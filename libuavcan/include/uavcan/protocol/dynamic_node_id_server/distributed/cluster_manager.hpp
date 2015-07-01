@@ -207,7 +207,7 @@ public:
      * storage backend using key 'cluster_size'.
      * Returns negative error code.
      */
-    int init(uint8_t init_cluster_size = ClusterSizeUnknown)
+    int init(const uint8_t init_cluster_size, const TransferPriority priority)
     {
         /*
          * Figuring out the cluster size
@@ -263,7 +263,7 @@ public:
         {
             return res;
         }
-        (void)discovery_pub_.setPriority(TransferPriorityLow);
+        discovery_pub_.setPriority(priority);
 
         res = discovery_sub_.start(DiscoveryCallback(this, &ClusterManager::handleDiscovery));
         if (res < 0)

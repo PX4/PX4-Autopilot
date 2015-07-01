@@ -74,16 +74,16 @@ TEST(TransferSender, Basic)
      */
     static const uint64_t TX_DEADLINE = 1000000;
 
-    // Normal priority
-    sendOne(senders[0], DATA[0], TX_DEADLINE, 0, uavcan::TransferTypeMessageBroadcast, 0);
     // Low priority
-    senders[0].setPriority(uavcan::TransferPriorityLow);
-    sendOne(senders[0], DATA[1], TX_DEADLINE, 0, uavcan::TransferTypeMessageUnicast,   RX_NODE_ID);
+    senders[0].setPriority(20);
+    sendOne(senders[0], DATA[0], TX_DEADLINE, 0, uavcan::TransferTypeMessageBroadcast, 0);
+    sendOne(senders[0], DATA[1], TX_DEADLINE, 0, uavcan::TransferTypeMessageBroadcast, 0);
     // High priority
-    senders[0].setPriority(uavcan::TransferPriorityHigh);
+    senders[0].setPriority(10);
     sendOne(senders[0], "123",   TX_DEADLINE, 0, uavcan::TransferTypeMessageBroadcast, 0);
-    sendOne(senders[0], "456",   TX_DEADLINE, 0, uavcan::TransferTypeMessageUnicast,   RX_NODE_ID);
+    sendOne(senders[0], "456",   TX_DEADLINE, 0, uavcan::TransferTypeMessageBroadcast, 0);
 
+    senders[1].setPriority(15);
     sendOne(senders[1], DATA[2], TX_DEADLINE, 0, uavcan::TransferTypeServiceRequest,  RX_NODE_ID);
     sendOne(senders[1], DATA[3], TX_DEADLINE, 0, uavcan::TransferTypeServiceResponse, RX_NODE_ID, 1);
     sendOne(senders[1], "",      TX_DEADLINE, 0, uavcan::TransferTypeServiceRequest,  RX_NODE_ID);
@@ -92,15 +92,15 @@ TEST(TransferSender, Basic)
     using namespace uavcan;
     static const Transfer TRANSFERS[8] =
     {
-        Transfer(TX_DEADLINE, 0, TransferPriorityNormal, TransferTypeMessageBroadcast, 0, TX_NODE_ID, 0,          DATA[0], TYPES[0]),
-        Transfer(TX_DEADLINE, 0, TransferPriorityLow,    TransferTypeMessageUnicast,   0, TX_NODE_ID, RX_NODE_ID, DATA[1], TYPES[0]),
-        Transfer(TX_DEADLINE, 0, TransferPriorityHigh,   TransferTypeMessageBroadcast, 1, TX_NODE_ID, 0,          "123",   TYPES[0]),
-        Transfer(TX_DEADLINE, 0, TransferPriorityHigh,   TransferTypeMessageUnicast,   1, TX_NODE_ID, RX_NODE_ID, "456",   TYPES[0]),
+        Transfer(TX_DEADLINE, 0, 20, TransferTypeMessageBroadcast, 0, TX_NODE_ID, 0, DATA[0], TYPES[0]),
+        Transfer(TX_DEADLINE, 0, 20, TransferTypeMessageBroadcast, 0, TX_NODE_ID, 0, DATA[1], TYPES[0]),
+        Transfer(TX_DEADLINE, 0, 10, TransferTypeMessageBroadcast, 1, TX_NODE_ID, 0, "123",   TYPES[0]),
+        Transfer(TX_DEADLINE, 0, 10, TransferTypeMessageBroadcast, 1, TX_NODE_ID, 0, "456",   TYPES[0]),
 
-        Transfer(TX_DEADLINE, 0, TransferPriorityService, TransferTypeServiceRequest,   0, TX_NODE_ID, RX_NODE_ID, DATA[2], TYPES[1]),
-        Transfer(TX_DEADLINE, 0, TransferPriorityService, TransferTypeServiceResponse,  1, TX_NODE_ID, RX_NODE_ID, DATA[3], TYPES[1]),
-        Transfer(TX_DEADLINE, 0, TransferPriorityService, TransferTypeServiceRequest,   1, TX_NODE_ID, RX_NODE_ID, "",      TYPES[1]),
-        Transfer(TX_DEADLINE, 0, TransferPriorityService, TransferTypeServiceResponse,  2, TX_NODE_ID, RX_NODE_ID, "",      TYPES[1])
+        Transfer(TX_DEADLINE, 0, 15, TransferTypeServiceRequest,   0, TX_NODE_ID, RX_NODE_ID, DATA[2], TYPES[1]),
+        Transfer(TX_DEADLINE, 0, 15, TransferTypeServiceResponse,  1, TX_NODE_ID, RX_NODE_ID, DATA[3], TYPES[1]),
+        Transfer(TX_DEADLINE, 0, 15, TransferTypeServiceRequest,   1, TX_NODE_ID, RX_NODE_ID, "",      TYPES[1]),
+        Transfer(TX_DEADLINE, 0, 15, TransferTypeServiceResponse,  2, TX_NODE_ID, RX_NODE_ID, "",      TYPES[1])
     };
 
     /*
@@ -217,7 +217,7 @@ TEST(TransferSender, Loopback)
     ASSERT_EQ(1, listener.last_frame.getIfaceIndex());
     ASSERT_EQ(3, listener.last_frame.getPayloadLen());
     ASSERT_TRUE(TX_NODE_ID == listener.last_frame.getSrcNodeID());
-    ASSERT_TRUE(listener.last_frame.isLast());
+    ASSERT_TRUE(listener.last_frame.isEndOfTransfer());
 
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getErrorCount());
     EXPECT_EQ(1, dispatcher.getTransferPerfCounter().getTxTransferCount());
@@ -255,7 +255,7 @@ TEST(TransferSender, PassiveMode)
     // ...but not unicast or anything else
     ASSERT_EQ(-uavcan::ErrPassiveMode,
               sender.send(Payload, sizeof(Payload), tsMono(1000), uavcan::MonotonicTime(),
-                          uavcan::TransferTypeMessageUnicast, uavcan::NodeID(42)));
+                          uavcan::TransferTypeServiceRequest, uavcan::NodeID(42)));
 
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getErrorCount());
     EXPECT_EQ(1, dispatcher.getTransferPerfCounter().getTxTransferCount());

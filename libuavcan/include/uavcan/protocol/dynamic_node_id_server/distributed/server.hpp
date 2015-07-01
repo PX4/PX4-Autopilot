@@ -246,12 +246,14 @@ public:
         , node_discoverer_(node, tracer, *this)
     { }
 
-    int init(const UniqueID& own_unique_id, const uint8_t cluster_size = ClusterManager::ClusterSizeUnknown)
+    int init(const UniqueID& own_unique_id,
+             const uint8_t cluster_size = ClusterManager::ClusterSizeUnknown,
+             const TransferPriority priority = TransferPriority::OneHigherThanLowest)
     {
         /*
          * Initializing Raft core first, because the next step requires Log to be loaded
          */
-        int res = raft_core_.init(cluster_size);
+        int res = raft_core_.init(cluster_size, priority);
         if (res < 0)
         {
             return res;
@@ -276,13 +278,13 @@ public:
         /*
          * Misc
          */
-        res = allocation_request_manager_.init();
+        res = allocation_request_manager_.init(priority);
         if (res < 0)
         {
             return res;
         }
 
-        res = node_discoverer_.init();
+        res = node_discoverer_.init(priority);
         if (res < 0)
         {
             return res;

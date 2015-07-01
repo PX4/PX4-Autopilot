@@ -99,9 +99,9 @@ struct Transfer
     std::string toString() const
     {
         std::ostringstream os;
-        os << "ts_m="     << ts_monotonic
+        os << "ts_m="    << ts_monotonic
            << " ts_utc=" << ts_utc
-           << " prio="     << priority
+           << " prio="   << int(priority.get())
            << " tt="     << transfer_type
            << " tid="    << int(transfer_id.get())
            << " snid="   << int(src_node_id.get())
@@ -176,25 +176,7 @@ namespace
 
 std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
 {
-    bool need_crc = false;
-    switch (transfer.transfer_type)
-    {
-    case uavcan::TransferTypeMessageBroadcast:
-    {
-        need_crc = transfer.payload.length() > sizeof(uavcan::CanFrame::data);
-        break;
-    }
-    case uavcan::TransferTypeServiceResponse:
-    case uavcan::TransferTypeServiceRequest:
-    case uavcan::TransferTypeMessageUnicast:
-    {
-        need_crc = transfer.payload.length() > (sizeof(uavcan::CanFrame::data) - 1);
-        break;
-    }
-    default:
-        std::cerr << "X_X" << std::endl;
-        std::exit(1);
-    }
+    const bool need_crc = transfer.payload.length() > (sizeof(uavcan::CanFrame::data) - 1);
 
     std::vector<uint8_t> raw_payload;
     if (need_crc)
@@ -208,7 +190,6 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     raw_payload.insert(raw_payload.end(), transfer.payload.begin(), transfer.payload.end());
 
     std::vector<uavcan::RxFrame> output;
-    uint8_t frame_index = 0;
     unsigned offset = 0;
     uavcan::MonotonicTime ts_monotonic = transfer.ts_monotonic;
     uavcan::UtcTime ts_utc = transfer.ts_utc;
@@ -219,7 +200,10 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
         EXPECT_TRUE(bytes_left >= 0);
 
         uavcan::Frame frm(transfer.data_type.getID(), transfer.transfer_type, transfer.src_node_id,
-                          transfer.dst_node_id, frame_index, transfer.transfer_id);
+                          transfer.dst_node_id, transfer.transfer_id);
+
+        frm.setStartOfTransfer(true);
+
         const int spres = frm.setPayload(&*(raw_payload.begin() + offset), unsigned(bytes_left));
         if (spres < 0)
         {
@@ -228,22 +212,23 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
         }
         if (spres == bytes_left)
         {
-            frm.makeLast();
+            frm.setEndOfTransfer(true);
         }
 
         offset += unsigned(spres);
-        EXPECT_GE(uavcan::Frame::getMaxIndexForTransferType(transfer.transfer_type), frame_index);
-        frame_index++;
 
         const uavcan::RxFrame rxfrm(frm, ts_monotonic, ts_utc, 0);
         ts_monotonic += uavcan::MonotonicDuration::fromUSec(1);
         ts_utc += uavcan::UtcDuration::fromUSec(1);
 
         output.push_back(rxfrm);
-        if (frm.isLast())
+        if (frm.isEndOfTransfer())
         {
             break;
         }
+
+        frm.setStartOfTransfer(false);
+        frm.flipToggle();
     }
     return output;
 }

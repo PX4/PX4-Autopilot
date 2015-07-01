@@ -41,7 +41,7 @@ class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
     }
 
     void handleComputeAggregateTypeSignatureRequest(const protocol::ComputeAggregateTypeSignature::Request& request,
-                                                    protocol::ComputeAggregateTypeSignature::Response& response)
+                                                    protocol::ComputeAggregateTypeSignature::Response&)
     {
         const DataTypeKind kind = DataTypeKind(request.kind.value); // No mapping needed
         if (!isValidDataTypeKind(kind))
@@ -51,6 +51,7 @@ class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
             return;
         }
 
+#if 0  /* TODO FIXME */
         UAVCAN_TRACE("DataTypeInfoProvider", "ComputeAggregateTypeSignature request for dtk=%d, len(known_ids)=%d",
                      int(request.kind.value), int(request.known_ids.size()));
 
@@ -61,6 +62,7 @@ class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
 
         response.aggregate_signature =
             GlobalDataTypeRegistry::instance().computeAggregateSignature(kind, response.mutually_known_ids).get();
+#endif
     }
 
     void handleGetDataTypeInfoRequest(const protocol::GetDataTypeInfo::Request& request,

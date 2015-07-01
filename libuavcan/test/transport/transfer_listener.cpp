@@ -45,7 +45,6 @@ TEST(TransferListener, BasicMFT)
      */
     static const std::string DATA[] =
     {
-        // Too long for unicast messages
         "Build a man a fire, and he'll be warm for a day. "
         "Set a man on fire, and he'll be warm for the rest of his life.",
 
@@ -53,7 +52,6 @@ TEST(TransferListener, BasicMFT)
 
         "In the beginning there was nothing, which exploded.",
 
-        // Too long for message transfers
         "The USSR, which they'd begun to renovate and improve at about the time when Tatarsky decided to "
         "change his profession, improved so much that it ceased to exist",
 
@@ -68,11 +66,11 @@ TEST(TransferListener, BasicMFT)
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageBroadcast, 1, DATA[0]),
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   1, DATA[1]),   // Same NID
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   2, DATA[2]),
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceRequest,   3, DATA[3]),
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceResponse,  4, DATA[4]),
+        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 1, DATA[0]),
+        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 1, DATA[1]),   // Same NID
+        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 2, DATA[2]),
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   3, DATA[3]),
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceResponse,  4, DATA[4]),
     };
 
     /*
@@ -103,8 +101,8 @@ TEST(TransferListener, CrcFailure)
      * Generating transfers with damaged payload (CRC is not valid)
      */
     TransferListenerEmulator emulator(subscriber, type);
-    const Transfer tr_mft = emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageBroadcast, 42, "123456789abcdefghik");
-    const Transfer tr_sft = emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageUnicast, 11, "abcd");
+    const Transfer tr_mft = emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 42, "123456789abcdefghik");
+    const Transfer tr_sft = emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 11, "abcd");
 
     std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft);
     std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft);
@@ -145,15 +143,15 @@ TEST(TransferListener, BasicSFT)
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageBroadcast, 1, "123"),
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   1, "456"),   // Same NID
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   2, ""),
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceRequest,   3, "abc"),
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceResponse,  4, ""),
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceResponse,  2, ""),      // New TT, ignored due to OOM
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   2, "foo"),   // Same as 2, not ignored
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   2, "123456789abc"), // Same as 2, not SFT - ignore
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   2, "bar"),   // Same as 2, not ignored
+        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 1, "123"),
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   1, "456"),          // Same NID
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   2, ""),
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   3, "abc"),
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceResponse,  4, ""),
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceResponse,  2, ""),             // New TT, ignored due to OOM
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   2, "foo"),          // Same as 2, not ignored
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   2, "123456789abc"), // Same as 2, not SFT - ignore
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   2, "bar"),          // Same as 2, not ignored
     };
 
     emulator.send(transfers);
@@ -182,8 +180,8 @@ TEST(TransferListener, Cleanup)
      * Generating transfers
      */
     TransferListenerEmulator emulator(subscriber, type);
-    const Transfer tr_mft = emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageBroadcast, 42, "123456789abcdefghik");
-    const Transfer tr_sft = emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageUnicast, 11, "abcd");
+    const Transfer tr_mft = emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 42, "123456789abcdefghik");
+    const Transfer tr_sft = emulator.makeTransfer(16, uavcan::TransferTypeServiceResponse, 11, "abcd");
 
     const std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft);
     const std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft);
@@ -225,35 +223,6 @@ TEST(TransferListener, Cleanup)
 }
 
 
-TEST(TransferListener, MaximumTransferLength)
-{
-    const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
-
-    NullAllocator poolmgr;
-    uavcan::TransferPerfCounter perf;
-    TestListener<uavcan::MaxPossibleTransferPayloadLen * 2, 3, 3> subscriber(perf, type, poolmgr);
-
-    TransferListenerEmulator emulator(subscriber, type);
-    const Transfer transfers[] =
-    {
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceRequest,   1,
-                              std::string(uavcan::MaxServiceTransferPayloadLen, 'z')),            // Longer
-        emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageUnicast,   2,
-                              std::string(uavcan::MaxMessageUnicastTransferPayloadLen, 'z')),     // Shorter
-        emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageBroadcast, 3,
-                              std::string(uavcan::MaxMessageBroadcastTransferPayloadLen, 'z'))    // Same as above
-    };
-
-    emulator.send(transfers);
-
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[1]));
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[2]));
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[0]));    // Service takes more frames
-
-    ASSERT_TRUE(subscriber.isEmpty());
-}
-
-
 TEST(TransferListener, AnonymousTransfers)
 {
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
@@ -265,10 +234,10 @@ TEST(TransferListener, AnonymousTransfers)
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
-        emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageUnicast,   0, "12345678"),  // Invalid - not broadcast
-        emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageBroadcast, 0, "12345678"),  // Valid
-        emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageBroadcast, 0, "123456789"), // Invalid - not SFT
-        emulator.makeTransfer(uavcan::TransferPriorityNormal, uavcan::TransferTypeMessageBroadcast, 0, "")           // Valid
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   0, "1234567"),  // Invalid - not broadcast
+        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 0, "1234567"),  // Valid
+        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 0, "12345678"), // Invalid - not SFT
+        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 0, "")          // Valid
     };
 
     emulator.send(transfers);

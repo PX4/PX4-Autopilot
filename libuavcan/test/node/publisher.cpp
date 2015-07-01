@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/node/publisher.hpp>
-#include <uavcan/mavlink/Message.hpp>
+#include <root_ns_a/MavlinkMessage.hpp>
 #include "../clock.hpp"
 #include "../transport/can/can.hpp"
 #include "test_node.hpp"
@@ -16,17 +16,17 @@ TEST(Publisher, Basic)
     CanDriverMock can_driver(2, clock_mock);
     TestNode node(can_driver, clock_mock, 1);
 
-    uavcan::Publisher<uavcan::mavlink::Message> publisher(node);
+    uavcan::Publisher<root_ns_a::MavlinkMessage> publisher(node);
 
     ASSERT_FALSE(publisher.getTransferSender().isInitialized());
 
     std::cout <<
-        "sizeof(uavcan::Publisher<uavcan::mavlink::Message>): " <<
-        sizeof(uavcan::Publisher<uavcan::mavlink::Message>) << std::endl;
+        "sizeof(uavcan::Publisher<root_ns_a::MavlinkMessage>): " <<
+        sizeof(uavcan::Publisher<root_ns_a::MavlinkMessage>) << std::endl;
 
     // Manual type registration - we can't rely on the GDTR state
     uavcan::GlobalDataTypeRegistry::instance().reset();
-    uavcan::DefaultDataTypeRegistrator<uavcan::mavlink::Message> _registrator;
+    uavcan::DefaultDataTypeRegistrator<root_ns_a::MavlinkMessage> _registrator;
 
     /*
      * Message layout:
@@ -36,7 +36,7 @@ TEST(Publisher, Basic)
      * uint8 msgid
      * uint8[<256] payload
      */
-    uavcan::mavlink::Message msg;
+    root_ns_a::MavlinkMessage msg;
     msg.seq = 0x42;
     msg.sysid = 0x72;
     msg.compid = 0x08;
@@ -54,9 +54,11 @@ TEST(Publisher, Basic)
 
         // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
-        uavcan::Frame expected_frame(uavcan::mavlink::Message::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
-                                     node.getNodeID(), uavcan::NodeID::Broadcast, 0, 0, true);
+        uavcan::Frame expected_frame(root_ns_a::MavlinkMessage::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
+                                     node.getNodeID(), uavcan::NodeID::Broadcast, 0);
         expected_frame.setPayload(expected_transfer_payload, 7);
+        expected_frame.setStartOfTransfer(true);
+        expected_frame.setEndOfTransfer(true);
 
         uavcan::CanFrame expected_can_frame;
         ASSERT_TRUE(expected_frame.compile(expected_can_frame));
@@ -67,14 +69,16 @@ TEST(Publisher, Basic)
         ASSERT_TRUE(can_driver.ifaces[1].tx.empty());
 
         // Second shot - checking the transfer ID
-        publisher.setPriority(uavcan::TransferPriorityLow);
+        publisher.setPriority(10);
         ASSERT_LT(0, publisher.broadcast(msg));
 
-        expected_frame = uavcan::Frame(uavcan::mavlink::Message::DefaultDataTypeID,
+        expected_frame = uavcan::Frame(root_ns_a::MavlinkMessage::DefaultDataTypeID,
                                        uavcan::TransferTypeMessageBroadcast,
-                                       node.getNodeID(), uavcan::NodeID::Broadcast, 0, 1, true);
+                                       node.getNodeID(), uavcan::NodeID::Broadcast, 1);
+        expected_frame.setStartOfTransfer(true);
+        expected_frame.setEndOfTransfer(true);
         expected_frame.setPayload(expected_transfer_payload, 7);
-        expected_frame.setPriority(uavcan::TransferPriorityLow);
+        expected_frame.setPriority(10);
         ASSERT_TRUE(expected_frame.compile(expected_can_frame));
 
         ASSERT_TRUE(can_driver.ifaces[0].matchAndPopTx(expected_can_frame, tx_timeout_usec + 100));
@@ -84,29 +88,6 @@ TEST(Publisher, Basic)
     }
 
     clock_mock.advance(1000);
-
-    /*
-     * Unicast
-     */
-    {
-        publisher.setPriority(uavcan::TransferPriorityHigh);
-        ASSERT_LT(0, publisher.unicast(msg, 0x44));
-
-        // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
-        // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
-        uavcan::Frame expected_frame(uavcan::mavlink::Message::DefaultDataTypeID, uavcan::TransferTypeMessageUnicast,
-                                     node.getNodeID(), uavcan::NodeID(0x44), 0, 0, true);
-        expected_frame.setPayload(expected_transfer_payload, 7);
-        expected_frame.setPriority(uavcan::TransferPriorityHigh);
-
-        uavcan::CanFrame expected_can_frame;
-        ASSERT_TRUE(expected_frame.compile(expected_can_frame));
-
-        ASSERT_TRUE(can_driver.ifaces[0].matchAndPopTx(expected_can_frame, tx_timeout_usec + 100 + 1000));
-        ASSERT_TRUE(can_driver.ifaces[1].matchAndPopTx(expected_can_frame, tx_timeout_usec + 100 + 1000));
-        ASSERT_TRUE(can_driver.ifaces[0].tx.empty());
-        ASSERT_TRUE(can_driver.ifaces[1].tx.empty());
-    }
 
     /*
      * Misc

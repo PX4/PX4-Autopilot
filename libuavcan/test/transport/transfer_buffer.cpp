@@ -236,14 +236,14 @@ TEST(TransferBufferManager, Basic)
     std::auto_ptr<TransferBufferManagerType> mgr(new TransferBufferManagerType(pool));
 
     // Empty
-    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TransferTypeMessageUnicast)));
-    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(127, uavcan::TransferTypeMessageUnicast)));
+    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TransferTypeMessageBroadcast)));
+    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(127, uavcan::TransferTypeServiceRequest)));
 
     ITransferBuffer* tbb = NULL;
 
     const TransferBufferManagerKey keys[5] =
     {
-        TransferBufferManagerKey(0, uavcan::TransferTypeMessageUnicast),
+        TransferBufferManagerKey(0, uavcan::TransferTypeServiceRequest),
         TransferBufferManagerKey(1, uavcan::TransferTypeMessageBroadcast),
         TransferBufferManagerKey(2, uavcan::TransferTypeServiceRequest),
         TransferBufferManagerKey(127, uavcan::TransferTypeServiceResponse),

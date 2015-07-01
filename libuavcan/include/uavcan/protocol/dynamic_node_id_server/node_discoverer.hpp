@@ -309,8 +309,10 @@ public:
         , node_status_sub_(node)
     { }
 
-    int init()
+    int init(const TransferPriority priority)
     {
+        // TODO FIXME set priority
+        (void)priority;
         int res = get_node_info_client_.init();
         if (res < 0)
         {

@@ -55,7 +55,9 @@ TEST(TransportStatsProvider, Basic)
      * Sending a malformed frame, it must be registered as tranfer error
      */
     uavcan::Frame frame(uavcan::protocol::GetTransportStats::DefaultDataTypeID, uavcan::TransferTypeServiceRequest,
-                        2, 1, 0, 0, true);
+                        2, 1, 0);
+    frame.setStartOfTransfer(true);
+    frame.setEndOfTransfer(true);
     uavcan::CanFrame can_frame;
     ASSERT_TRUE(frame.compile(can_frame));
     nodes.can_a.read_queue.push(can_frame);

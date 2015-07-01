@@ -95,7 +95,7 @@ TEST(dynamic_node_id_server_AllocationRequestManager, Basic)
 
     AllocationRequestManager manager(nodes.a, tracer, handler);
 
-    ASSERT_LE(0, manager.init());
+    ASSERT_LE(0, manager.init(uavcan::TransferPriority::OneHigherThanLowest));
 
     /*
      * Allocation

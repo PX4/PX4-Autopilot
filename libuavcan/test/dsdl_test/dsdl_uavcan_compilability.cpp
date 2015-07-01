@@ -7,7 +7,6 @@
 #include <uavcan/helpers/ostream.hpp>
 
 #include <uavcan/Timestamp.hpp>
-#include <uavcan/mavlink/Message.hpp>
 #include <uavcan/protocol/ComputeAggregateTypeSignature.hpp>
 #include <uavcan/protocol/GetTransportStats.hpp>
 #include <uavcan/protocol/Panic.hpp>
@@ -19,7 +18,6 @@
 #include <uavcan/protocol/NodeStatus.hpp>
 #include <uavcan/protocol/GetNodeInfo.hpp>
 #include <uavcan/protocol/debug/LogMessage.hpp>
-#include <uavcan/protocol/debug/StartHILSimulation.hpp>
 #include <uavcan/protocol/debug/KeyValue.hpp>
 
 #include <root_ns_a/Deep.hpp>
@@ -29,14 +27,6 @@ TEST(Dsdl, Streaming)
 {
     std::ostringstream os;
 
-    uavcan::mavlink::Message mavlink;
-    os << mavlink << std::endl << "==========" << std::endl;
-
-    mavlink.compid = 12;
-    mavlink.seq = 42;
-    mavlink.payload = "Here\tgoes\npayload";
-    os << mavlink << std::endl << "==========" << std::endl;
-
     uavcan::protocol::GetNodeInfo::Response get_node_info_rsp;
     os << get_node_info_rsp << std::endl << "==========" << std::endl;
 
@@ -45,18 +35,6 @@ TEST(Dsdl, Streaming)
     os << ps << std::endl << "==========" << std::endl;
 
     static const std::string Reference =
-        "seq: 0\n"
-        "sysid: 0\n"
-        "compid: 0\n"
-        "msgid: 0\n"
-        "payload: \"\"\n"
-        "==========\n"
-        "seq: 42\n"
-        "sysid: 0\n"
-        "compid: 12\n"
-        "msgid: 0\n"
-        "payload: \"Here\\x09goes\\x0Apayload\"\n"
-        "==========\n"
         "status: \n"
         "  uptime_sec: 0\n"
         "  status_code: 0\n"

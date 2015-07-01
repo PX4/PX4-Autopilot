@@ -727,7 +727,7 @@ public:
      *                          value from the persistent storage will be used. If not set and there's no such key
      *                          in the persistent storage, initialization will fail.
      */
-    int init(uint8_t cluster_size = ClusterManager::ClusterSizeUnknown)
+    int init(const uint8_t cluster_size, const TransferPriority priority)
     {
         /*
          * Initializing state variables
@@ -748,7 +748,7 @@ public:
             return res;
         }
 
-        res = cluster_.init(cluster_size);
+        res = cluster_.init(cluster_size, priority);
         if (res < 0)
         {
             return res;

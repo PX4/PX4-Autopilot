@@ -65,7 +65,7 @@ public:
      */
     int start(const protocol::HardwareVersion& hardware_version,
               const NodeID preferred_node_id = NodeID::Broadcast,
-              const TransferPriority transfer_priority = TransferPriorityNormal);
+              const TransferPriority transfer_priority = TransferPriority::OneHigherThanLowest);
 
     /**
      * Use this method to determine when allocation is complete.

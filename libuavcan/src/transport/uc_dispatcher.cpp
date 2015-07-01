@@ -165,7 +165,6 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
     switch (frame.getTransferType())
     {
     case TransferTypeMessageBroadcast:
-    case TransferTypeMessageUnicast:
     {
         lmsg_.handleFrame(frame);
         break;
@@ -364,8 +363,7 @@ bool Dispatcher::hasSubscriber(DataTypeID dtid) const
 
 bool Dispatcher::hasPublisher(DataTypeID dtid) const
 {
-    return outgoing_transfer_reg_.exists(dtid, TransferTypeMessageBroadcast) ||
-           outgoing_transfer_reg_.exists(dtid, TransferTypeMessageUnicast);
+    return outgoing_transfer_reg_.exists(dtid, TransferTypeMessageBroadcast);
 }
 
 bool Dispatcher::hasServer(DataTypeID dtid) const

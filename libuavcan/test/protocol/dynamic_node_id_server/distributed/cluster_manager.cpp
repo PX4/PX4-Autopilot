@@ -8,7 +8,6 @@
 #include "../../helpers.hpp"
 #include "../memory_storage_backend.hpp"
 
-
 TEST(dynamic_node_id_server_ClusterManager, Initialization)
 {
     using namespace uavcan::dynamic_node_id_server::distributed;
@@ -32,11 +31,11 @@ TEST(dynamic_node_id_server_ClusterManager, Initialization)
         ClusterManager mgr(nodes.a, storage, log, tracer);
 
         // Too big
-        ASSERT_GT(0, mgr.init(MaxClusterSize + 1));
+        ASSERT_GT(0, mgr.init(MaxClusterSize + 1, uavcan::TransferPriority::OneHigherThanLowest));
         ASSERT_EQ(0, storage.getNumKeys());
 
         // OK
-        ASSERT_LE(0, mgr.init(5));
+        ASSERT_LE(0, mgr.init(5, uavcan::TransferPriority::OneHigherThanLowest));
         ASSERT_EQ(1, storage.getNumKeys());
         ASSERT_EQ("5", storage.get("cluster_size"));
 
@@ -57,12 +56,12 @@ TEST(dynamic_node_id_server_ClusterManager, Initialization)
         ClusterManager mgr(nodes.a, storage, log, tracer);
 
         // Not configured
-        ASSERT_GT(0, mgr.init());
+        ASSERT_GT(0, mgr.init(0, uavcan::TransferPriority::OneHigherThanLowest));
         ASSERT_EQ(0, storage.getNumKeys());
 
         // OK
         storage.set("cluster_size", "5");
-        ASSERT_LE(0, mgr.init());
+        ASSERT_LE(0, mgr.init(0, uavcan::TransferPriority::OneHigherThanLowest));
         ASSERT_EQ(1, storage.getNumKeys());
     }
 }
@@ -94,7 +93,7 @@ TEST(dynamic_node_id_server_ClusterManager, OneServer)
     /*
      * Starting
      */
-    ASSERT_LE(0, mgr.init(1));
+    ASSERT_LE(0, mgr.init(1, uavcan::TransferPriority::OneHigherThanLowest));
 
     ASSERT_EQ(0, mgr.getNumKnownServers());
     ASSERT_TRUE(mgr.isClusterDiscovered());
@@ -171,7 +170,7 @@ TEST(dynamic_node_id_server_ClusterManager, ThreeServers)
     /*
      * Starting
      */
-    ASSERT_LE(0, mgr.init(3));
+    ASSERT_LE(0, mgr.init(3, uavcan::TransferPriority::OneHigherThanLowest));
 
     ASSERT_EQ(0, mgr.getNumKnownServers());
     ASSERT_FALSE(mgr.isClusterDiscovered());

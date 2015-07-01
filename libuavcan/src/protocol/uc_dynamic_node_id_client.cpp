@@ -169,7 +169,7 @@ int DynamicNodeIDClient::start(const protocol::HardwareVersion& hardware_version
     }
     dnida_sub_.allowAnonymousTransfers();
 
-    startPeriodic(MonotonicDuration::fromMSec(protocol::dynamic_node_id::Allocation::DEFAULT_REQUEST_PERIOD_MS));
+    startPeriodic(MonotonicDuration::fromMSec(1000 /* TODO FIXME */));
 
     return 0;
 }

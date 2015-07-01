@@ -101,15 +101,17 @@ TEST(Dispatcher, Reception)
 
     static const std::string DATA[6] =
     {
-        "Yes, man is mortal, but that would be only half the trouble. ",
+        "Yes, man is mortal, but that would be only half the trouble. "
+        "The worst of it is that he's sometimes unexpectedly mortal - there's the trick!",
 
-        "In fact, I'm beginning to fear that this confusion will go on for a long time. ",
+        "In fact, I'm beginning to fear that this confusion will go on for a long time. "
+        "And all because he writes down what I said incorrectly.",
 
-        "I had the pleasure of meeting that young man at the Patriarch's Ponds. ",
+        "I had the pleasure of meeting that young man at the Patriarch's Ponds. "
+        "He almost drove me mad myself, proving to me that I don't exist. But you do believe that it is really I?",
 
         "He was a dreamer, a thinker, a speculative philosopher... or, as his wife would have it, an idiot.",
 
-        // This one is too long to use in message transfers
         "The only way to get ideas for stories is to drink way too much coffee and buy a desk that doesn't "
         "collapse when you beat your head against it",
 
@@ -121,18 +123,17 @@ TEST(Dispatcher, Reception)
         std::cout << "Size of test data chunk " << i << ": " << DATA[i].length() << std::endl;
     }
 
-    const Transfer transfers[9] =
+    const Transfer transfers[8] =
     {
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageBroadcast, 10, DATA[0], TYPES[0]),
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   11, DATA[1], TYPES[1]),
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceRequest,   12, DATA[2], TYPES[2]),
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceResponse,  13, DATA[4], TYPES[3]),
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   14, DATA[3], TYPES[0]),
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageBroadcast, 15, DATA[5], TYPES[1]),
+        emulator.makeTransfer(0,  uavcan::TransferTypeMessageBroadcast, 10, DATA[0], TYPES[0]),
+        emulator.makeTransfer(5,  uavcan::TransferTypeMessageBroadcast, 11, DATA[1], TYPES[1]),
+        emulator.makeTransfer(10, uavcan::TransferTypeServiceRequest,   12, DATA[2], TYPES[2]),
+        emulator.makeTransfer(15, uavcan::TransferTypeServiceResponse,  13, DATA[4], TYPES[3]),
+        emulator.makeTransfer(20,  uavcan::TransferTypeMessageBroadcast, 14, DATA[3], TYPES[0]),
+        emulator.makeTransfer(25,  uavcan::TransferTypeMessageBroadcast, 15, DATA[5], TYPES[1]),
         // Wrongly addressed:
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceResponse,  10, DATA[0], TYPES[3], 100),
-        emulator.makeTransfer(uavcan::TransferPriorityService, uavcan::TransferTypeServiceRequest,   11, DATA[4], TYPES[2], 101),
-        emulator.makeTransfer(uavcan::TransferPriorityNormal,  uavcan::TransferTypeMessageUnicast,   12, DATA[2], TYPES[1], 102)
+        emulator.makeTransfer(29, uavcan::TransferTypeServiceResponse,  10, DATA[0], TYPES[3], 100),
+        emulator.makeTransfer(31, uavcan::TransferTypeServiceRequest,   11, DATA[4], TYPES[2], 101)
     };
 
     /*
@@ -280,12 +281,12 @@ TEST(Dispatcher, Transmission)
 
     // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
     // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
-    uavcan::Frame frame(123, uavcan::TransferTypeMessageUnicast, SELF_NODE_ID, 2, 0, 0, true);
+    uavcan::Frame frame(123, uavcan::TransferTypeServiceRequest, SELF_NODE_ID, 2, 0);
     frame.setPayload(reinterpret_cast<const uint8_t*>("123"), 3);
 
     ASSERT_FALSE(dispatcher.hasPublisher(123));
     ASSERT_FALSE(dispatcher.hasPublisher(456));
-    const uavcan::OutgoingTransferRegistryKey otr_key(123, uavcan::TransferTypeMessageUnicast, 2);
+    const uavcan::OutgoingTransferRegistryKey otr_key(123, uavcan::TransferTypeServiceRequest, 2);
     ASSERT_TRUE(out_trans_reg.accessOrCreate(otr_key, uavcan::MonotonicTime::fromMSec(1000000)));
     ASSERT_TRUE(dispatcher.hasPublisher(123));
     ASSERT_FALSE(dispatcher.hasPublisher(456));
@@ -384,7 +385,7 @@ TEST(Dispatcher, Loopback)
 
         // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
-        uavcan::Frame frame(123, uavcan::TransferTypeMessageUnicast, SELF_NODE_ID, 2, 0, 0, true);
+        uavcan::Frame frame(123, uavcan::TransferTypeServiceResponse, SELF_NODE_ID, 2, 0);
         frame.setPayload(reinterpret_cast<const uint8_t*>("123"), 3);
 
         ASSERT_TRUE(listener.last_frame == uavcan::RxFrame());

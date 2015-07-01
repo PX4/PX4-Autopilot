@@ -148,7 +148,9 @@ static inline void emulateSingleFrameBroadcastTransfer(CanDriver& can, uavcan::N
     // DataTypeID data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
     // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
     uavcan::Frame frame(MessageType::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
-                        node_id, uavcan::NodeID::Broadcast, 0, tid, true);
+                        node_id, uavcan::NodeID::Broadcast, tid);
+    frame.setStartOfTransfer(true);
+    frame.setEndOfTransfer(true);
 
     ASSERT_EQ(buffer.getMaxWritePos(), frame.setPayload(buffer.getRawPtr(), buffer.getMaxWritePos()));
 

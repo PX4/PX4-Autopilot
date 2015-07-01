@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <uavcan/build_config.hpp>
+#include <uavcan/util/templates.hpp>
 #include <uavcan/std.hpp>
 
 namespace uavcan
@@ -29,7 +30,13 @@ class UAVCAN_EXPORT TransferPriority
 
 public:
     static const uint8_t BitLen = 5U;
+    static const uint8_t NumericallyMax = (1U << BitLen) - 1;
+    static const uint8_t NumericallyMin = 0;
+
+    /// This priority is used by default
     static const TransferPriority Default;
+    static const TransferPriority OneHigherThanLowest;
+    static const TransferPriority OneLowerThanHighest;
 
     TransferPriority() : value_(0xFF) { }
 
@@ -37,6 +44,16 @@ public:
         : value_(value)
     {
         UAVCAN_ASSERT(isValid());
+    }
+
+    template <uint8_t Percent>
+    static TransferPriority fromPercent()
+    {
+        StaticAssert<(Percent <= 100)>::check();
+        enum { Result = ((100U - Percent) * NumericallyMax) / 100U };
+        StaticAssert<(Result <= NumericallyMax)>::check();
+        StaticAssert<(Result >= NumericallyMin)>::check();
+        return TransferPriority(Result);
     }
 
     uint8_t get() const { return value_; }

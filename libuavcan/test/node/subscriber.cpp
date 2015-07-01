@@ -5,8 +5,8 @@
 #include <gtest/gtest.h>
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/util/method_binder.hpp>
-#include <uavcan/mavlink/Message.hpp>
 #include <root_ns_a/EmptyMessage.hpp>
+#include <root_ns_a/MavlinkMessage.hpp>
 #include "../clock.hpp"
 #include "../transport/can/can.hpp"
 #include "test_node.hpp"
@@ -64,22 +64,22 @@ TEST(Subscriber, Basic)
 {
     // Manual type registration - we can't rely on the GDTR state
     uavcan::GlobalDataTypeRegistry::instance().reset();
-    uavcan::DefaultDataTypeRegistrator<uavcan::mavlink::Message> _registrator;
+    uavcan::DefaultDataTypeRegistrator<root_ns_a::MavlinkMessage> _registrator;
 
     SystemClockDriver clock_driver;
     CanDriverMock can_driver(2, clock_driver);
     TestNode node(can_driver, clock_driver, 1);
 
-    typedef SubscriptionListener<uavcan::mavlink::Message> Listener;
+    typedef SubscriptionListener<root_ns_a::MavlinkMessage> Listener;
 
-    uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder> sub_extended(node);
-    uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder> sub_extended2(node); // Not used
-    uavcan::Subscriber<uavcan::mavlink::Message, Listener::SimpleBinder> sub_simple(node);
-    uavcan::Subscriber<uavcan::mavlink::Message, Listener::SimpleBinder> sub_simple2(node);     // Not used
+    uavcan::Subscriber<root_ns_a::MavlinkMessage, Listener::ExtendedBinder> sub_extended(node);
+    uavcan::Subscriber<root_ns_a::MavlinkMessage, Listener::ExtendedBinder> sub_extended2(node); // Not used
+    uavcan::Subscriber<root_ns_a::MavlinkMessage, Listener::SimpleBinder> sub_simple(node);
+    uavcan::Subscriber<root_ns_a::MavlinkMessage, Listener::SimpleBinder> sub_simple2(node);     // Not used
 
     std::cout <<
-        "sizeof(uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder>): " <<
-        sizeof(uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder>) << std::endl;
+        "sizeof(uavcan::Subscriber<root_ns_a::MavlinkMessage, Listener::ExtendedBinder>): " <<
+        sizeof(uavcan::Subscriber<root_ns_a::MavlinkMessage, Listener::ExtendedBinder>) << std::endl;
 
     // Null binder - will fail
     ASSERT_EQ(-uavcan::ErrInvalidParam, sub_extended.start(Listener::ExtendedBinder(NULL, NULL)));
@@ -94,7 +94,7 @@ TEST(Subscriber, Basic)
      * uint8 msgid
      * uint8[<256] payload
      */
-    uavcan::mavlink::Message expected_msg;
+    root_ns_a::MavlinkMessage expected_msg;
     expected_msg.seq = 0x42;
     expected_msg.sysid = 0x72;
     expected_msg.compid = 0x08;
@@ -109,13 +109,15 @@ TEST(Subscriber, Basic)
     std::vector<uavcan::RxFrame> rx_frames;
     for (uint8_t i = 0; i < 4; i++)
     {
-        uavcan::TransferType tt = (i & 1) ? uavcan::TransferTypeMessageUnicast : uavcan::TransferTypeMessageBroadcast;
+        uavcan::TransferType tt = uavcan::TransferTypeMessageBroadcast;
         uavcan::NodeID dni = (tt == uavcan::TransferTypeMessageBroadcast) ?
                              uavcan::NodeID::Broadcast : node.getDispatcher().getNodeID();
         // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
-        uavcan::Frame frame(uavcan::mavlink::Message::DefaultDataTypeID, tt, uavcan::NodeID(uint8_t(i + 100)),
-                            dni, 0, i, true);
+        uavcan::Frame frame(root_ns_a::MavlinkMessage::DefaultDataTypeID, tt, uavcan::NodeID(uint8_t(i + 100)),
+                            dni, i);
+        frame.setStartOfTransfer(true);
+        frame.setEndOfTransfer(true);
         frame.setPayload(transfer_payload, 7);
         uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
         rx_frames.push_back(rx_frame);
@@ -184,7 +186,7 @@ TEST(Subscriber, Basic)
 }
 
 
-static void panickingSink(const uavcan::ReceivedDataStructure<uavcan::mavlink::Message>&)
+static void panickingSink(const uavcan::ReceivedDataStructure<root_ns_a::MavlinkMessage>&)
 {
     FAIL() << "I just went mad";
 }
@@ -194,14 +196,14 @@ TEST(Subscriber, FailureCount)
 {
     // Manual type registration - we can't rely on the GDTR state
     uavcan::GlobalDataTypeRegistry::instance().reset();
-    uavcan::DefaultDataTypeRegistrator<uavcan::mavlink::Message> _registrator;
+    uavcan::DefaultDataTypeRegistrator<root_ns_a::MavlinkMessage> _registrator;
 
     SystemClockDriver clock_driver;
     CanDriverMock can_driver(2, clock_driver);
     TestNode node(can_driver, clock_driver, 1);
 
     {
-        uavcan::Subscriber<uavcan::mavlink::Message> sub(node);
+        uavcan::Subscriber<root_ns_a::MavlinkMessage> sub(node);
         ASSERT_EQ(0, node.getDispatcher().getNumMessageListeners());
         sub.start(panickingSink);
         ASSERT_EQ(1, node.getDispatcher().getNumMessageListeners());
@@ -212,8 +214,10 @@ TEST(Subscriber, FailureCount)
         {
             // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
             // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
-            uavcan::Frame frame(uavcan::mavlink::Message::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
-                                uavcan::NodeID(uint8_t(i + 100)), uavcan::NodeID::Broadcast, 0, i, true);
+            uavcan::Frame frame(root_ns_a::MavlinkMessage::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
+                                uavcan::NodeID(uint8_t(i + 100)), uavcan::NodeID::Broadcast, i);
+            frame.setStartOfTransfer(true);
+            frame.setEndOfTransfer(true);
             // No payload - broken transfer
             uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
             can_driver.ifaces[0].pushRx(rx_frame);
@@ -257,7 +261,9 @@ TEST(Subscriber, SingleFrameTransfer)
         // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
         uavcan::Frame frame(root_ns_a::EmptyMessage::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
-                            uavcan::NodeID(uint8_t(i + 100)), uavcan::NodeID::Broadcast, 0, i, true);
+                            uavcan::NodeID(uint8_t(i + 100)), uavcan::NodeID::Broadcast, i);
+        frame.setStartOfTransfer(true);
+        frame.setEndOfTransfer(true);
         // No payload - message is empty
         uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
         can_driver.ifaces[0].pushRx(rx_frame);

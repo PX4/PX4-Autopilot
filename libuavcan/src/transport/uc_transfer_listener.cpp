@@ -65,7 +65,7 @@ MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(MonotonicTime ts_mono, Ut
     , buf_acc_(tba)
 {
     UAVCAN_ASSERT(last_frame.isValid());
-    UAVCAN_ASSERT(last_frame.isLast());
+    UAVCAN_ASSERT(last_frame.isEndOfTransfer());
 }
 
 int MultiFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned len) const
@@ -202,7 +202,7 @@ void TransferListenerBase::handleFrame(const RxFrame& frame)
         TransferReceiver* recv = receivers_.access(key);
         if (recv == NULL)
         {
-            if (!frame.isFirst())
+            if (!frame.isStartOfTransfer())
             {
                 return;
             }
@@ -219,8 +219,8 @@ void TransferListenerBase::handleFrame(const RxFrame& frame)
         handleReception(*recv, frame, tba);
     }
     else if (frame.getSrcNodeID().isBroadcast() &&
-             frame.isFirst() &&
-             frame.isLast() &&
+             frame.isStartOfTransfer() &&
+             frame.isEndOfTransfer() &&
              frame.getDstNodeID().isBroadcast())        // Anonymous transfer
     {
         handleAnonymousTransferReception(frame);

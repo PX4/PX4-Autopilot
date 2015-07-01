@@ -46,14 +46,14 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
             UAVCAN_ASSERT(iface_index < MaxCanIfaces);
         }
 
-        int init()
+        int init(TransferPriority priority = TransferPriority::OneLowerThanHighest)
         {
             const int res = pub_.init();
             if (res >= 0)
             {
                 pub_.getTransferSender().setIfaceMask(uint8_t(1 << iface_index_));
                 pub_.getTransferSender().setCanIOFlags(CanIOFlagLoopback);
-                pub_.setPriority(TransferPriorityHigh);  // Fixed priority
+                pub_.setPriority(priority);
             }
             return res;
         }
@@ -109,7 +109,7 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
         {
             if (frame.getDataTypeID() == dtid_ &&
                 frame.getTransferType() == TransferTypeMessageBroadcast &&
-                frame.isLast() && frame.isFirst() &&
+                frame.isStartOfTransfer() && frame.isEndOfTransfer() &&
                 frame.getSrcNodeID() == node_.getNodeID())
             {
                 iface_masters_[iface]->setTxTimestamp(frame.getUtcTimestamp());

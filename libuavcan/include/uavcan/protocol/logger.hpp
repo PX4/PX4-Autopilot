@@ -94,14 +94,14 @@ public:
      * Must be called once before use.
      * Returns negative error code.
      */
-    int init()
+    int init(TransferPriority priority = TransferPriority::OneHigherThanLowest)
     {
         const int res = logmsg_pub_.init();
         if (res < 0)
         {
             return res;
         }
-        logmsg_pub_.setPriority(TransferPriorityLow); // Fixed priority
+        logmsg_pub_.setPriority(priority); // Fixed priority
         return 0;
     }
 

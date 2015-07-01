@@ -56,9 +56,7 @@ public:
 
     DataTypeID(uint16_t id)  // Implicit
         : value_(id)
-    {
-        UAVCAN_ASSERT(id <= MaxPossibleDataTypeIDValue);
-    }
+    { }
 
     static DataTypeID getMaxValueForDataTypeKind(const DataTypeKind dtkind);
 

@@ -282,14 +282,7 @@ const std::map<std::string,
                 uavcan::equipment::hardpoint::Command msg;
                 msg.command = std::stoi(args.at(0));
                 auto pub = node->makePublisher<uavcan::equipment::hardpoint::Command>();
-                if (node_id.isBroadcast())
-                {
-                    (void)pub->broadcast(msg);
-                }
-                else
-                {
-                    (void)pub->unicast(msg, node_id);
-                }
+                (void)pub->broadcast(msg);
             }
         }
     },
@@ -305,14 +298,7 @@ const std::map<std::string,
                 msg.timeout_sec = (args.size() > 1) ? std::stoi(args.at(1)) : 60;
                 std::cout << msg << std::endl;
                 auto pub = node->makePublisher<uavcan::protocol::EnumerationRequest>();
-                if (node_id.isBroadcast())
-                {
-                    (void)pub->broadcast(msg);
-                }
-                else
-                {
-                    (void)pub->unicast(msg, node_id);  // Unicasting an enumeration request - what a nonsense
-                }
+                (void)pub->broadcast(msg);
             }
         }
     }

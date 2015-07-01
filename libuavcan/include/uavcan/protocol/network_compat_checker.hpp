@@ -118,6 +118,7 @@ class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
         last_cats_request_ok_ = resp.isSuccessful();
         if (last_cats_request_ok_)
         {
+#if 0 /* TODO FIXME */
             const DataTypeSignature sign = GlobalDataTypeRegistry::instance().
                 computeAggregateSignature(checking_dtkind_, resp.getResponse().mutually_known_ids);
 
@@ -129,6 +130,7 @@ class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
             {
                 result_.conflicting_node = resp.getCallID().server_node_id;
             }
+#endif
         }
     }
 
@@ -143,7 +145,8 @@ class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
         checking_dtkind_ = kind;
         protocol::ComputeAggregateTypeSignature::Request request;
         request.kind.value = kind;
-        GlobalDataTypeRegistry::instance().getDataTypeIDMask(kind, request.known_ids);
+        // TODO FIXME
+//        GlobalDataTypeRegistry::instance().getDataTypeIDMask(kind, request.known_ids);
 
         int res = cats_cln_.call(nid, request);
         if (res < 0)

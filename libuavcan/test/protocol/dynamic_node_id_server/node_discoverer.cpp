@@ -104,7 +104,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, Basic)
     /*
      * Initialization
      */
-    ASSERT_LE(0, disc.init());
+    ASSERT_LE(0, disc.init(uavcan::TransferPriority::OneHigherThanLowest));
 
     ASSERT_FALSE(disc.hasUnknownNodes());
 
@@ -208,7 +208,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, RestartAndMaxAttempts)
     /*
      * Initialization
      */
-    ASSERT_LE(0, disc.init());
+    ASSERT_LE(0, disc.init(uavcan::TransferPriority::OneHigherThanLowest));
 
     ASSERT_FALSE(disc.hasUnknownNodes());
 

@@ -12,7 +12,7 @@
 static uavcan::RxFrame makeFrame()
 {
     uavcan::RxFrame frame(
-        uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, uavcan::NodeID::Broadcast, 0, 1, true),
+        uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, uavcan::NodeID::Broadcast, 0),
         tsMono(123), tsUtc(456), 0);
     uint8_t data[8];
     for (uint8_t i = 0; i < sizeof(data); i++)

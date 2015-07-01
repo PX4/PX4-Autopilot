@@ -172,7 +172,9 @@ TEST(GlobalTimeSyncSlave, Basic)
 static uavcan::Frame makeSyncMsg(uavcan::uint64_t usec, uavcan::NodeID snid, uavcan::TransferID tid)
 {
     uavcan::Frame frame(uavcan::protocol::GlobalTimeSync::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
-                        snid, uavcan::NodeID::Broadcast, 0, tid, true);
+                        snid, uavcan::NodeID::Broadcast, tid);
+    frame.setStartOfTransfer(true);
+    frame.setEndOfTransfer(true);
     EXPECT_EQ(8, frame.setPayload(reinterpret_cast<uint8_t*>(&usec), 8)); // Assuming little endian
     return frame;
 }

@@ -62,8 +62,8 @@ TEST(dynamic_node_id_server_RaftCore, Basic)
     /*
      * Initialization
      */
-    ASSERT_LE(0, raft_a->init(2));
-    ASSERT_LE(0, raft_b->init(2));
+    ASSERT_LE(0, raft_a->init(2, uavcan::TransferPriority::OneHigherThanLowest));
+    ASSERT_LE(0, raft_b->init(2, uavcan::TransferPriority::OneHigherThanLowest));
 
     /*
      * Running and trying not to fall
@@ -102,7 +102,7 @@ TEST(dynamic_node_id_server_RaftCore, Basic)
     storage_a.reset();
 
     raft_a.reset(new RaftCore(nodes.a, storage_a, tracer_a, commit_handler_a));
-    ASSERT_LE(0, raft_a->init(2));
+    ASSERT_LE(0, raft_a->init(2, uavcan::TransferPriority::OneHigherThanLowest));
     ASSERT_EQ(0, raft_a->getCommitIndex());
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(9000));

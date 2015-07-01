@@ -237,15 +237,15 @@ public:
         , allocation_pub_(node)
     { }
 
-    int init()
+    int init(const TransferPriority priority)
     {
         int res = allocation_pub_.init();
         if (res < 0)
         {
             return res;
         }
-        (void)allocation_pub_.setPriority(TransferPriorityLow);
-        allocation_pub_.setTxTimeout(MonotonicDuration::fromMSec(Allocation::DEFAULT_REQUEST_PERIOD_MS));
+        allocation_pub_.setPriority(priority);
+        allocation_pub_.setTxTimeout(MonotonicDuration::fromMSec(1000 /* TODO FIXME ALLOCATION RANDOMIZATION */));
 
         res = allocation_sub_.start(AllocationCallback(this, &AllocationRequestManager::handleAllocation));
         if (res < 0)

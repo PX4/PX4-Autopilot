@@ -135,7 +135,8 @@ public:
         , storage_(storage)
     { }
 
-    int init(const UniqueID& own_unique_id)
+    int init(const UniqueID& own_unique_id,
+             const TransferPriority priority = TransferPriority::OneHigherThanLowest)
     {
         /*
          * Initializing storage first, because the next step requires it to be loaded
@@ -173,13 +174,13 @@ public:
         /*
          * Misc
          */
-        res = allocation_request_manager_.init();
+        res = allocation_request_manager_.init(priority);
         if (res < 0)
         {
             return res;
         }
 
-        res = node_discoverer_.init();
+        res = node_discoverer_.init(priority);
         if (res < 0)
         {
             return res;
