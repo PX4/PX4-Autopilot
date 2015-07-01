@@ -23,6 +23,8 @@ MODULES += systemcmds/tests
 #MODULES += systemcmds/reboot
 MODULES += systemcmds/topic_listener
 MODULES	+= systemcmds/ver
+MODULES	+= systemcmds/esc_calib
+MODULES	+= systemcmds/reboot
 
 #
 # General system control

@@ -44,6 +44,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_getopt.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>
@@ -895,10 +896,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "r:b:eatx")) != EOF) {
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+	while ((ch = px4_getopt(argc, argv, "r:b:eatx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
-				unsigned long r = strtoul(optarg, NULL, 10);
+				unsigned long r = strtoul(myoptarg, NULL, 10);
 
 				if (r == 0) {
 					r = 1;
@@ -909,7 +912,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			break;
 
 		case 'b': {
-				unsigned long s = strtoul(optarg, NULL, 10);
+				unsigned long s = strtoul(myoptarg, NULL, 10);
 
 				if (s < 1) {
 					s = 1;

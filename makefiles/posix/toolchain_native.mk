@@ -120,7 +120,7 @@ ifeq ($(CONFIG_BOARD),)
 $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
-			-Dnoreturn_function= \
+			-Dnoreturn_function=__attribute__\(\(noreturn\)\) \
 			-I$(PX4_BASE)/src/modules/systemlib \
 			-I$(PX4_BASE)/src/lib/eigen \
 			-I$(PX4_BASE)/src/platforms/posix/include \
