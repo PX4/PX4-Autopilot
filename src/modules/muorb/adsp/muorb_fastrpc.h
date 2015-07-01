@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +30,26 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-/**
- * @file version.h
- *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
+#include <systemlib/visibility.h>
+#include <stdint.h>
 
-#ifndef VERSION_H_
-#define VERSION_H_
+__BEGIN_DECLS
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+int muorb_fastrpc_orb_initialize() __EXPORT;
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
+int muorb_fastrpc_add_subscriber(const char *name) __EXPORT;
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
+int muorb_fastrpc_remove_subscriber(const char *name) __EXPORT;
 
-#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
-#define HW_ARCH "PX4_STM32F4DISCOVERY"
-#endif
+int muorb_fastrpc_send_topic_data(const char *name, const uint8_t *data, int data_len_in_bytes) __EXPORT;
 
-#ifdef CONFIG_ARCH_BOARD_SITL
-#define	HW_ARCH "LINUXTEST"
-#endif
-#ifdef CONFIG_ARCH_BOARD_EAGLE
-#define	HW_ARCH "LINUXTEST"
-#endif
-#endif /* VERSION_H_ */
+int muorb_fastrpc_is_subscriber_present(const char *topic_name, int *status) __EXPORT;
+
+int muorb_fastrpc_receive_msg(int *msg_type, char *topic_name, int topic_name_len, uint8_t *data, int data_len_in_bytes,
+			      int *bytes_returned) __EXPORT;
+
+int muorb_fastrpc_unblock_recieve_msg(void) __EXPORT;
+
+__END_DECLS

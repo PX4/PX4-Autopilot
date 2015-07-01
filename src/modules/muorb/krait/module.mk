@@ -1,5 +1,6 @@
+############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,58 +29,21 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+############################################################################
 
 #
-# Makefile for PX4 Linux based firmware images.
+# Makefile to build uORB
 #
 
-################################################################################
-# Build rules
-################################################################################
+MODULE_COMMAND = muorb
 
-#
-# What we're going to build.
-#
+ifeq ($(PX4_TARGET_OS),posix-arm)
+SRCS			= uORBKraitFastRpcChannel.cpp \
+                          muorb_main.cpp
+INCLUDE_DIRS           += $(EXT_MUORB_LIB_ROOT)/krait/include \
+                          $(PX4_BASE)/src/modules/uORB \
+                          $(PX4_BASE)/src/modules
 
-EXTRALDFLAGS = -Wl,-soname=libpx4.so
-PRODUCT_SHARED_LIB	= $(WORK_DIR)firmware.a
-PRODUCT_SHARED_PRELINK	= $(WORK_DIR)firmware.o
+EXTRA_LIBS             += $(EXT_MUORB_LIB_ROOT)/krait/libs/libmuorb.so
+endif
 
-.PHONY:			firmware
-firmware:		$(PRODUCT_SHARED_LIB) $(WORK_DIR)libpx4.so $(WORK_DIR)mainapp
-
-#
-# Built product rules
-#
-
-$(PRODUCT_SHARED_PRELINK):	$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
-	$(call PRELINKF,$@,$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS))
-
-$(PRODUCT_SHARED_LIB):		$(PRODUCT_SHARED_PRELINK)
-	$(call LINK_A,$@,$(PRODUCT_SHARED_PRELINK))
-
-$(WORK_DIR)apps.cpp: $(PX4_BASE)/Tools/qurt_apps.py 
-	$(PX4_BASE)/Tools/qurt_apps.py > $@
-
-$(WORK_DIR)apps.o: $(WORK_DIR)apps.cpp
-	$(call COMPILEXX,$<, $@)
-	mv $(WORK_DIR)apps.cpp $(WORK_DIR)apps.cpp_sav
-
-$(WORK_DIR)libpx4.so: $(WORK_DIR)apps.o $(PRODUCT_SHARED_LIB)
-	$(call LINK_SO,$@, $^)
-
-$(WORK_DIR)dspal_stub.o: $(PX4_BASE)/src/platforms/qurt/dspal/dspal_stub.c
-	$(call COMPILENOSHARED,$^, $@)
-
-$(WORK_DIR)mainapp: $(WORK_DIR)dspal_stub.o
-	$(call LINK,$@, $^)
-
-#
-# Utility rules
-#
-
-.PHONY: clean
-clean:			$(MODULE_CLEANS)
-	@$(ECHO) %% cleaning
-	$(Q) $(REMOVE) $(PRODUCT_ELF)
-	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)

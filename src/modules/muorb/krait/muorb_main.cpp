@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,37 +31,54 @@
  *
  ****************************************************************************/
 
-/**
- * @file version.h
- *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
+#include <string.h>
+#include "uORBManager.hpp"
+#include "uORBKraitFastRpcChannel.hpp"
 
-#ifndef VERSION_H_
-#define VERSION_H_
+extern "C" { __EXPORT int muorb_main(int argc, char *argv[]); }
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+static void usage()
+{
+	warnx("Usage: muorb 'start', 'stop', 'status'");
+}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
+int
+muorb_main(int argc, char *argv[])
+{
+	if (argc < 2) {
+		usage();
+		return -EINVAL;
+	}
 
-#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
-#define HW_ARCH "PX4_STM32F4DISCOVERY"
-#endif
+	/*
+	 * Start/load the driver.
+	 *
+	 * XXX it would be nice to have a wrapper for this...
+	 */
+	if (!strcmp(argv[1], "start")) {
+		// register the fast rpc channel with UORB.
+		uORB::Manager::get_instance()->set_uorb_communicator(uORB::KraitFastRpcChannel::GetInstance());
 
-#ifdef CONFIG_ARCH_BOARD_SITL
-#define	HW_ARCH "LINUXTEST"
-#endif
-#ifdef CONFIG_ARCH_BOARD_EAGLE
-#define	HW_ARCH "LINUXTEST"
-#endif
-#endif /* VERSION_H_ */
+		// start the KaitFastRPC channel thread.
+		uORB::KraitFastRpcChannel::GetInstance()->Start();
+		return OK;
+
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+
+		uORB::KraitFastRpcChannel::GetInstance()->Stop();
+		return OK;
+	}
+
+	/*
+	 * Print driver information.
+	 */
+	if (!strcmp(argv[1], "status")) {
+		return OK;
+	}
+
+	usage();
+	return -EINVAL;
+}
