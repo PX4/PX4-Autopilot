@@ -135,7 +135,7 @@ __BEGIN_DECLS
  * a file-descriptor-based handle would not otherwise be in scope for the
  * publisher.
  */
-typedef void *	orb_advert_t;
+typedef void 	*orb_advert_t;
 
 /**
  * Advertise as the publisher of a topic.
