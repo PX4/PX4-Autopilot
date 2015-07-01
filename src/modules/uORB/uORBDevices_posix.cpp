@@ -421,10 +421,6 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 			break;
 		}
 
-// FIXME - the calls to hrt_called and hrt_call_after seem not to work in the
-//         POSIX build
-#ifndef __PX4_POSIX
-
 		/*
 		 * If the interval timer is still running, the topic should not
 		 * appear updated, even though at this point we know that it has.
@@ -445,7 +441,6 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 			       sd->update_interval,
 			       &uORB::DeviceNode::update_deferred_trampoline,
 			       (void *)this);
-#endif
 
 		/*
 		 * Remember that we have told the subscriber that there is data.
