@@ -80,7 +80,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
-#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -1071,7 +1071,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
-		struct vehicle_vicon_position_s vicon_pos;
+		struct att_pos_mocap_s att_pos_mocap;
 		struct vision_position_estimate_s vision_pos;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
@@ -1129,7 +1129,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST2_s log_EST2;
 			struct log_EST3_s log_EST3;
 			struct log_PWR_s log_PWR;
-			struct log_VICN_s log_VICN;
+			struct log_MOCP_s log_MOCP;
 			struct log_VISN_s log_VISN;
 			struct log_GS0A_s log_GS0A;
 			struct log_GS0B_s log_GS0B;
@@ -1164,7 +1164,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int triplet_sub;
 		int gps_pos_sub;
 		int sat_info_sub;
-		int vicon_pos_sub;
+		int att_pos_mocap_sub;
 		int vision_pos_sub;
 		int flow_sub;
 		int rc_sub;
@@ -1199,7 +1199,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.local_pos_sp_sub = -1;
 	subs.global_pos_sub = -1;
 	subs.triplet_sub = -1;
-	subs.vicon_pos_sub = -1;
+	subs.att_pos_mocap_sub = -1;
 	subs.vision_pos_sub = -1;
 	subs.flow_sub = -1;
 	subs.rc_sub = -1;
@@ -1683,16 +1683,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* --- VICON POSITION --- */
-		if (copy_if_updated(ORB_ID(vehicle_vicon_position), &subs.vicon_pos_sub, &buf.vicon_pos)) {
-			log_msg.msg_type = LOG_VICN_MSG;
-			log_msg.body.log_VICN.x = buf.vicon_pos.x;
-			log_msg.body.log_VICN.y = buf.vicon_pos.y;
-			log_msg.body.log_VICN.z = buf.vicon_pos.z;
-			log_msg.body.log_VICN.pitch = buf.vicon_pos.pitch;
-			log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
-			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
-			LOGBUFFER_WRITE_AND_COUNT(VICN);
+		/* --- MOCAP ATTITUDE AND POSITION --- */
+		if (copy_if_updated(ORB_ID(att_pos_mocap), &subs.att_pos_mocap_sub, &buf.att_pos_mocap)) {
+			log_msg.msg_type = LOG_MOCP_MSG;
+			log_msg.body.log_MOCP.qw = buf.att_pos_mocap.q[0];
+			log_msg.body.log_MOCP.qx = buf.att_pos_mocap.q[1];
+			log_msg.body.log_MOCP.qy = buf.att_pos_mocap.q[2];
+			log_msg.body.log_MOCP.qz = buf.att_pos_mocap.q[3];
+			log_msg.body.log_MOCP.x = buf.att_pos_mocap.x;
+			log_msg.body.log_MOCP.y = buf.att_pos_mocap.y;
+			log_msg.body.log_MOCP.z = buf.att_pos_mocap.z;
+			LOGBUFFER_WRITE_AND_COUNT(MOCP);
 		}
 
 		/* --- VISION POSITION --- */

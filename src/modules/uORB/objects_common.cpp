@@ -108,8 +108,8 @@ ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 #include "topics/vehicle_local_position.h"
 ORB_DEFINE(vehicle_local_position, struct vehicle_local_position_s);
 
-#include "topics/vehicle_vicon_position.h"
-ORB_DEFINE(vehicle_vicon_position, struct vehicle_vicon_position_s);
+#include "topics/att_pos_mocap.h"
+ORB_DEFINE(att_pos_mocap, struct att_pos_mocap_s);
 
 #include "topics/vehicle_rates_setpoint.h"
 ORB_DEFINE(vehicle_rates_setpoint, struct vehicle_rates_setpoint_s);
