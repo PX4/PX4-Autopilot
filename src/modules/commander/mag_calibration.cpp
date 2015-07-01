@@ -243,7 +243,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		/* abort on request */
 		if (calibrate_cancel_check(worker_data->mavlink_fd, cancel_sub)) {
 			result = calibrate_return_cancelled;
-			close(sub_gyro);
+			px4_close(sub_gyro);
 			return result;
 		}
 
@@ -256,12 +256,12 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 
 		/* Wait clocking for new data on all gyro */
-		struct pollfd fds[1];
+		px4_pollfd_struct_t fds[1];
 		fds[0].fd = sub_gyro;
 		fds[0].events = POLLIN;
 		size_t fd_count = 1;
 
-		int poll_ret = poll(fds, fd_count, 1000);
+		int poll_ret = px4_poll(fds, fd_count, 1000);
 
 		if (poll_ret > 0) {
 			struct gyro_report gyro;
@@ -281,7 +281,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 	}
 
-	close(sub_gyro);
+	px4_close(sub_gyro);
 	
 	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
 	unsigned poll_errcount = 0;

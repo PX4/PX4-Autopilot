@@ -493,7 +493,7 @@ calibrate_return calibrate_from_orientation(int		mavlink_fd,
 	}
 	
 	if (sub_accel >= 0) {
-		close(sub_accel);
+		px4_close(sub_accel);
 	}
 	
 	return result;

@@ -362,7 +362,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "check")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		int checkres = prearm_check(&status, mavlink_fd_local);
-		close(mavlink_fd_local);
+		px4_close(mavlink_fd_local);
 		warnx("FINAL RESULT: %s", (checkres == 0) ? "OK" : "FAILED");
 		return 0;
 	}
@@ -371,14 +371,14 @@ int commander_main(int argc, char *argv[])
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		arm_disarm(true, mavlink_fd_local, "command line");
 		warnx("note: not updating home position on commandline arming!");
-		close(mavlink_fd_local);
+		px4_close(mavlink_fd_local);
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		arm_disarm(false, mavlink_fd_local, "command line");
-		close(mavlink_fd_local);
+		px4_close(mavlink_fd_local);
                 return 0;
 	}
 
@@ -389,10 +389,10 @@ int commander_main(int argc, char *argv[])
 void usage(const char *reason)
 {
 	if (reason) {
-		fprintf(stderr, "%s\n", reason);
+		PX4_INFO("%s\n", reason);
 	}
 
-	fprintf(stderr, "usage: commander {start|stop|status|calibrate|check|arm|disarm}\n\n");
+	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm}\n\n");
 }
 
 void print_status()
@@ -444,7 +444,7 @@ void print_status()
 		break;
 	}
 
-	close(state_sub);
+	px4_close(state_sub);
 
 
 	warnx("arming: %s", armed_str);
@@ -931,7 +931,6 @@ int commander_thread_main(int argc, char *argv[])
 	if (battery_init() != OK) {
 		mavlink_and_console_log_critical(mavlink_fd, "ERROR: BATTERY INIT FAIL");
 	}
-
 	mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/* vehicle status topic */
@@ -2166,7 +2165,7 @@ int commander_thread_main(int argc, char *argv[])
 			arm_tune_played = false;
 		}
 
-		fflush(stdout);
+		//fflush(stdout);
 		counter++;
 
 		int blink_state = blink_msg_state();
@@ -2200,18 +2199,18 @@ int commander_thread_main(int argc, char *argv[])
 	/* close fds */
 	led_deinit();
 	buzzer_deinit();
-	close(sp_man_sub);
-	close(offboard_control_mode_sub);
-	close(local_position_sub);
-	close(global_position_sub);
-	close(gps_sub);
-	close(sensor_sub);
-	close(safety_sub);
-	close(cmd_sub);
-	close(subsys_sub);
-	close(diff_pres_sub);
-	close(param_changed_sub);
-	close(battery_sub);
+	px4_close(sp_man_sub);
+	px4_close(offboard_control_mode_sub);
+	px4_close(local_position_sub);
+	px4_close(global_position_sub);
+	px4_close(gps_sub);
+	px4_close(sensor_sub);
+	px4_close(safety_sub);
+	px4_close(cmd_sub);
+	px4_close(subsys_sub);
+	px4_close(diff_pres_sub);
+	px4_close(param_changed_sub);
+	px4_close(battery_sub);
 
 	thread_running = false;
 
@@ -2977,7 +2976,7 @@ void *commander_low_prio_loop(void *arg)
 		}
 	}
 
-	close(cmd_sub);
+	px4_close(cmd_sub);
 
 	return NULL;
 }
