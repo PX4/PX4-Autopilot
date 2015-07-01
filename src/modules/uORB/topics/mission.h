@@ -60,6 +60,8 @@ enum NAV_CMD {
 	NAV_CMD_TAKEOFF=22,
 	NAV_CMD_ROI=80,
 	NAV_CMD_PATHPLANNING=81,
+	NAV_CMD_DO_SET_SERVO=183,
+	NAV_CMD_DO_REPEAT_SERVO=184,
 	NAV_CMD_DO_JUMP=177
 };
 
@@ -96,6 +98,8 @@ struct mission_item_s {
 	int do_jump_mission_index;	/**< index where the do jump will go to                 */
 	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
 	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
+	int actuator_num;		/**< actuator number to be set 1..6			*/
+	int actuator_value;		/**< new value for selected actuator 900...2000		*/
 };
 
 /**

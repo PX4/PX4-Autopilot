@@ -45,6 +45,9 @@
 #include <math.h>
 #include <float.h>
 
+#include <fcntl.h>
+#include <drivers/drv_pwm_output.h>
+
 #include <systemlib/err.h>
 #include <geo/geo.h>
 #include <mavlink/mavlink_log.h>
@@ -71,6 +74,13 @@ MissionBlock::~MissionBlock()
 bool
 MissionBlock::is_mission_item_reached()
 {
+	if (_mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
+
+		up_pwm_servo_arm(true);
+		up_pwm_servo_set(_mission_item.actuator_num-1, _mission_item.actuator_value);
+		return true;
+	}
+
 	if (_mission_item.nav_cmd == NAV_CMD_IDLE) {
 		return false;
 	}

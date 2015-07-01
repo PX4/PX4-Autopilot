@@ -672,6 +672,11 @@ then
 	#
 	navigator start
 
+
+    # Init PWM AUX outputs
+    #
+    fmu mode_pwm
+    
 	#
 	# Generic setup (autostart ID not found)
 	#
