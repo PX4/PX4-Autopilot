@@ -52,8 +52,8 @@ void _assert_parameter_int_value(param_t param, int32_t expected)
 {
 	int32_t value;
 	int result = param_get(param, &value);
-	ASSERT_EQ(0, result) << printf("param_get (%i) did not return parameter\n", param);
-	ASSERT_EQ(expected, value) << printf("value for param (%i) doesn't match default value\n", param);
+	ASSERT_EQ(0, result) << printf("param_get (%lu) did not return parameter\n", param);
+	ASSERT_EQ(expected, value) << printf("value for param (%lu) doesn't match default value\n", param);
 }
 
 void _set_all_int_parameters_to(int32_t value)
