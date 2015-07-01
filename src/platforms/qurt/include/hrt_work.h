@@ -1,3 +1,4 @@
+
 /****************************************************************************
  *
  * Copyright (C) 2015 Mark Charlebois. All rights reserved.
@@ -31,6 +32,7 @@
  *
  ****************************************************************************/
 
+
 #include <px4_log.h>
 #include <semaphore.h>
 #include <px4_workqueue.h>
@@ -46,16 +48,16 @@ void hrt_work_queue_init(void);
 int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t usdelay);
 void hrt_work_cancel(struct work_s *work);
 
-inline void hrt_work_lock(void);
-inline void hrt_work_unlock(void);
+static inline void hrt_work_lock(void);
+static inline void hrt_work_unlock(void);
 
-inline void hrt_work_lock()
+static inline void hrt_work_lock()
 {
 	//PX4_INFO("hrt_work_lock");
 	sem_wait(&_hrt_work_lock);
 }
 
-inline void hrt_work_unlock()
+static inline void hrt_work_unlock()
 {
 	//PX4_INFO("hrt_work_unlock");
 	sem_post(&_hrt_work_lock);

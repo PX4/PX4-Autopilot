@@ -43,7 +43,11 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdbool.h>
+
+#if !defined(__PX4_QURT)
 #include <signal.h>
+#endif
+
 #include <fcntl.h>
 #include <sched.h>
 #include <unistd.h>
@@ -86,6 +90,12 @@ static void *entry_adapter ( void *ptr )
 	data = (pthdata_t *) ptr;  
 
 	data->entry(data->argc, data->argv);
+        PX4_WARN( "Before waiting infinte busy loop" );
+        //for( ;; )
+        //{
+        //   volatile int x = 0;
+        //   ++x;
+       // }
 	free(ptr);
 	px4_task_exit(0); 
 
@@ -157,7 +167,17 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 #endif
+        size_t fixed_stacksize = -1;
+        pthread_attr_getstacksize(&attr, &fixed_stacksize);
+        PX4_WARN("stack size: %d passed stacksize(%d)", fixed_stacksize, stack_size );
+        fixed_stacksize = 8 * 1024;
+        fixed_stacksize = ( fixed_stacksize < (size_t)stack_size )? (size_t)stack_size:fixed_stacksize;
 
+        PX4_WARN("setting the thread[%s] stack size to[%d]", name, fixed_stacksize );
+        pthread_attr_setstacksize(&attr, fixed_stacksize);
+        //pthread_attr_setstacksize(&attr, stack_size);
+
+        
 	param.sched_priority = priority;
 
 	rv = pthread_attr_setschedparam(&attr, &param);
@@ -236,7 +256,7 @@ int px4_task_kill(px4_task_t id, int sig)
 {
 	int rv = 0;
 	pthread_t pid;
-	PX4_DEBUG("Called px4_task_kill %d", sig);
+	PX4_DEBUG("Called px4_task_kill %d, taskname %s", sig, taskmap[id].name.c_str());
 
 	if (id < PX4_MAX_TASKS && taskmap[id].pid != 0)
 		pid = taskmap[id].pid;
@@ -272,9 +292,9 @@ __BEGIN_DECLS
 int px4_getpid()
 {
 	pthread_t pid = pthread_self();
-
-	if (pid == _shell_task_id)
-		return SHELL_TASK_ID;
+//
+//	if (pid == _shell_task_id)
+//		return SHELL_TASK_ID;
 
 	// Get pthread ID from the opaque ID
 	for (int i=0; i<PX4_MAX_TASKS; ++i) {
@@ -286,5 +306,19 @@ int px4_getpid()
 	return -EINVAL;
 }
 
+
+const char *getprogname();
+const char *getprogname()
+{
+        pthread_t pid = pthread_self();
+	for (int i=0; i<PX4_MAX_TASKS; i++)
+	{
+		if (taskmap[i].isused && taskmap[i].pid == pid)
+		{
+			return taskmap[i].name.c_str();
+		}
+	}
+	return "Unknown App";
+}
 __END_DECLS
 

@@ -35,6 +35,8 @@
 # NuttX / uORB adapter library
 #
 
+MODULE_NAME = dspal
+
 SRCDIR=$(dir $(MODULE_MK))
 
 SRCS		 = 	\
@@ -56,8 +58,10 @@ SRCS		 = 	\
 			sq_remfirst.c \
 			sq_addafter.c \
 			dq_rem.c \
-			main.cpp \
-                        qurt_stubs.c
+                        hrt_work.c \
+                        qurt_stubs.c \
+                        qurt_hacks.c \
+                        main.cpp
 ifeq ($(CONFIG),qurt_hello)
 SRCS +=			commands_hello.c
 endif
@@ -67,5 +71,9 @@ endif
 ifeq ($(CONFIG),qurt_muorb_test)
 SRCS +=			commands_muorb_test.c
 endif
+ifeq ($(CONFIG),qurt_hil)
+SRCS +=			commands_hil.c
+endif
+
 
 MAXOPTIMIZATION	 = -Os
