@@ -259,7 +259,7 @@ int test_mixer(int argc, char *argv[])
 		for (unsigned i = 0; i < mixed; i++) {
 			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
 
-			if (fabsf(servo_predicted[i] - r_page_servos[i]) > 2) {
+			if (abs(servo_predicted[i] - r_page_servos[i]) > 2) {
 				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i], (int)r_page_servos[i]);
 				warnx("mixer violated predicted value");
 				return 1;
@@ -333,7 +333,7 @@ int test_mixer(int argc, char *argv[])
 
 			/* check post ramp phase */
 			if (hrt_elapsed_time(&starttime) > RAMP_TIME_US &&
-			    fabsf(servo_predicted[i] - r_page_servos[i]) > 2) {
+			    abs(servo_predicted[i] - r_page_servos[i]) > 2) {
 				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i], (int)r_page_servos[i]);
 				warnx("mixer violated predicted value");
 				return 1;
