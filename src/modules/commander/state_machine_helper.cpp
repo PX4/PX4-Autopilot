@@ -268,14 +268,15 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 	}
 
 	if (ret == TRANSITION_DENIED) {
-		const char * str = "INVAL: %s - %s";
+#define		WARNSTR "INVAL: %s - %s"
 		/* only print to console here by default as this is too technical to be useful during operation */
-		warnx(str, state_names[status->arming_state], state_names[new_arming_state]);
+		warnx(WARNSTR, state_names[status->arming_state], state_names[new_arming_state]);
 
 		/* print to MAVLink if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_log_critical(mavlink_fd, str, state_names[status->arming_state], state_names[new_arming_state]);
+			mavlink_log_critical(mavlink_fd, WARNSTR, state_names[status->arming_state], state_names[new_arming_state]);
 		}
+#undef WARNSTR
 	}
 
 	return ret;
