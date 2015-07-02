@@ -11,20 +11,20 @@ MODULES		+= drivers/hil
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/led
 MODULES		+= modules/sensors
-#MODULES		+= drivers/ms5611
+#MODULES	+= drivers/ms5611
 
 #
 # System commands
 #
-MODULES	+= systemcmds/param
-MODULES += systemcmds/mixer
-#MODULES += systemcmds/esc_calib
-MODULES += systemcmds/tests
-#MODULES += systemcmds/reboot
-MODULES += systemcmds/topic_listener
-MODULES	+= systemcmds/ver
-MODULES	+= systemcmds/esc_calib
-MODULES	+= systemcmds/reboot
+MODULES		+= systemcmds/param
+MODULES		+= systemcmds/mixer
+#MODULES 	+= systemcmds/esc_calib
+MODULES		+= systemcmds/tests
+#MODULES 	+= systemcmds/reboot
+MODULES 	+= systemcmds/topic_listener
+MODULES		+= systemcmds/ver
+MODULES		+= systemcmds/esc_calib
+MODULES		+= systemcmds/reboot
 
 #
 # General system control
@@ -35,6 +35,7 @@ MODULES		+= modules/mavlink
 # Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/attitude_estimator_q
 MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/attitude_estimator_q
 MODULES		+= modules/position_estimator_inav
@@ -45,7 +46,7 @@ MODULES		+= modules/position_estimator_inav
 MODULES 	+= modules/navigator
 MODULES 	+= modules/mc_pos_control
 MODULES		+= modules/mc_att_control
-MODULES 	+= modules/land_detector
+MODULES		+= modules/land_detector
 
 #
 # Library modules
@@ -83,12 +84,12 @@ MODULES 	+= platforms/posix/drivers/gpssim
 #
 # Unit tests
 #
-#MODULES		+= platforms/posix/tests/hello
-#MODULES		+= platforms/posix/tests/vcdev_test
-#MODULES		+= platforms/posix/tests/hrt_test
-#MODULES		+= platforms/posix/tests/wqueue
+#MODULES	+= platforms/posix/tests/hello
+#MODULES	+= platforms/posix/tests/vcdev_test
+#MODULES	+= platforms/posix/tests/hrt_test
+#MODULES	+= platforms/posix/tests/wqueue
 
 #
 # muorb fastrpc changes.
 #
-#MODULES		+= $(PX4_BASE)../muorb_krait
+#MODULES	+= $(PX4_BASE)../muorb_krait
