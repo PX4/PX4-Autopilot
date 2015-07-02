@@ -154,6 +154,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 		goto out;
 	}
 
+#ifdef __PX4_NUTTX
 	if (dynamic) {
 		/* check measurement result range */
 		struct accel_report acc;
@@ -176,6 +177,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 			goto out;
 		}
 	}
+#endif
 
 out:
 	px4_close(fd);
