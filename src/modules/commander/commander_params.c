@@ -45,9 +45,49 @@
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
 
+/**
+ * Roll trim
+ *
+ * This is the actuator control output for a level flying vehicle.
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
+
+/**
+ * Pitch trim
+ *
+ * This is the actuator control output for a level flying vehicle.
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
+
+/**
+ * Yaw trim
+ *
+ * This is the actuator control output for a level flying vehicle.
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
+
+/**
+ * Throttle trim
+ *
+ * This is the actuator control output for a level flying vehicle.
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_FLOAT(TRIM_THROTTLE, 0.0f);
 
 /**
  * Empty cell voltage.
