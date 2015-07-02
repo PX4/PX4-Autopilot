@@ -128,6 +128,7 @@ int Simulator::start(int argc, char *argv[])
 		PX4_WARN("Simulator creation failed");
 		ret = 1;
 	}
+
 	return ret;
 }
 
