@@ -346,7 +346,7 @@ private: // class methods
 	);
 
 private: // data members
-	static Manager _Instance;
+	static Manager *_Instance;
 	// the communicator channel instance.
 	uORBCommunicator::IChannel *_comm_channel;
 	ORBSet _remote_subscriber_topics;
