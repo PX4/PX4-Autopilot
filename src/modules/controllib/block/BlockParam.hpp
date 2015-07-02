@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 #include "Block.hpp"
 #include <containers/List.hpp>
