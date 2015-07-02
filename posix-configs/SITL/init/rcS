@@ -1,8 +1,8 @@
 uorb start
 param load
 param set MAV_TYPE 2
-param set MC_PITCHRATE_P 0.05
-param set MC_ROLLRATE_P 0.05
+param set MC_PITCHRATE_P 0.15
+param set MC_ROLLRATE_P 0.15
 param set SYS_AUTOSTART 4010
 param set SYS_RESTART_TYPE 2
 param set COM_RC_IN_MODE 2
