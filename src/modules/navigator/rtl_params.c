@@ -41,7 +41,7 @@
 
 #include <px4_config.h>
 
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /*
  * RTL parameters, accessible via MAVLink

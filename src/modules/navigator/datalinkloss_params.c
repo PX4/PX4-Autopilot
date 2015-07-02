@@ -41,7 +41,7 @@
 
 #include <px4_config.h>
 
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /*
  * Data Link Loss parameters, accessible via MAVLink
