@@ -551,7 +551,10 @@ void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
 
 bool CanIface::isTxBufferFull() const
 {
-    return (can_->TSR & (bxcan::TSR_TME0 | bxcan::TSR_TME1 | bxcan::TSR_TME2)) == 0;  // Interrupts enabled
+    // TODO FIXME HACK: Implement proper arbitration instead of a one-by-one transmission.
+    // This function can be executed outside of a critical section.
+    static const uavcan::uint32_t TME = bxcan::TSR_TME0 | bxcan::TSR_TME1 | bxcan::TSR_TME2;
+    return (can_->TSR & TME) != TME;    // All empty!
 }
 
 bool CanIface::isRxBufferEmpty() const
