@@ -39,7 +39,7 @@
  * Parameters for position estimator
  */
 
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 struct flow_position_estimator_params {
 	float minimum_liftoff_thrust;
