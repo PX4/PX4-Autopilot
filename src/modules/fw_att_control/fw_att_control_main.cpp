@@ -193,6 +193,7 @@ private:
 		float trim_roll;
 		float trim_pitch;
 		float trim_yaw;
+		float trim_throttle;
 		float rollsp_offset_deg;		/**< Roll Setpoint Offset in deg */
 		float pitchsp_offset_deg;		/**< Pitch Setpoint Offset in deg */
 		float rollsp_offset_rad;		/**< Roll Setpoint Offset in rad */
@@ -238,6 +239,7 @@ private:
 		param_t trim_roll;
 		param_t trim_pitch;
 		param_t trim_yaw;
+		param_t trim_throttle;
 		param_t rollsp_offset_deg;
 		param_t pitchsp_offset_deg;
 		param_t man_roll_max;
@@ -402,6 +404,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
 	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
 	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
+	_parameter_handles.trim_throttle = param_find("TRIM_THROTTLE");
 	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
 	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
@@ -478,6 +481,7 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.trim_roll, &(_parameters.trim_roll));
 	param_get(_parameter_handles.trim_pitch, &(_parameters.trim_pitch));
 	param_get(_parameter_handles.trim_yaw, &(_parameters.trim_yaw));
+	param_get(_parameter_handles.trim_throttle, &(_parameters.trim_throttle));
 	param_get(_parameter_handles.rollsp_offset_deg, &(_parameters.rollsp_offset_deg));
 	param_get(_parameter_handles.pitchsp_offset_deg, &(_parameters.pitchsp_offset_deg));
 	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_deg);
@@ -1052,7 +1056,7 @@ FixedwingAttitudeControl::task_main()
 					_actuators.control[3] = (isfinite(throttle_sp) &&
 							!(_vehicle_status.engine_failure ||
 								_vehicle_status.engine_failure_cmd)) ?
-						throttle_sp : 0.0f;
+						throttle_sp + _parameters.trim_throttle : 0.0f;
 					if (!isfinite(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("throttle_sp %.4f", (double)throttle_sp);
@@ -1088,7 +1092,7 @@ FixedwingAttitudeControl::task_main()
 				_actuators.control[0] = _manual.y + _parameters.trim_roll;
 				_actuators.control[1] = -_manual.x + _parameters.trim_pitch;
 				_actuators.control[2] = _manual.r + _parameters.trim_yaw;
-				_actuators.control[3] = _manual.z;
+				_actuators.control[3] = _manual.z + _parameters.trim_throttle;
 				_actuators.control[4] = _manual.flaps;
 			}
 
