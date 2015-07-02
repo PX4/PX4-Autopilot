@@ -199,8 +199,11 @@ else
 	export PX4_TARGET_OS=$@
 endif
 
-sitlrun:
-	Tools/sitl_run.sh
+sitl_quad:
+	$(Q) Tools/sitl_run.sh posix-configs/SITL/init/rcS
+
+sitl_plane:
+	$(Q) Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
 
 qurtrun:
 	make PX4_TARGET_OS=qurt sim
