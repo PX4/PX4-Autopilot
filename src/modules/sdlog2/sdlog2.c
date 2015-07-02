@@ -103,7 +103,7 @@
 #include <uORB/topics/mc_att_ctrl_status.h>
 
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/git_version.h>
 #include <version/version.h>
