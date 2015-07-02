@@ -1,0 +1,5 @@
+#!nsh
+
+sh /etc/init.d/rc.fw_defaults
+
+set MIXER AETR
