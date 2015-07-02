@@ -7,7 +7,6 @@ param set SYS_AUTOSTART 4010
 param set SYS_RESTART_TYPE 2
 param set COM_RC_IN_MODE 2
 dataman start
-mavlink start -u 14556 -r 60000
 simulator start -s
 param set CAL_GYRO0_ID 2293760
 param set CAL_ACC0_ID 1376256
@@ -42,6 +41,7 @@ position_estimator_inav start
 mc_pos_control start
 mc_att_control start
 mixer load /dev/pwm_output0 ../../ROMFS/px4fmu_common/mixers/quad_x.main.mix
+mavlink start -u 14556 -r 60000
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u 14556
 mavlink stream -r 50 -s ATTITUDE -u 14556
