@@ -38,7 +38,7 @@
  * @author Roman Bapst <bapstroman@gmail.com>
  */
 
-#include <systemlib/param/param.h>
+#include <param/param.h>
  
 /**
  * Duration of a front transition

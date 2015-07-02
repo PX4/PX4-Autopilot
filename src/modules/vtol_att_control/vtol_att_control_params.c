@@ -38,7 +38,7 @@
  * @author Roman Bapst <bapstr@ethz.ch>
  */
 
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /**
  * VTOL number of engines
