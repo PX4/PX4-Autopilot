@@ -2187,6 +2187,8 @@ Sensors::task_main()
 
 	_task_should_exit = false;
 
+	raw.timestamp = 0;
+
 	while (!_task_should_exit) {
 
 		/* wait for up to 50ms for data */
@@ -2229,7 +2231,7 @@ Sensors::task_main()
 		diff_pres_poll(raw);
 
 		/* Inform other processes that new data is available to copy */
-		if (_publishing) {
+		if (_publishing && raw.timestamp > 0) {
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 		}
 
