@@ -57,9 +57,9 @@
 
 #include <drivers/drv_hrt.h>
 
-#include "systemlib/param/param.h"
-#include "systemlib/uthash/utarray.h"
-#include "systemlib/bson/tinybson.h"
+#include "param.h"
+#include <systemlib/uthash/utarray.h>
+#include <systemlib/bson/tinybson.h>
 
 #include "uORB/uORB.h"
 #include "uORB/topics/parameter_update.h"
