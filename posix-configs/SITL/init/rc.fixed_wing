@@ -1,12 +1,8 @@
 uorb start
 simulator start -s
 param load
-param set MAV_TYPE 2
-param set MC_PITCHRATE_P 0.15
-param set MC_ROLLRATE_P 0.15
-param set MC_YAW_P 2.0
-param set MC_YAWRATE_P 0.35
-param set SYS_AUTOSTART 4010
+param set MAV_TYPE 1
+param set SYS_AUTOSTART 3033
 param set SYS_RESTART_TYPE 2
 param set COM_RC_IN_MODE 2
 dataman start
@@ -36,12 +32,11 @@ gpssim start
 hil mode_pwm
 commander start
 sensors start
-land_detector start multicopter
+land_detector start fixedwing
 navigator start
-attitude_estimator_q start
-position_estimator_inav start
-mc_pos_control start
-mc_att_control start
+ekf_att_pos_estimator start
+fw_att_control start
+fw_pos_control_l1 start
 mixer load /dev/pwm_output0 ../../ROMFS/px4fmu_common/mixers/quad_x.main.mix
 mavlink start -u 14556 -r 60000
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
