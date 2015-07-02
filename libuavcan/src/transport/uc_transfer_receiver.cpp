@@ -192,6 +192,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
         (frame.getMonotonicTimestamp() < prev_transfer_ts_) ||
         (frame.getMonotonicTimestamp() < this_transfer_ts_))
     {
+        UAVCAN_TRACE("TransferReceiver", "Invalid frame, %s", frame.toString().c_str());
         return ResultNotComplete;
     }
 

@@ -13,13 +13,13 @@ namespace uavcan
 /**
  * Frame
  */
-int Frame::setPayload(const uint8_t* data, unsigned len)
+uint8_t Frame::setPayload(const uint8_t* data, unsigned len)
 {
     const uint8_t maxlen = getPayloadCapacity();
     len = min(unsigned(maxlen), len);
     (void)copy(data, data + len, payload_);
     payload_len_ = uint_fast8_t(len);
-    return int(len);
+    return static_cast<uint8_t>(len);
 }
 
 template <int OFFSET, int WIDTH>

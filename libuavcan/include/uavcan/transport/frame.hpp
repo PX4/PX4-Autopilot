@@ -67,7 +67,7 @@ public:
      * Max payload length depends on the transfer type and frame index.
      */
     uint8_t getPayloadCapacity() const { return PayloadCapacity; }
-    int setPayload(const uint8_t* data, unsigned len);
+    uint8_t setPayload(const uint8_t* data, unsigned len);
 
     unsigned getPayloadLen() const { return payload_len_; }
     const uint8_t* getPayloadPtr() const { return payload_; }
