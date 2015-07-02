@@ -82,7 +82,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
