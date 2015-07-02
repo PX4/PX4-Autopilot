@@ -51,16 +51,9 @@ int PX4_MAIN(int argc, char **argv)
 
 	PX4_DEBUG("muorb_test");
        
-        // register the fast rpc channel with UORB.
-        uORB::Manager::get_instance()->set_uorb_communicator( uORB::KraitFastRpcChannel::GetInstance() );
-       
-        // start the KaitFastRPC channel thread.
-        uORB::KraitFastRpcChannel::GetInstance()->Start(); 
-
 	MuorbTestExample hello;
 	hello.main();
 
-        uORB::KraitFastRpcChannel::GetInstance()->Stop(); 
 	PX4_DEBUG("goodbye");
 	return 0;
 }

@@ -37,9 +37,9 @@
 
 MODULE_COMMAND	= muorb_test
 
-INCLUDE_DIRS           += ${PX4_BASE}../muorb_krait \
-                          ${PX4_BASE}../muorb_krait/lib/include \
-                          ${PX4_BASE}../muorb_krait/Pal/lib
+INCLUDE_DIRS           += \
+                          $(EXT_MUORB_LIB_ROOT)/krait/include \
+                          $(PX4_BASE)src/modules/muorb/krait 
 
 SRCS		= muorb_test_main.cpp \
 		  muorb_test_start_posix.cpp \
