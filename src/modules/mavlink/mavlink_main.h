@@ -49,7 +49,7 @@
 #include <netinet/in.h>
 #include <drivers/device/device.h>
 #endif
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/perf_counter.h>
 #include <pthread.h>
 #include <mavlink/mavlink_log.h>

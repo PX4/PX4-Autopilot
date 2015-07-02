@@ -44,7 +44,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "mavlink_bridge_header.h"
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /**
  * MAVLink system ID
