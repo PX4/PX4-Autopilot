@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -454,6 +454,7 @@ HIL::task_main()
 
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
+			_armed = aa.armed && !aa.lockdown;
 		}
 	}
 
@@ -477,7 +478,12 @@ HIL::control_callback(uintptr_t handle,
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
-	input = controls->control[control_index];
+	if (_armed) {
+		input = controls->control[control_index];
+	} else {
+		/* clamp actuator to zero if not armed */
+		input = 0.0f;
+	}
 	return 0;
 }
 
