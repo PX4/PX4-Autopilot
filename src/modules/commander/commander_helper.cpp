@@ -35,9 +35,9 @@
  * @file commander_helper.cpp
  * Commander helper functions implementations
  *
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomas@px4.io>
+ * @author Julian Oes <julian@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  *
  */
 
@@ -56,7 +56,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <drivers/drv_led.h>

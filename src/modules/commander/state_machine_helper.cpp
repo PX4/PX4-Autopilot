@@ -53,7 +53,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/differential_pressure.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
