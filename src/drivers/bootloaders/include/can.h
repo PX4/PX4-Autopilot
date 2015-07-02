@@ -226,3 +226,21 @@ int can_init(can_speed_t speed, can_mode_t mode);
  ****************************************************************************/
 
 int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout);
+
+/****************************************************************************
+ * Name: can_cancel_on_error
+ *
+ * Description:
+ *   This function will test for transition completion or any error.
+ *   If the is a error the the transmit will be aborted.
+ *
+ * Input Parameters:
+ *   mailbox    - A can_fifo_mailbox_t MBxxx value to choose the outgoing
+ *                mailbox.
+ *
+ * Returned value:
+ *   CAN_OK - on Success or a CAN_ERROR if the cancellation was needed
+ *
+ ****************************************************************************/
+
+int can_cancel_on_error(uint8_t mailbox);

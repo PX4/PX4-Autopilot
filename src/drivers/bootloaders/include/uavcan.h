@@ -123,19 +123,20 @@
 #define uavcan_make_uint16(d0, d1) (uint16_t)(((d1) << 8u) | (d0))
 
 #define uavcan_dsdl_field(op, data_typ_name, field_name) (op##data_typ_name##field_name)
-#define uavcan_pos(data_typ_name, field_name)    uavcan_dsdl_field(BitPos, data_typ_name, field_name)
-#define uavcan_mask(data_typ_name, field_name)   uavcan_dsdl_field(Mask, data_typ_name, field_name)
-#define uavcan_length(data_typ_name, field_name) uavcan_dsdl_field(Length, data_typ_name, field_name)
-#define uavcan_offset(data_typ_name, field_name) uavcan_dsdl_field(PayloadOffset, data_typ_name, field_name)
-#define uavcan_count(data_typ_name, field_name) uavcan_dsdl_field(PayloadLength, data_typ_name, field_name)
+#define uavcan_bit_pos(data_typ_name, field_name)    uavcan_dsdl_field(BitPos, data_typ_name, field_name)
+#define uavcan_bit_mask(data_typ_name, field_name)   uavcan_dsdl_field(Mask, data_typ_name, field_name)
+#define uavcan_bit_count(data_typ_name, field_name) uavcan_dsdl_field(Length, data_typ_name, field_name)
+
+#define uavcan_byte_offset(data_typ_name, field_name) uavcan_dsdl_field(PayloadOffset, data_typ_name, field_name)
+#define uavcan_byte_count(data_typ_name, field_name) uavcan_dsdl_field(PayloadLength, data_typ_name, field_name)
 
 #define uavcan_pack(d, data_typ_name, field_name) \
-	(((d) << uavcan_pos(data_typ_name, field_name)) & uavcan_mask(data_typ_name, field_name))
+	(((d) << uavcan_bit_pos(data_typ_name, field_name)) & uavcan_bit_mask(data_typ_name, field_name))
 #define uavcan_ppack(d, data_typ_name, field_name) uavcan_pack(d->field_name, data_typ_name, field_name)
 #define uavcan_rpack(d, data_typ_name, field_name) uavcan_pack(d.field_name, data_typ_name, field_name)
 
 #define uavcan_unpack(d, data_typ_name, field_name) \
-	(((d) & uavcan_mask(data_typ_name, field_name)) >> uavcan_pos(data_typ_name, field_name))
+	(((d) & uavcan_bit_mask(data_typ_name, field_name)) >> uavcan_bit_pos(data_typ_name, field_name))
 #define uavcan_punpack(d, data_typ_name, field_name) uavcan_unpack(d->field_name, data_typ_name, field_name)
 #define uavcan_runpack(d, data_typ_name, field_name) uavcan_unpack(d.field_name, data_typ_name, field_name)
 
@@ -236,9 +237,10 @@ uint32_t      priority                : LengthUavCanAnonMessagePriority;
 
 typedef enum uavcan_service_const_t {
 	UavcanServiceRetries = 3,
-	UavcanServiceTimeOutMs = 1000,
+	UavcanServiceTimeOutMs = 10 * 1000,
 
 } uavcan_service_const_t;
+TODO(Remove 10 * UavcanServiceTimeOutMs);
 
 
 /* UAVCAN CAN ID Usage: Service definition */
@@ -274,9 +276,23 @@ uint8_t      sot                     : LengthUavCanStartOfTransfer;
 typedef enum uavcan_tail_init_t {
 	SingleFrameTailInit = (MaskUavCanStartOfTransfer | MaskUavCanEndOfTransfer),
 	MultiFrameTailInit = (MaskUavCanStartOfTransfer),
+	BadTailState = (MaskUavCanStartOfTransfer | MaskUavCanToggle),
 	MaxUserPayloadLength = CanPayloadLength - sizeof(uavcan_tail_t),
 } uavcan_tail_init_t;
 
+/*
+ * Assert that assumptions in code are true
+ *  The code assumes it can manipulate a ALL sub protocol objects
+ *  using MaskUavCanMessageServiceNotMessage, MaskUavCanMessagePriority
+ *  and MaskUavCanMessageSourceNodeID
+ */
+
+CCASSERT(MaskUavCanServicePriority == MaskUavCanAnonMessagePriority);
+CCASSERT(MaskUavCanServicePriority == MaskUavCanMessagePriority);
+CCASSERT(MaskUavCanServiceSourceNodeID == MaskUavCanAnonMessageSourceNodeID);
+CCASSERT(MaskUavCanServiceSourceNodeID == MaskUavCanMessageSourceNodeID);
+CCASSERT(MaskUavCanMessageServiceNotMessage == MaskUavCanAnonMessageServiceNotMessage);
+CCASSERT(MaskUavCanMessageServiceNotMessage == MaskUavCanMessageServiceNotMessage);
 
 /****************************************************************************
  * Auto Generated Public Type Definitions
@@ -513,8 +529,8 @@ typedef enum uavcan_LogMessageConsts_t {
 
 typedef struct packed_struct uavcan_LogMessage_t {
 	uint8_t level;
-	uint8_t source[uavcan_count(LogMessage, source)];
-	uint8_t text[uavcan_count(LogMessage, text)];
+	uint8_t source[uavcan_byte_count(LogMessage, source)];
+	uint8_t text[uavcan_byte_count(LogMessage, text)];
 } uavcan_LogMessage_t;
 
 CCASSERT(sizeof(uavcan_LogMessage_t) == PackedSizeLogMessage);
@@ -608,7 +624,7 @@ typedef struct packed_struct uavcan_EntryType_t {
 } uavcan_EntryType_t;
 
 typedef struct packed_struct uavcan_GetInfo_request_t {
-	uavcan_Path_t path[PayloadLengthPathpath];
+	uavcan_Path_t path;
 } uavcan_GetInfo_request_t;
 typedef enum uavcan_GetInfo_requestConst_t {
 	FixedSizeGetInfoRequest = 0,
@@ -765,13 +781,13 @@ uint8_t uavcan_is_anonymous(uavcan_protocol_t *protocol, uint16_t expected_type_
  * Input Parameters:
  *   protocol     -     A pointer to a uavcan_protocol_t to test
  *
- *
  * Returned value:
  *   Non Zero if they match otherwise zero.
  *
  ****************************************************************************/
 
 uint8_t uavcan_is_allocation(uavcan_protocol_t *protocol);
+
 
 /****************************************************************************
  * Name: uavcan_tx
@@ -843,29 +859,30 @@ void uavcan_tx_service_response(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 				const uint8_t *transfer, size_t length);
 
 /****************************************************************************
- * Name: uavcan_rx_service
+ * Name: uavcan_rx_response
  *
  * Description:
+ *   This function receives a uavcan Service response protocol transfer
  *
  * Input Parameters:
  *   dsdl       - An Uavcan DSDL Identifier (Auto Generated)
  *   protocol   - A pointer to a uavcan_protocol_t to configure the receive,
  *                based the dsdl for the DTID Service.
- *                If the request/response must come from a specific server
+ *                If the request must come from a specific server
  *                then protocol->ser.source_node_id, should be set
  *                to that node id;
  *
- *   transfer    - A pointer to the packed data of the transfer to be sent.
- *   length     - The number of bytes of data
+ *   in_out_transfer_length - The number of bytes of data to receive and the
+ *                            number received.
  *   timeout_ms - The amount of time in mS to wait for the initial transfer
  *
  * Returned value:
  *   None
  *
  ****************************************************************************/
-can_error_t uavcan_rx_service(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
-			      uint8_t *transfer, size_t *length,
-			      uint32_t timeout_ms);
+can_error_t uavcan_rx_response(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
+			       uint8_t *transfer, size_t *in_out_transfer_length,
+			       uint32_t timeout_ms);
 
 /****************************************************************************
  * Name: uavcan_rx
@@ -908,8 +925,7 @@ uint8_t uavcan_rx(uavcan_protocol_t *protocol, uint8_t *frame_data,
  *
  ****************************************************************************/
 
-void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
-			  uint8_t status_code);
+void uavcan_tx_nodestatus(uint32_t uptime_sec, uint8_t status_code);
 
 /****************************************************************************
  * Name: uavcan_tx_log_message
@@ -930,7 +946,7 @@ void uavcan_tx_nodestatus(uint8_t node_id, uint32_t uptime_sec,
  *
  ****************************************************************************/
 /* The application must define this */
-extern const uint8_t debug_log_source[uavcan_count(LogMessage, source)];
+extern const uint8_t debug_log_source[uavcan_byte_count(LogMessage, source)];
 
 void uavcan_tx_log_message(uavcan_LogMessageConsts_t level, uint8_t stage,
 			   uint8_t status);
@@ -962,6 +978,38 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
 				  const uint8_t *unique_id,
 				  uint8_t unique_id_offset,
 				  uint16_t random);
+
+/****************************************************************************
+ * Name: uavcan_rx_allocation_message
+ *
+ * Description:
+ *   This function receives a uavcan Allocation message transfer
+ *
+ * Input Parameters:
+ *   protocol   - A pointer to a uavcan_protocol_t to configure the receive,
+ *                that will will be update based the dsdl for Allocation
+ *                message.
+ *                If the request must come from a specific server
+ *                then protocol->ser.source_node_id, should be set
+ *                to that node id;
+ *
+ *   message     - A pointer to a uavcan_Allocation_t to receive the
+ *                 transfer.
+ *
+ *   in_out_transfer_length - A pointer to the number of bytes of data to
+ *                            receive and the length of unique_id received.
+ *   timeout_ms - The amount of time in mS to wait for the message
+ *
+ * Returned value:
+ *   On Success - ssize_t with the length of
+ *                the unique_id received.
+ *   On Failure - -UavcanError
+ *
+ ****************************************************************************/
+
+ssize_t uavcan_rx_allocation_message(uavcan_protocol_t *protocol,
+				     uavcan_Allocation_t *message,
+				     uint32_t timeout_ms);
 
 /****************************************************************************
  * Name: uavcan_rx_beginfirmwareupdate_request

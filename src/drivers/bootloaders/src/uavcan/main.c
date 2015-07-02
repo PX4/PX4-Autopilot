@@ -121,7 +121,7 @@ bootloader_t bootloader;
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-const uint8_t debug_log_source[uavcan_count(LogMessage, source)] = {'B', 'o', 'o', 't'};
+const uint8_t debug_log_source[uavcan_byte_count(LogMessage, source)] = {'B', 'o', 'o', 't'};
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -278,7 +278,7 @@ static void node_info_process(bl_timer_id id, void *context)
 
 static void node_status_process(bl_timer_id id, void *context)
 {
-	uavcan_tx_nodestatus(bootloader.node_id, bootloader.uptime, bootloader.status_code);
+	uavcan_tx_nodestatus(bootloader.uptime, bootloader.status_code);
 }
 
 /****************************************************************************
@@ -404,19 +404,14 @@ static bool is_app_valid(uint32_t first_word)
  *                      was done.
  *
  ****************************************************************************/
-
 static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 {
 	uavcan_HardwareVersion_t hw_version;
 
-	uint8_t  rx_payload[CanPayloadLength];
-	size_t   rx_len;
 
 	struct {
-		uint16_t crc;
 		uint8_t node_id;
-		uint8_t transfer_id;
-		uint8_t allocated_node_id;
+		uavcan_Allocation_t allocation_message;
 	} server;
 
 
@@ -424,17 +419,14 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 
 	uint8_t unique_id_matched;
 
-	size_t i;
-	size_t pay_load_offset;
-	uint16_t expected_crc;
+	/* Get the Hw info, (struct will be zeroed by board_get_hardware_version ) */
 
-	/* Get the Hw info, (struct will be zeroed by ) */
-
-	i = board_get_hardware_version(&hw_version);
+	size_t  rx_len = board_get_hardware_version(&hw_version);
 	uint16_t random  = (uint16_t) timer_hrt_read();
-	random = crc16_signature(random, i, hw_version.unique_id);
+	random = crc16_signature(random, rx_len, hw_version.unique_id);
 
 	memset(&server, 0, sizeof(server));
+
 	unique_id_matched = 0u;
 
 	/*
@@ -447,6 +439,11 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 	bl_timer_id trequest = timer_allocate(modeTimeout | modeStarted, util_random(MIN_REQUEST_PERIOD_MS,
 					      MAX_REQUEST_PERIOD_MS), 0);
 
+	bl_timer_id tfollowup = timer_allocate(modeTimeout, util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS), 0);
+
+
+	uavcan_protocol_t protocol;
+
 	do {
 		/*
 		 *  Rule B. On expiration of trequest:
@@ -456,22 +453,28 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 		 *    first_part_of_unique_id - true
 		 *    unique_id               - first MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of unique ID
 		 */
+		TODO(Implement Cancel per email from Pavel)
 
 		if (timer_expired(trequest)) {
 			uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
 						     hw_version.unique_id,
 						     0u, random);
+restart:
 			timer_restart(trequest, util_random(MIN_REQUEST_PERIOD_MS, MAX_REQUEST_PERIOD_MS));
+			server.node_id = ANY_NODE_ID;
 		}
-
-		uavcan_protocol_t protocol;
 
 		/*
 		 * Do we have a frame and it is of DTIDAllocation that can be Anonymous or a Message
 		 * (It can not be s service) It is possibly not to us.
 		 */
 
-		if (uavcan_rx(&protocol, rx_payload, &rx_len, FifoAllocation) && uavcan_is_allocation(&protocol)) {
+		protocol.ana.source_node_id = server.node_id;
+		ssize_t length = uavcan_rx_allocation_message(&protocol, &server.allocation_message, 50);
+
+		if (length > 0) {
+
+			rx_len = length;
 
 			/*
 			 * Rule C. On any Allocation message, even if other rules also match:
@@ -481,39 +484,22 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 			timer_restart(trequest, util_random(MIN_REQUEST_PERIOD_MS, MAX_REQUEST_PERIOD_MS));
 
 			/*
-			Skip this message if it's anonymous (from another client), or if it's
-			from a different server to the one we're listening to at the moment
+			Skip this message if it's anonymous (from another client),
 			*/
-			if (protocol.msg.source_node_id == UavcanAnonymousNodeID ||
-			    (server.node_id && protocol.msg.source_node_id != server.node_id)) {
+			if (protocol.msg.source_node_id == UavcanAnonymousNodeID) {
+
 				continue;
 
 				/*
-				 *  If we do not have a server set or this is a sot or, the transfer id
-				 *  does not match
+				 *  If we do not have a server set or the transfer id
+				 *  does not match and this is the first frame
 				 */
 
-			} else if (0 == server.node_id || protocol.tail.sot ||
-				   protocol.tail.transfer_id != server.transfer_id) {
-
-				/* First (only?) frame of the transfer */
-				if (protocol.tail.eot) {
-					pay_load_offset = 1u;
-
-				} else {
-					/* Snatch the crc on first frame */
-					server.crc = uavcan_make_uint16(rx_payload[0], rx_payload[1]);
-					server.allocated_node_id = rx_payload[2];
-					pay_load_offset = 3u;
-				}
-
+			} else if (0 == server.node_id) {
 				server.node_id = protocol.msg.source_node_id;
-				server.transfer_id = protocol.tail.transfer_id;
 				unique_id_matched = 0u;
-
-			} else {
-				pay_load_offset = 0u;
 			}
+
 
 			/*
 			 *
@@ -541,60 +527,59 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 			 * 3. The client terminates subscription to Allocation messages.
 			 * 4. Exit.
 			 */
-
 			/* Count the number of unique ID bytes matched */
-			for (i = pay_load_offset; i < rx_len && unique_id_matched < sizeof_member(uavcan_HardwareVersion_t, unique_id) &&
-			     hw_version.unique_id[unique_id_matched] == rx_payload[i];
-			     unique_id_matched++, i++);
 
-			if (i < rx_len) {
+			size_t max_compare = uavcan_byte_count(Allocation, unique_id);
+
+			if (max_compare > rx_len) {
+				max_compare = rx_len;
+			}
+
+			for (unique_id_matched = 0; unique_id_matched < max_compare
+			     && hw_version.unique_id[unique_id_matched] == server.allocation_message.unique_id[unique_id_matched];
+			     unique_id_matched++);
+
+			if (unique_id_matched < rx_len) {
+
 				/* Abort if we didn't match the whole unique ID */
-				server.node_id = 0u;
+
+				goto restart;
+
 				/* All frames are received, yet what was sent by was not the complete id yet */
 
-			} else if (protocol.tail.eot) {
+			} else if (unique_id_matched == uavcan_byte_count(Allocation, unique_id)) {
 
-				if (unique_id_matched < sizeof_member(uavcan_HardwareVersion_t, unique_id)) {
+				/* Case E */
+				*allocated_node_id =  uavcan_runpack(server.allocation_message, Allocation, node_id);
+				break;
 
-					/* Case D */
+			} else {
+				/* Case D */
+				uint8_t rx_payload[CanPayloadLength];
 
-					/* Case D.1 */
-					timer_restart(trequest, util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS));
+				/* Case D.1 */
 
-					while (timer_expired(trequest)) {
-						if (uavcan_rx(&protocol, rx_payload, &rx_len, FifoAllocation) && uavcan_is_allocation(&protocol)) {
-							timer_restart(trequest, util_random(MIN_REQUEST_PERIOD_MS, MAX_REQUEST_PERIOD_MS));
-							server.node_id = 0u;
-							continue;
-						}
-					}
+				timer_restart(tfollowup, util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS));
 
-					/* Sending the next chunk */
-					uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
-								     hw_version.unique_id,
-								     unique_id_matched, random);
-
-				} else { // unique_id_matched >= sizeof_member(uavcan_HardwareVersion_t, unique_id)
-
-					/* Case E */
-
-					/* Validate CRC */
-					expected_crc = SignatureCRC16Allocation;
-					expected_crc = crc16_add(expected_crc, server.allocated_node_id);
-					expected_crc = crc16_signature(expected_crc, sizeof_member(uavcan_HardwareVersion_t, unique_id),
-								       hw_version.unique_id);
-
-					/* Case E */
-					if (server.crc == expected_crc) {
-						*allocated_node_id =  uavcan_unpack(server.allocated_node_id, Allocation, node_id);
-						break;
+				while (timer_expired(tfollowup)) {
+					if (uavcan_rx(&protocol, rx_payload, &rx_len, FifoAllocation)
+					    && (uavcan_is_allocation(&protocol))) {
+						goto restart;
 					}
 				}
+
+				/* Sending the next chunk */
+
+				uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
+							     hw_version.unique_id,
+							     unique_id_matched, random);
+
 			}
 		}
 	} while (!timer_expired(tboot));
 
 	timer_free(trequest);
+	timer_free(tfollowup);
 	return *allocated_node_id == ANY_NODE_ID ? CAN_BOOT_TIMEOUT : CAN_OK;
 }
 
@@ -636,7 +621,7 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
 	fw_path[0] = 0;
 	*fw_source_node_id = ANY_NODE_ID;
 
-	while (length <= 0) {
+	while (length == -UavcanError) {
 
 		if (timer_expired(tboot)) {
 			return UavcanBootTimeout;
@@ -658,9 +643,10 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
 
 		*fw_path_length = (size_t) length;
 		*fw_source_node_id = request.source_node_id;
+		length = UavcanOk;
 	}
 
-	return UavcanOk;
+	return length;
 }
 
 /****************************************************************************
@@ -693,29 +679,30 @@ static void file_getinfo(uint8_t fw_source_node_id,
 	uavcan_GetInfo_response_t         response;
 	uavcan_protocol_t protocol;
 
-	uint8_t transfer_id = 0;
+	protocol.tail.transfer_id = 0;
 
 	uint8_t retries = UavcanServiceRetries;
 
-	memcpy(request.path, fw_path, fw_path_length);
-	protocol.ser.dest_node_id = fw_source_node_id;
+	memcpy(&request.path, fw_path, fw_path_length);
 
 	*fw_image_size = 0;
 
 	while (retries--) {
+
 		size_t length =  FixedSizeGetInfoRequest + fw_path_length;
 
+		protocol.ser.dest_node_id = fw_source_node_id;
 		uavcan_tx_service_request(DSDLGetInfo, &protocol,
 					  (uint8_t *)&request, length);
 
 		length = sizeof(response);
-		uavcan_error_t status = uavcan_rx_service(DSDLGetInfo,
+		uavcan_error_t status = uavcan_rx_response(DSDLGetInfo,
 					&protocol,
 					(uint8_t *) &response,
 					&length,
 					UavcanServiceTimeOutMs);
 
-		transfer_id++;
+		protocol.tail.transfer_id++;
 
 		/* UAVCANBootloader_v0.3 #27: validateFileInfo(file_info, &errorcode) */
 		if (status == UavcanOk && response.error.value == FILE_ERROR_OK &&
@@ -823,11 +810,11 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 						  (uint8_t *)&request, length);
 
 			length = sizeof(uavcan_Read_response_t);
-			uavcan_status = uavcan_rx_service(DSDLGetInfo,
-							  &protocol,
-							  (uint8_t *) &response,
-							  &length,
-							  UavcanServiceTimeOutMs);
+			uavcan_status = uavcan_rx_response(DSDLRead,
+							   &protocol,
+							   (uint8_t *) &response,
+							   &length,
+							   UavcanServiceTimeOutMs);
 
 			transfer_id++;
 
@@ -1073,7 +1060,7 @@ __EXPORT int main(int argc, char *argv[])
 {
 
 	size_t fw_image_size = 0;
-	uint8_t fw_path[uavcan_length(BeginFirmwareUpdate, image_file_remote_path)];
+	uint8_t fw_path[uavcan_bit_count(BeginFirmwareUpdate, image_file_remote_path)];
 	size_t  fw_path_length;
 	uint8_t fw_source_node_id;
 	uint8_t error_log_stage;
@@ -1288,7 +1275,7 @@ __EXPORT int main(int argc, char *argv[])
 				&fw_source_node_id)) {
 			goto boot;
 		}
-	} while (1);//!fw_source_node_id);
+	} while (!fw_source_node_id);
 
 
 	/* We received a begin firmware update */
@@ -1356,7 +1343,7 @@ __EXPORT int main(int argc, char *argv[])
 	}
 
 
-	/* Send a completion log message */
+	/* Send a completion log allocation_message */
 	uavcan_tx_log_message(LOGMESSAGE_LEVELINFO,
 			      LOGMESSAGE_STAGE_FINALIZE,
 			      LOGMESSAGE_RESULT_OK);

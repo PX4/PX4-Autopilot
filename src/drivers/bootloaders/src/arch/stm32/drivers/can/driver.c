@@ -479,7 +479,7 @@ int can_init(can_speed_t speed, can_mode_t mode)
 
 
 	putreg32(bitrates[speedndx] | mode << CAN_BTR_LBK_SHIFT, STM32_CAN1_BTR);
-
+	TODO(ADD CAN_MCR_TXFP)
 	putreg32(CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_DBF, STM32_CAN1_MCR);
 
 	for (timeout = INAK_TIMEOUT; timeout > 0; timeout--) {
@@ -536,4 +536,26 @@ int can_init(can_speed_t speed, can_mode_t mode)
 	putreg32(0, STM32_CAN1_FMR);
 
 	return OK;
+}
+
+/****************************************************************************
+ * Name: can_cancel_on_error
+ *
+ * Description:
+ *   This function will test for transition completion or any error.
+ *   If the is a error the the transmit will be aborted.
+ *
+ * Input Parameters:
+ *   mailbox    - A can_fifo_mailbox_t MBxxx value to choose the outgoing
+ *                mailbox.
+ *
+ * Returned value:
+ *   CAN_OK - on Success or a CAN_ERROR if the cancellation was needed
+ *
+ ****************************************************************************/
+TODO(Code can_cancel_on_error(uint8_t mailbox));
+int can_cancel_on_error(uint8_t mailbox)
+{
+	//putreg32(STM32_CAN1_TSR, (1 << mailbox) << CAN_TSR_ABRQ0);
+	return 0;
 }

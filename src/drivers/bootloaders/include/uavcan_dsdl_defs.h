@@ -84,7 +84,7 @@
    UAVCAN_DSDL_BIT_DEF(GetNodeInfo,                            name,              0,         8,            NA,           80)
 
 /*UAVCAN_DSDL_TYPE_DEF(name,                dtid,              service,    signature,  packed size    mailbox,         fifo,         inbound,        outbound) */
-  UAVCAN_DSDL_TYPE_DEF(Allocation,              1,                false,      0xf258,        0,         MailBox0,     Fifo0,     SingleFrameTailInit, SingleFrameTailInit)
+  UAVCAN_DSDL_TYPE_DEF(Allocation,              1,                false,      0xf258,        0,         MailBox0,     Fifo0,     MultiFrameTailInit, SingleFrameTailInit)
 /* UAVCAN_DSDL_BIT_DEF(data_typ_name,                    field_name,        lsb_pos,    length,    payload_offset, payload_length) */
    UAVCAN_DSDL_BIT_DEF(Allocation,                          node_id,              1,         7,            0,             1)
    UAVCAN_DSDL_BIT_DEF(Allocation,          first_part_of_unique_id,              0,         1,            0,             1)
