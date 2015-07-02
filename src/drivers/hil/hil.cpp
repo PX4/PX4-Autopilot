@@ -123,7 +123,7 @@ private:
 	bool		_primary_pwm_device;
 
 	volatile bool	_task_should_exit;
-	bool		_armed;
+	static bool	_armed;
 
 	MixerGroup	*_mixers;
 
@@ -163,6 +163,8 @@ HIL	*g_hil;
 
 } // namespace
 
+bool HIL::_armed = false;
+
 HIL::HIL() :
 #ifdef __PX4_NUTTX
 	CDev
@@ -180,7 +182,6 @@ HIL::HIL() :
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_task_should_exit(false),
-	_armed(false),
 	_mixers(nullptr)
 {
 	_debug_enabled = true;
