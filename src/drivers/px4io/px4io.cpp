@@ -71,7 +71,7 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/circuit_breaker.h>
 
 #include <uORB/topics/actuator_controls.h>

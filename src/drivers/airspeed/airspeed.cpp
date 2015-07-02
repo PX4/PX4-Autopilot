@@ -63,7 +63,6 @@
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 
 #include <drivers/drv_airspeed.h>
