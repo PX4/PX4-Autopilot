@@ -48,7 +48,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <semaphore.h>
-#include "systemlib/param/param.h"
+#include <param/param.h>
 #include "hrt_work.h"
 #include "px4_log.h"
 
