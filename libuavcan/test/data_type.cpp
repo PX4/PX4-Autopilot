@@ -136,7 +136,7 @@ TEST(DataTypeID, Basic)
     uavcan::DataTypeID id2 = 255;
 
     ASSERT_EQ(123, id.get());
-    ASSERT_EQ(456, id2.get());
+    ASSERT_EQ(255, id2.get());
 
     ASSERT_TRUE(id.isValidForDataTypeKind(uavcan::DataTypeKindMessage));
     ASSERT_TRUE(id.isValidForDataTypeKind(uavcan::DataTypeKindService));

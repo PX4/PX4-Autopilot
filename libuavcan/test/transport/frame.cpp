@@ -50,10 +50,10 @@ TEST(Frame, MessageParseCompile)
     EXPECT_EQ(uavcan::NodeID(42), frame.getSrcNodeID());
     EXPECT_TRUE(frame.getDstNodeID().isBroadcast());
     EXPECT_EQ(uavcan::TransferTypeMessageBroadcast, frame.getTransferType());
-    EXPECT_EQ(2000, frame.getDataTypeID().get());
+    EXPECT_EQ(20000, frame.getDataTypeID().get());
     EXPECT_EQ(16, frame.getPriority().get());
 
-    EXPECT_EQ(payload_string.length(), frame.getPayloadLen());
+    EXPECT_EQ(payload_string.length() - 1, frame.getPayloadLen());
     EXPECT_TRUE(std::equal(frame.getPayloadPtr(), frame.getPayloadPtr() + frame.getPayloadLen(),
                            payload_string.begin()));
 
@@ -69,6 +69,7 @@ TEST(Frame, MessageParseCompile)
     ASSERT_EQ(can_frame, makeCanFrame(can_id, payload_string, EXT));
 
     EXPECT_EQ(payload_string.length(), can_frame.dlc);
+    std::cout << can_frame.toString() << std::endl;
     EXPECT_TRUE(std::equal(can_frame.data, can_frame.data + can_frame.dlc, payload_string.begin()));
 
     /*
@@ -119,14 +120,14 @@ TEST(Frame, ServiceParseCompile)
     // Valid
     ASSERT_TRUE(frame.parse(makeCanFrame(can_id, payload_string, EXT)));
 
-    EXPECT_EQ(TransferID(5), frame.getTransferID());
+    EXPECT_EQ(TransferID(10), frame.getTransferID());
     EXPECT_FALSE(frame.isStartOfTransfer());
     EXPECT_TRUE(frame.isEndOfTransfer());
     EXPECT_TRUE(frame.getToggle());
     EXPECT_EQ(uavcan::NodeID(42), frame.getSrcNodeID());
     EXPECT_EQ(uavcan::NodeID(0x42), frame.getDstNodeID());
     EXPECT_EQ(uavcan::TransferTypeServiceRequest, frame.getTransferType());
-    EXPECT_EQ(500, frame.getDataTypeID().get());
+    EXPECT_EQ(200, frame.getDataTypeID().get());
     EXPECT_EQ(31, frame.getPriority().get());
 
     EXPECT_EQ(payload_string.length(), frame.getPayloadLen() + 1);

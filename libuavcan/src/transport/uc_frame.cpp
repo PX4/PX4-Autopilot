@@ -35,6 +35,7 @@ bool Frame::parse(const CanFrame& can_frame)
 {
     if (can_frame.isErrorFrame() || can_frame.isRemoteTransmissionRequest() || !can_frame.isExtended())
     {
+        UAVCAN_TRACE("Frame", "Parsing failed at line %d", __LINE__);
         return false;
     }
 
@@ -46,6 +47,7 @@ bool Frame::parse(const CanFrame& can_frame)
 
     if (can_frame.dlc < 1)
     {
+        UAVCAN_TRACE("Frame", "Parsing failed at line %d", __LINE__);
         return false;
     }
 
