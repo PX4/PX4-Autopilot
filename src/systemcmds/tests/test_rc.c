@@ -106,7 +106,7 @@ int test_rc(int argc, char *argv[])
 
 					/* go and check values */
 					for (unsigned i = 0; i < rc_input.channel_count; i++) {
-						if (fabsf(rc_input.values[i] - rc_last.values[i]) > 20) {
+						if (abs(rc_input.values[i] - rc_last.values[i]) > 20) {
 							PX4_ERR("comparison fail: RC: %d, expected: %d", rc_input.values[i], rc_last.values[i]);
 							(void)close(_rc_sub);
 							return ERROR;
