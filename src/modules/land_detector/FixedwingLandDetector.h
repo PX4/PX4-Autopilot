@@ -45,7 +45,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 class FixedwingLandDetector : public LandDetector
 {

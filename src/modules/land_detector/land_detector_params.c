@@ -38,7 +38,7 @@
  * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /**
  * Multicopter max climb rate
