@@ -41,7 +41,7 @@
 
 #include <px4_defines.h>
 #include "mc_pos_control_params.h"
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /**
  * Minimum thrust
