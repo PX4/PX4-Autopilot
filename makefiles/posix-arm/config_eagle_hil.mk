@@ -59,6 +59,7 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
+MODULES		+= lib/param
 
 #
 # Linux port
