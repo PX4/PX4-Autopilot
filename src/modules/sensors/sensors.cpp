@@ -76,7 +76,7 @@
 #include <drivers/drv_px4flow.h>
 
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <conversion/rotation.h>

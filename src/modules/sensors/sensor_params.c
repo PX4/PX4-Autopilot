@@ -42,7 +42,7 @@
  */
 
 #include <px4_config.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /**
  * ID of the board this parameter set was calibrated on.
