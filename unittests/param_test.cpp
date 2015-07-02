@@ -1,5 +1,5 @@
 #include <systemlib/visibility.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 #include "gtest/gtest.h"
 
