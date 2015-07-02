@@ -53,9 +53,9 @@
 
 #include <arch/board/board.h>
 
-#include "systemlib/systemlib.h"
-#include "systemlib/param/param.h"
-#include "systemlib/err.h"
+#include <systemlib/systemlib.h>
+#include <param/param.h>
+#include <systemlib/err.h>
 
 __EXPORT int param_main(int argc, char *argv[]);
 

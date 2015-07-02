@@ -39,8 +39,8 @@
 
 #include <px4_defines.h>
 #include <stdio.h>
-#include "systemlib/err.h"
-#include "systemlib/param/param.h"
+#include <systemlib/err.h>
+#include <param/param.h>
 #include "tests.h"
 
 #define PARAM_MAGIC1 0x12345678

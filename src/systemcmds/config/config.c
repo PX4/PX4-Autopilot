@@ -58,7 +58,7 @@
 
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
-#include "systemlib/param/param.h"
+#include <param/param.h>
 
 __EXPORT int config_main(int argc, char *argv[]);
 
