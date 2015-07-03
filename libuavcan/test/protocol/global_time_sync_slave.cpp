@@ -175,7 +175,7 @@ static uavcan::Frame makeSyncMsg(uavcan::uint64_t usec, uavcan::NodeID snid, uav
                         snid, uavcan::NodeID::Broadcast, tid);
     frame.setStartOfTransfer(true);
     frame.setEndOfTransfer(true);
-    EXPECT_EQ(8, frame.setPayload(reinterpret_cast<uint8_t*>(&usec), 8)); // Assuming little endian
+    EXPECT_EQ(7, frame.setPayload(reinterpret_cast<uint8_t*>(&usec), 7)); // Assuming little endian!!!
     return frame;
 }
 
@@ -267,8 +267,8 @@ TEST(GlobalTimeSyncSlave, Validation)
     broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 7);
     ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
-    broadcastSyncMsg(slave_can.ifaces.at(0), 5000, 8, 0); // Valid adjustment now
-    broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 0);
+    broadcastSyncMsg(slave_can.ifaces.at(0), 5000, 8, 8); // Valid adjustment now
+    broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 8);
     ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(gtss.isActive());
