@@ -386,7 +386,7 @@ float battery_remaining_estimate_voltage(float voltage, float discharged, float 
 	/* the range from full to empty is the same for batteries under load and without load,
 	 * since the voltage drop applies to both the full and empty state
 	 */
-	float voltage_range = (bat_v_full - bat_v_empty)
+	float voltage_range = (bat_v_full - bat_v_empty);
 	float remaining_voltage = (voltage - (bat_n_cells * bat_v_empty_dynamic)) / (bat_n_cells * voltage_range);
 
 	if (bat_capacity > 0.0f) {
