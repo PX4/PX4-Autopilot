@@ -208,6 +208,9 @@ public:
  * reference invalidates once the callback returns. If you want to use this object after the callback execution,
  * you need to copy it somewhere.
  *
+ * Note that by default, service client objects use lower priority than message publishers. Use @ref setPriority()
+ * to override the default if necessary.
+ *
  * @tparam DataType_        Service data type.
  *
  * @tparam Callback_        Service response will be delivered through the callback of this type.
@@ -303,6 +306,7 @@ public:
         , publisher_(node, getDefaultRequestTimeout())
         , callback_(callback)
     {
+        setPriority(TransferPriority::MiddleLower);
         setRequestTimeout(getDefaultRequestTimeout());
 #if UAVCAN_DEBUG
         UAVCAN_ASSERT(getRequestTimeout() == getDefaultRequestTimeout());  // Making sure default values are OK
@@ -398,6 +402,14 @@ public:
         publisher_.setTxTimeout(timeout);
         request_timeout_ = max(timeout, publisher_.getTxTimeout());  // No less than TX timeout
     }
+
+    /**
+     * Priority of outgoing request transfers.
+     * The remote server is supposed to use the same priority for the response, but it's not guaranteed by
+     * the specification.
+     */
+    TransferPriority getPriority() const { return publisher_.getPriority(); }
+    void setPriority(const TransferPriority prio) { publisher_.setPriority(prio); }
 };
 
 // ----------------------------------------------------------------------------

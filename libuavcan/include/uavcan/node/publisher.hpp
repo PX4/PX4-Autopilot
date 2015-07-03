@@ -65,24 +65,6 @@ public:
         return BaseType::publish(message, TransferTypeMessageBroadcast, NodeID::Broadcast, tid);
     }
 
-    /**
-     * Returns priority of outgoing transfers.
-     */
-    TransferPriority getPriority() const
-    {
-        return BaseType::getTransferSender().getPriority();
-    }
-
-    /**
-     * Allows to change the priority of outgoing transfers.
-     * Note that only High, Normal and Low priorities can be used; Service priority is not available for messages.
-     * If the priority value is invalid, an assertion failure will be generated, and the value will not be updated.
-     */
-    void setPriority(const TransferPriority prio)
-    {
-        BaseType::getTransferSender().setPriority(prio);
-    }
-
     static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(10); }
 
     /**
@@ -97,6 +79,8 @@ public:
     using BaseType::getMaxTxTimeout;
     using BaseType::getTxTimeout;
     using BaseType::setTxTimeout;
+    using BaseType::getPriority;
+    using BaseType::setPriority;
     using BaseType::getNode;
 };
 

@@ -67,6 +67,12 @@ public:
         sender_.allowAnonymousTransfers();
     }
 
+    /**
+     * Priority of outgoing transfers.
+     */
+    TransferPriority getPriority() const { return sender_.getPriority(); }
+    void setPriority(const TransferPriority prio) { sender_.setPriority(prio); }
+
     INode& getNode() const { return node_; }
 };
 

@@ -387,6 +387,59 @@ TEST(ServiceClient, Empty)
 }
 
 
+TEST(ServiceClient, Priority)
+{
+    InterlinkedTestNodesWithSysClock nodes;
+
+    // Type registration
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<root_ns_a::EmptyService> _registrator;
+
+    // Initializing
+    typedef uavcan::ServiceClient<root_ns_a::EmptyService,
+                                  typename ServiceCallResultHandler<root_ns_a::EmptyService>::Binder > ClientType;
+    ServiceCallResultHandler<root_ns_a::EmptyService> handler;
+    ClientType client(nodes.b);
+    client.setCallback(handler.bind());
+
+    // Calling
+    root_ns_a::EmptyService::Request request;
+
+    client.setPriority(0);
+    ASSERT_LT(0, client.call(1, request)); // OK
+
+    client.setPriority(10);
+    ASSERT_LT(0, client.call(1, request)); // OK
+
+    client.setPriority(20);
+    ASSERT_LT(0, client.call(1, request)); // OK
+
+    client.setPriority(31);
+    ASSERT_LT(0, client.call(1, request)); // OK
+
+    // Validating
+    ASSERT_EQ(4, nodes.can_a.read_queue.size());
+
+    uavcan::Frame frame;
+
+    ASSERT_TRUE(frame.parse(nodes.can_a.read_queue.front()));
+    nodes.can_a.read_queue.pop();
+    ASSERT_EQ(0, frame.getPriority().get());
+
+    ASSERT_TRUE(frame.parse(nodes.can_a.read_queue.front()));
+    nodes.can_a.read_queue.pop();
+    ASSERT_EQ(10, frame.getPriority().get());
+
+    ASSERT_TRUE(frame.parse(nodes.can_a.read_queue.front()));
+    nodes.can_a.read_queue.pop();
+    ASSERT_EQ(20, frame.getPriority().get());
+
+    ASSERT_TRUE(frame.parse(nodes.can_a.read_queue.front()));
+    nodes.can_a.read_queue.pop();
+    ASSERT_EQ(31, frame.getPriority().get());
+}
+
+
 TEST(ServiceClient, Sizes)
 {
     using namespace uavcan;

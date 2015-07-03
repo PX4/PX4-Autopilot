@@ -35,6 +35,7 @@ public:
 
     /// This priority is used by default
     static const TransferPriority Default;
+    static const TransferPriority MiddleLower;
     static const TransferPriority OneHigherThanLowest;
     static const TransferPriority OneLowerThanHighest;
 

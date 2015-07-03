@@ -16,6 +16,7 @@ const uint8_t TransferPriority::NumericallyMax;
 const uint8_t TransferPriority::NumericallyMin;
 
 const TransferPriority TransferPriority::Default((1U << BitLen) / 2);
+const TransferPriority TransferPriority::MiddleLower((1U << BitLen) / 2 + (1U << BitLen) / 4);
 const TransferPriority TransferPriority::OneHigherThanLowest(NumericallyMax - 1);
 const TransferPriority TransferPriority::OneLowerThanHighest(NumericallyMin + 1);
 
