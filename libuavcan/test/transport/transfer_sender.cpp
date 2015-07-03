@@ -104,6 +104,11 @@ TEST(TransferSender, Basic)
     };
 
     /*
+     * Making sure that the abort flag is not used.
+     */
+    ASSERT_EQ(0, driver.ifaces.at(0).tx.front().flags);
+
+    /*
      * Receiving on the other side.
      */
     for (uint8_t i = 0; i < driver.getNumIfaces(); i++)   // Moving the frames from TX to RX side
