@@ -179,7 +179,7 @@ public:
     {
         const MonotonicDuration since_prev_adj = getSystemClock().getMonotonic() - last_adjustment_ts_;
         return !last_adjustment_ts_.isZero() &&
-               (since_prev_adj.toMSec() <= protocol::GlobalTimeSync::PUBLISHER_TIMEOUT_MS);
+               (since_prev_adj.toMSec() <= protocol::GlobalTimeSync::RECOMMENDED_PUBLISHER_TIMEOUT_MS);
     }
 
     /**

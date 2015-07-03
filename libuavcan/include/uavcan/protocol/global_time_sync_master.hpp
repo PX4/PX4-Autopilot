@@ -124,7 +124,7 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
     int getNextTransferID(TransferID& tid)
     {
         const MonotonicDuration max_transfer_interval =
-            MonotonicDuration::fromMSec(protocol::GlobalTimeSync::PUBLISHER_TIMEOUT_MS);
+            MonotonicDuration::fromMSec(protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS);
 
         const OutgoingTransferRegistryKey otr_key(dtid_, TransferTypeMessageBroadcast, NodeID::Broadcast);
         const MonotonicTime otr_deadline = node_.getMonotonicTime() + max_transfer_interval;
