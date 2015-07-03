@@ -129,8 +129,8 @@ TEST(Dispatcher, Reception)
         emulator.makeTransfer(5,  uavcan::TransferTypeMessageBroadcast, 11, DATA[1], TYPES[1]),
         emulator.makeTransfer(10, uavcan::TransferTypeServiceRequest,   12, DATA[2], TYPES[2]),
         emulator.makeTransfer(15, uavcan::TransferTypeServiceResponse,  13, DATA[4], TYPES[3]),
-        emulator.makeTransfer(20,  uavcan::TransferTypeMessageBroadcast, 14, DATA[3], TYPES[0]),
-        emulator.makeTransfer(25,  uavcan::TransferTypeMessageBroadcast, 15, DATA[5], TYPES[1]),
+        emulator.makeTransfer(20, uavcan::TransferTypeMessageBroadcast, 14, DATA[3], TYPES[0]),
+        emulator.makeTransfer(25, uavcan::TransferTypeMessageBroadcast, 15, DATA[5], TYPES[1]),
         // Wrongly addressed:
         emulator.makeTransfer(29, uavcan::TransferTypeServiceResponse,  10, DATA[0], TYPES[3], 100),
         emulator.makeTransfer(31, uavcan::TransferTypeServiceRequest,   11, DATA[4], TYPES[2], 101)
@@ -198,19 +198,12 @@ TEST(Dispatcher, Reception)
 
     /*
      * Matching.
-     * Expected reception order per subsciber:
-     * 0: 0, 4
-     * 1: 0, 4
-     * 2: 5, 1
-     * 3: 2
-     * 4: 3
-     * 5: 3
      */
-    ASSERT_TRUE(subscribers[0]->matchAndPop(transfers[0]));
     ASSERT_TRUE(subscribers[0]->matchAndPop(transfers[4]));
+    ASSERT_TRUE(subscribers[0]->matchAndPop(transfers[0]));
 
-    ASSERT_TRUE(subscribers[1]->matchAndPop(transfers[0]));
     ASSERT_TRUE(subscribers[1]->matchAndPop(transfers[4]));
+    ASSERT_TRUE(subscribers[1]->matchAndPop(transfers[0]));
 
     ASSERT_TRUE(subscribers[2]->matchAndPop(transfers[5]));
     ASSERT_TRUE(subscribers[2]->matchAndPop(transfers[1]));
@@ -251,7 +244,7 @@ TEST(Dispatcher, Reception)
      * RX listener
      */
     std::cout << "Num received frames: " << rx_listener.rx_frames.size() << std::endl;
-    ASSERT_EQ(218, rx_listener.rx_frames.size());
+    ASSERT_EQ(292, rx_listener.rx_frames.size());
 }
 
 
@@ -286,7 +279,7 @@ TEST(Dispatcher, Transmission)
 
     ASSERT_FALSE(dispatcher.hasPublisher(123));
     ASSERT_FALSE(dispatcher.hasPublisher(456));
-    const uavcan::OutgoingTransferRegistryKey otr_key(123, uavcan::TransferTypeServiceRequest, 2);
+    const uavcan::OutgoingTransferRegistryKey otr_key(123, uavcan::TransferTypeMessageBroadcast, 0);
     ASSERT_TRUE(out_trans_reg.accessOrCreate(otr_key, uavcan::MonotonicTime::fromMSec(1000000)));
     ASSERT_TRUE(dispatcher.hasPublisher(123));
     ASSERT_FALSE(dispatcher.hasPublisher(456));

@@ -194,15 +194,15 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     uavcan::MonotonicTime ts_monotonic = transfer.ts_monotonic;
     uavcan::UtcTime ts_utc = transfer.ts_utc;
 
+    uavcan::Frame frm(transfer.data_type.getID(), transfer.transfer_type, transfer.src_node_id,
+                      transfer.dst_node_id, transfer.transfer_id);
+    frm.setStartOfTransfer(true);
+    frm.setPriority(transfer.priority);
+
     while (true)
     {
         const int bytes_left = int(raw_payload.size()) - int(offset);
         EXPECT_TRUE(bytes_left >= 0);
-
-        uavcan::Frame frm(transfer.data_type.getID(), transfer.transfer_type, transfer.src_node_id,
-                          transfer.dst_node_id, transfer.transfer_id);
-
-        frm.setStartOfTransfer(true);
 
         const int spres = frm.setPayload(&*(raw_payload.begin() + offset), unsigned(bytes_left));
         if (spres < 0)
