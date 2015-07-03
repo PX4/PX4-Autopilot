@@ -93,9 +93,9 @@ TEST(TransferSender, Basic)
     static const Transfer TRANSFERS[8] =
     {
         Transfer(TX_DEADLINE, 0, 20, TransferTypeMessageBroadcast, 0, TX_NODE_ID, 0, DATA[0], TYPES[0]),
-        Transfer(TX_DEADLINE, 0, 20, TransferTypeMessageBroadcast, 0, TX_NODE_ID, 0, DATA[1], TYPES[0]),
-        Transfer(TX_DEADLINE, 0, 10, TransferTypeMessageBroadcast, 1, TX_NODE_ID, 0, "123",   TYPES[0]),
-        Transfer(TX_DEADLINE, 0, 10, TransferTypeMessageBroadcast, 1, TX_NODE_ID, 0, "456",   TYPES[0]),
+        Transfer(TX_DEADLINE, 0, 20, TransferTypeMessageBroadcast, 1, TX_NODE_ID, 0, DATA[1], TYPES[0]),
+        Transfer(TX_DEADLINE, 0, 10, TransferTypeMessageBroadcast, 2, TX_NODE_ID, 0, "123",   TYPES[0]),
+        Transfer(TX_DEADLINE, 0, 10, TransferTypeMessageBroadcast, 3, TX_NODE_ID, 0, "456",   TYPES[0]),
 
         Transfer(TX_DEADLINE, 0, 15, TransferTypeServiceRequest,   0, TX_NODE_ID, RX_NODE_ID, DATA[2], TYPES[1]),
         Transfer(TX_DEADLINE, 0, 15, TransferTypeServiceResponse,  1, TX_NODE_ID, RX_NODE_ID, DATA[3], TYPES[1]),
