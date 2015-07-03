@@ -84,7 +84,7 @@ TEST(ServiceServer, Basic)
 
             frame.setStartOfTransfer(true);
             frame.setEndOfTransfer(true);
-            frame.setPriority(10);
+            frame.setPriority(i);
 
             uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
             can_driver.ifaces[0].pushRx(rx_frame);
@@ -111,6 +111,7 @@ TEST(ServiceServer, Basic)
             ASSERT_EQ(i, fr.getTransferID().get());
             ASSERT_EQ(uavcan::TransferTypeServiceResponse, fr.getTransferType());
             ASSERT_EQ(i + 0x10, fr.getDstNodeID().get());
+            ASSERT_EQ(i, fr.getPriority().get());
 
             // Second frame
             ASSERT_TRUE(fr.parse(can_driver.ifaces[0].popTxFrame()));

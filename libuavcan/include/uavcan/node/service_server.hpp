@@ -139,6 +139,8 @@ private:
 
         if (response.isResponseEnabled())
         {
+            publisher_.setPriority(request.getPriority());      // Responding at the same priority.
+
             const int res = publisher_.publish(response, TransferTypeServiceResponse, request.getSrcNodeID(),
                                                request.getTransferID());
             if (res < 0)
