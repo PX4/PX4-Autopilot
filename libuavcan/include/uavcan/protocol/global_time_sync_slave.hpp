@@ -82,7 +82,8 @@ class UAVCAN_EXPORT GlobalTimeSyncSlave : Noncopyable
 
         const bool needs_init = !master_nid_.isValid() || prev_ts_mono_.isZero();
         const bool switch_master = msg.getSrcNodeID() < master_nid_;
-        const bool pub_timeout = since_prev_msg.toMSec() > protocol::GlobalTimeSync::PUBLISHER_TIMEOUT_MS;
+        // TODO: Make configurable
+        const bool pub_timeout = since_prev_msg.toMSec() > protocol::GlobalTimeSync::RECOMMENDED_PUBLISHER_TIMEOUT_MS;
 
         if (switch_master || pub_timeout || needs_init)
         {
