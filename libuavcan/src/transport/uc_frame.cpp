@@ -223,6 +223,7 @@ bool Frame::isValid() const
     if (src_node_id_.isBroadcast() &&
         (!start_of_transfer_ || !end_of_transfer_ || (transfer_type_ != TransferTypeMessageBroadcast)))
     {
+        UAVCAN_TRACE("Frame", "Validness check failed at line %d", __LINE__);
         return false;
     }
 

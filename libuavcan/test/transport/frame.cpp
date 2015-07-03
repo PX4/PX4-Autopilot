@@ -70,7 +70,12 @@ TEST(Frame, MessageParseCompile)
 
     EXPECT_EQ(payload_string.length(), can_frame.dlc);
     std::cout << can_frame.toString() << std::endl;
-    EXPECT_TRUE(std::equal(can_frame.data, can_frame.data + can_frame.dlc, payload_string.begin()));
+    /*
+     * FUN FACT: comparison of uint8_t with char may fail on the character 0xD4 (depending on the locale),
+     * because it will be considered a Unicode character. Hence, we do reinterpret_cast<>.
+     */
+    EXPECT_TRUE(std::equal(can_frame.data, can_frame.data + can_frame.dlc,
+                           reinterpret_cast<const uint8_t*>(&payload_string[0])));
 
     /*
      * Comparison
@@ -132,7 +137,7 @@ TEST(Frame, ServiceParseCompile)
 
     EXPECT_EQ(payload_string.length(), frame.getPayloadLen() + 1);
     EXPECT_TRUE(std::equal(frame.getPayloadPtr(), frame.getPayloadPtr() + frame.getPayloadLen(),
-                           payload_string.begin() + 1));
+                           reinterpret_cast<const uint8_t*>(&payload_string[0])));
 
     std::cout << frame.toString() << std::endl;
 
@@ -146,7 +151,8 @@ TEST(Frame, ServiceParseCompile)
     ASSERT_EQ(can_frame, makeCanFrame(can_id, payload_string, EXT));
 
     EXPECT_EQ(payload_string.length(), can_frame.dlc);
-    EXPECT_TRUE(std::equal(can_frame.data, can_frame.data + can_frame.dlc, payload_string.begin()));
+    EXPECT_TRUE(std::equal(can_frame.data, can_frame.data + can_frame.dlc,
+                           reinterpret_cast<const uint8_t*>(&payload_string[0])));
 
     /*
      * Comparison
@@ -179,7 +185,7 @@ TEST(Frame, AnonymousParseCompile)
         (16383 << 10) | // Discriminator
         (1 << 8);       // Message Type ID
 
-    const std::string payload_string = "hello\x94"; // SET = 100, TID = 20
+    const std::string payload_string = "hello\xd4"; // SET = 110, TID = 20
 
     uavcan::TransferCRC payload_crc;
     payload_crc.add(reinterpret_cast<const uint8_t*>(payload_string.c_str()), unsigned(payload_string.length()));
@@ -189,9 +195,9 @@ TEST(Frame, AnonymousParseCompile)
      */
     ASSERT_TRUE(frame.parse(makeCanFrame(can_id, payload_string, EXT)));
 
-    EXPECT_EQ(TransferID(0), frame.getTransferID());
+    EXPECT_EQ(TransferID(20), frame.getTransferID());
     EXPECT_TRUE(frame.isStartOfTransfer());
-    EXPECT_FALSE(frame.isEndOfTransfer());
+    EXPECT_TRUE(frame.isEndOfTransfer());
     EXPECT_FALSE(frame.getToggle());
     EXPECT_TRUE(frame.getSrcNodeID().isBroadcast());
     EXPECT_TRUE(frame.getDstNodeID().isBroadcast());
@@ -199,9 +205,9 @@ TEST(Frame, AnonymousParseCompile)
     EXPECT_EQ(1, frame.getDataTypeID().get());
     EXPECT_EQ(0, frame.getPriority().get());
 
-    EXPECT_EQ(payload_string.length(), frame.getPayloadLen());
+    EXPECT_EQ(payload_string.length() - 1, frame.getPayloadLen());
     EXPECT_TRUE(std::equal(frame.getPayloadPtr(), frame.getPayloadPtr() + frame.getPayloadLen(),
-                           payload_string.begin()));
+                           reinterpret_cast<const uint8_t*>(&payload_string[0])));
 
     std::cout << frame.toString() << std::endl;
 
@@ -219,7 +225,8 @@ TEST(Frame, AnonymousParseCompile)
               can_frame.id & NoDiscriminatorMask & uavcan::CanFrame::MaskExtID);
 
     EXPECT_EQ(payload_string.length(), can_frame.dlc);
-    EXPECT_TRUE(std::equal(can_frame.data, can_frame.data + can_frame.dlc, payload_string.begin()));
+    EXPECT_TRUE(std::equal(can_frame.data, can_frame.data + can_frame.dlc,
+                           reinterpret_cast<const uint8_t*>(&payload_string[0])));
 
     EXPECT_EQ((can_frame.id & DiscriminatorMask & uavcan::CanFrame::MaskExtID) >> 10, payload_crc.get() & 16383);
 
@@ -275,7 +282,10 @@ TEST(Frame, FrameParsing)
              (0 << 7) |
              (42 << 0);
 
-    can.data[7] = 0xc0; // SET=110, TID=0
+    can.data[7] = 0xcf; // SET=110, TID=0
+
+    ASSERT_FALSE(frame.parse(can));
+    can.dlc = 8;
 
     ASSERT_TRUE(frame.parse(can));
     EXPECT_TRUE(frame.isStartOfTransfer());
@@ -285,7 +295,7 @@ TEST(Frame, FrameParsing)
     ASSERT_EQ(NodeID(42), frame.getSrcNodeID());
     ASSERT_EQ(NodeID::Broadcast, frame.getDstNodeID());
     ASSERT_EQ(456, frame.getDataTypeID().get());
-    ASSERT_EQ(TransferID(2), frame.getTransferID());
+    ASSERT_EQ(TransferID(15), frame.getTransferID());
     ASSERT_EQ(uavcan::TransferTypeMessageBroadcast, frame.getTransferType());
 
     // TODO: test service frames
@@ -313,6 +323,11 @@ TEST(Frame, RxFrameParse)
         (456 << 8) |
         (0 << 7) |
         (42 << 0);
+
+    ASSERT_FALSE(rx_frame.parse(can_rx_frame));
+
+    can_rx_frame.data[0] = 0xc0; // SOT, EOT
+    can_rx_frame.dlc = 1;
 
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
     ASSERT_EQ(1, rx_frame.getMonotonicTimestamp().toUSec());
