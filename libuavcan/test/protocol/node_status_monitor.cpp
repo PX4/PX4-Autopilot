@@ -123,13 +123,13 @@ TEST(NodeStatusMonitor, Basic)
     /*
      * Recovering one node, adding two extra
      */
-    publishNodeStatus(can, 11, NodeStatus::STATUS_WARNING, 999, 0);
+    publishNodeStatus(can, 11, NodeStatus::STATUS_WARNING, 999, 1);
     shortSpin(node);
 
-    publishNodeStatus(can, 127, NodeStatus::STATUS_WARNING, 9999, 0);
+    publishNodeStatus(can, 127, NodeStatus::STATUS_WARNING, 9999, 1);
     shortSpin(node);
 
-    publishNodeStatus(can, 1, NodeStatus::STATUS_OK, 1234, 0);
+    publishNodeStatus(can, 1, NodeStatus::STATUS_OK, 1234, 1);
     shortSpin(node);
 
     /*
