@@ -12,7 +12,7 @@ TEST(Transfer, TransferID)
     using uavcan::TransferID;
 
     // Tests below are based on this assumption
-    ASSERT_EQ(8, 1 << TransferID::BitLen);
+    ASSERT_EQ(32, 1 << TransferID::BitLen);
 
     /*
      * forwardDistance()
@@ -22,10 +22,10 @@ TEST(Transfer, TransferID)
     EXPECT_EQ(7, TransferID(0).computeForwardDistance(7));
 
     EXPECT_EQ(0, TransferID(7).computeForwardDistance(7));
-    EXPECT_EQ(7, TransferID(7).computeForwardDistance(6));
-    EXPECT_EQ(1, TransferID(7).computeForwardDistance(0));
+    EXPECT_EQ(31,TransferID(31).computeForwardDistance(30));
+    EXPECT_EQ(1, TransferID(31).computeForwardDistance(0));
 
-    EXPECT_EQ(7, TransferID(7).computeForwardDistance(6));
+    EXPECT_EQ(30,TransferID(7).computeForwardDistance(5));
     EXPECT_EQ(5, TransferID(0).computeForwardDistance(5));
 
     /*
@@ -43,7 +43,7 @@ TEST(Transfer, TransferID)
         const TransferID copy = tid;
         tid.increment();
         ASSERT_EQ(1, copy.computeForwardDistance(tid));
-        ASSERT_EQ(7, tid.computeForwardDistance(copy));
+        ASSERT_EQ(31, tid.computeForwardDistance(copy));
         ASSERT_EQ(0, tid.computeForwardDistance(tid));
     }
 }
