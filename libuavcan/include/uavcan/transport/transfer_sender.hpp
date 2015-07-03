@@ -100,6 +100,10 @@ public:
 
     /**
      * Send with automatic Transfer ID.
+     *
+     * Note that as long as the local node operates in passive mode, the
+     * flag @ref CanIOFlagAbortOnError will be set implicitly for all outgoing frames.
+     *
      * TID is managed by OutgoingTransferRegistry.
      */
     int send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,

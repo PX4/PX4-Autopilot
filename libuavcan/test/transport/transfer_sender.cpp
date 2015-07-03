@@ -257,6 +257,10 @@ TEST(TransferSender, PassiveMode)
               sender.send(Payload, sizeof(Payload), tsMono(1000), uavcan::MonotonicTime(),
                           uavcan::TransferTypeServiceRequest, uavcan::NodeID(42)));
 
+    // Making sure the abort flag is set
+    ASSERT_FALSE(driver.ifaces.at(0).tx.empty());
+    ASSERT_EQ(uavcan::CanIOFlagAbortOnError, driver.ifaces.at(0).tx.front().flags);
+
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getErrorCount());
     EXPECT_EQ(1, dispatcher.getTransferPerfCounter().getTxTransferCount());
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getRxTransferCount());

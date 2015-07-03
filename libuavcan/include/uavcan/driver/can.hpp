@@ -114,9 +114,17 @@ struct UAVCAN_EXPORT CanSelectMasks
 
 /**
  * Special IO flags.
+ *
+ * @ref CanIOFlagLoopback       - Send the frame back to RX with true TX timestamps.
+ *
+ * @ref CanIOFlagAbortOnError   - Abort transmission on first bus error instead of retransmitting. This does not
+ *                                affect the case of arbitration loss, in which case the retransmission will work
+ *                                as usual. This flag is used together with anonymous messages which allows to
+ *                                implement CSMA bus access. Read the spec for details.
  */
 typedef uint16_t CanIOFlags;
-static const CanIOFlags CanIOFlagLoopback = 1; ///< Send the frame back to RX with true TX timestamps
+static const CanIOFlags CanIOFlagLoopback = 1;
+static const CanIOFlags CanIOFlagAbortOnError = 2;
 
 /**
  * Single non-blocking CAN interface.

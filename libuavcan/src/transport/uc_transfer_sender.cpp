@@ -69,10 +69,15 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
         frame.setEndOfTransfer(true);
         UAVCAN_ASSERT(frame.isStartOfTransfer() && frame.isEndOfTransfer() && !frame.getToggle());
 
-        return dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_, flags_, iface_mask_);
+        const CanIOFlags flags = frame.getSrcNodeID().isUnicast() ? flags_ : (flags_ | CanIOFlagAbortOnError);
+
+        return dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_, flags, iface_mask_);
     }
     else                                                   // Multi Frame Transfer
     {
+        UAVCAN_ASSERT(!dispatcher_.isPassiveMode());
+        UAVCAN_ASSERT(frame.getSrcNodeID().isUnicast());
+
         int offset = 0;
         {
             TransferCRC crc = crc_base_;
