@@ -62,7 +62,7 @@ struct RxFrameGenerator
 
         uavcan::RxFrame output(frame, uavcan::MonotonicTime::fromUSec(ts_monotonic),
                                uavcan::UtcTime::fromUSec(ts_utc), iface_index);
-        std::cout << "Generated frame: " << output.toString() << std::endl;
+        //std::cout << "Generated frame: " << output.toString() << std::endl;
 
         return output;
     }
