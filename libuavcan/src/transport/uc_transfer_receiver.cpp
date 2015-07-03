@@ -75,6 +75,11 @@ bool TransferReceiver::validate(const RxFrame& frame) const
         registerError();
         return false;
     }
+    if (frame.isStartOfTransfer() && (buffer_write_pos_ != 0))
+    {
+        UAVCAN_TRACE("TransferReceiver", "Unexpected start of transfer, %s", frame.toString().c_str());
+        registerError();
+    }
     if (frame.getToggle() != next_toggle_)
     {
         UAVCAN_TRACE("TransferReceiver", "Unexpected toggle bit (not %i), %s",
