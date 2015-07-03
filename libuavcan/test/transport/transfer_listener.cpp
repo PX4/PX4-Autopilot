@@ -67,10 +67,10 @@ TEST(TransferListener, BasicMFT)
     const Transfer transfers[] =
     {
         emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 1, DATA[0]),
-        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 1, DATA[1]),   // Same NID
-        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 2, DATA[2]),
-        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   3, DATA[3]),
-        emulator.makeTransfer(16, uavcan::TransferTypeServiceResponse,  4, DATA[4]),
+        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 2, DATA[1]),   // Same NID
+        emulator.makeTransfer(16, uavcan::TransferTypeMessageBroadcast, 3, DATA[2]),
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceRequest,   4, DATA[3]),
+        emulator.makeTransfer(16, uavcan::TransferTypeServiceResponse,  5, DATA[4]),
     };
 
     /*
