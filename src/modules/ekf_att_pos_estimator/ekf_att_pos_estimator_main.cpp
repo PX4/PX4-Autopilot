@@ -78,6 +78,8 @@ static constexpr float POS_RESET_THRESHOLD = 5.0f;				///< Seconds before we sig
 static constexpr unsigned MAG_SWITCH_HYSTERESIS = 10;	///< Ignore the first few mag failures (which amounts to a few milliseconds)
 static constexpr unsigned GYRO_SWITCH_HYSTERESIS = 5;	///< Ignore the first few gyro failures (which amounts to a few milliseconds)
 static constexpr unsigned ACCEL_SWITCH_HYSTERESIS = 5;	///< Ignore the first few accel failures (which amounts to a few milliseconds)
+static constexpr float EPH_LARGE_VALUE = 1000.0f;
+static constexpr float EPV_LARGE_VALUE = 1000.0f;
 
 /**
  * estimator app start / stop handling function
@@ -936,8 +938,16 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 					(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
 
 	_global_pos.yaw = _local_pos.yaw;
-	_global_pos.eph = _gps.eph;
-	_global_pos.epv = _gps.epv;
+
+	const float dtLastGoodGPS = static_cast<float>(hrt_absolute_time() - _previousGPSTimestamp) / 1e6f;
+
+	if (_gps.timestamp_position == 0 || (dtLastGoodGPS >= POS_RESET_THRESHOLD)) {
+		_global_pos.eph = EPH_LARGE_VALUE;
+		_global_pos.epv = EPV_LARGE_VALUE;
+	} else {
+		_global_pos.eph = _gps.eph;
+		_global_pos.epv = _gps.epv;
+	}
 
 	if (!PX4_ISFINITE(_global_pos.lat) ||
 		!PX4_ISFINITE(_global_pos.lon) ||
@@ -1436,7 +1446,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	// If it has gone more than POS_RESET_THRESHOLD amount of seconds since we received a GPS update,
 	// then something is very wrong with the GPS (possibly a hardware failure or comlink error)
-	const float dtLastGoodGPS = static_cast<float>(_gps.timestamp_position - _previousGPSTimestamp) / 1e6f;
+	const float dtLastGoodGPS = static_cast<float>(hrt_absolute_time() - _previousGPSTimestamp) / 1e6f;
 
 	if (dtLastGoodGPS >= POS_RESET_THRESHOLD) {
 
