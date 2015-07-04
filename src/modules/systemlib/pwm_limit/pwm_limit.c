@@ -105,14 +105,17 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 	 * as the throttle channels need to go through the ramp at
 	 * regular arming time.
 	 */
+
+	 unsigned local_limit_state = limit->state;
+
 	if (pre_armed) {
-		limit->state = PWM_LIMIT_STATE_ON;
+		local_limit_state = PWM_LIMIT_STATE_ON;
 	}
 
 	unsigned progress;
 
 	/* then set effective_pwm based on state */
-	switch (limit->state) {
+	switch (local_limit_state) {
 		case PWM_LIMIT_STATE_OFF:
 		case PWM_LIMIT_STATE_INIT:
 			for (unsigned i=0; i<num_channels; i++) {
