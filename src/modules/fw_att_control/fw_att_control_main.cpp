@@ -803,6 +803,14 @@ FixedwingAttitudeControl::task_main()
 				//warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
+			/* default flaps to center */
+			float flaps_control = 0.0f;
+
+			/* map flaps by default to manual if valid */
+			if (isfinite(_manual.flaps)) {
+				flaps_control = _manual.flaps;
+			}
+
 			/* decide if in stabilized or full manual control */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
@@ -922,7 +930,6 @@ FixedwingAttitudeControl::task_main()
 					/* allow manual control of rudder deflection */
 					yaw_manual = _manual.r;
 					throttle_sp = _manual.z;
-					_actuators.control[4] = _manual.flaps;
 
 					/*
 					 * in manual mode no external source should / does emit attitude setpoints.
@@ -1085,13 +1092,13 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[0] = _manual.y + _parameters.trim_roll;
-				_actuators.control[1] = -_manual.x + _parameters.trim_pitch;
-				_actuators.control[2] = _manual.r + _parameters.trim_yaw;
-				_actuators.control[3] = _manual.z;
-				_actuators.control[4] = _manual.flaps;
+				_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y + _parameters.trim_roll;
+				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x + _parameters.trim_pitch;
+				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r + _parameters.trim_yaw;
+				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 			}
 
+			_actuators.control[actuator_controls_s::INDEX_FLAPS] = flaps_control;
 			_actuators.control[5] = _manual.aux1;
 			_actuators.control[6] = _manual.aux2;
 			_actuators.control[7] = _manual.aux3;
