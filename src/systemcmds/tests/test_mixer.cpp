@@ -227,6 +227,11 @@ int test_mixer(int argc, char *argv[])
 	should_arm = true;
 	should_prearm = false;
 
+	/* simulate another orb_copy() from actuator controls */
+	for (unsigned i = 0; i < output_max; i++) {
+		actuator_controls[i] = 0.1f;
+	}
+
 	warnx("ARMING TEST: STARTING RAMP");
 	unsigned sleep_quantum_us = 10000;
 
@@ -249,7 +254,7 @@ int test_mixer(int argc, char *argv[])
 			/* check mixed outputs to be zero during init phase */
 			if (hrt_elapsed_time(&starttime) < INIT_TIME_US &&
 			    r_page_servos[i] != r_page_servo_disarmed[i]) {
-				warnx("disarmed servo value mismatch");
+				warnx("disarmed servo value mismatch: %d vs %d", r_page_servos[i], r_page_servo_disarmed[i]);
 				return 1;
 			}
 
