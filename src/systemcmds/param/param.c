@@ -189,7 +189,7 @@ param_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "expected a command, try 'load', 'import', 'show', 'set', 'compare', 'select' or 'save'");
+	errx(1, "expected a command, try 'load', 'import', 'show', 'set', 'compare',\n'index', 'index_used', 'select' or 'save'");
 }
 
 static void

@@ -186,7 +186,7 @@ private:
 	} _mission_type;
 
 	bool _inited;
-	bool _dist_1wp_ok;
+	bool _home_inited;
 
 	MissionFeasibilityChecker _missionFeasiblityChecker; /**< class that checks if a mission is feasible */
 

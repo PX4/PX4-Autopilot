@@ -38,7 +38,10 @@
 MODULE_COMMAND	= vtol_att_control
 
 SRCS		= vtol_att_control_main.cpp \
-			  vtol_att_control_params.c
+			  vtol_att_control_params.c \
+			  tiltrotor_params.c \
+			  tiltrotor.cpp \
+			  vtol_type.cpp \
+			  tailsitter.cpp
 
 EXTRACXXFLAGS = -Wno-write-strings
-
