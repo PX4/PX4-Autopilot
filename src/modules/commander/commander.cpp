@@ -1479,7 +1479,22 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			/* position changed */
-			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
+			vehicle_global_position_s gpos;
+			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &gpos);
+
+			/* copy to global struct if valid, with hysteresis */
+
+			// XXX consolidate this with local position handling and timeouts after release
+			// but we want a low-risk change now.
+			if (status.condition_global_position_valid) {
+				if (gpos.eph < eph_threshold * 2.5f) {
+					orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
+				}
+			} else {
+				if (gpos.eph < eph_threshold) {
+					orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
+				}
+			}
 		}
 
 		/* update local position estimate */
@@ -1492,17 +1507,16 @@ int commander_thread_main(int argc, char *argv[])
 
 		//update condition_global_position_valid
 		//Global positions are only published by the estimators if they are valid
-		if(hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT) {
+		if (hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT) {
 			//We have had no good fix for POSITION_TIMEOUT amount of time
-			if(status.condition_global_position_valid) {
+			if (status.condition_global_position_valid) {
 				set_tune_override(TONE_GPS_WARNING_TUNE);
 				status_changed = true;
 				status.condition_global_position_valid = false;
 			}
-		}
-		else if(global_position.timestamp != 0) {
-			//Got good global position estimate
-			if(!status.condition_global_position_valid) {
+		} else if (global_position.timestamp != 0) {
+			// Got good global position estimate
+			if (!status.condition_global_position_valid) {
 				status_changed = true;
 				status.condition_global_position_valid = true;
 			}
@@ -2637,7 +2651,8 @@ set_control_mode()
 
 		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position;
 
-		control_mode.flag_control_altitude_enabled = !offboard_control_mode.ignore_position;
+		control_mode.flag_control_altitude_enabled = !offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_position;
 
 		break;
 
