@@ -25,6 +25,8 @@ namespace uavcan
  * and listening for responses.
  *
  * Once dynamic allocation is complete (or not needed anymore), the object can be deleted.
+ *
+ * Note that this class uses std::rand(), which must be correctly seeded before use.
  */
 class UAVCAN_EXPORT DynamicNodeIDClient : private TimerBase
 {
@@ -33,15 +35,28 @@ class UAVCAN_EXPORT DynamicNodeIDClient : private TimerBase
                              (const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>&)>
         AllocationCallback;
 
+    enum Mode
+    {
+        ModeWaitingForTimeSlot,
+        ModeDelayBeforeFollowup,
+        NumModes
+    };
+
     Publisher<protocol::dynamic_node_id::Allocation> dnida_pub_;
     Subscriber<protocol::dynamic_node_id::Allocation, AllocationCallback> dnida_sub_;
 
     uint8_t unique_id_[protocol::HardwareVersion::FieldTypes::unique_id::MaxSize];
+    uint8_t size_of_received_unique_id_;
+
     NodeID preferred_node_id_;
     NodeID allocated_node_id_;
     NodeID allocator_node_id_;
 
     void terminate();
+
+    static MonotonicDuration getRandomDuration(uint32_t lower_bound_msec, uint32_t upper_bound_msec);
+
+    void restartTimer(const Mode mode);
 
     virtual void handleTimerEvent(const TimerEvent&);
 
@@ -52,6 +67,7 @@ public:
         : TimerBase(node)
         , dnida_pub_(node)
         , dnida_sub_(node)
+        , size_of_received_unique_id_(0)
     { }
 
     /**

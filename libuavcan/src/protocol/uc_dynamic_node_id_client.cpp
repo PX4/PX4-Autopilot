@@ -2,6 +2,7 @@
  * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <cstdlib>
 #include <uavcan/protocol/dynamic_node_id_client.hpp>
 
 namespace uavcan
@@ -14,10 +15,36 @@ void DynamicNodeIDClient::terminate()
     dnida_sub_.stop();
 }
 
+MonotonicDuration DynamicNodeIDClient::getRandomDuration(uint32_t lower_bound_msec, uint32_t upper_bound_msec)
+{
+    UAVCAN_ASSERT(upper_bound_msec > lower_bound_msec);
+    // coverity[dont_call]
+    return MonotonicDuration::fromMSec(lower_bound_msec +
+                                       static_cast<uint32_t>(std::rand()) % (upper_bound_msec - lower_bound_msec));
+}
+
+void DynamicNodeIDClient::restartTimer(const Mode mode)
+{
+    UAVCAN_ASSERT(mode < NumModes);
+    UAVCAN_ASSERT((mode == ModeWaitingForTimeSlot) == (size_of_received_unique_id_ == 0));
+
+    const MonotonicDuration delay = (mode == ModeWaitingForTimeSlot) ?
+        getRandomDuration(protocol::dynamic_node_id::Allocation::MIN_REQUEST_PERIOD_MS,
+                          protocol::dynamic_node_id::Allocation::MAX_REQUEST_PERIOD_MS) :
+        getRandomDuration(protocol::dynamic_node_id::Allocation::MIN_FOLLOWUP_DELAY_MS,
+                          protocol::dynamic_node_id::Allocation::MAX_FOLLOWUP_DELAY_MS);
+
+    startOneShotWithDelay(delay);
+
+    UAVCAN_TRACE("DynamicNodeIDClient", "Restart mode %d, delay %d ms",
+                 static_cast<int>(mode), static_cast<int>(delay.toMSec()));
+}
+
 void DynamicNodeIDClient::handleTimerEvent(const TimerEvent&)
 {
-    // This method implements Rule B
     UAVCAN_ASSERT(preferred_node_id_.isValid());
+    UAVCAN_ASSERT(size_of_received_unique_id_ < protocol::dynamic_node_id::Allocation::FieldTypes::unique_id::MaxSize);
+
     if (isAllocationComplete())
     {
         UAVCAN_ASSERT(0);
@@ -25,19 +52,37 @@ void DynamicNodeIDClient::handleTimerEvent(const TimerEvent&)
         return;
     }
 
-    // Filling the message
-    protocol::dynamic_node_id::Allocation msg;
-    msg.node_id = preferred_node_id_.get();
-    msg.first_part_of_unique_id = true;
+    /*
+     * Filling the message.
+     */
+    protocol::dynamic_node_id::Allocation tx;
+    tx.node_id = preferred_node_id_.get();
+    tx.first_part_of_unique_id = (size_of_received_unique_id_ == 0);
 
-    msg.unique_id.resize(protocol::dynamic_node_id::Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST);
-    copy(unique_id_, unique_id_ + msg.unique_id.size(), msg.unique_id.begin());
-    UAVCAN_ASSERT(equal(msg.unique_id.begin(), msg.unique_id.end(), unique_id_));
+    const uint8_t size_of_unique_id_in_request =
+        min(protocol::dynamic_node_id::Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST,
+            static_cast<uint8_t>(tx.unique_id.capacity() - size_of_received_unique_id_));
 
-    // Broadcasting
-    UAVCAN_TRACE("DynamicNodeIDClient", "Broadcasting 1st stage: preferred ID: %d",
-                 static_cast<int>(preferred_node_id_.get()));
-    const int res = dnida_pub_.broadcast(msg);
+    tx.unique_id.resize(size_of_unique_id_in_request);
+    copy(unique_id_ + size_of_received_unique_id_,
+         unique_id_ + size_of_received_unique_id_ + size_of_unique_id_in_request,
+         tx.unique_id.begin());
+
+    UAVCAN_ASSERT(equal(tx.unique_id.begin(), tx.unique_id.end(), unique_id_ + size_of_received_unique_id_));
+
+    /*
+     * Resetting the state - this way we can continue with a first stage request on the next attempt.
+     */
+    size_of_received_unique_id_ = 0;
+    restartTimer(ModeWaitingForTimeSlot);
+
+    /*
+     * Broadcasting the message.
+     */
+    UAVCAN_TRACE("DynamicNodeIDClient", "Broadcasting; preferred ID %d, size of UID %d",
+                 static_cast<int>(preferred_node_id_.get()),
+                 static_cast<int>(tx.unique_id.size()));
+    const int res = dnida_pub_.broadcast(tx);
     if (res < 0)
     {
         dnida_pub_.getNode().registerInternalFailure("DynamicNodeIDClient request failed");
@@ -46,9 +91,6 @@ void DynamicNodeIDClient::handleTimerEvent(const TimerEvent&)
 
 void DynamicNodeIDClient::handleAllocation(const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>& msg)
 {
-    /*
-     * TODO This method can blow the stack easily
-     */
     UAVCAN_ASSERT(preferred_node_id_.isValid());
     if (isAllocationComplete())
     {
@@ -57,57 +99,48 @@ void DynamicNodeIDClient::handleAllocation(const ReceivedDataStructure<protocol:
         return;
     }
 
-    startPeriodic(getPeriod()); // Restarting the timer - Rule C
-    UAVCAN_TRACE("DynamicNodeIDClient", "Request timer reset because of Allocation message from %d",
-                 static_cast<int>(msg.getSrcNodeID().get()));
+    UAVCAN_TRACE("DynamicNodeIDClient", "Allocation message from %d, %d bytes of unique ID, node ID %d",
+                 static_cast<int>(msg.getSrcNodeID().get()), static_cast<int>(msg.unique_id.size()),
+                 static_cast<int>(msg.node_id));
 
-    // Rule D
-    if (!msg.isAnonymousTransfer() &&
-        msg.unique_id.size() > 0 &&
-        msg.unique_id.size() < msg.unique_id.capacity() &&
-        equal(msg.unique_id.begin(), msg.unique_id.end(), unique_id_))
+    /*
+     * Switching to passive state by default; will switch to active state if response matches.
+     */
+    size_of_received_unique_id_ = 0;
+    restartTimer(ModeWaitingForTimeSlot);
+
+    /*
+     * Filtering out anonymous and invalid messages.
+     */
+    const bool full_response = (msg.unique_id.size() == msg.unique_id.capacity());
+
+    if (msg.isAnonymousTransfer() ||
+        msg.unique_id.empty() ||
+        (full_response && (msg.node_id == 0)))
     {
-        // Filling the response message
-        const uint8_t size_of_unique_id_in_response =
-            min(protocol::dynamic_node_id::Allocation::MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST,
-                static_cast<uint8_t>(msg.unique_id.capacity() - msg.unique_id.size()));
-
-        protocol::dynamic_node_id::Allocation second_stage;
-        second_stage.node_id = preferred_node_id_.get();
-        second_stage.first_part_of_unique_id = false;
-
-        second_stage.unique_id.resize(size_of_unique_id_in_response);
-
-        copy(unique_id_ + msg.unique_id.size(),
-             unique_id_ + msg.unique_id.size() + size_of_unique_id_in_response,
-             second_stage.unique_id.begin());
-
-        UAVCAN_ASSERT(equal(second_stage.unique_id.begin(),
-                            second_stage.unique_id.end(),
-                            unique_id_ + msg.unique_id.size()));
-
-        // Broadcasting the response
-        UAVCAN_TRACE("DynamicNodeIDClient", "Broadcasting 2nd stage: preferred ID: %d, size of unique ID: %d",
-                     static_cast<int>(preferred_node_id_.get()), static_cast<int>(second_stage.unique_id.size()));
-        const int res = dnida_pub_.broadcast(second_stage);
-        if (res < 0)
-        {
-            dnida_pub_.getNode().registerInternalFailure("DynamicNodeIDClient request failed");
-        }
+        UAVCAN_TRACE("DynamicNodeIDClient", "Message from %d ignored", static_cast<int>(msg.getSrcNodeID().get()));
+        return;
     }
 
-    // Rule E
-    if (!msg.isAnonymousTransfer() &&
-        msg.unique_id.size() == msg.unique_id.capacity() &&
-        equal(msg.unique_id.begin(), msg.unique_id.end(), unique_id_) &&
-        msg.node_id > 0)
+    /*
+     * If matches, either switch to active mode or complete the allocation.
+     */
+    if (equal(msg.unique_id.begin(), msg.unique_id.end(), unique_id_))
     {
-        allocated_node_id_ = msg.node_id;
-        allocator_node_id_ = msg.getSrcNodeID();
-        UAVCAN_TRACE("DynamicNodeIDClient", "Allocation complete, node ID %d provided by %d",
-                     static_cast<int>(allocated_node_id_.get()), static_cast<int>(allocator_node_id_.get()));
-        terminate();
-        UAVCAN_ASSERT(isAllocationComplete());
+        if (full_response)
+        {
+            allocated_node_id_ = msg.node_id;
+            allocator_node_id_ = msg.getSrcNodeID();
+            terminate();
+            UAVCAN_ASSERT(isAllocationComplete());
+            UAVCAN_TRACE("DynamicNodeIDClient", "Allocation complete, node ID %d provided by %d",
+                         static_cast<int>(allocated_node_id_.get()), static_cast<int>(allocator_node_id_.get()));
+        }
+        else
+        {
+            size_of_received_unique_id_ = msg.unique_id.size();
+            restartTimer(ModeDelayBeforeFollowup);
+        }
     }
 }
 
@@ -169,7 +202,7 @@ int DynamicNodeIDClient::start(const protocol::HardwareVersion& hardware_version
     }
     dnida_sub_.allowAnonymousTransfers();
 
-    startPeriodic(MonotonicDuration::fromMSec(1000 /* TODO FIXME */));
+    restartTimer(ModeWaitingForTimeSlot);
 
     return 0;
 }
