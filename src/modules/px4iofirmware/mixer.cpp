@@ -356,6 +356,10 @@ mixer_callback(uintptr_t handle,
 		} else if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
 			control_index == actuator_controls_s::INDEX_YAW) {
 			control += REG_TO_FLOAT(r_setup_trim_yaw);
+
+		} else if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_THROTTLE) {
+			control += REG_TO_FLOAT(r_setup_trim_throttle);
 		}
 	}
 

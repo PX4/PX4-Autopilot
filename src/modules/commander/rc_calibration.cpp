@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,6 +78,8 @@ int do_trim_calibration(int mavlink_fd)
 	param_get(param_find("TRIM_PITCH"), &pitch_trim_active);
 	float yaw_trim_active;
 	param_get(param_find("TRIM_YAW"), &yaw_trim_active);
+	float throttle_trim_active;
+	param_get(param_find("TRIM_THROTTLE"), &throttle_trim_active);
 
 	/* set parameters: the new trim values are the combination of active trim values
 	   and the values coming from the remote control of the user
@@ -92,12 +94,14 @@ int do_trim_calibration(int mavlink_fd)
 	int p2r = param_set(param_find("TRIM_PITCH"), &p);
 	p = sp.r + yaw_trim_active;
 	int p3r = param_set(param_find("TRIM_YAW"), &p);
+	p = sp.z + throttle_trim_active;
+	int p4r = param_set(param_find("TRIM_THROTTLE"), &p);
 
 	/* store to permanent storage */
 	/* auto-save */
 	int save_ret = param_save_default();
 
-	if (save_ret != 0 || p1r != 0 || p2r != 0 || p3r != 0) {
+	if (save_ret != 0 || p1r != 0 || p2r != 0 || p3r != 0 || p4r != 0) {
 		mavlink_log_critical(mavlink_fd, "TRIM: PARAM SET FAIL");
 		px4_close(sub_man);
 		return ERROR;

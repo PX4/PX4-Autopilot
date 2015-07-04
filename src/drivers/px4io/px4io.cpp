@@ -1135,6 +1135,12 @@ PX4IO::task_main()
 					param_get(trim_parm, &trim_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(trim_val));
 				}
+
+				trim_parm = param_find("TRIM_THROTTLE");
+				if (trim_parm != PARAM_INVALID) {
+					param_get(trim_parm, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_THROTTLE, FLOAT_TO_REG(trim_val));
+				}
 			}
 
 		}

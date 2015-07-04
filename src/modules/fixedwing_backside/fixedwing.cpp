@@ -111,7 +111,7 @@ BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *par
 	_trimAil(this, "TRIM_ROLL", false), 	/* general roll trim (full name: TRIM_ROLL) */
 	_trimElv(this, "TRIM_PITCH", false), 	/* general pitch trim */
 	_trimRdr(this, "TRIM_YAW", false), 	/* general yaw trim */
-	_trimThr(this, "TRIM_THR"), 	/* FWB_ specific throttle trim (full name: FWB_TRIM_THR) */
+	_trimThr(this, "TRIM_THROTTLE"), 	/* FWB_ specific throttle trim (full name: FWB_TRIM_THR) */
 	_trimV(this, "TRIM_V"), 	/* FWB_ specific trim velocity (full name : FWB_TRIM_V) */
 
 	_vCmd(this, "V_CMD"),
