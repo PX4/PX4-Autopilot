@@ -164,6 +164,15 @@ int simulator_main(int argc, char *argv[])
 				1500,
 				Simulator::start,
 				argv);
+
+			// now wait for the command to complete
+			while(true) {
+				if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
+					break;
+				} else {
+					usleep(100000);
+				}
+			}
 		}
 		else
 		{

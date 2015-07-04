@@ -405,6 +405,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		pret = ::poll(&fds[0], (sizeof(fds[0])/sizeof(fds[0])), 100);
 	}
 	PX4_WARN("Found initial message, pret = %d",pret);
+	_initialized = true;
 
 	if (fds[0].revents & POLLIN) {
 		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);

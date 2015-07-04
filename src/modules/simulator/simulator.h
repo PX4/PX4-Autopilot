@@ -197,6 +197,8 @@ public:
 	void write_baro_data(void *buf);
 	void write_gps_data(void *buf);
 
+	bool isInitialized() { return _initialized; }
+
 private:
 	Simulator() :
 	_accel(1),
@@ -204,11 +206,12 @@ private:
 	_baro(1),
 	_mag(1),
 	_gps(1),
-#ifndef __PX4_QURT
 	_accel_pub(nullptr),
 	_baro_pub(nullptr),
 	_gyro_pub(nullptr),
 	_mag_pub(nullptr),
+	_initialized(false),
+#ifndef __PX4_QURT
 	_rc_channels_pub(nullptr),
 	_actuator_outputs_sub(-1),
 	_vehicle_attitude_sub(-1),
@@ -237,6 +240,8 @@ private:
 	orb_advert_t _baro_pub;
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
+
+	bool _initialized;
 
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
