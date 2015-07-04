@@ -70,8 +70,6 @@ static void run_cmd(const vector<string> &appargs) {
 		cout << "Running: " << command << "\n";
 		apps[command](i,(char **)arg);
 		cout << "Returning: " << command << "\n";
-		// XXX hack to prevent shell returning too fast
-		usleep(50000);
 	}
 	else
 	{
