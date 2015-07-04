@@ -110,6 +110,7 @@ static float bat_v_load_drop = 0.06f;
 static int bat_n_cells = 3;
 static float bat_capacity = -1.0f;
 static unsigned int counter = 0;
+static float throttle_lowpassed = 0.0f;
 
 int battery_init()
 {
@@ -383,8 +384,15 @@ float battery_remaining_estimate_voltage(float voltage, float discharged, float 
 
 	counter++;
 
+	// XXX this time constant needs to become tunable
+	// but really, the right fix are smart batteries.
+	float val = throttle_lowpassed * 0.97f + throttle_normalized * 0.03f;
+	if (isfinite(val)) {
+		throttle_lowpassed = val;
+	}
+
 	/* remaining charge estimate based on voltage and internal resistance (drop under load) */
-	float bat_v_empty_dynamic = bat_v_empty - (bat_v_load_drop * throttle_normalized);
+	float bat_v_empty_dynamic = bat_v_empty - (bat_v_load_drop * throttle_lowpassed);
 	/* the range from full to empty is the same for batteries under load and without load,
 	 * since the voltage drop applies to both the full and empty state
 	 */
