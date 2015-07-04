@@ -40,6 +40,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+extern "C" __EXPORT hrt_abstime hrt_reset(void);
+
 #define SEND_INTERVAL 	20
 #define UDP_PORT 	14560
 #define PIXHAWK_DEVICE "/dev/ttyACM0"
@@ -406,6 +408,8 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	}
 	PX4_WARN("Found initial message, pret = %d",pret);
 	_initialized = true;
+	// reset system time
+	(void)hrt_reset();
 
 	if (fds[0].revents & POLLIN) {
 		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);

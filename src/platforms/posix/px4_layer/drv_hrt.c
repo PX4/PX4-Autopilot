@@ -66,6 +66,8 @@ static hrt_abstime px4_timestart = 0;
 static void
 hrt_call_invoke(void);
 
+__EXPORT hrt_abstime hrt_reset(void);
+
 static void hrt_lock(void)
 {
 	//printf("hrt_lock\n");
@@ -126,6 +128,12 @@ hrt_abstime hrt_absolute_time(void)
 
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts) - px4_timestart;
+}
+
+__EXPORT hrt_abstime hrt_reset(void)
+{
+	px4_timestart = 0;
+	return hrt_absolute_time();
 }
 
 /*
