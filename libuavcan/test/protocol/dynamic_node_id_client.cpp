@@ -47,9 +47,9 @@ TEST(DynamicNodeIDClient, Basic)
     dynid_sub.subscriber.allowAnonymousTransfers();
 
     /*
-     * Monitoring requests at 1Hz
+     * Monitoring requests
      */
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1100));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1500));
     ASSERT_TRUE(dynid_sub.collector.msg.get());
     std::cout << "First-stage request:\n" << *dynid_sub.collector.msg << std::endl;
     ASSERT_EQ(PreferredNodeID.get(), dynid_sub.collector.msg->node_id);
@@ -59,12 +59,8 @@ TEST(DynamicNodeIDClient, Basic)
                               hwver.unique_id.begin()));
     dynid_sub.collector.msg.reset();
 
-    // Rate validation
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(500));
-    ASSERT_FALSE(dynid_sub.collector.msg.get());
-
-    // Second - rate is 1 Hz
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(500));
+    // Second - rate is no lower than 0.5 Hz
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1500));
     ASSERT_TRUE(dynid_sub.collector.msg.get());
     dynid_sub.collector.msg.reset();
 
@@ -153,7 +149,7 @@ TEST(DynamicNodeIDClient, Basic)
 
         ASSERT_FALSE(dynid_sub.collector.msg.get());
         ASSERT_LE(0, dynid_pub.broadcast(msg));
-        nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1100));
+        nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
         ASSERT_FALSE(dynid_sub.collector.msg.get());
     }
 
