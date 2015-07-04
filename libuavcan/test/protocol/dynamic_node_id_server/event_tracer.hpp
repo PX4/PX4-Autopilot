@@ -8,6 +8,8 @@
 #include <string>
 #include <list>
 #include <uavcan/protocol/dynamic_node_id_server/event.hpp>
+#include <uavcan/time.hpp>
+#include "../../clock.hpp"
 
 
 class EventTracer : public uavcan::dynamic_node_id_server::IEventTracer
@@ -24,16 +26,24 @@ class EventTracer : public uavcan::dynamic_node_id_server::IEventTracer
     };
 
     const std::string id_;
+    const uavcan::MonotonicTime startup_ts_;
     std::list<EventLogEntry> event_log_;
 
 public:
-    EventTracer() { }
+    EventTracer() :
+        startup_ts_(SystemClockDriver().getMonotonic())
+    { }
 
-    EventTracer(const std::string& id) : id_(id) { }
+    EventTracer(const std::string& id) :
+        id_(id),
+        startup_ts_(SystemClockDriver().getMonotonic())
+    { }
 
     virtual void onEvent(uavcan::dynamic_node_id_server::TraceCode code, uavcan::int64_t argument)
     {
-        std::cout << "EVENT [" << id_ << "]\t" << code << "\t" << getEventName(code) << "\t" << argument << std::endl;
+        const uavcan::MonotonicDuration ts = SystemClockDriver().getMonotonic() - startup_ts_;
+        std::cout << "EVENT [" << id_ << "]\t" << ts.toString() << "\t"
+                  << code << "\t" << getEventName(code) << "\t" << argument << std::endl;
         event_log_.push_back(EventLogEntry(code, argument));
     }
 
