@@ -59,6 +59,22 @@
  * Public Function Prototypes
  ****************************************************************************/
 /****************************************************************************
+ * Name: util_srand
+ *
+ * Description:
+ *   This function seeds the random number generator
+ *
+ *
+ * Input Parameters:
+ *   seed    - The seed
+ *
+ * Returned value:
+ *   None
+ *
+ ****************************************************************************/
+void util_srand(uint16_t seed);
+
+/****************************************************************************
  * Name: util_random
  *
  * Description:
@@ -73,5 +89,5 @@
  *   A random number
  *
  ****************************************************************************/
-
 uint16_t util_random(uint16_t min, uint16_t max);
+
