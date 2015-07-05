@@ -21,8 +21,6 @@
 namespace uavcan
 {
 
-enum { MaxCanIfaces = 3 };
-
 struct UAVCAN_EXPORT CanRxFrame : public CanFrame
 {
     MonotonicTime ts_mono;
@@ -108,7 +106,9 @@ public:
 
     Entry* peek();               // Modifier
     void remove(Entry*& entry);
+    const CanFrame* getTopPriorityPendingFrame() const;
 
+    /// The 'or equal' condition is necessary to avoid frame reordering.
     bool topPriorityHigherOrEqual(const CanFrame& rhs_frame) const;
 
     uint32_t getRejectedFrameCount() const { return rejected_frames_cnt_; }
@@ -154,7 +154,8 @@ class UAVCAN_EXPORT CanIOManager : Noncopyable
 
     int sendToIface(uint8_t iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags);
     int sendFromTxQueue(uint8_t iface_index);
-    int callSelect(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline);
+    int callSelect(CanSelectMasks& inout_masks, const CanFrame* (& pending_tx)[MaxCanIfaces],
+                   MonotonicTime blocking_deadline);
 
 public:
     CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock,

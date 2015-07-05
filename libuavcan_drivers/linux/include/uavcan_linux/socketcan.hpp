@@ -532,7 +532,9 @@ public:
      * early returns.
      * Also it can return more events than were originally requested by uavcan, which is also acceptable.
      */
-    std::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline) override
+    std::int16_t select(uavcan::CanSelectMasks& inout_masks,
+                        const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+                        uavcan::MonotonicTime blocking_deadline) override
     {
         // Detecting whether we need to block at all
         bool need_block = (inout_masks.write == 0);    // Write queue is infinite

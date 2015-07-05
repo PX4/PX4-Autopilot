@@ -310,7 +310,9 @@ class VirtualCanDriver : public uavcan::ICanDriver,
     /**
      * This and other methods of ICanDriver will be invoked by the sub-node thread.
      */
-    int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline) override
+    int16_t select(uavcan::CanSelectMasks& inout_masks,
+                   const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+                   uavcan::MonotonicTime blocking_deadline) override
     {
         bool need_block = (inout_masks.write == 0);    // Write queue is infinite
         for (unsigned i = 0; need_block && (i < num_ifaces_); i++)

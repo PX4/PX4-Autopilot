@@ -210,6 +210,11 @@ void CanTxQueue::remove(Entry*& entry)
     Entry::destroy(entry, allocator_);
 }
 
+const CanFrame* CanTxQueue::getTopPriorityPendingFrame() const
+{
+    return (queue_.get() == NULL) ? NULL : &queue_.get()->frame;
+}
+
 bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
 {
     const Entry* entry = queue_.get();
@@ -261,14 +266,17 @@ int CanIOManager::sendFromTxQueue(uint8_t iface_index)
     return res;
 }
 
-int CanIOManager::callSelect(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline)
+int CanIOManager::callSelect(CanSelectMasks& inout_masks, const CanFrame* (& pending_tx)[MaxCanIfaces],
+                             MonotonicTime blocking_deadline)
 {
     const CanSelectMasks in_masks = inout_masks;
-    const int res = driver_.select(inout_masks, blocking_deadline);
+
+    const int res = driver_.select(inout_masks, pending_tx, blocking_deadline);
     if (res < 0)
     {
         return -ErrDriver;
     }
+
     inout_masks.read  &= in_masks.read;  // Driver is not required to clean the masks
     inout_masks.write &= in_masks.write;
     return res;
@@ -341,16 +349,33 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
 
     int retval = 0;
 
-    while (true)
+    while (true)        // Somebody please refactor this.
     {
         if (iface_mask == 0)
         {
             break;
         }
+
         CanSelectMasks masks;
         masks.write = iface_mask | makePendingTxMask();
         {
-            const int select_res = callSelect(masks, blocking_deadline);
+            // Building the list of next pending frames per iface.
+            // The driver will give them a scrutinizing look before deciding whether he wants to accept them.
+            const CanFrame* pending_tx[MaxCanIfaces] = {};
+            for (int i = 0; i < num_ifaces; i++)
+            {
+                CanTxQueue& q = *tx_queues_[i];
+                if (iface_mask & (1 << i))      // I hate myself so much right now.
+                {
+                    pending_tx[i] = q.topPriorityHigherOrEqual(frame) ? q.getTopPriorityPendingFrame() : &frame;
+                }
+                else
+                {
+                    pending_tx[i] = q.getTopPriorityPendingFrame();
+                }
+            }
+
+            const int select_res = callSelect(masks, pending_tx, blocking_deadline);
             if (select_res < 0)
             {
                 return -ErrDriver;
@@ -422,7 +447,13 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
         masks.write = makePendingTxMask();
         masks.read = uint8_t((1 << num_ifaces) - 1);
         {
-            const int select_res = callSelect(masks, blocking_deadline);
+            const CanFrame* pending_tx[MaxCanIfaces] = {};
+            for (int i = 0; i < num_ifaces; i++)      // Dear compiler, kindly unroll this. Thanks.
+            {
+                pending_tx[i] = tx_queues_[i]->getTopPriorityPendingFrame();
+            }
+
+            const int select_res = callSelect(masks, pending_tx, blocking_deadline);
             if (select_res < 0)
             {
                 return -ErrDriver;
@@ -449,6 +480,7 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
                     UAVCAN_ASSERT(0);   // Nonexistent interface
                     continue;
                 }
+
                 const int res = iface->receive(out_frame, out_frame.ts_mono, out_frame.ts_utc, out_flags);
                 if (res == 0)
                 {
@@ -456,6 +488,7 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
                     continue;
                 }
                 out_frame.iface_index = i;
+
                 if ((res > 0) && !(out_flags & CanIOFlagLoopback))
                 {
                     counters_[i].frames_rx += 1;

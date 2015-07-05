@@ -54,6 +54,7 @@ public:
     uint64_t num_errors;
     uavcan::ISystemClock& iclock;
     bool enable_utc_timestamping;
+    uavcan::CanFrame pending_tx;
 
     CanIfaceMock(uavcan::ISystemClock& iclock)
         : writeable(true)
@@ -86,6 +87,17 @@ public:
         const FrameWithTime frame_time = tx.front();
         tx.pop();
         return (frame_time.frame == frame) && (frame_time.time == tx_deadline);
+    }
+
+    bool matchPendingTx(const uavcan::CanFrame& frame) const
+    {
+        if (pending_tx != frame)
+        {
+            std::cout << "Pending TX mismatch: \n"
+                      << "    Expected: " << frame.toString(uavcan::CanFrame::StrAligned) << "\n"
+                      << "    Actual:   " << pending_tx.toString(uavcan::CanFrame::StrAligned) << std::endl;
+        }
+        return pending_tx == frame;
     }
 
     bool matchAndPopTx(const uavcan::CanFrame& frame, uint64_t tx_deadline_usec)
@@ -196,10 +208,17 @@ public:
         }
     }
 
-    virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime deadline)
+    virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks,
+                                   const uavcan::CanFrame* (& pending_tx)[uavcan::MaxCanIfaces],
+                                   uavcan::MonotonicTime deadline)
     {
         assert(this);
         //std::cout << "Write/read masks: " << inout_write_iface_mask << "/" << inout_read_iface_mask << std::endl;
+
+        for (unsigned i = 0; i < ifaces.size(); i++)
+        {
+            ifaces.at(i).pending_tx = (pending_tx[i] == NULL) ? uavcan::CanFrame() : *pending_tx[i];
+        }
 
         if (select_failure)
         {

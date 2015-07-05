@@ -13,13 +13,15 @@ TEST(CanDriverMock, Basic)
     SystemClockMock clockmock;
     CanDriverMock driver(3, clockmock);
 
+    const uavcan::CanFrame* pending_tx[uavcan::MaxCanIfaces] = { };
+
     ASSERT_EQ(3, driver.getNumIfaces());
 
     // All WR, no RD
     CanSelectMasks masks;
     masks.write = 7;
     masks.read = 7;
-    EXPECT_LT(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_LT(0, driver.select(masks, pending_tx, uavcan::MonotonicTime::fromUSec(100)));
     EXPECT_EQ(7, masks.write);
     EXPECT_EQ(0, masks.read);
 
@@ -31,7 +33,7 @@ TEST(CanDriverMock, Basic)
     // No WR, no RD
     masks.write = 7;
     masks.read = 7;
-    EXPECT_EQ(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_EQ(0, driver.select(masks, pending_tx, uavcan::MonotonicTime::fromUSec(100)));
     EXPECT_EQ(0, masks.write);
     EXPECT_EQ(0, masks.read);
     EXPECT_EQ(100, clockmock.monotonic);
@@ -42,7 +44,7 @@ TEST(CanDriverMock, Basic)
     driver.ifaces.at(1).pushRx(fr1);
     masks.write = 7;
     masks.read = 6;
-    EXPECT_LT(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_LT(0, driver.select(masks, pending_tx, uavcan::MonotonicTime::fromUSec(100)));
     EXPECT_EQ(0, masks.write);
     EXPECT_EQ(2, masks.read);
     CanFrame fr2;
@@ -60,7 +62,7 @@ TEST(CanDriverMock, Basic)
     driver.select_failure = true;
     masks.write = 1;
     masks.read = 7;
-    EXPECT_EQ(-1, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_EQ(-1, driver.select(masks, pending_tx, uavcan::MonotonicTime::fromUSec(100)));
     EXPECT_EQ(1, masks.write);                               // Leaving masks unchanged - the library must ignore them
     EXPECT_EQ(7, masks.read);
 }
@@ -73,10 +75,12 @@ TEST(CanDriverMock, Loopback)
     SystemClockMock clockmock;
     CanDriverMock driver(1, clockmock);
 
+    const uavcan::CanFrame* pending_tx[uavcan::MaxCanIfaces] = { };
+
     CanSelectMasks masks;
     masks.write = 1;
     masks.read = 1;
-    EXPECT_LT(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_LT(0, driver.select(masks, pending_tx, uavcan::MonotonicTime::fromUSec(100)));
     EXPECT_EQ(1, masks.write);
     EXPECT_EQ(0, masks.read);
 
@@ -88,7 +92,7 @@ TEST(CanDriverMock, Loopback)
 
     masks.write = 0;
     masks.read = 1;
-    EXPECT_LT(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_LT(0, driver.select(masks, pending_tx, uavcan::MonotonicTime::fromUSec(100)));
     EXPECT_EQ(0, masks.write);
     EXPECT_EQ(1, masks.read);
 

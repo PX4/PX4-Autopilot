@@ -236,6 +236,8 @@ static void testDriver(const std::vector<std::string>& iface_names)
     ENFORCE(nullptr == driver.getIface(255));
     ENFORCE(nullptr == driver.getIface(driver.getNumIfaces()));
 
+    const uavcan::CanFrame* pending_tx[uavcan::MaxCanIfaces] = {};
+
     const unsigned AllIfacesMask = (1 << driver.getNumIfaces()) - 1;
 
     /*
@@ -243,7 +245,7 @@ static void testDriver(const std::vector<std::string>& iface_names)
      */
     std::cout << "select() 1" << std::endl;
     uavcan::CanSelectMasks masks;        // Driver provides masks for all available events
-    ENFORCE(driver.getNumIfaces() == driver.select(masks, tsMonoOffsetMs(1000)));
+    ENFORCE(driver.getNumIfaces() == driver.select(masks, pending_tx, tsMonoOffsetMs(1000)));
     ENFORCE(masks.read == 0);
     ENFORCE(masks.write == AllIfacesMask);
 
@@ -253,7 +255,7 @@ static void testDriver(const std::vector<std::string>& iface_names)
     }
 
     std::cout << "select() 2" << std::endl;
-    ENFORCE(driver.getNumIfaces() == driver.select(masks, tsMonoOffsetMs(1000)));
+    ENFORCE(driver.getNumIfaces() == driver.select(masks, pending_tx, tsMonoOffsetMs(1000)));
     ENFORCE(masks.read == 0);
     ENFORCE(masks.write == AllIfacesMask);
 
@@ -269,7 +271,7 @@ static void testDriver(const std::vector<std::string>& iface_names)
     }
 
     std::cout << "select() 3" << std::endl;
-    ENFORCE(driver.getNumIfaces() == driver.select(masks, tsMonoOffsetMs(1000)));
+    ENFORCE(driver.getNumIfaces() == driver.select(masks, pending_tx, tsMonoOffsetMs(1000)));
     ENFORCE(masks.read == AllIfacesMask);
     ENFORCE(masks.write == AllIfacesMask);
 
@@ -294,7 +296,7 @@ static void testDriver(const std::vector<std::string>& iface_names)
 
     std::cout << "select() 4" << std::endl;
     masks.write = 0;
-    ENFORCE(driver.getNumIfaces() == driver.select(masks, tsMonoOffsetMs(1000)));
+    ENFORCE(driver.getNumIfaces() == driver.select(masks, pending_tx, tsMonoOffsetMs(1000)));
     ENFORCE(masks.read == 0);
     ENFORCE(masks.write == AllIfacesMask);
 

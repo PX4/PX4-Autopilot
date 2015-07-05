@@ -14,6 +14,11 @@
 namespace uavcan
 {
 /**
+ * This limit is defined by the specification.
+ */
+enum { MaxCanIfaces = 3 };
+
+/**
  * Raw CAN frame, as passed to/from the CAN driver.
  */
 struct UAVCAN_EXPORT CanFrame
@@ -137,6 +142,9 @@ public:
     /**
      * Non-blocking transmission.
      * If the frame wasn't transmitted upon TX deadline, the driver should discard it.
+     * Note that it is LIKELY that the library will want to send the frames that were passed into the select()
+     * method as the next ones to transmit, but it is NOT guaranteed. The library can replace those with new
+     * frames between the calls.
      * @return 1 = one frame transmitted, 0 = TX buffer full, negative for error.
      */
     virtual int16_t send(const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags) = 0;
@@ -202,12 +210,15 @@ public:
      * Iface masks will be modified by the driver to indicate which exactly interfaces are available for IO.
      * Bit position in the masks defines interface index.
      * Note that it is allowed to return from this method even if no requested events actually happened, or if
-     * there are events that were not requested by the lirary.
+     * there are events that were not requested by the library.
      * @param [in,out] inout_masks        Masks indicating which interfaces are needed/available for IO.
+     * @param [in]     pending_tx         Array of frames, per interface, that are likely to be transmitted next.
      * @param [in]     blocking_deadline  Zero means non-blocking operation.
      * @return Positive number of ready interfaces or negative error code.
      */
-    virtual int16_t select(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline) = 0;
+    virtual int16_t select(CanSelectMasks& inout_masks,
+                           const CanFrame* (& pending_tx)[MaxCanIfaces],
+                           MonotonicTime blocking_deadline) = 0;
 };
 
 }
