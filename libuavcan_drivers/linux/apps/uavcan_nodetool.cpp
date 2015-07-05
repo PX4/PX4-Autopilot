@@ -277,7 +277,7 @@ const std::map<std::string,
         {
             "Publishes uavcan.equipment.hardpoint.Command\n"
             "Expected argument: command",
-            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>& args)
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID, const std::vector<std::string>& args)
             {
                 uavcan::equipment::hardpoint::Command msg;
                 msg.command = std::stoi(args.at(0));
@@ -291,7 +291,7 @@ const std::map<std::string,
         {
             "Publishes uavcan.protocol.EnumerationRequest\n"
             "Expected arguments: node_id, timeout_sec (optional, defaults to 60)",
-            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>& args)
+            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID, const std::vector<std::string>& args)
             {
                 uavcan::protocol::EnumerationRequest msg;
                 msg.node_id = std::stoi(args.at(0));
