@@ -265,7 +265,7 @@ Mission::update_offboard_mission()
 		_navigator->set_mission_result_updated();
 
 	} else {
-		PX4_WARN("offboard mission update failed");
+		PX4_WARN("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
 	}
 
 	if (failed) {
