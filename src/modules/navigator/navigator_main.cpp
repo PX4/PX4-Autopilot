@@ -337,11 +337,12 @@ Navigator::task_main()
 
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
+			PX4_WARN("timed out");
 			continue;
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			warn("poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
 
