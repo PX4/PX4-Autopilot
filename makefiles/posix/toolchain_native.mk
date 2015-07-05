@@ -47,7 +47,7 @@ USE_GCC?=0
 ifeq ($(PX4_DEBUG_LEVEL),)
 VERBOSITY_LEVEL=
 else
-VERBOSITY_LEVEL=$(PX4_DEBUG_LEVEL)
+VERBOSITY_LEVEL=-D$(PX4_DEBUG_LEVEL)
 endif
 
 ifneq ($(USE_GCC),1)
@@ -127,7 +127,7 @@ $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			-Dnoreturn_function=__attribute__\(\(noreturn\)\) \
-			-D$(VERBOSITY_LEVEL) \
+			$(VERBOSITY_LEVEL)\
 			-I$(PX4_BASE)/src/modules/systemlib \
 			-I$(PX4_BASE)/src/lib/eigen \
 			-I$(PX4_BASE)/src/platforms/posix/include \
