@@ -142,6 +142,8 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	// Must add NULL at end of argv
 	taskdata->argv[argc] = (char *)0;
 
+	PX4_WARN("starting task %s", name);
+
 	rv = pthread_attr_init(&attr);
 	if (rv != 0) {
 		PX4_WARN("px4_task_spawn_cmd: failed to init thread attrs");
