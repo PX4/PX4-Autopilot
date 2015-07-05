@@ -97,7 +97,6 @@ TEST(FirmwareUpdateTrigger, Basic)
     uavcan::DefaultDataTypeRegistrator<BeginFirmwareUpdate> _reg1;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg2;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg3;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg4;
 
     InterlinkedTestNodesWithSysClock nodes;
 
@@ -227,7 +226,6 @@ TEST(FirmwareUpdateTrigger, MultiNode)
     uavcan::DefaultDataTypeRegistrator<BeginFirmwareUpdate> _reg1;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg2;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg3;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg4;
 
     TestNetwork<5> nodes;
 

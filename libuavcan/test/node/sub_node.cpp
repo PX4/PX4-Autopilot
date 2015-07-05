@@ -12,7 +12,6 @@
 static void registerTypes()
 {
     uavcan::GlobalDataTypeRegistry::instance().reset();
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg1;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg2;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg4;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetDataTypeInfo> _reg5;

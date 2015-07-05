@@ -13,7 +13,6 @@
 #include <uavcan/build_config.hpp>
 #include <uavcan/protocol/NodeStatus.hpp>
 #include <uavcan/protocol/GetNodeInfo.hpp>
-#include <uavcan/protocol/GlobalDiscoveryRequest.hpp>
 
 namespace uavcan
 {
@@ -23,8 +22,6 @@ namespace uavcan
  */
 class UAVCAN_EXPORT NodeStatusProvider : private TimerBase
 {
-    typedef MethodBinder<NodeStatusProvider*, void (NodeStatusProvider::*)(const protocol::GlobalDiscoveryRequest&)>
-        GlobalDiscoveryRequestCallback;
     typedef MethodBinder<NodeStatusProvider*,
                          void (NodeStatusProvider::*)(const protocol::GetNodeInfo::Request&,
                                                       protocol::GetNodeInfo::Response&)> GetNodeInfoCallback;
@@ -32,7 +29,6 @@ class UAVCAN_EXPORT NodeStatusProvider : private TimerBase
     const MonotonicTime creation_timestamp_;
 
     Publisher<protocol::NodeStatus> node_status_pub_;
-    Subscriber<protocol::GlobalDiscoveryRequest, GlobalDiscoveryRequestCallback> gdr_sub_;
     ServiceServer<protocol::GetNodeInfo, GetNodeInfoCallback> gni_srv_;
 
     protocol::GetNodeInfo::Response node_info_;
@@ -42,10 +38,8 @@ class UAVCAN_EXPORT NodeStatusProvider : private TimerBase
     bool isNodeInfoInitialized() const;
 
     int publish();
-    void publishWithErrorHandling();
 
     virtual void handleTimerEvent(const TimerEvent&);
-    void handleGlobalDiscoveryRequest(const protocol::GlobalDiscoveryRequest&);
     void handleGetNodeInfoRequest(const protocol::GetNodeInfo::Request&, protocol::GetNodeInfo::Response& rsp);
 
 public:
@@ -56,7 +50,6 @@ public:
         : TimerBase(node)
         , creation_timestamp_(node.getMonotonicTime())
         , node_status_pub_(node)
-        , gdr_sub_(node)
         , gni_srv_(node)
     {
         UAVCAN_ASSERT(!creation_timestamp_.isZero());

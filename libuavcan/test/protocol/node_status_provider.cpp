@@ -43,7 +43,6 @@ TEST(NodeStatusProvider, Basic)
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg1;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg2;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg3;
     ASSERT_LE(0, nsp.startAndPublish());
 
     // Checking the publishing rate settings
@@ -111,23 +110,4 @@ TEST(NodeStatusProvider, Basic)
     ASSERT_TRUE(swver == gni_cln.collector.result->getResponse().software_version);
 
     ASSERT_EQ("superluminal_communication_unit", gni_cln.collector.result->getResponse().name);
-
-    /*
-     * GlobalDiscoveryRequest
-     */
-    uavcan::Publisher<uavcan::protocol::GlobalDiscoveryRequest> gdr_pub(nodes.b);
-
-    status_sub.collector.msg.reset();
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
-    ASSERT_FALSE(status_sub.collector.msg.get());                                // Nothing!
-
-    ASSERT_LE(0, gdr_pub.broadcast(uavcan::protocol::GlobalDiscoveryRequest()));
-
-    nsp.setStatusWarning();
-
-    status_sub.collector.msg.reset();
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
-
-    ASSERT_TRUE(status_sub.collector.msg.get());
-    ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_WARNING, status_sub.collector.msg->status_code);
 }

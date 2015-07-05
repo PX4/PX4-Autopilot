@@ -12,7 +12,6 @@
 #include <uavcan/protocol/RestartNode.hpp>
 #include <uavcan/protocol/GlobalTimeSync.hpp>
 #include <uavcan/protocol/DataTypeKind.hpp>
-#include <uavcan/protocol/GlobalDiscoveryRequest.hpp>
 #include <uavcan/protocol/GetDataTypeInfo.hpp>
 #include <uavcan/protocol/NodeStatus.hpp>
 #include <uavcan/protocol/GetNodeInfo.hpp>

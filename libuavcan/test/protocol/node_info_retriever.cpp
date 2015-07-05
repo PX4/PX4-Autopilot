@@ -72,7 +72,6 @@ TEST(NodeInfoRetriever, Basic)
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg1;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg2;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg3;
 
     InterlinkedTestNodesWithSysClock nodes;
 
@@ -231,7 +230,6 @@ TEST(NodeInfoRetriever, MaxConcurrentRequests)
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg1;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg2;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg3;
 
     InterlinkedTestNodesWithSysClock nodes;
 

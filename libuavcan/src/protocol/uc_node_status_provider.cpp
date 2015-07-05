@@ -26,7 +26,7 @@ int NodeStatusProvider::publish()
     return node_status_pub_.broadcast(node_info_.status);
 }
 
-void NodeStatusProvider::publishWithErrorHandling()
+void NodeStatusProvider::handleTimerEvent(const TimerEvent&)
 {
     if (getNode().isPassiveMode())
     {
@@ -40,17 +40,6 @@ void NodeStatusProvider::publishWithErrorHandling()
             getNode().registerInternalFailure("NodeStatus pub failed");
         }
     }
-}
-
-void NodeStatusProvider::handleTimerEvent(const TimerEvent&)
-{
-    publishWithErrorHandling();
-}
-
-void NodeStatusProvider::handleGlobalDiscoveryRequest(const protocol::GlobalDiscoveryRequest&)
-{
-    UAVCAN_TRACE("NodeStatusProvider", "Got GlobalDiscoveryRequest");
-    publishWithErrorHandling();
 }
 
 void NodeStatusProvider::handleGetNodeInfoRequest(const protocol::GetNodeInfo::Request&,
@@ -82,12 +71,6 @@ int NodeStatusProvider::startAndPublish(TransferPriority priority)
         }
     }
 
-    res = gdr_sub_.start(GlobalDiscoveryRequestCallback(this, &NodeStatusProvider::handleGlobalDiscoveryRequest));
-    if (res < 0)
-    {
-        goto fail;
-    }
-
     res = gni_srv_.start(GetNodeInfoCallback(this, &NodeStatusProvider::handleGetNodeInfoRequest));
     if (res < 0)
     {
@@ -100,7 +83,6 @@ int NodeStatusProvider::startAndPublish(TransferPriority priority)
 
 fail:
     UAVCAN_ASSERT(res < 0);
-    gdr_sub_.stop();
     gni_srv_.stop();
     TimerBase::stop();
     return res;
