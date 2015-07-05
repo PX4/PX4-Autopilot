@@ -94,7 +94,7 @@ __EXPORT extern int __px4_log_level_current;
 #define __px4__log_level_fmt		"%-5s "
 #define __px4__log_level_arg(level)	,__px4_log_level_str[level]
 #define __px4__log_thread_fmt		"%#X "
-#define __px4__log_thread_arg		,pthread_self()
+#define __px4__log_thread_arg		,(unsigned int)pthread_self()
 
 #define __px4__log_file_and_line_fmt 	" (file %s line %u)"
 #define __px4__log_file_and_line_arg 	, __FILE__, __LINE__
@@ -275,7 +275,7 @@ __EXPORT extern int __px4_log_level_current;
 #define PX4_PANIC(FMT, ...)	__px4_log_timestamp_thread_file_and_line(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
 #define PX4_ERR(FMT, ...)	__px4_log_timestamp_thread_file_and_line(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
 #define PX4_WARN(FMT, ...) 	__px4_log_timestamp_thread_file_and_line(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
-#define PX4_DEBUG(FMT, ...) 	__px4_log_timestamp_thread(_PX4_LOG_LEVEL_DEBUG, FMT, __VA_ARGS__)
+#define PX4_DEBUG(FMT, ...) 	__px4_log_timestamp_thread(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
 #elif defined(DEBUG_BUILD)
 /****************************************************************************
@@ -284,7 +284,7 @@ __EXPORT extern int __px4_log_level_current;
 #define PX4_PANIC(FMT, ...)	__px4_log_timestamp_file_and_line(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
 #define PX4_ERR(FMT, ...)	__px4_log_timestamp_file_and_line(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
 #define PX4_WARN(FMT, ...) 	__px4_log_timestamp_file_and_line(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
-#define PX4_DEBUG(FMT, ...) 	__px4_log_timestamp(_PX4_LOG_LEVEL_DEBUG, FMT, __VA_ARGS__)
+#define PX4_DEBUG(FMT, ...) 	__px4_log_timestamp(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
 #elif defined(RELEASE_BUILD)
 /****************************************************************************
