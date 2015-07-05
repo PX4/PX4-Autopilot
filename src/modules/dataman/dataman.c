@@ -664,6 +664,7 @@ task_main(int argc, char *argv[])
 		int file_size = lseek(g_task_fd, 0, SEEK_END);
 		if ((file_size % k_sector_size) != 0) {
 			warnx("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
+			warnx("Size: %u, sector size: %d", file_size, k_sector_size);
 			close(g_task_fd);
 			unlink(k_data_manager_device_path);
 		} else {
