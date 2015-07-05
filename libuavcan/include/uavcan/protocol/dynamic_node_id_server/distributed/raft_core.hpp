@@ -766,7 +766,7 @@ public:
             return res;
         }
 
-        res = append_entries_client_.init();
+        res = append_entries_client_.init(priority);
         if (res < 0)
         {
             return res;
@@ -774,7 +774,7 @@ public:
         append_entries_client_.setCallback(AppendEntriesResponseCallback(this,
                                                                          &RaftCore::handleAppendEntriesResponse));
 
-        res = request_vote_client_.init();
+        res = request_vote_client_.init(priority);
         if (res < 0)
         {
             return res;

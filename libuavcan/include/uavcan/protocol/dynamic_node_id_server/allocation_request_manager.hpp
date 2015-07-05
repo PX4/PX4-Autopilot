@@ -239,12 +239,11 @@ public:
 
     int init(const TransferPriority priority)
     {
-        int res = allocation_pub_.init();
+        int res = allocation_pub_.init(priority);
         if (res < 0)
         {
             return res;
         }
-        allocation_pub_.setPriority(priority);
         allocation_pub_.setTxTimeout(MonotonicDuration::fromMSec(1000 /* TODO FIXME ALLOCATION RANDOMIZATION */));
 
         res = allocation_sub_.start(AllocationCallback(this, &AllocationRequestManager::handleAllocation));

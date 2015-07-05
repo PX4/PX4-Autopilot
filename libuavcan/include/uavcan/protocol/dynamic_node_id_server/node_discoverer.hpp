@@ -311,9 +311,7 @@ public:
 
     int init(const TransferPriority priority)
     {
-        // TODO FIXME set priority
-        (void)priority;
-        int res = get_node_info_client_.init();
+        int res = get_node_info_client_.init(priority);
         if (res < 0)
         {
             return res;

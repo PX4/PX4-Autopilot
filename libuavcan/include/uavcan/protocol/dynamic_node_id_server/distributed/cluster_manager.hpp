@@ -258,12 +258,11 @@ public:
         /*
          * Initializing pub/sub and timer
          */
-        int res = discovery_pub_.init();
+        int res = discovery_pub_.init(priority);
         if (res < 0)
         {
             return res;
         }
-        discovery_pub_.setPriority(priority);
 
         res = discovery_sub_.start(DiscoveryCallback(this, &ClusterManager::handleDiscovery));
         if (res < 0)
