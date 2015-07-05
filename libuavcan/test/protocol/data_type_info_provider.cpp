@@ -19,7 +19,7 @@ using uavcan::MonotonicDuration;
 
 template <typename DataType>
 static bool validateDataTypeInfoResponse(const std::auto_ptr<ServiceCallResultCollector<GetDataTypeInfo>::Result>& resp,
-                                         unsigned mask)
+                                         unsigned flags)
 {
     if (!resp.get())
     {
@@ -43,7 +43,7 @@ static bool validateDataTypeInfoResponse(const std::auto_ptr<ServiceCallResultCo
         std::cout << "Signature mismatch" << std::endl;
         return false;
     }
-    if (resp->getResponse().mask != mask)
+    if (resp->getResponse().flags != flags)
     {
         std::cout << "Mask mismatch" << std::endl;
         return false;
@@ -90,8 +90,8 @@ TEST(DataTypeInfoProvider, Basic)
     nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<GetDataTypeInfo>(gdti_cln.collector.result,
-                                                              GetDataTypeInfo::Response::MASK_KNOWN |
-                                                              GetDataTypeInfo::Response::MASK_SERVING));
+                                                              GetDataTypeInfo::Response::FLAG_KNOWN |
+                                                              GetDataTypeInfo::Response::FLAG_SERVING));
     ASSERT_EQ(1, gdti_cln.collector.result->getCallID().server_node_id.get());
 
     /*
@@ -105,8 +105,8 @@ TEST(DataTypeInfoProvider, Basic)
     nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<GetDataTypeInfo>(gdti_cln.collector.result,
-                                                              GetDataTypeInfo::Response::MASK_KNOWN |
-                                                              GetDataTypeInfo::Response::MASK_SERVING));
+                                                              GetDataTypeInfo::Response::FLAG_KNOWN |
+                                                              GetDataTypeInfo::Response::FLAG_SERVING));
     ASSERT_EQ(1, gdti_cln.collector.result->getCallID().server_node_id.get());
 
     /*
@@ -119,7 +119,7 @@ TEST(DataTypeInfoProvider, Basic)
     nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<NodeStatus>(gdti_cln.collector.result,
-                                                         GetDataTypeInfo::Response::MASK_KNOWN));
+                                                         GetDataTypeInfo::Response::FLAG_KNOWN));
 
     /*
      * Starting publisher and subscriber for NodeStatus, requesting info again
@@ -135,9 +135,9 @@ TEST(DataTypeInfoProvider, Basic)
     nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<NodeStatus>(gdti_cln.collector.result,
-                                                         GetDataTypeInfo::Response::MASK_KNOWN |
-                                                         GetDataTypeInfo::Response::MASK_PUBLISHING |
-                                                         GetDataTypeInfo::Response::MASK_SUBSCRIBED));
+                                                         GetDataTypeInfo::Response::FLAG_KNOWN |
+                                                         GetDataTypeInfo::Response::FLAG_PUBLISHING |
+                                                         GetDataTypeInfo::Response::FLAG_SUBSCRIBED));
 
     /*
      * Requesting a non-existent type

@@ -78,7 +78,7 @@ class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
         response.signature  = desc->getSignature().get();
         response.id         = desc->getID().get();
         response.kind.value = desc->getKind();
-        response.mask       = protocol::GetDataTypeInfo::Response::MASK_KNOWN;
+        response.flags      = protocol::GetDataTypeInfo::Response::FLAG_KNOWN;
         response.name       = desc->getFullName();
 
         const Dispatcher& dispatcher = getNode().getDispatcher();
@@ -87,18 +87,18 @@ class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
         {
             if (dispatcher.hasServer(desc->getID().get()))
             {
-                response.mask |= protocol::GetDataTypeInfo::Response::MASK_SERVING;
+                response.flags |= protocol::GetDataTypeInfo::Response::FLAG_SERVING;
             }
         }
         else if (desc->getKind() == DataTypeKindMessage)
         {
             if (dispatcher.hasSubscriber(desc->getID().get()))
             {
-                response.mask |= protocol::GetDataTypeInfo::Response::MASK_SUBSCRIBED;
+                response.flags |= protocol::GetDataTypeInfo::Response::FLAG_SUBSCRIBED;
             }
             if (dispatcher.hasPublisher(desc->getID().get()))
             {
-                response.mask |= protocol::GetDataTypeInfo::Response::MASK_PUBLISHING;
+                response.flags |= protocol::GetDataTypeInfo::Response::FLAG_PUBLISHING;
             }
         }
         else

@@ -77,7 +77,7 @@ int NodeStatusProvider::startAndPublish(TransferPriority priority)
         goto fail;
     }
 
-    setStatusPublicationPeriod(MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS));
+    setStatusPublicationPeriod(MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_BROADCASTING_PERIOD_MS));
 
     return res;
 
@@ -90,8 +90,8 @@ fail:
 
 void NodeStatusProvider::setStatusPublicationPeriod(uavcan::MonotonicDuration period)
 {
-    const MonotonicDuration maximum = MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS);
-    const MonotonicDuration minimum = MonotonicDuration::fromMSec(protocol::NodeStatus::MIN_PUBLICATION_PERIOD_MS);
+    const MonotonicDuration maximum = MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_BROADCASTING_PERIOD_MS);
+    const MonotonicDuration minimum = MonotonicDuration::fromMSec(protocol::NodeStatus::MIN_BROADCASTING_PERIOD_MS);
 
     period = min(period, maximum);
     period = max(period, minimum);

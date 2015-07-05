@@ -179,7 +179,7 @@ private:
     {
         if (!isRunning())
         {
-            startPeriodic(MonotonicDuration::fromMSec(Discovery::BROADCASTING_INTERVAL_MS));
+            startPeriodic(MonotonicDuration::fromMSec(Discovery::BROADCASTING_PERIOD_MS));
         }
     }
 

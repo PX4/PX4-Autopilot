@@ -40,7 +40,7 @@ TEST(Dsdl, Streaming)
         "software_version: \n"
         "  major: 0\n"
         "  minor: 0\n"
-        "  optional_field_mask: 0\n"
+        "  optional_field_flags: 0\n"
         "  vcs_commit: 0\n"
         "  image_crc: 0\n"
         "hardware_version: \n"

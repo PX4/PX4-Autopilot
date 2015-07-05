@@ -83,7 +83,7 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
             const MonotonicDuration since_prev_pub = current_time - iface_prev_pub_mono_;
             iface_prev_pub_mono_ = current_time;
             UAVCAN_ASSERT(since_prev_pub.isPositive());
-            const bool long_period = since_prev_pub.toMSec() >= protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS;
+            const bool long_period = since_prev_pub.toMSec() >= protocol::GlobalTimeSync::MAX_BROADCASTING_PERIOD_MS;
 
             protocol::GlobalTimeSync msg;
             msg.previous_transmission_timestamp_usec = long_period ? 0 : prev_tx_utc_.toUSec();
@@ -124,7 +124,7 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
     int getNextTransferID(TransferID& tid)
     {
         const MonotonicDuration max_transfer_interval =
-            MonotonicDuration::fromMSec(protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS);
+            MonotonicDuration::fromMSec(protocol::GlobalTimeSync::MAX_BROADCASTING_PERIOD_MS);
 
         const OutgoingTransferRegistryKey otr_key(dtid_, TransferTypeMessageBroadcast, NodeID::Broadcast);
         const MonotonicTime otr_deadline = node_.getMonotonicTime() + max_transfer_interval;
@@ -226,7 +226,7 @@ public:
         {
             const MonotonicDuration since_prev_pub = current_time - prev_pub_mono_;
             UAVCAN_ASSERT(since_prev_pub.isPositive());
-            if (since_prev_pub.toMSec() < protocol::GlobalTimeSync::MIN_PUBLICATION_PERIOD_MS)
+            if (since_prev_pub.toMSec() < protocol::GlobalTimeSync::MIN_BROADCASTING_PERIOD_MS)
             {
                 UAVCAN_TRACE("GlobalTimeSyncMaster", "Publication skipped");
                 return 0;

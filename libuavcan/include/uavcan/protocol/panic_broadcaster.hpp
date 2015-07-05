@@ -39,11 +39,11 @@ public:
         : TimerBase(node)
         , pub_(node)
     {
-        pub_.setTxTimeout(MonotonicDuration::fromMSec(protocol::Panic::BROADCASTING_INTERVAL_MS - 10));
+        pub_.setTxTimeout(MonotonicDuration::fromMSec(protocol::Panic::BROADCASTING_PERIOD_MS - 10));
     }
 
     /**
-     * Begin broadcasting at the standard interval (see BROADCASTING_INTERVAL_MS).
+     * Begin broadcasting at the standard interval (see BROADCASTING_PERIOD_MS).
      * This method does not block and can't fail.
      * @param short_reason Short ASCII string that describes the reason of the panic, 7 characters max.
      *                     If the string exceeds 7 characters, it will be truncated.
@@ -65,7 +65,7 @@ public:
         UAVCAN_TRACE("PanicBroadcaster", "Panicking with reason '%s'", getReason().c_str());
 
         publishOnce();
-        startPeriodic(MonotonicDuration::fromMSec(protocol::Panic::BROADCASTING_INTERVAL_MS));
+        startPeriodic(MonotonicDuration::fromMSec(protocol::Panic::BROADCASTING_PERIOD_MS));
     }
 
     /**

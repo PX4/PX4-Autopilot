@@ -83,7 +83,7 @@ class UAVCAN_EXPORT GlobalTimeSyncSlave : Noncopyable
         const bool needs_init = !master_nid_.isValid() || prev_ts_mono_.isZero();
         const bool switch_master = msg.getSrcNodeID() < master_nid_;
         // TODO: Make configurable
-        const bool pub_timeout = since_prev_msg.toMSec() > protocol::GlobalTimeSync::RECOMMENDED_PUBLISHER_TIMEOUT_MS;
+        const bool pub_timeout = since_prev_msg.toMSec() > protocol::GlobalTimeSync::RECOMMENDED_BROADCASTER_TIMEOUT_MS;
 
         if (switch_master || pub_timeout || needs_init)
         {
@@ -97,7 +97,7 @@ class UAVCAN_EXPORT GlobalTimeSyncSlave : Noncopyable
             {
                 const bool msg_invalid = msg.previous_transmission_timestamp_usec == 0;
                 const bool wrong_tid = prev_tid_.computeForwardDistance(msg.getTransferID()) != 1;
-                const bool wrong_timing = since_prev_msg.toMSec() > protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS;
+                const bool wrong_timing = since_prev_msg.toMSec() > protocol::GlobalTimeSync::MAX_BROADCASTING_PERIOD_MS;
                 if (msg_invalid || wrong_tid || wrong_timing)
                 {
                     UAVCAN_TRACE("GlobalTimeSyncSlave",
@@ -179,7 +179,7 @@ public:
     {
         const MonotonicDuration since_prev_adj = getSystemClock().getMonotonic() - last_adjustment_ts_;
         return !last_adjustment_ts_.isZero() &&
-               (since_prev_adj.toMSec() <= protocol::GlobalTimeSync::RECOMMENDED_PUBLISHER_TIMEOUT_MS);
+               (since_prev_adj.toMSec() <= protocol::GlobalTimeSync::RECOMMENDED_BROADCASTER_TIMEOUT_MS);
     }
 
     /**
