@@ -61,8 +61,6 @@ static bool validateDataTypeInfoResponse(const std::auto_ptr<ServiceCallResultCo
     return true;
 }
 
-// TODO FIXME NEW IMPLEMENTATION
-#if 0
 
 TEST(DataTypeInfoProvider, Basic)
 {
@@ -72,13 +70,11 @@ TEST(DataTypeInfoProvider, Basic)
 
     GlobalDataTypeRegistry::instance().reset();
     DefaultDataTypeRegistrator<GetDataTypeInfo> _reg1;
-    DefaultDataTypeRegistrator<ComputeAggregateTypeSignature> _reg2;
     DefaultDataTypeRegistrator<NodeStatus> _reg3;
 
     ASSERT_LE(0, dtip.start());
 
     ServiceClientWithCollector<GetDataTypeInfo> gdti_cln(nodes.b);
-    ServiceClientWithCollector<ComputeAggregateTypeSignature> cats_cln(nodes.b);
 
     /*
      * GetDataTypeInfo request for GetDataTypeInfo
@@ -143,7 +139,7 @@ TEST(DataTypeInfoProvider, Basic)
      * Requesting a non-existent type
      */
     gdti_request = GetDataTypeInfo::Request();
-    gdti_request.id = ComputeAggregateTypeSignature::DefaultDataTypeID;
+    gdti_request.id = 20000;
     gdti_request.kind.value = 3;                 // INVALID VALUE
     ASSERT_LE(0, gdti_cln.call(1, gdti_request));
     nodes.spinBoth(MonotonicDuration::fromMSec(10));
@@ -151,7 +147,7 @@ TEST(DataTypeInfoProvider, Basic)
     ASSERT_TRUE(gdti_cln.collector.result.get());
     ASSERT_TRUE(gdti_cln.collector.result->isSuccessful());
     ASSERT_EQ(1, gdti_cln.collector.result->getCallID().server_node_id.get());
-    ASSERT_EQ(0, gdti_cln.collector.result->getResponse().mask);
+    ASSERT_EQ(0, gdti_cln.collector.result->getResponse().flags);
     ASSERT_TRUE(gdti_cln.collector.result->getResponse().name.empty());  // Empty name
     ASSERT_EQ(gdti_request.id, gdti_cln.collector.result->getResponse().id);
     ASSERT_EQ(gdti_request.kind.value, gdti_cln.collector.result->getResponse().kind.value);
@@ -169,62 +165,8 @@ TEST(DataTypeInfoProvider, Basic)
     ASSERT_TRUE(gdti_cln.collector.result.get());
     ASSERT_TRUE(gdti_cln.collector.result->isSuccessful());
     ASSERT_EQ(1, gdti_cln.collector.result->getCallID().server_node_id.get());
-    ASSERT_EQ(0, gdti_cln.collector.result->getResponse().mask);
+    ASSERT_EQ(0, gdti_cln.collector.result->getResponse().flags);
     ASSERT_EQ("uavcan.equipment.gnss.Fix", gdti_cln.collector.result->getResponse().name);
     ASSERT_EQ(0, gdti_cln.collector.result->getResponse().id);
     ASSERT_EQ(0, gdti_cln.collector.result->getResponse().kind.value);
-
-    /*
-     * ComputeAggregateTypeSignature test for messages
-     */
-    ComputeAggregateTypeSignature::Request cats_request;
-    cats_request.kind.value = DataTypeKind::MESSAGE;
-    cats_request.known_ids.resize(2000); // not 2048
-    cats_request.known_ids.set();                   // Assuming we have all 2000 types
-    ASSERT_LE(0, cats_cln.call(1, cats_request));
-    nodes.spinBoth(MonotonicDuration::fromMSec(10));
-
-    ASSERT_TRUE(cats_cln.collector.result.get());
-    ASSERT_TRUE(cats_cln.collector.result->isSuccessful());
-    ASSERT_EQ(1, cats_cln.collector.result->getCallID().server_node_id.get());
-    ASSERT_EQ(NodeStatus::getDataTypeSignature().get(), cats_cln.collector.result->getResponse().aggregate_signature);
-    ASSERT_EQ(2048, cats_cln.collector.result->getResponse().mutually_known_ids.size());
-    ASSERT_TRUE(cats_cln.collector.result->getResponse().mutually_known_ids[NodeStatus::DefaultDataTypeID]);
-    cats_cln.collector.result->getResponse().mutually_known_ids[NodeStatus::DefaultDataTypeID] = false;
-    ASSERT_FALSE(cats_cln.collector.result->getResponse().mutually_known_ids.any());
-
-    /*
-     * ComputeAggregateTypeSignature test for services
-     */
-    cats_request = ComputeAggregateTypeSignature::Request();
-    cats_request.kind.value = DataTypeKind::SERVICE;
-    cats_request.known_ids.resize(500); // not 512
-    cats_request.known_ids.set();                   // Assuming we have all 500 types
-    ASSERT_LE(0, cats_cln.call(1, cats_request));
-    nodes.spinBoth(MonotonicDuration::fromMSec(10));
-
-    ASSERT_TRUE(cats_cln.collector.result.get());
-    ASSERT_TRUE(cats_cln.collector.result->isSuccessful());
-    ASSERT_EQ(1, cats_cln.collector.result->getCallID().server_node_id.get());
-    ASSERT_EQ(512, cats_cln.collector.result->getResponse().mutually_known_ids.size());
-    ASSERT_TRUE(cats_cln.collector.result->getResponse().mutually_known_ids[GetDataTypeInfo::DefaultDataTypeID]);
-    ASSERT_TRUE(cats_cln.collector.result->getResponse().mutually_known_ids[ComputeAggregateTypeSignature::DefaultDataTypeID]);
-    cats_cln.collector.result->getResponse().mutually_known_ids[GetDataTypeInfo::DefaultDataTypeID] = false;
-    cats_cln.collector.result->getResponse().mutually_known_ids[ComputeAggregateTypeSignature::DefaultDataTypeID] = false;
-    ASSERT_FALSE(cats_cln.collector.result->getResponse().mutually_known_ids.any());
-
-    /*
-     * ComputeAggregateTypeSignature test for a non-existent type
-     */
-    cats_request.kind.value = 0xFF;                 // INVALID
-    cats_request.known_ids.set();                   // Assuming we have all 2048 types
-    ASSERT_LE(0, cats_cln.call(1, cats_request));
-    nodes.spinBoth(MonotonicDuration::fromMSec(10));
-
-    ASSERT_TRUE(cats_cln.collector.result.get());
-    ASSERT_TRUE(cats_cln.collector.result->isSuccessful());
-    ASSERT_EQ(0, cats_cln.collector.result->getResponse().aggregate_signature);
-    ASSERT_FALSE(cats_cln.collector.result->getResponse().mutually_known_ids.any());
 }
-
-#endif
