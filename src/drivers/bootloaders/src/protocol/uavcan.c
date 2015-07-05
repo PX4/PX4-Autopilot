@@ -266,6 +266,33 @@ static const dsdl_t *load_dsdl_protocol(uavcan_dsdl_t dsdl,
 }
 
 /****************************************************************************
+ * Name: uavcan_tx
+ *
+ * Description:
+ *   This function sends a single uavcan protocol based frame applying
+ *   the tail byte.
+ *
+ * Input Parameters:
+ *   protocol   - A pointer to a uavcan_protocol_t to configure the send
+ *   frame_data - A pointer to 8 bytes of data to be sent (all 8 bytes will be
+ *                loaded into the CAN transmitter but only length bytes will
+ *                be sent.
+ *   length     - The number of bytes of the frame_date (DLC field)
+ *   mailbox    - A can_fifo_mailbox_t MBxxx value to choose the outgoing
+ *                mailbox.
+ *
+ * Returned value:
+ *   None
+ ****************************************************************************/
+
+static void uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data,
+               size_t length, uint8_t mailbox)
+{
+        frame_data[length++] = protocol->tail_init.u8;
+        can_tx(protocol->id.u32, length, frame_data, mailbox);
+}
+
+/****************************************************************************
  * Name: uavcan_tx_dsdl
  *
  * Description:
@@ -738,35 +765,6 @@ static size_t uavcan_pack_LogMessage(uint8_t *external,
 	       PackedSizeMsgLogMessage - sizeof_member(uavcan_LogMessage_t, level));
 	return PackedSizeMsgLogMessage;
 }
-
-/****************************************************************************
- * Name: uavcan_tx
- *
- * Description:
- *   This function sends a single uavcan protocol based frame applying
- *   the tail byte.
- *
- * Input Parameters:
- *   protocol   - A pointer to a uavcan_protocol_t to configure the send
- *   frame_data - A pointer to 8 bytes of data to be sent (all 8 bytes will be
- *                loaded into the CAN transmitter but only length bytes will
- *                be sent.
- *   length     - The number of bytes of the frame_date (DLC field)
- *   mailbox    - A can_fifo_mailbox_t MBxxx value to choose the outgoing
- *                mailbox.
- *
- * Returned value:
- *   None
- ****************************************************************************/
-
-void uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data,
-	       size_t length, uint8_t mailbox)
-{
-	frame_data[length++] = protocol->tail_init.u8;
-	can_tx(protocol->id.u32, length, frame_data, mailbox);
-}
-
-
 
 /****************************************************************************
  * Name: uavcan_tx_nodestatus

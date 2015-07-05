@@ -424,6 +424,7 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 	size_t  rx_len = board_get_hardware_version(&hw_version);
 	uint16_t random  = (uint16_t) timer_hrt_read();
 	random = crc16_signature(random, rx_len, hw_version.unique_id);
+        util_srand(random);
 
 	memset(&server, 0, sizeof(server));
 
@@ -1106,8 +1107,8 @@ __EXPORT int main(int argc, char *argv[])
 #endif
 
 	/* Is the memory in the Application space occupied by a valid application? */
-TODO(bootloader.app_valid  FROCED false);
-	bootloader.app_valid = 0; //is_app_valid(bootloader.fw_image[0]);
+
+	bootloader.app_valid = is_app_valid(bootloader.fw_image[0]);
 
 	board_indicate(reset);
 

@@ -240,8 +240,6 @@ typedef enum uavcan_service_const_t {
 	UavcanServiceTimeOutMs = 1000,
 
 } uavcan_service_const_t;
-TODO(Remove 10 * UavcanServiceTimeOutMs);
-
 
 /* UAVCAN CAN ID Usage: Service definition */
 
@@ -782,90 +780,6 @@ size_t uavcan_pack_NodeStatus(uint8_t *external,
 
 size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t *response,
 					const uavcan_NodeStatus_t *node_status);
-
-/****************************************************************************
- * Name: uavcan_match
- *
- * Description:
- *   This function test the  uavcan_protocol_t object to see if
- *   it is a match with the dsdl
- *
- * Input Parameters:
- *   dsdl         -     An uavcan DSDL Identifier (Auto Generated)
- *   protocol     -     A pointer to a uavcan_protocol_t to test
- *
- *   node_id      -     The node id to match the dest_node_id
- *                      against for a service or the source node id
- *                      for a transfer. A value of ANY_NODE_ID
- *                      match Any node id;
- *
- * Returned value:
- *   Non Zero if they match otherwise zero.
- *
- ****************************************************************************/
-
-uint8_t uavcan_match(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
-		     uint8_t node_id);
-
-/****************************************************************************
- * Name: uavcan_is_anonymous
- *
- * Description:
- *   This function test the  uavcan_protocol_t object to t see if
- *   it is an anonymous frame of a given type ID
- *
- * Input Parameters:
- *   protocol         -  A pointer to a uavcan_protocol_t to test
- *   expected_type_id - The expected uavcan type ID
- *
- *
- * Returned value:
- *   Non Zero if they match otherwise zero.
- *
- ****************************************************************************/
-
-uint8_t uavcan_is_anonymous(uavcan_protocol_t *protocol, uint16_t expected_type_id);
-
-/****************************************************************************
- * Name: uavcan_is_allocation
- *
- * Description:
- *   This function test the  uavcan_protocol_t object to t see if
- *   it is a Allocation Message frame
- *
- * Input Parameters:
- *   protocol     -     A pointer to a uavcan_protocol_t to test
- *
- * Returned value:
- *   Non Zero if they match otherwise zero.
- *
- ****************************************************************************/
-
-uint8_t uavcan_is_allocation(uavcan_protocol_t *protocol);
-
-
-/****************************************************************************
- * Name: uavcan_tx
- *
- * Description:
- *   This function sends a single uavcan protocol based frame applying
- *   the tail byte.
- *
- * Input Parameters:
- *   protocol   - A pointer to a uavcan_protocol_t to configure the send
- *   frame_data - A pointer to 8 bytes of data to be sent (all 8 bytes will be
- *                loaded into the CAN transmitter but only length bytes will
- *                be sent.
- *   length     - The number of bytes of the frame_date (DLC field)
- *   mailbox    - A can_fifo_mailbox_t MBxxx value to choose the outgoing
- *                mailbox.
- *
- * Returned value:
- *   None
- ****************************************************************************/
-
-void uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data,
-	       size_t length, uint8_t mailbox);
 
 /****************************************************************************
  * Name: uavcan_tx_dsdl
