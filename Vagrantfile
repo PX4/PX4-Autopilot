@@ -49,6 +49,13 @@ Vagrant.configure(2) do |config|
     vb.customize ["modifyvm", :id, "--ioapic", "on"]
     vb.customize ["modifyvm", :id, "--cpus", "2"]
 
+    # Since make and other tools freak out if they see timestamps
+    # from the future and we share directories, tightly lock the host and guest clocks together (clock sync if more than 2 seconds off)
+    vb.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 2000]
+    # Do this on start and restore
+    vb.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-start"]
+    vb.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-on-restore", "1"]
+
     # Customize the amount of memory on the VM:
     vb.memory = "2048"
   end
