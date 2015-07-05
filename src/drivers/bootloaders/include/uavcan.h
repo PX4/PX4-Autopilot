@@ -237,7 +237,7 @@ uint32_t      priority                : LengthUavCanAnonMessagePriority;
 
 typedef enum uavcan_service_const_t {
 	UavcanServiceRetries = 3,
-	UavcanServiceTimeOutMs = 10 * 1000,
+	UavcanServiceTimeOutMs = 1000,
 
 } uavcan_service_const_t;
 TODO(Remove 10 * UavcanServiceTimeOutMs);
@@ -301,75 +301,88 @@ CCASSERT(MaskUavCanMessageServiceNotMessage == MaskUavCanMessageServiceNotMessag
 /* UAVCAN DSDL Type Definitions*/
 #define NA 0
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length)
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound) \
+
+#define UAVCAN_DSDL_MESG_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
+  UAVCAN_DSDL_TYPE_DEF(Msg##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
+
+#define UAVCAN_DSDL_SREQ_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
+    UAVCAN_DSDL_TYPE_DEF(Req##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
+
+#define UAVCAN_DSDL_SRSP_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
+    UAVCAN_DSDL_TYPE_DEF(Rsp##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
+
+#define END_COMPONENTS SizeDSDLComponents,
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
 	DSDL##name,
 typedef enum uavcan_dsdl_t {
 #include "uavcan_dsdl_defs.h"
 	SizeDSDL,
 } uavcan_dsdl_t;
 #undef UAVCAN_DSDL_TYPE_DEF
+#undef END_COMPONENTS
+#define END_COMPONENTS
 
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length)
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound) \
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
 	DTID##name  =  (dtid),
 typedef enum uavcan_dsdl_dtid_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_dtid_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound) \
-	ServiceNotMessage##name  =  (service),
-typedef enum uavcan_dsdl_service_not_message_t {
-#include "uavcan_dsdl_defs.h"
-} uavcan_dsdl_service_not_message_t;
-#undef UAVCAN_DSDL_TYPE_DEF
-
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound) \
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
 	SignatureCRC16##name  =  (signature),
 typedef enum uavcan_dsdl_sig_crc16_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_sig_crc16_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound) \
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
 	PackedSize##name  =  (packsize),
 typedef enum uavcan_dsdl_packedsize_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_packedsize_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound) \
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
 	MailBox##name  =  (mailbox),
 typedef enum uavcan_dsdl_mb_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_mb_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound) \
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
 	Fifo##name  =  (fifo),
 typedef enum uavcan_dsdl_fifo_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_fifo_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound) \
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
 	InTailInit##name  =  (inbound),
 typedef enum  uavcan_dsdl_inbound_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_inbound_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound) \
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
 	OutTailInit##name  =  (outbound),
 typedef enum uavcan_dsdl_outbound_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_outbound_t;
 #undef UAVCAN_DSDL_TYPE_DEF
+#undef UAVCAN_DSDL_SRSP_DEF
+#undef UAVCAN_DSDL_SREQ_DEF
+#undef UAVCAN_DSDL_MESG_DEF
 #undef UAVCAN_DSDL_BIT_DEF
 
 /* UAVCAN DSDL Fields of Type Definitions definitions*/
 
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, service, signature, packsize, mailbox, fifo, inbound, outbound)
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound)
+#define UAVCAN_DSDL_MESG_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound)
+#define UAVCAN_DSDL_SREQ_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound)
+#define UAVCAN_DSDL_SRSP_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound)
+
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length) \
 	Mask##data_typ_name##field_name  =  BITFEILD_MASK((lsb_pos), (length)),
 typedef enum uavcan_dsdl_mask_t {
@@ -403,8 +416,12 @@ typedef enum uavcan_dsdl_payload_offset_t {
 typedef enum uavcan_dsdl_payload_length_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_payload_length_t;
-#undef UAVCAN_DSDL_BIT_DEF
 #undef UAVCAN_DSDL_TYPE_DEF
+#undef UAVCAN_DSDL_SRSP_DEF
+#undef UAVCAN_DSDL_SREQ_DEF
+#undef UAVCAN_DSDL_MESG_DEF
+#undef UAVCAN_DSDL_BIT_DEF
+#undef END_COMPONENTS
 #undef NA
 
 /****************************************************************************
@@ -498,11 +515,15 @@ typedef enum uavcan_HardwareVersionConsts_t {
 				   sizeof_member(uavcan_HardwareVersion_t, certificate_of_authenticity_length),
 } uavcan_HardwareVersionConsts_t;
 
+typedef struct packed_struct uavcan_GetNodeInfo_request_t {
+    uint8_t empty[CanPayloadLength];
+} uavcan_GetNodeInfo_request_t;
+
 /* GetNodeInfo Response */
 
 typedef struct packed_struct uavcan_GetNodeInfo_response_t {
 
-	uint8_t nodestatus[PackedSizeNodeStatus];
+	uint8_t nodestatus[PackedSizeMsgNodeStatus];
 
 	uavcan_SoftwareVersion_t software_version;
 	uavcan_HardwareVersion_t hardware_version;
@@ -512,7 +533,7 @@ typedef struct packed_struct uavcan_GetNodeInfo_response_t {
 } uavcan_GetNodeInfo_response_t;
 
 typedef enum uavcan_GetNodeInfoConsts_t {
-	FixedSizeGetNodeInfo = PackedSizeNodeStatus + PackedSizeSoftwareVersion +  FixedSizeHardwareVersion,
+	FixedSizeGetNodeInfo = PackedSizeMsgNodeStatus + PackedSizeSoftwareVersion +  FixedSizeHardwareVersion,
 
 } uavcan_GetNodeInfoConsts_t;
 
@@ -533,7 +554,7 @@ typedef struct packed_struct uavcan_LogMessage_t {
 	uint8_t text[uavcan_byte_count(LogMessage, text)];
 } uavcan_LogMessage_t;
 
-CCASSERT(sizeof(uavcan_LogMessage_t) == PackedSizeLogMessage);
+CCASSERT(sizeof(uavcan_LogMessage_t) == PackedSizeMsgLogMessage);
 
 
 /****************************************
@@ -689,6 +710,40 @@ typedef enum uavcan_ReadResponseConsts_t {
 void uavcan_set_node_id(uint8_t p_node_id);
 
 /****************************************************************************
+ * Name: uavcan_set_server_node_id
+ *
+ * Description:
+ *   This function sets the node id to be used for out going transfers as
+ *   the destination node id and for incoming transfers as the source node id
+ *
+ * Input Parameters:
+ *   node_id    - The the node_id
+ *
+ * Returned value:
+ *   None
+ *
+ ****************************************************************************/
+
+void uavcan_set_server_node_id(uint8_t node_id);
+
+/****************************************************************************
+ * Name: uavcan_get_server_node_id
+ *
+ * Description:
+ *   This function returns the node id to be used for out going transfers as
+ *   the destination node id.
+ *
+ * Input Parameters:
+ *   node_id    - The the node_id
+ *
+ * Returned value:
+ *   None
+ *
+ ****************************************************************************/
+
+uint8_t uavcan_get_server_node_id(void);
+
+/****************************************************************************
  * Name: uavcan_pack_NodeStatus
  *
  * Description:
@@ -813,10 +868,10 @@ void uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data,
 	       size_t length, uint8_t mailbox);
 
 /****************************************************************************
- * Name: uavcan_tx_service_request
+ * Name: uavcan_tx_dsdl
  *
  * Description:
- *   This helper function sends a uavcan service protocol request, it
+ *   This helper function sends a uavcan service protocol, it
  *   assumes the protocol object has the destination node id set.
  *
  * Input Parameters:
@@ -832,34 +887,11 @@ void uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data,
  *
  ****************************************************************************/
 
-void uavcan_tx_service_request(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
+void uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 			       const uint8_t *transfer, size_t transfer_length);
 
 /****************************************************************************
- * Name: uavcan_tx_service_response
- *
- * Description:
- *   This helper function sends a uavcan service protocol response, it
- *   assumes the protocol object is from a valid received request and will
- *   apply the incoming source node ID as the outgoing destination node id;
- *
- * Input Parameters:
- *   dsdl       - An Uavcan DSDL Identifier (Auto Generated)
- *   protocol   - A pointer to a uavcan_protocol_t to configure the send,
- *                based on a previous request.
- *   transfer    - A pointer to the packed data of the transfer to be sent.
- *   length     - The number of bytes of data
- *
- * Returned value:
- *   None
- *
- ****************************************************************************/
-
-void uavcan_tx_service_response(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
-				const uint8_t *transfer, size_t length);
-
-/****************************************************************************
- * Name: uavcan_rx_response
+ * Name: uavcan_rx_dsdl
  *
  * Description:
  *   This function receives a uavcan Service response protocol transfer
@@ -880,34 +912,9 @@ void uavcan_tx_service_response(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
  *   None
  *
  ****************************************************************************/
-can_error_t uavcan_rx_response(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
+uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 			       uint8_t *transfer, size_t *in_out_transfer_length,
 			       uint32_t timeout_ms);
-
-/****************************************************************************
- * Name: uavcan_rx
- *
- * Description:
- *   This function is called to receive a single CAN frame from the supplied
- *   fifo. It does not block if there is not available, but returns 0
- *
- * Input Parameters:
- *   protocol   - A pointer to a uavcan_protocol_t to return the CAN ID and
- *                Tail byte
- *   frame_data - A pointer to return 8 bytes of the frame's data
- *                (all 8 bytes will be read from the CAN fifo but
- *                 only length bytes will valid.
- *   length     - A pointer to return the number of bytes of the frame_data
- *                (DLC field)
- *   fifo         A can_fifo_mailbox_t fifixxx value to choose the incoming fifo.
- *
- * Returned value:
- *   The length of the data read or 0 if the fifo was empty
- *
- ****************************************************************************/
-
-uint8_t uavcan_rx(uavcan_protocol_t *protocol, uint8_t *frame_data,
-		  size_t *length,  uint8_t fifo);
 
 /****************************************************************************
  * Name: uavcan_tx_nodestatus
@@ -979,57 +986,3 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
 				  uint8_t unique_id_offset,
 				  uint16_t random);
 
-/****************************************************************************
- * Name: uavcan_rx_allocation_message
- *
- * Description:
- *   This function receives a uavcan Allocation message transfer
- *
- * Input Parameters:
- *   protocol   - A pointer to a uavcan_protocol_t to configure the receive,
- *                that will will be update based the dsdl for Allocation
- *                message.
- *                If the request must come from a specific server
- *                then protocol->ser.source_node_id, should be set
- *                to that node id;
- *
- *   message     - A pointer to a uavcan_Allocation_t to receive the
- *                 transfer.
- *
- *   in_out_transfer_length - A pointer to the number of bytes of data to
- *                            receive and the length of unique_id received.
- *   timeout_ms - The amount of time in mS to wait for the message
- *
- * Returned value:
- *   On Success - ssize_t with the length of
- *                the unique_id received.
- *   On Failure - -UavcanError
- *
- ****************************************************************************/
-
-ssize_t uavcan_rx_allocation_message(uavcan_protocol_t *protocol,
-				     uavcan_Allocation_t *message,
-				     uint32_t timeout_ms);
-
-/****************************************************************************
- * Name: uavcan_rx_beginfirmwareupdate_request
- *
- * Description:
- *   This function attempts to receive a uavcan beginfirmwareupdate request
- *   transfer
- *
- * Input Parameters:
- *   protocol   - A pointer to a uavcan_protocol_t to return the CAN ID and
- *                Tail byte
- *   request  - A pointer a uavcan_beginfirmwareupdate_request_t to
- *              receive the request data into.
- *
- *
- * Returned value:
- *   Length of the path data on Success or a negative uavcan_error_t
- *   otherwise.
- *
- ****************************************************************************/
-
-ssize_t uavcan_rx_beginfirmwareupdate_request(uavcan_protocol_t *protocol,
-		uavcan_BeginFirmwareUpdate_request *request);

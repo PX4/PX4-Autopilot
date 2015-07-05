@@ -208,12 +208,11 @@ static void uptime_process(bl_timer_id id, void *context)
 static void node_info_process(bl_timer_id id, void *context)
 {
 
-	uavcan_GetNodeInfo_response_t response;
+        uavcan_GetNodeInfo_response_t response;
+        uavcan_GetNodeInfo_request_t  request;
 	uavcan_NodeStatus_t node_status;
 
 	uavcan_protocol_t protocol;
-	size_t frame_len;
-	uint8_t frame_payload[CanPayloadLength];
 
 	node_status.uptime_sec = bootloader.uptime;
 	node_status.status_code = bootloader.status_code;
@@ -244,16 +243,17 @@ static void node_info_process(bl_timer_id id, void *context)
 
 	}
 
-	size_t length = uavcan_pack_GetNodeInfo_response(&response, &node_status);
+        size_t length = sizeof(uavcan_GetNodeInfo_request_t);
+	size_t send_length = uavcan_pack_GetNodeInfo_response(&response, &node_status);
 
 	/*
 	 * Do a passive receive attempt on the GetNodeInfo fifo
 	 * If it matches send the GetNodeInfo response
 	 */
 
-	if (uavcan_rx(&protocol, frame_payload, &frame_len, FifoGetNodeInfo) &&
-	    uavcan_match(DSDLGetNodeInfo, &protocol, bootloader.node_id)) {
-		uavcan_tx_service_response(DSDLGetNodeInfo, &protocol, (const uint8_t *)&response, length);
+        protocol.id.u32 = ANY_NODE_ID;
+	if (UavcanOk ==uavcan_rx_dsdl(DSDLReqGetNodeInfo, &protocol,  (uint8_t*) &request, &length, 0)) {
+		uavcan_tx_dsdl(DSDLRspGetNodeInfo, &protocol, (const uint8_t *) &response, send_length);
 		bootloader.sent_node_info_response = true;
 	}
 }
@@ -439,9 +439,6 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 	bl_timer_id trequest = timer_allocate(modeTimeout | modeStarted, util_random(MIN_REQUEST_PERIOD_MS,
 					      MAX_REQUEST_PERIOD_MS), 0);
 
-	bl_timer_id tfollowup = timer_allocate(modeTimeout, util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS), 0);
-
-
 	uavcan_protocol_t protocol;
 
 	do {
@@ -470,11 +467,10 @@ restart:
 		 */
 
 		protocol.ana.source_node_id = server.node_id;
-		ssize_t length = uavcan_rx_allocation_message(&protocol, &server.allocation_message, 50);
+		rx_len = sizeof(server.allocation_message);
+		if (UavcanOk == uavcan_rx_dsdl(DSDLMsgAllocation, &protocol, (uint8_t *) &server.allocation_message, &rx_len, 50)) {
 
-		if (length > 0) {
-
-			rx_len = length;
+			rx_len -= uavcan_byte_count(Allocation, node_id);
 
 			/*
 			 * Rule C. On any Allocation message, even if other rules also match:
@@ -558,16 +554,10 @@ restart:
 				uint8_t rx_payload[CanPayloadLength];
 
 				/* Case D.1 */
-
-				timer_restart(tfollowup, util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS));
-
-				while (timer_expired(tfollowup)) {
-					if (uavcan_rx(&protocol, rx_payload, &rx_len, FifoAllocation)
-					    && (uavcan_is_allocation(&protocol))) {
+				protocol.id.u32 = ANY_NODE_ID;
+				if (UavcanOk == uavcan_rx_dsdl(DSDLMsgAllocation, &protocol, (uint8_t *) &rx_payload, &rx_len, util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS))) {
 						goto restart;
-					}
 				}
-
 				/* Sending the next chunk */
 
 				uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
@@ -579,7 +569,6 @@ restart:
 	} while (!timer_expired(tboot));
 
 	timer_free(trequest);
-	timer_free(tfollowup);
 	return *allocated_node_id == ANY_NODE_ID ? CAN_BOOT_TIMEOUT : CAN_OK;
 }
 
@@ -597,8 +586,7 @@ restart:
  *   fw_path            - A pointer to the location that should receive the
  *                        path of the firmware file to read.
  *   fw_path_length    -  A pointer to return the path length in.
- *   fw_source_node_id -  A pointer to return the node id of the node to
- *                        read the file from.
+ *
  * Returned Value:
  *   UavcanOk          - Indicates the a beginfirmwareupdate was received and
  *                       processed successful.
@@ -609,44 +597,47 @@ restart:
 
 static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
 		uint8_t *fw_path,
-		size_t *fw_path_length,
-		uint8_t *fw_source_node_id)
+		size_t *fw_path_length)
 {
 
 	uavcan_BeginFirmwareUpdate_request request;
 	uavcan_protocol_t protocol;
 
-	ssize_t length = -UavcanError;
+	uavcan_error_t status = UavcanError;
 
 	fw_path[0] = 0;
-	*fw_source_node_id = ANY_NODE_ID;
 
-	while (length == -UavcanError) {
+	uavcan_set_server_node_id(ANY_NODE_ID);
+
+	while (status != UavcanOk) {
 
 		if (timer_expired(tboot)) {
 			return UavcanBootTimeout;
 		}
+	        protocol.id.u32 = ANY_NODE_ID;
+	        *fw_path_length = sizeof(uavcan_BeginFirmwareUpdate_request);
+	        status = uavcan_rx_dsdl(DSDLReqBeginFirmwareUpdate, &protocol,
+	                                (uint8_t *) &request, fw_path_length,
+	                                UavcanServiceTimeOutMs);
 
-		length = uavcan_rx_beginfirmwareupdate_request(&protocol, &request);
+
 	}
 
-	if (length > 0) {
+	if (UavcanOk == status) {
 
 		/* Send an ERROR_OK response */
 
 		uavcan_BeginFirmwareUpdate_response response;
 		response.error = ERROR_OK;
-		uavcan_tx_service_response(DSDLBeginFirmwareUpdate, &protocol,
+		uavcan_tx_dsdl(DSDLRspBeginFirmwareUpdate, &protocol,
 					   (uint8_t *)&response, sizeof(uavcan_BeginFirmwareUpdate_response));
 
-		memcpy(fw_path, request.image_file_remote_path, length);
-
-		*fw_path_length = (size_t) length;
-		*fw_source_node_id = request.source_node_id;
-		length = UavcanOk;
+                *fw_path_length -= uavcan_byte_count(BeginFirmwareUpdate, source_node_id);
+		memcpy(fw_path, request.image_file_remote_path, *fw_path_length );
+	        uavcan_set_server_node_id(request.source_node_id);
 	}
 
-	return length;
+	return status;
 }
 
 /****************************************************************************
@@ -657,7 +648,7 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
  *   for getinfo (for a file).
  *
  * Input Parameters:
- *   fw_source_node_id - The node id of the node to get the info from.
+ *
  *   fw_path           - A pointer to the path of the firmware file that's
  *                       info is being requested.
  *   fw_path_length    - The path length of the firmware file that's
@@ -670,13 +661,12 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
  *
  ****************************************************************************/
 
-static void file_getinfo(uint8_t fw_source_node_id,
-			 const uint8_t *fw_path,
+static void file_getinfo(const uint8_t *fw_path,
 			 size_t fw_path_length,
 			 size_t *fw_image_size)
 {
-	uavcan_GetInfo_request_t request;
-	uavcan_GetInfo_response_t         response;
+	uavcan_GetInfo_request_t   request;
+	uavcan_GetInfo_response_t  response;
 	uavcan_protocol_t protocol;
 
 	protocol.tail.transfer_id = 0;
@@ -689,14 +679,15 @@ static void file_getinfo(uint8_t fw_source_node_id,
 
 	while (retries--) {
 
+                protocol.ser.source_node_id = uavcan_get_server_node_id();
 		size_t length =  FixedSizeGetInfoRequest + fw_path_length;
 
-		protocol.ser.dest_node_id = fw_source_node_id;
-		uavcan_tx_service_request(DSDLGetInfo, &protocol,
+		uavcan_tx_dsdl(DSDLReqGetInfo, &protocol,
 					  (uint8_t *)&request, length);
 
 		length = sizeof(response);
-		uavcan_error_t status = uavcan_rx_response(DSDLGetInfo,
+                protocol.ser.source_node_id = uavcan_get_server_node_id();
+		uavcan_error_t status = uavcan_rx_dsdl(DSDLRspGetInfo,
 					&protocol,
 					(uint8_t *) &response,
 					&length,
@@ -723,7 +714,7 @@ static void file_getinfo(uint8_t fw_source_node_id,
  *   for file read and programs the flash.
  *
  * Input Parameters:
- *   fw_source_node_id - The node id of the node to read the file from.
+ *
  *   fw_path           - A pointer to the path of the firmware file that
  *                       is being read.
  *   fw_path_length    - The path length of the firmware file that is
@@ -754,8 +745,7 @@ static void file_getinfo(uint8_t fw_source_node_id,
  *
  ****************************************************************************/
 
-static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
-		const uint8_t *fw_path,
+static flash_error_t file_read_and_program(const uint8_t *fw_path,
 		uint8_t fw_path_length,
 		size_t fw_image_size)
 {
@@ -780,7 +770,6 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 	uint8_t transfer_id = 0;
 	uint8_t retries = UavcanServiceRetries;
 
-	protocol.ser.dest_node_id = fw_source_node_id;
 
 	/*
 	 * Rate limiting on read requests:
@@ -806,11 +795,13 @@ static flash_error_t file_read_and_program(uint8_t fw_source_node_id,
 			timer_restart(tread, read_ms);
 
 			length = FixedSizeReadRequest + fw_path_length;
-			uavcan_tx_service_request(DSDLRead, &protocol,
+	                protocol.ser.source_node_id = uavcan_get_server_node_id();
+			uavcan_tx_dsdl(DSDLReqRead, &protocol,
 						  (uint8_t *)&request, length);
 
 			length = sizeof(uavcan_Read_response_t);
-			uavcan_status = uavcan_rx_response(DSDLRead,
+	                protocol.ser.source_node_id = uavcan_get_server_node_id();
+			uavcan_status = uavcan_rx_dsdl(DSDLRspRead,
 							   &protocol,
 							   (uint8_t *) &response,
 							   &length,
@@ -1062,7 +1053,6 @@ __EXPORT int main(int argc, char *argv[])
 	size_t fw_image_size = 0;
 	uint8_t fw_path[uavcan_bit_count(BeginFirmwareUpdate, image_file_remote_path)];
 	size_t  fw_path_length;
-	uint8_t fw_source_node_id;
 	uint8_t error_log_stage;
 	flash_error_t status;
 	bootloader_app_shared_t common;
@@ -1116,9 +1106,8 @@ __EXPORT int main(int argc, char *argv[])
 #endif
 
 	/* Is the memory in the Application space occupied by a valid application? */
-
-	bootloader.app_valid = 0;
-	is_app_valid(bootloader.fw_image[0]);
+TODO(bootloader.app_valid  FROCED false);
+	bootloader.app_valid = 0; //is_app_valid(bootloader.fw_image[0]);
 
 	board_indicate(reset);
 
@@ -1271,11 +1260,10 @@ __EXPORT int main(int argc, char *argv[])
 
 	do {
 		if (UavcanBootTimeout == wait_for_beginfirmwareupdate(tboot, fw_path,
-				&fw_path_length,
-				&fw_source_node_id)) {
+				&fw_path_length)) {
 			goto boot;
 		}
-	} while (!fw_source_node_id);
+	} while (fw_path[0] == 0);
 
 
 	/* We received a begin firmware update */
@@ -1283,7 +1271,7 @@ __EXPORT int main(int argc, char *argv[])
 	timer_stop(tboot);
 	board_indicate(fw_update_start);
 
-	file_getinfo(fw_source_node_id, fw_path, fw_path_length, &fw_image_size);
+	file_getinfo(fw_path, fw_path_length, &fw_image_size);
 
 	//todo:Check this
 	if (fw_image_size < sizeof(app_descriptor_t)) {
@@ -1313,8 +1301,7 @@ __EXPORT int main(int argc, char *argv[])
 		goto failure;
 	}
 
-	status = file_read_and_program(fw_source_node_id, fw_path, fw_path_length,
-				       fw_image_size);
+	status = file_read_and_program(fw_path, fw_path_length, fw_image_size);
 
 	if (status != FLASH_OK) {
 		error_log_stage = LOGMESSAGE_STAGE_PROGRAM;

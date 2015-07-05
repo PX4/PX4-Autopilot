@@ -300,11 +300,12 @@ public:
 			const int res = main_node.injectTxFrame(e->frame, e->deadline, iface_mask,
 								uavcan::CanTxQueue::Qos(e->qos), e->flags);
 
-			if (res <= 0) {
+                        prioritized_tx_queue_.remove(e);
+
+                        if (res <= 0) {
 				break;
 			}
 
-			prioritized_tx_queue_.remove(e);
 		}
 	}
 

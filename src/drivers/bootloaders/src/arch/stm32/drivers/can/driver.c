@@ -479,8 +479,7 @@ int can_init(can_speed_t speed, can_mode_t mode)
 
 
 	putreg32(bitrates[speedndx] | mode << CAN_BTR_LBK_SHIFT, STM32_CAN1_BTR);
-	TODO(ADD CAN_MCR_TXFP)
-	putreg32(CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_DBF, STM32_CAN1_MCR);
+	putreg32(CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_DBF | CAN_MCR_TXFP, STM32_CAN1_MCR);
 
 	for (timeout = INAK_TIMEOUT; timeout > 0; timeout--) {
 		if ((getreg32(STM32_CAN1_MSR) & CAN_MSR_INAK) == 0) {
@@ -510,7 +509,7 @@ int can_init(can_speed_t speed, can_mode_t mode)
 	uavcan_protocol_t protocol;
 
 	protocol.id.u32 = 0;
-	protocol.ser.type_id = DTIDGetNodeInfo;
+	protocol.ser.type_id = DTIDReqGetNodeInfo;
 	protocol.ser.service_not_message = true;
 	protocol.ser.request_not_response = true;
 
