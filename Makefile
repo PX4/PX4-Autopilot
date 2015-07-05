@@ -194,7 +194,7 @@ testbuild:
 
 nuttx posix posix-arm qurt: 
 ifeq ($(GOALS),)
-	make PX4_TARGET_OS=$@ $(GOALS)
+	$(MAKE) PX4_TARGET_OS=$@ $(GOALS)
 else
 	export PX4_TARGET_OS=$@
 endif
@@ -206,7 +206,7 @@ sitl_plane:
 	$(Q) Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
 
 qurtrun:
-	make PX4_TARGET_OS=qurt sim
+	$(MAKE) PX4_TARGET_OS=qurt sim
 
 #
 # Unittest targets. Builds and runs the host-level
