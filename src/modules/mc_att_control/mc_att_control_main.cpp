@@ -190,9 +190,6 @@ private:
 		param_t pitch_rate_max;
 		param_t yaw_rate_max;
 
-		param_t man_roll_max;
-		param_t man_pitch_max;
-		param_t man_yaw_max;
 		param_t acro_roll_max;
 		param_t acro_pitch_max;
 		param_t acro_yaw_max;
@@ -212,9 +209,6 @@ private:
 		float yaw_rate_max;
 		math::Vector<3> mc_rate_max;		/**< attitude rate limits in stabilized modes */
 
-		float man_roll_max;
-		float man_pitch_max;
-		float man_yaw_max;
 		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
 
 	}		_params;
@@ -346,9 +340,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.roll_rate_max = 0.0f;
 	_params.pitch_rate_max = 0.0f;
 	_params.yaw_rate_max = 0.0f;
-	_params.man_roll_max = 0.0f;
-	_params.man_pitch_max = 0.0f;
-	_params.man_yaw_max = 0.0f;
 	_params.mc_rate_max.zero();
 	_params.acro_rate_max.zero();
 
@@ -380,12 +371,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.roll_rate_max	= 	param_find("MC_ROLLRATE_MAX");
 	_params_handles.pitch_rate_max	= 	param_find("MC_PITCHRATE_MAX");
 	_params_handles.yaw_rate_max	= 	param_find("MC_YAWRATE_MAX");
-	_params_handles.man_roll_max	= 	param_find("MC_MAN_R_MAX");
-	_params_handles.man_pitch_max	= 	param_find("MC_MAN_P_MAX");
-	_params_handles.man_yaw_max		= 	param_find("MC_MAN_Y_MAX");
 	_params_handles.acro_roll_max	= 	param_find("MC_ACRO_R_MAX");
 	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
-	_params_handles.acro_yaw_max		= 	param_find("MC_ACRO_Y_MAX");
+	_params_handles.acro_yaw_max	= 	param_find("MC_ACRO_Y_MAX");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -465,14 +453,6 @@ MulticopterAttitudeControl::parameters_update()
 	_params.mc_rate_max(1) = math::radians(_params.pitch_rate_max);
 	param_get(_params_handles.yaw_rate_max, &_params.yaw_rate_max);
 	_params.mc_rate_max(2) = math::radians(_params.yaw_rate_max);
-
-	/* manual attitude control scale */
-	param_get(_params_handles.man_roll_max, &_params.man_roll_max);
-	param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
-	param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
-	_params.man_roll_max = math::radians(_params.man_roll_max);
-	_params.man_pitch_max = math::radians(_params.man_pitch_max);
-	_params.man_yaw_max = math::radians(_params.man_yaw_max);
 
 	/* manual rate control scale and auto mode roll/pitch rate limits */
 	param_get(_params_handles.acro_roll_max, &v);
