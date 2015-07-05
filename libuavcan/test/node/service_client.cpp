@@ -6,7 +6,6 @@
 #include <uavcan/node/service_client.hpp>
 #include <uavcan/node/service_server.hpp>
 #include <uavcan/util/method_binder.hpp>
-#include <uavcan/protocol/ComputeAggregateTypeSignature.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
 #include <uavcan/protocol/GetDataTypeInfo.hpp>
 #include <root_ns_a/StringService.hpp>
@@ -443,15 +442,6 @@ TEST(ServiceClient, Priority)
 TEST(ServiceClient, Sizes)
 {
     using namespace uavcan;
-
-    std::cout << "ComputeAggregateTypeSignature server: " <<
-        sizeof(ServiceServer<protocol::ComputeAggregateTypeSignature>) << std::endl;
-
-    std::cout << "ComputeAggregateTypeSignature client: " <<
-        sizeof(ServiceClient<protocol::ComputeAggregateTypeSignature>) << std::endl;
-
-    std::cout << "ComputeAggregateTypeSignature request data struct: " <<
-        sizeof(protocol::ComputeAggregateTypeSignature::Request) << std::endl;
 
     std::cout << "GetDataTypeInfo server: " <<
         sizeof(ServiceServer<protocol::GetDataTypeInfo>) << std::endl;

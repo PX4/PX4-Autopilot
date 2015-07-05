@@ -9,7 +9,6 @@
 #include "helpers.hpp"
 
 using uavcan::protocol::GetDataTypeInfo;
-using uavcan::protocol::ComputeAggregateTypeSignature;
 using uavcan::protocol::NodeStatus;
 using uavcan::protocol::DataTypeKind;
 using uavcan::ServiceCallResult;

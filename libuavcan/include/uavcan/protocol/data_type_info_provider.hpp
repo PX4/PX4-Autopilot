@@ -8,7 +8,6 @@
 #include <uavcan/node/service_server.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/build_config.hpp>
-#include <uavcan/protocol/ComputeAggregateTypeSignature.hpp>
 #include <uavcan/protocol/GetDataTypeInfo.hpp>
 #include <uavcan/debug.hpp>
 
@@ -22,47 +21,16 @@ namespace uavcan
 class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
 {
     typedef MethodBinder<DataTypeInfoProvider*,
-                         void (DataTypeInfoProvider::*)(const protocol::ComputeAggregateTypeSignature::Request&,
-                                                        protocol::ComputeAggregateTypeSignature::Response&)>
-        ComputeAggregateTypeSignatureCallback;
-
-    typedef MethodBinder<DataTypeInfoProvider*,
                          void (DataTypeInfoProvider::*)(const protocol::GetDataTypeInfo::Request&,
                                                         protocol::GetDataTypeInfo::Response&)> GetDataTypeInfoCallback;
 
-    ServiceServer<protocol::ComputeAggregateTypeSignature, ComputeAggregateTypeSignatureCallback> cats_srv_;
     ServiceServer<protocol::GetDataTypeInfo, GetDataTypeInfoCallback> gdti_srv_;
 
-    INode& getNode() { return cats_srv_.getNode(); }
+    INode& getNode() { return gdti_srv_.getNode(); }
 
     static bool isValidDataTypeKind(DataTypeKind kind)
     {
         return (kind == DataTypeKindMessage) || (kind == DataTypeKindService);
-    }
-
-    void handleComputeAggregateTypeSignatureRequest(const protocol::ComputeAggregateTypeSignature::Request& request,
-                                                    protocol::ComputeAggregateTypeSignature::Response&)
-    {
-        const DataTypeKind kind = DataTypeKind(request.kind.value); // No mapping needed
-        if (!isValidDataTypeKind(kind))
-        {
-            UAVCAN_TRACE("DataTypeInfoProvider", "ComputeAggregateTypeSignature request with invalid DataTypeKind %d",
-                         kind);
-            return;
-        }
-
-#if 0  /* TODO FIXME */
-        UAVCAN_TRACE("DataTypeInfoProvider", "ComputeAggregateTypeSignature request for dtk=%d, len(known_ids)=%d",
-                     int(request.kind.value), int(request.known_ids.size()));
-
-        // Correcting the mask length according to the data type kind
-        response.mutually_known_ids = request.known_ids;
-        response.mutually_known_ids.resize(
-            static_cast<uint16_t>(DataTypeID::getMaxValueForDataTypeKind(kind).get() + 1U));
-
-        response.aggregate_signature =
-            GlobalDataTypeRegistry::instance().computeAggregateSignature(kind, response.mutually_known_ids).get();
-#endif
     }
 
     void handleGetDataTypeInfoRequest(const protocol::GetDataTypeInfo::Request& request,
@@ -140,21 +108,13 @@ class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
     }
 
 public:
-    explicit DataTypeInfoProvider(INode& node)
-        : cats_srv_(node)
-        , gdti_srv_(node)
+    explicit DataTypeInfoProvider(INode& node) :
+        gdti_srv_(node)
     { }
 
     int start()
     {
         int res = 0;
-
-        res = cats_srv_.start(
-            ComputeAggregateTypeSignatureCallback(this, &DataTypeInfoProvider::handleComputeAggregateTypeSignatureRequest));
-        if (res < 0)
-        {
-            goto fail;
-        }
 
         res = gdti_srv_.start(GetDataTypeInfoCallback(this, &DataTypeInfoProvider::handleGetDataTypeInfoRequest));
         if (res < 0)
@@ -167,7 +127,6 @@ public:
 
     fail:
         UAVCAN_ASSERT(res < 0);
-        cats_srv_.stop();
         gdti_srv_.stop();
         return res;
     }

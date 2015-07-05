@@ -14,7 +14,6 @@ static void registerTypes()
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg1;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::NodeStatus> _reg2;
-    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::ComputeAggregateTypeSignature> _reg3;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetNodeInfo> _reg4;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GetDataTypeInfo> _reg5;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::debug::LogMessage> _reg6;
@@ -59,10 +58,9 @@ TEST(SubNode, Basic)
     ASSERT_FALSE(node1.isStarted());
     ASSERT_EQ(-uavcan::ErrNotInited, node1.spin(uavcan::MonotonicDuration::fromMSec(20)));
     ASSERT_LE(0, node1.start());
-    uavcan::NetworkCompatibilityCheckResult result;
-    ASSERT_LE(0, node1.checkNetworkCompatibility(result));
-    ASSERT_TRUE(result.isOk());
     ASSERT_TRUE(node1.isStarted());
+
+    ASSERT_LE(0, node1.spin(uavcan::MonotonicDuration::fromMSec(2000)));
 
     ASSERT_EQ(1, node_status_monitor.findNodeWithWorstStatus().get());
 

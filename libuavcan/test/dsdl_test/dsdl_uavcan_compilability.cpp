@@ -7,7 +7,6 @@
 #include <uavcan/helpers/ostream.hpp>
 
 #include <uavcan/Timestamp.hpp>
-#include <uavcan/protocol/ComputeAggregateTypeSignature.hpp>
 #include <uavcan/protocol/GetTransportStats.hpp>
 #include <uavcan/protocol/Panic.hpp>
 #include <uavcan/protocol/RestartNode.hpp>

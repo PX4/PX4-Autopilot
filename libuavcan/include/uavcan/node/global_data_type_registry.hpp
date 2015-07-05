@@ -9,7 +9,6 @@
 #include <uavcan/error.hpp>
 #include <uavcan/std.hpp>
 #include <uavcan/data_type.hpp>
-#include <uavcan/util/bitset.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/util/linked_list.hpp>
 #if UAVCAN_DEBUG
@@ -18,11 +17,6 @@
 
 namespace uavcan
 {
-/**
- * Bit mask where bit at index X is set if there's a Data Type with ID X.
- */
-typedef BitSet<DataTypeID::MaxPossibleDataTypeIDValue + 1> DataTypeIDMask;
-
 /**
  * This singleton is shared among all existing node instances. It is instantiated automatically
  * when the C++ runtime executes contstructors before main().
@@ -150,28 +144,6 @@ public:
      * @return      Descriptor for this data type or null pointer if not found
      */
     const DataTypeDescriptor* find(DataTypeKind kind, DataTypeID dtid) const;
-
-    /**
-     * Computes Aggregate Signature for all known data types selected by the mask.
-     * Extra bits will be zeroed.
-     * Please read the DSDL specification.
-     * @param[in]       kind            Data Type Kind - messages or services.
-     * @param[inout]    inout_id_mask   Data types to compute aggregate signature for; bits at
-     *                                  the positions of unknown data types will be cleared.
-     * @return          Computed data type signature.
-     */
-    DataTypeSignature computeAggregateSignature(DataTypeKind kind, DataTypeIDMask& inout_id_mask) const;
-
-    /**
-     * Sets the mask so that only bits corresponding to known data types will be set.
-     * In other words:
-     *  for data_type_id := [0, 1023]
-     *      mask[data_type_id] := data_type_exists(data_type_id)
-     *
-     * @param[in]   kind    Data Type Kind - messages or services.
-     * @param[out]  mask    Output mask of known data types.
-     */
-    void getDataTypeIDMask(DataTypeKind kind, DataTypeIDMask& mask) const;
 
     /**
      * Returns the number of registered message types.

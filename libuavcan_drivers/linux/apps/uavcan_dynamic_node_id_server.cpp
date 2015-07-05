@@ -51,13 +51,6 @@ uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::N
     const int start_res = node->start();
     ENFORCE(0 == start_res);
 
-    uavcan::NetworkCompatibilityCheckResult check_result;
-    ENFORCE(0 == node->checkNetworkCompatibility(check_result));
-    if (!check_result.isOk())
-    {
-        throw std::runtime_error("Network conflict with node " + std::to_string(check_result.conflicting_node.get()));
-    }
-
     node->setStatusOk();
 
     return node;

@@ -18,7 +18,6 @@
 # include <uavcan/protocol/logger.hpp>
 # include <uavcan/protocol/restart_request_server.hpp>
 # include <uavcan/protocol/transport_stats_provider.hpp>
-# include <uavcan/protocol/network_compat_checker.hpp>
 #endif
 
 #if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
@@ -149,15 +148,6 @@ public:
      *                                      Normal priority is used by default.
      */
     int start(const TransferPriority node_status_transfer_priority = TransferPriority::Default);
-
-#if !UAVCAN_TINY
-    /**
-     * Please read the specs to learn about Network Compatibility Check.
-     * Returns negative error code.
-     * @param[out]  result  Check result (output).
-     */
-    int checkNetworkCompatibility(NetworkCompatibilityCheckResult& result);
-#endif
 
     /**
      * Sets the node name, e.g. "com.example.product_name". The node name can be set only once.
@@ -304,32 +294,6 @@ fail:
     UAVCAN_ASSERT(res < 0);
     return res;
 }
-
-#if !UAVCAN_TINY
-
-template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries>::
-checkNetworkCompatibility(NetworkCompatibilityCheckResult& result)
-{
-    if (!started_)
-    {
-        return -ErrNotInited;
-    }
-
-    int res = NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(*this);
-    if (res < 0)
-    {
-        return res;
-    }
-
-    NetworkCompatibilityChecker checker(*this);
-    StaticAssert<(sizeof(checker) < 2048)>::check();  // Making sure that the code footprint doesn't explode
-    res = checker.execute();
-    result = checker.getResult();
-    return res;
-}
-
-#endif
 
 }
 
