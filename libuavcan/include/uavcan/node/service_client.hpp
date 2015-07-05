@@ -325,6 +325,16 @@ public:
     }
 
     /**
+     * Shall be called before first use.
+     * This overload allows to set the priority, otherwise it's the same.
+     * Returns negative error code.
+     */
+    int init(TransferPriority priority)
+    {
+        return publisher_.init(priority);
+    }
+
+    /**
      * Performs non-blocking service call.
      * This method transmits the service request and returns immediately.
      *

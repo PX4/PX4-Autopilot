@@ -126,6 +126,15 @@ public:
         return checkInit();
     }
 
+    /**
+     * This overload allows to set the priority; otherwise it's the same.
+     */
+    int init(TransferPriority priority)
+    {
+        setPriority(priority);
+        return checkInit();
+    }
+
     int publish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
                 MonotonicTime blocking_deadline = MonotonicTime())
     {
