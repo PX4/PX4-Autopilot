@@ -1030,6 +1030,15 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_m_s2[1] = vect(1);
 		raw.accelerometer_m_s2[2] = vect(2);
 
+		math::Vector<3> vect_int(accel_report.x_integral, accel_report.y_integral, accel_report.z_integral);
+		vect_int = _board_rotation * vect_int;
+
+		raw.accelerometer_integral_m_s[0] = vect_int(0);
+		raw.accelerometer_integral_m_s[1] = vect_int(1);
+		raw.accelerometer_integral_m_s[2] = vect_int(2);
+
+		raw.accelerometer_integral_dt = accel_report.integral_dt;
+
 		raw.accelerometer_raw[0] = accel_report.x_raw;
 		raw.accelerometer_raw[1] = accel_report.y_raw;
 		raw.accelerometer_raw[2] = accel_report.z_raw;
@@ -1103,6 +1112,15 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_rad_s[0] = vect(0);
 		raw.gyro_rad_s[1] = vect(1);
 		raw.gyro_rad_s[2] = vect(2);
+
+		math::Vector<3> vect_int(gyro_report.x_integral, gyro_report.y_integral, gyro_report.z_integral);
+		vect_int = _board_rotation * vect_int;
+
+		raw.gyro_integral_rad[0] = vect_int(0);
+		raw.gyro_integral_rad[1] = vect_int(1);
+		raw.gyro_integral_rad[2] = vect_int(2);
+
+		raw.gyro_integral_dt = gyro_report.integral_dt;
 
 		raw.gyro_raw[0] = gyro_report.x_raw;
 		raw.gyro_raw[1] = gyro_report.y_raw;
@@ -2120,9 +2138,6 @@ Sensors::task_main()
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vcontrol_mode_sub, 200);
-
-	/* rate limit gyro to 250 Hz (the gyro signal is lowpassed accordingly earlier) */
-	orb_set_interval(_gyro_sub, 4);
 
 	/*
 	 * do advertisements
