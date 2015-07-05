@@ -396,7 +396,8 @@ public:
      * @return                          Negative error code.
      */
     int start(NodeInfoRetriever& node_info_retriever,
-              const FirmwareFilePath& arg_common_path_prefix = FirmwareFilePath())
+              const FirmwareFilePath& arg_common_path_prefix = FirmwareFilePath(),
+              const TransferPriority priority = TransferPriority::OneHigherThanLowest)
     {
         /*
          * Configuring the node info retriever
@@ -423,7 +424,7 @@ public:
         /*
          * Initializing the client
          */
-        res = begin_fw_update_client_.init();
+        res = begin_fw_update_client_.init(priority);
         if (res < 0)
         {
             return res;

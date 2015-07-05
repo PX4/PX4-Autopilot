@@ -346,7 +346,7 @@ public:
      * Destroy the object to stop it.
      * Returns negative error code.
      */
-    int start()
+    int start(const TransferPriority priority = TransferPriority::OneHigherThanLowest)
     {
         int res = NodeStatusMonitor::start();
         if (res < 0)
@@ -354,7 +354,7 @@ public:
             return res;
         }
 
-        res = get_node_info_client_.init();
+        res = get_node_info_client_.init(priority);
         if (res < 0)
         {
             return res;

@@ -50,7 +50,7 @@ void NodeStatusProvider::handleGetNodeInfoRequest(const protocol::GetNodeInfo::R
     rsp = node_info_;
 }
 
-int NodeStatusProvider::startAndPublish(TransferPriority priority)
+int NodeStatusProvider::startAndPublish(const TransferPriority priority)
 {
     if (!isNodeInfoInitialized())
     {

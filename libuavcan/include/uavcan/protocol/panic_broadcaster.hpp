@@ -48,7 +48,8 @@ public:
      * @param short_reason Short ASCII string that describes the reason of the panic, 7 characters max.
      *                     If the string exceeds 7 characters, it will be truncated.
      */
-    void panic(const char* short_reason_description)
+    void panic(const char* short_reason_description,
+               const TransferPriority priority = TransferPriority::Default)
     {
         msg_.reason_text.clear();
         const char* p = short_reason_description;
@@ -63,6 +64,8 @@ public:
         }
 
         UAVCAN_TRACE("PanicBroadcaster", "Panicking with reason '%s'", getReason().c_str());
+
+        pub_.setPriority(priority);
 
         publishOnce();
         startPeriodic(MonotonicDuration::fromMSec(protocol::Panic::BROADCASTING_PERIOD_MS));

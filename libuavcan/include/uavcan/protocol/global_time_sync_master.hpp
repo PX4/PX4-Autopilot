@@ -46,14 +46,13 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
             UAVCAN_ASSERT(iface_index < MaxCanIfaces);
         }
 
-        int init(TransferPriority priority = TransferPriority::OneLowerThanHighest)
+        int init(TransferPriority priority)
         {
-            const int res = pub_.init();
+            const int res = pub_.init(priority);
             if (res >= 0)
             {
                 pub_.getTransferSender().setIfaceMask(uint8_t(1 << iface_index_));
                 pub_.getTransferSender().setCanIOFlags(CanIOFlagLoopback);
-                pub_.setPriority(priority);
             }
             return res;
         }
@@ -152,7 +151,7 @@ public:
      * Must be called before the master can be used.
      * Returns negative error code.
      */
-    int init()
+    int init(const TransferPriority priority = TransferPriority::OneLowerThanHighest)
     {
         if (initialized_)
         {
@@ -176,7 +175,7 @@ public:
             {
                 iface_masters_[i].construct<INode&, uint8_t>(node_, i);
             }
-            res = iface_masters_[i]->init();
+            res = iface_masters_[i]->init(priority);
             if (res < 0)
             {
                 break;

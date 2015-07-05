@@ -38,6 +38,7 @@ public:
     static const TransferPriority MiddleLower;
     static const TransferPriority OneHigherThanLowest;
     static const TransferPriority OneLowerThanHighest;
+    static const TransferPriority Lowest;
 
     TransferPriority() : value_(0xFF) { }
 
