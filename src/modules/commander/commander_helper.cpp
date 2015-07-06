@@ -97,26 +97,38 @@ static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for re
 static int tune_current = TONE_STOP_TUNE;		// currently playing tune, can be interrupted after tune_end
 static unsigned int tune_durations[TONE_NUMBER_OF_TUNES];
 
-static param_t bat_v_empty_h;
 static param_t bat_v_full_h;
-static param_t bat_n_cells_h;
+static param_t bat_v_low_h;
+static param_t bat_v_crit_h;
 static param_t bat_capacity_h;
-static param_t bat_v_load_drop_h;
-static float bat_v_empty = 3.4f;
-static float bat_v_full = 4.2f;
-static float bat_v_load_drop = 0.06f;
-static int bat_n_cells = 3;
+static param_t bat_perc_low_h;
+static param_t bat_perc_crit_h;
+static float bat_v_full = 0.0f;
+static float bat_v_low = 0.0f;
+static float bat_v_crit = 0.0f;
 static float bat_capacity = -1.0f;
-static unsigned int counter = 0;
-static float throttle_lowpassed = 0.0f;
+static float bat_perc_low = 0.0f;
+static float bat_perc_crit = 0.0f;
 
 int battery_init()
 {
-	bat_v_empty_h = param_find("BAT_V_EMPTY");
-	bat_v_full_h = param_find("BAT_V_CHARGED");
-	bat_n_cells_h = param_find("BAT_N_CELLS");
+	bat_v_full_h = param_find("BAT_V_FULL");
+	bat_v_low_h = param_find("BAT_V_LOW");
+	bat_v_crit_h = param_find("BAT_V_CRIT");
 	bat_capacity_h = param_find("BAT_CAPACITY");
-	bat_v_load_drop_h = param_find("BAT_V_LOAD_DROP");
+	bat_perc_low_h = param_find("BAT_PERC_LOW");
+	bat_perc_crit_h = param_find("BAT_PERC_CRIT");
+
+
+	param_get(bat_v_full_h, &bat_v_full);
+	param_get(bat_v_low_h, &bat_v_low);
+	param_get(bat_v_crit_h, &bat_v_crit);
+	param_get(bat_capacity_h, &bat_capacity);
+	param_get(bat_perc_low_h, &bat_perc_low);
+	param_get(bat_perc_crit_h, &bat_perc_crit);
+
+	bat_perc_low = (bat_perc_low / 100.0f);
+	bat_perc_crit = (bat_perc_crit / 100.0f);
 
 	return OK;
 }
@@ -364,47 +376,42 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern)
 	ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
 }
 
-unsigned battery_get_n_cells() {
-	return bat_n_cells;
-}
-
-float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized)
+float battery_remaining_estimate_voltage(float voltage, float discharged)
 {
 	float ret = 0;
 
-	if (counter % 100 == 0) {
-		param_get(bat_v_empty_h, &bat_v_empty);
-		param_get(bat_v_full_h, &bat_v_full);
-		param_get(bat_v_load_drop_h, &bat_v_load_drop);
-		param_get(bat_n_cells_h, &bat_n_cells);
-		param_get(bat_capacity_h, &bat_capacity);
-	}
+	float bat_status_v = 1.0f;
+	float bat_status_c = 1.0f;
 
-	counter++;
-
-	// XXX this time constant needs to become tunable
-	// but really, the right fix are smart batteries.
-	float val = throttle_lowpassed * 0.97f + throttle_normalized * 0.03f;
-	if (isfinite(val)) {
-		throttle_lowpassed = val;
-	}
-
-	/* remaining charge estimate based on voltage and internal resistance (drop under load) */
-	float bat_v_empty_dynamic = bat_v_empty - (bat_v_load_drop * throttle_lowpassed);
-	/* the range from full to empty is the same for batteries under load and without load,
-	 * since the voltage drop applies to both the full and empty state
-	 */
-	float voltage_range = (bat_v_full - bat_v_empty);
-	float remaining_voltage = (voltage - (bat_n_cells * bat_v_empty_dynamic)) / (bat_n_cells * voltage_range);
-
-	if (bat_capacity > 0.0f) {
-		/* if battery capacity is known, use discharged current for estimate, but don't show more than voltage estimate */
-		ret = fminf(remaining_voltage, 1.0f - discharged / bat_capacity);
-
+	/* VOLTAGE BASED ESTIMATION - Optimistic Voltage / Discrete Approximation */
+	if (voltage < bat_v_crit) {
+		bat_status_v = bat_perc_crit;
+	} else if (voltage < bat_v_low)	{
+		bat_status_v = bat_perc_low;
 	} else {
-		/* else use voltage */
-		ret = remaining_voltage;
+		bat_status_v = 1.0f;
 	}
+
+	/* VOLTAGE BASED ESTIMATION - Pessimistic Voltage / Linear Approximation. */
+	/*
+	if(voltage < bat_v_crit) {
+		bat_status_v = bat_perc_crit * (voltage / bat_v_crit);
+	} else if (voltage < bat_v_low) {
+		bat_status_v = bat_perc_crit + (bat_perc_low - bat_perc_crit) * (voltage - bat_v_crit) / (bat_v_low - bat_v_crit);
+	} else {
+		bat_status_v = bat_perc_low + (1.0f - bat_perc_low) * (voltage - bat_v_low) / (bat_v_full - bat_v_low);
+	}
+	*/
+
+	/* COULOMB-COUNTING ESTIMATION - Linear Approximation */
+	if (bat_capacity > 0.0f) {
+		bat_status_c = 1.0f - (discharged / bat_capacity);
+	} else {
+		bat_status_c = 1.0f;
+	}
+
+	/* always use lesser value */
+	ret = fminf(bat_status_v, bat_status_c);
 
 	/* limit to sane values */
 	ret = (ret < 0.0f) ? 0.0f : ret;

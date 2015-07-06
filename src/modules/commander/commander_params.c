@@ -87,48 +87,37 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
 /**
- * Empty cell voltage.
+ * Full battery voltage.
  *
- * Defines the voltage where a single cell of the battery is considered empty.
- *
- * @group Battery Calibration
- * @unit V
- */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
-
-/**
- * Full cell voltage.
- *
- * Defines the voltage where a single cell of the battery is considered full.
+ * Defines the voltage at which the battery is considered full.
  *
  * @group Battery Calibration
  * @unit V
+ * @min 0.0
  */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
+PARAM_DEFINE_FLOAT(BAT_V_FULL, 12.6f);
 
 /**
- * Voltage drop per cell on 100% load
+ * Low battery voltage.
  *
- * This implicitely defines the internal resistance
- * to maximum current ratio and assumes linearity.
+ * Defines the voltage at which the battery is considered low.
  *
  * @group Battery Calibration
  * @unit V
- * @min 0.0f
+ * @min 0.0
  */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
+PARAM_DEFINE_FLOAT(BAT_V_LOW, 10.8f);
 
 /**
- * Number of cells.
+ * Critical battery voltage.
  *
- * Defines the number of cells the attached battery consists of.
+ * Defines the voltage at which the battery is considered critically empty.
  *
  * @group Battery Calibration
- * @unit S
- * @min 1
- * @max 10
+ * @unit V
+ * @min 0.0
  */
-PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
+PARAM_DEFINE_FLOAT(BAT_V_CRIT, 10.2f);
 
 /**
  * Battery capacity.
@@ -136,9 +125,35 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
  * Defines the capacity of the attached battery.
  *
  * @group Battery Calibration
- * @unit mA
+ * @unit mAh
  */
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+
+
+/**
+ * Low battery charge.
+ *
+ * Defines the percentage charge at which the battery is considered low.
+ *
+ * @group Battery Calibration
+ * @unit %
+ * @min 0.0
+ * @max 100.0
+ */
+PARAM_DEFINE_FLOAT(BAT_PERC_LOW, 20.0f);
+
+/**
+ * Critical battery charge.
+ *
+ * Defines the percentage charge at which the battery is considered critically empty.
+ *
+ * @group Battery Calibration
+ * @unit %
+ * @min 0.0
+ * @max 100.0
+ */
+PARAM_DEFINE_FLOAT(BAT_PERC_CRIT, 15.0f);
+
 
 /**
  * Datalink loss mode enabled.

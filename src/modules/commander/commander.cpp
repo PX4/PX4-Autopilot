@@ -190,6 +190,9 @@ static struct vehicle_control_mode_s control_mode;
 static struct offboard_control_mode_s offboard_control_mode;
 static struct home_position_s _home;
 
+static float bat_perc_low;
+static float bat_perc_crit;
+
 static unsigned _last_mission_instance = 0;
 
 /**
@@ -872,6 +875,8 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
 	param_t _param_eph = param_find("COM_HOME_H_T");
 	param_t _param_epv = param_find("COM_HOME_V_T");
+	param_t _param_bat_perc_low = param_find("BAT_PERC_LOW");
+	param_t _param_bat_perc_crit = param_find("BAT_PERC_CRIT");
 
 	const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
 	main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
@@ -1132,6 +1137,10 @@ int commander_thread_main(int argc, char *argv[])
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
 	struct battery_status_s battery;
 	memset(&battery, 0, sizeof(battery));
+	param_get(_param_bat_perc_low, &bat_perc_low);
+	param_get(_param_bat_perc_crit, &bat_perc_crit);
+	bat_perc_low = (bat_perc_low / 100.0f);
+	bat_perc_crit = (bat_perc_crit / 100.0f);
 
 	/* Subscribe to subsystem info topic */
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
@@ -1587,12 +1596,7 @@ int commander_thread_main(int argc, char *argv[])
 				status.battery_current = battery.current_a;
 				status.battery_discharged_mah = battery.discharged_mah;
 				status.condition_battery_voltage_valid = true;
-				status.battery_cell_count = battery_get_n_cells();
-
-				/* get throttle (if armed), as we only care about energy negative throttle also counts */
-				float throttle = (armed.armed) ? fabsf(actuator_controls.control[3]) : 0.0f;
-				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_filtered_v, battery.discharged_mah,
-							   throttle);
+				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_filtered_v, battery.discharged_mah);
 			}
 		}
 
@@ -1649,9 +1653,11 @@ int commander_thread_main(int argc, char *argv[])
 			last_idle_time = system_load.tasks[0].total_runtime;
 		}
 
-		/* if battery voltage is getting lower, warn using buzzer, etc. */
-		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.18f && !low_battery_voltage_actions_done) {
+		/* if battery voltage is getting lower, warn using buzzer, etc.*/
+		/* LEQ comparison used to catch e.g. critical == 0% */
+		if (status.condition_battery_voltage_valid && status.battery_remaining <= bat_perc_low && !low_battery_voltage_actions_done) {
 			low_battery_voltage_actions_done = true;
+
 			if (armed.armed) {
 				mavlink_log_critical(mavlink_fd, "LOW BATTERY, RETURN TO LAND ADVISED");
 			} else {
@@ -1660,7 +1666,7 @@ int commander_thread_main(int argc, char *argv[])
 			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW;
 			status_changed = true;
 
-		} else if (!status.usb_connected && status.condition_battery_voltage_valid && status.battery_remaining < 0.09f
+		} else if (!status.usb_connected && status.condition_battery_voltage_valid && status.battery_remaining <= bat_perc_crit
 			   && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
 			critical_battery_voltage_actions_done = true;
