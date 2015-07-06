@@ -224,6 +224,21 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame& frame, uavcan::MonotonicT
         return -1;  // WTF man how to handle that
     }
 
+    /*
+     * Normally we should perform the same check as in @ref canAcceptNewTxFrame(), because
+     * it is possible that the highest-priority frame between select() and send() could have been
+     * replaced with a lower priority one due to TX timeout. But we don't do this check because:
+     *
+     *  - It is a highly unlikely scenario.
+     *
+     *  - Frames do not timeout on a properly functioning bus. Since frames do not timeout, the new
+     *    frame can only have higher priority, which doesn't break the logic.
+     *
+     *  - If high-priority frames are timing out in the TX queue, there's probably a lot of other
+     *    issues to take care of before this one becomes relevant.
+     *
+     *  - It takes CPU time. Not just CPU time, but critical section time, which is expensive.
+     */
     CriticalSectionLocker lock;
 
     /*
@@ -242,7 +257,12 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame& frame, uavcan::MonotonicT
     {
         txmailbox = 2;
     }
-    else { return 0; } // No way
+    else
+    {
+        return 0;       // No transmission for you.
+    }
+
+    peak_tx_mailbox_index_ = uavcan::max(peak_tx_mailbox_index_, txmailbox);    // Statistics
 
     /*
      * Setting up the mailbox
@@ -549,12 +569,42 @@ void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
     }
 }
 
-bool CanIface::isTxBufferFull() const
+bool CanIface::canAcceptNewTxFrame(const uavcan::CanFrame& frame) const
 {
-    // TODO FIXME HACK: Implement proper arbitration instead of a one-by-one transmission.
-    // This function can be executed outside of a critical section.
-    static const uavcan::uint32_t TME = bxcan::TSR_TME0 | bxcan::TSR_TME1 | bxcan::TSR_TME2;
-    return (can_->TSR & TME) != TME;    // All empty!
+    /*
+     * We can accept more frames only if the following conditions are satisfied:
+     *  - There is at least one TX mailbox free (obvious enough);
+     *  - The priority of the new frame is higher than priority of all TX mailboxes.
+     */
+    {
+        static const uavcan::uint32_t TME = bxcan::TSR_TME0 | bxcan::TSR_TME1 | bxcan::TSR_TME2;
+        const uavcan::uint32_t tme = can_->TSR & TME;
+
+        if (tme == TME)     // All TX mailboxes are free (as in freedom).
+        {
+            return true;
+        }
+
+        if (tme == 0)       // All TX mailboxes are busy transmitting.
+        {
+            return false;
+        }
+    }
+
+    /*
+     * The second condition requires a critical section.
+     */
+    CriticalSectionLocker lock;
+
+    for (int mbx = 0; mbx < NumTxMailboxes; mbx++)
+    {
+        if (pending_tx_[mbx].pending && !frame.priorityHigherThan(pending_tx_[mbx].frame))
+        {
+            return false;       // There's a mailbox whose priority is higher or equal the priority of the new frame.
+        }
+    }
+
+    return true;                // This new frame will be added to a free TX mailbox in the next @ref send().
 }
 
 bool CanIface::isRxBufferEmpty() const
@@ -594,27 +644,39 @@ bool CanIface::hadActivity()
 /*
  * CanDriver
  */
-uavcan::CanSelectMasks CanDriver::makeSelectMasks() const
+uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame* (& pending_tx)[uavcan::MaxCanIfaces]) const
 {
     uavcan::CanSelectMasks msk;
+
     // Iface 0
     msk.read  = if0_.isRxBufferEmpty() ? 0 : 1;
-    msk.write = if0_.isTxBufferFull()  ? 0 : 1;
+
+    if (pending_tx[0] != NULL)
+    {
+        msk.write = if0_.canAcceptNewTxFrame(*pending_tx[0]) ? 1 : 0;
+    }
+
     // Iface 1
 #if UAVCAN_STM32_NUM_IFACES > 1
     if (!if1_.isRxBufferEmpty())
     {
         msk.read |= 1 << 1;
     }
-    if (!if1_.isTxBufferFull())
+
+    if (pending_tx[1] != NULL)
     {
-        msk.write |= 1 << 1;
+        if (if1_.canAcceptNewTxFrame(*pending_tx[1]))
+        {
+            msk.write |= 1 << 1;
+        }
     }
 #endif
     return msk;
 }
 
-uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, const uavcan::MonotonicTime blocking_deadline)
+uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
+                                  const uavcan::CanFrame* (& pending_tx)[uavcan::MaxCanIfaces],
+                                  const uavcan::MonotonicTime blocking_deadline)
 {
     const uavcan::CanSelectMasks in_masks = inout_masks;
     const uavcan::MonotonicTime time = clock::getMonotonic();
@@ -624,7 +686,7 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, const uav
     if1_.discardTimedOutTxMailboxes(time);
 #endif
 
-    inout_masks = makeSelectMasks();                    // Check if we already have some of the requested events
+    inout_masks = makeSelectMasks(pending_tx);          // Check if we already have some of the requested events
     if ((inout_masks.read  & in_masks.read)  != 0 ||
         (inout_masks.write & in_masks.write) != 0)
     {
@@ -632,8 +694,8 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, const uav
     }
 
     (void)update_event_.wait(blocking_deadline - time); // Block until timeout expires or any iface updates
-    inout_masks = makeSelectMasks(); // Return what we got even if none of the requested events became signaled
-    return 1;                        // Return value doesn't matter as long as it is non-negative
+    inout_masks = makeSelectMasks(pending_tx);  // Return what we got even if none of the requested events are set
+    return 1;                                   // Return value doesn't matter as long as it is non-negative
 }
 
 int CanDriver::init(uavcan::uint32_t bitrate)

@@ -97,6 +97,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
     BusEvent& update_event_;
     TxItem pending_tx_[NumTxMailboxes];
     uavcan::uint8_t last_hw_error_code_;
+    uavcan::uint8_t peak_tx_mailbox_index_;
     const uavcan::uint8_t self_index_;
     bool had_activity_;
 
@@ -129,6 +130,7 @@ public:
         , error_cnt_(0)
         , update_event_(update_event)
         , last_hw_error_code_(0)
+        , peak_tx_mailbox_index_(0)
         , self_index_(self_index)
         , had_activity_(false)
     {
@@ -149,7 +151,7 @@ public:
 
     void discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time);
 
-    bool isTxBufferFull() const;
+    bool canAcceptNewTxFrame(const uavcan::CanFrame& frame) const;
     bool isRxBufferEmpty() const;
 
     /**
@@ -175,6 +177,13 @@ public:
      * This is designed for use with iface activity LEDs.
      */
     bool hadActivity();
+
+    /**
+     * Peak number of TX mailboxes used concurrently since initialization.
+     * Range is [1, 3].
+     * Value of 3 suggests that priority inversion could be taking place.
+     */
+    uavcan::uint8_t getPeakNumTxMailboxesUsed() const { return peak_tx_mailbox_index_ + 1; }
 };
 
 /**
@@ -189,7 +198,9 @@ class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
     CanIface if1_;
 #endif
 
-    virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline);
+    virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks,
+                                   const uavcan::CanFrame* (& pending_tx)[uavcan::MaxCanIfaces],
+                                   uavcan::MonotonicTime blocking_deadline);
 
 public:
     template <unsigned RxQueueCapacity>
@@ -206,7 +217,7 @@ public:
     /**
      * This function returns select masks indicating which interfaces are available for read/write.
      */
-    uavcan::CanSelectMasks makeSelectMasks() const;
+    uavcan::CanSelectMasks makeSelectMasks(const uavcan::CanFrame* (& pending_tx)[uavcan::MaxCanIfaces]) const;
 
     /**
      * Returns zero if OK.
