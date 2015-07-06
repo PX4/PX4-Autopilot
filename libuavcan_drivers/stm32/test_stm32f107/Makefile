@@ -14,17 +14,19 @@ CPPSRC = src/main.cpp src/dummy.cpp
 # UAVCAN library
 #
 
+export LIBUAVCAN_REPO_ROOT := $(abspath ../../..)
+
 UDEFS = -DUAVCAN_STM32_CHIBIOS=1         \
         -DUAVCAN_STM32_TIMER_NUMBER=6    \
         -DUAVCAN_TINY=1                  \
         -DUAVCAN_STM32_NUM_IFACES=2      \
         -DUAVCAN_MEM_POOL_BLOCK_SIZE=48
 
-include ../../../libuavcan/include.mk
+include $(LIBUAVCAN_REPO_ROOT)/libuavcan/include.mk
 CPPSRC += $(LIBUAVCAN_SRC)
 UINCDIR += $(LIBUAVCAN_INC)
 
-include ../driver/include.mk
+include $(LIBUAVCAN_REPO_ROOT)/libuavcan_drivers/stm32/driver/include.mk
 CPPSRC += $(LIBUAVCAN_STM32_SRC)
 UINCDIR += $(LIBUAVCAN_STM32_INC)
 
