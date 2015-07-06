@@ -94,6 +94,19 @@ inline void handleRxInterrupt(uavcan::uint8_t iface_index, uavcan::uint8_t fifo_
     }
 }
 
+inline void handleStatusChangeInterrupt(uavcan::uint8_t iface_index)
+{
+    UAVCAN_ASSERT(iface_index < UAVCAN_STM32_NUM_IFACES);
+    if (ifaces[iface_index] != NULL)
+    {
+        ifaces[iface_index]->handleStatusChangeInterrupt();
+    }
+    else
+    {
+        UAVCAN_ASSERT(0);
+    }
+}
+
 } // namespace
 
 /*
@@ -150,6 +163,20 @@ void CanIface::RxQueue::pop(uavcan::CanFrame& out_frame, uavcan::uint64_t& out_u
 /*
  * CanIface
  */
+const uavcan::uint32_t CanIface::TSR_ABRQx[CanIface::NumTxMailboxes] =
+{
+    bxcan::TSR_ABRQ0,
+    bxcan::TSR_ABRQ1,
+    bxcan::TSR_ABRQ2
+};
+
+const uavcan::uint32_t CanIface::TSR_TERRx[CanIface::NumTxMailboxes] =
+{
+    bxcan::TSR_TERR0,
+    bxcan::TSR_TERR1,
+    bxcan::TSR_TERR2
+};
+
 int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out_timings)
 {
     /*
@@ -299,10 +326,11 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame& frame, uavcan::MonotonicT
      * Registering the pending transmission so we can track its deadline and loopback it as needed
      */
     TxItem& txi = pending_tx_[txmailbox];
-    txi.deadline = tx_deadline;
-    txi.frame    = frame;
-    txi.loopback = (flags & uavcan::CanIOFlagLoopback) == uavcan::CanIOFlagLoopback;
-    txi.pending  = true;
+    txi.deadline       = tx_deadline;
+    txi.frame          = frame;
+    txi.loopback       = (flags & uavcan::CanIOFlagLoopback) != 0;
+    txi.abort_on_error = (flags & uavcan::CanIOFlagAbortOnError) != 0;
+    txi.pending        = true;
     return 1;
 }
 
@@ -392,7 +420,9 @@ int CanIface::init(uavcan::uint32_t bitrate)
 
     can_->IER = bxcan::IER_TMEIE |   // TX mailbox empty
                 bxcan::IER_FMPIE0 |  // RX FIFO 0 is not empty
-                bxcan::IER_FMPIE1;   // RX FIFO 1 is not empty
+                bxcan::IER_FMPIE1 |  // RX FIFO 1 is not empty
+                bxcan::IER_ERRIE |   // General error IRQ
+                bxcan::IER_LECIE;    // Last error code change
 
     can_->MCR &= ~bxcan::MCR_INRQ;  // Leave init mode
 
@@ -437,17 +467,6 @@ leave:
     return res;
 }
 
-void CanIface::pollErrorState()
-{
-    const uavcan::uint8_t lec = uavcan::uint8_t((can_->ESR & bxcan::ESR_LEC_MASK) >> bxcan::ESR_LEC_SHIFT);
-    if (lec != 0)
-    {
-        last_hw_error_code_ = lec;
-        can_->ESR = 0;
-        error_cnt_++;
-    }
-}
-
 void CanIface::handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok, const uavcan::uint64_t utc_usec)
 {
     UAVCAN_ASSERT(mailbox_index < NumTxMailboxes);
@@ -487,7 +506,6 @@ void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
         can_->TSR = bxcan::TSR_RQCP2;
         handleTxMailboxInterrupt(2, txok, utc_usec);
     }
-    pollErrorState();
     update_event_.signalFromInterrupt();
 }
 
@@ -549,20 +567,48 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t ut
      */
     rx_queue_.push(frame, utc_usec, 0);
     had_activity_ = true;
-    pollErrorState();
     update_event_.signalFromInterrupt();
+}
+
+void CanIface::handleStatusChangeInterrupt()
+{
+    /*
+     * General error counter
+     */
+    const uavcan::uint8_t lec = uavcan::uint8_t((can_->ESR & bxcan::ESR_LEC_MASK) >> bxcan::ESR_LEC_SHIFT);
+    if (lec != 0)
+    {
+        last_hw_error_code_ = lec;
+        can_->ESR = 0;
+        error_cnt_++;
+    }
+
+    /*
+     * Serving abort requests
+     */
+    for (int i = 0; i < NumTxMailboxes; i++)    // Dear compiler, may I suggest you to unroll this loop please.
+    {
+        TxItem& txi = pending_tx_[i];
+        if ((can_->TSR & TSR_TERRx[i]) != 0 &&
+            txi.pending &&
+            txi.abort_on_error)
+        {
+            can_->TSR = TSR_ABRQx[i];
+            txi.pending = false;
+            served_aborts_cnt_++;
+        }
+    }
 }
 
 void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
 {
-    static const uavcan::uint32_t AbortFlags[NumTxMailboxes] = { bxcan::TSR_ABRQ0, bxcan::TSR_ABRQ1, bxcan::TSR_ABRQ2 };
     CriticalSectionLocker lock;
     for (int i = 0; i < NumTxMailboxes; i++)
     {
         TxItem& txi = pending_tx_[i];
         if (txi.pending && txi.deadline < current_time)
         {
-            can_->TSR = AbortFlags[i];  // Goodnight sweet transmission
+            can_->TSR = TSR_ABRQx[i];  // Goodnight sweet transmission
             txi.pending = false;
             error_cnt_++;
         }
@@ -914,6 +960,13 @@ UAVCAN_STM32_IRQ_HANDLER(CAN1_RX1_IRQHandler)
     UAVCAN_STM32_IRQ_EPILOGUE();
 }
 
+UAVCAN_STM32_IRQ_HANDLER(CAN1_SCE_IRQHandler)
+{
+    UAVCAN_STM32_IRQ_PROLOGUE();
+    uavcan_stm32::handleStatusChangeInterrupt(0);
+    UAVCAN_STM32_IRQ_EPILOGUE();
+}
+
 # if UAVCAN_STM32_NUM_IFACES > 1
 
 UAVCAN_STM32_IRQ_HANDLER(CAN2_TX_IRQHandler)
@@ -934,6 +987,13 @@ UAVCAN_STM32_IRQ_HANDLER(CAN2_RX1_IRQHandler)
 {
     UAVCAN_STM32_IRQ_PROLOGUE();
     uavcan_stm32::handleRxInterrupt(1, 1);
+    UAVCAN_STM32_IRQ_EPILOGUE();
+}
+
+UAVCAN_STM32_IRQ_HANDLER(CAN2_SCE_IRQHandler)
+{
+    UAVCAN_STM32_IRQ_PROLOGUE();
+    uavcan_stm32::handleStatusChangeInterrupt(1);
     UAVCAN_STM32_IRQ_EPILOGUE();
 }
 

@@ -78,22 +78,29 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 
     struct TxItem
     {
-        uavcan::CanFrame frame;
         uavcan::MonotonicTime deadline;
+        uavcan::CanFrame frame;
         bool pending;
         bool loopback;
+        bool abort_on_error;
+
         TxItem()
             : pending(false)
             , loopback(false)
+            , abort_on_error(false)
         { }
     };
 
     enum { NumTxMailboxes = 3 };
     enum { NumFilters = 14 };
 
+    static const uavcan::uint32_t TSR_ABRQx[NumTxMailboxes];
+    static const uavcan::uint32_t TSR_TERRx[NumTxMailboxes];
+
     RxQueue rx_queue_;
     bxcan::CanType* const can_;
     uavcan::uint64_t error_cnt_;
+    uavcan::uint32_t served_aborts_cnt_;
     BusEvent& update_event_;
     TxItem pending_tx_[NumTxMailboxes];
     uavcan::uint8_t last_hw_error_code_;
@@ -114,8 +121,6 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 
     virtual uavcan::uint16_t getNumFilters() const { return NumFilters; }
 
-    void pollErrorState();
-
     void handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok, uavcan::uint64_t utc_usec);
 
     bool waitMsrINakBitStateChange(bool target_state);
@@ -128,6 +133,7 @@ public:
         : rx_queue_(rx_queue_buffer, rx_queue_capacity)
         , can_(can)
         , error_cnt_(0)
+        , served_aborts_cnt_(0)
         , update_event_(update_event)
         , last_hw_error_code_(0)
         , peak_tx_mailbox_index_(0)
@@ -148,6 +154,7 @@ public:
 
     void handleTxInterrupt(uavcan::uint64_t utc_usec);
     void handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t utc_usec);
+    void handleStatusChangeInterrupt();
 
     void discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time);
 
@@ -159,6 +166,12 @@ public:
      * May increase continuously if the interface is not connected to the bus.
      */
     virtual uavcan::uint64_t getErrorCount() const;
+
+    /**
+     * Number of times the driver exercised library's requirement to abort transmission on first error.
+     * See @ref uavcan::CanIOFlagAbortOnError.
+     */
+    uavcan::uint32_t getVoluntaryTxAbortCount() const { return served_aborts_cnt_; }
 
     /**
      * Returns number of frames pending in the RX queue.
