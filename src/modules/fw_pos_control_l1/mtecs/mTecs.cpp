@@ -52,7 +52,7 @@ mTecs::mTecs() :
 	_mTecsEnabled(this, "ENABLED"),
 	_airspeedMin(this, "FW_AIRSPD_MIN", false),
 	/* Publications */
-	_status(ORB_ID(tecs_status), &getPublications()),
+	_status(ORB_ID(tecs_status), -1, &getPublications()),
 	/* control blocks */
 	_controlTotalEnergy(this, "THR"),
 	_controlEnergyDistribution(this, "PIT", true),
@@ -108,8 +108,8 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 	}
 
 	/* Write part of the status message */
-	_status.altitudeSp = altitudeSp;
-	_status.altitude_filtered = altitudeFiltered;
+	_status.get().altitudeSp = altitudeSp;
+	_status.get().altitude_filtered = altitudeFiltered;
 
 
 	/* use flightpath angle setpoint for total energy control */
@@ -144,8 +144,8 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 	}
 
 	/* Write part of the status message */
-	_status.airspeedSp = airspeedSp;
-	_status.airspeed_filtered = airspeedFiltered;
+	_status.get().airspeedSp = airspeedSp;
+	_status.get().airspeed_filtered = airspeedFiltered;
 
 
 	/* use longitudinal acceleration setpoint for total energy control */
@@ -227,16 +227,16 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	limitOverride.applyOverride(*outputLimiterThrottle, *outputLimiterPitch);
 
 	/* Write part of the status message */
-	_status.flightPathAngleSp = flightPathAngleSp;
-	_status.flightPathAngle = flightPathAngle;
-	_status.flightPathAngleFiltered = flightPathAngleFiltered;
-	_status.airspeedDerivativeSp = airspeedDerivativeSp;
-	_status.airspeedDerivative = airspeedDerivative;
-	_status.totalEnergyRateSp = totalEnergyRateSp;
-	_status.totalEnergyRate = totalEnergyRate;
-	_status.energyDistributionRateSp = energyDistributionRateSp;
-	_status.energyDistributionRate = energyDistributionRate;
-	_status.mode = mode;
+	_status.get().flightPathAngleSp = flightPathAngleSp;
+	_status.get().flightPathAngle = flightPathAngle;
+	_status.get().flightPathAngleFiltered = flightPathAngleFiltered;
+	_status.get().airspeedDerivativeSp = airspeedDerivativeSp;
+	_status.get().airspeedDerivative = airspeedDerivative;
+	_status.get().totalEnergyRateSp = totalEnergyRateSp;
+	_status.get().totalEnergyRate = totalEnergyRate;
+	_status.get().energyDistributionRateSp = energyDistributionRateSp;
+	_status.get().energyDistributionRate = energyDistributionRate;
+	_status.get().mode = mode;
 
 	/** update control blocks **/
 	/* update total energy rate control block */
