@@ -819,10 +819,12 @@ int CanDriver::init(uavcan::uint32_t bitrate)
     IRQ_ATTACH(STM32_IRQ_CAN1TX,  can1_irq);
     IRQ_ATTACH(STM32_IRQ_CAN1RX0, can1_irq);
     IRQ_ATTACH(STM32_IRQ_CAN1RX1, can1_irq);
+    IRQ_ATTACH(STM32_IRQ_CAN1SCE, can1_irq);
 # if UAVCAN_STM32_NUM_IFACES > 1
     IRQ_ATTACH(STM32_IRQ_CAN2TX,  can2_irq);
     IRQ_ATTACH(STM32_IRQ_CAN2RX0, can2_irq);
     IRQ_ATTACH(STM32_IRQ_CAN2RX1, can2_irq);
+    IRQ_ATTACH(STM32_IRQ_CAN2SCE, can2_irq);
 # endif
 # undef IRQ_ATTACH
 #else
@@ -831,10 +833,12 @@ int CanDriver::init(uavcan::uint32_t bitrate)
         nvicEnableVector(CAN1_TX_IRQn,  UAVCAN_STM32_IRQ_PRIORITY_MASK);
         nvicEnableVector(CAN1_RX0_IRQn, UAVCAN_STM32_IRQ_PRIORITY_MASK);
         nvicEnableVector(CAN1_RX1_IRQn, UAVCAN_STM32_IRQ_PRIORITY_MASK);
+        nvicEnableVector(CAN1_SCE_IRQn, UAVCAN_STM32_IRQ_PRIORITY_MASK);
 # if UAVCAN_STM32_NUM_IFACES > 1
         nvicEnableVector(CAN2_TX_IRQn,  UAVCAN_STM32_IRQ_PRIORITY_MASK);
         nvicEnableVector(CAN2_RX0_IRQn, UAVCAN_STM32_IRQ_PRIORITY_MASK);
         nvicEnableVector(CAN2_RX1_IRQn, UAVCAN_STM32_IRQ_PRIORITY_MASK);
+        nvicEnableVector(CAN2_SCE_IRQn, UAVCAN_STM32_IRQ_PRIORITY_MASK);
 # endif
     }
 #endif
@@ -906,6 +910,10 @@ static int can1_irq(const int irq, void*)
     {
         uavcan_stm32::handleRxInterrupt(0, 1);
     }
+    else if (irq == STM32_IRQ_CAN1SCE)
+    {
+        uavcan_stm32::handleStatusChangeInterrupt(0);
+    }
     else
     {
         PANIC();
@@ -928,6 +936,10 @@ static int can2_irq(const int irq, void*)
     else if (irq == STM32_IRQ_CAN2RX1)
     {
         uavcan_stm32::handleRxInterrupt(1, 1);
+    }
+    else if (irq == STM32_IRQ_CAN2SCE)
+    {
+        uavcan_stm32::handleStatusChangeInterrupt(1);
     }
     else
     {
