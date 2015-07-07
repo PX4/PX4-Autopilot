@@ -170,13 +170,6 @@ const uavcan::uint32_t CanIface::TSR_ABRQx[CanIface::NumTxMailboxes] =
     bxcan::TSR_ABRQ2
 };
 
-const uavcan::uint32_t CanIface::TSR_TERRx[CanIface::NumTxMailboxes] =
-{
-    bxcan::TSR_TERR0,
-    bxcan::TSR_TERR1,
-    bxcan::TSR_TERR2
-};
-
 int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out_timings)
 {
     /*
@@ -574,30 +567,23 @@ void CanIface::handleStatusChangeInterrupt()
 {
     can_->MSR = bxcan::MSR_ERRI;        // Clear error
 
-    /*
-     * General error counter
-     */
     const uavcan::uint8_t lec = uavcan::uint8_t((can_->ESR & bxcan::ESR_LEC_MASK) >> bxcan::ESR_LEC_SHIFT);
     if (lec != 0)
     {
         last_hw_error_code_ = lec;
         can_->ESR = 0;
         error_cnt_++;
-    }
 
-    /*
-     * Serving abort requests
-     */
-    for (int i = 0; i < NumTxMailboxes; i++)    // Dear compiler, may I suggest you to unroll this loop please.
-    {
-        TxItem& txi = pending_tx_[i];
-        if ((can_->TSR & TSR_TERRx[i]) != 0 &&
-            txi.pending &&
-            txi.abort_on_error)
+        // Serving abort requests
+        for (int i = 0; i < NumTxMailboxes; i++)    // Dear compiler, may I suggest you to unroll this loop please.
         {
-            can_->TSR = TSR_ABRQx[i];
-            txi.pending = false;
-            served_aborts_cnt_++;
+            TxItem& txi = pending_tx_[i];
+            if (txi.pending && txi.abort_on_error)
+            {
+                can_->TSR = TSR_ABRQx[i];
+                txi.pending = false;
+                served_aborts_cnt_++;
+            }
         }
     }
 }

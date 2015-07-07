@@ -95,7 +95,6 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
     enum { NumFilters = 14 };
 
     static const uavcan::uint32_t TSR_ABRQx[NumTxMailboxes];
-    static const uavcan::uint32_t TSR_TERRx[NumTxMailboxes];
 
     RxQueue rx_queue_;
     bxcan::CanType* const can_;
