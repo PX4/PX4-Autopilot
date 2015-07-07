@@ -88,7 +88,7 @@ static uint32_t rseed;
  ****************************************************************************/
 void util_srand(uint16_t seed)
 {
-  rseed = seed;
+	rseed = seed;
 }
 
 
@@ -110,6 +110,6 @@ void util_srand(uint16_t seed)
 
 uint16_t util_random(uint16_t min, uint16_t max)
 {
-   return ((rseed = (rseed * 214013 + 2531011) & RAND_MAX_32) >> 16) % (max - min);
+	return ((rseed = (rseed * 214013 + 2531011) & RAND_MAX_32) >> 16) % (max - min);
 }
 

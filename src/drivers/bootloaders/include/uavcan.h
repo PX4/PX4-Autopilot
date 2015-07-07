@@ -301,13 +301,13 @@ CCASSERT(MaskUavCanMessageServiceNotMessage == MaskUavCanMessageServiceNotMessag
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length)
 
 #define UAVCAN_DSDL_MESG_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-  UAVCAN_DSDL_TYPE_DEF(Msg##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
+	UAVCAN_DSDL_TYPE_DEF(Msg##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
 
 #define UAVCAN_DSDL_SREQ_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-    UAVCAN_DSDL_TYPE_DEF(Req##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
+	UAVCAN_DSDL_TYPE_DEF(Req##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
 
 #define UAVCAN_DSDL_SRSP_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-    UAVCAN_DSDL_TYPE_DEF(Rsp##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
+	UAVCAN_DSDL_TYPE_DEF(Rsp##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
 
 #define END_COMPONENTS SizeDSDLComponents,
 #define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
@@ -514,7 +514,7 @@ typedef enum uavcan_HardwareVersionConsts_t {
 } uavcan_HardwareVersionConsts_t;
 
 typedef struct packed_struct uavcan_GetNodeInfo_request_t {
-    uint8_t empty[CanPayloadLength];
+	uint8_t empty[CanPayloadLength];
 } uavcan_GetNodeInfo_request_t;
 
 /* GetNodeInfo Response */
@@ -687,60 +687,12 @@ typedef enum uavcan_ReadResponseConsts_t {
 /****************************************************************************
  * Global Variables
  ****************************************************************************/
+extern uint8_t g_this_node_id;
+extern uint8_t g_server_node_id;
+extern uint8_t g_uavcan_priority;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-/****************************************************************************
- * Name: uavcan_set_node_id
- *
- * Description:
- *   This function sets the node id to be used for out going transfers as
- *   the source node id and for incoming transfers as the destination node id
- *
- * Input Parameters:
- *   node_id    - The the node_id
- *
- * Returned value:
- *   None
- *
- ****************************************************************************/
-
-void uavcan_set_node_id(uint8_t p_node_id);
-
-/****************************************************************************
- * Name: uavcan_set_server_node_id
- *
- * Description:
- *   This function sets the node id to be used for out going transfers as
- *   the destination node id and for incoming transfers as the source node id
- *
- * Input Parameters:
- *   node_id    - The the node_id
- *
- * Returned value:
- *   None
- *
- ****************************************************************************/
-
-void uavcan_set_server_node_id(uint8_t node_id);
-
-/****************************************************************************
- * Name: uavcan_get_server_node_id
- *
- * Description:
- *   This function returns the node id to be used for out going transfers as
- *   the destination node id.
- *
- * Input Parameters:
- *   node_id    - The the node_id
- *
- * Returned value:
- *   None
- *
- ****************************************************************************/
-
-uint8_t uavcan_get_server_node_id(void);
-
 /****************************************************************************
  * Name: uavcan_pack_NodeStatus
  *
@@ -802,7 +754,7 @@ size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t *response,
  ****************************************************************************/
 
 void uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
-			       const uint8_t *transfer, size_t transfer_length);
+		    const uint8_t *transfer, size_t transfer_length);
 
 /****************************************************************************
  * Name: uavcan_rx_dsdl
@@ -827,8 +779,8 @@ void uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
  *
  ****************************************************************************/
 uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
-			       uint8_t *transfer, size_t *in_out_transfer_length,
-			       uint32_t timeout_ms);
+			      uint8_t *transfer, size_t *in_out_transfer_length,
+			      uint32_t timeout_ms);
 
 /****************************************************************************
  * Name: uavcan_tx_nodestatus

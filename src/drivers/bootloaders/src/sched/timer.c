@@ -180,14 +180,14 @@ void sched_process_timer(void)
 
 			if (timers[t].count != 0) {
 
-			        /* Is it off in future */
-			        if (timers[t].count > ms_elapsed) {
+				/* Is it off in future */
+				if (timers[t].count > ms_elapsed) {
 
-			            /* Just remove the amount attributed to the tick */
+					/* Just remove the amount attributed to the tick */
 
-			            timers[t].count -= ms_elapsed;
-			            continue;
-			        }
+					timers[t].count -= ms_elapsed;
+					continue;
+				}
 
 				/* it has expired now or less than a tick ago */
 

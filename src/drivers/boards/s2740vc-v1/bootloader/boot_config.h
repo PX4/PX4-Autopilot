@@ -60,6 +60,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+#define OPT_PREFERRED_NODE_ID ANY_NODE_ID
 
 //todo:wrap OPT_x in in ifdefs for command line definitions
 #define OPT_TBOOT_MS            5000

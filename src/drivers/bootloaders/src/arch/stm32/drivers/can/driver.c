@@ -64,10 +64,12 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define INAK_TIMEOUT 65535
+#define INAK_TIMEOUT          65535
 #define SJW_POS               24
 #define BS1_POS               16
 #define BS2_POS               20
+
+#define CAN_TSR_RQCP_SHFTS    8
 
 #define FILTER_ID             1
 #define FILTER_MASK           2
@@ -428,7 +430,6 @@ int can_init(can_speed_t speed, can_mode_t mode)
 	 * Also consider filter use -- maybe set filters for all the message types we
 	 * want. */
 
-
 	const uint32_t bitrates[] = {
 		(CAN_125KBAUD_SJW << SJW_POS) |
 		(CAN_125KBAUD_BS1 << BS1_POS) |
@@ -552,9 +553,24 @@ int can_init(can_speed_t speed, can_mode_t mode)
  *   CAN_OK - on Success or a CAN_ERROR if the cancellation was needed
  *
  ****************************************************************************/
-TODO(Code can_cancel_on_error(uint8_t mailbox));
-int can_cancel_on_error(uint8_t mailbox)
+
+void can_cancel_on_error(uint8_t mailbox)
 {
-	//putreg32(STM32_CAN1_TSR, (1 << mailbox) << CAN_TSR_ABRQ0);
-	return 0;
+
+	uint32_t exit_mask = (CAN_TSR_TME0 << mailbox)
+			     | (CAN_TSR_RQCP0 | CAN_TSR_TXOK0) << (mailbox * CAN_TSR_RQCP_SHFTS);
+	uint32_t error_mask = (CAN_TSR_TERR0) << (mailbox * CAN_TSR_RQCP_SHFTS);
+
+	while (1) {
+		uint32_t rvalue = getreg32(STM32_CAN1_TSR);
+
+		if (exit_mask == (rvalue & (exit_mask | error_mask))) {
+			break;
+		}
+
+		if ((rvalue & error_mask)) {
+//			putreg32(CAN_TSR_ABRQ0 << (mailbox * CAN_TSR_RQCP_SHFTS), STM32_CAN1_TSR);
+			break;
+		}
+	}
 }

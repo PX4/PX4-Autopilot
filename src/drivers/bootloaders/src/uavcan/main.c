@@ -92,7 +92,6 @@
 
 typedef volatile struct bootloader_t {
 	can_speed_t bus_speed;
-	volatile uint8_t node_id;
 	volatile uint8_t status_code;
 	volatile bool app_valid;
 	volatile uint32_t uptime;
@@ -208,8 +207,8 @@ static void uptime_process(bl_timer_id id, void *context)
 static void node_info_process(bl_timer_id id, void *context)
 {
 
-        uavcan_GetNodeInfo_response_t response;
-        uavcan_GetNodeInfo_request_t  request;
+	uavcan_GetNodeInfo_response_t response;
+	uavcan_GetNodeInfo_request_t  request;
 	uavcan_NodeStatus_t node_status;
 
 	uavcan_protocol_t protocol;
@@ -243,7 +242,7 @@ static void node_info_process(bl_timer_id id, void *context)
 
 	}
 
-        size_t length = sizeof(uavcan_GetNodeInfo_request_t);
+	size_t length = sizeof(uavcan_GetNodeInfo_request_t);
 	size_t send_length = uavcan_pack_GetNodeInfo_response(&response, &node_status);
 
 	/*
@@ -251,8 +250,9 @@ static void node_info_process(bl_timer_id id, void *context)
 	 * If it matches send the GetNodeInfo response
 	 */
 
-        protocol.id.u32 = ANY_NODE_ID;
-	if (UavcanOk ==uavcan_rx_dsdl(DSDLReqGetNodeInfo, &protocol,  (uint8_t*) &request, &length, 0)) {
+	protocol.id.u32 = ANY_NODE_ID;
+
+	if (UavcanOk == uavcan_rx_dsdl(DSDLReqGetNodeInfo, &protocol, (uint8_t *) &request, &length, 0)) {
 		uavcan_tx_dsdl(DSDLRspGetNodeInfo, &protocol, (const uint8_t *) &response, send_length);
 		bootloader.sent_node_info_response = true;
 	}
@@ -414,21 +414,13 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 		uavcan_Allocation_t allocation_message;
 	} server;
 
-
-	*allocated_node_id     = ANY_NODE_ID;
-
-	uint8_t unique_id_matched;
-
 	/* Get the Hw info, (struct will be zeroed by board_get_hardware_version ) */
 
 	size_t  rx_len = board_get_hardware_version(&hw_version);
 	uint16_t random  = (uint16_t) timer_hrt_read();
 	random = crc16_signature(random, rx_len, hw_version.unique_id);
-        util_srand(random);
-
+	util_srand(random);
 	memset(&server, 0, sizeof(server));
-
-	unique_id_matched = 0u;
 
 	/*
 	 * Rule A: on initialization, The allocatee  subscribes to uavcan.protocol.dynamic_node_id.Allocation and
@@ -451,7 +443,6 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 		 *    first_part_of_unique_id - true
 		 *    unique_id               - first MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of unique ID
 		 */
-		TODO(Implement Cancel per email from Pavel)
 
 		if (timer_expired(trequest)) {
 			uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
@@ -469,6 +460,7 @@ restart:
 
 		protocol.ana.source_node_id = server.node_id;
 		rx_len = sizeof(server.allocation_message);
+
 		if (UavcanOk == uavcan_rx_dsdl(DSDLMsgAllocation, &protocol, (uint8_t *) &server.allocation_message, &rx_len, 50)) {
 
 			rx_len -= uavcan_byte_count(Allocation, node_id);
@@ -494,7 +486,6 @@ restart:
 
 			} else if (0 == server.node_id) {
 				server.node_id = protocol.msg.source_node_id;
-				unique_id_matched = 0u;
 			}
 
 
@@ -532,6 +523,8 @@ restart:
 				max_compare = rx_len;
 			}
 
+			uint8_t unique_id_matched;
+
 			for (unique_id_matched = 0; unique_id_matched < max_compare
 			     && hw_version.unique_id[unique_id_matched] == server.allocation_message.unique_id[unique_id_matched];
 			     unique_id_matched++);
@@ -556,9 +549,12 @@ restart:
 
 				/* Case D.1 */
 				protocol.id.u32 = ANY_NODE_ID;
-				if (UavcanOk == uavcan_rx_dsdl(DSDLMsgAllocation, &protocol, (uint8_t *) &rx_payload, &rx_len, util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS))) {
-						goto restart;
+
+				if (UavcanOk == uavcan_rx_dsdl(DSDLMsgAllocation, &protocol, (uint8_t *) &rx_payload, &rx_len,
+							       util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS))) {
+					goto restart;
 				}
+
 				/* Sending the next chunk */
 
 				uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
@@ -608,34 +604,40 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
 
 	fw_path[0] = 0;
 
-	uavcan_set_server_node_id(ANY_NODE_ID);
+	g_server_node_id = ANY_NODE_ID;
 
 	while (status != UavcanOk) {
 
 		if (timer_expired(tboot)) {
 			return UavcanBootTimeout;
 		}
-	        protocol.id.u32 = ANY_NODE_ID;
-	        *fw_path_length = sizeof(uavcan_BeginFirmwareUpdate_request);
-	        status = uavcan_rx_dsdl(DSDLReqBeginFirmwareUpdate, &protocol,
-	                                (uint8_t *) &request, fw_path_length,
-	                                UavcanServiceTimeOutMs);
+
+		protocol.id.u32 = ANY_NODE_ID;
+		*fw_path_length = sizeof(uavcan_BeginFirmwareUpdate_request);
+		status = uavcan_rx_dsdl(DSDLReqBeginFirmwareUpdate, &protocol,
+					(uint8_t *) &request, fw_path_length,
+					UavcanServiceTimeOutMs);
 
 
 	}
 
 	if (UavcanOk == status) {
 
+		/* Update the priority on the BeginFirmwareUpdate received Request  */
+
+		g_uavcan_priority = protocol.ser.priority;
+
+
 		/* Send an ERROR_OK response */
 
 		uavcan_BeginFirmwareUpdate_response response;
 		response.error = ERROR_OK;
 		uavcan_tx_dsdl(DSDLRspBeginFirmwareUpdate, &protocol,
-					   (uint8_t *)&response, sizeof(uavcan_BeginFirmwareUpdate_response));
+			       (uint8_t *)&response, sizeof(uavcan_BeginFirmwareUpdate_response));
 
-                *fw_path_length -= uavcan_byte_count(BeginFirmwareUpdate, source_node_id);
-		memcpy(fw_path, request.image_file_remote_path, *fw_path_length );
-	        uavcan_set_server_node_id(request.source_node_id);
+		*fw_path_length -= uavcan_byte_count(BeginFirmwareUpdate, source_node_id);
+		memcpy(fw_path, request.image_file_remote_path, *fw_path_length);
+		g_server_node_id = request.source_node_id;
 	}
 
 	return status;
@@ -680,19 +682,19 @@ static void file_getinfo(const uint8_t *fw_path,
 
 	while (retries--) {
 
-                protocol.ser.source_node_id = uavcan_get_server_node_id();
+		protocol.ser.source_node_id = g_server_node_id;
 		size_t length =  FixedSizeGetInfoRequest + fw_path_length;
 
 		uavcan_tx_dsdl(DSDLReqGetInfo, &protocol,
-					  (uint8_t *)&request, length);
+			       (uint8_t *)&request, length);
 
 		length = sizeof(response);
-                protocol.ser.source_node_id = uavcan_get_server_node_id();
+		protocol.ser.source_node_id = g_server_node_id;
 		uavcan_error_t status = uavcan_rx_dsdl(DSDLRspGetInfo,
-					&protocol,
-					(uint8_t *) &response,
-					&length,
-					UavcanServiceTimeOutMs);
+						       &protocol,
+						       (uint8_t *) &response,
+						       &length,
+						       UavcanServiceTimeOutMs);
 
 		protocol.tail.transfer_id++;
 
@@ -796,17 +798,17 @@ static flash_error_t file_read_and_program(const uint8_t *fw_path,
 			timer_restart(tread, read_ms);
 
 			length = FixedSizeReadRequest + fw_path_length;
-	                protocol.ser.source_node_id = uavcan_get_server_node_id();
+			protocol.ser.source_node_id = g_server_node_id;
 			uavcan_tx_dsdl(DSDLReqRead, &protocol,
-						  (uint8_t *)&request, length);
+				       (uint8_t *)&request, length);
 
 			length = sizeof(uavcan_Read_response_t);
-	                protocol.ser.source_node_id = uavcan_get_server_node_id();
+			protocol.ser.source_node_id = g_server_node_id;
 			uavcan_status = uavcan_rx_dsdl(DSDLRspRead,
-							   &protocol,
-							   (uint8_t *) &response,
-							   &length,
-							   UavcanServiceTimeOutMs);
+						       &protocol,
+						       (uint8_t *) &response,
+						       &length,
+						       UavcanServiceTimeOutMs);
 
 			transfer_id++;
 
@@ -1066,7 +1068,7 @@ __EXPORT int main(int argc, char *argv[])
 
 	/* Begin with a node id of zero for Allocation */
 
-	uavcan_set_node_id(bootloader.node_id);
+	g_this_node_id = ANY_NODE_ID;
 
 	bootloader.status_code = STATUS_INITIALIZING;
 
@@ -1180,7 +1182,6 @@ __EXPORT int main(int argc, char *argv[])
 	if (bootloader.app_bl_request) {
 
 		bootloader.bus_speed = common.bus_speed;
-		bootloader.node_id = (uint8_t) common.node_id;
 		can_init(can_freq2speed(common.bus_speed), CAN_Mode_Normal);
 
 	} else {
@@ -1191,8 +1192,17 @@ __EXPORT int main(int argc, char *argv[])
 		 * or the Node allocation runs longer the tBoot
 		 */
 
+		/* Preferred Node Address */
+
+		common.node_id = OPT_PREFERRED_NODE_ID;
 
 		if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, (can_speed_t *)&bootloader.bus_speed, &common.node_id)) {
+
+			/*
+			 * It is OK that node ID is set to the preferred Node ID because
+			 *  common.crc.valid is not true yet
+			 */
+
 			goto boot;
 		}
 
@@ -1203,7 +1213,6 @@ __EXPORT int main(int argc, char *argv[])
 
 		bootloader.uptime = 0;
 		common.bus_speed = can_speed2freq(bootloader.bus_speed);
-		bootloader.node_id = (uint8_t) common.node_id;
 
 		/*
 		 * Mark CRC to say this is from
@@ -1215,7 +1224,7 @@ __EXPORT int main(int argc, char *argv[])
 
 	/* Now that we have a node Id configure the uavcan library */
 
-	uavcan_set_node_id(bootloader.node_id);
+	g_this_node_id = common.node_id;
 
 	/* Now start the processes that were defendant on a node ID */
 

@@ -239,8 +239,8 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout);
  *                mailbox.
  *
  * Returned value:
- *   CAN_OK - on Success or a CAN_ERROR if the cancellation was needed
+ *   None
  *
  ****************************************************************************/
 
-int can_cancel_on_error(uint8_t mailbox);
+void can_cancel_on_error(uint8_t mailbox);
