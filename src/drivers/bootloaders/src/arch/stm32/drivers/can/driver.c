@@ -569,8 +569,32 @@ void can_cancel_on_error(uint8_t mailbox)
 		}
 
 		if ((rvalue & error_mask)) {
-//			putreg32(CAN_TSR_ABRQ0 << (mailbox * CAN_TSR_RQCP_SHFTS), STM32_CAN1_TSR);
+			putreg32(CAN_TSR_ABRQ0 << (mailbox * CAN_TSR_RQCP_SHFTS), STM32_CAN1_TSR);
 			break;
 		}
 	}
+}
+
+/****************************************************************************
+ * Name: set_automatic_retransmission
+ *
+ * Description:
+ *   This function will enable or disable the use of Automatic Retransmission
+ *
+ * Input Parameters:
+ *   on_not_off   - on - will clear NART and off will Set NART
+ *
+ * Returned value:
+ *   None
+ *
+ ****************************************************************************/
+void set_automatic_retransmission(uint8_t on_not_off)
+{
+	irqstate_t s = irqsave();
+	int32_t rvalue = getreg32(STM32_CAN1_MCR);
+	rvalue &= ~CAN_MCR_NART;
+	rvalue |= (on_not_off ? 0 : CAN_MCR_NART);
+	putreg32(rvalue, STM32_CAN1_MCR);
+	irqrestore(s);
+
 }

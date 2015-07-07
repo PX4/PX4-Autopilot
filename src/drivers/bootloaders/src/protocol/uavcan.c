@@ -842,9 +842,10 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id,
 
 	/* Account for the payload[0] */
 	max_copy++;
-
+	set_automatic_retransmission(false);
 	uavcan_tx(&protocol, payload, max_copy, dsdl->mailbox);
-	can_cancel_on_error(dsdl->mailbox);
+	set_automatic_retransmission(true);
+//	can_cancel_on_error(dsdl->mailbox);
 
 }
 
