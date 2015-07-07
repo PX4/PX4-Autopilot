@@ -771,7 +771,6 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 	/* Set up the read request */
 	memcpy(&request.path, fw_path, sizeof(uavcan_Path_t));
 
-	uint8_t transfer_id = 0;
 	uint8_t retries = UavcanServiceRetries;
 
 
@@ -811,7 +810,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 						       &length,
 						       UavcanServiceTimeOutMs);
 
-			transfer_id++;
+			protocol.tail.transfer_id++;
 
 			if (uavcan_status == UavcanOk) {
 
@@ -1279,6 +1278,7 @@ __EXPORT int main(int argc, char *argv[])
 	/* We received a begin firmware update */
 
 	timer_stop(tboot);
+
 	board_indicate(fw_update_start);
 
 	file_getinfo(&fw_path, fw_path_length, &fw_image_size);

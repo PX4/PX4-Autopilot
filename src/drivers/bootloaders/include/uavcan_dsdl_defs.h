@@ -82,10 +82,10 @@ END_COMPONENTS
    UAVCAN_DSDL_BIT_DEF(NodeStatus,                      status_code,              0,         3,             3,            1)
 
 /*UAVCAN_DSDL_TYPE_DEF(name,                dtid,              signature,  packed size    mailbox,         fifo,         inbound,        outbound) */
-  UAVCAN_DSDL_SREQ_DEF(GetNodeInfo,             1,                0xfd3d,        0,         MailBox1,     Fifo1,  SingleFrameTailInit, MultiFrameTailInit)  /* Request */
+  UAVCAN_DSDL_SREQ_DEF(GetNodeInfo,             1,                0xc268,        0,         MailBox1,     Fifo1,  SingleFrameTailInit, MultiFrameTailInit)  /* Request */
 /* UAVCAN_DSDL_BIT_DEF(data_typ_name,                    field_name,        lsb_pos,    length,    payload_offset, payload_length)  Empty */
                                                                                                                                      
-  UAVCAN_DSDL_SRSP_DEF(GetNodeInfo,             1,                0xfd3d,        0,         MailBox1,     Fifo1,  SingleFrameTailInit, MultiFrameTailInit)  /* Response */
+  UAVCAN_DSDL_SRSP_DEF(GetNodeInfo,             1,                0xc268,        0,         MailBox1,     Fifo1,  SingleFrameTailInit, MultiFrameTailInit)  /* Response */
    UAVCAN_DSDL_BIT_DEF(GetNodeInfo,                          status,              0,         8,             0,    PackedSizeMsgNodeStatus)
    UAVCAN_DSDL_BIT_DEF(GetNodeInfo,                software_version,              0,         8,            NA,           NA)
    UAVCAN_DSDL_BIT_DEF(GetNodeInfo,                hardware_version,              0,         8,            NA,           NA)
