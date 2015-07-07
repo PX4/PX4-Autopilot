@@ -572,6 +572,8 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t ut
 
 void CanIface::handleStatusChangeInterrupt()
 {
+    can_->MSR = bxcan::MSR_ERRI;        // Clear error
+
     /*
      * General error counter
      */
