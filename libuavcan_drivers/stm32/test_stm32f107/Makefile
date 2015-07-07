@@ -8,7 +8,10 @@ PROJECT = uavcan_test_stm32f107
 # Test application
 #
 
-CPPSRC = src/main.cpp src/dummy.cpp
+MAIN ?= main.cpp
+
+CPPSRC = src/$(MAIN) \
+         src/dummy.cpp
 
 #
 # UAVCAN library
