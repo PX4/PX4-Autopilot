@@ -168,6 +168,7 @@ public:
 
     /**
      * Number of times the driver exercised library's requirement to abort transmission on first error.
+     * This is an atomic read, it doesn't require a critical section.
      * See @ref uavcan::CanIOFlagAbortOnError.
      */
     uavcan::uint32_t getVoluntaryTxAbortCount() const { return served_aborts_cnt_; }

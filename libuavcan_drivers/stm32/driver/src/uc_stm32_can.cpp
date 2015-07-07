@@ -467,14 +467,12 @@ void CanIface::handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok
     had_activity_ = had_activity_ || txok;
 
     TxItem& txi = pending_tx_[mailbox_index];
+
     if (txi.loopback && txok && txi.pending)
     {
         rx_queue_.push(txi.frame, utc_usec, uavcan::CanIOFlagLoopback);
     }
-    if (!txok)
-    {
-        error_cnt_++;
-    }
+
     txi.pending = false;
 }
 
