@@ -237,7 +237,7 @@ static void node_info_process(bl_timer_id id, void *context)
 		response.software_version.image_crc =
 			bootloader.fw_image_descriptor->image_crc;
 
-		response.software_version.optional_field_mask = 3u; // CRC and VCS
+		response.software_version.optional_field_flags = OPTIONAL_FIELD_FLAG_IMAGE_CRC | OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 
 
 	}

@@ -56,7 +56,7 @@
 /* UAVCAN_DSDL_BIT_DEF(data_typ_name,                    field_name,        lsb_pos,    length,    payload_offset, payload_length) */
   UAVCAN_DSDL_BIT_DEF(SoftwareVersion,                        major,              0,         8,            0,              1)
   UAVCAN_DSDL_BIT_DEF(SoftwareVersion,                        minor,              0,         8,            1,              1)
-  UAVCAN_DSDL_BIT_DEF(SoftwareVersion,          optional_field_mask,              0,         8,            2,              1)
+  UAVCAN_DSDL_BIT_DEF(SoftwareVersion,         optional_field_flags,              0,         8,            2,              1)
   UAVCAN_DSDL_BIT_DEF(SoftwareVersion,                   vcs_commit,              0,         32,           3,              4)
   UAVCAN_DSDL_BIT_DEF(SoftwareVersion,                    image_crc,              0,         NA,           7,              8) // NA becuase bit mask is 64
   

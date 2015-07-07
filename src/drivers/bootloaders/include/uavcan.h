@@ -465,12 +465,13 @@ typedef struct packed_struct uavcan_protocol_t {
  ****************************************/
 
 typedef enum uavcan_NodeStatusConsts_t {
-	NODESTATUS_INTERVAL_MS   = 500,
+	MAX_BROADCASTING_PERIOD_MS = 1000,
+	MIN_BROADCASTING_PERIOD_MS = 2,
 	STATUS_OK           = 0,
 	STATUS_INITIALIZING = 1,
 	STATUS_WARNING      = 2,
 	STATUS_CRITICAL     = 3,
-	STATUS_OFFLINE      = 15,
+	STATUS_OFFLINE      = 7,
 } uavcan_NodeStatusConsts_t;
 
 typedef struct packed_struct uavcan_NodeStatus_t {
@@ -485,11 +486,15 @@ typedef struct packed_struct uavcan_NodeStatus_t {
  ****************************************/
 
 /* SoftwareVersion */
+typedef enum uavcan_SoftwareVersionConsts_t {
+	OPTIONAL_FIELD_FLAG_VCS_COMMIT = 1,
+	OPTIONAL_FIELD_FLAG_IMAGE_CRC  = 2,
+} uavcan_SoftwareVersionConsts_t;
 
 typedef struct packed_struct uavcan_SoftwareVersion_t {
 	uint8_t major;
 	uint8_t minor;
-	uint8_t optional_field_mask;
+	uint8_t optional_field_flags;
 	uint32_t vcs_commit;
 	uint64_t image_crc;
 } uavcan_SoftwareVersion_t;
