@@ -593,7 +593,7 @@ restart:
  ****************************************************************************/
 
 static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
-                uavcan_Path_t *fw_path,
+		uavcan_Path_t *fw_path,
 		size_t *fw_path_length)
 {
 
@@ -678,7 +678,7 @@ static void file_getinfo(const uavcan_Path_t *fw_path,
 
 	uint8_t retries = UavcanServiceRetries;
 
-        memcpy(&request.path, fw_path, sizeof(uavcan_Path_t));
+	memcpy(&request.path, fw_path, sizeof(uavcan_Path_t));
 
 	*fw_image_size = 0;
 
@@ -872,7 +872,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 		}
 
 	} while (request.offset < fw_image_size &&
-	         length == sizeof(response.data)  &&
+		 length == sizeof(response.data)  &&
 		 flash_status == FLASH_OK);
 
 	timer_free(tread);

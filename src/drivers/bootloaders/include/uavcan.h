@@ -633,19 +633,19 @@ typedef struct packed_struct uavcan_EntryType_t {
  ****************************************/
 
 typedef enum uavcan_BeginFirmwareUpdateConst_t {
-        ERROR_OK               = 0,
-        ERROR_INVALID_MODE     = 1,
-        ERROR_IN_PROGRESS      = 2,
-        ERROR_UNKNOWN          = 255,
+	ERROR_OK               = 0,
+	ERROR_INVALID_MODE     = 1,
+	ERROR_IN_PROGRESS      = 2,
+	ERROR_UNKNOWN          = 255,
 } uavcan_BeginFirmwareUpdateConst_t;
 
 typedef struct packed_struct uavcan_BeginFirmwareUpdate_request {
-        uint8_t source_node_id;
-        uavcan_Path_t image_file_remote_path;
+	uint8_t source_node_id;
+	uavcan_Path_t image_file_remote_path;
 } uavcan_BeginFirmwareUpdate_request;
 
 typedef struct packed_struct uavcan_BeginFirmwareUpdate_response {
-        uint8_t error;
+	uint8_t error;
 } uavcan_BeginFirmwareUpdate_response;
 
 
