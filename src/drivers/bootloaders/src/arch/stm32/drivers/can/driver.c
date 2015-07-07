@@ -253,6 +253,13 @@ void can_tx(uint32_t message_id, size_t length, const uint8_t *message,
 
 	while (((getreg32(STM32_CAN1_TSR) & mask) == 0));
 
+	/*
+	 * To allow detection of completion  - Set the LEC to
+	 * 'No error' state off all 1s
+	 */
+
+	putreg32(CAN_ESR_LEC_MASK, STM32_CAN1_ESR);
+
 	putreg32(length & CAN_TDTR_DLC_MASK, STM32_CAN1_TDTR(mailbox));
 	putreg32(data[0], STM32_CAN1_TDLR(mailbox));
 	putreg32(data[1], STM32_CAN1_TDHR(mailbox));
@@ -423,6 +430,7 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
 
 int can_init(can_speed_t speed, can_mode_t mode)
 {
+
 	int speedndx = speed - 1;
 	/*
 	 * TODO: use full-word writes to reduce the number of loads/stores.
@@ -554,47 +562,24 @@ int can_init(can_speed_t speed, can_mode_t mode)
  *
  ****************************************************************************/
 
+
 void can_cancel_on_error(uint8_t mailbox)
 {
 
-	uint32_t exit_mask = (CAN_TSR_TME0 << mailbox)
-			     | (CAN_TSR_RQCP0 | CAN_TSR_TXOK0) << (mailbox * CAN_TSR_RQCP_SHFTS);
-	uint32_t error_mask = (CAN_TSR_TERR0) << (mailbox * CAN_TSR_RQCP_SHFTS);
+	uint32_t rvalue;
 
-	while (1) {
-		uint32_t rvalue = getreg32(STM32_CAN1_TSR);
+	/* Wait for completion the all 1's wat set in the tx code*/
 
-		if (exit_mask == (rvalue & (exit_mask | error_mask))) {
-			break;
-		}
+	while (CAN_ESR_LEC_MASK == ((rvalue = (getreg32(STM32_CAN1_ESR) & CAN_ESR_LEC_MASK))));
 
-		if ((rvalue & error_mask)) {
-			putreg32(CAN_TSR_ABRQ0 << (mailbox * CAN_TSR_RQCP_SHFTS), STM32_CAN1_TSR);
-			break;
-		}
+	/* Any errors */
+
+	if (rvalue) {
+
+		putreg32(0, STM32_CAN1_ESR);
+
+		/* Abort the the TX in case of collision wuth NART false  */
+
+		putreg32(CAN_TSR_ABRQ0 << (mailbox * CAN_TSR_RQCP_SHFTS), STM32_CAN1_TSR);
 	}
-}
-
-/****************************************************************************
- * Name: set_automatic_retransmission
- *
- * Description:
- *   This function will enable or disable the use of Automatic Retransmission
- *
- * Input Parameters:
- *   on_not_off   - on - will clear NART and off will Set NART
- *
- * Returned value:
- *   None
- *
- ****************************************************************************/
-void set_automatic_retransmission(uint8_t on_not_off)
-{
-	irqstate_t s = irqsave();
-	int32_t rvalue = getreg32(STM32_CAN1_MCR);
-	rvalue &= ~CAN_MCR_NART;
-	rvalue |= (on_not_off ? 0 : CAN_MCR_NART);
-	putreg32(rvalue, STM32_CAN1_MCR);
-	irqrestore(s);
-
 }

@@ -244,18 +244,3 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout);
  ****************************************************************************/
 
 void can_cancel_on_error(uint8_t mailbox);
-
-/****************************************************************************
- * Name: set_automatic_retransmission
- *
- * Description:
- *   This function will enable or disable the use of Automatic Retransmission
- *
- * Input Parameters:
- *   on_not_off   - on - will clear NART and off will Set NART
- *
- * Returned value:
- *   None
- *
- ****************************************************************************/
-void set_automatic_retransmission(uint8_t on_not_off);

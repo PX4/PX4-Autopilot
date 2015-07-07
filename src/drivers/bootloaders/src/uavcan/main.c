@@ -754,6 +754,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 		uint8_t fw_path_length,
 		size_t fw_image_size)
 {
+
 	uavcan_Read_request_t request;
 	uavcan_Read_response_t response;
 	uavcan_protocol_t protocol;
@@ -887,7 +888,6 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 		return FLASH_OK;
 
 	} else {
-
 		return FLASH_ERROR;
 	}
 }
