@@ -674,7 +674,7 @@ static void file_getinfo(const uavcan_Path_t *fw_path,
 	uavcan_GetInfo_response_t  response;
 	uavcan_protocol_t protocol;
 
-	protocol.tail.transfer_id = 0;
+	protocol.tail_init.u8  = 0;
 
 	uint8_t retries = UavcanServiceRetries;
 
@@ -786,6 +786,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 	uint32_t read_ms = 1000 >> bootloader.bus_speed;
 	size_t length;
 
+	protocol.tail_init.u8  = 0;
 	bl_timer_id tread = timer_allocate(modeTimeout | modeStarted, read_ms, 0);
 
 	do {
