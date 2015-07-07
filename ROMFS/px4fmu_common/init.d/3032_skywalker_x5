@@ -14,18 +14,16 @@ then
 	param set FW_AIRSPD_MAX 40
 	param set FW_ATT_TC 0.3
 	param set FW_L1_DAMPING 0.74
-	param set FW_L1_PERIOD 15
-	param set FW_PR_FF 0.3
-	param set FW_PR_I 0
-	param set FW_PR_IMAX 0.2
-	param set FW_PR_P 0.03
-	param set FW_P_ROLLFF 1
-	param set FW_RR_FF 0.3
-	param set FW_RR_I 0
-	param set FW_RR_IMAX 0.2
-	param set FW_RR_P 0.03
-	param set FW_R_LIM 60
-	param set FW_R_RMAX 0
+	param set FW_L1_PERIOD 16
+	param set FW_LND_ANG 15
+	param set FW_LND_FLALT 5
+	param set FW_LND_HHDIST 15
+	param set FW_LND_HVIRT 13
+	param set FW_LND_TLALT 5
+	param set FW_THR_LND_MAX 0
+	param set FW_PR_FF 0.35
+	param set FW_RR_FF 0.6
+	param set FW_RR_P 0.04
 fi
 
 set MIXER X5
