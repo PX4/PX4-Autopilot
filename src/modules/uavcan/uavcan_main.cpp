@@ -363,7 +363,7 @@ void UavcanNode::fill_node_info()
 	assert(fw_git_short[8] == '\0');
 	char *end = nullptr;
 	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
-	swver.optional_field_mask |= swver.OPTIONAL_FIELD_MASK_VCS_COMMIT;
+	swver.optional_field_flags |= swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 
 	warnx("SW version vcs_commit: 0x%08x", unsigned(swver.vcs_commit));
 

@@ -580,26 +580,6 @@ typedef struct packed_struct uavcan_Allocation_t {
 	uint8_t unique_id[PayloadLengthAllocationunique_id];
 } uavcan_Allocation_t;
 
-/****************************************
- * Uavcan BeginFirmwareUpdate
- ****************************************/
-
-typedef enum uavcan_BeginFirmwareUpdateConst_t {
-	ERROR_OK               = 0,
-	ERROR_INVALID_MODE     = 1,
-	ERROR_IN_PROGRESS      = 2,
-	ERROR_UNKNOWN          = 255,
-} uavcan_BeginFirmwareUpdateConst_t;
-
-typedef struct packed_struct uavcan_BeginFirmwareUpdate_request {
-	uint8_t source_node_id;
-	uint8_t image_file_remote_path[PayloadLengthBeginFirmwareUpdateimage_file_remote_path];
-} uavcan_BeginFirmwareUpdate_request;
-
-typedef struct packed_struct uavcan_BeginFirmwareUpdate_response {
-	uint8_t error;
-} uavcan_BeginFirmwareUpdate_response;
-
 
 /****************************************
  * Uavcan Path
@@ -647,6 +627,33 @@ typedef struct packed_struct uavcan_EntryType_t {
 	uint8_t flags;
 } uavcan_EntryType_t;
 
+
+/****************************************
+ * Uavcan BeginFirmwareUpdate
+ ****************************************/
+
+typedef enum uavcan_BeginFirmwareUpdateConst_t {
+        ERROR_OK               = 0,
+        ERROR_INVALID_MODE     = 1,
+        ERROR_IN_PROGRESS      = 2,
+        ERROR_UNKNOWN          = 255,
+} uavcan_BeginFirmwareUpdateConst_t;
+
+typedef struct packed_struct uavcan_BeginFirmwareUpdate_request {
+        uint8_t source_node_id;
+        uavcan_Path_t image_file_remote_path;
+} uavcan_BeginFirmwareUpdate_request;
+
+typedef struct packed_struct uavcan_BeginFirmwareUpdate_response {
+        uint8_t error;
+} uavcan_BeginFirmwareUpdate_response;
+
+
+
+/****************************************
+ * Uavcan GetInfo
+ ****************************************/
+
 typedef struct packed_struct uavcan_GetInfo_request_t {
 	uavcan_Path_t path;
 } uavcan_GetInfo_request_t;
@@ -684,10 +691,6 @@ typedef struct packed_struct uavcan_Read_response_t {
 	uavcan_Error_t error;
 	uint8_t data[PayloadLengthReaddata];
 } uavcan_Read_response_t;
-
-typedef enum uavcan_ReadResponseConsts_t {
-	FixedSizeReadResponse     = sizeof_member(uavcan_Read_response_t, error)
-} uavcan_ReadResponseConsts_t;
 
 /****************************************************************************
  * Global Variables
