@@ -593,7 +593,7 @@ restart:
  ****************************************************************************/
 
 static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
-		uint8_t *fw_path,
+                uavcan_Path_t *fw_path,
 		size_t *fw_path_length)
 {
 
@@ -601,8 +601,9 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
 	uavcan_protocol_t protocol;
 
 	uavcan_error_t status = UavcanError;
-
-	fw_path[0] = 0;
+	size_t rx_length;
+	fw_path->u8[0] = 0;
+	*fw_path_length = 0;
 
 	g_server_node_id = ANY_NODE_ID;
 
@@ -613,9 +614,9 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
 		}
 
 		protocol.id.u32 = ANY_NODE_ID;
-		*fw_path_length = sizeof(uavcan_BeginFirmwareUpdate_request);
+		rx_length = sizeof(uavcan_BeginFirmwareUpdate_request);
 		status = uavcan_rx_dsdl(DSDLReqBeginFirmwareUpdate, &protocol,
-					(uint8_t *) &request, fw_path_length,
+					(uint8_t *) &request, &rx_length,
 					UavcanServiceTimeOutMs);
 
 
@@ -635,9 +636,10 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
 		uavcan_tx_dsdl(DSDLRspBeginFirmwareUpdate, &protocol,
 			       (uint8_t *)&response, sizeof(uavcan_BeginFirmwareUpdate_response));
 
-		*fw_path_length -= uavcan_byte_count(BeginFirmwareUpdate, source_node_id);
-		memcpy(fw_path, request.image_file_remote_path, *fw_path_length);
+		rx_length = rx_length - uavcan_byte_count(BeginFirmwareUpdate, source_node_id);
+		memcpy(fw_path, &request.image_file_remote_path, sizeof(uavcan_Path_t));
 		g_server_node_id = request.source_node_id;
+		*fw_path_length = rx_length;
 	}
 
 	return status;
@@ -664,7 +666,7 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot,
  *
  ****************************************************************************/
 
-static void file_getinfo(const uint8_t *fw_path,
+static void file_getinfo(const uavcan_Path_t *fw_path,
 			 size_t fw_path_length,
 			 size_t *fw_image_size)
 {
@@ -676,7 +678,7 @@ static void file_getinfo(const uint8_t *fw_path,
 
 	uint8_t retries = UavcanServiceRetries;
 
-	memcpy(&request.path, fw_path, fw_path_length);
+        memcpy(&request.path, fw_path, sizeof(uavcan_Path_t));
 
 	*fw_image_size = 0;
 
@@ -748,7 +750,7 @@ static void file_getinfo(const uint8_t *fw_path,
  *
  ****************************************************************************/
 
-static flash_error_t file_read_and_program(const uint8_t *fw_path,
+static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 		uint8_t fw_path_length,
 		size_t fw_image_size)
 {
@@ -760,7 +762,6 @@ static flash_error_t file_read_and_program(const uint8_t *fw_path,
 	flash_error_t flash_status;
 
 	uint8_t *data;
-	uint32_t data_length;
 	uint32_t flash_address = (uint32_t) bootloader.fw_image;
 
 
@@ -768,7 +769,7 @@ static flash_error_t file_read_and_program(const uint8_t *fw_path,
 	memset(&response, 0, sizeof(response));
 
 	/* Set up the read request */
-	memcpy(&request.path, fw_path, fw_path_length);
+	memcpy(&request.path, fw_path, sizeof(uavcan_Path_t));
 
 	uint8_t transfer_id = 0;
 	uint8_t retries = UavcanServiceRetries;
@@ -814,9 +815,9 @@ static flash_error_t file_read_and_program(const uint8_t *fw_path,
 
 			if (uavcan_status == UavcanOk) {
 
-				if (length > FixedSizeReadResponse) {
+				if (length > sizeof_member(uavcan_Read_response_t, error)) {
 
-					data_length = (uint16_t)(length - FixedSizeReadResponse);
+					length -= sizeof_member(uavcan_Read_response_t, error);
 
 				} else if (response.error.value != FILE_ERROR_OK) {
 					uavcan_status = UavcanError;
@@ -848,8 +849,8 @@ static flash_error_t file_read_and_program(const uint8_t *fw_path,
 		 * until the last one
 		 */
 
-		if (data_length & 1) {
-			data[data_length] = 0xff;
+		if (length & 1) {
+			data[length] = 0xff;
 		}
 
 		/* Save the first word off */
@@ -861,10 +862,9 @@ static flash_error_t file_read_and_program(const uint8_t *fw_path,
 
 		flash_status = bl_flash_write(flash_address + request.offset ,
 					      data,
-					      data_length +
-					      (data_length & 1));
+					      length + (length & 1));
 
-		request.offset  += data_length;
+		request.offset  += length;
 
 		/* rate limit */
 		while (!timer_expired(tread)) {
@@ -872,7 +872,7 @@ static flash_error_t file_read_and_program(const uint8_t *fw_path,
 		}
 
 	} while (request.offset < fw_image_size &&
-		 data_length == sizeof(response.data)  &&
+	         length == sizeof(response.data)  &&
 		 flash_status == FLASH_OK);
 
 	timer_free(tread);
@@ -882,7 +882,7 @@ static flash_error_t file_read_and_program(const uint8_t *fw_path,
 	 * correct number of bytes were written, and the length of the last response
 	 * was not. */
 	if (uavcan_status == UavcanOk && flash_status == FLASH_OK
-	    && request.offset == fw_image_size && data_length != 0) {
+	    && request.offset == fw_image_size && length != 0) {
 
 		return FLASH_OK;
 
@@ -1054,7 +1054,7 @@ __EXPORT int main(int argc, char *argv[])
 {
 
 	size_t fw_image_size = 0;
-	uint8_t fw_path[uavcan_bit_count(BeginFirmwareUpdate, image_file_remote_path)];
+	uavcan_Path_t fw_path;
 	size_t  fw_path_length;
 	uint8_t error_log_stage;
 	flash_error_t status;
@@ -1269,11 +1269,11 @@ __EXPORT int main(int argc, char *argv[])
 	 */
 
 	do {
-		if (UavcanBootTimeout == wait_for_beginfirmwareupdate(tboot, fw_path,
+		if (UavcanBootTimeout == wait_for_beginfirmwareupdate(tboot, &fw_path,
 				&fw_path_length)) {
 			goto boot;
 		}
-	} while (fw_path[0] == 0);
+	} while (fw_path_length == 0);
 
 
 	/* We received a begin firmware update */
@@ -1281,7 +1281,7 @@ __EXPORT int main(int argc, char *argv[])
 	timer_stop(tboot);
 	board_indicate(fw_update_start);
 
-	file_getinfo(fw_path, fw_path_length, &fw_image_size);
+	file_getinfo(&fw_path, fw_path_length, &fw_image_size);
 
 	//todo:Check this
 	if (fw_image_size < sizeof(app_descriptor_t)) {
@@ -1311,7 +1311,7 @@ __EXPORT int main(int argc, char *argv[])
 		goto failure;
 	}
 
-	status = file_read_and_program(fw_path, fw_path_length, fw_image_size);
+	status = file_read_and_program(&fw_path, fw_path_length, fw_image_size);
 
 	if (status != FLASH_OK) {
 		error_log_stage = LOGMESSAGE_STAGE_PROGRAM;
