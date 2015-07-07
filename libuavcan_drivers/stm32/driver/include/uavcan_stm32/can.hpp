@@ -233,6 +233,11 @@ public:
     uavcan::CanSelectMasks makeSelectMasks(const uavcan::CanFrame* (& pending_tx)[uavcan::MaxCanIfaces]) const;
 
     /**
+     * Whether there's at least one interface where receive() would return a frame.
+     */
+    bool hasReadableInterfaces() const;
+
+    /**
      * Returns zero if OK.
      * Returns negative value if failed (e.g. invalid bitrate).
      */

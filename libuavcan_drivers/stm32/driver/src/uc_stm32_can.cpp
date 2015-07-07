@@ -706,6 +706,17 @@ uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame* (& pen
     return msk;
 }
 
+bool CanDriver::hasReadableInterfaces() const
+{
+#if UAVCAN_STM32_NUM_IFACES == 1
+	return !if0_.isRxBufferEmpty();
+#elif UAVCAN_STM32_NUM_IFACES == 2
+	return !if0_.isRxBufferEmpty() || !if1_.isRxBufferEmpty();
+#else
+# error UAVCAN_STM32_NUM_IFACES
+#endif
+}
+
 uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
                                   const uavcan::CanFrame* (& pending_tx)[uavcan::MaxCanIfaces],
                                   const uavcan::MonotonicTime blocking_deadline)

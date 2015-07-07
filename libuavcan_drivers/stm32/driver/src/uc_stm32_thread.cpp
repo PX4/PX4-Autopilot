@@ -105,7 +105,7 @@ int BusEvent::poll(::file* filp, ::pollfd* fds, bool setup)
              *  - Transmission complete. This event is edge-triggered.
              * FIXME Since TX event is edge-triggered, it can be lost between poll() calls.
              */
-            fds->revents |= fds->events & ((can_driver_.makeSelectMasks().read == 0) ? 0 : POLLIN);
+            fds->revents |= fds->events & (can_driver_.hasReadableInterfaces() ? 0 : POLLIN);
             if (fds->revents != 0)
             {
                 (void)sem_post(fds->sem);
