@@ -37,6 +37,7 @@
  * Library for PWM output limiting
  *
  * @author Julian Oes <julian@px4.io>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include "pwm_limit.h"
