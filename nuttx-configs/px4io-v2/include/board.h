@@ -138,7 +138,7 @@ extern "C" {
  ************************************************************************************/
 
 EXTERN void stm32_boardinitialize(void);
-    
+
 #if defined(__cplusplus)
 }
 #endif

@@ -49,6 +49,13 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_sub_status(node),
 	_orb_timer(node)
 {
+	if (_perfcnt_invalid_input == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
+	}
+
+	if (_perfcnt_scaling_error == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_scaling_error");
+	}
 }
 
 UavcanEscController::~UavcanEscController()
@@ -78,7 +85,7 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 {
 	if ((outputs == nullptr) || 
             (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
-            (num_outputs > CONNECTED_ESC_MAX)) {
+            (num_outputs > esc_status_s::CONNECTED_ESC_MAX)) {
 		perf_count(_perfcnt_invalid_input);
 		return;
 	}
@@ -152,7 +159,7 @@ void UavcanEscController::arm_single_esc(int num, bool arm)
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
-	if (msg.esc_index < CONNECTED_ESC_MAX) {
+	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
 		_esc_status.esc_count = uavcan::max<int>(_esc_status.esc_count, msg.esc_index + 1);
 		_esc_status.timestamp = msg.getMonotonicTimestamp().toUSec();
 
@@ -172,7 +179,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent&)
 {
 	_esc_status.counter += 1;
-	_esc_status.esc_connectiontype = ESC_CONNECTION_TYPE_CAN;
+	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
 
 	if (_esc_status_pub > 0) {
 		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,6 +56,7 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_range_finder.h>
+#include <drivers/drv_rc_input.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
@@ -67,6 +68,8 @@
 #include <poll.h>
 
 #include <mathlib/mathlib.h>
+
+#include <conversion/rotation.h>
 
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
@@ -90,6 +93,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
 	status{},
 	hil_local_pos{},
+	hil_land_detector{},
 	_control_mode{},
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
@@ -105,7 +109,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_cmd_pub(-1),
 	_flow_pub(-1),
 	_range_pub(-1),
-	_offboard_control_sp_pub(-1),
+	_offboard_control_mode_pub(-1),
+	_actuator_controls_pub(-1),
 	_global_vel_sp_pub(-1),
 	_att_sp_pub(-1),
 	_rates_sp_pub(-1),
@@ -116,16 +121,21 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
+	_land_detector_pub(-1),
+	_time_offset_pub(-1),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
-	_hil_local_proj_ref{}
+	_hil_local_proj_ref{},
+	_offboard_control_mode{},
+	_att_sp{},
+	_rates_sp{},
+	_time_offset_avg_alpha(0.6),
+	_time_offset(0)
 {
 
-	// make sure the FTP server is started
-	(void)MavlinkFTP::get_server();
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -148,6 +158,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_optical_flow_rad(msg);
 		break;
 
+	case MAVLINK_MSG_ID_PING:
+		handle_message_ping(msg);
+		break;
+
 	case MAVLINK_MSG_ID_SET_MODE:
 		handle_message_set_mode(msg);
 		break;
@@ -164,6 +178,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_set_attitude_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_SET_ACTUATOR_CONTROL_TARGET:
+		handle_message_set_actuator_control_target(msg);
+		break;
+
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
 		handle_message_vision_position_estimate(msg);
 		break;
@@ -176,6 +194,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_manual_control(msg);
 		break;
 
+	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
+		handle_message_rc_channels_override(msg);
+		break;
+
 	case MAVLINK_MSG_ID_HEARTBEAT:
 		handle_message_heartbeat(msg);
 		break;
@@ -184,8 +206,12 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_request_data_stream(msg);
 		break;
 
-	case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL:
-		MavlinkFTP::get_server()->handle_message(_mavlink, msg);
+	case MAVLINK_MSG_ID_SYSTEM_TIME:
+		handle_message_system_time(msg);
+		break;
+
+	case MAVLINK_MSG_ID_TIMESYNC:
+		handle_message_timesync(msg);
 		break;
 
 	default:
@@ -251,17 +277,19 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
-			warnx("terminated by remote command");
+			warnx("terminated by remote");
 			fflush(stdout);
 			usleep(50000);
 
 			/* terminate other threads and this thread */
 			_mavlink->_task_should_exit = true;
-
+		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+			/* send autopilot version message */
+			_mavlink->send_autopilot_capabilites();
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
+				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
 				      mavlink_system.sysid, mavlink_system.compid);
 				return;
 			}
@@ -278,7 +306,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			vcmd.param6 = cmd_mavlink.param6;
 			vcmd.param7 = cmd_mavlink.param7;
 			// XXX do proper translation
-			vcmd.command = (enum VEHICLE_CMD)cmd_mavlink.command;
+			vcmd.command = cmd_mavlink.command;
 			vcmd.target_system = cmd_mavlink.target_system;
 			vcmd.target_component = cmd_mavlink.target_component;
 			vcmd.source_system = msg->sysid;
@@ -307,7 +335,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
-			warnx("terminated by remote command");
+			warnx("terminated by remote");
 			fflush(stdout);
 			usleep(50000);
 
@@ -317,7 +345,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
+				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
 				      mavlink_system.sysid, mavlink_system.compid);
 				return;
 			}
@@ -335,7 +363,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
 			vcmd.param7 = cmd_mavlink.z;
 			// XXX do proper translation
-			vcmd.command = (enum VEHICLE_CMD)cmd_mavlink.command;
+			vcmd.command = cmd_mavlink.command;
 			vcmd.target_system = cmd_mavlink.target_system;
 			vcmd.target_component = cmd_mavlink.target_component;
 			vcmd.source_system = msg->sysid;
@@ -358,6 +386,9 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	mavlink_optical_flow_rad_t flow;
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
 
+	enum Rotation flow_rot;
+	param_get(param_find("SENS_FLOW_ROT"),&flow_rot);
+
 	struct optical_flow_s f;
 	memset(&f, 0, sizeof(f));
 
@@ -373,6 +404,10 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	f.quality = flow.quality;
 	f.sensor_id = flow.sensor_id;
 	f.gyro_temperature = flow.temperature;
+
+	/* rotate measurements according to parameter */
+	float zeroval = 0.0f;
+	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zeroval);
 
 	if (_flow_pub < 0) {
 		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
@@ -414,7 +449,7 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 
 	/* Use distance value for range finder report */
 	struct range_finder_report r;
-	memset(&r, 0, sizeof(f));
+	memset(&r, 0, sizeof(r));
 
 	r.timestamp = hrt_absolute_time();
 	r.error_count = 0;
@@ -450,7 +485,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	vcmd.param5 = 0;
 	vcmd.param6 = 0;
 	vcmd.param7 = 0;
-	vcmd.command = VEHICLE_CMD_DO_SET_MODE;
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	vcmd.target_system = new_mode.target_system;
 	vcmd.target_component = MAV_COMP_ID_ALL;
 	vcmd.source_system = msg->sysid;
@@ -496,8 +531,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 	mavlink_set_position_target_local_ned_t set_position_target_local_ned;
 	mavlink_msg_set_position_target_local_ned_decode(msg, &set_position_target_local_ned);
 
-	struct offboard_control_setpoint_s offboard_control_sp;
-	memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));//XXX breaks compatibility with multiple setpoints
+	struct offboard_control_mode_s offboard_control_mode;
+	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
 
 	/* Only accept messages which are intended for this system */
 	if ((mavlink_system.sysid == set_position_target_local_ned.target_system ||
@@ -506,64 +541,22 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			 set_position_target_local_ned.target_component == 0)) {
 
 		/* convert mavlink type (local, NED) to uORB offboard control struct */
-		switch (set_position_target_local_ned.coordinate_frame) {
-			case MAV_FRAME_LOCAL_NED:
-				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED;
-				break;
-			case MAV_FRAME_LOCAL_OFFSET_NED:
-				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_OFFSET_NED;
-				break;
-			case MAV_FRAME_BODY_NED:
-				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_BODY_NED;
-				break;
-			case MAV_FRAME_BODY_OFFSET_NED:
-				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_BODY_OFFSET_NED;
-				break;
-			default:
-				/* invalid setpoint, avoid publishing */
-				return;
-		}
-		offboard_control_sp.position[0] = set_position_target_local_ned.x;
-		offboard_control_sp.position[1] = set_position_target_local_ned.y;
-		offboard_control_sp.position[2] = set_position_target_local_ned.z;
-		offboard_control_sp.velocity[0] = set_position_target_local_ned.vx;
-		offboard_control_sp.velocity[1] = set_position_target_local_ned.vy;
-		offboard_control_sp.velocity[2] = set_position_target_local_ned.vz;
-		offboard_control_sp.acceleration[0] = set_position_target_local_ned.afx;
-		offboard_control_sp.acceleration[1] = set_position_target_local_ned.afy;
-		offboard_control_sp.acceleration[2] = set_position_target_local_ned.afz;
-		offboard_control_sp.yaw = set_position_target_local_ned.yaw;
-		offboard_control_sp.yaw_rate = set_position_target_local_ned.yaw_rate;
-		offboard_control_sp.isForceSetpoint = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
+		offboard_control_mode.ignore_position = (bool)(set_position_target_local_ned.type_mask & 0x7);
+		offboard_control_mode.ignore_velocity = (bool)(set_position_target_local_ned.type_mask & 0x38);
+		offboard_control_mode.ignore_acceleration_force = (bool)(set_position_target_local_ned.type_mask & 0x1C0);
+		bool is_force_sp = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
+		/* yaw ignore flag mapps to ignore_attitude */
+		offboard_control_mode.ignore_attitude = (bool)(set_position_target_local_ned.type_mask & 0x400);
+		/* yawrate ignore flag mapps to ignore_bodyrate */
+		offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
 
-		/* If we are in force control mode, for now set offboard mode to force control */
-		if (offboard_control_sp.isForceSetpoint) {
-			offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_FORCE;
-		}
+		offboard_control_mode.timestamp = hrt_absolute_time();
 
-		/* set ignore flags */
-		for (int i = 0; i < 9; i++) {
-			offboard_control_sp.ignore &=  ~(1 << i);
-			offboard_control_sp.ignore |=  (set_position_target_local_ned.type_mask & (1 << i));
-		}
-
-		offboard_control_sp.ignore &=  ~(1 << OFB_IGN_BIT_YAW);
-		if (set_position_target_local_ned.type_mask & (1 << 10)) {
-			offboard_control_sp.ignore |=  (1 << OFB_IGN_BIT_YAW);
-		}
-
-		offboard_control_sp.ignore &=  ~(1 << OFB_IGN_BIT_YAWRATE);
-		if (set_position_target_local_ned.type_mask & (1 << 11)) {
-			offboard_control_sp.ignore |=  (1 << OFB_IGN_BIT_YAWRATE);
-		}
-
-		offboard_control_sp.timestamp = hrt_absolute_time();
-
-		if (_offboard_control_sp_pub < 0) {
-			_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+		if (_offboard_control_mode_pub < 0) {
+			_offboard_control_mode_pub = orb_advertise(ORB_ID(offboard_control_mode), &offboard_control_mode);
 
 		} else {
-			orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
+			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
 		}
 
 		/* If we are in offboard control mode and offboard control loop through is enabled
@@ -575,15 +568,14 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 			}
 			if (_control_mode.flag_control_offboard_enabled) {
-				if (offboard_control_sp.isForceSetpoint &&
-						offboard_control_sp_ignore_position_all(offboard_control_sp) &&
-						offboard_control_sp_ignore_velocity_all(offboard_control_sp)) {
+				if (is_force_sp && offboard_control_mode.ignore_position &&
+						offboard_control_mode.ignore_velocity) {
 					/* The offboard setpoint is a force setpoint only, directly writing to the force
 					 * setpoint topic and not publishing the setpoint triplet topic */
 					struct vehicle_force_setpoint_s	force_sp;
-					force_sp.x = offboard_control_sp.acceleration[0];
-					force_sp.y = offboard_control_sp.acceleration[1];
-					force_sp.z = offboard_control_sp.acceleration[2];
+					force_sp.x = set_position_target_local_ned.afx;
+					force_sp.y = set_position_target_local_ned.afy;
+					force_sp.z = set_position_target_local_ned.afz;
 					//XXX: yaw
 					if (_force_sp_pub < 0) {
 						_force_sp_pub = orb_advertise(ORB_ID(vehicle_force_setpoint), &force_sp);
@@ -596,64 +588,55 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					pos_sp_triplet.previous.valid = false;
 					pos_sp_triplet.next.valid = false;
 					pos_sp_triplet.current.valid = true;
-					pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
+					pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION; //XXX support others
 
-					/* set the local pos values if the setpoint type is 'local pos' and none
-					 * of the local pos fields is set to 'ignore' */
-					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_position_some(offboard_control_sp)) {
-					pos_sp_triplet.current.position_valid = true;
-					pos_sp_triplet.current.x = offboard_control_sp.position[0];
-					pos_sp_triplet.current.y = offboard_control_sp.position[1];
-					pos_sp_triplet.current.z = offboard_control_sp.position[2];
+					/* set the local pos values */
+					if (!offboard_control_mode.ignore_position) {
+						pos_sp_triplet.current.position_valid = true;
+						pos_sp_triplet.current.x = set_position_target_local_ned.x;
+						pos_sp_triplet.current.y = set_position_target_local_ned.y;
+						pos_sp_triplet.current.z = set_position_target_local_ned.z;
 					} else {
 						pos_sp_triplet.current.position_valid = false;
 					}
 
-					/* set the local vel values if the setpoint type is 'local pos' and none
-					 * of the local vel fields is set to 'ignore' */
-					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_velocity_some(offboard_control_sp)) {
+					/* set the local vel values */
+					if (!offboard_control_mode.ignore_velocity) {
 						pos_sp_triplet.current.velocity_valid = true;
-						pos_sp_triplet.current.vx = offboard_control_sp.velocity[0];
-						pos_sp_triplet.current.vy = offboard_control_sp.velocity[1];
-						pos_sp_triplet.current.vz = offboard_control_sp.velocity[2];
+						pos_sp_triplet.current.vx = set_position_target_local_ned.vx;
+						pos_sp_triplet.current.vy = set_position_target_local_ned.vy;
+						pos_sp_triplet.current.vz = set_position_target_local_ned.vz;
 					} else {
 						pos_sp_triplet.current.velocity_valid = false;
 					}
 
 					/* set the local acceleration values if the setpoint type is 'local pos' and none
 					 * of the accelerations fields is set to 'ignore' */
-					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_acceleration_some(offboard_control_sp)) {
+					if (!offboard_control_mode.ignore_acceleration_force) {
 						pos_sp_triplet.current.acceleration_valid = true;
-						pos_sp_triplet.current.a_x = offboard_control_sp.acceleration[0];
-						pos_sp_triplet.current.a_y = offboard_control_sp.acceleration[1];
-						pos_sp_triplet.current.a_z = offboard_control_sp.acceleration[2];
+						pos_sp_triplet.current.a_x = set_position_target_local_ned.afx;
+						pos_sp_triplet.current.a_y = set_position_target_local_ned.afy;
+						pos_sp_triplet.current.a_z = set_position_target_local_ned.afz;
 						pos_sp_triplet.current.acceleration_is_force =
-						offboard_control_sp.isForceSetpoint;
+						is_force_sp;
 
 					} else {
 						pos_sp_triplet.current.acceleration_valid = false;
 					}
 
-					/* set the yaw sp value if the setpoint type is 'local pos' and the yaw
-					 * field is not set to 'ignore' */
-					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_yaw(offboard_control_sp)) {
+					/* set the yaw sp value */
+					if (!offboard_control_mode.ignore_attitude && !isnan(set_position_target_local_ned.yaw)) {
 						pos_sp_triplet.current.yaw_valid = true;
-						pos_sp_triplet.current.yaw = offboard_control_sp.yaw;
+						pos_sp_triplet.current.yaw = set_position_target_local_ned.yaw;
 
 					} else {
 						pos_sp_triplet.current.yaw_valid = false;
 					}
 
-					/* set the yawrate sp value if the setpoint type is 'local pos' and the yawrate
-					 * field is not set to 'ignore' */
-					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_yawrate(offboard_control_sp)) {
+					/* set the yawrate sp value */
+					if (!offboard_control_mode.ignore_bodyrate && !isnan(set_position_target_local_ned.yaw)) {
 						pos_sp_triplet.current.yawspeed_valid = true;
-						pos_sp_triplet.current.yawspeed = offboard_control_sp.yaw_rate;
+						pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
 
 					} else {
 						pos_sp_triplet.current.yawspeed_valid = false;
@@ -678,19 +661,79 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 }
 
 void
+MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *msg)
+{
+	mavlink_set_actuator_control_target_t set_actuator_control_target;
+	mavlink_msg_set_actuator_control_target_decode(msg, &set_actuator_control_target);
+
+	struct offboard_control_mode_s offboard_control_mode;
+	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
+
+	struct actuator_controls_s actuator_controls;
+	memset(&actuator_controls, 0, sizeof(actuator_controls));//XXX breaks compatibility with multiple setpoints
+
+	if ((mavlink_system.sysid == set_actuator_control_target.target_system ||
+		    set_actuator_control_target.target_system == 0) &&
+		(mavlink_system.compid == set_actuator_control_target.target_component ||
+		    set_actuator_control_target.target_component == 0)) {
+
+		/* ignore all since we are setting raw actuators here */
+		offboard_control_mode.ignore_thrust             = true;
+		offboard_control_mode.ignore_attitude           = true;
+		offboard_control_mode.ignore_bodyrate           = true;
+		offboard_control_mode.ignore_position           = true;
+		offboard_control_mode.ignore_velocity           = true;
+		offboard_control_mode.ignore_acceleration_force = true;
+
+		offboard_control_mode.timestamp = hrt_absolute_time();
+
+		if (_offboard_control_mode_pub < 0) {
+			_offboard_control_mode_pub = orb_advertise(ORB_ID(offboard_control_mode), &offboard_control_mode);
+		} else {
+			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
+		}
+
+
+		/* If we are in offboard control mode, publish the actuator controls */
+		bool updated;
+		orb_check(_control_mode_sub, &updated);
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+		}
+
+		if (_control_mode.flag_control_offboard_enabled) {
+
+			actuator_controls.timestamp = hrt_absolute_time();
+
+			/* Set duty cycles for the servos in actuator_controls_0 */
+			for(size_t i = 0; i < 8; i++) {
+				actuator_controls.control[i] = set_actuator_control_target.controls[i];
+			}
+
+			if (_actuator_controls_pub < 0) {
+				_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
+			} else {
+				orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &actuator_controls);
+			}
+		}
+	}
+
+}
+
+void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 {
 	mavlink_vision_position_estimate_t pos;
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
-	struct vision_position_estimate vision_position;
+	struct vision_position_estimate_s vision_position;
 	memset(&vision_position, 0, sizeof(vision_position));
 
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = hrt_absolute_time();
-	vision_position.timestamp_computer = pos.usec;
+	vision_position.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	vision_position.timestamp_computer = sync_stamp(pos.usec); // Synced time
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
@@ -722,42 +765,50 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 	mavlink_set_attitude_target_t set_attitude_target;
 	mavlink_msg_set_attitude_target_decode(msg, &set_attitude_target);
 
-	struct offboard_control_setpoint_s offboard_control_sp;
-	memset(&offboard_control_sp, 0, sizeof(offboard_control_sp)); //XXX breaks compatibility with multiple setpoints
-
 	/* Only accept messages which are intended for this system */
 	if ((mavlink_system.sysid == set_attitude_target.target_system ||
 				set_attitude_target.target_system == 0) &&
 			(mavlink_system.compid == set_attitude_target.target_component ||
 			 set_attitude_target.target_component == 0)) {
-		for (int i = 0; i < 4; i++) {
-			offboard_control_sp.attitude[i] = set_attitude_target.q[i];
-		}
-		offboard_control_sp.attitude_rate[0] = set_attitude_target.body_roll_rate;
-		offboard_control_sp.attitude_rate[1] = set_attitude_target.body_pitch_rate;
-		offboard_control_sp.attitude_rate[2] = set_attitude_target.body_yaw_rate;
 
-		/* set correct ignore flags for body rate fields: copy from mavlink message */
-		for (int i = 0; i < 3; i++) {
-			offboard_control_sp.ignore &=  ~(1 << (i + OFB_IGN_BIT_BODYRATE_X));
-			offboard_control_sp.ignore |=  (set_attitude_target.type_mask & (1 << i)) << OFB_IGN_BIT_BODYRATE_X;
-		}
 		/* set correct ignore flags for thrust field: copy from mavlink message */
-		offboard_control_sp.ignore &= ~(1 << OFB_IGN_BIT_THRUST);
-		offboard_control_sp.ignore |= ((set_attitude_target.type_mask & (1 << 6)) << OFB_IGN_BIT_THRUST);
-		/* set correct ignore flags for attitude field: copy from mavlink message */
-		offboard_control_sp.ignore &= ~(1 << OFB_IGN_BIT_ATT);
-		offboard_control_sp.ignore |= ((set_attitude_target.type_mask & (1 << 7)) << OFB_IGN_BIT_ATT);
+		_offboard_control_mode.ignore_thrust = (bool)(set_attitude_target.type_mask & (1 << 6));
 
+		/*
+		 * The tricky part in parsing this message is that the offboard sender *can* set attitude and thrust
+		 * using different messages. Eg.: First send set_attitude_target containing the attitude and ignore
+		 * bits set for everything else and then send set_attitude_target containing the thrust and ignore bits
+		 * set for everything else.
+		 */
 
-		offboard_control_sp.timestamp = hrt_absolute_time();
-		offboard_control_sp.mode =OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE; //XXX handle rate control mode
+		/*
+		 * if attitude or body rate have been used (not ignored) previously and this message only sends
+		 * throttle and has the ignore bits set for attitude and rates don't change the flags for attitude and
+		 * body rates to keep the controllers running
+		 */
+		bool ignore_bodyrate_msg = (bool)(set_attitude_target.type_mask & 0x7);
+		bool ignore_attitude_msg = (bool)(set_attitude_target.type_mask & (1 << 7));
 
-		if (_offboard_control_sp_pub < 0) {
-			_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+		if (ignore_bodyrate_msg && ignore_attitude_msg && !_offboard_control_mode.ignore_thrust) {
+			/* Message want's us to ignore everything except thrust: only ignore if previously ignored */
+			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate_msg && _offboard_control_mode.ignore_bodyrate;
+			_offboard_control_mode.ignore_attitude = ignore_attitude_msg && _offboard_control_mode.ignore_attitude;
+		} else {
+			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate_msg;
+			_offboard_control_mode.ignore_attitude = ignore_attitude_msg;
+		}
+
+		_offboard_control_mode.ignore_position = true;
+		_offboard_control_mode.ignore_velocity = true;
+		_offboard_control_mode.ignore_acceleration_force = true;
+
+		_offboard_control_mode.timestamp = hrt_absolute_time();
+
+		if (_offboard_control_mode_pub < 0) {
+			_offboard_control_mode_pub = orb_advertise(ORB_ID(offboard_control_mode), &_offboard_control_mode);
 
 		} else {
-			orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
+			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &_offboard_control_mode);
 		}
 
 		/* If we are in offboard control mode and offboard control loop through is enabled
@@ -772,39 +823,46 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			if (_control_mode.flag_control_offboard_enabled) {
 
 				/* Publish attitude setpoint if attitude and thrust ignore bits are not set */
-				if (!(offboard_control_sp_ignore_attitude(offboard_control_sp) ||
-							offboard_control_sp_ignore_thrust(offboard_control_sp))) {
-					struct vehicle_attitude_setpoint_s att_sp;
-					att_sp.timestamp = hrt_absolute_time();
-					mavlink_quaternion_to_euler(set_attitude_target.q,
-							&att_sp.roll_body, &att_sp.pitch_body, &att_sp.yaw_body);
-					mavlink_quaternion_to_dcm(set_attitude_target.q, att_sp.R_body);
-					att_sp.R_valid = true;
-					att_sp.thrust = set_attitude_target.thrust;
-					memcpy(att_sp.q_d, set_attitude_target.q, sizeof(att_sp.q_d));
-					att_sp.q_d_valid = true;
+				if (!(_offboard_control_mode.ignore_attitude)) {
+					_att_sp.timestamp = hrt_absolute_time();
+					if (!ignore_attitude_msg) { // only copy att sp if message contained new data
+						mavlink_quaternion_to_euler(set_attitude_target.q,
+								&_att_sp.roll_body, &_att_sp.pitch_body, &_att_sp.yaw_body);
+						mavlink_quaternion_to_dcm(set_attitude_target.q, (float(*)[3])_att_sp.R_body);
+						_att_sp.R_valid = true;
+						_att_sp.yaw_sp_move_rate = 0.0;
+						memcpy(_att_sp.q_d, set_attitude_target.q, sizeof(_att_sp.q_d));
+						_att_sp.q_d_valid = true;
+					}
+
+					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+						_att_sp.thrust = set_attitude_target.thrust;
+					}
+
 					if (_att_sp_pub < 0) {
-						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 					} else {
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 					}
 				}
 
 				/* Publish attitude rate setpoint if bodyrate and thrust ignore bits are not set */
 				///XXX add support for ignoring individual axes
-				if (!(offboard_control_sp_ignore_bodyrates_some(offboard_control_sp) ||
-							offboard_control_sp_ignore_thrust(offboard_control_sp))) {
-					struct vehicle_rates_setpoint_s rates_sp;
-					rates_sp.timestamp = hrt_absolute_time();
-					rates_sp.roll = set_attitude_target.body_roll_rate;
-					rates_sp.pitch = set_attitude_target.body_pitch_rate;
-					rates_sp.yaw = set_attitude_target.body_yaw_rate;
-					rates_sp.thrust = set_attitude_target.thrust;
+				if (!(_offboard_control_mode.ignore_bodyrate)) {
+					_rates_sp.timestamp = hrt_absolute_time();
+					if (!ignore_bodyrate_msg) { // only copy att rates sp if message contained new data
+						_rates_sp.roll = set_attitude_target.body_roll_rate;
+						_rates_sp.pitch = set_attitude_target.body_pitch_rate;
+						_rates_sp.yaw = set_attitude_target.body_yaw_rate;
+					}
+					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+						_rates_sp.thrust = set_attitude_target.thrust;
+					}
 
 					if (_att_sp_pub < 0) {
-						_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+						_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
 					} else {
-						orb_publish(ORB_ID(vehicle_rates_setpoint), _rates_sp_pub, &rates_sp);
+						orb_publish(ORB_ID(vehicle_rates_setpoint), _rates_sp_pub, &_rates_sp);
 					}
 				}
 			}
@@ -846,28 +904,147 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 	}
 }
 
+static switch_pos_t decode_switch_pos(uint16_t buttons, int sw) {
+	return (buttons >> (sw * 2)) & 3;
+}
+
+static int decode_switch_pos_n(uint16_t buttons, int sw) {
+	if (buttons & (1 << sw)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+void
+MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
+{
+	mavlink_rc_channels_override_t man;
+	mavlink_msg_rc_channels_override_decode(msg, &man);
+
+	// Check target
+	if (man.target_system != 0 && man.target_system != _mavlink->get_system_id()) {
+		return;
+	}
+
+	struct rc_input_values rc = {};
+	rc.timestamp_publication = hrt_absolute_time();
+	rc.timestamp_last_signal = rc.timestamp_publication;
+
+	rc.channel_count = 8;
+	rc.rc_failsafe = false;
+	rc.rc_lost = false;
+	rc.rc_lost_frame_count = 0;
+	rc.rc_total_frame_count = 1;
+	rc.rc_ppm_frame_length = 0;
+	rc.input_source = RC_INPUT_SOURCE_MAVLINK;
+	rc.rssi = RC_INPUT_RSSI_MAX;
+
+	/* channels */
+	rc.values[0] = man.chan1_raw;
+	rc.values[1] = man.chan2_raw;
+	rc.values[2] = man.chan3_raw;
+	rc.values[3] = man.chan4_raw;
+	rc.values[4] = man.chan5_raw;
+	rc.values[5] = man.chan6_raw;
+	rc.values[6] = man.chan7_raw;
+	rc.values[7] = man.chan8_raw;
+
+	if (_rc_pub <= 0) {
+		_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
+
+	} else {
+		orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
+	}
+}
+
 void
 MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 {
 	mavlink_manual_control_t man;
 	mavlink_msg_manual_control_decode(msg, &man);
 
-	struct manual_control_setpoint_s manual;
-	memset(&manual, 0, sizeof(manual));
+	// Check target
+	if (man.target != 0 && man.target != _mavlink->get_system_id()) {
+		return;
+	}
 
-	manual.timestamp = hrt_absolute_time();
-	manual.x = man.x / 1000.0f;
-	manual.y = man.y / 1000.0f;
-	manual.r = man.r / 1000.0f;
-	manual.z = man.z / 1000.0f;
+	if (_mavlink->get_manual_input_mode_generation()) {
 
-	warnx("pitch: %.2f, roll: %.2f, yaw: %.2f, throttle: %.2f", (double)manual.x, (double)manual.y, (double)manual.r, (double)manual.z);
+		struct rc_input_values rc = {};
+		rc.timestamp_publication = hrt_absolute_time();
+		rc.timestamp_last_signal = rc.timestamp_publication;
 
-	if (_manual_pub < 0) {
-		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
+		rc.channel_count = 8;
+		rc.rc_failsafe = false;
+		rc.rc_lost = false;
+		rc.rc_lost_frame_count = 0;
+		rc.rc_total_frame_count = 1;
+		rc.rc_ppm_frame_length = 0;
+		rc.input_source = RC_INPUT_SOURCE_MAVLINK;
+		rc.rssi = RC_INPUT_RSSI_MAX;
+
+		/* roll */
+		rc.values[0] = man.x / 2 + 1500;
+		/* pitch */
+		rc.values[1] = man.y / 2 + 1500;
+
+		/*
+		 * yaw needs special handling as some joysticks have a circular mechanical mask,
+		 * which makes the corner positions unreachable.
+		 * scale yaw up and clip it to overcome this.
+		 */
+		rc.values[2] = man.r / 1.1f + 1500;
+		if (rc.values[2] > 2000) {
+			rc.values[2] = 2000;
+		} else if (rc.values[2] < 1000) {
+			rc.values[2] = 1000;
+		}
+
+		/* throttle */
+		rc.values[3] = man.z / 0.9f + 1000;
+		if (rc.values[3] > 2000) {
+			rc.values[3] = 2000;
+		} else if (rc.values[3] < 1000) {
+			rc.values[3] = 1000;
+		}
+
+		rc.values[4] = decode_switch_pos_n(man.buttons, 0) * 1000 + 1000;
+		rc.values[5] = decode_switch_pos_n(man.buttons, 1) * 1000 + 1000;
+		rc.values[6] = decode_switch_pos_n(man.buttons, 2) * 1000 + 1000;
+		rc.values[7] = decode_switch_pos_n(man.buttons, 3) * 1000 + 1000;
+		rc.values[8] = decode_switch_pos_n(man.buttons, 4) * 1000 + 1000;
+		rc.values[9] = decode_switch_pos_n(man.buttons, 5) * 1000 + 1000;
+
+		if (_rc_pub <= 0) {
+			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
+
+		} else {
+			orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
+		}
 
 	} else {
-		orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
+		struct manual_control_setpoint_s manual = {};
+
+		manual.timestamp = hrt_absolute_time();
+		manual.x = man.x / 1000.0f;
+		manual.y = man.y / 1000.0f;
+		manual.r = man.r / 1000.0f;
+		manual.z = man.z / 1000.0f;
+
+		manual.mode_switch = decode_switch_pos(man.buttons, 0);
+		manual.return_switch = decode_switch_pos(man.buttons, 1);
+		manual.posctl_switch = decode_switch_pos(man.buttons, 2);
+		manual.loiter_switch = decode_switch_pos(man.buttons, 3);
+		manual.acro_switch = decode_switch_pos(man.buttons, 4);
+		manual.offboard_switch = decode_switch_pos(man.buttons, 5);
+
+		if (_manual_pub < 0) {
+			_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
+
+		} else {
+			orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
+		}
 	}
 }
 
@@ -901,12 +1078,25 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 }
 
 void
+MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
+{
+	mavlink_ping_t ping;
+	mavlink_msg_ping_decode( msg, &ping);
+	if ((mavlink_system.sysid == ping.target_system) &&
+		(mavlink_system.compid == ping.target_component)) {
+		mavlink_message_t msg_out;
+		mavlink_msg_ping_encode(_mavlink->get_system_id(), _mavlink->get_component_id(), &msg_out, &ping);
+		_mavlink->send_message(MAVLINK_MSG_ID_PING, &msg_out);
+	}
+}
+
+void
 MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 {
 	mavlink_request_data_stream_t req;
 	mavlink_msg_request_data_stream_decode(msg, &req);
 
-	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid) {
+	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid && req.req_message_rate != 0) {
 		float rate = req.start_stop ? (1000.0f / req.req_message_rate) : 0.0f;
 
 		MavlinkStream *stream;
@@ -916,6 +1106,78 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 			}
 		}
 	}
+}
+
+void
+MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
+{
+	mavlink_system_time_t time;
+	mavlink_msg_system_time_decode(msg, &time);
+
+	timespec tv;
+	clock_gettime(CLOCK_REALTIME, &tv);
+
+	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
+	bool onb_unix_valid = tv.tv_sec > PX4_EPOCH_SECS;
+	bool ofb_unix_valid = time.time_unix_usec > PX4_EPOCH_SECS * 1000ULL;
+
+	if (!onb_unix_valid && ofb_unix_valid) {
+		tv.tv_sec = time.time_unix_usec / 1000000ULL;
+		tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
+		if(clock_settime(CLOCK_REALTIME, &tv)) {
+			warn("failed setting clock");
+		}
+		else {
+		warnx("[timesync] UTC time synced.");
+		}
+	}
+
+}
+
+void
+MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
+{
+	mavlink_timesync_t tsync;
+	mavlink_msg_timesync_decode(msg, &tsync);
+
+	struct time_offset_s tsync_offset;
+	memset(&tsync_offset, 0, sizeof(tsync_offset));
+
+	uint64_t now_ns = hrt_absolute_time() * 1000LL ;
+
+	if (tsync.tc1 == 0) {
+
+		mavlink_timesync_t rsync; // return timestamped sync message
+
+		rsync.tc1 = now_ns;
+		rsync.ts1 = tsync.ts1;
+
+		_mavlink->send_message(MAVLINK_MSG_ID_TIMESYNC, &rsync);
+
+		return;
+
+	} else if (tsync.tc1 > 0) {
+
+		int64_t offset_ns = (tsync.ts1 + now_ns - tsync.tc1*2)/2 ;
+		int64_t dt = _time_offset - offset_ns;
+
+		if (dt > 10000000LL || dt < -10000000LL) { // 10 millisecond skew
+			_time_offset = offset_ns;
+			warnx("[timesync] Hard setting offset.");
+		} else {
+			smooth_time_offset(offset_ns);
+		}
+	}
+
+	tsync_offset.offset_ns = _time_offset ;
+
+	if (_time_offset_pub < 0) {
+		_time_offset_pub = orb_advertise(ORB_ID(time_offset), &tsync_offset);
+
+	} else {
+		orb_publish(ORB_ID(time_offset), _time_offset_pub, &tsync_offset);
+	}
+
 }
 
 void
@@ -962,10 +1224,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		gyro.temperature = imu.temperature;
 
 		if (_gyro_pub < 0) {
-			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro0), &gyro);
+			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
 
 		} else {
-			orb_publish(ORB_ID(sensor_gyro0), _gyro_pub, &gyro);
+			orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &gyro);
 		}
 	}
 
@@ -984,10 +1246,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		accel.temperature = imu.temperature;
 
 		if (_accel_pub < 0) {
-			_accel_pub = orb_advertise(ORB_ID(sensor_accel0), &accel);
+			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
 
 		} else {
-			orb_publish(ORB_ID(sensor_accel0), _accel_pub, &accel);
+			orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
 		}
 	}
 
@@ -1005,10 +1267,11 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		mag.z = imu.zmag;
 
 		if (_mag_pub < 0) {
-			_mag_pub = orb_advertise(ORB_ID(sensor_mag0), &mag);
+			/* publish to the first mag topic */
+			_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
 
 		} else {
-			orb_publish(ORB_ID(sensor_mag0), _mag_pub, &mag);
+			orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
 		}
 	}
 
@@ -1023,10 +1286,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		baro.temperature = imu.temperature;
 
 		if (_baro_pub < 0) {
-			_baro_pub = orb_advertise(ORB_ID(sensor_baro0), &baro);
+			_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
 
 		} else {
-			orb_publish(ORB_ID(sensor_baro0), _baro_pub, &baro);
+			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
 		}
 	}
 
@@ -1075,6 +1338,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.baro_timestamp = timestamp;
 
 		hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
+		hil_sensors.differential_pressure_filtered_pa = hil_sensors.differential_pressure_pa;
 		hil_sensors.differential_pressure_timestamp = timestamp;
 
 		/* publish combined sensor topic */
@@ -1110,7 +1374,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* print HIL sensors rate */
 	if ((timestamp - _old_timestamp) > 10000000) {
-		printf("receiving HIL sensors at %d hz\n", _hil_frames / 10);
+		// printf("receiving HIL sensors at %d hz\n", _hil_frames / 10);
 		_old_timestamp = timestamp;
 		_hil_frames = 0;
 	}
@@ -1128,7 +1392,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	memset(&hil_gps, 0, sizeof(hil_gps));
 
 	hil_gps.timestamp_time = timestamp;
-	hil_gps.time_gps_usec = gps.time_usec;
+	hil_gps.time_utc_usec = gps.time_usec;
 
 	hil_gps.timestamp_position = timestamp;
 	hil_gps.lat = gps.lat;
@@ -1223,8 +1487,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		memset(&hil_global_pos, 0, sizeof(hil_global_pos));
 
 		hil_global_pos.timestamp = timestamp;
-		hil_global_pos.lat = hil_state.lat;
-		hil_global_pos.lon = hil_state.lon;
+		hil_global_pos.lat = hil_state.lat / ((double)1e7);
+		hil_global_pos.lon = hil_state.lon / ((double)1e7);
 		hil_global_pos.alt = hil_state.alt / 1000.0f;
 		hil_global_pos.vel_n = hil_state.vx / 100.0f;
 		hil_global_pos.vel_e = hil_state.vy / 100.0f;
@@ -1249,7 +1513,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		if (!_hil_local_proj_inited) {
 			_hil_local_proj_inited = true;
 			_hil_local_alt0 = hil_state.alt / 1000.0f;
-			map_projection_init(&_hil_local_proj_ref, hil_state.lat, hil_state.lon);
+			map_projection_init(&_hil_local_proj_ref, lat, lon);
 			hil_local_pos.ref_timestamp = timestamp;
 			hil_local_pos.ref_lat = lat;
 			hil_local_pos.ref_lon = lon;
@@ -1274,14 +1538,27 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.xy_global = true;
 		hil_local_pos.z_global = true;
 
-		bool landed = (float)(hil_state.alt) / 1000.0f < (_hil_local_alt0 + 0.1f); // XXX improve?
-		hil_local_pos.landed = landed;
-
 		if (_local_pos_pub < 0) {
 			_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &hil_local_pos);
 
 		} else {
 			orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &hil_local_pos);
+		}
+	}
+
+	/* land detector */
+	{
+		bool landed = (float)(hil_state.alt) / 1000.0f < (_hil_local_alt0 + 0.1f); // XXX improve?
+		if(hil_land_detector.landed != landed) {
+			hil_land_detector.landed = landed;
+			hil_land_detector.timestamp = hrt_absolute_time();
+
+			if (_land_detector_pub < 0) {
+				_land_detector_pub = orb_advertise(ORB_ID(vehicle_land_detected), &hil_land_detector);
+
+			} else {
+				orb_publish(ORB_ID(vehicle_land_detected), _land_detector_pub, &hil_land_detector);
+			}
 		}
 	}
 
@@ -1300,10 +1577,10 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		accel.temperature = 25.0f;
 
 		if (_accel_pub < 0) {
-			_accel_pub = orb_advertise(ORB_ID(sensor_accel0), &accel);
+			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
 
 		} else {
-			orb_publish(ORB_ID(sensor_accel0), _accel_pub, &accel);
+			orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
 		}
 	}
 
@@ -1385,6 +1662,26 @@ void MavlinkReceiver::print_status()
 
 }
 
+uint64_t MavlinkReceiver::sync_stamp(uint64_t usec)
+{
+	if(_time_offset > 0)
+		return usec - (_time_offset / 1000) ;
+	else
+		return hrt_absolute_time();
+}
+
+
+void MavlinkReceiver::smooth_time_offset(uint64_t offset_ns)
+{
+	/* alpha = 0.6 fixed for now. The closer alpha is to 1.0,
+         * the faster the moving average updates in response to
+	 * new offset samples.
+	 */
+
+ 	_time_offset = (_time_offset_avg_alpha * offset_ns) + (1.0 - _time_offset_avg_alpha) * _time_offset;
+}
+
+
 void *MavlinkReceiver::start_helper(void *context)
 {
 	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink *)context);
@@ -1411,7 +1708,7 @@ MavlinkReceiver::receive_start(Mavlink *parent)
 	param.sched_priority = SCHED_PRIORITY_MAX - 80;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, 2900);
+	pthread_attr_setstacksize(&receiveloop_attr, 2100);
 	pthread_t thread;
 	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 

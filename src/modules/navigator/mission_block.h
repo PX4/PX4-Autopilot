@@ -83,15 +83,15 @@ protected:
 	 */
 	void mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
-    /**
-     * Set previous position setpoint to current setpoint
-     */
+	/**
+	 * Set previous position setpoint to current setpoint
+	 */
 	void set_previous_pos_setpoint();
 
 	/**
 	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position
 	 */
-	void set_loiter_item(struct mission_item_s *item);
+	void set_loiter_item(struct mission_item_s *item, float min_clearance = -1.0f);
 
 	mission_item_s _mission_item;
 	bool _waypoint_position_reached;

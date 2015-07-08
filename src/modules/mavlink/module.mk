@@ -51,6 +51,8 @@ INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 
 MAXOPTIMIZATION	 = -Os
 
-MODULE_STACKSIZE = 1024
+MODULE_STACKSIZE = 1200
 
-EXTRACXXFLAGS	= -Weffc++
+EXTRACXXFLAGS	= -Weffc++ -Wno-attributes -Wno-packed
+
+EXTRACFLAGS	= -Wno-packed

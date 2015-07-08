@@ -1,0 +1,26 @@
+#!/bin/sh
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+  against=HEAD
+else
+  # Initial commit: diff against an empty tree object
+  against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+
+# Redirect output to stderr.
+exec 1>&2
+
+CHANGED_FILES=`git diff --cached --name-only --diff-filter=ACM $against | grep '\.c\|\.cpp\|\.h\|\.hpp'`
+FAILED=0
+if [ ! -z "$CHANGED_FILES" -a "$CHANGED_FILES" != " " ]; then
+  for FILE in $CHANGED_FILES; do
+    ./Tools/fix_code_style.sh --quiet < $FILE > $FILE.pretty
+    diff -u $FILE $FILE.pretty || FAILED=1
+    rm -f $FILE.pretty
+    if [ $FAILED -ne 0 ]; then
+      echo "There are code formatting errors. Please fix them by running ./Tools/fix_code_style.sh $FILE"
+      exit $FAILED
+    fi
+  done
+fi
+exit 0

@@ -42,15 +42,26 @@
 #ifndef CALIBRATION_MESSAGES_H_
 #define CALIBRATION_MESSAGES_H_
 
-#define CAL_STARTED_MSG	"%s calibration: started"
-#define CAL_DONE_MSG	"%s calibration: done"
-#define CAL_FAILED_MSG	"%s calibration: failed"
-#define CAL_PROGRESS_MSG	"%s calibration: progress <%u>"
+// The calibration message defines which begin with CAL_QGC_ are used by QGroundControl to run a state
+// machine to provide visual feedback for calibration. As such, the text for them or semantics of when
+// they are displayed cannot be modified without causing QGC to break. If modifications are made, make
+// sure to bump the calibration version number which will cause QGC to perform log based calibration
+// instead of visual calibration until such a time as QGC is update to the new version.
 
-#define CAL_FAILED_SENSOR_MSG	"ERROR: failed reading sensor"
-#define CAL_FAILED_RESET_CAL_MSG	"ERROR: failed to reset calibration"
-#define CAL_FAILED_APPLY_CAL_MSG	"ERROR: failed to apply calibration"
-#define CAL_FAILED_SET_PARAMS_MSG	"ERROR: failed to set parameters"
-#define CAL_FAILED_SAVE_PARAMS_MSG	"ERROR: failed to save parameters"
+// The number in the cal started message is used to indicate the version stamp for the current calibration code.
+#define CAL_QGC_STARTED_MSG			"[cal] calibration started: 2 %s"
+#define CAL_QGC_DONE_MSG			"[cal] calibration done: %s"
+#define CAL_QGC_FAILED_MSG			"[cal] calibration failed: %s"
+#define CAL_QGC_WARNING_MSG			"[cal] calibration warning: %s"
+#define CAL_QGC_CANCELLED_MSG			"[cal] calibration cancelled"
+#define CAL_QGC_PROGRESS_MSG			"[cal] progress <%u>"
+#define CAL_QGC_ORIENTATION_DETECTED_MSG	"[cal] %s orientation detected"
+#define CAL_QGC_SIDE_DONE_MSG			"[cal] %s side done, rotate to a different side"
+
+#define CAL_ERROR_SENSOR_MSG		"[cal] calibration failed: reading sensor"
+#define CAL_ERROR_RESET_CAL_MSG		"[cal] calibration failed: to reset, sensor %u"
+#define CAL_ERROR_APPLY_CAL_MSG		"[cal] calibration failed: to apply calibration, sensor %u"
+#define CAL_ERROR_SET_PARAMS_MSG	"[cal] calibration failed: to set parameters, sensor %u"
+#define CAL_ERROR_SAVE_PARAMS_MSG	"[cal] calibration failed: failed to save parameters"
 
 #endif /* CALIBRATION_MESSAGES_H_ */

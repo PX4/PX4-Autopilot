@@ -1,7 +1,8 @@
 #include <controllib/block/Block.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-class BlockSysIdent : public control::Block {
+class BlockSysIdent : public control::Block
+{
 public:
 	BlockSysIdent();
 private:

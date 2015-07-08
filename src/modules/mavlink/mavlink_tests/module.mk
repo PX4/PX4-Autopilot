@@ -38,6 +38,7 @@
 MODULE_COMMAND		= mavlink_tests
 SRCS			= mavlink_tests.cpp \
 			mavlink_ftp_test.cpp \
+			../mavlink_stream.cpp \
 			../mavlink_ftp.cpp \
 			../mavlink.c
 
@@ -47,4 +48,6 @@ MODULE_STACKSIZE = 5000
 
 MAXOPTIMIZATION	 = -Os
 
-EXTRACXXFLAGS	= -Weffc++ -DMAVLINK_FTP_UNIT_TEST
+EXTRACXXFLAGS	= -Weffc++ -DMAVLINK_FTP_UNIT_TEST -Wno-attributes -Wno-packed
+
+EXTRACFLAGS	= -Wno-packed

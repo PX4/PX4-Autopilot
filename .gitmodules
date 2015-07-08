@@ -4,9 +4,18 @@
 [submodule "NuttX"]
 	path = NuttX
 	url = git://github.com/PX4/NuttX.git
-[submodule "uavcan"]
+[submodule "libuavcan"]
 	path = src/lib/uavcan
-	url = git://github.com/pavel-kirienko/uavcan.git
+	url = git://github.com/UAVCAN/libuavcan.git
+[submodule "Tools/genmsg"]
+	path = Tools/genmsg
+	url = https://github.com/ros/genmsg.git
+[submodule "Tools/gencpp"]
+	path = Tools/gencpp
+	url = https://github.com/ros/gencpp.git
 [submodule "unittests/gtest"]
 	path = unittests/gtest
 	url = https://github.com/sjwilks/gtest.git
+[submodule "src/lib/eigen"]
+	path = src/lib/eigen
+	url = https://github.com/PX4/eigen.git

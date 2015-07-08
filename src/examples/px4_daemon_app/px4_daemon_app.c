@@ -34,7 +34,7 @@
 /**
  * @file px4_daemon_app.c
  * daemon application example for PX4 autopilot
- * 
+ *
  * @author Example User <mail@example.com>
  */
 
@@ -71,8 +71,10 @@ static void usage(const char *reason);
 static void
 usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		warnx("%s\n", reason);
+	}
+
 	errx(1, "usage: daemon {start|stop|status} [-p <additional params>]\n\n");
 }
 
@@ -80,14 +82,15 @@ usage(const char *reason)
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
- * 
+ *
  * The actual stack size should be set in the call
  * to task_create().
  */
 int px4_daemon_app_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 2) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -99,11 +102,11 @@ int px4_daemon_app_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		daemon_task = task_spawn_cmd("daemon",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_DEFAULT,
-					 2000,
-					 px4_daemon_thread_main,
-					 (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_DEFAULT,
+					     2000,
+					     px4_daemon_thread_main,
+					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		exit(0);
 	}
 
@@ -115,9 +118,11 @@ int px4_daemon_app_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			warnx("\trunning\n");
+
 		} else {
 			warnx("\tnot started\n");
 		}
+
 		exit(0);
 	}
 
@@ -125,7 +130,8 @@ int px4_daemon_app_main(int argc, char *argv[])
 	exit(1);
 }
 
-int px4_daemon_thread_main(int argc, char *argv[]) {
+int px4_daemon_thread_main(int argc, char *argv[])
+{
 
 	warnx("[daemon] starting\n");
 

@@ -57,9 +57,10 @@ int reboot_main(int argc, char *argv[])
 		case 'b':
 			to_bootloader = true;
 			break;
+
 		default:
 			errx(1, "usage: reboot [-b]\n"
-				"   -b   reboot into the bootloader");
+			     "   -b   reboot into the bootloader");
 
 		}
 	}

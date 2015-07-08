@@ -42,4 +42,4 @@ SRCS		= main.c \
 
 MODULE_STACKSIZE = 1200
 
-EXTRACFLAGS = -Wframe-larger-than=1200
+EXTRACFLAGS = -Wframe-larger-than=1300

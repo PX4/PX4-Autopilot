@@ -296,8 +296,6 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
-	message("[boot] Initialized SPI port 1 (SENSORS)\n");
-
 	/* Get the SPI port for the FRAM */
 
 	spi2 = up_spiinitialize(2);
@@ -317,8 +315,6 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
-	message("[boot] Initialized SPI port 2 (RAMTRON FRAM)\n");
-
 	spi4 = up_spiinitialize(4);
 
 	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
@@ -327,8 +323,6 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi4, SPIDEV_MODE3);
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
-
-	message("[boot] Initialized SPI port 4\n");
 
 	#ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
@@ -350,7 +344,6 @@ __EXPORT int nsh_archinitialize(void)
 	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
 	sdio_mediachange(sdio, true);
 
-	message("[boot] Initialized SDIO\n");
 	#endif
 
 	return OK;

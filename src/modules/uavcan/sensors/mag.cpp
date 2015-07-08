@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,16 +39,10 @@
 
 #include <systemlib/err.h>
 
-static const orb_id_t MAG_TOPICS[3] = {
-	ORB_ID(sensor_mag0),
-	ORB_ID(sensor_mag1),
-	ORB_ID(sensor_mag2)
-};
-
 const char *const UavcanMagnetometerBridge::NAME = "mag";
 
 UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode& node) :
-UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", MAG_DEVICE_PATH, MAG_TOPICS),
+UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", MAG_BASE_DEVICE_PATH, ORB_ID(sensor_mag)),
 _sub_mag(node)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;

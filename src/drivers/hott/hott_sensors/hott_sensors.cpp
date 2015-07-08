@@ -157,7 +157,7 @@ hott_sensors_thread_main(int argc, char *argv[])
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	const int uart = open_uart(device);
 	if (uart < 0) {
-		errx(1, "Failed opening HoTT UART, exiting.");
+		errx(1, "Open fail, exiting.");
 		thread_running = false;
 	}
 
@@ -197,7 +197,7 @@ hott_sensors_thread_main(int argc, char *argv[])
 int
 hott_sensors_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "missing command\n%s", commandline_usage);
 	}
 

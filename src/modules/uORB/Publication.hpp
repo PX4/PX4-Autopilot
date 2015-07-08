@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,8 @@
 
 #pragma once
 
+#include <assert.h>
+
 #include <uORB/uORB.h>
 #include <containers/List.hpp>
 
@@ -49,55 +51,114 @@ namespace uORB
  * Base publication warapper class, used in list traversal
  * of various publications.
  */
-class __EXPORT PublicationBase : public ListNode<uORB::PublicationBase *>
+class __EXPORT PublicationBase
 {
 public:
 
-	PublicationBase(
-		List<PublicationBase *> * list,
-		const struct orb_metadata *meta) :
+	/**
+	 * Constructor
+	 *
+	 *
+	 * @param meta The uORB metadata (usually from the ORB_ID()
+	 * 	macro) for the topic.
+	 */
+	PublicationBase(const struct orb_metadata *meta) :
 		_meta(meta),
 		_handle(-1) {
-		if (list != NULL) list->add(this);
 	}
-	void update() {
+
+	/**
+	 * Update the struct
+	 * @param data The uORB message struct we are updating.
+	 */
+	void update(void * data) {
 		if (_handle > 0) {
-			orb_publish(getMeta(), getHandle(), getDataVoidPtr());
+			orb_publish(getMeta(), getHandle(), data);
 		} else {
-			setHandle(orb_advertise(getMeta(), getDataVoidPtr()));
+			setHandle(orb_advertise(getMeta(), data));
 		}
 	}
-	virtual void *getDataVoidPtr() = 0;
+
+	/**
+	 * Deconstructor
+	 */
 	virtual ~PublicationBase() {
 		orb_unsubscribe(getHandle());
 	}
+// accessors
 	const struct orb_metadata *getMeta() { return _meta; }
 	int getHandle() { return _handle; }
 protected:
+// accessors
 	void setHandle(orb_advert_t handle) { _handle = handle; }
+// attributes
 	const struct orb_metadata *_meta;
 	orb_advert_t _handle;
+private:
+	// forbid copy
+	PublicationBase(const PublicationBase&) : _meta(), _handle() {};
+	// forbid assignment
+	PublicationBase& operator = (const PublicationBase &);
+};
+
+/**
+ * alias class name so it is clear that the base class
+ * can be used by itself if desired
+ */
+typedef PublicationBase PublicationTiny;
+
+/**
+ * The publication base class as a list node.
+ */
+class __EXPORT PublicationNode :
+	public PublicationBase,
+	public ListNode<PublicationNode *>
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 *
+	 * @param meta The uORB metadata (usually from the ORB_ID()
+	 * 	macro) for the topic.
+	 * @param list 	A pointer to a list of subscriptions
+	 * 	that this should be appended to.
+	 */
+	PublicationNode(const struct orb_metadata *meta,
+		List<PublicationNode *> * list=nullptr);
+
+	/**
+	 * This function is the callback for list traversal
+	 * updates, a child class must implement it.
+	 */
+	virtual void update() = 0;
 };
 
 /**
  * Publication wrapper class
  */
 template<class T>
-class Publication :
+class __EXPORT Publication :
 	public T, // this must be first!
-	public PublicationBase
+	public PublicationNode
 {
 public:
 	/**
 	 * Constructor
 	 *
-	 * @param list      A list interface for adding to list during construction
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
+	 * @param meta The uORB metadata (usually from
+	 * 	the ORB_ID() macro) for the topic.
+	 * @param list A list interface for adding to
+	 * 	list during construction
 	 */
-	Publication(List<PublicationBase *> * list,
-		const struct orb_metadata *meta);
+	Publication(const struct orb_metadata *meta,
+		List<PublicationNode *> * list=nullptr);
+
+	/**
+	 * Deconstructor
+	 **/
 	virtual ~Publication();
+
 	/*
 	 * XXX
 	 * This function gets the T struct, assuming
@@ -106,6 +167,13 @@ public:
 	 * seem to be available
 	 */
 	void *getDataVoidPtr();
+
+	/**
+	 * Create an update function that uses the embedded struct.
+	 */
+	void update() {
+		PublicationBase::update(getDataVoidPtr());
+	}
 };
 
 } // namespace uORB

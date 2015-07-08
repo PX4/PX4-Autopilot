@@ -190,7 +190,8 @@ int test_hott_telemetry(int argc, char *argv[])
 			warnx("PASS: Received %d out of %d valid byte pairs from the HoTT receiver device.", received_count, max_polls);
 
 		} else {
-			warnx("WARN: Received %d out of %d byte pairs of which %d were valid from the HoTT receiver device.", received_count, max_polls, valid_count);
+			warnx("WARN: Received %d out of %d byte pairs of which %d were valid from the HoTT receiver device.", received_count,
+			      max_polls, valid_count);
 		}
 
 	} else {

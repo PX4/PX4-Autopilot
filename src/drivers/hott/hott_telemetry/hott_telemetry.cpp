@@ -223,7 +223,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 int
 hott_telemetry_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		errx(1, "missing command\n%s", commandline_usage);
 	}
 

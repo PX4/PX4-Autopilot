@@ -58,7 +58,8 @@ NavigatorMode::~NavigatorMode()
 }
 
 void
-NavigatorMode::run(bool active) {
+NavigatorMode::run(bool active)
+{
 	if (active) {
 		if (_first_run) {
 			/* first run */

@@ -16,7 +16,7 @@ git checkout -b mydescriptivebranchname
 
 ### Edit and build the code
 
-The [developer guide](http://pixhawk.org/dev/start) explains how to set up the development environment on Mac OS, Linux or Windows. Please take note of our [coding style](http://pixhawk.org/dev/code_style) when editing files.
+The [developer guide](http://px4.io/dev/start) explains how to set up the development environment on Mac OS, Linux or Windows. Please take note of our [coding style](http://px4.io/dev/code_style) when editing files.
 
 ### Commit your changes
 
@@ -41,4 +41,4 @@ Since we care about safety, we will regularly ask you for test results. Best is 
 
 Push changes to your repo and send a [pull request](https://github.com/PX4/Firmware/compare/).
 
-Make sure to provide some testing feedback and if possible the link to a flight log file.
+Make sure to provide some testing feedback and if possible the link to a flight log file. Upload flight log files to [Log Muncher](http://dash.oznet.ch) and link the resulting report.

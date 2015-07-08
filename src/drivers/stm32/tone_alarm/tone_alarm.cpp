@@ -317,7 +317,7 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 
 ToneAlarm::ToneAlarm() :
-	CDev("tone_alarm", TONEALARM_DEVICE_PATH),
+	CDev("tone_alarm", TONEALARM0_DEVICE_PATH),
 	_default_tune_number(0),
 	_user_tune(nullptr),
 	_tune(nullptr),
@@ -338,6 +338,8 @@ ToneAlarm::ToneAlarm() :
 	_default_tunes[TONE_PARACHUTE_RELEASE_TUNE] = "MFT255L16agagagag";			// parachute release
 	_default_tunes[TONE_EKF_WARNING_TUNE] = "MFT255L8ddd#d#eeff";				// ekf warning
 	_default_tunes[TONE_BARO_WARNING_TUNE] = "MFT255L4gf#fed#d";				// baro warning
+	_default_tunes[TONE_SINGLE_BEEP_TUNE] = "MFT100a8";                             // single beep
+	_default_tunes[TONE_HOME_SET] = "MFT100L4>G#6A#6B#4";
 
 	_tune_names[TONE_STARTUP_TUNE] = "startup";			// startup tune
 	_tune_names[TONE_ERROR_TUNE] = "error";				// ERROR tone
@@ -352,6 +354,8 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_PARACHUTE_RELEASE_TUNE] = "parachute_release";	// parachute release
 	_tune_names[TONE_EKF_WARNING_TUNE] = "ekf_warning";				// ekf warning
 	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
+	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
+	_tune_names[TONE_HOME_SET] = "home_set";
 }
 
 ToneAlarm::~ToneAlarm()
@@ -830,10 +834,10 @@ play_tune(unsigned tune)
 {
 	int	fd, ret;
 
-	fd = open(TONEALARM_DEVICE_PATH, 0);
+	fd = open(TONEALARM0_DEVICE_PATH, 0);
 
 	if (fd < 0)
-		err(1, TONEALARM_DEVICE_PATH);
+		err(1, TONEALARM0_DEVICE_PATH);
 
 	ret = ioctl(fd, TONE_SET_ALARM, tune);
 	close(fd);
@@ -849,10 +853,10 @@ play_string(const char *str, bool free_buffer)
 {
 	int	fd, ret;
 
-	fd = open(TONEALARM_DEVICE_PATH, O_WRONLY);
+	fd = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0)
-		err(1, TONEALARM_DEVICE_PATH);
+		err(1, TONEALARM0_DEVICE_PATH);
 
 	ret = write(fd, str, strlen(str) + 1);
 	close(fd);
@@ -888,8 +892,9 @@ tone_alarm_main(int argc, char *argv[])
 	if (argc > 1) {
 		const char *argv1 = argv[1];
 
-		if (!strcmp(argv1, "start"))
-			play_tune(TONE_STARTUP_TUNE);
+		if (!strcmp(argv1, "start")) {
+			play_tune(TONE_STOP_TUNE);
+		}
 
 		if (!strcmp(argv1, "stop"))
 			play_tune(TONE_STOP_TUNE);

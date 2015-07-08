@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,7 @@
 
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/mixer/mixer.h>
+#include <uORB/topics/actuator_controls.h>
 
 extern "C" {
 //#define DEBUG
@@ -230,11 +231,11 @@ mixer_tick(void)
 
 		/* poor mans mutex */
 		in_mixer = true;
-		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
+		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
 		in_mixer = false;
 
 		/* the pwm limit call takes care of out of band errors */
-		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+		pwm_limit_calc(should_arm, mixed, r_setup_pwm_reverse, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
 			r_page_servos[i] = 0;
@@ -272,8 +273,9 @@ mixer_tick(void)
 
 	if (mixer_servos_armed && should_arm) {
 		/* update the servo outputs. */
-		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
+		}
 
 		/* set S.BUS1 or S.BUS2 outputs */
 
@@ -285,15 +287,18 @@ mixer_tick(void)
 
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
 		/* set the disarmed servo outputs. */
-		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
+		}
 
 		/* set S.BUS1 or S.BUS2 outputs */
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT)
-			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+			sbus1_output(r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+		}
 
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT)
-			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
+			sbus2_output(r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+		}
 	}
 }
 
@@ -336,6 +341,40 @@ mixer_callback(uintptr_t handle,
 	case MIX_NONE:
 		control = 0.0f;
 		return -1;
+	}
+
+	/* apply trim offsets for override channels */
+	if (source == MIX_OVERRIDE || source == MIX_OVERRIDE_FMU_OK) {
+		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_ROLL) {
+			control += REG_TO_FLOAT(r_setup_trim_roll);
+
+		} else if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_PITCH) {
+			control += REG_TO_FLOAT(r_setup_trim_pitch);
+
+		} else if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_YAW) {
+			control += REG_TO_FLOAT(r_setup_trim_yaw);
+		}
+	}
+
+	/* motor spinup phase - lock throttle to zero */
+	if (pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
+		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_THROTTLE) {
+			/* limit the throttle output to zero during motor spinup,
+			 * as the motors cannot follow any demand yet
+			 */
+			control = 0.0f;
+		}
+	}
+
+	/* limit output */
+	if (control > 1.0f) {
+		control = 1.0f;
+	} else if (control < -1.0f) {
+		control = -1.0f;
 	}
 
 	return 0;
@@ -451,7 +490,7 @@ mixer_set_failsafe()
 	unsigned mixed;
 
 	/* mix */
-	mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
+	mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
 
 	/* scale to PWM and update the servo outputs as required */
 	for (unsigned i = 0; i < mixed; i++) {

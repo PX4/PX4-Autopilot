@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,7 +50,7 @@
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.0f);
+PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.5f);
 
 /**
  * Roll rate P gain
@@ -60,7 +60,7 @@ PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.1f);
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.12f);
 
 /**
  * Roll rate I gain
@@ -70,7 +70,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.1f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.05f);
 
 /**
  * Roll rate D gain
@@ -80,7 +80,17 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.002f);
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.003f);
+
+/**
+ * Roll rate feedforward
+ *
+ * Improves tracking performance.
+ *
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
 
 /**
  * Pitch P gain
@@ -91,7 +101,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.002f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.0f);
+PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.5f);
 
 /**
  * Pitch rate P gain
@@ -101,7 +111,7 @@ PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.1f);
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.12f);
 
 /**
  * Pitch rate I gain
@@ -111,7 +121,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.1f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.05f);
 
 /**
  * Pitch rate D gain
@@ -121,7 +131,17 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.002f);
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.003f);
+
+/**
+ * Pitch rate feedforward
+ *
+ * Improves tracking performance.
+ *
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
 
 /**
  * Yaw P gain
@@ -132,7 +152,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.002f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAW_P, 2.0f);
+PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
 
 /**
  * Yaw rate P gain
@@ -142,7 +162,7 @@ PARAM_DEFINE_FLOAT(MC_YAW_P, 2.0f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.3f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.2f);
 
 /**
  * Yaw rate I gain
@@ -152,7 +172,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.3f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.1f);
 
 /**
  * Yaw rate D gain
@@ -163,6 +183,16 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
+
+/**
+ * Yaw rate feedforward
+ *
+ * Improves tracking performance.
+ *
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
 
 /**
  * Yaw feed forward
@@ -176,6 +206,30 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
 
 /**
+ * Max roll rate
+ *
+ * Limit for roll rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 360.0f);
+
+/**
+ * Max pitch rate
+ *
+ * Limit for pitch rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 360.0f);
+
+/**
  * Max yaw rate
  *
  * Limit for yaw rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
@@ -186,35 +240,6 @@ PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 120.0f);
-
-/**
- * Max manual roll
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_MAN_R_MAX, 35.0f);
-
-/**
- * Max manual pitch
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_MAN_P_MAX, 35.0f);
-
-/**
- * Max manual yaw rate
- *
- * @unit deg/s
- * @min 0.0
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX, 120.0f);
 
 /**
  * Max acro roll rate

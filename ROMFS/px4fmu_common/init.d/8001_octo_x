@@ -7,6 +7,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER FMU_octo_x
+set MIXER octo_x
 
 set PWM_OUT 12345678

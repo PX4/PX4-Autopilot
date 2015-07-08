@@ -1,0 +1,10 @@
+#!nsh
+#
+# Standard apps for rovers:
+# att & pos estimator, rover steering control
+#
+
+ekf_att_pos_estimator start
+
+# disabled the start of steering control app due to use of offboard mode only
+# rover_steering_control start

@@ -1,33 +1,24 @@
-
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
-#include <systemlib/mixer/mixer.h>
-#include <systemlib/err.h>
+#include <unistd.h>
+
+#include "../../src/systemcmds/tests/tests.h"
 #include <drivers/drv_hrt.h>
 #include <px4iofirmware/px4io.h>
-#include "../../src/systemcmds/tests/tests.h"
+#include <systemlib/err.h>
+#include <systemlib/mixer/mixer.h>
 
-int main(int argc, char *argv[]) {
-	warnx("SBUS2 test started");
+#include "gtest/gtest.h"
 
-	char *filepath = 0;
-
-	if (argc < 2) {
-		warnx("Using default input file");
-		filepath = "testdata/sbus2_r7008SB.txt";
-	} else {
-		filepath = argv[1];
-	}
-
-	warnx("loading data from: %s", filepath);
+TEST(SBUS2Test, SBUS2)
+{
+	const char *filepath = "testdata/sbus2_r7008SB.txt";
 
 	FILE *fp;
-	
-	fp = fopen(filepath,"rt");
+	fp = fopen(filepath, "rt");
 
-	if (!fp)
-		errx(1, "failed opening file");
+	ASSERT_TRUE(fp);
+	warnx("loading data from: %s", filepath);
 
 	float f;
 	unsigned x;
@@ -61,8 +52,9 @@ int main(int argc, char *argv[]) {
 
 		//warnx("%f: 0x%02x, first: 0x%02x, last: 0x%02x, pcount: %u", (double)f, x, frame[0], frame[24], partial_frame_count);
 
-		if (partial_frame_count == sizeof(frame))
+		if (partial_frame_count == sizeof(frame)) {
 			partial_frame_count = 0;
+		}
 
 		last_time = f;
 
@@ -70,15 +62,8 @@ int main(int argc, char *argv[]) {
 		hrt_abstime now = hrt_absolute_time();
 
 		//if (partial_frame_count % 25 == 0)
-			//sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);
+		//sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);
 	}
 
-	if (ret == EOF) {
-		warnx("Test finished, reached end of file");
-		ret = 0;
-	} else {
-		warnx("Test aborted, errno: %d", ret);
-	}
-
-	return ret;
+	ASSERT_EQ(ret, EOF);
 }

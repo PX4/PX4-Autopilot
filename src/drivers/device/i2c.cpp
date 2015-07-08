@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,8 @@
 namespace device
 {
 
+unsigned int I2C::_bus_clocks[3] = { 100000, 100000, 100000 };
+
 I2C::I2C(const char *name,
 	 const char *devname,
 	 int bus,
@@ -72,16 +74,36 @@ I2C::I2C(const char *name,
 
 I2C::~I2C()
 {
-	if (_dev)
+	if (_dev) {
 		up_i2cuninitialize(_dev);
+		_dev = nullptr;
+	}
+}
+
+int
+I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
+{
+	int index = bus - 1;
+
+	if (index < 0 || index >= static_cast<int>(sizeof(_bus_clocks) / sizeof(_bus_clocks[0]))) {
+		return -EINVAL;
+	}
+
+	if (_bus_clocks[index] > 0) {
+		// debug("overriding clock of %u with %u Hz\n", _bus_clocks[index], clock_hz);
+	}
+	_bus_clocks[index] = clock_hz;
+
+	return OK;
 }
 
 int
 I2C::init()
 {
 	int ret = OK;
+	unsigned bus_index;
 
-	/* attach to the i2c bus */
+	// attach to the i2c bus
 	_dev = up_i2cinitialize(_bus);
 
 	if (_dev == nullptr) {
@@ -89,6 +111,38 @@ I2C::init()
 		ret = -ENOENT;
 		goto out;
 	}
+
+	// the above call fails for a non-existing bus index,
+	// so the index math here is safe.
+	bus_index = _bus - 1;
+
+	// abort if the max frequency we allow (the frequency we ask)
+	// is smaller than the bus frequency
+	if (_bus_clocks[bus_index] > _frequency) {
+		(void)up_i2cuninitialize(_dev);
+		_dev = nullptr;
+		log("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
+			_bus, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	// set the bus frequency on the first access if it has
+	// not been set yet
+	if (_bus_clocks[bus_index] == 0) {
+		_bus_clocks[bus_index] = _frequency;
+	}
+
+	// set frequency for this instance once to the bus speed
+	// the bus speed is the maximum supported by all devices on the bus,
+	// as we have to prioritize performance over compatibility.
+	// If a new device requires a lower clock speed, this has to be
+	// manually set via "fmu i2c <bus> <clock>" before starting any
+	// drivers.
+	// This is necessary as automatically lowering the bus speed
+	// for maximum compatibility could induce timing issues on
+	// critical sensors the adopter might be unaware of.
+	I2C_SETFREQUENCY(_dev, _bus_clocks[bus_index]);
 
 	// call the probe function to check whether the device is present
 	ret = probe();
@@ -107,9 +161,14 @@ I2C::init()
 	}
 
 	// tell the world where we are
-	log("on I2C bus %d at 0x%02x", _bus, _address);
+	log("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
+		_bus, _address, _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
+	if ((ret != OK) && (_dev != nullptr)) {
+		up_i2cuninitialize(_dev);
+		_dev = nullptr;
+	}
 	return ret;
 }
 
@@ -152,12 +211,6 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		if (msgs == 0)
 			return -EINVAL;
 
-		/*
-		 * I2C architecture means there is an unavoidable race here
-		 * if there are any devices on the bus with a different frequency
-		 * preference.  Really, this is pointless.
-		 */
-		I2C_SETFREQUENCY(_dev, _frequency);
 		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
 		/* success */
@@ -186,12 +239,6 @@ I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
 
 
 	do {
-		/*
-		 * I2C architecture means there is an unavoidable race here
-		 * if there are any devices on the bus with a different frequency
-		 * preference.  Really, this is pointless.
-		 */
-		I2C_SETFREQUENCY(_dev, _frequency);
 		ret = I2C_TRANSFER(_dev, msgv, msgs);
 
 		/* success */

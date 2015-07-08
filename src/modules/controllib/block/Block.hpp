@@ -43,12 +43,9 @@
 #include <inttypes.h>
 
 #include <containers/List.hpp>
-
-// forward declaration
-namespace uORB {
-	class SubscriptionBase;
-	class PublicationBase;
-}
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <controllib/block/BlockParam.hpp>
 
 namespace control
 {
@@ -60,8 +57,8 @@ static const uint16_t maxPublicationsPerBlock = 100;
 static const uint8_t blockNameLengthMax = 80;
 
 // forward declaration
-class BlockParamBase;
 class SuperBlock;
+class BlockParamBase;
 
 /**
  */
@@ -83,15 +80,15 @@ public:
 protected:
 // accessors
 	SuperBlock *getParent() { return _parent; }
-	List<uORB::SubscriptionBase *> & getSubscriptions() { return _subscriptions; }
-	List<uORB::PublicationBase *> & getPublications() { return _publications; }
+	List<uORB::SubscriptionNode *> & getSubscriptions() { return _subscriptions; }
+	List<uORB::PublicationNode *> & getPublications() { return _publications; }
 	List<BlockParamBase *> & getParams() { return _params; }
 // attributes
 	const char *_name;
 	SuperBlock *_parent;
 	float _dt;
-	List<uORB::SubscriptionBase *> _subscriptions;
-	List<uORB::PublicationBase *> _publications;
+	List<uORB::SubscriptionNode *> _subscriptions;
+	List<uORB::PublicationNode *> _publications;
 	List<BlockParamBase *> _params;
 
 private:
@@ -136,5 +133,6 @@ protected:
 // attributes
 	List<Block *> _children;
 };
+
 
 } // namespace control

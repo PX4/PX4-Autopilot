@@ -57,7 +57,7 @@ PARAM_DEFINE_FLOAT(FWB_V_CMD, 12.0f);       // commanded velocity
 PARAM_DEFINE_FLOAT(FWB_V_MAX, 16.0f);       // maximum commanded velocity
 
 // rate of climb
-// this is what rate of climb is commanded (in m/s) 
+// this is what rate of climb is commanded (in m/s)
 // when the pitch stick is fully defelcted in simple mode
 PARAM_DEFINE_FLOAT(FWB_CR_MAX, 1.0f);
 

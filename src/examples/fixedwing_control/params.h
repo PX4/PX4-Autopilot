@@ -34,7 +34,7 @@
 
 /*
  * @file params.h
- * 
+ *
  * Definition of parameters for fixedwing example
  */
 

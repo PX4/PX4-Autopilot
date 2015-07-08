@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,8 +75,7 @@ public:
 
 	/**
 	 * Sensor bridge factory.
-	 * Creates a bridge object by its ASCII name, e.g. "gnss", "mag".
-	 * @return nullptr if such bridge can't be created.
+	 * Creates all known sensor bridges and puts them in the linked list.
 	 */
 	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge*> &list);
 };
@@ -90,28 +89,29 @@ class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CD
 	struct Channel
 	{
 		int node_id              = -1;
-		orb_id_t orb_id          = nullptr;
 		orb_advert_t orb_advert  = -1;
 		int class_instance       = -1;
+		int orb_instance	 = -1;
 	};
 
 	const unsigned _max_channels;
 	const char *const _class_devname;
-	orb_id_t *const _orb_topics;
+	const orb_id_t _orb_topic;
 	Channel *const _channels;
 	bool _out_of_channels = false;
 
 protected:
-	template <unsigned MaxChannels>
+	static constexpr unsigned DEFAULT_MAX_CHANNELS = 5; // 640 KB ought to be enough for anybody
+
 	UavcanCDevSensorBridgeBase(const char *name, const char *devname, const char *class_devname,
-	                           const orb_id_t (&orb_topics)[MaxChannels]) :
+	                           const orb_id_t orb_topic_sensor,
+	                           const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
 	device::CDev(name, devname),
-	_max_channels(MaxChannels),
+	_max_channels(max_channels),
 	_class_devname(class_devname),
-	_orb_topics(new orb_id_t[MaxChannels]),
-	_channels(new Channel[MaxChannels])
+	_orb_topic(orb_topic_sensor),
+	_channels(new Channel[max_channels])
 	{
-		memcpy(_orb_topics, orb_topics, sizeof(orb_id_t) * MaxChannels);
 		_device_id.devid_s.bus_type = DeviceBusType_UAVCAN;
 		_device_id.devid_s.bus = 0;
 	}

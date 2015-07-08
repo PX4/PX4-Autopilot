@@ -123,17 +123,18 @@ MissionBlock::is_mission_item_reached()
 			 * Therefore the item is marked as reached once the system reaches the loiter
 			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
 			 */
-			if (dist >= 0.0f && dist <= _mission_item.loiter_radius * 1.2f) {
+			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)) {
 				_waypoint_position_reached = true;
 			}
 		} else {
 			/* for normal mission items used their acceptance radius */
-			if (dist >= 0.0f && dist <= _mission_item.acceptance_radius) {
+			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.acceptance_radius)) {
 				_waypoint_position_reached = true;
 			}
 		}
 	}
 
+	/* Check if the waypoint and the requested yaw setpoint. */
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		/* TODO: removed takeoff, why? */
@@ -151,14 +152,14 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
-	/* check if the current waypoint was reached */
+	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
 	if (_waypoint_position_reached && _waypoint_yaw_reached) {
 
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
 
 			// if (_mission_item.time_inside > 0.01f) {
-			// 	mavlink_log_info(_mavlink_fd, "#audio: waypoint reached, wait for %.1fs",
+			// 	mavlink_log_critical(_mavlink_fd, "waypoint reached, wait for %.1fs",
 			// 		(double)_mission_item.time_inside);
 			// }
 		}
@@ -193,25 +194,25 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_IDLE:
-		sp->type = SETPOINT_TYPE_IDLE;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;
 
 	case NAV_CMD_TAKEOFF:
-		sp->type = SETPOINT_TYPE_TAKEOFF;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
 
 	case NAV_CMD_LAND:
-		sp->type = SETPOINT_TYPE_LAND;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
 		break;
 
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_TURN_COUNT:
 	case NAV_CMD_LOITER_UNLIMITED:
-		sp->type = SETPOINT_TYPE_LOITER;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 		break;
 
 	default:
-		sp->type = SETPOINT_TYPE_POSITION;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		break;
 	}
 }
@@ -227,7 +228,7 @@ MissionBlock::set_previous_pos_setpoint()
 }
 
 void
-MissionBlock::set_loiter_item(struct mission_item_s *item)
+MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 {
 	if (_navigator->get_vstatus()->condition_landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
@@ -245,10 +246,14 @@ MissionBlock::set_loiter_item(struct mission_item_s *item)
 			item->altitude = pos_sp_triplet->current.alt;
 
 		} else {
-			/* use current position */
+			/* use current position and use return altitude as clearance */
 			item->lat = _navigator->get_global_position()->lat;
 			item->lon = _navigator->get_global_position()->lon;
 			item->altitude = _navigator->get_global_position()->alt;
+
+			if (min_clearance > 0.0f && item->altitude < _navigator->get_home_position()->alt + min_clearance) {
+				item->altitude = _navigator->get_home_position()->alt + min_clearance;
+			}
 		}
 
 		item->altitude_is_relative = false;

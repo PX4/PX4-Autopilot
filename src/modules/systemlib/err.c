@@ -154,6 +154,7 @@ warn(const char *fmt, ...)
 
 	va_start(args, fmt);
 	vwarn(fmt, args);
+	va_end(args);
 }
 
 void
@@ -169,6 +170,7 @@ warnc(int errcode, const char *fmt, ...)
 
 	va_start(args, fmt);
 	vwarnc(errcode, fmt, args);
+	va_end(args);
 }
 
 void
@@ -184,6 +186,7 @@ warnx(const char *fmt, ...)
 
 	va_start(args, fmt);
 	vwarnx(fmt, args);
+	va_end(args);
 }
 
 void

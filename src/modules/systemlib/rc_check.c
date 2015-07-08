@@ -48,28 +48,71 @@
 #include <mavlink/mavlink_log.h>
 #include <drivers/drv_rc_input.h>
 
-int rc_calibration_check(int mavlink_fd) {
+#define RC_INPUT_MAP_UNMAPPED 0
+
+int rc_calibration_check(int mavlink_fd)
+{
 
 	char nbuf[20];
 	param_t _parameter_handles_min, _parameter_handles_trim, _parameter_handles_max,
-	_parameter_handles_rev, _parameter_handles_dz;
+		_parameter_handles_rev, _parameter_handles_dz;
 
-	float param_min, param_max, param_trim, param_rev, param_dz;
+	unsigned map_fail_count = 0;
+
+	const char *rc_map_mandatory[] = {	"RC_MAP_MODE_SW",
+						/* needs discussion if this should be mandatory "RC_MAP_POSCTL_SW"*/
+						0 /* end marker */
+					 };
+
+	unsigned j = 0;
 
 	/* first check channel mappings */
-			/* check which map param applies */
-		// if (map_by_channel[i] >= MAX_CONTROL_CHANNELS) {
-		// 	mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MAP >= # CHANS", i+1);
-		// 	/* give system time to flush error message in case there are more */
-		// 	usleep(100000);
-		// 	count++;
-		// }
+	while (rc_map_mandatory[j] != 0) {
 
-	int channel_fail_count = 0;
+		param_t map_parm = param_find(rc_map_mandatory[j]);
 
-	for (int i = 0; i < RC_INPUT_MAX_CHANNELS; i++) {
+		if (map_parm == PARAM_INVALID) {
+			mavlink_log_critical(mavlink_fd, "RC ERR: PARAM %s MISSING", rc_map_mandatory[j]);
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+			map_fail_count++;
+			j++;
+			continue;
+		}
+
+		int32_t mapping;
+		param_get(map_parm, &mapping);
+
+		if (mapping > RC_INPUT_MAX_CHANNELS) {
+			mavlink_log_critical(mavlink_fd, "RC ERR: %s >= # CHANS", rc_map_mandatory[j]);
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+			map_fail_count++;
+		}
+
+		if (mapping == 0) {
+			mavlink_log_critical(mavlink_fd, "RC ERR: Mandatory %s is unmapped", rc_map_mandatory[j]);
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+			map_fail_count++;
+		}
+
+		j++;
+	}
+
+	unsigned total_fail_count = 0;
+	unsigned channels_failed = 0;
+
+	for (unsigned i = 0; i < RC_INPUT_MAX_CHANNELS; i++) {
 		/* should the channel be enabled? */
 		uint8_t count = 0;
+
+		/* initialize values to values failing the check */
+		float param_min = 0.0f;
+		float param_max = 0.0f;
+		float param_trim = 0.0f;
+		float param_rev = 0.0f;
+		float param_dz = RC_INPUT_MAX_DEADZONE_US * 2.0f;
 
 		/* min values */
 		sprintf(nbuf, "RC%d_MIN", i + 1);
@@ -97,56 +140,55 @@ int rc_calibration_check(int mavlink_fd) {
 		param_get(_parameter_handles_dz, &param_dz);
 
 		/* assert min..center..max ordering */
-		if (param_min < 500) {
+		if (param_min < RC_INPUT_LOWEST_MIN_US) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_MIN < 500", i+1);
+			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_MIN < %u", i + 1, RC_INPUT_LOWEST_MIN_US);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
-		if (param_max > 2500) {
+
+		if (param_max > RC_INPUT_HIGHEST_MAX_US) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_MAX > 2500", i+1);
+			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_MAX > %u", i + 1, RC_INPUT_HIGHEST_MAX_US);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
+
 		if (param_trim < param_min) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_TRIM < MIN (%d/%d)", i+1, (int)param_trim, (int)param_min);
+			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_TRIM < MIN (%d/%d)", i + 1, (int)param_trim, (int)param_min);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
+
 		if (param_trim > param_max) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_TRIM > MAX (%d/%d)", i+1, (int)param_trim, (int)param_max);
+			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_TRIM > MAX (%d/%d)", i + 1, (int)param_trim, (int)param_max);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		/* assert deadzone is sane */
-		if (param_dz > 500) {
-			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_DZ > 500", i+1);
+		if (param_dz > RC_INPUT_MAX_DEADZONE_US) {
+			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_DZ > %u", i + 1, RC_INPUT_MAX_DEADZONE_US);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			count++;
 		}
 
-		/* check which map param applies */
-		// if (map_by_channel[i] >= MAX_CONTROL_CHANNELS) {
-		// 	mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MAP >= # CHANS", i+1);
-		// 	/* give system time to flush error message in case there are more */
-		// 	usleep(100000);
-		// 	count++;
-		// }
+		total_fail_count += count;
 
-		/* sanity checks pass, enable channel */
 		if (count) {
-			mavlink_log_critical(mavlink_fd, "#audio ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
-			warnx("ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
-			usleep(100000);
+			channels_failed++;
 		}
-
-		channel_fail_count += count;
 	}
 
-	return channel_fail_count;
+	if (channels_failed) {
+		sleep(2);
+		mavlink_and_console_log_critical(mavlink_fd, "%d config error%s for %d RC channel%s.", total_fail_count,
+						 (total_fail_count > 1) ? "s" : "", channels_failed, (channels_failed > 1) ? "s" : "");
+		usleep(100000);
+	}
+
+	return total_fail_count + map_fail_count;
 }

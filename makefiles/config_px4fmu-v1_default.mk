@@ -24,18 +24,18 @@ MODULES		+= drivers/l3gd20
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
-#MODULES		+= drivers/ll40ls
+MODULES		+= drivers/ll40ls
 MODULES		+= drivers/trone
-#MODULES		+= drivers/mb12xx
+MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
-#MODULES		+= drivers/blinkm
+MODULES		+= drivers/blinkm
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/airspeed
-#MODULES		+= drivers/ets_airspeed
+MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
-#MODULES		+= drivers/frsky_telemetry
+MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 
 #
@@ -45,7 +45,6 @@ MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
-MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot
@@ -62,12 +61,15 @@ MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
+MODULES 	+= modules/land_detector
 
 #
 # Estimation modules (EKF / other filters)
 #
-MODULES		+= modules/attitude_estimator_ekf
+# Too high RAM usage due to static allocations
+#MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/ekf_att_pos_estimator
+MODULES		+= modules/attitude_estimator_q
 MODULES		+= modules/position_estimator_inav
 
 #
@@ -110,6 +112,7 @@ MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
+MODULES		+= platforms/nuttx
 
 #
 # Demo apps

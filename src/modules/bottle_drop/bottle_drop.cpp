@@ -57,8 +57,13 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -147,7 +152,7 @@ private:
 
 	void		handle_command(struct vehicle_command_s *cmd);
 
-	void		answer_command(struct vehicle_command_s *cmd, enum VEHICLE_CMD_RESULT result);
+	void		answer_command(struct vehicle_command_s *cmd, unsigned result);
 
 	/**
 	 * Set the actuators
@@ -720,7 +725,7 @@ void
 BottleDrop::handle_command(struct vehicle_command_s *cmd)
 {
 	switch (cmd->command) {
-	case VEHICLE_CMD_CUSTOM_0:
+	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 		/*
 		 * param1 and param2 set to 1: open and drop
 		 * param1 set to 1: open
@@ -741,10 +746,10 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			mavlink_log_critical(_mavlink_fd, "closing bay");
 		}
 
-		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
-	case VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
+	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
 
 		switch ((int)(cmd->param1 + 0.5f)) {
 		case 0:
@@ -772,10 +777,10 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		mavlink_log_info(_mavlink_fd, "got target: %8.4f, %8.4f, %8.4f", (double)_target_position.lat,
 			(double)_target_position.lon, (double)_target_position.alt);
 		map_projection_init(&ref, _target_position.lat, _target_position.lon);
-		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
-	case VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
+	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
 
 		if (cmd->param1 < 0) {
 
@@ -808,7 +813,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			}
 		}
 
-		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
 	default:
@@ -817,25 +822,25 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 }
 
 void
-BottleDrop::answer_command(struct vehicle_command_s *cmd, enum VEHICLE_CMD_RESULT result)
+BottleDrop::answer_command(struct vehicle_command_s *cmd, unsigned result)
 {
 	switch (result) {
-	case VEHICLE_CMD_RESULT_ACCEPTED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
 		break;
 
-	case VEHICLE_CMD_RESULT_DENIED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
 		mavlink_log_critical(_mavlink_fd, "command denied: %u", cmd->command);
 		break;
 
-	case VEHICLE_CMD_RESULT_FAILED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_FAILED:
 		mavlink_log_critical(_mavlink_fd, "command failed: %u", cmd->command);
 		break;
 
-	case VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
 		mavlink_log_critical(_mavlink_fd, "command temporarily rejected: %u", cmd->command);
 		break;
 
-	case VEHICLE_CMD_RESULT_UNSUPPORTED:
+	case vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
 		mavlink_log_critical(_mavlink_fd, "command unsupported: %u", cmd->command);
 		break;
 

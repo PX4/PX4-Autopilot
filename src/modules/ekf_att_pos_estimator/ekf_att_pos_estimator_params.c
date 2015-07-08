@@ -141,13 +141,13 @@ PARAM_DEFINE_FLOAT(PE_VELNE_NOISE, 0.3f);
 /**
  * Velocity noise in down (vertical) direction
  *
- * Generic default: 0.5, multicopters: 0.7, ground vehicles: 0.7
+ * Generic default: 0.3, multicopters: 0.4, ground vehicles: 0.7
  *
- * @min 0.05
- * @max 5.0
+ * @min 0.2
+ * @max 3.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_VELD_NOISE, 0.5f);
+PARAM_DEFINE_FLOAT(PE_VELD_NOISE, 0.3f);
 
 /**
  * Position noise in north-east (horizontal) direction
@@ -163,21 +163,21 @@ PARAM_DEFINE_FLOAT(PE_POSNE_NOISE, 0.5f);
 /**
  * Position noise in down (vertical) direction
  *
- * Generic defaults: 0.5, multicopters: 1.0, ground vehicles: 1.0
+ * Generic defaults: 1.25, multicopters: 1.0, ground vehicles: 1.0
  *
- * @min 0.1
- * @max 10.0
+ * @min 0.5
+ * @max 3.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_POSD_NOISE, 0.5f);
+PARAM_DEFINE_FLOAT(PE_POSD_NOISE, 1.25f);
 
 /**
  * Magnetometer measurement noise
  *
  * Generic defaults: 0.05, multicopters: 0.05, ground vehicles: 0.05
  *
- * @min 0.1
- * @max 10.0
+ * @min 0.01
+ * @max 1.0
  * @group Position Estimator
  */
 PARAM_DEFINE_FLOAT(PE_MAG_NOISE, 0.05f);
@@ -218,7 +218,7 @@ PARAM_DEFINE_FLOAT(PE_ACC_PNOISE, 0.25f);
  * @max 0.00001
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_GBIAS_PNOISE, 1e-07f);
+PARAM_DEFINE_FLOAT(PE_GBIAS_PNOISE, 1e-06f);
 
 /**
  * Accelerometer bias estimate process noise
@@ -230,7 +230,7 @@ PARAM_DEFINE_FLOAT(PE_GBIAS_PNOISE, 1e-07f);
  * @max 0.001
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_ABIAS_PNOISE, 0.00005f);
+PARAM_DEFINE_FLOAT(PE_ABIAS_PNOISE, 0.0002f);
 
 /**
  * Magnetometer earth frame offsets process noise

@@ -50,8 +50,11 @@
 #pragma pack(push, 1)
 /* --- ATT - ATTITUDE --- */
 #define LOG_ATT_MSG 2
-#define LOG_ATT2_MSG 41
 struct log_ATT_s {
+	float q_w;
+	float q_x;
+	float q_y;
+	float q_z;
 	float roll;
 	float pitch;
 	float yaw;
@@ -70,6 +73,10 @@ struct log_ATSP_s {
 	float pitch_sp;
 	float yaw_sp;
 	float thrust_sp;
+	float q_w;
+	float q_x;
+	float q_y;
+	float q_z;
 };
 
 /* --- IMU - IMU SENSORS --- */
@@ -86,6 +93,9 @@ struct log_IMU_s {
 	float mag_x;
 	float mag_y;
 	float mag_z;
+	float temp_acc;
+	float temp_gyro;
+	float temp_mag;
 };
 
 /* --- SENS - OTHER SENSORS --- */
@@ -113,7 +123,6 @@ struct log_LPOS_s {
 	int32_t ref_lon;
 	float ref_alt;
 	uint8_t pos_flags;
-	uint8_t landed;
 	uint8_t ground_dist_flags;
 	float eph;
 	float epv;
@@ -126,6 +135,12 @@ struct log_LPSP_s {
 	float y;
 	float z;
 	float yaw;
+	float vx;
+	float vy;
+	float vz;
+	float acc_x;
+	float acc_y;
+	float acc_z;
 };
 
 /* --- GPS - GPS POSITION --- */
@@ -163,10 +178,11 @@ struct log_ATTC_s {
 struct log_STAT_s {
 	uint8_t main_state;
 	uint8_t arming_state;
-	uint8_t failsafe_state;
+	uint8_t failsafe;
 	float battery_remaining;
 	uint8_t battery_warning;
 	uint8_t landed;
+	float load;
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
@@ -202,7 +218,6 @@ struct log_ARSP_s {
 /* --- FLOW - OPTICAL FLOW --- */
 #define LOG_FLOW_MSG 15
 struct log_FLOW_s {
-	uint64_t timestamp;
 	uint8_t sensor_id;
 	float pixel_flow_x_integral;
 	float pixel_flow_y_integral;
@@ -424,6 +439,29 @@ struct log_ENCD_s {
 	float vel1;
 };
 
+/* --- AIR SPEED SENSORS - DIFF. PRESSURE --- */
+#define LOG_AIR1_MSG 41
+
+/* --- VTOL - VTOL VEHICLE STATUS */
+#define LOG_VTOL_MSG 42
+struct log_VTOL_s {
+	float airspeed_tot;
+};
+
+/* --- TIMESYNC - TIME SYNCHRONISATION OFFSET */
+#define LOG_TSYN_MSG 43
+struct log_TSYN_s {
+	uint64_t time_offset;
+};
+
+/* --- MACS - MULTIROTOR ATTITUDE CONTROLLER STATUS */
+#define LOG_MACS_MSG 44
+struct log_MACS_s {
+	float roll_rate_integ;
+	float pitch_rate_integ;
+	float yaw_rate_integ;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -451,24 +489,25 @@ struct log_PARM_s {
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
-	LOG_FORMAT_S(ATT, ATT, "fffffffff",		"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
-	LOG_FORMAT_S(ATT2, ATT, "fffffffff",	"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
-	LOG_FORMAT(ATSP, "ffff",		"RollSP,PitchSP,YawSP,ThrustSP"),
-	LOG_FORMAT_S(IMU, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
-	LOG_FORMAT_S(IMU1, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
-	LOG_FORMAT_S(IMU2, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
-	LOG_FORMAT(SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
-	LOG_FORMAT(LPOS, "ffffffffLLfBBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,LFlg,GFlg,EPH,EPV"),
-	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
+	LOG_FORMAT(ATT, "fffffffffffff",	"qw,qx,qy,qz,Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
+	LOG_FORMAT(ATSP, "ffffffff",		"RollSP,PitchSP,YawSP,ThrustSP,qw,qx,qy,qz"),
+	LOG_FORMAT_S(IMU, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
+	LOG_FORMAT_S(IMU1, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
+	LOG_FORMAT_S(IMU2, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
+	LOG_FORMAT_S(SENS, SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
+	LOG_FORMAT_S(AIR1, SENS, "fffff",	"BaroPa,BaroAlt,BaroTmp,DiffPres,DiffPresF"),
+	LOG_FORMAT(LPOS, "ffffffffLLfBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,GFlg,EPH,EPV"),
+	LOG_FORMAT(LPSP, "ffffffffff",		"X,Y,Z,Yaw,VX,VY,VZ,AX,AY,AZ"),
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBfBB",		"MainState,ArmState,FailsafeState,BatRem,BatWarn,Landed"),
+	LOG_FORMAT(STAT, "BBBfBBf",		"MainState,ArmS,Failsafe,BatRem,BatWarn,Landed,Load"),
+	LOG_FORMAT(VTOL, "f",		"Arsp"),
 	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
 	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "fff",			"IndSpeed,TrueSpeed,AirTemp"),
 	LOG_FORMAT(ARSP, "fff",			"RollRateSP,PitchRateSP,YawRateSP"),
-	LOG_FORMAT(FLOW, "hhfffBB",		"RawX,RawY,CompX,CompY,Dist,Q,SensID"),
+	LOG_FORMAT(FLOW, "BffffffLLHhB",	"ID,RawX,RawY,RX,RY,RZ,Dist,TSpan,DtSonar,FrmCnt,GT,Qlty"),
 	LOG_FORMAT(GPOS, "LLfffffff",		"Lat,Lon,Alt,VelN,VelE,VelD,EPH,EPV,TALT"),
 	LOG_FORMAT(GPSP, "BLLffBfbf",		"NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHffiffH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
@@ -491,6 +530,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
+	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
+	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

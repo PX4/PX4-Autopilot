@@ -43,6 +43,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
+#define GPS_EPOCH_SECS 1234567890ULL
+
 class GPS_Helper
 {
 public:

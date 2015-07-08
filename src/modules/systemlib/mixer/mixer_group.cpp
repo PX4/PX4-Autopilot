@@ -76,8 +76,9 @@ MixerGroup::add_mixer(Mixer *mixer)
 
 	mpp = &_first;
 
-	while (*mpp != nullptr)
+	while (*mpp != nullptr) {
 		mpp = &((*mpp)->_next);
+	}
 
 	*mpp = mixer;
 	mixer->_next = nullptr;
@@ -98,13 +99,13 @@ MixerGroup::reset()
 }
 
 unsigned
-MixerGroup::mix(float *outputs, unsigned space)
+MixerGroup::mix(float *outputs, unsigned space, uint16_t *status_reg)
 {
 	Mixer	*mixer = _first;
 	unsigned index = 0;
 
 	while ((mixer != nullptr) && (index < space)) {
-		index += mixer->mix(outputs + index, space - index);
+		index += mixer->mix(outputs + index, space - index, status_reg);
 		mixer = mixer->_next;
 	}
 
@@ -185,6 +186,7 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 			/* only adjust buflen if parsing was successful */
 			buflen = resid;
 			debug("SUCCESS - buflen: %d", buflen);
+
 		} else {
 
 			/*

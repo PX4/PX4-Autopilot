@@ -65,6 +65,11 @@ def main():
                         metavar="FILENAME",
                         help="Create XML file"
                              " (default FILENAME: parameters.xml)")
+    parser.add_argument("-b", "--board",
+                         nargs='?',
+                         const="",
+                         metavar="BOARD",
+                         help="Board to create xml parameter xml for")
     parser.add_argument("-w", "--wiki",
                         nargs='?',
                         const="parameters.wiki",
@@ -116,7 +121,7 @@ def main():
     # Output to XML file
     if args.xml:
         print("Creating XML file " + args.xml)
-        out = xmlout.XMLOutput(param_groups)
+        out = xmlout.XMLOutput(param_groups, args.board)
         out.Save(args.xml)
 
     # Output to DokuWiki tables

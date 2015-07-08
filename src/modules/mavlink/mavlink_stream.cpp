@@ -80,6 +80,7 @@ MavlinkStream::update(const hrt_abstime t)
 	if (dt > 0 && dt >= interval) {
 		/* interval expired, send message */
 		send(t);
+
 		if (const_rate()) {
 			_last_sent = (t / _interval) * _interval;
 

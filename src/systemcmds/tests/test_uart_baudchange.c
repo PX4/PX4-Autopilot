@@ -146,8 +146,9 @@ int test_uart_baudchange(int argc, char *argv[])
 		/* uart2 -> */
 		r = write(uart2, sample_uart2, sizeof(sample_uart2));
 
-		if (r > 0)
+		if (r > 0) {
 			uart2_nwrite += r;
+		}
 	}
 
 	close(uart2);

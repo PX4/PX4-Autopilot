@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -239,11 +239,13 @@ PX4IO_serial::~PX4IO_serial()
 int
 PX4IO_serial::init()
 {
+
 	/* allocate DMA */
 	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
 	_rx_dma = stm32_dmachannel(PX4IO_SERIAL_RX_DMAMAP);
-	if ((_tx_dma == nullptr) || (_rx_dma == nullptr))
+	if ((_tx_dma == nullptr) || (_rx_dma == nullptr)) {
 		return -1;
+	}
 
 	/* configure pins for serial use */
 	stm32_configgpio(PX4IO_SERIAL_TX_GPIO);
@@ -257,6 +259,7 @@ PX4IO_serial::init()
 	/* eat any existing interrupt status */
 	(void)rSR;
 	(void)rDR;
+
 
 	/* configure line speed */
 	uint32_t usartdiv32 = PX4IO_SERIAL_CLOCK / (PX4IO_SERIAL_BITRATE / 2);

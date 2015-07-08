@@ -66,7 +66,7 @@ public:
 };
 
 LED::LED() :
-	CDev("led", LED_DEVICE_PATH)
+	CDev("led", LED0_DEVICE_PATH)
 {
 	// force immediate init/device registration
 	init();

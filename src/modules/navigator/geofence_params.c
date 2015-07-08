@@ -48,16 +48,15 @@
  */
 
 /**
- * Enable geofence.
+ * Geofence mode.
  *
- * Set to 1 to enable geofence.
- * Defaults to 1 because geofence is only enabled when the geofence.txt file is present.
+ * 0 = disabled, 1 = geofence file only, 2 = max horizontal (GF_MAX_HOR_DIST) and vertical (GF_MAX_VER_DIST) distances, 3 = both
  *
  * @min 0
- * @max 1
+ * @max 3
  * @group Geofence
  */
-PARAM_DEFINE_INT32(GF_ON, 1);
+PARAM_DEFINE_INT32(GF_MODE, 0);
 
 /**
  * Geofence altitude mode
@@ -94,3 +93,21 @@ PARAM_DEFINE_INT32(GF_SOURCE, 0);
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_COUNT, -1);
+
+/**
+ * Max horizontal distance in meters.
+ *
+ * Set to > 0 to activate RTL if horizontal distance to home exceeds this value.
+ *
+ * @group Geofence
+ */
+PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
+
+/**
+ * Max vertical distance in meters.
+ *
+ * Set to > 0 to activate RTL if vertical distance to home exceeds this value.
+ *
+ * @group Geofence
+ */
+PARAM_DEFINE_INT32(GF_MAX_VER_DIST, -1);

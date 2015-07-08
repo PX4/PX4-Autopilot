@@ -48,7 +48,7 @@
 /**
  * Path for the default S.BUS device
  */
-#define SBUS_DEVICE_PATH	"/dev/sbus"
+#define SBUS0_DEVICE_PATH	"/dev/sbus0"
 
 #define _SBUS_BASE		0x2c00
 

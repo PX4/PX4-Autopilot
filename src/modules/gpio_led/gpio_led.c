@@ -66,7 +66,7 @@ struct gpio_led_s {
 	int counter;
 };
 
-static struct gpio_led_s gpio_led_data;
+static struct gpio_led_s *gpio_led_data;
 static bool gpio_led_started = false;
 
 __EXPORT int gpio_led_main(int argc, char *argv[]);
@@ -170,10 +170,11 @@ int gpio_led_main(int argc, char *argv[])
 				}
 			}
 
-			memset(&gpio_led_data, 0, sizeof(gpio_led_data));
-			gpio_led_data.use_io = use_io;
-			gpio_led_data.pin = pin;
-			int ret = work_queue(LPWORK, &gpio_led_data.work, gpio_led_start, &gpio_led_data, 0);
+			gpio_led_data = malloc(sizeof(struct gpio_led_s));
+			memset(gpio_led_data, 0, sizeof(struct gpio_led_s));
+			gpio_led_data->use_io = use_io;
+			gpio_led_data->pin = pin;
+			int ret = work_queue(LPWORK, &(gpio_led_data->work), gpio_led_start, gpio_led_data, 0);
 
 			if (ret != 0) {
 				errx(1, "failed to queue work: %d", ret);
@@ -183,11 +184,13 @@ int gpio_led_main(int argc, char *argv[])
 				warnx("start, using pin: %s", pin_name);
 				exit(0);
 			}
+
 		} else if (!strcmp(argv[1], "stop")) {
 			if (gpio_led_started) {
 				gpio_led_started = false;
 				warnx("stop");
 				exit(0);
+
 			} else {
 				errx(1, "not running");
 			}

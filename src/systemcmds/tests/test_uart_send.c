@@ -95,7 +95,7 @@ int test_uart_send(int argc, char *argv[])
 	/* input handling */
 	char *uart_name = "/dev/ttyS3";
 
-	if (argc > 1) uart_name = argv[1];
+	if (argc > 1) { uart_name = argv[1]; }
 
 	/* assuming NuttShell is on UART1 (/dev/ttyS0) */
 	int test_uart = open(uart_name, O_RDWR | O_NONBLOCK | O_NOCTTY); //

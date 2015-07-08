@@ -216,8 +216,6 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
-	message("[boot] Successfully initialized SPI port 1\r\n");
-
 	/*
 	 * If SPI2 is enabled in the defconfig, we loose some ADC pins as chip selects.
 	 * Keep the SPI2 init optional and conditionally initialize the ADC pins
@@ -243,7 +241,6 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Get the SPI port for the microSD slot */
 
-	message("[boot] Initializing SPI port 3\n");
 	spi3 = up_spiinitialize(3);
 
 	if (!spi3) {
@@ -251,8 +248,6 @@ __EXPORT int nsh_archinitialize(void)
 		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
-
-	message("[boot] Successfully initialized SPI port 3\n");
 
 	/* Now bind the SPI interface to the MMCSD driver */
 	result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi3);
@@ -262,8 +257,6 @@ __EXPORT int nsh_archinitialize(void)
 		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
-
-	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
 
 	return OK;
 }

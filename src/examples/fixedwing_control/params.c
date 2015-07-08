@@ -34,7 +34,7 @@
 
 /*
  * @file params.c
- * 
+ *
  * Parameters for fixedwing demo
  */
 

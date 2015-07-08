@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,39 +73,38 @@ MTK::configure(unsigned &baudrate)
 
 	/* Write config messages, don't wait for an answer */
 	if (strlen(MTK_OUTPUT_5HZ) != write(_fd, MTK_OUTPUT_5HZ, strlen(MTK_OUTPUT_5HZ))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	usleep(10000);
 
 	if (strlen(MTK_SET_BINARY) != write(_fd, MTK_SET_BINARY, strlen(MTK_SET_BINARY))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	usleep(10000);
 
 	if (strlen(SBAS_ON) != write(_fd, SBAS_ON, strlen(SBAS_ON))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	usleep(10000);
 
 	if (strlen(WAAS_ON) != write(_fd, WAAS_ON, strlen(WAAS_ON))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	usleep(10000);
 
 	if (strlen(MTK_NAVTHRES_OFF) != write(_fd, MTK_NAVTHRES_OFF, strlen(MTK_NAVTHRES_OFF))) {
-		warnx("mtk: config write failed");
-		return -1;
+		goto errout;
 	}
 
 	return 0;
+
+errout:
+	warnx("mtk: config write failed");
+	return -1;
 }
 
 int
@@ -222,7 +221,6 @@ MTK::parse_char(uint8_t b, gps_mtk_packet_t &packet)
 				ret = 1;
 
 			} else {
-				warnx("MTK Checksum invalid");
 				ret = -1;
 			}
 
@@ -261,29 +259,45 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	_gps_position->fix_type = packet.fix_type;
 	_gps_position->eph = packet.hdop / 100.0f; // from cm to m
 	_gps_position->epv = _gps_position->eph; // unknown in mtk custom mode, so we cheat with eph
-	_gps_position->vel_m_s = ((float)packet.ground_speed) * 1e-2f; // from cm/s to m/s
+	_gps_position->vel_m_s = ((float)packet.ground_speed) / 100.0f; // from cm/s to m/s
 	_gps_position->cog_rad = ((float)packet.heading) * M_DEG_TO_RAD_F * 1e-2f; //from deg *100 to rad
 	_gps_position->satellites_used = packet.satellites;
 
 	/* convert time and date information to unix timestamp */
-	struct tm timeinfo; //TODO: test this conversion
+	struct tm timeinfo;
 	uint32_t timeinfo_conversion_temp;
 
-	timeinfo.tm_mday = packet.date * 1e-4;
-	timeinfo_conversion_temp = packet.date - timeinfo.tm_mday * 1e4;
-	timeinfo.tm_mon = timeinfo_conversion_temp * 1e-2 - 1;
-	timeinfo.tm_year = (timeinfo_conversion_temp - (timeinfo.tm_mon + 1) * 1e2) + 100;
+	timeinfo.tm_mday = packet.date / 10000;
+	timeinfo_conversion_temp = packet.date - timeinfo.tm_mday * 10000;
+	timeinfo.tm_mon = (timeinfo_conversion_temp / 100) - 1;
+	timeinfo.tm_year = (timeinfo_conversion_temp - (timeinfo.tm_mon + 1) * 100) + 100;
 
-	timeinfo.tm_hour = packet.utc_time * 1e-7;
-	timeinfo_conversion_temp = packet.utc_time - timeinfo.tm_hour * 1e7;
-	timeinfo.tm_min = timeinfo_conversion_temp * 1e-5;
-	timeinfo_conversion_temp -= timeinfo.tm_min * 1e5;
-	timeinfo.tm_sec = timeinfo_conversion_temp * 1e-3;
-	timeinfo_conversion_temp -= timeinfo.tm_sec * 1e3;
+	timeinfo.tm_hour = (packet.utc_time / 10000000);
+	timeinfo_conversion_temp = packet.utc_time - timeinfo.tm_hour * 10000000;
+	timeinfo.tm_min = timeinfo_conversion_temp / 100000;
+	timeinfo_conversion_temp -= timeinfo.tm_min * 100000;
+	timeinfo.tm_sec = timeinfo_conversion_temp / 1000;
+	timeinfo_conversion_temp -= timeinfo.tm_sec * 1000;
 	time_t epoch = mktime(&timeinfo);
 
-	_gps_position->time_gps_usec = epoch * 1e6; //TODO: test this
-	_gps_position->time_gps_usec += timeinfo_conversion_temp * 1e3;
+	if (epoch > GPS_EPOCH_SECS) {
+		// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
+		// and control its drift. Since we rely on the HRT for our monotonic
+		// clock, updating it from time to time is safe.
+
+		timespec ts;
+		ts.tv_sec = epoch;
+		ts.tv_nsec = timeinfo_conversion_temp * 1000000ULL;
+		if (clock_settime(CLOCK_REALTIME, &ts)) {
+			warn("failed setting clock");
+		}
+
+		_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+		_gps_position->time_utc_usec += timeinfo_conversion_temp * 1000ULL;
+	} else {
+		_gps_position->time_utc_usec = 0;
+	}
+
 	_gps_position->timestamp_position = _gps_position->timestamp_time = hrt_absolute_time();
 
 	// Position and velocity update always at the same time

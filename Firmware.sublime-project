@@ -38,10 +38,18 @@
 	"build_systems":
 	[
 		{
-			"name": "PX4",
+			"name": "PX4: make all",
 			"working_dir": "${project_path}",
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
-			"cmd": ["make"]
+			"cmd": ["make"],
+			"shell": true
+		},
+		{
+			"name": "PX4: make and upload",
+			"working_dir": "${project_path}",
+			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+			"cmd": ["make upload px4fmu-v2_default -j8"],
+			"shell": true
 		}
 	]
 }

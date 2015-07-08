@@ -61,11 +61,13 @@ int test_conv(int argc, char *argv[])
 {
 	warnx("Testing system conversions");
 
-	for (int i = -10000; i <= 10000; i+=1) {
-		float f = i/10000.0f;
+	for (int i = -10000; i <= 10000; i += 1) {
+		float f = i / 10000.0f;
 		float fres = REG_TO_FLOAT(FLOAT_TO_REG(f));
+
 		if (fabsf(f - fres) > 0.0001f) {
-			warnx("conversion fail: input: %8.4f, intermediate: %d, result: %8.4f", (double)f, REG_TO_SIGNED(FLOAT_TO_REG(f)), (double)fres);
+			warnx("conversion fail: input: %8.4f, intermediate: %d, result: %8.4f", (double)f, REG_TO_SIGNED(FLOAT_TO_REG(f)),
+			      (double)fres);
 			return 1;
 		}
 	}

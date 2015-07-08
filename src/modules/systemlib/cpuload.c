@@ -97,7 +97,8 @@ void cpuload_initialize_once()
 		system_load.tasks[system_load.total_count].start_time = now;
 		system_load.tasks[system_load.total_count].total_runtime = 0;
 		system_load.tasks[system_load.total_count].curr_start_time = 0;
-		system_load.tasks[system_load.total_count].tcb = sched_gettcb(system_load.total_count);	// it is assumed that these static threads have consecutive PIDs
+		system_load.tasks[system_load.total_count].tcb = sched_gettcb(
+					system_load.total_count);	// it is assumed that these static threads have consecutive PIDs
 		system_load.tasks[system_load.total_count].valid = true;
 	}
 }

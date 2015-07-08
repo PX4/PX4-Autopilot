@@ -65,19 +65,19 @@ public:
 	 * Control in altitude setpoint and speed mode
 	 */
 	int updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed,
-			float airspeedSp, tecs_mode mode, LimitOverride limitOverride);
+				float airspeedSp, unsigned mode, LimitOverride limitOverride);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and speed mode
 	 */
 	int updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed,
-			float airspeedSp, tecs_mode mode, LimitOverride limitOverride);
+				       float airspeedSp, unsigned mode, LimitOverride limitOverride);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and acceleration mode (base case)
 	 */
 	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeedFiltered,
-			float accelerationLongitudinalSp, tecs_mode mode, LimitOverride limitOverride);
+					      float accelerationLongitudinalSp, unsigned mode, LimitOverride limitOverride);
 
 	/*
 	 * Reset all integrators

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,7 +57,8 @@ __BEGIN_DECLS
  * PX4FMU with PX4IO connected) there may be other devices that
  * respond to this protocol.
  */
-#define PWM_OUTPUT_DEVICE_PATH	"/dev/pwm_output"
+#define PWM_OUTPUT_BASE_DEVICE_PATH "/dev/pwm_output"
+#define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
 /**
  * Maximum number of PWM output channels supported by the device.
@@ -77,12 +78,12 @@ __BEGIN_DECLS
 /**
  * Highest PWM allowed as the minimum PWM
  */
-#define PWM_HIGHEST_MIN 1300
+#define PWM_HIGHEST_MIN 1600
 
 /**
  * Highest maximum PWM in us
  */
-#define PWM_HIGHEST_MAX 2100
+#define PWM_HIGHEST_MAX 2150
 
 /**
  * Default maximum PWM in us
@@ -92,7 +93,7 @@ __BEGIN_DECLS
 /**
  * Lowest PWM allowed as the maximum PWM
  */
-#define PWM_LOWEST_MAX 1700
+#define PWM_LOWEST_MAX 950
 
 /**
  * Do not output a channel with this value

@@ -106,7 +106,7 @@ Airspeed::~Airspeed()
 	stop();
 
 	if (_class_instance != -1)
-		unregister_class_devname(AIRSPEED_DEVICE_PATH, _class_instance);
+		unregister_class_devname(AIRSPEED_BASE_DEVICE_PATH, _class_instance);
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -133,7 +133,7 @@ Airspeed::init()
 		goto out;
 
 	/* register alternate interfaces if we have to */
-	_class_instance = register_class_devname(AIRSPEED_DEVICE_PATH);
+	_class_instance = register_class_devname(AIRSPEED_BASE_DEVICE_PATH);
 
 	/* publication init */
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
@@ -364,7 +364,7 @@ Airspeed::update_status()
 			true,
 			true,
 			_sensor_ok,
-			SUBSYSTEM_TYPE_DIFFPRESSURE
+			subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE
 		};
 
 		if (_subsys_pub > 0) {

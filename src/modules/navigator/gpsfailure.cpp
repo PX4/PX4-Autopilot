@@ -161,12 +161,12 @@ GpsFailure::advance_gpsf()
 	case GPSF_STATE_NONE:
 		_gpsf_state = GPSF_STATE_LOITER;
 		warnx("gpsf loiter");
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: open loop loiter");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "GPS failed: open loop loiter");
 		break;
 	case GPSF_STATE_LOITER:
 		_gpsf_state = GPSF_STATE_TERMINATE;
 		warnx("gpsf terminate");
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no gps recovery, termination");
+		mavlink_log_emergency(_navigator->get_mavlink_fd(), "no gps recovery, termination");
 		warnx("mavlink sent");
 		break;
 	case GPSF_STATE_TERMINATE:

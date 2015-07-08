@@ -2,33 +2,41 @@
 #
 # TBS Caipirinha
 #
-# Thomas Gubler <thomas@px4.io>
+# Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults
 
 if [ $AUTOCNF == yes ]
 then
-
-	# TODO: these are the X5 default parameters, update them to the caipi
-
-	param set FW_AIRSPD_MIN 15
-	param set FW_AIRSPD_TRIM 20
-	param set FW_AIRSPD_MAX 40
+	param set FW_AIRSPD_MAX 20
+	param set FW_AIRSPD_MIN 12
+	param set FW_AIRSPD_TRIM 16
 	param set FW_ATT_TC 0.3
 	param set FW_L1_DAMPING 0.74
-	param set FW_L1_PERIOD 15
-	param set FW_PR_FF 0.3
-	param set FW_PR_I 0
-	param set FW_PR_IMAX 0.2
-	param set FW_PR_P 0.03
-	param set FW_P_ROLLFF 0
-	param set FW_RR_FF 0.3
-	param set FW_RR_I 0
+	param set FW_L1_PERIOD 16
+	param set FW_LND_ANG 15
+	param set FW_LND_FLALT 5
+	param set FW_LND_HHDIST 15
+	param set FW_LND_HVIRT 13
+	param set FW_LND_TLALT 5
+	param set FW_THR_LND_MAX 0
+	param set FW_PR_FF 0.35
+	param set FW_PR_I 0.01
+	param set FW_PR_IMAX 0.4
+	param set FW_PR_P 0.08
+	param set FW_RR_FF 0.6
+	param set FW_RR_I 0.01
 	param set FW_RR_IMAX 0.2
-	param set FW_RR_P 0.03
-	param set FW_R_LIM 60
-	param set FW_R_RMAX 0
+	param set FW_RR_P 0.04
+	param set SYS_COMPANION 157600
+	param set PWM_MAIN_REV0 1
+	param set PWM_MAIN_REV1 1
 fi
 
-set MIXER FMU_Q
+set PWM_DISARMED p:PWM_DISARMED
+set PWM_MIN p:PWM_MIN
+set PWM_MAX p:PWM_MAX
+
+set MIXER caipi
+set PWM_OUT 1234

@@ -90,8 +90,9 @@ cycletime(void)
 
 	cycles = *(unsigned long *)0xe0001004;
 
-	if (cycles < lasttime)
+	if (cycles < lasttime) {
 		basetime += 0x100000000ULL;
+	}
 
 	lasttime = cycles;
 
@@ -147,11 +148,13 @@ int test_time(int argc, char *argv[])
 		delta = abs(h - c);
 		deltadelta = abs(delta - lowdelta);
 
-		if (deltadelta > maxdelta)
+		if (deltadelta > maxdelta) {
 			maxdelta = deltadelta;
+		}
 
-		if (deltadelta > 1000)
+		if (deltadelta > 1000) {
 			fprintf(stderr, "h %llu  c %llu  d %lld\n", h, c, delta - lowdelta);
+		}
 	}
 
 	printf("Maximum jitter %lldus\n", maxdelta);

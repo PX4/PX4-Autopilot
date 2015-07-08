@@ -36,7 +36,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Julian Oes <joes@student.ethz.ch>
  *
- * config tool.
+ * config tool. Takes the device name as the first parameter.
  */
 
 #include <nuttx/config.h>
@@ -58,6 +58,7 @@
 
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
+#include "systemlib/param/param.h"
 
 __EXPORT int config_main(int argc, char *argv[]);
 
@@ -70,18 +71,18 @@ int
 config_main(int argc, char *argv[])
 {
 	if (argc >= 2) {
-		if (!strcmp(argv[1], "gyro")) {
-			do_gyro(argc - 2, argv + 2);
-		} else if (!strcmp(argv[1], "accel")) {
-			do_accel(argc - 2, argv + 2);
-		} else if (!strcmp(argv[1], "mag")) {
-			do_mag(argc - 2, argv + 2);
+		if (!strncmp(argv[1], "/dev/gyro",9)) {
+			do_gyro(argc - 1, argv + 1);
+		} else if (!strncmp(argv[1], "/dev/accel",10)) {
+			do_accel(argc - 1, argv + 1);
+		} else if (!strncmp(argv[1], "/dev/mag",8)) {
+			do_mag(argc - 1, argv + 1);
 		} else {
 			do_device(argc - 1, argv + 1);
 		}
 	}
-	
-	errx(1, "expected a command, try 'gyro', 'accel', 'mag'");
+
+	errx(1, "expected a device, try '/dev/gyro', '/dev/accel', '/dev/mag'");
 }
 
 static void
@@ -132,41 +133,41 @@ do_gyro(int argc, char *argv[])
 {
 	int	fd;
 
-	fd = open(GYRO_DEVICE_PATH, 0);
+	fd = open(argv[0], 0);
 
 	if (fd < 0) {
-		warn("%s", GYRO_DEVICE_PATH);
+		warn("%s", argv[0]);
 		errx(1, "FATAL: no gyro found");
 
 	} else {
 
 		int ret;
 
-		if (argc == 2 && !strcmp(argv[0], "sampling")) {
+		if (argc == 3 && !strcmp(argv[1], "sampling")) {
 
 			/* set the gyro internal sampling rate up to at least i Hz */
-			ret = ioctl(fd, GYROIOCSSAMPLERATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, GYROIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
 
 			if (ret)
 				errx(ret,"sampling rate could not be set");
 
-		} else if (argc == 2 && !strcmp(argv[0], "rate")) {
+		} else if (argc == 3 && !strcmp(argv[1], "rate")) {
 
 			/* set the driver to poll at i Hz */
-			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
 
 			if (ret)
 				errx(ret,"pollrate could not be set");
 
-		} else if (argc == 2 && !strcmp(argv[0], "range")) {
+		} else if (argc == 3 && !strcmp(argv[1], "range")) {
 
 			/* set the range to i dps */
-			ret = ioctl(fd, GYROIOCSRANGE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, GYROIOCSRANGE, strtoul(argv[2], NULL, 0));
 
 			if (ret)
 				errx(ret,"range could not be set");
 
-		} else if (argc == 1 && !strcmp(argv[0], "check")) {
+		} else if (argc == 2 && !strcmp(argv[1], "check")) {
 			ret = ioctl(fd, GYROIOCSELFTEST, 0);
 
 			if (ret) {
@@ -191,8 +192,12 @@ do_gyro(int argc, char *argv[])
 		int srate = ioctl(fd, GYROIOCGSAMPLERATE, 0);
 		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
 		int range = ioctl(fd, GYROIOCGRANGE, 0);
+		int id = ioctl(fd, DEVIOCGDEVICEID,0);
+		int32_t calibration_id = 0;
 
-		warnx("gyro: \n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d dps", srate, prate, range);
+		param_get(param_find("CAL_GYRO0_ID"), &(calibration_id));
+
+		warnx("gyro: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d dps", id, calibration_id, srate, prate, range);
 
 		close(fd);
 	}
@@ -205,41 +210,41 @@ do_mag(int argc, char *argv[])
 {
 	int fd;
 
-	fd = open(MAG_DEVICE_PATH, 0);
+	fd = open(argv[0], 0);
 
 	if (fd < 0) {
-		warn("%s", MAG_DEVICE_PATH);
+		warn("%s", argv[0]);
 		errx(1, "FATAL: no magnetometer found");
 
 	} else {
 
 		int ret;
 
-		if (argc == 2 && !strcmp(argv[0], "sampling")) {
+		if (argc == 3 && !strcmp(argv[1], "sampling")) {
 
 			/* set the mag internal sampling rate up to at least i Hz */
-			ret = ioctl(fd, MAGIOCSSAMPLERATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, MAGIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
 
 			if (ret)
 				errx(ret,"sampling rate could not be set");
 
-		} else if (argc == 2 && !strcmp(argv[0], "rate")) {
+		} else if (argc == 3 && !strcmp(argv[1], "rate")) {
 
 			/* set the driver to poll at i Hz */
-			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
 
 			if (ret)
 				errx(ret,"pollrate could not be set");
 
-		} else if (argc == 2 && !strcmp(argv[0], "range")) {
+		} else if (argc == 3 && !strcmp(argv[1], "range")) {
 
 			/* set the range to i G */
-			ret = ioctl(fd, MAGIOCSRANGE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, MAGIOCSRANGE, strtoul(argv[2], NULL, 0));
 
 			if (ret)
 				errx(ret,"range could not be set");
 
-		} else if(argc == 1 && !strcmp(argv[0], "check")) {
+		} else if(argc == 2 && !strcmp(argv[1], "check")) {
 			ret = ioctl(fd, MAGIOCSELFTEST, 0);
 
 			if (ret) {
@@ -264,8 +269,12 @@ do_mag(int argc, char *argv[])
 		int srate = ioctl(fd, MAGIOCGSAMPLERATE, 0);
 		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
 		int range = ioctl(fd, MAGIOCGRANGE, 0);
+		int id = ioctl(fd, DEVIOCGDEVICEID,0);
+		int32_t calibration_id = 0;
 
-		warnx("mag: \n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga", srate, prate, range);
+		param_get(param_find("CAL_MAG0_ID"), &(calibration_id));
+
+		warnx("mag: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga", id, calibration_id, srate, prate, range);
 
 		close(fd);
 	}
@@ -278,41 +287,41 @@ do_accel(int argc, char *argv[])
 {
 	int	fd;
 
-	fd = open(ACCEL_DEVICE_PATH, 0);
+	fd = open(argv[0], 0);
 
 	if (fd < 0) {
-		warn("%s", ACCEL_DEVICE_PATH);
+		warn("%s", argv[0]);
 		errx(1, "FATAL: no accelerometer found");
 
 	} else {
 
 		int ret;
 
-		if (argc == 2 && !strcmp(argv[0], "sampling")) {
+		if (argc == 3 && !strcmp(argv[1], "sampling")) {
 
 			/* set the accel internal sampling rate up to at least i Hz */
-			ret = ioctl(fd, ACCELIOCSSAMPLERATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, ACCELIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
 
 			if (ret)
 				errx(ret,"sampling rate could not be set");
 
-		} else if (argc == 2 && !strcmp(argv[0], "rate")) {
+		} else if (argc == 3 && !strcmp(argv[1], "rate")) {
 
 			/* set the driver to poll at i Hz */
-			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
 
 			if (ret)
 				errx(ret,"pollrate could not be set");
 
-		} else if (argc == 2 && !strcmp(argv[0], "range")) {
+		} else if (argc == 3 && !strcmp(argv[1], "range")) {
 
 			/* set the range to i G */
-			ret = ioctl(fd, ACCELIOCSRANGE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, ACCELIOCSRANGE, strtoul(argv[2], NULL, 0));
 
 			if (ret)
 				errx(ret,"range could not be set");
 
-		} else if(argc == 1 && !strcmp(argv[0], "check")) {
+		} else if(argc == 2 && !strcmp(argv[1], "check")) {
 			ret = ioctl(fd, ACCELIOCSELFTEST, 0);
 
 			if (ret) {
@@ -337,8 +346,12 @@ do_accel(int argc, char *argv[])
 		int srate = ioctl(fd, ACCELIOCGSAMPLERATE, 0);
 		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
 		int range = ioctl(fd, ACCELIOCGRANGE, 0);
+		int id = ioctl(fd, DEVIOCGDEVICEID,0);
+		int32_t calibration_id = 0;
 
-		warnx("accel: \n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d G", srate, prate, range);
+		param_get(param_find("CAL_ACC0_ID"), &(calibration_id));
+
+		warnx("accel: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d G", id, calibration_id, srate, prate, range);
 
 		close(fd);
 	}

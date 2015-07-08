@@ -111,9 +111,9 @@ publish_gam_message(const uint8_t *buffer)
 	// Publish it.
 	esc.timestamp = hrt_absolute_time();
 	esc.esc_count = 1;
-	esc.esc_connectiontype = ESC_CONNECTION_TYPE_PPM;
+	esc.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_PPM;
 
-	esc.esc[0].esc_vendor = ESC_VENDOR_GRAUPNER_HOTT;
+	esc.esc[0].esc_vendor = esc_status_s::ESC_VENDOR_GRAUPNER_HOTT;
 	esc.esc[0].esc_rpm = (uint16_t)((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
 	esc.esc[0].esc_temperature = static_cast<float>(msg.temperature1) - 20.0F;
 	esc.esc[0].esc_voltage = static_cast<float>((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff)) * 0.1F;

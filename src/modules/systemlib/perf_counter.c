@@ -39,6 +39,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/queue.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
@@ -67,10 +68,13 @@ struct perf_ctr_count {
 struct perf_ctr_elapsed {
 	struct perf_ctr_header	hdr;
 	uint64_t		event_count;
+	uint64_t		event_overruns;
 	uint64_t		time_start;
 	uint64_t		time_total;
 	uint64_t		time_least;
 	uint64_t		time_most;
+	float			mean;
+	float			M2;
 };
 
 /**
@@ -124,6 +128,28 @@ perf_alloc(enum perf_counter_type type, const char *name)
 	}
 
 	return ctr;
+}
+
+perf_counter_t
+perf_alloc_once(enum perf_counter_type type, const char *name)
+{
+	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
+
+	while (handle != NULL) {
+		if (!strcmp(handle->name, name)) {
+			if (type == handle->type) {
+				/* they are the same counter */
+				return handle;
+			} else {
+				/* same name but different type, assuming this is an error and not intended */
+				return NULL;
+			}
+		}
+		handle = (perf_counter_t)sq_next(&handle->link);
+	}
+
+	/* if the execution reaches here, no existing counter of that name was found */
+	return perf_alloc(type, name);
 }
 
 void
@@ -213,16 +239,71 @@ perf_end(perf_counter_t handle)
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
 			if (pce->time_start != 0) {
-				hrt_abstime elapsed = hrt_absolute_time() - pce->time_start;
+				int64_t elapsed = hrt_absolute_time() - pce->time_start;
+
+				if (elapsed < 0) {
+					pce->event_overruns++;
+				} else {
+
+					pce->event_count++;
+					pce->time_total += elapsed;
+
+					if ((pce->time_least > (uint64_t)elapsed) || (pce->time_least == 0))
+						pce->time_least = elapsed;
+
+					if (pce->time_most < (uint64_t)elapsed)
+						pce->time_most = elapsed;
+
+					// maintain mean and variance of the elapsed time in seconds
+					// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
+					float dt = elapsed / 1e6f;
+					float delta_intvl = dt - pce->mean;
+					pce->mean += delta_intvl / pce->event_count;
+					pce->M2 += delta_intvl * (dt - pce->mean);
+
+					pce->time_start = 0;
+				}
+			}
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+#include <systemlib/err.h>
+
+void
+perf_set(perf_counter_t handle, int64_t elapsed)
+{
+	if (handle == NULL) {
+		return;
+	}
+
+	switch (handle->type) {
+	case PC_ELAPSED: {
+			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+
+			if (elapsed < 0) {
+				pce->event_overruns++;
+			} else {
 
 				pce->event_count++;
 				pce->time_total += elapsed;
 
-				if ((pce->time_least > elapsed) || (pce->time_least == 0))
+				if ((pce->time_least > (uint64_t)elapsed) || (pce->time_least == 0))
 					pce->time_least = elapsed;
 
-				if (pce->time_most < elapsed)
+				if (pce->time_most < (uint64_t)elapsed)
 					pce->time_most = elapsed;
+
+				// maintain mean and variance of the elapsed time in seconds
+				// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
+				float dt = elapsed / 1e6f;
+				float delta_intvl = dt - pce->mean;
+				pce->mean += delta_intvl / pce->event_count;
+				pce->M2 += delta_intvl * (dt - pce->mean);
 
 				pce->time_start = 0;
 			}
@@ -310,14 +391,17 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 
 	case PC_ELAPSED: {
 		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+		float rms = sqrtf(pce->M2 / (pce->event_count-1));
 
-		dprintf(fd, "%s: %llu events, %lluus elapsed, %lluus avg, min %lluus max %lluus\n",
-		       handle->name,
-		       pce->event_count,
-		       pce->time_total,
-		       pce->time_total / pce->event_count,
-		       pce->time_least,
-		       pce->time_most);
+		dprintf(fd, "%s: %llu events, %llu overruns, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
+			handle->name,
+			pce->event_count,
+			pce->event_overruns,
+			pce->time_total,
+			pce->time_total / pce->event_count,
+			pce->time_least,
+			pce->time_most,
+			(double)(1e6f * rms));
 		break;
 	}
 
@@ -325,14 +409,13 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 		struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
 		float rms = sqrtf(pci->M2 / (pci->event_count-1));
 
-		dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus %5.3f msec mean %5.3f msec rms\n",
-		       handle->name,
-		       pci->event_count,
-		       (pci->time_last - pci->time_first) / pci->event_count,
-		       pci->time_least,
-		       pci->time_most,
-			   (double)(1000 * pci->mean),
-			   (double)(1000 * rms));
+		dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
+			handle->name,
+			pci->event_count,
+			(pci->time_last - pci->time_first) / pci->event_count,
+			pci->time_least,
+			pci->time_most,
+			(double)(1e6f * rms));
 		break;
 	}
 

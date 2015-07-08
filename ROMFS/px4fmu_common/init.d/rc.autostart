@@ -16,6 +16,7 @@
 # 11000	..	11999		Hexa Cox
 # 12000	..	12999		Octo Cox
 # 13000 ..  13999		VTOL
+# 14000 ..  14999       Tri Y
 
 #
 # Simulation
@@ -64,7 +65,7 @@ fi
 
 if param compare SYS_AUTOSTART 2101 101
 then
-	sh /etc/init.d/2101_hk_bixler
+	sh /etc/init.d/2101_fw_AERT
 	set MODE custom
 fi
 
@@ -78,6 +79,12 @@ if param compare SYS_AUTOSTART 2103 103
 then
         sh /etc/init.d/2103_skyhunter_1800
         set MODE custom
+fi
+
+if param compare SYS_AUTOSTART 2104
+then
+	sh /etc/init.d/2104_fw_AETR
+	set MODE custom
 fi
 
 #
@@ -226,6 +233,11 @@ then
 	sh /etc/init.d/10018_tbs_endurance
 fi
 
+if param compare SYS_AUTOSTART 10019
+then
+	sh /etc/init.d/10019_sk450_deadcat
+fi
+
 #
 # Hexa Coaxial
 #
@@ -247,9 +259,52 @@ fi
 # 13000 is historically reserved for the quadshot
 
 #
-# VTOL caipririnha
+# VTOL Caipririnha (Tailsitter)
 #
- if param compare SYS_AUTOSTART 13001
- then
-	 sh /etc/init.d/13001_caipirinha_vtol
- fi
+if param compare SYS_AUTOSTART 13001
+then
+	sh /etc/init.d/13001_caipirinha_vtol
+fi
+
+#
+# VTOL BirdsEyeView FireFly x6 (Tilt-Rotor)
+#
+if param compare SYS_AUTOSTART 13002
+then
+	sh /etc/init.d/13002_firefly6
+fi
+
+#
+# Tailsitter with 4 motors in x config
+#
+if param compare SYS_AUTOSTART 13003
+then
+	sh /etc/init.d/13003_quad_tailsitter
+fi
+
+#
+# TriCopter Y Yaw+
+#
+if param compare SYS_AUTOSTART 14001
+then
+	sh /etc/init.d/14001_tri_y_yaw+
+fi
+
+#
+# TriCopter Y Yaw-
+#
+if param compare SYS_AUTOSTART 14002
+then
+	sh /etc/init.d/14002_tri_y_yaw-
+fi
+
+
+
+#
+# Ground Rover AxialRacing AX10
+#
+if param compare SYS_AUTOSTART 50001
+then
+	sh /etc/init.d/50001_axialracing_ax10
+fi
+

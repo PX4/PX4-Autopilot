@@ -24,7 +24,14 @@ then
 	param set MC_YAWRATE_D 0.0
 fi
 
-set MIXER FMU_quad_w
+set MIXER quad_w
 
 set PWM_OUT 1234
 set PWM_MIN 1200
+
+set MIXER_AUX pass
+set PWM_AUX_RATE 50
+set PWM_AUX_OUT 1234
+set PWM_AUX_DISARMED 1000
+set PWM_AUX_MIN 1000
+set PWM_AUX_MAX 2000

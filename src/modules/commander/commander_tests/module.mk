@@ -38,4 +38,5 @@
 MODULE_COMMAND		= commander_tests
 SRCS			= commander_tests.cpp \
 			state_machine_helper_test.cpp \
-			../state_machine_helper.cpp
+			../state_machine_helper.cpp \
+			../PreflightCheck.cpp

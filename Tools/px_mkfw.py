@@ -105,6 +105,7 @@ if args.git_identity != None:
 if args.parameter_xml != None:
 	f = open(args.parameter_xml, "rb")
 	bytes = f.read()
+	desc['parameter_xml_size'] = len(bytes)
 	desc['parameter_xml'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
 if args.image != None:
 	f = open(args.image, "rb")

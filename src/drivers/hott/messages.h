@@ -235,15 +235,15 @@ struct gps_module_msg {
 // The maximum size of a message.
 #define MAX_MESSAGE_BUFFER_SIZE 45
 
-void init_sub_messages(void);
-void init_pub_messages(void);
-void build_gam_request(uint8_t *buffer, size_t *size);
-void publish_gam_message(const uint8_t *buffer);
-void build_eam_response(uint8_t *buffer, size_t *size);
-void build_gam_response(uint8_t *buffer, size_t *size);
-void build_gps_response(uint8_t *buffer, size_t *size);
-float _get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
-void convert_to_degrees_minutes_seconds(double lat, int *deg, int *min, int *sec);
+__EXPORT void init_sub_messages(void);
+__EXPORT void init_pub_messages(void);
+__EXPORT void build_gam_request(uint8_t *buffer, size_t *size);
+__EXPORT void publish_gam_message(const uint8_t *buffer);
+__EXPORT void build_eam_response(uint8_t *buffer, size_t *size);
+__EXPORT void build_gam_response(uint8_t *buffer, size_t *size);
+__EXPORT void build_gps_response(uint8_t *buffer, size_t *size);
+__EXPORT float _get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
+__EXPORT void convert_to_degrees_minutes_seconds(double lat, int *deg, int *min, int *sec);
 
 
 #endif /* MESSAGES_H_ */

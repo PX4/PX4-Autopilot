@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,23 +46,16 @@
 #include <drivers/drv_orb_dev.h>
 
 #include <drivers/drv_mag.h>
-ORB_DEFINE(sensor_mag0, struct mag_report);
-ORB_DEFINE(sensor_mag1, struct mag_report);
-ORB_DEFINE(sensor_mag2, struct mag_report);
+ORB_DEFINE(sensor_mag, struct mag_report);
 
 #include <drivers/drv_accel.h>
-ORB_DEFINE(sensor_accel0, struct accel_report);
-ORB_DEFINE(sensor_accel1, struct accel_report);
-ORB_DEFINE(sensor_accel2, struct accel_report);
+ORB_DEFINE(sensor_accel, struct accel_report);
 
 #include <drivers/drv_gyro.h>
-ORB_DEFINE(sensor_gyro0, struct gyro_report);
-ORB_DEFINE(sensor_gyro1, struct gyro_report);
-ORB_DEFINE(sensor_gyro2, struct gyro_report);
+ORB_DEFINE(sensor_gyro, struct gyro_report);
 
 #include <drivers/drv_baro.h>
-ORB_DEFINE(sensor_baro0, struct baro_report);
-ORB_DEFINE(sensor_baro1, struct baro_report);
+ORB_DEFINE(sensor_baro, struct baro_report);
 
 #include <drivers/drv_range_finder.h>
 ORB_DEFINE(sensor_range_finder, struct range_finder_report);
@@ -81,6 +74,9 @@ ORB_DEFINE(sensor_combined, struct sensor_combined_s);
 
 #include "topics/vehicle_gps_position.h"
 ORB_DEFINE(vehicle_gps_position, struct vehicle_gps_position_s);
+
+#include "topics/vehicle_land_detected.h"
+ORB_DEFINE(vehicle_land_detected, struct vehicle_land_detected_s);
 
 #include "topics/satellite_info.h"
 ORB_DEFINE(satellite_info, struct satellite_info_s);
@@ -117,8 +113,10 @@ ORB_DEFINE(vehicle_vicon_position, struct vehicle_vicon_position_s);
 
 #include "topics/vehicle_rates_setpoint.h"
 ORB_DEFINE(vehicle_rates_setpoint, struct vehicle_rates_setpoint_s);
-ORB_DEFINE(mc_virtual_rates_setpoint, struct vehicle_rates_setpoint_s);
-ORB_DEFINE(fw_virtual_rates_setpoint, struct vehicle_rates_setpoint_s);
+#include "topics/mc_virtual_rates_setpoint.h"
+ORB_DEFINE(mc_virtual_rates_setpoint, struct mc_virtual_rates_setpoint_s);
+#include "topics/fw_virtual_rates_setpoint.h"
+ORB_DEFINE(fw_virtual_rates_setpoint, struct fw_virtual_rates_setpoint_s);
 
 #include "topics/rc_channels.h"
 ORB_DEFINE(rc_channels, struct rc_channels_s);
@@ -131,9 +129,6 @@ ORB_DEFINE(vehicle_control_mode, struct vehicle_control_mode_s);
 
 #include "topics/vehicle_local_position_setpoint.h"
 ORB_DEFINE(vehicle_local_position_setpoint, struct vehicle_local_position_setpoint_s);
-
-#include "topics/vehicle_bodyframe_speed_setpoint.h"
-ORB_DEFINE(vehicle_bodyframe_speed_setpoint, struct vehicle_bodyframe_speed_setpoint_s);
 
 #include "topics/position_setpoint_triplet.h"
 ORB_DEFINE(position_setpoint_triplet, struct position_setpoint_triplet_s);
@@ -162,20 +157,14 @@ ORB_DEFINE(fw_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s);
 #include "topics/manual_control_setpoint.h"
 ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);
 
-#include "topics/vehicle_control_debug.h"
-ORB_DEFINE(vehicle_control_debug, struct vehicle_control_debug_s);
-
-#include "topics/offboard_control_setpoint.h"
-ORB_DEFINE(offboard_control_setpoint, struct offboard_control_setpoint_s);
+#include "topics/offboard_control_mode.h"
+ORB_DEFINE(offboard_control_mode, struct offboard_control_mode_s);
 
 #include "topics/optical_flow.h"
 ORB_DEFINE(optical_flow, struct optical_flow_s);
 
 #include "topics/filtered_bottom_flow.h"
 ORB_DEFINE(filtered_bottom_flow, struct filtered_bottom_flow_s);
-
-#include "topics/omnidirectional_flow.h"
-ORB_DEFINE(omnidirectional_flow, struct omnidirectional_flow_s);
 
 #include "topics/airspeed.h"
 ORB_DEFINE(airspeed, struct airspeed_s);
@@ -188,22 +177,25 @@ ORB_DEFINE(subsystem_info, struct subsystem_info_s);
 
 /* actuator controls, as requested by controller */
 #include "topics/actuator_controls.h"
-ORB_DEFINE(actuator_controls_0, struct actuator_controls_s);
-ORB_DEFINE(actuator_controls_1, struct actuator_controls_s);
-ORB_DEFINE(actuator_controls_2, struct actuator_controls_s);
-ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
+#include "topics/actuator_controls_0.h"
+ORB_DEFINE(actuator_controls_0, struct actuator_controls_0_s);
+#include "topics/actuator_controls_1.h"
+ORB_DEFINE(actuator_controls_1, struct actuator_controls_1_s);
+#include "topics/actuator_controls_2.h"
+ORB_DEFINE(actuator_controls_2, struct actuator_controls_2_s);
+#include "topics/actuator_controls_3.h"
+ORB_DEFINE(actuator_controls_3, struct actuator_controls_3_s);
 //Virtual control groups, used for VTOL operation
-ORB_DEFINE(actuator_controls_virtual_mc, struct actuator_controls_s);
-ORB_DEFINE(actuator_controls_virtual_fw, struct actuator_controls_s);
+#include "topics/actuator_controls_virtual_mc.h"
+ORB_DEFINE(actuator_controls_virtual_mc, struct actuator_controls_virtual_mc_s);
+#include "topics/actuator_controls_virtual_fw.h"
+ORB_DEFINE(actuator_controls_virtual_fw, struct actuator_controls_virtual_fw_s);
 
 #include "topics/actuator_armed.h"
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);
 
 #include "topics/actuator_outputs.h"
-ORB_DEFINE(actuator_outputs_0, struct actuator_outputs_s);
-ORB_DEFINE(actuator_outputs_1, struct actuator_outputs_s);
-ORB_DEFINE(actuator_outputs_2, struct actuator_outputs_s);
-ORB_DEFINE(actuator_outputs_3, struct actuator_outputs_s);
+ORB_DEFINE(actuator_outputs, struct actuator_outputs_s);
 
 #include "topics/actuator_direct.h"
 ORB_DEFINE(actuator_direct, struct actuator_direct_s);
@@ -233,10 +225,10 @@ ORB_DEFINE(esc_status, struct esc_status_s);
 ORB_DEFINE(encoders, struct encoders_s);
 
 #include "topics/estimator_status.h"
-ORB_DEFINE(estimator_status, struct estimator_status_report);
+ORB_DEFINE(estimator_status, struct estimator_status_s);
 
 #include "topics/vision_position_estimate.h"
-ORB_DEFINE(vision_position_estimate, struct vision_position_estimate);
+ORB_DEFINE(vision_position_estimate, struct vision_position_estimate_s);
 
 #include "topics/vehicle_force_setpoint.h"
 ORB_DEFINE(vehicle_force_setpoint, struct vehicle_force_setpoint_s);
@@ -246,3 +238,12 @@ ORB_DEFINE(tecs_status, struct tecs_status_s);
 
 #include "topics/wind_estimate.h"
 ORB_DEFINE(wind_estimate, struct wind_estimate_s);
+
+#include "topics/rc_parameter_map.h"
+ORB_DEFINE(rc_parameter_map, struct rc_parameter_map_s);
+
+#include "topics/time_offset.h"
+ORB_DEFINE(time_offset, struct time_offset_s);
+
+#include "topics/mc_att_ctrl_status.h"
+ORB_DEFINE(mc_att_ctrl_status, struct mc_att_ctrl_status_s);

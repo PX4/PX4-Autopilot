@@ -142,7 +142,7 @@ sbus1_output(uint16_t *values, uint16_t num_values)
 			value = (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
 
 			/*protect from out of bounds values and limit to 11 bits*/
-			if (value > 0x07ff ) {
+			if (value > 0x07ff) {
 				value = 0x07ff;
 			}
 

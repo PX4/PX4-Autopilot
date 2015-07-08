@@ -1,5 +1,4 @@
 
-
 SRCS		= adc.c \
 		  controls.c \
 		  dsm.c \
@@ -15,7 +14,8 @@ SRCS		= adc.c \
 		  ../systemlib/mixer/mixer_multirotor.cpp \
 		  ../systemlib/mixer/mixer_simple.cpp \
 		  ../systemlib/pwm_limit/pwm_limit.c \
-		  ../../lib/rc/st24.c
+		  ../../lib/rc/st24.c \
+		  ../../lib/rc/sumd.c
 
 ifeq ($(BOARD),px4io-v1)
 SRCS		+= i2c.c
@@ -24,3 +24,7 @@ ifeq ($(BOARD),px4io-v2)
 SRCS		+= serial.c \
 		   ../systemlib/hx_stream.c
 endif
+
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(SELF_DIR)../systemlib/mixer/multi_tables.mk
+	

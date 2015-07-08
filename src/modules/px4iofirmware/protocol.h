@@ -115,6 +115,7 @@
 #define PX4IO_P_STATUS_FLAGS_SAFETY_OFF		(1 << 12) /* safety is off */
 #define PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED	(1 << 13) /* FMU was initialized and OK once */
 #define PX4IO_P_STATUS_FLAGS_RC_ST24		(1 << 14) /* ST24 input is valid */
+#define PX4IO_P_STATUS_FLAGS_RC_SUMD		(1 << 15) /* SUMD input is valid */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* [1] VBatt is very close to regulator dropout */
@@ -131,6 +132,11 @@
 #define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
 #define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
 #define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
+
+#define PX4IO_P_STATUS_MIXER			9	 /* mixer actuator limit flags */
+#define PX4IO_P_STATUS_MIXER_LOWER_LIMIT 		(1 << 0) /**< at least one actuator output has reached lower limit */
+#define PX4IO_P_STATUS_MIXER_UPPER_LIMIT 		(1 << 1) /**< at least one actuator output has reached upper limit */
+#define PX4IO_P_STATUS_MIXER_YAW_LIMIT 			(1 << 2) /**< yaw control is limited because it causes output clipping */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -226,6 +232,11 @@ enum {							/* DSM bind states */
 
 #define PX4IO_P_SETUP_FORCE_SAFETY_ON		14	/* force safety switch into 'disarmed' (PWM disabled state) */
 #define PX4IO_FORCE_SAFETY_MAGIC		22027	/* required argument for force safety (random) */
+
+#define PX4IO_P_SETUP_PWM_REVERSE		15	/**< Bitmask to reverse PWM channels 1-8 */
+#define PX4IO_P_SETUP_TRIM_ROLL			16	/**< Roll trim, in actuator units */
+#define PX4IO_P_SETUP_TRIM_PITCH		17	/**< Pitch trim, in actuator units */
+#define PX4IO_P_SETUP_TRIM_YAW			18	/**< Yaw trim, in actuator units */
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */

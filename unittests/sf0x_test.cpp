@@ -1,21 +1,18 @@
-
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <systemlib/err.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include <drivers/drv_hrt.h>
-
 #include <drivers/sf0x/sf0x_parser.h>
+#include <systemlib/err.h>
 
-int main(int argc, char *argv[])
+#include "gtest/gtest.h"
+
+TEST(SF0XTest, SF0X)
 {
-	warnx("SF0X test started");
-
-	int ret = 0;
-
-	const char LINE_MAX = 20;
-	char _linebuf[LINE_MAX];
+	const char _LINE_MAX = 20;
+	char _linebuf[_LINE_MAX];
 	_linebuf[0] = '\0';
 
 	const char *lines[] = {"0.01\r\n",
@@ -38,7 +35,7 @@ int main(int argc, char *argv[])
 
 	enum SF0X_PARSE_STATE state = SF0X_PARSE_STATE0_UNSYNC;
 	float dist_m;
-	char _parserbuf[LINE_MAX];
+	char _parserbuf[_LINE_MAX];
 	unsigned _parsebuf_index = 0;
 
 	for (unsigned l = 0; l < sizeof(lines) / sizeof(lines[0]); l++) {
@@ -60,6 +57,4 @@ int main(int argc, char *argv[])
 	}
 
 	warnx("test finished");
-
-	return ret;
 }

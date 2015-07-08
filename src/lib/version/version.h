@@ -43,14 +43,6 @@
 #ifndef VERSION_H_
 #define VERSION_H_
 
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
- */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
-
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 #define	HW_ARCH "PX4FMU_V1"
 #endif
@@ -61,6 +53,10 @@
 
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
 #define	HW_ARCH "AEROCORE"
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
+#define HW_ARCH "PX4_STM32F4DISCOVERY"
 #endif
 
 #endif /* VERSION_H_ */

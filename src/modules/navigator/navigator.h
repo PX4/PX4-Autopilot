@@ -134,6 +134,7 @@ public:
 	struct vehicle_gps_position_s*	    get_gps_position() { return &_gps_pos; }
 	struct sensor_combined_s*	    get_sensor_combined() { return &_sensor_combined; }
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
+	bool				    home_position_valid() { return _home_position_set; }
 	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
 	struct geofence_result_s*		    get_geofence_result() { return &_geofence_result; }
@@ -144,8 +145,25 @@ public:
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
-	float		get_acceptance_radius() { return _param_acceptance_radius.get(); }
+
+	/**
+	 * Get the acceptance radius
+	 *
+	 * @return the distance at which the next waypoint should be used
+	 */
+	float		get_acceptance_radius();
+
+	/**
+	 * Get the acceptance radius given the mission item preset radius
+	 *
+	 * @param mission_item_radius the radius to use in case the controller-derived radius is smaller
+	 *
+	 * @return the distance at which the next waypoint should be used
+	 */
+	float		get_acceptance_radius(float mission_item_radius);
 	int		get_mavlink_fd() { return _mavlink_fd; }
+
+	void		increment_mission_instance_count() { _mission_instance_count++; }
 
 private:
 
@@ -186,7 +204,10 @@ private:
 	geofence_result_s				_geofence_result;
 	vehicle_attitude_setpoint_s			_att_sp;
 
+	bool 		_home_position_set;
+
 	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
+	int		_mission_instance_count;	/**< instance count for the current mission */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 

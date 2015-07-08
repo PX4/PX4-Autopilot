@@ -15,7 +15,7 @@ ifeq ($(SYSTYPE),Darwin)
 SERIAL_PORTS		?= "/dev/tty.usbmodemPX*,/dev/tty.usbmodem*"
 endif
 ifeq ($(SYSTYPE),Linux)
-SERIAL_PORTS		?= "/dev/serial/by-id/usb-3D_Robotics*"
+SERIAL_PORTS		?= "/dev/serial/by-id/usb-3D_Robotics*,/dev/serial/by-id/pci-3D_Robotics*"
 endif
 ifeq ($(SERIAL_PORTS),)
 SERIAL_PORTS		 = "COM32,COM31,COM30,COM29,COM28,COM27,COM26,COM25,COM24,COM23,COM22,COM21,COM20,COM19,COM18,COM17,COM16,COM15,COM14,COM13,COM12,COM11,COM10,COM9,COM8,COM7,COM6,COM5,COM4,COM3,COM2,COM1,COM0"
@@ -33,7 +33,8 @@ upload-serial-px4fmu-v2:	$(BUNDLE) $(UPLOADER)
 upload-serial-aerocore:
 	openocd -f $(PX4_BASE)/makefiles/gumstix-aerocore.cfg -c 'init; reset halt; flash write_image erase $(PX4_BASE)/../Bootloader/px4aerocore_bl.bin 0x08000000; flash write_image erase $(PX4_BASE)/Build/aerocore_default.build/firmware.bin 0x08004000; reset run; exit'
 
-
+upload-serial-px4-stm32f4discovery:	$(BUNDLE) $(UPLOADER)
+	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
 #
 # JTAG firmware uploading with OpenOCD

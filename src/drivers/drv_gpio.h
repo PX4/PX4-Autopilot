@@ -110,6 +110,15 @@
 /* no GPIO driver on the PX4IOv2 board */
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
+/* no GPIO driver on the PX4_STM32F4DISCOVERY board */
+#endif
+
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)  && \
+	!defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2) && \
+	!defined(CONFIG_ARCH_BOARD_AEROCORE) && !defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY)
+# error No CONFIG_ARCH_BOARD_xxxx set
+#endif
 /*
  * IOCTL definitions.
  *
@@ -153,5 +162,7 @@
 #define GPIO_GET	GPIOC(12)
 
 #define GPIO_SENSOR_RAIL_RESET	GPIOC(13)
+
+#define GPIO_PERIPHERAL_RAIL_RESET	GPIOC(14)
 
 #endif /* _DRV_GPIO_H */

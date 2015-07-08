@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,8 @@
  *
  ****************************************************************************/
 
-/**
- * @file calibration_routines.h
- * Calibration routines definitions.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- */
+/// @file calibration_routines.h
+///	@authot Don Gagne <don@thegagnes.com>
 
 /**
  * Least-squares fit of a sphere to a set of points.
@@ -57,4 +53,63 @@
  * @return 0 on success, 1 on failure
  */
 int sphere_fit_least_squares(const float x[], const float y[], const float z[],
-			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z, float *sphere_radius);
+			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z,
+			     float *sphere_radius);
+
+// FIXME: Change the name
+static const unsigned max_accel_sens = 3;
+
+// The order of these cannot change since the calibration calculations depend on them in this order
+enum detect_orientation_return {
+	DETECT_ORIENTATION_TAIL_DOWN,
+	DETECT_ORIENTATION_NOSE_DOWN,
+	DETECT_ORIENTATION_LEFT,
+	DETECT_ORIENTATION_RIGHT,
+	DETECT_ORIENTATION_UPSIDE_DOWN,
+	DETECT_ORIENTATION_RIGHTSIDE_UP,
+	DETECT_ORIENTATION_ERROR
+};
+static const unsigned detect_orientation_side_count = 6;
+
+/// Wait for vehicle to become still and detect it's orientation
+///	@return Returns detect_orientation_return according to orientation when vehicle
+///		and ready for measurements
+enum detect_orientation_return detect_orientation(int	mavlink_fd,			///< Mavlink fd to write output to
+						  int	cancel_sub,			///< Cancel subscription from calibration_cancel_subscribe
+						  int	accel_sub,			///< Orb subcription to accel sensor
+						  bool	lenient_still_detection);	///< true: Use more lenient still position detection
+
+/// Returns the human readable string representation of the orientation
+///	@param orientation Orientation to return string for, "error" if buffer is too small
+const char* detect_orientation_str(enum detect_orientation_return orientation);
+
+enum calibrate_return {
+	calibrate_return_ok,
+	calibrate_return_error,
+	calibrate_return_cancelled
+};
+
+typedef calibrate_return (*calibration_from_orientation_worker_t)(detect_orientation_return	orientation,	///< Orientation which was detected
+								  int				cancel_sub,	///< Cancel subscription from calibration_cancel_subscribe
+								  void*				worker_data);	///< Opaque worker data
+
+/// Perform calibration sequence which require a rest orientation detection prior to calibration.
+///	@return OK: Calibration succeeded, ERROR: Calibration failed
+calibrate_return calibrate_from_orientation(int		mavlink_fd,						///< Mavlink fd to write output to
+					    int		cancel_sub,						///< Cancel subscription from calibration_cancel_subscribe
+					    bool	side_data_collected[detect_orientation_side_count],	///< Sides for which data still needs calibration
+					    calibration_from_orientation_worker_t calibration_worker,		///< Worker routine which performs the actual calibration
+					    void*	worker_data,						///< Opaque data passed to worker routine
+					    bool	lenient_still_detection);				///< true: Use more lenient still position detection
+
+/// Called at the beginning of calibration in order to subscribe to the cancel command
+///	@return Handle to vehicle_command subscription
+int calibrate_cancel_subscribe(void);
+
+/// Called to cancel the subscription to the cancel command
+///	@param cancel_sub Cancel subcription from calibration_cancel_subscribe
+void calibrate_cancel_unsubscribe(int cancel_sub);
+
+/// Used to periodically check for a cancel command
+bool calibrate_cancel_check(int mavlink_fd,	///< Mavlink fd for output
+			    int cancel_sub);	///< Cancel subcription fromcalibration_cancel_subscribe

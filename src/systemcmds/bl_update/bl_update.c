@@ -74,7 +74,7 @@ bl_update_main(int argc, char *argv[])
 
 	struct stat s;
 
-	if (!stat(argv[1], &s))
+	if (stat(argv[1], &s) != 0)
 		err(1, "stat %s", argv[1]);
 
 	/* sanity-check file size */

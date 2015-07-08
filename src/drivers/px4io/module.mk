@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,7 +40,8 @@ MODULE_COMMAND		= px4io
 SRCS			= px4io.cpp \
 			  px4io_uploader.cpp \
 			  px4io_serial.cpp \
-			  px4io_i2c.cpp
+			  px4io_i2c.cpp \
+			  px4io_params.c
 
 # XXX prune to just get UART registers
 INCLUDE_DIRS    += $(NUTTX_SRC)/arch/arm/src/stm32 $(NUTTX_SRC)/arch/arm/src/common

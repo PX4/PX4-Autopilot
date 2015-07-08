@@ -7,6 +7,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER FMU_quad_x
+set MIXER quad_x
 
 set HIL yes

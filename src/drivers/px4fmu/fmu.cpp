@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,6 +55,7 @@
 #include <nuttx/arch.h>
 
 #include <drivers/device/device.h>
+#include <drivers/device/i2c.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
@@ -66,12 +67,18 @@
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/board_serial.h>
+#include <systemlib/param/param.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_0.h>
+#include <uORB/topics/actuator_controls_1.h>
+#include <uORB/topics/actuator_controls_2.h>
+#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 
 
 #ifdef HRT_PPM_CHANNEL
@@ -107,6 +114,8 @@ public:
 	int		set_pwm_alt_rate(unsigned rate);
 	int		set_pwm_alt_channels(uint32_t channels);
 
+	int		set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
+
 private:
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	static const unsigned _max_actuators = 4;
@@ -125,10 +134,11 @@ private:
 	unsigned	_current_update_rate;
 	int		_task;
 	int		_armed_sub;
+	int		_param_sub;
 	orb_advert_t	_outputs_pub;
 	actuator_armed_s	_armed;
 	unsigned	_num_outputs;
-	bool		_primary_pwm_device;
+	int		_class_instance;
 
 	volatile bool	_task_should_exit;
 	bool		_servo_armed;
@@ -138,17 +148,19 @@ private:
 
 	uint32_t	_groups_required;
 	uint32_t	_groups_subscribed;
-	int		_control_subs[NUM_ACTUATOR_CONTROL_GROUPS];
-	actuator_controls_s _controls[NUM_ACTUATOR_CONTROL_GROUPS];
-	orb_id_t	_control_topics[NUM_ACTUATOR_CONTROL_GROUPS];
-	pollfd	_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS];
+	int		_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	int		_actuator_output_topic_instance;
+	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 
-	pwm_limit_t	_pwm_limit;
+	static pwm_limit_t	_pwm_limit;
 	uint16_t	_failsafe_pwm[_max_actuators];
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
 	uint16_t	_max_pwm[_max_actuators];
+	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
 
@@ -159,9 +171,10 @@ private:
 					 uint8_t control_group,
 					 uint8_t control_index,
 					 float &input);
-	void	subscribe();
+	void		subscribe();
 	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
+	void		update_pwm_rev_mask();
 
 	struct GPIOConfig {
 		uint32_t	input;
@@ -174,6 +187,7 @@ private:
 
 	void		gpio_reset(void);
 	void		sensor_reset(int ms);
+	void		peripheral_reset(int ms);
 	void		gpio_set_function(uint32_t gpios, int function);
 	void		gpio_write(uint32_t gpios, int function);
 	uint32_t	gpio_read(void);
@@ -227,6 +241,7 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 };
 
 const unsigned PX4FMU::_ngpio = sizeof(PX4FMU::_gpio_tab) / sizeof(PX4FMU::_gpio_tab[0]);
+pwm_limit_t	PX4FMU::_pwm_limit;
 
 namespace
 {
@@ -244,10 +259,11 @@ PX4FMU::PX4FMU() :
 	_current_update_rate(0),
 	_task(-1),
 	_armed_sub(-1),
+	_param_sub(-1),
 	_outputs_pub(-1),
 	_armed{},
 	_num_outputs(0),
-	_primary_pwm_device(false),
+	_class_instance(0),
 	_task_should_exit(false),
 	_servo_armed(false),
 	_pwm_on(false),
@@ -255,10 +271,11 @@ PX4FMU::PX4FMU() :
 	_groups_required(0),
 	_groups_subscribed(0),
 	_control_subs{-1},
+	_actuator_output_topic_instance(-1),
 	_poll_fds_num(0),
-	_pwm_limit{},
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
+	_reverse_pwm_mask(0),
 	_num_failsafe_set(0),
 	_num_disarmed_set(0)
 {
@@ -300,8 +317,7 @@ PX4FMU::~PX4FMU()
 	}
 
 	/* clean up the alternate device node */
-	if (_primary_pwm_device)
-		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
+	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 	g_fmu = nullptr;
 }
@@ -320,11 +336,12 @@ PX4FMU::init()
 		return ret;
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
+	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
-	if (ret == OK) {
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		log("default PWM output device");
-		_primary_pwm_device = true;
+	} else if (_class_instance < 0) {
+		log("FAILED registering class device");
 	}
 
 	/* reset GPIOs */
@@ -501,6 +518,12 @@ PX4FMU::set_pwm_alt_channels(uint32_t channels)
 	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
 }
 
+int
+PX4FMU::set_i2c_bus_clock(unsigned bus, unsigned clock_hz)
+{
+	return device::I2C::set_bus_clock(bus, clock_hz);
+}
+
 void
 PX4FMU::subscribe()
 {
@@ -508,7 +531,7 @@ PX4FMU::subscribe()
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
 	_poll_fds_num = 0;
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			warnx("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
@@ -528,12 +551,33 @@ PX4FMU::subscribe()
 }
 
 void
+PX4FMU::update_pwm_rev_mask()
+{
+	_reverse_pwm_mask = 0;
+
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		char pname[16];
+		int32_t ival;
+
+		/* fill the channel reverse mask from parameters */
+		sprintf(pname, "PWM_AUX_REV%d", i + 1);
+		param_t param_h = param_find(pname);
+
+		if (param_h != PARAM_INVALID) {
+			param_get(param_h, &ival);
+			_reverse_pwm_mask |= ((int16_t)(ival != 0)) << i;
+		}
+	}
+}
+
+void
 PX4FMU::task_main()
 {
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_param_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -551,7 +595,7 @@ PX4FMU::task_main()
 	/* initialize PWM limit lib */
 	pwm_limit_init(&_pwm_limit);
 
-	log("starting");
+	update_pwm_rev_mask();
 
 	/* loop until killed */
 	while (!_task_should_exit) {
@@ -585,7 +629,7 @@ PX4FMU::task_main()
 			}
 
 			debug("adjusted actuator update interval to %ums", update_rate_in_ms);
-			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					orb_set_interval(_control_subs[i], update_rate_in_ms);
 				}
@@ -612,7 +656,7 @@ PX4FMU::task_main()
 
 			/* get controls for required topics */
 			unsigned poll_id = 0;
-			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[poll_id].revents & POLLIN) {
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
@@ -648,7 +692,7 @@ PX4FMU::task_main()
 				}
 
 				/* do mixing */
-				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
+				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
 				outputs.timestamp = hrt_absolute_time();
 
 				/* iterate actuators */
@@ -668,7 +712,7 @@ PX4FMU::task_main()
 				uint16_t pwm_limited[num_outputs];
 
 				/* the PWM limit call takes care of out of band errors and constrains */
-				pwm_limit_calc(_servo_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
+				pwm_limit_calc(_servo_armed, num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
 
 				/* output to the servos */
 				for (unsigned i = 0; i < num_outputs; i++) {
@@ -677,10 +721,10 @@ PX4FMU::task_main()
 
 				/* publish mixed control outputs */
 				if (_outputs_pub < 0) {
-					_outputs_pub = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), &outputs);
+					_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &_actuator_output_topic_instance, ORB_PRIO_DEFAULT);
 				} else {
 
-					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _outputs_pub, &outputs);
+					orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &outputs);
 				}
 			}
 		}
@@ -705,6 +749,14 @@ PX4FMU::task_main()
 				_pwm_on = pwm_on;
 				up_pwm_servo_arm(pwm_on);
 			}
+		}
+
+		orb_check(_param_sub, &updated);
+		if (updated) {
+			parameter_update_s pupdate;
+			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
+
+			update_pwm_rev_mask();
 		}
 
 #ifdef HRT_PPM_CHANNEL
@@ -745,13 +797,14 @@ PX4FMU::task_main()
 
 	}
 
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 	}
 	::close(_armed_sub);
+	::close(_param_sub);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
@@ -774,6 +827,18 @@ PX4FMU::control_callback(uintptr_t handle,
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
 	input = controls[control_group].control[control_index];
+
+	/* motor spinup phase - lock throttle to zero */
+	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
+		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_THROTTLE) {
+			/* limit the throttle output to zero during motor spinup,
+			 * as the motors cannot follow any demand yet
+			 */
+			input = 0.0f;
+		}
+	}
+
 	return 0;
 }
 
@@ -1142,7 +1207,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		 * and PWM under control of the flight config
 		 * parameters. Note that this does not allow for
 		 * changing a set of pins to be used for serial on
-		 * FMUv1 
+		 * FMUv1
 		 */
 		switch (arg) {
 		case 0:
@@ -1361,6 +1426,29 @@ PX4FMU::sensor_reset(int ms)
 #endif
 }
 
+void
+PX4FMU::peripheral_reset(int ms)
+{
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+
+	if (ms < 1) {
+		ms = 10;
+	}
+
+	/* set the peripheral rails off */
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+#endif
+}
 
 void
 PX4FMU::gpio_reset(void)
@@ -1473,6 +1561,10 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 		sensor_reset(arg);
 		break;
 
+	case GPIO_PERIPHERAL_RAIL_RESET:
+		peripheral_reset(arg);
+		break;
+
 	case GPIO_SET_OUTPUT:
 	case GPIO_SET_INPUT:
 	case GPIO_SET_ALT_1:
@@ -1514,6 +1606,7 @@ enum PortMode {
 	PORT_GPIO_AND_SERIAL,
 	PORT_PWM_AND_SERIAL,
 	PORT_PWM_AND_GPIO,
+	PORT_PWM4,
 };
 
 PortMode g_port_mode;
@@ -1548,6 +1641,13 @@ fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_8PWM;
 #endif
 		break;
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+	case PORT_PWM4:
+		/* select 4-pin PWM mode */
+		servo_mode = PX4FMU::MODE_4PWM;
+		break;
+#endif
 
 		/* mixed modes supported on v1 board only */
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
@@ -1587,6 +1687,11 @@ fmu_new_mode(PortMode new_mode)
 	g_fmu->set_mode(servo_mode);
 
 	return OK;
+}
+
+int fmu_new_i2c_speed(unsigned bus, unsigned clock_hz)
+{
+	return g_fmu->set_i2c_bus_clock(bus, clock_hz);
 }
 
 int
@@ -1635,12 +1740,33 @@ sensor_reset(int ms)
 
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
-	if (fd < 0)
+	if (fd < 0) {
 		errx(1, "open fail");
+	}
 
-	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0)
-		err(1, "servo arm failed");
+	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0) {
+		warnx("sensor rail reset failed");
+	}
 
+	close(fd);
+}
+
+void
+peripheral_reset(int ms)
+{
+	int	 fd;
+
+	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
+
+	if (fd < 0) {
+		errx(1, "open fail");
+	}
+
+	if (ioctl(fd, GPIO_PERIPHERAL_RAIL_RESET, ms) < 0) {
+		warnx("peripheral rail reset failed");
+	}
+
+	close(fd);
 }
 
 void
@@ -1813,6 +1939,10 @@ fmu_main(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
 
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+	} else if (!strcmp(verb, "mode_pwm4")) {
+		new_mode = PORT_PWM4;
+#endif
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 
 	} else if (!strcmp(verb, "mode_serial")) {
@@ -1860,12 +1990,40 @@ fmu_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(verb, "peripheral_reset")) {
+		if (argc > 2) {
+			int reset_time = strtol(argv[2], 0, 0);
+			peripheral_reset(reset_time);
+
+		} else {
+			peripheral_reset(0);
+			warnx("resettet default time");
+		}
+
+		exit(0);
+	}
+
+	if (!strcmp(verb, "i2c")) {
+		if (argc > 3) {
+			int bus = strtol(argv[2], 0, 0);
+			int clock_hz = strtol(argv[3], 0, 0);
+			int ret = fmu_new_i2c_speed(bus, clock_hz);
+
+			if (ret) {
+				errx(ret, "setting I2C clock failed");
+			}
+
+			exit(0);
+		} else {
+			warnx("i2c cmd args: <bus id> <clock Hz>");
+		}
+	}
 
 	fprintf(stderr, "FMU: unrecognised command %s, try:\n", verb);
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test\n");
+	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_AEROCORE)
-	fprintf(stderr, "  mode_gpio, mode_pwm, test, sensor_reset [milliseconds]\n");
+	fprintf(stderr, "  mode_gpio, mode_pwm, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
 #endif
 	exit(1);
 }

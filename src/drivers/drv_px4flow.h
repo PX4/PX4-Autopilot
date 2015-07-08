@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file Rangefinder driver interface.
+ * @file PX4Flow driver interface.
  */
 
 #ifndef _DRV_PX4FLOW_H
@@ -44,7 +44,7 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-#define PX4FLOW_DEVICE_PATH	"/dev/px4flow"
+#define PX4FLOW0_DEVICE_PATH	"/dev/px4flow0"
 
 /*
  * ObjDev tag for px4flow data.

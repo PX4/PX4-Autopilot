@@ -55,7 +55,7 @@
  * Input data may be obtained by subscribing to the input_rc
  * object, or by poll/reading from the device.
  */
-#define RC_INPUT_DEVICE_PATH	"/dev/input_rc"
+#define RC_INPUT0_DEVICE_PATH	"/dev/input_rc0"
 
 /**
  * Maximum number of R/C input channels in the system. S.Bus has up to 18 channels.
@@ -65,7 +65,22 @@
 /**
  * Maximum RSSI value
  */
-#define RC_INPUT_RSSI_MAX	255
+#define RC_INPUT_RSSI_MAX	100
+
+/**
+ * Minimum value
+ */
+#define RC_INPUT_LOWEST_MIN_US	500
+
+/**
+ * Maximum value
+ */
+#define RC_INPUT_HIGHEST_MAX_US	2500
+
+/**
+ * Maximum deadzone value
+ */
+#define RC_INPUT_MAX_DEADZONE_US	500
 
 /**
  * @addtogroup topics
@@ -84,7 +99,8 @@ enum RC_INPUT_SOURCE {
 	RC_INPUT_SOURCE_PX4IO_PPM,
 	RC_INPUT_SOURCE_PX4IO_SPEKTRUM,
 	RC_INPUT_SOURCE_PX4IO_SBUS,
-	RC_INPUT_SOURCE_PX4IO_ST24
+	RC_INPUT_SOURCE_PX4IO_ST24,
+	RC_INPUT_SOURCE_MAVLINK
 };
 
 /**
@@ -103,7 +119,7 @@ struct rc_input_values {
 	/** number of channels actually being seen */
 	uint32_t		channel_count;
 
-	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 255: full reception */
+	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 100: full reception */
 	int32_t			rssi;
 
 	/**

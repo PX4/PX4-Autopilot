@@ -57,13 +57,14 @@ void UnitTest::print_results(void)
 }
 
 /// @brief Used internally to the ut_assert macro to print assert failures.
-void UnitTest::_print_assert(const char* msg, const char* test, const char* file, int line)
+void UnitTest::_print_assert(const char *msg, const char *test, const char *file, int line)
 {
 	warnx("Assertion failed: %s - %s (%s:%d)", msg, test, file, line);
 }
 
 /// @brief Used internally to the ut_compare macro to print assert failures.
-void UnitTest::_print_compare(const char* msg, const char *v1_text, int v1, const char *v2_text, int v2, const char* file, int line)
+void UnitTest::_print_compare(const char *msg, const char *v1_text, int v1, const char *v2_text, int v2,
+			      const char *file, int line)
 {
 	warnx("Compare failed: %s - (%s:%d) (%s:%d) (%s:%d)", msg, v1_text, v1, v2_text, v2, file, line);
 }

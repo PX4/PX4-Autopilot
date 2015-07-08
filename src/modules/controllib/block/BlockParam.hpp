@@ -47,6 +47,8 @@
 namespace control
 {
 
+class Block;
+
 /**
  * A base class for block params that enables traversing linked list.
  */
@@ -58,7 +60,7 @@ public:
 	 *
 	 * @param parent_prefix Set to true to include the parent name in the parameter name
 	 */
-	BlockParamBase(Block *parent, const char *name, bool parent_prefix=true);
+	BlockParamBase(Block *parent, const char *name, bool parent_prefix = true);
 	virtual ~BlockParamBase() {};
 	virtual void update() = 0;
 	const char *getName() { return param_name(_handle); }
@@ -75,7 +77,7 @@ class BlockParam : public BlockParamBase
 {
 public:
 	BlockParam(Block *block, const char *name,
-			bool parent_prefix=true);
+		   bool parent_prefix = true);
 	T get();
 	void set(T val);
 	void update();

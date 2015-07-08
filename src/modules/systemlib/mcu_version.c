@@ -47,7 +47,8 @@
 #ifdef CONFIG_ARCH_CHIP_STM32
 #include <up_arch.h>
 
-#define DBGMCU_IDCODE	0xE0042000
+#define DBGMCU_IDCODE	0xE0042000  //STM DocID018909 Rev 8 Sect 38.18 (MCU device ID code)
+#define UNIQUE_ID    	0x1FFF7A10  //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
 
 #define STM32F40x_41x	0x413
 #define STM32F42x_43x	0x419
@@ -57,7 +58,13 @@
 
 #endif
 
-
+/** Copy the 96bit MCU Unique ID into the provided pointer */
+void mcu_unique_id(uint32_t *uid_96_bit)
+{
+	uid_96_bit[0] = getreg32(UNIQUE_ID);
+	uid_96_bit[1] = getreg32(UNIQUE_ID+4);
+	uid_96_bit[2] = getreg32(UNIQUE_ID+8);
+}
 
 int mcu_version(char* rev, char** revstr)
 {
