@@ -143,7 +143,7 @@ uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::N
     node->setNodeID(nid);
     node->setName(name.c_str());
     ENFORCE(0 == node->start());  // This node doesn't check its network compatibility
-    node->setStatusOk();
+    node->setModeOperational();
     return node;
 }
 

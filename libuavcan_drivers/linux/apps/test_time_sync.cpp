@@ -19,7 +19,7 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
 
     ENFORCE(0 == node->start());
 
-    node->setStatusOk();
+    node->setModeOperational();
     return node;
 }
 
