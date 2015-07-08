@@ -22,17 +22,36 @@ namespace uavcan
 class UAVCAN_EXPORT NodeStatusMonitor
 {
 public:
-    typedef typename StorageType<typename protocol::NodeStatus::FieldTypes::status_code>::Type NodeStatusCode;
-
     struct NodeStatus
     {
-        NodeStatusCode status_code;  ///< Current status code; OFFLINE if not known.
-        bool known;                  ///< True if the node was online at least once.
+        uint8_t health   : 2;
+        uint8_t mode     : 3;
+        uint8_t sub_mode : 3;
 
-        NodeStatus()
-            : status_code(protocol::NodeStatus::STATUS_OFFLINE)
-            , known(false)
-        { }
+        NodeStatus() :
+            health(protocol::NodeStatus::HEALTH_OK),
+            mode(protocol::NodeStatus::MODE_OFFLINE),
+            sub_mode(0)
+        {
+            StaticAssert<protocol::NodeStatus::FieldTypes::health::BitLen   == 2>::check();
+            StaticAssert<protocol::NodeStatus::FieldTypes::mode::BitLen     == 3>::check();
+            StaticAssert<protocol::NodeStatus::FieldTypes::sub_mode::BitLen == 3>::check();
+        }
+
+        bool operator!=(const NodeStatus rhs) const { return !operator==(rhs); }
+        bool operator==(const NodeStatus rhs) const
+        {
+            return std::memcmp(this, &rhs, sizeof(NodeStatus)) == 0;
+        }
+
+#if UAVCAN_TOSTRING
+        std::string toString() const
+        {
+            char buf[40];
+            (void)snprintf(buf, sizeof(buf), "health=%d mode=%d sub_mode=%d", int(health), int(mode), int(sub_mode));
+            return std::string(buf);
+        }
+#endif
     };
 
     struct NodeStatusChangeEvent
@@ -40,6 +59,11 @@ public:
         NodeID node_id;
         NodeStatus status;
         NodeStatus old_status;
+        bool was_known;
+
+        NodeStatusChangeEvent() :
+            was_known(false)
+        { }
     };
 
 private:
@@ -57,11 +81,10 @@ private:
 
     struct Entry
     {
-        NodeStatusCode status_code;
+        NodeStatus status;
         int8_t time_since_last_update_ms100;
-        Entry()
-            : status_code(protocol::NodeStatus::STATUS_OFFLINE)
-            , time_since_last_update_ms100(-1)
+        Entry() :
+            time_since_last_update_ms100(-1)
         { }
     };
 
@@ -79,20 +102,18 @@ private:
     void changeNodeStatus(const NodeID node_id, const Entry new_entry_value)
     {
         Entry& entry = getEntry(node_id);
-        if (entry.status_code != new_entry_value.status_code)
+        if (entry.status != new_entry_value.status)
         {
             NodeStatusChangeEvent event;
-            event.node_id = node_id;
+            event.node_id    = node_id;
+            event.old_status = entry.status;
+            event.status     = new_entry_value.status;
+            event.was_known  = entry.time_since_last_update_ms100 >= 0;
 
-            event.old_status.known = entry.time_since_last_update_ms100 >= 0;
-            event.old_status.status_code = entry.status_code;
+            UAVCAN_TRACE("NodeStatusMonitor", "Node %i [%s] status change: [%s] --> [%s]", int(node_id.get()),
+                         (event.was_known ? "known" : "new"),
+                         event.old_status.toString().c_str(), event.status.toString().c_str());
 
-            event.status.known = true;
-            event.status.status_code = new_entry_value.status_code;
-
-            UAVCAN_TRACE("NodeStatusMonitor", "Node %i [%s] status change: %i --> %i", int(node_id.get()),
-                         (event.old_status.known ? "known" : "new"),
-                         int(event.old_status.status_code), int(event.status.status_code));
             handleNodeStatusChange(event);
         }
         entry = new_entry_value;
@@ -100,11 +121,13 @@ private:
 
     void handleNodeStatus(const ReceivedDataStructure<protocol::NodeStatus>& msg)
     {
-        Entry new_entry_value;
-        new_entry_value.time_since_last_update_ms100 = 0;
-        new_entry_value.status_code = msg.status_code;
+        Entry new_entry;
+        new_entry.time_since_last_update_ms100 = 0;
+        new_entry.status.health   = msg.health   & ((1 << protocol::NodeStatus::FieldTypes::health::BitLen) - 1);
+        new_entry.status.mode     = msg.mode     & ((1 << protocol::NodeStatus::FieldTypes::mode::BitLen) - 1);
+        new_entry.status.sub_mode = msg.sub_mode & ((1 << protocol::NodeStatus::FieldTypes::sub_mode::BitLen) - 1);
 
-        changeNodeStatus(msg.getSrcNodeID(), new_entry_value);
+        changeNodeStatus(msg.getSrcNodeID(), new_entry);
 
         handleNodeStatusMessage(msg);
     }
@@ -117,17 +140,19 @@ private:
         {
             const NodeID nid(i);
             UAVCAN_ASSERT(nid.isUnicast());
+
             Entry& entry = getEntry(nid);
             if (entry.time_since_last_update_ms100 >= 0 &&
-                entry.status_code != protocol::NodeStatus::STATUS_OFFLINE)
+                entry.status.mode != protocol::NodeStatus::MODE_OFFLINE)
             {
                 entry.time_since_last_update_ms100 =
                     int8_t(entry.time_since_last_update_ms100 + int8_t(TimerPeriodMs100));
+
                 if (entry.time_since_last_update_ms100 >= OfflineTimeoutMs100)
                 {
                     Entry new_entry_value;
                     new_entry_value.time_since_last_update_ms100 = OfflineTimeoutMs100;
-                    new_entry_value.status_code = protocol::NodeStatus::STATUS_OFFLINE;
+                    new_entry_value.status = NodeStatus();
                     changeNodeStatus(nid, new_entry_value);
                 }
             }
@@ -209,6 +234,7 @@ public:
     /**
      * Returns status of a given node.
      * Unknown nodes are considered offline.
+     * Complexity O(1).
      */
     NodeStatus getNodeStatus(NodeID node_id) const
     {
@@ -217,25 +243,41 @@ public:
             UAVCAN_ASSERT(0);
             return NodeStatus();
         }
-        NodeStatus status;
+
         const Entry& entry = getEntry(node_id);
         if (entry.time_since_last_update_ms100 >= 0)
         {
-            status.known = true;
-            status.status_code = entry.status_code;
+            return entry.status;
         }
-        return status;
+        else
+        {
+            return NodeStatus();
+        }
+    }
+
+    /**
+     * Whether the class has observed this node at least once since initialization.
+     * Complexity O(1).
+     */
+    bool isNodeKnown(NodeID node_id) const
+    {
+        if (!node_id.isValid())
+        {
+            UAVCAN_ASSERT(0);
+            return false;
+        }
+        return getEntry(node_id).time_since_last_update_ms100 >= 0;
     }
 
     /**
      * This helper method allows to quickly estimate the overall network health.
-     * Status of the local node is not considered.
+     * Health of the local node is not considered.
      * Returns an invalid Node ID value if there's no known nodes in the network.
      */
-    NodeID findNodeWithWorstStatus() const
+    NodeID findNodeWithWorstHealth() const
     {
-        NodeID nid_with_worst_status;
-        NodeStatusCode worst_status_code = protocol::NodeStatus::STATUS_OK;
+        NodeID nid_with_worst_health;
+        uint8_t worst_health = protocol::NodeStatus::HEALTH_OK;
 
         for (uint8_t i = 1; i <= NodeID::Max; i++)
         {
@@ -244,14 +286,35 @@ public:
             const Entry& entry = getEntry(nid);
             if (entry.time_since_last_update_ms100 >= 0)
             {
-                if (entry.status_code > worst_status_code || !nid_with_worst_status.isValid())
+                if (entry.status.health > worst_health || !nid_with_worst_health.isValid())
                 {
-                    nid_with_worst_status = nid;
-                    worst_status_code = entry.status_code;
+                    nid_with_worst_health = nid;
+                    worst_health = entry.status.health;
                 }
             }
         }
-        return nid_with_worst_status;
+
+        return nid_with_worst_health;
+    }
+
+    /**
+     * Calls the operator for every known node.
+     * Operator signature:
+     *   void (NodeID, NodeStatus)
+     */
+    template <typename Operator>
+    void forEachNode(Operator op) const
+    {
+        for (uint8_t i = 1; i <= NodeID::Max; i++)
+        {
+            const NodeID nid(i);
+            UAVCAN_ASSERT(nid.isUnicast());
+            const Entry& entry = getEntry(nid);
+            if (entry.time_since_last_update_ms100 >= 0)
+            {
+                op(nid, entry.status);
+            }
+        }
     }
 };
 
