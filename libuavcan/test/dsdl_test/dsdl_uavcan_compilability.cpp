@@ -35,7 +35,9 @@ TEST(Dsdl, Streaming)
     static const std::string Reference =
         "status: \n"
         "  uptime_sec: 0\n"
-        "  status_code: 0\n"
+        "  health: 0\n"
+        "  mode: 0\n"
+        "  sub_mode: 0\n"
         "  vendor_specific_status_code: 0\n"
         "software_version: \n"
         "  major: 0\n"

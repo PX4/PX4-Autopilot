@@ -71,7 +71,7 @@ TEST(NodeStatusProvider, Basic)
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(status_sub.collector.msg.get());  // Was published at startup
-    ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_OK, status_sub.collector.msg->health);
+    ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_ERROR, status_sub.collector.msg->health);
     ASSERT_EQ(0, status_sub.collector.msg->vendor_specific_status_code);
     ASSERT_GE(1, status_sub.collector.msg->uptime_sec);
 
@@ -86,7 +86,7 @@ TEST(NodeStatusProvider, Basic)
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
-    ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_OK, status_sub.collector.msg->health);
+    ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_ERROR, status_sub.collector.msg->health);
     ASSERT_EQ(1234, status_sub.collector.msg->vendor_specific_status_code);
     ASSERT_GE(1, status_sub.collector.msg->uptime_sec);
 

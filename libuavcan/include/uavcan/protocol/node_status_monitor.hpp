@@ -29,7 +29,7 @@ public:
         uint8_t sub_mode : 3;
 
         NodeStatus() :
-            health(protocol::NodeStatus::HEALTH_OK),
+            health(protocol::NodeStatus::HEALTH_CRITICAL),
             mode(protocol::NodeStatus::MODE_OFFLINE),
             sub_mode(0)
         {
