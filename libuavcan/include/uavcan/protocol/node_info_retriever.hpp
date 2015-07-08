@@ -256,11 +256,10 @@ private:
 
     virtual void handleNodeStatusChange(const NodeStatusChangeEvent& event)
     {
-        const bool was_offline = !event.old_status.known ||
-                                 (event.old_status.status_code == protocol::NodeStatus::STATUS_OFFLINE);
+        const bool was_offline = !event.was_known ||
+                                 (event.old_status.mode == protocol::NodeStatus::MODE_OFFLINE);
 
-        const bool offline_now = !event.status.known ||
-                                 (event.status.status_code == protocol::NodeStatus::STATUS_OFFLINE);
+        const bool offline_now = event.status.mode == protocol::NodeStatus::MODE_OFFLINE;
 
         if (was_offline || offline_now)
         {
