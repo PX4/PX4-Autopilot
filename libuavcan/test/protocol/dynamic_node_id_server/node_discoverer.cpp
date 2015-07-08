@@ -118,7 +118,6 @@ TEST(dynamic_node_id_server_NodeDiscoverer, Basic)
     ASSERT_LE(0, node_status_pub.init());
 
     uavcan::protocol::NodeStatus node_status;
-    node_status.status_code = node_status.STATUS_OK;    // Status will be ignored anyway
     node_status.uptime_sec = 0;
     ASSERT_LE(0, node_status_pub.broadcast(node_status));
 
@@ -222,7 +221,6 @@ TEST(dynamic_node_id_server_NodeDiscoverer, RestartAndMaxAttempts)
     ASSERT_LE(0, node_status_pub.init());
 
     uavcan::protocol::NodeStatus node_status;
-    node_status.status_code = node_status.STATUS_OK;    // Status will be ignored anyway
     node_status.uptime_sec = 10;                        // Nonzero
     ASSERT_LE(0, node_status_pub.broadcast(node_status));
 
@@ -240,7 +238,6 @@ TEST(dynamic_node_id_server_NodeDiscoverer, RestartAndMaxAttempts)
     /*
      * Emulating node restart
      */
-    node_status.status_code = node_status.STATUS_OK;    // Status will be ignored anyway
     node_status.uptime_sec = 9;                         // Less than previous
     ASSERT_LE(0, node_status_pub.broadcast(node_status));
 

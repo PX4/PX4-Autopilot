@@ -60,8 +60,8 @@ static void runForever(const uavcan_linux::NodePtr& node)
         void handleNodeStatusChange(const NodeStatusChangeEvent& event) override
         {
             std::cout << "Remote node NID " << int(event.node_id.get()) << " changed status: "
-                      << int(event.old_status.status_code) << " --> "
-                      << int(event.status.status_code) << std::endl;
+                      << event.old_status.toString() << " --> "
+                      << event.status.toString() << std::endl;
         }
     };
 
