@@ -612,38 +612,6 @@ uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
  * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Name: uavcan_pack_NodeStatus
- *
- * Description:
- *   This function formats the data of a uavcan_NodeStatus_t structure into
- *   an array of bytes.
- *
- * Input Parameters:
- *   external   -       The array of bytes to populate.
- *   internal   -       The uavcan_NodeStatus_t to pack into the external
- *                      byte representation
- *
- * Returned value:
- *   Number of bytes written.
- *
- ****************************************************************************/
-
-size_t uavcan_pack_NodeStatus(uint8_t *external,
-			      const uavcan_NodeStatus_t *internal)
-{
-	uint32_t uptime_sec_status_code = uavcan_ppack(internal, NodeStatus, uptime_sec) \
-					  | uavcan_ppack(internal, NodeStatus, status_code);
-	external[0] = ((uint8_t *)&uptime_sec_status_code)[0];
-	external[1] = ((uint8_t *)&uptime_sec_status_code)[1];
-	external[2] = ((uint8_t *)&uptime_sec_status_code)[2];
-	external[3] = ((uint8_t *)&uptime_sec_status_code)[3];
-	external[4] = ((uint8_t *)&internal->vendor_specific_status_code)[0];
-	external[5] = ((uint8_t *)&internal->vendor_specific_status_code)[1];
-	external[6] = internal->msb_vendor_specific_status_code;
-	return PackedSizeMsgNodeStatus;
-}
-
-/****************************************************************************
  * Name: uavcan_pack_GetNodeInfo_response
  *
  * Description:
@@ -660,10 +628,8 @@ size_t uavcan_pack_NodeStatus(uint8_t *external,
  *
  ****************************************************************************/
 
-size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t *response,
-					const uavcan_NodeStatus_t *node_status)
+size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t *response)
 {
-	uavcan_pack_NodeStatus(response->nodestatus, node_status);
 	size_t contiguous_length = FixedSizeGetNodeInfo + \
 				   response->hardware_version.certificate_of_authenticity_length;
 	/*
@@ -701,45 +667,6 @@ static size_t uavcan_pack_LogMessage(uint8_t *external,
 	memcpy(&external[uavcan_byte_offset(LogMessage, source)], internal->source,
 	       PackedSizeMsgLogMessage - sizeof_member(uavcan_LogMessage_t, level));
 	return PackedSizeMsgLogMessage;
-}
-
-/****************************************************************************
- * Name: uavcan_tx_nodestatus
- *
- * Description:
- *   This function sends a uavcan nodestatus transfer
- *
- * Input Parameters:
- *   node_id     - This node's node id
- *   uptime_sec  - This node's uptime in seconds.
- *   status_code - This node's current status code
- *
- * Returned value:
- *   None.
- *
- ****************************************************************************/
-
-void uavcan_tx_nodestatus(uint32_t uptime_sec, uint8_t status_code)
-{
-	static uint8_t transfer_id;
-
-	uavcan_NodeStatus_t transfer;
-	uavcan_protocol_t protocol;
-
-	protocol.tail.transfer_id = transfer_id++;
-
-	const dsdl_t *dsdl = load_dsdl_protocol(DSDLMsgNodeStatus, MessageOut, &protocol, 0);
-
-	transfer.uptime_sec = uptime_sec;
-	transfer.status_code = status_code;
-	transfer.vendor_specific_status_code = 0u;
-	transfer.msb_vendor_specific_status_code = 0u;
-
-	uint8_t payload[CanPayloadLength];
-
-	size_t frame_len = uavcan_pack_NodeStatus(payload, &transfer);
-
-	uavcan_tx(&protocol, payload, frame_len, dsdl->mailbox);
 }
 
 /****************************************************************************

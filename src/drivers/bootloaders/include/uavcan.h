@@ -467,18 +467,32 @@ typedef struct packed_struct uavcan_protocol_t {
 typedef enum uavcan_NodeStatusConsts_t {
 	MAX_BROADCASTING_PERIOD_MS = 1000,
 	MIN_BROADCASTING_PERIOD_MS = 2,
-	STATUS_OK           = 0,
-	STATUS_INITIALIZING = 1,
-	STATUS_WARNING      = 2,
-	STATUS_CRITICAL     = 3,
-	STATUS_OFFLINE      = 7,
+	OFFLINE_TIMEOUT_MS = 2000,
+
+	HEALTH_OK         = 0,
+	HEALTH_WARNING    = 1,
+	HEALTH_ERROR      = 2,
+	HEALTH_CRITICAL   = 3,
+
+	MODE_OPERATIONAL      = 0,
+	MODE_INITIALIZATION   = 1,
+	MODE_MAINTENANCE      = 2,
+	MODE_SOFTWARE_UPDATE  = 3,
+
+	MODE_OFFLINE          = 7,
 } uavcan_NodeStatusConsts_t;
 
 typedef struct packed_struct uavcan_NodeStatus_t {
 	uint32_t uptime_sec;
-	uint8_t status_code;
+	union {
+		uint8_t u8;
+		struct {
+uint8_t sub_mode: LengthNodeStatussub_mode;
+uint8_t mode    : LengthNodeStatusmode;
+uint8_t health  : LengthNodeStatushealth;
+		};
+	};
 	uint16_t vendor_specific_status_code;
-	uint8_t  msb_vendor_specific_status_code;
 } uavcan_NodeStatus_t;
 
 /****************************************
@@ -526,8 +540,7 @@ typedef struct packed_struct uavcan_GetNodeInfo_request_t {
 
 typedef struct packed_struct uavcan_GetNodeInfo_response_t {
 
-	uint8_t nodestatus[PackedSizeMsgNodeStatus];
-
+	uavcan_NodeStatus_t nodes_status;;
 	uavcan_SoftwareVersion_t software_version;
 	uavcan_HardwareVersion_t hardware_version;
 
@@ -702,26 +715,6 @@ extern uint8_t g_uavcan_priority;
  * Public Function Prototypes
  ****************************************************************************/
 /****************************************************************************
- * Name: uavcan_pack_NodeStatus
- *
- * Description:
- *   This function formats the data of a uavcan_NodeStatus_t structure into
- *   an array of bytes.
- *
- * Input Parameters:
- *   external   -       The array of bytes to populate.
- *   internal   -       The uavcan_NodeStatus_t to pack into the external
- *                      byte representation
- *
- * Returned value:
- *   Number of bytes written.
- *
- ****************************************************************************/
-
-size_t uavcan_pack_NodeStatus(uint8_t *external,
-			      const uavcan_NodeStatus_t *internal);
-
-/****************************************************************************
  * Name: uavcan_pack_GetNodeInfo_response
  *
  * Description:
@@ -738,8 +731,8 @@ size_t uavcan_pack_NodeStatus(uint8_t *external,
  *
  ****************************************************************************/
 
-size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t *response,
-					const uavcan_NodeStatus_t *node_status);
+size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t
+					*response);
 
 /****************************************************************************
  * Name: uavcan_tx_dsdl
@@ -789,24 +782,6 @@ void uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 			      uint8_t *transfer, size_t *in_out_transfer_length,
 			      uint32_t timeout_ms);
-
-/****************************************************************************
- * Name: uavcan_tx_nodestatus
- *
- * Description:
- *   This function sends a uavcan nodestatus transfer
- *
- * Input Parameters:
- *   node_id     - This node's node id
- *   uptime_sec  - This node's uptime in seconds.
- *   status_code - This node's current status code
- *
- * Returned value:
- *   None.
- *
- ****************************************************************************/
-
-void uavcan_tx_nodestatus(uint32_t uptime_sec, uint8_t status_code);
 
 /****************************************************************************
  * Name: uavcan_tx_log_message

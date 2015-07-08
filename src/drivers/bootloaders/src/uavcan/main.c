@@ -92,7 +92,9 @@
 
 typedef volatile struct bootloader_t {
 	can_speed_t bus_speed;
-	volatile uint8_t status_code;
+	volatile uint8_t health;
+	volatile uint8_t mode;
+	volatile uint8_t sub_mode;
 	volatile bool app_valid;
 	volatile uint32_t uptime;
 	volatile app_descriptor_t *fw_image_descriptor;
@@ -209,14 +211,14 @@ static void node_info_process(bl_timer_id id, void *context)
 
 	uavcan_GetNodeInfo_response_t response;
 	uavcan_GetNodeInfo_request_t  request;
-	uavcan_NodeStatus_t node_status;
 
 	uavcan_protocol_t protocol;
 
-	node_status.uptime_sec = bootloader.uptime;
-	node_status.status_code = bootloader.status_code;
-	node_status.vendor_specific_status_code = 0u;
-	node_status.msb_vendor_specific_status_code = 0u;
+	response.nodes_status.uptime_sec = bootloader.uptime;
+	response.nodes_status.u8 = uavcan_pack(bootloader.sub_mode, NodeStatus, sub_mode)
+				   | uavcan_pack(bootloader.mode, NodeStatus, mode)
+				   | uavcan_pack(bootloader.health, NodeStatus, health);
+	response.nodes_status.vendor_specific_status_code = 0u;
 
 	(void)board_get_hardware_version(&response.hardware_version);
 	response.name_length = board_get_product_name(response.name, sizeof(response.name));
@@ -243,7 +245,7 @@ static void node_info_process(bl_timer_id id, void *context)
 	}
 
 	size_t length = sizeof(uavcan_GetNodeInfo_request_t);
-	size_t send_length = uavcan_pack_GetNodeInfo_response(&response, &node_status);
+	size_t send_length = uavcan_pack_GetNodeInfo_response(&response);
 
 	/*
 	 * Do a passive receive attempt on the GetNodeInfo fifo
@@ -278,7 +280,19 @@ static void node_info_process(bl_timer_id id, void *context)
 
 static void node_status_process(bl_timer_id id, void *context)
 {
-	uavcan_tx_nodestatus(bootloader.uptime, bootloader.status_code);
+	static uint8_t transfer_id;
+
+	uavcan_NodeStatus_t message;
+	uavcan_protocol_t protocol;
+
+	protocol.tail.transfer_id = transfer_id++;
+
+	message.uptime_sec = bootloader.uptime;
+	message.u8 = uavcan_pack(bootloader.sub_mode, NodeStatus, sub_mode)
+		     | uavcan_pack(bootloader.mode, NodeStatus, mode)
+		     | uavcan_pack(bootloader.health, NodeStatus, health);
+	message.vendor_specific_status_code = 0u;
+	uavcan_tx_dsdl(DSDLMsgNodeStatus, &protocol, (const uint8_t *) &message, sizeof(uavcan_NodeStatus_t));
 }
 
 /****************************************************************************
@@ -1070,7 +1084,9 @@ __EXPORT int main(int argc, char *argv[])
 
 	g_this_node_id = ANY_NODE_ID;
 
-	bootloader.status_code = STATUS_INITIALIZING;
+	bootloader.health = HEALTH_OK;
+	bootloader.mode = MODE_INITIALIZATION;
+	bootloader.sub_mode = 0;
 
 	error_log_stage = LOGMESSAGE_STAGE_INIT;
 
@@ -1281,6 +1297,7 @@ __EXPORT int main(int argc, char *argv[])
 	timer_stop(tboot);
 
 	board_indicate(fw_update_start);
+	bootloader.mode = MODE_SOFTWARE_UPDATE;
 
 	file_getinfo(&fw_path, fw_path_length, &fw_image_size);
 
@@ -1365,7 +1382,7 @@ failure:
 			      LOGMESSAGE_RESULT_FAIL);
 
 
-	bootloader.status_code = STATUS_CRITICAL;
+	bootloader.health = HEALTH_CRITICAL;
 
 	bl_timer_id tmr = timer_allocate(modeTimeout | modeStarted , OPT_RESTART_TIMEOUT_MS, 0);
 
