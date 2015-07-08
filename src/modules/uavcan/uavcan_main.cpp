@@ -484,7 +484,7 @@ int UavcanNode::run()
 	 *     IO multiplexing shall be done here.
 	 */
 
-	_node.setStatusOk();
+	_node.setModeOperational();
 
 	/*
 	 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).

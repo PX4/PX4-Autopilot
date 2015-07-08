@@ -391,7 +391,7 @@ int UavcanNode::run()
 	}
 
 
-	_node.setStatusOk();
+	_node.setModeOperational();
 
 	/*
 	 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).
