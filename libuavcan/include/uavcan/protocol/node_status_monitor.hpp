@@ -150,9 +150,9 @@ private:
 
                 if (entry.time_since_last_update_ms100 >= OfflineTimeoutMs100)
                 {
-                    Entry new_entry_value;
+                    Entry new_entry_value = entry;
                     new_entry_value.time_since_last_update_ms100 = OfflineTimeoutMs100;
-                    new_entry_value.status = NodeStatus();
+                    new_entry_value.status.mode = protocol::NodeStatus::MODE_OFFLINE;
                     changeNodeStatus(nid, new_entry_value);
                 }
             }

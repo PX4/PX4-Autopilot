@@ -111,11 +111,11 @@ TEST(NodeStatusMonitor, Basic)
 
     ASSERT_TRUE(nsm.isNodeKnown(uavcan::NodeID(10)));
     ASSERT_EQ(NodeStatus::MODE_OFFLINE, nsm.getNodeStatus(uavcan::NodeID(10)).mode);
-    ASSERT_EQ(NodeStatus::HEALTH_CRITICAL, nsm.getNodeStatus(uavcan::NodeID(10)).health);
+    ASSERT_EQ(NodeStatus::HEALTH_OK, nsm.getNodeStatus(uavcan::NodeID(10)).health);
 
     ASSERT_TRUE(nsm.isNodeKnown(uavcan::NodeID(9)));
     ASSERT_EQ(NodeStatus::MODE_OFFLINE, nsm.getNodeStatus(uavcan::NodeID(9)).mode);
-    ASSERT_EQ(NodeStatus::HEALTH_CRITICAL, nsm.getNodeStatus(uavcan::NodeID(9)).health);
+    ASSERT_EQ(NodeStatus::HEALTH_WARNING, nsm.getNodeStatus(uavcan::NodeID(9)).health);
 
     ASSERT_TRUE(nsm.isNodeKnown(uavcan::NodeID(11)));
     ASSERT_EQ(NodeStatus::MODE_OFFLINE, nsm.getNodeStatus(uavcan::NodeID(11)).mode);
@@ -143,11 +143,11 @@ TEST(NodeStatusMonitor, Basic)
      */
     ASSERT_TRUE(nsm.isNodeKnown(uavcan::NodeID(10)));
     ASSERT_EQ(NodeStatus::MODE_OFFLINE, nsm.getNodeStatus(uavcan::NodeID(10)).mode);
-    ASSERT_EQ(NodeStatus::HEALTH_CRITICAL, nsm.getNodeStatus(uavcan::NodeID(10)).health);
+    ASSERT_EQ(NodeStatus::HEALTH_OK, nsm.getNodeStatus(uavcan::NodeID(10)).health);
 
     ASSERT_TRUE(nsm.isNodeKnown(uavcan::NodeID(9)));
     ASSERT_EQ(NodeStatus::MODE_OFFLINE, nsm.getNodeStatus(uavcan::NodeID(9)).mode);
-    ASSERT_EQ(NodeStatus::HEALTH_CRITICAL, nsm.getNodeStatus(uavcan::NodeID(9)).health);
+    ASSERT_EQ(NodeStatus::HEALTH_WARNING, nsm.getNodeStatus(uavcan::NodeID(9)).health);
 
     ASSERT_TRUE(nsm.isNodeKnown(uavcan::NodeID(11)));
     ASSERT_EQ(NodeStatus::MODE_OPERATIONAL, nsm.getNodeStatus(uavcan::NodeID(11)).mode);
