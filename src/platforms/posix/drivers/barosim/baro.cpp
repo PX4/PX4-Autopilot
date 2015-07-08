@@ -279,7 +279,7 @@ BAROSIM::init()
 				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_baro_topic == nullptr) {
-			PX4_ERR("failed to create sensor_baro publication");
+		PX4_ERR("failed to create sensor_baro publication");
 	}
 
 	/* this do..while is goto without goto */
@@ -664,8 +664,7 @@ BAROSIM::collect()
 			if (_baro_topic != nullptr) {
 				/* publish it */
 				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
-			}
-			else {
+			} else {
 				PX4_WARN("BAROSIM::collect _baro_topic not initialized");
 			}
 		}
