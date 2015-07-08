@@ -104,8 +104,7 @@ class Monitor : public uavcan::NodeStatusMonitor
             CLIColorizer clz(health_and_color.first);
             std::printf(" %-8s ", health_and_color.second.c_str());
         }
-        std::printf("| %-10lu | %04x  %s'%s  %u\n", uptime,
-                    vendor_code,
+        std::printf("| %-10lu | %04x  %s'%s  %u\n", uptime, vendor_code,
                     std::bitset<8>((vendor_code >> 8) & 0xFF).to_string().c_str(),
                     std::bitset<8>(vendor_code).to_string().c_str(),
                     vendor_code);
