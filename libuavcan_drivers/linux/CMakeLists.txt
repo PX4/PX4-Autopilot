@@ -72,8 +72,8 @@ target_link_libraries(test_multithreading ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_I
 #
 # Tools
 #
-add_executable(uavcan_status_monitor apps/uavcan_status_monitor.cpp)
-target_link_libraries(uavcan_status_monitor ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
+add_executable(uavcan_monitor apps/uavcan_monitor.cpp)
+target_link_libraries(uavcan_monitor ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(uavcan_nodetool apps/uavcan_nodetool.cpp)
 target_link_libraries(uavcan_nodetool ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
@@ -81,7 +81,7 @@ target_link_libraries(uavcan_nodetool ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT}
 add_executable(uavcan_dynamic_node_id_server apps/uavcan_dynamic_node_id_server.cpp)
 target_link_libraries(uavcan_dynamic_node_id_server ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
-install(TARGETS uavcan_status_monitor
+install(TARGETS uavcan_monitor
                 uavcan_nodetool
                 uavcan_dynamic_node_id_server
         RUNTIME DESTINATION bin)
