@@ -69,7 +69,7 @@ static void run_cmd(const vector<string> &appargs) {
 		arg[i] = (char *)0;
 		cout << "Running: " << command << "\n";
 		apps[command](i,(char **)arg);
-		usleep(20000);
+		usleep(40000);
 		cout << "Returning: " << command << "\n";
 
 	} else {
