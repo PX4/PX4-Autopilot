@@ -32,9 +32,12 @@ TEST(NodeStatusProvider, Basic)
     nsp.setName("superluminal_communication_unit");
     ASSERT_STREQ("superluminal_communication_unit", nsp.getName().c_str());
 
-    ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_INITIALIZING, nsp.getStatusCode());
-    nsp.setStatusOk();
-    ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_OK, nsp.getStatusCode());
+    ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_OK, nsp.getHealth());
+    ASSERT_EQ(uavcan::protocol::NodeStatus::MODE_INITIALIZATION, nsp.getMode());
+    nsp.setHealthError();
+    nsp.setModeOperational();
+    ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_ERROR, nsp.getHealth());
+    ASSERT_EQ(uavcan::protocol::NodeStatus::MODE_OPERATIONAL, nsp.getMode());
 
     // Will fail - types are not registered
     uavcan::GlobalDataTypeRegistry::instance().reset();
@@ -68,7 +71,7 @@ TEST(NodeStatusProvider, Basic)
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(status_sub.collector.msg.get());  // Was published at startup
-    ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_OK, status_sub.collector.msg->status_code);
+    ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_OK, status_sub.collector.msg->health);
     ASSERT_EQ(0, status_sub.collector.msg->vendor_specific_status_code);
     ASSERT_GE(1, status_sub.collector.msg->uptime_sec);
 
@@ -83,7 +86,7 @@ TEST(NodeStatusProvider, Basic)
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
-    ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_OK, status_sub.collector.msg->status_code);
+    ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_OK, status_sub.collector.msg->health);
     ASSERT_EQ(1234, status_sub.collector.msg->vendor_specific_status_code);
     ASSERT_GE(1, status_sub.collector.msg->uptime_sec);
 
@@ -92,7 +95,7 @@ TEST(NodeStatusProvider, Basic)
      */
     ServiceClientWithCollector<uavcan::protocol::GetNodeInfo> gni_cln(nodes.b);
 
-    nsp.setStatusCritical();
+    nsp.setHealthCritical();
 
     ASSERT_FALSE(gni_cln.collector.result.get());  // No data yet
     ASSERT_LE(0, gni_cln.call(1, uavcan::protocol::GetNodeInfo::Request()));
@@ -103,8 +106,8 @@ TEST(NodeStatusProvider, Basic)
     ASSERT_TRUE(gni_cln.collector.result->isSuccessful());
     ASSERT_EQ(1, gni_cln.collector.result->getCallID().server_node_id.get());
 
-    ASSERT_EQ(uavcan::protocol::NodeStatus::STATUS_CRITICAL,
-              gni_cln.collector.result->getResponse().status.status_code);
+    ASSERT_EQ(uavcan::protocol::NodeStatus::HEALTH_CRITICAL,
+              gni_cln.collector.result->getResponse().status.health);
 
     ASSERT_TRUE(hwver == gni_cln.collector.result->getResponse().hardware_version);
     ASSERT_TRUE(swver == gni_cln.collector.result->getResponse().software_version);

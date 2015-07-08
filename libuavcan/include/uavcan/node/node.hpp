@@ -156,19 +156,25 @@ public:
     void setName(const char* name) { proto_nsp_.setName(name); }
 
     /**
-     * Status code helpers.
+     * Node health code helpers.
      */
-    void setStatusOk()           { proto_nsp_.setStatusOk(); }
-    void setStatusInitializing() { proto_nsp_.setStatusInitializing(); }
-    void setStatusWarning()      { proto_nsp_.setStatusWarning(); }
-    void setStatusCritical()     { proto_nsp_.setStatusCritical(); }
+    void setHealthOk()           { proto_nsp_.setHealthOk(); }
+    void setHealthWarning()      { proto_nsp_.setHealthWarning(); }
+    void setHealthError()        { proto_nsp_.setHealthError(); }
+    void setHealthCritical()     { proto_nsp_.setHealthCritical(); }
 
     /**
-     * Sets the status OFFLINE and publishes it immediately.
+     * Node mode code helpers.
+     * Note that INITIALIZATION is the default mode; the application has to manually set it to OPERATIONAL.
      */
-    void setStatusOffline()
+    void setModeOperational()    { proto_nsp_.setModeOperational(); }
+    void setModeInitialization() { proto_nsp_.setModeInitialization(); }
+    void setModeMaintenance()    { proto_nsp_.setModeMaintenance(); }
+    void setModeSoftwareUpdate() { proto_nsp_.setModeSoftwareUpdate(); }
+
+    void setModeOfflineAndPublish()
     {
-        proto_nsp_.setStatusOffline();
+        proto_nsp_.setModeOffline();
         (void)proto_nsp_.forcePublish();
     }
 

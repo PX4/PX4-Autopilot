@@ -21,7 +21,7 @@ int NodeStatusProvider::publish()
     UAVCAN_ASSERT(uptime.isPositive());
     node_info_.status.uptime_sec = uint32_t(uptime.toMSec() / 1000);
 
-    UAVCAN_ASSERT(node_info_.status.status_code <= protocol::NodeStatus::FieldTypes::status_code::max());
+    UAVCAN_ASSERT(node_info_.status.health <= protocol::NodeStatus::FieldTypes::health::max());
 
     return node_status_pub_.broadcast(node_info_.status);
 }
@@ -109,9 +109,14 @@ uavcan::MonotonicDuration NodeStatusProvider::getStatusPublicationPeriod() const
     return TimerBase::getPeriod();
 }
 
-void NodeStatusProvider::setStatusCode(uint8_t code)
+void NodeStatusProvider::setHealth(uint8_t code)
 {
-    node_info_.status.status_code = code;
+    node_info_.status.health = code;
+}
+
+void NodeStatusProvider::setMode(uint8_t code)
+{
+    node_info_.status.mode = code;
 }
 
 void NodeStatusProvider::setVendorSpecificStatusCode(VendorSpecificStatusCode code)
