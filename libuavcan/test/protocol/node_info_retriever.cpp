@@ -13,11 +13,12 @@
 #include <uavcan/protocol/node_status_provider.hpp>
 #include "helpers.hpp"
 
-static void publishNodeStatus(PairableCanDriver& can, uavcan::NodeID node_id, uavcan::uint8_t status_code,
+static void publishNodeStatus(PairableCanDriver& can, uavcan::NodeID node_id,
                               uavcan::uint32_t uptime_sec, uavcan::TransferID tid)
 {
     uavcan::protocol::NodeStatus msg;
-    msg.status_code = status_code;
+    msg.health     = uavcan::protocol::NodeStatus::HEALTH_OK;
+    msg.mode       = uavcan::protocol::NodeStatus::MODE_OPERATIONAL;
     msg.uptime_sec = uptime_sec;
     emulateSingleFrameBroadcastTransfer(can, node_id, msg, tid);
 }
@@ -55,7 +56,7 @@ struct NodeInfoListener : public uavcan::INodeInfoListener
     virtual void handleNodeStatusChange(const uavcan::NodeStatusMonitor::NodeStatusChangeEvent& event)
     {
         std::cout << "NODE " << int(event.node_id.get()) << " STATUS CHANGE: "
-                  << int(event.old_status.status_code) << " --> " << int(event.status.status_code) << std::endl;
+                  << event.old_status.toString() << " --> " << event.status.toString() << std::endl;
         status_change_cnt++;
     }
 
@@ -137,9 +138,9 @@ TEST(NodeInfoRetriever, Basic)
 
     uavcan::TransferID tid;
 
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(10), 0, 10, tid);
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 10, tid);
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 10, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(10), 10, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 10, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 10, tid);
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_LE(1, retr.getNumPendingRequests());
@@ -151,9 +152,9 @@ TEST(NodeInfoRetriever, Basic)
     ASSERT_TRUE(retr.isRetrievingInProgress());
 
     tid.increment();
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(10), 0, 11, tid);
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 11, tid);
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 11, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(10), 11, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 11, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 11, tid);
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_LE(1, retr.getNumPendingRequests());
@@ -165,9 +166,9 @@ TEST(NodeInfoRetriever, Basic)
     ASSERT_TRUE(retr.isRetrievingInProgress());
 
     tid.increment();
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(10), 0, 12, tid);
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 12, tid);
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 10, tid);     // Reset
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(10), 12, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 12, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 10, tid);     // Reset
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_LE(1, retr.getNumPendingRequests());
@@ -183,7 +184,7 @@ TEST(NodeInfoRetriever, Basic)
     EXPECT_EQ(2, listener.info_unavailable_cnt);
 
     tid.increment();
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 11, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 11, tid);
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(40));
     ASSERT_EQ(1, retr.getNumPendingRequests());
@@ -193,7 +194,7 @@ TEST(NodeInfoRetriever, Basic)
     ASSERT_TRUE(retr.isRetrievingInProgress());
 
     tid.increment();
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 12, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 12, tid);
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1200));
     ASSERT_FALSE(retr.isRetrievingInProgress());                // Out of attempts, stopping
@@ -214,9 +215,9 @@ TEST(NodeInfoRetriever, Basic)
     ASSERT_EQ(0, retr.getNumPendingRequests());
 
     tid.increment();
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(10), 0, 60, tid);
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 0, 60, tid);
-    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 0, 60, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(10), 60, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(11), 60, tid);
+    publishNodeStatus(nodes.can_a, uavcan::NodeID(12), 60, tid);
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(200));
 
@@ -261,7 +262,7 @@ TEST(NodeInfoRetriever, MaxConcurrentRequests)
      */
     for (uint8_t node_id = 1U; node_id <= 127U; node_id++)
     {
-        publishNodeStatus(nodes.can_a, node_id, 0, 0, uavcan::TransferID());
+        publishNodeStatus(nodes.can_a, node_id, 0, uavcan::TransferID());
         nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
         ASSERT_GE(MaxPendingRequests, retr.getNumPendingRequests());
         ASSERT_TRUE(retr.isRetrievingInProgress());

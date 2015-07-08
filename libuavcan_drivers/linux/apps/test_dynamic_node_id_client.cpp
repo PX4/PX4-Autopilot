@@ -65,7 +65,7 @@ uavcan_linux::NodePtr initNodeWithDynamicID(const std::vector<std::string>& ifac
      */
     node->setNodeID(client.getAllocatedNodeID());
 
-    node->setStatusOk();
+    node->setModeOperational();
 
     return node;
 }

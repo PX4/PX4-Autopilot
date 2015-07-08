@@ -406,7 +406,7 @@ static uavcan_linux::NodePtr initMainNode(const std::vector<std::string>& ifaces
     const int start_res = node->start();
     ENFORCE(0 == start_res);
 
-    node->setStatusOk();
+    node->setModeOperational();
     return node;
 }
 
@@ -483,7 +483,7 @@ static void runSubNode(const uavcan_linux::SubNodePtr& node)
         virtual void handleNodeStatusChange(const NodeStatusChangeEvent& event) override
         {
             std::cout << "Remote node NID " << int(event.node_id.get()) << " changed status: "
-                      << int(event.old_status.status_code) << " --> " << int(event.status.status_code) << std::endl;
+                      << event.old_status.toString() << " --> " << event.status.toString() << std::endl;
         }
     };
     NodeStatusMonitor nsm(*node);

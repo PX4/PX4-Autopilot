@@ -61,7 +61,7 @@ TEST(SubNode, Basic)
 
     ASSERT_LE(0, node1.spin(uavcan::MonotonicDuration::fromMSec(2000)));
 
-    ASSERT_EQ(1, node_status_monitor.findNodeWithWorstStatus().get());
+    ASSERT_EQ(1, node_status_monitor.findNodeWithWorstHealth().get());
 
     /*
      * Some logging

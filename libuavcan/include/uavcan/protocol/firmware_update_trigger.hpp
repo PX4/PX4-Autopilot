@@ -212,8 +212,7 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
 
     virtual void handleNodeStatusChange(const NodeStatusMonitor::NodeStatusChangeEvent& event)
     {
-        if (event.status.status_code == protocol::NodeStatus::STATUS_OFFLINE ||
-            !event.status.known)
+        if (event.status.mode == protocol::NodeStatus::MODE_OFFLINE)
         {
             pending_nodes_.remove(event.node_id);
             UAVCAN_TRACE("FirmwareUpdateTrigger", "Node ID %d is offline hence forgotten", int(event.node_id.get()));

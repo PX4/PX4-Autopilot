@@ -33,7 +33,7 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
     /*
      * Say Hi to the world.
      */
-    node->setStatusOk();
+    node->setModeOperational();
     node->logInfo("init", "Hello world! I'm [%*], NID %*",
                   node->getNodeStatusProvider().getName().c_str(), int(node->getNodeID().get()));
     return node;
