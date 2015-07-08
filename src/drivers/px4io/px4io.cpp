@@ -38,7 +38,7 @@
  * PX4IO is connected via I2C or DMA enabled high-speed UART.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -517,12 +517,12 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_param(-1),
 	_param_update_force(false),
 	_t_vehicle_command(-1),
-	_to_input_rc(0),
-	_to_outputs(0),
-	_to_battery(0),
-	_to_servorail(0),
-	_to_safety(0),
-	_to_mixer_status(0),
+	_to_input_rc(nullptr),
+	_to_outputs(nullptr),
+	_to_battery(nullptr),
+	_to_servorail(nullptr),
+	_to_safety(nullptr),
+	_to_mixer_status(nullptr),
 	_outputs{},
 	_servorail_status{},
 	_primary_pwm_device(false),
@@ -856,7 +856,7 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = task_spawn_cmd("px4io",
+	_task = px4_task_spawn_cmd("px4io",
 					SCHED_DEFAULT,
 					SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 					1800,
@@ -1009,7 +1009,7 @@ PX4IO::task_main()
 				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
 
 				// Check for a DSM pairing command
-				if (((uint32_t)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+				if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
 					dsm_bind_ioctl((int)cmd.param2);
 				}
 			}
@@ -1520,7 +1520,7 @@ PX4IO::io_handle_status(uint16_t status)
 	}
 
 	/* lazily publish the safety status */
-	if (_to_safety > 0) {
+	if (_to_safety != nullptr) {
 		orb_publish(ORB_ID(safety), _to_safety, &safety);
 
 	} else {
@@ -1595,7 +1595,7 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	/* the announced battery status would conflict with the simulated battery status in HIL */
 	if (!(_pub_blocked)) {
 		/* lazily publish the battery voltage */
-		if (_to_battery > 0) {
+		if (_to_battery != nullptr) {
 			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
 
 		} else {
@@ -1614,7 +1614,7 @@ PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 	_servorail_status.rssi_v    = vrssi * 0.001f;
 
 	/* lazily publish the servorail voltages */
-	if (_to_servorail > 0) {
+	if (_to_servorail != nullptr) {
 		orb_publish(ORB_ID(servorail_status), _to_servorail, &_servorail_status);
 
 	} else {
@@ -1769,7 +1769,7 @@ PX4IO::io_publish_raw_rc()
 	}
 
 	/* lazily advertise on first publication */
-	if (_to_input_rc == 0) {
+	if (_to_input_rc == nullptr) {
 		_to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_val);
 
 	} else {
@@ -1802,7 +1802,7 @@ PX4IO::io_publish_pwm_outputs()
 	outputs.noutputs = _max_actuators;
 
 	/* lazily advertise on first publication */
-	if (_to_outputs == 0) {
+	if (_to_outputs == nullptr) {
 		int instance;
 		_to_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
 					    &outputs, &instance, ORB_PRIO_MAX);
@@ -1820,7 +1820,7 @@ PX4IO::io_publish_pwm_outputs()
 		return ret;
 
 	/* publish mixer status */
-	if(_to_mixer_status == 0) {
+	if(_to_mixer_status == nullptr) {
 		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits);
 	} else {
 		orb_publish(ORB_ID(multirotor_motor_limits),_to_mixer_status, &motor_limits);

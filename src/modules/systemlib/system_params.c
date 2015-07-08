@@ -37,7 +37,7 @@
  * System wide parameters
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <systemlib/param/param.h>
 
 /**

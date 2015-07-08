@@ -37,13 +37,15 @@
 
 __BEGIN_DECLS
 
-#include <nuttx/sched.h>
+#include <sched.h>
 
 struct system_load_taskinfo_s {
 	uint64_t total_runtime;			///< Runtime since start (start_time - total_runtime)/(start_time - current_time) = load
 	uint64_t curr_start_time;		///< Start time of the current scheduling slot
 	uint64_t start_time;			///< FIRST start time of task
+#ifdef __PX4_NUTTX
 	FAR struct tcb_s *tcb;			///<
+#endif
 	bool valid;						///< Task is currently active / valid
 };
 

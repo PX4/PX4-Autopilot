@@ -98,7 +98,7 @@ protected:
                                                                           before triggering a land */
 
 protected:
-	orb_advert_t                            _landDetectedPub;           /**< publisher for position in local frame */
+	uintptr_t                               _landDetectedPub;           /**< publisher for position in local frame */
 	struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
 
 private:

@@ -68,7 +68,7 @@ int mc_pos_control_m_main(int argc, char *argv[])
 
 		task_should_exit = false;
 
-		daemon_task = task_spawn_cmd("mc_pos_control_m",
+		daemon_task = px4_task_spawn_cmd("mc_pos_control_m",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       2500,

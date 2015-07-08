@@ -41,6 +41,8 @@
  *
  */
 
+#include <px4_defines.h>
+#include <px4_posix.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -108,6 +110,7 @@ static float bat_v_load_drop = 0.06f;
 static int bat_n_cells = 3;
 static float bat_capacity = -1.0f;
 static unsigned int counter = 0;
+static float throttle_lowpassed = 0.0f;
 
 int battery_init()
 {
@@ -117,7 +120,7 @@ int battery_init()
 	bat_capacity_h = param_find("BAT_CAPACITY");
 	bat_v_load_drop_h = param_find("BAT_V_LOAD_DROP");
 
-	return OK;
+	return PX4_OK;
 }
 
 int buzzer_init()
@@ -130,24 +133,24 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
 
-	buzzer = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	buzzer = px4_open(TONEALARM0_DEVICE_PATH, O_WRONLY);
 
 	if (buzzer < 0) {
-		warnx("Buzzer: open fail\n");
+		warnx("Buzzer: px4_open fail\n");
 		return ERROR;
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 void buzzer_deinit()
 {
-	close(buzzer);
+	px4_close(buzzer);
 }
 
 void set_tune_override(int tune)
 {
-	ioctl(buzzer, TONE_SET_ALARM, tune);
+	px4_ioctl(buzzer, TONE_SET_ALARM, tune);
 }
 
 void set_tune(int tune)
@@ -158,7 +161,7 @@ void set_tune(int tune)
 	if (tune_end == 0 || new_tune_duration != 0 || hrt_absolute_time() > tune_end) {
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
-			ioctl(buzzer, TONE_SET_ALARM, tune);
+			px4_ioctl(buzzer, TONE_SET_ALARM, tune);
 		}
 
 		tune_current = tune;
@@ -269,22 +272,22 @@ int led_init()
 	blink_msg_end = 0;
 
 	/* first open normal LEDs */
-	leds = open(LED0_DEVICE_PATH, 0);
+	leds = px4_open(LED0_DEVICE_PATH, 0);
 
 	if (leds < 0) {
-		warnx("LED: open fail\n");
+		warnx("LED: px4_open fail\n");
 		return ERROR;
 	}
 
 	/* the blue LED is only available on FMUv1 & AeroCore but not FMUv2 */
-	(void)ioctl(leds, LED_ON, LED_BLUE);
+	(void)px4_ioctl(leds, LED_ON, LED_BLUE);
 
 	/* switch blue off */
 	led_off(LED_BLUE);
 
 	/* we consider the amber led mandatory */
-	if (ioctl(leds, LED_ON, LED_AMBER)) {
-		warnx("Amber LED: ioctl fail\n");
+	if (px4_ioctl(leds, LED_ON, LED_AMBER)) {
+		warnx("Amber LED: px4_ioctl fail\n");
 		return ERROR;
 	}
 
@@ -292,7 +295,7 @@ int led_init()
 	led_off(LED_AMBER);
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
-	rgbleds = open(RGBLED0_DEVICE_PATH, 0);
+	rgbleds = px4_open(RGBLED0_DEVICE_PATH, 0);
 
 	if (rgbleds < 0) {
 		warnx("No RGB LED found at " RGBLED0_DEVICE_PATH);
@@ -304,11 +307,11 @@ int led_init()
 void led_deinit()
 {
 	if (leds >= 0) {
-		close(leds);
+		px4_close(leds);
 	}
 
 	if (rgbleds >= 0) {
-		close(rgbleds);
+		px4_close(rgbleds);
 	}
 }
 
@@ -317,7 +320,7 @@ int led_toggle(int led)
 	if (leds < 0) {
 		return leds;
 	}
-	return ioctl(leds, LED_TOGGLE, led);
+	return px4_ioctl(leds, LED_TOGGLE, led);
 }
 
 int led_on(int led)
@@ -325,7 +328,7 @@ int led_on(int led)
 	if (leds < 0) {
 		return leds;
 	}
-	return ioctl(leds, LED_ON, led);
+	return px4_ioctl(leds, LED_ON, led);
 }
 
 int led_off(int led)
@@ -333,7 +336,7 @@ int led_off(int led)
 	if (leds < 0) {
 		return leds;
 	}
-	return ioctl(leds, LED_OFF, led);
+	return px4_ioctl(leds, LED_OFF, led);
 }
 
 void rgbled_set_color(rgbled_color_t color)
@@ -342,7 +345,7 @@ void rgbled_set_color(rgbled_color_t color)
 	if (rgbleds < 0) {
 		return;
 	}
-	ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
+	px4_ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
 }
 
 void rgbled_set_mode(rgbled_mode_t mode)
@@ -351,7 +354,7 @@ void rgbled_set_mode(rgbled_mode_t mode)
 	if (rgbleds < 0) {
 		return;
 	}
-	ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
+	px4_ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
 }
 
 void rgbled_set_pattern(rgbled_pattern_t *pattern)
@@ -360,7 +363,7 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern)
 	if (rgbleds < 0) {
 		return;
 	}
-	ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
+	px4_ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
 }
 
 unsigned battery_get_n_cells() {
@@ -381,8 +384,15 @@ float battery_remaining_estimate_voltage(float voltage, float discharged, float 
 
 	counter++;
 
+	// XXX this time constant needs to become tunable
+	// but really, the right fix are smart batteries.
+	float val = throttle_lowpassed * 0.97f + throttle_normalized * 0.03f;
+	if (isfinite(val)) {
+		throttle_lowpassed = val;
+	}
+
 	/* remaining charge estimate based on voltage and internal resistance (drop under load) */
-	float bat_v_empty_dynamic = bat_v_empty - (bat_v_load_drop * throttle_normalized);
+	float bat_v_empty_dynamic = bat_v_empty - (bat_v_load_drop * throttle_lowpassed);
 	/* the range from full to empty is the same for batteries under load and without load,
 	 * since the voltage drop applies to both the full and empty state
 	 */

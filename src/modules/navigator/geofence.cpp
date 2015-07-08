@@ -47,7 +47,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <mavlink/mavlink_log.h>
 #include <geo/geo.h>
@@ -69,7 +69,7 @@ static const int ERROR = -1;
 
 Geofence::Geofence() :
 	SuperBlock(NULL, "GF"),
-	_fence_pub(-1),
+	_fence_pub(nullptr),
 	_home_pos{},
 	_home_pos_set(false),
 	_last_horizontal_range_warning(0),
@@ -317,7 +317,7 @@ Geofence::addPoint(int argc, char *argv[])
 void
 Geofence::publishFence(unsigned vertices)
 {
-	if (_fence_pub == -1) {
+	if (_fence_pub == nullptr) {
 		_fence_pub = orb_advertise(ORB_ID(fence), &vertices);
 
 	} else {

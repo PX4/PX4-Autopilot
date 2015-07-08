@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
  * Driver for the Lightware SF0x laser rangefinder series
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -69,6 +69,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
 
@@ -118,7 +119,7 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	RingBuffer			*_reports;
+	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
 	int				_measure_ticks;
 	bool				_collect_phase;
@@ -128,7 +129,10 @@ private:
 	enum SF0X_PARSE_STATE		_parse_state;
 	hrt_abstime			_last_read;
 
-	orb_advert_t			_range_finder_topic;
+	int				_class_instance;
+	int				_orb_class_instance;
+
+	orb_advert_t			_distance_sensor_topic;
 
 	unsigned			_consecutive_fail_count;
 
@@ -194,7 +198,9 @@ SF0X::SF0X(const char *port) :
 	_linebuf_index(0),
 	_parse_state(SF0X_PARSE_STATE0_UNSYNC),
 	_last_read(0),
-	_range_finder_topic(-1),
+	_class_instance(-1),
+	_orb_class_instance(-1),
+	_distance_sensor_topic(nullptr),
 	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
@@ -255,6 +261,14 @@ SF0X::~SF0X()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
+
+	if (_class_instance != -1) {
+		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
+	}
+
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int
@@ -270,21 +284,27 @@ SF0X::init()
 		if (ret != OK) break;
 
 		/* allocate basic report buffers */
-		_reports = new RingBuffer(2, sizeof(range_finder_report));
+		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 		if (_reports == nullptr) {
 			warnx("mem err");
 			ret = -1;
 			break;
 		}
 
-		/* get a publish handle on the range finder topic */
-		struct range_finder_report zero_report;
-		memset(&zero_report, 0, sizeof(zero_report));
-		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &zero_report);
+		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-		if (_range_finder_topic < 0) {
-			warnx("advert err");
+		if (_class_instance == CLASS_DEVICE_PRIMARY) {
+			/* get a publish handle on the range finder topic */
+			struct distance_sensor_s ds_report = {};
+
+			_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+								     &_orb_class_instance, ORB_PRIO_HIGH);
+
+			if (_distance_sensor_topic == nullptr) {
+				log("failed to create distance_sensor object. Did you start uOrb?");
+			}
 		}
+
 	} while(0);
 
 	/* close the fd */
@@ -442,8 +462,8 @@ SF0X::ioctl(struct file *filp, int cmd, unsigned long arg)
 ssize_t
 SF0X::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct range_finder_report);
-	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
+	unsigned count = buflen / sizeof(struct distance_sensor_s);
+	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -556,11 +576,11 @@ SF0X::collect()
 
 	_last_read = hrt_absolute_time();
 
-	float si_units;
+	float distance_m = -1.0f;
 	bool valid = false;
 
 	for (int i = 0; i < ret; i++) {
-		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &si_units)) {
+		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
 			valid = true;
 		}
 	}
@@ -569,20 +589,22 @@ SF0X::collect()
 		return -EAGAIN;
 	}
 
-	debug("val (float): %8.4f, raw: %s, valid: %s", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
+	debug("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
 
-	struct range_finder_report report;
+	struct distance_sensor_s report;
 
-	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-	report.distance = si_units;
-	report.minimum_distance = get_minimum_distance();
-	report.maximum_distance = get_maximum_distance();
-	report.valid = valid && (si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0);
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	report.orientation = 8;
+	report.current_distance = distance_m;
+	report.min_distance = get_minimum_distance();
+	report.max_distance = get_maximum_distance();
+	report.covariance = 0.0f;
+	/* TODO: set proper ID */
+	report.id = 0;
 
 	/* publish it */
-	orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 
 	if (_reports->force(&report)) {
 		perf_count(_buffer_overflows);
@@ -815,7 +837,7 @@ void stop()
 void
 test()
 {
-	struct range_finder_report report;
+	struct distance_sensor_s report;
 	ssize_t sz;
 
 	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
@@ -832,8 +854,8 @@ test()
 	}
 
 	warnx("single read");
-	warnx("val:  %0.2f m", (double)report.distance);
-	warnx("time: %lld", report.timestamp);
+	warnx("measurement:  %0.2f m", (double)report.current_distance);
+	warnx("time: %llu", report.timestamp);
 
 	/* start the sensor polling at 2 Hz rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -863,8 +885,10 @@ test()
 		}
 
 		warnx("read #%u", i);
-		warnx("val:  %0.3f m", (double)report.distance);
-		warnx("time: %lld", report.timestamp);
+		warnx("valid %u", (float)report.current_distance > report.min_distance
+			&& (float)report.current_distance < report.max_distance ? 1 : 0);
+		warnx("measurement:  %0.3f m", (double)report.current_distance);
+		warnx("time: %llu", report.timestamp);
 	}
 
 	/* reset the sensor polling to the default rate */

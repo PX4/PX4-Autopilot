@@ -38,7 +38,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 
@@ -48,11 +48,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 
-#include <nuttx/spi.h>
+//#include <nuttx/spi.h>
 
 #include <systemlib/perf_counter.h>
 
@@ -97,7 +96,9 @@ const struct {
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"tone",		test_tone,	0},
 	{"sleep",		test_sleep,	OPT_NOJIGTEST},
+#ifdef __PX4_NUTTX
 	{"time",		test_time,	OPT_NOJIGTEST},
+#endif
 	{"perf",		test_perf,	OPT_NOJIGTEST},
 	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST},
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -112,7 +113,7 @@ const struct {
 #ifndef TESTS_MATHLIB_DISABLE
 	{"mathlib",		test_mathlib,	0},
 #endif
-	{"eigen",		test_eigen,	OPT_NOALLTEST | OPT_NOJIGTEST},
+	{"eigen",		test_eigen,	OPT_NOJIGTEST},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
 	{NULL,			NULL, 		0}
 };

@@ -45,4 +45,6 @@ MODULE_STACKSIZE = 1200
 
 EXTRACFLAGS = -Wno-float-equal -Wframe-larger-than=3700
 
+ifeq ($(PX4_TARGET_OS),nuttx)
 EXTRACXXFLAGS = -Wframe-larger-than=2400
+endif

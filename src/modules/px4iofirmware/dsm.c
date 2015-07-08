@@ -39,7 +39,7 @@
  * Decodes into the global PPM buffer and updates accordingly.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/arch.h>
 
 #include <fcntl.h>
@@ -292,9 +292,9 @@ dsm_bind(uint16_t cmd, int pulses)
 
 		/*Pulse RX pin a number of times*/
 		for (int i = 0; i < pulses; i++) {
-			up_udelay(25);
+			up_udelay(120);
 			stm32_gpiowrite(usart1RxAsOutp, false);
-			up_udelay(25);
+			up_udelay(120);
 			stm32_gpiowrite(usart1RxAsOutp, true);
 		}
 		break;

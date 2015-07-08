@@ -44,6 +44,7 @@
 /*
  * IOCTL interface for sending log messages.
  */
+#include <px4_defines.h>
 #include <sys/ioctl.h>
 
 /**
@@ -56,9 +57,9 @@
  */
 #define MAVLINK_LOG_MAXLEN			50
 
-#define MAVLINK_IOC_SEND_TEXT_INFO		_IOC(0x1100, 1)
-#define MAVLINK_IOC_SEND_TEXT_CRITICAL		_IOC(0x1100, 2)
-#define MAVLINK_IOC_SEND_TEXT_EMERGENCY		_IOC(0x1100, 3)
+#define MAVLINK_IOC_SEND_TEXT_INFO		_PX4_IOC(0x1100, 1)
+#define MAVLINK_IOC_SEND_TEXT_CRITICAL		_PX4_IOC(0x1100, 2)
+#define MAVLINK_IOC_SEND_TEXT_EMERGENCY		_PX4_IOC(0x1100, 3)
 
 #ifdef __cplusplus
 extern "C" {

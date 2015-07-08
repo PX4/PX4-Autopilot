@@ -91,7 +91,7 @@ ORB_DECLARE(sensor_mag);
  */
 
 #define _MAGIOCBASE		(0x2400)
-#define _MAGIOC(_n)		(_IOC(_MAGIOCBASE, _n))
+#define _MAGIOC(_n)		(_PX4_IOC(_MAGIOCBASE, _n))
 
 /** set the mag internal sample rate to at least (arg) Hz */
 #define MAGIOCSSAMPLERATE	_MAGIOC(0)

@@ -128,7 +128,7 @@
 #ifndef _SYSTEMLIB_MIXER_MIXER_H
 #define _SYSTEMLIB_MIXER_MIXER_H value
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include "drivers/drv_mixer.h"
 
 #include <uORB/topics/multirotor_motor_limits.h>

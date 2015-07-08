@@ -37,14 +37,14 @@
  * Floating point tests
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <sys/types.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 #include "tests.h"
 #include <math.h>
 #include <float.h>

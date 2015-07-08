@@ -37,6 +37,7 @@
  * A simple subset SAX-style BSON parser and generator.
  */
 
+#include <px4_posix.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -53,13 +54,24 @@
 #define CODER_CHECK(_c)		do { if (_c->dead) { debug("coder dead"); return -1; }} while(0)
 #define CODER_KILL(_c, _reason)	do { debug("killed: %s", _reason); _c->dead = true; return -1; } while(0)
 
+#ifdef __PX4_QURT
+#define BSON_READ  px4_read
+#define BSON_WRITE px4_write
+#define BSON_FSYNC px4_fsync
+#else
+#define BSON_READ  read
+#define BSON_WRITE write
+#define BSON_FSYNC fsync
+#endif
+
 static int
 read_x(bson_decoder_t decoder, void *p, size_t s)
 {
 	CODER_CHECK(decoder);
 
-	if (decoder->fd > -1)
-		return (read(decoder->fd, p, s) == (int)s) ? 0 : -1;
+	if (decoder->fd > -1) {
+		return (BSON_READ(decoder->fd, p, s) == (int)s) ? 0 : -1;
+	}
 
 	if (decoder->buf != NULL) {
 		/* staged operations to avoid integer overflow for corrupt data */
@@ -301,7 +313,7 @@ write_x(bson_encoder_t encoder, const void *p, size_t s)
 	CODER_CHECK(encoder);
 
 	if (encoder->fd > -1)
-		return (write(encoder->fd, p, s) == (int)s) ? 0 : -1;
+		return (BSON_WRITE(encoder->fd, p, s) == (int)s) ? 0 : -1;
 
 	/* do we need to extend the buffer? */
 	while ((encoder->bufpos + s) > encoder->bufsize) {
@@ -408,7 +420,7 @@ bson_encoder_fini(bson_encoder_t encoder)
 	}
 
 	/* sync file */
-	fsync(encoder->fd);
+	BSON_FSYNC(encoder->fd);
 
 	return 0;
 }

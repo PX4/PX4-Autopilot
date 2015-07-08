@@ -265,7 +265,7 @@ Mission::update_offboard_mission()
 		_navigator->set_mission_result_updated();
 
 	} else {
-		warnx("offboard mission update failed");
+		PX4_WARN("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
 	}
 
 	if (failed) {
@@ -519,7 +519,7 @@ Mission::heading_sp_update()
 
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-			!isfinite(_on_arrival_yaw)) {
+			!PX4_ISFINITE(_on_arrival_yaw)) {
 		return;
 	}
 
@@ -567,7 +567,7 @@ Mission::altitude_sp_foh_update()
 
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-			!isfinite(_mission_item_previous_alt)) {
+			!PX4_ISFINITE(_mission_item_previous_alt)) {
 		return;
 	}
 

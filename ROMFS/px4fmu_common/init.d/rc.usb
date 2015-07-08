@@ -9,6 +9,7 @@ mavlink stream -d /dev/ttyACM0 -s PARAM_VALUE -r 300
 mavlink stream -d /dev/ttyACM0 -s MISSION_ITEM -r 50
 mavlink stream -d /dev/ttyACM0 -s NAMED_VALUE_FLOAT -r 10
 mavlink stream -d /dev/ttyACM0 -s OPTICAL_FLOW_RAD -r 10
+mavlink stream -d /dev/ttyACM0 -s DISTANCE_SENSOR -r 10
 mavlink stream -d /dev/ttyACM0 -s VFR_HUD -r 20
 mavlink stream -d /dev/ttyACM0 -s ATTITUDE -r 100
 mavlink stream -d /dev/ttyACM0 -s ACTUATOR_CONTROL_TARGET0 -r 30

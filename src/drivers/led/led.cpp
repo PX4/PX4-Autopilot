@@ -37,9 +37,11 @@
  * LED driver.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_posix.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_led.h>
+#include <stdio.h>
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -55,18 +57,26 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
+#ifdef __PX4_NUTTX
 class LED : device::CDev
+#else
+class LED : device::VDev
+#endif
 {
 public:
 	LED();
 	virtual ~LED();
 
 	virtual int		init();
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 };
 
 LED::LED() :
+#ifdef __PX4_NUTTX
 	CDev("led", LED0_DEVICE_PATH)
+#else
+	VDev("led", LED0_DEVICE_PATH)
+#endif
 {
 	// force immediate init/device registration
 	init();
@@ -79,14 +89,19 @@ LED::~LED()
 int
 LED::init()
 {
+	debug("LED::init");
+#ifdef __PX4_NUTTX
 	CDev::init();
+#else
+	VDev::init();
+#endif
 	led_init();
 
 	return 0;
 }
 
 int
-LED::ioctl(struct file *filp, int cmd, unsigned long arg)
+LED::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int result = OK;
 
@@ -105,7 +120,11 @@ LED::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 
 	default:
+#ifdef __PX4_NUTTX
 		result = CDev::ioctl(filp, cmd, arg);
+#else
+		result = VDev::ioctl(filp, cmd, arg);
+#endif
 	}
 	return result;
 }

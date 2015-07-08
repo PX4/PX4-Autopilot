@@ -42,7 +42,7 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <systemlib/param/param.h>
 
 PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);

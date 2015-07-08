@@ -37,6 +37,10 @@
 
 MODULE_COMMAND	= ms5611
 
-SRCS		= ms5611.cpp ms5611_spi.cpp ms5611_i2c.cpp
+ifeq ($(PX4_TARGET_OS),nuttx)
+SRCS		= ms5611_nuttx.cpp ms5611_spi.cpp ms5611_i2c.cpp
+else
+SRCS		= ms5611_posix.cpp ms5611_spi.cpp ms5611_i2c.cpp ms5611_sim.cpp
+endif
 
 MAXOPTIMIZATION	 = -Os
