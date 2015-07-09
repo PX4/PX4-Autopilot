@@ -201,8 +201,7 @@ class VirtualCanIface : public uavcan::ICanIface,
 	 * Simple inheritance or composition won't work here, because the 40 byte limit will be exceeded,
 	 * rendering this class unusable with Queue<>.
 	 */
-	struct RxItem: public uavcan::CanFrame
-	{
+	struct RxItem: public uavcan::CanFrame {
 		const uavcan::MonotonicTime ts_mono;
 		const uavcan::UtcTime ts_utc;
 		const uavcan::CanIOFlags flags;
@@ -300,9 +299,9 @@ public:
 			const int res = main_node.injectTxFrame(e->frame, e->deadline, iface_mask,
 								uavcan::CanTxQueue::Qos(e->qos), e->flags);
 
-                        prioritized_tx_queue_.remove(e);
+			prioritized_tx_queue_.remove(e);
 
-                        if (res <= 0) {
+			if (res <= 0) {
 				break;
 			}
 
@@ -431,7 +430,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 	 * This and other methods of ICanDriver will be invoked by the sub-node thread.
 	 */
 	int16_t select(uavcan::CanSelectMasks &inout_masks,
-		       const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+		       const uavcan::CanFrame * (&)[uavcan::MaxCanIfaces],
 		       uavcan::MonotonicTime blocking_deadline) override
 	{
 		bool need_block = (inout_masks.write == 0);    // Write queue is infinite
