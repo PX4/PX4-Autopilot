@@ -291,7 +291,9 @@ uavcan::int16_t CanDriver::receive(uavcan::CanFrame& out_frame, uavcan::Monotoni
     return 1;
 }
 
-uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
+uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
+                                  const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+                                  uavcan::MonotonicTime blocking_deadline)
 {
     const bool noblock = ((inout_masks.read  == 1) && hasReadyRx()) ||
                          ((inout_masks.write == 1) && hasEmptyTx());
@@ -344,11 +346,6 @@ uavcan::uint16_t CanDriver::getNumFilters() const
 }
 
 uavcan::ICanIface* CanDriver::getIface(uavcan::uint8_t iface_index)
-{
-    return (iface_index == 0) ? this : NULL;
-}
-
-const uavcan::ICanIface* CanDriver::getIface(uavcan::uint8_t iface_index) const
 {
     return (iface_index == 0) ? this : NULL;
 }

@@ -50,7 +50,9 @@ public:
     virtual uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
                                     uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags);
 
-    virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline);
+    virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks,
+                                   const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+                                   uavcan::MonotonicTime blocking_deadline);
 
     virtual uavcan::int16_t configureFilters(const uavcan::CanFilterConfig* filter_configs,
                                              uavcan::uint16_t num_configs);
