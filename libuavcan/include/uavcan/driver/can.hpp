@@ -83,7 +83,7 @@ struct UAVCAN_EXPORT CanFrame
 
 /**
  * CAN hardware filter config struct.
- * Masks from @ref CanFrame can be applied to define frame type (EFF, EXT, etc.).
+ * Flags from @ref CanFrame can be applied to define frame type (EFF, EXT, etc.).
  * @ref ICanIface::configureFilters().
  */
 struct UAVCAN_EXPORT CanFilterConfig
@@ -141,22 +141,30 @@ public:
 
     /**
      * Non-blocking transmission.
+     *
      * If the frame wasn't transmitted upon TX deadline, the driver should discard it.
+     *
      * Note that it is LIKELY that the library will want to send the frames that were passed into the select()
      * method as the next ones to transmit, but it is NOT guaranteed. The library can replace those with new
      * frames between the calls.
+     *
      * @return 1 = one frame transmitted, 0 = TX buffer full, negative for error.
      */
     virtual int16_t send(const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags) = 0;
 
     /**
      * Non-blocking reception.
+     *
      * Timestamps should be provided by the CAN driver, ideally by the hardware CAN controller.
+     *
      * Monotonic timestamp is required and can be not precise since it is needed only for
      * protocol timing validation (transfer timeouts and inter-transfer intervals).
+     *
      * UTC timestamp is optional, if available it will be used for precise time synchronization;
      * must be set to zero if not available.
+     *
      * Refer to @ref ISystemClock to learn more about timestamps.
+     *
      * @param [out] out_ts_monotonic Monotonic timestamp, mandatory.
      * @param [out] out_ts_utc       UTC timestamp, optional, zero if unknown.
      * @return 1 = one frame received, 0 = RX buffer empty, negative for error.
@@ -166,6 +174,7 @@ public:
 
     /**
      * Configure the hardware CAN filters. @ref CanFilterConfig.
+     *
      * @return 0 = success, negative for error.
      */
     virtual int16_t configureFilters(const CanFilterConfig* filter_configs, uint16_t num_configs) = 0;
@@ -177,6 +186,7 @@ public:
 
     /**
      * Continuously incrementing counter of hardware errors.
+     * Arbitration lost should not be treated as a hardware error.
      */
     virtual uint64_t getErrorCount() const = 0;
 };
@@ -194,6 +204,10 @@ public:
      */
     virtual ICanIface* getIface(uint8_t iface_index) = 0;
 
+    /**
+     * Default implementation of this method calls the non-const overload of getIface().
+     * Can be overriden by the application if necessary.
+     */
     virtual const ICanIface* getIface(uint8_t iface_index) const
     {
         return const_cast<ICanDriver*>(this)->getIface(iface_index);
@@ -207,10 +221,19 @@ public:
 
     /**
      * Block until the deadline, or one of the specified interfaces becomes available for read or write.
+     *
      * Iface masks will be modified by the driver to indicate which exactly interfaces are available for IO.
+     *
      * Bit position in the masks defines interface index.
+     *
      * Note that it is allowed to return from this method even if no requested events actually happened, or if
      * there are events that were not requested by the library.
+     *
+     * The pending TX argument contains an array of pointers to CAN frames that the library wants to transmit
+     * next, per interface. This is intended to allow the driver to properly prioritize transmissions; many
+     * drivers will not need to use it. If a write flag for the given interface is set to one in the select mask
+     * structure, then the corresponding pointer is guaranteed to be valid (not NULL).
+     *
      * @param [in,out] inout_masks        Masks indicating which interfaces are needed/available for IO.
      * @param [in]     pending_tx         Array of frames, per interface, that are likely to be transmitted next.
      * @param [in]     blocking_deadline  Zero means non-blocking operation.
