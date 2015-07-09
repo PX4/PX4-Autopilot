@@ -46,20 +46,21 @@
 const char *const UavcanGnssBridge::NAME = "gnss";
 
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
-_node(node),
-_sub_fix(node),
-_report_pub(-1)
+	_node(node),
+	_sub_fix(node),
+	_report_pub(-1)
 {
 }
 
 int UavcanGnssBridge::init()
 {
 	int res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
-	if (res < 0)
-	{
+
+	if (res < 0) {
 		warnx("GNSS fix sub failed %i", res);
 		return res;
 	}
+
 	return res;
 }
 
@@ -71,8 +72,10 @@ unsigned UavcanGnssBridge::get_num_redundant_channels() const
 void UavcanGnssBridge::print_status() const
 {
 	printf("RX errors: %d, receiver node id: ", _sub_fix.getFailureCount());
+
 	if (_receiver_node_id < 0) {
 		printf("N/A\n");
+
 	} else {
 		printf("%d\n", _receiver_node_id);
 	}
@@ -84,6 +87,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	if (_receiver_node_id < 0) {
 		_receiver_node_id = msg.getSrcNodeID().get();
 		warnx("GNSS receiver node ID: %d", _receiver_node_id);
+
 	} else {
 		if (_receiver_node_id != msg.getSrcNodeID().get()) {
 			return;  // This GNSS receiver is the redundant one, ignore it.
@@ -114,14 +118,15 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 
 		// Vertical position uncertainty
 		report.epv = (pos_cov[8] > 0) ? sqrtf(pos_cov[8]) : -1.0F;
+
 	} else {
 		report.eph = -1.0F;
 		report.epv = -1.0F;
 	}
 
 	if (valid_velocity_covariance) {
-	    float vel_cov[9];
-	    msg.velocity_covariance.unpackSquareMatrix(vel_cov);
+		float vel_cov[9];
+		msg.velocity_covariance.unpackSquareMatrix(vel_cov);
 		report.s_variance_m_s = math::max(math::max(vel_cov[0], vel_cov[4]), vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
@@ -139,9 +144,9 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		float vel_n_sq = vel_n * vel_n;
 		float vel_e_sq = vel_e * vel_e;
 		report.c_variance_rad =
-				(vel_e_sq * vel_cov[0] +
-						-2 * vel_n * vel_e * vel_cov[1] +	// Covariance matrix is symmetric
-						vel_n_sq* vel_cov[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
+			(vel_e_sq * vel_cov[0] +
+			 -2 * vel_n * vel_e * vel_cov[1] +	// Covariance matrix is symmetric
+			 vel_n_sq * vel_cov[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
 
 	} else {
 		report.s_variance_m_s = -1.0F;
@@ -154,7 +159,8 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	report.vel_n_m_s = msg.ned_velocity[0];
 	report.vel_e_m_s = msg.ned_velocity[1];
 	report.vel_d_m_s = msg.ned_velocity[2];
-	report.vel_m_s = sqrtf(report.vel_n_m_s * report.vel_n_m_s + report.vel_e_m_s * report.vel_e_m_s + report.vel_d_m_s * report.vel_d_m_s);
+	report.vel_m_s = sqrtf(report.vel_n_m_s * report.vel_n_m_s + report.vel_e_m_s * report.vel_e_m_s + report.vel_d_m_s *
+			       report.vel_d_m_s);
 	report.cog_rad = atan2f(report.vel_e_m_s, report.vel_n_m_s);
 	report.vel_ned_valid = true;
 

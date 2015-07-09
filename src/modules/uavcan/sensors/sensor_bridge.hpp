@@ -45,7 +45,7 @@
 /**
  * A sensor bridge class must implement this interface.
  */
-class IUavcanSensorBridge : uavcan::Noncopyable, public ListNode<IUavcanSensorBridge*>
+class IUavcanSensorBridge : uavcan::Noncopyable, public ListNode<IUavcanSensorBridge *>
 {
 public:
 	static constexpr unsigned MAX_NAME_LEN = 20;
@@ -77,7 +77,7 @@ public:
 	 * Sensor bridge factory.
 	 * Creates all known sensor bridges and puts them in the linked list.
 	 */
-	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge*> &list);
+	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list);
 };
 
 /**
@@ -86,8 +86,7 @@ public:
  */
 class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CDev
 {
-	struct Channel
-	{
+	struct Channel {
 		int node_id              = -1;
 		orb_advert_t orb_advert  = -1;
 		int class_instance       = -1;
@@ -104,13 +103,13 @@ protected:
 	static constexpr unsigned DEFAULT_MAX_CHANNELS = 5; // 640 KB ought to be enough for anybody
 
 	UavcanCDevSensorBridgeBase(const char *name, const char *devname, const char *class_devname,
-	                           const orb_id_t orb_topic_sensor,
-	                           const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
-	device::CDev(name, devname),
-	_max_channels(max_channels),
-	_class_devname(class_devname),
-	_orb_topic(orb_topic_sensor),
-	_channels(new Channel[max_channels])
+				   const orb_id_t orb_topic_sensor,
+				   const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
+		device::CDev(name, devname),
+		_max_channels(max_channels),
+		_class_devname(class_devname),
+		_orb_topic(orb_topic_sensor),
+		_channels(new Channel[max_channels])
 	{
 		_device_id.devid_s.bus_type = DeviceBusType_UAVCAN;
 		_device_id.devid_s.bus = 0;
