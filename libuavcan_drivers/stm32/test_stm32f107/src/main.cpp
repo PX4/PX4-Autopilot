@@ -131,7 +131,7 @@ public:
          * Main loop
          */
         lowsyslog("UAVCAN node started\n");
-        node.setStatusOk();
+        node.setModeOperational();
         while (true)
         {
             const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(5000));
