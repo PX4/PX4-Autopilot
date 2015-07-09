@@ -72,6 +72,7 @@ override EXTRADEFINES := $(EXTRADEFINES) \
 -DUAVCAN_MEM_POOL_BLOCK_SIZE=48 \
 -DUAVCAN_MAX_NETWORK_SIZE_HINT=16
 
+#
 # libuavcan drivers for STM32
 #
 include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/stm32/driver/include.mk

@@ -300,11 +300,12 @@ public:
 			const int res = main_node.injectTxFrame(e->frame, e->deadline, iface_mask,
 								uavcan::CanTxQueue::Qos(e->qos), e->flags);
 
-			if (res <= 0) {
+                        prioritized_tx_queue_.remove(e);
+
+                        if (res <= 0) {
 				break;
 			}
 
-			prioritized_tx_queue_.remove(e);
 		}
 	}
 
@@ -429,7 +430,9 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 	/**
 	 * This and other methods of ICanDriver will be invoked by the sub-node thread.
 	 */
-	int16_t select(uavcan::CanSelectMasks &inout_masks, uavcan::MonotonicTime blocking_deadline) override
+	int16_t select(uavcan::CanSelectMasks &inout_masks,
+		       const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+		       uavcan::MonotonicTime blocking_deadline) override
 	{
 		bool need_block = (inout_masks.write == 0);    // Write queue is infinite
 
