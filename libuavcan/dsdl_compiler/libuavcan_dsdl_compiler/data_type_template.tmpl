@@ -181,33 +181,63 @@ private:
 /*
  * Out of line struct method definitions
  */
-<!--(macro define_out_of_line_struct_methods)--> #! scope_prefix, fields
+<!--(macro define_out_of_line_struct_methods)--> #! scope_prefix, fields, union
 
 template <int _tmpl>
 bool ${scope_prefix}<_tmpl>::operator==(ParameterType rhs) const
 {
-    % if fields:
-    return
+    % if union:
+    if (_tag_ != rhs._tag_)
+    {
+        return false;
+    }
         % for idx,a in enumerate(fields):
-        ${a.name} == rhs.${a.name}${' &&' if (idx + 1) < len(fields) else ';'}
+    if (_tag_ == ${idx})
+    {
+        return ${a.name} == rhs.${a.name};
+    }
         % endfor
+    UAVCAN_ASSERT(0);   // Invalid tag
+    return false;
     % else:
+        % if fields:
+    return
+            % for idx,a in enumerate(fields):
+        ${a.name} == rhs.${a.name}${' &&' if (idx + 1) < len(fields) else ';'}
+            % endfor
+        % else:
     (void)rhs;
     return true;
+        % endif
     % endif
 }
 
 template <int _tmpl>
 bool ${scope_prefix}<_tmpl>::isClose(ParameterType rhs) const
 {
-    % if fields:
-    return
+    % if union:
+    if (_tag_ != rhs._tag_)
+    {
+        return false;
+    }
         % for idx,a in enumerate(fields):
-        ::uavcan::areClose(${a.name}, rhs.${a.name})${' &&' if (idx + 1) < len(fields) else ';'}
+    if (_tag_ == ${idx})
+    {
+        return ::uavcan::areClose(${a.name}, rhs.${a.name});
+    }
         % endfor
+    UAVCAN_ASSERT(0);   // Invalid tag
+    return false;
     % else:
+        % if fields:
+    return
+            % for idx,a in enumerate(fields):
+        ::uavcan::areClose(${a.name}, rhs.${a.name})${' &&' if (idx + 1) < len(fields) else ';'}
+            % endfor
+        % else:
     (void)rhs;
     return true;
+        % endif
     % endif
 }
 
@@ -238,10 +268,10 @@ ${generate_codec_calls_per_field(call_name='decode', self_parameter_type='Refere
 <!--(end)-->
 
 % if t.kind == t.KIND_SERVICE:
-${define_out_of_line_struct_methods(scope_prefix=t.cpp_type_name + '::Request_', fields=t.request_fields)}
-${define_out_of_line_struct_methods(scope_prefix=t.cpp_type_name + '::Response_', fields=t.response_fields)}
+${define_out_of_line_struct_methods(scope_prefix=t.cpp_type_name + '::Request_', fields=t.request_fields, union=t.request_union)}
+${define_out_of_line_struct_methods(scope_prefix=t.cpp_type_name + '::Response_', fields=t.response_fields, union=t.response_union)}
 % else:
-${define_out_of_line_struct_methods(scope_prefix=t.cpp_type_name, fields=t.fields)}
+${define_out_of_line_struct_methods(scope_prefix=t.cpp_type_name, fields=t.fields, union=t.union)}
 % endif
 
 /*
