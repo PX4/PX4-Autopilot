@@ -58,17 +58,44 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
     ${expand_attr_types(group_name='ConstantTypes', attrs=constants)}
     ${expand_attr_types(group_name='FieldTypes', attrs=fields)}
 
-    <!--(macro expand_enum_per_field)--> #! enum_name
+    % if union:
+
+    typedef IntegerSpec< ::uavcan::IntegerBitLen< ${len(fields)} >::Result,
+                         ::uavcan::SignednessUnsigned, ::uavcan::CastModeTruncate > TagType;
+
+        <!--(macro expand_enum_per_field)--> #! enum_name, enum_comparator
+    enum
+    {
+        ${enum_name} = TagType::BitLen +
+            % for idx,a in enumerate(fields):
+                % if idx < (len(fields) - 1):
+            ::uavcan::${enum_comparator}<FieldTypes::${a.name}::${enum_name},
+                % else:
+                FieldTypes::${a.name}::${enum_name} ${'>::Result' * (len(fields) - 1)}
+                % endif
+            % endfor
+    };
+        <!--(end)-->
+
+    ${expand_enum_per_field(enum_name='MinBitLen', enum_comparator='EnumMin')}
+    ${expand_enum_per_field(enum_name='MaxBitLen', enum_comparator='EnumMax')}
+
+    % else:
+
+        <!--(macro expand_enum_per_field)--> #! enum_name
     enum
     {
         ${enum_name}
-        % for idx,a in enumerate(fields):
+            % for idx,a in enumerate(fields):
             ${'=' if idx == 0 else '+'} FieldTypes::${a.name}::${enum_name}
-        % endfor
+            % endfor
     };
-    <!--(end)-->
+        <!--(end)-->
+
     ${expand_enum_per_field(enum_name='MinBitLen')}
     ${expand_enum_per_field(enum_name='MaxBitLen')}
+
+    % endif
 
     // Constants
     % for a in constants:
@@ -81,11 +108,8 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
     % endfor
 
     % if union:
-private:    // Union tag definition
-    typedef IntegerSpec< ::uavcan::IntegerBitLen< ${len(fields)} >::Result,
-                         ::uavcan::SignednessUnsigned, ::uavcan::CastModeTruncate > TagType;
-
-    typename ::uavcan::StorageType< TagType >::Type _tag_;      // The name is mangled to avoid clashing with fields
+private:
+    typename ::uavcan::StorageType< TagType >::Type _tag_;  // The name is mangled to avoid clashing with fields
 
 public:
     % endif
