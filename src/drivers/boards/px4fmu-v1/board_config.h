@@ -120,6 +120,13 @@ __BEGIN_DECLS
 #define PX4_I2C_OBDEV_PX4IO_BL	0x18
 #define PX4_I2C_OBDEV_PX4IO	0x1a
 
+/*
+ * ADC channels
+ *
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ */
+#define ADC_CHANNELS (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13)
+
 /* User GPIOs
  *
  * GPIO0-1 are the buffered high-power GPIOs.
