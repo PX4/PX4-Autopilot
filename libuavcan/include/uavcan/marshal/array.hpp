@@ -171,12 +171,13 @@ template <unsigned Size>
 class UAVCAN_EXPORT StaticArrayBase
 {
 protected:
-    typedef IntegerSpec<IntegerBitLen<Size>::Result, SignednessUnsigned, CastModeSaturate> RawSizeType;
+    typedef IntegerSpec<IntegerBitLen<Size>::Result, SignednessUnsigned, CastModeSaturate> RawEncodedSizeType;
 
 public:
     enum { SizeBitLen = 0 };
 
-    typedef typename StorageType<RawSizeType>::Type SizeType;
+    typedef typename StorageType<IntegerSpec<IntegerBitLen<EnumMax<Size, 2>::Result>::Result,
+                                             SignednessUnsigned, CastModeSaturate> >::Type SizeType;
 
     SizeType size()     const { return SizeType(Size); }
     SizeType capacity() const { return SizeType(Size); }
@@ -205,9 +206,10 @@ template <unsigned MaxSize>
 class UAVCAN_EXPORT DynamicArrayBase
 {
 protected:
-    typedef IntegerSpec<IntegerBitLen<MaxSize>::Result, SignednessUnsigned, CastModeSaturate> RawSizeType;
+    typedef IntegerSpec<IntegerBitLen<MaxSize>::Result, SignednessUnsigned, CastModeSaturate> RawEncodedSizeType;
 public:
-    typedef typename StorageType<RawSizeType>::Type SizeType;
+    typedef typename StorageType<IntegerSpec<IntegerBitLen<EnumMax<MaxSize, 2>::Result>::Result,
+                                             SignednessUnsigned, CastModeSaturate> >::Type SizeType;
 
 private:
     SizeType size_;
@@ -251,7 +253,7 @@ protected:
     }
 
 public:
-    enum { SizeBitLen = RawSizeType::BitLen };
+    enum { SizeBitLen = RawEncodedSizeType::BitLen };
 
     SizeType size() const
     {
@@ -450,7 +452,9 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         const bool self_tao_enabled = isOptimizedTailArray(tao_mode);
         if (!self_tao_enabled)
         {
-            const int res_sz = Base::RawSizeType::encode(size(), codec, TailArrayOptDisabled);
+            const int res_sz =
+                Base::RawEncodedSizeType::encode(typename StorageType<typename Base::RawEncodedSizeType>::Type(size()),
+                                                 codec, TailArrayOptDisabled);
             if (res_sz <= 0)
             {
                 return res_sz;
@@ -511,8 +515,8 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         }
         else
         {
-            typename StorageType<typename Base::RawSizeType>::Type sz = 0;
-            const int res_sz = Base::RawSizeType::decode(sz, codec, TailArrayOptDisabled);
+            typename StorageType<typename Base::RawEncodedSizeType>::Type sz = 0;
+            const int res_sz = Base::RawEncodedSizeType::decode(sz, codec, TailArrayOptDisabled);
             if (res_sz <= 0)
             {
                 return res_sz;
