@@ -85,7 +85,7 @@ int16_t uORB::FastRpcChannel::is_subscriber_present(const char *messageName, int
 
 	} else {
 		*status = 0;
-		PX4_WARN("@@@@@ Subscriber not found for[%s]...numSubscribers[%d]", messageName, _Subscribers.size());
+		//PX4_WARN("@@@@@ Subscriber not found for[%s]...numSubscribers[%d]", messageName, _Subscribers.size());
 		int i = 0;
 
 		for (std::list<std::string>::iterator it = _Subscribers.begin(); it != _Subscribers.end(); ++it) {
