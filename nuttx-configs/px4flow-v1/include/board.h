@@ -206,6 +206,20 @@
  *
  */
 
+/* Alternate function pin selections ************************************************/
+
+/* UARTs */
+
+#define GPIO_USART3_RX   GPIO_USART3_RX_3
+#define GPIO_USART3_TX   GPIO_USART3_TX_3
+
+/* CAN
+ *
+ * CAN1 is routed to the onboard transceiver.
+ */
+
+#define GPIO_CAN1_RX     GPIO_CAN1_RX_2
+#define GPIO_CAN1_TX     GPIO_CAN1_TX_2
 
 #if defined(CONFIG_BOARD_USE_PROBES)
 # define PROBE_N(n) (1<<((n)-1))

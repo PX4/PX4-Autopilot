@@ -38,7 +38,7 @@
  * FLASH memory is aliased to address 0x0000:0000 where the code expects to
  * begin execution by jumping to the entry point in the 0x0800:0000 address
  * range.
- * The bootloader only uses the first 8KiB of flash.
+ * The bootloader only uses the first 16KiB of flash.
  */
 
 MEMORY

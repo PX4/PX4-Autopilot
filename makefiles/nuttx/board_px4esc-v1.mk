@@ -6,7 +6,7 @@
 # Configure the toolchain
 #
 
-CONFIG_ARCH			 = CORTEXM4
+CONFIG_ARCH			 = CORTEXM4F
 CONFIG_BOARD		 = PX4ESC_V1
 
 WUSEPACKED = -Wno-packed

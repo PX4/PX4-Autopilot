@@ -84,9 +84,9 @@ void rgb_led(int r, int g , int b, int freqs)
 			 ATIM_CCER_CC3E | ATIM_CCER_CC3P |
 			 ATIM_CCER_CC4E | ATIM_CCER_CC4P, TMR_REG(STM32_GTIM_CCER_OFFSET));
 
-		stm32_configgpio(GPIO_LED_RED);
-		stm32_configgpio(GPIO_LED_GREEN);
-		stm32_configgpio(GPIO_LED_BLUE);
+		stm32_configgpio(GPIO_TIM3_CH2OUT);
+		stm32_configgpio(GPIO_TIM3_CH3OUT);
+		stm32_configgpio(GPIO_TIM3_CH4OUT);
 
 
 	}

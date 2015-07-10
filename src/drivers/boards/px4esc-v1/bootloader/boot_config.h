@@ -98,7 +98,7 @@
 #define OPT_RESTART_TIMEOUT_MS          20000
 
 /* Reserved for the Boot loader */
-#define OPT_BOOTLOADER_SIZE_IN_K        (1024*8)
+#define OPT_BOOTLOADER_SIZE_IN_K        (1024*16)
 
 /* Reserved for the application out of the total
  * system flash minus the BOOTLOADER_SIZE_IN_K
@@ -112,7 +112,7 @@
 #define FLASH_BASE              STM32_FLASH_BASE
 #define FLASH_NUMBER_PAGES      STM32_FLASH_NPAGES
 #define FLASH_PAGE_SIZE         STM32_FLASH_PAGESIZE
-#define FLASH_SIZE              (FLASH_NUMBER_PAGES*FLASH_PAGE_SIZE)
+#define FLASH_SIZE              ((4*16*1024) + (1*64*1204) + (3*128*1024))
 
 #define APPLICATION_LOAD_ADDRESS (FLASH_BASE + OPT_APPLICATION_IMAGE_OFFSET)
 #define APPLICATION_SIZE (FLASH_SIZE-OPT_APPLICATION_IMAGE_OFFSET)

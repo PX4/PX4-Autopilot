@@ -125,7 +125,8 @@ __BEGIN_DECLS
  *  PB[09] PB9/TIM4_CH4/I2C1_SDA/CAN1_TX                      62       CAN1_TX
  *
  */
-#define GPIO_WAIT_GETNODEINFO   (GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_PORTB | GPIO_PIN7)
+
+#define GPIO_WAIT_GETNODEINFO   (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN7)
 
 /* UART3 ************************************************************************ *
  *
@@ -186,6 +187,7 @@ __BEGIN_DECLS
 #define GPIO_LED3       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
                          GPIO_PORTC | GPIO_PIN9 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_BLUE  GPIO_LED3
+
 
 /* GPIO ***********************************************************************
  *

@@ -155,11 +155,6 @@
 #define STM32_TIM18_FREQUENCY   (2*STM32_PCLK2_FREQUENCY)
 #define STM32_TIM27_FREQUENCY   (2*STM32_PCLK1_FREQUENCY)
 
-/* Buttons *************************************************************************/
-
-#define BUTTON_BOOT0_BIT  (0)
-#define BUTTON_BOOT0_MASK (1<<BUTTON_BOOT0_BIT)
-
 /* Leds *************************************************************************/
 
 /* LED index values for use with board_setled() */
@@ -204,6 +199,31 @@
  * has halted.
  *
  */
+
+
+/* Alternate function pin selections ************************************************/
+
+/* UARTs */
+
+#define GPIO_USART3_RX   GPIO_USART3_RX_3
+#define GPIO_USART3_TX   GPIO_USART3_TX_3
+
+/* CAN
+ *
+ * CAN1 is routed to the onboard transceiver.
+ * CAN2 is routed to the onboard transceiver.
+ */
+
+#define GPIO_CAN1_RX     GPIO_CAN1_RX_2
+#define GPIO_CAN1_TX     GPIO_CAN1_TX_2
+#define GPIO_CAN2_RX     GPIO_CAN2_RX_2
+#define GPIO_CAN2_TX     GPIO_CAN2_TX_2
+
+/* TIMERS */
+
+#define GPIO_TIM3_CH2OUT        GPIO_TIM3_CH2OUT_3
+#define GPIO_TIM3_CH3OUT        GPIO_TIM3_CH3OUT_2
+#define GPIO_TIM3_CH4OUT        GPIO_TIM3_CH4OUT_2
 
 
 #if defined(CONFIG_BOARD_USE_PROBES)
