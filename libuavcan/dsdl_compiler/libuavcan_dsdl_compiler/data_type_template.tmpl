@@ -249,18 +249,33 @@ int ${scope_prefix}<_tmpl>::${call_name}(${self_parameter_type} self, ::uavcan::
     (void)self;
     (void)codec;
     (void)tao_mode;
-    int res = 1;
-        % for idx,a in enumerate(fields):
-    res = FieldTypes::${a.name}::${call_name}(self.${a.name}, codec, \
-${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
-            % if (idx + 1) < len(fields):
+        % if union:
+    const int res = TagType::${call_name}(self._tag_, codec, ::uavcan::TailArrayOptDisabled);
     if (res <= 0)
     {
         return res;
     }
-            % endif
-        % endfor
+            % for idx,a in enumerate(fields):
+    if (self._tag_ == ${idx})
+    {
+        return FieldTypes::${a.name}::${call_name}(self.${a.name}, codec, tao_mode);
+    }
+            % endfor
+    return -1;          // Invalid tag value
+        % else:
+    int res = 1;
+            % for idx,a in enumerate(fields):
+    res = FieldTypes::${a.name}::${call_name}(self.${a.name}, codec, \
+${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
+                % if (idx + 1) < len(fields):
+    if (res <= 0)
+    {
+        return res;
+    }
+                % endif
+            % endfor
     return res;
+        % endif
 }
     <!--(end)-->
 ${generate_codec_calls_per_field(call_name='encode', self_parameter_type='ParameterType')}
