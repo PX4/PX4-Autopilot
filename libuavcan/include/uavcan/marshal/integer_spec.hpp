@@ -16,6 +16,10 @@ namespace uavcan
 
 enum Signedness { SignednessUnsigned, SignednessSigned };
 
+/**
+ * This template will be used for signed and unsigned integers more than 1 bit long.
+ * There are explicit specializations for booleans below.
+ */
 template <unsigned BitLen_, Signedness Signedness, CastMode CastMode>
 class UAVCAN_EXPORT IntegerSpec
 {
@@ -121,6 +125,43 @@ public:
     static int decode(StorageType& out_value, ScalarCodec& codec, TailArrayOptimizationMode)
     {
         validate();
+        return codec.decode<BitLen>(out_value);
+    }
+
+    static void extendDataTypeSignature(DataTypeSignature&) { }
+};
+
+/**
+ * Boolean specialization
+ */
+template <CastMode CastMode>
+class UAVCAN_EXPORT IntegerSpec<1, SignednessUnsigned, CastMode>
+{
+public:
+    enum { IsSigned = 0 };
+    enum { BitLen = 1 };
+    enum { MinBitLen = 1 };
+    enum { MaxBitLen = 1 };
+    enum { IsPrimitive = 1 };
+
+    typedef bool StorageType;
+    typedef bool UnsignedStorageType;
+
+private:
+    IntegerSpec();
+
+public:
+    static StorageType max() { return true; }
+    static StorageType min() { return false; }
+    static UnsignedStorageType mask() { return true; }
+
+    static int encode(StorageType value, ScalarCodec& codec, TailArrayOptimizationMode)
+    {
+        return codec.encode<BitLen>(value);
+    }
+
+    static int decode(StorageType& out_value, ScalarCodec& codec, TailArrayOptimizationMode)
+    {
         return codec.decode<BitLen>(out_value);
     }
 
