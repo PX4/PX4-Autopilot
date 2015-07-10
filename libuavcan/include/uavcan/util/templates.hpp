@@ -176,6 +176,24 @@ To coerceOrFallback(const From& from)
  */
 
 /**
+ * Selects smaller value
+ */
+template <long A, long B>
+struct EnumMin
+{
+    enum { Result = (A < B) ? A : B };
+};
+
+/**
+ * Selects larger value
+ */
+template <long A, long B>
+struct EnumMax
+{
+    enum { Result = (A > B) ? A : B };
+};
+
+/**
  * Compile time square root for integers.
  * Useful for operations on square matrices.
  */
