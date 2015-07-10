@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file s2740vc_init.c
+ * @file px4flow_init.c
  *
- * S2740VCv1-specific early startup code.  This file implements the
+ * PX4ESC-specific early startup code.  This file implements the
  * nsh_archinitialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -110,7 +110,12 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
-	stm32_configgpio(GPIO_CAN_SILENT);
+	/* configure LEDs */
+	board_led_initialize();
+#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || \
+    defined(CONFIG_STM32_SPI3)
+	board_spiinitialize();
+#endif
 }
 
 

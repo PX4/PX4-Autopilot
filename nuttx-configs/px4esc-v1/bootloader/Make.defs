@@ -1,8 +1,9 @@
 ############################################################################
-# configs/s2740vc-v1/nsh/Make.defs
+# configs/px4esc-v1/bootloader/Make.defs
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
+#           David Sidrane <david_s5@nscdg.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,6 +38,7 @@ include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
+CONFIG_BOOTLOADER=y
 #
 # We only support building with the ARM bare-metal toolchain from
 # https://launchpad.net/gcc-arm-embedded on Windows, Linux or Mac OS.
@@ -55,17 +57,19 @@ OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
 MAXOPTIMIZATION		 = -Os
-ARCHCPUFLAGS		 = -mcpu=cortex-m3 \
-			   -mthumb \
-			   -march=armv7-m
+ARCHCPUFLAGS = -mcpu=cortex-m4 \
+    -mthumb \
+    -march=armv7e-m \
+    -mfpu=fpv4-sp-d16 \
+    -mfloat-abi=hard
 
 # enable precise stack overflow tracking
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 INSTRUMENTATIONDEFINES	 = -finstrument-functions -ffixed-r10
 endif
 
-# use our linker script
-LDSCRIPT		 = ld.script
+# Use our linker script
+LDSCRIPT		 = bootloaderld.script
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
@@ -93,11 +97,11 @@ else
   endif
 endif
 
-# tool versions
+# Tool versions
 ARCHCCVERSION		 = ${shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q'}
 ARCHCCMAJOR		 = ${shell echo $(ARCHCCVERSION) | cut -d'.' -f1}
 
-# optimisation flags
+# Optimization flags
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
@@ -123,8 +127,8 @@ ARCHWARNINGS		 = -Wall \
 			   -Wpointer-arith \
 			   -Wlogical-op \
 			   -Wmissing-declarations \
-			   -Wpacked \
 			   -Wno-unused-parameter
+#    -Wpacked - need to pack structs for uavcan protocol
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
 #   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives
@@ -140,7 +144,7 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS)
 ARCHDEFINES		 =
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
 
-# this seems to be the only way to add linker flags
+# This seems to be the only way to add linker flags
 EXTRA_LIBS		+= --warn-common \
 			   --gc-sections
 
@@ -159,7 +163,7 @@ OBJEXT			 = .o
 LIBEXT			 = .a
 EXEEXT			 =
 
-# produce partially-linked $1 from files in $2
+# Produce partially-linked $1 from files in $2
 define PRELINK
 	@echo "PRELINK: $1"
 	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
@@ -169,4 +173,6 @@ HOSTCC			 = gcc
 HOSTINCLUDES		 = -I.
 HOSTCFLAGS		 = -Wall -Wstrict-prototypes -Wshadow -g -pipe
 HOSTLDFLAGS		 =
+
+LDFLAGS += --wrap up_svcall
 
