@@ -1,4 +1,4 @@
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 // currently tuned for easystar from arkhangar in HIL
 //https://github.com/arktools/arkhangar

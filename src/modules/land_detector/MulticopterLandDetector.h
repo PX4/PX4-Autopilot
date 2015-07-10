@@ -49,7 +49,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 class MulticopterLandDetector : public LandDetector
 {

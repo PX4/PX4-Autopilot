@@ -143,7 +143,7 @@
 #include <drivers/drv_accel.h>
 #include <geo/geo.h>
 #include <conversion/rotation.h>
-#include <systemlib/param/param.h>
+#include <lib/param/param.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
 #include <uORB/topics/vehicle_attitude.h>

@@ -40,7 +40,7 @@
  */
 
 #include <nuttx/config.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /**
  * Invert direction of main output channel 1

@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_stream.h"

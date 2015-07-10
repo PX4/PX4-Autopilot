@@ -57,10 +57,10 @@
 
 #include <arch/board/board.h>
 
-#include "systemlib/systemlib.h"
-#include "systemlib/err.h"
-#include "systemlib/param/param.h"
-#include "drivers/drv_pwm_output.h"
+#include <systemlib/systemlib.h>
+#include <systemlib/err.h>
+#include <param/param.h>
+#include <drivers/drv_pwm_output.h>
 
 static void	usage(const char *reason);
 __EXPORT int	pwm_main(int argc, char *argv[]);

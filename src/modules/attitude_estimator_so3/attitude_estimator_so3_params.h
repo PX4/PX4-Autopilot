@@ -39,7 +39,7 @@
  * Parameters for nonlinear complementary filters on the SO(3).
  */
 
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 struct attitude_estimator_so3_params {
 	float Kp;

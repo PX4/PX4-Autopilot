@@ -45,7 +45,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <unistd.h>
-#include "systemlib/param/param.h"
+#include <param/param.h>
 #include "hrt_work.h"
 
 extern pthread_t _shell_task_id;

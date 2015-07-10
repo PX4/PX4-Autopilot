@@ -53,7 +53,7 @@
 #include <unistd.h>
 
 #include "dataman.h"
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /**
  * data manager app start / stop handling function

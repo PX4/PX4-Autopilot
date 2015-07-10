@@ -47,7 +47,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <mavlink/mavlink_log.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/err.h>
 
 /* oddly, ERROR is not defined for c++ */

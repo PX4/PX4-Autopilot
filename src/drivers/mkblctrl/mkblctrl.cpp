@@ -43,7 +43,7 @@
 
 #include <px4_config.h>
 #include <drivers/device/i2c.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 #include <sys/types.h>
 #include <stdint.h>

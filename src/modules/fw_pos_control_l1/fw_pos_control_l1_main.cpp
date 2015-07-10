@@ -78,7 +78,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
 #include <geo/geo.h>

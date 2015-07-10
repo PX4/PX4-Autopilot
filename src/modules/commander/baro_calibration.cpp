@@ -45,7 +45,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_baro.h>
 #include <mavlink/mavlink_log.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR

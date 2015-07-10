@@ -73,7 +73,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/battery_status.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/circuit_breaker.h>

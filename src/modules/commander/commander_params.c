@@ -43,7 +43,7 @@
  */
 
 #include <px4_config.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 
 PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);

@@ -99,7 +99,7 @@
 #include <platforms/nuttx/px4_messages/px4_vehicle_force_setpoint.h>
 #endif
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/systemlib.h>
 
 #elif defined(__PX4_POSIX) && !defined(__PX4_QURT)
@@ -130,7 +130,7 @@
 #include <platforms/posix/px4_messages/px4_position_setpoint_triplet.h>
 #endif
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/systemlib.h>
 #elif defined(__PX4_QURT)
 #include <string.h>
@@ -160,7 +160,7 @@
 #include <platforms/qurt/px4_messages/px4_position_setpoint_triplet.h>
 #endif
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/systemlib.h>
 #else
 #error "No target platform defined"

@@ -67,7 +67,7 @@
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/board_serial.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 

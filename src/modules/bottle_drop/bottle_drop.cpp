@@ -65,7 +65,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <param/param.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
