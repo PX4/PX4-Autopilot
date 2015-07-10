@@ -124,6 +124,28 @@ public:
 
     static int decode(ReferenceType self, ::uavcan::ScalarCodec& codec,
                       ::uavcan::TailArrayOptimizationMode tao_mode = ::uavcan::TailArrayOptEnabled);
+
+    % if union:
+    /**
+     * Whether the union is set to the given type.
+     */
+    template <typename T>
+    bool is() const;
+
+    /**
+     * If the union is currently set to the type T, returns pointer to the appropriate field.
+     * If the union is set to another type, returns null pointer.
+     */
+    template <typename T>
+    const T* as() const;
+
+    /**
+     * Switches the union to the given type and returns a mutable reference to the appropriate field.
+     * If the previous type was different, a default constructor will be executed.
+     */
+    template <typename T>
+    T& to();
+    % endif
 <!--(end)-->
 
 % if t.kind == t.KIND_SERVICE:
@@ -280,6 +302,40 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
     <!--(end)-->
 ${generate_codec_calls_per_field(call_name='encode', self_parameter_type='ParameterType')}
 ${generate_codec_calls_per_field(call_name='decode', self_parameter_type='ReferenceType')}
+
+    % if union:
+        % for idx,a in enumerate(fields):
+template <int _tmpl>
+template <>
+bool ${scope_prefix}::is< typename ${scope_prefix}::FieldTypes::${a.name} >() const
+{
+    return _tag_ == ${idx};
+}
+        % endfor
+
+        % for idx,a in enumerate(fields):
+template <int _tmpl>
+template <>
+const T* ${scope_prefix}::as< typename ${scope_prefix}::FieldTypes::${a.name} >() const
+{
+    return is< typename FieldTypes::${a.name} >() ? &${a.name} : NULL;
+}
+        % endfor
+
+        % for idx,a in enumerate(fields):
+template <int _tmpl>
+template <>
+T& ${scope_prefix}::to< ${scope_prefix}::FieldTypes::${a.name} >()
+{
+    if (_tag_ != ${idx})
+    {
+        _tag_ = ${idx};
+        ${a.name} = FieldTypes::${a.name}();
+    }
+    return ${a.name};
+}
+        % endfor
+    % endif
 <!--(end)-->
 
 % if t.kind == t.KIND_SERVICE:
