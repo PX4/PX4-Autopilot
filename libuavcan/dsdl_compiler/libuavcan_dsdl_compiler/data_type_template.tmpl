@@ -137,14 +137,14 @@ public:
      * If the union is set to another type, returns null pointer.
      */
     template <typename T>
-    const T* as() const;
+    const typename ::uavcan::StorageType<T>::Type* as() const;
 
     /**
      * Switches the union to the given type and returns a mutable reference to the appropriate field.
      * If the previous type was different, a default constructor will be executed.
      */
     template <typename T>
-    T& to();
+    typename ::uavcan::StorageType<T>::Type& to();
     % endif
 <!--(end)-->
 
@@ -305,35 +305,40 @@ ${generate_codec_calls_per_field(call_name='decode', self_parameter_type='Refere
 
     % if union:
         % for idx,a in enumerate(fields):
-template <int _tmpl>
 template <>
-bool ${scope_prefix}::is< typename ${scope_prefix}::FieldTypes::${a.name} >() const
+template <>
+bool ${scope_prefix}<0>::is< typename ${scope_prefix}<0>::FieldTypes::${a.name} >() const
 {
     return _tag_ == ${idx};
 }
+
         % endfor
 
         % for idx,a in enumerate(fields):
-template <int _tmpl>
 template <>
-const T* ${scope_prefix}::as< typename ${scope_prefix}::FieldTypes::${a.name} >() const
+template <>
+const typename ::uavcan::StorageType< typename ${scope_prefix}<0>::FieldTypes::${a.name} >::Type*
+${scope_prefix}<0>::as< typename ${scope_prefix}<0>::FieldTypes::${a.name} >() const
 {
     return is< typename FieldTypes::${a.name} >() ? &${a.name} : NULL;
 }
+
         % endfor
 
         % for idx,a in enumerate(fields):
-template <int _tmpl>
 template <>
-T& ${scope_prefix}::to< ${scope_prefix}::FieldTypes::${a.name} >()
+template <>
+typename ::uavcan::StorageType< typename ${scope_prefix}<0>::FieldTypes::${a.name} >::Type&
+${scope_prefix}<0>::to< ${scope_prefix}<0>::FieldTypes::${a.name} >()
 {
     if (_tag_ != ${idx})
     {
         _tag_ = ${idx};
-        ${a.name} = FieldTypes::${a.name}();
+        ${a.name} = ::uavcan::StorageType< typename FieldTypes::${a.name} >::Type();
     }
     return ${a.name};
 }
+
         % endfor
     % endif
 <!--(end)-->
