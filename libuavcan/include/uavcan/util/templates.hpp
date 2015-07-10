@@ -326,6 +326,16 @@ bool equal(InputIt1 first1, InputIt1 last1, InputIt2 first2)
 template <typename T>
 struct UAVCAN_EXPORT NumericTraits;
 
+/// bool
+template <>
+struct UAVCAN_EXPORT NumericTraits<bool>
+{
+    enum { IsSigned = 0 };
+    enum { IsInteger = 1 };
+    static bool max() { return true; }
+    static bool min() { return false; }
+};
+
 /// char
 template <>
 struct UAVCAN_EXPORT NumericTraits<char>
