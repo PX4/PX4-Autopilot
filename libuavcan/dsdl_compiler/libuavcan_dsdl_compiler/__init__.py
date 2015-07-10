@@ -193,12 +193,15 @@ def generate_one_type(template_expander, t):
         inject_cpp_types(t.fields)
         inject_cpp_types(t.constants)
         t.all_attributes = t.fields + t.constants
+        t.union = t.union and len(t.fields)
     else:
         inject_cpp_types(t.request_fields)
         inject_cpp_types(t.request_constants)
         inject_cpp_types(t.response_fields)
         inject_cpp_types(t.response_constants)
         t.all_attributes = t.request_fields + t.request_constants + t.response_fields + t.response_constants
+        t.request_union = t.request_union and len(t.request_fields)
+        t.response_union = t.response_union and len(t.response_fields)
 
     # Constant properties
     def inject_constant_info(constants):

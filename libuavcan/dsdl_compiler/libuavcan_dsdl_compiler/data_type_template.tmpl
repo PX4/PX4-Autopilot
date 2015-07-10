@@ -43,7 +43,7 @@ template <int _tmpl>
 % endif
 struct UAVCAN_EXPORT ${t.cpp_type_name}
 {
-<!--(macro generate_primary_body)--> #! type_name, max_bitlen, fields, constants
+<!--(macro generate_primary_body)--> #! type_name, max_bitlen, fields, constants, union
     typedef const ${type_name}<_tmpl>& ParameterType;
     typedef ${type_name}<_tmpl>& ReferenceType;
 
@@ -80,10 +80,23 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
     typename ::uavcan::StorageType< typename FieldTypes::${a.name} >::Type ${a.name};
     % endfor
 
+    % if union:
+private:    // Union tag definition
+    typedef IntegerSpec< ::uavcan::IntegerBitLen< ${len(fields)} >::Result,
+                         ::uavcan::SignednessUnsigned, ::uavcan::CastModeTruncate > TagType;
+
+    typename ::uavcan::StorageType< TagType >::Type _tag_;      // The name is mangled to avoid clashing with fields
+
+public:
+    % endif
+
     ${type_name}()
     % for idx,a in enumerate(fields):
         ${':' if idx == 0 else ','} ${a.name}()
     % endfor
+    % if union:
+        , _tag_()
+    % endif
     {
         ::uavcan::StaticAssert<_tmpl == 0>::check();  // Usage check
 
@@ -118,21 +131,23 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
     struct Request_
     {
         ${indent(generate_primary_body(type_name='Request_', max_bitlen=t.get_max_bitlen_request(), \
-                                       fields=t.request_fields, constants=t.request_constants))}
+                                       fields=t.request_fields, constants=t.request_constants, \
+                                       union=t.request_union))}
     };
 
     template <int _tmpl>
     struct Response_
     {
         ${indent(generate_primary_body(type_name='Response_', max_bitlen=t.get_max_bitlen_response(), \
-                                       fields=t.response_fields, constants=t.response_constants))}
+                                       fields=t.response_fields, constants=t.response_constants, \
+                                       union=t.response_union))}
     };
 
     typedef Request_<0> Request;
     typedef Response_<0> Response;
 % else:
     ${generate_primary_body(type_name=t.cpp_type_name, max_bitlen=t.get_max_bitlen(), \
-                            fields=t.fields, constants=t.constants)}
+                            fields=t.fields, constants=t.constants, union=t.union)}
 % endif
 
     /*
