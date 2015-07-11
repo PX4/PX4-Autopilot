@@ -187,8 +187,8 @@ public:
      * Use explicit tag access if the union contains non-unique types.
      * Otherwise it is safer to use as<>(), to<>(), is<>().
      */
-    typename Tag::Type getTag() const { return Tag::Type(_tag_); }
-    void setTag(typename Tag::Type x) { _tag_ = ::uavcan::StorageType< TagType >::Type(x); }
+    typename Tag::Type getTag() const { return typename Tag::Type(_tag_); }
+    void setTag(typename Tag::Type x) { _tag_ = typename ::uavcan::StorageType< TagType >::Type(x); }
 
     /**
      * Whether the union is set to the given type.
@@ -422,7 +422,7 @@ ${scope_prefix}<0>::to< typename ::uavcan::StorageType< typename ${scope_prefix}
     if (_tag_ != ${idx})
     {
         _tag_ = ${idx};
-        ${a.name} = ::uavcan::StorageType< typename FieldTypes::${a.name} >::Type();
+        ${a.name} = typename ::uavcan::StorageType< typename FieldTypes::${a.name} >::Type();
     }
     return ${a.name};
 }
