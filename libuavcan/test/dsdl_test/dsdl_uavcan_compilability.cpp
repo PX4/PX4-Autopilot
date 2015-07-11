@@ -215,6 +215,12 @@ TEST(Dsdl, ParamGetSetRequestUnion)
                                      "01100001 01100010 01100011 "      // Payload
                                      "00110001 00110010 00110011"));    // Name
 
+    EXPECT_TRUE(validateYaml(req,
+                             "index: 8191\n"
+                             "value: \n"
+                             "  string_value: \"abc\"\n"
+                             "name: \"123\""));
+
     req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = 1;
     EXPECT_TRUE(encodeDecodeValidate(req,
                                      "11111111 11111001 "               // Index, Union tag
@@ -236,6 +242,18 @@ TEST(Dsdl, ParamGetSetResponseUnion)
                                      "01100001 01100010 01100011 "      // Value array payload
                                      "00000100 "                        // Default union tag
                                      "00000000 "                        // Default array length
+                                     "00000000 "                        // Max value tag
+                                     "00000000 "                        // Min value tag
+                                     "00110001 00110010 00110011"));    // Name
+
+    res.value.to<uavcan::protocol::param::Value::Tag::boolean_value>() = true;
+    res.default_value.to<uavcan::protocol::param::Value::Tag::boolean_value>(); // False
+    res.name = "123";
+    EXPECT_TRUE(encodeDecodeValidate(res,
+                                     "00000011 "                        // Value union tag
+                                     "00000001 "                        // Value
+                                     "00000011 "                        // Default union tag
+                                     "00000000 "                        // Default value
                                      "00000000 "                        // Max value tag
                                      "00000000 "                        // Min value tag
                                      "00110001 00110010 00110011"));    // Name
