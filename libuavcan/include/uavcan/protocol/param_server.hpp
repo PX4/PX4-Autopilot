@@ -69,22 +69,6 @@ public:
      * @return Negative if failed.
      */
     virtual int eraseAllParams() = 0;
-
-    /**
-     * Convenience methods that can be used to check if a param value is empty.
-     */
-    static bool isValueEmpty(const Value& val)
-    {
-        return val.value_bool.empty() &&
-               val.value_int.empty() &&
-               val.value_float.empty() &&
-               val.value_string.empty();
-    }
-    static bool isValueEmpty(const NumericValue& val)
-    {
-        return val.value_int.empty() &&
-               val.value_float.empty();
-    }
 };
 
 /**
@@ -126,14 +110,14 @@ class UAVCAN_EXPORT ParamServer
         }
 
         // Assign if needed, read back
-        if (!IParamManager::isValueEmpty(in.value))
+        if (!in.value.is<protocol::param::Empty>())
         {
             manager_->assignParamValue(out.name, in.value);
         }
         manager_->readParamValue(out.name, out.value);
 
         // Check if the value is OK, otherwise reset the name to indicate that we have no idea what is it all about
-        if (!IParamManager::isValueEmpty(out.value))
+        if (!out.value.is<protocol::param::Empty>())
         {
             manager_->readParamDefaultMaxMin(out.name, out.default_value, out.max_value, out.min_value);
         }
