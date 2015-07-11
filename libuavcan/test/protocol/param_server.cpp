@@ -32,21 +32,25 @@ struct ParamServerTestManager : public uavcan::IParamManager
         KeyValue::iterator it = kv.find(name.c_str());
         if (it != kv.end())
         {
-            if (!value.value_bool.empty())
+            if (value.is<bool>())
             {
-                it->second = double(value.value_bool[0]);
+                assert(value.getTag() == Value::Tag::boolean_value);
+                it->second = double(value.boolean_value);
             }
-            else if (!value.value_int.empty())
+            else if (value.is<Value::FieldTypes::integer_value>())
             {
-                it->second = double(value.value_int[0]);
+                assert(value.getTag() == Value::Tag::integer_value);
+                it->second = double(value.integer_value);
             }
-            else if (!value.value_float.empty())
+            else if (value.is<float>())
             {
-                it->second = double(value.value_float[0]);
+                assert(value.getTag() == Value::Tag::real_value);
+                it->second = double(value.real_value);
             }
-            else if (!value.value_string.empty())
+            else if (value.is<Value::FieldTypes::string_value>())
             {
-                it->second = std::atof(value.value_string[0].value.c_str());
+                assert(value.getTag() == Value::Tag::string_value);
+                it->second = std::atof(value.string_value.c_str());
             }
             else
             {
@@ -61,7 +65,8 @@ struct ParamServerTestManager : public uavcan::IParamManager
         KeyValue::const_iterator it = kv.find(name.c_str());
         if (it != kv.end())
         {
-            out_value.value_float.push_back(float(it->second));
+            out_value = float(it->second);
+            assert(out_value.getTag() == Value::Tag::real_value);
         }
         std::cout << "READ [" << name.c_str() << "]\n" << out_value << "\n---" << std::endl;
     }
@@ -136,12 +141,10 @@ TEST(ParamServer, Basic)
     // No such variable, shall return empty name/value
     get_set_rq.index = 0;
     get_set_rq.name.clear();
-    get_set_rq.value.value_int.push_back(0xDEADBEEF);
+    get_set_rq.value = uavcan::int64_t(0xDEADBEEF);
     doCall(get_set_cln, get_set_rq, nodes);
     ASSERT_TRUE(get_set_cln.collector.result->getResponse().name.empty());
-    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_bool.empty());
-    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_int.empty());
-    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_float.empty());
+    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.is<uavcan::protocol::param::Empty>());
 
     mgr.kv["foobar"] = 123.456;    // New param
 
@@ -150,26 +153,21 @@ TEST(ParamServer, Basic)
     get_set_rq.name = "foobar";
     doCall(get_set_cln, get_set_rq, nodes);
     ASSERT_STREQ("foobar", get_set_cln.collector.result->getResponse().name.c_str());
-    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_bool.empty());
-    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.value_int.empty());
-    ASSERT_FLOAT_EQ(123.456F, get_set_cln.collector.result->getResponse().value.value_float[0]);
+    ASSERT_TRUE(get_set_cln.collector.result->getResponse().value.is<float>());
+    ASSERT_FLOAT_EQ(123.456F, get_set_cln.collector.result->getResponse().value.to<float>());
 
     // Set by index
     get_set_rq = uavcan::protocol::param::GetSet::Request();
     get_set_rq.index = 0;
-    {
-        uavcan::protocol::param::String str;
-        str.value = "424242";
-        get_set_rq.value.value_string.push_back(str);
-    }
+    get_set_rq.value = uavcan::protocol::param::Value::FieldTypes::string_value("424242");
     doCall(get_set_cln, get_set_rq, nodes);
     ASSERT_STREQ("foobar", get_set_cln.collector.result->getResponse().name.c_str());
-    ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->getResponse().value.value_float[0]);
+    ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->getResponse().value.to<float>());
 
     // Get by index
     get_set_rq = uavcan::protocol::param::GetSet::Request();
     get_set_rq.index = 0;
     doCall(get_set_cln, get_set_rq, nodes);
     ASSERT_STREQ("foobar", get_set_cln.collector.result->getResponse().name.c_str());
-    ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->getResponse().value.value_float[0]);
+    ASSERT_FLOAT_EQ(424242, get_set_cln.collector.result->getResponse().value.to<float>());
 }
