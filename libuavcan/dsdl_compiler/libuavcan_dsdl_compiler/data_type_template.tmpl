@@ -513,7 +513,7 @@ const ::uavcan::DefaultDataTypeRegistrator< ${t.cpp_full_type_name} > _uavcan_gd
 namespace uavcan
 {
 
-<!--(macro define_yaml_streamer)--> #! type_name, fields
+<!--(macro define_yaml_streamer)--> #! type_name, fields, union
 template <>
 class UAVCAN_EXPORT YamlStreamer< ${type_name} >
 {
@@ -528,8 +528,7 @@ void YamlStreamer< ${type_name} >::stream(Stream& s, ${type_name}::ParameterType
     (void)s;
     (void)obj;
     (void)level;
-    % for idx,a in enumerate(fields):
-        % if idx == 0:
+    % if union:
     if (level > 0)
     {
         s << '\n';
@@ -538,23 +537,42 @@ void YamlStreamer< ${type_name} >::stream(Stream& s, ${type_name}::ParameterType
             s << "  ";
         }
     }
-        % else:
+        % for idx,a in enumerate(fields):
+    if (static_cast<int>(obj.getTag()) == ${idx})
+    {
+        s << "${a.name}: ";
+        YamlStreamer< ${type_name}::FieldTypes::${a.name} >::stream(s, obj.${a.name}, level + 1);
+    }
+        % endfor
+    % else:
+        % for idx,a in enumerate(fields):
+            % if idx == 0:
+    if (level > 0)
+    {
+        s << '\n';
+        for (int pos = 0; pos < level; pos++)
+        {
+            s << "  ";
+        }
+    }
+            % else:
     s << '\n';
     for (int pos = 0; pos < level; pos++)
     {
         s << "  ";
     }
-        % endif
+            % endif
     s << "${a.name}: ";
     YamlStreamer< ${type_name}::FieldTypes::${a.name} >::stream(s, obj.${a.name}, level + 1);
-    % endfor
+        % endfor
+    % endif
 }
 <!--(end)-->
 % if t.kind == t.KIND_SERVICE:
-${define_yaml_streamer(type_name=t.cpp_full_type_name + '::Request', fields=t.request_fields)}
-${define_yaml_streamer(type_name=t.cpp_full_type_name + '::Response', fields=t.response_fields)}
+${define_yaml_streamer(type_name=t.cpp_full_type_name + '::Request', fields=t.request_fields, union=t.request_union)}
+${define_yaml_streamer(type_name=t.cpp_full_type_name + '::Response', fields=t.response_fields, union=t.response_union)}
 % else:
-${define_yaml_streamer(type_name=t.cpp_full_type_name, fields=t.fields)}
+${define_yaml_streamer(type_name=t.cpp_full_type_name, fields=t.fields, union=t.union)}
 % endif
 
 }
