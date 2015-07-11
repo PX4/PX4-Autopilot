@@ -181,14 +181,14 @@ public:
      * If the union is set to another type, returns null pointer.
      */
     template <typename Tag::Type T>
-    const typename TagToType<T>::StorageType* as() const;
+    inline const typename TagToType<T>::StorageType* as() const;
 
     /**
      * Switches the union to the given type and returns a mutable reference to the appropriate field.
      * If the previous type was different, a default constructor will be called first.
      */
     template <typename Tag::Type T>
-    typename TagToType<T>::StorageType& to();
+    inline typename TagToType<T>::StorageType& to();
     % endif
 <!--(end)-->
 
@@ -362,7 +362,7 @@ struct ${scope_prefix}<0>::TagToType<${scope_prefix}<0>::Tag::${a.name}>
 
 template <>
 template <>
-const typename ${scope_prefix}<0>::TagToType< ${scope_prefix}<0>::Tag::${a.name} >::StorageType*
+inline const typename ${scope_prefix}<0>::TagToType< ${scope_prefix}<0>::Tag::${a.name} >::StorageType*
 ${scope_prefix}<0>::as< ${scope_prefix}<0>::Tag::${a.name} >() const
 {
     return is(${scope_prefix}<0>::Tag::${a.name}) ? &${a.name} : NULL;
@@ -370,7 +370,7 @@ ${scope_prefix}<0>::as< ${scope_prefix}<0>::Tag::${a.name} >() const
 
 template <>
 template <>
-typename ${scope_prefix}<0>::TagToType< ${scope_prefix}<0>::Tag::${a.name} >::StorageType&
+inline typename ${scope_prefix}<0>::TagToType< ${scope_prefix}<0>::Tag::${a.name} >::StorageType&
 ${scope_prefix}<0>::to< ${scope_prefix}<0>::Tag::${a.name} >()
 {
     if (_tag_ != ${idx})
