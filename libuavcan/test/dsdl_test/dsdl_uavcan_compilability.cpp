@@ -8,6 +8,7 @@
 #include <uavcan/transport/transfer_buffer.hpp>
 
 #include <uavcan/Timestamp.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/GetTransportStats.hpp>
 #include <uavcan/protocol/Panic.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
@@ -139,7 +140,7 @@ static bool encodeDecodeValidate(const T& obj, const std::string& reference_bit_
         return false;
     }
 
-    if (decoded != obj)
+    if (!decoded.isClose(obj))
     {
         std::cout << "DECODED OBJECT DOESN'T MATCH THE REFERENCE:\nEXPECTED:\n"
                   << obj << "\nACTUAL:\n"
@@ -196,4 +197,46 @@ TEST(Dsdl, Union)
     s.to<UnionTest::Tag::e>().array[3] = 3;
     EXPECT_TRUE(validateYaml(s, "e: \n  array: [0, 1, 2, 3]"));
     EXPECT_TRUE(encodeDecodeValidate(s, "10100000 11011000"));
+}
+
+
+TEST(Dsdl, ParamGetSetRequestUnion)
+{
+    uavcan::protocol::param::GetSet::Request req;
+
+    req.index = 8191;
+    req.name = "123"; // 49, 50, 51 // 00110001, 00110010, 00110011
+    EXPECT_TRUE(encodeDecodeValidate(req, "11111111 11111000 00110001 00110010 00110011"));
+
+    req.value.to<uavcan::protocol::param::Value::Tag::string_value>() = "abc"; // 01100001, 01100010, 01100011
+    EXPECT_TRUE(encodeDecodeValidate(req,
+                                     "11111111 11111100 "               // Index, Union tag
+                                     "00000011 "                        // Array length
+                                     "01100001 01100010 01100011 "      // Payload
+                                     "00110001 00110010 00110011"));    // Name
+
+    req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = 1;
+    EXPECT_TRUE(encodeDecodeValidate(req,
+                                     "11111111 11111001 "               // Index, Union tag
+                                     "00000001 00000000 00000000 00000000 00000000 00000000 00000000 00000000 " // Payload
+                                     "00110001 00110010 00110011"));    // Name
+}
+
+
+TEST(Dsdl, ParamGetSetResponseUnion)
+{
+    uavcan::protocol::param::GetSet::Response res;
+
+    res.value.to<uavcan::protocol::param::Value::Tag::string_value>() = "abc";
+    res.default_value.to<uavcan::protocol::param::Value::Tag::string_value>(); // Empty
+    res.name = "123";
+    EXPECT_TRUE(encodeDecodeValidate(res,
+                                     "00000100 "                        // Value union tag
+                                     "00000011 "                        // Value array length
+                                     "01100001 01100010 01100011 "      // Value array payload
+                                     "00000100 "                        // Default union tag
+                                     "00000000 "                        // Default array length
+                                     "00000000 "                        // Max value tag
+                                     "00000000 "                        // Min value tag
+                                     "00110001 00110010 00110011"));    // Name
 }
