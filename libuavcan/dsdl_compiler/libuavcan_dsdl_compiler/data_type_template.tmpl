@@ -64,8 +64,8 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
     {
         enum Type
         {
-        % for idx,a in enumerate(fields):
-            ${a.name}${',' if idx < (len(fields) - 1) else ''}
+        % for idx,last,a in enum_last_value(fields):
+            ${a.name}${',' if not last else ''}
         % endfor
         };
     };
@@ -77,8 +77,8 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
     enum
     {
         ${enum_name} = TagType::BitLen +
-            % for idx,a in enumerate(fields):
-                % if idx < (len(fields) - 1):
+            % for idx,last,a in enum_last_value(fields):
+                % if not last:
             ::uavcan::${enum_comparator}<FieldTypes::${a.name}::${enum_name},
                 % else:
                 FieldTypes::${a.name}::${enum_name} ${'>::Result' * (len(fields) - 1)}
@@ -113,7 +113,7 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
     % endfor
 
     // Fields
-    % for a in fields:
+    % for a in [x for x in fields if not x.void]:
     typename ::uavcan::StorageType< typename FieldTypes::${a.name} >::Type ${a.name};
     % endfor
 
@@ -125,7 +125,7 @@ public:
     % endif
 
     ${type_name}()
-    % for idx,a in enumerate(fields):
+    % for idx,a in enumerate([x for x in fields if not x.void]):
         ${':' if idx == 0 else ','} ${a.name}()
     % endfor
     % if union:
@@ -166,7 +166,7 @@ public:
      */
     template <typename T>
     ${type_name}(const T& x)
-        % for idx,a in enumerate(fields):
+        % for idx,a in enumerate([x for x in fields if not x.void]):
         ${':' if idx == 0 else ','} ${a.name}()
         % endfor
         % if union:
@@ -295,8 +295,8 @@ bool ${scope_prefix}<_tmpl>::operator==(ParameterType rhs) const
     % else:
         % if fields:
     return
-            % for idx,a in enumerate(fields):
-        ${a.name} == rhs.${a.name}${' &&' if (idx + 1) < len(fields) else ';'}
+            % for idx,last,a in enum_last_value([x for x in fields if not x.void]):
+        ${a.name} == rhs.${a.name}${' &&' if not last else ';'}
             % endfor
         % else:
     (void)rhs;
@@ -324,8 +324,8 @@ bool ${scope_prefix}<_tmpl>::isClose(ParameterType rhs) const
     % else:
         % if fields:
     return
-            % for idx,a in enumerate(fields):
-        ::uavcan::areClose(${a.name}, rhs.${a.name})${' &&' if (idx + 1) < len(fields) else ';'}
+            % for idx,last,a in enum_last_value([x for x in fields if not x.void]):
+        ::uavcan::areClose(${a.name}, rhs.${a.name})${' &&' if not last else ';'}
             % endfor
         % else:
     (void)rhs;
@@ -356,11 +356,14 @@ int ${scope_prefix}<_tmpl>::${call_name}(${self_parameter_type} self, ::uavcan::
             % endfor
     return -1;          // Invalid tag value
         % else:
+            % for a in [x for x in fields if x.void]:
+    typename ::uavcan::StorageType< typename FieldTypes::${a.name} >::Type ${a.name} = 0;
+            % endfor
     int res = 1;
-            % for idx,a in enumerate(fields):
-    res = FieldTypes::${a.name}::${call_name}(self.${a.name}, codec, \
-${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
-                % if (idx + 1) < len(fields):
+            % for idx,last,a in enum_last_value(fields):
+    res = FieldTypes::${a.name}::${call_name}(${'self.' * (not a.void)}${a.name}, codec, \
+${'::uavcan::TailArrayOptDisabled' if not last else 'tao_mode'});
+                % if not last:
     if (res <= 0)
     {
         return res;
@@ -545,7 +548,7 @@ void YamlStreamer< ${type_name} >::stream(Stream& s, ${type_name}::ParameterType
     }
         % endfor
     % else:
-        % for idx,a in enumerate(fields):
+        % for idx,a in enumerate([x for x in fields if not x.void]):
             % if idx == 0:
     if (level > 0)
     {

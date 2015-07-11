@@ -158,6 +158,8 @@ def type_to_cpp_type(t):
         return '::uavcan::Array< %s, %s, %d >' % (value_type, mode, t.max_size)
     elif t.category == t.CATEGORY_COMPOUND:
         return '::' + t.full_name.replace('.', '::')
+    elif t.category == t.CATEGORY_VOID:
+        return '::uavcan::IntegerSpec< %d, ::uavcan::SignednessUnsigned, ::uavcan::CastModeSaturate >' % t.bitlen
     else:
         raise DsdlCompilerException('Unknown type category: %s' % t.category)
 
@@ -186,8 +188,14 @@ def generate_one_type(template_expander, t):
 
     # Attribute types
     def inject_cpp_types(attributes):
+        void_index = 0
         for a in attributes:
             a.cpp_type = type_to_cpp_type(a.type)
+            a.void = a.type.category == a.type.CATEGORY_VOID
+            if a.void:
+                assert not a.name
+                a.name = '_void_%d' % void_index
+                void_index += 1
 
     if t.kind == t.KIND_MESSAGE:
         inject_cpp_types(t.fields)
@@ -285,6 +293,17 @@ def make_template_expander(filename):
     def expand(**args):
         # This function adds one indentation level (4 spaces); it will be used from the template
         args['indent'] = lambda text, idnt = '    ': idnt + text.replace('\n', '\n' + idnt)
+        # This function works like enumerate(), telling you whether the current item is the last one
+        def enum_last_value(iterable, start=0):
+            it = iter(iterable)
+            count = start
+            last = next(it)
+            for val in it:
+                yield count, False, last
+                last = val
+                count += 1
+            yield count, True, last
+        args['enum_last_value'] = enum_last_value
         return template(**args)
 
     return expand
