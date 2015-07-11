@@ -110,14 +110,14 @@ class UAVCAN_EXPORT ParamServer
         }
 
         // Assign if needed, read back
-        if (!in.value.is<protocol::param::Empty>())
+        if (!in.value.is(protocol::param::Value::Tag::empty))
         {
             manager_->assignParamValue(out.name, in.value);
         }
         manager_->readParamValue(out.name, out.value);
 
         // Check if the value is OK, otherwise reset the name to indicate that we have no idea what is it all about
-        if (!out.value.is<protocol::param::Empty>())
+        if (!out.value.is(protocol::param::Value::Tag::empty))
         {
             manager_->readParamDefaultMaxMin(out.name, out.default_value, out.max_value, out.min_value);
         }

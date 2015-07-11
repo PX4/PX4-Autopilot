@@ -121,6 +121,9 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
 private:
     typename ::uavcan::StorageType< TagType >::Type _tag_;  // The name is mangled to avoid clashing with fields
 
+    template <typename Tag::Type T>
+    struct TagToType;
+
 public:
     % endif
 
@@ -161,61 +164,31 @@ public:
 
     % if union:
     /**
-     * Constructors and assignment operators will only work if T is unique within the union; otherwise
-     * compilation will fail with an error referring to ambiguous template instantiation.
-     */
-    template <typename T>
-    ${type_name}(const T& x)
-        % for idx,a in enumerate([x for x in fields if not x.void]):
-        ${':' if idx == 0 else ','} ${a.name}()
-        % endfor
-        % if union:
-        , _tag_()
-        % endif
-    {
-        to<T>() = x;
-    }
-
-    template <typename T>
-    ${type_name}& operator=(const T& x)
-    {
-        to<T>() = x;
-        return *this;
-    }
-
-    /**
-     * Use explicit tag access if the union contains non-unique types.
-     * Otherwise it is safer to use as<>(), to<>(), is<>().
+     * Explicit access to the tag.
+     * It is safer to use is()/as()/to() instead.
      */
     typename Tag::Type getTag() const { return typename Tag::Type(_tag_); }
     void setTag(typename Tag::Type x) { _tag_ = typename ::uavcan::StorageType< TagType >::Type(x); }
 
     /**
      * Whether the union is set to the given type.
-     * Access by type; this will only work if the type is unique within the union; otherwise compilation will fail.
-     */
-    template <typename T>
-    bool is() const;
-
-    /**
-     * Whether the union is set to the given type.
      * Access by tag; this will work even if there are non-unique types within the union.
      */
-    bool is(typename Tag::Type x) const { return Tag::Type(_tag_) == x; }
+    bool is(typename Tag::Type x) const { return typename Tag::Type(_tag_) == x; }
 
     /**
      * If the union is currently set to the type T, returns pointer to the appropriate field.
      * If the union is set to another type, returns null pointer.
      */
-    template <typename T>
-    const typename ::uavcan::StorageType<T>::Type* as() const;
+    template <typename Tag::Type T>
+    const typename TagToType<T>::StorageType* as() const;
 
     /**
      * Switches the union to the given type and returns a mutable reference to the appropriate field.
-     * If the previous type was different, a default constructor will be executed.
+     * If the previous type was different, a default constructor will be called first.
      */
-    template <typename T>
-    typename ::uavcan::StorageType<T>::Type& to();
+    template <typename Tag::Type T>
+    typename TagToType<T>::StorageType& to();
     % endif
 <!--(end)-->
 
@@ -378,54 +351,32 @@ ${generate_codec_calls_per_field(call_name='encode', self_parameter_type='Parame
 ${generate_codec_calls_per_field(call_name='decode', self_parameter_type='ReferenceType')}
 
     % if union:
-template <>
-template <typename T>
-typename ::uavcan::EnableIfType< typename T::StorageType, bool>::Type ${scope_prefix}<0>::is() const
-{
-    return is<typename T::StorageType>();
-}
-
-template <>
-template <typename T>
-typename ::uavcan::EnableIfType< typename T::StorageType, const typename T::StorageType*>::Type
-${scope_prefix}<0>::as() const
-{
-    return as<typename T::StorageType>();
-}
-
-template <>
-template <typename T>
-typename ::uavcan::EnableIfType< typename T::StorageType, typename T::StorageType&>::Type
-${scope_prefix}<0>::to()
-{
-    return to<typename T::StorageType>();
-}
-
         % for idx,a in enumerate(fields):
 template <>
 template <>
-bool ${scope_prefix}<0>::is< typename ::uavcan::StorageType< typename ${scope_prefix}<0>::FieldTypes::${a.name} >::Type >() const
+struct ${scope_prefix}<0>::TagToType<${scope_prefix}<0>::Tag::${a.name}>
 {
-    return _tag_ == ${idx};
+    typedef typename ${scope_prefix}<0>::FieldTypes::${a.name} Type;
+    typedef typename ::uavcan::StorageType<Type>::Type StorageType;
+};
+
+template <>
+template <>
+const typename ${scope_prefix}<0>::TagToType< ${scope_prefix}<0>::Tag::${a.name} >::StorageType*
+${scope_prefix}<0>::as< ${scope_prefix}<0>::Tag::${a.name} >() const
+{
+    return is(${scope_prefix}<0>::Tag::${a.name}) ? &${a.name} : NULL;
 }
 
 template <>
 template <>
-const typename ::uavcan::StorageType< typename ${scope_prefix}<0>::FieldTypes::${a.name} >::Type*
-${scope_prefix}<0>::as< typename ::uavcan::StorageType< typename ${scope_prefix}<0>::FieldTypes::${a.name} >::Type >() const
-{
-    return is< typename ${scope_prefix}<0>::FieldTypes::${a.name} >() ? &${a.name} : NULL;
-}
-
-template <>
-template <>
-typename ::uavcan::StorageType< typename ${scope_prefix}<0>::FieldTypes::${a.name} >::Type&
-${scope_prefix}<0>::to< typename ::uavcan::StorageType< typename ${scope_prefix}<0>::FieldTypes::${a.name} >::Type >()
+typename ${scope_prefix}<0>::TagToType< ${scope_prefix}<0>::Tag::${a.name} >::StorageType&
+${scope_prefix}<0>::to< ${scope_prefix}<0>::Tag::${a.name} >()
 {
     if (_tag_ != ${idx})
     {
         _tag_ = ${idx};
-        ${a.name} = typename ::uavcan::StorageType< typename FieldTypes::${a.name} >::Type();
+        ${a.name} = typename TagToType< ${scope_prefix}<0>::Tag::${a.name} >::StorageType();
     }
     return ${a.name};
 }
