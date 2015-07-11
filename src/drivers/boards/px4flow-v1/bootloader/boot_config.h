@@ -112,7 +112,7 @@
 #define FLASH_BASE              STM32_FLASH_BASE
 #define FLASH_NUMBER_PAGES      STM32_FLASH_NPAGES
 #define FLASH_PAGE_SIZE         STM32_FLASH_PAGESIZE
-#define FLASH_SIZE              (FLASH_NUMBER_PAGES*FLASH_PAGE_SIZE)
+#define FLASH_SIZE              (2 * ((4*16*1024) + (1*64*1204) + (3*128*1024) + (4*128*1024)))
 
 #define APPLICATION_LOAD_ADDRESS (FLASH_BASE + OPT_APPLICATION_IMAGE_OFFSET)
 #define APPLICATION_SIZE (FLASH_SIZE-OPT_APPLICATION_IMAGE_OFFSET)
@@ -127,7 +127,7 @@
  *   GPIO      Function                                     MPU        Board
  *                                                          Pin #      Name
  * -- ----- --------------------------------             ----------------------------
- *  *  PC[09] PC9/TIM3_CH4                                     40       BOOT0
+ *  *  TODO TBD (Using ADDR0 for now)
  */
-#define GPIO_GETNODEINFO_JUMPER (BUTTON_BOOT0n&~(GPIO_EXTI))
+#define GPIO_GETNODEINFO_JUMPER GPIO_WAIT_GETNODEINFO
 
