@@ -76,42 +76,36 @@ public:
 
 std::string paramValueToString(const uavcan::protocol::param::Value& value)
 {
-    if (!value.value_bool.empty())
+    if (auto x = value.as<bool>())
     {
-        return value.value_bool[0] ? "true" : "false";
+        return *x ? "true" : "false";
     }
-    else if (!value.value_int.empty())
+    if (auto x = value.as<std::int64_t>())
     {
-        return std::to_string(value.value_int[0]);
+        return std::to_string(*x);
     }
-    else if (!value.value_float.empty())
+    if (auto x = value.as<float>())
     {
-        return std::to_string(value.value_float[0]);
+        return std::to_string(*x);
     }
-    else if (!value.value_string.empty())
+    if (auto x = value.as<uavcan::protocol::param::Value::FieldTypes::string_value>())
     {
-        return std::string(value.value_string[0].value.c_str()) + " ";
+        return std::string(x->c_str()) + " ";
     }
-    else
-    {
-        return "";
-    }
+    return "";
 }
 
 std::string paramValueToString(const uavcan::protocol::param::NumericValue& value)
 {
-    if (!value.value_int.empty())
+    if (auto x = value.as<std::int64_t>())
     {
-        return std::to_string(value.value_int[0]);
+        return std::to_string(*x);
     }
-    else if (!value.value_float.empty())
+    if (auto x = value.as<float>())
     {
-        return std::to_string(value.value_float[0]);
+        return std::to_string(*x);
     }
-    else
-    {
-        return "";
-    }
+    return "";
 }
 
 void printGetSetResponseHeader()
@@ -197,7 +191,7 @@ const std::map<std::string,
                 {
                     request.name = args.at(0).c_str();
                     // TODO: add support for string parameters
-                    request.value.value_float.push_back(std::stof(args.at(1)));
+                    request.value = std::stof(args.at(1));
                     printGetSetResponse(call(*client, node_id, request));
                 }
             }
