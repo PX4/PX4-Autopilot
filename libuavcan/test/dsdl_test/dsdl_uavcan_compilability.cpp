@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <uavcan/helpers/ostream.hpp>
+#include <uavcan/transport/transfer_buffer.hpp>
 
 #include <uavcan/Timestamp.hpp>
 #include <uavcan/protocol/GetTransportStats.hpp>
@@ -24,6 +25,8 @@
 template <typename T>
 static bool validateYaml(const T& obj, const std::string& reference)
 {
+    uavcan::OStream::instance() << "Validating YAML:\n" << obj << "\n" << uavcan::OStream::endl;
+
     std::ostringstream os;
     os << obj;
     if (os.str() == reference)
@@ -40,7 +43,7 @@ static bool validateYaml(const T& obj, const std::string& reference)
                   << "ACTUAL:\n"
                   << "\n===\n"
                   << os.str()
-                  << "===" << std::endl;
+                  << "\n===\n" << std::endl;
         return false;
     }
 }
@@ -89,4 +92,108 @@ TEST(Dsdl, Streaming)
                              "  - \n"
                              "    vector: [0, 0]\n"
                              "    bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]"));
+}
+
+
+template <typename T>
+static bool encodeDecodeValidate(const T& obj, const std::string& reference_bit_string)
+{
+    uavcan::StaticTransferBuffer<256> buf;
+
+    {
+        uavcan::BitStream bits(buf);
+        uavcan::ScalarCodec codec(bits);
+        /*
+         * Coding
+         */
+        if (0 > T::encode(obj, codec))
+        {
+            std::cout << "Failed to encode" << std::endl;
+            return false;
+        }
+
+        /*
+         * Validating the encoded bitstream
+         */
+        const std::string result = bits.toString();
+        if (result != reference_bit_string)
+        {
+            std::cout << "ENCODED VALUE DOESN'T MATCH THE REFERENCE:\nEXPECTED:\n"
+                      << reference_bit_string << "\nACTUAL:\n"
+                      << result << std::endl;
+            return false;
+        }
+    }
+
+    /*
+     * Decoding back and comparing
+     */
+    uavcan::BitStream bits(buf);
+    uavcan::ScalarCodec codec(bits);
+
+    T decoded;
+
+    if (0 > T::decode(decoded, codec))
+    {
+        std::cout << "Failed to decode" << std::endl;
+        return false;
+    }
+
+    if (decoded != obj)
+    {
+        std::cout << "DECODED OBJECT DOESN'T MATCH THE REFERENCE:\nEXPECTED:\n"
+                  << obj << "\nACTUAL:\n"
+                  << decoded << std::endl;
+        return false;
+    }
+    return true;
+}
+
+
+TEST(Dsdl, Union)
+{
+    using root_ns_a::UnionTest;
+    using root_ns_a::NestedInUnion;
+
+    ASSERT_EQ(3, UnionTest::MinBitLen);
+    ASSERT_EQ(16, UnionTest::MaxBitLen);
+    ASSERT_EQ(13, NestedInUnion::MinBitLen);
+    ASSERT_EQ(13, NestedInUnion::MaxBitLen);
+
+    UnionTest s;
+
+    EXPECT_TRUE(validateYaml(s, "z: "));
+    encodeDecodeValidate(s, "00000000");
+
+    s.to<UnionTest::Tag::a>() = 16;
+    EXPECT_TRUE(validateYaml(s, "a: 16"));
+    EXPECT_TRUE(encodeDecodeValidate(s, "00110000"));
+
+    s.to<UnionTest::Tag::b>() = 31;
+    EXPECT_TRUE(validateYaml(s, "b: 31"));
+    EXPECT_TRUE(encodeDecodeValidate(s, "01011111"));
+
+    s.to<UnionTest::Tag::c>() = 256;
+    EXPECT_TRUE(validateYaml(s, "c: 256"));
+    EXPECT_TRUE(encodeDecodeValidate(s, "01100000 00000001"));
+
+    s.to<UnionTest::Tag::d>().push_back(true);
+    s.to<UnionTest::Tag::d>().push_back(false);
+    s.to<UnionTest::Tag::d>().push_back(true);
+    s.to<UnionTest::Tag::d>().push_back(true);
+    s.to<UnionTest::Tag::d>().push_back(false);
+    s.to<UnionTest::Tag::d>().push_back(false);
+    s.to<UnionTest::Tag::d>().push_back(true);
+    s.to<UnionTest::Tag::d>().push_back(true);
+    s.to<UnionTest::Tag::d>().push_back(true);
+    ASSERT_EQ(9, s.to<UnionTest::Tag::d>().size());
+    EXPECT_TRUE(validateYaml(s, "d: [1, 0, 1, 1, 0, 0, 1, 1, 1]"));
+    EXPECT_TRUE(encodeDecodeValidate(s, "10010011 01100111"));
+
+    s.to<UnionTest::Tag::e>().array[0] = 0;
+    s.to<UnionTest::Tag::e>().array[1] = 1;
+    s.to<UnionTest::Tag::e>().array[2] = 2;
+    s.to<UnionTest::Tag::e>().array[3] = 3;
+    EXPECT_TRUE(validateYaml(s, "e: \n  array: [0, 1, 2, 3]"));
+    EXPECT_TRUE(encodeDecodeValidate(s, "10100000 11011000"));
 }
