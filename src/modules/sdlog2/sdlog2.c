@@ -229,6 +229,7 @@ static void *logwriter_thread(void *arg);
 __EXPORT int sdlog2_main(int argc, char *argv[]);
 
 static bool copy_if_updated(orb_id_t topic, int *handle, void *buffer);
+static bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer);
 
 /**
  * Mainloop of sd log deamon.
@@ -845,10 +846,15 @@ int write_parameters(int fd)
 
 bool copy_if_updated(orb_id_t topic, int *handle, void *buffer)
 {
+	return copy_if_updated_multi(topic, 0, handle, buffer);
+}
+
+bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer)
+{
 	bool updated = false;
 
 	if (*handle < 0) {
-		if (OK == orb_exists(topic, 0)) {
+		if (OK == orb_exists(topic, multi_instance)) {
 			*handle = orb_subscribe(topic);
 			/* copy first data */
 			if (*handle >= 0) {
@@ -1175,7 +1181,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int esc_sub;
 		int global_vel_sp_sub;
 		int battery_sub;
-		int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
+		int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
 		int distance_sensor_sub;
 		int estimator_status_sub;
 		int tecs_status_sub;
@@ -1223,7 +1229,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* add new topics HERE */
 
 
-	for (unsigned i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
 	}
 	
@@ -1808,8 +1814,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- TELEMETRY --- */
-		for (unsigned i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
-			if (copy_if_updated(telemetry_status_orb_id[i], &subs.telemetry_subs[i], &buf.telemetry)) {
+		for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			if (copy_if_updated_multi(ORB_ID(telemetry_status), i, &subs.telemetry_subs[i], &buf.telemetry)) {
 				log_msg.msg_type = LOG_TEL0_MSG + i;
 				log_msg.body.log_TEL.rssi = buf.telemetry.rssi;
 				log_msg.body.log_TEL.remote_rssi = buf.telemetry.remote_rssi;
