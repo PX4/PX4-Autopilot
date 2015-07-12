@@ -45,6 +45,7 @@ MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/px4flow
 MODULES		+= drivers/oreoled
 MODULES		+= drivers/gimbal
+MODULES		+= drivers/iridium
 
 #
 # System commands
