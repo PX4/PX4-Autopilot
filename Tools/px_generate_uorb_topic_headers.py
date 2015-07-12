@@ -105,7 +105,7 @@ def convert_dir(inputdir, outputdir, templatedir):
 
         # Find the most recent modification time in output dir
         maxouttime = 0
-        if os.path.isdir(outputdir)
+        if os.path.isdir(outputdir):
             for f in os.listdir(outputdir):
                     fni = os.path.join(outputdir, f)
                     if os.path.isfile(fni):
