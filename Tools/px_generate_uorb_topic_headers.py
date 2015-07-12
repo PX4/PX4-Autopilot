@@ -149,14 +149,16 @@ def copy_changed(inputdir, outputdir, prefix=''):
                                 shutil.copy(fni, fno)
                                 print("{0}: new header file".format(f))
                                 continue
-                        # The file exists in inputdir and outputdir
-                        # only copy if contents do not match
-                        if not filecmp.cmp(fni, fno):
-                                shutil.copy(fni, fno)
-                                print("{0}: updated".format(f))
-                                continue
 
-                        print("{0}: unchanged".format(f))
+                        if os.path.getmtime(fni) > os.path.getmtime(fno):
+                                # The file exists in inputdir and outputdir
+                                # only copy if contents do not match
+                                if not filecmp.cmp(fni, fno):
+                                        shutil.copy(fni, fno)
+                                        print("{0}: updated".format(f))
+                                        continue
+
+                        #print("{0}: unchanged".format(f))
 
 
 def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
@@ -165,11 +167,9 @@ def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
         Unchanged existing files are not overwritten.
         """
         # Create new headers in temporary output directory
-        if (convert_dir(inputdir, temporarydir, templatedir)):
-            # Copy changed headers from temporary dir to output dir
-            copy_changed(temporarydir, outputdir, prefix)
-        else:
-            print('No changes.')
+        convert_dir(inputdir, temporarydir, templatedir)
+        # Copy changed headers from temporary dir to output dir
+        copy_changed(temporarydir, outputdir, prefix)
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
