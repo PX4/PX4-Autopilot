@@ -132,7 +132,7 @@ static sem_t g_sys_state_mutex;
 
 /* The data manager store file handle and file name */
 static int g_fd = -1, g_task_fd = -1;
-static const char *default_device_path = "/fs/microsd/dataman";
+static const char *default_device_path = PX4_ROOTFSDIR"/fs/microsd/dataman";
 static char *k_data_manager_device_path = NULL;
 
 /* The data manager work queues */
@@ -664,6 +664,7 @@ task_main(int argc, char *argv[])
 		int file_size = lseek(g_task_fd, 0, SEEK_END);
 		if ((file_size % k_sector_size) != 0) {
 			warnx("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
+			warnx("Size: %u, sector size: %d", file_size, k_sector_size);
 			close(g_task_fd);
 			unlink(k_data_manager_device_path);
 		} else {
@@ -672,12 +673,7 @@ task_main(int argc, char *argv[])
 	}
 
 	/* Open or create the data manager file */
-	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY
-#ifdef __PX4_LINUX
-			// Open with read/write permission for user
-			, S_IRUSR | S_IWUSR
-#endif
-			);
+	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, PX4_O_MODE_666);
 
 	if (g_task_fd < 0) {
 		warnx("Could not open data manager file %s", k_data_manager_device_path);
@@ -803,7 +799,7 @@ start(void)
 	sem_init(&g_init_sema, 1, 0);
 
 	/* start the worker thread */
-	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 1800, task_main, NULL)) <= 0) {
+	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 1500, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}

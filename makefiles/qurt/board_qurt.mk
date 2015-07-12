@@ -8,4 +8,4 @@
 CONFIG_ARCH			 = HEXAGON
 CONFIG_BOARD			 = QURTTEST
 
-include $(PX4_MK_DIR)/toolchain_hexagon.mk
+include $(PX4_MK_DIR)/qurt/toolchain_hexagon.mk

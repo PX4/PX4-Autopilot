@@ -59,7 +59,10 @@
 #define HW_ARCH "PX4_STM32F4DISCOVERY"
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_POSIXTEST
+#ifdef CONFIG_ARCH_BOARD_SITL
+#define	HW_ARCH "LINUXTEST"
+#endif
+#ifdef CONFIG_ARCH_BOARD_EAGLE
 #define	HW_ARCH "LINUXTEST"
 #endif
 #endif /* VERSION_H_ */

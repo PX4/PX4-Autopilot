@@ -18,6 +18,7 @@ addons:
     - build-essential
     - ccache
     - cmake
+    - clang-3.5
     - g++-4.8
     - gcc-4.8
     - genromfs
@@ -74,6 +75,7 @@ script:
   - echo -en 'travis_fold:end:script.3\\r'
   - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.4\\r'
   - make -j4
+  - make size
   - ccache -s
   - echo -en 'travis_fold:end:script.4\\r'
   - zip Firmware.zip Images/*.px4

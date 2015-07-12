@@ -87,7 +87,7 @@ protected:
 	virtual void initialize() = 0;
 
 	/**
-	* @brief Convinience function for polling uORB subscriptions
+	* @brief Convenience function for polling uORB subscriptions
 	* @return true if there was new data and it was successfully copied
 	**/
 	bool orb_update(const struct orb_metadata *meta, int handle, void *buffer);

@@ -49,7 +49,7 @@
 #define CONFIG_SCHED_WORKQUEUE 1
 #define CONFIG_SCHED_HPWORK 1
 #define CONFIG_SCHED_LPWORK 1
-#define CONFIG_ARCH_BOARD_POSIXTEST 1
+#define CONFIG_ARCH_BOARD_SITL 1
 
 /** time in ms between checks for work in work queues **/
 #define CONFIG_SCHED_WORKPERIOD 50000

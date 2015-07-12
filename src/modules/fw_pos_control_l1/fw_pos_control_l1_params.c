@@ -58,7 +58,7 @@
  * @max 100.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 25.0f);
+PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
 
 /**
  * L1 damping
@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
  * @max 1.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.7f);
+PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
 
 /**
  * Throttle max slew rate
@@ -123,10 +123,11 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
  * The maximum roll the controller will output.
  *
  * @unit degrees
- * @min 0.0
+ * @min 35.0
+ * @max 65.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_R_LIM, 45.0f);
+PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
 
 /**
  * Throttle limit max
@@ -151,6 +152,8 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  * For aircraft with internal combustion engine this parameter should be set
  * for desired idle rpm.
  *
+ * @min 0.0
+ * @max 1.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
@@ -161,6 +164,8 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * This throttle value will be set as throttle limit at FW_LND_TLALT,
  * before arcraft will flare.
  *
+ * @min 0.0
+ * @max 1.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
@@ -173,6 +178,8 @@ PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
  * distance to the desired altitude. Mostly used for takeoff waypoints / modes.
  * Set to zero to disable climbout mode (not recommended).
  *
+ * @min 0.0
+ * @max 150.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 25.0f);
@@ -193,6 +200,8 @@ PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 25.0f);
  * FW_THR_MAX, then either FW_T_CLMB_MAX should be increased or
  * FW_THR_MAX reduced.
  *
+ * @min 2.0
+ * @max 10.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);

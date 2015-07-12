@@ -69,7 +69,7 @@ I2C::I2C(const char *name,
 	_address(address),
 	_fd(-1)
 {
-	warnx("I2C::I2C name = %s devname = %s", name, devname);
+	//warnx("I2C::I2C name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
@@ -81,7 +81,9 @@ I2C::I2C(const char *name,
 I2C::~I2C()
 {
 	if (_fd >= 0) {
+#ifndef __PX4_QURT
 		::close(_fd);
+#endif
 		_fd = -1;
 	}
 }
@@ -116,6 +118,7 @@ I2C::init()
 		_fd = 10000;
 	}
 	else {
+#ifndef __PX4_QURT
 		// Open the actual I2C device and map to the virtual dev name
 		_fd = ::open(get_devname(), O_RDWR);
 		if (_fd < 0) {
@@ -123,6 +126,7 @@ I2C::init()
 			px4_errno = errno;
 			return PX4_ERROR;
 		}
+#endif
 	}
 
 	return ret;
@@ -131,6 +135,9 @@ I2C::init()
 int
 I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
+	#ifndef __PX4_LINUX
+	return 1;
+	#else
 	struct i2c_msg msgv[2];
 	unsigned msgs;
 	struct i2c_rdwr_ioctl_data packets;
@@ -187,11 +194,15 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	} while (retry_count++ < _retries);
 
 	return ret;
+	#endif
 }
 
 int
 I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 {
+	#ifndef __PX4_LINUX
+	return 1;
+	#else
 	struct i2c_rdwr_ioctl_data packets;
 	int ret;
 	unsigned retry_count = 0;
@@ -223,16 +234,18 @@ I2C::transfer(struct i2c_msg *msgv, unsigned msgs)
 	} while (retry_count++ < _retries);
 
 	return ret;
+	#endif
 }
 
 int I2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	//struct i2c_rdwr_ioctl_data *packets = (i2c_rdwr_ioctl_data *)(void *)arg;
-
 	switch (cmd) {
+	#ifdef __PX4_LINUX
 	case I2C_RDWR:
         	warnx("Use I2C::transfer, not ioctl");
 		return 0;
+	#endif
 	default:
 		/* give it to the superclass */
 		return VDev::ioctl(filp, cmd, arg);
@@ -246,8 +259,11 @@ ssize_t	I2C::read(file_t *filp, char *buffer, size_t buflen)
 		warnx ("2C SIM I2C::read");
 		return 0;
 	}
-
+#ifndef __PX4_QURT
 	return ::read(_fd, buffer, buflen);
+#else
+        return 0;
+#endif
 }
 
 ssize_t	I2C::write(file_t *filp, const char *buffer, size_t buflen)
@@ -257,7 +273,11 @@ ssize_t	I2C::write(file_t *filp, const char *buffer, size_t buflen)
 		return buflen;
 	}
 
+#ifndef __PX4_QURT
 	return ::write(_fd, buffer, buflen);
+#else
+        return buflen;
+#endif
 }
 
 } // namespace device

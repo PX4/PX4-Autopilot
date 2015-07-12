@@ -10,13 +10,13 @@ sh /etc/init.d/rc.mc_defaults
 if [ $AUTOCNF == yes ]
 then
 	param set MC_ROLL_P 6.0
-	param set MC_ROLLRATE_P 0.04
-	param set MC_ROLLRATE_I 0.1
+	param set MC_ROLLRATE_P 0.08
+	param set MC_ROLLRATE_I 0.03
 	param set MC_ROLLRATE_D 0.0015
 	
 	param set MC_PITCH_P 6.0
-	param set MC_PITCHRATE_P 0.08
-	param set MC_PITCHRATE_I 0.2
+	param set MC_PITCHRATE_P 0.1
+	param set MC_PITCHRATE_I 0.03
 	param set MC_PITCHRATE_D 0.0015
 	
 	param set MC_YAW_P 2.8

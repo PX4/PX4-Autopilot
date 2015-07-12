@@ -636,7 +636,11 @@ namespace px4flow
 #endif
 const int ERROR = -1;
 
-PX4FLOW	*g_dev;
+PX4FLOW	*g_dev = nullptr;
+bool start_in_progress = false;
+
+const int START_RETRY_COUNT = 5;
+const int START_RETRY_TIMEOUT = 1000;
 
 void	start();
 void	stop();
@@ -651,70 +655,94 @@ void
 start()
 {
 	int fd;
+	
+	/* entry check: */
+	if (start_in_progress) {
+		errx(1, "start in progress");
+	}
+	start_in_progress = true;
 
 	if (g_dev != nullptr) {
+		start_in_progress = false;
 		errx(1, "already started");
 	}
 
-	/* create the driver */
-	g_dev = new PX4FLOW(PX4_I2C_BUS_EXPANSION);
+	int retry_nr = 0;
+	while (1) {
+		const int busses_to_try[] = {
+			PX4_I2C_BUS_EXPANSION,
+			#ifdef PX4_I2C_BUS_ESC
+			PX4_I2C_BUS_ESC,
+			#endif
+			PX4_I2C_BUS_ONBOARD,
+			-1
+		};
 
-	if (g_dev == nullptr) {
-		goto fail;
-	}
+		const int *cur_bus = busses_to_try;
 
-	if (OK != g_dev->init()) {
-
-		#ifdef PX4_I2C_BUS_ESC
-		delete g_dev;
-		/* try 2nd bus */
-		g_dev = new PX4FLOW(PX4_I2C_BUS_ESC);
-
-		if (g_dev == nullptr) {
-			goto fail;
-		}
-
-		if (OK != g_dev->init()) {
-		#endif
-
-			delete g_dev;
-			/* try 3rd bus */
-			g_dev = new PX4FLOW(PX4_I2C_BUS_ONBOARD);
-
+		while(*cur_bus != -1) {
+			/* create the driver */
+			/* warnx("trying bus %d", *cur_bus); */
+			g_dev = new PX4FLOW(*cur_bus);
 			if (g_dev == nullptr) {
-				goto fail;
+				/* this is a fatal error */
+				break;
 			}
 
-			if (OK != g_dev->init()) {
-				goto fail;
+			/* init the driver: */
+			if (OK == g_dev->init()) {
+				/* success! */
+				break;
 			}
 
-		#ifdef PX4_I2C_BUS_ESC
+			/* destroy it again because it failed. */
+			delete g_dev;
+			g_dev = nullptr;
+
+			/* try next! */
+			cur_bus++;
 		}
-		#endif
+
+		/* check whether we found it: */
+		if (*cur_bus != -1) {
+			
+			/* check for failure: */
+			if (g_dev == nullptr) {
+				break;
+			}
+
+			/* set the poll rate to default, starts automatic data collection */
+			fd = open(PX4FLOW0_DEVICE_PATH, O_RDONLY);
+
+			if (fd < 0) {
+				break;
+			}
+
+			if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX) < 0) {
+				break;
+			}
+
+			/* success! */
+			start_in_progress = false;
+			exit(0);
+		}
+
+		if (retry_nr < START_RETRY_COUNT) {
+			warnx("PX4FLOW not found on I2C busses. Retrying in %d ms. Giving up in %d retries.", START_RETRY_TIMEOUT, START_RETRY_COUNT - retry_nr);
+			usleep(START_RETRY_TIMEOUT * 1000);
+			retry_nr++;
+		} else {
+			break;
+		}
 	}
-
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(PX4FLOW0_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX) < 0) {
-		goto fail;
-	}
-
-	exit(0);
-
-fail:
-
+	
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
-
-	errx(1, "no PX4FLOW connected over I2C");
+	
+	start_in_progress = false;
+	errx(1, "PX4FLOW could not be started over I2C");
 }
 
 /**

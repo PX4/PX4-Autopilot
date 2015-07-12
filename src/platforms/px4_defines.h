@@ -92,6 +92,8 @@ typedef param_t px4_param_t;
  */
 #if defined(__PX4_NUTTX)
 
+#define PX4_ROOTFSDIR 
+
 /* XXX this is a hack to resolve conflicts with NuttX headers */
 #if !defined(__PX4_TESTS)
 #define isspace(c) \
@@ -105,8 +107,16 @@ typedef param_t px4_param_t;
 
 #define PX4_ISFINITE(x) isfinite(x)
 
+// mode for open with O_CREAT
+#define PX4_O_MODE_777 0777
+#define PX4_O_MODE_666 0666
+#define PX4_O_MODE_600 0600
+
 #ifndef PRIu64
 #define PRIu64 "llu"
+#endif
+#ifndef PRId64
+#define PRId64 "lld"
 #endif
 
 /* 
@@ -117,12 +127,19 @@ typedef param_t px4_param_t;
 // Flag is meaningless on Linux
 #define O_BINARY 0
 
+// mode for open with O_CREAT
+#define PX4_O_MODE_777 (S_IRWXU | S_IRWXG | S_IRWXO)
+#define PX4_O_MODE_666 (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH )
+#define PX4_O_MODE_600 (S_IRUSR | S_IWUSR)
+
+
 // NuttX _IOC is equivalent to Linux _IO
 #define _PX4_IOC(x,y) _IO(x,y)
 
 /* FIXME - Used to satisfy build */
 //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
 #define UNIQUE_ID       0x1FFF7A10  
+#define STM32_SYSMEM_UID "SIMULATIONID"
 
 /* FIXME - Used to satisfy build */
 #define getreg32(a)    (*(volatile uint32_t *)(a))
@@ -135,6 +152,12 @@ __END_DECLS
 #define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK) 
 
 #define px4_statfs_buf_f_bavail_t unsigned long
+
+#if defined(__PX4_QURT)
+#define PX4_ROOTFSDIR 
+#else
+#define PX4_ROOTFSDIR "rootfs"
+#endif
 
 #endif
 
@@ -198,10 +221,14 @@ __END_DECLS
 #endif
 
 #if defined(__PX4_QURT)
+
+#define PX4_ROOTFSDIR 
+#define DEFAULT_PARAM_FILE "/fs/eeprom/parameters"
+
 #define SIOCDEVPRIVATE 999999
 
 // Missing math.h defines
-#define PX4_ISFINITE(x) isfinite(x)
+#define PX4_ISFINITE(x) __builtin_isfinite(x)
 
 // FIXME - these are missing for clang++ but not for clang
 #if defined(__cplusplus)
@@ -210,7 +237,6 @@ __END_DECLS
 #define isinf(x) false
 #define fminf(x, y) ((x) > (y) ? y : x)
 #endif
-
 
 #endif
 

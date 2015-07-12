@@ -34,10 +34,10 @@ TEST(SBUS2Test, SBUS2)
 	uint8_t frame[30];
 	unsigned partial_frame_count = 0;
 	uint16_t rc_values[18];
-	uint16_t num_values;
-	bool sbus_failsafe;
-	bool sbus_frame_drop;
-	uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
+	//uint16_t num_values;
+	//bool sbus_failsafe;
+	//bool sbus_frame_drop;
+	//uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
 
 	float last_time = 0;
 
@@ -59,7 +59,7 @@ TEST(SBUS2Test, SBUS2)
 		last_time = f;
 
 		// Pipe the data into the parser
-		hrt_abstime now = hrt_absolute_time();
+		//hrt_abstime now = hrt_absolute_time();
 
 		//if (partial_frame_count % 25 == 0)
 		//sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);

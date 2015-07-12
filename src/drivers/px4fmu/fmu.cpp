@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -90,6 +90,7 @@
  */
 
 #define CONTROL_INPUT_DROP_LIMIT_MS		20
+#define NAN_VALUE	(0.0f/0.0f)
 
 class PX4FMU : public device::CDev
 {
@@ -136,7 +137,6 @@ private:
 	int		_armed_sub;
 	int		_param_sub;
 	orb_advert_t	_outputs_pub;
-	actuator_armed_s	_armed;
 	unsigned	_num_outputs;
 	int		_class_instance;
 
@@ -155,7 +155,8 @@ private:
 	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 
-	pwm_limit_t	_pwm_limit;
+	static pwm_limit_t	_pwm_limit;
+	static actuator_armed_s	_armed;
 	uint16_t	_failsafe_pwm[_max_actuators];
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
@@ -163,6 +164,8 @@ private:
 	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
+
+	static bool	arm_nothrottle() { return (_armed.ready_to_arm && !_armed.armed); }
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main();
@@ -240,7 +243,9 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 #endif
 };
 
-const unsigned PX4FMU::_ngpio = sizeof(PX4FMU::_gpio_tab) / sizeof(PX4FMU::_gpio_tab[0]);
+const unsigned		PX4FMU::_ngpio = sizeof(PX4FMU::_gpio_tab) / sizeof(PX4FMU::_gpio_tab[0]);
+pwm_limit_t		PX4FMU::_pwm_limit;
+actuator_armed_s	PX4FMU::_armed = {};
 
 namespace
 {
@@ -260,7 +265,6 @@ PX4FMU::PX4FMU() :
 	_armed_sub(-1),
 	_param_sub(-1),
 	_outputs_pub(nullptr),
-	_armed{},
 	_num_outputs(0),
 	_class_instance(0),
 	_task_should_exit(false),
@@ -272,7 +276,6 @@ PX4FMU::PX4FMU() :
 	_control_subs{-1},
 	_actuator_output_topic_instance(-1),
 	_poll_fds_num(0),
-	_pwm_limit{},
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
 	_reverse_pwm_mask(0),
@@ -695,24 +698,17 @@ PX4FMU::task_main()
 				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
 				outputs.timestamp = hrt_absolute_time();
 
-				/* iterate actuators */
+				/* disable unused ports by setting their output to NaN */
 				for (unsigned i = 0; i < num_outputs; i++) {
-					/* last resort: catch NaN and INF */
-					if ((i >= outputs.noutputs) ||
-						!isfinite(outputs.output[i])) {
-						/*
-						 * Value is NaN, INF or out of band - set to the minimum value.
-						 * This will be clearly visible on the servo status and will limit the risk of accidentally
-						 * spinning motors. It would be deadly in flight.
-						 */
-						outputs.output[i] = -1.0f;
+					if (i >= outputs.noutputs) {
+						outputs.output[i] = NAN_VALUE;
 					}
 				}
 
 				uint16_t pwm_limited[num_outputs];
 
-				/* the PWM limit call takes care of out of band errors and constrains */
-				pwm_limit_calc(_servo_armed, num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
+				/* the PWM limit call takes care of out of band errors, NaN and constrains */
+				pwm_limit_calc(_servo_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
 
 				/* output to the servos */
 				for (unsigned i = 0; i < num_outputs; i++) {
@@ -737,13 +733,14 @@ PX4FMU::task_main()
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
 			/* update the armed status and check that we're not locked down */
-			bool set_armed = _armed.armed && !_armed.lockdown;
+			bool set_armed = (_armed.armed || _armed.ready_to_arm) && !_armed.lockdown;
 
-			if (_servo_armed != set_armed)
+			if (_servo_armed != set_armed) {
 				_servo_armed = set_armed;
+			}
 
 			/* update PWM status if armed or if disarmed PWM values are set */
-			bool pwm_on = (_armed.armed || _num_disarmed_set > 0);
+			bool pwm_on = (set_armed || _num_disarmed_set > 0);
 
 			if (_pwm_on != pwm_on) {
 				_pwm_on = pwm_on;
@@ -827,6 +824,34 @@ PX4FMU::control_callback(uintptr_t handle,
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
 	input = controls[control_group].control[control_index];
+
+	/* limit control input */
+	if (input > 1.0f) {
+		input = 1.0f;
+	} else if (input < -1.0f) {
+		input = -1.0f;
+	}
+
+	/* motor spinup phase - lock throttle to zero */
+	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
+		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_THROTTLE) {
+			/* limit the throttle output to zero during motor spinup,
+			 * as the motors cannot follow any demand yet
+			 */
+			input = 0.0f;
+		}
+	}
+
+	/* throttle not arming - mark throttle input as invalid */
+	if (arm_nothrottle()) {
+		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_THROTTLE) {
+			/* set the throttle to an invalid value */
+			input = NAN_VALUE;
+		}
+	}
+
 	return 0;
 }
 
@@ -835,14 +860,12 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
-	// XXX disabled, confusing users
-	//debug("ioctl 0x%04x 0x%08x", cmd, arg);
-
 	/* try it as a GPIO ioctl first */
 	ret = gpio_ioctl(filp, cmd, arg);
 
-	if (ret != -ENOTTY)
+	if (ret != -ENOTTY) {
 		return ret;
+	}
 
 	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
 	switch (_mode) {
@@ -861,8 +884,9 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 	}
 
 	/* if nobody wants it, let CDev have it */
-	if (ret == -ENOTTY)
+	if (ret == -ENOTTY) {
 		ret = CDev::ioctl(filp, cmd, arg);
+	}
 
 	return ret;
 }

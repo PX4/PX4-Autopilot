@@ -37,6 +37,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_posix.h>
 
 #include <sys/types.h>
 
@@ -45,7 +46,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 
@@ -91,15 +91,15 @@ int test_led(int argc, char *argv[])
 	int		fd;
 	int		ret = 0;
 
-	fd = open(LED0_DEVICE_PATH, 0);
+	fd = px4_open(LED0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		printf("\tLED: open fail\n");
 		return ERROR;
 	}
 
-	if (ioctl(fd, LED_ON, LED_BLUE) ||
-	    ioctl(fd, LED_ON, LED_AMBER)) {
+	if (px4_ioctl(fd, LED_ON, LED_BLUE) ||
+	    px4_ioctl(fd, LED_ON, LED_AMBER)) {
 
 		printf("\tLED: ioctl fail\n");
 		return ERROR;
@@ -112,12 +112,12 @@ int test_led(int argc, char *argv[])
 
 	for (i = 0; i < 10; i++) {
 		if (ledon) {
-			ioctl(fd, LED_ON, LED_BLUE);
-			ioctl(fd, LED_OFF, LED_AMBER);
+			px4_ioctl(fd, LED_ON, LED_BLUE);
+			px4_ioctl(fd, LED_OFF, LED_AMBER);
 
 		} else {
-			ioctl(fd, LED_OFF, LED_BLUE);
-			ioctl(fd, LED_ON, LED_AMBER);
+			px4_ioctl(fd, LED_OFF, LED_BLUE);
+			px4_ioctl(fd, LED_ON, LED_AMBER);
 		}
 
 		ledon = !ledon;
@@ -125,8 +125,8 @@ int test_led(int argc, char *argv[])
 	}
 
 	/* Go back to default */
-	ioctl(fd, LED_ON, LED_BLUE);
-	ioctl(fd, LED_OFF, LED_AMBER);
+	px4_ioctl(fd, LED_ON, LED_BLUE);
+	px4_ioctl(fd, LED_OFF, LED_AMBER);
 
 	printf("\t LED test completed, no errors.\n");
 

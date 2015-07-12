@@ -88,9 +88,9 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
 * Companion computer interface
 *
 * Configures the baud rate of the companion computer interface.
-* Set to zero to disable, set to 921600 to enable.
-* CURRENTLY ONLY SUPPORTS 921600 BAUD! Use extras.txt for
-* other baud rates.
+* Set to zero to disable, set to these values to enable (NO OTHER VALUES SUPPORTED!)
+* 921600: enables onboard mode at 921600 baud, 8N1. 57600: enables onboard mode at 57600 baud, 8N1.
+* 157600: enables OSD mode at 57600 baud, 8N1.
 *
 * @min 0
 * @max 921600

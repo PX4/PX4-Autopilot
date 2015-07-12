@@ -46,6 +46,8 @@
 
 static struct sq_queue_s	callout_queue;
 
+extern uint64_t get_abs_time_in_us();
+
 /* latency histogram */
 #define LATENCY_BUCKET_COUNT 8
 __EXPORT const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
@@ -81,11 +83,15 @@ static void hrt_unlock(void)
  */
 hrt_abstime hrt_absolute_time(void)
 {
+
+   return get_abs_time_in_us();
+/*
 	struct timespec ts;
 
 	// FIXME - clock_gettime unsupported in QuRT
 	//clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts);
+*/
 }
 
 /*

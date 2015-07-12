@@ -48,6 +48,8 @@
 #include "systemlib/param/param.h"
 #include "hrt_work.h"
 
+extern pthread_t _shell_task_id;
+
 __BEGIN_DECLS
 
 long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
@@ -63,6 +65,8 @@ void init_once(void);
 
 void init_once(void)
 {
+	_shell_task_id = pthread_self();
+	PX4_INFO("Shell id is %lu", _shell_task_id);
 	work_queues_init();
 	hrt_work_queue_init();
 	hrt_init();

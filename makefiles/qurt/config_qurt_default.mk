@@ -15,7 +15,7 @@ MODULES		+= drivers/blinkm
 MODULES		+= drivers/hil
 MODULES		+= drivers/led
 MODULES		+= drivers/rgbled
-#MODULES		+= modules/sensors
+MODULES		+= modules/sensors
 #MODULES		+= drivers/ms5611
 
 #
@@ -76,3 +76,7 @@ MODULES		+= platforms/posix/tests/vcdev_test
 MODULES		+= platforms/posix/tests/hrt_test
 MODULES		+= platforms/posix/tests/wqueue
 
+#
+# sources for muorb over fastrpc
+#
+#MODULES         += $(PX4_BASE)/../muorb_qurt/

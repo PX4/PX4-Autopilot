@@ -36,16 +36,20 @@
  * Included Files
  ****************************************************************************/
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 
@@ -53,6 +57,7 @@
 
 #include <math.h>
 #include <float.h>
+#include <inttypes.h>
 
 
 /****************************************************************************
@@ -105,10 +110,10 @@ int test_int(int argc, char *argv[])
 	int64_t calc = large * 5;
 
 	if (calc == 1770781647990) {
-		printf("\t success: 354156329598 * 5 == %lld\n", calc);
+		printf("\t success: 354156329598 * 5 == %" PRId64 "\n", calc);
 
 	} else {
-		printf("\t FAIL: 354156329598 * 5 != %lld\n", calc);
+		printf("\t FAIL: 354156329598 * 5 != %" PRId64 "\n", calc);
 		ret = -1;
 	}
 
@@ -127,10 +132,10 @@ int test_int(int argc, char *argv[])
 	uint64_t small_times_large = large_int * (uint64_t)small;
 
 	if (small_times_large == 107374182350) {
-		printf("\t success: 64bit calculation: 50 * 2147483647 (max int val) == %lld\n", small_times_large);
+		printf("\t success: 64bit calculation: 50 * 2147483647 (max int val) == %" PRId64 "\n", small_times_large);
 
 	} else {
-		printf("\t FAIL: 50 * 2147483647 != %lld, 64bit cast might fail\n", small_times_large);
+		printf("\t FAIL: 50 * 2147483647 != %" PRId64 ", 64bit cast might fail\n", small_times_large);
 		ret = -1;
 	}
 

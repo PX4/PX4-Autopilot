@@ -132,6 +132,8 @@ private:
 	 */
 	void altitude_sp_foh_reset();
 
+	int get_absolute_altitude_for_item(struct mission_item_s &mission_item);
+
 	/**
 	 * Read current or next mission item from the dataman and watch out for DO_JUMPS
 	 * @return true if successful
@@ -184,7 +186,7 @@ private:
 	} _mission_type;
 
 	bool _inited;
-	bool _dist_1wp_ok;
+	bool _home_inited;
 
 	MissionFeasibilityChecker _missionFeasiblityChecker; /**< class that checks if a mission is feasible */
 

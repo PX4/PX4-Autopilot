@@ -66,6 +66,8 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
 
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
 
@@ -174,7 +176,7 @@ private:
 
     struct map_projection_reference_s   _pos_ref;
 
-    float                       _baro_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
+    float                       _filter_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
     float                       _baro_gps_offset;   /**< offset between baro altitude (at GPS init time) and GPS altitude */
     hrt_abstime                 _last_debug_print = 0;
 
@@ -193,7 +195,6 @@ private:
     bool            _gpsIsGood;               ///< True if the current GPS fix is good enough for us to use
     uint64_t        _previousGPSTimestamp;    ///< Timestamp of last good GPS fix we have received
     bool            _baro_init;
-    float           _baroAltRef;
     bool            _gps_initialized;
     hrt_abstime     _filter_start_time;
     hrt_abstime     _last_sensor_timestamp;
@@ -258,6 +259,11 @@ private:
     }       _parameter_handles;     /**< handles for interesting parameters */
 
     AttPosEKF                   *_ekf;
+
+    /* Low pass filter for attitude rates */
+    math::LowPassFilter2p _LP_att_P;
+    math::LowPassFilter2p _LP_att_Q;
+    math::LowPassFilter2p _LP_att_R;
 
 private:
     /**
@@ -332,6 +338,12 @@ private:
     *   Should only be required to call once
     **/
     void initializeGPS();
+
+    /**
+     * Initialize the reference position for the local coordinate frame
+     */
+    void initReferencePosition(hrt_abstime timestamp,
+            double lat, double lon, float gps_alt, float baro_alt);
 
     /**
     * @brief

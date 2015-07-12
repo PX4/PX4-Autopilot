@@ -35,13 +35,19 @@
 # NuttX / uORB adapter library
 #
 
+MODULE_NAME = dspal
+
 SRCDIR=$(dir $(MODULE_MK))
 
 SRCS		 = 	\
 			px4_qurt_impl.cpp \
 			px4_qurt_tasks.cpp  \
+			hrt_thread.c \
+                        hrt_queue.c \
+                        hrt_work_cancel.c \
 			work_thread.c \
 			work_queue.c \
+			work_lock.c \
 			work_cancel.c \
 			lib_crc32.c \
 			drv_hrt.c \
@@ -52,12 +58,22 @@ SRCS		 = 	\
 			sq_remfirst.c \
 			sq_addafter.c \
 			dq_rem.c \
-			main.cpp
+                        hrt_work.c \
+                        qurt_stubs.c \
+                        qurt_hacks.c \
+                        main.cpp
 ifeq ($(CONFIG),qurt_hello)
 SRCS +=			commands_hello.c
 endif
 ifeq ($(CONFIG),qurt_default)
 SRCS +=			commands_default.c
 endif
+ifeq ($(CONFIG),qurt_muorb_test)
+SRCS +=			commands_muorb_test.c
+endif
+ifeq ($(CONFIG),qurt_hil)
+SRCS +=			commands_hil.c
+endif
+
 
 MAXOPTIMIZATION	 = -Os

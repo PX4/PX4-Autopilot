@@ -38,101 +38,108 @@
 #include <px4_time.h>
 
 struct orb_test {
-  int val;
-  hrt_abstime time;
+	int val;
+	hrt_abstime time;
 };
 ORB_DEFINE(orb_test, struct orb_test);
 ORB_DEFINE(orb_multitest, struct orb_test);
 
 struct orb_test_medium {
-  int val;
-  hrt_abstime time;
-  char junk[64];
+	int val;
+	hrt_abstime time;
+	char junk[64];
 };
 ORB_DEFINE(orb_test_medium, struct orb_test_medium);
 
 struct orb_test_large {
-  int val;
-  hrt_abstime time;
-  char junk[512];
+	int val;
+	hrt_abstime time;
+	char junk[512];
 };
 ORB_DEFINE(orb_test_large, struct orb_test_large);
 
 
 namespace uORBTest
 {
-   class UnitTest;
+class UnitTest;
 }
 
 class uORBTest::UnitTest
 {
 public:
 
-  // Singleton pattern
-  static uORBTest::UnitTest &instance();
-  ~UnitTest() {}
-  int test();
-  template<typename S> int latency_test(orb_id_t T, bool print);
-  int info();
+	// Singleton pattern
+	static uORBTest::UnitTest &instance();
+	~UnitTest() {}
+	int test();
+	template<typename S> int latency_test(orb_id_t T, bool print);
+	int info();
 
 private:
-  UnitTest() : pubsubtest_passed(false), pubsubtest_print(false) {}
+	UnitTest() : pubsubtest_passed(false), pubsubtest_print(false) {}
 
-  // Disallow copy
-  UnitTest(const uORBTest::UnitTest &) {};
-  static int pubsubtest_threadEntry(char* const argv[]);
-  int pubsublatency_main(void);
-  bool pubsubtest_passed;
-  bool pubsubtest_print;
-  int pubsubtest_res = OK;
+	// Disallow copy
+	UnitTest(const uORBTest::UnitTest &) {};
+	static int pubsubtest_threadEntry(char *const argv[]);
+	int pubsublatency_main(void);
+	//
+	bool pubsubtest_passed;
+	bool pubsubtest_print;
+	int pubsubtest_res = OK;
 
-  int test_fail(const char *fmt, ...);
-  int test_note(const char *fmt, ...);
+	int test_single();
+	int test_multi();
+	int test_multi_reversed();
+
+	int test_fail(const char *fmt, ...);
+	int test_note(const char *fmt, ...);
 };
 
 template<typename S>
 int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 {
-  test_note("---------------- LATENCY TEST ------------------");
-  S t;
-  t.val = 308;
-  t.time = hrt_absolute_time();
+	test_note("---------------- LATENCY TEST ------------------");
+	S t;
+	t.val = 308;
+	t.time = hrt_absolute_time();
 
-  orb_advert_t pfd0 = orb_advertise(T, &t);
+	orb_advert_t pfd0 = orb_advertise(T, &t);
 
-  char * const args[1] = { NULL };
+	char *const args[1] = { NULL };
 
-  pubsubtest_print = print;
-  pubsubtest_passed = false;
+	pubsubtest_print = print;
+	pubsubtest_passed = false;
 
-  /* test pub / sub latency */
+	/* test pub / sub latency */
 
-  // Can't pass a pointer in args, must be a null terminated
-  // array of strings because the strings are copied to
-  // prevent access if the caller data goes out of scope
-  int pubsub_task = px4_task_spawn_cmd("uorb_latency",
-               SCHED_DEFAULT,
-               SCHED_PRIORITY_MAX - 5,
-               1500,
-               (px4_main_t)&uORBTest::UnitTest::pubsubtest_threadEntry,
-               args);
+	// Can't pass a pointer in args, must be a null terminated
+	// array of strings because the strings are copied to
+	// prevent access if the caller data goes out of scope
+	int pubsub_task = px4_task_spawn_cmd("uorb_latency",
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX - 5,
+					     1500,
+					     (px4_main_t)&uORBTest::UnitTest::pubsubtest_threadEntry,
+					     args);
 
-  /* give the test task some data */
-  while (!pubsubtest_passed) {
-    t.val = 308;
-    t.time = hrt_absolute_time();
-    if (PX4_OK != orb_publish(T, pfd0, &t))
-      return test_fail("mult. pub0 timing fail");
+	/* give the test task some data */
+	while (!pubsubtest_passed) {
+		t.val = 308;
+		t.time = hrt_absolute_time();
 
-    /* simulate >800 Hz system operation */
-    usleep(1000);
-  }
+		if (PX4_OK != orb_publish(T, pfd0, &t)) {
+			return test_fail("mult. pub0 timing fail");
+		}
 
-  if (pubsub_task < 0) {
-    return test_fail("failed launching task");
-  }
+		/* simulate >800 Hz system operation */
+		usleep(1000);
+	}
 
-  return pubsubtest_res;
+	if (pubsub_task < 0) {
+		return test_fail("failed launching task");
+	}
+
+	return pubsubtest_res;
 }
 
 #endif // _uORBTest_UnitTest_hpp_

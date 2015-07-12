@@ -84,11 +84,22 @@ bool FixedwingLandDetector::update()
 	const uint64_t now = hrt_absolute_time();
 	bool landDetected = false;
 
-	// TODO: reset filtered values on arming?
-	_velocity_xy_filtered = 0.95f * _velocity_xy_filtered + 0.05f * sqrtf(_vehicleLocalPosition.vx *
-				_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
-	_velocity_z_filtered = 0.95f * _velocity_z_filtered + 0.05f * fabsf(_vehicleLocalPosition.vz);
-	_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
+	if (hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500 * 1000) {
+		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicleLocalPosition.vx *
+					_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
+		if (PX4_ISFINITE(val)) {
+			_velocity_xy_filtered = val;
+		}
+		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_vehicleLocalPosition.vz);
+
+		if (PX4_ISFINITE(val)) {
+			_velocity_z_filtered = val;
+		}
+	}
+
+	if (hrt_elapsed_time(&_airspeed.timestamp) < 500 * 1000) {
+		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
+	}
 
 	// crude land detector for fixedwing
 	if (_velocity_xy_filtered < _params.maxVelocity

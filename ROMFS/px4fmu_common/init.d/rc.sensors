@@ -111,7 +111,7 @@ else
 fi
 
 # Check for flow sensor
-if px4flow start
+if px4flow start &
 then
 fi
 

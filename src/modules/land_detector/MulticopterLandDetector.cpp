@@ -100,6 +100,14 @@ bool MulticopterLandDetector::update()
 		return true;
 	}
 
+	// return status based on armed state if no position lock is available
+	if (_vehicleGlobalPosition.timestamp == 0 ||
+		hrt_elapsed_time(&_vehicleGlobalPosition.timestamp) > 500000) {
+
+		// no position lock - not landed if armed
+		return !_arming.armed;
+	}
+
 	const uint64_t now = hrt_absolute_time();
 
 	// check if we are moving vertically

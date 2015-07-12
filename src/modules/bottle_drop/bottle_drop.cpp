@@ -338,7 +338,7 @@ void
 BottleDrop::task_main()
 {
 
-	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 	mavlink_log_info(_mavlink_fd, "[bottle_drop] started");
 
 	_command_sub = orb_subscribe(ORB_ID(vehicle_command));

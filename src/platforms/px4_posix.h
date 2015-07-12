@@ -68,6 +68,7 @@ typedef struct pollfd px4_pollfd_struct_t;
 #define px4_poll 	_GLOBAL poll
 #define px4_fsync 	_GLOBAL fsync
 #define px4_access 	_GLOBAL access
+#define px4_getpid 	_GLOBAL getpid
 
 #elif defined(__PX4_POSIX)
 
@@ -98,6 +99,7 @@ __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
 __EXPORT int		px4_fsync(int fd);
 __EXPORT int		px4_access(const char *pathname, int mode);
+__EXPORT unsigned long	px4_getpid(void);
 
 __END_DECLS
 #else

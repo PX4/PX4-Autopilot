@@ -33,9 +33,9 @@
 
 /**
  * @file mavlink.c
- * Adapter functions expected by the protocol library
+ * Define MAVLink specific parameters
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <px4_config.h>
@@ -46,7 +46,6 @@
 #include "mavlink_bridge_header.h"
 #include <systemlib/param/param.h>
 
-/* define MAVLink specific parameters */
 /**
  * MAVLink system ID
  * @group MAVLink
@@ -59,20 +58,36 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
  * MAVLink component ID
  * @group MAVLink
  * @min 1
- * @max 50
+ * @max 250
  */
-PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
+PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 
 /**
- * MAVLink type
+ * MAVLink Radio ID
+ *
+ * When non-zero the MAVLink app will attempt to configure the
+ * radio to this ID and re-set the parameter to 0. If the value
+ * is negative it will reset the complete radio config to
+ * factory defaults.
+ *
+ * @group MAVLink
+ * @min -1
+ * @max 240
+ */
+PARAM_DEFINE_INT32(MAV_RADIO_ID, 0);
+
+/**
+ * MAVLink airframe type
+ *
+ * @min 1
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
+PARAM_DEFINE_INT32(MAV_TYPE, 1);
 
 /**
- * Use/Accept HIL GPS message (even if not in HIL mode)
+ * Use/Accept HIL GPS message even if not in HIL mode
  *
- * If set to 1 incomming HIL GPS messages are parsed.
+ * If set to 1 incoming HIL GPS messages are parsed.
  *
  * @group MAVLink
  */
@@ -81,8 +96,8 @@ PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
 /**
  * Forward external setpoint messages
  *
- * If set to 1 incomming external setpoint messages will be directly forwarded to the controllers if in offboard
- * control mode
+ * If set to 1 incoming external setpoint messages will be directly forwarded
+ * to the controllers if in offboard control mode
  *
  * @group MAVLink
  */

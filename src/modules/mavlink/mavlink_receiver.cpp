@@ -118,7 +118,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rates_sp_pub(nullptr),
 	_force_sp_pub(nullptr),
 	_pos_sp_triplet_pub(nullptr),
-	_vicon_position_pub(nullptr),
+	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
 	_telemetry_status_pub(nullptr),
 	_rc_pub(nullptr),
@@ -169,8 +169,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_set_mode(msg);
 		break;
 
-	case MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE:
-		handle_message_vicon_position_estimate(msg);
+	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
+		handle_message_att_pos_mocap(msg);
 		break;
 
 	case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
@@ -195,6 +195,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:
 		handle_message_manual_control(msg);
+		break;
+
+	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
+		handle_message_rc_channels_override(msg);
 		break;
 
 	case MAVLINK_MSG_ID_HEARTBEAT:
@@ -556,27 +560,34 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 }
 
 void
-MavlinkReceiver::handle_message_vicon_position_estimate(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 {
-	mavlink_vicon_position_estimate_t pos;
-	mavlink_msg_vicon_position_estimate_decode(msg, &pos);
+	mavlink_att_pos_mocap_t mocap;
+	mavlink_msg_att_pos_mocap_decode(msg, &mocap);
 
-	struct vehicle_vicon_position_s vicon_position;
-	memset(&vicon_position, 0, sizeof(vicon_position));
+	struct att_pos_mocap_s att_pos_mocap;
+	memset(&att_pos_mocap, 0, sizeof(att_pos_mocap));
 
-	vicon_position.timestamp = hrt_absolute_time();
-	vicon_position.x = pos.x;
-	vicon_position.y = pos.y;
-	vicon_position.z = pos.z;
-	vicon_position.roll = pos.roll;
-	vicon_position.pitch = pos.pitch;
-	vicon_position.yaw = pos.yaw;
+	// Use the component ID to identify the mocap system
+	att_pos_mocap.id = msg->compid;
 
-	if (_vicon_position_pub == nullptr) {
-		_vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+	att_pos_mocap.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	att_pos_mocap.timestamp_computer = sync_stamp(mocap.time_usec); // Synced time
+
+	att_pos_mocap.q[0] = mocap.q[0];
+	att_pos_mocap.q[1] = mocap.q[1];
+	att_pos_mocap.q[2] = mocap.q[2];
+	att_pos_mocap.q[3] = mocap.q[3];
+
+	att_pos_mocap.x = mocap.x;
+	att_pos_mocap.y = mocap.y;
+	att_pos_mocap.z = mocap.z;
+
+	if (_att_pos_mocap_pub == nullptr) {
+		_att_pos_mocap_pub = orb_advertise(ORB_ID(att_pos_mocap), &att_pos_mocap);
 
 	} else {
-		orb_publish(ORB_ID(vehicle_vicon_position), _vicon_position_pub, &vicon_position);
+		orb_publish(ORB_ID(att_pos_mocap), _att_pos_mocap_pub, &att_pos_mocap);
 	}
 }
 
@@ -680,7 +691,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 
 					/* set the yaw sp value */
-					if (!offboard_control_mode.ignore_attitude) {
+					if (!offboard_control_mode.ignore_attitude && !isnan(set_position_target_local_ned.yaw)) {
 						pos_sp_triplet.current.yaw_valid = true;
 						pos_sp_triplet.current.yaw = set_position_target_local_ned.yaw;
 
@@ -689,7 +700,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 
 					/* set the yawrate sp value */
-					if (!offboard_control_mode.ignore_bodyrate) {
+					if (!offboard_control_mode.ignore_bodyrate && !isnan(set_position_target_local_ned.yaw)) {
 						pos_sp_triplet.current.yawspeed_valid = true;
 						pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
 
@@ -972,6 +983,48 @@ static int decode_switch_pos_n(uint16_t buttons, int sw) {
 }
 
 void
+MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
+{
+	mavlink_rc_channels_override_t man;
+	mavlink_msg_rc_channels_override_decode(msg, &man);
+
+	// Check target
+	if (man.target_system != 0 && man.target_system != _mavlink->get_system_id()) {
+		return;
+	}
+
+	struct rc_input_values rc = {};
+	rc.timestamp_publication = hrt_absolute_time();
+	rc.timestamp_last_signal = rc.timestamp_publication;
+
+	rc.channel_count = 8;
+	rc.rc_failsafe = false;
+	rc.rc_lost = false;
+	rc.rc_lost_frame_count = 0;
+	rc.rc_total_frame_count = 1;
+	rc.rc_ppm_frame_length = 0;
+	rc.input_source = RC_INPUT_SOURCE_MAVLINK;
+	rc.rssi = RC_INPUT_RSSI_MAX;
+
+	/* channels */
+	rc.values[0] = man.chan1_raw;
+	rc.values[1] = man.chan2_raw;
+	rc.values[2] = man.chan3_raw;
+	rc.values[3] = man.chan4_raw;
+	rc.values[4] = man.chan5_raw;
+	rc.values[5] = man.chan6_raw;
+	rc.values[6] = man.chan7_raw;
+	rc.values[7] = man.chan8_raw;
+
+	if (_rc_pub == nullptr) {
+		_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
+
+	} else {
+		orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
+	}
+}
+
+void
 MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 {
 	mavlink_manual_control_t man;
@@ -1007,7 +1060,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		 * which makes the corner positions unreachable.
 		 * scale yaw up and clip it to overcome this.
 		 */
-		rc.values[2] = man.r / 1.2f + 1500;
+		rc.values[2] = man.r / 1.1f + 1500;
 		if (rc.values[2] > 2000) {
 			rc.values[2] = 2000;
 		} else if (rc.values[2] < 1000) {
@@ -1015,7 +1068,12 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		}
 
 		/* throttle */
-		rc.values[3] = man.z + 1000;
+		rc.values[3] = man.z / 0.9f + 1000;
+		if (rc.values[3] > 2000) {
+			rc.values[3] = 2000;
+		} else if (rc.values[3] < 1000) {
+			rc.values[3] = 1000;
+		}
 
 		rc.values[4] = decode_switch_pos_n(man.buttons, 0) * 1000 + 1000;
 		rc.values[5] = decode_switch_pos_n(man.buttons, 1) * 1000 + 1000;
@@ -1346,6 +1404,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.baro_timestamp = timestamp;
 
 		hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
+		hil_sensors.differential_pressure_filtered_pa = hil_sensors.differential_pressure_pa;
 		hil_sensors.differential_pressure_timestamp = timestamp;
 
 		/* publish combined sensor topic */
@@ -1618,34 +1677,62 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 void *
 MavlinkReceiver::receive_thread(void *arg)
 {
-#ifndef __PX4_POSIX
-	int uart_fd = _mavlink->get_uart_fd();
 
 	const int timeout = 500;
+#ifdef __PX4_POSIX
+	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
+	uint8_t buf[1600];
+#else
+	/* the serial port buffers internally as well, we just need to fit a small chunk */
 	uint8_t buf[32];
-
+#endif
 	mavlink_message_t msg;
 
-	/* set thread name */
-	char thread_name[24];
-	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
-	prctl(PR_SET_NAME, thread_name, getpid());
-
 	struct pollfd fds[1];
-	fds[0].fd = uart_fd;
-	fds[0].events = POLLIN;
 
+	int uart_fd = -1;
+
+	if (_mavlink->get_protocol() == SERIAL) {
+		uart_fd = _mavlink->get_uart_fd();
+#ifndef __PX4_POSIX
+		/* set thread name */
+		char thread_name[24];
+		sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
+		prctl(PR_SET_NAME, thread_name, getpid());
+#endif
+
+		fds[0].fd = uart_fd;
+		fds[0].events = POLLIN;
+	}
+#ifdef __PX4_POSIX
+	struct sockaddr_in srcaddr;
+	socklen_t addrlen = sizeof(srcaddr);
+	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
+		fds[0].fd = _mavlink->get_socket_fd();
+		fds[0].events = POLLIN;
+	}
+#endif
 	ssize_t nread = 0;
 
 	while (!_mavlink->_task_should_exit) {
-		if (poll(fds, 1, timeout) > 0) {
-
-			/* non-blocking read. read may return negative values */
-			if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
-				/* to avoid reading very small chunks wait for data before reading */
-				usleep(1000);
+		if (poll(&fds[0], 1, timeout) > 0) {
+			if (_mavlink->get_protocol() == SERIAL) {
+				/* non-blocking read. read may return negative values */
+				if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
+					/* to avoid reading very small chunks wait for data before reading */
+					usleep(1000);
+				}
 			}
+#ifdef __PX4_POSIX
+			if (_mavlink->get_protocol() == UDP) {
 
+				if (fds[0].revents & POLLIN) {
+					nread = recvfrom(_mavlink->get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
+				}
+			} else {
+				// could be TCP or other protocol
+			}
+#endif
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
 				if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
@@ -1661,7 +1748,6 @@ MavlinkReceiver::receive_thread(void *arg)
 			_mavlink->count_rxbytes(nread);
 		}
 	}
-#endif
 
 	return NULL;
 }

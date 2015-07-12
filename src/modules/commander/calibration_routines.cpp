@@ -244,7 +244,7 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int cancel_sub
 	const float	normal_still_thr = 0.25;		// normal still threshold
 	float		still_thr2 = powf(lenient_still_position ? (normal_still_thr * 3) : normal_still_thr, 2);
 	float		accel_err_thr = 5.0f;			// set accel error threshold to 5m/s^2
-	hrt_abstime	still_time = lenient_still_position ? 1000000 : 1500000;	// still time required in us
+	hrt_abstime	still_time = lenient_still_position ? 500000 : 1300000;	// still time required in us
     
 	px4_pollfd_struct_t fds[1];
 	fds[0].fd = accel_sub;
@@ -325,7 +325,7 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int cancel_sub
 				/* not still, reset still start time */
 				if (t_still != 0) {
 					mavlink_and_console_log_info(mavlink_fd, "[cal] detected motion, hold still...");
-					usleep(500000);
+					usleep(200000);
 					t_still = 0;
 				}
 			}
@@ -489,11 +489,11 @@ calibrate_return calibrate_from_orientation(int		mavlink_fd,
 		// Note that this side is complete
 		side_data_collected[orient] = true;
 		tune_neutral(true);
-		usleep(500000);
+		usleep(200000);
 	}
 	
 	if (sub_accel >= 0) {
-		close(sub_accel);
+		px4_close(sub_accel);
 	}
 	
 	return result;

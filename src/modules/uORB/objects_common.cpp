@@ -72,6 +72,9 @@ ORB_DEFINE(vehicle_attitude, struct vehicle_attitude_s);
 #include "topics/sensor_combined.h"
 ORB_DEFINE(sensor_combined, struct sensor_combined_s);
 
+#include "topics/hil_sensor.h"
+ORB_DEFINE(hil_sensor, struct hil_sensor_s);
+
 #include "topics/vehicle_gps_position.h"
 ORB_DEFINE(vehicle_gps_position, struct vehicle_gps_position_s);
 
@@ -108,8 +111,8 @@ ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 #include "topics/vehicle_local_position.h"
 ORB_DEFINE(vehicle_local_position, struct vehicle_local_position_s);
 
-#include "topics/vehicle_vicon_position.h"
-ORB_DEFINE(vehicle_vicon_position, struct vehicle_vicon_position_s);
+#include "topics/att_pos_mocap.h"
+ORB_DEFINE(att_pos_mocap, struct att_pos_mocap_s);
 
 #include "topics/vehicle_rates_setpoint.h"
 ORB_DEFINE(vehicle_rates_setpoint, struct vehicle_rates_setpoint_s);
@@ -256,3 +259,6 @@ ORB_DEFINE(mc_att_ctrl_status, struct mc_att_ctrl_status_s);
 
 #include "topics/distance_sensor.h"
 ORB_DEFINE(distance_sensor, struct distance_sensor_s);
+
+#include "topics/camera_trigger.h"
+ORB_DEFINE(camera_trigger, struct camera_trigger_s);

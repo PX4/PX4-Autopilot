@@ -273,7 +273,7 @@ void Mavlink::handle_msg_set_position_target_local_ned(const mavlink_message_t *
 		}
 
 		/* set the yaw sp value */
-		if (!offboard_control_mode.ignore_attitude) {
+		if (!offboard_control_mode.ignore_attitude && !isnan(set_position_target_local_ned.yaw)) {
 			pos_sp_triplet.current.yaw_valid = true;
 			pos_sp_triplet.current.yaw = set_position_target_local_ned.yaw;
 
@@ -282,7 +282,7 @@ void Mavlink::handle_msg_set_position_target_local_ned(const mavlink_message_t *
 		}
 
 		/* set the yawrate sp value */
-		if (!offboard_control_mode.ignore_bodyrate) {
+		if (!offboard_control_mode.ignore_bodyrate && !isnan(set_position_target_local_ned.yaw)) {
 			pos_sp_triplet.current.yawspeed_valid = true;
 			pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
 

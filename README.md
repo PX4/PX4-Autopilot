@@ -4,10 +4,10 @@
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/PX4/Firmware?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-This repository contains the PX4 Flight Core, with the main applications located in the src/modules directory. It also contains the PX4 Drone Platform, which contains drivers and middleware to run drones. 
+This repository contains the PX4 Flight Core, with the main applications located in the src/modules directory. It also contains the PX4 Drone Platform, which contains drivers and middleware to run drones.
 
 *   Official Website: http://px4.io
-*   License: BSD 3-clause (see LICENSE.md)
+*   License: BSD 3-clause (see [LICENSE.md](https://github.com/PX4/Firmware/blob/master/LICENSE.md))
 *   Supported airframes (more experimental are supported):
   * [Multicopters](http://px4.io/platforms/multicopters/start)
   * [Fixed wing](http://px4.io/platforms/planes/start)
@@ -27,6 +27,9 @@ Please refer to the [user documentation](https://pixhawk.org/users/start) for fl
 Contributing guide:
   * [CONTRIBUTING.md](https://github.com/PX4/Firmware/blob/master/CONTRIBUTING.md)
   * [PX4 Contribution Guide](http://px4.io/dev/contributing)
+
+Software in the Loop guide:
+Use software in the loop [to get started with the codebase](https://github.com/PX4/Firmware/tree/master/posix-configs/SITL)
 
 Developer guide:
 http://px4.io/dev/

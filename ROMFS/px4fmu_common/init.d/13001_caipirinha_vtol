@@ -1,7 +1,7 @@
 #
 # Generic configuration file for caipirinha VTOL version
 #
-# Roman Bapst <bapstr@ethz.ch>
+# Roman Bapst <bapstr@gmail.com>
 #
 
 sh /etc/init.d/rc.vtol_defaults
@@ -13,3 +13,4 @@ set PWM_MAX 2000
 set PWM_RATE 400
 param set VT_MOT_COUNT 2
 param set VT_IDLE_PWM_MC  1080
+param set VT_TYPE 0

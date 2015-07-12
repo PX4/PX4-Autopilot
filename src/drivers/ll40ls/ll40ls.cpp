@@ -329,6 +329,8 @@ test(const bool use_i2c, const int bus)
 		}
 
 		warnx("periodic read %u", i);
+		warnx("valid %u", (float)report.current_distance > report.min_distance
+			&& (float)report.current_distance < report.max_distance ? 1 : 0);
 		warnx("measurement: %0.3f m", (double)report.current_distance);
 		warnx("time:        %lld", report.timestamp);
 	}

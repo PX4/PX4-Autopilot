@@ -128,6 +128,7 @@ Navigator::Navigator() :
 	_att_sp{},
 	_home_position_set(false),
 	_mission_item_valid(false),
+	_mission_instance_count(0),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence{},
 	_geofence_violation_warning_sent(false),
@@ -212,7 +213,10 @@ Navigator::home_position_update()
 
 	if (updated) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-		_home_position_set = true;
+
+		if (_home_pos.timestamp > 0) {
+			_home_position_set = true;
+		}
 	}
 }
 
@@ -257,7 +261,7 @@ Navigator::task_main_trampoline(int argc, char *argv[])
 void
 Navigator::task_main()
 {
-	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 	_geofence.setMavlinkFd(_mavlink_fd);
 
 	/* Try to load the geofence:
@@ -306,7 +310,7 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[8];
+	px4_pollfd_struct_t fds[8];
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
@@ -329,15 +333,16 @@ Navigator::task_main()
 	while (!_task_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
+			PX4_WARN("timed out");
 			continue;
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			warn("poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -346,7 +351,7 @@ Navigator::task_main()
 		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
 			/* try to reopen the mavlink log device with specified interval */
 			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
-			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+			_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 		}
 
 		static bool have_geofence_position_data = false;
@@ -520,7 +525,7 @@ Navigator::start()
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX -5,
-					 1700,
+					 1500,
 					 (px4_main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
@@ -572,6 +577,26 @@ Navigator::publish_position_setpoint_triplet()
 	} else {
 		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
 	}
+}
+
+float
+Navigator::get_acceptance_radius()
+{
+	return get_acceptance_radius(_param_acceptance_radius.get());
+}
+
+float
+Navigator::get_acceptance_radius(float mission_item_radius)
+{
+	float radius = mission_item_radius;
+
+	if (hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
+		if (_nav_caps.turn_distance > radius) {
+			radius = _nav_caps.turn_distance;
+		}
+	}
+
+	return radius;
 }
 
 void Navigator::add_fence_point(int argc, char *argv[])
@@ -646,6 +671,8 @@ int navigator_main(int argc, char *argv[])
 void
 Navigator::publish_mission_result()
 {
+	_mission_result.instance_count = _mission_instance_count;
+	
 	/* lazily publish the mission result only once available */
 	if (_mission_result_pub != nullptr) {
 		/* publish mission result */
@@ -662,6 +689,7 @@ Navigator::publish_mission_result()
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;
+	_mission_result.valid = true;
 }
 
 void

@@ -59,7 +59,7 @@ typedef const struct orb_metadata *orb_id_t;
 /**
  * Maximum number of multi topic instances
  */
-#define ORB_MULTI_MAX_INSTANCES	3
+#define ORB_MULTI_MAX_INSTANCES	4
 
 /**
  * Topic priority.
@@ -135,7 +135,7 @@ __BEGIN_DECLS
  * a file-descriptor-based handle would not otherwise be in scope for the
  * publisher.
  */
-typedef void *	orb_advert_t;
+typedef void 	*orb_advert_t;
 
 /**
  * Advertise as the publisher of a topic.
@@ -173,8 +173,8 @@ extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *d
  * @param data		A pointer to the initial data to be published.
  *			For topics updated by interrupt handlers, the advertisement
  *			must be performed from non-interrupt context.
- * @param instance	Pointer to an integer which will yield the instance ID (0-based)
- *			of the publication.
+ * @param instance	Pointer to an integer which will yield the instance ID (0-based,
+ *			limited by ORB_MULTI_MAX_INSTANCES) of the publication.
  * @param priority	The priority of the instance. If a subscriber subscribes multiple
  *			instances, the priority allows the subscriber to prioritize the best
  *			data source as long as its available.
@@ -254,6 +254,7 @@ extern int	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
  * @param instance	The instance of the topic. Instance 0 matches the
  *			topic of the orb_subscribe() call, higher indices
  *			are for topics created with orb_publish_multi().
+ *			Instance is limited by ORB_MULTI_MAX_INSTANCES.
  * @return		ERROR on error, otherwise returns a handle
  *			that can be used to read and update the topic.
  *			If the topic in question is not known (due to an

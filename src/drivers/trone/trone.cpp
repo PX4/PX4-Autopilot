@@ -125,6 +125,7 @@ private:
 	work_s				_work;
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
+	uint8_t				_valid;
 	int					_measure_ticks;
 	bool				_collect_phase;
 	int				_class_instance;
@@ -211,7 +212,7 @@ static const uint8_t crc_table[] = {
 	0xfa, 0xfd, 0xf4, 0xf3
 };
 
-/* static uint8_t crc8(uint8_t *p, uint8_t len) {
+ static uint8_t crc8(uint8_t *p, uint8_t len) {
 	uint16_t i;
 	uint16_t crc = 0x0;
 
@@ -221,7 +222,7 @@ static const uint8_t crc_table[] = {
 	}
 
 	return crc & 0xFF;
-}*/
+}
 
 /*
  * Driver 'main' command.
@@ -234,6 +235,7 @@ TRONE::TRONE(int bus, int address) :
 	_max_distance(TRONE_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
+	_valid(0),
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
@@ -591,6 +593,10 @@ TRONE::collect()
 	report.covariance = 0.0f;
 	/* TODO: set proper ID */
 	report.id = 0;
+
+	// This validation check can be used later
+	_valid = crc8(val, 2) == val[2] && (float)report.current_distance > report.min_distance
+		&& (float)report.current_distance < report.max_distance ? 1 : 0;
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic != nullptr) {

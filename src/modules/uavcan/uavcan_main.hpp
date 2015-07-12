@@ -34,6 +34,7 @@
 #pragma once
 
 #include <px4_config.h>
+
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <drivers/device/device.h>
 #include <systemlib/perf_counter.h>
@@ -47,13 +48,13 @@
 #include "actuators/esc.hpp"
 #include "sensors/sensor_bridge.hpp"
 
-
-#include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
-#include <uavcan/protocol/node_info_retriever.hpp>
-#include <uavcan_posix/basic_file_server_backend.hpp>
-#include <uavcan/protocol/firmware_update_trigger.hpp>
-#include <uavcan/protocol/file_server.hpp>
-
+#if defined(USE_FW_NODE_SERVER)
+# include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
+# include <uavcan/protocol/node_info_retriever.hpp>
+# include <uavcan_posix/basic_file_server_backend.hpp>
+# include <uavcan/protocol/firmware_update_trigger.hpp>
+# include <uavcan/protocol/file_server.hpp>
+#endif
 
 /**
  * @file uavcan_main.hpp
@@ -65,9 +66,9 @@
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
-#define UAVCAN_NODE_DB_PATH     "/fs/microsd/uavcan.db"
-#define UAVCAN_FIRMWARE_PATH    "/fs/microsd/fw"
-#define UAVCAN_LOG_FILE          UAVCAN_NODE_DB_PATH"/trace.log"
+#define UAVCAN_NODE_DB_PATH     PX4_ROOTFSDIR"/fs/microsd/uavcan.db"
+#define UAVCAN_FIRMWARE_PATH    PX4_ROOTFSDIR"/fs/microsd/fw"
+#define UAVCAN_LOG_FILE         UAVCAN_NODE_DB_PATH"/trace.log"
 
 // we add two to allow for actuator_direct and busevent
 #define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
@@ -147,7 +148,6 @@ private:
 	unsigned		_output_count = 0;		///< number of actuators currently available
 
 	static UavcanNode	*_instance;			///< singleton pointer
-	static uavcan::dynamic_node_id_server::CentralizedServer *_server_instance;              ///< server singleton pointer
 
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
@@ -155,11 +155,14 @@ private:
 	UavcanEscController	_esc_controller;
 
 
+#if defined(USE_FW_NODE_SERVER)
+	static uavcan::dynamic_node_id_server::CentralizedServer *_server_instance;              ///< server singleton pointer
+
 	uavcan_posix::BasicFileSeverBackend _fileserver_backend;
 	uavcan::NodeInfoRetriever  _node_info_retriever;
 	uavcan::FirmwareUpdateTrigger  _fw_upgrade_trigger;
 	uavcan::BasicFileServer        _fw_server;
-
+#endif
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 
 	MixerGroup		*_mixers = nullptr;

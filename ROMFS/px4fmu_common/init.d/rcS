@@ -101,9 +101,10 @@ then
 		fi
 	fi
 
-	if pca8574 start
-	then
-	fi
+	# Currently unused, but might be useful down the road
+	#if pca8574 start
+	#then
+	#fi
 
 	#
 	# Set default values
@@ -456,13 +457,13 @@ then
 		if [ $TTYS1_BUSY == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			set MAVLINK_F "-r 1000 -d /dev/ttyS0"
+			set MAVLINK_F "-r 5000 -d /dev/ttyS0"
 
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
 			# Start MAVLink on default port: ttyS1
-			set MAVLINK_F "-r 1000"
+			set MAVLINK_F "-r 5000"
 		fi
 	fi
 
@@ -478,11 +479,15 @@ then
 		# but this works for now
 		if param compare SYS_COMPANION 921600
 		then
-			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 20000
+			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 80000 -x
 		fi
 		if param compare SYS_COMPANION 57600
 		then
-			mavlink start -d /dev/ttyS2 -b 57600 -m onboard -r 1000
+			mavlink start -d /dev/ttyS2 -b 57600 -m onboard -r 5000 -x
+		fi
+		if param compare SYS_COMPANION 157600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
 		fi
 	fi
 

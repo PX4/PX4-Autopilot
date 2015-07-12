@@ -326,7 +326,8 @@ param_for_used_index(unsigned index)
 	int count = get_param_info_count();
 
 	if (count && index < count) {
-		/* walk all params and count */
+		/* walk all params and count used params */
+		unsigned used_count = 0;
 
 		for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
 			for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
@@ -335,11 +336,11 @@ param_for_used_index(unsigned index)
 					/* we found the right used count,
 					 * return the param value
 					 */
-					if (index == count) {
+					if (index == used_count) {
 						return (param_t)(i * bits_per_allocation_unit + j);
 					}
 
-					count++;
+					used_count++;
 				}
 			}
 		}
@@ -367,17 +368,17 @@ param_get_used_index(param_t param)
 	}
 
 	/* walk all params and count, now knowing that it has a valid index */
-	int count = 0;
+	int used_count = 0;
 
 	for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
 		for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
 			if (param_changed_storage[i] & (1 << j)) {
 
 				if ((unsigned)param == i * bits_per_allocation_unit + j) {
-					return count;
+					return used_count;
 				}
 
-				count++;
+				used_count++;
 			}
 		}
 	}
@@ -695,7 +696,7 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 	param_notify_changes();
 }
 
-static const char *param_default_file = "/eeprom/parameters";
+static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 static char *param_user_file = NULL;
 
 int
@@ -728,7 +729,7 @@ param_save_default(void)
 	const char *filename = param_get_default_file();
 
 	/* write parameters to temp file */
-	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, 0x777);
+	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
 		warn("failed to open param file: %s", filename);

@@ -64,6 +64,10 @@ static int _dsm_fd;
 
 static uint16_t rc_value_override = 0;
 
+#ifdef ADC_RSSI
+static unsigned _rssi_adc_counts = 0;
+#endif
+
 bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated)
 {
 	perf_begin(c_gather_dsm);
@@ -71,17 +75,22 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	uint8_t n_bytes = 0;
 	uint8_t *bytes;
 	*dsm_updated = dsm_input(r_raw_rc_values, &temp_count, &n_bytes, &bytes);
+
 	if (*dsm_updated) {
 		r_raw_rc_count = temp_count & 0x7fff;
-		if (temp_count & 0x8000)
+
+		if (temp_count & 0x8000) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
-		else
+
+		} else {
 			r_raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+		}
 
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 
 	}
+
 	perf_end(c_gather_dsm);
 
 	/* get data from FD and attempt to parse with DSM and ST24 libs */
@@ -94,7 +103,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		/* set updated flag if one complete packet was parsed */
 		st24_rssi = RC_INPUT_RSSI_MAX;
 		*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &rx_count,
-					&st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
+						    &st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 	}
 
 	if (*st24_updated) {
@@ -121,7 +130,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		/* set updated flag if one complete packet was parsed */
 		sumd_rssi = RC_INPUT_RSSI_MAX;
 		*sumd_updated |= (OK == sumd_decode(bytes[i], &sumd_rssi, &sumd_rx_count,
-					&sumd_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
+						    &sumd_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 	}
 
 	if (*sumd_updated) {
@@ -170,7 +179,8 @@ controls_init(void)
 }
 
 void
-controls_tick() {
+controls_tick()
+{
 
 	/*
 	 * Gather R/C control inputs from supported sources.
@@ -184,19 +194,24 @@ controls_tick() {
 	uint16_t rssi = 0;
 
 #ifdef ADC_RSSI
+
 	if (r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) {
 		unsigned counts = adc_measure(ADC_RSSI);
-		if (counts != 0xffff) {
-			/* use 1:1 scaling on 3.3V ADC input */
-			unsigned mV = counts * 3300 / 4096;
 
-			/* scale to 0..253 and lowpass */
-			rssi = (rssi * 0.99f) + ((mV / (3300 / RC_INPUT_RSSI_MAX)) * 0.01f);
+		if (counts != 0xffff) {
+			/* low pass*/
+			_rssi_adc_counts = (_rssi_adc_counts * 0.998f) + (counts * 0.002f);
+			/* use 1:1 scaling on 3.3V, 12-Bit ADC input */
+			unsigned mV = _rssi_adc_counts * 3300 / 4095;
+			/* scale to 0..100 (RC_INPUT_RSSI_MAX == 100) */
+			rssi = (mV * RC_INPUT_RSSI_MAX / 3300);
+
 			if (rssi > RC_INPUT_RSSI_MAX) {
 				rssi = RC_INPUT_RSSI_MAX;
 			}
 		}
 	}
+
 #endif
 
 	/* zero RSSI if signal is lost */
@@ -207,21 +222,26 @@ controls_tick() {
 	perf_begin(c_gather_dsm);
 	bool dsm_updated, st24_updated, sumd_updated;
 	(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated, &sumd_updated);
+
 	if (dsm_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
 	}
+
 	if (st24_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24;
 	}
+
 	if (sumd_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD;
 	}
+
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
 
 	bool sbus_failsafe, sbus_frame_drop;
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop, PX4IO_RC_INPUT_CHANNELS);
+	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop,
+				       PX4IO_RC_INPUT_CHANNELS);
 
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
@@ -231,17 +251,19 @@ controls_tick() {
 		if (sbus_frame_drop) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
 			sbus_rssi = RC_INPUT_RSSI_MAX / 2;
+
 		} else {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		}
 
 		if (sbus_failsafe) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+
 		} else {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 		}
 
-		/* set RSSI to an emulated value if ADC RSSI is off */ 
+		/* set RSSI to an emulated value if ADC RSSI is off */
 		if (!(r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
 			rssi = sbus_rssi;
 		}
@@ -257,17 +279,20 @@ controls_tick() {
 	 */
 	perf_begin(c_gather_ppm);
 	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count, &r_page_raw_rc_input[PX4IO_P_RAW_RC_DATA]);
+
 	if (ppm_updated) {
 
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	}
+
 	perf_end(c_gather_ppm);
 
 	/* limit number of channels to allowable data size */
-	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS)
+	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS) {
 		r_raw_rc_count = PX4IO_RC_INPUT_CHANNELS;
+	}
 
 	/* store RSSI */
 	r_page_raw_rc_input[PX4IO_P_RAW_RC_NRSSI] = rssi;
@@ -308,10 +333,13 @@ controls_tick() {
 				/*
 				 * 1) Constrain to min/max values, as later processing depends on bounds.
 				 */
-				if (raw < conf[PX4IO_P_RC_CONFIG_MIN])
+				if (raw < conf[PX4IO_P_RC_CONFIG_MIN]) {
 					raw = conf[PX4IO_P_RC_CONFIG_MIN];
-				if (raw > conf[PX4IO_P_RC_CONFIG_MAX])
+				}
+
+				if (raw > conf[PX4IO_P_RC_CONFIG_MAX]) {
 					raw = conf[PX4IO_P_RC_CONFIG_MAX];
+				}
 
 				/*
 				 * 2) Scale around the mid point differently for lower and upper range.
@@ -330,10 +358,12 @@ controls_tick() {
 				 * DO NOT REMOVE OR ALTER STEP 1!
 				 */
 				if (raw > (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(
+								     conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
 
 				} else if (raw < (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(
+								     conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
 
 				} else {
 					/* in the configured dead zone, output zero */
@@ -347,6 +377,7 @@ controls_tick() {
 
 				/* and update the scaled/mapped version */
 				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
+
 				if (mapped < PX4IO_CONTROL_CHANNELS) {
 
 					/* invert channel if pitch - pulling the lever down means pitching up by convention */
@@ -360,6 +391,7 @@ controls_tick() {
 						if (((raw < conf[PX4IO_P_RC_CONFIG_MIN]) && (raw < r_setup_rc_thr_failsafe)) ||
 						    ((raw > conf[PX4IO_P_RC_CONFIG_MAX]) && (raw > r_setup_rc_thr_failsafe))) {
 							r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+
 						} else {
 							r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 						}
@@ -389,6 +421,7 @@ controls_tick() {
 		/* if we have enough channels (5) to control the vehicle, the mapping is ok */
 		if (assigned_channels > 4) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_MAPPING_OK;
+
 		} else {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_MAPPING_OK);
 		}
@@ -408,9 +441,9 @@ controls_tick() {
 
 		/* clear the input-kind flags here */
 		r_status_flags &= ~(
-			PX4IO_P_STATUS_FLAGS_RC_PPM |
-			PX4IO_P_STATUS_FLAGS_RC_DSM |
-			PX4IO_P_STATUS_FLAGS_RC_SBUS);
+					  PX4IO_P_STATUS_FLAGS_RC_PPM |
+					  PX4IO_P_STATUS_FLAGS_RC_DSM |
+					  PX4IO_P_STATUS_FLAGS_RC_SBUS);
 
 	}
 
@@ -427,8 +460,8 @@ controls_tick() {
 	if (rc_input_lost) {
 		/* Clear the RC input status flag, clear manual override flag */
 		r_status_flags &= ~(
-			PX4IO_P_STATUS_FLAGS_OVERRIDE |
-			PX4IO_P_STATUS_FLAGS_RC_OK);
+					  PX4IO_P_STATUS_FLAGS_OVERRIDE |
+					  PX4IO_P_STATUS_FLAGS_RC_OK);
 
 		/* flag raw RC as lost */
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_RC_OK);
@@ -451,9 +484,9 @@ controls_tick() {
 	 * Override is enabled if either the hardcoded channel / value combination
 	 * is selected, or the AP has requested it.
 	 */
-	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) && 
-		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
-		!(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
+	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) &&
+	    (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+	    !(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
 
 		bool override = false;
 
@@ -464,8 +497,9 @@ controls_tick() {
 		 * requested override.
 		 *
 		 */
-		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(rc_value_override) < RC_CHANNEL_LOW_THRESH))
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(rc_value_override) < RC_CHANNEL_LOW_THRESH)) {
 			override = true;
+		}
 
 		/*
 		  if the FMU is dead then enable override if we have a
@@ -473,20 +507,23 @@ controls_tick() {
 		 */
 		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
 		    (r_setup_arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) &&
-		    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))
-			override = true;                
+		    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+			override = true;
+		}
 
 		if (override) {
 
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
 
 			/* mix new RC input control values to servos */
-			if (dsm_updated || sbus_updated || ppm_updated || st24_updated || sumd_updated)
+			if (dsm_updated || sbus_updated || ppm_updated || st24_updated || sumd_updated) {
 				mixer_tick();
+			}
 
 		} else {
 			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 		}
+
 	} else {
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 	}
@@ -512,8 +549,10 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 
 		/* PPM data exists, copy it */
 		*num_values = ppm_decoded_channels;
-		if (*num_values > PX4IO_RC_INPUT_CHANNELS)
+
+		if (*num_values > PX4IO_RC_INPUT_CHANNELS) {
 			*num_values = PX4IO_RC_INPUT_CHANNELS;
+		}
 
 		for (unsigned i = 0; ((i < *num_values) && (i < PPM_MAX_CHANNELS)); i++) {
 			values[i] = ppm_buffer[i];

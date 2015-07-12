@@ -58,7 +58,7 @@ public:
 	int init() override;
 
 private:
-	ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	ssize_t read(struct file *filp, char *buffer, size_t buflen);
 	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
 	void air_pressure_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg);

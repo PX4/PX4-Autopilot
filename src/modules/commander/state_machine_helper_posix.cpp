@@ -371,7 +371,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, 
 						break;
 
 					/* skip mavlink */
-					if (!strcmp("/dev/mavlink", devname)) {
+					if (!strcmp(MAVLINK_LOG_DEVICE, devname)) {
 						continue;
 					}
 

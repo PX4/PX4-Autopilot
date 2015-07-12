@@ -275,6 +275,13 @@ BAROSIM::init()
 	_measure_phase = 0;
 	_reports->flush();
 
+	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
+				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+
+	if (_baro_topic == nullptr) {
+		PX4_ERR("failed to create sensor_baro publication");
+	}
+
 	/* this do..while is goto without goto */
 	do {
 		/* do temperature first */
@@ -312,12 +319,6 @@ BAROSIM::init()
 
 		ret = OK;
 
-		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
-				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
-
-		if (_baro_topic == nullptr) {
-			PX4_ERR("failed to create sensor_baro publication");
-		}
 		//PX4_WARN("sensor_baro publication %ld", _baro_topic);
 
 	} while (0);
@@ -622,7 +623,14 @@ int
 BAROSIM::collect()
 {
 	int ret;
-	uint32_t raw;
+
+#pragma pack(push, 1)
+	struct {
+		float		pressure;
+		float		altitude;
+		float		temperature;
+	} baro_report;
+#pragma pack(pop)
 
 	perf_begin(_sample_perf);
 
@@ -632,7 +640,7 @@ BAROSIM::collect()
         report.error_count = perf_event_count(_comms_errors);
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
-	ret = _interface->dev_read(0, (void *)&raw, 0);
+	ret = _interface->dev_read(0, (void *)&baro_report, sizeof(baro_report));
 	if (ret < 0) {
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
@@ -641,92 +649,22 @@ BAROSIM::collect()
 
 	/* handle a measurement */
 	if (_measure_phase == 0) {
-
-		/* temperature offset (in ADC units) */
-		int32_t dT = (int32_t)raw - ((int32_t)_prom.c5_reference_temp << 8);
-
-		/* absolute temperature in centidegrees - note intermediate value is outside 32-bit range */
-		_TEMP = 2000 + (int32_t)(((int64_t)dT * _prom.c6_temp_coeff_temp) >> 23);
-
-		/* base sensor scale/offset values */
-		_SENS = ((int64_t)_prom.c1_pressure_sens << 15) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 8);
-		_OFF  = ((int64_t)_prom.c2_pressure_offset << 16) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 7);
-
-		/* temperature compensation */
-		if (_TEMP < 2000) {
-
-			int32_t T2 = POW2(dT) >> 31;
-
-			int64_t f = POW2((int64_t)_TEMP - 2000);
-			int64_t OFF2 = 5 * f >> 1;
-			int64_t SENS2 = 5 * f >> 2;
-
-			if (_TEMP < -1500) {
-				int64_t f2 = POW2(_TEMP + 1500);
-				OFF2 += 7 * f2;
-				SENS2 += 11 * f2 >> 1;
-			}
-
-			_TEMP -= T2;
-			_OFF  -= OFF2;
-			_SENS -= SENS2;
-		}
-
+		report.pressure = baro_report.pressure;
+		report.altitude = baro_report.altitude;
+		report.temperature = baro_report.temperature;
+		report.timestamp = hrt_absolute_time();
 	} else {
-
-		/* pressure calculation, result in Pa */
-		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
-		_P = P * 0.01f;
-		_T = _TEMP * 0.01f;
-
-		/* generate a new report */
-		report.temperature = _TEMP / 100.0f;
-		report.pressure = P / 100.0f;		/* convert to millibar */
-
-		/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
-
-		/*
-		 * PERFORMANCE HINT:
-		 *
-		 * The single precision calculation is 50 microseconds faster than the double
-		 * precision variant. It is however not obvious if double precision is required.
-		 * Pending more inspection and tests, we'll leave the double precision variant active.
-		 *
-		 * Measurements:
-		 * 	double precision: barosim_read: 992 events, 258641us elapsed, min 202us max 305us
-		 *	single precision: barosim_read: 963 events, 208066us elapsed, min 202us max 241us
-		 */
-
-		/* tropospheric properties (0-11km) for standard atmosphere */
-		const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
-		const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
-		const double g  = 9.80665;	/* gravity constant in m/s/s */
-		const double R  = 287.05;	/* ideal gas constant in J/kg/K */
-
-		/* current pressure at MSL in kPa */
-		double p1 = _msl_pressure / 1000.0;
-
-		/* measured pressure in kPa */
-		double p = P / 1000.0;
-
-		/*
-		 * Solve:
-		 *
-		 *     /        -(aR / g)     \
-		 *    | (p / p1)          . T1 | - T1
-		 *     \                      /
-		 * h = -------------------------------  + h1
-		 *                   a
-		 */
-		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+		report.pressure = baro_report.pressure;
+		report.altitude = baro_report.altitude;
+		report.temperature = baro_report.temperature;
+		report.timestamp = hrt_absolute_time();
 
 		/* publish it */
 		if (!(_pub_blocked)) {
 			if (_baro_topic != nullptr) {
 				/* publish it */
 				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
-			}
-			else {
+			} else {
 				PX4_WARN("BAROSIM::collect _baro_topic not initialized");
 			}
 		}
