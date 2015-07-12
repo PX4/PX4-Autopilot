@@ -240,7 +240,7 @@ void UavcanNode::fill_node_info()
 	assert(fw_git_short[8] == '\0');
 	char *end = nullptr;
 	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
-	swver.optional_field_mask |= swver.OPTIONAL_FIELD_MASK_VCS_COMMIT;
+	swver.optional_field_flags |= swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 	swver.major = AppDescriptor.major_version;
 	swver.minor = AppDescriptor.minor_version;
 	swver.image_crc = AppDescriptor.image_crc;
