@@ -246,7 +246,7 @@ Mavlink::Mavlink() :
 		break;
 	}
 
-	_rstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
+	_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 }
 
 Mavlink::~Mavlink()
@@ -1721,7 +1721,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* radio config check */
-		if (_radio_id != 0 && _rstatus.type == TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+		if (_radio_id != 0 && _rstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
 			/* request to configure radio and radio is present */
 			FILE *fs = fdopen(_uart_fd, "w");
 			
@@ -2013,7 +2013,7 @@ Mavlink::display_status()
 		printf("\ttype:\t\t");
 
 		switch (_rstatus.type) {
-		case TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
+		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
 			printf("3DR RADIO\n");
 			break;
 

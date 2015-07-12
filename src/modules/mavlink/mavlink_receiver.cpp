@@ -281,7 +281,21 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	mavlink_command_long_t cmd_mavlink;
 	mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
-	if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid)
+	/* evaluate if this system should accept this command */
+	bool target_ok;
+	switch (cmd_mavlink.command) {
+
+		case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
+			/* broadcast */
+			target_ok = (cmd_mavlink.target_system == 0);
+			break;
+
+		default:
+			target_ok = (cmd_mavlink.target_system == mavlink_system.sysid);
+			break;
+	}
+
+	if (target_ok && ((cmd_mavlink.target_component == mavlink_system.compid)
 			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
@@ -942,8 +956,8 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 {
-	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
-	if (_mavlink->get_channel() < TELEMETRY_STATUS_ORB_ID_NUM) {
+	/* telemetry status supported only on first ORB_MULTI_MAX_INSTANCES mavlink channels */
+	if (_mavlink->get_channel() < ORB_MULTI_MAX_INSTANCES) {
 		mavlink_radio_status_t rstatus;
 		mavlink_msg_radio_status_decode(msg, &rstatus);
 
@@ -952,7 +966,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		tstatus.timestamp = hrt_absolute_time();
 		tstatus.telem_time = tstatus.timestamp;
 		/* tstatus.heartbeat_time is set by system heartbeats */
-		tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
+		tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
 		tstatus.rssi = rstatus.rssi;
 		tstatus.remote_rssi = rstatus.remrssi;
 		tstatus.txbuf = rstatus.txbuf;
@@ -964,10 +978,11 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		tstatus.component_id = msg->compid;
 
 		if (_telemetry_status_pub == nullptr) {
-			_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
+			int multi_instance;
+			_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_HIGH);
 
 		} else {
-			orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
+			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
 		}
 	}
 }
@@ -1156,7 +1171,7 @@ void
 MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 {
 	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
-	if (_mavlink->get_channel() < TELEMETRY_STATUS_ORB_ID_NUM) {
+	if (_mavlink->get_channel() < ORB_MULTI_MAX_INSTANCES) {
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
@@ -1172,10 +1187,11 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.heartbeat_time = tstatus.timestamp;
 
 			if (_telemetry_status_pub == nullptr) {
-				_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
+				int multi_instance;
+				_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_HIGH);
 
 			} else {
-				orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
+				orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
 			}
 		}
 	}
