@@ -93,6 +93,29 @@ def convert_dir(inputdir, outputdir, templatedir):
         """
         Converts all .msg files in inputdir to uORB header files
         """
+
+        # Find the most recent modification time in input dir
+        maxinputtime = 0
+        for f in os.listdir(inputdir):
+                fni = os.path.join(inputdir, f)
+                if os.path.isfile(fni):
+                    it = os.path.getmtime(fni)
+                    if it > maxinputtime:
+                        maxinputtime = it;
+
+        # Find the most recent modification time in output dir
+        maxouttime = 0
+        for f in os.listdir(outputdir):
+                fni = os.path.join(outputdir, f)
+                if os.path.isfile(fni):
+                    it = os.path.getmtime(fni)
+                    if it > maxouttime:
+                        maxouttime = it;
+
+        # Do not generate if nothing changed on the input
+        if (maxinputtime != 0 and maxouttime != 0 and maxinputtime < maxouttime):
+            return False
+
         includepath = incl_default + [':'.join([package, inputdir])]
         for f in os.listdir(inputdir):
                 # Ignore hidden files
@@ -108,6 +131,8 @@ def convert_dir(inputdir, outputdir, templatedir):
                              outputdir,
                              templatedir,
                              includepath)
+
+        return True
 
 
 def copy_changed(inputdir, outputdir, prefix=''):
@@ -145,10 +170,11 @@ def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
         Unchanged existing files are not overwritten.
         """
         # Create new headers in temporary output directory
-        convert_dir(inputdir, temporarydir, templatedir)
-
-        # Copy changed headers from temporary dir to output dir
-        copy_changed(temporarydir, outputdir, prefix)
+        if (convert_dir(inputdir, temporarydir, templatedir)):
+            # Copy changed headers from temporary dir to output dir
+            copy_changed(temporarydir, outputdir, prefix)
+        else:
+            print('No changes.')
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
