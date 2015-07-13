@@ -43,9 +43,13 @@ enum class SocketCanError
  * no more than 'max_frames_in_socket_tx_queue_' TX frames, rest is waiting in the user space TX queue; when the
  * socket produces loopback for the previously sent TX frame the next frame from the user space TX queue will
  * be sent into the socket.
+ *
  * This approach allows to properly maintain TX timeouts (http://stackoverflow.com/questions/19633015/).
  * TX timestamping is implemented by means of reading RX timestamps of loopback frames (see "TX timestamping" on
  * linux-can mailing list, http://permalink.gmane.org/gmane.linux.can/5322).
+ *
+ * Note that if max_frames_in_socket_tx_queue_ is greater than one, frame reordering may occur (depending on the
+ * unrderlying logic).
  *
  * This class is too complex and needs to be refactored later. At least, basic socket IO and configuration
  * should be extracted into a different class.
@@ -93,19 +97,29 @@ class SocketCanIface : public uavcan::ICanIface
     {
         uavcan::CanFrame frame;
         uavcan::MonotonicTime deadline;
-        uavcan::CanIOFlags flags;
+        uavcan::CanIOFlags flags = 0;
+        std::uint64_t order = 0;
 
-        TxItem()
-            : flags(0)
-        { }
-
-        TxItem(const uavcan::CanFrame& arg_frame, uavcan::MonotonicTime arg_deadline, uavcan::CanIOFlags arg_flags)
+        TxItem(const uavcan::CanFrame& arg_frame, uavcan::MonotonicTime arg_deadline,
+               uavcan::CanIOFlags arg_flags, std::uint64_t arg_order)
             : frame(arg_frame)
             , deadline(arg_deadline)
             , flags(arg_flags)
+            , order(arg_order)
         { }
 
-        bool operator<(const TxItem& rhs) const { return frame.priorityLowerThan(rhs.frame); }
+        bool operator<(const TxItem& rhs) const
+        {
+            if (frame.priorityLowerThan(rhs.frame))
+            {
+                return true;
+            }
+            if (frame.priorityHigherThan(rhs.frame))
+            {
+                return false;
+            }
+            return order > rhs.order;
+        }
     };
 
     struct RxItem
@@ -124,7 +138,9 @@ class SocketCanIface : public uavcan::ICanIface
     const int fd_;
 
     const unsigned max_frames_in_socket_tx_queue_;
-    unsigned frames_in_socket_tx_queue_;
+    unsigned frames_in_socket_tx_queue_ = 0;
+
+    std::uint64_t tx_frame_counter_ = 0;        ///< Increments with every frame pushed into the TX queue
 
     std::map<SocketCanError, std::uint64_t> errors_;
 
@@ -302,12 +318,13 @@ class SocketCanIface : public uavcan::ICanIface
 public:
     /**
      * Takes ownership of socket's file descriptor.
+     *
+     * @ref max_frames_in_socket_tx_queue       See a note in the class comment.
      */
     SocketCanIface(const SystemClock& clock, int socket_fd, int max_frames_in_socket_tx_queue = 3)
         : clock_(clock)
         , fd_(socket_fd)
         , max_frames_in_socket_tx_queue_(max_frames_in_socket_tx_queue)
-        , frames_in_socket_tx_queue_(0)
     {
         assert(fd_ >= 0);
     }
@@ -326,7 +343,8 @@ public:
     std::int16_t send(const uavcan::CanFrame& frame, const uavcan::MonotonicTime tx_deadline,
                       const uavcan::CanIOFlags flags) override
     {
-        tx_queue_.emplace(frame, tx_deadline, flags);
+        tx_queue_.emplace(frame, tx_deadline, flags, tx_frame_counter_);
+        tx_frame_counter_++;
         pollRead();     // Read poll is necessary because it can release the pending TX flag
         pollWrite();
         return 1;
@@ -509,7 +527,7 @@ private:
     const SystemClock& clock_;
     uavcan::LazyConstructor<SocketCanIface> ifaces_[MaxIfaces];
     ::pollfd pollfds_[MaxIfaces];
-    std::uint8_t num_ifaces_;
+    std::uint8_t num_ifaces_ = 0;
 
 public:
     /**
@@ -517,7 +535,6 @@ public:
      */
     explicit SocketCanDriver(const SystemClock& clock)
         : clock_(clock)
-        , num_ifaces_(0)
     {
         for (auto& p : pollfds_)
         {
