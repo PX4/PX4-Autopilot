@@ -6,6 +6,7 @@
 
 This repository contains the PX4 Flight Core, with the main applications located in the src/modules directory. It also contains the PX4 Drone Platform, which contains drivers and middleware to run drones.
 
+*   TEST TEST TEST TEST
 *   Official Website: http://px4.io
 *   License: BSD 3-clause (see [LICENSE.md](https://github.com/PX4/Firmware/blob/master/LICENSE.md))
 *   Supported airframes (more experimental are supported):
