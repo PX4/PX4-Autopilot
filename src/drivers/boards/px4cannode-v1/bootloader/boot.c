@@ -198,18 +198,18 @@ typedef struct packed_struct led_t {
 
 static const  led_t i2l[] = {
 
-	led(0, off,                            0   , 0  , 0   , 0),
-	led(1, reset,                          10  , 63 , 31 , 255),
-	led(2, autobaud_start,                 0   , 63 , 0   , 1),
-	led(3, autobaud_end,                   0   , 63 , 0   , 2),
-	led(4, allocation_start,               0   , 0  , 31  , 2),
-	led(5, allocation_end,                 0   , 63 , 31  , 3),
-	led(6, fw_update_start,                15  , 63 , 31  , 3),
-	led(7, fw_update_erase_fail,           15  , 63 , 15  , 3),
-	led(8, fw_update_invalid_response,     31  , 0   , 0  , 1),
-	led(9, fw_update_timeout,              31  , 0   , 0  , 2),
-	led(a, fw_update_invalid_crc,          31  , 0   , 0  , 4),
-	led(b, jump_to_app,                    0   , 63 , 0   , 10),
+        led(0, off,                             0,    0,    0,     0),
+        led(1, reset,                          10,   63,   31,   255),
+        led(2, autobaud_start,                  0,   63,    0,     1),
+        led(3, autobaud_end,                    0,   63,    0,     2),
+        led(4, allocation_start,                0,    0,   31,     2),
+        led(5, allocation_end,                  0,   63,   31,     3),
+        led(6, fw_update_start,                15,   63,   31,     3),
+        led(7, fw_update_erase_fail,           15,   63,   15,     3),
+        led(8, fw_update_invalid_response,     31,    0,    0,     1),
+        led(9, fw_update_timeout,              31,    0,    0,     2),
+        led(a, fw_update_invalid_crc,          31,    0,    0,     4),
+        led(b, jump_to_app,                     0,   63,    0,    10),
 
 };
 
