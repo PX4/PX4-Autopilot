@@ -82,4 +82,13 @@
 #define	HW_ARCH "LINUXTEST"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_PX4FLOW_V1
+#define HW_ARCH "PX4FLOW_V1"
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4ESC_V1
+#define HW_ARCH "PX4ESC_V1"
+#endif
+
+
 #endif /* VERSION_H_ */
