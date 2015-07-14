@@ -69,7 +69,7 @@ __BEGIN_DECLS
 #define HRT_TIMER               1       /* use timer1 for the HRT */
 #define HRT_TIMER_CHANNEL       1       /* use capture/compare channel */
 #define HRT_PPM_CHANNEL         3       /* use capture/compare channel 3 */
-#define GPIO_PPM_IN             (GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTB|GPIO_PIN12)
+#define GPIO_PPM_IN             (GPIO_ALT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN12)
 
 /* GPIO ***********************************************************************
  *
@@ -84,12 +84,12 @@ __BEGIN_DECLS
  *
  */
 
-#define GPIO_RC_PWM   (GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_PORTA | GPIO_PIN3)
-#define GPIO_OC_ADJ   (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_RC_PWM   (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTA | GPIO_PIN3)
+#define GPIO_OC_ADJ   (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTA | GPIO_PIN4 | GPIO_OUTPUT_CLEAR)
-#define GPIO_EN_GATE  (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_EN_GATE  (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTA | GPIO_PIN5 | GPIO_OUTPUT_CLEAR)
-#define GPIO_DC_CAL   (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_DC_CAL   (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTA | GPIO_PIN6 | GPIO_OUTPUT_CLEAR)
 
 
@@ -105,11 +105,11 @@ __BEGIN_DECLS
  *
  */
 
-#define GPIO_GAIN     (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_GAIN     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTB | GPIO_PIN2 | GPIO_OUTPUT_CLEAR)
-#define GPIO_TEST2     (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_TEST2     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTB | GPIO_PIN3 | GPIO_OUTPUT_CLEAR)
-#define GPIO_TEST3     (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_TEST3     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTB | GPIO_PIN4 | GPIO_OUTPUT_CLEAR)
 
 /* CAN ************************************************************************ *
@@ -163,7 +163,7 @@ __BEGIN_DECLS
  *
  */
 
-#define GPIO_RPM   (GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_PORTC | GPIO_PIN6)
+#define GPIO_RPM   (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN6)
 
 /* LEDs ***********************************************************************
  *
@@ -176,15 +176,15 @@ __BEGIN_DECLS
  *  PC[09] PC9/TIM3_CH4/TIM8_CH4                            40       LED_BLUE
  */
 
-#define GPIO_LED1       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_LED1       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTC | GPIO_PIN7 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_RED    GPIO_LED1
 
-#define GPIO_LED2       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_LED2       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTC | GPIO_PIN8 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_GREEN  GPIO_LED2
 
-#define GPIO_LED3       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_LED3       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTC | GPIO_PIN9 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_BLUE  GPIO_LED3
 
@@ -204,14 +204,14 @@ __BEGIN_DECLS
  *
  */
 
-#define GPIO_HWID0   (GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_PORTC | GPIO_PIN10)
-#define GPIO_HWID1   (GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_PORTC | GPIO_PIN11)
-#define GPIO_TEST4   (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_HWID0   (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN10)
+#define GPIO_HWID1   (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN11)
+#define GPIO_TEST4   (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTC | GPIO_PIN12 | GPIO_OUTPUT_CLEAR)
 
-#define GPIO_PWRGD   (GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_PORTC | GPIO_PIN13)
-#define GPIO_OCTW    (GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_PORTC | GPIO_PIN14)
-#define GPIO_FAULT   (GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_PORTC | GPIO_PIN15)
+#define GPIO_PWRGD   (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN13)
+#define GPIO_OCTW    (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN14)
+#define GPIO_FAULT   (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN15)
 
 /* GPIO ***********************************************************************
  *
@@ -221,7 +221,7 @@ __BEGIN_DECLS
  *
  *  PD[02] PD2/TIM3_ETR/UART5_RX/SDIO_CMD                   54       TEST1
  */
-#define GPIO_TEST1   (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_TEST1   (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_PORTD | GPIO_PIN2 | GPIO_OUTPUT_CLEAR)
 
 /************************************************************************************
