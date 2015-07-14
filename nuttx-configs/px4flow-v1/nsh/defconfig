@@ -766,7 +766,7 @@ CONFIG_FS_MQUEUE_MPATH="/var/mqueue"
 #
 # Memory Management
 #
-CONFIG_MM_SMALL=y
+# CONFIG_MM_SMALL is not set
 CONFIG_MM_REGIONS=1
 # CONFIG_ARCH_HAVE_HEAP2 is not set
 # CONFIG_GRAN is not set
