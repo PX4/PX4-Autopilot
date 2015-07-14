@@ -34,17 +34,19 @@
  ****************************************************************************/
 
 /* The STM32F446RE has 512KiB of FLASH beginning at address 0x0800:0000 and
- * 128KiB of SRAM beginning at address 0x2000:0000.  When booting from FLASH,
- * FLASH memory is aliased to address 0x0000:0000 where the code expects to
- * begin execution by jumping to the entry point in the 0x0800:0000 address
- * range.
+ * 112KiB of SRAM beginning at address 0x2000:0000. With an addtional 16 KiB
+ * located at 0x2001:c000.
+ * When booting from FLASH, FLASH memory is aliased to address 0x0000:0000
+ * where the code expects to begin execution by jumping to the entry point
+ * in the 0x0800:0000 address range.
  * The bootloader only uses the first 16KiB of flash.
  */
 
 MEMORY
 {
-    flash (rx) : ORIGIN = 0x08000000, LENGTH = 512M
-    sram (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
+    flash (rx) : ORIGIN = 0x08000000, LENGTH  = 16K
+    sram (rwx) : ORIGIN = 0x20000000, LENGTH  = 112K
+    sram1 (rwx) : ORIGIN = 0x2001C000, LENGTH = 16K
 }
 
 OUTPUT_ARCH(arm)
@@ -117,7 +119,7 @@ SECTIONS
 
   _eronly = ABSOLUTE(.);
 
-  /* The STM32F103CB has 20Kb of SRAM beginning at the following address */
+  /* The STM32F446RE has 112KiB of SRAM beginning at the following address */
 
   .data : {
     _sdata = ABSOLUTE(.);
