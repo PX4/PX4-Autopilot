@@ -1455,7 +1455,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("ATTITUDE", 50.0f);
+		configure_stream("ATTITUDE", 250.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
 		configure_stream("GPS_RAW_INT", 5.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);

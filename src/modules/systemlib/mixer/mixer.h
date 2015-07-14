@@ -222,7 +222,7 @@ protected:
 	 * @param buflen		length of the buffer.
 	 * @param tag			character to search for.
 	 */
-	static const char *		findtag(const char *buf, unsigned &buflen, char tag);
+	static const char 		*findtag(const char *buf, unsigned &buflen, char tag);
 
 	/**
 	 * Skip a line
@@ -231,13 +231,13 @@ protected:
 	 * @param buflen		length of the buffer.
 	 * @return			0 / OK if a line could be skipped, 1 else
 	 */
-	static const char *		skipline(const char *buf, unsigned &buflen);
+	static const char 		*skipline(const char *buf, unsigned &buflen);
 
 private:
 
 	/* do not allow to copy due to prt data members */
-	Mixer(const Mixer&);
-	Mixer& operator=(const Mixer&);
+	Mixer(const Mixer &);
+	Mixer &operator=(const Mixer &);
 };
 
 /**
@@ -316,8 +316,8 @@ private:
 	Mixer				*_first;	/**< linked list of mixers */
 
 	/* do not allow to copy due to pointer data members */
-	MixerGroup(const MixerGroup&);
-	MixerGroup operator=(const MixerGroup&);
+	MixerGroup(const MixerGroup &);
+	MixerGroup operator=(const MixerGroup &);
 };
 
 /**
@@ -437,8 +437,8 @@ private:
 			uint8_t &control_index);
 
 	/* do not allow to copy due to ptr data members */
-	SimpleMixer(const SimpleMixer&);
-	SimpleMixer operator=(const SimpleMixer&);
+	SimpleMixer(const SimpleMixer &);
+	SimpleMixer operator=(const SimpleMixer &);
 };
 
 /**
@@ -449,13 +449,13 @@ private:
 typedef unsigned int MultirotorGeometryUnderlyingType;
 enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
 
-/**
- * Multi-rotor mixer for pre-defined vehicle geometries.
- *
- * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
- * a set of outputs based on the configured geometry.
- */
-class __EXPORT MultirotorMixer : public Mixer
+	/**
+	 * Multi-rotor mixer for pre-defined vehicle geometries.
+	 *
+	 * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
+	 * a set of outputs based on the configured geometry.
+	 */
+	class __EXPORT MultirotorMixer : public Mixer
 {
 public:
 	/**
@@ -531,8 +531,8 @@ private:
 	const Rotor			*_rotors;
 
 	/* do not allow to copy due to ptr data members */
-	MultirotorMixer(const MultirotorMixer&);
-	MultirotorMixer operator=(const MultirotorMixer&);
+	MultirotorMixer(const MultirotorMixer &);
+	MultirotorMixer operator=(const MultirotorMixer &);
 };
 
 #endif
