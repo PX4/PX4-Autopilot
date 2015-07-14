@@ -63,7 +63,7 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-static uint16_t g_ledmap[] = {
+static uint32_t g_ledmap[] = {
     GPIO_LED_RED,    // Indexed by BOARD_LED_RED
     GPIO_LED_GREEN,  // Indexed by BOARD_LED_GREEN
     GPIO_LED_BLUE,    // Indexed by BOARD_LED_BLUE
