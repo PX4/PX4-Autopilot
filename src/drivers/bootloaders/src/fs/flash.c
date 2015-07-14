@@ -105,26 +105,27 @@ flash_error_t bl_flash_erase(size_t address, size_t nbytes)
 	 * We can pass a per page callback or yeild */
 
 	flash_error_t status = FLASH_ERROR_AFU;
-	ssize_t bllastpage, appstartpage, pagecnt, pageidx;
 
-	bllastpage = up_progmem_getpage(address - 1);
+
+	ssize_t bllastpage = up_progmem_getpage(address - 1);
 
 	if (bllastpage < 0) {
 		return FLASH_ERROR_AFU;
 	}
 
-	appstartpage = up_progmem_getpage(address);
-	pagecnt = up_progmem_getpage(address + nbytes - 4) - appstartpage;
+	ssize_t appstartpage = up_progmem_getpage(address);
+	ssize_t appendpage = up_progmem_getpage(address + nbytes - 4);
 	status = FLASH_ERROR_SUICIDE;
 
 	if (bllastpage >= 0 && appstartpage > bllastpage) {
+
 		/* Erase the whole application flash region */
+
 		status = FLASH_OK;
-		pageidx = 0;
 
-		while (status == FLASH_OK && pageidx < pagecnt) {
+		while (status == FLASH_OK && appstartpage <= appendpage) {
 
-			ssize_t ps = up_progmem_erasepage(appstartpage + pageidx++);
+			ssize_t ps = up_progmem_erasepage(appstartpage++);
 
 			if (ps <= 0) {
 				status = FLASH_ERASE_ERROR;
