@@ -86,6 +86,7 @@ private:
 		param_t maxClimbRate;
 		param_t maxVelocity;
 		param_t maxRotation;
+		param_t boostThrottle;
 		param_t maxThrottle;
 	}		_paramHandle;
 
