@@ -54,6 +54,8 @@ private:
 
     bool isInitialized() const { return iface_index_ != IfaceIndexNotSet; }
 
+    bool isMidTransfer() const { return buffer_write_pos_ > 0; }
+
     void registerError() const;
 
     TidRelation getTidRelation(const RxFrame& frame) const;

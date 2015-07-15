@@ -75,7 +75,7 @@ bool TransferReceiver::validate(const RxFrame& frame) const
         registerError();
         return false;
     }
-    if (frame.isStartOfTransfer() && (buffer_write_pos_ != 0))
+    if (frame.isStartOfTransfer() && isMidTransfer())
     {
         UAVCAN_TRACE("TransferReceiver", "Unexpected start of transfer, %s", frame.toString().c_str());
         registerError();
