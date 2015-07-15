@@ -14,6 +14,33 @@ namespace uavcan
 const uint16_t TransferReceiver::MinTransferIntervalMSec;
 const uint16_t TransferReceiver::MaxTransferIntervalMSec;
 const uint16_t TransferReceiver::DefaultTransferIntervalMSec;
+const uint16_t TransferReceiver::MessageMaxTFallbackMSec;
+const uint16_t TransferReceiver::ServiceTFallbackMSec;
+
+MonotonicDuration TransferReceiver::getTFallback() const
+{
+    if (tt_service_)
+    {
+        return MonotonicDuration::fromMSec(ServiceTFallbackMSec);
+    }
+    else
+    {
+        const MonotonicDuration t_fallback = MonotonicDuration::fromMSec(transfer_interval_msec_ * 2);
+        return min(t_fallback, MonotonicDuration::fromMSec(MessageMaxTFallbackMSec));
+    }
+}
+
+MonotonicDuration TransferReceiver::getTTimeout() const
+{
+    if (tt_service_)
+    {
+        return getTFallback();
+    }
+    else
+    {
+        return getTFallback() * 3;
+    }
+}
 
 void TransferReceiver::registerError() const
 {
@@ -183,16 +210,13 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
 
 bool TransferReceiver::isTimedOut(MonotonicTime current_ts) const
 {
-    static const int64_t IntervalMult = (1 << TransferID::BitLen) / 2 + 1;
-    if (current_ts <= this_transfer_ts_)
-    {
-        return false;
-    }
-    return (current_ts - this_transfer_ts_).toUSec() > (int64_t(transfer_interval_msec_) * 1000 * IntervalMult);
+    return (current_ts - this_transfer_ts_) > getTTimeout();
 }
 
 TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, TransferBufferAccessor& tba)
 {
+    UAVCAN_ASSERT((getDataTypeKindForTransferType(frame.getTransferType()) == DataTypeKindService) == tt_service_);
+
     if ((frame.getMonotonicTimestamp().isZero()) ||
         (frame.getMonotonicTimestamp() < prev_transfer_ts_) ||
         (frame.getMonotonicTimestamp() < this_transfer_ts_))
@@ -206,20 +230,17 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
     const bool same_iface = frame.getIfaceIndex() == iface_index_;
     const bool first_fame = frame.isStartOfTransfer();
     const TidRelation tid_rel = getTidRelation(frame);
-    const bool iface_timed_out =
-        (frame.getMonotonicTimestamp() - this_transfer_ts_).toUSec() > (int64_t(transfer_interval_msec_) * 1000 * 2);
+    const bool iface_timed_out = (frame.getMonotonicTimestamp() - this_transfer_ts_) > getTFallback();
 
     // FSM, the hard way
     const bool need_restart =
-        (not_initialized) ||
-        (receiver_timed_out) ||
-        (same_iface && first_fame && (tid_rel == TidFuture)) ||
-        (iface_timed_out && first_fame && (tid_rel == TidFuture));
+        not_initialized ||
+        receiver_timed_out ||
+        ((same_iface || iface_timed_out) && first_fame && (tid_rel == TidFuture));
 
     if (need_restart)
     {
-        const bool error = !not_initialized && !receiver_timed_out;
-        if (error)
+        if (!not_initialized && !receiver_timed_out)
         {
             registerError();
         }

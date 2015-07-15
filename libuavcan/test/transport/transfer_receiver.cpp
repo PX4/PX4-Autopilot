@@ -78,7 +78,9 @@ struct Context
     uavcan::TransferReceiver receiver;  // Must be default constructible and copyable
     uavcan::TransferBufferManager<BufSize, 1> bufmgr;
 
-    Context() : bufmgr(pool)
+    Context(uavcan::TransferType tt) :
+        receiver(tt),
+        bufmgr(pool)
     {
         assert(pool.allocate(1) == NULL);
     }
@@ -120,7 +122,7 @@ static bool matchBufferContent(const uavcan::ITransferBuffer* tbb, const std::st
 TEST(TransferReceiver, Basic)
 {
     using uavcan::TransferReceiver;
-    Context<32> context;
+    Context<32> context(uavcan::TransferTypeMessageBroadcast);
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -259,7 +261,7 @@ TEST(TransferReceiver, Basic)
 
 TEST(TransferReceiver, OutOfBufferSpace_32bytes)
 {
-    Context<32> context;
+    Context<32> context(uavcan::TransferTypeMessageBroadcast);
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -297,7 +299,7 @@ TEST(TransferReceiver, OutOfBufferSpace_32bytes)
 
 TEST(TransferReceiver, OutOfOrderFrames)
 {
-    Context<32> context;
+    Context<32> context(uavcan::TransferTypeMessageBroadcast);
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -321,7 +323,7 @@ TEST(TransferReceiver, OutOfOrderFrames)
 
 TEST(TransferReceiver, IntervalMeasurement)
 {
-    Context<32> context;
+    Context<32> context(uavcan::TransferTypeMessageBroadcast);
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -351,7 +353,7 @@ TEST(TransferReceiver, IntervalMeasurement)
 
 TEST(TransferReceiver, Restart)
 {
-    Context<32> context;
+    Context<32> context(uavcan::TransferTypeMessageBroadcast);
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -379,13 +381,13 @@ TEST(TransferReceiver, Restart)
      * Begins OK, gets an iface timeout, switches to another iface
      */
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET100, 1, 103000500), bk)); // Begin
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET001, 1, 106000500), bk)); // 3 sec later, iface timeout
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "-------", SET001, 1, 106000600), bk)); // Same TID, another iface - ignore
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "-------", SET001, 2, 106000700), bk)); // Not first frame - ignore
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET100, 2, 106000800), bk)); // First, another iface - restart
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET010, 1, 106000600), bk)); // Old iface - ignore
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET001, 2, 106000900), bk)); // Continuing
-    CHECK_COMPLETE(    rcv.addFrame(gen(0, "1234567", SET010, 2, 106000910), bk)); // Done
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET001, 1, 104000500), bk)); // 1 sec later, iface timeout
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "-------", SET001, 1, 104000600), bk)); // Same TID, another iface - ignore
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "-------", SET001, 2, 104000700), bk)); // Not first frame - ignore
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET100, 2, 104000800), bk)); // First, another iface - restart
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET010, 1, 104000600), bk)); // Old iface - ignore
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET001, 2, 104000900), bk)); // Continuing
+    CHECK_COMPLETE(    rcv.addFrame(gen(0, "1234567", SET010, 2, 104000910), bk)); // Done
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "3456712345671234567"));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
@@ -397,7 +399,7 @@ TEST(TransferReceiver, Restart)
 
 TEST(TransferReceiver, UtcTransferTimestamping)
 {
-    Context<32> context;
+    Context<32> context(uavcan::TransferTypeMessageBroadcast);
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -448,96 +450,113 @@ TEST(TransferReceiver, UtcTransferTimestamping)
 
 TEST(TransferReceiver, HeaderParsing)
 {
-    Context<32> context;
-    RxFrameGenerator gen(123);
-    uavcan::TransferReceiver& rcv = context.receiver;
-    uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
-
-    static const uavcan::TransferType ADDRESSED_TRANSFER_TYPES[2] =
-    {
-        uavcan::TransferTypeServiceRequest,
-        uavcan::TransferTypeServiceResponse
-    };
+    static const std::string SFT_PAYLOAD = "1234567";
 
     uavcan::TransferID tid;
 
     /*
-     * MFT, message broadcasting
+     * Broadcast
      */
     {
-        gen.bufmgr_key =
-            uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), uavcan::TransferTypeMessageBroadcast);
-        uavcan::TransferBufferAccessor bk1(context.bufmgr, gen.bufmgr_key);
+        Context<32> context(uavcan::TransferTypeMessageBroadcast);
+        RxFrameGenerator gen(123);
+        uavcan::TransferReceiver& rcv = context.receiver;
+        uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
 
-        CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET100, tid.get(), 1), bk1));
-        CHECK_COMPLETE(    rcv.addFrame(gen(0, "abcd",     SET011,  tid.get(), 2), bk1));
+        /*
+         * MFT, message broadcasting
+         */
+        {
+            gen.bufmgr_key =
+                uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), uavcan::TransferTypeMessageBroadcast);
+            uavcan::TransferBufferAccessor bk1(context.bufmgr, gen.bufmgr_key);
 
-        ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "34567abcd"));
-        ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
+            CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET100, tid.get(), 1), bk1));
+            CHECK_COMPLETE(    rcv.addFrame(gen(0, "abcd",     SET011,  tid.get(), 2), bk1));
 
-        tid.increment();
-        bk1.remove();
+            ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "34567abcd"));
+            ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
+
+            tid.increment();
+            bk1.remove();
+        }
+
+        /*
+         * SFT, message broadcasting
+         */
+        {
+            gen.bufmgr_key =
+                uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), uavcan::TransferTypeMessageBroadcast);
+            uavcan::TransferBufferAccessor bk(context.bufmgr, gen.bufmgr_key);
+
+            const uavcan::RxFrame frame = gen(0, SFT_PAYLOAD, SET110, tid.get(), 1000);
+
+            CHECK_SINGLE_FRAME(rcv.addFrame(frame, bk));
+            ASSERT_EQ(0x0000, rcv.getLastTransferCrc());                                     // Default value - zero
+
+            // All bytes are payload, zero overhead
+            ASSERT_TRUE(std::equal(SFT_PAYLOAD.begin(), SFT_PAYLOAD.end(), frame.getPayloadPtr()));
+
+            tid.increment();
+        }
     }
 
     /*
-     * MFT, service request/response
+     * Unicast
      */
-    for (unsigned i = 0; i < (sizeof(ADDRESSED_TRANSFER_TYPES) / sizeof(ADDRESSED_TRANSFER_TYPES[0])); i++)
     {
-        gen.bufmgr_key =
-            uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), ADDRESSED_TRANSFER_TYPES[i]);
-        uavcan::TransferBufferAccessor bk2(context.bufmgr, gen.bufmgr_key);
+        Context<32> context(uavcan::TransferTypeServiceRequest);
+        RxFrameGenerator gen(123);
+        uavcan::TransferReceiver& rcv = context.receiver;
+        uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
 
-        const uint64_t ts_monotonic = i + 10;
+        static const uavcan::TransferType ADDRESSED_TRANSFER_TYPES[2] =
+        {
+            uavcan::TransferTypeServiceRequest,
+            uavcan::TransferTypeServiceResponse
+        };
 
-        CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET100, tid.get(), ts_monotonic), bk2));
-        CHECK_COMPLETE(    rcv.addFrame(gen(0, "abcd",    SET011,  tid.get(), ts_monotonic), bk2));
+        /*
+         * MFT, service request/response
+         */
+        for (unsigned i = 0; i < (sizeof(ADDRESSED_TRANSFER_TYPES) / sizeof(ADDRESSED_TRANSFER_TYPES[0])); i++)
+        {
+            gen.bufmgr_key =
+                uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), ADDRESSED_TRANSFER_TYPES[i]);
+            uavcan::TransferBufferAccessor bk2(context.bufmgr, gen.bufmgr_key);
 
-        ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "34567abcd"));
-        ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
+            const uint64_t ts_monotonic = i + 10;
 
-        tid.increment();
-        bk2.remove();
+            CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET100, tid.get(), ts_monotonic), bk2));
+            CHECK_COMPLETE(    rcv.addFrame(gen(0, "abcd",    SET011,  tid.get(), ts_monotonic), bk2));
+
+            ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "34567abcd"));
+            ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
+
+            tid.increment();
+            bk2.remove();
+        }
+
+        /*
+         * SFT, message unicast, service request/response
+         */
+        for (unsigned i = 0; i < int(sizeof(ADDRESSED_TRANSFER_TYPES) / sizeof(ADDRESSED_TRANSFER_TYPES[0])); i++)
+        {
+            gen.bufmgr_key =
+                uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), ADDRESSED_TRANSFER_TYPES[i]);
+            uavcan::TransferBufferAccessor bk(context.bufmgr, gen.bufmgr_key);
+
+            const uavcan::RxFrame frame = gen(0, SFT_PAYLOAD, SET110, tid.get(), i + 10000U);
+
+            CHECK_SINGLE_FRAME(rcv.addFrame(frame, bk));
+            ASSERT_EQ(0x0000, rcv.getLastTransferCrc());                                     // Default value - zero
+
+            // First byte must be ignored
+            ASSERT_TRUE(std::equal(SFT_PAYLOAD.begin(), SFT_PAYLOAD.end(), frame.getPayloadPtr()));
+
+            tid.increment();
+        }
     }
 
-    /*
-     * SFT, message broadcasting
-     */
-    static const std::string SFT_PAYLOAD = "1234567";
 
-    {
-        gen.bufmgr_key =
-            uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), uavcan::TransferTypeMessageBroadcast);
-        uavcan::TransferBufferAccessor bk(context.bufmgr, gen.bufmgr_key);
-
-        const uavcan::RxFrame frame = gen(0, SFT_PAYLOAD, SET110, tid.get(), 1000);
-
-        CHECK_SINGLE_FRAME(rcv.addFrame(frame, bk));
-        ASSERT_EQ(0x0000, rcv.getLastTransferCrc());                                     // Default value - zero
-
-        // All bytes are payload, zero overhead
-        ASSERT_TRUE(std::equal(SFT_PAYLOAD.begin(), SFT_PAYLOAD.end(), frame.getPayloadPtr()));
-
-        tid.increment();
-    }
-
-    /*
-     * SFT, message unicast, service request/response
-     */
-    for (unsigned i = 0; i < int(sizeof(ADDRESSED_TRANSFER_TYPES) / sizeof(ADDRESSED_TRANSFER_TYPES[0])); i++)
-    {
-        gen.bufmgr_key =
-            uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), ADDRESSED_TRANSFER_TYPES[i]);
-        uavcan::TransferBufferAccessor bk(context.bufmgr, gen.bufmgr_key);
-
-        const uavcan::RxFrame frame = gen(0, SFT_PAYLOAD, SET110, tid.get(), i + 10000U);
-
-        CHECK_SINGLE_FRAME(rcv.addFrame(frame, bk));
-        ASSERT_EQ(0x0000, rcv.getLastTransferCrc());                                     // Default value - zero
-
-        // First byte must be ignored
-        ASSERT_TRUE(std::equal(SFT_PAYLOAD.begin(), SFT_PAYLOAD.end(), frame.getPayloadPtr()));
-
-        tid.increment();
-    }
 }
