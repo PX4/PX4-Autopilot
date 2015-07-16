@@ -65,7 +65,9 @@
  * Pre-processor Definitions
  ****************************************************************************/
 //#define DEBUG_APPLICATION_INPLACE    1 /* Never leave defined */
-
+#define DEBUG_NO_FW_UPDATE           1 /* With DEBUG_APPLICATION_INPLACE
+                                        * prevents fw update
+                                        */
 
 /* Using 2 character text in  LogMessage */
 
@@ -1236,6 +1238,13 @@ __EXPORT int main(int argc, char *argv[])
 		 */
 		common.crc.valid = true;
 
+		/* Auto bauding may have taken a long time, so restart the tboot time*/
+
+		if (bootloader.app_valid && !bootloader.wait_for_getnodeinfo) {
+	                timer_start(tboot);
+	        }
+
+
 	}
 
 	/* Now that we have a node Id configure the uavcan library */
@@ -1271,13 +1280,16 @@ __EXPORT int main(int argc, char *argv[])
 	 * tBoot from Reset.
 	 */
 
-
 	if (bootloader.app_valid &&
 	    (bootloader.wait_for_getnodeinfo ||
 	     bootloader.app_bl_request)) {
 
 		timer_start(tboot);
 	}
+
+#if defined(DEBUG_APPLICATION_INPLACE) && defined(DEBUG_NO_FW_UPDATE)
+        goto boot;
+#endif
 
 	/*
 	 * Now We wait up to tBoot for a begin firmware update from the FirmwareServer

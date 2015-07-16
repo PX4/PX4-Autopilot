@@ -76,8 +76,8 @@
 #if defined(RESOURCE_DEBUG)
 #define resources(s) ::syslog(LOG_INFO," %s\n",(s)); \
 	if (UavcanNode::instance()) { \
-		syslog(LOG_INFO,"UAVCAN  getNumFreeBlocks in bytes %d\n", \
-		       UAVCAN_MEM_POOL_BLOCK_SIZE * UavcanNode::instance()->get_node().getAllocator().getNumFreeBlocks()); \
+		syslog(LOG_INFO,"UAVCAN  getPeakNumUsedBlocks() in bytes %d\n", \
+		       UAVCAN_MEM_POOL_BLOCK_SIZE * UavcanNode::instance()->get_node().getAllocator().getPeakNumUsedBlocks()); \
 	} \
 	free_check(); \
 	stack_check();

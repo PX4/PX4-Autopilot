@@ -67,7 +67,7 @@ class UavcanNode : public device::CDev
 	 * free -and multiply it times getBlockSize to get the number of bytes
 	 *
 	 */
-	static constexpr unsigned MemPoolSize        = 1024;
+	static constexpr unsigned MemPoolSize        = 2048;
 
 	/*
 	 * This memory is reserved for uavcan to use for queuing CAN frames.
@@ -86,8 +86,7 @@ class UavcanNode : public device::CDev
 	 * This memory is uses for the tasks stack size
 	 */
 
-	static constexpr unsigned StackSize          = 2100;
-
+        static constexpr unsigned StackSize          = 2500;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;

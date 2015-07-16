@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
+ *   Author: David Sidrane<david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,64 +31,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include <systemlib/visibility.h>
 
-/**
- * @file version.h
- *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
-
-#ifndef VERSION_H_
-#define VERSION_H_
-
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
- */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
-
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
-#define HW_ARCH "PX4_STM32F4DISCOVERY"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4CANNODE_V1
-#define HW_ARCH "PX4CANNODE_V1"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_S2740VC_V1
-#define HW_ARCH "S2740VC_V1"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_SITL
-#define	HW_ARCH "LINUXTEST"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FLOW_V1
-#define HW_ARCH "PX4FLOW_V1"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4ESC_V1
-#define HW_ARCH "PX4ESC_V1"
-#endif
-
-
-#endif /* VERSION_H_ */
+__BEGIN_DECLS
+void rgb_led(int r, int g , int b, int freqs);
+__END_DECLS

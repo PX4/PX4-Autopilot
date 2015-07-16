@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4CANNODEv1 internal definitions
+ * S2740VCv1 internal definitions
  */
 
 #pragma once

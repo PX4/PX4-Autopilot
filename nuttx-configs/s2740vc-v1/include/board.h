@@ -171,4 +171,4 @@ int app_archinitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __CONFIGS_PX4CANNODE_V1_INCLUDE_BOARD_H */
+#endif /* __CONFIGS_S2740VC_INCLUDE_BOARD_H */

@@ -1,5 +1,5 @@
 #
-# Makefile for the s2740vc_default configuration
+# Makefile for the px4esc-v1_default configuration
 #
 
 INCLUDE_DIRS += $(PX4_BOOTLOADER_BASE)include
@@ -15,14 +15,15 @@ export UAVCANBLID_SW_VERSION_MINOR=1
 #
 # Bring in common uavcan hardware version definitions
 #
-include $(PX4_MK_DIR)nuttx/uavcan_board_s2740vc-v1.mk
+include $(PX4_MK_DIR)nuttx/uavcan_board_px4esc-v1.mk
 
 #
 # Board support modules
 #
 MODULES		+= drivers/stm32
+MODULES		+= drivers/stm32/adc
 MODULES		+= drivers/led
-MODULES		+= drivers/boards/s2740vc-v1
+MODULES		+= drivers/boards/px4esc-v1
 
 #
 # System commands
@@ -35,6 +36,7 @@ MODULES		+= systemcmds/ver
 #
 # General system control
 #
+MODULES		+= modules/uavcannode
 
 #
 # Library modules
@@ -55,8 +57,7 @@ GEN_PARAM_XML = 1
 #
 # Make this UAVCAN boot loadable
 #
-# N.B. this would be uncommented when there is an APP 
-#MAKE_UAVCAN_BOOT_LOADABLE_ID=$(call MKUAVCANBLNAME,org.pixhawk.s2740vc-v1)
+MAKE_UAVCAN_BOOT_LOADABLE_ID=$(call MKUAVCANBLNAME,org.pixhawk.px4esc-v1)
 
 
 #
