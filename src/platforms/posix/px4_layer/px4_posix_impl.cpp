@@ -47,6 +47,7 @@
 #include <unistd.h>
 #include "systemlib/param/param.h"
 #include "hrt_work.h"
+#include <drivers/drv_hrt.h>
 
 extern pthread_t _shell_task_id;
 
@@ -75,6 +76,11 @@ void init_once(void)
 void init(int argc, char *argv[], const char *app_name)
 {
 	printf("App name: %s\n", app_name);
+}
+
+uint64_t get_time_micros()
+{
+	return hrt_absolute_time();
 }
 
 }
