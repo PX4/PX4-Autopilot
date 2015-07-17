@@ -46,6 +46,8 @@
  * @author Anton Babushkin <anton@px4.io>
  */
 
+#include <board_config.h>
+
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
@@ -111,26 +113,10 @@
  * IO:
  * IN4 - servo supply rail
  * IN5 - analog RSSI
+ *
+ * The channel definitions (e.g., ADC_BATTERY_VOLTAGE_CHANNEL, ADC_BATTERY_CURRENT_CHANNEL, and ADC_AIRSPEED_VOLTAGE_CHANNEL) are defined in board_config.h
  */
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define ADC_BATTERY_VOLTAGE_CHANNEL	10
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define ADC_BATTERY_VOLTAGE_CHANNEL	2
-#define ADC_BATTERY_CURRENT_CHANNEL	3
-#define ADC_5V_RAIL_SENSE		4
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define ADC_BATTERY_VOLTAGE_CHANNEL	10
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	((uint8_t)(-1))
-#endif
 
 #define BATT_V_LOWPASS			0.001f
 #define BATT_V_IGNORE_THRESHOLD		2.5f
