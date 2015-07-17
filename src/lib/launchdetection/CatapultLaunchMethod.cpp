@@ -90,7 +90,7 @@ void CatapultLaunchMethod::update(float accel_x)
 		break;
 
 	case LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL:
-		/* Vehicle is currently controlling attitude but not with full throttle. Waiting undtil delay is
+		/* Vehicle is currently controlling attitude but not with full throttle. Waiting until delay is
 		 * over to allow full throttle */
 		motorDelayCounter += dt;
 		if (motorDelayCounter > motorDelay.get()) {
