@@ -120,6 +120,15 @@ private:
 	param_t integration_time ;
 	param_t transfer_time ;
 
+	int32_t _gpios[6] = {
+		GPIO_GPIO0_OUTPUT,
+		GPIO_GPIO1_OUTPUT,
+		GPIO_GPIO2_OUTPUT,
+		GPIO_GPIO3_OUTPUT,
+		GPIO_GPIO4_OUTPUT,
+		GPIO_GPIO5_OUTPUT
+	};
+
 	/**
 	 * Topic poller to check for fire info.
 	 */
@@ -143,8 +152,8 @@ CameraTrigger	*g_camera_trigger;
 
 CameraTrigger::CameraTrigger() :
 	pin(1),
-	_pollcall{},
-	_firecall{},
+	_pollcall {},
+	_firecall {},
 	_gpio_fd(-1),
 	_polarity(0),
 	_activation_time(0.0f),
@@ -155,16 +164,19 @@ CameraTrigger::CameraTrigger() :
 	_sensor_sub(-1),
 	_vcommand_sub(-1),
 	_trigger_pub(nullptr),
-	_trigger{},
-	_sensor{},
-	_command{}
-{
+	_trigger {},
+	_sensor {},
+	_command {},
+	_gpios{} {
+
+	memset(&_pollcall, 0, sizeof(_pollcall));
+	memset(&_firecall, 0, sizeof(_firecall));
+
 	memset(&_trigger, 0, sizeof(_trigger));
 	memset(&_sensor, 0, sizeof(_sensor));
 	memset(&_command, 0, sizeof(_command));
 
-	memset(&_pollcall, 0, sizeof(_pollcall));
-	memset(&_firecall, 0, sizeof(_firecall));
+	memset(&_gpios, 0, sizeof(_gpios));
 
 	// Parameters
 	polarity = param_find("TRIG_POLARITY");
@@ -190,13 +202,13 @@ CameraTrigger::start()
 	param_get(integration_time, &_integration_time);
 	param_get(transfer_time, &_transfer_time);
 
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(_gpios[pin - 1]);
 
 	if (_polarity == 0) {
-		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 1);	 	// GPIO pin pull high
+		stm32_gpiowrite(_gpios[pin - 1], 1);	 	// GPIO pin pull high
 
 	} else if (_polarity == 1) {
-		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 0);	 	// GPIO pin pull low
+		stm32_gpiowrite(_gpios[pin - 1], 0);	 	// GPIO pin pull low
 
 	} else {
 		warnx(" invalid trigger polarity setting. stopping.");
@@ -283,13 +295,13 @@ CameraTrigger::engage(void *arg)
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(trig->_gpios[trig->pin - 1]);
 
 	if (trig->_polarity == 0) {	// ACTIVE_LOW
-		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 0);
+		stm32_gpiowrite(trig->_gpios[trig->pin - 1], 0);
 
 	} else if (trig->_polarity == 1) {	// ACTIVE_HIGH
-		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 1);
+		stm32_gpiowrite(trig->_gpios[trig->pin - 1], 1);
 	}
 
 
@@ -301,13 +313,13 @@ CameraTrigger::disengage(void *arg)
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(trig->_gpios[trig->pin - 1]);
 
-	if (trig->_polarity == 0) {	// ACTIVE_LOW
-		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 1);
+	if (trig->_polarity == 0) {		// ACTIVE_LOW
+		stm32_gpiowrite(trig->_gpios[trig->pin - 1], 1);
 
 	} else if (trig->_polarity == 1) {	// ACTIVE_HIGH
-		stm32_gpiowrite(GPIO_GPIO0_OUTPUT, 0);
+		stm32_gpiowrite(trig->_gpios[trig->pin - 1], 0);
 	}
 
 }
