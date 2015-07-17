@@ -47,12 +47,14 @@
   <build_depend>libmavconn</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>rostest</build_depend>
+  <build_depend>mav_msgs</build_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>eigen</run_depend>
   <run_depend>libmavconn</run_depend>
   <run_depend>tf</run_depend>
+  <run_depend>mav_msgs</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
