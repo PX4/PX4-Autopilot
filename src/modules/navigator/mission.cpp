@@ -126,8 +126,6 @@ Mission::on_inactive()
 			_offboard_mission.dataman_id = mission_state.dataman_id;
 			_offboard_mission.count = mission_state.count;
 			_current_offboard_mission_index = mission_state.current_seq;
-
-			warnx("LOADED MISSION STATE FROM STORAGE");
 		}
 
 		_inited = true;
@@ -655,7 +653,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds */
-			warnx("err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
 			return false;
 		}
 
