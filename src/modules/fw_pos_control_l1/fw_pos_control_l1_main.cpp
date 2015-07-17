@@ -1363,7 +1363,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				/* Detect launch */
 				launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
 
-				/* update our copy of the laucn detection state */
+				/* update our copy of the launch detection state */
 				launch_detection_state = launchDetector.getLaunchDetected();
 			} else	{
 				/* no takeoff detection --> fly */
