@@ -112,6 +112,13 @@ __BEGIN_DECLS
 #define GPIO_GPIO10_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN5)
 #define GPIO_GPIO11_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN8)
 
+/*
+ * ADC channels
+ *
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ */
+#define ADC_CHANNELS (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13)
+
 /* PWM
  *
  * Eight PWM outputs are configured.
