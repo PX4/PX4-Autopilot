@@ -1914,33 +1914,32 @@ protected:
 };
 
 
-class MavlinkStreamRCChannelsRaw : public MavlinkStream
+class MavlinkStreamRCChannels : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamRCChannelsRaw::get_name_static();
+		return MavlinkStreamRCChannels::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "RC_CHANNELS_RAW";
+		return "RC_CHANNELS";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_RC_CHANNELS_RAW;
+		return MAVLINK_MSG_ID_RC_CHANNELS;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamRCChannelsRaw(mavlink);
+		return new MavlinkStreamRCChannels(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return _rc_sub->is_published() ? ((RC_INPUT_MAX_CHANNELS / 8) * (MAVLINK_MSG_ID_RC_CHANNELS_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) +
-				MAVLINK_MSG_ID_RC_CHANNELS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _rc_sub->is_published() ? (MAVLINK_MSG_ID_RC_CHANNELS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
@@ -1948,11 +1947,11 @@ private:
 	uint64_t _rc_time;
 
 	/* do not allow top copying this class */
-	MavlinkStreamRCChannelsRaw(MavlinkStreamRCChannelsRaw &);
-	MavlinkStreamRCChannelsRaw& operator = (const MavlinkStreamRCChannelsRaw &);
+	MavlinkStreamRCChannels(MavlinkStreamRCChannels &);
+	MavlinkStreamRCChannels& operator = (const MavlinkStreamRCChannels &);
 
 protected:
-	explicit MavlinkStreamRCChannelsRaw(Mavlink *mavlink) : MavlinkStream(mavlink),
+	explicit MavlinkStreamRCChannels(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_rc_sub(_mavlink->add_orb_subscription(ORB_ID(input_rc))),
 		_rc_time(0)
 	{}
@@ -2358,7 +2357,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamPositionTargetGlobalInt::new_instance, &MavlinkStreamPositionTargetGlobalInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionSetpoint::new_instance, &MavlinkStreamLocalPositionSetpoint::get_name_static),
 	new StreamListItem(&MavlinkStreamAttitudeTarget::new_instance, &MavlinkStreamAttitudeTarget::get_name_static),
-	new StreamListItem(&MavlinkStreamRCChannelsRaw::new_instance, &MavlinkStreamRCChannelsRaw::get_name_static),
+	new StreamListItem(&MavlinkStreamRCChannels::new_instance, &MavlinkStreamRCChannels::get_name_static),
 	new StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static),
 	new StreamListItem(&MavlinkStreamOpticalFlowRad::new_instance, &MavlinkStreamOpticalFlowRad::get_name_static),
 	new StreamListItem(&MavlinkStreamActuatorControlTarget<0>::new_instance, &MavlinkStreamActuatorControlTarget<0>::get_name_static),

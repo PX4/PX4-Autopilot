@@ -13,7 +13,7 @@ mavlink stream -d /dev/ttyACM0 -s DISTANCE_SENSOR -r 10
 mavlink stream -d /dev/ttyACM0 -s VFR_HUD -r 20
 mavlink stream -d /dev/ttyACM0 -s ATTITUDE -r 100
 mavlink stream -d /dev/ttyACM0 -s ACTUATOR_CONTROL_TARGET0 -r 30
-mavlink stream -d /dev/ttyACM0 -s RC_CHANNELS_RAW -r 5
+mavlink stream -d /dev/ttyACM0 -s RC_CHANNELS -r 5
 mavlink stream -d /dev/ttyACM0 -s SERVO_OUTPUT_RAW_0 -r 20
 mavlink stream -d /dev/ttyACM0 -s POSITION_TARGET_GLOBAL_INT -r 10
 mavlink stream -d /dev/ttyACM0 -s LOCAL_POSITION_NED -r 30
