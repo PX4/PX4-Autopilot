@@ -226,7 +226,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	 * for a good result, so we're not constraining the user more than we have to.
 	 */
 
-	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
+	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds * 2;
 	hrt_abstime last_gyro = 0;
 	float gyro_x_integral = 0.0f;
 	float gyro_y_integral = 0.0f;
