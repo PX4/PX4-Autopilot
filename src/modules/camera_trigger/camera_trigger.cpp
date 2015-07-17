@@ -153,21 +153,21 @@ CameraTrigger	*g_camera_trigger;
 CameraTrigger::CameraTrigger() :
 	pin(1),
 	_pollcall {},
-	_firecall {},
-	_gpio_fd(-1),
-	_polarity(0),
-	_activation_time(0.0f),
-	_integration_time(0.0f),
-	_transfer_time(0.0f),
-	_trigger_seq(0),
-	_trigger_enabled(false),
-	_sensor_sub(-1),
-	_vcommand_sub(-1),
-	_trigger_pub(nullptr),
-	_trigger {},
-	_sensor {},
-	_command {},
-	_gpios{} {
+	  _firecall {},
+	  _gpio_fd(-1),
+	  _polarity(0),
+	  _activation_time(0.0f),
+	  _integration_time(0.0f),
+	  _transfer_time(0.0f),
+	  _trigger_seq(0),
+	  _trigger_enabled(false),
+	  _sensor_sub(-1),
+	  _vcommand_sub(-1),
+	  _trigger_pub(nullptr),
+	  _trigger {},
+	  _sensor {},
+	  _command {},
+_gpios {} {
 
 	memset(&_pollcall, 0, sizeof(_pollcall));
 	memset(&_firecall, 0, sizeof(_firecall));
