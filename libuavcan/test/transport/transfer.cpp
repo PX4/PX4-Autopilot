@@ -15,7 +15,7 @@ TEST(Transfer, TransferID)
     ASSERT_EQ(32, 1 << TransferID::BitLen);
 
     /*
-     * computeForwardDistance()
+     * forwardDistance()
      */
     EXPECT_EQ(0, TransferID(0).computeForwardDistance(0));
     EXPECT_EQ(1, TransferID(0).computeForwardDistance(1));
@@ -27,30 +27,6 @@ TEST(Transfer, TransferID)
 
     EXPECT_EQ(30,TransferID(7).computeForwardDistance(5));
     EXPECT_EQ(5, TransferID(0).computeForwardDistance(5));
-
-    /*
-     * subtracted()
-     */
-    EXPECT_EQ(0,  TransferID(0).subtracted(0));
-    EXPECT_EQ(-1, TransferID(0).subtracted(1));
-    EXPECT_EQ(-7, TransferID(0).subtracted(7));
-
-    EXPECT_EQ(0,  TransferID(7).subtracted(7));
-    EXPECT_EQ(1,  TransferID(31).subtracted(30));
-    EXPECT_EQ(-1, TransferID(31).subtracted(0));
-
-    EXPECT_EQ(2,  TransferID(7).subtracted(5));
-    EXPECT_EQ(-5, TransferID(0).subtracted(5));
-
-    EXPECT_EQ(-1, TransferID(15).subtracted(16));
-    EXPECT_EQ(1,  TransferID(16).subtracted(15));
-
-    EXPECT_EQ(-16, TransferID(10).subtracted(26));
-    EXPECT_EQ(14,  TransferID(24).subtracted(10));
-    EXPECT_EQ(15,  TransferID(25).subtracted(10));
-    EXPECT_EQ(-16, TransferID(26).subtracted(10));
-    EXPECT_EQ(-15, TransferID(27).subtracted(10));
-    EXPECT_EQ(-14, TransferID(28).subtracted(10));
 
     /*
      * Misc

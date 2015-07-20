@@ -104,11 +104,6 @@ public:
      * Amount of increment() calls to reach rhs value.
      */
     int computeForwardDistance(TransferID rhs) const;
-
-    /**
-     * Difference between two TransferID values with proper wraparound handling.
-     */
-    int subtracted(TransferID rhs) const;
 };
 
 

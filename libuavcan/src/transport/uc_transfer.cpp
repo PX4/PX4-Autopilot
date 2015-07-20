@@ -52,11 +52,4 @@ int TransferID::computeForwardDistance(TransferID rhs) const
     return d;
 }
 
-int TransferID::subtracted(TransferID rhs) const
-{
-    const int x = rhs.computeForwardDistance(*this);
-
-    return (x >= ((1 << BitLen) / 2)) ? (x - (1 << BitLen)) : x;
-}
-
 }
