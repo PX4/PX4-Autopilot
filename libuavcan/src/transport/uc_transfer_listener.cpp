@@ -207,7 +207,7 @@ void TransferListenerBase::handleFrame(const RxFrame& frame)
                 return;
             }
 
-            TransferReceiver new_recv(frame.getTransferType());
+            TransferReceiver new_recv;
             recv = receivers_.insert(key, new_recv);
             if (recv == NULL)
             {

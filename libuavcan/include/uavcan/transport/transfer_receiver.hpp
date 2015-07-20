@@ -21,8 +21,7 @@ public:
     static const uint16_t MinTransferIntervalMSec     = 1;
     static const uint16_t MaxTransferIntervalMSec     = 0xFFFF;
     static const uint16_t DefaultTransferIntervalMSec = 1000;
-    static const uint16_t MessageMaxTFallbackMSec     = 1000;
-    static const uint16_t ServiceTFallbackMSec        = 500;
+    static const uint16_t DefaultTidTimeoutMSec       = 1000;
 
     static MonotonicDuration getDefaultTransferInterval()
     {
@@ -32,11 +31,9 @@ public:
     static MonotonicDuration getMaxTransferInterval() { return MonotonicDuration::fromMSec(MaxTransferIntervalMSec); }
 
 private:
-    enum TidRelation { TidSame, TidRepeat, TidFuture };
-
     enum { IfaceIndexNotSet = MaxCanIfaces };
 
-    enum { ErrorCntMask = 15 };
+    enum { ErrorCntMask = 31 };
     enum { IfaceIndexMask = MaxCanIfaces };
 
     MonotonicTime prev_transfer_ts_;
@@ -50,21 +47,18 @@ private:
     TransferID tid_;    // 1 byte field
 
     // 1 byte aligned bitfields:
-    uint8_t tt_service_         : 1;
     uint8_t next_toggle_        : 1;
     uint8_t iface_index_        : 2;
-    mutable uint8_t error_cnt_  : 4;
+    mutable uint8_t error_cnt_  : 5;
 
     bool isInitialized() const { return iface_index_ != IfaceIndexNotSet; }
 
     bool isMidTransfer() const { return buffer_write_pos_ > 0; }
 
-    MonotonicDuration getTFallback() const;
-    MonotonicDuration getTTimeout() const;
+    MonotonicDuration getIfaceSwitchDelay() const;
+    MonotonicDuration getTidTimeout() const;
 
     void registerError() const;
-
-    TidRelation getTidRelation(const RxFrame& frame) const;
 
     void updateTransferTimings();
     void prepareForNextTransfer();
@@ -78,17 +72,6 @@ public:
         transfer_interval_msec_(DefaultTransferIntervalMSec),
         this_transfer_crc_(0),
         buffer_write_pos_(0),
-        tt_service_(false),
-        next_toggle_(false),
-        iface_index_(IfaceIndexNotSet),
-        error_cnt_(0)
-    { }
-
-    TransferReceiver(const TransferType transfer_type) :
-        transfer_interval_msec_(DefaultTransferIntervalMSec),
-        this_transfer_crc_(0),
-        buffer_write_pos_(0),
-        tt_service_((transfer_type == TransferTypeServiceRequest) || (transfer_type == TransferTypeServiceResponse)),
         next_toggle_(false),
         iface_index_(IfaceIndexNotSet),
         error_cnt_(0)

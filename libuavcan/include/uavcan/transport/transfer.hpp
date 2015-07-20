@@ -74,6 +74,7 @@ class UAVCAN_EXPORT TransferID
 public:
     static const uint8_t BitLen = 5U;
     static const uint8_t Max = (1U << BitLen) - 1U;
+    static const uint8_t Half = (1U << BitLen) / 2U;
 
     TransferID()
         : value_(0)

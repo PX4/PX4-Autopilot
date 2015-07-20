@@ -55,7 +55,7 @@ TEST(TransportStatsProvider, Basic)
      * Sending a malformed frame, it must be registered as tranfer error
      */
     uavcan::Frame frame(uavcan::protocol::GetTransportStats::DefaultDataTypeID, uavcan::TransferTypeServiceRequest,
-                        2, 1, 0);
+                        2, 1, 1);
     frame.setStartOfTransfer(true);
     frame.setEndOfTransfer(true);
     uavcan::CanFrame can_frame;
@@ -76,11 +76,11 @@ TEST(TransportStatsProvider, Basic)
     ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(tsp_cln.collector.result.get());
-    ASSERT_EQ(1, tsp_cln.collector.result->getResponse().transfer_errors);                  // That broken frame
-    ASSERT_EQ(3, tsp_cln.collector.result->getResponse().transfers_rx);
-    ASSERT_EQ(2, tsp_cln.collector.result->getResponse().transfers_tx);
-    ASSERT_EQ(1, tsp_cln.collector.result->getResponse().can_iface_stats.size());
-    ASSERT_EQ(72, tsp_cln.collector.result->getResponse().can_iface_stats[0].errors);
-    ASSERT_EQ(4, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_rx);     // Same here
-    ASSERT_EQ(12, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_tx);
+    EXPECT_EQ(1, tsp_cln.collector.result->getResponse().transfer_errors);                  // That broken frame
+    EXPECT_EQ(3, tsp_cln.collector.result->getResponse().transfers_rx);
+    EXPECT_EQ(2, tsp_cln.collector.result->getResponse().transfers_tx);
+    EXPECT_EQ(1, tsp_cln.collector.result->getResponse().can_iface_stats.size());
+    EXPECT_EQ(72, tsp_cln.collector.result->getResponse().can_iface_stats[0].errors);
+    EXPECT_EQ(4, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_rx);     // Same here
+    EXPECT_EQ(12, tsp_cln.collector.result->getResponse().can_iface_stats[0].frames_tx);
 }

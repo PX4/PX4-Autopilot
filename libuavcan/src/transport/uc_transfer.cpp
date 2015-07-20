@@ -26,6 +26,7 @@ const TransferPriority TransferPriority::Lowest(NumericallyMax);
  */
 const uint8_t TransferID::BitLen;
 const uint8_t TransferID::Max;
+const uint8_t TransferID::Half;
 
 /**
  * NodeID

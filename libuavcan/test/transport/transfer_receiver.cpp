@@ -78,8 +78,7 @@ struct Context
     uavcan::TransferReceiver receiver;  // Must be default constructible and copyable
     uavcan::TransferBufferManager<BufSize, 1> bufmgr;
 
-    Context(uavcan::TransferType tt) :
-        receiver(tt),
+    Context() :
         bufmgr(pool)
     {
         assert(pool.allocate(1) == NULL);
@@ -122,7 +121,7 @@ static bool matchBufferContent(const uavcan::ITransferBuffer* tbb, const std::st
 TEST(TransferReceiver, Basic)
 {
     using uavcan::TransferReceiver;
-    Context<32> context(uavcan::TransferTypeMessageBroadcast);
+    Context<32> context;
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -194,9 +193,9 @@ TEST(TransferReceiver, Basic)
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "",         SET110, 3, 2500), bk));
     ASSERT_EQ(2500, rcv.getLastTransferTimestampMonotonic().toUSec());
 
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "",         SET110, 0, 3000), bk));   // Old TID
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "",         SET110, 1, 3100), bk));   // Old TID
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "",         SET110, 3, 3200), bk));   // Old TID
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "",         SET110, 0, 3000), bk));
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "",         SET110, 1, 3100), bk));
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "",         SET110, 3, 3200), bk));
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "",         SET110, 0, 3300), bk));   // Old TID, wrong iface
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "",         SET110, 2, 3400), bk));   // Old TID, wrong iface
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "",         SET110, 3, 3500), bk));   // Old TID, wrong iface
@@ -261,7 +260,7 @@ TEST(TransferReceiver, Basic)
 
 TEST(TransferReceiver, OutOfBufferSpace_32bytes)
 {
-    Context<32> context(uavcan::TransferTypeMessageBroadcast);
+    Context<32> context;
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -299,7 +298,7 @@ TEST(TransferReceiver, OutOfBufferSpace_32bytes)
 
 TEST(TransferReceiver, OutOfOrderFrames)
 {
-    Context<32> context(uavcan::TransferTypeMessageBroadcast);
+    Context<32> context;
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -323,7 +322,7 @@ TEST(TransferReceiver, OutOfOrderFrames)
 
 TEST(TransferReceiver, IntervalMeasurement)
 {
-    Context<32> context(uavcan::TransferTypeMessageBroadcast);
+    Context<32> context;
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -353,7 +352,7 @@ TEST(TransferReceiver, IntervalMeasurement)
 
 TEST(TransferReceiver, Restart)
 {
-    Context<32> context(uavcan::TransferTypeMessageBroadcast);
+    Context<32> context;
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -368,38 +367,40 @@ TEST(TransferReceiver, Restart)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "-------", SET010, 0, 100000200), bk)); // Ignored
 
     /*
-     * Begins immediately after, gets an iface timeout but completes OK
+     * Begins immediately after, encounters a delay 0.9 sec but completes OK
      */
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "1234567", SET100, 0, 100000300), bk)); // Begin
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "1234567", SET001, 0, 102000300), bk)); // 2 sec later, iface timeout
-    CHECK_COMPLETE(    rcv.addFrame(gen(1, "1234567", SET010, 0, 102000400), bk)); // OK nevertheless
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "1234567", SET001, 0, 100900300), bk)); // 0.9 sec later
+    CHECK_COMPLETE(    rcv.addFrame(gen(1, "1234567", SET010, 0, 100900400), bk)); // OK nevertheless
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "3456712345671234567"));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
+
+    std::cout << "Interval: " << rcv.getInterval().toString() << std::endl;
 
     /*
-     * Begins OK, gets an iface timeout, switches to another iface
+     * Begins OK, gets a timeout, switches to another iface
      */
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET100, 1, 103000500), bk)); // Begin
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET001, 1, 104000500), bk)); // 1 sec later, iface timeout
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "-------", SET001, 1, 104000600), bk)); // Same TID, another iface - ignore
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "-------", SET001, 2, 104000700), bk)); // Not first frame - ignore
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET100, 2, 104000800), bk)); // First, another iface - restart
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET010, 1, 104000600), bk)); // Old iface - ignore
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET001, 2, 104000900), bk)); // Continuing
-    CHECK_COMPLETE(    rcv.addFrame(gen(0, "1234567", SET010, 2, 104000910), bk)); // Done
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET001, 1, 105000500), bk)); // 2 sec later, timeout
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "-------", SET001, 1, 105000600), bk)); // Same TID, another iface - ignore
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "-------", SET001, 2, 105000700), bk)); // Not first frame - ignore
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET100, 2, 105000800), bk)); // First, another iface - restart
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "-------", SET010, 1, 105000600), bk)); // Old iface - ignore
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "1234567", SET001, 2, 105000900), bk)); // Continuing
+    CHECK_COMPLETE(    rcv.addFrame(gen(0, "1234567", SET010, 2, 105000910), bk)); // Done
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "3456712345671234567"));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
 
-    ASSERT_EQ(1, rcv.yieldErrorCount());
+    ASSERT_EQ(4, rcv.yieldErrorCount());
     ASSERT_EQ(0, rcv.yieldErrorCount());
 }
 
 
 TEST(TransferReceiver, UtcTransferTimestamping)
 {
-    Context<32> context(uavcan::TransferTypeMessageBroadcast);
+    Context<32> context;
     RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -458,7 +459,7 @@ TEST(TransferReceiver, HeaderParsing)
      * Broadcast
      */
     {
-        Context<32> context(uavcan::TransferTypeMessageBroadcast);
+        Context<32> context;
         RxFrameGenerator gen(123);
         uavcan::TransferReceiver& rcv = context.receiver;
         uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
@@ -505,7 +506,7 @@ TEST(TransferReceiver, HeaderParsing)
      * Unicast
      */
     {
-        Context<32> context(uavcan::TransferTypeServiceRequest);
+        Context<32> context;
         RxFrameGenerator gen(123);
         uavcan::TransferReceiver& rcv = context.receiver;
         uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
