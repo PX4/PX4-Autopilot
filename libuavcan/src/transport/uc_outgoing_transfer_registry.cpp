@@ -19,4 +19,9 @@ std::string OutgoingTransferRegistryKey::toString() const
 }
 #endif
 
+/*
+ * IOutgoingTransferRegistry
+ */
+const MonotonicDuration IOutgoingTransferRegistry::MinEntryLifetime = MonotonicDuration::fromMSec(2000);
+
 }

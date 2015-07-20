@@ -64,7 +64,10 @@ public:
 class UAVCAN_EXPORT IOutgoingTransferRegistry
 {
 public:
+    static const MonotonicDuration MinEntryLifetime;
+
     virtual ~IOutgoingTransferRegistry() { }
+
     virtual TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline) = 0;
     virtual bool exists(DataTypeID dtid, TransferType tt) const = 0;
     virtual void cleanup(MonotonicTime deadline) = 0;
