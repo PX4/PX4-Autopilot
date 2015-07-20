@@ -90,6 +90,7 @@ static void doCall(Client& client, const Message& request, InterlinkedTestNodesW
 {
     ASSERT_LE(0, client.call(1, request));
     ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10)));
+    ASSERT_TRUE(client.collector.result.get());
     ASSERT_TRUE(client.collector.result->isSuccessful());
 }
 
