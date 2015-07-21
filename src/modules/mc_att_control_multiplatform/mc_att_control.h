@@ -64,19 +64,19 @@
 
 #include "mc_att_control_base.h"
 
-class MulticopterAttitudeControl :
+class MulticopterAttitudeControlMultiplatform :
 	public MulticopterAttitudeControlBase
 {
 public:
 	/**
 	 * Constructor
 	 */
-	MulticopterAttitudeControl();
+	MulticopterAttitudeControlMultiplatform();
 
 	/**
 	 * Destructor, also kills the sensors task.
 	 */
-	~MulticopterAttitudeControl();
+	~MulticopterAttitudeControlMultiplatform();
 
 	/* Callbacks for topics */
 	void handle_vehicle_attitude(const px4_vehicle_attitude &msg);
@@ -93,6 +93,8 @@ private:
 	px4::Publisher<px4_actuator_controls_0> 	*_actuators_0_pub;		/**< attitude actuator controls publication */
 
 	px4::NodeHandle _n;
+
+	px4::AppState _appState;
 
 	struct {
 		px4::ParameterFloat roll_p;

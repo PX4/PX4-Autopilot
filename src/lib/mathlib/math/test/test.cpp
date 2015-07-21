@@ -59,6 +59,9 @@ void __EXPORT float2SigExp(
 	float &sig,
 	int &exp)
 {
+// FIXME - This code makes no sense when exp is an int
+// FIXME - isnan and isinf not defined for QuRT
+#ifndef __PX4_QURT
 	if (isnan(num) || isinf(num)) {
 		sig = 0.0f;
 		exp = -99;
@@ -79,6 +82,7 @@ void __EXPORT float2SigExp(
 	} else {
 		exp = floor(exp);
 	}
+#endif
 
 	sig = num;
 

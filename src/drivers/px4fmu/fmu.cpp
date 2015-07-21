@@ -37,7 +37,7 @@
  * Driver/configurator for the PX4 FMU multi-purpose port on v1 and v2 boards.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -264,7 +264,7 @@ PX4FMU::PX4FMU() :
 	_task(-1),
 	_armed_sub(-1),
 	_param_sub(-1),
-	_outputs_pub(-1),
+	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_class_instance(0),
 	_task_should_exit(false),
@@ -351,7 +351,7 @@ PX4FMU::init()
 	gpio_reset();
 
 	/* start the IO interface task */
-	_task = task_spawn_cmd("fmuservo",
+	_task = px4_task_spawn_cmd("fmuservo",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_DEFAULT,
 			       1600,
@@ -716,7 +716,7 @@ PX4FMU::task_main()
 				}
 
 				/* publish mixed control outputs */
-				if (_outputs_pub < 0) {
+				if (_outputs_pub != nullptr) {
 					_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &_actuator_output_topic_instance, ORB_PRIO_DEFAULT);
 				} else {
 
@@ -1898,7 +1898,7 @@ fake(int argc, char *argv[])
 
 	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 
-	if (handle < 0)
+	if (handle == nullptr)
 		errx(1, "advertise failed");
 
 	actuator_armed_s aa;
@@ -1908,7 +1908,7 @@ fake(int argc, char *argv[])
 
 	handle = orb_advertise(ORB_ID(actuator_armed), &aa);
 
-	if (handle < 0)
+	if (handle == nullptr)
 		errx(1, "advertise failed 2");
 
 	exit(0);

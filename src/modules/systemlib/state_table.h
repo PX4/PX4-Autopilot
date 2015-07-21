@@ -51,7 +51,7 @@ public:
 	};
 
 	StateTable(Tran const *table, unsigned nStates, unsigned nSignals)
-	: myTable(table), myNsignals(nSignals), myNstates(nStates) {}
+	: myTable(table), myNsignals(nSignals) {}
 
 	#define NO_ACTION &StateTable::doNothing
 	#define ACTION(_target) StateTable::Action(_target)
@@ -76,7 +76,6 @@ protected:
 private:
 	Tran const *myTable;
 	unsigned myNsignals;
-	unsigned myNstates;
 };
 
 #endif

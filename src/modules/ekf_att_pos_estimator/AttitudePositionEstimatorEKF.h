@@ -58,13 +58,15 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
-#include <drivers/drv_range_finder.h>
+
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
@@ -162,7 +164,7 @@ private:
     struct vehicle_local_position_s     _local_pos;     /**< local vehicle position */
     struct vehicle_gps_position_s       _gps;           /**< GPS position */
     struct wind_estimate_s              _wind;          /**< wind estimate */
-    struct range_finder_report          _distance;      /**< distance estimate */
+    struct distance_sensor_s            _distance;      /**< distance estimate */
     struct vehicle_land_detected_s      _landDetector;
     struct actuator_armed_s             _armed;
 
@@ -257,6 +259,11 @@ private:
     }       _parameter_handles;     /**< handles for interesting parameters */
 
     AttPosEKF                   *_ekf;
+
+    /* Low pass filter for attitude rates */
+    math::LowPassFilter2p _LP_att_P;
+    math::LowPassFilter2p _LP_att_Q;
+    math::LowPassFilter2p _LP_att_R;
 
 private:
     /**

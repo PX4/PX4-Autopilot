@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,7 +48,10 @@
  * driver. Use instead the normal FMU or IO driver.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_tasks.h>
+#include <px4_time.h>
+#include <px4_common.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -60,10 +63,9 @@
 #include <poll.h>
 #include <errno.h>
 #include <stdio.h>
-#include <math.h>
+#include <cmath>
+#include <string.h>
 #include <unistd.h>
-
-#include <nuttx/arch.h>
 
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
@@ -82,26 +84,31 @@
 
 #include <systemlib/err.h>
 
+#ifdef __PX4_NUTTX
 class HIL : public device::CDev
+#else
+class HIL : public device::VDev
+#endif
 {
 public:
 	enum Mode {
 		MODE_2PWM,
 		MODE_4PWM,
-        MODE_8PWM,
-        MODE_12PWM,
-        MODE_16PWM,
+		MODE_8PWM,
+		MODE_12PWM,
+		MODE_16PWM,
 		MODE_NONE
 	};
 	HIL();
 	virtual ~HIL();
 
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
+	virtual int     ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	virtual int	init();
 
 	int		set_mode(Mode mode);
 	int		set_pwm_rate(unsigned rate);
+	int		_task;
 
 private:
 	static const unsigned _max_actuators = 4;
@@ -109,7 +116,6 @@ private:
 	Mode		_mode;
 	int 		_update_rate;
 	int 		_current_update_rate;
-	int		_task;
 	int		_t_actuators;
 	int		_t_armed;
 	orb_advert_t	_t_outputs;
@@ -117,7 +123,7 @@ private:
 	bool		_primary_pwm_device;
 
 	volatile bool	_task_should_exit;
-	bool		_armed;
+	static bool	_armed;
 
 	MixerGroup	*_mixers;
 
@@ -131,7 +137,7 @@ private:
 			uint8_t control_index,
 			float &input);
 
-	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
+	int		pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	struct GPIOConfig {
 		uint32_t	input;
@@ -146,7 +152,7 @@ private:
 	void		gpio_set_function(uint32_t gpios, int function);
 	void		gpio_write(uint32_t gpios, int function);
 	uint32_t	gpio_read(void);
-	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
+	int		gpio_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 };
 
@@ -157,19 +163,25 @@ HIL	*g_hil;
 
 } // namespace
 
+bool HIL::_armed = false;
+
 HIL::HIL() :
-	CDev("hilservo", PWM_OUTPUT0_DEVICE_PATH/*"/dev/hil" XXXL*/),
+#ifdef __PX4_NUTTX
+	CDev
+#else
+	VDev
+#endif
+		("hilservo", PWM_OUTPUT0_DEVICE_PATH/*"/dev/hil" XXXL*/),
+	_task(-1),
 	_mode(MODE_NONE),
 	_update_rate(50),
 	_current_update_rate(0),
-	_task(-1),
 	_t_actuators(-1),
 	_t_armed(-1),
 	_t_outputs(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_task_should_exit(false),
-	_armed(false),
 	_mixers(nullptr)
 {
 	_debug_enabled = true;
@@ -188,7 +200,7 @@ HIL::~HIL()
 
 			/* if we have given up, kill it */
 			if (--i == 0) {
-				task_delete(_task);
+				px4_task_delete(_task);
 				break;
 			}
 
@@ -211,10 +223,15 @@ HIL::init()
 	ASSERT(_task == -1);
 
 	/* do regular cdev init */
+#ifdef __PX4_NUTTX
 	ret = CDev::init();
+#else
+	ret = VDev::init();
+#endif
 
-	if (ret != OK)
+	if (ret != OK) {
 		return ret;
+	}
 
 	// XXX already claimed with CDEV
 	///* try to claim the generic PWM output device node as well - it's OK if we fail at this */
@@ -228,11 +245,11 @@ HIL::init()
 	// gpio_reset();
 
 	/* start the HIL interface task */
-	_task = task_spawn_cmd("fmuhil",
+	_task = px4_task_spawn_cmd("fmuhil",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
 			   1200,
-			   (main_t)&HIL::task_main_trampoline,
+			   (px4_main_t)&HIL::task_main_trampoline,
 			   nullptr);
 
 	if (_task < 0) {
@@ -337,11 +354,11 @@ HIL::task_main()
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
-	/* advertise the mixed control outputs, insist on the first group output */
-	_t_outputs = orb_advertise(ORB_ID(actuator_outputs),
-				   &outputs);
 
-	pollfd fds[2];
+	/* advertise the mixed control outputs, insist on the first group output */
+	_t_outputs = orb_advertise(ORB_ID(actuator_outputs), &outputs);
+
+	px4_pollfd_struct_t fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
 	fds[1].fd = _t_armed;
@@ -388,7 +405,7 @@ HIL::task_main()
 		}
 
 		/* sleep waiting for data, but no more than a second */
-		int ret = ::poll(&fds[0], 2, 1000);
+		int ret = px4_poll(&fds[0], 2, 1000);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -398,24 +415,21 @@ HIL::task_main()
 
 		/* do we have a control update? */
 		if (fds[0].revents & POLLIN) {
-
 			/* get controls - must always do this to avoid spinning */
 			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
 				     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 			/* can we mix? */
 			if (_mixers != nullptr) {
-
 				/* do mixing */
 				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
 				outputs.timestamp = hrt_absolute_time();
 
 				/* iterate actuators */
 				for (unsigned i = 0; i < num_outputs; i++) {
-
 					/* last resort: catch NaN, INF and out-of-band errors */
 					if (i < outputs.noutputs &&
-						isfinite(outputs.output[i]) &&
+						PX4_ISFINITE(outputs.output[i]) &&
 						outputs.output[i] >= -1.0f &&
 						outputs.output[i] <= 1.0f) {
 						/* scale for PWM output 900 - 2100us */
@@ -441,11 +455,12 @@ HIL::task_main()
 
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
+			_armed = aa.armed && !aa.lockdown;
 		}
 	}
 
-	::close(_t_actuators);
-	::close(_t_armed);
+	px4_close(_t_actuators);
+	px4_close(_t_armed);
 
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();
@@ -454,23 +469,27 @@ HIL::task_main()
 
 	/* tell the dtor that we are exiting */
 	_task = -1;
-	_exit(0);
 }
 
 int
 HIL::control_callback(uintptr_t handle,
-				      uint8_t control_group,
-				      uint8_t control_index,
-				      float &input)
+			uint8_t control_group,
+			uint8_t control_index,
+			float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
-	input = controls->control[control_index];
+	if (_armed) {
+		input = controls->control[control_index];
+	} else {
+		/* clamp actuator to zero if not armed */
+		input = 0.0f;
+	}
 	return 0;
 }
 
 int
-HIL::ioctl(file *filp, int cmd, unsigned long arg)
+HIL::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
@@ -478,9 +497,9 @@ HIL::ioctl(file *filp, int cmd, unsigned long arg)
 	switch(_mode) {
 	case MODE_2PWM:
 	case MODE_4PWM:
-        case MODE_8PWM:
-        case MODE_12PWM:
-        case MODE_16PWM:
+	case MODE_8PWM:
+	case MODE_12PWM:
+	case MODE_16PWM:
 		ret = HIL::pwm_ioctl(filp, cmd, arg);
 		break;
 	default:
@@ -490,14 +509,19 @@ HIL::ioctl(file *filp, int cmd, unsigned long arg)
 	}
 
 	/* if nobody wants it, let CDev have it */
-	if (ret == -ENOTTY)
+	if (ret == -ENOTTY) {
+#ifdef __PX4_NUTTX
 		ret = CDev::ioctl(filp, cmd, arg);
+#else
+		ret = VDev::ioctl(filp, cmd, arg);
+#endif
+	}
 
 	return ret;
 }
 
 int
-HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
+HIL::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 	// int channel;
@@ -723,7 +747,7 @@ enum PortMode {
 	PORT2_16PWM,
 };
 
-PortMode g_port_mode;
+static PortMode g_port_mode = PORT_MODE_UNDEFINED;
 
 int
 hil_new_mode(PortMode new_mode)
@@ -742,8 +766,8 @@ hil_new_mode(PortMode new_mode)
 	case PORT_MODE_UNDEFINED:
 	case PORT1_MODE_UNSET:
     	case PORT2_MODE_UNSET:
-            /* nothing more to do here */
-            break;
+		/* nothing more to do here */
+		break;
 
 	case PORT1_FULL_PWM:
 		/* select 4-pin PWM mode */
@@ -762,20 +786,20 @@ hil_new_mode(PortMode new_mode)
 		servo_mode = HIL::MODE_2PWM;
 		break;
 
-        case PORT2_8PWM:
-            /* select 8-pin PWM mode */
-            servo_mode = HIL::MODE_8PWM;
-            break;
+	case PORT2_8PWM:
+		/* select 8-pin PWM mode */
+		servo_mode = HIL::MODE_8PWM;
+		break;
 
-        case PORT2_12PWM:
-            /* select 12-pin PWM mode */
-            servo_mode = HIL::MODE_12PWM;
-            break;
+	case PORT2_12PWM:
+		/* select 12-pin PWM mode */
+		servo_mode = HIL::MODE_12PWM;
+		break;
 
-        case PORT2_16PWM:
-            /* select 16-pin PWM mode */
-            servo_mode = HIL::MODE_16PWM;
-            break;
+	case PORT2_16PWM:
+		/* select 16-pin PWM mode */
+		servo_mode = HIL::MODE_16PWM;
+		break;
 	}
 
 //	/* adjust GPIO config for serial mode(s) */
@@ -789,56 +813,31 @@ hil_new_mode(PortMode new_mode)
 }
 
 int
-hil_start(void)
-{
-	int ret = OK;
-
-	if (g_hil == nullptr) {
-
-		g_hil = new HIL;
-
-		if (g_hil == nullptr) {
-			ret = -ENOMEM;
-
-		} else {
-			ret = g_hil->init();
-
-			if (ret != OK) {
-				delete g_hil;
-				g_hil = nullptr;
-			}
-		}
-	}
-
-	return ret;
-}
-
-void
 test(void)
 {
 	int	fd;
 
-	fd = open(PWM_OUTPUT0_DEVICE_PATH, 0);
+	fd = px4_open(PWM_OUTPUT0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		puts("open fail");
-		exit(1);
+		return -ENODEV;
 	}
 
-	ioctl(fd, PWM_SERVO_ARM, 0);
-	ioctl(fd, PWM_SERVO_SET(0), 1000);
+	px4_ioctl(fd, PWM_SERVO_ARM, 0);
+	px4_ioctl(fd, PWM_SERVO_SET(0), 1000);
 
-	close(fd);
+	px4_close(fd);
 
-	exit(0);
+	return OK;
 }
 
-void
+int
 fake(int argc, char *argv[])
 {
 	if (argc < 5) {
 		puts("hil fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
-		exit(1);
+		return -EINVAL;
 	}
 
 	actuator_controls_s ac;
@@ -853,26 +852,43 @@ fake(int argc, char *argv[])
 
 	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 
-	if (handle < 0) {
+	if (handle == nullptr) {
 		puts("advertise failed");
-		exit(1);
+		return 1;
 	}
 
-	exit(0);
+	return 0;
 }
 
 } // namespace
 
 extern "C" __EXPORT int hil_main(int argc, char *argv[]);
 
+static void
+usage() {
+	fprintf(stderr, "HIL: unrecognized command, try:\n");
+	fprintf(stderr, "  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16\n");
+}
+
 int
 hil_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNDEFINED;
-	const char *verb = argv[1];
+	const char *verb;
+	int ret = OK;
 
-	if (hil_start() != OK)
-		errx(1, "failed to start the HIL driver");
+	if (argc < 2) {
+		usage();
+		return -EINVAL;
+	}
+	verb = argv[1];
+
+	if (g_hil == nullptr) {
+		g_hil = new HIL;
+		if (g_hil == nullptr) {
+			return -ENOMEM;
+		}
+	}
 
 	/*
 	 * Mode switches.
@@ -906,17 +922,28 @@ hil_main(int argc, char *argv[])
 			return OK;
 
 		/* switch modes */
-		return hil_new_mode(new_mode);
+		ret = hil_new_mode(new_mode);
+	}
+	else if (!strcmp(verb, "test")) {
+		ret = test();
 	}
 
-	if (!strcmp(verb, "test"))
-		test();
+	else if (!strcmp(verb, "fake")) {
+		ret = fake(argc - 1, argv + 1);
+	}
 
-	if (!strcmp(verb, "fake"))
-		fake(argc - 1, argv + 1);
+	else {
+		usage();
+		ret = -EINVAL;
+	}
 
-
-	fprintf(stderr, "HIL: unrecognized command, try:\n");
-	fprintf(stderr, "  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16\n");
-	return -EINVAL;
+	if ( ret == OK && g_hil->_task == -1 ) {
+		ret = g_hil->init();
+		if (ret != OK) {
+			warnx("failed to start the HIL driver");
+			delete g_hil;
+			g_hil = nullptr;
+		}
+	}
+	return ret;
 }

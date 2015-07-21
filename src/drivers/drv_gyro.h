@@ -91,7 +91,7 @@ ORB_DECLARE(sensor_gyro);
  */
 
 #define _GYROIOCBASE		(0x2300)
-#define _GYROIOC(_n)		(_IOC(_GYROIOCBASE, _n))
+#define _GYROIOC(_n)		(_PX4_IOC(_GYROIOCBASE, _n))
 
 /** set the gyro internal sample rate to at least (arg) Hz */
 #define GYROIOCSSAMPLERATE	_GYROIOC(0)

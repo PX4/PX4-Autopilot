@@ -42,11 +42,14 @@
 #include "calibration_routines.h"
 #include "calibration_messages.h"
 
+#include <px4_posix.h>
+#include <px4_time.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <poll.h>
-#include <math.h>
+#include <cmath>
 #include <fcntl.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -121,16 +124,16 @@ int do_mag_calibration(int mavlink_fd)
 
 		// Attempt to open mag
 		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, cur_mag);
-		int fd = open(str, O_RDONLY);
+		int fd = px4_open(str, O_RDONLY);
 		if (fd < 0) {
 			continue;
 		}
 
 		// Get device id for this mag
-		device_ids[cur_mag] = ioctl(fd, DEVIOCGDEVICEID, 0);
+		device_ids[cur_mag] = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 
 		// Reset mag scale
-		result = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null);
+		result = px4_ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null);
 
 		if (result != OK) {
 			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_RESET_CAL_MSG, cur_mag);
@@ -138,7 +141,7 @@ int do_mag_calibration(int mavlink_fd)
 
 		/* calibrate range */
 		if (result == OK) {
-			result = ioctl(fd, MAGIOCCALIBRATE, fd);
+			result = px4_ioctl(fd, MAGIOCCALIBRATE, fd);
 
 			if (result != OK) {
 				mavlink_and_console_log_info(mavlink_fd, "[cal] Skipped scale calibration, sensor %u", cur_mag);
@@ -147,7 +150,7 @@ int do_mag_calibration(int mavlink_fd)
 			}
 		}
 
-		close(fd);
+		px4_close(fd);
 	}
 
 	// Calibrate all mags at the same time
@@ -223,7 +226,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	 * for a good result, so we're not constraining the user more than we have to.
 	 */
 
-	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
+	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds * 2;
 	hrt_abstime last_gyro = 0;
 	float gyro_x_integral = 0.0f;
 	float gyro_y_integral = 0.0f;
@@ -240,7 +243,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		/* abort on request */
 		if (calibrate_cancel_check(worker_data->mavlink_fd, cancel_sub)) {
 			result = calibrate_return_cancelled;
-			close(sub_gyro);
+			px4_close(sub_gyro);
 			return result;
 		}
 
@@ -253,12 +256,12 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 
 		/* Wait clocking for new data on all gyro */
-		struct pollfd fds[1];
+		px4_pollfd_struct_t fds[1];
 		fds[0].fd = sub_gyro;
 		fds[0].events = POLLIN;
 		size_t fd_count = 1;
 
-		int poll_ret = poll(fds, fd_count, 1000);
+		int poll_ret = px4_poll(fds, fd_count, 1000);
 
 		if (poll_ret > 0) {
 			struct gyro_report gyro;
@@ -278,7 +281,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 	}
 
-	close(sub_gyro);
+	px4_close(sub_gyro);
 	
 	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
 	unsigned poll_errcount = 0;
@@ -294,7 +297,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 		
 		// Wait clocking for new data on all mags
-		struct pollfd fds[max_mags];
+		px4_pollfd_struct_t fds[max_mags];
 		size_t fd_count = 0;
 		for (size_t cur_mag=0; cur_mag<max_mags; cur_mag++) {
 			if (worker_data->sub_mag[cur_mag] >= 0) {
@@ -303,7 +306,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 				fd_count++;
 			}
 		}
-		int poll_ret = poll(fds, fd_count, 1000);
+		int poll_ret = px4_poll(fds, fd_count, 1000);
 		
 		if (poll_ret > 0) {
 
@@ -458,7 +461,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 	// Close subscriptions
 	for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
 		if (worker_data.sub_mag[cur_mag] >= 0) {
-			close(worker_data.sub_mag[cur_mag]);
+			px4_close(worker_data.sub_mag[cur_mag]);
 		}
 	}
 	
@@ -482,7 +485,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 							 &sphere_x[cur_mag], &sphere_y[cur_mag], &sphere_z[cur_mag],
 							 &sphere_radius[cur_mag]);
 				
-				if (!isfinite(sphere_x[cur_mag]) || !isfinite(sphere_y[cur_mag]) || !isfinite(sphere_z[cur_mag])) {
+				if (!PX4_ISFINITE(sphere_x[cur_mag]) || !PX4_ISFINITE(sphere_y[cur_mag]) || !PX4_ISFINITE(sphere_z[cur_mag])) {
 					mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: NaN in sphere fit for mag #%u", cur_mag);
 					result = calibrate_return_error;
 				}
@@ -496,7 +499,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 		printf("RAW DATA:\n--------------------\n");
 		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 
-			printf("RAW: MAG %u with %u samples:\n", cur_mag, worker_data.calibration_counter_total[cur_mag]);
+			printf("RAW: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 
 			for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
 				float x = worker_data.x[cur_mag][i];
@@ -511,7 +514,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 		printf("CALIBRATED DATA:\n--------------------\n");
 		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 
-			printf("Calibrated: MAG %u with %u samples:\n", cur_mag, worker_data.calibration_counter_total[cur_mag]);
+			printf("Calibrated: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 
 			for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
 				float x = worker_data.x[cur_mag][i] - sphere_x[cur_mag];
@@ -541,14 +544,14 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 				// Set new scale
 				
 				(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, cur_mag);
-				fd_mag = open(str, 0);
+				fd_mag = px4_open(str, 0);
 				if (fd_mag < 0) {
 					mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: unable to open mag device #%u", cur_mag);
 					result = calibrate_return_error;
 				}
 				
 				if (result == calibrate_return_ok) {
-					if (ioctl(fd_mag, MAGIOCGSCALE, (long unsigned int)&mscale) != OK) {
+					if (px4_ioctl(fd_mag, MAGIOCGSCALE, (long unsigned int)&mscale) != OK) {
 						mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: failed to get current calibration #%u", cur_mag);
 						result = calibrate_return_error;
 					}
@@ -559,7 +562,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 					mscale.y_offset = sphere_y[cur_mag];
 					mscale.z_offset = sphere_z[cur_mag];
 
-					if (ioctl(fd_mag, MAGIOCSSCALE, (long unsigned int)&mscale) != OK) {
+					if (px4_ioctl(fd_mag, MAGIOCSSCALE, (long unsigned int)&mscale) != OK) {
 						mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_APPLY_CAL_MSG, cur_mag);
 						result = calibrate_return_error;
 					}
@@ -567,7 +570,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 				
 				// Mag device no longer needed
 				if (fd_mag >= 0) {
-					close(fd_mag);
+					px4_close(fd_mag);
 				}
 
 				if (result == calibrate_return_ok) {

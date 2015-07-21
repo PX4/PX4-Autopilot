@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@
  * Driver for the TeraRanger One range finders connected via I2C.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -68,6 +68,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
 
@@ -82,7 +83,7 @@
 #define TRONE_WHO_AM_I_REG  0x01        /* Who am I test register */
 #define TRONE_WHO_AM_I_REG_VAL 0xA1
 
- 
+
 /* Device limits */
 #define TRONE_MIN_DISTANCE (0.20f)
 #define TRONE_MAX_DISTANCE (14.00f)
@@ -122,13 +123,15 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	RingBuffer			*_reports;
+	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
+	uint8_t				_valid;
 	int					_measure_ticks;
 	bool				_collect_phase;
-	int					_class_instance;
+	int				_class_instance;
+	int				_orb_class_instance;
 
-	orb_advert_t		_range_finder_topic;
+	orb_advert_t		_distance_sensor_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -209,7 +212,7 @@ static const uint8_t crc_table[] = {
 	0xfa, 0xfd, 0xf4, 0xf3
 };
 
-static uint8_t crc8(uint8_t *p, uint8_t len) {
+ static uint8_t crc8(uint8_t *p, uint8_t len) {
 	uint16_t i;
 	uint16_t crc = 0x0;
 
@@ -232,10 +235,12 @@ TRONE::TRONE(int bus, int address) :
 	_max_distance(TRONE_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
+	_valid(0),
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
-	_range_finder_topic(-1),
+	_orb_class_instance(-1),
+	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "trone_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "trone_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "trone_buffer_overflows"))
@@ -281,7 +286,7 @@ TRONE::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(range_finder_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -291,13 +296,15 @@ TRONE::init()
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
-		struct range_finder_report rf_report;
+		struct distance_sensor_s ds_report;
 		measure();
-		_reports->get(&rf_report);
-		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
+		_reports->get(&ds_report);
 
-		if (_range_finder_topic < 0) {
-			debug("failed to create sensor_range_finder object. Did you start uOrb?");
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+							     &_orb_class_instance, ORB_PRIO_LOW);
+
+		if (_distance_sensor_topic == nullptr) {
+			log("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -474,8 +481,8 @@ TRONE::ioctl(struct file *filp, int cmd, unsigned long arg)
 ssize_t
 TRONE::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct range_finder_report);
-	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
+	unsigned count = buflen / sizeof(struct distance_sensor_s);
+	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -572,22 +579,28 @@ TRONE::collect()
 		return ret;
 	}
 
-	uint16_t distance = (val[0] << 8) | val[1];
-	float si_units = distance *  0.001f; /* mm to m */
-	struct range_finder_report report;
+	uint16_t distance_mm = (val[0] << 8) | val[1];
+	float distance_m = float(distance_mm) *  1e-3f;
+	struct distance_sensor_s report;
 
-	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-	report.distance = si_units;
-	report.minimum_distance = get_minimum_distance();
-	report.maximum_distance = get_maximum_distance();
-	report.valid = crc8(val, 2) == val[2] && si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
+	/* there is no enum item for a combined LASER and ULTRASOUND which it should be */
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	report.orientation = 8;
+	report.current_distance = distance_m;
+	report.min_distance = get_minimum_distance();
+	report.max_distance = get_maximum_distance();
+	report.covariance = 0.0f;
+	/* TODO: set proper ID */
+	report.id = 0;
 
+	// This validation check can be used later
+	_valid = crc8(val, 2) == val[2] && (float)report.current_distance > report.min_distance
+		&& (float)report.current_distance < report.max_distance ? 1 : 0;
 
 	/* publish it, if we are the primary */
-	if (_range_finder_topic >= 0) {
-		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	if (_distance_sensor_topic != nullptr) {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
 
 	if (_reports->force(&report)) {
@@ -620,9 +633,9 @@ TRONE::start()
 		true,
 		subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER
 	};
-	static orb_advert_t pub = -1;
+	static orb_advert_t pub = nullptr;
 
-	if (pub > 0) {
+	if (pub != nullptr) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
 	} else {
@@ -793,7 +806,7 @@ void stop()
 void
 test()
 {
-	struct range_finder_report report;
+	struct distance_sensor_s report;
 	ssize_t sz;
 	int ret;
 
@@ -811,8 +824,8 @@ test()
 	}
 
 	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.distance);
-	warnx("time:        %lld", report.timestamp);
+	warnx("measurement: %0.2f m", (double)report.current_distance);
+	warnx("time:        %llu", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -840,9 +853,8 @@ test()
 		}
 
 		warnx("periodic read %u", i);
-		warnx("valid %u", report.valid);
-		warnx("measurement: %0.3f", (double)report.distance);
-		warnx("time:        %lld", report.timestamp);
+		warnx("measurement: %0.3f", (double)report.current_distance);
+		warnx("time:        %llu", report.timestamp);
 	}
 
 	/* reset the sensor polling to default rate */

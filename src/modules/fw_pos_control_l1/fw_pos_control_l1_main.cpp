@@ -51,7 +51,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -484,9 +484,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_sensor_combined_sub(-1),
 
 /* publications */
-	_attitude_sp_pub(-1),
-	_tecs_status_pub(-1),
-	_nav_capabilities_pub(-1),
+	_attitude_sp_pub(nullptr),
+	_tecs_status_pub(nullptr),
+	_nav_capabilities_pub(nullptr),
 
 /* states */
 	_att(),
@@ -915,7 +915,7 @@ void FixedwingPositionControl::navigation_capabilities_publish()
 {
 	_nav_capabilities.timestamp = hrt_absolute_time();
 
-	if (_nav_capabilities_pub > 0) {
+	if (_nav_capabilities_pub != nullptr) {
 		orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
 	} else {
 		_nav_capabilities_pub = orb_advertise(ORB_ID(navigation_capabilities), &_nav_capabilities);
@@ -1735,7 +1735,7 @@ FixedwingPositionControl::task_main()
 			/* XXX Hack to get mavlink output going */
 			if (_mavlink_fd < 0) {
 				/* try to open the mavlink log device every once in a while */
-				_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+				_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 			}
 
 			/* load local copies */
@@ -1762,11 +1762,11 @@ FixedwingPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub > 0 && !_vehicle_status.is_rotary_wing) {
+				if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
 					/* publish the attitude setpoint */
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &_att_sp);
 
-				} else if (_attitude_sp_pub <= 0 && !_vehicle_status.is_rotary_wing) {
+				} else if (_attitude_sp_pub == nullptr && !_vehicle_status.is_rotary_wing) {
 					/* advertise and publish */
 					_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 				}
@@ -1912,7 +1912,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		t.energyDistributionRateSp	= s.ptch;
 		t.energyDistributionRate	= s.iptch;
 
-		if (_tecs_status_pub > 0) {
+		if (_tecs_status_pub != nullptr) {
 			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
 		} else {
 			_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
@@ -1926,7 +1926,7 @@ FixedwingPositionControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = task_spawn_cmd("fw_pos_control_l1",
+	_control_task = px4_task_spawn_cmd("fw_pos_control_l1",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1600,

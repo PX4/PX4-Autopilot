@@ -93,8 +93,8 @@ static const struct orb_metadata *telemetry_status_orb_id[TELEMETRY_STATUS_ORB_I
 // included but telemetry_status_orb_id is not referenced. The inline works if you
 // choose to use it, but you can continue to just directly index into the array as well.
 // If you don't use the inline this ends up being a no-op with no additional code emitted.
-extern inline const struct orb_metadata *telemetry_status_orb_id_lookup(size_t index);
-extern inline const struct orb_metadata *telemetry_status_orb_id_lookup(size_t index)
+//static const struct orb_metadata *telemetry_status_orb_id_lookup(size_t index);
+static inline const struct orb_metadata *telemetry_status_orb_id_lookup(size_t index)
 {
 	return telemetry_status_orb_id[index];
 }
