@@ -115,6 +115,8 @@ extern mavlink_system_t mavlink_system;
 
 static void usage(void);
 
+bool Mavlink::_boot_complete = false;
+
 Mavlink::Mavlink() :
 	_device_name(DEFAULT_DEVICE_NAME),
 	_task_should_exit(false),
@@ -1908,6 +1910,10 @@ int mavlink_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);
+
+	} else if (!strcmp(argv[1], "boot_complete")) {
+		Mavlink::set_boot_complete();
+		return 0;
 
 	} else {
 		usage();
