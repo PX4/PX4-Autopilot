@@ -114,7 +114,7 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
  *
  * @group Battery Calibration
  * @unit V
- * @min 0.0f
+ * @min 0.0
  */
 PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
 
