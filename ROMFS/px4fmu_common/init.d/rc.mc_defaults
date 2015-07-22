@@ -16,6 +16,7 @@ then
 	param set RTL_DESCEND_ALT 10.0
 fi
 
+# set environment variables (!= parameters)
 set PWM_RATE 400
 set PWM_DISARMED 900
 set PWM_MIN 1075
