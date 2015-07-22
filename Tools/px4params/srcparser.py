@@ -241,13 +241,23 @@ class SourceParser(object):
         """
         Validates the parameter meta data.
         """
+        seenParamNames = []
         for group in self.GetParamGroups():
             for param in group.GetParams():
                 name  = param.GetName()
+                board = param.GetFieldValue("board")
+                # Check for duplicates
+                name_plus_board = name + "+" + board
+                for seenParamName in seenParamNames:
+                    if seenParamName == name_plus_board:
+                        sys.stderr.write("Duplicate parameter definition: {0}\n".format(name_plus_board))
+                        return False
+                seenParamNames.append(name_plus_board)
+                # Validate values
                 default = param.GetDefault()
                 min = param.GetFieldValue("min")
                 max = param.GetFieldValue("max")
-                sys.stderr.write("{0} default:{1} min:{2} max:{3}\n".format(name, default, min, max))
+                #sys.stderr.write("{0} default:{1} min:{2} max:{3}\n".format(name, default, min, max))
                 if default != "" and not self.IsNumber(default):
                     sys.stderr.write("Default value not number: {0} {1}\n".format(name, default))
                     return False
