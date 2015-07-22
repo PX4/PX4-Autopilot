@@ -80,6 +80,9 @@
 #include <mavlink/mavlink_log.h>
 #include <platforms/px4_defines.h>
 
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
@@ -92,7 +95,7 @@
  */
 extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[]);
 
-class MulticopterPositionControl
+class MulticopterPositionControl : public control::SuperBlock
 {
 public:
 	/**
@@ -146,6 +149,8 @@ private:
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
 
+	control::BlockParamFloat _manual_thr_min;
+	control::BlockParamFloat _manual_thr_max;
 
 	struct {
 		param_t thr_min;
@@ -290,7 +295,7 @@ MulticopterPositionControl	*g_control;
 }
 
 MulticopterPositionControl::MulticopterPositionControl() :
-
+	SuperBlock(NULL, "MPC"),
 	_task_should_exit(false),
 	_control_task(-1),
 	_mavlink_fd(-1),
@@ -310,7 +315,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_att_sp_pub(-1),
 	_local_pos_sp_pub(-1),
 	_global_vel_sp_pub(-1),
-
+	_manual_thr_min(this, "MANTHR_MIN"),
+	_manual_thr_max(this, "MANTHR_MAX"),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 
@@ -410,6 +416,10 @@ MulticopterPositionControl::parameters_update(bool force)
 	}
 
 	if (updated || force) {
+		/* update C++ param system */
+		updateParams();
+
+		/* update legacy C interface params */
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
@@ -1413,11 +1423,11 @@ MulticopterPositionControl::task_main()
 
 			/* control throttle directly if no climb rate controller is active */
 			if (!_control_mode.flag_control_climb_rate_enabled) {
-				_att_sp.thrust = math::min(_manual.z, _params.thr_max);
+				_att_sp.thrust = math::min(_manual.z, _manual_thr_max.get());
 
 				/* enforce minimum throttle if not landed */
 				if (!_vehicle_status.condition_landed) {
-					_att_sp.thrust = math::max(_att_sp.thrust, _params.thr_min);
+					_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
 				}
 			}
 
