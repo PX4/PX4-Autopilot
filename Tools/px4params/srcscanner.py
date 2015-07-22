@@ -17,8 +17,10 @@ class SourceScanner(object):
         for dirname, dirnames, filenames in os.walk(srcdir):
             for filename in filenames:
                 if filename.endswith(extensions):
-                        path = os.path.join(dirname, filename)
-                        self.ScanFile(path, parser)
+                    path = os.path.join(dirname, filename)
+                    if not self.ScanFile(path, parser):
+                        return False
+        return True
 
     def ScanFile(self, path, parser):
         """
@@ -32,4 +34,4 @@ class SourceScanner(object):
                 contents = ''
                 print('Failed reading file: %s, skipping content.' % path)
                 pass
-        parser.Parse(contents)
+        return parser.Parse(contents)
