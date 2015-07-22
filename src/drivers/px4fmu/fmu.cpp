@@ -165,7 +165,7 @@ private:
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
 
-	static bool	arm_nothrottle() { return (_armed.ready_to_arm && !_armed.armed); }
+	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main();
@@ -733,7 +733,7 @@ PX4FMU::task_main()
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
 			/* update the armed status and check that we're not locked down */
-			bool set_armed = (_armed.armed || _armed.ready_to_arm) && !_armed.lockdown;
+			bool set_armed = (_armed.armed || _armed.prearmed) && !_armed.lockdown;
 
 			if (_servo_armed != set_armed) {
 				_servo_armed = set_armed;
