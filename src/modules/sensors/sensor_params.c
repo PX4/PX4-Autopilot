@@ -2273,7 +2273,7 @@ PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
  * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
  * THE SYSTEM TO PUT CHANGES INTO EFFECT.
  *
- * Set to 1000 for default or 900 to increase servo travel
+ * Set to 1000 for industry default or 900 to increase servo travel.
  *
  * @min 800
  * @max 1400
@@ -2289,7 +2289,7 @@ PARAM_DEFINE_INT32(PWM_MIN, 1000);
  * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
  * THE SYSTEM TO PUT CHANGES INTO EFFECT.
  *
- * Set to 2000 for default or 2100 to increase servo travel
+ * Set to 2000 for industry default or 2100 to increase servo travel.
  *
  * @min 1600
  * @max 2200
