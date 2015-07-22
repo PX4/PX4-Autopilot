@@ -2144,6 +2144,19 @@ int commander_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
 
 			armed.timestamp = now;
+
+			/* set prearmed state if safety is off, or safety is not present and 5 seconds passed */
+			if (safety.safety_switch_available) {
+
+				/* safety is off, go into prearmed */
+				armed.prearmed = safety.safety_off;
+			} else {
+				/* safety is not present, go into prearmed
+				 * (all output drivers should be started / unlocked last in the boot process
+				 * when the rest of the system is fully initialized)
+				 */
+				armed.prearmed = (hrt_elapsed_time(&commander_boot_timestamp) > 5 * 1000 * 1000);
+			}
 			orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		}
 
