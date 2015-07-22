@@ -172,20 +172,14 @@ const uavcan::uint32_t CanIface::TSR_ABRQx[CanIface::NumTxMailboxes] =
 
 int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out_timings)
 {
-    /*
-     *   BITRATE = 1 / (PRESCALER * (1 / PCLK) * (1 + BS1 + BS2))
-     *   BITRATE = PCLK / (PRESCALER * (1 + BS1 + BS2))
-     * let:
-     *   BS = 1 + BS1 + BS2
-     *   PRESCALER_BS = PRESCALER * BS
-     * ==>
-     *   PRESCALER_BS = PCLK / BITRATE
-     */
-    if (target_bitrate < 20000 || target_bitrate > 1000000)
+    if (target_bitrate < 1)
     {
         return -1;
     }
 
+    /*
+     * Hardware configuration
+     */
 #if UAVCAN_STM32_CHIBIOS
     const uavcan::uint32_t pclk = STM32_PCLK1;
 #elif UAVCAN_STM32_NUTTX
@@ -193,46 +187,123 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
 #else
 # error "Unknown OS"
 #endif
+
+    static const int MaxBS1 = 16;
+    static const int MaxBS2 = 8;
+
+    /*
+     * Ref. "Automatic Baudrate Detection in CANopen Networks", U. Koppe, MicroControl GmbH & Co. KG
+     *      CAN in Automation, 2003
+     *
+     * According to the source, optimal quanta per bit are:
+     *   Bitrate        Optimal Maximum
+     *   1000 kbps      8       10
+     *   500  kbps      16      17
+     *   250  kbps      16      17
+     *   125  kbps      16      17
+     */
+    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
+
+    UAVCAN_ASSERT(max_quanta_per_bit <= (MaxBS1 + MaxBS2));
+
+    static const int MaxSamplePointLocation = 900;
+
+    /*
+     * Computing (prescaler * BS):
+     *   BITRATE = 1 / (PRESCALER * (1 / PCLK) * (1 + BS1 + BS2))       -- See the Reference Manual
+     *   BITRATE = PCLK / (PRESCALER * (1 + BS1 + BS2))                 -- Simplified
+     * let:
+     *   BS = 1 + BS1 + BS2                                             -- Number of time quanta per bit
+     *   PRESCALER_BS = PRESCALER * BS
+     * ==>
+     *   PRESCALER_BS = PCLK / BITRATE
+     */
     const uavcan::uint32_t prescaler_bs = pclk / target_bitrate;
 
-    // Initial guess:
-    uavcan::int8_t bs1 = 10;  // max 15
-    uavcan::int8_t bs2 = 5;   // max 8
-    uavcan::uint16_t prescaler = 0U;
+    /*
+     * Searching for such prescaler value so that the number of quanta per bit is highest.
+     */
+    uavcan::uint8_t bs1_bs2_sum = max_quanta_per_bit - 1;
 
-    while (1)
+    while ((prescaler_bs % (1 + bs1_bs2_sum)) != 0)
     {
-        prescaler = uavcan::uint16_t(prescaler_bs / unsigned(1 + bs1 + bs2));
-        // Check result:
-        if ((prescaler >= 1U) && (prescaler <= 1024U))
+        if (bs1_bs2_sum <= 2)
         {
-            const uavcan::uint32_t current_bitrate = pclk / (prescaler * unsigned(1 + bs1 + bs2));
-            if (current_bitrate == target_bitrate)
-            {
-                break;
-            }
+            return -1;          // No solution
         }
-        if (bs1 > bs2)
-        {
-            bs1--;
-        }
-        else
-        {
-            bs2--;
-        }
-        if (bs1 <= 0 || bs2 <= 0)
-        {
-            return -1;
-        }
+        bs1_bs2_sum--;
     }
 
-    UAVCAN_ASSERT((prescaler >= 1U) && (prescaler <= 1024U));
-    UAVCAN_ASSERT((bs1 > 0) && (bs2 > 0));
+    const uavcan::uint32_t prescaler = prescaler_bs / (1 + bs1_bs2_sum);
+    if ((prescaler < 1U) || (prescaler > 1024U))
+    {
+        return -1;              // No solution
+    }
+
+    /*
+     * Now we have a constraint: (BS1 + BS2) == bs1_bs2_sum.
+     * We need to find the values so that the sample point is as close as possible to the optimal value.
+     *
+     *   Solve[(1 + bs1)/(1 + bs1 + bs2) == 7/8, bs2]  (* Where 7/8 is 0.875, the recommended sample point location *)
+     *   {{bs2 -> (1 + bs1)/7}}
+     *
+     * Hence:
+     *   bs2 = (1 + bs1) / 7
+     *   bs1 = (7 * bs1_bs2_sum - 1) / 8
+     *
+     * Sample point location can be computed as follows:
+     *   Sample point location = (1 + bs1) / (1 + bs1 + bs2)
+     *
+     * Since the optimal solution is so close to the maximum, we prepare two solutions, and then pick the best one:
+     *   - With rounding to nearest
+     *   - With rounding to zero
+     */
+    struct BsPair
+    {
+        uavcan::uint8_t bs1;
+        uavcan::uint8_t bs2;
+        uavcan::uint16_t sample_point_permill;
+
+        BsPair() :
+            bs1(0),
+            bs2(0),
+            sample_point_permill(0)
+        { }
+
+        BsPair(uavcan::uint8_t bs1_bs2_sum, uavcan::uint8_t arg_bs1) :
+            bs1(arg_bs1),
+            bs2(bs1_bs2_sum - bs1),
+            sample_point_permill(1000 * (1 + bs1) / (1 + bs1 + bs2))
+        {
+            UAVCAN_ASSERT(bs1_bs2_sum > arg_bs1);
+        }
+
+        bool isValid() const { return (bs1 >= 1) && (bs1 <= MaxBS1) && (bs2 >= 1) && (bs2 <= MaxBS2); }
+    };
+
+    BsPair solution(bs1_bs2_sum, ((7 * bs1_bs2_sum - 1) + 4) / 8);      // First attempt with rounding to nearest
+
+    if (solution.sample_point_permill > MaxSamplePointLocation)
+    {
+        solution = BsPair(bs1_bs2_sum, (7 * bs1_bs2_sum - 1) / 8);      // Second attempt with rounding to zero
+    }
+
+    /*
+     * Final validation
+     */
+    if ((target_bitrate != (pclk / (prescaler * (1 + solution.bs1 + solution.bs2)))) || !solution.isValid())
+    {
+        UAVCAN_ASSERT(0);
+        return -1;
+    }
+
+    UAVCAN_STM32_LOG("Timings: quanta/bit: %d, sample point location: %.1f%%",
+                     int(1 + solution.bs1 + solution.bs2), float(solution.sample_point_permill) / 10.F);
 
     out_timings.prescaler = uavcan::uint16_t(prescaler - 1U);
     out_timings.sjw = 1;
-    out_timings.bs1 = uavcan::uint8_t(bs1 - 1);
-    out_timings.bs2 = uavcan::uint8_t(bs2 - 1);
+    out_timings.bs1 = uavcan::uint8_t(solution.bs1 - 1);
+    out_timings.bs2 = uavcan::uint8_t(solution.bs2 - 1);
     return 0;
 }
 
