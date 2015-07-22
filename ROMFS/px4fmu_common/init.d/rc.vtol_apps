@@ -4,7 +4,7 @@
 # att & pos estimator, att & pos control.
 #
 
-attitude_estimator_ekf start
+attitude_estimator_q start
 #ekf_att_pos_estimator start
 position_estimator_inav start
 
