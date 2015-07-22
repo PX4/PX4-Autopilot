@@ -83,7 +83,6 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
  * integration.
  *
  * @unit milliseconds
- * @default 4.0 ms
  * @group Camera trigger
  */
 PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 5.0f);
