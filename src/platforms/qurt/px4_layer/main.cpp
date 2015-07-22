@@ -100,7 +100,11 @@ static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
 	// This is added because it is a parameter used by commander, yet created by mavlink.  Since mavlink is not
         // running on QURT, we need to manually define it so it is available to commander.  "2" is for quadrotor.
 
-	PARAM_DEFINE_INT32(MAV_TYPE,2); 
+    // Following is hack to prevent duplicate parameter definition error in param parser
+    /**
+     * @board QuRT_App
+     */
+	PARAM_DEFINE_INT32(MAV_TYPE,2);
 
 	// Eat leading whitespace
 	eat_whitespace(b, i);
