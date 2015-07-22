@@ -45,7 +45,7 @@ void TECS::update_50hz(float baro_altitude, float airspeed, const math::Matrix<3
 	// 	DT, baro_altitude, airspeed, rotMat(0, 0), rotMat(1, 1), accel_body(0), accel_body(1), accel_body(2),
 	// 	accel_earth(0), accel_earth(1), accel_earth(2));
 
-	if (DT > 1.0f) {
+	if (_update_50hz_last_usec == 0 || DT > 1.0f) {
 		_integ3_state = baro_altitude;
 		_integ2_state = 0.0f;
 		_integ1_state = 0.0f;
