@@ -697,13 +697,16 @@ then
 	fi
 	unset EXIT_ON_END
 
-	# Run no SD alarm last
+	# Run no SD alarm
 	if [ $LOG_FILE == /dev/null ]
 	then
 		echo "[i] No microSD card found"
 		# Play SOS
 		tone_alarm error
 	fi
+
+	# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
+	mavlink boot_complete
 
 # End of autostart
 fi
