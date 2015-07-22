@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,6 +39,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Ban Siesta <bansiesta@gmail.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #ifndef NAVIGATOR_MISSION_H
@@ -164,6 +165,11 @@ private:
 	 * Set that the mission is finished if one exists or that none exists
 	 */
 	void set_mission_finished();
+
+	/**
+	 * Check wether a mission is ready to go
+	 */
+	bool check_mission_valid();
 
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;

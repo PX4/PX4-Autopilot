@@ -16,14 +16,12 @@ then
 	param set FW_L1_DAMPING 0.75
 	param set FW_L1_PERIOD 15
 	param set FW_PR_FF 0.2
-	param set FW_PR_I 0.005
 	param set FW_PR_IMAX 0.2
 	param set FW_PR_P 0.03
 	param set FW_P_LIM_MAX 50
 	param set FW_P_LIM_MIN -50
 	param set FW_P_ROLLFF 1
 	param set FW_RR_FF 0.5
-	param set FW_RR_I 0.02
 	param set FW_RR_IMAX 0.2
 	param set FW_RR_P 0.08
 	param set FW_R_LIM 50
