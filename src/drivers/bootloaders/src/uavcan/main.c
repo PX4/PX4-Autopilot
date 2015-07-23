@@ -832,7 +832,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 
 			if (uavcan_status != UavcanOk) {
 
-			        retries--;
+				retries--;
 
 			} else {
 
@@ -1245,8 +1245,8 @@ __EXPORT int main(int argc, char *argv[])
 		/* Auto bauding may have taken a long time, so restart the tboot time*/
 
 		if (bootloader.app_valid && !bootloader.wait_for_getnodeinfo) {
-	                timer_start(tboot);
-	        }
+			timer_start(tboot);
+		}
 
 
 	}
@@ -1292,7 +1292,7 @@ __EXPORT int main(int argc, char *argv[])
 	}
 
 #if defined(DEBUG_APPLICATION_INPLACE) && defined(DEBUG_NO_FW_UPDATE)
-        goto boot;
+	goto boot;
 #endif
 
 	/*
