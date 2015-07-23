@@ -1,8 +1,8 @@
-diff --git NuttX/nuttx/include/signal.h NuttX/nuttx/include/signal.h
-index 8ef4d5f..f970a49 100644
+diff --git NuttX/nuttx/include/signal.h NuttX/include/signal.h
+index 492ce41..63bb2cf 100644
 --- NuttX/nuttx/include/signal.h
 +++ NuttX/nuttx/include/signal.h
-@@ -271,8 +271,11 @@ int sigfillset(FAR sigset_t *set);
+@@ -272,8 +272,11 @@ int sigfillset(FAR sigset_t *set);
  int sigaddset(FAR sigset_t *set, int signo);
  int sigdelset(FAR sigset_t *set, int signo);
  int sigismember(FAR const sigset_t *set, int signo);
