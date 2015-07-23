@@ -451,6 +451,17 @@ then
 		fi
 	fi
 
+	# Start sensors depending on the interface being up
+	if param compare SENS_EN_LL40LS 1
+	then
+		if pwm_input start
+		then
+			if ll40ls start pwm
+			then
+			fi
+		fi
+	fi
+
 	if [ $MAVLINK_F == default ]
 	then
 		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
