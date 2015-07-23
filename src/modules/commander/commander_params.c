@@ -87,6 +87,18 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
 /**
+ * Number of battery cells.
+ *
+ * Defines the number of cells the attached battery consists of.
+ *
+ * @group Battery Calibration
+ * @unit S
+ * @min 1
+ * @max 10
+ */
+PARAM_DEFINE_INT32(BAT_N_CELLS, 1);
+
+/**
  * Full battery voltage.
  *
  * Defines the voltage at which the battery is considered full.

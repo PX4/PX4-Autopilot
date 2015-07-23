@@ -103,12 +103,14 @@ static param_t bat_v_crit_h;
 static param_t bat_capacity_h;
 static param_t bat_perc_low_h;
 static param_t bat_perc_crit_h;
+static param_t bat_n_cells_h;
 static float bat_v_full = 0.0f;
 static float bat_v_low = 0.0f;
 static float bat_v_crit = 0.0f;
 static float bat_capacity = -1.0f;
 static float bat_perc_low = 0.0f;
 static float bat_perc_crit = 0.0f;
+static unsigned bat_n_cells;
 
 int battery_init()
 {
@@ -118,6 +120,7 @@ int battery_init()
 	bat_capacity_h = param_find("BAT_CAPACITY");
 	bat_perc_low_h = param_find("BAT_PERC_LOW");
 	bat_perc_crit_h = param_find("BAT_PERC_CRIT");
+	bat_n_cells_h = param_find("BAT_N_CELLS");
 
 
 	param_get(bat_v_full_h, &bat_v_full);
@@ -126,6 +129,7 @@ int battery_init()
 	param_get(bat_capacity_h, &bat_capacity);
 	param_get(bat_perc_low_h, &bat_perc_low);
 	param_get(bat_perc_crit_h, &bat_perc_crit);
+	param_get(bat_n_cells_h, &bat_n_cells);
 
 	bat_perc_low = (bat_perc_low / 100.0f);
 	bat_perc_crit = (bat_perc_crit / 100.0f);
@@ -374,6 +378,10 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern)
 		return;
 	}
 	ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
+}
+
+unsigned battery_get_n_cells() {
+	return bat_n_cells;
 }
 
 float battery_remaining_estimate_voltage(float voltage, float discharged)
