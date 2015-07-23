@@ -448,7 +448,7 @@ CONFIG_RAM_SIZE=16000
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD=mavstation
+CONFIG_ARCH_BOARD="mavstation"
 CONFIG_ARCH_BOARD_MAVSTATION=y
 
 #
