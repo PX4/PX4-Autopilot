@@ -15,9 +15,6 @@
         <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
         <arg name="log_file" value="$(arg log_file)"/>
     </include>
-    <include file="$(find px4)/launch/iris.launch">
-	<arg name="ns" value="$(arg ns)"/>
-    </include>
     <include file="$(find mavros)/launch/mavlink_bridge.launch">
     <arg name="mavlink_bridge_url" value="$(arg mavlink_bridge_url)" />
     <arg name="ns" value="$(arg ns)"/>
