@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  * @unit V
  * @min 0.0
  */
-PARAM_DEFINE_FLOAT(BAT_V_FULL, 12.6f);
+PARAM_DEFINE_FLOAT(BAT_V_FULL, 0.0f);
 
 /**
  * Low battery voltage.
@@ -106,7 +106,7 @@ PARAM_DEFINE_FLOAT(BAT_V_FULL, 12.6f);
  * @unit V
  * @min 0.0
  */
-PARAM_DEFINE_FLOAT(BAT_V_LOW, 10.8f);
+PARAM_DEFINE_FLOAT(BAT_V_LOW, 0.0f);
 
 /**
  * Critical battery voltage.
@@ -117,17 +117,18 @@ PARAM_DEFINE_FLOAT(BAT_V_LOW, 10.8f);
  * @unit V
  * @min 0.0
  */
-PARAM_DEFINE_FLOAT(BAT_V_CRIT, 10.2f);
+PARAM_DEFINE_FLOAT(BAT_V_CRIT, 0.0f);
 
 /**
  * Battery capacity.
  *
  * Defines the capacity of the attached battery.
+ * Setting this value to -1 disables remaining battery estimation based on discharged capacity.
  *
  * @group Battery Calibration
  * @unit mAh
  */
-PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+PARAM_DEFINE_INT32(BAT_CAPACITY, -1);
 
 
 /**
@@ -140,7 +141,7 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  * @min 0.0
  * @max 100.0
  */
-PARAM_DEFINE_FLOAT(BAT_PERC_LOW, 20.0f);
+PARAM_DEFINE_FLOAT(BAT_PERC_LOW, 30.0f);
 
 /**
  * Critical battery charge.
@@ -152,7 +153,7 @@ PARAM_DEFINE_FLOAT(BAT_PERC_LOW, 20.0f);
  * @min 0.0
  * @max 100.0
  */
-PARAM_DEFINE_FLOAT(BAT_PERC_CRIT, 15.0f);
+PARAM_DEFINE_FLOAT(BAT_PERC_CRIT, 20.0f);
 
 
 /**
