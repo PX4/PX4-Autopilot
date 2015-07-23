@@ -391,10 +391,14 @@ float battery_remaining_estimate_voltage(float voltage, float discharged)
 	float bat_status_v = 1.0f;
 	float bat_status_c = 1.0f;
 
+	/* float bat_v_full_total = bat_n_cells * bat_v_full; */
+	float bat_v_low_total = bat_n_cells * bat_v_low;
+	float bat_v_crit_total = bat_n_cells * bat_v_crit;
+
 	/* VOLTAGE BASED ESTIMATION - Optimistic Voltage / Discrete Approximation */
-	if (voltage < bat_v_crit) {
+	if (voltage < bat_v_crit_total) {
 		bat_status_v = bat_perc_crit;
-	} else if (voltage < bat_v_low)	{
+	} else if (voltage < bat_v_low_total) {
 		bat_status_v = bat_perc_low;
 	} else {
 		bat_status_v = 1.0f;
@@ -402,12 +406,12 @@ float battery_remaining_estimate_voltage(float voltage, float discharged)
 
 	/* VOLTAGE BASED ESTIMATION - Pessimistic Voltage / Linear Approximation. */
 	/*
-	if(voltage < bat_v_crit) {
-		bat_status_v = bat_perc_crit * (voltage / bat_v_crit);
-	} else if (voltage < bat_v_low) {
-		bat_status_v = bat_perc_crit + (bat_perc_low - bat_perc_crit) * (voltage - bat_v_crit) / (bat_v_low - bat_v_crit);
+	if(voltage < bat_v_crit_total) {
+		bat_status_v = bat_perc_crit * (voltage / bat_v_crit_total);
+	} else if (voltage < bat_v_low_total) {
+		bat_status_v = bat_perc_crit + (bat_perc_low - bat_perc_crit) * (voltage - bat_v_crit_total) / (bat_v_low_total - bat_v_crit_total);
 	} else {
-		bat_status_v = bat_perc_low + (1.0f - bat_perc_low) * (voltage - bat_v_low) / (bat_v_full - bat_v_low);
+		bat_status_v = bat_perc_low + (1.0f - bat_perc_low) * (voltage - bat_v_low_total) / (bat_v_full_total - bat_v_low_total);
 	}
 	*/
 

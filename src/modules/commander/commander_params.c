@@ -99,9 +99,9 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 PARAM_DEFINE_INT32(BAT_N_CELLS, 1);
 
 /**
- * Full battery voltage.
+ * Full battery cell voltage.
  *
- * Defines the voltage at which the battery is considered full.
+ * Defines the voltage at which one battery cell is considered full.
  *
  * @group Battery Calibration
  * @unit V
@@ -110,9 +110,9 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 1);
 PARAM_DEFINE_FLOAT(BAT_V_FULL, 0.0f);
 
 /**
- * Low battery voltage.
+ * Low battery cell voltage.
  *
- * Defines the voltage at which the battery is considered low.
+ * Defines the voltage at which one battery cell is considered low.
  *
  * @group Battery Calibration
  * @unit V
@@ -121,9 +121,9 @@ PARAM_DEFINE_FLOAT(BAT_V_FULL, 0.0f);
 PARAM_DEFINE_FLOAT(BAT_V_LOW, 0.0f);
 
 /**
- * Critical battery voltage.
+ * Critical battery cell voltage.
  *
- * Defines the voltage at which the battery is considered critically empty.
+ * Defines the voltage at which one battery cell is considered critically empty.
  *
  * @group Battery Calibration
  * @unit V
