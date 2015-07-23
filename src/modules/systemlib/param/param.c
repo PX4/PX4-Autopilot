@@ -594,6 +594,8 @@ param_set_no_notification(param_t param, const void *val)
 bool
 param_used(param_t param)
 {
+    return true;
+#if 0
 	int param_index = param_get_index(param);
 
 	if (param_index < 0) {
@@ -602,6 +604,7 @@ param_used(param_t param)
 
 	return param_changed_storage[param_index / bits_per_allocation_unit] &
 	       (1 << param_index % bits_per_allocation_unit);
+#endif
 }
 
 void param_set_used_internal(param_t param)

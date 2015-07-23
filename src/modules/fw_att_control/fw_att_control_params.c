@@ -64,7 +64,7 @@
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.4f);
+PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.4f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Pitch rate proportional gain.
@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.4f);
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
+PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Pitch rate integrator gain.
@@ -88,7 +88,7 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * @max 50.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.005f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.005f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Maximum positive / up pitch rate.
@@ -101,7 +101,7 @@ PARAM_DEFINE_FLOAT(FW_PR_I, 0.005f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Maximum negative / down pitch rate.
@@ -114,7 +114,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 0.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Pitch rate integrator limit
@@ -126,7 +126,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 0.0f);
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
+PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Roll to Pitch feedforward gain.
@@ -137,7 +137,7 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
  * @max 2.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Roll rate proportional Gain
@@ -149,7 +149,7 @@ PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f);
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Roll rate integrator Gain
@@ -161,7 +161,7 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
  * @max 100.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_I, 0.005f);
+PARAM_DEFINE_FLOAT(FW_RR_I, 0.005f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Roll Integrator Anti-Windup
@@ -172,7 +172,7 @@ PARAM_DEFINE_FLOAT(FW_RR_I, 0.005f);
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
+PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Maximum Roll Rate
@@ -185,7 +185,7 @@ PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_R_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(FW_R_RMAX, 0.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Yaw rate proportional gain
@@ -197,7 +197,7 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 0.0f);
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Yaw rate integrator gain
@@ -209,7 +209,7 @@ PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
  * @max 50.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Yaw rate integrator limit
@@ -221,7 +221,7 @@ PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
+PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Maximum Yaw Rate
@@ -234,7 +234,7 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Roll rate feed forward
@@ -247,7 +247,7 @@ PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
  * @max 10.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
+PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Pitch rate feed forward
@@ -258,7 +258,7 @@ PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
  * @max 10.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_FF, 0.4f);
+PARAM_DEFINE_FLOAT(FW_PR_FF, 0.4f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Yaw rate feed forward
@@ -269,7 +269,7 @@ PARAM_DEFINE_FLOAT(FW_PR_FF, 0.4f);
  * @max 10.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
+PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Minimal speed for yaw coordination
@@ -280,7 +280,7 @@ PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
  * @unit m/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
+PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Method used for yaw coordination
@@ -294,7 +294,7 @@ PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
  * @unit m/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);
+PARAM_DEFINE_INT32(FW_YCO_METHOD, 0, FW_ATTITUDE_CONTROL_PARAMS);
 
 /* Airspeed parameters:
  * The following parameters about airspeed are used by the attitude and the
@@ -312,7 +312,7 @@ PARAM_DEFINE_INT32(FW_YCO_METHOD, 0);
  * @max 40
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Trim Airspeed
@@ -324,7 +324,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
  * @max 40
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Maximum Airspeed
@@ -337,7 +337,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
  * @max 40
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Roll Setpoint Offset
@@ -351,7 +351,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RSP_OFF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_RSP_OFF, 0.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Pitch Setpoint Offset
@@ -365,7 +365,7 @@ PARAM_DEFINE_FLOAT(FW_RSP_OFF, 0.0f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Max Manual Roll
@@ -377,7 +377,7 @@ PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f, FW_ATTITUDE_CONTROL_PARAMS);
 
 /**
  * Max Manual Pitch
@@ -389,4 +389,4 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f, FW_ATTITUDE_CONTROL_PARAMS);

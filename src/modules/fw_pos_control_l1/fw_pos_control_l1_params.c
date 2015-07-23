@@ -58,7 +58,7 @@
  * @max 100.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
+PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f, L1_CONTROL_PARAMS);
 
 /**
  * L1 damping
@@ -69,7 +69,7 @@ PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
  * @max 0.9
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
+PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f, L1_CONTROL_PARAMS);
 
 /**
  * Cruise throttle
@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
  * @max 1.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
+PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f, L1_CONTROL_PARAMS);
 
 /**
  * Throttle max slew rate
@@ -91,7 +91,7 @@ PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
  * @max 1.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
+PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f, L1_CONTROL_PARAMS);
 
 /**
  * Negative pitch limit
@@ -103,7 +103,7 @@ PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
  * @max 0.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
+PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f, L1_CONTROL_PARAMS);
 
 /**
  * Positive pitch limit
@@ -115,7 +115,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
  * @max 60.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f, L1_CONTROL_PARAMS);
 
 /**
  * Controller roll limit
@@ -127,7 +127,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
  * @max 65.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
+PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f, L1_CONTROL_PARAMS);
 
 /**
  * Throttle limit max
@@ -138,7 +138,7 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
  *
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f, L1_CONTROL_PARAMS);
 
 /**
  * Throttle limit min
@@ -156,7 +156,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  * @max 1.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
+PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f, L1_CONTROL_PARAMS);
 
 /**
  * Throttle limit value before flare
@@ -168,7 +168,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * @max 1.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f, L1_CONTROL_PARAMS);
 
 /**
  * Climbout Altitude difference
@@ -182,7 +182,7 @@ PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
  * @max 150.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 25.0f);
+PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 25.0f, L1_CONTROL_PARAMS);
 
 /**
  * Maximum climb rate
@@ -204,7 +204,7 @@ PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 25.0f);
  * @max 10.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f, L1_CONTROL_PARAMS);
 
 /**
  * Minimum descent rate
@@ -215,7 +215,7 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
+PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f, FW_TECS_PARAMS);
 
 /**
  * Maximum descent rate
@@ -228,7 +228,7 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f, FW_TECS_PARAMS);
 
 /**
  * TECS time constant
@@ -239,7 +239,7 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
+PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f, FW_TECS_PARAMS);
 
 /**
  * TECS Throttle time constant
@@ -250,7 +250,7 @@ PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
+PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f, FW_TECS_PARAMS);
 
 /**
  * Throttle damping factor
@@ -260,7 +260,7 @@ PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
+PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f, FW_TECS_PARAMS);
 
 /**
  * Integrator gain
@@ -272,7 +272,7 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
+PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f, FW_TECS_PARAMS);
 
 /**
  * Maximum vertical acceleration
@@ -285,7 +285,7 @@ PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
+PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f, FW_TECS_PARAMS);
 
 /**
  * Complementary filter "omega" parameter for height
@@ -298,7 +298,7 @@ PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
+PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f, FW_TECS_PARAMS);
 
 /**
  * Complementary filter "omega" parameter for speed
@@ -311,7 +311,7 @@ PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
+PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f, FW_TECS_PARAMS);
 
 /**
  * Roll -> Throttle feedforward
@@ -327,7 +327,7 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
+PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f, FW_TECS_PARAMS);
 
 /**
  * Speed <--> Altitude priority
@@ -345,7 +345,7 @@ PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
+PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f, FW_TECS_PARAMS);
 
 /**
  * Pitch damping factor
@@ -357,28 +357,28 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
+PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f, FW_TECS_PARAMS);
 
 /**
  * Height rate P factor
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f, FW_TECS_PARAMS);
 
 /**
  * Height rate FF factor
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f, FW_TECS_PARAMS);
 
 /**
  * Speed rate P factor
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f, FW_TECS_PARAMS);
 
 /**
  * Landing slope angle

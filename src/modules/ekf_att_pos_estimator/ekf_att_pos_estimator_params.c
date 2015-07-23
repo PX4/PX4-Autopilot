@@ -57,7 +57,7 @@
  * @max 1000
  * @group Position Estimator
  */
-PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230);
+PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Position estimate delay
@@ -68,7 +68,7 @@ PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230);
  * @max 1000
  * @group Position Estimator
  */
-PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210);
+PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Height estimate delay
@@ -79,7 +79,7 @@ PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210);
  * @max 1000
  * @group Position Estimator
  */
-PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350);
+PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Mag estimate delay
@@ -91,7 +91,7 @@ PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350);
  * @max 1000
  * @group Position Estimator
  */
-PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30);
+PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * True airspeeed estimate delay
@@ -102,7 +102,7 @@ PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30);
  * @max 1000
  * @group Position Estimator
  */
-PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
+PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * GPS vs. barometric altitude update weight
@@ -113,7 +113,7 @@ PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
  * @max 1.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
+PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Airspeed measurement noise.
@@ -125,7 +125,7 @@ PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
  * @max 5.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_EAS_NOISE, 1.4f);
+PARAM_DEFINE_FLOAT(PE_EAS_NOISE, 1.4f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Velocity measurement noise in north-east (horizontal) direction.
@@ -136,7 +136,7 @@ PARAM_DEFINE_FLOAT(PE_EAS_NOISE, 1.4f);
  * @max 5.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_VELNE_NOISE, 0.3f);
+PARAM_DEFINE_FLOAT(PE_VELNE_NOISE, 0.3f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Velocity noise in down (vertical) direction
@@ -147,7 +147,7 @@ PARAM_DEFINE_FLOAT(PE_VELNE_NOISE, 0.3f);
  * @max 3.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_VELD_NOISE, 0.3f);
+PARAM_DEFINE_FLOAT(PE_VELD_NOISE, 0.3f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Position noise in north-east (horizontal) direction
@@ -158,7 +158,7 @@ PARAM_DEFINE_FLOAT(PE_VELD_NOISE, 0.3f);
  * @max 10.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_POSNE_NOISE, 0.5f);
+PARAM_DEFINE_FLOAT(PE_POSNE_NOISE, 0.5f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Position noise in down (vertical) direction
@@ -169,7 +169,7 @@ PARAM_DEFINE_FLOAT(PE_POSNE_NOISE, 0.5f);
  * @max 3.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_POSD_NOISE, 1.25f);
+PARAM_DEFINE_FLOAT(PE_POSD_NOISE, 1.25f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Magnetometer measurement noise
@@ -180,7 +180,7 @@ PARAM_DEFINE_FLOAT(PE_POSD_NOISE, 1.25f);
  * @max 1.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_MAG_NOISE, 0.05f);
+PARAM_DEFINE_FLOAT(PE_MAG_NOISE, 0.05f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Gyro process noise
@@ -193,7 +193,7 @@ PARAM_DEFINE_FLOAT(PE_MAG_NOISE, 0.05f);
  * @max 0.05
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_GYRO_PNOISE, 0.015f);
+PARAM_DEFINE_FLOAT(PE_GYRO_PNOISE, 0.015f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Accelerometer process noise
@@ -206,7 +206,7 @@ PARAM_DEFINE_FLOAT(PE_GYRO_PNOISE, 0.015f);
  * @max 1.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_ACC_PNOISE, 0.25f);
+PARAM_DEFINE_FLOAT(PE_ACC_PNOISE, 0.25f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Gyro bias estimate process noise
@@ -218,7 +218,7 @@ PARAM_DEFINE_FLOAT(PE_ACC_PNOISE, 0.25f);
  * @max 0.00001
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_GBIAS_PNOISE, 1e-06f);
+PARAM_DEFINE_FLOAT(PE_GBIAS_PNOISE, 1e-06f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Accelerometer bias estimate process noise
@@ -230,7 +230,7 @@ PARAM_DEFINE_FLOAT(PE_GBIAS_PNOISE, 1e-06f);
  * @max 0.001
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_ABIAS_PNOISE, 0.0002f);
+PARAM_DEFINE_FLOAT(PE_ABIAS_PNOISE, 0.0002f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Magnetometer earth frame offsets process noise
@@ -243,7 +243,7 @@ PARAM_DEFINE_FLOAT(PE_ABIAS_PNOISE, 0.0002f);
  * @max 0.01
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_MAGE_PNOISE, 0.0003f);
+PARAM_DEFINE_FLOAT(PE_MAGE_PNOISE, 0.0003f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Magnetometer body frame offsets process noise
@@ -256,7 +256,7 @@ PARAM_DEFINE_FLOAT(PE_MAGE_PNOISE, 0.0003f);
  * @max 0.01
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_MAGB_PNOISE, 0.0003f);
+PARAM_DEFINE_FLOAT(PE_MAGB_PNOISE, 0.0003f, POSITION_ESTIMATOR_PARAMS);
 
 /**
  * Threshold for filter initialization.
@@ -268,4 +268,4 @@ PARAM_DEFINE_FLOAT(PE_MAGB_PNOISE, 0.0003f);
  * @max 10.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_POSDEV_INIT, 5.0f);
+PARAM_DEFINE_FLOAT(PE_POSDEV_INIT, 5.0f, POSITION_ESTIMATOR_PARAMS);

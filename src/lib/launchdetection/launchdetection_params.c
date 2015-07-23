@@ -55,7 +55,7 @@
  * @max 1
  * @group Launch detection
  */
-PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
+PARAM_DEFINE_INT32(LAUN_ALL_ON, 0, LAUNCH_DETECTION_PARAMS);
 
 /**
  * Catapult accelerometer theshold.
@@ -65,7 +65,7 @@ PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
  * @min 0
  * @group Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
+PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f, LAUNCH_DETECTION_PARAMS);
 
 /**
  * Catapult time theshold.
@@ -75,7 +75,7 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
  * @min 0
  * @group Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
+PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f, LAUNCH_DETECTION_PARAMS);
 
 /**
  * Motor delay
@@ -87,7 +87,7 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
  * @min 0
  * @group Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
+PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f, LAUNCH_DETECTION_PARAMS);
 
 /**
  * Maximum pitch before the throttle is powered up (during motor delay phase)
@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
  * @max 45
  * @group Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_PMAX, 30.0f);
+PARAM_DEFINE_FLOAT(LAUN_CAT_PMAX, 30.0f, LAUNCH_DETECTION_PARAMS);
 
 /**
  * Throttle setting while detecting launch.
@@ -111,4 +111,4 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_PMAX, 30.0f);
  * @max 1
  * @group Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_THR_PRE, 0.0f);
+PARAM_DEFINE_FLOAT(LAUN_THR_PRE, 0.0f, LAUNCH_DETECTION_PARAMS);
