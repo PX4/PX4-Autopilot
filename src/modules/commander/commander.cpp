@@ -1137,10 +1137,13 @@ int commander_thread_main(int argc, char *argv[])
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
 	struct battery_status_s battery;
 	memset(&battery, 0, sizeof(battery));
-	param_get(_param_bat_perc_low, &bat_perc_low);
-	param_get(_param_bat_perc_crit, &bat_perc_crit);
-	bat_perc_low = (bat_perc_low / 100.0f);
-	bat_perc_crit = (bat_perc_crit / 100.0f);
+
+	int bat_perc_low_int = 0;
+	int bat_perc_crit_int = 0;
+	param_get(_param_bat_perc_low, &bat_perc_low_int);
+	param_get(_param_bat_perc_crit, &bat_perc_crit_int);
+	bat_perc_low = (bat_perc_low_int / 100.0f);
+	bat_perc_crit = (bat_perc_crit_int / 100.0f);
 
 	/* Subscribe to subsystem info topic */
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
@@ -1287,6 +1290,9 @@ int commander_thread_main(int argc, char *argv[])
 				/* re-check RC calibration */
 				rc_calibration_check(mavlink_fd);
 			}
+
+			/* Battery Parameters */
+			get_battery_params();
 
 			/* Safety parameters */
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);

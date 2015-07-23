@@ -60,6 +60,8 @@
 #include <drivers/drv_led.h>
 #include <drivers/drv_rgbled.h>
 
+/* DEBUG */
+
 #include "commander_helper.h"
 
 /* oddly, ERROR is not defined for c++ */
@@ -107,34 +109,41 @@ static param_t bat_n_cells_h;
 static float bat_v_full = 0.0f;
 static float bat_v_low = 0.0f;
 static float bat_v_crit = 0.0f;
-static float bat_capacity = -1.0f;
+static int bat_capacity = 0;
 static float bat_perc_low = 0.0f;
 static float bat_perc_crit = 0.0f;
-static unsigned bat_n_cells;
+static unsigned bat_n_cells = 0;
 
 int battery_init()
 {
-	bat_v_full_h = param_find("BAT_V_FULL");
-	bat_v_low_h = param_find("BAT_V_LOW");
-	bat_v_crit_h = param_find("BAT_V_CRIT");
+	get_battery_params();
+
+	return OK;
+}
+
+void get_battery_params()
+{
+	bat_v_full_h = param_find("BAT_V_CELL_FULL");
+	bat_v_low_h = param_find("BAT_V_CELL_LOW");
+	bat_v_crit_h = param_find("BAT_V_CELL_CRIT");
 	bat_capacity_h = param_find("BAT_CAPACITY");
 	bat_perc_low_h = param_find("BAT_PERC_LOW");
 	bat_perc_crit_h = param_find("BAT_PERC_CRIT");
 	bat_n_cells_h = param_find("BAT_N_CELLS");
 
 
+	int bat_perc_low_int = 0;
+	int bat_perc_crit_int = 0;
 	param_get(bat_v_full_h, &bat_v_full);
 	param_get(bat_v_low_h, &bat_v_low);
 	param_get(bat_v_crit_h, &bat_v_crit);
 	param_get(bat_capacity_h, &bat_capacity);
-	param_get(bat_perc_low_h, &bat_perc_low);
-	param_get(bat_perc_crit_h, &bat_perc_crit);
+	param_get(bat_perc_low_h, &bat_perc_low_int);
+	param_get(bat_perc_crit_h, &bat_perc_crit_int);
 	param_get(bat_n_cells_h, &bat_n_cells);
 
-	bat_perc_low = (bat_perc_low / 100.0f);
-	bat_perc_crit = (bat_perc_crit / 100.0f);
-
-	return OK;
+	bat_perc_low = (bat_perc_low_int / 100.0f);
+	bat_perc_crit = (bat_perc_crit_int / 100.0f);
 }
 
 int buzzer_init()
