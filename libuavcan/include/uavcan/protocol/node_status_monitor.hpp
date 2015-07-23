@@ -67,7 +67,7 @@ public:
     };
 
 private:
-    enum { TimerPeriodMs100 = 4 };
+    enum { TimerPeriodMs100 = 2 };
 
     typedef MethodBinder<NodeStatusMonitor*,
                          void (NodeStatusMonitor::*)(const ReceivedDataStructure<protocol::NodeStatus>&)>
@@ -138,22 +138,19 @@ private:
 
         for (uint8_t i = 1; i <= NodeID::Max; i++)
         {
-            const NodeID nid(i);
-            UAVCAN_ASSERT(nid.isUnicast());
-
-            Entry& entry = getEntry(nid);
+            Entry& entry = getEntry(i);
             if (entry.time_since_last_update_ms100 >= 0 &&
                 entry.status.mode != protocol::NodeStatus::MODE_OFFLINE)
             {
                 entry.time_since_last_update_ms100 =
                     int8_t(entry.time_since_last_update_ms100 + int8_t(TimerPeriodMs100));
 
-                if (entry.time_since_last_update_ms100 >= OfflineTimeoutMs100)
+                if (entry.time_since_last_update_ms100 > OfflineTimeoutMs100)
                 {
                     Entry new_entry_value = entry;
                     new_entry_value.time_since_last_update_ms100 = OfflineTimeoutMs100;
                     new_entry_value.status.mode = protocol::NodeStatus::MODE_OFFLINE;
-                    changeNodeStatus(nid, new_entry_value);
+                    changeNodeStatus(i, new_entry_value);
                 }
             }
         }
