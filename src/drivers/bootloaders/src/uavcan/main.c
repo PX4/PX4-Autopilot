@@ -830,7 +830,11 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 
 			protocol.tail.transfer_id++;
 
-			if (uavcan_status == UavcanOk) {
+			if (uavcan_status != UavcanOk) {
+
+			        retries--;
+
+			} else {
 
 				if (length > sizeof_member(uavcan_Read_response_t, error)) {
 
