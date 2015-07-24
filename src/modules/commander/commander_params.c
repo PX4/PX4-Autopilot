@@ -96,7 +96,7 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  * @min 1
  * @max 10
  */
-PARAM_DEFINE_INT32(BAT_N_CELLS, 1);
+PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
 
 /**
  * Full battery cell voltage.
