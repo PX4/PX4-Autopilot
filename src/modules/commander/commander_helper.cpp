@@ -425,7 +425,7 @@ float battery_remaining_estimate_voltage(float voltage, float discharged)
 	*/
 
 	/* COULOMB-COUNTING ESTIMATION - Linear Approximation */
-	if (bat_capacity > 0.0f) {
+	if (bat_capacity > 0) {
 		bat_status_c = 1.0f - (discharged / bat_capacity);
 	} else {
 		bat_status_c = 1.0f;
