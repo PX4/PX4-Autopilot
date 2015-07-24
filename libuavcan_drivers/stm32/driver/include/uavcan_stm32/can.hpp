@@ -265,15 +265,78 @@ class CanInitHelper
     CanRxItem queue_storage_[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity];
 
 public:
+    enum { BitRateAutoDetect = 0 };
+
     CanDriver driver;
 
-    CanInitHelper()
-        : driver(queue_storage_)
+    CanInitHelper() :
+        driver(queue_storage_)
     { }
 
-    int init(uavcan::uint32_t bitrate)
+    /**
+     * This function can either initialize the driver at a fixed bit rate, or it can perform
+     * automatic bit rate detection. For theory please refer to the CiA application note #801.
+     *
+     * TODO FIXME: During bit rate detection, the CAN controller must be initialized in listen-only mode.
+     *
+     * @param delay_callable    A callable entity that suspends execution for strictly more than one second.
+     *                          The callable entity will be invoked without arguments.
+     *                          @ref getRecommendedListeningDelay().
+     *
+     * @param inout_bitrate     Fixed bit rate or zero. Zero invokes the bit rate detection process.
+     *                          If auto detection was used, the function will update the argument
+     *                          with established bit rate. In case of an error the value will be undefined.
+     *
+     * @return                  Negative value on error; non-negative on success.
+     */
+    template <typename DelayCallable>
+    int init(DelayCallable delay_callable, uavcan::uint32_t& inout_bitrate = BitRateAutoDetect)
     {
-        return driver.init(bitrate);
+        if (inout_bitrate > 0)
+        {
+            return driver.init(inout_bitrate);
+        }
+        else
+        {
+            static const uavcan::uint32_t StandardBitRates[] =
+            {
+                1000000,
+                500000,
+                250000,
+                125000
+            };
+
+            for (uavcan::uint8_t br = 0; br < sizeof(StandardBitRates) / sizeof(StandardBitRates[0]); br++)
+            {
+                inout_bitrate = StandardBitRates[br];
+
+                // TODO: listen-only mode
+                const int res = driver.init(inout_bitrate);
+
+                delay_callable();
+
+                if (res >= 0)
+                {
+                    for (uavcan::uint8_t iface = 0; iface < driver.getNumIfaces(); iface++)
+                    {
+                        if (!driver.getIface(iface)->isRxBufferEmpty())
+                        {
+                            return res;
+                        }
+                    }
+                }
+            }
+
+            return -1;
+        }
+    }
+
+    /**
+     * Use this value for listening delay during automatic bit rate detection.
+     */
+    static uavcan::MonotonicDuration getRecommendedListeningDelay()
+    {
+        return uavcan::MonotonicDuration::fromMSec(1050);
     }
 };
 
