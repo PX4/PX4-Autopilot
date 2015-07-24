@@ -282,6 +282,17 @@ public:
     { }
 
     /**
+     * This overload simply configures the provided bitrate.
+     * Auto bit rate detection will not be performed.
+     * Bitrate value must be positive.
+     * @return  Negative value on error; non-negative on success.
+     */
+    int init(uavcan::uint32_t bitrate)
+    {
+        return driver.init(bitrate, CanIface::NormalMode);
+    }
+
+    /**
      * This function can either initialize the driver at a fixed bit rate, or it can perform
      * automatic bit rate detection. For theory please refer to the CiA application note #801.
      *
