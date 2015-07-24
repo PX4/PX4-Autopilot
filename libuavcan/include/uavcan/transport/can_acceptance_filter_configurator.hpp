@@ -16,6 +16,10 @@
 
 namespace uavcan
 {
+/**
+ * These arguments defines whether acceptance filter configuration has anonymous massages or not
+ */
+enum AnonMassagePresence {WithAnonMsg,NoAnonMsg};
 
 /**
  * This class configures hardware acceptance filters (if this feature is present on the particular CAN driver) to
@@ -35,22 +39,25 @@ namespace uavcan
 class CanAcceptanceFilterConfigurator
 {
     /**
-     * Below constants based on UAVCAN transport layer specification. Masks and ID's depends on message Priority,
-     * TypeID, TransferID (RequestNotResponse - for service types, BroadcastNotUnicast - for message types).
+     * Below constants based on UAVCAN transport layer specification. Masks and ID's depends on message
+     * TypeID, TransferID (RequestNotResponse - for service types, ServiceNotMessage - for all types of messages).
      * For more details refer to uavcan.org/CAN_bus_transport_layer_specification.
-     * For clarity let's represent "i" as Data Type ID
-     * DefaultFilterMsgMask = 00111111111110000000000000000
-     * DefaultFilterMsgID   = 00iiiiiiiiiii0000000000000000, no need to explicitly define, since MsgID initialized as 0.
-     * DefaultFilterServiceRequestMask = 11111111111100000000000000000
-     * DefaultFilterServiceRequestID   = 101iiiiiiiii00000000000000000
-     * ServiceRespFrameMask = 11100000000000000000000000000
-     * ServiceRespFrameID   = 10000000000000000000000000000, all Service Response Frames are accepted by HW filters.
+     * For clarity let's represent "i" as Data Type ID and "d" as Destination Node Id
+     * DefaultFilterMsgMask = 00000 11111111 11111111 10000000
+     * DefaultFilterMsgID   = 00000 iiiiiiii iiiiiiii 00000000, no need to explicitly define, since MsgID initialized
+     * as 0.
+     * DefaultFilterServiceMask = 00000 00000000 01111111 10000000
+     * DefaultFilterServiceID   = 00000 00000000 0ddddddd 10000000, all Service Response Frames are accepted by
+     * HW filters.
+     * DefaultAnonMsgMask = 00000 00000000 00000000 11111111
+     * DefaultAnonMsgID   = 00000 00000000 00000000 00000000, by default the config is added to accept all anonymous
+     * frames. In case there are no anonymous massages, invoke configureFilters(NoAnonMsg).
      */
-    static const unsigned DefaultFilterMsgMask = 0x7FF0000;
-    static const unsigned DefaultFilterServiceRequestID = 0x14000000;
-    static const unsigned DefaultFilterServiceRequestMask = 0x1FFE0000;
-    static const unsigned ServiceRespFrameID = 0x10000000;
-    static const unsigned ServiceRespFrameMask = 0x1C000000;
+    static const unsigned DefaultFilterMsgMask = 0xFFFF80;
+    static const unsigned DefaultFilterServiceMask = 0x7F80;
+    static const unsigned DefaultFilterServiceID = 0x80;
+    static const unsigned DefaultAnonMsgMask = 0xF;
+    static const unsigned DefaultAnonMsgID = 0x0;
 
     typedef uavcan::Multiset<CanFilterConfig, 1> MultisetConfigContainer;
 
@@ -61,7 +68,7 @@ class CanAcceptanceFilterConfigurator
     /**
      * Fills the multiset_configs_ to proceed it with computeConfiguration()
      */
-    int16_t loadInputConfiguration();
+    int16_t loadInputConfiguration(AnonMassagePresence load_mode);
 
     /**
      * This method merges several listeners's filter configurations by predetermined algorithm
@@ -84,11 +91,12 @@ public:
     { }
 
     /**
-     * This method invokes loadInputConfiguration(), computeConfiguration() and applyConfiguration() consequently, so that
-     * optimal acceptance filter configuration will be computed and loaded through CanDriver::configureFilters()
-     * @return 0 = success, negative for error.
+     * This method invokes loadInputConfiguration(), computeConfiguration() and applyConfiguration() consequently, so
+     * that optimal acceptance filter configuration will be computed and loaded through CanDriver::configureFilters()
+     * @return 0 = success, negative for error. Input argument defines the presence of anonymous massages
+     * WithAnonMsg(default)/NoAnonMsg.
      */
-    int configureFilters();
+    int configureFilters(AnonMassagePresence mode = WithAnonMsg);
 
     /**
      * Returns the configuration computed with computeConfiguration().

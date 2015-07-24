@@ -19,10 +19,7 @@
 #include <uavcan/node/service_client.hpp>
 #include <uavcan/node/service_server.hpp>
 #include <iostream>
-#include <bitset>
 
-// TODO FIXME: Requires update
-#if 0
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
 template <typename DataType>
@@ -128,14 +125,15 @@ TEST(CanAcceptanceFilter, Basic_test)
     server.start(writeServiceServerCallback);
     std::cout << "Subscribers are initialized ..." << std::endl;
 
-    uavcan::CanAcceptanceFilterConfigurator test_configurator(node);
-    int configure_filters_assert = test_configurator.configureFilters();
+
+    uavcan::CanAcceptanceFilterConfigurator anon_test_configuration(node);
+    int configure_filters_assert = anon_test_configuration.configureFilters();
     if (configure_filters_assert == 0)
     {
-        std::cout << "Filters are configured ..." << std::endl;
+        std::cout << "Filters are configured with anonymous configuration..." << std::endl;
     }
 
-    const auto& configure_array = test_configurator.getConfiguration();
+    const auto& configure_array = anon_test_configuration.getConfiguration();
     uint32_t configure_array_size = configure_array.getSize();
 
     ASSERT_EQ(configure_filters_assert, 0);
@@ -147,14 +145,41 @@ TEST(CanAcceptanceFilter, Basic_test)
         std::cout << "config.MK [" << i << "]= " << configure_array.getByIndex(i)->mask << std::endl;
     }
 
-    ASSERT_EQ(configure_array.getByIndex(0)->id, 268435456);
-    ASSERT_EQ(configure_array.getByIndex(0)->mask, 469762048);
-    ASSERT_EQ(configure_array.getByIndex(1)->id, 363069440);
-    ASSERT_EQ(configure_array.getByIndex(1)->mask, 536739840);
-    ASSERT_EQ(configure_array.getByIndex(2)->id, 16777216);
-    ASSERT_EQ(configure_array.getByIndex(2)->mask, 124452864);
-    ASSERT_EQ(configure_array.getByIndex(3)->id, 18874368);
-    ASSERT_EQ(configure_array.getByIndex(3)->mask, 133169152);
+    ASSERT_EQ(configure_array.getByIndex(0)->id, 0);
+    ASSERT_EQ(configure_array.getByIndex(0)->mask, 15);
+    ASSERT_EQ(configure_array.getByIndex(1)->id, 256000);
+    ASSERT_EQ(configure_array.getByIndex(1)->mask, 16771968);
+    ASSERT_EQ(configure_array.getByIndex(2)->id, 6272);
+    ASSERT_EQ(configure_array.getByIndex(2)->mask, 32640);
+    ASSERT_EQ(configure_array.getByIndex(3)->id, 262144);
+    ASSERT_EQ(configure_array.getByIndex(3)->mask, 16771200);
+
+
+    uavcan::CanAcceptanceFilterConfigurator no_anon_test_confiruration(node);
+    configure_filters_assert = no_anon_test_confiruration.configureFilters(uavcan::NoAnonMsg);
+    if (configure_filters_assert == 0)
+    {
+        std::cout << "Filters are configured without anonymous configuration..."<< std::endl;
+    }
+    const auto& configure_array_2 = no_anon_test_confiruration.getConfiguration();
+    configure_array_size = configure_array_2.getSize();
+
+    ASSERT_EQ(configure_filters_assert, 0);
+    ASSERT_EQ(configure_array_size, 4);
+
+    for (uint16_t i = 0; i<configure_array_size; i++)
+    {
+        std::cout << "config.ID [" << i << "]= " << configure_array.getByIndex(i)->id << std::endl;
+        std::cout << "config.MK [" << i << "]= " << configure_array.getByIndex(i)->mask << std::endl;
+    }
+
+    ASSERT_EQ(configure_array_2.getByIndex(0)->id, 6272);
+    ASSERT_EQ(configure_array_2.getByIndex(0)->mask, 32640);
+    ASSERT_EQ(configure_array_2.getByIndex(1)->id, 262144);
+    ASSERT_EQ(configure_array_2.getByIndex(1)->mask, 16776320);
+    ASSERT_EQ(configure_array_2.getByIndex(2)->id, 256000);
+    ASSERT_EQ(configure_array_2.getByIndex(2)->mask, 16771968);
+    ASSERT_EQ(configure_array_2.getByIndex(3)->id, 262144);
+    ASSERT_EQ(configure_array_2.getByIndex(3)->mask, 16771968);
 }
-#endif
 #endif
