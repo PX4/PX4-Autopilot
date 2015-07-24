@@ -56,6 +56,8 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
         void push(const uavcan::CanFrame& frame, const uint64_t& utc_usec, uavcan::CanIOFlags flags);
         void pop(uavcan::CanFrame& out_frame, uavcan::uint64_t& out_utc_usec, uavcan::CanIOFlags& out_flags);
 
+        void reset();
+
         unsigned getLength() const { return len_; }
 
         uavcan::uint32_t getOverflowCount() const { return overflow_cnt_; }
@@ -127,6 +129,12 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 public:
     enum { MaxRxQueueCapacity = 254 };
 
+    enum OperatingMode
+    {
+        NormalMode,
+        SilentMode
+    };
+
     CanIface(bxcan::CanType* can, BusEvent& update_event, uavcan::uint8_t self_index,
              CanRxItem* rx_queue_buffer, uavcan::uint8_t rx_queue_capacity)
         : rx_queue_(rx_queue_buffer, rx_queue_capacity)
@@ -149,7 +157,7 @@ public:
      *   - Iface has been resetted via RCC
      *   - Caller will configure NVIC by itself
      */
-    int init(uavcan::uint32_t bitrate);
+    int init(const uavcan::uint32_t bitrate, const OperatingMode mode);
 
     void handleTxInterrupt(uavcan::uint64_t utc_usec);
     void handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t utc_usec);
@@ -241,7 +249,7 @@ public:
      * Returns zero if OK.
      * Returns negative value if failed (e.g. invalid bitrate).
      */
-    int init(uavcan::uint32_t bitrate);
+    int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode);
 
     virtual CanIface* getIface(uavcan::uint8_t iface_index);
 
@@ -277,8 +285,6 @@ public:
      * This function can either initialize the driver at a fixed bit rate, or it can perform
      * automatic bit rate detection. For theory please refer to the CiA application note #801.
      *
-     * TODO FIXME: During bit rate detection, the CAN controller must be initialized in listen-only mode.
-     *
      * @param delay_callable    A callable entity that suspends execution for strictly more than one second.
      *                          The callable entity will be invoked without arguments.
      *                          @ref getRecommendedListeningDelay().
@@ -294,7 +300,7 @@ public:
     {
         if (inout_bitrate > 0)
         {
-            return driver.init(inout_bitrate);
+            return driver.init(inout_bitrate, CanIface::NormalMode);
         }
         else
         {
@@ -310,8 +316,7 @@ public:
             {
                 inout_bitrate = StandardBitRates[br];
 
-                // TODO: listen-only mode
-                const int res = driver.init(inout_bitrate);
+                const int res = driver.init(inout_bitrate, CanIface::SilentMode);
 
                 delay_callable();
 
@@ -321,7 +326,8 @@ public:
                     {
                         if (!driver.getIface(iface)->isRxBufferEmpty())
                         {
-                            return res;
+                            // Re-initializing in normal mode
+                            return driver.init(inout_bitrate, CanIface::NormalMode);
                         }
                     }
                 }

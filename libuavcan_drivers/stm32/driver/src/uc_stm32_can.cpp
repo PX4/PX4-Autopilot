@@ -160,6 +160,14 @@ void CanIface::RxQueue::pop(uavcan::CanFrame& out_frame, uavcan::uint64_t& out_u
     else { UAVCAN_ASSERT(0); }
 }
 
+void CanIface::RxQueue::reset()
+{
+    in_ = 0;
+    out_ = 0;
+    len_ = 0;
+    overflow_cnt_ = 0;
+}
+
 /*
  * CanIface
  */
@@ -446,9 +454,20 @@ bool CanIface::waitMsrINakBitStateChange(bool target_state)
     return false;
 }
 
-int CanIface::init(uavcan::uint32_t bitrate)
+int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 {
     int res = 0;
+
+    /*
+     * Object state
+     */
+    rx_queue_.reset();
+    error_cnt_ = 0;
+    served_aborts_cnt_ = 0;
+    uavcan::fill_n(pending_tx_, NumTxMailboxes, TxItem());
+    last_hw_error_code_ = 0;
+    peak_tx_mailbox_index_ = 0;
+    had_activity_ = false;
 
     /*
      * CAN timings for this bitrate
@@ -480,7 +499,8 @@ int CanIface::init(uavcan::uint32_t bitrate)
     can_->BTR = ((timings.sjw & 3U)  << 24) |
                 ((timings.bs1 & 15U) << 16) |
                 ((timings.bs2 & 7U)  << 20) |
-                (timings.prescaler & 1023U);
+                (timings.prescaler & 1023U) |
+                ((mode == SilentMode) ? bxcan::BTR_SILM : 0);
 
     can_->IER = bxcan::IER_TMEIE |   // TX mailbox empty
                 bxcan::IER_FMPIE0 |  // RX FIFO 0 is not empty
@@ -812,7 +832,7 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
     return 1;                                   // Return value doesn't matter as long as it is non-negative
 }
 
-int CanDriver::init(uavcan::uint32_t bitrate)
+int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode)
 {
     int res = 0;
 
@@ -835,7 +855,7 @@ int CanDriver::init(uavcan::uint32_t bitrate)
     }
 
     UAVCAN_STM32_LOG("Initing iface 0...");
-    res = if0_.init(bitrate);
+    res = if0_.init(bitrate, mode);
     if (res < 0)
     {
         UAVCAN_STM32_LOG("Iface 0 init failed %i", res);
@@ -861,7 +881,7 @@ int CanDriver::init(uavcan::uint32_t bitrate)
     }
 
     UAVCAN_STM32_LOG("Initing iface 1...");
-    res = if1_.init(bitrate);
+    res = if1_.init(bitrate, mode);
     if (res < 0)
     {
         UAVCAN_STM32_LOG("Iface 1 init failed %i", res);
