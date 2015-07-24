@@ -101,6 +101,7 @@ class SourceParser(object):
     re_cut_type_specifier = re.compile(r'[a-z]+$')
     re_is_a_number = re.compile(r'^-?[0-9\.]')
     re_remove_dots = re.compile(r'\.+$')
+    re_remove_carriage_return = re.compile('\n+')
 
     valid_tags = set(["group", "board", "min", "max", "unit"])
 
@@ -188,12 +189,20 @@ class SourceParser(object):
                 if last_comment_line:
                     state = "comment-processed"
             else:
+                tp = None
+                name = None
+                defval = ""
                 # Non-empty line outside the comment
                 m = self.re_parameter_definition.match(line)
                 if m:
                     tp, name, defval = m.group(1, 2, 3)
+                else:
+                    m = self.re_px4_parameter_definition.match(line)
+                    if m:
+                        tp, name = m.group(1, 2)
+                if tp is not None:
                     # Remove trailing type specifier from numbers: 0.1f => 0.1
-                    if self.re_is_a_number.match(defval):
+                    if defval != "" and self.re_is_a_number.match(defval):
                         defval = self.re_cut_type_specifier.sub('', defval)
                     param = Parameter(name, tp, defval)
                     param.SetField("short_desc", name)
@@ -202,52 +211,71 @@ class SourceParser(object):
                     group = "Miscellaneous"
                     if state == "comment-processed":
                         if short_desc is not None:
-                            param.SetField("short_desc",
-                                    self.re_remove_dots.sub('', short_desc))
+                            param.SetField("short_desc", self.re_remove_dots.sub('', short_desc))
                         if long_desc is not None:
+                            long_desc = self.re_remove_carriage_return.sub(' ', long_desc)
                             param.SetField("long_desc", long_desc)
                         for tag in tags:
                             if tag == "group":
                                 group = tags[tag]
                             elif tag not in self.valid_tags:
-                                sys.stderr.write("Skipping invalid "
-                                        "documentation tag: '%s'\n" % tag)
+                                sys.stderr.write("Skipping invalid documentation tag: '%s'\n" % tag)
+                                return False
                             else:
                                 param.SetField(tag, tags[tag])
                     # Store the parameter
                     if group not in self.param_groups:
                         self.param_groups[group] = ParameterGroup(group)
                     self.param_groups[group].AddParameter(param)
-                else:
-                    # Nasty code dup, but this will all go away soon, so quick and dirty (DonLakeFlyer)
-                    m = self.re_px4_parameter_definition.match(line)
-                    if m:
-                        tp, name = m.group(1, 2)
-                        param = Parameter(name, tp)
-                        param.SetField("short_desc", name)
-                        # If comment was found before the parameter declaration,
-                        # inject its data into the newly created parameter.
-                        group = "Miscellaneous"
-                        if state == "comment-processed":
-                            if short_desc is not None:
-                                param.SetField("short_desc",
-                                   self.re_remove_dots.sub('', short_desc))
-                            if long_desc is not None:
-                                param.SetField("long_desc", long_desc)
-                            for tag in tags:
-                                if tag == "group":
-                                    group = tags[tag]
-                                elif tag not in self.valid_tags:
-                                    sys.stderr.write("Skipping invalid "
-                                             "documentation tag: '%s'\n" % tag)
-                                else:
-                                    param.SetField(tag, tags[tag])
-                        # Store the parameter
-                        if group not in self.param_groups:
-                            self.param_groups[group] = ParameterGroup(group)
-                        self.param_groups[group].AddParameter(param)
-                    # Reset parsed comment.
-                    state = None
+                state = None
+        return True
+    
+    def IsNumber(self, numberString):
+        try:
+            float(numberString)
+            return True
+        except ValueError:
+            return False
+
+    def Validate(self):
+        """
+        Validates the parameter meta data.
+        """
+        seenParamNames = []
+        for group in self.GetParamGroups():
+            for param in group.GetParams():
+                name  = param.GetName()
+                board = param.GetFieldValue("board")
+                # Check for duplicates
+                name_plus_board = name + "+" + board
+                for seenParamName in seenParamNames:
+                    if seenParamName == name_plus_board:
+                        sys.stderr.write("Duplicate parameter definition: {0}\n".format(name_plus_board))
+                        return False
+                seenParamNames.append(name_plus_board)
+                # Validate values
+                default = param.GetDefault()
+                min = param.GetFieldValue("min")
+                max = param.GetFieldValue("max")
+                #sys.stderr.write("{0} default:{1} min:{2} max:{3}\n".format(name, default, min, max))
+                if default != "" and not self.IsNumber(default):
+                    sys.stderr.write("Default value not number: {0} {1}\n".format(name, default))
+                    return False
+                if min != "":
+                    if not self.IsNumber(min):
+                        sys.stderr.write("Min value not number: {0} {1}\n".format(name, min))
+                        return False
+                    if default != "" and float(default) < float(min):
+                        sys.stderr.write("Default value is smaller than min: {0} default:{1} min:{2}\n".format(name, default, min))
+                        return False
+                if max != "":
+                    if not self.IsNumber(max):
+                        sys.stderr.write("Max value not number: {0} {1}\n".format(name, max))
+                        return False
+                    if default != "" and float(default) > float(max):
+                        sys.stderr.write("Default value is larger than max: {0} default:{1} max:{2}\n".format(name, default, max))
+                        return False
+        return True
 
     def GetParamGroups(self):
         """

@@ -115,7 +115,10 @@ def main():
 
     # Scan directories, and parse the files
     print("Scanning source path " + args.src_path)
-    scanner.ScanDir(args.src_path, parser)
+    if not scanner.ScanDir(args.src_path, parser):
+        sys.exit(1)
+    if not parser.Validate():
+        sys.exit(1)
     param_groups = parser.GetParamGroups()
 
     # Output to XML file

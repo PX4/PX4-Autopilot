@@ -200,7 +200,8 @@ endif
 
 sitl_quad:
 	$(Q) Tools/sitl_run.sh posix-configs/SITL/init/rcS
-
+sitl_quad_gazebo:
+	$(Q) Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros
 sitl_plane:
 	$(Q) Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
 
