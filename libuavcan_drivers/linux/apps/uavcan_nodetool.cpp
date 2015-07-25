@@ -73,64 +73,6 @@ public:
     }
 };
 
-
-std::string paramValueToString(const uavcan::protocol::param::Value& value)
-{
-    if (auto x = value.as<uavcan::protocol::param::Value::Tag::boolean_value>())
-    {
-        return *x ? "true" : "false";
-    }
-    if (auto x = value.as<uavcan::protocol::param::Value::Tag::integer_value>())
-    {
-        return std::to_string(*x);
-    }
-    if (auto x = value.as<uavcan::protocol::param::Value::Tag::real_value>())
-    {
-        return std::to_string(*x);
-    }
-    if (auto x = value.as<uavcan::protocol::param::Value::Tag::string_value>())
-    {
-        return std::string(x->c_str()) + " ";
-    }
-    return "";
-}
-
-std::string paramValueToString(const uavcan::protocol::param::NumericValue& value)
-{
-    if (auto x = value.as<uavcan::protocol::param::NumericValue::Tag::integer_value>())
-    {
-        return std::to_string(*x);
-    }
-    if (auto x = value.as<uavcan::protocol::param::NumericValue::Tag::real_value>())
-    {
-        return std::to_string(*x);
-    }
-    return "";
-}
-
-void printGetSetResponseHeader()
-{
-    std::cout
-        << "Name                                     Value          Default        Min            Max\n"
-        << "--------------------------------------------------------------------------------------------------"
-        << std::endl;
-}
-
-void printGetSetResponse(const uavcan::protocol::param::GetSet::Response& resp)
-{
-    const auto original_flags = std::cout.flags();
-
-    std::cout << std::setw(41) << std::left << resp.name.c_str();
-    std::cout << std::setw(15) << paramValueToString(resp.value);
-    std::cout << std::setw(15) << paramValueToString(resp.default_value);
-    std::cout << std::setw(15) << paramValueToString(resp.min_value);
-    std::cout << std::setw(15) << paramValueToString(resp.max_value);
-    std::cout << std::endl;
-
-    std::cout.width(0);         // Clears the effect of std::setw()
-    std::cout.flags(original_flags);
-}
-
 uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid, const std::string& name)
 {
     auto node = uavcan_linux::makeNode(ifaces);
@@ -172,7 +114,6 @@ const std::map<std::string,
             [](const uavcan_linux::NodePtr& node, const uavcan::NodeID node_id, const std::vector<std::string>& args)
             {
                 auto client = node->makeBlockingServiceClient<uavcan::protocol::param::GetSet>();
-                printGetSetResponseHeader();
                 uavcan::protocol::param::GetSet::Request request;
                 if (args.empty())
                 {
@@ -183,7 +124,10 @@ const std::map<std::string,
                         {
                             break;
                         }
-                        printGetSetResponse(response);
+                        std::cout
+                            << response
+                            << "\n" << std::string(80, '-')
+                            << std::endl;
                         request.index++;
                     }
                 }
@@ -192,7 +136,7 @@ const std::map<std::string,
                     request.name = args.at(0).c_str();
                     // TODO: add support for string parameters
                     request.value.to<uavcan::protocol::param::Value::Tag::real_value>() = std::stof(args.at(1));
-                    printGetSetResponse(call(*client, node_id, request));
+                    std::cout << call(*client, node_id, request) << std::endl;
                 }
             }
         }
