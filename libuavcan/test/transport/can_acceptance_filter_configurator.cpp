@@ -156,10 +156,11 @@ TEST(CanAcceptanceFilter, Basic_test)
 
 
     uavcan::CanAcceptanceFilterConfigurator no_anon_test_confiruration(node);
-    configure_filters_assert = no_anon_test_confiruration.configureFilters(uavcan::NoAnonMsg);
+    configure_filters_assert = no_anon_test_confiruration.configureFilters
+                                   (uavcan::CanAcceptanceFilterConfigurator::NoAnonMsg);
     if (configure_filters_assert == 0)
     {
-        std::cout << "Filters are configured without anonymous configuration..."<< std::endl;
+        std::cout << "Filters are configured without anonymous configuration..." << std::endl;
     }
     const auto& configure_array_2 = no_anon_test_confiruration.getConfiguration();
     configure_array_size = configure_array_2.getSize();

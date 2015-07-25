@@ -16,10 +16,8 @@
 
 namespace uavcan
 {
-/**
- * These arguments defines whether acceptance filter configuration has anonymous massages or not
- */
-enum AnonMassagePresence {WithAnonMsg,NoAnonMsg};
+
+
 
 /**
  * This class configures hardware acceptance filters (if this feature is present on the particular CAN driver) to
@@ -38,6 +36,13 @@ enum AnonMassagePresence {WithAnonMsg,NoAnonMsg};
  */
 class CanAcceptanceFilterConfigurator
 {
+public:
+	/**
+	 * These arguments defines whether acceptance filter configuration has anonymous messages or not
+	 */
+	enum AnonMessagePresence {WithAnonMsg,NoAnonMsg};
+
+private:
     /**
      * Below constants based on UAVCAN transport layer specification. Masks and ID's depends on message
      * TypeID, TransferID (RequestNotResponse - for service types, ServiceNotMessage - for all types of messages).
@@ -51,7 +56,7 @@ class CanAcceptanceFilterConfigurator
      * HW filters.
      * DefaultAnonMsgMask = 00000 00000000 00000000 11111111
      * DefaultAnonMsgID   = 00000 00000000 00000000 00000000, by default the config is added to accept all anonymous
-     * frames. In case there are no anonymous massages, invoke configureFilters(NoAnonMsg).
+     * frames. In case there are no anonymous messages, invoke configureFilters(NoAnonMsg).
      */
     static const unsigned DefaultFilterMsgMask = 0xFFFF80;
     static const unsigned DefaultFilterServiceMask = 0x7F80;
@@ -68,7 +73,7 @@ class CanAcceptanceFilterConfigurator
     /**
      * Fills the multiset_configs_ to proceed it with computeConfiguration()
      */
-    int16_t loadInputConfiguration(AnonMassagePresence load_mode);
+    int16_t loadInputConfiguration(AnonMessagePresence load_mode);
 
     /**
      * This method merges several listeners's filter configurations by predetermined algorithm
@@ -93,10 +98,10 @@ public:
     /**
      * This method invokes loadInputConfiguration(), computeConfiguration() and applyConfiguration() consequently, so
      * that optimal acceptance filter configuration will be computed and loaded through CanDriver::configureFilters()
-     * @return 0 = success, negative for error. Input argument defines the presence of anonymous massages
+     * @return 0 = success, negative for error. Input argument defines the presence of anonymous messages
      * WithAnonMsg(default)/NoAnonMsg.
      */
-    int configureFilters(AnonMassagePresence mode = WithAnonMsg);
+    int configureFilters(AnonMessagePresence mode = WithAnonMsg);
 
     /**
      * Returns the configuration computed with computeConfiguration().
