@@ -319,7 +319,9 @@ TEST(FirmwareUpdateTrigger, MultiNode)
     nodes.spinAll(uavcan::MonotonicDuration::fromMSec(4200));   // Two will retry, one drop, one confirm
 
     ASSERT_TRUE(trigger.isTimerRunning());
-    ASSERT_EQ(0, trigger.getNumPendingNodes());         // All removed
+
+    nodes.spinAll(uavcan::MonotonicDuration::fromMSec(1000));
+    ASSERT_EQ(0, trigger.getNumPendingNodes());         // All removed now
 
     EXPECT_EQ(4, checker.should_request_cnt);
     EXPECT_EQ(4, checker.should_retry_cnt);
