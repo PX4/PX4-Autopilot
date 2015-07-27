@@ -40,6 +40,7 @@
  * LSA -Autonomous Systems Laboratory | ISEP
  *
  *  @author Pedro M. Sousa <1111519@isep.ipp.pt>
+ *  @author Tiago Miranda <tasantos@inesctec.pt>
  *  @author Miguel Moreira <mmoreira@inesctec.pt>
  *  @author Joel Oliveira <hjfo@inesctec.pt>
  *
@@ -277,8 +278,8 @@ int NVS::configure(unsigned &baudrate)
 		usleep(50);
 
 		/* Request  for/Setting  of  BINRProtocol   Operation   Mode */
-		unsigned char msg1[] = {0x10, 0xb2, 0x06, 0x10, 0x03};
-		write(_fd, (const void *)msg1, 5);
+        unsigned char msg1[] = {0x10, 0xb2, 0x04, 0x00, 0x10, 0x03};
+		write(_fd, (const void *)msg1, 6);
 		usleep(50);
 
 		/* Request  for PVT Vector */

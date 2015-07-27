@@ -41,6 +41,7 @@
  *
  *
  * @author Pedro M. Sousa <1111519@isep.ipp.pt>
+ * @author Tiago Miranda <tasantos@inesctec.ipp.pt>
  * @author Miguel Moreira <mmoreira@inesctec.pt>
  * @author Joel Oliveira <hjfo@inesctec.pt>
  *
