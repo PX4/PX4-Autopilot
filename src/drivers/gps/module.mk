@@ -41,7 +41,8 @@ SRCS		= gps.cpp \
 		  gps_helper.cpp \
 		  mtk.cpp \
 		  ashtech.cpp \
-		  ubx.cpp
+		  ubx.cpp \
+		  nvs.cpp
 
 MODULE_STACKSIZE = 1200
 
