@@ -120,7 +120,7 @@ public:
 			}
 		}
 
-		return nullptr;
+		return false;
 	}
 
 private:
