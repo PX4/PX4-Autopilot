@@ -123,6 +123,8 @@ public:
 		int32_t *bytes_returned
 	);
 
+	int16_t get_bulk_data(uint8_t *buffer, int32_t max_size_in_bytes, int32_t *returned_bytes, int32_t *topic_count);
+
 	// function to check if there are subscribers for a topic on adsp.
 	int16_t is_subscriber_present(const char *messageName, int32_t *status);
 
@@ -153,6 +155,11 @@ private: // data members
 	static const int32_t _CONTROL_MSG_TYPE_REMOVE_SUBSCRIBER = 2;
 	static const int32_t _DATA_MSG_TYPE = 3;
 
+	static const int32_t _PACKET_FIELD_TOPIC_NAME_LEN_SIZE_IN_BYTES = 2;
+	static const int32_t _PACKET_FIELD_DATA_LEN_IN_BYTES = 2;
+	static const int32_t _PACKET_HEADER_SIZE =
+		_PACKET_FIELD_TOPIC_NAME_LEN_SIZE_IN_BYTES + _PACKET_FIELD_DATA_LEN_IN_BYTES;
+
 	struct FastRpcDataMsg {
 		int32_t     _MaxBufferSize;
 		int32_t     _Length;
@@ -164,6 +171,12 @@ private: // data members
 		int32_t _Type;
 		std::string _MsgName;
 	};
+
+	struct BulkTransferHeader {
+		uint16_t _MsgNameLen;
+		uint16_t _DataLen;
+	};
+
 
 	struct FastRpcDataMsg _DataMsgQueue[ _MAX_MSG_QUEUE_SIZE ];
 	int32_t _DataQInIndex;
@@ -244,6 +257,9 @@ private://class members.
 	bool IsDataQEmpty();
 	int32_t DataQSize();
 	int32_t ControlQSize();
+
+	int32_t get_data_msg_size_at(int32_t index);
+	int32_t copy_data_to_buffer(int32_t src_index, uint8_t *dst_buffer, int32_t offset, int32_t dst_buffer_len);
 
 	std::set<std::string> _RemoteSubscribers;
 };

@@ -44,6 +44,5 @@ INCLUDE_DIRS           += $(EXT_MUORB_LIB_ROOT)/krait/include \
                           $(PX4_BASE)/src/modules/uORB \
                           $(PX4_BASE)/src/modules
 
-EXTRA_LIBS             += $(EXT_MUORB_LIB_ROOT)/krait/libs/libmuorb.so
+EXTRA_LIBS             += $(EXT_MUORB_LIB_ROOT)/krait/libs/libpx4muorb.so
 endif
-

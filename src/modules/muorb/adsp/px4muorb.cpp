@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include "muorb_fastrpc.h"
+#include "px4muorb.hpp"
 #include "qurt.h"
 #include "uORBFastRpcChannel.hpp"
 #include "uORBManager.hpp"
@@ -44,19 +44,20 @@
 #include "uORB/topics/sensor_combined.h"
 #include "uORB.h"
 
+#include "HAP_power.h"
+
 #define _ENABLE_MUORB 1
 
-__BEGIN_DECLS
-
-int dspal_main(int argc, const char *argv[]);
-
-__END_DECLS
+extern "C" {
+	int dspal_main(int argc, const char *argv[]);
+};
 
 
-int muorb_fastrpc_orb_initialize()
+int px4muorb_orb_initialize()
 {
 	int rc = 0;
 	PX4_WARN("Before calling dspal_entry() method...");
+	HAP_power_request(100, 100, 1000);
 	// registere the fastrpc muorb with uORBManager.
 	uORB::Manager::get_instance()->set_uorb_communicator(uORB::FastRpcChannel::GetInstance());
 	const char *argv[2] = { "dspal", "start" };
@@ -66,7 +67,7 @@ int muorb_fastrpc_orb_initialize()
 	return rc;
 }
 
-int muorb_fastrpc_add_subscriber(const char *name)
+int px4muorb_add_subscriber(const char *name)
 {
 	int rc = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
@@ -87,7 +88,7 @@ int muorb_fastrpc_add_subscriber(const char *name)
 	return rc;
 }
 
-int muorb_fastrpc_remove_subscriber(const char *name)
+int px4muorb_remove_subscriber(const char *name)
 {
 	int rc = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
@@ -105,7 +106,7 @@ int muorb_fastrpc_remove_subscriber(const char *name)
 
 }
 
-int muorb_fastrpc_send_topic_data(const char *name, const uint8_t *data, int data_len_in_bytes)
+int px4muorb_send_topic_data(const char *name, const uint8_t *data, int data_len_in_bytes)
 {
 	int rc = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
@@ -121,7 +122,7 @@ int muorb_fastrpc_send_topic_data(const char *name, const uint8_t *data, int dat
 	return rc;
 }
 
-int muorb_fastrpc_is_subscriber_present(const char *topic_name, int *status)
+int px4muorb_is_subscriber_present(const char *topic_name, int *status)
 {
 	int rc = 0;
 	int32_t local_status = 0;
@@ -135,20 +136,35 @@ int muorb_fastrpc_is_subscriber_present(const char *topic_name, int *status)
 	return rc;
 }
 
-int muorb_fastrpc_receive_msg(int *msg_type, char *topic_name, int topic_name_len, uint8_t *data, int data_len_in_bytes,
-			      int *bytes_returned)
+int px4muorb_receive_msg(int *msg_type, char *topic_name, int topic_name_len, uint8_t *data, int data_len_in_bytes,
+			 int *bytes_returned)
 {
 	int rc = 0;
 	int32_t local_msg_type = 0;
 	int32_t local_bytes_returned = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
+	//PX4_DEBUG( "topic_namePtr: [0x%p] dataPtr: [0x%p]", topic_name, data );
 	rc = channel->get_data(&local_msg_type, topic_name, topic_name_len, data, data_len_in_bytes, &local_bytes_returned);
 	*msg_type = (int)local_msg_type;
 	*bytes_returned = (int)local_bytes_returned;
 	return rc;
 }
 
-int muorb_fastrpc_unblock_recieve_msg(void)
+int px4muorb_receive_bulk_data(uint8_t *bulk_transfer_buffer, int max_size_in_bytes,
+			       int *returned_length_in_bytes, int *topic_count)
+{
+	int rc = 0;
+	int32_t local_bytes_returned = 0;
+	int32_t local_topic_count = 0;
+	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
+	//PX4_DEBUG( "topic_namePtr: [0x%p] dataPtr: [0x%p]", topic_name, data );
+	rc = channel->get_bulk_data(bulk_transfer_buffer,  max_size_in_bytes, &local_bytes_returned, &local_topic_count);
+	*returned_length_in_bytes = (int)local_bytes_returned;
+	*topic_count = (int)local_topic_count;
+	return rc;
+}
+
+int px4muorb_unblock_recieve_msg(void)
 {
 	int rc = 0;
 	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
