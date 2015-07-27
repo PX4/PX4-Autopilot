@@ -42,4 +42,4 @@ SRCS		= mc_pos_control_main.cpp \
 		  mc_pos_control.cpp \
 		  mc_pos_control_params.c
 
-EXTRACXXFLAGS = -Wframe-larger-than=1200
+EXTRACXXFLAGS = -Wframe-larger-than=2500
