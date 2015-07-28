@@ -35,15 +35,15 @@
 # Makefile to build simulator 
 #
 
-MODULE_COMMAND		= simulator
+MODULE_COMMAND	= simulator
 
-SRCS			= simulator.cpp
+SRCS		= simulator.cpp
 
 ifneq ($(PX4_TARGET_OS), qurt)
-SRCS			+= simulator_mavlink.cpp
+SRCS		+= simulator_mavlink.cpp
 endif
 
-INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
+INCLUDE_DIRS	+= $(MAVLINK_SRC)/include/mavlink
 
 EXTRACXXFLAGS	= -Weffc++ -Wno-attributes -Wno-packed
 
