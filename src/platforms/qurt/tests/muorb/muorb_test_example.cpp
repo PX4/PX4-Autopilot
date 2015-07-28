@@ -178,6 +178,12 @@ int MuorbTestExample::uSleepTest()
 	return 0;
 }
 
+// FIXME - Remove this when DSPAL supports getline()
+ssize_t getline(char **lineptr, size_t *n, FILE *fp)
+{
+	return -1;
+}
+
 int MuorbTestExample::FileReadTest()
 {
 	int rc = OK;

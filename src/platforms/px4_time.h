@@ -10,9 +10,7 @@
 
 #elif defined(__PX4_QURT)
 
-#include <sys/timespec.h>
-
-#define CLOCK_REALTIME 1
+#include <dspal_time.h>
 
 __BEGIN_DECLS
 
