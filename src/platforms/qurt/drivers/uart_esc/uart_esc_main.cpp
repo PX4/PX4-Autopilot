@@ -50,7 +50,7 @@
 #include <systemlib/param/param.h>
 #include <uart_esc.h>
 
-/** driver 'main' command */
+/* driver 'main' command */
 extern "C" { __EXPORT int uart_esc_main(int argc, char *argv[]); }
 
 namespace uart_esc
@@ -115,8 +115,19 @@ int initialize_mixer(const char* mixer_filename)
 {
 	int mixer_initialized = -1;
 
+#ifndef QURT_FILE_READ_SUPPORTED
 	static const char *buf=
+		/**
+                Multirotor mixer for Eagle
+		==========================
+		This buffer defines a single mixer for a quadrotor in the X configuration.
+		All controls are mixed 100%.
+		*/
 		"R: 4x 10000 10000 10000 0\n"
+		/**
+		Gimbal / payload mixer for last four channels
+		---------------------------------------------"
+		*/
 		"M: 1\n"
 		"O: 10000 10000 0 -10000 10000\n"
 		"S: 0 4 10000 10000 0 -10000 10000\n"
@@ -129,39 +140,12 @@ int initialize_mixer(const char* mixer_filename)
 		"M: 1\n"
 		"O: 10000 10000 0 -10000 10000\n"
 		"S: 0 7 10000 10000 0 -10000 10000\n";
-		/*"Multirotor mixer for PX4FMU\n"
-		"===========================\n"
-		"\n"
-		"This file defines a single mixer for a quadrotor in the X configuration.  All controls\n"
-		"are mixed 100%.\n"
-		"\n"
-		"R: 4x 10000 10000 10000 0\n"
-		"\n"
-		"Gimbal / payload mixer for last four channels\n"
-		"-----------------------------------------------------\n"
-		"\n"
-		"M: 1\n"
-		"O:      10000  10000      0 -10000  10000\n"
-		"S: 0 4  10000  10000      0 -10000  10000\n"
-		"\n"
-		"M: 1\n"
-		"O:      10000  10000      0 -10000  10000\n"
-		"S: 0 5  10000  10000      0 -10000  10000\n"
-		"\n"
-		"M: 1\n"
-		"O:      10000  10000      0 -10000  10000\n"
-		"S: 0 6  10000  10000      0 -10000  10000\n"
-		"\n"
-		"M: 1\n"
-		"O:      10000  10000      0 -10000  10000\n"
-		"S: 0 7  10000  10000      0 -10000  10000\n\n"
-		;*/
 	unsigned int buflen = strlen(buf);
 	_num_mixer_outputs  = 4;
 
+#else
 	// This is the intended way to read the charater description of the mixer, and should be re-enabled
 	// when file reading is supported
-#if 0
 	int fd_load = open(mixer_filename, O_RDONLY, 0);
 	char buf[512];
 	unsigned int buflen = sizeof(buf);
@@ -285,6 +269,7 @@ void task_main(int argc, char *argv[])
 
 				// Grab new controls data
 				orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
+
 				// Mix to the outputs
 				_outputs.timestamp = hrt_absolute_time();
 				int motor_rpms[4]; //not yet supporting variable numbers
@@ -310,18 +295,6 @@ void task_main(int argc, char *argv[])
 					}
 				}
 				esc->send_rpms(motor_rpms, _num_mixer_outputs, false);
-
-				/*
-				static int count=0;
-				count++;
-				if (!(count % 1)) {
-
-					PX4_DEBUG(" ");
-					PX4_DEBUG("Time       t: %13lu, Armed: %d",(unsigned long)_outputs.timestamp,_armed.armed);
-					PX4_DEBUG("Act Controls: 0: %+8.4f, 1: %+8.4f,   2: %+8.4f, 3: %+8.4f",_controls.control[0],_controls.control[1],_controls.control[2],_controls.control[3]);
-					PX4_DEBUG("Act Outputs : 0: %+8.4f, 1: %+8.4f,   2: %+8.4f, 3: %+8.4f",_outputs.output[0],_outputs.output[1],_outputs.output[2],_outputs.output[3]);
-				}
-				*/
 
 				/* Publish mixed control outputs */
 				if (_outputs_pub != nullptr) {
@@ -392,7 +365,7 @@ void stop()
 
 void usage()
 {
-	PX4_WARN("missing command: try 'start', 'stop', 'status'");
+	PX4_WARN("uart_esc missing command: try 'start', 'stop', 'status'");
 	PX4_WARN("options:");
 	PX4_WARN("    -D device");
 }
@@ -410,18 +383,6 @@ int uart_esc_main(int argc, char *argv[])
 	// Should add this feature later
 	device = "/dev/tty-2";
 
-	// /* jump over start/off/etc and look at options first */
-	// while ((ch = px4_getopt(argc, argv, "R:D:", &myoptind, &myoptarg)) != EOF) {
-	// 	switch (ch) {
-	// 	case 'D':
-	// 		device = optarg;
-	// 		break;
-	// 	default:
-	// 		uart_esc::usage();
-	// 		exit(0);
-	// 	}
-	// }
-
 	// Check on required arguments
 	if (device == NULL)
 	{
@@ -430,8 +391,6 @@ int uart_esc_main(int argc, char *argv[])
 	}
 
 	const char *verb = argv[1];
-	PX4_WARN("verb = %s", verb);
-	PX4_WARN("result = %d", strcmp(verb, "start"));
 
 	/*
 	 * Start/load the driver.
