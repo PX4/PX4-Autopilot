@@ -368,7 +368,7 @@ void start(const char* device)
 	/* start the task */
 	_task_handle = px4_task_spawn_cmd("uart_esc_main",
 					SCHED_DEFAULT,
-					SCHED_PRIORITY_MAX,
+					SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 					1500,
 					(px4_main_t)&task_main_trampoline,
 					nullptr);
@@ -444,7 +444,7 @@ int uart_esc_main(int argc, char *argv[])
 		uart_esc::start(device);
 	}
 
-  else if (!strcmp(verb, "stop")) {
+	else if (!strcmp(verb, "stop")) {
 		if (uart_esc::_is_running) {
 			PX4_WARN("uart_esc is not running");
 			return 1;
