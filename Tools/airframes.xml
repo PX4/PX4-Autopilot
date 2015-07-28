@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <airframes>
+  <version>1</version>
   <airframe_group name="StandardPlane">
   	<airframe name="Multiplex Easystar 1/2" id="2100"/>
   	<airframe name="Generic AERT" id="2101"/>
