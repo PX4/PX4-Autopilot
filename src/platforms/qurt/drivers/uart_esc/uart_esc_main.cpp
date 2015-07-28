@@ -60,7 +60,6 @@ namespace uart_esc
 	static bool _is_running = false;         // flag indicating if uart_esc app is running
 	static px4_task_t _task_handle = -1;     // handle to the task main thread
 	static struct esc_feedback_s _feedback;  // esc feedback
-	UartEsc* esc;                            // esc instance
 	void uart_esc_rotate_motors(int* motor_rpm,int num_rotors); // motor re-mapping
 
 	// subscriptions
@@ -214,10 +213,11 @@ void task_main(int argc, char *argv[])
 	enum esc_model_t model = ESC_200QX;
 	int baud_rate          = 250000;
 
-	esc = UartEsc::get_instance();
-	if (esc == NULL)
+	UartEsc* esc = UartEsc::get_instance();
+	if (esc == nullptr)
 	{
 		PX4_ERR("failed to new UartEsc instance");
+		return;
 	}
 	else if (esc->initialize(model, _device, baud_rate) < 0)
 	{
