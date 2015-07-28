@@ -46,7 +46,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <px4_config.h>
-#include <sys/prctl.h>
 #include <termios.h>
 #include <math.h>
 #include <float.h>

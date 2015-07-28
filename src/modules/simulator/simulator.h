@@ -210,16 +210,17 @@ private:
 	_baro_pub(nullptr),
 	_gyro_pub(nullptr),
 	_mag_pub(nullptr),
-	_initialized(false),
+	_initialized(false)
 #ifndef __PX4_QURT
+	,
 	_rc_channels_pub(nullptr),
 	_actuator_outputs_sub(-1),
 	_vehicle_attitude_sub(-1),
 	_manual_sub(-1),
-	_rc_input{},
-	_actuators{},
-	_attitude{},
-	_manual{}
+	_rc_input(),
+	_actuators(),
+	_attitude(),
+	_manual()
 #endif
 	{}
 	~Simulator() { _instance=NULL; }
@@ -272,5 +273,7 @@ private:
 	void update_gps(mavlink_hil_gps_t *gps_sim);
 	static void *sending_trampoline(void *);
 	void send();
+#else
+	void pollForMAVLinkMessages(bool publish) {}
 #endif
 };

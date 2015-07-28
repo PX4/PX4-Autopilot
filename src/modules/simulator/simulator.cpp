@@ -115,10 +115,8 @@ int Simulator::start(int argc, char *argv[])
 		drv_led_start();
 		if (argv[2][1] == 's') {
 			_instance->initializeSensorData();
-#ifndef __PX4_QURT
 			// Update sensor data
 			_instance->pollForMAVLinkMessages(false);
-#endif
 		} else {
 			// Update sensor data
 			_instance->pollForMAVLinkMessages(true);
