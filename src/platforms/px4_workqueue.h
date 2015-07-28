@@ -35,6 +35,8 @@
 
 #pragma once
 
+#include <px4_tasks.h>
+
 #if defined(__PX4_ROS)
 #error "Work queue not supported on ROS"
 #elif defined(__PX4_NUTTX)
@@ -54,7 +56,7 @@ __BEGIN_DECLS
 
 struct wqueue_s
 {
-  pid_t             pid; /* The task ID of the worker thread */
+  px4_task_t        pid; /* The task ID of the worker thread */
   struct dq_queue_s q;   /* The queue of pending work */
 };
 

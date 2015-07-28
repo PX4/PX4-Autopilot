@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 MArk Charlebois. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,19 +32,17 @@
 ############################################################################
 
 #
-# Makefile to build simulator 
+# Makefile to build the MPU9x50 driver.
 #
 
-MODULE_COMMAND	= simulator
+MODULE_COMMAND	= mpu9x50
 
-SRCS		= simulator.cpp
+SRCS		+= mpu9x50_main.cpp
+SRCS		+= mpu9x50_params.c
 
-ifneq ($(PX4_TARGET_OS), qurt)
-SRCS		+= simulator_mavlink.cpp
-endif
+MODULE_STACKSIZE	= 1200
 
-INCLUDE_DIRS	+= $(MAVLINK_SRC)/include/mavlink
+EXTRACXXFLAGS	= -Weffc++
 
-EXTRACXXFLAGS	= -Weffc++ -Wno-attributes -Wno-packed
+MAXOPTIMIZATION	= -Os
 
-EXTRACFLAGS	= -Wno-packed

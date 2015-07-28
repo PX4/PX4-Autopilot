@@ -58,9 +58,7 @@ SRCS		 = 	\
 			sq_remfirst.c \
 			sq_addafter.c \
 			dq_rem.c \
-                        hrt_work.c \
                         qurt_stubs.c \
-                        qurt_hacks.c \
                         main.cpp
 ifeq ($(CONFIG),qurt_hello)
 SRCS +=			commands_hello.c
