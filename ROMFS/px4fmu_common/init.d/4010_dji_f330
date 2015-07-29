@@ -1,8 +1,14 @@
 #!nsh
 #
-# DJI Flame Wheel F330
+# @name DJI Flame Wheel F330
 #
-# Anton Babushkin <anton@px4.io>
+# @type Quadrotor x
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/4001_quad_x
