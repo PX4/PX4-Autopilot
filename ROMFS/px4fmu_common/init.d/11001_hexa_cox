@@ -1,6 +1,8 @@
 #!nsh
 #
-# Generic 10" Hexa coaxial geometry
+# @name Generic Hexa coaxial geometry
+#
+# @type Hexarotor Coaxial
 #
 # Lorenz Meier <lorenz@px4.io>
 #

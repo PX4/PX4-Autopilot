@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Quadrotor X Tailsitter
+# @name Quadrotor + Tailsitter
 #
 # Generic configuration file for a tailsitter with motors in X configuration.
 #
@@ -11,7 +11,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-set MIXER quad_x_vtol
+set MIXER quad_+_vtol
 
 set PWM_OUT 1234
 set PWM_MAX 2000

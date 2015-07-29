@@ -1,8 +1,10 @@
 #!nsh
 #
-# HobbyKing SK450 DeadCat modification
+# @name HobbyKing SK450 DeadCat modification
 #
-# Anton Matosov <anton.matosov@gmail.com>
+# @type Quadrotor Wide
+#
+# @maintainer Anton Matosov <anton.matosov@gmail.com>
 #
 
 sh /etc/init.d/rc.mc_defaults

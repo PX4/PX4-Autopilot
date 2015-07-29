@@ -496,7 +496,7 @@ $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 	@$(ECHO) %% Generating $@
 ifdef GEN_PARAM_XML
 	$(Q) $(PYTHON) $(PX4_BASE)/Tools/px_process_params.py --src-path $(PX4_BASE)/src --board CONFIG_ARCH_BOARD_$(CONFIG_BOARD) --xml
-	$(Q) $(COPY) $(PX4_BASE)/Tools/airframes.xml $(WORK_DIR)/airframes.xml
+	$(Q) $(PYTHON) $(PX4_BASE)/Tools/px_process_airframes.py -a $(PX4_BASE)/ROMFS/px4fmu_common/init.d --board CONFIG_ARCH_BOARD_$(CONFIG_BOARD) --xml
 	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
 		--git_identity $(PX4_BASE) \
 		--parameter_xml $(PRODUCT_PARAMXML) \

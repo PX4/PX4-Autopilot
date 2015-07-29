@@ -1,8 +1,10 @@
 #!nsh
 #
-# HIL Malolo 1 (Flightgear)
+# @name HIL Malolo 1 (Flightgear)
 #
-# Thomas Gubler <thomas@px4.io>
+# @type Simulation
+#
+# @maintainer Thomas Gubler <thomas@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults

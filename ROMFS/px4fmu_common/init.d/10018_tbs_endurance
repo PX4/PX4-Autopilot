@@ -1,10 +1,12 @@
 #!nsh
 #
-# Team Blacksheep Discovery Long Range Quadcopter
+# @name Team Blacksheep Discovery Long Range Quadcopter
 # 
 # Setup: 15 x 5" Props, 6S 4000mAh TBS LiPo, TBS 30A ESCs, TBS 400kV Motors
 #
-# Simon Wilks <simon@px4.io>
+# @type Quadrotor Wide
+#
+# @maintainer Simon Wilks <simon@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
