@@ -37,8 +37,8 @@
 
 # Toolchain commands. Normally only used inside this file.
 #
-HEXAGON_TOOLS_ROOT	 = /opt/6.4.03
-#HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
+#HEXAGON_TOOLS_ROOT	 = /opt/6.4.03
+HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
 HEXAGON_SDK_ROOT	 = /opt/Hexagon_SDK/2.0
 V_ARCH			 = v5
 CROSSDEV		 = hexagon-
@@ -85,8 +85,8 @@ DYNAMIC_LIBS            = \
 
 # Check if the right version of the toolchain is available
 #
-CROSSDEV_VER_SUPPORTED	 = 6.4.03
-#CROSSDEV_VER_SUPPORTED	 = 6.4.05
+#CROSSDEV_VER_SUPPORTED	 = 6.4.03
+CROSSDEV_VER_SUPPORTED	 = 6.4.05
 CROSSDEV_VER_FOUND	 = $(shell $(CC) --version | sed -n 's/^.*version \([\. 0-9]*\),.*$$/\1/p')
 
 ifeq (,$(findstring $(CROSSDEV_VER_FOUND), $(CROSSDEV_VER_SUPPORTED)))

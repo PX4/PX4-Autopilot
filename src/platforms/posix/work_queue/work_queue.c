@@ -45,9 +45,10 @@
 #include <queue.h>
 #include <stdio.h>
 #include <semaphore.h>
-#include <drivers/drv_hrt.h>
 #include <px4_workqueue.h>
-#include "hrt_work.h"
+#include "work_lock.h"
+
+#ifdef CONFIG_SCHED_WORKQUEUE
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -74,7 +75,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: hrt_work_queue
+ * Name: work_queue
  *
  * Description:
  *   Queue work to be performed at a later time.  All queued work will be
@@ -88,12 +89,13 @@
  *   and remove it from the work queue.
  *
  * Input parameters:
+ *   qid    - The work queue ID (index)
  *   work   - The work structure to queue
  *   worker - The worker callback to be invoked.  The callback will invoked
  *            on the worker thread of execution.
  *   arg    - The argument that will be passed to the workder callback when
  *            int is invoked.
- *   delay  - Delay (in microseconds) from the time queue until the worker
+ *   delay  - Delay (in clock ticks) from the time queue until the worker
  *            is invoked. Zero means to perform the work immediately.
  *
  * Returned Value:
@@ -101,9 +103,11 @@
  *
  ****************************************************************************/
 
-int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t delay)
+int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay)
 {
-  struct wqueue_s *wqueue = &g_hrt_work;
+  struct wqueue_s *wqueue = &g_work[qid];
+
+  //DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
   /* First, initialize the work structure */
 
@@ -116,14 +120,18 @@ int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t del
    * from with task logic or interrupt handlers.
    */
 
-  hrt_work_lock();
-  work->qtime  = hrt_absolute_time(); /* Time work queued */
-  //PX4_INFO("hrt work_queue adding work delay=%u time=%lu", delay, work->qtime);
+  work_lock(qid);
+  work->qtime  = clock_systimer(); /* Time work queued */
 
   dq_addlast((dq_entry_t *)work, &wqueue->q);
+#ifdef __PX4_QURT
   px4_task_kill(wqueue->pid, SIGALRM);      /* Wake up the worker thread */
+#else
+  px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */
+#endif
 
-  hrt_work_unlock();
+  work_unlock(qid);
   return PX4_OK;
 }
 
+#endif /* CONFIG_SCHED_WORKQUEUE */
