@@ -53,17 +53,18 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_actuatorsSub(-1),
 	_armingSub(-1),
 	_parameterSub(-1),
-    _attitudeSub(-1),
+	_attitudeSub(-1),
 	_vehicleGlobalPosition({}),
 	_vehicleStatus({}),
 	_actuators({}),
 	_arming({}),
-    _vehicleAttitude({}),
+	_vehicleAttitude({}),
 	_landTimer(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
+	_paramHandle.boostThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.maxThrottle = param_find("LNDMC_THR_MAX");
 }
 
@@ -124,9 +125,9 @@ bool MulticopterLandDetector::update()
         			fabsf(_vehicleAttitude.yawspeed)   > _params.maxRotation;
 
 	// check if thrust output is minimal (about half of default)
-	bool minimalThrust = _actuators.control[3] <= _params.maxThrottle;
+	bool flightThrust = (_actuators.control[3] > _params.maxThrottle);
 
-	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
+	if (verticalMovement || rotating || flightThrust || horizontalMovement) {
 		// sensed movement, so reset the land detector
 		_landTimer = now;
 		return false;
@@ -152,5 +153,13 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		param_get(_paramHandle.maxRotation, &_params.maxRotation);
 		_params.maxRotation = math::radians(_params.maxRotation);
 		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
+		float boostThrottle = 0.0f;
+		param_get(_paramHandle.boostThrottle, &boostThrottle);
+
+		const float boostDelta = 0.01f;
+
+		if (_params.maxThrottle < (boostThrottle + boostDelta)) {
+			_params.maxThrottle = (boostThrottle + boostDelta);
+		}
 	}
 }
