@@ -241,9 +241,9 @@ class SourceParser(object):
         for tag in tags:
             if tag == "maintainer":
                 maintainer = tags[tag]
-            if tag == "type":
+            elif tag == "type":
                 airframe_type = tags[tag]
-            if tag == "name":
+            elif tag == "name":
                 airframe_name = tags[tag]
             elif tag not in self.valid_tags:
                 sys.stderr.write("Aborting due to invalid documentation tag: '%s'\n" % tag)
