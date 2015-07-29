@@ -1,8 +1,10 @@
 #!nsh
 #
-# Generic 10" Quad + geometry
+# @name Generic 10" Quad + geometry
 #
-# Anton Babushkin <anton@px4.io>
+# @type Quadrotor +
+#
+# @maintainer Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
