@@ -1,8 +1,10 @@
 #!nsh
 #
-# Generic configuration file for BirdsEyeView Aerobotics FireFly6
+# @name BirdsEyeView Aerobotics FireFly6
 #
-# Roman Bapst <bapstroman@gmail.com>
+# @type VTOL Tiltrotor
+#
+# @maintainer Roman Bapst <roman@px4.io>
 #
 
 sh /etc/init.d/rc.vtol_defaults
