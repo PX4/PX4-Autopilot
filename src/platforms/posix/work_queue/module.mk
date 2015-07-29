@@ -32,13 +32,23 @@
 ############################################################################
 
 #
-# POSIX platform dependent files
+# POSIX compatible queue and work_queue implementation
 #
 
 SRCS		 = 	\
-			px4_posix_impl.cpp \
-			px4_posix_tasks.cpp  \
-			lib_crc32.c \
-			drv_hrt.c \
+			hrt_thread.c \
+			hrt_queue.c \
+			hrt_work_cancel.c \
+			work_thread.c \
+			work_lock.c \
+			work_queue.c \
+			work_cancel.c \
+			queue.c \
+			dq_addlast.c \
+			dq_remfirst.c \
+			sq_addlast.c \
+			sq_remfirst.c \
+			sq_addafter.c \
+			dq_rem.c 
 
 MAXOPTIMIZATION	 = -Os
