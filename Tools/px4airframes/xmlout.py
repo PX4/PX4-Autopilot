@@ -27,6 +27,28 @@ class XMLOutput():
         for group in groups:
             xml_group = ET.SubElement(xml_parameters, "airframe_group")
             xml_group.attrib["name"] = group.GetName()
+            if (group.GetName() == "Standard Plane"):
+                xml_group.attrib["image"] = "AirframeStandardPlane.png"
+            elif (group.GetName() == "Flying Wing"):
+                xml_group.attrib["image"] = "AirframeFlyingWing.png"
+            elif (group.GetName() == "Quadrotor x"):
+                xml_group.attrib["image"] = "AirframeQuadRotorX.png"
+            elif (group.GetName() == "Quadrotor +"):
+                xml_group.attrib["image"] = "AirframeQuadRotorPlus.png"
+            elif (group.GetName() == "Hexa x"):
+                xml_group.attrib["image"] = "AirframeHexaRotorX.png"
+            elif (group.GetName() == "Hexa +"):
+                xml_group.attrib["image"] = "AirframeHexaRotorPlus.png"
+            elif (group.GetName() == "Octo +"):
+                xml_group.attrib["image"] = "AirframeOctoRotorPlus.png"
+            elif (group.GetName() == "Octo X"):
+                xml_group.attrib["image"] = "AirframeOctoRotorX.png"
+            elif (group.GetName() == "Quadrotor H"):
+                xml_group.attrib["image"] = "AirframeQuadRotorH.png"
+            elif (group.GetName() == "Simulation"):
+                xml_group.attrib["image"] = "AirframeSimulation.png"
+            else:
+                xml_group.attrib["image"] = "AirframeStandardPlane.png"
             for param in group.GetParams():
                 if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
                     xml_param = ET.SubElement(xml_group, "airframe")
