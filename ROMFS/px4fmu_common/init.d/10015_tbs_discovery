@@ -1,8 +1,10 @@
 #!nsh
 #
-# Team Blacksheep Discovery Quadcopter
+# @name Team Blacksheep Discovery Quadcopter
 #
-# Anton Babushkin <anton@px4.io>, Simon Wilks <simon@px4.io>
+# @type Quadrotor Wide
+#
+# @maintainer Anton Babushkin <anton@px4.io>, Simon Wilks <simon@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
