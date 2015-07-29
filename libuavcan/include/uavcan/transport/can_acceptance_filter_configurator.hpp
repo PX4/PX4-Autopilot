@@ -16,9 +16,6 @@
 
 namespace uavcan
 {
-
-
-
 /**
  * This class configures hardware acceptance filters (if this feature is present on the particular CAN driver) to
  * preclude reception of irrelevant CAN frames on the hardware level.
@@ -40,7 +37,7 @@ public:
 	/**
 	 * These arguments defines whether acceptance filter configuration has anonymous messages or not
 	 */
-	enum AnonMessagePresence {WithAnonMsg,NoAnonMsg};
+	enum AnonymousMessages {AcceptAnonymousMessages,IgnoreAnonymousMessages};
 
 private:
     /**
@@ -61,7 +58,7 @@ private:
     static const unsigned DefaultFilterMsgMask = 0xFFFF80;
     static const unsigned DefaultFilterServiceMask = 0x7F80;
     static const unsigned DefaultFilterServiceID = 0x80;
-    static const unsigned DefaultAnonMsgMask = 0xF;
+    static const unsigned DefaultAnonMsgMask = 0xFF;
     static const unsigned DefaultAnonMsgID = 0x0;
 
     typedef uavcan::Multiset<CanFilterConfig, 1> MultisetConfigContainer;
@@ -73,7 +70,7 @@ private:
     /**
      * Fills the multiset_configs_ to proceed it with computeConfiguration()
      */
-    int16_t loadInputConfiguration(AnonMessagePresence load_mode);
+    int16_t loadInputConfiguration(AnonymousMessages load_mode);
 
     /**
      * This method merges several listeners's filter configurations by predetermined algorithm
@@ -101,7 +98,7 @@ public:
      * @return 0 = success, negative for error. Input argument defines the presence of anonymous messages
      * WithAnonMsg(default)/NoAnonMsg.
      */
-    int configureFilters(AnonMessagePresence mode = WithAnonMsg);
+    int configureFilters(AnonymousMessages mode = AcceptAnonymousMessages);
 
     /**
      * Returns the configuration computed with computeConfiguration().

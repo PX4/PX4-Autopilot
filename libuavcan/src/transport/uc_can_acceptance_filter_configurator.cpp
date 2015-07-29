@@ -14,11 +14,11 @@ const unsigned CanAcceptanceFilterConfigurator::DefaultFilterServiceMask;
 const unsigned CanAcceptanceFilterConfigurator::DefaultAnonMsgMask;
 const unsigned CanAcceptanceFilterConfigurator::DefaultAnonMsgID;
 
-int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonMessagePresence load_mode)
+int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessages load_mode)
 {
     multiset_configs_.clear();
 
-    if (load_mode == WithAnonMsg)
+    if (load_mode == AcceptAnonymousMessages)
     {
         CanFilterConfig anon_frame_cfg;
         anon_frame_cfg.id = DefaultAnonMsgID;
@@ -149,7 +149,7 @@ int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
     return 0;
 }
 
-int CanAcceptanceFilterConfigurator::configureFilters(AnonMessagePresence mode)
+int CanAcceptanceFilterConfigurator::configureFilters(AnonymousMessages mode)
 {
     if (getNumFilters() == 0)
     {

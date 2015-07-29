@@ -146,7 +146,7 @@ TEST(CanAcceptanceFilter, Basic_test)
     }
 
     ASSERT_EQ(configure_array.getByIndex(0)->id, 0);
-    ASSERT_EQ(configure_array.getByIndex(0)->mask, 15);
+    ASSERT_EQ(configure_array.getByIndex(0)->mask, 255);
     ASSERT_EQ(configure_array.getByIndex(1)->id, 256000);
     ASSERT_EQ(configure_array.getByIndex(1)->mask, 16771968);
     ASSERT_EQ(configure_array.getByIndex(2)->id, 6272);
@@ -157,7 +157,7 @@ TEST(CanAcceptanceFilter, Basic_test)
 
     uavcan::CanAcceptanceFilterConfigurator no_anon_test_confiruration(node);
     configure_filters_assert = no_anon_test_confiruration.configureFilters
-                                   (uavcan::CanAcceptanceFilterConfigurator::NoAnonMsg);
+                                   (uavcan::CanAcceptanceFilterConfigurator::IgnoreAnonymousMessages);
     if (configure_filters_assert == 0)
     {
         std::cout << "Filters are configured without anonymous configuration..." << std::endl;
