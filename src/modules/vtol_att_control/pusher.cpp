@@ -45,10 +45,10 @@
 #define ARSP_BLEND_START 8.0f	// airspeed at which we start blending mc/fw controls
 
 Pusher::Pusher(VtolAttitudeControl *attc) :
-VtolType(attc),
-flag_max_mc(true),
-_pusher_throttle(0.0f),
-_mc_att_ctl_weight(1.0f)
+	VtolType(attc),
+	_flag_enable_mc_motors(true),
+	_pusher_throttle(0.0f),
+	_mc_att_ctl_weight(1.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
@@ -74,11 +74,11 @@ Pusher::parameters_update()
 
 	/* vtol duration of a front transition */
 	param_get(_params_handles_pusher.front_trans_dur, &v);
-	_params_pusher.front_trans_dur = math::constrain(v,1.0f,5.0f);
+	_params_pusher.front_trans_dur = math::constrain(v, 1.0f, 5.0f);
 
 	/* vtol duration of a back transition */
 	param_get(_params_handles_pusher.back_trans_dur, &v);
-	_params_pusher.back_trans_dur = math::constrain(v,0.0f,5.0f);
+	_params_pusher.back_trans_dur = math::constrain(v, 0.0f, 5.0f);
 
 	/* vtol pusher mechanism position in mc mode */
 	param_get(_params_handles_pusher.pusher_mc, &v);
@@ -107,55 +107,67 @@ void Pusher::update_vtol_state()
 {
  	parameters_update();
 
- 	/* simple logic using a two way switch to perform transitions.
-	 * after flipping the switch the vehicle will start tilting rotors, picking up
-	 * forward speed. After the vehicle has picked up enough speed the rotors are tilted
-	 * forward completely. For the backtransition the motors simply rotate back.
+ 	/* Simple logic using a two way switch to perform transitions.
+	 * After flipping the switch the vehicle will start the pusher (or tractor) motor, picking up
+	 * forward speed. After the vehicle has picked up enough speed the rotors shutdown. 
+	 * For the back transition the pusher motor is immediately stopped and rotors reactivated.
  	 */
 
-	if (_manual_control_sp->aux1 < 0.0f && _vtol_schedule.flight_mode == MC_MODE) {
-		// mc mode
-		_vtol_schedule.flight_mode = MC_MODE;
-		_pusher_throttle = 0.0f;
-		_mc_att_ctl_weight = 1.0f;
+	if (_manual_control_sp->aux1 < 0.0f) {
+		// the transition to fw mode switch is off
+		if (_vtol_schedule.flight_mode == MC_MODE) {
+			// in mc mode
+			_vtol_schedule.flight_mode = MC_MODE;
+			_mc_att_ctl_weight = 1.0f;
 
-	} else if (_manual_control_sp->aux1 < 0.0f && _vtol_schedule.flight_mode == FW_MODE) {
-		_vtol_schedule.flight_mode = TRANSITION_TO_MC;
-		_pusher_throttle = 0.0f;
-		flag_max_mc = true;
-		_vtol_schedule.transition_start = hrt_absolute_time();
+		} else if (_vtol_schedule.flight_mode == FW_MODE) {
+			// transition to mc mode
+			_vtol_schedule.flight_mode = TRANSITION_TO_MC;
+			_flag_enable_mc_motors = true;
+			_vtol_schedule.transition_start = hrt_absolute_time();
 
-	} else if (_manual_control_sp->aux1 >= 0.0f && _vtol_schedule.flight_mode == MC_MODE) {
-		// instant of doing a front-transition
-		_vtol_schedule.flight_mode = TRANSITION_TO_FW;
-		_pusher_throttle = 0.0f;	// start from zero so we can ramp up from a known min. value
-		_vtol_schedule.transition_start = hrt_absolute_time();
+		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
+			// failsafe back to mc mode
+			_vtol_schedule.flight_mode = MC_MODE;
 
-	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW && _manual_control_sp->aux1 > 0.0f) {
-		// check if we have reached airspeed to switch to fw mode
-		if (_airspeed->true_airspeed_m_s >= _params_pusher.airspeed_trans) {
-			_vtol_schedule.flight_mode = FW_MODE;
-			// don't set pusher throttle as it's being ramped up elsewhere
-			flag_max_mc = true;
+		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
+			// keep transitioning to mc mode
+			_vtol_schedule.flight_mode = MC_MODE;
 		}
 
-	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW && _manual_control_sp->aux1 < 0.0f) {
-		// failsafe into mc mode
-		_vtol_schedule.flight_mode = MC_MODE;
+		// the pusher motor should never be powered when in or transitioning to mc mode
 		_pusher_throttle = 0.0f;
 
-	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC && _manual_control_sp->aux1 < 0.0f) {
-		_vtol_schedule.flight_mode = MC_MODE;
-		_pusher_throttle = 0.0f;
-		flag_max_mc = false;
+	} else {
+		// the transition to fw mode switch is on
+		if (_vtol_schedule.flight_mode == MC_MODE) {
+			// start transition to fw mode
+			_vtol_schedule.flight_mode = TRANSITION_TO_FW;
+			_pusher_throttle = 0.0f;	// start from zero so we can ramp up from a known min. value
+			_vtol_schedule.transition_start = hrt_absolute_time();
 
-	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC && _manual_control_sp->aux1 > 0.0f) {
-		// failsafe into fw mode
-		_vtol_schedule.flight_mode = FW_MODE;
-		_pusher_throttle = _actuators_fw_in->control[3];
+		} else if (_vtol_schedule.flight_mode == FW_MODE) {
+			// in fw mode
+			_vtol_schedule.flight_mode = FW_MODE;
+			// use commanded fw throttle
+			_pusher_throttle = _actuators_fw_in->control[3];
+
+		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
+			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
+			if (_airspeed->true_airspeed_m_s >= _params_pusher.airspeed_trans) {
+				_vtol_schedule.flight_mode = FW_MODE;
+				// we can turn off the multirotor motors now
+				_flag_enable_mc_motors = false;
+				// don't set pusher throttle here as it's being ramped up elsewhere
+			}
+
+		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
+			// transitioning to mc mode & transition switch on - failsafe into fw mode
+			_vtol_schedule.flight_mode = FW_MODE;
+			_pusher_throttle = _actuators_fw_in->control[3];
+		}
 	}
 
-	// pusher rotors if necessary
 	update_transition_state();
 
 	// map pusher specific control phases to simple control modes
@@ -173,58 +185,11 @@ void Pusher::update_vtol_state()
 	}
 }
 
-void Pusher::update_mc_state()
-{
-	// adjust max pwm for rear motors to spin up
-	if (!flag_max_mc) {
-		set_max_mc();
-		flag_max_mc = true;
-	}
-
-	// set idle speed for rotary wing mode
-	if (!flag_idle_mc) {
-		set_idle_mc();
-		flag_idle_mc = true;
-	}
-}
-
-void Pusher::process_mc_data()
-{
-	fill_mc_att_control_output();
-}
-
- void Pusher::update_fw_state()
-{
-	/* in fw mode we need the multirotor motors to stop spinning, in backtransition
-	 * mode we let them spin in idle
-	 */
-	if (flag_max_mc) {
-		if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
-			set_max_fw(1200);
-			set_idle_mc();
-		} else {
-			set_max_fw(950);
-			set_idle_fw();
-		}
-		flag_max_mc = false;
-	}
-
-	// adjust idle for fixed wing flight
-	if (flag_idle_mc) {
-		set_idle_fw();
-		flag_idle_mc = false;
-	}
- }
-
-void Pusher::process_fw_data()
-{
-	fill_fw_att_control_output();
-}
-
 void Pusher::update_transition_state()
 {
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
-		// Ramp up throttle to the current throttle value applied to multicopter
+		// Ramp up throttle to the current throttle value to something above cruise throttle
+		// NOTE: Probably need to be a bit more clever than this. Should we keep ramping up to full throttle during which time transition airspeed should be reached?
 		if (_pusher_throttle <= _params_pusher.pusher_transition) {
 			_pusher_throttle = _params_pusher.pusher_mc + fabsf(_params_pusher.pusher_transition - _params_pusher.pusher_mc) * 
 						(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_pusher.front_trans_dur * 1000000.0f);
@@ -240,13 +205,49 @@ void Pusher::update_transition_state()
 
 		_mc_att_ctl_weight = math::constrain(_mc_att_ctl_weight, 0.0f, 1.0f);
 
+		process_fw_data();
+
 	} else if (_vtol_schedule.flight_mode == FW_MODE) {
 		_mc_att_ctl_weight = 0.0f;
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 		// continually increase mc attitude control as we transition back to mc mode
-		_mc_att_ctl_weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_pusher.back_trans_dur * 1000000.0f);;
+		_mc_att_ctl_weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_pusher.back_trans_dur * 1000000.0f);
+
+		// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again	
+		if (_flag_enable_mc_motors) {
+			set_max_mc(2000);
+			set_idle_mc();
+			_flag_enable_mc_motors = false;
+		}
+
+		process_mc_data();
 	}
+}
+
+void Pusher::update_mc_state()
+{
+	// do nothing
+}
+
+void Pusher::process_mc_data()
+{
+	fill_mc_att_control_output();
+}
+
+ void Pusher::update_fw_state()
+{
+	// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again	
+	if (!_flag_enable_mc_motors) {
+		set_max_mc(950);
+		set_idle_fw();  // force them to stop, not just idle
+		_flag_enable_mc_motors = true;
+	}
+ }
+
+void Pusher::process_fw_data()
+{
+	fill_fw_att_control_output();
 }
 
 void Pusher::update_external_state()
@@ -266,7 +267,7 @@ void Pusher::fill_mc_att_control_output()
 
 	_actuators_out_1->control[0] = -_actuators_fw_in->control[0] * (1.0f - _mc_att_ctl_weight);	//roll elevon
 	_actuators_out_1->control[1] = (_actuators_fw_in->control[1] + _params->fw_pitch_trim)* (1.0f -_mc_att_ctl_weight);	//pitch elevon
-
+	
 	_actuators_out_1->control[4] = _pusher_throttle;	// for pusher-rotor control
 }
 
@@ -275,13 +276,13 @@ void Pusher::fill_mc_att_control_output()
 */
 void Pusher::fill_fw_att_control_output()
 {
-	/*For the first test in fw mode, only use engines for thrust!!!*/
+	/* For the first test in fw mode, only use engines for thrust!!! */
 	_actuators_out_0->control[0] = _actuators_mc_in->control[0] * _mc_att_ctl_weight;	// roll
 	_actuators_out_0->control[1] = _actuators_mc_in->control[1] * _mc_att_ctl_weight;	// pitch
 	_actuators_out_0->control[2] = _actuators_mc_in->control[2] * _mc_att_ctl_weight;	// yaw
 	_actuators_out_0->control[3] = _actuators_fw_in->control[3];	// throttle
 	
-	/*controls for the elevons */
+	/* controls for the elevons */
 	_actuators_out_1->control[0] = -_actuators_fw_in->control[0];	// roll elevon
 	_actuators_out_1->control[1] = _actuators_fw_in->control[1] + _params->fw_pitch_trim;	// pitch elevon
 
@@ -296,7 +297,7 @@ void Pusher::fill_fw_att_control_output()
 * Disable all multirotor motors when in fw mode.
 */
 void
-Pusher::set_max_fw(unsigned pwm_value)
+Pusher::set_max_mc(unsigned pwm_value)
 {
 	int ret;
 	unsigned servo_count;
@@ -311,32 +312,6 @@ Pusher::set_max_fw(unsigned pwm_value)
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
 		pwm_values.values[i] = pwm_value;
-		pwm_values.channel_count = _params->vtol_motor_count;
-	}
-
-	ret = ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
-
-	if (ret != OK) {errx(ret, "failed setting max values");}
-
-	close(fd);
-}
-
-void
-Pusher::set_max_mc()
-{
-	int ret;
-	unsigned servo_count;
-	char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	int fd = open(dev, 0);
-
-	if (fd < 0) {err(1, "can't open %s", dev);}
-
-	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
-
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = 2000;
 		pwm_values.channel_count = _params->vtol_motor_count;
 	}
 

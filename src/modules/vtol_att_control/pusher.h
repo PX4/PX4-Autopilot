@@ -97,14 +97,13 @@ private:
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
 	}_vtol_schedule;
 
-	bool flag_max_mc;
+	bool _flag_enable_mc_motors;
 	float _pusher_throttle;
 	float _mc_att_ctl_weight;	// the amount of multicopter attitude control that should be applied in fixed wing mode while transitioning 
 
 	void fill_mc_att_control_output();
 	void fill_fw_att_control_output();
-	void set_max_mc();
-	void set_max_fw(unsigned pwm_value);
+	void set_max_mc(unsigned pwm_value);
 
 	int parameters_update();
 
