@@ -28,19 +28,18 @@ class RCOutput():
                     "# 14000 ..  14999       Tri Y\n"
                     "\n")
         for group in groups:
-            result += "# GROUP: %s \n\n" % group.GetName()
+            result += "# GROUP: %s\n\n" % group.GetName()
             for param in group.GetParams():
-                name = param.GetName()
                 path = param.GetPath().rsplit('/', 1)[1]
                 id_val = param.GetId()
                 name = param.GetFieldValue("short_desc")
                 long_desc = param.GetFieldValue("long_desc")
 
                 result +=   "#\n"
-                result +=   "# %s\n" % name
+                result +=   "# %s\n" % param.GetName()
                 result +=   "if param compare SYS_AUTOSTART %s\n" % id_val
                 result +=   "then\n"
-                result +=   "    sh /etc/init.d/%s\n" % path
+                result +=   "\tsh /etc/init.d/%s\n" % path
                 result +=   "fi\n"
 
                 #if long_desc is not None:
