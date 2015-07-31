@@ -49,7 +49,7 @@
 #define _ENABLE_MUORB 1
 
 extern "C" {
-	int dspal_main(int argc, const char *argv[]);
+int dspal_main(int argc, const char *argv[]);
 };
 
 
@@ -58,7 +58,7 @@ int px4muorb_orb_initialize()
 	int rc = 0;
 	PX4_WARN("Before calling dspal_entry() method...");
 	HAP_power_request(100, 100, 1000);
-	// registere the fastrpc muorb with uORBManager.
+	// register the fastrpc muorb with uORBManager.
 	uORB::Manager::get_instance()->set_uorb_communicator(uORB::FastRpcChannel::GetInstance());
 	const char *argv[2] = { "dspal", "start" };
 	int argc = 2;
