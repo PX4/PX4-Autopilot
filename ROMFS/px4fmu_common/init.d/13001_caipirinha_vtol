@@ -2,8 +2,6 @@
 #
 # @name Duorotor Tailsitter
 #
-# Generic configuration file for a tailsitter with motors in tandem configuration.
-#
 # @type VTOL Tailsitter
 #
 # @maintainer Roman Bapst <roman@px4.io>
