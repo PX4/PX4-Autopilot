@@ -534,6 +534,10 @@ void VtolAttitudeControl::task_main()
 			// update transition state if got any new data
 			if (got_new_data) {
 				_vtol_type->update_transition_state();
+
+				_vtol_type->process_mc_data();
+				fill_mc_att_rates_sp();
+				// TODO(simon@uaventure.com): Do we also need to update the fw setpoints?
 			}
 
 		} else if (_vtol_type->get_mode() == EXTERNAL) {

@@ -204,9 +204,6 @@ void Pusher::update_transition_state()
 		}
 
 		_mc_att_ctl_weight = math::constrain(_mc_att_ctl_weight, 0.0f, 1.0f);
-
-		process_fw_data();
-
 	} else if (_vtol_schedule.flight_mode == FW_MODE) {
 		_mc_att_ctl_weight = 0.0f;
 
@@ -220,8 +217,6 @@ void Pusher::update_transition_state()
 			set_idle_mc();
 			_flag_enable_mc_motors = false;
 		}
-
-		process_mc_data();
 	}
 }
 
@@ -257,12 +252,13 @@ void Pusher::update_external_state()
 
  /**
 * Prepare message to acutators with data from mc attitude controller.
+* Note that this function will also be called for all transitions into and out of mc mode.
 */
 void Pusher::fill_mc_att_control_output()
 {
-	_actuators_out_0->control[0] = _actuators_mc_in->control[0];	// roll
-	_actuators_out_0->control[1] = _actuators_mc_in->control[1];	// pitch
-	_actuators_out_0->control[2] = _actuators_mc_in->control[2];	// yaw
+	_actuators_out_0->control[0] = _actuators_mc_in->control[0] * _mc_att_ctl_weight;	// roll
+	_actuators_out_0->control[1] = _actuators_mc_in->control[1] * _mc_att_ctl_weight;	// pitch
+	_actuators_out_0->control[2] = _actuators_mc_in->control[2] * _mc_att_ctl_weight;	// yaw
 	_actuators_out_0->control[3] = _actuators_mc_in->control[3];	// throttle
 
 	_actuators_out_1->control[0] = -_actuators_fw_in->control[0] * (1.0f - _mc_att_ctl_weight);	//roll elevon
@@ -277,10 +273,10 @@ void Pusher::fill_mc_att_control_output()
 void Pusher::fill_fw_att_control_output()
 {
 	/* For the first test in fw mode, only use engines for thrust!!! */
-	_actuators_out_0->control[0] = _actuators_mc_in->control[0] * _mc_att_ctl_weight;	// roll
-	_actuators_out_0->control[1] = _actuators_mc_in->control[1] * _mc_att_ctl_weight;	// pitch
-	_actuators_out_0->control[2] = _actuators_mc_in->control[2] * _mc_att_ctl_weight;	// yaw
-	_actuators_out_0->control[3] = _actuators_fw_in->control[3];	// throttle
+	_actuators_out_0->control[0] = 0.0f;	// roll
+	_actuators_out_0->control[1] = 0.0f;	// pitch
+	_actuators_out_0->control[2] = 0.0f;	// yaw
+	_actuators_out_0->control[3] = 0.0f;	// throttle
 	
 	/* controls for the elevons */
 	_actuators_out_1->control[0] = -_actuators_fw_in->control[0];	// roll elevon
