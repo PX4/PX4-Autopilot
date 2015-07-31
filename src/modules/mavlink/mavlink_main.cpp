@@ -1232,6 +1232,7 @@ Mavlink::update_rate_mult()
 	float const_rate = 0.0f;
 	float rate = 0.0f;
 
+	/* scale down rates if their theoretical bandwidth is exceeding the link bandwidth */
 	MavlinkStream *stream;
 	LL_FOREACH(_streams, stream) {
 		if (stream->const_rate()) {
@@ -1244,6 +1245,11 @@ Mavlink::update_rate_mult()
 
 	/* don't scale up rates, only scale down if needed */
 	_rate_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
+
+	/* scale down if we have a TX err rate suggesting link congestion */
+	if (_rate_txerr > 0.0f) {
+		_rate_mult = (_rate_tx) / (_rate_tx + _rate_txerr);
+	}
 }
 
 int
