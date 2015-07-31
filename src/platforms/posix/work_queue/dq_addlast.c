@@ -56,20 +56,18 @@
  *
  ************************************************************/
 
-void dq_addlast(FAR dq_entry_t *node, dq_queue_t *queue)
+void dq_addlast(dq_entry_t *node, dq_queue_t *queue)
 {
-  node->flink = NULL;
-  node->blink = queue->tail;
+	node->flink = NULL;
+	node->blink = queue->tail;
 
-  if (!queue->head)
-    {
-      queue->head = node;
-      queue->tail = node;
-    }
-  else
-    {
-      queue->tail->flink = node;
-      queue->tail        = node;
-    }
+	if (!queue->head) {
+		queue->head = node;
+		queue->tail = node;
+
+	} else {
+		queue->tail->flink = node;
+		queue->tail        = node;
+	}
 }
 
