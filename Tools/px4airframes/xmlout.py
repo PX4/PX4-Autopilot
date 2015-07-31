@@ -35,14 +35,16 @@ class XMLOutput():
                 xml_group.attrib["image"] = "AirframeQuadRotorX.png"
             elif (group.GetName() == "Quadrotor +"):
                 xml_group.attrib["image"] = "AirframeQuadRotorPlus.png"
-            elif (group.GetName() == "Hexa x"):
+            elif (group.GetName() == "Hexarotor x"):
                 xml_group.attrib["image"] = "AirframeHexaRotorX.png"
-            elif (group.GetName() == "Hexa +"):
+            elif (group.GetName() == "Hexarotor +"):
                 xml_group.attrib["image"] = "AirframeHexaRotorPlus.png"
-            elif (group.GetName() == "Octo +"):
+            elif (group.GetName() == "Octorotor +"):
                 xml_group.attrib["image"] = "AirframeOctoRotorPlus.png"
-            elif (group.GetName() == "Octo X"):
+            elif (group.GetName() == "Octorotor x"):
                 xml_group.attrib["image"] = "AirframeOctoRotorX.png"
+            elif (group.GetName() == "Quadrotor Wide"):
+                xml_group.attrib["image"] = "AirframeQuadRotorH.png"
             elif (group.GetName() == "Quadrotor H"):
                 xml_group.attrib["image"] = "AirframeQuadRotorH.png"
             elif (group.GetName() == "Simulation"):
