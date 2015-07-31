@@ -1,8 +1,6 @@
 #!nsh
 #
-# @name Generic Tricopter Y Geometry
-#
-# Yaw Servo +Output ==> -Yaw Vehicle Rotation
+# @name Generic Tricopter Y- Geometry
 #
 # @type Tricopter Y-
 #
