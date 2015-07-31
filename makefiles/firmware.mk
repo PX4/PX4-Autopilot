@@ -350,6 +350,9 @@ ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
 LIBS			+= $(ROMFS_OBJ)
 LINK_DEPS		+= $(ROMFS_OBJ)
 
+# Add autostart script
+ROMFS_AUTOSTART = $(PX4_BASE)/Tools/px_process_airframes.py
+
 # Remove all comments from startup and mixer files
 ROMFS_PRUNER	 = $(PX4_BASE)/Tools/px_romfs_pruner.py
 
@@ -372,6 +375,10 @@ ifneq ($(ROMFS_EXTRA_FILES),)
 	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)/extras
 	$(Q) $(COPY) $(ROMFS_EXTRA_FILES) $(ROMFS_SCRATCH)/extras
 endif
+	$(Q) $(PYTHON) -u $(ROMFS_AUTOSTART)  -a $(ROMFS_ROOT)/init.d -s $(ROMFS_SCRATCH)/init.d/rc.autostart
+	# Execute in standard dir as well
+	# so developers notice the generated file
+	$(Q) $(PYTHON) -u $(ROMFS_AUTOSTART)  -a $(ROMFS_ROOT)/init.d -s $(ROMFS_ROOT)/init.d/rc.autostart
 	$(Q) $(PYTHON) -u $(ROMFS_PRUNER) --folder $(ROMFS_SCRATCH)
 
 EXTRA_CLEANS		+= $(ROMGS_OBJ) $(ROMFS_IMG)
