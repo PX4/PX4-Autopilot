@@ -50,7 +50,7 @@ class XMLOutput():
             elif (group.GetName() == "Simulation"):
                 xml_group.attrib["image"] = "AirframeSimulation.png"
             else:
-                xml_group.attrib["image"] = "AirframeStandardPlane.png"
+                xml_group.attrib["image"] = ""
             for param in group.GetParams():
                 if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
                     xml_param = ET.SubElement(xml_group, "airframe")

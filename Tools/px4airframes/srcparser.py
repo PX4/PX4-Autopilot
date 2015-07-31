@@ -46,13 +46,17 @@ class Parameter(object):
         # all others == 0 (sorted alphabetically)
     }
 
-    def __init__(self, name, airframe_type, airframe_id, maintainer):
+    def __init__(self, path, name, airframe_type, airframe_id, maintainer):
         self.fields = {}
         self.outputs = {}
+        self.path = path
         self.name = name
         self.type = airframe_type
         self.id = airframe_id
         self.maintainer = maintainer
+
+    def GetPath(self):
+        return self.path
 
     def GetName(self):
         return self.name
@@ -259,7 +263,7 @@ class SourceParser(object):
             return False
 
         # We already know this is an airframe config, so add it
-        param = Parameter(airframe_name, airframe_type, airframe_id, maintainer)
+        param = Parameter(path, airframe_name, airframe_type, airframe_id, maintainer)
 
         # Done with file, store
         for tag in tags:
