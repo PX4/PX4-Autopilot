@@ -295,7 +295,8 @@ PX4FMU::PX4FMU() :
 	memset(_controls, 0, sizeof(_controls));
 	memset(_poll_fds, 0, sizeof(_poll_fds));
 
-	_debug_enabled = true;
+	/* only enable this during development */
+	_debug_enabled = false;
 }
 
 PX4FMU::~PX4FMU()
@@ -342,9 +343,9 @@ PX4FMU::init()
 	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		log("default PWM output device");
+		/* lets not be too verbose */
 	} else if (_class_instance < 0) {
-		log("FAILED registering class device");
+		warnx("FAILED registering class device");
 	}
 
 	/* reset GPIOs */
@@ -536,11 +537,11 @@ PX4FMU::subscribe()
 	_poll_fds_num = 0;
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
-			warnx("subscribe to actuator_controls_%d", i);
+			debug("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
 		if (unsub_groups & (1 << i)) {
-			warnx("unsubscribe from actuator_controls_%d", i);
+			debug("unsubscribe from actuator_controls_%d", i);
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
