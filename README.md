@@ -29,6 +29,7 @@ Such inclusion enables the library to be built even if pyuavcan is not installed
 
 ```bash
 git clone https://github.com/UAVCAN/libuavcan
+cd libuavcan
 git submodule update --init
 ```
 
