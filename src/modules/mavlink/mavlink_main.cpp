@@ -120,6 +120,8 @@ extern mavlink_system_t mavlink_system;
 
 static void usage(void);
 
+bool Mavlink::_boot_complete = false;
+
 Mavlink::Mavlink() :
 #ifndef __PX4_NUTTX
 	VDev("mavlink-log", MAVLINK_LOG_DEVICE),
@@ -1639,15 +1641,15 @@ Mavlink::task_main(int argc, char *argv[])
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
-		configure_stream("HIGHRES_IMU", 1.0f);
-		configure_stream("ATTITUDE", 10.0f);
+		configure_stream("HIGHRES_IMU", 2.0f);
+		configure_stream("ATTITUDE", 20.0f);
 		configure_stream("VFR_HUD", 8.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 3.0f);
 		configure_stream("LOCAL_POSITION_NED", 3.0f);
-		configure_stream("RC_CHANNELS", 1.0f);
+		configure_stream("RC_CHANNELS", 4.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
-		configure_stream("ATTITUDE_TARGET", 3.0f);
+		configure_stream("ATTITUDE_TARGET", 8.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
 		break;
@@ -2162,6 +2164,10 @@ int mavlink_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);
+
+	} else if (!strcmp(argv[1], "boot_complete")) {
+		Mavlink::set_boot_complete();
+		return 0;
 
 	} else {
 		usage();

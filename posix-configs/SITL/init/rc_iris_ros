@@ -66,4 +66,4 @@ mavlink stream -r 80 -s ATTITUDE -u 14556
 mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
-
+mavlink boot_complete

@@ -67,9 +67,11 @@
 static const int ERROR = -1;
 
 static const char *sensor_name = "mag";
-static const unsigned max_mags = 3;
+static constexpr unsigned max_mags = 3;
 static constexpr float mag_sphere_radius = 0.2f;
-static const unsigned int calibration_sides = 6;
+static constexpr unsigned int calibration_sides = 6;			///< The total number of sides
+static constexpr unsigned int calibration_total_points = 240;		///< The total points per magnetometer
+static constexpr unsigned int calibraton_duration_seconds = 42; 	///< The total duration the routine is allowed to take
 
 calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mags]);
 
@@ -207,6 +209,10 @@ static bool reject_sample(float sx, float sy, float sz, float x[], float y[], fl
 	return false;
 }
 
+static unsigned progress_percentage(mag_worker_data_t* worker_data) {
+	return 100 * ((float)worker_data->done_count) / calibration_sides;
+}
+
 static calibrate_return mag_calibration_worker(detect_orientation_return orientation, int cancel_sub, void* data)
 {
 	calibrate_return result = calibrate_return_ok;
@@ -226,7 +232,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	 * for a good result, so we're not constraining the user more than we have to.
 	 */
 
-	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds * 2;
+	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds * 5;
 	hrt_abstime last_gyro = 0;
 	float gyro_x_integral = 0.0f;
 	float gyro_y_integral = 0.0f;
@@ -347,8 +353,8 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 				// Progress indicator for side
 				mavlink_and_console_log_info(worker_data->mavlink_fd,
 							     "[cal] %s side calibration: progress <%u>",
-							     detect_orientation_str(orientation),
-							     (unsigned)(100 * ((float)calibration_counter_side / (float)worker_data->calibration_points_perside)));
+							     detect_orientation_str(orientation), progress_percentage(worker_data) +
+							     (unsigned)((100 / calibration_sides) * ((float)calibration_counter_side / (float)worker_data->calibration_points_perside)));
 			}
 		} else {
 			poll_errcount++;
@@ -365,7 +371,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		mavlink_and_console_log_info(worker_data->mavlink_fd, "[cal] %s side done, rotate to a different side", detect_orientation_str(orientation));
 		
 		worker_data->done_count++;
-		mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_QGC_PROGRESS_MSG, 34 * worker_data->done_count);
+		mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_QGC_PROGRESS_MSG, progress_percentage(worker_data));
 	}
 	
 	return result;
@@ -379,8 +385,8 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 	
 	worker_data.mavlink_fd = mavlink_fd;
 	worker_data.done_count = 0;
-	worker_data.calibration_points_perside = 40;
-	worker_data.calibration_interval_perside_seconds = 20;
+	worker_data.calibration_points_perside = calibration_total_points / calibration_sides;
+	worker_data.calibration_interval_perside_seconds = calibraton_duration_seconds / calibration_sides;
 	worker_data.calibration_interval_perside_useconds = worker_data.calibration_interval_perside_seconds * 1000 * 1000;
 
 	// Collect: Right-side up, Left Side, Nose down
@@ -499,6 +505,10 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 		printf("RAW DATA:\n--------------------\n");
 		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 
+			if (worker_data.calibration_counter_total[cur_mag] == 0) {
+				continue;
+			}
+
 			printf("RAW: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 
 			for (size_t i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
@@ -513,6 +523,10 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 
 		printf("CALIBRATED DATA:\n--------------------\n");
 		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
+
+			if (worker_data.calibration_counter_total[cur_mag] == 0) {
+				continue;
+			}
 
 			printf("Calibrated: MAG %u with %u samples:\n", (unsigned)cur_mag, (unsigned)worker_data.calibration_counter_total[cur_mag]);
 

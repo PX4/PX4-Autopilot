@@ -84,11 +84,11 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
- * @min 0.0
- * @max 50.0
+ * @min 0.005
+ * @max 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.005f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.01f);
 
 /**
  * Maximum positive / up pitch rate.
@@ -157,11 +157,11 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
- * @min 0.0
- * @max 100.0
+ * @min 0.005
+ * @max 0.2
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_I, 0.005f);
+PARAM_DEFINE_FLOAT(FW_RR_I, 0.01f);
 
 /**
  * Roll Integrator Anti-Windup

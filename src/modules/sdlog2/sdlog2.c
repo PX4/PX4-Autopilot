@@ -157,7 +157,7 @@ PARAM_DEFINE_INT32(SDLOG_EXT, -1);
  * @max  1
  * @group SD Logging
  */
-PARAM_DEFINE_INT32(SDLOG_GPSTIME, 0);
+PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
 
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +35,8 @@
  * @file mavlink_orb_listener.h
  * MAVLink 1.0 uORB listener definition
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #pragma once
@@ -141,14 +141,25 @@ private:
 	void *receive_thread(void *arg);
 
 	/**
-	* Convert remote timestamp to local hrt time (usec)
-	* Use timesync if available, monotonic boot time otherwise
-	*/
+	 * Convert remote timestamp to local hrt time (usec)
+	 * Use timesync if available, monotonic boot time otherwise
+	 */
 	uint64_t sync_stamp(uint64_t usec);
+
 	/**
-	* Exponential moving average filter to smooth time offset
-	*/
+	 * Exponential moving average filter to smooth time offset
+	 */
 	void smooth_time_offset(uint64_t offset_ns);
+
+	/**
+	 * Decode a switch position from a bitfield
+	 */
+	switch_pos_t decode_switch_pos(uint16_t buttons, unsigned sw);
+
+	/**
+	 * Decode a switch position from a bitfield and state
+	 */
+	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
 
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
@@ -194,6 +205,11 @@ private:
 	double _time_offset_avg_alpha;
 	uint64_t _time_offset;
 	int	_orb_class_instance;
+
+	static constexpr unsigned MOM_SWITCH_COUNT = 8;
+
+	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT];
+	uint16_t _mom_switch_state;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver &);

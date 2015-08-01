@@ -1,6 +1,10 @@
 #!nsh
 #
-# ARDrone
+# @name AR.Drone Frame
+#
+# @type Quadrotor x
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
