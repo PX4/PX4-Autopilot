@@ -1,33 +1,28 @@
 #
-# Makefile for the Foo *default* configuration
+# Makefile for the EAGLE QuRT *default* configuration
 #
 
 #
 # Board support modules
 #
 MODULES		+= drivers/device
-#MODULES		+= drivers/blinkm
-MODULES		+= drivers/hil
-MODULES		+= drivers/led
-MODULES		+= drivers/rgbled
 MODULES		+= modules/sensors
-#MODULES		+= drivers/ms5611
+#MODULES		+= platforms/qurt/drivers/mpu9x50
+#MODULES		+= platforms/qurt/drivers/uart_esc
 
 #
 # System commands
 #
 MODULES	+= systemcmds/param
-MODULES += systemcmds/mixer
+
 
 #
 # General system control
 #
-#MODULES		+= modules/mavlink
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
-#MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/attitude_estimator_q
 MODULES		+= modules/position_estimator_inav
@@ -45,8 +40,6 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 #MODULES		+= modules/dataman
-#MODULES		+= modules/sdlog2
-#MODULES		+= modules/simulator
 MODULES		+= modules/commander
 
 #
@@ -62,19 +55,10 @@ MODULES		+= lib/conversion
 # QuRT port
 #
 MODULES		+= platforms/qurt/px4_layer
-MODULES		+= platforms/posix/work_queue
-#MODULES		+= platforms/posix/drivers/accelsim
-#MODULES		+= platforms/posix/drivers/gyrosim
-#MODULES		+= platforms/posix/drivers/adcsim
-#MODULES		+= platforms/posix/drivers/barosim
 
 #
 # Unit tests
 #
-#MODULES		+= platforms/qurt/tests/muorb
-#MODULES		+= platforms/posix/tests/vcdev_test
-#MODULES		+= platforms/posix/tests/hrt_test
-#MODULES		+= platforms/posix/tests/wqueue
 
 #
 # sources for muorb over fastrpc

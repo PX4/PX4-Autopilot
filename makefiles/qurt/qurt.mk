@@ -35,5 +35,5 @@
 #
 
 MODULES += \
-		platforms/common 
+	platforms/common 
 
