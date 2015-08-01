@@ -1502,7 +1502,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				throttle_max,
 				_parameters.throttle_cruise,
 				climbout_requested,
-				pitch_limit_min,
+				((climbout_requested) ? math::radians(10.0f) : pitch_limit_min),
 				_global_pos.alt,
 				ground_speed,
 				tecs_status_s::TECS_MODE_NORMAL);
@@ -1612,7 +1612,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				throttle_max,
 				_parameters.throttle_cruise,
 				climbout_requested,
-				pitch_limit_min,
+				((climbout_requested) ? math::radians(10.0f) : pitch_limit_min),
 				_global_pos.alt,
 				ground_speed,
 				tecs_status_s::TECS_MODE_NORMAL);
