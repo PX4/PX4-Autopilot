@@ -2,8 +2,6 @@
 #
 # @name Quadrotor + Tailsitter
 #
-# Generic configuration file for a tailsitter with motors in X configuration.
-#
 # @type VTOL Tailsitter
 #
 # @maintainer Roman Bapst <roman@px4.io>

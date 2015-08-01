@@ -559,6 +559,7 @@ int do_level_calibration(int mavlink_fd) {
 	const unsigned cal_time = 5;
 	const unsigned cal_hz = 100;
 	const unsigned settle_time = 30;
+	bool success = false;
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
@@ -597,7 +598,15 @@ int do_level_calibration(int mavlink_fd) {
 	start = hrt_absolute_time();
 	// average attitude for 5 seconds
 	while(hrt_elapsed_time(&start) < cal_time * 1000000) {
-		poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pollret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+
+		if (pollret <= 0) {
+			// attitude estimator is not running
+			mavlink_and_console_log_critical(mavlink_fd, "attitude estimator not running - check system boot");
+			mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "level");
+			goto out;
+		}
+
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 		roll_mean += att.roll;
 		pitch_mean += att.pitch;
@@ -606,7 +615,6 @@ int do_level_calibration(int mavlink_fd) {
 
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_PROGRESS_MSG, 100);
 
-	bool success = false;
 	if (counter > (cal_time * cal_hz / 2 )) {
 		roll_mean /= counter;
 		pitch_mean /= counter;

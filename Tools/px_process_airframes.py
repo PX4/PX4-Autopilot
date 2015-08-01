@@ -46,7 +46,7 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-from px4airframes import srcscanner, srcparser, xmlout
+from px4airframes import srcscanner, srcparser, xmlout, rcout
 
 def main():
     # Parse command line arguments
@@ -61,6 +61,11 @@ def main():
                         metavar="FILENAME",
                         help="Create XML file"
                              " (default FILENAME: airframes.xml)")
+    parser.add_argument("-s", "--start-script",
+                        nargs='?',
+                        const="rc.autostart",
+                        metavar="FILENAME",
+                        help="Create start script file")
     parser.add_argument("-b", "--board",
                          nargs='?',
                          const="",
@@ -69,7 +74,7 @@ def main():
     args = parser.parse_args()
 
     # Check for valid command
-    if not (args.xml):
+    if not (args.xml) and not (args.start_script):
         print("Error: You need to specify at least one output method!\n")
         parser.print_usage()
         sys.exit(1)
@@ -92,6 +97,11 @@ def main():
         print("Creating XML file " + args.xml)
         out = xmlout.XMLOutput(param_groups, args.board)
         out.Save(args.xml)
+
+    if args.start_script:
+        print("Creating start script " + args.start_script)
+        out = rcout.RCOutput(param_groups, args.board)
+        out.Save(args.start_script)
 
     print("All done!")
 
