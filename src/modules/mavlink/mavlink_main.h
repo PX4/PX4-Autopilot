@@ -373,6 +373,7 @@ private:
 	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
 	int			_datarate_events;	///< data rate for params, waypoints, text messages
 	float			_rate_mult;
+	hrt_abstime		_last_hw_rate_timestamp;
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -442,6 +443,10 @@ private:
 #endif
 
 	static unsigned int	interval_from_rate(float rate);
+
+	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
+	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
+	static constexpr unsigned RADIO_BUFFER_HALF_PERCENTAGE = 50;
 
 	int configure_stream(const char *stream_name, const float rate);
 
