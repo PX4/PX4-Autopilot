@@ -39,12 +39,12 @@
 
 #define LOG_TAG "uORBKraitFastRpcChannel.cpp"
 
+uORB::KraitFastRpcChannel uORB::KraitFastRpcChannel::_Instance;
+
 static void DumpData(uint8_t *buffer, int32_t length, int32_t num_topics);
 
-static std::string _log_file_name = "./hex_dump.txt";
-
 // static intialization.
-uORB::KraitFastRpcChannel uORB::KraitFastRpcChannel::_Instance;
+static std::string _log_file_name = "./hex_dump.txt";
 
 static unsigned long _snd_msg_min = 0xFFFFFF;
 static unsigned long _snd_msg_max = 0;
@@ -58,59 +58,45 @@ static hrt_abstime   _log_check_time = 0;
 static hrt_abstime   _log_check_interval = 10000000;
 
 
-//==============================================================================
-//==============================================================================
-uORB::KraitFastRpcChannel::KraitFastRpcChannel()
-	: _RxHandler(nullptr)
-	, _ThreadStarted(false)
-	, _ThreadShouldExit(false)
+uORB::KraitFastRpcChannel::KraitFastRpcChannel() :
+	_RxHandler(nullptr),
+	_ThreadStarted(false),
+	_ThreadShouldExit(false)
 {
 	_KraitWrapper.Initialize();
 }
 
-//==============================================================================
-//==============================================================================
 int16_t uORB::KraitFastRpcChannel::add_subscription(const char *messageName, int32_t msgRateInHz)
 {
 	int16_t rc = 0;
-	// invoke fast_rpc call. From Idl.
-	PX4_DEBUG("Before calling AddSubscriber for [%s]\n", messageName);
+	//PX4_DEBUG("Before calling AddSubscriber for [%s]\n", messageName);
 	rc = _KraitWrapper.AddSubscriber(messageName);
-	PX4_DEBUG("Response for AddSubscriber for [%s], rc[%d]\n", messageName, rc);
+	//PX4_DEBUG("Response for AddSubscriber for [%s], rc[%d]\n", messageName, rc);
 	return rc;
 }
 
-//==============================================================================
-//==============================================================================
 int16_t uORB::KraitFastRpcChannel::remove_subscription(const char *messageName)
 {
 	int16_t rc = 0;
-	// invoke the fast_rpc call defined in idl.
-	PX4_DEBUG("Before calling RemoveSubscriber for [%s]\n", messageName);
+	//PX4_DEBUG("Before calling RemoveSubscriber for [%s]\n", messageName);
 	rc = _KraitWrapper.RemoveSubscriber(messageName);
-	PX4_DEBUG("Response for RemoveSubscriber for [%s], rc[%d]\n", messageName, rc);
+	//PX4_DEBUG("Response for RemoveSubscriber for [%s], rc[%d]\n", messageName, rc);
 	return rc;
 }
 
-//==============================================================================
-//==============================================================================
 int16_t uORB::KraitFastRpcChannel::register_handler(uORBCommunicator::IChannelRxHandler *handler)
 {
 	_RxHandler = handler;
 	return 0;
 }
 
-
-//==============================================================================
-//==============================================================================
 int16_t uORB::KraitFastRpcChannel::send_message(const char *messageName, int32_t length, uint8_t *data)
 {
 	int16_t rc = 0;
-	// invoke the fast rpc call to send data defined in idl.
-	//PX4_DEBUG( "Before calling send_data for [%s] len[%d]\n", messageName.c_str(), length );
 	int32_t status = 0;
 	hrt_abstime t1, t4;
-	hrt_abstime t2 = 0, t3 = 0;
+	hrt_abstime t2 = 0;
+	hrt_abstime t3 = 0;
 	t1 = hrt_absolute_time();
 
 	if (_AdspSubscriberCache.find(std::string(messageName)) == _AdspSubscriberCache.end()) {
@@ -152,15 +138,21 @@ int16_t uORB::KraitFastRpcChannel::send_message(const char *messageName, int32_t
 
 		if ((t3 - t2) > _snd_msg_max) { _snd_msg_max = (t3 - t2); }
 
-		_snd_msg_avg = ((double)((_snd_msg_avg * (_snd_msg_count - 1)) + (unsigned long)(t3 - t2))) / (double)(_snd_msg_count);
+		_snd_msg_avg = ((double)((_snd_msg_avg * (_snd_msg_count - 1)) +
+				(unsigned long)(t3 - t2))) / (double)(_snd_msg_count);
 	}
 
-	_overall_snd_avg = ((double)((_overall_snd_avg * (_overall_snd_count - 1)) + (unsigned long)(t4 - t1))) / (double)(
-				   _overall_snd_count);
-
-
+	_overall_snd_avg = ((double)((_overall_snd_avg * (_overall_snd_count - 1)) +
+				(unsigned long)(t4 - t1))) / (double)(_overall_snd_count);
 
 	if ((t4 - _log_check_time) > _log_check_interval) {
+		/*
+		PX4_DEBUG("SndMsgStats: overall_min: %lu overall_max: %lu snd_msg_min: %lu snd_msg_max: %lu",
+			  _overall_snd_min, _overall_snd_max,
+			  _snd_msg_min, _snd_msg_max);
+		PX4_DEBUG(".... overall_avg: %f (%lu) snd_msg_avg: %f (%lu)",
+			  _overall_snd_avg, _overall_snd_count, _snd_msg_avg, _snd_msg_count);
+		*/
 		_log_check_time = t4;
 		_overall_snd_min = _snd_msg_min = 0xFFFFFFF;
 		_overall_snd_max = _snd_msg_max = 0;
@@ -200,12 +192,11 @@ void uORB::KraitFastRpcChannel::Stop()
 {
 	_ThreadShouldExit = true;
 	_KraitWrapper.UnblockReceiveData();
-	PX4_DEBUG("After calling _KraitWrapper.UnblockReceiveData()...\n");
+	//PX4_DEBUG("After calling UnblockReceiveData()...\n");
 	pthread_join(_RecvThread, NULL);
-	PX4_DEBUG("*** After calling pthread_join...\n");
+	//PX4_DEBUG("*** After calling pthread_join...\n");
 	_ThreadStarted = false;
 }
-
 
 void  *uORB::KraitFastRpcChannel::thread_start(void *handler)
 {
@@ -237,9 +228,6 @@ void uORB::KraitFastRpcChannel::fastrpc_recv_thread()
 	while (!_ThreadShouldExit) {
 		hrt_abstime t1, t2, t3;
 		t1 = hrt_absolute_time();
-		// call the fastrpc recv data call.
-		//uorb_fastrpc_recieve( &type, &name_len, name, &data_length, data );
-		//rc = _KraitWrapper.ReceiveData(&type, &name, &data_length, &data);
 		rc = _KraitWrapper.ReceiveBulkData(&data, &data_length, &num_topics);
 
 		t2 = hrt_absolute_time();
@@ -282,14 +270,17 @@ void uORB::KraitFastRpcChannel::fastrpc_recv_thread()
 		count++;
 
 		if ((unsigned long)(t2 - t1) < rpc_min) {
-			rpc_min = (unsigned long)(t2 - t1); 
+			rpc_min = (unsigned long)(t2 - t1);
 		}
+
 		if ((unsigned long)(t2 - t1) > rpc_max) {
 			rpc_max = (unsigned long)(t2 - t1);
 		}
+
 		if ((unsigned long)(t3 - t2) < orb_min) {
 			orb_min = (unsigned long)(t3 - t2);
 		}
+
 		if ((unsigned long)(t3 - t2) > orb_max) {
 			orb_max = (unsigned long)(t3 - t2);
 		}
@@ -310,7 +301,6 @@ void uORB::KraitFastRpcChannel::fastrpc_recv_thread()
 
 		//PX4_DEBUG("MsgName: %30s, t1: %lu, t2: %lu, t3: %lu, dt1: %lu, dt2: %lu",name, (unsigned long) t1, (unsigned long) t2, (unsigned long) t3,
 		//  (unsigned long) (t2-t1), (unsigned long) (t3-t2));
-
 	}
 
 	PX4_DEBUG("[uORB::KraitFastRpcChannel::fastrpc_recv_thread] Exiting fastrpc_recv_thread\n");
