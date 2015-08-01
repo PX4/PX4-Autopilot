@@ -39,5 +39,8 @@ then
 	param set FW_RR_P 0.3
 fi
 
+# Enable gamepad / joystick support
+param set COM_RC_IN_MODE 2
+
 set HIL yes
 set MIXER AERT
