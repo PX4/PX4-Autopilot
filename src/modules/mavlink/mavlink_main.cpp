@@ -1268,7 +1268,6 @@ Mavlink::update_rate_mult()
 	/* scale down if we have a TX err rate suggesting link congestion */
 	if (_rate_txerr > 0.0f && !radio_critical) {
 		hardware_mult = (_rate_tx) / (_rate_tx + _rate_txerr);
-		warnx("RTS limiting");
 	} else if (radio_found && tstatus.timestamp != _last_hw_rate_timestamp) {
 
 		if (tstatus.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
