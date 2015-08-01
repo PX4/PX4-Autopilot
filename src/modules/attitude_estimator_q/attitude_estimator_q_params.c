@@ -48,7 +48,7 @@
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_FLOAT(ATT_W_ACC, 0.2f);
+PARAM_DEFINE_FLOAT(ATT_W_ACC, 0.2f, ATTITUDE_Q_ESTIMATOR_PARAMS);
 
 /**
  * Complimentary filter magnetometer weight
@@ -57,7 +57,7 @@ PARAM_DEFINE_FLOAT(ATT_W_ACC, 0.2f);
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_FLOAT(ATT_W_MAG, 0.1f);
+PARAM_DEFINE_FLOAT(ATT_W_MAG, 0.1f, ATTITUDE_Q_ESTIMATOR_PARAMS);
 
 /**
  * Complimentary filter gyroscope bias weight
@@ -66,7 +66,7 @@ PARAM_DEFINE_FLOAT(ATT_W_MAG, 0.1f);
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_FLOAT(ATT_W_GYRO_BIAS, 0.1f);
+PARAM_DEFINE_FLOAT(ATT_W_GYRO_BIAS, 0.1f, ATTITUDE_Q_ESTIMATOR_PARAMS);
 
 /**
  * Magnetic declination, in degrees
@@ -78,7 +78,7 @@ PARAM_DEFINE_FLOAT(ATT_W_GYRO_BIAS, 0.1f);
  * @group Attitude Q estimator
  * @unit degrees
  */
-PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
+PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f, ATTITUDE_Q_ESTIMATOR_PARAMS);
 
 /**
  * Enable automatic GPS based declination compensation
@@ -87,7 +87,7 @@ PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
+PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1, ATTITUDE_Q_ESTIMATOR_PARAMS);
 
 /**
  * Enable acceleration compensation based on GPS
@@ -97,7 +97,7 @@ PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
  * @min 1
  * @max 2
  */
-PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
+PARAM_DEFINE_INT32(ATT_ACC_COMP, 2, ATTITUDE_Q_ESTIMATOR_PARAMS);
 
 /**
  * Gyro bias limit
@@ -107,4 +107,4 @@ PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
  * @max 2
  * @unit rad/s
  */
-PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);
+PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f, ATTITUDE_Q_ESTIMATOR_PARAMS);

@@ -56,7 +56,7 @@
  * @min -0.25
  * @max 0.25
  */
-PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
+PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f, RADIO_CALIBRATION_PARAMS);
 
 /**
  * Pitch trim
@@ -70,7 +70,7 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
  * @min -0.25
  * @max 0.25
  */
-PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
+PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f, RADIO_CALIBRATION_PARAMS);
 
 /**
  * Yaw trim
@@ -84,7 +84,7 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
  * @min -0.25
  * @max 0.25
  */
-PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
+PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f, RADIO_CALIBRATION_PARAMS);
 
 /**
  * Empty cell voltage.
@@ -94,7 +94,7 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  * @group Battery Calibration
  * @unit V
  */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f, BATTERY_CALIBRATION_PARAMS);
 
 /**
  * Full cell voltage.
@@ -104,7 +104,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
  * @group Battery Calibration
  * @unit V
  */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
+PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f, BATTERY_CALIBRATION_PARAMS);
 
 /**
  * Voltage drop per cell on 100% load
@@ -116,7 +116,7 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
  * @unit V
  * @min 0.0
  */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
+PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f, BATTERY_CALIBRATION_PARAMS);
 
 /**
  * Number of cells.
@@ -138,7 +138,7 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
  * @group Battery Calibration
  * @unit mA
  */
-PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f, BATTERY_CALIBRATION_PARAMS);
 
 /**
  * Datalink loss mode enabled.
@@ -149,7 +149,7 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
+PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0, COMMANDER_PARAMS);
 
 /**
  * Datalink loss time threshold
@@ -161,7 +161,7 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
  * @min 0
  * @max 30
  */
-PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
+PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10, COMMANDER_PARAMS);
 
 /**
  * Datalink regain time threshold
@@ -174,7 +174,7 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
  * @min 0
  * @max 30
  */
-PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
+PARAM_DEFINE_INT32(COM_DL_REG_T, 0, COMMANDER_PARAMS);
 
 /**
  * Engine Failure Throttle Threshold
@@ -185,7 +185,7 @@ PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
  * @min 0.0
  * @max 1.0
  */
-PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
+PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f, COMMANDER_PARAMS);
 
 /**
  * Engine Failure Current/Throttle Threshold
@@ -197,7 +197,7 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
  * @max 30.0
  * @unit ampere
  */
-PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
+PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f, COMMANDER_PARAMS);
 
 /**
  * Engine Failure Time Threshold
@@ -210,7 +210,7 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  * @min 0.0
  * @max 60.0
  */
-PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
+PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f, COMMANDER_PARAMS);
 
 /**
  * RC loss time threshold
@@ -222,7 +222,7 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
  * @min 0
  * @max 35
  */
-PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
+PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f, COMMANDER_PARAMS);
 
 /**
  * Home set horizontal threshold
@@ -234,7 +234,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * @min 2
  * @max 15
  */
-PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
+PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f, COMMANDER_PARAMS);
 
 /**
  * Home set vertical threshold
@@ -246,7 +246,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
  * @min 5
  * @max 25
  */
-PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
+PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f, COMMANDER_PARAMS);
 
 /**
  * Autosaving of params
@@ -259,7 +259,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
+PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1, COMMANDER_PARAMS);
 
 /**
  * RC control input mode
@@ -273,4 +273,4 @@ PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
  * @min 0
  * @max 2
  */
-PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
+PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0, COMMANDER_PARAMS);

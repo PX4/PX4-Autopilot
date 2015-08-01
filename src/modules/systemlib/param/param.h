@@ -346,32 +346,35 @@ __EXPORT int 		param_load_default(void);
  */
 
 /** define an int32 parameter */
-#define PARAM_DEFINE_INT32(_name, _default)		\
+#define PARAM_DEFINE_INT32(_name, _default, _group)	\
 	static const					\
 	__attribute__((used, section("__param")))	\
 	struct param_info_s __param__##_name = {	\
 		#_name,					\
 		PARAM_TYPE_INT32,			\
+		_group,					\
 		.val.i = _default			\
 	}
 
 /** define a float parameter */
-#define PARAM_DEFINE_FLOAT(_name, _default)		\
+#define PARAM_DEFINE_FLOAT(_name, _default, _group)	\
 	static const					\
 	__attribute__((used, section("__param")))	\
 	struct param_info_s __param__##_name = {	\
 		#_name,					\
 		PARAM_TYPE_FLOAT,			\
+		_group,					\
 		.val.f = _default			\
 	}
 
 /** define a parameter that points to a structure */
-#define PARAM_DEFINE_STRUCT(_name, _default)		\
+#define PARAM_DEFINE_STRUCT(_name, _default, _group)	\
 	static const					\
 	__attribute__((used, section("__param")))	\
 	struct param_info_s __param__##_name = {	\
 		#_name,					\
 		PARAM_TYPE_STRUCT + sizeof(_default),	\
+		_group,					\
 		.val.p = &_default			\
 	}
 
@@ -382,6 +385,20 @@ union param_value_u {
 	void		*p;
 	int32_t		i;
 	float		f;
+};
+
+enum {
+	PWM_OUTPUTS_PARAMS,
+	TEST_PARAMS,
+	SYSTEM_PARAMS,
+	LAUNCH_DETECTION_PARAMS,
+	ATTITUDE_Q_ESTIMATOR_PARAMS,
+	RADIO_CALIBRATION_PARAMS,
+	BATTERY_CALIBRATION_PARAMS,
+	COMMANDER_PARAMS,
+	POSITION_ESTIMATOR_PARAMS,
+	FW_ATTITUDE_CONTROL_PARAMS,
+	L1_CONTROL_PARAMS,
 };
 
 /**
@@ -408,8 +425,9 @@ struct param_info_s {
 #else
 				;
 #endif
-	param_type_t	type;
-	union param_value_u val;
+	param_type_t		type;
+	uint16_t		group;
+	union param_value_u	val;
 };
 
 __END_DECLS

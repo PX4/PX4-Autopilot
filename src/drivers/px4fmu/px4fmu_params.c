@@ -51,7 +51,7 @@
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
+PARAM_DEFINE_INT32(PWM_AUX_REV1, 0, PWM_OUTPUTS_PARAMS);
 
 /**
  * Invert direction of aux output channel 2
@@ -62,7 +62,7 @@ PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
+PARAM_DEFINE_INT32(PWM_AUX_REV2, 0, PWM_OUTPUTS_PARAMS);
 
 /**
  * Invert direction of aux output channel 3
@@ -73,7 +73,7 @@ PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
+PARAM_DEFINE_INT32(PWM_AUX_REV3, 0, PWM_OUTPUTS_PARAMS);
 
 /**
  * Invert direction of aux output channel 4
@@ -84,7 +84,7 @@ PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
+PARAM_DEFINE_INT32(PWM_AUX_REV4, 0, PWM_OUTPUTS_PARAMS);
 
 /**
  * Invert direction of aux output channel 5
@@ -95,7 +95,7 @@ PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
+PARAM_DEFINE_INT32(PWM_AUX_REV5, 0, PWM_OUTPUTS_PARAMS);
 
 /**
  * Invert direction of aux output channel 6
@@ -106,4 +106,4 @@ PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
  * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
+PARAM_DEFINE_INT32(PWM_AUX_REV6, 0, PWM_OUTPUTS_PARAMS);
