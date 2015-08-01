@@ -1,8 +1,10 @@
 #!nsh
 #
-# Generic configuration file for a quad pusher VTOL.
+# @name Generic quad pusher VTOL.
 #
-# Simon Wilks <simon@uaventure.com>
+# @type VTOL Pusher
+#
+# @maintainer Simon Wilks <simon@uaventure.com>
 #
 
 sh /etc/init.d/rc.vtol_defaults
