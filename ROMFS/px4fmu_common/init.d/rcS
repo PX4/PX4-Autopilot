@@ -564,7 +564,7 @@ then
 			fi
 			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
 			then
-				set MAV_TYPE 2
+				set MAV_TYPE 15
 			fi
 			if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
 			then
@@ -588,6 +588,7 @@ then
 		if [ $MAV_TYPE == none ]
 		then
 			echo "Unknown MAV_TYPE"
+			param set MAV_TYPE 2
 		else
 			param set MAV_TYPE $MAV_TYPE
 		fi
@@ -631,6 +632,7 @@ then
 		if [ $MAV_TYPE == none ]
 		then
 			echo "Unknown MAV_TYPE"
+			param set MAV_TYPE 19
 		else
 			param set MAV_TYPE $MAV_TYPE
 		fi
@@ -661,6 +663,8 @@ then
 		then
 			sh /etc/init.d/rc.axialracing_ax10_apps
 		fi
+
+		param set MAV_TYPE 10
 	fi
 
 	unset MIXER

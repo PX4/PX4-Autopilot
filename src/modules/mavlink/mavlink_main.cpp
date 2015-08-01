@@ -152,6 +152,7 @@ Mavlink::Mavlink() :
 	_datarate(1000),
 	_datarate_events(500),
 	_rate_mult(1.0f),
+	_last_hw_rate_timestamp(0),
 	_mavlink_param_queue_index(0),
 	mavlink_link_termination_allowed(false),
 	_subscribe_to_stream(nullptr),
@@ -1244,12 +1245,53 @@ Mavlink::update_rate_mult()
 	}
 
 	/* don't scale up rates, only scale down if needed */
-	_rate_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
+	float bandwidth_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
+
+	/* check if we have radio feedback */
+	struct telemetry_status_s &tstatus = get_rx_status();
+
+	bool radio_critical = false;
+	bool radio_found = false;
+
+	/* 2nd pass: Now check hardware limits */
+	if (tstatus.type == TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+
+		radio_found = true;
+
+		if (tstatus.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+			radio_critical = true;
+		}
+	}
+
+	float hardware_mult = _rate_mult;
 
 	/* scale down if we have a TX err rate suggesting link congestion */
-	if (_rate_txerr > 0.0f) {
-		_rate_mult = (_rate_tx) / (_rate_tx + _rate_txerr);
+	if (_rate_txerr > 0.0f && !radio_critical) {
+		hardware_mult = (_rate_tx) / (_rate_tx + _rate_txerr);
+		warnx("RTS limiting");
+	} else if (radio_found && tstatus.timestamp != _last_hw_rate_timestamp) {
+
+		if (tstatus.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 20% */
+			hardware_mult *= 0.80f;
+		} else if (tstatus.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 2.5% */
+			hardware_mult *= 0.975f;
+		} else if (tstatus.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
+			/* this indicates spare bandwidth, increase by 2.5% */
+			hardware_mult *= 1.025f;
+			/* limit to a max multiplier of 1 */
+			hardware_mult = fminf(1.0f, hardware_mult);
+		}
 	}
+
+	_last_hw_rate_timestamp = tstatus.timestamp;
+
+	/* pick the minimum from bandwidth mult and hardware mult as limit */
+	_rate_mult = fminf(bandwidth_mult, hardware_mult);
+
+	/* ensure the rate multiplier never drops below 5% so that something is always sent */
+	_rate_mult = fmaxf(0.05f, _rate_mult);
 }
 
 int
