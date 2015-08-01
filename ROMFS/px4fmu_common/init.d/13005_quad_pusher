@@ -35,7 +35,7 @@ set PWM_OUT 12345678
 set MIXER_AUX quad_x_pusher_vtol
 set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234
-set PWM_AUX_DISARMED 1500
+set PWM_AUX_DISARMED 1000
 set PWM_AUX_MIN 1000
 set PWM_AUX_MAX 2000
 
@@ -44,5 +44,3 @@ set MAV_TYPE 22
 param set VT_MOT_COUNT 4
 param set VT_IDLE_PWM_MC 1080
 param set VT_TYPE 2
-
-echo $PWM_AUX_DISARMED
