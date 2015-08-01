@@ -57,21 +57,20 @@
  *
  ************************************************************/
 
-FAR sq_entry_t *sq_remfirst(sq_queue_t *queue)
+sq_entry_t *sq_remfirst(sq_queue_t *queue)
 {
-  FAR sq_entry_t *ret = queue->head;
+	sq_entry_t *ret = queue->head;
 
-  if (ret)
-    {
-      queue->head = ret->flink;
-      if (!queue->head)
-        {
-          queue->tail = NULL;
-        }
+	if (ret) {
+		queue->head = ret->flink;
 
-      ret->flink = NULL;
-    }
+		if (!queue->head) {
+			queue->tail = NULL;
+		}
 
-  return ret;
+		ret->flink = NULL;
+	}
+
+	return ret;
 }
 

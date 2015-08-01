@@ -72,7 +72,7 @@
  *
  * Description:
  *   Cancel previously queued work.  This removes work from the work queue.
- *   After work has been canceled, it may be re-queue by calling 
+ *   After work has been canceled, it may be re-queue by calling
  *   hrt_work_queue() again.
  *
  * Input parameters:
@@ -82,30 +82,30 @@
 
 void hrt_work_cancel(struct work_s *work)
 {
-  struct wqueue_s *wqueue = &g_hrt_work;
+	struct wqueue_s *wqueue = &g_hrt_work;
 
-  //DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
+	//DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
-  /* Cancelling the work is simply a matter of removing the work structure
-   * from the work queue.  This must be done with interrupts disabled because
-   * new work is typically added to the work queue from interrupt handlers.
-   */
+	/* Cancelling the work is simply a matter of removing the work structure
+	 * from the work queue.  This must be done with interrupts disabled because
+	 * new work is typically added to the work queue from interrupt handlers.
+	 */
 
-  hrt_work_lock();
-  if (work->worker != NULL)
-    {
-      /* A little test of the integrity of the work queue */
+	hrt_work_lock();
 
-      //DEBUGASSERT(work->dq.flink ||(FAR dq_entry_t *)work == wqueue->q.tail);
-      //DEBUGASSERT(work->dq.blink ||(FAR dq_entry_t *)work == wqueue->q.head);
+	if (work->worker != NULL) {
+		/* A little test of the integrity of the work queue */
 
-      /* Remove the entry from the work queue and make sure that it is
-       * mark as availalbe (i.e., the worker field is nullified).
-       */
+		//DEBUGASSERT(work->dq.flink ||(dq_entry_t *)work == wqueue->q.tail);
+		//DEBUGASSERT(work->dq.blink ||(dq_entry_t *)work == wqueue->q.head);
 
-      dq_rem((FAR dq_entry_t *)work, &wqueue->q);
-      work->worker = NULL;
-    }
+		/* Remove the entry from the work queue and make sure that it is
+		 * mark as availalbe (i.e., the worker field is nullified).
+		 */
 
-  hrt_work_unlock();
+		dq_rem((dq_entry_t *)work, &wqueue->q);
+		work->worker = NULL;
+	}
+
+	hrt_work_unlock();
 }
