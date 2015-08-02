@@ -88,7 +88,7 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * @max 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.01f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.02f);
 
 /**
  * Maximum positive / up pitch rate.
@@ -258,7 +258,7 @@ PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
  * @max 10.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_FF, 0.4f);
+PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
 
 /**
  * Yaw rate feed forward
