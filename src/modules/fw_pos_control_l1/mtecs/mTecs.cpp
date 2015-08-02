@@ -204,7 +204,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 		mode = tecs_status_s::TECS_MODE_UNDERSPEED;
 	}
 
-	/* Set special ouput limiters if we are not in TECS_MODE_NORMAL */
+	/* Set special output limiters if we are not in TECS_MODE_NORMAL */
 	BlockOutputLimiter *outputLimiterThrottle = &_controlTotalEnergy.getOutputLimiter();
 	BlockOutputLimiter *outputLimiterPitch = &_controlEnergyDistribution.getOutputLimiter();
 	if (mode == tecs_status_s::TECS_MODE_TAKEOFF) {
@@ -221,7 +221,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 		outputLimiterPitch = &_BlockOutputLimiterUnderspeedPitch;
 	}
 
-	/* Apply overrride given by the limitOverride argument (this is used for limits which are not given by
+	/* Apply override given by the limitOverride argument (this is used for limits which are not given by
 	 * parameters such as pitch limits with takeoff waypoints or throttle limits when the launchdetector
 	 * is running) */
 	limitOverride.applyOverride(*outputLimiterThrottle, *outputLimiterPitch);
@@ -253,7 +253,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 				(double)accelerationLongitudinalSp, (double)airspeedDerivative);
 	}
 
-	/* publish status messge */
+	/* publish status message */
 	_status.update();
 
 	/* clean up */
