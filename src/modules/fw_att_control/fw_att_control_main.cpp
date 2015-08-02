@@ -163,7 +163,6 @@ private:
 	struct {
 		float tconst;
 		float p_p;
-		float p_d;
 		float p_i;
 		float p_ff;
 		float p_rmax_pos;
@@ -171,7 +170,6 @@ private:
 		float p_integrator_max;
 		float p_roll_feedforward;
 		float r_p;
-		float r_d;
 		float r_i;
 		float r_ff;
 		float r_integrator_max;
@@ -208,7 +206,6 @@ private:
 
 		param_t tconst;
 		param_t p_p;
-		param_t p_d;
 		param_t p_i;
 		param_t p_ff;
 		param_t p_rmax_pos;
@@ -216,7 +213,6 @@ private:
 		param_t p_integrator_max;
 		param_t p_roll_feedforward;
 		param_t r_p;
-		param_t r_d;
 		param_t r_i;
 		param_t r_ff;
 		param_t r_integrator_max;
