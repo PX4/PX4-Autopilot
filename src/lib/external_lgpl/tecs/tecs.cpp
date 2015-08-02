@@ -255,7 +255,7 @@ void TECS::_update_height_demand(float demand, float state)
 //	// printf("hgt_dem: %6.2f hgt_dem_adj: %6.2f hgt_dem_last: %6.2f hgt_rate_dem: %6.2f\n", _hgt_dem, _hgt_dem_adj, _hgt_dem_adj_last,
 //	// 	_hgt_rate_dem);
 
-	_hgt_dem_adj = _hgt_dem; //0.025f * _hgt_dem + 0.975f * _hgt_dem_adj_last;
+	_hgt_dem_adj = 0.1f * _hgt_dem + 0.9f * _hgt_dem_adj_last;
 	_hgt_dem_adj_last = _hgt_dem_adj;
 	_hgt_rate_dem = (_hgt_dem_adj - state) * _heightrate_p + _heightrate_ff * (_hgt_dem_adj - _hgt_dem_adj_last) / _DT;
 
