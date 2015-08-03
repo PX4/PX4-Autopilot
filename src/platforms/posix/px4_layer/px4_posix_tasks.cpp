@@ -98,6 +98,7 @@ void
 px4_systemreset(bool to_bootloader)
 {
 	PX4_WARN("Called px4_system_reset");
+	exit(0);
 }
 
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry, char * const argv[])
@@ -140,6 +141,8 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	}
 	// Must add NULL at end of argv
 	taskdata->argv[argc] = (char *)0;
+
+	PX4_WARN("starting task %s", name);
 
 	rv = pthread_attr_init(&attr);
 	if (rv != 0) {

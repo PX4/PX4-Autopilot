@@ -49,7 +49,11 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_vehicleLocalPositionSub(-1),
 	_vehicleLocalPosition({}),
 	_airspeedSub(-1),
-	_airspeed({}),
+	_vehicleStatusSub(-1),
+	_armingSub(-1),
+	_airspeed{},
+	_vehicleStatus{},
+	_arming{},
 	_parameterSub(-1),
 	_velocity_xy_filtered(0.0f),
 	_velocity_z_filtered(0.0f),
@@ -66,6 +70,8 @@ void FixedwingLandDetector::initialize()
 	// Subscribe to local position and airspeed data
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
+	_vehicleStatusSub = orb_subscribe(ORB_ID(vehicle_status));
+	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 
 	updateParameterCache(true);
 }
@@ -74,6 +80,8 @@ void FixedwingLandDetector::updateSubscriptions()
 {
 	orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
 	orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
+	orb_update(ORB_ID(vehicle_status), _vehicleStatusSub, &_vehicleStatus);
+	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 }
 
 bool FixedwingLandDetector::update()
@@ -81,18 +89,23 @@ bool FixedwingLandDetector::update()
 	// First poll for new data from our subscriptions
 	updateSubscriptions();
 
+	// only trigger flight conditions if we are armed
+	if (!_arming.armed) {
+		return true;
+	}
+
 	const uint64_t now = hrt_absolute_time();
 	bool landDetected = false;
 
 	if (hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500 * 1000) {
-		float val = 0.95f * _velocity_xy_filtered + 0.05f * sqrtf(_vehicleLocalPosition.vx *
+		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicleLocalPosition.vx *
 					_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
-		if (isfinite(val)) {
+		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
 		}
-		val = 0.95f * _velocity_z_filtered + 0.05f * fabsf(_vehicleLocalPosition.vz);
+		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_vehicleLocalPosition.vz);
 
-		if (isfinite(val)) {
+		if (PX4_ISFINITE(val)) {
 			_velocity_z_filtered = val;
 		}
 	}

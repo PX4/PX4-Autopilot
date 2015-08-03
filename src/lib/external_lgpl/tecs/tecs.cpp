@@ -27,7 +27,8 @@ using namespace math;
  *
  */
 
-void TECS::update_50hz(float baro_altitude, float airspeed, const math::Matrix<3,3> &rotMat, const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth)
+void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<3,3> &rotMat,
+	const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth, bool altitude_lock, bool in_air)
 {
 	// Implement third order complementary filter for height and height rate
 	// estimted height rate = _integ2_state
@@ -45,12 +46,24 @@ void TECS::update_50hz(float baro_altitude, float airspeed, const math::Matrix<3
 	// 	DT, baro_altitude, airspeed, rotMat(0, 0), rotMat(1, 1), accel_body(0), accel_body(1), accel_body(2),
 	// 	accel_earth(0), accel_earth(1), accel_earth(2));
 
-	if (DT > 1.0f) {
+	bool reset_altitude = false;
+
+	_in_air = in_air;
+
+	if (_update_50hz_last_usec == 0 || DT > DT_MAX) {
+		DT            = 0.02f; // when first starting TECS, use a
+		// small time constant
+		reset_altitude = true;
+	}
+
+	if (!altitude_lock || !in_air) {
+		reset_altitude = true;
+	}
+
+	if (reset_altitude) {
 		_integ3_state = baro_altitude;
 		_integ2_state = 0.0f;
 		_integ1_state = 0.0f;
-		DT            = 0.02f; // when first starting TECS, use a
-		// small time constant
 	}
 
 	_update_50hz_last_usec = now;
@@ -70,7 +83,7 @@ void TECS::update_50hz(float baro_altitude, float airspeed, const math::Matrix<3
 
 	// If more than 1 second has elapsed since last update then reset the integrator state
 	// to the measured height
-	if (DT > 1.0f) {
+	if (reset_altitude) {
 		_integ3_state = baro_altitude;
 
 	} else {
@@ -89,11 +102,13 @@ void TECS::update_50hz(float baro_altitude, float airspeed, const math::Matrix<3
 		// take 5 point moving average
 		//_vel_dot = _vdot_filter.apply(temp);
 		// XXX resolve this properly
-		_vel_dot = 0.9f * _vel_dot + 0.1f * temp;
+		_vel_dot = 0.95f * _vel_dot + 0.05f * temp;
 
 	} else {
 		_vel_dot = 0.0f;
 	}
+
+	_states_initalized = true;
 
 }
 
@@ -103,7 +118,6 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 	// Calculate time in seconds since last update
 	uint64_t now = ecl_absolute_time();
 	float DT = max((now - _update_speed_last_usec), 0ULL) * 1.0e-6f;
-	_update_speed_last_usec = now;
 
 	// Convert equivalent airspeeds to true airspeeds
 
@@ -113,7 +127,7 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 	_TASmin   = indicated_airspeed_min * EAS2TAS;
 
 	// Reset states of time since last update is too large
-	if (DT > 1.0f) {
+	if (_update_speed_last_usec == 0 || DT > 1.0f || !_in_air) {
 		_integ5_state = (_EAS * EAS2TAS);
 		_integ4_state = 0.0f;
 		DT            = 0.1f; // when first starting TECS, use a
@@ -146,7 +160,7 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 	_integ5_state = _integ5_state + integ5_input * DT;
 	// limit the airspeed to a minimum of 3 m/s
 	_integ5_state = max(_integ5_state, 3.0f);
-
+	_update_speed_last_usec = now;
 }
 
 void TECS::_update_speed_demand(void)
@@ -471,7 +485,7 @@ void TECS::_update_pitch(void)
 void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_altitude, float ptchMinCO_rad)
 {
 	// Initialise states and variables if DT > 1 second or in climbout
-	if (_DT > 1.0f) {
+	if (_update_pitch_throttle_last_usec == 0 || _DT > 1.0f || !_in_air) {
 		_integ6_state      = 0.0f;
 		_integ7_state      = 0.0f;
 		_last_throttle_dem = throttle_cruise;
@@ -484,7 +498,7 @@ void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_alt
 		_TAS_dem_adj       = _TAS_dem;
 		_underspeed        = false;
 		_badDescent        = false;
-		_DT                = 0.1f; // when first starting TECS, use a
+		_DT                = DT_MIN; // when first starting TECS, use a
 		// small time constant
 
 	} else if (_climbOutDem) {
@@ -512,10 +526,13 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 				 float throttle_min, float throttle_max, float throttle_cruise,
 				 float pitch_limit_min, float pitch_limit_max)
 {
+	if (!_states_initalized) {
+		return;
+	}
+
 	// Calculate time in seconds since last update
 	uint64_t now = ecl_absolute_time();
 	_DT = max((now - _update_pitch_throttle_last_usec), 0ULL) * 1.0e-6f;
-	_update_pitch_throttle_last_usec = now;
 
 	// printf("tecs in: dt:%10.6f pitch: %6.2f baro_alt: %6.2f alt sp: %6.2f\neas sp: %6.2f eas: %6.2f, eas2tas: %6.2f\n %s pitch min C0: %6.2f thr min: %6.2f, thr max: %6.2f thr cruis: %6.2f pt min: %6.2f, pt max: %6.2f\n",
 	// 	_DT, pitch, baro_altitude, hgt_dem, EAS_dem, indicated_airspeed, EAS2TAS, (climbOutDem) ? "climb" : "level", ptchMinCO, throttle_min, throttle_max, throttle_cruise, pitch_limit_min, pitch_limit_max);
@@ -582,5 +599,7 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	_tecs_state.thr      = _throttle_dem;
 	_tecs_state.ptch     = _pitch_dem;
 	_tecs_state.dspd_dem = _TAS_rate_dem;
+
+	_update_pitch_throttle_last_usec = now;
 
 }

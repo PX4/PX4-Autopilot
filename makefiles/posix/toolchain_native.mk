@@ -44,12 +44,18 @@
 # Set to 1 for GCC-4.8.2 and to 0 for Clang-3.5 (Ubuntu 14.04)
 USE_GCC?=0
 
+ifeq ($(PX4_DEBUG_LEVEL),)
+VERBOSITY_LEVEL=
+else
+VERBOSITY_LEVEL=-D$(PX4_DEBUG_LEVEL)
+endif
+
 ifneq ($(USE_GCC),1)
 
 HAVE_CLANG35:=$(shell clang-3.5 -dumpversion 2>/dev/null)
 
 # Clang will report 4.2.1 as GCC version
-HAVE_CLANG:=$(shell clang -dumpversion)
+HAVE_CLANG:=$(shell clang -dumpversion 2> /dev/null)
 
 #If using ubuntu 14.04 and packaged clang 3.5
 ifeq ($(HAVE_CLANG35),4.2.1)
@@ -120,7 +126,8 @@ ifeq ($(CONFIG_BOARD),)
 $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
-			-Dnoreturn_function= \
+			-Dnoreturn_function=__attribute__\(\(noreturn\)\) \
+			$(VERBOSITY_LEVEL)\
 			-I$(PX4_BASE)/src/modules/systemlib \
 			-I$(PX4_BASE)/src/lib/eigen \
 			-I$(PX4_BASE)/src/platforms/posix/include \
@@ -296,7 +303,7 @@ endef
 define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
-	@echo $(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
+	@$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 

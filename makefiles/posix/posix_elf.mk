@@ -56,9 +56,11 @@ $(PRODUCT_SHARED_PRELINK):	$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS)
 $(PRODUCT_SHARED_LIB):		$(PRODUCT_SHARED_PRELINK)
 	$(call LINK_A,$@,$(PRODUCT_SHARED_PRELINK))
 
+$(WORK_DIR)apps.h: $(WORK_DIR)builtin_commands
+	$(PX4_BASE)/Tools/posix_apps.py > $(WORK_DIR)apps.h
+
 MAIN = $(PX4_BASE)/src/platforms/posix/main.cpp
-$(WORK_DIR)mainapp: $(PRODUCT_SHARED_LIB)
-	$(PX4_BASE)/Tools/posix_apps.py > apps.h
+$(WORK_DIR)mainapp: $(PRODUCT_SHARED_LIB) $(WORK_DIR)apps.h
 	$(call LINK,$@, -I. $(MAIN) $(PRODUCT_SHARED_LIB))
 
 #

@@ -169,6 +169,7 @@ TOPICS_DIR = $(PX4_BASE)src/modules/uORB/topics
 MULTIPLATFORM_HEADER_DIR = $(PX4_BASE)src/platforms/$(PX4_TARGET_OS)/px4_messages
 MULTIPLATFORM_PREFIX = px4_
 TOPICHEADER_TEMP_DIR = $(BUILD_DIR)topics_temporary
+MULTI_TOPICHEADER_TEMP_DIR = $(BUILD_DIR)multi_topics_temporary
 GENMSG_PYTHONPATH = $(PX4_BASE)Tools/genmsg/src
 GENCPP_PYTHONPATH = $(PX4_BASE)Tools/gencpp/src
 
@@ -181,9 +182,7 @@ generateuorbtopicheaders: checksubmodules
 	@$(ECHO) "Generating multiplatform uORB topic wrapper headers"
 	$(Q) (PYTHONPATH=$(GENMSG_PYTHONPATH):$(GENCPP_PYTHONPATH):$(PYTHONPATH) $(PYTHON) \
 		$(PX4_BASE)Tools/px_generate_uorb_topic_headers.py \
-		-d $(MSG_DIR) -o $(MULTIPLATFORM_HEADER_DIR) -e $(MULTIPLATFORM_TEMPLATE_DIR) -t $(TOPICHEADER_TEMP_DIR) -p $(MULTIPLATFORM_PREFIX))
-# clean up temporary files
-	$(Q) (rm -r $(TOPICHEADER_TEMP_DIR))
+		-d $(MSG_DIR) -o $(MULTIPLATFORM_HEADER_DIR) -e $(MULTIPLATFORM_TEMPLATE_DIR) -t $(MULTI_TOPICHEADER_TEMP_DIR) -p $(MULTIPLATFORM_PREFIX))
 
 #
 # Testing targets
@@ -194,16 +193,20 @@ testbuild:
 
 nuttx posix posix-arm qurt: 
 ifeq ($(GOALS),)
-	make PX4_TARGET_OS=$@ $(GOALS)
+	$(MAKE) PX4_TARGET_OS=$@ $(GOALS)
 else
 	export PX4_TARGET_OS=$@
 endif
 
-sitlrun:
-	Tools/sitl_run.sh
+sitl_quad:
+	$(Q) Tools/sitl_run.sh posix-configs/SITL/init/rcS
+sitl_quad_gazebo:
+	$(Q) Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros
+sitl_plane:
+	$(Q) Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
 
 qurtrun:
-	make PX4_TARGET_OS=qurt sim
+	$(MAKE) PX4_TARGET_OS=qurt sim
 
 #
 # Unittest targets. Builds and runs the host-level
@@ -227,6 +230,8 @@ clean:
 	$(Q) $(RMDIR) $(BUILD_DIR)*.build
 	$(Q) $(RMDIR) $(PX4_VERSIONING_DIR)
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
+	$(Q) $(RMDIR) $(TOPICHEADER_TEMP_DIR)
+	$(Q) $(RMDIR) $(MULTI_TOPICHEADER_TEMP_DIR)
 
 .PHONY:	distclean
 distclean: clean

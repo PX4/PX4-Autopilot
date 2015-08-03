@@ -46,6 +46,8 @@
  * @author Anton Babushkin <anton@px4.io>
  */
 
+#include <board_config.h>
+
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
@@ -111,26 +113,10 @@
  * IO:
  * IN4 - servo supply rail
  * IN5 - analog RSSI
+ *
+ * The channel definitions (e.g., ADC_BATTERY_VOLTAGE_CHANNEL, ADC_BATTERY_CURRENT_CHANNEL, and ADC_AIRSPEED_VOLTAGE_CHANNEL) are defined in board_config.h
  */
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define ADC_BATTERY_VOLTAGE_CHANNEL	10
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define ADC_BATTERY_VOLTAGE_CHANNEL	2
-#define ADC_BATTERY_CURRENT_CHANNEL	3
-#define ADC_5V_RAIL_SENSE		4
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define ADC_BATTERY_VOLTAGE_CHANNEL	10
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	((uint8_t)(-1))
-#endif
 
 #define BATT_V_LOWPASS			0.001f
 #define BATT_V_IGNORE_THRESHOLD		2.5f
@@ -638,6 +624,13 @@ Sensors::Sensors() :
 	(void)param_find("CAL_MAG2_ROT");
 	(void)param_find("SYS_PARAM_VER");
 	(void)param_find("SYS_AUTOSTART");
+	(void)param_find("SYS_AUTOCONFIG");
+	(void)param_find("PWM_MIN");
+	(void)param_find("PWM_MAX");
+	(void)param_find("PWM_DISARMED");
+	(void)param_find("PWM_AUX_MIN");
+	(void)param_find("PWM_AUX_MAX");
+	(void)param_find("PWM_AUX_DISARMED");
 	
 	/* fetch initial parameter values */
 	parameters_update();
@@ -1292,6 +1285,10 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_airspeed.true_airspeed_m_s = math::max(0.0f,
 							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
 									raw.baro_pres_mbar * 1e2f, air_temperature_celsius));
+		_airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
+							calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + raw.baro_pres_mbar * 1e2f,
+								raw.baro_pres_mbar * 1e2f, air_temperature_celsius));
+
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		/* announce the airspeed if needed, just publish else */
@@ -2176,6 +2173,8 @@ Sensors::task_main()
 
 	_task_should_exit = false;
 
+	raw.timestamp = 0;
+
 	while (!_task_should_exit) {
 
 		/* wait for up to 50ms for data */
@@ -2218,7 +2217,7 @@ Sensors::task_main()
 		diff_pres_poll(raw);
 
 		/* Inform other processes that new data is available to copy */
-		if (_publishing) {
+		if (_publishing && raw.timestamp > 0) {
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 		}
 

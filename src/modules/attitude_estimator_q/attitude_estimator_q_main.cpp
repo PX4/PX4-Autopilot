@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -47,8 +47,6 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <float.h>
-#include <nuttx/sched.h>
-#include <sys/prctl.h>
 #include <termios.h>
 #include <errno.h>
 #include <limits.h>
@@ -148,6 +146,7 @@ private:
 	hrt_abstime _vel_prev_t = 0;
 
 	bool		_inited = false;
+	bool		_data_good = false;
 
 	perf_counter_t _update_perf;
 	perf_counter_t _loop_perf;
@@ -156,9 +155,9 @@ private:
 
 	int update_subscriptions();
 
-	void init();
+	bool init();
 
-	void update(float dt);
+	bool update(float dt);
 };
 
 
@@ -189,7 +188,7 @@ AttitudeEstimatorQ::~AttitudeEstimatorQ() {
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_control_task);
+				px4_task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -206,7 +205,7 @@ int AttitudeEstimatorQ::start() {
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       2500,
-				       (main_t)&AttitudeEstimatorQ::task_main_trampoline,
+				       (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
 				       nullptr);
 
 	if (_control_task < 0) {
@@ -222,9 +221,8 @@ void AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[]) {
 }
 
 void AttitudeEstimatorQ::task_main() {
-	warnx("started");
 
-    _sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
+	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 
@@ -232,12 +230,12 @@ void AttitudeEstimatorQ::task_main() {
 
 	hrt_abstime last_time = 0;
 
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 	fds[0].fd = _sensors_sub;
 	fds[0].events = POLLIN;
 
 	while (!_task_should_exit) {
-		int ret = poll(fds, 1, 1000);
+		int ret = px4_poll(fds, 1, 1000);
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
@@ -256,6 +254,8 @@ void AttitudeEstimatorQ::task_main() {
 			_gyro.set(sensors.gyro_rad_s);
 			_accel.set(sensors.accelerometer_m_s2);
 			_mag.set(sensors.magnetometer_ga);
+
+			_data_good = true;
 		}
 
 		bool gpos_updated;
@@ -268,7 +268,7 @@ void AttitudeEstimatorQ::task_main() {
 			}
 		}
 
-		if (_acc_comp && _gpos.timestamp != 0 && hrt_absolute_time() < _gpos.timestamp + 20000 && _gpos.eph < 5.0f) {
+		if (_acc_comp && _gpos.timestamp != 0 && hrt_absolute_time() < _gpos.timestamp + 20000 && _gpos.eph < 5.0f && _inited) {
 			/* position data is actual */
 			if (gpos_updated) {
 				Vector<3> vel(_gpos.vel_n, _gpos.vel_e, _gpos.vel_d);
@@ -291,7 +291,7 @@ void AttitudeEstimatorQ::task_main() {
 		}
 
 		// Time from previous iteration
-		uint64_t now = hrt_absolute_time();
+		hrt_abstime now = hrt_absolute_time();
 		float dt = (last_time > 0) ? ((now  - last_time) / 1000000.0f) : 0.0f;
 		last_time = now;
 
@@ -299,7 +299,9 @@ void AttitudeEstimatorQ::task_main() {
 			dt = _dt_max;
 		}
 
-		update(dt);
+		if (!update(dt)) {
+			continue;
+		}
 
 		Vector<3> euler = _q.to_euler();
 
@@ -360,7 +362,7 @@ void AttitudeEstimatorQ::update_parameters(bool force) {
 	}
 }
 
-void AttitudeEstimatorQ::init() {
+bool AttitudeEstimatorQ::init() {
 	// Rotation matrix can be easily constructed from acceleration and mag field vectors
 	// 'k' is Earth Z axis (Down) unit vector in body frame
 	Vector<3> k = -_accel;
@@ -381,13 +383,30 @@ void AttitudeEstimatorQ::init() {
 
 	// Convert to quaternion
 	_q.from_dcm(R);
+	_q.normalize();
+
+	if (PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
+		PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)) &&
+		_q.length() > 0.95f && _q.length() < 1.05f) {
+		_inited = true;
+	} else {
+		_inited = false;
+	}
+
+	return _inited;
 }
 
-void AttitudeEstimatorQ::update(float dt) {
+bool AttitudeEstimatorQ::update(float dt) {
 	if (!_inited) {
-		init();
-		_inited = true;
+
+		if (!_data_good) {
+			return false;
+		}
+
+		return init();
 	}
+
+	Quaternion q_last = _q;
 
 	// Angular rate of correction
 	Vector<3> corr;
@@ -425,52 +444,70 @@ void AttitudeEstimatorQ::update(float dt) {
 	_q += _q.derivative(corr) * dt;
 
 	// Normalize quaternion
-	_q.normalize(); // TODO! NaN protection???
+	_q.normalize();
+
+	if (!(PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
+		PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)))) {
+		// Reset quaternion to last good state
+		_q = q_last;
+		_rates.zero();
+		_gyro_bias.zero();
+		return false;
+	}
+
+	return true;
 }
 
 
 int attitude_estimator_q_main(int argc, char *argv[]) {
 	if (argc < 1) {
-		errx(1, "usage: attitude_estimator_q {start|stop|status}");
+		warnx("usage: attitude_estimator_q {start|stop|status}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (attitude_estimator_q::instance != nullptr) {
-			errx(1, "already running");
+			warnx("already running");
+			return 1;
 		}
 
 		attitude_estimator_q::instance = new AttitudeEstimatorQ;
 
 		if (attitude_estimator_q::instance == nullptr) {
-			errx(1, "alloc failed");
+			warnx("alloc failed");
+			return 1;
 		}
 
 		if (OK != attitude_estimator_q::instance->start()) {
 			delete attitude_estimator_q::instance;
 			attitude_estimator_q::instance = nullptr;
-			err(1, "start failed");
+			warnx("start failed");
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		if (attitude_estimator_q::instance == nullptr) {
-			errx(1, "not running");
+			warnx("not running");
+			return 1;
 		}
 
 		delete attitude_estimator_q::instance;
 		attitude_estimator_q::instance = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (attitude_estimator_q::instance) {
-			errx(0, "running");
+			warnx("running");
+			return 0;
 
 		} else {
-			errx(1, "not running");
+			warnx("not running");
+			return 1;
 		}
 	}
 

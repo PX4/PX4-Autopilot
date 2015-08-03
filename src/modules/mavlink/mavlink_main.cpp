@@ -95,7 +95,7 @@
 static const int ERROR = -1;
 
 #define DEFAULT_DEVICE_NAME			"/dev/ttyS1"
-#define MAX_DATA_RATE				1000000	///< max data rate in bytes/s
+#define MAX_DATA_RATE				10000000	///< max data rate in bytes/s
 #define MAIN_LOOP_DELAY 			10000	///< 100 Hz @ 1000 bytes/s data rate
 #define FLOW_CONTROL_DISABLE_THRESHOLD		40	///< picked so that some messages still would fit it.
 
@@ -119,6 +119,8 @@ extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 extern mavlink_system_t mavlink_system;
 
 static void usage(void);
+
+bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
 #ifndef __PX4_NUTTX
@@ -145,6 +147,7 @@ Mavlink::Mavlink() :
 	_mavlink_ftp(nullptr),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
+	_radio_id(0),
 	_logbuffer {},
 	_total_counter(0),
 	_receive_thread {},
@@ -159,6 +162,7 @@ Mavlink::Mavlink() :
 	_datarate(1000),
 	_datarate_events(500),
 	_rate_mult(1.0f),
+	_last_hw_rate_timestamp(0),
 	_mavlink_param_queue_index(0),
 	mavlink_link_termination_allowed(false),
 	_subscribe_to_stream(nullptr),
@@ -184,6 +188,7 @@ Mavlink::Mavlink() :
 	_param_initialized(false),
 	_param_system_id(0),
 	_param_component_id(0),
+	_param_radio_id(0),
 	_param_system_type(MAV_TYPE_FIXED_WING),
 	_param_use_hil_gps(0),
 	_param_forward_externalsp(0),
@@ -435,7 +440,6 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	}
 }
 
-#ifndef __PX4_POSIX
 int
 Mavlink::get_uart_fd(unsigned index)
 {
@@ -453,7 +457,6 @@ Mavlink::get_uart_fd()
 {
 	return _uart_fd;
 }
-#endif // __PX4_POSIX
 
 int
 Mavlink::get_instance_id()
@@ -526,6 +529,7 @@ void Mavlink::mavlink_update_system(void)
 	if (!_param_initialized) {
 		_param_system_id = param_find("MAV_SYS_ID");
 		_param_component_id = param_find("MAV_COMP_ID");
+		_param_radio_id = param_find("MAV_RADIO_ID");
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
 		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
@@ -541,6 +545,7 @@ void Mavlink::mavlink_update_system(void)
 	int32_t component_id;
 	param_get(_param_component_id, &component_id);
 
+	param_get(_param_radio_id, &_radio_id);
 
 	/* only allow system ID and component ID updates
 	 * after reboot - not during operation */
@@ -809,6 +814,11 @@ Mavlink::get_free_tx_buf()
 	}
 
 #endif
+
+	// if we are using network sockets, return max lenght of one packet
+	if (get_protocol() == UDP || get_protocol() == TCP ) {
+		return  1500;
+	}
 
 	return buf_free;
 }
@@ -1330,6 +1340,7 @@ Mavlink::update_rate_mult()
 	float const_rate = 0.0f;
 	float rate = 0.0f;
 
+	/* scale down rates if their theoretical bandwidth is exceeding the link bandwidth */
 	MavlinkStream *stream;
 	LL_FOREACH(_streams, stream) {
 		if (stream->const_rate()) {
@@ -1341,7 +1352,52 @@ Mavlink::update_rate_mult()
 	}
 
 	/* don't scale up rates, only scale down if needed */
-	_rate_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
+	float bandwidth_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
+
+	/* check if we have radio feedback */
+	struct telemetry_status_s &tstatus = get_rx_status();
+
+	bool radio_critical = false;
+	bool radio_found = false;
+
+	/* 2nd pass: Now check hardware limits */
+	if (tstatus.type == TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+
+		radio_found = true;
+
+		if (tstatus.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+			radio_critical = true;
+		}
+	}
+
+	float hardware_mult = _rate_mult;
+
+	/* scale down if we have a TX err rate suggesting link congestion */
+	if (_rate_txerr > 0.0f && !radio_critical) {
+		hardware_mult = (_rate_tx) / (_rate_tx + _rate_txerr);
+	} else if (radio_found && tstatus.timestamp != _last_hw_rate_timestamp) {
+
+		if (tstatus.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 20% */
+			hardware_mult *= 0.80f;
+		} else if (tstatus.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 2.5% */
+			hardware_mult *= 0.975f;
+		} else if (tstatus.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
+			/* this indicates spare bandwidth, increase by 2.5% */
+			hardware_mult *= 1.025f;
+			/* limit to a max multiplier of 1 */
+			hardware_mult = fminf(1.0f, hardware_mult);
+		}
+	}
+
+	_last_hw_rate_timestamp = tstatus.timestamp;
+
+	/* pick the minimum from bandwidth mult and hardware mult as limit */
+	_rate_mult = fminf(bandwidth_mult, hardware_mult);
+
+	/* ensure the rate multiplier never drops below 5% so that something is always sent */
+	_rate_mult = fmaxf(0.05f, _rate_mult);
 }
 
 int
@@ -1525,7 +1581,11 @@ Mavlink::task_main(int argc, char *argv[])
 #ifdef __PX4_NUTTX
 	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
 #else
-	register_driver(MAVLINK_LOG_DEVICE, NULL);
+	int ret;
+	ret = VDev::init();
+	if (ret != OK) {
+		PX4_WARN("VDev setup for mavlink log device failed!\n");
+	}
 #endif
 
 	/* initialize logging device */
@@ -1580,22 +1640,22 @@ Mavlink::task_main(int argc, char *argv[])
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
-		configure_stream("HIGHRES_IMU", 1.0f);
-		configure_stream("ATTITUDE", 10.0f);
+		configure_stream("HIGHRES_IMU", 2.0f);
+		configure_stream("ATTITUDE", 20.0f);
 		configure_stream("VFR_HUD", 8.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 3.0f);
 		configure_stream("LOCAL_POSITION_NED", 3.0f);
-		configure_stream("RC_CHANNELS_RAW", 1.0f);
+		configure_stream("RC_CHANNELS", 4.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
-		configure_stream("ATTITUDE_TARGET", 3.0f);
+		configure_stream("ATTITUDE_TARGET", 8.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("ATTITUDE", 50.0f);
+		configure_stream("ATTITUDE", 250.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
 		configure_stream("GPS_RAW_INT", 5.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);
@@ -1606,11 +1666,12 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("POSITION_TARGET_LOCAL_NED", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
-		configure_stream("RC_CHANNELS_RAW", 20.0f);
+		configure_stream("RC_CHANNELS", 20.0f);
 		configure_stream("VFR_HUD", 10.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
+		configure_stream("CAMERA_TRIGGER", 30.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1622,7 +1683,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ATTITUDE_TARGET", 10.0f);
 		configure_stream("BATTERY_STATUS", 1.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);
-		configure_stream("RC_CHANNELS_RAW", 5.0f);
+		configure_stream("RC_CHANNELS", 5.0f);
 		break;
 
 	default:
@@ -1655,6 +1716,50 @@ Mavlink::task_main(int argc, char *argv[])
 			mavlink_update_system();
 		}
 
+		/* radio config check */
+		if (_radio_id != 0 && _rstatus.type == TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+			/* request to configure radio and radio is present */
+			FILE *fs = fdopen(_uart_fd, "w");
+			
+			if (fs) {
+				/* switch to AT command mode */
+				usleep(1200000);
+				fprintf(fs, "+++\n");
+				usleep(1200000);
+
+				if (_radio_id > 0) {
+					/* set channel */
+					fprintf(fs, "ATS3=%u\n", _radio_id);
+					usleep(200000);
+				} else {
+					/* reset to factory defaults */
+					fprintf(fs, "AT&F\n");
+					usleep(200000);
+				}
+
+				/* write config */
+				fprintf(fs, "AT&W");
+				usleep(200000);
+
+				/* reboot */
+				fprintf(fs, "ATZ");
+				usleep(200000);
+
+				// XXX NuttX suffers from a bug where
+				// fclose() also closes the fd, not just
+				// the file stream. Since this is a one-time
+				// config thing, we leave the file struct
+				// allocated.
+				//fclose(fs);
+			} else {
+				warnx("open fd %d failed", _uart_fd);
+			}
+
+			/* reset param and save */
+			_radio_id = 0;
+			param_set(_param_radio_id, &_radio_id);
+		}
+
 		if (status_sub->update(&status_time, &status)) {
 			/* switch HIL mode if required */
 			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
@@ -1666,15 +1771,28 @@ Mavlink::task_main(int argc, char *argv[])
 		if (_subscribe_to_stream != nullptr) {
 			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
 				if (_subscribe_to_stream_rate > 0.0f) {
-					warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
-					      (double)_subscribe_to_stream_rate);
+					if ( get_protocol() == SERIAL ) {
+						warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
+							(double)_subscribe_to_stream_rate);
+					} else if ( get_protocol() == UDP ) {
+						warnx("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
+							(double)_subscribe_to_stream_rate);
+					}
 
 				} else {
-					warnx("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
+					if ( get_protocol() == SERIAL ) {
+						warnx("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
+					} else if ( get_protocol() == UDP ) {
+						warnx("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
+					}
 				}
 
 			} else {
-				warnx("stream %s on device %s not found", _subscribe_to_stream, _device_name);
+				if ( get_protocol() == SERIAL ) {
+					warnx("stream %s on device %s not found", _subscribe_to_stream, _device_name);
+				} else if ( get_protocol() == UDP ) {
+					warnx("stream %s on UDP port %d not found", _subscribe_to_stream, _network_port);
+				}
 			}
 
 			_subscribe_to_stream = nullptr;
@@ -2045,6 +2163,10 @@ int mavlink_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);
+
+	} else if (!strcmp(argv[1], "boot_complete")) {
+		Mavlink::set_boot_complete();
+		return 0;
 
 	} else {
 		usage();

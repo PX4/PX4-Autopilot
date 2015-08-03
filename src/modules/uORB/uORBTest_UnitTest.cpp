@@ -141,17 +141,23 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 int uORBTest::UnitTest::test()
 {
 	int ret = test_single();
+
 	if (ret != OK) {
 		return ret;
 	}
+
 	ret = test_multi();
+
 	if (ret != OK) {
 		return ret;
 	}
+
 	ret = test_multi_reversed();
+
 	if (ret != OK) {
 		return ret;
 	}
+
 	return OK;
 }
 
@@ -323,16 +329,21 @@ int uORBTest::UnitTest::test_multi_reversed()
 
 	/* Subscribe first and advertise afterwards. */
 	int sfd2 = orb_subscribe_multi(ORB_ID(orb_multitest), 2);
+
 	if (sfd2 < 0) {
 		return test_fail("sub. id2: ret: %d", sfd2);
 	}
 
 	struct orb_test t, u;
+
 	t.val = 0;
+
 	int instance2;
+
 	orb_advert_t pfd2 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance2, ORB_PRIO_MAX);
 
 	int instance3;
+
 	orb_advert_t pfd3 = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance3, ORB_PRIO_MIN);
 
 	test_note("advertised");

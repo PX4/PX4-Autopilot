@@ -1,7 +1,15 @@
 #!nsh
 #
-# HILStar
-# <lorenz@px4.io>
+# @name HILStar (XPlane)
+#
+# @type Simulation
+#
+# @output MAIN1 aileron
+# @output MAIN2 elevator
+# @output MAIN3 rudder
+# @output MAIN4 throttle
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults

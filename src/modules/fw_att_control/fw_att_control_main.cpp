@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -193,12 +193,14 @@ private:
 		float trim_roll;
 		float trim_pitch;
 		float trim_yaw;
-		float rollsp_offset_deg;			/**< Roll Setpoint Offset in deg */
-		float pitchsp_offset_deg;			/**< Pitch Setpoint Offset in deg */
-		float rollsp_offset_rad;			/**< Roll Setpoint Offset in rad */
-		float pitchsp_offset_rad;			/**< Pitch Setpoint Offset in rad */
-		float man_roll_max;						/**< Max Roll in rad */
-		float man_pitch_max;					/**< Max Pitch in rad */
+		float rollsp_offset_deg;		/**< Roll Setpoint Offset in deg */
+		float pitchsp_offset_deg;		/**< Pitch Setpoint Offset in deg */
+		float rollsp_offset_rad;		/**< Roll Setpoint Offset in rad */
+		float pitchsp_offset_rad;		/**< Pitch Setpoint Offset in rad */
+		float man_roll_max;				/**< Max Roll in rad */
+		float man_pitch_max;			/**< Max Pitch in rad */
+
+		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -240,6 +242,8 @@ private:
 		param_t pitchsp_offset_deg;
 		param_t man_roll_max;
 		param_t man_pitch_max;
+
+		param_t vtol_type;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -404,6 +408,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
 
+	_parameter_handles.vtol_type = param_find("VT_TYPE");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -480,6 +486,8 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
+
+	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
@@ -634,8 +642,9 @@ FixedwingAttitudeControl::task_main()
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vcontrol_mode_sub, 200);
-	/* rate limit attitude control to 50 Hz (with some margin, so 17 ms) */
-	orb_set_interval(_att_sub, 17);
+	/* do not limit the attitude updates in order to minimize latency.
+	 * actuator outputs are still limited by the individual drivers
+	 * properly to not saturate IO or physical limitations */
 
 	parameters_update();
 
@@ -702,10 +711,8 @@ FixedwingAttitudeControl::task_main()
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
-			if (_vehicle_status.is_vtol) {
-				/* vehicle type is VTOL, need to modify attitude!
-				 * The following modification to the attitude is vehicle specific and in this case applies
-				 *  to tail-sitter models !!!
+			if (_vehicle_status.is_vtol && _parameters.vtol_type == 0) {
+				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 				 *
 				 * Since the VTOL airframe is initialized as a multicopter we need to
 				 * modify the estimated attitude for the fixed wing operation.
@@ -799,6 +806,14 @@ FixedwingAttitudeControl::task_main()
 			/* if we are in rotary wing mode, do nothing */
 			if (_vehicle_status.is_rotary_wing) {
 				continue;
+			}
+
+			/* default flaps to center */
+			float flaps_control = 0.0f;
+
+			/* map flaps by default to manual if valid */
+			if (isfinite(_manual.flaps)) {
+				flaps_control = _manual.flaps;
 			}
 
 			/* decide if in stabilized or full manual control */
@@ -920,7 +935,6 @@ FixedwingAttitudeControl::task_main()
 					/* allow manual control of rudder deflection */
 					yaw_manual = _manual.r;
 					throttle_sp = _manual.z;
-					_actuators.control[4] = _manual.flaps;
 
 					/*
 					 * in manual mode no external source should / does emit attitude setpoints.
@@ -1083,13 +1097,13 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[0] = _manual.y + _parameters.trim_roll;
-				_actuators.control[1] = -_manual.x + _parameters.trim_pitch;
-				_actuators.control[2] = _manual.r + _parameters.trim_yaw;
-				_actuators.control[3] = _manual.z;
-				_actuators.control[4] = _manual.flaps;
+				_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y + _parameters.trim_roll;
+				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x + _parameters.trim_pitch;
+				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r + _parameters.trim_yaw;
+				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 			}
 
+			_actuators.control[actuator_controls_s::INDEX_FLAPS] = flaps_control;
 			_actuators.control[5] = _manual.aux1;
 			_actuators.control[6] = _manual.aux2;
 			_actuators.control[7] = _manual.aux3;

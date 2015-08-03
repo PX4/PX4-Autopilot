@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +34,10 @@
 /**
  * @file pwm_limit.c
  *
- * Lib to limit PWM output
+ * Library for PWM output limiting
  *
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@px4.io>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include "pwm_limit.h"
@@ -46,6 +46,8 @@
 #include <drivers/drv_hrt.h>
 #include <stdio.h>
 
+#define PROGRESS_INT_SCALING	10000
+
 void pwm_limit_init(pwm_limit_t *limit)
 {
 	limit->state = PWM_LIMIT_STATE_INIT;
@@ -53,7 +55,7 @@ void pwm_limit_init(pwm_limit_t *limit)
 	return;
 }
 
-void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t reverse_mask,
+void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_channels, const uint16_t reverse_mask,
 	const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm,
 	const float *output, uint16_t *effective_pwm, pwm_limit_t *limit)
 {
@@ -98,10 +100,23 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 			break;
 	}
 
+	/* if the system is pre-armed, the limit state is temporarily on,
+	 * as some outputs are valid and the non-valid outputs have been
+	 * set to NaN. This is not stored in the state machine though,
+	 * as the throttle channels need to go through the ramp at
+	 * regular arming time.
+	 */
+
+	 unsigned local_limit_state = limit->state;
+
+	if (pre_armed) {
+		local_limit_state = PWM_LIMIT_STATE_ON;
+	}
+
 	unsigned progress;
 
 	/* then set effective_pwm based on state */
-	switch (limit->state) {
+	switch (local_limit_state) {
 		case PWM_LIMIT_STATE_OFF:
 		case PWM_LIMIT_STATE_INIT:
 			for (unsigned i=0; i<num_channels; i++) {
@@ -112,9 +127,21 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 			{
 				hrt_abstime diff = hrt_elapsed_time(&limit->time_armed);
 
-				progress = diff * 10000 / RAMP_TIME_US;
+				progress = diff * PROGRESS_INT_SCALING / RAMP_TIME_US;
+
+				if (progress > PROGRESS_INT_SCALING) {
+					progress = PROGRESS_INT_SCALING;
+				}
 
 				for (unsigned i=0; i<num_channels; i++) {
+
+					float control_value = output[i];
+
+					/* check for invalid / disabled channels */
+					if (!isfinite(control_value)) {
+						effective_pwm[i] = disarmed_pwm[i];
+						continue;
+					}
 	                
 					uint16_t ramp_min_pwm;
 	                
@@ -128,15 +155,13 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 						}
 
 						unsigned disarmed_min_diff = min_pwm[i] - disarmed;
-						ramp_min_pwm = disarmed + (disarmed_min_diff * progress) / 10000;
+						ramp_min_pwm = disarmed + (disarmed_min_diff * progress) / PROGRESS_INT_SCALING;
 
 					} else {
 	                    
 						/* no disarmed pwm value set, choose min pwm */
 						ramp_min_pwm = min_pwm[i];
 					}
-
-					float control_value = output[i];
 
 					if (reverse_mask & (1 << i)) {
 						control_value = -1.0f * control_value;
@@ -157,6 +182,12 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 			for (unsigned i=0; i<num_channels; i++) {
 
 				float control_value = output[i];
+
+				/* check for invalid / disabled channels */
+				if (!isfinite(control_value)) {
+					effective_pwm[i] = disarmed_pwm[i];
+					continue;
+				}
 
 				if (reverse_mask & (1 << i)) {
 					control_value = -1.0f * control_value;

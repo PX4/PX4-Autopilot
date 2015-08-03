@@ -179,6 +179,8 @@ static const int ERROR = -1;
 #define L3GD20_DEFAULT_FILTER_FREQ		30
 #define L3GD20_TEMP_OFFSET_CELSIUS		40
 
+#define L3GD20_MAX_OFFSET			0.45f /**< max offset: 25 degrees/s */
+
 #ifdef PX4_SPI_BUS_EXT
 #define EXTERNAL_BUS PX4_SPI_BUS_EXT
 #else
@@ -1102,18 +1104,18 @@ L3GD20::test_error()
 int
 L3GD20::self_test()
 {
-	/* evaluate gyro offsets, complain if offset -> zero or larger than 6 dps */
-	if (fabsf(_gyro_scale.x_offset) > 0.1f || fabsf(_gyro_scale.x_offset) < 0.000001f)
+	/* evaluate gyro offsets, complain if offset -> zero or larger than 25 dps */
+	if (fabsf(_gyro_scale.x_offset) > L3GD20_MAX_OFFSET || fabsf(_gyro_scale.x_offset) < 0.000001f)
 		return 1;
 	if (fabsf(_gyro_scale.x_scale - 1.0f) > 0.3f)
 		return 1;
 
-	if (fabsf(_gyro_scale.y_offset) > 0.1f || fabsf(_gyro_scale.y_offset) < 0.000001f)
+	if (fabsf(_gyro_scale.y_offset) > L3GD20_MAX_OFFSET || fabsf(_gyro_scale.y_offset) < 0.000001f)
 		return 1;
 	if (fabsf(_gyro_scale.y_scale - 1.0f) > 0.3f)
 		return 1;
 
-	if (fabsf(_gyro_scale.z_offset) > 0.1f || fabsf(_gyro_scale.z_offset) < 0.000001f)
+	if (fabsf(_gyro_scale.z_offset) > L3GD20_MAX_OFFSET || fabsf(_gyro_scale.z_offset) < 0.000001f)
 		return 1;
 	if (fabsf(_gyro_scale.z_scale - 1.0f) > 0.3f)
 		return 1;

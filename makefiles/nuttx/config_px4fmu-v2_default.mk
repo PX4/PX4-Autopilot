@@ -73,11 +73,13 @@ MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
 MODULES		+= modules/uavcan
 MODULES 	+= modules/land_detector
+MODULES		+= modules/camera_trigger
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
-MODULES		+= modules/attitude_estimator_ekf
+# Too high RAM usage due to static allocations
+#MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/attitude_estimator_q
 MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/position_estimator_inav

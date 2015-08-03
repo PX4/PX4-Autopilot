@@ -85,11 +85,10 @@ Device::log(const char *fmt, ...)
 
 	PX4_INFO("[%s] ", _name);
 	va_start(ap, fmt);
-        PX4_INFO( fmt, ap );
-	//vprintf(fmt, ap);
+	vprintf(fmt, ap);
 	va_end(ap);
-	//printf("\n");
-	//fflush(stdout);
+	printf("\n");
+	fflush(stdout);
 }
 
 void
@@ -98,14 +97,12 @@ Device::debug(const char *fmt, ...)
 	va_list	ap;
 
 	if (_debug_enabled) {
-		PX4_INFO("<%s> ", _name);
-		//printf("<%s> ", _name);
+		printf("<%s> ", _name);
 		va_start(ap, fmt);
-		//vprintf(fmt, ap);
-		PX4_INFO(fmt, ap);
+		vprintf(fmt, ap);
 		va_end(ap);
-		//printf("\n");
-		//fflush(stdout);
+		printf("\n");
+		fflush(stdout);
 	}
 }
 

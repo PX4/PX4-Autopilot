@@ -96,10 +96,12 @@ protected:
 
 	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold
                                                                           before triggering a land */
+	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME = 1000000;	/**< time interval in which wider acceptance thresholds are used after arming */
 
 protected:
-	uintptr_t                               _landDetectedPub;           /**< publisher for position in local frame */
-	struct vehicle_land_detected_s          _landDetected;              /**< local vehicle position */
+	uintptr_t				_landDetectedPub;		/**< publisher for position in local frame */
+	struct vehicle_land_detected_s		_landDetected;			/**< local vehicle position */
+	uint64_t				_arming_time;			/**< timestamp of arming time */
 
 private:
 	bool _taskShouldExit;                                               /**< true if it is requested that this task should exit */

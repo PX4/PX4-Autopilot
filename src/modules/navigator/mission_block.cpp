@@ -228,7 +228,7 @@ MissionBlock::set_previous_pos_setpoint()
 }
 
 void
-MissionBlock::set_loiter_item(struct mission_item_s *item)
+MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 {
 	if (_navigator->get_vstatus()->condition_landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
@@ -246,10 +246,14 @@ MissionBlock::set_loiter_item(struct mission_item_s *item)
 			item->altitude = pos_sp_triplet->current.alt;
 
 		} else {
-			/* use current position */
+			/* use current position and use return altitude as clearance */
 			item->lat = _navigator->get_global_position()->lat;
 			item->lon = _navigator->get_global_position()->lon;
 			item->altitude = _navigator->get_global_position()->alt;
+
+			if (min_clearance > 0.0f && item->altitude < _navigator->get_home_position()->alt + min_clearance) {
+				item->altitude = _navigator->get_home_position()->alt + min_clearance;
+			}
 		}
 
 		item->altitude_is_relative = false;

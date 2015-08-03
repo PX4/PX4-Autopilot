@@ -1124,8 +1124,8 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		}
 	}
 
-	/* read the sensor up to 50x, stopping when we have 10 good values */
-	for (uint8_t i = 0; i < 50 && good_count < 10; i++) {
+	/* read the sensor up to 100x, stopping when we have 30 good values */
+	for (uint8_t i = 0; i < 100 && good_count < 30; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -1172,9 +1172,9 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	scaling[2] = sum_excited[2] / good_count;
 
 	/* set scaling in device */
-	mscale_previous.x_scale = scaling[0];
-	mscale_previous.y_scale = scaling[1];
-	mscale_previous.z_scale = scaling[2];
+	mscale_previous.x_scale = 1.0f / scaling[0];
+	mscale_previous.y_scale = 1.0f / scaling[1];
+	mscale_previous.z_scale = 1.0f / scaling[2];
 
 	ret = OK;
 

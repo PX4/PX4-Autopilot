@@ -97,20 +97,20 @@ private:
 	} _params;
 
 private:
-	int _vehicleGlobalPositionSub;                                      /**< notification of global position */
+	int _vehicleGlobalPositionSub;						/**< notification of global position */
 	int _vehicleStatusSub;
 	int _actuatorsSub;
 	int _armingSub;
 	int _parameterSub;
 	int _attitudeSub;
 
-	struct vehicle_global_position_s          _vehicleGlobalPosition;   /**< the result from global position subscription */
-	struct vehicle_status_s 			      _vehicleStatus;
-	struct actuator_controls_s                _actuators;
-	struct actuator_armed_s                   _arming;
-	struct vehicle_attitude_s                 _vehicleAttitude;
+	struct vehicle_global_position_s	_vehicleGlobalPosition;		/**< the result from global position subscription */
+	struct vehicle_status_s 		_vehicleStatus;
+	struct actuator_controls_s		_actuators;
+	struct actuator_armed_s			_arming;
+	struct vehicle_attitude_s		_vehicleAttitude;
 
-	uint64_t _landTimer;                                                /**< timestamp in microseconds since a possible land was detected*/
+	uint64_t _landTimer;							/**< timestamp in microseconds since a possible land was detected*/
 };
 
 #endif //__MULTICOPTER_LAND_DETECTOR_H__

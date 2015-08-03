@@ -44,13 +44,17 @@
 
 
 //=========================  Static initializations =================
-uORB::Manager uORB::Manager::_Instance;
+uORB::Manager *uORB::Manager::_Instance = nullptr;
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 uORB::Manager *uORB::Manager::get_instance()
 {
-	return &_Instance;
+	if (_Instance == nullptr) {
+		_Instance = new uORB::Manager();
+	}
+
+	return _Instance;
 }
 
 //-----------------------------------------------------------------------------

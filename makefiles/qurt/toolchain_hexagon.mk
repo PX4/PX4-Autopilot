@@ -35,9 +35,18 @@
 
 #$(info TOOLCHAIN  gnu-arm-eabi)
 
+#
+# Stop making if ADSP_LIB_ROOT is not set. This defines the path to
+# DspAL headers and driver headers
+#
+ifndef DSPAL_ROOT
+$(error DSPAL_ROOT is not set)
+endif
+
 # Toolchain commands. Normally only used inside this file.
 #
-HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
+HEXAGON_TOOLS_ROOT	 ?= /opt/6.4.03
+#HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
 HEXAGON_SDK_ROOT	 = /opt/Hexagon_SDK/2.0
 V_ARCH			 = v5
 CROSSDEV		 = hexagon-
@@ -84,7 +93,8 @@ DYNAMIC_LIBS            = \
 
 # Check if the right version of the toolchain is available
 #
-CROSSDEV_VER_SUPPORTED	 = 6.4.05
+CROSSDEV_VER_SUPPORTED	 = 6.4.03
+#CROSSDEV_VER_SUPPORTED	 = 6.4.05
 CROSSDEV_VER_FOUND	 = $(shell $(CC) --version | sed -n 's/^.*version \([\. 0-9]*\),.*$$/\1/p')
 
 ifeq (,$(findstring $(CROSSDEV_VER_FOUND), $(CROSSDEV_VER_SUPPORTED)))
@@ -94,7 +104,7 @@ endif
 
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
-MAXOPTIMIZATION		 ?= -O0
+MAXOPTIMIZATION		 := -O0
 
 # Base CPU flags for each of the supported architectures.
 #
@@ -108,31 +118,42 @@ $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -D__PX4_QURT -D__PX4_POSIX \
-			    -D__EXPORT= \
-			    -D__QDSP6_DINKUM_PTHREAD_TYPES__ \
+			    -D_PID_T -D_UID_T -D_TIMER_T\
 			    -Dnoreturn_function= \
+			    -D__EXPORT= \
 			    -Drestrict= \
+                            -D_DEBUG \
+			    -I$(DSPAL_ROOT)/ \
+			    -I$(DSPAL_ROOT)/dspal/include \
+			    -I$(DSPAL_ROOT)/dspal/sys \
+			    -I$(DSPAL_ROOT)/dspal/sys/sys \
+			    -I$(DSPAL_ROOT)/mpu_spi/inc/ \
+			    -I$(DSPAL_ROOT)/uart_esc/inc/ \
 			    -I$(HEXAGON_TOOLS_ROOT)/gnu/hexagon/include \
 			    -I$(PX4_BASE)/src/lib/eigen \
 			    -I$(PX4_BASE)/src/platforms/qurt/include \
-			    -I$(PX4_BASE)/../dspal/include \
-			    -I$(PX4_BASE)/../dspal/sys \
 			    -I$(PX4_BASE)/mavlink/include/mavlink \
 			    -I$(QURTLIB)/..//include \
 			    -I$(HEXAGON_SDK_ROOT)/inc \
 			    -I$(HEXAGON_SDK_ROOT)/inc/stddef \
 			    -Wno-error=shadow
 
+
+
 # optimisation flags
 #
-ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
-			   -g3 \
+ARCHOPTIMIZATION	 = \
+                           -O0 \
+			   -g \
 			   -fno-strict-aliasing \
-			   -fomit-frame-pointer \
-			   -funsafe-math-optimizations \
-			   -ffunction-sections \
 			   -fdata-sections \
-                           -fpic
+                           -fpic  \
+                           -fno-zero-initialized-in-bss
+
+#-fomit-frame-pointer \
+#-funsafe-math-optimizations \
+#-ffunction-sections
+#$(MAXOPTIMIZATION)
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
@@ -140,7 +161,7 @@ INSTRUMENTATIONDEFINES	 = $(ARCHINSTRUMENTATIONDEFINES_$(CONFIG_ARCH))
 
 # Language-specific flags
 #
-ARCHCFLAGS		 = -std=gnu99
+ARCHCFLAGS		 = -std=gnu99 -D__CUSTOM_FILE_IO__
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics -D__CUSTOM_FILE_IO__
 
 # Generic warnings
@@ -186,9 +207,9 @@ CFLAGS			 = $(ARCHCFLAGS) \
 			   $(ARCHDEFINES) \
 			   $(EXTRADEFINES) \
 			   $(EXTRACFLAGS) \
-			   -fno-common \
 			   $(addprefix -I,$(INCLUDE_DIRS))
 
+			   #-fno-common
 # Flags we pass to the C++ compiler
 #
 CXXFLAGS		 = $(ARCHCXXFLAGS) \
@@ -212,8 +233,7 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 LDSCRIPT		 = $(PX4_BASE)/makefiles/posix/ld.script
 # Flags we pass to the linker
 #
-LDFLAGS			+=  -g -mv5 -nostdlib -mG0lib -G0 -fpic -shared \
-			   -nostartfiles \
+LDFLAGS			+=  -g -mv5 -mG0lib -G0 -fpic -shared \
 			   -Wl,-Bsymbolic \
 			   -Wl,--wrap=malloc \
 			   -Wl,--wrap=calloc \
@@ -224,6 +244,10 @@ LDFLAGS			+=  -g -mv5 -nostdlib -mG0lib -G0 -fpic -shared \
                            -lc \
 			   $(EXTRALDFLAGS) \
 			   $(addprefix -L,$(LIB_DIRS))
+
+# driver dynamic libraries
+LDFLAGS	+= -L${DSPAL_ROOT}/mpu_spi/hexagon_Debug_dynamic_toolv64/ship -lmpu9x50
+LDFLAGS	+= -L${DSPAL_ROOT}/uart_esc/hexagon_Debug_dynamic_toolv64/ship -luart_esc
 
 # Compiler support library
 #
@@ -254,7 +278,9 @@ define COMPILE
 	@$(ECHO) "CC:      $1"
 	@$(MKDIR) -p $(dir $2)
 	@echo $(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
-	$(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) -D__V_DYNAMIC__ -fPIC $(abspath $1) -o $2
+	#$(Q) $(CCACHE) $(CC) -MD -c $(CFLAGS) -D__V_DYNAMIC__ -fPIC $(abspath $1) -o $2
+	#$(CCACHE) $(CC) -MD -c $(CFLAGS) -D__V_DYNAMIC__  -D__FILENAME__=\"$(notdir $1)\" -fPIC $(abspath $1) -o $2
+	$(CCACHE) $(CC) -c $(CFLAGS) -D__V_DYNAMIC__  -D__FILENAME__=\"$(notdir $1)\" $(abspath $1) -o $2
 endef
 
 # Compile C++ source $1 to $2 for use in shared library
@@ -264,7 +290,9 @@ define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
 	@echo $(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
-	$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) -D__V_DYNAMIC__ -fPIC $(abspath $1) -o $2
+	#$(Q) $(CCACHE) $(CXX) -MD -c $(CXXFLAGS) -D__V_DYNAMIC__ -fPIC $(abspath $1) -o $2
+	#$(CCACHE) $(CXX) -MD -c $(CXXFLAGS) -D__V_DYNAMIC__ -D__FILENAME__=\"$(notdir $1)\" -fPIC $(abspath $1) -o $2
+	$(CCACHE) $(CXX) -c $(CXXFLAGS) -D__V_DYNAMIC__ -D__FILENAME__=\"$(notdir $1)\" $(abspath $1) -o $2
 endef
 
 # Assemble $1 into $2
@@ -319,7 +347,7 @@ endef
 define LINK_SO
 	@$(ECHO) "LINK_SO:    $1"
 	@$(MKDIR) -p $(dir $1)
-	$(HEXAGON_GCC) $(LDFLAGS) -fPIC -shared -nostartfiles -o $1 -Wl,--whole-archive $2 -Wl,--no-whole-archive $(LIBS) $(DYNAMIC_LIBS)
+	$(HEXAGON_GCC) $(LDFLAGS) -o $1 -Wl,--whole-archive $2 -Wl,--no-whole-archive $(LIBS) $(DYNAMIC_LIBS)
 endef
 
 # Link the objects in $2 into the application $1

@@ -913,10 +913,14 @@ MPU6000::gyro_self_test()
 
 	/*
 	 * Maximum deviation of 20 degrees, according to
-	 * http://www.invensense.com/mems/gyro/documents/PS-MPU-6000A-00v3.4.pdf
+	 * http://www.farnell.com/datasheets/1788002.pdf
 	 * Section 6.1, initial ZRO tolerance
+	 *
+	 * 20 dps (0.34 rad/s) initial offset
+	 * and 20 dps temperature drift, so 0.34 rad/s * 2
 	 */
-	const float max_offset = 0.34f;
+	const float max_offset = 2.0f * 0.34f;
+
 	/* 30% scale error is chosen to catch completely faulty units but
 	 * to let some slight scale error pass. Requires a rate table or correlation
 	 * with mag rotations + data fit to

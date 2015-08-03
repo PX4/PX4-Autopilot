@@ -15,7 +15,7 @@ ifeq ($(SYSTYPE),Darwin)
 SERIAL_PORTS		?= "/dev/tty.usbmodemPX*,/dev/tty.usbmodem*"
 endif
 ifeq ($(SYSTYPE),Linux)
-SERIAL_PORTS		?= "/dev/serial/by-id/usb-3D_Robotics*"
+SERIAL_PORTS		?= "/dev/serial/by-id/usb-3D_Robotics*,/dev/serial/by-id/pci-3D_Robotics*"
 endif
 ifeq ($(SERIAL_PORTS),)
 SERIAL_PORTS		 = "COM32,COM31,COM30,COM29,COM28,COM27,COM26,COM25,COM24,COM23,COM22,COM21,COM20,COM19,COM18,COM17,COM16,COM15,COM14,COM13,COM12,COM11,COM10,COM9,COM8,COM7,COM6,COM5,COM4,COM3,COM2,COM1,COM0"

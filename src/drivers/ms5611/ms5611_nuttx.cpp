@@ -154,10 +154,12 @@ protected:
 	/**
 	 * Initialize the automatic measurement state machine and start it.
 	 *
+	 * @param delay_ticks the number of queue ticks before executing the next cycle
+	 *
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void			start_cycle();
+	void			start_cycle(unsigned delay_ticks = 1);
 
 	/**
 	 * Stop the automatic measurement state machine.
@@ -515,7 +517,7 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 void
-MS5611::start_cycle()
+MS5611::start_cycle(unsigned delay_ticks)
 {
 
 	/* reset the report ring and state machine */
@@ -524,7 +526,7 @@ MS5611::start_cycle()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&MS5611::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&MS5611::cycle_trampoline, this, delay_ticks);
 }
 
 void
@@ -564,8 +566,11 @@ MS5611::cycle()
 			}
 			/* issue a reset command to the sensor */
 			_interface->ioctl(IOCTL_RESET, dummy);
-			/* reset the collection state machine and try again */
-			start_cycle();
+			/* reset the collection state machine and try again - we need
+			 * to wait 2.8 ms after issuing the sensor reset command
+			 * according to the MS5611 datasheet
+			 */
+			start_cycle(USEC2TICK(2800));
 			return;
 		}
 
@@ -594,7 +599,6 @@ MS5611::cycle()
 	/* measurement phase */
 	ret = measure();
 	if (ret != OK) {
-		//log("measure error %d", ret);
 		/* issue a reset command to the sensor */
 		_interface->ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
@@ -1182,26 +1186,30 @@ ms5611_main(int argc, char *argv[])
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(verb, "start"))
+	if (!strcmp(verb, "start")) {
 		ms5611::start(busid);
+	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(verb, "test"))
+	if (!strcmp(verb, "test")) {
 		ms5611::test(busid);
+	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(verb, "reset"))
+	if (!strcmp(verb, "reset")) {
 		ms5611::reset(busid);
+	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(verb, "info"))
+	if (!strcmp(verb, "info")) {
 		ms5611::info();
+	}
 
 	/*
 	 * Perform MSL pressure calibration given an altitude in metres

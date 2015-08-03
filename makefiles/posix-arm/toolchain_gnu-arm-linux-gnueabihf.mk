@@ -57,6 +57,7 @@ ifeq (,$(findstring $(CROSSDEV_VER_FOUND), $(CROSSDEV_VER_SUPPORTED)))
 $(error Unsupported version of $(CC), found: $(CROSSDEV_VER_FOUND) instead of one in: $(CROSSDEV_VER_SUPPORTED))
 endif
 
+EXT_MUORB_LIB_ROOT = /opt/muorb_libs
 
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
@@ -156,12 +157,11 @@ ARCHWARNINGS		 = -Wall \
 			   -Werror=reorder \
 			   -Werror=uninitialized \
 			   -Werror=init-self \
-               		   -Wno-error=logical-op \
-			   -Wdouble-promotion \
+			   -Wno-error=logical-op \
 			   -Wlogical-op \
 			   -Wformat=1 \
 			   -Werror=unused-but-set-variable \
-			   -Werror=double-promotion \
+			   -Wno-error=double-promotion \
 			   -fno-strength-reduce \
                            -Wno-error=unused-value
 
@@ -188,8 +188,10 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
 #EXTRA_LIBS		+= $(LIBM)
-#EXTRA_LIBS		+= ${PX4_BASE}../muorb_krait/lib/libmuorb.so
+EXTRA_LIBS		+= -lpx4muorb -ladsprpc
 EXTRA_LIBS		+= -pthread -lm -lrt
+
+LIB_DIRS                += $(EXT_MUORB_LIB_ROOT)/krait/libs
 
 # Flags we pass to the C compiler
 #
@@ -226,7 +228,7 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 			   $(EXTRADEFINES) \
 			   $(EXTRAAFLAGS)
 
-LDSCRIPT		 = $(PX4_BASE)/posix-configs/posixtest/scripts/ld.script
+LDSCRIPT		 = $(PX4_BASE)/makefiles/posix-arm/ld.script
 # Flags we pass to the linker
 #
 LDFLAGS			+= $(EXTRALDFLAGS) \
@@ -323,6 +325,7 @@ endef
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
+	echo "$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC)"
 	$(Q) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC)
 
 endef

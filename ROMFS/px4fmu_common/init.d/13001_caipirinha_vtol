@@ -1,7 +1,10 @@
+#!nsh
 #
-# Generic configuration file for caipirinha VTOL version
+# @name Duorotor Tailsitter
 #
-# Roman Bapst <bapstr@ethz.ch>
+# @type VTOL Tailsitter
+#
+# @maintainer Roman Bapst <roman@px4.io>
 #
 
 sh /etc/init.d/rc.vtol_defaults
@@ -13,3 +16,4 @@ set PWM_MAX 2000
 set PWM_RATE 400
 param set VT_MOT_COUNT 2
 param set VT_IDLE_PWM_MC  1080
+param set VT_TYPE 0

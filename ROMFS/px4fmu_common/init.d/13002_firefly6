@@ -1,8 +1,10 @@
 #!nsh
 #
-# Generic configuration file for BirdsEyeView Aerobotics FireFly6
+# @name BirdsEyeView Aerobotics FireFly6
 #
-# Roman Bapst <romanbapst@yahoo.de>
+# @type VTOL Tiltrotor
+#
+# @maintainer Roman Bapst <roman@px4.io>
 #
 
 sh /etc/init.d/rc.vtol_defaults
@@ -41,3 +43,4 @@ set MAV_TYPE 21
 
 param set VT_MOT_COUNT 6
 param set VT_IDLE_PWM_MC 1080
+param set VT_TYPE 1

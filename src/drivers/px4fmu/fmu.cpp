@@ -164,7 +164,7 @@ private:
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
 
-	static bool	arm_nothrottle() { return (_armed.ready_to_arm && !_armed.armed); }
+	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main();
@@ -294,7 +294,8 @@ PX4FMU::PX4FMU() :
 	memset(_controls, 0, sizeof(_controls));
 	memset(_poll_fds, 0, sizeof(_poll_fds));
 
-	_debug_enabled = true;
+	/* only enable this during development */
+	_debug_enabled = false;
 }
 
 PX4FMU::~PX4FMU()
@@ -341,9 +342,9 @@ PX4FMU::init()
 	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		log("default PWM output device");
+		/* lets not be too verbose */
 	} else if (_class_instance < 0) {
-		log("FAILED registering class device");
+		warnx("FAILED registering class device");
 	}
 
 	/* reset GPIOs */
@@ -535,11 +536,11 @@ PX4FMU::subscribe()
 	_poll_fds_num = 0;
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
-			warnx("subscribe to actuator_controls_%d", i);
+			debug("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
 		if (unsub_groups & (1 << i)) {
-			warnx("unsubscribe from actuator_controls_%d", i);
+			debug("unsubscribe from actuator_controls_%d", i);
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -741,7 +742,7 @@ PX4FMU::task_main()
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
 			/* update the armed status and check that we're not locked down */
-			bool set_armed = (_armed.armed || _armed.ready_to_arm) && !_armed.lockdown;
+			bool set_armed = (_armed.armed || _armed.prearmed) && !_armed.lockdown;
 
 			if (_servo_armed != set_armed) {
 				_servo_armed = set_armed;

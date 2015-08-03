@@ -602,10 +602,10 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
 	}
 }
 
-/*
+/**
  * Attitude controller.
- * Input: 'manual_control_setpoint' and 'vehicle_attitude_setpoint' topics (depending on mode)
- * Output: '_rates_sp' vector, '_thrust_sp', 'vehicle_attitude_setpoint' topic (for manual modes)
+ * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
+ * Output: '_rates_sp' vector, '_thrust_sp'
  */
 void
 MulticopterAttitudeControl::control_attitude(float dt)

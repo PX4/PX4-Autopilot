@@ -111,19 +111,8 @@ else
 fi
 
 # Check for flow sensor
-if px4flow start
+if px4flow start &
 then
-fi
-
-if param compare SENS_EN_LL40LS 1
-then
-	if pwm_input start
-	then
-	fi
-	
-	if ll40ls start pwm
-	then
-	fi
 fi
 
 #

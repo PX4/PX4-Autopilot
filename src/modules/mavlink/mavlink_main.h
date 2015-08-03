@@ -45,9 +45,9 @@
 #ifdef __PX4_NUTTX
 #include <nuttx/fs/fs.h>
 #else
-#include <drivers/device/device.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <drivers/device/device.h>
 #endif
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
@@ -123,11 +123,9 @@ public:
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
-#ifndef __PX4_QURT
 	static int		get_uart_fd(unsigned index);
 
 	int			get_uart_fd();
-#endif
 
 	/**
 	 * Get the MAVLink system id.
@@ -164,6 +162,14 @@ public:
 	bool			get_flow_control_enabled() { return _flow_control_enabled; }
 
 	bool			get_forwarding_on() { return _forwarding_on; }
+
+	/**
+	 * Set the boot complete flag on all instances
+	 *
+	 * Setting the flag unblocks parameter transmissions, which are gated
+	 * beforehand to ensure that the system is fully initialized.
+	 */
+	static void		set_boot_complete() { _boot_complete = true; }
 
 	/**
 	 * Get the free space in the transmit buffer
@@ -325,6 +331,10 @@ public:
 
 	unsigned short		get_network_port() { return _network_port; }
 
+	int 			get_socket_fd () { return _socket_fd; };
+
+	static bool		boot_complete() { return _boot_complete; }
+
 protected:
 	Mavlink			*next;
 
@@ -333,6 +343,7 @@ private:
 
 	int			_mavlink_fd;
 	bool			_task_running;
+	static bool		_boot_complete;
 
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */
@@ -355,6 +366,7 @@ private:
 	MAVLINK_MODE 		_mode;
 
 	mavlink_channel_t	_channel;
+	int32_t			_radio_id;
 
 	struct mavlink_logbuffer _logbuffer;
 	unsigned int		_total_counter;
@@ -372,6 +384,7 @@ private:
 	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
 	int			_datarate_events;	///< data rate for params, waypoints, text messages
 	float			_rate_mult;
+	hrt_abstime		_last_hw_rate_timestamp;
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -424,6 +437,7 @@ private:
 	bool			_param_initialized;
 	param_t			_param_system_id;
 	param_t			_param_component_id;
+	param_t			_param_radio_id;
 	param_t			_param_system_type;
 	param_t			_param_use_hil_gps;
 	param_t			_param_forward_externalsp;
@@ -440,6 +454,10 @@ private:
 #endif
 
 	static unsigned int	interval_from_rate(float rate);
+
+	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
+	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
+	static constexpr unsigned RADIO_BUFFER_HALF_PERCENTAGE = 50;
 
 	int configure_stream(const char *stream_name, const float rate);
 

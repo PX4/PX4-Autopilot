@@ -680,6 +680,7 @@ PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
+ * @unit degrees
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
@@ -690,6 +691,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
  * This parameter defines a rotational offset in degrees around the X (Roll) axis It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
+ * @unit degrees
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
@@ -700,6 +702,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
  * This parameter defines a rotational offset in degrees around the Z (Yaw) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
+ * @unit degrees
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
@@ -736,6 +739,7 @@ PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
  *
  * @min 800.0
  * @max 1500.0
+ * @unit us
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC1_MIN, 1000.0f);
@@ -747,6 +751,7 @@ PARAM_DEFINE_FLOAT(RC1_MIN, 1000.0f);
  *
  * @min 800.0
  * @max 2200.0
+ * @unit us
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC1_TRIM, 1500.0f);
@@ -758,6 +763,7 @@ PARAM_DEFINE_FLOAT(RC1_TRIM, 1500.0f);
  *
  * @min 1500.0
  * @max 2200.0
+ * @unit us
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC1_MAX, 2000.0f);
@@ -780,6 +786,7 @@ PARAM_DEFINE_FLOAT(RC1_REV, 1.0f);
  *
  * @min 0.0
  * @max 100.0
+ * @unit us
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC1_DZ, 10.0f);
@@ -787,10 +794,11 @@ PARAM_DEFINE_FLOAT(RC1_DZ, 10.0f);
 /**
  * RC Channel 2 Minimum
  *
- * Minimum value for RC channel 2
+ * Minimum value for this channel.
  *
  * @min 800.0
  * @max 1500.0
+ * @unit us
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC2_MIN, 1000.0f);
@@ -798,10 +806,11 @@ PARAM_DEFINE_FLOAT(RC2_MIN, 1000.0f);
 /**
  * RC Channel 2 Trim
  *
- * Mid point value (same as min for throttle)
+ * Mid point value (has to be set to the same as min for throttle channel).
  *
  * @min 800.0
  * @max 2200.0
+ * @unit us
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC2_TRIM, 1500.0f);
@@ -809,10 +818,11 @@ PARAM_DEFINE_FLOAT(RC2_TRIM, 1500.0f);
 /**
  * RC Channel 2 Maximum
  *
- * Maximum value for RC channel 2
+ * Maximum value for this channel.
  *
  * @min 1500.0
  * @max 2200.0
+ * @unit us
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC2_MAX, 2000.0f);
@@ -835,107 +845,946 @@ PARAM_DEFINE_FLOAT(RC2_REV, 1.0f);
  *
  * @min 0.0
  * @max 100.0
+ * @unit us
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC2_DZ, 10.0f);
 
+/**
+ * RC Channel 3 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC3_MIN, 1000);
+
+/**
+ * RC Channel 3 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC3_TRIM, 1500);
+
+/**
+ * RC Channel 3 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC3_MAX, 2000);
+
+/**
+ * RC Channel 3 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC3_REV, 1.0f);
+/**
+ * RC Channel 3 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC3_DZ, 10.0f);
 
+/**
+ * RC Channel 4 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC4_MIN, 1000);
+
+/**
+ * RC Channel 4 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC4_TRIM, 1500);
+
+/**
+ * RC Channel 4 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC4_MAX, 2000);
+
+/**
+ * RC Channel 4 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC4_REV, 1.0f);
+
+/**
+ * RC Channel 4 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC4_DZ, 10.0f);
 
+/**
+ * RC Channel 5 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC5_MIN, 1000);
+
+/**
+ * RC Channel 5 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC5_TRIM, 1500);
+
+/**
+ * RC Channel 5 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC5_MAX, 2000);
+
+/**
+ * RC Channel 5 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC5_REV, 1.0f);
+
+/**
+ * RC Channel 5 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC5_DZ,  10.0f);
 
+/**
+ * RC Channel 6 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC6_MIN, 1000);
+
+/**
+ * RC Channel 6 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC6_TRIM, 1500);
+
+/**
+ * RC Channel 6 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC6_MAX, 2000);
+
+/**
+ * RC Channel 6 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC6_REV, 1.0f);
+
+/**
+ * RC Channel 6 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC6_DZ, 10.0f);
 
+/**
+ * RC Channel 7 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC7_MIN, 1000);
+
+/**
+ * RC Channel 7 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC7_TRIM, 1500);
+
+/**
+ * RC Channel 7 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC7_MAX, 2000);
+
+/**
+ * RC Channel 7 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC7_REV, 1.0f);
+
+/**
+ * RC Channel 7 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC7_DZ, 10.0f);
 
+/**
+ * RC Channel 8 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC8_MIN, 1000);
+
+/**
+ * RC Channel 8 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC8_TRIM, 1500);
+
+/**
+ * RC Channel 8 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC8_MAX, 2000);
+
+/**
+ * RC Channel 8 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC8_REV, 1.0f);
+
+/**
+ * RC Channel 8 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC8_DZ, 10.0f);
 
+/**
+ * RC Channel 9 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC9_MIN, 1000);
+
+/**
+ * RC Channel 9 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC9_TRIM, 1500);
+
+/**
+ * RC Channel 9 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC9_MAX, 2000);
+
+/**
+ * RC Channel 9 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC9_REV, 1.0f);
+
+/**
+ * RC Channel 9 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC9_DZ, 0.0f);
 
+/**
+ * RC Channel 10 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC10_MIN, 1000);
+
+/**
+ * RC Channel 10 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC10_TRIM, 1500);
+
+/**
+ * RC Channel 10 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC10_MAX, 2000);
+
+/**
+ * RC Channel 10 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC10_REV, 1.0f);
+
+/**
+ * RC Channel 10 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC10_DZ, 0.0f);
 
+/**
+ * RC Channel 11 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC11_MIN, 1000);
+
+/**
+ * RC Channel 11 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC11_TRIM, 1500);
+
+/**
+ * RC Channel 11 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC11_MAX, 2000);
+
+/**
+ * RC Channel 11 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC11_REV, 1.0f);
+
+/**
+ * RC Channel 11 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC11_DZ, 0.0f);
 
+/**
+ * RC Channel 12 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC12_MIN, 1000);
+
+/**
+ * RC Channel 12 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC12_TRIM, 1500);
+
+/**
+ * RC Channel 12 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC12_MAX, 2000);
+
+/**
+ * RC Channel 12 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC12_REV, 1.0f);
+
+/**
+ * RC Channel 12 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC12_DZ, 0.0f);
 
+/**
+ * RC Channel 13 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC13_MIN, 1000);
+
+/**
+ * RC Channel 13 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC13_TRIM, 1500);
+
+/**
+ * RC Channel 13 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC13_MAX, 2000);
+
+/**
+ * RC Channel 13 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC13_REV, 1.0f);
+
+/**
+ * RC Channel 13 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC13_DZ, 0.0f);
 
+/**
+ * RC Channel 14 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC14_MIN, 1000);
+
+/**
+ * RC Channel 14 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC14_TRIM, 1500);
+
+/**
+ * RC Channel 14 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC14_MAX, 2000);
+
+/**
+ * RC Channel 14 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC14_REV, 1.0f);
+
+/**
+ * RC Channel 14 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC14_DZ, 0.0f);
 
+/**
+ * RC Channel 15 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC15_MIN, 1000);
+
+/**
+ * RC Channel 15 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC15_TRIM, 1500);
+
+/**
+ * RC Channel 15 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC15_MAX, 2000);
+
+/**
+ * RC Channel 15 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC15_REV, 1.0f);
+
+/**
+ * RC Channel 15 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC15_DZ, 0.0f);
 
+/**
+ * RC Channel 16 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC16_MIN, 1000);
+
+/**
+ * RC Channel 16 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC16_TRIM, 1500);
+
+/**
+ * RC Channel 16 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC16_MAX, 2000);
+
+/**
+ * RC Channel 16 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC16_REV, 1.0f);
+
+/**
+ * RC Channel 16 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC16_DZ, 0.0f);
 
+/**
+ * RC Channel 17 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC17_MIN, 1000);
+
+/**
+ * RC Channel 17 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC17_TRIM, 1500);
+
+/**
+ * RC Channel 17 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC17_MAX, 2000);
+
+/**
+ * RC Channel 17 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC17_REV, 1.0f);
+
+/**
+ * RC Channel 17 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC17_DZ, 0.0f);
 
+/**
+ * RC Channel 18 Minimum
+ *
+ * Minimum value for this channel.
+ *
+ * @min 800.0
+ * @max 1500.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC18_MIN, 1000);
+
+/**
+ * RC Channel 18 Trim
+ *
+ * Mid point value (has to be set to the same as min for throttle channel).
+ *
+ * @min 800.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC18_TRIM, 1500);
+
+/**
+ * RC Channel 18 Maximum
+ *
+ * Maximum value for this channel.
+ *
+ * @min 1500.0
+ * @max 2200.0
+ * @unit us
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC18_MAX, 2000);
+
+/**
+ * RC Channel 18 Reverse
+ *
+ * Set to -1 to reverse channel.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
+
+/**
+ * RC Channel 18 dead zone
+ *
+ * The +- range of this value around the trim value will be considered as zero.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+/**
+ * Enable relay control of relay 1 mapped to the Spektrum receiver power supply
+ *
+ * @min 0
+ * @max 1
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
 #endif
 
@@ -952,6 +1801,8 @@ PARAM_DEFINE_INT32(RC_DSM_BIND, -1);
 /**
  * Scaling factor for battery voltage sensor on PX4IO.
  *
+ * @min 1
+ * @max 100000
  * @group Battery Calibration
  */
 PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
@@ -1231,8 +2082,12 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
 /**
  * Failsafe channel PWM threshold.
  *
- * @min 800
+ * Set to a value slightly above the PWM value assumed by throttle in a failsafe event,
+ * but ensure it is below the PWM value assumed by throttle during normal operation.
+ *
+ * @min 0
  * @max 2200
+ * @unit us
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
@@ -1410,3 +2265,101 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
  * @group Sensor Enable
  */
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
+
+/**
+ * Set the minimum PWM for the MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * Set to 1000 for industry default or 900 to increase servo travel.
+ *
+ * @min 800
+ * @max 1400
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MIN, 1000);
+
+/**
+ * Set the maximum PWM for the MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * Set to 2000 for industry default or 2100 to increase servo travel.
+ *
+ * @min 1600
+ * @max 2200
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAX, 2000);
+
+/**
+ * Set the disarmed PWM for MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * The main use of this parameter is to silence ESCs when they are disarmed.
+ *
+ * @min 0
+ * @max 2200
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_DISARMED, 0);
+
+/**
+ * Set the minimum PWM for the MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * Set to 1000 for default or 900 to increase servo travel
+ *
+ * @min 800
+ * @max 1400
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
+
+/**
+ * Set the maximum PWM for the MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * Set to 2000 for default or 2100 to increase servo travel
+ *
+ * @min 1600
+ * @max 2200
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
+
+/**
+ * Set the disarmed PWM for AUX outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * The main use of this parameter is to silence ESCs when they are disarmed.
+ *
+ * @min 0
+ * @max 2200
+ * @unit microseconds
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1000);

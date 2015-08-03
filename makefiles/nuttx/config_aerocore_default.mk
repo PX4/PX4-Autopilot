@@ -48,11 +48,12 @@ MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 
 #
-# Estimation modules (EKF/ SO3 / other filters)
+# Estimation modules (EKF / other filters)
 #
-MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/attitude_estimator_so3
+# Too high RAM usage due to static allocations
+#MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/ekf_att_pos_estimator
+MODULES		+= modules/attitude_estimator_q
 MODULES		+= modules/position_estimator_inav
 
 #

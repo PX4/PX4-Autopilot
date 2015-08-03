@@ -114,83 +114,22 @@ int Simulator::start(int argc, char *argv[])
 		PX4_INFO("Simulator started");
 		drv_led_start();
 		if (argv[2][1] == 's') {
+			_instance->initializeSensorData();
 #ifndef __PX4_QURT
-			_instance->updateSamples();
+			// Update sensor data
+			_instance->pollForMAVLinkMessages(false);
 #endif
 		} else {
-			_instance->publishSensorsCombined();
+			// Update sensor data
+			_instance->pollForMAVLinkMessages(true);
 		}
 	}
 	else {
 		PX4_WARN("Simulator creation failed");
 		ret = 1;
 	}
+
 	return ret;
-}
-
-void Simulator::publishSensorsCombined() {
-
-	struct baro_report baro;
-	memset(&baro,0,sizeof(baro));
-	baro.pressure = 120000.0f;
-
-	// acceleration report
-	struct accel_report accel;
-	memset(&accel,0,sizeof(accel));
-	accel.z = 9.81f;
-	accel.range_m_s2 = 80.0f;
-
-	// gyro report
-	struct gyro_report gyro;
-	memset(&gyro, 0 ,sizeof(gyro));
-
-	// mag report
-	struct mag_report mag;
-	memset(&mag, 0 ,sizeof(mag));
-	// init publishers
-	_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
-	_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
-	_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
-	_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
-
-	struct sensor_combined_s sensors;
-	memset(&sensors, 0, sizeof(sensors));
-	// fill sensors with some data
-	sensors.accelerometer_m_s2[2] = 9.81f;
-	sensors.magnetometer_ga[0] = 0.2f;
-	sensors.timestamp = hrt_absolute_time();
-	sensors.accelerometer_timestamp = hrt_absolute_time();
-	sensors.magnetometer_timestamp = hrt_absolute_time();
-	sensors.baro_timestamp = hrt_absolute_time();
-	// advertise
-	_sensor_combined_pub = orb_advertise(ORB_ID(sensor_combined), &sensors);
-
-	hrt_abstime time_last = hrt_absolute_time();
-	uint64_t delta;
-	for(;;) {
-		delta = hrt_absolute_time() - time_last;
-		if(delta > (uint64_t)1000000) {
-			time_last = hrt_absolute_time();
-			sensors.timestamp = time_last;
-			sensors.accelerometer_timestamp = time_last;
-			sensors.magnetometer_timestamp = time_last;
-			sensors.baro_timestamp = time_last;
-			baro.timestamp = time_last;
-			accel.timestamp = time_last;
-			gyro.timestamp = time_last;
-			mag.timestamp = time_last;
-			// publish the sensor values
-			//PX4_DEBUG("Publishing SensorsCombined\n");
-			orb_publish(ORB_ID(sensor_combined), _sensor_combined_pub, &sensors);
-			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
-			orb_publish(ORB_ID(sensor_accel), _accel_pub, &baro);
-			orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &baro);
-			orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
-		}
-		else {
-			usleep(1000000-delta);
-		}
-	}
 }
 
 static void usage()
@@ -225,6 +164,15 @@ int simulator_main(int argc, char *argv[])
 				1500,
 				Simulator::start,
 				argv);
+
+			// now wait for the command to complete
+			while(true) {
+				if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
+					break;
+				} else {
+					usleep(100000);
+				}
+			}
 		}
 		else
 		{

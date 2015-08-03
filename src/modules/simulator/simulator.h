@@ -39,7 +39,7 @@
 #pragma once
 
 #include <semaphore.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/hil_sensor.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -52,11 +52,6 @@
 #include <uORB/uORB.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
-#ifndef __PX4_QURT
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
-
 namespace simulator {
 
 // FIXME - what is the endianness of these on actual device?
@@ -118,11 +113,11 @@ struct RawGPSData {
 template <typename RType> class Report {
 public:
 	Report(int readers) :
-			_readidx(0),
-        	_max_readers(readers),
-        	_report_len(sizeof(RType))
+		_readidx(0),
+		_max_readers(readers),
+		_report_len(sizeof(RType))
 	{
-        	sem_init(&_lock, 0, _max_readers);
+		sem_init(&_lock, 0, _max_readers);
 	}
 
 	~Report() {};
@@ -148,11 +143,11 @@ public:
 protected:
 	void read_lock() { sem_wait(&_lock); }
 	void read_unlock() { sem_post(&_lock); }
-	void write_lock() 
+	void write_lock()
 	{
 		for (int i=0; i<_max_readers; i++) {
-                	sem_wait(&_lock);
-        	}
+			sem_wait(&_lock);
+		}
 	}
 	void write_unlock()
 	{
@@ -202,6 +197,8 @@ public:
 	void write_baro_data(void *buf);
 	void write_gps_data(void *buf);
 
+	bool isInitialized() { return _initialized; }
+
 private:
 	Simulator() :
 	_accel(1),
@@ -209,14 +206,16 @@ private:
 	_baro(1),
 	_mag(1),
 	_gps(1),
-	_sensor_combined_pub(nullptr)
+	_accel_pub(nullptr),
+	_baro_pub(nullptr),
+	_gyro_pub(nullptr),
+	_mag_pub(nullptr),
+	_initialized(false),
 #ifndef __PX4_QURT
-	,
 	_rc_channels_pub(nullptr),
 	_actuator_outputs_sub(-1),
 	_vehicle_attitude_sub(-1),
 	_manual_sub(-1),
-	_sensor{},
 	_rc_input{},
 	_actuators{},
 	_attitude{},
@@ -225,17 +224,15 @@ private:
 	{}
 	~Simulator() { _instance=NULL; }
 
-#ifndef __PX4_QURT
-	void updateSamples();
-#endif
+	void initializeSensorData();
 
 	static Simulator *_instance;
 
 	// simulated sensor instances
-	simulator::Report<simulator::RawAccelData> 	_accel;
+	simulator::Report<simulator::RawAccelData>	_accel;
 	simulator::Report<simulator::RawMPUData>	_mpu;
 	simulator::Report<simulator::RawBaroData>	_baro;
-	simulator::Report<simulator::RawMagData> 	_mag;
+	simulator::Report<simulator::RawMagData>	_mag;
 	simulator::Report<simulator::RawGPSData>	_gps;
 
 	// uORB publisher handlers
@@ -243,10 +240,11 @@ private:
 	orb_advert_t _baro_pub;
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
-	orb_advert_t _sensor_combined_pub;
+
+	bool _initialized;
 
 	// class methods
-	void publishSensorsCombined();
+	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 
 #ifndef __PX4_QURT
 	// uORB publisher handlers
@@ -258,23 +256,19 @@ private:
 	int _manual_sub;
 
 	// uORB data containers
-	struct sensor_combined_s _sensor;
 	struct rc_input_values _rc_input;
 	struct actuator_outputs_s _actuators;
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 
-	int _fd;
-	unsigned char _buf[200];
-	struct sockaddr_in _srcaddr;
-	socklen_t _addrlen = sizeof(_srcaddr);
-
 	void poll_actuators();
-	void handle_message(mavlink_message_t *msg);
+	void handle_message(mavlink_message_t *msg, bool publish);
 	void send_controls();
+	void pollForMAVLinkMessages(bool publish);
+
 	void pack_actuator_message(mavlink_hil_controls_t &actuator_msg);
 	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
-	void update_sensors(struct sensor_combined_s *sensor, mavlink_hil_sensor_t *imu);
+	void update_sensors(mavlink_hil_sensor_t *imu);
 	void update_gps(mavlink_hil_gps_t *gps_sim);
 	static void *sending_trampoline(void *);
 	void send();

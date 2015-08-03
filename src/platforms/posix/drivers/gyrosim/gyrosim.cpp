@@ -41,6 +41,9 @@
  * @author Mark Charlebois
  */
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <px4_config.h>
 #include <px4_getopt.h>
 
@@ -85,37 +88,19 @@
 #define MPUREG_CONFIG			0x1A
 #define MPUREG_GYRO_CONFIG		0x1B
 #define MPUREG_ACCEL_CONFIG		0x1C
-#define MPUREG_INT_PIN_CFG		0x37
-#define MPUREG_INT_ENABLE		0x38
 #define MPUREG_INT_STATUS		0x3A
-#define MPUREG_USER_CTRL		0x6A
-#define MPUREG_PWR_MGMT_1		0x6B
-#define MPUREG_PWR_MGMT_2		0x6C
 #define MPUREG_PRODUCT_ID		0x0C
 
 // Product ID Description for GYROSIM
 // high 4 bits 	low 4 bits
 // Product Name	Product Revision
 #define GYROSIMES_REV_C4		0x14
-#define GYROSIMES_REV_C5		0x15
-#define GYROSIMES_REV_D6		0x16
-#define GYROSIMES_REV_D7		0x17
-#define GYROSIMES_REV_D8		0x18
-#define GYROSIM_REV_C4			0x54
-#define GYROSIM_REV_C5			0x55
-#define GYROSIM_REV_D6			0x56
-#define GYROSIM_REV_D7			0x57
-#define GYROSIM_REV_D8			0x58
-#define GYROSIM_REV_D9			0x59
-#define GYROSIM_REV_D10			0x5A
 
-#define GYROSIM_ACCEL_DEFAULT_RATE			1000
-#define GYROSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
+#define GYROSIM_ACCEL_DEFAULT_RATE	1000
 
-#define GYROSIM_GYRO_DEFAULT_RATE			1000
-#define GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ		30
+#define GYROSIM_GYRO_DEFAULT_RATE	1000
 
-#define GYROSIM_ONE_G					9.80665f
+#define GYROSIM_ONE_G			9.80665f
 
 #ifdef PX4_SPI_BUS_EXT
 #define EXTERNAL_BUS PX4_SPI_BUS_EXT
@@ -185,16 +170,6 @@ private:
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_system_latency_perf;
 	perf_counter_t		_controller_latency_perf;
-
-	uint8_t			_register_wait;
-	uint64_t		_reset_wait;
-
-	math::LowPassFilter2p	_accel_filter_x;
-	math::LowPassFilter2p	_accel_filter_y;
-	math::LowPassFilter2p	_accel_filter_z;
-	math::LowPassFilter2p	_gyro_filter_x;
-	math::LowPassFilter2p	_gyro_filter_y;
-	math::LowPassFilter2p	_gyro_filter_z;
 
 	enum Rotation		_rotation;
 
@@ -372,14 +347,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_reset_retries(perf_alloc(PC_COUNT, "gyrosim_reset_retries")),
 	_system_latency_perf(perf_alloc_once(PC_ELAPSED, "sys_latency")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
-	_register_wait(0),
-	_reset_wait(0),
-	_accel_filter_x(GYROSIM_ACCEL_DEFAULT_RATE, GYROSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_y(GYROSIM_ACCEL_DEFAULT_RATE, GYROSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_z(GYROSIM_ACCEL_DEFAULT_RATE, GYROSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_x(GYROSIM_GYRO_DEFAULT_RATE, GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_y(GYROSIM_GYRO_DEFAULT_RATE, GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_z(GYROSIM_GYRO_DEFAULT_RATE, GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_last_temperature(0)
 {
@@ -571,6 +538,7 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 void
 GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
+	PX4_INFO("GYROSIM::_set_sample_rate %uHz", desired_sample_rate_hz);
 	if (desired_sample_rate_hz == 0 ||
 			desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
 			desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
@@ -580,8 +548,16 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 	uint8_t div = 1000 / desired_sample_rate_hz;
 	if(div>200) div=200;
 	if(div<1) div=1;
+
+	// This does nothing in the simulator but writes the value in the "register" so
+	// register dumps look correct
 	write_reg(MPUREG_SMPLRT_DIV, div-1);
+
 	_sample_rate = 1000 / div;
+	PX4_INFO("GYROSIM: Changed sample rate to %uHz", _sample_rate);
+	_call_interval = 1000000/_sample_rate;
+	hrt_cancel(&_call);
+	hrt_call_every(&_call, _call_interval, _call_interval, (hrt_callout)&GYROSIM::measure_trampoline, this);
 }
 
 ssize_t
@@ -775,9 +751,6 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
-
 					/* convert hz to hrt interval via microseconds */
 					unsigned ticks = 1000000 / arg;
 
@@ -785,22 +758,11 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					if (ticks < 1000)
 						return -EINVAL;
 
-					// adjust filters
-					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f/ticks;
-					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-
-
-					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-
 					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval = ticks;
+					_call_interval = ticks;
+
+					/* do we need to start internal polling? */
+					bool want_start = (_call_interval == 0);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -839,14 +801,7 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		_set_sample_rate(arg);
 		return OK;
 
-	case ACCELIOCGLOWPASS:
-		return _accel_filter_x.get_cutoff_freq();
-
 	case ACCELIOCSLOWPASS:
-		// set software filtering
-		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case ACCELIOCSSCALE:
@@ -915,13 +870,7 @@ GYROSIM::gyro_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		_set_sample_rate(arg);
 		return OK;
 
-	case GYROIOCGLOWPASS:
-		return _gyro_filter_x.get_cutoff_freq();
 	case GYROIOCSLOWPASS:
-		// set hardware filtering
-		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case GYROIOCSSCALE:
@@ -981,9 +930,6 @@ GYROSIM::set_accel_range(unsigned max_g_in)
 	// workaround for bugged versions of MPU6k (rev C)
 	switch (_product) {
 		case GYROSIMES_REV_C4:
-		case GYROSIMES_REV_C5:
-		case GYROSIM_REV_C4:
-		case GYROSIM_REV_C5:
 			write_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
 			_accel_range_scale = (GYROSIM_ONE_G / 4096.0f);
 			_accel_range_m_s2 = 8.0f * GYROSIM_ONE_G;
@@ -1030,7 +976,9 @@ GYROSIM::start()
 	_gyro_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&GYROSIM::measure_trampoline, this);
+	if (_call_interval > 0) {
+		hrt_call_every(&_call, _call_interval, _call_interval, (hrt_callout)&GYROSIM::measure_trampoline, this);
+	}
 }
 
 void
@@ -1051,6 +999,19 @@ GYROSIM::measure_trampoline(void *arg)
 void
 GYROSIM::measure()
 {
+
+#if 0
+	static int x = 0;
+
+	// Verify the samples are being taken at the expected rate
+	if (x == 99) {
+		x = 0;
+		PX4_INFO("GYROSIM::measure %" PRIu64, hrt_absolute_time());
+	}
+	else {
+		x++;
+	}
+#endif
 	struct MPUReport mpu_report;
 
 	/* start measuring */
@@ -1070,23 +1031,17 @@ GYROSIM::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report		arb;
-	gyro_report		grb;
+	accel_report	arb;
+	gyro_report	grb;
 
-	/*
-	 * Adjust and scale results to m/s^2.
-	 */
+	// for now use local time but this should be the timestamp of the simulator
 	grb.timestamp = hrt_absolute_time();
 	arb.timestamp = grb.timestamp;
-
-	// this sleep is needed because the timing of the drivers is not yet working
-	usleep(1000);
-
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
 	// whether it has had failures
-        grb.error_count = arb.error_count = 0;
+        grb.error_count = arb.error_count = 0;	// FIXME
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1374,7 +1329,7 @@ test()
 	}
 
 	/* do a simple demand read */
-	sz = read(fd, &a_report, sizeof(a_report));
+	sz = px4_read(fd, &a_report, sizeof(a_report));
 
 	if (sz != sizeof(a_report)) {
 		PX4_WARN("ret: %zd, expected: %zd", sz, sizeof(a_report));
@@ -1394,7 +1349,7 @@ test()
 	      (double)(a_report.range_m_s2 / GYROSIM_ONE_G));
 
 	/* do a simple demand read */
-	sz = read(fd_gyro, &g_report, sizeof(g_report));
+	sz = px4_read(fd_gyro, &g_report, sizeof(g_report));
 
 	if (sz != sizeof(g_report)) {
 		PX4_WARN("ret: %zd, expected: %zd", sz, sizeof(g_report));

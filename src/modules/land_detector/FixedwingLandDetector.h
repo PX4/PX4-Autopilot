@@ -44,7 +44,9 @@
 #include "LandDetector.h"
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_status.h>
 #include <systemlib/param/param.h>
 
 class FixedwingLandDetector : public LandDetector
@@ -90,11 +92,15 @@ private:
 	} _params;
 
 private:
-	int                                     _vehicleLocalPositionSub;   /**< notification of local position */
-	struct vehicle_local_position_s         _vehicleLocalPosition;      /**< the result from local position subscription */
-	int                                     _airspeedSub;
-	struct airspeed_s                       _airspeed;
-	int 									_parameterSub;
+	int					_vehicleLocalPositionSub;	/**< notification of local position */
+	struct vehicle_local_position_s		_vehicleLocalPosition;		/**< the result from local position subscription */
+	int					_airspeedSub;
+	int					_vehicleStatusSub;
+	int					_armingSub;
+	struct airspeed_s			_airspeed;
+	struct vehicle_status_s 		_vehicleStatus;
+	struct actuator_armed_s			_arming;
+	int 					_parameterSub;
 
 	float _velocity_xy_filtered;
 	float _velocity_z_filtered;
