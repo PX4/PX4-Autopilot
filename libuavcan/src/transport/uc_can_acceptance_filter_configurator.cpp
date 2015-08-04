@@ -9,18 +9,30 @@
 namespace uavcan
 {
 const unsigned CanAcceptanceFilterConfigurator::DefaultFilterMsgMask;
-const unsigned CanAcceptanceFilterConfigurator::DefaultFilterServiceRequestID;
-const unsigned CanAcceptanceFilterConfigurator::DefaultFilterServiceRequestMask;
-const unsigned CanAcceptanceFilterConfigurator::ServiceRespFrameID;
-const unsigned CanAcceptanceFilterConfigurator::ServiceRespFrameMask;
+const unsigned CanAcceptanceFilterConfigurator::DefaultFilterServiceID;
+const unsigned CanAcceptanceFilterConfigurator::DefaultFilterServiceMask;
+const unsigned CanAcceptanceFilterConfigurator::DefaultAnonMsgMask;
+const unsigned CanAcceptanceFilterConfigurator::DefaultAnonMsgID;
 
-int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration()
+int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessages load_mode)
 {
     multiset_configs_.clear();
 
+    if (load_mode == AcceptAnonymousMessages)
+    {
+        CanFilterConfig anon_frame_cfg;
+        anon_frame_cfg.id = DefaultAnonMsgID;
+        anon_frame_cfg.mask = DefaultAnonMsgMask;
+        if (multiset_configs_.emplace(anon_frame_cfg) == NULL)
+        {
+            return -ErrMemory;
+        }
+    }
+
     CanFilterConfig service_resp_cfg;
-    service_resp_cfg.id = ServiceRespFrameID;
-    service_resp_cfg.mask = ServiceRespFrameMask;
+    service_resp_cfg.id = DefaultFilterServiceID;
+    service_resp_cfg.id |= static_cast<uint32_t>(node_.getNodeID().get()) << 8;
+    service_resp_cfg.mask = DefaultFilterServiceMask;
     if (multiset_configs_.emplace(service_resp_cfg) == NULL)
     {
         return -ErrMemory;
@@ -30,28 +42,13 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration()
     while (p)
     {
         CanFilterConfig cfg;
-        cfg.id = static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 16;
-        cfg.id |= static_cast<uint32_t>(p->getDataTypeDescriptor().getKind()) << 8;
+        cfg.id = static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 8;
         cfg.mask = DefaultFilterMsgMask;
         if (multiset_configs_.emplace(cfg) == NULL)
         {
             return -ErrMemory;
         }
         p = p->getNextListNode();
-    }
-
-    const TransferListenerBase* p1 = node_.getDispatcher().getListOfServiceRequestListeners().get();
-    while (p1)
-    {
-        CanFilterConfig cfg;
-        cfg.id = DefaultFilterServiceRequestID;
-        cfg.id |= static_cast<uint32_t>(p1->getDataTypeDescriptor().getID().get()) << 17;
-        cfg.mask = DefaultFilterServiceRequestMask;
-        if (multiset_configs_.emplace(cfg) == NULL)
-        {
-            return -ErrMemory;
-        }
-        p1 = p1->getNextListNode();
     }
 
     if (multiset_configs_.getSize() == 0)
@@ -152,7 +149,7 @@ int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
     return 0;
 }
 
-int CanAcceptanceFilterConfigurator::configureFilters()
+int CanAcceptanceFilterConfigurator::configureFilters(AnonymousMessages mode)
 {
     if (getNumFilters() == 0)
     {
@@ -160,7 +157,7 @@ int CanAcceptanceFilterConfigurator::configureFilters()
         return -ErrDriver;
     }
 
-    int16_t fill_array_error = loadInputConfiguration();
+    int16_t fill_array_error = loadInputConfiguration(mode);
     if (fill_array_error != 0)
     {
         UAVCAN_TRACE("CanAcceptanceFilter::loadInputConfiguration", "Failed to execute loadInputConfiguration()");
