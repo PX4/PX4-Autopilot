@@ -537,7 +537,7 @@ protected:
 			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
 			msg.load = status.load * 1000.0f;
 			msg.voltage_battery = status.battery_voltage * 1000.0f;
-			msg.current_battery = status.battery_current / 10.0f;
+			msg.current_battery = status.battery_current * 100.0f;
 			msg.drop_rate_comm = status.drop_rate_comm;
 			msg.errors_comm = status.errors_comm;
 			msg.errors_count1 = status.errors_count1;
@@ -562,7 +562,7 @@ protected:
 					bat_msg.voltages[i] = 0;
 				}
 			}
-			bat_msg.current_battery = status.battery_current / 10.0f;
+			bat_msg.current_battery = status.battery_current * 100.0f;
 			bat_msg.current_consumed = status.battery_discharged_mah;
 			bat_msg.energy_consumed = -1.0f;
 			bat_msg.battery_remaining = (status.battery_voltage > 0) ?
