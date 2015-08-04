@@ -34,10 +34,14 @@ namespace uavcan
 class CanAcceptanceFilterConfigurator
 {
 public:
-	/**
-	 * These arguments defines whether acceptance filter configuration has anonymous messages or not
-	 */
-	enum AnonymousMessages {AcceptAnonymousMessages,IgnoreAnonymousMessages};
+    /**
+     * These arguments defines whether acceptance filter configuration has anonymous messages or not
+     */
+    enum AnonymousMessages
+    {
+        AcceptAnonymousMessages,
+        IgnoreAnonymousMessages
+    };
 
 private:
     /**
@@ -53,7 +57,7 @@ private:
      * HW filters.
      * DefaultAnonMsgMask = 00000 00000000 00000000 11111111
      * DefaultAnonMsgID   = 00000 00000000 00000000 00000000, by default the config is added to accept all anonymous
-     * frames. In case there are no anonymous messages, invoke configureFilters(NoAnonMsg).
+     * frames. In case there are no anonymous messages, invoke configureFilters(IgnoreAnonymousMessages).
      */
     static const unsigned DefaultFilterMsgMask = 0xFFFF80;
     static const unsigned DefaultFilterServiceMask = 0x7F80;
@@ -95,8 +99,10 @@ public:
     /**
      * This method invokes loadInputConfiguration(), computeConfiguration() and applyConfiguration() consequently, so
      * that optimal acceptance filter configuration will be computed and loaded through CanDriver::configureFilters()
-     * @return 0 = success, negative for error. Input argument defines the presence of anonymous messages
-     * WithAnonMsg(default)/NoAnonMsg.
+     *
+     * @param mode Either: AcceptAnonymousMessages - the filters will accept all anonymous messages (this is default)
+     *                     IgnoreAnonymousMessages - anonymous messages will be ignored
+     * @return 0 = success, negative for error.
      */
     int configureFilters(AnonymousMessages mode = AcceptAnonymousMessages);
 
