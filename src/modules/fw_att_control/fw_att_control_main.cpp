@@ -945,13 +945,15 @@ FixedwingAttitudeControl::task_main()
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
-					if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
-						/* publish the attitude setpoint */
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
+					if (!_vehicle_status.is_rotary_wing) {
+						if (_attitude_sp_pub != nullptr) {
+							/* publish the attitude setpoint */
+							orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
 
-					} else if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
-						/* advertise and publish */
-						_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+						} else {
+							/* advertise and publish */
+							_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+						}
 					}
 				}
 
