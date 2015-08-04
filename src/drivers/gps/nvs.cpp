@@ -98,10 +98,10 @@
 #define I1(p) (*((char *)(p)))
 //static unsigned short U2(unsigned char *p) {unsigned short u; memcpy(&u,p,2); return u;}
 //static unsigned int   U4(unsigned char *p) {unsigned int   u; memcpy(&u,p,4); return u;}
-static short          I2(unsigned char *p) {short          i; memcpy(&i, p, 2); return i;}
+static inline short          I2(unsigned char *p) {short          i; memcpy(&i, p, 2); return i;}
 //static int            I4(unsigned char *p) {int            i; memcpy(&i,p,4); return i;}
-static float          R4(unsigned char *p) {float          r; memcpy(&r, p, 4); return r;}
-static double         R8(unsigned char *p) {double         r; memcpy(&r, p, 8); return r;}
+static inline float          R4(unsigned char *p) {float          r; memcpy(&r, p, 4); return r;}
+static inline double         R8(unsigned char *p) {double         r; memcpy(&r, p, 8); return r;}
 //static char           R1(unsigned char *p) {char        r; memcpy(&r,p,1); return r;}
 
 
@@ -398,20 +398,27 @@ int NVS::x88pvt_decode()
 	unsigned char *p = raw.buff + 2;
 
 	_gps_position->lat = radiansToDegrees_1E7(R8(p));
-
+	
 	_gps_position->lon = radiansToDegrees_1E7(R8(p + 8));
-
 	_gps_position->alt = (int32_t) alt_m_1E3(R8(p + 16));
+
 	_gps_position->timestamp_position = hrt_absolute_time();
 
+	_rate_count_lat_lon++;
 
-	/* Speed */
+
+	/* Velocity */
 
 	_gps_position->vel_n_m_s = R8(p + 40);
 	_gps_position->vel_e_m_s = R8(p + 48);
 	_gps_position->vel_d_m_s = R8(p + 56);
 	_gps_position->timestamp_velocity = hrt_absolute_time();
 	_gps_position->vel_ned_valid	= true;
+
+
+	_rate_count_vel++;
+
+
 
 	//	Acrescentado: Joel Oliveira and Miguel Moreira
 
@@ -440,7 +447,14 @@ int NVS::x88pvt_decode()
 
 	//Fills the struct with time
 	_gps_position->time_utc_usec = ((uint64_t)(time.time) * 1000000) + (uint64_t)(time.sec) * 1000  ; //TODO: test this
-	_gps_position->timestamp_position = _gps_position->time_utc_usec;
+
+	//_gps_position->timestamp_position = _gps_position->time_utc_usec; // <<- wrong according 
+	
+	_gps_position->timestamp_time 		= hrt_absolute_time();
+	_gps_position->timestamp_velocity 	= hrt_absolute_time();
+	_gps_position->timestamp_variance 	= hrt_absolute_time();
+	_gps_position->timestamp_position	= hrt_absolute_time();
+
 
 
 
