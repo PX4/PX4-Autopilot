@@ -11,10 +11,6 @@ then
 	param set NAV_RTL_ALT 100
 	param set NAV_RTL_LAND_T -1
 	param set NAV_ACC_RAD 50
-	param set FW_T_HRATE_P 0.01
-	param set FW_T_RLL2THR 15
-	param set FW_T_SRATE_P 0.01
-	param set FW_T_TIME_CONST 5
 
 	param set PE_VELNE_NOISE 0.3
 	param set PE_VELD_NOISE 0.35

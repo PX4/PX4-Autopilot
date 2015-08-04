@@ -88,7 +88,7 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * @max 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.01f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.02f);
 
 /**
  * Maximum positive / up pitch rate.
@@ -101,7 +101,7 @@ PARAM_DEFINE_FLOAT(FW_PR_I, 0.01f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
 
 /**
  * Maximum negative / down pitch rate.
@@ -114,7 +114,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 
 /**
  * Pitch rate integrator limit
@@ -185,7 +185,7 @@ PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_R_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
 
 /**
  * Yaw rate proportional gain
@@ -258,7 +258,7 @@ PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
  * @max 10.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_FF, 0.4f);
+PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
 
 /**
  * Yaw rate feed forward
