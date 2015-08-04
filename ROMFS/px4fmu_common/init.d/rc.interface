@@ -98,6 +98,13 @@ then
 fi
 
 # check if should load secondary mixer
+set OUTPUT_AUX_DEV /dev/pwm_output1
+if [ -f $OUTPUT_AUX_DEV ]
+then
+else
+	set MIXER_AUX none
+fi
+
 if [ $MIXER_AUX != none ]
 then
 	#
@@ -105,7 +112,6 @@ then
 	#
 
 	set MIXER_AUX_FILE none
-	set OUTPUT_AUX_DEV /dev/pwm_output1
 
 	if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.aux.mix ]
 	then
@@ -169,3 +175,4 @@ then
 	fi
 fi
 unset OUTPUT_DEV
+unset OUTPUT_AUX_DEV
