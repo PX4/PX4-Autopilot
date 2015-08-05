@@ -174,7 +174,7 @@ void Pusher::update_vtol_state()
 void Pusher::update_transition_state()
 {
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
-		if (_params_pusher.front_trans_dur < 0.0f) {
+		if (_params_pusher.front_trans_dur <= 0.0f) {
 			// just set the final target throttle value
 			_pusher_throttle = _params_pusher.pusher_trans;
 		} else if (_pusher_throttle <= _params_pusher.pusher_trans) {
