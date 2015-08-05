@@ -58,9 +58,9 @@ Tailsitter::~Tailsitter()
 void Tailsitter::update_vtol_state()
 {
 	// simply switch between the two modes
-	if (_manual_control_sp->aux1 < 0.0f) {
+	if (!is_fixed_wing_requested()) {
 		_vtol_mode = ROTARY_WING;
-	} else if (_manual_control_sp->aux1 > 0.0f) {
+	} else {
 		_vtol_mode = FIXED_WING;
 	}
 }
