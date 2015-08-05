@@ -84,6 +84,7 @@
 
 #include "tiltrotor.h"
 #include "tailsitter.h"
+#include "pusher.h"
 
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
@@ -188,6 +189,7 @@ private:
 	VtolType * _vtol_type;	// base class for different vtol types
 	Tiltrotor * _tiltrotor;	// tailsitter vtol type
 	Tailsitter * _tailsitter;	// tiltrotor vtol type
+	Pusher * _pusher;	// pusher vtol type
 
 //*****************Member functions***********************************************************************
 
