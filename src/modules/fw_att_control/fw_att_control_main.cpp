@@ -695,7 +695,6 @@ FixedwingAttitudeControl::task_main()
 		/* only run controller if attitude changed */
 		if (fds[1].revents & POLLIN) {
 
-
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
@@ -800,7 +799,7 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			/* if we are in rotary wing mode, do nothing */
-			if (_vehicle_status.is_rotary_wing) {
+			if (_vehicle_status.is_rotary_wing && !_vehicle_status.is_vtol) {
 				continue;
 			}
 
@@ -813,11 +812,8 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			/* decide if in stabilized or full manual control */
-
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
-
 				/* scale around tuning airspeed */
-
 				float airspeed;
 
 				/* if airspeed is not updating, we assume the normal average speed */
