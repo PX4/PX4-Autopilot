@@ -73,6 +73,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_command.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
@@ -115,6 +116,7 @@ public:
 	struct vehicle_local_position_s* 	get_local_pos () {return &_local_pos;}
 	struct airspeed_s* 					get_airspeed () {return &_airspeed;}
 	struct battery_status_s* 			get_batt_status () {return &_batt_status;}
+	struct vehicle_command_s*			get_vehicle_transition_cmd () {return &_vehicle_transition_cmd;}
 
 	struct Params* 						get_params () {return &_params;}
 
@@ -136,6 +138,7 @@ private:
 	int 	_local_pos_sub;			// sensor subscription
 	int 	_airspeed_sub;			// airspeed subscription
 	int 	_battery_status_sub;	// battery status subscription
+	int 	_vehicle_cmd_sub;
 
 	int 	_actuator_inputs_mc;	//topic on which the mc_att_controller publishes actuator inputs
 	int 	_actuator_inputs_fw;	//topic on which the fw_att_controller publishes actuator inputs
@@ -162,6 +165,8 @@ private:
 	struct vehicle_local_position_s		_local_pos;
 	struct airspeed_s 					_airspeed;			// airspeed
 	struct battery_status_s 			_batt_status; 		// battery status
+	struct vehicle_command_s			_vehicle_cmd;
+	struct vehicle_command_s			_vehicle_transition_cmd; // stores transition commands only
 
 	Params _params;	// struct holding the parameters
 
@@ -206,6 +211,7 @@ private:
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
 	void 		vehicle_airspeed_poll();		// Check for changes in airspeed
 	void 		vehicle_battery_poll();			// Check for battery updates
+	void		vehicle_cmd_poll();
 	void 		parameters_update_poll();		//Check if parameters have changed
 	int 		parameters_update();			//Update local paraemter cache
 	void 		fill_mc_att_rates_sp();

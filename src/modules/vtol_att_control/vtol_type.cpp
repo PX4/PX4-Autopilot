@@ -63,6 +63,7 @@ _vtol_mode(ROTARY_WING)
 	_local_pos = _attc->get_local_pos();
 	_airspeed = _attc->get_airspeed();
 	_batt_status = _attc->get_batt_status();
+	_vehicle_transition_cmd = _attc->get_vehicle_transition_cmd();
 	_params = _attc->get_params();
 
 	flag_idle_mc = true;
@@ -130,4 +131,17 @@ void VtolType::set_idle_fw()
 	if (ret != OK) {errx(ret, "failed setting min values");}
 
 	close(fd);
+}
+
+/*
+ * Return true if fixed-wing mode is requested.
+ * Either via switch or via command.
+ */
+bool VtolType::is_fixed_wing_requested()
+{
+	bool to_fw = _manual_control_sp->aux1 > 0.0f;
+ 	if (_v_control_mode->flag_control_offboard_enabled) {
+ 		to_fw = fabsf(_vehicle_transition_cmd->param1 - vehicle_status_s::VEHICLE_VTOL_STATE_FW) < FLT_EPSILON;
+ 	}
+ 	return to_fw;
 }
