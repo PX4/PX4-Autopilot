@@ -32,43 +32,20 @@
  ****************************************************************************/
 
 /**
- * @file tiltrotor_params.c
- * Parameters for vtol attitude controller.
+ * @file standard_params.c
+ * Parameters for the standard VTOL controller.
  *
- * @author Roman Bapst <bapstroman@gmail.com>
+ * @author Simon Wilks	<simon@uaventure.com>
+ * @author Roman Bapst	<bapstroman@gmail.com>
  */
 
 #include <systemlib/param/param.h>
 
 /**
- * Position of tilt servo in mc mode
- *
- * Position of tilt servo in mc mode
+ * Target throttle value for pusher/puller motor during the transition to fw mode
  *
  * @min 0.0
- * @max 1
+ * @max 1.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_TILT_MC, 0.0f);
-
-/**
- * Position of tilt servo in transition mode
- *
- * Position of tilt servo in transition mode
- *
- * @min 0.0
- * @max 1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_TILT_TRANS, 0.3f);
-
-/**
- * Position of tilt servo in fw mode
- *
- * Position of tilt servo in fw mode
- *
- * @min 0.0
- * @max 1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
+PARAM_DEFINE_FLOAT(VT_TRANS_THR, 0.6f);
