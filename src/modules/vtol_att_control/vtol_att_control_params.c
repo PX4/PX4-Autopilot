@@ -161,3 +161,47 @@ PARAM_DEFINE_INT32(VT_TYPE, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 0);
+
+/**
+ * Duration of a front transition
+ *
+ * Time in seconds used for a transition
+ *
+ * @min 0.0
+ * @max 5
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 3.0f);
+
+/**
+ * Duration of a back transition
+ *
+ * Time in seconds used for a back transition
+ *
+ * @min 0.0
+ * @max 5
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 2.0f);
+
+/**
+ * Transition blending airspeed
+ *
+ * Airspeed at which we can start blending both fw and mc controls. Set to 0 to disable.
+ *
+ * @min 0.0
+ * @max 20.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ARSP_BLEND, 8.0f);
+
+/**
+ * Transition airspeed
+ *
+ * Airspeed at which we can switch to fw mode
+ *
+ * @min 1.0
+ * @max 20
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);

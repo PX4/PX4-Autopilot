@@ -68,21 +68,17 @@ private:
 	struct {
 		float front_trans_dur;
 		float back_trans_dur;
-		float pusher_mc;
-		float pusher_transition;
-		float pusher_fw;
+		float pusher_trans;
+		float airspeed_blend;
 		float airspeed_trans;
-		int elevons_mc_lock;			// lock elevons in multicopter mode
 	} _params_pusher;
 
 	struct {
 		param_t front_trans_dur;
 		param_t back_trans_dur;
-		param_t pusher_mc;
-		param_t pusher_transition;
-		param_t pusher_fw;
+		param_t pusher_trans;
+		param_t airspeed_blend;
 		param_t airspeed_trans;
-		param_t elevons_mc_lock;
 	} _params_handles_pusher;
 
 	enum vtol_mode {
@@ -100,9 +96,9 @@ private:
 	bool _flag_enable_mc_motors;
 	float _pusher_throttle;
 	float _mc_att_ctl_weight;	// the amount of multicopter attitude control that should be applied in fixed wing mode while transitioning 
+	float _airspeed_trans_blend_margin;
 
-	void fill_mc_att_control_output();
-	void fill_fw_att_control_output();
+	void fill_att_control_output();
 	void set_max_mc(unsigned pwm_value);
 
 	int parameters_update();

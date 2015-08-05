@@ -42,24 +42,21 @@
 #include "pusher.h"
 #include "vtol_att_control_main.h"
 
-#define ARSP_BLEND_START 8.0f	// airspeed at which we start blending mc/fw controls
-
 Pusher::Pusher(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_flag_enable_mc_motors(true),
 	_pusher_throttle(0.0f),
-	_mc_att_ctl_weight(1.0f)
+	_mc_att_ctl_weight(1.0f),
+	_airspeed_trans_blend_margin(0.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
 
 	_params_handles_pusher.front_trans_dur = param_find("VT_F_TRANS_DUR");
 	_params_handles_pusher.back_trans_dur = param_find("VT_B_TRANS_DUR");
-	_params_handles_pusher.pusher_mc = param_find("VT_TILT_MC");
-	_params_handles_pusher.pusher_transition = param_find("VT_TILT_TRANS");
-	_params_handles_pusher.pusher_fw = param_find("VT_TILT_FW");
+	_params_handles_pusher.pusher_trans = param_find("VT_TRANS_THR");
+	_params_handles_pusher.airspeed_blend = param_find("VT_ARSP_BLEND");
 	_params_handles_pusher.airspeed_trans = param_find("VT_ARSP_TRANS");
-	_params_handles_pusher.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
  }
 
 Pusher::~Pusher()
@@ -70,35 +67,28 @@ int
 Pusher::parameters_update()
 {
 	float v;
-	int l;
 
-	/* vtol duration of a front transition */
+	/* duration of a forwards transition to fw mode */
 	param_get(_params_handles_pusher.front_trans_dur, &v);
-	_params_pusher.front_trans_dur = math::constrain(v, 1.0f, 5.0f);
+	_params_pusher.front_trans_dur = math::constrain(v, 0.0f, 5.0f);
 
-	/* vtol duration of a back transition */
+	/* duration of a back transition to mc mode */
 	param_get(_params_handles_pusher.back_trans_dur, &v);
 	_params_pusher.back_trans_dur = math::constrain(v, 0.0f, 5.0f);
 
-	/* vtol pusher mechanism position in mc mode */
-	param_get(_params_handles_pusher.pusher_mc, &v);
-	_params_pusher.pusher_mc = v;
+	/* target throttle value for pusher motor during the transition to fw mode */
+	param_get(_params_handles_pusher.pusher_trans, &v);
+	_params_pusher.pusher_trans = math::constrain(v, 0.0f, 5.0f);
 
-	/* vtol pusher mechanism position in transition mode */
-	param_get(_params_handles_pusher.pusher_transition, &v);
-	_params_pusher.pusher_transition = v;
-
-	/* vtol pusher mechanism position in fw mode */
-	param_get(_params_handles_pusher.pusher_fw, &v);
-	_params_pusher.pusher_fw = v;
-
-	/* vtol airspeed at which it is ok to switch to fw mode */
+	/* airspeed at which it we should switch to fw mode */
 	param_get(_params_handles_pusher.airspeed_trans, &v);
-	_params_pusher.airspeed_trans = v;
+	_params_pusher.airspeed_trans = math::constrain(v, 1.0f, 20.0f);
 
-	/* vtol lock elevons in multicopter */
-	param_get(_params_handles_pusher.elevons_mc_lock, &l);
-	_params_pusher.elevons_mc_lock = l;
+	/* airspeed at which we start blending mc/fw controls */
+	param_get(_params_handles_pusher.airspeed_blend, &v);
+	_params_pusher.airspeed_blend = math::constrain(v, 0.0f, 20.0f);
+
+	_airspeed_trans_blend_margin = _params_pusher.airspeed_trans - _params_pusher.airspeed_blend;
 
 	return OK;
 }
@@ -129,6 +119,7 @@ void Pusher::update_vtol_state()
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// failsafe back to mc mode
 			_vtol_schedule.flight_mode = MC_MODE;
+			_mc_att_ctl_weight = 1.0f;
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// keep transitioning to mc mode
@@ -143,14 +134,12 @@ void Pusher::update_vtol_state()
 		if (_vtol_schedule.flight_mode == MC_MODE) {
 			// start transition to fw mode
 			_vtol_schedule.flight_mode = TRANSITION_TO_FW;
-			_pusher_throttle = 0.0f;	// start from zero so we can ramp up from a known min. value
 			_vtol_schedule.transition_start = hrt_absolute_time();
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// in fw mode
 			_vtol_schedule.flight_mode = FW_MODE;
-			// use commanded fw throttle
-			_pusher_throttle = _actuators_fw_in->control[3];
+			_mc_att_ctl_weight = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
@@ -162,13 +151,10 @@ void Pusher::update_vtol_state()
 			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
-			// transitioning to mc mode & transition switch on - failsafe into fw mode
+			// transitioning to mc mode & transition switch on - failsafe back into fw mode
 			_vtol_schedule.flight_mode = FW_MODE;
-			_pusher_throttle = _actuators_fw_in->control[3];
 		}
 	}
-
-	update_transition_state();
 
 	// map pusher specific control phases to simple control modes
 	switch(_vtol_schedule.flight_mode) {
@@ -188,28 +174,30 @@ void Pusher::update_vtol_state()
 void Pusher::update_transition_state()
 {
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
-		// Ramp up throttle to the current throttle value to something above cruise throttle
-		// NOTE: Probably need to be a bit more clever than this. Should we keep ramping up to full throttle during which time transition airspeed should be reached?
-		if (_pusher_throttle <= _params_pusher.pusher_transition) {
-			_pusher_throttle = _params_pusher.pusher_mc + fabsf(_params_pusher.pusher_transition - _params_pusher.pusher_mc) * 
+		if (_params_pusher.front_trans_dur < 0.0f) {
+			// just set the final target throttle value
+			_pusher_throttle = _params_pusher.pusher_trans;
+		} else if (_pusher_throttle <= _params_pusher.pusher_trans) {
+			// ramp up throttle to the target throttle value
+			_pusher_throttle = _params_pusher.pusher_trans * 
 						(float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_pusher.front_trans_dur * 1000000.0f);
 		}
 
-		// do blending of mc and fw controls
-		if (_airspeed->true_airspeed_m_s >= ARSP_BLEND_START) {
-			_mc_att_ctl_weight = 1.0f - (_airspeed->true_airspeed_m_s - ARSP_BLEND_START) / (_params_pusher.airspeed_trans - ARSP_BLEND_START);
+		// do blending of mc and fw controls if a blending airspeed has been provided
+		if (_airspeed_trans_blend_margin > 0.0f && _airspeed->true_airspeed_m_s >= _params_pusher.airspeed_blend) {
+			_mc_att_ctl_weight = 1.0f - fabsf(_airspeed->true_airspeed_m_s - _params_pusher.airspeed_blend) / _airspeed_trans_blend_margin;
 		} else {
 			// at low speeds give full weight to mc
 			_mc_att_ctl_weight = 1.0f;
 		}
 
-		_mc_att_ctl_weight = math::constrain(_mc_att_ctl_weight, 0.0f, 1.0f);
-	} else if (_vtol_schedule.flight_mode == FW_MODE) {
-		_mc_att_ctl_weight = 0.0f;
-
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 		// continually increase mc attitude control as we transition back to mc mode
-		_mc_att_ctl_weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_pusher.back_trans_dur * 1000000.0f);
+		if (_params_pusher.back_trans_dur > 0.0f) {
+			_mc_att_ctl_weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_pusher.back_trans_dur * 1000000.0f);
+		} else {
+			_mc_att_ctl_weight = 1.0f;	
+		}
 
 		// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again	
 		if (_flag_enable_mc_motors) {
@@ -218,6 +206,8 @@ void Pusher::update_transition_state()
 			_flag_enable_mc_motors = false;
 		}
 	}
+
+	_mc_att_ctl_weight = math::constrain(_mc_att_ctl_weight, 0.0f, 1.0f);
 }
 
 void Pusher::update_mc_state()
@@ -227,7 +217,12 @@ void Pusher::update_mc_state()
 
 void Pusher::process_mc_data()
 {
-	fill_mc_att_control_output();
+	fill_att_control_output();
+}
+
+void Pusher::process_fw_data()
+{
+	fill_att_control_output();
 }
 
  void Pusher::update_fw_state()
@@ -240,53 +235,36 @@ void Pusher::process_mc_data()
 	}
  }
 
-void Pusher::process_fw_data()
-{
-	fill_fw_att_control_output();
-}
-
 void Pusher::update_external_state()
 {
-
 }
 
- /**
-* Prepare message to acutators with data from mc attitude controller.
-* Note that this function will also be called for all transitions into and out of mc mode.
-*/
-void Pusher::fill_mc_att_control_output()
+/**
+ * Prepare message to acutators with data from mc and fw attitude controllers. An mc attitude weighting will determine
+ * what proportion of control should be applied to each of the control groups (mc and fw).
+ */
+void Pusher::fill_att_control_output()
 {
+	/* multirotor controls */
 	_actuators_out_0->control[0] = _actuators_mc_in->control[0] * _mc_att_ctl_weight;	// roll
 	_actuators_out_0->control[1] = _actuators_mc_in->control[1] * _mc_att_ctl_weight;	// pitch
 	_actuators_out_0->control[2] = _actuators_mc_in->control[2] * _mc_att_ctl_weight;	// yaw
 	_actuators_out_0->control[3] = _actuators_mc_in->control[3];	// throttle
 
-	_actuators_out_1->control[0] = -_actuators_fw_in->control[0] * (1.0f - _mc_att_ctl_weight);	//roll elevon
-	_actuators_out_1->control[1] = (_actuators_fw_in->control[1] + _params->fw_pitch_trim)* (1.0f -_mc_att_ctl_weight);	//pitch elevon
-	
-	_actuators_out_1->control[4] = _pusher_throttle;	// for pusher-rotor control
-}
+	/* fixed wing controls */
+	const float fw_att_ctl_weight = 1.0f - _mc_att_ctl_weight;
+	_actuators_out_1->control[0] = -_actuators_fw_in->control[0] * fw_att_ctl_weight;	//roll
+	_actuators_out_1->control[1] = (_actuators_fw_in->control[1] + _params->fw_pitch_trim) * fw_att_ctl_weight;	//pitch
+	_actuators_out_1->control[2] = _actuators_fw_in->control[2] * fw_att_ctl_weight;	// yaw
 
-/**
-* Prepare message to acutators with data from fw attitude controller.
-*/
-void Pusher::fill_fw_att_control_output()
-{
-	/* For the first test in fw mode, only use engines for thrust!!! */
-	_actuators_out_0->control[0] = 0.0f;	// roll
-	_actuators_out_0->control[1] = 0.0f;	// pitch
-	_actuators_out_0->control[2] = 0.0f;	// yaw
-	_actuators_out_0->control[3] = 0.0f;	// throttle
-	
-	/* controls for the elevons */
-	_actuators_out_1->control[0] = -_actuators_fw_in->control[0];	// roll elevon
-	_actuators_out_1->control[1] = _actuators_fw_in->control[1] + _params->fw_pitch_trim;	// pitch elevon
-
-	/* controls for the pusher motor */
-	_actuators_out_1->control[4] = _pusher_throttle;	
-
-	/* unused now but still logged */
-	_actuators_out_1->control[2] = _actuators_fw_in->control[2];	// yaw
+	// set the fixed wing throttle control
+	if (_vtol_schedule.flight_mode == FW_MODE) {
+		// take the throttle value commanded by the fw controller
+		_actuators_out_1->control[3] = _actuators_fw_in->control[3];
+	} else {
+		// otherwise we may be ramping up the throttle during the transition to fw mode 
+		_actuators_out_1->control[3] = _pusher_throttle;
+	}
 }
 
 /**
