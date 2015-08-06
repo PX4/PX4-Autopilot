@@ -46,6 +46,10 @@
 #include <stdint.h>
 #include <queue.h>
 
+#ifdef __PX4_QURT
+   #include <dspal_types.h>
+#endif
+
 __BEGIN_DECLS
 
 #define HPWORK 0

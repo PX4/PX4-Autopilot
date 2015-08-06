@@ -63,6 +63,7 @@ MODULES		+= modules/uORB
 # Linux port
 #
 MODULES		+= platforms/posix/px4_layer
+MODULES		+= platforms/posix/work_queue
 #MODULES		+= platforms/posix/drivers/accelsim
 #MODULES		+= platforms/posix/drivers/gyrosim
 #MODULES		+= platforms/posix/drivers/adcsim

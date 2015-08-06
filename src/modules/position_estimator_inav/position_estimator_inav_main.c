@@ -46,8 +46,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <px4_config.h>
-#include <sys/prctl.h>
-#include <termios.h>
 #include <math.h>
 #include <float.h>
 #include <uORB/uORB.h>
@@ -192,6 +190,7 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 	float corr_vision[3][2], float w_xy_vision_p, float w_z_vision_p, float w_xy_vision_v)
 {
 	return;
+#ifndef __PX4_QURT
 	FILE *f = fopen(PX4_ROOTFSDIR"/fs/microsd/inav.log", "a");
 
 	if (f) {
@@ -215,6 +214,7 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 
 	fsync(fileno(f));
 	fclose(f);
+#endif
 }
 
 /****************************************************************************

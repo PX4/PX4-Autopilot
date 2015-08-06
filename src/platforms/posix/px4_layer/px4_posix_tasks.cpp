@@ -54,6 +54,7 @@
 #include <string>
 
 #include <px4_tasks.h>
+#include <px4_posix.h>
 
 #define MAX_CMD_LEN 100
 
