@@ -97,14 +97,6 @@ then
 	fi
 fi
 
-# check if should load secondary mixer
-set OUTPUT_AUX_DEV /dev/pwm_output1
-if [ -f $OUTPUT_AUX_DEV ]
-then
-else
-	set MIXER_AUX none
-fi
-
 if [ $MIXER_AUX != none ]
 then
 	#
@@ -112,6 +104,7 @@ then
 	#
 
 	set MIXER_AUX_FILE none
+	set OUTPUT_AUX_DEV /dev/pwm_output1
 
 	if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.aux.mix ]
 	then
@@ -128,16 +121,24 @@ then
 	then
 		if fmu mode_pwm
 		then
-			if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
+			if [ -e $OUTPUT_AUX_DEV ]
 			then
-				echo "[i] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
+				if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
+				then
+					echo "[i] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
+				else
+					echo "[i] Error loading mixer: $MIXER_AUX_FILE"
+					echo "ERROR: Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+				fi
 			else
-				echo "[i] Error loading mixer: $MIXER_AUX_FILE"
-				echo "ERROR: Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+				set PWM_AUX_OUT none
+				set FAILSAFE_AUX none
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
 			tone_alarm $TUNE_ERR
+			set PWM_AUX_OUT none
+			set FAILSAFE_AUX none
 		fi
 
 		if [ $PWM_AUX_OUT != none ]

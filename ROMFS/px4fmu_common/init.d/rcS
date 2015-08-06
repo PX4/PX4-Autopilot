@@ -694,13 +694,6 @@ then
 	fi
 	unset FEXTRAS
 
-	if [ $EXIT_ON_END == yes ]
-	then
-		echo "Exit from nsh"
-		exit
-	fi
-	unset EXIT_ON_END
-
 	# Run no SD alarm
 	if [ $LOG_FILE == /dev/null ]
 	then
@@ -711,6 +704,13 @@ then
 
 	# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 	mavlink boot_complete
+
+	if [ $EXIT_ON_END == yes ]
+	then
+		echo "Exit from nsh"
+		exit
+	fi
+	unset EXIT_ON_END
 
 # End of autostart
 fi
