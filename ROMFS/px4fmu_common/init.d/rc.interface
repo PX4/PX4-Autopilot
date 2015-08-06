@@ -121,7 +121,7 @@ then
 	then
 		if fmu mode_pwm
 		then
-			if [ -f $OUTPUT_AUX_DEV ]
+			if [ -e $OUTPUT_AUX_DEV ]
 			then
 				if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
 				then
