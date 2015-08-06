@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Generic AERT with Quad VTOL.
+# @name Generic AAERT tailplane airframe with Quad VTOL.
 #
 # @type Standard VTOL
 #
@@ -36,7 +36,7 @@ fi
 set MIXER vtol_quad_x
 set PWM_OUT 12345678
 
-set MIXER_AUX vtol_AERT
+set MIXER_AUX vtol_AAERT
 set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234
 set PWM_AUX_DISARMED 1000
