@@ -47,7 +47,6 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <float.h>
-#include <termios.h>
 #include <errno.h>
 #include <limits.h>
 #include <math.h>
