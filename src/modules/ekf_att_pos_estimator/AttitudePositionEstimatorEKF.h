@@ -335,7 +335,7 @@ private:
     /**
      * Initialize the reference position for the local coordinate frame
      */
-    void initReferencePosition(hrt_abstime timestamp,
+    void initReferencePosition(hrt_abstime timestamp, bool gps_valid,
             double lat, double lon, float gps_alt, float baro_alt);
 
     /**
