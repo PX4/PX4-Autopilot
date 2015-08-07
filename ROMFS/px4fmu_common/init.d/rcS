@@ -500,6 +500,10 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
 		fi
+		if param compare TRIG_MODE 2
+		then
+			camera_trigger start
+		fi
 	fi
 
 	# UAVCAN
