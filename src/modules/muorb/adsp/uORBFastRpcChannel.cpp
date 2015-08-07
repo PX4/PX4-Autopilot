@@ -457,7 +457,7 @@ int16_t uORB::FastRpcChannel::get_bulk_data
 	}
 
 	if (topic_count_to_return != *topic_count) {
-		PX4_WARN("Not sending all topics: topics_to_return:[%d] topics_returning:[%d]", topic_count_to_return, *topic_count);
+		PX4_WARN("Not sending all topics: topics_to_return:[%ld] topics_returning:[%ld]", topic_count_to_return, *topic_count);
 	}
 
 	_QueueMutex.unlock();
@@ -539,7 +539,7 @@ int32_t uORB::FastRpcChannel::copy_data_to_buffer(int32_t src_index, uint8_t *ds
 
 	} else {
 		PX4_WARN("Error coping the DataMsg to dst buffer, insuffienct space. ");
-		PX4_WARN("... offset[%d] len[%d] data_msg_len[%d]",
+		PX4_WARN("... offset[%ld] len[%ld] data_msg_len[%ld]",
 			 offset, dst_buffer_len, (field_data_offset - offset) + _DataMsgQueue[ src_index ]._Length);
 	}
 

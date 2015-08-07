@@ -41,10 +41,11 @@
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
-#elif defined(__PX4_POSIX) || defined(__PX4_QURT)
+#elif defined(__PX4_POSIX)
 
 #include <stdint.h>
 #include <queue.h>
+#include <px4_platform_types.h>
 
 __BEGIN_DECLS
 

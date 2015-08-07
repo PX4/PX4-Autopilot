@@ -96,7 +96,7 @@ int MuorbTestExample::DefaultTest()
 		orb_publish(ORB_ID(pwm_input), pub_fd, &pwm);
 		orb_publish(ORB_ID(sensor_combined), pub_sc, &sc);
 
-		sleep(1);
+		usleep(1000000);
 		++i;
 	}
 
@@ -194,6 +194,7 @@ int MuorbTestExample::FileReadTest()
 		rc = PX4_ERROR;
 
 	} else {
+		/*
 		int i = 0;
 		while( ( read = getline( &line, &len, fp ) ) != -1 )
 		{
@@ -201,6 +202,7 @@ int MuorbTestExample::FileReadTest()
 			PX4_INFO( "LineNum[%d] LineLength[%d]", i, len );
 			PX4_INFO( "LineNum[%d] Line[%s]", i, line );
 		}
+		*/
 		PX4_INFO("Successfully opened file [%s]", TEST_FILE_PATH);
 		fclose(fp);
 

@@ -637,6 +637,10 @@ then
 			then
 				set MAV_TYPE 21
 			fi
+			if [ $MIXER == quad_x_pusher_vtol ]
+			then
+				set MAV_TYPE 22
+			fi
 		fi
 
 		# Still no MAV_TYPE found
@@ -705,13 +709,6 @@ then
 	fi
 	unset FEXTRAS
 
-	if [ $EXIT_ON_END == yes ]
-	then
-		echo "Exit from nsh"
-		exit
-	fi
-	unset EXIT_ON_END
-
 	# Run no SD alarm
 	if [ $LOG_FILE == /dev/null ]
 	then
@@ -722,6 +719,13 @@ then
 
 	# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 	mavlink boot_complete
+
+	if [ $EXIT_ON_END == yes ]
+	then
+		echo "Exit from nsh"
+		exit
+	fi
+	unset EXIT_ON_END
 
 # End of autostart
 fi
