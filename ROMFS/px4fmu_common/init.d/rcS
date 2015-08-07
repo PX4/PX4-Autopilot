@@ -702,18 +702,18 @@ then
 		tone_alarm error
 	fi
 
-	# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
-	mavlink boot_complete
-
-	if [ $EXIT_ON_END == yes ]
-	then
-		echo "Exit from nsh"
-		exit
-	fi
-	unset EXIT_ON_END
-
 # End of autostart
 fi
+
+# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
+mavlink boot_complete
+
+if [ $EXIT_ON_END == yes ]
+then
+	echo "Exit from nsh"
+	exit
+fi
+unset EXIT_ON_END
 
 # There is no further processing, so we can free some RAM
 # XXX potentially unset all script variables.
