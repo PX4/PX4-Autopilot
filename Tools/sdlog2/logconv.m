@@ -16,7 +16,7 @@ close all
 % ************************************************************************
 
 % Set the path to your sysvector.bin file here
-filePath = 'log001.bin';
+filePath = '02_59_35.px4log';
 
 % Set the minimum and maximum times to plot here [in seconds]
 mintime=0;        %The minimum time/timestamp to display, as set by the user [0 for first element / start]
@@ -36,7 +36,7 @@ fconv_timestamp=1E-6; % [microseconds] to [seconds]
 ImportPX4LogData();
 
 %Translate min and max plot times to indices
-time=double(sysvector.TIME_StartTime) .*fconv_timestamp;
+time=double(sysvector.GPS_TimeMS) .*fconv_timestamp;
 mintime_log=time(1);        %The minimum time/timestamp found in the log
 maxtime_log=time(end);      %The maximum time/timestamp found in the log
 CurTime=mintime_log;        %The current time at which to draw the aircraft position
@@ -108,7 +108,7 @@ function ImportPX4LogData()
         sysvector = tdfread(data_file, ',');
 
         % shot the flight time
-        time_us = sysvector.TIME_StartTime(end) - sysvector.TIME_StartTime(1);
+        time_us = sysvector.GPS_TimeMS(end) - sysvector.GPS_TimeMS(1);
         time_s = uint64(time_us*1e-6);
         time_m = uint64(time_s/60);
         time_s = time_s - time_m * 60;
@@ -324,8 +324,8 @@ function DrawCurrentAircraftState()
     %**********************************************************************
     % Current aircraft state label update
     %**********************************************************************
-    acstate{1,:}=[sprintf('%s \t\t','GPS Pos:'),'[lat=',num2str(double(sysvector.GPS_Lat(i))*fconv_gpslatlong),'°, ',...
-                        'lon=',num2str(double(sysvector.GPS_Lon(i))*fconv_gpslatlong),'°, ',...
+    acstate{1,:}=[sprintf('%s \t\t','GPS Pos:'),'[lat=',num2str(double(sysvector.GPS_Lat(i))*fconv_gpslatlong),'? ',...
+                        'lon=',num2str(double(sysvector.GPS_Lon(i))*fconv_gpslatlong),'? ',...
                         'alt=',num2str(double(sysvector.GPS_Alt(i))*fconv_gpsalt),'m]'];
     acstate{2,:}=[sprintf('%s \t\t','Mags[gauss]'),'[x=',num2str(sysvector.IMU_MagX(i)),...
                                ', y=',num2str(sysvector.IMU_MagY(i)),...
@@ -498,11 +498,11 @@ end
 %  FINDMINMAXINDICES (nested function)
 %  ************************************************************************
 function [idxmin,idxmax] = FindMinMaxTimeIndices()
-    for i=1:size(sysvector.TIME_StartTime,1)
+    for i=1:size(sysvector.GPS_TimeMS,1)
         if time(i)>=mintime; idxmin=i; break; end
     end
-    for i=1:size(sysvector.TIME_StartTime,1)
-        if maxtime==0; idxmax=size(sysvector.TIME_StartTime,1); break; end
+    for i=1:size(sysvector.GPS_TimeMS,1)
+        if maxtime==0; idxmax=size(sysvector.GPS_TimeMS,1); break; end
         if time(i)>=maxtime; idxmax=i; break; end
     end
     mintime=time(idxmin); 

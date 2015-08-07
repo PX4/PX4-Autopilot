@@ -610,13 +610,28 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	_thrust_sp = _v_att_sp.thrust;
 
+	_v_att_sp.pitch_body = 30 * 3.14 / 180;
+	_v_att_sp.roll_body = 30 * 3.14 / 180;
+	_v_att_sp.yaw_body = 0 * 3.14 / 180;
+
+	//_v_att_sp.R_body.from_euler(_v_att_sp.roll_body,_v_att_sp.pitch_body,_v_att_sp.yaw_body);
+
 	/* construct attitude setpoint rotation matrix */
 	math::Matrix<3, 3> R_sp;
 	R_sp.set(_v_att_sp.R_body);
+	R_sp.from_euler(_v_att_sp.roll_body,_v_att_sp.pitch_body,_v_att_sp.yaw_body);
+	printf("****R_sp*******\n%8.4f 		%8.4f 			%8.4f\n%8.4f 		%8.4f 			%8.4f\n%8.4f 		%8.4f 			%8.4f\n***************\n",(double)R_sp(0,0),(double)R_sp(0,1),(double)R_sp(0,2),(double)R_sp(1,0),(double)R_sp(1,1),(double)R_sp(1,2),(double)R_sp(2,0),(double)R_sp(2,1),(double)R_sp(2,2));
+
+	_v_att.pitch = 0 * 3.14 / 180;
+	_v_att.roll = 0 * 3.14 / 180;
+	_v_att.yaw = 0 * 3.14 / 180;
+
+	//_v_att.R.from_euler(_v_att.roll,_v_att.pitch,_v_att.yaw);
 
 	/* rotation matrix for current state */
 	math::Matrix<3, 3> R;
 	R.set(_v_att.R);
+	R.from_euler(_v_att.roll,_v_att.pitch,_v_att.yaw);
 
 	/* all input data is ready, run controller itself */
 
@@ -656,6 +671,14 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		/* rotation matrix for roll/pitch only rotation */
 		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
+
+		printf("****R_rp*******\n%8.4f 		%8.4f 			%8.4f\n%8.4f 		%8.4f 			%8.4f\n%8.4f 		%8.4f 			%8.4f\n***************\n",(double)R_rp(0,0),(double)R_rp(0,1),(double)R_rp(0,2),(double)R_rp(1,0),(double)R_rp(1,1),(double)R_rp(1,2),(double)R_rp(2,0),(double)R_rp(2,1),(double)R_rp(2,2));
+		//printf("****R_rp*******\n%f 		%f 			%f\n%f 		%f 			%f\n%f 		%f 			%f\n***************\n",R_rp(0,0),R_rp(0,1),R_rp(0,2),R_rp(1,0),R_rp(1,1),R_rp(1,2),R_rp(2,0),R_rp(2,1),R_rp(2,2));
+		math::Vector<3> euler(0, 0, 0);
+		euler = R_rp.to_euler();
+		printf("****euler*******\nroll=%8.4f\npitch=%8.4f\nyaw=%8.4f\n***************\n",(double)euler(0)*180/3.14,(double)euler(1)*180/3.14,(double)euler(2)*180/3.14);
+
+		//R_rp.
 
 	} else {
 		/* zero roll/pitch rotation */
