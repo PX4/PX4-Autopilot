@@ -46,6 +46,7 @@ MODULES		+= drivers/px4flow
 MODULES		+= drivers/oreoled
 MODULES		+= drivers/gimbal
 MODULES		+= drivers/pwm_input
+MODULES		+= drivers/camera_trigger
 
 #
 # System commands
@@ -73,7 +74,6 @@ MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
 MODULES		+= modules/uavcan
 MODULES 	+= modules/land_detector
-MODULES		+= modules/camera_trigger
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
