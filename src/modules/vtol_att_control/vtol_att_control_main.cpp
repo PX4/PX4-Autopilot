@@ -491,6 +491,7 @@ void VtolAttitudeControl::task_main()
 		if (_vtol_type->get_mode() == ROTARY_WING) {
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
+			_vtol_vehicle_status.vtol_in_trans_mode = false;
 
 			// got data from mc attitude controller
 			if (fds[0].revents & POLLIN) {
@@ -503,6 +504,7 @@ void VtolAttitudeControl::task_main()
 		} else if (_vtol_type->get_mode() == FIXED_WING) {
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
+			_vtol_vehicle_status.vtol_in_trans_mode = false;
 
 			// got data from fw attitude controller
 			if (fds[1].revents & POLLIN) {
@@ -515,6 +517,8 @@ void VtolAttitudeControl::task_main()
 			}
 		} else if (_vtol_type->get_mode() == TRANSITION) {
 			// vehicle is doing a transition
+			_vtol_vehicle_status.vtol_in_trans_mode = true;
+
 			bool got_new_data = false;
 			if (fds[0].revents & POLLIN) {
 				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
