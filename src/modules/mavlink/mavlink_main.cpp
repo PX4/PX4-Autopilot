@@ -1282,6 +1282,9 @@ Mavlink::update_rate_mult()
 			/* limit to a max multiplier of 1 */
 			hardware_mult = fminf(1.0f, hardware_mult);
 		}
+	} else {
+		/* no limitation, set hardware to 1 */
+		hardware_mult = 1.0f;
 	}
 
 	_last_hw_rate_timestamp = tstatus.timestamp;
