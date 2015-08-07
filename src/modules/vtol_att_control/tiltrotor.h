@@ -52,24 +52,41 @@ public:
 	Tiltrotor(VtolAttitudeControl * _att_controller);
 	~Tiltrotor();
 
+	/**
+	 * Update vtol state.
+	 */
 	void update_vtol_state();
+
+	/**
+	 * Update multicopter state.
+	 */
 	void update_mc_state();
-	void process_mc_data();
+
+	/**
+	 * Update fixed wing state.
+	 */
 	void update_fw_state();
-	void process_fw_data();
+
+	/**
+	 * Update transition state.
+	 */
 	void update_transition_state();
+
+	/**
+	 * Update external state.
+	 */
 	void update_external_state();
 
 private:
 
 	struct {
-		float front_trans_dur;
-		float back_trans_dur;
-		float tilt_mc;
-		float tilt_transition;
-		float tilt_fw;
-		float airspeed_trans;
-		int elevons_mc_lock;			// lock elevons in multicopter mode
+		float front_trans_dur;			/**< duration of first part of front transition */
+		float back_trans_dur;			/**< duration of back transition */
+		float tilt_mc;					/**< actuator value corresponding to mc tilt */
+		float tilt_transition;			/**< actuator value corresponding to transition tilt (e.g 45 degrees) */
+		float tilt_fw;					/**< actuator value corresponding to fw tilt */
+		float airspeed_trans;			/**< airspeed at which we switch to fw mode after transition */
+		int elevons_mc_lock;			/**< lock elevons in multicopter mode */
 	} _params_tiltrotor;
 
 	struct {
@@ -83,26 +100,46 @@ private:
 	} _params_handles_tiltrotor;
 
 	enum vtol_mode {
-		MC_MODE = 0,
-		TRANSITION_FRONT_P1,
-		TRANSITION_FRONT_P2,
-		TRANSITION_BACK,
-		FW_MODE
+		MC_MODE = 0,			/**< vtol is in multicopter mode */
+		TRANSITION_FRONT_P1,	/**< vtol is in front transition part 1 mode */
+		TRANSITION_FRONT_P2,	/**< vtol is in front transition part 2 mode */
+		TRANSITION_BACK,		/**< vtol is in back transition mode */
+		FW_MODE					/**< vtol is in fixed wing mode */
 	};
 
+	/**
+	 * Specific to tiltrotor with vertical aligned rear engine/s.
+	 * These engines need to be shut down in fw mode. During the back-transition
+	 * they need to idle otherwise they need too much time to spin up for mc mode.
+	 */
+	enum rear_motor_state {
+		ENABLED = 0,
+		DISABLED,
+		IDLE
+	} _rear_motors;
+
 	struct {
-		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
-		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
+		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
+		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
 	}_vtol_schedule;
 
-	bool flag_max_mc;
-	float _tilt_control;
-	float _roll_weight_mc;
+	float _tilt_control;		/**< actuator value for the tilt servo */
+	float _roll_weight_mc;		/**< multicopter desired roll moment weight */
+	float _yaw_weight_mc;		/**< multicopter desired yaw moment weight */
 
-	void fill_att_control_output();
-	void set_max_mc();
-	void set_max_fw(unsigned pwm_value);
+	/**
+	 * Write control values to actuator output topics.
+	 */
+	void fill_actuator_outputs();
 
+	/**
+	 * Adjust the state of the rear motors. In fw mode they shouldn't spin.
+	 */
+	void set_rear_motor_state(rear_motor_state state);
+
+	/**
+	 * Update parameters.
+	 */
 	int parameters_update();
 
 };
