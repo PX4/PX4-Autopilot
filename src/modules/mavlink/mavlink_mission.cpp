@@ -52,6 +52,10 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
+#include <fcntl.h>
+#include <drivers/drv_pwm_output.h>
+
+
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
@@ -68,6 +72,9 @@ bool MavlinkMissionManager::_transfer_in_progress = false;
 						((_msg.target_component == mavlink_system.compid) || \
 						(_msg.target_component == MAV_COMP_ID_MISSIONPLANNER) || \
 						(_msg.target_component == MAV_COMP_ID_ALL)))
+
+
+int chan_id;
 
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_state(MAVLINK_WPM_STATE_IDLE),
@@ -87,6 +94,8 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_mission_result_sub(-1),
 	_offboard_mission_pub(nullptr),
 	_slow_rate_limiter(_interval / 10.0f),
+	_actuators{},
+	_actuator_pub(nullptr),
 	_verbose(false)
 {
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
@@ -113,6 +122,34 @@ MavlinkMissionManager::get_size()
 		return 0;
 	}
 }
+
+
+/**
+	 * Set the actuators
+	 */
+
+int
+MavlinkMissionManager::actuators_publish()
+{
+	_actuators.timestamp = hrt_absolute_time();
+
+	// lazily publish _actuators only once available
+	if (_actuator_pub == nullptr) {
+		_mavlink->send_statustext_critical("Actuators published 1!");
+		return orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
+
+	} else {
+		_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators);
+		if (_actuator_pub == nullptr) {
+			_mavlink->send_statustext_critical("Actuators published 2!");
+			return OK;
+
+		} else {
+			return -1;
+		}
+	}
+}
+
 
 void
 MavlinkMissionManager::init_offboard_mission()
@@ -788,11 +825,39 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	case MAV_CMD_NAV_TAKEOFF:
 		mission_item->pitch_min = mavlink_mission_item->param1;
 		break;
+
 	case MAV_CMD_DO_JUMP:
 		mission_item->do_jump_mission_index = mavlink_mission_item->param1;
 		mission_item->do_jump_current_count = 0;
 		mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
 		break;
+
+	case MAV_CMD_DO_SET_SERVO:
+		mission_item->actuator_num = mavlink_mission_item->param1;
+		mission_item->actuator_value = mavlink_mission_item->param2;
+		mission_item->autocontinue = true;
+		mission_item->time_inside=0.0f;
+
+		chan_id = mavlink_mission_item->param1;
+
+
+		_actuators.control[0] = mavlink_mission_item->param2;
+		_actuators.control[1] = mavlink_mission_item->param2;
+		_actuators.control[2] = mavlink_mission_item->param2;
+		_actuators.control[3] = mavlink_mission_item->param2;
+		_actuators.control[4] = mavlink_mission_item->param2;
+		_actuators.control[5] = mavlink_mission_item->param2;
+		_actuators.control[6] = mavlink_mission_item->param2;
+		_actuators.control[7] = mavlink_mission_item->param2;
+
+		actuators_publish();
+
+		/* for test purpose of function during mission upload */
+		//up_pwm_servo_arm(true);
+		//up_pwm_servo_set(mission_item->actuator_num-1, mission_item->actuator_value);
+
+		break;
+
 	default:
 		mission_item->acceptance_radius = mavlink_mission_item->param2;
 		mission_item->time_inside = mavlink_mission_item->param1;
@@ -828,6 +893,11 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 	switch (mission_item->nav_cmd) {
 	case NAV_CMD_TAKEOFF:
 		mavlink_mission_item->param1 = mission_item->pitch_min;
+		break;
+
+	case NAV_CMD_DO_SET_SERVO:
+		mavlink_mission_item->param1 = mission_item->actuator_num;
+		mavlink_mission_item->param2 = mission_item->actuator_value;
 		break;
 
 	case NAV_CMD_DO_JUMP:

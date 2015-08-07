@@ -71,6 +71,13 @@ MissionBlock::~MissionBlock()
 bool
 MissionBlock::is_mission_item_reached()
 {
+	if (_mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
+		//up_pwm_servo_arm(true);
+		//up_pwm_servo_set(_mission_item.actuator_num-1, _mission_item.actuator_value);
+		warnx("Set servo cmd executed");
+		return true;
+		}
+
 	if (_mission_item.nav_cmd == NAV_CMD_IDLE) {
 		return false;
 	}
