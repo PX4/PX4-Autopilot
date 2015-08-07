@@ -11,7 +11,6 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF == yes ]
 then
-	# TODO review MC_YAWRATE_I
 	param set MC_ROLL_P 6.5
 	param set MC_ROLLRATE_P 0.1
 	param set MC_ROLLRATE_I 0.05
