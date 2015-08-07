@@ -53,15 +53,12 @@ public:
 
 	void update_vtol_state();
 	void update_mc_state();
-	void process_mc_data();
 	void update_fw_state();
-	void process_fw_data();
 	void update_transition_state();
 	void update_external_state();
 
 private:
-	void fill_mc_att_control_output();
-	void fill_fw_att_control_output();
+	void fill_actuator_outputs();
 	void calc_tot_airspeed();
 	void scale_mc_output();
 
