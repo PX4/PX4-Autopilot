@@ -214,16 +214,6 @@ void Standard::update_mc_state()
 	// do nothing
 }
 
-void Standard::process_mc_data()
-{
-	fill_att_control_output();
-}
-
-void Standard::process_fw_data()
-{
-	fill_att_control_output();
-}
-
  void Standard::update_fw_state()
 {
 	// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again	
@@ -242,7 +232,7 @@ void Standard::update_external_state()
  * Prepare message to acutators with data from mc and fw attitude controllers. An mc attitude weighting will determine
  * what proportion of control should be applied to each of the control groups (mc and fw).
  */
-void Standard::fill_att_control_output()
+void Standard::fill_actuator_outputs()
 {
 	/* multirotor controls */
 	_actuators_out_0->control[0] = _actuators_mc_in->control[0] * _mc_att_ctl_weight;	// roll

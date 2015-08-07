@@ -57,9 +57,7 @@ public:
 
 	void update_vtol_state();
 	void update_mc_state();
-	void process_mc_data();
 	void update_fw_state();
-	void process_fw_data();
 	void update_transition_state();
 	void update_external_state();
 
@@ -98,7 +96,7 @@ private:
 	float _mc_att_ctl_weight;	// the amount of multicopter attitude control that should be applied in fixed wing mode while transitioning 
 	float _airspeed_trans_blend_margin;
 
-	void fill_att_control_output();
+	void fill_actuator_outputs();
 	void set_max_mc(unsigned pwm_value);
 
 	int parameters_update();
