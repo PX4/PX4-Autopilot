@@ -41,7 +41,32 @@
 #include <systemlib/param/param.h>
 
 /**
- * Minimum thrust
+ * Minimum thrust in auto thrust control
+ *
+ * It's recommended to set it > 0 to avoid free fall with zero thrust.
+ *
+ * @min 0.05
+ * @max 1.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
+
+/**
+ * Maximum thrust in auto thrust control
+ *
+ * Limit max allowed thrust. Setting a value of one can put
+ * the system into actuator saturation as no spread between
+ * the motors is possible any more. A value of 0.8 - 0.9
+ * is recommended.
+ *
+ * @min 0.0
+ * @max 0.95
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
+
+/**
+ * Minimum manual thrust
  *
  * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
  *
@@ -49,10 +74,10 @@
  * @max 1.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
+PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.12f);
 
 /**
- * Maximum thrust
+ * Maximum manual thrust
  *
  * Limit max allowed thrust. Setting a value of one can put
  * the system into actuator saturation as no spread between
@@ -63,7 +88,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  * @max 1.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
+PARAM_DEFINE_FLOAT(MPC_MANTHR_MAX, 0.9f);
 
 /**
  * Proportional gain for vertical position error

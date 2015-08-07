@@ -163,7 +163,6 @@ private:
 	struct {
 		float tconst;
 		float p_p;
-		float p_d;
 		float p_i;
 		float p_ff;
 		float p_rmax_pos;
@@ -171,7 +170,6 @@ private:
 		float p_integrator_max;
 		float p_roll_feedforward;
 		float r_p;
-		float r_d;
 		float r_i;
 		float r_ff;
 		float r_integrator_max;
@@ -208,7 +206,6 @@ private:
 
 		param_t tconst;
 		param_t p_p;
-		param_t p_d;
 		param_t p_i;
 		param_t p_ff;
 		param_t p_rmax_pos;
@@ -216,7 +213,6 @@ private:
 		param_t p_integrator_max;
 		param_t p_roll_feedforward;
 		param_t r_p;
-		param_t r_d;
 		param_t r_i;
 		param_t r_ff;
 		param_t r_integrator_max;
@@ -699,7 +695,6 @@ FixedwingAttitudeControl::task_main()
 		/* only run controller if attitude changed */
 		if (fds[1].revents & POLLIN) {
 
-
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
@@ -804,7 +799,7 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			/* if we are in rotary wing mode, do nothing */
-			if (_vehicle_status.is_rotary_wing) {
+			if (_vehicle_status.is_rotary_wing && !_vehicle_status.is_vtol) {
 				continue;
 			}
 
@@ -817,11 +812,8 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			/* decide if in stabilized or full manual control */
-
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
-
 				/* scale around tuning airspeed */
-
 				float airspeed;
 
 				/* if airspeed is not updating, we assume the normal average speed */
@@ -949,13 +941,15 @@ FixedwingAttitudeControl::task_main()
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
-					if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
-						/* publish the attitude setpoint */
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
+					if (!_vehicle_status.is_rotary_wing) {
+						if (_attitude_sp_pub != nullptr) {
+							/* publish the attitude setpoint */
+							orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
 
-					} else if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
-						/* advertise and publish */
-						_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+						} else {
+							/* advertise and publish */
+							_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+						}
 					}
 				}
 

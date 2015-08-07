@@ -74,6 +74,7 @@ parser.add_argument("--summary",	action="store", help="set a brief description")
 parser.add_argument("--description",	action="store", help="set a longer description")
 parser.add_argument("--git_identity",	action="store", help="the working directory to check for git identity")
 parser.add_argument("--parameter_xml",	action="store", help="the parameters.xml file")
+parser.add_argument("--airframe_xml",	action="store", help="the airframes.xml file")
 parser.add_argument("--image",		action="store", help="the firmware image")
 args = parser.parse_args()
 
@@ -107,6 +108,11 @@ if args.parameter_xml != None:
 	bytes = f.read()
 	desc['parameter_xml_size'] = len(bytes)
 	desc['parameter_xml'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
+if args.airframe_xml != None:
+	f = open(args.airframe_xml, "rb")
+	bytes = f.read()
+	desc['airframe_xml_size'] = len(bytes)
+	desc['airframe_xml'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
 if args.image != None:
 	f = open(args.image, "rb")
 	bytes = f.read()

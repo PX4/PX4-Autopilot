@@ -47,7 +47,7 @@ MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 #MODULES		+= modules/dataman
 #MODULES		+= modules/sdlog2
-MODULES		+= modules/simulator
+#MODULES		+= modules/simulator
 #MODULES		+= modules/commander
 
 #
@@ -63,6 +63,7 @@ MODULES		+= lib/conversion
 # QuRT port
 #
 MODULES		+= platforms/qurt/px4_layer
+MODULES		+= platforms/posix/work_queue
 MODULES		+= platforms/posix/drivers/accelsim
 MODULES		+= platforms/posix/drivers/gyrosim
 MODULES		+= platforms/posix/drivers/adcsim

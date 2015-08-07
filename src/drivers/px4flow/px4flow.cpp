@@ -642,7 +642,7 @@ bool start_in_progress = false;
 const int START_RETRY_COUNT = 5;
 const int START_RETRY_TIMEOUT = 1000;
 
-void	start();
+int	start();
 void	stop();
 void	test();
 void	reset();
@@ -651,21 +651,25 @@ void	info();
 /**
  * Start the driver.
  */
-void
+int
 start()
 {
 	int fd;
 	
 	/* entry check: */
 	if (start_in_progress) {
-		errx(1, "start in progress");
+		warnx("start already in progress");
+		return 1;
 	}
 	start_in_progress = true;
 
 	if (g_dev != nullptr) {
 		start_in_progress = false;
-		errx(1, "already started");
+		warnx("already started");
+		return 1;
 	}
+
+	warnx("scanning I2C buses for device..");
 
 	int retry_nr = 0;
 	while (1) {
@@ -724,11 +728,12 @@ start()
 
 			/* success! */
 			start_in_progress = false;
-			exit(0);
+			return 0;
 		}
 
 		if (retry_nr < START_RETRY_COUNT) {
-			warnx("PX4FLOW not found on I2C busses. Retrying in %d ms. Giving up in %d retries.", START_RETRY_TIMEOUT, START_RETRY_COUNT - retry_nr);
+			/* lets not be too verbose */
+			// warnx("PX4FLOW not found on I2C busses. Retrying in %d ms. Giving up in %d retries.", START_RETRY_TIMEOUT, START_RETRY_COUNT - retry_nr);
 			usleep(START_RETRY_TIMEOUT * 1000);
 			retry_nr++;
 		} else {
@@ -742,7 +747,7 @@ start()
 	}
 	
 	start_in_progress = false;
-	errx(1, "PX4FLOW could not be started over I2C");
+	return 1;
 }
 
 /**
@@ -892,7 +897,7 @@ px4flow_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		px4flow::start();
+		return px4flow::start();
 	}
 
 	/*

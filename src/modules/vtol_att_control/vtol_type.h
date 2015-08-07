@@ -38,8 +38,8 @@
  *
  */
 
-#ifndef VTOL_YYPE_H
-#define VTOL_YYPE_H
+#ifndef VTOL_TYPE_H
+#define VTOL_TYPE_H
 
 struct Params {
 	int idle_pwm_mc;			// pwm value for idle in mc mode

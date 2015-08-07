@@ -468,13 +468,13 @@ then
 		if [ $TTYS1_BUSY == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			set MAVLINK_F "-r 5000 -d /dev/ttyS0"
+			set MAVLINK_F "-r 1200 -d /dev/ttyS0"
 
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
 			# Start MAVLink on default port: ttyS1
-			set MAVLINK_F "-r 5000"
+			set MAVLINK_F "-r 1200"
 		fi
 	fi
 
@@ -575,7 +575,7 @@ then
 			fi
 			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
 			then
-				set MAV_TYPE 2
+				set MAV_TYPE 15
 			fi
 			if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
 			then
@@ -599,6 +599,7 @@ then
 		if [ $MAV_TYPE == none ]
 		then
 			echo "Unknown MAV_TYPE"
+			param set MAV_TYPE 2
 		else
 			param set MAV_TYPE $MAV_TYPE
 		fi
@@ -636,12 +637,17 @@ then
 			then
 				set MAV_TYPE 21
 			fi
+			if [ $MIXER == quad_x_pusher_vtol ]
+			then
+				set MAV_TYPE 22
+			fi
 		fi
 
 		# Still no MAV_TYPE found
 		if [ $MAV_TYPE == none ]
 		then
 			echo "Unknown MAV_TYPE"
+			param set MAV_TYPE 19
 		else
 			param set MAV_TYPE $MAV_TYPE
 		fi
@@ -672,6 +678,8 @@ then
 		then
 			sh /etc/init.d/rc.axialracing_ax10_apps
 		fi
+
+		param set MAV_TYPE 10
 	fi
 
 	unset MIXER
@@ -701,20 +709,23 @@ then
 	fi
 	unset FEXTRAS
 
-	if [ $EXIT_ON_END == yes ]
-	then
-		echo "Exit from nsh"
-		exit
-	fi
-	unset EXIT_ON_END
-
-	# Run no SD alarm last
+	# Run no SD alarm
 	if [ $LOG_FILE == /dev/null ]
 	then
 		echo "[i] No microSD card found"
 		# Play SOS
 		tone_alarm error
 	fi
+
+	# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
+	mavlink boot_complete
+
+	if [ $EXIT_ON_END == yes ]
+	then
+		echo "Exit from nsh"
+		exit
+	fi
+	unset EXIT_ON_END
 
 # End of autostart
 fi

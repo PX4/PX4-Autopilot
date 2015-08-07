@@ -470,8 +470,8 @@ calibrate_return calibrate_from_orientation(int		mavlink_fd,
 		/* inform user about already handled side */
 		if (side_data_collected[orient]) {
 			orientation_failures++;
-			mavlink_and_console_log_info(mavlink_fd, "[cal] %s side completed or not needed", detect_orientation_str(orient));
-			mavlink_and_console_log_info(mavlink_fd, "[cal] rotate to a pending side");
+			mavlink_and_console_log_critical(mavlink_fd, "%s side already completed", detect_orientation_str(orient));
+			mavlink_and_console_log_critical(mavlink_fd, "rotate to a pending side");
 			continue;
 		}
 		

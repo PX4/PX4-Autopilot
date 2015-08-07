@@ -1,7 +1,10 @@
+#!nsh
 #
-# Generic configuration file for caipirinha VTOL version
+# @name Duorotor Tailsitter
 #
-# Roman Bapst <bapstr@gmail.com>
+# @type VTOL Tailsitter
+#
+# @maintainer Roman Bapst <roman@px4.io>
 #
 
 sh /etc/init.d/rc.vtol_defaults

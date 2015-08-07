@@ -12,8 +12,6 @@
 
 #include <sys/timespec.h>
 
-#define CLOCK_REALTIME 1
-
 __BEGIN_DECLS
 
 #if 0
