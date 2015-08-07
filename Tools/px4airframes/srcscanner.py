@@ -16,10 +16,9 @@ class SourceScanner(object):
         extensions = tuple(parser.GetSupportedExtensions())
         for dirname, dirnames, filenames in os.walk(srcdir):
             for filename in filenames:
-                if filename.endswith(extensions):
-                    path = os.path.join(dirname, filename)
-                    if not self.ScanFile(path, parser):
-                        return False
+                path = os.path.join(dirname, filename)
+                if not self.ScanFile(path, parser):
+                    return False
         return True
 
     def ScanFile(self, path, parser):
