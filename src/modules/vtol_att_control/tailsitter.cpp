@@ -73,24 +73,12 @@ void Tailsitter::update_mc_state()
 	}
 }
 
-void Tailsitter::process_mc_data()
-{
-	// scale pitch control with total airspeed
-	//scale_mc_output();
-	fill_mc_att_control_output();
-}
-
 void Tailsitter::update_fw_state()
 {
 	if (flag_idle_mc) {
 		set_idle_fw();
 		flag_idle_mc = false;
 	}
-}
-
-void Tailsitter::process_fw_data()
-{
-	fill_fw_att_control_output();
 }
 
 void Tailsitter::update_transition_state()
@@ -152,38 +140,41 @@ Tailsitter::scale_mc_output()
 }
 
 /**
-* Prepare message to acutators with data from fw attitude controller.
+* Write data to actuator output topic.
 */
-void Tailsitter::fill_fw_att_control_output()
+void Tailsitter::fill_actuator_outputs()
 {
-	/*For the first test in fw mode, only use engines for thrust!!!*/
-	_actuators_out_0->control[0] = 0;
-	_actuators_out_0->control[1] = 0;
-	_actuators_out_0->control[2] = 0;
-	_actuators_out_0->control[3] = _actuators_fw_in->control[3];
-	/*controls for the elevons */
-	_actuators_out_1->control[0] = -_actuators_fw_in->control[0];	// roll elevon
-	_actuators_out_1->control[1] = _actuators_fw_in->control[1] + _params->fw_pitch_trim;	// pitch elevon
-	// unused now but still logged
-	_actuators_out_1->control[2] = _actuators_fw_in->control[2];	// yaw
-	_actuators_out_1->control[3] = _actuators_fw_in->control[3];	// throttle
-}
+	switch(_vtol_mode) {
+		case ROTARY_WING:
+			_actuators_out_0->control[0] = _actuators_mc_in->control[0];
+			_actuators_out_0->control[1] = _actuators_mc_in->control[1];
+			_actuators_out_0->control[2] = _actuators_mc_in->control[2];
+			_actuators_out_0->control[3] = _actuators_mc_in->control[3];
 
-/**
-* Prepare message to acutators with data from mc attitude controller.
-*/
-void Tailsitter::fill_mc_att_control_output()
-{
-	_actuators_out_0->control[0] = _actuators_mc_in->control[0];
-	_actuators_out_0->control[1] = _actuators_mc_in->control[1];
-	_actuators_out_0->control[2] = _actuators_mc_in->control[2];
-	_actuators_out_0->control[3] = _actuators_mc_in->control[3];
-
-	if (_params->elevons_mc_lock == 1) {
-		_actuators_out_1->control[0] = 0;
-		_actuators_out_1->control[1] = 0;
-	} else {
-		_actuators_out_1->control[0] = _actuators_mc_in->control[2];	//roll elevon
-		_actuators_out_1->control[1] = _actuators_mc_in->control[1];	//pitch elevon
+			if (_params->elevons_mc_lock == 1) {
+				_actuators_out_1->control[0] = 0;
+				_actuators_out_1->control[1] = 0;
+			} else {
+				_actuators_out_1->control[0] = _actuators_mc_in->control[2];	//roll elevon
+				_actuators_out_1->control[1] = _actuators_mc_in->control[1];	//pitch elevon
+			}
+			break;
+		case FIXED_WING:
+			/*For the first test in fw mode, only use engines for thrust!!!*/
+			_actuators_out_0->control[0] = 0;
+			_actuators_out_0->control[1] = 0;
+			_actuators_out_0->control[2] = 0;
+			_actuators_out_0->control[3] = _actuators_fw_in->control[3];
+			/*controls for the elevons */
+			_actuators_out_1->control[0] = -_actuators_fw_in->control[0];	// roll elevon
+			_actuators_out_1->control[1] = _actuators_fw_in->control[1] + _params->fw_pitch_trim;	// pitch elevon
+			// unused now but still logged
+			_actuators_out_1->control[2] = _actuators_fw_in->control[2];	// yaw
+			_actuators_out_1->control[3] = _actuators_fw_in->control[3];	// throttle
+			break;
+		case TRANSITION:
+		case EXTERNAL:
+			// not yet implemented, we are switching brute force at the moment
+			break;
 	}
 }
