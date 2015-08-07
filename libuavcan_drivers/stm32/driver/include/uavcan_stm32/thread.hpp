@@ -24,7 +24,6 @@
 
 namespace uavcan_stm32
 {
-
 class CanDriver;
 
 #if UAVCAN_STM32_CHIBIOS
@@ -92,6 +91,54 @@ public:
     void signalFromInterrupt();
 };
 
+class Mutex
+{
+    pthread_mutex_t mutex_;
+
+public:
+    Mutex()
+    {
+        init();
+    }
+
+    int init()
+    {
+        return pthread_mutex_init(&mutex_, NULL);
+    }
+
+    int deinit()
+    {
+        return pthread_mutex_destroy(&mutex_);
+    }
+
+    void lock()
+    {
+        (void)pthread_mutex_lock(&mutex_);
+    }
+
+    void unlock()
+    {
+        (void)pthread_mutex_unlock(&mutex_);
+    }
+};
+
+class MutexLocker
+{
+    Mutex& mutex_;
+
+public:
+    MutexLocker(Mutex& mutex)
+        : mutex_(mutex)
+    {
+        mutex_.lock();
+    }
+
+    ~MutexLocker()
+    {
+        mutex_.unlock();
+    }
+};
+
 #endif
 
 
@@ -107,6 +154,7 @@ public:
     {
         mutex_.lock();
     }
+
     ~MutexLocker()
     {
         mutex_.unlock();
@@ -114,5 +162,4 @@ public:
 };
 
 #endif
-
 }
