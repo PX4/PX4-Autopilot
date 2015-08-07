@@ -169,13 +169,15 @@ CameraTrigger::CameraTrigger() :
 	_trigger_pub(nullptr)
 {
 	memset(&_work, 0, sizeof(_work));
-	memset(&_engagecall, 0, sizeof(_engagecall));
-	memset(&_disengagecall, 0, sizeof(_disengagecall));
 
 	// Parameters
 	polarity = param_find("TRIG_POLARITY");
 	interval = param_find("TRIG_INTERVAL");
 	activation_time = param_find("TRIG_ACT_TIME");
+
+	struct camera_trigger_s	trigger = {};
+
+	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
 }
 
 CameraTrigger::~CameraTrigger()
