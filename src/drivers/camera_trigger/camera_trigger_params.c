@@ -42,28 +42,16 @@
 #include <systemlib/param/param.h>
 
 /**
- * Camera trigger shutter integration time
- *
- * This parameter sets the time the shutter is open on the camera.
- *
- * @unit milliseconds
- * @min 0.0
- * @max 500.0
- * @group Camera trigger
- */
-PARAM_DEFINE_FLOAT(TRIG_INT_TIME, 1.0f);
-
-/**
  * Camera trigger interval
  *
  * This parameter sets the time between two consecutive trigger events
  *
  * @unit milliseconds
- * @min 15.0
- * @max 33.0
+ * @min 4.0
+ * @max 10000.0
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_INTERVAL, 15.0f);
+PARAM_DEFINE_FLOAT(TRIG_INTERVAL, 40.0f);
 
 /**
  * Camera trigger polarity

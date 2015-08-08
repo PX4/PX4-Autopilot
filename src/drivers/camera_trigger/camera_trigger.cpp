@@ -108,6 +108,7 @@ private:
 	int 			_gpio_fd;
 
 	int 			_polarity;
+	int			_mode;
 	float 			_activation_time;
 	float  			_interval;
 	uint32_t 		_trigger_seq;
@@ -117,10 +118,10 @@ private:
 
 	orb_advert_t		_trigger_pub;
 
-	param_t polarity;
-	param_t activation_time;
-	param_t interval;
-	param_t transfer_time ;
+	param_t _p_polarity;
+	param_t _p_mode;
+	param_t _p_activation_time;
+	param_t _p_interval;
 
 	static constexpr uint32_t _gpios[6] = {
 		GPIO_GPIO0_OUTPUT,
@@ -161,6 +162,7 @@ CameraTrigger::CameraTrigger() :
 	_disengagecall {},
 	_gpio_fd(-1),
 	_polarity(0),
+	_mode(0),
 	_activation_time(0.5f /* ms */),
 	_interval(100.0f /* ms */),
 	_trigger_seq(0),
@@ -171,9 +173,10 @@ CameraTrigger::CameraTrigger() :
 	memset(&_work, 0, sizeof(_work));
 
 	// Parameters
-	polarity = param_find("TRIG_POLARITY");
-	interval = param_find("TRIG_INTERVAL");
-	activation_time = param_find("TRIG_ACT_TIME");
+	_p_polarity = param_find("TRIG_POLARITY");
+	_p_interval = param_find("TRIG_INTERVAL");
+	_p_activation_time = param_find("TRIG_ACT_TIME");
+	_p_mode = param_find("TRIG_ACT_TIME");
 
 	struct camera_trigger_s	trigger = {};
 
@@ -206,9 +209,10 @@ void
 CameraTrigger::start()
 {
 
-	param_get(polarity, &_polarity);
-	param_get(activation_time, &_activation_time);
-	param_get(interval, &_interval);
+	param_get(_p_polarity, &_polarity);
+	param_get(_p_activation_time, &_activation_time);
+	param_get(_p_interval, &_interval);
+	param_get(_p_mode, &_mode);
 
 	stm32_configgpio(_gpios[_pin - 1]);
 
@@ -221,6 +225,11 @@ CameraTrigger::start()
 	} else {
 		warnx(" invalid trigger polarity setting. stopping.");
 		stop();
+	}
+
+	// enable immediate if configured that way
+	if (_mode > 1) {
+		control(true);
 	}
 
 	// start to monitor at high rate for trigger enable command
@@ -266,7 +275,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 			// Set trigger rate from command
 			if (cmd.param2 > 0) {
 				trig->_interval = cmd.param2;
-				param_set(trig->interval, &(trig->_interval));
+				param_set(trig->_p_interval, &(trig->_interval));
 			}
 
 			if (cmd.param1 < 1.0f) {
