@@ -1067,50 +1067,52 @@ protected:
 class MavlinkStreamCameraTrigger : public MavlinkStream
 {
 public:
-	const char *get_name() const {
+	const char *get_name() const
+	{
 		return MavlinkStreamCameraTrigger::get_name_static();
 	}
 
-	static const char *get_name_static() {
+	static const char *get_name_static()
+	{
 		return "CAMERA_TRIGGER";
 	}
 
-	uint8_t get_id() {
+	uint8_t get_id()
+	{
 		return MAVLINK_MSG_ID_CAMERA_TRIGGER;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink) {
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
 		return new MavlinkStreamCameraTrigger(mavlink);
 	}
 
-	unsigned get_size() {
+	unsigned get_size()
+	{
 		return MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
 private:
-	MavlinkOrbSubscription *_camera_trigger_sub;
-	uint64_t _trig_time;
+	MavlinkOrbSubscription *_trigger_sub;
 
 	/* do not allow top copying this class */
 	MavlinkStreamCameraTrigger(MavlinkStreamCameraTrigger &);
-	MavlinkStreamCameraTrigger &operator = (const MavlinkStreamCameraTrigger &);
+	MavlinkStreamCameraTrigger& operator = (const MavlinkStreamCameraTrigger &);
 
 protected:
 	explicit MavlinkStreamCameraTrigger(Mavlink *mavlink) : MavlinkStream(mavlink),
-	_camera_trigger_sub(_mavlink->add_orb_subscription(ORB_ID(camera_trigger))),
-	_trig_time(0)
+		_trigger_sub(_mavlink->add_orb_subscription(ORB_ID(camera_trigger)))
 	{}
 
-	void send(const hrt_abstime t) {
+	void send(const hrt_abstime t)
+	{
 		struct camera_trigger_s trigger;
 
-		if (_camera_trigger_sub->update(&_trig_time, &trigger)) {
-			
+		if (_trigger_sub->update(&trigger)) {
 			mavlink_camera_trigger_t msg;
 
 			msg.time_usec = trigger.timestamp;
-			msg.seq = trigger.seq;
-			
+
 			_mavlink->send_message(MAVLINK_MSG_ID_CAMERA_TRIGGER, &msg);
 		}
 	}
@@ -2366,6 +2368,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamActuatorControlTarget<3>::new_instance, &MavlinkStreamActuatorControlTarget<3>::get_name_static),
 	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
+	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
 	nullptr
 };
