@@ -122,6 +122,7 @@ private:
 	param_t _p_mode;
 	param_t _p_activation_time;
 	param_t _p_interval;
+	param_t _p_pin;
 
 	static constexpr uint32_t _gpios[6] = {
 		GPIO_GPIO0_OUTPUT,
@@ -177,6 +178,7 @@ CameraTrigger::CameraTrigger() :
 	_p_interval = param_find("TRIG_INTERVAL");
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_ACT_TIME");
+	_p_pin = param_find("TRIG_PIN");
 
 	struct camera_trigger_s	trigger = {};
 
@@ -213,6 +215,11 @@ CameraTrigger::start()
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
 	param_get(_p_mode, &_mode);
+	param_get(_p_pin, &_pin);
+
+	if (_pin < 1 || _pin > static_cast<int>(sizeof(_gpios) / sizeof(_gpios[0]))) {
+		_pin = TRIGGER_PIN_DEFAULT;
+	}
 
 	stm32_configgpio(_gpios[_pin - 1]);
 

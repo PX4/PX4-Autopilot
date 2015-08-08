@@ -84,3 +84,14 @@ PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
  * @group Camera trigger
  */
 PARAM_DEFINE_INT32(TRIG_MODE, 0);
+
+/**
+ * Camera trigger pin
+ *
+ * Selects which pin is used, ranges from 1 to 6 (AUX1-AUX6)
+ *
+ * @min 1
+ * @max 6
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_PIN, 1);
