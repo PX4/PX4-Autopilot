@@ -36,6 +36,7 @@
 #include <px4_config.h>
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <drivers/device/device.h>
+#include <uavcan/protocol/global_time_sync_slave.hpp>
 #include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
 #include <uavcan/node/timer.hpp>
 /**
@@ -129,6 +130,7 @@ private:
 	static UavcanNode	*_instance;			///< singleton pointer
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
+        uavcan::GlobalTimeSyncSlave _time_sync_slave;
 
 	pollfd			_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
 	unsigned		_poll_fds_num = 0;

@@ -113,6 +113,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	active_bitrate(0),
 	_node(can_driver, system_clock),
 	_node_mutex(),
+	_time_sync_slave(_node),
 	_fw_update_listner(_node),
 	_reset_timer(_node)
 {
@@ -381,6 +382,17 @@ int UavcanNode::run()
 
 	(void)pthread_mutex_lock(&_node_mutex);
 
+        /*
+         * Set up the time synchronization
+         */
+
+        const int slave_init_res = _time_sync_slave.start();
+        if (slave_init_res < 0)
+        {
+            warnx("Failed to start time_sync_slave");
+            _task_should_exit = true;
+        }
+
 	const unsigned PollTimeoutMs = 50;
 
 	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
@@ -390,6 +402,10 @@ int UavcanNode::run()
 		_task_should_exit = true;
 	}
 
+	 /* If we had an  RTC we would call uavcan_stm32::clock::setUtc()
+         * but for now we use adjustUtc with a correction of 0
+         */
+//        uavcan_stm32::clock::adjustUtc(uavcan::UtcDuration::fromUSec(0));
 
 	_node.setModeOperational();
 
@@ -427,6 +443,21 @@ int UavcanNode::run()
 		if (clock_systimer() - start_tick > TICK_PER_SEC) {
 			start_tick = clock_systimer();
 			resources("Udate:");
+                        /*
+                         *  Printing the slave status information once a second
+                         */
+                            const bool active = _time_sync_slave.isActive();                      // Whether it can sync with a remote master
+
+                            const int master_node_id = _time_sync_slave.getMasterNodeID().get();  // Returns an invalid Node ID if (active == false)
+
+                            const long msec_since_last_adjustment = (_node.getMonotonicTime() - _time_sync_slave.getLastAdjustmentTime()).toMSec();
+
+                            syslog(LOG_INFO,"Time sync slave status:\n"
+                                        "    Active: %d\n"
+                                        "    Master Node ID: %d\n"
+                                        "    Last clock adjustment was %ld ms ago\n\n",
+                                        int(active), master_node_id, msec_since_last_adjustment);
+
 		}
 
 	}
