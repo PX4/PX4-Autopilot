@@ -146,31 +146,31 @@ void Tailsitter::fill_actuator_outputs()
 {
 	switch(_vtol_mode) {
 		case ROTARY_WING:
-			_actuators_out_0->control[0] = _actuators_mc_in->control[0];
-			_actuators_out_0->control[1] = _actuators_mc_in->control[1];
-			_actuators_out_0->control[2] = _actuators_mc_in->control[2];
-			_actuators_out_0->control[3] = _actuators_mc_in->control[3];
+			_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
+			_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
+			_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
+			_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
 
 			if (_params->elevons_mc_lock == 1) {
 				_actuators_out_1->control[0] = 0;
 				_actuators_out_1->control[1] = 0;
 			} else {
-				_actuators_out_1->control[0] = _actuators_mc_in->control[2];	//roll elevon
-				_actuators_out_1->control[1] = _actuators_mc_in->control[1];	//pitch elevon
+				// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
+				_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	//roll elevon
+				_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	//pitch elevon
 			}
 			break;
 		case FIXED_WING:
-			/*For the first test in fw mode, only use engines for thrust!!!*/
-			_actuators_out_0->control[0] = 0;
-			_actuators_out_0->control[1] = 0;
-			_actuators_out_0->control[2] = 0;
-			_actuators_out_0->control[3] = _actuators_fw_in->control[3];
-			/*controls for the elevons */
-			_actuators_out_1->control[0] = -_actuators_fw_in->control[0];	// roll elevon
-			_actuators_out_1->control[1] = _actuators_fw_in->control[1] + _params->fw_pitch_trim;	// pitch elevon
-			// unused now but still logged
-			_actuators_out_1->control[2] = _actuators_fw_in->control[2];	// yaw
-			_actuators_out_1->control[3] = _actuators_fw_in->control[3];	// throttle
+			// in fixed wing mode we use engines only for providing thrust, no moments are generated
+			_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = 0;
+			_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = 0;
+			_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = 0;
+			_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
+
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];	// roll elevon
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim;	// pitch elevon
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW];	// yaw
+			_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];	// throttle
 			break;
 		case TRANSITION:
 		case EXTERNAL:
