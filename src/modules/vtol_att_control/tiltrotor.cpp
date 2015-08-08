@@ -194,7 +194,7 @@ void Tiltrotor::update_mc_state()
 
 void Tiltrotor::process_mc_data()
 {
-	fill_mc_att_control_output();
+	fill_att_control_output();
 }
 
  void Tiltrotor::update_fw_state()
@@ -222,19 +222,22 @@ void Tiltrotor::process_mc_data()
 
 void Tiltrotor::process_fw_data()
 {
-	fill_fw_att_control_output();
+	fill_att_control_output();
 }
 
 void Tiltrotor::update_transition_state()
 {
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 		// tilt rotors forward up to certain angle
-		if (_tilt_control <= _params_tiltrotor.tilt_transition) {
-			_tilt_control = _params_tiltrotor.tilt_mc +  fabsf(_params_tiltrotor.tilt_transition - _params_tiltrotor.tilt_mc)*(float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.front_trans_dur*1000000.0f);
+		if (_params_tiltrotor.front_trans_dur <= 0.0f) {
+			_tilt_control = _params_tiltrotor.tilt_transition;
+		} else if (_tilt_control <= _params_tiltrotor.tilt_transition) {
+			_tilt_control = _params_tiltrotor.tilt_mc + fabsf(_params_tiltrotor.tilt_transition - _params_tiltrotor.tilt_mc) * 
+						(float) hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tiltrotor.front_trans_dur * 1000000.0f);
 		}
 
 		// do blending of mc and fw controls
-		if (_airspeed->true_airspeed_m_s >= ARSP_BLEND_START) {
+		if (_airspeed->true_airspeed_m_s >= ARSP_BLEND_START && _params_tiltrotor.airspeed_trans - ARSP_BLEND_START > 0.0f) {
 			_roll_weight_mc = 1.0f - (_airspeed->true_airspeed_m_s - ARSP_BLEND_START) / (_params_tiltrotor.airspeed_trans - ARSP_BLEND_START);
 		} else {
 			// at low speeds give full weight to mc
@@ -244,13 +247,14 @@ void Tiltrotor::update_transition_state()
 		_roll_weight_mc = math::constrain(_roll_weight_mc, 0.0f, 1.0f);
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P2) {
-		_tilt_control = _params_tiltrotor.tilt_transition +  fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition)*(float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(0.5f*1000000.0f);
+		_tilt_control = _params_tiltrotor.tilt_transition +  fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition) *
+					(float) hrt_elapsed_time(&_vtol_schedule.transition_start) / (0.5f * 1000000.0f);
 		_roll_weight_mc = 0.0f;
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
 		// tilt rotors forward up to certain angle
-		float progress = (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.back_trans_dur*1000000.0f);
+		float progress = (float) hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tiltrotor.back_trans_dur * 1000000.0f);
 		if (_tilt_control > _params_tiltrotor.tilt_mc) {
-			_tilt_control = _params_tiltrotor.tilt_fw -  fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_mc)*progress;
+			_tilt_control = _params_tiltrotor.tilt_fw -  fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_mc) * progress;
 		}
 
 		_roll_weight_mc = progress;
@@ -263,38 +267,26 @@ void Tiltrotor::update_external_state()
 }
 
  /**
-* Prepare message to acutators with data from mc attitude controller.
+* Prepare message to acutators with data from the attitude controllers.
 */
-void Tiltrotor::fill_mc_att_control_output()
+void Tiltrotor::fill_att_control_output()
 {
-	_actuators_out_0->control[0] = _actuators_mc_in->control[0];
-	_actuators_out_0->control[1] = _actuators_mc_in->control[1];
-	_actuators_out_0->control[2] = _actuators_mc_in->control[2];
-	_actuators_out_0->control[3] = _actuators_mc_in->control[3];
+	_actuators_out_0->control[0] = _actuators_mc_in->control[0] * _roll_weight_mc;	// roll
+	_actuators_out_0->control[1] = _actuators_mc_in->control[1] * _roll_weight_mc;	// pitch
+	_actuators_out_0->control[2] = _actuators_mc_in->control[2] * _roll_weight_mc;	// yaw
+
+	if (_vtol_schedule.flight_mode == FW_MODE) {
+		_actuators_out_1->control[3] = _actuators_fw_in->control[3];	// fw throttle
+	} else {
+		_actuators_out_0->control[3] = _actuators_mc_in->control[3];	// mc throttle
+	}
 
 	_actuators_out_1->control[0] = -_actuators_fw_in->control[0] * (1.0f - _roll_weight_mc);	//roll elevon
-	_actuators_out_1->control[1] = (_actuators_fw_in->control[1] + _params->fw_pitch_trim)* (1.0f -_roll_weight_mc);	//pitch elevon
-
+	_actuators_out_1->control[1] = (_actuators_fw_in->control[1] + _params->fw_pitch_trim)* (1.0f -_roll_weight_mc);	//pitch elevon	
 	_actuators_out_1->control[4] = _tilt_control;	// for tilt-rotor control
-}
 
-/**
-* Prepare message to acutators with data from fw attitude controller.
-*/
-void Tiltrotor::fill_fw_att_control_output()
-{
-	/*For the first test in fw mode, only use engines for thrust!!!*/
-	_actuators_out_0->control[0] = _actuators_mc_in->control[0] * _roll_weight_mc;
-	_actuators_out_0->control[1] = _actuators_mc_in->control[1] * _roll_weight_mc;
-	_actuators_out_0->control[2] = _actuators_mc_in->control[2] * _roll_weight_mc;
-	_actuators_out_0->control[3] = _actuators_fw_in->control[3];
-	/*controls for the elevons */
-	_actuators_out_1->control[0] = -_actuators_fw_in->control[0];	// roll elevon
-	_actuators_out_1->control[1] = _actuators_fw_in->control[1] + _params->fw_pitch_trim;	// pitch elevon
 	// unused now but still logged
-	_actuators_out_1->control[2] = _actuators_fw_in->control[2];	// yaw
-	_actuators_out_1->control[3] = _actuators_fw_in->control[3];	// throttle
-	_actuators_out_1->control[4] = _tilt_control;
+	_actuators_out_1->control[2] = _actuators_fw_in->control[2];	// fw yaw
 }
 
 /**
