@@ -12,9 +12,9 @@ UAVCAN is a lightweight protocol designed for reliable communication in aerospac
 
 * [UAVCAN website](http://uavcan.org)
 * [UAVCAN discussion group](https://groups.google.com/forum/#!forum/uavcan)
-* [Libuavcan overview](http://uavcan.org/Libuavcan)
-* [List of platforms officially supported by libuavcan](http://uavcan.org/List_of_platforms_officially_supported_by_libuavcan)
-* [Libuavcan tutorials](http://uavcan.org/Libuavcan_tutorials)
+* [Libuavcan overview](http://uavcan.org/Implementations/Libuavcan/)
+* [List of platforms officially supported by libuavcan](http://uavcan.org/Implementations/Libuavcan/Platforms/)
+* [Libuavcan tutorials](http://uavcan.org/Implementations/Libuavcan/Tutorials/)
 
 ## Library usage
 
@@ -22,7 +22,7 @@ UAVCAN is a lightweight protocol designed for reliable communication in aerospac
 
 * Python 2.7 or 3.2 or newer
 
-Note that this reporitory includes [pyuavcan](http://uavcan.org/Pyuavcan) as a submodule.
+Note that this reporitory includes [Pyuavcan](http://uavcan.org/Implementations/Pyuavcan) as a submodule.
 Such inclusion enables the library to be built even if pyuavcan is not installed in the system.
 
 ### Cloning the repository
