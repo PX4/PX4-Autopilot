@@ -52,7 +52,9 @@ mTecs::mTecs() :
 	_mTecsEnabled(this, "ENABLED"),
 	_airspeedMin(this, "FW_AIRSPD_MIN", false),
 	/* Publications */
+#if defined(__PX4_NUTTX)
 	_status(ORB_ID(tecs_status), &getPublications()),
+#endif // defined(__PX4_NUTTX)
 	/* control blocks */
 	_controlTotalEnergy(this, "THR"),
 	_controlEnergyDistribution(this, "PIT", true),
@@ -107,9 +109,11 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 		debug("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, altitude filtered %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)altitudeFiltered, (double)flightPathAngleSp);
 	}
 
+#if defined(__PX4_NUTTX)
 	/* Write part of the status message */
 	_status.altitudeSp = altitudeSp;
 	_status.altitude_filtered = altitudeFiltered;
+#endif // defined(__PX4_NUTTX)
 
 
 	/* use flightpath angle setpoint for total energy control */
@@ -143,9 +147,11 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 				(double)airspeedFiltered, (double)accelerationLongitudinalSp);
 	}
 
+#if defined(__PX4_NUTTX)
 	/* Write part of the status message */
 	_status.airspeedSp = airspeedSp;
 	_status.airspeed_filtered = airspeedFiltered;
+#endif // defined(__PX4_NUTTX)
 
 
 	/* use longitudinal acceleration setpoint for total energy control */
@@ -200,23 +206,23 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	}
 
 	/* Check airspeed: if below safe value switch to underspeed mode (if not in land or takeoff mode) */
-	if (mode != tecs_status_s::TECS_MODE_LAND && mode != tecs_status_s::TECS_MODE_TAKEOFF && airspeedFiltered < _airspeedMin.get()) {
-		mode = tecs_status_s::TECS_MODE_UNDERSPEED;
+	if (mode != MTECS_MODE_LAND && mode != MTECS_MODE_TAKEOFF && airspeedFiltered < _airspeedMin.get()) {
+		mode = MTECS_MODE_UNDERSPEED;
 	}
 
-	/* Set special output limiters if we are not in TECS_MODE_NORMAL */
+	/* Set special output limiters if we are not in MTECS_MODE_NORMAL */
 	BlockOutputLimiter *outputLimiterThrottle = &_controlTotalEnergy.getOutputLimiter();
 	BlockOutputLimiter *outputLimiterPitch = &_controlEnergyDistribution.getOutputLimiter();
-	if (mode == tecs_status_s::TECS_MODE_TAKEOFF) {
+	if (mode == MTECS_MODE_TAKEOFF) {
 		outputLimiterThrottle = &_BlockOutputLimiterTakeoffThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterTakeoffPitch;
-	} else if (mode == tecs_status_s::TECS_MODE_LAND) {
+	} else if (mode == MTECS_MODE_LAND) {
 		// only limit pitch but do not limit throttle
 		outputLimiterPitch = &_BlockOutputLimiterLandPitch;
-	} else if (mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM) {
+	} else if (mode == MTECS_MODE_LAND_THROTTLELIM) {
 		outputLimiterThrottle = &_BlockOutputLimiterLandThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterLandPitch;
-	} else if (mode == tecs_status_s::TECS_MODE_UNDERSPEED) {
+	} else if (mode == MTECS_MODE_UNDERSPEED) {
 		outputLimiterThrottle = &_BlockOutputLimiterUnderspeedThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterUnderspeedPitch;
 	}
@@ -226,6 +232,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	 * is running) */
 	limitOverride.applyOverride(*outputLimiterThrottle, *outputLimiterPitch);
 
+// #if defined(__PX4_NUTTX)
 	// /* Write part of the status message */
 	// _status.flightPathAngleSp = flightPathAngleSp;
 	// _status.flightPathAngle = flightPathAngle;
@@ -237,6 +244,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	// _status.energyDistributionRateSp = energyDistributionRateSp;
 	// _status.energyDistributionRate = energyDistributionRate;
 	// _status.mode = mode;
+// #endif // defined(__PX4_NUTTX)
 
 	/** update control blocks **/
 	/* update total energy rate control block */
@@ -253,8 +261,10 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 				(double)accelerationLongitudinalSp, (double)airspeedDerivative);
 	}
 
+#if defined(__PX4_NUTTX)
 	/* publish status message */
 	_status.update();
+#endif // defined(__PX4_NUTTX)
 
 	/* clean up */
 	_firstIterationAfterReset = false;
