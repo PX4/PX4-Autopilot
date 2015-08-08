@@ -1094,6 +1094,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *_trigger_sub;
+	uint64_t _trigger_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamCameraTrigger(MavlinkStreamCameraTrigger &);
@@ -1101,19 +1102,24 @@ private:
 
 protected:
 	explicit MavlinkStreamCameraTrigger(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_trigger_sub(_mavlink->add_orb_subscription(ORB_ID(camera_trigger)))
+		_trigger_sub(_mavlink->add_orb_subscription(ORB_ID(camera_trigger))),
+		_trigger_time(0)
 	{}
 
 	void send(const hrt_abstime t)
 	{
 		struct camera_trigger_s trigger;
 
-		if (_trigger_sub->update(&trigger)) {
+		if (_trigger_sub->update(&_trigger_time, &trigger)) {
 			mavlink_camera_trigger_t msg;
 
 			msg.time_usec = trigger.timestamp;
+			msg.seq = trigger.seq;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_CAMERA_TRIGGER, &msg);
+			/* ensure that only active trigger events are sent */
+			if (trigger.timestamp > 0) {
+				_mavlink->send_message(MAVLINK_MSG_ID_CAMERA_TRIGGER, &msg);
+			}
 		}
 	}
 };
