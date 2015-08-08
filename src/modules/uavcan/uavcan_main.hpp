@@ -36,6 +36,9 @@
 #include <px4_config.h>
 
 #include <uavcan_stm32/uavcan_stm32.hpp>
+#include <uavcan/protocol/global_time_sync_master.hpp>
+#include <uavcan/protocol/global_time_sync_slave.hpp>
+
 #include <drivers/device/device.h>
 #include <systemlib/perf_counter.h>
 
@@ -48,7 +51,7 @@
 #include "actuators/esc.hpp"
 #include "sensors/sensor_bridge.hpp"
 
-# include "uavcan_servers.hpp"
+#include "uavcan_servers.hpp"
 
 /**
  * @file uavcan_main.hpp
@@ -121,6 +124,7 @@ public:
 	void            attachITxQueueInjector(ITxQueueInjector *injector) {_tx_injector = injector;}
 
 private:
+
 	void		fill_node_info();
 	int		init(uavcan::NodeID node_id);
 	void		node_spin_once();
@@ -150,6 +154,8 @@ private:
 	pthread_mutex_t		_node_mutex;
 	sem_t                   _server_command_sem;
 	UavcanEscController	_esc_controller;
+	uavcan::GlobalTimeSyncMaster _time_sync_master;
+	uavcan::GlobalTimeSyncSlave _time_sync_slave;
 
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 
@@ -175,4 +181,10 @@ private:
 	perf_counter_t _perfcnt_node_spin_elapsed        = perf_alloc(PC_ELAPSED, "uavcan_node_spin_elapsed");
 	perf_counter_t _perfcnt_esc_mixer_output_elapsed = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_output_elapsed");
 	perf_counter_t _perfcnt_esc_mixer_total_elapsed  = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_total_elapsed");
+
+	void handle_time_sync(const uavcan::TimerEvent &);
+
+	typedef uavcan::MethodBinder<UavcanNode *, void (UavcanNode::*)(const uavcan::TimerEvent &)> TimerCallback;
+	uavcan::TimerEventForwarder<TimerCallback> _master_timer;
+
 };
