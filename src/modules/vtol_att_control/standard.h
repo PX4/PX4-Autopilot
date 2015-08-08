@@ -93,7 +93,6 @@ private:
 
 	bool _flag_enable_mc_motors;
 	float _pusher_throttle;
-	float _mc_att_ctl_weight;	// the amount of multicopter attitude control that should be applied in fixed wing mode while transitioning 
 	float _airspeed_trans_blend_margin;
 
 	void fill_actuator_outputs();
