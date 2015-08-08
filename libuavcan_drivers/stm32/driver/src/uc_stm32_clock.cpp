@@ -124,7 +124,9 @@ void init()
     putreg16(BTIM_CR1_CEN, TMR_REG(STM32_BTIM_CR1_OFFSET)); // Start
 
     // Prioritize and Enable  IRQ
-    up_prioritize_irq(TIMX_IRQn, NVIC_SYSH_HIGH_PRIORITY);
+// todo: Currently changing the NVIC_SYSH_HIGH_PRIORITY is HARD faulting
+// need to investigate
+//    up_prioritize_irq(TIMX_IRQn, NVIC_SYSH_HIGH_PRIORITY);
     up_enable_irq(TIMX_IRQn);
 
 # endif
