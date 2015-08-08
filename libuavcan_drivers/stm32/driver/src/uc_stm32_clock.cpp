@@ -23,7 +23,7 @@
 # if UAVCAN_STM32_NUTTX
 #  define TIMX                    UAVCAN_STM32_GLUE3(STM32_TIM, UAVCAN_STM32_TIMER_NUMBER, _BASE)
 #  define  TMR_REG(o)              (TIMX + (o))
-#  define TIMX_INPUT_CLOCK         STM32_TIM18_FREQUENCY
+#  define TIMX_INPUT_CLOCK         STM32_TIM27_FREQUENCY
 
 #  define TIMX_IRQn                UAVCAN_STM32_GLUE2(STM32_IRQ_TIM, UAVCAN_STM32_TIMER_NUMBER)
 # endif
@@ -116,7 +116,7 @@ void init()
 
     // Start the timer
     putreg32(0xFFFF, TMR_REG(STM32_BTIM_ARR_OFFSET));
-    putreg16((TIMX_INPUT_CLOCK / 1000000), TMR_REG(STM32_BTIM_PSC_OFFSET));
+    putreg16(((TIMX_INPUT_CLOCK / 1000000)-1), TMR_REG(STM32_BTIM_PSC_OFFSET));
     putreg16(BTIM_CR1_URS, TMR_REG(STM32_BTIM_CR1_OFFSET));
     putreg16(0, TMR_REG(STM32_BTIM_SR_OFFSET));
     putreg16(BTIM_EGR_UG, TMR_REG(STM32_BTIM_EGR_OFFSET)); // Reload immediately
@@ -128,6 +128,23 @@ void init()
     up_enable_irq(TIMX_IRQn);
 
 # endif
+}
+
+void setUtc(uavcan::UtcTime time)
+{
+    MutexLocker mlocker(mutex);
+    UAVCAN_ASSERT(initialized);
+
+    {
+        CriticalSectionLocker locker;
+        time_utc = time.toUSec();
+    }
+
+    utc_set = true;
+    utc_locked = false;
+    utc_jump_cnt++;
+    utc_prev_adj = 0;
+    utc_rel_rate_ppm = 0;
 }
 
 static uavcan::uint64_t sampleUtcFromCriticalSection()
@@ -176,10 +193,12 @@ uavcan::uint64_t getUtcUSecFromCanInterrupt()
 uavcan::MonotonicTime getMonotonic()
 {
     uavcan::uint64_t usec = 0;
+    // Scope Critical section
     {
         CriticalSectionLocker locker;
 
         volatile uavcan::uint64_t time = time_mono;
+
 # if UAVCAN_STM32_CHIBIOS
 
         volatile uavcan::uint32_t cnt = TIMX->CNT;
@@ -187,6 +206,7 @@ uavcan::MonotonicTime getMonotonic()
         {
             cnt = TIMX->CNT;
 # endif
+
 # if UAVCAN_STM32_NUTTX
 
         volatile uavcan::uint32_t cnt = getreg16(TMR_REG(STM32_BTIM_CNT_OFFSET));
@@ -195,9 +215,9 @@ uavcan::MonotonicTime getMonotonic()
         {
             cnt = getreg16(TMR_REG(STM32_BTIM_CNT_OFFSET));
 # endif
-        time += USecPerOverflow;
-    }
-    usec = time + cnt;
+            time += USecPerOverflow;
+        }
+        usec = time + cnt;
 
 # ifndef NDEBUG
     static uavcan::uint64_t prev_usec = 0;      // Self-test
@@ -205,9 +225,9 @@ uavcan::MonotonicTime getMonotonic()
     (void)prev_usec;
     prev_usec = usec;
 # endif
-}
+   } // End Scope Critical section
 
-return uavcan::MonotonicTime::fromUSec(usec);
+   return uavcan::MonotonicTime::fromUSec(usec);
 }
 
 uavcan::UtcTime getUtc()

@@ -25,6 +25,14 @@ void init();
 uavcan::MonotonicTime getMonotonic();
 
 /**
+ * Sets the driver's notion of the system UTC. It should be called
+ * at startup and any time the system clock is updated from an
+ * external source that is not the UAVCAN Timesync master.
+ * This function is thread safe.
+ */
+void setUtc(uavcan::UtcTime time);
+
+/**
  * Returns UTC time if it has been set, otherwise returns zero time.
  * This function is thread safe.
  */
