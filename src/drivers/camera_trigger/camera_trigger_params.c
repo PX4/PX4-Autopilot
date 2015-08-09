@@ -42,28 +42,16 @@
 #include <systemlib/param/param.h>
 
 /**
- * Camera trigger shutter integration time
+ * Camera trigger interval
  *
- * This parameter sets the time the shutter is open on the camera.
- *
- * @unit milliseconds
- * @min 0.0
- * @max 500.0
- * @group Camera trigger
- */
-PARAM_DEFINE_FLOAT(TRIG_INT_TIME, 300.0f);
-
-/**
- * Camera trigger transfer time
- *
- * This parameter sets the time the image transfer takes (PointGrey mode_0)
+ * This parameter sets the time between two consecutive trigger events
  *
  * @unit milliseconds
- * @min 15.0
- * @max 33.0
+ * @min 4.0
+ * @max 10000.0
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_TRANS_TIME, 15.0f);
+PARAM_DEFINE_FLOAT(TRIG_INTERVAL, 40.0f);
 
 /**
  * Camera trigger polarity
@@ -79,10 +67,31 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
 /**
  * Camera trigger activation time
  *
- * This parameter sets the time the trigger needs to pulled high or low to start light 
- * integration.
+ * This parameter sets the time the trigger needs to pulled high or low.
  *
  * @unit milliseconds
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 5.0f);
+PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
+
+/**
+ * Camera trigger mode
+ *
+ * 0 disables the trigger, 1 sets it to enabled on command, 2 always on
+ *
+ * @min 0
+ * @max 2
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_MODE, 0);
+
+/**
+ * Camera trigger pin
+ *
+ * Selects which pin is used, ranges from 1 to 6 (AUX1-AUX6)
+ *
+ * @min 1
+ * @max 6
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_PIN, 1);

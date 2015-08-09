@@ -1389,6 +1389,9 @@ Mavlink::update_rate_mult()
 			/* limit to a max multiplier of 1 */
 			hardware_mult = fminf(1.0f, hardware_mult);
 		}
+	} else {
+		/* no limitation, set hardware to 1 */
+		hardware_mult = 1.0f;
 	}
 
 	_last_hw_rate_timestamp = tstatus.timestamp;
@@ -1671,7 +1674,8 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
-		configure_stream("CAMERA_TRIGGER", 30.0f);
+		/* camera trigger is rate limited at the source, do not limit here */
+		configure_stream("CAMERA_TRIGGER", 500.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
