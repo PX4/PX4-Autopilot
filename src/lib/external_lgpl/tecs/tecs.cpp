@@ -48,8 +48,6 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 
 	bool reset_altitude = false;
 
-	_in_air = in_air;
-
 	if (_update_50hz_last_usec == 0 || DT > DT_MAX) {
 		DT            = 0.02f; // when first starting TECS, use a
 		// small time constant
@@ -68,6 +66,8 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 
 	_update_50hz_last_usec = now;
 	_EAS = airspeed;
+
+	_in_air = in_air;
 
 	// Get height acceleration
 	float hgt_ddot_mea = -(accel_earth(2) + CONSTANTS_ONE_G);
@@ -108,7 +108,9 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 		_vel_dot = 0.0f;
 	}
 
-	_states_initalized = true;
+	if (!_in_air) {
+		_states_initalized = false;
+	}
 
 }
 
@@ -179,40 +181,38 @@ void TECS::_update_speed_demand(void)
 
 	// calculate velocity rate limits based on physical performance limits
 	// provision to use a different rate limit if bad descent or underspeed condition exists
-	// Use 50% of maximum energy rate to allow margin for total energy contgroller
-//	float velRateMax;
-//	float velRateMin;
-//
-//	if ((_badDescent) || (_underspeed)) {
-//		velRateMax = 0.5f * _STEdot_max / _integ5_state;
-//		velRateMin = 0.5f * _STEdot_min / _integ5_state;
-//
-//	} else {
-//		velRateMax = 0.5f * _STEdot_max / _integ5_state;
-//		velRateMin = 0.5f * _STEdot_min / _integ5_state;
-//	}
-//
+	// Use 50% of maximum energy rate to allow margin for total energy controller
+	float velRateMax;
+	float velRateMin;
+
+	if ((_badDescent) || (_underspeed)) {
+		velRateMax = 0.5f * _STEdot_max / _integ5_state;
+		velRateMin = 0.5f * _STEdot_min / _integ5_state;
+
+	} else {
+		velRateMax = 0.5f * _STEdot_max / _integ5_state;
+		velRateMin = 0.5f * _STEdot_min / _integ5_state;
+	}
+
 //	// Apply rate limit
-//	if ((_TAS_dem - _TAS_dem_adj) > (velRateMax * 0.1f)) {
-//		_TAS_dem_adj = _TAS_dem_adj + velRateMax * 0.1f;
+//	if ((_TAS_dem - _TAS_dem_adj) > (velRateMax * _DT)) {
+//		_TAS_dem_adj = _TAS_dem_adj + velRateMax * _DT;
 //		_TAS_rate_dem = velRateMax;
 //
-//	} else if ((_TAS_dem - _TAS_dem_adj) < (velRateMin * 0.1f)) {
-//		_TAS_dem_adj = _TAS_dem_adj + velRateMin * 0.1f;
+//	} else if ((_TAS_dem - _TAS_dem_adj) < (velRateMin * _DT)) {
+//		_TAS_dem_adj = _TAS_dem_adj + velRateMin * _DT;
 //		_TAS_rate_dem = velRateMin;
 //
 //	} else {
 //		_TAS_dem_adj = _TAS_dem;
 //
 //
-//	_TAS_rate_dem = (_TAS_dem - _TAS_dem_last) / 0.1f;
+//	_TAS_rate_dem = (_TAS_dem - _TAS_dem_last) / _DT;
 //	}
 
-	_TAS_dem_adj = _TAS_dem;
-	_TAS_rate_dem = (_TAS_dem_adj-_integ5_state)*_speedrate_p; //xxx: using a p loop for now
+	_TAS_dem_adj = constrain(_TAS_dem, _TASmin, _TASmax);;
+	_TAS_rate_dem = constrain((_TAS_dem_adj - _integ5_state) * _speedrate_p, velRateMin, velRateMax); //xxx: using a p loop for now
 
-	// Constrain speed demand again to protect against bad values on initialisation.
-	_TAS_dem_adj = constrain(_TAS_dem_adj, _TASmin, _TASmax);
 //	_TAS_dem_last = _TAS_dem;
 
 //	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f, _badDescent %u , _underspeed %u, velRateMin %.1f",
@@ -223,23 +223,29 @@ void TECS::_update_speed_demand(void)
 
 void TECS::_update_height_demand(float demand, float state)
 {
-//	// Apply 2 point moving average to demanded height
-//	// This is required because height demand is only updated at 5Hz
-//	_hgt_dem = 0.5f * (demand + _hgt_dem_in_old);
-//	_hgt_dem_in_old = _hgt_dem;
-//
-//	// printf("hgt_dem: %6.2f hgt_dem_last: %6.2f max_climb_rate: %6.2f\n", _hgt_dem, _hgt_dem_prev,
-//	// 	_maxClimbRate);
-//
-//	// Limit height rate of change
-//	if ((_hgt_dem - _hgt_dem_prev) > (_maxClimbRate * 0.1f)) {
-//		_hgt_dem = _hgt_dem_prev + _maxClimbRate * 0.1f;
-//
-//	} else if ((_hgt_dem - _hgt_dem_prev) < (-_maxSinkRate * 0.1f)) {
-//		_hgt_dem = _hgt_dem_prev - _maxSinkRate * 0.1f;
-//	}
-//
-//	_hgt_dem_prev = _hgt_dem;
+	// Handle initialization
+	if (isfinite(demand) && fabsf(_hgt_dem_in_old) < 0.1f) {
+		_hgt_dem_in_old = demand;
+	}
+	// Apply 2 point moving average to demanded height
+	// This is required because height demand is updated in steps
+	if (isfinite(demand)) {
+		_hgt_dem = 0.5f * (demand + _hgt_dem_in_old);
+	} else {
+		_hgt_dem = _hgt_dem_in_old;
+	}
+	_hgt_dem_in_old = _hgt_dem;
+
+	// Limit height demand
+	// this is important to avoid a windup
+	if ((_hgt_dem - _hgt_dem_prev) > (_maxClimbRate * _DT)) {
+		_hgt_dem = _hgt_dem_prev + _maxClimbRate * _DT;
+
+	} else if ((_hgt_dem - _hgt_dem_prev) < (-_maxSinkRate * _DT)) {
+		_hgt_dem = _hgt_dem_prev - _maxSinkRate * _DT;
+	}
+
+	_hgt_dem_prev = _hgt_dem;
 //
 //	// Apply first order lag to height demand
 //	_hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
@@ -249,9 +255,9 @@ void TECS::_update_height_demand(float demand, float state)
 //	// printf("hgt_dem: %6.2f hgt_dem_adj: %6.2f hgt_dem_last: %6.2f hgt_rate_dem: %6.2f\n", _hgt_dem, _hgt_dem_adj, _hgt_dem_adj_last,
 //	// 	_hgt_rate_dem);
 
-	_hgt_dem_adj = demand;//0.025f * demand + 0.975f * _hgt_dem_adj_last;
-	_hgt_rate_dem = (_hgt_dem_adj-state)*_heightrate_p + _heightrate_ff * (_hgt_dem_adj - _hgt_dem_adj_last)/_DT;
+	_hgt_dem_adj = 0.1f * _hgt_dem + 0.9f * _hgt_dem_adj_last;
 	_hgt_dem_adj_last = _hgt_dem_adj;
+	_hgt_rate_dem = (_hgt_dem_adj - state) * _heightrate_p + _heightrate_ff * (_hgt_dem_adj - _hgt_dem_adj_last) / _DT;
 
 	// Limit height rate of change
 	if (_hgt_rate_dem > _maxClimbRate) {
@@ -485,7 +491,7 @@ void TECS::_update_pitch(void)
 void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_altitude, float ptchMinCO_rad)
 {
 	// Initialise states and variables if DT > 1 second or in climbout
-	if (_update_pitch_throttle_last_usec == 0 || _DT > 1.0f || !_in_air) {
+	if (_update_pitch_throttle_last_usec == 0 || _DT > 1.0f || !_in_air || !_states_initalized) {
 		_integ6_state      = 0.0f;
 		_integ7_state      = 0.0f;
 		_last_throttle_dem = throttle_cruise;
@@ -498,8 +504,10 @@ void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_alt
 		_TAS_dem_adj       = _TAS_dem;
 		_underspeed        = false;
 		_badDescent        = false;
-		_DT                = DT_MIN; // when first starting TECS, use a
-		// small time constant
+
+		if (_DT > 1.0f || _DT < 0.001f) {
+			_DT                = DT_MIN;
+		}
 
 	} else if (_climbOutDem) {
 		_PITCHminf          = ptchMinCO_rad;
@@ -512,6 +520,8 @@ void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_alt
 		_underspeed        = false;
 		_badDescent 	   = false;
 	}
+
+	_states_initalized = true;
 }
 
 void TECS::_update_STE_rate_lim(void)
@@ -526,9 +536,6 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 				 float throttle_min, float throttle_max, float throttle_cruise,
 				 float pitch_limit_min, float pitch_limit_max)
 {
-	if (!_states_initalized) {
-		return;
-	}
 
 	// Calculate time in seconds since last update
 	uint64_t now = ecl_absolute_time();
@@ -536,9 +543,6 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 
 	// printf("tecs in: dt:%10.6f pitch: %6.2f baro_alt: %6.2f alt sp: %6.2f\neas sp: %6.2f eas: %6.2f, eas2tas: %6.2f\n %s pitch min C0: %6.2f thr min: %6.2f, thr max: %6.2f thr cruis: %6.2f pt min: %6.2f, pt max: %6.2f\n",
 	// 	_DT, pitch, baro_altitude, hgt_dem, EAS_dem, indicated_airspeed, EAS2TAS, (climbOutDem) ? "climb" : "level", ptchMinCO, throttle_min, throttle_max, throttle_cruise, pitch_limit_min, pitch_limit_max);
-
-	// Update the speed estimate using a 2nd order complementary filter
-	_update_speed(EAS_dem, indicated_airspeed, _indicated_airspeed_min, _indicated_airspeed_max, EAS2TAS);
 
 	// Convert inputs
 	_THRmaxf  = throttle_max;
@@ -549,6 +553,13 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 
 	// initialise selected states and variables if DT > 1 second or in climbout
 	_initialise_states(pitch, throttle_cruise, baro_altitude, ptchMinCO);
+
+	if (!_in_air) {
+		return;
+	}
+
+	// Update the speed estimate using a 2nd order complementary filter
+	_update_speed(EAS_dem, indicated_airspeed, _indicated_airspeed_min, _indicated_airspeed_max, EAS2TAS);
 
 	// Calculate Specific Total Energy Rate Limits
 	_update_STE_rate_lim();

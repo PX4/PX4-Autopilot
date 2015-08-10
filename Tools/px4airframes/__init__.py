@@ -1,1 +1,1 @@
-__all__ = ["srcscanner", "srcparser", "xmlout", "dokuwikiout", "dokuwikirpc"]
+__all__ = ["srcscanner", "srcparser", "xmlout", "rcout"]

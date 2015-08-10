@@ -11,4 +11,7 @@ sh /etc/init.d/rc.mc_defaults
 
 set MIXER quad_x
 
+# Enable gamepad / joystick support
+param set COM_RC_IN_MODE 2
+
 set HIL yes

@@ -11,4 +11,7 @@ sh /etc/init.d/rc.fw_defaults
 
 set HIL yes
 
+# Enable gamepad / joystick support
+param set COM_RC_IN_MODE 2
+
 set MIXER AERT

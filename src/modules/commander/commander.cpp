@@ -1348,10 +1348,15 @@ int commander_thread_main(int argc, char *argv[])
 				orb_copy(telemetry_status_orb_id[i], telemetry_subs[i], &telemetry);
 
 				/* perform system checks when new telemetry link connected */
-				if (mavlink_fd &&
-				    telemetry_last_heartbeat[i] == 0 &&
+				if (
+				    /* we actually have a way to talk to the user */
+				    mavlink_fd &&
+				    /* we first connect a link or re-connect a link after loosing it */
+				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)) &&
+				    /* and this link has a communication partner */
 				    telemetry.heartbeat_time > 0 &&
-				    hrt_elapsed_time(&telemetry.heartbeat_time) < datalink_loss_timeout * 1e6) {
+				    /* and the system is not already armed (and potentially flying) */
+				    !armed.armed) {
 
 				    	bool chAirspeed = false;
 					/* Perform airspeed check only if circuit breaker is not
@@ -1823,7 +1828,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else {
 				if (status.rc_signal_lost) {
-					mavlink_log_critical(mavlink_fd, "RC SIGNAL REGAINED after %llums",
+					mavlink_log_info(mavlink_fd, "RC SIGNAL REGAINED after %llums",
 							     (hrt_absolute_time() - status.rc_signal_lost_timestamp) / 1000);
 					status_changed = true;
 				}
@@ -1950,7 +1955,7 @@ int commander_thread_main(int argc, char *argv[])
 
 					/* only report a regain */
 					if (telemetry_last_dl_loss[i] > 0) {
-						mavlink_and_console_log_critical(mavlink_fd, "data link #%i regained", i);
+						mavlink_and_console_log_info(mavlink_fd, "data link #%i regained", i);
 					}
 
 					telemetry_lost[i] = false;
@@ -1968,7 +1973,7 @@ int commander_thread_main(int argc, char *argv[])
 					/* only reset the timestamp to a different time on state change */
 					telemetry_last_dl_loss[i]  = hrt_absolute_time();
 
-					mavlink_and_console_log_critical(mavlink_fd, "data link #%i lost", i);
+					mavlink_and_console_log_info(mavlink_fd, "data link #%i lost", i);
 					telemetry_lost[i] = true;
 				}
 			}
@@ -1983,7 +1988,9 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			if (!status.data_link_lost) {
-				mavlink_and_console_log_critical(mavlink_fd, "ALL DATA LINKS LOST");
+				if (armed.armed) {
+					mavlink_and_console_log_critical(mavlink_fd, "ALL DATA LINKS LOST");
+				}
 				status.data_link_lost = true;
 				status.data_link_lost_counter++;
 				status_changed = true;
@@ -2978,6 +2985,21 @@ void *commander_low_prio_loop(void *arg)
 								mavlink_log_critical(mavlink_fd, "ERROR: %s", strerror(ret));
 							}
 
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+						}
+					} else if (((int)(cmd.param1)) == 2) {
+
+						/* reset parameters and save empty file */
+						param_reset_all();
+						int ret = param_save_default();
+
+						if (ret == OK) {
+							/* do not spam MAVLink, but provide the answer / green led mechanism */
+							mavlink_log_critical(mavlink_fd, "onboard parameters reset");
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+						} else {
+							mavlink_log_critical(mavlink_fd, "param reset error");
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
 						}
 					}

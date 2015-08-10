@@ -215,6 +215,10 @@ MavlinkParametersManager::send(const hrt_abstime t)
 		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {
 			_send_all_index = -1;
 		}
+	} else if (_send_all_index == 0 && hrt_absolute_time() > 20 * 1000 * 1000) {
+		/* the boot did not seem to ever complete, warn user and set boot complete */
+		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");
+		_mavlink->set_boot_complete();
 	}
 }
 
