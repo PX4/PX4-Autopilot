@@ -708,6 +708,11 @@ fi
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
 
+# Check for flow sensor - as it is a background task, launch it last
+if px4flow start &
+then
+fi
+
 if [ $EXIT_ON_END == yes ]
 then
 	echo "Exit from nsh"

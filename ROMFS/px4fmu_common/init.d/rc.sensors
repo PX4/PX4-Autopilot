@@ -110,11 +110,6 @@ else
 	fi
 fi
 
-# Check for flow sensor
-if px4flow start &
-then
-fi
-
 if ll40ls start
 then
 fi
