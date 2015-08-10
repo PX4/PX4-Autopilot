@@ -1789,6 +1789,12 @@ Mavlink::start(int argc, char *argv[])
 	// before returning to the shell
 	int ic = Mavlink::instance_count();
 
+	if (ic == MAVLINK_COMM_NUM_BUFFERS) {
+		warnx("Maximum MAVLink instance count of %d reached.",
+			(int)MAVLINK_COMM_NUM_BUFFERS);
+		return 1;
+	}
+
 	// Instantiate thread
 	char buf[24];
 	sprintf(buf, "mavlink_if%d", ic);
