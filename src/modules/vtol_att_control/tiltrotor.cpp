@@ -56,6 +56,8 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
 
+	_flag_was_in_trans_mode = false;
+
 	_params_handles_tiltrotor.front_trans_dur = param_find("VT_F_TRANS_DUR");
 	_params_handles_tiltrotor.back_trans_dur = param_find("VT_B_TRANS_DUR");
 	_params_handles_tiltrotor.tilt_mc = param_find("VT_TILT_MC");
@@ -292,6 +294,12 @@ void Tiltrotor::update_fw_state()
 
 void Tiltrotor::update_transition_state()
 {
+	if (!_flag_was_in_trans_mode) {
+		// save desired heading for transition and last thrust value
+		_yaw_transition = _v_att->yaw;
+		_throttle_transition = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+		_flag_was_in_trans_mode = true;
+	}
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 		// for the first part of the transition the rear rotors are enabled
 		if (_rear_motors != ENABLED) {
@@ -354,6 +362,23 @@ void Tiltrotor::update_transition_state()
 
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
 	_mc_yaw_weight = math::constrain(_mc_yaw_weight, 0.0f, 1.0f);
+
+	// compute desired attitude and thrust setpoint for the transition
+	_v_att_sp->timestamp = hrt_absolute_time();
+	_v_att_sp->roll_body = 0;
+	_v_att_sp->pitch_body = 0;
+	_v_att_sp->yaw_body = _yaw_transition;
+	_v_att_sp->thrust = _throttle_transition;
+
+	math::Matrix<3,3> R_sp;
+	R_sp.from_euler(_v_att_sp->roll_body,_v_att_sp->pitch_body,_v_att_sp->yaw_body);
+	memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
+	_v_att_sp->R_valid = true;
+
+	math::Quaternion q_sp;
+	q_sp.from_dcm(R_sp);
+	_v_att_sp->q_d_valid = true;
+	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
 }
 
 void Tiltrotor::update_external_state()

@@ -59,7 +59,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	//init subscription handlers
 	_v_att_sub(-1),
-	_v_att_sp_sub(-1),
 	_mc_virtual_v_rates_sp_sub(-1),
 	_fw_virtual_v_rates_sp_sub(-1),
 	_v_control_mode_sub(-1),
@@ -75,13 +74,13 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_actuators_0_pub(nullptr),
 	_actuators_1_pub(nullptr),
 	_vtol_vehicle_status_pub(nullptr),
-	_v_rates_sp_pub(nullptr)
+	_v_rates_sp_pub(nullptr),
+	_v_att_sp_pub(nullptr)
 
 {
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 	memset(&_v_att, 0, sizeof(_v_att));
-	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
 	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
 	memset(&_mc_virtual_v_rates_sp, 0, sizeof(_mc_virtual_v_rates_sp));
 	memset(&_fw_virtual_v_rates_sp, 0, sizeof(_fw_virtual_v_rates_sp));
@@ -439,6 +438,17 @@ void VtolAttitudeControl::fill_fw_att_rates_sp()
 	_v_rates_sp.thrust 	= _fw_virtual_v_rates_sp.thrust;
 }
 
+void VtolAttitudeControl::publish_transition_att_sp()
+{
+	if (_v_att_sp_pub != nullptr) {
+		/* publish the attitude setpoint */
+		orb_publish(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_pub, &_v_att_sp);
+	} else {
+		/* advertise and publish */
+		_v_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
+	}
+}
+
 void
 VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
@@ -451,7 +461,6 @@ void VtolAttitudeControl::task_main()
 	fflush(stdout);
 
 	/* do subscriptions */
-	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(mc_virtual_rates_setpoint));
 	_fw_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
 	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -599,6 +608,7 @@ void VtolAttitudeControl::task_main()
 			if (got_new_data) {
 				_vtol_type->update_transition_state();
 				fill_mc_att_rates_sp();
+				publish_transition_att_sp();
 			}
 
 		} else if (_vtol_type->get_mode() == EXTERNAL) {

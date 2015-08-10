@@ -151,6 +151,7 @@ private:
 	orb_advert_t 	_actuators_1_pub;
 	orb_advert_t	_vtol_vehicle_status_pub;
 	orb_advert_t	_v_rates_sp_pub;
+	orb_advert_t	_v_att_sp_pub;
 //*******************data containers***********************************************************
 	struct vehicle_attitude_s			_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			//vehicle attitude setpoint
@@ -215,6 +216,7 @@ private:
 	void 		fill_mc_att_rates_sp();
 	void 		fill_fw_att_rates_sp();
 	void		handle_command();
+	void 		publish_transition_att_sp();
 };
 
 #endif
