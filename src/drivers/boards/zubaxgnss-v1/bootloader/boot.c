@@ -98,6 +98,9 @@ __EXPORT void stm32_boardinitialize(void)
 		 STM32_RCC_APB1RSTR);
 	putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST,
 		 STM32_RCC_APB1RSTR);
+	stm32_configgpio(GPIO_LED_CAN1);
+	stm32_configgpio(GPIO_LED_CAN2);
+	stm32_configgpio(GPIO_LED_INFO);
 
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
 	stm32_configgpio(GPIO_GETNODEINFO_JUMPER);

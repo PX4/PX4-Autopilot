@@ -41,15 +41,58 @@
 
 
 #include "led.h"
+#include "timer.h"
+#include "board_config.h"
+
+const int LED_TICK = 10;
+static int red;
+static int green;
+static int blue;
+static int period;
+
+static void led_process(bl_timer_id id, void *context)
+{
+        static int dc = 0;
+        static bool toggle = true;
+        dc  += LED_TICK;
+        if (dc >= period) {
+            dc = 0;
+            toggle ^= true;
+        }
+
+        if (red) {
+            stm32_gpiowrite(GPIO_LED_CAN1, toggle);
+        }
+        if (blue) {
+            stm32_gpiowrite(GPIO_LED_CAN2, toggle);
+        }
+        if (green) {
+            stm32_gpiowrite(GPIO_LED_INFO, toggle);
+        }
+
+}
 
 
 void rgb_led(int r, int g , int b, int freqs)
 {
 
-	static bool once = 0;
+	static bl_timer_id  tid = (bl_timer_id)-1;
 
-	if (!once) {
-		once = 1;
+	if ( tid == (bl_timer_id) -1) {
+
+	    bl_timer_cb_t p = null_cb;
+	    p.cb = led_process;
+
+	    tid = timer_allocate(modeRepeating | modeStarted, LED_TICK, &p);
+	}
+        red = r;
+        green = g;
+        blue = b;
+	if (freqs == 0) {
+	    timer_stop(tid);
+	} else {
+	    period = 1000 / freqs;
+	    timer_restart(tid, LED_TICK);
 	}
 
 }
