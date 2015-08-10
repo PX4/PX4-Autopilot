@@ -1361,7 +1361,7 @@ Mavlink::update_rate_mult()
 	bool radio_found = false;
 
 	/* 2nd pass: Now check hardware limits */
-	if (tstatus.type == TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+	if (tstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
 
 		radio_found = true;
 
