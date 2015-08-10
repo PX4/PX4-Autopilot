@@ -60,15 +60,9 @@ static void led_process(bl_timer_id id, void *context)
             toggle ^= true;
         }
 
-        if (red) {
-            stm32_gpiowrite(GPIO_LED_CAN1, toggle);
-        }
-        if (blue) {
-            stm32_gpiowrite(GPIO_LED_CAN2, toggle);
-        }
-        if (green) {
-            stm32_gpiowrite(GPIO_LED_INFO, toggle);
-        }
+        stm32_gpiowrite(GPIO_LED_CAN1, red ? toggle : false);
+        stm32_gpiowrite(GPIO_LED_CAN2, blue ? toggle : false);
+        stm32_gpiowrite(GPIO_LED_INFO, green ? toggle : false);
 
 }
 
