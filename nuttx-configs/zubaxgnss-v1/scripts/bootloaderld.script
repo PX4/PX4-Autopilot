@@ -49,7 +49,7 @@ MEMORY
 
 OUTPUT_ARCH(arm)
 
-ENTRY(__start)		/* treat __start as the anchor for dead code stripping */
+ENTRY(__start)    /* treat __start as the anchor for dead code stripping */
 EXTERN(_vectors)  /* force the vectors to be included in the output */
 /*
  * Ensure that abort() is present in the final object.  The exception handling
@@ -61,6 +61,7 @@ SECTIONS
   .text : {
     _stext = ABSOLUTE(.);
     *(.vectors)
+    . = ALIGN(8);
     *(.text .text.*)
     *(.fixup)
     *(.gnu.warning)
@@ -69,6 +70,7 @@ SECTIONS
     *(.got)
     *(.gcc_except_table)
     *(.gnu.linkonce.r.*)
+    . = ALIGN(8);
     _etext = ABSOLUTE(.);
   } > flash
 
@@ -91,6 +93,7 @@ SECTIONS
   } > flash
   __exidx_end = ABSOLUTE(.);
 
+  . = ALIGN(8);
   _eronly = ABSOLUTE(.);
 
   /* The STM32F103CB has 20Kb of SRAM beginning at the following address */
