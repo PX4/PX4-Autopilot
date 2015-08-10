@@ -177,7 +177,7 @@ CameraTrigger::CameraTrigger() :
 	_p_polarity = param_find("TRIG_POLARITY");
 	_p_interval = param_find("TRIG_INTERVAL");
 	_p_activation_time = param_find("TRIG_ACT_TIME");
-	_p_mode = param_find("TRIG_ACT_TIME");
+	_p_mode = param_find("TRIG_MODE");
 	_p_pin = param_find("TRIG_PIN");
 
 	struct camera_trigger_s	trigger = {};
@@ -196,13 +196,22 @@ CameraTrigger::control(bool on)
 	// always execute, even if already on
 	// to reset timings if necessary
 
-	// schedule trigger on and off calls
-	hrt_call_every(&_engagecall, 500, (_interval * 1000),
-			       (hrt_callout)&CameraTrigger::engage, this);
+	if (on) {
+		// schedule trigger on and off calls
+		hrt_call_every(&_engagecall, 500, (_interval * 1000),
+				       (hrt_callout)&CameraTrigger::engage, this);
 
-	// schedule trigger on and off calls
-	hrt_call_every(&_disengagecall, 500 + (_activation_time * 1000), (_interval * 1000),
-			       (hrt_callout)&CameraTrigger::disengage, this);
+		// schedule trigger on and off calls
+		hrt_call_every(&_disengagecall, 500 + (_activation_time * 1000), (_interval * 1000),
+				       (hrt_callout)&CameraTrigger::disengage, this);
+	} else {
+		// cancel all calls
+		hrt_cancel(&_engagecall);
+		hrt_cancel(&_disengagecall);
+		// ensure that the pin is off
+		hrt_call_after(&_disengagecall, 500,
+				       (hrt_callout)&CameraTrigger::disengage, this);
+	}
 
 	_trigger_enabled = on;
 }
