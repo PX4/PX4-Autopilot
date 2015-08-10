@@ -940,8 +940,11 @@ FixedwingAttitudeControl::task_main()
 					att_sp.yaw_body = 0.0f - _parameters.trim_yaw;
 					att_sp.thrust = throttle_sp;
 
-					/* lazily publish the setpoint only once available */
-					if (!_vehicle_status.is_rotary_wing) {
+					/* lazily publish the setpoint only once available. Only do this if vehicle is a fixed wing and if it's
+					 * not a VTOL currently doing a transition. In the case of a transition the VTOL attitude control module will
+					 * generate attitude setpoints.
+					 */
+					if (!_vehicle_status.is_rotary_wing && !_vehicle_status.vtol_in_transition) {
 						if (_attitude_sp_pub != nullptr) {
 							/* publish the attitude setpoint */
 							orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
