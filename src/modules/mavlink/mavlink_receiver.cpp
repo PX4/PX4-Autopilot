@@ -179,6 +179,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_set_position_target_local_ned(msg);
 		break;
 
+	case MAVLINK_MSG_ID_SET_CONTROL_TARGET_LOCAL_NED:
+		handle_message_set_control_target_local_ned(msg);
+		break;
+
 	case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
 		handle_message_set_attitude_target(msg);
 		break;
@@ -724,6 +728,317 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 			}
 
+		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_set_control_target_local_ned(mavlink_message_t *msg)
+{
+	mavlink_set_control_target_local_ned_t set_control_target_local_ned;
+	mavlink_msg_set_control_target_local_ned_decode(msg, &set_control_target_local_ned);
+
+	struct offboard_control_mode_s offboard_control_mode;
+	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
+
+
+	/* Only accept messages which are intended for this system */
+	if ((mavlink_system.sysid == set_control_target_local_ned.target_system ||
+				set_control_target_local_ned.target_system == 0) &&
+			(mavlink_system.compid == set_control_target_local_ned.target_component ||
+			 set_control_target_local_ned.target_component == 0)) {
+
+		/* If we are in offboard control mode and offboard control loop through is enabled
+		* also publish the setpoint topic which is read by the controller */
+
+
+		struct position_setpoint_triplet_s pos_sp_triplet;
+		struct vehicle_force_setpoint_s	force_sp;
+		pos_sp_triplet.previous.valid = false;
+		pos_sp_triplet.next.valid = false;
+		pos_sp_triplet.current.valid = true;
+		pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION; //XXX support others
+
+		switch (set_control_target_local_ned.control_target){
+		case MAV_CONTROL_POSITION_FREE_YAW:
+			offboard_control_mode.ignore_position = false;
+			offboard_control_mode.ignore_velocity = true;
+			offboard_control_mode.ignore_acceleration_force = true;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = true;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = true;
+
+			pos_sp_triplet.current.position_valid = true;
+			pos_sp_triplet.current.velocity_valid = false;
+			pos_sp_triplet.current.acceleration_valid = false;
+			pos_sp_triplet.current.yaw_valid = false;
+			pos_sp_triplet.current.yawspeed_valid = false;
+
+			pos_sp_triplet.current.x = set_control_target_local_ned.x;
+			pos_sp_triplet.current.y = set_control_target_local_ned.y;
+			pos_sp_triplet.current.z = set_control_target_local_ned.z;
+
+			break;
+
+		case MAV_CONTROL_VELOCITY_FREE_YAW:
+			offboard_control_mode.ignore_position = true;
+			offboard_control_mode.ignore_velocity = false;
+			offboard_control_mode.ignore_acceleration_force = true;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = true;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = true;
+
+			pos_sp_triplet.current.position_valid = false;
+			pos_sp_triplet.current.velocity_valid = true;
+			pos_sp_triplet.current.acceleration_valid = false;
+			pos_sp_triplet.current.yaw_valid = false;
+			pos_sp_triplet.current.yawspeed_valid = false;
+
+			pos_sp_triplet.current.vx = set_control_target_local_ned.x;
+			pos_sp_triplet.current.vy = set_control_target_local_ned.y;
+			pos_sp_triplet.current.vz = set_control_target_local_ned.z;
+
+			break;
+
+		case MAV_CONTROL_ACCELERATION_FREE_YAW:
+			offboard_control_mode.ignore_position = true;
+			offboard_control_mode.ignore_velocity = true;
+			offboard_control_mode.ignore_acceleration_force = false;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = true;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = true;
+
+			pos_sp_triplet.current.position_valid = false;
+			pos_sp_triplet.current.velocity_valid = false;
+			pos_sp_triplet.current.acceleration_valid = true;
+			pos_sp_triplet.current.yaw_valid = false;
+			pos_sp_triplet.current.yawspeed_valid = false;
+
+			pos_sp_triplet.current.a_x = set_control_target_local_ned.x;
+			pos_sp_triplet.current.a_y = set_control_target_local_ned.y;
+			pos_sp_triplet.current.a_z = set_control_target_local_ned.z;
+
+			break;
+
+		case MAV_CONTROL_POSITION_YAW:
+			offboard_control_mode.ignore_position = false;
+			offboard_control_mode.ignore_velocity = true;
+			offboard_control_mode.ignore_acceleration_force = true;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = false;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = true;
+
+			pos_sp_triplet.current.position_valid = true;
+			pos_sp_triplet.current.velocity_valid = false;
+			pos_sp_triplet.current.acceleration_valid = false;
+			pos_sp_triplet.current.yaw_valid = true;
+			pos_sp_triplet.current.yawspeed_valid = false;
+
+			pos_sp_triplet.current.x = set_control_target_local_ned.x;
+			pos_sp_triplet.current.y = set_control_target_local_ned.y;
+			pos_sp_triplet.current.z = set_control_target_local_ned.z;
+			pos_sp_triplet.current.yaw = set_control_target_local_ned.yaw;
+
+			break;
+
+		case MAV_CONTROL_VELOCITY_YAW:
+			offboard_control_mode.ignore_position = true;
+			offboard_control_mode.ignore_velocity = false;
+			offboard_control_mode.ignore_acceleration_force = true;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = false;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = true;
+
+			pos_sp_triplet.current.position_valid = false;
+			pos_sp_triplet.current.velocity_valid = true;
+			pos_sp_triplet.current.acceleration_valid = false;
+			pos_sp_triplet.current.yaw_valid = true;
+			pos_sp_triplet.current.yawspeed_valid = false;
+
+			pos_sp_triplet.current.vx = set_control_target_local_ned.x;
+			pos_sp_triplet.current.vy = set_control_target_local_ned.y;
+			pos_sp_triplet.current.vz = set_control_target_local_ned.z;
+			pos_sp_triplet.current.yaw = set_control_target_local_ned.yaw;
+
+			break;
+
+		case MAV_CONTROL_ACCELERATION_YAW:
+			offboard_control_mode.ignore_position = true;
+			offboard_control_mode.ignore_velocity = true;
+			offboard_control_mode.ignore_acceleration_force = false;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = false;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = true;
+
+			pos_sp_triplet.current.position_valid = false;
+			pos_sp_triplet.current.velocity_valid = false;
+			pos_sp_triplet.current.acceleration_valid = true;
+			pos_sp_triplet.current.yaw_valid = true;
+			pos_sp_triplet.current.yawspeed_valid = false;
+
+			pos_sp_triplet.current.a_x = set_control_target_local_ned.x;
+			pos_sp_triplet.current.a_y = set_control_target_local_ned.y;
+			pos_sp_triplet.current.a_z = set_control_target_local_ned.z;
+			pos_sp_triplet.current.yaw = set_control_target_local_ned.yaw;
+
+			break;
+
+		case MAV_CONTROL_POSITION_YAW_RATE:
+			offboard_control_mode.ignore_position = false;
+			offboard_control_mode.ignore_velocity = true;
+			offboard_control_mode.ignore_acceleration_force = true;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = true;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = false;
+
+			pos_sp_triplet.current.position_valid = true;
+			pos_sp_triplet.current.velocity_valid = false;
+			pos_sp_triplet.current.acceleration_valid = false;
+			pos_sp_triplet.current.yaw_valid = false;
+			pos_sp_triplet.current.yawspeed_valid = true;
+
+			pos_sp_triplet.current.x = set_control_target_local_ned.x;
+			pos_sp_triplet.current.y = set_control_target_local_ned.y;
+			pos_sp_triplet.current.z = set_control_target_local_ned.z;
+			pos_sp_triplet.current.yawspeed = set_control_target_local_ned.yaw;
+
+			break;
+
+		case MAV_CONTROL_VELOCITY_YAW_RATE:
+			offboard_control_mode.ignore_position = true;
+			offboard_control_mode.ignore_velocity = false;
+			offboard_control_mode.ignore_acceleration_force = true;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = true;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = false;
+
+			pos_sp_triplet.current.position_valid = false;
+			pos_sp_triplet.current.velocity_valid = true;
+			pos_sp_triplet.current.acceleration_valid = false;
+			pos_sp_triplet.current.yaw_valid = false;
+			pos_sp_triplet.current.yawspeed_valid = true;
+
+			pos_sp_triplet.current.vx = set_control_target_local_ned.x;
+			pos_sp_triplet.current.vy = set_control_target_local_ned.y;
+			pos_sp_triplet.current.vz = set_control_target_local_ned.z;
+			pos_sp_triplet.current.yawspeed = set_control_target_local_ned.yaw;
+
+			break;
+
+		case MAV_CONTROL_ACCELERATION_YAW_RATE:
+			offboard_control_mode.ignore_position = true;
+			offboard_control_mode.ignore_velocity = true;
+			offboard_control_mode.ignore_acceleration_force = false;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = true;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = false;
+
+			pos_sp_triplet.current.position_valid = false;
+			pos_sp_triplet.current.velocity_valid = false;
+			pos_sp_triplet.current.acceleration_valid = true;
+			pos_sp_triplet.current.yaw_valid = false;
+			pos_sp_triplet.current.yawspeed_valid = true;
+
+			pos_sp_triplet.current.a_x = set_control_target_local_ned.x;
+			pos_sp_triplet.current.a_y = set_control_target_local_ned.y;
+			pos_sp_triplet.current.a_z = set_control_target_local_ned.z;
+			pos_sp_triplet.current.yawspeed = set_control_target_local_ned.yaw;
+
+			break;
+
+		case MAV_CONTROL_FORCE_FREE_YAW:
+			offboard_control_mode.ignore_position = true;
+			offboard_control_mode.ignore_velocity = true;
+			offboard_control_mode.ignore_acceleration_force = false;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = true;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = true;
+
+			force_sp.x = set_control_target_local_ned.x;
+			force_sp.y = set_control_target_local_ned.y;
+			force_sp.z = set_control_target_local_ned.z;
+
+			break;
+
+		case MAV_CONTROL_FORCE_YAW:
+			offboard_control_mode.ignore_position = true;
+			offboard_control_mode.ignore_velocity = true;
+			offboard_control_mode.ignore_acceleration_force = false;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = false;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = true;
+
+			force_sp.x = set_control_target_local_ned.x;
+			force_sp.y = set_control_target_local_ned.y;
+			force_sp.z = set_control_target_local_ned.z;
+			force_sp.yaw = set_control_target_local_ned.yaw;
+
+			break;
+
+		case MAV_CONTROL_FORCE_YAW_RATE:
+			offboard_control_mode.ignore_position = true;
+			offboard_control_mode.ignore_velocity = true;
+			offboard_control_mode.ignore_acceleration_force = false;
+			/* yaw ignore flag mapps to ignore_attitude */
+			offboard_control_mode.ignore_attitude = true;
+			/* yawrate ignore flag mapps to ignore_bodyrate */
+			offboard_control_mode.ignore_bodyrate = false;
+
+			force_sp.x = set_control_target_local_ned.x;
+			force_sp.y = set_control_target_local_ned.y;
+			force_sp.z = set_control_target_local_ned.z;
+			force_sp.yaw_rate = set_control_target_local_ned.yaw;
+
+			break;
+		}
+
+		offboard_control_mode.timestamp = hrt_absolute_time();
+
+		if (_offboard_control_mode_pub < 0) {
+			_offboard_control_mode_pub = orb_advertise(ORB_ID(offboard_control_mode), &offboard_control_mode);
+
+		} else {
+
+			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
+
+		}
+
+		if (_mavlink->get_forward_externalsp()) {
+			bool updated;
+			orb_check(_control_mode_sub, &updated);
+			if (updated) {
+				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+			}
+			if (_control_mode.flag_control_offboard_enabled) {
+				if (set_control_target_local_ned.control_target < MAV_CONTROL_FORCE_FREE_YAW) {
+					if (_pos_sp_triplet_pub < 0) {
+						_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet),
+						&pos_sp_triplet);
+
+					} else {
+						orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub,
+						&pos_sp_triplet);
+					}
+				} else {
+					if (_force_sp_pub < 0) {
+						_force_sp_pub = orb_advertise(ORB_ID(vehicle_force_setpoint), &force_sp);
+
+					} else {
+						orb_publish(ORB_ID(vehicle_force_setpoint), _force_sp_pub, &force_sp);
+					}
+				}
+			}
 		}
 	}
 }
