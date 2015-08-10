@@ -91,7 +91,7 @@ PARAM_DEFINE_INT32(TRIG_MODE, 0);
  * Selects which pin is used, ranges from 1 to 6 (AUX1-AUX6)
  *
  * @min 1
- * @max 6
+ * @max 123456
  * @group Camera trigger
  */
-PARAM_DEFINE_INT32(TRIG_PIN, 1);
+PARAM_DEFINE_INT32(TRIG_PINS, 12);

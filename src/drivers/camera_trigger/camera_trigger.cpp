@@ -97,7 +97,7 @@ public:
 	 */
 	void		info();
 
-	int			_pin;
+	int			_pins[6];
 
 private:
 
@@ -158,7 +158,7 @@ CameraTrigger	*g_camera_trigger;
 }
 
 CameraTrigger::CameraTrigger() :
-	_pin(TRIGGER_PIN_DEFAULT),
+	_pins{},
 	_engagecall {},
 	_disengagecall {},
 	_gpio_fd(-1),
@@ -178,7 +178,34 @@ CameraTrigger::CameraTrigger() :
 	_p_interval = param_find("TRIG_INTERVAL");
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
-	_p_pin = param_find("TRIG_PIN");
+	_p_pin = param_find("TRIG_PINS");
+
+	param_get(_p_polarity, &_polarity);
+	param_get(_p_activation_time, &_activation_time);
+	param_get(_p_interval, &_interval);
+	param_get(_p_mode, &_mode);
+	int pin_list;
+	param_get(_p_pin, &pin_list);
+
+	// Set all pins as invalid
+	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
+		_pins[i] = -1;
+	}
+
+	// Convert number to individual channels
+	unsigned i = 0;
+	int single_pin;
+	while ((single_pin = pin_list % 10)) {
+
+		_pins[i] = single_pin - 1;
+
+		if (_pins[i] < 0 || _pins[i] >= static_cast<int>(sizeof(_gpios) / sizeof(_gpios[0]))) {
+			_pins[i] = -1;
+		}
+
+		pin_list /= 10;
+		i++;
+	}
 
 	struct camera_trigger_s	trigger = {};
 
@@ -220,27 +247,9 @@ void
 CameraTrigger::start()
 {
 
-	param_get(_p_polarity, &_polarity);
-	param_get(_p_activation_time, &_activation_time);
-	param_get(_p_interval, &_interval);
-	param_get(_p_mode, &_mode);
-	param_get(_p_pin, &_pin);
-
-	if (_pin < 1 || _pin > static_cast<int>(sizeof(_gpios) / sizeof(_gpios[0]))) {
-		_pin = TRIGGER_PIN_DEFAULT;
-	}
-
-	stm32_configgpio(_gpios[_pin - 1]);
-
-	if (_polarity == 0) {
-		stm32_gpiowrite(_gpios[_pin - 1], 1);	 	// GPIO pin pull high
-
-	} else if (_polarity == 1) {
-		stm32_gpiowrite(_gpios[_pin - 1], 0);	 	// GPIO pin pull low
-
-	} else {
-		warnx(" invalid trigger polarity setting. stopping.");
-		stop();
+	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
+		stm32_configgpio(_gpios[_pins[i]]);
+		stm32_gpiowrite(_gpios[_pins[i]], !_polarity);	
 	}
 
 	// enable immediate if configured that way
@@ -316,18 +325,16 @@ CameraTrigger::engage(void *arg)
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	stm32_configgpio(trig->_gpios[trig->_pin - 1]);
-
 	struct camera_trigger_s	trigger;
 
 	/* set timestamp the instant before the trigger goes off */
 	trigger.timestamp = hrt_absolute_time();
 
-	if (trig->_polarity == 0) {	// ACTIVE_LOW
-		stm32_gpiowrite(trig->_gpios[trig->_pin - 1], 0);
-
-	} else if (trig->_polarity == 1) {	// ACTIVE_HIGH
-		stm32_gpiowrite(trig->_gpios[trig->_pin - 1], 1);
+	for (unsigned i = 0; i < sizeof(trig->_pins) / sizeof(trig->_pins[0]); i++) {
+		if (trig->_pins[i] >= 0) {
+			// ACTIVE_LOW == 0
+			stm32_gpiowrite(trig->_gpios[trig->_pins[i]], trig->_polarity);
+		}
 	}
 
 	trigger.seq = trig->_trigger_seq++;
@@ -341,30 +348,26 @@ CameraTrigger::disengage(void *arg)
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	stm32_configgpio(trig->_gpios[trig->_pin - 1]);
-
-	if (trig->_polarity == 0) {		// ACTIVE_LOW
-		stm32_gpiowrite(trig->_gpios[trig->_pin - 1], 1);
-
-	} else if (trig->_polarity == 1) {	// ACTIVE_HIGH
-		stm32_gpiowrite(trig->_gpios[trig->_pin - 1], 0);
+	for (unsigned i = 0; i < sizeof(trig->_pins) / sizeof(trig->_pins[0]); i++) {
+		if (trig->_pins[i] >= 0) {
+			// ACTIVE_LOW == 1
+			stm32_gpiowrite(trig->_gpios[trig->_pins[i]], !(trig->_polarity));
+		}
 	}
-
 }
 
 void
 CameraTrigger::info()
 {
 	warnx("state : %s", _trigger_enabled ? "enabled" : "disabled");
-	warnx("pin : %i, polarity : %s", _pin, _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
+	warnx("pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
+		_polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
 	warnx("interval : %.2f", (double)_interval);
 }
 
 static void usage()
 {
-	errx(1, "usage: camera_trigger {start|stop|info} [-p <n>]\n"
-	     "\t-p <n>\tUse specified AUX OUT pin number (default: %d)", TRIGGER_PIN_DEFAULT
-	    );
+	errx(1, "usage: camera_trigger {start|stop|info} [-p <n>]\n");
 }
 
 int camera_trigger_main(int argc, char *argv[])
@@ -383,19 +386,6 @@ int camera_trigger_main(int argc, char *argv[])
 
 		if (camera_trigger::g_camera_trigger == nullptr) {
 			errx(1, "alloc failed");
-		}
-
-		if (argc > 3) {
-
-			camera_trigger::g_camera_trigger->_pin = (int)argv[3];
-
-			if (atoi(argv[3]) > 0 && atoi(argv[3]) < 6) {
-				warnx("starting trigger on pin : %li ", atoi(argv[3]));
-				camera_trigger::g_camera_trigger->_pin = atoi(argv[3]);
-
-			} else {
-				usage();
-			}
 		}
 
 		camera_trigger::g_camera_trigger->start();
