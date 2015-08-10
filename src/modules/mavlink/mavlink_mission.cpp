@@ -81,7 +81,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_transfer_count(0),
 	_transfer_seq(0),
 	_transfer_current_seq(0),
-	_transfer_partner_sysid(255),
+	_transfer_partner_sysid(0),
 	_transfer_partner_compid(0),
 	_offboard_mission_sub(-1),
 	_mission_result_sub(-1),
