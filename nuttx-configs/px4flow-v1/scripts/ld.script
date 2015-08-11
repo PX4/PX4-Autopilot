@@ -125,8 +125,6 @@ SECTIONS
 
   _eronly = ABSOLUTE(.);
 
-  /* The STM32F103CB has 20Kb of SRAM beginning at the following address */
-
   .data : {
     _sdata = ABSOLUTE(.);
     *(.data .data.*)
