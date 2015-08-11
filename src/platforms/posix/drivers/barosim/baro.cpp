@@ -250,11 +250,11 @@ int
 BAROSIM::init()
 {
 	int ret;
-	debug("BAROSIM::init");
+	DEVICE_DEBUG("BAROSIM::init");
 
 	ret = VDev::init();
 	if (ret != OK) {
-		debug("VDev init failed");
+		DEVICE_DEBUG("VDev init failed");
 		goto out;
 	}
 
@@ -262,7 +262,7 @@ BAROSIM::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
-		debug("can't get memory for reports");
+		DEVICE_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -576,7 +576,7 @@ BAROSIM::cycle()
 	/* measurement phase */
 	ret = measure();
 	if (ret != OK) {
-		//log("measure error %d", ret);
+		//DEVICE_LOG("measure error %d", ret);
 		/* issue a reset command to the sensor */
 		_interface->dev_ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */

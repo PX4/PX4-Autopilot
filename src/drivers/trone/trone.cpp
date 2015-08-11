@@ -304,7 +304,7 @@ TRONE::init()
 							     &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic == nullptr) {
-			log("failed to create distance_sensor object. Did you start uOrb?");
+			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -332,7 +332,7 @@ TRONE::probe()
         }
 	}     
 
-	debug("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
+	DEVICE_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
 		(unsigned)who_am_i,
 		TRONE_WHO_AM_I_REG_VAL);
 
@@ -551,7 +551,7 @@ TRONE::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
+		DEVICE_LOG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -573,7 +573,7 @@ TRONE::collect()
 	ret = transfer(nullptr, 0, &val[0], 3);
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
+		DEVICE_LOG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -665,7 +665,7 @@ TRONE::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
+			DEVICE_LOG("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -691,7 +691,7 @@ TRONE::cycle()
 
 	/* measurement phase */
 	if (OK != measure()) {
-		log("measure error");
+		DEVICE_LOG("measure error");
 	}
 
 	/* next phase is collection */

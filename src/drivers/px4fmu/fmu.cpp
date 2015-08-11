@@ -359,7 +359,7 @@ PX4FMU::init()
 			       nullptr);
 
 	if (_task < 0) {
-		debug("task start failed: %d", errno);
+		DEVICE_DEBUG("task start failed: %d", errno);
 		return -errno;
 	}
 
@@ -384,7 +384,7 @@ PX4FMU::set_mode(Mode mode)
 	 */
 	switch (mode) {
 	case MODE_2PWM:	// v1 multi-port with flow control lines as PWM
-		debug("MODE_2PWM");
+		DEVICE_DEBUG("MODE_2PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -398,7 +398,7 @@ PX4FMU::set_mode(Mode mode)
 		break;
 
 	case MODE_4PWM: // v1 multi-port as 4 PWM outs
-		debug("MODE_4PWM");
+		DEVICE_DEBUG("MODE_4PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -412,7 +412,7 @@ PX4FMU::set_mode(Mode mode)
 		break;
 
 	case MODE_6PWM: // v2 PWMs as 6 PWM outs
-		debug("MODE_6PWM");
+		DEVICE_DEBUG("MODE_6PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -427,7 +427,7 @@ PX4FMU::set_mode(Mode mode)
 
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
 	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
-		debug("MODE_8PWM");
+		DEVICE_DEBUG("MODE_8PWM");
 		/* default output rates */
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
@@ -440,7 +440,7 @@ PX4FMU::set_mode(Mode mode)
 #endif
 
 	case MODE_NONE:
-		debug("MODE_NONE");
+		DEVICE_DEBUG("MODE_NONE");
 
 		_pwm_default_rate = 10;	/* artificially reduced output rate */
 		_pwm_alt_rate = 10;
@@ -462,7 +462,7 @@ PX4FMU::set_mode(Mode mode)
 int
 PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
-	debug("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
+	DEVICE_DEBUG("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
 
 	for (unsigned pass = 0; pass < 2; pass++) {
 		for (unsigned group = 0; group < _max_actuators; group++) {
@@ -536,11 +536,11 @@ PX4FMU::subscribe()
 	_poll_fds_num = 0;
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
-			debug("subscribe to actuator_controls_%d", i);
+			DEVICE_DEBUG("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
 		if (unsub_groups & (1 << i)) {
-			debug("unsubscribe from actuator_controls_%d", i);
+			DEVICE_DEBUG("unsubscribe from actuator_controls_%d", i);
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -646,7 +646,7 @@ PX4FMU::task_main()
 				update_rate_in_ms = 100;
 			}
 
-			debug("adjusted actuator update interval to %ums", update_rate_in_ms);
+			DEVICE_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					orb_set_interval(_control_subs[i], update_rate_in_ms);
@@ -663,7 +663,7 @@ PX4FMU::task_main()
 
 		/* this would be bad... */
 		if (ret < 0) {
-			log("poll error %d", errno);
+			DEVICE_LOG("poll error %d", errno);
 			continue;
 
 		} else if (ret == 0) {
@@ -815,7 +815,7 @@ PX4FMU::task_main()
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
 
-	log("stopping");
+	DEVICE_LOG("stopping");
 
 	/* note - someone else is responsible for restoring the GPIO config */
 
@@ -888,7 +888,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	default:
-		debug("not in a PWM mode");
+		DEVICE_DEBUG("not in a PWM mode");
 		break;
 	}
 
@@ -1309,7 +1309,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
-					debug("mixer load failed with %d", ret);
+					DEVICE_DEBUG("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
 					_groups_required = 0;
