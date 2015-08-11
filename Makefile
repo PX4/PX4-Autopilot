@@ -230,6 +230,7 @@ clean:
 	$(Q) $(RMDIR) $(BUILD_DIR)*.build
 	$(Q) $(RMDIR) $(PX4_VERSIONING_DIR)
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
+	$(Q) git clean -fX $(TOPICS_DIR)*
 	$(Q) $(RMDIR) $(TOPICHEADER_TEMP_DIR)
 	$(Q) $(RMDIR) $(MULTI_TOPICHEADER_TEMP_DIR)
 
