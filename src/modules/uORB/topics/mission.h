@@ -99,9 +99,8 @@ struct mission_item_s {
 	int do_jump_mission_index;	/**< index where the do jump will go to                 */
 	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
 	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
-	int actuator_num;               /**< actuator number to be set 1..6                     */
-	int actuator_value;             /**< new value for selected actuator 900...2000         */
-
+	int actuator_num;               /**< actuator number to be set 0..5 ( corresponds to AUX outputs 1..6    */
+	int actuator_value;             /**< new value for selected actuator in ms 900...2000         */
 };
 
 /**

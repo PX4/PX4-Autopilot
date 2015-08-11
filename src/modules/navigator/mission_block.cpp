@@ -60,7 +60,9 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_mission_item({0}),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0)
+	_time_first_inside_orbit(0),
+	_actuators{},
+	_actuator_pub(nullptr)
 {
 }
 
@@ -72,9 +74,11 @@ bool
 MissionBlock::is_mission_item_reached()
 {
 	if (_mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
-		//up_pwm_servo_arm(true);
-		//up_pwm_servo_set(_mission_item.actuator_num-1, _mission_item.actuator_value);
-		warnx("Set servo cmd executed");
+
+    	 _actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
+         _actuators.timestamp = hrt_absolute_time();
+         orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
+    	warnx("Set servo cmd executed");
 		return true;
 		}
 
