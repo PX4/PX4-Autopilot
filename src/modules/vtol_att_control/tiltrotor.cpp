@@ -67,6 +67,7 @@ _min_front_trans_dur(0.5f)
 	_params_handles_tiltrotor.airspeed_blend_start = param_find("VT_ARSP_BLEND");
 	_params_handles_tiltrotor.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
+	_params_handles_tiltrotor.fw_motors_off = param_find("VT_FW_MOT_OFF");
 }
 
 Tiltrotor::~Tiltrotor()
@@ -79,6 +80,11 @@ Tiltrotor::parameters_update()
 {
 	float v;
 	int l;
+
+	/* motors that must be turned off when in fixed wing mode */
+	param_get(_params_handles_tiltrotor.fw_motors_off, &l);
+	_params_tiltrotor.fw_motors_off = get_motor_off_channels(l);
+
 
 	/* vtol duration of a front transition */
 	param_get(_params_handles_tiltrotor.front_trans_dur, &v);
@@ -124,6 +130,22 @@ Tiltrotor::parameters_update()
 	}
 
 	return OK;
+}
+
+int Tiltrotor::get_motor_off_channels(int channels) {
+	int channel_bitmap = 0;
+	
+	int channel;
+	for (int i = 0; i < _params->vtol_motor_count; ++i) {
+		channel = channels % 10;
+		if (channel == 0) {
+			break;
+		}
+		channel_bitmap |= 1 << channel;
+		channels = channels / 10;
+	}
+
+	return channel_bitmap;
 }
 
 void Tiltrotor::update_vtol_state()
@@ -357,7 +379,7 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state) {
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		if (i == 2 || i == 3) {
+		if (is_motor_off_channel(i)) {
 			pwm_values.values[i] = pwm_value;
 		} else {
 			pwm_values.values[i] = PWM_DEFAULT_MAX;
@@ -370,5 +392,8 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state) {
 	if (ret != OK) {errx(ret, "failed setting max values");}
 
 	close(fd);
+}
 
+bool Tiltrotor::is_motor_off_channel(const int channel) {
+	return (_params_tiltrotor.fw_motors_off >> channel) & 1;
 }
