@@ -98,7 +98,7 @@ SPI::init()
 		_dev = up_spiinitialize(_bus);
 
 	if (_dev == nullptr) {
-		debug("failed to init SPI");
+		DEVICE_DEBUG("failed to init SPI");
 		ret = -ENOENT;
 		goto out;
 	}
@@ -110,7 +110,7 @@ SPI::init()
 	ret = probe();
 
 	if (ret != OK) {
-		debug("probe failed");
+		DEVICE_DEBUG("probe failed");
 		goto out;
 	}
 
@@ -118,12 +118,12 @@ SPI::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		debug("cdev init failed");
+		DEVICE_DEBUG("cdev init failed");
 		goto out;
 	}
 
 	/* tell the workd where we are */
-	log("on SPI bus %d at %d (%u KHz)", _bus, _device, _frequency / 1000);
+	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", _bus, _device, _frequency / 1000);
 
 out:
 	return ret;

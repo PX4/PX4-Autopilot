@@ -398,7 +398,7 @@ ToneAlarm::init()
 	/* make sure the timer is running */
 	rCR1 = GTIM_CR1_CEN;
 
-	debug("ready");
+	DEVICE_DEBUG("ready");
 	return OK;
 }
 
@@ -741,14 +741,14 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int result = OK;
 
-	debug("ioctl %i %u", cmd, arg);
+	DEVICE_DEBUG("ioctl %i %u", cmd, arg);
 
 //	irqstate_t flags = irqsave();
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
 	case TONE_SET_ALARM:
-		debug("TONE_SET_ALARM %u", arg);
+		DEVICE_DEBUG("TONE_SET_ALARM %u", arg);
 
 		if (arg < TONE_NUMBER_OF_TUNES) {
 			if (arg == TONE_STOP_TUNE) {

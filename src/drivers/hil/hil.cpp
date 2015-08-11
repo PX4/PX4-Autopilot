@@ -237,7 +237,7 @@ HIL::init()
 	///* try to claim the generic PWM output device node as well - it's OK if we fail at this */
 	//ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
 	if (ret == OK) {
-		log("default PWM output device");
+		DEVICE_LOG("default PWM output device");
 		_primary_pwm_device = true;
 	}
 
@@ -253,7 +253,7 @@ HIL::init()
 			   nullptr);
 
 	if (_task < 0) {
-		debug("task start failed: %d", errno);
+		DEVICE_DEBUG("task start failed: %d", errno);
 		return -errno;
 	}
 
@@ -278,42 +278,42 @@ HIL::set_mode(Mode mode)
 	 */
 	switch (mode) {
 	case MODE_2PWM:
-		debug("MODE_2PWM");
+		DEVICE_DEBUG("MODE_2PWM");
 		/* multi-port with flow control lines as PWM */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 2;
 		break;
 
 	case MODE_4PWM:
-		debug("MODE_4PWM");
+		DEVICE_DEBUG("MODE_4PWM");
 		/* multi-port as 4 PWM outs */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 4;
 		break;
 
     	case MODE_8PWM:
-		debug("MODE_8PWM");
+		DEVICE_DEBUG("MODE_8PWM");
 		/* multi-port as 8 PWM outs */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 8;
 		break;
 
 	case MODE_12PWM:
-		debug("MODE_12PWM");
+		DEVICE_DEBUG("MODE_12PWM");
 		/* multi-port as 12 PWM outs */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 12;
 		break;
 
 	case MODE_16PWM:
-		debug("MODE_16PWM");
+		DEVICE_DEBUG("MODE_16PWM");
 		/* multi-port as 16 PWM outs */
 		_update_rate = 50;	/* default output rate */
 		_num_outputs = 16;
 		break;
 
 	case MODE_NONE:
-		debug("MODE_NONE");
+		DEVICE_DEBUG("MODE_NONE");
 		/* disable servo outputs and set a very low update rate */
 		_update_rate = 10;
 		_num_outputs = 0;
@@ -389,7 +389,7 @@ HIL::task_main()
 		break;
 	}
 
-	log("starting");
+	DEVICE_LOG("starting");
 
 	/* loop until killed */
 	while (!_task_should_exit) {
@@ -409,7 +409,7 @@ HIL::task_main()
 
 		/* this would be bad... */
 		if (ret < 0) {
-			log("poll error %d", errno);
+			DEVICE_LOG("poll error %d", errno);
 			continue;
 		}
 
@@ -504,7 +504,7 @@ HIL::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		break;
 	default:
 		ret = -ENOTTY;
-		debug("not in a PWM mode");
+		DEVICE_DEBUG("not in a PWM mode");
 		break;
 	}
 
@@ -712,7 +712,7 @@ HIL::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
-					debug("mixer load failed with %d", ret);
+					DEVICE_DEBUG("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
 					ret = -EINVAL;

@@ -264,7 +264,7 @@ MS5611::init()
 
 	ret = VDev::init();
 	if (ret != OK) {
-		debug("VDev init failed");
+		DEVICE_DEBUG("VDev init failed");
 		goto out;
 	}
 
@@ -272,7 +272,7 @@ MS5611::init()
 	_reports = new RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
-		debug("can't get memory for reports");
+		DEVICE_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -561,7 +561,7 @@ MS5611::cycle()
 				 * spam the console with a message for this.
 				 */
 			} else {
-				//log("collection error %d", ret);
+				//DEVICE_LOG("collection error %d", ret);
 			}
 			/* issue a reset command to the sensor */
 			_interface->dev_ioctl(IOCTL_RESET, dummy);
@@ -595,7 +595,7 @@ MS5611::cycle()
 	/* measurement phase */
 	ret = measure();
 	if (ret != OK) {
-		//log("measure error %d", ret);
+		//DEVICE_LOG("measure error %d", ret);
 		/* issue a reset command to the sensor */
 		_interface->dev_ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */

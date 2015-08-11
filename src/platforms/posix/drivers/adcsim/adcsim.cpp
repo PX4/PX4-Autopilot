@@ -150,7 +150,7 @@ ADCSIM::~ADCSIM()
 int
 ADCSIM::init()
 {
-	debug("init done");
+	DEVICE_DEBUG("init done");
 
 	/* create the device node */
 	return VDev::init();
