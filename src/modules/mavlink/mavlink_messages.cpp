@@ -53,6 +53,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/att_pos_mocap.h>
@@ -2340,6 +2341,79 @@ protected:
 	}
 };
 
+class MavlinkStreamVtolState : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamVtolState::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "VTOL_STATE";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_VTOL_STATE;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamVtolState(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_VTOL_STATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_status_sub;
+
+	/* do not allow top copying this class */
+	MavlinkStreamVtolState(MavlinkStreamVtolState &);
+	MavlinkStreamVtolState& operator = (const MavlinkStreamVtolState &);
+
+protected:
+	explicit MavlinkStreamVtolState(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct vehicle_status_s status;
+
+		if (_status_sub->update(&status)) {
+			mavlink_vtol_state_t msg;
+
+			if (status.is_vtol)
+			{
+				if (status.is_rotary_wing)
+				{
+					if (status.in_transition_mode) {
+						msg.state = MAV_VTOL_STATE_TRANSITION_TO_FW;
+					} else {
+						msg.state = MAV_VTOL_STATE_MC;
+					}
+				}
+				else {
+					if (status.in_transition_mode) {
+						msg.state = MAV_VTOL_STATE_TRANSITION_TO_MC;
+					} else {
+						msg.state = MAV_VTOL_STATE_FW;
+					}
+				}
+			}
+			else {
+				msg.state = MAV_VTOL_STATE_UNDEFINED;
+			}
+
+			_mavlink->send_message(MAVLINK_MSG_ID_VTOL_STATE, &msg);
+		}
+	}
+};
 
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
