@@ -86,7 +86,9 @@ private:
 		float tilt_transition;			/**< actuator value corresponding to transition tilt (e.g 45 degrees) */
 		float tilt_fw;					/**< actuator value corresponding to fw tilt */
 		float airspeed_trans;			/**< airspeed at which we switch to fw mode after transition */
+		float airspeed_blend_start;		/**< airspeed at which we start blending mc/fw controls */
 		int elevons_mc_lock;			/**< lock elevons in multicopter mode */
+		float front_trans_dur_p2;
 	} _params_tiltrotor;
 
 	struct {
@@ -96,7 +98,9 @@ private:
 		param_t tilt_transition;
 		param_t tilt_fw;
 		param_t airspeed_trans;
+		param_t airspeed_blend_start;
 		param_t elevons_mc_lock;
+		param_t front_trans_dur_p2;
 	} _params_handles_tiltrotor;
 
 	enum vtol_mode {
@@ -126,6 +130,8 @@ private:
 	float _tilt_control;		/**< actuator value for the tilt servo */
 	float _roll_weight_mc;		/**< multicopter desired roll moment weight */
 	float _yaw_weight_mc;		/**< multicopter desired yaw moment weight */
+
+	const float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
 
 	/**
 	 * Write control values to actuator output topics.

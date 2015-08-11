@@ -502,6 +502,8 @@ then
 		fi
 		if param greater TRIG_MODE 0
 		then
+			# Get FMU driver out of the way
+			set MIXER_AUX none
 			camera_trigger start
 		fi
 	fi
