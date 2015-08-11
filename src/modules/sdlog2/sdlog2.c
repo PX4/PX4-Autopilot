@@ -344,7 +344,20 @@ int sdlog2_main(int argc, char *argv[])
 						 3000,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
-		exit(0);
+
+		/* wait for the task to launch */
+		unsigned const max_wait_us = 1000000;
+		unsigned const max_wait_steps = 2000;
+
+		unsigned i;
+		for (i = 0; i < max_wait_steps; i++) {
+			usleep(max_wait_us / max_wait_steps);
+			if (thread_running) {
+				break;
+			}
+		}
+
+		exit(!(i < max_wait_steps));
 	}
 
 	if (!strcmp(argv[1], "stop")) {
@@ -1228,8 +1241,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* close stdout */
 	close(1);
 
-	thread_running = true;
-
 	/* initialize thread synchronization */
 	pthread_mutex_init(&logbuffer_mutex, NULL);
 	pthread_cond_init(&logbuffer_cond, NULL);
@@ -1262,6 +1273,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		sdlog2_start_log();
 	}
+
+	/* running, report */
+	thread_running = true;
 
 	while (!main_thread_should_exit) {
 		usleep(sleep_delay);
