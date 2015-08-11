@@ -96,14 +96,20 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 
 	/* input conditioning */
 	float airspeed = constrain_airspeed(ctl_data.airspeed, ctl_data.airspeed_min, ctl_data.airspeed_max);
-	/* calculate the offset in the rate resulting from rolling  */
-	//xxx needs explanation and conversion to body angular rates or should be removed
-	float turn_offset = fabsf((CONSTANTS_ONE_G / airspeed) *
-				  tanf(roll) * sinf(roll)) * _roll_ff;
+
+	/* Calculate desired y-axis angular rate needed to compensate for roll angle.
+	   For reference see Automatic Control of Aircraft and Missiles by John H. Blakelock, pg. 175
+	   Availible on google books 8/11/2015: 
+	   https://books.google.com/books?id=ubcczZUDCsMC&pg=PA175#v=onepage&q&f=false*/
+	float body_fixed_turn_offset = (fabsf((CONSTANTS_ONE_G / airspeed) *
+				  		tanf(roll) * sinf(roll)));
 
 	if (inverted) {
-		turn_offset = -turn_offset;
+		body_fixed_turn_offset = -body_fixed_turn_offset;
 	}
+
+	/*Finally transform the body_fixed_turn offset to a change pitch angular rate */
+	float turn_offset = cosf(roll)*body_fixed_turn_offset-sinf(roll)*ctl_data.yaw_rate;
 
 	/* Calculate the error */
 	float pitch_error = ctl_data.pitch_setpoint - ctl_data.pitch;
@@ -160,11 +166,7 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	_bodyrate_setpoint = cosf(ctl_data.roll) * _rate_setpoint +
 			     cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.yaw_rate_setpoint;
 
-	/* Transform estimation to body angular rates (jacobian) */
-	float pitch_bodyrate = cosf(ctl_data.roll) * ctl_data.pitch_rate +
-			       cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.yaw_rate;
-
-	_rate_error = _bodyrate_setpoint - pitch_bodyrate;
+	_rate_error = _bodyrate_setpoint - ctl_data.pitch_rate;
 
 	if (!lock_integrator && _k_i > 0.0f) {
 
