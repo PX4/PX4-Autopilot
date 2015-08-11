@@ -303,9 +303,25 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 		for (unsigned i = 0; i < nMissionItems; i++) {
 			if (dm_read(dm_current, i,
 					&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
+				/* Check non navigation item */
+				if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO){
 
+					//check actuator number
+			        if (mission_item.actuator_num<1 || mission_item.actuator_num>6) {
+			        	mavlink_log_critical(_mavlink_fd, "Actuator number %d is out of bounds 1..6", (int)mission_item.actuator_num);
+			        	warning_issued = true;
+			        	return false;
+			        }
+					//check actuator value
+			        if (mission_item.actuator_value<900 || mission_item.actuator_value>2000) {
+			        	mavlink_log_critical(_mavlink_fd, "Actuator number %d is out of bounds 900..2000", (int)mission_item.actuator_value);
+			        	warning_issued = true;
+			        	return false;
+			        }
+
+				}
 				/* check only items with valid lat/lon */
-				if ( mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
+				else if ( mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
 						mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 						mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
 						mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
