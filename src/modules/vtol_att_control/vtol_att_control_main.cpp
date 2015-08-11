@@ -325,9 +325,6 @@ VtolAttitudeControl::vehicle_cmd_poll() {
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub , &_vehicle_cmd);
-		if (_vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
-			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub , &_vehicle_transition_cmd);
-		}
 	}
 }
 
@@ -505,8 +502,24 @@ void VtolAttitudeControl::task_main()
 		vehicle_battery_poll();
 		vehicle_cmd_poll();
 
+		// update transition command if necessary
+		if (_vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub , &_vehicle_transition_cmd);
+		}
+
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
+
+		// reset transition command if not in offboard control
+		if (!_v_control_mode.flag_control_offboard_enabled)
+		{
+			if (_vtol_type->get_mode() == ROTARY_WING) {
+				_vehicle_transition_cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			}
+			else if (_vtol_type->get_mode() == FIXED_WING) {
+				_vehicle_transition_cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			}
+		}
 
 		// check in which mode we are in and call mode specific functions
 		if (_vtol_type->get_mode() == ROTARY_WING) {

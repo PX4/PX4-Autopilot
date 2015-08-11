@@ -134,8 +134,8 @@ void VtolType::set_idle_fw()
 }
 
 /*
- * Return true if fixed-wing mode is requested.
- * Either via switch or via command.
+ * Returns true if fixed-wing mode is requested.
+ * Changed either via switch or via command.
  */
 bool VtolType::is_fixed_wing_requested()
 {
