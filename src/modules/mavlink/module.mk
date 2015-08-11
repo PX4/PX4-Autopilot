@@ -54,6 +54,6 @@ MAXOPTIMIZATION	 = -Os
 
 MODULE_STACKSIZE = 1200
 
-EXTRACXXFLAGS	= -Weffc++ -Wno-attributes -Wno-packed
+EXTRACXXFLAGS	= -Weffc++ -Wno-attributes -Wno-packed -DMAVLINK_COMM_NUM_BUFFERS=3
 
-EXTRACFLAGS	= -Wno-packed
+EXTRACFLAGS	= -Wno-packed -DMAVLINK_COMM_NUM_BUFFERS=3

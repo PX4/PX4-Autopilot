@@ -1116,24 +1116,41 @@ PX4IO::task_main()
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
 
 				float trim_val;
-				param_t trim_parm;
+				param_t parm_handle;
 
-				trim_parm = param_find("TRIM_ROLL");
-				if (trim_parm != PARAM_INVALID) {
-					param_get(trim_parm, &trim_val);
+				parm_handle = param_find("TRIM_ROLL");
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &trim_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(trim_val));
 				}
 
-				trim_parm = param_find("TRIM_PITCH");
-				if (trim_parm != PARAM_INVALID) {
-					param_get(trim_parm, &trim_val);
+				parm_handle = param_find("TRIM_PITCH");
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &trim_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(trim_val));
 				}
 
-				trim_parm = param_find("TRIM_YAW");
-				if (trim_parm != PARAM_INVALID) {
-					param_get(trim_parm, &trim_val);
+				parm_handle = param_find("TRIM_YAW");
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &trim_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(trim_val));
+				}
+
+				/* S.BUS output */
+				int sbus_mode;
+				parm_handle = param_find("PWM_SBUS_MODE");
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &sbus_mode);
+					if (sbus_mode == 1) {
+						/* enable S.BUS 1 */
+						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
+					} else if (sbus_mode == 2) {
+						/* enable S.BUS 2 */
+						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+					} else {
+						/* disable S.BUS */
+						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
+					}
 				}
 			}
 

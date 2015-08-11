@@ -281,7 +281,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("commander already running");
+			warnx("already running");
 			/* this is not an error */
 			return 0;
 		}
@@ -294,11 +294,18 @@ int commander_main(int argc, char *argv[])
 					     commander_thread_main,
 					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 
-		while (!thread_running) {
-			usleep(200);
+		unsigned constexpr max_wait_us = 1000000;
+		unsigned constexpr max_wait_steps = 2000;
+
+		unsigned i;
+		for (i = 0; i < max_wait_steps; i++) {
+			usleep(max_wait_us / max_wait_steps);
+			if (thread_running) {
+				break;
+			}
 		}
 
-		return 0;
+		return !(i < max_wait_steps);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
