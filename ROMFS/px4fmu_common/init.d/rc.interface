@@ -97,6 +97,12 @@ then
 	fi
 fi
 
+# This is a FMUv2+ thing
+if ver hwcmp PX4FMU_V1
+then
+	set MIXER_AUX none
+fi
+
 if [ $MIXER_AUX != none ]
 then
 	#
