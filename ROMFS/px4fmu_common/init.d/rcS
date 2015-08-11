@@ -626,6 +626,10 @@ then
 			then
 				set MAV_TYPE 21
 			fi
+			if [ $MIXER == quad_x_pusher_vtol ]
+			then
+				set MAV_TYPE 22
+			fi
 		fi
 
 		# Still no MAV_TYPE found

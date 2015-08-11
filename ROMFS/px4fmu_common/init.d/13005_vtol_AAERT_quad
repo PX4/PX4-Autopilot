@@ -1,50 +1,50 @@
 #!nsh
 #
-# @name BirdsEyeView Aerobotics FireFly6
+# @name Generic AAERT tailplane airframe with Quad VTOL.
 #
-# @type VTOL Tiltrotor
+# @type Standard VTOL
 #
-# @maintainer Roman Bapst <roman@px4.io>
+# @maintainer Simon Wilks <simon@uaventure.com>
 #
 
 sh /etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF == yes ]
 then
+	param set VT_TYPE 2
+	param set VT_MOT_COUNT 4
+	param set VT_TRANS_THR 0.75
+
 	param set MC_ROLL_P 7.0
-	param set MC_ROLLRATE_P 0.17
+	param set MC_ROLLRATE_P 0.15
 	param set MC_ROLLRATE_I 0.002
-	param set MC_ROLLRATE_D 0.004
+	param set MC_ROLLRATE_D 0.003
 	param set MC_ROLLRATE_FF 0.0
 	param set MC_PITCH_P 7.0
-	param set MC_PITCHRATE_P 0.14
+	param set MC_PITCHRATE_P 0.12
 	param set MC_PITCHRATE_I 0.002
-	param set MC_PITCHRATE_D 0.004
+	param set MC_PITCHRATE_D 0.003
 	param set MC_PITCHRATE_FF 0.0
-	param set MC_YAW_P 3.8
+	param set MC_YAW_P 2.8
 	param set MC_YAW_FF 0.5
 	param set MC_YAWRATE_P 0.22
 	param set MC_YAWRATE_I 0.02
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_FF 0.0
-
-	param set VT_TILT_MC 0.08
-	param set VT_TILT_TRANS 0.5
-	param set VT_TILT_FW 0.9
 fi
 
-set MIXER firefly6
+set MIXER vtol_quad_x
 set PWM_OUT 12345678
 
-set MIXER_AUX firefly6
+set MIXER_AUX vtol_AAERT
 set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234
 set PWM_AUX_DISARMED 1000
 set PWM_AUX_MIN 1000
 set PWM_AUX_MAX 2000
 
-set MAV_TYPE 21
+set MAV_TYPE 22
 
-param set VT_MOT_COUNT 6
+param set VT_MOT_COUNT 4
 param set VT_IDLE_PWM_MC 1080
-param set VT_TYPE 1
+param set VT_TYPE 2
