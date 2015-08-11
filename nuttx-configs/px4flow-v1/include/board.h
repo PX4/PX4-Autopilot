@@ -156,11 +156,6 @@
 #define STM32_TIM27_FREQUENCY   (2*STM32_PCLK1_FREQUENCY)
 
 
-/* Buttons *************************************************************************/
-
-#define BUTTON_BOOT0_BIT  (0)
-#define BUTTON_BOOT0_MASK (1<<BUTTON_BOOT0_BIT)
-
 /* Leds *************************************************************************/
 
 /* LED index values for use with board_setled() */
@@ -218,8 +213,8 @@
  * CAN1 is routed to the onboard transceiver.
  */
 
-#define GPIO_CAN1_RX     GPIO_CAN1_RX_2
-#define GPIO_CAN1_TX     GPIO_CAN1_TX_2
+#define GPIO_CAN1_RX     GPIO_CAN1_RX_3
+#define GPIO_CAN1_TX     GPIO_CAN1_TX_3
 
 #if defined(CONFIG_BOARD_USE_PROBES)
 # define PROBE_N(n) (1<<((n)-1))
