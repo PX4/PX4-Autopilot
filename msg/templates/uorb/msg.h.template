@@ -63,6 +63,11 @@ topic_name = spec.short_name
 @# Generic Includes
 @##############################
 #include <stdint.h>
+#ifdef __cplusplus
+#include <cstring>
+#else
+#include <string.h>
+#endif
 #include <uORB/uORB.h>
 
 @##############################
@@ -168,6 +173,51 @@ for constant in spec.constants:
 }
 #endif
 };
+
+#pragma pack(push, 1)
+#ifdef __cplusplus
+@#class @(uorb_struct) {
+struct __EXPORT @(uorb_struct)_packed {
+@#public:
+#else
+struct @(uorb_struct)_packed {
+#endif
+@{
+# loop over all fields and print the type and name
+for field in spec.parsed_fields():
+  if (not field.is_header):
+    print_field_def(field)
+}@
+#ifdef __cplusplus
+@# is it ok to have diff in struct size in C against C++?
+@{
+for constant in spec.constants:
+  type_name = constant.type
+  if type_name in type_map:
+    # need to add _t: int8 --> int8_t
+    type_px4 = type_map[type_name]
+  else:
+    raise Exception("Type {0} not supported, add to to template file!".format(type_name))
+
+  print('\tstatic const %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
+}
+#endif
+};
+#pragma pack(pop)
+
+void pack_@(topic_name)(void *in_buffer, void *out_buffer)
+{
+   struct @(uorb_struct)* s_buffer = (struct @(uorb_struct) *) in_buffer;
+   struct @(uorb_struct)_packed *packed_s_buffer = (struct @(uorb_struct)_packed *) out_buffer;
+@# for each field: memcpy(&packed_s_buffer->foo, &s_buffer->foo, sizeof(s_buffer->foo));
+@{
+memexpr = "   memcpy(&packed_s_buffer->{field}, &s_buffer->{field}, sizeof(s_buffer->{field}));"
+# loop over all fields and print the type and name
+for each_field in spec.parsed_fields():
+  if not each_field.is_header:
+    print(memexpr.format(field=each_field.name))
+}@
+}
 
 /**
  * @@}
