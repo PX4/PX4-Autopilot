@@ -46,13 +46,21 @@
 // Hack until everything is using this header
 #include <systemlib/visibility.h>
 
+/*
+ * Pointer to a pack function
+ */
+typedef void (*func_ptr)(void *in, void *out);
+
 /**
  * Object metadata.
  */
 struct orb_metadata {
 	const char *o_name;		/**< unique object name */
 	const size_t o_size;		/**< object size */
+	const size_t o_packed_size;		/**< object packed size */
+	func_ptr pack;
 };
+
 
 typedef const struct orb_metadata *orb_id_t;
 
@@ -120,7 +128,30 @@ enum ORB_PRIO {
 #define ORB_DEFINE(_name, _struct)			\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
-		sizeof(_struct)				\
+		sizeof(_struct),				\
+		sizeof(_struct##_packed),				\
+		NULL				\
+	}; struct hack
+
+/**
+ * Define (instantiate) the uORB metadata for a topic.
+ *
+ * The uORB metadata is used to help ensure that updates and
+ * copies are accessing the right data.
+ *
+ * Note that there must be no more than one instance of this macro
+ * for each topic.
+ *
+ * @param _name		The name of the topic.
+ * @param _struct	The structure the topic provides.
+ * @param _func		The pointer to a function that packs topic
+ */
+#define ORB_DEFINE_EXT(_name, _struct, _func)			\
+	const struct orb_metadata __orb_##_name = {	\
+		#_name,					\
+		sizeof(_struct),				\
+		sizeof(_struct##_packed),				\
+		_func				\
 	}; struct hack
 
 __BEGIN_DECLS
