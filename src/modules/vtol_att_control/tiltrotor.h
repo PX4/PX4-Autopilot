@@ -89,6 +89,7 @@ private:
 		float airspeed_blend_start;		/**< airspeed at which we start blending mc/fw controls */
 		int elevons_mc_lock;			/**< lock elevons in multicopter mode */
 		float front_trans_dur_p2;
+		int fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
 	} _params_tiltrotor;
 
 	struct {
@@ -101,6 +102,7 @@ private:
 		param_t airspeed_blend_start;
 		param_t elevons_mc_lock;
 		param_t front_trans_dur_p2;
+		param_t fw_motors_off;
 	} _params_handles_tiltrotor;
 
 	enum vtol_mode {
@@ -132,6 +134,16 @@ private:
 	float _yaw_weight_mc;		/**< multicopter desired yaw moment weight */
 
 	const float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
+
+	/**
+	 * Return a bitmap of channels that should be turned off in fixed wing mode.
+	 */
+	int get_motor_off_channels(const int channels);
+
+	/**
+	 * Return true if the motor channel is off in fixed wing mode.
+	 */
+	bool is_motor_off_channel(const int channel);
 
 	/**
 	 * Write control values to actuator output topics.
