@@ -207,11 +207,6 @@ HIL::~HIL()
 		} while (_task != -1);
 	}
 
-	// XXX already claimed with CDEV
-	// /* clean up the alternate device node */
-	// if (_primary_pwm_device)
-	// 	unregister_driver(PWM_OUTPUT_DEVICE_PATH);
-
 	g_hil = nullptr;
 }
 
@@ -231,18 +226,9 @@ HIL::init()
 
 	if (ret != OK) {
 		return ret;
-	}
-
-	// XXX already claimed with CDEV
-	///* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	//ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
-	if (ret == OK) {
-		DEVICE_LOG("default PWM output device");
+	} else {
 		_primary_pwm_device = true;
 	}
-
-	/* reset GPIOs */
-	// gpio_reset();
 
 	/* start the HIL interface task */
 	_task = px4_task_spawn_cmd("fmuhil",
@@ -455,7 +441,8 @@ HIL::task_main()
 
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
-			_armed = aa.armed && !aa.lockdown;
+			/* do not obey the lockdown value, as lockdown is for HIL */
+			_armed = aa.armed;
 		}
 	}
 
