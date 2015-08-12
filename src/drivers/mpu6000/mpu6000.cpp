@@ -147,6 +147,8 @@
 #define BIT_I2C_IF_DIS			0x10
 #define BIT_INT_STATUS_DATA		0x01
 
+#define MPU_WHOAMI_6000			0x68
+
 // Product ID Description for MPU6000
 // high 4 bits 	low 4 bits
 // Product Name	Product Revision
@@ -755,6 +757,13 @@ int MPU6000::reset()
 int
 MPU6000::probe()
 {
+	uint8_t whoami;
+	whoami = read_reg(MPUREG_WHOAMI);
+	if (whoami != MPU_WHOAMI_6000) {
+		DEVICE_DEBUG("unexpected WHOAMI 0x%02x", whoami);
+		return -EIO;
+
+	}
 
 	/* look for a product ID we recognise */
 	_product = read_reg(MPUREG_PRODUCT_ID);
