@@ -46,5 +46,6 @@ set PWM_AUX_MAX 2000
 set MAV_TYPE 21
 
 param set VT_MOT_COUNT 6
+param set VT_FW_MOT_OFF 23
 param set VT_IDLE_PWM_MC 1080
 param set VT_TYPE 1
