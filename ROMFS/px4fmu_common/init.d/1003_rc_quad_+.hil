@@ -1,12 +1,17 @@
 #!nsh
 #
-# HIL Quadcopter +
+# @name HIL Quadcopter +
 #
-# Anton Babushkin <anton@px4.io>
+# @type Simulation
+#
+# @maintainer Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
 set MIXER quad_+
+
+# Enable gamepad / joystick support
+param set COM_RC_IN_MODE 2
 
 set HIL yes

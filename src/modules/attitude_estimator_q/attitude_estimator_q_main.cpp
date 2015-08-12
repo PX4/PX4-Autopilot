@@ -47,7 +47,6 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <float.h>
-#include <termios.h>
 #include <errno.h>
 #include <limits.h>
 #include <math.h>
@@ -204,7 +203,7 @@ int AttitudeEstimatorQ::start() {
 	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2500,
+				       2000,
 				       (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
 				       nullptr);
 
@@ -268,7 +267,7 @@ void AttitudeEstimatorQ::task_main() {
 			}
 		}
 
-		if (_acc_comp && _gpos.timestamp != 0 && hrt_absolute_time() < _gpos.timestamp + 20000 && _gpos.eph < 5.0f) {
+		if (_acc_comp && _gpos.timestamp != 0 && hrt_absolute_time() < _gpos.timestamp + 20000 && _gpos.eph < 5.0f && _inited) {
 			/* position data is actual */
 			if (gpos_updated) {
 				Vector<3> vel(_gpos.vel_n, _gpos.vel_e, _gpos.vel_d);
@@ -450,6 +449,8 @@ bool AttitudeEstimatorQ::update(float dt) {
 		PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)))) {
 		// Reset quaternion to last good state
 		_q = q_last;
+		_rates.zero();
+		_gyro_bias.zero();
 		return false;
 	}
 

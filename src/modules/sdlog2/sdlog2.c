@@ -44,6 +44,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_getopt.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>
@@ -80,7 +81,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
-#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -157,7 +158,7 @@ PARAM_DEFINE_INT32(SDLOG_EXT, -1);
  * @max  1
  * @group SD Logging
  */
-PARAM_DEFINE_INT32(SDLOG_GPSTIME, 0);
+PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
 
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \
@@ -346,7 +347,20 @@ int sdlog2_main(int argc, char *argv[])
 						 3000,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
-		return 0;
+
+		/* wait for the task to launch */
+		unsigned const max_wait_us = 1000000;
+		unsigned const max_wait_steps = 2000;
+
+		unsigned i;
+		for (i = 0; i < max_wait_steps; i++) {
+			usleep(max_wait_us / max_wait_steps);
+			if (thread_running) {
+				break;
+			}
+		}
+
+		return !(i < max_wait_steps);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
@@ -896,10 +910,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "r:b:eatx")) != EOF) {
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+	while ((ch = px4_getopt(argc, argv, "r:b:eatx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
-				unsigned long r = strtoul(optarg, NULL, 10);
+				unsigned long r = strtoul(myoptarg, NULL, 10);
 
 				if (r == 0) {
 					r = 1;
@@ -910,7 +926,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			break;
 
 		case 'b': {
-				unsigned long s = strtoul(optarg, NULL, 10);
+				unsigned long s = strtoul(myoptarg, NULL, 10);
 
 				if (s < 1) {
 					s = 1;
@@ -1072,7 +1088,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
-		struct vehicle_vicon_position_s vicon_pos;
+		struct att_pos_mocap_s att_pos_mocap;
 		struct vision_position_estimate_s vision_pos;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
@@ -1128,8 +1144,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TEL_s log_TEL;
 			struct log_EST0_s log_EST0;
 			struct log_EST1_s log_EST1;
+			struct log_EST2_s log_EST2;
+			struct log_EST3_s log_EST3;
 			struct log_PWR_s log_PWR;
-			struct log_VICN_s log_VICN;
+			struct log_MOCP_s log_MOCP;
 			struct log_VISN_s log_VISN;
 			struct log_GS0A_s log_GS0A;
 			struct log_GS0B_s log_GS0B;
@@ -1165,7 +1183,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int triplet_sub;
 		int gps_pos_sub;
 		int sat_info_sub;
-		int vicon_pos_sub;
+		int att_pos_mocap_sub;
 		int vision_pos_sub;
 		int flow_sub;
 		int rc_sub;
@@ -1201,7 +1219,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.local_pos_sp_sub = -1;
 	subs.global_pos_sub = -1;
 	subs.triplet_sub = -1;
-	subs.vicon_pos_sub = -1;
+	subs.att_pos_mocap_sub = -1;
 	subs.vision_pos_sub = -1;
 	subs.flow_sub = -1;
 	subs.rc_sub = -1;
@@ -1236,8 +1254,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* close stdout */
 	close(1);
 
-	thread_running = true;
-
 	/* initialize thread synchronization */
 	pthread_mutex_init(&logbuffer_mutex, NULL);
 	pthread_cond_init(&logbuffer_cond, NULL);
@@ -1270,6 +1286,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		sdlog2_start_log();
 	}
+
+	/* running, report */
+	thread_running = true;
 
 	while (!main_thread_should_exit) {
 		usleep(sleep_delay);
@@ -1686,16 +1705,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* --- VICON POSITION --- */
-		if (copy_if_updated(ORB_ID(vehicle_vicon_position), &subs.vicon_pos_sub, &buf.vicon_pos)) {
-			log_msg.msg_type = LOG_VICN_MSG;
-			log_msg.body.log_VICN.x = buf.vicon_pos.x;
-			log_msg.body.log_VICN.y = buf.vicon_pos.y;
-			log_msg.body.log_VICN.z = buf.vicon_pos.z;
-			log_msg.body.log_VICN.pitch = buf.vicon_pos.pitch;
-			log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
-			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
-			LOGBUFFER_WRITE_AND_COUNT(VICN);
+		/* --- MOCAP ATTITUDE AND POSITION --- */
+		if (copy_if_updated(ORB_ID(att_pos_mocap), &subs.att_pos_mocap_sub, &buf.att_pos_mocap)) {
+			log_msg.msg_type = LOG_MOCP_MSG;
+			log_msg.body.log_MOCP.qw = buf.att_pos_mocap.q[0];
+			log_msg.body.log_MOCP.qx = buf.att_pos_mocap.q[1];
+			log_msg.body.log_MOCP.qy = buf.att_pos_mocap.q[2];
+			log_msg.body.log_MOCP.qz = buf.att_pos_mocap.q[3];
+			log_msg.body.log_MOCP.x = buf.att_pos_mocap.x;
+			log_msg.body.log_MOCP.y = buf.att_pos_mocap.y;
+			log_msg.body.log_MOCP.z = buf.att_pos_mocap.z;
+			LOGBUFFER_WRITE_AND_COUNT(MOCP);
 		}
 
 		/* --- VISION POSITION --- */
@@ -1860,6 +1880,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 			memset(&(log_msg.body.log_EST1.s), 0, sizeof(log_msg.body.log_EST1.s));
 			memcpy(&(log_msg.body.log_EST1.s), buf.estimator_status.states + maxcopy0, maxcopy1);
 			LOGBUFFER_WRITE_AND_COUNT(EST1);
+
+			log_msg.msg_type = LOG_EST2_MSG;
+			unsigned maxcopy2 = (sizeof(buf.estimator_status.covariances) < sizeof(log_msg.body.log_EST2.cov)) ? sizeof(buf.estimator_status.covariances) : sizeof(log_msg.body.log_EST2.cov);
+			memset(&(log_msg.body.log_EST2.cov), 0, sizeof(log_msg.body.log_EST2.cov));
+			memcpy(&(log_msg.body.log_EST2.cov), buf.estimator_status.covariances, maxcopy2);
+			LOGBUFFER_WRITE_AND_COUNT(EST2);
+
+			log_msg.msg_type = LOG_EST3_MSG;
+			unsigned maxcopy3 = ((sizeof(buf.estimator_status.covariances) - maxcopy2) < sizeof(log_msg.body.log_EST3.cov)) ? (sizeof(buf.estimator_status.covariances) - maxcopy2) : sizeof(log_msg.body.log_EST3.cov);
+			memset(&(log_msg.body.log_EST3.cov), 0, sizeof(log_msg.body.log_EST3.cov));
+			memcpy(&(log_msg.body.log_EST3.cov), buf.estimator_status.covariances + maxcopy2, maxcopy3);
+			LOGBUFFER_WRITE_AND_COUNT(EST3);
 		}
 
 		/* --- TECS STATUS --- */

@@ -78,37 +78,6 @@ Device::init()
 	return ret;
 }
 
-void
-Device::log(const char *fmt, ...)
-{
-	va_list	ap;
-
-	PX4_INFO("[%s] ", _name);
-	va_start(ap, fmt);
-        PX4_INFO( fmt, ap );
-	//vprintf(fmt, ap);
-	va_end(ap);
-	//printf("\n");
-	//fflush(stdout);
-}
-
-void
-Device::debug(const char *fmt, ...)
-{
-	va_list	ap;
-
-	if (_debug_enabled) {
-		PX4_INFO("<%s> ", _name);
-		//printf("<%s> ", _name);
-		va_start(ap, fmt);
-		//vprintf(fmt, ap);
-		PX4_INFO(fmt, ap);
-		va_end(ap);
-		//printf("\n");
-		//fflush(stdout);
-	}
-}
-
 int
 Device::dev_read(unsigned offset, void *data, unsigned count)
 {

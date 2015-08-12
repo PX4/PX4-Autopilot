@@ -233,13 +233,13 @@ ADC::init()
 
 		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 500) {
-			log("sample timeout");
+			DEVICE_LOG("sample timeout");
 			return -1;
 		}
 	}
 
 
-	debug("init done");
+	DEVICE_DEBUG("init done");
 
 	/* create the device node */
 	return CDev::init();
@@ -356,7 +356,7 @@ ADC::_sample(unsigned channel)
 
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
-			log("sample timeout");
+			DEVICE_LOG("sample timeout");
 			return 0xffff;
 		}
 	}
@@ -410,19 +410,8 @@ int
 adc_main(int argc, char *argv[])
 {
 	if (g_adc == nullptr) {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-		/* XXX this hardcodes the default channel set for PX4FMUv1 - should be configurable */
-		g_adc = new ADC((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-		/* XXX this hardcodes the default channel set for PX4FMUv2 - should be configurable */
-		g_adc = new ADC((1 << 2) | (1 << 3) | (1 << 4) | 
-			(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
-#endif
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-		/* XXX this hardcodes the default channel set for AeroCore - should be configurable */
-		g_adc = new ADC((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
-#endif
+        /* XXX this hardcodes the default channel set for the board in board_config.h - should be configurable */
+        g_adc = new ADC(ADC_CHANNELS);
 
 		if (g_adc == nullptr)
 			errx(1, "couldn't allocate the ADC driver");

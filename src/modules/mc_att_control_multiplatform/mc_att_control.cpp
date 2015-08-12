@@ -62,7 +62,7 @@ static const int ERROR = -1;
 
 }
 
-MulticopterAttitudeControl::MulticopterAttitudeControl() :
+MulticopterAttitudeControlMultiplatform::MulticopterAttitudeControlMultiplatform() :
 	MulticopterAttitudeControlBase(),
 	_task_should_exit(false),
 	_actuators_0_circuit_breaker_enabled(false),
@@ -104,23 +104,23 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/*
 	 * do subscriptions
 	 */
-	_v_att = _n.subscribe<px4_vehicle_attitude>(&MulticopterAttitudeControl::handle_vehicle_attitude, this, 0);
+	_v_att = _n.subscribe<px4_vehicle_attitude>(&MulticopterAttitudeControlMultiplatform::handle_vehicle_attitude, this, 0);
 	_v_att_sp = _n.subscribe<px4_vehicle_attitude_setpoint>(0);
 	_v_rates_sp = _n.subscribe<px4_vehicle_rates_setpoint>(0);
 	_v_control_mode = _n.subscribe<px4_vehicle_control_mode>(0);
 	_parameter_update = _n.subscribe<px4_parameter_update>(
-			&MulticopterAttitudeControl::handle_parameter_update, this, 1000);
+			&MulticopterAttitudeControlMultiplatform::handle_parameter_update, this, 1000);
 	_manual_control_sp = _n.subscribe<px4_manual_control_setpoint>(0);
 	_armed = _n.subscribe<px4_actuator_armed>(0);
 	_v_status = _n.subscribe<px4_vehicle_status>(0);
 }
 
-MulticopterAttitudeControl::~MulticopterAttitudeControl()
+MulticopterAttitudeControlMultiplatform::~MulticopterAttitudeControlMultiplatform()
 {
 }
 
 int
-MulticopterAttitudeControl::parameters_update()
+MulticopterAttitudeControlMultiplatform::parameters_update()
 {
 	/* roll gains */
 	_params.att_p(0) = _params_handles.roll_p.update();
@@ -153,12 +153,12 @@ MulticopterAttitudeControl::parameters_update()
 	return OK;
 }
 
-void MulticopterAttitudeControl::handle_parameter_update(const px4_parameter_update &msg)
+void MulticopterAttitudeControlMultiplatform::handle_parameter_update(const px4_parameter_update &msg)
 {
 	parameters_update();
 }
 
-void  MulticopterAttitudeControl::handle_vehicle_attitude(const px4_vehicle_attitude &msg) {
+void  MulticopterAttitudeControlMultiplatform::handle_vehicle_attitude(const px4_vehicle_attitude &msg) {
 
 	perf_begin(_loop_perf);
 

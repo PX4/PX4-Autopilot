@@ -279,7 +279,7 @@ GPS::task_main()
 	_serial_fd = ::open(_port, O_RDWR);
 
 	if (_serial_fd < 0) {
-		log("failed to open serial port: %s err: %d", _port, errno);
+		DEVICE_LOG("failed to open serial port: %s err: %d", _port, errno);
 		/* tell the dtor that we are exiting, set error code */
 		_task = -1;
 		_exit(1);
@@ -310,7 +310,7 @@ GPS::task_main()
 			_report_gps_pos.cog_rad = 0.0f;
 			_report_gps_pos.vel_ned_valid = true;				
 
-			//no time and satellite information simulated
+			/* no time and satellite information simulated */
 
 
 			if (!(_pub_blocked)) {
@@ -351,28 +351,46 @@ GPS::task_main()
 
 			unlock();
 
+			/* the Ashtech driver lies about successful configuration and the
+			 * MTK driver is not well tested, so we really only trust the UBX
+			 * driver for an advance publication
+			 */
 			if (_Helper->configure(_baudrate) == 0) {
 				unlock();
 
-				//Publish initial report that we have access to a GPS
-				//Make sure to clear any stale data in case driver is reset
+				/* reset report */
 				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
-				_report_gps_pos.timestamp_position = hrt_absolute_time();
-				_report_gps_pos.timestamp_variance = hrt_absolute_time();
-				_report_gps_pos.timestamp_velocity = hrt_absolute_time();
-				_report_gps_pos.timestamp_time = hrt_absolute_time();
 
-				if (!(_pub_blocked)) {
-					if (_report_gps_pos_pub != nullptr) {
-						orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+				if (_mode == GPS_DRIVER_MODE_UBX) {
+					/* Publish initial report that we have access to a GPS,
+					 * but set all critical state fields to indicate we have
+					 * no valid position lock
+					 */
 
-					} else {
-						_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+					_report_gps_pos.timestamp_time = hrt_absolute_time();
+
+					/* reset the timestamps for data, because we have no data yet */
+					_report_gps_pos.timestamp_position = 0;
+					_report_gps_pos.timestamp_variance = 0;
+					_report_gps_pos.timestamp_velocity = 0;
+
+					/* set a massive variance */
+					_report_gps_pos.eph = 10000.0f;
+					_report_gps_pos.epv = 10000.0f;
+					_report_gps_pos.fix_type = 0;
+
+					if (!(_pub_blocked)) {
+						if (_report_gps_pos_pub != nullptr) {
+							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
+						} else {
+							_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+						}
 					}
-				}
 
-				// GPS is obviously detected successfully, reset statistics
-				_Helper->reset_update_rates();
+					/* GPS is obviously detected successfully, reset statistics */
+					_Helper->reset_update_rates();
+				}
 
 				int helper_ret;
 				while ((helper_ret = _Helper->receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {

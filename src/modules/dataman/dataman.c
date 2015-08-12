@@ -664,6 +664,7 @@ task_main(int argc, char *argv[])
 		int file_size = lseek(g_task_fd, 0, SEEK_END);
 		if ((file_size % k_sector_size) != 0) {
 			warnx("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
+			warnx("Size: %u, sector size: %d", file_size, k_sector_size);
 			close(g_task_fd);
 			unlink(k_data_manager_device_path);
 		} else {
@@ -798,7 +799,7 @@ start(void)
 	sem_init(&g_init_sema, 1, 0);
 
 	/* start the worker thread */
-	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 1800, task_main, NULL)) <= 0) {
+	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 1500, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}

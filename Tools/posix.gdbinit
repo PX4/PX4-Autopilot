@@ -1,0 +1,2 @@
+handle SIGCONT nostop
+run

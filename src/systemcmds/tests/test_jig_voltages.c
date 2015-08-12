@@ -36,7 +36,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
-#include <nuttx/arch.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 
@@ -45,13 +45,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
-#include <nuttx/spi.h>
+//#include <nuttx/spi.h>
 
 #include "tests.h"
 
-#include <nuttx/analog/adc.h>
+#include <px4_adc.h>
 #include <drivers/drv_adc.h>
 #include <systemlib/err.h>
 

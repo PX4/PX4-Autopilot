@@ -115,6 +115,9 @@ typedef param_t px4_param_t;
 #ifndef PRIu64
 #define PRIu64 "llu"
 #endif
+#ifndef PRId64
+#define PRId64 "lld"
+#endif
 
 /* 
  * POSIX Specific defines
@@ -225,7 +228,7 @@ __END_DECLS
 #define SIOCDEVPRIVATE 999999
 
 // Missing math.h defines
-#define PX4_ISFINITE(x) isfinite(x)
+#define PX4_ISFINITE(x) __builtin_isfinite(x)
 
 // FIXME - these are missing for clang++ but not for clang
 #if defined(__cplusplus)

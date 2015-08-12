@@ -44,7 +44,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
-//#include <debug.h>
 #include <errno.h>
 #include <unistd.h>
 
@@ -146,21 +145,21 @@ MS5611_SPI::init()
 
 	ret = SPI::init();
 	if (ret != OK) {
-		debug("SPI init failed");
+		DEVICE_DEBUG("SPI init failed");
 		goto out;
 	}
 
 	/* send reset command */
 	ret = _reset();
 	if (ret != OK) {
-		debug("reset failed");
+		DEVICE_DEBUG("reset failed");
 		goto out;
 	}
 
 	/* read PROM */
 	ret = _read_prom();
 	if (ret != OK) {
-		debug("prom readout failed");
+		DEVICE_DEBUG("prom readout failed");
 		goto out;
 	}
 
@@ -251,16 +250,16 @@ MS5611_SPI::_read_prom()
 		_prom.c[i] = _reg16(cmd);
                 if (_prom.c[i] != 0)
 			all_zero = false;
-                //debug("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
+                //DEVICE_DEBUG("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
 	}
 
 	/* calculate CRC and return success/failure accordingly */
 	int ret = ms5611::crc4(&_prom.c[0]) ? OK : -EIO;
         if (ret != OK) {
-		debug("crc failed");
+		DEVICE_DEBUG("crc failed");
         }
         if (all_zero) {
-		debug("prom all zero");
+		DEVICE_DEBUG("prom all zero");
 		ret = -EIO;
         }
         return ret;

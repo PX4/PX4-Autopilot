@@ -137,7 +137,6 @@ private:
 	int		_vehicle_status_sub;	/**< vehicle status subscription */
 	int 	_motor_limits_sub;		/**< motor limits subscription */
 
-	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
 	orb_advert_t	_controller_status_pub;	/**< controller status publication */
@@ -169,8 +168,6 @@ private:
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
-
-	bool	_reset_yaw_sp;			/**< reset yaw setpoint flag */
 
 	struct {
 		param_t roll_p;
@@ -315,7 +312,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_vehicle_status_sub(-1),
 
 /* publications */
-	_att_sp_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
 	_actuators_0_pub(nullptr),
 	_controller_status_pub(nullptr),
@@ -602,10 +598,10 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
 	}
 }
 
-/*
+/**
  * Attitude controller.
- * Input: 'manual_control_setpoint' and 'vehicle_attitude_setpoint' topics (depending on mode)
- * Output: '_rates_sp' vector, '_thrust_sp', 'vehicle_attitude_setpoint' topic (for manual modes)
+ * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
+ * Output: '_rates_sp' vector, '_thrust_sp'
  */
 void
 MulticopterAttitudeControl::control_attitude(float dt)

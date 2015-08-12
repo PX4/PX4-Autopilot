@@ -48,9 +48,16 @@ px4::AppState MuorbTestExample::appState;
 
 int MuorbTestExample::main()
 {
+	int rc;
 	appState.setRunning(true);
+	rc =  PingPongTest();
+	appState.setRunning(false);
+	return rc;
+}
 
-	int i=0;
+int  MuorbTestExample::DefaultTest()
+{
+        int i=0;
         orb_advert_t pub_id = orb_advertise( ORB_ID( esc_status ), & m_esc_status );
         if( pub_id == 0 )
         {
@@ -75,9 +82,9 @@ int MuorbTestExample::main()
            return -1;
         }
 
-	while (!appState.exitRequested() && i<100) {
+        while (!appState.exitRequested() && i<100) {
 
-		PX4_DEBUG("[%d]  Doing work...", i );
+                PX4_DEBUG("[%d]  Doing work...", i );
                 if( orb_publish( ORB_ID( esc_status ), pub_id, &m_esc_status ) == PX4_ERROR )
                 {
                    PX4_ERR( "[%d]Error publishing the esc status message for iter", i );
@@ -111,8 +118,66 @@ int MuorbTestExample::main()
                     break;
                 } 
                 
-		++i;
-	}
+         ++i;
+        }
+        return 0;
+}
 
-	return 0;
+int MuorbTestExample::PingPongTest()
+{
+        int i=0;
+        orb_advert_t pub_id_vc = orb_advertise( ORB_ID( vehicle_command ), & m_vc );
+        if( pub_id_vc == 0 )
+        {
+            PX4_ERR( "error publishing vehicle_command" );
+            return -1;
+        }
+        if( orb_publish( ORB_ID( vehicle_command ), pub_id_vc, &m_vc ) == PX4_ERROR )
+        {
+           PX4_ERR( "[%d]Error publishing the vechile command message", i );
+           return -1;
+        }
+        int sub_esc_status = orb_subscribe( ORB_ID( esc_status ) );
+        if ( sub_esc_status == PX4_ERROR )
+        {
+           PX4_ERR( "Error subscribing to esc_status topic" );
+           return -1;
+        }
+
+        while (!appState.exitRequested() ) {
+
+                PX4_INFO("[%d]  Doing work...", i );
+                bool updated = false;
+                if( orb_check( sub_esc_status, &updated ) == 0 )
+                {
+                    if( updated )
+                    {
+                       PX4_INFO( "[%d]ESC status is updated... reading new value", i );
+                       if( orb_copy( ORB_ID( esc_status ), sub_esc_status, &m_esc_status ) != 0 )
+                       {
+                           PX4_ERR( "[%d]Error calling orb copy for esc status... ", i );
+                           break;
+                       }
+                       if( orb_publish( ORB_ID( vehicle_command ), pub_id_vc, &m_vc ) == PX4_ERROR )
+                       {
+                          PX4_ERR( "[%d]Error publishing the vechile command message", i );
+                          break;
+                       }
+                    }
+                    else
+                    {
+                       PX4_INFO( "[%d] esc status topic is not updated", i );
+                    }
+                }
+                else
+                {
+                    PX4_ERR( "[%d]Error checking the updated status for esc status... ", i );
+                    break;
+                }
+                // sleep for 1 sec.
+                usleep( 1000000 ); 
+
+                ++i;
+        }
+        return 0;
 }

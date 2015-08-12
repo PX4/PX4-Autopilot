@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,13 +35,38 @@
  * @file mc_pos_control_params.c
  * Multicopter position controller parameters.
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #include <systemlib/param/param.h>
 
 /**
- * Minimum thrust
+ * Minimum thrust in auto thrust control
+ *
+ * It's recommended to set it > 0 to avoid free fall with zero thrust.
+ *
+ * @min 0.05
+ * @max 1.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
+
+/**
+ * Maximum thrust in auto thrust control
+ *
+ * Limit max allowed thrust. Setting a value of one can put
+ * the system into actuator saturation as no spread between
+ * the motors is possible any more. A value of 0.8 - 0.9
+ * is recommended.
+ *
+ * @min 0.0
+ * @max 0.95
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
+
+/**
+ * Minimum manual thrust
  *
  * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
  *
@@ -50,10 +74,10 @@
  * @max 1.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.1f);
+PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.12f);
 
 /**
- * Maximum thrust
+ * Maximum manual thrust
  *
  * Limit max allowed thrust. Setting a value of one can put
  * the system into actuator saturation as no spread between
@@ -64,7 +88,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.1f);
  * @max 1.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
+PARAM_DEFINE_FLOAT(MPC_MANTHR_MAX, 0.9f);
 
 /**
  * Proportional gain for vertical position error
@@ -80,7 +104,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_P, 1.0f);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.1f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.2f);
 
 /**
  * Integral gain for vertical velocity error
@@ -107,9 +131,10 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
  *
  * @unit m/s
  * @min 0.0
+ * @max 8.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 3.0f);
 
 /**
  * Vertical velocity feed forward
@@ -183,7 +208,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
  *
  * Limits maximum tilt in AUTO and POSCTRL modes during flight.
  *
- * @unit deg
+ * @unit degree
  * @min 0.0
  * @max 90.0
  * @group Multicopter Position Control
@@ -195,7 +220,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  *
  * Limits maximum tilt angle on landing.
  *
- * @unit deg
+ * @unit degree
  * @min 0.0
  * @max 90.0
  * @group Multicopter Position Control
@@ -214,7 +239,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
 /**
  * Max manual roll
  *
- * @unit deg
+ * @unit degree
  * @min 0.0
  * @max 90.0
  * @group Multicopter Position Control
@@ -224,7 +249,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX, 35.0f);
 /**
  * Max manual pitch
  *
- * @unit deg
+ * @unit degree
  * @min 0.0
  * @max 90.0
  * @group Multicopter Position Control
@@ -234,7 +259,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
 /**
  * Max manual yaw rate
  *
- * @unit deg/s
+ * @unit degree / s
  * @min 0.0
  * @group Multicopter Position Control
  */

@@ -88,7 +88,6 @@ MODULES		+= examples/px4_simple_app
 #
 # Drivers / modules to test build, but not useful for test environment
 #
-MODULES		+= modules/attitude_estimator_so3
 MODULES		+= drivers/pca8574
 
 #

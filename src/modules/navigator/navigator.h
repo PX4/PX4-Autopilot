@@ -163,6 +163,8 @@ public:
 	float		get_acceptance_radius(float mission_item_radius);
 	int		get_mavlink_fd() { return _mavlink_fd; }
 
+	void		increment_mission_instance_count() { _mission_instance_count++; }
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
@@ -205,6 +207,7 @@ private:
 	bool 		_home_position_set;
 
 	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
+	int		_mission_instance_count;	/**< instance count for the current mission */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 

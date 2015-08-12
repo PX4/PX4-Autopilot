@@ -51,3 +51,4 @@ xcode
 src/platforms/posix/px4_messages/
 src/platforms/posix-arm/px4_messages/
 src/platforms/qurt/px4_messages/
+ROMFS/*/*/rc.autostart

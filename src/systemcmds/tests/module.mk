@@ -18,7 +18,6 @@ SRCS			 = test_adc.c \
 			   test_sensors.c \
 			   test_servo.c \
 			   test_sleep.c \
-			   test_time.c \
 			   test_uart_baudchange.c \
 			   test_uart_console.c \
 			   test_uart_loopback.c \
@@ -35,5 +34,18 @@ SRCS			 = test_adc.c \
 			   test_mount.c \
 			   test_eigen.cpp
 
-EXTRACXXFLAGS = -Wframe-larger-than=2500 -Wno-float-equal -Wno-double-promotion -Wno-error=logical-op
+ifeq ($(PX4_TARGET_OS), nuttx)
+SRCS			+= test_time.c
+
+EXTRACXXFLAGS = -Wframe-larger-than=2500
+else
+EXTRACXXFLAGS =
+endif
+
+EXTRACXXFLAGS += -Wno-float-equal
+
+# Flag is only valid for GCC, not clang
+ifneq ($(USE_GCC), 0)
+EXTRACXXFLAGS += -Wno-double-promotion -Wno-error=logical-op
+endif
 

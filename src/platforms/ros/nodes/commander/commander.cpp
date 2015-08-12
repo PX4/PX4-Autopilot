@@ -135,7 +135,8 @@ void Commander::SetOffboardControl(const px4::offboard_control_mode &msg_offboar
 
 	msg_vehicle_control_mode.flag_control_position_enabled = !msg_offboard_control_mode.ignore_position;
 
-	msg_vehicle_control_mode.flag_control_altitude_enabled = !msg_offboard_control_mode.ignore_position;
+	msg_vehicle_control_mode.flag_control_altitude_enabled = !msg_offboard_control_mode.ignore_velocity ||
+		!msg_offboard_control_mode.ignore_position;
 }
 
 void Commander::EvalSwitches(const px4::manual_control_setpointConstPtr &msg,

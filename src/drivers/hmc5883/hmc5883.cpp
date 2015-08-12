@@ -418,7 +418,7 @@ HMC5883::init()
 
 	ret = CDev::init();
 	if (ret != OK) {
-		debug("CDev init failed");
+		DEVICE_DEBUG("CDev init failed");
 		goto out;
 	}
 
@@ -734,7 +734,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return check_calibration();
 
 	case MAGIOCGEXTERNAL:
-		debug("MAGIOCGEXTERNAL in main driver");
+		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
 		return _interface->ioctl(cmd, dummy);
 
 	case MAGIOCSTEMPCOMP:
@@ -789,7 +789,7 @@ HMC5883::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			debug("collection error");
+			DEVICE_DEBUG("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -816,7 +816,7 @@ HMC5883::cycle()
 
 	/* measurement phase */
 	if (OK != measure())
-		debug("measure error");
+		DEVICE_DEBUG("measure error");
 
 	/* next phase is collection */
 	_collect_phase = true;
@@ -886,7 +886,7 @@ HMC5883::collect()
 
 	if (ret != OK) {
 		perf_count(_comms_errors);
-		debug("data/status read error");
+		DEVICE_DEBUG("data/status read error");
 		goto out;
 	}
 
@@ -936,7 +936,7 @@ HMC5883::collect()
 					  and can't do temperature. Disable it
 					*/
 					_temperature_error_count = 0;
-					debug("disabling temperature compensation");
+					DEVICE_DEBUG("disabling temperature compensation");
 					set_temperature_compensation(0);
 				}
 			}
@@ -994,7 +994,7 @@ HMC5883::collect()
 				&_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
 			if (_mag_topic == nullptr)
-				debug("ADVERT FAIL");
+				DEVICE_DEBUG("ADVERT FAIL");
 		}
 	}
 
@@ -1124,8 +1124,8 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		}
 	}
 
-	/* read the sensor up to 50x, stopping when we have 10 good values */
-	for (uint8_t i = 0; i < 50 && good_count < 10; i++) {
+	/* read the sensor up to 100x, stopping when we have 30 good values */
+	for (uint8_t i = 0; i < 100 && good_count < 30; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -1172,9 +1172,9 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	scaling[2] = sum_excited[2] / good_count;
 
 	/* set scaling in device */
-	mscale_previous.x_scale = scaling[0];
-	mscale_previous.y_scale = scaling[1];
-	mscale_previous.z_scale = scaling[2];
+	mscale_previous.x_scale = 1.0f / scaling[0];
+	mscale_previous.y_scale = 1.0f / scaling[1];
+	mscale_previous.z_scale = 1.0f / scaling[2];
 
 	ret = OK;
 

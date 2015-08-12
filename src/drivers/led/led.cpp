@@ -89,7 +89,7 @@ LED::~LED()
 int
 LED::init()
 {
-	debug("LED::init");
+	DEVICE_DEBUG("LED::init");
 #ifdef __PX4_NUTTX
 	CDev::init();
 #else

@@ -41,12 +41,12 @@
 # What we're going to build.
 #
 
-EXTRALDFLAGS = -Wl,-soname=libdspal_client.so
+EXTRALDFLAGS = -Wl,-soname=libpx4.so
 PRODUCT_SHARED_LIB	= $(WORK_DIR)firmware.a
 PRODUCT_SHARED_PRELINK	= $(WORK_DIR)firmware.o
 
 .PHONY:			firmware
-firmware:		$(PRODUCT_SHARED_LIB) $(WORK_DIR)libdspal_client.so $(WORK_DIR)mainapp
+firmware:		$(PRODUCT_SHARED_LIB) $(WORK_DIR)libpx4.so $(WORK_DIR)mainapp
 
 #
 # Built product rules
@@ -65,7 +65,7 @@ $(WORK_DIR)apps.o: $(WORK_DIR)apps.cpp
 	$(call COMPILEXX,$<, $@)
 	mv $(WORK_DIR)apps.cpp $(WORK_DIR)apps.cpp_sav
 
-$(WORK_DIR)libdspal_client.so: $(WORK_DIR)apps.o $(PRODUCT_SHARED_LIB)
+$(WORK_DIR)libpx4.so: $(WORK_DIR)apps.o $(PRODUCT_SHARED_LIB)
 	$(call LINK_SO,$@, $^)
 
 $(WORK_DIR)dspal_stub.o: $(PX4_BASE)/src/platforms/qurt/dspal/dspal_stub.c

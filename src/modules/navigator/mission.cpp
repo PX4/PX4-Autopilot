@@ -70,15 +70,15 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_dist_1wp(this, "MIS_DIST_1WP", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
-	_onboard_mission({0}),
-	_offboard_mission({0}),
+	_onboard_mission{},
+	_offboard_mission{},
 	_current_onboard_mission_index(-1),
 	_current_offboard_mission_index(-1),
 	_need_takeoff(true),
 	_takeoff(false),
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
-	_dist_1wp_ok(false),
+	_home_inited(false),
 	_missionFeasiblityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
 	_mission_item_previous_alt(NAN),
@@ -111,12 +111,27 @@ Mission::on_inactive()
 		}
 
 	} else {
-		/* read mission topics on initialization */
-		_inited = true;
 
-		update_onboard_mission();
-		update_offboard_mission();
+		/* load missions from storage */
+		mission_s mission_state;
+
+		dm_lock(DM_KEY_MISSION_STATE);
+
+		/* read current state */
+		int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
+
+		dm_unlock(DM_KEY_MISSION_STATE);
+
+		if (read_res == sizeof(mission_s)) {
+			_offboard_mission.dataman_id = mission_state.dataman_id;
+			_offboard_mission.count = mission_state.count;
+			_current_offboard_mission_index = mission_state.current_seq;
+		}
+
+		_inited = true;
 	}
+
+	check_mission_valid();
 
 	/* require takeoff after non-loiter or landing */
 	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_vstatus()->condition_landed) {
@@ -133,6 +148,8 @@ Mission::on_activation()
 void
 Mission::on_active()
 {
+	check_mission_valid();
+
 	/* check if anything has changed */
 	bool onboard_updated = false;
 	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
@@ -176,6 +193,7 @@ Mission::on_active()
 			&& _mission_type != MISSION_TYPE_NONE) {
 		heading_sp_update();
 	}
+
 }
 
 void
@@ -196,6 +214,11 @@ Mission::update_onboard_mission()
 			}
 			/* otherwise, just leave it */
 		}
+
+		// XXX check validity here as well
+		_navigator->get_mission_result()->valid = true;
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
 
 	} else {
 		_onboard_mission.count = 0;
@@ -232,16 +255,24 @@ Mission::update_offboard_mission()
 
 		failed = !_missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
-				_navigator->get_home_position()->alt, _navigator->home_position_valid());
+				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
+				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+
+		_navigator->get_mission_result()->valid = !failed;
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
 
 	} else {
-		warnx("offboard mission update failed");
+		PX4_WARN("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
 	}
 
 	if (failed) {
 		_offboard_mission.count = 0;
 		_offboard_mission.current_seq = 0;
 		_current_offboard_mission_index = 0;
+
+		warnx("mission check failed");
 	}
 
 	set_current_offboard_mission_item();
@@ -281,73 +312,6 @@ Mission::get_absolute_altitude_for_item(struct mission_item_s &mission_item)
 	}
 }
 
-bool
-Mission::check_dist_1wp()
-{
-	if (_dist_1wp_ok) {
-		/* always return true after at least one successful check */
-		return true;
-	}
-
-	/* check if first waypoint is not too far from home */
-	if (_param_dist_1wp.get() > 0.0f) {
-		if (_navigator->get_vstatus()->condition_home_position_valid) {
-			struct mission_item_s mission_item;
-
-			/* find first waypoint (with lat/lon) item in datamanager */
-			for (unsigned i = 0; i < _offboard_mission.count; i++) {
-				if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id), i,
-						&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
-
-					/* check only items with valid lat/lon */
-					if ( mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
-							mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-							mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-							mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-							mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
-							mission_item.nav_cmd == NAV_CMD_PATHPLANNING) {
-
-						/* check distance from current position to item */
-						float dist_to_1wp = get_distance_to_next_waypoint(
-								mission_item.lat, mission_item.lon,
-								_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-
-						if (dist_to_1wp < _param_dist_1wp.get()) {
-							_dist_1wp_ok = true;
-							if (dist_to_1wp > ((_param_dist_1wp.get() * 3) / 2)) {
-								/* allow at 2/3 distance, but warn */
-								mavlink_log_critical(_navigator->get_mavlink_fd(), "Warning: First waypoint very far: %d m", (int)dist_to_1wp);
-							}
-							return true;
-
-						} else {
-							/* item is too far from home */
-							mavlink_log_critical(_navigator->get_mavlink_fd(), "Waypoint too far: %d m,[MIS_DIST_1WP=%d]", (int)dist_to_1wp, (int)_param_dist_1wp.get());
-							return false;
-						}
-					}
-
-				} else {
-					/* error reading, mission is invalid */
-					mavlink_log_info(_navigator->get_mavlink_fd(), "error reading offboard mission");
-					return false;
-				}
-			}
-
-			/* no waypoints found in mission, then we will not fly far away */
-			_dist_1wp_ok = true;
-			return true;
-
-		} else {
-			mavlink_log_info(_navigator->get_mavlink_fd(), "no home position");
-			return false;
-		}
-
-	} else {
-		return true;
-	}
-}
-
 void
 Mission::set_mission_items()
 {
@@ -367,24 +331,24 @@ Mission::set_mission_items()
 		_mission_item_previous_alt = get_absolute_altitude_for_item(_mission_item);
 	}
 
-	/* get home distance state */
-	bool home_dist_ok = check_dist_1wp();
 	/* the home dist check provides user feedback, so we initialize it to this */
-	bool user_feedback_done = !home_dist_ok;
+	bool user_feedback_done = false;
 
 	/* try setting onboard mission item */
 	if (_param_onboard_enabled.get() && read_mission_item(true, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "onboard mission now running");
+			user_feedback_done = true;
 		}
 		_mission_type = MISSION_TYPE_ONBOARD;
 
 	/* try setting offboard mission item */
-	} else if (home_dist_ok && read_mission_item(false, true, &_mission_item)) {
+	} else if (read_mission_item(false, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "offboard mission now running");
+			user_feedback_done = true;
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
 	} else {
@@ -392,21 +356,17 @@ Mission::set_mission_items()
 		if (_mission_type != MISSION_TYPE_NONE) {
 			/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
+			user_feedback_done = true;
 
 			/* use last setpoint for loiter */
 			_navigator->set_can_loiter_at_sp(true);
 
-		} else if (!user_feedback_done) {
-			/* only tell users that we got no mission if there has not been any
-			 * better, more specific feedback yet
-			 * https://en.wikipedia.org/wiki/Loiter_(aeronautics)
-			 */
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, loitering");
 		}
+
 		_mission_type = MISSION_TYPE_NONE;
 
-		/* set loiter mission item */
-		set_loiter_item(&_mission_item);
+		/* set loiter mission item and ensure that there is a minimum clearance from home */
+		set_loiter_item(&_mission_item, _param_takeoff_alt.get());
 
 		/* update position setpoint triplet  */
 		pos_sp_triplet->previous.valid = false;
@@ -417,6 +377,24 @@ Mission::set_mission_items()
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 
 		set_mission_finished();
+
+		if (!user_feedback_done) {
+			/* only tell users that we got no mission if there has not been any
+			 * better, more specific feedback yet
+			 * https://en.wikipedia.org/wiki/Loiter_(aeronautics)
+			 */
+
+			if (_navigator->get_vstatus()->condition_landed) {
+				/* landed, refusing to take off without a mission */
+
+				mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, refusing takeoff");
+			} else {
+				mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, loitering");
+			}
+
+			user_feedback_done = true;
+
+		}
 
 		_navigator->set_position_setpoint_triplet_updated();
 		return;
@@ -675,6 +653,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds */
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
 			return false;
 		}
 
@@ -817,4 +796,27 @@ Mission::set_mission_finished()
 {
 	_navigator->get_mission_result()->finished = true;
 	_navigator->set_mission_result_updated();
+}
+
+bool
+Mission::check_mission_valid()
+{
+	/* check if the home position became valid in the meantime */
+	if (!_home_inited && _navigator->home_position_valid()) {
+
+		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+
+		_navigator->get_mission_result()->valid = _missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
+				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
+				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
+				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
+
+		_home_inited = true;
+	}
+
+	return _navigator->get_mission_result()->valid;
 }

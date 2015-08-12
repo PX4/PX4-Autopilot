@@ -42,7 +42,9 @@
 #include <px4_app.h>
 #include "muorb_test_example.h"
 
-int PX4_MAIN(int argc, char **argv)
+extern "C" __EXPORT int muorb_test_entry( int argc, char** argv );
+
+int muorb_test_entry(int argc, char **argv)
 {
 	px4::init(argc, argv, "muorb_test");
 

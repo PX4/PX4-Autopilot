@@ -46,7 +46,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
@@ -162,7 +161,7 @@ int test_ppm_loopback(int argc, char *argv[])
 
 		/* go and check values */
 		for (unsigned i = 0; (i < servo_count) && (i < sizeof(pwm_values) / sizeof(pwm_values[0])); i++) {
-			if (fabsf(rc_input.values[i] - pwm_values[i]) > 10) {
+			if (abs(rc_input.values[i] - pwm_values[i]) > 10) {
 				warnx("comparison fail: RC: %d, expected: %d", rc_input.values[i], pwm_values[i]);
 				(void)close(servo_fd);
 				return ERROR;

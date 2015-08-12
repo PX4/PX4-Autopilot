@@ -339,6 +339,7 @@ ToneAlarm::ToneAlarm() :
 	_default_tunes[TONE_EKF_WARNING_TUNE] = "MFT255L8ddd#d#eeff";				// ekf warning
 	_default_tunes[TONE_BARO_WARNING_TUNE] = "MFT255L4gf#fed#d";				// baro warning
 	_default_tunes[TONE_SINGLE_BEEP_TUNE] = "MFT100a8";                             // single beep
+	_default_tunes[TONE_HOME_SET] = "MFT100L4>G#6A#6B#4";
 
 	_tune_names[TONE_STARTUP_TUNE] = "startup";			// startup tune
 	_tune_names[TONE_ERROR_TUNE] = "error";				// ERROR tone
@@ -354,6 +355,7 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_EKF_WARNING_TUNE] = "ekf_warning";				// ekf warning
 	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
 	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
+	_tune_names[TONE_HOME_SET] = "home_set";
 }
 
 ToneAlarm::~ToneAlarm()
@@ -396,7 +398,7 @@ ToneAlarm::init()
 	/* make sure the timer is running */
 	rCR1 = GTIM_CR1_CEN;
 
-	debug("ready");
+	DEVICE_DEBUG("ready");
 	return OK;
 }
 
@@ -739,14 +741,14 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int result = OK;
 
-	debug("ioctl %i %u", cmd, arg);
+	DEVICE_DEBUG("ioctl %i %u", cmd, arg);
 
 //	irqstate_t flags = irqsave();
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
 	case TONE_SET_ALARM:
-		debug("TONE_SET_ALARM %u", arg);
+		DEVICE_DEBUG("TONE_SET_ALARM %u", arg);
 
 		if (arg < TONE_NUMBER_OF_TUNES) {
 			if (arg == TONE_STOP_TUNE) {

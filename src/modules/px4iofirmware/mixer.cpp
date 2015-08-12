@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@
  * @file mixer.cpp
  *
  * Control channel input/output mixer and failsafe.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <px4_config.h>
@@ -49,6 +51,7 @@
 
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/mixer/mixer.h>
+#include <uORB/topics/actuator_controls.h>
 
 extern "C" {
 //#define DEBUG
@@ -59,10 +62,12 @@ extern "C" {
  * Maximum interval in us before FMU signal is considered lost
  */
 #define FMU_INPUT_DROP_LIMIT_US		500000
+#define NAN_VALUE	(0.0f/0.0f)
 
 /* current servo arm/disarm state */
 static bool mixer_servos_armed = false;
 static bool should_arm = false;
+static bool should_arm_nothrottle = false;
 static bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
 
@@ -171,6 +176,11 @@ mixer_tick(void)
 						     )
 	);
 
+	should_arm_nothrottle = (
+		/* IO initialised without error */   (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
+		/* and IO is armed */ 		  && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+		/* and there is valid input via or mixer */         &&   (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK));
+
 	should_always_enable_pwm = (r_setup_arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)
 						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
 						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
@@ -234,24 +244,25 @@ mixer_tick(void)
 		in_mixer = false;
 
 		/* the pwm limit call takes care of out of band errors */
-		pwm_limit_calc(should_arm, mixed, r_setup_pwm_reverse, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+		pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
-		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
+		/* clamp unused outputs to zero */
+		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_servos[i] = 0;
+			outputs[i] = 0.0f;
+		}
 
+		/* store normalized outputs */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
 	}
 
 	/* set arming */
-	bool needs_to_arm = (should_arm || should_always_enable_pwm);
+	bool needs_to_arm = (should_arm || should_arm_nothrottle || should_always_enable_pwm);
 
 	/* check any conditions that prevent arming */
 	if (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN) {
-		needs_to_arm = false;
-	}
-	if (!should_arm && !should_always_enable_pwm) {
 		needs_to_arm = false;
 	}
 
@@ -270,7 +281,7 @@ mixer_tick(void)
 		isr_debug(5, "> PWM disabled");
 	}
 
-	if (mixer_servos_armed && should_arm) {
+	if (mixer_servos_armed && (should_arm || should_arm_nothrottle)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
@@ -286,15 +297,18 @@ mixer_tick(void)
 
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
 		/* set the disarmed servo outputs. */
-		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
+		}
 
 		/* set S.BUS1 or S.BUS2 outputs */
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT)
-			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+			sbus1_output(r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+		}
 
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT)
-			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
+			sbus2_output(r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+		}
 	}
 }
 
@@ -304,8 +318,9 @@ mixer_callback(uintptr_t handle,
 	       uint8_t control_index,
 	       float &control)
 {
-	if (control_group >= PX4IO_CONTROL_GROUPS)
+	if (control_group >= PX4IO_CONTROL_GROUPS) {
 		return -1;
+	}
 
 	switch (source) {
 	case MIX_FMU:
@@ -318,13 +333,6 @@ mixer_callback(uintptr_t handle,
 	case MIX_OVERRIDE:
 		if (r_page_rc_input[PX4IO_P_RC_VALID] & (1 << CONTROL_PAGE_INDEX(control_group, control_index))) {
 			control = REG_TO_FLOAT(r_page_rc_input[PX4IO_P_RC_BASE + control_index]);
-			if (control_group == 0 && control_index == 0) {
-				control += REG_TO_FLOAT(r_setup_trim_roll);
-			} else if (control_group == 0 && control_index == 1) {
-				control += REG_TO_FLOAT(r_setup_trim_pitch);
-			} else if (control_group == 0 && control_index == 2) {
-				control += REG_TO_FLOAT(r_setup_trim_yaw);
-			}
 			break;
 		}
 		return -1;
@@ -333,13 +341,6 @@ mixer_callback(uintptr_t handle,
 		/* FMU is ok but we are in override mode, use direct rc control for the available rc channels. The remaining channels are still controlled by the fmu */
 		if (r_page_rc_input[PX4IO_P_RC_VALID] & (1 << CONTROL_PAGE_INDEX(control_group, control_index))) {
 			control = REG_TO_FLOAT(r_page_rc_input[PX4IO_P_RC_BASE + control_index]);
-			if (control_group == 0 && control_index == 0) {
-				control += REG_TO_FLOAT(r_setup_trim_roll);
-			} else if (control_group == 0 && control_index == 1) {
-				control += REG_TO_FLOAT(r_setup_trim_pitch);
-			} else if (control_group == 0 && control_index == 2) {
-				control += REG_TO_FLOAT(r_setup_trim_yaw);
-			}
 			break;
 		} else if (control_index < PX4IO_CONTROL_CHANNELS && control_group < PX4IO_CONTROL_GROUPS) {
 			control = REG_TO_FLOAT(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)]);
@@ -353,11 +354,47 @@ mixer_callback(uintptr_t handle,
 		return -1;
 	}
 
+	/* apply trim offsets for override channels */
+	if (source == MIX_OVERRIDE || source == MIX_OVERRIDE_FMU_OK) {
+		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_ROLL) {
+			control += REG_TO_FLOAT(r_setup_trim_roll);
+
+		} else if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_PITCH) {
+			control += REG_TO_FLOAT(r_setup_trim_pitch);
+
+		} else if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_YAW) {
+			control += REG_TO_FLOAT(r_setup_trim_yaw);
+		}
+	}
+
 	/* limit output */
 	if (control > 1.0f) {
 		control = 1.0f;
 	} else if (control < -1.0f) {
 		control = -1.0f;
+	}
+
+	/* motor spinup phase - lock throttle to zero */
+	if ((pwm_limit.state == PWM_LIMIT_STATE_RAMP) || (should_arm_nothrottle && !should_arm)) {
+		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_THROTTLE) {
+			/* limit the throttle output to zero during motor spinup,
+			 * as the motors cannot follow any demand yet
+			 */
+			control = 0.0f;
+		}
+	}
+
+	/* only safety off, but not armed - set throttle as invalid */
+	if (should_arm_nothrottle && !should_arm) {
+		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+			control_index == actuator_controls_s::INDEX_THROTTLE) {
+			/* mark the throttle as invalid */
+			control = NAN_VALUE;
+		}
 	}
 
 	return 0;
@@ -441,8 +478,9 @@ mixer_handle_text(const void *buffer, size_t length)
 			isr_debug(2, "used %u", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
-			if (resid > 0)
+			if (resid > 0) {
 				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+			}
 
 			mixer_text_length = resid;
 
@@ -465,8 +503,9 @@ mixer_set_failsafe()
 	 */
 
 	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) ||
-		!(r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))
+		!(r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 		return;
+	}
 
 	/* set failsafe defaults to the values for all inputs = 0 */
 	float	outputs[PX4IO_SERVO_COUNT];
@@ -484,7 +523,8 @@ mixer_set_failsafe()
 	}
 
 	/* disable the rest of the outputs */
-	for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
+	for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
 		r_page_servo_failsafe[i] = 0;
+	}
 
 }

@@ -61,9 +61,12 @@ static void		hrt_call_reschedule(void);
 
 static sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
+static hrt_abstime px4_timestart = 0;
 
 static void
 hrt_call_invoke(void);
+
+__EXPORT hrt_abstime hrt_reset(void);
 
 static void hrt_lock(void)
 {
@@ -86,7 +89,6 @@ static void hrt_unlock(void)
 #define clockid_t int
 
 static double px4_timebase = 0.0;
-static uint64_t px4_timestart = 0;
 
 int clock_gettime(clockid_t clk_id, struct timespec *t)
 {
@@ -119,8 +121,19 @@ hrt_abstime hrt_absolute_time(void)
 {
 	struct timespec ts;
 
+	if (!px4_timestart) {
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		px4_timestart = ts_to_abstime(&ts);
+	}
+
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ts_to_abstime(&ts);
+	return ts_to_abstime(&ts) - px4_timestart;
+}
+
+__EXPORT hrt_abstime hrt_reset(void)
+{
+	px4_timestart = 0;
+	return hrt_absolute_time();
 }
 
 /*

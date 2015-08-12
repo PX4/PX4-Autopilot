@@ -64,19 +64,19 @@
 
 #include "mc_att_control_base.h"
 
-class MulticopterAttitudeControl :
+class MulticopterAttitudeControlMultiplatform :
 	public MulticopterAttitudeControlBase
 {
 public:
 	/**
 	 * Constructor
 	 */
-	MulticopterAttitudeControl();
+	MulticopterAttitudeControlMultiplatform();
 
 	/**
 	 * Destructor, also kills the sensors task.
 	 */
-	~MulticopterAttitudeControl();
+	~MulticopterAttitudeControlMultiplatform();
 
 	/* Callbacks for topics */
 	void handle_vehicle_attitude(const px4_vehicle_attitude &msg);

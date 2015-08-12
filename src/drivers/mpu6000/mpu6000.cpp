@@ -606,7 +606,7 @@ MPU6000::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		debug("SPI setup failed");
+		DEVICE_DEBUG("SPI setup failed");
 		return ret;
 	}
 
@@ -642,7 +642,7 @@ MPU6000::init()
 	ret = _gyro->init();
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		debug("gyro init failed");
+		DEVICE_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -773,12 +773,12 @@ MPU6000::probe()
 	case MPU6000_REV_D8:
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
-		debug("ID 0x%02x", _product);
+		DEVICE_DEBUG("ID 0x%02x", _product);
 		_checked_values[0] = _product;
 		return OK;
 	}
 
-	debug("unexpected ID 0x%02x", _product);
+	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
 	return -EIO;
 }
 
@@ -913,10 +913,14 @@ MPU6000::gyro_self_test()
 
 	/*
 	 * Maximum deviation of 20 degrees, according to
-	 * http://www.invensense.com/mems/gyro/documents/PS-MPU-6000A-00v3.4.pdf
+	 * http://www.farnell.com/datasheets/1788002.pdf
 	 * Section 6.1, initial ZRO tolerance
+	 *
+	 * 20 dps (0.34 rad/s) initial offset
+	 * and 20 dps temperature drift, so 0.34 rad/s * 2
 	 */
-	const float max_offset = 0.34f;
+	const float max_offset = 2.0f * 0.34f;
+
 	/* 30% scale error is chosen to catch completely faulty units but
 	 * to let some slight scale error pass. Requires a rate table or correlation
 	 * with mag rotations + data fit to
@@ -1869,7 +1873,7 @@ MPU6000_gyro::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		debug("gyro init failed");
+		DEVICE_DEBUG("gyro init failed");
 		return ret;
 	}
 

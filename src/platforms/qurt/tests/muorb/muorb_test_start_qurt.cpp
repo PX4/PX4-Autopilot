@@ -50,6 +50,18 @@ static int daemon_task;             /* Handle of deamon task / thread */
 
 extern "C" __EXPORT int muorb_test_main(int argc, char *argv[]);
 
+int muorb_test_entry(int argc, char **argv)
+{
+	//px4::init(argc, argv, "muorb_test");
+
+	PX4_INFO("muorb_test entry.....");
+	MuorbTestExample hello;
+	hello.main();
+
+	PX4_INFO("goodbye");
+	return 0;
+}
+
 static void usage()
 {
 	PX4_DEBUG("usage: muorb_test {start|stop|status}");
@@ -68,12 +80,14 @@ int muorb_test_main(int argc, char *argv[])
 			/* this is not an error */
 			return 0;
 		}
+                
+                PX4_INFO( "before starting the muorb_test_entry task" );
 
 		daemon_task = px4_task_spawn_cmd("muorb_test",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       16000,
-				       PX4_MAIN,
+				       8192,
+				       muorb_test_entry,
 				       (char* const*)argv);
 
 		return 0;

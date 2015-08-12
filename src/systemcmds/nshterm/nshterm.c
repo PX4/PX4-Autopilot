@@ -68,8 +68,8 @@ nshterm_main(int argc, char *argv[])
     int armed_fd = orb_subscribe(ORB_ID(actuator_armed));
     struct actuator_armed_s armed;
 
-    /* back off 800 ms to avoid running into the USB setup timing */
-    while (hrt_absolute_time() < 800U * 1000U) {
+    /* back off 1500 ms to avoid running into the USB setup timing */
+    while (hrt_absolute_time() < 1500U * 1000U) {
         usleep(50000);
     }
 

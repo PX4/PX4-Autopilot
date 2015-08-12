@@ -250,11 +250,11 @@ int
 BAROSIM::init()
 {
 	int ret;
-	debug("BAROSIM::init");
+	DEVICE_DEBUG("BAROSIM::init");
 
 	ret = VDev::init();
 	if (ret != OK) {
-		debug("VDev init failed");
+		DEVICE_DEBUG("VDev init failed");
 		goto out;
 	}
 
@@ -262,7 +262,7 @@ BAROSIM::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
-		debug("can't get memory for reports");
+		DEVICE_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -278,8 +278,8 @@ BAROSIM::init()
 	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
 				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
-	if (_baro_topic == (orb_advert_t)(-1)) {
-			PX4_ERR("failed to create sensor_baro publication");
+	if (_baro_topic == nullptr) {
+		PX4_ERR("failed to create sensor_baro publication");
 	}
 
 	/* this do..while is goto without goto */
@@ -576,7 +576,7 @@ BAROSIM::cycle()
 	/* measurement phase */
 	ret = measure();
 	if (ret != OK) {
-		//log("measure error %d", ret);
+		//DEVICE_LOG("measure error %d", ret);
 		/* issue a reset command to the sensor */
 		_interface->dev_ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
@@ -664,8 +664,7 @@ BAROSIM::collect()
 			if (_baro_topic != nullptr) {
 				/* publish it */
 				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
-			}
-			else {
+			} else {
 				PX4_WARN("BAROSIM::collect _baro_topic not initialized");
 			}
 		}

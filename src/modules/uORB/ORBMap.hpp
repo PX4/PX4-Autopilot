@@ -39,8 +39,8 @@
 
 namespace uORB
 {
-   class DeviceNode;
-   class ORBMap;
+class DeviceNode;
+class ORBMap;
 }
 
 class uORB::ORBMap
@@ -48,7 +48,7 @@ class uORB::ORBMap
 public:
 	struct Node {
 		struct Node *next;
-		const char * node_name;
+		const char *node_name;
 		uORB::DeviceNode *node;
 	};
 
@@ -56,9 +56,11 @@ public:
 		_top(nullptr),
 		_end(nullptr)
 	{ }
-	~ORBMap() {
+	~ORBMap()
+	{
 		while (_top != nullptr) {
 			unlinkNext(_top);
+
 			if (_top->next == nullptr) {
 				free((void *)_top->node_name);
 				free(_top);
@@ -67,20 +69,26 @@ public:
 			}
 		}
 	}
-	void insert(const char *node_name, uORB::DeviceNode*node)
+	void insert(const char *node_name, uORB::DeviceNode *node)
 	{
 		Node **p;
-		if (_top == nullptr)
+
+		if (_top == nullptr) {
 			p = &_top;
-		else
+
+		} else {
 			p = &_end->next;
+		}
 
 		*p = (Node *)malloc(sizeof(Node));
-		if (_end)
+
+		if (_end) {
 			_end = _end->next;
-		else {
+
+		} else {
 			_end = _top;
 		}
+
 		_end->next = nullptr;
 		_end->node_name = strdup(node_name);
 		_end->node = node;
@@ -89,34 +97,42 @@ public:
 	bool find(const char *node_name)
 	{
 		Node *p = _top;
+
 		while (p) {
 			if (strcmp(p->node_name, node_name) == 0) {
 				return true;
 			}
+
 			p = p->next;
 		}
+
 		return false;
 	}
 
-	uORB::DeviceNode* get(const char *node_name)
+	uORB::DeviceNode *get(const char *node_name)
 	{
 		Node *p = _top;
+
 		while (p) {
 			if (strcmp(p->node_name, node_name) == 0) {
 				return p->node;
 			}
+
 			p = p->next;
 		}
+
 		return nullptr;
 	}
 
 	void unlinkNext(Node *a)
 	{
 		Node *b = a->next;
+
 		if (b != nullptr) {
 			if (_end == b) {
 				_end = a;
 			}
+
 			a->next = b->next;
 			free((void *)b->node_name);
 			free(b);

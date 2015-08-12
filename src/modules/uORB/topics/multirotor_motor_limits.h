@@ -52,10 +52,10 @@
  * Motor limits
  */
 struct multirotor_motor_limits_s {
-        uint8_t lower_limit	: 1; // at least one actuator command has saturated on the lower limit
-        uint8_t upper_limit	: 1; // at least one actuator command has saturated on the upper limit
-        uint8_t yaw			: 1; // yaw limit reached
-        uint8_t reserved	: 5; // reserved
+	uint8_t lower_limit	: 1; // at least one actuator command has saturated on the lower limit
+	uint8_t upper_limit	: 1; // at least one actuator command has saturated on the upper limit
+	uint8_t yaw			: 1; // yaw limit reached
+	uint8_t reserved	: 5; // reserved
 };
 
 /**
