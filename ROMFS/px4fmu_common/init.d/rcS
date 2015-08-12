@@ -397,12 +397,12 @@ then
 
 		if [ $OUTPUT_MODE == hil ]
 		then
-			if hil mode_port2_pwm8
+			if pwm_out_sim mode_port2_pwm8
 			then
-				echo "[i] HIL output started"
+				echo "[i] PWM SIM output started"
 			else
-				echo "[i] ERROR: HIL output start failed"
-				echo "ERROR: HIL output start failed" >> $LOG_FILE
+				echo "[i] ERROR: PWM SIM output start failed"
+				echo "ERROR: PWM SIM output start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
