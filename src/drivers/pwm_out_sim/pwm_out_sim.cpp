@@ -849,7 +849,7 @@ fake(int argc, char *argv[])
 
 } // namespace
 
-extern "C" __EXPORT int hil_main(int argc, char *argv[]);
+extern "C" __EXPORT int pwm_out_sim_main(int argc, char *argv[]);
 
 static void
 usage() {
@@ -858,7 +858,7 @@ usage() {
 }
 
 int
-hil_main(int argc, char *argv[])
+pwm_out_sim_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNDEFINED;
 	const char *verb;
