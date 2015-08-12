@@ -44,7 +44,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "../uORB.h"
+#include "uORB/uORB.h"
 
 #define NUM_MISSIONS_SUPPORTED 256
 

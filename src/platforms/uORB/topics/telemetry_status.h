@@ -41,7 +41,7 @@
 #define TOPIC_TELEMETRY_STATUS_H
 
 #include <stdint.h>
-#include "../uORB.h"
+#include "uORB/uORB.h"
 
 enum TELEMETRY_STATUS_RADIO_TYPE {
 	TELEMETRY_STATUS_RADIO_TYPE_GENERIC = 0,

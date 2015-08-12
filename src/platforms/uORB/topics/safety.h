@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,37 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file multirotor_motor_limits.h
+ * @file safety.h
  *
- * Definition of multirotor_motor_limits  topic
+ * Safety topic to pass safety state from px4io driver to commander
+ * This concerns only the safety button of the px4io but has nothing to do
+ * with arming/disarming.
  */
 
-#ifndef MULTIROTOR_MOTOR_LIMITS_H_
-#define MULTIROTOR_MOTOR_LIMITS_H_
+#ifndef TOPIC_SAFETY_H
+#define TOPIC_SAFETY_H
 
-#include "../uORB.h"
 #include <stdint.h>
+#include "uORB/uORB.h"
 
-/**
- * @addtogroup topics
- * @{
- */
+struct safety_s {
 
-/**
- * Motor limits
- */
-struct multirotor_motor_limits_s {
-	uint8_t lower_limit	: 1; // at least one actuator command has saturated on the lower limit
-	uint8_t upper_limit	: 1; // at least one actuator command has saturated on the upper limit
-	uint8_t yaw			: 1; // yaw limit reached
-	uint8_t reserved	: 5; // reserved
+	uint64_t	timestamp;
+	bool	safety_switch_available;	/**< Set to true if a safety switch is connected */
+	bool	safety_off;			/**< Set to true if safety is off */
 };
 
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(multirotor_motor_limits);
+ORB_DECLARE(safety);
 
 #endif

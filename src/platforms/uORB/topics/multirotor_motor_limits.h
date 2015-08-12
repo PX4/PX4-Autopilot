@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,15 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file satellite_info.h
- * Definition of the GNSS satellite info uORB topic.
+ * @file multirotor_motor_limits.h
+ *
+ * Definition of multirotor_motor_limits  topic
  */
 
-#ifndef TOPIC_SAT_INFO_H_
-#define TOPIC_SAT_INFO_H_
+#ifndef MULTIROTOR_MOTOR_LIMITS_H_
+#define MULTIROTOR_MOTOR_LIMITS_H_
 
+#include "uORB/uORB.h"
 #include <stdint.h>
-#include "../uORB.h"
 
 /**
  * @addtogroup topics
@@ -51,39 +49,20 @@
  */
 
 /**
- * GNSS Satellite Info.
+ * Motor limits
  */
-
-#define SAT_INFO_MAX_SATELLITES  20
-
-struct satellite_info_s {
-	uint64_t timestamp;				/**< Timestamp of satellite info */
-	uint8_t count;					/**< Number of satellites in satellite info */
-	uint8_t svid[SAT_INFO_MAX_SATELLITES]; 		/**< Space vehicle ID [1..255], see scheme below  */
-	uint8_t used[SAT_INFO_MAX_SATELLITES];		/**< 0: Satellite not used, 1: used for navigation */
-	uint8_t elevation[SAT_INFO_MAX_SATELLITES];	/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite */
-	uint8_t azimuth[SAT_INFO_MAX_SATELLITES];	/**< Direction of satellite, 0: 0 deg, 255: 360 deg. */
-	uint8_t snr[SAT_INFO_MAX_SATELLITES];		/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99, zero when not tracking this satellite. */
+struct multirotor_motor_limits_s {
+	uint8_t lower_limit	: 1; // at least one actuator command has saturated on the lower limit
+	uint8_t upper_limit	: 1; // at least one actuator command has saturated on the upper limit
+	uint8_t yaw			: 1; // yaw limit reached
+	uint8_t reserved	: 5; // reserved
 };
-
-/**
- * NAV_SVINFO space vehicle ID (svid) scheme according to u-blox protocol specs
- * u-bloxM8-V15_ReceiverDescriptionProtocolSpec_Public_(UBX-13003221).pdf
- *
- * GPS		1-32
- * SBAS		120-158
- * Galileo	211-246
- * BeiDou	159-163, 33-64
- * QZSS		193-197
- * GLONASS	65-96, 255
- *
- */
 
 /**
  * @}
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(satellite_info);
+ORB_DECLARE(multirotor_motor_limits);
 
 #endif

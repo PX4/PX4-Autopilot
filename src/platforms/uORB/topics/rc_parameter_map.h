@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,7 +20,7 @@
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT ,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
@@ -32,26 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file safety.h
+ * @file rc_parameter_map.h
+ * Maps RC channels to parameters
  *
- * Safety topic to pass safety state from px4io driver to commander
- * This concerns only the safety button of the px4io but has nothing to do
- * with arming/disarming.
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef TOPIC_SAFETY_H
-#define TOPIC_SAFETY_H
+#ifndef TOPIC_RC_PARAMETER_MAP_H
+#define TOPIC_RC_PARAMETER_MAP_H
 
 #include <stdint.h>
-#include "../uORB.h"
+#include "uORB/uORB.h"
 
-struct safety_s {
+#define RC_PARAM_MAP_NCHAN 3 // This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h
+#define PARAM_ID_LEN 16 // corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN
 
-	uint64_t	timestamp;
-	bool	safety_switch_available;	/**< Set to true if a safety switch is connected */
-	bool	safety_off;			/**< Set to true if safety is off */
+/**
+ * @addtogroup topics
+ * @{
+ */
+
+struct rc_parameter_map_s {
+	uint64_t timestamp;			/**< time at which the map was updated */
+
+	bool valid[RC_PARAM_MAP_NCHAN];		/**< true for RC-Param channels which are mapped to a param */
+
+	int param_index[RC_PARAM_MAP_NCHAN];	/**< corresponding param index, this
+						  this field is ignored if set to -1, in this case param_id will
+						  be used*/
+	char param_id[RC_PARAM_MAP_NCHAN][PARAM_ID_LEN + 1];	/**< corresponding param id, null terminated */
+	float scale[RC_PARAM_MAP_NCHAN];	/** scale to map the RC input [-1, 1] to a parameter value */
+	float value0[RC_PARAM_MAP_NCHAN];	/** inital value around which the parameter value is changed */
+	float value_min[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
+	float value_max[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
 };
 
-ORB_DECLARE(safety);
+/**
+ * @}
+ */
+
+ORB_DECLARE(rc_parameter_map);
 
 #endif

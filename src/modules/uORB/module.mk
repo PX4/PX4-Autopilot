@@ -61,8 +61,7 @@ SRCS 			+= Publication.cpp \
 			   Subscription.cpp
 endif
 
-SRCS	+= 		  objects_common.cpp \
-			  uORBUtils.cpp \
+SRCS	+= 		  uORBUtils.cpp \
 			  uORB.cpp \
 			  uORBMain.cpp
 
