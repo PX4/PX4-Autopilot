@@ -309,7 +309,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
                      int(1 + solution.bs1 + solution.bs2), float(solution.sample_point_permill) / 10.F);
 
     out_timings.prescaler = uavcan::uint16_t(prescaler - 1U);
-    out_timings.sjw = 1;
+    out_timings.sjw = 0;                                        // Which means one
     out_timings.bs1 = uavcan::uint8_t(solution.bs1 - 1);
     out_timings.bs2 = uavcan::uint8_t(solution.bs2 - 1);
     return 0;
