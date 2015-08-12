@@ -171,7 +171,7 @@ HIL::HIL() :
 #else
 	VDev
 #endif
-		("hilservo", PWM_OUTPUT0_DEVICE_PATH/*"/dev/hil" XXXL*/),
+	("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
 	_task(-1),
 	_mode(MODE_NONE),
 	_update_rate(50),
@@ -231,7 +231,7 @@ HIL::init()
 	}
 
 	/* start the HIL interface task */
-	_task = px4_task_spawn_cmd("fmuhil",
+	_task = px4_task_spawn_cmd("pwm_out_sim",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
 			   1200,
@@ -823,7 +823,7 @@ int
 fake(int argc, char *argv[])
 {
 	if (argc < 5) {
-		puts("hil fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
+		puts("pwm_out_sim fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
 		return -EINVAL;
 	}
 
@@ -853,8 +853,8 @@ extern "C" __EXPORT int hil_main(int argc, char *argv[]);
 
 static void
 usage() {
-	fprintf(stderr, "HIL: unrecognized command, try:\n");
-	fprintf(stderr, "  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16\n");
+	PX4_WARN("pwm_out_sim: unrecognized command, try:");
+	PX4_WARN("  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16");
 }
 
 int
@@ -927,7 +927,7 @@ hil_main(int argc, char *argv[])
 	if ( ret == OK && g_hil->_task == -1 ) {
 		ret = g_hil->init();
 		if (ret != OK) {
-			warnx("failed to start the HIL driver");
+			warnx("failed to start the pwm_out_sim driver");
 			delete g_hil;
 			g_hil = nullptr;
 		}

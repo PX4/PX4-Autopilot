@@ -35,9 +35,9 @@
 # Hardware in the Loop (HIL) simulation actuator output bank
 #
 
-MODULE_COMMAND	= hil
+MODULE_COMMAND	= pwm_out_sim
 
-SRCS		= hil.cpp
+SRCS		= pwm_out_sim.cpp
 MAXOPTIMIZATION	 = -Os
 
 MODULE_STACKSIZE	= 1200
