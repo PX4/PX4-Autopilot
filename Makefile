@@ -165,7 +165,7 @@ updatesubmodules:
 MSG_DIR = $(PX4_BASE)msg
 UORB_TEMPLATE_DIR = $(PX4_BASE)msg/templates/uorb
 MULTIPLATFORM_TEMPLATE_DIR = $(PX4_BASE)msg/templates/px4/uorb
-TOPICS_DIR = $(PX4_BASE)src/modules/uORB/topics
+TOPICS_DIR = $(BUILD_DIR)uORB/topics
 MULTIPLATFORM_HEADER_DIR = $(PX4_BASE)src/platforms/$(PX4_TARGET_OS)/px4_messages
 MULTIPLATFORM_PREFIX = px4_
 TOPICHEADER_TEMP_DIR = $(BUILD_DIR)topics_temporary
@@ -228,6 +228,7 @@ check_format:
 clean:
 	@echo > /dev/null
 	$(Q) $(RMDIR) $(BUILD_DIR)*.build
+	$(Q) $(RMDIR) $(BUILD_DIR)uORB
 	$(Q) $(RMDIR) $(PX4_VERSIONING_DIR)
 	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 	$(Q) $(RMDIR) $(TOPICHEADER_TEMP_DIR)

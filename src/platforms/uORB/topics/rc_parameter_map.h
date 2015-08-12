@@ -42,7 +42,7 @@
 #define TOPIC_RC_PARAMETER_MAP_H
 
 #include <stdint.h>
-#include "../uORB.h"
+#include "uORB/uORB.h"
 
 #define RC_PARAM_MAP_NCHAN 3 // This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h
 #define PARAM_ID_LEN 16 // corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN
