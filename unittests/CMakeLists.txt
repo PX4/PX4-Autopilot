@@ -171,9 +171,9 @@ add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp
                           uorb_unittests/uORBCommunicatorMockLoopback.cpp
                           ${PX_SRC}/modules/uORB/uORBDevices_posix.cpp
                           ${PX_SRC}/modules/uORB/uORBManager_posix.cpp
-                          ${PX_SRC}/modules/uORB/objects_common.cpp
                           ${PX_SRC}/modules/uORB/uORBUtils.cpp
                           ${PX_SRC}/modules/uORB/uORB.cpp
+                          ${PX_SRC}/platforms/common/objects_common.cpp
                           )
 target_link_libraries( uorb_tests px4_platform )
                           
