@@ -34,16 +34,16 @@
 /**
  * @file hil.cpp
  *
- * Driver/configurator for the virtual HIL port.
+ * Driver/configurator for the virtual PWMSim port.
  *
  * This virtual driver emulates PWM / servo outputs for setups where
  * the connected hardware does not provide enough or no PWM outputs.
  *
  * Its only function is to take actuator_control uORB messages,
  * mix them with any loaded mixer and output the result to the
- * actuator_output uORB topic. HIL can also be performed with normal
+ * actuator_output uORB topic. PWMSim can also be performed with normal
  * PWM outputs, a special flag prevents the outputs to be operated
- * during HIL mode. If HIL is not performed with a standalone FMU,
+ * during PWMSim mode. If PWMSim is not performed with a standalone FMU,
  * but in a real system, it is NOT recommended to use this virtual
  * driver. Use instead the normal FMU or IO driver.
  */
@@ -85,9 +85,9 @@
 #include <systemlib/err.h>
 
 #ifdef __PX4_NUTTX
-class HIL : public device::CDev
+class PWMSim : public device::CDev
 #else
-class HIL : public device::VDev
+class PWMSim : public device::VDev
 #endif
 {
 public:
@@ -99,8 +99,8 @@ public:
 		MODE_16PWM,
 		MODE_NONE
 	};
-	HIL();
-	virtual ~HIL();
+	PWMSim();
+	virtual ~PWMSim();
 
 	virtual int     ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
@@ -159,13 +159,13 @@ private:
 namespace
 {
 
-HIL	*g_hil;
+PWMSim	*g_pwm_sim;
 
 } // namespace
 
-bool HIL::_armed = false;
+bool PWMSim::_armed = false;
 
-HIL::HIL() :
+PWMSim::PWMSim() :
 #ifdef __PX4_NUTTX
 	CDev
 #else
@@ -187,7 +187,7 @@ HIL::HIL() :
 	_debug_enabled = true;
 }
 
-HIL::~HIL()
+PWMSim::~PWMSim()
 {
 	if (_task != -1) {
 		/* tell the task we want it to go away */
@@ -207,11 +207,11 @@ HIL::~HIL()
 		} while (_task != -1);
 	}
 
-	g_hil = nullptr;
+	g_pwm_sim = nullptr;
 }
 
 int
-HIL::init()
+PWMSim::init()
 {
 	int ret;
 
@@ -230,12 +230,12 @@ HIL::init()
 		_primary_pwm_device = true;
 	}
 
-	/* start the HIL interface task */
+	/* start the PWMSim interface task */
 	_task = px4_task_spawn_cmd("pwm_out_sim",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
 			   1200,
-			   (px4_main_t)&HIL::task_main_trampoline,
+			   (px4_main_t)&PWMSim::task_main_trampoline,
 			   nullptr);
 
 	if (_task < 0) {
@@ -247,13 +247,13 @@ HIL::init()
 }
 
 void
-HIL::task_main_trampoline(int argc, char *argv[])
+PWMSim::task_main_trampoline(int argc, char *argv[])
 {
-	g_hil->task_main();
+	g_pwm_sim->task_main();
 }
 
 int
-HIL::set_mode(Mode mode)
+PWMSim::set_mode(Mode mode)
 {
 	/*
 	 * Configure for PWM output.
@@ -313,7 +313,7 @@ HIL::set_mode(Mode mode)
 }
 
 int
-HIL::set_pwm_rate(unsigned rate)
+PWMSim::set_pwm_rate(unsigned rate)
 {
 	if ((rate > 500) || (rate < 10))
 		return -EINVAL;
@@ -323,7 +323,7 @@ HIL::set_pwm_rate(unsigned rate)
 }
 
 void
-HIL::task_main()
+PWMSim::task_main()
 {
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
@@ -441,7 +441,7 @@ HIL::task_main()
 
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
-			/* do not obey the lockdown value, as lockdown is for HIL */
+			/* do not obey the lockdown value, as lockdown is for PWMSim */
 			_armed = aa.armed;
 		}
 	}
@@ -459,7 +459,7 @@ HIL::task_main()
 }
 
 int
-HIL::control_callback(uintptr_t handle,
+PWMSim::control_callback(uintptr_t handle,
 			uint8_t control_group,
 			uint8_t control_index,
 			float &input)
@@ -476,7 +476,7 @@ HIL::control_callback(uintptr_t handle,
 }
 
 int
-HIL::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
@@ -487,7 +487,7 @@ HIL::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case MODE_8PWM:
 	case MODE_12PWM:
 	case MODE_16PWM:
-		ret = HIL::pwm_ioctl(filp, cmd, arg);
+		ret = PWMSim::pwm_ioctl(filp, cmd, arg);
 		break;
 	default:
 		ret = -ENOTTY;
@@ -508,7 +508,7 @@ HIL::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 }
 
 int
-HIL::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
+PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 	// int channel;
@@ -525,12 +525,12 @@ HIL::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
-		// HIL always outputs at the alternate (usually faster) rate
-		g_hil->set_pwm_rate(arg);
+		// PWMSim always outputs at the alternate (usually faster) rate
+		g_pwm_sim->set_pwm_rate(arg);
 		break;
 
 	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
-		// HIL always outputs at the alternate (usually faster) rate
+		// PWMSim always outputs at the alternate (usually faster) rate
 		break;
 
 	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
@@ -743,11 +743,11 @@ hil_new_mode(PortMode new_mode)
 
 
 //	/* reset to all-inputs */
-//	g_hil->ioctl(0, GPIO_RESET, 0);
+//	g_pwm_sim->ioctl(0, GPIO_RESET, 0);
 
 	// gpio_bits = 0;
 
-	HIL::Mode servo_mode = HIL::MODE_NONE;
+	PWMSim::Mode servo_mode = PWMSim::MODE_NONE;
 
 	switch (new_mode) {
 	case PORT_MODE_UNDEFINED:
@@ -758,43 +758,43 @@ hil_new_mode(PortMode new_mode)
 
 	case PORT1_FULL_PWM:
 		/* select 4-pin PWM mode */
-		servo_mode = HIL::MODE_4PWM;
+		servo_mode = PWMSim::MODE_4PWM;
 		break;
 
 	case PORT1_PWM_AND_SERIAL:
 		/* select 2-pin PWM mode */
-		servo_mode = HIL::MODE_2PWM;
+		servo_mode = PWMSim::MODE_2PWM;
 //		/* set RX/TX multi-GPIOs to serial mode */
 //		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
 		break;
 
 	case PORT1_PWM_AND_GPIO:
 		/* select 2-pin PWM mode */
-		servo_mode = HIL::MODE_2PWM;
+		servo_mode = PWMSim::MODE_2PWM;
 		break;
 
 	case PORT2_8PWM:
 		/* select 8-pin PWM mode */
-		servo_mode = HIL::MODE_8PWM;
+		servo_mode = PWMSim::MODE_8PWM;
 		break;
 
 	case PORT2_12PWM:
 		/* select 12-pin PWM mode */
-		servo_mode = HIL::MODE_12PWM;
+		servo_mode = PWMSim::MODE_12PWM;
 		break;
 
 	case PORT2_16PWM:
 		/* select 16-pin PWM mode */
-		servo_mode = HIL::MODE_16PWM;
+		servo_mode = PWMSim::MODE_16PWM;
 		break;
 	}
 
 //	/* adjust GPIO config for serial mode(s) */
 //	if (gpio_bits != 0)
-//		g_hil->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
+//		g_pwm_sim->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
 
 	/* (re)set the PWM output mode */
-	g_hil->set_mode(servo_mode);
+	g_pwm_sim->set_mode(servo_mode);
 
 	return OK;
 }
@@ -870,9 +870,9 @@ pwm_out_sim_main(int argc, char *argv[])
 	}
 	verb = argv[1];
 
-	if (g_hil == nullptr) {
-		g_hil = new HIL;
-		if (g_hil == nullptr) {
+	if (g_pwm_sim == nullptr) {
+		g_pwm_sim = new PWMSim;
+		if (g_pwm_sim == nullptr) {
 			return -ENOMEM;
 		}
 	}
@@ -924,12 +924,12 @@ pwm_out_sim_main(int argc, char *argv[])
 		ret = -EINVAL;
 	}
 
-	if ( ret == OK && g_hil->_task == -1 ) {
-		ret = g_hil->init();
+	if ( ret == OK && g_pwm_sim->_task == -1 ) {
+		ret = g_pwm_sim->init();
 		if (ret != OK) {
 			warnx("failed to start the pwm_out_sim driver");
-			delete g_hil;
-			g_hil = nullptr;
+			delete g_pwm_sim;
+			g_pwm_sim = nullptr;
 		}
 	}
 	return ret;
