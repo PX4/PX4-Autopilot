@@ -103,7 +103,7 @@ then
 	set MIXER_AUX none
 fi
 
-if [ $MIXER_AUX != none ]
+if [ $MIXER_AUX != none -a $AUX_MODE != none ]
 then
 	#
 	# Load aux mixer

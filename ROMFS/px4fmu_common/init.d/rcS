@@ -490,10 +490,17 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
 		fi
+		# Sensors on the PWM interface bank
+		# clear pins 5 and 6
+		if param compare SENS_EN_LL40LS 1
+		then
+			set AUX_MODE pwm4
+		fi
 		if param greater TRIG_MODE 0
 		then
 			# Get FMU driver out of the way
 			set MIXER_AUX none
+			set AUX_MODE none
 			camera_trigger start
 		fi
 	fi
@@ -506,19 +513,6 @@ then
 	# Logging
 	#
 	sh /etc/init.d/rc.logging
-
-	# Sensors on the PWM interface bank
-	if param compare SENS_EN_LL40LS 1
-	then
-		if pwm_input start
-		then
-			if ll40ls start pwm
-			then
-				# Reserve the last two pins
-				set AUX_MODE pwm4
-			fi
-		fi
-	fi
 
 	#
 	# Start up ARDrone Motor interface
@@ -735,6 +729,17 @@ unset TUNE_ERR
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
+
+# Sensors on the PWM interface bank
+if param compare SENS_EN_LL40LS 1
+then
+	if pwm_input start
+	then
+		if ll40ls start pwm
+		then
+		fi
+	fi
+fi
 
 if ver hwcmp PX4FMU_V2
 then
