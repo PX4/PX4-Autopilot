@@ -123,9 +123,9 @@ then
 		fi
 	fi
 
-	if [ $MIXER_AUX_FILE != none -a $FMU_MODE == pwm ]
+	if [ $MIXER_AUX_FILE != none ]
 	then
-		if fmu mode_pwm
+		if fmu mode_$AUX_MODE
 		then
 			if [ -e $OUTPUT_AUX_DEV ]
 			then
