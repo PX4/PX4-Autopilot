@@ -35,7 +35,9 @@ add_subdirectory(${GTEST_DIR})
 include_directories(${GTEST_DIR}/include)
 
 set(PX_SRC ${CMAKE_SOURCE_DIR}/../src)
+set(BUILD ${CMAKE_SOURCE_DIR}/../Build)
 include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${BUILD})
 include_directories(${PX_SRC})
 include_directories(${PX_SRC}/modules)
 include_directories(${PX_SRC}/modules/uORB)
@@ -171,9 +173,9 @@ add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp
                           uorb_unittests/uORBCommunicatorMockLoopback.cpp
                           ${PX_SRC}/modules/uORB/uORBDevices_posix.cpp
                           ${PX_SRC}/modules/uORB/uORBManager_posix.cpp
-                          ${PX_SRC}/modules/uORB/objects_common.cpp
                           ${PX_SRC}/modules/uORB/uORBUtils.cpp
                           ${PX_SRC}/modules/uORB/uORB.cpp
+                          ${PX_SRC}/platforms/common/objects_common.cpp
                           )
 target_link_libraries( uorb_tests px4_platform )
                           
