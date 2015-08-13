@@ -75,10 +75,13 @@ MissionBlock::is_mission_item_reached()
 {
 	if (_mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
 
+		/* Request for new PWM value for selected channel */
     	 _actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
          _actuators.timestamp = hrt_absolute_time();
          orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
-    	warnx("Set servo cmd executed");
+
+         /* Warn about action */
+         warnx("Set servo cmd executed");
 		return true;
 		}
 
@@ -204,6 +207,13 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->pitch_min = item->pitch_min;
 
 	switch (item->nav_cmd) {
+	case NAV_CMD_DO_SET_SERVO:
+			/* Set current position for loitering set point*/
+			sp->lat = _navigator->get_global_position()->lat;
+			sp->lon = _navigator->get_global_position()->lon;
+			sp->alt = _navigator->get_global_position()->alt;
+			sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+			break;
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;
