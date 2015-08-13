@@ -1,8 +1,10 @@
 #!nsh
 #
-# 3DR Iris Quadcopter
+# @name 3DR Iris Quadrotor
 #
-# Anton Babushkin <anton@px4.io>
+# @type Quadrotor Wide
+#
+# @maintainer Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults

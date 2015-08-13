@@ -115,6 +115,8 @@ extern mavlink_system_t mavlink_system;
 
 static void usage(void);
 
+bool Mavlink::_boot_complete = false;
+
 Mavlink::Mavlink() :
 	_device_name(DEFAULT_DEVICE_NAME),
 	_task_should_exit(false),
@@ -150,6 +152,7 @@ Mavlink::Mavlink() :
 	_datarate(1000),
 	_datarate_events(500),
 	_rate_mult(1.0f),
+	_last_hw_rate_timestamp(0),
 	_mavlink_param_queue_index(0),
 	mavlink_link_termination_allowed(false),
 	_subscribe_to_stream(nullptr),
@@ -1230,6 +1233,7 @@ Mavlink::update_rate_mult()
 	float const_rate = 0.0f;
 	float rate = 0.0f;
 
+	/* scale down rates if their theoretical bandwidth is exceeding the link bandwidth */
 	MavlinkStream *stream;
 	LL_FOREACH(_streams, stream) {
 		if (stream->const_rate()) {
@@ -1241,7 +1245,55 @@ Mavlink::update_rate_mult()
 	}
 
 	/* don't scale up rates, only scale down if needed */
-	_rate_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
+	float bandwidth_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
+
+	/* check if we have radio feedback */
+	struct telemetry_status_s &tstatus = get_rx_status();
+
+	bool radio_critical = false;
+	bool radio_found = false;
+
+	/* 2nd pass: Now check hardware limits */
+	if (tstatus.type == TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+
+		radio_found = true;
+
+		if (tstatus.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+			radio_critical = true;
+		}
+	}
+
+	float hardware_mult = _rate_mult;
+
+	/* scale down if we have a TX err rate suggesting link congestion */
+	if (_rate_txerr > 0.0f && !radio_critical) {
+		hardware_mult = (_rate_tx) / (_rate_tx + _rate_txerr);
+	} else if (radio_found && tstatus.timestamp != _last_hw_rate_timestamp) {
+
+		if (tstatus.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 20% */
+			hardware_mult *= 0.80f;
+		} else if (tstatus.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 2.5% */
+			hardware_mult *= 0.975f;
+		} else if (tstatus.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
+			/* this indicates spare bandwidth, increase by 2.5% */
+			hardware_mult *= 1.025f;
+			/* limit to a max multiplier of 1 */
+			hardware_mult = fminf(1.0f, hardware_mult);
+		}
+	} else {
+		/* no limitation, set hardware to 1 */
+		hardware_mult = 1.0f;
+	}
+
+	_last_hw_rate_timestamp = tstatus.timestamp;
+
+	/* pick the minimum from bandwidth mult and hardware mult as limit */
+	_rate_mult = fminf(bandwidth_mult, hardware_mult);
+
+	/* ensure the rate multiplier never drops below 5% so that something is always sent */
+	_rate_mult = fmaxf(0.05f, _rate_mult);
 }
 
 int
@@ -1440,22 +1492,22 @@ Mavlink::task_main(int argc, char *argv[])
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
-		configure_stream("HIGHRES_IMU", 1.0f);
-		configure_stream("ATTITUDE", 10.0f);
+		configure_stream("HIGHRES_IMU", 2.0f);
+		configure_stream("ATTITUDE", 20.0f);
 		configure_stream("VFR_HUD", 8.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 3.0f);
 		configure_stream("LOCAL_POSITION_NED", 3.0f);
-		configure_stream("RC_CHANNELS_RAW", 1.0f);
+		configure_stream("RC_CHANNELS_RAW", 4.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
-		configure_stream("ATTITUDE_TARGET", 3.0f);
+		configure_stream("ATTITUDE_TARGET", 8.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("ATTITUDE", 50.0f);
+		configure_stream("ATTITUDE", 250.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
 		configure_stream("GPS_RAW_INT", 5.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);
@@ -1737,6 +1789,12 @@ Mavlink::start(int argc, char *argv[])
 	// before returning to the shell
 	int ic = Mavlink::instance_count();
 
+	if (ic == MAVLINK_COMM_NUM_BUFFERS) {
+		warnx("Maximum MAVLink instance count of %d reached.",
+			(int)MAVLINK_COMM_NUM_BUFFERS);
+		return 1;
+	}
+
 	// Instantiate thread
 	char buf[24];
 	sprintf(buf, "mavlink_if%d", ic);
@@ -1908,6 +1966,10 @@ int mavlink_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);
+
+	} else if (!strcmp(argv[1], "boot_complete")) {
+		Mavlink::set_boot_complete();
+		return 0;
 
 	} else {
 		usage();

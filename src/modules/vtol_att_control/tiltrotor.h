@@ -99,8 +99,7 @@ private:
 	float _tilt_control;
 	float _roll_weight_mc;
 
-	void fill_mc_att_control_output();
-	void fill_fw_att_control_output();
+	void fill_att_control_output();
 	void set_max_mc();
 	void set_max_fw(unsigned pwm_value);
 

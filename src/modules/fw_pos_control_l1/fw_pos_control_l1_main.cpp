@@ -179,6 +179,8 @@ private:
 	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
 	bool	_hdg_hold_enabled;			/**< heading hold enabled */
 	bool	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
+	float	_althold_epv;				/**< the position estimate accuracy when engaging alt hold */
+	bool	_was_in_deadband;				/**< wether the last stick input was in althold deadband */
 	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
 	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
 	hrt_abstime _control_position_last_called; /**<last call of control_position  */
@@ -508,6 +510,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_hdg_hold_yaw(0.0f),
 	_hdg_hold_enabled(false),
 	_yaw_lock_engaged(false),
+	_althold_epv(0.0f),
+	_was_in_deadband(false),
 	_hdg_hold_prev_wp{},
 	_hdg_hold_curr_wp{},
 	_control_position_last_called(0),
@@ -968,12 +972,20 @@ float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint
 
 bool FixedwingPositionControl::update_desired_altitude(float dt)
 {
-	const float deadBand = (60.0f/1000.0f);
+	/*
+	 * The complete range is -1..+1, so this is 6%
+	 * of the up or down range or 3% of the total range.
+	 */
+	const float deadBand = 0.06f;
+
+	/*
+	 * The correct scaling of the complete range needs
+	 * to account for the missing part of the slope
+	 * due to the deadband
+	 */
 	const float factor = 1.0f - deadBand;
-	// XXX this should go into a manual stick mapper
-	// class
-	static float _althold_epv = 0.0f;
-	static bool was_in_deadband = false;
+
+	/* Climbout mode sets maximum throttle and pitch up */
 	bool climbout_mode = false;
 
 	/*
@@ -988,24 +1000,29 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 		_althold_epv = _global_pos.epv;
 	}
 
-	// XXX the sign magic in this function needs to be fixed
-
+	/*
+	 * Manual control has as convention the rotation around
+	 * an axis. Positive X means to rotate positively around
+	 * the X axis in NED frame, which is pitching down
+	 */
 	if (_manual.x > deadBand) {
-		float pitch = (_manual.x - deadBand) / factor;
-		_hold_alt -= (_parameters.max_climb_rate * dt) * pitch;
-		was_in_deadband = false;
-		climbout_mode = (fabsf(_manual.x) > MANUAL_THROTTLE_CLIMBOUT_THRESH);
+		/* pitching down */
+		float pitch = -(_manual.x - deadBand) / factor;
+		_hold_alt += (_parameters.max_sink_rate * dt) * pitch;
+		_was_in_deadband = false;
 	} else if (_manual.x < - deadBand) {
-		float pitch = (_manual.x + deadBand) / factor;
-		_hold_alt -= (_parameters.max_sink_rate * dt) * pitch;
-		was_in_deadband = false;
-	} else if (!was_in_deadband) {
+		/* pitching up */
+		float pitch = -(_manual.x + deadBand) / factor;
+		_hold_alt += (_parameters.max_climb_rate * dt) * pitch;
+		_was_in_deadband = false;
+		climbout_mode = (pitch > MANUAL_THROTTLE_CLIMBOUT_THRESH);
+	} else if (!_was_in_deadband) {
 		 /* store altitude at which manual.x was inside deadBand
 		  * The aircraft should immediately try to fly at this altitude
 		  * as this is what the pilot expects when he moves the stick to the center */
 		_hold_alt = _global_pos.alt;
 		_althold_epv = _global_pos.epv;
-		was_in_deadband = true;
+		_was_in_deadband = true;
 	}
 
 	return climbout_mode;
@@ -1037,7 +1054,7 @@ bool
 FixedwingPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
 		const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
-	float dt = FLT_MIN; // Using non zero value to a avoid division by zero
+	float dt = 0.01; // Using non zero value to a avoid division by zero
 	if (_control_position_last_called > 0) {
 		dt = (float)hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
 	}
@@ -1045,18 +1062,26 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	bool setpoint = true;
 
-	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
-	calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
-
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
 	/* filter speed and altitude for controller */
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
-	if (!_mTecs.getEnabled() && !_vehicle_status.condition_landed) {
-		_tecs.update_50hz(_global_pos.alt /* XXX might switch to alt err here */, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
+	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
+	bool in_air_alt_control = (!_vehicle_status.condition_landed &&
+		(_control_mode.flag_control_auto_enabled ||
+		 _control_mode.flag_control_velocity_enabled ||
+		 _control_mode.flag_control_altitude_enabled));
+
+	/* update TECS filters */
+	if (!_mTecs.getEnabled()) {
+		_tecs.update_state(_global_pos.alt, _airspeed.indicated_airspeed_m_s, _R_nb,
+			accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
 	}
+
+	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
+	calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
 
 	/* define altitude error */
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
@@ -1477,7 +1502,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				throttle_max,
 				_parameters.throttle_cruise,
 				climbout_requested,
-				pitch_limit_min,
+				((climbout_requested) ? math::radians(10.0f) : pitch_limit_min),
 				_global_pos.alt,
 				ground_speed,
 				tecs_status_s::TECS_MODE_NORMAL);
@@ -1587,7 +1612,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				throttle_max,
 				_parameters.throttle_cruise,
 				climbout_requested,
-				pitch_limit_min,
+				((climbout_requested) ? math::radians(10.0f) : pitch_limit_min),
 				_global_pos.alt,
 				ground_speed,
 				tecs_status_s::TECS_MODE_NORMAL);

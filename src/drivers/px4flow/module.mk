@@ -41,4 +41,6 @@ SRCS		= px4flow.cpp
 
 MAXOPTIMIZATION	 = -Os
 
+MODULE_STACKSIZE = 1200
+
 EXTRACXXFLAGS = -Wno-attributes

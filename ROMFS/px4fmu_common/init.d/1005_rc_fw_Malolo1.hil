@@ -1,8 +1,10 @@
 #!nsh
 #
-# HIL Malolo 1 (Flightgear)
+# @name HIL Malolo 1 (Flightgear)
 #
-# Thomas Gubler <thomas@px4.io>
+# @type Simulation
+#
+# @maintainer Thomas Gubler <thomas@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults
@@ -33,6 +35,9 @@ then
 fi
 
 set HIL yes
+
+# Enable gamepad / joystick support
+param set COM_RC_IN_MODE 2
 
 # Set the AERT mixer for HIL (even if the malolo is a flying wing)
 set MIXER AERT

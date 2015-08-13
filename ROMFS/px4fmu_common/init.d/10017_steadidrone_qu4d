@@ -1,8 +1,10 @@
 #!nsh
 #
-# Steadidrone QU4D
+# @name Steadidrone QU4D
 #
-# Thomas Gubler <thomas@px4.io>
+# @type Quadrotor Wide
+#
+# @maintainer Thomas Gubler <thomas@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults

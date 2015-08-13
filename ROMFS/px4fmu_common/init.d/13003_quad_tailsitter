@@ -1,7 +1,10 @@
+#!nsh
 #
-# Generic configuration file for a tailsitter with motors in X configuration.
+# @name Quadrotor X Tailsitter
 #
-# Roman Bapst <bapstroman@gmail.com>
+# @type VTOL Tailsitter
+#
+# @maintainer Roman Bapst <roman@px4.io>
 #
 
 sh /etc/init.d/rc.vtol_defaults

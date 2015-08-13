@@ -42,6 +42,8 @@ SRCS		= vtol_att_control_main.cpp \
 			  tiltrotor_params.c \
 			  tiltrotor.cpp \
 			  vtol_type.cpp \
-			  tailsitter.cpp
+			  tailsitter.cpp \
+			  standard_params.c \
+			  standard.cpp
 
 EXTRACXXFLAGS = -Wno-write-strings
