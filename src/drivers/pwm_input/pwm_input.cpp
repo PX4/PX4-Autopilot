@@ -375,7 +375,6 @@ PWMIN::_freeze_test()
 {
 	/* reset if last poll time was way back and a read was recently requested */
 	if (hrt_elapsed_time(&_last_poll_time) > TIMEOUT_POLL && hrt_elapsed_time(&_last_read_time) < TIMEOUT_READ) {
-		warnx("Lidar is down, reseting");
 		hard_reset();
 	}
 }
