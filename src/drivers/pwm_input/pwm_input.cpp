@@ -320,7 +320,11 @@ void PWMIN::_timer_init(void)
 	/* run with interrupts disabled in case the timer is already
 	 * setup. We don't want it firing while we are doing the setup */
 	irqstate_t flags = irqsave();
+
+	/* configure input pin */
 	stm32_configgpio(GPIO_PWM_IN);
+	/* configure reset pin */
+	stm32_configgpio(GPIO_VDD_RANGEFINDER_EN);
 
 	/* claim our interrupt vector */
 	irq_attach(PWMIN_TIMER_VECTOR, pwmin_tim_isr);
