@@ -592,10 +592,10 @@ PX4IO::detect()
 
 		if (protocol != PX4IO_PROTOCOL_VERSION) {
 			if (protocol == _io_reg_get_error) {
-				log("IO not installed");
+				DEVICE_LOG("IO not installed");
 
 			} else {
-				log("IO version error");
+				DEVICE_LOG("IO version error");
 				mavlink_log_emergency(_mavlink_fd, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
 			}
 
@@ -603,7 +603,7 @@ PX4IO::detect()
 		}
 	}
 
-	log("IO found");
+	DEVICE_LOG("IO found");
 
 	return 0;
 }
@@ -667,7 +667,7 @@ PX4IO::init()
 	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
-		log("config read error");
+		DEVICE_LOG("config read error");
 		mavlink_log_emergency(_mavlink_fd, "[IO] config read fail, abort.");
 		return -1;
 	}
@@ -796,7 +796,7 @@ PX4IO::init()
 			/* re-send if necessary */
 			if (!safety.armed) {
 				orb_publish(ORB_ID(vehicle_command), pub, &cmd);
-				log("re-sending arm cmd");
+				DEVICE_LOG("re-sending arm cmd");
 			}
 
 			/* keep waiting for state change for 2 s */
@@ -822,7 +822,7 @@ PX4IO::init()
 			ret = io_disable_rc_handling();
 
 			if (ret != OK) {
-				log("failed disabling RC handling");
+				DEVICE_LOG("failed disabling RC handling");
 				return ret;
 			}
 
@@ -851,7 +851,7 @@ PX4IO::init()
 	ret = register_driver(PWM_OUTPUT0_DEVICE_PATH, &fops, 0666, (void *)this);
 
 	if (ret == OK) {
-		log("default PWM output device");
+		DEVICE_LOG("default PWM output device");
 		_primary_pwm_device = true;
 	}
 
@@ -864,7 +864,7 @@ PX4IO::init()
 					nullptr);
 
 	if (_task < 0) {
-		debug("task start failed: %d", errno);
+		DEVICE_DEBUG("task start failed: %d", errno);
 		return -errno;
 	}
 
@@ -1162,7 +1162,7 @@ PX4IO::task_main()
 	unlock();
 
 out:
-	debug("exiting");
+	DEVICE_DEBUG("exiting");
 
 	/* clean up the alternate device node */
 	if (_primary_pwm_device)
@@ -1473,7 +1473,7 @@ PX4IO::io_set_rc_config()
 		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
 
 		if (ret != OK) {
-			log("rc config upload failed");
+			DEVICE_LOG("rc config upload failed");
 			break;
 		}
 
@@ -1851,14 +1851,14 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 {
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
-		debug("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		DEVICE_DEBUG("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
 	}
 
 	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
 
 	if (ret != (int)num_values) {
-		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
+		DEVICE_DEBUG("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -1876,14 +1876,14 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 {
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
-		debug("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		DEVICE_DEBUG("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
 	}
 
 	int ret = _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
 
 	if (ret != (int)num_values) {
-		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
+		DEVICE_DEBUG("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -2030,7 +2030,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			}
 
 			if (ret) {
-				log("mixer send error %d", ret);
+				DEVICE_LOG("mixer send error %d", ret);
 				return ret;
 			}
 
@@ -2060,7 +2060,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 
 		retries--;
 
-		log("mixer sent");
+		DEVICE_LOG("mixer sent");
 
 	} while (retries > 0 && (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK)));
 
@@ -2070,7 +2070,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 		return 0;
 	}
 
-	log("mixer rejected by IO");
+	DEVICE_LOG("mixer rejected by IO");
 	mavlink_log_info(_mavlink_fd, "[IO] mixer upload fail");
 
 	/* load must have failed for some reason */
@@ -2702,7 +2702,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		if (ret != OK)
 			return ret;
 		if (io_crc != arg) {
-			debug("crc mismatch 0x%08x 0x%08x", (unsigned)io_crc, arg);
+			DEVICE_DEBUG("crc mismatch 0x%08x 0x%08x", (unsigned)io_crc, arg);
 			return -EINVAL;
 		}
 		break;

@@ -38,6 +38,7 @@
  */
 
 #include "device.h"
+#include "px4_log.h"
 
 #include <nuttx/arch.h>
 #include <stdio.h>
@@ -154,34 +155,6 @@ Device::interrupt(void *context)
 {
 	// default action is to disable the interrupt so we don't get called again
 	interrupt_disable();
-}
-
-void
-Device::log(const char *fmt, ...)
-{
-	va_list	ap;
-
-	printf("[%s] ", _name);
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-	printf("\n");
-	fflush(stdout);
-}
-
-void
-Device::debug(const char *fmt, ...)
-{
-	va_list	ap;
-
-	if (_debug_enabled) {
-		printf("<%s> ", _name);
-		va_start(ap, fmt);
-		vprintf(fmt, ap);
-		va_end(ap);
-		printf("\n");
-		fflush(stdout);
-	}
 }
 
 static int
