@@ -1361,7 +1361,9 @@ int commander_thread_main(int argc, char *argv[])
 				    /* we first connect a link or re-connect a link after loosing it */
 				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)) &&
 				    /* and this link has a communication partner */
-				    telemetry.heartbeat_time > 0 &&
+				    (telemetry.heartbeat_time > 0) &&
+				    /* and it is still connected */
+				    (hrt_elapsed_time(&telemetry.heartbeat_time) < 2 * 1000 * 1000) &&
 				    /* and the system is not already armed (and potentially flying) */
 				    !armed.armed) {
 
