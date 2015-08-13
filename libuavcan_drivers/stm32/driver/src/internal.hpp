@@ -13,6 +13,8 @@
 # include <arch/board/board.h>
 # include <chip/stm32_tim.h>
 # include <syslog.h>
+#elif UAVCAN_STM32_BAREMETAL
+# include <chip.h>
 #else
 # error "Unknown OS"
 #endif
@@ -57,6 +59,15 @@
 # endif
 #endif
 
+#if UAVCAN_STM32_BAREMETAL
+/**
+ * Priority mask for timer and CAN interrupts.
+ */
+# ifndef UAVCAN_STM32_IRQ_PRIORITY_MASK
+#  define UAVCAN_STM32_IRQ_PRIORITY_MASK  0
+# endif
+#endif
+
 /**
  * Glue macros
  */
@@ -89,6 +100,22 @@ struct CriticalSectionLocker
     ~CriticalSectionLocker()
     {
         irqrestore(flags_);
+    }
+};
+
+#elif UAVCAN_STM32_BAREMETAL
+
+struct CriticalSectionLocker
+{
+
+    CriticalSectionLocker()
+    {
+      __disable_irq();
+    }
+
+    ~CriticalSectionLocker()
+    {
+      __enable_irq();
     }
 };
 

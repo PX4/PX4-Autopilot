@@ -14,7 +14,7 @@
 /*
  * Timer instance
  */
-# if UAVCAN_STM32_CHIBIOS
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
 #  define TIMX                    UAVCAN_STM32_GLUE2(TIM, UAVCAN_STM32_TIMER_NUMBER)
 #  define TIMX_IRQn               UAVCAN_STM32_GLUE3(TIM, UAVCAN_STM32_TIMER_NUMBER, _IRQn)
 #  define TIMX_INPUT_CLOCK        STM32_TIMCLK1
@@ -70,6 +70,23 @@ uavcan::MonotonicTime prev_utc_adj_at;
 uavcan::uint64_t time_mono = 0;
 uavcan::uint64_t time_utc = 0;
 }
+# if UAVCAN_STM32_NUTTX || UAVCAN_STM32_BAREMETAL
+
+#if UAVCAN_STM32_BAREMETAL
+
+static void nvicEnableVector(int irq,  uint8_t prio)
+{
+      NVIC_InitTypeDef NVIC_InitStructure;
+      NVIC_InitStructure.NVIC_IRQChannel = irq;
+      NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = prio;
+      NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+      NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+      NVIC_Init(&NVIC_InitStructure);
+
+}
+
+#endif
+
 
 
 void init()
@@ -82,7 +99,7 @@ void init()
     initialized = true;
 
 
-# if UAVCAN_STM32_CHIBIOS
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
     // Power-on and reset
     TIMX_RCC_ENR |= TIMX_RCC_ENR_MASK;
     TIMX_RCC_RSTR |=  TIMX_RCC_RSTR_MASK;
@@ -201,7 +218,7 @@ uavcan::MonotonicTime getMonotonic()
 
         volatile uavcan::uint64_t time = time_mono;
 
-# if UAVCAN_STM32_CHIBIOS
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
 
         volatile uavcan::uint32_t cnt = TIMX->CNT;
         if (TIMX->SR & TIM_SR_UIF)
