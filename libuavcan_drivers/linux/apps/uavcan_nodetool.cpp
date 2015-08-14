@@ -15,7 +15,6 @@
 
 #include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/param/ExecuteOpcode.hpp>
-#include <uavcan/protocol/EnumerationRequest.hpp>
 #include <uavcan/equipment/hardpoint/Command.hpp>
 
 namespace
@@ -220,22 +219,6 @@ const std::map<std::string,
                 uavcan::equipment::hardpoint::Command msg;
                 msg.command = std::stoi(args.at(0));
                 auto pub = node->makePublisher<uavcan::equipment::hardpoint::Command>();
-                (void)pub->broadcast(msg);
-            }
-        }
-    },
-    {
-        "enum",
-        {
-            "Publishes uavcan.protocol.EnumerationRequest\n"
-            "Expected arguments: node_id, timeout_sec (optional, defaults to 60)",
-            [](const uavcan_linux::NodePtr& node, const uavcan::NodeID, const std::vector<std::string>& args)
-            {
-                uavcan::protocol::EnumerationRequest msg;
-                msg.node_id = std::stoi(args.at(0));
-                msg.timeout_sec = (args.size() > 1) ? std::stoi(args.at(1)) : 60;
-                std::cout << msg << std::endl;
-                auto pub = node->makePublisher<uavcan::protocol::EnumerationRequest>();
                 (void)pub->broadcast(msg);
             }
         }
