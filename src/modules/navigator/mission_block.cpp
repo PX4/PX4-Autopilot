@@ -50,9 +50,13 @@
 #include <mavlink/mavlink_log.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/actuator_controls.h>
 
 #include "navigator.h"
 #include "mission_block.h"
+
+actuator_controls_s actuators;
+orb_advert_t actuator_pub_fd;
 
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
@@ -74,14 +78,11 @@ bool
 MissionBlock::is_mission_item_reached()
 {
 	if (_mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
-
-		/* Request for new PWM value for selected channel */
-    	 _actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
-         _actuators.timestamp = hrt_absolute_time();
-         orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
-
-         /* Warn about action */
-         warnx("Set servo cmd executed");
+         actuator_pub_fd = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
+         memset(&actuators, 0, sizeof(actuators));
+         actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
+         actuators.timestamp = hrt_absolute_time();
+         orb_publish(ORB_ID(actuator_controls_2), actuator_pub_fd, &actuators);
 		return true;
 		}
 
