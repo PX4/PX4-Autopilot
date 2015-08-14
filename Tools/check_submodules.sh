@@ -25,8 +25,7 @@ if [ -d NuttX/nuttx ];
 		exit 1
 	fi
 else
-	git submodule init;
-	git submodule update;
+	git submodule update --init --recursive
 fi
 
 
@@ -47,8 +46,7 @@ if [ -d mavlink/include/mavlink/v1.0 ];
 		exit 1
 	fi
 else
-	git submodule init;
-	git submodule update;
+	git submodule update --init --recursive
 fi
 
 
@@ -70,8 +68,7 @@ then
 		exit 1
 	fi
 else
-	git submodule init;
-	git submodule update;
+	git submodule update --init --recursive
 fi
 
 if [ -d src/lib/eigen ]
@@ -92,8 +89,7 @@ then
 		exit 1
 	fi
 else
-	git submodule init;
-	git submodule update;
+	git submodule update --init --recursive
 fi
 
 if [ -d Tools/gencpp ]
@@ -114,8 +110,7 @@ then
 		exit 1
 	fi
 else
-	git submodule init;
-	git submodule update;
+	git submodule update --init --recursive
 fi
 
 if [ -d Tools/genmsg ]
@@ -136,8 +131,7 @@ then
 		exit 1
 	fi
 else
-	git submodule init;
-	git submodule update;
+	git submodule update --init --recursive
 fi
 
 exit 0

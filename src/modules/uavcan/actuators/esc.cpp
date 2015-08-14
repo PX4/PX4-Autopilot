@@ -68,8 +68,8 @@ int UavcanEscController::init()
 {
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
-	if (res < 0)
-	{
+
+	if (res < 0) {
 		warnx("ESC status sub failed %i", res);
 		return res;
 	}
@@ -83,9 +83,9 @@ int UavcanEscController::init()
 
 void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 {
-	if ((outputs == nullptr) || 
-            (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
-            (num_outputs > esc_status_s::CONNECTED_ESC_MAX)) {
+	if ((outputs == nullptr) ||
+	    (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
+	    (num_outputs > esc_status_s::CONNECTED_ESC_MAX)) {
 		perf_count(_perfcnt_invalid_input);
 		return;
 	}
@@ -94,9 +94,11 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 * Rate limiting - we don't want to congest the bus
 	 */
 	const auto timestamp = _node.getMonotonicTime();
+
 	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
 		return;
 	}
+
 	_prev_cmd_pub = timestamp;
 
 	/*
@@ -110,15 +112,17 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	for (unsigned i = 0; i < num_outputs; i++) {
 		if (_armed_mask & MOTOR_BIT(i)) {
 			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
-                        // trim negative values back to 0. Previously
-                        // we set this to 0.1, which meant motors kept
-                        // spinning when armed, but that should be a
-                        // policy decision for a specific vehicle
-                        // type, as it is not appropriate for all
-                        // types of vehicles (eg. fixed wing).
+
+			// trim negative values back to 0. Previously
+			// we set this to 0.1, which meant motors kept
+			// spinning when armed, but that should be a
+			// policy decision for a specific vehicle
+			// type, as it is not appropriate for all
+			// types of vehicles (eg. fixed wing).
 			if (scaled < 0.0F) {
 				scaled = 0.0F;
-                        }
+			}
+
 			if (scaled > cmd_max) {
 				scaled = cmd_max;
 				perf_count(_perfcnt_scaling_error);
@@ -127,6 +131,7 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 			msg.cmd.push_back(static_cast<int>(scaled));
 
 			_esc_status.esc[i].esc_setpoint_raw = abs(static_cast<int>(scaled));
+
 		} else {
 			msg.cmd.push_back(static_cast<unsigned>(0));
 		}
@@ -143,6 +148,7 @@ void UavcanEscController::arm_all_escs(bool arm)
 {
 	if (arm) {
 		_armed_mask = -1;
+
 	} else {
 		_armed_mask = 0;
 	}
@@ -152,6 +158,7 @@ void UavcanEscController::arm_single_esc(int num, bool arm)
 {
 	if (arm) {
 		_armed_mask = MOTOR_BIT(num);
+
 	} else {
 		_armed_mask = 0;
 	}
@@ -176,13 +183,14 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 	}
 }
 
-void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent&)
+void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 {
 	_esc_status.counter += 1;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
 
 	if (_esc_status_pub > 0) {
 		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
+
 	} else {
 		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
 	}
