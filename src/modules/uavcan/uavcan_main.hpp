@@ -48,13 +48,7 @@
 #include "actuators/esc.hpp"
 #include "sensors/sensor_bridge.hpp"
 
-#if defined(USE_FW_NODE_SERVER)
-# include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
-# include <uavcan/protocol/node_info_retriever.hpp>
-# include <uavcan_posix/basic_file_server_backend.hpp>
-# include <uavcan/protocol/firmware_update_trigger.hpp>
-# include <uavcan/protocol/file_server.hpp>
-#endif
+# include "uavcan_servers.hpp"
 
 /**
  * @file uavcan_main.hpp
@@ -66,9 +60,6 @@
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
-#define UAVCAN_NODE_DB_PATH     "/fs/microsd/uavcan.db"
-#define UAVCAN_FIRMWARE_PATH    "/fs/microsd/fw"
-#define UAVCAN_LOG_FILE          UAVCAN_NODE_DB_PATH"/trace.log"
 
 // we add two to allow for actuator_direct and busevent
 #define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
@@ -84,8 +75,7 @@ class UavcanNode : public device::CDev
 
 	static constexpr unsigned PollTimeoutMs      = 10;
 
-	static constexpr unsigned MemPoolSize        = 10752; ///< Refer to the libuavcan manual to learn why
-
+	static constexpr unsigned MemPoolSize = 64 * uavcan::MemPoolBlockSize;
 	/*
 	 * This memory is reserved for uavcan to use for queuing CAN frames.
 	 * At 1Mbit there is approximately one CAN frame every 145 uS.
@@ -99,11 +89,12 @@ class UavcanNode : public device::CDev
 	 */
 
 	static constexpr unsigned RxQueueLenPerIface = FramePerMSecond * PollTimeoutMs; // At
-	static constexpr unsigned StackSize          = 3400;
+	static constexpr unsigned StackSize          = 1600;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
+	enum eServerAction {None, Start, Stop, CheckFW , Busy};
 
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
@@ -126,6 +117,9 @@ public:
 	void		print_info();
 
 	static UavcanNode *instance() { return _instance; }
+	static int         getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
+	int             fw_server(eServerAction action);
+	void            attachITxQueueInjector(ITxQueueInjector *injector) {_tx_injector = injector;}
 
 private:
 	void		fill_node_info();
@@ -133,10 +127,14 @@ private:
 	void		node_spin_once();
 	int		run();
 	int		add_poll_fd(int fd);			///< add a fd to poll list, returning index into _poll_fds[]
-
+	int             start_fw_server();
+	int             stop_fw_server();
+	int             request_fw_check();
 
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
+	volatile eServerAction            _fw_server_action;
+	int                      _fw_server_status;
 	int			_armed_sub = -1;		///< uORB subscription of the arming status
 	actuator_armed_s	_armed = {};			///< the arming request of the system
 	bool			_is_armed = false;		///< the arming status of the actuators on the bus
@@ -151,22 +149,13 @@ private:
 
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
-
+	sem_t                   _server_command_sem;
 	UavcanEscController	_esc_controller;
 
-
-#if defined(USE_FW_NODE_SERVER)
-	static uavcan::dynamic_node_id_server::CentralizedServer *_server_instance;              ///< server singleton pointer
-
-	uavcan_posix::BasicFileSeverBackend _fileserver_backend;
-	uavcan::NodeInfoRetriever  _node_info_retriever;
-	uavcan::FirmwareUpdateTrigger  _fw_upgrade_trigger;
-	uavcan::BasicFileServer        _fw_server;
-#endif
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 
 	MixerGroup		*_mixers = nullptr;
-
+	ITxQueueInjector        *_tx_injector;
 	uint32_t		_groups_required = 0;
 	uint32_t		_groups_subscribed = 0;
 	int			_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
