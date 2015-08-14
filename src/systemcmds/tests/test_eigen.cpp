@@ -38,6 +38,7 @@
  * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
+#include <cmath>
 #include <px4_eigen.h>
 #include <float.h>
 #include <stdio.h>
