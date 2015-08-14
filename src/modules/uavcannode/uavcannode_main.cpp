@@ -451,13 +451,18 @@ int UavcanNode::run()
                             const int master_node_id = _time_sync_slave.getMasterNodeID().get();  // Returns an invalid Node ID if (active == false)
 
                             const long msec_since_last_adjustment = (_node.getMonotonicTime() - _time_sync_slave.getLastAdjustmentTime()).toMSec();
-
-                            syslog(LOG_INFO,"Time sync slave status:\n"
+                            const uavcan::UtcTime utc = uavcan_stm32::clock::getUtc();
+                            syslog(LOG_INFO,"Time:%lld\n"
+                                "            Time sync slave status:\n"
                                         "    Active: %d\n"
                                         "    Master Node ID: %d\n"
-                                        "    Last clock adjustment was %ld ms ago\n\n",
-                                        int(active), master_node_id, msec_since_last_adjustment);
-
+                                        "    Last clock adjustment was %ld ms ago\n",
+                                       utc .toUSec(),int(active), master_node_id, msec_since_last_adjustment);
+                            syslog(LOG_INFO,"UTC %lu sec   Rate corr: %fPPM   Jumps: %lu   Locked: %i\n\n",
+                                        static_cast<unsigned long>(utc.toMSec() / 1000),
+                                        static_cast<double>(uavcan_stm32::clock::getUtcRateCorrectionPPM()),
+                                        uavcan_stm32::clock::getUtcJumpCount(),
+                                        int(uavcan_stm32::clock::isUtcLocked()));
 		}
 
 	}
