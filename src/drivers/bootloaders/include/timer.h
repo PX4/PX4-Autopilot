@@ -46,6 +46,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <stdbool.h>
+#include <stdint.h>
 #include "stm32.h"
 #include "nvic.h"
 
@@ -355,6 +357,46 @@ time_ms_t timer_tic(void);
 static inline time_hrt_cycles_t timer_hrt_read(void)
 {
 	return getreg32(NVIC_SYSTICK_CURRENT);
+}
+
+/****************************************************************************
+ * Name: timer_hrt_clear_wrap
+ *
+ * Description:
+ *   Clears the wrap flag by reading the timer
+ *
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static inline void timer_hrt_clear_wrap(void)
+{
+        (void)timer_hrt_read();
+}
+/****************************************************************************
+ * Name: timer_hrt_wrap
+ *
+ * Description:
+ *   Returns true if SysTic  counted to 0 since last time it was
+ *   read.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Returns true  if timer counted to 0 since last time this was read.
+ *
+ ****************************************************************************/
+
+static inline bool timer_hrt_wrap(void)
+{
+        uint32_t rv = getreg32(NVIC_SYSTICK_CTRL);
+        return ((rv  & NVIC_SYSTICK_CTRL_COUNTFLAG) ? true : false);
 }
 
 /****************************************************************************
