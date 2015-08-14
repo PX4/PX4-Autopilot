@@ -7,7 +7,7 @@
 #
 MODULES		+= drivers/device
 #MODULES		+= drivers/blinkm
-#MODULES		+= drivers/hil
+#MODULES		+= drivers/pwm_out_sim
 #MODULES		+= drivers/led
 #MODULES		+= drivers/rgbled
 #MODULES		+= modules/sensors

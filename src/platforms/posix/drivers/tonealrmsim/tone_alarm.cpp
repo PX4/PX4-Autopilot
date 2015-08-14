@@ -260,7 +260,7 @@ ToneAlarm::init()
 	if (ret != OK)
 		return ret;
 
-	debug("ready");
+	DEVICE_DEBUG("ready");
 	return OK;
 }
 
@@ -599,7 +599,7 @@ ToneAlarm::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int result = OK;
 
-	debug("ioctl %i %u", cmd, arg);
+	DEVICE_DEBUG("ioctl %i %lu", cmd, arg);
 
 //	irqstate_t flags = irqsave();
 

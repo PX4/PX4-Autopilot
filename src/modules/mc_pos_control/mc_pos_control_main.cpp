@@ -993,6 +993,11 @@ MulticopterPositionControl::task_main()
 			reset_yaw_sp = true;
 		}
 
+		// XXX Temporary: for vtol use we need to reset the yaw setpoint when we are doing a transition
+		if (_vehicle_status.in_transition_mode) {
+			reset_yaw_sp = true;
+		}
+
 		//Update previous arming state
 		was_armed = _control_mode.flag_armed;
 

@@ -21,7 +21,7 @@ MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/gps
-MODULES		+= drivers/hil
+MODULES		+= drivers/pwm_out_sim
 MODULES		+= modules/sensors
 
 #

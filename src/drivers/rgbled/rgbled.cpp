@@ -212,8 +212,8 @@ RGBLED::info()
 
 	if (ret == OK) {
 		/* we don't care about power-save mode */
-		log("state: %s", on ? "ON" : "OFF");
-		log("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
+		DEVICE_LOG("state: %s", on ? "ON" : "OFF");
+		DEVICE_LOG("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
 
 	} else {
 		warnx("failed to read led");

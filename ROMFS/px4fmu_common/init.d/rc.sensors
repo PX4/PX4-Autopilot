@@ -110,11 +110,6 @@ else
 	fi
 fi
 
-# Check for flow sensor
-if px4flow start &
-then
-fi
-
 #
 # Start sensors
 #

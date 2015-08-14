@@ -47,6 +47,8 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 VtolType(attc),
 _rear_motors(ENABLED),
 _tilt_control(0.0f),
+_roll_weight_mc(1.0f),
+_yaw_weight_mc(1.0f),
 _min_front_trans_dur(0.5f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
@@ -67,6 +69,7 @@ _min_front_trans_dur(0.5f)
 	_params_handles_tiltrotor.airspeed_blend_start = param_find("VT_ARSP_BLEND");
 	_params_handles_tiltrotor.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
+	_params_handles_tiltrotor.fw_motors_off = param_find("VT_FW_MOT_OFF");
 }
 
 Tiltrotor::~Tiltrotor()
@@ -79,6 +82,11 @@ Tiltrotor::parameters_update()
 {
 	float v;
 	int l;
+
+	/* motors that must be turned off when in fixed wing mode */
+	param_get(_params_handles_tiltrotor.fw_motors_off, &l);
+	_params_tiltrotor.fw_motors_off = get_motor_off_channels(l);
+
 
 	/* vtol duration of a front transition */
 	param_get(_params_handles_tiltrotor.front_trans_dur, &v);
@@ -124,6 +132,22 @@ Tiltrotor::parameters_update()
 	}
 
 	return OK;
+}
+
+int Tiltrotor::get_motor_off_channels(int channels) {
+	int channel_bitmap = 0;
+	
+	int channel;
+	for (int i = 0; i < _params->vtol_motor_count; ++i) {
+		channel = channels % 10;
+		if (channel == 0) {
+			break;
+		}
+		channel_bitmap |= 1 << channel;
+		channels = channels / 10;
+	}
+
+	return channel_bitmap;
 }
 
 void Tiltrotor::update_vtol_state()
@@ -270,12 +294,12 @@ void Tiltrotor::update_transition_state()
 		// tilt rotors forward up to certain angle
 		if (_tilt_control <= _params_tiltrotor.tilt_transition ) {
 			_tilt_control = _params_tiltrotor.tilt_mc +
-				fabsf(_params_tiltrotor.tilt_transition - _params_tiltrotor.tilt_mc)*(float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.front_trans_dur*1000000.0f);
+				fabsf(_params_tiltrotor.tilt_transition - _params_tiltrotor.tilt_mc) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.front_trans_dur * 1000000.0f);
 		}
 
 		// do blending of mc and fw controls
 		if (_airspeed->true_airspeed_m_s >= _params_tiltrotor.airspeed_blend_start) {
-			_mc_roll_weight = 1.0f - (_airspeed->true_airspeed_m_s - _params_tiltrotor.airspeed_blend_start) / (_params_tiltrotor.airspeed_trans - _params_tiltrotor.airspeed_blend_start);
+			_mc_roll_weight = 0.0f;
 		} else {
 			// at low speeds give full weight to mc
 			_mc_roll_weight = 1.0f;
@@ -290,17 +314,25 @@ void Tiltrotor::update_transition_state()
 	} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P2) {
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
 		_tilt_control = _params_tiltrotor.tilt_transition +
-			fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition)*(float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.front_trans_dur_p2*1000000.0f);
+			fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.front_trans_dur_p2 * 1000000.0f);
 		_mc_roll_weight = 0.0f;
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
 		if (_rear_motors != IDLE) {
 			set_rear_motor_state(IDLE);
 		}
+
+		if (!flag_idle_mc) {
+			set_idle_mc();
+			flag_idle_mc = true;
+		}
 		// tilt rotors back
 		if (_tilt_control > _params_tiltrotor.tilt_mc) {
 			_tilt_control = _params_tiltrotor.tilt_fw -
-				fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_mc)*(float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.back_trans_dur*1000000.0f);
+				fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_mc) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.back_trans_dur * 1000000.0f);
 		}
+
+		// set zero throttle for backtransition otherwise unwanted moments will be created
+		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
 
 		_mc_roll_weight = 0.0f;
 
@@ -383,7 +415,7 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state) {
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		if (i == 2 || i == 3) {
+		if (is_motor_off_channel(i)) {
 			pwm_values.values[i] = pwm_value;
 		} else {
 			pwm_values.values[i] = PWM_DEFAULT_MAX;
@@ -396,5 +428,8 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state) {
 	if (ret != OK) {errx(ret, "failed setting max values");}
 
 	close(fd);
+}
 
+bool Tiltrotor::is_motor_off_channel(const int channel) {
+	return (_params_tiltrotor.fw_motors_off >> channel) & 1;
 }

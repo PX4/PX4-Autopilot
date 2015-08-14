@@ -245,7 +245,7 @@ PX4FLOW::init()
 							     &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_distance_sensor_topic == nullptr) {
-			log("failed to create distance_sensor object. Did you start uOrb?");
+			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -452,7 +452,7 @@ PX4FLOW::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		debug("i2c::transfer returned %d", ret);
+		DEVICE_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -480,7 +480,7 @@ PX4FLOW::collect()
 	}
 
 	if (ret < 0) {
-		debug("error reading from sensor: %d", ret);
+		DEVICE_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -598,12 +598,12 @@ void
 PX4FLOW::cycle()
 {
 	if (OK != measure()) {
-		debug("measure error");
+		DEVICE_DEBUG("measure error");
 	}
 
 	/* perform collection */
 	if (OK != collect()) {
-		debug("collection error");
+		DEVICE_DEBUG("collection error");
 		/* restart the measurement state machine */
 		start();
 		return;
