@@ -69,7 +69,6 @@ bool MavlinkMissionManager::_transfer_in_progress = false;
 						(_msg.target_component == MAV_COMP_ID_MISSIONPLANNER) || \
 						(_msg.target_component == MAV_COMP_ID_ALL)))
 
-
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_state(MAVLINK_WPM_STATE_IDLE),
 	_time_last_recv(0),
