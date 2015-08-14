@@ -50,6 +50,7 @@ namespace clock
 {
 namespace
 {
+
 const uavcan::uint32_t USecPerOverflow = 65536;
 
 Mutex mutex;
@@ -69,8 +70,8 @@ uavcan::MonotonicTime prev_utc_adj_at;
 
 uavcan::uint64_t time_mono = 0;
 uavcan::uint64_t time_utc = 0;
+
 }
-# if UAVCAN_STM32_NUTTX || UAVCAN_STM32_BAREMETAL
 
 #if UAVCAN_STM32_BAREMETAL
 
@@ -86,8 +87,6 @@ static void nvicEnableVector(int irq,  uint8_t prio)
 }
 
 #endif
-
-
 
 void init()
 {
@@ -108,6 +107,9 @@ void init()
     // Enable IRQ
     nvicEnableVector(TIMX_IRQn,  UAVCAN_STM32_IRQ_PRIORITY_MASK);
 
+# if (TIMX_INPUT_CLOCK % 1000000) != 0
+#  error "No way, timer clock must be divisible to 1e6. FIXME!"
+# endif
 
     // Start the timer
     TIMX->ARR  = 0xFFFF;
@@ -168,7 +170,7 @@ void setUtc(uavcan::UtcTime time)
 
 static uavcan::uint64_t sampleUtcFromCriticalSection()
 {
-# if UAVCAN_STM32_CHIBIOS
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BARMETAL
     UAVCAN_ASSERT(initialized);
     UAVCAN_ASSERT(TIMX->DIER & TIM_DIER_UIE);
 
@@ -390,6 +392,7 @@ void setUtcSyncParams(const UtcSyncParams& params)
     // Add some sanity check
     utc_sync_params = params;
 }
+
 } // namespace clock
 
 SystemClock& SystemClock::instance()
@@ -412,6 +415,7 @@ SystemClock& SystemClock::instance()
     }
     return *ptr;
 }
+
 } // namespace uavcan_stm32
 
 
@@ -424,7 +428,7 @@ UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
 {
     UAVCAN_STM32_IRQ_PROLOGUE();
 
-# if UAVCAN_STM32_CHIBIOS
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
     TIMX->SR = 0;
 # endif
 # if UAVCAN_STM32_NUTTX

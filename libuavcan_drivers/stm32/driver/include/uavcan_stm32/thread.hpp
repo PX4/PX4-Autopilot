@@ -93,6 +93,36 @@ public:
     void signalFromInterrupt();
 };
 
+class Mutex
+{
+    pthread_mutex_t mutex_;
+
+public:
+    Mutex()
+    {
+        init();
+    }
+
+    int init()
+    {
+        return pthread_mutex_init(&mutex_, NULL);
+    }
+
+    int deinit()
+    {
+        return pthread_mutex_destroy(&mutex_);
+    }
+
+    void lock()
+    {
+        (void)pthread_mutex_lock(&mutex_);
+    }
+
+    void unlock()
+    {
+        (void)pthread_mutex_unlock(&mutex_);
+    }
+};
 #elif UAVCAN_STM32_BAREMETAL
 
 class BusEvent
@@ -136,26 +166,8 @@ public:
     };
 };
 
-class MutexLocker
-{
-    Mutex& mutex_;
-
-public:
-    MutexLocker(Mutex& mutex)
-        : mutex_(mutex)
-    {
-        mutex_.lock();
-    }
-    ~MutexLocker()
-    {
-        mutex_.unlock();
-    }
-};
-
 #endif
 
-
-#if UAVCAN_STM32_CHIBIOS
 
 class MutexLocker
 {
@@ -172,7 +184,5 @@ public:
         mutex_.unlock();
     }
 };
-
-#endif
 
 }
