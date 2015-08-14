@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import subprocess
@@ -22,7 +24,7 @@ class AppDescriptor(object):
     uint64_t signature (bytes [7:0] set to 'APDesc00' by linker script)
     uint64_t image_crc (set to 0 by linker script)
     uint32_t image_size (set to 0 by linker script)
-    uint32_t vcs_commit (set to 0 by linker script)
+    uint32_t vcs_commit (TODO: make its overriding optional)
     uint8_t version_major (set in source)
     uint8_t version_minor (set in source)
     uint8_t reserved[6] (set to 0xFF by linker script)
@@ -66,7 +68,6 @@ class AppDescriptor(object):
     def empty(self):
         return (self.signature == AppDescriptor.SIGNATURE and
                 self.image_crc == 0 and self.image_size == 0 and
-                self.vcs_commit == 0 and
                 self.reserved == AppDescriptor.RESERVED)
 
     @property
