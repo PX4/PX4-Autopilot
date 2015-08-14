@@ -38,7 +38,7 @@ public:
 };
 
 inline OStream& operator<<(OStream& s, long long x)          { std::printf("%lld", x);  return s; }
-inline OStream& operator<<(OStream& s, unsigned long long x) { std::printf("%llud", x); return s; }
+inline OStream& operator<<(OStream& s, unsigned long long x) { std::printf("%llu", x); return s; }
 
 inline OStream& operator<<(OStream& s, long x)           { std::printf("%ld", x); return s; }
 inline OStream& operator<<(OStream& s, unsigned long x)  { std::printf("%lu", x); return s; }
