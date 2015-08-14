@@ -1887,7 +1887,7 @@ PARAM_DEFINE_INT32(RC_TH_USER, 1);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
+PARAM_DEFINE_INT32(RC_MAP_ROLL, 0);
 
 /**
  * Pitch control channel mapping.
@@ -1900,7 +1900,7 @@ PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_PITCH, 2);
+PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
 
 /**
  * Failsafe channel mapping.
@@ -1927,7 +1927,7 @@ PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 3);
+PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
 
 /**
  * Yaw control channel mapping.
@@ -1940,7 +1940,7 @@ PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 3);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_YAW, 4);
+PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
 
 /**
  * Mode switch channel mapping.
