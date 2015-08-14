@@ -110,8 +110,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *handlep, char *buffer, size_t buflen);
+	virtual int		ioctl(device::file_t *handlep, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -126,7 +126,7 @@ protected:
 	struct work_s		_work;
 	unsigned		_measure_ticks;
 
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 
 	bool			_collect_phase;
 	unsigned		_measure_phase;
@@ -269,7 +269,7 @@ MS5611::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(baro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
 		DEVICE_DEBUG("can't get memory for reports");
@@ -337,7 +337,7 @@ out:
 }
 
 ssize_t
-MS5611::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+MS5611::read(device::file_t *handlep, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct baro_report);
 	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
@@ -407,7 +407,7 @@ MS5611::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 }
 
 int
-MS5611::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+MS5611::ioctl(device::file_t *handlep, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -452,7 +452,7 @@ MS5611::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if ((long)ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
+					if ((unsigned long)ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
 						return -EINVAL;
 
 					/* update interval for next measurement */
@@ -579,7 +579,7 @@ MS5611::cycle()
 		 * doing pressure measurements at something close to the desired rate.
 		 */
 		if ((_measure_phase != 0) &&
-		    ((long)_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
+		    ((unsigned long)_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
@@ -976,6 +976,7 @@ struct ms5611_bus_option &find_bus(enum MS5611_BUS busid)
 	}	
 	// FIXME - This is fatal to all threads
 	errx(1, "bus %u not started", (unsigned)busid);
+	return bus_options[0];
 }
 
 /**
