@@ -301,7 +301,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
      * Helpful Python:
      * def sample_point_from_btr(x):
      *     assert 0b0011110010000000111111000000000 & x == 0
-     *     ts2,ts1,brp = (BTR>>20)&7, (BTR>>16)&15, BTR&511
+     *     ts2,ts1,brp = (x>>20)&7, (x>>16)&15, x&511
      *     return (1+ts1+1)/(1+ts1+1+ts2+1)
      *
      */
