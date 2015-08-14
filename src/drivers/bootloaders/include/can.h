@@ -153,12 +153,12 @@ can_speed_t can_freq2speed(int freq);
  *                mailbox.
  *
  * Returned value:
- *   None
+ *   The CAN_OK of the data sent or CAN_ERROR if a time out occurred
  *
  ****************************************************************************/
 
-void can_tx(uint32_t message_id, size_t length, const uint8_t *message,
-	    uint8_t mailbox);
+uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message,
+	       uint8_t mailbox);
 
 /****************************************************************************
  * Name: can_rx

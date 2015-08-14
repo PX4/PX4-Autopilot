@@ -283,14 +283,16 @@ static const dsdl_t *load_dsdl_protocol(uavcan_dsdl_t dsdl,
  *                mailbox.
  *
  * Returned value:
- *   None
+ *   The UavcanOk of the data sent. Anything else indicates if a timeout
+ *   occurred.
+ *
  ****************************************************************************/
-
-static void uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data,
-		      size_t length, uint8_t mailbox)
+CCASSERT((int)UavcanOk == (int)CAN_OK);
+static uavcan_error_t uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data,
+				size_t length, uint8_t mailbox)
 {
 	frame_data[length++] = protocol->tail_init.u8;
-	can_tx(protocol->id.u32, length, frame_data, mailbox);
+	return can_tx(protocol->id.u32, length, frame_data, mailbox);
 }
 
 /****************************************************************************
@@ -313,13 +315,13 @@ static void uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data,
  *   length     - The number of bytes of data
  *
  * Returned value:
- *   None
+ *   The UavcanOk of the data sent. Anything else indicates if a timeout
+ *   occurred.
  *
  ****************************************************************************/
 
-
-void uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
-		    const uint8_t *transfer, size_t transfer_length)
+uavcan_error_t uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
+			      const uint8_t *transfer, size_t transfer_length)
 {
 
 	/*
@@ -356,8 +358,11 @@ void uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 
 		/* Either end of user portion of payload or last byte */
 		if (m == MaxUserPayloadLength || protocol->tail.eot) {
+			uavcan_error_t rv = uavcan_tx(protocol, payload, m, pdsdl->mailbox);
 
-			uavcan_tx(protocol, payload, m, pdsdl->mailbox);
+			if (rv != UavcanOk) {
+				return rv;
+			}
 
 			/* Increment 1 bit frame sequence number */
 
@@ -367,6 +372,8 @@ void uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 			m = 0;
 		}
 	}
+
+	return UavcanOk;
 
 }
 
