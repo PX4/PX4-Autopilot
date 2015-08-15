@@ -165,7 +165,7 @@ struct log_GPS_s {
 
 /* --- ATTC - ATTITUDE CONTROLS (ACTUATOR_0 CONTROLS)--- */
 #define LOG_ATTC_MSG 9
-#define LOG_ATC1_MSG 40
+#define LOG_ATC1_MSG 46
 struct log_ATTC_s {
 	float roll;
 	float pitch;
@@ -476,6 +476,8 @@ struct log_MACS_s {
 	float pitch_rate_integ;
 	float yaw_rate_integ;
 };
+
+/* WARNING: ID 46 is already in use for ATTC1 */
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 

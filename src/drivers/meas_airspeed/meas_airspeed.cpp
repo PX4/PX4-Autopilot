@@ -305,7 +305,7 @@ MEASAirspeed::cycle()
 	/* measurement phase */
 	ret = measure();
 	if (OK != ret) {
-		debug("measure error");
+		DEVICE_DEBUG("measure error");
 	}
 
 	_sensor_ok = (ret == OK);

@@ -31,7 +31,7 @@ MODULES		+= drivers/sf0x
 MODULES		+= drivers/ll40ls
 MODULES		+= drivers/trone
 MODULES		+= drivers/gps
-MODULES		+= drivers/hil
+MODULES		+= drivers/pwm_out_sim
 MODULES		+= drivers/hott
 MODULES		+= drivers/hott/hott_telemetry
 MODULES		+= drivers/hott/hott_sensors
@@ -46,6 +46,7 @@ MODULES		+= drivers/px4flow
 MODULES		+= drivers/oreoled
 MODULES		+= drivers/gimbal
 MODULES		+= drivers/pwm_input
+MODULES		+= drivers/camera_trigger
 
 #
 # System commands
@@ -73,7 +74,6 @@ MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
 MODULES		+= modules/uavcan
 MODULES 	+= modules/land_detector
-MODULES		+= modules/camera_trigger
 
 #
 # Estimation modules (EKF/ SO3 / other filters)

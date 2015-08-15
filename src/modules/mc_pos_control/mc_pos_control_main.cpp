@@ -993,6 +993,11 @@ MulticopterPositionControl::task_main()
 			reset_yaw_sp = true;
 		}
 
+		// XXX Temporary: for vtol use we need to reset the yaw setpoint when we are doing a transition
+		if (_vehicle_status.in_transition_mode) {
+			reset_yaw_sp = true;
+		}
+
 		//Update previous arming state
 		was_armed = _control_mode.flag_armed;
 
@@ -1459,7 +1464,7 @@ MulticopterPositionControl::task_main()
 		if (!(_control_mode.flag_control_offboard_enabled &&
 					!(_control_mode.flag_control_position_enabled ||
 						_control_mode.flag_control_velocity_enabled))) {
-			if (_att_sp_pub != nullptr && _vehicle_status.is_rotary_wing) {
+			if (_att_sp_pub != nullptr && (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode)) {
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 			} else if (_att_sp_pub == nullptr && _vehicle_status.is_rotary_wing){
 				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);

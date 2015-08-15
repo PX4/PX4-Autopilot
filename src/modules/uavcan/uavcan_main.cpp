@@ -489,7 +489,7 @@ int UavcanNode::run()
 
 		// this would be bad...
 		if (poll_ret < 0) {
-			log("poll error %d", errno);
+			DEVICE_LOG("poll error %d", errno);
 			continue;
 
 		} else {

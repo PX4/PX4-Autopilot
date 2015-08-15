@@ -279,7 +279,7 @@ GPS::task_main()
 	_serial_fd = ::open(_port, O_RDWR);
 
 	if (_serial_fd < 0) {
-		log("failed to open serial port: %s err: %d", _port, errno);
+		DEVICE_LOG("failed to open serial port: %s err: %d", _port, errno);
 		/* tell the dtor that we are exiting, set error code */
 		_task = -1;
 		_exit(1);

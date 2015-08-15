@@ -156,7 +156,7 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 # Language-specific flags
 #
 ARCHCFLAGS		 = -std=gnu99 -g
-ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=c++0x -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -g
+ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=c++11 -fno-threadsafe-statics -D__CUSTOM_FILE_IO__ -g
 
 # Generic warnings
 #

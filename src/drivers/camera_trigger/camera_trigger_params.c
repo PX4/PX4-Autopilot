@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,37 +32,66 @@
  ****************************************************************************/
 
 /**
- * @file multirotor_motor_limits.h
+ * @file camera_trigger_params.c
+ * Camera trigger parameters
  *
- * Definition of multirotor_motor_limits  topic
+ * @author Mohammed Kabir <mhkabir98@gmail.com>
  */
 
-#ifndef MULTIROTOR_MOTOR_LIMITS_H_
-#define MULTIROTOR_MOTOR_LIMITS_H_
-
-#include "../uORB.h"
-#include <stdint.h>
+#include <nuttx/config.h>
+#include <systemlib/param/param.h>
 
 /**
- * @addtogroup topics
- * @{
+ * Camera trigger interval
+ *
+ * This parameter sets the time between two consecutive trigger events
+ *
+ * @unit milliseconds
+ * @min 4.0
+ * @max 10000.0
+ * @group Camera trigger
  */
+PARAM_DEFINE_FLOAT(TRIG_INTERVAL, 40.0f);
 
 /**
- * Motor limits
+ * Camera trigger polarity
+ *
+ * This parameter sets the polarity of the trigger (0 = ACTIVE_LOW, 1 = ACTIVE_HIGH )
+ *
+ * @min 0
+ * @max 1
+ * @group Camera trigger
  */
-struct multirotor_motor_limits_s {
-	uint8_t lower_limit	: 1; // at least one actuator command has saturated on the lower limit
-	uint8_t upper_limit	: 1; // at least one actuator command has saturated on the upper limit
-	uint8_t yaw			: 1; // yaw limit reached
-	uint8_t reserved	: 5; // reserved
-};
+PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
 
 /**
- * @}
+ * Camera trigger activation time
+ *
+ * This parameter sets the time the trigger needs to pulled high or low.
+ *
+ * @unit milliseconds
+ * @group Camera trigger
  */
+PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
 
-/* register this as object request broker structure */
-ORB_DECLARE(multirotor_motor_limits);
+/**
+ * Camera trigger mode
+ *
+ * 0 disables the trigger, 1 sets it to enabled on command, 2 always on
+ *
+ * @min 0
+ * @max 2
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_MODE, 0);
 
-#endif
+/**
+ * Camera trigger pin
+ *
+ * Selects which pin is used, ranges from 1 to 6 (AUX1-AUX6)
+ *
+ * @min 1
+ * @max 123456
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_PINS, 12);

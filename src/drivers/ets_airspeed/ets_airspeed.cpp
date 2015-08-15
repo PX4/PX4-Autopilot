@@ -161,7 +161,7 @@ ETSAirspeed::collect()
 		// caller could end up using this value as part of an
 		// average
 		perf_count(_comms_errors);
-		log("zero value from sensor"); 
+		DEVICE_LOG("zero value from sensor"); 
 		return -1;
         }
 
@@ -240,7 +240,7 @@ ETSAirspeed::cycle()
 	/* measurement phase */
 	ret = measure();
 	if (OK != ret) {
-		debug("measure error");
+		DEVICE_DEBUG("measure error");
 	}
 
 	_sensor_ok = (ret == OK);

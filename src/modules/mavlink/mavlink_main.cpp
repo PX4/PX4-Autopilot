@@ -246,7 +246,7 @@ Mavlink::Mavlink() :
 		break;
 	}
 
-	_rstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
+	_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 }
 
 Mavlink::~Mavlink()
@@ -1361,7 +1361,7 @@ Mavlink::update_rate_mult()
 	bool radio_found = false;
 
 	/* 2nd pass: Now check hardware limits */
-	if (tstatus.type == TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+	if (tstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
 
 		radio_found = true;
 
@@ -1389,6 +1389,9 @@ Mavlink::update_rate_mult()
 			/* limit to a max multiplier of 1 */
 			hardware_mult = fminf(1.0f, hardware_mult);
 		}
+	} else {
+		/* no limitation, set hardware to 1 */
+		hardware_mult = 1.0f;
 	}
 
 	_last_hw_rate_timestamp = tstatus.timestamp;
@@ -1671,7 +1674,8 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
-		configure_stream("CAMERA_TRIGGER", 30.0f);
+		/* camera trigger is rate limited at the source, do not limit here */
+		configure_stream("CAMERA_TRIGGER", 500.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1717,7 +1721,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* radio config check */
-		if (_radio_id != 0 && _rstatus.type == TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+		if (_radio_id != 0 && _rstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
 			/* request to configure radio and radio is present */
 			FILE *fs = fdopen(_uart_fd, "w");
 			
@@ -1956,6 +1960,12 @@ Mavlink::start(int argc, char *argv[])
 	// before returning to the shell
 	int ic = Mavlink::instance_count();
 
+	if (ic == MAVLINK_COMM_NUM_BUFFERS) {
+		warnx("Maximum MAVLink instance count of %d reached.",
+			(int)MAVLINK_COMM_NUM_BUFFERS);
+		return 1;
+	}
+
 	// Instantiate thread
 	char buf[24];
 	sprintf(buf, "mavlink_if%d", ic);
@@ -2009,7 +2019,7 @@ Mavlink::display_status()
 		printf("\ttype:\t\t");
 
 		switch (_rstatus.type) {
-		case TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
+		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
 			printf("3DR RADIO\n");
 			break;
 

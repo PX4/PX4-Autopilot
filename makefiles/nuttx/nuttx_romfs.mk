@@ -93,10 +93,10 @@ ifneq ($(ROMFS_EXTRA_FILES),)
 	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)/extras
 	$(Q) $(COPY) $(ROMFS_EXTRA_FILES) $(ROMFS_SCRATCH)/extras
 endif
-	$(Q) $(PYTHON) -u $(ROMFS_AUTOSTART)  -a $(ROMFS_ROOT)/init.d -s $(ROMFS_SCRATCH)/init.d/rc.autostart
+	$(Q) $(PYTHON) -u $(ROMFS_AUTOSTART)  -a $(ROMFS_ROOT)/init.d/ -s $(ROMFS_SCRATCH)/init.d/rc.autostart
 	# Execute in standard dir as well
 	# so developers notice the generated file
-	$(Q) $(PYTHON) -u $(ROMFS_AUTOSTART)  -a $(ROMFS_ROOT)/init.d -s $(ROMFS_ROOT)/init.d/rc.autostart
+	$(Q) $(PYTHON) -u $(ROMFS_AUTOSTART)  -a $(ROMFS_ROOT)/init.d/ -s $(ROMFS_ROOT)/init.d/rc.autostart
 	$(Q) $(PYTHON) -u $(ROMFS_PRUNER) --folder $(ROMFS_SCRATCH)
 
 EXTRA_CLEANS		+= $(ROMGS_OBJ) $(ROMFS_IMG)
