@@ -2450,5 +2450,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
+	new StreamListItem(&MavlinkStreamVtolState::new_instance, &MavlinkStreamVtolState::get_name_static),
 	nullptr
 };
