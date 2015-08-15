@@ -32,90 +32,63 @@
  ****************************************************************************/
 
 /**
- * @file MulticopterLandDetector.h
- * Land detection algorithm for multicopters
+ * @file VtolLandDetector.h
+ * Land detection algorithm for vtol
  *
- * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Morten Lysgaard <morten@lysgaard.no>
+ * @author Roman Bapst <bapstr@gmail.com>
  */
 
-#ifndef __MULTICOPTER_LAND_DETECTOR_H__
-#define __MULTICOPTER_LAND_DETECTOR_H__
+#ifndef __VTOL_LAND_DETECTOR_H__
+#define __VTOL_LAND_DETECTOR_H__
 
-#include "LandDetector.h"
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
-#include <systemlib/param/param.h>
+#include "MulticopterLandDetector.h"
+#include <uORB/topics/airspeed.h>
 
-class MulticopterLandDetector : public LandDetector
+class VtolLandDetector : public MulticopterLandDetector
 {
 public:
-	MulticopterLandDetector();
+	VtolLandDetector();
 
-protected:
+
+private:
 	/**
 	* @brief  polls all subscriptions and pulls any data that has changed
 	**/
-	virtual void updateSubscriptions();
+	void updateSubscriptions() override;
 
 	/**
 	* @brief Runs one iteration of the land detection algorithm
 	**/
-	virtual bool update() override;
+	bool update() override;
 
 	/**
 	* @brief Initializes the land detection algorithm
 	**/
-	virtual void initialize() override;
+	void initialize() override;
 
 	/**
 	* @brief download and update local parameter cache
 	**/
-	virtual void updateParameterCache(const bool force);
-
-	/**
-	* @brief get multicopter landed state
-	**/
-	bool get_landed_state();
-
-private:
+	void updateParameterCache(const bool force) override;
 
 	/**
 	* @brief Handles for interesting parameters
 	**/
 	struct {
-		param_t maxClimbRate;
-		param_t maxVelocity;
-		param_t maxRotation;
-		param_t maxThrottle;
+		param_t maxAirSpeed;
 	}		_paramHandle;
 
 	struct {
-		float maxClimbRate;
-		float maxVelocity;
-		float maxRotation;
-		float maxThrottle;
+		float maxAirSpeed;
 	} _params;
 
-private:
-	int _vehicleGlobalPositionSub;						/**< notification of global position */
-	int _vehicleStatusSub;
-	int _actuatorsSub;
-	int _armingSub;
+	int _airspeedSub;
 	int _parameterSub;
-	int _attitudeSub;
 
-	struct vehicle_global_position_s	_vehicleGlobalPosition;		/**< the result from global position subscription */
-	struct vehicle_status_s 		_vehicleStatus;
-	struct actuator_controls_s		_actuators;
-	struct actuator_armed_s			_arming;
-	struct vehicle_attitude_s		_vehicleAttitude;
+	struct airspeed_s _airspeed;
 
-	uint64_t _landTimer;							/**< timestamp in microseconds since a possible land was detected*/
+	bool _was_in_air;								/**< indicates whether the vehicle was in the air in the previous iteration */
+	float _airspeed_filtered;						/**< low pass filtered airspeed */
 };
 
-#endif //__MULTICOPTER_LAND_DETECTOR_H__
+#endif

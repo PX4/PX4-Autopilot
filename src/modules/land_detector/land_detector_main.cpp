@@ -53,6 +53,7 @@
 
 #include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"
+#include "VtolLandDetector.h"
 
 //Function prototypes
 static int land_detector_start(const char *mode);
@@ -112,6 +113,9 @@ static int land_detector_start(const char *mode)
 
 	} else if (!strcmp(mode, "multicopter")) {
 		land_detector_task = new MulticopterLandDetector();
+
+	} else if (!strcmp(mode, "vtol")) {
+		land_detector_task = new VtolLandDetector();
 
 	} else {
 		warnx("[mode] must be either 'fixedwing' or 'multicopter'");
