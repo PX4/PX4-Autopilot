@@ -1085,16 +1085,23 @@ public:
     typedef SizeType size_type;
 };
 
+/**
+ * These operators will only be enabled if rhs and lhs are different types. This precondition allows to work-around
+ * the ambiguity arising from the scope containing two definitions: one here and the others in Array<>.
+ * Refer to https://github.com/UAVCAN/libuavcan/issues/55 for more info.
+ */
 template <typename R, typename T, ArrayMode ArrayMode, unsigned MaxSize>
 UAVCAN_EXPORT
-inline bool operator==(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
+inline typename EnableIf<!IsSameType<R, Array<T, ArrayMode, MaxSize> >::Result, bool>::Type
+operator==(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 {
     return lhs.operator==(rhs);
 }
 
 template <typename R, typename T, ArrayMode ArrayMode, unsigned MaxSize>
 UAVCAN_EXPORT
-inline bool operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
+inline typename EnableIf<!IsSameType<R, Array<T, ArrayMode, MaxSize> >::Result, bool>::Type
+operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 {
     return lhs.operator!=(rhs);
 }

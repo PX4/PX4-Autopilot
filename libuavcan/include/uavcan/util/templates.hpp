@@ -92,6 +92,21 @@ struct UAVCAN_EXPORT Select<false, TrueType, FalseType>
 };
 
 /**
+ * Checks if two identifiers refer to the same type.
+ */
+template<class T, class U>
+struct IsSameType
+{
+    enum { Result = 0 };
+};
+
+template <typename T>
+struct IsSameType<T, T>
+{
+    enum { Result = 1 };
+};
+
+/**
  * Remove reference as in <type_traits>
  */
 template <typename T> struct RemoveReference      { typedef T Type; };
