@@ -40,6 +40,7 @@
 
 #include <cmath>
 #include <px4_eigen.h>
+#include <mathlib/mathlib.h>
 #include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +57,7 @@ namespace Eigen
 typedef Matrix<float, 10, 1> Vector10f;
 }
 
-static constexpr size_t OPERATOR_ITERATIONS = 60000;
+static constexpr size_t OPERATOR_ITERATIONS = 30000;
 
 #define TEST_OP(_title, _op)							 								\
 	{ 																						\
@@ -64,7 +65,7 @@ static constexpr size_t OPERATOR_ITERATIONS = 60000;
 		for (size_t j = 0; j < OPERATOR_ITERATIONS; j++) { 									\
 			_op; 																			\
 		} 																					\
-		printf(_title ": %.6fus\n", static_cast<double>(hrt_absolute_time() - t0) / OPERATOR_ITERATIONS); \
+		printf("-O0 " _title ": %.6fus\n", static_cast<double>(hrt_absolute_time() - t0) / OPERATOR_ITERATIONS); \
 	}
 
 #define VERIFY_OP(_title, _op, __OP_TEST__)		 										\
@@ -105,13 +106,37 @@ void printEigen(const Eigen::MatrixBase<T> &b)
 * @brief
 *	Construct new Eigen::Quaternion from euler angles
 **/
-template<typename T>
-Eigen::Quaternion<T> quatFromEuler(const T roll, const T pitch, const T yaw)
+// template<typename T>
+// Eigen::Quaternion<T> quatFromEuler(const T roll, const T pitch, const T yaw)
+// {
+// 	Eigen::AngleAxis<T> rollAngle(roll, Eigen::Matrix<T, 3, 1>::UnitZ());
+// 	Eigen::AngleAxis<T> yawAngle(yaw, Eigen::Matrix<T, 3, 1>::UnitY());
+// 	Eigen::AngleAxis<T> pitchAngle(pitch, Eigen::Matrix<T, 3, 1>::UnitX());
+// 	return yawAngle * pitchAngle * rollAngle;
+// }
+
+Eigen::Quaternionf quatFromEuler(const float roll, const float pitch, const float yaw);
+
+Eigen::Quaternionf quatFromEuler(const float roll, const float pitch, const float yaw)
 {
-	Eigen::AngleAxis<T> rollAngle(roll, Eigen::Matrix<T, 3, 1>::UnitZ());
-	Eigen::AngleAxis<T> yawAngle(yaw, Eigen::Matrix<T, 3, 1>::UnitY());
-	Eigen::AngleAxis<T> pitchAngle(pitch, Eigen::Matrix<T, 3, 1>::UnitX());
-	return rollAngle * yawAngle * pitchAngle;
+	Eigen::AngleAxisf rollAngle(roll, Eigen::Vector3f::UnitZ());
+	Eigen::AngleAxisf yawAngle(yaw, Eigen::Vector3f::UnitY());
+	Eigen::AngleAxisf pitchAngle(pitch, Eigen::Vector3f::UnitX());
+	return yawAngle * pitchAngle * rollAngle;
+}
+
+/**
+* @brief
+*	Construct new Eigen::Matrix3f from euler angles
+**/
+template<typename T>
+Eigen::Matrix3f matrixFromEuler(const T roll, const T pitch, const T yaw)
+{
+	Eigen::AngleAxis<T> rollAngle(roll, Eigen::Vector3f::UnitZ());
+	Eigen::AngleAxis<T> yawAngle(yaw, Eigen::Vector3f::UnitY());
+	Eigen::AngleAxis<T> pitchAngle(pitch, Eigen::Vector3f::UnitX());
+	Eigen::Quaternionf q = yawAngle * pitchAngle * rollAngle;
+	return q.toRotationMatrix();
 }
 
 
@@ -277,28 +302,102 @@ int test_eigen(int argc, char *argv[])
 
 	}
 
-	/* QUATERNION TESTS CURRENTLY FAILING
+	warnx("pre-quat");
+
+	usleep(500000);
+
+	/* QUATERNION TESTS */
 	{
 		// test conversion rotation matrix to quaternion and back
-		Eigen::Matrix3f R_orig;
+		// against existing PX4 mathlib
+		math::Matrix<3, 3> R_orig;
 		Eigen::Matrix3f R;
 		Eigen::Quaternionf q;
 		float diff = 0.1f;
-		float tol = 0.00001f;
+		float tol;
 
 		warnx("Quaternion transformation methods test.");
+
+		warnx("testing known values..");
+
+		// test against some known values
+		tol = 0.001f;
+		Eigen::Quaternionf q_true = {1.0f, 0.0f, 0.0f, 0.0f};
+
+		if (!q.isApprox(q_true, tol)) {
+			warnx("Quaternion 1.0f, 0.0f, 0.0f, 0.0f error: w: %8.4f", q.w());
+			rc = 1;
+		}
+
+		usleep(510000);
+		warnx("post-first");
+
+		q_true = quatFromEuler(0.3f, 0.2f, 0.1f);
+		q = {0.9833f, 0.1436f, 0.1060f, 0.0343f};
+
+		usleep(510000);
+		warnx("post-2");
+
+		if (!q.isApprox(q_true, tol)) {
+			warnx("Quaternion 0.9833f, 0.1436f, 0.1060f, 0.0343f error: w: %8.6f, %8.6f", q.w(), q_true.w());
+			rc = 1;
+		}
+
+		usleep(510000);
+		warnx("post-3");
+
+		Eigen::Quaternionf q_true2 = quatFromEuler(-1.5f, -0.2f, 0.5f);
+		Eigen::Quaternionf q2 = {0.7222f, -0.6391f, -0.2386f, 0.1142f};
+
+		usleep(510000);
+		warnx("post-4");
+
+		if (!q2.isApprox(q_true2, tol)) {
+			warnx("Quaternion 0.9833f, 0.1436f, 0.1060f, 0.0343f error: w: %8.6f, %8.6f", q2.w(), q_true2.w());
+			rc = 1;
+		}
+
+		q = {0.6830f, 0.1830f, -0.6830f, 0.1830f};
+
+		usleep(510000);
+		warnx("post-5");
+
+		q_true = quatFromEuler(M_PI_2_F, -M_PI_2_F, -M_PI_F / 3);
+
+		usleep(510000);
+		warnx("post-6");
+
+		for (size_t i = 0; i < 4; i++) {
+			if (!q.isApprox(q_true, tol)) {
+				warnx("Quaternion method 'eulerAngles()' outside tolerance!");
+				warnx("%8.4f, %8.4f, %8.4f, %8.4f, w: %8.4f",
+					q.vec()(1), q.vec()(2), q.vec()(3), q.vec()(4), q.w());
+				rc = 1;
+			}
+		}
+
+		usleep(510000);
+		warnx("post-7");
+
+		warnx("testing transformation range (this will take a while)");
+		tol = 0.00001f;
 
 		for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
 			for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
 				for (float yaw = -M_PI_F; yaw <= M_PI_F; yaw += diff) {
-					R_orig.eulerAngles(roll, pitch, yaw);
-					q = R_orig; //from_dcm
+					Eigen::AngleAxisf rollAngle(roll, Eigen::Vector3f::UnitX());
+					Eigen::AngleAxisf pitchAngle(pitch, Eigen::Vector3f::UnitY());
+					Eigen::AngleAxisf yawAngle(yaw, Eigen::Vector3f::UnitZ());
+
+					R_orig.from_euler(roll, pitch, yaw);
+
+					q = yawAngle * pitchAngle * rollAngle;
 					R = q.toRotationMatrix();
 
 					for (size_t i = 0; i < 3; i++) {
 						for (size_t j = 0; j < 3; j++) {
 							if (fabsf(R_orig(i, j) - R(i, j)) > tol) {
-								warnx("Quaternion method 'from_dcm' or 'toRotationMatrix' outside tolerance!");
+								warnx("Quaternion constructor or 'toRotationMatrix' outside tolerance!\n %d, %d: %8.4f vs. %8.4f", i, j, R_orig(i, j), R(i, j));
 								rc = 1;
 							}
 						}
@@ -306,50 +405,6 @@ int test_eigen(int argc, char *argv[])
 				}
 			}
 		}
-
-		// test against some known values
-		tol = 0.0001f;
-		Eigen::Quaternionf q_true = {1.0f, 0.0f, 0.0f, 0.0f};
-		R_orig.setIdentity();
-		q = R_orig;
-
-		for (size_t i = 0; i < 4; i++) {
-			if (!q.isApprox(q_true, tol)) {
-				warnx("Quaternion method 'from_dcm()' outside tolerance!");
-				rc = 1;
-			}
-		}
-
-		q_true = quatFromEuler(0.3f, 0.2f, 0.1f);
-		q = {0.9833f, 0.1436f, 0.1060f, 0.0343f};
-
-		for (size_t i = 0; i < 4; i++) {
-			if (!q.isApprox(q_true, tol)) {
-				warnx("Quaternion method 'eulerAngles()' outside tolerance!");
-				rc = 1;
-			}
-		}
-
-		q_true = quatFromEuler(-1.5f, -0.2f, 0.5f);
-		q = {0.7222f, -0.6391f, -0.2386f, 0.1142f};
-
-		for (size_t i = 0; i < 4; i++) {
-			if (!q.isApprox(q_true, tol)) {
-				warnx("Quaternion method 'eulerAngles()' outside tolerance!");
-				rc = 1;
-			}
-		}
-
-		q_true = quatFromEuler(M_PI_2_F, -M_PI_2_F, -M_PI_F / 3);
-		q = {0.6830f, 0.1830f, -0.6830f, 0.1830f};
-
-		for (size_t i = 0; i < 4; i++) {
-			if (!q.isApprox(q_true, tol)) {
-				warnx("Quaternion method 'eulerAngles()' outside tolerance!");
-				rc = 1;
-			}
-		}
-
 	}
 
 	{
@@ -360,29 +415,11 @@ int test_eigen(int argc, char *argv[])
 		Eigen::Quaternionf q;
 		Eigen::Matrix3f R;
 		float diff = 0.1f;
-		float tol = 0.00001f;
+		float tol;
 
 		warnx("Quaternion vector rotation method test.");
 
-		for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
-			for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
-				for (float yaw = -M_PI_F; yaw <= M_PI_F; yaw += diff) {
-					R.eulerAngles(roll, pitch, yaw);
-					q = quatFromEuler(roll, pitch, yaw);
-					vector_r = R * vector;
-					vector_q = q._transformVector(vector);
-
-					for (int i = 0; i < 3; i++) {
-						if (fabsf(vector_r(i) - vector_q(i)) > tol) {
-							warnx("Quaternion method 'rotate' outside tolerance");
-							rc = 1;
-						}
-					}
-				}
-			}
-		}
-
-		// test some values calculated with matlab
+				// test some values calculated with matlab
 		tol = 0.0001f;
 		q = quatFromEuler(M_PI_2_F, 0.0f, 0.0f);
 		vector_q = q._transformVector(vector);
@@ -391,6 +428,9 @@ int test_eigen(int argc, char *argv[])
 		for (size_t i = 0; i < 3; i++) {
 			if (fabsf(vector_true(i) - vector_q(i)) > tol) {
 				warnx("Quaternion method 'rotate' outside tolerance");
+				warnx("%8.4f, %8.4f, %8.4f, true: %8.4f, %8.4f, %8.4f",
+					(double)vector_q(1), (double)vector_q(2), (double)vector_q(3),
+					(double)vector_true(1), (double)vector_true(2), (double)vector_true(3));
 				rc = 1;
 			}
 		}
@@ -402,6 +442,9 @@ int test_eigen(int argc, char *argv[])
 		for (size_t i = 0; i < 3; i++) {
 			if (fabsf(vector_true(i) - vector_q(i)) > tol) {
 				warnx("Quaternion method 'rotate' outside tolerance");
+				warnx("%8.4f, %8.4f, %8.4f, true: %8.4f, %8.4f, %8.4f",
+					(double)vector_q(1), (double)vector_q(2), (double)vector_q(3),
+					(double)vector_true(1), (double)vector_true(2), (double)vector_true(3));
 				rc = 1;
 			}
 		}
@@ -413,6 +456,9 @@ int test_eigen(int argc, char *argv[])
 		for (size_t i = 0; i < 3; i++) {
 			if (fabsf(vector_true(i) - vector_q(i)) > tol) {
 				warnx("Quaternion method 'rotate' outside tolerance");
+				warnx("%8.4f, %8.4f, %8.4f, true: %8.4f, %8.4f, %8.4f",
+					(double)vector_q(1), (double)vector_q(2), (double)vector_q(3),
+					(double)vector_true(1), (double)vector_true(2), (double)vector_true(3));
 				rc = 1;
 			}
 		}
@@ -424,10 +470,36 @@ int test_eigen(int argc, char *argv[])
 		for (size_t i = 0; i < 3; i++) {
 			if (fabsf(vector_true(i) - vector_q(i)) > tol) {
 				warnx("Quaternion method 'rotate' outside tolerance");
+				warnx("%8.4f, %8.4f, %8.4f, true: %8.4f, %8.4f, %8.4f",
+					(double)vector_q(1), (double)vector_q(2), (double)vector_q(3),
+					(double)vector_true(1), (double)vector_true(2), (double)vector_true(3));
 				rc = 1;
 			}
 		}
+
+		warnx("testing transformation range (this will take a while)");
+		tol = 0.00001f;
+
+		Eigen::Vector3f vectorR = {1.0f, 1.0f, 1.0f};
+
+		for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
+			for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
+				for (float yaw = -M_PI_F; yaw <= M_PI_F; yaw += diff) {
+					R = matrixFromEuler(roll, pitch, yaw);
+					q = quatFromEuler(roll, pitch, yaw);
+					vector_r = R * vectorR;
+					vector_q = q._transformVector(vectorR);
+
+					for (int i = 0; i < 3; i++) {
+						if (fabsf(vector_r(i) - vector_q(i)) > tol) {
+							warnx("Quaternion method 'rotate' outside tolerance");
+							rc = 1;
+						}
+					}
+				}
+			}
+		}
 	}
-	*/
+
 	return rc;
 }
