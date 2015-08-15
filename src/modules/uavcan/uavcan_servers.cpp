@@ -98,6 +98,7 @@ UavcanServers::~UavcanServers()
 	if (_mutex_inited) {
 		(void)Lock::deinit(_subnode_mutex);
 	}
+	_main_node.getDispatcher().removeRxFrameListener();
 }
 
 int UavcanServers::stop(void)
@@ -142,8 +143,9 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 	int rv  = _instance->init(num_ifaces);
 
 	if (rv < 0) {
-		warnx("Node init failed %i", rv);
+		warnx("Node init failed: %d", rv);
 		delete _instance;
+		_instance = nullptr;
 		return rv;
 	}
 
@@ -163,9 +165,10 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 	rv = pthread_create(&_instance->_subnode_thread, &tattr, static_cast<pthread_startroutine_t>(run_trampoline), NULL);
 
 	if (rv < 0) {
-		warnx("start failed: %d", errno);
+		warnx("pthread_create() failed: %d", errno);
 		rv =  -errno;
 		delete _instance;
+		_instance = nullptr;
 	}
 
 	return rv;
@@ -173,6 +176,8 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 
 int UavcanServers::init(unsigned num_ifaces)
 {
+	errno = 0;
+
 	/*
 	 * Initialize the mutex.
 	 * giving it its path
@@ -181,6 +186,7 @@ int UavcanServers::init(unsigned num_ifaces)
 	int ret = Lock::init(_subnode_mutex);
 
 	if (ret < 0) {
+		warnx("Lock init: %d", errno);
 		return ret;
 	}
 
@@ -197,6 +203,7 @@ int UavcanServers::init(unsigned num_ifaces)
 	ret = _fw_version_checker.createFwPaths(UAVCAN_FIRMWARE_PATH);
 
 	if (ret < 0) {
+		warnx("FirmwareVersionChecker init: %d, errno: %d", ret, errno);
 		return ret;
 	}
 
@@ -205,6 +212,7 @@ int UavcanServers::init(unsigned num_ifaces)
 	ret = _fw_server.start();
 
 	if (ret < 0) {
+		warnx("BasicFileServer init: %d, errno: %d", ret, errno);
 		return ret;
 	}
 
@@ -213,6 +221,7 @@ int UavcanServers::init(unsigned num_ifaces)
 	ret = _storage_backend.init(UAVCAN_NODE_DB_PATH);
 
 	if (ret < 0) {
+		warnx("FileStorageBackend init: %d, errno: %d", ret, errno);
 		return ret;
 	}
 
@@ -221,6 +230,7 @@ int UavcanServers::init(unsigned num_ifaces)
 	ret = _tracer.init(UAVCAN_LOG_FILE);
 
 	if (ret < 0) {
+		warnx("FileEventTracer init: %d, errno: %d", ret, errno);
 		return ret;
 	}
 
@@ -232,6 +242,7 @@ int UavcanServers::init(unsigned num_ifaces)
 	ret = _server_instance.init(hwver.unique_id);
 
 	if (ret < 0) {
+		warnx("CentralizedServer init: %d", ret);
 		return ret;
 	}
 
@@ -240,6 +251,7 @@ int UavcanServers::init(unsigned num_ifaces)
 	ret = _node_info_retriever.start();
 
 	if (ret < 0) {
+		warnx("NodeInfoRetriever init: %d", ret);
 		return ret;
 	}
 
@@ -248,6 +260,7 @@ int UavcanServers::init(unsigned num_ifaces)
 	ret = _fw_upgrade_trigger.start(_node_info_retriever, _fw_version_checker.getFirmwarePath());
 
 	if (ret < 0) {
+		warnx("FirmwareUpdateTrigger init: %d", ret);
 		return ret;
 	}
 
