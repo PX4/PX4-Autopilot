@@ -3,8 +3,8 @@
 #
 
 MODULE_COMMAND		 = tests
-MODULE_STACKSIZE	 = 12000
-MAXOPTIMIZATION		 = -Os
+MODULE_STACKSIZE	 = 60000
+MAXOPTIMIZATION		 = -O0
 
 SRCS			 = test_adc.c \
 			   test_bson.c \
@@ -37,7 +37,7 @@ SRCS			 = test_adc.c \
 ifeq ($(PX4_TARGET_OS), nuttx)
 SRCS			+= test_time.c
 
-EXTRACXXFLAGS = -Wframe-larger-than=2500
+EXTRACXXFLAGS = -Wframe-larger-than=6000
 else
 EXTRACXXFLAGS =
 endif
