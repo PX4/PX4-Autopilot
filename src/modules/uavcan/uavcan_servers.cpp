@@ -98,6 +98,7 @@ UavcanServers::~UavcanServers()
 	if (_mutex_inited) {
 		(void)Lock::deinit(_subnode_mutex);
 	}
+	_main_node.getDispatcher().removeRxFrameListener();
 }
 
 int UavcanServers::stop(void)
