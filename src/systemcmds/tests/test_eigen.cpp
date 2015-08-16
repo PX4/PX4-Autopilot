@@ -407,7 +407,7 @@ int test_eigen(int argc, char *argv[]) {
 
 		for (size_t i = 0; i < 4; i++) {
 			if (!EXPECT_QUATERNION(q_true, q, FLT_EPSILON)) {
-				printf("%llu: It[%d]: Value of: Quaternion [0.6830, 0.1830, -0.6830, 0.1830]\n", (unsigned long long)hrt_absolute_time(), i);
+				printf("%llu: It[%d]: Value of: Quaternion [0.6830, 0.1830, -0.6830, 0.1830]\n", (unsigned long long)hrt_absolute_time(), (int)i);
 				printf("Actual:  \t[%8.5f, %8.5f, %8.5f, %8.5f]\n", q.w(), q.x(), q.y(), q.z());
 				printf("Expected: \t[%8.5f, %8.5f, %8.5f, %8.5f]\n", q_true.w(), q_true.x(), q_true.y(), q_true.z());
 				++err_num;
@@ -430,7 +430,7 @@ int test_eigen(int argc, char *argv[]) {
 					for (size_t i = 0; i < 3; i++) {
 						for (size_t j = 0; j < 3; j++) {
 							if (!EXPECT_NEAR(R_orig(i, j), R(i, j), epsilon_f)) {
-								printf("(%d, %d) Value of: Quaternion constructor or 'toRotationMatrix'\n", (unsigned long long)hrt_absolute_time(), i, j);
+								printf("%llu: (%d, %d) Value of: Quaternion constructor or 'toRotationMatrix'\n", (unsigned long long)hrt_absolute_time(), (int)i, (int)j);
 								printf("Actual:  \t%8.5f\n", R(i, j));
 								printf("Expected: \t%8.5f\n", R_orig(i, j));
 								++err_num;
@@ -461,7 +461,7 @@ int test_eigen(int argc, char *argv[]) {
 
 		for (size_t i = 0; i < 3; i++) {
 			if (!EXPECT_NEAR(vector_true(i), vector_q(i), FLT_EPSILON)) {
-				printf("%llu: Value of: Quaternion method 'rotate'\n", (unsigned long long)hrt_absolute_time());
+				printf("%llu: It[%d]: Value of: Quaternion method 'rotate'\n", (unsigned long long)hrt_absolute_time(), (int)i);
 				printf("Actual:  \t[%8.5f, %8.5f, %8.5f]\n", vector_q(0), vector_q(1), vector_q(2));
 				printf("Expected: \t[%8.5f, %8.5f, %8.5f]\n", vector_true(0), vector_true(1), vector_true(2));
 				++err_num;
@@ -476,7 +476,7 @@ int test_eigen(int argc, char *argv[]) {
 
 		for (size_t i = 0; i < 3; i++) {
 			if (!EXPECT_NEAR(vector_true(i), vector_q(i), epsilon_f)) {
-				printf("%llu: Value of: Quaternion method 'rotate'\n", (unsigned long long)hrt_absolute_time());
+				printf("%llu: It[%d]: Value of: Quaternion method 'rotate'\n", (unsigned long long)hrt_absolute_time(), (int)i);
 				printf("Actual:  \t[%8.5f, %8.5f, %8.5f]\n", (double)vector_q(0), (double)vector_q(1), (double)vector_q(2));
 				printf("Expected: \t[%8.5f, %8.5f, %8.5f]\n", (double)vector_true(0), (double)vector_true(1), (double)vector_true(2));
 				++err_num;
@@ -491,7 +491,7 @@ int test_eigen(int argc, char *argv[]) {
 
 		for (size_t i = 0; i < 3; i++) {
 			if (!EXPECT_NEAR(vector_true(i), vector_q(i), epsilon_f)) {
-				printf("%llu: Value of: Quaternion method 'rotate'\n", (unsigned long long)hrt_absolute_time());
+				printf("%llu: It[%d]: Value of: Quaternion method 'rotate'\n", (unsigned long long)hrt_absolute_time(), (int)i);
 				printf("Actual:  \t[%8.5f, %8.5f, %8.5f]\n", (double)vector_q(0), (double)vector_q(1), (double)vector_q(2));
 				printf("Expected: \t[%8.5f, %8.5f, %8.5f]\n", (double)vector_true(0), (double)vector_true(1), (double)vector_true(2));
 				++err_num;
@@ -506,7 +506,7 @@ int test_eigen(int argc, char *argv[]) {
 
 		for (size_t i = 0; i < 3; i++) {
 			if (!EXPECT_NEAR(vector_true(i), vector_q(i), epsilon_f)) {
-				printf("%llu: It[%d]: Value of: Quaternion method 'rotate'\n", (unsigned long long)hrt_absolute_time());
+				printf("%llu: It[%d]: Value of: Quaternion method 'rotate'\n", (unsigned long long)hrt_absolute_time(), (int)i);
 				printf("Actual:  \t[%8.5f, %8.5f, %8.5f]\n", (double)vector_q(0), (double)vector_q(1), (double)vector_q(2));
 				printf("Expected: \t[%8.5f, %8.5f, %8.5f]\n", (double)vector_true(0), (double)vector_true(1), (double)vector_true(2));
 				++err_num;
