@@ -45,7 +45,7 @@ UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node) :
 	UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", MAG_BASE_DEVICE_PATH, ORB_ID(sensor_mag)),
 	_sub_mag(node)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
+	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;     // <-- Why?
 
 	_scale.x_scale = 1.0F;
 	_scale.y_scale = 1.0F;
@@ -141,16 +141,16 @@ int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 	}
 }
 
-void UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer>
+void UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength>
 		&msg)
 {
 	lock();
 	_report.range_ga = 1.3F;   // Arbitrary number, doesn't really mean anything
 	_report.timestamp = msg.getMonotonicTimestamp().toUSec();
 
-	_report.x = (msg.magnetic_field[0] - _scale.x_offset) * _scale.x_scale;
-	_report.y = (msg.magnetic_field[1] - _scale.y_offset) * _scale.y_scale;
-	_report.z = (msg.magnetic_field[2] - _scale.z_offset) * _scale.z_scale;
+	_report.x = (msg.magnetic_field_ga[0] - _scale.x_offset) * _scale.x_scale;
+	_report.y = (msg.magnetic_field_ga[1] - _scale.y_offset) * _scale.y_scale;
+	_report.z = (msg.magnetic_field_ga[2] - _scale.z_offset) * _scale.z_scale;
 	unlock();
 
 	publish(msg.getSrcNodeID().get(), &_report);
