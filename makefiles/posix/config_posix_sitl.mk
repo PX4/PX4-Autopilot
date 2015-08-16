@@ -11,7 +11,7 @@ MODULES		+= drivers/pwm_out_sim
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/led
 MODULES		+= modules/sensors
-#MODULES	+= drivers/ms5611
+MODULES		+= drivers/ms5611
 
 #
 # System commands
