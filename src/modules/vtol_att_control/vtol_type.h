@@ -116,6 +116,10 @@ protected:
 	float _mc_pitch_weight;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight;	// weight for multicopter attitude controller yaw output
 
+	float _yaw_transition;	// yaw angle in which transition will take place
+	float _throttle_transition; // throttle value used for the transition phase
+	bool _flag_was_in_trans_mode;	// true if mode has just switched to transition
+
 };
 
 #endif
