@@ -97,7 +97,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_airspeed,0,sizeof(_airspeed));
 	memset(&_batt_status,0,sizeof(_batt_status));
 	memset(&_vehicle_cmd,0, sizeof(_vehicle_cmd));
-	memset(&_vehicle_transition_cmd,0, sizeof(_vehicle_cmd));
 
 	_params.idle_pwm_mc = PWM_LOWEST_MIN;
 	_params.vtol_motor_count = 0;
@@ -325,7 +324,33 @@ VtolAttitudeControl::vehicle_cmd_poll() {
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub , &_vehicle_cmd);
+		handle_command();
 	}
+}
+
+/**
+* Check received command
+*/
+void
+VtolAttitudeControl::handle_command() {
+	// update transition command if necessary
+	if (_vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+		_transition_command = int(_vehicle_cmd.param1 + 0.5f);
+	}
+}
+
+/*
+ * Returns true if fixed-wing mode is requested.
+ * Changed either via switch or via command.
+ */
+bool
+VtolAttitudeControl::is_fixed_wing_requested()
+{
+	bool to_fw = _manual_control_sp.aux1 > 0.0f;
+ 	if (_v_control_mode.flag_control_offboard_enabled) {
+ 		to_fw = _transition_command == vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+ 	}
+ 	return to_fw;
 }
 
 /**
@@ -502,11 +527,6 @@ void VtolAttitudeControl::task_main()
 		vehicle_battery_poll();
 		vehicle_cmd_poll();
 
-		// update transition command if necessary
-		if (_vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
-			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub , &_vehicle_transition_cmd);
-		}
-
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
 
@@ -514,10 +534,10 @@ void VtolAttitudeControl::task_main()
 		if (!_v_control_mode.flag_control_offboard_enabled)
 		{
 			if (_vtol_type->get_mode() == ROTARY_WING) {
-				_vehicle_transition_cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 			}
 			else if (_vtol_type->get_mode() == FIXED_WING) {
-				_vehicle_transition_cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 			}
 		}
 
