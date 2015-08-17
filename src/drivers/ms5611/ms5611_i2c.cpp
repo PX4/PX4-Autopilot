@@ -71,8 +71,8 @@ public:
 	virtual ~MS5611_I2C();
 
 	virtual int	init();
-	virtual int	read(unsigned offset, void *data, unsigned count);
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	virtual ssize_t	read(device::file_t *handlep, char *data, size_t count);
+	virtual int	ioctl(device::file_t *handlep, int cmd, unsigned long arg);
 
 #ifdef __PX4_NUTTX
 protected:
@@ -138,8 +138,8 @@ MS5611_I2C::init()
 	return I2C::init();
 }
 
-int
-MS5611_I2C::read(unsigned offset, void *data, unsigned count)
+ssize_t
+MS5611_I2C::read(device::file_t *handlep, char *data, size_t buflen)
 {
 	union _cvt {
 		uint8_t	b[4];
@@ -162,11 +162,11 @@ MS5611_I2C::read(unsigned offset, void *data, unsigned count)
 }
 
 int
-MS5611_I2C::ioctl(unsigned operation, unsigned &arg)
+MS5611_I2C::ioctl(device::file_t *handlep, int cmd, unsigned long arg)
 {
 	int ret;
 
-	switch (operation) {
+	switch (cmd) {
 	case IOCTL_RESET:
 		ret = _reset();
 		break;
