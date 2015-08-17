@@ -80,8 +80,6 @@ void cpuload_initialize_once()
 		system_load.tasks[i].valid = false;
 	}
 
-	uint64_t now = hrt_absolute_time();
-
 	int static_tasks_count = 2;	// there are at least 2 threads that should be initialized statically - "idle" and "init"
 
 #ifdef CONFIG_PAGING
@@ -96,7 +94,6 @@ void cpuload_initialize_once()
 
 	// perform static initialization of "system" threads
 	for (system_load.total_count = 0; system_load.total_count < static_tasks_count; system_load.total_count++) {
-		system_load.tasks[system_load.total_count].start_time = now;
 		system_load.tasks[system_load.total_count].total_runtime = 0;
 		system_load.tasks[system_load.total_count].curr_start_time = 0;
 		system_load.tasks[system_load.total_count].tcb = sched_gettcb(
@@ -113,7 +110,6 @@ void sched_note_start(FAR struct tcb_s *tcb)
 	for (i = 1; i < CONFIG_MAX_TASKS; i++) {
 		if (!system_load.tasks[i].valid) {
 			/* slot is available */
-			system_load.tasks[i].start_time = hrt_absolute_time();
 			system_load.tasks[i].total_runtime = 0;
 			system_load.tasks[i].curr_start_time = 0;
 			system_load.tasks[i].tcb = tcb;

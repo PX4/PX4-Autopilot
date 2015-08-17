@@ -72,6 +72,8 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address) :
 	_zero_counter(0),
 	_acquire_time_usec(0),
 	_pause_measurements(false),
+	_hw_version(0),
+	_sw_version(0),
 	_bus(bus)
 {
 	// up the retries since the device misses the first measure attempts
@@ -133,7 +135,7 @@ int LidarLiteI2C::init()
 							     &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic == nullptr) {
-			debug("failed to create distance_sensor object. Did you start uOrb?");
+			DEVICE_DEBUG("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -146,7 +148,30 @@ out:
 
 int LidarLiteI2C::read_reg(uint8_t reg, uint8_t &val)
 {
-	return transfer(&reg, 1, &val, 1);
+	return lidar_transfer(&reg, 1, &val, 1);
+}
+
+int LidarLiteI2C::write_reg(uint8_t reg, uint8_t val)
+{
+	const uint8_t cmd[2] = { reg, val };
+	return transfer(&cmd[0], 2, NULL, 0);
+}
+
+/*
+  LidarLite specific transfer() function that avoids a stop condition
+  with SCL low
+ */
+int LidarLiteI2C::lidar_transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+{
+	if (send != NULL && send_len > 0) {
+		int ret = transfer(send, send_len, NULL, 0);
+		if (ret != OK)
+			return ret;
+	}
+	if (recv != NULL && recv_len > 0) {
+		return transfer(NULL, 0, recv, recv_len);
+	}
+	return OK;
 }
 
 int LidarLiteI2C::probe()
@@ -158,28 +183,18 @@ int LidarLiteI2C::probe()
 	_retries = 10;
 
 	for (uint8_t i = 0; i < sizeof(addresses); i++) {
-		uint8_t who_am_i = 0, max_acq_count = 0;
-
-		// set the I2C bus address
-		set_address(addresses[i]);
-
-		/* register 2 defaults to 0x80. If this matches it is
-		   almost certainly a ll40ls */
-		if (read_reg(LL40LS_MAX_ACQ_COUNT_REG, max_acq_count) == OK && max_acq_count == 0x80) {
-			// very likely to be a ll40ls. This is the
-			// default max acquisition counter
+		/*
+		  check for hw and sw versions. It would be better if
+		  we had a proper WHOAMI register
+		 */
+		if (read_reg(LL40LS_HW_VERSION, _hw_version) == OK && _hw_version > 0 &&
+		    read_reg(LL40LS_SW_VERSION, _sw_version) == OK && _sw_version > 0) {
 			goto ok;
 		}
 
-		if (read_reg(LL40LS_WHO_AM_I_REG, who_am_i) == OK && who_am_i == LL40LS_WHO_AM_I_REG_VAL) {
-			// it is responding correctly to a
-			// WHO_AM_I. This works with older sensors (pre-production)
-			goto ok;
-		}
-
-		debug("probe failed reg11=0x%02x reg2=0x%02x\n",
-		      (unsigned)who_am_i,
-		      (unsigned)max_acq_count);
+		DEVICE_DEBUG("probe failed hw_version=0x%02x sw_version=0x%02x\n",
+			     (unsigned)_hw_version,
+			     (unsigned)_sw_version);
 	}
 
 	// not found on any address
@@ -187,9 +202,6 @@ int LidarLiteI2C::probe()
 
 ok:
 	_retries = 3;
-
-	// reset the sensor to ensure it is in a known state with
-	// correct settings
 	return reset_sensor();
 }
 
@@ -303,11 +315,11 @@ int LidarLiteI2C::measure()
 	 * Send the command to begin a measurement.
 	 */
 	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_ACQUIRE };
-	ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+	ret = lidar_transfer(cmd, sizeof(cmd), nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		debug("i2c::transfer returned %d", ret);
+		DEVICE_DEBUG("i2c::transfer returned %d", ret);
 
 		// if we are getting lots of I2C transfer errors try
 		// resetting the sensor
@@ -332,9 +344,14 @@ int LidarLiteI2C::measure()
  */
 int LidarLiteI2C::reset_sensor()
 {
-	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET };
-	int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
-	return ret;
+	int ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
+	if (ret != OK)
+		return ret;
+
+	// wait for sensor reset to complete
+	usleep(1000);
+
+	return OK;
 }
 
 /*
@@ -349,7 +366,7 @@ void LidarLiteI2C::print_registers()
 
 	for (uint8_t reg = 0; reg <= 0x67; reg++) {
 		uint8_t val = 0;
-		int ret = transfer(&reg, 1, &val, 1);
+		int ret = lidar_transfer(&reg, 1, &val, 1);
 
 		if (ret != OK) {
 			printf("%02x:XX ", (unsigned)reg);
@@ -377,17 +394,19 @@ int LidarLiteI2C::collect()
 	perf_begin(_sample_perf);
 
 	// read the high and low byte distance registers
-	uint8_t distance_reg = LL40LS_DISTHIGH_REG;
-	ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
+	uint8_t distance_reg = LL40LS_DISTHIGH_REG | LL40LS_AUTO_INCREMENT;
+	ret = lidar_transfer(&distance_reg, 1, &val[0], sizeof(val));
 
-	if (ret < 0) {
+	// if the transfer failed or if the high bit of distance is
+	// set then the distance is invalid
+	if (ret < 0 || (val[0] & 0x80)) {
 		if (hrt_absolute_time() - _acquire_time_usec > LL40LS_CONVERSION_TIMEOUT) {
 			/*
 			  NACKs from the sensor are expected when we
 			  read before it is ready, so only consider it
 			  an error if more than 100ms has elapsed.
 			 */
-			debug("error reading from sensor: %d", ret);
+			DEVICE_DEBUG("error reading from sensor: %d", ret);
 			perf_count(_comms_errors);
 
 			if (perf_event_count(_comms_errors) % 10 == 0) {
@@ -427,7 +446,8 @@ int LidarLiteI2C::collect()
 		_zero_counter = 0;
 	}
 
-	_last_distance = distance_m;
+	_last_distance = distance_cm;
+	
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
@@ -488,7 +508,7 @@ void LidarLiteI2C::cycle()
 
 		/* try a collection */
 		if (OK != collect()) {
-			debug("collection error");
+			DEVICE_DEBUG("collection error");
 
 			/* if we've been waiting more than 200ms then
 			   send a new acquire */
@@ -520,7 +540,7 @@ void LidarLiteI2C::cycle()
 	if (_collect_phase == false) {
 		/* measurement phase */
 		if (OK != measure()) {
-			debug("measure error");
+			DEVICE_DEBUG("measure error");
 
 		} else {
 			/* next phase is collection. Don't switch to

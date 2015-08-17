@@ -43,7 +43,6 @@
  * @author Thomas Gubler	<thomasgubler@gmail.com>
  *
  */
-
 #include "vtol_att_control_main.h"
 
 namespace VTOL_att_control
@@ -492,34 +491,34 @@ void VtolAttitudeControl::task_main()
 		if (_vtol_type->get_mode() == ROTARY_WING) {
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
-
-			_vtol_type->update_mc_state();
+			_vtol_vehicle_status.vtol_in_trans_mode = false;
 
 			// got data from mc attitude controller
 			if (fds[0].revents & POLLIN) {
 				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
 
-				_vtol_type->process_mc_data();
+				_vtol_type->update_mc_state();
 
 				fill_mc_att_rates_sp();
 			}
 		} else if (_vtol_type->get_mode() == FIXED_WING) {
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
-
-			_vtol_type->update_fw_state();
+			_vtol_vehicle_status.vtol_in_trans_mode = false;
 
 			// got data from fw attitude controller
 			if (fds[1].revents & POLLIN) {
 				orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 				vehicle_manual_poll();
 
-				_vtol_type->process_fw_data();
+				_vtol_type->update_fw_state();
 
 				fill_fw_att_rates_sp();
 			}
 		} else if (_vtol_type->get_mode() == TRANSITION) {
 			// vehicle is doing a transition
+			_vtol_vehicle_status.vtol_in_trans_mode = true;
+
 			bool got_new_data = false;
 			if (fds[0].revents & POLLIN) {
 				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
@@ -534,8 +533,6 @@ void VtolAttitudeControl::task_main()
 			// update transition state if got any new data
 			if (got_new_data) {
 				_vtol_type->update_transition_state();
-
-				_vtol_type->process_mc_data();
 				fill_mc_att_rates_sp();
 			}
 
@@ -544,6 +541,7 @@ void VtolAttitudeControl::task_main()
 			_vtol_type->update_external_state();
 		}
 
+		_vtol_type->fill_actuator_outputs();
 
 		/* Only publish if the proper mode(s) are enabled */
 		if(_v_control_mode.flag_control_attitude_enabled ||

@@ -358,7 +358,7 @@ Gimbal::cycle()
 	if (_control_cmd_set) {
 
 		unsigned mountMode = _control_cmd.param7;
-		debug("control_cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", _control_cmd.command, mountMode, (double)_control_cmd.param1, (double)_control_cmd.param2);
+		DEVICE_DEBUG("control_cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", _control_cmd.command, mountMode, (double)_control_cmd.param1, (double)_control_cmd.param2);
 
 		if (_control_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL &&
 			mountMode == vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
@@ -388,7 +388,7 @@ Gimbal::cycle()
 
 		struct actuator_controls_s controls;
 
-		// debug("publishing | roll: %8.4f pitch: %8.4f yaw: %8.4f", (double)roll, (double)pitch, (double)yaw);
+		// DEVICE_DEBUG("publishing | roll: %8.4f pitch: %8.4f yaw: %8.4f", (double)roll, (double)pitch, (double)yaw);
 
 		/* fill in the final control values */
 		controls.timestamp = hrt_absolute_time();

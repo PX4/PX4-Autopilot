@@ -16,6 +16,6 @@ fw_pos_control_l1 start
 
 #
 # Start Land Detector
-# Fixed wing for now until we have something for VTOL
+# Multicopter for now until we have something for VTOL
 #
-land_detector start fixedwing
+land_detector start multicopter

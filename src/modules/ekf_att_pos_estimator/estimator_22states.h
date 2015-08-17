@@ -139,6 +139,7 @@ public:
     Vector3f correctedDelVel; // delta velocities along the XYZ body axes corrected for errors (m/s)
     Vector3f summedDelAng; // summed delta angles about the xyz body axes corrected for errors (rad)
     Vector3f summedDelVel; // summed delta velocities along the XYZ body axes corrected for errors (m/s)
+    Vector3f prevDelAng;    ///< previous delta angle, used for coning correction
     float accNavMag; // magnitude of navigation accel (- used to adjust GPS obs variance (m/s^2)
     Vector3f earthRateNED; // earths angular rate vector in NED (rad/s)
     Vector3f angRate; // angular rate vector in XYZ body axes measured by the IMU (rad/s)

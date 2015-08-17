@@ -97,6 +97,8 @@ public:
 
 	void set_verbose(bool v) { _verbose = v; }
 
+	void check_active_mission(void);
+
 private:
 	enum MAVLINK_WPM_STATES _state;					///< Current state
 
@@ -107,9 +109,12 @@ private:
 	uint32_t		_retry_timeout;
 	unsigned		_max_count;				///< Maximum number of mission items
 
-	int			_dataman_id;				///< Dataman storage ID for active mission
-	unsigned		_count;					///< Count of items in active mission
-	int			_current_seq;				///< Current item sequence in active mission
+	static int		_dataman_id;				///< Global Dataman storage ID for active mission
+	int				_my_dataman_id;				///< class Dataman storage ID
+	static bool		_dataman_init;				///< Dataman initialized
+	
+	static unsigned		_count;					///< Count of items in active mission
+	static int			_current_seq;				///< Current item sequence in active mission
 
 	int			_transfer_dataman_id;			///< Dataman storage ID for current transmission
 	unsigned		_transfer_count;			///< Items count in current transmission
@@ -117,6 +122,7 @@ private:
 	unsigned		_transfer_current_seq;			///< Current item ID for current transmission (-1 means not initialized)
 	unsigned		_transfer_partner_sysid;		///< Partner system ID for current transmission
 	unsigned		_transfer_partner_compid;		///< Partner component ID for current transmission
+	static bool _transfer_in_progress;				///< Global variable checking for current transmission
 
 	int			_offboard_mission_sub;
 	int			_mission_result_sub;

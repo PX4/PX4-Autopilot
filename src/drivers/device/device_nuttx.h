@@ -54,6 +54,9 @@
 
 #include <nuttx/fs/fs.h>
 
+#define DEVICE_LOG(FMT, ...) PX4_LOG_NAMED(_name, FMT, ##__VA_ARGS__)
+#define DEVICE_DEBUG(FMT, ...) PX4_LOG_NAMED_COND(_name, _debug_enabled, FMT, ##__VA_ARGS__)
+
 /**
  * Namespace encapsulating all device framework classes, functions and data.
  */
@@ -196,22 +199,6 @@ protected:
 	void		unlock() {
 		sem_post(&_lock);
 	}
-
-	/**
-	 * Log a message.
-	 *
-	 * The message is prefixed with the driver name, and followed
-	 * by a newline.
-	 */
-	void		log(const char *fmt, ...);
-
-	/**
-	 * Print a debug message.
-	 *
-	 * The message is prefixed with the driver name, and followed
-	 * by a newline.
-	 */
-	void		debug(const char *fmt, ...);
 
 private:
 	int		_irq;
