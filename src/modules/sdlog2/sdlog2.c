@@ -520,7 +520,11 @@ int open_log_file()
 		}
 	}
 
+#ifdef __PX4_NUTTX
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
+#else
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, PX4_O_MODE_666);
+#endif
 
 	if (fd < 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
@@ -568,7 +572,11 @@ int open_perf_file(const char* str)
 		}
 	}
 
+#ifdef __PX4_NUTTX
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
+#else
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0x0777);
+#endif
 
 	if (fd < 0) {
 		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);

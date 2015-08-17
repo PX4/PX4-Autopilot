@@ -1714,6 +1714,8 @@ Mavlink::task_main(int argc, char *argv[])
 		hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
+		
+		_mission_manager->check_active_mission();
 
 		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
