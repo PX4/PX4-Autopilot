@@ -799,7 +799,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		mission_item->actuator_num = mavlink_mission_item->param1;
 		mission_item->actuator_value = mavlink_mission_item->param2;
-		mission_item->autocontinue = true;
 		mission_item->time_inside=0.0f;
 		break;
 
