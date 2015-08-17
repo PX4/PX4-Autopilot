@@ -158,7 +158,7 @@ void Tiltrotor::update_vtol_state()
 	 * forward completely. For the backtransition the motors simply rotate back.
  	*/
 
-	if (!is_fixed_wing_requested()) {
+	if (!_attc->is_fixed_wing_requested()) {
 
 		// plane is in multicopter mode
 		switch(_vtol_schedule.flight_mode) {

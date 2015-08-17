@@ -87,8 +87,6 @@ public:
 
 	mode get_mode () {return _vtol_mode;};
 
-	bool is_fixed_wing_requested();
-
 protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;
@@ -109,7 +107,6 @@ protected:
 	struct vehicle_local_position_s		*_local_pos;
 	struct airspeed_s 					*_airspeed;			// airspeed
 	struct battery_status_s 			*_batt_status; 		// battery status
-	struct vehicle_command_s			*_vehicle_transition_cmd;
 
 	struct Params 						*_params;
 

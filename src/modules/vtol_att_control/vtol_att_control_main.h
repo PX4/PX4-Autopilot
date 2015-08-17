@@ -117,7 +117,6 @@ public:
 	struct vehicle_local_position_s* 	get_local_pos () {return &_local_pos;}
 	struct airspeed_s* 					get_airspeed () {return &_airspeed;}
 	struct battery_status_s* 			get_batt_status () {return &_batt_status;}
-	struct vehicle_command_s*			get_vehicle_transition_cmd () {return &_vehicle_transition_cmd;}
 
 	struct Params* 						get_params () {return &_params;}
 
@@ -167,7 +166,6 @@ private:
 	struct airspeed_s 					_airspeed;			// airspeed
 	struct battery_status_s 			_batt_status; 		// battery status
 	struct vehicle_command_s			_vehicle_cmd;
-	struct vehicle_command_s			_vehicle_transition_cmd; // stores transition commands only
 
 	Params _params;	// struct holding the parameters
 
@@ -191,6 +189,7 @@ private:
 	 * to waste energy when gliding. */
 	unsigned _motor_count;	// number of motors
 	float _airspeed_tot;
+	int _transition_command;
 
 	VtolType * _vtol_type;	// base class for different vtol types
 	Tiltrotor * _tiltrotor;	// tailsitter vtol type
@@ -217,6 +216,7 @@ private:
 	int 		parameters_update();			//Update local paraemter cache
 	void 		fill_mc_att_rates_sp();
 	void 		fill_fw_att_rates_sp();
+	void		handle_command();
 };
 
 #endif
