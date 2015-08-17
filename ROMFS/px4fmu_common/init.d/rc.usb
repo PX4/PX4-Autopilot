@@ -22,6 +22,7 @@ mavlink stream -d /dev/ttyACM0 -s MANUAL_CONTROL -r 5
 mavlink stream -d /dev/ttyACM0 -s HIGHRES_IMU -r 100
 mavlink stream -d /dev/ttyACM0 -s GPS_RAW_INT -r 20
 mavlink stream -d /dev/ttyACM0 -s CAMERA_TRIGGER -r 500
+mavlink stream -d /dev/ttyACM0 -s VTOL_STATE -r 2
 
 # Exit shell to make it available to MAVLink
 exit
