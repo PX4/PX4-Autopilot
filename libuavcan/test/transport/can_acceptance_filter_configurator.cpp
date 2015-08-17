@@ -13,7 +13,7 @@
 #include <uavcan/equipment/air_data/Sideslip.hpp>
 #include <uavcan/equipment/air_data/TrueAirspeed.hpp>
 #include <uavcan/equipment/air_data/AngleOfAttack.hpp>
-#include <uavcan/equipment/ahrs/AHRS.hpp>
+#include <uavcan/equipment/ahrs/Solution.hpp>
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
 #include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
 #include <uavcan/node/service_client.hpp>
@@ -84,7 +84,7 @@ TEST(CanAcceptanceFilter, Basic_test)
     uavcan::DefaultDataTypeRegistrator<uavcan::equipment::air_data::Sideslip> _reg2;
     uavcan::DefaultDataTypeRegistrator<uavcan::equipment::air_data::TrueAirspeed> _reg3;
     uavcan::DefaultDataTypeRegistrator<uavcan::equipment::air_data::AngleOfAttack> _reg4;
-    uavcan::DefaultDataTypeRegistrator<uavcan::equipment::ahrs::AHRS> _reg5;
+    uavcan::DefaultDataTypeRegistrator<uavcan::equipment::ahrs::Solution> _reg5;
     uavcan::DefaultDataTypeRegistrator<uavcan::equipment::air_data::StaticPressure> _reg6;
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::file::BeginFirmwareUpdate> _reg7;
 
@@ -100,8 +100,8 @@ TEST(CanAcceptanceFilter, Basic_test)
                        SubscriptionListener<uavcan::equipment::air_data::TrueAirspeed>::ExtendedBinder> sub_3(node);
     uavcan::Subscriber<uavcan::equipment::air_data::AngleOfAttack,
                        SubscriptionListener<uavcan::equipment::air_data::AngleOfAttack>::ExtendedBinder> sub_4(node);
-    uavcan::Subscriber<uavcan::equipment::ahrs::AHRS,
-                       SubscriptionListener<uavcan::equipment::ahrs::AHRS>::ExtendedBinder> sub_5(node);
+    uavcan::Subscriber<uavcan::equipment::ahrs::Solution,
+                       SubscriptionListener<uavcan::equipment::ahrs::Solution>::ExtendedBinder> sub_5(node);
     uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure,
                        SubscriptionListener<uavcan::equipment::air_data::StaticPressure>::ExtendedBinder> sub_6(node);
     uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure,
@@ -112,7 +112,7 @@ TEST(CanAcceptanceFilter, Basic_test)
     SubscriptionListener<uavcan::equipment::air_data::Sideslip> listener_2;
     SubscriptionListener<uavcan::equipment::air_data::TrueAirspeed> listener_3;
     SubscriptionListener<uavcan::equipment::air_data::AngleOfAttack> listener_4;
-    SubscriptionListener<uavcan::equipment::ahrs::AHRS> listener_5;
+    SubscriptionListener<uavcan::equipment::ahrs::Solution> listener_5;
     SubscriptionListener<uavcan::equipment::air_data::StaticPressure> listener_6;
 
     sub_1.start(listener_1.bindExtended());
