@@ -67,17 +67,17 @@ TEST(Time, Utc)
     using uavcan::Timestamp;
 
     Timestamp ts;
-    ts.husec = 90;
+    ts.usec = 9000;
 
     UtcTime u1(ts);
     ASSERT_EQ(9000, u1.toUSec());
 
-    ts.husec *= 2;
+    ts.usec *= 2;
     u1 = ts;
     ASSERT_EQ(18000, u1.toUSec());
 
     ts = UtcTime::fromUSec(12345678900);
-    ASSERT_EQ(123456789, ts.husec);
+    ASSERT_EQ(12345678900, ts.usec);
 
     /*
      * To string

@@ -200,14 +200,14 @@ public:
 
     UtcTime& operator=(const Timestamp& ts)
     {
-        *this = fromUSec(ts.husec * Timestamp::USEC_PER_LSB);
+        *this = fromUSec(ts.usec);
         return *this;
     }
 
     operator Timestamp() const
     {
         Timestamp ts;
-        ts.husec = toUSec() / Timestamp::USEC_PER_LSB;
+        ts.usec = toUSec();
         return ts;
     }
 };

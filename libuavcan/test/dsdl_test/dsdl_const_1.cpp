@@ -14,6 +14,5 @@ TEST(DsdlConst1, Timestamp)
 {
     using uavcan::Timestamp;
 
-    std::cout << &Timestamp::USEC_PER_LSB << std::endl;
     std::cout << &Timestamp::UNKNOWN << std::endl;
 }
