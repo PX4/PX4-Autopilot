@@ -65,7 +65,7 @@ public:
         return BaseType::publish(message, TransferTypeMessageBroadcast, NodeID::Broadcast, tid);
     }
 
-    static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(10); }
+    static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(100); }
 
     /**
      * Init method can be called prior first publication, but it's not necessary
