@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file position_estimator_inav_params.c
+ * @brief Parameters for position_estimator_inav
  *
  * @author Anton Babushkin <rk3dov@gmail.com>
- *
- * Parameters definition for position_estimator_inav
- */
+ **/
 
 #include <systemlib/param/param.h>
 
@@ -96,13 +95,14 @@ struct position_estimator_inav_param_handles {
 #define CBRK_NO_VISION_KEY	328754
 
 /**
- * Initialize all parameter handles and values
+ * @brief Initialize all parameter handles and values
  *
  */
 int inav_parameters_init(struct position_estimator_inav_param_handles *h);
 
 /**
- * Update all parameters
+ * @brief Update all parameters
  *
  */
-int inav_parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p);
+int inav_parameters_update(const struct position_estimator_inav_param_handles *h,
+			   struct position_estimator_inav_params *p);

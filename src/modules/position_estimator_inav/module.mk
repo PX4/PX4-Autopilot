@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,17 +32,25 @@
 ############################################################################
 
 #
-# Makefile to build position_estimator_inav
+# @brief Makefile to build position_estimator_inav
 #
-
+# @author Anton Babushkin <rk3dov@gmail.com>
+# @author Nuno Marques <n.marques21@hotmail.com>
+#
 MODULE_COMMAND	 	= position_estimator_inav
-SRCS		 	= position_estimator_inav_main.c \
+SRCS		 	= position_estimator_inav_main.cpp \
 			position_estimator_inav_params.c \
-			inertial_filter.c
+			inertial_filter.cpp
 
 MODULE_STACKSIZE = 1200
 
-ifeq ($(PX4_TARGEGT_OS),nuttx)
-EXTRACFLAGS = -Wframe-larger-than=3800
+EXTRACXXFLAGS = -Wno-float-equal
+
+ifneq ($(USE_GCC), 0)
+EXTRACXXFLAGS += -Wno-double-promotion -Wno-error=logical-op -w
+else EXTRACXXFLAGS += -Wno-unknown-warning-option
 endif
 
+ifeq ($(PX4_TARGET_OS),nuttx)
+EXTRACXXFLAGS += -Wframe-larger-than=3800
+endif

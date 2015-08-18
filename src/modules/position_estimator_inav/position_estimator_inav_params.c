@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,11 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file position_estimator_inav_params.c
+ * @brief Parameters for position_estimator_inav
  *
  * @author Anton Babushkin <rk3dov@gmail.com>
- *
- * Parameters for position_estimator_inav
  */
 
 #include "position_estimator_inav_params.h"
@@ -150,7 +149,7 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_VIS_V, 0.0f);
  * @group Position Estimator INAV
  */
 
- PARAM_DEFINE_FLOAT(INAV_W_MOC_P, 10.0f);
+PARAM_DEFINE_FLOAT(INAV_W_MOC_P, 10.0f);
 
 /**
  * XY axis weight for optical flow
@@ -342,7 +341,8 @@ int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 	return 0;
 }
 
-int inav_parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p)
+int inav_parameters_update(const struct position_estimator_inav_param_handles *h,
+			   struct position_estimator_inav_params *p)
 {
 	param_get(h->w_z_baro, &(p->w_z_baro));
 	param_get(h->w_z_gps_p, &(p->w_z_gps_p));

@@ -34,7 +34,7 @@
 /**
  * @file test_eigen.cpp
  *
- * Eigen test (based of mathlib test)
+ * @brief Eigen test (based of mathlib test)
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
@@ -66,7 +66,7 @@ const float epsilon_f = 1E-4;
 uint8_t err_num;
 
 #define TEST_OP(_title, _op)															\
-	{																						\
+	{																												\
 		const hrt_abstime t0 = hrt_absolute_time();						\
 		for (size_t j = 0; j < OPERATOR_ITERATIONS; j++) {									\
 			_op;																			\
@@ -87,13 +87,13 @@ uint8_t err_num;
 	VERIFY_OP(_title, _op, __OP_TEST__)												\
 	TEST_OP(_title, _op)
 
-#define EXPECT_QUATERNION(q_exp, q_act, epsilon)	\
-	(fabsf(q_exp.x() - q_act.x()) <= epsilon &&			\
-	fabsf(q_exp.y() - q_act.y()) <= epsilon && 			\
-	fabsf(q_exp.z() - q_act.z()) <= epsilon &&			\
+#define EXPECT_QUATERNION(q_exp, q_act, epsilon)										\
+	(fabsf(q_exp.x() - q_act.x()) <= epsilon &&											\
+	fabsf(q_exp.y() - q_act.y()) <= epsilon && 											\
+	fabsf(q_exp.z() - q_act.z()) <= epsilon &&											\
 	fabsf(q_exp.w() - q_act.w()) <= epsilon)
 
-#define EXPECT_NEAR(expected, actual, epsilon)		\
+#define EXPECT_NEAR(expected, actual, epsilon)											\
 	(fabsf(expected - actual) <= epsilon)
 
 /**
@@ -118,7 +118,7 @@ void printEigen(const Eigen::MatrixBase<T> &b)
 	}
 }
 
-// Methods definition
+// Methods prototypes
 Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy);
 Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q);
 Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy);
