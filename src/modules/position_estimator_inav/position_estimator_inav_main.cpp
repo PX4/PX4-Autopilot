@@ -249,9 +249,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	Tensor<float, 3> est_buf(EST_BUF_SIZE, 3, 2);	// estimated position buffer
 	Tensor<float, 3> R_buf(EST_BUF_SIZE, 3, 3);	// rotation matrix buffer
-	for(int i = 0; i <= 17; i++)
+	for(int i = 0; i < EST_BUF_SIZE*3*2; i++)
 		est_buf(i) = 0.0f;
-	for(int i = 0; i <= 26; i++)
+	for(int i = 0; i < EST_BUF_SIZE*3*3; i++)
 		R_buf(i) = 0.0f;
 	Matrix3f R_gps = Matrix3f::Zero();				// rotation matrix for GPS correction moment
 	int buf_ptr = 0;
