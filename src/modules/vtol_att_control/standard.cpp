@@ -105,7 +105,7 @@ void Standard::update_vtol_state()
 	 * For the back transition the pusher motor is immediately stopped and rotors reactivated.
  	 */
 
-	if (_manual_control_sp->aux1 < 0.0f) {
+	if (!_attc->is_fixed_wing_requested()) {
 		// the transition to fw mode switch is off
 		if (_vtol_schedule.flight_mode == MC_MODE) {
 			// in mc mode
@@ -128,8 +128,11 @@ void Standard::update_vtol_state()
 			_mc_yaw_weight = 1.0f;
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
-			// keep transitioning to mc mode
-			_vtol_schedule.flight_mode = MC_MODE;
+			// transition to MC mode if transition time has passed
+			if (hrt_elapsed_time(&_vtol_schedule.transition_start) >
+					(_params_standard.back_trans_dur * 1000000.0f)) {
+				_vtol_schedule.flight_mode = MC_MODE;
+			}
 		}
 
 		// the pusher motor should never be powered when in or transitioning to mc mode
