@@ -10,11 +10,11 @@
 set UAVCAN_ENABLE 0
 if param compare UAVCAN_ENABLE 1
 then
-    set UAVCAN_ENABLE 1
+	set UAVCAN_ENABLE 1
 fi
 if param compare UAVCAN_ENABLE 2
 then
-    set UAVCAN_ENABLE 2
+	set UAVCAN_ENABLE 2
 fi
 
 echo "[i] UAVCAN_ENABLE is $UAVCAN_ENABLE"
@@ -26,9 +26,6 @@ if [ $UAVCAN_ENABLE -ge 1 ]
 then
 	if uavcan start
 	then
-		# First sensor publisher to initialize takes lowest instance ID
-		# This delay ensures that UAVCAN-interfaced sensors would be allocated on lowest instance IDs
-		sleep 1
 		echo "[i] UAVCAN started"
 	else
 		echo "[i] ERROR: Could not start UAVCAN"
@@ -38,11 +35,15 @@ fi
 
 if [ $UAVCAN_ENABLE -ge 2 ]
 then
-        if uavcan start fw
-        then
-                echo "[i] UAVCAN servers started"
-        else
-                echo "[i] ERROR: Could not start UAVCAN servers"
-                tone_alarm $TUNE_ERR
-        fi
+	if uavcan start fw
+	then
+		echo "[i] UAVCAN servers started"
+	else
+		echo "[i] ERROR: Could not start UAVCAN servers"
+		tone_alarm $TUNE_ERR
+	fi
 fi
+
+# First sensor publisher to initialize takes lowest instance ID
+# This delay ensures that UAVCAN-interfaced sensors will be allocated on lowest instance IDs
+sleep 8
