@@ -189,36 +189,36 @@ size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version)
  *   None
  *
  ****************************************************************************/
-#define led(n, code, r , g , b, h) {.red = (r),.green = (g), .blue = (b),.hz = (h)}
+#define led(code, a, b, c, h) {.led_a = (a), .led_b = (b), .led_c = (c), .hz = (h)}
 
 typedef struct packed_struct led_t {
-	uint16_t red    :       5;
-	uint16_t green  :       6;
-	uint16_t blue   :       5;
+	bool led_a;
+	bool led_b;
+	bool led_c;
 	uint8_t hz;
 } led_t;
 
-static const  led_t i2l[] = {
+static const led_t i2l[] = {
 
-        led(0, off,                             0,    0,    0,     0),
-        led(1, reset,                          10,   63,   31,   255),
-        led(2, autobaud_start,                  0,   63,    0,     1),
-        led(3, autobaud_end,                    0,   63,    0,     2),
-        led(4, allocation_start,                0,    0,   31,     2),
-        led(5, allocation_end,                  0,   63,   31,     3),
-        led(6, fw_update_start,                15,   63,   31,     3),
-        led(7, fw_update_erase_fail,           15,   63,   15,     3),
-        led(8, fw_update_invalid_response,     31,    0,    0,     1),
-        led(9, fw_update_timeout,              31,    0,    0,     2),
-        led(a, fw_update_invalid_crc,          31,    0,    0,     4),
-        led(b, jump_to_app,                     0,   63,    0,    10),
+        led(off,                            0, 0, 0,   0),
+        led(reset,                          1, 1, 1, 255),
+        led(autobaud_start,                 0, 1, 0, 255),
+        led(autobaud_end,                   0, 1, 1, 255),
+        led(allocation_start,               1, 0, 0, 255),
+        led(allocation_end,                 1, 0, 1, 255),
+        led(fw_update_start,                1, 1, 0, 255),
+        led(fw_update_erase_fail,           0, 0, 1,   5),
+        led(fw_update_invalid_response,     0, 1, 0,   5),
+        led(fw_update_timeout,              0, 1, 1,   5),
+        led(fw_update_invalid_crc,          1, 0, 0,   5),
+        led(jump_to_app,                    1, 1, 1,   1),
 
 };
 
 void board_indicate(uiindication_t indication)
 {
-	rgb_led(i2l[indication].red << 3,
-		i2l[indication].green << 2,
-		i2l[indication].blue << 3,
+	set_leds(i2l[indication].led_a,
+		i2l[indication].led_b,
+		i2l[indication].led_c,
 		i2l[indication].hz);
 }

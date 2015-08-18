@@ -24,7 +24,7 @@ class AppDescriptor(object):
     uint64_t signature (bytes [7:0] set to 'APDesc00' by linker script)
     uint64_t image_crc (set to 0 by linker script)
     uint32_t image_size (set to 0 by linker script)
-    uint32_t vcs_commit (TODO: make its overriding optional)
+    uint32_t vcs_commit (set in source or by this tool)
     uint8_t version_major (set in source)
     uint8_t version_minor (set in source)
     uint8_t reserved[6] (set to 0xFF by linker script)
@@ -208,6 +208,8 @@ class FirmwareImage(object):
                     break
             # Go back to the previous position
             self._contents.seek(prev_offset)
+            if not self._descriptor_offset:
+                raise Exception('AppDescriptor not found')
 
         return self._descriptor_offset
 

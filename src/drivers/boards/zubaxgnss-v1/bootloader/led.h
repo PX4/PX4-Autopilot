@@ -31,8 +31,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #include <systemlib/visibility.h>
+#include <stdbool.h>
 
 __BEGIN_DECLS
-void rgb_led(int r, int g , int b, int freqs);
+void set_leds(bool a, bool b, bool c, int freqs);
 __END_DECLS
