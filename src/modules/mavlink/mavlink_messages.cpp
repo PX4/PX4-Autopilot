@@ -2374,7 +2374,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamVtolState(MavlinkStreamVtolState &);
-	MavlinkStreamVtolState& operator = (const MavlinkStreamVtolState &);
+	MavlinkStreamVtolState &operator = (const MavlinkStreamVtolState &);
 
 protected:
 	explicit MavlinkStreamVtolState(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -2388,25 +2388,25 @@ protected:
 		if (_status_sub->update(&status)) {
 			mavlink_vtol_state_t msg;
 
-			if (status.is_vtol)
-			{
-				if (status.is_rotary_wing)
-				{
+			if (status.is_vtol) {
+				if (status.is_rotary_wing) {
 					if (status.in_transition_mode) {
 						msg.state = MAV_VTOL_STATE_TRANSITION_TO_FW;
+
 					} else {
 						msg.state = MAV_VTOL_STATE_MC;
 					}
-				}
-				else {
+
+				} else {
 					if (status.in_transition_mode) {
 						msg.state = MAV_VTOL_STATE_TRANSITION_TO_MC;
+
 					} else {
 						msg.state = MAV_VTOL_STATE_FW;
 					}
 				}
-			}
-			else {
+
+			} else {
 				msg.state = MAV_VTOL_STATE_UNDEFINED;
 			}
 
