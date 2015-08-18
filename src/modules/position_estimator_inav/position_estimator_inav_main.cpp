@@ -247,12 +247,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	Vector2f y_est = {0.0f, 0.0f};	// pos, vel
 	Vector2f z_est = {0.0f, 0.0f};	// pos, vel
 
-	Tensor<float, 3> est_buf(EST_BUF_SIZE, 3, 2);	// estimated position buffer
-	Tensor<float, 3> R_buf(EST_BUF_SIZE, 3, 3);	// rotation matrix buffer
-	for(int i = 0; i < EST_BUF_SIZE*3*2; i++)
-		est_buf(i) = 0.0f;
-	for(int i = 0; i < EST_BUF_SIZE*3*3; i++)
-		R_buf(i) = 0.0f;
+	Tensor<float, 3, RowMajor> est_buf(EST_BUF_SIZE, 3, 2);	// estimated position buffer
+	Tensor<float, 3, RowMajor> R_buf(EST_BUF_SIZE, 3, 3);	// rotation matrix buffer
+	est_buf.setZero();
+	R_buf.setZero();
 	Matrix3f R_gps = Matrix3f::Zero();				// rotation matrix for GPS correction moment
 	int buf_ptr = 0;
 
@@ -1200,8 +1198,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* push current rotation matrix to buffer */
 			Matrix3f att_R;
 			att_R << att.R[0], att.R[1], att.R[2],
-							 att.R[3], att.R[4], att.R[5],
-							 att.R[6], att.R[7], att.R[8];
+				 att.R[3], att.R[4], att.R[5],
+				 att.R[6], att.R[7], att.R[8];
 
 			for (int i = 0; i <= 2; i++)
 				for (int j = 0; j <= 2; j++) {
