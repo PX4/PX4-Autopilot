@@ -205,13 +205,13 @@ static void write_debug_log(const char *msg, float dt, Vector2f x_est, Vector2f 
 		unsigned n = snprintf(s, 256,
 			"%llu %s\n\tdt=%.5f x_est=[%.5f %.5f] y_est=[%.5f %.5f] z_est=[%.5f %.5f] x_est_prev=[%.5f %.5f] y_est_prev=[%.5f %.5f] z_est_prev=[%.5f %.5f]\n",
 			(unsigned long long)hrt_absolute_time(), msg, (double)dt,
-			(double)x_est(0), (double)x_est(1), (double)y_est(0), (double)y_est(1), (double)z_est(0), (double)z_est(1),
-			(double)x_est_prev(0), (double)x_est_prev(1), (double)y_est_prev(0), (double)y_est_prev(1), (double)z_est_prev(0),
-			(double)z_est_prev(1));
+			(double)x_est[0], (double)x_est[1], (double)y_est[0], (double)y_est[1], (double)z_est[0], (double)z_est[1],
+			(double)x_est_prev[0], (double)x_est_prev[1], (double)y_est_prev[0], (double)y_est_prev[1], (double)z_est_prev[0],
+			(double)z_est_prev[1]);
 		fwrite(s, 1, n, f);
 		n = snprintf(s, 256,
 			"\tacc=[%.5f %.5f %.5f] gps_pos_corr=[%.5f %.5f %.5f] gps_vel_corr=[%.5f %.5f %.5f] w_xy_gps_p=%.5f w_xy_gps_v=%.5f mocap_pos_corr=[%.5f %.5f %.5f] w_mocap_p=%.5f\n",
-			(double)acc(0), (double)acc(1), (double)acc(2),
+			(double)acc[0], (double)acc[1], (double)acc[2],
 			(double)corr_gps(0, 0), (double)corr_gps(1, 0), (double)corr_gps(2, 0), (double)corr_gps(0, 1), (double)corr_gps(1, 1),
 			(double)corr_gps(2, 1),
 			(double)w_xy_gps_p, (double)w_xy_gps_v, (double)corr_mocap(0, 0), (double)corr_mocap(1, 0), (double)corr_mocap(2, 0),
@@ -249,7 +249,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	Tensor<float, 3> est_buf(EST_BUF_SIZE, 3, 2);	// estimated position buffer
 	Tensor<float, 3> R_buf(EST_BUF_SIZE, 3, 3);	// rotation matrix buffer
-	Matrix3f R_gps;				// rotation matrix for GPS correction moment
+	for(int i = 0; i <= 17; i++)
+		est_buf(i) = 0.0f;
+	for(int i = 0; i <= 26; i++)
+		R_buf(i) = 0.0f;
+	Matrix3f R_gps = Matrix3f::Zero();				// rotation matrix for GPS correction moment
 	int buf_ptr = 0;
 
 	static const float min_eph_epv = 2.0f;	// min EPH/EPV, used for weight calculation
@@ -266,9 +270,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float eph_mocap = 0.05f;
 	float epv_mocap = 0.05f;
 
-	Vector2f x_est_prev(0.0f, 0.0f);
-	Vector2f y_est_prev(0.0f, 0.0f);
-	Vector2f z_est_prev(0.0f, 0.0f);
+	Vector2f x_est_prev = {0.0f, 0.0f};
+	Vector2f y_est_prev = {0.0f, 0.0f};
+	Vector2f z_est_prev = {0.0f, 0.0f};
 
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
@@ -300,8 +304,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	hrt_abstime t_prev = 0;
 
 /* store error when sensor updates, but correct on each time step to avoid jumps in estimated value */
-	Vector3f acc(0.0f, 0.0f, 0.0f);	// N E D
-	Vector3f acc_bias(0.0f, 0.0f, 0.0f);	// body frame
+	Vector3f acc = {0.0f, 0.0f, 0.0f};	// N E D
+	Vector3f acc_bias = {0.0f, 0.0f, 0.0f};	// body frame
 	float corr_baro = 0.0f;	// D
 	MatrixXf corr_gps = MatrixXf::Zero(3, 2);	// NED (pos,vel)
 	float w_gps_xy = 1.0f;
@@ -313,7 +317,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float corr_sonar = 0.0f;
 	float corr_sonar_filtered = 0.0f;
 
-	Vector2f corr_flow(0.0f, 0.0f);	// N E
+	Vector2f corr_flow = {0.0f, 0.0f};	// N E
 	float w_flow = 0.0f;
 
 	float sonar_prev = 0.0f;
@@ -475,9 +479,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (sensor.accelerometer_timestamp != accel_timestamp) {
 					if (att.R_valid) {
 						/* correct accel bias */
-						sensor.accelerometer_m_s2[0] -= acc_bias(0);
-						sensor.accelerometer_m_s2[1] -= acc_bias(1);
-						sensor.accelerometer_m_s2[2] -= acc_bias(2);
+						sensor.accelerometer_m_s2[0] -= acc_bias[0];
+						sensor.accelerometer_m_s2[1] -= acc_bias[1];
+						sensor.accelerometer_m_s2[2] -= acc_bias[2];
 
 						/* transform acceleration vector from body frame to NED frame */
 						for (int i = 0; i < 3; i++) {
@@ -488,7 +492,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							}
 						}
 
-						acc(2) += CONSTANTS_ONE_G;
+						acc[2] += CONSTANTS_ONE_G;
 					} else {
 						acc = {0.0f, 0.0f, 0.0f};
 					}
@@ -498,7 +502,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 
 				if (sensor.baro_timestamp != baro_timestamp) {
-					corr_baro = baro_offset - sensor.baro_alt_meter - z_est(0);
+					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
 					baro_timestamp = sensor.baro_timestamp;
 					baro_updates++;
 				}
@@ -520,7 +524,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					(fabsf(flow.ground_distance_m - sonar_prev) > FLT_EPSILON)) {
 					sonar_time = t;
 					sonar_prev = flow.ground_distance_m;
-					corr_sonar = flow.ground_distance_m + surface_offset + z_est(0);
+					corr_sonar = flow.ground_distance_m + surface_offset + z_est[0];
 					corr_sonar_filtered += (corr_sonar - corr_sonar_filtered) * params.sonar_filt;
 
 					if (fabsf(corr_sonar) > params.sonar_err) {
@@ -548,7 +552,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 
 				float flow_q = flow.quality / 255.0f;
-				float dist_bottom = -z_est(0) - surface_offset;
+				float dist_bottom = -z_est[0] - surface_offset;
 
 				if (dist_bottom > 0.3f && flow_q > params.flow_q_min && (t < sonar_valid_time + sonar_valid_timeout)
 					&& PX4_R(att.R, 2, 2) > 0.7f) {
@@ -556,27 +560,27 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					float flow_dist = dist_bottom / PX4_R(att.R, 2, 2);
 					/* check if flow if too large for accurate measurements */
 					/* calculate estimated velocity in body frame */
-					Vector2f body_v_est(0.0f, 0.0f);
+					Vector2f body_v_est = {0.0f, 0.0f};
 
 					for (int i = 0; i < 2; i++) {
-						body_v_est(i) = PX4_R(att.R, 0, i) * x_est(1) + PX4_R(att.R, 1, i) * y_est(1) + PX4_R(att.R, 2, i) * z_est(1);
+						body_v_est[i] = PX4_R(att.R, 0, i) * x_est[1] + PX4_R(att.R, 1, i) * y_est[1] + PX4_R(att.R, 2, i) * z_est[1];
 					}
 
 					/* set this flag if flow should be accurate according to current velocity and attitude rate estimate */
-					flow_accurate = fabsf(body_v_est(1) / flow_dist - att.rollspeed) < max_flow &&
-						fabsf(body_v_est(0) / flow_dist + att.pitchspeed) < max_flow;
+					flow_accurate = fabsf(body_v_est[1] / flow_dist - att.rollspeed) < max_flow &&
+						fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow;
 
 					/* convert raw flow to angular flow (rad/s) */
 					Vector2f flow_ang;
 					//todo check direction of x und y axis
-					flow_ang(0) = flow.pixel_flow_x_integral / (float)flow.integration_timespan *
+					flow_ang[0] = flow.pixel_flow_x_integral / (float)flow.integration_timespan *
 						1000000.0f;	//flow.flow_raw_x * params.flow_k / 1000.0f / flow_dt;
-					flow_ang(1) = flow.pixel_flow_y_integral / (float)flow.integration_timespan *
+					flow_ang[1] = flow.pixel_flow_y_integral / (float)flow.integration_timespan *
 						1000000.0f;	//flow.flow_raw_y * params.flow_k / 1000.0f / flow_dt;
 					/* flow measurements vector */
-					Vector3f flow_m(-flow_ang(0) * flow_dist, -flow_ang(1) * flow_dist, z_est(1));
+					Vector3f flow_m(-flow_ang[0] * flow_dist, -flow_ang[1] * flow_dist, z_est[1]);
 					/* velocity in NED */
-					Vector2f flow_v(0.0f, 0.0f);
+					Vector2f flow_v = {0.0f, 0.0f};
 
 					/* project measurements vector to NED basis, skip Z component */
 					for (int i = 0; i < 2; i++) {
@@ -586,8 +590,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 					/* velocity correction */
-					corr_flow(0) = flow_v(0) - x_est(1);
-					corr_flow(1) = flow_v(1) - y_est(1);
+					corr_flow[0] = flow_v[0] - x_est[1];
+					corr_flow[1] = flow_v[1] - y_est[1];
 					/* adjust correction weight */
 					float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);
 					w_flow = PX4_R(att.R, 2, 2) * flow_q_weight / fmaxf(1.0f, flow_dist);
@@ -641,8 +645,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					if (ref_inited) {
 						/* reproject position estimate with new reference */
-						map_projection_project(&ref, est_lat, est_lon, &x_est(0), &y_est(0));
-						z_est(0) = -(est_alt - local_pos.ref_alt);
+						map_projection_project(&ref, est_lat, est_lon, &x_est[0], &y_est[0]);
+						z_est[0] = -(est_alt - local_pos.ref_alt);
 					}
 
 					ref_inited = true;
@@ -664,15 +668,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* reset position estimate on first vision update */
 					if (!vision_valid) {
-						x_est(0) = vision.x;
-						x_est(1) = vision.vx;
-						y_est(0) = vision.y;
-						y_est(1) = vision.vy;
+						x_est[0] = vision.x;
+						x_est[1] = vision.vx;
+						y_est[0] = vision.y;
+						y_est[1] = vision.vy;
 
 						/* only reset the z estimate if the z weight parameter is not zero */
 						if (params.w_z_vision_p > MIN_VALID_W) {
-							z_est(0) = vision.z;
-							z_est(1) = vision.vz;
+							z_est[0] = vision.z;
+							z_est[1] = vision.vz;
 						}
 
 						vision_valid = true;
@@ -686,9 +690,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 					/* calculate correction for position */
-					corr_vision(0, 0) = vision.x - x_est(0);
-					corr_vision(1, 0) = vision.y - y_est(0);
-					corr_vision(2, 0) = vision.z - z_est(0);
+					corr_vision(0, 0) = vision.x - x_est[0];
+					corr_vision(1, 0) = vision.y - y_est[0];
+					corr_vision(2, 0) = vision.z - z_est[0];
 
 					static hrt_abstime last_vision_time = 0;
 
@@ -705,14 +709,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						last_vision_z = vision.z;
 
 						/* calculate correction for velocity */
-						corr_vision(0, 1) = vision.vx - x_est(1);
-						corr_vision(1, 1) = vision.vy - y_est(1);
-						corr_vision(2, 1) = vision.vz - z_est(1);
+						corr_vision(0, 1) = vision.vx - x_est[1];
+						corr_vision(1, 1) = vision.vy - y_est[1];
+						corr_vision(2, 1) = vision.vz - z_est[1];
 					} else {
 						/* assume zero motion */
-						corr_vision(0, 1) = 0.0f - x_est(1);
-						corr_vision(1, 1) = 0.0f - y_est(1);
-						corr_vision(2, 1) = 0.0f - z_est(1);
+						corr_vision(0, 1) = 0.0f - x_est[1];
+						corr_vision(1, 1) = 0.0f - y_est[1];
+						corr_vision(2, 1) = 0.0f - z_est[1];
 					}
 
 					vision_updates++;
@@ -727,9 +731,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				/* reset position estimate on first mocap update */
 				if (!mocap_valid) {
-					x_est(0) = mocap.x;
-					y_est(0) = mocap.y;
-					z_est(0) = mocap.z;
+					x_est[0] = mocap.x;
+					y_est[0] = mocap.y;
+					z_est[0] = mocap.z;
 
 					mocap_valid = true;
 
@@ -738,9 +742,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 
 				/* calculate correction for position */
-				corr_mocap(0, 0) = mocap.x - x_est(0);
-				corr_mocap(1, 0) = mocap.y - y_est(0);
-				corr_mocap(2, 0) = mocap.z - z_est(0);
+				corr_mocap(0, 0) = mocap.x - x_est[0];
+				corr_mocap(1, 0) = mocap.y - y_est[0];
+				corr_mocap(2, 0) = mocap.z - z_est[0];
 
 				mocap_updates++;
 			}
@@ -780,14 +784,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							ref_inited = true;
 
 							/* set position estimate to (0, 0, 0), use GPS velocity for XY */
-							x_est(0) = 0.0f;
-							x_est(1) = gps.vel_n_m_s;
-							y_est(0) = 0.0f;
-							y_est(1) = gps.vel_e_m_s;
+							x_est[0] = 0.0f;
+							x_est[1] = gps.vel_n_m_s;
+							y_est[0] = 0.0f;
+							y_est[1] = gps.vel_e_m_s;
 
 							local_pos.ref_lat = lat;
 							local_pos.ref_lon = lon;
-							local_pos.ref_alt = alt + z_est(0);
+							local_pos.ref_alt = alt + z_est[0];
 							local_pos.ref_timestamp = t;
 
 							/* initialize projection */
@@ -800,15 +804,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					if (ref_inited) {
 						/* project GPS lat lon to plane */
-						Vector2f gps_proj;
-						map_projection_project(&ref, lat, lon, &(gps_proj(0)), &(gps_proj(1)));
+						Vector2f gps_proj = {0.0f, 0.0f};
+						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));
 
 						/* reset position estimate when GPS becomes good */
 						if (reset_est) {
-							x_est(0) = gps_proj(0);
-							x_est(1) = gps.vel_n_m_s;
-							y_est(0) = gps_proj(1);
-							y_est(1) = gps.vel_e_m_s;
+							x_est[0] = gps_proj[0];
+							x_est[1] = gps.vel_n_m_s;
+							y_est[0] = gps_proj[1];
+							y_est[1] = gps.vel_e_m_s;
 						}
 
 						/* calculate index of estimated values in buffer */
@@ -819,8 +823,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 						/* calculate correction for position */
-						corr_gps(0, 0) = gps_proj(0) - est_buf(est_i, 0, 0);
-						corr_gps(1, 0) = gps_proj(1) - est_buf(est_i, 1, 0);
+						corr_gps(0, 0) = gps_proj[0] - est_buf(est_i, 0, 0);
+						corr_gps(1, 0) = gps_proj[1] - est_buf(est_i, 1, 0);
 						corr_gps(2, 0) = local_pos.ref_alt - alt - est_buf(est_i, 2, 0);
 
 						/* calculate correction for velocity */
@@ -835,7 +839,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 						/* save rotation matrix at this moment */
-						R_gps(R_buf(est_i));
+						for (int i = 0; i <= 2; i++)
+							for (int j = 0; j <= 2; j++)
+								R_gps(j, i) = R_buf(est_i, j, i);
 
 						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph);
 						w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv);
@@ -949,18 +955,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for GPS (use buffered rotation matrix) */
-		Vector3f accel_bias_corr(0.0f, 0.0f, 0.0f);
+		Vector3f accel_bias_corr = {0.0f, 0.0f, 0.0f};
 
 		if (use_gps_xy) {
-			accel_bias_corr(0) -= corr_gps(0, 0) * w_xy_gps_p * w_xy_gps_p;
-			accel_bias_corr(0) -= corr_gps(0, 1) * w_xy_gps_v;
-			accel_bias_corr(1) -= corr_gps(1, 0) * w_xy_gps_p * w_xy_gps_p;
-			accel_bias_corr(1) -= corr_gps(1, 1) * w_xy_gps_v;
+			accel_bias_corr[0] -= corr_gps(0, 0) * w_xy_gps_p * w_xy_gps_p;
+			accel_bias_corr[0] -= corr_gps(0, 1) * w_xy_gps_v;
+			accel_bias_corr[1] -= corr_gps(1, 0) * w_xy_gps_p * w_xy_gps_p;
+			accel_bias_corr[1] -= corr_gps(1, 1) * w_xy_gps_v;
 		}
 
 		if (use_gps_z) {
-			accel_bias_corr(2) -= corr_gps(2, 0) * w_z_gps_p * w_z_gps_p;
-			accel_bias_corr(2) -= corr_gps(2, 1) * w_z_gps_v;
+			accel_bias_corr[2] -= corr_gps(2, 0) * w_z_gps_p * w_z_gps_p;
+			accel_bias_corr[2] -= corr_gps(2, 1) * w_z_gps_v;
 		}
 
 		/* transform error vector from NED frame to body frame */
@@ -977,30 +983,30 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for VISION (use buffered rotation matrix) */
-		accel_bias_corr(0) = 0.0f;
-		accel_bias_corr(1) = 0.0f;
-		accel_bias_corr(2) = 0.0f;
+		accel_bias_corr[0] = 0.0f;
+		accel_bias_corr[1] = 0.0f;
+		accel_bias_corr[2] = 0.0f;
 
 		if (use_vision_xy) {
-			accel_bias_corr(0) -= corr_vision(0, 0) * w_xy_vision_p * w_xy_vision_p;
-			accel_bias_corr(0) -= corr_vision(0, 1) * w_xy_vision_v;
-			accel_bias_corr(1) -= corr_vision(1, 0) * w_xy_vision_p * w_xy_vision_p;
-			accel_bias_corr(1) -= corr_vision(1, 1) * w_xy_vision_v;
+			accel_bias_corr[0] -= corr_vision(0, 0) * w_xy_vision_p * w_xy_vision_p;
+			accel_bias_corr[0] -= corr_vision(0, 1) * w_xy_vision_v;
+			accel_bias_corr[1] -= corr_vision(1, 0) * w_xy_vision_p * w_xy_vision_p;
+			accel_bias_corr[1] -= corr_vision(1, 1) * w_xy_vision_v;
 		}
 
 		if (use_vision_z) {
-			accel_bias_corr(2) -= corr_vision(2, 0) * w_z_vision_p * w_z_vision_p;
+			accel_bias_corr[2] -= corr_vision(2, 0) * w_z_vision_p * w_z_vision_p;
 		}
 
 		/* accelerometer bias correction for MOCAP (use buffered rotation matrix) */
-		accel_bias_corr(0) = 0.0f;
-		accel_bias_corr(1) = 0.0f;
-		accel_bias_corr(2) = 0.0f;
+		accel_bias_corr[0] = 0.0f;
+		accel_bias_corr[1] = 0.0f;
+		accel_bias_corr[2] = 0.0f;
 
 		if (use_mocap) {
-			accel_bias_corr(0) -= corr_mocap(0, 0) * w_mocap_p * w_mocap_p;
-			accel_bias_corr(1) -= corr_mocap(1, 0) * w_mocap_p * w_mocap_p;
-			accel_bias_corr(2) -= corr_mocap(2, 0) * w_mocap_p * w_mocap_p;
+			accel_bias_corr[0] -= corr_mocap(0, 0) * w_mocap_p * w_mocap_p;
+			accel_bias_corr[1] -= corr_mocap(1, 0) * w_mocap_p * w_mocap_p;
+			accel_bias_corr[2] -= corr_mocap(2, 0) * w_mocap_p * w_mocap_p;
 		}
 
 		/* transform error vector from NED frame to body frame */
@@ -1017,16 +1023,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for flow and baro (assume that there is no delay) */
-		accel_bias_corr(0) = 0.0f;
-		accel_bias_corr(1) = 0.0f;
-		accel_bias_corr(2) = 0.0f;
+		accel_bias_corr[0] = 0.0f;
+		accel_bias_corr[1] = 0.0f;
+		accel_bias_corr[2] = 0.0f;
 
 		if (use_flow) {
-			accel_bias_corr(0) -= corr_flow(0) * params.w_xy_flow;
-			accel_bias_corr(1) -= corr_flow(1) * params.w_xy_flow;
+			accel_bias_corr[0] -= corr_flow[0] * params.w_xy_flow;
+			accel_bias_corr[1] -= corr_flow[1] * params.w_xy_flow;
 		}
 
-		accel_bias_corr(2) -= corr_baro * params.w_z_baro * params.w_z_baro;
+		accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
 
 		/* transform error vector from NED frame to body frame */
 		for (int i = 0; i < 3; i++) {
@@ -1042,9 +1048,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* inertial filter prediction for altitude */
-		inertial_filter.inertial_filter_predict(dt, z_est, acc(2));
+		inertial_filter.inertial_filter_predict(dt, z_est, acc[2]);
 
-		if (!(isfinite(z_est(0)) && isfinite(z_est(1)))) {
+		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 				acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 				corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1071,7 +1077,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter.inertial_filter_correct(corr_mocap(2, 0), dt, z_est, 0, w_mocap_p);
 		}
 
-		if (!(isfinite(z_est(0)) && isfinite(z_est(1)))) {
+		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 				acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 				corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1086,10 +1092,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (can_estimate_xy) {
 			/* inertial filter prediction for position */
-			inertial_filter.inertial_filter_predict(dt, x_est, acc(0));
-			inertial_filter.inertial_filter_predict(dt, y_est, acc(1));
+			inertial_filter.inertial_filter_predict(dt, x_est, acc[0]);
+			inertial_filter.inertial_filter_predict(dt, y_est, acc[1]);
 
-			if (!(isfinite(x_est(0)) && isfinite(x_est(1)) && isfinite(y_est(0)) && isfinite(y_est(1)))) {
+			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 					acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 					corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1101,8 +1107,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (use_flow) {
 				eph = fminf(eph, eph_flow);
 
-				inertial_filter.inertial_filter_correct(corr_flow(0), dt, x_est, 1, params.w_xy_flow * w_flow);
-				inertial_filter.inertial_filter_correct(corr_flow(1), dt, y_est, 1, params.w_xy_flow * w_flow);
+				inertial_filter.inertial_filter_correct(corr_flow[0], dt, x_est, 1, params.w_xy_flow * w_flow);
+				inertial_filter.inertial_filter_correct(corr_flow[1], dt, y_est, 1, params.w_xy_flow * w_flow);
 			}
 
 			if (use_gps_xy) {
@@ -1136,7 +1142,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				inertial_filter.inertial_filter_correct(corr_mocap(1, 0), dt, y_est, 0, w_mocap_p);
 			}
 
-			if (!(isfinite(x_est(0)) && isfinite(x_est(1)) && isfinite(y_est(0)) && isfinite(y_est(1)))) {
+			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 					acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 					corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1152,8 +1158,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		} else {
 			/* gradually reset xy velocity estimates */
-			inertial_filter.inertial_filter_correct(-x_est(1), dt, x_est, 1, params.w_xy_res_v);
-			inertial_filter.inertial_filter_correct(-y_est(1), dt, y_est, 1, params.w_xy_res_v);
+			inertial_filter.inertial_filter_correct(-x_est[1], dt, x_est, 1, params.w_xy_res_v);
+			inertial_filter.inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
 
 		if (inav_verbose_mode) {
@@ -1184,22 +1190,22 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			pub_last = t;
 
 			/* push current estimate to buffer */
-			est_buf(buf_ptr, 0, 0) = x_est(0);
-			est_buf(buf_ptr, 0, 1) = x_est(1);
-			est_buf(buf_ptr, 1, 0) = y_est(0);
-			est_buf(buf_ptr, 1, 1) = y_est(1);
-			est_buf(buf_ptr, 2, 0) = z_est(0);
-			est_buf(buf_ptr, 2, 1) = z_est(1);
+			est_buf(buf_ptr, 0, 0) = x_est[0];
+			est_buf(buf_ptr, 0, 1) = x_est[1];
+			est_buf(buf_ptr, 1, 0) = y_est[0];
+			est_buf(buf_ptr, 1, 1) = y_est[1];
+			est_buf(buf_ptr, 2, 0) = z_est[0];
+			est_buf(buf_ptr, 2, 1) = z_est[1];
 
 			/* push current rotation matrix to buffer */
 			Matrix3f att_R;
 			att_R << att.R[0], att.R[1], att.R[2],
-			att.R[3], att.R[4], att.R[5],
-			att.R[6], att.R[7], att.R[8];
+							 att.R[3], att.R[4], att.R[5],
+							 att.R[6], att.R[7], att.R[8];
 
-			for (int i = 0; i <= 3; i++)
-				for (int j = 0; i <= 3; i++) {
-					R_buf(buf_ptr, i, j) = att_R(i, j);
+			for (int i = 0; i <= 2; i++)
+				for (int j = 0; j <= 2; j++) {
+					R_buf(buf_ptr, j, i) = att_R(j, i);
 				}
 
 			buf_ptr++;
@@ -1213,20 +1219,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.v_xy_valid = can_estimate_xy;
 			local_pos.xy_global = local_pos.xy_valid && use_gps_xy;
 			local_pos.z_global = local_pos.z_valid && use_gps_z;
-			local_pos.x = x_est(0);
-			local_pos.vx = x_est(1);
-			local_pos.y = y_est(0);
-			local_pos.vy = y_est(1);
-			local_pos.z = z_est(0);
-			local_pos.vz = z_est(1);
+			local_pos.x = x_est[0];
+			local_pos.vx = x_est[1];
+			local_pos.y = y_est[0];
+			local_pos.vy = y_est[1];
+			local_pos.z = z_est[0];
+			local_pos.vz = z_est[1];
 			local_pos.yaw = att.yaw;
 			local_pos.dist_bottom_valid = dist_bottom_valid;
 			local_pos.eph = eph;
 			local_pos.epv = epv;
 
 			if (local_pos.dist_bottom_valid) {
-				local_pos.dist_bottom = -z_est(0) - surface_offset;
-				local_pos.dist_bottom_rate = -z_est(1) - surface_offset_rate;
+				local_pos.dist_bottom = -z_est[0] - surface_offset;
+				local_pos.dist_bottom_rate = -z_est[1] - surface_offset_rate;
 			}
 
 			local_pos.timestamp = t;
