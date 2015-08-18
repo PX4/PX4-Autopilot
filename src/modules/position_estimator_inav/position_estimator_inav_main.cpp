@@ -490,7 +490,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						acc(2) += CONSTANTS_ONE_G;
 					} else {
-						//memset(acc, 0, sizeof(acc));
+						acc(0.0f, 0.0f, 0.0f);
 					}
 
 					accel_timestamp = sensor.accelerometer_timestamp;
