@@ -49,7 +49,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#define PX4_SIMULATE_I2C 1
+#define PX4_SIMULATE_I2C 0
 static int simulate = PX4_SIMULATE_I2C;
 
 namespace device
