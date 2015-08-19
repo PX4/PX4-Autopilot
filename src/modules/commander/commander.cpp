@@ -239,6 +239,8 @@ transition_result_t set_main_state_rc(struct vehicle_status_s *status, struct ma
 
 void set_control_mode();
 
+bool stabilization_required();
+
 void print_reject_mode(struct vehicle_status_s *current_status, const char *msg);
 
 void print_reject_arm(const char *msg);
@@ -2538,8 +2540,8 @@ set_control_mode()
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
-		control_mode.flag_control_rates_enabled = (status.is_rotary_wing || status.vtol_fw_permanent_stab);
-		control_mode.flag_control_attitude_enabled = (status.is_rotary_wing || status.vtol_fw_permanent_stab);
+		control_mode.flag_control_rates_enabled = stabilization_required();
+		control_mode.flag_control_attitude_enabled = stabilization_required();
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
@@ -2705,6 +2707,15 @@ set_control_mode()
 	default:
 		break;
 	}
+}
+
+bool
+stabilization_required()
+{
+	return (status.is_rotary_wing ||		// is a rotary wing, or
+		status.vtol_fw_permanent_stab || 	// is a VTOL in fixed wing mode and stabilisation is on, or
+		(vtol_status.vtol_in_trans_mode && 	// is currently a VTOL transitioning AND
+			!status.is_rotary_wing));	// is a fixed wing, ie: transitioning back to rotary wing mode
 }
 
 void
