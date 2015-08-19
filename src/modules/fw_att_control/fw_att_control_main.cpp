@@ -168,7 +168,6 @@ private:
 		float p_rmax_pos;
 		float p_rmax_neg;
 		float p_integrator_max;
-		float p_roll_feedforward;
 		float r_p;
 		float r_i;
 		float r_ff;
@@ -178,7 +177,6 @@ private:
 		float y_i;
 		float y_d;
 		float y_ff;
-		float y_roll_feedforward;
 		float y_integrator_max;
 		float y_coordinated_min_speed;
 		int32_t y_coordinated_method;
@@ -211,7 +209,6 @@ private:
 		param_t p_rmax_pos;
 		param_t p_rmax_neg;
 		param_t p_integrator_max;
-		param_t p_roll_feedforward;
 		param_t r_p;
 		param_t r_i;
 		param_t r_ff;
@@ -221,7 +218,6 @@ private:
 		param_t y_i;
 		param_t y_d;
 		param_t y_ff;
-		param_t y_roll_feedforward;
 		param_t y_integrator_max;
 		param_t y_coordinated_min_speed;
 		param_t y_coordinated_method;
@@ -374,7 +370,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.p_rmax_pos = param_find("FW_P_RMAX_POS");
 	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
 	_parameter_handles.p_integrator_max = param_find("FW_PR_IMAX");
-	_parameter_handles.p_roll_feedforward = param_find("FW_P_ROLLFF");
 
 	_parameter_handles.r_p = param_find("FW_RR_P");
 	_parameter_handles.r_i = param_find("FW_RR_I");
@@ -450,7 +445,6 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.p_rmax_pos, &(_parameters.p_rmax_pos));
 	param_get(_parameter_handles.p_rmax_neg, &(_parameters.p_rmax_neg));
 	param_get(_parameter_handles.p_integrator_max, &(_parameters.p_integrator_max));
-	param_get(_parameter_handles.p_roll_feedforward, &(_parameters.p_roll_feedforward));
 
 	param_get(_parameter_handles.r_p, &(_parameters.r_p));
 	param_get(_parameter_handles.r_i, &(_parameters.r_i));
@@ -493,7 +487,6 @@ FixedwingAttitudeControl::parameters_update()
 	_pitch_ctrl.set_integrator_max(_parameters.p_integrator_max);
 	_pitch_ctrl.set_max_rate_pos(math::radians(_parameters.p_rmax_pos));
 	_pitch_ctrl.set_max_rate_neg(math::radians(_parameters.p_rmax_neg));
-	_pitch_ctrl.set_roll_ff(_parameters.p_roll_feedforward);
 
 	/* roll control parameters */
 	_roll_ctrl.set_time_constant(_parameters.tconst);
