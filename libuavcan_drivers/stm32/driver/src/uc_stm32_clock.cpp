@@ -170,7 +170,7 @@ void setUtc(uavcan::UtcTime time)
 
 static uavcan::uint64_t sampleUtcFromCriticalSection()
 {
-# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BARMETAL
+# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
     UAVCAN_ASSERT(initialized);
     UAVCAN_ASSERT(TIMX->DIER & TIM_DIER_UIE);
 
