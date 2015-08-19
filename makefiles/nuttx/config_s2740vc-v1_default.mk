@@ -56,7 +56,7 @@ GEN_PARAM_XML = 1
 # Make this UAVCAN boot loadable
 #
 # N.B. this would be uncommented when there is an APP 
-#MAKE_UAVCAN_BOOT_LOADABLE_ID=$(call MKUAVCANBLNAME,org.pixhawk.s2740vc-v1)
+#MAKE_UAVCAN_BOOT_LOADABLE_ID=$(call MKUAVCANBLNAME,$(UAVCANBLID_NAME))
 
 
 #

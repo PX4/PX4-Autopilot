@@ -305,7 +305,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
-	_node.setName("org.pixhawk.px4cannode-v1");
+	_node.setName(HW_UAVCAN_NAME);
 
 	_node.setNodeID(node_id);
 
