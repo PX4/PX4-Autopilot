@@ -35,8 +35,21 @@
 # Build the device driver framework.
 #
 
-SRCS		= cdev.cpp \
-		  device.cpp \
-		  i2c.cpp \
+ifeq ($(PX4_TARGET_OS),nuttx)
+SRCS =		  \
+		  device_nuttx.cpp \
+		  cdev.cpp \
+		  i2c_nuttx.cpp \
 		  pio.cpp \
-		  spi.cpp
+		  spi.cpp \
+		  ringbuffer.cpp
+else
+SRCS =		  \
+		  device_posix.cpp \
+		  vdev.cpp \
+		  vfile.cpp \
+		  vdev_posix.cpp \
+		  i2c_posix.cpp  \
+		  sim.cpp \
+		  ringbuffer.cpp
+endif

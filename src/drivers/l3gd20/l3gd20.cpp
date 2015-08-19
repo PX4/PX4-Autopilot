@@ -39,7 +39,7 @@
  *       also supported by this driver.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -66,6 +66,7 @@
 #include <drivers/device/spi.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/integrator.h>
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
@@ -175,6 +176,7 @@ static const int ERROR = -1;
 
 #define L3GD20_DEFAULT_RATE			760
 #define L3G4200D_DEFAULT_RATE			800
+#define L3GD20_MAX_OUTPUT_RATE			280
 #define L3GD20_DEFAULT_RANGE_DPS		2000
 #define L3GD20_DEFAULT_FILTER_FREQ		30
 #define L3GD20_TEMP_OFFSET_CELSIUS		40
@@ -231,7 +233,7 @@ private:
 	struct hrt_call		_call;
 	unsigned		_call_interval;
 
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
@@ -255,6 +257,8 @@ private:
 	math::LowPassFilter2p	_gyro_filter_x;
 	math::LowPassFilter2p	_gyro_filter_y;
 	math::LowPassFilter2p	_gyro_filter_z;
+
+	Integrator		_gyro_int;
 
 	/* true if an L3G4200D is detected */
 	bool	_is_l3g4200d;
@@ -413,7 +417,7 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotati
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
-	_gyro_topic(-1),
+	_gyro_topic(nullptr),
 	_orb_class_instance(-1),
 	_class_instance(-1),
 	_current_rate(0),
@@ -427,6 +431,7 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotati
 	_gyro_filter_x(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_y(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_z(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
+	_gyro_int(1000000 / L3GD20_MAX_OUTPUT_RATE, true),
 	_is_l3g4200d(false),
 	_rotation(rotation),
 	_checked_next(0)
@@ -474,7 +479,7 @@ L3GD20::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(gyro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
 	if (_reports == nullptr)
 		goto out;
@@ -492,8 +497,8 @@ L3GD20::init()
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
 		&_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
-	if (_gyro_topic < 0) {
-		debug("failed to create sensor_gyro publication");
+	if (_gyro_topic == nullptr) {
+		DEVICE_DEBUG("failed to create sensor_gyro publication");
 	}
 
 	ret = OK;
@@ -875,7 +880,7 @@ L3GD20::disable_i2c(void)
 			return;
 		}
 	}
-	debug("FAILED TO DISABLE I2C");
+	DEVICE_DEBUG("FAILED TO DISABLE I2C");
 }
 
 void
@@ -1029,13 +1034,21 @@ L3GD20::measure()
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	report.x = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	report.y = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	report.z = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	float xin = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	float yin = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	float zin = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
-	report.x = _gyro_filter_x.apply(report.x);
-	report.y = _gyro_filter_y.apply(report.y);
-	report.z = _gyro_filter_z.apply(report.z);
+	report.x = _gyro_filter_x.apply(xin);
+	report.y = _gyro_filter_y.apply(yin);
+	report.z = _gyro_filter_z.apply(zin);
+
+	math::Vector<3> gval(xin, yin, zin);
+	math::Vector<3> gval_integrated;
+
+	bool gyro_notify = _gyro_int.put(report.timestamp, gval, gval_integrated, report.integral_dt);
+	report.x_integral = gval_integrated(0);
+	report.y_integral = gval_integrated(1);
+	report.z_integral = gval_integrated(2);
 
 	report.temperature = L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp;
 
@@ -1044,13 +1057,15 @@ L3GD20::measure()
 
 	_reports->force(&report);
 
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+	if (gyro_notify) {
+		/* notify anyone waiting for data */
+		poll_notify(POLLIN);
 
-	/* publish for subscribers */
-	if (!(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
+		/* publish for subscribers */
+		if (!(_pub_blocked)) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
+		}
 	}
 
 	_read++;

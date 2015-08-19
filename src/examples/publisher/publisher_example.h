@@ -39,6 +39,7 @@
  */
 #pragma once
 #include <px4.h>
+#include <px4_app.h>
 
 class PublisherExample
 {
@@ -48,6 +49,8 @@ public:
 	~PublisherExample() {};
 
 	int main();
+
+	static px4::AppState appState;
 protected:
 	px4::NodeHandle _n;
 	px4::Publisher<px4::px4_rc_channels> *_rc_channels_pub;

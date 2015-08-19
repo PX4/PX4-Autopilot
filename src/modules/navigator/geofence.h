@@ -49,8 +49,9 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 #include <drivers/drv_hrt.h>
+#include <px4_defines.h>
 
-#define GEOFENCE_FILENAME "/fs/microsd/etc/geofence.txt"
+#define GEOFENCE_FILENAME PX4_ROOTFSDIR"/fs/microsd/etc/geofence.txt"
 
 class Geofence : public control::SuperBlock
 {

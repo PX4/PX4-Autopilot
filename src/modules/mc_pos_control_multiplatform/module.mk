@@ -42,4 +42,7 @@ SRCS		= mc_pos_control_main.cpp \
 		  mc_pos_control.cpp \
 		  mc_pos_control_params.c
 
+# Only NuttX has a frame size limit
+ifeq ($(PX4_TARGET_OS),nuttx)
 EXTRACXXFLAGS = -Wframe-larger-than=1200
+endif

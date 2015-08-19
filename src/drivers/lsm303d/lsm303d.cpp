@@ -36,7 +36,7 @@
  * Driver for the ST LSM303D MEMS accelerometer / magnetometer connected via SPI.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -65,6 +65,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/integrator.h>
 #include <drivers/drv_tone_alarm.h>
 
 #include <board_config.h>
@@ -206,6 +207,7 @@ static const int ERROR = -1;
 #define LSM303D_ACCEL_DEFAULT_RATE			800
 #define LSM303D_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ	50
 #define LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
+#define LSM303D_ACCEL_MAX_OUTPUT_RATE			280
 
 #define LSM303D_MAG_DEFAULT_RANGE_GA			2
 #define LSM303D_MAG_DEFAULT_RATE			100
@@ -275,8 +277,8 @@ private:
 	unsigned		_call_accel_interval;
 	unsigned		_call_mag_interval;
 
-	RingBuffer		*_accel_reports;
-	RingBuffer		*_mag_reports;
+	ringbuffer::RingBuffer	*_accel_reports;
+	ringbuffer::RingBuffer		*_mag_reports;
 
 	struct accel_scale	_accel_scale;
 	unsigned		_accel_range_m_s2;
@@ -307,6 +309,8 @@ private:
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
 	math::LowPassFilter2p	_accel_filter_z;
+
+	Integrator		_accel_int;
 
 	enum Rotation		_rotation;
 
@@ -563,7 +567,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_mag_range_ga(0.0f),
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
-	_accel_topic(-1),
+	_accel_topic(nullptr),
 	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
 	_accel_read(0),
@@ -577,6 +581,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_int(1000000 / LSM303D_ACCEL_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_constant_accel_count(0),
 	_last_temperature(0),
@@ -588,7 +593,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_debug_enabled = true;
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_LSM303D;
-	
+
 	/* Prime _mag with parents devid. */
 	_mag->_device_id.devid = _device_id.devid;
 	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
@@ -646,12 +651,12 @@ LSM303D::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
 
 	if (_accel_reports == nullptr)
 		goto out;
 
-	_mag_reports = new RingBuffer(2, sizeof(mag_report));
+	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr)
 		goto out;
@@ -676,7 +681,7 @@ LSM303D::init()
 	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
 		&_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
-	if (_mag->_mag_topic < 0) {
+	if (_mag->_mag_topic == nullptr) {
 		warnx("ADVERT ERR");
 	}
 
@@ -691,7 +696,7 @@ LSM303D::init()
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
 		&_accel_orb_class_instance, (is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
-	if (_accel_topic < 0) {
+	if (_accel_topic == nullptr) {
 		warnx("ADVERT ERR");
 	}
 
@@ -1399,9 +1404,9 @@ LSM303D::start()
 	_mag_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_accel_call, 
+	hrt_call_every(&_accel_call,
                        1000,
-                       _call_accel_interval - LSM303D_TIMER_REDUCTION, 
+                       _call_accel_interval - LSM303D_TIMER_REDUCTION,
                        (hrt_callout)&LSM303D::measure_trampoline, this);
 	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&LSM303D::mag_measure_trampoline, this);
 }
@@ -1411,6 +1416,13 @@ LSM303D::stop()
 {
 	hrt_cancel(&_accel_call);
 	hrt_cancel(&_mag_call);
+
+	/* reset internal states */
+	memset(_last_accel, 0, sizeof(_last_accel));
+
+	/* discard unread data in the buffers */
+	_accel_reports->flush();
+	_mag_reports->flush();
 }
 
 void
@@ -1575,17 +1587,27 @@ LSM303D::measure()
 	accel_report.y = _accel_filter_y.apply(y_in_new);
 	accel_report.z = _accel_filter_z.apply(z_in_new);
 
+	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
+	math::Vector<3> aval_integrated;
+
+	bool accel_notify = _accel_int.put(accel_report.timestamp, aval, aval_integrated, accel_report.integral_dt);
+	accel_report.x_integral = aval_integrated(0);
+	accel_report.y_integral = aval_integrated(1);
+	accel_report.z_integral = aval_integrated(2);
+
 	accel_report.scaling = _accel_range_scale;
 	accel_report.range_m_s2 = _accel_range_m_s2;
 
 	_accel_reports->force(&accel_report);
 
 	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+	if (accel_notify) {
+		poll_notify(POLLIN);
 
-	if (!(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		if (!(_pub_blocked)) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		}
 	}
 
 	_accel_read++;
@@ -1770,7 +1792,7 @@ LSM303D::test_error()
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", LSM303D_DEVICE_PATH_MAG),
 	_parent(parent),
-	_mag_topic(-1),
+	_mag_topic(nullptr),
 	_mag_orb_class_instance(-1),
 	_mag_class_instance(-1)
 {
@@ -1841,7 +1863,7 @@ namespace lsm303d
 
 LSM303D	*g_dev;
 
-void	start(bool external_bus, enum Rotation rotation);
+void	start(bool external_bus, enum Rotation rotation, unsigned range);
 void	test();
 void	reset();
 void	info();
@@ -1856,11 +1878,12 @@ void	test_error();
  * up and running or failed to detect the sensor.
  */
 void
-start(bool external_bus, enum Rotation rotation)
+start(bool external_bus, enum Rotation rotation, unsigned range)
 {
 	int fd, fd_mag;
-	if (g_dev != nullptr)
+	if (g_dev != nullptr) {
 		errx(0, "already started");
+	}
 
 	/* create the driver */
         if (external_bus) {
@@ -1884,11 +1907,17 @@ start(bool external_bus, enum Rotation rotation)
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		goto fail;
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
+	}
+
+	if (ioctl(fd, ACCELIOCSRANGE, range) < 0) {
+		goto fail;
+	}
 
 	fd_mag = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
@@ -1980,7 +2009,10 @@ test()
 	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
 	warnx("mag range: %8.4f ga", (double)m_report.range_ga);
 
-	/* XXX add poll-rate tests here too */
+	/* reset to default polling */
+	if (ioctl(fd_accel, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		err(1, "reset to default polling");
+	}
 
         close(fd_accel);
         close(fd_mag);
@@ -2084,15 +2116,19 @@ lsm303d_main(int argc, char *argv[])
 	bool external_bus = false;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
+	int accel_range = 8;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+	while ((ch = getopt(argc, argv, "XR:a:")) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
 			break;
 		case 'R':
 			rotation = (enum Rotation)atoi(optarg);
+			break;
+		case 'a':
+			accel_range = atoi(optarg);
 			break;
 		default:
 			lsm303d::usage();
@@ -2107,7 +2143,7 @@ lsm303d_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start"))
-		lsm303d::start(external_bus, rotation);
+		lsm303d::start(external_bus, rotation, accel_range);
 
 	/*
 	 * Test the driver/device.

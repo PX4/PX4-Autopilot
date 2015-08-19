@@ -37,7 +37,7 @@
  * Implementation of AR.Drone 1.0 / 2.0 motor control interface
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>

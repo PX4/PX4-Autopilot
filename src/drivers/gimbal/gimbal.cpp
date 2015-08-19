@@ -40,7 +40,7 @@
  * and output via the standardized control group #2 and a mixer.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -180,7 +180,7 @@ Gimbal::Gimbal() :
 	_attitude_compensation_pitch(true),
 	_attitude_compensation_yaw(true),
 	_initialized(false),
-	_actuator_controls_2_topic(-1),
+	_actuator_controls_2_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "gimbal_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "gimbal_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "gimbal_buffer_overflows"))
@@ -197,7 +197,6 @@ Gimbal::~Gimbal()
 	/* make sure we are truly inactive */
 	stop();
 
-	::close(_actuator_controls_2_topic);
 	::close(_vehicle_command_sub);
 }
 
@@ -281,7 +280,7 @@ Gimbal::cycle()
 		zero_report.timestamp = hrt_absolute_time();
 		_actuator_controls_2_topic = orb_advertise(ORB_ID(actuator_controls_2), &zero_report);
 
-		if (_actuator_controls_2_topic < 0) {
+		if (_actuator_controls_2_topic == nullptr) {
 			warnx("advert err");
 		}
 
@@ -359,7 +358,7 @@ Gimbal::cycle()
 	if (_control_cmd_set) {
 
 		unsigned mountMode = _control_cmd.param7;
-		debug("control_cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", _control_cmd.command, mountMode, (double)_control_cmd.param1, (double)_control_cmd.param2);
+		DEVICE_DEBUG("control_cmd: %d, mountMode %d | param1: %8.4f param2: %8.4f", _control_cmd.command, mountMode, (double)_control_cmd.param1, (double)_control_cmd.param2);
 
 		if (_control_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL &&
 			mountMode == vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING) {
@@ -389,7 +388,7 @@ Gimbal::cycle()
 
 		struct actuator_controls_s controls;
 
-		// debug("publishing | roll: %8.4f pitch: %8.4f yaw: %8.4f", (double)roll, (double)pitch, (double)yaw);
+		// DEVICE_DEBUG("publishing | roll: %8.4f pitch: %8.4f yaw: %8.4f", (double)roll, (double)pitch, (double)yaw);
 
 		/* fill in the final control values */
 		controls.timestamp = hrt_absolute_time();

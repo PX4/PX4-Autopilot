@@ -39,7 +39,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <systemlib/param/param.h>
 
 /*
@@ -327,7 +327,7 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
+PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
 
 /**
  * Speed <--> Altitude priority
@@ -378,7 +378,7 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f);
  *
  * @group Fixed Wing TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.02f);
 
 /**
  * Landing slope angle

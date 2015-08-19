@@ -37,6 +37,7 @@
  * Mathlib test
  */
 
+#include <px4_log.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -48,14 +49,14 @@
 
 #include "tests.h"
 
-#define TEST_OP(_title, _op) { unsigned int n = 60000; hrt_abstime t0, t1; t0 = hrt_absolute_time(); for (unsigned int j = 0; j < n; j++) { _op; }; t1 = hrt_absolute_time(); warnx(_title ": %.6fus", (double)(t1 - t0) / n); }
+#define TEST_OP(_title, _op) { unsigned int n = 30000; hrt_abstime t0, t1; t0 = hrt_absolute_time(); for (unsigned int j = 0; j < n; j++) { _op; }; t1 = hrt_absolute_time(); PX4_INFO(_title ": %.6fus", (double)(t1 - t0) / n); }
 
 using namespace math;
 
 int test_mathlib(int argc, char *argv[])
 {
 	int rc = 0;
-	warnx("testing mathlib");
+	PX4_INFO("testing mathlib");
 
 	{
 		Vector<2> v;
@@ -158,7 +159,7 @@ int test_mathlib(int argc, char *argv[])
 	}
 
 	{
-		warnx("Nonsymmetric matrix operations test");
+		PX4_INFO("Nonsymmetric matrix operations test");
 		// test nonsymmetric +, -, +=, -=
 
 		float data1[2][3] = {{1, 2, 3}, {4, 5, 6}};
@@ -170,7 +171,7 @@ int test_mathlib(int argc, char *argv[])
 		Matrix<2, 3> m3(data3);
 
 		if (m1 + m2 != m3) {
-			warnx("Matrix<2, 3> + Matrix<2, 3> failed!");
+			PX4_ERR("Matrix<2, 3> + Matrix<2, 3> failed!");
 			(m1 + m2).print();
 			printf("!=\n");
 			m3.print();
@@ -178,7 +179,7 @@ int test_mathlib(int argc, char *argv[])
 		}
 
 		if (m3 - m2 != m1) {
-			warnx("Matrix<2, 3> - Matrix<2, 3> failed!");
+			PX4_ERR("Matrix<2, 3> - Matrix<2, 3> failed!");
 			(m3 - m2).print();
 			printf("!=\n");
 			m1.print();
@@ -188,7 +189,7 @@ int test_mathlib(int argc, char *argv[])
 		m1 += m2;
 
 		if (m1 != m3) {
-			warnx("Matrix<2, 3> += Matrix<2, 3> failed!");
+			PX4_ERR("Matrix<2, 3> += Matrix<2, 3> failed!");
 			m1.print();
 			printf("!=\n");
 			m3.print();
@@ -199,7 +200,7 @@ int test_mathlib(int argc, char *argv[])
 		Matrix<2, 3> m1_orig(data1);
 
 		if (m1 != m1_orig) {
-			warnx("Matrix<2, 3> -= Matrix<2, 3> failed!");
+			PX4_ERR("Matrix<2, 3> -= Matrix<2, 3> failed!");
 			m1.print();
 			printf("!=\n");
 			m1_orig.print();
@@ -216,7 +217,7 @@ int test_mathlib(int argc, char *argv[])
 		float diff = 0.1f;
 		float tol = 0.00001f;
 
-		warnx("Quaternion transformation methods test.");
+		PX4_INFO("Quaternion transformation methods test.");
 
 		for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
 			for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
@@ -228,7 +229,7 @@ int test_mathlib(int argc, char *argv[])
 					for (int i = 0; i < 3; i++) {
 						for (int j = 0; j < 3; j++) {
 							if (fabsf(R_orig.data[i][j] - R.data[i][j]) > 0.00001f) {
-								warnx("Quaternion method 'from_dcm' or 'to_dcm' outside tolerance!");
+								PX4_WARN("Quaternion method 'from_dcm' or 'to_dcm' outside tolerance!");
 								rc = 1;
 							}
 						}
@@ -245,7 +246,7 @@ int test_mathlib(int argc, char *argv[])
 
 		for (unsigned i = 0; i < 4; i++) {
 			if (fabsf(q.data[i] - q_true.data[i]) > tol) {
-				warnx("Quaternion method 'from_dcm()' outside tolerance!");
+				PX4_WARN("Quaternion method 'from_dcm()' outside tolerance!");
 				rc = 1;
 			}
 		}
@@ -255,7 +256,7 @@ int test_mathlib(int argc, char *argv[])
 
 		for (unsigned i = 0; i < 4; i++) {
 			if (fabsf(q.data[i] - q_true.data[i]) > tol) {
-				warnx("Quaternion method 'from_euler()' outside tolerance!");
+				PX4_WARN("Quaternion method 'from_euler()' outside tolerance!");
 				rc = 1;
 			}
 		}
@@ -265,7 +266,7 @@ int test_mathlib(int argc, char *argv[])
 
 		for (unsigned i = 0; i < 4; i++) {
 			if (fabsf(q.data[i] - q_true.data[i]) > tol) {
-				warnx("Quaternion method 'from_euler()' outside tolerance!");
+				PX4_WARN("Quaternion method 'from_euler()' outside tolerance!");
 				rc = 1;
 			}
 		}
@@ -275,7 +276,7 @@ int test_mathlib(int argc, char *argv[])
 
 		for (unsigned i = 0; i < 4; i++) {
 			if (fabsf(q.data[i] - q_true.data[i]) > tol) {
-				warnx("Quaternion method 'from_euler()' outside tolerance!");
+				PX4_WARN("Quaternion method 'from_euler()' outside tolerance!");
 				rc = 1;
 			}
 		}
@@ -292,7 +293,7 @@ int test_mathlib(int argc, char *argv[])
 		float diff = 0.1f;
 		float tol = 0.00001f;
 
-		warnx("Quaternion vector rotation method test.");
+		PX4_INFO("Quaternion vector rotation method test.");
 
 		for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
 			for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
@@ -304,7 +305,7 @@ int test_mathlib(int argc, char *argv[])
 
 					for (int i = 0; i < 3; i++) {
 						if (fabsf(vector_r(i) - vector_q(i)) > tol) {
-							warnx("Quaternion method 'rotate' outside tolerance");
+							PX4_WARN("Quaternion method 'rotate' outside tolerance");
 							rc = 1;
 						}
 					}
@@ -320,7 +321,7 @@ int test_mathlib(int argc, char *argv[])
 
 		for (unsigned i = 0; i < 3; i++) {
 			if (fabsf(vector_true(i) - vector_q(i)) > tol) {
-				warnx("Quaternion method 'rotate' outside tolerance");
+				PX4_WARN("Quaternion method 'rotate' outside tolerance");
 				rc = 1;
 			}
 		}
@@ -331,7 +332,7 @@ int test_mathlib(int argc, char *argv[])
 
 		for (unsigned i = 0; i < 3; i++) {
 			if (fabsf(vector_true(i) - vector_q(i)) > tol) {
-				warnx("Quaternion method 'rotate' outside tolerance");
+				PX4_WARN("Quaternion method 'rotate' outside tolerance");
 				rc = 1;
 			}
 		}
@@ -342,7 +343,7 @@ int test_mathlib(int argc, char *argv[])
 
 		for (unsigned i = 0; i < 3; i++) {
 			if (fabsf(vector_true(i) - vector_q(i)) > tol) {
-				warnx("Quaternion method 'rotate' outside tolerance");
+				PX4_WARN("Quaternion method 'rotate' outside tolerance");
 				rc = 1;
 			}
 		}
@@ -353,7 +354,7 @@ int test_mathlib(int argc, char *argv[])
 
 		for (unsigned i = 0; i < 3; i++) {
 			if (fabsf(vector_true(i) - vector_q(i)) > tol) {
-				warnx("Quaternion method 'rotate' outside tolerance");
+				PX4_WARN("Quaternion method 'rotate' outside tolerance");
 				rc = 1;
 			}
 		}

@@ -37,7 +37,7 @@
  * PPM input decoder.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdint.h>
 #include <string.h>

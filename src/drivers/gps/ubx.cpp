@@ -83,7 +83,7 @@
 
 /**** Warning macros, disable to save memory */
 #define UBX_WARN(s, ...)		{warnx(s, ## __VA_ARGS__);}
-
+#define UBX_DEBUG(s, ...)		{/*warnx(s, ## __VA_ARGS__);*/}
 
 UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info) :
 	_fd(fd),
@@ -212,7 +212,7 @@ UBX::configure(unsigned &baudrate)
 	} else {
 		_use_nav_pvt = true;
 	}
-	UBX_WARN("%susing NAV-PVT", _use_nav_pvt ? "" : "not ");
+	UBX_DEBUG("%susing NAV-PVT", _use_nav_pvt ? "" : "not ");
 
 	if (!_use_nav_pvt) {
 		configure_message_rate(UBX_MSG_NAV_TIMEUTC, 5);
@@ -271,9 +271,9 @@ UBX::wait_for_ack(const uint16_t msg, const unsigned timeout, const bool report)
 		ret = 0;	// ACK received ok
 	} else if (report) {
 		if (_ack_state == UBX_ACK_GOT_NAK) {
-			UBX_WARN("ubx msg 0x%04x NAK", SWAP16((unsigned)msg));
+			UBX_DEBUG("ubx msg 0x%04x NAK", SWAP16((unsigned)msg));
 		} else {
-			UBX_WARN("ubx msg 0x%04x ACK timeout", SWAP16((unsigned)msg));
+			UBX_DEBUG("ubx msg 0x%04x ACK timeout", SWAP16((unsigned)msg));
 		}
 	}
 
@@ -566,7 +566,7 @@ UBX::payload_rx_init()
 		break;
 
 	case UBX_RXMSG_DISABLE:	// disable unexpected messages
-		UBX_WARN("ubx msg 0x%04x len %u unexpected", SWAP16((unsigned)_rx_msg), (unsigned)_rx_payload_length);
+		UBX_DEBUG("ubx msg 0x%04x len %u unexpected", SWAP16((unsigned)_rx_msg), (unsigned)_rx_payload_length);
 
 		{
 			hrt_abstime t = hrt_absolute_time();
@@ -574,7 +574,7 @@ UBX::payload_rx_init()
 			if (t > _disable_cmd_last + DISABLE_MSG_INTERVAL) {
 				/* don't attempt for every message to disable, some might not be disabled */
 				_disable_cmd_last = t;
-				UBX_WARN("ubx disabling msg 0x%04x", SWAP16((unsigned)_rx_msg));
+				UBX_DEBUG("ubx disabling msg 0x%04x", SWAP16((unsigned)_rx_msg));
 				configure_message_rate(_rx_msg, 0);
 			}
 		}
@@ -627,7 +627,7 @@ UBX::payload_rx_add_nav_svinfo(const uint8_t b)
 	} else {
 		if (_rx_payload_index == sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
 			// Part 1 complete: decode Part 1 buffer
-			_satellite_info->count = MIN(_buf.payload_rx_nav_svinfo_part1.numCh, SAT_INFO_MAX_SATELLITES);
+			_satellite_info->count = MIN(_buf.payload_rx_nav_svinfo_part1.numCh, satellite_info_s::SAT_INFO_MAX_SATELLITES);
 			UBX_TRACE_SVINFO("SVINFO len %u  numCh %u\n", (unsigned)_rx_payload_length, (unsigned)_buf.payload_rx_nav_svinfo_part1.numCh);
 		}
 		if (_rx_payload_index < sizeof(ubx_payload_rx_nav_svinfo_part1_t) + _satellite_info->count * sizeof(ubx_payload_rx_nav_svinfo_part2_t)) {
@@ -677,16 +677,16 @@ UBX::payload_rx_add_mon_ver(const uint8_t b)
 			// Part 1 complete: decode Part 1 buffer and calculate hash for SW&HW version strings
 			_ubx_version = fnv1_32_str(_buf.payload_rx_mon_ver_part1.swVersion, FNV1_32_INIT);
 			_ubx_version = fnv1_32_str(_buf.payload_rx_mon_ver_part1.hwVersion, _ubx_version);
-			UBX_WARN("VER hash 0x%08x", _ubx_version);
-			UBX_WARN("VER hw  \"%10s\"", _buf.payload_rx_mon_ver_part1.hwVersion);
-			UBX_WARN("VER sw  \"%30s\"", _buf.payload_rx_mon_ver_part1.swVersion);
+			UBX_DEBUG("VER hash 0x%08x", _ubx_version);
+			UBX_DEBUG("VER hw  \"%10s\"", _buf.payload_rx_mon_ver_part1.hwVersion);
+			UBX_DEBUG("VER sw  \"%30s\"", _buf.payload_rx_mon_ver_part1.swVersion);
 		}
 		// fill Part 2 buffer
 		unsigned buf_index = (_rx_payload_index - sizeof(ubx_payload_rx_mon_ver_part1_t)) % sizeof(ubx_payload_rx_mon_ver_part2_t);
 		_buf.raw[buf_index] = b;
 		if (buf_index == sizeof(ubx_payload_rx_mon_ver_part2_t) - 1) {
 			// Part 2 complete: decode Part 2 buffer
-			UBX_WARN("VER ext \" %30s\"", _buf.payload_rx_mon_ver_part2.extension);
+			UBX_DEBUG("VER ext \" %30s\"", _buf.payload_rx_mon_ver_part2.extension);
 		}
 	}
 

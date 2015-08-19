@@ -46,7 +46,7 @@
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_send_all_index(-1),
-	_rc_param_map_pub(-1),
+	_rc_param_map_pub(nullptr),
 	_rc_param_map()
 {
 }
@@ -173,7 +173,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				}
 				_rc_param_map.timestamp = hrt_absolute_time();
 
-				if (_rc_param_map_pub < 0) {
+				if (_rc_param_map_pub == nullptr) {
 					_rc_param_map_pub = orb_advertise(ORB_ID(rc_parameter_map), &_rc_param_map);
 
 				} else {
@@ -193,7 +193,7 @@ void
 MavlinkParametersManager::send(const hrt_abstime t)
 {
 	/* send all parameters if requested, but only after the system has booted */
-	if (_send_all_index >= 0 && t > 4 * 1000 * 1000) {
+	if (_send_all_index >= 0 && _mavlink->boot_complete()) {
 
 		/* skip if no space is available */
 		if (_mavlink->get_free_tx_buf() < get_size()) {
@@ -215,6 +215,10 @@ MavlinkParametersManager::send(const hrt_abstime t)
 		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {
 			_send_all_index = -1;
 		}
+	} else if (_send_all_index == 0 && hrt_absolute_time() > 20 * 1000 * 1000) {
+		/* the boot did not seem to ever complete, warn user and set boot complete */
+		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");
+		_mavlink->set_boot_complete();
 	}
 }
 

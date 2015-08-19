@@ -472,7 +472,7 @@ int ASHTECH::handle_message(int len)
 		if (this_msg_num == all_msg_num) {
 			end =  tot_sv_visible - (this_msg_num - 1) * 4;
 			_gps_position->satellites_used = tot_sv_visible;
-			_satellite_info->count = SAT_INFO_MAX_SATELLITES;
+			_satellite_info->count = satellite_info_s::SAT_INFO_MAX_SATELLITES;
 			_satellite_info->timestamp = hrt_absolute_time();
 		}
 

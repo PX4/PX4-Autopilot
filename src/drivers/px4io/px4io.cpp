@@ -38,7 +38,7 @@
  * PX4IO is connected via I2C or DMA enabled high-speed UART.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -517,12 +517,12 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_param(-1),
 	_param_update_force(false),
 	_t_vehicle_command(-1),
-	_to_input_rc(0),
-	_to_outputs(0),
-	_to_battery(0),
-	_to_servorail(0),
-	_to_safety(0),
-	_to_mixer_status(0),
+	_to_input_rc(nullptr),
+	_to_outputs(nullptr),
+	_to_battery(nullptr),
+	_to_servorail(nullptr),
+	_to_safety(nullptr),
+	_to_mixer_status(nullptr),
 	_outputs{},
 	_servorail_status{},
 	_primary_pwm_device(false),
@@ -592,10 +592,10 @@ PX4IO::detect()
 
 		if (protocol != PX4IO_PROTOCOL_VERSION) {
 			if (protocol == _io_reg_get_error) {
-				log("IO not installed");
+				DEVICE_LOG("IO not installed");
 
 			} else {
-				log("IO version error");
+				DEVICE_LOG("IO version error");
 				mavlink_log_emergency(_mavlink_fd, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
 			}
 
@@ -603,7 +603,7 @@ PX4IO::detect()
 		}
 	}
 
-	log("IO found");
+	DEVICE_LOG("IO found");
 
 	return 0;
 }
@@ -667,7 +667,7 @@ PX4IO::init()
 	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
-		log("config read error");
+		DEVICE_LOG("config read error");
 		mavlink_log_emergency(_mavlink_fd, "[IO] config read fail, abort.");
 		return -1;
 	}
@@ -796,7 +796,7 @@ PX4IO::init()
 			/* re-send if necessary */
 			if (!safety.armed) {
 				orb_publish(ORB_ID(vehicle_command), pub, &cmd);
-				log("re-sending arm cmd");
+				DEVICE_LOG("re-sending arm cmd");
 			}
 
 			/* keep waiting for state change for 2 s */
@@ -822,7 +822,7 @@ PX4IO::init()
 			ret = io_disable_rc_handling();
 
 			if (ret != OK) {
-				log("failed disabling RC handling");
+				DEVICE_LOG("failed disabling RC handling");
 				return ret;
 			}
 
@@ -851,12 +851,12 @@ PX4IO::init()
 	ret = register_driver(PWM_OUTPUT0_DEVICE_PATH, &fops, 0666, (void *)this);
 
 	if (ret == OK) {
-		log("default PWM output device");
+		DEVICE_LOG("default PWM output device");
 		_primary_pwm_device = true;
 	}
 
 	/* start the IO interface task */
-	_task = task_spawn_cmd("px4io",
+	_task = px4_task_spawn_cmd("px4io",
 					SCHED_DEFAULT,
 					SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 					1800,
@@ -864,7 +864,7 @@ PX4IO::init()
 					nullptr);
 
 	if (_task < 0) {
-		debug("task start failed: %d", errno);
+		DEVICE_DEBUG("task start failed: %d", errno);
 		return -errno;
 	}
 
@@ -1009,7 +1009,7 @@ PX4IO::task_main()
 				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
 
 				// Check for a DSM pairing command
-				if (((uint32_t)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+				if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
 					dsm_bind_ioctl((int)cmd.param2);
 				}
 			}
@@ -1116,24 +1116,41 @@ PX4IO::task_main()
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
 
 				float trim_val;
-				param_t trim_parm;
+				param_t parm_handle;
 
-				trim_parm = param_find("TRIM_ROLL");
-				if (trim_parm != PARAM_INVALID) {
-					param_get(trim_parm, &trim_val);
+				parm_handle = param_find("TRIM_ROLL");
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &trim_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(trim_val));
 				}
 
-				trim_parm = param_find("TRIM_PITCH");
-				if (trim_parm != PARAM_INVALID) {
-					param_get(trim_parm, &trim_val);
+				parm_handle = param_find("TRIM_PITCH");
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &trim_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(trim_val));
 				}
 
-				trim_parm = param_find("TRIM_YAW");
-				if (trim_parm != PARAM_INVALID) {
-					param_get(trim_parm, &trim_val);
+				parm_handle = param_find("TRIM_YAW");
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &trim_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(trim_val));
+				}
+
+				/* S.BUS output */
+				int sbus_mode;
+				parm_handle = param_find("PWM_SBUS_MODE");
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &sbus_mode);
+					if (sbus_mode == 1) {
+						/* enable S.BUS 1 */
+						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
+					} else if (sbus_mode == 2) {
+						/* enable S.BUS 2 */
+						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+					} else {
+						/* disable S.BUS */
+						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
+					}
 				}
 			}
 
@@ -1145,7 +1162,7 @@ PX4IO::task_main()
 	unlock();
 
 out:
-	debug("exiting");
+	DEVICE_DEBUG("exiting");
 
 	/* clean up the alternate device node */
 	if (_primary_pwm_device)
@@ -1456,7 +1473,7 @@ PX4IO::io_set_rc_config()
 		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
 
 		if (ret != OK) {
-			log("rc config upload failed");
+			DEVICE_LOG("rc config upload failed");
 			break;
 		}
 
@@ -1520,7 +1537,7 @@ PX4IO::io_handle_status(uint16_t status)
 	}
 
 	/* lazily publish the safety status */
-	if (_to_safety > 0) {
+	if (_to_safety != nullptr) {
 		orb_publish(ORB_ID(safety), _to_safety, &safety);
 
 	} else {
@@ -1595,7 +1612,7 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	/* the announced battery status would conflict with the simulated battery status in HIL */
 	if (!(_pub_blocked)) {
 		/* lazily publish the battery voltage */
-		if (_to_battery > 0) {
+		if (_to_battery != nullptr) {
 			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
 
 		} else {
@@ -1614,7 +1631,7 @@ PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 	_servorail_status.rssi_v    = vrssi * 0.001f;
 
 	/* lazily publish the servorail voltages */
-	if (_to_servorail > 0) {
+	if (_to_servorail != nullptr) {
 		orb_publish(ORB_ID(servorail_status), _to_servorail, &_servorail_status);
 
 	} else {
@@ -1769,7 +1786,7 @@ PX4IO::io_publish_raw_rc()
 	}
 
 	/* lazily advertise on first publication */
-	if (_to_input_rc == 0) {
+	if (_to_input_rc == nullptr) {
 		_to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_val);
 
 	} else {
@@ -1802,7 +1819,7 @@ PX4IO::io_publish_pwm_outputs()
 	outputs.noutputs = _max_actuators;
 
 	/* lazily advertise on first publication */
-	if (_to_outputs == 0) {
+	if (_to_outputs == nullptr) {
 		int instance;
 		_to_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
 					    &outputs, &instance, ORB_PRIO_MAX);
@@ -1820,7 +1837,7 @@ PX4IO::io_publish_pwm_outputs()
 		return ret;
 
 	/* publish mixer status */
-	if(_to_mixer_status == 0) {
+	if(_to_mixer_status == nullptr) {
 		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits);
 	} else {
 		orb_publish(ORB_ID(multirotor_motor_limits),_to_mixer_status, &motor_limits);
@@ -1834,14 +1851,14 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 {
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
-		debug("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		DEVICE_DEBUG("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
 	}
 
 	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
 
 	if (ret != (int)num_values) {
-		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
+		DEVICE_DEBUG("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -1859,14 +1876,14 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 {
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
-		debug("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		DEVICE_DEBUG("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
 	}
 
 	int ret = _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
 
 	if (ret != (int)num_values) {
-		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
+		DEVICE_DEBUG("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -2013,7 +2030,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			}
 
 			if (ret) {
-				log("mixer send error %d", ret);
+				DEVICE_LOG("mixer send error %d", ret);
 				return ret;
 			}
 
@@ -2043,7 +2060,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 
 		retries--;
 
-		log("mixer sent");
+		DEVICE_LOG("mixer sent");
 
 	} while (retries > 0 && (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK)));
 
@@ -2053,7 +2070,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 		return 0;
 	}
 
-	log("mixer rejected by IO");
+	DEVICE_LOG("mixer rejected by IO");
 	mavlink_log_info(_mavlink_fd, "[IO] mixer upload fail");
 
 	/* load must have failed for some reason */
@@ -2685,7 +2702,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		if (ret != OK)
 			return ret;
 		if (io_crc != arg) {
-			debug("crc mismatch 0x%08x 0x%08x", (unsigned)io_crc, arg);
+			DEVICE_DEBUG("crc mismatch 0x%08x 0x%08x", (unsigned)io_crc, arg);
 			return -EINVAL;
 		}
 		break;

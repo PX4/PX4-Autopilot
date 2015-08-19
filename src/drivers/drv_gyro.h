@@ -57,10 +57,14 @@
  */
 struct gyro_report {
 	uint64_t timestamp;
+	uint64_t integral_dt;	/**< integration time */
 	uint64_t error_count;
 	float x;		/**< angular velocity in the NED X board axis in rad/s */
 	float y;		/**< angular velocity in the NED Y board axis in rad/s */
 	float z;		/**< angular velocity in the NED Z board axis in rad/s */
+	float x_integral;	/**< delta angle in the NED X board axis in rad/s in the integration time frame */
+	float y_integral;	/**< delta angle in the NED Y board axis in rad/s in the integration time frame */
+	float z_integral;	/**< delta angle in the NED Z board axis in rad/s in the integration time frame */
 	float temperature;	/**< temperature in degrees celcius */
 	float range_rad_s;
 	float scaling;
@@ -91,7 +95,7 @@ ORB_DECLARE(sensor_gyro);
  */
 
 #define _GYROIOCBASE		(0x2300)
-#define _GYROIOC(_n)		(_IOC(_GYROIOCBASE, _n))
+#define _GYROIOC(_n)		(_PX4_IOC(_GYROIOCBASE, _n))
 
 /** set the gyro internal sample rate to at least (arg) Hz */
 #define GYROIOCSSAMPLERATE	_GYROIOC(0)

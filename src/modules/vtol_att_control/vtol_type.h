@@ -38,8 +38,10 @@
  *
  */
 
-#ifndef VTOL_YYPE_H
-#define VTOL_YYPE_H
+#ifndef VTOL_TYPE_H
+#define VTOL_TYPE_H
+
+#include <lib/mathlib/mathlib.h>
 
 struct Params {
 	int idle_pwm_mc;			// pwm value for idle in mc mode
@@ -75,11 +77,10 @@ public:
 
 	virtual void update_vtol_state() = 0;
 	virtual void update_mc_state() = 0;
-	virtual void process_mc_data() = 0;
 	virtual void update_fw_state() = 0;
-	virtual void process_fw_data() = 0;
 	virtual void update_transition_state() = 0;
 	virtual void update_external_state() = 0;
+	virtual void fill_actuator_outputs() = 0;
 
 	void set_idle_mc();
 	void set_idle_fw();
@@ -110,6 +111,10 @@ protected:
 	struct Params 						*_params;
 
 	bool flag_idle_mc;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
+
+	float _mc_roll_weight;	// weight for multicopter attitude controller roll output
+	float _mc_pitch_weight;	// weight for multicopter attitude controller pitch output
+	float _mc_yaw_weight;	// weight for multicopter attitude controller yaw output
 
 };
 

@@ -80,10 +80,6 @@
 #	to the directory 'build' under the directory containing the
 #	parent Makefile.
 #
-# ROMFS_ROOT:
-#	If set to the path to a directory, a ROMFS image will be generated
-#	containing the files under the directory and linked into the final
-#	image.
 #
 # MODULE_SEARCH_DIRS:
 #	Extra directories to search first for MODULES before looking in the
@@ -101,7 +97,7 @@
 # If PX4_BASE wasn't set previously, work out what it should be
 # and set it here now.
 #
-MK_DIR			?= $(dir $(lastword $(MAKEFILE_LIST)))
+MK_DIR			?= $(dir $(firstword $(MAKEFILE_LIST)))
 ifeq ($(PX4_BASE),)
 export PX4_BASE		:= $(abspath $(MK_DIR)/..)
 endif
@@ -132,7 +128,7 @@ include $(MK_DIR)/setup.mk
 ifneq ($(CONFIG_FILE),)
 CONFIG			:= $(subst config_,,$(basename $(notdir $(CONFIG_FILE))))
 else
-CONFIG_FILE		:= $(wildcard $(PX4_MK_DIR)/config_$(CONFIG).mk)
+CONFIG_FILE		:= $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/config_$(CONFIG).mk)
 endif
 ifeq ($(CONFIG),)
 $(error Missing configuration name or file (specify with CONFIG=<config>))
@@ -150,7 +146,7 @@ $(info %  CONFIG              = $(CONFIG))
 ifeq ($(BOARD),)
 BOARD			:= $(firstword $(subst _, ,$(CONFIG)))
 endif
-BOARD_FILE		:= $(wildcard $(PX4_MK_DIR)/board_$(BOARD).mk)
+BOARD_FILE		:= $(wildcard $(PX4_MK_DIR)/$(PX4_TARGET_OS)/board_$(BOARD).mk)
 ifeq ($(BOARD_FILE),)
 $(error Config $(CONFIG) references board $(BOARD), but no board definition file found)
 endif
@@ -186,10 +182,10 @@ EXTRA_CLEANS		 =
 INCLUDE_DIRS		+= $(PX4_MODULE_SRC)drivers/boards/$(BOARD)
 
 ################################################################################
-# NuttX libraries and paths
+# OS specific libraries and paths
 ################################################################################
 
-include $(PX4_MK_DIR)/nuttx.mk
+include $(PX4_MK_DIR)/$(PX4_TARGET_OS)/$(PX4_TARGET_OS).mk
 
 ################################################################################
 # Modules
@@ -213,7 +209,7 @@ endef
 MODULE_MKFILES		:= $(foreach module,$(MODULES),$(call MODULE_SEARCH,$(module)))
 MISSING_MODULES		:= $(subst MISSING_,,$(filter MISSING_%,$(MODULE_MKFILES)))
 ifneq ($(MISSING_MODULES),)
-$(error Can't find module(s): $(MISSING_MODULES))
+$(error Cant find module(s): $(MISSING_MODULES))
 endif
 
 # Make a list of the object files we expect to build from modules
@@ -273,7 +269,7 @@ endef
 LIBRARY_MKFILES		:= $(foreach library,$(LIBRARIES),$(call LIBRARY_SEARCH,$(library)))
 MISSING_LIBRARIES	:= $(subst MISSING_,,$(filter MISSING_%,$(LIBRARY_MKFILES)))
 ifneq ($(MISSING_LIBRARIES),)
-$(error Can't find library(s): $(MISSING_LIBRARIES))
+$(error Cant find library(s): $(MISSING_LIBRARIES))
 endif
 
 # Make a list of the archive files we expect to build from libraries
@@ -314,126 +310,8 @@ $(LIBRARY_CLEANS):
 ################################################################################
 # ROMFS generation
 ################################################################################
-
-ifneq ($(ROMFS_ROOT),)
-ifeq ($(wildcard $(ROMFS_ROOT)),)
-$(error ROMFS_ROOT specifies a directory that does not exist)
-endif
-
-#
-# Note that there is no support for more than one root directory or constructing
-# a root from several templates. That would be a nice feature.
-#
-
-# Add dependencies on anything in the ROMFS root directory
-ROMFS_FILES		+= $(wildcard \
-			     $(ROMFS_ROOT)/* \
-			     $(ROMFS_ROOT)/*/* \
-			     $(ROMFS_ROOT)/*/*/* \
-			     $(ROMFS_ROOT)/*/*/*/* \
-			     $(ROMFS_ROOT)/*/*/*/*/* \
-			     $(ROMFS_ROOT)/*/*/*/*/*/*)
-ifeq ($(ROMFS_FILES),)
-$(error ROMFS_ROOT $(ROMFS_ROOT) specifies a directory containing no files)
-endif
-ROMFS_DEPS		+= $(ROMFS_FILES)
-
-# Extra files that may be copied into the ROMFS /extras directory
-# ROMFS_EXTRA_FILES are required, ROMFS_OPTIONAL_FILES are optional
-ROMFS_EXTRA_FILES	+= $(wildcard $(ROMFS_OPTIONAL_FILES))
-ROMFS_DEPS		+= $(ROMFS_EXTRA_FILES)
-
-ROMFS_IMG		 = romfs.img
-ROMFS_SCRATCH		 = romfs_scratch
-ROMFS_CSRC		 = $(ROMFS_IMG:.img=.c)
-ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
-LIBS			+= $(ROMFS_OBJ)
-LINK_DEPS		+= $(ROMFS_OBJ)
-
-# Remove all comments from startup and mixer files
-ROMFS_PRUNER	 = $(PX4_BASE)/Tools/px_romfs_pruner.py
-
-# Turn the ROMFS image into an object file
-$(ROMFS_OBJ): $(ROMFS_IMG) $(GLOBAL_DEPS)
-	$(call BIN_TO_OBJ,$<,$@,romfs_img)
-
-# Generate the ROMFS image from the root
-$(ROMFS_IMG): $(ROMFS_SCRATCH) $(ROMFS_DEPS) $(GLOBAL_DEPS)
-	@$(ECHO) "ROMFS:   $@"
-	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_SCRATCH) -V "NSHInitVol"
-
-# Construct the ROMFS scratch root from the canonical root
-$(ROMFS_SCRATCH): $(ROMFS_DEPS) $(GLOBAL_DEPS)
-	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)
-	$(Q) $(COPYDIR) $(ROMFS_ROOT)/* $(ROMFS_SCRATCH)
-# delete all files in ROMFS_SCRATCH which start with a . or end with a ~
-	$(Q) $(RM) $(ROMFS_SCRATCH)/*/.[!.]* $(ROMFS_SCRATCH)/*/*~
-ifneq ($(ROMFS_EXTRA_FILES),)
-	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)/extras
-	$(Q) $(COPY) $(ROMFS_EXTRA_FILES) $(ROMFS_SCRATCH)/extras
-endif
-	$(Q) $(PYTHON) -u $(ROMFS_PRUNER) --folder $(ROMFS_SCRATCH)
-
-EXTRA_CLEANS		+= $(ROMGS_OBJ) $(ROMFS_IMG)
-
-endif
-
-################################################################################
-# Builtin command list generation
-################################################################################
-
-#
-# Builtin commands can be generated by the configuration, in which case they
-# must refer to commands that already exist, or indirectly generated by modules
-# when they are built.
-#
-# The configuration supplies builtin command information in the BUILTIN_COMMANDS
-# variable. Applications make empty files in $(WORK_DIR)/builtin_commands whose
-# filename contains the same information.
-#
-# In each case, the command information consists of four fields separated with a
-# period. These fields are the command's name, its thread priority, its stack size
-# and the name of the function to call when starting the thread.
-#
-BUILTIN_CSRC		 = $(WORK_DIR)builtin_commands.c
-
-# command definitions from modules (may be empty at Makefile parsing time...)
-MODULE_COMMANDS		 = $(subst COMMAND.,,$(notdir $(wildcard $(WORK_DIR)builtin_commands/COMMAND.*)))
-
-# We must have at least one pre-defined builtin command in order to generate
-# any of this.
-#
-ifneq ($(BUILTIN_COMMANDS),)
-
-# (BUILTIN_PROTO,<cmdspec>,<outputfile>)
-define BUILTIN_PROTO
-	$(ECHO) 'extern int $(word 4,$1)(int argc, char *argv[]);' >> $2;
-endef
-
-# (BUILTIN_DEF,<cmdspec>,<outputfile>)
-define BUILTIN_DEF
-	$(ECHO) '    {"$(word 1,$1)", $(word 2,$1), $(word 3,$1), $(word 4,$1)},' >> $2;
-endef
-
-# Don't generate until modules have updated their command files
-$(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(MODULE_OBJS) $(MODULE_MKFILES) $(BUILTIN_COMMAND_FILES)
-	@$(ECHO) "CMDS:    $@"
-	$(Q) $(ECHO) '/* builtin command list - automatically generated, do not edit */' > $@
-	$(Q) $(ECHO) '#include <nuttx/config.h>' >> $@
-	$(Q) $(ECHO) '#include <nuttx/binfmt/builtin.h>' >> $@
-	$(Q) $(foreach spec,$(BUILTIN_COMMANDS),$(call BUILTIN_PROTO,$(subst ., ,$(spec)),$@))
-	$(Q) $(foreach spec,$(MODULE_COMMANDS),$(call BUILTIN_PROTO,$(subst ., ,$(spec)),$@))
-	$(Q) $(ECHO) 'const struct builtin_s g_builtins[] = {' >> $@
-	$(Q) $(foreach spec,$(BUILTIN_COMMANDS),$(call BUILTIN_DEF,$(subst ., ,$(spec)),$@))
-	$(Q) $(foreach spec,$(MODULE_COMMANDS),$(call BUILTIN_DEF,$(subst ., ,$(spec)),$@))
-	$(Q) $(ECHO) '    {NULL, 0, 0, NULL}' >> $@
-	$(Q) $(ECHO) '};' >> $@
-	$(Q) $(ECHO) 'const int g_builtin_count = $(words $(BUILTIN_COMMANDS) $(MODULE_COMMANDS));' >> $@
-
-SRCS			+= $(BUILTIN_CSRC)
-
-EXTRA_CLEANS		+= $(BUILTIN_CSRC)
-
+ifeq ($(PX4_TARGET_OS),nuttx)
+include $(MK_DIR)/nuttx/nuttx_romfs.mk
 endif
 
 ################################################################################
@@ -457,17 +335,6 @@ endif
 ################################################################################
 
 #
-# What we're going to build.
-#
-PRODUCT_BUNDLE		 = $(WORK_DIR)firmware.px4
-PRODUCT_BIN		 = $(WORK_DIR)firmware.bin
-PRODUCT_ELF		 = $(WORK_DIR)firmware.elf
-PRODUCT_PARAMXML = $(WORK_DIR)/parameters.xml
-
-.PHONY:			firmware
-firmware:		$(PRODUCT_BUNDLE)
-
-#
 # Object files we will generate from sources
 #
 OBJS			:= $(foreach src,$(SRCS),$(WORK_DIR)$(src).o)
@@ -487,50 +354,22 @@ $(filter %.cpp.o,$(OBJS)): $(WORK_DIR)%.cpp.o: %.cpp $(GLOBAL_DEPS)
 $(filter %.S.o,$(OBJS)): $(WORK_DIR)%.S.o: %.S $(GLOBAL_DEPS)
 	$(call ASSEMBLE,$<,$@)
 
-#
-# Built product rules
+# Include the OS specific build rules
+# The rules must define the "firmware" make target
 #
 
-$(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
-	@$(ECHO) %% Generating $@
-ifdef GEN_PARAM_XML
-	$(Q) $(PYTHON) $(PX4_BASE)/Tools/px_process_params.py --src-path $(PX4_BASE)/src --board CONFIG_ARCH_BOARD_$(CONFIG_BOARD) --xml
-	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
-		--git_identity $(PX4_BASE) \
-		--parameter_xml $(PRODUCT_PARAMXML) \
-		--image $< > $@
-else
-	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
-		--git_identity $(PX4_BASE) \
-		--image $< > $@
+ifeq ($(PX4_TARGET_OS),nuttx)
+include $(MK_DIR)/nuttx/nuttx_px4.mk
 endif
-
-$(PRODUCT_BIN):		$(PRODUCT_ELF)
-	$(call SYM_TO_BIN,$<,$@)
-
-$(PRODUCT_ELF):		$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
-	$(call LINK,$@,$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS))
-
-#
-# Utility rules
-#
-
-.PHONY: upload
-upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
-	$(Q) $(MAKE) -f $(PX4_MK_DIR)/upload.mk \
-		METHOD=serial \
-		CONFIG=$(CONFIG) \
-		BOARD=$(BOARD) \
-		BUNDLE=$(PRODUCT_BUNDLE) \
-		BIN=$(PRODUCT_BIN)
-
-.PHONY: clean
-clean:			$(MODULE_CLEANS)
-	@$(ECHO) %% cleaning
-	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_ELF)
-	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)
-	$(Q) $(RMDIR) $(NUTTX_EXPORT_DIR)
-
+ifeq ($(PX4_TARGET_OS),posix)
+include $(MK_DIR)/posix/posix_elf.mk
+endif
+ifeq ($(PX4_TARGET_OS),posix-arm)
+include $(MK_DIR)/posix/posix_elf.mk
+endif
+ifeq ($(PX4_TARGET_OS),qurt)
+include $(MK_DIR)/qurt/qurt_elf.mk
+endif
 
 #
 # DEP_INCLUDES is defined by the toolchain include in terms of $(OBJS)

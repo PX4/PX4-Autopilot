@@ -41,10 +41,13 @@
 #include "calibration_routines.h"
 #include "commander_helper.h"
 
+#include <px4_posix.h>
+#include <px4_time.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <math.h>
+#include <cmath>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_airspeed.h>
 #include <uORB/topics/sensor_combined.h>
@@ -72,12 +75,12 @@ int do_airspeed_calibration(int mavlink_fd)
 {
 	int result = OK;
 	unsigned calibration_counter = 0;
-	const unsigned maxcount = 3000;
+	const unsigned maxcount = 2400;
 
 	/* give directions */
 	mavlink_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
-	const unsigned calibration_count = 2000;
+	const unsigned calibration_count = (maxcount * 2) / 3;
 
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	struct differential_pressure_s diff_pres;
@@ -91,17 +94,17 @@ int do_airspeed_calibration(int mavlink_fd)
 	};
 
 	bool paramreset_successful = false;
-	int  fd = open(AIRSPEED0_DEVICE_PATH, 0);
+	int  fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 
 	if (fd > 0) {
-		if (OK == ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
+		if (OK == px4_ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 			paramreset_successful = true;
 
 		} else {
 			mavlink_log_critical(mavlink_fd, "[cal] airspeed offset zero failed");
 		}
 
-		close(fd);
+		px4_close(fd);
 	}
     
 	int cancel_sub = calibrate_cancel_subscribe();
@@ -133,11 +136,11 @@ int do_airspeed_calibration(int mavlink_fd)
 		}
         
 		/* wait blocking for new data */
-		struct pollfd fds[1];
+		px4_pollfd_struct_t fds[1];
 		fds[0].fd = diff_pres_sub;
 		fds[0].events = POLLIN;
 
-		int poll_ret = poll(fds, 1, 1000);
+		int poll_ret = px4_poll(fds, 1, 1000);
 
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
@@ -158,16 +161,16 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	diff_pres_offset = diff_pres_offset / calibration_count;
 
-	if (isfinite(diff_pres_offset)) {
+	if (PX4_ISFINITE(diff_pres_offset)) {
 
-		int  fd_scale = open(AIRSPEED0_DEVICE_PATH, 0);
+		int  fd_scale = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 		airscale.offset_pa = diff_pres_offset;
 		if (fd_scale > 0) {
-			if (OK != ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
+			if (OK != px4_ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 				mavlink_log_critical(mavlink_fd, "[cal] airspeed offset update failed");
 			}
 
-			close(fd_scale);
+			px4_close(fd_scale);
 		}
 
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
@@ -201,16 +204,16 @@ int do_airspeed_calibration(int mavlink_fd)
 	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
 	while (calibration_counter < maxcount) {
 
-        if (calibrate_cancel_check(mavlink_fd, cancel_sub)) {
-		goto error_return;
-        }
-        
+		if (calibrate_cancel_check(mavlink_fd, cancel_sub)) {
+			goto error_return;
+		}
+
 		/* wait blocking for new data */
-		struct pollfd fds[1];
+		px4_pollfd_struct_t fds[1];
 		fds[0].fd = diff_pres_sub;
 		fds[0].events = POLLIN;
 
-		int poll_ret = poll(fds, 1, 1000);
+		int poll_ret = px4_poll(fds, 1, 1000);
 
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
@@ -270,7 +273,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 normal_return:
 	calibrate_cancel_unsubscribe(cancel_sub);
-	close(diff_pres_sub);
+	px4_close(diff_pres_sub);
 	
 	// This give a chance for the log messages to go out of the queue before someone else stomps on then
 	sleep(1);

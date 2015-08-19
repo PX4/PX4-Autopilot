@@ -36,7 +36,7 @@
  * Driver for the Bosch BMA 180 MEMS accelerometer connected via SPI.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -238,7 +238,7 @@ BMA180::BMA180(int bus, spi_dev_e device) :
 	_reports(nullptr),
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
-	_accel_topic(-1),
+	_accel_topic(nullptr),
 	_class_instance(-1),
 	_current_lowpass(0),
 	_current_range(0),
@@ -733,7 +733,7 @@ BMA180::measure()
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	if (_accel_topic > 0 && !(_pub_blocked))
+	if (_accel_topic != nullptr && !(_pub_blocked))
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &report);
 
 	/* stop the perf counter */

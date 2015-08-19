@@ -37,7 +37,7 @@
  * Driver for the HMC5883 / HMC5983 magnetometer connected via I2C or SPI.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -156,7 +156,7 @@ private:
 	work_s			_work;
 	unsigned		_measure_ticks;
 
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 	mag_scale		_scale;
 	float 			_range_scale;
 	float 			_range_ga;
@@ -360,7 +360,7 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_mag_topic(-1),
+	_mag_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
@@ -418,12 +418,12 @@ HMC5883::init()
 
 	ret = CDev::init();
 	if (ret != OK) {
-		debug("CDev init failed");
+		DEVICE_DEBUG("CDev init failed");
 		goto out;
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(mag_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 	if (_reports == nullptr)
 		goto out;
 
@@ -734,7 +734,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return check_calibration();
 
 	case MAGIOCGEXTERNAL:
-		debug("MAGIOCGEXTERNAL in main driver");
+		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
 		return _interface->ioctl(cmd, dummy);
 
 	case MAGIOCSTEMPCOMP:
@@ -789,7 +789,7 @@ HMC5883::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			debug("collection error");
+			DEVICE_DEBUG("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -816,7 +816,7 @@ HMC5883::cycle()
 
 	/* measurement phase */
 	if (OK != measure())
-		debug("measure error");
+		DEVICE_DEBUG("measure error");
 
 	/* next phase is collection */
 	_collect_phase = true;
@@ -886,7 +886,7 @@ HMC5883::collect()
 
 	if (ret != OK) {
 		perf_count(_comms_errors);
-		debug("data/status read error");
+		DEVICE_DEBUG("data/status read error");
 		goto out;
 	}
 
@@ -921,10 +921,10 @@ HMC5883::collect()
 
 			_temperature_counter = 0;
 
-			ret = _interface->read(ADDR_TEMP_OUT_MSB, 
+			ret = _interface->read(ADDR_TEMP_OUT_MSB,
 					       raw_temperature, sizeof(raw_temperature));
 			if (ret == OK) {
-				int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) + 
+				int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) +
 					raw_temperature[1];
 				new_report.temperature = 25 + (temp16 / (16*8.0f));
 				_temperature_error_count = 0;
@@ -936,7 +936,7 @@ HMC5883::collect()
 					  and can't do temperature. Disable it
 					*/
 					_temperature_error_count = 0;
-					debug("disabling temperature compensation");
+					DEVICE_DEBUG("disabling temperature compensation");
 					set_temperature_compensation(0);
 				}
 			}
@@ -986,15 +986,15 @@ HMC5883::collect()
 
 	if (!(_pub_blocked)) {
 
-		if (_mag_topic != -1) {
+		if (_mag_topic != nullptr) {
 			/* publish it */
 			orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
 		} else {
 			_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &new_report,
 				&_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
-			if (_mag_topic < 0)
-				debug("ADVERT FAIL");
+			if (_mag_topic == nullptr)
+				DEVICE_DEBUG("ADVERT FAIL");
 		}
 	}
 
@@ -1146,8 +1146,8 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 			ret = -EIO;
 			goto out;
 		}
-		float cal[3] = {fabsf(expected_cal[0] / report.x), 
-				fabsf(expected_cal[1] / report.y), 
+		float cal[3] = {fabsf(expected_cal[0] / report.x),
+				fabsf(expected_cal[1] / report.y),
 				fabsf(expected_cal[2] / report.z)};
 
 		if (cal[0] > 0.7f && cal[0] < 1.35f &&
@@ -1381,7 +1381,7 @@ HMC5883::print_info()
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
 	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
-	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f range_ga %.2f\n", 
+	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f range_ga %.2f\n",
 	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
 	       (double)(1.0f/_range_scale), (double)_range_ga);
 	printf("temperature %.2f\n", (double)_last_report.temperature);
@@ -1451,7 +1451,7 @@ start_bus(struct hmc5883_bus_option &bus, enum Rotation rotation)
 		bus.dev = NULL;
 		return false;
 	}
-			
+
 	int fd = open(bus.devpath, O_RDONLY);
 	if (fd < 0) {
 		return false;
@@ -1505,7 +1505,7 @@ struct hmc5883_bus_option &find_bus(enum HMC5883_BUS busid)
 		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
 			return bus_options[i];
 		}
-	}	
+	}
 	errx(1, "bus %u not started", (unsigned)busid);
 }
 
@@ -1750,7 +1750,7 @@ hmc5883_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];	
+	const char *verb = argv[optind];
 
 	/*
 	 * Start/load the driver.

@@ -73,6 +73,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_command.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
@@ -84,6 +85,7 @@
 
 #include "tiltrotor.h"
 #include "tailsitter.h"
+#include "standard.h"
 
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
@@ -97,6 +99,7 @@ public:
 	~VtolAttitudeControl();
 
 	int start();	/* start the task and return OK on success */
+	bool is_fixed_wing_requested();
 
 	struct vehicle_attitude_s* 			get_att () {return &_v_att;}
 	struct vehicle_attitude_setpoint_s* get_att_sp () {return &_v_att_sp;}
@@ -135,6 +138,7 @@ private:
 	int 	_local_pos_sub;			// sensor subscription
 	int 	_airspeed_sub;			// airspeed subscription
 	int 	_battery_status_sub;	// battery status subscription
+	int 	_vehicle_cmd_sub;
 
 	int 	_actuator_inputs_mc;	//topic on which the mc_att_controller publishes actuator inputs
 	int 	_actuator_inputs_fw;	//topic on which the fw_att_controller publishes actuator inputs
@@ -161,6 +165,7 @@ private:
 	struct vehicle_local_position_s		_local_pos;
 	struct airspeed_s 					_airspeed;			// airspeed
 	struct battery_status_s 			_batt_status; 		// battery status
+	struct vehicle_command_s			_vehicle_cmd;
 
 	Params _params;	// struct holding the parameters
 
@@ -184,10 +189,12 @@ private:
 	 * to waste energy when gliding. */
 	unsigned _motor_count;	// number of motors
 	float _airspeed_tot;
+	int _transition_command;
 
 	VtolType * _vtol_type;	// base class for different vtol types
 	Tiltrotor * _tiltrotor;	// tailsitter vtol type
 	Tailsitter * _tailsitter;	// tiltrotor vtol type
+	Standard * _standard;	// standard vtol type
 
 //*****************Member functions***********************************************************************
 
@@ -204,10 +211,12 @@ private:
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
 	void 		vehicle_airspeed_poll();		// Check for changes in airspeed
 	void 		vehicle_battery_poll();			// Check for battery updates
+	void		vehicle_cmd_poll();
 	void 		parameters_update_poll();		//Check if parameters have changed
 	int 		parameters_update();			//Update local paraemter cache
 	void 		fill_mc_att_rates_sp();
 	void 		fill_fw_att_rates_sp();
+	void		handle_command();
 };
 
 #endif

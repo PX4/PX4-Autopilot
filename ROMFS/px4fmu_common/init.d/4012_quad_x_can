@@ -1,8 +1,10 @@
 #!nsh
 #
-# F450-sized quadrotor with CAN
+# @name F450-sized quadrotor with CAN
 #
-# Pavel Kirienko <pavel@px4.io>
+# @type Quadrotor x
+#
+# @maintainer Pavel Kirienko <pavel@px4.io>
 #
 
 sh /etc/init.d/4001_quad_x

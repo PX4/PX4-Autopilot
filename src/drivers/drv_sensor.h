@@ -40,6 +40,7 @@
 #ifndef _DRV_SENSOR_H
 #define _DRV_SENSOR_H
 
+#include <px4_defines.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 
@@ -51,15 +52,21 @@
  * Used to create a unique device id for redundant and combo sensors
  */
 
-#define DRV_MAG_DEVTYPE_HMC5883 0x01
-#define DRV_MAG_DEVTYPE_LSM303D 0x02
-#define DRV_ACC_DEVTYPE_LSM303D 0x11
-#define DRV_ACC_DEVTYPE_BMA180  0x12
-#define DRV_ACC_DEVTYPE_MPU6000 0x13
-#define DRV_GYR_DEVTYPE_MPU6000 0x21
-#define DRV_GYR_DEVTYPE_L3GD20  0x22
-#define DRV_RNG_DEVTYPE_MB12XX  0x31
-#define DRV_RNG_DEVTYPE_LL40LS  0x32
+#define DRV_MAG_DEVTYPE_HMC5883  0x01
+#define DRV_MAG_DEVTYPE_LSM303D  0x02
+#define DRV_MAG_DEVTYPE_ACCELSIM 0x03
+#define DRV_ACC_DEVTYPE_LSM303D  0x11
+#define DRV_ACC_DEVTYPE_BMA180   0x12
+#define DRV_ACC_DEVTYPE_MPU6000  0x13
+#define DRV_ACC_DEVTYPE_ACCELSIM 0x14
+#define DRV_ACC_DEVTYPE_GYROSIM  0x15
+#define DRV_ACC_DEVTYPE_MPU9250  0x16
+#define DRV_GYR_DEVTYPE_MPU6000  0x21
+#define DRV_GYR_DEVTYPE_L3GD20   0x22
+#define DRV_GYR_DEVTYPE_GYROSIM  0x23
+#define DRV_GYR_DEVTYPE_MPU9250  0x24
+#define DRV_RNG_DEVTYPE_MB12XX   0x31
+#define DRV_RNG_DEVTYPE_LL40LS   0x32
 
 /*
  * ioctl() definitions
@@ -69,7 +76,7 @@
  */
 
 #define _SENSORIOCBASE		(0x2000)
-#define _SENSORIOC(_n)		(_IOC(_SENSORIOCBASE, _n))
+#define _SENSORIOC(_n)		(_PX4_IOC(_SENSORIOCBASE, _n))
 
 /**
  * Set the driver polling rate to (arg) Hz, or one of the SENSOR_POLLRATE

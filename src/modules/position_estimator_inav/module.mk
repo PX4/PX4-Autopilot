@@ -42,5 +42,7 @@ SRCS		 	= position_estimator_inav_main.c \
 
 MODULE_STACKSIZE = 1200
 
-EXTRACFLAGS = -Wframe-larger-than=3500
+ifeq ($(PX4_TARGEGT_OS),nuttx)
+EXTRACFLAGS = -Wframe-larger-than=3800
+endif
 

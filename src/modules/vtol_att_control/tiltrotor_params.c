@@ -39,28 +39,6 @@
  */
 
 #include <systemlib/param/param.h>
- 
-/**
- * Duration of a front transition
- *
- * Time in seconds used for a transition
- *
- * @min 0.0
- * @max 5
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR,3.0f);
-
-/**
- * Duration of a back transition
- *
- * Time in seconds used for a back transition
- *
- * @min 0.0
- * @max 5
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR,2.0f);
 
 /**
  * Position of tilt servo in mc mode
@@ -71,7 +49,7 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR,2.0f);
  * @max 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_TILT_MC,0.0f);
+PARAM_DEFINE_FLOAT(VT_TILT_MC, 0.0f);
 
 /**
  * Position of tilt servo in transition mode
@@ -82,7 +60,7 @@ PARAM_DEFINE_FLOAT(VT_TILT_MC,0.0f);
  * @max 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_TILT_TRANS,0.3f);
+PARAM_DEFINE_FLOAT(VT_TILT_TRANS, 0.3f);
 
 /**
  * Position of tilt servo in fw mode
@@ -93,15 +71,26 @@ PARAM_DEFINE_FLOAT(VT_TILT_TRANS,0.3f);
  * @max 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_TILT_FW,1.0f);
+PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
 
 /**
- * Transition airspeed
+ * Duration of front transition phase 2
  *
- * Airspeed at which we can switch to fw mode
+ * Time in seconds it should take for the rotors to rotate forward completely from the point
+ * when the plane has picked up enough airspeed and is ready to go into fixed wind mode.
  *
- * @min 0.0
- * @max 20
+ * @min 0.1
+ * @max 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_ARSP_TRANS,10.0f);
+PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
+
+/**
+ * The channel number of motors that must be turned off in fixed wing mode.
+ *
+ *
+ * @min 0
+ * @max 123456
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_MOT_OFF, 0);

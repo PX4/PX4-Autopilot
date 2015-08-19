@@ -57,10 +57,14 @@
  */
 struct accel_report {
 	uint64_t timestamp;
+	uint64_t integral_dt;	/**< integration time */
 	uint64_t error_count;
 	float x;		/**< acceleration in the NED X board axis in m/s^2 */
 	float y;		/**< acceleration in the NED Y board axis in m/s^2 */
 	float z;		/**< acceleration in the NED Z board axis in m/s^2 */
+	float x_integral;	/**< velocity in the NED X board axis in m/s over the integration time frame */
+	float y_integral;	/**< velocity in the NED Y board axis in m/s over the integration time frame */
+	float z_integral;	/**< velocity in the NED Z board axis in m/s over the integration time frame */
 	float temperature;	/**< temperature in degrees celsius */
 	float range_m_s2;	/**< range in m/s^2 (+- this value) */
 	float scaling;
@@ -94,7 +98,7 @@ ORB_DECLARE(sensor_accel);
  */
 
 #define _ACCELIOCBASE		(0x2100)
-#define _ACCELIOC(_n)		(_IOC(_ACCELIOCBASE, _n))
+#define _ACCELIOC(_n)		(_PX4_IOC(_ACCELIOCBASE, _n))
 
 
 /** set the accel internal sample rate to at least (arg) Hz */

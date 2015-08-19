@@ -365,7 +365,11 @@ MavlinkFTP::_workList(PayloadHeader* payload, bool list_hidden)
 
 		// Determine the directory entry type
 		switch (entry.d_type) {
+#ifdef __PX4_NUTTX
 		case DTYPE_FILE:
+#else
+		case DT_REG:
+#endif
 			// For files we get the file size as well
 			direntType = kDirentFile;
 			snprintf(buf, sizeof(buf), "%s/%s", dirPath, entry.d_name);
@@ -374,7 +378,11 @@ MavlinkFTP::_workList(PayloadHeader* payload, bool list_hidden)
 				fileSize = st.st_size;
 			}
 			break;
+#ifdef __PX4_NUTTX
 		case DTYPE_DIRECTORY:
+#else
+		case DT_DIR:
+#endif
 			if ((!list_hidden && (strncmp(entry.d_name, ".", 1) == 0)) ||
 				strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
 				// Don't bother sending these back
@@ -447,7 +455,8 @@ MavlinkFTP::_workOpen(PayloadHeader* payload, int oflag)
 	}
 	fileSize = st.st_size;
 
-	int fd = ::open(filename, oflag);
+	// Set mode to 666 incase oflag has O_CREAT
+	int fd = ::open(filename, oflag, PX4_O_MODE_666);
 	if (fd < 0) {
 		return kErrFailErrno;
 	}
@@ -564,7 +573,7 @@ MavlinkFTP::ErrorCode
 MavlinkFTP::_workTruncateFile(PayloadHeader* payload)
 {
 	char file[kMaxDataLength];
-	const char temp_file[] = "/fs/microsd/.trunc.tmp";
+	const char temp_file[] = PX4_ROOTFSDIR"/fs/microsd/.trunc.tmp";
 	strncpy(file, _data_as_cstring(payload), kMaxDataLength);
 	payload->size = 0;
 
@@ -785,7 +794,12 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 		return -1;
 	}
 
-	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY);
+	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY
+// POSIX requires the permissions to be supplied if O_CREAT passed
+#ifdef __PX4_POSIX
+			, 0x0777
+#endif
+			);
 	if (dst_fd < 0) {
 		op_errno = errno;
 		::close(src_fd);

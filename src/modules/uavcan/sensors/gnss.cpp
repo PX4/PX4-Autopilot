@@ -48,7 +48,7 @@ const char *const UavcanGnssBridge::NAME = "gnss";
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 _node(node),
 _sub_fix(node),
-_report_pub(-1)
+_report_pub(nullptr)
 {
 }
 
@@ -163,7 +163,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 
 	report.satellites_used = msg.sats_used;
 
-	if (_report_pub > 0) {
+	if (_report_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &report);
 
 	} else {

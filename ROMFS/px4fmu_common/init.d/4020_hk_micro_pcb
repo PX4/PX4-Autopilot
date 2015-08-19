@@ -1,11 +1,11 @@
 #!nsh
 #
-# Hobbyking Micro Integrated PCB Quadcopter
-# with SimonK ESC firmware and Mystery A1510 motors
+# @name Hobbyking Micro PCB
 #
-# Thomas Gubler <thomas@px4.io>
+# @type Quadrotor x
 #
-echo "HK Micro PCB Quad"
+# @maintainer Thomas Gubler <thomas@px4.io>
+#
 
 sh /etc/init.d/4001_quad_x
 

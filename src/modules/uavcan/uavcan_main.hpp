@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <drivers/device/device.h>
@@ -66,9 +66,9 @@
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
-#define UAVCAN_NODE_DB_PATH     "/fs/microsd/uavcan.db"
-#define UAVCAN_FIRMWARE_PATH    "/fs/microsd/fw"
-#define UAVCAN_LOG_FILE          UAVCAN_NODE_DB_PATH"/trace.log"
+#define UAVCAN_NODE_DB_PATH     PX4_ROOTFSDIR"/fs/microsd/uavcan.db"
+#define UAVCAN_FIRMWARE_PATH    PX4_ROOTFSDIR"/fs/microsd/fw"
+#define UAVCAN_LOG_FILE         UAVCAN_NODE_DB_PATH"/trace.log"
 
 // we add two to allow for actuator_direct and busevent
 #define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)

@@ -37,7 +37,7 @@
  * General defines and structures for the PX4IO module firmware.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdint.h>

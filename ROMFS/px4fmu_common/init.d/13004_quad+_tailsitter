@@ -1,0 +1,21 @@
+#!nsh
+#
+# @name Quadrotor + Tailsitter
+#
+# @type VTOL Tailsitter
+#
+# @maintainer Roman Bapst <roman@px4.io>
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+set MIXER quad_+_vtol
+
+set PWM_OUT 1234
+set PWM_MAX 2000
+set PWM_RATE 400
+set MAV_TYPE 20
+param set VT_MOT_COUNT 4
+param set VT_IDLE_PWM_MC  1080
+param set VT_TYPE 0
+param set VT_ELEV_MC_LOCK 1

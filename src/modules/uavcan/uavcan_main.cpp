@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -226,8 +226,8 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * Start the task. Normally it should never exit.
 	 */
 	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
-	_instance->_task = task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
-					  static_cast<main_t>(run_trampoline), nullptr);
+	_instance->_task = px4_task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
+					      static_cast<main_t>(run_trampoline), nullptr);
 
 	if (_instance->_task < 0) {
 		warnx("start failed: %d", errno);
@@ -489,7 +489,7 @@ int UavcanNode::run()
 
 		// this would be bad...
 		if (poll_ret < 0) {
-			log("poll error %d", errno);
+			DEVICE_LOG("poll error %d", errno);
 			continue;
 
 		} else {

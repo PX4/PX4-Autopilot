@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +35,8 @@
  * @file mavlink_orb_listener.h
  * MAVLink 1.0 uORB listener definition
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #pragma once
@@ -58,7 +58,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -73,6 +73,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_force_setpoint.h>
 #include <uORB/topics/time_offset.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include "mavlink_ftp.h"
 
@@ -118,7 +119,7 @@ private:
 	void handle_message_optical_flow_rad(mavlink_message_t *msg);
 	void handle_message_hil_optical_flow(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
-	void handle_message_vicon_position_estimate(mavlink_message_t *msg);
+	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
@@ -135,18 +136,30 @@ private:
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
+	void handle_message_distance_sensor(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
 	/**
-	* Convert remote timestamp to local hrt time (usec)
-	* Use timesync if available, monotonic boot time otherwise
-	*/
+	 * Convert remote timestamp to local hrt time (usec)
+	 * Use timesync if available, monotonic boot time otherwise
+	 */
 	uint64_t sync_stamp(uint64_t usec);
+
 	/**
-	* Exponential moving average filter to smooth time offset
-	*/
+	 * Exponential moving average filter to smooth time offset
+	 */
 	void smooth_time_offset(uint64_t offset_ns);
+
+	/**
+	 * Decode a switch position from a bitfield
+	 */
+	switch_pos_t decode_switch_pos(uint16_t buttons, unsigned sw);
+
+	/**
+	 * Decode a switch position from a bitfield and state
+	 */
+	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
 
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
@@ -165,7 +178,7 @@ private:
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
-	orb_advert_t _range_pub;
+	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _offboard_control_mode_pub;
 	orb_advert_t _actuator_controls_pub;
 	orb_advert_t _global_vel_sp_pub;
@@ -173,7 +186,7 @@ private:
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _force_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
-	orb_advert_t _vicon_position_pub;
+	orb_advert_t _att_pos_mocap_pub;
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
@@ -191,6 +204,12 @@ private:
 	struct vehicle_rates_setpoint_s _rates_sp;
 	double _time_offset_avg_alpha;
 	uint64_t _time_offset;
+	int	_orb_class_instance;
+
+	static constexpr unsigned MOM_SWITCH_COUNT = 8;
+
+	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT];
+	uint16_t _mom_switch_state;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver &);

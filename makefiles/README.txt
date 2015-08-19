@@ -7,8 +7,9 @@ with Makefile in the parent directory.
 
 ../Makefile
 
-	Top-level makefile for the PX4 build system. This makefile supports
-	building NuttX archives, as well as supervising the building of all
+	Top-level makefile for the PX4 build system. 
+	This makefile supports building NuttX archives for the NuttX based
+	configurations, as well as supervising the building of all
 	of the defined PX4 firmware configurations.
 
 	Try 'make help' in the parent directory for documentation.
@@ -25,6 +26,14 @@ firmware.mk
 	source tree. When used in this mode, at least BOARD, MODULES and 
 	CONFIG_FILE must be set.
 
+firmware_nuttx.mk
+
+	Called by firmware.mk to build NuttX based firmware.
+
+firmware_posix.mk
+
+	Called by firmware.mk to build POSIX (non-ROS) based firmware.
+
 module.mk
 
 	Called by firmware.mk to build individual modules.
@@ -34,22 +43,28 @@ module.mk
 
 nuttx.mk
 
-	Called by ../Makefile to build or download the NuttX archives.
+	Called by ../Makefile to build or download the NuttX archives if 
+	PX4_TARGET_OS is set to "nuttx".
+
+posix.mk
+
+	Called by ../Makefile to set POSIX specific parameters if 
+	PX4_TARGET_OS is set to "posix".
 
 upload.mk
 
 	Called by ../Makefile to upload files to a target board. Can be used
-	by external build systems as well.
+	by external build systems as well. (NuttX targets only)
 
 setup.mk
 
-	Provides common path and tool definitions. Implements host system-specific
-	compatibility hacks.
+	Provides common path and tool definitions. Implements host 
+	system-specific compatibility hacks. Sets PX4_TARGET_OS.
 
 board_<boardname>.mk
 
-	Board-specific configuration for <boardname>. Typically sets CONFIG_ARCH
-	and then includes the toolchain definition for the board.
+	Board-specific configuration for <boardname>. Typically sets 
+	CONFIG_ARCH and then includes the toolchain definition for the board.
 
 config_<boardname>_<configname>.mk
 

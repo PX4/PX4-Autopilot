@@ -37,7 +37,7 @@
  * Implementation of the PX4IO register space.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdlib.h>

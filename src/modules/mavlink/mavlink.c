@@ -38,7 +38,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -60,7 +60,7 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
  * @min 1
  * @max 250
  */
-PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
+PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 
 /**
  * MAVLink Radio ID
