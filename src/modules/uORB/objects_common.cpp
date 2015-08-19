@@ -210,10 +210,7 @@ ORB_DEFINE(actuator_direct, struct actuator_direct_s);
 ORB_DEFINE(multirotor_motor_limits, struct multirotor_motor_limits_s);
 
 #include "topics/telemetry_status.h"
-ORB_DEFINE(telemetry_status_0, struct telemetry_status_s);
-ORB_DEFINE(telemetry_status_1, struct telemetry_status_s);
-ORB_DEFINE(telemetry_status_2, struct telemetry_status_s);
-ORB_DEFINE(telemetry_status_3, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status, struct telemetry_status_s);
 
 #include "topics/test_motor.h"
 ORB_DEFINE(test_motor, struct test_motor_s);

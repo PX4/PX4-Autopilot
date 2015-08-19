@@ -197,6 +197,8 @@ static struct home_position_s _home;
 
 static unsigned _last_mission_instance = 0;
 
+struct vtol_vehicle_status_s vtol_status;
+
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -1081,12 +1083,12 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));
 
 	/* Subscribe to telemetry status topics */
-	int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
-	uint64_t telemetry_last_heartbeat[TELEMETRY_STATUS_ORB_ID_NUM];
-	uint64_t telemetry_last_dl_loss[TELEMETRY_STATUS_ORB_ID_NUM];
-	bool telemetry_lost[TELEMETRY_STATUS_ORB_ID_NUM];
+	int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
+	uint64_t telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
+	uint64_t telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
+	bool telemetry_lost[ORB_MULTI_MAX_INSTANCES];
 
-	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		telemetry_subs[i] = -1;
 		telemetry_last_heartbeat[i] = 0;
 		telemetry_last_dl_loss[i] = 0;
@@ -1169,7 +1171,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
-	struct vtol_vehicle_status_s vtol_status;
+	//struct vtol_vehicle_status_s vtol_status;
 	memset(&vtol_status, 0, sizeof(vtol_status));
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
@@ -1347,10 +1349,10 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
-		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 
-			if (telemetry_subs[i] < 0 && (OK == orb_exists(telemetry_status_orb_id[i], 0))) {
-				telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
+			if (telemetry_subs[i] < 0 && (OK == orb_exists(ORB_ID(telemetry_status), i))) {
+				telemetry_subs[i] = orb_subscribe_multi(ORB_ID(telemetry_status), i);
 			}
 
 			orb_check(telemetry_subs[i], &updated);
@@ -1359,7 +1361,7 @@ int commander_thread_main(int argc, char *argv[])
 				struct telemetry_status_s telemetry;
 				memset(&telemetry, 0, sizeof(telemetry));
 
-				orb_copy(telemetry_status_orb_id[i], telemetry_subs[i], &telemetry);
+				orb_copy(ORB_ID(telemetry_status), telemetry_subs[i], &telemetry);
 
 				/* perform system checks when new telemetry link connected */
 				if (
@@ -1368,7 +1370,9 @@ int commander_thread_main(int argc, char *argv[])
 				    /* we first connect a link or re-connect a link after loosing it */
 				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)) &&
 				    /* and this link has a communication partner */
-				    telemetry.heartbeat_time > 0 &&
+				    (telemetry.heartbeat_time > 0) &&
+				    /* and it is still connected */
+				    (hrt_elapsed_time(&telemetry.heartbeat_time) < 2 * 1000 * 1000) &&
 				    /* and the system is not already armed (and potentially flying) */
 				    !armed.armed) {
 
@@ -1496,6 +1500,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* Make sure that this is only adjusted if vehicle really is of type vtol*/
 			if (is_vtol(&status)) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
+				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
 			}
 		}
 
@@ -1958,7 +1963,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* data links check */
 		bool have_link = false;
 
-		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 			if (telemetry_last_heartbeat[i] != 0 &&
 			    hrt_elapsed_time(&telemetry_last_heartbeat[i]) < datalink_loss_timeout * 1e6) {
 				/* handle the case where data link was gained first time or regained,
@@ -2682,13 +2687,13 @@ set_control_mode()
 			!offboard_control_mode.ignore_velocity ||
 			!offboard_control_mode.ignore_acceleration_force;
 
-		control_mode.flag_control_velocity_enabled = !offboard_control_mode.ignore_velocity ||
-			!offboard_control_mode.ignore_position;
+		control_mode.flag_control_velocity_enabled = (!offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_position) && !vtol_status.vtol_in_trans_mode;
 
 		control_mode.flag_control_climb_rate_enabled = !offboard_control_mode.ignore_velocity ||
 			!offboard_control_mode.ignore_position;
 
-		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position;
+		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position && !vtol_status.vtol_in_trans_mode;
 
 		control_mode.flag_control_altitude_enabled = !offboard_control_mode.ignore_velocity ||
 			!offboard_control_mode.ignore_position;
