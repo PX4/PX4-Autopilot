@@ -129,17 +129,6 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
 
 /**
- * Roll to Pitch feedforward gain.
- *
- * This compensates during turns and ensures the nose stays level.
- *
- * @min 0.0
- * @max 2.0
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f);
-
-/**
  * Roll rate proportional Gain
  *
  * This defines how much the aileron input will be commanded depending on the
