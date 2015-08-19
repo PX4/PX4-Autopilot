@@ -89,6 +89,70 @@ then
 		fi
 	fi
 
+	# Compare existing params and save defaults
+	# this only needs to be in for 1-2 releases
+	if param compare RC_MAP_THROTTLE 0
+	then
+		# So this is a default setup,
+		# now lets find out if channel 3
+		# is calibrated
+		if param compare RC3_MIN 1000
+		then
+			# This is default, do nothing
+		else
+			# Set old default
+			param set RC_MAP_THROTTLE 3
+		fi
+	fi
+
+	# Compare existing params and save defaults
+	# this only needs to be in for 1-2 releases
+	if param compare RC_MAP_ROLL 0
+	then
+		# So this is a default setup,
+		# now lets find out if channel 3
+		# is calibrated
+		if param compare RC1_MIN 1000
+		then
+			# This is default, do nothing
+		else
+			# Set old default
+			param set RC_MAP_ROLL 1
+		fi
+	fi
+
+	# Compare existing params and save defaults
+	# this only needs to be in for 1-2 releases
+	if param compare RC_MAP_PITCH 0
+	then
+		# So this is a default setup,
+		# now lets find out if channel 3
+		# is calibrated
+		if param compare RC2_MIN 1000
+		then
+			# This is default, do nothing
+		else
+			# Set old default
+			param set RC_MAP_ROLL 2
+		fi
+	fi
+
+	# Compare existing params and save defaults
+	# this only needs to be in for 1-2 releases
+	if param compare RC_MAP_YAW 0
+	then
+		# So this is a default setup,
+		# now lets find out if channel 3
+		# is calibrated
+		if param compare RC4_MIN 1000
+		then
+			# This is default, do nothing
+		else
+			# Set old default
+			param set RC_MAP_ROLL 4
+		fi
+	fi
+
 	#
 	# Start system state indicator
 	#
