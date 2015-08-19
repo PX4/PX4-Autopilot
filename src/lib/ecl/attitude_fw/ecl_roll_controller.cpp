@@ -109,11 +109,8 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 	/* Transform setpoint to body angular rates (jacobian) */
 	_bodyrate_setpoint = _rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint;
 
-	/* Transform estimation to body angular rates (jacobian) */
-	float roll_bodyrate = ctl_data.roll_rate - sinf(ctl_data.pitch) * ctl_data.yaw_rate;
-
 	/* Calculate body angular rate error */
-	_rate_error = _bodyrate_setpoint - roll_bodyrate; //body angular rate error
+	_rate_error = _bodyrate_setpoint - ctl_data.roll_rate; //body angular rate error
 
 	if (!lock_integrator && _k_i > 0.0f) {
 

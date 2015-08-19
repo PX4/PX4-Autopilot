@@ -198,12 +198,8 @@ float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl
 		_bodyrate_setpoint -= (ctl_data.acc_body_y / (airspeed * cosf(ctl_data.pitch)));
 	}
 
-	/* Transform estimation to body angular rates (jacobian) */
-	float yaw_bodyrate = -sinf(ctl_data.roll) * ctl_data.pitch_rate +
-			     cosf(ctl_data.roll) * cosf(ctl_data.pitch) * ctl_data.yaw_rate;
-
 	/* Calculate body angular rate error */
-	_rate_error = _bodyrate_setpoint - yaw_bodyrate; //body angular rate error
+	_rate_error = _bodyrate_setpoint - ctl_data.yaw_rate; //body angular rate error
 
 	if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * ctl_data.airspeed_min) {
 
