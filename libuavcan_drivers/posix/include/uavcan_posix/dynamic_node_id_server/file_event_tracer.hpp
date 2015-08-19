@@ -51,10 +51,22 @@ protected:
         {
             const int FormatBufferLength = 63;
             char buffer[FormatBufferLength + 1];
-            int n = snprintf(buffer, FormatBufferLength, "%ld.%06ld\t%d\t%lld\n",
-                             static_cast<long>(ts.tv_sec), static_cast<long>(ts.tv_nsec / 1000L),
-                             static_cast<int>(code), static_cast<long long>(argument));
-            (void)write(fd, buffer, n); // TODO FIXME Write loop
+            ssize_t remaining = snprintf(buffer, FormatBufferLength, "%ld.%06ld\t%d\t%lld\n",
+                                         static_cast<long>(ts.tv_sec), static_cast<long>(ts.tv_nsec / 1000L),
+                                         static_cast<int>(code), static_cast<long long>(argument));
+
+            ssize_t total_written = 0;
+            ssize_t written;
+            do
+            {
+                written = write(fd, &buffer[total_written], remaining);
+                if (written > 0)
+                {
+                    total_written += written;
+                    remaining -=  written;
+                }
+            }
+            while (written > 0 && remaining > 0);
             (void)close(fd);
         }
     }
@@ -82,7 +94,6 @@ public:
         return rv;
     }
 };
-
 }
 }
 

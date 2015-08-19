@@ -125,10 +125,24 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
                             }
                             else
                             {
-                                if (size != write(dfd, buffer, size))
+                                rv = 0;
+                                ssize_t remaining = size;
+                                ssize_t total_written = 0;
+                                ssize_t written;
+                                do
                                 {
-                                    rv = -errno;
+                                    written = write(dfd, &buffer[total_written], remaining);
+                                    if (written < 0)
+                                    {
+                                        rv = -errno;
+                                    }
+                                    else
+                                    {
+                                        total_written += written;
+                                        remaining -=  written;
+                                    }
                                 }
+                                while (written > 0 && remaining > 0);
                             }
                         }
                     }
@@ -251,7 +265,7 @@ protected:
                          node_info.hardware_version.major,
                          node_info.hardware_version.minor);
 
-        if (n > 0 && n < (int) sizeof(fname_root) - 2)
+        if (n > 0 && n < (int)sizeof(fname_root) - 2)
         {
             DIR* const fwdir = opendir(fname_root);
 

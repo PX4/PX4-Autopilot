@@ -55,13 +55,25 @@ protected:
         {
             char buffer[MaxStringLength + 1];
             (void)memset(buffer, 0, sizeof(buffer));
-            int len = read(fd, buffer, MaxStringLength);
-            (void)close(fd);
-            if (len > 0)
+            ssize_t remaining = MaxStringLength;
+            ssize_t total_read = 0;
+            ssize_t nread;
+            do
             {
-                for (int i = 0; i < len; i++)
+                nread = ::read(fd, &buffer[total_read], remaining);
+                if (nread > 0)
                 {
-                    if (buffer[i] == ' ' || buffer[i] == '\n' || buffer[i] == '\r' )
+                    remaining -= nread,
+                    total_read += nread;
+                }
+            }
+            while (nread > 0 && remaining > 0);
+            (void)close(fd);
+            if (total_read > 0)
+            {
+                for (int i = 0; i < total_read; i++)
+                {
+                    if (buffer[i] == ' ' || buffer[i] == '\n' || buffer[i] == '\r')
                     {
                         buffer[i] = '\0';
                         break;
@@ -81,7 +93,20 @@ protected:
         int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, FilePermissions);
         if (fd >= 0)
         {
-            (void)write(fd, value.c_str(), value.size());       // TODO FIXME Write loop
+            ssize_t remaining = value.size();
+            ssize_t total_written = 0;
+            ssize_t written;
+            do
+            {
+                written = write(fd, &value.c_str()[total_written], remaining);
+                if (written > 0)
+                {
+                    total_written += written;
+                    remaining -=  written;
+                }
+            }
+            while (written > 0 && remaining > 0);
+
             (void)fsync(fd);
             (void)close(fd);
         }
@@ -117,7 +142,7 @@ public:
                 // coverity[toctou]
                 rv = mkdir(base_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
             }
-            if (rv >= 0 )
+            if (rv >= 0)
             {
                 base_path.push_back('/');
                 if ((base_path.size() + MaxStringLength) > MaxPathLength)
@@ -129,7 +154,6 @@ public:
         return rv;
     }
 };
-
 }
 }
 

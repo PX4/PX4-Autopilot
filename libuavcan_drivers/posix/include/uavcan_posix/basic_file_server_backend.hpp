@@ -380,7 +380,7 @@ protected:
     {
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
 
-        if (path.size() > 0)
+        if (path.size() > 0 && inout_size != 0)
         {
             FDCacheBase& cache = getFDCache();
             int fd = cache.open(path.c_str(), O_RDONLY);
@@ -391,9 +391,9 @@ protected:
             }
             else
             {
-                rv = ::lseek(fd, offset, SEEK_SET);
+                ssize_t total_read = 0;
 
-                ssize_t len = 0;
+                rv = ::lseek(fd, offset, SEEK_SET);
 
                 if (rv < 0)
                 {
@@ -401,21 +401,27 @@ protected:
                 }
                 else
                 {
-                    // TODO use a read at offset to fill on EAGAIN
-                    len = ::read(fd, out_buffer, inout_size);
-
-                    if (len < 0)
+                    rv = 0;
+                    ssize_t remaining = inout_size;
+                    ssize_t nread;
+                    do
                     {
-                        rv = errno;
+                        nread = ::read(fd, &out_buffer[total_read], remaining);
+                        if (nread < 0)
+                        {
+                            rv = errno;
+                        }
+                        else
+                        {
+                            remaining -= nread,
+                            total_read += nread;
+                        }
                     }
-                    else
-                    {
-                        rv = 0;
-                    }
+                    while (nread > 0 && remaining > 0);
                 }
 
-                (void)cache.close(fd, rv != 0 || len != inout_size);
-                inout_size = len;
+                (void)cache.close(fd, rv != 0 || total_read != inout_size);
+                inout_size = total_read;
             }
         }
         return rv;
