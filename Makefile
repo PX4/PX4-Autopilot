@@ -281,6 +281,11 @@ ifeq ($(PX4_TARGET_OS),nuttx)
 	@$(ECHO) "    all configurations."
 	@$(ECHO) ""
 endif
+ifeq ($(PX4_TARGET_OS),nuttx)
+	@$(ECHO) "  size"
+	@$(ECHO) "    List the sizes of all the elf files."
+	@$(ECHO) ""
+endif
 	@$(ECHO) "  testbuild"
 	@$(ECHO) "    Perform a complete clean build of the entire tree."
 	@$(ECHO) ""
