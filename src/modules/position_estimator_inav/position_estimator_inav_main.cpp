@@ -37,7 +37,7 @@
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Nuno Marques <n.marques21@hotmail.com>
- **/
+ */
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -148,7 +148,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 		if (thread_running) {
-			warnx("already running");
+			warnx("Already running...");
 			/* this is not an error */
 			return 0;
 		}
@@ -169,10 +169,10 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (thread_running) {
-			warnx("stop");
+			warnx("Stop");
 			thread_should_exit = true;
 		} else {
-			warnx("not started");
+			warnx("Not started");
 		}
 
 		return 0;
@@ -180,9 +180,9 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("is running");
+			warnx("Is running...");
 		} else {
-			warnx("not started");
+			warnx("Not started");
 		}
 
 		return 0;
@@ -195,8 +195,8 @@ int position_estimator_inav_main(int argc, char *argv[])
 #ifdef INAV_DEBUG
 static void write_debug_log(const char *msg, float dt, Vector2f x_est, Vector2f y_est, Vector2f z_est,
 	Vector2f x_est_prev, Vector2f y_est_prev, Vector2f z_est_prev,
-	Vector3f acc, MatrixXf corr_gps(3, 2), float w_xy_gps_p, float w_xy_gps_v, MatrixXf corr_mocap(3, 1), float w_mocap_p,
-	MatrixXf corr_vision(3, 2), float w_xy_vision_p, float w_z_vision_p, float w_xy_vision_v)
+	Vector3f acc, Matrix<float, 3, 2> corr_gps, float w_xy_gps_p, float w_xy_gps_v, Matrix<float, 3, 1> corr_mocap, float w_mocap_p,
+	Matrix<float, 3, 1> corr_vision, float w_xy_vision_p, float w_z_vision_p, float w_xy_vision_v)
 {
 	FILE *f = fopen(PX4_ROOTFSDIR "/fs/microsd/inav.log", "a");
 
@@ -248,10 +248,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	Vector2f z_est = {0.0f, 0.0f};	// pos, vel
 
 	Tensor<float, 3, RowMajor> est_buf(EST_BUF_SIZE, 3, 2);	// estimated position buffer
-	Tensor<float, 3, RowMajor> R_buf(EST_BUF_SIZE, 3, 3);	// rotation matrix buffer
 	est_buf.setZero();
+	Tensor<float, 3, RowMajor> R_buf(EST_BUF_SIZE, 3, 3);	// rotation matrix buffer
 	R_buf.setZero();
-	Matrix3f R_gps = Matrix3f::Zero();				// rotation matrix for GPS correction moment
+	Matrix3f R_gps;				// rotation matrix for GPS correction moment
+	R_gps.setZero();
 	int buf_ptr = 0;
 
 	static const float min_eph_epv = 2.0f;	// min EPH/EPV, used for weight calculation
@@ -305,12 +306,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	Vector3f acc = {0.0f, 0.0f, 0.0f};	// N E D
 	Vector3f acc_bias = {0.0f, 0.0f, 0.0f};	// body frame
 	float corr_baro = 0.0f;	// D
-	MatrixXf corr_gps = MatrixXf::Zero(3, 2);	// NED (pos,vel)
+	Matrix<float, 3, 2> corr_gps;	// NED (pos,vel)
+	corr_gps.setZero();
 	float w_gps_xy = 1.0f;
 	float w_gps_z = 1.0f;
 
-	MatrixXf corr_vision = MatrixXf::Zero(3, 2);	// NED (pos,vel)
-	MatrixXf corr_mocap = MatrixXf::Zero(3, 1);	// NED (pos)
+	Matrix<float, 3, 2> corr_vision;	// NED (pos,vel)
+	corr_vision.setZero();
+	Matrix<float, 3, 1> corr_mocap;	// NED (pos)
+	corr_mocap.setZero();
 
 	float corr_sonar = 0.0f;
 	float corr_sonar_filtered = 0.0f;
@@ -396,7 +400,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (ret < 0) {
 			/* poll error */
-			mavlink_log_info(mavlink_fd, "[inav] poll error on init");
+			mavlink_log_info(mavlink_fd, "[INAV] Poll error on init");
 		} else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
@@ -413,8 +417,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						wait_baro = false;
 						baro_offset /= (float) baro_init_cnt;
-						warnx("baro offset: %d m", (int)baro_offset);
-						mavlink_log_info(mavlink_fd, "[inav] baro offset: %d m", (int)baro_offset);
+						printf("Baro offset: %d m", (int)baro_offset);
+						mavlink_log_info(mavlink_fd, "[INAV] Baro offset: %d m", (int)baro_offset);
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
 					}
@@ -434,7 +438,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (ret < 0) {
 			/* poll error */
-			mavlink_log_info(mavlink_fd, "[inav] poll error on init");
+			mavlink_log_info(mavlink_fd, "[INAV] Poll error on init");
 			continue;
 		} else if (ret > 0) {
 			/* act on attitude updates */
@@ -540,7 +544,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							sonar_valid_time = t;
 							sonar_valid = true;
 							local_pos.surface_bottom_timestamp = t;
-							mavlink_log_info(mavlink_fd, "[inav] new surface level: %d", (int)surface_offset);
+							mavlink_log_info(mavlink_fd, "[INAV] New surface level: %d", (int)surface_offset);
 						}
 					} else {
 						/* correction is ok, use it */
@@ -583,7 +587,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					/* project measurements vector to NED basis, skip Z component */
 					for (int i = 0; i < 2; i++) {
 						for (int j = 0; j < 3; j++) {
-							flow_v(i) += PX4_R(att.R, i, j) * flow_m[j];
+							flow_v[i] += PX4_R(att.R, i, j) * flow_m[j];
 						}
 					}
 
@@ -683,8 +687,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						last_vision_y = vision.y;
 						last_vision_z = vision.z;
 
-						warnx("VISION estimate valid");
-						mavlink_log_info(mavlink_fd, "[inav] VISION estimate valid");
+						printf("VISION estimate valid");
+						mavlink_log_info(mavlink_fd, "[INAV] VISION estimate valid");
 					}
 
 					/* calculate correction for position */
@@ -735,8 +739,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					mocap_valid = true;
 
-					warnx("MOCAP data valid");
-					mavlink_log_info(mavlink_fd, "[inav] MOCAP data valid");
+					printf("MOCAP data valid");
+					mavlink_log_info(mavlink_fd, "[INAV] MOCAP data valid");
 				}
 
 				/* calculate correction for position */
@@ -759,13 +763,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (gps_valid) {
 					if (gps.eph > max_eph_epv || gps.epv > max_eph_epv || gps.fix_type < 3) {
 						gps_valid = false;
-						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
+						mavlink_log_info(mavlink_fd, "[INAV] GPS signal lost");
 					}
 				} else {
 					if (gps.eph < max_eph_epv * 0.7f && gps.epv < max_eph_epv * 0.7f && gps.fix_type >= 3) {
 						gps_valid = true;
 						reset_est = true;
-						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
+						mavlink_log_info(mavlink_fd, "[INAV] GPS signal found");
 					}
 				}
 
@@ -794,9 +798,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 							/* initialize projection */
 							map_projection_init(&ref, lat, lon);
-							// XXX replace this print
-							warnx("init ref: lat=%.7f, lon=%.7f, alt=%8.4f", (double)lat, (double)lon, (double)alt);
-							mavlink_log_info(mavlink_fd, "[inav] init ref: %.7f, %.7f, %8.4f", (double)lat, (double)lon, (double)alt);
+							printf("Init ref: lat=%.7f, lon=%.7f, alt=%8.4f", (double)lat, (double)lon, (double)alt);
+							mavlink_log_info(mavlink_fd, "[INAV] Init ref: %.7f, %.7f, %8.4f", (double)lat, (double)lon, (double)alt);
 						}
 					}
 
@@ -846,7 +849,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 				} else {
 					/* no GPS lock */
-					corr_gps = MatrixXf::Zero(3, 2);
+					corr_gps.setZero();
 					ref_init_start = 0;
 				}
 
@@ -858,29 +861,29 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if ((flow_valid || sonar_valid) && t > flow.timestamp + flow_topic_timeout) {
 			flow_valid = false;
 			sonar_valid = false;
-			warnx("FLOW timeout");
-			mavlink_log_info(mavlink_fd, "[inav] FLOW timeout");
+			printf("FLOW timeout");
+			mavlink_log_info(mavlink_fd, "[INAV] FLOW timeout");
 		}
 
 		/* check for timeout on GPS topic */
 		if (gps_valid && (t > (gps.timestamp_position + gps_topic_timeout))) {
 			gps_valid = false;
-			warnx("GPS timeout");
-			mavlink_log_info(mavlink_fd, "[inav] GPS timeout");
+			printf("GPS timeout");
+			mavlink_log_info(mavlink_fd, "[INAV] GPS timeout");
 		}
 
 		/* check for timeout on vision topic */
 		if (vision_valid && (t > (vision.timestamp_boot + vision_topic_timeout))) {
 			vision_valid = false;
-			warnx("VISION timeout");
-			mavlink_log_info(mavlink_fd, "[inav] VISION timeout");
+			printf("VISION timeout");
+			mavlink_log_info(mavlink_fd, "[INAV] VISION timeout");
 		}
 
 		/* check for timeout on mocap topic */
 		if (mocap_valid && (t > (mocap.timestamp_boot + mocap_topic_timeout))) {
 			mocap_valid = false;
-			warnx("MOCAP timeout");
-			mavlink_log_info(mavlink_fd, "[inav] MOCAP timeout");
+			printf("MOCAP timeout");
+			mavlink_log_info(mavlink_fd, "[INAV] MOCAP timeout");
 		}
 
 		/* check for sonar measurement timeout */
@@ -981,9 +984,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for VISION (use buffered rotation matrix) */
-		accel_bias_corr[0] = 0.0f;
-		accel_bias_corr[1] = 0.0f;
-		accel_bias_corr[2] = 0.0f;
+		accel_bias_corr.setZero();
 
 		if (use_vision_xy) {
 			accel_bias_corr[0] -= corr_vision(0, 0) * w_xy_vision_p * w_xy_vision_p;
@@ -997,9 +998,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for MOCAP (use buffered rotation matrix) */
-		accel_bias_corr[0] = 0.0f;
-		accel_bias_corr[1] = 0.0f;
-		accel_bias_corr[2] = 0.0f;
+		accel_bias_corr.setZero();
 
 		if (use_mocap) {
 			accel_bias_corr[0] -= corr_mocap(0, 0) * w_mocap_p * w_mocap_p;
@@ -1021,9 +1020,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* accelerometer bias correction for flow and baro (assume that there is no delay) */
-		accel_bias_corr[0] = 0.0f;
-		accel_bias_corr[1] = 0.0f;
-		accel_bias_corr[2] = 0.0f;
+		accel_bias_corr.setZero();
 
 		if (use_flow) {
 			accel_bias_corr[0] -= corr_flow[0] * params.w_xy_flow;
@@ -1080,10 +1077,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 				corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 			z_est = z_est_prev;
-			corr_gps = MatrixXf::Zero(3, 2);
-			corr_vision = MatrixXf::Zero(3, 2);
-			corr_mocap = MatrixXf::Zero(3, 1);
-			corr_baro = 0;
+			corr_gps.setZero();
+			corr_vision.setZero();
+			corr_mocap.setZero();
+			corr_baro = 0.0f;
 		} else {
 			z_est_prev = z_est;
 		}
@@ -1146,10 +1143,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 				x_est = x_est_prev;
 				y_est = y_est_prev;
-				corr_gps = MatrixXf::Zero(3, 2);
-				corr_vision = MatrixXf::Zero(3, 2);
-				corr_mocap = MatrixXf::Zero(3, 1);
-				corr_flow(0.0f, 0.0f);
+				corr_gps.setZero();
+				corr_vision.setZero();
+				corr_mocap.setZero();;
+				corr_flow.setZero();
 			} else {
 				x_est_prev = x_est;
 				y_est_prev = y_est;
@@ -1164,8 +1161,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* print updates rate */
 			if (t > updates_counter_start + updates_counter_len) {
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
-				warnx(
-					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s, vision = %.1f/s, mocap = %.1f/s",
+				printf(
+					"Updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s, vision = %.1f/s, mocap = %.1f/s",
 					(double)(accel_updates / updates_dt),
 					(double)(baro_updates / updates_dt),
 					(double)(gps_updates / updates_dt),
@@ -1198,13 +1195,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* push current rotation matrix to buffer */
 			Matrix3f att_R;
 			att_R << att.R[0], att.R[1], att.R[2],
-				 att.R[3], att.R[4], att.R[5],
-				 att.R[6], att.R[7], att.R[8];
+			att.R[3], att.R[4], att.R[5],
+			att.R[6], att.R[7], att.R[8];
 
 			for (int i = 0; i <= 2; i++)
-				for (int j = 0; j <= 2; j++) {
+				for (int j = 0; j <= 2; j++)
 					R_buf(buf_ptr, j, i) = att_R(j, i);
-				}
 
 			buf_ptr++;
 
@@ -1267,8 +1263,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 	}
 
-	warnx("stopped");
-	mavlink_log_info(mavlink_fd, "[inav] stopped");
+	warnx("Stopped");
+	mavlink_log_info(mavlink_fd, "[INAV] Stopped");
 	thread_running = false;
 	return 0;
 }

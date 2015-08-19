@@ -3,14 +3,14 @@
  *
  *   Copyright (C) 2013-2015 Anton Babushkin. All rights reserved.
  *   @author Anton Babushkin <rk3dov@gmail.com>
- **/
+ */
 
 #include "inertial_filter.h"
 
 InertialFilter::InertialFilter()
 {};
 
-void InertialFilter::inertial_filter_predict(float dt, Vector2f x, float acc)
+void InertialFilter::inertial_filter_predict(float dt, Vector2f &x, float acc)
 {
 	if (isfinite(dt)) {
 		if (!isfinite(acc)) {
@@ -22,7 +22,7 @@ void InertialFilter::inertial_filter_predict(float dt, Vector2f x, float acc)
 	}
 }
 
-void InertialFilter::inertial_filter_correct(float e, float dt, Vector2f x, int i, float w)
+void InertialFilter::inertial_filter_correct(float e, float dt, Vector2f &x, int i, float w)
 {
 	if (isfinite(e) && isfinite(w) && isfinite(dt)) {
 		float ewdt = e * w * dt;
