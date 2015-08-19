@@ -124,7 +124,7 @@ __EXPORT void board_initialize(void)
 }
 
 /****************************************************************************
- * Name: nsh_archinitialize
+ * Name: board_app_initialize
  *
  * Description:
  *   Perform architecture specific initialization
@@ -146,11 +146,7 @@ __EXPORT int matherr(struct exception *e)
 }
 #endif
 
-#ifdef CONFIG_NSH_LIBRARY
-__EXPORT int nsh_archinitialize(void)
-#else
-__EXPORT int app_archinitialize(void)
-#endif
+__EXPORT int board_app_initialize(void)
 {
 	int result = OK;
 
@@ -189,4 +185,9 @@ __EXPORT int app_archinitialize(void)
 		       NULL);
 
 	return result;
+}
+
+
+__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
+{
 }

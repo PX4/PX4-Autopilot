@@ -6,7 +6,8 @@ ABS_BOOTLOADER_SRC := $(PX4_BOOTLOADER_BASE)src/
 
 SRCS   = \
 		   px4esc_init.c \
-		   px4esc_led.c 
+		   px4esc_led.c  \
+		   px4esc_usb.c
 
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS +=		  \

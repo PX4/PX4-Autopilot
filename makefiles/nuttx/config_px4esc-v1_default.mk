@@ -36,7 +36,7 @@ MODULES		+= systemcmds/ver
 #
 # General system control
 #
-MODULES		+= modules/uavcannode
+MODULES		+= modules/uavcanesc
 
 #
 # Library modules
@@ -59,7 +59,6 @@ GEN_PARAM_XML = 1
 #
 MAKE_UAVCAN_BOOT_LOADABLE_ID=$(call MKUAVCANBLNAME,$(subst $\",,$(UAVCANBLID_NAME)))
 
-
 #
 # Demo apps
 #
@@ -77,5 +76,6 @@ define _B
 endef
 
 BUILTIN_COMMANDS := \
-    $(call _B, null, , 60, null_main)
+	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
+	$(call _B, serdis,                 ,                          2048,  serdis_main                )
 
