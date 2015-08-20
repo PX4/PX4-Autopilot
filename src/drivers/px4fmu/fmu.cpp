@@ -607,7 +607,7 @@ PX4FMU::task_main()
 	orb_advert_t to_input_rc = 0;
 
 	memset(&rc_in, 0, sizeof(rc_in));
-	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
+	rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
 #endif
 
 	/* initialize PWM limit lib */
