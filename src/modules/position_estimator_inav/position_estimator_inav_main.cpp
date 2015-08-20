@@ -247,10 +247,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	Vector2f y_est = {0.0f, 0.0f};	// pos, vel
 	Vector2f z_est = {0.0f, 0.0f};	// pos, vel
 
-	Tensor<float, 3, RowMajor> est_buf(EST_BUF_SIZE, 3, 2);	// estimated position buffer
-	est_buf.setZero();
-	Tensor<float, 3, RowMajor> R_buf(EST_BUF_SIZE, 3, 3);	// rotation matrix buffer
-	R_buf.setZero();
+	/* -*-* Eigen::Tensor usage *-*-
+	 * Tensor<float, 3, RowMajor> est_buf(EST_BUF_SIZE, 3, 2);	// estimated position buffer
+	 * est_buf.setZero();
+	 * Tensor<float, 3, RowMajor> R_buf(EST_BUF_SIZE, 3, 3);	// rotation matrix buffer
+	 * R_buf.setZero();
+	 */
+	std::vector<Matrix<float, 3, 2> > est_buf(EST_BUF_SIZE);// estimated position buffer
+	std::vector<Matrix3f> R_buf(EST_BUF_SIZE);	// rotation matrix buffer
+	for (size_t it = 0; it < EST_BUF_SIZE; it++) {
+		est_buf[it].setZero();
+		R_buf[it].setZero();
+	}
 	Matrix3f R_gps;				// rotation matrix for GPS correction moment
 	R_gps.setZero();
 	int buf_ptr = 0;
@@ -486,10 +494,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						sensor.accelerometer_m_s2[2] -= acc_bias[2];
 
 						/* transform acceleration vector from body frame to NED frame */
-						for (int i = 0; i < 3; i++) {
+						for (size_t i = 0; i < 3; i++) {
 							acc[i] = 0.0f;
 
-							for (int j = 0; j < 3; j++) {
+							for (size_t j = 0; j < 3; j++) {
 								acc[i] += PX4_R(att.R, i, j) * sensor.accelerometer_m_s2[j];
 							}
 						}
@@ -564,7 +572,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					/* calculate estimated velocity in body frame */
 					Vector2f body_v_est = {0.0f, 0.0f};
 
-					for (int i = 0; i < 2; i++) {
+					for (size_t i = 0; i < 2; i++) {
 						body_v_est[i] = PX4_R(att.R, 0, i) * x_est[1] + PX4_R(att.R, 1, i) * y_est[1] + PX4_R(att.R, 2, i) * z_est[1];
 					}
 
@@ -585,8 +593,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					Vector2f flow_v = {0.0f, 0.0f};
 
 					/* project measurements vector to NED basis, skip Z component */
-					for (int i = 0; i < 2; i++) {
-						for (int j = 0; j < 3; j++) {
+					for (size_t i = 0; i < 2; i++) {
+						for (size_t j = 0; j < 3; j++) {
 							flow_v[i] += PX4_R(att.R, i, j) * flow_m[j];
 						}
 					}
@@ -824,15 +832,25 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 						/* calculate correction for position */
-						corr_gps(0, 0) = gps_proj[0] - est_buf(est_i, 0, 0);
-						corr_gps(1, 0) = gps_proj[1] - est_buf(est_i, 1, 0);
-						corr_gps(2, 0) = local_pos.ref_alt - alt - est_buf(est_i, 2, 0);
+						/* -*-* Eigen::Tensor usage *-*-
+						 * corr_gps(0, 0) = gps_proj[0] - est_buf(est_i, 0, 0);
+						 * corr_gps(1, 0) = gps_proj[1] - est_buf(est_i, 1, 0);
+						 * corr_gps(2, 0) = local_pos.ref_alt - alt - est_buf(est_i, 2, 0);
+						 */
+						corr_gps(0, 0) = gps_proj[0] - est_buf[est_i](0, 0);
+						corr_gps(1, 0) = gps_proj[1] - est_buf[est_i](1, 0);
+						corr_gps(2, 0) = local_pos.ref_alt - alt - est_buf[est_i](2, 0);
 
 						/* calculate correction for velocity */
 						if (gps.vel_ned_valid) {
-							corr_gps(0, 1) = gps.vel_n_m_s - est_buf(est_i, 0, 1);
-							corr_gps(1, 1) = gps.vel_e_m_s - est_buf(est_i, 1, 1);
-							corr_gps(2, 1) = gps.vel_d_m_s - est_buf(est_i, 2, 1);
+							/* -*-* Eigen::Tensor usage *-*-
+							 * corr_gps(0, 1) = gps.vel_n_m_s - est_buf(est_i, 0, 1);
+							 * corr_gps(1, 1) = gps.vel_e_m_s - est_buf(est_i, 1, 1);
+							 * corr_gps(2, 1) = gps.vel_d_m_s - est_buf(est_i, 2, 1);
+							 */
+							corr_gps(0, 1) = gps.vel_n_m_s - est_buf[est_i](0, 1);
+							corr_gps(1, 1) = gps.vel_e_m_s - est_buf[est_i](1, 1);
+							corr_gps(2, 1) = gps.vel_d_m_s - est_buf[est_i](2, 1);
 						} else {
 							corr_gps(0, 1) = 0.0f;
 							corr_gps(1, 1) = 0.0f;
@@ -840,9 +858,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 						/* save rotation matrix at this moment */
-						for (int i = 0; i <= 2; i++)
-							for (int j = 0; j <= 2; j++)
-								R_gps(j, i) = R_buf(est_i, j, i);
+						/* -*-* Eigen::Tensor usage *-*-
+						 * for (size_t i = 0; i <= 2; i++)
+						 *		for (size_t j = 0; j <= 2; j++)
+						 * 			R_gps(j, i) = R_buf(est_i, j, i);
+						 */
+						R_gps = R_buf[est_i];
 
 						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph);
 						w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv);
@@ -971,10 +992,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* transform error vector from NED frame to body frame */
-		for (int i = 0; i < 3; i++) {
+		for (size_t i = 0; i < 3; i++) {
 			float c = 0.0f;
 
-			for (int j = 0; j < 3; j++) {
+			for (size_t j = 0; j < 3; j++) {
 				c += R_gps(j, i) * accel_bias_corr[j];
 			}
 
@@ -1007,10 +1028,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* transform error vector from NED frame to body frame */
-		for (int i = 0; i < 3; i++) {
+		for (size_t i = 0; i < 3; i++) {
 			float c = 0.0f;
 
-			for (int j = 0; j < 3; j++) {
+			for (size_t j = 0; j < 3; j++) {
 				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
@@ -1030,10 +1051,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
 
 		/* transform error vector from NED frame to body frame */
-		for (int i = 0; i < 3; i++) {
+		for (size_t i = 0; i < 3; i++) {
 			float c = 0.0f;
 
-			for (int j = 0; j < 3; j++) {
+			for (size_t j = 0; j < 3; j++) {
 				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
@@ -1185,12 +1206,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			pub_last = t;
 
 			/* push current estimate to buffer */
-			est_buf(buf_ptr, 0, 0) = x_est[0];
-			est_buf(buf_ptr, 0, 1) = x_est[1];
-			est_buf(buf_ptr, 1, 0) = y_est[0];
-			est_buf(buf_ptr, 1, 1) = y_est[1];
-			est_buf(buf_ptr, 2, 0) = z_est[0];
-			est_buf(buf_ptr, 2, 1) = z_est[1];
+			/* -*-* Eigen::Tensor usage *-*-
+			 * est_buf(buf_ptr, 0, 0) = x_est[0];
+			 * est_buf(buf_ptr, 0, 1) = x_est[1];
+			 * est_buf(buf_ptr, 1, 0) = y_est[0];
+			 * est_buf(buf_ptr, 1, 1) = y_est[1];
+			 * est_buf(buf_ptr, 2, 0) = z_est[0];
+			 * est_buf(buf_ptr, 2, 1) = z_est[1];
+			 */
+			est_buf[buf_ptr](0, 0) = x_est[0];
+			est_buf[buf_ptr](0, 1) = x_est[1];
+			est_buf[buf_ptr](1, 0) = y_est[0];
+			est_buf[buf_ptr](1, 1) = y_est[1];
+			est_buf[buf_ptr](2, 0) = z_est[0];
+			est_buf[buf_ptr](2, 1) = z_est[1];
 
 			/* push current rotation matrix to buffer */
 			Matrix3f att_R;
@@ -1198,9 +1227,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			att.R[3], att.R[4], att.R[5],
 			att.R[6], att.R[7], att.R[8];
 
-			for (int i = 0; i <= 2; i++)
-				for (int j = 0; j <= 2; j++)
-					R_buf(buf_ptr, j, i) = att_R(j, i);
+			for (size_t i = 0; i <= 2; i++)
+				for (size_t j = 0; j <= 2; j++)
+					// R_buf(buf_ptr, j, i) = att_R(j, i); -*-* Eigen::Tensor usage *-*-
+					R_buf[buf_ptr](j, i) = att_R(j, i);
 
 			buf_ptr++;
 

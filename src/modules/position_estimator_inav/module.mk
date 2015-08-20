@@ -44,7 +44,7 @@ SRCS		 	= position_estimator_inav_main.cpp \
 
 MODULE_STACKSIZE = 1200
 
-EXTRACFLAGS = -Wno-float-equal
+EXTRACXXFLAGS = -Wno-float-equal
 
 ifneq ($(USE_GCC), 0)
 EXTRACXXFLAGS += -Wno-double-promotion -Wno-error=logical-op -w
