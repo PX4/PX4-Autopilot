@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include <cmath>
 #pragma GCC diagnostic push
 #ifndef RAND_MAX
 #define RAND_MAX __RAND_MAX
@@ -52,5 +53,12 @@
 #endif
 
 #include <eigen/Eigen/Eigen>
-#include <eigen/unsupported/Eigen/CXX11/Tensor>
+// #include <eigen/unsupported/Eigen/CXX11/Tensor>
+
+#ifdef __cplusplus  // in order to avoid conflicts with Eigen::numext::isfinite
+#ifndef isfinite
+#define isfinite std::isfinite
+#endif
+#endif
+
 #pragma GCC diagnostic pop

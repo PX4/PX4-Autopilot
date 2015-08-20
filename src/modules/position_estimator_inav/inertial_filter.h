@@ -12,12 +12,6 @@
 
 using namespace Eigen;
 
-#ifdef __cplusplus
-#ifndef isfinite
-#define isfinite std::isfinite
-#endif
-#endif
-
 class InertialFilter
 {
 public:

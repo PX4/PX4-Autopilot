@@ -45,9 +45,9 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <string.h>
-#include <cmath>
 #include <px4_config.h>
 #include <px4_eigen.h>
+#include <array>
 #include <float.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
@@ -253,8 +253,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	 * Tensor<float, 3, RowMajor> R_buf(EST_BUF_SIZE, 3, 3);	// rotation matrix buffer
 	 * R_buf.setZero();
 	 */
-	std::vector<Matrix<float, 3, 2> > est_buf(EST_BUF_SIZE);// estimated position buffer
-	std::vector<Matrix3f> R_buf(EST_BUF_SIZE);	// rotation matrix buffer
+	std::array<Matrix<float, 3, 2>, EST_BUF_SIZE> est_buf;// estimated position buffer
+	std::array<Matrix3f, EST_BUF_SIZE> R_buf;   // rotation matrix buffer
 	for (size_t it = 0; it < EST_BUF_SIZE; it++) {
 		est_buf[it].setZero();
 		R_buf[it].setZero();
