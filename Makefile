@@ -41,9 +41,18 @@ ifneq ($(EXPLICIT_TARGET),)
 endif
 
 #
-# Get path and tool configuration
+# Get base path
 #
 export PX4_BASE		 := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))/
+
+#
+# Optionally include Developers overrides
+#
+-include ~/px4_developer.mk
+
+#
+# Get path and tool configuration
+#
 include $(PX4_BASE)makefiles/setup.mk
 
 #
