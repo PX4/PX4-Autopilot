@@ -165,7 +165,7 @@ public:
 	int		start();
 
 private:
-	static const unsigned _rc_max_chan_count = RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
+	static const unsigned _rc_max_chan_count = input_rc_s::RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
 
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
