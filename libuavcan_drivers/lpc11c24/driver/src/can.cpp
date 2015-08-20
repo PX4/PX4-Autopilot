@@ -19,9 +19,9 @@
 # error UAVCAN_LPC11C24_RX_QUEUE_LEN is too large
 #endif
 
-extern "C" void canRxCallback(uint8_t msg_obj_num);
-extern "C" void canTxCallback(uint8_t msg_obj_num);
-extern "C" void canErrorCallback(uint32_t error_info);
+extern "C" void canRxCallback(std::uint8_t msg_obj_num);
+extern "C" void canTxCallback(std::uint8_t msg_obj_num);
+extern "C" void canErrorCallback(std::uint32_t error_info);
 
 namespace uavcan_lpc11c24
 {
@@ -40,7 +40,7 @@ const unsigned NumMsgObjects = 32;
  * Total number of CAN errors.
  * Does not overflow.
  */
-uint32_t error_cnt;
+std::uint32_t error_cnt = 0;
 
 /**
  * True if there's no pending TX frame, i.e. write is possible.
@@ -50,7 +50,7 @@ bool tx_free = true;
 /**
  * Gets updated every time the CAN IRQ handler is being called.
  */
-uint64_t last_irq_utc_timestamp = 0;
+std::uint64_t last_irq_utc_timestamp = 0;
 
 bool had_activity;
 
@@ -62,26 +62,18 @@ class RxQueue
 {
     struct Item
     {
-        uint64_t utc_usec;
+        std::uint64_t utc_usec = 0;
         uavcan::CanFrame frame;
-        Item() : utc_usec(0) { }
     };
 
     Item buf_[UAVCAN_LPC11C24_RX_QUEUE_LEN];
-    uint32_t overflow_cnt_;
-    uint8_t in_;
-    uint8_t out_;
-    uint8_t len_;
+    std::uint32_t overflow_cnt_ = 0;
+    std::uint8_t in_ = 0;
+    std::uint8_t out_ = 0;
+    std::uint8_t len_ = 0;
 
 public:
-    RxQueue()
-        : overflow_cnt_(0)
-        , in_(0)
-        , out_(0)
-        , len_(0)
-    { }
-
-    void push(const uavcan::CanFrame& frame, const uint64_t& utc_usec)
+    void push(const uavcan::CanFrame& frame, const std::uint64_t& utc_usec)
     {
         buf_[in_].frame    = frame;
         buf_[in_].utc_usec = utc_usec;
@@ -106,7 +98,7 @@ public:
         }
     }
 
-    void pop(uavcan::CanFrame& out_frame, uint64_t& out_utc_usec)
+    void pop(uavcan::CanFrame& out_frame, std::uint64_t& out_utc_usec)
     {
         if (len_ > 0)
         {
@@ -123,28 +115,28 @@ public:
 
     unsigned getLength() const { return len_; }
 
-    uint32_t getOverflowCount() const { return overflow_cnt_; }
+    std::uint32_t getOverflowCount() const { return overflow_cnt_; }
 };
 
 RxQueue rx_queue;
 
 
-int computeBaudrate(uint32_t baud_rate, uint32_t can_api_timing_cfg[2])
+int computeBaudrate(std::uint32_t baud_rate, std::uint32_t can_api_timing_cfg[2])
 {
-    const uint32_t pclk = Chip_Clock_GetMainClockRate();
-    const uint32_t clk_per_bit = pclk / baud_rate;
-    for (uint32_t div = 0; div <= 15; div++)
+    const std::uint32_t pclk = Chip_Clock_GetMainClockRate();
+    const std::uint32_t clk_per_bit = pclk / baud_rate;
+    for (std::uint32_t div = 0; div <= 15; div++)
     {
-        for (uint32_t quanta = 1; quanta <= 32; quanta++)
+        for (std::uint32_t quanta = 1; quanta <= 32; quanta++)
         {
-            for (uint32_t segs = 3; segs <= 17; segs++)
+            for (std::uint32_t segs = 3; segs <= 17; segs++)
             {
                 if (clk_per_bit == (segs * quanta * (div + 1)))
                 {
                     segs -= 3;
-                    const uint32_t seg1 = segs / 2;
-                    const uint32_t seg2 = segs - seg1;
-                    const uint32_t can_sjw = (seg1 > 3) ? 3 : seg1;
+                    const std::uint32_t seg1 = segs / 2;
+                    const std::uint32_t seg2 = segs - seg1;
+                    const std::uint32_t can_sjw = (seg1 > 3) ? 3 : seg1;
                     can_api_timing_cfg[0] = div;
                     can_api_timing_cfg[1] = ((quanta - 1) & 0x3F) |
                                             (can_sjw & 0x03) << 6 |
@@ -175,7 +167,7 @@ int CanDriver::init(uavcan::uint32_t baudrate)
      * C_CAN init
      */
     Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
-    static uint32_t can_api_init_table[2];
+    static std::uint32_t can_api_init_table[2];
     if (computeBaudrate(baudrate, can_api_init_table) != 0)
     {
         return -1;
@@ -285,7 +277,7 @@ uavcan::int16_t CanDriver::receive(uavcan::CanFrame& out_frame, uavcan::Monotoni
     {
         return 0;
     }
-    uint64_t ts_utc = 0;
+    std::uint64_t ts_utc = 0;
     rx_queue.pop(out_frame, ts_utc);
     out_ts_utc = uavcan::UtcTime::fromUSec(ts_utc);
     return 1;
@@ -337,7 +329,7 @@ uavcan::int16_t CanDriver::configureFilters(const uavcan::CanFilterConfig* filte
 uavcan::uint64_t CanDriver::getErrorCount() const
 {
     CriticalSectionLocker locker;
-    return uint64_t(error_cnt) + uint64_t(rx_queue.getOverflowCount());
+    return std::uint64_t(error_cnt) + std::uint64_t(rx_queue.getOverflowCount());
 }
 
 uavcan::uint16_t CanDriver::getNumFilters() const
@@ -363,7 +355,7 @@ uavcan::uint8_t CanDriver::getNumIfaces() const
 extern "C"
 {
 
-void canRxCallback(uint8_t msg_obj_num)
+void canRxCallback(std::uint8_t msg_obj_num)
 {
     CCAN_MSG_OBJ_T msg_obj = CCAN_MSG_OBJ_T();
     msg_obj.msgobj = msg_obj_num;
@@ -396,14 +388,14 @@ void canRxCallback(uint8_t msg_obj_num)
     uavcan_lpc11c24::had_activity = true;
 }
 
-void canTxCallback(uint8_t msg_obj_num)
+void canTxCallback(std::uint8_t msg_obj_num)
 {
     (void)msg_obj_num;
     uavcan_lpc11c24::tx_free = true;
     uavcan_lpc11c24::had_activity = true;
 }
 
-void canErrorCallback(uint32_t error_info)
+void canErrorCallback(std::uint32_t error_info)
 {
     (void)error_info;
     if (uavcan_lpc11c24::error_cnt < 0xFFFFFFFF)

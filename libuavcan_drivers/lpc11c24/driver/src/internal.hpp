@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <chip.h>
 
 namespace uavcan_lpc11c24
@@ -31,7 +32,7 @@ struct CriticalSectionLocker
 namespace clock
 {
 
-uint64_t getUtcUSecFromCanInterrupt();
+std::uint64_t getUtcUSecFromCanInterrupt();
 
 }
 

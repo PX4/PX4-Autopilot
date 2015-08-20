@@ -51,9 +51,9 @@ class SystemClock : public uavcan::ISystemClock, uavcan::Noncopyable
 
     SystemClock() { }
 
-    virtual uavcan::MonotonicTime getMonotonic()     const { return clock::getMonotonic(); }
-    virtual uavcan::UtcTime getUtc()                 const { return clock::getUtc(); }
-    virtual void adjustUtc(uavcan::UtcDuration adjustment) { clock::adjustUtc(adjustment); }
+    uavcan::MonotonicTime getMonotonic()     const override { return clock::getMonotonic(); }
+    uavcan::UtcTime getUtc()                 const override { return clock::getUtc(); }
+    void adjustUtc(uavcan::UtcDuration adjustment) override { clock::adjustUtc(adjustment); }
 
 public:
     /**

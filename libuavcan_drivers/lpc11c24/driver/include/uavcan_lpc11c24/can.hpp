@@ -44,26 +44,29 @@ public:
      */
     bool hadActivity();
 
-    virtual uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline,
-                                 uavcan::CanIOFlags flags);
+    uavcan::int16_t send(const uavcan::CanFrame& frame,
+                         uavcan::MonotonicTime tx_deadline,
+                         uavcan::CanIOFlags flags) override;
 
-    virtual uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
-                                    uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags);
+    uavcan::int16_t receive(uavcan::CanFrame& out_frame,
+                            uavcan::MonotonicTime& out_ts_monotonic,
+                            uavcan::UtcTime& out_ts_utc,
+                            uavcan::CanIOFlags& out_flags) override;
 
-    virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks,
-                                   const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
-                                   uavcan::MonotonicTime blocking_deadline);
+    uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks,
+                           const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+                           uavcan::MonotonicTime blocking_deadline) override;
 
-    virtual uavcan::int16_t configureFilters(const uavcan::CanFilterConfig* filter_configs,
-                                             uavcan::uint16_t num_configs);
+    uavcan::int16_t configureFilters(const uavcan::CanFilterConfig* filter_configs,
+                                     uavcan::uint16_t num_configs) override;
 
-    virtual uavcan::uint64_t getErrorCount() const;
+    uavcan::uint64_t getErrorCount() const override;
 
-    virtual uavcan::uint16_t getNumFilters() const;
+    uavcan::uint16_t getNumFilters() const override;
 
-    virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index);
+    uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) override;
 
-    virtual uavcan::uint8_t getNumIfaces() const;
+    uavcan::uint8_t getNumIfaces() const override;
 };
 
 }
