@@ -41,9 +41,7 @@
 
 #include <cmath>
 #include <px4_eigen.h>
-#include <mathlib/mathlib.h>
 #include <float.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -67,7 +65,7 @@ uint8_t err_num;
 
 #define TEST_OP(_title, _op)															\
 	{																												\
-		const hrt_abstime t0 = hrt_absolute_time();						\
+		const hrt_abstime t0 = hrt_absolute_time();												\
 		for (size_t j = 0; j < OPERATOR_ITERATIONS; j++) {									\
 			_op;																			\
 		}																					\
@@ -95,81 +93,6 @@ uint8_t err_num;
 
 #define EXPECT_NEAR(expected, actual, epsilon)											\
 	(fabsf(expected - actual) <= epsilon)
-
-/**
- * @brief
- *	Prints an Eigen::Matrix to stdout
- **/
-template<typename T>
-void printEigen(const Eigen::MatrixBase<T> &b)
-{
-	for (int i = 0; i < b.rows(); ++i) {
-		printf("(");
-
-		for (int j = 0; j < b.cols(); ++j) {
-			if (j > 0) {
-				printf(",");
-			}
-
-			printf("%.3f", static_cast<double>(b(i, j)));
-		}
-
-		printf(")%s\n", i + 1 < b.rows() ? "," : "");
-	}
-}
-
-// Methods prototypes
-Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy);
-Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q);
-Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy);
-Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q);
-math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q);
-
-/**
- * @brief
- *	Construct new Eigen::Quaternion from euler angles
- *	Right order is YPR.
- **/
-Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
-	return Eigen::Quaternionf(
-		Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
-		Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
-		Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
-		);
-}
-
-/**
- * @brief
- *	Construct new Eigen::Vector3f of euler angles from quaternion
- *	Right order is YPR.
- **/
-Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
-	return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
-}
-
-/**
- * @brief
- *	Construct new Eigen::Matrix3f from euler angles
- **/
-Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
-	return quatFromEuler(rpy).toRotationMatrix();
-}
-
-/**
- * @brief
- *	Adjust PX4 math::quaternion to Eigen::Quaternionf
- **/
-Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
-	return Eigen::Quaternionf(q.data[1], q.data[2], q.data[3], q.data[0]);
-}
-
-/**
- * @brief
- *	Adjust Eigen::Quaternionf to PX4 math::quaternion
- **/
-math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
-	return math::Quaternion(q.w(), q.x(), q.y(), q.z());
-}
 
 /**
  * @brief

@@ -42,6 +42,8 @@
 #pragma once
 
 #include <cmath>
+#include <stdio.h>
+#include <mathlib/mathlib.h>
 #pragma GCC diagnostic push
 #ifndef RAND_MAX
 #define RAND_MAX __RAND_MAX
@@ -62,3 +64,75 @@
 #endif
 
 #pragma GCC diagnostic pop
+
+/**
+ * @brief
+ *	Prints an Eigen::Matrix to stdout
+ **/
+template<typename T>
+static void printEigen(const Eigen::MatrixBase<T> &b)
+{
+	for (int i = 0; i < b.rows(); ++i) {
+		printf("(");
+
+		for (int j = 0; j < b.cols(); ++j) {
+			if (j > 0) {
+				printf(",");
+			}
+
+			printf("%.3f", static_cast<double>(b(i, j)));
+		}
+
+		printf(")%s\n", i + 1 < b.rows() ? "," : "");
+	}
+}
+
+/*
+ * Custom Eigen methods
+ */
+
+/**
+ * @brief
+ *	Construct new Eigen::Quaternion from euler angles
+ *	Right order is YPR.
+ */
+static Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
+	return Eigen::Quaternionf(
+		Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
+		Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
+		Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
+		);
+}
+
+/**
+ * @brief
+ *	Construct new Eigen::Vector3f of euler angles from quaternion
+ *	Right order is YPR.
+ */
+static Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
+	return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
+}
+
+/**
+ * @brief
+ *	Construct new Eigen::Matrix3f from euler angles
+ */
+static Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
+	return quatFromEuler(rpy).toRotationMatrix();
+}
+
+/**
+ * @brief
+ *	Adjust PX4 math::quaternion to Eigen::Quaternionf
+ */
+static Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
+	return Eigen::Quaternionf(q.data[1], q.data[2], q.data[3], q.data[0]);
+}
+
+/**
+ * @brief
+ *	Adjust Eigen::Quaternionf to PX4 math::quaternion
+ */
+static math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
+	return math::Quaternion(q.w(), q.x(), q.y(), q.z());
+}
