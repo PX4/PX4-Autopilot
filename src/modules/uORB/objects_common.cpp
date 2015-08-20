@@ -140,6 +140,9 @@ ORB_DEFINE(position_setpoint_triplet, struct position_setpoint_triplet_s);
 ORB_DEFINE(vehicle_global_velocity_setpoint, struct vehicle_global_velocity_setpoint_s);
 
 #include "topics/mission.h"
+// XXX onboard and offboard mission are still declared here until this is
+// generator supported
+#include <navigator/navigation.h>
 ORB_DEFINE(offboard_mission, struct mission_s);
 ORB_DEFINE(onboard_mission, struct mission_s);
 
