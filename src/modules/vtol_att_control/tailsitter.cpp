@@ -325,8 +325,8 @@ void Tailsitter::update_transition_state()
 		/** keep yaw disabled */
 		_mc_yaw_weight = 0.0f;
 
-		// set zero throttle for backtransition otherwise unwanted moments will be created
-		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+		// set throttle value same as started
+		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] = _throttle_transition_start;
 
 	}
 
@@ -416,50 +416,48 @@ void Tailsitter::scale_mc_output()
 */
 void Tailsitter::fill_actuator_outputs()
 {
-	switch (_vtol_mode) {
-	case ROTARY_WING:
-		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
-		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+	switch(_vtol_mode) {
+		case ROTARY_WING:
+			_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
+			_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
+			_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
+			_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
 
-		if (_params->elevons_mc_lock == 1) {
-			_actuators_out_1->control[0] = 0;
-			_actuators_out_1->control[1] = 0;
+			if (_params->elevons_mc_lock == 1) {
+				_actuators_out_1->control[0] = 0;
+				_actuators_out_1->control[1] = 0;
+			} else {
+				// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
+				_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	//roll elevon
+				_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	//pitch elevon
+			}
+			break;
+		case FIXED_WING:
+			// in fixed wing mode we use engines only for providing thrust, no moments are generated
+			_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = 0;
+			_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = 0;
+			_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = 0;
+			_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
 
-		} else {
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];	// roll elevon
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim;	// pitch elevon
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW];	// yaw
+			_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];	// throttle
+			break;
+		case TRANSITION:
+			// in transition engines are mixed by weight (FRONT_P2 , BACK) 
+			_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL] * _mc_roll_weight;
+			_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
+			_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] * _mc_yaw_weight;
+			_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+
 			// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
-			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-				_actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	//roll elevon
-			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-				_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	//pitch elevon
-		}
-
-		break;
-
-	case FIXED_WING:
-		// in fixed wing mode we use engines only for providing thrust, no moments are generated
-		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = 0;
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = 0;
-		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = 0;
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
-
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];	// roll elevon
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim;	// pitch elevon
-		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];	// yaw
-		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];	// throttle
-		break;
-
-	case TRANSITION:
-	case EXTERNAL:
-		// not yet implemented, we are switching brute force at the moment
-		break;
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_mc_in->control[actuator_controls_s::INDEX_YAW] * (1 - _mc_yaw_weight);
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = (_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight) + 
+																			(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) *(1 - _mc_pitch_weight);
+			break;
+			case EXTERNAL:
+			// not yet implemented, we are switching brute force at the moment
+			break;
 	}
 }
