@@ -75,7 +75,7 @@ protected:
             friend FDCache;
 
             FDCacheItem* next_;
-            time_t last_access_;
+            std::time_t last_access_;
             const int fd_;
             const int oflags_;
             const char* const path_;
@@ -101,6 +101,7 @@ protected:
 
             ~FDCacheItem()
             {
+                using namespace std;
                 if (valid())
                 {
                     ::free(const_cast<char*>(path_));
@@ -117,13 +118,14 @@ protected:
                 return fd_;
             }
 
-            time_t getAccess() const
+            std::time_t getAccess() const
             {
                 return last_access_;
             }
 
-            time_t acessed()
+            std::time_t acessed()
             {
+                using namespace std;
                 last_access_ = time(NULL);
                 return getAccess();
             }
@@ -135,11 +137,13 @@ protected:
 
             bool expired() const
             {
+                using namespace std;
                 return 0 == last_access_ || (time(NULL) - last_access_) > MaxAgeSeconds;
             }
 
             bool equals(const char* path, int oflags) const
             {
+                using namespace std;
                 return oflags_ == oflags && 0 == ::strcmp(path, path_);
             }
 
@@ -275,7 +279,6 @@ protected:
                 if (pi && !pi->valid())
                 {
                     /* Allocation worked but clone or path failed */
-
                     delete pi;
                     pi = NULL;
                 }
@@ -286,7 +289,6 @@ protected:
                      * If allocation fails no harm just can not cache it
                      * return open fd
                      */
-
                     return fd;
                 }
                 /* add new */
@@ -334,7 +336,7 @@ protected:
      * Implementation of this method is required.
      * On success the method must return zero.
      */
-    virtual int16_t getInfo(const Path& path, uint64_t& out_size, EntryType& out_type)
+    virtual uavcan::int16_t getInfo(const Path& path, uavcan::uint64_t& out_size, EntryType& out_type)
     {
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
 
@@ -376,12 +378,15 @@ protected:
      * if the end of file is reached.
      * On success the method must return zero.
      */
-    virtual int16_t read(const Path& path, const uint64_t offset, uint8_t* out_buffer, uint16_t& inout_size)
+    virtual uavcan::int16_t read(const Path& path, const uavcan::uint64_t offset, uavcan::uint8_t* out_buffer,
+                                 uavcan::uint16_t& inout_size)
     {
         int rv = uavcan::protocol::file::Error::INVALID_VALUE;
 
         if (path.size() > 0 && inout_size != 0)
         {
+            using namespace std;
+
             FDCacheBase& cache = getFDCache();
             int fd = cache.open(path.c_str(), O_RDONLY);
 

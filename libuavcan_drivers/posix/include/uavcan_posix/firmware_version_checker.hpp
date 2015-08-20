@@ -86,6 +86,8 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 
     int copyIfNot(const char* srcpath, const char* destpath)
     {
+        using namespace std;
+
         // Does the file exist
         int rv = 0;
         int dfd = open(destpath, O_RDONLY, 0);
@@ -158,13 +160,13 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 
     struct AppDescriptor
     {
-        uint8_t signature[sizeof(uavcan::uint64_t)];
-        uint64_t image_crc;
-        uint32_t image_size;
-        uint32_t vcs_commit;
-        uint8_t major_version;
-        uint8_t minor_version;
-        uint8_t reserved[6];
+        uavcan::uint8_t signature[sizeof(uavcan::uint64_t)];
+        uavcan::uint64_t image_crc;
+        uavcan::uint32_t image_size;
+        uavcan::uint32_t vcs_commit;
+        uavcan::uint8_t major_version;
+        uavcan::uint8_t minor_version;
+        uavcan::uint8_t reserved[6];
     };
 
     static int getFileInfo(const char* path, AppDescriptor& descriptor)
