@@ -1791,11 +1791,11 @@ FixedwingPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
+				if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
 					/* publish the attitude setpoint */
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &_att_sp);
 
-				} else if (_attitude_sp_pub == nullptr && !_vehicle_status.is_rotary_wing) {
+				} else if (_attitude_sp_pub == nullptr && !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
 					/* advertise and publish */
 					_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 				}
