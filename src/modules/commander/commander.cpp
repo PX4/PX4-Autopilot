@@ -108,6 +108,7 @@
 #include <geo/geo.h>
 #include <systemlib/state_table.h>
 #include <dataman/dataman.h>
+#include <navigator/navigation.h>
 
 #include "px4_custom_mode.h"
 #include "commander_helper.h"
