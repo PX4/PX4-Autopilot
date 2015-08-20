@@ -51,7 +51,7 @@
 #define GYRO1_DEVICE_PATH	"/dev/gyro1"
 #define GYRO2_DEVICE_PATH	"/dev/gyro2"
 
-#include <uOrb/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_gyro.h>
 #define gyro_report sensor_gyro_s
 
 /** gyro scaling factors; Vout = (Vin * Vscale) + Voffset */

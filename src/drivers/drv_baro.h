@@ -50,7 +50,7 @@
 #define BARO_BASE_DEVICE_PATH	"/dev/baro"
 #define BARO0_DEVICE_PATH	"/dev/baro0"
 
-#include <uOrb/topics/sensor_baro.h>
+#include <uORB/topics/sensor_baro.h>
 #define baro_report sensor_baro_s
 
 /*
