@@ -194,7 +194,7 @@ EXTRA_CLEANS		 =
 #
 # Extra defines for compilation
 #
-export EXTRADEFINES := -DGIT_VERSION=$(GIT_DESC) -DBUILD_URI=$(BUILD_URI)
+export EXTRADEFINES += -DGIT_VERSION=$(GIT_DESC) -DBUILD_URI=$(BUILD_URI)
 
 #
 # Append the per-board driver directory to the header search path.
