@@ -43,6 +43,8 @@
 
 #include <drivers/drv_hrt.h>
 
+#include <navigator/navigation.h>
+
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
