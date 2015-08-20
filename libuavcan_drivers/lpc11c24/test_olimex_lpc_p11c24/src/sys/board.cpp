@@ -9,8 +9,8 @@
 #include <cstring>
 #include <numeric>
 
-#define PDRUNCFGUSEMASK 0x0000ED00
-#define PDRUNCFGMASKTMP 0x000000FF
+static constexpr unsigned long PDRUNCFGUSEMASK = 0x0000ED00U;
+static constexpr unsigned long PDRUNCFGMASKTMP = 0x000000FFU;
 
 const std::uint32_t OscRateIn = 12000000; ///< External crystal
 const std::uint32_t ExtRateIn = 0;
