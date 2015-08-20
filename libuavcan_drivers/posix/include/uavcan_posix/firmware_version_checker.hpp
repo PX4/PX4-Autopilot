@@ -113,7 +113,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
                 }
                 else
                 {
-                    ssize_t size;
+                    ssize_t size = 0;
                     do
                     {
                         size = ::read(sfd, buffer, sizeof(buffer));
@@ -128,7 +128,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
                                 rv = 0;
                                 ssize_t remaining = size;
                                 ssize_t total_written = 0;
-                                ssize_t written;
+                                ssize_t written = 0;
                                 do
                                 {
                                     written = write(dfd, &buffer[total_written], remaining);
@@ -146,7 +146,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
                             }
                         }
                     }
-                    while (rv == 0 && size);
+                    while (rv == 0 && size != 0);
 
                     (void)close(sfd);
                 }

@@ -403,7 +403,7 @@ protected:
                 {
                     rv = 0;
                     ssize_t remaining = inout_size;
-                    ssize_t nread;
+                    ssize_t nread = 0;
                     do
                     {
                         nread = ::read(fd, &out_buffer[total_read], remaining);

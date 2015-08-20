@@ -56,7 +56,7 @@ protected:
                                          static_cast<int>(code), static_cast<long long>(argument));
 
             ssize_t total_written = 0;
-            ssize_t written;
+            ssize_t written = 0;
             do
             {
                 written = write(fd, &buffer[total_written], remaining);

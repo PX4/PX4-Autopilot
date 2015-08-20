@@ -57,7 +57,7 @@ protected:
             (void)memset(buffer, 0, sizeof(buffer));
             ssize_t remaining = MaxStringLength;
             ssize_t total_read = 0;
-            ssize_t nread;
+            ssize_t nread = 0;
             do
             {
                 nread = ::read(fd, &buffer[total_read], remaining);
@@ -95,7 +95,7 @@ protected:
         {
             ssize_t remaining = value.size();
             ssize_t total_written = 0;
-            ssize_t written;
+            ssize_t written = 0;
             do
             {
                 written = write(fd, &value.c_str()[total_written], remaining);
