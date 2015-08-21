@@ -50,7 +50,9 @@ class UAVCAN_EXPORT IEEE754Converter
          * Some compilers may have is_iec559 to be defined false despite the fact that IEEE754 is supported.
          * An acceptable workaround would be to put an #ifdef here.
          */
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
         StaticAssert<std::numeric_limits<typename NativeFloatSelector<BitLen>::Type>::is_iec559>::check();
+#endif
     }
 
 public:
