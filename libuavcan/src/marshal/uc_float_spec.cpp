@@ -14,10 +14,15 @@ namespace uavcan
 uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
 {
     /**
-    https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
-    BSD license
-    */
-    union { float val; uint32_t valbits; } conv;
+       https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
+       BSD license
+     */
+    union
+    {
+        float val;
+        uint32_t valbits;
+    } conv;
+
     uint32_t f_exp, f_sig;
     uint16_t h_sgn, h_exp, h_sig;
 
@@ -27,30 +32,39 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
     f_exp = (conv.valbits & 0x7F800000U);
 
     /* Exponent overflow/NaN converts to signed inf/NaN */
-    if (f_exp >= 0x47800000U) {
-        if (f_exp == 0x7F800000U) {
+    if (f_exp >= 0x47800000U)
+    {
+        if (f_exp == 0x7F800000U)
+        {
             /* Inf or NaN */
             f_sig = (conv.valbits & 0x007FFFFFU);
-            if (f_sig != 0) {
+            if (f_sig != 0)
+            {
                 /* NaN - propagate the flag in the significand... */
                 return uint16_t(h_sgn | 0x7FFFU);
-            } else {
+            }
+            else
+            {
                 /* signed inf */
                 return uint16_t(h_sgn + 0x7C00U);
             }
-        } else {
+        }
+        else
+        {
             /* overflow to signed inf */
             return uint16_t(h_sgn + 0x7C00U);
         }
     }
 
     /* Exponent underflow converts to a subnormal half or signed zero */
-    if (f_exp <= 0x38000000U) {
+    if (f_exp <= 0x38000000U)
+    {
         /**
          * Signed zeros, subnormal floats, and floats with small
          * exponents all convert to signed zero halfs.
          */
-        if (f_exp < 0x33000000U) {
+        if (f_exp < 0x33000000U)
+        {
             return h_sgn;
         }
 
@@ -92,44 +106,56 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
 float IEEE754Converter::halfToNativeNonIeee(uint16_t value)
 {
     /**
-    https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
-    BSD license
-    */
-    union { float ret; uint32_t retbits; } conv;
+       https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
+       BSD license
+     */
+    union
+    {
+        float ret;
+        uint32_t retbits;
+    } conv;
 
     uint16_t h_exp, h_sig;
     uint32_t f_sgn, f_exp, f_sig;
 
     h_exp = value & 0x7C00U;
     f_sgn = uint32_t(value & 0x8000U) << 16;
-    switch (h_exp) {
-        case 0x0000U: /* 0 or subnormal */
-            h_sig = (value & 0x03FFU);
-            if (h_sig == 0) {
-                /* Signed zero */
-                conv.retbits = f_sgn;
-            } else {
-                /* Subnormal */
+    switch (h_exp)
+    {
+    case 0x0000U:     /* 0 or subnormal */
+    {
+        h_sig = (value & 0x03FFU);
+        if (h_sig == 0)
+        {
+            /* Signed zero */
+            conv.retbits = f_sgn;
+        }
+        else
+        {
+            /* Subnormal */
+            h_sig = uint16_t(h_sig << 1);
+            while ((h_sig & 0x0400U) == 0)
+            {
                 h_sig = uint16_t(h_sig << 1);
-                while ((h_sig & 0x0400U) == 0) {
-                    h_sig = uint16_t(h_sig << 1);
-                    h_exp++;
-                }
-                f_exp = uint32_t(127 - 15 - h_exp) << 23;
-                f_sig = uint32_t(h_sig & 0x03FFU) << 13;
-                conv.retbits = f_sgn + f_exp + f_sig;
+                h_exp++;
             }
-            break;
-        case 0x7C00U: /* inf or NaN */
-            /* All-ones exponent and a copy of the significand */
-            conv.retbits = f_sgn + 0x7F800000U + (uint32_t(value & 0x03FFU) << 13);
-            break;
-        default: /* normalized */
-            /* Just need to adjust the exponent and shift */
-            conv.retbits = f_sgn + ((uint32_t(value & 0x7FFFU) + 0x1C000U) << 13);
-            break;
+            f_exp = uint32_t(127 - 15 - h_exp) << 23;
+            f_sig = uint32_t(h_sig & 0x03FFU) << 13;
+            conv.retbits = f_sgn + f_exp + f_sig;
+        }
+        break;
+    }
+    case 0x7C00U:     /* inf or NaN */
+    {       /* All-ones exponent and a copy of the significand */
+        conv.retbits = f_sgn + 0x7F800000U + (uint32_t(value & 0x03FFU) << 13);
+        break;
+    }
+    default:     /* normalized */
+    {       /* Just need to adjust the exponent and shift */
+        conv.retbits = f_sgn + ((uint32_t(value & 0x7FFFU) + 0x1C000U) << 13);
+        break;
+    }
     }
     return conv.ret;
 }
-
 }
