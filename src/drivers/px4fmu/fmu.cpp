@@ -772,8 +772,8 @@ PX4FMU::task_main()
 			// we have a new PPM frame. Publish it.
 			rc_in.channel_count = ppm_decoded_channels;
 
-			if (rc_in.channel_count > RC_INPUT_MAX_CHANNELS) {
-				rc_in.channel_count = RC_INPUT_MAX_CHANNELS;
+			if (rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+				rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
 			}
 
 			for (uint8_t i = 0; i < rc_in.channel_count; i++) {
