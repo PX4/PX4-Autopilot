@@ -8,14 +8,14 @@
 
 namespace uavcan
 {
-/**
+/*
  * IEEE754Converter
  */
 uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
 {
-    /**
-       https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
-       BSD license
+    /*
+     * https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
+     * BSD license
      */
     union
     {
@@ -59,7 +59,7 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
     /* Exponent underflow converts to a subnormal half or signed zero */
     if (f_exp <= 0x38000000U)
     {
-        /**
+        /*
          * Signed zeros, subnormal floats, and floats with small
          * exponents all convert to signed zero halfs.
          */
@@ -77,7 +77,7 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
 
         h_sig = uint16_t(f_sig >> 13);
 
-        /**
+        /*
          * If the rounding causes a bit to spill into h_exp, it will
          * increment h_exp from zero to one and h_sig will be zero.
          * This is the correct result.
@@ -94,7 +94,7 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
 
     h_sig = uint16_t(f_sig >> 13);
 
-    /**
+    /*
      * If the rounding causes a bit to spill into h_exp, it will
      * increment h_exp by one and h_sig will be zero.  This is the
      * correct result.  h_exp may increment to 15, at greatest, in
@@ -105,9 +105,9 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
 
 float IEEE754Converter::halfToNativeNonIeee(uint16_t value)
 {
-    /**
-       https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
-       BSD license
+    /*
+     * https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
+     * BSD license
      */
     union
     {
