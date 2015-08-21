@@ -995,7 +995,7 @@ MulticopterPositionControl::task_main()
 
 		/* reset yaw and altitude setpoint for VTOL which are in fw mode */
 		if (_vehicle_status.is_vtol) {
-			if (!_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+			if (!_vehicle_status.is_rotary_wing) {
 				reset_yaw_sp = true;
 				_reset_alt_sp = true;
 			}
