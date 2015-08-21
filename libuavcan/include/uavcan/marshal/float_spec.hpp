@@ -43,6 +43,16 @@ class UAVCAN_EXPORT IEEE754Converter
 
     IEEE754Converter();
 
+    template <unsigned BitLen>
+    static void enforceIeee()
+    {
+        /*
+         * Some compilers may have is_iec559 to be defined false despite the fact that IEEE754 is supported.
+         * An acceptable workaround would be to put an #ifdef here.
+         */
+        StaticAssert<std::numeric_limits<typename NativeFloatSelector<BitLen>::Type>::is_iec559>::check();
+    }
+
 public:
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
     /// UAVCAN requires rounding to nearest for all float conversions
@@ -53,6 +63,7 @@ public:
     static typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType
     toIeee(typename NativeFloatSelector<BitLen>::Type value)
     {
+        enforceIeee<BitLen>();
         union
         {
             typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType i;
@@ -67,6 +78,7 @@ public:
     static typename NativeFloatSelector<BitLen>::Type
     toNative(typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType value)
     {
+        enforceIeee<BitLen>();
         union
         {
             typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType i;
