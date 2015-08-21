@@ -90,6 +90,7 @@
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
+#define V3_ZERO Vector3f::Zero()
 
 /**
  * Multicopter position control app start / stop handling function
@@ -192,13 +193,13 @@ private:
 		float man_yaw_max;
 		float mc_att_yaw_p;
 
-		Vector3f pos_p;
-		Vector3f vel_p;
-		Vector3f vel_i;
-		Vector3f vel_d;
-		Vector3f vel_ff;
-		Vector3f vel_max;
-		Vector3f sp_offs_max;
+		Vector3f pos_p = {0.0f, 0.0f, 0.0f};
+		Vector3f vel_p = {0.0f, 0.0f, 0.0f};
+		Vector3f vel_i = {0.0f, 0.0f, 0.0f};
+		Vector3f vel_d = {0.0f, 0.0f, 0.0f};
+		Vector3f vel_ff = {0.0f, 0.0f, 0.0f};
+		Vector3f vel_max = {0.0f, 0.0f, 0.0f};
+		Vector3f sp_offs_max = {0.0f, 0.0f, 0.0f};
 	}		_params;
 
 	struct map_projection_reference_s _ref_pos;
@@ -209,13 +210,13 @@ private:
 	bool _reset_alt_sp;
 	bool _mode_auto;
 
-	Vector3f _pos;
-	Vector3f _pos_sp;
-	Vector3f _vel;
-	Vector3f _vel_sp;
-	Vector3f _vel_prev;			/**< velocity on previous step */
-	Vector3f _vel_ff;
-	Vector3f _sp_move_rate;
+	Vector3f _pos = {0.0f, 0.0f, 0.0f};
+	Vector3f _pos_sp = {0.0f, 0.0f, 0.0f};
+	Vector3f _vel = {0.0f, 0.0f, 0.0f};
+	Vector3f _vel_sp = {0.0f, 0.0f, 0.0f};
+	Vector3f _vel_prev = {0.0f, 0.0f, 0.0f};			/**< velocity on previous step */
+	Vector3f _vel_ff = {0.0f, 0.0f, 0.0f};
+	Vector3f _sp_move_rate = {0.0f, 0.0f, 0.0f};
 
 	/**
 	 * Update our local parameter cache.
@@ -606,8 +607,7 @@ MulticopterPositionControl::reset_alt_sp()
 void
 MulticopterPositionControl::limit_pos_sp_offset()
 {
-	Vector3f pos_sp_offs;
-	pos_sp_offs.setZero();
+	Vector3f pos_sp_offs = {0.0f, 0.0f, 0.0f};
 
 	if (_control_mode.flag_control_position_enabled) {
 		pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
@@ -650,9 +650,8 @@ MulticopterPositionControl::control_manual(float dt)
 	}
 
 	/* _sp_move_rate scaled to 0..1, scale it to max speed and rotate around yaw */
-	Matrix3f R_yaw_sp;
-	R_yaw_sp = matrixFromEuler(Vector3f(_att_sp.yaw_body, 0.0f, 0.0f));
-	Vector3f sp_aux(_sp_move_rate.array() * _params.vel_max.array());
+	Matrix3f R_yaw_sp = matrixFromEuler(Vector3f(_att_sp.yaw_body, 0.0f, 0.0f));
+	Vector3f sp_aux(_sp_move_rate.cwiseProduct(_params.vel_max));
 	_sp_move_rate = R_yaw_sp * sp_aux;
 
 	if (_control_mode.flag_control_altitude_enabled) {
@@ -672,8 +671,7 @@ MulticopterPositionControl::control_manual(float dt)
 	_pos_sp += _sp_move_rate * dt;
 
 	/* check if position setpoint is too far from actual position */
-	Vector3f pos_sp_offs;
-	pos_sp_offs.setZero();
+	Vector3f pos_sp_offs = {0.0f, 0.0f, 0.0f};
 
 	if (_control_mode.flag_control_position_enabled) {
 		pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
@@ -800,7 +798,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		_reset_alt_sp = true;
 
 		/* project setpoint to local frame */
-		Vector3f curr_sp;
+		Vector3f curr_sp = {0.0f, 0.0f, 0.0f};
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
 				       &curr_sp[0], &curr_sp[1]);
@@ -817,7 +815,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION && _pos_sp_triplet.previous.valid) {
 			/* follow "previous - current" line */
-			Vector3f prev_sp;
+			Vector3f prev_sp = {0.0f, 0.0f, 0.0f};
 			map_projection_project(&_ref_pos,
 						   _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
 						   &prev_sp[0], &prev_sp[1]);
@@ -835,7 +833,7 @@ void MulticopterPositionControl::control_auto(float dt)
 					/* copter is closer to waypoint than L1 radius */
 					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
 					if (_pos_sp_triplet.next.valid) {
-						Vector3f next_sp;
+						Vector3f next_sp = {0.0f, 0.0f, 0.0f};
 						map_projection_project(&_ref_pos,
 									   _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
 									   &next_sp[0], &next_sp[1]);
@@ -954,10 +952,9 @@ MulticopterPositionControl::task_main()
 
 	hrt_abstime t_prev = 0;
 
-	Vector3f thrust_int;
-	thrust_int.setZero();
-	Matrix3f R;
-	R.setIdentity();
+	Vector3f thrust_int = {0.0f, 0.0f, 0.0f};
+	math::Matrix<3, 3> R; //while there's no common Quaternion being used
+	R.identity();
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
@@ -1040,9 +1037,8 @@ MulticopterPositionControl::task_main()
 
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
-				R.setIdentity();
-				for (size_t i = 0; i < 9; i++)
-					_att_sp.R_body[i] = R(i);
+				R.identity();
+				memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 
 				_att_sp.R_valid = true;
 
@@ -1286,9 +1282,9 @@ MulticopterPositionControl::task_main()
 					if (_control_mode.flag_control_velocity_enabled) {
 
 						/* desired body_z axis = -normalize(thrust_vector) */
-						Vector3f body_x;
-						Vector3f body_y;
-						Vector3f body_z;
+						Vector3f body_x = {0.0f, 0.0f, 0.0f};
+						Vector3f body_y = {0.0f, 0.0f, 0.0f};
+						Vector3f body_z = {0.0f, 0.0f, 0.0f};
 
 						if (thrust_abs > SIGMA) {
 							body_z = -thrust_sp / thrust_abs;
@@ -1333,18 +1329,16 @@ MulticopterPositionControl::task_main()
 						}
 
 						/* copy rotation matrix to attitude setpoint topic */
-						for (size_t i = 0; i < 9; i++)
-							_att_sp.R_body[i] = R(i);
+						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 						_att_sp.R_valid = true;
 
 						/* copy quaternion setpoint to attitude setpoint topic */
-						Quaternionf q_sp(R);
-						for (size_t i = 0; i < 4; i++) {
-							_att_sp.q_d[i] = px4qFromEigenq(q_sp)(i);
-						}
+						math::Quaternion q_sp;
+						q_sp.from_dcm(R);
+						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 
 						/* calculate euler angles, for logging only, must not be used for control */
-						Vector3f euler = eulerFromRot(R);
+						Vector3f euler = eulerFromRot(eigenrFromPx4r(R));
 						_att_sp.roll_body = euler(2);
 						_att_sp.pitch_body = euler(1);
 						/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
@@ -1352,18 +1346,16 @@ MulticopterPositionControl::task_main()
 					} else if (!_control_mode.flag_control_manual_enabled) {
 						/* autonomous altitude control without position control (failsafe landing),
 						 * force level attitude, don't change yaw */
-						R = matrixFromEuler(Vector3f(_att_sp.yaw_body, 0.0f, 0.0f));
+						R = px4rFromEigenr(matrixFromEuler(Vector3f(_att_sp.yaw_body, 0.0f, 0.0f)));
 
 						/* copy rotation matrix to attitude setpoint topic */
-						for (size_t i = 0; i < 9; i++)
-							_att_sp.R_body[i] = R(i);
+						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 						_att_sp.R_valid = true;
 
 						/* copy quaternion setpoint to attitude setpoint topic */
-						Quaternionf q_sp(R);
-						for (size_t i = 0; i < 4; i++) {
-							_att_sp.q_d[i] = px4qFromEigenq(q_sp)(i);
-						}
+						math::Quaternion q_sp;
+						q_sp.from_dcm(R);
+						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 
 						_att_sp.roll_body = 0.0f;
 						_att_sp.pitch_body = 0.0f;
@@ -1452,16 +1444,14 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* construct attitude setpoint rotation matrix */
-			Matrix3f R_sp;
-			R_sp = matrixFromEuler(Vector3f(_att_sp.yaw_body,_att_sp.pitch_body,_att_sp.roll_body));
-			for (size_t i = 0; i < 9; i++)
-				_att_sp.R_body[i] = R(i);
+			math::Matrix<3,3> R_sp;
+			R_sp = px4rFromEigenr(matrixFromEuler(Vector3f(_att_sp.yaw_body,_att_sp.pitch_body,_att_sp.roll_body)));
+			memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 
 			/* copy quaternion setpoint to attitude setpoint topic */
-			Quaternionf q_sp(R);
-			for (size_t i = 0; i < 4; i++) {
-				_att_sp.q_d[i] = px4qFromEigenq(q_sp)(i);
-			}
+			math::Quaternion q_sp;
+			q_sp.from_dcm(R);
+			memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 			_att_sp.timestamp = hrt_absolute_time();
 		}
 		else {

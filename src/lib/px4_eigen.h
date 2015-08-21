@@ -143,6 +143,16 @@ static math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
 
 /**
  * @brief
+ *	Adjust PX4 math::Matrix<3,3> RotationMatrix to Eigen::Matrix3f RotationMatrix
+ */
+static Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot){
+	math::Quaternion q;
+	q.from_dcm(rot);
+	return Eigen::Matrix3f(eigenqFromPx4q(q).toRotationMatrix());
+}
+
+/**
+ * @brief
  *	Adjust Eigen::Matrix3f RotationMatrix to PX4 math::Matrix<3,3> RotationMatrix
  */
 static math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot){
