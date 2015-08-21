@@ -110,9 +110,18 @@ static Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
  *	Right order is YPR.
  */
 /* static Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
- * 	return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
+ * return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
  * }
  */
+
+ /**
+  * @brief
+  *	Construct new Eigen::Vector3f of euler angles from rotation matrix
+  *	Right order is YPR.
+  */
+static Eigen::Vector3f eulerFromRot(const Eigen::Matrix3f &rot){
+	 return rot.eulerAngles(2, 1, 0).reverse();
+}
 
 /**
  * @brief
@@ -136,4 +145,12 @@ static Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
  */
 static math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
 	return math::Quaternion(q.w(), q.x(), q.y(), q.z());
+}
+
+/**
+ * @brief
+ *	Adjust Eigen::RotationMatrix to PX4 math::RotationMatrix
+ */
+static math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot){
+	return math::Matrix<3,3>(px4qFromEigenq(Eigen::Quaternionf(rot)).to_dcm());
 }

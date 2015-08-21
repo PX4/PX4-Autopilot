@@ -43,3 +43,10 @@ SRCS		= mc_pos_control_main.cpp \
 # Startup handler, the actual app stack size is
 # in the task_spawn command
 MODULE_STACKSIZE = 1200
+
+EXTRACXXFLAGS = -Wno-float-equal
+
+ifneq ($(USE_GCC), 0)
+EXTRACXXFLAGS += -Wno-double-promotion -Wno-error=logical-op -w
+else EXTRACXXFLAGS += -Wno-unknown-warning-option
+endif
