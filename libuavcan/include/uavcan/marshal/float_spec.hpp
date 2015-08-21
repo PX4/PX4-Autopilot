@@ -36,9 +36,10 @@ struct NativeFloatSelector
 
 class UAVCAN_EXPORT IEEE754Converter
 {
-    // TODO: Non-IEEE float support for float32 and float64
-    static uint16_t nativeNonIeeeToHalf(float value);
-    static float halfToNativeNonIeee(uint16_t value);
+    // TODO: Non-IEEE float support
+
+    static uint16_t nativeIeeeToHalf(float value);
+    static float halfToNativeIeee(uint16_t value);
 
     IEEE754Converter();
 
@@ -80,13 +81,13 @@ template <>
 inline typename IntegerSpec<16, SignednessUnsigned, CastModeTruncate>::StorageType
 IEEE754Converter::toIeee<16>(typename NativeFloatSelector<16>::Type value)
 {
-    return nativeNonIeeeToHalf(value);
+    return nativeIeeeToHalf(value);
 }
 template <>
 inline typename NativeFloatSelector<16>::Type
 IEEE754Converter::toNative<16>(typename IntegerSpec<16, SignednessUnsigned, CastModeTruncate>::StorageType value)
 {
-    return halfToNativeNonIeee(value);
+    return halfToNativeIeee(value);
 }
 
 

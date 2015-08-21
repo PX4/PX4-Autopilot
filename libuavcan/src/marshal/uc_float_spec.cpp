@@ -11,7 +11,7 @@ namespace uavcan
 /*
  * IEEE754Converter
  */
-uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
+uint16_t IEEE754Converter::nativeIeeeToHalf(float value)
 {
     /*
      * https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
@@ -103,7 +103,7 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
     return uint16_t(h_sgn + h_exp + h_sig);
 }
 
-float IEEE754Converter::halfToNativeNonIeee(uint16_t value)
+float IEEE754Converter::halfToNativeIeee(uint16_t value)
 {
     /*
      * https://github.com/numpy/numpy/blob/master/numpy/core/src/npymath/halffloat.c
