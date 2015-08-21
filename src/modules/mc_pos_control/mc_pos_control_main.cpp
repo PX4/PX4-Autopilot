@@ -788,9 +788,9 @@ void MulticopterPositionControl::control_auto(float dt)
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 
 		//Make sure that the position setpoint is valid
-		if (!PX4_ISFINITE(_pos_sp_triplet.current.lat) ||
-			!PX4_ISFINITE(_pos_sp_triplet.current.lon) ||
-			!PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
+		if (!isfinite(_pos_sp_triplet.current.lat) ||
+			!isfinite(_pos_sp_triplet.current.lon) ||
+			!isfinite(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
 		}
 	}
@@ -908,7 +908,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		_pos_sp = pos_sp_s.array() / scale.array();
 
 		/* update yaw setpoint if needed */
-		if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
+		if (isfinite(_pos_sp_triplet.current.yaw)) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
 
@@ -1043,7 +1043,7 @@ MulticopterPositionControl::task_main()
 				/* idle state, don't run controller and set zero thrust */
 				R.setIdentity();
 				for (size_t i = 0; i < 9; i++)
-					_att_sp.R_body[i] = R(i);
+					_att_sp.R_body[i] = px4rFromEigenr(R)(i);
 
 				_att_sp.R_valid = true;
 
@@ -1335,14 +1335,15 @@ MulticopterPositionControl::task_main()
 
 						/* copy rotation matrix to attitude setpoint topic */
 						for (size_t i = 0; i < 9; i++)
-							_att_sp.R_body[i] = R(i);
+							_att_sp.R_body[i] = px4rFromEigenr(R)(i);
 						_att_sp.R_valid = true;
 
 						/* copy quaternion setpoint to attitude setpoint topic */
 						Quaternionf q_sp(R);
-						for (size_t i = 0; i < 4; i++) {
-							_att_sp.q_d[i] = px4qFromEigenq(q_sp)(i);
-						}
+						_att_sp.q_d[0] = px4qFromEigenq(q_sp).x();
+						_att_sp.q_d[1] = px4qFromEigenq(q_sp).y();
+						_att_sp.q_d[2] = px4qFromEigenq(q_sp).z();
+						_att_sp.q_d[3] = px4qFromEigenq(q_sp).w();
 
 						/* calculate euler angles, for logging only, must not be used for control */
 						Vector3f euler = eulerFromRot(R);
@@ -1357,14 +1358,15 @@ MulticopterPositionControl::task_main()
 
 						/* copy rotation matrix to attitude setpoint topic */
 						for (size_t i = 0; i < 9; i++)
-							_att_sp.R_body[i] = R(i);
+							_att_sp.R_body[i] = px4rFromEigenr(R)(i);
 						_att_sp.R_valid = true;
 
 						/* copy quaternion setpoint to attitude setpoint topic */
 						Quaternionf q_sp(R);
-						for (size_t i = 0; i < 4; i++) {
-							_att_sp.q_d[i] = px4qFromEigenq(q_sp)(i);
-						}
+						_att_sp.q_d[0] = px4qFromEigenq(q_sp).x();
+						_att_sp.q_d[1] = px4qFromEigenq(q_sp).y();
+						_att_sp.q_d[2] = px4qFromEigenq(q_sp).z();
+						_att_sp.q_d[3] = px4qFromEigenq(q_sp).w();
 
 						_att_sp.roll_body = 0.0f;
 						_att_sp.pitch_body = 0.0f;
@@ -1456,13 +1458,14 @@ MulticopterPositionControl::task_main()
 			Matrix3f R_sp;
 			R_sp = matrixFromEuler(Vector3f(_att_sp.yaw_body,_att_sp.pitch_body,_att_sp.roll_body));
 			for (size_t i = 0; i < 9; i++)
-				_att_sp.R_body[i] = R(i);
+				_att_sp.R_body[i] = px4rFromEigenr(R)(i);
 
 			/* copy quaternion setpoint to attitude setpoint topic */
 			Quaternionf q_sp(R);
-			for (size_t i = 0; i < 4; i++) {
-				_att_sp.q_d[i] = px4qFromEigenq(q_sp)(i);
-			}
+			_att_sp.q_d[0] = px4qFromEigenq(q_sp).x();
+			_att_sp.q_d[1] = px4qFromEigenq(q_sp).y();
+			_att_sp.q_d[2] = px4qFromEigenq(q_sp).z();
+			_att_sp.q_d[3] = px4qFromEigenq(q_sp).w();
 			_att_sp.timestamp = hrt_absolute_time();
 		}
 		else {

@@ -109,10 +109,10 @@ static Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
  *	Construct new Eigen::Vector3f of euler angles from quaternion
  *	Right order is YPR.
  */
-/* static Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
- * return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
- * }
- */
+static Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
+	return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
+}
+
 
  /**
   * @brief
@@ -141,16 +141,16 @@ static Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
 
 /**
  * @brief
- *	Adjust Eigen::Quaternionf to PX4 math::quaternion
+ *	Adjust Eigen Quaternionf to PX4 Quaternionf
  */
-static math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
-	return math::Quaternion(q.w(), q.x(), q.y(), q.z());
+static Eigen::Quaternionf px4qFromEigenq(const Eigen::Quaternionf &q){
+	return Eigen::Quaternionf(q.w(), q.x(), q.y(), q.z());
 }
 
 /**
  * @brief
- *	Adjust Eigen::RotationMatrix to PX4 math::RotationMatrix
+ *	Adjust Eigen RotationMatrix to PX4 RotationMatrix
  */
-static math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot){
-	return math::Matrix<3,3>(px4qFromEigenq(Eigen::Quaternionf(rot)).to_dcm());
+static Eigen::Matrix3f px4rFromEigenr(const Eigen::Matrix3f &rot){
+	return Eigen::Matrix3f(px4qFromEigenq(Eigen::Quaternionf(rot)).toRotationMatrix());
 }
