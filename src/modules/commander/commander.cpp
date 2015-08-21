@@ -275,7 +275,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("commander already running");
+			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
@@ -288,11 +288,18 @@ int commander_main(int argc, char *argv[])
 					     commander_thread_main,
 					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 
-		while (!thread_running) {
-			usleep(200);
+		unsigned constexpr max_wait_us = 1000000;
+		unsigned constexpr max_wait_steps = 2000;
+
+		unsigned i;
+		for (i = 0; i < max_wait_steps; i++) {
+			usleep(max_wait_us / max_wait_steps);
+			if (thread_running) {
+				break;
+			}
 		}
 
-		exit(0);
+		exit(!(i < max_wait_steps));
 	}
 
 	if (!strcmp(argv[1], "stop")) {
@@ -1354,7 +1361,9 @@ int commander_thread_main(int argc, char *argv[])
 				    /* we first connect a link or re-connect a link after loosing it */
 				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)) &&
 				    /* and this link has a communication partner */
-				    telemetry.heartbeat_time > 0 &&
+				    (telemetry.heartbeat_time > 0) &&
+				    /* and it is still connected */
+				    (hrt_elapsed_time(&telemetry.heartbeat_time) < 2 * 1000 * 1000) &&
 				    /* and the system is not already armed (and potentially flying) */
 				    !armed.armed) {
 

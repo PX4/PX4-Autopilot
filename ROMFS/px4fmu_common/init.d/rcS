@@ -626,6 +626,10 @@ then
 			then
 				set MAV_TYPE 21
 			fi
+			if [ $MIXER == quad_x_pusher_vtol ]
+			then
+				set MAV_TYPE 22
+			fi
 		fi
 
 		# Still no MAV_TYPE found
@@ -705,8 +709,18 @@ then
 # End of autostart
 fi
 
+# There is no further script processing, so we can free some RAM
+# XXX potentially unset all script variables.
+unset TUNE_ERR
+
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
+
+if ver hwcmp PX4FMU_V2
+then
+	# Check for flow sensor - as it is a background task, launch it last
+	px4flow start &
+fi
 
 if [ $EXIT_ON_END == yes ]
 then
@@ -714,7 +728,3 @@ then
 	exit
 fi
 unset EXIT_ON_END
-
-# There is no further processing, so we can free some RAM
-# XXX potentially unset all script variables.
-unset TUNE_ERR

@@ -31,79 +31,21 @@
  *
  ****************************************************************************/
 
- /**
- * @file tiltrotor.h
+/**
+ * @file standard_params.c
+ * Parameters for the standard VTOL controller.
  *
- * @author Roman Bapst 		<bapstroman@gmail.com>
- *
+ * @author Simon Wilks	<simon@uaventure.com>
+ * @author Roman Bapst	<bapstroman@gmail.com>
  */
 
-#ifndef TILTROTOR_H
-#define TILTROTOR_H
-#include "vtol_type.h"
 #include <systemlib/param/param.h>
-#include <drivers/drv_hrt.h>
 
-class Tiltrotor : public VtolType
-{
-
-public:
-
-	Tiltrotor(VtolAttitudeControl * _att_controller);
-	~Tiltrotor();
-
-	void update_vtol_state();
-	void update_mc_state();
-	void process_mc_data();
-	void update_fw_state();
-	void process_fw_data();
-	void update_transition_state();
-	void update_external_state();
-
-private:
-
-	struct {
-		float front_trans_dur;
-		float back_trans_dur;
-		float tilt_mc;
-		float tilt_transition;
-		float tilt_fw;
-		float airspeed_trans;
-		int elevons_mc_lock;			// lock elevons in multicopter mode
-	} _params_tiltrotor;
-
-	struct {
-		param_t front_trans_dur;
-		param_t back_trans_dur;
-		param_t tilt_mc;
-		param_t tilt_transition;
-		param_t tilt_fw;
-		param_t airspeed_trans;
-		param_t elevons_mc_lock;
-	} _params_handles_tiltrotor;
-
-	enum vtol_mode {
-		MC_MODE = 0,
-		TRANSITION_FRONT_P1,
-		TRANSITION_FRONT_P2,
-		TRANSITION_BACK,
-		FW_MODE
-	};
-
-	struct {
-		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
-		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
-	}_vtol_schedule;
-
-	bool flag_max_mc;
-	float _tilt_control;
-	float _roll_weight_mc;
-
-	void fill_att_control_output();
-	void set_max_mc();
-	void set_max_fw(unsigned pwm_value);
-
-	int parameters_update();
-
-};
-#endif
+/**
+ * Target throttle value for pusher/puller motor during the transition to fw mode
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_TRANS_THR, 0.6f);

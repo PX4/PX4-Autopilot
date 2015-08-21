@@ -420,7 +420,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 		// Set up height correctly
 		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
-		initReferencePosition(_gps.timestamp_position, lat, lon, gps_alt, _baro.altitude);
+		initReferencePosition(_gps.timestamp_position, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
 
 	} else if (_ekf_logging) {
 		_ekf->GetFilterState(&ekf_report);
@@ -726,7 +726,7 @@ void AttitudePositionEstimatorEKF::task_main()
 }
 
 void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
-	double lat, double lon, float gps_alt, float baro_alt)
+	bool gps_valid, double lat, double lon, float gps_alt, float baro_alt)
 {
 	// Reference altitude
 	if (isfinite(_ekf->states[9])) {
@@ -738,17 +738,20 @@ void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
 	}
 
 	// init filtered gps and baro altitudes
-	_gps_alt_filt = gps_alt;
 	_baro_alt_filt = baro_alt;
 
-	// Initialize projection
-	_local_pos.ref_lat = lat;
-	_local_pos.ref_lon = lon;
-	_local_pos.ref_alt = gps_alt;
-	_local_pos.ref_timestamp = timestamp;
+	if (gps_valid) {
+		_gps_alt_filt = gps_alt;
 
-	map_projection_init(&_pos_ref, lat, lon);
-	mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
+		// Initialize projection
+		_local_pos.ref_lat = lat;
+		_local_pos.ref_lon = lon;
+		_local_pos.ref_alt = gps_alt;
+		_local_pos.ref_timestamp = timestamp;
+
+		map_projection_init(&_pos_ref, lat, lon);
+		mavlink_and_console_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
+	}
 }
 
 void AttitudePositionEstimatorEKF::initializeGPS()
@@ -781,7 +784,7 @@ void AttitudePositionEstimatorEKF::initializeGPS()
 
 	_ekf->InitialiseFilter(initVelNED, math::radians(lat), math::radians(lon) - M_PI, gps_alt, declination);
 
-	initReferencePosition(_gps.timestamp_position, lat, lon, gps_alt, _baro.altitude);
+	initReferencePosition(_gps.timestamp_position, _gpsIsGood, lat, lon, gps_alt, _baro.altitude);
 
 #if 0
 	warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
@@ -1358,7 +1361,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		}
 
 		//Check if the GPS fix is good enough for us to use
-		if (_gps.fix_type >= 3 && _gps.eph < requiredAccuracy && _gps.epv < requiredAccuracy) {
+		if ((_gps.fix_type >= 3) && (_gps.eph < requiredAccuracy) && (_gps.epv < requiredAccuracy)) {
 			_gpsIsGood = true;
 
 		} else {

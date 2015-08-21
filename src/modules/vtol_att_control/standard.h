@@ -32,25 +32,28 @@
  ****************************************************************************/
 
  /**
- * @file tiltrotor.h
+ * @file standard.h
+ * VTOL with fixed multirotor motor configurations (such as quad) and a pusher
+ * (or puller aka tractor) motor for forward flight.
  *
+ * @author Simon Wilks 		<simon@uaventure.com>
  * @author Roman Bapst 		<bapstroman@gmail.com>
  *
  */
 
-#ifndef TILTROTOR_H
-#define TILTROTOR_H
+#ifndef STANDARD_H
+#define STANDARD_H
 #include "vtol_type.h"
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 
-class Tiltrotor : public VtolType
+class Standard : public VtolType
 {
 
 public:
 
-	Tiltrotor(VtolAttitudeControl * _att_controller);
-	~Tiltrotor();
+	Standard(VtolAttitudeControl * _att_controller);
+	~Standard();
 
 	void update_vtol_state();
 	void update_mc_state();
@@ -65,28 +68,23 @@ private:
 	struct {
 		float front_trans_dur;
 		float back_trans_dur;
-		float tilt_mc;
-		float tilt_transition;
-		float tilt_fw;
+		float pusher_trans;
+		float airspeed_blend;
 		float airspeed_trans;
-		int elevons_mc_lock;			// lock elevons in multicopter mode
-	} _params_tiltrotor;
+	} _params_standard;
 
 	struct {
 		param_t front_trans_dur;
 		param_t back_trans_dur;
-		param_t tilt_mc;
-		param_t tilt_transition;
-		param_t tilt_fw;
+		param_t pusher_trans;
+		param_t airspeed_blend;
 		param_t airspeed_trans;
-		param_t elevons_mc_lock;
-	} _params_handles_tiltrotor;
+	} _params_handles_standard;
 
 	enum vtol_mode {
 		MC_MODE = 0,
-		TRANSITION_FRONT_P1,
-		TRANSITION_FRONT_P2,
-		TRANSITION_BACK,
+		TRANSITION_TO_FW,
+		TRANSITION_TO_MC,
 		FW_MODE
 	};
 
@@ -95,13 +93,13 @@ private:
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
 	}_vtol_schedule;
 
-	bool flag_max_mc;
-	float _tilt_control;
-	float _roll_weight_mc;
+	bool _flag_enable_mc_motors;
+	float _pusher_throttle;
+	float _mc_att_ctl_weight;	// the amount of multicopter attitude control that should be applied in fixed wing mode while transitioning 
+	float _airspeed_trans_blend_margin;
 
 	void fill_att_control_output();
-	void set_max_mc();
-	void set_max_fw(unsigned pwm_value);
+	void set_max_mc(unsigned pwm_value);
 
 	int parameters_update();
 

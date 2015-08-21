@@ -205,7 +205,7 @@ int AttitudeEstimatorQ::start() {
 	_control_task = task_spawn_cmd("attitude_estimator_q",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2500,
+				       2000,
 				       (main_t)&AttitudeEstimatorQ::task_main_trampoline,
 				       nullptr);
 

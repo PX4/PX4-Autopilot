@@ -96,6 +96,7 @@ AttPosEKF::AttPosEKF() :
     correctedDelVel(),
     summedDelAng(),
     summedDelVel(),
+    prevDelAng(),
     accNavMag(),
     earthRateNED(),
     angRate(),
@@ -273,12 +274,10 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     delAngTotal.y += correctedDelAng.y;
     delAngTotal.z += correctedDelAng.z;
 
-    // Save current measurements
-    Vector3f  prevDelAng = correctedDelAng;
-
     // Apply corrections for earths rotation rate and coning errors
     // * and + operators have been overloaded
-    correctedDelAng   = correctedDelAng - Tnb*earthRateNED*dtIMU + 8.333333333333333e-2f*(prevDelAng % correctedDelAng);
+    correctedDelAng = correctedDelAng - Tnb*earthRateNED*dtIMU + 8.333333333333333e-2f*(prevDelAng % correctedDelAng);
+    prevDelAng = correctedDelAng;
 
     // Convert the rotation vector to its equivalent quaternion
     rotationMag = correctedDelAng.length();
@@ -3290,6 +3289,7 @@ void AttPosEKF::ZeroVariables()
     correctedDelAng.zero();
     summedDelAng.zero();
     summedDelVel.zero();
+    prevDelAng.zero();
     dAngIMU.zero();
     dVelIMU.zero();
     lastGyroOffset.zero();
