@@ -57,12 +57,6 @@
 #include <eigen/Eigen/Eigen>
 // #include <eigen/unsupported/Eigen/CXX11/Tensor>
 
-#ifdef __cplusplus  // in order to avoid conflicts with Eigen::numext::isfinite
-#ifndef isfinite
-#define isfinite std::isfinite
-#endif
-#endif
-
 #pragma GCC diagnostic pop
 
 /**
@@ -141,16 +135,16 @@ static Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
 
 /**
  * @brief
- *	Adjust Eigen Quaternionf to PX4 Quaternionf
+ *	Adjust Eigen::Quaternionf to PX4 math::Quaternion
  */
-static Eigen::Quaternionf px4qFromEigenq(const Eigen::Quaternionf &q){
-	return Eigen::Quaternionf(q.w(), q.x(), q.y(), q.z());
+static math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
+	return math::Quaternion(q.w(), q.x(), q.y(), q.z());
 }
 
 /**
  * @brief
- *	Adjust Eigen RotationMatrix to PX4 RotationMatrix
+ *	Adjust Eigen::Matrix3f RotationMatrix to PX4 math::Matrix<3,3> RotationMatrix
  */
-static Eigen::Matrix3f px4rFromEigenr(const Eigen::Matrix3f &rot){
-	return Eigen::Matrix3f(px4qFromEigenq(Eigen::Quaternionf(rot)).toRotationMatrix());
+static math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot){
+	return math::Matrix<3,3>(px4qFromEigenq(Eigen::Quaternionf(rot)).to_dcm());
 }
