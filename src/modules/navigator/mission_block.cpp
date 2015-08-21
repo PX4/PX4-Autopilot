@@ -50,9 +50,13 @@
 #include <mavlink/mavlink_log.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/actuator_controls.h>
 
 #include "navigator.h"
 #include "mission_block.h"
+
+actuator_controls_s actuators;
+orb_advert_t actuator_pub_fd;
 
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
@@ -60,7 +64,9 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_mission_item({0}),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0)
+	_time_first_inside_orbit(0),
+	_actuators{},
+	_actuator_pub(nullptr)
 {
 }
 
@@ -71,6 +77,15 @@ MissionBlock::~MissionBlock()
 bool
 MissionBlock::is_mission_item_reached()
 {
+	if (_mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
+		actuator_pub_fd = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
+		memset(&actuators, 0, sizeof(actuators));
+		actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
+		actuators.timestamp = hrt_absolute_time();
+		orb_publish(ORB_ID(actuator_controls_2), actuator_pub_fd, &actuators);
+		return true;
+	}
+
 	if (_mission_item.nav_cmd == NAV_CMD_IDLE) {
 		return false;
 	}
@@ -193,6 +208,13 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->pitch_min = item->pitch_min;
 
 	switch (item->nav_cmd) {
+	case NAV_CMD_DO_SET_SERVO:
+			/* Set current position for loitering set point*/
+			sp->lat = _navigator->get_global_position()->lat;
+			sp->lon = _navigator->get_global_position()->lon;
+			sp->alt = _navigator->get_global_position()->alt;
+			sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+			break;
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;

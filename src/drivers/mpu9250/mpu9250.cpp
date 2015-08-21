@@ -32,12 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file mpu6000.cpp
+ * @file mpu9250.cpp
  *
- * Driver for the Invensense MPU6000 connected via SPI.
+ * Driver for the Invensense MPU9250 connected via SPI.
  *
  * @author Andrew Tridgell
- * @author Pat Hickey
+ *
+ * based on the mpu6000 driver
  */
 
 #include <px4_config.h>
@@ -77,18 +78,40 @@
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
-#define MPU_DEVICE_PATH_ACCEL		"/dev/mpu6000_accel"
-#define MPU_DEVICE_PATH_GYRO		"/dev/mpu6000_gyro"
-#define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu6000_accel_ext"
-#define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu6000_gyro_ext"
+#define MPU_DEVICE_PATH_ACCEL		"/dev/mpu9250_accel"
+#define MPU_DEVICE_PATH_GYRO		"/dev/mpu9250_gyro"
+#define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu9250_accel_ext"
+#define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu9250_gyro_ext"
 
-// MPU 6000 registers
+// MPU 9250 registers
 #define MPUREG_WHOAMI			0x75
 #define MPUREG_SMPLRT_DIV		0x19
 #define MPUREG_CONFIG			0x1A
 #define MPUREG_GYRO_CONFIG		0x1B
 #define MPUREG_ACCEL_CONFIG		0x1C
+#define MPUREG_ACCEL_CONFIG2		0x1D
+#define MPUREG_LPACCEL_ODR		0x1E
+#define MPUREG_WOM_THRESH		0x1F
 #define MPUREG_FIFO_EN			0x23
+#define MPUREG_I2C_MST_CTRL		0x24
+#define MPUREG_I2C_SLV0_ADDR		0x25
+#define MPUREG_I2C_SLV0_REG		0x26
+#define MPUREG_I2C_SLV0_CTRL		0x27
+#define MPUREG_I2C_SLV1_ADDR		0x28
+#define MPUREG_I2C_SLV1_REG		0x29
+#define MPUREG_I2C_SLV1_CTRL		0x2A
+#define MPUREG_I2C_SLV2_ADDR		0x2B
+#define MPUREG_I2C_SLV2_REG		0x2C
+#define MPUREG_I2C_SLV2_CTRL		0x2D
+#define MPUREG_I2C_SLV3_ADDR		0x2E
+#define MPUREG_I2C_SLV3_REG		0x2F
+#define MPUREG_I2C_SLV3_CTRL		0x30
+#define MPUREG_I2C_SLV4_ADDR		0x31
+#define MPUREG_I2C_SLV4_REG		0x32
+#define MPUREG_I2C_SLV4_DO		0x33
+#define MPUREG_I2C_SLV4_CTRL		0x34
+#define MPUREG_I2C_SLV4_DI		0x35
+#define MPUREG_I2C_MST_STATUS		0x36
 #define MPUREG_INT_PIN_CFG		0x37
 #define MPUREG_INT_ENABLE		0x38
 #define MPUREG_INT_STATUS		0x3A
@@ -106,25 +129,26 @@
 #define MPUREG_GYRO_YOUT_L		0x46
 #define MPUREG_GYRO_ZOUT_H		0x47
 #define MPUREG_GYRO_ZOUT_L		0x48
+#define MPUREG_EXT_SENS_DATA_00		0x49
+#define MPUREG_I2C_SLV0_D0		0x63
+#define MPUREG_I2C_SLV1_D0		0x64
+#define MPUREG_I2C_SLV2_D0		0x65
+#define MPUREG_I2C_SLV3_D0		0x66
+#define MPUREG_I2C_MST_DELAY_CTRL	0x67
+#define MPUREG_SIGNAL_PATH_RESET	0x68
+#define MPUREG_MOT_DETECT_CTRL		0x69
 #define MPUREG_USER_CTRL		0x6A
 #define MPUREG_PWR_MGMT_1		0x6B
 #define MPUREG_PWR_MGMT_2		0x6C
 #define MPUREG_FIFO_COUNTH		0x72
 #define MPUREG_FIFO_COUNTL		0x73
 #define MPUREG_FIFO_R_W			0x74
-#define MPUREG_PRODUCT_ID		0x0C
-#define MPUREG_TRIM1			0x0D
-#define MPUREG_TRIM2			0x0E
-#define MPUREG_TRIM3			0x0F
-#define MPUREG_TRIM4			0x10
 
-// Configuration bits MPU 3000 and MPU 6000 (not revised)?
+// Configuration bits MPU 9250
 #define BIT_SLEEP			0x40
 #define BIT_H_RESET			0x80
-#define BITS_CLKSEL			0x07
-#define MPU_CLK_SEL_PLLGYROX		0x01
-#define MPU_CLK_SEL_PLLGYROZ		0x03
-#define MPU_EXT_SYNC_GYROX		0x02
+#define MPU_CLK_SEL_AUTO		0x01
+
 #define BITS_GYRO_ST_X			0x80
 #define BITS_GYRO_ST_Y			0x40
 #define BITS_GYRO_ST_Z			0x20
@@ -133,49 +157,29 @@
 #define BITS_FS_1000DPS			0x10
 #define BITS_FS_2000DPS			0x18
 #define BITS_FS_MASK			0x18
-#define BITS_DLPF_CFG_256HZ_NOLPF2	0x00
-#define BITS_DLPF_CFG_188HZ		0x01
-#define BITS_DLPF_CFG_98HZ		0x02
-#define BITS_DLPF_CFG_42HZ		0x03
+
+#define BITS_DLPF_CFG_250HZ		0x00
+#define BITS_DLPF_CFG_184HZ		0x01
+#define BITS_DLPF_CFG_92HZ		0x02
+#define BITS_DLPF_CFG_41HZ		0x03
 #define BITS_DLPF_CFG_20HZ		0x04
 #define BITS_DLPF_CFG_10HZ		0x05
 #define BITS_DLPF_CFG_5HZ		0x06
-#define BITS_DLPF_CFG_2100HZ_NOLPF	0x07
+#define BITS_DLPF_CFG_3600HZ		0x07
 #define BITS_DLPF_CFG_MASK		0x07
-#define BIT_INT_ANYRD_2CLEAR		0x10
+
 #define BIT_RAW_RDY_EN			0x01
-#define BIT_I2C_IF_DIS			0x10
-#define BIT_INT_STATUS_DATA		0x01
+#define BIT_INT_ANYRD_2CLEAR		0x10
 
-#define MPU_WHOAMI_6000			0x68
+#define MPU_WHOAMI_9250			0x71
 
-// Product ID Description for MPU6000
-// high 4 bits 	low 4 bits
-// Product Name	Product Revision
-#define MPU6000ES_REV_C4		0x14
-#define MPU6000ES_REV_C5		0x15
-#define MPU6000ES_REV_D6		0x16
-#define MPU6000ES_REV_D7		0x17
-#define MPU6000ES_REV_D8		0x18
-#define MPU6000_REV_C4			0x54
-#define MPU6000_REV_C5			0x55
-#define MPU6000_REV_D6			0x56
-#define MPU6000_REV_D7			0x57
-#define MPU6000_REV_D8			0x58
-#define MPU6000_REV_D9			0x59
-#define MPU6000_REV_D10			0x5A
+#define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	41
+#define MPU9250_ACCEL_DEFAULT_RATE	1000
+#define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
+#define MPU9250_GYRO_DEFAULT_RATE	1000
+#define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
 
-#define MPU6000_ACCEL_DEFAULT_RANGE_G			8
-#define MPU6000_ACCEL_DEFAULT_RATE			1000
-#define MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
-
-#define MPU6000_GYRO_DEFAULT_RANGE_G			8
-#define MPU6000_GYRO_DEFAULT_RATE			1000
-#define MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ		30
-
-#define MPU6000_DEFAULT_ONCHIP_FILTER_FREQ		42
-
-#define MPU6000_ONE_G					9.80665f
+#define MPU9250_ONE_G					9.80665f
 
 #ifdef PX4_SPI_BUS_EXT
 #define EXTERNAL_BUS PX4_SPI_BUS_EXT
@@ -184,12 +188,12 @@
 #endif
 
 /*
-  the MPU6000 can only handle high SPI bus speeds on the sensor and
+  the MPU9250 can only handle high SPI bus speeds on the sensor and
   interrupt status registers. All other registers have a maximum 1MHz
   SPI speed
  */
-#define MPU6000_LOW_BUS_SPEED				1000*1000
-#define MPU6000_HIGH_BUS_SPEED				11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU6K */
+#define MPU9250_LOW_BUS_SPEED				1000*1000
+#define MPU9250_HIGH_BUS_SPEED				11*1000*1000
 
 /*
   we set the timer interrupt to run a bit faster than the desired
@@ -197,15 +201,15 @@
   accelerometer values. This time reduction is enough to cope with
   worst case timing jitter due to other timers
  */
-#define MPU6000_TIMER_REDUCTION				200
+#define MPU9250_TIMER_REDUCTION				200
 
-class MPU6000_gyro;
+class MPU9250_gyro;
 
-class MPU6000 : public device::SPI
+class MPU9250 : public device::SPI
 {
 public:
-	MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation);
-	virtual ~MPU6000();
+	MPU9250(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation);
+	virtual ~MPU9250();
 
 	virtual int		init();
 
@@ -219,27 +223,20 @@ public:
 
 	void			print_registers();
 
-	/**
-	 * Test behaviour against factory offsets
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			factory_self_test();
-
 	// deliberately cause a sensor error
 	void 			test_error();
 
 protected:
 	virtual int		probe();
 
-	friend class MPU6000_gyro;
+	friend class MPU9250_gyro;
 
 	virtual ssize_t		gyro_read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
 
 private:
-	MPU6000_gyro		*_gyro;
-	uint8_t			_product;	/** product code */
+	MPU9250_gyro		*_gyro;
+	uint8_t			_whoami;	/** whoami result */
 
 	struct hrt_call		_call;
 	unsigned		_call_interval;
@@ -258,6 +255,8 @@ private:
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
+
+	unsigned		_dlpf_freq;
 
 	unsigned		_sample_rate;
 	perf_counter_t		_accel_reads;
@@ -286,14 +285,11 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define MPU6000_NUM_CHECKED_REGISTERS 9
-	static const uint8_t	_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[MPU6000_NUM_CHECKED_REGISTERS];
+#define MPU9250_NUM_CHECKED_REGISTERS 11
+	static const uint8_t	_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
+	uint8_t			_checked_values[MPU9250_NUM_CHECKED_REGISTERS];
+	uint8_t			_checked_bad[MPU9250_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_next;
-
-	// use this to avoid processing measurements when in factory
-	// self test
-	volatile bool		_in_factory_test;
 
 	// last temperature reading for print_info()
 	float			_last_temperature;
@@ -336,16 +332,16 @@ private:
 	void			measure();
 
 	/**
-	 * Read a register from the MPU6000
+	 * Read a register from the MPU9250
 	 *
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg, uint32_t speed=MPU6000_LOW_BUS_SPEED);
+	uint8_t			read_reg(unsigned reg, uint32_t speed=MPU9250_LOW_BUS_SPEED);
 	uint16_t		read_reg16(unsigned reg);
 
 	/**
-	 * Write a register in the MPU6000
+	 * Write a register in the MPU9250
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
@@ -353,7 +349,7 @@ private:
 	void			write_reg(unsigned reg, uint8_t value);
 
 	/**
-	 * Modify a register in the MPU6000
+	 * Modify a register in the MPU9250
 	 *
 	 * Bits are cleared before bits are set.
 	 *
@@ -364,7 +360,7 @@ private:
 	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
 
 	/**
-	 * Write a register in the MPU6000, updating _checked_values
+	 * Write a register in the MPU9250, updating _checked_values
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
@@ -372,7 +368,7 @@ private:
 	void			write_checked_reg(unsigned reg, uint8_t value);
 
 	/**
-	 * Set the MPU6000 measurement range.
+	 * Set the MPU9250 measurement range.
 	 *
 	 * @param max_g		The maximum G value the range must support.
 	 * @return		OK if the value can be supported, -ERANGE otherwise.
@@ -380,7 +376,7 @@ private:
 	int			set_accel_range(unsigned max_g);
 
 	/**
-	 * Swap a 16-bit value read from the MPU6000 to native byte order.
+	 * Swap a 16-bit value read from the MPU9250 to native byte order.
 	 */
 	uint16_t		swap16(uint16_t val) { return (val >> 8) | (val << 8);	}
 
@@ -428,12 +424,12 @@ private:
 	void check_registers(void);
 
 	/* do not allow to copy this class due to pointer data members */
-	MPU6000(const MPU6000&);
-	MPU6000 operator=(const MPU6000&);
+	MPU9250(const MPU9250&);
+	MPU9250 operator=(const MPU9250&);
 
 #pragma pack(push, 1)
 	/**
-	 * Report conversation within the MPU6000, including command byte and
+	 * Report conversation within the MPU9250, including command byte and
 	 * interrupt status.
 	 */
 	struct MPUReport {
@@ -454,13 +450,15 @@ private:
   list of registers that will be checked in check_registers(). Note
   that MPUREG_PRODUCT_ID must be first in the list.
  */
-const uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS] = { MPUREG_PRODUCT_ID,
+const uint8_t MPU9250::_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPUREG_WHOAMI,
 									     MPUREG_PWR_MGMT_1,
+									     MPUREG_PWR_MGMT_2,
 									     MPUREG_USER_CTRL,
 									     MPUREG_SMPLRT_DIV,
                                                                              MPUREG_CONFIG,
 									     MPUREG_GYRO_CONFIG,
 									     MPUREG_ACCEL_CONFIG,
+									     MPUREG_ACCEL_CONFIG2,
 									     MPUREG_INT_ENABLE,
 									     MPUREG_INT_PIN_CFG };
 
@@ -469,11 +467,11 @@ const uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS] = { MPU
 /**
  * Helper class implementing the gyro driver node.
  */
-class MPU6000_gyro : public device::CDev
+class MPU9250_gyro : public device::CDev
 {
 public:
-	MPU6000_gyro(MPU6000 *parent, const char *path);
-	~MPU6000_gyro();
+	MPU9250_gyro(MPU9250 *parent, const char *path);
+	~MPU9250_gyro();
 
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
@@ -481,28 +479,28 @@ public:
 	virtual int		init();
 
 protected:
-	friend class MPU6000;
+	friend class MPU9250;
 
 	void			parent_poll_notify();
 
 private:
-	MPU6000			*_parent;
+	MPU9250			*_parent;
 	orb_advert_t		_gyro_topic;
 	int			_gyro_orb_class_instance;
 	int			_gyro_class_instance;
 
 	/* do not allow to copy this class due to pointer data members */
-	MPU6000_gyro(const MPU6000_gyro&);
-	MPU6000_gyro operator=(const MPU6000_gyro&);
+	MPU9250_gyro(const MPU9250_gyro&);
+	MPU9250_gyro operator=(const MPU9250_gyro&);
 };
 
 /** driver 'main' command */
-extern "C" { __EXPORT int mpu6000_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int mpu9250_main(int argc, char *argv[]); }
 
-MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation) :
-	SPI("MPU6000", path_accel, bus, device, SPIDEV_MODE3, MPU6000_LOW_BUS_SPEED),
-	_gyro(new MPU6000_gyro(this, path_gyro)),
-	_product(0),
+MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation) :
+	SPI("MPU9250", path_accel, bus, device, SPIDEV_MODE3, MPU9250_LOW_BUS_SPEED),
+	_gyro(new MPU9250_gyro(this, path_gyro)),
+	_whoami(0),
 	_call{},
 	_call_interval(0),
 	_accel_reports(nullptr),
@@ -516,28 +514,28 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
+	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_sample_rate(1000),
-	_accel_reads(perf_alloc(PC_COUNT, "mpu6000_accel_read")),
-	_gyro_reads(perf_alloc(PC_COUNT, "mpu6000_gyro_read")),
-	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read")),
-	_bad_transfers(perf_alloc(PC_COUNT, "mpu6000_bad_transfers")),
-	_bad_registers(perf_alloc(PC_COUNT, "mpu6000_bad_registers")),
-	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
-	_reset_retries(perf_alloc(PC_COUNT, "mpu6000_reset_retries")),
-	_duplicates(perf_alloc(PC_COUNT, "mpu6000_duplicates")),
+	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_accel_read")),
+	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
+	_bad_transfers(perf_alloc(PC_COUNT, "mpu9250_bad_transfers")),
+	_bad_registers(perf_alloc(PC_COUNT, "mpu9250_bad_registers")),
+	_good_transfers(perf_alloc(PC_COUNT, "mpu9250_good_transfers")),
+	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset_retries")),
+	_duplicates(perf_alloc(PC_COUNT, "mpu9250_duplicates")),
 	_system_latency_perf(perf_alloc_once(PC_ELAPSED, "sys_latency")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
-	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_z(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_x(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_y(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_y(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_z(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_checked_next(0),
-	_in_factory_test(false),
 	_last_temperature(0),
 	_last_accel{},
 	_got_duplicate(false)
@@ -545,11 +543,11 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	// disable debug() calls
 	_debug_enabled = false;
 
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU6000;
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
 
 	/* Prime _gyro with parents devid. */
 	_gyro->_device_id.devid = _device_id.devid;
-	_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_MPU6000;
+	_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_MPU9250;
 
 	// default accel scale factors
 	_accel_scale.x_offset = 0;
@@ -570,7 +568,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	memset(&_call, 0, sizeof(_call));
 }
 
-MPU6000::~MPU6000()
+MPU9250::~MPU9250()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -599,7 +597,7 @@ MPU6000::~MPU6000()
 }
 
 int
-MPU6000::init()
+MPU9250::init()
 {
 	int ret;
 
@@ -680,41 +678,16 @@ out:
 	return ret;
 }
 
-int MPU6000::reset()
+int MPU9250::reset()
 {
-	// if the mpu6000 is initialised after the l3gd20 and lsm303d
-	// then if we don't do an irqsave/irqrestore here the mpu6000
-	// frequenctly comes up in a bad state where all transfers
-	// come as zero
-	uint8_t tries = 5;
-	while (--tries != 0) {
-		irqstate_t state;
-		state = irqsave();
+	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
+	up_udelay(10000);
 
-		write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-		up_udelay(10000);
+	write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
+	up_udelay(1000);
 
-		// Wake up device and select GyroZ clock. Note that the
-		// MPU6000 starts up in sleep mode, and it can take some time
-		// for it to come out of sleep
-		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
-		up_udelay(1000);
-
-		// Disable I2C bus (recommended on datasheet)
-		write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
-		irqrestore(state);
-
-		if (read_reg(MPUREG_PWR_MGMT_1) == MPU_CLK_SEL_PLLGYROZ) {
-			break;
-		}
-		perf_count(_reset_retries);
-		usleep(2000);
-	}
-	if (read_reg(MPUREG_PWR_MGMT_1) != MPU_CLK_SEL_PLLGYROZ) {
-		return -EIO;
-	}
-
-	usleep(1000);
+	write_checked_reg(MPUREG_PWR_MGMT_2, 0);
+	up_udelay(1000);
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
@@ -723,8 +696,9 @@ int MPU6000::reset()
 	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
 	// was 90 Hz, but this ruins quality and does not improve the
 	// system response
-	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
+	_set_dlpf_filter(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ);
 	usleep(1000);
+
 	// Gyro scale 2000 deg/s ()
 	write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
 	usleep(1000);
@@ -737,7 +711,7 @@ int MPU6000::reset()
 	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
 
-	set_accel_range(8);
+	set_accel_range(16);
 
 	usleep(1000);
 
@@ -747,47 +721,39 @@ int MPU6000::reset()
 	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
 	usleep(1000);
 
-	// Oscillator set
-	// write_reg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
-	usleep(1000);
+	uint8_t retries = 10;
+	while (retries--) {
+		bool all_ok = true;
+		for (uint8_t i=0; i<MPU9250_NUM_CHECKED_REGISTERS; i++) {
+			if (read_reg(_checked_registers[i]) != _checked_values[i]) {
+				write_reg(_checked_registers[i], _checked_values[i]);
+				all_ok = false;
+			}
+		}
+		if (all_ok)
+			break;
+	}
 
 	return OK;
 }
 
 int
-MPU6000::probe()
+MPU9250::probe()
 {
-	uint8_t whoami;
-	whoami = read_reg(MPUREG_WHOAMI);
-	if (whoami != MPU_WHOAMI_6000) {
-		DEVICE_DEBUG("unexpected WHOAMI 0x%02x", whoami);
-		return -EIO;
-
-	}
-
-	/* look for a product ID we recognise */
-	_product = read_reg(MPUREG_PRODUCT_ID);
+	/* look for device ID */
+	_whoami = read_reg(MPUREG_WHOAMI);
 
 	// verify product revision
-	switch (_product) {
-	case MPU6000ES_REV_C4:
-	case MPU6000ES_REV_C5:
-	case MPU6000_REV_C4:
-	case MPU6000_REV_C5:
-	case MPU6000ES_REV_D6:
-	case MPU6000ES_REV_D7:
-	case MPU6000ES_REV_D8:
-	case MPU6000_REV_D6:
-	case MPU6000_REV_D7:
-	case MPU6000_REV_D8:
-	case MPU6000_REV_D9:
-	case MPU6000_REV_D10:
-		DEVICE_DEBUG("ID 0x%02x", _product);
-		_checked_values[0] = _product;
+	switch (_whoami) {
+	case MPU_WHOAMI_9250:
+		memset(_checked_values, 0, sizeof(_checked_values));
+		memset(_checked_bad, 0, sizeof(_checked_bad));
+		_checked_values[0] = _whoami;
+		_checked_bad[0] = _whoami;
 		return OK;
 	}
 
-	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
+	DEVICE_DEBUG("unexpected whoami 0x%02x", _whoami);
 	return -EIO;
 }
 
@@ -795,12 +761,12 @@ MPU6000::probe()
   set sample rate (approximate) - 1kHz to 5Hz, for both accel and gyro
 */
 void
-MPU6000::_set_sample_rate(unsigned desired_sample_rate_hz)
+MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
 	if (desired_sample_rate_hz == 0 ||
 			desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
 			desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
-		desired_sample_rate_hz = MPU6000_GYRO_DEFAULT_RATE;
+		desired_sample_rate_hz = MPU9250_GYRO_DEFAULT_RATE;
 	}
 
 	uint8_t div = 1000 / desired_sample_rate_hz;
@@ -814,37 +780,46 @@ MPU6000::_set_sample_rate(unsigned desired_sample_rate_hz)
   set the DLPF filter frequency. This affects both accel and gyro.
  */
 void
-MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
+MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 {
 	uint8_t filter;
 
 	/*
 	   choose next highest filter frequency available
 	 */
-        if (frequency_hz == 0) {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
-        } else if (frequency_hz <= 5) {
+	if (frequency_hz == 0) {
+		_dlpf_freq = 0;
+		filter = BITS_DLPF_CFG_3600HZ;
+	} else if (frequency_hz <= 5) {
+		_dlpf_freq = 5;
 		filter = BITS_DLPF_CFG_5HZ;
 	} else if (frequency_hz <= 10) {
+		_dlpf_freq = 10;
 		filter = BITS_DLPF_CFG_10HZ;
 	} else if (frequency_hz <= 20) {
+		_dlpf_freq = 20;
 		filter = BITS_DLPF_CFG_20HZ;
-	} else if (frequency_hz <= 42) {
-		filter = BITS_DLPF_CFG_42HZ;
-	} else if (frequency_hz <= 98) {
-		filter = BITS_DLPF_CFG_98HZ;
-	} else if (frequency_hz <= 188) {
-		filter = BITS_DLPF_CFG_188HZ;
-	} else if (frequency_hz <= 256) {
-		filter = BITS_DLPF_CFG_256HZ_NOLPF2;
+	} else if (frequency_hz <= 41) {
+		_dlpf_freq = 41;
+		filter = BITS_DLPF_CFG_41HZ;
+	} else if (frequency_hz <= 92) {
+		_dlpf_freq = 92;
+		filter = BITS_DLPF_CFG_92HZ;
+	} else if (frequency_hz <= 184) {
+		_dlpf_freq = 184;
+		filter = BITS_DLPF_CFG_184HZ;
+	} else if (frequency_hz <= 250) {
+		_dlpf_freq = 250;
+		filter = BITS_DLPF_CFG_250HZ;
 	} else {
-		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
+		_dlpf_freq = 0;
+		filter = BITS_DLPF_CFG_3600HZ;
 	}
 	write_checked_reg(MPUREG_CONFIG, filter);
 }
 
 ssize_t
-MPU6000::read(struct file *filp, char *buffer, size_t buflen)
+MPU9250::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(accel_report);
 
@@ -879,7 +854,7 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-MPU6000::self_test()
+MPU9250::self_test()
 {
 	if (perf_event_count(_sample_perf) == 0) {
 		measure();
@@ -890,7 +865,7 @@ MPU6000::self_test()
 }
 
 int
-MPU6000::accel_self_test()
+MPU9250::accel_self_test()
 {
 	if (self_test())
 		return 1;
@@ -915,21 +890,17 @@ MPU6000::accel_self_test()
 }
 
 int
-MPU6000::gyro_self_test()
+MPU9250::gyro_self_test()
 {
 	if (self_test())
 		return 1;
 
 	/*
 	 * Maximum deviation of 20 degrees, according to
-	 * http://www.farnell.com/datasheets/1788002.pdf
+	 * http://www.invensense.com/mems/gyro/documents/PS-MPU-9250A-00v3.4.pdf
 	 * Section 6.1, initial ZRO tolerance
-	 *
-	 * 20 dps (0.34 rad/s) initial offset
-	 * and 20 dps temperature drift, so 0.34 rad/s * 2
 	 */
-	const float max_offset = 2.0f * 0.34f;
-
+	const float max_offset = 0.34f;
 	/* 30% scale error is chosen to catch completely faulty units but
 	 * to let some slight scale error pass. Requires a rate table or correlation
 	 * with mag rotations + data fit to
@@ -969,161 +940,11 @@ MPU6000::gyro_self_test()
 
 
 /*
-  perform a self-test comparison to factory trim values. This takes
-  about 200ms and will return OK if the current values are within 14%
-  of the expected values (as per datasheet)
- */
-int
-MPU6000::factory_self_test()
-{
-	_in_factory_test = true;
-	uint8_t saved_gyro_config = read_reg(MPUREG_GYRO_CONFIG);
-	uint8_t saved_accel_config = read_reg(MPUREG_ACCEL_CONFIG);
-	const uint16_t repeats = 100;
-	int ret = OK;
-
-	// gyro self test has to be done at 250DPS
-	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_250DPS);
-
-	struct MPUReport mpu_report;
-	float accel_baseline[3];
-	float gyro_baseline[3];
-	float accel[3];
-	float gyro[3];
-	float accel_ftrim[3];
-	float gyro_ftrim[3];
-
-	// get baseline values without self-test enabled
-        set_frequency(MPU6000_HIGH_BUS_SPEED);
-
-	memset(accel_baseline, 0, sizeof(accel_baseline));
-	memset(gyro_baseline, 0, sizeof(gyro_baseline));
-	memset(accel, 0, sizeof(accel));
-	memset(gyro, 0, sizeof(gyro));
-
-	for (uint8_t i=0; i<repeats; i++) {
-		up_udelay(1000);
-		mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
-		transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report));
-
-		accel_baseline[0] += int16_t_from_bytes(mpu_report.accel_x);
-		accel_baseline[1] += int16_t_from_bytes(mpu_report.accel_y);
-		accel_baseline[2] += int16_t_from_bytes(mpu_report.accel_z);
-		gyro_baseline[0] += int16_t_from_bytes(mpu_report.gyro_x);
-		gyro_baseline[1] += int16_t_from_bytes(mpu_report.gyro_y);
-		gyro_baseline[2] += int16_t_from_bytes(mpu_report.gyro_z);
-	}
-
-#if 1
-	write_reg(MPUREG_GYRO_CONFIG,
-		  BITS_FS_250DPS |
-		  BITS_GYRO_ST_X |
-		  BITS_GYRO_ST_Y |
-		  BITS_GYRO_ST_Z);
-
-	// accel 8g, self-test enabled all axes
-	write_reg(MPUREG_ACCEL_CONFIG, saved_accel_config | 0xE0);
-#endif
-
-	up_udelay(20000);
-
-	// get values with self-test enabled
-        set_frequency(MPU6000_HIGH_BUS_SPEED);
-
-
-	for (uint8_t i=0; i<repeats; i++) {
-		up_udelay(1000);
-		mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
-		transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report));
-		accel[0] += int16_t_from_bytes(mpu_report.accel_x);
-		accel[1] += int16_t_from_bytes(mpu_report.accel_y);
-		accel[2] += int16_t_from_bytes(mpu_report.accel_z);
-		gyro[0] += int16_t_from_bytes(mpu_report.gyro_x);
-		gyro[1] += int16_t_from_bytes(mpu_report.gyro_y);
-		gyro[2] += int16_t_from_bytes(mpu_report.gyro_z);
-	}
-
-	for (uint8_t i=0; i<3; i++) {
-		accel_baseline[i] /= repeats;
-		gyro_baseline[i] /= repeats;
-		accel[i] /= repeats;
-		gyro[i] /= repeats;
-	}
-
-	// extract factory trim values
-	uint8_t trims[4];
-	trims[0] = read_reg(MPUREG_TRIM1);
-	trims[1] = read_reg(MPUREG_TRIM2);
-	trims[2] = read_reg(MPUREG_TRIM3);
-	trims[3] = read_reg(MPUREG_TRIM4);
-	uint8_t atrim[3];
-	uint8_t gtrim[3];
-
-	atrim[0] = ((trims[0]>>3)&0x1C) | ((trims[3]>>4)&0x03);
-	atrim[1] = ((trims[1]>>3)&0x1C) | ((trims[3]>>2)&0x03);
-	atrim[2] = ((trims[2]>>3)&0x1C) | ((trims[3]>>0)&0x03);
-	gtrim[0] = trims[0] & 0x1F;
-	gtrim[1] = trims[1] & 0x1F;
-	gtrim[2] = trims[2] & 0x1F;
-
-	// convert factory trims to right units
-	for (uint8_t i=0; i<3; i++) {
-		accel_ftrim[i] = 4096 * 0.34f * powf(0.92f/0.34f, (atrim[i]-1)/30.0f);
-		gyro_ftrim[i] = 25 * 131.0f * powf(1.046f, gtrim[i]-1);
-	}
-	// Y gyro trim is negative
-	gyro_ftrim[1] *= -1;
-
-	for (uint8_t i=0; i<3; i++) {
-		float diff = accel[i]-accel_baseline[i];
-		float err = 100*(diff - accel_ftrim[i]) / accel_ftrim[i];
-		::printf("ACCEL[%u] baseline=%d accel=%d diff=%d ftrim=%d err=%d\n",
-			 (unsigned)i,
-			 (int)(1000*accel_baseline[i]),
-			 (int)(1000*accel[i]),
-			 (int)(1000*diff),
-			 (int)(1000*accel_ftrim[i]),
-			 (int)err);
-		if (fabsf(err) > 14) {
-			::printf("FAIL\n");
-			ret = -EIO;
-		}
-	}
-	for (uint8_t i=0; i<3; i++) {
-		float diff = gyro[i]-gyro_baseline[i];
-		float err = 100*(diff - gyro_ftrim[i]) / gyro_ftrim[i];
-		::printf("GYRO[%u] baseline=%d gyro=%d diff=%d ftrim=%d err=%d\n",
-			 (unsigned)i,
-			 (int)(1000*gyro_baseline[i]),
-			 (int)(1000*gyro[i]),
-			 (int)(1000*(gyro[i]-gyro_baseline[i])),
-			 (int)(1000*gyro_ftrim[i]),
-			 (int)err);
-		if (fabsf(err) > 14) {
-			::printf("FAIL\n");
-			ret = -EIO;
-		}
-	}
-
-	write_reg(MPUREG_GYRO_CONFIG, saved_gyro_config);
-	write_reg(MPUREG_ACCEL_CONFIG, saved_accel_config);
-
-	_in_factory_test = false;
-	if (ret == OK) {
-		::printf("PASSED\n");
-	}
-
-	return ret;
-}
-
-
-/*
   deliberately trigger an error in the sensor to trigger recovery
  */
 void
-MPU6000::test_error()
+MPU9250::test_error()
 {
-	_in_factory_test = true;
 	// deliberately trigger an error. This was noticed during
 	// development as a handy way to test the reset logic
 	uint8_t data[16];
@@ -1131,11 +952,10 @@ MPU6000::test_error()
 	transfer(data, data, sizeof(data));
 	::printf("error triggered\n");
 	print_registers();
-	_in_factory_test = false;
 }
 
 ssize_t
-MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
+MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(gyro_report);
 
@@ -1170,7 +990,7 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
+MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -1198,7 +1018,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, MPU6000_ACCEL_DEFAULT_RATE);
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -1235,9 +1055,9 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
                                           set call interval faster then the sample time. We
                                           then detect when we have duplicate samples and reject
                                           them. This prevents aliasing due to a beat between the
-                                          stm32 clock and the mpu6000 clock
+                                          stm32 clock and the mpu9250 clock
                                          */
-                                        _call.period = _call_interval - MPU6000_TIMER_REDUCTION;
+                                        _call.period = _call_interval - MPU9250_TIMER_REDUCTION;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -1283,8 +1103,6 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _accel_filter_x.get_cutoff_freq();
 
 	case ACCELIOCSLOWPASS:
-		// set hardware filtering
-		_set_dlpf_filter(arg);
 		// set software filtering
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1313,10 +1131,22 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return set_accel_range(arg);
 
 	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2)/MPU6000_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2)/MPU9250_ONE_G + 0.5f);
 
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
+
+#ifdef ACCELIOCSHWLOWPASS
+	case ACCELIOCSHWLOWPASS:
+		_set_dlpf_filter(arg);
+		return OK;
+#endif
+
+#ifdef ACCELIOCGHWLOWPASS
+	case ACCELIOCGHWLOWPASS:
+		return _dlpf_freq;
+#endif
+
 
 	default:
 		/* give it to the superclass */
@@ -1325,7 +1155,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 int
-MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
+MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -1362,9 +1192,9 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCGLOWPASS:
 		return _gyro_filter_x.get_cutoff_freq();
+
 	case GYROIOCSLOWPASS:
-		// set hardware filtering
-		_set_dlpf_filter(arg);
+		// set software filtering
 		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1392,6 +1222,17 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSELFTEST:
 		return gyro_self_test();
 
+#ifdef GYROIOCSHWLOWPASS
+	case GYROIOCSHWLOWPASS:
+		_set_dlpf_filter(arg);
+		return OK;
+#endif
+
+#ifdef GYROIOCGHWLOWPASS
+	case GYROIOCGHWLOWPASS:
+		return _dlpf_freq;
+#endif
+
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
@@ -1399,7 +1240,7 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 uint8_t
-MPU6000::read_reg(unsigned reg, uint32_t speed)
+MPU9250::read_reg(unsigned reg, uint32_t speed)
 {
 	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
 
@@ -1412,12 +1253,12 @@ MPU6000::read_reg(unsigned reg, uint32_t speed)
 }
 
 uint16_t
-MPU6000::read_reg16(unsigned reg)
+MPU9250::read_reg16(unsigned reg)
 {
 	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
 
         // general register transfer at low clock speed
-        set_frequency(MPU6000_LOW_BUS_SPEED);
+        set_frequency(MPU9250_LOW_BUS_SPEED);
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -1425,7 +1266,7 @@ MPU6000::read_reg16(unsigned reg)
 }
 
 void
-MPU6000::write_reg(unsigned reg, uint8_t value)
+MPU9250::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t	cmd[2];
 
@@ -1433,13 +1274,13 @@ MPU6000::write_reg(unsigned reg, uint8_t value)
 	cmd[1] = value;
 
         // general register transfer at low clock speed
-        set_frequency(MPU6000_LOW_BUS_SPEED);
+        set_frequency(MPU9250_LOW_BUS_SPEED);
 
 	transfer(cmd, nullptr, sizeof(cmd));
 }
 
 void
-MPU6000::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
+MPU9250::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
 	uint8_t	val;
 
@@ -1450,31 +1291,20 @@ MPU6000::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 }
 
 void
-MPU6000::write_checked_reg(unsigned reg, uint8_t value)
+MPU9250::write_checked_reg(unsigned reg, uint8_t value)
 {
 	write_reg(reg, value);
-	for (uint8_t i=0; i<MPU6000_NUM_CHECKED_REGISTERS; i++) {
+	for (uint8_t i=0; i<MPU9250_NUM_CHECKED_REGISTERS; i++) {
 		if (reg == _checked_registers[i]) {
 			_checked_values[i] = value;
+			_checked_bad[i] = value;
 		}
 	}
 }
 
 int
-MPU6000::set_accel_range(unsigned max_g_in)
+MPU9250::set_accel_range(unsigned max_g_in)
 {
-	// workaround for bugged versions of MPU6k (rev C)
-	switch (_product) {
-		case MPU6000ES_REV_C4:
-		case MPU6000ES_REV_C5:
-		case MPU6000_REV_C4:
-		case MPU6000_REV_C5:
-			write_checked_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
-			_accel_range_scale = (MPU6000_ONE_G / 4096.0f);
-			_accel_range_m_s2 = 8.0f * MPU6000_ONE_G;
-			return OK;
-	}
-
 	uint8_t afs_sel;
 	float lsb_per_g;
 	float max_accel_g;
@@ -1498,14 +1328,14 @@ MPU6000::set_accel_range(unsigned max_g_in)
 	}
 
 	write_checked_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
-	_accel_range_scale = (MPU6000_ONE_G / lsb_per_g);
-	_accel_range_m_s2 = max_accel_g * MPU6000_ONE_G;
+	_accel_range_scale = (MPU9250_ONE_G / lsb_per_g);
+	_accel_range_m_s2 = max_accel_g * MPU9250_ONE_G;
 
 	return OK;
 }
 
 void
-MPU6000::start()
+MPU9250::start()
 {
 	/* make sure we are stopped first */
 	stop();
@@ -1517,27 +1347,27 @@ MPU6000::start()
 	/* start polling at the specified rate */
 	hrt_call_every(&_call,
                        1000,
-                       _call_interval-MPU6000_TIMER_REDUCTION,
-                       (hrt_callout)&MPU6000::measure_trampoline, this);
+                       _call_interval-MPU9250_TIMER_REDUCTION,
+                       (hrt_callout)&MPU9250::measure_trampoline, this);
 }
 
 void
-MPU6000::stop()
+MPU9250::stop()
 {
 	hrt_cancel(&_call);
 }
 
 void
-MPU6000::measure_trampoline(void *arg)
+MPU9250::measure_trampoline(void *arg)
 {
-	MPU6000 *dev = reinterpret_cast<MPU6000 *>(arg);
+	MPU9250 *dev = reinterpret_cast<MPU9250 *>(arg);
 
 	/* make another measurement */
 	dev->measure();
 }
 
 void
-MPU6000::check_registers(void)
+MPU9250::check_registers(void)
 {
 	/*
 	  we read the register at full speed, even though it isn't
@@ -1549,8 +1379,10 @@ MPU6000::check_registers(void)
 	  the data registers.
 	*/
 	uint8_t v;
-	if ((v=read_reg(_checked_registers[_checked_next], MPU6000_HIGH_BUS_SPEED)) !=
+	if ((v=read_reg(_checked_registers[_checked_next], MPU9250_HIGH_BUS_SPEED)) !=
 	    _checked_values[_checked_next]) {
+		_checked_bad[_checked_next] = v;
+
 		/*
 		  if we get the wrong value then we know the SPI bus
 		  or sensor is very sick. We set _register_wait to 20
@@ -1568,9 +1400,10 @@ MPU6000::check_registers(void)
 			// if the product_id is wrong then reset the
 			// sensor completely
 			write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
+			write_reg(MPUREG_PWR_MGMT_2, MPU_CLK_SEL_AUTO);
 			// after doing a reset we need to wait a long
 			// time before we do any other register writes
-			// or we will end up with the mpu6000 in a
+			// or we will end up with the mpu9250 in a
 			// bizarre state where it has all correct
 			// register values but large offsets on the
 			// accel axes
@@ -1585,17 +1418,12 @@ MPU6000::check_registers(void)
 		}
 		_register_wait = 20;
 	}
-	_checked_next = (_checked_next+1) % MPU6000_NUM_CHECKED_REGISTERS;
+	_checked_next = (_checked_next+1) % MPU9250_NUM_CHECKED_REGISTERS;
 }
 
 void
-MPU6000::measure()
+MPU9250::measure()
 {
-	if (_in_factory_test) {
-		// don't publish any data while in factory test mode
-		return;
-	}
-
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
 		return;
@@ -1616,12 +1444,12 @@ MPU6000::measure()
 	perf_begin(_sample_perf);
 
 	/*
-	 * Fetch the full set of measurements from the MPU6000 in one pass.
+	 * Fetch the full set of measurements from the MPU9250 in one pass.
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
 
         // sensor transfer at high clock speed
-        set_frequency(MPU6000_HIGH_BUS_SPEED);
+        set_frequency(MPU9250_HIGH_BUS_SPEED);
 
 	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report)))
 		return;
@@ -1817,7 +1645,7 @@ MPU6000::measure()
 }
 
 void
-MPU6000::print_info()
+MPU9250::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
@@ -1830,26 +1658,32 @@ MPU6000::print_info()
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
         ::printf("checked_next: %u\n", _checked_next);
-        for (uint8_t i=0; i<MPU6000_NUM_CHECKED_REGISTERS; i++) {
-            uint8_t v = read_reg(_checked_registers[i], MPU6000_HIGH_BUS_SPEED);
+        for (uint8_t i=0; i<MPU9250_NUM_CHECKED_REGISTERS; i++) {
+            uint8_t v = read_reg(_checked_registers[i], MPU9250_HIGH_BUS_SPEED);
             if (v != _checked_values[i]) {
                 ::printf("reg %02x:%02x should be %02x\n",
                          (unsigned)_checked_registers[i],
                          (unsigned)v,
                          (unsigned)_checked_values[i]);
             }
+            if (v != _checked_bad[i]) {
+                ::printf("reg %02x:%02x was bad %02x\n",
+                         (unsigned)_checked_registers[i],
+                         (unsigned)v,
+                         (unsigned)_checked_bad[i]);
+            }
         }
 	::printf("temperature: %.1f\n", (double)_last_temperature);
 }
 
 void
-MPU6000::print_registers()
+MPU9250::print_registers()
 {
-	printf("MPU6000 registers\n");
-	for (uint8_t reg=MPUREG_PRODUCT_ID; reg<=108; reg++) {
+	printf("MPU9250 registers\n");
+	for (uint8_t reg=0; reg<=126; reg++) {
 		uint8_t v = read_reg(reg);
 		printf("%02x:%02x ",(unsigned)reg, (unsigned)v);
-		if ((reg - (MPUREG_PRODUCT_ID-1)) % 13 == 0) {
+		if (reg % 13 == 0) {
 			printf("\n");
 		}
 	}
@@ -1857,8 +1691,8 @@ MPU6000::print_registers()
 }
 
 
-MPU6000_gyro::MPU6000_gyro(MPU6000 *parent, const char *path) :
-	CDev("MPU6000_gyro", path),
+MPU9250_gyro::MPU9250_gyro(MPU9250 *parent, const char *path) :
+	CDev("MPU9250_gyro", path),
 	_parent(parent),
 	_gyro_topic(nullptr),
 	_gyro_orb_class_instance(-1),
@@ -1866,14 +1700,14 @@ MPU6000_gyro::MPU6000_gyro(MPU6000 *parent, const char *path) :
 {
 }
 
-MPU6000_gyro::~MPU6000_gyro()
+MPU9250_gyro::~MPU9250_gyro()
 {
 	if (_gyro_class_instance != -1)
 		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
 }
 
 int
-MPU6000_gyro::init()
+MPU9250_gyro::init()
 {
 	int ret;
 
@@ -1892,19 +1726,19 @@ MPU6000_gyro::init()
 }
 
 void
-MPU6000_gyro::parent_poll_notify()
+MPU9250_gyro::parent_poll_notify()
 {
 	poll_notify(POLLIN);
 }
 
 ssize_t
-MPU6000_gyro::read(struct file *filp, char *buffer, size_t buflen)
+MPU9250_gyro::read(struct file *filp, char *buffer, size_t buflen)
 {
 	return _parent->gyro_read(filp, buffer, buflen);
 }
 
 int
-MPU6000_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
+MPU9250_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 
 	switch (cmd) {
@@ -1919,11 +1753,11 @@ MPU6000_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 /**
  * Local functions in support of the shell command.
  */
-namespace mpu6000
+namespace mpu9250
 {
 
-MPU6000	*g_dev_int; // on internal bus
-MPU6000	*g_dev_ext; // on external bus
+MPU9250	*g_dev_int; // on internal bus
+MPU9250	*g_dev_ext; // on external bus
 
 void	start(bool, enum Rotation);
 void	stop(bool);
@@ -1932,7 +1766,6 @@ void	reset(bool);
 void	info(bool);
 void	regdump(bool);
 void	testerror(bool);
-void	factorytest(bool);
 void	usage();
 
 /**
@@ -1945,7 +1778,7 @@ void
 start(bool external_bus, enum Rotation rotation)
 {
 	int fd;
-        MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
+        MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
 	const char *path_accel = external_bus?MPU_DEVICE_PATH_ACCEL_EXT:MPU_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = external_bus?MPU_DEVICE_PATH_GYRO_EXT:MPU_DEVICE_PATH_GYRO;
 
@@ -1956,12 +1789,12 @@ start(bool external_bus, enum Rotation rotation)
 	/* create the driver */
         if (external_bus) {
 #ifdef PX4_SPI_BUS_EXT
-		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_EXT, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_MPU, rotation);
+		*g_dev_ptr = new MPU9250(PX4_SPI_BUS_EXT, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_MPU, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif
 	} else {
-		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_MPU, rotation);
+		*g_dev_ptr = new MPU9250(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_MPU, rotation);
 	}
 
 	if (*g_dev_ptr == nullptr)
@@ -1995,7 +1828,7 @@ fail:
 void
 stop(bool external_bus)
 {
-	MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
+	MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
 	if (*g_dev_ptr != nullptr) {
 		delete *g_dev_ptr;
 		*g_dev_ptr = nullptr;
@@ -2024,7 +1857,7 @@ test(bool external_bus)
 	int fd = open(path_accel, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'mpu6000 start')",
+		err(1, "%s open failed (try 'mpu9250 start')",
 		    path_accel);
 
 	/* get the driver */
@@ -2054,7 +1887,7 @@ test(bool external_bus)
 	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
 	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
 	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-	      (double)(a_report.range_m_s2 / MPU6000_ONE_G));
+	      (double)(a_report.range_m_s2 / MPU9250_ONE_G));
 
 	/* do a simple demand read */
 	sz = read(fd_gyro, &g_report, sizeof(g_report));
@@ -2112,7 +1945,7 @@ reset(bool external_bus)
 void
 info(bool external_bus)
 {
-        MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
+        MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
 	if (*g_dev_ptr == nullptr)
 		errx(1, "driver not running");
 
@@ -2128,7 +1961,7 @@ info(bool external_bus)
 void
 regdump(bool external_bus)
 {
-	MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
+	MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
 	if (*g_dev_ptr == nullptr)
 		errx(1, "driver not running");
 
@@ -2144,7 +1977,7 @@ regdump(bool external_bus)
 void
 testerror(bool external_bus)
 {
-	MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
+	MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
 	if (*g_dev_ptr == nullptr)
 		errx(1, "driver not running");
 
@@ -2153,25 +1986,10 @@ testerror(bool external_bus)
 	exit(0);
 }
 
-/**
- * Dump the register information
- */
-void
-factorytest(bool external_bus)
-{
-	MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
-	if (*g_dev_ptr == nullptr)
-		errx(1, "driver not running");
-
-	(*g_dev_ptr)->factory_self_test();
-
-	exit(0);
-}
-
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'factorytest', 'testerror'");
+	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -2180,7 +1998,7 @@ usage()
 } // namespace
 
 int
-mpu6000_main(int argc, char *argv[])
+mpu9250_main(int argc, char *argv[])
 {
 	bool external_bus = false;
 	int ch;
@@ -2196,7 +2014,7 @@ mpu6000_main(int argc, char *argv[])
 			rotation = (enum Rotation)atoi(optarg);
 			break;
 		default:
-			mpu6000::usage();
+			mpu9250::usage();
 			exit(0);
 		}
 	}
@@ -2208,49 +2026,45 @@ mpu6000_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		mpu6000::start(external_bus, rotation);
+		mpu9250::start(external_bus, rotation);
 	}
 
 	if (!strcmp(verb, "stop")) {
-		mpu6000::stop(external_bus);
+		mpu9250::stop(external_bus);
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(verb, "test")) {
-		mpu6000::test(external_bus);
+		mpu9250::test(external_bus);
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset")) {
-		mpu6000::reset(external_bus);
+		mpu9250::reset(external_bus);
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info")) {
-		mpu6000::info(external_bus);
+		mpu9250::info(external_bus);
 	}
 
 	/*
 	 * Print register information.
 	 */
 	if (!strcmp(verb, "regdump")) {
-		mpu6000::regdump(external_bus);
-	}
-
-	if (!strcmp(verb, "factorytest")) {
-		mpu6000::factorytest(external_bus);
+		mpu9250::regdump(external_bus);
 	}
 
 	if (!strcmp(verb, "testerror")) {
-		mpu6000::testerror(external_bus);
+		mpu9250::testerror(external_bus);
 	}
 
-	mpu6000::usage();
+	mpu9250::usage();
 	exit(1);
 }
