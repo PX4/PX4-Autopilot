@@ -1027,7 +1027,11 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 		_althold_epv = _global_pos.epv;
 		_was_in_deadband = true;
 	}
-
+	if (_vehicle_status.is_vtol) {
+		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
+			_hold_alt = _global_pos.alt;
+		}
+	}
 	return climbout_mode;
 }
 
