@@ -12,8 +12,8 @@ InertialFilter::InertialFilter()
 
 void InertialFilter::inertial_filter_predict(float dt, Vector2f &x, float acc)
 {
-	if (isfinite(dt)) {
-		if (!isfinite(acc)) {
+	if (PX4_ISFINITE(dt)) {
+		if (!PX4_ISFINITE(acc)) {
 			acc = 0.0f;
 		}
 
@@ -24,7 +24,7 @@ void InertialFilter::inertial_filter_predict(float dt, Vector2f &x, float acc)
 
 void InertialFilter::inertial_filter_correct(float e, float dt, Vector2f &x, int i, float w)
 {
-	if (isfinite(e) && isfinite(w) && isfinite(dt)) {
+	if (PX4_ISFINITE(e) && PX4_ISFINITE(w) && PX4_ISFINITE(dt)) {
 		float ewdt = e * w * dt;
 		x[i] += ewdt;
 
