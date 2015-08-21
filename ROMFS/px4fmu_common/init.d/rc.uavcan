@@ -44,6 +44,9 @@ then
 	fi
 fi
 
-# First sensor publisher to initialize takes lowest instance ID
-# This delay ensures that UAVCAN-interfaced sensors will be allocated on lowest instance IDs
-sleep 8
+if [ $UAVCAN_ENABLE -ge 1 ]
+then
+	# First sensor publisher to initialize takes lowest instance ID
+	# This delay ensures that UAVCAN-interfaced sensors will be allocated on lowest instance IDs
+	sleep 8
+fi
