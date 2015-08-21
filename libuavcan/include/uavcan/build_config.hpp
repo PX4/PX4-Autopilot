@@ -104,7 +104,7 @@
  * Disable the global data type registry, which can save some space on embedded systems.
  */
 #ifndef UAVCAN_NO_GLOBAL_DATA_TYPE_REGISTRY
-# define UAVCAN_NO_GLOBAL_DATA_TYPE_REGISTRY 1
+# define UAVCAN_NO_GLOBAL_DATA_TYPE_REGISTRY 0
 #endif
 
 /**
