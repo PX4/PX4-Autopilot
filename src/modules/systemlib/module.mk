@@ -60,7 +60,8 @@ SRCS		+= err.c \
 endif
 
 ifneq ($(PX4_TARGET_OS),qurt)
-SRCS 		+= hx_stream.c 
+SRCS 		+= hx_stream.c \
+		   print_load_posix.c
 endif
 
 MAXOPTIMIZATION	 = -Os
