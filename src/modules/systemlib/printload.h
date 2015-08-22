@@ -41,7 +41,7 @@
 
 #include <stdint.h>
 
-__EXPORT struct print_load_s {
+struct __EXPORT print_load_s {
 	uint64_t total_user_time;
 
 	int running_count;
