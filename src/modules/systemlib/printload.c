@@ -120,7 +120,7 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 	int   i;
 	uint64_t curr_time_us;
 	uint64_t idle_time_us;
-	char *clear_line = '\0';
+	char *clear_line = "";
 
 	/* print system information */
 	if (fd == 1) {
