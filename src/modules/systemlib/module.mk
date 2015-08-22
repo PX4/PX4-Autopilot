@@ -42,6 +42,7 @@ SRCS		 = err.c \
 		   bson/tinybson.c \
 		   conversions.c \
 		   cpuload.c \
+		   printload.c \
 		   getopt_long.c \
 		   up_cxxinitialize.c \
 		   pid/pid.c \
