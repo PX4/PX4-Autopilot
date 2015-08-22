@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012, 2013, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,8 +35,8 @@
  * @file top.c
  * Tool similar to UNIX top command
  * @see http://en.wikipedia.org/wiki/Top_unix
- * 
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <nuttx/config.h>
@@ -64,23 +63,40 @@ static const char *
 tstate_name(const tstate_t s)
 {
 	switch (s) {
-	case TSTATE_TASK_INVALID:    return "init";
+	case TSTATE_TASK_INVALID:
+		return "init";
 
-	case TSTATE_TASK_PENDING:    return "PEND";
-	case TSTATE_TASK_READYTORUN: return "READY";
-	case TSTATE_TASK_RUNNING:    return "RUN";
+	case TSTATE_TASK_PENDING:
+		return "PEND";
 
-	case TSTATE_TASK_INACTIVE:   return "inact";
-	case TSTATE_WAIT_SEM:        return "w:sem";
+	case TSTATE_TASK_READYTORUN:
+		return "READY";
+
+	case TSTATE_TASK_RUNNING:
+		return "RUN";
+
+	case TSTATE_TASK_INACTIVE:
+		return "inact";
+
+	case TSTATE_WAIT_SEM:
+		return "w:sem";
 #ifndef CONFIG_DISABLE_SIGNALS
-	case TSTATE_WAIT_SIG:        return "w:sig";
+
+	case TSTATE_WAIT_SIG:
+		return "w:sig";
 #endif
 #ifndef CONFIG_DISABLE_MQUEUE
-	case TSTATE_WAIT_MQNOTEMPTY: return "w:mqe";
-	case TSTATE_WAIT_MQNOTFULL:  return "w:mqf";
+
+	case TSTATE_WAIT_MQNOTEMPTY:
+		return "w:mqe";
+
+	case TSTATE_WAIT_MQNOTFULL:
+		return "w:mqf";
 #endif
 #ifdef CONFIG_PAGING
-	case TSTATE_WAIT_PAGEFILL:   return "w:pgf";
+
+	case TSTATE_WAIT_PAGEFILL:
+		return "w:pgf";
 #endif
 
 	default:
@@ -102,8 +118,9 @@ top_main(void)
 	uint64_t last_times[CONFIG_MAX_TASKS];
 	float curr_loads[CONFIG_MAX_TASKS];
 
-	for (int t = 0; t < CONFIG_MAX_TASKS; t++)
+	for (int t = 0; t < CONFIG_MAX_TASKS; t++) {
 		last_times[t] = 0;
+	}
 
 	float interval_time_ms_inv = 0.f;
 
@@ -118,8 +135,9 @@ top_main(void)
 		curr_time_us = hrt_absolute_time();
 		idle_time_us = system_load.tasks[0].total_runtime;
 
-		if (new_time > interval_start_time)
+		if (new_time > interval_start_time) {
 			interval_time_ms_inv = 1.f / ((float)((new_time - interval_start_time) / 1000));
+		}
 
 		running_count = 0;
 		blocked_count = 0;
@@ -155,19 +173,22 @@ top_main(void)
 			}
 
 			interval_runtime = (system_load.tasks[i].valid && last_times[i] > 0 &&
-								system_load.tasks[i].total_runtime > last_times[i])
-				? (system_load.tasks[i].total_runtime - last_times[i]) / 1000
-				: 0;
+					    system_load.tasks[i].total_runtime > last_times[i])
+					   ? (system_load.tasks[i].total_runtime - last_times[i]) / 1000
+					   : 0;
 
 			last_times[i] = system_load.tasks[i].total_runtime;
 
 			if (system_load.tasks[i].valid && (new_time > interval_start_time)) {
 				curr_loads[i] = interval_runtime * interval_time_ms_inv;
 
-				if (i > 0)
+				if (i > 0) {
 					total_user_time += interval_runtime;
-			} else
+				}
+
+			} else {
 				curr_loads[i] = 0;
+			}
 		}
 
 		for (i = 0; i < CONFIG_MAX_TASKS; i++) {
@@ -182,63 +203,65 @@ top_main(void)
 
 					/* this can happen if one tasks total runtime was not computed
 					   correctly by the scheduler instrumentation TODO */
-					if (task_load > (1.f - idle))
+					if (task_load > (1.f - idle)) {
 						task_load = (1.f - idle);
+					}
 
 					sched_load = 1.f - idle - task_load;
 
 					/* print system information */
 					printf("\033[H"); /* move cursor home and clear screen */
 					printf(CL "Processes: %d total, %d running, %d sleeping\n",
-						   system_load.total_count,
-						   running_count,
-						   blocked_count);
+					       system_load.total_count,
+					       running_count,
+					       blocked_count);
 					printf(CL "CPU usage: %.2f%% tasks, %.2f%% sched, %.2f%% idle\n",
-						   (double)(task_load * 100.f),
-						   (double)(sched_load * 100.f),
-						   (double)(idle * 100.f));
+					       (double)(task_load * 100.f),
+					       (double)(sched_load * 100.f),
+					       (double)(idle * 100.f));
 					printf(CL "Uptime: %.3fs total, %.3fs idle\n\n",
-						   (double)curr_time_us / 1000000.d,
-						   (double)idle_time_us / 1000000.d);
+					       (double)curr_time_us / 1000000.d,
+					       (double)idle_time_us / 1000000.d);
 
 					/* header for task list */
 					printf(CL "%4s %*-s %8s %6s %11s %10s %-6s\n",
-						   "PID",
-						   CONFIG_TASK_NAME_SIZE, "COMMAND",
-						   "CPU(ms)",
-						   "CPU(%)",
-						   "USED/STACK",
-						   "PRIO(BASE)",
+					       "PID",
+					       CONFIG_TASK_NAME_SIZE, "COMMAND",
+					       "CPU(ms)",
+					       "CPU(%)",
+					       "USED/STACK",
+					       "PRIO(BASE)",
 #if CONFIG_RR_INTERVAL > 0
-						   "TSLICE"
+					       "TSLICE"
 #else
-						   "STATE"
+					       "STATE"
 #endif
-						   );
+					      );
 				}
 
 				unsigned stack_size = (uintptr_t)system_load.tasks[i].tcb->adj_stack_ptr -
-					(uintptr_t)system_load.tasks[i].tcb->stack_alloc_ptr;
+						      (uintptr_t)system_load.tasks[i].tcb->stack_alloc_ptr;
 				unsigned stack_free = 0;
 				uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[i].tcb->stack_alloc_ptr;
 
 				while (stack_free < stack_size) {
-					if (*stack_sweeper++ != 0xff)
+					if (*stack_sweeper++ != 0xff) {
 						break;
+					}
 
 					stack_free++;
 				}
 
 				printf(CL "%4d %*-s %8lld %2d.%03d %5u/%5u %3u (%3u) ",
-					   system_load.tasks[i].tcb->pid,
-					   CONFIG_TASK_NAME_SIZE, system_load.tasks[i].tcb->name,
-					   (system_load.tasks[i].total_runtime / 1000),
-					   (int)(curr_loads[i] * 100.0f),
-					   (int)((curr_loads[i] * 100.0f - (int)(curr_loads[i] * 100.0f)) * 1000),
-					   stack_size - stack_free,
-					   stack_size,
-					   system_load.tasks[i].tcb->sched_priority,
-					   system_load.tasks[i].tcb->base_priority);
+				       system_load.tasks[i].tcb->pid,
+				       CONFIG_TASK_NAME_SIZE, system_load.tasks[i].tcb->name,
+				       (system_load.tasks[i].total_runtime / 1000),
+				       (int)(curr_loads[i] * 100.0f),
+				       (int)((curr_loads[i] * 100.0f - (int)(curr_loads[i] * 100.0f)) * 1000),
+				       stack_size - stack_free,
+				       stack_size,
+				       system_load.tasks[i].tcb->sched_priority,
+				       system_load.tasks[i].tcb->base_priority);
 
 #if CONFIG_RR_INTERVAL > 0
 				/* print scheduling info with RR time slice */
