@@ -41,10 +41,13 @@
 /**
  * Enable UAVCAN.
  *
- * Enables support for UAVCAN-interfaced actuators and sensors.
+ * Allowed values:
+ *  0 - UAVCAN disabled.
+ *  1 - Enabled support for UAVCAN actuators and sensors.
+ *  2 - Enabled support for dynamic node ID allocation and firmware update.
  *
  * @min 0
- * @max 1
+ * @max 2
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);

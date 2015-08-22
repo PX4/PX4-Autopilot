@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,51 +32,34 @@
  ****************************************************************************/
 
 /**
- * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * @file printload.h
+ *
+ * Print the current system load.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-#include <drivers/drv_baro.h>
+__BEGIN_DECLS
 
-#include <uavcan/equipment/air_data/StaticPressure.hpp>
-#include <uavcan/equipment/air_data/StaticTemperature.hpp>
+#include <stdint.h>
 
-class RingBuffer;
+struct print_load_s {
+	uint64_t total_user_time;
 
-class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
-{
-public:
-	static const char *const NAME;
+	int running_count;
+	int blocked_count;
 
-	UavcanBarometerBridge(uavcan::INode &node);
-
-	const char *get_name() const override { return NAME; }
-
-	int init() override;
-
-private:
-	ssize_t read(struct file *filp, char *buffer, size_t buflen);
-	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
-
-	void air_pressure_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg);
-	void air_temperature_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg);
-
-	typedef uavcan::MethodBinder < UavcanBarometerBridge *,
-		void (UavcanBarometerBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &) >
-		AirPressureCbBinder;
-
-	typedef uavcan::MethodBinder < UavcanBarometerBridge *,
-		void (UavcanBarometerBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &) >
-		AirTemperatureCbBinder;
-
-	uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure, AirPressureCbBinder> _sub_air_pressure_data;
-	uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, AirTemperatureCbBinder> _sub_air_temperature_data;
-	unsigned _msl_pressure = 101325;
-	RingBuffer  *_reports;
-	float last_temperature_kelvin = 0.0;
-
+	uint64_t new_time;
+	uint64_t interval_start_time;
+	uint64_t last_times[CONFIG_MAX_TASKS];
+	float curr_loads[CONFIG_MAX_TASKS];
+	float interval_time_ms_inv;
 };
+
+__EXPORT void init_print_load_s(uint64_t t, struct print_load_s *s);
+
+__EXPORT void print_load(uint64_t t, int fd, struct print_load_s *print_state);
+
+__END_DECLS
