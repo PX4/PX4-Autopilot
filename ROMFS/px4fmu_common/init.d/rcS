@@ -318,6 +318,9 @@ then
 	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
+	echo "waiting 10 msec for sensor startup"
+	usleep 10000
+	echo "starting commander"
 	commander start
 
 	#
