@@ -62,6 +62,10 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 		_integ3_state = baro_altitude;
 		_integ2_state = 0.0f;
 		_integ1_state = 0.0f;
+
+		// Reset the filter state as we just switched from non-altitude control
+		// to altitude control mode
+		_states_initalized = false;
 	}
 
 	_update_50hz_last_usec = now;
