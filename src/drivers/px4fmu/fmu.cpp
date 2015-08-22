@@ -355,7 +355,7 @@ PX4FMU::init()
 	_task = task_spawn_cmd("fmuservo",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_DEFAULT,
-			       1600,
+			       1200,
 			       (main_t)&PX4FMU::task_main_trampoline,
 			       nullptr);
 
