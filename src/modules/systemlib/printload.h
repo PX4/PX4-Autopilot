@@ -39,6 +39,10 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#pragma once
+
+__BEGIN_DECLS
+
 #include <stdint.h>
 
 struct __EXPORT print_load_s {
@@ -57,3 +61,5 @@ struct __EXPORT print_load_s {
 __EXPORT void init_print_load_s(uint64_t t, struct print_load_s *s);
 
 __EXPORT void print_load(uint64_t t, int fd, struct print_load_s *print_state);
+
+__END_DECLS
