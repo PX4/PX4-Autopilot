@@ -55,6 +55,7 @@ SRCS		 = \
 
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS		+= err.c \
+		   printload.c \
 		   up_cxxinitialize.c 
 endif
 
