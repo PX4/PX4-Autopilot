@@ -105,6 +105,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/git_version.h>
+#include <systemlib/printload.h>
 #include <version/version.h>
 
 #include <mavlink/mavlink_log.h>
@@ -727,9 +728,16 @@ void sdlog2_start_log()
 	}
 
 	/* write all performance counters */
+	hrt_abstime curr_time = hrt_absolute_time();
+	struct print_load_s load;
 	int perf_fd = open_perf_file("preflight");
+	init_print_load_s(curr_time, &load);
+	print_load(curr_time, perf_fd, &load);
 	dprintf(perf_fd, "PERFORMANCE COUNTERS PRE-FLIGHT\n\n");
 	perf_print_all(perf_fd);
+	dprintf(perf_fd, "\nLOAD PRE-FLIGHT\n\n");
+	usleep(500 * 1000);
+	print_load(hrt_absolute_time(), perf_fd, &load);
 	close(perf_fd);
 
 	/* reset performance counters to get in-flight min and max values in post flight log */
@@ -765,8 +773,15 @@ void sdlog2_stop_log()
 
 	/* write all performance counters */
 	int perf_fd = open_perf_file("postflight");
+	hrt_abstime curr_time = hrt_absolute_time();
 	dprintf(perf_fd, "PERFORMANCE COUNTERS POST-FLIGHT\n\n");
 	perf_print_all(perf_fd);
+	struct print_load_s load;
+	dprintf(perf_fd, "\nLOAD POST-FLIGHT\n\n");
+	init_print_load_s(curr_time, &load);
+	print_load(curr_time, perf_fd, &load);
+	sleep(1);
+	print_load(hrt_absolute_time(), perf_fd, &load);
 	close(perf_fd);
 
 	/* free log writer performance counter */
