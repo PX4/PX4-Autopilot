@@ -90,7 +90,6 @@
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
-#define V3_ZERO Vector3f::Zero()
 
 /**
  * Multicopter position control app start / stop handling function

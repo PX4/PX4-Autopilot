@@ -43,7 +43,6 @@
 
 #include <cmath>
 #include <stdio.h>
-#include <mathlib/mathlib.h>
 #pragma GCC diagnostic push
 #ifndef RAND_MAX
 #define RAND_MAX __RAND_MAX
@@ -55,6 +54,7 @@
 #endif
 
 #include <eigen/Eigen/Eigen>
+#include <mathlib/mathlib.h>
 // #include <eigen/unsupported/Eigen/CXX11/Tensor>
 
 #pragma GCC diagnostic pop
@@ -87,11 +87,24 @@ static void printEigen(const Eigen::MatrixBase<T> &b)
 
 /**
  * @brief
- *	Construct new Eigen::Quaternion from euler angles
+ *	Construct new Eigen::Quaternionf from euler angles
  *	Right order is YPR.
  */
 static Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
 	return Eigen::Quaternionf(
+		Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
+		Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
+		Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
+		);
+}
+
+/**
+ * @brief
+ *	Construct new Eigen::Matrix3f from euler angles
+ *	Right order is YPR.
+ */
+static Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
+	return Eigen::Matrix3f(
 		Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
 		Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
 		Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
@@ -119,18 +132,10 @@ static Eigen::Vector3f eulerFromRot(const Eigen::Matrix3f &rot){
 
 /**
  * @brief
- *	Construct new Eigen::Matrix3f from euler angles
- */
-static Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
-	return quatFromEuler(rpy).toRotationMatrix();
-}
-
-/**
- * @brief
  *	Adjust PX4 math::quaternion to Eigen::Quaternionf
  */
 static Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
-	return Eigen::Quaternionf(q.data[1], q.data[2], q.data[3], q.data[0]);
+	return Eigen::Quaternionf(q.data[0], q.data[1], q.data[2], q.data[3]);
 }
 
 /**
@@ -158,3 +163,41 @@ static Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot){
 static math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot){
 	return math::Matrix<3,3>(px4qFromEigenq(Eigen::Quaternionf(rot)).to_dcm());
 }
+
+/**
+ * @brief
+ *	Create Eigen::Quaternionf from RotationMatrix through DCM.
+ *  Commented since it is not required but kept as an alternative to q(R) constructor
+ */
+/*static Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm){
+	math::Quaternion q;
+
+	float tr = dcm(0,0) + dcm(1,1) + dcm(2,2);
+	if (tr > 0.0f) {
+		float s = sqrtf(tr + 1.0f);
+		q.data[0] = s * 0.5f;
+		s = 0.5f / s;
+		q.data[1] = (dcm(2,1) - dcm(1,2)) * s;
+		q.data[2] = (dcm(0,2) - dcm(2,0)) * s;
+		q.data[3] = (dcm(1,0) - dcm(0,1)) * s;
+	} else {
+		// Find maximum diagonal element in dcm
+		// store index in dcm_i //
+		int dcm_i = 0;
+		for (int i = 1; i < 3; i++) {
+			if (dcm(i,i) > dcm(dcm_i,dcm_i)) {
+				dcm_i = i;
+			}
+		}
+		int dcm_j = (dcm_i + 1) % 3;
+		int dcm_k = (dcm_i + 2) % 3;
+		float s = sqrtf((dcm(dcm_i,dcm_i) - dcm(dcm_j,dcm_j) -
+		dcm(dcm_k,dcm_k)) + 1.0f);
+		q.data[dcm_i + 1] = s * 0.5f;
+		s = 0.5f / s;
+		q.data[dcm_j + 1] = (dcm(dcm_i,dcm_j) + dcm(dcm_j,dcm_i)) * s;
+		q.data[dcm_k + 1] = (dcm(dcm_k,dcm_i) + dcm(dcm_i,dcm_k)) * s;
+		q.data[0] = (dcm(dcm_k,dcm_j) - dcm(dcm_j,dcm_k)) * s;
+	}
+	return eigenqFromPx4q(q);
+}*/

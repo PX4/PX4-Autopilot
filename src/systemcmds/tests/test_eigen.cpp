@@ -274,7 +274,7 @@ int test_eigen(int argc, char *argv[]) {
 		printf("%llu: Conversion method: Testing known values...\n", (unsigned long long)hrt_absolute_time());
 
 		/******************************************** TEST 1 ****************************************************/
-		q_true = {0.0f, 0.0f, 0.0f, 1.0f};
+		q_true = {1.0f, 0.0f, 0.0f, 0.0f};
 		math::Quaternion q_px4 = {1.0f, 0.0f, 0.0f, 0.0f};
 		Eigen::Quaternionf q_eigen(eigenqFromPx4q(q_px4));
 
@@ -288,9 +288,9 @@ int test_eigen(int argc, char *argv[]) {
 		/********************************************************************************************************/
 		/******************************************** TEST 2 ****************************************************/
 		q_true = {1.0f, 0.0f, 0.0f, 0.0f};
-		Eigen::Quaternionf q2_eigen = {0.0f, 0.0f, 0.0f, 1.0f};
+		Eigen::Quaternionf q2_eigen = {1.0f, 0.0f, 0.0f, 0.0f};
 		math::Quaternion q2_px4(px4qFromEigenq(q2_eigen));
-		Eigen::Quaternionf q2_eigen_(q2_px4.data[3], q2_px4.data[0], q2_px4.data[1], q2_px4.data[2]);
+		Eigen::Quaternionf q2_eigen_(q2_px4.data[0], q2_px4.data[1], q2_px4.data[2], q2_px4.data[3]);
 
 		if (!EXPECT_QUATERNION(q_true, q2_eigen_, FLT_EPSILON)) {
 			printf("%llu: Value of: Quaternion2 [0.0, 0.0, 0.0, 1.0]\n", (unsigned long long)hrt_absolute_time());
