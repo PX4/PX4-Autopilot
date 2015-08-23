@@ -617,7 +617,7 @@ MulticopterPositionControl::limit_pos_sp_offset()
 		pos_sp_offs(2) = (_pos_sp(2) - _pos(2)) / _params.sp_offs_max(2);
 	}
 
-	float pos_sp_offs_norm = pos_sp_offs.size();
+	float pos_sp_offs_norm = pos_sp_offs.norm();
 
 	if (pos_sp_offs_norm > 1.0f) {
 		pos_sp_offs /= pos_sp_offs_norm;
@@ -642,7 +642,7 @@ MulticopterPositionControl::control_manual(float dt)
 	}
 
 	/* limit setpoint move rate */
-	float sp_move_norm = _sp_move_rate.size();
+	float sp_move_norm = _sp_move_rate.norm();
 
 	if (sp_move_norm > 1.0f) {
 		_sp_move_rate /= sp_move_norm;
@@ -681,7 +681,7 @@ MulticopterPositionControl::control_manual(float dt)
 		pos_sp_offs(2) = (_pos_sp(2) - _pos(2)) / _params.sp_offs_max(2);
 	}
 
-	float pos_sp_offs_norm = pos_sp_offs.size();
+	float pos_sp_offs_norm = pos_sp_offs.norm();
 
 	if (pos_sp_offs_norm > 1.0f) {
 		pos_sp_offs /= pos_sp_offs_norm;
@@ -752,7 +752,7 @@ MulticopterPositionControl::cross_sphere_line(const Vector3f& sphere_c, float sp
 	Vector3f ab_norm = line_b - line_a;
 	ab_norm.normalize();
 	Vector3f d = line_a.array() + ab_norm.array() * ((sphere_c.array() - line_a.array()) * ab_norm.array());
-	float cd_len = (sphere_c - d).size();
+	float cd_len = (sphere_c - d).norm();
 
 	/* we have triangle CDX with known CD and CX = R, find DX */
 	if (sphere_r > cd_len) {
@@ -820,14 +820,14 @@ void MulticopterPositionControl::control_auto(float dt)
 						   &prev_sp(0), &prev_sp(1));
 			prev_sp(2) = -(_pos_sp_triplet.previous.alt - _ref_alt);
 
-			if ((curr_sp - prev_sp).size() > MIN_DIST) {
+			if ((curr_sp - prev_sp).norm() > MIN_DIST) {
 
 				/* find X - cross point of L1 sphere and trajectory */
 				Vector3f pos_s = _pos.cwiseProduct(scale);
 				Vector3f prev_sp_s = prev_sp.cwiseProduct(scale);
 				Vector3f prev_curr_s = curr_sp_s - prev_sp_s;
 				Vector3f curr_pos_s = pos_s - curr_sp_s;
-				float curr_pos_s_len = curr_pos_s.size();
+				float curr_pos_s_len = curr_pos_s.norm();
 				if (curr_pos_s_len < 1.0f) {
 					/* copter is closer to waypoint than L1 radius */
 					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
@@ -838,7 +838,7 @@ void MulticopterPositionControl::control_auto(float dt)
 									   &next_sp(0), &next_sp(1));
 						next_sp(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
 
-						if ((next_sp - curr_sp).size() > MIN_DIST) {
+						if ((next_sp - curr_sp).norm() > MIN_DIST) {
 							Vector3f next_sp_s = next_sp.cwiseProduct(scale);
 
 							/* calculate angle prev - curr - next */
@@ -852,7 +852,7 @@ void MulticopterPositionControl::control_auto(float dt)
 							float cos_b = -curr_pos_s.dot(prev_curr_s_norm) / curr_pos_s_len;
 
 							if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
-								float curr_next_s_len = curr_next_s.size();
+								float curr_next_s_len = curr_next_s.norm();
 								/* if curr - next distance is larger than L1 radius, limit it */
 								if (curr_next_s_len > 1.0f) {
 									cos_a_curr_next /= curr_next_s_len;
@@ -895,7 +895,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		/* difference between current and desired position setpoints, 1 = max speed */
 		Vector3f d_pos_m = (pos_sp_s - pos_sp_old_s).array() / _params.pos_p.array();
-		float d_pos_m_len = d_pos_m.size();
+		float d_pos_m_len = d_pos_m.norm();
 		if (d_pos_m_len > dt) {
 			pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).cwiseProduct(_params.pos_p);
 		}
@@ -1194,7 +1194,7 @@ MulticopterPositionControl::task_main()
 						/* limit max tilt */
 						if (thr_min >= 0.0f && tilt_max < M_PI_F / 2 - 0.05f) {
 							/* absolute horizontal thrust */
-							float thrust_sp_xy_len = Vector2f(thrust_sp(0), thrust_sp(1)).size();
+							float thrust_sp_xy_len = Vector2f(thrust_sp(0), thrust_sp(1)).norm();
 
 							if (thrust_sp_xy_len > 0.01f) {
 								/* max horizontal thrust for given vertical thrust*/
@@ -1229,7 +1229,7 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* limit max thrust */
-					float thrust_abs = thrust_sp.size();
+					float thrust_abs = thrust_sp.norm();
 
 					if (thrust_abs > _params.thr_max) {
 						if (thrust_sp(2) < 0.0f) {
@@ -1244,7 +1244,7 @@ MulticopterPositionControl::task_main()
 							} else {
 								/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
 								float thrust_xy_max = sqrtf(_params.thr_max * _params.thr_max - thrust_sp(2) * thrust_sp(2));
-								float thrust_xy_abs = Vector2f(thrust_sp(0), thrust_sp(1)).size();
+								float thrust_xy_abs = Vector2f(thrust_sp(0), thrust_sp(1)).norm();
 								float k = thrust_xy_max / thrust_xy_abs;
 								thrust_sp(0) *= k;
 								thrust_sp(1) *= k;
