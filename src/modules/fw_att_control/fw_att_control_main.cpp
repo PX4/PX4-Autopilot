@@ -1135,6 +1135,7 @@ FixedwingAttitudeControl::task_main()
 
 	_control_task = -1;
 	_task_running = false;
+	return 0;
 }
 
 int
