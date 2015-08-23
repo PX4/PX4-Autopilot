@@ -52,6 +52,9 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -604,7 +607,7 @@ FixedwingPositionControl::~FixedwingPositionControl()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_control_task);
+				px4_task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -953,7 +956,7 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 
 float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos)
 {
-	if (!isfinite(global_pos.terrain_alt)) {
+	if (!PX4_ISFINITE(global_pos.terrain_alt)) {
 		return land_setpoint_alt;
 	}
 
@@ -1958,7 +1961,7 @@ FixedwingPositionControl::start()
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1600,
-				       (main_t)&FixedwingPositionControl::task_main_trampoline,
+				       (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
 				       nullptr);
 
 	if (_control_task < 0) {
@@ -1972,16 +1975,16 @@ FixedwingPositionControl::start()
 int fw_pos_control_l1_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: fw_pos_control_l1 {start|stop|status}");
+		warnx("usage: fw_pos_control_l1 {start|stop|status}");
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (l1_control::g_control != nullptr)
-			errx(1, "already running");
+			warnx("already running");
 
 		if (OK != FixedwingPositionControl::start()) {
-			err(1, "start failed");
+			warn("start failed");
 		}
 
 		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
@@ -1997,7 +2000,7 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (l1_control::g_control == nullptr)
-			errx(1, "not running");
+			warnx("not running");
 
 		delete l1_control::g_control;
 		l1_control::g_control = nullptr;
@@ -2006,10 +2009,10 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (l1_control::g_control) {
-			errx(0, "running");
+			warnx("running");
 
 		} else {
-			errx(1, "not running");
+			warnx("not running");
 		}
 	}
 

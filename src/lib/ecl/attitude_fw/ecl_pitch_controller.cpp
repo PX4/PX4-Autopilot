@@ -62,10 +62,10 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 {
 
 	/* Do not calculate control signal with bad inputs */
-	if (!(isfinite(ctl_data.pitch_setpoint) &&
-	      isfinite(ctl_data.roll) &&
-	      isfinite(ctl_data.pitch) &&
-	      isfinite(ctl_data.airspeed))) {
+	if (!(PX4_ISFINITE(ctl_data.pitch_setpoint) &&
+	      PX4_ISFINITE(ctl_data.roll) &&
+	      PX4_ISFINITE(ctl_data.pitch) &&
+	      PX4_ISFINITE(ctl_data.airspeed))) {
 		perf_count(_nonfinite_input_perf);
 		warnx("not controlling pitch");
 		return _rate_setpoint;
@@ -94,14 +94,14 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(isfinite(ctl_data.roll) &&
-	      isfinite(ctl_data.pitch) &&
-	      isfinite(ctl_data.pitch_rate) &&
-	      isfinite(ctl_data.yaw_rate) &&
-	      isfinite(ctl_data.yaw_rate_setpoint) &&
-	      isfinite(ctl_data.airspeed_min) &&
-	      isfinite(ctl_data.airspeed_max) &&
-	      isfinite(ctl_data.scaler))) {
+	if (!(PX4_ISFINITE(ctl_data.roll) &&
+	      PX4_ISFINITE(ctl_data.pitch) &&
+	      PX4_ISFINITE(ctl_data.pitch_rate) &&
+	      PX4_ISFINITE(ctl_data.yaw_rate) &&
+	      PX4_ISFINITE(ctl_data.yaw_rate_setpoint) &&
+	      PX4_ISFINITE(ctl_data.airspeed_min) &&
+	      PX4_ISFINITE(ctl_data.airspeed_max) &&
+	      PX4_ISFINITE(ctl_data.scaler))) {
 		perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}

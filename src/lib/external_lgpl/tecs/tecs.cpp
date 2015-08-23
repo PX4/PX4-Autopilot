@@ -98,7 +98,7 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 	// Only required if airspeed is being measured and controlled
 	float temp = 0;
 
-	if (isfinite(airspeed) && airspeed_sensor_enabled()) {
+	if (PX4_ISFINITE(airspeed) && airspeed_sensor_enabled()) {
 		// Get DCM
 		// Calculate speed rate of change
 		// XXX check
@@ -142,7 +142,7 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 
 	// Get airspeed or default to halfway between min and max if
 	// airspeed is not being used and set speed rate to zero
-	if (!isfinite(indicated_airspeed) || !airspeed_sensor_enabled()) {
+	if (!PX4_ISFINITE(indicated_airspeed) || !airspeed_sensor_enabled()) {
 		// If no airspeed available use average of min and max
 		_EAS = 0.5f * (indicated_airspeed_min + indicated_airspeed_max);
 
@@ -228,12 +228,12 @@ void TECS::_update_speed_demand(void)
 void TECS::_update_height_demand(float demand, float state)
 {
 	// Handle initialization
-	if (isfinite(demand) && fabsf(_hgt_dem_in_old) < 0.1f) {
+	if (PX4_ISFINITE(demand) && fabsf(_hgt_dem_in_old) < 0.1f) {
 		_hgt_dem_in_old = demand;
 	}
 	// Apply 2 point moving average to demanded height
 	// This is required because height demand is updated in steps
-	if (isfinite(demand)) {
+	if (PX4_ISFINITE(demand)) {
 		_hgt_dem = 0.5f * (demand + _hgt_dem_in_old);
 	} else {
 		_hgt_dem = _hgt_dem_in_old;
