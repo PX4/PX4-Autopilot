@@ -62,6 +62,10 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 		_integ3_state = baro_altitude;
 		_integ2_state = 0.0f;
 		_integ1_state = 0.0f;
+
+		// Reset the filter state as we just switched from non-altitude control
+		// to altitude control mode
+		_states_initalized = false;
 	}
 
 	_update_50hz_last_usec = now;
@@ -616,9 +620,8 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	_tecs_state.energy_error_integ = _integ6_state;
 	_tecs_state.energy_distribution_error_integ = _integ7_state;
 
-
-	_tecs_state.throttle_sp = _throttle_dem;
-	_tecs_state.pitch_sp = _pitch_dem;
+	_tecs_state.throttle_integ 	= _integ6_state;
+	_tecs_state.pitch_integ 	= _integ7_state;
 
 	_update_pitch_throttle_last_usec = now;
 

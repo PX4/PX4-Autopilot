@@ -1937,8 +1937,8 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		t.energyDistributionError 		= s.energy_distribution_error;
 		t.energyDistributionRateError 	= s.energy_distribution_rate_error;
 		
-		t.throttle_sp 	= s.throttle_sp;
-		t.pitch_sp 		= s.pitch_sp;
+		t.throttle_integ 	= s.throttle_integ;
+		t.pitch_integ 		= s.pitch_integ;
 
 		if (_tecs_status_pub != nullptr) {
 			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
