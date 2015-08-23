@@ -1824,7 +1824,6 @@ FixedwingPositionControl::task_main()
 	warnx("exiting.\n");
 
 	_control_task = -1;
-	return 0;
 }
 
 void FixedwingPositionControl::reset_takeoff_state()
