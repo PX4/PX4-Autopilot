@@ -53,9 +53,11 @@
 #include "uavcan_servers.hpp"
 #include "uavcan_virtual_can_driver.hpp"
 
-# include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
-# include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
-# include <uavcan_posix/firmware_version_checker.hpp>
+#include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
+#include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
+#include <uavcan_posix/firmware_version_checker.hpp>
+
+#include <uORB/topics/vehicle_command.h>
 
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
@@ -277,6 +279,10 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 
 	Lock lock(_subnode_mutex);
 
+	/* the subscribe call needs to happen in the same thread,
+	 * so not in the constructor */
+	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
+
 	while (1) {
 
 		if (_check_fw == true) {
@@ -285,6 +291,23 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 		}
 
 		const int spin_res = _subnode.spin(uavcan::MonotonicDuration::fromMSec(100));
+
+		/* check if new commands are pending */
+		bool cmd_ready;
+		orb_check(cmd_sub, &cmd_ready);
+
+		if (cmd_ready) {
+			struct vehicle_command_s cmd;
+			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
+
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_UAVCAN) {
+				warnx("received UAVCAN CONFIG command");
+
+				if (static_cast<int>(cmd.param1 + 0.5f) == 1) {
+					warnx("UAVCAN CONFIG: Actuator assignment requested");
+				}
+			}
+		}
 
 		if (spin_res < 0) {
 			warnx("node spin error %i", spin_res);
