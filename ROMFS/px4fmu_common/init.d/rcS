@@ -286,10 +286,10 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
+		set GPS no
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
-			set GPS no
 		fi
 	fi
 	unset HIL
