@@ -234,13 +234,8 @@ PWMSim::init()
 	_task = px4_task_spawn_cmd("pwm_out_sim",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-<<<<<<< HEAD:src/drivers/pwm_out_sim/pwm_out_sim.cpp
-			   1200,
-			   (px4_main_t)&PWMSim::task_main_trampoline,
-=======
 			   1000,
-			   (main_t)&HIL::task_main_trampoline,
->>>>>>> beta:src/drivers/hil/hil.cpp
+			   (px4_main_t)&PWMSim::task_main_trampoline,
 			   nullptr);
 
 	if (_task < 0) {
