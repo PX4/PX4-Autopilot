@@ -42,6 +42,9 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h> 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -421,7 +424,7 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_control_task);
+				px4_task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -800,7 +803,7 @@ FixedwingAttitudeControl::task_main()
 			float flaps_control = 0.0f;
 
 			/* map flaps by default to manual if valid */
-			if (isfinite(_manual.flaps)) {
+			if (PX4_ISFINITE(_manual.flaps)) {
 				flaps_control = _manual.flaps;
 			}
 
@@ -810,7 +813,7 @@ FixedwingAttitudeControl::task_main()
 				float airspeed;
 
 				/* if airspeed is not updating, we assume the normal average speed */
-				if (bool nonfinite = !isfinite(_airspeed.true_airspeed_m_s) ||
+				if (bool nonfinite = !PX4_ISFINITE(_airspeed.true_airspeed_m_s) ||
 				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
 					if (nonfinite) {
@@ -990,7 +993,7 @@ FixedwingAttitudeControl::task_main()
 				control_input.lock_integrator = lock_integrator;
 
 				/* Run attitude controllers */
-				if (isfinite(roll_sp) && isfinite(pitch_sp)) {
+				if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
 					_roll_ctrl.control_attitude(control_input);
 					_pitch_ctrl.control_attitude(control_input);
 					_yaw_ctrl.control_attitude(control_input); //runs last, because is depending on output of roll and pitch attitude
@@ -1002,8 +1005,8 @@ FixedwingAttitudeControl::task_main()
 
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 					float roll_u = _roll_ctrl.control_bodyrate(control_input);
-					_actuators.control[0] = (isfinite(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
-					if (!isfinite(roll_u)) {
+					_actuators.control[0] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
+					if (!PX4_ISFINITE(roll_u)) {
 						_roll_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
 
@@ -1013,8 +1016,8 @@ FixedwingAttitudeControl::task_main()
 					}
 
 					float pitch_u = _pitch_ctrl.control_bodyrate(control_input);
-					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
-					if (!isfinite(pitch_u)) {
+					_actuators.control[1] = (PX4_ISFINITE(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
+					if (!PX4_ISFINITE(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
 						if (_debug && loop_counter % 10 == 0) {
@@ -1034,11 +1037,11 @@ FixedwingAttitudeControl::task_main()
 					}
 
 					float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
-					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
+					_actuators.control[2] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 
 					/* add in manual rudder control */
 					_actuators.control[2] += yaw_manual;
-					if (!isfinite(yaw_u)) {
+					if (!PX4_ISFINITE(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
 						if (_debug && loop_counter % 10 == 0) {
@@ -1048,11 +1051,11 @@ FixedwingAttitudeControl::task_main()
 
 					/* throttle passed through if it is finite and if no engine failure was
 					 * detected */
-					_actuators.control[3] = (isfinite(throttle_sp) &&
+					_actuators.control[3] = (PX4_ISFINITE(throttle_sp) &&
 							!(_vehicle_status.engine_failure ||
 								_vehicle_status.engine_failure_cmd)) ?
 						throttle_sp : 0.0f;
-					if (!isfinite(throttle_sp)) {
+					if (!PX4_ISFINITE(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("throttle_sp %.4f", (double)throttle_sp);
 						}
@@ -1145,7 +1148,7 @@ FixedwingAttitudeControl::start()
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1600,
-				       (main_t)&FixedwingAttitudeControl::task_main_trampoline,
+				       (px4_main_t)&FixedwingAttitudeControl::task_main_trampoline,
 				       nullptr);
 
 	if (_control_task < 0) {
@@ -1159,23 +1162,23 @@ FixedwingAttitudeControl::start()
 int fw_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: fw_att_control {start|stop|status}");
+		warnx("usage: fw_att_control {start|stop|status}");
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (att_control::g_control != nullptr)
-			errx(1, "already running");
+			warnx("already running");
 
 		att_control::g_control = new FixedwingAttitudeControl;
 
 		if (att_control::g_control == nullptr)
-			errx(1, "alloc failed");
+			warnx("alloc failed");
 
 		if (OK != att_control::g_control->start()) {
 			delete att_control::g_control;
 			att_control::g_control = nullptr;
-			err(1, "start failed");
+			warn("start failed");
 		}
 
 		/* check if the waiting is necessary at all */
@@ -1194,7 +1197,7 @@ int fw_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (att_control::g_control == nullptr)
-			errx(1, "not running");
+			warnx("not running");
 
 		delete att_control::g_control;
 		att_control::g_control = nullptr;
@@ -1203,10 +1206,10 @@ int fw_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (att_control::g_control) {
-			errx(0, "running");
+			warnx("running");
 
 		} else {
-			errx(1, "not running");
+			warnx("not running");
 		}
 	}
 
