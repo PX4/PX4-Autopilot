@@ -620,9 +620,8 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	_tecs_state.energy_error_integ = _integ6_state;
 	_tecs_state.energy_distribution_error_integ = _integ7_state;
 
-
-	_tecs_state.throttle_sp = _throttle_dem;
-	_tecs_state.pitch_sp = _pitch_dem;
+	_tecs_state.throttle_integ 	= _integ6_state;
+	_tecs_state.pitch_integ 	= _integ7_state;
 
 	_update_pitch_throttle_last_usec = now;
 
