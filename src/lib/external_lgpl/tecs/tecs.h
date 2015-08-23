@@ -155,8 +155,8 @@ public:
 		float total_energy_rate_error;
 		float energy_distribution_error;
 		float energy_distribution_rate_error;
-		float throttle_sp;
-		float pitch_sp;
+		float throttle_integ;
+		float pitch_integ;
 		enum ECL_TECS_MODE mode;
 	};
 
