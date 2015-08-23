@@ -49,6 +49,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <dataman/dataman.h>
+#include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 

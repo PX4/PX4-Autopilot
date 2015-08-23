@@ -44,8 +44,7 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-#include <uORB/topics/mission.h>
-#include <uORB/topics/mission.h>
+#include <navigator/navigation.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
