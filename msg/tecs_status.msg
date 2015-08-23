@@ -23,7 +23,7 @@ float32 energyDistributionError
 float32 totalEnergyRateError
 float32 energyDistributionRateError
 
-float32 throttle_sp
-float32 pitch_sp
+float32 throttle_integ
+float32 pitch_integ
 
 uint8 mode

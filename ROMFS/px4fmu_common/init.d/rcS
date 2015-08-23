@@ -286,6 +286,7 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
+		set GPS no
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
@@ -319,6 +320,7 @@ then
 			gps start
 		fi
 	fi
+	unset GPS
 	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
