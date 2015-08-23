@@ -55,7 +55,7 @@ extern "C" __EXPORT int mc_pos_control_m_main(int argc, char *argv[]);
 int mc_pos_control_m_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: mc_pos_control_m {start|stop|status}");
+		PX4_WARN("usage: mc_pos_control_m {start|stop|status}");
 	}
 
 	if (!strcmp(argv[1], "start")) {

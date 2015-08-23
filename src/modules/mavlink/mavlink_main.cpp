@@ -1484,6 +1484,8 @@ Mavlink::task_main(int argc, char *argv[])
 				_mode = MAVLINK_MODE_ONBOARD;
 			} else if (strcmp(optarg, "osd") == 0) {
 				_mode = MAVLINK_MODE_OSD;
+			} else if (strcmp(optarg, "config") == 0) {
+				_mode = MAVLINK_MODE_CONFIG;
 			}
 
 			break;
@@ -1600,8 +1602,6 @@ Mavlink::task_main(int argc, char *argv[])
 	/* start the MAVLink receiver */
 	_receive_thread = MavlinkReceiver::receive_start(this);
 
-	_task_running = true;
-
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
@@ -1654,6 +1654,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ATTITUDE_TARGET", 8.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
+		configure_stream("VTOL_STATE", 0.5f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1676,6 +1677,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
 		/* camera trigger is rate limited at the source, do not limit here */
 		configure_stream("CAMERA_TRIGGER", 500.0f);
+		configure_stream("VTOL_STATE", 2.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1688,7 +1690,29 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("BATTERY_STATUS", 1.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("RC_CHANNELS", 5.0f);
+		configure_stream("VTOL_STATE", 0.5f);
 		break;
+
+	case MAVLINK_MODE_CONFIG:
+		// Enable a number of interesting streams we want via USB
+		configure_stream("PARAM_VALUE", 300.0f);
+		configure_stream("MISSION_ITEM", 50.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
+		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
+		configure_stream("DISTANCE_SENSOR", 10.0f);
+		configure_stream("VFR_HUD", 20.0f);
+		configure_stream("ATTITUDE", 100.0f);
+		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
+		configure_stream("RC_CHANNELS_RAW", 5.0f);
+		configure_stream("SERVO_OUTPUT_RAW_0", 20.0f);
+		configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
+		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
+		configure_stream("LOCAL_POSITION_NED", 30.0f);
+		configure_stream("MANUAL_CONTROL", 5.0f);
+		configure_stream("HIGHRES_IMU", 100.0f);
+		configure_stream("GPS_RAW_INT", 20.0f);
+		configure_stream("CAMERA_TRIGGER", 500.0f);
+		configure_stream("VTOL_STATE", 2.0f);
 
 	default:
 		break;
@@ -1714,6 +1738,8 @@ Mavlink::task_main(int argc, char *argv[])
 		hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
+		
+		_mission_manager->check_active_mission();
 
 		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
@@ -1872,6 +1898,9 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		perf_end(_loop_perf);
+
+		/* confirm task running only once fully initialized */
+		_task_running = true;
 	}
 
 	delete _subscribe_to_stream;
@@ -1959,6 +1988,12 @@ Mavlink::start(int argc, char *argv[])
 	// Wait for the instance count to go up one
 	// before returning to the shell
 	int ic = Mavlink::instance_count();
+
+	if (ic == MAVLINK_COMM_NUM_BUFFERS) {
+		warnx("Maximum MAVLink instance count of %d reached.",
+			(int)MAVLINK_COMM_NUM_BUFFERS);
+		return 1;
+	}
 
 	// Instantiate thread
 	char buf[24];

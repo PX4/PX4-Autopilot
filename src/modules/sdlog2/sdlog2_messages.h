@@ -165,7 +165,7 @@ struct log_GPS_s {
 
 /* --- ATTC - ATTITUDE CONTROLS (ACTUATOR_0 CONTROLS)--- */
 #define LOG_ATTC_MSG 9
-#define LOG_ATC1_MSG 40
+#define LOG_ATC1_MSG 46
 struct log_ATTC_s {
 	float roll;
 	float pitch;
@@ -363,16 +363,16 @@ struct log_TECS_s {
 	float altitudeFiltered;
 	float flightPathAngleSp;
 	float flightPathAngle;
-	float flightPathAngleFiltered;
 	float airspeedSp;
 	float airspeedFiltered;
 	float airspeedDerivativeSp;
 	float airspeedDerivative;
-
-	float totalEnergyRateSp;
-	float totalEnergyRate;
-	float energyDistributionRateSp;
-	float energyDistributionRate;
+	float totalEnergyError;
+	float totalEnergyRateError;
+	float energyDistributionError;
+	float energyDistributionRateError;
+	float pitch_integ;
+	float throttle_integ;
 
 	uint8_t mode;
 };
@@ -477,6 +477,8 @@ struct log_MACS_s {
 	float yaw_rate_integ;
 };
 
+/* WARNING: ID 46 is already in use for ATTC1 */
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -543,7 +545,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GS0B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
-	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
+	LOG_FORMAT(TECS, "ffffffffffffffB",	"ASP,AF,FSP,F,AsSP,AsF,AsDSP,AsD,EE,EDE,ERE,EDRE,PtchI,ThrI,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),

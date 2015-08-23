@@ -165,7 +165,7 @@ public:
 	int		start();
 
 private:
-	static const unsigned _rc_max_chan_count = RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
+	static const unsigned _rc_max_chan_count = input_rc_s::RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
 
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
@@ -211,8 +211,8 @@ private:
 	int		_accel2_sub;			/**< raw accel2 data subscription */
 	int		_mag2_sub;			/**< raw mag2 data subscription */
 	int 		_rc_sub;			/**< raw rc channels data subscription */
-	int		_baro_sub;			/**< raw baro data subscription */
-	int		_baro1_sub;			/**< raw baro data subscription */
+	int		_baro_sub;			/**< raw baro0 data subscription */
+	int		_baro1_sub;			/**< raw baro1 data subscription */
 	//int		_airspeed_sub;			/**< airspeed subscription */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;			/**< vehicle control mode subscription */
@@ -227,6 +227,19 @@ private:
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
+	
+	int32_t _gyro_prio;			/**< gyro0 sensor priority */
+	int32_t	_accel_prio;			/**< accel0 sensor priority */
+	int32_t	_mag_prio;			/**< mag0 sensor priority */
+	int32_t	_gyro1_prio;			/**< gyro1 sensor priority */
+	int32_t	_accel1_prio;			/**<accel1 sensor priority */
+	int32_t	_mag1_prio;			/**< mag1 sensor priority */
+	int32_t	_gyro2_prio;			/**< gyro2 sensor priority */
+	int32_t	_accel2_prio;			/**< accel2 sensor priority */
+	int32_t	_mag2_prio;			/**< mag2 sensor priority */
+	int32_t	_baro_prio;			/**< baro0 sensor priority */
+	int32_t	_baro1_prio;			/**< baro1 sensor priority */
+	int32_t	_diff_pres_prio;		/**< baro1 sensor priority */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -236,7 +249,7 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 	struct rc_parameter_map_s _rc_parameter_map;
-	float _param_rc_values[RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
+	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
 
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
@@ -281,7 +294,7 @@ private:
 		int rc_map_aux4;
 		int rc_map_aux5;
 
-		int rc_map_param[RC_PARAM_MAP_NCHAN];
+		int rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 
 		int32_t rc_fails_thr;
 		float rc_assist_th;
@@ -337,8 +350,8 @@ private:
 		param_t rc_map_aux4;
 		param_t rc_map_aux5;
 
-		param_t rc_map_param[RC_PARAM_MAP_NCHAN];
-		param_t rc_param[RC_PARAM_MAP_NCHAN];	/**< param handles for the paramters which are bound
+		param_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
+		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the paramters which are bound
 							  to a RC channel, equivalent float values in the
 							  _parameters struct are not existing
 							  because these parameters are never read. */
@@ -511,6 +524,19 @@ Sensors::Sensors() :
 	_airspeed_pub(nullptr),
 	_diff_pres_pub(nullptr),
 
+	/* sensor priorities */
+	_gyro_prio(-1),
+	_accel_prio(-1),
+	_mag_prio(-1),
+	_gyro1_prio(-1),
+	_accel1_prio(-1),
+	_mag1_prio(-1),
+	_gyro2_prio(-1),
+	_accel2_prio(-1),
+	_mag2_prio(-1),
+	_baro_prio(-1),
+	_baro1_prio(-1),
+
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
@@ -577,9 +603,9 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
 
 	/* RC to parameter mapping for changing parameters with RC */
-	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
-		char name[PARAM_ID_LEN];
-		snprintf(name, PARAM_ID_LEN, "RC_MAP_PARAM%d", i + 1); // shifted by 1 because param name starts at 1
+	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
+		char name[rc_parameter_map_s::PARAM_ID_LEN];
+		snprintf(name, rc_parameter_map_s::PARAM_ID_LEN, "RC_MAP_PARAM%d", i + 1); // shifted by 1 because param name starts at 1
 		_parameter_handles.rc_map_param[i] = param_find(name);
 	}
 
@@ -757,7 +783,7 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
 	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
 
-	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
 	}
 
@@ -805,7 +831,7 @@ Sensors::parameters_update()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4] = _parameters.rc_map_aux4 - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5] = _parameters.rc_map_aux5 - 1;
 
-	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
 	}
 
@@ -1027,6 +1053,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_raw[2] = accel_report.z_raw;
 
 		raw.accelerometer_timestamp = accel_report.timestamp;
+		raw.accelerometer_priority = _accel_prio;
 		raw.accelerometer_errcount = accel_report.error_count;
 		raw.accelerometer_temp = accel_report.temperature;
 	}
@@ -1050,6 +1077,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer1_raw[2] = accel_report.z_raw;
 
 		raw.accelerometer1_timestamp = accel_report.timestamp;
+		raw.accelerometer1_priority = _accel1_prio;
 		raw.accelerometer1_errcount = accel_report.error_count;
 		raw.accelerometer1_temp = accel_report.temperature;
 	}
@@ -1073,6 +1101,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer2_raw[2] = accel_report.z_raw;
 
 		raw.accelerometer2_timestamp = accel_report.timestamp;
+		raw.accelerometer2_priority = _accel2_prio;
 		raw.accelerometer2_errcount = accel_report.error_count;
 		raw.accelerometer2_temp = accel_report.temperature;
 	}
@@ -1101,6 +1130,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
 		raw.timestamp = gyro_report.timestamp;
+		raw.gyro_priority = _gyro_prio;
 		raw.gyro_errcount = gyro_report.error_count;
 		raw.gyro_temp = gyro_report.temperature;
 	}
@@ -1124,6 +1154,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro1_raw[2] = gyro_report.z_raw;
 
 		raw.gyro1_timestamp = gyro_report.timestamp;
+		raw.gyro1_priority = _gyro1_prio;
 		raw.gyro1_errcount = gyro_report.error_count;
 		raw.gyro1_temp = gyro_report.temperature;
 	}
@@ -1147,6 +1178,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro2_raw[2] = gyro_report.z_raw;
 
 		raw.gyro2_timestamp = gyro_report.timestamp;
+		raw.gyro2_priority = _gyro2_prio;
 		raw.gyro2_errcount = gyro_report.error_count;
 		raw.gyro2_temp = gyro_report.temperature;
 	}
@@ -1176,6 +1208,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_raw[2] = mag_report.z_raw;
 
 		raw.magnetometer_timestamp = mag_report.timestamp;
+		raw.magnetometer_priority = _mag_prio;
 		raw.magnetometer_errcount = mag_report.error_count;
 		raw.magnetometer_temp = mag_report.temperature;
 	}
@@ -1200,6 +1233,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer1_raw[2] = mag_report.z_raw;
 
 		raw.magnetometer1_timestamp = mag_report.timestamp;
+		raw.magnetometer1_priority = _mag1_prio;
 		raw.magnetometer1_errcount = mag_report.error_count;
 		raw.magnetometer1_temp = mag_report.temperature;
 	}
@@ -1224,6 +1258,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer2_raw[2] = mag_report.z_raw;
 
 		raw.magnetometer2_timestamp = mag_report.timestamp;
+		raw.magnetometer2_priority = _mag2_prio;
 		raw.magnetometer2_errcount = mag_report.error_count;
 		raw.magnetometer2_temp = mag_report.temperature;
 	}
@@ -1244,6 +1279,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		raw.baro_temp_celcius = _barometer.temperature; // Temperature in degrees celcius
 
 		raw.baro_timestamp = _barometer.timestamp;
+		raw.baro_priority = _baro_prio;
 	}
 
 	orb_check(_baro1_sub, &baro_updated);
@@ -1259,6 +1295,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		raw.baro1_temp_celcius = baro_report.temperature; // Temperature in degrees celcius
 
 		raw.baro1_timestamp = baro_report.timestamp;
+		raw.baro1_priority = _baro1_prio;
 	}
 }
 
@@ -1641,7 +1678,7 @@ Sensors::rc_parameter_map_poll(bool forced)
 		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
 
 		/* update paramter handles to which the RC channels are mapped */
-		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 			if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 				/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 				 * or no request to map this channel to a param has been sent via mavlink
@@ -1654,17 +1691,17 @@ Sensors::rc_parameter_map_poll(bool forced)
 				_parameter_handles.rc_param[i] = param_for_used_index((unsigned)_rc_parameter_map.param_index[i]);
 
 			} else {
-				_parameter_handles.rc_param[i] = param_find(_rc_parameter_map.param_id[i]);
+				_parameter_handles.rc_param[i] = param_find(&_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]);
 			}
 
 		}
 
 		warnx("rc to parameter map updated");
 
-		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 			warnx("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
 			      i,
-			      _rc_parameter_map.param_id[i],
+			      &_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)],
 			      (double)_rc_parameter_map.scale[i],
 			      (double)_rc_parameter_map.value0[i],
 			      (double)_rc_parameter_map.value_min[i],
@@ -1856,7 +1893,7 @@ Sensors::get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv)
 void
 Sensors::set_params_from_rc()
 {
-	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 			/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 			 * or no request to map this channel to a param has been sent via mavlink
@@ -2113,6 +2150,21 @@ Sensors::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+
+	/*
+	 * get sensor priorities
+	 */
+	orb_priority(_gyro_sub, &_gyro_prio);
+	orb_priority(_accel_sub, &_accel_prio);
+	orb_priority(_mag_sub, &_mag_prio);
+	orb_priority(_gyro1_sub, &_gyro1_prio);
+	orb_priority(_accel1_sub, &_accel1_prio);
+	orb_priority(_mag1_sub, &_mag1_prio);
+	orb_priority(_gyro2_sub, &_gyro2_prio);
+	orb_priority(_accel2_sub, &_accel2_prio);
+	orb_priority(_mag2_sub, &_mag2_prio);
+	orb_priority(_baro_sub, &_baro_prio);
+	orb_priority(_baro1_sub, &_baro1_prio);
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vcontrol_mode_sub, 200);

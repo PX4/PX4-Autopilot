@@ -233,13 +233,13 @@ ADC::init()
 
 		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 500) {
-			log("sample timeout");
+			DEVICE_LOG("sample timeout");
 			return -1;
 		}
 	}
 
 
-	debug("init done");
+	DEVICE_DEBUG("init done");
 
 	/* create the device node */
 	return CDev::init();
@@ -356,7 +356,7 @@ ADC::_sample(unsigned channel)
 
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
-			log("sample timeout");
+			DEVICE_LOG("sample timeout");
 			return 0xffff;
 		}
 	}

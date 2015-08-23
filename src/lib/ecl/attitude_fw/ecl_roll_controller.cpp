@@ -59,7 +59,7 @@ ECL_RollController::~ECL_RollController()
 float ECL_RollController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(isfinite(ctl_data.roll_setpoint) && isfinite(ctl_data.roll))) {
+	if (!(PX4_ISFINITE(ctl_data.roll_setpoint) && PX4_ISFINITE(ctl_data.roll))) {
 		perf_count(_nonfinite_input_perf);
 		return _rate_setpoint;
 	}
@@ -83,13 +83,13 @@ float ECL_RollController::control_attitude(const struct ECL_ControlData &ctl_dat
 float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(isfinite(ctl_data.pitch) &&
-	      isfinite(ctl_data.roll_rate) &&
-	      isfinite(ctl_data.yaw_rate) &&
-	      isfinite(ctl_data.yaw_rate_setpoint) &&
-	      isfinite(ctl_data.airspeed_min) &&
-	      isfinite(ctl_data.airspeed_max) &&
-	      isfinite(ctl_data.scaler))) {
+	if (!(PX4_ISFINITE(ctl_data.pitch) &&
+	      PX4_ISFINITE(ctl_data.roll_rate) &&
+	      PX4_ISFINITE(ctl_data.yaw_rate) &&
+	      PX4_ISFINITE(ctl_data.yaw_rate_setpoint) &&
+	      PX4_ISFINITE(ctl_data.airspeed_min) &&
+	      PX4_ISFINITE(ctl_data.airspeed_max) &&
+	      PX4_ISFINITE(ctl_data.scaler))) {
 		perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
@@ -109,11 +109,8 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 	/* Transform setpoint to body angular rates (jacobian) */
 	_bodyrate_setpoint = _rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint;
 
-	/* Transform estimation to body angular rates (jacobian) */
-	float roll_bodyrate = ctl_data.roll_rate - sinf(ctl_data.pitch) * ctl_data.yaw_rate;
-
 	/* Calculate body angular rate error */
-	_rate_error = _bodyrate_setpoint - roll_bodyrate; //body angular rate error
+	_rate_error = _bodyrate_setpoint - ctl_data.roll_rate; //body angular rate error
 
 	if (!lock_integrator && _k_i > 0.0f) {
 

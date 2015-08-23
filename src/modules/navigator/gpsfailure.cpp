@@ -45,6 +45,7 @@
 #include <mavlink/mavlink_log.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
+#include <navigator/navigation.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>

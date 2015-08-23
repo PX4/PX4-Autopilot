@@ -117,7 +117,7 @@ int LidarLitePWM::init()
 							     &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic == nullptr) {
-			debug("failed to create distance_sensor object. Did you start uOrb?");
+			DEVICE_DEBUG("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -175,7 +175,7 @@ int LidarLitePWM::measure()
 	perf_begin(_sample_perf);
 
 	if (OK != collect()) {
-		debug("collection error");
+		DEVICE_DEBUG("collection error");
 		perf_count(_read_errors);
 		perf_end(_sample_perf);
 		return ERROR;

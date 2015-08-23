@@ -138,7 +138,7 @@ protected:
 extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
 MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
-	CONVERSION_INTERVAL, path),
+			CONVERSION_INTERVAL, path),
 	_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ),
 	_t_system_power(-1),
 	system_power{}
@@ -189,9 +189,11 @@ MEASAirspeed::collect()
 		break;
 
 	case 1:
-		/* fallthrough */
+
+	/* fallthrough */
 	case 2:
-		/* fallthrough */
+
+	/* fallthrough */
 	case 3:
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
@@ -219,11 +221,11 @@ MEASAirspeed::collect()
 	  are generated when the bottom port is used as the static
 	  port on the pitot and top port is used as the dynamic port
 	 */
-	float diff_press_PSI = -((dp_raw - 0.1f*16383) * (P_max-P_min)/(0.8f*16383) + P_min);
+	float diff_press_PSI = -((dp_raw - 0.1f * 16383) * (P_max - P_min) / (0.8f * 16383) + P_min);
 	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
 
-        // correct for 5V rail voltage if possible
-        voltage_correction(diff_press_pa_raw, temperature);
+	// correct for 5V rail voltage if possible
+	voltage_correction(diff_press_pa_raw, temperature);
 
 	// the raw value still should be compensated for the known offset
 	diff_press_pa_raw -= _diff_pres_offset;
@@ -276,6 +278,7 @@ MEASAirspeed::cycle()
 
 		/* perform collection */
 		ret = collect();
+
 		if (OK != ret) {
 			/* restart the measurement state machine */
 			start();
@@ -304,8 +307,9 @@ MEASAirspeed::cycle()
 
 	/* measurement phase */
 	ret = measure();
+
 	if (OK != ret) {
-		debug("measure error");
+		DEVICE_DEBUG("measure error");
 	}
 
 	_sensor_ok = (ret == OK);
@@ -332,18 +336,23 @@ void
 MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 {
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+
 	if (_t_system_power == -1) {
 		_t_system_power = orb_subscribe(ORB_ID(system_power));
 	}
+
 	if (_t_system_power == -1) {
 		// not available
 		return;
 	}
+
 	bool updated = false;
 	orb_check(_t_system_power, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(system_power), _t_system_power, &system_power);
 	}
+
 	if (system_power.voltage5V_v < 3.0f || system_power.voltage5V_v > 6.0f) {
 		// not valid, skip correction
 		return;
@@ -354,12 +363,15 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	  apply a piecewise linear correction, flattening at 0.5V from 5V
 	 */
 	float voltage_diff = system_power.voltage5V_v - 5.0f;
+
 	if (voltage_diff > 0.5f) {
 		voltage_diff = 0.5f;
 	}
+
 	if (voltage_diff < -0.5f) {
 		voltage_diff = -0.5f;
 	}
+
 	diff_press_pa -= voltage_diff * slope;
 
 	/*
@@ -367,12 +379,15 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	 */
 	const float temp_slope = 0.887f;
 	voltage_diff = system_power.voltage5V_v - 5.0f;
+
 	if (voltage_diff > 0.5f) {
 		voltage_diff = 0.5f;
 	}
+
 	if (voltage_diff < -1.0f) {
 		voltage_diff = -1.0f;
 	}
+
 	temperature -= voltage_diff * temp_slope;
 #endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 }

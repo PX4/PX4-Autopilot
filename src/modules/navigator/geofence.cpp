@@ -282,13 +282,13 @@ Geofence::addPoint(int argc, char *argv[])
 	}
 
 	if (argc < 3) {
-		errx(1, "Specify: -clear | sequence latitude longitude [-publish]");
+		PX4_WARN("Specify: -clear | sequence latitude longitude [-publish]");
 	}
 
 	ix = atoi(argv[0]);
 
 	if (ix >= DM_KEY_FENCE_POINTS_MAX) {
-		errx(1, "Sequence must be less than %d", DM_KEY_FENCE_POINTS_MAX);
+		PX4_WARN("Sequence must be less than %d", DM_KEY_FENCE_POINTS_MAX);
 	}
 
 	lat = strtod(argv[1], &end);
@@ -311,7 +311,7 @@ Geofence::addPoint(int argc, char *argv[])
 		return;
 	}
 
-	errx(1, "can't store fence point");
+	PX4_WARN("can't store fence point");
 }
 
 void

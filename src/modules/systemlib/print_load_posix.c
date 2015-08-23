@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,7 +20,7 @@
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT ,
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
@@ -32,45 +32,43 @@
  ****************************************************************************/
 
 /**
- * @file rc_parameter_map.h
- * Maps RC channels to parameters
+ * @file print_load_posix.c
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * Print the current system load.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#ifndef TOPIC_RC_PARAMETER_MAP_H
-#define TOPIC_RC_PARAMETER_MAP_H
+#include <string.h>
+#include <stdio.h>
 
-#include <stdint.h>
-#include "../uORB.h"
+#include <systemlib/cpuload.h>
+#include <systemlib/printload.h>
+#include <drivers/drv_hrt.h>
 
-#define RC_PARAM_MAP_NCHAN 3 // This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h
-#define PARAM_ID_LEN 16 // corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN
+extern struct system_load_s system_load;
 
-/**
- * @addtogroup topics
- * @{
- */
+#define CL "\033[K" // clear line
 
-struct rc_parameter_map_s {
-	uint64_t timestamp;			/**< time at which the map was updated */
+void init_print_load_s(uint64_t t, struct print_load_s *s)
+{
 
-	bool valid[RC_PARAM_MAP_NCHAN];		/**< true for RC-Param channels which are mapped to a param */
+	s->total_user_time = 0;
 
-	int param_index[RC_PARAM_MAP_NCHAN];	/**< corresponding param index, this
-						  this field is ignored if set to -1, in this case param_id will
-						  be used*/
-	char param_id[RC_PARAM_MAP_NCHAN][PARAM_ID_LEN + 1];	/**< corresponding param id, null terminated */
-	float scale[RC_PARAM_MAP_NCHAN];	/** scale to map the RC input [-1, 1] to a parameter value */
-	float value0[RC_PARAM_MAP_NCHAN];	/** inital value around which the parameter value is changed */
-	float value_min[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
-	float value_max[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
-};
+	s->running_count = 0;
+	s->blocked_count = 0;
 
-/**
- * @}
- */
+	s->new_time = t;
+	s->interval_start_time = t;
 
-ORB_DECLARE(rc_parameter_map);
+	for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
+		s->last_times[i] = 0;
+	}
 
-#endif
+	s->interval_time_ms_inv = 0.f;
+}
+
+void print_load(uint64_t t, int fd, struct print_load_s *print_state)
+{
+}
+

@@ -295,7 +295,7 @@ MK::init(unsigned motors)
 		ret = register_driver(_device, &fops, 0666, (void *)this);
 
 		if (ret == OK) {
-			log("creating alternate output device");
+			DEVICE_LOG("creating alternate output device");
 			_primary_pwm_device = true;
 		}
 
@@ -311,7 +311,7 @@ MK::init(unsigned motors)
 
 
 	if (_task < 0) {
-		debug("task start failed: %d", errno);
+		DEVICE_DEBUG("task start failed: %d", errno);
 		return -errno;
 	}
 
@@ -499,7 +499,7 @@ MK::task_main()
 
 	up_pwm_servo_set_rate(_update_rate);	/* unnecessary ? */
 
-	log("starting");
+	DEVICE_LOG("starting");
 
 	/* loop until killed */
 	while (!_task_should_exit) {
@@ -516,7 +516,7 @@ MK::task_main()
 
 		/* this would be bad... */
 		if (ret < 0) {
-			log("poll error %d", errno);
+			DEVICE_LOG("poll error %d", errno);
 			usleep(1000000);
 			continue;
 		}
@@ -648,7 +648,7 @@ MK::task_main()
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
 
-	log("stopping");
+	DEVICE_LOG("stopping");
 
 	/* note - someone else is responsible for restoring the GPIO config */
 
@@ -1075,7 +1075,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
-					debug("mixer load failed with %d", ret);
+					DEVICE_DEBUG("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
 					ret = -EINVAL;

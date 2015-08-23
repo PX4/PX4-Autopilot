@@ -326,7 +326,7 @@ PCA9685::i2cpwm()
 				 * the control[i] values are on the range -1 ... 1 */
 				uint16_t new_value = PCA9685_PWMCENTER +
 					(_actuator_controls.control[i] * M_PI_F * PCA9685_SCALE);
-				debug("%d: current: %u, new %u, control %.2f", i, _current_values[i], new_value,
+				DEVICE_DEBUG("%d: current: %u, new %u, control %.2f", i, _current_values[i], new_value,
 						(double)_actuator_controls.control[i]);
 				if (new_value != _current_values[i] &&
 						isfinite(new_value) &&
@@ -368,7 +368,7 @@ PCA9685::setPWM(uint8_t num, uint16_t on, uint16_t off)
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
+		DEVICE_LOG("i2c::transfer returned %d", ret);
 	}
 
 	return ret;
@@ -469,7 +469,7 @@ PCA9685::read8(uint8_t addr, uint8_t &value)
 
 fail_read:
 	perf_count(_comms_errors);
-	log("i2c::transfer returned %d", ret);
+	DEVICE_LOG("i2c::transfer returned %d", ret);
 
 	return ret;
 }
@@ -489,7 +489,7 @@ PCA9685::write8(uint8_t addr, uint8_t value) {
 	ret = transfer(_msg, 2, nullptr, 0);
 	if (ret != OK) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
+		DEVICE_LOG("i2c::transfer returned %d", ret);
 	}
 	return ret;
 }

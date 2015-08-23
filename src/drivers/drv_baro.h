@@ -50,22 +50,8 @@
 #define BARO_BASE_DEVICE_PATH	"/dev/baro"
 #define BARO0_DEVICE_PATH	"/dev/baro0"
 
-/**
- * baro report structure.  Reads from the device must be in multiples of this
- * structure.
- */
-struct baro_report {
-	float pressure;
-	float altitude;
-	float temperature;
-	uint64_t timestamp;
-	uint64_t error_count;
-};
-
-/*
- * ObjDev tag for raw barometer data.
- */
-ORB_DECLARE(sensor_baro);
+#include <uORB/topics/sensor_baro.h>
+#define baro_report sensor_baro_s
 
 /*
  * ioctl() definitions

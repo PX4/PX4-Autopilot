@@ -147,6 +147,8 @@
 #define BIT_I2C_IF_DIS			0x10
 #define BIT_INT_STATUS_DATA		0x01
 
+#define MPU_WHOAMI_6000			0x68
+
 // Product ID Description for MPU6000
 // high 4 bits 	low 4 bits
 // Product Name	Product Revision
@@ -606,7 +608,7 @@ MPU6000::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		debug("SPI setup failed");
+		DEVICE_DEBUG("SPI setup failed");
 		return ret;
 	}
 
@@ -642,7 +644,7 @@ MPU6000::init()
 	ret = _gyro->init();
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		debug("gyro init failed");
+		DEVICE_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -755,6 +757,13 @@ int MPU6000::reset()
 int
 MPU6000::probe()
 {
+	uint8_t whoami;
+	whoami = read_reg(MPUREG_WHOAMI);
+	if (whoami != MPU_WHOAMI_6000) {
+		DEVICE_DEBUG("unexpected WHOAMI 0x%02x", whoami);
+		return -EIO;
+
+	}
 
 	/* look for a product ID we recognise */
 	_product = read_reg(MPUREG_PRODUCT_ID);
@@ -773,12 +782,12 @@ MPU6000::probe()
 	case MPU6000_REV_D8:
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
-		debug("ID 0x%02x", _product);
+		DEVICE_DEBUG("ID 0x%02x", _product);
 		_checked_values[0] = _product;
 		return OK;
 	}
 
-	debug("unexpected ID 0x%02x", _product);
+	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
 	return -EIO;
 }
 
@@ -1873,7 +1882,7 @@ MPU6000_gyro::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		debug("gyro init failed");
+		DEVICE_DEBUG("gyro init failed");
 		return ret;
 	}
 

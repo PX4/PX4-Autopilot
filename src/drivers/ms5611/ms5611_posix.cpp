@@ -110,8 +110,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int		ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *handlep, char *buffer, size_t buflen);
+	virtual int		ioctl(device::file_t *handlep, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -126,7 +126,7 @@ protected:
 	struct work_s		_work;
 	unsigned		_measure_ticks;
 
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 
 	bool			_collect_phase;
 	unsigned		_measure_phase;
@@ -264,15 +264,15 @@ MS5611::init()
 
 	ret = VDev::init();
 	if (ret != OK) {
-		debug("VDev init failed");
+		DEVICE_DEBUG("VDev init failed");
 		goto out;
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(baro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
-		debug("can't get memory for reports");
+		DEVICE_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -337,7 +337,7 @@ out:
 }
 
 ssize_t
-MS5611::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
+MS5611::read(device::file_t *handlep, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct baro_report);
 	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
@@ -407,7 +407,7 @@ MS5611::read(device::px4_dev_handle_t *handlep, char *buffer, size_t buflen)
 }
 
 int
-MS5611::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
+MS5611::ioctl(device::file_t *handlep, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -452,7 +452,7 @@ MS5611::ioctl(device::px4_dev_handle_t *handlep, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if ((long)ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
+					if ((unsigned long)ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
 						return -EINVAL;
 
 					/* update interval for next measurement */
@@ -561,7 +561,7 @@ MS5611::cycle()
 				 * spam the console with a message for this.
 				 */
 			} else {
-				//log("collection error %d", ret);
+				//DEVICE_LOG("collection error %d", ret);
 			}
 			/* issue a reset command to the sensor */
 			_interface->dev_ioctl(IOCTL_RESET, dummy);
@@ -579,7 +579,7 @@ MS5611::cycle()
 		 * doing pressure measurements at something close to the desired rate.
 		 */
 		if ((_measure_phase != 0) &&
-		    ((long)_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
+		    ((unsigned long)_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
@@ -595,7 +595,7 @@ MS5611::cycle()
 	/* measurement phase */
 	ret = measure();
 	if (ret != OK) {
-		//log("measure error %d", ret);
+		//DEVICE_LOG("measure error %d", ret);
 		/* issue a reset command to the sensor */
 		_interface->dev_ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
@@ -829,7 +829,7 @@ struct ms5611_bus_option {
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 bool	start_bus(struct ms5611_bus_option &bus);
-struct ms5611_bus_option &find_bus(enum MS5611_BUS busid);
+bool	find_bus(enum MS5611_BUS busid, ms5611_bus_option &bus);
 int	start(enum MS5611_BUS busid);
 int	test(enum MS5611_BUS busid);
 int	reset(enum MS5611_BUS busid);
@@ -966,16 +966,18 @@ start(enum MS5611_BUS busid)
 /**
  * find a bus structure for a busid
  */
-struct ms5611_bus_option &find_bus(enum MS5611_BUS busid)
+bool find_bus(enum MS5611_BUS busid, ms5611_bus_option &bus)
 {
 	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
 		if ((busid == MS5611_BUS_ALL ||
 		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
-			return bus_options[i];
+			bus = bus_options[i];
+                        return true;
 		}
-	}	
-	// FIXME - This is fatal to all threads
-	errx(1, "bus %u not started", (unsigned)busid);
+	}
+
+        PX4_WARN("bus %u not started", (unsigned)busid);
+	return false;
 }
 
 /**
@@ -986,7 +988,11 @@ struct ms5611_bus_option &find_bus(enum MS5611_BUS busid)
 int
 test(enum MS5611_BUS busid)
 {
-	struct ms5611_bus_option &bus = find_bus(busid);
+	struct ms5611_bus_option bus;
+	if (!find_bus(busid, bus)) {
+		return 1;
+	}
+
 	struct baro_report report;
 	ssize_t sz;
 	int ret;
@@ -1064,7 +1070,11 @@ test(enum MS5611_BUS busid)
 int
 reset(enum MS5611_BUS busid)
 {
-	struct ms5611_bus_option &bus = find_bus(busid);
+	struct ms5611_bus_option bus;
+	if (!find_bus(busid, bus)) {
+		return 1;
+	}
+
 	int fd;
 
 	fd = open(bus.devpath, O_RDONLY);
@@ -1107,7 +1117,11 @@ info()
 int
 calibrate(unsigned altitude, enum MS5611_BUS busid)
 {
-	struct ms5611_bus_option &bus = find_bus(busid);
+	struct ms5611_bus_option bus;
+	if (!find_bus(busid, bus)) {
+		return 1;
+	}
+
 	struct baro_report report;
 	float	pressure;
 	float	p1;
@@ -1258,8 +1272,8 @@ ms5611_main(int argc, char *argv[])
 	 * Perform MSL pressure calibration given an altitude in metres
 	 */
 	else if (!strcmp(verb, "calibrate")) {
-		if (argc < 2)
-			errx(1, "missing altitude");
+               if (argc < 2)
+                       PX4_WARN("missing altitude");
 
 		long altitude = strtol(argv[optind+1], nullptr, 10);
 

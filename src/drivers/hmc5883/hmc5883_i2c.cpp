@@ -145,7 +145,7 @@ HMC5883_I2C::probe()
 	if (read(ADDR_ID_A, &data[0], 1) ||
 	    read(ADDR_ID_B, &data[1], 1) ||
 	    read(ADDR_ID_C, &data[2], 1)) {
-		debug("read_reg fail");
+		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
@@ -154,7 +154,7 @@ HMC5883_I2C::probe()
 	if ((data[0] != ID_A_WHO_AM_I) ||
 	    (data[1] != ID_B_WHO_AM_I) ||
 	    (data[2] != ID_C_WHO_AM_I)) {
-		debug("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
+		DEVICE_DEBUG("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
 		return -EIO;
 	}
 

@@ -43,9 +43,12 @@
 
 #include <drivers/drv_hrt.h>
 
+#include <navigator/navigation.h>
+
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/actuator_controls.h>
 
 #include "navigator_mode.h"
 
@@ -97,6 +100,10 @@ protected:
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;
 	hrt_abstime _time_first_inside_orbit;
+
+	actuator_controls_s _actuators;
+	orb_advert_t    _actuator_pub;
+
 };
 
 #endif

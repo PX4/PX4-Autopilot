@@ -49,7 +49,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#define PX4_SIMULATE_I2C 1
+#define PX4_SIMULATE_I2C 0
 static int simulate = PX4_SIMULATE_I2C;
 
 namespace device
@@ -100,13 +100,13 @@ I2C::init()
 	ret = VDev::init();
 
 	if (ret != PX4_OK) {
-		debug("VDev::init failed");
+		DEVICE_DEBUG("VDev::init failed");
 		return ret;
 	}
 
 	_fd = px4_open(get_devname(), PX4_F_RDONLY | PX4_F_WRONLY);
 	if (_fd < 0) {
-		debug("px4_open failed of device %s", get_devname());
+		DEVICE_DEBUG("px4_open failed of device %s", get_devname());
 		return PX4_ERROR;
 	}
 
@@ -150,7 +150,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	}
 
 	do {
-		//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+		//	DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 		msgs = 0;
 
 		if (send_len > 0) {

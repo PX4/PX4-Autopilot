@@ -22,6 +22,7 @@ MODULES		+= drivers/px4io
 MODULES		+= drivers/boards/px4fmu-v2
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/mpu6000
+MODULES		+= drivers/mpu9250
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
@@ -31,7 +32,7 @@ MODULES		+= drivers/sf0x
 MODULES		+= drivers/ll40ls
 MODULES		+= drivers/trone
 MODULES		+= drivers/gps
-MODULES		+= drivers/hil
+MODULES		+= drivers/pwm_out_sim
 MODULES		+= drivers/hott
 MODULES		+= drivers/hott/hott_telemetry
 MODULES		+= drivers/hott/hott_sensors
@@ -142,19 +143,19 @@ MODULES		+= examples/rover_steering_control
 #
 #MODULES		+= examples/math_demo
 # Tutorial code from
-# https://pixhawk.ethz.ch/px4/dev/hello_sky
+# https://px4.io/dev/px4_simple_app
 #MODULES		+= examples/px4_simple_app
 
 # Tutorial code from
-# https://pixhawk.ethz.ch/px4/dev/daemon
+# https://px4.io/dev/daemon
 #MODULES		+= examples/px4_daemon_app
 
 # Tutorial code from
-# https://pixhawk.ethz.ch/px4/dev/debug_values
+# https://px4.io/dev/debug_values
 #MODULES		+= examples/px4_mavlink_debug
 
 # Tutorial code from
-# https://pixhawk.ethz.ch/px4/dev/example_fixedwing_control
+# https://px4.io/dev/example_fixedwing_control
 #MODULES			+= examples/fixedwing_control
 
 # Hardware test
