@@ -1135,7 +1135,6 @@ FixedwingAttitudeControl::task_main()
 
 	_control_task = -1;
 	_task_running = false;
-	_exit(0);
 }
 
 int
@@ -1163,22 +1162,26 @@ int fw_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		warnx("usage: fw_att_control {start|stop|status}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (att_control::g_control != nullptr)
 			warnx("already running");
+			return 1;
 
 		att_control::g_control = new FixedwingAttitudeControl;
 
 		if (att_control::g_control == nullptr)
 			warnx("alloc failed");
+			return 1;
 
 		if (OK != att_control::g_control->start()) {
 			delete att_control::g_control;
 			att_control::g_control = nullptr;
 			warn("start failed");
+			return 1;
 		}
 
 		/* check if the waiting is necessary at all */
@@ -1192,24 +1195,28 @@ int fw_att_control_main(int argc, char *argv[])
 			}
 			printf("\n");
 		}
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (att_control::g_control == nullptr)
+		if (att_control::g_control == nullptr){
 			warnx("not running");
+			return 1;
+		}
 
 		delete att_control::g_control;
 		att_control::g_control = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (att_control::g_control) {
 			warnx("running");
+			return 0;
 
 		} else {
 			warnx("not running");
+			return 1;
 		}
 	}
 

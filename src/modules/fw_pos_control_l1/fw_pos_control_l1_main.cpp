@@ -1824,7 +1824,6 @@ FixedwingPositionControl::task_main()
 	warnx("exiting.\n");
 
 	_control_task = -1;
-	_exit(0);
 }
 
 void FixedwingPositionControl::reset_takeoff_state()
@@ -1976,15 +1975,18 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		warnx("usage: fw_pos_control_l1 {start|stop|status}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (l1_control::g_control != nullptr)
 			warnx("already running");
+			return 1;
 
 		if (OK != FixedwingPositionControl::start()) {
 			warn("start failed");
+			return 1;
 		}
 
 		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
@@ -1995,24 +1997,28 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 		}
 		printf("\n");
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (l1_control::g_control == nullptr)
+		if (l1_control::g_control == nullptr){
 			warnx("not running");
+			return 1;
+		}
 
 		delete l1_control::g_control;
 		l1_control::g_control = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (l1_control::g_control) {
 			warnx("running");
+			return 0;
 
 		} else {
 			warnx("not running");
+			return 1;
 		}
 	}
 
