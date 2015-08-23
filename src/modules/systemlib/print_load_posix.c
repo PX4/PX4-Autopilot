@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file printload.c
+ * @file print_load_posix.c
  *
  * Print the current system load.
  *
