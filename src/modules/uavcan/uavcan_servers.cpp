@@ -76,7 +76,7 @@
 UavcanServers *UavcanServers::_instance;
 UavcanServers::UavcanServers(uavcan::INode &main_node) :
 	_subnode_thread(-1),
-	_vdriver(UAVCAN_STM32_NUM_IFACES, uavcan_stm32::SystemClock::instance()),
+	_vdriver(NumIfaces, uavcan_stm32::SystemClock::instance()),
 	_subnode(_vdriver, uavcan_stm32::SystemClock::instance()),
 	_main_node(main_node),
 	_tracer(),
@@ -101,7 +101,7 @@ UavcanServers::~UavcanServers()
 	_main_node.getDispatcher().removeRxFrameListener();
 }
 
-int UavcanServers::stop(void)
+int UavcanServers::stop()
 {
 	UavcanServers *server = instance();
 
@@ -123,7 +123,7 @@ int UavcanServers::stop(void)
 	return 0;
 }
 
-int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
+int UavcanServers::start(uavcan::INode &main_node)
 {
 	if (_instance != nullptr) {
 		warnx("Already started");
@@ -140,7 +140,7 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 		return -2;
 	}
 
-	int rv  = _instance->init(num_ifaces);
+	int rv  = _instance->init();
 
 	if (rv < 0) {
 		warnx("Node init failed: %d", rv);
@@ -174,7 +174,7 @@ int UavcanServers::start(unsigned num_ifaces, uavcan::INode &main_node)
 	return rv;
 }
 
-int UavcanServers::init(unsigned num_ifaces)
+int UavcanServers::init()
 {
 	errno = 0;
 
@@ -268,6 +268,7 @@ int UavcanServers::init(unsigned num_ifaces)
 
 	return OK;
 }
+
 __attribute__((optimize("-O0")))
 pthread_addr_t UavcanServers::run(pthread_addr_t)
 {
