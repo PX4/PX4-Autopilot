@@ -649,7 +649,7 @@ MulticopterPositionControl::control_manual(float dt)
 	}
 
 	/* _sp_move_rate scaled to 0..1, scale it to max speed and rotate around yaw */
-	Matrix3f R_yaw_sp = matrixFromEuler(Vector3f(0.0f, 0.0f, _att_sp.yaw_body));
+	Matrix3f R_yaw_sp = matrixFromEuler(Vector3f(_att_sp.yaw_body, 0.0f, 0.0f));
 	Vector3f sp_aux(_sp_move_rate.cwiseProduct(_params.vel_max));
 	_sp_move_rate = R_yaw_sp * sp_aux;
 
@@ -952,8 +952,8 @@ MulticopterPositionControl::task_main()
 	hrt_abstime t_prev = 0;
 
 	Vector3f thrust_int{0.0f, 0.0f, 0.0f};
-	math::Matrix<3, 3> R; //while there's no common Quaternion being used
-	R.identity();
+	Matrix3f R; //while there's no common Quaternion being used
+	R.Identity();
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
@@ -1036,8 +1036,9 @@ MulticopterPositionControl::task_main()
 
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
-				R.identity();
-				memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
+				R.Identity();
+				for(int i = 0; i < 9; i++)
+						_att_sp.R_body[i] = R(i);
 
 				_att_sp.R_valid = true;
 
@@ -1328,16 +1329,17 @@ MulticopterPositionControl::task_main()
 						}
 
 						/* copy rotation matrix to attitude setpoint topic */
-						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
+						for(int i = 0; i < 9; i++)
+								_att_sp.R_body[i] = R(i);
 						_att_sp.R_valid = true;
 
 						/* copy quaternion setpoint to attitude setpoint topic */
-						math::Quaternion q_sp;
-						q_sp.from_dcm(R);
-						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
+						Quaternionf q_sp(R);
+						math::Quaternion _q_sp = px4qFromEigenq(q_sp);
+						memcpy(&_att_sp.q_d[0], &_q_sp.data[0], sizeof(_att_sp.q_d));
 
 						/* calculate euler angles, for logging only, must not be used for control */
-						Vector3f euler = eulerFromRot(eigenrFromPx4r(R));
+						Vector3f euler = eulerFromRot(R);
 						_att_sp.roll_body = euler(0);
 						_att_sp.pitch_body = euler(1);
 						/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
@@ -1345,16 +1347,17 @@ MulticopterPositionControl::task_main()
 					} else if (!_control_mode.flag_control_manual_enabled) {
 						/* autonomous altitude control without position control (failsafe landing),
 						 * force level attitude, don't change yaw */
-						R = px4rFromEigenr(matrixFromEuler(Vector3f(0.0f, 0.0f, _att_sp.yaw_body)));
+						R = matrixFromEuler(Vector3f(_att_sp.yaw_body, 0.0f, 0.0f));
 
 						/* copy rotation matrix to attitude setpoint topic */
-						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
+						for(int i = 0; i < 9; i++)
+								_att_sp.R_body[i] = R(i);
 						_att_sp.R_valid = true;
 
 						/* copy quaternion setpoint to attitude setpoint topic */
-						math::Quaternion q_sp;
-						q_sp.from_dcm(R);
-						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
+						Quaternionf q_sp(R);
+						math::Quaternion _q_sp = px4qFromEigenq(q_sp);
+						memcpy(&_att_sp.q_d[0], &_q_sp.data[0], sizeof(_att_sp.q_d));
 
 						_att_sp.roll_body = 0.0f;
 						_att_sp.pitch_body = 0.0f;
@@ -1443,14 +1446,15 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* construct attitude setpoint rotation matrix */
-			math::Matrix<3,3> R_sp;
-			R_sp = px4rFromEigenr(matrixFromEuler(Vector3f(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body)));
-			memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
+			Matrix3f R_sp;
+			R_sp = matrixFromEuler(Vector3f(_att_sp.yaw_body, _att_sp.pitch_body, _att_sp.roll_body));
+			for(int i = 0; i < 9; i++)
+					_att_sp.R_body[i] = R(i);
 
 			/* copy quaternion setpoint to attitude setpoint topic */
-			math::Quaternion q_sp;
-			q_sp.from_dcm(R);
-			memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
+			Quaternionf q_sp(R);
+			math::Quaternion _q_sp = px4qFromEigenq(q_sp);
+			memcpy(&_att_sp.q_d[0], &_q_sp.data[0], sizeof(_att_sp.q_d));
 			_att_sp.timestamp = hrt_absolute_time();
 		}
 		else {

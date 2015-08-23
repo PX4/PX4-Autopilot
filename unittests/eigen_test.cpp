@@ -517,7 +517,7 @@ TEST(EigenTest, Quaternion_from_Euler_Eigen_vs_PX4)
 		for (pitch = min; pitch <= max; pitch += step)
 			for (yaw = min; yaw <= max; yaw += step) {
 				q_px4.from_euler(roll, pitch, yaw);
-				q_eigen = quatFromEuler(Vector3f(Vector3f(roll, pitch, yaw)));
+				q_eigen = quatFromEuler(Vector3f(roll, pitch, yaw));
 
 				/*std::cout << "Expected:";
 				   printPx4Quaternion(q_px4);
