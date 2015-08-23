@@ -3,7 +3,7 @@
 # Standard startup script for PX4FMU v1, v2, v3 onboard sensor drivers.
 #
 
-if ms5611 start
+if ms5611 -s start
 then
 fi
 
