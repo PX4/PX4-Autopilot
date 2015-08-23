@@ -290,6 +290,7 @@ then
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
+			set GPS no
 		fi
 	fi
 	unset HIL
@@ -320,6 +321,7 @@ then
 			gps start
 		fi
 	fi
+	unset GPS
 	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
