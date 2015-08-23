@@ -1731,8 +1731,9 @@ FixedwingPositionControl::task_main()
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0)
+		if (pret == 0) {
 			continue;
+		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -1980,9 +1981,10 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (l1_control::g_control != nullptr)
+		if (l1_control::g_control != nullptr) {
 			warnx("already running");
 			return 1;
+		}
 
 		if (OK != FixedwingPositionControl::start()) {
 			warn("start failed");
