@@ -371,7 +371,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 		void waitFor(uavcan::MonotonicDuration duration)
 		{
-			static const unsigned NsPerSec = 1000000000;
+			static const int NsPerSec = 1000000000;
 
 			if (duration.isPositive()) {
 				auto abstime = ::timespec();
