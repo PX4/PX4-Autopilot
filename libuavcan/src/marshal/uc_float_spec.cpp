@@ -6,14 +6,16 @@
 #include <uavcan/build_config.hpp>
 #include <cmath>
 
-#if !UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION
 namespace uavcan
 {
-typedef union
+
+#if !UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION
+
+union Fp32
 {
     uint32_t u;
     float f;
-} fp32;
+};
 
 /*
  * IEEE754Converter
@@ -24,13 +26,13 @@ uint16_t IEEE754Converter::nativeIeeeToHalf(float value)
      * https://gist.github.com/rygorous/2156668
      * Public domain, by Fabian "ryg" Giesen
      */
-    const fp32 f32infty = { 255U << 23 };
-    const fp32 f16infty = { 31U << 23 };
-    const fp32 magic = { 15U << 23 };
+    const Fp32 f32infty = { 255U << 23 };
+    const Fp32 f16infty = { 31U << 23 };
+    const Fp32 magic = { 15U << 23 };
     const uint32_t sign_mask = 0x80000000U;
     const uint32_t round_mask = ~0xFFFU;
 
-    fp32 in;
+    Fp32 in;
     uint16_t out;
 
     in.f = value;
@@ -67,9 +69,9 @@ float IEEE754Converter::halfToNativeIeee(uint16_t value)
      * https://gist.github.com/rygorous/2144712
      * Public domain, by Fabian "ryg" Giesen
      */
-    const fp32 magic = { (254U - 15U) << 23 };
-    const fp32 was_infnan = { (127U + 16U) << 23 };
-    fp32 out;
+    const Fp32 magic = { (254U - 15U) << 23 };
+    const Fp32 was_infnan = { (127U + 16U) << 23 };
+    Fp32 out;
 
     out.u = (value & 0x7FFFU) << 13;   /* exponent/mantissa bits */
     out.f *= magic.f;                  /* exponent adjust */
@@ -81,5 +83,7 @@ float IEEE754Converter::halfToNativeIeee(uint16_t value)
 
     return out.f;
 }
-}
+
 #endif // !UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION
+
+}
