@@ -37,6 +37,7 @@ MODULES		+= systemcmds/ver
 # General system control
 #
 MODULES		+= modules/uavcanesc
+MODULES		+= modules/uavcanesc/nshterm
 MODULES		+= modules/uavcanesc/commands/cfg
 MODULES		+= modules/uavcanesc/commands/selftest
 MODULES		+= modules/uavcanesc/commands/dc
