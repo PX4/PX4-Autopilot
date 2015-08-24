@@ -121,40 +121,41 @@ public:
 RxQueue rx_queue;
 
 
-int computeBaudrate(std::uint32_t baud_rate, std::uint32_t can_api_timing_cfg[2])
+struct BitTimingSettings
 {
-    const std::uint32_t pclk = Chip_Clock_GetMainClockRate();
-    const std::uint32_t clk_per_bit = pclk / baud_rate;
-    for (std::uint32_t div = 0; div <= 15; div++)
+    std::uint32_t canclkdiv;
+    std::uint32_t canbtr;
+
+    bool isValid() const { return canbtr != 0; }
+};
+
+/**
+ * http://www.bittiming.can-wiki.info
+ */
+BitTimingSettings computeBitTimings(std::uint32_t bitrate)
+{
+    if (Chip_Clock_GetSystemClockRate() == 48000000) // 48 MHz is optimal for CAN timings
     {
-        for (std::uint32_t quanta = 1; quanta <= 32; quanta++)
+        switch (bitrate)
         {
-            for (std::uint32_t segs = 3; segs <= 17; segs++)
-            {
-                if (clk_per_bit == (segs * quanta * (div + 1)))
-                {
-                    segs -= 3;
-                    const std::uint32_t seg1 = segs / 2;
-                    const std::uint32_t seg2 = segs - seg1;
-                    const std::uint32_t can_sjw = (seg1 > 3) ? 3 : seg1;
-                    can_api_timing_cfg[0] = div;
-                    can_api_timing_cfg[1] = ((quanta - 1) & 0x3F) |
-                                            (can_sjw & 0x03) << 6 |
-                                            (seg1 & 0x0F) << 8 |
-                                            (seg2 & 0x07) << 12;
-                    return 0;
-                }
-            }
+        case 1000000: return BitTimingSettings{ 0, 0x0505 }; // 8  quanta, 87.5%
+        case 500000:  return BitTimingSettings{ 0, 0x1c05 }; // 16 quanta, 87.5%
+        case 250000:  return BitTimingSettings{ 0, 0x1c0b }; // 16 quanta, 87.5%
+        case 125000:  return BitTimingSettings{ 0, 0x1c17 }; // 16 quanta, 87.5%
+        default:      return BitTimingSettings{ 0, 0 };
         }
     }
-    return -1;
+    else
+    {
+        return BitTimingSettings{ 0, 0 };
+    }
 }
 
 } // namespace
 
 CanDriver CanDriver::self;
 
-int CanDriver::init(uavcan::uint32_t baudrate)
+int CanDriver::init(uavcan::uint32_t bitrate)
 {
     CriticalSectionLocker locker;
 
@@ -167,12 +168,12 @@ int CanDriver::init(uavcan::uint32_t baudrate)
      * C_CAN init
      */
     Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
-    static std::uint32_t can_api_init_table[2];
-    if (computeBaudrate(baudrate, can_api_init_table) != 0)
+    auto bit_timings = computeBitTimings(bitrate);
+    if (!bit_timings.isValid())
     {
         return -1;
     }
-    LPC_CCAN_API->init_can(can_api_init_table, true);
+    LPC_CCAN_API->init_can(reinterpret_cast<std::uint32_t*>(&bit_timings), true);
     static CCAN_CALLBACKS_T ccan_callbacks =
     {
         canRxCallback,

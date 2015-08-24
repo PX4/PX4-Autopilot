@@ -33,7 +33,7 @@ public:
      * Returns negative value if the requested baudrate can't be used.
      * Returns zero if OK.
      */
-    int init(uavcan::uint32_t baudrate);
+    int init(uavcan::uint32_t bitrate);
 
     bool hasReadyRx() const;
     bool hasEmptyTx() const;
