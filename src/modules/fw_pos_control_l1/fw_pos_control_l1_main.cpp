@@ -1920,22 +1920,25 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 				break;
 		}
 
-		t.altitudeSp			= s.hgt_dem;
-		t.altitude_filtered		= s.hgt;
-		t.airspeedSp			= s.spd_dem;
-		t.airspeed_filtered		= s.spd;
+		t.altitudeSp 		= s.altitude_sp;
+		t.altitude_filtered = s.altitude_filtered;
+		t.airspeedSp 		= s.airspeed_sp;
+		t.airspeed_filtered = s.airspeed_filtered;
 
-		t.flightPathAngleSp		= s.dhgt_dem;
-		t.flightPathAngle		= s.dhgt;
-		t.flightPathAngleFiltered	= s.dhgt;
+		t.flightPathAngleSp 		= s.altitude_rate_sp;
+		t.flightPathAngle 			= s.altitude_rate;
+		t.flightPathAngleFiltered 	= s.altitude_rate;
 
-		t.airspeedDerivativeSp		= s.dspd_dem;
-		t.airspeedDerivative		= s.dspd;
+		t.airspeedDerivativeSp 	= s.airspeed_rate_sp;
+		t.airspeedDerivative 	= s.airspeed_rate;
 
-		t.totalEnergyRateSp		= s.thr;
-		t.totalEnergyRate		= s.ithr;
-		t.energyDistributionRateSp	= s.ptch;
-		t.energyDistributionRate	= s.iptch;
+		t.totalEnergyError 				= s.total_energy_error;
+		t.totalEnergyRateError 			= s.total_energy_rate_error;
+		t.energyDistributionError 		= s.energy_distribution_error;
+		t.energyDistributionRateError 	= s.energy_distribution_rate_error;
+		
+		t.throttle_integ 	= s.throttle_integ;
+		t.pitch_integ 		= s.pitch_integ;
 
 		if (_tecs_status_pub > 0) {
 			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);

@@ -286,6 +286,7 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
+		set GPS no
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
@@ -298,6 +299,11 @@ then
 	if dataman start
 	then
 	fi
+
+	#
+	# UAVCAN
+	#
+	sh /etc/init.d/rc.uavcan
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
@@ -314,6 +320,7 @@ then
 			gps start
 		fi
 	fi
+	unset GPS
 	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
@@ -490,10 +497,6 @@ then
 			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
 		fi
 	fi
-
-	# UAVCAN
-	#
-	sh /etc/init.d/rc.uavcan
 
 	#
 	# Logging
