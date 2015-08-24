@@ -144,6 +144,14 @@
 #endif
 
 /**
+ * Allows the user's application to provide a custom implementation of IEEE754Converter::nativeIeeeToHalf and
+ * IEEE754Converter::halfToNativeIeee.
+ */
+#ifndef UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION
+# define UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION 0
+#endif
+
+/**
  * Run time checks.
  * Resolves to the standard assert() by default.
  * Disabled completely if UAVCAN_NO_ASSERTIONS is defined.
