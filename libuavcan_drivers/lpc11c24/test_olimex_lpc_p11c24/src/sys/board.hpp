@@ -16,4 +16,6 @@ void setErrorLed(bool state);
 
 void resetWatchdog();
 
+void syslog(const char* msg);
+
 }
