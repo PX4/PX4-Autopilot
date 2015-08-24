@@ -47,11 +47,13 @@ __attribute__((noinline))
 void init()
 {
     board::resetWatchdog();
+    board::syslog("Boot\r\n");
 
     if (uavcan_lpc11c24::CanDriver::instance().init(1000000) < 0)
     {
         die();
     }
+    board::syslog("CAN init ok\r\n");
 
     board::resetWatchdog();
 
