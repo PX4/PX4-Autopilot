@@ -6,6 +6,7 @@
 #include <uavcan_lpc11c24/clock.hpp>
 #include <uavcan/util/templates.hpp>
 #include <chip.h>
+#include "c_can.hpp"
 #include "internal.hpp"
 
 /**
