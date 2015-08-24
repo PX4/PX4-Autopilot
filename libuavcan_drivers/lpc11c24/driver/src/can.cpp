@@ -179,11 +179,11 @@ int CanDriver::init(uavcan::uint32_t bitrate)
         canRxCallback,
         canTxCallback,
         canErrorCallback,
-        0,
-        0,
-        0,
-        0,
-        0
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr
     };
     LPC_CCAN_API->config_calb(&ccan_callbacks);
     NVIC_EnableIRQ(CAN_IRQn);
@@ -340,7 +340,7 @@ uavcan::uint16_t CanDriver::getNumFilters() const
 
 uavcan::ICanIface* CanDriver::getIface(uavcan::uint8_t iface_index)
 {
-    return (iface_index == 0) ? this : NULL;
+    return (iface_index == 0) ? this : nullptr;
 }
 
 uavcan::uint8_t CanDriver::getNumIfaces() const
