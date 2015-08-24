@@ -39,6 +39,7 @@
 
 #ifndef _DEVICE_DEVICE_H
 #define _DEVICE_DEVICE_H
+#include "visibility.h"
 
 /*
  * Includes here should only cover the needs of the framework definitions.
