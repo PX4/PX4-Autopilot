@@ -165,7 +165,7 @@ public:
 	int		start();
 
 private:
-	static const unsigned _rc_max_chan_count = RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
+	static const unsigned _rc_max_chan_count = input_rc_s::RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
 
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
@@ -249,7 +249,7 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 	struct rc_parameter_map_s _rc_parameter_map;
-	float _param_rc_values[RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
+	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
 
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
@@ -294,7 +294,7 @@ private:
 		int rc_map_aux4;
 		int rc_map_aux5;
 
-		int rc_map_param[RC_PARAM_MAP_NCHAN];
+		int rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 
 		int32_t rc_fails_thr;
 		float rc_assist_th;
@@ -350,8 +350,8 @@ private:
 		param_t rc_map_aux4;
 		param_t rc_map_aux5;
 
-		param_t rc_map_param[RC_PARAM_MAP_NCHAN];
-		param_t rc_param[RC_PARAM_MAP_NCHAN];	/**< param handles for the paramters which are bound
+		param_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
+		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the paramters which are bound
 							  to a RC channel, equivalent float values in the
 							  _parameters struct are not existing
 							  because these parameters are never read. */
@@ -603,9 +603,9 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
 
 	/* RC to parameter mapping for changing parameters with RC */
-	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
-		char name[PARAM_ID_LEN];
-		snprintf(name, PARAM_ID_LEN, "RC_MAP_PARAM%d", i + 1); // shifted by 1 because param name starts at 1
+	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
+		char name[rc_parameter_map_s::PARAM_ID_LEN];
+		snprintf(name, rc_parameter_map_s::PARAM_ID_LEN, "RC_MAP_PARAM%d", i + 1); // shifted by 1 because param name starts at 1
 		_parameter_handles.rc_map_param[i] = param_find(name);
 	}
 
@@ -783,7 +783,7 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
 	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
 
-	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
 	}
 
@@ -831,7 +831,7 @@ Sensors::parameters_update()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4] = _parameters.rc_map_aux4 - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5] = _parameters.rc_map_aux5 - 1;
 
-	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
 	}
 
@@ -1678,7 +1678,7 @@ Sensors::rc_parameter_map_poll(bool forced)
 		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
 
 		/* update paramter handles to which the RC channels are mapped */
-		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 			if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 				/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 				 * or no request to map this channel to a param has been sent via mavlink
@@ -1691,17 +1691,17 @@ Sensors::rc_parameter_map_poll(bool forced)
 				_parameter_handles.rc_param[i] = param_for_used_index((unsigned)_rc_parameter_map.param_index[i]);
 
 			} else {
-				_parameter_handles.rc_param[i] = param_find(_rc_parameter_map.param_id[i]);
+				_parameter_handles.rc_param[i] = param_find(&_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]);
 			}
 
 		}
 
 		warnx("rc to parameter map updated");
 
-		for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 			warnx("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
 			      i,
-			      _rc_parameter_map.param_id[i],
+			      &_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)],
 			      (double)_rc_parameter_map.scale[i],
 			      (double)_rc_parameter_map.value0[i],
 			      (double)_rc_parameter_map.value_min[i],
@@ -1893,7 +1893,7 @@ Sensors::get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv)
 void
 Sensors::set_params_from_rc()
 {
-	for (int i = 0; i < RC_PARAM_MAP_NCHAN; i++) {
+	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 			/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 			 * or no request to map this channel to a param has been sent via mavlink

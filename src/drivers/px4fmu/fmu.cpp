@@ -354,7 +354,7 @@ PX4FMU::init()
 	_task = px4_task_spawn_cmd("fmuservo",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_DEFAULT,
-			       1600,
+			       1200,
 			       (main_t)&PX4FMU::task_main_trampoline,
 			       nullptr);
 
@@ -607,7 +607,7 @@ PX4FMU::task_main()
 	orb_advert_t to_input_rc = 0;
 
 	memset(&rc_in, 0, sizeof(rc_in));
-	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
+	rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
 #endif
 
 	/* initialize PWM limit lib */
@@ -772,8 +772,8 @@ PX4FMU::task_main()
 			// we have a new PPM frame. Publish it.
 			rc_in.channel_count = ppm_decoded_channels;
 
-			if (rc_in.channel_count > RC_INPUT_MAX_CHANNELS) {
-				rc_in.channel_count = RC_INPUT_MAX_CHANNELS;
+			if (rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+				rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
 			}
 
 			for (uint8_t i = 0; i < rc_in.channel_count; i++) {

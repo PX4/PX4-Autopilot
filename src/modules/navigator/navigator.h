@@ -45,6 +45,7 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
+#include <navigator/navigation.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>

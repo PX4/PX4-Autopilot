@@ -32,19 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file mission.h
+ * @file navigation.h
  * Definition of a mission consisting of mission items.
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Julian Oes <joes@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef TOPIC_MISSION_H_
-#define TOPIC_MISSION_H_
+#ifndef NAVIGATION_H_
+#define NAVIGATION_H_
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "../uORB.h"
 
 #define NUM_MISSIONS_SUPPORTED 256
 
@@ -103,15 +102,7 @@ struct mission_item_s {
 	int actuator_value;             /**< new value for selected actuator in ms 900...2000         */
 };
 
-/**
- * This topic used to notify navigator about mission changes, mission itself and new mission state
- * must be stored in dataman before publication.
- */
-struct mission_s {
-	int dataman_id;			/**< default 0, there are two offboard storage places in the dataman: 0 or 1 */
-	unsigned count;			/**< count of the missions stored in the dataman */
-	int current_seq;				/**< default -1, start at the one changed latest */
-};
+#include <uORB/topics/mission.h>
 
 /**
  * @}

@@ -38,6 +38,7 @@
 MODULE_COMMAND	= pwm_out_sim
 
 SRCS		= pwm_out_sim.cpp
+
 MAXOPTIMIZATION	 = -Os
 
 MODULE_STACKSIZE	= 1200

@@ -106,6 +106,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/git_version.h>
+#include <systemlib/printload.h>
 #include <version/version.h>
 
 #include <mavlink/mavlink_log.h>
@@ -737,9 +738,16 @@ void sdlog2_start_log()
 	}
 
 	/* write all performance counters */
+	hrt_abstime curr_time = hrt_absolute_time();
+	struct print_load_s load;
 	int perf_fd = open_perf_file("preflight");
+	init_print_load_s(curr_time, &load);
+	print_load(curr_time, perf_fd, &load);
 	dprintf(perf_fd, "PERFORMANCE COUNTERS PRE-FLIGHT\n\n");
 	perf_print_all(perf_fd);
+	dprintf(perf_fd, "\nLOAD PRE-FLIGHT\n\n");
+	usleep(500 * 1000);
+	print_load(hrt_absolute_time(), perf_fd, &load);
 	close(perf_fd);
 
 	/* reset performance counters to get in-flight min and max values in post flight log */
@@ -775,8 +783,15 @@ void sdlog2_stop_log()
 
 	/* write all performance counters */
 	int perf_fd = open_perf_file("postflight");
+	hrt_abstime curr_time = hrt_absolute_time();
 	dprintf(perf_fd, "PERFORMANCE COUNTERS POST-FLIGHT\n\n");
 	perf_print_all(perf_fd);
+	struct print_load_s load;
+	dprintf(perf_fd, "\nLOAD POST-FLIGHT\n\n");
+	init_print_load_s(curr_time, &load);
+	print_load(curr_time, perf_fd, &load);
+	sleep(1);
+	print_load(hrt_absolute_time(), perf_fd, &load);
 	close(perf_fd);
 
 	/* free log writer performance counter */
@@ -1900,15 +1915,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_TECS.altitudeFiltered = buf.tecs_status.altitude_filtered;
 			log_msg.body.log_TECS.flightPathAngleSp = buf.tecs_status.flightPathAngleSp;
 			log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
-			log_msg.body.log_TECS.flightPathAngleFiltered = buf.tecs_status.flightPathAngleFiltered;
 			log_msg.body.log_TECS.airspeedSp = buf.tecs_status.airspeedSp;
 			log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeed_filtered;
 			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
 			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
-			log_msg.body.log_TECS.totalEnergyRateSp = buf.tecs_status.totalEnergyRateSp;
-			log_msg.body.log_TECS.totalEnergyRate = buf.tecs_status.totalEnergyRate;
-			log_msg.body.log_TECS.energyDistributionRateSp = buf.tecs_status.energyDistributionRateSp;
-			log_msg.body.log_TECS.energyDistributionRate = buf.tecs_status.energyDistributionRate;
+			log_msg.body.log_TECS.totalEnergyError = buf.tecs_status.totalEnergyError;
+			log_msg.body.log_TECS.energyDistributionError = buf.tecs_status.energyDistributionError;
+			log_msg.body.log_TECS.totalEnergyRateError = buf.tecs_status.totalEnergyRateError;
+			log_msg.body.log_TECS.energyDistributionRateError = buf.tecs_status.energyDistributionRateError;
+			log_msg.body.log_TECS.throttle_integ = buf.tecs_status.throttle_integ;
+			log_msg.body.log_TECS.pitch_integ = buf.tecs_status.pitch_integ;
 			log_msg.body.log_TECS.mode = (uint8_t)buf.tecs_status.mode;
 			LOGBUFFER_WRITE_AND_COUNT(TECS);
 		}

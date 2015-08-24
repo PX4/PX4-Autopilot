@@ -234,7 +234,7 @@ PWMSim::init()
 	_task = px4_task_spawn_cmd("pwm_out_sim",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   1200,
+			   1000,
 			   (px4_main_t)&PWMSim::task_main_trampoline,
 			   nullptr);
 

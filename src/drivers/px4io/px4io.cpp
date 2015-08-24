@@ -672,8 +672,8 @@ PX4IO::init()
 		return -1;
 	}
 
-	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
-		_max_rc_input = RC_INPUT_MAX_CHANNELS;
+	if (_max_rc_input > input_rc_s::RC_INPUT_MAX_CHANNELS)
+		_max_rc_input = input_rc_s::RC_INPUT_MAX_CHANNELS;
 
 	param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
 	param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
@@ -1675,10 +1675,10 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	int	ret;
 
 	/* we don't have the status bits, so input_source has to be set elsewhere */
-	input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
+	input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
 
 	const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
-	uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
+	uint16_t regs[input_rc_s::RC_INPUT_MAX_CHANNELS + prolog];
 
 	/*
 	 * Read the channel count and the first 9 channels.
@@ -1697,8 +1697,8 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	channel_count = regs[PX4IO_P_RAW_RC_COUNT];
 
 	/* limit the channel count */
-	if (channel_count > RC_INPUT_MAX_CHANNELS) {
-		channel_count = RC_INPUT_MAX_CHANNELS;
+	if (channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+		channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
 
 	_rc_chan_count = channel_count;
@@ -1736,7 +1736,7 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	}
 
 	/* get RSSI from input channel */
-	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
+	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
 		int rssi = (input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) /
 			((_rssi_pwm_max - _rssi_pwm_min) / 100);
 		rssi = rssi > 100 ? 100 : rssi;
@@ -1764,19 +1764,19 @@ PX4IO::io_publish_raw_rc()
 
 	/* sort out the source of the values */
 	if (_status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_PPM;
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
 
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
 
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
 
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_ST24;
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_ST24;
 
 	} else {
-		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
 
 		/* only keep publishing RC input if we ever got a valid input */
 		if (_rc_last_valid == 0) {
@@ -2660,19 +2660,19 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 			/* sort out the source of the values */
 			if (status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
-				rc_val->input_source = RC_INPUT_SOURCE_PX4IO_PPM;
+				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
 
 			} else if (status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
-				rc_val->input_source = RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
+				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
 
 			} else if (status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
-				rc_val->input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
+				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
 
 			} else if (status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
-				rc_val->input_source = RC_INPUT_SOURCE_PX4IO_ST24;
+				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_ST24;
 
 			} else {
-				rc_val->input_source = RC_INPUT_SOURCE_UNKNOWN;
+				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
 			}
 
 			/* read raw R/C input values */
@@ -2757,7 +2757,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		   on param_get()
 		*/
 		struct pwm_output_rc_config* config = (struct pwm_output_rc_config*)arg;
-		if (config->channel >= RC_INPUT_MAX_CHANNELS) {
+		if (config->channel >= input_rc_s::RC_INPUT_MAX_CHANNELS) {
 			/* fail with error */
 			return -E2BIG;
 		}
