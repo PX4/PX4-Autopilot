@@ -158,9 +158,6 @@ void resetWatchdog()
     Chip_WWDT_Feed(LPC_WWDT);
 }
 
-#if __GNUC__
-__attribute__((optimize(0)))     // Optimization must be disabled lest it hardfaults in the IAP call
-#endif
 void syslog(const char* msg)
 {
     Chip_UART_SendBlocking(LPC_USART, msg, static_cast<int>(std::strlen(msg)));
