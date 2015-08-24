@@ -45,7 +45,7 @@
 /*
  * IUavcanSensorBridge
  */
-void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge*> &list)
+void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list)
 {
 	list.add(new UavcanBarometerBridge(node));
 	list.add(new UavcanMagnetometerBridge(node));
@@ -62,6 +62,7 @@ UavcanCDevSensorBridgeBase::~UavcanCDevSensorBridgeBase()
 			(void)unregister_class_devname(_class_devname, _channels[i].class_instance);
 		}
 	}
+
 	delete [] _channels;
 }
 
@@ -107,6 +108,7 @@ void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 
 		// Ask the CDev helper which class instance we can take
 		const int class_instance = register_class_devname(_class_devname);
+
 		if (class_instance < 0 || class_instance >= int(_max_channels)) {
 			_out_of_channels = true;
 			DEVICE_LOG("out of class instances");
@@ -128,6 +130,7 @@ void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 
 		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);
 	}
+
 	assert(channel != nullptr);
 
 	(void)orb_publish(_orb_topic, channel->orb_advert, report);
@@ -136,11 +139,13 @@ void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 unsigned UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 {
 	unsigned out = 0;
+
 	for (unsigned i = 0; i < _max_channels; i++) {
 		if (_channels[i].node_id >= 0) {
 			out += 1;
 		}
 	}
+
 	return out;
 }
 
@@ -152,6 +157,7 @@ void UavcanCDevSensorBridgeBase::print_status() const
 		if (_channels[i].node_id >= 0) {
 			printf("channel %d: node id %d --> class instance %d\n",
 			       i, _channels[i].node_id, _channels[i].class_instance);
+
 		} else {
 			printf("channel %d: empty\n", i);
 		}
