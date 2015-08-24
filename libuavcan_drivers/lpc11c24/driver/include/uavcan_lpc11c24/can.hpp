@@ -30,6 +30,15 @@ public:
     static CanDriver& instance() { return self; }
 
     /**
+     * Attempts to detect bit rate of the CAN bus.
+     * This function may block for up to X seconds, where X is the number of bit rates to try.
+     * This function is NOT guaranteed to reset the CAN controller upon return.
+     * @return On success: detected bit rate, in bits per second.
+     *         On failure: zero.
+     */
+    static uavcan::uint32_t detectBitRate(void (*idle_callback)() = nullptr);
+
+    /**
      * Returns negative value if the requested baudrate can't be used.
      * Returns zero if OK.
      */

@@ -156,6 +156,57 @@ BitTimingSettings computeBitTimings(std::uint32_t bitrate)
 
 CanDriver CanDriver::self;
 
+uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
+{
+    static constexpr uavcan::uint32_t BitRatesToTry[] =
+    {
+        1000000,
+        500000,
+        250000,
+        125000
+    };
+
+    const auto ListeningDuration = uavcan::MonotonicDuration::fromMSec(1050);
+
+    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
+
+    for (auto bitrate : BitRatesToTry)
+    {
+        // Computing bit timings
+        const auto bit_timings = computeBitTimings(bitrate);
+        if (!bit_timings.isValid())
+        {
+            return 0;
+        }
+
+        // Configuring the CAN controller
+        {
+            CriticalSectionLocker locker;
+
+            c_can::Can.CNTL = c_can::CNTL_DAR | c_can::CNTL_CCE;
+
+            c_can::Can.BT     = bit_timings.canbtr;
+            c_can::Can.CLKDIV = bit_timings.canclkdiv;
+
+            c_can::Can.TEST = c_can::TEST_SILENT;
+
+            c_can::Can.CNTL = c_can::CNTL_DAR;
+        }
+
+        // Listening
+        const auto deadline = clock::getMonotonic() + ListeningDuration;
+        while (clock::getMonotonic() < deadline)
+        {
+            if (idle_callback != nullptr)
+            {
+                idle_callback();
+            }
+        }
+    }
+
+    return 0;
+}
+
 int CanDriver::init(uavcan::uint32_t bitrate)
 {
     CriticalSectionLocker locker;
