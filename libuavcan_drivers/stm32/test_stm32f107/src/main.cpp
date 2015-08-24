@@ -32,22 +32,26 @@ void ledSet(bool state)
     palWritePad(GPIO_PORT_LED, GPIO_PIN_LED, state);
 }
 
-int init()
+void init()
 {
-    int res = 0;
-
     halInit();
     chibios_rt::System::init();
     sdStart(&STDOUT_SD, NULL);
 
-    res = can.init(1000000);
-    if (res < 0)
+    int res = 0;
+    do
     {
-        goto leave;
-    }
+        ::sleep(1);
+        ::lowsyslog("CAN auto bit rate detection...\n");
 
-leave:
-    return res;
+        std::uint32_t bitrate = 0;
+        res = can.init([]() { ::usleep(can.getRecommendedListeningDelay().toUSec()); }, bitrate);
+        if (res >= 0)
+        {
+            ::lowsyslog("CAN inited at %u bps\n", unsigned(bitrate));
+        }
+    }
+    while (res < 0);
 }
 
 #if __GNUC__
@@ -55,7 +59,7 @@ __attribute__((noreturn))
 #endif
 void die(int status)
 {
-    lowsyslog("Now I am dead x_x %i\n", status);
+    lowsyslog("Initialization failure %i\n", status);
     while (1)
     {
         ledSet(false);
@@ -166,11 +170,7 @@ public:
 
 int main()
 {
-    const int init_res = app::init();
-    if (init_res != 0)
-    {
-        app::die(init_res);
-    }
+    app::init();
 
     lowsyslog("Starting the UAVCAN thread\n");
     app::uavcan_node_thread.start(LOWPRIO);

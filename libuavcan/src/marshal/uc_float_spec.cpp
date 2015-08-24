@@ -6,87 +6,84 @@
 #include <uavcan/build_config.hpp>
 #include <cmath>
 
-#if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
-# error UAVCAN_CPP_VERSION
-#endif
-
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-# include <limits>
-#endif
-
 namespace uavcan
 {
+
+#if !UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION
+
+union Fp32
+{
+    uint32_t u;
+    float f;
+};
+
 /*
  * IEEE754Converter
- * Float16 conversion algorithm: http://half.sourceforge.net/ (MIT License)
  */
-uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
+uint16_t IEEE754Converter::nativeIeeeToHalf(float value)
 {
-    uint16_t hbits = uint16_t(getSignBit(value) ? 0x8000U : 0);
-    if (areFloatsExactlyEqual(value, 0.0F))
+    /*
+     * https://gist.github.com/rygorous/2156668
+     * Public domain, by Fabian "ryg" Giesen
+     */
+    const Fp32 f32infty = { 255U << 23 };
+    const Fp32 f16infty = { 31U << 23 };
+    const Fp32 magic = { 15U << 23 };
+    const uint32_t sign_mask = 0x80000000U;
+    const uint32_t round_mask = ~0xFFFU;
+
+    Fp32 in;
+    uint16_t out;
+
+    in.f = value;
+
+    uint32_t sign = in.u & sign_mask;
+    in.u ^= sign;
+
+    if (in.u >= f32infty.u) /* Inf or NaN (all exponent bits set) */
     {
-        return hbits;
+        /* NaN->sNaN and Inf->Inf */
+        out = (in.u > f32infty.u) ? 0x7FFFU : 0x7C00U;
     }
-    if (isNaN(value))
+    else /* (De)normalized number or zero */
     {
-        return hbits | 0x7FFFU;
+        in.u &= round_mask;
+        in.f *= magic.f;
+        in.u -= round_mask;
+        if (in.u > f16infty.u)
+        {
+            in.u = f16infty.u; /* Clamp to signed infinity if overflowed */
+        }
+
+        out = uint16_t(in.u >> 13); /* Take the bits! */
     }
-    if (isInfinity(value))
-    {
-        return hbits | 0x7C00U;
-    }
-    int exp;
-    (void)std::frexp(value, &exp);
-    if (exp > 16)
-    {
-        return hbits | 0x7C00U;
-    }
-    if (exp < -13)
-    {
-        value = std::ldexp(value, 24);
-    }
-    else
-    {
-        value = std::ldexp(value, 11 - exp);
-        hbits |= uint16_t((exp + 14) << 10);
-    }
-    const int32_t ival = static_cast<int32_t>(value);
-    hbits = uint16_t(hbits | (uint32_t((ival < 0) ? (-ival) : ival) & 0x3FFU));
-    float diff = std::fabs(value - static_cast<float>(ival));
-    hbits = uint16_t(hbits + (diff >= 0.5F));
-    return hbits;
+
+    out |= uint16_t(sign >> 16);
+
+    return out;
 }
 
-float IEEE754Converter::halfToNativeNonIeee(uint16_t value)
+float IEEE754Converter::halfToNativeIeee(uint16_t value)
 {
-    float out;
-    unsigned abs = value & 0x7FFFU;
-    if (abs > 0x7C00U)
+    /*
+     * https://gist.github.com/rygorous/2144712
+     * Public domain, by Fabian "ryg" Giesen
+     */
+    const Fp32 magic = { (254U - 15U) << 23 };
+    const Fp32 was_infnan = { (127U + 16U) << 23 };
+    Fp32 out;
+
+    out.u = (value & 0x7FFFU) << 13;   /* exponent/mantissa bits */
+    out.f *= magic.f;                  /* exponent adjust */
+    if (out.f >= was_infnan.f)         /* make sure Inf/NaN survive */
     {
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-        out = std::numeric_limits<float>::has_quiet_NaN ? std::numeric_limits<float>::quiet_NaN() : 0.0F;
-#else
-        out = nanf("");
-#endif
+        out.u |= 255U << 23;
     }
-    else if (abs == 0x7C00U)
-    {
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-        out = std::numeric_limits<float>::has_infinity ?
-              std::numeric_limits<float>::infinity() : std::numeric_limits<float>::max();
-#else
-        out = NumericTraits<float>::infinity();
-#endif
-    }
-    else if (abs > 0x3FFU)
-    {
-        out = std::ldexp(static_cast<float>((value & 0x3FFU) | 0x400U), int(abs >> 10) - 25);
-    }
-    else
-    {
-        out = std::ldexp(static_cast<float>(abs), -24);
-    }
-    return (value & 0x8000U) ? -out : out;
+    out.u |= (value & 0x8000U) << 16;  /* sign bit */
+
+    return out.f;
 }
+
+#endif // !UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION
 
 }

@@ -86,6 +86,8 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 
     int copyIfNot(const char* srcpath, const char* destpath)
     {
+        using namespace std;
+
         // Does the file exist
         int rv = 0;
         int dfd = open(destpath, O_RDONLY, 0);
@@ -113,7 +115,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
                 }
                 else
                 {
-                    ssize_t size;
+                    ssize_t size = 0;
                     do
                     {
                         size = ::read(sfd, buffer, sizeof(buffer));
@@ -125,14 +127,28 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
                             }
                             else
                             {
-                                if (size != write(dfd, buffer, size))
+                                rv = 0;
+                                ssize_t remaining = size;
+                                ssize_t total_written = 0;
+                                ssize_t written = 0;
+                                do
                                 {
-                                    rv = -errno;
+                                    written = write(dfd, &buffer[total_written], remaining);
+                                    if (written < 0)
+                                    {
+                                        rv = -errno;
+                                    }
+                                    else
+                                    {
+                                        total_written += written;
+                                        remaining -=  written;
+                                    }
                                 }
+                                while (written > 0 && remaining > 0);
                             }
                         }
                     }
-                    while (rv == 0 && size);
+                    while (rv == 0 && size != 0);
 
                     (void)close(sfd);
                 }
@@ -144,13 +160,13 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 
     struct AppDescriptor
     {
-        uint8_t signature[sizeof(uavcan::uint64_t)];
-        uint64_t image_crc;
-        uint32_t image_size;
-        uint32_t vcs_commit;
-        uint8_t major_version;
-        uint8_t minor_version;
-        uint8_t reserved[6];
+        uavcan::uint8_t signature[sizeof(uavcan::uint64_t)];
+        uavcan::uint64_t image_crc;
+        uavcan::uint32_t image_size;
+        uavcan::uint32_t vcs_commit;
+        uavcan::uint8_t major_version;
+        uavcan::uint8_t minor_version;
+        uavcan::uint8_t reserved[6];
     };
 
     static int getFileInfo(const char* path, AppDescriptor& descriptor)
@@ -251,7 +267,7 @@ protected:
                          node_info.hardware_version.major,
                          node_info.hardware_version.minor);
 
-        if (n > 0 && n < (int) sizeof(fname_root) - 2)
+        if (n > 0 && n < (int)sizeof(fname_root) - 2)
         {
             DIR* const fwdir = opendir(fname_root);
 

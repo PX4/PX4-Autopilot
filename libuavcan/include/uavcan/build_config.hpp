@@ -101,6 +101,13 @@
 #endif
 
 /**
+ * Disable the global data type registry, which can save some space on embedded systems.
+ */
+#ifndef UAVCAN_NO_GLOBAL_DATA_TYPE_REGISTRY
+# define UAVCAN_NO_GLOBAL_DATA_TYPE_REGISTRY 0
+#endif
+
+/**
  * toString() methods will be disabled by default, unless the library is built for a general-purpose target like Linux.
  * It is not recommended to enable toString() on embedded targets as code size will explode.
  */
@@ -134,6 +141,14 @@
  */
 #ifndef UAVCAN_USE_EXTERNAL_SNPRINTF
 # define UAVCAN_USE_EXTERNAL_SNPRINTF   0
+#endif
+
+/**
+ * Allows the user's application to provide a custom implementation of IEEE754Converter::nativeIeeeToHalf and
+ * IEEE754Converter::halfToNativeIeee.
+ */
+#ifndef UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION
+# define UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION 0
 #endif
 
 /**

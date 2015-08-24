@@ -36,11 +36,24 @@ struct NativeFloatSelector
 
 class UAVCAN_EXPORT IEEE754Converter
 {
-    // TODO: Non-IEEE float support for float32 and float64
-    static uint16_t nativeNonIeeeToHalf(float value);
-    static float halfToNativeNonIeee(uint16_t value);
+    // TODO: Non-IEEE float support
+
+    static uint16_t nativeIeeeToHalf(float value);
+    static float halfToNativeIeee(uint16_t value);
 
     IEEE754Converter();
+
+    template <unsigned BitLen>
+    static void enforceIeee()
+    {
+        /*
+         * Some compilers may have is_iec559 to be defined false despite the fact that IEEE754 is supported.
+         * An acceptable workaround would be to put an #ifdef here.
+         */
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+        StaticAssert<std::numeric_limits<typename NativeFloatSelector<BitLen>::Type>::is_iec559>::check();
+#endif
+    }
 
 public:
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
@@ -52,6 +65,7 @@ public:
     static typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType
     toIeee(typename NativeFloatSelector<BitLen>::Type value)
     {
+        enforceIeee<BitLen>();
         union
         {
             typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType i;
@@ -66,6 +80,7 @@ public:
     static typename NativeFloatSelector<BitLen>::Type
     toNative(typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType value)
     {
+        enforceIeee<BitLen>();
         union
         {
             typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType i;
@@ -80,13 +95,13 @@ template <>
 inline typename IntegerSpec<16, SignednessUnsigned, CastModeTruncate>::StorageType
 IEEE754Converter::toIeee<16>(typename NativeFloatSelector<16>::Type value)
 {
-    return nativeNonIeeeToHalf(value);
+    return nativeIeeeToHalf(value);
 }
 template <>
 inline typename NativeFloatSelector<16>::Type
 IEEE754Converter::toNative<16>(typename IntegerSpec<16, SignednessUnsigned, CastModeTruncate>::StorageType value)
 {
-    return halfToNativeNonIeee(value);
+    return halfToNativeIeee(value);
 }
 
 
