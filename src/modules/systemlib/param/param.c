@@ -61,8 +61,16 @@
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
 
-#include "uORB/uORB.h"
-#include "uORB/topics/parameter_update.h"
+#if !defined(PARAM_NO_ORB)
+# include "uORB/uORB.h"
+# include "uORB/topics/parameter_update.h"
+#endif
+
+#define FLASH_PARAMS_EXPOSE
+#if defined(FLASH_BASED_PARAMS)
+# include "systemlib/flashparams/flashparams.h"
+#endif
+
 
 #if 0
 # define debug(fmt, args...)            do { warnx(fmt, ##args); } while(0)
@@ -128,16 +136,18 @@ get_param_info_count(void)
 }
 
 /** flexible array holding modified parameter values */
-UT_array        *param_values;
+FLASH_PARAMS_EXPOSE UT_array        *param_values;
 
 /** array info for the modified parameters array */
-const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
+FLASH_PARAMS_EXPOSE const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
+#if !defined(PARAM_NO_ORB)
 /** parameter update topic */
 ORB_DEFINE(parameter_update, struct parameter_update_s);
 
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;
+#endif
 
 static void param_set_used_internal(param_t param);
 
@@ -235,6 +245,7 @@ param_find_changed(param_t param)
 static void
 param_notify_changes(void)
 {
+#if !defined(PARAM_NO_ORB)
         struct parameter_update_s pup = { .timestamp = hrt_absolute_time() };
 
         /*
@@ -247,6 +258,7 @@ param_notify_changes(void)
         } else {
                 orb_publish(ORB_ID(parameter_update), param_topic, &pup);
         }
+#endif
 }
 
 param_t
@@ -434,6 +446,7 @@ param_size(param_t param)
         return 0;
 }
 
+
 /**
  * Obtain a pointer to the storage allocated for a parameter.
  *
@@ -441,7 +454,12 @@ param_size(param_t param)
  * @return                      A pointer to the parameter value, or NULL
  *                              if the parameter does not exist.
  */
-static const void *
+#if !defined(FLASH_BASED_PARAMS)
+static
+#else
+FLASH_PARAMS_EXPOSE
+#endif
+const void *
 param_get_value_ptr(param_t param)
 {
         const void *result = NULL;
@@ -578,6 +596,13 @@ out:
 
         return result;
 }
+
+#if defined(FLASH_BASED_PARAMS)
+int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes)
+{
+  return param_set_internal(param, val, mark_saved, notify_changes);
+}
+#endif
 
 int
 param_set(param_t param, const void *val)
@@ -724,6 +749,7 @@ int
 param_save_default(void)
 {
         int res;
+#if !defined(FLASH_BASED_PARAMS)
         int fd;
 
         const char *filename = param_get_default_file();
@@ -743,6 +769,9 @@ param_save_default(void)
         }
 
         PARAM_CLOSE(fd);
+#else
+        res = flash_param_save();
+#endif
 
         return res;
 }
