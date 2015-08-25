@@ -182,6 +182,7 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "index_used")) {
 			if (argc >= 3) {
 				do_show_index(argv[2], true);
+
 			} else {
 				warnx("no index provided");
 				return 1;
@@ -191,6 +192,7 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "index")) {
 			if (argc >= 3) {
 				do_show_index(argv[2], false);
+
 			} else {
 				warnx("no index provided");
 				return 1;
@@ -215,19 +217,19 @@ do_save(const char *param_file_name)
 static int
 do_save_default(void)
 {
-  return flash_param_save_default();
+	return flash_param_save_default();
 }
 
 static int
 do_load(const char *param_file_name)
 {
-  return flash_param_load();
+	return flash_param_load();
 }
 
 static int
 do_import(const char *param_file_name)
 {
-  return flash_param_import();
+	return flash_param_import();
 }
 #else
 
@@ -259,7 +261,7 @@ do_save(const char *param_file_name)
 static int
 do_save_default(void)
 {
-  return param_save_default();
+	return param_save_default();
 }
 
 static int
@@ -279,6 +281,7 @@ do_load(const char *param_file_name)
 		warnx("error importing from '%s'", param_file_name);
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -323,6 +326,7 @@ do_show_index(const char *index, bool used_index)
 
 	if (used_index) {
 		param = param_for_used_index(i);
+
 	} else {
 		param = param_for_index(i);
 	}
@@ -349,6 +353,7 @@ do_show_index(const char *index, bool used_index)
 		}
 
 		break;
+
 	default:
 		printf("<unknown type %d>\n", 0 + param_type(param));
 	}
@@ -596,6 +601,7 @@ do_reset(const char *excludes[], int num_excludes)
 		warnx("Param export failed.");
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -623,5 +629,6 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 		return 1;
 
 	}
+
 	return 0;
 }
