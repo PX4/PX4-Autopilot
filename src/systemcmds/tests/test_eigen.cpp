@@ -39,7 +39,6 @@
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
-#include <eigen/px4_eigen.h>
 #include <eigen/transform/quaternion.h>
 
 #include <float.h>

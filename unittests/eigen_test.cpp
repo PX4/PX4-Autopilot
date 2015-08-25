@@ -39,7 +39,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <px4_eigen.h>
+#include <eigen/transform/quaternion.h>
 #include <mathlib/mathlib.h>
 #include <iostream>
 
