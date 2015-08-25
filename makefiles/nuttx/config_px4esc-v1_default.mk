@@ -2,6 +2,7 @@
 # Makefile for the px4esc-v1_default configuration
 #
 
+EXTRADEFINES+= -DFLASH_BASED_PARAMS -DPARAM_NO_ORB
 INCLUDE_DIRS += $(PX4_BOOTLOADER_BASE)include
 
 
@@ -32,6 +33,7 @@ MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/ver
+MODULES		+= systemcmds/param
 
 #
 # General system control
@@ -48,6 +50,7 @@ MODULES		+= modules/uavcanesc/commands/stat
 # Library modules
 #
 MODULES		+= modules/systemlib
+MODULES		+= modules/systemlib/flashparams
 
 
 

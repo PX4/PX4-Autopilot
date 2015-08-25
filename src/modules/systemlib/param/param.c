@@ -66,7 +66,6 @@
 # include "uORB/topics/parameter_update.h"
 #endif
 
-#define FLASH_PARAMS_EXPOSE
 #if defined(FLASH_BASED_PARAMS)
 # include "systemlib/flashparams/flashparams.h"
 #endif
@@ -136,10 +135,10 @@ get_param_info_count(void)
 }
 
 /** flexible array holding modified parameter values */
-FLASH_PARAMS_EXPOSE UT_array        *param_values;
+UT_array        *param_values;
 
 /** array info for the modified parameters array */
-FLASH_PARAMS_EXPOSE const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
+const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
 #if !defined(PARAM_NO_ORB)
 /** parameter update topic */
@@ -455,12 +454,7 @@ param_size(param_t param)
  * @return                      A pointer to the parameter value, or NULL
  *                              if the parameter does not exist.
  */
-#if !defined(FLASH_BASED_PARAMS)
-static
-#else
-FLASH_PARAMS_EXPOSE
-#endif
-const void *
+static const void *
 param_get_value_ptr(param_t param)
 {
 	const void *result = NULL;
@@ -602,6 +596,11 @@ out:
 int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes)
 {
 	return param_set_internal(param, val, mark_saved, notify_changes);
+}
+
+const void * param_get_value_ptr_external(param_t param)
+{
+  return param_get_value_ptr(param);
 }
 #endif
 
