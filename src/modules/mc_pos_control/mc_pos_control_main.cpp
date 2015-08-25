@@ -78,7 +78,8 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
 #include <systemlib/systemlib.h>
-#include <px4_eigen.h>
+#include <eigen/px4_eigen.h>
+#include <eigen/transform/quaternion.h>
 #include <lib/geo/geo.h>
 #include <mavlink/mavlink_log.h>
 #include <platforms/px4_defines.h>

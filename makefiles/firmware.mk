@@ -185,7 +185,7 @@ INCLUDE_DIRS		+= $(PX4_MODULE_SRC)drivers/boards/$(BOARD)
 # External library includes
 ################################################################################
 
-INCLUDE_DIRS		+= $(PX4_BASE)src/lib/eigen/
+INCLUDE_DIRS		+= $(PX4_BASE)src/lib/eigen/eigen
 
 ################################################################################
 # OS specific libraries and paths

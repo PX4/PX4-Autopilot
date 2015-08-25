@@ -39,8 +39,8 @@
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
-#include <cmath>
-#include <px4_eigen.h>
+#include <eigen/px4_eigen.h>
+
 #include <float.h>
 #include <stdlib.h>
 #include <unistd.h>

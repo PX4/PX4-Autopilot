@@ -129,7 +129,7 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			-Dnoreturn_function=__attribute__\(\(noreturn\)\) \
 			$(VERBOSITY_LEVEL)\
 			-I$(PX4_BASE)/src/modules/systemlib \
-			-I$(PX4_BASE)/src/lib/eigen \
+			-I$(PX4_BASE)/src/lib/eigen/eigen \
 			-I$(PX4_BASE)/src/platforms/posix/include \
 			-I$(PX4_BASE)/mavlink/include/mavlink \
 			-Wno-error=shadow

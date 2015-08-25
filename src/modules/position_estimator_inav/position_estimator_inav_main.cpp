@@ -46,9 +46,10 @@
 #include <fcntl.h>
 #include <string.h>
 #include <px4_config.h>
-#include <px4_eigen.h>
 #include <array>
 #include <float.h>
+#include <eigen/px4_eigen.h>
+#include <eigen/transform/quaternion.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_controls.h>

@@ -71,7 +71,7 @@ else
 	git submodule update --init --recursive
 fi
 
-if [ -d src/lib/eigen ]
+if [ -d src/lib/eigen/eigen ]
 then
 	STATUSRETVAL=$(git submodule summary | grep -A20 -i eigen | grep "<")
 	if [ -z "$STATUSRETVAL" ]
