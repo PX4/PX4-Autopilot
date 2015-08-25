@@ -40,6 +40,7 @@
  */
 
 #include <eigen/px4_eigen.h>
+#include <eigen/transform/quaternion.h>
 
 #include <float.h>
 #include <stdlib.h>
@@ -52,6 +53,7 @@
 #include "tests.h"
 
 using namespace Eigen;
+using namespace transform;
 
 typedef Matrix<float, 10, 1> Vector10f;
 
@@ -93,6 +95,27 @@ uint8_t err_num;
 
 #define EXPECT_NEAR(expected, actual, epsilon)											\
 	(fabsf(expected - actual) <= epsilon)
+
+/**
+ * @brief Prints an Eigen::Matrix to stdout
+ */
+template<typename T>
+void printEigen(const Eigen::MatrixBase<T> &b)
+{
+	for (int i = 0; i < b.rows(); ++i) {
+		printf("(");
+
+		for (int j = 0; j < b.cols(); ++j) {
+			if (j > 0) {
+				printf(",");
+			}
+
+			printf("%.3f", static_cast<double>(b(i, j)));
+		}
+
+		printf(")%s\n", i + 1 < b.rows() ? "," : "");
+	}
+}
 
 /**
  * @brief

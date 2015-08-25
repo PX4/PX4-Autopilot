@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,35 +39,15 @@
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
-#include <quaternion.h>
+#include <eigen/transform/quaternion.h>
 
-/**
- * @brief Prints an Eigen::Matrix to stdout
- */
-template<typename T>
-static void printEigen(const Eigen::MatrixBase<T> &b)
-{
-	for (int i = 0; i < b.rows(); ++i) {
-		printf("(");
-
-		for (int j = 0; j < b.cols(); ++j) {
-			if (j > 0) {
-				printf(",");
-			}
-
-			printf("%.3f", static_cast<double>(b(i, j)));
-		}
-
-		printf(")%s\n", i + 1 < b.rows() ? "," : "");
-	}
-}
-
+namespace transform {
 /**
  * @brief Construct new Eigen::Quaternionf from euler angles
  *
  * Right order is YPR.
  */
-static Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
+Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
 	return Eigen::Quaternionf(
 		Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
 		Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
@@ -80,7 +60,7 @@ static Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
  *
  * Right order is YPR.
  */
-static Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
+Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
 	return Eigen::Matrix3f(
 		Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
 		Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
@@ -93,7 +73,7 @@ static Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
  *
  * Right order is YPR.
  */
-static Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
+Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
 	return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
 }
 
@@ -103,28 +83,28 @@ static Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
   *
   *	Right order is YPR.
   */
-static Eigen::Vector3f eulerFromRot(const Eigen::Matrix3f &rot){
+Eigen::Vector3f eulerFromRot(const Eigen::Matrix3f &rot){
 	 return rot.eulerAngles(2, 1, 0).reverse();
 }
 
 /**
  * @brief Adjust PX4 math::!uaternion to Eigen::Quaternionf
  */
-static Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
+Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
 	return Eigen::Quaternionf(q.data[0], q.data[1], q.data[2], q.data[3]);
 }
 
 /**
  * @brief Adjust Eigen::Quaternionf to PX4 math::Quaternion
  */
-static math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
+math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
 	return math::Quaternion(q.w(), q.x(), q.y(), q.z());
 }
 
 /**
  * @brief Adjust PX4 math::Matrix<3,3> Rotation Matrix to Eigen::Matrix3f Rotation Matrix
  */
-static Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot){
+Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot){
 	math::Quaternion q;
 	q.from_dcm(rot);
 	return Eigen::Matrix3f(eigenqFromPx4q(q).toRotationMatrix());
@@ -133,7 +113,7 @@ static Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot){
 /**
  * @brief Adjust Eigen::Matrix3f Rotation Matrix to PX4 math::Matrix<3,3> Rotation Matrix
  */
-static math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot){
+math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot){
 	return math::Matrix<3,3>(px4qFromEigenq(Eigen::Quaternionf(rot)).to_dcm());
 }
 
@@ -142,7 +122,7 @@ static math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot){
  * 
  * Alternative to Eigen::Quaternionf q(R) constructor.
  */
-static Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm){
+Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm){
 	math::Quaternion q;
 
 	float tr = dcm(0,0) + dcm(1,1) + dcm(2,2);
@@ -174,3 +154,4 @@ static Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm){
 	}
 	return eigenqFromPx4q(q);
 }
+};

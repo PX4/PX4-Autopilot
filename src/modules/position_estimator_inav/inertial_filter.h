@@ -7,7 +7,7 @@
 
 #include <cmath>
 #include <stdbool.h>
-#include <px4_eigen.h>
+#include <eigen/px4_eigen.h>
 #include <drivers/drv_hrt.h>
 
 using namespace Eigen;

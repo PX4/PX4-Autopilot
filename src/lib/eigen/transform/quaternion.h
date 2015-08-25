@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,16 +39,23 @@
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
- #include <eigen/px4_eigen.h>
+#ifndef QUATERNION_H
+#define QUATERNION_H
 
- static void printEigen(const Eigen::MatrixBase<T> &b);
- static Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy);
- static Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy);
- static Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q);
- static Eigen::Vector3f eulerFromRot(const Eigen::Matrix3f &rot);
- static Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q);
- static math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q);
- static Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot);
- static math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot);
- static Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm);
- 
+#include <eigen/px4_eigen.h>
+
+namespace transform {
+
+Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy);
+Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy);
+Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q);
+Eigen::Vector3f eulerFromRot(const Eigen::Matrix3f &rot);
+Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q);
+math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q);
+Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot);
+math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot);
+Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm);
+
+};
+
+#endif //QUATERNION_H

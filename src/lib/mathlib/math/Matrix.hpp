@@ -50,7 +50,7 @@
 #include "../CMSIS/Include/arm_math.h"
 #else
 #include <platforms/ros/eigen_math.h>
-#include <eigen/Eigen/Eigen>
+#include <eigen/eigen/Eigen/Eigen>
 #endif
 #include <platforms/px4_defines.h>
 

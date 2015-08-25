@@ -53,8 +53,8 @@
 #define _GLIBCXX_USE_C99_FP_MACROS_DYNAMIC 1
 #endif
 
-#include <eigen/Eigen/Eigen>
+#include <eigen/eigen/Eigen/Eigen>
 #include <mathlib/mathlib.h>
-// #include <eigen/unsupported/Eigen/CXX11/Tensor>
+// #include <eigen/eigen/unsupported/Eigen/CXX11/Tensor>
 
 #pragma GCC diagnostic pop
