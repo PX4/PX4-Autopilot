@@ -44,6 +44,7 @@
 #include <iostream>
 
 using namespace Eigen;
+using namespace transform;
 
 const float min = -M_PI_F;
 const float max = M_PI_F;
