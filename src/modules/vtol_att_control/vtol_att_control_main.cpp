@@ -41,6 +41,7 @@
  * @author Roman Bapst 		<bapstr@ethz.ch>
  * @author Lorenz Meier 	<lm@inf.ethz.ch>
  * @author Thomas Gubler	<thomasgubler@gmail.com>
+ * @author David Vorsin     <davidvorsin@gmail.com>
  *
  */
 #include "vtol_att_control_main.h"
@@ -59,6 +60,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	//init subscription handlers
 	_v_att_sub(-1),
+	_v_att_sp_sub(-1), 
 	_mc_virtual_v_rates_sp_sub(-1),
 	_fw_virtual_v_rates_sp_sub(-1),
 	_v_control_mode_sub(-1),
@@ -81,6 +83,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 	memset(&_v_att, 0, sizeof(_v_att));
+	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
 	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
 	memset(&_mc_virtual_v_rates_sp, 0, sizeof(_mc_virtual_v_rates_sp));
 	memset(&_fw_virtual_v_rates_sp, 0, sizeof(_fw_virtual_v_rates_sp));
@@ -267,6 +270,36 @@ VtolAttitudeControl::vehicle_airspeed_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(airspeed), _airspeed_sub , &_airspeed);
+	}
+}
+
+/**
+* Check for attitude set points update.
+*/
+void
+VtolAttitudeControl::vehicle_attitude_setpoint_poll()
+{
+	/* check if there is a new setpoint */
+	bool updated;
+	orb_check(_v_att_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_sub, &_v_att_sp);
+	}
+}
+
+/**
+* Check for attitude update.
+*/
+void
+VtolAttitudeControl::vehicle_attitude_poll()
+{
+	/* check if there is a new setpoint */
+	bool updated;
+	orb_check(_v_att_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
 	}
 }
 
@@ -464,6 +497,7 @@ void VtolAttitudeControl::task_main()
 	_mc_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(mc_virtual_rates_setpoint));
 	_fw_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
 	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
+	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_v_control_mode_sub    = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -535,6 +569,8 @@ void VtolAttitudeControl::task_main()
 		vehicle_control_mode_poll();	//Check for changes in vehicle control mode.
 		vehicle_manual_poll();			//Check for changes in manual inputs.
 		arming_status_poll();			//Check for arming status updates.
+		vehicle_attitude_setpoint_poll();//Check for changes in attitude set points
+		vehicle_attitude_poll();		//Check for changes in attitude
 		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
 		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
 		vehicle_rates_sp_mc_poll();
@@ -591,6 +627,7 @@ void VtolAttitudeControl::task_main()
 		} else if (_vtol_type->get_mode() == TRANSITION) {
 			// vehicle is doing a transition
 			_vtol_vehicle_status.vtol_in_trans_mode = true;
+			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
 
 			bool got_new_data = false;
 
