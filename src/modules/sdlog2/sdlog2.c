@@ -200,7 +200,8 @@ static unsigned long log_msgs_written = 0;
 static unsigned long log_msgs_skipped = 0;
 
 /* GPS time, used for log files naming */
-static uint64_t gps_time = 0;
+static uint64_t gps_time_sec = 0;
+static bool has_gps_3d_fix = false;
 
 /* current state of logging */
 static bool logging_enabled = false;
@@ -412,13 +413,13 @@ bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
 	time_t utc_time_sec;
 
-	if (_gpstime_only) {
-		utc_time_sec = gps_time / 1e6;
+	if (_gpstime_only && has_gps_3d_fix) {
+		utc_time_sec = gps_time_sec;
 	} else {
 		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
 	}
-	if (utc_time_sec > PX4_EPOCH_SECS) {
 
+	if (utc_time_sec > PX4_EPOCH_SECS) {
 		/* strip the time elapsed since boot */
 		if (boot_time) {
 			utc_time_sec -= hrt_absolute_time() / 1e6;
@@ -987,7 +988,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		sdlog2_usage(NULL);
 	}
 
-	gps_time = 0;
+	gps_time_sec = 0;
 
 	/* interpret logging params */
 
@@ -1282,7 +1283,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* check GPS topic to get GPS time */
 		if (log_name_timestamp) {
 			if (!orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos)) {
-				gps_time = buf_gps_pos.time_utc_usec / 1e6;
+				gps_time_sec = buf_gps_pos.time_utc_usec / 1e6;
 			}
 		}
 
@@ -1313,7 +1314,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		bool gps_pos_updated = copy_if_updated(ORB_ID(vehicle_gps_position), &subs.gps_pos_sub, &buf_gps_pos);
 
 		if (gps_pos_updated && log_name_timestamp) {
-			gps_time = buf_gps_pos.time_utc_usec / 1e6;
+			gps_time_sec = buf_gps_pos.time_utc_usec / 1e6;
+			has_gps_3d_fix = buf_gps_pos.fix_type == 3;
 		}
 
 		if (!logging_enabled) {
@@ -1955,7 +1957,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 void sdlog2_status()
 {
 	warnx("extended logging: %s", (_extended_logging) ? "ON" : "OFF");
-	warnx("time: gps: %u seconds", (unsigned)gps_time);
+	warnx("time: gps: %u seconds", (unsigned)gps_time_sec);
 	if (!logging_enabled) {
 		warnx("not logging");
 	} else {
