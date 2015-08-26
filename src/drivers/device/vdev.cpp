@@ -367,6 +367,8 @@ VDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 			/* yes? post the notification */
 			if (fds->revents != 0)
 				sem_post(fds->sem);
+		} else {
+			PX4_WARN("Store Poll Waiter error.");
 		}
 
 	} else {
@@ -525,4 +527,3 @@ const char *VDev::devList(unsigned int *next)
 }
 
 } // namespace device
-

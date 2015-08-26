@@ -118,6 +118,13 @@ ifeq ($(PX4_TARGET_OS),qurt)
 include $(PX4_BASE)makefiles/qurt/firmware_qurt.mk
 endif
 
+qurt_fixup:
+	makefiles/qurt/setup.sh $(PX4_BASE)
+
+restore:
+	cd src/lib/eigen && git checkout .
+	git submodule update
+	
 #
 # Versioning
 #
@@ -155,7 +162,7 @@ size:
 
 .PHONY: checksubmodules
 checksubmodules:
-	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
+	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh $(PX4_TARGET_OS))
 
 .PHONY: updatesubmodules
 updatesubmodules:

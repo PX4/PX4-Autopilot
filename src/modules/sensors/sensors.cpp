@@ -239,7 +239,6 @@ private:
 	int32_t	_mag2_prio;			/**< mag2 sensor priority */
 	int32_t	_baro_prio;			/**< baro0 sensor priority */
 	int32_t	_baro1_prio;			/**< baro1 sensor priority */
-	int32_t	_diff_pres_prio;		/**< baro1 sensor priority */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -1526,6 +1525,12 @@ Sensors::parameter_update_poll(bool forced)
 		/* run through all mag sensors */
 		for (unsigned s = 0; s < 3; s++) {
 
+			/* set a valid default rotation (same as board).
+			 * if the mag is configured, this might be replaced
+			 * in the section below.
+			 */
+			_mag_rotation[s] = _board_rotation;
+
 			res = ERROR;
 			(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
 
@@ -1535,12 +1540,6 @@ Sensors::parameter_update_poll(bool forced)
 				/* the driver is not running, abort */
 				continue;
 			}
-
-			/* set a valid default rotation (same as board).
-			 * if the mag is configured, this might be replaced
-			 * in the section below.
-			 */
-			_mag_rotation[s] = _board_rotation;
 
 			bool config_ok = false;
 
@@ -2124,7 +2123,7 @@ Sensors::task_main()
 		warnx("Sensor initialization failed");
 		_sensors_task = -1;
 		if (_fd_adc >=0) {
-			close(_fd_adc);
+			px4_close(_fd_adc);
 			_fd_adc = -1;
 		}
 		return;
@@ -2168,9 +2167,6 @@ Sensors::task_main()
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vcontrol_mode_sub, 200);
-
-	/* rate limit gyro to 250 Hz (the gyro signal is lowpassed accordingly earlier) */
-	orb_set_interval(_gyro_sub, 4);
 
 	/*
 	 * do advertisements

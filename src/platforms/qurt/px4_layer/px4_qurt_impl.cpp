@@ -59,9 +59,7 @@
 __BEGIN_DECLS
 extern uint64_t get_ticks_per_us();
 
-// FIXME - sysconf(_SC_CLK_TCK) not supported
-//long PX4_TICKS_PER_SEC = get_ticks_per_us();
-long PX4_TICKS_PER_SEC = 800000000;
+long PX4_TICKS_PER_SEC = 1000;
 
 unsigned int sleep(unsigned int sec) 
 { 
