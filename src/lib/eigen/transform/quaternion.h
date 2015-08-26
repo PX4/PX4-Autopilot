@@ -56,6 +56,6 @@ Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot);
 math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot);
 Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm);
 
-};
+}; // namespace transform
 
-#endif //QUATERNION_H
+#endif // QUATERNION_H
