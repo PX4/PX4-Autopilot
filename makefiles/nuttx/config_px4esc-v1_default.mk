@@ -2,7 +2,12 @@
 # Makefile for the px4esc-v1_default configuration
 #
 
-EXTRADEFINES+= -DFLASH_BASED_PARAMS -DPARAM_NO_ORB
+# WhenFLASH_BASED_PARAMS is defined PARAMETER_BUFFER_SIZE must be defined larger
+# then the maximum parameter memory needed to commit the recored + ~20 bytes. 
+# For the syslib's parameter this would be the size of the bson representations 
+# of the data
+
+EXTRADEFINES+= -DFLASH_BASED_PARAMS -DPARAM_NO_ORB -DPARAMETER_BUFFER_SIZE=1024
 INCLUDE_DIRS += $(PX4_BOOTLOADER_BASE)include
 
 

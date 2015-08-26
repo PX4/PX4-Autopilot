@@ -74,6 +74,10 @@
 #include <systemlib/systemlib.h>
 #endif
 
+#if defined(FLASH_BASED_PARAMS)
+# include <systemlib/flashparams/param_flash.h>
+#endif
+
 #include "board_config.h"
 
 /* todo: This is constant but not proper */
@@ -85,7 +89,6 @@ __END_DECLS
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
 /* Configuration ************************************************************/
 
 /* Debug ********************************************************************/
@@ -184,6 +187,16 @@ __EXPORT int board_app_initialize(void)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t  sector_map[] = {
+	        {1, 16 * 1024, 0x08004000},
+	        {2, 16 * 1024, 0x08008000},
+	        {0, 0, 0},
+	};
+        static uint8_t param_buffer[PARAMETER_BUFFER_SIZE];
+
+        parameter_flash_init(sector_map, param_buffer, sizeof(param_buffer));
+#endif
 	return result;
 }
 
