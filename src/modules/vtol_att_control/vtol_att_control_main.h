@@ -41,6 +41,7 @@
  * @author Roman Bapst 		<bapstr@ethz.ch>
  * @author Lorenz Meier 	<lm@inf.ethz.ch>
  * @author Thomas Gubler	<thomasgubler@gmail.com>
+ * @author David Vorsin     <davidvorsin@gmail.com>
  *
  */
 #ifndef VTOL_ATT_CONTROL_MAIN_H
@@ -209,6 +210,8 @@ private:
 	void 		vehicle_rates_sp_fw_poll();
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
 	void 		vehicle_airspeed_poll();		// Check for changes in airspeed
+	void		vehicle_attitude_setpoint_poll();  //Check for attitude setpoint updates.
+	void		vehicle_attitude_poll();  //Check for attitude updates.
 	void 		vehicle_battery_poll();			// Check for battery updates
 	void		vehicle_cmd_poll();
 	void 		parameters_update_poll();		//Check if parameters have changed
