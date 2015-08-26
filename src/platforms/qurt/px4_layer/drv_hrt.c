@@ -46,8 +46,6 @@
 
 static struct sq_queue_s	callout_queue;
 
-extern uint64_t get_abs_time_in_us();
-
 /* latency histogram */
 #define LATENCY_BUCKET_COUNT 8
 __EXPORT const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
@@ -83,15 +81,9 @@ static void hrt_unlock(void)
  */
 hrt_abstime hrt_absolute_time(void)
 {
-
-   return get_abs_time_in_us();
-/*
 	struct timespec ts;
-
-	// FIXME - clock_gettime unsupported in QuRT
-	//clock_gettime(CLOCK_MONOTONIC, &ts);
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts);
-*/
 }
 
 /*
@@ -252,7 +244,7 @@ hrt_call_reschedule()
 	hrt_abstime	now = hrt_absolute_time();
 	struct hrt_call	*next = (struct hrt_call *)sq_peek(&callout_queue);
 	hrt_abstime	deadline = now + HRT_INTERVAL_MAX;
-	uint32_t	ticks = USEC2TICK(HRT_INTERVAL_MAX*1000);
+	uint32_t	ticks = USEC2TICK(HRT_INTERVAL_MAX);
 
 	//printf("hrt_call_reschedule\n");
 	
@@ -273,11 +265,11 @@ hrt_call_reschedule()
 		if (next->deadline <= (now + HRT_INTERVAL_MIN)) {
 			//lldbg("pre-expired\n");
 			/* set a minimal deadline so that we call ASAP */
-			ticks = USEC2TICK(HRT_INTERVAL_MIN*1000);
+			ticks = USEC2TICK(HRT_INTERVAL_MIN);
 
 		} else if (next->deadline < deadline) {
 			//lldbg("due soon\n");
-			ticks = USEC2TICK((next->deadline - now)*1000);
+			ticks = USEC2TICK((next->deadline - now));
 		}
 	}
 

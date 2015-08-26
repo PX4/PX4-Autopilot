@@ -406,7 +406,7 @@ PWMSim::task_main()
 				     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 			/* can we mix? */
-			if (_mixers != nullptr) {
+			if (_armed && _mixers != nullptr) {
 				/* do mixing */
 				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
 				outputs.timestamp = hrt_absolute_time();

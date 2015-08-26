@@ -126,10 +126,10 @@ static inline int max(int val1, int val2)
 static void usage(const char *reason)
 {
 	if (reason) {
-		fprintf(stderr, "%s\n", reason);
+		PX4_INFO("%s\n", reason);
 	}
 
-	fprintf(stderr, "usage: position_estimator_inav {start|stop|status} [-v]\n\n");
+	PX4_INFO("usage: position_estimator_inav {start|stop|status} [-v]\n\n");
 	return;
 }
 
