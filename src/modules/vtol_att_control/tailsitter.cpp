@@ -48,13 +48,14 @@
  #define PITCH_TRANSITION_FRONT_P2 -1.05f	// pitch angle to switch to FW
  #define PITCH_TRANSITION_BACK -0.5f	// pitch angle to switch to MC
 
-Tailsitter::Tailsitter (VtolAttitudeControl *att_controller) :
-/**VtolType(att_controller),*/
+Tailsitter::Tailsitter (VtolAttitudeControl *attc) :
 VtolType(attc),
+_airspeed_tot(0.0f),
 _roll_weight_mc(1.0f),
+_pitch_weight_mc(1.0f),
 _yaw_weight_mc(1.0f),
-_min_front_trans_dur(0.5f)
-_airspeed_tot(0),
+_min_front_trans_dur(0.5f),
+
 _loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control-tailsitter")),
 _nonfinite_input_perf(perf_alloc(PC_COUNT, "vtol att control-tailsitter nonfinite input"))
 {
@@ -67,12 +68,12 @@ _nonfinite_input_perf(perf_alloc(PC_COUNT, "vtol att control-tailsitter nonfinit
 
 	_flag_was_in_trans_mode = false;
 
-	_params_handles_tiltrotor.front_trans_dur = param_find("VT_F_TRANS_DUR");
-	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
-	_params_handles_tiltrotor.back_trans_dur = param_find("VT_B_TRANS_DUR");
-	_params_handles_tiltrotor.airspeed_trans = param_find("VT_ARSP_TRANS");
-	_params_handles_tiltrotor.airspeed_blend_start = param_find("VT_ARSP_BLEND");
-	_params_handles_tiltrotor.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
+	_params_handles_tailsitter.front_trans_dur = param_find("VT_F_TRANS_DUR");
+	_params_handles_tailsitter.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
+	_params_handles_tailsitter.back_trans_dur = param_find("VT_B_TRANS_DUR");
+	_params_handles_tailsitter.airspeed_trans = param_find("VT_ARSP_TRANS");
+	_params_handles_tailsitter.airspeed_blend_start = param_find("VT_ARSP_BLEND");
+	_params_handles_tailsitter.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	
 }
 
@@ -82,40 +83,40 @@ Tailsitter::~Tailsitter()
 }
 
 int
-Taulsitter::parameters_update()
+Tailsitter::parameters_update()
 {
 	float v;
 	int l;
 
 	/* vtol duration of a front transition */
-	param_get(_params_handles_tiltrotor.front_trans_dur, &v);
-	_params_tiltrotor.front_trans_dur = math::constrain(v,1.0f,5.0f);
+	param_get(_params_handles_tailsitter.front_trans_dur, &v);
+	_params_tailsitter.front_trans_dur = math::constrain(v,1.0f,5.0f);
 
 	/* vtol front transition phase 2 duration */
-	param_get(_params_handles_tiltrotor.front_trans_dur_p2, &v);
-	_params_tiltrotor.front_trans_dur_p2 = v;
+	param_get(_params_handles_tailsitter.front_trans_dur_p2, &v);
+	_params_tailsitter.front_trans_dur_p2 = v;
 
 	/* vtol duration of a back transition */
-	param_get(_params_handles_tiltrotor.back_trans_dur, &v);
-	_params_tiltrotor.back_trans_dur = math::constrain(v,0.0f,5.0f);
+	param_get(_params_handles_tailsitter.back_trans_dur, &v);
+	_params_tailsitter.back_trans_dur = math::constrain(v,0.0f,5.0f);
 
 	/* vtol airspeed at which it is ok to switch to fw mode */
-	param_get(_params_handles_tiltrotor.airspeed_trans, &v);
-	_params_tiltrotor.airspeed_trans = v;
+	param_get(_params_handles_tailsitter.airspeed_trans, &v);
+	_params_tailsitter.airspeed_trans = v;
 
 	/* vtol airspeed at which we start blending mc/fw controls */
-	param_get(_params_handles_tiltrotor.airspeed_blend_start, &v);
-	_params_tiltrotor.airspeed_blend_start = v;
+	param_get(_params_handles_tailsitter.airspeed_blend_start, &v);
+	_params_tailsitter.airspeed_blend_start = v;
 
 	/* vtol lock elevons in multicopter */
-	param_get(_params_handles_tiltrotor.elevons_mc_lock, &l);
-	_params_tiltrotor.elevons_mc_lock = l;
+	param_get(_params_handles_tailsitter.elevons_mc_lock, &l);
+	_params_tailsitter.elevons_mc_lock = l;
 
 	/* avoid parameters which will lead to zero division in the transition code */
-	_params_tiltrotor.front_trans_dur = math::max(_params_tiltrotor.front_trans_dur, _min_front_trans_dur);
+	_params_tailsitter.front_trans_dur = math::max(_params_tailsitter.front_trans_dur, _min_front_trans_dur);
 
-	if ( _params_tiltrotor.airspeed_trans < _params_tiltrotor.airspeed_blend_start + 1.0f ) {
-		_params_tiltrotor.airspeed_trans = _params_tiltrotor.airspeed_blend_start + 1.0f;
+	if ( _params_tailsitter.airspeed_trans < _params_tailsitter.airspeed_blend_start + 1.0f ) {
+		_params_tailsitter.airspeed_trans = _params_tailsitter.airspeed_blend_start + 1.0f;
 	}
 
 	return OK;
@@ -168,7 +169,7 @@ void Tailsitter::update_vtol_state()
 				break;
 			case TRANSITION_FRONT_P1:
 				// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
-				if (_airspeed->true_airspeed_m_s >= _params_tiltrotor.airspeed_trans && _v_att->pitch <= PITCH_TRANSITION_FRONT_P1) {
+				if ((_airspeed->true_airspeed_m_s >= _params_tailsitter.airspeed_trans) && (_v_att->pitch <= PITCH_TRANSITION_FRONT_P1)) {
 					_vtol_schedule.flight_mode = TRANSITION_FRONT_P2;
 					_vtol_schedule.transition_start = hrt_absolute_time();
 				}
@@ -246,9 +247,9 @@ void Tailsitter::update_transition_state()
 {
 	if (!_flag_was_in_trans_mode) {
 		// save desired heading for transition and last thrust value
-		_yaw_transition = _v_att->yaw;
-		_pitch_transition_start = _v_att->pitch;
-		_throttle_transition_start = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+		_yaw_transition = _v_att_sp->yaw_body;
+		_pitch_transition_start = _v_att_sp->pitch_body;
+		_throttle_transition = _v_att_sp->thrust;
 		_flag_was_in_trans_mode = true;
 	}
 
@@ -257,16 +258,16 @@ void Tailsitter::update_transition_state()
 
 		/** create time dependant pitch angle set point + 0.2 rad overlap over the switch value*/
 		if (_v_att_sp->pitch_body >= (PITCH_TRANSITION_FRONT_P1-0.2f) ) {
-			_v_att_sp->pitch_body = _pitch_transition_start - 
-				fabsf(PITCH_TRANSITION_FRONT_P1 / _params_tiltrotor.front_trans_dur) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.front_trans_dur * 1000000.0f);
+			_v_att_sp->pitch_body = _pitch_transition_start	- (fabsf(PITCH_TRANSITION_FRONT_P1 -_pitch_transition_start) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tailsitter.front_trans_dur * 1000000.0f));
 		}
 
 		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
-		if (_airspeed->true_airspeed_m_s <= _params_tiltrotor.airspeed_trans) ) {
-			_v_att_sp->thrust = _throttle_transition_start + (THROTTLE_TRANSITION_MAX * _throttle_transition_start) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.front_trans_dur * 1000000.0f);
+		if (_airspeed->true_airspeed_m_s <= _params_tailsitter.airspeed_trans) {
+			_v_att_sp->thrust = _throttle_transition + (fabsf(THROTTLE_TRANSITION_MAX * _throttle_transition) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tailsitter.front_trans_dur * 1000000.0f));
+
 			/** if the limit reached stop adding thrust */
-			if (_v_att_sp->thrust >= (THROTTLE_TRANSITION_MAX * _throttle_transition_start) ) {
-				_v_att_sp->thrust = (THROTTLE_TRANSITION_MAX * _throttle_transition_start);
+			if (_v_att_sp->thrust >= ((1.0f + THROTTLE_TRANSITION_MAX) * _throttle_transition) ) {
+				_v_att_sp->thrust = ((1.0f + THROTTLE_TRANSITION_MAX) * _throttle_transition);
 			}
 		}
 
@@ -282,23 +283,21 @@ void Tailsitter::update_transition_state()
 		_mc_roll_weight = 1.0f;
 		_mc_pitch_weight = 1.0f;
 
-
 	} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P2) {
 		// the plane is ready to go into fixed wing mode, smoothly switch the actuator controls, keep pitching down
 
-		/** FW motor is switched */
-		/** is thrust assignment nescesary? */
+		/** no motor  switching */
 
 		/** create time dependant pitch angle set point  + 0.2 rad overlap over the switch value*/
 		if (_v_att_sp->pitch_body >= (PITCH_TRANSITION_FRONT_P2-0.2f) ) {
 			_v_att_sp->pitch_body = PITCH_TRANSITION_FRONT_P1 - 
-				(fabsf(PITCH_TRANSITION_FRONT_P2 - PITCH_TRANSITION_FRONT_P1) / _params_tiltrotor.front_trans_dur_p2) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.front_trans_dur_p2 * 1000000.0f);
+				(fabsf(PITCH_TRANSITION_FRONT_P2 - PITCH_TRANSITION_FRONT_P1) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tailsitter.front_trans_dur_p2 * 1000000.0f));
 		}
 
 		/** start blending MC and FW controls from pitch -45 to pitch -70 for smooth control takeover*/
 		
-		_mc_roll_weight = 1.0f - 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tiltrotor.front_trans_dur_p2 * 1000000.0f);
-		_mc_pitch_weight = 1.0f - 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tiltrotor.front_trans_dur_p2 * 1000000.0f);
+		_mc_roll_weight = 1.0f - 1.0f * ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur_p2 * 1000000.0f));
+		_mc_pitch_weight = 1.0f - 1.0f * ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur_p2 * 1000000.0f));
 		
 		/** keep yaw disabled */
 		_mc_yaw_weight = 0.0f;
@@ -314,19 +313,19 @@ void Tailsitter::update_transition_state()
 		/** create time dependant pitch angle set point  + 0.2 rad overlap over the switch value*/
 		if (_v_att_sp->pitch_body <= (PITCH_TRANSITION_BACK+0.2f) ) {
 			_v_att_sp->pitch_body = _pitch_transition_start + 
-				fabsf(PITCH_TRANSITION_BACK / _params_tiltrotor.back_trans_dur) * 
-				(float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.back_trans_dur * 1000000.0f);
+				fabsf(PITCH_TRANSITION_BACK - _pitch_transition_start) * 
+				(float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tailsitter.back_trans_dur * 1000000.0f);
 		}
 
 		/** smoothly move control weight to MC */
-		_mc_roll_weight = 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.back_trans_dur * 1000000.0f);
-		_mc_pitch_weight = 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tiltrotor.back_trans_dur * 1000000.0f);
+		_mc_roll_weight = 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tailsitter.back_trans_dur * 1000000.0f);
+		_mc_pitch_weight = 1.0f * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tailsitter.back_trans_dur * 1000000.0f);
 		
 		/** keep yaw disabled */
 		_mc_yaw_weight = 0.0f;
 
 		// set throttle value same as started
-		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] = _throttle_transition_start;
+		//_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] = _throttle_transition;
 
 	}
 
@@ -340,7 +339,7 @@ void Tailsitter::update_transition_state()
 	// compute desired attitude and thrust setpoint for the transition
 
 	_v_att_sp->timestamp = hrt_absolute_time();
-	_v_att_sp->roll_body = 0;
+	_v_att_sp->roll_body = 0.0f;
 	_v_att_sp->yaw_body = _yaw_transition;
 	_v_att_sp->R_valid = true;
 
@@ -429,7 +428,7 @@ void Tailsitter::fill_actuator_outputs()
 			} else {
 				// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
 				_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	//roll elevon
-				_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	//pitch elevon
+				_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =0;	//pitch elevon
 			}
 			break;
 		case FIXED_WING:
@@ -455,6 +454,7 @@ void Tailsitter::fill_actuator_outputs()
 			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_mc_in->control[actuator_controls_s::INDEX_YAW] * (1 - _mc_yaw_weight);
 			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = (_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight) + 
 																			(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) *(1 - _mc_pitch_weight);
+			//_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
 			break;
 			case EXTERNAL:
 			// not yet implemented, we are switching brute force at the moment
