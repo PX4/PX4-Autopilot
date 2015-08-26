@@ -1469,7 +1469,7 @@ MulticopterPositionControl::task_main()
 					&& !_vehicle_status.vtol_in_transition) {
 			if (_att_sp_pub != nullptr && _vehicle_status.is_rotary_wing) {
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
-			} else if (_att_sp_pub == nullptr && (_vehicle_status.is_rotary_wing) {
+			} else if (_att_sp_pub == nullptr && (_vehicle_status.is_rotary_wing)) {
 				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 			}
 		}
