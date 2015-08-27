@@ -57,6 +57,7 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
+MODULES 	+= modules/controllib
 
 #
 # QuRT port

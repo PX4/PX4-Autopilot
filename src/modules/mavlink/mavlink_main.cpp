@@ -1411,7 +1411,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_datarate = 0;
 	_mode = MAVLINK_MODE_NORMAL;
 
-#ifndef __PX4_POSIX
+#ifdef __PX4_NUTTX
 	/* the NuttX optarg handler does not
 	 * ignore argv[0] like the POSIX handler
 	 * does, nor does it deal with non-flag

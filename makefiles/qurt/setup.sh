@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+# Copyright (c) 2015 Mark Charlebois. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,17 +29,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+# ###########################################################################
 
 #
-# POSIX platform dependent files
+# This file is required to modify the PX4 project so it can be build with
+# the Hexagon toolchain.
+#
+# 1. Downgrade Eigen to 3.2 because the C++11 features of latest version
+#    are not supported
+# 2. Patch Eigen because the Hexagon toolchain complex.h defines "I"
 #
 
-SRCS		 = 	\
-			px4_posix_impl.cpp \
-			px4_posix_tasks.cpp  \
-			lib_crc32.c \
-			drv_hrt.c \
-			px4_log.c
+cd $1
+cd src/lib/eigen/
+git checkout .
+git checkout e7850ed81f9c469e02df496ef09ae32ec0379b71
+patch -p1 < ../../../makefiles/qurt/qurt_eigen.patch 
 
-MAXOPTIMIZATION	 = -Os

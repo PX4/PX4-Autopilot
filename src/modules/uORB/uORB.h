@@ -338,7 +338,7 @@ extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
  *			priority, independent of the startup order of the associated publishers.
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
-extern int	orb_priority(int handle, int *priority) __EXPORT;
+extern int	orb_priority(int handle, int32_t *priority) __EXPORT;
 
 /**
  * Set the minimum interval between which updates are seen for a subscription.

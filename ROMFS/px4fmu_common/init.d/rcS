@@ -110,7 +110,7 @@ then
 	if param compare RC_MAP_ROLL 0
 	then
 		# So this is a default setup,
-		# now lets find out if channel 3
+		# now lets find out if channel 1
 		# is calibrated
 		if param compare RC1_MIN 1000
 		then
@@ -126,14 +126,14 @@ then
 	if param compare RC_MAP_PITCH 0
 	then
 		# So this is a default setup,
-		# now lets find out if channel 3
+		# now lets find out if channel 2
 		# is calibrated
 		if param compare RC2_MIN 1000
 		then
 			# This is default, do nothing
 		else
 			# Set old default
-			param set RC_MAP_ROLL 2
+			param set RC_MAP_PITCH 2
 		fi
 	fi
 
@@ -142,14 +142,14 @@ then
 	if param compare RC_MAP_YAW 0
 	then
 		# So this is a default setup,
-		# now lets find out if channel 3
+		# now lets find out if channel 4
 		# is calibrated
 		if param compare RC4_MIN 1000
 		then
 			# This is default, do nothing
 		else
 			# Set old default
-			param set RC_MAP_ROLL 4
+			param set RC_MAP_YAW 4
 		fi
 	fi
 

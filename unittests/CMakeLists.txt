@@ -75,7 +75,7 @@ endfunction()
 
 add_library( px4_platform 
 #                           ${PX_SRC}/platforms/common/px4_getopt.c
-                           ${PX_SRC}/platforms/common/px4_log.c
+                           ${PX_SRC}/platforms/posix/px4_layer/px4_log.c
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
                            ${PX_SRC}/platforms/posix/work_queue/work_lock.c
