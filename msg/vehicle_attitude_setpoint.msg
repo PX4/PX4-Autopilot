@@ -21,3 +21,5 @@ float32 thrust					# Thrust in Newton the power system should generate
 bool roll_reset_integral			# Reset roll integral part (navigation logic change)
 bool pitch_reset_integral			# Reset pitch integral part (navigation logic change)
 bool yaw_reset_integral				# Reset yaw integral part (navigation logic change)
+
+TOPICS vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint

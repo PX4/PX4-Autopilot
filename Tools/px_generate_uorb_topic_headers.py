@@ -193,7 +193,13 @@ if __name__ == "__main__":
         parser.add_argument('-p', dest='prefix', default='',
                             help='string added as prefix to the output file '
                             ' name when converting directories')
+        # temporary solution to skip multiplatform uORB topics
+        parser.add_argument('-c', dest='generate_source', action='store_true', default=False,
+                            help='generate source files also')
         args = parser.parse_args()
+
+        if args.generate_source:
+            msg_template_map['msg.cpp.template'] = '@NAME@.cpp'
 
         if args.file is not None:
                 for f in args.file:
