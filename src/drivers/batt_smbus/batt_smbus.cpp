@@ -90,13 +90,15 @@
 #define BATT_SMBUS_DESIGN_VOLTAGE	0x19	///< design voltage register
 #define BATT_SMBUS_SERIALNUM		0x1c	///< serial number register
 #define BATT_SMBUS_MANUFACTURE_NAME	0x20	///< manufacturer name
+#define BATT_SMBUS_MANUFACTURER_DATA		0x23	///< manufacturer data
 #define BATT_SMBUS_MANUFACTURE_INFO	0x25	///< cell voltage register
 #define BATT_SMBUS_CURRENT              0x2a	///< current register
-#define BATT_SMBUS_MEASUREMENT_INTERVAL_MS	(1000000 / 10)	///< time in microseconds, measure at 10Hz
-#define BATT_SMBUS_TIMEOUT_MS           10000000	///< timeout looking for battery 10seconds after startup
+#define BATT_SMBUS_MEASUREMENT_INTERVAL_US	(1000000 / 10)	///< time in microseconds, measure at 10Hz
+#define BATT_SMBUS_TIMEOUT_US			10000000	///< timeout looking for battery 10seconds after startup
+
+#define BATT_SMBUS_BUTTON_DEBOUNCE_MS	300		///< button holds longer than this time will cause a power off event
 
 #define BATT_SMBUS_MANUFACTURER_ACCESS	0x00
-#define BATT_SMBUS_MANUFACTURER_DATA	0x23
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS    0x44
 
 #define BATT_SMBUS_PEC_POLYNOMIAL	0x07	///< Polynomial for calculating PEC
@@ -208,6 +210,7 @@ private:
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
 	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
 	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
+	uint8_t			_button_press_counts; ///< count of button presses detected
 };
 
 namespace
@@ -220,14 +223,15 @@ void batt_smbus_usage();
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
-	I2C("batt_smbus", BATT_SMBUS_DEVICE_PATH, bus, batt_smbus_addr, 400000),
+	I2C("batt_smbus", BATT_SMBUS0_DEVICE_PATH, bus, batt_smbus_addr, 100000),
 	_enabled(false),
 	_work{},
 	_reports(nullptr),
-	_batt_topic(nullptr),
+	_batt_topic(-1),
 	_batt_orb_id(nullptr),
 	_start_time(0),
-	_batt_capacity(0)
+	_batt_capacity(0),
+	_button_press_counts(0)
 {
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -318,8 +322,8 @@ BATT_SMBUS::test()
 
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
-				warnx("V=%4.2f C=%4.2f DismAh=%4.2f Cap:%d", (float)status.voltage_v, (float)status.current_a,
-				      (float)status.discharged_mah, (int)_batt_capacity);
+				warnx("V=%4.2f C=%4.2f DismAh=%4.2f Cap:%d Shutdown:%d", (double)status.voltage_v, (double)status.current_a,
+				      (double)status.discharged_mah, (int)_batt_capacity, (int)status.is_powering_off);
 			}
 		}
 
@@ -402,7 +406,7 @@ BATT_SMBUS::cycle()
 	uint64_t now = hrt_absolute_time();
 
 	// exit without rescheduling if we have failed to find a battery after 10 seconds
-	if (!_enabled && (now - _start_time > BATT_SMBUS_TIMEOUT_MS)) {
+	if (!_enabled && (now - _start_time > BATT_SMBUS_TIMEOUT_US)) {
 		warnx("did not find smart battery");
 		return;
 	}
@@ -424,7 +428,7 @@ BATT_SMBUS::cycle()
 		new_report.voltage_v = ((float)tmp) / 1000.0f;
 
 		// read current
-		uint8_t buff[4];
+		uint8_t buff[6];
 
 		if (read_block(BATT_SMBUS_CURRENT, buff, 4, false) == 4) {
 			new_report.current_a = -(float)((int32_t)((uint32_t)buff[3] << 24 | (uint32_t)buff[2] << 16 | (uint32_t)buff[1] << 8 |
@@ -447,14 +451,35 @@ BATT_SMBUS::cycle()
 			}
 		}
 
+		// read the button press indicator
+        if (read_block(BATT_SMBUS_MANUFACTURER_DATA, buff, 6, false) == 6) {
+			bool pressed = (buff[1] >> 3) & 0x01;
+
+			if(_button_press_counts >= ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
+				// battery will power off
+				new_report.is_powering_off = true;
+				// warn only once
+				if(_button_press_counts++ == ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
+					warnx("system is shutting down NOW...");
+				}
+			} else if(pressed) {
+				// battery will power off if the button is held
+				_button_press_counts++;
+			} else {
+				// button released early, reset counters
+				_button_press_counts = 0;
+				new_report.is_powering_off = false;
+			}
+		}
+
 		// publish to orb
-		if (_batt_topic != nullptr) {
+		if (_batt_topic != -1) {
 			orb_publish(_batt_orb_id, _batt_topic, &new_report);
 
 		} else {
 			_batt_topic = orb_advertise(_batt_orb_id, &new_report);
 
-			if (_batt_topic == nullptr) {
+			if (_batt_topic < 0) {
 				errx(1, "ADVERT FAIL");
 			}
 		}
@@ -474,7 +499,7 @@ BATT_SMBUS::cycle()
 
 	// schedule a fresh cycle call when the measurement is done
 	work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, this,
-		   USEC2TICK(BATT_SMBUS_MEASUREMENT_INTERVAL_MS));
+		   USEC2TICK(BATT_SMBUS_MEASUREMENT_INTERVAL_US));
 }
 
 int
