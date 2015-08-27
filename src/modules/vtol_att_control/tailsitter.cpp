@@ -259,6 +259,10 @@ void Tailsitter::update_transition_state()
 		/** create time dependant pitch angle set point + 0.2 rad overlap over the switch value*/
 		if (_v_att_sp->pitch_body >= (PITCH_TRANSITION_FRONT_P1-0.2f) ) {
 			_v_att_sp->pitch_body = _pitch_transition_start	- (fabsf(PITCH_TRANSITION_FRONT_P1 -_pitch_transition_start) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tailsitter.front_trans_dur * 1000000.0f));
+
+			if (_v_att_sp->pitch_body <= (PITCH_TRANSITION_FRONT_P1-0.2f) ) {
+				_v_att_sp->pitch_body = PITCH_TRANSITION_FRONT_P1-0.2f;
+			}
 		}
 
 		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
