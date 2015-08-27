@@ -12,7 +12,6 @@
 .DS_Store
 .gdbinit
 .project
-.settings
 .swp
 .~lock.*
 Archives/*
