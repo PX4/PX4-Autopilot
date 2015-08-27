@@ -44,6 +44,6 @@ endif
 ifneq ($(PX4_TARGET_OS),qurt)
 endif
 
-MAXOPTIMIZATION	 = -O0
+MAXOPTIMIZATION	 = -Os
 
 EXTRACFLAGS	= -Wno-sign-compare
