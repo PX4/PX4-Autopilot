@@ -98,6 +98,12 @@ struct BSTAttitude {
 	int16_t yaw;
 };
 
+struct BSTBattery {
+	uint16_t voltage;
+	uint16_t current;
+	uint8_t capacity[3];
+};
+
 #pragma pack(pop)
 
 class BST : public device::I2C {
@@ -272,20 +278,36 @@ void BST::cycle() {
 		}
 
 		updated = false;
+		orb_check(_battery_sub, &updated);
+		if (updated) {
+			battery_status_s batt;
+			orb_copy(ORB_ID(battery_status), _battery_sub, &batt);
+			BSTPacket<BSTBattery> bst_batt = {};
+			bst_batt.type = 0x08;
+			bst_batt.payload.voltage = swap_uint16(batt.voltage_v * 10.0f);
+			bst_batt.payload.current = swap_uint16(batt.current_a * 10.0f);
+			uint32_t discharged = batt.discharged_mah;
+			bst_batt.payload.capacity[0] = static_cast<uint8_t>(discharged >> 16);
+			bst_batt.payload.capacity[1] = static_cast<uint8_t>(discharged >> 8);
+			bst_batt.payload.capacity[2] = static_cast<uint8_t>(discharged);
+			send_packet(bst_batt);
+		}
+
+		updated = false;
 		orb_check(_gps_sub, &updated);
 		if (updated) {
 			vehicle_gps_position_s gps;
 			orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);
 			if (gps.fix_type >= 3 && gps.eph < 50.0f) {
-				BSTPacket<BSTGPSPosition> gps_pos = {};
-				gps_pos.type = 0x02;
-				gps_pos.payload.lat = swap_int32(gps.lat);
-				gps_pos.payload.lon = swap_int32(gps.lon);
-				gps_pos.payload.alt = swap_int16(gps.alt / 1000 + 1000);
-				gps_pos.payload.gs = swap_int16(gps.vel_m_s * 360.0f);
-				gps_pos.payload.heading = swap_int16(gps.cog_rad * 18000.0f / M_PI_F);
-				gps_pos.payload.sats = gps.satellites_used;
-				send_packet(gps_pos);
+				BSTPacket<BSTGPSPosition> bst_gps = {};
+				bst_gps.type = 0x02;
+				bst_gps.payload.lat = swap_int32(gps.lat);
+				bst_gps.payload.lon = swap_int32(gps.lon);
+				bst_gps.payload.alt = swap_int16(gps.alt / 1000 + 1000);
+				bst_gps.payload.gs = swap_int16(gps.vel_m_s * 360.0f);
+				bst_gps.payload.heading = swap_int16(gps.cog_rad * 18000.0f / M_PI_F);
+				bst_gps.payload.sats = gps.satellites_used;
+				send_packet(bst_gps);
 			}
 		}
 
