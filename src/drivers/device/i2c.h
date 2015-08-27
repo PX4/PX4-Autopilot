@@ -41,10 +41,8 @@
 #define _DEVICE_I2C_H
 
 #include "device.h"
-#include "visibility.h"
 
 #include <nuttx/i2c.h>
-//#include <nuttx/include/sys/types.h>
 
 namespace device __EXPORT
 {
