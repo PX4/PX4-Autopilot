@@ -68,6 +68,9 @@ if spec.short_name.startswith("actuator_controls"):
 
 #include "@(topic_name).h"
 
+@# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
+char * __orb_@(topic_name)_fields = "@(";".join(["%s %s" % field for field in spec.fields()]))";
+
 @[for topic in spec.topics]@
 ORB_DEFINE_EXT(@topic, struct @uorb_struct, &@uorb_pack_func);
 @[end for]

@@ -80,7 +80,6 @@ for field in spec.parsed_fields():
       (package, name) = genmsg.names.package_resource_name(field.base_type)
       package = package or spec.package # convert '' to package
       print('#include <uORB/topics/%s.h>'%(name))
-
 }@
 
 @# Constants c style
@@ -145,6 +144,9 @@ def print_field_def(field):
   print('\t%s%s%s %s%s;'%(type_prefix, type_px4, type_appendix, field.name, array_size))
 
 }
+
+extern char * __orb_@(topic_name)_fields;
+
 #ifdef __cplusplus
 @#class @(uorb_struct) {
 struct __EXPORT @(uorb_struct) {
