@@ -1,5 +1,7 @@
 import sys
 import re
+global default_var
+default_var = {}
 
 class ParameterGroup(object):
     """
@@ -98,6 +100,7 @@ class SourceParser(object):
     re_comment_end = re.compile(r'(.*?)\s*\*\/')
     re_parameter_definition = re.compile(r'PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*,\s*([^ ,\)]+)\s*\)\s*;')
     re_px4_parameter_definition = re.compile(r'PX4_PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*\)\s*;')
+    re_px4_param_default_definition = re.compile(r'#define\s*PARAM_([A-Z_][A-Z0-9_]*)\s*([^ ,\)]+)\s*')
     re_cut_type_specifier = re.compile(r'[a-z]+$')
     re_is_a_number = re.compile(r'^-?[0-9\.]')
     re_remove_dots = re.compile(r'\.+$')
@@ -113,13 +116,6 @@ class SourceParser(object):
 
     def __init__(self):
         self.param_groups = {}
-
-    def GetSupportedExtensions(self):
-        """
-        Returns list of supported file extensions that can be parsed by this
-        parser.
-        """
-        return [".cpp", ".c"]
 
     def Parse(self, contents):
         """
@@ -193,6 +189,10 @@ class SourceParser(object):
                 name = None
                 defval = ""
                 # Non-empty line outside the comment
+                m = self.re_px4_param_default_definition.match(line)
+                if m:
+                    name_m, defval_m = m.group(1,2)
+                    default_var[name_m] = defval_m
                 m = self.re_parameter_definition.match(line)
                 if m:
                     tp, name, defval = m.group(1, 2, 3)
@@ -200,6 +200,8 @@ class SourceParser(object):
                     m = self.re_px4_parameter_definition.match(line)
                     if m:
                         tp, name = m.group(1, 2)
+                        if default_var.has_key(name+'_DEFAULT'):
+                            defval = default_var[name+'_DEFAULT']
                 if tp is not None:
                     # Remove trailing type specifier from numbers: 0.1f => 0.1
                     if defval != "" and self.re_is_a_number.match(defval):
