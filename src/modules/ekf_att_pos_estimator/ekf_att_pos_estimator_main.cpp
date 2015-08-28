@@ -932,9 +932,14 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 
 	const float dtLastGoodGPS = static_cast<float>(hrt_absolute_time() - _previousGPSTimestamp) / 1e6f;
 
-	if (_gps.timestamp_position == 0 || (dtLastGoodGPS >= POS_RESET_THRESHOLD)) {
+	if (!_local_pos.xy_global ||
+	    !_local_pos.v_xy_valid ||
+		_gps.timestamp_position == 0 ||
+		(dtLastGoodGPS >= POS_RESET_THRESHOLD)) {
+
 		_global_pos.eph = EPH_LARGE_VALUE;
 		_global_pos.epv = EPV_LARGE_VALUE;
+
 	} else {
 		_global_pos.eph = _gps.eph;
 		_global_pos.epv = _gps.epv;
