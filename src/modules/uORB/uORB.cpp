@@ -270,7 +270,7 @@ int  orb_exists(const struct orb_metadata *meta, int instance)
  *      priority, independent of the startup order of the associated publishers.
  * @return    OK on success, ERROR otherwise with errno set accordingly.
  */
-int  orb_priority(int handle, int *priority)
+int  orb_priority(int handle, int32_t *priority)
 {
 	return uORB::Manager::get_instance()->orb_priority(handle, priority);
 }

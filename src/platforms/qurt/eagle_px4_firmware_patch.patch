@@ -45,12 +45,6 @@ index 4ba2f98..a7b664e 100644
  struct mavlink_logmessage {
  	char text[MAVLINK_LOG_MAXLEN + 1];
  	unsigned char severity;
-diff --git a/src/lib/eigen b/src/lib/eigen
---- a/src/lib/eigen
-+++ b/src/lib/eigen
-@@ -1 +1 @@
--Subproject commit e7850ed81f9c469e02df496ef09ae32ec0379b71
-+Subproject commit e7850ed81f9c469e02df496ef09ae32ec0379b71-dirty
 diff --git a/src/modules/commander/PreflightCheck.cpp b/src/modules/commander/PreflightCheck.cpp
 index bbf5f8e..50c7d8b 100644
 --- a/src/modules/commander/PreflightCheck.cpp
