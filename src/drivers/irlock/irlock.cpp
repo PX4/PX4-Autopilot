@@ -110,7 +110,7 @@ private:
 	int 		read_device_block(struct irlock_s *block);
 
 	/** internal variables **/
-	RingBuffer *_reports;
+	ringbuffer::RingBuffer *_reports;
 	bool _sensor_ok;
 	work_s _work;
 	uint32_t _read_failures;
@@ -158,7 +158,7 @@ int IRLOCK::init()
 	}
 
 	/** allocate buffer storing values read from sensor **/
-	_reports = new RingBuffer(IRLOCK_OBJECTS_MAX, sizeof(struct irlock_s));
+	_reports = new ringbuffer::RingBuffer(IRLOCK_OBJECTS_MAX, sizeof(struct irlock_s));
 
 	if (_reports == nullptr) {
 		return ENOTTY;
