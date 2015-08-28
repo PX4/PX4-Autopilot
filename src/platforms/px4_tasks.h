@@ -117,5 +117,8 @@ __EXPORT void px4_task_exit(int ret);
 /** Show a list of running tasks **/
 __EXPORT void px4_show_tasks(void);
 
+/** See if a task is running **/
+__EXPORT bool px4_task_is_running(const char *taskname);
+
 __END_DECLS
 
