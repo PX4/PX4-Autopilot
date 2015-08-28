@@ -624,26 +624,29 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 {
 	/* select onboard/offboard mission */
 	int *mission_index_ptr;
-	struct mission_s *mission;
 	dm_item_t dm_item;
-	int mission_index_next;
+
+	struct mission_s *mission = (onboard) ? &_onboard_mission : &_offboard_mission;
+	int mission_index_next = (onboard) ? _current_onboard_mission_index : _current_offboard_mission_index;
+
+	/* do not work on empty missions */
+	if (mission->count == 0) {
+		return false;
+	}
+
+	/* move to next item if there is one */
+	if (mission_index_next < ((int)mission->count - 1)) {
+		mission_index_next++;
+	}
 
 	if (onboard) {
 		/* onboard mission */
-		mission_index_next = _current_onboard_mission_index + 1;
 		mission_index_ptr = is_current ? &_current_onboard_mission_index : &mission_index_next;
-
-		mission = &_onboard_mission;
-
 		dm_item = DM_KEY_WAYPOINTS_ONBOARD;
 
 	} else {
 		/* offboard mission */
-		mission_index_next = _current_offboard_mission_index + 1;
 		mission_index_ptr = is_current ? &_current_offboard_mission_index : &mission_index_next;
-
-		mission = &_offboard_mission;
-
 		dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 	}
 
@@ -653,7 +656,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds */
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
+			mavlink_and_console_log_critical(_navigator->get_mavlink_fd(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
 			return false;
 		}
 
@@ -665,7 +668,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 		/* read mission item from datamanager */
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			mavlink_log_critical(_navigator->get_mavlink_fd(),
+			mavlink_and_console_log_critical(_navigator->get_mavlink_fd(),
 			                     "ERROR waypoint could not be read");
 			return false;
 		}
