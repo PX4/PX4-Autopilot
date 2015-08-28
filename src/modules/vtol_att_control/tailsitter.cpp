@@ -83,7 +83,7 @@ Tailsitter::~Tailsitter()
 }
 
 int
-Tailsitter::parameters_update()
+Trailsitter::parameters_update()
 {
 	float v;
 	int l;
