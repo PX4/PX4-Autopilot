@@ -297,7 +297,7 @@ int commander_main(int argc, char *argv[])
 					     SCHED_PRIORITY_MAX - 40,
 					     3400,
 					     commander_thread_main,
-					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+					     (char * const *)&argv[0]);
 
 		unsigned constexpr max_wait_us = 1000000;
 		unsigned constexpr max_wait_steps = 2000;
@@ -362,7 +362,7 @@ int commander_main(int argc, char *argv[])
 
 			if (calib_ret) {
 				warnx("calibration failed, exiting.");
-				return 0;
+				return 1;
 			} else {
 				return 0;
 			}
@@ -391,7 +391,7 @@ int commander_main(int argc, char *argv[])
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		arm_disarm(false, mavlink_fd_local, "command line");
 		px4_close(mavlink_fd_local);
-                return 0;
+		return 0;
 	}
 
 	usage("unrecognized command");
@@ -877,6 +877,23 @@ int commander_thread_main(int argc, char *argv[])
 	bool arm_tune_played = false;
 	bool was_armed = false;
 
+	bool startup_in_hil = false;
+
+#ifdef __PX4_NUTTX
+	/* NuttX indicates 3 arguments when only 2 are present */
+	argc -= 1;
+#endif
+
+	if (argc > 2) {
+		if (!strcmp(argv[2],"-hil")) {
+			startup_in_hil = true;
+		} else {
+			PX4_ERR("Argument %s not supported.", argv[2]);
+			PX4_ERR("COMMANDER NOT STARTED");
+			thread_should_exit = true;
+		}
+	}
+
 	/* set parameters */
 	param_t _param_sys_type = param_find("MAV_TYPE");
 	param_t _param_system_id = param_find("MAV_SYS_ID");
@@ -958,7 +975,12 @@ int commander_thread_main(int argc, char *argv[])
 	status.main_state =vehicle_status_s::MAIN_STATE_MANUAL;
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
-	status.hil_state = vehicle_status_s::HIL_STATE_OFF;
+
+	if(startup_in_hil) {
+		status.hil_state = vehicle_status_s::HIL_STATE_ON;
+	} else {
+		status.hil_state = vehicle_status_s::HIL_STATE_OFF;
+	}
 	status.failsafe = false;
 
 	/* neither manual nor offboard control commands have been received */
@@ -2222,7 +2244,6 @@ int commander_thread_main(int argc, char *argv[])
 			arm_tune_played = false;
 		}
 
-		//fflush(stdout);
 		counter++;
 
 		int blink_state = blink_msg_state();

@@ -38,6 +38,24 @@
 
 #pragma once
 
+#define _PX4_LOG_LEVEL_ALWAYS		0
+#define _PX4_LOG_LEVEL_DEBUG		1
+#define _PX4_LOG_LEVEL_WARN		2
+#define _PX4_LOG_LEVEL_ERROR		3
+#define _PX4_LOG_LEVEL_PANIC		4
+
+// Used to silence unused variable warning
+static inline void do_nothing(int level, ...)
+{
+	(void)level;
+}
+
+/****************************************************************************
+ * __px4_log_omit:
+ * Compile out the message
+ ****************************************************************************/
+#define __px4_log_omit(level, FMT, ...)   do_nothing(level, ##__VA_ARGS__)
+
 #if defined(__PX4_ROS)
 
 #include <ros/console.h>
@@ -46,6 +64,54 @@
 #define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
 #define PX4_INFO(...) 	ROS_WARN(__VA_ARGS__)
 #define PX4_DEBUG(...) 	
+
+#elif defined(__PX4_QURT)
+#include "qurt_log.h"
+/****************************************************************************
+ * Messages that should never be filtered or compiled out
+ ****************************************************************************/
+#define PX4_LOG(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_ALWAYS, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_INFO(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_ALWAYS, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+
+#if defined(TRACE_BUILD)
+/****************************************************************************
+ * Extremely Verbose settings for a Trace build
+ ****************************************************************************/
+#define PX4_PANIC(FMT, ...)	qurt_log(_PX4_LOG_LEVEL_PANIC, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	qurt_log(_PX4_LOG_LEVEL_ERROR, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_WARN,  __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_DEBUG(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_DEBUG, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+
+#elif defined(DEBUG_BUILD)
+/****************************************************************************
+ * Verbose settings for a Debug build
+ ****************************************************************************/
+#define PX4_PANIC(FMT, ...)	qurt_log(_PX4_LOG_LEVEL_PANIC, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	qurt_log(_PX4_LOG_LEVEL_ERROR, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_WARN, __FILENAME__, __LINE__,  FMT, ##__VA_ARGS__)
+#define PX4_DEBUG(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_DEBUG, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+
+#elif defined(RELEASE_BUILD)
+/****************************************************************************
+ * Non-verbose settings for a Release build to minimize strings in build
+ ****************************************************************************/
+#define PX4_PANIC(FMT, ...)	qurt_log(_PX4_LOG_LEVEL_PANIC, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	qurt_log(_PX4_LOG_LEVEL_ERROR, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_WARN, FMT, ##__VA_ARGS__)
+#define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
+
+#else
+/****************************************************************************
+ * Medium verbose settings for a default build
+ ****************************************************************************/
+#define PX4_PANIC(FMT, ...)	qurt_log(_PX4_LOG_LEVEL_PANIC, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	qurt_log(_PX4_LOG_LEVEL_ERROR, __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_WARN,  __FILENAME__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
+
+#endif
+#define PX4_LOG_NAMED(name, FMT, ...) 	qurt_log( _PX4_LOG_LEVEL_ALWAYS, __FILENAME__, __LINE__, "%s " FMT, name, ##__VA_ARGS__)
+#define PX4_LOG_NAMED_COND(name, cond, FMT, ...) if( cond ) qurt_log( _PX4_LOG_LEVEL_ALWAYS, __FILENAME__, __LINE__, "%s " FMT, name,  ##__VA_ARGS__)
 
 #else
 
@@ -58,18 +124,6 @@
 
 __BEGIN_DECLS
 __EXPORT extern uint64_t hrt_absolute_time(void);
-
-// Used to silence unused variable warning
-static inline void do_nothing(int level, ...)
-{
-	(void)level;
-}
-
-#define _PX4_LOG_LEVEL_ALWAYS		0
-#define _PX4_LOG_LEVEL_PANIC		1
-#define _PX4_LOG_LEVEL_ERROR		2
-#define _PX4_LOG_LEVEL_WARN		3
-#define _PX4_LOG_LEVEL_DEBUG		4
 
 __EXPORT extern const char *__px4_log_level_str[5];
 __EXPORT extern int __px4_log_level_current;
@@ -107,11 +161,22 @@ __EXPORT extern int __px4_log_level_current;
  * Use these to implement the code level macros below
  ****************************************************************************/
 
+
 /****************************************************************************
- * __px4_log_omit:
- * Compile out the message
+ * __px4_log_named_cond:
+ * Convert a message in the form:
+ * 	PX4_LOG_COND(__dbg_enabled, "val is %d", val);
+ * to
+ * 	printf("%-5s val is %d\n", "LOG", val);
+ * if the first arg/condition is true.
  ****************************************************************************/
-#define __px4_log_omit(level, FMT, ...)   do_nothing(level, ##__VA_ARGS__)
+#define __px4_log_named_cond(name, cond, FMT, ...) \
+	__px4__log_startcond(cond)\
+	"%s " \
+	FMT\
+	__px4__log_end_fmt \
+	,name, ##__VA_ARGS__\
+	__px4__log_endline
 
 /****************************************************************************
  * __px4_log_named_cond:

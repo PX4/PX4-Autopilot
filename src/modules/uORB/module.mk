@@ -58,16 +58,12 @@ ifeq ($(PX4_TARGET_OS),posix-arm)
 SRCS 			+= uORBTest_UnitTest.cpp
 endif
 
-ifneq ($(PX4_TARGET_OS),qurt)
-SRCS 			+= Publication.cpp \
-			   Subscription.cpp
-endif
-
-SRCS	+=    uORBUtils.cpp \
+SRCS	+=	  uORBUtils.cpp \
 			  uORB.cpp \
-			  uORBMain.cpp 
-
-SRCS	+= $(wildcard $(SELF_DIR)/topics/*.cpp)
-#include $(SELF_DIR)/topics/topics.mk
+			  uORBMain.cpp \
+			  Publication.cpp \
+			  Subscription.cpp
+			  
+SRCS	+= $(wildcard $(SELF_DIR)topics/*.cpp)
 
 MAXOPTIMIZATION	 = -Os

@@ -324,6 +324,13 @@ public:
 	static const char *devList(unsigned int *next);
 	static const char *topicList(unsigned int *next);
 
+	/**
+	 * Get the device name.
+	 *
+	 * @return the file system string of the device handle
+	 */
+	const char*	get_devname() { return _devname; }
+
 protected:
 
 	int register_driver(const char *name, void *data);
@@ -405,13 +412,6 @@ protected:
 	 * @return		  OK on success, -errno otherwise
 	 */
 	virtual int unregister_class_devname(const char *class_devname, unsigned class_instance);
-
-	/**
-	 * Get the device name.
-	 *
-	 * @return the file system string of the device handle
-	 */
-	const char*	get_devname() { return _devname; }
 
 	bool		_pub_blocked;		/**< true if publishing should be blocked */
 

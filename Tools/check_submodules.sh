@@ -73,20 +73,27 @@ fi
 
 if [ -d src/lib/eigen ]
 then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i eigen | grep "<")
-	if [ -z "$STATUSRETVAL" ]
+	echo "ARG = $1"
+	if [ $1 = "qurt" ]
 	then
-		echo "Checked Eigen submodule, correct version found"
+		# QuRT needs to use Eigen 3.2 because the toolchain doews not support C++11
+		STATUSRETVAL=$(true)
 	else
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
-		echo ""
-		echo "eigen sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
-		exit 1
+		STATUSRETVAL=$(git submodule summary | grep -A20 -i eigen | grep "<")
+		if [ -z "$STATUSRETVAL" ]
+		then
+			echo "Checked Eigen submodule, correct version found"
+		else
+			echo ""
+			echo ""
+			echo "New commits required:"
+			echo "$(git submodule summary)"
+			echo ""
+			echo ""
+			echo "eigen sub repo not at correct version. Try 'git submodule update'"
+			echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
+			exit 1
+		fi
 	fi
 else
 	git submodule update --init --recursive
