@@ -115,8 +115,8 @@ protected:
 	virtual int			probe();
 
 private:
-	float				_min_distance;
-	float				_max_distance;
+	float				_min_distance = 0;
+	float				_max_distance = 0;
 	work_s				_work;
 	int				_vehicle_command_sub;
 	int				_att_sub;
@@ -125,8 +125,8 @@ private:
 	bool				_attitude_compensation_pitch;
 	bool				_attitude_compensation_yaw;
 	bool				_initialized;
-	bool				_control_cmd_set;
-	bool				_config_cmd_set;
+	bool				_control_cmd_set = 0;
+	bool				_config_cmd_set = 0;
 
 	orb_advert_t			_actuator_controls_2_topic;
 
