@@ -377,7 +377,7 @@ perf_reset(perf_counter_t handle)
 void
 perf_print_counter(perf_counter_t handle)
 {
-	perf_print_counter_fd(0, handle);
+	perf_print_counter_fd(1, handle);
 }
 
 void

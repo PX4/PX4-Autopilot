@@ -375,7 +375,7 @@ public:
 			printf("[ ");
 
 			for (unsigned int j = 0; j < N; j++)
-				printf("%.3f\t", data[i][j]);
+				printf("%.3f\t", (double)data[i][j]);
 
 			printf(" ]\n");
 		}
