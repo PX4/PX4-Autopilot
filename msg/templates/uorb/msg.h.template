@@ -145,7 +145,7 @@ def print_field_def(field):
 
 }
 
-extern char * __orb_@(topic_name)_fields;
+extern const char * __orb_@(topic_name)_fields;
 
 #ifdef __cplusplus
 @#class @(uorb_struct) {
@@ -207,19 +207,7 @@ for constant in spec.constants:
 };
 #pragma pack(pop)
 
-void pack_@(topic_name)(void *in_buffer, void *out_buffer)
-{
-   struct @(uorb_struct)* s_buffer = (struct @(uorb_struct) *) in_buffer;
-   struct @(uorb_struct)_packed *packed_s_buffer = (struct @(uorb_struct)_packed *) out_buffer;
-@# for each field: memcpy(&packed_s_buffer->foo, &s_buffer->foo, sizeof(s_buffer->foo));
-@{
-memexpr = "   memcpy(&packed_s_buffer->{field}, &s_buffer->{field}, sizeof(s_buffer->{field}));"
-# loop over all fields and print the type and name
-for each_field in spec.parsed_fields():
-  if not each_field.is_header:
-    print(memexpr.format(field=each_field.name))
-}@
-}
+void pack_@(topic_name)(void *in_buffer, void *out_buffer);
 
 /**
  * @@}

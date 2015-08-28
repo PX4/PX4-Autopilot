@@ -37,6 +37,32 @@
 #include <px4_time.h>
 #include <stdio.h>
 
+void pack_orb_test(void *in_buffer, void *out_buffer)
+{
+    struct orb_test* s_buffer = (struct orb_test *) in_buffer;
+    struct orb_test_packed *packed_s_buffer = (struct orb_test_packed *) out_buffer;
+    memcpy(&packed_s_buffer->val, &s_buffer->val, sizeof(s_buffer->val));
+    memcpy(&packed_s_buffer->time, &s_buffer->time, sizeof(s_buffer->time));
+}
+
+void pack_orb_test_medium(void *in_buffer, void *out_buffer)
+{
+    struct orb_test_medium* s_buffer = (struct orb_test_medium *) in_buffer;
+    struct orb_test_medium_packed *packed_s_buffer = (struct orb_test_medium_packed *) out_buffer;
+    memcpy(&packed_s_buffer->val, &s_buffer->val, sizeof(s_buffer->val));
+    memcpy(&packed_s_buffer->time, &s_buffer->time, sizeof(s_buffer->time));
+    memcpy(&packed_s_buffer->junk, &s_buffer->junk, sizeof(s_buffer->junk));
+}
+
+void pack_orb_test_large(void *in_buffer, void *out_buffer)
+{
+    struct orb_test_large* s_buffer = (struct orb_test_large *) in_buffer;
+    struct orb_test_large_packed *packed_s_buffer = (struct orb_test_large_packed *) out_buffer;
+    memcpy(&packed_s_buffer->val, &s_buffer->val, sizeof(s_buffer->val));
+    memcpy(&packed_s_buffer->time, &s_buffer->time, sizeof(s_buffer->time));
+    memcpy(&packed_s_buffer->junk, &s_buffer->junk, sizeof(s_buffer->junk));
+}
+
 uORBTest::UnitTest &uORBTest::UnitTest::instance()
 {
 	static uORBTest::UnitTest t;

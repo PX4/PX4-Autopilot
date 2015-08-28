@@ -39,6 +39,8 @@ MODULE_COMMAND		= uorb
 
 MODULE_STACKSIZE	= 2048
 
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
 ifeq ($(PX4_TARGET_OS),nuttx)
 SRCS			= uORBDevices_nuttx.cpp \
 			  uORBTest_UnitTest.cpp \
@@ -61,9 +63,11 @@ SRCS 			+= Publication.cpp \
 			   Subscription.cpp
 endif
 
-SRCS	+= 		  objects_common.cpp \
-			  uORBUtils.cpp \
+SRCS	+=    uORBUtils.cpp \
 			  uORB.cpp \
-			  uORBMain.cpp
+			  uORBMain.cpp 
+
+SRCS	+= $(wildcard $(SELF_DIR)/topics/*.cpp)
+#include $(SELF_DIR)/topics/topics.mk
 
 MAXOPTIMIZATION	 = -Os

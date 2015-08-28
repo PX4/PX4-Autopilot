@@ -124,29 +124,9 @@ enum ORB_PRIO {
  *
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
- */
-#define ORB_DEFINE(_name, _struct)			\
-	const struct orb_metadata __orb_##_name = {	\
-		#_name,					\
-		sizeof(_struct),				\
-		sizeof(_struct##_packed),				\
-		NULL				\
-	}; struct hack
-
-/**
- * Define (instantiate) the uORB metadata for a topic.
- *
- * The uORB metadata is used to help ensure that updates and
- * copies are accessing the right data.
- *
- * Note that there must be no more than one instance of this macro
- * for each topic.
- *
- * @param _name		The name of the topic.
- * @param _struct	The structure the topic provides.
  * @param _func		The pointer to a function that packs topic
  */
-#define ORB_DEFINE_EXT(_name, _struct, _func)			\
+#define ORB_DEFINE(_name, _struct, _func)			\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
 		sizeof(_struct),				\
