@@ -52,6 +52,9 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -604,7 +607,7 @@ FixedwingPositionControl::~FixedwingPositionControl()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_control_task);
+				px4_task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -953,7 +956,7 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 
 float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos)
 {
-	if (!isfinite(global_pos.terrain_alt)) {
+	if (!PX4_ISFINITE(global_pos.terrain_alt)) {
 		return land_setpoint_alt;
 	}
 
@@ -1024,7 +1027,11 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 		_althold_epv = _global_pos.epv;
 		_was_in_deadband = true;
 	}
-
+	if (_vehicle_status.is_vtol) {
+		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
+			_hold_alt = _global_pos.alt;
+		}
+	}
 	return climbout_mode;
 }
 
@@ -1728,8 +1735,9 @@ FixedwingPositionControl::task_main()
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0)
+		if (pret == 0) {
 			continue;
+		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -1787,11 +1795,11 @@ FixedwingPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing) {
+				if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
 					/* publish the attitude setpoint */
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &_att_sp);
 
-				} else if (_attitude_sp_pub == nullptr && !_vehicle_status.is_rotary_wing) {
+				} else if (_attitude_sp_pub == nullptr && !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
 					/* advertise and publish */
 					_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 				}
@@ -1821,7 +1829,6 @@ FixedwingPositionControl::task_main()
 	warnx("exiting.\n");
 
 	_control_task = -1;
-	_exit(0);
 }
 
 void FixedwingPositionControl::reset_takeoff_state()
@@ -1920,22 +1927,25 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 				break;
 		}
 
-		t.altitudeSp			= s.hgt_dem;
-		t.altitude_filtered		= s.hgt;
-		t.airspeedSp			= s.spd_dem;
-		t.airspeed_filtered		= s.spd;
+		t.altitudeSp 		= s.altitude_sp;
+		t.altitude_filtered = s.altitude_filtered;
+		t.airspeedSp 		= s.airspeed_sp;
+		t.airspeed_filtered = s.airspeed_filtered;
 
-		t.flightPathAngleSp		= s.dhgt_dem;
-		t.flightPathAngle		= s.dhgt;
-		t.flightPathAngleFiltered	= s.dhgt;
+		t.flightPathAngleSp 		= s.altitude_rate_sp;
+		t.flightPathAngle 			= s.altitude_rate;
+		t.flightPathAngleFiltered 	= s.altitude_rate;
 
-		t.airspeedDerivativeSp		= s.dspd_dem;
-		t.airspeedDerivative		= s.dspd;
+		t.airspeedDerivativeSp 	= s.airspeed_rate_sp;
+		t.airspeedDerivative 	= s.airspeed_rate;
 
-		t.totalEnergyRateSp		= s.thr;
-		t.totalEnergyRate		= s.ithr;
-		t.energyDistributionRateSp	= s.ptch;
-		t.energyDistributionRate	= s.iptch;
+		t.totalEnergyError 				= s.total_energy_error;
+		t.totalEnergyRateError 			= s.total_energy_rate_error;
+		t.energyDistributionError 		= s.energy_distribution_error;
+		t.energyDistributionRateError 	= s.energy_distribution_rate_error;
+		
+		t.throttle_integ 	= s.throttle_integ;
+		t.pitch_integ 		= s.pitch_integ;
 
 		if (_tecs_status_pub != nullptr) {
 			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
@@ -1955,7 +1965,7 @@ FixedwingPositionControl::start()
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       1600,
-				       (main_t)&FixedwingPositionControl::task_main_trampoline,
+				       (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
 				       nullptr);
 
 	if (_control_task < 0) {
@@ -1969,16 +1979,20 @@ FixedwingPositionControl::start()
 int fw_pos_control_l1_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: fw_pos_control_l1 {start|stop|status}");
+		warnx("usage: fw_pos_control_l1 {start|stop|status}");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (l1_control::g_control != nullptr)
-			errx(1, "already running");
+		if (l1_control::g_control != nullptr) {
+			warnx("already running");
+			return 1;
+		}
 
 		if (OK != FixedwingPositionControl::start()) {
-			err(1, "start failed");
+			warn("start failed");
+			return 1;
 		}
 
 		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
@@ -1989,24 +2003,28 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 		}
 		printf("\n");
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (l1_control::g_control == nullptr)
-			errx(1, "not running");
+		if (l1_control::g_control == nullptr){
+			warnx("not running");
+			return 1;
+		}
 
 		delete l1_control::g_control;
 		l1_control::g_control = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (l1_control::g_control) {
-			errx(0, "running");
+			warnx("running");
+			return 0;
 
 		} else {
-			errx(1, "not running");
+			warnx("not running");
+			return 1;
 		}
 	}
 

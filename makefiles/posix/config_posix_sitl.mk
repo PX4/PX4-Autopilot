@@ -49,6 +49,10 @@ MODULES		+= modules/mc_att_control
 MODULES 	+= modules/mc_pos_control_multiplatform
 MODULES		+= modules/mc_att_control_multiplatform
 MODULES		+= modules/land_detector
+MODULES		+= modules/fw_att_control
+MODULES		+= modules/fw_pos_control_l1
+
+
 
 #
 # Library modules
@@ -67,9 +71,13 @@ MODULES 	+= modules/controllib
 #
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
+MODULES		+= lib/ecl
+MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
+MODULES		+= lib/launchdetection
+
 
 #
 # POSIX port

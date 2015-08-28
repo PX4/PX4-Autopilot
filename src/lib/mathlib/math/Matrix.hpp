@@ -285,7 +285,7 @@ public:
 
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
-				res[i][j] = data[i][j] / num;
+				res.data[i][j] = data[i][j] / num;
 
 		return res;
 	}
@@ -375,7 +375,7 @@ public:
 			printf("[ ");
 
 			for (unsigned int j = 0; j < N; j++)
-				printf("%.3f\t", data[i][j]);
+				printf("%.3f\t", (double)data[i][j]);
 
 			printf(" ]\n");
 		}

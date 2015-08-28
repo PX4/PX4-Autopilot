@@ -947,9 +947,14 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 
 	const float dtLastGoodGPS = static_cast<float>(hrt_absolute_time() - _previousGPSTimestamp) / 1e6f;
 
-	if (_gps.timestamp_position == 0 || (dtLastGoodGPS >= POS_RESET_THRESHOLD)) {
+	if (!_local_pos.xy_global ||
+	    !_local_pos.v_xy_valid ||
+		_gps.timestamp_position == 0 ||
+		(dtLastGoodGPS >= POS_RESET_THRESHOLD)) {
+
 		_global_pos.eph = EPH_LARGE_VALUE;
 		_global_pos.epv = EPV_LARGE_VALUE;
+
 	} else {
 		_global_pos.eph = _gps.eph;
 		_global_pos.epv = _gps.epv;
@@ -1129,8 +1134,8 @@ int AttitudePositionEstimatorEKF::start()
 	/* start the task */
 	_estimator_task = px4_task_spawn_cmd("ekf_att_pos_estimator",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 20,
-					 7500,
+					 SCHED_PRIORITY_MAX - 40,
+					 4800,
 					 (px4_main_t)&AttitudePositionEstimatorEKF::task_main_trampoline,
 					 nullptr);
 

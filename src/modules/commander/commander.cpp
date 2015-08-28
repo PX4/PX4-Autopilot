@@ -108,6 +108,7 @@
 #include <geo/geo.h>
 #include <systemlib/state_table.h>
 #include <dataman/dataman.h>
+#include <navigator/navigation.h>
 
 #include "px4_custom_mode.h"
 #include "commander_helper.h"
@@ -238,6 +239,8 @@ transition_result_t set_main_state_rc(struct vehicle_status_s *status, struct ma
 
 void set_control_mode();
 
+bool stabilization_required();
+
 void print_reject_mode(struct vehicle_status_s *current_status, const char *msg);
 
 void print_reject_arm(const char *msg);
@@ -294,7 +297,7 @@ int commander_main(int argc, char *argv[])
 					     SCHED_PRIORITY_MAX - 40,
 					     3400,
 					     commander_thread_main,
-					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+					     (char * const *)&argv[0]);
 
 		unsigned constexpr max_wait_us = 1000000;
 		unsigned constexpr max_wait_steps = 2000;
@@ -359,7 +362,7 @@ int commander_main(int argc, char *argv[])
 
 			if (calib_ret) {
 				warnx("calibration failed, exiting.");
-				return 0;
+				return 1;
 			} else {
 				return 0;
 			}
@@ -388,7 +391,7 @@ int commander_main(int argc, char *argv[])
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		arm_disarm(false, mavlink_fd_local, "command line");
 		px4_close(mavlink_fd_local);
-                return 0;
+		return 0;
 	}
 
 	usage("unrecognized command");
@@ -874,6 +877,23 @@ int commander_thread_main(int argc, char *argv[])
 	bool arm_tune_played = false;
 	bool was_armed = false;
 
+	bool startup_in_hil = false;
+
+#ifdef __PX4_NUTTX
+	/* NuttX indicates 3 arguments when only 2 are present */
+	argc -= 1;
+#endif
+
+	if (argc > 2) {
+		if (!strcmp(argv[2],"-hil")) {
+			startup_in_hil = true;
+		} else {
+			PX4_ERR("Argument %s not supported.", argv[2]);
+			PX4_ERR("COMMANDER NOT STARTED");
+			thread_should_exit = true;
+		}
+	}
+
 	/* set parameters */
 	param_t _param_sys_type = param_find("MAV_TYPE");
 	param_t _param_system_id = param_find("MAV_SYS_ID");
@@ -955,7 +975,12 @@ int commander_thread_main(int argc, char *argv[])
 	status.main_state =vehicle_status_s::MAIN_STATE_MANUAL;
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
-	status.hil_state = vehicle_status_s::HIL_STATE_OFF;
+
+	if(startup_in_hil) {
+		status.hil_state = vehicle_status_s::HIL_STATE_ON;
+	} else {
+		status.hil_state = vehicle_status_s::HIL_STATE_OFF;
+	}
 	status.failsafe = false;
 
 	/* neither manual nor offboard control commands have been received */
@@ -2219,7 +2244,6 @@ int commander_thread_main(int argc, char *argv[])
 			arm_tune_played = false;
 		}
 
-		//fflush(stdout);
 		counter++;
 
 		int blink_state = blink_msg_state();
@@ -2537,8 +2561,8 @@ set_control_mode()
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
-		control_mode.flag_control_rates_enabled = (status.is_rotary_wing || status.vtol_fw_permanent_stab);
-		control_mode.flag_control_attitude_enabled = (status.is_rotary_wing || status.vtol_fw_permanent_stab);
+		control_mode.flag_control_rates_enabled = stabilization_required();
+		control_mode.flag_control_attitude_enabled = stabilization_required();
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
@@ -2579,8 +2603,8 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
-		control_mode.flag_control_position_enabled = true;
-		control_mode.flag_control_velocity_enabled = true;
+		control_mode.flag_control_position_enabled = !status.in_transition_mode;
+		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
 		control_mode.flag_control_termination_enabled = false;
 		break;
 
@@ -2689,12 +2713,12 @@ set_control_mode()
 			!offboard_control_mode.ignore_acceleration_force;
 
 		control_mode.flag_control_velocity_enabled = (!offboard_control_mode.ignore_velocity ||
-			!offboard_control_mode.ignore_position) && !vtol_status.vtol_in_trans_mode;
+			!offboard_control_mode.ignore_position) && !status.in_transition_mode;
 
 		control_mode.flag_control_climb_rate_enabled = !offboard_control_mode.ignore_velocity ||
 			!offboard_control_mode.ignore_position;
 
-		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position && !vtol_status.vtol_in_trans_mode;
+		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position && !status.in_transition_mode;
 
 		control_mode.flag_control_altitude_enabled = !offboard_control_mode.ignore_velocity ||
 			!offboard_control_mode.ignore_position;
@@ -2704,6 +2728,15 @@ set_control_mode()
 	default:
 		break;
 	}
+}
+
+bool
+stabilization_required()
+{
+	return (status.is_rotary_wing ||		// is a rotary wing, or
+		status.vtol_fw_permanent_stab || 	// is a VTOL in fixed wing mode and stabilisation is on, or
+		(vtol_status.vtol_in_trans_mode && 	// is currently a VTOL transitioning AND
+			!status.is_rotary_wing));	// is a fixed wing, ie: transitioning back to rotary wing mode
 }
 
 void

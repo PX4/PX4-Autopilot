@@ -46,8 +46,6 @@
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 #define _GLIBCXX_USE_C99_FP_MACROS_DYNAMIC 1
 
-#define EIGEN_MAX_STATIC_ALIGN_BYTES 16
-
 #include <eigen/Eigen/Core>
 #include <eigen/Eigen/Geometry>
 #pragma GCC diagnostic pop

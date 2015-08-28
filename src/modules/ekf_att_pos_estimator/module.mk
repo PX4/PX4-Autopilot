@@ -42,5 +42,5 @@ SRCS		= ekf_att_pos_estimator_main.cpp \
 		  estimator_22states.cpp \
 		  estimator_utilities.cpp
 
-EXTRACXXFLAGS	= -Weffc++ -Wframe-larger-than=6100
+EXTRACXXFLAGS	= -Weffc++ -Wframe-larger-than=3400
 

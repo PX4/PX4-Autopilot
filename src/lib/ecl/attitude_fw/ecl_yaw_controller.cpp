@@ -101,13 +101,13 @@ float ECL_YawController::control_bodyrate(const struct ECL_ControlData &ctl_data
 float ECL_YawController::control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(isfinite(ctl_data.roll) &&
-	      isfinite(ctl_data.pitch) &&
-	      isfinite(ctl_data.speed_body_u) &&
-	      isfinite(ctl_data.speed_body_v) &&
-	      isfinite(ctl_data.speed_body_w) &&
-	      isfinite(ctl_data.roll_rate_setpoint) &&
-	      isfinite(ctl_data.pitch_rate_setpoint))) {
+	if (!(PX4_ISFINITE(ctl_data.roll) &&
+	      PX4_ISFINITE(ctl_data.pitch) &&
+	      PX4_ISFINITE(ctl_data.speed_body_u) &&
+	      PX4_ISFINITE(ctl_data.speed_body_v) &&
+	      PX4_ISFINITE(ctl_data.speed_body_w) &&
+	      PX4_ISFINITE(ctl_data.roll_rate_setpoint) &&
+	      PX4_ISFINITE(ctl_data.pitch_rate_setpoint))) {
 		perf_count(_nonfinite_input_perf);
 		return _rate_setpoint;
 	}
@@ -145,7 +145,7 @@ float ECL_YawController::control_attitude_impl_openloop(const struct ECL_Control
 
 //	counter++;
 
-	if (!isfinite(_rate_setpoint)) {
+	if (!PX4_ISFINITE(_rate_setpoint)) {
 		warnx("yaw rate sepoint not finite");
 		_rate_setpoint = 0.0f;
 	}
@@ -156,10 +156,10 @@ float ECL_YawController::control_attitude_impl_openloop(const struct ECL_Control
 float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(isfinite(ctl_data.roll) && isfinite(ctl_data.pitch) && isfinite(ctl_data.pitch_rate) &&
-	      isfinite(ctl_data.yaw_rate) && isfinite(ctl_data.pitch_rate_setpoint) &&
-	      isfinite(ctl_data.airspeed_min) && isfinite(ctl_data.airspeed_max) &&
-	      isfinite(ctl_data.scaler))) {
+	if (!(PX4_ISFINITE(ctl_data.roll) && PX4_ISFINITE(ctl_data.pitch) && PX4_ISFINITE(ctl_data.pitch_rate) &&
+	      PX4_ISFINITE(ctl_data.yaw_rate) && PX4_ISFINITE(ctl_data.pitch_rate_setpoint) &&
+	      PX4_ISFINITE(ctl_data.airspeed_min) && PX4_ISFINITE(ctl_data.airspeed_max) &&
+	      PX4_ISFINITE(ctl_data.scaler))) {
 		perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
@@ -179,7 +179,7 @@ float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl
 	/* input conditioning */
 	float airspeed = ctl_data.airspeed;
 
-	if (!isfinite(airspeed)) {
+	if (!PX4_ISFINITE(airspeed)) {
 		/* airspeed is NaN, +- INF or not available, pick center of band */
 		airspeed = 0.5f * (ctl_data.airspeed_min + ctl_data.airspeed_max);
 
@@ -198,12 +198,8 @@ float ECL_YawController::control_bodyrate_impl(const struct ECL_ControlData &ctl
 		_bodyrate_setpoint -= (ctl_data.acc_body_y / (airspeed * cosf(ctl_data.pitch)));
 	}
 
-	/* Transform estimation to body angular rates (jacobian) */
-	float yaw_bodyrate = -sinf(ctl_data.roll) * ctl_data.pitch_rate +
-			     cosf(ctl_data.roll) * cosf(ctl_data.pitch) * ctl_data.yaw_rate;
-
 	/* Calculate body angular rate error */
-	_rate_error = _bodyrate_setpoint - yaw_bodyrate; //body angular rate error
+	_rate_error = _bodyrate_setpoint - ctl_data.yaw_rate; //body angular rate error
 
 	if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * ctl_data.airspeed_min) {
 

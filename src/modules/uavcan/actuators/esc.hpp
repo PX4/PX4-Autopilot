@@ -54,7 +54,7 @@
 class UavcanEscController
 {
 public:
-	UavcanEscController(uavcan::INode& node);
+	UavcanEscController(uavcan::INode &node);
 	~UavcanEscController();
 
 	int init();
@@ -79,12 +79,12 @@ private:
 	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
 
-	typedef uavcan::MethodBinder<UavcanEscController*,
+	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)>
 		StatusCbBinder;
 
-	typedef uavcan::MethodBinder<UavcanEscController*, void (UavcanEscController::*)(const uavcan::TimerEvent&)>
-		TimerCbBinder;
+	typedef uavcan::MethodBinder<UavcanEscController *, void (UavcanEscController::*)(const uavcan::TimerEvent &)>
+	TimerCbBinder;
 
 	bool		_armed = false;
 	esc_status_s	_esc_status = {};

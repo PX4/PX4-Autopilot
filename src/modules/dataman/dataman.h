@@ -39,6 +39,7 @@
 #ifndef _DATAMANAGER_H
 #define _DATAMANAGER_H
 
+#include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 

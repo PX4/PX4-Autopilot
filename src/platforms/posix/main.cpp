@@ -96,6 +96,11 @@ int main(int argc, char **argv)
 	if (argc == 2) {
 		ifstream infile(argv[1]);
 
+		if (!infile) {
+			cout << "failed opening script" << argv[1] << std::endl;
+			return 1;
+		}
+
 		for (string line; getline(infile, line, '\n'); ) {
 			process_line(line);
 		}
