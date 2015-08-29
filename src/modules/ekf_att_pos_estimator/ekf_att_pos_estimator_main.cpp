@@ -1230,14 +1230,14 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 
-	if (last_accel != _sensor_combined.accelerometer_timestamp) {
+	if (last_accel != _sensor_combined.accelerometer_timestamp[_accel_main]) {
 		accel_updated = true;
 
 	} else {
 		accel_updated = false;
 	}
 
-	last_accel = _sensor_combined.accelerometer_timestamp;
+	last_accel = _sensor_combined.accelerometer_timestamp[_accel_main];
 
 
 	// Copy gyro and accel
@@ -1295,30 +1295,27 @@ void AttitudePositionEstimatorEKF::pollData()
 	_ekf->dtIMU = deltaT;
 
 	int last_gyro_main = _gyro_main;
+	unsigned best_gyro_err = UINT32_MAX - GYRO_SWITCH_HYSTERESIS - 1;
+	_gyro_valid = false;
 
-	if (PX4_ISFINITE(_sensor_combined.gyro_rad_s[0]) &&
-	    PX4_ISFINITE(_sensor_combined.gyro_rad_s[1]) &&
-	    PX4_ISFINITE(_sensor_combined.gyro_rad_s[2]) &&
-	    (_sensor_combined.gyro_errcount <= (_sensor_combined.gyro1_errcount + GYRO_SWITCH_HYSTERESIS))) {
+	for (unsigned i = 0; i < 3; i++) {
 
-		_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
-		_ekf->angRate.y = _sensor_combined.gyro_rad_s[1];
-		_ekf->angRate.z = _sensor_combined.gyro_rad_s[2];
-		_gyro_main = 0;
-		_gyro_valid = true;
+		if (PX4_ISFINITE(_sensor_combined.gyro_integral_rad[i * 3 + 0]) &&
+		    PX4_ISFINITE(_sensor_combined.gyro_integral_rad[i * 3 + 1]) &&
+		    PX4_ISFINITE(_sensor_combined.gyro_integral_rad[i * 3 + 2]) &&
+		    (_sensor_combined.gyro_errcount[i] < (best_gyro_err + GYRO_SWITCH_HYSTERESIS))) {
 
-	} else if (PX4_ISFINITE(_sensor_combined.gyro1_rad_s[0]) &&
-		   PX4_ISFINITE(_sensor_combined.gyro1_rad_s[1]) &&
-		   PX4_ISFINITE(_sensor_combined.gyro1_rad_s[2])) {
+			_ekf->angRate.x = _sensor_combined.gyro_rad_s[i * 3 + 0];
+			_ekf->angRate.y = _sensor_combined.gyro_rad_s[i * 3 + 1];
+			_ekf->angRate.z = _sensor_combined.gyro_rad_s[i * 3 + 2];
+			_ekf->dAngIMU.x = _sensor_combined.gyro_integral_rad[i * 3 + 0];
+			_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[i * 3 + 1];
+			_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[i * 3 + 2];
+			_gyro_main = i;
+			best_gyro_err = _sensor_combined.gyro_errcount[i];
+			_gyro_valid = true;
 
-		_ekf->angRate.x = _sensor_combined.gyro1_rad_s[0];
-		_ekf->angRate.y = _sensor_combined.gyro1_rad_s[1];
-		_ekf->angRate.z = _sensor_combined.gyro1_rad_s[2];
-		_gyro_main = 1;
-		_gyro_valid = true;
-
-	} else {
-		_gyro_valid = false;
+		}
 	}
 
 	if (last_gyro_main != _gyro_main) {
@@ -1333,22 +1330,27 @@ void AttitudePositionEstimatorEKF::pollData()
 		perf_count(_perf_gyro);
 	}
 
-	if (accel_updated) {
+	if (accel_updated || hrt_elapsed_time(&last_accel) > 5000) {
 
 		int last_accel_main = _accel_main;
 
-		/* fail over to the 2nd accel if we know the first is down */
-		if (_sensor_combined.accelerometer_errcount <= (_sensor_combined.accelerometer1_errcount + ACCEL_SWITCH_HYSTERESIS)) {
-			_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
-			_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
-			_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
-			_accel_main = 0;
+		unsigned best_accel_err = UINT32_MAX - ACCEL_SWITCH_HYSTERESIS - 1;
+		_accel_valid = false;
 
-		} else {
-			_ekf->accel.x = _sensor_combined.accelerometer1_m_s2[0];
-			_ekf->accel.y = _sensor_combined.accelerometer1_m_s2[1];
-			_ekf->accel.z = _sensor_combined.accelerometer1_m_s2[2];
-			_accel_main = 1;
+		for (unsigned i = 0; i < 3; i++) {
+
+			/* fail over to the 2nd accel if we know the first is down */
+			if (_sensor_combined.accelerometer_errcount[i] < (best_accel_err + ACCEL_SWITCH_HYSTERESIS)) {
+				_ekf->accel.x = _sensor_combined.accelerometer_m_s2[i * 3 + 0];
+				_ekf->accel.y = _sensor_combined.accelerometer_m_s2[i * 3 + 1];
+				_ekf->accel.z = _sensor_combined.accelerometer_m_s2[i * 3 + 2];
+				_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[i * 3 + 0];
+				_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[i * 3 + 1];
+				_ekf->dVelIMU.z = _sensor_combined.accelerometer_integral_m_s[i * 3 + 2];
+				_accel_main = i;
+				best_accel_err = _sensor_combined.accelerometer_errcount[i];
+				_accel_valid = true;
+			}
 		}
 
 		if (!_accel_valid) {
@@ -1358,25 +1360,16 @@ void AttitudePositionEstimatorEKF::pollData()
 		if (last_accel_main != _accel_main) {
 			mavlink_and_console_log_emergency(_mavlink_fd, "ACCEL FAILED! Switched from #%d to %d", last_accel_main, _accel_main);
 		}
-
-		_accel_valid = true;
 	}
 
-	_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[0];
-	_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[1];
-	_ekf->dVelIMU.z = _sensor_combined.accelerometer_integral_m_s[2];
-	_ekf->dAngIMU.x = _sensor_combined.gyro_integral_rad[0];
-	_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[1];
-	_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[2];
-
-	if (last_mag != _sensor_combined.magnetometer_timestamp) {
+	if (last_mag != _sensor_combined.magnetometer_timestamp[_mag_main]) {
 		_newDataMag = true;
 
 	} else {
 		_newDataMag = false;
 	}
 
-	last_mag = _sensor_combined.magnetometer_timestamp;
+	last_mag = _sensor_combined.magnetometer_timestamp[_mag_main];
 
 	//PX4_INFO("dang: %8.4f %8.4f dvel: %8.4f %8.4f", _ekf->dAngIMU.x, _ekf->dAngIMU.z, _ekf->dVelIMU.x, _ekf->dVelIMU.z);
 
@@ -1553,49 +1546,38 @@ void AttitudePositionEstimatorEKF::pollData()
 	}
 
 	//Update Magnetometer
-	if (_newDataMag) {
-
-		_mag_valid = true;
+	if (_newDataMag || hrt_elapsed_time(&last_mag) > 500000) {
 
 		perf_count(_perf_mag);
 
 		int last_mag_main = _mag_main;
 
-		Vector3f mag0(_sensor_combined.magnetometer_ga[0], _sensor_combined.magnetometer_ga[1],
-			_sensor_combined.magnetometer_ga[2]);
+		unsigned best_mag_err = UINT32_MAX - MAG_SWITCH_HYSTERESIS - 1;
+		_mag_valid = false;
 
-		Vector3f mag1(_sensor_combined.magnetometer1_ga[0], _sensor_combined.magnetometer1_ga[1],
-			_sensor_combined.magnetometer1_ga[2]);
+		for (unsigned i = 0; i < 3; i++) {
 
-		const unsigned mag_timeout_us = 200000;
+			Vector3f mag(_sensor_combined.magnetometer_ga[i * 3 + 0], _sensor_combined.magnetometer_ga[i * 3 + 1],
+				_sensor_combined.magnetometer_ga[i * 3 + 2]);
 
-		/* fail over to the 2nd mag if we know the first is down */
-		if (hrt_elapsed_time(&_sensor_combined.magnetometer_timestamp) < mag_timeout_us &&
-			_sensor_combined.magnetometer_errcount <= (_sensor_combined.magnetometer1_errcount + MAG_SWITCH_HYSTERESIS) &&
-			mag0.length() > 0.1f) {
-			_ekf->magData.x = mag0.x;
-			_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
+			const unsigned mag_timeout_us = 200000;
 
-			_ekf->magData.y = mag0.y;
-			_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
+			/* fail over to the 2nd mag if we know the first is down */
+			if (hrt_elapsed_time(&_sensor_combined.magnetometer_timestamp[i]) < mag_timeout_us &&
+				_sensor_combined.magnetometer_errcount[i] < (best_mag_err + MAG_SWITCH_HYSTERESIS) &&
+				mag.length() > 0.1f) {
+				_ekf->magData.x = mag.x;
+				_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
 
-			_ekf->magData.z = mag0.z;
-			_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
-			_mag_main = 0;
+				_ekf->magData.y = mag.y;
+				_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
 
-		} else if (hrt_elapsed_time(&_sensor_combined.magnetometer1_timestamp) < mag_timeout_us &&
-			mag1.length() > 0.1f) {
-			_ekf->magData.x = mag1.x;
-			_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
-
-			_ekf->magData.y = mag1.y;
-			_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
-
-			_ekf->magData.z = mag1.z;
-			_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
-			_mag_main = 1;
-		} else {
-			_mag_valid = false;
+				_ekf->magData.z = mag.z;
+				_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
+				_mag_main = i;
+				best_mag_err = _sensor_combined.magnetometer_errcount[i];
+				_mag_valid = true;
+			}
 		}
 
 		if (last_mag_main != _mag_main) {
