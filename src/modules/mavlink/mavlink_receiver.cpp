@@ -1426,6 +1426,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.gyro_rad_s[0] = imu.xgyro;
 		hil_sensors.gyro_rad_s[1] = imu.ygyro;
 		hil_sensors.gyro_rad_s[2] = imu.zgyro;
+		hil_sensors.gyro_timestamp[0] = timestamp;
 
 		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
 		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
