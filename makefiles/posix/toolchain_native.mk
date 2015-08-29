@@ -183,9 +183,8 @@ ARCHWARNINGS		 = -Wall \
 
 # Add compiler specific options
 ifeq ($(USE_GCC),1)
-ARCHDEFINES		+= -Wno-error=logical-op
+ARCHDEFINES		+=
 ARCHWARNINGS		+= -Wdouble-promotion \
-			   -Wlogical-op \
 			   -Wformat=1 \
 			   -Werror=unused-but-set-variable \
 			   -Werror=double-promotion

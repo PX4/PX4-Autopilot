@@ -157,8 +157,6 @@ ARCHWARNINGS		 = -Wall \
 			   -Werror=reorder \
 			   -Werror=uninitialized \
 			   -Werror=init-self \
-			   -Wno-error=logical-op \
-			   -Wlogical-op \
 			   -Wformat=1 \
 			   -Werror=unused-but-set-variable \
 			   -Wno-error=double-promotion \

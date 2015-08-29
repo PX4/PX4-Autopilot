@@ -147,7 +147,6 @@ ARCHWARNINGS		 = -Wall \
 			   -Wshadow \
 			   -Wfloat-equal \
 			   -Wpointer-arith \
-			   -Wlogical-op \
 			   -Wmissing-declarations \
 			   -Wpacked \
 			   -Wno-unused-parameter \
