@@ -106,8 +106,6 @@ ifneq ($(words $(PX4_BASE)),1)
 $(error Cannot build when the PX4_BASE path contains one or more space characters.)
 endif
 
-$(info %  GIT_DESC            = $(GIT_DESC))
-
 #
 # Set a default target so that included makefiles or errors here don't
 # cause confusion.
