@@ -10,6 +10,7 @@
 [submodule "Tools/genmsg"]
 	path = Tools/genmsg
 	url = https://github.com/againagainst/genmsg.git
+	branch = px4_uorb_topics
 [submodule "Tools/gencpp"]
 	path = Tools/gencpp
 	url = https://github.com/ros/gencpp.git

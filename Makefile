@@ -167,6 +167,7 @@ checksubmodules:
 .PHONY: updatesubmodules
 updatesubmodules:
 	$(Q) (git submodule init)
+	$(Q) (git submodule sync)
 	$(Q) (git submodule update)
 
 MSG_DIR = $(PX4_BASE)msg
