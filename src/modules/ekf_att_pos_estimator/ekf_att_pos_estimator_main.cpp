@@ -1263,9 +1263,13 @@ void AttitudePositionEstimatorEKF::pollData()
 			(double)deltaT, (double)deltaTIntegral, (double)deltaTIntAcc,
 			dtoverflow5, dtoverflow10);
 
-		warnx("dang: %8.4f %8.4f dvel: %8.4f %8.4f",
+		warnx("DRV: dang: %8.4f %8.4f dvel: %8.4f %8.4f",
 		(double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.z,
 		(double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.z);
+
+		warnx("EKF: dang: %8.4f %8.4f dvel: %8.4f %8.4f",
+		(double)(_sensor_combined.gyro_rad_s[0] * deltaT), (double)(_sensor_combined.gyro_rad_s[2] * deltaT),
+		(double)(_sensor_combined.accelerometer_m_s2[0] * deltaT), (double)(_sensor_combined.accelerometer_m_s2[2] * deltaT));
 
 		lastprint = hrt_absolute_time();
 	}
