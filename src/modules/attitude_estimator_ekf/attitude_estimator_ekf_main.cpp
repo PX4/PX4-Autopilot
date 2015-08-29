@@ -397,7 +397,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp[0]) {
 						update_vect[1] = 1;
 						// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
+						sensor_last_timestamp[1] = raw.accelerometer_timestamp[0];
 					}
 
 					hrt_abstime vel_t = 0;
@@ -437,14 +437,14 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* update magnetometer measurements */
-					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp &&
+					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp[0] &&
 						/* check that the mag vector is > 0 */
 						fabsf(sqrtf(raw.magnetometer_ga[0] * raw.magnetometer_ga[0] +
 							raw.magnetometer_ga[1] * raw.magnetometer_ga[1] +
 							raw.magnetometer_ga[2] * raw.magnetometer_ga[2])) > 0.1f) {
 						update_vect[2] = 1;
 						// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
+						sensor_last_timestamp[2] = raw.magnetometer_timestamp[0];
 					}
 
 					bool vision_updated = false;
