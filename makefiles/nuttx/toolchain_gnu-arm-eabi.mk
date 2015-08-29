@@ -271,7 +271,6 @@ define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
 	$(Q) $(LD) -Ur -Map $1.map  -o $1 $2 && $(OBJCOPY) --localize-hidden $1
-	#$(Q) $(LD) -Ur -Map $1.map  -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 endef
 
 # Update the archive $1 with the files in $2

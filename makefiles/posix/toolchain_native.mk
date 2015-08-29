@@ -348,7 +348,6 @@ endef
 define LINK_A
 	@$(ECHO) "LINK_A:    $1"
 	@$(MKDIR) -p $(dir $1)
-	echo "$(Q) $(AR) $1 $2"
 	$(Q) $(AR) $1 $2
 endef
 
@@ -357,7 +356,6 @@ endef
 define LINK_SO
 	@$(ECHO) "LINK_SO:    $1"
 	@$(MKDIR) -p $(dir $1)
-	echo "$(Q) $(CXX) $(LDFLAGS) -shared -Wl,-soname,`basename $1`.1 -o $1 $2 $(LIBS) $(EXTRA_LIBS)"
 	$(Q) $(CXX) $(LDFLAGS) -shared -Wl,-soname,`basename $1`.1 -o $1 $2 $(LIBS) -pthread -lc
 endef
 
