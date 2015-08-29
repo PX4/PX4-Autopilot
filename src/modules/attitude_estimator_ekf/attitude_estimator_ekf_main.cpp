@@ -383,10 +383,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					uint8_t update_vect[3] = {0, 0, 0};
 
 					/* Fill in gyro measurements */
-					if (sensor_last_timestamp[0] != raw.timestamp) {
+					if (sensor_last_timestamp[0] != raw.gyro_timestamp[0]) {
 						update_vect[0] = 1;
 						// sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
-						sensor_last_timestamp[0] = raw.timestamp;
+						sensor_last_timestamp[0] = raw.gyro_timestamp[0];
 					}
 
 					z_k[0] =  raw.gyro_rad_s[0] - gyro_offsets[0];
@@ -394,7 +394,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
-					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
+					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp[0]) {
 						update_vect[1] = 1;
 						// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
 						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
