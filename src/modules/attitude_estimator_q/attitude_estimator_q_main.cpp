@@ -288,12 +288,12 @@ void AttitudeEstimatorQ::task_main()
 		sensor_combined_s sensors;
 		if (!orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors)) {
 			// Feed validator with recent sensor data
-			_voter_gyro.put(0, sensors.timestamp, sensors.gyro_rad_s, sensors.gyro_errcount);
-			_voter_gyro.put(1, sensors.gyro1_timestamp, sensors.gyro1_rad_s, sensors.gyro1_errcount);
-			_voter_accel.put(0, sensors.accelerometer_timestamp, sensors.accelerometer_m_s2, sensors.accelerometer_errcount);
-			_voter_accel.put(1, sensors.accelerometer1_timestamp, sensors.accelerometer1_m_s2, sensors.accelerometer1_errcount);
-			_voter_mag.put(0, sensors.magnetometer_timestamp, sensors.magnetometer_ga, sensors.magnetometer_errcount);
-			_voter_mag.put(1, sensors.magnetometer1_timestamp, sensors.magnetometer1_ga, sensors.magnetometer1_errcount);
+
+			for (unsigned i = 0; i < 2; i++) {
+				_voter_gyro.put(i, sensors.gyro_timestamp[i], &sensors.gyro_rad_s[i * 3], sensors.gyro_errcount[i]);
+				_voter_accel.put(i, sensors.accelerometer_timestamp[i], &sensors.accelerometer_m_s2[i * 3], sensors.accelerometer_errcount[i]);
+				_voter_mag.put(i, sensors.magnetometer_timestamp[i], &sensors.magnetometer_ga[i * 3], sensors.magnetometer_errcount[i]);
+			}
 
 			int best_gyro, best_accel, best_mag;
 
