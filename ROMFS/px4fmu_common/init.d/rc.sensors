@@ -24,7 +24,7 @@ then
 	fi
 
 	# external MPU6K is rotated 180 degrees yaw
-	if mpu6000 -X -R 4 start
+	if mpu6000 -X -R 4 -a 16 start
 	then
 		set BOARD_FMUV3 true
 	else
@@ -44,7 +44,7 @@ then
 		fi
 
 		# internal MPU6000 is rotated 180 deg roll, 270 deg yaw
-		if mpu6000 -R 14 start
+		if mpu6000 -R 14 -a 16 start
 		then
 		fi
 
@@ -54,7 +54,7 @@ then
 
 	else
 		# FMUv2
-		if mpu6000 start
+		if mpu6000 -a 16 start
 		then
 		fi
 
