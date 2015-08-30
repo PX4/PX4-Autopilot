@@ -41,6 +41,8 @@
 
 #pragma once
 
+#include <cmath>
+
 class DataValidator {
 public:
 	DataValidator(DataValidator *prev_sibling = nullptr);
