@@ -13,6 +13,7 @@ cache:
 addons:
   apt:
     sources:
+    - kubuntu-backports
     - ubuntu-toolchain-r-test
     packages:
     - build-essential
@@ -46,6 +47,12 @@ before_script:
   - mkdir -p ~/bin
   - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-g++
   - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-gcc
+  - ln -s /usr/bin/ccache ~/bin/clang++
+  - ln -s /usr/bin/ccache ~/bin/clang++-3.4
+  - ln -s /usr/bin/ccache ~/bin/clang++-3.5
+  - ln -s /usr/bin/ccache ~/bin/clang
+  - ln -s /usr/bin/ccache ~/bin/clang-3.4
+  - ln -s /usr/bin/ccache ~/bin/clang-3.5
   - ln -s /usr/bin/ccache ~/bin/g++-4.8
   - ln -s /usr/bin/ccache ~/bin/gcc-4.8
   - export PATH=~/bin:$PATH
