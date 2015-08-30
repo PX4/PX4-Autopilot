@@ -129,6 +129,8 @@
 #define STICK_ON_OFF_LIMIT		0.75f
 #define MAG_ROT_VAL_INTERNAL		-1
 
+#define SENSOR_COUNT_MAX		3
+
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
@@ -201,21 +203,21 @@ private:
 	bool		_hil_enabled;			/**< if true, HIL is active */
 	bool		_publishing;			/**< if true, we are publishing sensor data */
 
-	int		_gyro_sub[ORB_MULTI_MAX_INSTANCES - 1];			/**< raw gyro0 data subscription */
-	int		_accel_sub[ORB_MULTI_MAX_INSTANCES - 1];			/**< raw accel0 data subscription */
-	int		_mag_sub[ORB_MULTI_MAX_INSTANCES - 1];			/**< raw mag0 data subscription */
-	int		_baro_sub[ORB_MULTI_MAX_INSTANCES - 1];			/**< raw baro0 data subscription */
-	unsigned	_gyro_count;			/**< raw gyro0 data subscription */
-	unsigned	_accel_count;			/**< raw accel0 data subscription */
-	unsigned	_mag_count;			/**< raw mag0 data subscription */
-	unsigned	_baro_count;			/**< raw baro0 data subscription */
+	int		_gyro_sub[SENSOR_COUNT_MAX];	/**< raw gyro data subscription */
+	int		_accel_sub[SENSOR_COUNT_MAX];	/**< raw accel data subscription */
+	int		_mag_sub[SENSOR_COUNT_MAX];	/**< raw mag data subscription */
+	int		_baro_sub[SENSOR_COUNT_MAX];	/**< raw baro data subscription */
+	unsigned	_gyro_count;			/**< raw gyro data count */
+	unsigned	_accel_count;			/**< raw accel data count */
+	unsigned	_mag_count;			/**< raw mag data count */
+	unsigned	_baro_count;			/**< raw baro data count */
 	
 	int 		_rc_sub;			/**< raw rc channels data subscription */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
-	int		_vcontrol_mode_sub;			/**< vehicle control mode subscription */
+	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
-	int		_rc_parameter_map_sub;			/**< rc parameter map subscription */
-	int 		_manual_control_sub;			/**< notification of manual control updates */
+	int		_rc_parameter_map_sub;		/**< rc parameter map subscription */
+	int 		_manual_control_sub;		/**< notification of manual control updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
@@ -236,7 +238,7 @@ private:
 	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
 
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix<3, 3>	_mag_rotation[3];		/**< rotation matrix for the orientation that the external mag0 is mounted */
+	math::Matrix<3, 3>	_mag_rotation[3];	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
@@ -362,8 +364,8 @@ private:
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
-	void		init_sensor_class(const struct orb_metadata *meta, int *subs,
-		unsigned *priorities, unsigned *errcount);
+	int		init_sensor_class(const struct orb_metadata *meta, int *subs,
+				unsigned *priorities, unsigned *errcount);
 
 	/**
 	 * Update our local parameter cache.
@@ -1226,7 +1228,7 @@ Sensors::parameter_update_poll(bool forced)
 		unsigned accel_count = 0;
 
 		/* run through all gyro sensors */
-		for (unsigned s = 0; s < 3; s++) {
+		for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
 
 			res = ERROR;
 			(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
@@ -1240,7 +1242,7 @@ Sensors::parameter_update_poll(bool forced)
 			bool config_ok = false;
 
 			/* run through all stored calibrations */ 
-			for (unsigned i = 0; i < 3; i++) {
+			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
 				/* initially status is ok per config */
 				failed = false;
 
@@ -1292,7 +1294,7 @@ Sensors::parameter_update_poll(bool forced)
 		}
 
 		/* run through all accel sensors */
-		for (unsigned s = 0; s < 3; s++) {
+		for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
 
 			res = ERROR;
 			(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
@@ -1306,7 +1308,7 @@ Sensors::parameter_update_poll(bool forced)
 			bool config_ok = false;
 
 			/* run through all stored calibrations */ 
-			for (unsigned i = 0; i < 3; i++) {
+			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
 				/* initially status is ok per config */
 				failed = false;
 
@@ -1358,7 +1360,7 @@ Sensors::parameter_update_poll(bool forced)
 		}
 
 		/* run through all mag sensors */
-		for (unsigned s = 0; s < 3; s++) {
+		for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
 
 			/* set a valid default rotation (same as board).
 			 * if the mag is configured, this might be replaced
@@ -1379,7 +1381,7 @@ Sensors::parameter_update_poll(bool forced)
 			bool config_ok = false;
 
 			/* run through all stored calibrations */ 
-			for (unsigned i = 0; i < 3; i++) {
+			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
 				/* initially status is ok per config */
 				failed = false;
 
@@ -1934,15 +1936,23 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 	sensors::g_sensors->task_main();
 }
 
-void
+int
 Sensors::init_sensor_class(const struct orb_metadata *meta, int *subs,
 	unsigned *priorities, unsigned *errcount)
 {
-	for (unsigned i = 0; i < (unsigned)orb_group_count(meta); i++) {
+	unsigned group_count = orb_group_count(meta);
+
+	if (group_count > SENSOR_COUNT_MAX) {
+		group_count = SENSOR_COUNT_MAX;
+	}
+
+	for (unsigned i = 0; i < group_count; i++) {
 		subs[i] = orb_subscribe_multi(meta, i);
 		orb_priority(subs[i], (int32_t*)&priorities[i]);
 		errcount[i] = 100000;
 	}
+
+	return group_count;
 }
 
 void
@@ -1977,20 +1987,24 @@ Sensors::task_main()
 
 	struct sensor_combined_s raw = {};
 
+	/* ensure no overflows can occur */
+	static_assert((sizeof(raw.gyro_timestamp) / sizeof(raw.gyro_timestamp[0])) >= SENSOR_COUNT_MAX,
+		"SENSOR_COUNT_MAX larger than sensor_combined datastructure fields. Overflow would occur");
+
 	/*
 	 * do subscriptions
 	 */
 
-	init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
+	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
 		&raw.gyro_priority[0], &raw.gyro_errcount[0]);
 
-	init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
+	_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
 		&raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
 
-	init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
+	_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
 		&raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
 
-	init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
+	_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
 		&raw.baro_priority[0], &raw.baro_errcount[0]);
 
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
