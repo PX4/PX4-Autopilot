@@ -180,6 +180,8 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_voter_accel(3),
 	_voter_mag(3)
 {
+	_voter_mag.set_timeout(200000);
+	
 	_params_handles.w_acc		= param_find("ATT_W_ACC");
 	_params_handles.w_mag		= param_find("ATT_W_MAG");
 	_params_handles.w_gyro_bias	= param_find("ATT_W_GYRO_BIAS");
