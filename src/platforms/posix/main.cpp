@@ -120,6 +120,7 @@ int main(int argc, char **argv)
 
 	int index = 1;
 	bool error_detected = false;
+	char *commands_file = nullptr;
 
 	while (index < argc) {
 		if (argv[index][0] == '-') {
@@ -139,10 +140,10 @@ int main(int argc, char **argv)
 		} else {
 			// this is an argument that does not have '-' prefix; treat it like a file name
 			ifstream infile(argv[index]);
-			if (infile.is_open()) {
-				for (string line; getline(infile, line, '\n');) {
-					process_line(line);
-				}
+
+			if (infile.good()) {
+				infile.close();
+				commands_file = argv[index];
 
 			} else {
 				PX4_WARN("Error opening file: %s", argv[index]);
@@ -150,6 +151,7 @@ int main(int argc, char **argv)
 				break;
 			}
 		}
+
 		++index;
 	}
 
@@ -157,6 +159,20 @@ int main(int argc, char **argv)
 		px4::init_once();
 
 		px4::init(argc, argv, "mainapp");
+
+		//if commandfile is present, process the commands from the file
+		if (commands_file != nullptr) {
+			ifstream infile(commands_file);
+
+			if (infile.is_open()) {
+				for (string line; getline(infile, line, '\n');) {
+					process_line(line);
+				}
+
+			} else {
+				PX4_WARN("Error opening file: %s", commands_file);
+			}
+		}
 
 		if (!daemon_mode) {
 			string mystr;
@@ -179,6 +195,7 @@ int main(int argc, char **argv)
 			vector<string> muorb_stop_cmd = { "muorb", "stop" };
 			run_cmd(muorb_stop_cmd);
 		}
+
 		vector<string> shutdown_cmd = { "shutdown" };
 		run_cmd(shutdown_cmd);
 	}
