@@ -329,6 +329,14 @@ extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
 
 /**
+ * Get the number of published instances of a topic group
+ *
+ * @param meta    ORB topic metadata.
+ * @return    The number of published instances of this topic
+ */
+extern int	orb_group_count(const struct orb_metadata *meta) __EXPORT;
+
+/**
  * Return the priority of the topic
  *
  * @param handle	A handle returned from orb_subscribe.
