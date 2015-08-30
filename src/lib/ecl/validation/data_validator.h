@@ -115,7 +115,7 @@ private:
 
 DataValidator::DataValidator(DataValidator *prev_sibling) :
 	_time_last(0),
-	_timeout_interval(50000),
+	_timeout_interval(70000),
 	_event_count(0),
 	_error_count(0),
 	_mean{0.0f},
