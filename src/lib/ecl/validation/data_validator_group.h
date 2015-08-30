@@ -43,7 +43,7 @@
 
 #include "data_validator.h"
 
-class DataValidatorGroup {
+class __EXPORT DataValidatorGroup {
 public:
 	DataValidatorGroup(unsigned siblings);
 	virtual ~DataValidatorGroup();

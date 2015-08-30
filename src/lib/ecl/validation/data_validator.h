@@ -42,8 +42,9 @@
 #pragma once
 
 #include <cmath>
+#include <stdint.h>
 
-class DataValidator {
+class __EXPORT DataValidator {
 public:
 	DataValidator(DataValidator *prev_sibling = nullptr);
 	virtual ~DataValidator();

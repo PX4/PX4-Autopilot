@@ -39,6 +39,9 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include "data_validator_group.h"
+#include <ecl/ecl.h>
+
 DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
 	_first(nullptr),
 	_curr_best(-1),
@@ -169,7 +172,7 @@ void
 DataValidatorGroup::print()
 {
 	/* print the group's state */
-	warnx("validator: best: %d, prev best: %d, failsafe: %s (# %u)",
+	ECL_INFO("validator: best: %d, prev best: %d, failsafe: %s (# %u)",
 		_curr_best, _prev_best, (_toggle_count > 0) ? "YES" : "NO",
 		_toggle_count);
 
@@ -178,7 +181,7 @@ DataValidatorGroup::print()
 	unsigned i = 0;
 
 	while (next != nullptr) {
-		printf("sensor #%u:\n", i);
+		ECL_INFO("sensor #%u:\n", i);
 		next->print();
 		next = next->sibling();
 		i++;
