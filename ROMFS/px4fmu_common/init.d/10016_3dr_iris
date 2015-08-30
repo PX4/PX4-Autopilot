@@ -13,11 +13,11 @@ if [ $AUTOCNF == yes ]
 then
 	# TODO tune roll/pitch separately
 	param set MC_ROLL_P 7.0
-	param set MC_ROLLRATE_P 0.13
+	param set MC_ROLLRATE_P 0.15
 	param set MC_ROLLRATE_I 0.05
 	param set MC_ROLLRATE_D 0.004
 	param set MC_PITCH_P 7.0
-	param set MC_PITCHRATE_P 0.13
+	param set MC_PITCHRATE_P 0.15
 	param set MC_PITCHRATE_I 0.05
 	param set MC_PITCHRATE_D 0.004
 	param set MC_YAW_P 2.5
