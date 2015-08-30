@@ -220,7 +220,7 @@ qurtrun:
 # unit tests.
 .PHONY: tests
 tests:	generateuorbtopicheaders
-	$(Q) (mkdir -p $(PX4_BASE)/unittests/build && cd $(PX4_BASE)/unittests/build && cmake .. && $(MAKE) unittests)
+	$(Q) (mkdir -p $(PX4_BASE)/unittests/build && cd $(PX4_BASE)/unittests/build && cmake .. && $(MAKE) --no-print-directory unittests)
 
 .PHONY: format check_format
 check_format:

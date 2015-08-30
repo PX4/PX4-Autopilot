@@ -13,6 +13,7 @@ cache:
 addons:
   apt:
     sources:
+    - kubuntu-backports
     - ubuntu-toolchain-r-test
     packages:
     - build-essential
