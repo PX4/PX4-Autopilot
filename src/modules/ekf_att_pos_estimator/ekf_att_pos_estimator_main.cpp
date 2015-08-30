@@ -219,6 +219,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_LP_att_Q(100.0f, 10.0f),
 	_LP_att_R(100.0f, 10.0f)
 {
+	_voter_mag.set_timeout(200000);
 
 	_parameter_handles.vel_delay_ms = param_find("PE_VEL_DELAY_MS");
 	_parameter_handles.pos_delay_ms = param_find("PE_POS_DELAY_MS");
@@ -1136,7 +1137,7 @@ int AttitudePositionEstimatorEKF::start()
 	/* start the task */
 	_estimator_task = px4_task_spawn_cmd("ekf_att_pos_estimator",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 40,
+					 SCHED_PRIORITY_MAX - 20,
 					 4800,
 					 (px4_main_t)&AttitudePositionEstimatorEKF::task_main_trampoline,
 					 nullptr);
