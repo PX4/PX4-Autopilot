@@ -85,6 +85,13 @@ public:
 	 */
 	void			print();
 
+	/**
+	 * Set the timeout value
+	 *
+	 * @param timeout_interval_us The timeout interval in microseconds
+	 */
+	void			set_timeout(uint64_t timeout_interval_us);
+
 private:
 	DataValidator *_first;		/**< sibling in the group */
 	int _curr_best;		/**< currently best index */
@@ -119,6 +126,17 @@ DataValidatorGroup::~DataValidatorGroup()
 }
 
 void
+DataValidatorGroup::set_timeout(uint64_t timeout_interval_us)
+{
+	DataValidator *next = _first;
+
+	while (next != nullptr) {
+		next->set_timeout(timeout_interval_us);
+		next = next->sibling();
+	}
+}
+
+void
 DataValidatorGroup::put(unsigned index, uint64_t timestamp, float val[3], uint64_t error_count)
 {
 	DataValidator *next = _first;
@@ -141,7 +159,7 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 
 	// XXX This should eventually also include voting
 	int pre_check_best = _curr_best;
-	float max_confidence = 0.0f;
+	float max_confidence = -1.0f;
 	int max_index = -1;
 	uint64_t min_error_count = 30000;
 	DataValidator *best = nullptr;

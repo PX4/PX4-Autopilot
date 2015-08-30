@@ -92,6 +92,13 @@ public:
 	 */
 	void			print();
 
+	/**
+	 * Set the timeout value
+	 *
+	 * @param timeout_interval_us The timeout interval in microseconds
+	 */
+	void			set_timeout(uint64_t timeout_interval_us) { _timeout_interval = timeout_interval_us; }
+
 private:
 	static const unsigned _dimensions = 3;
 	uint64_t _time_last;			/**< last timestamp */
