@@ -36,8 +36,8 @@
  * Parameters for multicopter attitude controller.
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #include <systemlib/param/param.h>
@@ -60,7 +60,7 @@ PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.5f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.12f);
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
 
 /**
  * Roll rate I gain
@@ -111,7 +111,7 @@ PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.5f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.12f);
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
 
 /**
  * Pitch rate I gain
