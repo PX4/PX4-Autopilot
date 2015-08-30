@@ -60,6 +60,7 @@ public:
 		_integ7_state(0.0f),
 		_last_pitch_dem(0.0f),
 		_vel_dot(0.0f),
+		_EAS(0.0f),
 		_TAS_dem(0.0f),
 		_TAS_dem_last(0.0f),
 		_hgt_dem_in_old(0.0f),
@@ -396,7 +397,8 @@ private:
 	// Time since last update of main TECS loop (seconds)
 	float _DT;
 
-	static constexpr float DT_MIN = 0.1f;
+	static constexpr float DT_MIN = 0.001f;
+	static constexpr float DT_DEFAULT = 0.02f;
 	static constexpr float DT_MAX = 1.0f;
 
 	bool _airspeed_enabled;
