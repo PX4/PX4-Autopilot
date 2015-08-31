@@ -116,10 +116,10 @@ static inline int max(int val1, int val2)
 static void usage(const char *reason)
 {
 	if (reason) {
-		fprintf(stderr, "%s\n", reason);
+		PX4_INFO("%s\n", reason);
 	}
 
-	fprintf(stderr, "usage: position_estimator_inav {start|stop|status} [-v]\n\n");
+	PX4_INFO("usage: position_estimator_inav {start|stop|status} [-v]\n\n");
 	return;
 }
 
@@ -404,7 +404,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
-						if (isfinite(sensor.baro_alt_meter)) {
+						if (PX4_ISFINITE(sensor.baro_alt_meter)) {
 							baro_offset += sensor.baro_alt_meter;
 							baro_init_cnt++;
 						}

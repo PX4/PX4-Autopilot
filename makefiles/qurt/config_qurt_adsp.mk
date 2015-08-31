@@ -1,3 +1,9 @@
+#Added configuration specific flags here. 
+
+# For Actual flight we need to link against the driver dynamic libraries
+LDFLAGS	+= -L${DSPAL_ROOT}/mpu_spi/hexagon_Debug_dynamic_toolv64/ship -lmpu9x50
+LDFLAGS	+= -L${DSPAL_ROOT}/uart_esc/hexagon_Debug_dynamic_toolv64/ship -luart_esc
+
 #
 # Makefile for the EAGLE QuRT *default* configuration
 #

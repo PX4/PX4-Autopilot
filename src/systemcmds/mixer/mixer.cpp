@@ -91,10 +91,10 @@ static void
 usage(const char *reason)
 {
 	if (reason)
-		fprintf(stderr, "%s\n", reason);
+		PX4_INFO("%s\n", reason);
 
-	fprintf(stderr, "usage:\n");
-	fprintf(stderr, "  mixer load <device> <filename>\n");
+	PX4_INFO("usage:\n");
+	PX4_INFO("  mixer load <device> <filename>\n");
 }
 
 static int

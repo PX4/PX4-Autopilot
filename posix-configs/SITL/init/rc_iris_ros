@@ -48,7 +48,7 @@ accelsim start
 barosim start
 adcsim start
 gpssim start
-hil mode_pwm
+pwm_out_sim mode_pwm
 commander start
 sensors start
 land_detector start multicopter

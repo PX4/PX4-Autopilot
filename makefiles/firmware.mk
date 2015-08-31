@@ -106,8 +106,6 @@ ifneq ($(words $(PX4_BASE)),1)
 $(error Cannot build when the PX4_BASE path contains one or more space characters.)
 endif
 
-$(info %  GIT_DESC            = $(GIT_DESC))
-
 #
 # Set a default target so that included makefiles or errors here don't
 # cause confusion.
@@ -232,7 +230,7 @@ $(MODULE_OBJS):		workdir = $(@D)
 $(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
 	$(Q) $(MKDIR) -p $(workdir)
 	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
-		-C $(workdir) \
+		--no-print-directory -C $(workdir) \
 		MODULE_WORK_DIR=$(workdir) \
 		MODULE_OBJ=$@ \
 		MODULE_MK=$(mkfile) \
@@ -292,7 +290,7 @@ $(LIBRARY_LIBS):	workdir = $(@D)
 $(LIBRARY_LIBS):	$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
 	$(Q) $(MKDIR) -p $(workdir)
 	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)library.mk \
-		-C $(workdir) \
+		--no-print-directory -C $(workdir) \
 		LIBRARY_WORK_DIR=$(workdir) \
 		LIBRARY_LIB=$@ \
 		LIBRARY_MK=$(mkfile) \

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,7 +20,7 @@
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT ,
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
@@ -30,47 +30,35 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#ifndef QURT_LOG_H
+#define QURT_LOG_H
 
-/**
- * @file rc_parameter_map.h
- * Maps RC channels to parameters
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
+#include <stdarg.h>
+#include <stdio.h>
 
-#ifndef TOPIC_RC_PARAMETER_MAP_H
-#define TOPIC_RC_PARAMETER_MAP_H
-
-#include <stdint.h>
-#include "../uORB.h"
-
-#define RC_PARAM_MAP_NCHAN 3 // This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h
-#define PARAM_ID_LEN 16 // corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN
-
-/**
- * @addtogroup topics
- * @{
- */
-
-struct rc_parameter_map_s {
-	uint64_t timestamp;			/**< time at which the map was updated */
-
-	bool valid[RC_PARAM_MAP_NCHAN];		/**< true for RC-Param channels which are mapped to a param */
-
-	int param_index[RC_PARAM_MAP_NCHAN];	/**< corresponding param index, this
-						  this field is ignored if set to -1, in this case param_id will
-						  be used*/
-	char param_id[RC_PARAM_MAP_NCHAN][PARAM_ID_LEN + 1];	/**< corresponding param id, null terminated */
-	float scale[RC_PARAM_MAP_NCHAN];	/** scale to map the RC input [-1, 1] to a parameter value */
-	float value0[RC_PARAM_MAP_NCHAN];	/** inital value around which the parameter value is changed */
-	float value_min[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
-	float value_max[RC_PARAM_MAP_NCHAN];	/** minimal parameter value */
-};
-
-/**
- * @}
- */
-
-ORB_DECLARE(rc_parameter_map);
-
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+//void qurt_log(int level, const char *file, int line, const char *format, ...);
+
+// declaration to make the compiler happy.  This symbol is part of the adsp static image.
+void HAP_debug(const char *msg, int level, const char *filename, int line);
+
+static __inline void qurt_log(int level, const char *file, int line,
+			      const char *format, ...)
+{
+	char buf[256];
+	va_list args;
+	va_start(args, format);
+	vsnprintf(buf, sizeof(buf), format, args);
+	va_end(args);
+	HAP_debug(buf, level, file, line);
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // QURT_LOG_H
+

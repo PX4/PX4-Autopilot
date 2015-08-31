@@ -89,6 +89,70 @@ then
 		fi
 	fi
 
+	# Compare existing params and save defaults
+	# this only needs to be in for 1-2 releases
+	if param compare RC_MAP_THROTTLE 0
+	then
+		# So this is a default setup,
+		# now lets find out if channel 3
+		# is calibrated
+		if param compare RC3_MIN 1000
+		then
+			# This is default, do nothing
+		else
+			# Set old default
+			param set RC_MAP_THROTTLE 3
+		fi
+	fi
+
+	# Compare existing params and save defaults
+	# this only needs to be in for 1-2 releases
+	if param compare RC_MAP_ROLL 0
+	then
+		# So this is a default setup,
+		# now lets find out if channel 1
+		# is calibrated
+		if param compare RC1_MIN 1000
+		then
+			# This is default, do nothing
+		else
+			# Set old default
+			param set RC_MAP_ROLL 1
+		fi
+	fi
+
+	# Compare existing params and save defaults
+	# this only needs to be in for 1-2 releases
+	if param compare RC_MAP_PITCH 0
+	then
+		# So this is a default setup,
+		# now lets find out if channel 2
+		# is calibrated
+		if param compare RC2_MIN 1000
+		then
+			# This is default, do nothing
+		else
+			# Set old default
+			param set RC_MAP_PITCH 2
+		fi
+	fi
+
+	# Compare existing params and save defaults
+	# this only needs to be in for 1-2 releases
+	if param compare RC_MAP_YAW 0
+	then
+		# So this is a default setup,
+		# now lets find out if channel 4
+		# is calibrated
+		if param compare RC4_MIN 1000
+		then
+			# This is default, do nothing
+		else
+			# Set old default
+			param set RC_MAP_YAW 4
+		fi
+	fi
+
 	#
 	# Start system state indicator
 	#
@@ -287,6 +351,7 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
+		set GPS no
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
@@ -299,6 +364,11 @@ then
 	if dataman start
 	then
 	fi
+
+	#
+	# UAVCAN
+	#
+	sh /etc/init.d/rc.uavcan
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
@@ -315,9 +385,12 @@ then
 			gps start
 		fi
 	fi
+	unset GPS
 	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
+	# Wait 10 ms for sensors (workaround for airspeed, to be removed)
+	usleep 10000
 	commander start
 
 	#
@@ -504,10 +577,6 @@ then
 			camera_trigger start
 		fi
 	fi
-
-	# UAVCAN
-	#
-	sh /etc/init.d/rc.uavcan
 
 	#
 	# Logging

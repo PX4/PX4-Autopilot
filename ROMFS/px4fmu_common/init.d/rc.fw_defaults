@@ -16,8 +16,6 @@ then
 	param set PE_VELD_NOISE 0.35
 	param set PE_POSNE_NOISE 0.5
 	param set PE_POSD_NOISE 1.0
-	param set PE_GBIAS_PNOISE 0.000001
-	param set PE_ABIAS_PNOISE 0.0002
 fi
 
 # This is the gimbal pass mixer
