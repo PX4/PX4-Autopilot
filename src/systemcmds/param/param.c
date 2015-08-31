@@ -55,11 +55,15 @@
 
 #include "systemlib/systemlib.h"
 #include "systemlib/param/param.h"
+#if defined(FLASH_BASED_PARAMS)
+# include "systemlib/flashparams/flashparams.h"
+#endif
 #include "systemlib/err.h"
 
 __EXPORT int param_main(int argc, char *argv[]);
 
 static int 	do_save(const char *param_file_name);
+static int	do_save_default(void);
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name);
 static void	do_show(const char *search_string);
@@ -79,7 +83,7 @@ param_main(int argc, char *argv[])
 				return do_save(argv[2]);
 
 			} else {
-				if (param_save_default()) {
+				if (do_save_default()) {
 					warnx("Param export failed.");
 					return 1;
 
@@ -178,6 +182,7 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "index_used")) {
 			if (argc >= 3) {
 				do_show_index(argv[2], true);
+
 			} else {
 				warnx("no index provided");
 				return 1;
@@ -187,6 +192,7 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "index")) {
 			if (argc >= 3) {
 				do_show_index(argv[2], false);
+
 			} else {
 				warnx("no index provided");
 				return 1;
@@ -197,6 +203,35 @@ param_main(int argc, char *argv[])
 	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare', 'select' or 'save'");
 	return 1;
 }
+
+#if defined(FLASH_BASED_PARAMS)
+/* If flash based parameters are uses we call out
+ * to the following set of flash routines
+ */
+static int
+
+do_save(const char *param_file_name)
+{
+	return flash_param_save();
+}
+static int
+do_save_default(void)
+{
+	return flash_param_save_default();
+}
+
+static int
+do_load(const char *param_file_name)
+{
+	return flash_param_load();
+}
+
+static int
+do_import(const char *param_file_name)
+{
+	return flash_param_import();
+}
+#else
 
 static int
 do_save(const char *param_file_name)
@@ -221,6 +256,12 @@ do_save(const char *param_file_name)
 	}
 
 	return 0;
+}
+
+static int
+do_save_default(void)
+{
+	return param_save_default();
 }
 
 static int
@@ -264,6 +305,7 @@ do_import(const char *param_file_name)
 
 	return 0;
 }
+#endif
 
 static void
 do_show(const char *search_string)
@@ -284,6 +326,7 @@ do_show_index(const char *index, bool used_index)
 
 	if (used_index) {
 		param = param_for_used_index(i);
+
 	} else {
 		param = param_for_index(i);
 	}
@@ -310,6 +353,7 @@ do_show_index(const char *index, bool used_index)
 		}
 
 		break;
+
 	default:
 		printf("<unknown type %d>\n", 0 + param_type(param));
 	}
@@ -557,6 +601,7 @@ do_reset(const char *excludes[], int num_excludes)
 		warnx("Param export failed.");
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -584,5 +629,6 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 		return 1;
 
 	}
+
 	return 0;
 }

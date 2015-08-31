@@ -74,6 +74,10 @@
 #include <systemlib/systemlib.h>
 #endif
 
+#if defined(FLASH_BASED_PARAMS)
+# include <systemlib/flashparams/param_flash.h>
+#endif
+
 #include "board_config.h"
 
 /* todo: This is constant but not proper */
@@ -85,7 +89,6 @@ __END_DECLS
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
 /* Configuration ************************************************************/
 
 /* Debug ********************************************************************/
@@ -124,7 +127,7 @@ __EXPORT void board_initialize(void)
 }
 
 /****************************************************************************
- * Name: nsh_archinitialize
+ * Name: board_app_initialize
  *
  * Description:
  *   Perform architecture specific initialization
@@ -146,11 +149,7 @@ __EXPORT int matherr(struct exception *e)
 }
 #endif
 
-#ifdef CONFIG_NSH_LIBRARY
-__EXPORT int nsh_archinitialize(void)
-#else
-__EXPORT int app_archinitialize(void)
-#endif
+__EXPORT int board_app_initialize(void)
 {
 	int result = OK;
 
@@ -188,5 +187,20 @@ __EXPORT int app_archinitialize(void)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t  sector_map[] = {
+	        {1, 16 * 1024, 0x08004000},
+	        {2, 16 * 1024, 0x08008000},
+	        {0, 0, 0},
+	};
+        static uint8_t param_buffer[PARAMETER_BUFFER_SIZE];
+
+        parameter_flash_init(sector_map, param_buffer, sizeof(param_buffer));
+#endif
 	return result;
+}
+
+
+__EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, int lineno)
+{
 }

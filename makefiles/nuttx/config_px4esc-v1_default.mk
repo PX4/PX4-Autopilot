@@ -2,6 +2,12 @@
 # Makefile for the px4esc-v1_default configuration
 #
 
+# WhenFLASH_BASED_PARAMS is defined PARAMETER_BUFFER_SIZE must be defined larger
+# then the maximum parameter memory needed to commit the recored + ~20 bytes.
+# For the syslib's parameter this would be the size of the bson representations
+# of the data
+
+EXTRADEFINES+= -DFLASH_BASED_PARAMS -DPARAM_NO_ORB -DPARAMETER_BUFFER_SIZE=1024
 INCLUDE_DIRS += $(PX4_BOOTLOADER_BASE)include
 
 
@@ -32,16 +38,24 @@ MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/ver
+MODULES		+= systemcmds/param
 
 #
 # General system control
 #
-MODULES		+= modules/uavcannode
+MODULES		+= modules/uavcanesc
+MODULES		+= modules/uavcanesc/nshterm
+MODULES		+= modules/uavcanesc/commands/cfg
+MODULES		+= modules/uavcanesc/commands/selftest
+MODULES		+= modules/uavcanesc/commands/dc
+MODULES		+= modules/uavcanesc/commands/rpm
+MODULES		+= modules/uavcanesc/commands/stat
 
 #
 # Library modules
 #
 MODULES		+= modules/systemlib
+MODULES		+= modules/systemlib/flashparams
 
 
 
@@ -58,7 +72,6 @@ GEN_PARAM_XML = 1
 # Make this UAVCAN boot loadable
 #
 MAKE_UAVCAN_BOOT_LOADABLE_ID=$(call MKUAVCANBLNAME,$(subst $\",,$(UAVCANBLID_NAME)))
-
 
 #
 # Demo apps
@@ -77,5 +90,6 @@ define _B
 endef
 
 BUILTIN_COMMANDS := \
-    $(call _B, null, , 60, null_main)
+	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
+	$(call _B, serdis,                 ,                          2048,  serdis_main                )
 
