@@ -61,13 +61,13 @@ public:
 	void				store_update_rates();
 
 protected:
-	uint8_t _rate_count_lat_lon;
-	uint8_t _rate_count_vel;
+	uint8_t _rate_count_lat_lon = 0;
+	uint8_t _rate_count_vel = 0;
 
 	float _rate_lat_lon = 0.0f;
 	float _rate_vel = 0.0f;
 
-	uint64_t _interval_rate_start;
+	uint64_t _interval_rate_start = 0;
 };
 
 #endif /* GPS_HELPER_H */

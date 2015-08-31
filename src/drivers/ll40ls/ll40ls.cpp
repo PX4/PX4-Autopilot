@@ -232,6 +232,7 @@ LL40LS::LL40LS(int bus, const char *path, int address) :
 	_sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_zero_resets")),
 	_last_distance(0),
 	_zero_counter(0),
+	_acquire_time_usec(0),
 	_pause_measurements(false),
 	_bus(bus)
 {

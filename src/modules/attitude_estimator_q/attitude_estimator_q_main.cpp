@@ -149,8 +149,8 @@ private:
 
 	bool		_inited = false;
 
-	perf_counter_t _update_perf;
-	perf_counter_t _loop_perf;
+	perf_counter_t _update_perf = 0;
+	perf_counter_t _loop_perf = 0;
 
 	void update_parameters(bool force);
 

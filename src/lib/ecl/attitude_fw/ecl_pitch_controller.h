@@ -60,7 +60,7 @@ class __EXPORT ECL_PitchController :
 public:
 	ECL_PitchController();
 
-	~ECL_PitchController();
+	virtual ~ECL_PitchController();
 
 	float control_attitude(const struct ECL_ControlData &ctl_data);
 	float control_bodyrate(const struct ECL_ControlData &ctl_data);

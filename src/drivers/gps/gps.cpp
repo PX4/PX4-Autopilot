@@ -170,7 +170,10 @@ GPS	*g_dev = nullptr;
 GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	CDev("gps", GPS0_DEVICE_PATH),
 	_task_should_exit(false),
+	_serial_fd(0),
+	_baudrate(0),
 	_healthy(false),
+	_baudrate_changed(false),
 	_mode_changed(false),
 	_mode(GPS_DRIVER_MODE_UBX),
 	_Helper(nullptr),

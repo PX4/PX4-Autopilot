@@ -60,7 +60,7 @@ class __EXPORT ECL_RollController :
 public:
 	ECL_RollController();
 
-	~ECL_RollController();
+	virtual ~ECL_RollController();
 
 	float control_attitude(const struct ECL_ControlData &ctl_data);
 	float control_bodyrate(const struct ECL_ControlData &ctl_data);

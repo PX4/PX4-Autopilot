@@ -59,7 +59,7 @@ class __EXPORT ECL_YawController :
 public:
 	ECL_YawController();
 
-	~ECL_YawController();
+	virtual ~ECL_YawController();
 
 	float control_attitude(const struct ECL_ControlData &ctl_data);
 
