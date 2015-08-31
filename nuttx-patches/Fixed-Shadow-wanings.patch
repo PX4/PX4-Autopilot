@@ -1,5 +1,5 @@
-diff --git NuttX/nuttx/include/signal.h NuttX/include/signal.h
-index 492ce41..63bb2cf 100644
+diff --git NuttX/nuttx/include/signal.h NuttX/nuttx/include/signal.h
+index 30f97ef..d635f70 100644
 --- NuttX/nuttx/include/signal.h
 +++ NuttX/nuttx/include/signal.h
 @@ -272,8 +272,11 @@ int sigfillset(FAR sigset_t *set);
@@ -15,10 +15,10 @@ index 492ce41..63bb2cf 100644
  int sigignore(int signo);
  int sigprocmask(int how, FAR const sigset_t *set, FAR sigset_t *oset);
 diff --git NuttX/nuttx/include/stdlib.h NuttX/nuttx/include/stdlib.h
-index 16a3f93..dbf94df 100644
+index 70e9f70..862a5d1 100644
 --- NuttX/nuttx/include/stdlib.h
 +++ NuttX/nuttx/include/stdlib.h
-@@ -191,7 +191,10 @@ void     qsort(FAR void *base, size_t nmemb, size_t size,
+@@ -186,7 +186,10 @@ void     qsort(FAR void *base, size_t nmemb, size_t size,
                 int (*compar)(FAR const void *, FAR const void *));
  
  #ifdef CONFIG_CAN_PASS_STRUCTS
