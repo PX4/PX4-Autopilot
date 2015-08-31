@@ -39,22 +39,22 @@
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
+#include <eigen/px4_eigen.h>
+
 #ifndef QUATERNION_H
 #define QUATERNION_H
 
-#include <eigen/px4_eigen.h>
-
 namespace transform {
 
-Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy);
-Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy);
-Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q);
-Eigen::Vector3f eulerFromRot(const Eigen::Matrix3f &rot);
-Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q);
-math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q);
-Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot);
-math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot);
-Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm);
+extern Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy) __EXPORT;
+extern Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy) __EXPORT;
+extern Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q) __EXPORT;
+extern Eigen::Vector3f eulerFromRot(const Eigen::Matrix3f &rot) __EXPORT;
+extern Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q) __EXPORT;
+extern math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q) __EXPORT;
+extern Eigen::Matrix3f eigenrFromPx4r(const math::Matrix<3,3> &rot) __EXPORT;
+extern math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot) __EXPORT;
+extern Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm) __EXPORT;
 
 }; // namespace transform
 

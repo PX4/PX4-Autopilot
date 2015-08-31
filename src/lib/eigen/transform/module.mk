@@ -40,6 +40,5 @@ SRCS		=	quaternion.cpp
 MAXOPTIMIZATION	 = -Os
 
 ifneq ($(USE_GCC), 0)
-EXTRACXXFLAGS += -Wno-double-promotion -Wno-error=logical-op -w
-else EXTRACXXFLAGS += -Wno-unknown-warning-option
+EXTRACXXFLAGS = -Wno-error=logical-op -w
 endif

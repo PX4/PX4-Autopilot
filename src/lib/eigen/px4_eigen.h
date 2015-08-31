@@ -42,7 +42,7 @@
 #pragma once
 
 #include <cmath>
-#include <stdio.h>
+
 #pragma GCC diagnostic push
 #ifndef RAND_MAX
 #define RAND_MAX __RAND_MAX

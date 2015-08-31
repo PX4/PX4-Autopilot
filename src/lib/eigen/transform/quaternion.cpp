@@ -39,7 +39,7 @@
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
-#include <eigen/transform/quaternion.h>
+#include "quaternion.h"
 
 namespace transform {
 /**
@@ -76,7 +76,6 @@ Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
 Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
 	return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
 }
-
 
  /**
   * @brief Construct new Eigen::Vector3f of Euler angles from Rotation Matrix
@@ -119,7 +118,7 @@ math::Matrix<3,3> px4rFromEigenr(const Eigen::Matrix3f &rot){
 
 /**
  * @brief Create Eigen::Quaternionf from a Rotation Matrix through DCM
- * 
+ *
  * Alternative to Eigen::Quaternionf q(R) constructor.
  */
 Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm){
@@ -154,4 +153,4 @@ Eigen::Quaternionf eigenqFromDcm(const Eigen::Matrix3f &dcm){
 	}
 	return eigenqFromPx4q(q);
 }
-};
+}; // namespace transform

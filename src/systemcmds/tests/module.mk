@@ -42,9 +42,5 @@ else
 EXTRACXXFLAGS =
 endif
 
-EXTRACXXFLAGS += -Wno-float-equal
-
-# Flag is only valid for GCC, not clang
-ifneq ($(USE_GCC), 0)
-EXTRACXXFLAGS += -Wno-double-promotion -Wno-error=logical-op -Wno-unused-function
-endif
+EXTRACXXFLAGS += -Wno-float-equal -Wno-double-promotion \
+					-Wno-error=logical-op -Wno-unused-function
