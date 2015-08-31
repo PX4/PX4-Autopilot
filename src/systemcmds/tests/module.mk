@@ -42,5 +42,9 @@ else
 EXTRACXXFLAGS =
 endif
 
-EXTRACXXFLAGS += -Wno-float-equal -Wno-double-promotion \
-					-Wno-error=logical-op -Wno-unused-function
+EXTRACXXFLAGS += -Wno-float-equal
+
+ifneq ($(USE_GCC), 0)
+EXTRACXXFLAGS = -Wno-double-promotion -Wno-error=logical-op \
+					-Wno-unused-function -w
+endif

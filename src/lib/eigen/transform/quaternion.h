@@ -39,10 +39,10 @@
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
-#include <eigen/px4_eigen.h>
-
 #ifndef QUATERNION_H
 #define QUATERNION_H
+
+#include <eigen/px4_eigen.h>
 
 namespace transform {
 
