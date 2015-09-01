@@ -37,7 +37,7 @@ navigator start
 ekf_att_pos_estimator start
 fw_att_control start
 fw_pos_control_l1 start
-mixer load /dev/pwm_output0 ../../ROMFS/px4fmu_common/mixers/quad_x.main.mix
+mixer load /dev/pwm_output0 ../../ROMFS/px4fmu_common/mixers/IO_pass.main.mix
 mavlink start -u 14556 -r 60000
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u 14556
