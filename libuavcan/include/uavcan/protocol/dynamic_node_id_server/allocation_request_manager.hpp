@@ -154,7 +154,7 @@ class AllocationRequestManager
         }
 
         const uint8_t expected_stage = getExpectedStage();
-        if (request_stage == InvalidStage)
+        if (expected_stage == InvalidStage)
         {
             UAVCAN_ASSERT(0);
             return;
