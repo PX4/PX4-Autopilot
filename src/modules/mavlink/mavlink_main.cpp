@@ -1543,11 +1543,6 @@ Mavlink::task_main(int argc, char *argv[])
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
 
-	/* init socket if necessary */
-	if (get_protocol() == UDP) {
-		init_udp();
-	}
-
 #ifndef __PX4_POSIX
 	struct termios uart_config_original;
 
@@ -1723,6 +1718,11 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
+
+	/* init socket if necessary */
+	if (get_protocol() == UDP) {
+		init_udp();
+	}
 
 	/* if the protocol is serial, we send the system version blindly */
 	if (get_protocol() == SERIAL) {

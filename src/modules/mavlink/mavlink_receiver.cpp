@@ -1761,10 +1761,17 @@ MavlinkReceiver::receive_thread(void *arg)
 #ifdef __PX4_POSIX
 	struct sockaddr_in srcaddr;
 	socklen_t addrlen = sizeof(srcaddr);
+
 	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
+		// make sure mavlink app has booted before we start using the socket
+		while (!_mavlink->boot_complete()) {
+			usleep(100000);
+		}
+
 		fds[0].fd = _mavlink->get_socket_fd();
 		fds[0].events = POLLIN;
 	}
+
 #endif
 	ssize_t nread = 0;
 
@@ -1779,7 +1786,6 @@ MavlinkReceiver::receive_thread(void *arg)
 			}
 #ifdef __PX4_POSIX
 			if (_mavlink->get_protocol() == UDP) {
-
 				if (fds[0].revents & POLLIN) {
 					nread = recvfrom(_mavlink->get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
