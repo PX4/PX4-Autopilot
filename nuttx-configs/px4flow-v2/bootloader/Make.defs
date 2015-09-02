@@ -1,5 +1,5 @@
 ############################################################################
-# configs/px4flow-v1/bootloader/Make.defs
+# configs/px4flow-v2/bootloader/Make.defs
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

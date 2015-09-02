@@ -1,5 +1,5 @@
 ############################################################################
-# configs/px4flow-v1/nsh/Make.defs
+# configs/px4flow-v2/nsh/Make.defs
 #
 #   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

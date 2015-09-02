@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4FLOWv1 internal definitions
+ * PX4FLOWv2 internal definitions
  */
 
 #pragma once

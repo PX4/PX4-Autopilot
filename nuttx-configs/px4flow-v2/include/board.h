@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/px4flow-v1/include/board.h
+ * configs/px4flow-v2/include/board.h
  *
  *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -34,8 +34,8 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIGS_PX4FLOW_V1_INCLUDE_BOARD_H
-#define __CONFIGS_PX4FLOW_V1_INCLUDE_BOARD_H
+#ifndef __CONFIGS_PX4FLOW_V2_INCLUDE_BOARD_H
+#define __CONFIGS_PX4FLOW_V2_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -295,4 +295,4 @@ int app_archinitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __CONFIGS_PX4FLOW_V1_INCLUDE_BOARD_H */
+#endif /* __CONFIGS_PX4FLOW_V2_INCLUDE_BOARD_H */
