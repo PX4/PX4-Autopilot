@@ -64,7 +64,7 @@ static socklen_t _addrlen = sizeof(_srcaddr);
 using namespace simulator;
 
 void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg) {
-	float out[8];
+	float out[8] = {};
 
 	const float pwm_center = (PWM_HIGHEST_MAX + PWM_LOWEST_MIN) / 2;
 
@@ -93,6 +93,12 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg) {
 		for (unsigned i = 0; i < 8; i++) {
 			out[i] = (_actuators.output[i] - 1500) / 600.0f;
 		}
+	}
+
+	// if vehicle status has not yet been updated, set actuator commands to zero
+	// this is to prevent the simulation getting into a bad state
+	if (_vehicle_status.timestamp == 0) {
+		memset(out, 0, sizeof(out));
 	}
 
 	actuator_msg.time_usec = hrt_absolute_time();
