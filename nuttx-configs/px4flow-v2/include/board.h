@@ -161,40 +161,40 @@
 /* LED index values for use with board_setled() */
 
 #define BOARD_LED1                0
-#define BOARD_LED_AMBER           BOARD_LED1
+#define BOARD_LED_RED             BOARD_LED1
 #define BOARD_LED2                1
-#define BOARD_LED_BLUE            BOARD_LED2
+#define BOARD_LED_GREEN           BOARD_LED2
 #define BOARD_LED3                2
-#define BOARD_LED_RED             BOARD_LED3
+#define BOARD_LED_BLUE            BOARD_LED3
 #define BOARD_NLEDS               3
 
 /* LED bits for use with board_setleds() */
 
-#define BOARD_LED_AMBER_BIT     (1 << BOARD_LED_AMBER)
-#define BOARD_LED_BLUE_BIT      (1 << BOARD_LED_BLUE)
-#define BOARD_LED_RED_BIT       (1 << BOARD_LED_RED)
+#define BOARD_LED_RED_BIT         (1 << BOARD_LED_RED)
+#define BOARD_LED_GREEN_BIT       (1 << BOARD_LED_GREEN)
+#define BOARD_LED_BLUE_BIT        (1 << BOARD_LED_BLUE)
 
-/*
+/* TODO:define these
  * These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
+ *
  * defined.  In that case, the usage by the board port is as follows:
  *
  *   SYMBOL                     Meaning                      LED state
- *                                                         Amber Blue Red
- *   ------------------------  --------------------------  ----- ---- ---- */
+ *                                                         Red   Green Blue
+ *   ------------------------  --------------------------  ------ ------ ----*/
 
-#define LED_STARTED          0 /* NuttX has been started   OFF    OFF  OFF  */
-#define LED_HEAPALLOCATE     1 /* Heap has been allocated  ON     OFF  OFF  */
-#define LED_IRQSENABLED      2 /* Interrupts enabled       OFF    ON   OFF  */
-#define LED_STACKCREATED     3 /* Idle stack created       ON     ON   OFF  */
-#define LED_INIRQ            4 /* In an interrupt          N/C    GLOW N/C  */
-#define LED_SIGNAL           5 /* In a signal handler      N/C    GLOW N/C  */
-#define LED_ASSERTION        6 /* An assertion failed      N/C    GLOW GLOW */
-#define LED_PANIC            7 /* The system has crashed   N/C    OFF  Blinking  */
-#define LED_IDLE             8  /* MCU is is sleep mode    OFF    OFF  ON   */
-
+#define LED_STARTED          0 /* NuttX has been started   OFF    OFF   OFF */
+#define LED_HEAPALLOCATE     1 /* Heap has been allocated  OFF    OFF   ON  */
+#define LED_IRQSENABLED      2 /* Interrupts enabled       OFF    ON    OFF */
+#define LED_STACKCREATED     3 /* Idle stack created       OFF    ON    ON  */
+#define LED_INIRQ            4 /* In an interrupt          N/C    GLOW  N/C */
+#define LED_SIGNAL           5 /* In a signal handler      N/C    GLOW  N/C */
+#define LED_ASSERTION        6 /* An assertion failed      GLOW   GLOW  N/C */
+#define LED_PANIC            7 /* The system has crashed   Blk    OFF   N/C */
+#define LED_IDLE             8  /* MCU is is sleep mode    ON     OFF   OFF */
 
 /*
- * Thus if the Amber is statically on, NuttX has successfully booted and is,
+ * Thus if the blue is statically on, NuttX has successfully booted and is,
  * apparently, running normally.  If the Red LED is flashing at
  * approximately 2Hz, then a fatal error has been detected and the system
  * has halted.

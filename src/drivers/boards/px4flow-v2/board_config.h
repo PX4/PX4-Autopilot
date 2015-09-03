@@ -66,10 +66,8 @@ __BEGIN_DECLS
 
 /* High-resolution timer
  */
-#define HRT_TIMER               1       /* use timer1 for the HRT */
-#define HRT_TIMER_CHANNEL       1       /* use capture/compare channel */
-#define HRT_PPM_CHANNEL         3       /* use capture/compare channel 3 */
-#define GPIO_PPM_IN             (GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTB|GPIO_PIN12)
+#define HRT_TIMER               8       /* use timer1 for the HRT */
+#define HRT_TIMER_CHANNEL       8       /* use capture/compare channel */
 
 /* GPIO ***********************************************************************
  *
@@ -78,14 +76,14 @@ __BEGIN_DECLS
  * -- ----- --------------------------------             ----------------------
  *
  *  PA[00] PA0/TIM2_CH1/TIM5_CH1/USART2_CTS/UART4_TX         23       TIM5_CH1
- *  PA[01] PA1/TIM2_CH2/TIM5_CH2/USART2_RTS/UART4_RX         24       TIM5_CH2
+ *  PA[01] PA1/TIM2_CH2/TIM5_CH2/USART2_RTS/UART4_RX         24       TIM5_CH2 NC.
  *  PA[02] PA2/TIM2_CH3/TIM5_CH3/TIM9_CH1/USART2_TX          25       TIM5_CH3_EXPOSURE
  *  PA[03] PA3/TIM2_CH4/TIM5_CH4/TIM9_CH2/USART2_RX          26       TIM5_CH4_STANDBY
  *  PA[04] PA4/SPI1_NSS/SPI3_NSS/DCMI_HSYNC/LCD_VSYNC        29       DCMI_HSYNC
  *  PA[05] PA5/TIM2_CH1/TIM2_ETR/TIM8_CH1N/SPI1_SCK          30       CAM_NRESET
  *  PA[06] PA6/TIM3_CH1/SPI1_MISO/TIM13_CH1/DCMI_PIXCLK      31       DCMI_PIXCK
  *  PA[07] PA7/TIM1,8_CH1N/TIM3_CH2/SPI1_MOSI/TIM14_CH1      32       SPI1_MOSI---
- *  PA[08] PA8/MCO1/TIM1_CH1/I2C3_SCL/USART1_CK/LCD_R6/      67       I2C3_SCL---
+ *  PA[08] PA8/MCO1/TIM1_CH1/I2C3_SCL/USART1_CK/LCD_R6/      67       MPU_CS
  *  PA[09] PA9/TIM1_CH2/USART1_TX/DCMI_D0/OTG_FS_VBUS        68       VBUS
  *  PA[10] PA10/TIM1_CH3/USART1_RX/OTG_FS_ID/DCMI_D1         69       OTG_FS_ID
  *  PA[11] PA11/TIM1_CH4/USART1_CTS/CAN1_RX/LCD_R4/OTG_FS_DM 70       OTG_FS_N
@@ -101,7 +99,7 @@ __BEGIN_DECLS
  *  PB[02] PB2/BOOT1                                         37       PB2-BOOT1
  *  PB[03] PB3/JTDO/TRACESWO/TIM2_CH2/SPI1_SCK/SPI3_SCK      89       JTDO
  *  PB[04] PB4/NJTRST/TIM3_CH1/SPI1_MISO/SPI3_MISO           90       JTRST
- *  PB[05] PB5/TIM3_CH2/SPI1_MOSI/SPI3_MOSI/CAN2_RX/DCMI_D10 91       PCM1_D10
+ *  PB[05] PB5/TIM3_CH2/SPI1_MOSI/SPI3_MOSI/CAN2_RX/DCMI_D10 91       PCM1_D10 N.C
  *  PB[06] PB6/TIM4_CH1/I2C1_SCL/USART1_TX/CAN2_TX/DCMI_D5   92       PCMI_D5
  *  PB[07] PB7/TIM4_CH2/I2C1_SDA/USART1_RX/FMC_NL/DCMI_VSYNC 93       DCMI_VSYNC
  *  PB[08] PB8/TIM4_CH3/TIM10_CH1/I2C1_SCL/CAN1_RX/DCMI_D6   95       J2C1_SCL
@@ -127,26 +125,26 @@ __BEGIN_DECLS
  *  PC[10] PC10/SPI3_SCK/USART3_TX/UART4_TX/SDIO_D2/DCMI_D8  78       DCMI_D8
  *  PC[11] PC11/SPI3_MISO/USART3_RX/UART4_RX/SDIO_D3DCMI_D4  78       UART4_RX
  *  PC[12] PC12/SPI3_MOSI/USART3_CK/UART5_TX/SDIO_CK/DCMI_D9 80       DCMI_09
- *  PC[13] PC13                                               7       ADDR0
- *  PC[14] PC14                                               8       ADDR1
- *  PC[15] PC15                                               9       ADDR2
+ *  PC[13] PC13                                               7       ADDR0 NC
+ *  PC[14] PC14                                               8       ADDR1 NC
+ *  PC[15] PC15                                               9       ADDR2 NC
 
  *  PD[00] PD0/CAN1_RX/FMC_D2                                81       CAN1_RX
  *  PD[01] PD1/CAN1_TX/FMC_D3                                82       CAN1_TX
- *  PD[02] PD2/TIM3_ETR/UARTS_RX/SDIO_CMD/DCMI_D11           83       DCMI_D11_UARTS_RX
+ *  PD[02] PD2/TIM3_ETR/UARTS_RX/SDIO_CMD/DCMI_D11           83       DCMI_D11_UARTS_RX NC
  *  PD[03] PD3/SPI2_SCK/USART2_CTS/FMC_CLK/DCMI_D5/LCD_G7    84       UART5_CTS
  *  PD[04] PD4/USART2_RTS/FMC_NOE                            85       USART2_RTS
  *  PD[05] PD5/USART2_TX/FMC_NWE                             86       USART2_TX
  *  PD[06] PD6/SPI3_MOSI/SAI1_SD_A/USART2_RX/DCMI_D10/LCD_B2 87       USART2_RX
- *  PD[07] PD7/USART2_CK/FMC_NE1/FMC_NCE2                    88       USART2_CK
+ *  PD[07] PD7/USART2_CK/FMC_NE1/FMC_NCE2                    88       USART2_CK NC
  *  PD[08] PD8/USART3_TX/FMC_D13                             55       USART3_TX
  *  PD[09] PD9/USART3_RX/FMC_D14                             56       USART3_RX
  *  PD[10] PD10/USART3_CK/FMC_D15/LCD_B3                     57       USART3_CK
  *  PD[11] PD11/USART3_CTS/FMC_A16                           58       USART3_CTS
  *  PD[12] PD12/TIM4_CH1/USART3_RTS/FMC_A17                  59       USART3_RTS
- *  PD[13] PD13/TIM4_CH2/FMC_A18                             60       TIM4_CH2
- *  PD[14] PD14/TIM4_CH3/FMC_D0                              61       TIM4_CH3
- *  PD[15] PD15/TIM4_CH4/FMC_D1                              62       TIM4_CH4
+ *  PD[13] PD13/TIM4_CH2/FMC_A18                             60       PWM
+ *  PD[14] PD14/TIM4_CH3/FMC_D0                              61       POWER
+ *  PD[15] PD15/TIM4_CH4/FMC_D1                              62       PWM_EN
 
  *  PE[00] PE0/TIM4_ETR/UART8_RX/FMC_NBL0/DCMI_D2            97       DCMI_D2
  *  PE[01] PE1/UART8_Tx/FMC_NBL1/DCMI_D3                     98       DCMI_D3
@@ -157,11 +155,11 @@ __BEGIN_DECLS
  *  PE[06] PE6/TRACED3/TIM9_CH2/SPI4_MOSI/DCMI_D7/LCD_G1      5       DCMI_D7
  *  PE[07] PE7/TIM1_ETR/UART7_Rx/FMC_D4                      38       LED RED
  *  PE[08] PE8/TIM1_CH1N/UART7_Tx/FMC_D5                     39       US_FN1
- *  PE[09] PE9/TIM1_CH1/FMC_D6                               40       TIM1_CH1
+ *  PE[09] PE9/TIM1_CH1/FMC_D6                               40       RED_LED
  *  PE[10] PE10/TIM1_CH2N/FMC_D7                             41       US_EN2
- *  PE[11] PE11/TIM1_CH2/8PI4_NSS/FMC_D8/LCD_G3              42       TIM1_CH2
+ *  PE[11] PE11/TIM1_CH2/8PI4_NSS/FMC_D8/LCD_G3              42       GREEN_LED
  *  PE[12] PE12/TIM1_CH3N/SPI4_SCK/FMC_D9/LCD_B4             43       UDD_3U3
- *  PE[13] PE13/TIM1_CH3/SPI4_MISO/FMC_D10/LCD_DE            44       GND
+ *  PE[13] PE13/TIM1_CH3/SPI4_MISO/FMC_D10/LCD_DE            44       BLUE_LED
  *  PE[14] PE14/TIM1_CH4/SPI4_MOSI/FMC_D11/LCD_CLK           45       GND
  *  PE[15] PE15/TIM1_BKIN/FMC_D12/LCD_R7                     46       GND
 */
@@ -214,21 +212,37 @@ __BEGIN_DECLS
  *   GPIO      Function                                     MPU        Board
  *                                                          Pin #      Name
  * -- ----- --------------------------------             ----------------------
+ *  PE[09] PE9/TIM1_CH1/FMC_D6                               40       RED_LED
+ *  PE[11] PE11/TIM1_CH2/8PI4_NSS/FMC_D8/LCD_G3              42       GREEN_LED
+ *  PE[13] PE13/TIM1_CH3/SPI4_MISO/FMC_D10/LCD_DE            44       BLUE_LED
  *
  */
 
-#define GPIO_LED2       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_SPEED_2MHz | \
-                         GPIO_PORTE | GPIO_PIN2 | GPIO_OUTPUT_SET)
-#define GPIO_LED_AMBER  GPIO_LED2
+#define GPIO_LED1       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | \
+                         GPIO_PORTE | GPIO_PIN9 | GPIO_OUTPUT_SET)
+#define GPIO_LED2       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | \
+                         GPIO_PORTE | GPIO_PIN11 | GPIO_OUTPUT_SET)
+#define GPIO_LED3       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | \
+                         GPIO_PORTE | GPIO_PIN13 | GPIO_OUTPUT_SET)
 
-#define GPIO_LED3       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_SPEED_2MHz | \
-                         GPIO_PORTE | GPIO_PIN3 | GPIO_OUTPUT_SET)
-#define GPIO_LED_BLUE   GPIO_LED2
+#define GPIO_TIM1_CH1OUT        GPIO_TIM1_CH1OUT_2      /* Red */
+#define GPIO_TIM1_CH2OUT        GPIO_TIM1_CH2OUT_2      /* Green */
+#define GPIO_TIM1_CH3OUT        GPIO_TIM1_CH3OUT_2      /* Blue */
 
-#define GPIO_LED4       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_SPEED_2MHz | \
-                         GPIO_PORTE | GPIO_PIN7 | GPIO_OUTPUT_SET)
-#define GPIO_LED_RED    GPIO_LED4
-
+#define MIS_WIRED_V20
+/* todo:remove this */
+#if defined(MIS_WIRED_V20)
+#pragma message "Built with MIS_WIRED_V20 set Fix this when New HW comes out"
+/* The first proto (PCB) had red and Blow swapped */
+# define GPIO_LED_RED     GPIO_LED3
+# define GPIO_LED_GREEN   GPIO_LED2
+# define GPIO_LED_BLUE    GPIO_LED1
+#else
+/* This is the corrected wiring */
+# define GPIO_LED_RED     GPIO_LED1
+# define GPIO_LED_GREEN   GPIO_LED2
+# define GPIO_LED_BLUE    GPIO_LED3
+#endif
 
 /************************************************************************************
  * Public Types
