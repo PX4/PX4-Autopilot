@@ -396,13 +396,12 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 	case PC_ELAPSED: {
 		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 		float rms = sqrtf(pce->M2 / (pce->event_count-1));
-
 		dprintf(fd, "%s: %llu events, %llu overruns, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 			handle->name,
 			(unsigned long long)pce->event_count,
 			(unsigned long long)pce->event_overruns,
 			(unsigned long long)pce->time_total,
-			(unsigned long long)pce->time_total / pce->event_count,
+			pce->event_count == 0 ? 0 : (unsigned long long)pce->time_total / pce->event_count,
 			(unsigned long long)pce->time_least,
 			(unsigned long long)pce->time_most,
 			(double)(1e6f * rms));
