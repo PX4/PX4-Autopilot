@@ -46,7 +46,7 @@
  #define THROTTLE_TRANSITION_MAX 0.25f	// maximum added thrust above last value in transition
  #define PITCH_TRANSITION_FRONT_P1 -1.1f	// pitch angle to switch to TRANSITION_P2
  #define PITCH_TRANSITION_FRONT_P2 -1.2f	// pitch angle to switch to FW
- #define PITCH_TRANSITION_BACK -0.6f	// pitch angle to switch to MC
+ #define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
 Tailsitter::Tailsitter (VtolAttitudeControl *attc) :
 VtolType(attc),
@@ -316,8 +316,11 @@ void Tailsitter::update_transition_state()
 		}
 
 		/** create time dependant pitch angle set point stating at -pi/2 + 0.2 rad overlap over the switch value*/		
-		_v_att_sp->pitch_body = -1.57f + _pitch_transition_start + fabsf(PITCH_TRANSITION_BACK - _pitch_transition_start) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tailsitter.back_trans_dur * 1000000.0f);	
+		_v_att_sp->pitch_body = -1.57f + _pitch_transition_start + fabsf(PITCH_TRANSITION_BACK + 1.57f ) * (float)hrt_elapsed_time(&_vtol_schedule.transition_start)/(_params_tailsitter.back_trans_dur * 1000000.0f);	
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body , -2.0f , PITCH_TRANSITION_BACK+0.2f);
+
+
+		_v_att_sp->thrust = _throttle_transition*0.9f;
 			
 		/** keep yaw disabled */
 		_mc_yaw_weight = 0.0f;
