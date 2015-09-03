@@ -64,9 +64,9 @@ extern void led_toggle(int led);
 __END_DECLS
 
 static uint16_t g_ledmap[] = {
-    GPIO_LED_AMBER,   // Indexed by BOARD_LED_AMBER
+    GPIO_LED_RED,    // Indexed by BOARD_LED_RED
+    GPIO_LED_GREEN,  // Indexed by BOARD_LED_GREEN
     GPIO_LED_BLUE,    // Indexed by BOARD_LED_BLUE
-    GPIO_LED_RED,     // Indexed by BOARD_LED_RED
 };
 
 __EXPORT void led_init(void)
@@ -117,38 +117,40 @@ static bool g_initialized;
 __EXPORT
 void board_led_on(int led)
 {
-	switch (led) {
-	default:
-	case LED_STARTED:
-	case LED_HEAPALLOCATE:
-          phy_set_led(BOARD_LED_AMBER, true);
+        switch (led) {
+        default:
+        case LED_STARTED:
+        case LED_HEAPALLOCATE:
+          phy_set_led(BOARD_LED_BLUE, true);
                 break;
-	case LED_IRQSENABLED:
-          phy_set_led(BOARD_LED_BLUE, true);
-		break;
+        case LED_IRQSENABLED:
+          phy_set_led(BOARD_LED_GREEN, true);
+                break;
 
-	case LED_STACKCREATED:
-	        phy_set_led(BOARD_LED_AMBER, true);
-		phy_set_led(BOARD_LED_BLUE, true);
-		g_initialized = true;
-		break;
+        case LED_STACKCREATED:
+                phy_set_led(BOARD_LED_GREEN, true);
+                phy_set_led(BOARD_LED_BLUE, true);
+                g_initialized = true;
+                break;
 
-	case LED_INIRQ:
-	case LED_SIGNAL:
-          phy_set_led(BOARD_LED_BLUE, true);
+        case LED_INIRQ:
+        case LED_SIGNAL:
+          phy_set_led(BOARD_LED_GREEN, true);
           break;
-	case LED_ASSERTION:
-          phy_set_led(BOARD_LED_BLUE, true);
+        case LED_ASSERTION:
           phy_set_led(BOARD_LED_RED, true);
+          phy_set_led(BOARD_LED_GREEN, true);
           break;
 
-	case LED_PANIC:
-		break;
+        case LED_PANIC:
+                phy_set_led(BOARD_LED_RED, true);
+                break;
 
-	case LED_IDLE : /* IDLE */
-		phy_set_led(BOARD_LED_RED, true);
-		break;
-	}
+        case LED_IDLE : /* IDLE */
+          phy_set_led(BOARD_LED_RED, true);
+          phy_set_led(BOARD_LED_BLUE, true);
+                break;
+        }
 }
 
 /****************************************************************************
@@ -158,24 +160,29 @@ void board_led_on(int led)
 
 __EXPORT void board_led_off(int led)
 {
-	switch (led) {
-	default:
-	case LED_STARTED:
-	case LED_HEAPALLOCATE:
-	case LED_IRQSENABLED:
-          phy_set_led(BOARD_LED_AMBER, false);
-	case LED_STACKCREATED:
+        switch (led) {
+        default:
+        case LED_STARTED:
+        case LED_HEAPALLOCATE:
+        case LED_IRQSENABLED:
+          phy_set_led(BOARD_LED_BLUE, false);
+        case LED_STACKCREATED:
           break;
 
-	case LED_INIRQ:
-	case LED_SIGNAL:
-	case LED_ASSERTION:
-	case LED_PANIC:
-		phy_set_led(BOARD_LED_BLUE, false);
-		break;
+        case LED_INIRQ:
+        case LED_SIGNAL:
+        case LED_ASSERTION:
+          phy_set_led(BOARD_LED_RED, false);
+          phy_set_led(BOARD_LED_GREEN, false);
 
-	case LED_IDLE: /* IDLE */
-		phy_set_led(BOARD_LED_RED, g_initialized);
-		break;
-	}
+          break;
+        case LED_PANIC:
+                phy_set_led(BOARD_LED_RED, false);
+                phy_set_led(BOARD_LED_GREEN, false);
+                break;
+
+        case LED_IDLE: /* IDLE */
+                phy_set_led(BOARD_LED_GREEN, g_initialized);
+                break;
+        }
 }
