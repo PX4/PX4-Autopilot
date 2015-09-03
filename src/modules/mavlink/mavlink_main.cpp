@@ -974,11 +974,11 @@ Mavlink::init_udp()
 		return;
 	}
 
-	unsigned char inbuf[256];
-	socklen_t addrlen = sizeof(_src_addr);
+	// set default target address
+	_src_addr.sin_family = AF_INET;
+	inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	_src_addr.sin_port = htons(_network_port);
 
-	// wait for client to connect to socket
-	recvfrom(_socket_fd,inbuf,sizeof(inbuf),0,(struct sockaddr *)&_src_addr,&addrlen);
 #endif
 }
 
