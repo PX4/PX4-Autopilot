@@ -166,7 +166,7 @@ int uORB::Manager::orb_stat(int handle, uint64_t *time)
 	return ioctl(handle, ORBIOCLASTUPDATE, (unsigned long)(uintptr_t)time);
 }
 
-int uORB::Manager::orb_priority(int handle, int *priority)
+int uORB::Manager::orb_priority(int handle, int32_t *priority)
 {
 	return ioctl(handle, ORBIOCGPRIORITY, (unsigned long)(uintptr_t)priority);
 }

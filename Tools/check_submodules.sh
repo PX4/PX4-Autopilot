@@ -50,7 +50,7 @@ else
 fi
 
 
-if [ -d uavcan ]
+if [ -d src/lib/uavcan ]
 then
 	STATUSRETVAL=$(git submodule summary | grep -A20 -i uavcan | grep "<")
 	if [ -z "$STATUSRETVAL" ]
@@ -73,8 +73,7 @@ fi
 
 if [ -d src/lib/eigen ]
 then
-	echo "ARG = $1"
-	if [ $1 = "qurt" ]
+	if [ "$1" = "qurt" ]
 	then
 		# QuRT needs to use Eigen 3.2 because the toolchain doews not support C++11
 		STATUSRETVAL=$(true)
