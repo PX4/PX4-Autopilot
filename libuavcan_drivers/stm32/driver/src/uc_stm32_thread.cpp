@@ -23,13 +23,13 @@ bool BusEvent::wait(uavcan::MonotonicDuration duration)
 
     if (msec <= 0)
     {
-        ret = sem_.waitTimeout(TIME_IMMEDIATE);
+        ret = sem_.wait(TIME_IMMEDIATE);
     }
     else
     {
-        ret = sem_.waitTimeout((msec > MaxDelayMSec) ? MS2ST(MaxDelayMSec) : MS2ST(msec));
+        ret = sem_.wait((msec > MaxDelayMSec) ? MS2ST(MaxDelayMSec) : MS2ST(msec));
     }
-    return ret == RDY_OK;
+    return ret == MSG_OK;
 }
 
 void BusEvent::signal()
@@ -39,9 +39,9 @@ void BusEvent::signal()
 
 void BusEvent::signalFromInterrupt()
 {
-    chSysLockFromIsr();
+    chSysLockFromISR();
     sem_.signalI();
-    chSysUnlockFromIsr();
+    chSysUnlockFromISR();
 }
 
 /*
@@ -54,7 +54,7 @@ void Mutex::lock()
 
 void Mutex::unlock()
 {
-    chibios_rt::BaseThread::unlockMutex();
+    mtx_.unlock();
 }
 
 #elif UAVCAN_STM32_NUTTX
