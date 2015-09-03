@@ -1272,13 +1272,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 	
 	subs.sat_info_sub = -1;
 
-	/* close non-needed fd's */
+#ifdef __PX4_NUTTX
+	/* close non-needed fd's. We cannot do this for posix since the file
+	   descriptors will also be closed for the parent process
+	*/
 
 	/* close stdin */
 	close(0);
 	/* close stdout */
 	close(1);
-
+#endif
 	/* initialize thread synchronization */
 	pthread_mutex_init(&logbuffer_mutex, NULL);
 	pthread_cond_init(&logbuffer_cond, NULL);
