@@ -98,7 +98,6 @@ for field in spec.parsed_fields():
 @# Main struct of message
 @##############################
 @{
-
 type_map = {'int8': 'int8_t',
   'int16': 'int16_t',
   'int32': 'int32_t',
@@ -114,6 +113,33 @@ type_map = {'int8': 'int8_t',
   'fence_vertex': 'fence_vertex',
   'position_setpoint': 'position_setpoint',
   'esc_report': 'esc_report'}
+
+msgtype_size_map = {'int8': 8,
+  'int16': 16,
+  'int32': 32,
+  'int64': 64,
+  'uint8': 8,
+  'uint16': 16,
+  'uint32': 32,
+  'uint64': 64,
+  'float32': 32,
+  'float64': 64,
+  'bool': 1,
+  'char': 1,
+  'fence_vertex': 8,
+  'position_setpoint': 104,
+  'esc_report': 36}
+
+def bare_name(msg_type):
+    bare = msg_type
+    if '/' in msg_type:
+        # removing prefix
+        bare = (msg_type.split('/'))[1]
+    # removing suffix
+    return bare.split('[')[0]
+
+def sizeof_field_type(field):
+    return msgtype_size_map[bare_name(field.type)]
 
 # Function to print a standard ros type
 def print_field_def(field):
@@ -143,7 +169,15 @@ def print_field_def(field):
 
   print('\t%s%s%s %s%s;'%(type_prefix, type_px4, type_appendix, field.name, array_size))
 
-}
+def print_parsed_fields():
+  # sort fields
+  sorted_fields = sorted(spec.parsed_fields(), key = sizeof_field_type, reverse=True)
+  # loop over all fields and print the type and name
+  for field in sorted_fields:
+    if (not field.is_header):
+      print_field_def(field)
+
+}@
 
 extern const char * __orb_@(topic_name)_fields;
 
@@ -154,12 +188,7 @@ struct __EXPORT @(uorb_struct) {
 #else
 struct @(uorb_struct) {
 #endif
-@{
-# loop over all fields and print the type and name
-for field in spec.parsed_fields():
-  if (not field.is_header):
-    print_field_def(field)
-}@
+@print_parsed_fields()
 #ifdef __cplusplus
 @# Constants again c++-ified
 @{
@@ -184,12 +213,7 @@ struct __EXPORT @(uorb_struct)_packed {
 #else
 struct @(uorb_struct)_packed {
 #endif
-@{
-# loop over all fields and print the type and name
-for field in spec.parsed_fields():
-  if (not field.is_header):
-    print_field_def(field)
-}@
+@print_parsed_fields()
 #ifdef __cplusplus
 @# is it ok to have diff in struct size in C against C++?
 @{
