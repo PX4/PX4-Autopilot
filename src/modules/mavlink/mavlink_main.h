@@ -47,6 +47,7 @@
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <drivers/device/device.h>
 #endif
 #include <systemlib/param/param.h>
@@ -333,7 +334,9 @@ public:
 	unsigned short		get_network_port() { return _network_port; }
 
 	int 			get_socket_fd () { return _socket_fd; };
-
+#ifdef __PX4_POSIX
+	struct sockaddr_in * get_client_source_address() {return &_src_addr;};
+#endif
 	static bool		boot_complete() { return _boot_complete; }
 
 protected:

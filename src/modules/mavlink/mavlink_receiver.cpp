@@ -1776,6 +1776,13 @@ MavlinkReceiver::receive_thread(void *arg)
 			} else {
 				// could be TCP or other protocol
 			}
+
+			struct sockaddr_in * srcaddr_last = _mavlink->get_client_source_address();
+			int localhost = (127 << 24) + 1;
+			if (srcaddr_last->sin_addr.s_addr == htonl(localhost) && srcaddr.sin_addr.s_addr != htonl(localhost)) {
+				// if we were sending to localhost before but have a new host then accept him
+				memcpy(srcaddr_last, &srcaddr, sizeof(srcaddr));
+			}
 #endif
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
