@@ -187,11 +187,17 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu) {
 
 	RawBaroData baro;
 	// calculate air pressure from altitude (valid for low altitude)
-	baro.pressure = PRESS_GROUND - GRAVITY * DENSITY * imu->pressure_alt;
+	baro.pressure = (PRESS_GROUND - GRAVITY * DENSITY * imu->pressure_alt) / 100.0f; // convert from Pa to mbar
 	baro.altitude = imu->pressure_alt;
 	baro.temperature = imu->temperature;
 
 	write_baro_data((void *)&baro);
+
+	RawAirspeedData airspeed;
+	airspeed.temperature = imu->temperature;
+	airspeed.diff_pressure = imu->diff_pressure;
+
+	write_airspeed_data((void *)&airspeed);
 }
 
 void Simulator::update_gps(mavlink_hil_gps_t *gps_sim) {

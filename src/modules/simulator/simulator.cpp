@@ -86,6 +86,11 @@ bool Simulator::getGPSSample(uint8_t *buf, int len)
 	return _gps.copyData(buf, len);
 }
 
+bool Simulator::getAirspeedSample(uint8_t *buf, int len)
+{
+	return _airspeed.copyData(buf, len);
+}
+
 void Simulator::write_MPU_data(void *buf) {
 	_mpu.writeData(buf);
 }
@@ -104,6 +109,10 @@ void Simulator::write_baro_data(void *buf) {
 
 void Simulator::write_gps_data(void *buf) {
 	_gps.writeData(buf);
+}
+
+void Simulator::write_airspeed_data(void *buf) {
+	_airspeed.writeData(buf);
 }
 
 int Simulator::start(int argc, char *argv[])
