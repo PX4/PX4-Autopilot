@@ -49,7 +49,7 @@
 #define _ENABLE_MUORB 1
 
 extern "C" {
-int dspal_main(int argc, const char *argv[]);
+	int dspal_main(int argc, const char *argv[]);
 };
 
 
