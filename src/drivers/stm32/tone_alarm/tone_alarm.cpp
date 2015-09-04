@@ -47,16 +47,16 @@
  * From Wikibooks:
  *
  * PLAY "[string expression]"
- * 
+ *
  * Used to play notes and a score ... The tones are indicated by letters A through G.
- * Accidentals are indicated with a "+" or "#" (for sharp) or "-" (for flat) 
+ * Accidentals are indicated with a "+" or "#" (for sharp) or "-" (for flat)
  * immediately after the note letter. See this example:
- * 
+ *
  *   PLAY "C C# C C#"
  *
  * Whitespaces are ignored inside the string expression. There are also codes that
- * set the duration, octave and tempo. They are all case-insensitive. PLAY executes 
- * the commands or notes the order in which they appear in the string. Any indicators 
+ * set the duration, octave and tempo. They are all case-insensitive. PLAY executes
+ * the commands or notes the order in which they appear in the string. Any indicators
  * that change the properties are effective for the notes following that indicator.
  *
  * Ln     Sets the duration (length) of the notes. The variable n does not indicate an actual duration
@@ -66,15 +66,15 @@
  *        The shorthand notation of length is also provided for a note. For example, "L4 CDE L8 FG L4 AB"
  *        can be shortened to "L4 CDE F8G8 AB". F and G play as eighth notes while others play as quarter notes.
  * On     Sets the current octave. Valid values for n are 0 through 6. An octave begins with C and ends with B.
- *        Remember that C- is equivalent to B. 
+ *        Remember that C- is equivalent to B.
  * < >    Changes the current octave respectively down or up one level.
  * Nn     Plays a specified note in the seven-octave range. Valid values are from 0 to 84. (0 is a pause.)
  *        Cannot use with sharp and flat. Cannot use with the shorthand notation neither.
  * MN     Stand for Music Normal. Note duration is 7/8ths of the length indicated by Ln. It is the default mode.
  * ML     Stand for Music Legato. Note duration is full length of that indicated by Ln.
  * MS     Stand for Music Staccato. Note duration is 3/4ths of the length indicated by Ln.
- * Pn     Causes a silence (pause) for the length of note indicated (same as Ln). 
- * Tn     Sets the number of "L4"s per minute (tempo). Valid values are from 32 to 255. The default value is T120. 
+ * Pn     Causes a silence (pause) for the length of note indicated (same as Ln).
+ * Tn     Sets the number of "L4"s per minute (tempo). Valid values are from 32 to 255. The default value is T120.
  * .      When placed after a note, it causes the duration of the note to be 3/2 of the set duration.
  *        This is how to get "dotted" notes. "L4 C#." would play C sharp as a dotted quarter note.
  *        It can be used for a pause as well.
@@ -283,14 +283,15 @@ public:
 
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
-	inline const char	*name(int tune) {
+	inline const char	*name(int tune)
+	{
 		return _tune_names[tune];
 	}
 
 private:
 	static const unsigned	_tune_max = 1024 * 8; // be reasonable about user tunes
-	const char		* _default_tunes[TONE_NUMBER_OF_TUNES];
-	const char		* _tune_names[TONE_NUMBER_OF_TUNES];
+	const char		 *_default_tunes[TONE_NUMBER_OF_TUNES];
+	const char		 *_tune_names[TONE_NUMBER_OF_TUNES];
 	static const uint8_t	_note_tab[];
 
 	unsigned		_default_tune_number; // number of currently playing default tune (0 for none)
@@ -314,8 +315,8 @@ private:
 	//
 	unsigned		note_to_divisor(unsigned note);
 
-	// Calculate the duration in microseconds of play and silence for a 
-	// note given the current tempo, length and mode and the number of 
+	// Calculate the duration in microseconds of play and silence for a
+	// note given the current tempo, length and mode and the number of
 	// dots following in the play string.
 	//
 	unsigned		note_duration(unsigned &silence, unsigned note_length, unsigned dots);
@@ -422,14 +423,15 @@ ToneAlarm::init()
 
 	ret = CDev::init();
 
-	if (ret != OK)
+	if (ret != OK) {
 		return ret;
+	}
 
 	/* configure the GPIO to the idle state */
 	stm32_configgpio(GPIO_TONE_ALARM_IDLE);
 
 	/* clock/power on our timer */
-    modifyreg32(TONE_ALARM_CLOCK_POWER_REG, 0, TONE_ALARM_CLOCK_ENABLE);
+	modifyreg32(TONE_ALARM_CLOCK_POWER_REG, 0, TONE_ALARM_CLOCK_ENABLE);
 
 	/* initialise the timer */
 	rCR1 = 0;
@@ -443,7 +445,7 @@ ToneAlarm::init()
 	rDCR = 0;
 
 #ifdef rBDTR // If using an advanced timer, you need to activate the output
-   rBDTR = ATIM_BDTR_MOE; // enable the main output of the advanced timer
+	rBDTR = ATIM_BDTR_MOE; // enable the main output of the advanced timer
 #endif
 
 	/* toggle the CC output each time the count passes 1 */
@@ -478,25 +480,31 @@ ToneAlarm::note_duration(unsigned &silence, unsigned note_length, unsigned dots)
 {
 	unsigned whole_note_period = (60 * 1000000 * 4) / _tempo;
 
-	if (note_length == 0)
+	if (note_length == 0) {
 		note_length = 1;
+	}
+
 	unsigned note_period = whole_note_period / note_length;
 
 	switch (_note_mode) {
 	case MODE_NORMAL:
 		silence = note_period / 8;
 		break;
+
 	case MODE_STACCATO:
 		silence = note_period / 4;
 		break;
+
 	default:
 	case MODE_LEGATO:
 		silence = 0;
 		break;
 	}
+
 	note_period -= silence;
 
 	unsigned dot_extension = note_period / 2;
+
 	while (dots--) {
 		note_period += dot_extension;
 		dot_extension /= 2;
@@ -510,12 +518,14 @@ ToneAlarm::rest_duration(unsigned rest_length, unsigned dots)
 {
 	unsigned whole_note_period = (60 * 1000000 * 4) / _tempo;
 
-	if (rest_length == 0)
+	if (rest_length == 0) {
 		rest_length = 1;
+	}
 
 	unsigned rest_period = whole_note_period / rest_length;
 
 	unsigned dot_extension = rest_period / 2;
+
 	while (dots--) {
 		rest_period += dot_extension;
 		dot_extension /= 2;
@@ -605,115 +615,155 @@ ToneAlarm::next_note()
 	while (note == 0) {
 		// we always need at least one character from the string
 		int c = next_char();
-		if (c == 0)
+
+		if (c == 0) {
 			goto tune_end;
+		}
+
 		_next++;
 
 		switch (c) {
 		case 'L':	// select note length
 			_note_length = next_number();
-			if (_note_length < 1)
+
+			if (_note_length < 1) {
 				goto tune_error;
+			}
+
 			break;
 
 		case 'O':	// select octave
 			_octave = next_number();
-			if (_octave > 6)
+
+			if (_octave > 6) {
 				_octave = 6;
+			}
+
 			break;
 
 		case '<':	// decrease octave
-			if (_octave > 0)
+			if (_octave > 0) {
 				_octave--;
+			}
+
 			break;
 
 		case '>':	// increase octave
-			if (_octave < 6)
+			if (_octave < 6) {
 				_octave++;
+			}
+
 			break;
 
 		case 'M':	// select inter-note gap
 			c = next_char();
-			if (c == 0)
+
+			if (c == 0) {
 				goto tune_error;
+			}
+
 			_next++;
+
 			switch (c) {
 			case 'N':
 				_note_mode = MODE_NORMAL;
 				break;
+
 			case 'L':
 				_note_mode = MODE_LEGATO;
 				break;
+
 			case 'S':
 				_note_mode = MODE_STACCATO;
 				break;
+
 			case 'F':
 				_repeat = false;
 				break;
+
 			case 'B':
 				_repeat = true;
 				break;
+
 			default:
 				goto tune_error;
 			}
+
 			break;
 
 		case 'P':	// pause for a note length
 			stop_note();
-			hrt_call_after(&_note_call, 
-				(hrt_abstime)rest_duration(next_number(), next_dots()),
-				(hrt_callout)next_trampoline, 
-				this);
+			hrt_call_after(&_note_call,
+				       (hrt_abstime)rest_duration(next_number(), next_dots()),
+				       (hrt_callout)next_trampoline,
+				       this);
 			return;
 
 		case 'T': {	// change tempo
-			unsigned nt = next_number();
+				unsigned nt = next_number();
 
-			if ((nt >= 32) && (nt <= 255)) {
-				_tempo = nt;
-			} else {
-				goto tune_error;
+				if ((nt >= 32) && (nt <= 255)) {
+					_tempo = nt;
+
+				} else {
+					goto tune_error;
+				}
+
+				break;
 			}
-			break;
-		}
 
 		case 'N':	// play an arbitrary note
 			note = next_number();
-			if (note > 84)
+
+			if (note > 84) {
 				goto tune_error;
+			}
+
 			if (note == 0) {
 				// this is a rest - pause for the current note length
 				hrt_call_after(&_note_call,
-					(hrt_abstime)rest_duration(_note_length, next_dots()),
-					(hrt_callout)next_trampoline, 
-					this);
-				return;				
+					       (hrt_abstime)rest_duration(_note_length, next_dots()),
+					       (hrt_callout)next_trampoline,
+					       this);
+				return;
 			}
+
 			break;
 
 		case 'A'...'G':	// play a note in the current octave
 			note = _note_tab[c - 'A'] + (_octave * 12) + 1;
 			c = next_char();
+
 			switch (c) {
 			case '#':	// up a semitone
 			case '+':
-				if (note < 84)
+				if (note < 84) {
 					note++;
+				}
+
 				_next++;
 				break;
+
 			case '-':	// down a semitone
-				if (note > 1)
+				if (note > 1) {
 					note--;
+				}
+
 				_next++;
 				break;
+
 			default:
 				// 0 / no next char here is OK
 				break;
 			}
+
 			// shorthand length notation
 			note_length = next_number();
-			if (note_length == 0)
+
+			if (note_length == 0) {
 				note_length = _note_length;
+			}
+
 			break;
 
 		default:
@@ -739,12 +789,15 @@ tune_error:
 	// stop (and potentially restart) the tune
 tune_end:
 	stop_note();
+
 	if (_repeat) {
 		start_tune(_tune);
+
 	} else {
 		_tune = nullptr;
 		_default_tune_number = 0;
 	}
+
 	return;
 }
 
@@ -754,6 +807,7 @@ ToneAlarm::next_char()
 	while (isspace(*_next)) {
 		_next++;
 	}
+
 	return toupper(*_next);
 }
 
@@ -765,8 +819,11 @@ ToneAlarm::next_number()
 
 	for (;;) {
 		c = next_char();
-		if (!isdigit(c))
+
+		if (!isdigit(c)) {
 			return number;
+		}
+
 		_next++;
 		number = (number * 10) + (c - '0');
 	}
@@ -781,6 +838,7 @@ ToneAlarm::next_dots()
 		_next++;
 		dots++;
 	}
+
 	return dots;
 }
 
@@ -814,6 +872,7 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 				_next = nullptr;
 				_repeat = false;
 				_default_tune_number = 0;
+
 			} else {
 				/* always interrupt alarms, unless they are repeating and already playing */
 				if (!(_repeat && _default_tune_number == arg)) {
@@ -822,6 +881,7 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 					start_tune(_default_tunes[arg]);
 				}
 			}
+
 		} else {
 			result = -EINVAL;
 		}
@@ -836,8 +896,9 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 //	irqrestore(flags);
 
 	/* give it to the superclass if we didn't like it */
-	if (result == -ENOTTY)
+	if (result == -ENOTTY) {
 		result = CDev::ioctl(filp, cmd, arg);
+	}
 
 	return result;
 }
@@ -846,8 +907,9 @@ int
 ToneAlarm::write(file *filp, const char *buffer, size_t len)
 {
 	// sanity-check the buffer for length and nul-termination
-	if (len > _tune_max)
+	if (len > _tune_max) {
 		return -EFBIG;
+	}
 
 	// if we have an existing user tune, free it
 	if (_user_tune != nullptr) {
@@ -864,13 +926,16 @@ ToneAlarm::write(file *filp, const char *buffer, size_t len)
 	}
 
 	// if the new tune is empty, we're done
-	if (buffer[0] == '\0')
+	if (buffer[0] == '\0') {
 		return OK;
+	}
 
 	// allocate a copy of the new tune
 	_user_tune = strndup(buffer, len);
-	if (_user_tune == nullptr)
+
+	if (_user_tune == nullptr) {
 		return -ENOMEM;
+	}
 
 	// and play it
 	start_tune(_user_tune);
@@ -893,14 +958,16 @@ play_tune(unsigned tune)
 
 	fd = open(TONEALARM0_DEVICE_PATH, 0);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, TONEALARM0_DEVICE_PATH);
+	}
 
 	ret = ioctl(fd, TONE_SET_ALARM, tune);
 	close(fd);
 
-	if (ret != 0)
+	if (ret != 0) {
 		err(1, "TONE_SET_ALARM");
+	}
 
 	exit(0);
 }
@@ -912,17 +979,21 @@ play_string(const char *str, bool free_buffer)
 
 	fd = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, TONEALARM0_DEVICE_PATH);
+	}
 
 	ret = write(fd, str, strlen(str) + 1);
 	close(fd);
 
-	if (free_buffer)
+	if (free_buffer) {
 		free((void *)str);
+	}
 
-	if (ret < 0)
+	if (ret < 0) {
 		err(1, "play tune");
+	}
+
 	exit(0);
 }
 
@@ -937,8 +1008,9 @@ tone_alarm_main(int argc, char *argv[])
 	if (g_dev == nullptr) {
 		g_dev = new ToneAlarm;
 
-		if (g_dev == nullptr)
+		if (g_dev == nullptr) {
 			errx(1, "couldn't allocate the ToneAlarm driver");
+		}
 
 		if (g_dev->init() != OK) {
 			delete g_dev;
@@ -953,30 +1025,39 @@ tone_alarm_main(int argc, char *argv[])
 			play_tune(TONE_STOP_TUNE);
 		}
 
-		if (!strcmp(argv1, "stop"))
+		if (!strcmp(argv1, "stop")) {
 			play_tune(TONE_STOP_TUNE);
+		}
 
-		if ((tune = strtol(argv1, nullptr, 10)) != 0)
+		if ((tune = strtol(argv1, nullptr, 10)) != 0) {
 			play_tune(tune);
+		}
 
 		/* It might be a tune name */
 		for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++)
-			if (!strcmp(g_dev->name(tune), argv1))
+			if (!strcmp(g_dev->name(tune), argv1)) {
 				play_tune(tune);
+			}
 
 		/* If it is a file name then load and play it as a string */
 		if (*argv1 == '/') {
 			FILE *fd = fopen(argv1, "r");
 			int sz;
 			char *buffer;
-			if (fd == nullptr)
+
+			if (fd == nullptr) {
 				errx(1, "couldn't open '%s'", argv1);
+			}
+
 			fseek(fd, 0, SEEK_END);
 			sz = ftell(fd);
 			fseek(fd, 0, SEEK_SET);
 			buffer = (char *)malloc(sz + 1);
-			if (buffer == nullptr)
+
+			if (buffer == nullptr) {
 				errx(1, "not enough memory memory");
+			}
+
 			fread(buffer, sz, 1, fd);
 			/* terminate the string */
 			buffer[sz] = 0;
