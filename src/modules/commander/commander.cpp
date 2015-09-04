@@ -1220,14 +1220,17 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	// Run preflight check
+	int32_t rc_in_off = 0;
 	param_get(_param_autostart_id, &autostart_id);
 	if (is_hil_setup(autostart_id)) {
 		// HIL configuration selected: real sensors will be disabled
 		status.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	} else {
+		param_get(_param_rc_in_off, &rc_in_off);
+			status.rc_input_mode = rc_in_off;
 		status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true,
-			checkAirspeed, !status.rc_input_mode, !status.circuit_breaker_engaged_gpsfailure_check);
+			checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status.circuit_breaker_engaged_gpsfailure_check);
 		if (!status.condition_system_sensors_initialized) {
 			set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
 		}
@@ -1243,7 +1246,6 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t datalink_loss_enabled = false;
 	int32_t datalink_loss_timeout = 10;
 	float rc_loss_timeout = 0.5;
-	int32_t rc_in_off = 0;
 	int32_t datalink_regain_timeout = 0;
 
 	/* Thresholds for engine failure detection */
@@ -1913,8 +1915,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
-			if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY &&
-			    sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
+			if (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 
 					/* we check outside of the transition function here because the requirement
@@ -1925,13 +1926,15 @@ int commander_thread_main(int argc, char *argv[])
 						(status.main_state != vehicle_status_s::MAIN_STATE_STAB)) {
 						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
 
-					} else {
+					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_ARMED, &armed, true /* fRunPreArmChecks */,
 										     mavlink_fd);
 
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
 						}
+					} else {
+						print_reject_arm("NOT ARMING: Configuration error");
 					}
 
 					stick_on_counter = 0;
@@ -1978,7 +1981,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 		} else {
-			if (!status.rc_signal_lost) {
+			if (!status.rc_input_blocked && !status.rc_signal_lost) {
 				mavlink_log_critical(mavlink_fd, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
 				status.rc_signal_lost_timestamp = sp_man.timestamp;
