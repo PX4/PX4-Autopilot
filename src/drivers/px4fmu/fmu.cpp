@@ -197,8 +197,8 @@ private:
 	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
 
 	/* do not allow to copy due to ptr data members */
-	PX4FMU(const PX4FMU&);
-	PX4FMU operator=(const PX4FMU&);
+	PX4FMU(const PX4FMU &);
+	PX4FMU operator=(const PX4FMU &);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
@@ -273,7 +273,7 @@ PX4FMU::PX4FMU() :
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
-	_control_subs{-1},
+	_control_subs{ -1},
 	_poll_fds_num(0),
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
@@ -335,8 +335,9 @@ PX4FMU::init()
 	/* do regular cdev init */
 	ret = CDev::init();
 
-	if (ret != OK)
+	if (ret != OK) {
 		return ret;
+	}
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
 	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
@@ -352,11 +353,11 @@ PX4FMU::init()
 
 	/* start the IO interface task */
 	_task = px4_task_spawn_cmd("fmuservo",
-			       SCHED_DEFAULT,
-			       SCHED_PRIORITY_DEFAULT,
-			       1200,
-			       (main_t)&PX4FMU::task_main_trampoline,
-			       nullptr);
+				   SCHED_DEFAULT,
+				   SCHED_PRIORITY_DEFAULT,
+				   1200,
+				   (main_t)&PX4FMU::task_main_trampoline,
+				   nullptr);
 
 	if (_task < 0) {
 		DEVICE_DEBUG("task start failed: %d", errno);
@@ -426,6 +427,7 @@ PX4FMU::set_mode(Mode mode)
 		break;
 
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
+
 	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
 		DEVICE_DEBUG("MODE_8PWM");
 		/* default output rates */
@@ -470,8 +472,9 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			// get the channel mask for this rate group
 			uint32_t mask = up_pwm_servo_get_rate_group(group);
 
-			if (mask == 0)
+			if (mask == 0) {
 				continue;
+			}
 
 			// all channels in the group must be either default or alt-rate
 			uint32_t alt = rate_map & mask;
@@ -534,11 +537,13 @@ PX4FMU::subscribe()
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
 	_poll_fds_num = 0;
+
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			DEVICE_DEBUG("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
+
 		if (unsub_groups & (1 << i)) {
 			DEVICE_DEBUG("unsubscribe from actuator_controls_%d", i);
 			::close(_control_subs[i]);
@@ -574,7 +579,8 @@ PX4FMU::update_pwm_rev_mask()
 }
 
 void
-PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues) {
+PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
+{
 	actuator_outputs_s outputs;
 	outputs.noutputs = numvalues;
 	outputs.timestamp = hrt_absolute_time();
@@ -586,6 +592,7 @@ PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues) {
 	if (_outputs_pub == nullptr) {
 		int instance = -1;
 		_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &instance, ORB_PRIO_DEFAULT);
+
 	} else {
 		orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &outputs);
 	}
@@ -647,6 +654,7 @@ PX4FMU::task_main()
 			}
 
 			DEVICE_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
+
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					orb_set_interval(_control_subs[i], update_rate_in_ms);
@@ -674,11 +682,13 @@ PX4FMU::task_main()
 
 			/* get controls for required topics */
 			unsigned poll_id = 0;
+
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[poll_id].revents & POLLIN) {
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 					}
+
 					poll_id++;
 				}
 			}
@@ -704,6 +714,7 @@ PX4FMU::task_main()
 				case MODE_8PWM:
 					num_outputs = 8;
 					break;
+
 				default:
 					num_outputs = 0;
 					break;
@@ -723,7 +734,8 @@ PX4FMU::task_main()
 				uint16_t pwm_limited[_max_actuators];
 
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
-				pwm_limit_calc(_servo_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
+				pwm_limit_calc(_servo_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm,
+					       outputs, pwm_limited, &_pwm_limit);
 
 				/* output to the servos */
 				for (size_t i = 0; i < num_outputs; i++) {
@@ -758,6 +770,7 @@ PX4FMU::task_main()
 		}
 
 		orb_check(_param_sub, &updated);
+
 		if (updated) {
 			parameter_update_s pupdate;
 			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
@@ -809,6 +822,7 @@ PX4FMU::task_main()
 			_control_subs[i] = -1;
 		}
 	}
+
 	::close(_armed_sub);
 	::close(_param_sub);
 
@@ -837,6 +851,7 @@ PX4FMU::control_callback(uintptr_t handle,
 	/* limit control input */
 	if (input > 1.0f) {
 		input = 1.0f;
+
 	} else if (input < -1.0f) {
 		input = -1.0f;
 	}
@@ -844,7 +859,7 @@ PX4FMU::control_callback(uintptr_t handle,
 	/* motor spinup phase - lock throttle to zero */
 	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
 		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
-			control_index == actuator_controls_s::INDEX_THROTTLE) {
+		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* limit the throttle output to zero during motor spinup,
 			 * as the motors cannot follow any demand yet
 			 */
@@ -855,7 +870,7 @@ PX4FMU::control_callback(uintptr_t handle,
 	/* throttle not arming - mark throttle input as invalid */
 	if (arm_nothrottle()) {
 		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
-			control_index == actuator_controls_s::INDEX_THROTTLE) {
+		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* set the throttle to an invalid value */
 			input = NAN_VALUE;
 		}
@@ -973,8 +988,9 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			_num_failsafe_set = 0;
 
 			for (unsigned i = 0; i < _max_actuators; i++) {
-				if (_failsafe_pwm[i] > 0)
+				if (_failsafe_pwm[i] > 0) {
 					_num_failsafe_set++;
+				}
 			}
 
 			break;
@@ -1021,8 +1037,9 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			_num_disarmed_set = 0;
 
 			for (unsigned i = 0; i < _max_actuators; i++) {
-				if (_disarmed_pwm[i] > 0)
+				if (_disarmed_pwm[i] > 0) {
 					_num_disarmed_set++;
+				}
 			}
 
 			break;
@@ -1116,12 +1133,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
+
 	case PWM_SERVO_SET(7):
 	case PWM_SERVO_SET(6):
 		if (_mode < MODE_8PWM) {
 			ret = -EINVAL;
 			break;
 		}
+
 #endif
 
 	case PWM_SERVO_SET(5):
@@ -1152,12 +1171,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
+
 	case PWM_SERVO_GET(7):
 	case PWM_SERVO_GET(6):
 		if (_mode < MODE_8PWM) {
 			ret = -EINVAL;
 			break;
 		}
+
 #endif
 
 	case PWM_SERVO_GET(5):
@@ -1198,6 +1219,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
+
 		case MODE_8PWM:
 			*(unsigned *)arg = 8;
 			break;
@@ -1223,43 +1245,46 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_COUNT: {
-		/* change the number of outputs that are enabled for
-		 * PWM. This is used to change the split between GPIO
-		 * and PWM under control of the flight config
-		 * parameters. Note that this does not allow for
-		 * changing a set of pins to be used for serial on
-		 * FMUv1
-		 */
-		switch (arg) {
-		case 0:
-			set_mode(MODE_NONE);
-			break;
+			/* change the number of outputs that are enabled for
+			 * PWM. This is used to change the split between GPIO
+			 * and PWM under control of the flight config
+			 * parameters. Note that this does not allow for
+			 * changing a set of pins to be used for serial on
+			 * FMUv1
+			 */
+			switch (arg) {
+			case 0:
+				set_mode(MODE_NONE);
+				break;
 
-		case 2:
-			set_mode(MODE_2PWM);
-			break;
+			case 2:
+				set_mode(MODE_2PWM);
+				break;
 
-		case 4:
-			set_mode(MODE_4PWM);
-			break;
+			case 4:
+				set_mode(MODE_4PWM);
+				break;
 
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-		case 6:
-			set_mode(MODE_6PWM);
-			break;
+
+			case 6:
+				set_mode(MODE_6PWM);
+				break;
 #endif
 #if defined(CONFIG_ARCH_BOARD_AEROCORE)
-		case 8:
-			set_mode(MODE_8PWM);
-			break;
+
+			case 8:
+				set_mode(MODE_8PWM);
+				break;
 #endif
 
-		default:
-			ret = -EINVAL;
+			default:
+				ret = -EINVAL;
+				break;
+			}
+
 			break;
 		}
-		break;
-	}
 
 	case MIXERIOCRESET:
 		if (_mixers != nullptr) {
@@ -1297,8 +1322,9 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			const char *buf = (const char *)arg;
 			unsigned buflen = strnlen(buf, 1024);
 
-			if (_mixers == nullptr)
+			if (_mixers == nullptr) {
 				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
+			}
 
 			if (_mixers == nullptr) {
 				_groups_required = 0;
@@ -1314,6 +1340,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 					_mixers = nullptr;
 					_groups_required = 0;
 					ret = -EINVAL;
+
 				} else {
 
 					_mixers->groups_required(_groups_required);
@@ -1344,15 +1371,19 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	uint16_t values[6];
 
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
+
 	if (count > 8) {
 		// we have at most 8 outputs
 		count = 8;
 	}
+
 #else
+
 	if (count > 6) {
 		// we have at most 6 outputs
 		count = 6;
 	}
+
 #endif
 
 	// allow for misaligned values
@@ -1507,8 +1538,9 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		gpios |= 3;
 
 		/* flip the buffer to output mode if required */
-		if (GPIO_SET_OUTPUT == function)
+		if (GPIO_SET_OUTPUT == function) {
 			stm32_gpiowrite(GPIO_GPIO_DIR, 1);
+		}
 	}
 
 #endif
@@ -1526,8 +1558,9 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 				break;
 
 			case GPIO_SET_ALT_1:
-				if (_gpio_tab[i].alt != 0)
+				if (_gpio_tab[i].alt != 0) {
 					stm32_configgpio(_gpio_tab[i].alt);
+				}
 
 				break;
 			}
@@ -1537,8 +1570,9 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 
 	/* flip buffer to input mode if required */
-	if ((GPIO_SET_INPUT == function) && (gpios & 3))
+	if ((GPIO_SET_INPUT == function) && (gpios & 3)) {
 		stm32_gpiowrite(GPIO_GPIO_DIR, 0);
+	}
 
 #endif
 }
@@ -1549,8 +1583,9 @@ PX4FMU::gpio_write(uint32_t gpios, int function)
 	int value = (function == GPIO_SET) ? 1 : 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
-		if (gpios & (1 << i))
+		if (gpios & (1 << i)) {
 			stm32_gpiowrite(_gpio_tab[i].output, value);
+		}
 }
 
 uint32_t
@@ -1559,8 +1594,9 @@ PX4FMU::gpio_read(void)
 	uint32_t bits = 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
-		if (stm32_gpioread(_gpio_tab[i].input))
+		if (stm32_gpioread(_gpio_tab[i].input)) {
 			bits |= (1 << i);
+		}
 
 	return bits;
 }
@@ -1664,6 +1700,7 @@ fmu_new_mode(PortMode new_mode)
 		break;
 
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+
 	case PORT_PWM4:
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
@@ -1701,8 +1738,9 @@ fmu_new_mode(PortMode new_mode)
 	}
 
 	/* adjust GPIO config for serial mode(s) */
-	if (gpio_bits != 0)
+	if (gpio_bits != 0) {
 		g_fmu->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
+	}
 
 	/* (re)set the PWM output mode */
 	g_fmu->set_mode(servo_mode);
@@ -1801,10 +1839,11 @@ test(void)
 
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
-	if (fd < 0)
+	if (fd < 0) {
 		errx(1, "open fail");
+	}
 
-	if (ioctl(fd, PWM_SERVO_ARM, 0) < 0)       err(1, "servo arm failed");
+	if (ioctl(fd, PWM_SERVO_ARM, 0) < 0) { err(1, "servo arm failed"); }
 
 	if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count) != 0) {
 		err(1, "Unable to get servo count\n");
@@ -1822,8 +1861,9 @@ test(void)
 		/* sweep all servos between 1000..2000 */
 		servo_position_t servos[servo_count];
 
-		for (unsigned i = 0; i < servo_count; i++)
+		for (unsigned i = 0; i < servo_count; i++) {
 			servos[i] = pwm_value;
+		}
 
 		if (direction == 1) {
 			// use ioctl interface for one direction
@@ -1837,8 +1877,9 @@ test(void)
 			// and use write interface for the other direction
 			ret = write(fd, servos, sizeof(servos));
 
-			if (ret != (int)sizeof(servos))
+			if (ret != (int)sizeof(servos)) {
 				err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
+			}
 		}
 
 		if (direction > 0) {
@@ -1862,11 +1903,13 @@ test(void)
 		for (unsigned i = 0; i < servo_count; i++) {
 			servo_position_t value;
 
-			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value))
+			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
 				err(1, "error reading PWM servo %d", i);
+			}
 
-			if (value != servos[i])
+			if (value != servos[i]) {
 				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+			}
 		}
 
 		/* Check if user wants to quit */
@@ -1892,8 +1935,9 @@ test(void)
 void
 fake(int argc, char *argv[])
 {
-	if (argc < 5)
+	if (argc < 5) {
 		errx(1, "fmu fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
+	}
 
 	actuator_controls_s ac;
 
@@ -1907,8 +1951,9 @@ fake(int argc, char *argv[])
 
 	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 
-	if (handle == nullptr)
+	if (handle == nullptr) {
 		errx(1, "advertise failed");
+	}
 
 	actuator_armed_s aa;
 
@@ -1917,8 +1962,9 @@ fake(int argc, char *argv[])
 
 	handle = orb_advertise(ORB_ID(actuator_armed), &aa);
 
-	if (handle == nullptr)
+	if (handle == nullptr) {
 		errx(1, "advertise failed 2");
+	}
 
 	exit(0);
 }
@@ -1948,8 +1994,9 @@ fmu_main(int argc, char *argv[])
 	}
 
 
-	if (fmu_start() != OK)
+	if (fmu_start() != OK) {
 		errx(1, "failed to start the FMU driver");
+	}
 
 	/*
 	 * Mode switches.
@@ -1961,6 +2008,7 @@ fmu_main(int argc, char *argv[])
 		new_mode = PORT_FULL_PWM;
 
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+
 	} else if (!strcmp(verb, "mode_pwm4")) {
 		new_mode = PORT_PWM4;
 #endif
@@ -1984,19 +2032,22 @@ fmu_main(int argc, char *argv[])
 	if (new_mode != PORT_MODE_UNSET) {
 
 		/* yes but it's the same mode */
-		if (new_mode == g_port_mode)
+		if (new_mode == g_port_mode) {
 			return OK;
+		}
 
 		/* switch modes */
 		int ret = fmu_new_mode(new_mode);
 		exit(ret == OK ? 0 : 1);
 	}
 
-	if (!strcmp(verb, "test"))
+	if (!strcmp(verb, "test")) {
 		test();
+	}
 
-	if (!strcmp(verb, "fake"))
+	if (!strcmp(verb, "fake")) {
 		fake(argc - 1, argv + 1);
+	}
 
 	if (!strcmp(verb, "sensor_reset")) {
 		if (argc > 2) {
@@ -2035,6 +2086,7 @@ fmu_main(int argc, char *argv[])
 			}
 
 			exit(0);
+
 		} else {
 			warnx("i2c cmd args: <bus id> <clock Hz>");
 		}
@@ -2042,7 +2094,8 @@ fmu_main(int argc, char *argv[])
 
 	fprintf(stderr, "FMU: unrecognised command %s, try:\n", verb);
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
+	fprintf(stderr,
+		"  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_AEROCORE)
 	fprintf(stderr, "  mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
 #endif
