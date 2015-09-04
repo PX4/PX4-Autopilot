@@ -82,6 +82,7 @@ void __EXPORT float2SigExp(
 	} else {
 		exp = floor(exp);
 	}
+
 #endif
 
 	sig = num;
