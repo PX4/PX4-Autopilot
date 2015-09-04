@@ -63,7 +63,7 @@ static inline void do_nothing(int level, ...)
 #define PX4_ERR(...)	ROS_WARN(__VA_ARGS__)
 #define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
 #define PX4_INFO(...) 	ROS_WARN(__VA_ARGS__)
-#define PX4_DEBUG(...) 	
+#define PX4_DEBUG(...)
 
 #elif defined(__PX4_QURT)
 #include "qurt_log.h"
@@ -136,7 +136,7 @@ __EXPORT extern int __px4_log_level_current;
  *
  * To write to a specific stream for each message type, open the streams and
  * set __px4__log_startline to something like:
- * 	if (level <= __px4_log_level_current) printf(_px4_fd[level], 
+ * 	if (level <= __px4_log_level_current) printf(_px4_fd[level],
  *
  * Additional behavior can be added using "{\" for __px4__log_startline and
  * "}" for __px4__log_endline and any other required setup or teardown steps
@@ -254,7 +254,7 @@ __EXPORT extern int __px4_log_level_current;
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s val is %d (file %s line %u)\n", 
+ * 	printf("%-5s val is %d (file %s line %u)\n",
  *		__px4_log_level_str[3], val, __FILE__, __LINE__);
  ****************************************************************************/
 #define __px4_log_file_and_line(level, FMT, ...) \
@@ -275,7 +275,7 @@ __EXPORT extern int __px4_log_level_current;
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s %-10lu val is %d (file %s line %u)\n", 
+ * 	printf("%-5s %-10lu val is %d (file %s line %u)\n",
  *		__px4_log_level_str[3], hrt_absolute_time(),
  *		val, __FILE__, __LINE__);
  ****************************************************************************/
@@ -297,8 +297,8 @@ __EXPORT extern int __px4_log_level_current;
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s %#X val is %d (file %s line %u)\n", 
- *		__px4_log_level_str[3], pthread_self(), 
+ * 	printf("%-5s %#X val is %d (file %s line %u)\n",
+ *		__px4_log_level_str[3], pthread_self(),
  *		val, __FILE__, __LINE__);
  ****************************************************************************/
 #define __px4_log_thread_file_and_line(level, FMT, ...) \
@@ -319,8 +319,8 @@ __EXPORT extern int __px4_log_level_current;
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s %-10lu %#X val is %d (file %s line %u)\n", 
- *		__px4_log_level_str[3], hrt_absolute_time(), 
+ * 	printf("%-5s %-10lu %#X val is %d (file %s line %u)\n",
+ *		__px4_log_level_str[3], hrt_absolute_time(),
  *		pthread_self(), val, __FILE__, __LINE__);
  ****************************************************************************/
 #define __px4_log_timestamp_thread_file_and_line(level, FMT, ...) \

@@ -72,11 +72,11 @@ public:
 	/**
 	 * struct for using arm_math functions, represents column vector
 	 */
-	#ifdef CONFIG_ARCH_ARM
+#ifdef CONFIG_ARCH_ARM
 	arm_matrix_instance_f32 arm_col;
-	#else
+#else
 	eigen_matrix_instance arm_col;
-	#endif
+#endif
 
 
 	/**
@@ -113,38 +113,44 @@ public:
 	/**
 	 * set data
 	 */
-	void set(const float d[N]) {
+	void set(const float d[N])
+	{
 		memcpy(data, d, sizeof(data));
 	}
 
 	/**
 	 * access to elements by index
 	 */
-	float &operator()(const unsigned int i) {
+	float &operator()(const unsigned int i)
+	{
 		return data[i];
 	}
 
 	/**
 	 * access to elements by index
 	 */
-	float operator()(const unsigned int i) const {
+	float operator()(const unsigned int i) const
+	{
 		return data[i];
 	}
 
 	/**
 	 * get vector size
 	 */
-	unsigned int get_size() const {
+	unsigned int get_size() const
+	{
 		return N;
 	}
 
 	/**
 	 * test for equality
 	 */
-	bool operator ==(const Vector<N> &v) const {
+	bool operator ==(const Vector<N> &v) const
+	{
 		for (unsigned int i = 0; i < N; i++)
-			if (data[i] != v.data[i])
+			if (data[i] != v.data[i]) {
 				return false;
+			}
 
 		return true;
 	}
@@ -152,10 +158,12 @@ public:
 	/**
 	 * test for inequality
 	 */
-	bool operator !=(const Vector<N> &v) const {
+	bool operator !=(const Vector<N> &v) const
+	{
 		for (unsigned int i = 0; i < N; i++)
-			if (data[i] != v.data[i])
+			if (data[i] != v.data[i]) {
 				return true;
+			}
 
 		return false;
 	}
@@ -163,7 +171,8 @@ public:
 	/**
 	 * set to value
 	 */
-	const Vector<N> &operator =(const Vector<N> &v) {
+	const Vector<N> &operator =(const Vector<N> &v)
+	{
 		memcpy(data, v.data, sizeof(data));
 		return *static_cast<const Vector<N>*>(this);
 	}
@@ -171,11 +180,13 @@ public:
 	/**
 	 * negation
 	 */
-	const Vector<N> operator -(void) const {
+	const Vector<N> operator -(void) const
+	{
 		Vector<N> res;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res.data[i] = -data[i];
+		}
 
 		return res;
 	}
@@ -183,11 +194,13 @@ public:
 	/**
 	 * addition
 	 */
-	const Vector<N> operator +(const Vector<N> &v) const {
+	const Vector<N> operator +(const Vector<N> &v) const
+	{
 		Vector<N> res;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res.data[i] = data[i] + v.data[i];
+		}
 
 		return res;
 	}
@@ -195,11 +208,13 @@ public:
 	/**
 	 * subtraction
 	 */
-	const Vector<N> operator -(const Vector<N> &v) const {
+	const Vector<N> operator -(const Vector<N> &v) const
+	{
 		Vector<N> res;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res.data[i] = data[i] - v.data[i];
+		}
 
 		return res;
 	}
@@ -207,11 +222,13 @@ public:
 	/**
 	 * uniform scaling
 	 */
-	const Vector<N> operator *(const float num) const {
+	const Vector<N> operator *(const float num) const
+	{
 		Vector<N> res;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res.data[i] = data[i] * num;
+		}
 
 		return res;
 	}
@@ -219,11 +236,13 @@ public:
 	/**
 	 * uniform scaling
 	 */
-	const Vector<N> operator /(const float num) const {
+	const Vector<N> operator /(const float num) const
+	{
 		Vector<N> res;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res.data[i] = data[i] / num;
+		}
 
 		return res;
 	}
@@ -231,9 +250,11 @@ public:
 	/**
 	 * addition
 	 */
-	const Vector<N> &operator +=(const Vector<N> &v) {
-		for (unsigned int i = 0; i < N; i++)
+	const Vector<N> &operator +=(const Vector<N> &v)
+	{
+		for (unsigned int i = 0; i < N; i++) {
 			data[i] += v.data[i];
+		}
 
 		return *static_cast<const Vector<N>*>(this);
 	}
@@ -241,9 +262,11 @@ public:
 	/**
 	 * subtraction
 	 */
-	const Vector<N> &operator -=(const Vector<N> &v) {
-		for (unsigned int i = 0; i < N; i++)
+	const Vector<N> &operator -=(const Vector<N> &v)
+	{
+		for (unsigned int i = 0; i < N; i++) {
 			data[i] -= v.data[i];
+		}
 
 		return *static_cast<const Vector<N>*>(this);
 	}
@@ -251,9 +274,11 @@ public:
 	/**
 	 * uniform scaling
 	 */
-	const Vector<N> &operator *=(const float num) {
-		for (unsigned int i = 0; i < N; i++)
+	const Vector<N> &operator *=(const float num)
+	{
+		for (unsigned int i = 0; i < N; i++) {
 			data[i] *= num;
+		}
 
 		return *static_cast<const Vector<N>*>(this);
 	}
@@ -261,9 +286,11 @@ public:
 	/**
 	 * uniform scaling
 	 */
-	const Vector<N> &operator /=(const float num) {
-		for (unsigned int i = 0; i < N; i++)
+	const Vector<N> &operator /=(const float num)
+	{
+		for (unsigned int i = 0; i < N; i++) {
 			data[i] /= num;
+		}
 
 		return *static_cast<const Vector<N>*>(this);
 	}
@@ -271,11 +298,13 @@ public:
 	/**
 	 * dot product
 	 */
-	float operator *(const Vector<N> &v) const {
+	float operator *(const Vector<N> &v) const
+	{
 		float res = 0.0f;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res += data[i] * v.data[i];
+		}
 
 		return res;
 	}
@@ -283,11 +312,13 @@ public:
 	/**
 	 * element by element multiplication
 	 */
-	const Vector<N> emult(const Vector<N> &v) const {
+	const Vector<N> emult(const Vector<N> &v) const
+	{
 		Vector<N> res;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res.data[i] = data[i] * v.data[i];
+		}
 
 		return res;
 	}
@@ -295,11 +326,13 @@ public:
 	/**
 	 * element by element division
 	 */
-	const Vector<N> edivide(const Vector<N> &v) const {
+	const Vector<N> edivide(const Vector<N> &v) const
+	{
 		Vector<N> res;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res.data[i] = data[i] / v.data[i];
+		}
 
 		return res;
 	}
@@ -307,11 +340,13 @@ public:
 	/**
 	 * gets the length of this vector squared
 	 */
-	float length_squared() const {
+	float length_squared() const
+	{
 		float res = 0.0f;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res += data[i] * data[i];
+		}
 
 		return res;
 	}
@@ -319,11 +354,13 @@ public:
 	/**
 	 * gets the length of this vector
 	 */
-	float length() const {
+	float length() const
+	{
 		float res = 0.0f;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			res += data[i] * data[i];
+		}
 
 		return sqrtf(res);
 	}
@@ -331,29 +368,34 @@ public:
 	/**
 	 * normalizes this vector
 	 */
-	void normalize() {
+	void normalize()
+	{
 		*this /= length();
 	}
 
 	/**
 	 * returns the normalized version of this vector
 	 */
-	Vector<N> normalized() const {
+	Vector<N> normalized() const
+	{
 		return *this / length();
 	}
 
 	/**
 	 * set zero vector
 	 */
-	void zero(void) {
+	void zero(void)
+	{
 		memset(data, 0, sizeof(data));
 	}
 
-	void print(void) {
+	void print(void)
+	{
 		printf("[ ");
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++) {
 			printf("%.3f\t", (double)data[i]);
+		}
 
 		printf("]\n");
 	}
@@ -372,7 +414,8 @@ public:
 	/**
 	 * set to value
 	 */
-	const Vector<N> &operator =(const Vector<N> &v) {
+	const Vector<N> &operator =(const Vector<N> &v)
+	{
 		memcpy(this->data, v.data, sizeof(this->data));
 		return *this;
 	}
@@ -385,17 +428,20 @@ public:
 	Vector() : VectorBase<2>() {}
 
 	// simple copy is 1.6 times faster than memcpy
-	Vector(const Vector<2> &v) : VectorBase<2>() {
+	Vector(const Vector<2> &v) : VectorBase<2>()
+	{
 		data[0] = v.data[0];
 		data[1] = v.data[1];
 	}
 
-	Vector(const float d[2]) : VectorBase<2>() {
+	Vector(const float d[2]) : VectorBase<2>()
+	{
 		data[0] = d[0];
 		data[1] = d[1];
 	}
 
-	Vector(const float x, const float y) : VectorBase<2>() {
+	Vector(const float x, const float y) : VectorBase<2>()
+	{
 		data[0] = x;
 		data[1] = y;
 	}
@@ -403,7 +449,8 @@ public:
 	/**
 	 * set data
 	 */
-	void set(const float d[2]) {
+	void set(const float d[2])
+	{
 		data[0] = d[0];
 		data[1] = d[1];
 	}
@@ -411,20 +458,23 @@ public:
 	/**
 	 * set data from boost::array
 	 */
-	void set(const boost::array<float, 2ul> d) {
-	set(static_cast<const float*>(d.data()));
+	void set(const boost::array<float, 2ul> d)
+	{
+		set(static_cast<const float *>(d.data()));
 	}
 #endif
 	/**
 	 * set to value
 	 */
-	const Vector<2> &operator =(const Vector<2> &v) {
+	const Vector<2> &operator =(const Vector<2> &v)
+	{
 		data[0] = v.data[0];
 		data[1] = v.data[1];
 		return *this;
 	}
 
-	float operator %(const Vector<2> &v) const {
+	float operator %(const Vector<2> &v) const
+	{
 		return data[0] * v.data[1] - data[1] * v.data[0];
 	}
 };
@@ -436,17 +486,22 @@ public:
 	Vector() : VectorBase<3>() {}
 
 	// simple copy is 1.6 times faster than memcpy
-	Vector(const Vector<3> &v) : VectorBase<3>() {
-		for (unsigned int i = 0; i < 3; i++)
+	Vector(const Vector<3> &v) : VectorBase<3>()
+	{
+		for (unsigned int i = 0; i < 3; i++) {
 			data[i] = v.data[i];
+		}
 	}
 
-	Vector(const float d[3]) : VectorBase<3>() {
-		for (unsigned int i = 0; i < 3; i++)
+	Vector(const float d[3]) : VectorBase<3>()
+	{
+		for (unsigned int i = 0; i < 3; i++) {
 			data[i] = d[i];
+		}
 	}
 
-	Vector(const float x, const float y, const float z) : VectorBase<3>() {
+	Vector(const float x, const float y, const float z) : VectorBase<3>()
+	{
 		data[0] = x;
 		data[1] = y;
 		data[2] = z;
@@ -455,30 +510,36 @@ public:
 	/**
 	 * set data from boost::array
 	 */
-	void set(const boost::array<float, 3ul> d) {
-	set(static_cast<const float*>(d.data()));
+	void set(const boost::array<float, 3ul> d)
+	{
+		set(static_cast<const float *>(d.data()));
 	}
 #endif
 
 	/**
 	 * set data
 	 */
-	void set(const float d[3]) {
-		for (unsigned int i = 0; i < 3; i++)
+	void set(const float d[3])
+	{
+		for (unsigned int i = 0; i < 3; i++) {
 			data[i] = d[i];
+		}
 	}
 
 	/**
 	 * set to value
 	 */
-	const Vector<3> &operator =(const Vector<3> &v) {
-		for (unsigned int i = 0; i < 3; i++)
+	const Vector<3> &operator =(const Vector<3> &v)
+	{
+		for (unsigned int i = 0; i < 3; i++) {
 			data[i] = v.data[i];
+		}
 
 		return *this;
 	}
 
-	Vector<3> operator %(const Vector<3> &v) const {
+	Vector<3> operator %(const Vector<3> &v) const
+	{
 		return Vector<3>(
 			       data[1] * v.data[2] - data[2] * v.data[1],
 			       data[2] * v.data[0] - data[0] * v.data[2],
@@ -493,17 +554,22 @@ class __EXPORT Vector<4> : public VectorBase<4>
 public:
 	Vector() : VectorBase() {}
 
-	Vector(const Vector<4> &v) : VectorBase<4>() {
-		for (unsigned int i = 0; i < 4; i++)
+	Vector(const Vector<4> &v) : VectorBase<4>()
+	{
+		for (unsigned int i = 0; i < 4; i++) {
 			data[i] = v.data[i];
+		}
 	}
 
-	Vector(const float d[4]) : VectorBase<4>() {
-		for (unsigned int i = 0; i < 4; i++)
+	Vector(const float d[4]) : VectorBase<4>()
+	{
+		for (unsigned int i = 0; i < 4; i++) {
 			data[i] = d[i];
+		}
 	}
 
-	Vector(const float x0, const float x1, const float x2, const float x3) : VectorBase() {
+	Vector(const float x0, const float x1, const float x2, const float x3) : VectorBase()
+	{
 		data[0] = x0;
 		data[1] = x1;
 		data[2] = x2;
@@ -513,25 +579,30 @@ public:
 	/**
 	 * set data from boost::array
 	 */
-	void set(const boost::array<float, 4ul> d) {
-	set(static_cast<const float*>(d.data()));
+	void set(const boost::array<float, 4ul> d)
+	{
+		set(static_cast<const float *>(d.data()));
 	}
 #endif
 
 	/**
 	 * set data
 	 */
-	void set(const float d[4]) {
-		for (unsigned int i = 0; i < 4; i++)
+	void set(const float d[4])
+	{
+		for (unsigned int i = 0; i < 4; i++) {
 			data[i] = d[i];
+		}
 	}
 
 	/**
 	 * set to value
 	 */
-	const Vector<4> &operator =(const Vector<4> &v) {
-		for (unsigned int i = 0; i < 4; i++)
+	const Vector<4> &operator =(const Vector<4> &v)
+	{
+		for (unsigned int i = 0; i < 4; i++) {
 			data[i] = v.data[i];
+		}
 
 		return *this;
 	}

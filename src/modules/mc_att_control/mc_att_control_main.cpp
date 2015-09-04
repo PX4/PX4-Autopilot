@@ -302,7 +302,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_task_should_exit(false),
 	_control_task(-1),
 
-/* subscriptions */
+	/* subscriptions */
 	_v_att_sub(-1),
 	_v_att_sp_sub(-1),
 	_v_control_mode_sub(-1),
@@ -311,7 +311,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_armed_sub(-1),
 	_vehicle_status_sub(-1),
 
-/* publications */
+	/* publications */
 	_v_rates_sp_pub(nullptr),
 	_actuators_0_pub(nullptr),
 	_controller_status_pub(nullptr),
@@ -320,7 +320,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	_actuators_0_circuit_breaker_enabled(false),
 
-/* performance counters */
+	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
 
@@ -334,7 +334,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_armed, 0, sizeof(_armed));
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_motor_limits, 0, sizeof(_motor_limits));
-	memset(&_controller_status,0,sizeof(_controller_status));
+	memset(&_controller_status, 0, sizeof(_controller_status));
 	_vehicle_status.is_rotary_wing = true;
 
 	_params.att_p.zero();
@@ -573,11 +573,13 @@ MulticopterAttitudeControl::vehicle_status_poll()
 
 	if (vehicle_status_updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (!_rates_sp_id) {
 			if (_vehicle_status.is_vtol) {
 				_rates_sp_id = ORB_ID(mc_virtual_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
+
 			} else {
 				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_0);
@@ -714,12 +716,13 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
-	_att_control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int + _params.rate_ff.emult(_rates_sp - _rates_sp_prev) / dt;
+	_att_control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int +
+		       _params.rate_ff.emult(_rates_sp - _rates_sp_prev) / dt;
 	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
 
 	/* update integral only if not saturated on low limit and if motor commands are not saturated */
-	if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit ) {
+	if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit) {
 		for (int i = 0; i < 3; i++) {
 			if (fabsf(_att_control(i)) < _thrust_sp) {
 				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
@@ -771,8 +774,9 @@ MulticopterAttitudeControl::task_main()
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit */
-		if (pret == 0)
+		if (pret == 0) {
 			continue;
+		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -830,7 +834,8 @@ MulticopterAttitudeControl::task_main()
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
-					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);
+					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x,
+								    _manual_control_sp.r).emult(_params.acro_rate_max);
 					_thrust_sp = math::min(_manual_control_sp.z, MANUAL_THROTTLE_MAX_MULTICOPTER);
 
 					/* publish attitude rates setpoint */
@@ -885,8 +890,9 @@ MulticopterAttitudeControl::task_main()
 				}
 
 				/* publish controller status */
-				if(_controller_status_pub != nullptr) {
-					orb_publish(ORB_ID(mc_att_ctrl_status),_controller_status_pub, &_controller_status);
+				if (_controller_status_pub != nullptr) {
+					orb_publish(ORB_ID(mc_att_ctrl_status), _controller_status_pub, &_controller_status);
+
 				} else {
 					_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status);
 				}
@@ -907,11 +913,11 @@ MulticopterAttitudeControl::start()
 
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("mc_att_control",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       1500,
-				       (px4_main_t)&MulticopterAttitudeControl::task_main_trampoline,
-				       nullptr);
+					   SCHED_DEFAULT,
+					   SCHED_PRIORITY_MAX - 5,
+					   1500,
+					   (px4_main_t)&MulticopterAttitudeControl::task_main_trampoline,
+					   nullptr);
 
 	if (_control_task < 0) {
 		warn("task start failed");

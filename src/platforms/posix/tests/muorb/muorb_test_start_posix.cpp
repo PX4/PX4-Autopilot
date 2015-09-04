@@ -71,11 +71,11 @@ int muorb_test_main(int argc, char *argv[])
 		}
 
 		daemon_task = px4_task_spawn_cmd("muorb_test",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       16000,
-				       PX4_MAIN,
-				       (char* const*)argv);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 16000,
+						 PX4_MAIN,
+						 (char *const *)argv);
 
 		return 0;
 	}

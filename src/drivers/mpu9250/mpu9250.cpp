@@ -337,7 +337,7 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg, uint32_t speed=MPU9250_LOW_BUS_SPEED);
+	uint8_t			read_reg(unsigned reg, uint32_t speed = MPU9250_LOW_BUS_SPEED);
 	uint16_t		read_reg16(unsigned reg);
 
 	/**
@@ -392,7 +392,7 @@ private:
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
-	 int 			self_test();
+	int 			self_test();
 
 	/**
 	 * Accel self test
@@ -406,7 +406,7 @@ private:
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
-	 int 			gyro_self_test();
+	int 			gyro_self_test();
 
 	/*
 	  set low pass filter frequency
@@ -424,8 +424,8 @@ private:
 	void check_registers(void);
 
 	/* do not allow to copy this class due to pointer data members */
-	MPU9250(const MPU9250&);
-	MPU9250 operator=(const MPU9250&);
+	MPU9250(const MPU9250 &);
+	MPU9250 operator=(const MPU9250 &);
 
 #pragma pack(push, 1)
 	/**
@@ -455,12 +455,13 @@ const uint8_t MPU9250::_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPU
 									     MPUREG_PWR_MGMT_2,
 									     MPUREG_USER_CTRL,
 									     MPUREG_SMPLRT_DIV,
-                                                                             MPUREG_CONFIG,
+									     MPUREG_CONFIG,
 									     MPUREG_GYRO_CONFIG,
 									     MPUREG_ACCEL_CONFIG,
 									     MPUREG_ACCEL_CONFIG2,
 									     MPUREG_INT_ENABLE,
-									     MPUREG_INT_PIN_CFG };
+									     MPUREG_INT_PIN_CFG
+									   };
 
 
 
@@ -490,8 +491,8 @@ private:
 	int			_gyro_class_instance;
 
 	/* do not allow to copy this class due to pointer data members */
-	MPU9250_gyro(const MPU9250_gyro&);
-	MPU9250_gyro operator=(const MPU9250_gyro&);
+	MPU9250_gyro(const MPU9250_gyro &);
+	MPU9250_gyro operator=(const MPU9250_gyro &);
 };
 
 /** driver 'main' command */
@@ -577,13 +578,17 @@ MPU9250::~MPU9250()
 	delete _gyro;
 
 	/* free any existing reports */
-	if (_accel_reports != nullptr)
+	if (_accel_reports != nullptr) {
 		delete _accel_reports;
-	if (_gyro_reports != nullptr)
-		delete _gyro_reports;
+	}
 
-	if (_accel_class_instance != -1)
+	if (_gyro_reports != nullptr) {
+		delete _gyro_reports;
+	}
+
+	if (_accel_class_instance != -1) {
 		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
+	}
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -612,15 +617,20 @@ MPU9250::init()
 
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
-	if (_accel_reports == nullptr)
+
+	if (_accel_reports == nullptr) {
 		goto out;
+	}
 
 	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
-	if (_gyro_reports == nullptr)
-		goto out;
 
-	if (reset() != OK)
+	if (_gyro_reports == nullptr) {
 		goto out;
+	}
+
+	if (reset() != OK) {
+		goto out;
+	}
 
 	/* Initialize offsets and scales */
 	_accel_scale.x_offset = 0;
@@ -640,6 +650,7 @@ MPU9250::init()
 
 	/* do CDev init for the gyro device node, keep it optional */
 	ret = _gyro->init();
+
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
 		DEVICE_DEBUG("gyro init failed");
@@ -656,7 +667,7 @@ MPU9250::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-		&_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
+					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 	if (_accel_topic == nullptr) {
 		warnx("ADVERT FAIL");
@@ -668,7 +679,7 @@ MPU9250::init()
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-		&_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
+			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		warnx("ADVERT FAIL");
@@ -722,16 +733,20 @@ int MPU9250::reset()
 	usleep(1000);
 
 	uint8_t retries = 10;
+
 	while (retries--) {
 		bool all_ok = true;
-		for (uint8_t i=0; i<MPU9250_NUM_CHECKED_REGISTERS; i++) {
+
+		for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
 			if (read_reg(_checked_registers[i]) != _checked_values[i]) {
 				write_reg(_checked_registers[i], _checked_values[i]);
 				all_ok = false;
 			}
 		}
-		if (all_ok)
+
+		if (all_ok) {
 			break;
+		}
 	}
 
 	return OK;
@@ -764,15 +779,18 @@ void
 MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
 	if (desired_sample_rate_hz == 0 ||
-			desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
-			desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
+	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
+	    desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
 		desired_sample_rate_hz = MPU9250_GYRO_DEFAULT_RATE;
 	}
 
 	uint8_t div = 1000 / desired_sample_rate_hz;
-	if(div>200) div=200;
-	if(div<1) div=1;
-	write_checked_reg(MPUREG_SMPLRT_DIV, div-1);
+
+	if (div > 200) { div = 200; }
+
+	if (div < 1) { div = 1; }
+
+	write_checked_reg(MPUREG_SMPLRT_DIV, div - 1);
 	_sample_rate = 1000 / div;
 }
 
@@ -790,31 +808,40 @@ MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 	if (frequency_hz == 0) {
 		_dlpf_freq = 0;
 		filter = BITS_DLPF_CFG_3600HZ;
+
 	} else if (frequency_hz <= 5) {
 		_dlpf_freq = 5;
 		filter = BITS_DLPF_CFG_5HZ;
+
 	} else if (frequency_hz <= 10) {
 		_dlpf_freq = 10;
 		filter = BITS_DLPF_CFG_10HZ;
+
 	} else if (frequency_hz <= 20) {
 		_dlpf_freq = 20;
 		filter = BITS_DLPF_CFG_20HZ;
+
 	} else if (frequency_hz <= 41) {
 		_dlpf_freq = 41;
 		filter = BITS_DLPF_CFG_41HZ;
+
 	} else if (frequency_hz <= 92) {
 		_dlpf_freq = 92;
 		filter = BITS_DLPF_CFG_92HZ;
+
 	} else if (frequency_hz <= 184) {
 		_dlpf_freq = 184;
 		filter = BITS_DLPF_CFG_184HZ;
+
 	} else if (frequency_hz <= 250) {
 		_dlpf_freq = 250;
 		filter = BITS_DLPF_CFG_250HZ;
+
 	} else {
 		_dlpf_freq = 0;
 		filter = BITS_DLPF_CFG_3600HZ;
 	}
+
 	write_checked_reg(MPUREG_CONFIG, filter);
 }
 
@@ -824,8 +851,9 @@ MPU9250::read(struct file *filp, char *buffer, size_t buflen)
 	unsigned count = buflen / sizeof(accel_report);
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
 	if (_call_interval == 0) {
@@ -834,17 +862,21 @@ MPU9250::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if no data, error (we could block here) */
-	if (_accel_reports->empty())
+	if (_accel_reports->empty()) {
 		return -EAGAIN;
+	}
 
 	perf_count(_accel_reads);
 
 	/* copy reports out of our buffer to the caller */
 	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
 	int transferred = 0;
+
 	while (count--) {
-		if (!_accel_reports->get(arp))
+		if (!_accel_reports->get(arp)) {
 			break;
+		}
+
 		transferred++;
 		arp++;
 	}
@@ -867,24 +899,34 @@ MPU9250::self_test()
 int
 MPU9250::accel_self_test()
 {
-	if (self_test())
+	if (self_test()) {
 		return 1;
+	}
 
 	/* inspect accel offsets */
-	if (fabsf(_accel_scale.x_offset) < 0.000001f)
+	if (fabsf(_accel_scale.x_offset) < 0.000001f) {
 		return 1;
-	if (fabsf(_accel_scale.x_scale - 1.0f) > 0.4f || fabsf(_accel_scale.x_scale - 1.0f) < 0.000001f)
-		return 1;
+	}
 
-	if (fabsf(_accel_scale.y_offset) < 0.000001f)
+	if (fabsf(_accel_scale.x_scale - 1.0f) > 0.4f || fabsf(_accel_scale.x_scale - 1.0f) < 0.000001f) {
 		return 1;
-	if (fabsf(_accel_scale.y_scale - 1.0f) > 0.4f || fabsf(_accel_scale.y_scale - 1.0f) < 0.000001f)
-		return 1;
+	}
 
-	if (fabsf(_accel_scale.z_offset) < 0.000001f)
+	if (fabsf(_accel_scale.y_offset) < 0.000001f) {
 		return 1;
-	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f)
+	}
+
+	if (fabsf(_accel_scale.y_scale - 1.0f) > 0.4f || fabsf(_accel_scale.y_scale - 1.0f) < 0.000001f) {
 		return 1;
+	}
+
+	if (fabsf(_accel_scale.z_offset) < 0.000001f) {
+		return 1;
+	}
+
+	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f) {
+		return 1;
+	}
 
 	return 0;
 }
@@ -892,8 +934,9 @@ MPU9250::accel_self_test()
 int
 MPU9250::gyro_self_test()
 {
-	if (self_test())
+	if (self_test()) {
 		return 1;
+	}
 
 	/*
 	 * Maximum deviation of 20 degrees, according to
@@ -909,27 +952,35 @@ MPU9250::gyro_self_test()
 	const float max_scale = 0.3f;
 
 	/* evaluate gyro offsets, complain if offset -> zero or larger than 20 dps. */
-	if (fabsf(_gyro_scale.x_offset) > max_offset)
+	if (fabsf(_gyro_scale.x_offset) > max_offset) {
 		return 1;
+	}
 
 	/* evaluate gyro scale, complain if off by more than 30% */
-	if (fabsf(_gyro_scale.x_scale - 1.0f) > max_scale)
+	if (fabsf(_gyro_scale.x_scale - 1.0f) > max_scale) {
 		return 1;
+	}
 
-	if (fabsf(_gyro_scale.y_offset) > max_offset)
+	if (fabsf(_gyro_scale.y_offset) > max_offset) {
 		return 1;
-	if (fabsf(_gyro_scale.y_scale - 1.0f) > max_scale)
-		return 1;
+	}
 
-	if (fabsf(_gyro_scale.z_offset) > max_offset)
+	if (fabsf(_gyro_scale.y_scale - 1.0f) > max_scale) {
 		return 1;
-	if (fabsf(_gyro_scale.z_scale - 1.0f) > max_scale)
+	}
+
+	if (fabsf(_gyro_scale.z_offset) > max_offset) {
 		return 1;
+	}
+
+	if (fabsf(_gyro_scale.z_scale - 1.0f) > max_scale) {
+		return 1;
+	}
 
 	/* check if all scales are zero */
 	if ((fabsf(_gyro_scale.x_offset) < 0.000001f) &&
-		(fabsf(_gyro_scale.y_offset) < 0.000001f) &&
-		(fabsf(_gyro_scale.z_offset) < 0.000001f)) {
+	    (fabsf(_gyro_scale.y_offset) < 0.000001f) &&
+	    (fabsf(_gyro_scale.z_offset) < 0.000001f)) {
 		/* if all are zero, this device is not calibrated */
 		return 1;
 	}
@@ -960,8 +1011,9 @@ MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	unsigned count = buflen / sizeof(gyro_report);
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
 	if (_call_interval == 0) {
@@ -970,17 +1022,21 @@ MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if no data, error (we could block here) */
-	if (_gyro_reports->empty())
+	if (_gyro_reports->empty()) {
 		return -EAGAIN;
+	}
 
 	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
 	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
 	int transferred = 0;
+
 	while (count--) {
-		if (!_gyro_reports->get(grp))
+		if (!_gyro_reports->get(grp)) {
 			break;
+		}
+
 		transferred++;
 		grp++;
 	}
@@ -1000,27 +1056,27 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-				/* switching to manual polling */
+			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
 				stop();
 				_call_interval = 0;
 				return OK;
 
-				/* external signalling not supported */
+			/* external signalling not supported */
 			case SENSOR_POLLRATE_EXTERNAL:
 
-				/* zero would be bad */
+			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-				/* set default/max polling rate */
+			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
 				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
 
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
 
-				/* adjust to a legal polling interval in Hz */
+			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
 					bool want_start = (_call_interval == 0);
@@ -1029,12 +1085,13 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 1000)
+					if (ticks < 1000) {
 						return -EINVAL;
+					}
 
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f/ticks;
+					float sample_rate = 1.0e6f / ticks;
 					_set_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
@@ -1051,17 +1108,18 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 					/* XXX this is a bit shady, but no other way to adjust... */
 					_call_interval = ticks;
 
-                                        /*
-                                          set call interval faster then the sample time. We
-                                          then detect when we have duplicate samples and reject
-                                          them. This prevents aliasing due to a beat between the
-                                          stm32 clock and the mpu9250 clock
-                                         */
-                                        _call.period = _call_interval - MPU9250_TIMER_REDUCTION;
+					/*
+					  set call interval faster then the sample time. We
+					  then detect when we have duplicate samples and reject
+					  them. This prevents aliasing due to a beat between the
+					  stm32 clock and the mpu9250 clock
+					 */
+					_call.period = _call_interval - MPU9250_TIMER_REDUCTION;
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start();
+					}
 
 					return OK;
 				}
@@ -1069,25 +1127,29 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0)
+		if (_call_interval == 0) {
 			return SENSOR_POLLRATE_MANUAL;
+		}
 
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		irqstate_t flags = irqsave();
-		if (!_accel_reports->resize(arg)) {
+			irqstate_t flags = irqsave();
+
+			if (!_accel_reports->resize(arg)) {
+				irqrestore(flags);
+				return -ENOMEM;
+			}
+
 			irqrestore(flags);
-			return -ENOMEM;
-		}
-		irqrestore(flags);
 
-		return OK;
-	}
+			return OK;
+		}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _accel_reports->size();
@@ -1109,14 +1171,15 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
-	case ACCELIOCSSCALE:
-		{
+	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_scale *s = (struct accel_scale *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
+
 			if (sum > 2.0f && sum < 4.0f) {
 				memcpy(&_accel_scale, s, sizeof(_accel_scale));
 				return OK;
+
 			} else {
 				return -EINVAL;
 			}
@@ -1131,18 +1194,20 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return set_accel_range(arg);
 
 	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2)/MPU9250_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / MPU9250_ONE_G + 0.5f);
 
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
 
 #ifdef ACCELIOCSHWLOWPASS
+
 	case ACCELIOCSHWLOWPASS:
 		_set_dlpf_filter(arg);
 		return OK;
 #endif
 
 #ifdef ACCELIOCGHWLOWPASS
+
 	case ACCELIOCGHWLOWPASS:
 		return _dlpf_freq;
 #endif
@@ -1159,26 +1224,29 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-		/* these are shared with the accel side */
+	/* these are shared with the accel side */
 	case SENSORIOCSPOLLRATE:
 	case SENSORIOCGPOLLRATE:
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		irqstate_t flags = irqsave();
-		if (!_gyro_reports->resize(arg)) {
+			irqstate_t flags = irqsave();
+
+			if (!_gyro_reports->resize(arg)) {
+				irqrestore(flags);
+				return -ENOMEM;
+			}
+
 			irqrestore(flags);
-			return -ENOMEM;
-		}
-		irqrestore(flags);
 
-		return OK;
-	}
+			return OK;
+		}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _gyro_reports->size();
@@ -1216,6 +1284,7 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		// _gyro_range_scale = xx
 		// _gyro_range_rad_s = xx
 		return -EINVAL;
+
 	case GYROIOCGRANGE:
 		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
@@ -1223,12 +1292,14 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return gyro_self_test();
 
 #ifdef GYROIOCSHWLOWPASS
+
 	case GYROIOCSHWLOWPASS:
 		_set_dlpf_filter(arg);
 		return OK;
 #endif
 
 #ifdef GYROIOCGHWLOWPASS
+
 	case GYROIOCGHWLOWPASS:
 		return _dlpf_freq;
 #endif
@@ -1244,8 +1315,8 @@ MPU9250::read_reg(unsigned reg, uint32_t speed)
 {
 	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
 
-        // general register transfer at low clock speed
-        set_frequency(speed);
+	// general register transfer at low clock speed
+	set_frequency(speed);
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -1257,8 +1328,8 @@ MPU9250::read_reg16(unsigned reg)
 {
 	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
 
-        // general register transfer at low clock speed
-        set_frequency(MPU9250_LOW_BUS_SPEED);
+	// general register transfer at low clock speed
+	set_frequency(MPU9250_LOW_BUS_SPEED);
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -1273,8 +1344,8 @@ MPU9250::write_reg(unsigned reg, uint8_t value)
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
-        // general register transfer at low clock speed
-        set_frequency(MPU9250_LOW_BUS_SPEED);
+	// general register transfer at low clock speed
+	set_frequency(MPU9250_LOW_BUS_SPEED);
 
 	transfer(cmd, nullptr, sizeof(cmd));
 }
@@ -1294,7 +1365,8 @@ void
 MPU9250::write_checked_reg(unsigned reg, uint8_t value)
 {
 	write_reg(reg, value);
-	for (uint8_t i=0; i<MPU9250_NUM_CHECKED_REGISTERS; i++) {
+
+	for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
 		if (reg == _checked_registers[i]) {
 			_checked_values[i] = value;
 			_checked_bad[i] = value;
@@ -1313,14 +1385,17 @@ MPU9250::set_accel_range(unsigned max_g_in)
 		afs_sel = 3;
 		lsb_per_g = 2048;
 		max_accel_g = 16;
+
 	} else if (max_g_in > 4) { //  8g - AFS_SEL = 2
 		afs_sel = 2;
 		lsb_per_g = 4096;
 		max_accel_g = 8;
+
 	} else if (max_g_in > 2) { //  4g - AFS_SEL = 1
 		afs_sel = 1;
 		lsb_per_g = 8192;
 		max_accel_g = 4;
+
 	} else {                //  2g - AFS_SEL = 0
 		afs_sel = 0;
 		lsb_per_g = 16384;
@@ -1346,9 +1421,9 @@ MPU9250::start()
 
 	/* start polling at the specified rate */
 	hrt_call_every(&_call,
-                       1000,
-                       _call_interval-MPU9250_TIMER_REDUCTION,
-                       (hrt_callout)&MPU9250::measure_trampoline, this);
+		       1000,
+		       _call_interval - MPU9250_TIMER_REDUCTION,
+		       (hrt_callout)&MPU9250::measure_trampoline, this);
 }
 
 void
@@ -1379,7 +1454,8 @@ MPU9250::check_registers(void)
 	  the data registers.
 	*/
 	uint8_t v;
-	if ((v=read_reg(_checked_registers[_checked_next], MPU9250_HIGH_BUS_SPEED)) !=
+
+	if ((v = read_reg(_checked_registers[_checked_next], MPU9250_HIGH_BUS_SPEED)) !=
 	    _checked_values[_checked_next]) {
 		_checked_bad[_checked_next] = v;
 
@@ -1408,7 +1484,8 @@ MPU9250::check_registers(void)
 			// register values but large offsets on the
 			// accel axes
 			_reset_wait = hrt_absolute_time() + 10000;
-                        _checked_next = 0;
+			_checked_next = 0;
+
 		} else {
 			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
 			// waiting 3ms between register writes seems
@@ -1416,9 +1493,11 @@ MPU9250::check_registers(void)
 			// recovering considerably
 			_reset_wait = hrt_absolute_time() + 3000;
 		}
+
 		_register_wait = 20;
 	}
-	_checked_next = (_checked_next+1) % MPU9250_NUM_CHECKED_REGISTERS;
+
+	_checked_next = (_checked_next + 1) % MPU9250_NUM_CHECKED_REGISTERS;
 }
 
 void
@@ -1430,6 +1509,7 @@ MPU9250::measure()
 	}
 
 	struct MPUReport mpu_report;
+
 	struct Report {
 		int16_t		accel_x;
 		int16_t		accel_y;
@@ -1448,13 +1528,14 @@ MPU9250::measure()
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
 
-        // sensor transfer at high clock speed
-        set_frequency(MPU9250_HIGH_BUS_SPEED);
+	// sensor transfer at high clock speed
+	set_frequency(MPU9250_HIGH_BUS_SPEED);
 
-	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report)))
+	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report))) {
 		return;
+	}
 
-        check_registers();
+	check_registers();
 
 	/*
 	   see if this is duplicate accelerometer data. Note that we
@@ -1464,13 +1545,14 @@ MPU9250::measure()
 	   sampled at 8kHz, so we would incorrectly think we have new
 	   data when we are in fact getting duplicate accelerometer data.
 	*/
-        if (!_got_duplicate && memcmp(&mpu_report.accel_x[0], &_last_accel[0], 6) == 0) {
+	if (!_got_duplicate && memcmp(&mpu_report.accel_x[0], &_last_accel[0], 6) == 0) {
 		// it isn't new data - wait for next timer
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
 		_got_duplicate = true;
 		return;
 	}
+
 	memcpy(&_last_accel[0], &mpu_report.accel_x[0], 6);
 	_got_duplicate = false;
 
@@ -1498,10 +1580,10 @@ MPU9250::measure()
 		// all zero data - probably a SPI bus error
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
-                // note that we don't call reset() here as a reset()
-                // costs 20ms with interrupts disabled. That means if
-                // the mpu6k does go bad it would cause a FMU failure,
-                // regardless of whether another sensor is available,
+		// note that we don't call reset() here as a reset()
+		// costs 20ms with interrupts disabled. That means if
+		// the mpu6k does go bad it would cause a FMU failure,
+		// regardless of whether another sensor is available,
 		return;
 	}
 
@@ -1548,7 +1630,7 @@ MPU9250::measure()
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
 	// whether it has had failures
-        grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+	grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1657,22 +1739,26 @@ MPU9250::print_info()
 	perf_print_counter(_duplicates);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
-        ::printf("checked_next: %u\n", _checked_next);
-        for (uint8_t i=0; i<MPU9250_NUM_CHECKED_REGISTERS; i++) {
-            uint8_t v = read_reg(_checked_registers[i], MPU9250_HIGH_BUS_SPEED);
-            if (v != _checked_values[i]) {
-                ::printf("reg %02x:%02x should be %02x\n",
-                         (unsigned)_checked_registers[i],
-                         (unsigned)v,
-                         (unsigned)_checked_values[i]);
-            }
-            if (v != _checked_bad[i]) {
-                ::printf("reg %02x:%02x was bad %02x\n",
-                         (unsigned)_checked_registers[i],
-                         (unsigned)v,
-                         (unsigned)_checked_bad[i]);
-            }
-        }
+	::printf("checked_next: %u\n", _checked_next);
+
+	for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
+		uint8_t v = read_reg(_checked_registers[i], MPU9250_HIGH_BUS_SPEED);
+
+		if (v != _checked_values[i]) {
+			::printf("reg %02x:%02x should be %02x\n",
+				 (unsigned)_checked_registers[i],
+				 (unsigned)v,
+				 (unsigned)_checked_values[i]);
+		}
+
+		if (v != _checked_bad[i]) {
+			::printf("reg %02x:%02x was bad %02x\n",
+				 (unsigned)_checked_registers[i],
+				 (unsigned)v,
+				 (unsigned)_checked_bad[i]);
+		}
+	}
+
 	::printf("temperature: %.1f\n", (double)_last_temperature);
 }
 
@@ -1680,13 +1766,16 @@ void
 MPU9250::print_registers()
 {
 	printf("MPU9250 registers\n");
-	for (uint8_t reg=0; reg<=126; reg++) {
+
+	for (uint8_t reg = 0; reg <= 126; reg++) {
 		uint8_t v = read_reg(reg);
-		printf("%02x:%02x ",(unsigned)reg, (unsigned)v);
+		printf("%02x:%02x ", (unsigned)reg, (unsigned)v);
+
 		if (reg % 13 == 0) {
 			printf("\n");
 		}
 	}
+
 	printf("\n");
 }
 
@@ -1702,8 +1791,9 @@ MPU9250_gyro::MPU9250_gyro(MPU9250 *parent, const char *path) :
 
 MPU9250_gyro::~MPU9250_gyro()
 {
-	if (_gyro_class_instance != -1)
+	if (_gyro_class_instance != -1) {
 		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
+	}
 }
 
 int
@@ -1742,11 +1832,12 @@ MPU9250_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 
 	switch (cmd) {
-		case DEVIOCGDEVICEID:
-			return (int)CDev::ioctl(filp, cmd, arg);
-			break;
-		default:
-			return _parent->gyro_ioctl(filp, cmd, arg);
+	case DEVIOCGDEVICEID:
+		return (int)CDev::ioctl(filp, cmd, arg);
+		break;
+
+	default:
+		return _parent->gyro_ioctl(filp, cmd, arg);
 	}
 }
 
@@ -1778,48 +1869,55 @@ void
 start(bool external_bus, enum Rotation rotation)
 {
 	int fd;
-        MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
-	const char *path_accel = external_bus?MPU_DEVICE_PATH_ACCEL_EXT:MPU_DEVICE_PATH_ACCEL;
-	const char *path_gyro  = external_bus?MPU_DEVICE_PATH_GYRO_EXT:MPU_DEVICE_PATH_GYRO;
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+	const char *path_accel = external_bus ? MPU_DEVICE_PATH_ACCEL_EXT : MPU_DEVICE_PATH_ACCEL;
+	const char *path_gyro  = external_bus ? MPU_DEVICE_PATH_GYRO_EXT : MPU_DEVICE_PATH_GYRO;
 
 	if (*g_dev_ptr != nullptr)
 		/* if already started, the still command succeeded */
+	{
 		errx(0, "already started");
+	}
 
 	/* create the driver */
-        if (external_bus) {
+	if (external_bus) {
 #ifdef PX4_SPI_BUS_EXT
 		*g_dev_ptr = new MPU9250(PX4_SPI_BUS_EXT, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_MPU, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif
+
 	} else {
 		*g_dev_ptr = new MPU9250(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_MPU, rotation);
 	}
 
-	if (*g_dev_ptr == nullptr)
+	if (*g_dev_ptr == nullptr) {
 		goto fail;
+	}
 
-	if (OK != (*g_dev_ptr)->init())
+	if (OK != (*g_dev_ptr)->init()) {
 		goto fail;
+	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(path_accel, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		goto fail;
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
+	}
 
-        close(fd);
+	close(fd);
 
 	exit(0);
 fail:
 
 	if (*g_dev_ptr != nullptr) {
-            delete (*g_dev_ptr);
-            *g_dev_ptr = nullptr;
+		delete(*g_dev_ptr);
+		*g_dev_ptr = nullptr;
 	}
 
 	errx(1, "driver start failed");
@@ -1828,14 +1926,17 @@ fail:
 void
 stop(bool external_bus)
 {
-	MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+
 	if (*g_dev_ptr != nullptr) {
 		delete *g_dev_ptr;
 		*g_dev_ptr = nullptr;
+
 	} else {
 		/* warn, but not an error */
 		warnx("already stopped.");
 	}
+
 	exit(0);
 }
 
@@ -1847,8 +1948,8 @@ stop(bool external_bus)
 void
 test(bool external_bus)
 {
-	const char *path_accel = external_bus?MPU_DEVICE_PATH_ACCEL_EXT:MPU_DEVICE_PATH_ACCEL;
-	const char *path_gyro  = external_bus?MPU_DEVICE_PATH_GYRO_EXT:MPU_DEVICE_PATH_GYRO;
+	const char *path_accel = external_bus ? MPU_DEVICE_PATH_ACCEL_EXT : MPU_DEVICE_PATH_ACCEL;
+	const char *path_gyro  = external_bus ? MPU_DEVICE_PATH_GYRO_EXT : MPU_DEVICE_PATH_GYRO;
 	accel_report a_report;
 	gyro_report g_report;
 	ssize_t sz;
@@ -1863,12 +1964,14 @@ test(bool external_bus)
 	/* get the driver */
 	int fd_gyro = open(path_gyro, O_RDONLY);
 
-	if (fd_gyro < 0)
+	if (fd_gyro < 0) {
 		err(1, "%s open failed", path_gyro);
+	}
 
 	/* reset to manual polling */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
 		err(1, "reset to manual polling");
+	}
 
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
@@ -1922,19 +2025,22 @@ test(bool external_bus)
 void
 reset(bool external_bus)
 {
-	const char *path_accel = external_bus?MPU_DEVICE_PATH_ACCEL_EXT:MPU_DEVICE_PATH_ACCEL;
+	const char *path_accel = external_bus ? MPU_DEVICE_PATH_ACCEL_EXT : MPU_DEVICE_PATH_ACCEL;
 	int fd = open(path_accel, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "failed ");
+	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		err(1, "driver reset failed");
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		err(1, "driver poll restart failed");
+	}
 
-        close(fd);
+	close(fd);
 
 	exit(0);
 }
@@ -1945,9 +2051,11 @@ reset(bool external_bus)
 void
 info(bool external_bus)
 {
-        MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
-	if (*g_dev_ptr == nullptr)
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+
+	if (*g_dev_ptr == nullptr) {
 		errx(1, "driver not running");
+	}
 
 	printf("state @ %p\n", *g_dev_ptr);
 	(*g_dev_ptr)->print_info();
@@ -1961,9 +2069,11 @@ info(bool external_bus)
 void
 regdump(bool external_bus)
 {
-	MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
-	if (*g_dev_ptr == nullptr)
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+
+	if (*g_dev_ptr == nullptr) {
 		errx(1, "driver not running");
+	}
 
 	printf("regdump @ %p\n", *g_dev_ptr);
 	(*g_dev_ptr)->print_registers();
@@ -1977,9 +2087,11 @@ regdump(bool external_bus)
 void
 testerror(bool external_bus)
 {
-	MPU9250 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
-	if (*g_dev_ptr == nullptr)
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+
+	if (*g_dev_ptr == nullptr) {
 		errx(1, "driver not running");
+	}
 
 	(*g_dev_ptr)->test_error();
 
@@ -2010,9 +2122,11 @@ mpu9250_main(int argc, char *argv[])
 		case 'X':
 			external_bus = true;
 			break;
+
 		case 'R':
 			rotation = (enum Rotation)atoi(optarg);
 			break;
+
 		default:
 			mpu9250::usage();
 			exit(0);

@@ -86,7 +86,8 @@ bool is_rotary_wing(const struct vehicle_status_s *current_status)
 	       || (current_status->system_type == vehicle_status_s::VEHICLE_TYPE_COAXIAL);
 }
 
-bool is_vtol(const struct vehicle_status_s * current_status) {
+bool is_vtol(const struct vehicle_status_s *current_status)
+{
 	return (current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_DUOROTOR ||
 		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_QUADROTOR ||
 		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_HEXAROTOR ||
@@ -320,6 +321,7 @@ int led_toggle(int led)
 	if (leds < 0) {
 		return leds;
 	}
+
 	return px4_ioctl(leds, LED_TOGGLE, led);
 }
 
@@ -328,6 +330,7 @@ int led_on(int led)
 	if (leds < 0) {
 		return leds;
 	}
+
 	return px4_ioctl(leds, LED_ON, led);
 }
 
@@ -336,6 +339,7 @@ int led_off(int led)
 	if (leds < 0) {
 		return leds;
 	}
+
 	return px4_ioctl(leds, LED_OFF, led);
 }
 
@@ -345,6 +349,7 @@ void rgbled_set_color(rgbled_color_t color)
 	if (rgbleds < 0) {
 		return;
 	}
+
 	px4_ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
 }
 
@@ -354,6 +359,7 @@ void rgbled_set_mode(rgbled_mode_t mode)
 	if (rgbleds < 0) {
 		return;
 	}
+
 	px4_ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
 }
 
@@ -363,10 +369,12 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern)
 	if (rgbleds < 0) {
 		return;
 	}
+
 	px4_ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
 }
 
-unsigned battery_get_n_cells() {
+unsigned battery_get_n_cells()
+{
 	return bat_n_cells;
 }
 
@@ -387,6 +395,7 @@ float battery_remaining_estimate_voltage(float voltage, float discharged, float 
 	// XXX this time constant needs to become tunable
 	// but really, the right fix are smart batteries.
 	float val = throttle_lowpassed * 0.97f + throttle_normalized * 0.03f;
+
 	if (isfinite(val)) {
 		throttle_lowpassed = val;
 	}

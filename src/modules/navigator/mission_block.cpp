@@ -61,12 +61,12 @@ orb_advert_t actuator_pub_fd;
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
-	_mission_item({0}),
-	_waypoint_position_reached(false),
-	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0),
-	_actuators{},
-	_actuator_pub(nullptr)
+	_mission_item( {0}),
+	       _waypoint_position_reached(false),
+	       _waypoint_yaw_reached(false),
+	       _time_first_inside_orbit(0),
+	       _actuators{},
+	       _actuator_pub(nullptr)
 {
 }
 
@@ -96,7 +96,7 @@ MissionBlock::is_mission_item_reached()
 
 	/* TODO: count turns */
 	if (/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
+		_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
 		return false;
 	}
 
@@ -109,29 +109,31 @@ MissionBlock::is_mission_item_reached()
 
 		float altitude_amsl = _mission_item.altitude_is_relative
 				      ? _mission_item.altitude + _navigator->get_home_position()->alt
-			              : _mission_item.altitude;
+				      : _mission_item.altitude;
 
 		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, altitude_amsl,
-				                          _navigator->get_global_position()->lat,
-							  _navigator->get_global_position()->lon,
-							  _navigator->get_global_position()->alt,
+				_navigator->get_global_position()->lat,
+				_navigator->get_global_position()->lon,
+				_navigator->get_global_position()->alt,
 				&dist_xy, &dist_z);
 
 		if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF && _navigator->get_vstatus()->is_rotary_wing) {
 			/* require only altitude for takeoff for multicopter */
 			if (_navigator->get_global_position()->alt >
-				altitude_amsl - _navigator->get_acceptance_radius()) {
+			    altitude_amsl - _navigator->get_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
+
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
 			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
 			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
+
 		} else if (!_navigator->get_vstatus()->is_rotary_wing &&
-			(_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-			_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-			_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT)) {
+			   (_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+			    _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+			    _mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT)) {
 			/* Loiter mission item on a non rotary wing: the aircraft is going to circle the
 			 * coordinates with a radius equal to the loiter_radius field. It is not flying
 			 * through the waypoint center.
@@ -141,6 +143,7 @@ MissionBlock::is_mission_item_reached()
 			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.loiter_radius * 1.2f)) {
 				_waypoint_position_reached = true;
 			}
+
 		} else {
 			/* for normal mission items used their acceptance radius */
 			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.acceptance_radius)) {
@@ -184,6 +187,7 @@ MissionBlock::is_mission_item_reached()
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -209,12 +213,13 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_DO_SET_SERVO:
-			/* Set current position for loitering set point*/
-			sp->lat = _navigator->get_global_position()->lat;
-			sp->lon = _navigator->get_global_position()->lon;
-			sp->alt = _navigator->get_global_position()->alt;
-			sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-			break;
+		/* Set current position for loitering set point*/
+		sp->lat = _navigator->get_global_position()->lat;
+		sp->lon = _navigator->get_global_position()->lon;
+		sp->alt = _navigator->get_global_position()->alt;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+		break;
+
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;
@@ -244,9 +249,9 @@ MissionBlock::set_previous_pos_setpoint()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-    if (pos_sp_triplet->current.valid) {
-        memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
-    }
+	if (pos_sp_triplet->current.valid) {
+		memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
+	}
 }
 
 void

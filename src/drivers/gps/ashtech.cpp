@@ -37,7 +37,7 @@ ASHTECH::~ASHTECH()
 
 int ASHTECH::handle_message(int len)
 {
-	char * endp;
+	char *endp;
 
 	if (len < 7) { return 0; }
 
@@ -69,7 +69,8 @@ int ASHTECH::handle_message(int len)
 		Fields 5 and 6 together yield the total offset. For example, if field 5 is -5 and field 6 is +15, local time is 5 hours and 15 minutes earlier than GMT.
 		*/
 		double ashtech_time = 0.0;
-		int day = 0, month = 0, year = 0, local_time_off_hour __attribute__((unused)) = 0, local_time_off_min __attribute__((unused)) = 0;
+		int day = 0, month = 0, year = 0, local_time_off_hour __attribute__((unused)) = 0,
+		    local_time_off_min __attribute__((unused)) = 0;
 
 		if (bufptr && *(++bufptr) != ',') { ashtech_time = strtod(bufptr, &endp); bufptr = endp; }
 
@@ -110,12 +111,14 @@ int ASHTECH::handle_message(int len)
 			timespec ts;
 			ts.tv_sec = epoch;
 			ts.tv_nsec = usecs * 1000;
+
 			if (clock_settime(CLOCK_REALTIME, &ts)) {
 				warn("failed setting clock");
 			}
 
 			_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
 			_gps_position->time_utc_usec += usecs;
+
 		} else {
 			_gps_position->time_utc_usec = 0;
 		}
@@ -266,7 +269,8 @@ int ASHTECH::handle_message(int len)
 		double ashtech_time __attribute__((unused)) = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
 		int num_of_sv __attribute__((unused)) = 0, fix_quality = 0;
 		double track_true = 0.0, ground_speed = 0.0 , age_of_corr __attribute__((unused)) = 0.0;
-		double hdop __attribute__((unused)) = 99.9, vdop __attribute__((unused)) = 99.9,  pdop __attribute__((unused)) = 99.9, tdop __attribute__((unused)) = 99.9, vertic_vel = 0.0;
+		double hdop __attribute__((unused)) = 99.9, vdop __attribute__((unused)) = 99.9,  pdop __attribute__((unused)) = 99.9,
+		tdop __attribute__((unused)) = 99.9, vertic_vel = 0.0;
 		char ns = '?', ew = '?';
 
 		if (bufptr && *(++bufptr) != ',') { fix_quality = strtol(bufptr, &endp, 10); bufptr = endp; }
@@ -281,7 +285,9 @@ int ASHTECH::handle_message(int len)
 			 * or strtod won't find anything and endp will point exactly where bufptr is. The same is for lon and alt.
 			 */
 			lat = strtod(bufptr, &endp);
+
 			if (bufptr != endp) {coordinatesFound++;}
+
 			bufptr = endp;
 		}
 
@@ -289,7 +295,9 @@ int ASHTECH::handle_message(int len)
 
 		if (bufptr && *(++bufptr) != ',') {
 			lon = strtod(bufptr, &endp);
+
 			if (bufptr != endp) {coordinatesFound++;}
+
 			bufptr = endp;
 		}
 
@@ -297,7 +305,9 @@ int ASHTECH::handle_message(int len)
 
 		if (bufptr && *(++bufptr) != ',') {
 			alt = strtod(bufptr, &endp);
+
 			if (bufptr != endp) {coordinatesFound++;}
+
 			bufptr = endp;
 		}
 
@@ -349,7 +359,8 @@ int ASHTECH::handle_message(int len)
 		_gps_position->vel_n_m_s = velocity_north;			/** GPS ground speed in m/s */
 		_gps_position->vel_e_m_s = velocity_east;			/** GPS ground speed in m/s */
 		_gps_position->vel_d_m_s = static_cast<float>(-vertic_vel);				/** GPS ground speed in m/s */
-		_gps_position->cog_rad = track_rad;				/** Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
+		_gps_position->cog_rad =
+			track_rad;				/** Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
 		_gps_position->vel_ned_valid = true;				/** Flag to indicate if NED speed is valid */
 		_gps_position->c_variance_rad = 0.1f;
 		_gps_position->timestamp_velocity = hrt_absolute_time();
@@ -381,7 +392,8 @@ int ASHTECH::handle_message(int len)
 		  9   The checksum data, always begins with *
 		*/
 		double ashtech_time __attribute__((unused)) = 0.0, lat_err = 0.0, lon_err = 0.0, alt_err = 0.0;
-		double min_err __attribute__((unused)) = 0.0, maj_err __attribute__((unused)) = 0.0, deg_from_north __attribute__((unused)) = 0.0, rms_err __attribute__((unused)) = 0.0;
+		double min_err __attribute__((unused)) = 0.0, maj_err __attribute__((unused)) = 0.0,
+		deg_from_north __attribute__((unused)) = 0.0, rms_err __attribute__((unused)) = 0.0;
 
 		if (bufptr && *(++bufptr) != ',') { ashtech_time = strtod(bufptr, &endp); bufptr = endp; }
 
@@ -400,7 +412,7 @@ int ASHTECH::handle_message(int len)
 		if (bufptr && *(++bufptr) != ',') { alt_err = strtod(bufptr, &endp); bufptr = endp; }
 
 		_gps_position->eph = sqrtf(static_cast<float>(lat_err) * static_cast<float>(lat_err)
-						 + static_cast<float>(lon_err) * static_cast<float>(lon_err));
+					   + static_cast<float>(lon_err) * static_cast<float>(lon_err));
 		_gps_position->epv = static_cast<float>(alt_err);
 
 		_gps_position->s_variance_m_s = 0;
@@ -571,7 +583,7 @@ int ASHTECH::parse_char(uint8_t b)
 	int iRet = 0;
 
 	switch (_decode_state) {
-		/* First, look for sync1 */
+	/* First, look for sync1 */
 	case NME_DECODE_UNINIT:
 		if (b == '$') {
 			_decode_state = NME_DECODE_GOT_SYNC1;
@@ -636,13 +648,13 @@ void ASHTECH::decode_init(void)
  */
 
 const char comm[] = "$PASHS,POP,20\r\n"\
-	      "$PASHS,NME,ZDA,B,ON,3\r\n"\
-	      "$PASHS,NME,GGA,B,OFF\r\n"\
-	      "$PASHS,NME,GST,B,ON,3\r\n"\
-	      "$PASHS,NME,POS,B,ON,0.05\r\n"\
-	      "$PASHS,NME,GSV,B,ON,3\r\n"\
-	      "$PASHS,SPD,A,8\r\n"\
-	      "$PASHS,SPD,B,9\r\n";
+		    "$PASHS,NME,ZDA,B,ON,3\r\n"\
+		    "$PASHS,NME,GGA,B,OFF\r\n"\
+		    "$PASHS,NME,GST,B,ON,3\r\n"\
+		    "$PASHS,NME,POS,B,ON,0.05\r\n"\
+		    "$PASHS,NME,GSV,B,ON,3\r\n"\
+		    "$PASHS,SPD,A,8\r\n"\
+		    "$PASHS,SPD,B,9\r\n";
 
 int ASHTECH::configure(unsigned &baudrate)
 {

@@ -97,11 +97,12 @@ isr_debug(uint8_t level, const char *fmt, ...)
 	if (level > r_page_setup[PX4IO_P_SETUP_SET_DEBUG]) {
 		return;
 	}
+
 	va_list ap;
 	va_start(ap, fmt);
 	vsnprintf(msg[msg_next_in], sizeof(msg[0]), fmt, ap);
 	va_end(ap);
-	msg_next_in = (msg_next_in+1) % NUM_MSG;
+	msg_next_in = (msg_next_in + 1) % NUM_MSG;
 	msg_counter++;
 }
 
@@ -113,11 +114,14 @@ show_debug_messages(void)
 {
 	if (msg_counter != last_msg_counter) {
 		uint32_t n = msg_counter - last_msg_counter;
-		if (n > NUM_MSG) n = NUM_MSG;
+
+		if (n > NUM_MSG) { n = NUM_MSG; }
+
 		last_msg_counter = msg_counter;
+
 		while (n--) {
 			debug("%s", msg[msg_next_out]);
-			msg_next_out = (msg_next_out+1) % NUM_MSG;
+			msg_next_out = (msg_next_out + 1) % NUM_MSG;
 		}
 	}
 }
@@ -135,7 +139,7 @@ ring_blink(void)
 #ifdef GPIO_LED4
 
 	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
-	/* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 		LED_RING(1);
 		return;
 	}
@@ -151,7 +155,7 @@ ring_blink(void)
 
 	if (brightness_counter < max_brightness) {
 
-		bool on = ((on_counter * 100) / brightness_counter+1) <= ((brightness * 100) / max_brightness+1);
+		bool on = ((on_counter * 100) / brightness_counter + 1) <= ((brightness * 100) / max_brightness + 1);
 
 		// XXX once led is PWM driven,
 		// remove the ! in the line below
@@ -195,7 +199,7 @@ static uint64_t reboot_time;
  */
 void schedule_reboot(uint32_t time_delta_usec)
 {
-    reboot_time = hrt_absolute_time() + time_delta_usec;
+	reboot_time = hrt_absolute_time() + time_delta_usec;
 }
 
 /**
@@ -203,9 +207,9 @@ void schedule_reboot(uint32_t time_delta_usec)
  */
 static void check_reboot(void)
 {
-    if (reboot_time != 0 && hrt_absolute_time() > reboot_time) {
-        up_systemreset();
-    }
+	if (reboot_time != 0 && hrt_absolute_time() > reboot_time) {
+		up_systemreset();
+	}
 }
 
 static void
@@ -215,12 +219,14 @@ calculate_fw_crc(void)
 #define APP_LOAD_ADDRESS 0x08001000
 	// compute CRC of the current firmware
 	uint32_t sum = 0;
+
 	for (unsigned p = 0; p < APP_SIZE_MAX; p += 4) {
 		uint32_t bytes = *(uint32_t *)(p + APP_LOAD_ADDRESS);
 		sum = crc32part((uint8_t *)&bytes, sizeof(bytes), sum);
 	}
+
 	r_page_setup[PX4IO_P_SETUP_CRC]   = sum & 0xFFFF;
-	r_page_setup[PX4IO_P_SETUP_CRC+1] = sum >> 16;
+	r_page_setup[PX4IO_P_SETUP_CRC + 1] = sum >> 16;
 }
 
 int
@@ -308,7 +314,7 @@ user_start(int argc, char *argv[])
 	 * allocations. We don't want him to be able to
 	 * get past that point. This needs to be clearly
 	 * documented in the dev guide.
-         *
+	 *
 	 */
 	if (minfo.mxordblk < 600) {
 
@@ -320,10 +326,12 @@ user_start(int argc, char *argv[])
 			if (phase) {
 				LED_AMBER(true);
 				LED_BLUE(false);
+
 			} else {
 				LED_AMBER(false);
 				LED_BLUE(true);
 			}
+
 			up_udelay(250000);
 
 			phase = !phase;
@@ -338,7 +346,8 @@ user_start(int argc, char *argv[])
 	 */
 
 	uint64_t last_debug_time = 0;
-        uint64_t last_heartbeat_time = 0;
+	uint64_t last_heartbeat_time = 0;
+
 	for (;;) {
 
 		/* track the rate at which the loop is running */
@@ -354,14 +363,14 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
-                if ((hrt_absolute_time() - last_heartbeat_time) > 250*1000) {
-                    last_heartbeat_time = hrt_absolute_time();
-                    heartbeat_blink();
-                }
+		if ((hrt_absolute_time() - last_heartbeat_time) > 250 * 1000) {
+			last_heartbeat_time = hrt_absolute_time();
+			heartbeat_blink();
+		}
 
 		ring_blink();
 
-                check_reboot();
+		check_reboot();
 
 		/* check for debug activity (default: none) */
 		show_debug_messages();
@@ -371,7 +380,7 @@ user_start(int argc, char *argv[])
 		 */
 		if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
 
-			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u", 
+			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u",
 				  (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG],
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,

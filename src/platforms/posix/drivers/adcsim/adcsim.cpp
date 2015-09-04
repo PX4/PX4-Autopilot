@@ -37,7 +37,7 @@
  * Driver for the ADCSIM.
  *
  * This is a designed for simulating sampling things like voltages
- * and so forth. 
+ * and so forth.
  */
 
 #include <px4_config.h>
@@ -83,7 +83,7 @@ protected:
 
 private:
 	static const hrt_abstime _tickrate = 10000;	/**< 100Hz base rate */
-	
+
 	hrt_call		_call;
 	perf_counter_t		_sample_perf;
 
@@ -126,11 +126,13 @@ ADCSIM::ADCSIM(uint32_t channels) :
 			_channel_count++;
 		}
 	}
+
 	_samples = new adc_msg_s[_channel_count];
 
 	/* prefill the channel numbers in the sample array */
 	if (_samples != nullptr) {
 		unsigned index = 0;
+
 		for (unsigned i = 0; i < 32; i++) {
 			if (channels & (1 << i)) {
 				_samples[index].am_channel = i;
@@ -143,8 +145,9 @@ ADCSIM::ADCSIM(uint32_t channels) :
 
 ADCSIM::~ADCSIM()
 {
-	if (_samples != nullptr)
+	if (_samples != nullptr) {
 		delete _samples;
+	}
 }
 
 int
@@ -167,8 +170,9 @@ ADCSIM::read(device::file_t *filp, char *buffer, size_t len)
 {
 	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
 
-	if (len > maxsize)
+	if (len > maxsize) {
 		len = maxsize;
+	}
 
 	/* block interrupts while copying samples to avoid racing with an update */
 	memcpy(buffer, _samples, len);
@@ -205,8 +209,10 @@ void
 ADCSIM::_tick()
 {
 	/* scan the channel set and sample each */
-	for (unsigned i = 0; i < _channel_count; i++)
+	for (unsigned i = 0; i < _channel_count; i++) {
 		_samples[i].am_data = _sample(_samples[i].am_channel);
+	}
+
 	update_system_power();
 }
 
@@ -240,6 +246,7 @@ test(void)
 {
 
 	int fd = px4_open(ADCSIM0_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0) {
 		PX4_ERR("can't open ADCSIM device");
 		return 1;
@@ -290,8 +297,9 @@ adcsim_main(int argc, char *argv[])
 	}
 
 	if (argc > 1) {
-		if (!strcmp(argv[1], "test"))
+		if (!strcmp(argv[1], "test")) {
 			ret = test();
+		}
 	}
 
 	return ret;

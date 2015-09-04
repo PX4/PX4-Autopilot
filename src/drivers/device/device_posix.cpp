@@ -55,7 +55,7 @@ Device::Device(const char *name) :
 	_debug_enabled(false)
 {
 	sem_init(&_lock, 0, 1);
-        
+
 	/* setup a default device ID. When bus_type is UNKNOWN the
 	   other fields are invalid */
 	_device_id.devid = 0;
@@ -81,23 +81,24 @@ Device::init()
 int
 Device::dev_read(unsigned offset, void *data, unsigned count)
 {
-        return -ENODEV;
+	return -ENODEV;
 }
 
 int
 Device::dev_write(unsigned offset, void *data, unsigned count)
 {
-        return -ENODEV;
+	return -ENODEV;
 }
 
 int
 Device::dev_ioctl(unsigned operation, unsigned &arg)
 {
-        switch (operation) {
-        case DEVIOCGDEVICEID:
-                return (int)_device_id.devid;
-        }
-        return -ENODEV;
+	switch (operation) {
+	case DEVIOCGDEVICEID:
+		return (int)_device_id.devid;
+	}
+
+	return -ENODEV;
 }
 
 } // namespace device

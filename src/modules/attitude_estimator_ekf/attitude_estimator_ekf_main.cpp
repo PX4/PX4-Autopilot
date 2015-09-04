@@ -137,7 +137,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 					      SCHED_PRIORITY_MAX - 5,
 					      7700,
 					      attitude_estimator_ekf_thread_main,
-					      (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+					      (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		return 0;
 	}
 
@@ -179,22 +179,22 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 {
 
 	float dt = 0.005f;
-/* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
+	/* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
 	float z_k[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 9.81f, 0.2f, -0.2f, 0.2f};					/**< Measurement vector */
 	float x_aposteriori_k[12];		/**< states */
 	float P_aposteriori_k[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				     0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				     0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				     0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
-				     0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
-				     0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
-				     0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
-				     0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
-				     0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
-				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
-				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
-				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
-				    }; /**< init: diagonal matrix with big values */
+				      0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				      0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				      0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
+				      0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
+				      0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
+				      0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
+				      0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
+				      0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
+				      0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
+				      0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
+				      0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
+				     }; /**< init: diagonal matrix with big values */
 
 	float x_aposteriori[12];
 	float P_aposteriori[144];
@@ -203,9 +203,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	float euler[3] = {0.0f, 0.0f, 0.0f};
 
 	float Rot_matrix[9] = {1.f,  0,  0,
-			      0,  1.f,  0,
-			      0,  0,  1.f
-			     };		/**< init: identity matrix */
+			       0,  1.f,  0,
+			       0,  0,  1.f
+			      };		/**< init: identity matrix */
 
 	float debugOutput[4] = { 0.0f };
 
@@ -340,6 +340,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 				bool gps_updated;
 				orb_check(sub_gps, &gps_updated);
+
 				if (gps_updated) {
 					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
 
@@ -353,6 +354,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 				bool global_pos_updated;
 				orb_check(sub_global_pos, &global_pos_updated);
+
 				if (global_pos_updated) {
 					orb_copy(ORB_ID(vehicle_global_position), sub_global_pos, &global_pos);
 				}
@@ -402,8 +404,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 					hrt_abstime vel_t = 0;
 					bool vel_valid = false;
+
 					if (gps.eph < 5.0f && global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
 						vel_valid = true;
+
 						if (global_pos_updated) {
 							vel_t = global_pos.timestamp;
 							vel(0) = global_pos.vel_n;
@@ -421,6 +425,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 								/* calculate acceleration in body frame */
 								acc = R.transposed() * ((vel - vel_prev) / vel_dt);
 							}
+
 							last_vel_t = vel_t;
 							vel_prev = vel;
 						}
@@ -438,8 +443,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 					/* update magnetometer measurements */
 					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp &&
-						/* check that the mag vector is > 0 */
-						fabsf(sqrtf(raw.magnetometer_ga[0] * raw.magnetometer_ga[0] +
+					    /* check that the mag vector is > 0 */
+					    fabsf(sqrtf(raw.magnetometer_ga[0] * raw.magnetometer_ga[0] +
 							raw.magnetometer_ga[1] * raw.magnetometer_ga[1] +
 							raw.magnetometer_ga[2] * raw.magnetometer_ga[2])) > 0.1f) {
 						update_vect[2] = 1;
@@ -468,23 +473,27 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 						math::Vector<3> v(1.0f, 0.0f, 0.4f);
 
-						math::Vector<3> vn = Rmoc.transposed() * v; //Rmoc is Rwr (robot respect to world) while v is respect to world. Hence Rmoc must be transposed having (Rwr)' * Vw
-											    // Rrw * Vw = vn. This way we have consistency
+						math::Vector<3> vn = Rmoc.transposed() *
+								     v; //Rmoc is Rwr (robot respect to world) while v is respect to world. Hence Rmoc must be transposed having (Rwr)' * Vw
+						// Rrw * Vw = vn. This way we have consistency
 						z_k[6] = vn(0);
 						z_k[7] = vn(1);
 						z_k[8] = vn(2);
-					}else if (vision.timestamp_boot > 0 && (hrt_elapsed_time(&vision.timestamp_boot) < 500000)) {
+
+					} else if (vision.timestamp_boot > 0 && (hrt_elapsed_time(&vision.timestamp_boot) < 500000)) {
 
 						math::Quaternion q(vision.q);
 						math::Matrix<3, 3> Rvis = q.to_dcm();
 
 						math::Vector<3> v(1.0f, 0.0f, 0.4f);
 
-						math::Vector<3> vn = Rvis.transposed() * v; //Rvis is Rwr (robot respect to world) while v is respect to world. Hence Rvis must be transposed having (Rwr)' * Vw
-											    // Rrw * Vw = vn. This way we have consistency
+						math::Vector<3> vn = Rvis.transposed() *
+								     v; //Rvis is Rwr (robot respect to world) while v is respect to world. Hence Rvis must be transposed having (Rwr)' * Vw
+						// Rrw * Vw = vn. This way we have consistency
 						z_k[6] = vn(0);
 						z_k[7] = vn(1);
 						z_k[8] = vn(2);
+
 					} else {
 						z_k[6] = raw.magnetometer_ga[0];
 						z_k[7] = raw.magnetometer_ga[1];
@@ -530,23 +539,23 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 					/* Call the estimator */
 					AttitudeEKF(false, // approx_prediction
-							(unsigned char)ekf_params.use_moment_inertia,
-							update_vect,
-							dt,
-							z_k,
-							ekf_params.q[0], // q_rotSpeed,
-							ekf_params.q[1], // q_rotAcc
-							ekf_params.q[2], // q_acc
-							ekf_params.q[3], // q_mag
-							ekf_params.r[0], // r_gyro
-							ekf_params.r[1], // r_accel
-							ekf_params.r[2], // r_mag
-							ekf_params.moment_inertia_J,
-							x_aposteriori,
-							P_aposteriori,
-							Rot_matrix,
-							euler,
-							debugOutput);
+						    (unsigned char)ekf_params.use_moment_inertia,
+						    update_vect,
+						    dt,
+						    z_k,
+						    ekf_params.q[0], // q_rotSpeed,
+						    ekf_params.q[1], // q_rotAcc
+						    ekf_params.q[2], // q_acc
+						    ekf_params.q[3], // q_mag
+						    ekf_params.r[0], // r_gyro
+						    ekf_params.r[1], // r_accel
+						    ekf_params.r[2], // r_mag
+						    ekf_params.moment_inertia_J,
+						    x_aposteriori,
+						    P_aposteriori,
+						    Rot_matrix,
+						    euler,
+						    debugOutput);
 
 					/* swap values for next iteration, check for fatal inputs */
 					if (PX4_ISFINITE(euler[0]) && PX4_ISFINITE(euler[1]) && PX4_ISFINITE(euler[2])) {
@@ -593,11 +602,11 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					q.from_dcm(R);
 					/* copy rotation matrix */
 					memcpy(&att.R[0], &R.data[0][0], sizeof(att.R));
-					memcpy(&att.q[0],&q.data[0],sizeof(att.q));
+					memcpy(&att.q[0], &q.data[0], sizeof(att.q));
 					att.R_valid = true;
 
 					if (PX4_ISFINITE(att.q[0]) && PX4_ISFINITE(att.q[1])
-						&& PX4_ISFINITE(att.q[2]) && PX4_ISFINITE(att.q[3])) {
+					    && PX4_ISFINITE(att.q[2]) && PX4_ISFINITE(att.q[3])) {
 						// Broadcast
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 

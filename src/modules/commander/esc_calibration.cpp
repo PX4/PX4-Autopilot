@@ -65,24 +65,25 @@
 #endif
 static const int ERROR = -1;
 
-int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
+int do_esc_calibration(int mavlink_fd, struct actuator_armed_s *armed)
 {
 	int	return_code = OK;
-	
+
 	int	fd = -1;
-	
+
 	struct	battery_status_s battery;
 	int	batt_sub = -1;
 	bool	batt_updated = false;
 	bool	batt_connected = false;
-	
+
 	hrt_abstime battery_connect_wait_timeout = 20000000;
 	hrt_abstime pwm_high_timeout = 5000000;
 	hrt_abstime timeout_start;
-	
+
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, "esc");
-	
+
 	batt_sub = orb_subscribe(ORB_ID(battery_status));
+
 	if (batt_sub < 0) {
 		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Subscribe to battery");
 		goto Error;
@@ -90,13 +91,14 @@ int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
 
 	// Make sure battery is disconnected
 	orb_copy(ORB_ID(battery_status), batt_sub, &battery);
+
 	if (battery.voltage_filtered_v > 3.0f) {
 		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Disconnect battery and try again");
 		goto Error;
 	}
-	
+
 	armed->in_esc_calibration_mode = true;
-	
+
 	fd = px4_open(PWM_OUTPUT0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
@@ -109,13 +111,13 @@ int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
 		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Unable to disable safety switch");
 		goto Error;
 	}
-	
+
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
 	if (px4_ioctl(fd, PWM_SERVO_ARM, 0) != OK) {
 		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Unable to arm system");
 		goto Error;
 	}
-	
+
 	/* tell IO to switch off safety without using the safety switch */
 	if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0) != OK) {
 		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Unable to force safety off");
@@ -123,28 +125,30 @@ int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
 	}
 
 	mavlink_and_console_log_info(mavlink_fd, "[cal] Connect battery now");
-	
+
 	timeout_start = hrt_absolute_time();
 
 	while (true) {
 		// We are either waiting for the user to connect the battery. Or we are waiting to let the PWM
 		// sit high.
 		hrt_abstime timeout_wait = batt_connected ? pwm_high_timeout : battery_connect_wait_timeout;
-        
+
 		if (hrt_absolute_time() - timeout_start > timeout_wait) {
 			if (!batt_connected) {
 				mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
 				goto Error;
 			}
-			
+
 			// PWM was high long enough
 			break;
 		}
-		
+
 		if (!batt_connected) {
 			orb_check(batt_sub, &batt_updated);
+
 			if (batt_updated) {
 				orb_copy(ORB_ID(battery_status), batt_sub, &battery);
+
 				if (battery.voltage_filtered_v > 3.0f) {
 					// Battery is connected, signal to user and start waiting again
 					batt_connected = true;
@@ -153,33 +157,40 @@ int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
 				}
 			}
 		}
+
 		usleep(50000);
 	}
 
 Out:
+
 	if (batt_sub != -1) {
 		orb_unsubscribe(batt_sub);
 	}
+
 	if (fd != -1) {
 		if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_ON, 0) != OK) {
 			mavlink_and_console_log_info(mavlink_fd, CAL_QGC_WARNING_MSG, "Safety switch still off");
 		}
+
 		if (px4_ioctl(fd, PWM_SERVO_DISARM, 0) != OK) {
 			mavlink_and_console_log_info(mavlink_fd, CAL_QGC_WARNING_MSG, "Servos still armed");
 		}
+
 		if (px4_ioctl(fd, PWM_SERVO_CLEAR_ARM_OK, 0) != OK) {
 			mavlink_and_console_log_info(mavlink_fd, CAL_QGC_WARNING_MSG, "Safety switch still deactivated");
 		}
+
 		px4_close(fd);
 	}
+
 	armed->in_esc_calibration_mode = false;
-	
+
 	if (return_code == OK) {
 		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, "esc");
 	}
-	
+
 	return return_code;
-	
+
 Error:
 	return_code = ERROR;
 	goto Out;

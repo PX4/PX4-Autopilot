@@ -63,7 +63,8 @@
 
 __EXPORT int dataman_main(int argc, char *argv[]);
 __EXPORT ssize_t dm_read(dm_item_t item, unsigned char index, void *buffer, size_t buflen);
-__EXPORT ssize_t dm_write(dm_item_t  item, unsigned char index, dm_persitence_t persistence, const void *buffer, size_t buflen);
+__EXPORT ssize_t dm_write(dm_item_t  item, unsigned char index, dm_persitence_t persistence, const void *buffer,
+			  size_t buflen);
 __EXPORT int dm_clear(dm_item_t item);
 __EXPORT void dm_lock(dm_item_t item);
 __EXPORT void dm_unlock(dm_item_t item);
@@ -188,32 +189,40 @@ create_work_item(void)
 	/* Try to reuse item from free item queue */
 	lock_queue(&g_free_q);
 
-	if ((item = (work_q_item_t *)sq_remfirst(&(g_free_q.q))))
+	if ((item = (work_q_item_t *)sq_remfirst(&(g_free_q.q)))) {
 		g_free_q.size--;
+	}
 
 	unlock_queue(&g_free_q);
 
 	/* If we there weren't any free items then obtain memory for a new ones */
 	if (item == NULL) {
 		item = (work_q_item_t *)malloc(k_work_item_allocation_chunk_size * sizeof(work_q_item_t));
+
 		if (item) {
 			item->first = 1;
 			lock_queue(&g_free_q);
+
 			for (size_t i = 1; i < k_work_item_allocation_chunk_size; i++) {
 				(item + i)->first = 0;
 				sq_addfirst(&(item + i)->link, &(g_free_q.q));
 			}
+
 			/* Update the queue size and potentially the maximum queue size */
 			g_free_q.size += k_work_item_allocation_chunk_size - 1;
-			if (g_free_q.size > g_free_q.max_size)
+
+			if (g_free_q.size > g_free_q.max_size) {
 				g_free_q.max_size = g_free_q.size;
+			}
+
 			unlock_queue(&g_free_q);
 		}
 	}
 
 	/* If we got one then lock the item*/
-	if (item)
-		sem_init(&item->wait_sem, 1, 0); /* Caller will wait on this... initially locked */
+	if (item) {
+		sem_init(&item->wait_sem, 1, 0);        /* Caller will wait on this... initially locked */
+	}
 
 	/* return the item pointer, or NULL if all failed */
 	return item;
@@ -230,8 +239,9 @@ destroy_work_item(work_q_item_t *item)
 	sq_addfirst(&item->link, &(g_free_q.q));
 
 	/* Update the queue size and potentially the maximum queue size */
-	if (++g_free_q.size > g_free_q.max_size)
+	if (++g_free_q.size > g_free_q.max_size) {
 		g_free_q.max_size = g_free_q.size;
+	}
 
 	unlock_queue(&g_free_q);
 }
@@ -244,8 +254,9 @@ dequeue_work_item(void)
 	/* retrieve the 1st item on the work queue */
 	lock_queue(&g_work_q);
 
-	if ((work = (work_q_item_t *)sq_remfirst(&g_work_q.q)))
+	if ((work = (work_q_item_t *)sq_remfirst(&g_work_q.q))) {
 		g_work_q.size--;
+	}
 
 	unlock_queue(&g_work_q);
 	return work;
@@ -259,8 +270,9 @@ enqueue_work_item_and_wait_for_result(work_q_item_t *item)
 	sq_addlast(&item->link, &(g_work_q.q));
 
 	/* Adjust the queue size and potentially the maximum queue size */
-	if (++g_work_q.size > g_work_q.max_size)
+	if (++g_work_q.size > g_work_q.max_size) {
 		g_work_q.max_size = g_work_q.size;
+	}
 
 	unlock_queue(&g_work_q);
 
@@ -283,12 +295,14 @@ calculate_offset(dm_item_t item, unsigned char index)
 {
 
 	/* Make sure the item type is valid */
-	if (item >= DM_KEY_NUM_KEYS)
+	if (item >= DM_KEY_NUM_KEYS) {
 		return -1;
+	}
 
 	/* Make sure the index for this item type is valid */
-	if (index >= g_per_item_max_index[item])
+	if (index >= g_per_item_max_index[item]) {
 		return -1;
+	}
 
 	/* Calculate and return the item index based on type and index */
 	return g_key_offsets[item] + (index * k_sector_size);
@@ -317,33 +331,39 @@ _write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const v
 	offset = calculate_offset(item, index);
 
 	/* If item type or index out of range, return error */
-	if (offset < 0)
+	if (offset < 0) {
 		return -1;
+	}
 
 	/* Make sure caller has not given us more data than we can handle */
-	if (count > DM_MAX_DATA_SIZE)
+	if (count > DM_MAX_DATA_SIZE) {
 		return -1;
+	}
 
 	/* Write out the data, prefixed with length and persistence level */
 	buffer[0] = count;
 	buffer[1] = persistence;
 	buffer[2] = 0;
 	buffer[3] = 0;
+
 	if (count > 0) {
 		memcpy(buffer + DM_SECTOR_HDR_SIZE, buf, count);
 	}
+
 	count += DM_SECTOR_HDR_SIZE;
 
 	len = -1;
 
 	/* Seek to the right spot in the data manager file and write the data item */
 	if (lseek(g_task_fd, offset, SEEK_SET) == offset)
-		if ((len = write(g_task_fd, buffer, count)) == count)
-			fsync(g_task_fd); /* Make sure data is written to physical media */
+		if ((len = write(g_task_fd, buffer, count)) == count) {
+			fsync(g_task_fd);        /* Make sure data is written to physical media */
+		}
 
 	/* Make sure the write succeeded */
-	if (len != count)
+	if (len != count) {
 		return -1;
+	}
 
 	/* All is well... return the number of user data written */
 	return count - DM_SECTOR_HDR_SIZE;
@@ -360,32 +380,38 @@ _read(dm_item_t item, unsigned char index, void *buf, size_t count)
 	offset = calculate_offset(item, index);
 
 	/* If item type or index out of range, return error */
-	if (offset < 0)
+	if (offset < 0) {
 		return -1;
+	}
 
 	/* Make sure the caller hasn't asked for more data than we can handle */
-	if (count > DM_MAX_DATA_SIZE)
+	if (count > DM_MAX_DATA_SIZE) {
 		return -1;
+	}
 
 	/* Read the prefix and data */
 	len = -1;
 
-	if (lseek(g_task_fd, offset, SEEK_SET) == offset)
+	if (lseek(g_task_fd, offset, SEEK_SET) == offset) {
 		len = read(g_task_fd, buffer, count + DM_SECTOR_HDR_SIZE);
+	}
 
 	/* Check for read error */
-	if (len < 0)
+	if (len < 0) {
 		return -1;
+	}
 
 	/* A zero length entry is a empty entry */
-	if (len == 0)
+	if (len == 0) {
 		buffer[0] = 0;
+	}
 
 	/* See if we got data */
 	if (buffer[0] > 0) {
 		/* We got more than requested!!! */
-		if (buffer[0] > count)
+		if (buffer[0] > count) {
 			return -1;
+		}
 
 		/* Looks good, copy it to the caller's buffer */
 		memcpy(buf, buffer + DM_SECTOR_HDR_SIZE, buffer[0]);
@@ -404,8 +430,9 @@ _clear(dm_item_t item)
 	int offset = calculate_offset(item, 0);
 
 	/* Check for item type out of range */
-	if (offset < 0)
+	if (offset < 0) {
 		return -1;
+	}
 
 	/* Clear all items of this type */
 	for (i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
@@ -417,8 +444,9 @@ _clear(dm_item_t item)
 		}
 
 		/* Avoid SD flash wear by only doing writes where necessary */
-		if (read(g_task_fd, buf, 1) < 1)
+		if (read(g_task_fd, buf, 1) < 1) {
 			break;
+		}
 
 		/* If item has length greater than 0 it needs to be overwritten */
 		if (buf[0]) {
@@ -519,12 +547,14 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 	work_q_item_t *work;
 
 	/* Make sure data manager has been started and is not shutting down */
-	if ((g_fd < 0) || g_task_should_exit)
+	if ((g_fd < 0) || g_task_should_exit) {
 		return -1;
+	}
 
 	/* get a work item and queue up a write request */
-	if ((work = create_work_item()) == NULL)
+	if ((work = create_work_item()) == NULL) {
 		return -1;
+	}
 
 	work->func = dm_write_func;
 	work->write_params.item = item;
@@ -544,12 +574,14 @@ dm_read(dm_item_t item, unsigned char index, void *buf, size_t count)
 	work_q_item_t *work;
 
 	/* Make sure data manager has been started and is not shutting down */
-	if ((g_fd < 0) || g_task_should_exit)
+	if ((g_fd < 0) || g_task_should_exit) {
 		return -1;
+	}
 
 	/* get a work item and queue up a read request */
-	if ((work = create_work_item()) == NULL)
+	if ((work = create_work_item()) == NULL) {
 		return -1;
+	}
 
 	work->func = dm_read_func;
 	work->read_params.item = item;
@@ -567,12 +599,14 @@ dm_clear(dm_item_t item)
 	work_q_item_t *work;
 
 	/* Make sure data manager has been started and is not shutting down */
-	if ((g_fd < 0) || g_task_should_exit)
+	if ((g_fd < 0) || g_task_should_exit) {
 		return -1;
+	}
 
 	/* get a work item and queue up a clear request */
-	if ((work = create_work_item()) == NULL)
+	if ((work = create_work_item()) == NULL) {
 		return -1;
+	}
 
 	work->func = dm_clear_func;
 	work->clear_params.item = item;
@@ -585,10 +619,14 @@ __EXPORT void
 dm_lock(dm_item_t item)
 {
 	/* Make sure data manager has been started and is not shutting down */
-	if ((g_fd < 0) || g_task_should_exit)
+	if ((g_fd < 0) || g_task_should_exit) {
 		return;
-	if (item >= DM_KEY_NUM_KEYS)
+	}
+
+	if (item >= DM_KEY_NUM_KEYS) {
 		return;
+	}
+
 	if (g_item_locks[item]) {
 		sem_wait(g_item_locks[item]);
 	}
@@ -598,10 +636,14 @@ __EXPORT void
 dm_unlock(dm_item_t item)
 {
 	/* Make sure data manager has been started and is not shutting down */
-	if ((g_fd < 0) || g_task_should_exit)
+	if ((g_fd < 0) || g_task_should_exit) {
 		return;
-	if (item >= DM_KEY_NUM_KEYS)
+	}
+
+	if (item >= DM_KEY_NUM_KEYS) {
 		return;
+	}
+
 	if (g_item_locks[item]) {
 		sem_post(g_item_locks[item]);
 	}
@@ -614,12 +656,14 @@ dm_restart(dm_reset_reason reason)
 	work_q_item_t *work;
 
 	/* Make sure data manager has been started and is not shutting down */
-	if ((g_fd < 0) || g_task_should_exit)
+	if ((g_fd < 0) || g_task_should_exit) {
 		return -1;
+	}
 
 	/* get a work item and queue up a restart request */
-	if ((work = create_work_item()) == NULL)
+	if ((work = create_work_item()) == NULL) {
 		return -1;
+	}
 
 	work->func = dm_restart_func;
 	work->restart_params.reason = reason;
@@ -636,18 +680,23 @@ task_main(int argc, char *argv[])
 	/* Initialize global variables */
 	g_key_offsets[0] = 0;
 
-	for (unsigned i = 0; i < (DM_KEY_NUM_KEYS - 1); i++)
+	for (unsigned i = 0; i < (DM_KEY_NUM_KEYS - 1); i++) {
 		g_key_offsets[i + 1] = g_key_offsets[i] + (g_per_item_max_index[i] * k_sector_size);
+	}
 
 	unsigned max_offset = g_key_offsets[DM_KEY_NUM_KEYS - 1] + (g_per_item_max_index[DM_KEY_NUM_KEYS - 1] * k_sector_size);
 
-	for (unsigned i = 0; i < dm_number_of_funcs; i++)
+	for (unsigned i = 0; i < dm_number_of_funcs; i++) {
 		g_func_counts[i] = 0;
+	}
 
 	/* Initialize the item type locks, for now only DM_KEY_MISSION_STATE supports locking */
 	sem_init(&g_sys_state_mutex, 1, 1); /* Initially unlocked */
-	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++)
+
+	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++) {
 		g_item_locks[i] = NULL;
+	}
+
 	g_item_locks[DM_KEY_MISSION_STATE] = &g_sys_state_mutex;
 
 	g_task_should_exit = false;
@@ -659,14 +708,17 @@ task_main(int argc, char *argv[])
 
 	/* See if the data manage file exists and is a multiple of the sector size */
 	g_task_fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
+
 	if (g_task_fd >= 0) {
 		/* File exists, check its size */
 		int file_size = lseek(g_task_fd, 0, SEEK_END);
+
 		if ((file_size % k_sector_size) != 0) {
 			warnx("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
 			warnx("Size: %u, sector size: %d", file_size, k_sector_size);
 			close(g_task_fd);
 			unlink(k_data_manager_device_path);
+
 		} else {
 			close(g_task_fd);
 		}
@@ -693,16 +745,20 @@ task_main(int argc, char *argv[])
 	printf("dataman: ");
 	/* see if we need to erase any items based on restart type */
 	int sys_restart_val;
+
 	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
 		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
 			printf("Power on restart");
 			_restart(DM_INIT_REASON_POWER_ON);
+
 		} else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
 			printf("In flight restart");
 			_restart(DM_INIT_REASON_IN_FLIGHT);
+
 		} else {
 			printf("Unknown restart");
 		}
+
 	} else {
 		printf("Unknown restart");
 	}
@@ -739,7 +795,8 @@ task_main(int argc, char *argv[])
 			case dm_write_func:
 				g_func_counts[dm_write_func]++;
 				work->result =
-					_write(work->write_params.item, work->write_params.index, work->write_params.persistence, work->write_params.buf, work->write_params.count);
+					_write(work->write_params.item, work->write_params.index, work->write_params.persistence, work->write_params.buf,
+					       work->write_params.count);
 				break;
 
 			case dm_read_func:
@@ -768,8 +825,9 @@ task_main(int argc, char *argv[])
 		}
 
 		/* time to go???? */
-		if ((g_task_should_exit) && (g_fd < 0))
+		if ((g_task_should_exit) && (g_fd < 0)) {
 			break;
+		}
 	}
 
 	close(g_task_fd);
@@ -777,10 +835,13 @@ task_main(int argc, char *argv[])
 
 	/* The work queue is now empty, empty the free queue */
 	for (;;) {
-		if ((work = (work_q_item_t *)sq_remfirst(&(g_free_q.q))) == NULL)
+		if ((work = (work_q_item_t *)sq_remfirst(&(g_free_q.q))) == NULL) {
 			break;
-		if (work->first)
+		}
+
+		if (work->first) {
 			free(work);
+		}
 	}
 
 	destroy_q(&g_work_q);
@@ -850,11 +911,12 @@ dataman_main(int argc, char *argv[])
 			warnx("dataman already running");
 			return -1;
 		}
-		if (argc == 4 && strcmp(argv[2],"-f") == 0) {
+
+		if (argc == 4 && strcmp(argv[2], "-f") == 0) {
 			k_data_manager_device_path = strdup(argv[3]);
 			warnx("dataman file set to: %s\n", k_data_manager_device_path);
-		}
-		else {
+
+		} else {
 			k_data_manager_device_path = strdup(default_device_path);
 		}
 
@@ -881,14 +943,17 @@ dataman_main(int argc, char *argv[])
 		stop();
 		free(k_data_manager_device_path);
 		k_data_manager_device_path = NULL;
-	}
-	else if (!strcmp(argv[1], "status"))
+
+	} else if (!strcmp(argv[1], "status")) {
 		status();
-	else if (!strcmp(argv[1], "poweronrestart"))
+
+	} else if (!strcmp(argv[1], "poweronrestart")) {
 		dm_restart(DM_INIT_REASON_POWER_ON);
-	else if (!strcmp(argv[1], "inflightrestart"))
+
+	} else if (!strcmp(argv[1], "inflightrestart")) {
 		dm_restart(DM_INIT_REASON_IN_FLIGHT);
-	else {
+
+	} else {
 		usage();
 		return -1;
 	}

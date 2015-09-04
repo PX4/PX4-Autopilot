@@ -133,9 +133,9 @@ private:
 	void		task_main();
 
 	static int	control_callback(uintptr_t handle,
-			uint8_t control_group,
-			uint8_t control_index,
-			float &input);
+					 uint8_t control_group,
+					 uint8_t control_index,
+					 float &input);
 
 	int		pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
@@ -194,6 +194,7 @@ PWMSim::~PWMSim()
 		_task_should_exit = true;
 
 		unsigned i = 10;
+
 		do {
 			/* wait 50ms - it should wake every 100ms or so worst-case */
 			usleep(50000);
@@ -226,17 +227,18 @@ PWMSim::init()
 
 	if (ret != OK) {
 		return ret;
+
 	} else {
 		_primary_pwm_device = true;
 	}
 
 	/* start the PWMSim interface task */
 	_task = px4_task_spawn_cmd("pwm_out_sim",
-			   SCHED_DEFAULT,
-			   SCHED_PRIORITY_DEFAULT,
-			   1000,
-			   (px4_main_t)&PWMSim::task_main_trampoline,
-			   nullptr);
+				   SCHED_DEFAULT,
+				   SCHED_PRIORITY_DEFAULT,
+				   1000,
+				   (px4_main_t)&PWMSim::task_main_trampoline,
+				   nullptr);
 
 	if (_task < 0) {
 		DEVICE_DEBUG("task start failed: %d", errno);
@@ -277,7 +279,7 @@ PWMSim::set_mode(Mode mode)
 		_num_outputs = 4;
 		break;
 
-    	case MODE_8PWM:
+	case MODE_8PWM:
 		DEVICE_DEBUG("MODE_8PWM");
 		/* multi-port as 8 PWM outs */
 		_update_rate = 50;	/* default output rate */
@@ -308,6 +310,7 @@ PWMSim::set_mode(Mode mode)
 	default:
 		return -EINVAL;
 	}
+
 	_mode = mode;
 	return OK;
 }
@@ -315,8 +318,9 @@ PWMSim::set_mode(Mode mode)
 int
 PWMSim::set_pwm_rate(unsigned rate)
 {
-	if ((rate > 500) || (rate < 10))
+	if ((rate > 500) || (rate < 10)) {
 		return -EINVAL;
+	}
 
 	_update_rate = rate;
 	return OK;
@@ -383,8 +387,11 @@ PWMSim::task_main()
 		/* handle update rate changes */
 		if (_current_update_rate != _update_rate) {
 			int update_rate_in_ms = int(1000 / _update_rate);
-			if (update_rate_in_ms < 2)
+
+			if (update_rate_in_ms < 2) {
 				update_rate_in_ms = 2;
+			}
+
 			orb_set_interval(_t_actuators, update_rate_in_ms);
 			// up_pwm_servo_set_rate(_update_rate);
 			_current_update_rate = _update_rate;
@@ -403,7 +410,7 @@ PWMSim::task_main()
 		if (fds[0].revents & POLLIN) {
 			/* get controls - must always do this to avoid spinning */
 			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-				     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
+				 ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 			/* can we mix? */
 			if (_armed && _mixers != nullptr) {
@@ -415,11 +422,12 @@ PWMSim::task_main()
 				for (unsigned i = 0; i < num_outputs; i++) {
 					/* last resort: catch NaN, INF and out-of-band errors */
 					if (i < outputs.noutputs &&
-						PX4_ISFINITE(outputs.output[i]) &&
-						outputs.output[i] >= -1.0f &&
-						outputs.output[i] <= 1.0f) {
+					    PX4_ISFINITE(outputs.output[i]) &&
+					    outputs.output[i] >= -1.0f &&
+					    outputs.output[i] <= 1.0f) {
 						/* scale for PWM output 900 - 2100us */
 						outputs.output[i] = 1500 + (600 * outputs.output[i]);
+
 					} else {
 						/*
 						 * Value is NaN, INF or out of band - set to the minimum value.
@@ -460,18 +468,20 @@ PWMSim::task_main()
 
 int
 PWMSim::control_callback(uintptr_t handle,
-			uint8_t control_group,
-			uint8_t control_index,
-			float &input)
+			 uint8_t control_group,
+			 uint8_t control_index,
+			 float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
 	if (_armed) {
 		input = controls->control[control_index];
+
 	} else {
 		/* clamp actuator to zero if not armed */
 		input = 0.0f;
 	}
+
 	return 0;
 }
 
@@ -481,7 +491,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	int ret;
 
 	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
-	switch(_mode) {
+	switch (_mode) {
 	case MODE_2PWM:
 	case MODE_4PWM:
 	case MODE_8PWM:
@@ -489,6 +499,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case MODE_16PWM:
 		ret = PWMSim::pwm_ioctl(filp, cmd, arg);
 		break;
+
 	default:
 		ret = -ENOTTY;
 		DEVICE_DEBUG("not in a PWM mode");
@@ -596,7 +607,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-		/* FALLTHROUGH */
+	/* FALLTHROUGH */
 	case PWM_SERVO_SET(0):
 	case PWM_SERVO_SET(1):
 		if (arg < 2100) {
@@ -625,7 +636,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-		/* FALLTHROUGH */
+	/* FALLTHROUGH */
 	case PWM_SERVO_GET(1):
 	case PWM_SERVO_GET(0): {
 			*(servo_position_t *)arg = 1500;
@@ -633,12 +644,12 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 	case PWM_SERVO_GET_RATEGROUP(0) ... PWM_SERVO_GET_RATEGROUP(PWM_OUTPUT_MAX_CHANNELS - 1): {
-		// no restrictions on output grouping
-		unsigned channel = cmd - PWM_SERVO_GET_RATEGROUP(0);
+			// no restrictions on output grouping
+			unsigned channel = cmd - PWM_SERVO_GET_RATEGROUP(0);
 
-		*(uint32_t *)arg = (1 << channel);
-		break;
-	}
+			*(uint32_t *)arg = (1 << channel);
+			break;
+		}
 
 	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
@@ -648,6 +659,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		} else if (_mode == MODE_4PWM) {
 
 			*(unsigned *)arg = 4;
+
 		} else {
 
 			*(unsigned *)arg = 2;
@@ -688,8 +700,9 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			const char *buf = (const char *)arg;
 			unsigned buflen = strnlen(buf, 1024);
 
-			if (_mixers == nullptr)
+			if (_mixers == nullptr) {
 				_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+			}
 
 			if (_mixers == nullptr) {
 				ret = -ENOMEM;
@@ -705,6 +718,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					ret = -EINVAL;
 				}
 			}
+
 			break;
 		}
 
@@ -752,7 +766,7 @@ hil_new_mode(PortMode new_mode)
 	switch (new_mode) {
 	case PORT_MODE_UNDEFINED:
 	case PORT1_MODE_UNSET:
-    	case PORT2_MODE_UNSET:
+	case PORT2_MODE_UNSET:
 		/* nothing more to do here */
 		break;
 
@@ -852,7 +866,8 @@ fake(int argc, char *argv[])
 extern "C" __EXPORT int pwm_out_sim_main(int argc, char *argv[]);
 
 static void
-usage() {
+usage()
+{
 	PX4_WARN("pwm_out_sim: unrecognized command, try:");
 	PX4_WARN("  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16");
 }
@@ -868,10 +883,12 @@ pwm_out_sim_main(int argc, char *argv[])
 		usage();
 		return -EINVAL;
 	}
+
 	verb = argv[1];
 
 	if (g_pwm_sim == nullptr) {
 		g_pwm_sim = new PWMSim;
+
 		if (g_pwm_sim == nullptr) {
 			return -ENOMEM;
 		}
@@ -881,7 +898,7 @@ pwm_out_sim_main(int argc, char *argv[])
 	 * Mode switches.
 	 */
 
- 	// this was all cut-and-pasted from the FMU driver; it's junk
+	// this was all cut-and-pasted from the FMU driver; it's junk
 	if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT1_FULL_PWM;
 
@@ -905,13 +922,14 @@ pwm_out_sim_main(int argc, char *argv[])
 	if (new_mode != PORT_MODE_UNDEFINED) {
 
 		/* yes but it's the same mode */
-		if (new_mode == g_port_mode)
+		if (new_mode == g_port_mode) {
 			return OK;
+		}
 
 		/* switch modes */
 		ret = hil_new_mode(new_mode);
-	}
-	else if (!strcmp(verb, "test")) {
+
+	} else if (!strcmp(verb, "test")) {
 		ret = test();
 	}
 
@@ -924,13 +942,15 @@ pwm_out_sim_main(int argc, char *argv[])
 		ret = -EINVAL;
 	}
 
-	if ( ret == OK && g_pwm_sim->_task == -1 ) {
+	if (ret == OK && g_pwm_sim->_task == -1) {
 		ret = g_pwm_sim->init();
+
 		if (ret != OK) {
 			warnx("failed to start the pwm_out_sim driver");
 			delete g_pwm_sim;
 			g_pwm_sim = nullptr;
 		}
 	}
+
 	return ret;
 }

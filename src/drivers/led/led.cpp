@@ -126,6 +126,7 @@ LED::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		result = VDev::ioctl(filp, cmd, arg);
 #endif
 	}
+
 	return result;
 }
 
@@ -139,7 +140,9 @@ drv_led_start(void)
 {
 	if (gLED == nullptr) {
 		gLED = new LED;
-		if (gLED != nullptr)
+
+		if (gLED != nullptr) {
 			gLED->init();
+		}
 	}
 }

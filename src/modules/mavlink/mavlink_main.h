@@ -187,7 +187,8 @@ public:
 	 */
 	void			mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
 
-	void			get_mavlink_mode_and_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet, uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
+	void			get_mavlink_mode_and_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet,
+			uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
 
 	/**
 	 * Enable / disable Hardware in the Loop simulation mode.
@@ -230,7 +231,7 @@ public:
 
 	void			handle_message(const mavlink_message_t *msg);
 
-	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic, int instance=0);
+	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic, int instance = 0);
 
 	int			get_instance_id();
 
@@ -284,7 +285,7 @@ public:
 	void			send_statustext(unsigned char severity, const char *string);
 	void 			send_autopilot_capabilites();
 
-	MavlinkStream *		get_streams() const { return _streams; }
+	MavlinkStream 		*get_streams() const { return _streams; }
 
 	float			get_rate_mult();
 
@@ -323,7 +324,7 @@ public:
 	/**
 	 * Get the receive status of this MAVLink link
 	 */
-	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
+	struct telemetry_status_s	&get_rx_status() { return _rstatus; }
 
 	struct mavlink_logbuffer	*get_logbuffer() { return &_logbuffer; }
 
@@ -333,9 +334,9 @@ public:
 
 	unsigned short		get_network_port() { return _network_port; }
 
-	int 			get_socket_fd () { return _socket_fd; };
+	int 			get_socket_fd() { return _socket_fd; };
 #ifdef __PX4_POSIX
-	struct sockaddr_in * get_client_source_address() {return &_src_addr;};
+	struct sockaddr_in *get_client_source_address() {return &_src_addr;};
 #endif
 	static bool		boot_complete() { return _boot_complete; }
 
@@ -505,6 +506,6 @@ private:
 	int		task_main(int argc, char *argv[]);
 
 	/* do not allow copying this class */
-	Mavlink(const Mavlink&);
-	Mavlink operator=(const Mavlink&);
+	Mavlink(const Mavlink &);
+	Mavlink operator=(const Mavlink &);
 };

@@ -83,7 +83,7 @@ public:
 	 * trivial ctor
 	 * Initializes the elements to zero.
 	 */
-	MatrixBase() : 
+	MatrixBase() :
 		data{},
 		arm_mat{M, N, &data[0][0]}
 	{
@@ -106,7 +106,7 @@ public:
 		memcpy(data, d, sizeof(data));
 	}
 
-	MatrixBase(const float d[M][N]) : 
+	MatrixBase(const float d[M][N]) :
 		arm_mat{M, N, &data[0][0]}
 	{
 		memcpy(data, d, sizeof(data));
@@ -115,21 +115,24 @@ public:
 	/**
 	 * set data
 	 */
-	void set(const float *d) {
+	void set(const float *d)
+	{
 		memcpy(data, d, sizeof(data));
 	}
 
 	/**
 	 * set data
 	 */
-	void set(const float d[M][N]) {
+	void set(const float d[M][N])
+	{
 		memcpy(data, d, sizeof(data));
 	}
 
 	/**
 	 * set row from vector
 	 */
-	void set_row(unsigned int row, const Vector<N> v) {
+	void set_row(unsigned int row, const Vector<N> v)
+	{
 		for (unsigned i = 0; i < N; i++) {
 			data[row][i] = v.data[i];
 		}
@@ -138,7 +141,8 @@ public:
 	/**
 	 * set column from vector
 	 */
-	void set_col(unsigned int col, const Vector<M> v) {
+	void set_col(unsigned int col, const Vector<M> v)
+	{
 		for (unsigned i = 0; i < M; i++) {
 			data[i][col] = v.data[i];
 		}
@@ -147,39 +151,45 @@ public:
 	/**
 	 * access by index
 	 */
-	float &operator()(const unsigned int row, const unsigned int col) {
+	float &operator()(const unsigned int row, const unsigned int col)
+	{
 		return data[row][col];
 	}
 
 	/**
 	 * access by index
 	 */
-	float operator()(const unsigned int row, const unsigned int col) const {
+	float operator()(const unsigned int row, const unsigned int col) const
+	{
 		return data[row][col];
 	}
 
 	/**
 	 * get rows number
 	 */
-	unsigned int get_rows() const {
+	unsigned int get_rows() const
+	{
 		return M;
 	}
 
 	/**
 	 * get columns number
 	 */
-	unsigned int get_cols() const {
+	unsigned int get_cols() const
+	{
 		return N;
 	}
 
 	/**
 	 * test for equality
 	 */
-	bool operator ==(const Matrix<M, N> &m) const {
+	bool operator ==(const Matrix<M, N> &m) const
+	{
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
-				if (data[i][j] != m.data[i][j])
+				if (data[i][j] != m.data[i][j]) {
 					return false;
+				}
 
 		return true;
 	}
@@ -187,11 +197,13 @@ public:
 	/**
 	 * test for inequality
 	 */
-	bool operator !=(const Matrix<M, N> &m) const {
+	bool operator !=(const Matrix<M, N> &m) const
+	{
 		for (unsigned int i = 0; i < M; i++)
 			for (unsigned int j = 0; j < N; j++)
-				if (data[i][j] != m.data[i][j])
+				if (data[i][j] != m.data[i][j]) {
 					return true;
+				}
 
 		return false;
 	}
@@ -199,7 +211,8 @@ public:
 	/**
 	 * set to value
 	 */
-	const Matrix<M, N> &operator =(const Matrix<M, N> &m) {
+	const Matrix<M, N> &operator =(const Matrix<M, N> &m)
+	{
 		memcpy(data, m.data, sizeof(data));
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -207,12 +220,14 @@ public:
 	/**
 	 * negation
 	 */
-	Matrix<M, N> operator -(void) const {
+	Matrix<M, N> operator -(void) const
+	{
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				res.data[i][j] = -data[i][j];
+			}
 
 		return res;
 	}
@@ -220,20 +235,24 @@ public:
 	/**
 	 * addition
 	 */
-	Matrix<M, N> operator +(const Matrix<M, N> &m) const {
+	Matrix<M, N> operator +(const Matrix<M, N> &m) const
+	{
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				res.data[i][j] = data[i][j] + m.data[i][j];
+			}
 
 		return res;
 	}
 
-	Matrix<M, N> &operator +=(const Matrix<M, N> &m) {
+	Matrix<M, N> &operator +=(const Matrix<M, N> &m)
+	{
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				data[i][j] += m.data[i][j];
+			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -241,20 +260,24 @@ public:
 	/**
 	 * subtraction
 	 */
-	Matrix<M, N> operator -(const Matrix<M, N> &m) const {
+	Matrix<M, N> operator -(const Matrix<M, N> &m) const
+	{
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				res.data[i][j] = data[i][j] - m.data[i][j];
+			}
 
 		return res;
 	}
 
-	Matrix<M, N> &operator -=(const Matrix<M, N> &m) {
+	Matrix<M, N> &operator -=(const Matrix<M, N> &m)
+	{
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				data[i][j] -= m.data[i][j];
+			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -262,38 +285,46 @@ public:
 	/**
 	 * uniform scaling
 	 */
-	Matrix<M, N> operator *(const float num) const {
+	Matrix<M, N> operator *(const float num) const
+	{
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				res.data[i][j] = data[i][j] * num;
+			}
 
 		return res;
 	}
 
-	Matrix<M, N> &operator *=(const float num) {
+	Matrix<M, N> &operator *=(const float num)
+	{
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				data[i][j] *= num;
+			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
 
-	Matrix<M, N> operator /(const float num) const {
+	Matrix<M, N> operator /(const float num) const
+	{
 		Matrix<M, N> res;
 
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				res.data[i][j] = data[i][j] / num;
+			}
 
 		return res;
 	}
 
-	Matrix<M, N> &operator /=(const float num) {
+	Matrix<M, N> &operator /=(const float num)
+	{
 		for (unsigned int i = 0; i < M; i++)
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				data[i][j] /= num;
+			}
 
 		return *static_cast<Matrix<M, N>*>(this);
 	}
@@ -302,7 +333,8 @@ public:
 	 * multiplication by another matrix
 	 */
 	template <unsigned int P>
-	Matrix<M, P> operator *(const Matrix<N, P> &m) const {
+	Matrix<M, P> operator *(const Matrix<N, P> &m) const
+	{
 #ifdef CONFIG_ARCH_ARM
 		Matrix<M, P> res;
 		arm_mat_mult_f32(&arm_mat, &m.arm_mat, &res.arm_mat);
@@ -321,7 +353,8 @@ public:
 	/**
 	 * transpose the matrix
 	 */
-	Matrix<N, M> transposed(void) const {
+	Matrix<N, M> transposed(void) const
+	{
 #ifdef CONFIG_ARCH_ARM
 		Matrix<N, M> res;
 		arm_mat_trans_f32(&this->arm_mat, &res.arm_mat);
@@ -338,7 +371,8 @@ public:
 	/**
 	 * invert the matrix
 	 */
-	Matrix<M, N> inversed(void) const {
+	Matrix<M, N> inversed(void) const
+	{
 #ifdef CONFIG_ARCH_ARM
 		Matrix<M, N> res;
 		arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
@@ -355,27 +389,32 @@ public:
 	/**
 	 * set zero matrix
 	 */
-	void zero(void) {
+	void zero(void)
+	{
 		memset(data, 0, sizeof(data));
 	}
 
 	/**
 	 * set identity matrix
 	 */
-	void identity(void) {
+	void identity(void)
+	{
 		memset(data, 0, sizeof(data));
 		unsigned int n = (M < N) ? M : N;
 
-		for (unsigned int i = 0; i < n; i++)
+		for (unsigned int i = 0; i < n; i++) {
 			data[i][i] = 1;
+		}
 	}
 
-	void print(void) {
+	void print(void)
+	{
 		for (unsigned int i = 0; i < M; i++) {
 			printf("[ ");
 
-			for (unsigned int j = 0; j < N; j++)
+			for (unsigned int j = 0; j < N; j++) {
 				printf("%.3f\t", (double)data[i][j]);
+			}
 
 			printf(" ]\n");
 		}
@@ -399,7 +438,8 @@ public:
 	/**
 	 * set to value
 	 */
-	const Matrix<M, N> &operator =(const Matrix<M, N> &m) {
+	const Matrix<M, N> &operator =(const Matrix<M, N> &m)
+	{
 		memcpy(this->data, m.data, sizeof(this->data));
 		return *this;
 	}
@@ -407,7 +447,8 @@ public:
 	/**
 	 * multiplication by a vector
 	 */
-	Vector<M> operator *(const Vector<N> &v) const {
+	Vector<M> operator *(const Vector<N> &v) const
+	{
 #ifdef CONFIG_ARCH_ARM
 		Vector<M> res;
 		arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
@@ -439,7 +480,8 @@ public:
 	/**
 	 * set data
 	 */
-	void set(const float d[9]) {
+	void set(const float d[9])
+	{
 		memcpy(data, d, sizeof(data));
 	}
 
@@ -447,15 +489,17 @@ public:
 	/**
 	 * set data from boost::array
 	 */
-	void set(const boost::array<float, 9ul> d) {
-	set(static_cast<const float*>(d.data()));
+	void set(const boost::array<float, 9ul> d)
+	{
+		set(static_cast<const float *>(d.data()));
 	}
 #endif
 
 	/**
 	 * set to value
 	 */
-	const Matrix<3, 3> &operator =(const Matrix<3, 3> &m) {
+	const Matrix<3, 3> &operator =(const Matrix<3, 3> &m)
+	{
 		memcpy(this->data, m.data, sizeof(this->data));
 		return *this;
 	}
@@ -463,7 +507,8 @@ public:
 	/**
 	 * multiplication by a vector
 	 */
-	Vector<3> operator *(const Vector<3> &v) const {
+	Vector<3> operator *(const Vector<3> &v) const
+	{
 		Vector<3> res(data[0][0] * v.data[0] + data[0][1] * v.data[1] + data[0][2] * v.data[2],
 			      data[1][0] * v.data[0] + data[1][1] * v.data[1] + data[1][2] * v.data[2],
 			      data[2][0] * v.data[0] + data[2][1] * v.data[1] + data[2][2] * v.data[2]);
@@ -474,7 +519,8 @@ public:
 	 * create a rotation matrix from given euler angles
 	 * based on http://gentlenav.googlecode.com/files/EulerAngles.pdf
 	 */
-	void from_euler(float roll, float pitch, float yaw) {
+	void from_euler(float roll, float pitch, float yaw)
+	{
 		float cp = cosf(pitch);
 		float sp = sinf(pitch);
 		float sr = sinf(roll);
@@ -496,7 +542,8 @@ public:
 	/**
 	 * get euler angles from rotation matrix
 	 */
-	Vector<3> to_euler(void) const {
+	Vector<3> to_euler(void) const
+	{
 		Vector<3> euler;
 		euler.data[1] = asinf(-data[2][0]);
 

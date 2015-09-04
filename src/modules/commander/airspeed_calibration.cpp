@@ -106,7 +106,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 		px4_close(fd);
 	}
-    
+
 	int cancel_sub = calibrate_cancel_subscribe();
 
 	if (!paramreset_successful) {
@@ -114,6 +114,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		/* only warn if analog scaling is zero */
 		float analog_scaling = 0.0f;
 		param_get(param_find("SENS_DPRES_ANSC"), &(analog_scaling));
+
 		if (fabsf(analog_scaling) < 0.1f) {
 			mavlink_log_critical(mavlink_fd, "[cal] No airspeed sensor, see http://px4.io/help/aspd");
 			goto error_return;
@@ -134,7 +135,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		if (calibrate_cancel_check(mavlink_fd, cancel_sub)) {
 			goto error_return;
 		}
-        
+
 		/* wait blocking for new data */
 		px4_pollfd_struct_t fds[1];
 		fds[0].fd = diff_pres_sub;
@@ -165,6 +166,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 		int  fd_scale = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 		airscale.offset_pa = diff_pres_offset;
+
 		if (fd_scale > 0) {
 			if (OK != px4_ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 				mavlink_log_critical(mavlink_fd, "[cal] airspeed offset update failed");
@@ -223,20 +225,22 @@ int do_airspeed_calibration(int mavlink_fd)
 			if (fabsf(diff_pres.differential_pressure_raw_pa) < 50.0f) {
 				if (calibration_counter % 500 == 0) {
 					mavlink_log_info(mavlink_fd, "[cal] Create air pressure! (got %d, wanted: 50 Pa)",
-						(int)diff_pres.differential_pressure_raw_pa);
+							 (int)diff_pres.differential_pressure_raw_pa);
 				}
+
 				continue;
 			}
 
 			/* do not allow negative values */
 			if (diff_pres.differential_pressure_raw_pa < 0.0f) {
 				mavlink_log_info(mavlink_fd, "[cal] Negative pressure difference detected (%d Pa)",
-						(int)diff_pres.differential_pressure_raw_pa);
+						 (int)diff_pres.differential_pressure_raw_pa);
 				mavlink_log_info(mavlink_fd, "[cal] Swap static and dynamic ports!");
 
 				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
 
 				diff_pres_offset = 0.0f;
+
 				if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 					mavlink_log_critical(mavlink_fd, CAL_ERROR_SET_PARAMS_MSG);
 					goto error_return;
@@ -248,9 +252,10 @@ int do_airspeed_calibration(int mavlink_fd)
 
 				feedback_calibration_failed(mavlink_fd);
 				goto error_return;
+
 			} else {
 				mavlink_log_info(mavlink_fd, "[cal] Positive pressure: OK (%d Pa)",
-					(int)diff_pres.differential_pressure_raw_pa);
+						 (int)diff_pres.differential_pressure_raw_pa);
 				break;
 			}
 
@@ -274,12 +279,12 @@ int do_airspeed_calibration(int mavlink_fd)
 normal_return:
 	calibrate_cancel_unsubscribe(cancel_sub);
 	px4_close(diff_pres_sub);
-	
+
 	// This give a chance for the log messages to go out of the queue before someone else stomps on then
 	sleep(1);
-	
+
 	return result;
-    
+
 error_return:
 	result = ERROR;
 	goto normal_return;

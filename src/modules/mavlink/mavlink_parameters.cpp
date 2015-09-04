@@ -76,6 +76,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 				_send_all_index = 0;
 			}
+
 			break;
 		}
 
@@ -108,6 +109,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					}
 				}
 			}
+
 			break;
 		}
 
@@ -137,6 +139,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
 						sprintf(buf, "[pm] unknown param ID: %u", req_read.param_index);
 						_mavlink->send_statustext_info(buf);
+
 					} else if (ret == 2) {
 						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
 						sprintf(buf, "[pm] failed loading param from storage ID: %u", req_read.param_index);
@@ -144,6 +147,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					}
 				}
 			}
+
 			break;
 		}
 
@@ -159,18 +163,22 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				/* Copy values from msg to uorb using the parameter_rc_channel_index as index */
 				size_t i = map_rc.parameter_rc_channel_index;
 				_rc_param_map.param_index[i] = map_rc.param_index;
-				strncpy(&(_rc_param_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]), map_rc.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+				strncpy(&(_rc_param_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]), map_rc.param_id,
+					MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 				/* enforce null termination */
 				_rc_param_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1) + rc_parameter_map_s::PARAM_ID_LEN] = '\0';
 				_rc_param_map.scale[i] = map_rc.scale;
 				_rc_param_map.value0[i] = map_rc.param_value0;
 				_rc_param_map.value_min[i] = map_rc.param_value_min;
 				_rc_param_map.value_max[i] = map_rc.param_value_max;
+
 				if (map_rc.param_index == -2) { // -2 means unset map
 					_rc_param_map.valid[i] = false;
+
 				} else {
 					_rc_param_map.valid[i] = true;
 				}
+
 				_rc_param_map.timestamp = hrt_absolute_time();
 
 				if (_rc_param_map_pub == nullptr) {
@@ -181,6 +189,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				}
 
 			}
+
 			break;
 		}
 
@@ -202,6 +211,7 @@ MavlinkParametersManager::send(const hrt_abstime t)
 
 		/* look for the first parameter which is used */
 		param_t p;
+
 		do {
 			/* walk through all parameters, including unused ones */
 			p = param_for_index(_send_all_index);
@@ -215,6 +225,7 @@ MavlinkParametersManager::send(const hrt_abstime t)
 		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {
 			_send_all_index = -1;
 		}
+
 	} else if (_send_all_index == 0 && hrt_absolute_time() > 20 * 1000 * 1000) {
 		/* the boot did not seem to ever complete, warn user and set boot complete */
 		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");

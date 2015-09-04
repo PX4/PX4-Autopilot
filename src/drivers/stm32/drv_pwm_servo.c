@@ -174,19 +174,22 @@ pwm_channel_init(unsigned channel)
 int
 up_pwm_servo_set(unsigned channel, servo_position_t value)
 {
-	if (channel >= PWM_SERVO_MAX_CHANNELS)
+	if (channel >= PWM_SERVO_MAX_CHANNELS) {
 		return -1;
+	}
 
 	unsigned timer = pwm_channels[channel].timer_index;
 
 	/* test timer for validity */
 	if ((pwm_timers[timer].base == 0) ||
-	    (pwm_channels[channel].gpio == 0))
+	    (pwm_channels[channel].gpio == 0)) {
 		return -1;
+	}
 
 	/* configure the channel */
-	if (value > 0)
+	if (value > 0) {
 		value--;
+	}
 
 	switch (pwm_channels[channel].timer_channel) {
 	case 1:
@@ -215,16 +218,18 @@ up_pwm_servo_set(unsigned channel, servo_position_t value)
 servo_position_t
 up_pwm_servo_get(unsigned channel)
 {
-	if (channel >= PWM_SERVO_MAX_CHANNELS)
+	if (channel >= PWM_SERVO_MAX_CHANNELS) {
 		return 0;
+	}
 
 	unsigned timer = pwm_channels[channel].timer_index;
 	servo_position_t value = 0;
 
 	/* test timer for validity */
 	if ((pwm_timers[timer].base == 0) ||
-	    (pwm_channels[channel].timer_channel == 0))
+	    (pwm_channels[channel].timer_channel == 0)) {
 		return 0;
+	}
 
 	/* configure the channel */
 	switch (pwm_channels[channel].timer_channel) {
@@ -253,15 +258,17 @@ up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* do basic timer initialisation first */
 	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++) {
-		if (pwm_timers[i].base != 0)
+		if (pwm_timers[i].base != 0) {
 			pwm_timer_init(i);
+		}
 	}
 
 	/* now init channels */
 	for (unsigned i = 0; i < PWM_SERVO_MAX_CHANNELS; i++) {
 		/* don't do init for disabled channels; this leaves the pin configs alone */
-		if (((1 << i) & channel_mask) && (pwm_channels[i].timer_channel != 0))
+		if (((1 << i) & channel_mask) && (pwm_channels[i].timer_channel != 0)) {
 			pwm_channel_init(i);
+		}
 	}
 
 	return OK;
@@ -278,13 +285,17 @@ int
 up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
 	/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
-	if (rate < 1)
+	if (rate < 1) {
 		return -ERANGE;
-	if (rate > 10000)
-		return -ERANGE;
+	}
 
-	if ((group >= PWM_SERVO_MAX_TIMERS) || (pwm_timers[group].base == 0))
+	if (rate > 10000) {
+		return -ERANGE;
+	}
+
+	if ((group >= PWM_SERVO_MAX_TIMERS) || (pwm_timers[group].base == 0)) {
 		return ERROR;
+	}
 
 	pwm_timer_set_rate(group, rate);
 
@@ -294,8 +305,9 @@ up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 int
 up_pwm_servo_set_rate(unsigned rate)
 {
-	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++)
+	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++) {
 		up_pwm_servo_set_rate_group_update(i, rate);
+	}
 
 	return 0;
 }
@@ -306,9 +318,11 @@ up_pwm_servo_get_rate_group(unsigned group)
 	unsigned channels = 0;
 
 	for (unsigned i = 0; i < PWM_SERVO_MAX_CHANNELS; i++) {
-		if ((pwm_channels[i].gpio != 0) && (pwm_channels[i].timer_index == group))
+		if ((pwm_channels[i].gpio != 0) && (pwm_channels[i].timer_index == group)) {
 			channels |= (1 << i);
+		}
 	}
+
 	return channels;
 }
 

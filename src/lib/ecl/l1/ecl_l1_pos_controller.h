@@ -70,7 +70,8 @@
 class __EXPORT ECL_L1_Pos_Controller
 {
 public:
-	ECL_L1_Pos_Controller() {
+	ECL_L1_Pos_Controller()
+	{
 		_L1_period = 25;
 		_L1_damping = 0.75f;
 	}
@@ -133,14 +134,15 @@ public:
 	/**
 	 * Returns true if following a circle (loiter)
 	 */
-	bool circle_mode() {
+	bool circle_mode()
+	{
 		return _circle_mode;
 	}
 
 
 	/**
 	 * Get the switch distance
-	 * 
+	 *
 	 * This is the distance at which the system will
 	 * switch to the next waypoint. This depends on the
 	 * period and damping
@@ -160,8 +162,9 @@ public:
 	 *
 	 * @return sets _lateral_accel setpoint
 	 */
-	void navigate_waypoints(const math::Vector<2> &vector_A, const math::Vector<2> &vector_B, const math::Vector<2> &vector_curr_position,
-			   const math::Vector<2> &ground_speed);
+	void navigate_waypoints(const math::Vector<2> &vector_A, const math::Vector<2> &vector_B,
+				const math::Vector<2> &vector_curr_position,
+				const math::Vector<2> &ground_speed);
 
 
 	/**
@@ -172,8 +175,9 @@ public:
 	 *
 	 * @return sets _lateral_accel setpoint
 	 */
-	void navigate_loiter(const math::Vector<2> &vector_A, const math::Vector<2> &vector_curr_position, float radius, int8_t loiter_direction,
-			   const math::Vector<2> &ground_speed_vector);
+	void navigate_loiter(const math::Vector<2> &vector_A, const math::Vector<2> &vector_curr_position, float radius,
+			     int8_t loiter_direction,
+			     const math::Vector<2> &ground_speed_vector);
 
 
 	/**
@@ -200,7 +204,8 @@ public:
 	/**
 	 * Set the L1 period.
 	 */
-	void set_l1_period(float period) {
+	void set_l1_period(float period)
+	{
 		_L1_period = period;
 		/* calculate the ratio introduced in [2] */
 		_L1_ratio = 1.0f / M_PI_F * _L1_damping * _L1_period;
@@ -214,7 +219,8 @@ public:
 	 *
 	 * The original publication recommends a default of sqrt(2) / 2 = 0.707
 	 */
-	void set_l1_damping(float damping) {
+	void set_l1_damping(float damping)
+	{
 		_L1_damping = damping;
 		/* calculate the ratio introduced in [2] */
 		_L1_ratio = 1.0f / M_PI_F * _L1_damping * _L1_period;
@@ -227,7 +233,8 @@ public:
 	 * Set the maximum roll angle output in radians
 	 *
 	 */
-	void set_l1_roll_limit(float roll_lim_rad) {
+	void set_l1_roll_limit(float roll_lim_rad)
+	{
 		_roll_lim_rad = roll_lim_rad;
 	}
 
