@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file ms5611_i2c.cpp
-  *
-  * I2C interface for MS5611
-  */
+/**
+ * @file ms5611_i2c.cpp
+ *
+ * I2C interface for MS5611
+ */
 
 /* XXX trim includes */
 #include <px4_config.h>
@@ -116,13 +116,13 @@ MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 }
 
 MS5611_I2C::MS5611_I2C(uint8_t bus, ms5611::prom_u &prom) :
-	I2C("MS5611_I2C", 
+	I2C("MS5611_I2C",
 #ifdef __PX4_NUTTX
-nullptr, bus, 0, 400000
+	    nullptr, bus, 0, 400000
 #else
-"/dev/MS5611_I2C", bus, 0
+	    "/dev/MS5611_I2C", bus, 0
 #endif
-),
+	   ),
 	_prom(prom)
 {
 }
@@ -150,6 +150,7 @@ MS5611_I2C::read(device::file_t *handlep, char *data, size_t buflen)
 	/* read the most recent measurement */
 	uint8_t cmd = 0;
 	int ret = transfer(&cmd, 1, &buf[0], 3);
+
 	if (ret == PX4_OK) {
 		/* fetch the raw value */
 		cvt->b[0] = buf[2];
@@ -191,9 +192,9 @@ MS5611_I2C::probe()
 	if ((PX4_OK == _probe_address(MS5611_ADDRESS_1)) ||
 	    (PX4_OK == _probe_address(MS5611_ADDRESS_2))) {
 		/*
-	    	 * Disable retries; we may enable them selectively in some cases,
+		 * Disable retries; we may enable them selectively in some cases,
 		 * but the device gets confused if we retry some of the commands.
-	    	 */
+		 */
 		_retries = 0;
 		return PX4_OK;
 	}
@@ -208,12 +209,14 @@ MS5611_I2C::_probe_address(uint8_t address)
 	set_address(address);
 
 	/* send reset command */
-	if (PX4_OK != _reset())
+	if (PX4_OK != _reset()) {
 		return -EIO;
+	}
 
 	/* read PROM */
-	if (PX4_OK != _read_prom())
+	if (PX4_OK != _read_prom()) {
 		return -EIO;
+	}
 
 	return PX4_OK;
 }
@@ -239,7 +242,7 @@ int
 MS5611_I2C::_measure(unsigned addr)
 {
 	/*
-	 * Disable retries on this command; we can't know whether failure 
+	 * Disable retries on this command; we can't know whether failure
 	 * means the device did or did not see the command.
 	 */
 	_retries = 0;
@@ -267,8 +270,9 @@ MS5611_I2C::_read_prom()
 	for (int i = 0; i < 8; i++) {
 		uint8_t cmd = ADDR_PROM_SETUP + (i * 2);
 
-		if (PX4_OK != transfer(&cmd, 1, &prom_buf[0], 2))
+		if (PX4_OK != transfer(&cmd, 1, &prom_buf[0], 2)) {
 			break;
+		}
 
 		/* assemble 16 bit value and convert from big endian (sensor) to little endian (MCU) */
 		cvt.b[0] = prom_buf[1];
