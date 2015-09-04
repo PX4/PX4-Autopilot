@@ -58,17 +58,20 @@ static int writer_main(int argc, char *argv[])
 	char buf[1] = { '1' };
 
 	int fd = px4_open(TESTDEV, PX4_F_RDONLY);
+
 	if (fd < 0) {
 		PX4_INFO("--- Open failed %d %d", fd, px4_errno);
 		return -px4_errno;
 	}
 
 	int ret;
-	int i=0;
-	while (i<3) {
+	int i = 0;
+
+	while (i < 3) {
 		// Wait for 3 seconds
 		PX4_INFO("--- Sleeping for 4 sec\n");
 		ret = sleep(4);
+
 		if (ret < 0) {
 			PX4_INFO("--- sleep failed %d %d\n", ret, errno);
 			return ret;
@@ -76,13 +79,15 @@ static int writer_main(int argc, char *argv[])
 
 		PX4_INFO("--- writing to fd\n");
 		ret = px4_write(fd, buf, 1);
-	++i;
+		++i;
 	}
+
 	px4_close(fd);
 	return ret;
 }
 
-class VCDevNode : public VDev {
+class VCDevNode : public VDev
+{
 public:
 	VCDevNode() : VDev("vcdevtest", TESTDEV) {};
 
@@ -99,7 +104,8 @@ ssize_t VCDevNode::write(device::file_t *handlep, const char *buffer, size_t buf
 	return buflen;
 }
 
-VCDevExample::~VCDevExample() {
+VCDevExample::~VCDevExample()
+{
 	if (_node) {
 		delete _node;
 		_node = 0;
@@ -109,16 +115,19 @@ VCDevExample::~VCDevExample() {
 static int test_pub_block(int fd, unsigned long blocked)
 {
 	int ret = px4_ioctl(fd, DEVIOCSPUBBLOCK, blocked);
+
 	if (ret < 0) {
 		PX4_INFO("ioctl PX4_DEVIOCSPUBBLOCK failed %d %d", ret, px4_errno);
 		return -px4_errno;
 	}
 
 	ret = px4_ioctl(fd, DEVIOCGPUBBLOCK, 0);
+
 	if (ret < 0) {
 		PX4_INFO("ioctl PX4_DEVIOCGPUBBLOCK failed %d %d", ret, px4_errno);
 		return -px4_errno;
 	}
+
 	PX4_INFO("pub_blocked = %d %s\n", ret, (unsigned long)ret == blocked ? "PASS" : "FAIL");
 
 	return 0;
@@ -149,31 +158,38 @@ int VCDevExample::main()
 
 	void *p = 0;
 	int ret = px4_ioctl(fd, DIOC_GETPRIV, (unsigned long)&p);
+
 	if (ret < 0) {
 		PX4_INFO("ioctl DIOC_GETPRIV failed %d %d", ret, px4_errno);
 		return -px4_errno;
 	}
+
 	PX4_INFO("priv data = %p %s\n", p, p == (void *)_node ? "PASS" : "FAIL");
 
 	ret = test_pub_block(fd, 1);
-	if (ret < 0)
-		return ret;
-	ret = test_pub_block(fd, 0);
-	if (ret < 0)
-		return ret;
 
-	int i=0;
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = test_pub_block(fd, 0);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	int i = 0;
 	px4_pollfd_struct_t fds[1];
 
 	// Start a task that will write something in 3 seconds
-	(void)px4_task_spawn_cmd("writer", 
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 6,
-				       2000,
-				       writer_main,
-				       (char* const*)NULL);
+	(void)px4_task_spawn_cmd("writer",
+				 SCHED_DEFAULT,
+				 SCHED_PRIORITY_MAX - 6,
+				 2000,
+				 writer_main,
+				 (char *const *)NULL);
 
-	while (!appState.exitRequested() && i<13) {
+	while (!appState.exitRequested() && i < 13) {
 		PX4_INFO("=====================\n");
 		PX4_INFO("====  sleeping 2 sec ====\n");
 		sleep(2);
@@ -185,29 +201,32 @@ int VCDevExample::main()
 		PX4_INFO("==== Calling Poll\n");
 		ret = px4_poll(fds, 1, 1000);
 		PX4_INFO("==== Done poll\n");
+
 		if (ret < 0) {
 			PX4_INFO("==== poll failed %d %d\n", ret, px4_errno);
 			px4_close(fd);
-		} 
-		else if (i > 0) {
+
+		} else if (i > 0) {
 			if (ret == 0) {
 				PX4_INFO("==== Nothing to read - PASS\n");
-			}
-			else {
+
+			} else {
 				PX4_INFO("==== poll returned %d\n", ret);
 			}
-		}
-		else if (i == 0) {
+
+		} else if (i == 0) {
 			if (ret == 1) {
 				PX4_INFO("==== %d to read - %s\n", ret, fds[0].revents & POLLIN ? "PASS" : "FAIL");
-			}
-			else {
+
+			} else {
 				PX4_INFO("==== %d to read - FAIL\n", ret);
 			}
-		
+
 		}
+
 		++i;
 	}
+
 	px4_close(fd);
 
 	return 0;
