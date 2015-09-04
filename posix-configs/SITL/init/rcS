@@ -34,8 +34,8 @@ barosim start
 adcsim start
 gpssim start
 pwm_out_sim mode_pwm
-commander start
 sensors start
+commander start
 land_detector start multicopter
 navigator start
 attitude_estimator_q start

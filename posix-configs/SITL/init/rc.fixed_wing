@@ -29,8 +29,8 @@ barosim start
 adcsim start
 gpssim start
 pwm_out_sim mode_pwm
-commander start
 sensors start
+commander start
 land_detector start fixedwing
 navigator start
 ekf_att_pos_estimator start
