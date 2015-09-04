@@ -115,6 +115,11 @@ flash_error_t bl_flash_erase(size_t address, size_t nbytes)
 
 	ssize_t appstartpage = up_progmem_getpage(address);
 	ssize_t appendpage = up_progmem_getpage(address + nbytes - 4);
+
+	if (appendpage < 0 || appstartpage < 0) {
+		return FLASH_ERROR_AFU;
+	}
+
 	status = FLASH_ERROR_SUICIDE;
 
 	if (bllastpage >= 0 && appstartpage > bllastpage) {
