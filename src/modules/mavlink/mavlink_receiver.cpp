@@ -1104,7 +1104,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		/* yaw */
 		rc.values[2] = man.r / 2 + 1500;
 		/* throttle */
-		rc.values[3] = man.z / 2 + 1000;
+		rc.values[3] = man.z / 1 + 1000;
 
 		/* decode all switches which fit into the channel mask */
 		unsigned max_switch = (sizeof(man.buttons) * 8);
