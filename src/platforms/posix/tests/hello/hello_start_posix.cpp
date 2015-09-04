@@ -55,7 +55,7 @@ static int daemon_task;             /* Handle of deamon task / thread */
 extern "C" __EXPORT int hello_main(int argc, char *argv[]);
 int hello_main(int argc, char *argv[])
 {
-	
+
 	if (argc < 2) {
 		PX4_WARN("usage: hello {start|stop|status}\n");
 		return 1;
@@ -70,11 +70,11 @@ int hello_main(int argc, char *argv[])
 		}
 
 		daemon_task = px4_task_spawn_cmd("hello",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       PX4_MAIN,
-				       (argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 PX4_MAIN,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 
 		return 0;
 	}
