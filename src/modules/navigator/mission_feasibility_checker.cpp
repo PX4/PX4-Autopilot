@@ -68,8 +68,8 @@ MissionFeasibilityChecker::MissionFeasibilityChecker() :
 
 
 bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRotarywing,
-	dm_item_t dm_current, size_t nMissionItems, Geofence &geofence,
-	float home_alt, bool home_valid, double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued)
+		dm_item_t dm_current, size_t nMissionItems, Geofence &geofence,
+		float home_alt, bool home_valid, double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued)
 {
 	bool failed = false;
 	bool warned = false;
@@ -83,8 +83,10 @@ bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRota
 		failed = true;
 		warned = true;
 		mavlink_log_info(_mavlink_fd, "Not yet ready for mission, no position lock.");
+
 	} else {
-		failed = failed || !check_dist_1wp(dm_current, nMissionItems, curr_lat, curr_lon, max_waypoint_distance, warning_issued);
+		failed = failed
+			 || !check_dist_1wp(dm_current, nMissionItems, curr_lat, curr_lon, max_waypoint_distance, warning_issued);
 	}
 
 	// check if all mission item commands are supported
@@ -94,6 +96,7 @@ bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRota
 
 	if (isRotarywing) {
 		failed = failed || !checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence, home_alt, home_valid);
+
 	} else {
 		failed = failed || !checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence, home_alt, home_valid);
 	}
@@ -105,13 +108,15 @@ bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRota
 	return !failed;
 }
 
-bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid)
+bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems,
+		Geofence &geofence, float home_alt, bool home_valid)
 {
 	/* no custom rotary wing checks yet */
 	return true;
 }
 
-bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid)
+bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems,
+		Geofence &geofence, float home_alt, bool home_valid)
 {
 	/* Update fixed wing navigation capabilites */
 	updateNavigationCapabilities();
@@ -147,7 +152,7 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 }
 
 bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems,
-	float home_alt, bool home_valid, bool &warning_issued, bool throw_error)
+		float home_alt, bool home_valid, bool &warning_issued, bool throw_error)
 {
 	/* Check if all all waypoints are above the home altitude, only return false if bool throw_error = true */
 	for (size_t i = 0; i < nMissionItems; i++) {
@@ -177,6 +182,7 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 			if (throw_error) {
 				mavlink_log_critical(_mavlink_fd, "Rejecting Mission: Waypoint %d below home", i);
 				return false;
+
 			} else	{
 				mavlink_log_critical(_mavlink_fd, "Warning: Waypoint %d below home", i);
 				return true;
@@ -187,7 +193,8 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 	return true;
 }
 
-bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t nMissionItems) {
+bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t nMissionItems)
+{
 	// do not allow mission if we find unsupported item
 	for (size_t i = 0; i < nMissionItems; i++) {
 		struct mission_item_s missionitem;
@@ -201,21 +208,22 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 
 		// check if we find unsupported item and reject mission if so
 		if (missionitem.nav_cmd != NAV_CMD_IDLE &&
-			missionitem.nav_cmd != NAV_CMD_WAYPOINT &&
-			missionitem.nav_cmd != NAV_CMD_LOITER_UNLIMITED &&
-			missionitem.nav_cmd != NAV_CMD_LOITER_TURN_COUNT &&
-			missionitem.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
-			missionitem.nav_cmd != NAV_CMD_LAND &&
-			missionitem.nav_cmd != NAV_CMD_TAKEOFF &&
-			missionitem.nav_cmd != NAV_CMD_ROI &&
-			missionitem.nav_cmd != NAV_CMD_PATHPLANNING &&
-			missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
-			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO) {
+		    missionitem.nav_cmd != NAV_CMD_WAYPOINT &&
+		    missionitem.nav_cmd != NAV_CMD_LOITER_UNLIMITED &&
+		    missionitem.nav_cmd != NAV_CMD_LOITER_TURN_COUNT &&
+		    missionitem.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
+		    missionitem.nav_cmd != NAV_CMD_LAND &&
+		    missionitem.nav_cmd != NAV_CMD_TAKEOFF &&
+		    missionitem.nav_cmd != NAV_CMD_ROI &&
+		    missionitem.nav_cmd != NAV_CMD_PATHPLANNING &&
+		    missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
+		    missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO) {
 
-			mavlink_log_critical(_mavlink_fd, "Rejecting mission item %i: unsupported action.", (int)(i+1));
+			mavlink_log_critical(_mavlink_fd, "Rejecting mission item %i: unsupported action.", (int)(i + 1));
 			return false;
 		}
 	}
+
 	return true;
 }
 
@@ -228,6 +236,7 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 	for (size_t i = 0; i < nMissionItems; i++) {
 		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(missionitem);
+
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return false;
@@ -235,15 +244,19 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 
 		if (missionitem.nav_cmd == NAV_CMD_LAND) {
 			struct mission_item_s missionitem_previous;
+
 			if (i != 0) {
-				if (dm_read(dm_current, i-1, &missionitem_previous, len) != len) {
+				if (dm_read(dm_current, i - 1, &missionitem_previous, len) != len) {
 					/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 					return false;
 				}
 
-				float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat , missionitem_previous.lon, missionitem.lat, missionitem.lon);
-				float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude, _nav_caps.landing_horizontal_slope_displacement, _nav_caps.landing_slope_angle_rad);
-				float wp_distance_req = Landingslope::getLandingSlopeWPDistance(missionitem_previous.altitude, missionitem.altitude, _nav_caps.landing_horizontal_slope_displacement, _nav_caps.landing_slope_angle_rad);
+				float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat , missionitem_previous.lon, missionitem.lat,
+						    missionitem.lon);
+				float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude,
+						      _nav_caps.landing_horizontal_slope_displacement, _nav_caps.landing_slope_angle_rad);
+				float wp_distance_req = Landingslope::getLandingSlopeWPDistance(missionitem_previous.altitude, missionitem.altitude,
+							_nav_caps.landing_horizontal_slope_displacement, _nav_caps.landing_slope_angle_rad);
 				float delta_altitude = missionitem.altitude - missionitem_previous.altitude;
 //				warnx("wp_distance %.2f, delta_altitude %.2f, missionitem_previous.altitude %.2f, missionitem.altitude %.2f, slope_alt_req %.2f, wp_distance_req %.2f",
 //						wp_distance, delta_altitude, missionitem_previous.altitude, missionitem.altitude, slope_alt_req, wp_distance_req);
@@ -257,25 +270,29 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 						if (missionitem_previous.altitude <= slope_alt_req) {
 							/* Landing waypoint is at or below altitude of slope at the given waypoint distance: this is ok, aircraft will intersect the slope */
 							return true;
+
 						} else {
 							/* Landing waypoint is above altitude of slope at the given waypoint distance */
 							mavlink_log_critical(_mavlink_fd, "Landing: last waypoint too high/too close");
 							mavlink_log_critical(_mavlink_fd, "Move down to %.1fm or move further away by %.1fm",
-									(double)(slope_alt_req),
-									(double)(wp_distance_req - wp_distance));
+									     (double)(slope_alt_req),
+									     (double)(wp_distance_req - wp_distance));
 							return false;
 						}
+
 					} else {
 						/* Landing waypoint is above last waypoint */
 						mavlink_log_critical(_mavlink_fd, "Landing waypoint above last nav waypoint");
 						return false;
 					}
+
 				} else {
 					/* Last wp is in flare region */
 					//xxx give recommendations
 					mavlink_log_critical(_mavlink_fd, "Warning: Landing: last waypoint in flare region");
 					return false;
 				}
+
 			} else {
 				mavlink_log_critical(_mavlink_fd, "Warning: starting with land waypoint");
 				return false;
@@ -288,7 +305,8 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 }
 
 bool
-MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionItems, double curr_lat, double curr_lon, float dist_first_wp, bool &warning_issued)
+MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionItems, double curr_lat, double curr_lon,
+		float dist_first_wp, bool &warning_issued)
 {
 	if (_dist_1wp_ok) {
 		/* always return true after at least one successful check */
@@ -302,9 +320,9 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 		/* find first waypoint (with lat/lon) item in datamanager */
 		for (unsigned i = 0; i < nMissionItems; i++) {
 			if (dm_read(dm_current, i,
-					&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
+				    &mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
 				/* Check non navigation item */
-				if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO){
+				if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
 
 					/* check actuator number */
 					if (mission_item.actuator_num < 0 || mission_item.actuator_num > 5) {
@@ -312,6 +330,7 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 						warning_issued = true;
 						return false;
 					}
+
 					/* check actuator value */
 					if (mission_item.actuator_value < -2000 || mission_item.actuator_value > 2000) {
 						mavlink_log_critical(_mavlink_fd, "Actuator value %d is out of bounds -2000..2000", (int)mission_item.actuator_value);
@@ -319,25 +338,28 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 						return false;
 					}
 				}
+
 				/* check only items with valid lat/lon */
-				else if ( mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
-						mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-						mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-						mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-						mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
-						mission_item.nav_cmd == NAV_CMD_PATHPLANNING) {
+				else if (mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
+					 mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+					 mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+					 mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+					 mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
+					 mission_item.nav_cmd == NAV_CMD_PATHPLANNING) {
 
 					/* check distance from current position to item */
 					float dist_to_1wp = get_distance_to_next_waypoint(
-							mission_item.lat, mission_item.lon, curr_lat, curr_lon);
+								    mission_item.lat, mission_item.lon, curr_lat, curr_lon);
 
 					if (dist_to_1wp < dist_first_wp) {
 						_dist_1wp_ok = true;
+
 						if (dist_to_1wp > ((dist_first_wp * 3) / 2)) {
 							/* allow at 2/3 distance, but warn */
 							mavlink_log_critical(_mavlink_fd, "Warning: First waypoint very far: %d m", (int)dist_to_1wp);
 							warning_issued = true;
 						}
+
 						return true;
 
 					} else {
