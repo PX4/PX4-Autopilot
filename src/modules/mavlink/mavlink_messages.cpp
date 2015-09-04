@@ -123,97 +123,99 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 
 	switch (status->nav_state) {
 
-		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-			                      | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+				      | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_ACRO:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_ACRO:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_STAB:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-								  | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_STABILIZED;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_STAB:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_STABILIZED;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-			/* fallthrough */
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 
-		case vehicle_status_s::NAVIGATION_STATE_LAND:
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
-			/* fallthrough */
-		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-			break;
+	/* fallthrough */
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_LAND:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 
-		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
-			break;
+	/* fallthrough */
+	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
-			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
-					      | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
+		break;
 
-		case vehicle_status_s::NAVIGATION_STATE_MAX:
-			/* this is an unused case, ignore */
-			break;
+	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_MAX:
+		/* this is an unused case, ignore */
+		break;
 
 	}
 
@@ -271,7 +273,8 @@ public:
 		return MAVLINK_MSG_ID_HEARTBEAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
-	bool const_rate() {
+	bool const_rate()
+	{
 		return true;
 	}
 
@@ -281,7 +284,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamHeartbeat(MavlinkStreamHeartbeat &);
-	MavlinkStreamHeartbeat& operator = (const MavlinkStreamHeartbeat &);
+	MavlinkStreamHeartbeat &operator = (const MavlinkStreamHeartbeat &);
 
 protected:
 	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -341,14 +344,16 @@ public:
 		return new MavlinkStreamStatustext(mavlink);
 	}
 
-	unsigned get_size() {
-		return mavlink_logbuffer_is_empty(_mavlink->get_logbuffer()) ? 0 : (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
+	unsigned get_size()
+	{
+		return mavlink_logbuffer_is_empty(_mavlink->get_logbuffer()) ? 0 : (MAVLINK_MSG_ID_STATUSTEXT_LEN +
+				MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
 private:
 	/* do not allow top copying this class */
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
-	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
+	MavlinkStreamStatustext &operator = (const MavlinkStreamStatustext &);
 	FILE *fp = nullptr;
 	unsigned write_err_count = 0;
 	static const unsigned write_err_threshold = 5;
@@ -357,7 +362,8 @@ protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	~MavlinkStreamStatustext() {
+	~MavlinkStreamStatustext()
+	{
 		if (fp) {
 			fclose(fp);
 		}
@@ -383,6 +389,7 @@ protected:
 					if (fp) {
 						if (EOF == fputs(msg.text, fp)) {
 							write_err_count++;
+
 						} else {
 							write_err_count = 0;
 						}
@@ -390,6 +397,7 @@ protected:
 						if (write_err_count >= write_err_threshold) {
 							(void)fclose(fp);
 							fp = nullptr;
+
 						} else {
 							(void)fputs("\n", fp);
 							(void)fsync(fileno(fp));
@@ -416,8 +424,8 @@ protected:
 							/* write first message */
 							fputs(msg.text, fp);
 							fputs("\n", fp);
-						}
-						else {
+
+						} else {
 							warn("Failed to open %s errno=%d", log_file_path, errno);
 						}
 					}
@@ -451,7 +459,8 @@ public:
 		return new MavlinkStreamCommandLong(mavlink);
 	}
 
-	unsigned get_size() {
+	unsigned get_size()
+	{
 		return 0;	// commands stream is not regular and not predictable
 	}
 
@@ -461,7 +470,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamCommandLong(MavlinkStreamCommandLong &);
-	MavlinkStreamCommandLong& operator = (const MavlinkStreamCommandLong &);
+	MavlinkStreamCommandLong &operator = (const MavlinkStreamCommandLong &);
 
 protected:
 	explicit MavlinkStreamCommandLong(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -529,7 +538,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &);
-	MavlinkStreamSysStatus& operator = (const MavlinkStreamSysStatus &);
+	MavlinkStreamSysStatus &operator = (const MavlinkStreamSysStatus &);
 
 protected:
 	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -556,7 +565,7 @@ protected:
 			msg.errors_count3 = status.errors_count3;
 			msg.errors_count4 = status.errors_count4;
 			msg.battery_remaining = (msg.voltage_battery > 0) ?
-							status.battery_remaining * 100.0f : -1;
+						status.battery_remaining * 100.0f : -1;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_SYS_STATUS, &msg);
 
@@ -566,18 +575,21 @@ protected:
 			bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
 			bat_msg.type = MAV_BATTERY_TYPE_LIPO;
 			bat_msg.temperature = INT16_MAX;
+
 			for (unsigned i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
 				if (i < status.battery_cell_count) {
 					bat_msg.voltages[i] = (status.battery_voltage / status.battery_cell_count) * 1000.0f;
+
 				} else {
 					bat_msg.voltages[i] = 0;
 				}
 			}
+
 			bat_msg.current_battery = status.battery_current * 100.0f;
 			bat_msg.current_consumed = status.battery_discharged_mah;
 			bat_msg.energy_consumed = -1.0f;
 			bat_msg.battery_remaining = (status.battery_voltage > 0) ?
-							status.battery_remaining * 100.0f : -1;
+						    status.battery_remaining * 100.0f : -1;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_BATTERY_STATUS, &bat_msg);
 		}
@@ -624,7 +636,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighresIMU(MavlinkStreamHighresIMU &);
-	MavlinkStreamHighresIMU& operator = (const MavlinkStreamHighresIMU &);
+	MavlinkStreamHighresIMU &operator = (const MavlinkStreamHighresIMU &);
 
 protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -725,7 +737,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitude(MavlinkStreamAttitude &);
-	MavlinkStreamAttitude& operator = (const MavlinkStreamAttitude &);
+	MavlinkStreamAttitude &operator = (const MavlinkStreamAttitude &);
 
 
 protected:
@@ -789,7 +801,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitudeQuaternion(MavlinkStreamAttitudeQuaternion &);
-	MavlinkStreamAttitudeQuaternion& operator = (const MavlinkStreamAttitudeQuaternion &);
+	MavlinkStreamAttitudeQuaternion &operator = (const MavlinkStreamAttitudeQuaternion &);
 
 protected:
 	explicit MavlinkStreamAttitudeQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -866,7 +878,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamVFRHUD(MavlinkStreamVFRHUD &);
-	MavlinkStreamVFRHUD& operator = (const MavlinkStreamVFRHUD &);
+	MavlinkStreamVFRHUD &operator = (const MavlinkStreamVFRHUD &);
 
 protected:
 	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -946,7 +958,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamGPSRawInt(MavlinkStreamGPSRawInt &);
-	MavlinkStreamGPSRawInt& operator = (const MavlinkStreamGPSRawInt &);
+	MavlinkStreamGPSRawInt &operator = (const MavlinkStreamGPSRawInt &);
 
 protected:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -969,8 +981,8 @@ protected:
 			msg.eph = cm_uint16_from_m_float(gps.eph);
 			msg.epv = cm_uint16_from_m_float(gps.epv);
 			msg.vel = cm_uint16_from_m_float(gps.vel_m_s),
-			msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-			msg.satellites_visible = gps.satellites_used;
+			    msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
+				msg.satellites_visible = gps.satellites_used;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_GPS_RAW_INT, &msg);
 		}
@@ -980,23 +992,28 @@ protected:
 class MavlinkStreamSystemTime : public MavlinkStream
 {
 public:
-	const char *get_name() const {
+	const char *get_name() const
+	{
 		return MavlinkStreamSystemTime::get_name_static();
 	}
 
-	static const char *get_name_static() {
+	static const char *get_name_static()
+	{
 		return "SYSTEM_TIME";
 	}
 
-	uint8_t get_id() {
+	uint8_t get_id()
+	{
 		return MAVLINK_MSG_ID_SYSTEM_TIME;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink) {
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
 		return new MavlinkStreamSystemTime(mavlink);
 	}
 
-	unsigned get_size() {
+	unsigned get_size()
+	{
 		return MAVLINK_MSG_ID_SYSTEM_TIME_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -1009,7 +1026,8 @@ protected:
 	explicit MavlinkStreamSystemTime(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	void send(const hrt_abstime t) {
+	void send(const hrt_abstime t)
+	{
 		mavlink_system_time_t msg;
 		timespec tv;
 
@@ -1025,23 +1043,28 @@ protected:
 class MavlinkStreamTimesync : public MavlinkStream
 {
 public:
-	const char *get_name() const {
+	const char *get_name() const
+	{
 		return MavlinkStreamTimesync::get_name_static();
 	}
 
-	static const char *get_name_static() {
+	static const char *get_name_static()
+	{
 		return "TIMESYNC";
 	}
 
-	uint8_t get_id() {
+	uint8_t get_id()
+	{
 		return MAVLINK_MSG_ID_TIMESYNC;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink) {
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
 		return new MavlinkStreamTimesync(mavlink);
 	}
 
-	unsigned get_size() {
+	unsigned get_size()
+	{
 		return MAVLINK_MSG_ID_TIMESYNC_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
@@ -1054,7 +1077,8 @@ protected:
 	explicit MavlinkStreamTimesync(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	void send(const hrt_abstime t) {
+	void send(const hrt_abstime t)
+	{
 		mavlink_timesync_t msg;
 
 		msg.tc1 = 0;
@@ -1099,7 +1123,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamCameraTrigger(MavlinkStreamCameraTrigger &);
-	MavlinkStreamCameraTrigger& operator = (const MavlinkStreamCameraTrigger &);
+	MavlinkStreamCameraTrigger &operator = (const MavlinkStreamCameraTrigger &);
 
 protected:
 	explicit MavlinkStreamCameraTrigger(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1162,7 +1186,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamGlobalPositionInt(MavlinkStreamGlobalPositionInt &);
-	MavlinkStreamGlobalPositionInt& operator = (const MavlinkStreamGlobalPositionInt &);
+	MavlinkStreamGlobalPositionInt &operator = (const MavlinkStreamGlobalPositionInt &);
 
 protected:
 	explicit MavlinkStreamGlobalPositionInt(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1233,7 +1257,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamLocalPositionNED(MavlinkStreamLocalPositionNED &);
-	MavlinkStreamLocalPositionNED& operator = (const MavlinkStreamLocalPositionNED &);
+	MavlinkStreamLocalPositionNED &operator = (const MavlinkStreamLocalPositionNED &);
 
 protected:
 	explicit MavlinkStreamLocalPositionNED(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1296,7 +1320,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttPosMocap(MavlinkStreamAttPosMocap &);
-	MavlinkStreamAttPosMocap& operator = (const MavlinkStreamAttPosMocap &);
+	MavlinkStreamAttPosMocap &operator = (const MavlinkStreamAttPosMocap &);
 
 protected:
 	explicit MavlinkStreamAttPosMocap(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1359,7 +1383,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamGPSGlobalOrigin(MavlinkStreamGPSGlobalOrigin &);
-	MavlinkStreamGPSGlobalOrigin& operator = (const MavlinkStreamGPSGlobalOrigin &);
+	MavlinkStreamGPSGlobalOrigin &operator = (const MavlinkStreamGPSGlobalOrigin &);
 
 protected:
 	explicit MavlinkStreamGPSGlobalOrigin(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1404,16 +1428,16 @@ public:
 	static const char *get_name_static()
 	{
 		switch (N) {
-			case 0:
+		case 0:
 			return "SERVO_OUTPUT_RAW_0";
 
-			case 1:
+		case 1:
 			return "SERVO_OUTPUT_RAW_1";
 
-			case 2:
+		case 2:
 			return "SERVO_OUTPUT_RAW_2";
 
-			case 3:
+		case 3:
 			return "SERVO_OUTPUT_RAW_3";
 		}
 	}
@@ -1434,7 +1458,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamServoOutputRaw(MavlinkStreamServoOutputRaw &);
-	MavlinkStreamServoOutputRaw& operator = (const MavlinkStreamServoOutputRaw &);
+	MavlinkStreamServoOutputRaw &operator = (const MavlinkStreamServoOutputRaw &);
 
 protected:
 	explicit MavlinkStreamServoOutputRaw(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1479,16 +1503,16 @@ public:
 	static const char *get_name_static()
 	{
 		switch (N) {
-			case 0:
+		case 0:
 			return "ACTUATOR_CONTROL_TARGET0";
 
-			case 1:
+		case 1:
 			return "ACTUATOR_CONTROL_TARGET1";
 
-			case 2:
+		case 2:
 			return "ACTUATOR_CONTROL_TARGET2";
 
-			case 3:
+		case 3:
 			return "ACTUATOR_CONTROL_TARGET3";
 		}
 	}
@@ -1514,7 +1538,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamActuatorControlTarget(MavlinkStreamActuatorControlTarget &);
-	MavlinkStreamActuatorControlTarget& operator = (const MavlinkStreamActuatorControlTarget &);
+	MavlinkStreamActuatorControlTarget &operator = (const MavlinkStreamActuatorControlTarget &);
 
 protected:
 	explicit MavlinkStreamActuatorControlTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1523,19 +1547,19 @@ protected:
 	{
 		// XXX this can be removed once the multiplatform system remaps topics
 		switch (N) {
-			case 0:
+		case 0:
 			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_0));
 			break;
 
-			case 1:
+		case 1:
 			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_1));
 			break;
 
-			case 2:
+		case 2:
 			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_2));
 			break;
 
-			case 3:
+		case 3:
 			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_3));
 			break;
 		}
@@ -1601,7 +1625,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamHILControls(MavlinkStreamHILControls &);
-	MavlinkStreamHILControls& operator = (const MavlinkStreamHILControls &);
+	MavlinkStreamHILControls &operator = (const MavlinkStreamHILControls &);
 
 protected:
 	explicit MavlinkStreamHILControls(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1638,10 +1662,10 @@ protected:
 
 			/* scale outputs depending on system type */
 			if (system_type == MAV_TYPE_QUADROTOR ||
-				system_type == MAV_TYPE_HEXAROTOR ||
-				system_type == MAV_TYPE_OCTOROTOR ||
-				system_type == MAV_TYPE_VTOL_DUOROTOR ||
-				system_type == MAV_TYPE_VTOL_QUADROTOR) {
+			    system_type == MAV_TYPE_HEXAROTOR ||
+			    system_type == MAV_TYPE_OCTOROTOR ||
+			    system_type == MAV_TYPE_VTOL_DUOROTOR ||
+			    system_type == MAV_TYPE_VTOL_QUADROTOR) {
 
 				/* multirotors: set number of rotor outputs depending on type */
 
@@ -1760,7 +1784,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamPositionTargetGlobalInt(MavlinkStreamPositionTargetGlobalInt &);
-	MavlinkStreamPositionTargetGlobalInt& operator = (const MavlinkStreamPositionTargetGlobalInt &);
+	MavlinkStreamPositionTargetGlobalInt &operator = (const MavlinkStreamPositionTargetGlobalInt &);
 
 protected:
 	explicit MavlinkStreamPositionTargetGlobalInt(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1774,7 +1798,7 @@ protected:
 		if (_pos_sp_triplet_sub->update(&pos_sp_triplet)) {
 			mavlink_position_target_global_int_t msg{};
 
-			msg.time_boot_ms = hrt_absolute_time()/1000;
+			msg.time_boot_ms = hrt_absolute_time() / 1000;
 			msg.coordinate_frame = MAV_FRAME_GLOBAL;
 			msg.lat_int = pos_sp_triplet.current.lat * 1e7;
 			msg.lon_int = pos_sp_triplet.current.lon * 1e7;
@@ -1820,7 +1844,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamLocalPositionSetpoint(MavlinkStreamLocalPositionSetpoint &);
-	MavlinkStreamLocalPositionSetpoint& operator = (const MavlinkStreamLocalPositionSetpoint &);
+	MavlinkStreamLocalPositionSetpoint &operator = (const MavlinkStreamLocalPositionSetpoint &);
 
 protected:
 	explicit MavlinkStreamLocalPositionSetpoint(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1887,7 +1911,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitudeTarget(MavlinkStreamAttitudeTarget &);
-	MavlinkStreamAttitudeTarget& operator = (const MavlinkStreamAttitudeTarget &);
+	MavlinkStreamAttitudeTarget &operator = (const MavlinkStreamAttitudeTarget &);
 
 protected:
 	explicit MavlinkStreamAttitudeTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -1957,7 +1981,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamRCChannels(MavlinkStreamRCChannels &);
-	MavlinkStreamRCChannels& operator = (const MavlinkStreamRCChannels &);
+	MavlinkStreamRCChannels &operator = (const MavlinkStreamRCChannels &);
 
 protected:
 	explicit MavlinkStreamRCChannels(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -2037,7 +2061,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamManualControl(MavlinkStreamManualControl &);
-	MavlinkStreamManualControl& operator = (const MavlinkStreamManualControl &);
+	MavlinkStreamManualControl &operator = (const MavlinkStreamManualControl &);
 
 protected:
 	explicit MavlinkStreamManualControl(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -2105,7 +2129,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamOpticalFlowRad(MavlinkStreamOpticalFlowRad &);
-	MavlinkStreamOpticalFlowRad& operator = (const MavlinkStreamOpticalFlowRad &);
+	MavlinkStreamOpticalFlowRad &operator = (const MavlinkStreamOpticalFlowRad &);
 
 protected:
 	explicit MavlinkStreamOpticalFlowRad(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -2173,7 +2197,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamNamedValueFloat(MavlinkStreamNamedValueFloat &);
-	MavlinkStreamNamedValueFloat& operator = (const MavlinkStreamNamedValueFloat &);
+	MavlinkStreamNamedValueFloat &operator = (const MavlinkStreamNamedValueFloat &);
 
 protected:
 	explicit MavlinkStreamNamedValueFloat(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -2233,7 +2257,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamCameraCapture(MavlinkStreamCameraCapture &);
-	MavlinkStreamCameraCapture& operator = (const MavlinkStreamCameraCapture &);
+	MavlinkStreamCameraCapture &operator = (const MavlinkStreamCameraCapture &);
 
 protected:
 	explicit MavlinkStreamCameraCapture(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -2255,7 +2279,8 @@ protected:
 		msg.param2 = 0;
 		msg.param3 = 0;
 		/* set camera capture ON/OFF depending on arming state */
-		msg.param4 = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ? 1 : 0;
+		msg.param4 = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+			      || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) ? 1 : 0;
 		msg.param5 = 0;
 		msg.param6 = 0;
 		msg.param7 = 0;
@@ -2298,7 +2323,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamDistanceSensor(MavlinkStreamDistanceSensor &);
-	MavlinkStreamDistanceSensor& operator = (const MavlinkStreamDistanceSensor &);
+	MavlinkStreamDistanceSensor &operator = (const MavlinkStreamDistanceSensor &);
 
 protected:
 	explicit MavlinkStreamDistanceSensor(Mavlink *mavlink) : MavlinkStream(mavlink),

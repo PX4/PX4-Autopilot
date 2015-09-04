@@ -60,14 +60,14 @@ public:
 	 * If topic was not updated since last check it will return false but still copy the data.
 	 * If no data available data buffer will be filled with zeroes.
 	 */
-	bool update(uint64_t *time, void* data);
+	bool update(uint64_t *time, void *data);
 
 	/**
 	 * Copy topic data to given buffer.
 	 *
 	 * @return true only if topic data copied successfully.
 	 */
-	bool update(void* data);
+	bool update(void *data);
 
 	/**
 	 * Check if the topic has been published.
@@ -86,8 +86,8 @@ private:
 	bool _published;		///< topic was ever published
 
 	/* do not allow copying this class */
-	MavlinkOrbSubscription(const MavlinkOrbSubscription&);
-	MavlinkOrbSubscription operator=(const MavlinkOrbSubscription&);
+	MavlinkOrbSubscription(const MavlinkOrbSubscription &);
+	MavlinkOrbSubscription operator=(const MavlinkOrbSubscription &);
 };
 
 

@@ -66,9 +66,9 @@ int MavlinkMissionManager::_current_seq = 0;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 
 #define CHECK_SYSID_COMPID_MISSION(_msg)		(_msg.target_system == mavlink_system.sysid && \
-						((_msg.target_component == mavlink_system.compid) || \
-						(_msg.target_component == MAV_COMP_ID_MISSIONPLANNER) || \
-						(_msg.target_component == MAV_COMP_ID_ALL)))
+		((_msg.target_component == mavlink_system.compid) || \
+		 (_msg.target_component == MAV_COMP_ID_MISSIONPLANNER) || \
+		 (_msg.target_component == MAV_COMP_ID_ALL)))
 
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_state(MAVLINK_WPM_STATE_IDLE),
@@ -119,8 +119,10 @@ void
 MavlinkMissionManager::init_offboard_mission()
 {
 	mission_s mission_state;
+
 	if (!_dataman_init) {
 		_dataman_init = true;
+
 		if (dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) == sizeof(mission_s)) {
 			_dataman_id = mission_state.dataman_id;
 			_count = mission_state.count;
@@ -133,6 +135,7 @@ MavlinkMissionManager::init_offboard_mission()
 			warnx("offboard mission init: ERROR");
 		}
 	}
+
 	_my_dataman_id = _dataman_id;
 }
 
@@ -572,12 +575,12 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 	if (CHECK_SYSID_COMPID_MISSION(wpc)) {
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			_time_last_recv = hrt_absolute_time();
-			
-			if(_transfer_in_progress)
-			{
+
+			if (_transfer_in_progress) {
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 				return;
 			}
+
 			_transfer_in_progress = true;
 
 			if (wpc.count > _max_count) {
@@ -669,6 +672,7 @@ MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 		}
 
 		struct mission_item_s mission_item;
+
 		int ret = parse_mavlink_mission_item(&wp, &mission_item);
 
 		if (ret != OK) {
@@ -684,7 +688,8 @@ MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 
 		dm_item_t dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_transfer_dataman_id);
 
-		if (dm_write(dm_item, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s)) {
+		if (dm_write(dm_item, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item,
+			     sizeof(struct mission_item_s)) != sizeof(struct mission_item_s)) {
 			if (_verbose) { warnx("WPM: MISSION_ITEM ERROR: error writing seq %u to dataman ID %i", wp.seq, _transfer_dataman_id); }
 
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
@@ -717,6 +722,7 @@ MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 			} else {
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 			}
+
 			_transfer_in_progress = false;
 
 		} else {
@@ -741,6 +747,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 
 			if (update_active_mission(_dataman_id == 0 ? 1 : 0, 0, 0) == OK) {
 				if (_verbose) { warnx("WPM: CLEAR_ALL OK"); }
+
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
 
 			} else {
@@ -756,7 +763,8 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 }
 
 int
-MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item)
+MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item,
+		struct mission_item_s *mission_item)
 {
 	/* only support global waypoints for now */
 	switch (mavlink_mission_item->frame) {
@@ -798,7 +806,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		mission_item->actuator_num = mavlink_mission_item->param1;
 		mission_item->actuator_value = mavlink_mission_item->param2;
-		mission_item->time_inside=0.0f;
+		mission_item->time_inside = 0.0f;
 		break;
 
 	default:
@@ -824,7 +832,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 
 int
-MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item)
+MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *mission_item,
+		mavlink_mission_item_t *mavlink_mission_item)
 {
 	if (mission_item->altitude_is_relative) {
 		mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
@@ -870,10 +879,10 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 void MavlinkMissionManager::check_active_mission(void)
 {
-	if(!(_my_dataman_id==_dataman_id))
-	{
+	if (!(_my_dataman_id == _dataman_id)) {
 		if (_verbose) { warnx("WPM: New mission detected (possibly over different Mavlink instance) Updating"); }
-		_my_dataman_id=_dataman_id;
+
+		_my_dataman_id = _dataman_id;
 		this->send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _count);
 	}
 }
