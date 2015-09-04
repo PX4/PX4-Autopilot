@@ -99,13 +99,14 @@ bool MulticopterLandDetector::update()
 	if (!_arming.armed) {
 		_arming_time = 0;
 		return true;
+
 	} else if (_arming_time == 0) {
 		_arming_time = hrt_absolute_time();
 	}
 
 	// return status based on armed state if no position lock is available
 	if (_vehicleGlobalPosition.timestamp == 0 ||
-		hrt_elapsed_time(&_vehicleGlobalPosition.timestamp) > 500000) {
+	    hrt_elapsed_time(&_vehicleGlobalPosition.timestamp) > 500000) {
 
 		// no position lock - not landed if armed
 		return !_arming.armed;
@@ -129,14 +130,14 @@ bool MulticopterLandDetector::update()
 	// check if we are moving horizontally
 	bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n * _vehicleGlobalPosition.vel_n
 					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > _params.maxVelocity
-					&& _vehicleStatus.condition_global_position_valid;
+				  && _vehicleStatus.condition_global_position_valid;
 
 	// next look if all rotation angles are not moving
 	float maxRotationScaled = _params.maxRotation * armThresholdFactor;
 
 	bool rotating = (fabsf(_vehicleAttitude.rollspeed)  > maxRotationScaled) ||
-				    (fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
-				(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
+			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
+			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
 	// check if thrust output is minimal (about half of default)
 	bool minimalThrust = _actuators.control[3] <= _params.maxThrottle;

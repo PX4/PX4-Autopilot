@@ -141,11 +141,11 @@ static int land_detector_start(const char *mode)
 
 	//Start new thread task
 	_landDetectorTaskID = px4_task_spawn_cmd("land_detector",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_DEFAULT,
-					     1000,
-					     (px4_main_t)&land_detector_deamon_thread,
-					     nullptr);
+			      SCHED_DEFAULT,
+			      SCHED_PRIORITY_DEFAULT,
+			      1000,
+			      (px4_main_t)&land_detector_deamon_thread,
+			      nullptr);
 
 	if (_landDetectorTaskID < 0) {
 		warnx("task start failed: %d", -errno);
@@ -172,6 +172,7 @@ static int land_detector_start(const char *mode)
 				return 1;
 			}
 		}
+
 		printf("\n");
 	}
 
@@ -196,6 +197,7 @@ int land_detector_main(int argc, char *argv[])
 			warnx("land_detector start failed");
 			return 1;
 		}
+
 		return 0;
 	}
 
