@@ -455,8 +455,9 @@ hrt_ppm_decode(uint32_t status)
 	unsigned i;
 
 	/* if we missed an edge, we have to give up */
-	if (status & SR_OVF_PPM)
+	if (status & SR_OVF_PPM) {
 		goto error;
+	}
 
 	/* how long since the last edge? - this handles counter wrapping implicitely. */
 	width = count - ppm.last_edge;
@@ -464,8 +465,10 @@ hrt_ppm_decode(uint32_t status)
 #if PPM_DEBUG
 	ppm_edge_history[ppm_edge_next++] = width;
 
-	if (ppm_edge_next >= 32)
+	if (ppm_edge_next >= 32) {
 		ppm_edge_next = 0;
+	}
+
 #endif
 
 	/*
@@ -501,8 +504,9 @@ hrt_ppm_decode(uint32_t status)
 		} else {
 			/* frame channel count matches expected, let's use it */
 			if (ppm.next_channel > PPM_MIN_CHANNELS) {
-				for (i = 0; i < ppm.next_channel; i++)
+				for (i = 0; i < ppm.next_channel; i++) {
 					ppm_buffer[i] = ppm_temp_buffer[i];
+				}
 
 				ppm_last_valid_decode = hrt_absolute_time();
 
@@ -527,8 +531,9 @@ hrt_ppm_decode(uint32_t status)
 	case ARM:
 
 		/* we expect a pulse giving us the first mark */
-		if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH)
-			goto error;		/* pulse was too short or too long */
+		if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH) {
+			goto error;        /* pulse was too short or too long */
+		}
 
 		/* record the mark timing, expect an inactive edge */
 		ppm.last_mark = ppm.last_edge;
@@ -542,8 +547,9 @@ hrt_ppm_decode(uint32_t status)
 	case INACTIVE:
 
 		/* we expect a short pulse */
-		if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH)
-			goto error;		/* pulse was too short or too long */
+		if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH) {
+			goto error;        /* pulse was too short or too long */
+		}
 
 		/* this edge is not interesting, but now we are ready for the next mark */
 		ppm.phase = ACTIVE;
@@ -557,17 +563,21 @@ hrt_ppm_decode(uint32_t status)
 #if PPM_DEBUG
 		ppm_pulse_history[ppm_pulse_next++] = interval;
 
-		if (ppm_pulse_next >= 32)
+		if (ppm_pulse_next >= 32) {
 			ppm_pulse_next = 0;
+		}
+
 #endif
 
 		/* if the mark-mark timing is out of bounds, abandon the frame */
-		if ((interval < PPM_MIN_CHANNEL_VALUE) || (interval > PPM_MAX_CHANNEL_VALUE))
+		if ((interval < PPM_MIN_CHANNEL_VALUE) || (interval > PPM_MAX_CHANNEL_VALUE)) {
 			goto error;
+		}
 
 		/* if we have room to store the value, do so */
-		if (ppm.next_channel < PPM_MAX_CHANNELS)
+		if (ppm.next_channel < PPM_MAX_CHANNELS) {
 			ppm_temp_buffer[ppm.next_channel++] = interval;
+		}
 
 		ppm.phase = INACTIVE;
 		break;
@@ -668,8 +678,9 @@ hrt_absolute_time(void)
 	 * This simple test is sufficient due to the guarantee that
 	 * we are always called at least once per counter period.
 	 */
-	if (count < last_count)
+	if (count < last_count) {
 		base_time += HRT_COUNTER_PERIOD;
+	}
 
 	/* save the count for next time */
 	last_count = count;
@@ -800,8 +811,9 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 	   queue for the uninitialised entry->link but we don't do
 	   anything actually unsafe.
 	*/
-	if (entry->deadline != 0)
+	if (entry->deadline != 0) {
 		sq_rem(&entry->link, &callout_queue);
+	}
 
 	entry->deadline = deadline;
 	entry->period = interval;
@@ -883,11 +895,13 @@ hrt_call_invoke(void)
 
 		call = (struct hrt_call *)sq_peek(&callout_queue);
 
-		if (call == NULL)
+		if (call == NULL) {
 			break;
+		}
 
-		if (call->deadline > now)
+		if (call->deadline > now) {
 			break;
+		}
 
 		sq_rem(&call->link, &callout_queue);
 		//lldbg("call pop\n");
