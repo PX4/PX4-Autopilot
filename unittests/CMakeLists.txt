@@ -182,5 +182,11 @@ add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp
                           ${PX_SRC}/modules/uORB/uORB.cpp
                           )
 target_link_libraries( uorb_tests px4_platform )
-                          
+
 add_gtest(uorb_tests)
+
+# eigen_test
+add_executable(eigen_test eigen_test.cpp)
+target_link_libraries( eigen_test px4_platform )
+                          
+add_gtest(eigen_test)

@@ -34,16 +34,14 @@
 /**
  * @file test_eigen.cpp
  *
- * Eigen test (based of mathlib test)
+ * @brief Eigen test (based of mathlib test)
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
-#include <cmath>
-#include <px4_eigen.h>
-#include <mathlib/mathlib.h>
+#include <eigen/transform/quaternion.h>
+
 #include <float.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -54,6 +52,7 @@
 #include "tests.h"
 
 using namespace Eigen;
+using namespace transform;
 
 typedef Matrix<float, 10, 1> Vector10f;
 
@@ -66,8 +65,8 @@ const float epsilon_f = 1E-4;
 uint8_t err_num;
 
 #define TEST_OP(_title, _op)															\
-	{																						\
-		const hrt_abstime t0 = hrt_absolute_time();						\
+	{																												\
+		const hrt_abstime t0 = hrt_absolute_time();												\
 		for (size_t j = 0; j < OPERATOR_ITERATIONS; j++) {									\
 			_op;																			\
 		}																					\
@@ -87,21 +86,20 @@ uint8_t err_num;
 	VERIFY_OP(_title, _op, __OP_TEST__)												\
 	TEST_OP(_title, _op)
 
-#define EXPECT_QUATERNION(q_exp, q_act, epsilon)	\
-	(fabsf(q_exp.x() - q_act.x()) <= epsilon &&			\
-	fabsf(q_exp.y() - q_act.y()) <= epsilon && 			\
-	fabsf(q_exp.z() - q_act.z()) <= epsilon &&			\
+#define EXPECT_QUATERNION(q_exp, q_act, epsilon)										\
+	(fabsf(q_exp.x() - q_act.x()) <= epsilon &&											\
+	fabsf(q_exp.y() - q_act.y()) <= epsilon && 											\
+	fabsf(q_exp.z() - q_act.z()) <= epsilon &&											\
 	fabsf(q_exp.w() - q_act.w()) <= epsilon)
 
-#define EXPECT_NEAR(expected, actual, epsilon)		\
+#define EXPECT_NEAR(expected, actual, epsilon)											\
 	(fabsf(expected - actual) <= epsilon)
 
 /**
- * @brief
- *	Prints an Eigen::Matrix to stdout
- **/
+ * @brief Prints an Matrix to stdout
+ */
 template<typename T>
-void printEigen(const Eigen::MatrixBase<T> &b)
+void printEigen(const MatrixBase<T> &b)
 {
 	for (int i = 0; i < b.rows(); ++i) {
 		printf("(");
@@ -118,59 +116,6 @@ void printEigen(const Eigen::MatrixBase<T> &b)
 	}
 }
 
-// Methods definition
-Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy);
-Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q);
-Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy);
-Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q);
-math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q);
-
-/**
- * @brief
- *	Construct new Eigen::Quaternion from euler angles
- *	Right order is YPR.
- **/
-Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
-	return Eigen::Quaternionf(
-		Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
-		Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
-		Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
-		);
-}
-
-/**
- * @brief
- *	Construct new Eigen::Vector3f of euler angles from quaternion
- *	Right order is YPR.
- **/
-Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
-	return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
-}
-
-/**
- * @brief
- *	Construct new Eigen::Matrix3f from euler angles
- **/
-Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
-	return quatFromEuler(rpy).toRotationMatrix();
-}
-
-/**
- * @brief
- *	Adjust PX4 math::quaternion to Eigen::Quaternionf
- **/
-Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
-	return Eigen::Quaternionf(q.data[1], q.data[2], q.data[3], q.data[0]);
-}
-
-/**
- * @brief
- *	Adjust Eigen::Quaternionf to PX4 math::quaternion
- **/
-math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
-	return math::Quaternion(q.w(), q.x(), q.y(), q.z());
-}
-
 /**
  * @brief
  *	Testing main routine
@@ -180,14 +125,14 @@ int test_eigen(int argc, char *argv[]) {
 	warnx("Testing Eigen math...");
 
 	{
-		Eigen::Vector2f v;
-		Eigen::Vector2f v1(1.0f, 2.0f);
-		Eigen::Vector2f v2(1.0f, -1.0f);
+		Vector2f v;
+		Vector2f v1(1.0f, 2.0f);
+		Vector2f v2(1.0f, -1.0f);
 		float data[2] = {1.0f, 2.0f};
-		TEST_OP("Constructor Vector2f()", Eigen::Vector2f v3);
-		TEST_OP_VERIFY("Constructor Vector2f(Vector2f)", Eigen::Vector2f v3(v1), v3.isApprox(v1));
-		TEST_OP_VERIFY("Constructor Vector2f(float[])", Eigen::Vector2f v3(data), v3[0] == data[0] && v3[1] == data[1]);
-		TEST_OP_VERIFY("Constructor Vector2f(float, float)", Eigen::Vector2f v3(1.0f, 2.0f), v3(0) == 1.0f && v3(1) == 2.0f);
+		TEST_OP("Constructor Vector2f()", Vector2f v3);
+		TEST_OP_VERIFY("Constructor Vector2f(Vector2f)", Vector2f v3(v1), v3.isApprox(v1));
+		TEST_OP_VERIFY("Constructor Vector2f(float[])", Vector2f v3(data), v3[0] == data[0] && v3[1] == data[1]);
+		TEST_OP_VERIFY("Constructor Vector2f(float, float)", Vector2f v3(1.0f, 2.0f), v3(0) == 1.0f && v3(1) == 2.0f);
 		TEST_OP_VERIFY("Vector2f = Vector2f", v = v1, v.isApprox(v1));
 		VERIFY_OP("Vector2f + Vector2f", v = v + v1, v.isApprox(v1 + v1));
 		VERIFY_OP("Vector2f - Vector2f", v = v - v1, v.isApprox(v1));
@@ -197,14 +142,14 @@ int test_eigen(int argc, char *argv[]) {
 	}
 
 	{
-		Eigen::Vector3f v;
-		Eigen::Vector3f v1(1.0f, 2.0f, 0.0f);
-		Eigen::Vector3f v2(1.0f, -1.0f, 2.0f);
+		Vector3f v;
+		Vector3f v1(1.0f, 2.0f, 0.0f);
+		Vector3f v2(1.0f, -1.0f, 2.0f);
 		float data[3] = {1.0f, 2.0f, 3.0f};
-		TEST_OP("Constructor Vector3f()", Eigen::Vector3f v3);
-		TEST_OP("Constructor Vector3f(Vector3f)", Eigen::Vector3f v3(v1));
-		TEST_OP("Constructor Vector3f(float[])", Eigen::Vector3f v3(data));
-		TEST_OP("Constructor Vector3f(float, float, float)", Eigen::Vector3f v3(1.0f, 2.0f, 3.0f));
+		TEST_OP("Constructor Vector3f()", Vector3f v3);
+		TEST_OP("Constructor Vector3f(Vector3f)", Vector3f v3(v1));
+		TEST_OP("Constructor Vector3f(float[])", Vector3f v3(data));
+		TEST_OP("Constructor Vector3f(float, float, float)", Vector3f v3(1.0f, 2.0f, 3.0f));
 		TEST_OP("Vector3f = Vector3f", v = v1);
 		TEST_OP("Vector3f + Vector3f", v + v1);
 		TEST_OP("Vector3f - Vector3f", v - v1);
@@ -230,15 +175,15 @@ int test_eigen(int argc, char *argv[]) {
 	}
 
 	{
-		Eigen::Vector4f v(0.0f, 0.0f, 0.0f, 0.0f);
-		Eigen::Vector4f v1(1.0f, 2.0f, 0.0f, -1.0f);
-		Eigen::Vector4f v2(1.0f, -1.0f, 2.0f, 0.0f);
-		Eigen::Vector4f vres;
+		Vector4f v(0.0f, 0.0f, 0.0f, 0.0f);
+		Vector4f v1(1.0f, 2.0f, 0.0f, -1.0f);
+		Vector4f v2(1.0f, -1.0f, 2.0f, 0.0f);
+		Vector4f vres;
 		float data[4] = {1.0f, 2.0f, 3.0f, 4.0f};
-		TEST_OP("Constructor Vector<4>()", Eigen::Vector4f v3);
-		TEST_OP("Constructor Vector<4>(Vector<4>)", Eigen::Vector4f v3(v1));
-		TEST_OP("Constructor Vector<4>(float[])", Eigen::Vector4f v3(data));
-		TEST_OP("Constructor Vector<4>(float, float, float, float)", Eigen::Vector4f v3(1.0f, 2.0f, 3.0f, 4.0f));
+		TEST_OP("Constructor Vector<4>()", Vector4f v3);
+		TEST_OP("Constructor Vector<4>(Vector<4>)", Vector4f v3(v1));
+		TEST_OP("Constructor Vector<4>(float[])", Vector4f v3(data));
+		TEST_OP("Constructor Vector<4>(float, float, float, float)", Vector4f v3(1.0f, 2.0f, 3.0f, 4.0f));
 		TEST_OP("Vector<4> = Vector<4>", v = v1);
 		TEST_OP("Vector<4> + Vector<4>", v + v1);
 		TEST_OP("Vector<4> - Vector<4>", v - v1);
@@ -257,20 +202,20 @@ int test_eigen(int argc, char *argv[]) {
 	}
 
 	{
-		Eigen::Matrix3f m1;
+		Matrix3f m1;
 		m1.setIdentity();
-		Eigen::Matrix3f m2;
+		Matrix3f m2;
 		m2.setIdentity();
-		Eigen::Vector3f v1(1.0f, 2.0f, 0.0f);
+		Vector3f v1(1.0f, 2.0f, 0.0f);
 		TEST_OP("Matrix3f * Vector3f", m1 * v1);
 		TEST_OP("Matrix3f + Matrix3f", m1 + m2);
 		TEST_OP("Matrix3f * Matrix3f", m1 * m2);
 	}
 
 	{
-		Eigen::Matrix<float, 10, 10> m1;
+		Matrix<float, 10, 10> m1;
 		m1.setIdentity();
-		Eigen::Matrix<float, 10, 10> m2;
+		Matrix<float, 10, 10> m2;
 		m2.setIdentity();
 		Vector10f v1;
 		v1.Zero();
@@ -283,17 +228,17 @@ int test_eigen(int argc, char *argv[]) {
 		printf("%llu: Nonsymmetric matrix operations test...\n", (unsigned long long)hrt_absolute_time());
 		// test nonsymmetric +, -, +=, -=
 
-		const Eigen::Matrix<float, 2, 3> m1_orig =
-			(Eigen::Matrix<float, 2, 3>() << 1, 2, 3,
+		const Matrix<float, 2, 3> m1_orig =
+			(Matrix<float, 2, 3>() << 1, 2, 3,
 			4, 5, 6).finished();
 
-		Eigen::Matrix<float, 2, 3> m1(m1_orig);
+		Matrix<float, 2, 3> m1(m1_orig);
 
-		Eigen::Matrix<float, 2, 3> m2;
+		Matrix<float, 2, 3> m2;
 		m2 << 2, 4, 6,
 		8, 10, 12;
 
-		Eigen::Matrix<float, 2, 3> m3;
+		Matrix<float, 2, 3> m3;
 		m3 << 3, 6, 9,
 		12, 15, 18;
 
@@ -343,17 +288,17 @@ int test_eigen(int argc, char *argv[]) {
 		// Test conversion rotation matrix to quaternion and back
 		// against existing PX4 mathlib
 		math::Matrix<3, 3> R_orig;
-		Eigen::Quaternionf q_true;
-		Eigen::Quaternionf q;
-		Eigen::Matrix3f R;
+		Quaternionf q_true;
+		Quaternionf q;
+		Matrix3f R;
 
 		printf("%llu: Conversion method: Quaternion transformation methods test...\n", (unsigned long long)hrt_absolute_time());
 		printf("%llu: Conversion method: Testing known values...\n", (unsigned long long)hrt_absolute_time());
 
 		/******************************************** TEST 1 ****************************************************/
-		q_true = {0.0f, 0.0f, 0.0f, 1.0f};
+		q_true = {1.0f, 0.0f, 0.0f, 0.0f};
 		math::Quaternion q_px4 = {1.0f, 0.0f, 0.0f, 0.0f};
-		Eigen::Quaternionf q_eigen(eigenqFromPx4q(q_px4));
+		Quaternionf q_eigen(eigenqFromPx4q(q_px4));
 
 		if (!EXPECT_QUATERNION(q_true, q_eigen, FLT_EPSILON)) {
 			printf("%llu: Value of: Quaternion1 [1.0, 0.0, 0.0, 0.0]\n", (unsigned long long)hrt_absolute_time());
@@ -365,9 +310,9 @@ int test_eigen(int argc, char *argv[]) {
 		/********************************************************************************************************/
 		/******************************************** TEST 2 ****************************************************/
 		q_true = {1.0f, 0.0f, 0.0f, 0.0f};
-		Eigen::Quaternionf q2_eigen = {0.0f, 0.0f, 0.0f, 1.0f};
+		Quaternionf q2_eigen = {1.0f, 0.0f, 0.0f, 0.0f};
 		math::Quaternion q2_px4(px4qFromEigenq(q2_eigen));
-		Eigen::Quaternionf q2_eigen_(q2_px4.data[3], q2_px4.data[0], q2_px4.data[1], q2_px4.data[2]);
+		Quaternionf q2_eigen_(q2_px4.data[0], q2_px4.data[1], q2_px4.data[2], q2_px4.data[3]);
 
 		if (!EXPECT_QUATERNION(q_true, q2_eigen_, FLT_EPSILON)) {
 			printf("%llu: Value of: Quaternion2 [0.0, 0.0, 0.0, 1.0]\n", (unsigned long long)hrt_absolute_time());
@@ -378,7 +323,7 @@ int test_eigen(int argc, char *argv[]) {
 		}
 		/********************************************************************************************************/
 		/******************************************** TEST 3 ****************************************************/
-		q_true = quatFromEuler(Eigen::Vector3f(0.3f, 0.2f, 0.1f));
+		q_true = quatFromEuler(Vector3f(0.3f, 0.2f, 0.1f));
 		q = {0.9833474432563558f, 0.14357217502739184f, 0.10602051106179561f, 0.0342707985504821f};
 
 		if (!EXPECT_QUATERNION(q_true, q, FLT_EPSILON)) {
@@ -390,7 +335,7 @@ int test_eigen(int argc, char *argv[]) {
 		}
 		/********************************************************************************************************/
 		/******************************************** TEST 4 ****************************************************/
-		q_true = quatFromEuler(Eigen::Vector3f(-1.5f, -0.2f, 0.5f));
+		q_true = quatFromEuler(Vector3f(-1.5f, -0.2f, 0.5f));
 		q = {0.7222365948153096f, -0.6390766544101811f, -0.2385737751841646f, 0.11418355701173476f};
 
 		if (!EXPECT_QUATERNION(q_true, q, FLT_EPSILON)) {
@@ -402,7 +347,7 @@ int test_eigen(int argc, char *argv[]) {
 		}
 		/********************************************************************************************************/
 		/******************************************** TEST 5 ****************************************************/
-		q_true = quatFromEuler(Eigen::Vector3f(M_PI_2_F, -M_PI_2_F, -M_PI_F / 3));
+		q_true = quatFromEuler(Vector3f(M_PI_2_F, -M_PI_2_F, -M_PI_F / 3));
 		q = {0.6830127018922193f, 0.18301270189221933f, -0.6830127018922193f, 0.18301270189221933f};
 
 		for (size_t i = 0; i < 4; i++) {
@@ -422,15 +367,13 @@ int test_eigen(int argc, char *argv[]) {
 			for (float pitch = min; pitch <= max; pitch += step) {
 				for (float yaw = min; yaw <= max; yaw += step) {
 
-					q = Eigen::Quaternionf(quatFromEuler(Eigen::Vector3f(roll, pitch, yaw)));
-
-					R = q.toRotationMatrix();
+					R = matrixFromEuler(Vector3f(roll, pitch, yaw));
 					R_orig.from_euler(roll, pitch, yaw);
 
 					for (size_t i = 0; i < 3; i++) {
 						for (size_t j = 0; j < 3; j++) {
 							if (!EXPECT_NEAR(R_orig(i, j), R(i, j), epsilon_f)) {
-								printf("%llu: (%d, %d) Value of: Quaternion constructor or 'toRotationMatrix'\n", (unsigned long long)hrt_absolute_time(), (int)i, (int)j);
+								printf("%llu: (%d, %d) Value of: Rotation matrix constructor or 'matrixFromEuler'\n", (unsigned long long)hrt_absolute_time(), (int)i, (int)j);
 								printf("Actual:  \t%8.5f\n", R(i, j));
 								printf("Expected: \t%8.5f\n", R_orig(i, j));
 								++err_num;
@@ -445,19 +388,19 @@ int test_eigen(int argc, char *argv[]) {
 
 	{
 		// Test rotation method (rotate vector by quaternion)
-		Eigen::Vector3f vector = {1.0f, 1.0f, 1.0f};
-		Eigen::Vector3f vector_q;
-		Eigen::Vector3f vector_r;
-		Eigen::Quaternionf q;
-		Eigen::Matrix3f R;
+		Vector3f vector = {1.0f, 1.0f, 1.0f};
+		Vector3f vector_q;
+		Vector3f vector_r;
+		Quaternionf q;
+		Matrix3f R;
 
 		printf("%llu: Rotation method: Quaternion vector rotation method test...\n", (unsigned long long)hrt_absolute_time());
 		printf("%llu: Rotation method: Testing known values...\n", (unsigned long long)hrt_absolute_time());
 
 		/******************************************** TEST 1 ****************************************************/
-		q = quatFromEuler(Eigen::Vector3f(0.0f, 0.0f, M_PI_2_F));
+		q = quatFromEuler(Vector3f(0.0f, 0.0f, M_PI_2_F));
 		vector_q = q._transformVector(vector);
-		Eigen::Vector3f vector_true = {-1.00f, 1.00f, 1.00f};
+		Vector3f vector_true = {-1.00f, 1.00f, 1.00f};
 
 		for (size_t i = 0; i < 3; i++) {
 			if (!EXPECT_NEAR(vector_true(i), vector_q(i), FLT_EPSILON)) {
@@ -470,7 +413,7 @@ int test_eigen(int argc, char *argv[]) {
 		}
 		/********************************************************************************************************/
 		/******************************************** TEST 2 ****************************************************/
-		q = quatFromEuler(Eigen::Vector3f(0.1f, 0.2f, 0.3f));
+		q = quatFromEuler(Vector3f(0.1f, 0.2f, 0.3f));
 		vector_q = q._transformVector(vector);
 		vector_true = {0.8795481794122900f, 1.2090975499501229f, 0.874344391414010f};
 
@@ -485,7 +428,7 @@ int test_eigen(int argc, char *argv[]) {
 		}
 		/********************************************************************************************************/
 		/******************************************** TEST 3 ****************************************************/
-		q = quatFromEuler(Eigen::Vector3f(0.5f, -0.2f, -1.5f));
+		q = quatFromEuler(Vector3f(0.5f, -0.2f, -1.5f));
 		vector_q = q._transformVector(vector);
 		vector_true = {0.447416342848463f, -0.6805264343934600f, 1.528627615949624f};
 
@@ -500,7 +443,7 @@ int test_eigen(int argc, char *argv[]) {
 		}
 		/********************************************************************************************************/
 		/******************************************** TEST 4 ****************************************************/
-		q = quatFromEuler(Eigen::Vector3f(-M_PI_F / 3.0f, -M_PI_2_F, M_PI_2_F));
+		q = quatFromEuler(Vector3f(-M_PI_F / 3.0f, -M_PI_2_F, M_PI_2_F));
 		vector_q = q._transformVector(vector);
 		vector_true = {-1.366030f, 0.366025f, 1.000000f};
 
@@ -517,14 +460,14 @@ int test_eigen(int argc, char *argv[]) {
 		/******************************************** TEST 5 ****************************************************/
 		printf("%llu: Rotation method: Testing transformation range...\n", (unsigned long long)hrt_absolute_time());
 
-		Eigen::Vector3f vectorR(1.0f, 1.0f, 1.0f);
+		Vector3f vectorR(1.0f, 1.0f, 1.0f);
 
 		for (float roll = min; roll <= max; roll += step) {
 			for (float pitch = min; pitch <= max; pitch += step) {
 				for (float yaw = min; yaw <= max; yaw += step) {
 
-					R = matrixFromEuler(Eigen::Vector3f(roll, pitch, yaw));
-					q = quatFromEuler(Eigen::Vector3f(roll, pitch, yaw));
+					R = matrixFromEuler(Vector3f(roll, pitch, yaw));
+					q = quatFromEuler(Vector3f(roll, pitch, yaw));
 
 					vector_r = R * vectorR;
 					vector_q = q._transformVector(vectorR);

@@ -71,7 +71,7 @@ else
 	git submodule update --init --recursive
 fi
 
-if [ -d src/lib/eigen ]
+if [ -d src/lib/eigen/eigen ]
 then
 	echo "ARG = $1"
 	if [ $1 = "qurt" ]

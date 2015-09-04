@@ -34,18 +34,27 @@
 /**
  * @file px4_eigen.h
  *
- * Compatability header to make Eigen compile on the PX4 stack
+ * @brief Compatibility header to make Eigen compile on the PX4 stack
  * @author Johan Jansen <jnsn.johan@gmail.com>
+ * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
 #pragma once
 
+#include <cmath>
+
 #pragma GCC diagnostic push
+#ifndef RAND_MAX
 #define RAND_MAX __RAND_MAX
+#endif
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wfloat-equal"
+#ifndef _GLIBCXX_USE_C99_FP_MACROS_DYNAMIC
 #define _GLIBCXX_USE_C99_FP_MACROS_DYNAMIC 1
+#endif
 
-#include <eigen/Eigen/Core>
-#include <eigen/Eigen/Geometry>
+#include <eigen/eigen/Eigen/Eigen>
+#include <mathlib/mathlib.h>
+//#include <eigen/eigen/unsupported/Eigen/CXX11/Tensor>
+
 #pragma GCC diagnostic pop
