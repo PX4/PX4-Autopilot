@@ -91,30 +91,35 @@ public:
 	{
 	}
 
-	bool airspeed_sensor_enabled() {
+	bool airspeed_sensor_enabled()
+	{
 		return _airspeed_enabled;
 	}
 
-	void enable_airspeed(bool enabled) {
+	void enable_airspeed(bool enabled)
+	{
 		_airspeed_enabled = enabled;
 	}
 
 	// Update of the estimated height and height rate internal state
 	// Update of the inertial speed rate internal state
 	// Should be called at 50Hz or greater
-	void update_state(float baro_altitude, float airspeed, const math::Matrix<3,3> &rotMat,
-		const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth, bool altitude_lock, bool in_air);
+	void update_state(float baro_altitude, float airspeed, const math::Matrix<3, 3> &rotMat,
+			  const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth, bool altitude_lock, bool in_air);
 
 	// Update the control loop calculations
-	void update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, float baro_altitude, float hgt_dem, float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
+	void update_pitch_throttle(const math::Matrix<3, 3> &rotMat, float pitch, float baro_altitude, float hgt_dem,
+				   float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
 				   float throttle_min, float throttle_max, float throttle_cruise,
 				   float pitch_limit_min, float pitch_limit_max);
 	// demanded throttle in percentage
 	// should return 0 to 100
-	float get_throttle_demand(void) {
+	float get_throttle_demand(void)
+	{
 		return _throttle_dem;
 	}
-	int32_t get_throttle_demand_percent(void) {
+	int32_t get_throttle_demand_percent(void)
+	{
 		return get_throttle_demand();
 	}
 
@@ -129,7 +134,8 @@ public:
 	float get_VXdot(void) { return _vel_dot; }
 
 
-	float get_speed_weight() {
+	float get_speed_weight()
+	{
 		return _spdWeight;
 	}
 
@@ -161,87 +167,108 @@ public:
 		enum ECL_TECS_MODE mode;
 	};
 
-	void get_tecs_state(struct tecs_state& state) {
+	void get_tecs_state(struct tecs_state &state)
+	{
 		state = _tecs_state;
 	}
 
-	void set_time_const(float time_const) {
+	void set_time_const(float time_const)
+	{
 		_timeConst = time_const;
 	}
 
-	void set_time_const_throt(float time_const_throt) {
+	void set_time_const_throt(float time_const_throt)
+	{
 		_timeConstThrot = time_const_throt;
 	}
 
-	void set_min_sink_rate(float rate) {
+	void set_min_sink_rate(float rate)
+	{
 		_minSinkRate = rate;
 	}
 
-	void set_max_sink_rate(float sink_rate) {
+	void set_max_sink_rate(float sink_rate)
+	{
 		_maxSinkRate = sink_rate;
 	}
 
-	void set_max_climb_rate(float climb_rate) {
+	void set_max_climb_rate(float climb_rate)
+	{
 		_maxClimbRate = climb_rate;
 	}
 
-	void set_throttle_damp(float throttle_damp) {
+	void set_throttle_damp(float throttle_damp)
+	{
 		_thrDamp = throttle_damp;
 	}
 
-	void set_integrator_gain(float gain) {
+	void set_integrator_gain(float gain)
+	{
 		_integGain = gain;
 	}
 
-	void set_vertical_accel_limit(float limit) {
+	void set_vertical_accel_limit(float limit)
+	{
 		_vertAccLim = limit;
 	}
 
-	void set_height_comp_filter_omega(float omega) {
+	void set_height_comp_filter_omega(float omega)
+	{
 		_hgtCompFiltOmega = omega;
 	}
 
-	void set_speed_comp_filter_omega(float omega) {
+	void set_speed_comp_filter_omega(float omega)
+	{
 		_spdCompFiltOmega = omega;
 	}
 
-	void set_roll_throttle_compensation(float compensation) {
+	void set_roll_throttle_compensation(float compensation)
+	{
 		_rollComp = compensation;
 	}
 
-	void set_speed_weight(float weight) {
+	void set_speed_weight(float weight)
+	{
 		_spdWeight = weight;
 	}
 
-	void set_pitch_damping(float damping) {
+	void set_pitch_damping(float damping)
+	{
 		_ptchDamp = damping;
 	}
 
-	void set_throttle_slewrate(float slewrate) {
+	void set_throttle_slewrate(float slewrate)
+	{
 		_throttle_slewrate = slewrate;
 	}
 
-	void set_indicated_airspeed_min(float airspeed) {
+	void set_indicated_airspeed_min(float airspeed)
+	{
 		_indicated_airspeed_min = airspeed;
 	}
 
-	void set_indicated_airspeed_max(float airspeed) {
+	void set_indicated_airspeed_max(float airspeed)
+	{
 		_indicated_airspeed_max = airspeed;
 	}
 
-	void set_heightrate_p(float heightrate_p) {
+	void set_heightrate_p(float heightrate_p)
+	{
 		_heightrate_p = heightrate_p;
 	}
 
-	void set_heightrate_ff(float heightrate_ff) {
+	void set_heightrate_ff(float heightrate_ff)
+	{
 		_heightrate_ff = heightrate_ff;
 	}
 
-	void set_speedrate_p(float speedrate_p) {
+	void set_speedrate_p(float speedrate_p)
+	{
 		_speedrate_p = speedrate_p;
 	}
 
-	void set_detect_underspeed_enabled(bool enabled) {
+	void set_detect_underspeed_enabled(bool enabled)
+	{
 		_detect_underspeed_enabled = enabled;
 	}
 
@@ -425,7 +452,7 @@ private:
 	void _update_energies(void);
 
 	// Update Demanded Throttle
-	void _update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotMat);
+	void _update_throttle(float throttle_cruise, const math::Matrix<3, 3> &rotMat);
 
 	// Detect Bad Descent
 	void _detect_bad_descent(void);
