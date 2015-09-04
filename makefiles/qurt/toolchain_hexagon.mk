@@ -35,14 +35,6 @@
 
 #$(info TOOLCHAIN  gnu-arm-eabi)
 
-#
-# Stop making if DSPAL paths are not set. This defines the path to
-# DspAL headers and libs
-#
-ifndef DSPAL_INCS
-$(error DSPAL_INCS is not set)
-endif
-
 # Toolchain commands. Normally only used inside this file.
 #
 HEXAGON_TOOLS_ROOT	 ?= /opt/6.4.03
@@ -57,6 +49,7 @@ HEXAGON_ISS_DIR		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/iss
 TOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/dinkumware/lib/$(V_ARCH)/G0
 QCTOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0
 QURTLIB			 = $(HEXAGON_SDK_ROOT)/lib/common/qurt/ADSP$(V_ARCH)MP/lib
+DSPAL_INCS		 ?= $(PX4_BASE)/src/lib/dspal
 
 
 CC			 = $(HEXAGON_CLANG_BIN)/$(CROSSDEV)clang
@@ -121,10 +114,8 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -D__EXPORT= \
 			    -Drestrict= \
 			    -D_DEBUG \
-			    -I$(DSPAL_INCS)/ \
-			    -I$(DSPAL_INCS)/dspal/include \
-			    -I$(DSPAL_INCS)/dspal/sys \
-			    -I$(DSPAL_INCS)/dspal/sys/sys \
+			    -I$(DSPAL_INCS)/include \
+			    -I$(DSPAL_INCS)/sys \
 			    -I$(HEXAGON_TOOLS_ROOT)/gnu/hexagon/include \
 			    -I$(PX4_BASE)/src/lib/eigen \
 			    -I$(PX4_BASE)/src/platforms/qurt/include \
