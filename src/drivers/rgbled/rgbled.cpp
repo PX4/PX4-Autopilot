@@ -132,9 +132,9 @@ extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 RGBLED::RGBLED(int bus, int rgbled) :
 	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled
 #ifdef __PX4_NUTTX
-	,100000 /* maximum speed supported */
+	    , 100000 /* maximum speed supported */
 #endif
-	),
+	   ),
 	_mode(RGBLED_MODE_OFF),
 	_r(0),
 	_g(0),
@@ -190,9 +190,9 @@ RGBLED::probe()
 	unsigned prevretries = _retries;
 	_retries = 4;
 
-	if ((ret=get(on, powersave, r, g, b)) != OK ||
-	    (ret=send_led_enable(false) != OK) ||
-	    (ret=send_led_enable(false) != OK)) {
+	if ((ret = get(on, powersave, r, g, b)) != OK ||
+	    (ret = send_led_enable(false) != OK) ||
+	    (ret = send_led_enable(false) != OK)) {
 		return ret;
 	}
 
@@ -289,8 +289,9 @@ RGBLED::led()
 	case RGBLED_MODE_BLINK_SLOW:
 	case RGBLED_MODE_BLINK_NORMAL:
 	case RGBLED_MODE_BLINK_FAST:
-		if (_counter >= 2)
+		if (_counter >= 2) {
 			_counter = 0;
+		}
 
 		send_led_enable(_counter == 0);
 
@@ -298,8 +299,9 @@ RGBLED::led()
 
 	case RGBLED_MODE_BREATHE:
 
-		if (_counter >= 62)
+		if (_counter >= 62) {
 			_counter = 0;
+		}
 
 		int n;
 
@@ -317,8 +319,9 @@ RGBLED::led()
 	case RGBLED_MODE_PATTERN:
 
 		/* don't run out of the pattern array and stop if the next frame is 0 */
-		if (_counter >= RGBLED_PATTERN_LENGTH || _pattern.duration[_counter] <= 0)
+		if (_counter >= RGBLED_PATTERN_LENGTH || _pattern.duration[_counter] <= 0) {
 			_counter = 0;
+		}
 
 		set_color(_pattern.color[_counter]);
 		send_led_rgb();
@@ -528,8 +531,9 @@ RGBLED::send_led_enable(bool enable)
 {
 	uint8_t settings_byte = 0;
 
-	if (enable)
+	if (enable) {
 		settings_byte |= SETTING_ENABLE;
+	}
 
 	settings_byte |= SETTING_NOT_POWERSAVE;
 
@@ -593,6 +597,7 @@ rgbled_main(int argc, char *argv[])
 	/* jump over start/off/etc and look at options first */
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+
 	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
@@ -609,10 +614,10 @@ rgbled_main(int argc, char *argv[])
 		}
 	}
 
-        if (myoptind >= argc) {
-            rgbled_usage();
-            return 1;
-        }
+	if (myoptind >= argc) {
+		rgbled_usage();
+		return 1;
+	}
 
 	const char *verb = argv[myoptind];
 
@@ -641,6 +646,7 @@ rgbled_main(int argc, char *argv[])
 					warnx("no RGB led on bus #%d", i2cdevice);
 					return 1;
 				}
+
 				i2cdevice = PX4_I2C_BUS_LED;
 			}
 		}
@@ -705,12 +711,14 @@ rgbled_main(int argc, char *argv[])
 
 		ret = px4_ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_OFF);
 		px4_close(fd);
+
 		/* delete the rgbled object if stop was requested, in addition to turning off the LED. */
 		if (!strcmp(verb, "stop")) {
 			delete g_rgbled;
 			g_rgbled = nullptr;
 			return 0;
 		}
+
 		return ret;
 	}
 
