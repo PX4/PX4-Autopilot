@@ -75,13 +75,13 @@ static const unsigned detect_orientation_side_count = 6;
 ///	@return Returns detect_orientation_return according to orientation when vehicle
 ///		and ready for measurements
 enum detect_orientation_return detect_orientation(int	mavlink_fd,			///< Mavlink fd to write output to
-						  int	cancel_sub,			///< Cancel subscription from calibration_cancel_subscribe
-						  int	accel_sub,			///< Orb subcription to accel sensor
-						  bool	lenient_still_detection);	///< true: Use more lenient still position detection
+		int	cancel_sub,			///< Cancel subscription from calibration_cancel_subscribe
+		int	accel_sub,			///< Orb subcription to accel sensor
+		bool	lenient_still_detection);	///< true: Use more lenient still position detection
 
 /// Returns the human readable string representation of the orientation
 ///	@param orientation Orientation to return string for, "error" if buffer is too small
-const char* detect_orientation_str(enum detect_orientation_return orientation);
+const char *detect_orientation_str(enum detect_orientation_return orientation);
 
 enum calibrate_return {
 	calibrate_return_ok,
@@ -89,18 +89,19 @@ enum calibrate_return {
 	calibrate_return_cancelled
 };
 
-typedef calibrate_return (*calibration_from_orientation_worker_t)(detect_orientation_return	orientation,	///< Orientation which was detected
-								  int				cancel_sub,	///< Cancel subscription from calibration_cancel_subscribe
-								  void*				worker_data);	///< Opaque worker data
+typedef calibrate_return(*calibration_from_orientation_worker_t)(detect_orientation_return
+		orientation,	///< Orientation which was detected
+		int				cancel_sub,	///< Cancel subscription from calibration_cancel_subscribe
+		void				*worker_data);	///< Opaque worker data
 
 /// Perform calibration sequence which require a rest orientation detection prior to calibration.
 ///	@return OK: Calibration succeeded, ERROR: Calibration failed
 calibrate_return calibrate_from_orientation(int		mavlink_fd,						///< Mavlink fd to write output to
-					    int		cancel_sub,						///< Cancel subscription from calibration_cancel_subscribe
-					    bool	side_data_collected[detect_orientation_side_count],	///< Sides for which data still needs calibration
-					    calibration_from_orientation_worker_t calibration_worker,		///< Worker routine which performs the actual calibration
-					    void*	worker_data,						///< Opaque data passed to worker routine
-					    bool	lenient_still_detection);				///< true: Use more lenient still position detection
+		int		cancel_sub,						///< Cancel subscription from calibration_cancel_subscribe
+		bool	side_data_collected[detect_orientation_side_count],	///< Sides for which data still needs calibration
+		calibration_from_orientation_worker_t calibration_worker,		///< Worker routine which performs the actual calibration
+		void	*worker_data,						///< Opaque data passed to worker routine
+		bool	lenient_still_detection);				///< true: Use more lenient still position detection
 
 /// Called at the beginning of calibration in order to subscribe to the cancel command
 ///	@return Handle to vehicle_command subscription

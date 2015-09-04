@@ -155,6 +155,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 	}
 
 #ifdef __PX4_NUTTX
+
 	if (dynamic) {
 		/* check measurement result range */
 		struct accel_report acc;
@@ -170,6 +171,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 				success = false;
 				goto out;
 			}
+
 		} else {
 			mavlink_log_critical(mavlink_fd, "PREFLIGHT FAIL: ACCEL READ");
 			/* this is frickin' fatal */
@@ -177,6 +179,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 			goto out;
 		}
 	}
+
 #endif
 
 out:
@@ -284,19 +287,21 @@ static bool gnssCheck(int mavlink_fd)
 	px4_pollfd_struct_t fds[1];
 	fds[0].fd = gpsSub;
 	fds[0].events = POLLIN;
-	if(px4_poll(fds, 1, 2000) <= 0) {
+
+	if (px4_poll(fds, 1, 2000) <= 0) {
 		success = false;
-	}
-	else {
+
+	} else {
 		struct vehicle_gps_position_s gps;
-		if ( (OK != orb_copy(ORB_ID(vehicle_gps_position), gpsSub, &gps)) ||
+
+		if ((OK != orb_copy(ORB_ID(vehicle_gps_position), gpsSub, &gps)) ||
 		    (hrt_elapsed_time(&gps.timestamp_position) > 1000000)) {
 			success = false;
 		}
 	}
 
 	//Report failure to detect module
-	if(!success) {
+	if (!success) {
 		mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: GPS RECEIVER MISSING");
 	}
 
@@ -372,8 +377,8 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 	}
 
 	/* ---- Global Navigation Satellite System receiver ---- */
-	if(checkGNSS) {
-		if(!gnssCheck(mavlink_fd)) {
+	if (checkGNSS) {
+		if (!gnssCheck(mavlink_fd)) {
 			failed = true;
 		}
 	}

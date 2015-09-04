@@ -87,7 +87,7 @@ static const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle
 };
 
 // You can index into the array with an arming_state_t in order to get it's textual representation
-static const char * const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
+static const char *const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_INIT",
 	"ARMING_STATE_STANDBY",
 	"ARMING_STATE_ARMED",
@@ -126,16 +126,16 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 		/* only perform the check if we have to */
 		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
-				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+		    && status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 			prearm_ret = prearm_check(status, mavlink_fd);
 		}
 
 		/*
 		 * Perform an atomic state update
 		 */
-		#ifdef __PX4_NUTTX
+#ifdef __PX4_NUTTX
 		irqstate_t flags = irqsave();
-		#endif
+#endif
 
 		/* enforce lockdown in HIL */
 		if (status->hil_state == vehicle_status_s::HIL_STATE_ON) {
@@ -162,7 +162,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 				//      Do not perform pre-arm checks if coming from in air restore
 				//      Allow if vehicle_status_s::HIL_STATE_ON
 				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE &&
-					status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+				    status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 					// Fail transition if pre-arm check fails
 					if (prearm_ret) {
@@ -170,7 +170,8 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 						feedback_provided = true;
 						valid_transition = false;
 
-					// Fail transition if we need safety switch press
+						// Fail transition if we need safety switch press
+
 					} else if (safety->safety_switch_available && !safety->safety_off) {
 
 						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first!");
@@ -194,14 +195,19 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 						if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f)) {
 							// Check avionics rail voltages
 							if (status->avionics_power_rail_voltage < 4.75f) {
-								mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+								mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt",
+												 (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
+
 							} else if (status->avionics_power_rail_voltage < 4.9f) {
-								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt",
+										     (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
+
 							} else if (status->avionics_power_rail_voltage > 5.4f) {
-								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt",
+										     (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 							}
 						}
@@ -209,7 +215,8 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 				}
 
-			} else if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY && status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) {
+			} else if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY
+				   && status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) {
 				new_arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
 			}
 		}
@@ -226,25 +233,29 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 				if (status->condition_system_sensors_initialized) {
 					mavlink_and_console_log_critical(mavlink_fd, "Preflight check resolved, reboot before arming");
+
 				} else {
 					mavlink_and_console_log_critical(mavlink_fd, "Preflight check failed, refusing to arm");
 				}
+
 				feedback_provided = true;
 
 			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-					status->condition_system_sensors_initialized) {
+				   status->condition_system_sensors_initialized) {
 				mavlink_and_console_log_critical(mavlink_fd, "Preflight check resolved, reboot to complete");
 				feedback_provided = true;
+
 			} else {
 				// Silent ignore
 				feedback_provided = true;
 			}
 
-		// Sensors need to be initialized for STANDBY state, except for HIL
+			// Sensors need to be initialized for STANDBY state, except for HIL
+
 		} else if ((status->hil_state != vehicle_status_s::HIL_STATE_ON) &&
-			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
-			(!status->condition_system_sensors_initialized)) {
+			   (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
+			   (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
+			   (!status->condition_system_sensors_initialized)) {
 			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
 			feedback_provided = true;
 			valid_transition = false;
@@ -253,16 +264,18 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 		// Finish up the state transition
 		if (valid_transition) {
-			armed->armed = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED || new_arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR;
-			armed->ready_to_arm = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED || new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY;
+			armed->armed = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				       || new_arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR;
+			armed->ready_to_arm = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
+					      || new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY;
 			ret = TRANSITION_CHANGED;
 			status->arming_state = new_arming_state;
 		}
 
 		/* end of atomic state update */
-		#ifdef __PX4_NUTTX
+#ifdef __PX4_NUTTX
 		irqrestore(flags);
-		#endif
+#endif
 	}
 
 	if (ret == TRANSITION_DENIED) {
@@ -274,6 +287,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		if (!feedback_provided) {
 			mavlink_log_critical(mavlink_fd, WARNSTR, state_names[status->arming_state], state_names[new_arming_state]);
 		}
+
 #undef WARNSTR
 	}
 
@@ -308,6 +322,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		break;
 
 	case vehicle_status_s::MAIN_STATE_ALTCTL:
+
 		/* need at minimum altitude estimate */
 		/* TODO: add this for fixedwing as well */
 		if (!status->is_rotary_wing ||
@@ -315,29 +330,36 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		     status->condition_global_position_valid)) {
 			ret = TRANSITION_CHANGED;
 		}
+
 		break;
 
 	case vehicle_status_s::MAIN_STATE_POSCTL:
+
 		/* need at minimum local position estimate */
 		if (status->condition_local_position_valid ||
 		    status->condition_global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
+
 		break;
 
 	case vehicle_status_s::MAIN_STATE_AUTO_LOITER:
+
 		/* need global position estimate */
 		if (status->condition_global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
+
 		break;
 
 	case vehicle_status_s::MAIN_STATE_AUTO_MISSION:
 	case vehicle_status_s::MAIN_STATE_AUTO_RTL:
+
 		/* need global position and home position */
 		if (status->condition_global_position_valid && status->condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
+
 		break;
 
 	case vehicle_status_s::MAIN_STATE_OFFBOARD:
@@ -353,9 +375,11 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	default:
 		break;
 	}
+
 	if (ret == TRANSITION_CHANGED) {
 		if (status->main_state != new_main_state) {
 			status->main_state = new_main_state;
+
 		} else {
 			ret = TRANSITION_NOT_CHANGED;
 		}
@@ -367,7 +391,8 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 /**
  * Transition from one hil state to another
  */
-transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
+transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub,
+		struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
@@ -448,6 +473,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 
 						printf("Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
 					}
+
 					closedir(d);
 
 					ret = TRANSITION_CHANGED;
@@ -463,10 +489,13 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 
 				const char *devname;
 				unsigned int handle = 0;
-				for(;;) {
+
+				for (;;) {
 					devname = px4_get_device_names(&handle);
-					if (devname == NULL)
+
+					if (devname == NULL) {
 						break;
+					}
 
 					/* skip mavlink */
 					if (!strcmp("/dev/mavlink", devname)) {
@@ -495,6 +524,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 				mavlink_log_critical(mavlink_fd, "Not switching to HIL when armed");
 				ret = TRANSITION_DENIED;
 			}
+
 			break;
 
 		default:
@@ -509,6 +539,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 		// XXX also set lockdown here
 		orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
 	}
+
 	return ret;
 }
 
@@ -520,7 +551,8 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 {
 	navigation_state_t nav_state_old = status->nav_state;
 
-	bool armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED || status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+	bool armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED
+		      || status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
 	status->failsafe = false;
 
 	/* evaluate main state to decide in normal (non-failsafe) mode */
@@ -530,16 +562,20 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 	case vehicle_status_s::MAIN_STATE_STAB:
 	case vehicle_status_s::MAIN_STATE_ALTCTL:
 	case vehicle_status_s::MAIN_STATE_POSCTL:
+
 		/* require RC for all manual modes */
 		if ((status->rc_signal_lost || status->rc_signal_lost_cmd) && armed && !status->condition_landed) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
+
 			} else if (status->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+
 			} else if (status->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
@@ -571,6 +607,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 				break;
 			}
 		}
+
 		break;
 
 	case vehicle_status_s::MAIN_STATE_AUTO_MISSION:
@@ -583,140 +620,179 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		/* first look at the commands */
 		if (status->engine_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+
 		} else if (status->data_link_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
+
 		} else if (status->gps_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+
 		} else if (status->rc_signal_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
 
-		/* finished handling commands which have priority, now handle failures */
+			/* finished handling commands which have priority, now handle failures */
+
 		} else if (status->gps_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+
 		} else if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		/* datalink loss enabled:
-		 * check for datalink lost: this should always trigger RTGS */
+			/* datalink loss enabled:
+			 * check for datalink lost: this should always trigger RTGS */
+
 		} else if (data_link_loss_enabled && status->data_link_lost) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
+
 			} else if (status->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+
 			} else if (status->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
 
-		/* datalink loss disabled:
-		 * check if both, RC and datalink are lost during the mission
-		 * or RC is lost after the mission is finished: this should always trigger RCRECOVER */
+			/* datalink loss disabled:
+			 * check if both, RC and datalink are lost during the mission
+			 * or RC is lost after the mission is finished: this should always trigger RCRECOVER */
+
 		} else if (!data_link_loss_enabled && ((status->rc_signal_lost && status->data_link_lost) ||
 						       (status->rc_signal_lost && mission_finished))) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
+
 			} else if (status->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+
 			} else if (status->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
 
-		/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
-		} else if (!stay_in_failsafe){
+			/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
+
+		} else if (!stay_in_failsafe) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 		}
+
 		break;
 
 	case vehicle_status_s::MAIN_STATE_AUTO_LOITER:
+
 		/* go into failsafe on a engine failure */
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
-		/* also go into failsafe if just datalink is lost */
+			/* also go into failsafe if just datalink is lost */
+
 		} else if (status->data_link_lost && data_link_loss_enabled) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
+
 			} else if (status->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+
 			} else if (status->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
 
-		/* go into failsafe if RC is lost and datalink loss is not set up */
+			/* go into failsafe if RC is lost and datalink loss is not set up */
+
 		} else if (status->rc_signal_lost && !data_link_loss_enabled) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
+
 			} else if (status->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+
 			} else if (status->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
 
-		/* don't bother if RC is lost if datalink is connected */
+			/* don't bother if RC is lost if datalink is connected */
+
 		} else if (status->rc_signal_lost) {
 
 			/* this mode is ok, we don't need RC for loitering */
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
 		} else {
 			/* everything is perfect */
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 		}
+
 		break;
 
 	case vehicle_status_s::MAIN_STATE_AUTO_RTL:
+
 		/* require global position and home, also go into failsafe on an engine failure */
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+
 		} else if ((!status->condition_global_position_valid ||
-					!status->condition_home_position_valid)) {
+			    !status->condition_home_position_valid)) {
 			status->failsafe = true;
 
 			if (status->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+
 			} else if (status->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
+
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 		}
+
 		break;
 
 	case vehicle_status_s::MAIN_STATE_OFFBOARD:
+
 		/* require offboard control, otherwise stay where you are */
 		if (status->offboard_control_signal_lost && !status->rc_signal_lost) {
 			status->failsafe = true;
 
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+
 		} else if (status->offboard_control_signal_lost && status->rc_signal_lost) {
 			status->failsafe = true;
 
 			if (status->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+
 			} else if (status->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
+
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
 		}
+
 	default:
 		break;
 	}
@@ -730,11 +806,13 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 	 * quantities later.
 	 */
 	bool checkAirspeed = false;
+
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
 	if (!status->circuit_breaker_engaged_airspd_check && !status->is_rotary_wing) {
 		checkAirspeed = true;
 	}
 
-	return !Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true);
+	return !Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed,
+					  !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true);
 }
