@@ -85,8 +85,9 @@ float ECL_L1_Pos_Controller::crosstrack_error(void)
 	return _crosstrack_error;
 }
 
-void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector<2> &vector_A, const math::Vector<2> &vector_B, const math::Vector<2> &vector_curr_position,
-				       const math::Vector<2> &ground_speed_vector)
+void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector<2> &vector_A, const math::Vector<2> &vector_B,
+		const math::Vector<2> &vector_curr_position,
+		const math::Vector<2> &ground_speed_vector)
 {
 
 	/* this follows the logic presented in [1] */
@@ -96,7 +97,8 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector<2> &vector_A, 
 	float ltrack_vel;
 
 	/* get the direction between the last (visited) and next waypoint */
-	_target_bearing = get_bearing_to_next_waypoint(vector_curr_position(0), vector_curr_position(1), vector_B(0), vector_B(1));
+	_target_bearing = get_bearing_to_next_waypoint(vector_curr_position(0), vector_curr_position(1), vector_B(0),
+			  vector_B(1));
 
 	/* enforce a minimum ground speed of 0.1 m/s to avoid singularities */
 	float ground_speed = math::max(ground_speed_vector.length(), 0.1f);
@@ -133,7 +135,7 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector<2> &vector_A, 
 
 	/* estimate airplane position WRT to B */
 	math::Vector<2> vector_B_to_P_unit = get_local_planar_vector(vector_B, vector_curr_position).normalized();
-	
+
 	/* calculate angle of airplane position vector relative to line) */
 
 	// XXX this could probably also be based solely on the dot product
@@ -154,14 +156,15 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector<2> &vector_A, 
 		/* bearing from current position to L1 point */
 		_nav_bearing = atan2f(-vector_A_to_airplane_unit(1) , -vector_A_to_airplane_unit(0));
 
-	/*
-	 * If the AB vector and the vector from B to airplane point in the same
-	 * direction, we have missed the waypoint. At +- 90 degrees we are just passing it.
-	 */
+		/*
+		 * If the AB vector and the vector from B to airplane point in the same
+		 * direction, we have missed the waypoint. At +- 90 degrees we are just passing it.
+		 */
+
 	} else if (fabsf(AB_to_BP_bearing) < math::radians(100.0f)) {
 		/*
 		 * Extension, fly back to waypoint.
-		 * 
+		 *
 		 * This corner case is possible if the system was following
 		 * the AB line from waypoint A to waypoint B, then is
 		 * switched to manual mode (or otherwise misses the waypoint)
@@ -169,7 +172,7 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector<2> &vector_A, 
 		 */
 
 		/* calculate eta to fly to waypoint B */
-		
+
 		/* velocity across / orthogonal to line */
 		xtrack_vel = ground_speed_vector % (-vector_B_to_P_unit);
 		/* velocity along line */
@@ -211,8 +214,9 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector<2> &vector_A, 
 	_bearing_error = eta;
 }
 
-void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector<2> &vector_A, const math::Vector<2> &vector_curr_position, float radius, int8_t loiter_direction,
-				       const math::Vector<2> &ground_speed_vector)
+void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector<2> &vector_A,
+		const math::Vector<2> &vector_curr_position, float radius, int8_t loiter_direction,
+		const math::Vector<2> &ground_speed_vector)
 {
 	/* the complete guidance logic in this section was proposed by [2] */
 
@@ -222,7 +226,8 @@ void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector<2> &vector_A, con
 	float K_velocity = 2.0f * _L1_damping * omega;
 
 	/* update bearing to next waypoint */
-	_target_bearing = get_bearing_to_next_waypoint(vector_curr_position(0), vector_curr_position(1), vector_A(0), vector_A(1));
+	_target_bearing = get_bearing_to_next_waypoint(vector_curr_position(0), vector_curr_position(1), vector_A(0),
+			  vector_A(1));
 
 	/* ground speed, enforce minimum of 0.1 m/s to avoid singularities */
 	float ground_speed = math::max(ground_speed_vector.length() , 0.1f);
@@ -239,6 +244,7 @@ void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector<2> &vector_A, con
 	if (vector_A_to_airplane.length() > FLT_EPSILON) {
 		/* store the normalized vector from waypoint A to current position */
 		vector_A_to_airplane_unit = vector_A_to_airplane.normalized();
+
 	} else {
 		vector_A_to_airplane_unit = vector_A_to_airplane;
 	}
@@ -278,7 +284,8 @@ void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector<2> &vector_A, con
 	}
 
 	/* calculate centripetal acceleration setpoint */
-	float lateral_accel_sp_circle_centripetal = tangent_vel * tangent_vel / math::max((0.5f * radius) , (radius + xtrack_err_circle));
+	float lateral_accel_sp_circle_centripetal = tangent_vel * tangent_vel / math::max((0.5f * radius) ,
+			(radius + xtrack_err_circle));
 
 	/* add PD control on circle and centripetal acceleration for total circle command */
 	float lateral_accel_sp_circle = loiter_direction * (lateral_accel_sp_circle_pd + lateral_accel_sp_circle_centripetal);
@@ -290,7 +297,7 @@ void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector<2> &vector_A, con
 
 	// XXX check switch over
 	if ((lateral_accel_sp_center < lateral_accel_sp_circle && loiter_direction > 0 && xtrack_err_circle > 0.0f) ||
-		(lateral_accel_sp_center > lateral_accel_sp_circle && loiter_direction < 0 && xtrack_err_circle > 0.0f)) {
+	    (lateral_accel_sp_center > lateral_accel_sp_circle && loiter_direction < 0 && xtrack_err_circle > 0.0f)) {
 		_lateral_accel = lateral_accel_sp_center;
 		_circle_mode = false;
 		/* angle between requested and current velocity vector */
@@ -308,13 +315,14 @@ void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector<2> &vector_A, con
 }
 
 
-void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float current_heading, const math::Vector<2> &ground_speed_vector)
+void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float current_heading,
+		const math::Vector<2> &ground_speed_vector)
 {
 	/* the complete guidance logic in this section was proposed by [2] */
 
 	float eta;
 
-	/* 
+	/*
 	 * As the commanded heading is the only reference
 	 * (and no crosstrack correction occurs),
 	 * target and navigation bearing become the same
@@ -324,7 +332,7 @@ void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float cur
 	eta = _wrap_pi(eta);
 
 	/* consequently the bearing error is exactly eta: */
-	_bearing_error = eta; 
+	_bearing_error = eta;
 
 	/* ground speed is the length of the ground speed vector */
 	float ground_speed = ground_speed_vector.length();
@@ -361,11 +369,13 @@ void ECL_L1_Pos_Controller::navigate_level_flight(float current_heading)
 }
 
 
-math::Vector<2> ECL_L1_Pos_Controller::get_local_planar_vector(const math::Vector<2> &origin, const math::Vector<2> &target) const
+math::Vector<2> ECL_L1_Pos_Controller::get_local_planar_vector(const math::Vector<2> &origin,
+		const math::Vector<2> &target) const
 {
 	/* this is an approximation for small angles, proposed by [2] */
 
-	math::Vector<2> out(math::radians((target(0) - origin(0))), math::radians((target(1) - origin(1))*cosf(math::radians(origin(0)))));
+	math::Vector<2> out(math::radians((target(0) - origin(0))),
+			    math::radians((target(1) - origin(1))*cosf(math::radians(origin(0)))));
 
 	return out * static_cast<float>(CONSTANTS_RADIUS_OF_EARTH);
 }
