@@ -94,6 +94,7 @@
 #endif
 static const int ERROR = -1;
 
+#define DEFAULT_REMOTE_PORT_UDP			14550 ///< GCS port per MAVLink spec
 #define DEFAULT_DEVICE_NAME			"/dev/ttyS1"
 #define MAX_DATA_RATE				10000000	///< max data rate in bytes/s
 #define MAIN_LOOP_DELAY 			10000	///< 100 Hz @ 1000 bytes/s data rate
@@ -885,6 +886,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 	} else if (get_protocol() == TCP) {
 		// not implemented, but possible to do so
+		warnx("TCP transport pending implementation");
 	}
 #endif
 
@@ -975,9 +977,10 @@ Mavlink::init_udp()
 	}
 
 	// set default target address
+	memset((char *)&_src_addr, 0, sizeof(_src_addr));
 	_src_addr.sin_family = AF_INET;
 	inet_aton("127.0.0.1", &_src_addr.sin_addr);
-	_src_addr.sin_port = htons(_network_port);
+	_src_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
 
 #endif
 }
