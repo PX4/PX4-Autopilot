@@ -38,22 +38,20 @@
 
 namespace uORB_test
 {
-   struct orb_topic_A
-   {
-     int16_t val;
-   };
+struct orb_topic_A {
+	int16_t val;
+};
 
-   struct orb_topic_B
-   {
-     int16_t val;
-   };
+struct orb_topic_B {
+	int16_t val;
+};
 
 
-   ORB_DEFINE( topicA, struct orb_topic_A );
-   ORB_DEFINE( topicB, struct orb_topic_B );
+ORB_DEFINE(topicA, struct orb_topic_A);
+ORB_DEFINE(topicB, struct orb_topic_B);
 
-   ORB_DEFINE( topicA_clone, struct orb_topic_A );
-   ORB_DEFINE( topicB_clone, struct orb_topic_B );
+ORB_DEFINE(topicA_clone, struct orb_topic_A);
+ORB_DEFINE(topicB_clone, struct orb_topic_B);
 }
 
 #endif // _UnitTest_uORBTopics_hpp_
