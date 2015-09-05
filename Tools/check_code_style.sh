@@ -3,6 +3,17 @@ set -eu
 failed=0
 for fn in $(find src/examples \
                  src/systemcmds \
+                 src/drivers/blinkm \
+                 src/drivers/bma180 \
+                 src/drivers/pca9685 \
+                 src/drivers/pca8574 \
+                 src/drivers/md25 \
+                 src/drivers/ms5611 \
+                 src/lib/launchdetection \
+                 src/modules/bottle_drop \
+                 src/modules/dataman \
+                 src/modules/fixedwing_backside \
+                 src/modules/segway \
                    -path './Build' -prune -o \
                    -path './mavlink' -prune -o \
                    -path './NuttX' -prune -o \
