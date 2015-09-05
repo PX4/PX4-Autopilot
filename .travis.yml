@@ -56,6 +56,9 @@ before_script:
   - ln -s /usr/bin/ccache ~/bin/g++-4.8
   - ln -s /usr/bin/ccache ~/bin/gcc-4.8
   - export PATH=~/bin:$PATH
+# grab astyle 2.05.1
+  - wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
+  - astyle --version
 
 env:
   global:
@@ -66,6 +69,7 @@ env:
     - PX4_AWS_BUCKET=px4-travis
 
 script:
+  - make check_format
   - ccache -z
   - arm-none-eabi-gcc --version
   - echo 'Building POSIX Firmware..' && echo -en 'travis_fold:start:script.1\\r'

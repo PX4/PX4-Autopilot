@@ -191,6 +191,7 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "index_used")) {
 			if (argc >= 3) {
 				return do_show_index(argv[2], true);
+
 			} else {
 				warnx("no index provided");
 				return 1;
@@ -200,6 +201,7 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "index")) {
 			if (argc >= 3) {
 				return do_show_index(argv[2], false);
+
 			} else {
 				warnx("no index provided");
 				return 1;
@@ -299,6 +301,7 @@ do_show_index(const char *index, bool used_index)
 
 	if (used_index) {
 		param = param_for_used_index(i);
+
 	} else {
 		param = param_for_index(i);
 	}
@@ -326,6 +329,7 @@ do_show_index(const char *index, bool used_index)
 		}
 
 		break;
+
 	default:
 		printf("<unknown type %d>\n", 0 + param_type(param));
 	}
@@ -537,7 +541,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 
 				float g = strtod(vals[k], &end);
 
-				if (((cmp_op == COMPARE_OPERATOR_EQUAL) && (fabsf(f - g) < 1e-7f)) || 
+				if (((cmp_op == COMPARE_OPERATOR_EQUAL) && (fabsf(f - g) < 1e-7f)) ||
 				    ((cmp_op == COMPARE_OPERATOR_GREATER) && (f > g))) {
 					printf(" %4.4f: ", (double)f);
 					ret = 0;
@@ -575,6 +579,7 @@ do_reset(const char *excludes[], int num_excludes)
 		warnx("Param export failed.");
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -602,5 +607,6 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 		return 1;
 
 	}
+
 	return 0;
 }

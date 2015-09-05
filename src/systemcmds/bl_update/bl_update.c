@@ -61,33 +61,40 @@ static void setopt(void);
 int
 bl_update_main(int argc, char *argv[])
 {
-	if (argc != 2)
+	if (argc != 2) {
 		errx(1, "missing firmware filename or command");
+	}
 
-	if (!strcmp(argv[1], "setopt"))
+	if (!strcmp(argv[1], "setopt")) {
 		setopt();
+	}
 
 	int fd = open(argv[1], O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "open %s", argv[1]);
+	}
 
 	struct stat s;
 
-	if (stat(argv[1], &s) != 0)
+	if (stat(argv[1], &s) != 0) {
 		err(1, "stat %s", argv[1]);
+	}
 
 	/* sanity-check file size */
-	if (s.st_size > BL_FILE_SIZE_LIMIT)
+	if (s.st_size > BL_FILE_SIZE_LIMIT) {
 		errx(1, "%s: file too large (limit: %u, actual: %d)", argv[1], BL_FILE_SIZE_LIMIT, s.st_size);
+	}
 
 	uint8_t *buf = malloc(s.st_size);
 
-	if (buf == NULL)
+	if (buf == NULL) {
 		errx(1, "failed to allocate %u bytes for firmware buffer", s.st_size);
+	}
 
-	if (read(fd, buf, s.st_size) != s.st_size)
+	if (read(fd, buf, s.st_size) != s.st_size) {
 		err(1, "firmware read error");
+	}
 
 	close(fd);
 
@@ -193,24 +200,27 @@ setopt(void)
 	const uint16_t opt_mask = (3 << 2);		/* BOR_LEV bitmask */
 	const uint16_t opt_bits = (0 << 2);		/* BOR = 0, setting for 2.7-3.6V operation */
 
-	if ((*optcr & opt_mask) == opt_bits)
+	if ((*optcr & opt_mask) == opt_bits) {
 		errx(0, "option bits are already set as required");
+	}
 
 	/* unlock the control register */
 	volatile uint32_t *optkeyr = (volatile uint32_t *)0x40023c08;
 	*optkeyr = 0x08192a3bU;
 	*optkeyr = 0x4c5d6e7fU;
 
-	if (*optcr & 1)
+	if (*optcr & 1) {
 		errx(1, "option control register unlock failed");
+	}
 
 	/* program the new option value */
 	*optcr = (*optcr & ~opt_mask) | opt_bits | (1 << 1);
 
 	usleep(1000);
 
-	if ((*optcr & opt_mask) == opt_bits)
+	if ((*optcr & opt_mask) == opt_bits) {
 		errx(0, "option bits set");
+	}
 
 	errx(1, "option bits setting failed; readback 0x%04x", *optcr);
 
