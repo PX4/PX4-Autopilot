@@ -69,11 +69,11 @@ int publisher_main(int argc, char *argv[])
 		task_should_exit = false;
 
 		daemon_task = px4_task_spawn_cmd("publisher",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2000,
-				       main,
-					(argv) ? (char* const*)&argv[2] : (char* const*)NULL);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 main,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 
 		exit(0);
 	}
