@@ -89,14 +89,15 @@ LaunchDetectionResult LaunchDetector::getLaunchDetected()
 {
 	if (launchdetection_on.get() == 1) {
 		if (activeLaunchDetectionMethodIndex < 0) {
-		/* None of the active launchmethods has detected a launch, check all launchmethods */
+			/* None of the active launchmethods has detected a launch, check all launchmethods */
 			for (unsigned i = 0; i < (sizeof(launchMethods) / sizeof(launchMethods[0])); i++) {
-				if(launchMethods[i]->getLaunchDetected() != LAUNCHDETECTION_RES_NONE) {
+				if (launchMethods[i]->getLaunchDetected() != LAUNCHDETECTION_RES_NONE) {
 					warnx("selecting launchmethod %d", i);
 					activeLaunchDetectionMethodIndex = i; // from now on only check this method
 					return launchMethods[i]->getLaunchDetected();
 				}
 			}
+
 		} else {
 			return launchMethods[activeLaunchDetectionMethodIndex]->getLaunchDetected();
 		}
@@ -105,7 +106,8 @@ LaunchDetectionResult LaunchDetector::getLaunchDetected()
 	return LAUNCHDETECTION_RES_NONE;
 }
 
-float LaunchDetector::getPitchMax(float pitchMaxDefault) {
+float LaunchDetector::getPitchMax(float pitchMaxDefault)
+{
 	if (!launchdetection_on.get()) {
 		return pitchMaxDefault;
 	}
@@ -113,11 +115,13 @@ float LaunchDetector::getPitchMax(float pitchMaxDefault) {
 	/* if a lauchdetectionmethod is active or only one exists return the pitch limit from this method,
 	 * otherwise use the default limit */
 	if (activeLaunchDetectionMethodIndex < 0) {
-		if (sizeof(launchMethods)/sizeof(LaunchMethod *) > 1) {
+		if (sizeof(launchMethods) / sizeof(LaunchMethod *) > 1) {
 			return pitchMaxDefault;
+
 		} else {
 			return launchMethods[0]->getPitchMax(pitchMaxDefault);
 		}
+
 	} else {
 		return launchMethods[activeLaunchDetectionMethodIndex]->getPitchMax(pitchMaxDefault);
 	}
