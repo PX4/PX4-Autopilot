@@ -154,7 +154,6 @@ Mavlink::Mavlink() :
 	_receive_thread {},
 	_verbose(false),
 	_forwarding_on(false),
-	_passing_on(false),
 	_ftp_on(false),
 #ifndef __PX4_POSIX
 	_uart_fd(-1),
@@ -1322,7 +1321,7 @@ Mavlink::message_buffer_mark_read(int n)
 void
 Mavlink::pass_message(const mavlink_message_t *msg)
 {
-	if (_passing_on) {
+	if (_forwarding_on) {
 		/* size is 8 bytes plus variable payload */
 		int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
 		pthread_mutex_lock(&_message_buffer_mutex);
@@ -1497,10 +1496,6 @@ Mavlink::task_main(int argc, char *argv[])
 			_forwarding_on = true;
 			break;
 
-		case 'p':
-			_passing_on = true;
-			break;
-
 		case 'v':
 			_verbose = true;
 			break;
@@ -1566,7 +1561,7 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_logbuffer_init(&_logbuffer, 5);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
-	if (_passing_on || _ftp_on) {
+	if (_forwarding_on || _ftp_on) {
 		/* initialize message buffer if multiplexing is on or its needed for FTP.
 		 * make space for two messages plus off-by-one space as we use the empty element
 		 * marker ring buffer approach.
@@ -1838,7 +1833,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* pass messages from other UARTs or FTP worker */
-		if (_passing_on || _ftp_on) {
+		if (_forwarding_on || _ftp_on) {
 
 			bool is_part;
 			uint8_t *read_ptr;
@@ -1947,7 +1942,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* close mavlink logging device */
 	px4_close(_mavlink_fd);
 
-	if (_passing_on || _ftp_on) {
+	if (_forwarding_on || _ftp_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}

@@ -379,7 +379,6 @@ private:
 
 	bool			_verbose;
 	bool			_forwarding_on;
-	bool			_passing_on;
 	bool			_ftp_on;
 #ifndef __PX4_QURT
 	int			_uart_fd;
