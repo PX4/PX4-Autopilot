@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -eu
 failed=0
-for fn in $(find . -path './Build' -prune -o \
+for fn in $(find src/examples \
+                 src/systemcmds \
+                   -path './Build' -prune -o \
                    -path './mavlink' -prune -o \
                    -path './NuttX' -prune -o \
                    -path './src/lib/eigen' -prune -o \
