@@ -53,8 +53,7 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.a:	generateuorbtopicheaders
 		WORK_DIR=$(work_dir) \
 		$(FIRMWARE_GOAL)
 
-HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
-#V_ARCH			 = v4
+HEXAGON_TOOLS_ROOT	 ?= /opt/6.4.03
 V_ARCH			 = v5
 HEXAGON_CLANG_BIN	 = $(addsuffix /qc/bin,$(HEXAGON_TOOLS_ROOT))
 SIM     = $(HEXAGON_CLANG_BIN)/hexagon-sim

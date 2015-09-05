@@ -5,6 +5,7 @@
 #
 # Board support modules
 #
+MODULES		+= drivers/boards/sitl
 MODULES		+= drivers/device
 MODULES		+= drivers/blinkm
 MODULES		+= drivers/pwm_out_sim
