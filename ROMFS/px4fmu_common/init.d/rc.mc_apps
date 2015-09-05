@@ -21,9 +21,23 @@ then
 	else
 		attitude_estimator_q start
 	fi
+
 	position_estimator_inav start
+
 else
-	ekf_att_pos_estimator start
+	if param compare LPE_ENABLED 1
+	then
+		if param compare EKF_ATT_ENABLED 1
+		then
+			attitude_estimator_ekf start
+		else
+			attitude_estimator_q start
+		fi
+
+		local_position_estimator start
+	else
+		ekf_att_pos_estimator start
+	fi
 fi
 
 if mc_att_control start
