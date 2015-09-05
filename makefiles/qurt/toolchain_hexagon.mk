@@ -47,7 +47,7 @@ endif
 #
 HEXAGON_TOOLS_ROOT	 ?= /opt/6.4.03
 #HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
-HEXAGON_SDK_ROOT	 = /opt/Hexagon_SDK/2.0
+HEXAGON_SDK_ROOT	 ?= /opt/Hexagon_SDK/2.0
 V_ARCH			 = v5
 CROSSDEV		 = hexagon-
 HEXAGON_BIN		 = $(addsuffix /gnu/bin,$(HEXAGON_TOOLS_ROOT))

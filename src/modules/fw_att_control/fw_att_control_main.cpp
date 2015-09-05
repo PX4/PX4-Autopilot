@@ -648,8 +648,8 @@ FixedwingAttitudeControl::task_main()
 	vehicle_manual_poll();
 	vehicle_status_poll();
 
-	/* wakeup source(s) */
-	struct pollfd fds[2];
+	/* wakeup source */
+	px4_pollfd_struct_t fds[2];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -660,11 +660,10 @@ FixedwingAttitudeControl::task_main()
 	_task_running = true;
 
 	while (!_task_should_exit) {
-
 		static int loop_counter = 0;
 
 		/* wait for up to 500ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0) {
@@ -691,7 +690,6 @@ FixedwingAttitudeControl::task_main()
 
 		/* only run controller if attitude changed */
 		if (fds[1].revents & POLLIN) {
-
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
@@ -702,6 +700,7 @@ FixedwingAttitudeControl::task_main()
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
+
 
 			if (_vehicle_status.is_vtol && _parameters.vtol_type == 0) {
 				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode

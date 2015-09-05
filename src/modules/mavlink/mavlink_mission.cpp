@@ -479,8 +479,6 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 
 			} else {
 				if (_verbose) { warnx("WPM: MISSION_REQUEST_LIST OK nothing to send, mission is empty"); }
-
-				_mavlink->send_statustext_info("WPM: mission is empty");
 			}
 
 			send_mission_count(msg->sysid, msg->compid, _count);

@@ -117,8 +117,23 @@
 
 #include <systemlib/err.h>
 
+/* Check that tone alarm and HRT timers are different */
+#if defined(TONE_ALARM_TIMER)  && defined(HRT_TIMER)
+# if TONE_ALARM_TIMER == HRT_TIMER
+#   error TONE_ALARM_TIMER and HRT_TIMER must use different timers.
+# endif
+#endif
+
 /* Tone alarm configuration */
-#if   TONE_ALARM_TIMER == 2
+#if   TONE_ALARM_TIMER == 1
+# define TONE_ALARM_BASE              STM32_TIM1_BASE
+# define TONE_ALARM_CLOCK             STM32_APB2_TIM1_CLKIN
+# define TONE_ALARM_CLOCK_POWER_REG   STM32_RCC_APB2ENR
+# define TONE_ALARM_CLOCK_ENABLE      RCC_APB2ENR_TIM1EN
+# ifdef CONFIG_STM32_TIM1
+#  error Must not set CONFIG_STM32_TIM1 when TONE_ALARM_TIMER is 1
+# endif
+#elif TONE_ALARM_TIMER == 2
 # define TONE_ALARM_BASE		STM32_TIM2_BASE
 # define TONE_ALARM_CLOCK		STM32_APB1_TIM2_CLKIN
 # define TONE_ALARM_CLOCK_POWER_REG   STM32_RCC_APB1ENR
@@ -150,6 +165,14 @@
 # ifdef CONFIG_STM32_TIM5
 #  error Must not set CONFIG_STM32_TIM5 when TONE_ALARM_TIMER is 5
 # endif
+#elif TONE_ALARM_TIMER == 8
+# define TONE_ALARM_BASE		STM32_TIM8_BASE
+# define TONE_ALARM_CLOCK		STM32_APB2_TIM8_CLKIN
+# define TONE_ALARM_CLOCK_POWER_REG   STM32_RCC_APB2ENR
+# define TONE_ALARM_CLOCK_ENABLE	RCC_APB2ENR_TIM8EN
+# ifdef CONFIG_STM32_TIM8
+#  error Must not set CONFIG_STM32_TIM8 when TONE_ALARM_TIMER is 8
+# endif
 #elif TONE_ALARM_TIMER == 9
 # define TONE_ALARM_BASE		STM32_TIM9_BASE
 # define TONE_ALARM_CLOCK		STM32_APB2_TIM9_CLKIN
@@ -175,7 +198,7 @@
 #  error Must not set CONFIG_STM32_TIM11 when TONE_ALARM_TIMER is 11
 # endif
 #else
-# error Must set TONE_ALARM_TIMER to a generic timer in order to use this driver.
+# error Must set TONE_ALARM_TIMER to one of the timers between 1 and 11 (inclusive) to use this driver.
 #endif
 
 #if TONE_ALARM_CHANNEL == 1
@@ -208,24 +231,47 @@
  */
 #define REG(_reg)	(*(volatile uint32_t *)(TONE_ALARM_BASE + _reg))
 
-#define rCR1     	REG(STM32_GTIM_CR1_OFFSET)
-#define rCR2     	REG(STM32_GTIM_CR2_OFFSET)
-#define rSMCR    	REG(STM32_GTIM_SMCR_OFFSET)
-#define rDIER    	REG(STM32_GTIM_DIER_OFFSET)
-#define rSR      	REG(STM32_GTIM_SR_OFFSET)
-#define rEGR     	REG(STM32_GTIM_EGR_OFFSET)
-#define rCCMR1   	REG(STM32_GTIM_CCMR1_OFFSET)
-#define rCCMR2   	REG(STM32_GTIM_CCMR2_OFFSET)
-#define rCCER    	REG(STM32_GTIM_CCER_OFFSET)
-#define rCNT     	REG(STM32_GTIM_CNT_OFFSET)
-#define rPSC     	REG(STM32_GTIM_PSC_OFFSET)
-#define rARR     	REG(STM32_GTIM_ARR_OFFSET)
-#define rCCR1    	REG(STM32_GTIM_CCR1_OFFSET)
-#define rCCR2    	REG(STM32_GTIM_CCR2_OFFSET)
-#define rCCR3    	REG(STM32_GTIM_CCR3_OFFSET)
-#define rCCR4    	REG(STM32_GTIM_CCR4_OFFSET)
-#define rDCR     	REG(STM32_GTIM_DCR_OFFSET)
-#define rDMAR    	REG(STM32_GTIM_DMAR_OFFSET)
+#if TONE_ALARM_TIMER == 1 || TONE_ALARM_TIMER == 8 // Note: If using TIM1 or TIM8, then you are using the ADVANCED timers and NOT the GENERAL TIMERS, therefore different registers
+# define rCR1         REG(STM32_ATIM_CR1_OFFSET)
+# define rCR2         REG(STM32_ATIM_CR2_OFFSET)
+# define rSMCR        REG(STM32_ATIM_SMCR_OFFSET)
+# define rDIER        REG(STM32_ATIM_DIER_OFFSET)
+# define rSR          REG(STM32_ATIM_SR_OFFSET)
+# define rEGR         REG(STM32_ATIM_EGR_OFFSET)
+# define rCCMR1       REG(STM32_ATIM_CCMR1_OFFSET)
+# define rCCMR2       REG(STM32_ATIM_CCMR2_OFFSET)
+# define rCCER        REG(STM32_ATIM_CCER_OFFSET)
+# define rCNT         REG(STM32_ATIM_CNT_OFFSET)
+# define rPSC         REG(STM32_ATIM_PSC_OFFSET)
+# define rARR         REG(STM32_ATIM_ARR_OFFSET)
+# define rRCR         REG(STM32_ATIM_RCR_OFFSET)
+# define rCCR1        REG(STM32_ATIM_CCR1_OFFSET)
+# define rCCR2        REG(STM32_ATIM_CCR2_OFFSET)
+# define rCCR3        REG(STM32_ATIM_CCR3_OFFSET)
+# define rCCR4        REG(STM32_ATIM_CCR4_OFFSET)
+# define rBDTR        REG(STM32_ATIM_BDTR_OFFSET)
+# define rDCR         REG(STM32_ATIM_DCR_OFFSET)
+# define rDMAR        REG(STM32_ATIM_DMAR_OFFSET)
+#else
+# define rCR1     	REG(STM32_GTIM_CR1_OFFSET)
+# define rCR2     	REG(STM32_GTIM_CR2_OFFSET)
+# define rSMCR    	REG(STM32_GTIM_SMCR_OFFSET)
+# define rDIER    	REG(STM32_GTIM_DIER_OFFSET)
+# define rSR      	REG(STM32_GTIM_SR_OFFSET)
+# define rEGR     	REG(STM32_GTIM_EGR_OFFSET)
+# define rCCMR1   	REG(STM32_GTIM_CCMR1_OFFSET)
+# define rCCMR2   	REG(STM32_GTIM_CCMR2_OFFSET)
+# define rCCER    	REG(STM32_GTIM_CCER_OFFSET)
+# define rCNT     	REG(STM32_GTIM_CNT_OFFSET)
+# define rPSC     	REG(STM32_GTIM_PSC_OFFSET)
+# define rARR     	REG(STM32_GTIM_ARR_OFFSET)
+# define rCCR1    	REG(STM32_GTIM_CCR1_OFFSET)
+# define rCCR2    	REG(STM32_GTIM_CCR2_OFFSET)
+# define rCCR3    	REG(STM32_GTIM_CCR3_OFFSET)
+# define rCCR4    	REG(STM32_GTIM_CCR4_OFFSET)
+# define rDCR     	REG(STM32_GTIM_DCR_OFFSET)
+# define rDMAR    	REG(STM32_GTIM_DMAR_OFFSET)
+#endif
 
 class ToneAlarm : public device::CDev
 {
@@ -395,6 +441,10 @@ ToneAlarm::init()
 	rCCMR2 = TONE_CCMR2;
 	rCCER = TONE_CCER;
 	rDCR = 0;
+
+#ifdef rBDTR // If using an advanced timer, you need to activate the output
+   rBDTR = ATIM_BDTR_MOE; // enable the main output of the advanced timer
+#endif
 
 	/* toggle the CC output each time the count passes 1 */
 	TONE_rCCR = 1;

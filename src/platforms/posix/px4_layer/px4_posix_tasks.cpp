@@ -280,6 +280,17 @@ void px4_show_tasks()
 
 }
 
+bool px4_task_is_running(const char *taskname)
+{
+	int idx;
+	for (idx=0; idx < PX4_MAX_TASKS; idx++)
+	{
+		if (taskmap[idx].isused && (strcmp(taskmap[idx].name.c_str(), taskname) == 0)) {
+			return true;
+		}
+	}
+	return false;
+}
 __BEGIN_DECLS
 
 unsigned long px4_getpid()

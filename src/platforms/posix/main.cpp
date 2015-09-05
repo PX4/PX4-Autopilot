@@ -32,7 +32,7 @@
  ****************************************************************************/
 /**
  * @file main.cpp
- * Basic shell to execute builtin "apps" 
+ * Basic shell to execute builtin "apps"
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
@@ -42,8 +42,10 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <signal.h>
 
-namespace px4 {
+namespace px4
+{
 void init_once(void);
 }
 
@@ -54,21 +56,34 @@ typedef int (*px4_main_t)(int argc, char *argv[]);
 #include "apps.h"
 #include "px4_middleware.h"
 
-static void run_cmd(const vector<string> &appargs) {
+static bool _ExitFlag = false;
+extern "C" {
+	void _SigIntHandler(int sig_num);
+	void _SigIntHandler(int sig_num)
+	{
+		_ExitFlag = true;
+	}
+}
+
+static void run_cmd(const vector<string> &appargs)
+{
 	// command is appargs[0]
 	string command = appargs[0];
 	cout << "----------------------------------\n";
+
 	if (apps.find(command) != apps.end()) {
-		const char *arg[appargs.size()+2];
+		const char *arg[appargs.size() + 2];
 
 		unsigned int i = 0;
+
 		while (i < appargs.size() && appargs[i] != "") {
 			arg[i] = (char *)appargs[i].c_str();
 			++i;
 		}
+
 		arg[i] = (char *)0;
 		cout << "Running: " << command << "\n";
-		apps[command](i,(char **)arg);
+		apps[command](i, (char **)arg);
 		usleep(40000);
 		cout << "Returning: " << command << "\n";
 
@@ -78,40 +93,110 @@ static void run_cmd(const vector<string> &appargs) {
 	}
 }
 
+static void usage()
+{
+
+	cout << "./mainapp [-d] [startup_config] -h" << std::endl;
+	cout << "   -d            - Optional flag to run the app in daemon mode and does not take listen for user input." <<
+	     std::endl;
+	cout << "                   This is needed if mainapp is intended to be run as a upstart job on linux" << std::endl;
+	cout << "<startup_config> - config file for starting/stopping px4 modules" << std::endl;
+	cout << "   -h            - help/usage information" << std::endl;
+}
+
 static void process_line(string &line)
 {
 	vector<string> appargs(8);
 
-	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >> appargs[7];
+	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
+			   appargs[7];
 	run_cmd(appargs);
 }
 
 int main(int argc, char **argv)
 {
-	px4::init_once();
+	bool daemon_mode = false;
+	signal(SIGINT, _SigIntHandler);
 
-	px4::init(argc, argv, "mainapp");
+	int index = 1;
+	bool error_detected = false;
+	char *commands_file = nullptr;
 
-	// Execute a command list of provided
-	if (argc == 2) {
-		ifstream infile(argv[1]);
+	while (index < argc) {
+		if (argv[index][0] == '-') {
+			// the arg starts with -
+			if (strcmp(argv[index], "-d") == 0) {
+				daemon_mode = true;
 
-		if (!infile) {
-			cout << "failed opening script" << argv[1] << std::endl;
-			return 1;
+			} else if (strcmp(argv[index], "-h") == 0) {
+				usage();
+				return 0;
+
+			} else {
+				PX4_WARN("Unknown/unhandled parameter: %s", argv[index]);
+				return 1;
+			}
+
+		} else {
+			// this is an argument that does not have '-' prefix; treat it like a file name
+			ifstream infile(argv[index]);
+
+			if (infile.good()) {
+				infile.close();
+				commands_file = argv[index];
+
+			} else {
+				PX4_WARN("Error opening file: %s", argv[index]);
+				error_detected = true;
+				break;
+			}
 		}
 
-		for (string line; getline(infile, line, '\n'); ) {
-			process_line(line);
-		}
+		++index;
 	}
 
-	string mystr;
-	
-	while(1) {
-		cout << "Enter a command and its args:" << endl;
-		getline (cin,mystr);
-		process_line(mystr);
-		mystr = "";
+	if (!error_detected) {
+		px4::init_once();
+
+		px4::init(argc, argv, "mainapp");
+
+		//if commandfile is present, process the commands from the file
+		if (commands_file != nullptr) {
+			ifstream infile(commands_file);
+
+			if (infile.is_open()) {
+				for (string line; getline(infile, line, '\n');) {
+					process_line(line);
+				}
+
+			} else {
+				PX4_WARN("Error opening file: %s", commands_file);
+			}
+		}
+
+		if (!daemon_mode) {
+			string mystr;
+
+			while (!_ExitFlag) {
+				cout << "Enter a command and its args:" << endl;
+				getline(cin, mystr);
+				process_line(mystr);
+				mystr = "";
+			}
+
+		} else {
+			while (!_ExitFlag) {
+				sleep(1000000);
+			}
+		}
+
+		if (px4_task_is_running("muorb")) {
+			// sending muorb stop is needed if it is running to exit cleanly
+			vector<string> muorb_stop_cmd = { "muorb", "stop" };
+			run_cmd(muorb_stop_cmd);
+		}
+
+		vector<string> shutdown_cmd = { "shutdown" };
+		run_cmd(shutdown_cmd);
 	}
 }
