@@ -52,7 +52,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
@@ -73,10 +72,13 @@
 #include <lib/ecl/validation/data_validator_group.h>
 #include "estimator_22states.h"
 
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
 //Forward declaration
 class AttPosEKF;
 
-class AttitudePositionEstimatorEKF
+class AttitudePositionEstimatorEKF : public control::SuperBlock
 {
 public:
     /**
@@ -173,10 +175,6 @@ private:
     hrt_abstime _last_accel;
     hrt_abstime _last_mag;
 
-    struct gyro_scale               _gyro_offsets[3];
-    struct accel_scale              _accel_offsets[3];
-    struct mag_scale                _mag_offsets[3];
-
     struct sensor_combined_s            _sensor_combined;
 
     struct map_projection_reference_s   _pos_ref;
@@ -224,6 +222,10 @@ private:
     bool            _newRangeData;
 
     int             _mavlink_fd;
+
+    control::BlockParamFloat _mag_offset_x;
+    control::BlockParamFloat _mag_offset_y;
+    control::BlockParamFloat _mag_offset_z;
 
     struct {
         int32_t vel_delay_ms;

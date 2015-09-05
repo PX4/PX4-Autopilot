@@ -119,6 +119,7 @@ AttitudePositionEstimatorEKF	*g_estimator = nullptr;
 }
 
 AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
+	SuperBlock(NULL, "EKF"),
 	_task_should_exit(false),
 	_task_running(false),
 	_estimator_task(-1),
@@ -161,10 +162,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 
 	_last_accel(0),
 	_last_mag(0),
-
-	_gyro_offsets{},
-	_accel_offsets{},
-	_mag_offsets{},
 
 	_sensor_combined{},
 
@@ -211,6 +208,9 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_newRangeData(false),
 
 	_mavlink_fd(-1),
+	_mag_offset_x(this, "PE_MAGB_X"),
+	_mag_offset_y(this, "PE_MAGB_Y"),
+	_mag_offset_z(this, "PE_MAGB_Z"),
 	_parameters{},
 	_parameter_handles{},
 	_ekf(nullptr),
@@ -246,48 +246,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 
 	/* fetch initial parameter values */
 	parameters_update();
-
-	/* get offsets */
-	int fd, res;
-
-	for (unsigned s = 0; s < 3; s++) {
-		char str[30];
-		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
-		fd = px4_open(str, O_RDONLY);
-
-		if (fd >= 0) {
-			res = px4_ioctl(fd, GYROIOCGSCALE, (long unsigned int)&_gyro_offsets[s]);
-			px4_close(fd);
-
-			if (res) {
-				PX4_WARN("G%u SCALE FAIL", s);
-			}
-		}
-
-		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
-		fd = px4_open(str, O_RDONLY);
-
-		if (fd >= 0) {
-			res = px4_ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&_accel_offsets[s]);
-			px4_close(fd);
-
-			if (res) {
-				PX4_WARN("A%u SCALE FAIL", s);
-			}
-		}
-
-		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
-		fd = px4_open(str, O_RDONLY);
-
-		if (fd >= 0) {
-			res = px4_ioctl(fd, MAGIOCGSCALE, (long unsigned int)&_mag_offsets[s]);
-			px4_close(fd);
-
-			if (res) {
-				PX4_WARN("M%u SCALE FAIL", s);
-			}
-		}
-	}
 }
 
 AttitudePositionEstimatorEKF::~AttitudePositionEstimatorEKF()
@@ -326,6 +284,8 @@ int AttitudePositionEstimatorEKF::enable_logging(bool logging)
 
 int AttitudePositionEstimatorEKF::parameters_update()
 {
+	/* update C++ param system */
+	updateParams();
 
 	param_get(_parameter_handles.vel_delay_ms, &(_parameters.vel_delay_ms));
 	param_get(_parameter_handles.pos_delay_ms, &(_parameters.pos_delay_ms));
@@ -363,6 +323,13 @@ int AttitudePositionEstimatorEKF::parameters_update()
 		_ekf->accelProcessNoise = _parameters.acc_pnoise;
 		_ekf->airspeedMeasurementSigma = _parameters.eas_noise;
 		_ekf->rngFinderPitch = 0.0f; // XXX base on SENS_BOARD_Y_OFF
+		#if 0
+		// Initially disable loading until
+		// convergence is flight-test proven
+		_ekf->magBias.x = _mag_offset_x.get();
+		_ekf->magBias.y = _mag_offset_y.get();
+		_ekf->magBias.z = _mag_offset_z.get();
+		#endif
 	}
 
 	return OK;
@@ -375,12 +342,24 @@ void AttitudePositionEstimatorEKF::vehicle_status_poll()
 	/* Check HIL state if vehicle status has changed */
 	orb_check(_vstatus_sub, &vstatus_updated);
 
+	bool landed = _vstatus.condition_landed;
+
 	if (vstatus_updated) {
 
 		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
 
-		//Tell EKF that the vehicle is a fixed wing or multi-rotor
+		// Tell EKF that the vehicle is a fixed wing or multi-rotor
 		_ekf->setIsFixedWing(!_vstatus.is_rotary_wing);
+
+		// Save params on landed
+		if (!landed && _vstatus.condition_landed) {
+			_mag_offset_x.set(_ekf->magBias.x);
+			_mag_offset_x.commit();
+			_mag_offset_y.set(_ekf->magBias.y);
+			_mag_offset_y.commit();
+			_mag_offset_z.set(_ekf->magBias.z);
+			_mag_offset_z.commit();
+		}
 	}
 }
 
@@ -1249,23 +1228,41 @@ void AttitudePositionEstimatorEKF::pollData()
 	hrt_abstime curr_time = hrt_absolute_time();
 	(void)_voter_gyro.get_best(curr_time, &_gyro_main);
 	if (_gyro_main >= 0) {
+
+		// Use pre-integrated values if possible
+		if (_sensor_combined.gyro_integral_dt[_gyro_main] > 0) {
+			_ekf->dAngIMU.x = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 0];
+			_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 1];
+			_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 2];
+		} else {
+			_ekf->dAngIMU.x = 0.5f * (_ekf->angRate.x + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 0]);
+			_ekf->dAngIMU.y = 0.5f * (_ekf->angRate.y + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 1]);
+			_ekf->dAngIMU.z = 0.5f * (_ekf->angRate.z + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 2]);
+		}
+
 		_ekf->angRate.x = _sensor_combined.gyro_rad_s[_gyro_main * 3 + 0];
 		_ekf->angRate.y = _sensor_combined.gyro_rad_s[_gyro_main * 3 + 1];
 		_ekf->angRate.z = _sensor_combined.gyro_rad_s[_gyro_main * 3 + 2];
-		_ekf->dAngIMU.x = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 0];
-		_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 1];
-		_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 2];
 		perf_count(_perf_gyro);
 	}
 
 	(void)_voter_accel.get_best(curr_time, &_accel_main);
 	if (_accel_main >= 0 && (_last_accel != _sensor_combined.accelerometer_timestamp[_accel_main])) {
+
+		// Use pre-integrated values if possible
+		if (_sensor_combined.accelerometer_integral_dt[_accel_main] > 0) {
+			_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 0];
+			_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 1];
+			_ekf->dVelIMU.z = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 2];
+		} else {
+			_ekf->dVelIMU.x = 0.5f * (_ekf->accel.x + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 0]);
+			_ekf->dVelIMU.y = 0.5f * (_ekf->accel.y + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 1]);
+			_ekf->dVelIMU.z = 0.5f * (_ekf->accel.z + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 2]);
+		}
+
 		_ekf->accel.x = _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 0];
 		_ekf->accel.y = _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 1];
 		_ekf->accel.z = _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 2];
-		_ekf->dVelIMU.x = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 0];
-		_ekf->dVelIMU.y = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 1];
-		_ekf->dVelIMU.z = _sensor_combined.accelerometer_integral_m_s[_accel_main * 3 + 2];
 		_last_accel = _sensor_combined.accelerometer_timestamp[_accel_main];
 	}
 
@@ -1277,13 +1274,8 @@ void AttitudePositionEstimatorEKF::pollData()
 		/* fail over to the 2nd mag if we know the first is down */
 		if (mag.length() > 0.1f && (_last_mag != _sensor_combined.magnetometer_timestamp[_mag_main])) {
 			_ekf->magData.x = mag.x;
-			_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
-
 			_ekf->magData.y = mag.y;
-			_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
-
 			_ekf->magData.z = mag.z;
-			_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
 			_newDataMag = true;
 			_last_mag = _sensor_combined.magnetometer_timestamp[_mag_main];
 			perf_count(_perf_mag);
