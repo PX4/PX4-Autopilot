@@ -239,11 +239,13 @@ void at24c_test(void)
 
 	for (count = 0; count < 10000; count++) {
 		ssize_t result = at24c_bread(&g_at24c.mtd, 0, 1, buf);
+
 		if (result == ERROR) {
 			if (errors++ > 2) {
 				vdbg("too many errors\n");
 				return;
 			}
+
 		} else if (result != 1) {
 			vdbg("unexpected %u\n", result);
 		}
@@ -311,8 +313,9 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 			ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
 			perf_end(priv->perf_transfers);
 
-			if (ret >= 0)
+			if (ret >= 0) {
 				break;
+			}
 
 			fvdbg("read stall");
 			usleep(1000);
@@ -396,8 +399,9 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 			ret = I2C_TRANSFER(priv->dev, &msgv[0], 1);
 			perf_end(priv->perf_transfers);
 
-			if (ret >= 0)
+			if (ret >= 0) {
 				break;
+			}
 
 			fvdbg("write stall");
 			usleep(1000);
@@ -503,7 +507,8 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
  *
  ************************************************************************************/
 
-FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev) {
+FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev)
+{
 	FAR struct at24c_dev_s *priv;
 
 	fvdbg("dev: %p\n", dev);
