@@ -8,7 +8,6 @@ param set MC_YAW_P 2.0
 param set MC_YAWRATE_P 0.35
 param set SYS_AUTOSTART 4010
 param set SYS_RESTART_TYPE 2
-param set COM_RC_IN_MODE 2
 dataman start
 param set CAL_GYRO0_ID 2293760
 param set CAL_ACC0_ID 1376256
@@ -35,8 +34,8 @@ barosim start
 adcsim start
 gpssim start
 pwm_out_sim mode_pwm
-commander start
 sensors start
+commander start
 land_detector start multicopter
 navigator start
 attitude_estimator_q start
@@ -53,3 +52,4 @@ mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink boot_complete
+sdlog2 start -r 100 -e -t -a

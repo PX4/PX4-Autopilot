@@ -41,7 +41,10 @@
 
 #pragma once
 
-class DataValidator {
+#include <cmath>
+#include <stdint.h>
+
+class __EXPORT DataValidator {
 public:
 	DataValidator(DataValidator *prev_sibling = nullptr);
 	virtual ~DataValidator();
@@ -90,6 +93,13 @@ public:
 	 */
 	void			print();
 
+	/**
+	 * Set the timeout value
+	 *
+	 * @param timeout_interval_us The timeout interval in microseconds
+	 */
+	void			set_timeout(uint64_t timeout_interval_us) { _timeout_interval = timeout_interval_us; }
+
 private:
 	static const unsigned _dimensions = 3;
 	uint64_t _time_last;			/**< last timestamp */
@@ -110,99 +120,3 @@ private:
 	DataValidator(const DataValidator&);
 	DataValidator operator=(const DataValidator&);
 };
-
-DataValidator::DataValidator(DataValidator *prev_sibling) :
-	_time_last(0),
-	_timeout_interval(50000),
-	_event_count(0),
-	_error_count(0),
-	_mean{0.0f},
-	_lp{0.0f},
-	_M2{0.0f},
-	_rms{0.0f},
-	_value{0.0f},
-	_value_equal_count(0),
-	_sibling(prev_sibling)
-{
-
-}
-
-DataValidator::~DataValidator()
-{
-
-}
-
-void
-DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in)
-{
-	_event_count++;
-	_error_count = error_count_in;
-
-	for (unsigned i = 0; i < _dimensions; i++) {
-		if (_time_last == 0) {
-			_mean[i] = 0;
-			_lp[i] = val[i];
-			_M2[i] = 0;
-		} else {
-			float lp_val = val[i] - _lp[i];
-
-			float delta_val = lp_val - _mean[i];
-			_mean[i] += delta_val / _event_count;
-			_M2[i] += delta_val * (lp_val - _mean[i]);
-			_rms[i] = sqrtf(_M2[i] / (_event_count - 1));
-
-			if (fabsf(_value[i] - val[i]) < 0.000001f) {
-				_value_equal_count++;
-			} else {
-				_value_equal_count = 0;
-			}
-		}
-
-		// XXX replace with better filter, make it auto-tune to update rate
-		_lp[i] = _lp[i] * 0.5f + val[i] * 0.5f;
-
-		_value[i] = val[i];
-	}
-
-	_time_last = timestamp;
-}
-
-float
-DataValidator::confidence(uint64_t timestamp)
-{
-	/* check if we have any data */
-	if (_time_last == 0) {
-		return 0.0f;
-	}
-
-	/* check error count limit */
-	if (_error_count > NORETURN_ERRCOUNT) {
-		return 0.0f;
-	}
-
-	/* we got the exact same sensor value N times in a row */
-	if (_value_equal_count > VALUE_EQUAL_COUNT_MAX) {
-		return 0.0f;
-	}
-
-	/* timed out - that's it */
-	if (timestamp - _time_last > _timeout_interval) {
-		return 0.0f;
-	}
-
-	return 1.0f;
-}
-
-void
-DataValidator::print()
-{
-	if (_time_last == 0) {
-		printf("\tno data\n");
-		return;
-	}
-
-	for (unsigned i = 0; i < _dimensions; i++) {
-		printf("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f\n",
-			(double) _value[i], (double)_lp[i], (double)_mean[i], (double)_rms[i]);
-	}
-}

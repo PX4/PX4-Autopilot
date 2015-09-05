@@ -214,23 +214,23 @@ PARAM_DEFINE_FLOAT(PE_ACC_PNOISE, 0.25f);
  * Generic defaults: 1e-07f, multicopters: 1e-07f, ground vehicles: 1e-07f.
  * Increasing this value will make the gyro bias converge faster but noisier.
  *
- * @min 0.0000001
+ * @min 0.00000005
  * @max 0.00001
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_GBIAS_PNOISE, 1e-06f);
+PARAM_DEFINE_FLOAT(PE_GBIAS_PNOISE, 1e-07f);
 
 /**
  * Accelerometer bias estimate process noise
  *
- * Generic defaults: 0.0001f, multicopters: 0.0001f, ground vehicles: 0.0001f.
+ * Generic defaults: 0.00001f, multicopters: 0.00001f, ground vehicles: 0.00001f.
  * Increasing this value makes the bias estimation faster and noisier.
  *
  * @min 0.00001
  * @max 0.001
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_ABIAS_PNOISE, 0.0002f);
+PARAM_DEFINE_FLOAT(PE_ABIAS_PNOISE, 1e-05f);
 
 /**
  * Magnetometer earth frame offsets process noise
@@ -257,6 +257,42 @@ PARAM_DEFINE_FLOAT(PE_MAGE_PNOISE, 0.0003f);
  * @group Position Estimator
  */
 PARAM_DEFINE_FLOAT(PE_MAGB_PNOISE, 0.0003f);
+
+/**
+ * Magnetometer X bias
+ *
+ * The magnetometer bias. This bias is learnt by the filter over time and
+ * persists between boots.
+ *
+ * @min -0.6
+ * @max 0.6
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_MAGB_X, 0.0f);
+
+/**
+ * Magnetometer Y bias
+ *
+ * The magnetometer bias. This bias is learnt by the filter over time and
+ * persists between boots.
+ *
+ * @min -0.6
+ * @max 0.6
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_MAGB_Y, 0.0f);
+
+/**
+ * Magnetometer Z bias
+ *
+ * The magnetometer bias. This bias is learnt by the filter over time and
+ * persists between boots.
+ *
+ * @min -0.6
+ * @max 0.6
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_MAGB_Z, 0.0f);
 
 /**
  * Threshold for filter initialization.

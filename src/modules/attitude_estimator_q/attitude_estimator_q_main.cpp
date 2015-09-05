@@ -180,6 +180,8 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_voter_accel(3),
 	_voter_mag(3)
 {
+	_voter_mag.set_timeout(200000);
+	
 	_params_handles.w_acc		= param_find("ATT_W_ACC");
 	_params_handles.w_mag		= param_find("ATT_W_MAG");
 	_params_handles.w_gyro_bias	= param_find("ATT_W_GYRO_BIAS");
@@ -225,7 +227,7 @@ int AttitudeEstimatorQ::start()
 	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2000,
+				       2100,
 				       (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
 				       nullptr);
 
@@ -290,7 +292,23 @@ void AttitudeEstimatorQ::task_main()
 			// Feed validator with recent sensor data
 
 			for (unsigned i = 0; i < (sizeof(sensors.gyro_timestamp) / sizeof(sensors.gyro_timestamp[0])); i++) {
-				_voter_gyro.put(i, sensors.gyro_timestamp[i], &sensors.gyro_rad_s[i * 3], sensors.gyro_errcount[i]);
+
+				/* ignore empty fields */
+				if (sensors.gyro_timestamp[i] > 0) {
+
+					float gyro[3];
+
+					for (unsigned j = 0; j < 3; j++) {
+						if (sensors.gyro_integral_dt[i] > 0) {
+							gyro[j] = (double)sensors.gyro_integral_rad[i * 3 + j] / (sensors.gyro_integral_dt[i] / 1e6);
+						} else {
+							/* fall back to angular rate */
+							gyro[j] = sensors.gyro_rad_s[i * 3 + j];
+						}
+					}
+
+					_voter_gyro.put(i, sensors.gyro_timestamp[i], &gyro[0], sensors.gyro_errcount[i]);
+				}
 				_voter_accel.put(i, sensors.accelerometer_timestamp[i], &sensors.accelerometer_m_s2[i * 3], sensors.accelerometer_errcount[i]);
 				_voter_mag.put(i, sensors.magnetometer_timestamp[i], &sensors.magnetometer_ga[i * 3], sensors.magnetometer_errcount[i]);
 			}
@@ -302,6 +320,11 @@ void AttitudeEstimatorQ::task_main()
 			_gyro.set(_voter_gyro.get_best(curr_time, &best_gyro));
 			_accel.set(_voter_accel.get_best(curr_time, &best_accel));
 			_mag.set(_voter_mag.get_best(curr_time, &best_mag));
+
+			if (_accel.length() < 0.01f || _mag.length() < 0.01f) {
+				warnx("WARNING: degenerate accel / mag!");
+				continue;
+			}
 
 			_data_good = true;
 
