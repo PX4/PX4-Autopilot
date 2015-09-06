@@ -87,7 +87,7 @@ static void run_cmd(const vector<string> &appargs)
 
 		arg[i] = (char *)0;
 		apps[command](i, (char **)arg);
-		usleep(45000);
+		usleep(65000);
 
 	} else if (command.compare("help") == 0) {
 		list_builtins();
