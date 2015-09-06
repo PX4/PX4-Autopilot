@@ -14,6 +14,8 @@ for fn in $(find src/examples \
                  src/modules/dataman \
                  src/modules/fixedwing_backside \
                  src/modules/segway \
+                 src/modules/unit_test \
+                 src/modules/systemlib \
                    -path './Build' -prune -o \
                    -path './mavlink' -prune -o \
                    -path './NuttX' -prune -o \
@@ -27,7 +29,13 @@ for fn in $(find src/examples \
                    -path './src/modules/vtol_att_control' -prune -o \
                    -path './unittests/build' -prune -o \
                    -path './unittests/gtest' -prune -o \
-                   -name '*.c' -o -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -not -name '*generated*' -type f); do
+                   -name '*.c' -o -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \
+                   -not -name '*generated*' \
+                   -not -name '*uthash.h' \
+                   -not -name '*utstring.h' \
+                   -not -name '*utlist.h' \
+                   -not -name '*utarray.h' \
+                   -type f); do
   if [ -f "$fn" ];
   then
     ./Tools/fix_code_style.sh --quiet < $fn > $fn.pretty
