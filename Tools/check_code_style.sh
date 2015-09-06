@@ -3,6 +3,7 @@ set -eu
 failed=0
 for fn in $(find src/examples \
                  src/systemcmds \
+                 src/include \
                  src/drivers/blinkm \
                  src/drivers/bma180 \
                  src/drivers/pca9685 \
