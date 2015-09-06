@@ -215,9 +215,9 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameter_handles{},
 	_ekf(nullptr),
 
-	_LP_att_P(100.0f, 10.0f),
-	_LP_att_Q(100.0f, 10.0f),
-	_LP_att_R(100.0f, 10.0f)
+	_LP_att_P(250.0f, 20.0f),
+	_LP_att_Q(250.0f, 20.0f),
+	_LP_att_R(250.0f, 20.0f)
 {
 	_voter_mag.set_timeout(200000);
 
