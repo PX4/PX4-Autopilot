@@ -58,7 +58,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
-#include <lib/mathlib/mathlib.h>
+#include <mathlib/mathlib.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/geo/geo.h>
 #include <lib/ecl/validation/data_validator_group.h>
 #include <mavlink/mavlink_log.h>
@@ -153,6 +154,10 @@ private:
 	DataValidatorGroup _voter_accel;
 	DataValidatorGroup _voter_mag;
 
+	/* Low pass filter for attitude rates */
+	math::LowPassFilter2p _lp_roll_rate;
+	math::LowPassFilter2p _lp_pitch_rate;
+
 	hrt_abstime _vel_prev_t = 0;
 
 	bool		_inited = false;
@@ -178,7 +183,9 @@ private:
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_voter_gyro(3),
 	_voter_accel(3),
-	_voter_mag(3)
+	_voter_mag(3),
+	_lp_roll_rate(250.0f, 20.0f),
+	_lp_pitch_rate(250.0f, 20.0f)
 {
 	_voter_mag.set_timeout(200000);
 	
@@ -408,8 +415,11 @@ void AttitudeEstimatorQ::task_main()
 		att.pitch = euler(1);
 		att.yaw = euler(2);
 
-		att.rollspeed = _rates(0);
-		att.pitchspeed = _rates(1);
+		/* the complimentary filter should reflect the true system
+		 * state, but we need smoother outputs for the control system
+		 */
+		att.rollspeed = _lp_roll_rate.apply(_rates(0));
+		att.pitchspeed = _lp_pitch_rate.apply(_rates(1));
 		att.yawspeed = _rates(2);
 
 		for (int i = 0; i < 3; i++) {
