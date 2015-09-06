@@ -10,6 +10,9 @@ for fn in $(find src/examples \
                  src/drivers/pca8574 \
                  src/drivers/md25 \
                  src/drivers/ms5611 \
+                 src/drivers/stm32 \
+                 src/drivers/px4io \
+                 src/drivers/px4fmu \
                  src/lib/launchdetection \
                  src/modules/bottle_drop \
                  src/modules/dataman \
