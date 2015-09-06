@@ -130,9 +130,9 @@ protected:
 								  setpoint */
 
 	/* Other calculation Blocks */
-	control::BlockLowPass _flightPathAngleLowpass;	/**< low pass filter for the flight path angle */
-	control::BlockLowPass _altitudeLowpass;	/**< low pass filter for altitude */
-	control::BlockLowPass _airspeedLowpass;		/**< low pass filter for airspeed */
+	control::BlockLowPass2 _flightPathAngleLowpass;	/**< low pass filter for the flight path angle */
+	control::BlockLowPass2 _altitudeLowpass;	/**< low pass filter for altitude */
+	control::BlockLowPass2 _airspeedLowpass;		/**< low pass filter for airspeed */
 	control::BlockDerivative _airspeedDerivative;	/**< airspeed derivative calulation */
 
 	/* Output setpoints */
