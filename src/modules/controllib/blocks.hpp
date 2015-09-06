@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
@@ -162,6 +163,33 @@ protected:
 };
 
 int __EXPORT blockHighPassTest();
+
+/**
+ * A 2nd order low pass filter block which uses the 2nd order low pass filter used by px4
+ */
+class __EXPORT BlockLowPass2 : public Block
+{
+public:
+// methods
+	BlockLowPass2(SuperBlock *parent, const char *name, float sample_freq) :
+		Block(parent, name),
+		_fCut(this, ""), // only one parameter, no need to name
+		_fs(sample_freq),
+		_lp(_fs, _fCut.get())
+	{};
+	virtual ~BlockLowPass2() {};
+	float update(float input);
+// accessors
+	float getFCutParam() { return _fCut.get(); }
+	void setState(float state) { _lp.reset(state); }
+protected:
+// attributes
+	control::BlockParamFloat _fCut;
+	float _fs;
+	math::LowPassFilter2p _lp;
+};
+
+// XXX missing test function for BlockLowPass2
 
 /**
  * A rectangular integrator.

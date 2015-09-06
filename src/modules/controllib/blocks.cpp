@@ -198,6 +198,14 @@ int blockHighPassTest()
 	return 0;
 }
 
+float BlockLowPass2::update(float input)
+{
+	if (_lp.get_cutoff_freq() != getFCutParam()) {
+		_lp.set_cutoff_frequency(_fs, getFCutParam());
+	}
+	return _lp.apply(input);
+}
+
 float BlockIntegral::update(float input)
 {
 	// trapezoidal integration
