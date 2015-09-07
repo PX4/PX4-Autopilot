@@ -54,7 +54,7 @@ public:
 	 *
 	 * @param val		Item to put
 	 */
-	void			put(uint64_t timestamp, float val[3], uint64_t error_count);
+	void			put(uint64_t timestamp, float val[3], uint64_t error_count, int priority);
 
 	/**
 	 * Get the next sibling in the group
@@ -82,6 +82,12 @@ public:
 	float*			value() { return _value; }
 
 	/**
+	 * Get the priority of this validator
+	 * @return		the stored priority
+	 */
+	int			priority();
+
+	/**
 	 * Get the RMS values of this validator
 	 * @return		the stored RMS
 	 */
@@ -106,14 +112,15 @@ private:
 	uint64_t _timeout_interval;		/**< interval in which the datastream times out in us */
 	uint64_t _event_count;			/**< total data counter */
 	uint64_t _error_count;			/**< error count */
-	float _mean[_dimensions];				/**< mean of value */
+	int _priority;				/**< sensor nominal priority */
+	float _mean[_dimensions];		/**< mean of value */
 	float _lp[3];				/**< low pass value */
 	float _M2[3];				/**< RMS component value */
 	float _rms[3];				/**< root mean square error */
 	float _value[3];			/**< last value */
 	float _value_equal_count;		/**< equal values in a row */
 	DataValidator *_sibling;		/**< sibling in the group */
-	const unsigned NORETURN_ERRCOUNT = 1000;	/**< if the error count reaches this value, return sensor as invalid */
+	const unsigned NORETURN_ERRCOUNT = 100;	/**< if the error count reaches this value, return sensor as invalid */
 	const unsigned VALUE_EQUAL_COUNT_MAX = 100;	/**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
 
 	/* we don't want this class to be copied */

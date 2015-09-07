@@ -51,12 +51,14 @@ public:
 	/**
 	 * Put an item into the validator group.
 	 *
-	 * @param x		X Item to put
-	 * @param y		Y Item to put
-	 * @param z		Z Item to put
+	 * @param index		Sensor index
+	 * @param timestamp	The timestamp of the measurement
+	 * @param val		The 3D vector
+	 * @param error_count	The current error count of the sensor
+	 * @param priority	The priority of the sensor
 	 */
 	void			put(unsigned index, uint64_t timestamp,
-					float val[3], uint64_t error_count);
+					float val[3], uint64_t error_count, int priority);
 
 	/**
 	 * Get the best data triplet of the group

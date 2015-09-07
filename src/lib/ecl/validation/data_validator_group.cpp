@@ -75,14 +75,14 @@ DataValidatorGroup::set_timeout(uint64_t timeout_interval_us)
 }
 
 void
-DataValidatorGroup::put(unsigned index, uint64_t timestamp, float val[3], uint64_t error_count)
+DataValidatorGroup::put(unsigned index, uint64_t timestamp, float val[3], uint64_t error_count, int priority)
 {
 	DataValidator *next = _first;
 	unsigned i = 0;
 
 	while (next != nullptr) {
 		if (i == index) {
-			next->put(timestamp, val, error_count);
+			next->put(timestamp, val, error_count, priority);
 			break;
 		}
 		next = next->sibling();
@@ -98,6 +98,7 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 	// XXX This should eventually also include voting
 	int pre_check_best = _curr_best;
 	float max_confidence = -1.0f;
+	int max_priority = -1000;
 	int max_index = -1;
 	uint64_t min_error_count = 30000;
 	DataValidator *best = nullptr;
@@ -107,9 +108,12 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 	while (next != nullptr) {
 		float confidence = next->confidence(timestamp);
 		if (confidence > max_confidence ||
-			(fabsf(confidence - max_confidence) < 0.01f && next->error_count() < min_error_count)) {
+			(fabsf(confidence - max_confidence) < 0.01f &&
+				((next->error_count() < min_error_count) &&
+				(next->priority() >= max_priority)))) {
 			max_index = i;
 			max_confidence = confidence;
+			max_priority = next->priority();
 			min_error_count = next->error_count();
 			best = next;
 		}

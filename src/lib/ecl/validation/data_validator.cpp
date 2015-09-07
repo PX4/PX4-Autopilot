@@ -47,6 +47,7 @@ DataValidator::DataValidator(DataValidator *prev_sibling) :
 	_timeout_interval(70000),
 	_event_count(0),
 	_error_count(0),
+	_priority(0),
 	_mean{0.0f},
 	_lp{0.0f},
 	_M2{0.0f},
@@ -64,10 +65,11 @@ DataValidator::~DataValidator()
 }
 
 void
-DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in)
+DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in, int priority_in)
 {
 	_event_count++;
 	_error_count = error_count_in;
+	_priority = priority_in;
 
 	for (unsigned i = 0; i < _dimensions; i++) {
 		if (_time_last == 0) {
@@ -122,6 +124,12 @@ DataValidator::confidence(uint64_t timestamp)
 	}
 
 	return 1.0f;
+}
+
+int
+DataValidator::priority()
+{
+	return _priority;
 }
 
 void
