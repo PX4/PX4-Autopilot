@@ -202,6 +202,7 @@ private:
 
 	bool		_hil_enabled;			/**< if true, HIL is active */
 	bool		_publishing;			/**< if true, we are publishing sensor data */
+	bool		_armed;				/**< arming status of the vehicle */
 
 	int		_gyro_sub[SENSOR_COUNT_MAX];	/**< raw gyro data subscription */
 	int		_accel_sub[SENSOR_COUNT_MAX];	/**< raw accel data subscription */
@@ -485,6 +486,7 @@ Sensors::Sensors() :
 	_sensors_task(-1),
 	_hil_enabled(false),
 	_publishing(true),
+	_armed(false),
 
 	/* subscriptions */
 	_gyro_sub{-1, -1, -1},
@@ -520,6 +522,14 @@ Sensors::Sensors() :
 	_battery_discharged(0),
 	_battery_current_timestamp(0)
 {
+	/* initialize subscriptions */
+	for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+		_gyro_sub[i] = -1;
+		_accel_sub[i] = -1;
+		_mag_sub[i] = -1;
+		_baro_sub[i] = -1;
+	}
+
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
@@ -1189,16 +1199,17 @@ Sensors::vehicle_control_mode_poll()
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &vcontrol_mode);
 
 		/* switching from non-HIL to HIL mode */
-		//printf("[sensors] Vehicle mode: %i \t AND: %i, HIL: %i\n", vstatus.mode, vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED, hil_enabled);
 		if (vcontrol_mode.flag_system_hil_enabled && !_hil_enabled) {
 			_hil_enabled = true;
 			_publishing = false;
+			_armed = vcontrol_mode.flag_armed;
 
 			/* switching from HIL to non-HIL mode */
 
 		} else if (!_publishing && !_hil_enabled) {
 			_hil_enabled = false;
 			_publishing = true;
+			_armed = vcontrol_mode.flag_armed;
 		}
 	}
 }
@@ -1947,9 +1958,10 @@ Sensors::init_sensor_class(const struct orb_metadata *meta, int *subs,
 	}
 
 	for (unsigned i = 0; i < group_count; i++) {
-		subs[i] = orb_subscribe_multi(meta, i);
-		orb_priority(subs[i], (int32_t*)&priorities[i]);
-		errcount[i] = 100000;
+		if (subs[i] < 0) {
+			subs[i] = orb_subscribe_multi(meta, i);
+			orb_priority(subs[i], (int32_t*)&priorities[i]);
+		}
 	}
 
 	return group_count;
@@ -2073,6 +2085,21 @@ Sensors::task_main()
 
 		/* check vehicle status for changes to publication state */
 		vehicle_control_mode_poll();
+
+		/* keep adding sensors as long as we are not armed */
+		if (!_armed) {
+			_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
+				&raw.gyro_priority[0], &raw.gyro_errcount[0]);
+
+			_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
+				&raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
+
+			_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
+				&raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
+
+			_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
+				&raw.baro_priority[0], &raw.baro_errcount[0]);
+		}
 
 		/* the timestamp of the raw struct is updated by the gyro_poll() method */
 		/* copy most recent sensor data */
