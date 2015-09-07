@@ -314,10 +314,12 @@ void AttitudeEstimatorQ::task_main()
 						}
 					}
 
-					_voter_gyro.put(i, sensors.gyro_timestamp[i], &gyro[0], sensors.gyro_errcount[i]);
+					_voter_gyro.put(i, sensors.gyro_timestamp[i], &gyro[0], sensors.gyro_errcount[i], sensors.gyro_priority[i]);
 				}
-				_voter_accel.put(i, sensors.accelerometer_timestamp[i], &sensors.accelerometer_m_s2[i * 3], sensors.accelerometer_errcount[i]);
-				_voter_mag.put(i, sensors.magnetometer_timestamp[i], &sensors.magnetometer_ga[i * 3], sensors.magnetometer_errcount[i]);
+				_voter_accel.put(i, sensors.accelerometer_timestamp[i], &sensors.accelerometer_m_s2[i * 3],
+					sensors.accelerometer_errcount[i], sensors.accelerometer_priority[i]);
+				_voter_mag.put(i, sensors.magnetometer_timestamp[i], &sensors.magnetometer_ga[i * 3],
+					sensors.magnetometer_errcount[i], sensors.magnetometer_priority[i]);
 			}
 
 			int best_gyro, best_accel, best_mag;
