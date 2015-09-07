@@ -252,6 +252,9 @@ void Tiltrotor::update_vtol_state()
 
 void Tiltrotor::update_mc_state()
 {
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 	// make sure motors are not tilted
 	_tilt_control = _params_tiltrotor.tilt_mc;
 
@@ -273,6 +276,9 @@ void Tiltrotor::update_mc_state()
 
 void Tiltrotor::update_fw_state()
 {
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 	// make sure motors are tilted forward
 	_tilt_control = _params_tiltrotor.tilt_fw;
 
@@ -363,22 +369,8 @@ void Tiltrotor::update_transition_state()
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
 	_mc_yaw_weight = math::constrain(_mc_yaw_weight, 0.0f, 1.0f);
 
-	// compute desired attitude and thrust setpoint for the transition
-	_v_att_sp->timestamp = hrt_absolute_time();
-	_v_att_sp->roll_body = 0;
-	_v_att_sp->pitch_body = 0;
-	_v_att_sp->yaw_body = _yaw_transition;
-	_v_att_sp->thrust = _throttle_transition;
-
-	math::Matrix<3,3> R_sp;
-	R_sp.from_euler(_v_att_sp->roll_body,_v_att_sp->pitch_body,_v_att_sp->yaw_body);
-	memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
-	_v_att_sp->R_valid = true;
-
-	math::Quaternion q_sp;
-	q_sp.from_dcm(R_sp);
-	_v_att_sp->q_d_valid = true;
-	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
+	// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
+	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 }
 
 void Tiltrotor::update_external_state()

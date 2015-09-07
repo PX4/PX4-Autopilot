@@ -60,7 +60,9 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	//init subscription handlers
 	_v_att_sub(-1),
-	_v_att_sp_sub(-1), 
+	_v_att_sp_sub(-1),
+	_mc_virtual_att_sp_sub(-1),
+	_fw_virtual_att_sp_sub(-1),
 	_mc_virtual_v_rates_sp_sub(-1),
 	_fw_virtual_v_rates_sp_sub(-1),
 	_v_control_mode_sub(-1),
@@ -84,6 +86,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 	memset(&_v_att, 0, sizeof(_v_att));
 	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
+	memset(&_mc_virtual_att_sp, 0, sizeof(_mc_virtual_att_sp));
+	memset(&_fw_virtual_att_sp, 0, sizeof(_fw_virtual_att_sp));
 	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
 	memset(&_mc_virtual_v_rates_sp, 0, sizeof(_mc_virtual_v_rates_sp));
 	memset(&_fw_virtual_v_rates_sp, 0, sizeof(_fw_virtual_v_rates_sp));
@@ -352,6 +356,38 @@ VtolAttitudeControl::vehicle_local_pos_poll()
 }
 
 /**
+* Check for mc virtual attitude setpoint updates.
+*/
+void
+VtolAttitudeControl::mc_virtual_att_sp_poll()
+{
+	bool updated;
+
+	orb_check(_mc_virtual_att_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(mc_virtual_attitude_setpoint), _mc_virtual_att_sp_sub , &_mc_virtual_att_sp);
+	}
+
+}
+
+/**
+* Check for fw virtual attitude setpoint updates.
+*/
+void
+VtolAttitudeControl::fw_virtual_att_sp_poll()
+{
+	bool updated;
+
+	orb_check(_fw_virtual_att_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(fw_virtual_attitude_setpoint), _fw_virtual_att_sp_sub , &_fw_virtual_att_sp);
+	}
+
+}
+
+/**
 * Check for command updates.
 */
 void
@@ -471,7 +507,7 @@ void VtolAttitudeControl::fill_fw_att_rates_sp()
 	_v_rates_sp.thrust 	= _fw_virtual_v_rates_sp.thrust;
 }
 
-void VtolAttitudeControl::publish_transition_att_sp()
+void VtolAttitudeControl::publish_att_sp()
 {
 	if (_v_att_sp_pub != nullptr) {
 		/* publish the attitude setpoint */
@@ -494,6 +530,9 @@ void VtolAttitudeControl::task_main()
 	fflush(stdout);
 
 	/* do subscriptions */
+	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
+	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
 	_mc_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(mc_virtual_rates_setpoint));
 	_fw_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
 	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -566,6 +605,8 @@ void VtolAttitudeControl::task_main()
 
 		_vtol_vehicle_status.fw_permanent_stab = _params.vtol_fw_permanent_stab == 1 ? true : false;
 
+		mc_virtual_att_sp_poll();
+		fw_virtual_att_sp_poll();
 		vehicle_control_mode_poll();	//Check for changes in vehicle control mode.
 		vehicle_manual_poll();			//Check for changes in manual inputs.
 		arming_status_poll();			//Check for arming status updates.
@@ -645,7 +686,7 @@ void VtolAttitudeControl::task_main()
 			if (got_new_data) {
 				_vtol_type->update_transition_state();
 				fill_mc_att_rates_sp();
-				publish_transition_att_sp();
+				publish_att_sp();
 			}
 
 		} else if (_vtol_type->get_mode() == EXTERNAL) {
@@ -653,6 +694,7 @@ void VtolAttitudeControl::task_main()
 			_vtol_type->update_external_state();
 		}
 
+		publish_att_sp();
 		_vtol_type->fill_actuator_outputs();
 
 		/* Only publish if the proper mode(s) are enabled */

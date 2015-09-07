@@ -49,6 +49,8 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
+	_mc_virtual_att_sp = _attc->get_mc_virtual_att_sp();
+	_fw_virtual_att_sp = _attc->get_fw_virtual_att_sp();
 	_v_rates_sp = _attc->get_rates_sp();
 	_mc_virtual_v_rates_sp = _attc->get_mc_virtual_rates_sp();
 	_fw_virtual_v_rates_sp = _attc->get_fw_virtual_rates_sp();
