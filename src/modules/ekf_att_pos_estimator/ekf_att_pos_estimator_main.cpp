@@ -1219,9 +1219,12 @@ void AttitudePositionEstimatorEKF::pollData()
 	// Feed validator with recent sensor data
 
 	for (unsigned i = 0; i < (sizeof(_sensor_combined.gyro_timestamp) / sizeof(_sensor_combined.gyro_timestamp[0])); i++) {
-		_voter_gyro.put(i, _sensor_combined.gyro_timestamp[i], &_sensor_combined.gyro_rad_s[i * 3], _sensor_combined.gyro_errcount[i]);
-		_voter_accel.put(i, _sensor_combined.accelerometer_timestamp[i], &_sensor_combined.accelerometer_m_s2[i * 3], _sensor_combined.accelerometer_errcount[i]);
-		_voter_mag.put(i, _sensor_combined.magnetometer_timestamp[i], &_sensor_combined.magnetometer_ga[i * 3], _sensor_combined.magnetometer_errcount[i]);
+		_voter_gyro.put(i, _sensor_combined.gyro_timestamp[i], &_sensor_combined.gyro_rad_s[i * 3],
+			_sensor_combined.gyro_errcount[i], _sensor_combined.gyro_priority[i]);
+		_voter_accel.put(i, _sensor_combined.accelerometer_timestamp[i], &_sensor_combined.accelerometer_m_s2[i * 3],
+			_sensor_combined.accelerometer_errcount[i], _sensor_combined.accelerometer_priority[i]);
+		_voter_mag.put(i, _sensor_combined.magnetometer_timestamp[i], &_sensor_combined.magnetometer_ga[i * 3],
+			_sensor_combined.magnetometer_errcount[i], _sensor_combined.magnetometer_priority[i]);
 	}
 
 	// Get best measurement values
