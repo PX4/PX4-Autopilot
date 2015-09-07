@@ -217,20 +217,26 @@ void Tiltrotor::update_vtol_state()
 	switch(_vtol_schedule.flight_mode) {
 		case MC_MODE:
 			_vtol_mode = ROTARY_WING;
+			_vtol_vehicle_status->vtol_in_trans_mode = false;
 			break;
 		case FW_MODE:
 			_vtol_mode = FIXED_WING;
+			_vtol_vehicle_status->vtol_in_trans_mode = false;
 			break;
 		case TRANSITION_FRONT_P1:
 		case TRANSITION_FRONT_P2:
 		case TRANSITION_BACK:
 			_vtol_mode = TRANSITION;
+			_vtol_vehicle_status->vtol_in_trans_mode = true;
 			break;
 	}
 }
 
 void Tiltrotor::update_mc_state()
 {
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 	// make sure motors are not tilted
 	_tilt_control = _params_tiltrotor.tilt_mc;
 
@@ -252,6 +258,9 @@ void Tiltrotor::update_mc_state()
 
  void Tiltrotor::update_fw_state()
 {
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 	// make sure motors are tilted forward
 	_tilt_control = _params_tiltrotor.tilt_fw;
 
@@ -327,6 +336,9 @@ void Tiltrotor::update_transition_state()
 
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
 	_mc_yaw_weight = math::constrain(_mc_yaw_weight, 0.0f, 1.0f);
+
+	// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
+	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 }
 
 void Tiltrotor::update_external_state()
