@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,9 @@
  * @file mavlink_mission.cpp
  * MAVLink mission manager implementation.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Julian Oes <julian@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #include "mavlink_mission.h"
@@ -77,6 +77,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_action_timeout(MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT),
 	_retry_timeout(MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT),
 	_max_count(DM_KEY_WAYPOINTS_OFFBOARD_0_MAX),
+	_filesystem_errcount(0),
 	_my_dataman_id(0),
 	_transfer_dataman_id(0),
 	_transfer_count(0),
@@ -169,8 +170,10 @@ MavlinkMissionManager::update_active_mission(int dataman_id, unsigned count, int
 		return OK;
 
 	} else {
-		warnx("ERROR: can't save mission state");
-		_mavlink->send_statustext(MAV_SEVERITY_CRITICAL, "ERROR: can't save mission state");
+		warnx("WPM: ERROR: can't save mission state");
+		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
+			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD");
+		}
 
 		return ERROR;
 	}
@@ -253,7 +256,9 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 
 	} else {
 		send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
-		_mavlink->send_statustext_critical("Unable to read from micro SD");
+		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
+			_mavlink->send_statustext_critical("Mission storage: Unable to read from microSD");
+		}
 
 		if (_verbose) { warnx("WPM: Send MISSION_ITEM ERROR: could not read seq %u from dataman ID %i", seq, _dataman_id); }
 	}

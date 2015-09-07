@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,9 @@
  * @file mavlink_mission.h
  * MAVLink mission manager interface definition.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Julian Oes <julian@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #pragma once
@@ -108,13 +108,14 @@ private:
 	uint32_t		_action_timeout;
 	uint32_t		_retry_timeout;
 	unsigned		_max_count;				///< Maximum number of mission items
+	unsigned		_filesystem_errcount;			///< File system error count
 
 	static int		_dataman_id;				///< Global Dataman storage ID for active mission
-	int				_my_dataman_id;				///< class Dataman storage ID
+	int			_my_dataman_id;				///< class Dataman storage ID
 	static bool		_dataman_init;				///< Dataman initialized
 	
 	static unsigned		_count;					///< Count of items in active mission
-	static int			_current_seq;				///< Current item sequence in active mission
+	static int		_current_seq;				///< Current item sequence in active mission
 
 	int			_transfer_dataman_id;			///< Dataman storage ID for current transmission
 	unsigned		_transfer_count;			///< Items count in current transmission
@@ -122,7 +123,7 @@ private:
 	unsigned		_transfer_current_seq;			///< Current item ID for current transmission (-1 means not initialized)
 	unsigned		_transfer_partner_sysid;		///< Partner system ID for current transmission
 	unsigned		_transfer_partner_compid;		///< Partner component ID for current transmission
-	static bool _transfer_in_progress;				///< Global variable checking for current transmission
+	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
 	int			_offboard_mission_sub;
 	int			_mission_result_sub;
@@ -131,6 +132,8 @@ private:
 	MavlinkRateLimiter	_slow_rate_limiter;
 
 	bool _verbose;
+
+	static constexpr int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT = 2;	///< Error count limit before stopping to report FS errors
 
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
