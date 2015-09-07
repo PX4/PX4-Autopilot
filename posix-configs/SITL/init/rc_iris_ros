@@ -40,6 +40,7 @@ param set MP_ROLLRATE_I 0.001
 param set MP_ROLLRATE_D 0.001
 param set MP_PITCH_P 4
 param set MP_PITCHRATE_P 0.3
+param set COM_RC_IN_MODE 2
 rgbled start
 tone_alarm start
 gyrosim start
@@ -48,6 +49,7 @@ barosim start
 adcsim start
 gpssim start
 pwm_out_sim mode_pwm
+sleep 1
 sensors start
 commander start
 land_detector start multicopter

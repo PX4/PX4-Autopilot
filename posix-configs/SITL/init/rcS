@@ -26,6 +26,7 @@ param set MPC_XY_P 0.4
 param set MPC_XY_VEL_P 0.2
 param set MPC_XY_VEL_D 0.005
 param set SENS_BOARD_ROT 0
+param set COM_RC_IN_MODE 2
 rgbled start
 tone_alarm start
 gyrosim start
@@ -34,6 +35,7 @@ barosim start
 adcsim start
 gpssim start
 pwm_out_sim mode_pwm
+sleep 1
 sensors start
 commander start
 land_detector start multicopter
