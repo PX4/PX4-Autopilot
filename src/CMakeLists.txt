@@ -70,9 +70,6 @@ if (${OS} STREQUAL "nuttx")
 	px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
 		BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4)
 
-	px4_nuttx_generate_romfs(OUT ${CMAKE_CURRENT_BINARY_DIR}/romfs.img
-		ROOT ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common)
-
 elseif(${OS} STREQUAL "qurt")
 	set(module_list)
 	px4_qurt_add_modules(module_list ${BOARD})

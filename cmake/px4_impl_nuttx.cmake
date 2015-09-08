@@ -262,14 +262,15 @@ function(px4_bin_to_obj)
 		REQUIRED BIN OBJ VAR
 		ARGN ${ARGN})
 
-	string(REPLACE "/" " " _tmp ${BIN})
-	string(REPLACE "/" " " sym ${_tmp})
-	message(STATUS "sym: ${sym}")
+	string(REPLACE "/" "_" _tmp ${BIN})
+	string(REPLACE "." "_" _tmp ${_tmp})
+	string(REPLACE "-" "_" sym "_binary_${_tmp}")
+	#message(STATUS "sym: ${sym}")
 
 	separate_arguments(CMAKE_C_FLAGS)
 
 	add_custom_command(OUTPUT ${OBJ}
-		COMMAND ${TOUCH} ${OBJ}.c
+		COMMAND ${ECHO} > ${OBJ}.c
 		COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${OBJ}.c -o ${OBJ}.c.o
 		COMMAND ${LD} -r -o ${OBJ}.bin.o ${OBJ}.c.o -b binary ${BIN}
 		COMMAND ${NM} -p --radix=x ${OBJ}.bin.o
@@ -283,6 +284,7 @@ function(px4_bin_to_obj)
 			--strip-symbol ${sym}_size
 			--strip-symbol ${sym}_end
 			--rename-section .data=.rodata
+		# useful to comment remove statement when debugging
 		COMMAND ${RM} ${OBJ}.c ${OBJ}.c.o ${OBJ}.bin.o
 		DEPENDS ${BIN}
 		VERBATIM
@@ -334,7 +336,7 @@ function(px4_nuttx_generate_romfs)
 
 	px4_bin_to_obj(OBJ ${OUT}
 		BIN ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
-		VAR romfs)
+		VAR romfs_img)
 
 endfunction()
 
