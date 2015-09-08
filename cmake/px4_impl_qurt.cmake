@@ -98,13 +98,13 @@ function(px4_qurt_generate_builtin_commands)
 		endforeach()
 		if (MAIN)
 			set(builtin_apps_string
-				"${builtin_apps_string}\t{\"${MAIN}\", ${PRIORITY}, ${STACK}, ${MAIN}_main},\n")
+				"${builtin_apps_string}\tapps[\"${MAIN}\"] = ${MAIN}_main;\n")
 			set(builtin_apps_decl_string
 				"${builtin_apps_decl_string}extern int ${MAIN}_main(int argc, char *argv[]);\n")
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/builtin_commands.c.in
+	configure_file(${CMAKE_SOURCE_DIR}/cmake/qurt/builtin_commands.cpp_stub
 		${OUT})
 endfunction()
 
@@ -226,6 +226,7 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
+	add_custom_target(${OUT})
 endfunction()
 
 #=============================================================================

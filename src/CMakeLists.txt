@@ -12,6 +12,12 @@ add_subdirectory(./firmware)
 # executable
 #
 
+function(px4_mangle_name dirname newname)
+	set(tmp)
+	string(REPLACE "/" "__" tmp ${dirname})
+	set(${newname} ${tmp} PARENT_SCOPE)
+endfunction()
+
 if (${OS} STREQUAL "nuttx")
 
 	# a list of modules that will be linked to main
@@ -71,14 +77,33 @@ if (${OS} STREQUAL "nuttx")
 		BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4)
 
 elseif(${OS} STREQUAL "qurt")
+	set(module_dir_list)
 	set(module_list)
-	px4_qurt_add_modules(module_list ${BOARD})
-	message(STATUS "module list: ${module_list}")
+	px4_qurt_add_modules(module_dir_list ${BOARD})
+	message(STATUS "module list: ${module_dir_list}")
 
-	foreach(directory ${module_list})
+	foreach(directory ${module_dir_list})
 		message(STATUS "directory: ${directory}")
-        	add_subdirectory(${directory} EXCLUDE_FROM_ALL)
+		px4_mangle_name(${directory} mangled_name)
+		list(APPEND module_list
+			${mangled_name})
 	endforeach()
+	px4_qurt_generate_builtin_commands(
+		OUT builtin_commands.cpp
+		MODULE_LIST ${module_list})
+
+	# FIXME @jgoppert - how to work around issues like this?
+        # Without changing global variables?
+        # Clear -rdynamic flag which fails for hexagon
+        set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+        set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+	add_executable(main builtin_commands.cpp)
+	target_link_libraries(main
+		-Wl,--start-group
+		${module_list}
+		apps nuttx nosys m gcc
+		-Wl,--end-group)
 endif()
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
