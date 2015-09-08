@@ -109,12 +109,20 @@ set(package-contact "px4users@googlegroups.com")
 # cmake modules
 #
 
+# set module path
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-if (EXISTS px4_impl_${OS}_${BOARD})
-	include(px4_impl_${OS}_${BOARD})
+
+# prefer board implementation module over os implmementation module
+set(board_impl_module px4_impl_${OS}_${BOARD})
+set(os_impl_module px4_impl_${OS})
+if (EXISTS ${board_impl_module})
+	set(impl_module ${board_impl_module})
 else()
-	include(px4_impl_${OS})
+	set(impl_module ${os_impl_module})
 endif()
+include(${impl_module})
+
+# require px4 module interface
 set(px4_required_functions
 	px4_os_prebuild_targets
 	px4_os_add_flags
@@ -124,6 +132,9 @@ foreach(cmd ${px4_required_functions})
 		message(FATAL_ERROR "cmake/px4_${OS}_utils.cmake must implement ${cmd}")
 	endif()
 endforeach()
+
+# other modules
+enable_testing()
 
 #=============================================================================
 # parameters

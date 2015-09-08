@@ -45,8 +45,11 @@ if (${OS} STREQUAL "nuttx")
 		OUT builtin_commands.c
 		MODULE_LIST ${module_list})
 
+	px4_nuttx_generate_romfs(OUT romfs.o
+		ROOT ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common)
+
 	# add executable
-	add_executable(main builtin_commands.c)
+	add_executable(main builtin_commands.c romfs.o)
 	set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 	set(main_link_flags
 		"-T${nuttx_export_dir}/build/ld.script"
@@ -66,9 +69,6 @@ if (${OS} STREQUAL "nuttx")
 
 	px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
 		BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4)
-
-	px4_nuttx_generate_romfs(OUT ${CMAKE_CURRENT_BINARY_DIR}/romfs.img
-		ROOT ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common)
 
 endif()
 

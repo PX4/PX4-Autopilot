@@ -42,6 +42,7 @@
 #		* px4_nuttx_generate_builtin_commands
 #		* px4_nuttx_add_export
 #		* px4_nuttx_generate_romfs
+#		* px4_bin_to_obj
 #
 # 	Required OS Inteface Functions
 #
@@ -187,8 +188,8 @@ function(px4_nuttx_add_export)
 		string(REPLACE "/" "_" patch_name "${patch}-${CONFIG}")
 	    message(STATUS "nuttx-patch: ${patch}")
 		add_custom_command(OUTPUT nuttx_patch_${patch_name}.stamp
-			COMMAND patch -p0 -N  < ${CMAKE_SOURCE_DIR}/${patch}
-			COMMAND touch nuttx_patch_${patch_name}.stamp
+			COMMAND ${PATCH} -p0 -N  < ${CMAKE_SOURCE_DIR}/${patch}
+			COMMAND ${TOUCH} nuttx_patch_${patch_name}.stamp
 			DEPENDS ${DEPENDS}
 			)
 	    add_custom_target(nuttx_patch_${patch_name}
@@ -198,40 +199,97 @@ function(px4_nuttx_add_export)
 
 	# copy
 	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
-		COMMAND mkdir -p ${CMAKE_BINARY_DIR}/${CONFIG}
-		COMMAND cp -r ${CMAKE_SOURCE_DIR}/NuttX ${nuttx_src}
-		COMMAND rm -rf ${nuttx_src}/.git
-		COMMAND touch nuttx_copy_${CONFIG}.stamp
+		COMMAND ${MKDIR} -p ${CMAKE_BINARY_DIR}/${CONFIG}
+		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/NuttX ${nuttx_src}
+		COMMAND ${RM} -rf ${nuttx_src}/.git
+		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS})
 	add_custom_target(__nuttx_copy_${CONFIG}
 		DEPENDS nuttx_copy_${CONFIG}.stamp __nuttx_patch_${CONFIG})
 
 	# export
 	add_custom_command(OUTPUT ${CONFIG}.export
-		COMMAND echo Configuring NuttX for ${CONFIG}
-		COMMAND make -C${nuttx_src}/nuttx -j${THREADS}
+		COMMAND ${ECHO} Configuring NuttX for ${CONFIG}
+		COMMAND ${MAKE} -C${nuttx_src}/nuttx -j${THREADS}
 			-r --quiet distclean
-		COMMAND cp -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}
+		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}
 			${nuttx_src}/nuttx/configs
 		COMMAND cd ${nuttx_src}/nuttx/tools &&
 			./configure.sh ${CONFIG}/nsh
-		COMMAND echo Exporting NuttX for ${CONFIG}
-		COMMAND make -C ${nuttx_src}/nuttx -j${THREADS}
+		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
+		COMMAND ${MAKE} -C ${nuttx_src}/nuttx -j${THREADS}
 			-r CONFIG_ARCH_BOARD=${CONFIG} export
-		COMMAND cp -r ${nuttx_src}/nuttx/nuttx-export.zip
+		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip
 			${CONFIG}.export
 		DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG})
 
 	# extract
 	add_custom_command(OUTPUT nuttx_export_${BOARD}.stamp
-		COMMAND rm -rf ${nuttx_src}/nuttx-export
-		COMMAND unzip ${BOARD}.export -d ${nuttx_src}
-		COMMAND touch nuttx_export_${BOARD}.stamp
+		COMMAND ${RM} -rf ${nuttx_src}/nuttx-export
+		COMMAND ${UNZIP} ${BOARD}.export -d ${nuttx_src}
+		COMMAND ${TOUCH} nuttx_export_${BOARD}.stamp
 		DEPENDS ${DEPENDS} ${BOARD}.export)
 
 	add_custom_target(${OUT}
 		DEPENDS nuttx_export_${BOARD}.stamp)
 
+endfunction()
+
+#=============================================================================
+#
+#	px4_bin_to_obj
+#
+#	The functions create an object file from a binary image.
+#
+#	Usage:
+#		px4_bin_to_boj(OBJ <out-obj> VAR <in-variable>  BIN <in-bin>)
+#
+#	Input:
+#		BIN		: the bin file
+#		VAR		: the variable name
+#
+#	Output:
+#		OBJ		: the object file
+#
+#	Example:
+#		px4_bin_to_obj(OBJ my_obj VAR romfs BIN my_bin)
+#
+function(px4_bin_to_obj)
+
+	px4_parse_function_args(
+		NAME px4_bin_to_obj
+		ONE_VALUE BIN OBJ VAR
+		REQUIRED BIN OBJ VAR
+		ARGN ${ARGN})
+
+	string(REPLACE "/" " " _tmp ${BIN})
+	string(REPLACE "/" " " sym ${_tmp})
+	message(STATUS "sym: ${sym}")
+
+	separate_arguments(CMAKE_C_FLAGS)
+
+	add_custom_command(OUTPUT ${OBJ}
+		COMMAND ${TOUCH} ${OBJ}.c
+		COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${OBJ}.c -o ${OBJ}.c.o
+		COMMAND ${LD} -r -o ${OBJ}.bin.o ${OBJ}.c.o -b binary ${BIN}
+		COMMAND ${NM} -p --radix=x ${OBJ}.bin.o
+			| ${GREP} ${sym}_size
+			| ${GREP} -o ^[0-9a-fA-F]*
+			| ${AWK} "{print \"const unsigned int ${VAR}_len = 0x\"$1\";\"}" > ${OBJ}.c
+		COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${OBJ}.c -o ${OBJ}.c.o
+		COMMAND ${LD} -r -o ${OBJ} ${OBJ}.c.o ${OBJ}.bin.o
+		COMMAND ${OBJCOPY} ${OBJ}
+			--redefine-sym ${sym}_start=${VAR}
+			--strip-symbol ${sym}_size
+			--strip-symbol ${sym}_end
+			--rename-section .data=.rodata
+		COMMAND ${RM} ${OBJ}.c ${OBJ}.c.o ${OBJ}.bin.o
+		DEPENDS ${BIN}
+		VERBATIM
+		)
+
+	set(${OBJ} ${OBJ} PARENT_SCOPE)
+	
 endfunction()
 
 #=============================================================================
@@ -264,15 +322,19 @@ function(px4_nuttx_generate_romfs)
 	set(romfs_temp_dir ${CMAKE_BINARY_DIR}/${ROOT})
 	set(romfs_src_dir ${CMAKE_SOURCE_DIR}/${ROOT})
 
-	add_custom_command(OUTPUT ${OUT}
+	add_custom_command(OUTPUT romfs.bin
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
 		#TODO add romfs cleanup and pruning
-		COMMAND ${GENROMFS} -f ${OUT} -d ${romfs_temp_dir} -V "NSHInitVol"
+		COMMAND ${GENROMFS} -f ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
+			-d ${romfs_temp_dir} -V "NSHInitVol"
 		DEPENDS ${romfs_files}
 		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 		)
-	add_custom_target(gen_romfs DEPENDS ${OUT})
+
+	px4_bin_to_obj(OBJ ${OUT}
+		BIN ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
+		VAR romfs)
 
 endfunction()
 
