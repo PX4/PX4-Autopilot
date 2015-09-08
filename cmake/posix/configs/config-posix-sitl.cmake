@@ -1,5 +1,9 @@
 function(px4_set_config_modules out_module_list)
 	set(config_module_list
+		drivers/led
+		drivers/device
+		drivers/boards/sitl
+		platforms/common
 		platforms/posix/px4_layer
 		platforms/posix/work_queue
 		platforms/posix/drivers/adcsim
@@ -14,7 +18,10 @@ function(px4_set_config_modules out_module_list)
 		systemcmds/ver
 		systemcmds/esc_calib
 		systemcmds/reboot
+		modules/uORB
+		modules/systemlib
 		modules/sensors
+		modules/simulator
 		modules/mavlink
 		modules/attitude_estimator_ekf
 		modules/attitude_estimator_q
@@ -34,6 +41,8 @@ function(px4_set_config_modules out_module_list)
 		modules/commander
 		modules/controllib
 		lib/mathlib
+		lib/mathlib/math/filter
+		lib/conversion
 		lib/ecl
 		lib/external_lgpl
 		lib/geo

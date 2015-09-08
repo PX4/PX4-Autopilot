@@ -17,8 +17,10 @@ px4_posix_generate_builtin_commands(
 
 add_executable(mainapp builtin_commands.cpp)
 target_link_libraries(mainapp
+	-Wl,--start-group
 	${module_list}
 	pthread m
+	-Wl,--end-group
 	)
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
