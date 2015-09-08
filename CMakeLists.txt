@@ -168,12 +168,16 @@ endforeach()
 #=============================================================================
 # git
 #
+if(${OS} STREQUAL "nuttx")
 px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
+endif()
 px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
 px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_gtest PATH "unittets/gtest")
+if(NOT ${OS} STREQUAL "nuttx")
 px4_add_git_submodule(TARGET git_eigen PATH "src/lib/eigen")
+endif()
 
 add_custom_target(submodule_clean
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -199,6 +203,7 @@ px4_os_add_flags(
 	INCLUDE_DIRS include_dirs
 	LINK_DIRS link_dirs
 	DEFINITIONS definitions)
+
 px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${exe_linker_flags}" GLUE " ")
 px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
 px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")

@@ -32,7 +32,7 @@
 include(CMakeForceCompiler)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-include(px4_utils)
+include(px4_base)
 
 if(NOT HEXAGON_TOOLS_ROOT)
 	set(HEXAGON_TOOLS_ROOT /opt/6.4.05)

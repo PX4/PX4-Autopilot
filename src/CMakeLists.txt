@@ -1,34 +1,34 @@
 #=============================================================================
-# module subdirectories, need to include first
-#
-add_subdirectory(./lib)
-add_subdirectory(./drivers)
-add_subdirectory(./platforms)
-add_subdirectory(./systemcmds)
-add_subdirectory(./examples)
-add_subdirectory(./modules)
-
-#=============================================================================
 # executable
 #
 
-# a list of modules that will be linked to main
-set(module_list)
-
-if (${LABEL} STREQUAL "simple")
-	list(APPEND module_list
-		drivers__led
-		drivers__device
-		platforms__common
-		modules__systemlib
-		modules__uORB
-		examples__px4_simple_app
-		lib__mathlib__math__filter
-		lib__conversion
-	)
-endif()
-
 if (${OS} STREQUAL "nuttx")
+
+	#=============================================================================
+	# module subdirectories, need to include first
+	#
+	add_subdirectory(./lib)
+	add_subdirectory(./drivers)
+	add_subdirectory(./platforms)
+	add_subdirectory(./systemcmds)
+	add_subdirectory(./examples)
+	add_subdirectory(./modules)
+
+	# a list of modules that will be linked to main
+	set(module_list)
+
+	if (${LABEL} STREQUAL "simple")
+		list(APPEND module_list
+			drivers__led
+			drivers__device
+			platforms__common
+			modules__systemlib
+			modules__uORB
+			examples__px4_simple_app
+			lib__mathlib__math__filter
+			lib__conversion
+		)
+	endif()
 
 	if (${LABEL} STREQUAL "simple")
 		list(APPEND module_list ${module_list_simple})
@@ -70,6 +70,19 @@ if (${OS} STREQUAL "nuttx")
 	px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
 		BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4)
 
+	px4_nuttx_generate_romfs(OUT ${CMAKE_CURRENT_BINARY_DIR}/romfs.img
+		ROOT ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common)
+
+elseif(${OS} STREQUAL "qurt")
+	set(module_list)
+	px4_qurt_add_modules(module_list ${BOARD})
+	message(STATUS "module list: ${module_list}")
+
+	px4_qurt_generate_builtin_commands(
+		OUT builtin_commands.c
+		MODULE_LIST ${module_list})
+
+	add_executable(mainapp builtin_commands.c)
 endif()
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
