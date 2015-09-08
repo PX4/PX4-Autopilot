@@ -47,15 +47,21 @@
 #
 set(QURT_APPS_HEADER ${CMAKE_BINARY_DIR}/apps.h)
 
-add_git_submodule(dspal src/lib/dspal)
-add_git_submodule(eigen src/lib/eigen-3.2)
+px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
+px4_add_git_submodule(TARGET git_eigen32 PATH "src/lib/eigen-3.2")
 
-macro(px4_target_set_flags)
-	list(APPEND EXE_LINK_LIBS
-		pthread
-		)
+function(px4_target_set_flags)
+	set(inout_vars
+		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
+
+	px4_parse_function_args(
+		NAME px4_target_set_flags
+		ONE_VALUE ${inout_vars} BOARD
+		REQUIRED ${inout_vars} BOARD
+		ARGN ${ARGN})
+
         set(DSPAL_ROOT src/lib/dspal)
-        include_directories(
+        set(added_include_dirs
                 ${DSPAL_ROOT}/include 
                 ${DSPAL_ROOT}/sys 
                 ${DSPAL_ROOT}/sys/sys 
@@ -65,48 +71,55 @@ macro(px4_target_set_flags)
                 src/platforms/posix/include
 		src/lib/eigen-3.2
                 )
-        add_definitions(
+
+        set(added_definitions
                 -D__PX4_QURT 
 		-D__PX4_POSIX
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
 	# Add the toolchain specific flags
-        set(CMAKE_C_FLAGS ${QURT_CMAKE_C_FLAGS})
-        set(CMAKE_CXX_FLAGS ${QURT_CMAKE_CXX_FLAGS})
-        set(CMAKE_SHARED_LINKER_FLAGS "")
+        set(added_cflags ${QURT_CMAKE_C_FLAGS})
+        set(added_cxx_flags ${QURT_CMAKE_CXX_FLAGS})
 
-        message(STATUS "CMAKE_C_FLAGS: -${CMAKE_C_FLAGS}-")
-        message(STATUS "CMAKE_CXX_FLAGS: -${CMAKE_CXX_FLAGS}-")
-
+	# FIXME @jgoppert - how to work around issues like this?
+	# Without changing global variables?
 	# Clear -rdynamic flag which fails for hexagon
 	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-endmacro()
+	# output
+	foreach(var ${inout_vars})
+		string(TOLOWER ${var} lower_var)
+		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
+	endforeach()
+endfunction()
 
-macro(px4_target_set_modules)
-	list(APPEND module_directories
+function(px4_target_add_modules out_module_directories)
+	list(APPEND ${out_module_directories}
 		./src/platforms/qurt/px4_layer
 		./src/platforms/posix/work_queue
+		PARENT_SCOPE
 	)
-endmacro()
+endfunction()
 
-macro(px4_target_validate_config)
-	if (${TARGET_NAME} STREQUAL "qurt-hil-simple")
-	else()
+function(px4_target_validate_config)
+	# FIXME - this can be done in Firmware/CMakeLists.txt
+	list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
+
+	if (NOT EXISTS("${CMAKE_SOURCE_DIR}/cmake/qurt/${TARGET_NAME}.cmake")
 		message(FATAL_ERROR "not implemented yet: ${TARGET_NAME}")
 	endif()
-endmacro()
+endfunction()
 
-macro(px4_target_firmware)
+function(px4_target_firmware)
 	set(installed_targets)
 	add_library(dspal_main SHARED ./src/platforms/qurt/px4_layer/main.cpp)
 	target_link_libraries(dspal_main ${module_list})
 	list(APPEND installed_targets dspal_main)
-endmacro()
+endfunction()
 
-macro(px4_target_rules)
+function(px4_target_rules)
 	#=============================================================================
 	#		apps
 	#
@@ -118,7 +131,7 @@ macro(px4_target_rules)
 		)
 
 	add_custom_target(qurt_apps DEPENDS ${QURT_APPS_HEADER})
-endmacro()
+endfunction()
 
-macro(px4_target_testing)
-endmacro()
+function(px4_target_testing)
+endfunction()
