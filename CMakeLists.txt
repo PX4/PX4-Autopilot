@@ -112,7 +112,6 @@ set(package-contact "px4users@googlegroups.com")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(px4_${OS}_utils)
 set(px4_required_functions
-	px4_os_add_firmware
 	px4_os_prebuild_targets
 	px4_os_add_flags
 	)
