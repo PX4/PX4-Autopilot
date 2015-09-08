@@ -46,7 +46,7 @@ if (${OS} STREQUAL "nuttx")
 		MODULE_LIST ${module_list})
 
 	px4_nuttx_generate_romfs(OUT romfs.o
-		ROOT ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common)
+		ROOT ROMFS/px4fmu_common)
 
 	# add executable
 	add_executable(main builtin_commands.c romfs.o)

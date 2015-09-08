@@ -324,14 +324,30 @@ function(px4_nuttx_generate_romfs)
 	set(romfs_temp_dir ${CMAKE_BINARY_DIR}/${ROOT})
 	set(romfs_src_dir ${CMAKE_SOURCE_DIR}/${ROOT})
 
+	set(romfs_autostart ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
+	set(romfs_pruner ${CMAKE_SOURCE_DIR}/Tools/px_romfs_pruner.py)
+
+
+	#message(STATUS "temp_dir: ${romfs_temp_dir}")
+	#message(STATUS "src_dir: ${romfs_src_dir}")
+
+	add_custom_command(OUTPUT rc.autostart
+		COMMAND ${PYTHON_EXECUTABLE} ${romfs_autostart}
+			-a ${ROMFS_ROOT}/init.d
+			-s rc.autostart
+		)
+
 	add_custom_command(OUTPUT romfs.bin
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
+		COMMAND cmake -E copy rc.autostart ${romfs_temp_dir}/init.d
 		#TODO add romfs cleanup and pruning
+		COMMAND ${PYTHON_EXECUTABLE} ${romfs_pruner}
+			--folder ${romfs_temp_dir}
 		COMMAND ${GENROMFS} -f ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
 			-d ${romfs_temp_dir} -V "NSHInitVol"
-		DEPENDS ${romfs_files}
-		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		DEPENDS ${romfs_files} rc.autostart
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
 
 	px4_bin_to_obj(OBJ ${OUT}
