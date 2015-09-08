@@ -8,6 +8,7 @@ set(directories
 	./boards/px4io-v1
 	./boards/px4fmu-v1
 	./boards/aerocore
+	./boards/sitl
 	./mpu6000
 	./gimbal
 	./camera_trigger

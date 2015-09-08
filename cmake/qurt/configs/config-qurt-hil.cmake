@@ -77,7 +77,7 @@ function(px4_set_config_modules out_module_list)
 	#
 	# sources for muorb over fastrpc
 	#
-		modules/muorb/adsp/
+		modules/muorb/adsp
 		)
 	message(STATUS "modules: ${config_module_list}")
 	set(${out_module_list} ${config_module_list} PARENT_SCOPE)

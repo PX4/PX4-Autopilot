@@ -98,13 +98,13 @@ function(px4_qurt_generate_builtin_commands)
 		endforeach()
 		if (MAIN)
 			set(builtin_apps_string
-				"${builtin_apps_string}\t{\"${MAIN}\", ${PRIORITY}, ${STACK}, ${MAIN}_main},\n")
+				"${builtin_apps_string}\tapps[\"${MAIN}\"] = ${MAIN}_main;\n")
 			set(builtin_apps_decl_string
 				"${builtin_apps_decl_string}extern int ${MAIN}_main(int argc, char *argv[]);\n")
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/builtin_commands.c.in
+	configure_file(${CMAKE_SOURCE_DIR}/cmake/qurt/builtin_commands.cpp_in
 		${OUT})
 endfunction()
 
@@ -226,6 +226,7 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
+	add_custom_target(${OUT})
 endfunction()
 
 #=============================================================================
@@ -236,7 +237,7 @@ endfunction()
 #
 #	Usage:
 #		px4_os_prebuild_targets(
-#			OUT <out-list_of_targets>
+#			OUT_MODULES <module-subdir-list>
 #			BOARD <in-string>
 #			)
 #
@@ -244,16 +245,16 @@ endfunction()
 #		BOARD 		: board
 #
 #	Output:
-#		MODULE_LIST	: the updated module list
+#		OUT_MODULES	: the updated module list
 #
 #	Example:
-#		px4_qurt_add_modules(MODULE_LIST module_list BOARD hil)
+#		px4_qurt_add_modules(module_list "hil")
 #
-function(px4_qurt_add_modules out_modules BOARD)
+function(px4_qurt_add_modules OUT_MODULES BOARD)
 	include(config-qurt-${BOARD})
 	set(config_modules)
 	px4_set_config_modules(config_modules)
-	set(${out_modules} ${out_modules} ${config_modules} PARENT_SCOPE)
+	set(${OUT_MODULES} ${${OUT_MODULES}} ${config_modules} PARENT_SCOPE)
 endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:
