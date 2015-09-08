@@ -30,6 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(SIMULATOR_SRCS simulator.cpp)
+if (NOT ${OS} STREQUAL "qurt")
+	list(APPEND SIMULATOR_SRCS
+		simulator_mavlink.cpp)
+endif()
+
 px4_add_module(
 	MODULE modules__simulator
 	MAIN simulator
@@ -40,8 +46,9 @@ px4_add_module(
 		-Wno-packed
 		
 	SRCS
-		simulator.cpp
+		${SIMULATOR_SRCS}
 	DEPENDS
 		platforms__common
 	)
+
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

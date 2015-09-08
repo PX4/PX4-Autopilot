@@ -20,6 +20,7 @@ function(px4_set_config_modules out_module_list)
 		systemcmds/reboot
 		modules/uORB
 		modules/systemlib
+		modules/systemlib/mixer
 		modules/sensors
 		modules/simulator
 		modules/mavlink
