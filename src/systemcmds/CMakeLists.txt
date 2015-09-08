@@ -16,7 +16,7 @@ set(directories
 	./motor_test
 	./esc_calib
 	./perf
-	./topic_listener
+#	./topic_listener
 	./dumpfile
 	./pwm
 	)

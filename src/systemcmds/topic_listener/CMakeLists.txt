@@ -30,15 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-#px4_add_module(
-	#MODULE systemcmds__topic_listener
-	#MAIN listener
-	#STACK 1800
-	#COMPILE_FLAGS
-		#-Os
-	#SRCS
-		#topic_listener.cpp
-	#DEPENDS
-		#platforms__common
-	#)
+px4_add_module(
+	MODULE systemcmds__topic_listener
+	MAIN listener
+	STACK 1800
+	COMPILE_FLAGS
+		-Os
+	SRCS
+		topic_listener.cpp
+	DEPENDS
+		platforms__common
+	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -11,7 +11,7 @@ px4fmu-v2_simple-upload: px4fmu-v2_simple
 
 posix-sitl_simple:
 	mkdir -p $d/build_$@ && cd $d/build_$@ && \
-		cmake .. \
+		cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-posix-clang-native.cmake \
 		-DOS=posix -DBOARD=sitl -DLABEL=simple && \
 		make -s && ctest -V && cpack -G ZIP
 

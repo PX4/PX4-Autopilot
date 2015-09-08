@@ -110,6 +110,7 @@ set(package-contact "px4users@googlegroups.com")
 #
 
 # set module path
+message("OS = ${OS}")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/${OS})
 
