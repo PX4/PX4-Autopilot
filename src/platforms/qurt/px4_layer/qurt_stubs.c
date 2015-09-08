@@ -60,6 +60,7 @@ void _Parse_csd( void )
    block_indefinite(); 
 }
 
+#if 0
 void _Locksyslock( int x )
 {
    PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
@@ -70,7 +71,7 @@ void _Unlocksyslock( int x )
 {
    PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
    block_indefinite(); 
-}
+#endif}
 
 void _Valbytes( void )
 {
