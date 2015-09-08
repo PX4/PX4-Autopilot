@@ -37,10 +37,10 @@
 # Structure
 # ---------------------------------------------------------------------------
 #
-# * Common functions should be included in px_utils.cmake.
+# * Common functions should be included in px_base.cmake.
 #
 # * OS/ board specific fucntions should be include in
-#	px_${OS}_utils.cmake or px4_${OS}_${BOARD}_utils.cmake.
+#	px_impl_${OS}.cmake or px4_impl_${OS}_${BOARD}.cmake.
 #
 # Formatting
 # ---------------------------------------------------------------------------
@@ -110,7 +110,11 @@ set(package-contact "px4users@googlegroups.com")
 #
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-include(px4_${OS}_utils)
+if (EXISTS px4_impl_${OS}_${BOARD})
+	include(px4_impl_${OS}_${BOARD})
+else()
+	include(px4_impl_${OS})
+endif()
 set(px4_required_functions
 	px4_os_prebuild_targets
 	px4_os_add_flags
