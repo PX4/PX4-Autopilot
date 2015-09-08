@@ -77,6 +77,11 @@ if (${OS} STREQUAL "nuttx")
 		BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4)
 
 elseif(${OS} STREQUAL "qurt")
+	
+	set(V_ARCH v5)
+	set(HEXAGON_TOOLS_ROOT /opt/6.4.03)
+	set(TOOLSLIB 
+		${HEXAGON_TOOLS_ROOT}/dinkumware/lib/${V_ARCH}/G0)
 	set(module_dir_list)
 	set(module_list)
 	px4_qurt_add_modules(module_dir_list ${BOARD})
@@ -98,12 +103,13 @@ elseif(${OS} STREQUAL "qurt")
         set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
         set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-	add_executable(main builtin_commands.cpp)
-	target_link_libraries(main
-		-Wl,--start-group
+	add_executable(mainapp builtin_commands.cpp)
+	target_link_libraries(mainapp
+		-Wl,--whole-archive
 		${module_list}
-		apps nuttx nosys m gcc
-		-Wl,--end-group)
+		m
+		-Wl,--no-whole-archive
+		-Wl,${TOOLSLIB}/pic/libstdc++.a)
 endif()
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
