@@ -61,10 +61,14 @@ if (${OS} STREQUAL "nuttx")
 		apps nuttx nosys m gcc
 		-Wl,--end-group)
 
-	px4_nuttx_add_firmware(OUT fw_main.px4 EXE main)
-	px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD} BUNDLE fw_main.px4)
+	px4_nuttx_add_firmware(OUT ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4
+		EXE ${CMAKE_CURRENT_BINARY_DIR}/main)
 
-	px4_nuttx_generate_romfs(OUT romfs.img ROOT ROMFS/px4fmu_common)
+	px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
+		BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4)
+
+	px4_nuttx_generate_romfs(OUT ${CMAKE_CURRENT_BINARY_DIR}/romfs.img
+		ROOT ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common)
 
 endif()
 
