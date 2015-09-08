@@ -110,7 +110,7 @@ set(package-contact "px4users@googlegroups.com")
 #
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-if (EXISTS px4_imple_${OS}_${BOARD})
+if (EXISTS px4_impl_${OS}_${BOARD})
 	include(px4_impl_${OS}_${BOARD})
 else()
 	include(px4_impl_${OS})
