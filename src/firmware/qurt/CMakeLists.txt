@@ -1,3 +1,5 @@
+include(px4_base)
+
 set(V_ARCH v5)
 set(HEXAGON_TOOLS_ROOT /opt/6.4.03)
 set(TOOLSLIB 

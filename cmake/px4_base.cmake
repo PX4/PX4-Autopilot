@@ -610,4 +610,29 @@ function(px4_add_common_flags)
 
 endfunction()
 
+#=============================================================================
+#
+#	px4_mangle_name
+#
+#	Convert a path name to a module name
+#
+#	Usage:
+#		px4_mangle_name(dirname newname)
+#
+#	Input:
+#		dirname					: path to module dir
+#
+#	Output: 
+#		newname					: module name
+#
+#	Example:
+#		px4_mangle_name(${dirpath} mangled_name)
+#		message(STATUS "module name is ${mangled_name}")
+#
+function(px4_mangle_name dirname newname)
+	set(tmp)
+	string(REPLACE "/" "__" tmp ${dirname})
+	set(${newname} ${tmp} PARENT_SCOPE)
+endfunction()
+
 # vim: set noet fenc=utf-8 ff=unix nowrap:
