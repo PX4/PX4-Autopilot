@@ -111,6 +111,7 @@ set(package-contact "px4users@googlegroups.com")
 
 # set module path
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/${OS})
 
 # prefer board implementation module over os implmementation module
 set(board_impl_module px4_impl_${OS}_${BOARD})

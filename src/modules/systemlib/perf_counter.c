@@ -49,7 +49,7 @@
 #define dprintf(...)
 #define ddeclare(...)
 #else
-#define ddeclare(...) __VA_ARGS_
+#define ddeclare(...) __VA_ARGS__
 #endif
 
 /**
