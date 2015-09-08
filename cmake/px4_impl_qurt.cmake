@@ -236,7 +236,7 @@ endfunction()
 #
 #	Usage:
 #		px4_os_prebuild_targets(
-#			OUT <out-list_of_targets>
+#			OUT_MODULES <module-subdir-list>
 #			BOARD <in-string>
 #			)
 #
@@ -244,16 +244,16 @@ endfunction()
 #		BOARD 		: board
 #
 #	Output:
-#		MODULE_LIST	: the updated module list
+#		OUT_MODULES	: the updated module list
 #
 #	Example:
-#		px4_qurt_add_modules(MODULE_LIST module_list BOARD hil)
+#		px4_qurt_add_modules(module_list "hil")
 #
-function(px4_qurt_add_modules out_modules BOARD)
+function(px4_qurt_add_modules OUT_MODULES BOARD)
 	include(config-qurt-${BOARD})
 	set(config_modules)
 	px4_set_config_modules(config_modules)
-	set(${out_modules} ${out_modules} ${config_modules} PARENT_SCOPE)
+	set(${OUT_MODULES} ${${OUT_MODULES}} ${config_modules} PARENT_SCOPE)
 endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:
