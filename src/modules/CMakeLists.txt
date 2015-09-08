@@ -1,0 +1,40 @@
+set(directories
+	./navigator
+	./segway
+	./fw_pos_control_l1
+	./uavcan
+	./position_estimator_inav
+	./px4iofirmware
+	./gpio_led
+	./dataman
+	./fixedwing_backside
+	./uORB
+	./land_detector
+	./muorb/krait
+	./muorb/adsp
+	./simulator
+	./ekf_att_pos_estimator
+	./mc_pos_control
+	./attitude_estimator_ekf
+	./sensors
+	./vtol_att_control
+	./fw_att_control
+	./unit_test
+	./mc_att_control_multiplatform
+	./commander/commander_tests
+	./commander
+	./mavlink/mavlink_tests
+	./mavlink
+	./mc_att_control
+	./bottle_drop
+	./systemlib/mixer
+	./systemlib
+	./mc_pos_control_multiplatform
+	./sdlog2
+	./controllib
+	./attitude_estimator_q
+	)
+
+foreach(directory ${directories})
+	add_subdirectory(${directory} EXCLUDE_FROM_ALL)
+endforeach()
