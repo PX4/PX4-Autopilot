@@ -33,10 +33,9 @@
 set(depends
 	msg_gen
 	)
-if(${OS} STREQUAL "nuttx")
-	list(APPEND depends
-		nuttx_export
-		)
+
+if (prebuild_targets)
+	list(APPEND depends prebuild_targets)
 endif()
 
 px4_add_module(

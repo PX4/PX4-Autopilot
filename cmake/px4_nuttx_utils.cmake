@@ -31,9 +31,28 @@
 #
 ############################################################################
 
+
+#=============================================================================
+#
+#	Defined functions in this file
+#
+# 	OS Specific Functions
+#
+#		* px4_nuttx_add_firmware
+#		* px4_nuttx_generate_builtin_commands
+#		* px4_nuttx_add_export
+#		* px4_nuttx_generate_romfs
+#
+# 	Required OS Inteface Functions
+#
+# 		* px4_os_add_flags
+#		* px4_os_prebuild_targets
+#
+
 include(px4_utils)
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_nuttx_add_firmware
 #
 #	This function adds a nuttx firmware target.
@@ -53,7 +72,6 @@ include(px4_utils)
 #	Example:
 #		px4_nuttx_add_firmware(TARGET fw_test EXE test)
 #
-#----------------------------------------------------------------------------
 function(px4_nuttx_add_firmware)
 	px4_parse_function_args(
 		NAME px4_nuttx_add_firmware
@@ -74,7 +92,8 @@ function(px4_nuttx_add_firmware)
 		)
 endfunction()
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_nuttx_generate_builtin_commands
 #
 #	This function generates the builtin_commands.c src for nuttx
@@ -91,9 +110,9 @@ endfunction()
 #		OUT	: generated builtin_commands.c src
 #
 #	Example:
-#		px4_nuttx_generate_builtin_commands(OUT <generated-src> MODULE_LIST px4_simple_app)
+#		px4_nuttx_generate_builtin_commands(
+#			OUT <generated-src> MODULE_LIST px4_simple_app)
 #
-#----------------------------------------------------------------------------
 function(px4_nuttx_generate_builtin_commands)
 	px4_parse_function_args(
 		NAME px4_nuttx_generate_builtin_commands
@@ -127,11 +146,12 @@ function(px4_nuttx_generate_builtin_commands)
 		${OUT})
 endfunction()
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_nuttx_add_export
 #
 #	This function generates a nuttx export.
-
+#
 #	Usage:
 #		px4_nuttx_add_export(
 #			OUT <out-target>
@@ -148,7 +168,6 @@ endfunction()
 #	Example:
 #		px4_nuttx_add_export(OUT nuttx_export CONFIG px4fmu-v2)
 #
-#----------------------------------------------------------------------------
 function(px4_nuttx_add_export)
 
 	px4_parse_function_args(
@@ -215,7 +234,8 @@ function(px4_nuttx_add_export)
 
 endfunction()
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_nuttx_generate_romfs
 #
 #	The functions generates the ROMFS filesystem for nuttx.
@@ -232,7 +252,6 @@ endfunction()
 #	Example:
 #		px4_nuttx_generate_romfs(OUT my_romfs ROOT "ROMFS/my_board")
 #
-#----------------------------------------------------------------------------
 function(px4_nuttx_generate_romfs)
 
 	px4_parse_function_args(
@@ -257,13 +276,14 @@ function(px4_nuttx_generate_romfs)
 
 endfunction()
 
-#----------------------------------------------------------------------------
-#	px4_add_nuttx_flags
+#=============================================================================
+#
+#	px4_add_flags
 #
 #	Set ths nuttx build flags.
 #
 #	Usage:
-#		px4_add_nuttx_flags(
+#		px4_add_flags(
 #			C_FLAGS <inout-variable>
 #			CXX_FLAGS <inout-variable>
 #			EXE_LINKER_FLAGS <inout-variable>
@@ -273,7 +293,7 @@ endfunction()
 #
 #	Input:
 #		BOARD					: flags depend on board/nuttx config
-
+#
 #	Input/Output: (appends to existing variable)
 #		C_FLAGS					: c compile flags variable
 #		CXX_FLAGS				: c++ compile flags variable
@@ -283,23 +303,31 @@ endfunction()
 #		DEFINITIONS				: definitions
 #
 #	Example:
-#		px4_add_nuttx_flags(
+#		px4_add_flags(
 #			C_FLAGS CMAKE_C_FLAGS
 #			CXX_FLAGS CMAKE_CXX_FLAGS
 #			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
 #			INCLUDES <list>)
 #
-#----------------------------------------------------------------------------
-function(px4_add_nuttx_flags)
+function(px4_add_flags)
 
 	set(inout_vars
 		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
 
 	px4_parse_function_args(
-		NAME px4_add_nuttx_flags
+		NAME px4_add_flags
 		ONE_VALUE ${inout_vars} BOARD
 		REQUIRED ${inout_vars} BOARD
 		ARGN ${ARGN})
+
+	px4_add_common_flags(
+		BOARD ${BOARD}
+		C_FLAGS ${C_FLAGS}
+		CXX_FLAGS ${CXX_FLAGS}
+		EXE_LINKER_FLAGS ${EXE_LINKER_FLAGS}
+		INCLUDE_DIRS ${INCLUDE_DIRS}
+		LINK_DIRS ${LINK_DIRS}
+		DEFINITIONS ${DEFINITIONS})
 
 	set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 	set(added_include_dirs
@@ -341,8 +369,44 @@ function(px4_add_nuttx_flags)
 	foreach(var ${inout_vars})
 		string(TOLOWER ${var} lower_var)
 		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
+		message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
 
+endfunction()
+
+#=============================================================================
+#
+#	px4_prebuild_targets
+#
+#	This function generates os dependent targets
+
+#	Usage:
+#		px4_os_prebuild_targets(
+#			OUT <out-list_of_targets>
+#			BOARD <in-string>
+#			)
+#
+#	Input:
+#		BOARD 		: board
+#		THREADS 	: number of threads for building
+#
+#	Output:
+#		OUT	: the target list
+#
+#	Example:
+#		px4_os_prebuild_targets(OUT target_list BOARD px4fmu-v2)
+#
+function(px4_prebuild_targets)
+	px4_parse_function_args(
+			NAME px4_add_os_libraries
+			ONE_VALUE OUT BOARD THREADS
+			REQUIRED OUT BOARD
+			ARGN ${ARGN})
+	px4_nuttx_add_export(OUT nuttx_export
+		CONFIG ${BOARD}
+		THREADS ${THREADS}
+		DEPENDS git_nuttx)
+	add_custom_target(${OUT} DEPENDS nuttx_export)
 endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:

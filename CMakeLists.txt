@@ -56,6 +56,9 @@
 # Functions/Macros
 # ---------------------------------------------------------------------------
 #
+# * Use px4_parse_function_args to parse functions and check for required
+#   arguments.
+#
 # * Never use macros. They allow overwriting global variables and this
 #	makes variable declarations hard to locate.
 #
@@ -107,9 +110,17 @@ set(package-contact "px4users@googlegroups.com")
 #
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-
-include(px4_utils)
-include(px4_nuttx_utils)
+include(px4_${OS}_utils)
+set(px4_required_functions
+	px4_os_add_firmware
+	px4_os_prebuild_targets
+	px4_os_add_flags
+	)
+foreach(cmd ${px4_required_functions})
+	if(NOT COMMAND ${cmd})
+		message(FATAL_ERROR "cmake/px4_${OS}_utils.cmake must implement ${cmd}")
+	endif()
+endforeach()
 
 #=============================================================================
 # parameters
@@ -124,8 +135,8 @@ set_property(CACHE BOARD PROPERTY STRINGS px4fmu-v2 sitl)
 set(LABEL "simple" CACHE STRING "module set label")
 set_property(CACHE LABEL PROPERTY STRINGS simple default)
 
-set(NUTTX_BUILD_THREADS "4" CACHE STRING
-	"number of threads to use when building NuttX")
+set(THREADS "4" CACHE STRING
+	"number of threads to use for external build processes")
 
 set(required_toolchain_variables
 	CMAKE_C_COMPILER_ID
@@ -159,40 +170,25 @@ add_custom_target(submodule_clean
 #=============================================================================
 # external libraries
 #
-if(${OS} STREQUAL "nuttx")
-	px4_nuttx_add_export(OUT nuttx_export
-		CONFIG ${BOARD}
-		THREADS ${NUTTX_BUILD_THREADS}
-		DEPENDS git_nuttx)
-endif()
+px4_os_prebuild_targets(OUT prebuild_targets
+	BOARD ${BOARD}
+	THREADS ${THREADS})
 
 #=============================================================================
 # build flags
 #
-
-px4_add_common_flags(
+px4_os_add_flags(
+	BOARD ${BOARD}
 	C_FLAGS c_flags
 	CXX_FLAGS cxx_flags
 	EXE_LINKER_FLAGS exe_linker_flags
 	INCLUDE_DIRS include_dirs
 	LINK_DIRS link_dirs
 	DEFINITIONS definitions)
-
-if(${OS} STREQUAL "nuttx")
-	px4_add_nuttx_flags(
-		BOARD ${BOARD}
-		C_FLAGS c_flags
-		CXX_FLAGS cxx_flags
-		EXE_LINKER_FLAGS exe_linker_flags
-		INCLUDE_DIRS include_dirs
-		LINK_DIRS link_dirs
-		DEFINITIONS definitions)
-
-endif()
-
 px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${exe_linker_flags}" GLUE " ")
 px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
 px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
+
 include_directories(${include_dirs})
 link_directories(${link_dirs})
 add_definitions(${definitions})

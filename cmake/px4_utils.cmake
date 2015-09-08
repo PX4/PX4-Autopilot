@@ -31,9 +31,26 @@
 #
 ############################################################################
 
+#=============================================================================
+#
+#	Defined functions in this file
+#
+# 	utility functions
+#
+#		* px4_parse_function_args
+#		* px4_add_git_submodule
+#		* px4_prepend_string
+#		* px4_join
+#		* px4_add_module
+#		* px4_generate_messages
+#		* px4_add_upload
+#		* px4_add_common_flags
+#
+
 include(CMakeParseArguments)
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_parse_function_args
 #
 #	This function simpliies usage of the cmake_parse_arguments module.
@@ -78,7 +95,6 @@ include(CMakeParseArguments)
 #			name: hello
 #			list: a b c
 #
-#----------------------------------------------------------------------------
 function(px4_parse_function_args)
 	cmake_parse_arguments(IN "" "NAME" "OPTIONS;ONE_VALUE;MULTI_VALUE;REQUIRED;ARGN" "${ARGN}")
 	cmake_parse_arguments(OUT "${IN_OPTIONS}" "${IN_ONE_VALUE}" "${IN_MULTI_VALUE}" "${IN_ARGN}")
@@ -95,13 +111,14 @@ function(px4_parse_function_args)
 	endforeach()
 endfunction()
 
-#----------------------------------------------------------------------------
-#	add_git_submodule
+#=============================================================================
+#
+#	px4_add_git_submodule
 #
 #	This function add a git submodule target.
 #
 #	Usage:
-#		add_git_submodule(TARGET <target> PATH <path>)
+#		px4_add_git_submodule(TARGET <target> PATH <path>)
 #
 #	Input:
 #		PATH		: git submodule path
@@ -110,9 +127,8 @@ endfunction()
 #		TARGET		: git target
 #
 #	Example:
-#		add_git_submodule(TARGET git_nuttx PATH "NuttX")
+#		px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
 #
-#----------------------------------------------------------------------------
 function(px4_add_git_submodule)
 	px4_parse_function_args(
 		NAME px4_add_git_submodule
@@ -131,7 +147,8 @@ function(px4_add_git_submodule)
 	)
 endfunction()
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_prepend_string
 #
 #	This function prepends a string to a list
@@ -152,7 +169,6 @@ endfunction()
 #			path/to/src/file1.cpp
 #			path/to/src/file2.cpp
 #
-#----------------------------------------------------------------------------
 function(px4_prepend_string)
 	px4_parse_function_args(
 		NAME px4_prepend_string
@@ -167,7 +183,8 @@ function(px4_prepend_string)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)
 endfunction()
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_join
 #
 #	This function joins a list with a given separator. If list is not
@@ -188,7 +205,6 @@ endfunction()
 #		test_join would then be:
 #			"a;b;c"
 #
-#----------------------------------------------------------------------------
 function(px4_join)
 	px4_parse_function_args(
 		NAME px4_join
@@ -200,7 +216,8 @@ function(px4_join)
 	set(${OUT} ${_TMP_STR} PARENT_SCOPE)
 endfunction()
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_add_module
 #
 #	This function builds a static library from a module description.
@@ -236,7 +253,6 @@ endfunction()
 #				git_nuttx
 #			)
 #
-#----------------------------------------------------------------------------
 function(px4_add_module)
 	px4_parse_function_args(
 		NAME px4_add_module
@@ -264,11 +280,12 @@ function(px4_add_module)
 	set_target_properties(${MODULE} PROPERTIES LINK_INTERFACE_MULTIPLICITY 4)
 endfunction()
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_generate_messages
 #
 #	This function generates source code from ROS msg definitions.
-
+#
 #	Usage:
 #		px4_generate_messages(TARGET <target> MSGS <msg-files>)
 #
@@ -286,7 +303,6 @@ endfunction()
 #			[ DEPENDS <dependencies> ]
 #			)
 #
-#----------------------------------------------------------------------------
 function(px4_generate_messages)
 	px4_parse_function_args(
 		NAME px4_generate_messages
@@ -349,11 +365,12 @@ function(px4_generate_messages)
 		DEPENDS ${msg_multi_files_out} ${msg_files_out})
 endfunction()
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_add_upload
 #
 #	This function generates source code from ROS msg definitions.
-
+#
 #	Usage:
 #		px4_add_upload(OUT <target> BUNDLE <file.px4>)
 #
@@ -370,7 +387,6 @@ endfunction()
 #			BUNDLE main.px4
 #			)
 #
-#----------------------------------------------------------------------------
 function(px4_add_upload)
 	px4_parse_function_args(
 		NAME px4_generate_messages
@@ -403,19 +419,24 @@ function(px4_add_upload)
 		)
 endfunction()
 
-#----------------------------------------------------------------------------
+#=============================================================================
+#
 #	px4_add_common_flags
 #
 #	Set ths default build flags.
 #
 #	Usage:
 #		px4_add_common_flags(
+#			BOARD <in-string>
 #			C_FLAGS <inout-variable>
 #			CXX_FLAGS <inout-variable>
 #			EXE_LINKER_FLAGS <inout-variable>
 #			INCLUDE_DIRS <inout-variable>
 #			LINK_DIRS <inout-variable>
 #			DEFINITIONS <inout-variable>)
+#
+#	Input:
+#		BOARD					: board
 #
 #	Input/Output: (appends to existing variable)
 #		C_FLAGS					: c compile flags variable
@@ -427,12 +448,12 @@ endfunction()
 #
 #	Example:
 #		px4_add_common_flags(
+#			BOARD px4fmu-v2
 #			C_FLAGS CMAKE_C_FLAGS
 #			CXX_FLAGS CMAKE_CXX_FLAGS
 #			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
 #			INCLUDES <list>)
 #
-#----------------------------------------------------------------------------
 function(px4_add_common_flags)
 
 	set(inout_vars
@@ -440,8 +461,8 @@ function(px4_add_common_flags)
 
 	px4_parse_function_args(
 		NAME px4_add_common_flags
-		ONE_VALUE ${inout_vars}
-		REQUIRED ${inout_vars}
+		ONE_VALUE ${inout_vars} BOARD
+		REQUIRED ${inout_vars} BOARD
 		ARGN ${ARGN})
 
 	set(warnings
@@ -569,8 +590,10 @@ function(px4_add_common_flags)
 
 	set(added_link_dirs) # none used currently
 
+	string(TOUPPER ${BOARD} board_upper)
+	string(REPLACE "-" "_" board_config ${board_upper})
 	set(added_definitions
-		-DCONFIG_ARCH_BOARD_${BOARD_CONFIG}
+		-DCONFIG_ARCH_BOARD_${board_config}
 		)
 
 	set(added_exe_link_flags
@@ -582,13 +605,9 @@ function(px4_add_common_flags)
 	foreach(var ${inout_vars})
 		string(TOLOWER ${var} lower_var)
 		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
+		message(STATUS "set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
 
 endfunction()
-
-
-
-
-
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:
