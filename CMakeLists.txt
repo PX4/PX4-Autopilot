@@ -214,7 +214,7 @@ link_directories(${link_dirs})
 add_definitions(${definitions})
 
 #=============================================================================
-# source code generation
+# source code generation}
 #
 file(GLOB_RECURSE msg_files msg/*.msg)
 px4_generate_messages(TARGET msg_gen
@@ -227,6 +227,9 @@ px4_generate_messages(TARGET msg_gen
 # subdirectories
 #
 add_subdirectory(src)
+
+# set the overall objective of the build
+add_custom_target(ALL firmware_${OS})
 
 #=============================================================================
 # packaging
