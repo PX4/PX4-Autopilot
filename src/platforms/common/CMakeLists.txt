@@ -32,11 +32,8 @@
 ############################################################################
 set(depends
 	msg_gen
+	prebuild_targets
 	)
-
-if (prebuild_targets)
-	list(APPEND depends prebuild_targets)
-endif()
 
 px4_add_module(
 	MODULE platforms__common
