@@ -104,7 +104,7 @@ function(px4_qurt_generate_builtin_commands)
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/builtin_commands.c.cmake
+	configure_file(${CMAKE_SOURCE_DIR}/cmake/builtin_commands.c.in
 		${OUT})
 endfunction()
 

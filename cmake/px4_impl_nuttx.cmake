@@ -143,7 +143,7 @@ function(px4_nuttx_generate_builtin_commands)
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/builtin_commands.c.cmake
+	configure_file(${CMAKE_SOURCE_DIR}/cmake/builtin_commands.c.in
 		${OUT})
 endfunction()
 

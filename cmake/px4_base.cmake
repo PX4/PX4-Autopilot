@@ -389,7 +389,7 @@ endfunction()
 #
 function(px4_add_upload)
 	px4_parse_function_args(
-		NAME px4_generate_messages
+		NAME px4_add_upload
 		ONE_VALUE OS BOARD OUT BUNDLE
 		REQUIRED OS BOARD OUT BUNDLE
 		ARGN ${ARGN})
