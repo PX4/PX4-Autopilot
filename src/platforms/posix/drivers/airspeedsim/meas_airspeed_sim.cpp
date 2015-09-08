@@ -589,7 +589,7 @@ measairspeedsim_main(int argc, char *argv[])
 		}
 	}
 
-	int ret;
+	int ret = 0;
 
 	/*
 	 * Start/load the driver.
