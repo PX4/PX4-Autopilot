@@ -214,12 +214,7 @@ px4_generate_messages(TARGET msg_gen
 #=============================================================================
 # subdirectories
 #
-if(${OS} STREQUAL "nuttx")
-	add_subdirectory(src)
-else(${OS} STREQUAL "nuttx")
-	set(module_list)
-	px4_target_add_modules(module_list)
-endif()
+add_subdirectory(src)
 
 #=============================================================================
 # packaging

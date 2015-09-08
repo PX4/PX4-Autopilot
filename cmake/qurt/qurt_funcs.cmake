@@ -50,51 +50,6 @@ set(QURT_APPS_HEADER ${CMAKE_BINARY_DIR}/apps.h)
 px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
 px4_add_git_submodule(TARGET git_eigen32 PATH "src/lib/eigen-3.2")
 
-function(px4_target_set_flags)
-	set(inout_vars
-		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
-
-	px4_parse_function_args(
-		NAME px4_target_set_flags
-		ONE_VALUE ${inout_vars} BOARD
-		REQUIRED ${inout_vars} BOARD
-		ARGN ${ARGN})
-
-        set(DSPAL_ROOT src/lib/dspal)
-        set(added_include_dirs
-                ${DSPAL_ROOT}/include 
-                ${DSPAL_ROOT}/sys 
-                ${DSPAL_ROOT}/sys/sys 
-                ${DSPAL_ROOT}/mpu_spi/inc
-                ${DSPAL_ROOT}/uart_esc/inc
-                src/platforms/qurt/include
-                src/platforms/posix/include
-		src/lib/eigen-3.2
-                )
-
-        set(added_definitions
-                -D__PX4_QURT 
-		-D__PX4_POSIX
-		-include ${PX4_INCLUDE_DIR}visibility.h
-                )
-
-	# Add the toolchain specific flags
-        set(added_cflags ${QURT_CMAKE_C_FLAGS})
-        set(added_cxx_flags ${QURT_CMAKE_CXX_FLAGS})
-
-	# FIXME @jgoppert - how to work around issues like this?
-	# Without changing global variables?
-	# Clear -rdynamic flag which fails for hexagon
-	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
-	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-
-	# output
-	foreach(var ${inout_vars})
-		string(TOLOWER ${var} lower_var)
-		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
-	endforeach()
-endfunction()
-
 function(px4_target_add_modules out_module_directories)
 	list(APPEND ${out_module_directories}
 		./src/platforms/qurt/px4_layer
@@ -107,7 +62,7 @@ function(px4_target_validate_config)
 	# FIXME - this can be done in Firmware/CMakeLists.txt
 	list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
 
-	if (NOT EXISTS("${CMAKE_SOURCE_DIR}/cmake/qurt/${TARGET_NAME}.cmake")
+	if (NOT EXISTS("${CMAKE_SOURCE_DIR}/cmake/qurt/${TARGET_NAME}.cmake"))
 		message(FATAL_ERROR "not implemented yet: ${TARGET_NAME}")
 	endif()
 endfunction()
