@@ -35,6 +35,10 @@ set(depends
 	prebuild_targets
 	)
 
+if(${OS} STREQUAL "posix")
+	list(APPEND depends git_eigen git_mavlink)
+endif()
+
 px4_add_module(
 	MODULE platforms__common
 	SRCS
