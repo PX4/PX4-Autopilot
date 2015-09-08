@@ -64,7 +64,7 @@ if (${OS} STREQUAL "nuttx")
 	px4_nuttx_add_firmware(OUT fw_main.px4 EXE main)
 	px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD} BUNDLE fw_main.px4)
 
-	px4_generate_romfs(OUT romfs.img ROOT ROMFS/px4fmu_common)
+	px4_nuttx_generate_romfs(OUT romfs.img ROOT ROMFS/px4fmu_common)
 
 endif()
 

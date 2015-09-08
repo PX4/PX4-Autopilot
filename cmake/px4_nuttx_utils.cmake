@@ -278,12 +278,12 @@ endfunction()
 
 #=============================================================================
 #
-#	px4_add_flags
+#	px4_os_add_flags
 #
 #	Set ths nuttx build flags.
 #
 #	Usage:
-#		px4_add_flags(
+#		px4_os_add_flags(
 #			C_FLAGS <inout-variable>
 #			CXX_FLAGS <inout-variable>
 #			EXE_LINKER_FLAGS <inout-variable>
@@ -303,13 +303,13 @@ endfunction()
 #		DEFINITIONS				: definitions
 #
 #	Example:
-#		px4_add_flags(
+#		px4_os_add_flags(
 #			C_FLAGS CMAKE_C_FLAGS
 #			CXX_FLAGS CMAKE_CXX_FLAGS
 #			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
 #			INCLUDES <list>)
 #
-function(px4_add_flags)
+function(px4_os_add_flags)
 
 	set(inout_vars
 		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
@@ -369,14 +369,14 @@ function(px4_add_flags)
 	foreach(var ${inout_vars})
 		string(TOLOWER ${var} lower_var)
 		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
-		message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
+		#message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
 
 endfunction()
 
 #=============================================================================
 #
-#	px4_prebuild_targets
+#	px4_os_prebuild_targets
 #
 #	This function generates os dependent targets
 
@@ -396,9 +396,9 @@ endfunction()
 #	Example:
 #		px4_os_prebuild_targets(OUT target_list BOARD px4fmu-v2)
 #
-function(px4_prebuild_targets)
+function(px4_os_prebuild_targets)
 	px4_parse_function_args(
-			NAME px4_add_os_libraries
+			NAME px4_os_prebuild_targets
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
