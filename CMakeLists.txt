@@ -129,7 +129,7 @@ set(px4_required_functions
 	)
 foreach(cmd ${px4_required_functions})
 	if(NOT COMMAND ${cmd})
-		message(FATAL_ERROR "cmake/px4_${OS}_utils.cmake must implement ${cmd}")
+		message(FATAL_ERROR "cmake/${impl_module} must implement ${cmd}")
 	endif()
 endforeach()
 
@@ -168,16 +168,12 @@ endforeach()
 #=============================================================================
 # git
 #
-if(${OS} STREQUAL "nuttx")
 px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
-endif()
 px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
 px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_gtest PATH "unittets/gtest")
-if(NOT ${OS} STREQUAL "nuttx")
 px4_add_git_submodule(TARGET git_eigen PATH "src/lib/eigen")
-endif()
 
 add_custom_target(submodule_clean
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
