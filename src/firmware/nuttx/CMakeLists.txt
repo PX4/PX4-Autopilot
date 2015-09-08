@@ -49,7 +49,7 @@ target_link_libraries(firmware_nuttx
 	-Wl,--end-group)
 
 px4_nuttx_add_firmware(OUT ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4
-	EXE ${CMAKE_CURRENT_BINARY_DIR}/main)
+	EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx)
 
 px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
 	BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4)
