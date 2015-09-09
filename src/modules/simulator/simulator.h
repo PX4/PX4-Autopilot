@@ -43,6 +43,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_status.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_baro.h>
@@ -90,6 +91,13 @@ struct RawBaroData {
 	float pressure;
 	float altitude;
 	float temperature;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct RawAirspeedData {
+	float temperature;
+	float diff_pressure;
 };
 #pragma pack(pop)
 
@@ -190,12 +198,14 @@ public:
 	bool getMPUReport(uint8_t *buf, int len);
 	bool getBaroSample(uint8_t *buf, int len);
 	bool getGPSSample(uint8_t *buf, int len);
+	bool getAirspeedSample(uint8_t *buf, int len);
 
 	void write_MPU_data(void *buf);
 	void write_accel_data(void *buf);
 	void write_mag_data(void *buf);
 	void write_baro_data(void *buf);
 	void write_gps_data(void *buf);
+	void write_airspeed_data(void *buf);
 
 	bool isInitialized() { return _initialized; }
 
@@ -206,6 +216,7 @@ private:
 	_baro(1),
 	_mag(1),
 	_gps(1),
+	_airspeed(1),
 	_accel_pub(nullptr),
 	_baro_pub(nullptr),
 	_gyro_pub(nullptr),
@@ -217,10 +228,12 @@ private:
 	_actuator_outputs_sub(-1),
 	_vehicle_attitude_sub(-1),
 	_manual_sub(-1),
+	_vehicle_status_sub(-1),
 	_rc_input{},
 	_actuators{},
 	_attitude{},
-	_manual{}
+	_manual{},
+	_vehicle_status{}
 #endif
 	{}
 	~Simulator() { _instance=NULL; }
@@ -235,6 +248,7 @@ private:
 	simulator::Report<simulator::RawBaroData>	_baro;
 	simulator::Report<simulator::RawMagData>	_mag;
 	simulator::Report<simulator::RawGPSData>	_gps;
+	simulator::Report<simulator::RawAirspeedData> _airspeed;
 
 	// uORB publisher handlers
 	orb_advert_t _accel_pub;
@@ -255,14 +269,16 @@ private:
 	int _actuator_outputs_sub;
 	int _vehicle_attitude_sub;
 	int _manual_sub;
+	int _vehicle_status_sub;
 
 	// uORB data containers
 	struct rc_input_values _rc_input;
 	struct actuator_outputs_s _actuators;
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
+	struct vehicle_status_s _vehicle_status;
 
-	void poll_actuators();
+	void poll_topics();
 	void handle_message(mavlink_message_t *msg, bool publish);
 	void send_controls();
 	void pollForMAVLinkMessages(bool publish);

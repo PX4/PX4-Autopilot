@@ -106,7 +106,7 @@ static const int ERROR = -1;
 class MS5611 : public device::CDev
 {
 public:
-	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char* path);
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path);
 	~MS5611();
 
 	virtual int		init();
@@ -214,7 +214,7 @@ protected:
  */
 extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
-MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char* path) :
+MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path) :
 	CDev("MS5611", path),
 	_interface(interface),
 	_prom(prom_buf.s),
@@ -243,12 +243,14 @@ MS5611::~MS5611()
 	/* make sure we are truly inactive */
 	stop_cycle();
 
-	if (_class_instance != -1)
+	if (_class_instance != -1) {
 		unregister_class_devname(get_devname(), _class_instance);
+	}
 
 	/* free any existing reports */
-	if (_reports != nullptr)
+	if (_reports != nullptr) {
 		delete _reports;
+	}
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -265,6 +267,7 @@ MS5611::init()
 	int ret;
 
 	ret = CDev::init();
+
 	if (ret != OK) {
 		DEVICE_DEBUG("CDev init failed");
 		goto out;
@@ -321,7 +324,7 @@ MS5611::init()
 		ret = OK;
 
 		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
-				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+						  &_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 
 		if (_baro_topic == nullptr) {
@@ -342,8 +345,9 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 	int ret = 0;
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is enabled */
 	if (_measure_ticks > 0) {
@@ -396,8 +400,9 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* state machine will have generated a report, copy it out */
-		if (_reports->get(brp))
+		if (_reports->get(brp)) {
 			ret = sizeof(*brp);
+		}
 
 	} while (0);
 
@@ -412,20 +417,20 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-				/* switching to manual polling */
+			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
 				stop_cycle();
 				_measure_ticks = 0;
 				return OK;
 
-				/* external signalling not supported */
+			/* external signalling not supported */
 			case SENSOR_POLLRATE_EXTERNAL:
 
-				/* zero would be bad */
+			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-				/* set default/max polling rate */
+			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
@@ -435,13 +440,14 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 					_measure_ticks = USEC2TICK(MS5611_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start_cycle();
+					}
 
 					return OK;
 				}
 
-				/* adjust to a legal polling interval in Hz */
+			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -450,15 +456,17 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
+					if (ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL)) {
 						return -EINVAL;
+					}
 
 					/* update interval for next measurement */
 					_measure_ticks = ticks;
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start_cycle();
+					}
 
 					return OK;
 				}
@@ -466,24 +474,28 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0)
+		if (_measure_ticks == 0) {
 			return SENSOR_POLLRATE_MANUAL;
+		}
 
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		irqstate_t flags = irqsave();
-		if (!_reports->resize(arg)) {
+			irqstate_t flags = irqsave();
+
+			if (!_reports->resize(arg)) {
+				irqrestore(flags);
+				return -ENOMEM;
+			}
+
 			irqrestore(flags);
-			return -ENOMEM;
+			return OK;
 		}
-		irqrestore(flags);
-		return OK;
-	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _reports->size();
@@ -498,8 +510,9 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case BAROIOCSMSLPRESSURE:
 
 		/* range-check for sanity */
-		if ((arg < 80000) || (arg > 120000))
+		if ((arg < 80000) || (arg > 120000)) {
 			return -EINVAL;
+		}
 
 		_msl_pressure = arg;
 		return OK;
@@ -554,6 +567,7 @@ MS5611::cycle()
 
 		/* perform collection */
 		ret = collect();
+
 		if (ret != OK) {
 			if (ret == -6) {
 				/*
@@ -564,6 +578,7 @@ MS5611::cycle()
 			} else {
 				//DEVICE_LOG("collection error %d", ret);
 			}
+
 			/* issue a reset command to the sensor */
 			_interface->ioctl(IOCTL_RESET, dummy);
 			/* reset the collection state machine and try again - we need
@@ -598,6 +613,7 @@ MS5611::cycle()
 
 	/* measurement phase */
 	ret = measure();
+
 	if (ret != OK) {
 		/* issue a reset command to the sensor */
 		_interface->ioctl(IOCTL_RESET, dummy);
@@ -633,8 +649,10 @@ MS5611::measure()
 	 * Send the command to begin measuring.
 	 */
 	ret = _interface->ioctl(IOCTL_MEASURE, addr);
-	if (OK != ret)
+
+	if (OK != ret) {
 		perf_count(_comms_errors);
+	}
 
 	perf_end(_measure_perf);
 
@@ -652,10 +670,11 @@ MS5611::collect()
 	struct baro_report report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
-        report.error_count = perf_event_count(_comms_errors);
+	report.error_count = perf_event_count(_comms_errors);
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
 	ret = _interface->read(0, (void *)&raw, 0);
+
 	if (ret < 0) {
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
@@ -883,11 +902,13 @@ crc4(uint16_t *n_prom)
 bool
 start_bus(struct ms5611_bus_option &bus)
 {
-	if (bus.dev != nullptr)
-		errx(1,"bus option already started");
+	if (bus.dev != nullptr) {
+		errx(1, "bus option already started");
+	}
 
 	prom_u prom_buf;
 	device::Device *interface = bus.interface_constructor(prom_buf, bus.busnum);
+
 	if (interface->init() != OK) {
 		delete interface;
 		warnx("no device on bus %u", (unsigned)bus.busid);
@@ -895,6 +916,7 @@ start_bus(struct ms5611_bus_option &bus)
 	}
 
 	bus.dev = new MS5611(interface, prom_buf, bus.devpath);
+
 	if (bus.dev != nullptr && OK != bus.dev->init()) {
 		delete bus.dev;
 		bus.dev = NULL;
@@ -907,6 +929,7 @@ start_bus(struct ms5611_bus_option &bus)
 	if (fd == -1) {
 		errx(1, "can't open baro device");
 	}
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		close(fd);
 		errx(1, "failed setting default poll rate");
@@ -929,20 +952,23 @@ start(enum MS5611_BUS busid)
 	uint8_t i;
 	bool started = false;
 
-	for (i=0; i<NUM_BUS_OPTIONS; i++) {
+	for (i = 0; i < NUM_BUS_OPTIONS; i++) {
 		if (busid == MS5611_BUS_ALL && bus_options[i].dev != NULL) {
 			// this device is already started
 			continue;
 		}
+
 		if (busid != MS5611_BUS_ALL && bus_options[i].busid != busid) {
 			// not the one that is asked for
 			continue;
 		}
+
 		started |= start_bus(bus_options[i]);
 	}
 
-	if (!started)
+	if (!started) {
 		errx(1, "driver start failed");
+	}
 
 	// one or more drivers started OK
 	exit(0);
@@ -954,13 +980,14 @@ start(enum MS5611_BUS busid)
  */
 struct ms5611_bus_option &find_bus(enum MS5611_BUS busid)
 {
-	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
+	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
 		if ((busid == MS5611_BUS_ALL ||
 		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
 			return bus_options[i];
 		}
 	}
-	errx(1,"bus %u not started", (unsigned)busid);
+
+	errx(1, "bus %u not started", (unsigned)busid);
 }
 
 /**
@@ -979,14 +1006,17 @@ test(enum MS5611_BUS busid)
 	int fd;
 
 	fd = open(bus.devpath, O_RDONLY);
-	if (fd < 0)
+
+	if (fd < 0) {
 		err(1, "open failed (try 'ms5611 start' if the driver is not running)");
+	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
-	if (sz != sizeof(report))
+	if (sz != sizeof(report)) {
 		err(1, "immediate read failed");
+	}
 
 	warnx("single read");
 	warnx("pressure:    %10.4f", (double)report.pressure);
@@ -995,12 +1025,14 @@ test(enum MS5611_BUS busid)
 	warnx("time:        %lld", report.timestamp);
 
 	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
+	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
 		errx(1, "failed to set queue depth");
+	}
 
 	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		errx(1, "failed to set 2Hz poll rate");
+	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
@@ -1011,14 +1043,16 @@ test(enum MS5611_BUS busid)
 		fds.events = POLLIN;
 		ret = poll(&fds, 1, 2000);
 
-		if (ret != 1)
+		if (ret != 1) {
 			errx(1, "timed out waiting for sensor data");
+		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
-		if (sz != sizeof(report))
+		if (sz != sizeof(report)) {
 			err(1, "periodic read failed");
+		}
 
 		warnx("periodic read %u", i);
 		warnx("pressure:    %10.4f", (double)report.pressure);
@@ -1041,14 +1075,18 @@ reset(enum MS5611_BUS busid)
 	int fd;
 
 	fd = open(bus.devpath, O_RDONLY);
-	if (fd < 0)
+
+	if (fd < 0) {
 		err(1, "failed ");
+	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		err(1, "driver reset failed");
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		err(1, "driver poll restart failed");
+	}
 
 	exit(0);
 }
@@ -1059,13 +1097,15 @@ reset(enum MS5611_BUS busid)
 void
 info()
 {
-	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
+	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
 		struct ms5611_bus_option &bus = bus_options[i];
+
 		if (bus.dev != nullptr) {
 			warnx("%s", bus.devpath);
 			bus.dev->print_info();
 		}
 	}
+
 	exit(0);
 }
 
@@ -1084,12 +1124,14 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 
 	fd = open(bus.devpath, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "open failed (try 'ms5611 start' if the driver is not running)");
+	}
 
 	/* start the sensor polling at max */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX))
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX)) {
 		errx(1, "failed to set poll rate");
+	}
 
 	/* average a few measurements */
 	pressure = 0.0f;
@@ -1104,14 +1146,16 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 		fds.events = POLLIN;
 		ret = poll(&fds, 1, 1000);
 
-		if (ret != 1)
+		if (ret != 1) {
 			errx(1, "timed out waiting for sensor data");
+		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
-		if (sz != sizeof(report))
+		if (sz != sizeof(report)) {
 			err(1, "sensor read failed");
+		}
 
 		pressure += report.pressure;
 	}
@@ -1134,8 +1178,9 @@ calibrate(unsigned altitude, enum MS5611_BUS busid)
 	/* save as integer Pa */
 	p1 *= 1000.0f;
 
-	if (ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK)
+	if (ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK) {
 		err(1, "BAROIOCSMSLPRESSURE");
+	}
 
 	close(fd);
 	exit(0);
@@ -1166,15 +1211,19 @@ ms5611_main(int argc, char *argv[])
 		case 'X':
 			busid = MS5611_BUS_I2C_EXTERNAL;
 			break;
+
 		case 'I':
 			busid = MS5611_BUS_I2C_INTERNAL;
 			break;
+
 		case 'S':
 			busid = MS5611_BUS_SPI_EXTERNAL;
 			break;
+
 		case 's':
 			busid = MS5611_BUS_SPI_INTERNAL;
 			break;
+
 		default:
 			ms5611::usage();
 			exit(0);
@@ -1215,10 +1264,11 @@ ms5611_main(int argc, char *argv[])
 	 * Perform MSL pressure calibration given an altitude in metres
 	 */
 	if (!strcmp(verb, "calibrate")) {
-		if (argc < 2)
+		if (argc < 2) {
 			errx(1, "missing altitude");
+		}
 
-		long altitude = strtol(argv[optind+1], nullptr, 10);
+		long altitude = strtol(argv[optind + 1], nullptr, 10);
 
 		ms5611::calibrate(altitude, busid);
 	}

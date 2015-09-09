@@ -270,7 +270,7 @@ int px4_fsync(int fd)
 
 int px4_access(const char *pathname, int mode)
 {
-	if (mode == F_OK) {
+	if (mode != F_OK) {
 		errno = EINVAL;
 		return -1;
 	}

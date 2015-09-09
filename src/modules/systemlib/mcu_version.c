@@ -33,7 +33,7 @@
 
 /**
  * @file mcu_version.c
- * 
+ *
  * Read out the microcontroller version from the board
  *
  * @author Lorenz Meier <lorenz@px4.io>
@@ -64,8 +64,8 @@ void mcu_unique_id(uint32_t *uid_96_bit)
 {
 #ifdef __PX4_NUTTX
 	uid_96_bit[0] = getreg32(UNIQUE_ID);
-	uid_96_bit[1] = getreg32(UNIQUE_ID+4);
-	uid_96_bit[2] = getreg32(UNIQUE_ID+8);
+	uid_96_bit[1] = getreg32(UNIQUE_ID + 4);
+	uid_96_bit[2] = getreg32(UNIQUE_ID + 8);
 #else
 	uid_96_bit[0] = 0;
 	uid_96_bit[1] = 1;
@@ -73,7 +73,7 @@ void mcu_unique_id(uint32_t *uid_96_bit)
 #endif
 }
 
-int mcu_version(char* rev, char** revstr)
+int mcu_version(char *rev, char **revstr)
 {
 #ifdef CONFIG_ARCH_CHIP_STM32
 	uint32_t abc = getreg32(DBGMCU_IDCODE);
@@ -85,9 +85,11 @@ int mcu_version(char* rev, char** revstr)
 	case STM32F40x_41x:
 		*revstr = "STM32F40x";
 		break;
+
 	case STM32F42x_43x:
 		*revstr = "STM32F42x";
 		break;
+
 	default:
 		*revstr = "STM32F???";
 		break;
@@ -95,25 +97,30 @@ int mcu_version(char* rev, char** revstr)
 
 	switch (revid) {
 
-		case MCU_REV_STM32F4_REV_A:
-			*rev = 'A';
-			break;
-		case MCU_REV_STM32F4_REV_Z:
-			*rev = 'Z';
-			break;
-		case MCU_REV_STM32F4_REV_Y:
-			*rev = 'Y';
-			break;
-		case MCU_REV_STM32F4_REV_1:
-			*rev = '1';
-			break;
-		case MCU_REV_STM32F4_REV_3:
-			*rev = '3';
-			break;
-		default:
-			*rev = '?';
-			revid = -1;
-			break;
+	case MCU_REV_STM32F4_REV_A:
+		*rev = 'A';
+		break;
+
+	case MCU_REV_STM32F4_REV_Z:
+		*rev = 'Z';
+		break;
+
+	case MCU_REV_STM32F4_REV_Y:
+		*rev = 'Y';
+		break;
+
+	case MCU_REV_STM32F4_REV_1:
+		*rev = '1';
+		break;
+
+	case MCU_REV_STM32F4_REV_3:
+		*rev = '3';
+		break;
+
+	default:
+		*rev = '?';
+		revid = -1;
+		break;
 	}
 
 	return revid;

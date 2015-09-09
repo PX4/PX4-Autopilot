@@ -389,8 +389,6 @@ then
 	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
-	# Wait 10 ms for sensors (workaround for airspeed, to be removed)
-	usleep 10000
 	commander start
 
 	#

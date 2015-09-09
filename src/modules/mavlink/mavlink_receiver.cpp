@@ -990,8 +990,8 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 switch_pos_t
 MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
 {
-	// XXX non-standard 3 pos switch decoding
-	return (buttons >> (sw * 2)) & 3;
+	// This 2-bit method should be used in the future: (buttons >> (sw * 2)) & 3;
+	return (buttons & (1 << sw)) ? manual_control_setpoint_s::SWITCH_POS_ON : manual_control_setpoint_s::SWITCH_POS_OFF;
 }
 
 int
@@ -1101,26 +1101,10 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		rc.values[0] = man.x / 2 + 1500;
 		/* pitch */
 		rc.values[1] = man.y / 2 + 1500;
-
-		/*
-		 * yaw needs special handling as some joysticks have a circular mechanical mask,
-		 * which makes the corner positions unreachable.
-		 * scale yaw up and clip it to overcome this.
-		 */
-		rc.values[2] = man.r / 1.1f + 1500;
-		if (rc.values[2] > 2000) {
-			rc.values[2] = 2000;
-		} else if (rc.values[2] < 1000) {
-			rc.values[2] = 1000;
-		}
-
+		/* yaw */
+		rc.values[2] = man.r / 2 + 1500;
 		/* throttle */
-		rc.values[3] = man.z / 0.9f + 1000;
-		if (rc.values[3] > 2000) {
-			rc.values[3] = 2000;
-		} else if (rc.values[3] < 1000) {
-			rc.values[3] = 1000;
-		}
+		rc.values[3] = man.z / 1 + 1000;
 
 		/* decode all switches which fit into the channel mask */
 		unsigned max_switch = (sizeof(man.buttons) * 8);
@@ -1761,10 +1745,17 @@ MavlinkReceiver::receive_thread(void *arg)
 #ifdef __PX4_POSIX
 	struct sockaddr_in srcaddr;
 	socklen_t addrlen = sizeof(srcaddr);
+
 	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
+		// make sure mavlink app has booted before we start using the socket
+		while (!_mavlink->boot_complete()) {
+			usleep(100000);
+		}
+
 		fds[0].fd = _mavlink->get_socket_fd();
 		fds[0].events = POLLIN;
 	}
+
 #endif
 	ssize_t nread = 0;
 
@@ -1779,12 +1770,18 @@ MavlinkReceiver::receive_thread(void *arg)
 			}
 #ifdef __PX4_POSIX
 			if (_mavlink->get_protocol() == UDP) {
-
 				if (fds[0].revents & POLLIN) {
 					nread = recvfrom(_mavlink->get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
 			} else {
 				// could be TCP or other protocol
+			}
+
+			struct sockaddr_in * srcaddr_last = _mavlink->get_client_source_address();
+			int localhost = (127 << 24) + 1;
+			if (srcaddr_last->sin_addr.s_addr == htonl(localhost) && srcaddr.sin_addr.s_addr != htonl(localhost)) {
+				// if we were sending to localhost before but have a new host then accept him
+				memcpy(srcaddr_last, &srcaddr, sizeof(srcaddr));
 			}
 #endif
 			/* if read failed, this loop won't execute */

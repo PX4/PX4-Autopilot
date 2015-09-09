@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,68 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_start_nuttx.cpp
+ * @file sitl_led.c
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * sitl LED backend.
  */
-#include <string.h>
-#include <cstdlib>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
-extern bool thread_running;
-int daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
+#include <px4_config.h>
+#include <px4_log.h>
+#include <stdbool.h>
+
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
+
+static bool _led_state[2] = { false , false };
+
+__EXPORT void led_init()
 {
-bool task_should_exit = false;
+	PX4_DEBUG("LED_INIT");
 }
-using namespace px4;
 
-extern int main(int argc, char **argv);
-
-extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
-int subscriber_main(int argc, char *argv[])
+__EXPORT void led_on(int led)
 {
-	if (argc < 2) {
-		errx(1, "usage: subscriber {start|stop|status}");
+	if (led == 1 || led == 0) {
+		PX4_DEBUG("LED%d_ON", led);
+		_led_state[led] = true;
 	}
+}
 
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			exit(0);
-		}
-
-		task_should_exit = false;
-
-		daemon_task = px4_task_spawn_cmd("subscriber",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
-						 2000,
-						 main,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
-
-		exit(0);
+__EXPORT void led_off(int led)
+{
+	if (led == 1 || led == 0) {
+		PX4_DEBUG("LED%d_OFF", led);
+		_led_state[led] = false;
 	}
+}
 
-	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
-		exit(0);
+__EXPORT void led_toggle(int led)
+{
+	if (led == 1 || led == 0) {
+		_led_state[led] = !_led_state[led];
+		PX4_DEBUG("LED%d_TOGGLE: %s", led, _led_state[led] ? "ON" : "OFF");
+
 	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("is running");
-
-		} else {
-			warnx("not started");
-		}
-
-		exit(0);
-	}
-
-	warnx("unrecognized command");
-	return 1;
 }

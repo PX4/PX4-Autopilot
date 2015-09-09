@@ -393,7 +393,7 @@ union param_value_u {
 struct param_info_s {
 	const char	*name
 
-// GCC 4.8 and higher don't implement proper alignment of static data on 
+// GCC 4.8 and higher don't implement proper alignment of static data on
 // 64-bit. This means that the 24-byte param_info_s variables are
 // 16 byte aligned by GCC and that messes up the assumption that
 // sequential items in the __param segment can be addressed as an array.
@@ -404,9 +404,9 @@ struct param_info_s {
 // The following hack is for GCC >=4.8 only. Clang works fine without
 // this.
 #ifdef __PX4_POSIX
-				__attribute__((aligned(16)));
+	__attribute__((aligned(16)));
 #else
-				;
+	;
 #endif
 	param_type_t	type;
 	union param_value_u val;

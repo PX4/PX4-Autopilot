@@ -38,7 +38,7 @@
 #include <string>
 #include <pthread.h>
 #include "uORB/uORBCommunicator.hpp"
-#include <px4_muorb/px4muorb_KraitRpcWrapper.hpp>
+#include <px4muorb_KraitRpcWrapper.hpp>
 #include <map>
 #include "drivers/drv_hrt.h"
 

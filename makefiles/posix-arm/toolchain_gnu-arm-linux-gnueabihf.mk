@@ -39,14 +39,17 @@
 #
 CROSSDEV		 = arm-linux-gnueabihf-
 
-CC			 = $(CROSSDEV)gcc
-CXX			 = $(CROSSDEV)g++
-CPP			 = $(CROSSDEV)gcc -E
-LD			 = $(CROSSDEV)ld
-AR			 = $(CROSSDEV)ar rcs
-NM			 = $(CROSSDEV)nm
-OBJCOPY			 = $(CROSSDEV)objcopy
-OBJDUMP			 = $(CROSSDEV)objdump
+CC			 ?= $(CROSSDEV)gcc
+CXX			 ?= $(CROSSDEV)g++
+CPP			 ?= $(CROSSDEV)gcc -E
+LD			 ?= $(CROSSDEV)ld
+AR			 ?= $(CROSSDEV)ar rcs
+NM			 ?= $(CROSSDEV)nm
+OBJCOPY			 ?= $(CROSSDEV)objcopy
+OBJDUMP			 ?= $(CROSSDEV)objdump
+ifdef OECORE_NATIVE_SYSROOT
+AR := $(AR) rcs
+endif
 
 # Check if the right version of the toolchain is available
 #
@@ -57,7 +60,9 @@ ifeq (,$(findstring $(CROSSDEV_VER_FOUND), $(CROSSDEV_VER_SUPPORTED)))
 $(error Unsupported version of $(CC), found: $(CROSSDEV_VER_FOUND) instead of one in: $(CROSSDEV_VER_SUPPORTED))
 endif
 
-EXT_MUORB_LIB_ROOT = /opt/muorb_libs
+ifndef POSIX_EXT_LIB_ROOT
+$(error POSIX_EXT_LIB_ROOT is not set)
+endif
 
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
@@ -71,37 +76,6 @@ ARCHCPUFLAGS_CORTEXA8    = -mtune=cortex-a8 \
                            -mfloat-abi=hard \
                            -mfpu=neon
  
-ARCHCPUFLAGS_CORTEXM4F	 = -mcpu=cortex-m4 \
-			   -mthumb \
-			   -march=armv7e-m \
-			   -mfpu=fpv4-sp-d16 \
-			   -mfloat-abi=hard
-
-ARCHCPUFLAGS_CORTEXM4	 = -mcpu=cortex-m4 \
-			   -mthumb \
-			   -march=armv7e-m \
-			   -mfloat-abi=soft
-
-ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
-			   -mthumb \
-			   -march=armv7-m \
-			   -mfloat-abi=soft
-
-# Enabling stack checks if OS was build with them
-#
-TEST_FILE_STACKCHECK=$(WORK_DIR)nuttx-export/include/nuttx/config.h
-TEST_VALUE_STACKCHECK=CONFIG_ARMV7M_STACKCHECK\ 1
-ENABLE_STACK_CHECKS=$(shell $(GREP) -q "$(TEST_VALUE_STACKCHECK)" $(TEST_FILE_STACKCHECK); echo $$?;)
-ifeq ("$(ENABLE_STACK_CHECKS)","0")
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions -ffixed-r10
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4  = -finstrument-functions -ffixed-r10
-ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
-else
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4F =
-ARCHINSTRUMENTATIONDEFINES_CORTEXM4  =
-ARCHINSTRUMENTATIONDEFINES_CORTEXM3  =
-endif
-
 # Pick the right set of flags for the architecture.
 #
 ARCHCPUFLAGS		 = $(ARCHCPUFLAGS_$(CONFIG_ARCH))
@@ -115,13 +89,13 @@ ifeq ($(CONFIG_BOARD),)
 $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
-                   -D__PX4_LINUX -D__PX4_POSIX \
-			       -Dnoreturn_function= \
-			       -I$(PX4_BASE)/src/modules/systemlib \
-			       -I$(PX4_BASE)/src/lib/eigen \
-			       -I$(PX4_BASE)/src/platforms/posix/include \
-			       -I$(PX4_BASE)/mavlink/include/mavlink \
-			       -Wno-error=shadow
+	                   -D__PX4_LINUX -D__PX4_POSIX \
+			   -Dnoreturn_function= \
+			   -I$(PX4_BASE)/src/modules/systemlib \
+			   -I$(PX4_BASE)/src/lib/eigen \
+			   -I$(PX4_BASE)/src/platforms/posix/include \
+			   -I$(PX4_BASE)/mavlink/include/mavlink \
+			   -Wno-error=shadow
 
 # optimisation flags
 #
@@ -189,7 +163,8 @@ LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
 EXTRA_LIBS		+= -lpx4muorb -ladsprpc
 EXTRA_LIBS		+= -pthread -lm -lrt
 
-LIB_DIRS                += $(EXT_MUORB_LIB_ROOT)/krait/libs
+LIB_DIRS                += $(POSIX_EXT_LIB_ROOT)/libs
+INCLUDE_DIRS        += $(POSIX_EXT_LIB_ROOT)/inc
 
 # Flags we pass to the C compiler
 #
