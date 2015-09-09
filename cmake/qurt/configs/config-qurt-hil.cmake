@@ -6,6 +6,7 @@ function(px4_set_config_modules out_module_list)
 		drivers/led
 		drivers/rgbled
 		modules/sensors
+		modules/uORB
 
 	#	drivers/blinkm
 	#	drivers/ms5611
