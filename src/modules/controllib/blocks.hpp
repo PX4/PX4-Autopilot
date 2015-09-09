@@ -173,6 +173,7 @@ public:
 // methods
 	BlockLowPass2(SuperBlock *parent, const char *name, float sample_freq) :
 		Block(parent, name),
+		_state(0.0 / 0.0 /* initialize to invalid val, force into is_finite() check on first call */),
 		_fCut(this, ""), // only one parameter, no need to name
 		_fs(sample_freq),
 		_lp(_fs, _fCut.get())
@@ -180,10 +181,12 @@ public:
 	virtual ~BlockLowPass2() {};
 	float update(float input);
 // accessors
+	float getState() { return _state; }
 	float getFCutParam() { return _fCut.get(); }
-	void setState(float state) { _lp.reset(state); }
+	void setState(float state) { _state = _lp.reset(state); }
 protected:
 // attributes
+	float _state;
 	control::BlockParamFloat _fCut;
 	float _fs;
 	math::LowPassFilter2p _lp;
@@ -291,6 +294,7 @@ public:
 	void setU(float u) {_u = u;}
 	float getU() {return _u;}
 	float getLP() {return _lowPass.getFCut();}
+	float getO() { return _lowPass.getState(); }
 protected:
 // attributes
 	float _u; /**< previous input */

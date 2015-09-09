@@ -200,10 +200,15 @@ int blockHighPassTest()
 
 float BlockLowPass2::update(float input)
 {
+	if (!isfinite(getState())) {
+		setState(input);
+	}
+
 	if (_lp.get_cutoff_freq() != getFCutParam()) {
 		_lp.set_cutoff_frequency(_fs, getFCutParam());
 	}
-	return _lp.apply(input);
+	_state = _lp.apply(input);
+	return _state;
 }
 
 float BlockIntegral::update(float input)
