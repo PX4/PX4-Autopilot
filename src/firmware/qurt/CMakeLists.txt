@@ -16,7 +16,7 @@ foreach(directory ${module_dir_list})
 		${mangled_name})
 endforeach()
 px4_qurt_generate_builtin_commands(
-	OUT builtin_commands.cpp
+	OUT apps.h
 	MODULE_LIST ${module_list})
 
 # FIXME @jgoppert - how to work around issues like this?
@@ -25,7 +25,10 @@ px4_qurt_generate_builtin_commands(
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-add_library(mainapp builtin_commands.cpp)
+add_library(mainapp 
+	${CMAKE_SOURCE_DIR}/src/platforms/qurt/px4_layer/main.cpp
+	apps.h)
+
 target_link_libraries(mainapp
 	-Wl,--whole-archive
 	${module_list}
