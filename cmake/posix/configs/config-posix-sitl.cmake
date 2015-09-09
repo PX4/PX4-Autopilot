@@ -18,6 +18,7 @@ function(px4_set_config_modules out_module_list)
 		systemcmds/ver
 		systemcmds/esc_calib
 		systemcmds/reboot
+		systemcmds/topic_listener
 		modules/uORB
 		modules/systemlib
 		modules/systemlib/mixer

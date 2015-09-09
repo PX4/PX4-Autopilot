@@ -30,6 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+add_custom_command(OUTPUT topic_listener.cpp
+                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/generate_listener.py ${CMAKE_SOURCE_DIR} > topic_listener.cpp
+                )
+
+add_custom_target(generate_topic_listener
+	DEPENDS topic_listener.cpp)
+
 px4_add_module(
 	MODULE systemcmds__topic_listener
 	MAIN listener
@@ -40,5 +48,6 @@ px4_add_module(
 		topic_listener.cpp
 	DEPENDS
 		platforms__common
+		generate_topic_listener
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
