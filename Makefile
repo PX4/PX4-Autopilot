@@ -6,6 +6,13 @@ px4fmu-v2_simple:
 		-DOS=nuttx -DBOARD=px4fmu-v2 -DLABEL=simple && \
 		make -s && ctest -V && cpack -G ZIP 
 
+nuttx-sim-simple:
+	echo "nuttx-sim-simple is a work in progress"
+	mkdir -p $d/build_$@ && cd $d/build_$@ && \
+		cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-native.cmake \
+		-DOS=nuttx -DBOARD=sim -DLABEL=simple && \
+		make -s && ctest -V && cpack -G ZIP 
+
 px4fmu-v2_simple-upload: px4fmu-v2_simple
 	cd $d/build_$< && make upload
 
