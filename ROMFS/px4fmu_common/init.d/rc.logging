@@ -7,11 +7,11 @@ if [ -d /fs/microsd ]
 then
 	if ver hwcmp PX4FMU_V1
 	then
-		if sdlog2 start -r 40 -a -b 3 -t
+		if logger start
 		then
 		fi
 	else
-		if sdlog2 start -r 100 -a -b 12 -t
+		if logger start
 		then
 		fi
 	fi
