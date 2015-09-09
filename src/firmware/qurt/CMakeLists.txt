@@ -25,7 +25,7 @@ px4_qurt_generate_builtin_commands(
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-add_executable(mainapp builtin_commands.cpp)
+add_library(mainapp builtin_commands.cpp)
 target_link_libraries(mainapp
 	-Wl,--whole-archive
 	${module_list}

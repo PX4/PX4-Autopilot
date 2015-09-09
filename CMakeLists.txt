@@ -175,12 +175,16 @@ endforeach()
 #=============================================================================
 # git
 #
-px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
+if (${OS} STREQUAL "nuttx")
+	px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
+endif()
 px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
 px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_gtest PATH "unittets/gtest")
-px4_add_git_submodule(TARGET git_eigen PATH "src/lib/eigen")
+if (NOT ${OS} STREQUAL "qurt")
+	px4_add_git_submodule(TARGET git_eigen PATH "src/lib/eigen")
+endif()
 
 add_custom_target(submodule_clean
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -232,6 +236,12 @@ add_subdirectory(src)
 
 # set the overall objective of the build
 add_custom_target(ALL firmware_${OS})
+
+#=============================================================================
+# generate git version
+#
+include(px4_git_hash)
+px4_create_git_hash_header(HEADER ${CMAKE_BINARY_DIR}/build_git_version.h)
 
 #=============================================================================
 # packaging
