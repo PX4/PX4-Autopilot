@@ -2,7 +2,9 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_mag.h>
 
 using namespace px4::logger;
 
@@ -94,7 +96,9 @@ void Logger::run_trampoline(int argc, char *argv[]) {
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
 	} else {
-		logger_ptr->add_topic(ORB_ID(sensor_combined));
+		logger_ptr->add_topic(ORB_ID(sensor_accel));
+		logger_ptr->add_topic(ORB_ID(sensor_gyro));
+		logger_ptr->add_topic(ORB_ID(sensor_mag));
 		logger_ptr->run();
 	}
 }
@@ -300,8 +304,8 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size) {
 
 	/* look for the next file that does not exist */
 	while (file_number <= MAX_NO_LOGFILE) {
-		/* format log file path: e.g. /fs/microsd/sess001/log001.px4log */
-		snprintf(file_name, file_name_size, "%s/log%03u.px4log", _log_dir, file_number);
+		/* format log file path: e.g. /fs/microsd/sess001/log001.ulg */
+		snprintf(file_name, file_name_size, "%s/log%03u.ulg", _log_dir, file_number);
 
 		if (!file_exist(file_name)) {
 			break;
@@ -351,7 +355,7 @@ void Logger::write_formats() {
 	for (LoggerSubscription &sub : _subscriptions) {
 		msg.msg_id = msg_id;
 		msg.size = sub.metadata->o_size;
-		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s:", sub.metadata->o_name /* TODO , sub.metadata->fields*/);
+		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
 		while (!_writer.write(&msg, msg_size)) {
 			usleep(_log_interval);	// Wait if buffer is full, don't skip FORMAT messages
