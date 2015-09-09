@@ -6,7 +6,6 @@ function(px4_set_config_modules out_module_list)
 		drivers/led
 		drivers/rgbled
 		modules/sensors
-		modules/uORB
 
 	#	drivers/blinkm
 	#	drivers/ms5611
@@ -60,6 +59,7 @@ function(px4_set_config_modules out_module_list)
 	#
 	# QuRT port
 	#
+		platforms/common
 		platforms/qurt/px4_layer
 		platforms/posix/work_queue
 	#	platforms/posix/drivers/accelsim

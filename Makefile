@@ -24,7 +24,7 @@ posix-sitl_simple:
 
 qurt-hil_simple:
 	mkdir -p $d/build_$@ && cd $d/build_$@ && \
-		cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-hexagon.cmake \
+		cmake .. -DQURT_ENABLE_STUBS=1 -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-hexagon.cmake \
 		-DOS=qurt -DBOARD=hil -DLABEL=simple && \
 		make -s && ctest -V && cpack -G ZIP
 

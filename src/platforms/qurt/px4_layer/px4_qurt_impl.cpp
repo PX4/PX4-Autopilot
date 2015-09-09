@@ -59,7 +59,7 @@
 __BEGIN_DECLS
 extern uint64_t get_ticks_per_us();
 
-long PX4_TICKS_PER_SEC = 1000;
+//long PX4_TICKS_PER_SEC = 1000L;
 
 unsigned int sleep(unsigned int sec) 
 { 
