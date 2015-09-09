@@ -44,3 +44,4 @@ SECTIONS
 		__param_end = .;
 	}
 }
+INSERT AFTER .rodata;
