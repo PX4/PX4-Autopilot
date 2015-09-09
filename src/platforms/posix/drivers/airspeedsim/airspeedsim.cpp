@@ -358,10 +358,10 @@ Airspeed::update_status()
 	if (_sensor_ok != _last_published_sensor_ok) {
 		/* notify about state change */
 		struct subsystem_info_s info = {
+			subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE,
 			true,
 			true,
-			_sensor_ok,
-			subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE
+			_sensor_ok
 		};
 
 		if (_subsys_pub != nullptr) {

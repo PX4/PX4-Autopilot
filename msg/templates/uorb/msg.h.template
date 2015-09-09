@@ -179,8 +179,7 @@ def print_parsed_fields():
 
 }@
 
-extern const char * __orb_@(topic_name)_fields;
-
+#pragma pack(push, 1)
 #ifdef __cplusplus
 @#class @(uorb_struct) {
 struct __EXPORT @(uorb_struct) {
@@ -204,34 +203,7 @@ for constant in spec.constants:
 }
 #endif
 };
-
-#pragma pack(push, 1)
-#ifdef __cplusplus
-@#class @(uorb_struct) {
-struct __EXPORT @(uorb_struct)_packed {
-@#public:
-#else
-struct @(uorb_struct)_packed {
-#endif
-@print_parsed_fields()
-#ifdef __cplusplus
-@# is it ok to have diff in struct size in C against C++?
-@{
-for constant in spec.constants:
-  type_name = constant.type
-  if type_name in type_map:
-    # need to add _t: int8 --> int8_t
-    type_px4 = type_map[type_name]
-  else:
-    raise Exception("Type {0} not supported, add to to template file!".format(type_name))
-
-  print('\tstatic const %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
-}
-#endif
-};
 #pragma pack(pop)
-
-void pack_@(topic_name)(void *in_buffer, void *out_buffer);
 
 /**
  * @@}
