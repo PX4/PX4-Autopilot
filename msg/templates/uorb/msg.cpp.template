@@ -73,18 +73,19 @@ type_map = {'int8': 'int8_t',
   'position_setpoint': 'position_setpoint',
   'esc_report': 'esc_report'}
 
-def bare_name(msg_type):
-    bare = msg_type
-    if '/' in msg_type:
+def convert_type(spec_type):
+    bare_type = spec_type
+    if '/' in spec_type:
         # removing prefix
-        bare = (msg_type.split('/'))[1]
-    # removing suffix
-    return bare.split('[')[0]
+        bare_type = (spec_type.split('/'))[1]
 
-topic_fields = []
-for field in spec.parsed_fields():
-    msg_type = bare_name(field.type)
-    topic_fields.append("%s %s" % (type_map[msg_type], field.name))
+    msg_type, is_array, array_length = genmsg.msgs.parse_type(bare_type)
+    c_type = type_map[msg_type]
+    if is_array:
+        return c_type + "[" + str(array_length) + "]"
+    return c_type
+
+topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in spec.parsed_fields()]
 }@
 
 #include <px4_config.h>
