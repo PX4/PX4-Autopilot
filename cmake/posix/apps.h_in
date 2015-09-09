@@ -22,9 +22,10 @@ static int list_topics_main(int argc, char *argv[]);
 static int sleep_main(int argc, char *argv[]);
 }
 
-
-void init_app_map(map<string,px4_main_t> &apps)
+static map<string,px4_main_t> app_map(void)
 {
+        static map<string,px4_main_t> apps;
+
 ${builtin_apps_string}
 	apps["shutdown"] = shutdown_main;
 	apps["list_tasks"] = list_tasks_main;
@@ -32,13 +33,17 @@ ${builtin_apps_string}
 	apps["list_devices"] = list_devices_main;
 	apps["list_topics"] = list_topics_main;
 	apps["sleep"] = sleep_main;
+
+	return apps;
 }
 
-void list_builtins(map<string,px4_main_t> &apps)
+map<string,px4_main_t> apps = app_map();
+
+static void list_builtins(void)
 {
-	printf("Builtin Commands:\\n");
+	cout << "Builtin Commands:" << endl;
 	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
-		printf("\\t%s\\n", (it->first).c_str());
+		cout << '\t' << it->first << endl;
 }
 
 static int shutdown_main(int argc, char *argv[])
@@ -64,21 +69,20 @@ static int list_topics_main(int argc, char *argv[])
 	px4_show_topics();
 	return 0;
 }
+
 static int list_files_main(int argc, char *argv[])
 {
 	px4_show_files();
 	return 0;
 }
+
 static int sleep_main(int argc, char *argv[])
 {
-        if (argc != 2) {
-           PX4_WARN( "Usage: sleep <seconds>" );
-           return 1;
-        }
-
-        unsigned long usecs = ( (unsigned long) atol( argv[1] ) ) * 1000 * 1000;
-        PX4_WARN("Sleeping for %s, %ld",argv[1],usecs);
-        usleep( usecs );
-        return 0;
+	if (argc != 2) {
+		cout << "Usage: sleep <seconds>" << endl;
+		return 1;
+	}
+	sleep(atoi(argv[1]));
+	return 0;
 }
 
