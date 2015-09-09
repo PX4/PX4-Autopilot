@@ -7,9 +7,6 @@ message(STATUS "module list: ${module_dir_list}")
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-#add_custom_command(OUTPUT apps.h
-#	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/posix_apps.py > apps.h)
-
 foreach(directory ${module_dir_list})
 	message(STATUS "directory: ${directory}")
 	px4_mangle_name(${directory} mangled_name)

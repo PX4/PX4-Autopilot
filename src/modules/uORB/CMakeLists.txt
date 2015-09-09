@@ -63,6 +63,11 @@ elseif(${OS} STREQUAL "posix-arm")
 		uORBManager_posix.cpp
 		uORBTest_UnitTest.cpp
 		)
+elseif(${OS} STREQUAL "qurt")
+	list(APPEND SRCS
+		uORBDevices_posix.cpp
+		uORBManager_posix.cpp
+		)
 endif()
 
 px4_add_module(

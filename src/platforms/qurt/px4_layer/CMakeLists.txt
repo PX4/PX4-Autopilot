@@ -30,17 +30,31 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+set(QURT_LAYER_SRCS 
+	px4_qurt_impl.cpp
+	px4_qurt_tasks.cpp
+	lib_crc32.c
+	drv_hrt.c
+	qurt_stubs.c
+	main.cpp
+	)
+if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
+	list(APPEND QURT_LAYER_SRCS
+		../stubs/stubs_posix.c
+		../stubs/stubs_qurt.c
+		)
+endif()
+
+set(CONFIG_SRC commands_${BOARD}.c)
+
 px4_add_module(
 	MODULE platforms__qurt__px4_layer
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		px4_qurt_impl.cpp
-		px4_qurt_tasks.cpp
-		lib_crc32.c
-		drv_hrt.c
-		qurt_stubs.c
-		main.cpp
+		${QURT_LAYER_SRCS}
+		${CONFIG_SRC}
 	DEPENDS
 		platforms__common
 	)
