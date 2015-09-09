@@ -108,6 +108,10 @@ public:
 	float getThrottleSetpoint() { return _throttleSp; }
 	float getPitchSetpoint() { return _pitchSp; }
 	float airspeedLowpassUpdate(float input) { return _airspeedLowpass.update(input); }
+	float getFlightPathAngleLowpassState() { return _flightPathAngleLowpass.getState(); }
+	float getAltitudeLowpassState() { return _altitudeLowpass.getState(); }
+	float getAirspeedLowpassState() { return _airspeedLowpass.getState(); }
+	float getAirspeedDerivativeLowpassState() { return _airspeedDerivative.getO(); }
 
 protected:
 	/* parameters */
