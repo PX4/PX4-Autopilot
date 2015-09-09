@@ -985,7 +985,11 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
 	    && fw_image[1] > APPLICATION_LOAD_ADDRESS
 	    && fw_image[1] < (APPLICATION_LOAD_ADDRESS + fw_image_size)) {
 
-		irqdisable();
+		/* We want to disable interrupts regardless of whether NuttX
+		 * is configured for CONFIG_ARMV7M_USEBASEPRI
+		 */
+
+		__asm__ __volatile__("\tcpsid  i\n");
 
 		stm32_boarddeinitialize();
 
