@@ -581,12 +581,17 @@ function(px4_add_common_flags)
 		# TODO Build/versioning was in Makefile,
 		# do we need this, how does it work with cmake
 		src/drivers/boards/${BOARD}
-		src/lib/eigen
 		${CMAKE_BINARY_DIR}
 		${CMAKE_BINARY_DIR}/src/modules/px4_messages
 		${CMAKE_BINARY_DIR}/src/modules
 		mavlink/include/mavlink
 		)
+
+	if (NOT ${OS} STREQUAL "qurt")
+		list(APPEND added_include_dirs
+			src/lib/eigen
+			)
+	endif()
 
 	set(added_link_dirs) # none used currently
 

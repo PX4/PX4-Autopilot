@@ -227,6 +227,9 @@ function(px4_os_prebuild_targets)
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
 	add_custom_target(${OUT})
+	execute_process(
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/lib/eigen-3.2
+		COMMAND patch -p1 -i ../../../cmake/qurt/qurt_eigen.patch)
 endfunction()
 
 #=============================================================================
