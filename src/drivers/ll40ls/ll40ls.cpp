@@ -113,6 +113,10 @@ LidarLite * get_dev(const bool use_i2c, const int bus) {
  */
 void start(const bool use_i2c, const int bus)
 {
+	if (g_dev_int != nullptr || g_dev_ext != nullptr || g_dev_pwm != nullptr) {
+		errx(1,"driver already started");
+	}
+
 	if (use_i2c) {
 		/* create the driver, attempt expansion bus first */
 		if (bus == -1 || bus == PX4_I2C_BUS_EXPANSION) {
@@ -464,7 +468,6 @@ ll40ls_main(int argc, char *argv[])
 
 		/* Start/load the driver. */
 		if (!strcmp(verb, "start")) {
-
 			ll40ls::start(use_i2c, bus);
 		}
 
