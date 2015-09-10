@@ -9,7 +9,6 @@ nuttx_px4fmu-v2_simple:
 px4fmu-v2_simple: nuttx_px4fmu-v2_simple
 
 nuttx_sim_simple:
-	echo "nuttx-sim-simple is a work in progress"
 	mkdir -p $d/build_$@ && cd $d/build_$@ && \
 		cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/Toolchain-native.cmake \
 		-DOS=nuttx -DBOARD=sim -DLABEL=simple && \
