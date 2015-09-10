@@ -1,6 +1,11 @@
 include(posix/px4_impl_posix)
 
-function(px4_set_config_modules out_module_list)
+function(px4_get_config)
+
+	px4_parse_function_args(
+		NAME px4_set_config_modules
+		ONE_VALUE OUT_MODULES OUT_FW_OPTS OUT_EXTRA_CMDS
+		ARGN ${ARGN})
 
 	set(config_module_list
 		drivers/led
@@ -54,7 +59,39 @@ function(px4_set_config_modules out_module_list)
 		lib/launchdetection
 		)
 
-	set(${out_module_list} ${config_module_list} PARENT_SCOPE)
+	set(firmware_options
+		PARAM_XML # generate param xml
+		)
+
+	set(extra_cmds serdis_main sercon_main)
+
+	# output
+	if(OUT_MODULES)
+		set(${OUT_MODULES} ${config_module_list} PARENT_SCOPE)
+	endif()
+
+	if (OUT_FW_OPTS)
+		set(${OUT_FW_OPTS} ${fw_opts} PARENT_SCOPE)
+	endif()
 
 endfunction()
 
+function(px4_add_extra_builtin_cmds)
+
+	px4_parse_function_args(
+		NAME px4_add_extra_builtin_cmds
+		ONE_VALUE OUT
+		REQUIRED OUT
+		ARGN ${ARGN})
+
+	add_custom_target(sercon)
+	set_target_properties(sercon PROPERTIES
+		MAIN "sercon" STACK "2048")
+
+	add_custom_target(serdis)
+	set_target_properties(serdis PROPERTIES
+		MAIN "serdis" STACK "2048")
+
+	set(${OUT} sercon serdis PARENT_SCOPE)
+
+endfunction()
