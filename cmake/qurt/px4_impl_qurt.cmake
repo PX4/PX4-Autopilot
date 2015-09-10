@@ -231,32 +231,4 @@ function(px4_os_prebuild_targets)
 		COMMAND patch -p1 -i ../../../cmake/qurt/qurt_eigen.patch)
 endfunction()
 
-#=============================================================================
-#
-#	px4_qurt_add_modules
-#
-#	This function adds target modules
-#
-#	Usage:
-#		px4_os_prebuild_targets(
-#			OUT_MODULES <module-subdir-list>
-#			BOARD <in-string>
-#			)
-#
-#	Input:
-#		BOARD 		: board
-#
-#	Output:
-#		OUT_MODULES	: the updated module list
-#
-#	Example:
-#		px4_qurt_add_modules(module_list "hil")
-#
-function(px4_qurt_add_modules OUT_MODULES BOARD)
-	include(config-qurt-${BOARD})
-	set(config_modules)
-	px4_set_config_modules(config_modules)
-	set(${OUT_MODULES} ${${OUT_MODULES}} ${config_modules} PARENT_SCOPE)
-endfunction()
-
 # vim: set noet fenc=utf-8 ff=unix nowrap:

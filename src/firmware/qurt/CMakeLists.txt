@@ -4,21 +4,10 @@ set(V_ARCH v5)
 set(HEXAGON_TOOLS_ROOT /opt/6.4.03)
 set(TOOLSLIB 
 	${HEXAGON_TOOLS_ROOT}/dinkumware/lib/${V_ARCH}/G0)
-set(module_dir_list)
-set(module_list)
-px4_qurt_add_modules(module_dir_list ${BOARD})
-message(STATUS "module list: ${module_dir_list}")
-
-foreach(directory ${module_dir_list})
-	message(STATUS "directory: ${directory}")
-	px4_mangle_name(${directory} mangled_name)
-	list(APPEND module_list
-		${mangled_name})
-endforeach()
 
 px4_qurt_generate_builtin_commands(
 	OUT ${CMAKE_BINARY_DIR}/apps.h
-	MODULE_LIST ${module_list})
+	MODULE_LIST ${module_libraries})
 
 # FIXME @jgoppert - how to work around issues like this?
 # Without changing global variables?
