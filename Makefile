@@ -50,10 +50,10 @@ posix_sitl_simple:
 #----------------------------------------------------------------------------
 # OS: qurt BOARD: hil LABEL: simple
 #
-qurt_hil_simple:
+qurt_eagle_travis:
 	mkdir -p $d/build_$@ && cd $d/build_$@ && \
-		cmake .. -DQURT_ENABLE_STUBS=1 -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/Toolchain-hexagon.cmake \
-		-DOS=qurt -DBOARD=hil -DLABEL=simple && \
+		cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/Toolchain-hexagon.cmake \
+		-DOS=qurt -DBOARD=eagle -DLABEL=travis && \
 		make -s && ctest -V && cpack -G ZIP
 
 #----------------------------------------------------------------------------
