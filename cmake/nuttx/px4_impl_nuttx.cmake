@@ -96,7 +96,7 @@ endfunction()
 #	px4_nuttx_generate_builtin_commands
 #
 #	This function generates the builtin_commands.c src for nuttx
-
+#
 #	Usage:
 #		px4_nuttx_generate_builtin_commands(
 #			MODULE_LIST <in-list>
@@ -119,10 +119,12 @@ function(px4_nuttx_generate_builtin_commands)
 		MULTI_VALUE MODULE_LIST
 		REQUIRED MODULE_LIST OUT
 		ARGN ${ARGN})
+	message(STATUS "argn: ${ARGN}")
 	set(builtin_apps_string)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
 	foreach(module ${MODULE_LIST})
+		message("generating builtin for: ${module}")
 		# default
 		set(MAIN_DEFAULT MAIN-NOTFOUND)
 		set(STACK_DEFAULT 1024)

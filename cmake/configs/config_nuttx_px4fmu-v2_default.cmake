@@ -62,6 +62,35 @@ function(px4_set_config_modules out_module_list)
 		systemcmds/ver
 
 		#
+		# General system control
+		#
+		modules/commander
+		modules/navigator
+		modules/mavlink
+		modules/gpio_led
+		#modules/uavcan # have to fix CMakeLists.txt
+		modules/land_detector
+
+		#
+		# Estimation modules (EKF/ SO3 / other filters)
+		#
+		# Too high RAM usage due to static allocations
+		# modules/attitude_estimator_ekf
+		modules/attitude_estimator_q
+		modules/ekf_att_pos_estimator
+		modules/position_estimator_inav
+
+		#
+		# Vehicle Control
+		#
+		# modules/segway # XXX Needs GCC 4.7 fix
+		modules/fw_pos_control_l1
+		modules/fw_att_control
+		modules/mc_att_control
+		modules/mc_pos_control
+		modules/vtol_att_control
+
+		#
 		# Logging
 		#
 		modules/sdlog2
@@ -94,27 +123,42 @@ function(px4_set_config_modules out_module_list)
 		platforms/nuttx/px4_layer
 
 		#
+		# OBC challenge
+		#
+		modules/bottle_drop
+
+		#
+		# PX4 flow estimator, good for indoors
+		#
+		examples/flow_position_estimator
+
+		#
+		# Rover apps
+		#
+		examples/rover_steering_control
+
+		#
 		# Demo apps
 		#
 		#examples/math_demo
 		# Tutorial code from
 		# https://px4.io/dev/px4_simple_app
-		examples/px4_simple_app
+		#examples/px4_simple_app
 
 		# Tutorial code from
 		# https://px4.io/dev/daemon
-		examples/px4_daemon_app
+		#examples/px4_daemon_app
 
 		# Tutorial code from
 		# https://px4.io/dev/debug_values
-		examples/px4_mavlink_debug
+		#examples/px4_mavlink_debug
 
 		# Tutorial code from
 		# https://px4.io/dev/example_fixedwing_control
-		examples/fixedwing_control
+		#examples/fixedwing_control
 
 		# Hardware test
-		examples/hwtest
+		#examples/hwtest
 	)
 
 	# TODO convert rest of makefile config below

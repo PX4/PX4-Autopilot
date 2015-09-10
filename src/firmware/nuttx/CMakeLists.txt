@@ -1,6 +1,9 @@
+px4_nuttx_builtin_extra_commands(builtin_extra_cmds)
+message(STATUS "builtin extra: ${builtin_extra_cmds}")
+
 px4_nuttx_generate_builtin_commands(
 	OUT builtin_commands.c
-	MODULE_LIST ${module_libraries})
+	MODULE_LIST ${module_libraries} ${builtin_extra_cmds})
 
 px4_nuttx_generate_romfs(OUT romfs.o
 	ROOT ROMFS/px4fmu_common)
@@ -15,9 +18,12 @@ set(main_link_flags
 px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
 set_target_properties(firmware_nuttx PROPERTIES LINK_FLAGS ${main_link_flags})
 
+set(cmsis_lib ${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a)
+
 target_link_libraries(firmware_nuttx
 	-Wl,--start-group
 	${module_libraries}
+	${cmsis_lib}
 	apps nuttx nosys m gcc
 	-Wl,--end-group)
 
