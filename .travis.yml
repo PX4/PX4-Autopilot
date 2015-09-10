@@ -73,38 +73,46 @@ script:
   - ccache -z
   - arm-none-eabi-gcc --version
   - echo 'Building POSIX Firmware..' && echo -en 'travis_fold:start:script.1\\r'
-  - make posix -j4
-  - ccache -s
-  - echo -en 'travis_fold:end:script.1\\r'
+  - make posix_sitl_simple
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.2\\r'
-  - make tests
-  - cat src/modules/systemlib/mixer/mixer_multirotor.generated.h
-  - echo -en 'travis_fold:end:script.2\\r'
-  - echo 'Building NuttX..' && echo -en 'travis_fold:start:script.3\\r'
-  - make archives
-  - ccache -s
-  - echo -en 'travis_fold:end:script.3\\r'
-  - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.4\\r'
-  - make -j4
-  - make size
-  - ccache -s
-  - echo -en 'travis_fold:end:script.4\\r'
-  - zip Firmware.zip Images/*.px4
+  - cd build_posix_sitl_simple && ctest
+  - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.3\\r'
+  - make nuttx_px4fmu-v2_simple
+  - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'
+  - cd nuttx_px4fmu-v2_simple && ctest
 
-after_script:
-  - git clone git://github.com/PX4/CI-Tools.git
-  - ./CI-Tools/s3cmd-configure
-# upload newest build for this branch with s3 index
-  - ./CI-Tools/s3cmd-put Images/px4*.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
-# archive newest build by date with s3 index
-  - ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
-  - ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
-# upload top level index.html and timestamp.html
-  - ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
-  - ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
-  - echo ""
-  - echo "Binaries have been posted to:"
-  - echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
+  #- make posix -j4
+  #- ccache -s
+  #- echo -en 'travis_fold:end:script.1\\r'
+  #- echo 'Running Tests..' && echo -en 'travis_fold:start:script.2\\r'
+  #- make tests
+  #- cat src/modules/systemlib/mixer/mixer_multirotor.generated.h
+  #- echo -en 'travis_fold:end:script.2\\r'
+  #- echo 'Building NuttX..' && echo -en 'travis_fold:start:script.3\\r'
+  #- make archives
+  #- ccache -s
+  #- echo -en 'travis_fold:end:script.3\\r'
+  #- echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.4\\r'
+  #- make -j4
+  #- make size
+  #- ccache -s
+  #- echo -en 'travis_fold:end:script.4\\r'
+  #- zip Firmware.zip Images/*.px4
+
+#after_script:
+  #- git clone git://github.com/PX4/CI-Tools.git
+  #- ./CI-Tools/s3cmd-configure
+## upload newest build for this branch with s3 index
+  #- ./CI-Tools/s3cmd-put Images/px4*.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+## archive newest build by date with s3 index
+  #- ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
+  #- ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
+## upload top level index.html and timestamp.html
+  #- ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
+  #- ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
+  #- echo ""
+  #- echo "Binaries have been posted to:"
+  #- echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
 
 deploy:
   provider: releases
