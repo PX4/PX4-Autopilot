@@ -1,5 +1,7 @@
 d=$(PWD)
 
+all: nuttx_px4fmu-v2_default
+
 #----------------------------------------------------------------------------
 # OS: nuttx BOARD: px4fmu-v2 LABEL: simple
 #
