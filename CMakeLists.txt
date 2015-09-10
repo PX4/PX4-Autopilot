@@ -183,12 +183,11 @@ px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_gtest PATH "unittets/gtest")
 px4_add_git_submodule(TARGET git_uavcan PATH "src/lib/uavcan")
-if (NOT ${OS} STREQUAL "qurt")
-	px4_add_git_submodule(TARGET git_eigen PATH "src/lib/eigen")
-endif()
-if(${OS} STREQUAL "nuttx")
-	px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
-endif()
+px4_add_git_submodule(TARGET git_eigen PATH "src/lib/eigen")
+px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
+px4_add_git_submodule(TARGET git_eigen32 PATH "src/lib/eigen-3.2")
+px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
+
 add_custom_target(submodule_clean
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND git submodule deinit -f .
