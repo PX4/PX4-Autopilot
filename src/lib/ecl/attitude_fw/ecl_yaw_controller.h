@@ -76,13 +76,15 @@ public:
 		_coordinated_method = coordinated_method;
 	}
 
-protected:
-	float _coordinated_min_speed;
-
 	enum {
 		COORD_METHOD_OPEN = 0,
 		COORD_METHOD_CLOSEACC = 1,
+		COORD_METHOD_HEADING = 2
 	};
+
+protected:
+	float _coordinated_min_speed;
+	float _max_rate;
 
 	int32_t _coordinated_method;
 
@@ -91,6 +93,8 @@ protected:
 	float control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data);
 
 	float control_attitude_impl_accclosedloop(const struct ECL_ControlData &ctl_data);
+
+	float control_heading(const struct ECL_ControlData &ctl_data);
 
 };
 
