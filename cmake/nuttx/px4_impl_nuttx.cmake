@@ -275,7 +275,7 @@ function(px4_nuttx_generate_romfs)
 
 	add_custom_command(OUTPUT rc.autostart
 		COMMAND ${PYTHON_EXECUTABLE} ${romfs_autostart}
-			-a ${ROMFS_ROOT}/init.d
+			-a ${romfs_src_dir}/init.d/
 			-s rc.autostart
 		)
 
