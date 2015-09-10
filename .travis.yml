@@ -79,7 +79,7 @@ script:
   - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.3\\r'
   - make nuttx_px4fmu-v2_simple
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'
-  - cd nuttx_px4fmu-v2_simple && ctest
+  - cd build_nuttx_px4fmu-v2_simple && ctest
 
   #- make posix -j4
   #- ccache -s
