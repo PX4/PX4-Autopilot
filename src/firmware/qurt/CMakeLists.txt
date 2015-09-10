@@ -34,6 +34,7 @@ set_target_properties(mainapp PROPERTIES LINK_FLAGS ${main_link_flags})
 target_link_libraries(mainapp
 	-Wl,--whole-archive
 	${module_libraries}
+	${target_libraries}
 	m
 	-Wl,--no-whole-archive
 	-Wl,${TOOLSLIB}/pic/libstdc++.a)
