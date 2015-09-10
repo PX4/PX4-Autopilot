@@ -16,7 +16,7 @@ nuttx_sim_simple:
 
 nuttx_px4fmu-v2_simple_upload: nuttx_px4fmu-v2_simple
 	cd $d/build_$< && make upload
-px4fmu-v2_simple_upload: px4fmu-v2_simple_upload
+px4fmu-v2_simple_upload: nuttx_px4fmu-v2_simple_upload
 
 posix_sitl_simple:
 	mkdir -p $d/build_$@ && cd $d/build_$@ && \
