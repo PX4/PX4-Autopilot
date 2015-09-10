@@ -51,8 +51,9 @@
 
 include(common/px4_base)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt/configs)
-include(qurt_funcs)
+
+px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
+px4_add_git_submodule(TARGET git_eigen32 PATH "src/lib/eigen-3.2")
 
 #=============================================================================
 #
@@ -225,7 +226,8 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
-	add_custom_target(${OUT})
+	add_custom_target(${OUT} DEPENDS git_dspal git_eigen32)
+	add_custom_target(ALL DEPENDS git_eigen32)
 	execute_process(
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/lib/eigen-3.2
 		COMMAND patch -p1 -i ../../../cmake/qurt/qurt_eigen.patch)

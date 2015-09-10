@@ -45,48 +45,6 @@
 #
 # The macros are called from the top level CMakeLists.txt
 #
-set(QURT_APPS_HEADER ${CMAKE_BINARY_DIR}/apps.h)
-
 px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
 px4_add_git_submodule(TARGET git_eigen32 PATH "src/lib/eigen-3.2")
 
-function(px4_target_add_modules out_module_directories)
-	list(APPEND ${out_module_directories}
-		./src/platforms/qurt/px4_layer
-		./src/platforms/posix/work_queue
-		PARENT_SCOPE
-	)
-endfunction()
-
-function(px4_target_validate_config)
-	# FIXME - this can be done in Firmware/CMakeLists.txt
-	list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
-
-	if (NOT EXISTS("${CMAKE_SOURCE_DIR}/cmake/qurt/${TARGET_NAME}.cmake"))
-		message(FATAL_ERROR "not implemented yet: ${TARGET_NAME}")
-	endif()
-endfunction()
-
-function(px4_target_firmware)
-	set(installed_targets)
-	add_library(dspal_main SHARED ./src/platforms/qurt/px4_layer/main.cpp)
-	target_link_libraries(dspal_main ${module_list})
-	list(APPEND installed_targets dspal_main)
-endfunction()
-
-function(px4_target_rules)
-	#=============================================================================
-	#		apps
-	#
-	add_custom_command(OUTPUT ${QURT_APPS_HEADER}
-		COMMAND PYTHONPATH=${PYTHONPATH} ${PYTHON_EXECUTABLE} 
-			${CMAKE_SOURCE_DIR}/Tools/qurt_apps.py > ${QURT_APPS_HEADER}
-		COMMENT "Generating qurt apps"
-		VERBATIM
-		)
-
-	add_custom_target(qurt_apps DEPENDS ${QURT_APPS_HEADER})
-endfunction()
-
-function(px4_target_testing)
-endfunction()
