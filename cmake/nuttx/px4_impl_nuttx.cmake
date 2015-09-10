@@ -41,7 +41,6 @@
 #		* px4_nuttx_generate_builtin_commands
 #		* px4_nuttx_add_export
 #		* px4_nuttx_generate_romfs
-#		* px4_bin_to_obj
 #
 # 	Required OS Inteface Functions
 #
@@ -236,65 +235,6 @@ endfunction()
 
 #=============================================================================
 #
-#	px4_bin_to_obj
-#
-#	The functions create an object file from a binary image.
-#
-#	Usage:
-#		px4_bin_to_boj(OBJ <out-obj> VAR <in-variable>  BIN <in-bin>)
-#
-#	Input:
-#		BIN		: the bin file
-#		VAR		: the variable name
-#
-#	Output:
-#		OBJ		: the object file
-#
-#	Example:
-#		px4_bin_to_obj(OBJ my_obj VAR romfs BIN my_bin)
-#
-function(px4_bin_to_obj)
-
-	px4_parse_function_args(
-		NAME px4_bin_to_obj
-		ONE_VALUE BIN OBJ VAR
-		REQUIRED BIN OBJ VAR
-		ARGN ${ARGN})
-
-	string(REPLACE "/" "_" _tmp ${BIN})
-	string(REPLACE "." "_" _tmp ${_tmp})
-	string(REPLACE "-" "_" sym "_binary_${_tmp}")
-	#message(STATUS "sym: ${sym}")
-
-	separate_arguments(CMAKE_C_FLAGS)
-
-	add_custom_command(OUTPUT ${OBJ}
-		COMMAND ${ECHO} > ${OBJ}.c
-		COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${OBJ}.c -o ${OBJ}.c.o
-		COMMAND ${LD} -r -o ${OBJ}.bin.o ${OBJ}.c.o -b binary ${BIN}
-		COMMAND ${NM} -p --radix=x ${OBJ}.bin.o
-			| ${GREP} ${sym}_size
-			| ${GREP} -o ^[0-9a-fA-F]*
-			| ${AWK} "{print \"const unsigned int ${VAR}_len = 0x\"$1\";\"}" > ${OBJ}.c
-		COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${OBJ}.c -o ${OBJ}.c.o
-		COMMAND ${LD} -r -o ${OBJ} ${OBJ}.c.o ${OBJ}.bin.o
-		COMMAND ${OBJCOPY} ${OBJ}
-			--redefine-sym ${sym}_start=${VAR}
-			--strip-symbol ${sym}_size
-			--strip-symbol ${sym}_end
-			--rename-section .data=.rodata
-		# useful to comment remove statement when debugging
-		COMMAND ${RM} ${OBJ}.c ${OBJ}.c.o ${OBJ}.bin.o
-		DEPENDS ${BIN}
-		VERBATIM
-		)
-
-	set(${OBJ} ${OBJ} PARENT_SCOPE)
-	
-endfunction()
-
-#=============================================================================
-#
 #	px4_nuttx_generate_romfs
 #
 #	The functions generates the ROMFS filesystem for nuttx.
@@ -325,6 +265,7 @@ function(px4_nuttx_generate_romfs)
 
 	set(romfs_autostart ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
 	set(romfs_pruner ${CMAKE_SOURCE_DIR}/Tools/px_romfs_pruner.py)
+	set(bin_to_obj ${CMAKE_SOURCE_DIR}/cmake/nuttx/bin_to_obj.py)
 
 
 	#message(STATUS "temp_dir: ${romfs_temp_dir}")
@@ -349,9 +290,19 @@ function(px4_nuttx_generate_romfs)
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
 
-	px4_bin_to_obj(OBJ ${OUT}
-		BIN ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
-		VAR romfs_img)
+	add_custom_command(OUTPUT romfs.o
+		COMMAND ${PYTHON_EXECUTABLE} ${bin_to_obj}
+			--ld ${LD} --c_flags ${CMAKE_C_FLAGS}
+			--c_compiler ${CMAKE_C_COMPILER}
+			--nm ${NM} --objcopy ${OBJCOPY}
+			--obj romfs.o
+			--var romfs_img
+			--bin romfs.bin
+		DEPENDS romfs.bin
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+		)
+
+	set(${OUT} romfs.o PARENT_SCOPE)
 
 endfunction()
 
