@@ -49,7 +49,7 @@
 #		* px4_os_prebuild_targets
 #
 
-include(px4_base)
+include(common/px4_base)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt/configs)
 include(qurt_funcs)

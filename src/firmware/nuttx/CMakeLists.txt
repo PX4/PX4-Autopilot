@@ -1,29 +1,28 @@
 # a list of modules that will be linked to main
-set(module_list)
+set(module_list
+	platforms__nuttx
+	platforms__nuttx__px4_layer
+	platforms__common
+	drivers__led
+	drivers__device
+	modules__systemlib
+	modules__uORB
+	)
 
 if (${LABEL} STREQUAL "simple")
 	list(APPEND module_list
-		drivers__led
-		drivers__device
-		platforms__common
-		modules__systemlib
-		modules__uORB
 		examples__px4_simple_app
-		lib__mathlib__math__filter
-		lib__conversion
 	)
 endif()
 
-if (${LABEL} STREQUAL "simple")
-	list(APPEND module_list ${module_list_simple})
+if(${BOARD} STREQUAL "px4fmu-v2")
+	list(APPEND module_list
+		drivers__boards__px4fmu-v2
+		drivers__stm32
+		lib__mathlib__math__filter
+		lib__conversion
+		)
 endif()
-
-list(APPEND module_list
-	platforms__nuttx
-	platforms__nuttx__px4_layer
-	drivers__boards__px4fmu-v2
-	drivers__stm32
-)
 
 px4_nuttx_generate_builtin_commands(
 	OUT builtin_commands.c

@@ -33,10 +33,11 @@
 set(depends
 	msg_gen
 	prebuild_targets
+	git_mavlink
 	)
 
-if(${OS} STREQUAL "posix")
-	list(APPEND depends git_eigen git_mavlink)
+if(${OS} STREQUAL "posix" OR ${BOARD} STREQUAL "sim")
+	list(APPEND depends git_eigen)
 endif()
 
 px4_add_module(

@@ -1,4 +1,7 @@
+include(posix/px4_impl_posix)
+
 function(px4_set_config_modules out_module_list)
+
 	set(config_module_list
 		drivers/led
 		drivers/device
@@ -39,7 +42,6 @@ function(px4_set_config_modules out_module_list)
 		modules/fw_pos_control_l1
 		modules/dataman
 		modules/sdlog2
-		modules/simulator
 		modules/commander
 		modules/controllib
 		lib/mathlib
@@ -51,7 +53,8 @@ function(px4_set_config_modules out_module_list)
 		lib/geo_lookup
 		lib/launchdetection
 		)
-	message(STATUS "modules: ${config_module_list}")
+
 	set(${out_module_list} ${config_module_list} PARENT_SCOPE)
+
 endfunction()
 

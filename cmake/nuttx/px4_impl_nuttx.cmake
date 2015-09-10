@@ -49,7 +49,7 @@
 #		* px4_os_prebuild_targets
 #
 
-include(px4_base)
+include(common/px4_base)
 
 #=============================================================================
 #

@@ -57,7 +57,7 @@
 # ---------------------------------------------------------------------------
 #
 # * Use px4_parse_function_args to parse functions and check for required
-#   arguments.
+#   arguments. Unless there is only one argument in the function and it is clear.
 #
 # * Never use macros. They allow overwriting global variables and this
 #	makes variable declarations hard to locate.
@@ -112,22 +112,21 @@ set(package-contact "px4users@googlegroups.com")
 # set module path
 message("OS = ${OS}")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/${OS})
 
 # prefer board implementation module over os implmementation module
-set(board_impl_module px4_impl_${OS}_${BOARD})
-set(os_impl_module px4_impl_${OS})
-if (EXISTS ${board_impl_module})
-	set(impl_module ${board_impl_module})
+set(config_module "configs/config_${OS}_${BOARD}_${LABEL}")
+set(config_path "${CMAKE_SOURCE_DIR}/cmake/${config_module}.cmake")
+if (EXISTS ${config_path})
+	include(${config_module})
 else()
-	set(impl_module ${os_impl_module})
+	message(FATAL_ERROR "build config not found: ${config_path}")
 endif()
-include(${impl_module})
 
 # require px4 module interface
 set(px4_required_functions
 	px4_os_prebuild_targets
 	px4_os_add_flags
+	px4_set_config_modules
 	)
 foreach(cmd ${px4_required_functions})
 	if(NOT COMMAND ${cmd})
@@ -232,15 +231,20 @@ px4_generate_messages(TARGET msg_gen
 #=============================================================================
 # subdirectories
 #
-add_subdirectory(src)
+px4_set_config_modules(config_modules)
+set(module_libraries)
+foreach(module ${config_modules})
+	add_subdirectory(src/${module})
+	px4_mangle_name(${module} mangled_name)
+	list(APPEND module_libraries ${mangled_name})
+	message(STATUS "adding module: ${module}")
+endforeach()
 
-# set the overall objective of the build
-add_custom_target(ALL firmware_${OS})
+add_subdirectory(src/firmware/${OS})
 
 #=============================================================================
 # generate git version
 #
-include(px4_git_hash)
 px4_create_git_hash_header(HEADER ${CMAKE_BINARY_DIR}/build_git_version.h)
 
 #=============================================================================

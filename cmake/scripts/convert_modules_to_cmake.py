@@ -19,7 +19,7 @@ parser.add_argument('--backup', help='create backup of existing files if overwri
 parser.set_defaults(overwrite=False, backup=False)
 args = parser.parse_args()
 
-cmake_template = jinja2.Template(open('cmake/cmake_lists.jinja', 'r').read())
+cmake_template = jinja2.Template(open('cmake/scripts/cmake_lists.jinja', 'r').read())
 
 module_files = []
 for root, dirnames, filenames in os.walk(args.path):
