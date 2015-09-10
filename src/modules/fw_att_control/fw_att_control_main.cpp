@@ -811,6 +811,7 @@ FixedwingAttitudeControl::task_main()
 
 				float roll_sp = _parameters.rollsp_offset_rad;
 				float pitch_sp = _parameters.pitchsp_offset_rad;
+				float yaw_sp = 0.0f;
 				float yaw_manual = 0.0f;
 				float throttle_sp = 0.0f;
 
@@ -824,6 +825,7 @@ FixedwingAttitudeControl::task_main()
 					/* read in attitude setpoint from attitude setpoint uorb topic */
 					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
+					yaw_sp = _att_sp.yaw_body;
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
@@ -952,11 +954,17 @@ FixedwingAttitudeControl::task_main()
 				control_input.acc_body_z = _accel.z;
 				control_input.roll_setpoint = roll_sp;
 				control_input.pitch_setpoint = pitch_sp;
+				control_input.yaw_setpoint = yaw_sp;
 				control_input.airspeed_min = _parameters.airspeed_min;
 				control_input.airspeed_max = _parameters.airspeed_max;
 				control_input.airspeed = airspeed;
 				control_input.scaler = airspeed_scaling;
 				control_input.lock_integrator = lock_integrator;
+
+				if (_att_sp.fw_control_yaw == true) {
+					// this method controls heading directly with rudder. Used for auto takeoff on runway
+					_yaw_ctrl.set_coordinated_method(ECL_YawController::COORD_METHOD_HEADING);
+				}
 
 				/* Run attitude controllers */
 				if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {

@@ -427,6 +427,15 @@ PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
 PARAM_DEFINE_INT32(FW_LND_USETER, 0);
 
 /**
+ * Enable or disable runway takeoff with landing gear
+ *
+ * 0: disabled, 1: enabled
+ *
+ * @group L1 Control
+ */
+PARAM_DEFINE_INT32(FW_RUNWAY_TKOFF, 0);
+
+/**
  * Flare, minimum pitch
  *
  * Minimum pitch during flare, a positive sign means nose up
