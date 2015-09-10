@@ -52,9 +52,6 @@
 include(common/px4_base)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
 
-px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
-px4_add_git_submodule(TARGET git_eigen32 PATH "src/lib/eigen-3.2")
-
 #=============================================================================
 #
 #	px4_qurt_generate_builtin_commands
