@@ -1,32 +1,6 @@
-# a list of modules that will be linked to main
-set(module_list
-	platforms__nuttx
-	platforms__nuttx__px4_layer
-	platforms__common
-	drivers__led
-	drivers__device
-	modules__systemlib
-	modules__uORB
-	)
-
-if (${LABEL} STREQUAL "simple")
-	list(APPEND module_list
-		examples__px4_simple_app
-	)
-endif()
-
-if(${BOARD} STREQUAL "px4fmu-v2")
-	list(APPEND module_list
-		drivers__boards__px4fmu-v2
-		drivers__stm32
-		lib__mathlib__math__filter
-		lib__conversion
-		)
-endif()
-
 px4_nuttx_generate_builtin_commands(
 	OUT builtin_commands.c
-	MODULE_LIST ${module_list})
+	MODULE_LIST ${module_libraries})
 
 px4_nuttx_generate_romfs(OUT romfs.o
 	ROOT ROMFS/px4fmu_common)
@@ -43,7 +17,7 @@ set_target_properties(firmware_nuttx PROPERTIES LINK_FLAGS ${main_link_flags})
 
 target_link_libraries(firmware_nuttx
 	-Wl,--start-group
-	${module_list}
+	${module_libraries}
 	apps nuttx nosys m gcc
 	-Wl,--end-group)
 
