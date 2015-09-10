@@ -79,16 +79,40 @@ function(px4_nuttx_add_firmware)
 		REQUIRED EXE
 		ARGN ${ARGN})
 
+	set(process_params ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py)
+	set(process_airframes ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
+
+
 	#TODO handle param_xml
-	add_custom_command(OUTPUT ${OUT}
-		COMMAND ${OBJCOPY} -O binary ${EXE} ${EXE}.bin
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_mkfw.py
-			--prototype ${CMAKE_SOURCE_DIR}/Images/${BOARD}.prototype
-			--git_identity ${CMAKE_SOURCE_DIR}
-			--image ${EXE}.bin > ${OUT}
-		DEPENDS ${EXE}
-		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-		)
+	if(PARAM_XML)
+		add_custom_command(OUTPUT ${OUT}
+			COMMAND ${process_params}
+				--src-path ${CMAKE_SOURCE_DIR}/src
+				--board CONFIG_ARCH_BOARD_${BOARD} --xml
+			COMMAND ${process_airframes}
+				-a ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
+				--board CONFIG_ARCH_BOARD_${BOARD} --xml
+			COMMAND ${OBJCOPY} -O binary ${EXE} ${EXE}.bin
+			COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_mkfw.py
+				--prototype ${CMAKE_SOURCE_DIR}/Images/${BOARD}.prototype
+				--git_identity ${CMAKE_SOURCE_DIR}
+				--parameter_xml parameters.xml
+				--airframe_xml airframe.xml
+				--image ${EXE}.bin > ${OUT}
+			DEPENDS ${EXE}
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+			)
+	else()
+		add_custom_command(OUTPUT ${OUT}
+			COMMAND ${OBJCOPY} -O binary ${EXE} ${EXE}.bin
+			COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_mkfw.py
+				--prototype ${CMAKE_SOURCE_DIR}/Images/${BOARD}.prototype
+				--git_identity ${CMAKE_SOURCE_DIR}
+				--image ${EXE}.bin > ${OUT}
+			DEPENDS ${EXE}
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+			)
+	endif()
 endfunction()
 
 #=============================================================================

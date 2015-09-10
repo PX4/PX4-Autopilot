@@ -1,9 +1,9 @@
-px4_nuttx_builtin_extra_commands(builtin_extra_cmds)
-message(STATUS "builtin extra: ${builtin_extra_cmds}")
+px4_add_extra_builtin_cmds(OUT extra_builtins)
 
 px4_nuttx_generate_builtin_commands(
 	OUT builtin_commands.c
-	MODULE_LIST ${module_libraries} ${builtin_extra_cmds})
+	MODULE_LIST ${module_libraries} ${extra_builtins}
+	)
 
 px4_nuttx_generate_romfs(OUT romfs.o
 	ROOT ROMFS/px4fmu_common)
@@ -27,8 +27,11 @@ target_link_libraries(firmware_nuttx
 	apps nuttx nosys m gcc
 	-Wl,--end-group)
 
+px4_get_config(OUT_FW_OPTS fw_opts)
 px4_nuttx_add_firmware(OUT ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4
-	EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx)
+	EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+	${fw_opts}
+	)
 
 px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
 	BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4)

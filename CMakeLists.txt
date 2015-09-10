@@ -130,7 +130,7 @@ endif()
 set(px4_required_functions
 	px4_os_prebuild_targets
 	px4_os_add_flags
-	px4_set_config_modules
+	px4_get_config
 	)
 foreach(cmd ${px4_required_functions})
 	if(NOT COMMAND ${cmd})
@@ -235,7 +235,7 @@ px4_generate_messages(TARGET msg_gen
 #=============================================================================
 # subdirectories
 #
-px4_set_config_modules(config_modules)
+px4_get_config(OUT_MODULES config_modules)
 set(module_libraries)
 foreach(module ${config_modules})
 	add_subdirectory(src/${module})
