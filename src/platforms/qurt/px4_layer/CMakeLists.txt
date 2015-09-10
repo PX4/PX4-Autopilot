@@ -46,7 +46,18 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 		)
 endif()
 
-set(CONFIG_SRC commands_${BOARD}.c)
+# For Eagle, the commands are specific to the build config label
+# e.g. config_qurt_eagle_hil uses commands_hil.c
+if ("${BOARD}" STREQUAL "eagle")
+
+	# The CI test target can use the hil commands
+	if ("${LABEL}" STREQUAL "travis")
+		set(CONFIG_SRC commands_hil.c)
+	else("${LABEL}" STREQUAL "travis")
+		set(CONFIG_SRC commands_${LABEL}.c)
+	endif()
+
+endif()
 
 px4_add_module(
 	MODULE platforms__qurt__px4_layer
