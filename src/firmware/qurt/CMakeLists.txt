@@ -1,4 +1,4 @@
-include(px4_base)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(V_ARCH v5)
 set(HEXAGON_TOOLS_ROOT /opt/6.4.03)
@@ -33,7 +33,7 @@ set_target_properties(mainapp PROPERTIES LINK_FLAGS ${main_link_flags})
 
 target_link_libraries(mainapp
 	-Wl,--whole-archive
-	${module_list}
+	${module_libraries}
 	m
 	-Wl,--no-whole-archive
 	-Wl,${TOOLSLIB}/pic/libstdc++.a)
