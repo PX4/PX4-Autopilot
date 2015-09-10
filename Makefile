@@ -10,9 +10,9 @@ nuttx_px4fmu-v2_simple:
 		cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/Toolchain-arm-none-eabi.cmake \
 		-DOS=nuttx -DBOARD=px4fmu-v2 -DLABEL=simple && \
 		make -s && ctest -V && cpack -G ZIP 
-nuttx_px4fmu-v2_simple_upload:
+nuttx_px4fmu-v2_simple_upload: nuttx_px4fmu-v2_simple
 	make -C build_$< upload
-nuttx_px4fmu-v2_simple_test:
+nuttx_px4fmu-v2_simple_test: nuttx_px4fmu-v2_simple
 	make -C build_$< test
 
 
@@ -24,9 +24,9 @@ nuttx_px4fmu-v2_default:
 		cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/Toolchain-arm-none-eabi.cmake \
 		-DOS=nuttx -DBOARD=px4fmu-v2 -DLABEL=default && \
 		make -s && ctest -V && cpack -G ZIP 
-nuttx_px4fmu-v2_default_upload:
+nuttx_px4fmu-v2_default_upload: nuttx_px4fmu-v2_default
 	make -C build_$< upload
-nuttx_px4fmu-v2_default_test:
+nuttx_px4fmu-v2_default_test: nuttx_px4fmu-v2_default
 	make -C build_$< test
 
 #----------------------------------------------------------------------------
