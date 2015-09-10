@@ -9,9 +9,8 @@ px4_qurt_generate_builtin_commands(
 	OUT ${CMAKE_BINARY_DIR}/apps.h
 	MODULE_LIST ${module_libraries})
 
-# FIXME @jgoppert - how to work around issues like this?
-# Without changing global variables?
 # Clear -rdynamic flag which fails for hexagon
+# this change is scoped in this directory and below
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 

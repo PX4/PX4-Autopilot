@@ -77,6 +77,10 @@
 #	makes it clear to the user when variables are being set or targets
 #	are being created.
 #
+# * Setting a global variable in a CMakeLists.txt file is ok, because
+#	each CMakeLists.txt file has scope in the current directory and all
+#	subdirecties, so it is not truly global.
+#
 # * All toolchain files should be included in the cmake
 #	directory and named Toolchain-"name".cmake.
 #
