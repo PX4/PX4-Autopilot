@@ -1,5 +1,7 @@
 include(posix/px4_impl_posix-arm)
 
+set(USE_TOOLCHAIN Toolchain-arm-linux-gnueabihf)
+
 function(px4_get_config)
 
 	px4_parse_function_args(
