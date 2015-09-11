@@ -151,7 +151,7 @@ endif(NOT NESTED_CMAKE_CALL)
 message("OS = ${OS}")
 
 # prefer board implementation module over os implmementation module
-set(config_module "configs/config_${OS}_${BOARD}_${LABEL}")
+set(config_module "configs/${OS}_${BOARD}_${LABEL}")
 set(config_path "${CMAKE_SOURCE_DIR}/cmake/${config_module}.cmake")
 if (EXISTS ${config_path})
 	include(${config_module})
