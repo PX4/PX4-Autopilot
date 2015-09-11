@@ -111,6 +111,7 @@ function(px4_nuttx_add_firmware)
 			DEPENDS ${EXE}
 			)
 	endif()
+	add_custom_target(build_firmware ALL DEPENDS ${OUT})
 endfunction()
 
 #=============================================================================

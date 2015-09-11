@@ -97,4 +97,4 @@ upload: ;
 package: ;
 package_source: ;
 
-.PHONY: clean test upload
+.PHONY: clean test upload package package_source
