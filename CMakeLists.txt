@@ -226,7 +226,7 @@ link_directories(${link_dirs})
 add_definitions(${definitions})
 
 #=============================================================================
-# source code generation}
+# source code generation
 #
 file(GLOB_RECURSE msg_files msg/*.msg)
 px4_generate_messages(TARGET msg_gen

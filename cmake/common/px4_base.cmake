@@ -672,4 +672,18 @@ function(px4_create_git_hash_header)
 	configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
 endfunction()
 
+#=============================================================================
+# parameter file generation
+#
+function(px4_generate_parameters)
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py -s ${CMAKE_SOURCE_DIR}/src --board ${BOARD} --xml
+		)
+
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${CMAKE_BINARY_DIR}/parameters.xml ${CMAKE_BINARY_DIR}/parameters.c
+		)
+endfunction()
+
+
 # vim: set noet fenc=utf-8 ff=unix nowrap:
