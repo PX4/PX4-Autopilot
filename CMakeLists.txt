@@ -109,13 +109,63 @@ set(verion_patch 2)
 set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
+#=============================================================================
+# cmake modules
+#
+if (NOT NESTED_CMAKE_CALL)
+	message(STATUS "IN TOP")
+	if (EXISTS ${CMAKE_SOURCE_DIR}/cmake/configs/config_${CONFIG}.cmake)
+
+		# Get the toolchain information
+		include(configs/config_${CONFIG})
+	else()
+		message(FATAL_ERROR "build config not found: config_${CONFIG}.cmake")
+	endif()
+	if (NOT "${USE_TOOLCHAIN}" STREQUAL "")
+		set(TOOLCHAIN -DCMAKE_TOOLCHAIN_FILE=${CMAKE_SOURCE_DIR}/cmake/toolchains/${USE_TOOLCHAIN}.cmake)
+	endif()
+	string(REPLACE "_" ";" TARGET_PARAMS ${CONFIG})
+	list(GET TARGET_PARAMS 0 OS)
+	list(GET TARGET_PARAMS 1 BOARD)
+	list(GET TARGET_PARAMS 2 LABEL)
+	message(STATUS "CONFIG ${OS} ${BOARD} ${LABEL}")
+	if ("${LABEL}" STREQUAL "upload")
+		set(LABEL "simple")
+		set(DOUPLOAD "1")
+	endif()
+	if ("${LABEL}" STREQUAL "test")
+		set(LABEL "simple")
+		set(DOTEST "1")
+	endif()
+	execute_process( COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG} )
+	set(NESTED_CMAKE_CALL 1)
+	message(STATUS "Before")
+	execute_process(WORKING_DIRECTORY ${CONFIG}
+			COMMAND ${CMAKE_COMMAND} ${CMAKE_SOURCE_DIR} -DNESTED_CMAKE_CALL=TRUE ${TOOLCHAIN} -DOS=${OS} -DBOARD=${BOARD} -DLABEL=${LABEL}
+			)
+	execute_process( WORKING_DIRECTORY ${CONFIG}
+			COMMAND make -s
+			)
+	message(STATUS "${CMAKE_COMMAND} VERBOSE=1 ${CMAKE_SOURCE_DIR} ${TOOLCHAIN} -DOS=${OS} -DBOARD=${BOARD} -DLABEL=${LABEL}")
+	if ("${DOUPLOAD}" STREQUAL "1")
+	execute_process( WORKING_DIRECTORY ${CONFIG} 
+			COMMAND make upload)
+	endif()
+	if ("${DOTEST}" STREQUAL "1")
+	execute_process( WORKING_DIRECTORY ${CONFIG} 
+			COMMAND make test)
+	endif()
+	return()
+endif(NOT NESTED_CMAKE_CALL)
+
 #=============================================================================
 # cmake modules
 #
 
 # set module path
 message("OS = ${OS}")
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 # prefer board implementation module over os implmementation module
 set(config_module "configs/config_${OS}_${BOARD}_${LABEL}")

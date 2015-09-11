@@ -1,5 +1,7 @@
 include(qurt/px4_impl_qurt)
 
+set(USE_TOOLCHAIN Toolchain-hexagon)
+
 function(px4_get_config)
 
 	px4_parse_function_args(
