@@ -27,12 +27,16 @@ target_link_libraries(firmware_nuttx
 	apps nuttx nosys m gcc
 	-Wl,--end-group)
 
-px4_nuttx_add_firmware(OUT ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4
+set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
+
+px4_nuttx_add_firmware(OUT ${fw_file}
 	EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
 	${config_firmware_options}
 	)
 
 px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
-	BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/fw_main.px4)
+	BUNDLE ${fw_file})
+
+install(FILES ${fw_file} DESTINATION .)
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
