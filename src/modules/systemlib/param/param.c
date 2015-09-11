@@ -86,9 +86,11 @@ extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
 #else
-extern char __param_start, __param_end;
-static const struct param_info_s *param_info_base = (struct param_info_s *) &__param_start;
-static const struct param_info_s *param_info_limit = (struct param_info_s *) &__param_end;
+extern const struct param_info_s __param_start, __param_end;
+
+// FIXME - start and end are reversed
+static const struct param_info_s *param_info_base = &__param_end;
+static const struct param_info_s *param_info_limit = &__param_start;
 #endif
 
 #define	param_info_count		((unsigned)(param_info_limit - param_info_base))
