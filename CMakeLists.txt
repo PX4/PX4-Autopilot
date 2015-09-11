@@ -144,9 +144,9 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 3.0.0)
 	cmake_policy(SET CMP0046 NEW) # no non-existent targets as dependencies
 endif()
 
-set(version_major 0)
-set(version_minor 1)
-set(version_patch 2)
+set(version_major 1)
+set(version_minor 0)
+set(version_patch 1)
 set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
 
