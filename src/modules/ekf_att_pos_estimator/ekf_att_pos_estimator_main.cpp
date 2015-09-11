@@ -155,9 +155,9 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _landDetector {},
     _armed {},
 
-    _gyro_offsets({}),
-    _accel_offsets({}),
-    _mag_offsets({}),
+    _gyro_offsets{},
+    _accel_offsets{},
+    _mag_offsets{},
 
     _sensor_combined {},
 
