@@ -19,7 +19,13 @@ set(target_libraries
 	rc_receiver
 	)
 
-function(px4_set_config_modules out_module_list)
+function(px4_get_config)
+
+	px4_parse_function_args(
+		NAME px4_set_config_modules
+		ONE_VALUE OUT_MODULES
+		REQUIRED OUT_MODULES
+		ARGN ${ARGN})
 
 	set(config_module_list
 		#
@@ -81,6 +87,6 @@ function(px4_set_config_modules out_module_list)
 		#
 		modules/muorb/adsp
 		)
-	set(${out_module_list} ${config_module_list} PARENT_SCOPE)
+	set(${OUT_MODULES} ${config_module_list} PARENT_SCOPE)
 
 endfunction()

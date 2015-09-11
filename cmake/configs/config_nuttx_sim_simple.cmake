@@ -2,7 +2,12 @@ include(nuttx/px4_impl_nuttx)
 
 message(WARNING "this is a work in progress and doesn't build yet")
 
-function(px4_set_config_modules out_module_list)
+function(px4_get_config)
+
+	px4_parse_function_args(
+		NAME px4_set_config_modules
+		ONE_VALUE OUT_MODULES OUT_FW_OPTS OUT_EXTRA_CMDS
+		ARGN ${ARGN})
 
 	set(config_module_list
 		platforms/nuttx
