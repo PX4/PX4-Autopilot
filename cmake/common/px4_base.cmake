@@ -483,7 +483,6 @@ function(px4_add_common_flags)
 		-Werror=reorder
 		-Werror=uninitialized
 		-Werror=init-self
-		-Wno-unused-const-variable
 		#-Wcast-qual  - generates spurious noreturn attribute warnings,
 		#               try again later
 		#-Wconversion - would be nice, but too many "risky-but-safe"
@@ -494,6 +493,7 @@ function(px4_add_common_flags)
 
 	if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
 		list(APPEND warnings
+			-Wno-unused-const-variable
 			-Werror=unused-but-set-variable
 			-Wformat=1
 			#-Wlogical-op # very verbose due to eigen
@@ -574,6 +574,7 @@ function(px4_add_common_flags)
 
 	set(added_include_dirs
 		src
+		${CMAKE_BINARY_DIR}
 		${CMAKE_BINARY_DIR}/src
 		src/modules
 		src/include

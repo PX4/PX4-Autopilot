@@ -14,6 +14,8 @@ px4_qurt_generate_builtin_commands(
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
+px4_generate_parameters()
+
 # Enable build without HexagonSDK to check link dependencies
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	add_executable(mainapp 
