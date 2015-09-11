@@ -112,16 +112,16 @@ set(package-contact "px4users@googlegroups.com")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 #=============================================================================
-# cmake modules
+# Validate build configuration and build
 #
 if (NOT NESTED_CMAKE_CALL)
 	message(STATUS "IN TOP")
-	if (EXISTS ${CMAKE_SOURCE_DIR}/cmake/configs/config_${CONFIG}.cmake)
+	if (EXISTS ${CMAKE_SOURCE_DIR}/cmake/configs/${CONFIG}.cmake)
 
 		# Get the toolchain information
-		include(configs/config_${CONFIG})
+		include(configs/${CONFIG})
 	else()
-		message(FATAL_ERROR "build config not found: config_${CONFIG}.cmake")
+		message(FATAL_ERROR "build config not found: ${CONFIG}.cmake")
 	endif()
 	if (NOT "${USE_TOOLCHAIN}" STREQUAL "")
 		set(TOOLCHAIN -DCMAKE_TOOLCHAIN_FILE=${CMAKE_SOURCE_DIR}/cmake/toolchains/${USE_TOOLCHAIN}.cmake)
