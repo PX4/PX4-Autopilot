@@ -91,4 +91,8 @@ all: px4fmu-v2_default
 clean:
 	rm -rf build_*/
 
-.PHONY: clean
+# targets handled by cmake
+test: ;
+upload: ;
+
+.PHONY: clean test upload

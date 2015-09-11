@@ -132,7 +132,7 @@ set(px4_required_config
 	config_module_list
 	)
 foreach(conf ${px4_required_config})
-	if(NOT DEFINED ${conf})
+	if(NOT DEFINED conf)
 		message(FATAL_ERROR "cmake/${config_module} must define ${conf}")
 	endif()
 endforeach()
@@ -160,14 +160,14 @@ list(GET config_args 2 LABEL)
 message(STATUS "TARGET: OS(${OS})-BOARD(${BOARD})-LABEL(${LABEL})")
 
 #=============================================================================
-# cmake modules
-#
-enable_testing()
-
-#=============================================================================
 # programs
 #
 find_package(PythonInterp REQUIRED)
+
+#=============================================================================
+# cmake modules
+#
+enable_testing()
 
 #=============================================================================
 # check required toolchain variables
