@@ -63,6 +63,7 @@
 
 #include "uORB/uORB.h"
 #include "uORB/topics/parameter_update.h"
+#include "px4_parameters.h"
 
 #if 0
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
@@ -86,14 +87,11 @@ extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
 #else
-extern const struct param_info_s __param_start, __param_end;
-
 // FIXME - start and end are reversed
-static const struct param_info_s *param_info_base = &__param_end;
-static const struct param_info_s *param_info_limit = &__param_start;
+static const struct param_info_s *param_info_base = (const struct param_info_s *)&px4_parameters;
 #endif
 
-#define	param_info_count		((unsigned)(param_info_limit - param_info_base))
+#define	param_info_count		px4_parameters.param_count
 
 /**
  * Storage for modified parameters.

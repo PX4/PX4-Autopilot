@@ -682,7 +682,7 @@ function(px4_generate_parameters)
 		)
 
 	execute_process(
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${CMAKE_BINARY_DIR}/parameters.xml ${CMAKE_BINARY_DIR}/parameters.c
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${CMAKE_BINARY_DIR}/parameters.xml
 		)
 endfunction()
 
