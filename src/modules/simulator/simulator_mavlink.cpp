@@ -46,6 +46,14 @@ extern "C" __EXPORT hrt_abstime hrt_reset(void);
 #define UDP_PORT 	14560
 #define PIXHAWK_DEVICE "/dev/ttyACM0"
 
+#ifndef B460800
+#define B460800 460800
+#endif
+
+#ifndef B921600
+#define B921600 921600
+#endif
+
 #define PRESS_GROUND 101325.0f
 #define DENSITY 1.2041f
 #define GRAVITY 9.81f
