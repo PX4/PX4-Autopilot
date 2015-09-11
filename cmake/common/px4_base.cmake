@@ -482,7 +482,8 @@ function(px4_add_common_flags)
 		-Werror=unused-variable
 		-Werror=reorder
 		-Werror=uninitialized
-		-Werror=init-self 
+		-Werror=init-self
+		-Wno-unused-const-variable
 		#-Wcast-qual  - generates spurious noreturn attribute warnings,
 		#               try again later
 		#-Wconversion - would be nice, but too many "risky-but-safe"
