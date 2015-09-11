@@ -2,27 +2,35 @@ include(nuttx/px4_impl_nuttx)
 
 message(WARNING "this is a work in progress and doesn't build yet")
 
-function(px4_get_config)
+set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-native.cmake)
 
-	px4_parse_function_args(
-		NAME px4_set_config_modules
-		ONE_VALUE OUT_MODULES OUT_FW_OPTS OUT_EXTRA_CMDS
-		ARGN ${ARGN})
+set(config_module_list
+	platforms/nuttx
+	platforms/nuttx/px4_layer
+	platforms/common
+	drivers/led
+	drivers/device
+	modules/systemlib
+	modules/uORB
+	examples/px4_simple_app
+	lib/mathlib/math/filter
+	lib/conversion
+	)
 
-	set(config_module_list
-		platforms/nuttx
-		platforms/nuttx/px4_layer
-		platforms/common
-		drivers/led
-		drivers/device
-		modules/systemlib
-		modules/uORB
-		examples/px4_simple_app
-		lib/mathlib/math/filter
-		lib/conversion
-		)
+set(config_firmware_options
+	PARAM_XML # generate param xml
+	)
 
-	set(${out_module_list} ${config_module_list} PARENT_SCOPE)
+set(config_extra_builtin_cmds
+	serdis_main
+	sercon_main
+	)
 
-endfunction()
+add_custom_target(sercon)
+set_target_properties(sercon PROPERTIES
+	MAIN "sercon" STACK "2048")
+
+add_custom_target(serdis)
+set_target_properties(serdis PROPERTIES
+	MAIN "serdis" STACK "2048")
 

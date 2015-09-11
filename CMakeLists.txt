@@ -73,8 +73,8 @@
 # ---------------------------------------------------------------------------
 #
 # * Never set global variables in an included cmake file,
-#	you may only define functions. This excludes Toolchain files. This
-#	makes it clear to the user when variables are being set or targets
+#	you may only define functions. This excludes config and Toolchain files.
+#	This makes it clear to the user when variables are being set or targets
 #	are being created.
 #
 # * Setting a global variable in a CMakeLists.txt file is ok, because
@@ -133,7 +133,7 @@ set(px4_required_config
 	)
 foreach(conf ${px4_required_config})
 	if(NOT DEFINED ${conf})
-		message(FATAL_ERROR "${config_module} must define ${conf}")
+		message(FATAL_ERROR "cmake/${config_module} must define ${conf}")
 	endif()
 endforeach()
 
