@@ -1,4 +1,5 @@
 include(posix/px4_impl_posix)
+set(USE_TOOLCHAIN Toolchain-native)
 
 function(px4_get_config)
 
