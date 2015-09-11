@@ -240,7 +240,7 @@ foreach(module ${config_modules})
 	add_subdirectory(src/${module})
 	px4_mangle_name(${module} mangled_name)
 	list(APPEND module_libraries ${mangled_name})
-	message(STATUS "adding module: ${module}")
+	#message(STATUS "adding module: ${module}")
 endforeach()
 
 add_subdirectory(src/firmware/${OS})

@@ -148,7 +148,7 @@ function(px4_nuttx_generate_builtin_commands)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
 	foreach(module ${MODULE_LIST})
-		message("generating builtin for: ${module}")
+		#message("generating builtin for: ${module}")
 		# default
 		set(MAIN_DEFAULT MAIN-NOTFOUND)
 		set(STACK_DEFAULT 1024)
