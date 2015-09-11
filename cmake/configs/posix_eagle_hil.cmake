@@ -1,4 +1,4 @@
-include(posix/px4_impl_posix-arm)
+include(posix/px4_impl_posix)
 
 set(USE_TOOLCHAIN Toolchain-arm-linux-gnueabihf)
 
