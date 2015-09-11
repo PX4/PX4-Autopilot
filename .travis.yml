@@ -73,14 +73,21 @@ script:
   - ccache -z
   - arm-none-eabi-gcc --version
   - echo 'Building POSIX Firmware..' && echo -en 'travis_fold:start:script.1\\r'
-  - make posix_sitl_simple
+  - make posix_sitl_simple -j4
+  - ccache -s
+  - echo -en 'travis_fold:end:script.1\\r'
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.2\\r'
-  - make -C build_posix_sitl_simple test
+  - make posix_sitl_simple test
+  - cat src/modules/systemlib/mixer/mixer_multirotor.generated.h
+  - echo -en 'travis_fold:end:script.2\\r'
   - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.3\\r'
-  - make nuttx_px4fmu-v2_simple
+  - make px4fmu-v2_default -j4
+  - ccache -s
+  - echo -en 'travis_fold:end:script.3\\r'
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'
-  - make -C build_nuttx_px4fmu-v2_simple test
-
+  - make px4fmu-v2_default test
+  - echo -en 'travis_fold:end:script.4\\r'
+  - make px4fmu-v2_default package
   #- make posix -j4
   #- ccache -s
   #- echo -en 'travis_fold:end:script.1\\r'

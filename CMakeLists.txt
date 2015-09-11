@@ -257,6 +257,8 @@ px4_create_git_hash_header(HEADER ${CMAKE_BINARY_DIR}/build_git_version.h)
 #
 set(CPACK_PACKAGE_VERSION ${version})
 set(CPACK_PACKAGE_CONTACT ${package_contact})
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_SOURCE_GENERATOR "ZIP")
 include(CPack)
 
 # vim: set noet fenc=utf-8 ff=unix ft=cmake :
