@@ -1,6 +1,6 @@
 include(posix/px4_impl_posix-arm)
 
-function(px4_set_config_modules out_module_list)
+function(px4_get_config out_module_list)
 
 	set(config_module_list
 		drivers/device

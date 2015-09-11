@@ -3,7 +3,7 @@ include(qurt/px4_impl_qurt)
 # Run a full link with build stubs to make sure qurt target isn't broken
 set(QURT_ENABLE_STUBS 1)
 
-function(px4_set_config_modules out_module_list)
+function(px4_get_config out_module_list)
 
 	set(config_module_list
 		drivers/device
