@@ -31,18 +31,86 @@
 #
 ############################################################################
 
+# Help
+# --------------------------------------------------------------------
+# Don't be afraid of this makefile, it is just passing
+# arguments to cmake to allow us to keep the wiki pages etc.
+# that describe how to build the px4 firmware
+# the same even when using cmake instead of make.
+#
+# Example usage:
+#
+# make px4fmu-v2_default 			(builds)
+# make px4fmu-v2_default upload 	(builds and uploads)
+# make px4fmu-v2_default test 		(builds and tests)
+#
+# This tells cmake to build the nuttx px4fmu-v2 default config in the
+# directory build_nuttx_px4fmu-v2_default and then call make
+# in that directory with the target upload.
+
+# Parsing
+# --------------------------------------------------------------------
+# assume 1st argument passed is the main target, the
+# rest are arguments to pass to the makefile generated
+# by cmake in the subdirectory
+ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+
+# Functions
+# --------------------------------------------------------------------
+# define a make function to describe how to build a cmake config
+define cmake-build
+mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -DCONFIG=$(1)
+make -C $(PWD)/build_$@ -s $(ARGS)
+endef
+
+
+# ADD CONFIGS HERE
+# --------------------------------------------------------------------
+#  Do not put any spaces between function arguments.
+
+px4fmu-v2_default:
+	$(call cmake-build,nuttx_px4fmu-v2_default)
+
+px4fmu-v2_simple:
+	$(call cmake-build,nuttx_px4fmu-v2_simple)
+
+nuttx_sim_simple:
+	$(call cmake-build,$@)
+
+posix_sitl_simple:
+	$(call cmake-build,$@)
+
+qurt_eagle_travis:
+	$(call cmake-build,$@)
+
+# Other targets
+# --------------------------------------------------------------------
+#  explicity set default build target
+all: px4fmu-v2_default
+
+clean:
+	rm -rf build_*/
+
+# targets handled by cmake
+test: ;
+upload: ;
+package: ;
+package_source: ;
+
+.PHONY: clean test upload package package_source
+
 CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
 
-$(CONFIGS):
-	@mkdir -p Build/$@
-	@cd Build/$@ && cmake ../.. -DCONFIG=$@
-	@cd Build/$@ && make
-
-clean-all:
-	@rm -rf Build/*
-
-help:
-	@echo
-	@echo "Type 'make ' and hit the tab key twice to see a list of the available"
-	@echo "build configurations."
-	@echo
+# Future:
+#$(CONFIGS):
+##	@cd Build/$@ && cmake ../.. -DCONFIG=$@
+#	@cd Build/$@ && make
+#
+#clean-all:
+#	@rm -rf Build/*
+#
+#help:
+#	@echo
+#	@echo "Type 'make ' and hit the tab key twice to see a list of the available"
+#	@echo "build configurations."
+#	@echo
