@@ -1,56 +1,44 @@
 include(posix/px4_impl_posix)
 
-set(USE_TOOLCHAIN Toolchain-arm-linux-gnueabihf)
+set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
 
-function(px4_get_config)
+set(config_module_list
+	drivers/device
+	drivers/blinkm
+	drivers/pwm_out_sim
+	drivers/rgbled
+	drivers/led
+	modules/sensors
 
-	px4_parse_function_args(
-		NAME px4_set_config_modules
-		ONE_VALUE OUT_MODULES
-		REQUIRED OUT_MODULES
-		ARGN ${ARGN})
+	systemcmds/param
+	systemcmds/mixer
+	systemcmds/ver
 
-	set(config_module_list
-		drivers/device
-		drivers/blinkm
-		drivers/pwm_out_sim
-		drivers/rgbled
-		drivers/led
-		modules/sensors
+	modules/mavlink
 
-		systemcmds/param
-		systemcmds/mixer
-		systemcmds/ver
+	modules/attitude_estimator_ekf
+	modules/ekf_att_pos_estimator
 
-		modules/mavlink
+	modules/mc_pos_control
+	modules/mc_att_control
 
-		modules/attitude_estimator_ekf
-		modules/ekf_att_pos_estimator
+	modules/systemlib
+	modules/systemlib/mixer
+	modules/uORB
+	modules/sensors
+	modules/dataman
+	modules/sdlog2
+	modules/simulator
+	modules/commander
+	modules/controllib
 
-		modules/mc_pos_control
-		modules/mc_att_control
+	lib/mathlib
+	lib/mathlib/math/filter
+	lib/geo
+	lib/geo_lookup
+	lib/conversion
 
-		modules/systemlib
-		modules/systemlib/mixer
-		modules/uORB
-		modules/sensors
-		modules/dataman
-		modules/sdlog2
-		modules/simulator
-		modules/commander
-		modules/controllib
-
-		lib/mathlib
-		lib/mathlib/math/filter
-		lib/geo
-		lib/geo_lookup
-		lib/conversion
-
-		platforms/posix/px4_layer
-		platforms/posix/work_queue
-		)
-
-	set(${OUT_MODULES} ${config_module_list} PARENT_SCOPE)
-
-endfunction()
+	platforms/posix/px4_layer
+	platforms/posix/work_queue
+	)
 
