@@ -436,6 +436,15 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 0);
 PARAM_DEFINE_INT32(FW_RUNWAY_TKOFF, 0);
 
 /**
+ * Specifies which heading should be held during runnway takeoff.
+ *
+ * 0: airframe heading, 1: heading towards takeoff waypoint
+ *
+ * @group L1 Control
+ */
+PARAM_DEFINE_INT32(FW_TKOFF_HDG, 0);
+
+/**
  * Flare, minimum pitch
  *
  * Minimum pitch during flare, a positive sign means nose up
