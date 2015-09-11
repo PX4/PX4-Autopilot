@@ -94,5 +94,7 @@ clean:
 # targets handled by cmake
 test: ;
 upload: ;
+package: ;
+package_source: ;
 
 .PHONY: clean test upload

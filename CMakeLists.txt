@@ -148,7 +148,7 @@ endif()
 
 set(version_major 0)
 set(version_minor 1)
-set(verion_patch 2)
+set(version_patch 2)
 set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
 
