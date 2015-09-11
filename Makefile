@@ -68,6 +68,8 @@ endef
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
+#  Do not put any spaces between function arguments.
+
 px4fmu-v2_default:
 	$(call cmake-build,Toolchain-arm-none-eabi,nuttx,px4fmu-v2,default)
 
