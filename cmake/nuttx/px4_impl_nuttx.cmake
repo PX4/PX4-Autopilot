@@ -143,7 +143,6 @@ function(px4_nuttx_generate_builtin_commands)
 		MULTI_VALUE MODULE_LIST
 		REQUIRED MODULE_LIST OUT
 		ARGN ${ARGN})
-	message(STATUS "argn: ${ARGN}")
 	set(builtin_apps_string)
 	set(builtin_apps_decl_string)
 	set(command_count 0)

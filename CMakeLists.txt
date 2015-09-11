@@ -95,8 +95,51 @@
 #
 #=============================================================================
 
-
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+
+#=============================================================================
+# parameters
+#
+
+set(CONFIG "nuttx_px4fmu-v2_default" CACHE STRING "desired configuration")
+file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
+set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
+set(THREADS "4" CACHE STRING
+	"number of threads to use for external build processes")
+
+#=============================================================================
+# configuration
+#
+# must come before project to set toolchain
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+set(config_module "configs/${CONFIG}")
+include(${config_module})
+
+# require px4 module interface
+set(px4_required_interface
+	px4_os_prebuild_targets
+	px4_os_add_flags
+	)
+foreach(cmd ${px4_required_interface})
+	if(NOT COMMAND ${cmd})
+		message(FATAL_ERROR "${config_module} must implement ${cmd}")
+	endif()
+endforeach()
+set(px4_required_config
+	config_firmware_options
+	config_extra_builtin_cmds
+	config_module_list
+	)
+foreach(conf ${px4_required_config})
+	if(NOT DEFINED ${conf})
+		message(FATAL_ERROR "${config_module} must define ${conf}")
+	endif()
+endforeach()
+
+#=============================================================================
+# project definition
+#
 project(px4 CXX C ASM)
 if (NOT ${CMAKE_VERSION} VERSION_LESS 3.0.0)
 	cmake_policy(SET CMP0045 NEW) # error on non-existent target in get prop
@@ -109,69 +152,16 @@ set(verion_patch 2)
 set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+string(REPLACE "_" ";" config_args ${CONFIG})
+list(GET config_args 0 OS)
+list(GET config_args 1 BOARD)
+list(GET config_args 2 LABEL)
 
-#=============================================================================
-# Validate build configuration and build
-#
-if (NOT NESTED_CMAKE_CALL)
-	message(STATUS "IN TOP")
-	if (EXISTS ${CMAKE_SOURCE_DIR}/cmake/configs/${CONFIG}.cmake)
-
-		# Get the toolchain information
-		include(configs/${CONFIG})
-	else()
-		message(FATAL_ERROR "build config not found: ${CONFIG}.cmake")
-	endif()
-	if (NOT "${USE_TOOLCHAIN}" STREQUAL "")
-		set(TOOLCHAIN -DCMAKE_TOOLCHAIN_FILE=${CMAKE_SOURCE_DIR}/cmake/toolchains/${USE_TOOLCHAIN}.cmake)
-	endif()
-	string(REPLACE "_" ";" TARGET_PARAMS ${CONFIG})
-	list(GET TARGET_PARAMS 0 OS)
-	list(GET TARGET_PARAMS 1 BOARD)
-	list(GET TARGET_PARAMS 2 LABEL)
-	execute_process( COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG} )
-	set(NESTED_CMAKE_CALL 1)
-	message(STATUS "Before")
-	execute_process(WORKING_DIRECTORY ${CONFIG}
-			COMMAND ${CMAKE_COMMAND} ${CMAKE_SOURCE_DIR} -DNESTED_CMAKE_CALL=TRUE ${TOOLCHAIN} -DOS=${OS} -DBOARD=${BOARD} -DLABEL=${LABEL}
-			)
-	execute_process( WORKING_DIRECTORY ${CONFIG}
-			COMMAND make -s
-			)
-	message(STATUS "${CMAKE_COMMAND} VERBOSE=1 ${CMAKE_SOURCE_DIR} ${TOOLCHAIN} -DOS=${OS} -DBOARD=${BOARD} -DLABEL=${LABEL}")
-	return()
-endif(NOT NESTED_CMAKE_CALL)
+message(STATUS "TARGET: OS(${OS})-BOARD(${BOARD})-LABEL(${LABEL})")
 
 #=============================================================================
 # cmake modules
 #
-
-# set module path
-message("OS = ${OS}")
-
-# prefer board implementation module over os implmementation module
-set(config_module "configs/config_${OS}_${BOARD}_${LABEL}")
-set(config_path "${CMAKE_SOURCE_DIR}/cmake/${config_module}.cmake")
-if (EXISTS ${config_path})
-	include(${config_module})
-else()
-	message(FATAL_ERROR "build config not found: ${config_path}")
-endif()
-
-# require px4 module interface
-set(px4_required_functions
-	px4_os_prebuild_targets
-	px4_os_add_flags
-	px4_get_config
-	)
-foreach(cmd ${px4_required_functions})
-	if(NOT COMMAND ${cmd})
-		message(FATAL_ERROR "cmake/${impl_module} must implement ${cmd}")
-	endif()
-endforeach()
-
-# other modules
 enable_testing()
 
 #=============================================================================
@@ -180,31 +170,14 @@ enable_testing()
 find_package(PythonInterp REQUIRED)
 
 #=============================================================================
-# parameters
-#
-
-set(OS "posix" CACHE STRING "desired operating system")
-set_property(CACHE OS PROPERTY STRINGS nuttx posix qurt)
-
-set(BOARD "sitl" CACHE STRING "target board")
-set_property(CACHE BOARD PROPERTY STRINGS px4fmu-v2 sitl)
-
-set(LABEL "simple" CACHE STRING "module set label")
-set_property(CACHE LABEL PROPERTY STRINGS simple default)
-
-set(THREADS "4" CACHE STRING
-	"number of threads to use for external build processes")
-
-set(required_toolchain_variables
-	CMAKE_C_COMPILER_ID
-	)
-
-#=============================================================================
 # check required toolchain variables
 #
-foreach(var ${required_toolchain_variables})
+set(required_variables
+	CMAKE_C_COMPILER_ID
+	)
+foreach(var ${required_variables})
 	if (NOT ${var})
-		message(FATAL_ERROR "Toolchain must define ${var}")
+		message(FATAL_ERROR "Toolchain/config must define ${var}")
 	endif()
 endforeach()
 
@@ -267,9 +240,8 @@ px4_generate_messages(TARGET msg_gen
 #=============================================================================
 # subdirectories
 #
-px4_get_config(OUT_MODULES config_modules)
 set(module_libraries)
-foreach(module ${config_modules})
+foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 	px4_mangle_name(${module} mangled_name)
 	list(APPEND module_libraries ${mangled_name})

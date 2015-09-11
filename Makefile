@@ -59,10 +59,8 @@ ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 # --------------------------------------------------------------------
 # define a make function to describe how to build a cmake config
 define cmake-build
-mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && \
-	cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/$(1).cmake \
-	-DOS=$(2) -DBOARD=$(3) -DLABEL=$(4) && \
-	make -s $(ARGS)
+mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -DCONFIG=$(1)
+make -C $(PWD)/build_$@ -s $(ARGS)
 endef
 
 
@@ -71,20 +69,19 @@ endef
 #  Do not put any spaces between function arguments.
 
 px4fmu-v2_default:
-	$(call cmake-build,Toolchain-arm-none-eabi,nuttx,px4fmu-v2,default)
+	$(call cmake-build,nuttx_px4fmu-v2_default)
 
 px4fmu-v2_simple:
-	$(call cmake-build,Toolchain-arm-none-eabi,nuttx,px4fmu-v2,default)
+	$(call cmake-build,nuttx_px4fmu-v2_simple)
 
 nuttx_sim_simple:
-	$(call cmake-build,Toolchain-native,nuttx,sim,default)
+	$(call cmake-build,$@)
 
 posix_sitl_simple:
-	$(call cmake-build,Toolchain-posix-clang-native,posix,sitl,simple)
+	$(call cmake-build,$@)
 
 qurt_eagle_travis:
-	$(call cmake-build,Toolchain-hexagon,qurt,eagle,travis)
-
+	$(call cmake-build,$@)
 
 # Other targets
 # --------------------------------------------------------------------
