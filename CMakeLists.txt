@@ -127,12 +127,10 @@ foreach(cmd ${px4_required_interface})
 	endif()
 endforeach()
 set(px4_required_config
-	config_firmware_options
-	config_extra_builtin_cmds
 	config_module_list
 	)
 foreach(conf ${px4_required_config})
-	if(NOT DEFINED conf)
+	if(NOT DEFINED ${conf})
 		message(FATAL_ERROR "cmake/${config_module} must define ${conf}")
 	endif()
 endforeach()
