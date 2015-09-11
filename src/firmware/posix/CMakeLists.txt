@@ -18,7 +18,7 @@ set_target_properties(mainapp PROPERTIES LINK_FLAGS ${main_link_flags})
 target_link_libraries(mainapp
 	-Wl,--start-group
 	${module_libraries}
-	pthread m
+	pthread m rt
 	-Wl,--end-group
 	)
 
