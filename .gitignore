@@ -17,7 +17,9 @@
 .~lock.*
 Archives/*
 Build/*
+Testing/
 build/*
+build_*/
 core
 cscope.out
 Firmware.sublime-workspace
