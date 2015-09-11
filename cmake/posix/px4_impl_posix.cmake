@@ -166,13 +166,25 @@ function(px4_os_add_flags)
                 mavlink/include/mavlink
                 )
 
+if(UNIX AND APPLE)
         set(added_definitions
 		-D__PX4_POSIX
-                -D__PX4_LINUX 
+		-D__PX4_DARWIN
 		-DCLOCK_MONOTONIC=1
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
+
+else()
+
+        set(added_definitions
+		-D__PX4_POSIX
+		-D__PX4_LINUX 
+		-DCLOCK_MONOTONIC=1
+		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
+		-include ${PX4_INCLUDE_DIR}visibility.h
+                )
+endif()
 
         set(added_exe_linker_flags
 		-lpthread
