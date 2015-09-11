@@ -19,74 +19,66 @@ set(target_libraries
 	rc_receiver
 	)
 
-function(px4_get_config)
 
-	px4_parse_function_args(
-		NAME px4_set_config_modules
-		ONE_VALUE OUT_MODULES
-		REQUIRED OUT_MODULES
-		ARGN ${ARGN})
+set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon.cmake)
 
-	set(config_module_list
-		#
-		# Board support modules
-		#
-		drivers/device
-		modules/sensors
-		$(EAGLE_DRIVERS_SRC)/mpu9x50
-		$(EAGLE_DRIVERS_SRC)/uart_esc
-		$(EAGLE_DRIVERS_SRC)/rc_receiver
-		$(EAGLE_DRIVERS_SRC)/csr_gps
+set(config_module_list
+	#
+	# Board support modules
+	#
+	drivers/device
+	modules/sensors
+	$(EAGLE_DRIVERS_SRC)/mpu9x50
+	$(EAGLE_DRIVERS_SRC)/uart_esc
+	$(EAGLE_DRIVERS_SRC)/rc_receiver
+	$(EAGLE_DRIVERS_SRC)/csr_gps
 
-		#
-		# System commands
-		#
-		systemcmds/param
+	#
+	# System commands
+	#
+	systemcmds/param
 
-		#
-		# Estimation modules (EKF/ SO3 / other filters)
-		#
-		#modules/attitude_estimator_ekf
-		modules/ekf_att_pos_estimator
-		modules/attitude_estimator_q
-		modules/position_estimator_inav
+	#
+	# Estimation modules (EKF/ SO3 / other filters)
+	#
+	#modules/attitude_estimator_ekf
+	modules/ekf_att_pos_estimator
+	modules/attitude_estimator_q
+	modules/position_estimator_inav
 
-		#
-		# Vehicle Control
-		#
-		modules/mc_att_control
-		modules/mc_pos_control
+	#
+	# Vehicle Control
+	#
+	modules/mc_att_control
+	modules/mc_pos_control
 
-		#
-		# Library modules
-		#
-		modules/systemlib
-		modules/systemlib/mixer
-		modules/uORB
-		modules/commander
-		modules/controllib
+	#
+	# Library modules
+	#
+	modules/systemlib
+	modules/systemlib/mixer
+	modules/uORB
+	modules/commander
+	modules/controllib
 
-		#
-		# Libraries
-		#
-		lib/mathlib
-		lib/mathlib/math/filter
-		lib/geo
-		lib/geo_lookup
-		lib/conversion
+	#
+	# Libraries
+	#
+	lib/mathlib
+	lib/mathlib/math/filter
+	lib/geo
+	lib/geo_lookup
+	lib/conversion
 
-		#
-		# QuRT port
-		#
-		platforms/common
-		platforms/qurt/px4_layer
-		platforms/posix/work_queue
+	#
+	# QuRT port
+	#
+	platforms/common
+	platforms/qurt/px4_layer
+	platforms/posix/work_queue
 
-		#
-		# sources for muorb over fastrpc
-		#
-		modules/muorb/adsp
-		)
-	set(${OUT_MODULES} ${config_module_list} PARENT_SCOPE)
-
-endfunction()
+	#
+	# sources for muorb over fastrpc
+	#
+	modules/muorb/adsp
+	)

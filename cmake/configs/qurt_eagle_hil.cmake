@@ -1,75 +1,62 @@
 include(qurt/px4_impl_qurt)
 
-set(USE_TOOLCHAIN Toolchain-hexagon)
+set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon.cmake)
 
-function(px4_get_config)
+set(config_module_list
+	drivers/device
+	drivers/boards/sitl
+	drivers/pwm_out_sim
+	drivers/led
+	drivers/rgbled
+	modules/sensors
 
-	px4_parse_function_args(
-		NAME px4_set_config_modules
-		ONE_VALUE OUT_MODULES
-		REQUIRED OUT_MODULES
-		ARGN ${ARGN})
+	#
+	# System commands
+	#
+	systemcmds/param
+	systemcmds/mixer
 
-	set(config_module_list
-		drivers/device
-		drivers/boards/sitl
-		drivers/pwm_out_sim
-		drivers/led
-		drivers/rgbled
-		modules/sensors
+	#
+	# Estimation modules (EKF/ SO3 / other filters)
+	#
+	#modules/attitude_estimator_ekf
+	modules/ekf_att_pos_estimator
+	modules/attitude_estimator_q
+	modules/position_estimator_inav
 
-		#
-		# System commands
-		#
-		systemcmds/param
-		systemcmds/mixer
+	#
+	# Vehicle Control
+	#
+	modules/mc_att_control
+	modules/mc_pos_control
 
-		#
-		# Estimation modules (EKF/ SO3 / other filters)
-		#
-		#modules/attitude_estimator_ekf
-		modules/ekf_att_pos_estimator
-		modules/attitude_estimator_q
-		modules/position_estimator_inav
+	#
+	# Library modules
+	#
+	modules/systemlib
+	modules/systemlib/mixer
+	modules/uORB
+	modules/commander
 
-		#
-		# Vehicle Control
-		#
-		modules/mc_att_control
-		modules/mc_pos_control
+	#
+	# Libraries
+	#
+	lib/mathlib
+	lib/mathlib/math/filter
+	lib/geo
+	lib/geo_lookup
+	lib/conversion
+	modules/controllib
 
-		#
-		# Library modules
-		#
-		modules/systemlib
-		modules/systemlib/mixer
-		modules/uORB
-		modules/commander
+	#
+	# QuRT port
+	#
+	platforms/common
+	platforms/qurt/px4_layer
+	platforms/posix/work_queue
 
-		#
-		# Libraries
-		#
-		lib/mathlib
-		lib/mathlib/math/filter
-		lib/geo
-		lib/geo_lookup
-		lib/conversion
-		modules/controllib
-
-		#
-		# QuRT port
-		#
-		platforms/common
-		platforms/qurt/px4_layer
-		platforms/posix/work_queue
-
-		#
-		# sources for muorb over fastrpc
-		#
-		modules/muorb/adsp
-		)
-
-	set(${OUT_MODULES} ${config_module_list} PARENT_SCOPE)
-
-endfunction()
-
+	#
+	# sources for muorb over fastrpc
+	#
+	modules/muorb/adsp
+	)
