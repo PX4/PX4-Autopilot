@@ -60,9 +60,9 @@
 #			# do somthing
 #		elseif (${var} STREQUAL "2") <-- another condition
 #			# do somthing
-#		else (${var} STREQUAL "1") <-- tags is referring to name of if
+#		else (${var} STREQUAL "1") <-- tag is referring to name of if
 #			# do somthing
-#		endif (${var} STREQUAL "1") <-- tag is referring to name of 
+#		endif (${var} STREQUAL "1") <-- tag is referring to name of if
 #
 #	Do this:
 #		if (${var} STREQUAL "1") <-- condition now becomes if name
