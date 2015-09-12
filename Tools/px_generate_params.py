@@ -82,12 +82,12 @@ src += """
 };
 
 #ifdef __PX4_DARWIN
-#define ___param__attributes ;
+#define ___param__attributes
 #else
-#define ___param__attributes __attribute__((alias("px4_parameters_impl")));
+#define ___param__attributes __attribute__((alias("px4_parameters_impl")))
 #endif
 
-extern const struct px4_parameters_t px4_parameters ___param__attributes
+extern const struct px4_parameters_t px4_parameters ___param__attributes;
 """ % i
 
 fp_header.write(header)

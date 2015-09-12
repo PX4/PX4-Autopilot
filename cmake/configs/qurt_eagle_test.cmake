@@ -14,7 +14,7 @@ set(config_module_list
 	# Library modules
 	#
 	modules/systemlib
-	modules/mixer
+	modules/systemlib/mixer
 	modules/uORB
 
 	#
@@ -31,8 +31,8 @@ set(config_module_list
 	platforms/qurt/px4_layer
 	platforms/posix/work_queue
 	platforms/qurt/tests/hello
-	platforms/qurt/tests/vcdev_test
-	platforms/qurt/tests/hrt_test
-	platforms/qurt/tests/wqueue
+	platforms/posix/tests/vcdev_test
+	platforms/posix/tests/hrt_test
+	platforms/posix/tests/wqueue
 	)
 
