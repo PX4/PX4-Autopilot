@@ -2,7 +2,7 @@ px4_nuttx_generate_builtin_commands(
 	OUT builtin_commands.c
 	MODULE_LIST
 		${module_libraries}
-		${config_extra_builtins_cmds}
+		${config_extra_builtin_cmds}
 	)
 
 px4_nuttx_generate_romfs(OUT romfs.o
