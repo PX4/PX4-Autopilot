@@ -266,6 +266,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	uint16_t gps_updates = 0;
 	uint16_t attitude_updates = 0;
 	uint16_t flow_updates = 0;
+	uint16_t vision_updates = 0;
 
 	hrt_abstime updates_counter_start = hrt_absolute_time();
 	hrt_abstime pub_last = hrt_absolute_time();
@@ -698,6 +699,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						corr_vision[2][1] = 0.0f - z_est[1];
 					}
 
+					vision_updates++;
 				}
 			}
 
@@ -881,6 +883,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		float w_xy_vision_p = params.w_xy_vision_p;
 		float w_xy_vision_v = params.w_xy_vision_v;
 		float w_z_vision_p = params.w_z_vision_p;
+        float w_z_vision_v = params.w_z_vision_v;
 
 		/* reduce GPS weight if optical flow is good */
 		if (use_flow && flow_accurate) {
@@ -937,6 +940,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_vision_z) {
 			accel_bias_corr[2] -= corr_vision[2][0] * w_z_vision_p * w_z_vision_p;
+            accel_bias_corr[2] -= corr_vision[2][1] * w_z_vision_v;
 		}
 
 		/* transform error vector from NED frame to body frame */
@@ -998,6 +1002,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (use_vision_z) {
 			epv = fminf(epv, epv_vision);
 			inertial_filter_correct(corr_vision[2][0], dt, z_est, 0, w_z_vision_p);
+            inertial_filter_correct(corr_vision[2][1], dt, z_est, 1, w_z_vision_v);
 		}
 
 		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
@@ -1077,18 +1082,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (t > updates_counter_start + updates_counter_len) {
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
 				warnx(
-					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s",
+					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s, vision = %.1f/s",
 					(double)(accel_updates / updates_dt),
 					(double)(baro_updates / updates_dt),
 					(double)(gps_updates / updates_dt),
 					(double)(attitude_updates / updates_dt),
-					(double)(flow_updates / updates_dt));
+					(double)(flow_updates / updates_dt),
+					(double)(vision_updates / updates_dt));
 				updates_counter_start = t;
 				accel_updates = 0;
 				baro_updates = 0;
 				gps_updates = 0;
 				attitude_updates = 0;
 				flow_updates = 0;
+				vision_updates = 0;
 			}
 		}
 
