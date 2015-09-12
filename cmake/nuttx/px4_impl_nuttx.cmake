@@ -467,7 +467,7 @@ function(px4_os_prebuild_targets)
 			ARGN ${ARGN})
 	add_custom_target(${OUT})
 	px4_nuttx_add_export(OUT nuttx_export_${board}
-		CONFIG ${board}
+		CONFIG ${BOARD}
 		THREADS ${THREADS}
 		DEPENDS git_nuttx)
 	add_dependencies(${OUT} nuttx_export_${board})
