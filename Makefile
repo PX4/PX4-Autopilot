@@ -84,6 +84,17 @@ posix_sitl_simple:
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
+posix: posix_sitl_simple
+
+sitl_quad:
+	Tools/sitl_run.sh posix-configs/SITL/init/rcS
+
+sitl_plane:
+	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
+
+sitl_ros:
+	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros
+
 # Other targets
 # --------------------------------------------------------------------
 #  explicity set default build target
