@@ -143,6 +143,9 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 3.0.0)
 	cmake_policy(SET CMP0045 NEW) # error on non-existent target in get prop
 	cmake_policy(SET CMP0046 NEW) # no non-existent targets as dependencies
 endif()
+if (NOT ${CMAKE_VERSION} VERSION_LESS 3.1.0)
+	cmake_policy(SET CMP0054 NEW) # don't dereference quoted variables
+endif()
 
 set(version_major 1)
 set(version_minor 0)
