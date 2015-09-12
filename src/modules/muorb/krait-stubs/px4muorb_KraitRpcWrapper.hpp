@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,55 +30,47 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#ifndef _px4muorb_KraitRpcWrapper_hpp_
+#define _px4muorb_KraitRpcWrapper_hpp_
+#include <stdint.h>
 
-#include <string.h>
-#include "modules/uORB/uORBManager.hpp"
-#include "uORBKraitFastRpcChannel.hpp"
-
-extern "C" { __EXPORT int muorb_main(int argc, char *argv[]); }
-
-static void usage()
+namespace px4muorb
 {
-	warnx("Usage: muorb 'start', 'stop', 'status'");
+   class KraitRpcWrapper;
 }
 
-
-int
-muorb_main(int argc, char *argv[])
+class px4muorb::KraitRpcWrapper
 {
-	if (argc < 2) {
-		usage();
-		return -EINVAL;
-	}
+public:
+   /**
+    * Constructor
+    */
+   KraitRpcWrapper() {}
+   
+   /**
+    * destructor
+    */
+   ~KraitRpcWrapper() {}
 
-	/*
-	 * Start/load the driver.
-	 *
-	 * XXX it would be nice to have a wrapper for this...
-	 */
-	if (!strcmp(argv[1], "start")) {
-		// register the fast rpc channel with UORB.
-		uORB::Manager::get_instance()->set_uorb_communicator(uORB::KraitFastRpcChannel::GetInstance());
+   /**
+    * Initiatizes the rpc channel px4 muorb
+    */
+   bool Initialize() { return true; }
 
-		// start the KaitFastRPC channel thread.
-		uORB::KraitFastRpcChannel::GetInstance()->Start();
-		return OK;
+   /**
+    * Terminate to clean up the resources.  This should be called at program exit
+    */
+   bool Terminate() { return true; }
 
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-
-		uORB::KraitFastRpcChannel::GetInstance()->Stop();
-		return OK;
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[1], "status")) {
-		return OK;
-	}
-
-	usage();
-	return -EINVAL;
-}
+   /**
+    * Muorb related functions to pub/sub of orb topic from krait to adsp
+    */
+   int32_t AddSubscriber( const char* topic ) { return 1; }
+   int32_t RemoveSubscriber( const char* topic ) { return 1; }
+   int32_t SendData( const char* topic, int32_t length_in_bytes, const uint8_t* data ) { return 1; }
+   int32_t ReceiveData( int32_t* msg_type, char** topic, int32_t* length_in_bytes, uint8_t** data ) { return 1; }
+   int32_t IsSubscriberPresent( const char* topic, int32_t* status ) { return 1; }
+   int32_t ReceiveBulkData( uint8_t** bulk_data, int32_t* length_in_bytes, int32_t* topic_count ) { return 1; }
+   int32_t UnblockReceiveData() { return 1; }
+};
+#endif // _px4muorb_KraitWrapper_hpp_

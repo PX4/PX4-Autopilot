@@ -20,18 +20,14 @@ px4_generate_parameters()
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	add_executable(mainapp 
 		${CMAKE_SOURCE_DIR}/src/platforms/qurt/dspal/dspal_stub.c
+		${CMAKE_BINARY_DIR}/px4_parameters.c
 		${CMAKE_BINARY_DIR}/apps.h)
 else("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	add_library(mainapp 
 		${CMAKE_SOURCE_DIR}/src/platforms/qurt/dspal/dspal_stub.c
+		${CMAKE_BINARY_DIR}/px4_parameters.c
 		${CMAKE_BINARY_DIR}/apps.h)
 endif()
-
-set(main_link_flags
-	"-T${CMAKE_SOURCE_DIR}/cmake/posix/ld.script"
-	)
-px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
-set_target_properties(mainapp PROPERTIES LINK_FLAGS ${main_link_flags})
 
 target_link_libraries(mainapp
 	-Wl,--whole-archive
