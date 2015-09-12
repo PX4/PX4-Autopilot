@@ -142,6 +142,17 @@ PARAM_DEFINE_FLOAT(ATT_J33, 0.0037);
  */
 PARAM_DEFINE_INT32(ATT_J_EN, 0);
 
+/**
+ * Vision used in estimator
+ *
+ * If set to != 0 the vision will be used in the estimator
+ *
+ * @group Attitude EKF estimator
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(ATT_VIS_EN, 0);
+
 int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 {
 	/* PID parameters */
@@ -157,7 +168,8 @@ int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 	h->moment_inertia_J[0]  =   param_find("ATT_J11");
 	h->moment_inertia_J[1]  =   param_find("ATT_J22");
 	h->moment_inertia_J[2]  =   param_find("ATT_J33");
-	h->use_moment_inertia	=   param_find("ATT_J_EN");
+    h->use_moment_inertia   =   param_find("ATT_J_EN");
+    h->use_vision   =   param_find("ATT_VIS_EN");
 
 	return OK;
 }
@@ -177,7 +189,8 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 		param_get(h->moment_inertia_J[i], &(p->moment_inertia_J[3 * i + i]));
 	}
 
-	param_get(h->use_moment_inertia, &(p->use_moment_inertia));
+    param_get(h->use_moment_inertia, &(p->use_moment_inertia));
+    param_get(h->use_vision, &(p->use_vision));
 
 	return OK;
 }
