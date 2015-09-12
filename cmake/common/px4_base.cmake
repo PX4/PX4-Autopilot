@@ -254,33 +254,44 @@ endfunction()
 #			)
 #
 function(px4_add_module)
+
 	px4_parse_function_args(
 		NAME px4_add_module
 		ONE_VALUE MODULE MAIN STACK PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
 		REQUIRED MODULE
 		ARGN ${ARGN})
+
 	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
+
 	if(INCLUDES)
 		target_include_directories(${MODULE} ${INCLUDES})
 	endif()
+
 	if(DEPENDS)
 		add_dependencies(${MODULE} ${DEPENDS})
 	endif()
+
+	if(MAIN)
+		target_compile_definitions(${MODULE} PUBLIC -DPX4_MAIN=${MAIN}_app_main)
+	endif()
+
+	# join list variables to get ready to send to compiler
 	foreach(prop LINK_FLAGS COMPILE_FLAGS)
 		if(${prop})
 			px4_join(OUT ${prop} LIST ${${prop}} GLUE " ")
 		endif()
 	endforeach()
-	foreach (prop STACK MAIN COMPILE_FLAGS LINK_FLAGS PRIORITY)
-		if ("${prop}" STREQUAL "MAIN")
-			add_definitions(-DPX4_MAIN=${${prop}}_app_main)
-		endif()
+
+	# store module properties in target
+	# COMPILE_FLAGS and LINK_FLAGS are passed to compiler/linker by cmake
+	# STACK, MAIN, PRIORITY are PX4 specific
+	foreach (prop COMPILE_FLAGS LINK_FLAGS STACK MAIN PRIORITY)
 		if (${prop})
-			set_target_properties(${MODULE} PROPERTIES "${prop}" "${${prop}}")
+			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
 		endif()
 	endforeach()
-	set_target_properties(${MODULE} PROPERTIES LINK_INTERFACE_MULTIPLICITY 4)
+
 endfunction()
 
 #=============================================================================
