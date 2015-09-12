@@ -1424,7 +1424,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					// for takeoff we want heading control with rudder, roll and pitch stabilization to zero
 					// throttle should be ramped up to max
 					_att_sp.roll_body = 0.0f;
-					//_att_sp.fw_control_yaw = true;		// tell attitude controller he should control yaw directly
+					_att_sp.fw_control_yaw = true;		// tell attitude controller he should control yaw directly
 
 					if (_parameters.runway_takeoff_heading == 0) {
 						// fix heading in the direction the airframe points

@@ -964,6 +964,8 @@ FixedwingAttitudeControl::task_main()
 				if (_att_sp.fw_control_yaw == true) {
 					// this method controls heading directly with rudder. Used for auto takeoff on runway
 					_yaw_ctrl.set_coordinated_method(ECL_YawController::COORD_METHOD_HEADING);
+				} else {
+					_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 				}
 
 				/* Run attitude controllers */
