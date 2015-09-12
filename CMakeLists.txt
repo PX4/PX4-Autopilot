@@ -248,7 +248,7 @@ foreach(module ${config_module_list})
 	#message(STATUS "adding module: ${module}")
 endforeach()
 
-add_subdirectory(firmware/${OS})
+add_subdirectory(src/firmware/${OS})
 if (config_io_board)
 	#add_subdirectory(src/modules/px4iofirmware)
 endif()
