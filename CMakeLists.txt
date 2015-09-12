@@ -92,6 +92,8 @@
 # Included CMake Files
 # ---------------------------------------------------------------------------
 #
+# * All variables in config files must have the prefix "config_".
+#
 # * Never set global variables in an included cmake file,
 #	you may only define functions. This excludes config and Toolchain files.
 #	This makes it clear to the user when variables are being set or targets
@@ -121,6 +123,9 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 # parameters
 #
 
+set(CMAKE_BUILD_TYPE "" CACHE STRING "build type")
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
+	STRINGS ";Debug;Release;RelWithDebInfo;MinSizeRel")
 set(CONFIG "nuttx_px4fmu-v2_default" CACHE STRING "desired configuration")
 file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
 set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
@@ -178,8 +183,9 @@ string(REPLACE "_" ";" config_args ${CONFIG})
 list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
+set(target_name "${OS}-${BOARD}-${LABEL}")
 
-message(STATUS "OS=${OS} BOARD=${BOARD} LABEL=${LABEL}")
+message(STATUS "${target_name}")
 
 #=============================================================================
 # programs
@@ -271,6 +277,9 @@ foreach(module ${config_module_list})
 endforeach()
 
 add_subdirectory(src/firmware/${OS})
+if (config_io_board)
+	#add_subdirectory(src/modules/px4iofirmware)
+endif()
 
 #=============================================================================
 # generate git version

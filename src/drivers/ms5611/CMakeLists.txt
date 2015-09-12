@@ -30,15 +30,29 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(srcs
+	ms5611_spi.cpp
+	ms5611_i2c.cpp
+	)
+
+if(${OS} STREQUAL "nuttx")
+	list(APPEND srcs
+		ms5611_nuttx.cpp
+		)
+else()
+	list(APPEND srcs
+		ms5611_posix.cpp
+		ms5611_sim.cpp
+		)
+
+endif()
+
 px4_add_module(
 	MODULE drivers__ms5611
 	MAIN ms5611
 	COMPILE_FLAGS
 		-Os
-	SRCS
-		ms5611_nuttx.cpp
-		ms5611_spi.cpp
-		ms5611_i2c.cpp
+	SRCS ${srcs}
 	DEPENDS
 		platforms__common
 	)

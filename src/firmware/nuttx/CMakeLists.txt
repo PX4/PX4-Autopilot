@@ -13,44 +13,57 @@ add_executable(firmware_nuttx
 	builtin_commands.c
 	romfs.o)
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
-set(main_link_flags
-	"-T${nuttx_export_dir}/build/ld.script"
-	"-Wl,-Map=${CMAKE_BINARY_DIR}/main.map"
-	)
-px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
-set_target_properties(firmware_nuttx PROPERTIES LINK_FLAGS ${main_link_flags})
 
-set(cmsis_lib ${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a)
+set(link_libs
+	apps nuttx m gcc
+	)
+
+if(NOT ${BOARD} STREQUAL "sim")
+	list(APPEND link_libs nosys)
+	set(main_link_flags
+		"-T${nuttx_export_dir}/build/ld.script"
+		"-Wl,-Map=${CMAKE_BINARY_DIR}/${BOARD}/main.map"
+		)
+	px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
+	set_target_properties(firmware_nuttx PROPERTIES LINK_FLAGS ${main_link_flags})
+endif()
+
+set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${target_name}.px4)
 
 target_link_libraries(firmware_nuttx
 	-Wl,--start-group
 	${module_libraries}
-	${cmsis_lib}
-	apps nuttx nosys m gcc
+	${config_extra_libs}
+	${link_libs}
 	-Wl,--end-group)
 
-set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
-
 add_custom_target(check_weak
-	COMMAND ${NM} firmware_nuttx | grep " w "
+	COMMAND ${NM} firmware_nuttx | ${GREP} " w " | cat
 	DEPENDS firmware_nuttx
+	VERBATIM
 	)
 
-px4_nuttx_add_firmware(OUT ${fw_file}
-	EXE firmware_nuttx
-	${config_firmware_options}
-	)
+if(NOT ${BOARD} STREQUAL "sim")
+	set(fw_file
+		${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
 
-configure_file(gdbinit.in .gdbinit)
+	px4_nuttx_add_firmware(OUT ${fw_file}
+		BOARD ${BOARD}
+		EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+		${config_firmware_options}
+		)
 
-add_custom_target(debug
-	COMMAND ${GDB} ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
-	DEPENDS firmware_nuttx
-		${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
-	)
+	configure_file(gdbinit.in .gdbinit)
 
-px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
-	BUNDLE ${fw_file})
+	add_custom_target(debug
+		COMMAND ${GDB} ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+		DEPENDS firmware_nuttx
+			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+		)
+
+	px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
+		BUNDLE ${fw_file})
+endif()
 
 install(FILES ${fw_file} DESTINATION .)
 

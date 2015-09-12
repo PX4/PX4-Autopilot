@@ -165,6 +165,18 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
+set(config_io_board
+	px4io-v2
+	)
+
+set(config_extra_libs
+	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a
+	)
+
+set(config_io_extra_libs
+	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM3l_math.a
+	)
+
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	MAIN "sercon" STACK "2048")

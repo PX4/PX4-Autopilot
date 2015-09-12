@@ -3,7 +3,6 @@ include(nuttx/px4_impl_nuttx)
 set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
 set(config_module_list
-
 	#
 	# Board support modules
 	#
@@ -125,6 +124,18 @@ set(config_firmware_options
 set(config_extra_builtin_cmds
 	serdis
 	sercon
+	)
+
+set(config_io_board
+	px4io-v2
+	)
+
+set(config_extra_libs
+	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a
+	)
+
+set(config_io_extra_libs
+	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM3l_math.a
 	)
 
 add_custom_target(sercon)
