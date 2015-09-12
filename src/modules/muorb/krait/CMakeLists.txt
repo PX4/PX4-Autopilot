@@ -30,6 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if("${DSPAL_STUBS_ENABLE}" STREQUAL "1")
+	include_directories(../krait-stubs)
+endif()
+
 px4_add_module(
 	MODULE modules__muorb__krait
 	MAIN muorb

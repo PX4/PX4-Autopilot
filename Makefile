@@ -54,13 +54,14 @@
 # rest are arguments to pass to the makefile generated
 # by cmake in the subdirectory
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+j ?= 1
 
 # Functions
 # --------------------------------------------------------------------
 # define a make function to describe how to build a cmake config
 define cmake-build
-mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -DCONFIG=$(1)
-make -C $(PWD)/build_$@ -s $(ARGS)
++mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -DCONFIG=$(1)
++make -C $(PWD)/build_$@ --no-print-directory $(ARGS)
 endef
 
 

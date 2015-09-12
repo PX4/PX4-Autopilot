@@ -142,6 +142,7 @@ project(px4 CXX C ASM)
 if (NOT ${CMAKE_VERSION} VERSION_LESS 3.0.0)
 	cmake_policy(SET CMP0045 NEW) # error on non-existent target in get prop
 	cmake_policy(SET CMP0046 NEW) # no non-existent targets as dependencies
+	cmake_policy(SET CMP0054 NEW) # don't dereference quoted variables
 endif()
 
 set(version_major 1)
@@ -155,7 +156,7 @@ list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 
-message(STATUS "TARGET: OS(${OS})-BOARD(${BOARD})-LABEL(${LABEL})")
+message(STATUS "OS=${OS} BOARD=${BOARD} LABEL=${LABEL}")
 
 #=============================================================================
 # programs

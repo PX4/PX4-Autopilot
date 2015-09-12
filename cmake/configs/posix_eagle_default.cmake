@@ -8,7 +8,7 @@ set(config_module_list
 	drivers/pwm_out_sim
 	drivers/rgbled
 	drivers/led
-	modules/sensors
+	drivers/boards/sitl
 
 	systemcmds/param
 	systemcmds/mixer
@@ -38,6 +38,7 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 
+	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
 	)
