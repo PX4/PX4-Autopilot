@@ -86,7 +86,7 @@ void init_once(void);
 void init_once(void)
 {
 	_shell_task_id = pthread_self();
-	PX4_INFO("Shell id is %lu", _shell_task_id);
+	printf("[init] shell id: %lu\n", _shell_task_id);
 	work_queues_init();
 	hrt_work_queue_init();
 	hrt_init();
@@ -94,7 +94,18 @@ void init_once(void)
 
 void init(int argc, char *argv[], const char *app_name)
 {
-	printf("App name: %s\n", app_name);
+	printf("[init] task name: %s\n", app_name);
+	printf("\n");
+	printf("______  __   __    ___ \n");
+	printf("| ___ \\ \\ \\ / /   /   |\n");
+	printf("| |_/ /  \\ V /   / /| |\n");
+	printf("|  __/   /   \\  / /_| |\n");
+	printf("| |     / /^\\ \\ \\___  |\n");
+	printf("\\_|     \\/   \\/     |_/\n");
+	printf("\n");
+	printf("Ready to fly.\n");
+	printf("\n");
+	printf("\n");
 }
 
 uint64_t get_time_micros()

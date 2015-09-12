@@ -409,15 +409,16 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	int serial_fd = openUart(PIXHAWK_DEVICE, 115200);
 
 	if (serial_fd < 0) {
-		PX4_WARN("failed to open %s", PIXHAWK_DEVICE);
-	}
+		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
+	} else {
 
-	// tell the device to stream some messages
-	char command[] = "\nsh /etc/init.d/rc.usb\n";
-	int w = ::write(serial_fd, command, sizeof(command));
+		// tell the device to stream some messages
+		char command[] = "\nsh /etc/init.d/rc.usb\n";
+		int w = ::write(serial_fd, command, sizeof(command));
 
-	if (w <= 0) {
-		PX4_WARN("failed to send streaming command to %s", PIXHAWK_DEVICE);
+		if (w <= 0) {
+			PX4_WARN("failed to send streaming command to %s", PIXHAWK_DEVICE);
+		}
 	}
 
 	char serial_buf[1024];
@@ -433,18 +434,18 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// wait for first data from simulator and respond with first controls
 	// this is important for the UDP communication to work
 	int pret = -1;
-	PX4_WARN("Waiting for initial data on UDP.. Please connect the simulator first.");
+	PX4_INFO("Waiting for initial data on UDP. Please start the flight simulator to proceed..");
 	while (pret <= 0) {
 		pret = ::poll(&fds[0], (sizeof(fds[0])/sizeof(fds[0])), 100);
 	}
-	PX4_WARN("Found initial message, pret = %d",pret);
+	PX4_INFO("Found initial message, pret = %d",pret);
 	_initialized = true;
 	// reset system time
 	(void)hrt_reset();
 
 	if (fds[0].revents & POLLIN) {
 		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-		PX4_WARN("Sending initial controls message to jMAVSim.");
+		PX4_INFO("Sending initial controls message to jMAVSim.");
 		send_controls();
 	}
 
