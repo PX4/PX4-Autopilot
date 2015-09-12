@@ -498,7 +498,6 @@ function(px4_add_common_flags)
 		-Werror=reorder
 		-Werror=uninitialized
 		-Werror=init-self
-		-Wno-unused-const-variable
 		#-Wcast-qual  - generates spurious noreturn attribute warnings,
 		#               try again later
 		#-Wconversion - would be nice, but too many "risky-but-safe"
@@ -507,7 +506,11 @@ function(px4_add_common_flags)
 		#               but generates too many false positives
 		)
 
-	if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+	if (${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+		list(APPEND warnings
+			-Wno-unused-const-variable
+		)
+	else(${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
 		list(APPEND warnings
 			-Werror=unused-but-set-variable
 			-Wformat=1
