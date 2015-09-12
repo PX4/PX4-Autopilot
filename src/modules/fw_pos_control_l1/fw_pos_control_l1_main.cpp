@@ -283,6 +283,9 @@ private:
 
 		int do_runway_takeoff;
 		int runway_takeoff_heading;
+		float runway_takeoff_nav_alt;
+		float runway_takeoff_throttle;
+		float runway_takeoff_pitch_sp;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -334,6 +337,9 @@ private:
 
 		param_t do_runway_takeoff;
 		param_t runway_takeoff_heading;
+		param_t runway_takeoff_nav_alt;
+		param_t runway_takeoff_throttle;
+		param_t runway_takeoff_pitch_sp;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -580,8 +586,11 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_flare_pitch_max_deg = param_find("FW_FLARE_PMAX");
 	_parameter_handles.land_use_terrain_estimate= param_find("FW_LND_USETER");
 
-	_parameter_handles.do_runway_takeoff = param_find("FW_RUNWAY_TKOFF");
-	_parameter_handles.runway_takeoff_heading = param_find("FW_TKOFF_HDG");
+	_parameter_handles.do_runway_takeoff = param_find("FW_RNW_TKOFF");
+	_parameter_handles.runway_takeoff_heading = param_find("FW_RNW_HDG");
+	_parameter_handles.runway_takeoff_nav_alt = param_find("FW_RNW_NAV_ALT");
+	_parameter_handles.runway_takeoff_throttle = param_find("FW_RNW_MAX_THR");
+	_parameter_handles.runway_takeoff_pitch_sp = param_find("FW_RNW_PSP");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
@@ -688,6 +697,9 @@ FixedwingPositionControl::parameters_update()
 
 	param_get(_parameter_handles.do_runway_takeoff, &(_parameters.do_runway_takeoff));
 	param_get(_parameter_handles.runway_takeoff_heading, &(_parameters.runway_takeoff_heading));
+	param_get(_parameter_handles.runway_takeoff_nav_alt, &(_parameters.runway_takeoff_nav_alt));
+	param_get(_parameter_handles.runway_takeoff_throttle, &(_parameters.runway_takeoff_throttle));
+	param_get(_parameter_handles.runway_takeoff_pitch_sp, &(_parameters.runway_takeoff_pitch_sp));
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -1385,7 +1397,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				if (_airspeed.true_airspeed_m_s < _parameters.airspeed_min * 1.2f) { // XXX takeoff: magic value
 					_takeoff_on_runway = true;
-					_att_sp.pitch_body = math::radians(10.0f); // XXX takeoff: magic value
+					_att_sp.pitch_body = math::radians(_parameters.runway_takeoff_pitch_sp);
 				} else {
 					// min airspeed reached, let tecs control it
 					_takeoff_on_runway = false;
@@ -1397,11 +1409,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							eas2tas,
 							math::radians(_parameters.pitch_limit_min),
 							takeoff_pitch_max_rad,
-							_parameters.throttle_min, _parameters.throttle_max,
+							_parameters.throttle_min,
+							_parameters.throttle_max, // XXX should we also set runway_takeoff_throttle here?
 							_parameters.throttle_cruise,
 							true,
 							math::max(math::radians(_pos_sp_triplet.current.pitch_min),
-							math::radians(10.0f)),
+								math::radians(10.0f)),
 							_global_pos.alt,
 							ground_speed,
 							tecs_status_s::TECS_MODE_TAKEOFF,
@@ -1415,7 +1428,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt, _global_pos);
 				//PX4_WARN("talt: %f", (double)terrain_alt);
 
-				if (_global_pos.alt - terrain_alt > 4.0f) { // XXX takeoff: magic value
+				if (_global_pos.alt - terrain_alt > _parameters.runway_takeoff_nav_alt) {
 					// XXX once in here we should maybe not fall out again (although it shouldn't matter when we're climbing)
 					// start to navigate to takeoff waypoint as soon as we are high enough in the air
 					_att_sp.roll_body = _l1_control.nav_roll();
@@ -1750,7 +1763,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 			_parameters.do_runway_takeoff && _takeoff_on_runway == true) {
 		/* Ramp-up thrust and stay at max */
-		_att_sp.thrust = _att_sp.thrust < _parameters.throttle_max ? hrt_elapsed_time(&_takeoff_runway_start) / (float)2000000 : _parameters.throttle_max;
+		_att_sp.thrust = _att_sp.thrust < _parameters.runway_takeoff_throttle ?
+			hrt_elapsed_time(&_takeoff_runway_start) / (float)2000000 :
+			_parameters.runway_takeoff_throttle;
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 			pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_att_sp.thrust = 0.0f;
