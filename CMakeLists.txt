@@ -155,8 +155,9 @@ string(REPLACE "_" ";" config_args ${CONFIG})
 list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
+set(target_name "${OS}-${BOARD}-${LABEL}")
 
-message(STATUS "OS=${OS} BOARD=${BOARD} LABEL=${LABEL}")
+message(STATUS "${target_name}")
 
 #=============================================================================
 # programs
@@ -203,28 +204,8 @@ add_custom_target(submodule_clean
 # external libraries
 #
 px4_os_prebuild_targets(OUT prebuild_targets
-	BOARD ${BOARD}
+	BOARDS ${BOARD} ${config_io_board}
 	THREADS ${THREADS})
-
-#=============================================================================
-# build flags
-#
-px4_os_add_flags(
-	BOARD ${BOARD}
-	C_FLAGS c_flags
-	CXX_FLAGS cxx_flags
-	EXE_LINKER_FLAGS exe_linker_flags
-	INCLUDE_DIRS include_dirs
-	LINK_DIRS link_dirs
-	DEFINITIONS definitions)
-
-px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${exe_linker_flags}" GLUE " ")
-px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
-px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
-
-include_directories(${include_dirs})
-link_directories(${link_dirs})
-add_definitions(${definitions})
 
 #=============================================================================
 # source code generation
@@ -239,15 +220,11 @@ px4_generate_messages(TARGET msg_gen
 #=============================================================================
 # subdirectories
 #
-set(module_libraries)
-foreach(module ${config_module_list})
-	add_subdirectory(src/${module})
-	px4_mangle_name(${module} mangled_name)
-	list(APPEND module_libraries ${mangled_name})
-	#message(STATUS "adding module: ${module}")
-endforeach()
-
-add_subdirectory(src/firmware/${OS})
+include_directories(.)
+add_subdirectory(src)
+if (config_io_board)
+	#add_subdirectory(src/modules/px4iofirmware)
+endif()
 
 #=============================================================================
 # generate git version

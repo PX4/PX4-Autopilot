@@ -93,7 +93,7 @@
 #include <debug.h>
 
 #include <mavlink/mavlink_log.h>
-#include <modules/px4iofirmware/protocol.h>
+#include <px4iofirmware/protocol.h>
 
 #include "uploader.h"
 

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+# Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,11 @@
 #
 ############################################################################
 
-set(c_flags)
-set(exe_linker_flags)
-set(cxx_flags)
-
+#=============================================================================
+# build flags
+#
 px4_os_add_flags(
-	BOARD ${config_io_board}
+	BOARD ${BOARD}
 	C_FLAGS c_flags
 	CXX_FLAGS cxx_flags
 	EXE_LINKER_FLAGS exe_linker_flags
@@ -44,80 +43,24 @@ px4_os_add_flags(
 	LINK_DIRS link_dirs
 	DEFINITIONS definitions)
 
-message(STATUS "io board: ${config_io_board}")
-message(STATUS "c_flags: ${c_flags}")
-
 px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${exe_linker_flags}" GLUE " ")
 px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
 px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
 
-include_directories(${include_dirs} ${CMAKE_BINARY_DIR}/src/modules/systemlib/mixer)
+include_directories(${include_dirs})
 link_directories(${link_dirs})
 add_definitions(${definitions})
 
-set(srcs
-	adc.c
-	controls.c
-	dsm.c
-	px4io.c
-	registers.c
-	safety.c
-	sbus.c
-	../systemlib/up_cxxinitialize.c
-	../systemlib/perf_counter.c
-	mixer.cpp
-	../systemlib/mixer/mixer.cpp
-	../systemlib/mixer/mixer_group.cpp
-	../systemlib/mixer/mixer_multirotor.cpp
-	../systemlib/mixer/mixer_simple.cpp
-	../systemlib/pwm_limit/pwm_limit.c
-	../../lib/rc/st24.c
-	../../lib/rc/sumd.c
-	../../drivers/stm32/drv_hrt.c
-	../../drivers/stm32/drv_pwm_servo.c
-	../../drivers/boards/${config_io_board}/px4iov2_init.c
-	../../drivers/boards/${config_io_board}/px4iov2_pwm_servo.c
-	)
+#=============================================================================
+# subdirectories
+#
+set(module_libraries)
+foreach(module ${config_module_list})
+	add_subdirectory(${module})
+	px4_mangle_name(${module} mangled_name)
+	list(APPEND module_libraries ${mangled_name})
+	#message(STATUS "adding module: ${module}")
+endforeach()
 
-if(${config_io_board} STREQUAL "px4io-v1")
-	list(APPEND srcs
-		i2c.c
-		)
-elseif(${config_io_board} STREQUAL "px4io-v2")
-	list(APPEND srcs
-		serial.c
-		../systemlib/hx_stream.c
-		)
-endif()
-
-add_executable(firmware_io_nuttx
-	${srcs})
-
-add_dependencies(firmware_io_nuttx
-	nuttx_export_${config_io_board}
-	msg_gen
-	generate_mixer_table
-	)
-
-set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${config_io_board}/NuttX/nuttx-export)
-set(main_link_flags
-	"-T${nuttx_export_dir}/build/ld.script"
-	"-Wl,-Map=${CMAKE_BINARY_DIR}/${config_io_board}/main.map"
-	)
-px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
-set_target_properties(firmware_io_nuttx PROPERTIES LINK_FLAGS ${main_link_flags})
-
-set(io_fw_file ${CMAKE_CURRENT_BINARY_DIR}/${config_io_board}.px4)
-
-target_link_libraries(firmware_io_nuttx
-	-Wl,--start-group
-	apps nuttx nosys m gcc
-	-Wl,--end-group)
-
-px4_nuttx_add_firmware(OUT ${io_fw_file}
-	BOARD ${config_io_board}
-	EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_io_nuttx
-	${config_firmware_options}
-	)
-
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+add_subdirectory(firmware/${OS})
+# vim: set noet fenc=utf-8 ff=unix ft=cmake :
