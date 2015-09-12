@@ -35,6 +35,10 @@ set(c_flags)
 set(exe_linker_flags)
 set(cxx_flags)
 
+px4_os_prebuild_targets(OUT io_prebuild_targets
+	BOARDS ${BOARD} ${config_io_board}
+	THREADS ${THREADS})
+
 px4_os_add_flags(
 	BOARD ${config_io_board}
 	C_FLAGS c_flags
@@ -97,6 +101,7 @@ add_dependencies(firmware_io_nuttx
 	nuttx_export_${config_io_board}
 	msg_gen
 	generate_mixer_table
+	io_prebuild_targets
 	)
 
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${config_io_board}/NuttX/nuttx-export)

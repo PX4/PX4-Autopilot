@@ -446,34 +446,31 @@ endfunction()
 #	Usage:
 #		px4_os_prebuild_targets(
 #			OUT <out-list_of_targets>
-#			BOARDS <in-list_of_strings>
+#			BOARD <in-string>
 #			)
 #
 #	Input:
-#		BOARDS 		: list of boards
+#		BOARD 		: board
 #		THREADS 	: number of threads for building
 #
 #	Output:
 #		OUT	: the target list
 #
 #	Example:
-#		px4_os_prebuild_targets(OUT target_list BOARDS px4fmu-v2)
+#		px4_os_prebuild_targets(OUT target_list BOARD px4fmu-v2)
 #
 function(px4_os_prebuild_targets)
 	px4_parse_function_args(
 			NAME px4_os_prebuild_targets
-			ONE_VALUE OUT THREADS
-			MULTI_VALUE BOARDS
-			REQUIRED OUT BOARDS
+			ONE_VALUE BOARD OUT THREADS
+			REQUIRED OUT BOARD
 			ARGN ${ARGN})
 	add_custom_target(${OUT})
-	foreach(board ${BOARDS})
-		px4_nuttx_add_export(OUT nuttx_export_${board}
-			CONFIG ${board}
-			THREADS ${THREADS}
-			DEPENDS git_nuttx)
-		add_dependencies(${OUT} nuttx_export_${board})
-	endforeach()
+	px4_nuttx_add_export(OUT nuttx_export_${board}
+		CONFIG ${board}
+		THREADS ${THREADS}
+		DEPENDS git_nuttx)
+	add_dependencies(${OUT} nuttx_export_${board})
 endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:

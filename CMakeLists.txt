@@ -204,7 +204,7 @@ add_custom_target(submodule_clean
 # external libraries
 #
 px4_os_prebuild_targets(OUT prebuild_targets
-	BOARDS ${BOARD} ${config_io_board}
+	BOARD ${BOARD}
 	THREADS ${THREADS})
 
 #=============================================================================
