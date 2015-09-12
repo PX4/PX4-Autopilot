@@ -197,6 +197,7 @@ private:
 	bool _was_in_air;	/**< indicated wether the plane was in the air in the previous interation*/
 	bool _takeoff_initialized;
 	bool _takeoff_on_runway; /**< true as long as runway takeoff is in progress */
+	float _runway_takeoff_hdg_hold;
 	hrt_abstime _takeoff_runway_start; /**< time at which we start takeoff on runway */
 	hrt_abstime _time_went_in_air;	/**< time at which the plane went in the air */
 
@@ -542,7 +543,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_was_in_air(false),
 	_takeoff_initialized(false),
 	_takeoff_on_runway(false),
-	_takeoff_runway_start(0),	
+	_runway_takeoff_hdg_hold(0),
+	_takeoff_runway_start(0),
 	_time_went_in_air(0),
 	launch_detection_state(LAUNCHDETECTION_RES_NONE),
 	last_manual(false),
@@ -1386,7 +1388,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			if (_parameters.do_runway_takeoff == true) {
 				if (!_takeoff_initialized) {
-					_hdg_hold_yaw = _att.yaw;
+					_runway_takeoff_hdg_hold = _att.yaw;
 					_takeoff_runway_start = hrt_absolute_time();
 					_takeoff_initialized = true;
 					_takeoff_on_runway = true;
@@ -1441,7 +1443,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 					if (_parameters.runway_takeoff_heading == 0) {
 						// fix heading in the direction the airframe points
-						_att_sp.yaw_body = _hdg_hold_yaw;
+						_att_sp.yaw_body = _runway_takeoff_hdg_hold;
 						//PX4_WARN("using initial heading: %.4f", (double)_att_sp.yaw_body);
 					} else if (_parameters.runway_takeoff_heading == 1) {
 						// or head into the direction of the takeoff waypoint
