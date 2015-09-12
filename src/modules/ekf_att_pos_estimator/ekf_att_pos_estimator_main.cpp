@@ -105,12 +105,6 @@ uint64_t getMicros()
 namespace estimator
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 AttitudePositionEstimatorEKF	*g_estimator = nullptr;
 }
 
@@ -155,9 +149,9 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
     _landDetector {},
     _armed {},
 
-    _gyro_offsets({}),
-    _accel_offsets({}),
-    _mag_offsets({}),
+    _gyro_offsets{},
+    _accel_offsets{},
+    _mag_offsets{},
 
     _sensor_combined {},
 

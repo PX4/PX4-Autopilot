@@ -354,12 +354,6 @@ MEASAirspeedSim::voltage_correction(float &diff_press_pa, float &temperature)
 namespace meas_airspeed_sim
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
-
 MEASAirspeedSim	*g_dev = nullptr;
 
 int	start(int i2c_bus);
@@ -589,7 +583,7 @@ measairspeedsim_main(int argc, char *argv[])
 		}
 	}
 
-	int ret;
+	int ret = 0;
 
 	/*
 	 * Start/load the driver.

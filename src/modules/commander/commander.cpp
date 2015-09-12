@@ -45,6 +45,7 @@
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_time.h>
+#include <px4_tasks.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,9 +58,6 @@
 #include <systemlib/err.h>
 #include <systemlib/circuit_breaker.h>
 //#include <debug.h>
-#ifndef __PX4_QURT
-#include <sys/prctl.h>
-#endif
 #include <sys/stat.h>
 #include <string.h>
 #include <math.h>
@@ -2804,7 +2802,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result)
 
 void *commander_low_prio_loop(void *arg)
 {
-#ifndef __PX4_QURT
+#if defined(__PX4_LINUX) || defined(__PX4_NUTTX)
 	/* Set thread name */
 	prctl(PR_SET_NAME, "commander_low_prio", getpid());
 #endif
