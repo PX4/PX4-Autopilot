@@ -510,7 +510,7 @@ function(px4_add_common_flags)
 		list(APPEND warnings
 			-Wno-unused-const-variable
 		)
-	else(${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+	else()
 		list(APPEND warnings
 			-Werror=unused-but-set-variable
 			-Wformat=1
