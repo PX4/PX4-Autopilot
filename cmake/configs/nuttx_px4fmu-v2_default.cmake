@@ -127,11 +127,6 @@ set(config_module_list
 	modules/bottle_drop
 
 	#
-	# PX4 flow estimator, good for indoors
-	#
-	examples/flow_position_estimator
-
-	#
 	# Rover apps
 	#
 	examples/rover_steering_control
