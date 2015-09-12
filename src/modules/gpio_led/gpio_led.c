@@ -53,7 +53,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
-#include <modules/px4iofirmware/protocol.h>
+#include <px4iofirmware/protocol.h>
 
 struct gpio_led_s {
 	struct work_s work;

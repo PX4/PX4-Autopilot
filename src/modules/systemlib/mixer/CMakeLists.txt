@@ -36,6 +36,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_custom_command(OUTPUT mixer_multirotor.generated.h
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py
 	> mixer_multirotor.generated.h)
+add_custom_target(generate_mixer_table DEPENDS mixer_multirotor.generated.h)
 
 px4_add_module(
 	MODULE modules__systemlib__mixer
@@ -48,5 +49,6 @@ px4_add_module(
 		mixer_multirotor.generated.h
 	DEPENDS
 		platforms__common
+		generate_mixer_table
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

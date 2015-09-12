@@ -66,7 +66,7 @@
 
 #include <systemlib/perf_counter.h>
 
-#include <modules/px4iofirmware/protocol.h>
+#include <px4iofirmware/protocol.h>
 
 #ifdef PX4IO_SERIAL_BASE
 

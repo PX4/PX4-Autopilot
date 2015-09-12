@@ -15,23 +15,22 @@ add_executable(firmware_nuttx builtin_commands.c ${CMAKE_BINARY_DIR}/px4_paramet
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 set(main_link_flags
 	"-T${nuttx_export_dir}/build/ld.script"
-	"-Wl,-Map=${CMAKE_BINARY_DIR}/main.map"
+	"-Wl,-Map=${CMAKE_BINARY_DIR}/${BOARD}/main.map"
 	)
 px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
 set_target_properties(firmware_nuttx PROPERTIES LINK_FLAGS ${main_link_flags})
 
-set(cmsis_lib ${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a)
+set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${target_name}.px4)
 
 target_link_libraries(firmware_nuttx
 	-Wl,--start-group
 	${module_libraries}
-	${cmsis_lib}
+	${config_extra_libs}
 	apps nuttx nosys m gcc
 	-Wl,--end-group)
 
-set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
-
 px4_nuttx_add_firmware(OUT ${fw_file}
+	BOARD ${BOARD}
 	EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
 	${config_firmware_options}
 	)

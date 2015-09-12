@@ -72,6 +72,8 @@
 # Included CMake Files
 # ---------------------------------------------------------------------------
 #
+# * All variables in config files must have the prefix "config_".
+#
 # * Never set global variables in an included cmake file,
 #	you may only define functions. This excludes config and Toolchain files.
 #	This makes it clear to the user when variables are being set or targets
@@ -157,8 +159,9 @@ string(REPLACE "_" ";" config_args ${CONFIG})
 list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
+set(target_name "${OS}-${BOARD}-${LABEL}")
 
-message(STATUS "OS=${OS} BOARD=${BOARD} LABEL=${LABEL}")
+message(STATUS "${target_name}")
 
 #=============================================================================
 # programs
@@ -209,6 +212,16 @@ px4_os_prebuild_targets(OUT prebuild_targets
 	THREADS ${THREADS})
 
 #=============================================================================
+# source code generation
+#
+file(GLOB_RECURSE msg_files msg/*.msg)
+px4_generate_messages(TARGET msg_gen
+	MSG_FILES ${msg_files}
+	OS ${OS}
+	DEPENDS git_genmsg git_gencpp
+	)
+
+#=============================================================================
 # build flags
 #
 px4_os_add_flags(
@@ -229,16 +242,6 @@ link_directories(${link_dirs})
 add_definitions(${definitions})
 
 #=============================================================================
-# source code generation
-#
-file(GLOB_RECURSE msg_files msg/*.msg)
-px4_generate_messages(TARGET msg_gen
-	MSG_FILES ${msg_files}
-	OS ${OS}
-	DEPENDS git_genmsg git_gencpp
-	)
-
-#=============================================================================
 # subdirectories
 #
 set(module_libraries)
@@ -250,6 +253,9 @@ foreach(module ${config_module_list})
 endforeach()
 
 add_subdirectory(src/firmware/${OS})
+if (config_io_board)
+	#add_subdirectory(src/modules/px4iofirmware)
+endif()
 
 #=============================================================================
 # generate git version
