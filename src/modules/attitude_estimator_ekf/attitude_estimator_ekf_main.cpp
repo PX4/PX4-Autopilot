@@ -443,7 +443,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					}
 
 					bool vision_updated = false;
-					orb_check(vision_sub, &vision_updated);
+//Disable vision					orb_check(vision_sub, &vision_updated);
 
 					if (vision_updated) {
 						orb_copy(ORB_ID(vision_position_estimate), vision_sub, &vision);
