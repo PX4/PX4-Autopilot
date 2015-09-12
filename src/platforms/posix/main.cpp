@@ -67,7 +67,9 @@ extern "C" {
 
 static void print_prompt()
 {
+	cout.flush();
 	cout << "pxh> ";
+	cout.flush();
 }
 
 static void run_cmd(const vector<string> &appargs)
