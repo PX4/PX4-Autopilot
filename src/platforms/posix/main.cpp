@@ -61,7 +61,10 @@ extern "C" {
 	void _SigIntHandler(int sig_num);
 	void _SigIntHandler(int sig_num)
 	{
-		_ExitFlag = true;
+		cout.flush();
+		cout << endl << "Exiting.." << endl;
+		cout.flush();
+		_exit(0);
 	}
 }
 
