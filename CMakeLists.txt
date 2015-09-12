@@ -53,6 +53,26 @@
 #
 # * All cmake functions are lowercase.
 #
+# * For else, endif, endfunction, etc, never put the name of the statement
+#
+#	Instead of the very confusing:
+#		if (${var} STREQUAL "1") <-- condition now becomes if name
+#			# do somthing
+#		elseif (${var} STREQUAL "2") <-- another condition
+#			# do somthing
+#		else (${var} STREQUAL "1") <-- tags is referring to name of if
+#			# do somthing
+#		endif (${var} STREQUAL "1") <-- tag is referring to name of 
+#
+#	Do this:
+#		if (${var} STREQUAL "1") <-- condition now becomes if name
+#			# do somthing
+#		elseif (${var} STREQUAL "2") <-- another condition
+#			# do somthing
+#		else () <-- leave blank
+#			# do somthing
+#		endif () <-- leave blank
+#
 # Functions/Macros
 # ---------------------------------------------------------------------------
 #
