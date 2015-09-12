@@ -91,7 +91,11 @@ static void run_cmd(const vector<string> &appargs)
 		}
 
 		arg[i] = (char *)0;
-		apps[command](i, (char **)arg);
+		int retval = apps[command](i, (char **)arg);
+
+		if (retval) {
+			exit(retval);
+		}
 		usleep(65000);
 
 	} else if (command.compare("help") == 0) {
