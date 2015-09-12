@@ -218,10 +218,37 @@ px4_generate_messages(TARGET msg_gen
 	)
 
 #=============================================================================
+# build flags
+#
+px4_os_add_flags(
+	BOARD ${BOARD}
+	C_FLAGS c_flags
+	CXX_FLAGS cxx_flags
+	EXE_LINKER_FLAGS exe_linker_flags
+	INCLUDE_DIRS include_dirs
+	LINK_DIRS link_dirs
+	DEFINITIONS definitions)
+
+px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${exe_linker_flags}" GLUE " ")
+px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
+px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
+
+include_directories(${include_dirs})
+link_directories(${link_dirs})
+add_definitions(${definitions})
+
+#=============================================================================
 # subdirectories
 #
-include_directories(.)
-add_subdirectory(src)
+set(module_libraries)
+foreach(module ${config_module_list})
+	add_subdirectory(src/${module})
+	px4_mangle_name(${module} mangled_name)
+	list(APPEND module_libraries ${mangled_name})
+	#message(STATUS "adding module: ${module}")
+endforeach()
+
+add_subdirectory(firmware/${OS})
 if (config_io_board)
 	#add_subdirectory(src/modules/px4iofirmware)
 endif()
