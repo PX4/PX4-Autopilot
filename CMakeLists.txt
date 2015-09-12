@@ -72,6 +72,8 @@
 # Included CMake Files
 # ---------------------------------------------------------------------------
 #
+# * All variables in config files must have the prefix "config_".
+#
 # * Never set global variables in an included cmake file,
 #	you may only define functions. This excludes config and Toolchain files.
 #	This makes it clear to the user when variables are being set or targets

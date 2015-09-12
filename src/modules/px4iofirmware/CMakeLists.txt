@@ -36,7 +36,7 @@ set(exe_linker_flags)
 set(cxx_flags)
 
 px4_os_prebuild_targets(OUT io_prebuild_targets
-	BOARDS ${BOARD} ${config_io_board}
+	BOARD ${config_io_board}
 	THREADS ${THREADS})
 
 px4_os_add_flags(
