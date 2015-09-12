@@ -156,7 +156,7 @@ list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 
-message(STATUS "TARGET: OS(${OS})-BOARD(${BOARD})-LABEL(${LABEL})")
+message(STATUS "OS=${OS} BOARD=${BOARD} LABEL=${LABEL}")
 
 #=============================================================================
 # programs

@@ -264,16 +264,17 @@ function(px4_add_module)
 
 	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
 
+	if(MAIN)
+		set_target_properties(${MODULE} PROPERTIES
+			COMPILE_DEFINITIONS PX4_MAIN=${MAIN}_app_main)
+	endif()
+
 	if(INCLUDES)
 		target_include_directories(${MODULE} ${INCLUDES})
 	endif()
 
 	if(DEPENDS)
 		add_dependencies(${MODULE} ${DEPENDS})
-	endif()
-
-	if(MAIN)
-		target_compile_definitions(${MODULE} PUBLIC -DPX4_MAIN=${MAIN}_app_main)
 	endif()
 
 	# join list variables to get ready to send to compiler
