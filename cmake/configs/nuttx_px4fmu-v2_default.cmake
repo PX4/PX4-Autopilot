@@ -165,8 +165,8 @@ set(config_firmware_options
 	)
 
 set(config_extra_builtin_cmds
-	serdis_main
-	sercon_main
+	serdis
+	sercon
 	)
 
 add_custom_target(sercon)
