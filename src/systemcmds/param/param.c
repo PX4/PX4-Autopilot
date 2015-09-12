@@ -244,7 +244,7 @@ do_load(const char *param_file_name)
 	int fd = open(param_file_name, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open '%s'", param_file_name);
+		warn("open failed '%s'", param_file_name);
 		return 1;
 	}
 
