@@ -29,12 +29,6 @@ else("${QURT_ENABLE_STUBS}" STREQUAL "1")
 		${CMAKE_BINARY_DIR}/apps.h)
 endif()
 
-set(main_link_flags
-	"-T${CMAKE_SOURCE_DIR}/cmake/posix/ld.script"
-	)
-px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
-set_target_properties(mainapp PROPERTIES LINK_FLAGS ${main_link_flags})
-
 target_link_libraries(mainapp
 	-Wl,--whole-archive
 	${module_libraries}
