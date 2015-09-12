@@ -1,5 +1,5 @@
 # compiler tools
-foreach(tool objcopy nm ld)
+foreach(tool nm ld)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} ${tool})
 	if(NOT ${TOOL})

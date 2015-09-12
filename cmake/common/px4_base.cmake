@@ -498,6 +498,7 @@ function(px4_add_common_flags)
 		-Werror=reorder
 		-Werror=uninitialized
 		-Werror=init-self
+		-Wno-unused-const-variable
 		#-Wcast-qual  - generates spurious noreturn attribute warnings,
 		#               try again later
 		#-Wconversion - would be nice, but too many "risky-but-safe"
@@ -508,7 +509,6 @@ function(px4_add_common_flags)
 
 	if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
 		list(APPEND warnings
-			-Wno-unused-const-variable
 			-Werror=unused-but-set-variable
 			-Wformat=1
 			#-Wlogical-op # very verbose due to eigen
@@ -618,10 +618,16 @@ function(px4_add_common_flags)
 		-DCONFIG_ARCH_BOARD_${board_config}
 		)
 
-	set(added_exe_link_flags
-		-Wl,--warn-common
-		-Wl,--gc-sections
-		)
+	if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+		set(added_exe_link_flags
+			-Wl,--warn-common
+			-Wl,--gc-sections
+			)
+	else()
+		set(added_exe_link_flags
+			-Wl,--warn-common
+			)
+	endif()
 
 	# output
 	foreach(var ${inout_vars})
