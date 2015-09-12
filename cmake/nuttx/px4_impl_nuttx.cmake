@@ -466,11 +466,11 @@ function(px4_os_prebuild_targets)
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
 	add_custom_target(${OUT})
-	px4_nuttx_add_export(OUT nuttx_export_${board}
+	px4_nuttx_add_export(OUT nuttx_export_${BOARD}
 		CONFIG ${BOARD}
 		THREADS ${THREADS}
 		DEPENDS git_nuttx)
-	add_dependencies(${OUT} nuttx_export_${board})
+	add_dependencies(${OUT} nuttx_export_${BOARD})
 endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:

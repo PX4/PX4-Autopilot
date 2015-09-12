@@ -31,9 +31,18 @@
 #
 ############################################################################
 
+# kill all flags above us, this is a different board (io)
+set_directory_properties(PROPERTIES
+	INCLUDE_DIRECTORIES ""
+	LINK_DIRECTORIES ""
+	COMPILE_DEFINITIONS ""
+	)
 set(c_flags)
 set(exe_linker_flags)
 set(cxx_flags)
+set(include_dirs)
+set(link_dirs)
+set(definitions)
 
 px4_os_prebuild_targets(OUT io_prebuild_targets
 	BOARD ${config_io_board}
@@ -48,14 +57,14 @@ px4_os_add_flags(
 	LINK_DIRS link_dirs
 	DEFINITIONS definitions)
 
-message(STATUS "io board: ${config_io_board}")
-message(STATUS "c_flags: ${c_flags}")
-
 px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${exe_linker_flags}" GLUE " ")
 px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
 px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
 
-include_directories(${include_dirs} ${CMAKE_BINARY_DIR}/src/modules/systemlib/mixer)
+include_directories(
+	${include_dirs}
+	${CMAKE_BINARY_DIR}/src/modules/systemlib/mixer
+	)
 link_directories(${link_dirs})
 add_definitions(${definitions})
 
@@ -117,6 +126,7 @@ set(io_fw_file ${CMAKE_CURRENT_BINARY_DIR}/${config_io_board}.px4)
 target_link_libraries(firmware_io_nuttx
 	-Wl,--start-group
 	apps nuttx nosys m gcc
+	${config_io_extra_libs}
 	-Wl,--end-group)
 
 px4_nuttx_add_firmware(OUT ${io_fw_file}
