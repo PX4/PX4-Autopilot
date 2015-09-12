@@ -75,7 +75,7 @@ static void print_prompt()
 	cout.flush();
 }
 
-static void run_cmd(const vector<string> &appargs)
+static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 {
 	// command is appargs[0]
 	string command = appargs[0];
@@ -93,7 +93,7 @@ static void run_cmd(const vector<string> &appargs)
 		arg[i] = (char *)0;
 		int retval = apps[command](i, (char **)arg);
 
-		if (retval) {
+		if (exit_on_fail && retval) {
 			exit(retval);
 		}
 		usleep(65000);
@@ -122,13 +122,13 @@ static void usage()
 	cout << "   -h            - help/usage information" << std::endl;
 }
 
-static void process_line(string &line)
+static void process_line(string &line, bool exit_on_fail)
 {
 	vector<string> appargs(8);
 
 	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
 			   appargs[7];
-	run_cmd(appargs);
+	run_cmd(appargs, exit_on_fail);
 }
 
 int main(int argc, char **argv)
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 
 			if (infile.is_open()) {
 				for (string line; getline(infile, line, '\n');) {
-					process_line(line);
+					process_line(line, !daemon_mode);
 				}
 
 			} else {
@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 
 				if (ret > 0) {
 					getline(cin, mystr);
-					process_line(mystr);
+					process_line(mystr, !daemon_mode);
 					mystr = "";
 				}
 			}
@@ -221,10 +221,10 @@ int main(int argc, char **argv)
 		if (px4_task_is_running("muorb")) {
 			// sending muorb stop is needed if it is running to exit cleanly
 			vector<string> muorb_stop_cmd = { "muorb", "stop" };
-			run_cmd(muorb_stop_cmd);
+			run_cmd(muorb_stop_cmd, !daemon_mode);
 		}
 
 		vector<string> shutdown_cmd = { "shutdown" };
-		run_cmd(shutdown_cmd);
+		run_cmd(shutdown_cmd, true);
 	}
 }
