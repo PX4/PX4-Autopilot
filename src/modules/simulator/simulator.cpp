@@ -120,7 +120,6 @@ int Simulator::start(int argc, char *argv[])
 	int ret = 0;
 	_instance = new Simulator();
 	if (_instance) {
-		PX4_INFO("Simulator started");
 		drv_led_start();
 		if (argv[2][1] == 's') {
 			_instance->initializeSensorData();

@@ -72,12 +72,6 @@ enum BAROSIM_BUS {
 	BAROSIM_BUS_SIM_EXTERNAL
 };
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
 

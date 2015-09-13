@@ -135,7 +135,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	taskdata->argc = argc;
 
 	for (i=0; i<argc; i++) {
-		printf("arg %d %s\n", i, argv[i]);
+		PX4_DEBUG("arg %d %s\n", i, argv[i]);
 		taskdata->argv[i] = (char *)offset;
 		strcpy((char *)offset, argv[i]);
 		offset+=strlen(argv[i])+1;

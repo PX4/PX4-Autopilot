@@ -45,10 +45,16 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
+#include <px4_tasks.h>
+#include <px4_time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/prctl.h>
+#ifdef __PX4_DARWIN
+#include <sys/param.h>
+#include <sys/mount.h>
+#else
 #include <sys/statfs.h>
+#endif
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -410,7 +416,7 @@ int sdlog2_main(int argc, char *argv[])
 
 bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
 	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
 	time_t utc_time_sec;
 
