@@ -551,6 +551,7 @@ function(px4_add_common_flags)
 	endif()
 
 	set(c_compile_flags
+		-g3
 		-std=gnu99
 		-fno-common
 		)
@@ -559,6 +560,7 @@ function(px4_add_common_flags)
 		-Wno-missing-field-initializers
 		)
 	set(cxx_compile_flags
+		-g3
 		-fno-exceptions
 		-fno-rtti
 		-std=gnu++0x
