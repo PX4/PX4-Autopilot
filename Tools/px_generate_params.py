@@ -71,14 +71,19 @@ for group in root:
 			if not start_name:
 				start_name = param.attrib["name"]
 			end_name = param.attrib["name"]
+			val_str = "#error UNKNOWN PARAM TYPE, FIX px_generate_params.py"
+			if (param.attrib["type"] == "FLOAT"):
+				val_str = ".val.f = "
+			elif (param.attrib["type"] == "INT32"):
+				val_str = ".val.i = "
 			i+=1
 			src += """
 	{
 		"%s",
 		PARAM_TYPE_%s,
-		.val.f = %s
+		%s%s
 	},
-""" % (param.attrib["name"], param.attrib["type"], param.attrib["default"])
+""" % (param.attrib["name"], param.attrib["type"], val_str, param.attrib["default"])
 src += """
 	%d
 };
