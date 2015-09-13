@@ -22,6 +22,7 @@ set(config_module_list
 	modules/mc_pos_control
 	modules/mc_att_control
 
+	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
