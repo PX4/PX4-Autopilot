@@ -31,7 +31,13 @@
 #
 ############################################################################
 
+px4_generate_parameters(OUT param_files)
+
+# for generated files
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 set(SRCS
+	${param_files}
 	perf_counter.c
 	param/param.c
 	conversions.c

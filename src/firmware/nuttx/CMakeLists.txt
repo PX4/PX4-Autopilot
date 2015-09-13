@@ -8,10 +8,10 @@ px4_nuttx_generate_builtin_commands(
 px4_nuttx_generate_romfs(OUT romfs.o
 	ROOT ROMFS/px4fmu_common)
 
-px4_generate_parameters()
-
 # add executable
-add_executable(firmware_nuttx builtin_commands.c ${CMAKE_BINARY_DIR}/px4_parameters.c romfs.o)
+add_executable(firmware_nuttx
+	builtin_commands.c
+	romfs.o)
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 set(main_link_flags
 	"-T${nuttx_export_dir}/build/ld.script"

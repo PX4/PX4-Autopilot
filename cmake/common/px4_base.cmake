@@ -701,17 +701,38 @@ function(px4_create_git_hash_header)
 endfunction()
 
 #=============================================================================
-# parameter file generation
+#
+#	px4_generate_parameters
+#
+#	Generates a source file with all parameters.
+#
+#	Usage:
+#		px4_generate_parameters(OUT <list-source-files>)
+#
+#	Output:
+#		OUT	: the generate source files
+#
+#	Example:
+#		px4_generate_parameters(OUT parameters.c)
 #
 function(px4_generate_parameters)
-	execute_process(
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py -s ${CMAKE_SOURCE_DIR}/src --board ${BOARD} --xml
+	px4_parse_function_args(
+		NAME px4_generate_parameters
+		ONE_VALUE OUT
+		REQUIRED OUT
+		ARGN ${ARGN})
+	set(generated_files
+		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.h
+		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.c)
+	set_source_files_properties(${generated_files}
+		PROPERTIES GENERATED TRUE)
+	add_custom_command(OUTPUT ${generated_files}
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py
+			-s ${CMAKE_SOURCE_DIR}/src --board CONFIG_ARCH_${BOARD} --xml
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py
+			parameters.xml
 		)
-
-	execute_process(
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${CMAKE_BINARY_DIR}/parameters.xml
-		)
+	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()
-
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:
