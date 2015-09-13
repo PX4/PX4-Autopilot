@@ -31,9 +31,22 @@ target_link_libraries(firmware_nuttx
 
 set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
 
+add_custom_target(check_weak
+	COMMAND ${NM} firmware_nuttx | grep " w "
+	DEPENDS firmware_nuttx
+	)
+
 px4_nuttx_add_firmware(OUT ${fw_file}
-	EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+	EXE firmware_nuttx
 	${config_firmware_options}
+	)
+
+configure_file(gdbinit.in .gdbinit)
+
+add_custom_target(debug
+	COMMAND ${GDB} ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+	DEPENDS firmware_nuttx
+		${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 	)
 
 px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
