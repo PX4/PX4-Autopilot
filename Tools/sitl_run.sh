@@ -1,5 +1,7 @@
 #!/bin/bash
 
-mkdir -p Build/posix_sitl.build/rootfs/fs/microsd
-mkdir -p Build/posix_sitl.build/rootfs/eeprom
-cd Build/posix_sitl.build && ./mainapp ../../$1
+cd build_posix_sitl_simple/src/firmware/posix
+mkdir -p rootfs/fs/microsd
+mkdir -p rootfs/eeprom
+touch rootfs/eeprom/parameters
+./mainapp ../../../../$1

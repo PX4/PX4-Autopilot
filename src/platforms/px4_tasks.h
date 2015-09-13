@@ -80,6 +80,12 @@ typedef int px4_task_t;
 #error "No target OS defined"
 #endif
 
+#if defined (__PX4_LINUX) || defined(__PX4_NUTTX)
+#include <sys/prctl.h>
+#else
+#define prctl(_action, _string, _pid)
+#endif
+
 typedef int px4_task_t;
 
 typedef struct {

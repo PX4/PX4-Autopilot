@@ -41,6 +41,10 @@
 #include "LowPassFilter2p.hpp"
 #include "math.h"
 
+#ifndef M_PI_F
+#define M_PI_F 3.14159f
+#endif
+
 namespace math
 {
 

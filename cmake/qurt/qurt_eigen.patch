@@ -1,0 +1,17 @@
+This patch is required for QuRT. complex.h defines "I" and it replaces "I" in the 
+enum definition without this patch creating an error.
+
+diff --git a/Eigen/src/Core/SolveTriangular.h b/Eigen/src/Core/SolveTriangular.h
+index ef17f28..1116270 100644
+--- a/Eigen/src/Core/SolveTriangular.h
++++ b/Eigen/src/Core/SolveTriangular.h
+@@ -112,6 +112,9 @@ template<typename Lhs, typename Rhs, int Mode, int Index, int Size,
+          bool Stop = Index==Size>
+ struct triangular_solver_unroller;
+ 
++#ifdef __PX4_QURT
++#undef I
++#endif
+ template<typename Lhs, typename Rhs, int Mode, int Index, int Size>
+ struct triangular_solver_unroller<Lhs,Rhs,Mode,Index,Size,false> {
+   enum {

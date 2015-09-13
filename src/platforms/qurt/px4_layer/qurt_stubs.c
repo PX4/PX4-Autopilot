@@ -32,6 +32,18 @@
  ****************************************************************************/
 #include "px4_log.h"
 //extern "C" {
+void block_indefinite( void );
+void _Read_uleb( void );
+void _Parse_fde_instr( void );
+void _Parse_csd( void );
+void _Valbytes( void );
+void _Get_eh_data( void );
+void _Parse_lsda( void );
+void __cxa_guard_release( void );
+void _Read_enc_ptr( void );
+void _Read_sleb( void );
+void __cxa_guard_acquire( void );
+void __cxa_pure_virtual( void );
 
 void block_indefinite( void )
 {
@@ -60,6 +72,7 @@ void _Parse_csd( void )
    block_indefinite(); 
 }
 
+#if 0
 void _Locksyslock( int x )
 {
    PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
@@ -71,6 +84,7 @@ void _Unlocksyslock( int x )
    PX4_WARN( "Error: Calling unresolved symbol stub[%s]", __FUNCTION__ );
    block_indefinite(); 
 }
+#endif
 
 void _Valbytes( void )
 {
