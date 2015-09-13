@@ -261,7 +261,11 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 				stack_size - stack_free,
 				stack_size,
 				system_load.tasks[i].tcb->sched_priority,
+#if CONFIG_ARCH_BOARD_SIM
+				0);
+#else
 				system_load.tasks[i].tcb->base_priority);
+#endif
 
 #if CONFIG_RR_INTERVAL > 0
 			/* print scheduling info with RR time slice */
