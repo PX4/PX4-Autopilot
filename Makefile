@@ -54,16 +54,22 @@
 # rest are arguments to pass to the makefile generated
 # by cmake in the subdirectory
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-j ?= 1
+j ?= 4
 
 # Functions
 # --------------------------------------------------------------------
-# define a make function to describe how to build a cmake config
+# describe how to build a cmake config
 define cmake-build
 +mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -DCONFIG=$(1)
-+make -C $(PWD)/build_$@ --no-print-directory $(ARGS)
++make -j$(j) -C $(PWD)/build_$@ --no-print-directory $(ARGS)
 endef
 
+# create empty targets to avoid msgs for targets passed to cmake
+define cmake-targ
+$(1):
+	@#
+.PHONY: $(1)
+endef
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
@@ -104,12 +110,10 @@ clean:
 	rm -rf build_*/
 
 # targets handled by cmake
-test: ;
-upload: ;
-package: ;
-package_source: ;
+cmake_targets = test upload packag package_source debug check_weak
+$(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
-.PHONY: clean test upload package package_source
+.PHONY: clean
 
 CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
 

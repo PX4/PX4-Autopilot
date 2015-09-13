@@ -55,10 +55,19 @@ run_cmd("{ld:s} -r -o {obj:s}.bin.o {obj:s}.c.o -b binary {in_bin:s}",
 
 # get size of image
 stdout = run_cmd("{nm:s} -p --radix=x {obj:s}.bin.o", locals())
-re_size = re.compile("(^[0-9A-Fa-f]*) .*{sym:s}_size".format(
-    **locals()))
-size_match = re.match(re_size, stdout)
-size = size_match.group(1)
+re_string = r"^([0-9A-F-a-f]+) .*{sym:s}_size\n".format(**locals())
+re_size = re.compile(re_string, re.MULTILINE)
+size_match = re.search(re_size, stdout)
+try:
+    size = size_match.group(1)
+except AttributeError as e:
+    raise RuntimeError("{:s}\nre:{:s}\n{:s}".format(
+        e, re_string, stdout))
+except IndexError as e:
+    group0 = size_match.group(0)
+    raise RuntimeError("{:s}\ngroup 0:{:s}\n{:s}".format(
+        e, group0, stdout))
+
 #print("romfs size: ", size)
 
 # write size to file

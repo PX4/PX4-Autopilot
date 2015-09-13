@@ -126,6 +126,7 @@ file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
 set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
 set(THREADS "4" CACHE STRING
 	"number of threads to use for external build processes")
+set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 
 #=============================================================================
 # configuration
