@@ -3,8 +3,12 @@
 
 language: cpp
 
-# use travis-ci docker based infrastructure
-sudo: false
+matrix:
+  include:
+    - os: linux
+      sudo: false
+    - os: osx
+      osx_image: beta-xcode6.3
 
 cache:
   directories:
@@ -32,17 +36,34 @@ addons:
     - texinfo
     - zlib1g-dev
 
+before_install:
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+         pushd .
+      && cd ~
+      && wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
+      && tar -jxf gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
+      && exportline="export PATH=$HOME/gcc-arm-none-eabi-4_8-2014q3/bin:\$PATH"
+      && if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
+      && . ~/.profile
+      && popd
+      && mkdir -p ~/bin
+      && wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
+      && astyle --version
+      && if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+      ;
+    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+         brew tap PX4/homebrew-px4
+      && brew update
+      && brew install genromfs
+      && brew install kconfig-frontends
+      && brew install gcc-arm-none-eabi
+      && brew install astyle
+      && sudo easy_install pip
+      && sudo pip install pyserial empy
+      ;
+    fi
+
 before_script:
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-# General toolchain dependencies
-  - pushd .
-  - cd ~
-  - wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-  - tar -jxf gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-  - exportline="export PATH=$HOME/gcc-arm-none-eabi-4_8-2014q3/bin:\$PATH"
-  - if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
-  - . ~/.profile
-  - popd
 # setup ccache
   - mkdir -p ~/bin
   - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-g++
@@ -56,9 +77,6 @@ before_script:
   - ln -s /usr/bin/ccache ~/bin/g++-4.8
   - ln -s /usr/bin/ccache ~/bin/gcc-4.8
   - export PATH=~/bin:$PATH
-# grab astyle 2.05.1
-  - wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
-  - astyle --version
 
 env:
   global:
@@ -70,11 +88,9 @@ env:
 
 script:
   #- make check_format
-  - ccache -z
   - arm-none-eabi-gcc --version
   - echo 'Building POSIX Firmware..' && echo -en 'travis_fold:start:script.1\\r'
   - make posix_sitl_simple -j4
-  - ccache -s
   - echo -en 'travis_fold:end:script.1\\r'
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.2\\r'
   - make posix_sitl_simple test
@@ -82,7 +98,6 @@ script:
   - echo -en 'travis_fold:end:script.2\\r'
   - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.3\\r'
   - make px4fmu-v2_default -j4
-  - ccache -s
   - echo -en 'travis_fold:end:script.3\\r'
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'
   - make px4fmu-v2_default test
