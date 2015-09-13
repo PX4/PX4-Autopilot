@@ -303,10 +303,7 @@ function(px4_nuttx_generate_romfs)
 	add_custom_command(OUTPUT romfs.bin
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
-		# TODO XXX hack to get nsh to work, copying real
-	    # autostart in currently makes nsh fail over usb
-		COMMAND cmake -E touch ${romfs_temp_dir}/init.d/rc.autostart
-		#COMMAND cmake -E copy rc.autostart ${romfs_temp_dir}/init.d
+		COMMAND cmake -E copy rc.autostart ${romfs_temp_dir}/init.d
 		#TODO add romfs cleanup of temp file .~, .swp etc
 		COMMAND ${PYTHON_EXECUTABLE} ${romfs_pruner}
 			--folder ${romfs_temp_dir}
