@@ -31,54 +31,20 @@
 #
 ############################################################################
 
-# for generated files
-include_directories(${CMAKE_BINARY_DIR}/src/modules/param)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(SRCS
-	perf_counter.c
-	param/param.c
-	conversions.c
-	cpuload.c
-	pid/pid.c
-	airspeed.c
-	system_params.c
-	mavlink_log.c
-	rc_check.c
-	otp.c
-	board_serial.c
-	pwm_limit/pwm_limit.c
-	mcu_version.c
-	bson/tinybson.c
-	circuit_breaker.cpp
-	circuit_breaker_params.c
+px4_generate_parameters(OUT param_files)
+
+set(srcs
+	${param_files}
 	)
 
-if(${OS} STREQUAL "nuttx")
-	list(APPEND SRCS
-		err.c
-		printload.c
-		up_cxxinitialize.c 
-		)
-else()
-	list(APPEND SRCS
-		print_load_posix.c
-		)	
-endif()
-
-if(NOT ${OS} STREQUAL "qurt")
-	list(APPEND SRCS
-		hx_stream.c
-		)
-endif()
-
 px4_add_module(
-	MODULE modules__systemlib
+	MODULE modules__param
 	COMPILE_FLAGS
-		-Wno-sign-compare
 		-Os
-	SRCS ${SRCS}
+	SRCS ${srcs}
 	DEPENDS
 		platforms__common
-		modules__param
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

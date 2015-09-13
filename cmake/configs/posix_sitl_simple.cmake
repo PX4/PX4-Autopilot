@@ -23,6 +23,7 @@ set(config_module_list
 	systemcmds/reboot
 	systemcmds/topic_listener
 	modules/uORB
+	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/sensors
