@@ -53,9 +53,9 @@
 
 #include <drivers/device/i2c.h>
 
-#ifdef PX4_I2C_OBDEV_PX4IO
+#include "px4io_driver.h"
 
-device::Device	*PX4IO_i2c_interface();
+#ifdef PX4_I2C_OBDEV_PX4IO
 
 class PX4IO_I2C : public device::I2C
 {

@@ -68,9 +68,9 @@
 
 #include <modules/px4iofirmware/protocol.h>
 
-#ifdef PX4IO_SERIAL_BASE
+#include "px4io_driver.h"
 
-device::Device	*PX4IO_serial_interface();
+#ifdef PX4IO_SERIAL_BASE
 
 /* serial register accessors */
 #define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + _x))
