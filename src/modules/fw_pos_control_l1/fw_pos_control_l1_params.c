@@ -461,7 +461,7 @@ PARAM_DEFINE_FLOAT(FW_RNW_NAV_ALT, 5.0);
 
 /**
  * Max throttle during runway takeoff.
- * (Can be limited to test taxi on runway)
+ * (Can be used to test taxi on runway)
  *
  * @min 0.0
  * @max 1.0
