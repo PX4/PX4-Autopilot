@@ -71,8 +71,9 @@ __EXPORT int	esc_calib_main(int argc, char *argv[]);
 static void
 usage(const char *reason)
 {
-	if (reason != NULL)
+	if (reason != NULL) {
 		PX4_ERR("%s", reason);
+	}
 
 	PX4_ERR(
 		"usage:\n"
@@ -117,6 +118,7 @@ esc_calib_main(int argc, char *argv[])
 
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+
 	while ((ch = px4_getopt(argc, argv, "d:c:m:al:h:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 
@@ -131,43 +133,54 @@ esc_calib_main(int argc, char *argv[])
 
 			while ((single_ch = channels % 10)) {
 
-				set_mask |= 1<<(single_ch-1);
+				set_mask |= 1 << (single_ch - 1);
 				channels /= 10;
 			}
+
 			break;
 
 		case 'm':
 			/* Read in mask directly */
 			set_mask = strtoul(myoptarg, &ep, 0);
+
 			if (*ep != '\0') {
 				usage("bad set_mask value");
 				return 1;
 			}
+
 			break;
 
 		case 'a':
+
 			/* Choose all channels */
-			for (unsigned i = 0; i<PWM_OUTPUT_MAX_CHANNELS; i++) {
-				set_mask |= 1<<i;
+			for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; i++) {
+				set_mask |= 1 << i;
 			}
+
 			break;
 
 		case 'l':
 			/* Read in custom low value */
 			pwm_low = strtoul(myoptarg, &ep, 0);
+
 			if (*ep != '\0' || pwm_low < PWM_LOWEST_MIN || pwm_low > PWM_HIGHEST_MIN) {
 				usage("low PWM invalid");
 				return 1;
 			}
+
 			break;
+
 		case 'h':
 			/* Read in custom high value */
 			pwm_high = strtoul(myoptarg, &ep, 0);
+
 			if (*ep != '\0' || pwm_high > PWM_HIGHEST_MAX || pwm_high < PWM_LOWEST_MAX) {
 				usage("high PWM invalid");
 				return 1;
 			}
+
 			break;
+
 		default:
 			usage(NULL);
 			return 1;
@@ -253,6 +266,7 @@ esc_calib_main(int argc, char *argv[])
 
 	/* get number of channels available on the device */
 	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&max_channels);
+
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_GET_COUNT");
 		return 1;
@@ -260,12 +274,15 @@ esc_calib_main(int argc, char *argv[])
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
 	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
+
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_SET_ARM_OK");
 		return 1;
 	}
+
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
 	ret = ioctl(fd, PWM_SERVO_ARM, 0);
+
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_ARM");
 		return 1;
@@ -285,11 +302,11 @@ esc_calib_main(int argc, char *argv[])
 		/* set max PWM */
 		for (unsigned i = 0; i < max_channels; i++) {
 
-			if (set_mask & 1<<i) {
+			if (set_mask & 1 << i) {
 				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_high);
 
 				if (ret != OK) {
-					PX4_ERR( "PWM_SERVO_SET(%d), value: %d", i, pwm_high);
+					PX4_ERR("PWM_SERVO_SET(%d), value: %d", i, pwm_high);
 					goto cleanup;
 				}
 			}
@@ -322,7 +339,7 @@ esc_calib_main(int argc, char *argv[])
 
 		/* set disarmed PWM */
 		for (unsigned i = 0; i < max_channels; i++) {
-			if (set_mask & 1<<i) {
+			if (set_mask & 1 << i) {
 				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_low);
 
 				if (ret != OK) {
@@ -352,6 +369,7 @@ esc_calib_main(int argc, char *argv[])
 
 	/* disarm */
 	ret = ioctl(fd, PWM_SERVO_DISARM, 0);
+
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_DISARM");
 		goto cleanup;

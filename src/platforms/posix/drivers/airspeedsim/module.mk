@@ -34,7 +34,8 @@
 #
 # Makefile to build the generic airspeed driver.
 #
+MODULE_COMMAND	= measairspeedsim
 
-SRCS			= airspeedsim.cpp
+SRCS			= airspeedsim.cpp meas_airspeed_sim.cpp
 
 MAXOPTIMIZATION	 = -Os

@@ -333,7 +333,7 @@ void MD25::update()
 	// check for exit condition every second
 	// note "::poll" is required to distinguish global
 	// poll from member function for driver
-	if (::poll(&_controlPoll, 1, 1000) < 0) return; // poll error
+	if (::poll(&_controlPoll, 1, 1000) < 0) { return; } // poll error
 
 	// if new data, send to motors
 	if (_actuators.updated()) {
@@ -350,7 +350,7 @@ int MD25::probe()
 	int ret = OK;
 
 	// try initial address first, if good, then done
-	if (readData() == OK) return ret;
+	if (readData() == OK) { return ret; }
 
 	// try all other addresses
 	uint8_t testAddress = 0;
@@ -451,9 +451,9 @@ float MD25::_uint8ToNorm(uint8_t value)
 
 uint8_t MD25::_normToUint8(float value)
 {
-	if (value > 1) value = 1;
+	if (value > 1) { value = 1; }
 
-	if (value < -1) value = -1;
+	if (value < -1) { value = -1; }
 
 	// TODO, should go from 0 to 255
 	// possibly should handle this differently
@@ -494,7 +494,7 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 			break;
 		}
 
-		if (t > 2.0f) break;
+		if (t > 2.0f) { break; }
 	}
 
 	md25.setMotor1Speed(0);
@@ -514,7 +514,7 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 			break;
 		}
 
-		if (t > 2.0f) break;
+		if (t > 2.0f) { break; }
 	}
 
 	md25.setMotor1Speed(0);
@@ -536,7 +536,7 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 			break;
 		}
 
-		if (t > 2.0f) break;
+		if (t > 2.0f) { break; }
 	}
 
 	md25.setMotor2Speed(0);
@@ -556,7 +556,7 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 			break;
 		}
 
-		if (t > 2.0f) break;
+		if (t > 2.0f) { break; }
 	}
 
 	md25.setMotor2Speed(0);
@@ -592,13 +592,14 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 
 	// sine wave for motor 1
 	md25.resetEncoders();
+
 	while (true) {
 
 		// input
 		uint64_t timestamp = hrt_absolute_time();
-		float t = timestamp/1000000.0f;
+		float t = timestamp / 1000000.0f;
 
-		float input_value = amplitude*sinf(2*M_PI*frequency*t);
+		float input_value = amplitude * sinf(2 * M_PI * frequency * t);
 		md25.setMotor1Speed(input_value);
 
 		// output
@@ -613,11 +614,11 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 
 		// send output message
 		strncpy(debug_msg.key, "md25 out  ", 10);
-		debug_msg.timestamp_ms = 1000*timestamp;
+		debug_msg.timestamp_ms = 1000 * timestamp;
 		debug_msg.value = current_revolution;
 		debug_msg.update();
 
-		if (t > t_final) break;
+		if (t > t_final) { break; }
 
 		// update for next step
 		prev_revolution = current_revolution;
@@ -625,6 +626,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 		// sleep
 		usleep(1000000 * dt);
 	}
+
 	md25.setMotor1Speed(0);
 
 	printf("md25 sine complete\n");

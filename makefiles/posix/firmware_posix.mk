@@ -47,7 +47,7 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.a:	checkgitversion generateuorbtopich
 	@$(ECHO) %%%% Building $(config) in $(work_dir)
 	@$(ECHO) %%%%
 	$(Q) $(MKDIR) -p $(work_dir)
-	$(Q) $(MAKE) -r -C $(work_dir) \
+	$(Q) $(MAKE) -r --no-print-directory -C $(work_dir) \
 		-f $(PX4_MK_DIR)firmware.mk \
 		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \

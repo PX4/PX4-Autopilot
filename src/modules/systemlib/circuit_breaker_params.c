@@ -73,7 +73,7 @@ PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
 /**
  * Circuit breaker for IO safety
  *
- * Setting this parameter to 894281 will disable IO safety.
+ * Setting this parameter to 22027 will disable IO safety.
  * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
  *
  * @min 0
@@ -128,7 +128,7 @@ PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
  * If this check is enabled, then the sensor check will fail if the GPS module
  * is missing. It will also check for excessive signal noise on the GPS receiver
  * and warn the user if detected.
- * 
+ *
  * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
  *
  * @min 0

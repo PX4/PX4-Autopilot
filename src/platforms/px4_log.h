@@ -127,6 +127,7 @@ __EXPORT extern uint64_t hrt_absolute_time(void);
 
 __EXPORT extern const char *__px4_log_level_str[5];
 __EXPORT extern int __px4_log_level_current;
+__END_DECLS
 
 // __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
 #define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_WARN
@@ -161,22 +162,6 @@ __EXPORT extern int __px4_log_level_current;
  * Use these to implement the code level macros below
  ****************************************************************************/
 
-
-/****************************************************************************
- * __px4_log_named_cond:
- * Convert a message in the form:
- * 	PX4_LOG_COND(__dbg_enabled, "val is %d", val);
- * to
- * 	printf("%-5s val is %d\n", "LOG", val);
- * if the first arg/condition is true.
- ****************************************************************************/
-#define __px4_log_named_cond(name, cond, FMT, ...) \
-	__px4__log_startcond(cond)\
-	"%s " \
-	FMT\
-	__px4__log_end_fmt \
-	,name, ##__VA_ARGS__\
-	__px4__log_endline
 
 /****************************************************************************
  * __px4_log_named_cond:
@@ -389,5 +374,4 @@ __EXPORT extern int __px4_log_level_current;
 #endif
 #define PX4_LOG_NAMED(name, FMT, ...) 	__px4_log_named_cond(name, true, FMT, ##__VA_ARGS__)
 #define PX4_LOG_NAMED_COND(name, cond, FMT, ...) __px4_log_named_cond(name, cond, FMT, ##__VA_ARGS__)
-__END_DECLS
 #endif

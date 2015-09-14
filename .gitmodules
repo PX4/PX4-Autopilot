@@ -19,3 +19,6 @@
 [submodule "src/lib/eigen"]
 	path = src/lib/eigen
 	url = https://github.com/PX4/eigen.git
+[submodule "src/lib/dspal"]
+	path = src/lib/dspal
+	url = https://github.com/mcharleb/dspal.git

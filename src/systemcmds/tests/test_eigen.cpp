@@ -89,9 +89,9 @@ uint8_t err_num;
 
 #define EXPECT_QUATERNION(q_exp, q_act, epsilon)	\
 	(fabsf(q_exp.x() - q_act.x()) <= epsilon &&			\
-	fabsf(q_exp.y() - q_act.y()) <= epsilon && 			\
-	fabsf(q_exp.z() - q_act.z()) <= epsilon &&			\
-	fabsf(q_exp.w() - q_act.w()) <= epsilon)
+	 fabsf(q_exp.y() - q_act.y()) <= epsilon && 			\
+	 fabsf(q_exp.z() - q_act.z()) <= epsilon &&			\
+	 fabsf(q_exp.w() - q_act.w()) <= epsilon)
 
 #define EXPECT_NEAR(expected, actual, epsilon)		\
 	(fabsf(expected - actual) <= epsilon)
@@ -130,12 +130,13 @@ math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q);
  *	Construct new Eigen::Quaternion from euler angles
  *	Right order is YPR.
  **/
-Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
+Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy)
+{
 	return Eigen::Quaternionf(
-		Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
-		Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
-		Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
-		);
+		       Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
+		       Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
+		       Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
+	       );
 }
 
 /**
@@ -143,7 +144,8 @@ Eigen::Quaternionf quatFromEuler(const Eigen::Vector3f &rpy){
  *	Construct new Eigen::Vector3f of euler angles from quaternion
  *	Right order is YPR.
  **/
-Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
+Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q)
+{
 	return q.toRotationMatrix().eulerAngles(2, 1, 0).reverse();
 }
 
@@ -151,7 +153,8 @@ Eigen::Vector3f eulerFromQuat(const Eigen::Quaternionf &q){
  * @brief
  *	Construct new Eigen::Matrix3f from euler angles
  **/
-Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
+Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy)
+{
 	return quatFromEuler(rpy).toRotationMatrix();
 }
 
@@ -159,7 +162,8 @@ Eigen::Matrix3f matrixFromEuler(const Eigen::Vector3f &rpy){
  * @brief
  *	Adjust PX4 math::quaternion to Eigen::Quaternionf
  **/
-Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
+Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q)
+{
 	return Eigen::Quaternionf(q.data[1], q.data[2], q.data[3], q.data[0]);
 }
 
@@ -167,7 +171,8 @@ Eigen::Quaternionf eigenqFromPx4q(const math::Quaternion &q){
  * @brief
  *	Adjust Eigen::Quaternionf to PX4 math::quaternion
  **/
-math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
+math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q)
+{
 	return math::Quaternion(q.w(), q.x(), q.y(), q.z());
 }
 
@@ -175,7 +180,8 @@ math::Quaternion px4qFromEigenq(const Eigen::Quaternionf &q){
  * @brief
  *	Testing main routine
  **/
-int test_eigen(int argc, char *argv[]) {
+int test_eigen(int argc, char *argv[])
+{
 	int rc = 0;
 	warnx("Testing Eigen math...");
 
@@ -285,7 +291,7 @@ int test_eigen(int argc, char *argv[]) {
 
 		const Eigen::Matrix<float, 2, 3> m1_orig =
 			(Eigen::Matrix<float, 2, 3>() << 1, 2, 3,
-			4, 5, 6).finished();
+			 4, 5, 6).finished();
 
 		Eigen::Matrix<float, 2, 3> m1(m1_orig);
 
@@ -362,6 +368,7 @@ int test_eigen(int argc, char *argv[]) {
 			++err_num;
 			rc = 1;
 		}
+
 		/********************************************************************************************************/
 		/******************************************** TEST 2 ****************************************************/
 		q_true = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -376,6 +383,7 @@ int test_eigen(int argc, char *argv[]) {
 			++err_num;
 			rc = 1;
 		}
+
 		/********************************************************************************************************/
 		/******************************************** TEST 3 ****************************************************/
 		q_true = quatFromEuler(Eigen::Vector3f(0.3f, 0.2f, 0.1f));
@@ -388,6 +396,7 @@ int test_eigen(int argc, char *argv[]) {
 			++err_num;
 			rc = 1;
 		}
+
 		/********************************************************************************************************/
 		/******************************************** TEST 4 ****************************************************/
 		q_true = quatFromEuler(Eigen::Vector3f(-1.5f, -0.2f, 0.5f));
@@ -400,6 +409,7 @@ int test_eigen(int argc, char *argv[]) {
 			++err_num;
 			rc = 1;
 		}
+
 		/********************************************************************************************************/
 		/******************************************** TEST 5 ****************************************************/
 		q_true = quatFromEuler(Eigen::Vector3f(M_PI_2_F, -M_PI_2_F, -M_PI_F / 3));
@@ -407,13 +417,15 @@ int test_eigen(int argc, char *argv[]) {
 
 		for (size_t i = 0; i < 4; i++) {
 			if (!EXPECT_QUATERNION(q_true, q, FLT_EPSILON)) {
-				printf("%llu: It[%d]: Value of: Quaternion [0.6830, 0.1830, -0.6830, 0.1830]\n", (unsigned long long)hrt_absolute_time(), (int)i);
+				printf("%llu: It[%d]: Value of: Quaternion [0.6830, 0.1830, -0.6830, 0.1830]\n",
+				       (unsigned long long)hrt_absolute_time(), (int)i);
 				printf("Actual:  \t[%8.5f, %8.5f, %8.5f, %8.5f]\n", q.w(), q.x(), q.y(), q.z());
 				printf("Expected: \t[%8.5f, %8.5f, %8.5f, %8.5f]\n", q_true.w(), q_true.x(), q_true.y(), q_true.z());
 				++err_num;
 				rc = 1;
 			}
 		}
+
 		/********************************************************************************************************/
 		/******************************************** TEST 6 ****************************************************/
 		printf("%llu: Conversion method: Testing transformation range...\n", (unsigned long long)hrt_absolute_time());
@@ -430,7 +442,8 @@ int test_eigen(int argc, char *argv[]) {
 					for (size_t i = 0; i < 3; i++) {
 						for (size_t j = 0; j < 3; j++) {
 							if (!EXPECT_NEAR(R_orig(i, j), R(i, j), epsilon_f)) {
-								printf("%llu: (%d, %d) Value of: Quaternion constructor or 'toRotationMatrix'\n", (unsigned long long)hrt_absolute_time(), (int)i, (int)j);
+								printf("%llu: (%d, %d) Value of: Quaternion constructor or 'toRotationMatrix'\n",
+								       (unsigned long long)hrt_absolute_time(), (int)i, (int)j);
 								printf("Actual:  \t%8.5f\n", R(i, j));
 								printf("Expected: \t%8.5f\n", R_orig(i, j));
 								++err_num;
@@ -457,7 +470,7 @@ int test_eigen(int argc, char *argv[]) {
 		/******************************************** TEST 1 ****************************************************/
 		q = quatFromEuler(Eigen::Vector3f(0.0f, 0.0f, M_PI_2_F));
 		vector_q = q._transformVector(vector);
-		Eigen::Vector3f vector_true = {-1.00f, 1.00f, 1.00f};
+		Eigen::Vector3f vector_true = { -1.00f, 1.00f, 1.00f};
 
 		for (size_t i = 0; i < 3; i++) {
 			if (!EXPECT_NEAR(vector_true(i), vector_q(i), FLT_EPSILON)) {
@@ -468,6 +481,7 @@ int test_eigen(int argc, char *argv[]) {
 				rc = 1;
 			}
 		}
+
 		/********************************************************************************************************/
 		/******************************************** TEST 2 ****************************************************/
 		q = quatFromEuler(Eigen::Vector3f(0.1f, 0.2f, 0.3f));
@@ -483,6 +497,7 @@ int test_eigen(int argc, char *argv[]) {
 				rc = 1;
 			}
 		}
+
 		/********************************************************************************************************/
 		/******************************************** TEST 3 ****************************************************/
 		q = quatFromEuler(Eigen::Vector3f(0.5f, -0.2f, -1.5f));
@@ -498,11 +513,12 @@ int test_eigen(int argc, char *argv[]) {
 				rc = 1;
 			}
 		}
+
 		/********************************************************************************************************/
 		/******************************************** TEST 4 ****************************************************/
 		q = quatFromEuler(Eigen::Vector3f(-M_PI_F / 3.0f, -M_PI_2_F, M_PI_2_F));
 		vector_q = q._transformVector(vector);
-		vector_true = {-1.366030f, 0.366025f, 1.000000f};
+		vector_true = { -1.366030f, 0.366025f, 1.000000f};
 
 		for (size_t i = 0; i < 3; i++) {
 			if (!EXPECT_NEAR(vector_true(i), vector_q(i), epsilon_f)) {
@@ -513,6 +529,7 @@ int test_eigen(int argc, char *argv[]) {
 				rc = 1;
 			}
 		}
+
 		/********************************************************************************************************/
 		/******************************************** TEST 5 ****************************************************/
 		printf("%llu: Rotation method: Testing transformation range...\n", (unsigned long long)hrt_absolute_time());

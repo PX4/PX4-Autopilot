@@ -195,7 +195,7 @@ int test_hott_telemetry(int argc, char *argv[])
 
 		} else {
 			PX4_WARN("WARN: Received %d out of %d byte pairs of which %d were valid from the HoTT receiver device.", received_count,
-			      max_polls, valid_count);
+				 max_polls, valid_count);
 		}
 
 	} else {

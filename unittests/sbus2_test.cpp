@@ -33,7 +33,7 @@ TEST(SBUS2Test, SBUS2)
 	// Init the parser
 	uint8_t frame[30];
 	unsigned partial_frame_count = 0;
-	uint16_t rc_values[18];
+	//uint16_t rc_values[18];
 	//uint16_t num_values;
 	//bool sbus_failsafe;
 	//bool sbus_frame_drop;

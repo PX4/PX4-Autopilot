@@ -1363,7 +1363,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				/* Detect launch */
 				launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
 
-				/* update our copy of the laucn detection state */
+				/* update our copy of the launch detection state */
 				launch_detection_state = launchDetector.getLaunchDetected();
 			} else	{
 				/* no takeoff detection --> fly */
@@ -1719,7 +1719,7 @@ FixedwingPositionControl::task_main()
 	}
 
 	/* wakeup source(s) */
-	struct pollfd fds[2];
+	px4_pollfd_struct_t fds[2];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -1732,7 +1732,7 @@ FixedwingPositionControl::task_main()
 	while (!_task_should_exit) {
 
 		/* wait for up to 500ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0) {

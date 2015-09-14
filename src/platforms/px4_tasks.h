@@ -67,11 +67,11 @@ typedef int px4_task_t;
 #ifdef __PX4_LINUX
 #define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
-#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
+#define SCHED_PRIORITY_DEFAULT (((sched_get_priority_max(SCHED_FIFO) - sched_get_priority_min(SCHED_FIFO)) / 2) + sched_get_priority_min(SCHED_FIFO))
 #elif defined(__PX4_DARWIN)
 #define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
-#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
+#define SCHED_PRIORITY_DEFAULT (((sched_get_priority_max(SCHED_FIFO) - sched_get_priority_min(SCHED_FIFO)) / 2) + sched_get_priority_min(SCHED_FIFO))
 #elif defined(__PX4_QURT)
 #define SCHED_PRIORITY_MAX 0
 #define SCHED_PRIORITY_MIN 0
@@ -116,6 +116,9 @@ __EXPORT void px4_task_exit(int ret);
 
 /** Show a list of running tasks **/
 __EXPORT void px4_show_tasks(void);
+
+/** See if a task is running **/
+__EXPORT bool px4_task_is_running(const char *taskname);
 
 __END_DECLS
 

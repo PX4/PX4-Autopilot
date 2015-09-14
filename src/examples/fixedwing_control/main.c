@@ -432,11 +432,11 @@ int ex_fixedwing_control_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = px4_task_spawn_cmd("ex_fixedwing_control",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_MAX - 20,
-					     2048,
-					     fixedwing_control_thread_main,
-					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 20,
+						 2048,
+						 fixedwing_control_thread_main,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		thread_running = true;
 		exit(0);
 	}

@@ -49,8 +49,7 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 	bool reset_altitude = false;
 
 	if (_update_50hz_last_usec == 0 || DT > DT_MAX) {
-		DT            = 0.02f; // when first starting TECS, use a
-		// small time constant
+		DT = DT_DEFAULT; // when first starting TECS, use small time constant
 		reset_altitude = true;
 	}
 
@@ -132,14 +131,6 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 	_TASmax   = indicated_airspeed_max * EAS2TAS;
 	_TASmin   = indicated_airspeed_min * EAS2TAS;
 
-	// Reset states of time since last update is too large
-	if (_update_speed_last_usec == 0 || DT > 1.0f || !_in_air) {
-		_integ5_state = (_EAS * EAS2TAS);
-		_integ4_state = 0.0f;
-		DT            = 0.1f; // when first starting TECS, use a
-		// small time constant
-	}
-
 	// Get airspeed or default to halfway between min and max if
 	// airspeed is not being used and set speed rate to zero
 	if (!PX4_ISFINITE(indicated_airspeed) || !airspeed_sensor_enabled()) {
@@ -148,6 +139,16 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 
 	} else {
 		_EAS = indicated_airspeed;
+	}
+
+	// Reset states on initial execution or if not active
+	if (_update_speed_last_usec == 0 || !_in_air) {
+		_integ4_state = 0.0f;
+		_integ5_state = (_EAS * EAS2TAS);
+	}
+
+	if (DT < DT_MIN || DT > DT_MAX) {
+		DT = DT_DEFAULT; // when first starting TECS, use small time constant
 	}
 
 	// Implement a second order complementary filter to obtain a
@@ -440,9 +441,9 @@ void TECS::_update_pitch(void)
 	float SPE_weighting = 2.0f - SKE_weighting;
 
 	// Calculate Specific Energy Balance demand, and error
-	float SEB_dem      = _SPE_dem * SPE_weighting - _SKE_dem * SKE_weighting;
-	float SEBdot_dem   = _SPEdot_dem * SPE_weighting - _SKEdot_dem * SKE_weighting;
-	_SEB_error    = SEB_dem - (_SPE_est * SPE_weighting - _SKE_est * SKE_weighting);
+	float SEB_dem = _SPE_dem * SPE_weighting - _SKE_dem * SKE_weighting;
+	float SEBdot_dem = _SPEdot_dem * SPE_weighting - _SKEdot_dem * SKE_weighting;
+	_SEB_error = SEB_dem - (_SPE_est * SPE_weighting - _SKE_est * SKE_weighting);
 	_SEBdot_error = SEBdot_dem - (_SPEdot * SPE_weighting - _SKEdot * SKE_weighting);
 
 	// Calculate integrator state, constraining input if pitch limits are exceeded
@@ -495,22 +496,27 @@ void TECS::_update_pitch(void)
 void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_altitude, float ptchMinCO_rad)
 {
 	// Initialise states and variables if DT > 1 second or in climbout
-	if (_update_pitch_throttle_last_usec == 0 || _DT > 1.0f || !_in_air || !_states_initalized) {
-		_integ6_state      = 0.0f;
-		_integ7_state      = 0.0f;
+	if (_update_pitch_throttle_last_usec == 0 || _DT > DT_MAX || !_in_air || !_states_initalized) {
+		_integ1_state = 0.0f;
+		_integ2_state = 0.0f;
+		_integ3_state = baro_altitude;
+		_integ4_state = 0.0f;
+		_integ5_state = _EAS;
+		_integ6_state = 0.0f;
+		_integ7_state = 0.0f;
 		_last_throttle_dem = throttle_cruise;
-		_last_pitch_dem    = pitch;
-		_hgt_dem_adj_last  = baro_altitude;
-		_hgt_dem_adj       = _hgt_dem_adj_last;
-		_hgt_dem_prev      = _hgt_dem_adj_last;
-		_hgt_dem_in_old    = _hgt_dem_adj_last;
-		_TAS_dem_last      = _TAS_dem;
-		_TAS_dem_adj       = _TAS_dem;
-		_underspeed        = false;
-		_badDescent        = false;
+		_last_pitch_dem = pitch;
+		_hgt_dem_adj_last = baro_altitude;
+		_hgt_dem_adj = _hgt_dem_adj_last;
+		_hgt_dem_prev = _hgt_dem_adj_last;
+		_hgt_dem_in_old = _hgt_dem_adj_last;
+		_TAS_dem_last = _TAS_dem;
+		_TAS_dem_adj = _TAS_dem;
+		_underspeed = false;
+		_badDescent = false;
 
-		if (_DT > 1.0f || _DT < 0.001f) {
-			_DT                = DT_MIN;
+		if (_DT > DT_MAX || _DT < DT_MIN) {
+			_DT = DT_DEFAULT;
 		}
 
 	} else if (_climbOutDem) {
@@ -549,8 +555,8 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	// 	_DT, pitch, baro_altitude, hgt_dem, EAS_dem, indicated_airspeed, EAS2TAS, (climbOutDem) ? "climb" : "level", ptchMinCO, throttle_min, throttle_max, throttle_cruise, pitch_limit_min, pitch_limit_max);
 
 	// Convert inputs
-	_THRmaxf  = throttle_max;
-	_THRminf  = throttle_min;
+	_THRmaxf = throttle_max;
+	_THRminf = throttle_min;
 	_PITCHmaxf = pitch_limit_max;
 	_PITCHminf = pitch_limit_min;
 	_climbOutDem = climbOutDem;
