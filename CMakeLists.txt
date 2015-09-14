@@ -278,7 +278,7 @@ endforeach()
 
 add_subdirectory(src/firmware/${OS})
 if (config_io_board)
-	#add_subdirectory(src/modules/px4iofirmware)
+	add_subdirectory(src/modules/px4iofirmware)
 endif()
 
 #=============================================================================

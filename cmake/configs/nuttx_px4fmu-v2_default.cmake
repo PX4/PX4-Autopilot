@@ -174,7 +174,7 @@ set(config_extra_libs
 	)
 
 set(config_io_extra_libs
-	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM3l_math.a
+	#${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM3l_math.a
 	)
 
 add_custom_target(sercon)

@@ -110,6 +110,7 @@ add_dependencies(firmware_io_nuttx
 	nuttx_export_${config_io_board}
 	msg_gen
 	io_prebuild_targets
+	mixer_gen
 	)
 
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${config_io_board}/NuttX/nuttx-export)
