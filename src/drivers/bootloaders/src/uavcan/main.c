@@ -1442,12 +1442,12 @@ failure:
 #if defined(OPT_USE_YIELD)
 void bl_sched_yield(void)
 {
-  /*
-   *  TODO: The uptime will be stalled so consider having the caller or
-   *  this code track the stall time and accumulate it to kee the uptime
-   *  moving
-   */
+	/*
+	 *  TODO: The uptime will be stalled so consider having the caller or
+	 *  this code track the stall time and accumulate it to kee the uptime
+	 *  moving
+	 */
 
-  node_status_process(0,0);
+	node_status_process(0, 0);
 }
 #endif

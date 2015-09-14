@@ -130,7 +130,7 @@ flash_error_t bl_flash_erase(size_t address, size_t nbytes)
 		status = FLASH_OK;
 
 		while (status == FLASH_OK && appstartpage <= appendpage) {
-		        bl_sched_yield();
+			bl_sched_yield();
 			ssize_t ps = up_progmem_erasepage(appstartpage++);
 
 			if (ps <= 0) {
