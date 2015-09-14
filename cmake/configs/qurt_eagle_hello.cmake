@@ -26,3 +26,4 @@ set(config_module_list
 	platforms/qurt/tests/hello
 	)
 
+set(config_firmware src/firmware/qurt)

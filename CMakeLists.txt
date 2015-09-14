@@ -185,6 +185,7 @@ message(STATUS "OS=${OS} BOARD=${BOARD} LABEL=${LABEL}")
 # programs
 #
 find_package(PythonInterp REQUIRED)
+set(cmake_tester "${CMAKE_SOURCE_DIR}/cmake/test/cmake_tester.py")
 
 #=============================================================================
 # cmake modules
@@ -270,7 +271,9 @@ foreach(module ${config_module_list})
 	#message(STATUS "adding module: ${module}")
 endforeach()
 
-add_subdirectory(src/firmware/${OS})
+if (config_firmware)
+	add_subdirectory(${config_firmware})
+endif()
 
 #=============================================================================
 # generate git version

@@ -37,3 +37,4 @@ set(config_module_list
 	platforms/posix/tests/wqueue
 	)
 
+set(config_firmware src/firmware/qurt)

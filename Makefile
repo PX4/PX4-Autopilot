@@ -87,6 +87,9 @@ nuttx_sim_simple:
 posix_sitl_simple:
 	$(call cmake-build,$@)
 
+posix_cbmc_simple:
+	$(call cmake-build,$@)
+
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
@@ -110,7 +113,7 @@ clean:
 	rm -rf build_*/
 
 # targets handled by cmake
-cmake_targets = test upload package package_source debug check_weak
+cmake_targets = test upload package package_source debug check_weak cbmc_install
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean

@@ -6,7 +6,7 @@ language: cpp
 matrix:
   include:
     - os: linux
-      sudo: false
+      sudo: true
     - os: osx
       osx_image: beta-xcode6.3
 
@@ -23,6 +23,7 @@ addons:
     - build-essential
     - ccache
     - cmake
+    - cbmc
     - clang-3.5
     - g++-4.8
     - gcc-4.8
@@ -50,6 +51,7 @@ before_install:
       && wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
       && astyle --version
       && if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+      && sudo ./Tools/cbmc_install.sh
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
@@ -102,6 +104,15 @@ script:
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'
   - make px4fmu-v2_default test
   - echo -en 'travis_fold:end:script.4\\r'
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+    echo 'Building Model Checking Firmware..' && echo -en 'travis_fold:start:script.5\\r'
+    && make posix_cbmc_simple
+    && echo -en 'travis_fold:end:script.5\\r'
+    && echo 'Running Model Checking Tests..' && echo -en 'travis_fold:start:script.6\\r'
+    && make posix_cbmc_simple test
+    && echo -en 'travis_fold:end:script.6\\r'
+    ;
+    fi
   - make px4fmu-v2_default package
   #- make posix -j4
   #- ccache -s

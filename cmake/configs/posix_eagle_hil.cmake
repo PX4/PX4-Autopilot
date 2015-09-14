@@ -38,3 +38,4 @@ set(config_module_list
 	modules/muorb/krait
 	)
 
+set(config_firmware src/firmware/posix)

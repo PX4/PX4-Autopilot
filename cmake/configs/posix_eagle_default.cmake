@@ -44,3 +44,4 @@ set(config_module_list
 	platforms/posix/work_queue
 	)
 
+set(config_firmware src/firmware/posix)

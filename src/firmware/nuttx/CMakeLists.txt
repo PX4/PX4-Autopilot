@@ -44,7 +44,7 @@ px4_nuttx_add_firmware(OUT ${fw_file}
 configure_file(gdbinit.in .gdbinit)
 
 add_custom_target(debug
-	COMMAND ${GDB} ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+	COMMAND ${GDBTUI} ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
 	DEPENDS firmware_nuttx
 		${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 	)

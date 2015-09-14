@@ -21,6 +21,8 @@ set(config_firmware_options
 	PARAM_XML # generate param xml
 	)
 
+set(config_firmware src/firmware/nuttx)
+
 set(config_extra_builtin_cmds
 	serdis
 	sercon

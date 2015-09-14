@@ -61,3 +61,5 @@ set(config_module_list
 	#
 	modules/muorb/adsp
 	)
+
+set(config_firmware src/firmware/qurt)
