@@ -55,6 +55,7 @@
 #include "board.h"
 #include "flash.h"
 #include "timer.h"
+#include "blsched.h"
 #include "can.h"
 #include "uavcan.h"
 #include "random.h"
@@ -1421,3 +1422,32 @@ failure:
 	timer_free(tmr);
 	up_systemreset();
 }
+
+/****************************************************************************
+ * Name: sched_yield()
+ *
+ * Description:
+ *   This function should be called in situation were the cpu may be
+ *   busy for a long time without interrupts or the ability to run code
+ *   to insure that the timer based process will be run.
+ *
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned value:
+ *   None
+ *
+ ****************************************************************************/
+#if defined(OPT_USE_YIELD)
+void bl_sched_yield(void)
+{
+  /*
+   *  TODO: The uptime will be stalled so consider having the caller or
+   *  this code track the stall time and accumulate it to kee the uptime
+   *  moving
+   */
+
+  node_status_process(0,0);
+}
+#endif
