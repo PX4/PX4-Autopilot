@@ -1,17 +1,37 @@
-This patch is required for QuRT. complex.h defines "I" and it replaces "I" in the 
-enum definition without this patch creating an error.
-
-diff --git a/Eigen/src/Core/SolveTriangular.h b/Eigen/src/Core/SolveTriangular.h
-index ef17f28..1116270 100644
---- a/Eigen/src/Core/SolveTriangular.h
-+++ b/Eigen/src/Core/SolveTriangular.h
-@@ -112,6 +112,9 @@ template<typename Lhs, typename Rhs, int Mode, int Index, int Size,
-          bool Stop = Index==Size>
- struct triangular_solver_unroller;
+diff --git a/Eigen/src/Core/util/Macros.h b/Eigen/src/Core/util/Macros.h
+index 1ca1d66..9bc928b 100644
+--- a/Eigen/src/Core/util/Macros.h
++++ b/Eigen/src/Core/util/Macros.h
+@@ -194,6 +194,12 @@
+   #define EIGEN_ARCH_PPC 0
+ #endif
  
-+#ifdef __PX4_QURT
-+#undef I
++/// \internal EIGEN_ARCH_HEXAGON set to 1 if the architecture is Hexagon
++#ifdef __HEXAGON_ARCH__
++  #define EIGEN_ARCH_HEXAGON 1
++#else
++  #define EIGEN_ARCH_HEXAGON 0
 +#endif
- template<typename Lhs, typename Rhs, int Mode, int Index, int Size>
- struct triangular_solver_unroller<Lhs,Rhs,Mode,Index,Size,false> {
-   enum {
+ 
+ 
+ // Operating system identification, EIGEN_OS_*
+@@ -334,15 +340,16 @@
+ #endif
+ 
+ // Do we support r-value references?
+-#if (__has_feature(cxx_rvalue_references) || \
++#if ((__has_feature(cxx_rvalue_references) || \
+     (defined(__cplusplus) && __cplusplus >= 201103L) || \
+      defined(__GXX_EXPERIMENTAL_CXX0X__) || \
+-    (EIGEN_COMP_MSVC >= 1600))
++    (EIGEN_COMP_MSVC >= 1600)) && (!defined(EIGEN_ARCH_HEXAGON)))
+   #define EIGEN_HAVE_RVALUE_REFERENCES
+ #endif
+ 
+ // Does the compiler support result_of?
+-#if (__has_feature(cxx_lambdas) || (defined(__cplusplus) && __cplusplus >= 201103L))
++#if ((__has_feature(cxx_lambdas) || (defined(__cplusplus) && __cplusplus >= 201103L)) && \
++    (!defined(EIGEN_ARCH_HEXAGON)))
+ #define EIGEN_HAS_STD_RESULT_OF 1
+ #endif
+ 
