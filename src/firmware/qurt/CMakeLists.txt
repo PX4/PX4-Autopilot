@@ -1,10 +1,5 @@
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(V_ARCH v5)
-set(HEXAGON_TOOLS_ROOT /opt/6.4.03)
-set(TOOLSLIB 
-	${HEXAGON_TOOLS_ROOT}/dinkumware/lib/${V_ARCH}/G0)
-
 px4_qurt_generate_builtin_commands(
 	OUT ${CMAKE_BINARY_DIR}/apps.h
 	MODULE_LIST ${module_libraries})
