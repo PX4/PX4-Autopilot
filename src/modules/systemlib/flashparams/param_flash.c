@@ -498,15 +498,28 @@ static flash_entry_header_t *find_free(data_size_t required)
 		h_magic_t *pe = pmagic + (sector_map[s].size / sizeof(h_magic_t)) - 1;
 
 		/* Hunt for Magic Signature */
-cont:
 
-		while (pmagic != pe) {
+		do {
 
 			if (valid_magic(pmagic)) {
 
-				break;
+				flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
 
-			} else if (blank_magic(pmagic)) {
+				/* Test the CRC */
+
+				if (pf->crc == crc32(entry_crc_start(pf), entry_crc_length(pf))) {
+
+					/* Valid Magic and CRC look for the next record*/
+
+					pmagic = ((uint32_t *) next_entry(pf));
+
+				} else {
+
+					pmagic++;
+				}
+			}
+
+			if (blank_magic(pmagic)) {
 
 				flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
 
@@ -514,33 +527,8 @@ cont:
 					return pf;
 				}
 
-				pmagic++;
 			}
-
-			/* Did we reach the end
-			 * if so try the next sector */
-
-			if (pmagic == pe) { continue; }
-
-			/* Found a magic So assume it is a file header */
-
-			flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
-
-			/* Test the CRC */
-
-			if (pf->crc == crc32(entry_crc_start(pf), entry_crc_length(pf))) {
-
-				pmagic = (uint32_t *) next_entry(pf);
-
-				goto cont;
-
-			} else {
-
-				/* invalid CRC so keep looking */
-
-				pmagic++;
-			}
-		}
+		}  while (++pmagic != pe);
 	}
 
 	return NULL;
@@ -864,7 +852,7 @@ parameter_flash_write(flash_file_token_t token, uint8_t *buffer, size_t buf_size
 		pn->flag = ValidEntry + size_adjust;
 		pn->size = total_size;
 
-		for (int a = 0; a < size_adjust; a++) {
+		for (size_t a = 0; a < size_adjust; a++) {
 			buffer[buf_size + a] = (uint8_t)BlankSig;
 		}
 
