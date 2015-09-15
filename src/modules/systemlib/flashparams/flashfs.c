@@ -51,7 +51,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "param_flash.h"
+#include "flashfs.h"
 #include <nuttx/compiler.h>
 #include <nuttx/progmem.h>
 
@@ -696,7 +696,7 @@ static sector_descriptor_t *check_free_space_in_sector(flash_entry_header_t
  * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Name: parameter_flash_read
+ * Name: parameter_flashfs_read
  *
  * Description:
  *   This function returns a pointer to the locations of the data associated
@@ -715,7 +715,7 @@ static sector_descriptor_t *check_free_space_in_sector(flash_entry_header_t
  *
  ****************************************************************************/
 
-int parameter_flash_read(flash_file_token_t token, uint8_t **buffer, size_t
+int parameter_flashfs_read(flash_file_token_t token, uint8_t **buffer, size_t
 			 *buf_size)
 {
 	int rv = -ENXIO;
@@ -736,11 +736,11 @@ int parameter_flash_read(flash_file_token_t token, uint8_t **buffer, size_t
 }
 
 /****************************************************************************
- * Name: parameter_flash_write
+ * Name: parameter_flashfs_write
  *
  * Description:
  *   This function writes user data from the buffer allocated with a previous call
- *   to parameter_flash_alloc. flash starting at the given address
+ *   to parameter_flashfs_alloc. flash starting at the given address
  *
  * Input Parameters:
  *   token      - File Token File to read
@@ -755,7 +755,7 @@ int parameter_flash_read(flash_file_token_t token, uint8_t **buffer, size_t
  ****************************************************************************/
 
 int
-parameter_flash_write(flash_file_token_t token, uint8_t *buffer, size_t buf_size)
+parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_size)
 {
 	int rv = -ENXIO;
 
@@ -869,17 +869,17 @@ parameter_flash_write(flash_file_token_t token, uint8_t *buffer, size_t buf_size
 }
 
 /****************************************************************************
- * Name: parameter_flash_alloc
+ * Name: parameter_flashfs_alloc
  *
  * Description:
  *   This function is called to get a buffer to use in a subsequent call
- *   to parameter_flash_write. The address returned is advanced into the
+ *   to parameter_flashfs_write. The address returned is advanced into the
  *   buffer to reserve space for the flash entry header.
  *
  * Input Parameters:
  *   token      - File Token File to read (not used)
  *   buffer     - Memory of buf_size length suitable for calling
- *                parameter_flash_write
+ *                parameter_flashfs_write
  *   buf_size   - The maximum number of bytes that can be written to
  *                the buffer
  *
@@ -888,7 +888,7 @@ parameter_flash_write(flash_file_token_t token, uint8_t *buffer, size_t buf_size
  *
  ****************************************************************************/
 
-int parameter_flash_alloc(flash_file_token_t token, uint8_t **buffer, size_t *buf_size)
+int parameter_flashfs_alloc(flash_file_token_t token, uint8_t **buffer, size_t *buf_size)
 {
 	int rv = -ENXIO;
 
@@ -903,10 +903,10 @@ int parameter_flash_alloc(flash_file_token_t token, uint8_t **buffer, size_t *bu
 }
 
 /****************************************************************************
- * Name: parameter_flash_erase
+ * Name: parameter_flashfs_erase
  *
  * Description:
- *   This function erases the sectors that were passed to parameter_flash_init
+ *   This function erases the sectors that were passed to parameter_flashfs_init
  *
  * Input Parameters:
  *
@@ -916,7 +916,7 @@ int parameter_flash_alloc(flash_file_token_t token, uint8_t **buffer, size_t *bu
  *
  ****************************************************************************/
 
-int parameter_flash_erase(void)
+int parameter_flashfs_erase(void)
 {
 	int rv = -ENXIO;
 
@@ -938,7 +938,7 @@ int parameter_flash_erase(void)
 }
 
 /****************************************************************************
- * Name: parameter_flash_init
+ * Name: parameter_flashfs_init
  *
  * Description:
  *   This helper function advances the flash entry header pointer to the
@@ -959,7 +959,7 @@ int parameter_flash_erase(void)
  *
  ****************************************************************************/
 
-int parameter_flash_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16_t size)
+int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16_t size)
 {
 	sector_map = fconfig;
 	working_buffer = buffer;
@@ -985,13 +985,13 @@ __EXPORT void test(void)
 	uint16_t largest_block = (32 * 1024) + 32;
 	uint8_t *buffer = malloc(largest_block);
 
-	parameter_flash_init(test_sector_map, buffer, largest_block);
+	parameter_flashfs_init(test_sector_map, buffer, largest_block);
 
 	for (int t = 0; t < sizeof(test_buf); t++) {
 		test_buf[t] = (uint8_t) t;
 	}
 
-	int er = parameter_flash_erase();
+	int er = parameter_flashfs_erase();
 	uint8_t *fbuffer;
 	size_t buf_size;
 	int written = 0;
@@ -999,11 +999,11 @@ __EXPORT void test(void)
 	int rv = 0;
 
 	for (int a = 0; a <= 4; a++) {
-		rv =  parameter_flash_alloc(parameters_token, &fbuffer, &buf_size);
+		rv =  parameter_flashfs_alloc(parameters_token, &fbuffer, &buf_size);
 		memcpy(fbuffer, test_buf, a);
 		buf_size = a;
-		written = parameter_flash_write(parameters_token, fbuffer, buf_size);
-		read = parameter_flash_read(parameters_token, &fbuffer, &buf_size);
+		written = parameter_flashfs_write(parameters_token, fbuffer, buf_size);
+		read = parameter_flashfs_read(parameters_token, &fbuffer, &buf_size);
 
 		if (read != written) {
 			static volatile int j;
@@ -1014,11 +1014,11 @@ __EXPORT void test(void)
 	int block = 2048;
 
 	for (int a = 0; a <= 8; a++) {
-		rv =  parameter_flash_alloc(parameters_token, &fbuffer, &buf_size);
+		rv =  parameter_flashfs_alloc(parameters_token, &fbuffer, &buf_size);
 		memcpy(fbuffer, test_buf, block);
 		buf_size = block;
-		written = parameter_flash_write(parameters_token, fbuffer, buf_size);
-		read = parameter_flash_read(parameters_token, &fbuffer, &buf_size);
+		written = parameter_flashfs_write(parameters_token, fbuffer, buf_size);
+		read = parameter_flashfs_read(parameters_token, &fbuffer, &buf_size);
 
 		if (read != written) {
 			static volatile int j;

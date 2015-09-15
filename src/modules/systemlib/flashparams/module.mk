@@ -36,7 +36,7 @@
 #
 
 SRCS		 = flashparams.c \
-					 param_flash.c \
+					 flashfs.c \
 
 ifeq ($(PX4_TARGET_OS),nuttx)
 endif

@@ -52,7 +52,7 @@
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
 #include "flashparams.h"
-#include "param_flash.h"
+#include "flashfs.h"
 
 
 #if 0
@@ -99,7 +99,7 @@ param_export_internal(bool only_unsaved)
         uint8_t *buffer = 0;
         size_t buf_size;
 
-        parameter_flash_alloc(parameters_token, &buffer, &buf_size);
+        parameter_flashfs_alloc(parameters_token, &buffer, &buf_size);
 
         bson_encoder_init_buf(&encoder, buffer, buf_size);
 
@@ -167,7 +167,7 @@ param_export_internal(bool only_unsaved)
         }
 
         result = 0;
-        parameter_flash_write(parameters_token, bson_encoder_buf_data(&encoder), bson_encoder_buf_size(&encoder));
+        parameter_flashfs_write(parameters_token, bson_encoder_buf_data(&encoder), bson_encoder_buf_size(&encoder));
 
 out:
         param_unlock();
@@ -301,7 +301,7 @@ param_import_internal(bool mark_saved)
 
         uint8_t *buffer = 0;
         size_t buf_size;
-        parameter_flash_read(parameters_token, &buffer, &buf_size);
+        parameter_flashfs_read(parameters_token, &buffer, &buf_size);
 
         if (bson_decoder_init_buf(&decoder, buffer, buf_size, param_import_callback, &state)) {
                 debug("decoder init failed");

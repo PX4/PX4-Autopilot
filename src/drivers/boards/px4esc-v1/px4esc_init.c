@@ -75,7 +75,7 @@
 #endif
 
 #if defined(FLASH_BASED_PARAMS)
-# include <systemlib/flashparams/param_flash.h>
+# include <systemlib/flashparams/flashfs.h>
 #endif
 
 #include "board_config.h"
@@ -195,7 +195,7 @@ __EXPORT int board_app_initialize(void)
 	};
         static uint8_t param_buffer[PARAMETER_BUFFER_SIZE];
 
-        parameter_flash_init(sector_map, param_buffer, sizeof(param_buffer));
+        parameter_flashfs_init(sector_map, param_buffer, sizeof(param_buffer));
 #endif
 	return result;
 }

@@ -82,13 +82,13 @@ typedef struct flash_file_token_t {
 /*
  * Define the parameter "file name" Currently there is only
  * and it is hard coded. If more are added the
- * parameter_flash_write would need to support a backing buffer
+ * parameter_flashfs_write would need to support a backing buffer
  * for when a sector is erased.
  */
 __EXPORT extern const flash_file_token_t parameters_token;
 
 /* Define the elements of the array passed to the
- * parameter_flash_init function
+ * parameter_flashfs_init function
  *
  * For example
  * static sector_descriptor_t  sector_map[] = {
@@ -105,7 +105,7 @@ typedef struct sector_descriptor_t {
 
 
 /****************************************************************************
- * Name: parameter_flash_init
+ * Name: parameter_flashfs_init
  *
  * Description:
  *   This helper function advances the flash entry header pointer to the
@@ -126,10 +126,10 @@ typedef struct sector_descriptor_t {
  *
  ****************************************************************************/
 
-__EXPORT int parameter_flash_init(sector_descriptor_t *pconfig, uint8_t *buffer, uint16_t largest_block);
+__EXPORT int parameter_flashfs_init(sector_descriptor_t *pconfig, uint8_t *buffer, uint16_t largest_block);
 
 /****************************************************************************
- * Name: parameter_flash_read
+ * Name: parameter_flashfs_read
  *
  * Description:
  *   This function returns a pointer to the locations of the data associated
@@ -148,14 +148,14 @@ __EXPORT int parameter_flash_init(sector_descriptor_t *pconfig, uint8_t *buffer,
  *
  ****************************************************************************/
 
-__EXPORT int parameter_flash_read(flash_file_token_t ft, uint8_t **buffer, size_t *buf_size);
+__EXPORT int parameter_flashfs_read(flash_file_token_t ft, uint8_t **buffer, size_t *buf_size);
 
 /****************************************************************************
- * Name: parameter_flash_write
+ * Name: parameter_flashfs_write
  *
  * Description:
  *   This function writes user data from the buffer allocated with a previous call
- *   to parameter_flash_alloc. flash starting at the given address
+ *   to parameter_flashfs_alloc. flash starting at the given address
  *
  * Input Parameters:
  *   token      - File Token File to read
@@ -169,13 +169,13 @@ __EXPORT int parameter_flash_read(flash_file_token_t ft, uint8_t **buffer, size_
  *
  ****************************************************************************/
 
-__EXPORT int parameter_flash_write(flash_file_token_t ft, uint8_t *buffer, size_t buf_size);
+__EXPORT int parameter_flashfs_write(flash_file_token_t ft, uint8_t *buffer, size_t buf_size);
 
 /****************************************************************************
- * Name: parameter_flash_erase
+ * Name: parameter_flashfs_erase
  *
  * Description:
- *   This function erases the sectors that were passed to parameter_flash_init
+ *   This function erases the sectors that were passed to parameter_flashfs_init
  *
  * Input Parameters:
  *
@@ -185,20 +185,20 @@ __EXPORT int parameter_flash_write(flash_file_token_t ft, uint8_t *buffer, size_
  *
  ****************************************************************************/
 
-__EXPORT int parameter_flash_erase(void);
+__EXPORT int parameter_flashfs_erase(void);
 
 /****************************************************************************
- * Name: parameter_flash_alloc
+ * Name: parameter_flashfs_alloc
  *
  * Description:
  *   This function is called to get a buffer to use in a subsequent call
- *   to parameter_flash_write. The address returned is advanced into the
+ *   to parameter_flashfs_write. The address returned is advanced into the
  *   buffer to reserve space for the flash entry header.
  *
  * Input Parameters:
  *   token      - File Token File to read (not used)
  *   buffer     - Memory of buf_size length suitable for calling
- *                parameter_flash_write
+ *                parameter_flashfs_write
  *   buf_size   - The maximum number of bytes that can be written to
  *                the buffer
  *
@@ -207,6 +207,6 @@ __EXPORT int parameter_flash_erase(void);
  *
  ****************************************************************************/
 
-__EXPORT int parameter_flash_alloc(flash_file_token_t ft, uint8_t **buffer, size_t *buf_size);
+__EXPORT int parameter_flashfs_alloc(flash_file_token_t ft, uint8_t **buffer, size_t *buf_size);
 __END_DECLS
 #endif /* _SYSTEMLIB_FLASHPARAMS_NUTTX_PARAM_H */
