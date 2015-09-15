@@ -85,10 +85,11 @@ public:
 	 * Update the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	void update(void * data) {
+	bool update(void * data) {
 		if (updated()) {
-			orb_copy(_meta, _handle, data);
+			return !orb_copy(_meta, _handle, data);
 		}
+		return false;
 	}
 
 	/**
@@ -192,6 +193,13 @@ public:
 	 */
 	void update() {
 		SubscriptionBase::update(getDataVoidPtr());
+	}
+
+	/**
+	 * Create an update function that uses the embedded struct.
+	 */
+	bool check_updated() {
+		return SubscriptionBase::update(getDataVoidPtr());
 	}
 
 	/*

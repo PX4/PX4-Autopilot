@@ -48,37 +48,11 @@ namespace uORB_test
      int16_t val;
    };
 
-   #pragma pack(push, 1)
-   struct orb_topic_A_packed
-   {
-     int16_t val;
-   };
+   ORB_DEFINE( topicA, struct orb_topic_A, "TOPICA:int16 val;" );
+   ORB_DEFINE( topicB, struct orb_topic_B, "TOPICB:int16 val;" );
 
-   struct orb_topic_B_packed
-   {
-     int16_t val;
-   };
-   #pragma pack(pop)
-
-   void pack_orb_topic_A(void *in_buffer, void *out_buffer)
-   {
-      struct orb_topic_A* s_buffer = (struct orb_topic_A *) in_buffer;
-      struct orb_topic_A_packed *packed_s_buffer = (struct orb_topic_A_packed *) out_buffer;
-      memcpy(&packed_s_buffer->val, &s_buffer->val, sizeof(s_buffer->val));
-   }
-
-   void pack_orb_topic_B(void *in_buffer, void *out_buffer)
-   {
-      struct orb_topic_B* s_buffer = (struct orb_topic_B *) in_buffer;
-      struct orb_topic_B_packed *packed_s_buffer = (struct orb_topic_B_packed *) out_buffer;
-      memcpy(&packed_s_buffer->val, &s_buffer->val, sizeof(s_buffer->val));
-   }
-
-   ORB_DEFINE( topicA, struct orb_topic_A, &pack_orb_topic_A );
-   ORB_DEFINE( topicB, struct orb_topic_B, &pack_orb_topic_B );
-
-   ORB_DEFINE( topicA_clone, struct orb_topic_A, &pack_orb_topic_A );
-   ORB_DEFINE( topicB_clone, struct orb_topic_B, &pack_orb_topic_B  );
+   ORB_DEFINE( topicA_clone, struct orb_topic_A, "TOPICA_CLONE:int16 val;" );
+   ORB_DEFINE( topicB_clone, struct orb_topic_B, "TOPICB_CLONE:int16 val;"  );
 }
 
 #endif // _UnitTest_uORBTopics_hpp_

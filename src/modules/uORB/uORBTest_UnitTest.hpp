@@ -41,15 +41,8 @@ struct orb_test {
 	int val;
 	hrt_abstime time;
 };
-#pragma pack(push, 1)
-struct orb_test_packed {
-	int val;
-	hrt_abstime time;
-};
-#pragma pack(pop)
-void pack_orb_test(void *in_buffer, void *out_buffer);
-ORB_DEFINE(orb_test, struct orb_test, &pack_orb_test);
-ORB_DEFINE(orb_multitest, struct orb_test, &pack_orb_test);
+ORB_DEFINE(orb_test, struct orb_test, "ORB_TEST:int val;hrt_abstime time;");
+ORB_DEFINE(orb_multitest, struct orb_test, "ORB_MULTITEST:int val;hrt_abstime time;");
 
 
 struct orb_test_medium {
@@ -57,15 +50,7 @@ struct orb_test_medium {
 	hrt_abstime time;
 	char junk[64];
 };
-#pragma pack(push, 1)
-struct orb_test_medium_packed {
-	int val;
-	hrt_abstime time;
-	char junk[64];
-};
-#pragma pack(pop)
-void pack_orb_test_medium(void *in_buffer, void *out_buffer);
-ORB_DEFINE(orb_test_medium, struct orb_test_medium,  &pack_orb_test_medium);
+ORB_DEFINE(orb_test_medium, struct orb_test_medium,  "ORB_TEST_MEDIUM:int val;hrt_abstime time;char[64] junk;");
 
 
 struct orb_test_large {
@@ -73,15 +58,7 @@ struct orb_test_large {
 	hrt_abstime time;
 	char junk[512];
 };
-#pragma pack(push, 1)
-struct orb_test_large_packed {
-	int val;
-	hrt_abstime time;
-	char junk[512];
-};
-#pragma pack(pop)
-void pack_orb_test_large(void *in_buffer, void *out_buffer);
-ORB_DEFINE(orb_test_large, struct orb_test_large, &pack_orb_test_large);
+ORB_DEFINE(orb_test_large, struct orb_test_large, "ORB_TEST_LARGE:int val;hrt_abstime time;char[512] junk;");
 
 
 namespace uORBTest
