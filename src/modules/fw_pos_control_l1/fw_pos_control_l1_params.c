@@ -427,61 +427,6 @@ PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
 PARAM_DEFINE_INT32(FW_LND_USETER, 0);
 
 /**
- * Enable or disable runway takeoff with landing gear
- *
- * 0: disabled, 1: enabled
- *
- * @min 0
- * @max 1
- * @group L1 Control
- */
-PARAM_DEFINE_INT32(FW_RNW_TKOFF, 0);
-
-/**
- * Specifies which heading should be held during runnway takeoff.
- *
- * 0: airframe heading, 1: heading towards takeoff waypoint
- *
- * @min 0
- * @max 1
- * @group L1 Control
- */
-PARAM_DEFINE_INT32(FW_RNW_HDG, 0);
-
-/**
- * Altitude AGL at which navigation towards takeoff waypoint starts.
- * Until FW_RNW_NAV_ALT is reached the plane is held level and only
- * rudder is used to keep the heading (see FW_RNW_HDG).
- *
- * @min 0.0
- * @max 100.0
- * @group L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_RNW_NAV_ALT, 5.0);
-
-/**
- * Max throttle during runway takeoff.
- * (Can be used to test taxi on runway)
- *
- * @min 0.0
- * @max 1.0
- * @group L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_RNW_MAX_THR, 1.0);
-
-/**
- * Pitch setpoint during runway takeoff.
- * A taildragger with stearable wheel might need to pitch up
- * a little to keep it's wheel on the ground before airspeed
- * to takeoff is reached.
- *
- * @min 0.0
- * @max 20.0
- * @group L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_RNW_PSP, 0.0);
-
-/**
  * Flare, minimum pitch
  *
  * Minimum pitch during flare, a positive sign means nose up

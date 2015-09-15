@@ -95,6 +95,7 @@
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
 #include <platforms/px4_defines.h>
+#include <runway_takeoff/RunwayTakeoff.h>
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 #define HDG_HOLD_DIST_NEXT 			3000.0f 	// initial distance of waypoint in front of plane in heading hold mode
@@ -195,11 +196,9 @@ private:
 	bool land_useterrain;
 
 	bool _was_in_air;	/**< indicated wether the plane was in the air in the previous interation*/
-	bool _takeoff_initialized;
-	bool _takeoff_on_runway; /**< true as long as runway takeoff is in progress */
-	float _runway_takeoff_hdg_hold;
-	hrt_abstime _takeoff_runway_start; /**< time at which we start takeoff on runway */
 	hrt_abstime _time_went_in_air;	/**< time at which the plane went in the air */
+
+	runwaytakeoff::RunwayTakeoff _runway_takeoff;
 
 	/* takeoff/launch states */
 	LaunchDetectionResult launch_detection_state;
@@ -282,12 +281,6 @@ private:
 		float land_flare_pitch_max_deg;
 		int land_use_terrain_estimate;
 
-		int do_runway_takeoff;
-		int runway_takeoff_heading;
-		float runway_takeoff_nav_alt;
-		float runway_takeoff_throttle;
-		float runway_takeoff_pitch_sp;
-
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -335,12 +328,6 @@ private:
 		param_t land_flare_pitch_min_deg;
 		param_t land_flare_pitch_max_deg;
 		param_t land_use_terrain_estimate;
-
-		param_t do_runway_takeoff;
-		param_t runway_takeoff_heading;
-		param_t runway_takeoff_nav_alt;
-		param_t runway_takeoff_throttle;
-		param_t runway_takeoff_pitch_sp;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -541,11 +528,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_onslope(false),
 	land_useterrain(false),
 	_was_in_air(false),
-	_takeoff_initialized(false),
-	_takeoff_on_runway(false),
-	_runway_takeoff_hdg_hold(0),
-	_takeoff_runway_start(0),
 	_time_went_in_air(0),
+	_runway_takeoff(),
 	launch_detection_state(LAUNCHDETECTION_RES_NONE),
 	last_manual(false),
 	landingslope(),
@@ -587,12 +571,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_flare_pitch_min_deg = param_find("FW_FLARE_PMIN");
 	_parameter_handles.land_flare_pitch_max_deg = param_find("FW_FLARE_PMAX");
 	_parameter_handles.land_use_terrain_estimate= param_find("FW_LND_USETER");
-
-	_parameter_handles.do_runway_takeoff = param_find("FW_RNW_TKOFF");
-	_parameter_handles.runway_takeoff_heading = param_find("FW_RNW_HDG");
-	_parameter_handles.runway_takeoff_nav_alt = param_find("FW_RNW_NAV_ALT");
-	_parameter_handles.runway_takeoff_throttle = param_find("FW_RNW_MAX_THR");
-	_parameter_handles.runway_takeoff_pitch_sp = param_find("FW_RNW_PSP");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
@@ -697,12 +675,6 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
 	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
 
-	param_get(_parameter_handles.do_runway_takeoff, &(_parameters.do_runway_takeoff));
-	param_get(_parameter_handles.runway_takeoff_heading, &(_parameters.runway_takeoff_heading));
-	param_get(_parameter_handles.runway_takeoff_nav_alt, &(_parameters.runway_takeoff_nav_alt));
-	param_get(_parameter_handles.runway_takeoff_throttle, &(_parameters.runway_takeoff_throttle));
-	param_get(_parameter_handles.runway_takeoff_pitch_sp, &(_parameters.runway_takeoff_pitch_sp));
-
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
 	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
@@ -751,6 +723,8 @@ FixedwingPositionControl::parameters_update()
 
 	/* Update the mTecs */
 	_mTecs.updateParams();
+
+	_runway_takeoff.updateParams();
 
 	return OK;
 }
@@ -1386,72 +1360,54 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
-			if (_parameters.do_runway_takeoff == true) {
-				if (!_takeoff_initialized) {
-					_runway_takeoff_hdg_hold = _att.yaw;
-					_takeoff_runway_start = hrt_absolute_time();
-					_takeoff_initialized = true;
-					_takeoff_on_runway = true;
+			if (_runway_takeoff.runwayTakeoffEnabled()) {
+				if (!_runway_takeoff.isInitialized()) {
+					_runway_takeoff.init(_att.yaw);
+
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
 					_takeoff_ground_alt = _global_pos.alt;
-				}
-
-				if (_airspeed.true_airspeed_m_s < _parameters.airspeed_min * 1.2f) { // XXX takeoff: magic value
-					_takeoff_on_runway = true;
-					_att_sp.pitch_body = math::radians(_parameters.runway_takeoff_pitch_sp);
-				} else {
-					// min airspeed reached, let tecs control it
-					_takeoff_on_runway = false;
-					float takeoff_pitch_max_deg = _parameters.pitch_limit_max;
-					float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
-
-					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
-							calculate_target_airspeed(1.3f * _parameters.airspeed_min), // XXX takeoff: magic value
-							eas2tas,
-							math::radians(_parameters.pitch_limit_min),
-							takeoff_pitch_max_rad,
-							_parameters.throttle_min,
-							_parameters.throttle_max, // XXX should we also set runway_takeoff_throttle here?
-							_parameters.throttle_cruise,
-							true,
-							math::max(math::radians(_pos_sp_triplet.current.pitch_min),
-								math::radians(10.0f)),
-							_global_pos.alt,
-							ground_speed,
-							tecs_status_s::TECS_MODE_TAKEOFF,
-							takeoff_pitch_max_deg != _parameters.pitch_limit_max);
-
-					_att_sp.pitch_body = _tecs.get_pitch_demand();
+					mavlink_log_info(_mavlink_fd, "#audio: Takeoff on runway");
 				}
 
 				// update navigation
 				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 				float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt, _global_pos);
-				//PX4_WARN("talt: %f", (double)terrain_alt);
 
-				if (_global_pos.alt - terrain_alt > _parameters.runway_takeoff_nav_alt) {
-					// XXX once in here we should maybe not fall out again (although it shouldn't matter when we're climbing)
-					// start to navigate to takeoff waypoint as soon as we are high enough in the air
-					_att_sp.roll_body = _l1_control.nav_roll();
-					_att_sp.yaw_body = _l1_control.nav_bearing();
-				} else {
-					// for takeoff we want heading control with rudder, roll and pitch stabilization to zero
-					// throttle should be ramped up to max
-					_att_sp.roll_body = 0.0f;
-					_att_sp.fw_control_yaw = true;		// tell attitude controller he should control yaw directly
+				// update runway takeoff helper
+				_runway_takeoff.update(
+					_airspeed.true_airspeed_m_s,
+					_global_pos.alt - terrain_alt,
+					_mavlink_fd);
 
-					if (_parameters.runway_takeoff_heading == 0) {
-						// fix heading in the direction the airframe points
-						_att_sp.yaw_body = _runway_takeoff_hdg_hold;
-						//PX4_WARN("using initial heading: %.4f", (double)_att_sp.yaw_body);
-					} else if (_parameters.runway_takeoff_heading == 1) {
-						// or head into the direction of the takeoff waypoint
-						// XXX this needs a check if the deviation from actual heading is too big (else we do a full throttle wheel turn on the ground)
-						_att_sp.yaw_body = _l1_control.nav_bearing(); // XXX check if this is really the actual bearing
-						//PX4_WARN("using nav heading: %.4f", (double)_att_sp.yaw_body);
-					}
-				}
+				// update tecs
+				float takeoff_pitch_max_deg = _parameters.pitch_limit_max;
+				float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
+
+				tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
+						calculate_target_airspeed(
+							_runway_takeoff.getMinAirspeedScaling() * _parameters.airspeed_min),
+						eas2tas,
+						math::radians(_parameters.pitch_limit_min),
+						takeoff_pitch_max_rad,
+						_parameters.throttle_min,
+						_parameters.throttle_max, // XXX should we also set runway_takeoff_throttle here?
+						_parameters.throttle_cruise,
+						_runway_takeoff.climbout(),
+						math::radians(_runway_takeoff.getMinPitch(
+							_pos_sp_triplet.current.pitch_min,
+							10.0f,
+							_parameters.pitch_limit_min)),
+						_global_pos.alt,
+						ground_speed,
+						tecs_status_s::TECS_MODE_TAKEOFF,
+						takeoff_pitch_max_deg != _parameters.pitch_limit_max);
+
+				// assign values
+				_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.nav_roll());
+				_att_sp.yaw_body = _runway_takeoff.getYaw(_l1_control.nav_bearing());
+				_att_sp.fw_control_yaw = _runway_takeoff.controlYaw(); // tell attitude controller if he should control yaw directly
+				_att_sp.pitch_body = _runway_takeoff.getPitch(_tecs.get_pitch_demand());
 
 
 			} else {
@@ -1553,6 +1509,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		/* reset takeoff/launch state */
+		// FIXME: reset on arm/disarm cycle and mode switch
 		if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 			reset_takeoff_state();
 		}
@@ -1754,23 +1711,26 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
+
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
 			pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-			!_parameters.do_runway_takeoff) {
+			!_runway_takeoff.runwayTakeoffEnabled()) {
 		 /* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons */
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
-	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
+
+	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 			pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-			_parameters.do_runway_takeoff && _takeoff_on_runway == true) {
-		/* Ramp-up thrust and stay at max */
-		_att_sp.thrust = _att_sp.thrust < _parameters.runway_takeoff_throttle ?
-			hrt_elapsed_time(&_takeoff_runway_start) / (float)2000000 :
-			_parameters.runway_takeoff_throttle;
+			_runway_takeoff.runwayTakeoffEnabled()) {
+		_att_sp.thrust = _runway_takeoff.getThrottle(
+				math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() :
+				_tecs.get_throttle_demand(), throttle_max));
+
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 			pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_att_sp.thrust = 0.0f;
+
 	} else {
 		/* Copy thrust and pitch values from tecs */
 		if (_vehicle_status.condition_landed &&
@@ -1950,8 +1910,7 @@ void FixedwingPositionControl::reset_takeoff_state()
 {
 	launch_detection_state = LAUNCHDETECTION_RES_NONE;
 	launchDetector.reset();
-	_takeoff_initialized = false;
-	_takeoff_on_runway = false;
+	_runway_takeoff.reset();
 }
 
 void FixedwingPositionControl::reset_landing_state()
