@@ -30,12 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(MODULE_CFLAGS)
+if(NOT ${OS} STREQUAL "qurt")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3800)
+endif()
 px4_add_module(
 	MODULE modules__position_estimator_inav
 	MAIN position_estimator_inav
 	STACK 1200
-	COMPILE_FLAGS
-		-Wframe-larger-than=3800
+	COMPILE_FLAGS ${MODULE_CFLAGS}
 		
 	SRCS
 		position_estimator_inav_main.c

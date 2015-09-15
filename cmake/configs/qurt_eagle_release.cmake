@@ -20,7 +20,7 @@ set(target_libraries
 	)
 
 
-set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon.cmake)
+set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon-7.2.cmake)
 
 set(config_module_list
 	#
