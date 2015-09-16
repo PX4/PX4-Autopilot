@@ -43,6 +43,7 @@
 #include <time.h>
 #include <string.h>
 #include <inttypes.h>
+#include <errno.h>
 #include "hrt_work.h"
 
 static struct sq_queue_s	callout_queue;
@@ -59,7 +60,7 @@ static void		hrt_call_reschedule(void);
 #define HRT_INTERVAL_MIN	50
 #define HRT_INTERVAL_MAX	50000000
 
-static sem_t 	_hrt_lock;
+static sem_t 	*_hrt_lock;
 static struct work_s	_hrt_work;
 static hrt_abstime px4_timestart = 0;
 
@@ -70,14 +71,12 @@ __EXPORT hrt_abstime hrt_reset(void);
 
 static void hrt_lock(void)
 {
-	//printf("hrt_lock\n");
-	sem_wait(&_hrt_lock);
+	sem_wait(_hrt_lock);
 }
 
 static void hrt_unlock(void)
 {
-	//printf("hrt_unlock\n");
-	sem_post(&_hrt_lock);
+	sem_post(_hrt_lock);
 }
 
 #ifdef __PX4_DARWIN
@@ -87,8 +86,11 @@ static void hrt_unlock(void)
 #define MAC_GIGA UINT64_C(1000000000)
 #define CLOCK_MONOTONIC 1
 #define clockid_t int
+#define HRT_LOCK_NAME "/hrt_lock"
 
 static double px4_timebase = 0.0;
+
+int clock_gettime(clockid_t clk_id, struct timespec *t);
 
 int clock_gettime(clockid_t clk_id, struct timespec *t)
 {
@@ -96,13 +98,14 @@ int clock_gettime(clockid_t clk_id, struct timespec *t)
 		return 1;
 	}
 
-	// XXX multithreading locking
 	if (!px4_timestart) {
-		mach_timebase_info_data_t tb = { 0 };
+		hrt_lock();
+		mach_timebase_info_data_t tb = {};
 		mach_timebase_info(&tb);
 		px4_timebase = tb.numer;
 		px4_timebase /= tb.denom;
 		px4_timestart = mach_absolute_time();
+		hrt_unlock();
 	}
 
 	memset(t, 0, sizeof(*t));
@@ -229,7 +232,22 @@ void	hrt_init(void)
 {
 	//printf("hrt_init\n");
 	sq_init(&callout_queue);
-	sem_init(&_hrt_lock, 0, 1);
+
+	#ifdef __PX4_DARWIN
+	/* not using O_EXCL as the device handles are unique */
+	_hrt_lock = sem_open(HRT_LOCK_NAME, O_CREAT, 0777, 1);
+
+	if (_hrt_lock == SEM_FAILED) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	#else
+	_hrt_lock = malloc(sizeof(sem_t));
+	int sem_ret = sem_init(_hrt_lock, 0, 1);
+	if (sem_ret) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	#endif
+
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
 }
 
