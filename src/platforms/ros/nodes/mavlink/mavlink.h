@@ -55,7 +55,7 @@ namespace px4
 class Mavlink
 {
 public:
-	Mavlink();
+	Mavlink(std::string mavlink_fcu_url);
 
 	~Mavlink() {}
 
