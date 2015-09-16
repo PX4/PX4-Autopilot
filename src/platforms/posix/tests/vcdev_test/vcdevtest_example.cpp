@@ -55,7 +55,7 @@ using namespace device;
 
 static int writer_main(int argc, char *argv[])
 {
-	char buf[1] = { '1' };
+	char buf[1];
 
 	int fd = px4_open(TESTDEV, PX4_F_RDONLY);
 	if (fd < 0) {
@@ -66,15 +66,16 @@ static int writer_main(int argc, char *argv[])
 	int ret;
 	int i=0;
 	while (i<3) {
-		// Wait for 3 seconds
-		PX4_INFO("--- Sleeping for 4 sec\n");
+		// Wait for 4 seconds
+		PX4_INFO("Writer: Sleeping for 4 sec\n");
 		ret = sleep(4);
 		if (ret < 0) {
-			PX4_INFO("--- sleep failed %d %d\n", ret, errno);
+			PX4_INFO("Writer: sleep failed %d %d\n", ret, errno);
 			return ret;
 		}
 
-		PX4_INFO("--- writing to fd\n");
+		PX4_INFO("Writer: writing to fd\n");
+		buf[0] = 'A'+(char)(i % 26);
 		ret = px4_write(fd, buf, 1);
 	++i;
 	}
@@ -89,6 +90,11 @@ public:
 	~VCDevNode() {}
 
 	virtual ssize_t write(device::file_t *handlep, const char *buffer, size_t buflen);
+	virtual ssize_t read(device::file_t *handlep, const char *buffer, size_t buflen);
+private:
+	uint32_t _read_offset;
+	uint32_t _write_offset;
+	char     _buf[1000];
 };
 
 ssize_t VCDevNode::write(device::file_t *handlep, const char *buffer, size_t buflen)
@@ -96,6 +102,21 @@ ssize_t VCDevNode::write(device::file_t *handlep, const char *buffer, size_t buf
 	// ignore what was written, but let pollers know something was written
 	poll_notify(POLLIN);
 
+	for (int i=0; i<buflen && _write_offset<1000; i++) {
+		_buf[_write_offset] = buffer[i];
+		_write_offset++;
+	}
+
+	return buflen;
+}
+
+ssize_t VCDevNode::read(device::file_t *handlep, const char *buffer, size_t buflen)
+{
+	for (int i=0; i<buflen && _read_offset<_write_offset; i++) {
+		buffer[i] = _buf[_read_offset];
+		_read_offset++;
+	}
+	
 	return buflen;
 }
 
@@ -165,7 +186,7 @@ int VCDevExample::main()
 	int i=0;
 	px4_pollfd_struct_t fds[1];
 
-	// Start a task that will write something in 3 seconds
+	// Start a task that will write something in 4 seconds
 	(void)px4_task_spawn_cmd("writer", 
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 6,
@@ -175,37 +196,66 @@ int VCDevExample::main()
 
 	while (!appState.exitRequested() && i<13) {
 		PX4_INFO("=====================\n");
-		PX4_INFO("====  sleeping 2 sec ====\n");
+		PX4_INFO("Reader: sleeping 2 sec\n");
 		sleep(2);
 
 		fds[0].fd = fd;
 		fds[0].events = POLLIN;
 		fds[0].revents = 0;
 
-		PX4_INFO("==== Calling Poll\n");
+		PX4_INFO("Reader: Calling px4_poll with 1 sec wait\n");
 		ret = px4_poll(fds, 1, 1000);
-		PX4_INFO("==== Done poll\n");
+		PX4_INFO("Reader: Done px4_poll\n");
 		if (ret < 0) {
-			PX4_INFO("==== poll failed %d %d\n", ret, px4_errno);
+			PX4_INFO("Reader: px4_poll failed %d %d\n", ret, px4_errno);
 			px4_close(fd);
 		} 
 		else if (i > 0) {
 			if (ret == 0) {
-				PX4_INFO("==== Nothing to read - PASS\n");
+				PX4_INFO("Reader: Nothing to read - PASS\n");
 			}
 			else {
-				PX4_INFO("==== poll returned %d\n", ret);
+				PX4_INFO("Reader: poll returned %d\n", ret);
 			}
 		}
 		else if (i == 0) {
 			if (ret == 1) {
-				PX4_INFO("==== %d to read - %s\n", ret, fds[0].revents & POLLIN ? "PASS" : "FAIL");
+				PX4_INFO("Reader: %d to read - %s\n", ret, fds[0].revents & POLLIN ? "PASS" : "FAIL");
 			}
 			else {
-				PX4_INFO("==== %d to read - FAIL\n", ret);
+				PX4_INFO("Reader: %d to read - FAIL\n", ret);
 			}
 		
 		}
+		++i;
+	}
+	i=0;
+	while (!appState.exitRequested() && i<13) {
+		PX4_INFO("=====================\n");
+		PX4_INFO("Reader:  sleeping 2 sec ====\n");
+		sleep(2);
+
+		fds[0].fd = fd;
+		fds[0].events = POLLIN;
+		fds[0].revents = 0;
+
+		PX4_INFO("Reader: Calling px4_poll with 0 timeout\n");
+		ret = px4_poll(fds, 1, 0);
+		PX4_INFO("Reader: Done px4_poll\n");
+		if (ret < 0) {
+			PX4_INFO("Reader: px4_poll failed %d %d\n", ret, px4_errno);
+			px4_close(fd);
+		} 
+		if (ret == 0) {
+			PX4_INFO("Reader: Nothing to read - PASS\n");
+		}
+		if (ret == 1) {
+			PX4_INFO("Reader: %d to read - %s\n", ret, fds[0].revents & POLLIN ? "PASS" : "FAIL");
+		}
+		else {
+			PX4_INFO("Reader: %d to read - FAIL\n", ret);
+		}
+		
 		++i;
 	}
 	px4_close(fd);
