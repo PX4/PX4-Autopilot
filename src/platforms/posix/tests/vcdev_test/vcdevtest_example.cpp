@@ -303,6 +303,11 @@ int VCDevExample::main()
 		ret = 1;
 		goto fail2;
 	}
+	PX4_INFO("TEST: 100ms TIMEOUT POLL -----------");
+	if(do_poll(fd, 0, 30, 100)) {
+		ret = 1;
+		goto fail2;
+	}
 	PX4_INFO("TEST: 1 SEC TIMOUT POLL ------------");
 	if(do_poll(fd, 1000, 3, 0)) {
 		ret = 1;
