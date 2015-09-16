@@ -44,6 +44,7 @@
 #include <drivers/drv_device.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 namespace device
 {
@@ -54,7 +55,24 @@ Device::Device(const char *name) :
 	_name(name),
 	_debug_enabled(false)
 {
-	sem_init(&_lock, 0, 1);
+	#ifndef __PX4_DARWIN
+		_lock = new sem_t;
+		int ret = sem_init(_lock, 0, 1);
+
+		if (ret != 0) {
+			PX4_WARN("SEM INIT FAIL: ret %d, %s", ret, strerror(errno));
+		}
+	#else
+		_lock_name = new char[strlen(_name) + 2];
+		_lock_name[0] = '/';
+		strcpy(&_lock_name[1], _name);
+		/* not using O_EXCL as the device handles are unique */
+		_lock = sem_open(_lock_name, O_CREAT, 0777, 1);
+
+		if (_lock == SEM_FAILED) {
+			PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+		}
+	#endif
         
 	/* setup a default device ID. When bus_type is UNKNOWN the
 	   other fields are invalid */
@@ -67,7 +85,11 @@ Device::Device(const char *name) :
 
 Device::~Device()
 {
+	#ifdef __PX4_DARWIN
+	sem_unlink(_name);
+	#else
 	sem_destroy(&_lock);
+	#endif
 }
 
 int
