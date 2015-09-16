@@ -117,7 +117,6 @@ static void hrt_work_process()
 	uint64_t elapsed;
 	uint32_t remaining;
 	uint32_t next;
-	int ret;
 
 	/* Then process queued work.  We need to keep interrupts disabled while
 	 * we process items in the work list.
@@ -207,8 +206,7 @@ static void hrt_work_process()
 
 	/* might sleep less if a signal received and new item was queued */
 	//PX4_INFO("Sleeping for %u usec", next);
-	ret = usleep(next);
-	//PX4_INFO("WOKE UP %d", ret);
+	usleep(next);
 }
 
 /****************************************************************************
