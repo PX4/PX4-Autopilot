@@ -88,7 +88,7 @@ Device::~Device()
 	#ifdef __PX4_DARWIN
 	sem_unlink(_name);
 	#else
-	sem_destroy(&_lock);
+	sem_destroy(_lock);
 	#endif
 }
 
