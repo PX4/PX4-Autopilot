@@ -174,7 +174,7 @@ static void init_q(work_q_t *q)
 		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
 	}
 	#else
-	q->mutex = q->mutex_data;
+	q->mutex = &q->mutex_data;
 	int sem_ret = sem_init((q->mutex), 0, 1);
 	if (sem_ret) {
 		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
