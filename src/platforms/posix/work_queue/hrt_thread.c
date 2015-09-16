@@ -249,7 +249,7 @@ void hrt_work_queue_init(void)
 		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
 	}
 	#else
-	_hrt_work_lock = new sem_t;
+	_hrt_work_lock = malloc(sizeof(sem_t));
 	sem_init(_hrt_work_lock, 0, 1);
 	#endif
 
