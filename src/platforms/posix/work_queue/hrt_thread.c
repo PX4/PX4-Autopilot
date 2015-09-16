@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
+#include <errno.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include "hrt_work.h"
@@ -66,7 +67,7 @@ struct wqueue_s g_hrt_work;
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
-sem_t _hrt_work_lock;
+sem_t *_hrt_work_lock;
 
 /****************************************************************************
  * Private Functions
@@ -241,7 +242,16 @@ static int work_hrtthread(int argc, char *argv[])
 
 void hrt_work_queue_init(void)
 {
-	sem_init(&_hrt_work_lock, 0, 1);
+	#ifdef __PX4_DARWIN
+	/* not using O_EXCL as the device handles are unique */
+	_hrt_work_lock = sem_open("/hrt_work_lock", O_CREAT, 0777, 1);
+	if (_hrt_work_lock == SEM_FAILED) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	#else
+	_hrt_work_lock = new sem_t;
+	sem_init(_hrt_work_lock, 0, 1);
+	#endif
 
 	// Create high priority worker thread
 	g_hrt_work.pid = px4_task_spawn_cmd("wkr_hrt",

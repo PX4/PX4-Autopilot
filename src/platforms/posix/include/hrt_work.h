@@ -39,7 +39,7 @@
 
 __BEGIN_DECLS
 
-extern sem_t _hrt_work_lock;
+extern sem_t *_hrt_work_lock;
 extern struct wqueue_s g_hrt_work;
 
 void hrt_work_queue_init(void);
@@ -49,15 +49,13 @@ void hrt_work_cancel(struct work_s *work);
 static inline void hrt_work_lock(void);
 static inline void hrt_work_lock()
 {
-	//PX4_INFO("hrt_work_lock");
-	sem_wait(&_hrt_work_lock);
+	sem_wait(_hrt_work_lock);
 }
 
 static inline void hrt_work_unlock(void);
 static inline void hrt_work_unlock()
 {
-	//PX4_INFO("hrt_work_unlock");
-	sem_post(&_hrt_work_lock);
+	sem_post(_hrt_work_lock);
 }
 
 __END_DECLS

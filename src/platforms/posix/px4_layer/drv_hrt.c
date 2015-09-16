@@ -99,13 +99,11 @@ int clock_gettime(clockid_t clk_id, struct timespec *t)
 	}
 
 	if (!px4_timestart) {
-		hrt_lock();
 		mach_timebase_info_data_t tb = {};
 		mach_timebase_info(&tb);
 		px4_timebase = tb.numer;
 		px4_timebase /= tb.denom;
 		px4_timestart = mach_absolute_time();
-		hrt_unlock();
 	}
 
 	memset(t, 0, sizeof(*t));
@@ -193,6 +191,10 @@ bool	hrt_called(struct hrt_call *entry)
  */
 void	hrt_cancel(struct hrt_call *entry)
 {
+	/* check if this entry is configured */
+	if (entry->deadline == 0) {
+		return;
+	}
 	hrt_lock();
 	sq_rem(&entry->link, &callout_queue);
 	entry->deadline = 0;

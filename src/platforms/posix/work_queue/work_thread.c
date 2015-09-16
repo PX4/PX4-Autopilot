@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
+#include <errno.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include "work_lock.h"
@@ -68,7 +69,12 @@ struct wqueue_s g_work[NWORKERS];
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
-sem_t _work_lock[NWORKERS];
+sem_t *_work_lock[NWORKERS];
+sem_t _work_lock_data[NWORKERS];
+
+#define WORK_LOCK_HP "/work_lock_hp"
+#define WORK_LOCK_LP "/work_lock_lp"
+#define WORK_LOCK_USR "/work_lock_usr"
 
 /****************************************************************************
  * Private Functions
@@ -187,11 +193,33 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
  ****************************************************************************/
 void work_queues_init(void)
 {
-	sem_init(&_work_lock[HPWORK], 0, 1);
-	sem_init(&_work_lock[LPWORK], 0, 1);
+
+	#ifdef __PX4_DARWIN
+	/* not using O_EXCL as the device handles are unique */
+	_work_lock[HPWORK] = sem_open(WORK_LOCK_HP, O_CREAT, 0777, 1);
+	if (_work_lock[HPWORK] == SEM_FAILED) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	_work_lock[LPWORK] = sem_open(WORK_LOCK_LP, O_CREAT, 0777, 1);
+	if (_work_lock[LPWORK] == SEM_FAILED) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
 #ifdef CONFIG_SCHED_USRWORK
-	sem_init(&_work_lock[USRWORK], 0, 1);
+	_work_lock[USRWORK] = sem_open(WORK_LOCK_USR, O_CREAT, 0777, 1);
+	if (_work_lock[USRWORK] == SEM_FAILED) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
 #endif
+	#else
+	_work_lock[HPWORK] = &_work_lock_data[HPWORK]
+	sem_init(_work_lock[HPWORK], 0, 1);
+	_work_lock[LPWORK] = &_work_lock_data[LPWORK]
+	sem_init(_work_lock[LPWORK], 0, 1);
+#ifdef CONFIG_SCHED_USRWORK
+	_work_lock[USRWORK] = &_work_lock_data[USRWORK]
+	sem_init(_work_lock[USRWORK], 0, 1);
+#endif
+	#endif
 
 	// Create high priority worker thread
 	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
