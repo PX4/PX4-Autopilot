@@ -195,7 +195,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 {
 	sem_t sem;
 	int count = 0;
-	int ret;
+	int ret = -1;
 	unsigned int i;
 
 	PX4_DEBUG("Called px4_poll timeout = %d", timeout);
@@ -222,7 +222,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 
 	if (ret >= 0)
 	{
-		if (timeout >= 0)
+		if (timeout > 0)
 		{
 			// Use a work queue task
 			work_s _hpwork;
@@ -234,7 +234,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 			// out of scope
 			hrt_work_cancel(&_hpwork);
         	}
-		else
+		else if (timeout < 0) 
 		{
 			sem_wait(&sem);
 		}
