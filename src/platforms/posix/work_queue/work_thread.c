@@ -211,12 +211,12 @@ void work_queues_init(void)
 	}
 #endif
 	#else
-	_work_lock[HPWORK] = &_work_lock_data[HPWORK]
+	_work_lock[HPWORK] = &_work_lock_data[HPWORK];
 	sem_init(_work_lock[HPWORK], 0, 1);
-	_work_lock[LPWORK] = &_work_lock_data[LPWORK]
+	_work_lock[LPWORK] = &_work_lock_data[LPWORK];
 	sem_init(_work_lock[LPWORK], 0, 1);
 #ifdef CONFIG_SCHED_USRWORK
-	_work_lock[USRWORK] = &_work_lock_data[USRWORK]
+	_work_lock[USRWORK] = &_work_lock_data[USRWORK];
 	sem_init(_work_lock[USRWORK], 0, 1);
 #endif
 	#endif
