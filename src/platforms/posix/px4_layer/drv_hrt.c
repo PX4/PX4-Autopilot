@@ -46,6 +46,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <stdlib.h>
 #include "hrt_work.h"
 
 static struct sq_queue_s	callout_queue;
