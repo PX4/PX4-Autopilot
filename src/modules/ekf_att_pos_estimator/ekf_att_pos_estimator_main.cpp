@@ -212,12 +212,15 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameters{},
 	_parameter_handles{},
 	_ekf(nullptr),
+	_terrain_estimator(nullptr),
 
 	_LP_att_P(250.0f, 20.0f),
 	_LP_att_Q(250.0f, 20.0f),
 	_LP_att_R(250.0f, 20.0f)
 {
 	_voter_mag.set_timeout(200000);
+
+	_terrain_estimator = new TerrainEstimator();
 
 	_parameter_handles.vel_delay_ms = param_find("PE_VEL_DELAY_MS");
 	_parameter_handles.pos_delay_ms = param_find("PE_POS_DELAY_MS");
@@ -697,6 +700,10 @@ void AttitudePositionEstimatorEKF::task_main()
 					// Run EKF data fusion steps
 					updateSensorFusion(_gpsIsGood, _newDataMag, _newRangeData, _newHgtData, _newAdsData);
 
+					// Run separate terrain estimator
+					_terrain_estimator->predict(_ekf->dtIMU, &_att, &_sensor_combined, &_distance);
+					_terrain_estimator->measurement_update(&_gps, &_distance, &_att);
+
 					// Publish attitude estimations
 					publishAttitude();
 
@@ -997,9 +1004,12 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	}
 
 	/* terrain altitude */
-	_global_pos.terrain_alt = _ekf->hgtRef - _ekf->flowStates[1];
-	_global_pos.terrain_alt_valid = (_distance_last_valid > 0) &&
-					(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
+	if (_terrain_estimator->is_valid()) {
+		_global_pos.terrain_alt = _global_pos.alt - _terrain_estimator->get_distance_to_ground();
+		_global_pos.terrain_alt_valid = true;
+	} else {
+		_global_pos.terrain_alt_valid = false;
+	}
 
 	_global_pos.yaw = _local_pos.yaw;
 
