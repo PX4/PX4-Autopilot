@@ -121,6 +121,7 @@ MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
+MODULES 	+= lib/terrain_estimation
 MODULES		+= platforms/nuttx
 
 #

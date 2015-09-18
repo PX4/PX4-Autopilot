@@ -694,6 +694,10 @@ void AttitudePositionEstimatorEKF::task_main()
 					// Run EKF data fusion steps
 					updateSensorFusion(_gpsIsGood, _newDataMag, _newRangeData, _newHgtData, _newAdsData);
 
+					// Run separate terrain estimator
+					_terrain_estimator->predict(_ekf->dtIMU, &_att, &_sensor_combined, &_distance);
+					_terrain_estimator->measurement_update(&_gps, &_distance, &_att);
+
 					// Publish attitude estimations
 					publishAttitude();
 
