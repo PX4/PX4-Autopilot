@@ -97,7 +97,7 @@ MODULES 	+= platforms/posix/drivers/gpssim
 # Unit tests
 #
 #MODULES	+= platforms/posix/tests/hello
-#MODULES	+= platforms/posix/tests/vcdev_test
+MODULES	+= platforms/posix/tests/vcdev_test
 #MODULES	+= platforms/posix/tests/hrt_test
 #MODULES	+= platforms/posix/tests/wqueue
 

@@ -41,6 +41,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <stdint.h>
+#include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
@@ -72,6 +73,26 @@ sem_t _hrt_work_lock;
  * Private Functions
  ****************************************************************************/
 static void hrt_work_process(void);
+
+static void _sighandler(int sig_num);
+
+/****************************************************************************
+ * Name: _sighandler
+ *
+ * Description:
+ *   This is the handler for the signal to wake the queue processing thread
+ *
+ * Input parameters:
+ *   sig_num - the received signal
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+static void _sighandler(int sig_num)
+{
+	PX4_DEBUG("RECEIVED SIGNAL %d", sig_num);
+}
 
 /****************************************************************************
  * Name: work_process
@@ -251,5 +272,11 @@ void hrt_work_queue_init(void)
 					    work_hrtthread,
 					    (char *const *)NULL);
 
+	
+#ifdef __PX4_QURT
+	signal(SIGALRM, _sighandler);
+#else
+	signal(SIGCONT, _sighandler);
+#endif
 }
 
