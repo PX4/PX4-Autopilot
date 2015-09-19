@@ -85,6 +85,16 @@ int px4_sem_post(px4_sem_t *s)
 	return 0;
 }
 
+int px4_sem_getvalue(px4_sem_t *s)
+{
+	int val;
+	pthread_mutex_lock(&(s->lock));
+	val = s->value;
+	pthread_mutex_unlock(&(s->lock));
+
+	return val;
+}
+
 int px4_sem_destroy(px4_sem_t *s)
 {
 	pthread_mutex_lock(&(s->lock));
