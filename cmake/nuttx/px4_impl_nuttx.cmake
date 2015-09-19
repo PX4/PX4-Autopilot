@@ -40,7 +40,7 @@
 #		* px4_nuttx_add_firmware
 #		* px4_nuttx_generate_builtin_commands
 #		* px4_nuttx_add_export
-#		* px4_nuttx_generate_romfs
+#		* px4_nuttx_add_romfs
 #
 # 	Required OS Inteface Functions
 #
@@ -295,12 +295,12 @@ endfunction()
 
 #=============================================================================
 #
-#	px4_nuttx_generate_romfs
+#	px4_nuttx_add_romfs
 #
-#	The functions generates the ROMFS filesystem for nuttx.
+#	The functions creates a  ROMFS filesystem for nuttx.
 #
 #	Usage:
-#		px4_nuttx_generate_romfs(
+#		px4_nuttx_add_romfs(
 #			OUT <out-target>
 #			ROOT <in-directory>
 #			EXTRAS <in-list>)
@@ -310,64 +310,58 @@ endfunction()
 #		EXTRAS 	: list of extra files
 #
 #	Output:
-#		OUT		: the generated ROMFS
+#		OUT		: the ROMFS library target
 #
 #	Example:
-#		px4_nuttx_generate_romfs(OUT my_romfs ROOT "ROMFS/my_board")
+#		px4_nuttx_add_romfs(OUT my_romfs ROOT "ROMFS/my_board")
 #
-function(px4_nuttx_generate_romfs)
+function(px4_nuttx_add_romfs)
 
 	px4_parse_function_args(
-		NAME px4_nuttx_generate_romfs
+		NAME px4_nuttx_add_romfs
 		ONE_VALUE OUT ROOT
 		MULTI_VALUE EXTRAS
 		REQUIRED OUT ROOT
 		ARGN ${ARGN})
 
 	set(romfs_temp_dir ${CMAKE_BINARY_DIR}/tmp/${ROOT})
-	set(romfs_dest_dir ${CMAKE_BINARY_DIR}/${ROOT})
 	set(romfs_src_dir ${CMAKE_SOURCE_DIR}/${ROOT})
 	set(romfs_autostart ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
 	set(romfs_pruner ${CMAKE_SOURCE_DIR}/Tools/px_romfs_pruner.py)
 	set(bin_to_obj ${CMAKE_SOURCE_DIR}/cmake/nuttx/bin_to_obj.py)
+	set(extras_dir ${CMAKE_CURRENT_BINARY_DIR}/extras)
 
 	file(GLOB_RECURSE romfs_src_files ${romfs_src_dir} ${romfs_src_dir}/*)
 
-	px4_copy_tracked(OUT romfs_files
-		FILES ${romfs_src_files}
-		DEST ${romfs_dest_dir}
-		RELATIVE ${romfs_src_dir}
-		)
+	set(cmake_test ${CMAKE_SOURCE_DIR}/cmake/test/cmake_tester.py)
 
-	if (EXTRAS)
-		px4_copy_tracked(OUT extra_files
-			FILES ${EXTRAS}
-			DEST ${romfs_dest_dir}/extras
-			RELATIVE ${romfs_src_dir}
+	
+	set(extras)
+	foreach(extra ${EXTRAS})
+		get_filename_component(file_name ${extra} NAME)
+		set(file_dest ${extras_dir}/${file_name})
+		add_custom_command(OUTPUT ${file_dest}
+			COMMAND cmake -E copy ${extra} ${file_dest}
+			DEPENDS ${extra}
 			)
-		list(APPEND romfs_files ${extra_files})
-	endif()
+		list(APPEND extras ${file_dest})
+	endforeach()
+	add_custom_target(collect_extras DEPENDS ${extras})
 
-	add_custom_command(OUTPUT ${romfs_dest_dir}/init.d/rc.autostart
-		COMMAND ${PYTHON_EXECUTABLE} ${romfs_autostart}
-			-a ${romfs_src_dir}/init.d
-			-s ${romfs_dest_dir}/init.d/rc.autostart
-		)
-	list(APPEND romfs_files ${romfs_dest_dir}/init.d/rc.autostart)
+	message(STATUS "EXTRAS: ${extras}")
 
-	add_custom_command(OUTPUT romfs.bin
+	add_custom_command(OUTPUT romfs.o
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
-		COMMAND cmake -E copy_directory ${romfs_dest_dir} ${romfs_temp_dir}
+		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
+		COMMAND cmake -E copy_directory ${extras_dir} ${romfs_temp_dir}
+		COMMAND ${PYTHON_EXECUTABLE} ${romfs_autostart}
+			-a ${romfs_temp_dir}/init.d
+			-s ${romfs_temp_dir}/init.d/rc.autostart
 		COMMAND ${PYTHON_EXECUTABLE} ${romfs_pruner}
 			--folder ${romfs_temp_dir}
 		COMMAND ${GENROMFS} -f ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
 			-d ${romfs_temp_dir} -V "NSHInitVol"
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
-		DEPENDS ${romfs_files}
-		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-		)
-
-	add_custom_command(OUTPUT romfs.o
 		COMMAND ${PYTHON_EXECUTABLE} ${bin_to_obj}
 			--ld ${LD} --c_flags ${CMAKE_C_FLAGS}
 			--c_compiler ${CMAKE_C_COMPILER}
@@ -375,11 +369,12 @@ function(px4_nuttx_generate_romfs)
 			--obj romfs.o
 			--var romfs_img
 			--bin romfs.bin
-		DEPENDS romfs.bin
+		DEPENDS ${romfs_src_files} ${extras}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
-
-	set(${OUT} romfs.o PARENT_SCOPE)
+	add_library(${OUT} STATIC romfs.o)
+	set_target_properties(${OUT} PROPERTIES LINKER_LANGUAGE C)
+	set(${OUT} ${${OUT}} PARENT_SCOPE)
 
 endfunction()
 

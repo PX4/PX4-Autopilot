@@ -5,17 +5,22 @@ px4_nuttx_generate_builtin_commands(
 		${config_extra_builtin_cmds}
 	)
 
-px4_nuttx_generate_romfs(OUT romfs.o
-	ROOT ROMFS/px4fmu_common)
+px4_nuttx_add_romfs(OUT romfs
+	ROOT ROMFS/px4fmu_common
+	EXTRAS ${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}.bin
+	)
+
+add_dependencies(romfs fw_io)
 
 # add executable
 add_executable(firmware_nuttx
-	builtin_commands.c
-	romfs.o)
+	builtin_commands.c)
+
+
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 
 set(link_libs
-	apps nuttx m gcc
+	romfs apps nuttx m gcc
 	)
 
 if(NOT ${BOARD} STREQUAL "sim")

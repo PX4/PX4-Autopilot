@@ -129,8 +129,12 @@ target_link_libraries(${fw_io_name}
 	${config_io_extra_libs}
 	-Wl,--end-group)
 
-px4_nuttx_create_bin(OUT ${fw_io_name}.bin
+px4_nuttx_create_bin(OUT ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}.bin
 	EXE ${fw_io_name}
 	)
+
+add_custom_target(fw_io
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}.bin)
+
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
