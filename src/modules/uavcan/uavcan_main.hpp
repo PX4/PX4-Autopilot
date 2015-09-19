@@ -148,7 +148,7 @@ private:
 
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
-	sem_t                   _server_command_sem;
+	px4_sem_t                   _server_command_sem;
 	UavcanEscController	_esc_controller;
 
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
