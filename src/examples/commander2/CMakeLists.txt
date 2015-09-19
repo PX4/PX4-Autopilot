@@ -48,7 +48,7 @@ if (NOT ${BOARD} STREQUAL "cbmc")
 endif()
 
 px4_add_module(
-	MODULE modules__commander2
+	MODULE examples__commander2
 	MAIN commander2
 	STACK 5000
 	SRCS ${srcs}
@@ -58,7 +58,7 @@ px4_add_module(
 	)
 
 add_executable(test_commander2 test_commander.c)
-target_link_libraries(test_commander2 modules__commander2)
+target_link_libraries(test_commander2 examples__commander2)
 
 if (${BOARD} STREQUAL "cbmc")
 	add_test(NAME test_commander2_assertion_coverage
