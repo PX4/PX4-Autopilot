@@ -37,6 +37,9 @@ add_custom_command(OUTPUT mixer_multirotor.generated.h
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/multi_tables.py
 	> mixer_multirotor.generated.h)
 
+add_custom_target(mixer_gen
+	DEPENDS mixer_multirotor.generated.h)
+
 px4_add_module(
 	MODULE modules__systemlib__mixer
 	SRCS

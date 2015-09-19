@@ -8,7 +8,7 @@ foreach(tool nm ld)
 endforeach()
 
 # os tools
-foreach(tool echo patch grep rm mkdir nm genromfs awk cp touch make unzip)
+foreach(tool echo patch grep rm mkdir nm genromfs cp touch make unzip)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} ${tool})
 	if(NOT ${TOOL})
