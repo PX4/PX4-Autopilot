@@ -417,6 +417,7 @@ private:
 #ifdef __PX4_POSIX
 	struct sockaddr_in _myaddr;
 	struct sockaddr_in _src_addr;
+	struct sockaddr_in _bcast_addr;
 
 #endif
 	int _socket_fd;

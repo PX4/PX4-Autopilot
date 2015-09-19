@@ -178,6 +178,9 @@ Mavlink::Mavlink() :
 	_rate_tx(0.0f),
 	_rate_txerr(0.0f),
 	_rate_rx(0.0f),
+	_myaddr{},
+	_src_addr{},
+	_bcast_addr{},
 	_socket_fd(-1),
 	_protocol(SERIAL),
 	_network_port(14556),
@@ -883,8 +886,19 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 #else
 	if (get_protocol() == UDP) {
 		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+
+		struct telemetry_status_s &tstatus = get_rx_status();
+
+		/* resend heartbeat via broadcast */
+		if (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
+			(tstatus.heartbeat_time == 0)) &&
+			msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+
+			(void)sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+		}
+
 	} else if (get_protocol() == TCP) {
-		// not implemented, but possible to do so
+		/* not implemented, but possible to do so */
 		warnx("TCP transport pending implementation");
 	}
 #endif
@@ -975,11 +989,17 @@ Mavlink::init_udp()
 		return;
 	}
 
-	// set default target address
+	/* set default target address */
 	memset((char *)&_src_addr, 0, sizeof(_src_addr));
 	_src_addr.sin_family = AF_INET;
 	inet_aton("127.0.0.1", &_src_addr.sin_addr);
 	_src_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
+
+	/* default broadcast address */
+	memset((char *)&_bcast_addr, 0, sizeof(_bcast_addr));
+	_bcast_addr.sin_family = AF_INET;
+	inet_aton("255.255.255.255", &_bcast_addr.sin_addr);
+	_bcast_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
 
 #endif
 }
