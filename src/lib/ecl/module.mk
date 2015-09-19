@@ -39,6 +39,8 @@ SRCS		 = 	attitude_fw/ecl_controller.cpp \
 			attitude_fw/ecl_pitch_controller.cpp \
 			attitude_fw/ecl_roll_controller.cpp \
 			attitude_fw/ecl_yaw_controller.cpp \
-			l1/ecl_l1_pos_controller.cpp
+			l1/ecl_l1_pos_controller.cpp \
+			validation/data_validator.cpp \
+			validation/data_validator_group.cpp
 
 MAXOPTIMIZATION	 = -Os

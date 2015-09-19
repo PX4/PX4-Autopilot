@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name APL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,16 +31,24 @@
  *
  ****************************************************************************/
 
-/**
- * @file ecl.h
- * Adapter / shim layer for system calls needed by ECL
+/*
+ * @file rgbled_params.c
  *
+ * Parameters defined by the RBG led driver
+ *
+ * @author Nate Weibley <nate.weibley@prioria.com>
  */
 
-#include <drivers/drv_hrt.h>
-#include <px4_log.h>
 
-#define ecl_absolute_time hrt_absolute_time
-#define ecl_elapsed_time hrt_elapsed_time
-#define ECL_WARN PX4_WARN
-#define ECL_INFO PX4_INFO
+#include <px4_config.h>
+#include <systemlib/param/param.h>
+
+/**
+ * RGB Led brightness limit
+ *
+ * Set to 0 to disable, 1 for minimum brightness up to 15 (max)
+ *
+ * @min 0
+ * @max 15
+ */
+PARAM_DEFINE_INT32(LED_RGB_MAXBRT, 15);
