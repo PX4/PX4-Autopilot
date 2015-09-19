@@ -348,8 +348,6 @@ function(px4_nuttx_add_romfs)
 	endforeach()
 	add_custom_target(collect_extras DEPENDS ${extras})
 
-	message(STATUS "EXTRAS: ${extras}")
-
 	add_custom_command(OUTPUT romfs.o
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
