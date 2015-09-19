@@ -72,6 +72,7 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
 {
 	/* do nothing right now */
+	return 0;
 }
 
 #endif
@@ -86,7 +87,7 @@ void init_once(void);
 void init_once(void)
 {
 	_shell_task_id = pthread_self();
-	printf("[init] shell id: %lu\n", _shell_task_id);
+	printf("[init] shell id: %lu\n", (unsigned long)_shell_task_id);
 	work_queues_init();
 	hrt_work_queue_init();
 	hrt_init();

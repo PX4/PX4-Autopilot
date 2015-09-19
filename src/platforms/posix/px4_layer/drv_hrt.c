@@ -60,7 +60,7 @@ static void		hrt_call_reschedule(void);
 #define HRT_INTERVAL_MIN	50
 #define HRT_INTERVAL_MAX	50000000
 
-static sem_t 	*_hrt_lock;
+static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
 static hrt_abstime px4_timestart = 0;
 
@@ -71,12 +71,12 @@ __EXPORT hrt_abstime hrt_reset(void);
 
 static void hrt_lock(void)
 {
-	sem_wait(_hrt_lock);
+	px4_sem_wait(&_hrt_lock);
 }
 
 static void hrt_unlock(void)
 {
-	sem_post(_hrt_lock);
+	px4_sem_post(&_hrt_lock);
 }
 
 #ifdef __PX4_DARWIN
@@ -99,13 +99,11 @@ int clock_gettime(clockid_t clk_id, struct timespec *t)
 	}
 
 	if (!px4_timestart) {
-		hrt_lock();
 		mach_timebase_info_data_t tb = {};
 		mach_timebase_info(&tb);
 		px4_timebase = tb.numer;
 		px4_timebase /= tb.denom;
 		px4_timestart = mach_absolute_time();
-		hrt_unlock();
 	}
 
 	memset(t, 0, sizeof(*t));
@@ -230,23 +228,12 @@ void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
  */
 void	hrt_init(void)
 {
-	//printf("hrt_init\n");
 	sq_init(&callout_queue);
 
-	#ifdef __PX4_DARWIN
-	/* not using O_EXCL as the device handles are unique */
-	_hrt_lock = sem_open(HRT_LOCK_NAME, O_CREAT, 0777, 1);
-
-	if (_hrt_lock == SEM_FAILED) {
-		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
-	}
-	#else
-	_hrt_lock = malloc(sizeof(sem_t));
-	int sem_ret = sem_init(_hrt_lock, 0, 1);
+	int sem_ret = px4_sem_init(&_hrt_lock, 0, 1);
 	if (sem_ret) {
-		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+		PX4_ERR("SEM INIT FAIL: %s", strerror(errno));
 	}
-	#endif
 
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
 }
