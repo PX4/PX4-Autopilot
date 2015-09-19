@@ -551,7 +551,7 @@ function(px4_add_common_flags)
 	endif()
 
 	set(c_compile_flags
-		-g3
+		-g
 		-std=gnu99
 		-fno-common
 		)
@@ -560,7 +560,7 @@ function(px4_add_common_flags)
 		-Wno-missing-field-initializers
 		)
 	set(cxx_compile_flags
-		-g3
+		-g
 		-fno-exceptions
 		-fno-rtti
 		-std=gnu++0x
@@ -734,5 +734,55 @@ function(px4_generate_parameters)
 		)
 	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()
+
+#=============================================================================
+#
+#	px4_copy_tracked
+#
+#	Copy files to a directory and keep track of dependencies.
+#
+#	Usage:
+#		px4_copy_tracked(OUT <dest-files> FILES <in-files> DIR <dir-name>)
+#
+#	Input:
+#		FILES	:  the source files
+#		DEST		:  the directory to copy files to
+#		RELATIVE :  relative directory for source files
+#
+#	Output:
+#		OUT	: the copied files
+#
+#	Example:
+#		px4_copy_tracked(OUT copied_files FILES src_files DEST path RELATIVE path_rel)
+#
+function(px4_copy_tracked)
+	px4_parse_function_args(
+		NAME px4_copy_tracked
+		ONE_VALUE DEST OUT RELATIVE
+		MULTI_VALUE FILES
+		REQUIRED DEST OUT FILES
+		ARGN ${ARGN})
+	set(files)
+	# before build, make sure dest directory exists
+	execute_process(
+		COMMAND cmake -E make_directory ${DEST})
+	# create rule to copy each file and set dependency as source file
+	set(_files_out)
+	foreach(_file ${FILES})
+		if (RELATIVE)
+			file(RELATIVE_PATH _file_path ${RELATIVE} ${_file})
+		else()
+			set(_file_path ${_file})
+		endif()
+		set(_dest_file ${DEST}/${_file_path})
+		#message(STATUS "copy ${_file} -> ${_dest_file}")
+		add_custom_command(OUTPUT ${_dest_file}
+			COMMAND cmake -E copy ${_file} ${_dest_file}
+			DEPENDS ${_file})
+		list(APPEND _files_out ${_dest_file})
+	endforeach()
+	set(${OUT} ${_files_out} PARENT_SCOPE)
+endfunction()
+
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:
