@@ -277,9 +277,11 @@ foreach(module ${config_module_list})
 endforeach()
 
 add_subdirectory(src/firmware/${OS})
+
 if (config_io_board)
 	add_subdirectory(src/modules/px4iofirmware)
 endif()
+
 
 #=============================================================================
 # generate git version

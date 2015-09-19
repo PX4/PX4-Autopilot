@@ -123,18 +123,14 @@ set(main_link_flags
 px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
 set_target_properties(${fw_io_name} PROPERTIES LINK_FLAGS ${main_link_flags})
 
-set(io_fw_file ${CMAKE_CURRENT_BINARY_DIR}/${fw-io_name}.px4)
-
 target_link_libraries(${fw_io_name}
 	-Wl,--start-group
 	apps nuttx nosys m gcc
 	${config_io_extra_libs}
 	-Wl,--end-group)
 
-px4_nuttx_add_firmware(OUT ${io_fw_file}
-	BOARD ${config_io_board}
-	EXE ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}
-	${config_firmware_options}
+px4_nuttx_create_bin(OUT ${fw_io_name}.bin
+	EXE ${fw_io_name}
 	)
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

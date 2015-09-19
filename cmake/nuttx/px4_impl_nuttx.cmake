@@ -260,15 +260,54 @@ endfunction()
 
 #=============================================================================
 #
+#	px4_nuttx_create_bin
+#
+#	The functions generates a bin image for nuttx.
+#
+#	Usage:
+#		px4_nuttx_create_bin(BIN <out-file> EXE <in-file>)
+#
+#	Input:
+#		EXE		: the exe file
+#
+#	Output:
+#		OUT		: the binary output file
+#
+#	Example:
+#		px4_nuttx_create_bin(OUT my_exe.bin EXE my_exe)
+#
+function(px4_nuttx_create_bin)
+
+	px4_parse_function_args(
+		NAME px4_nuttx_create_bin
+		ONE_VALUE EXE OUT
+		REQUIRED EXE OUT
+		ARGN ${ARGN})
+
+	add_custom_command(OUTPUT ${OUT}
+		COMMAND ${OBJCOPY} -O binary ${EXE} ${EXE}.bin
+		DEPENDS ${EXE})
+
+	set(${OUT} ${${OUT}} PARENT_SCOPE)
+
+endfunction()
+
+
+#=============================================================================
+#
 #	px4_nuttx_generate_romfs
 #
 #	The functions generates the ROMFS filesystem for nuttx.
 #
 #	Usage:
-#		px4_nuttx_generate_romfs(OUT <out-target> ROOT <in-directory>)
+#		px4_nuttx_generate_romfs(
+#			OUT <out-target>
+#			ROOT <in-directory>
+#			EXTRAS <in-list>)
 #
 #	Input:
 #		ROOT	: the root of the ROMFS
+#		EXTRAS 	: list of extra files
 #
 #	Output:
 #		OUT		: the generated ROMFS
@@ -281,42 +320,50 @@ function(px4_nuttx_generate_romfs)
 	px4_parse_function_args(
 		NAME px4_nuttx_generate_romfs
 		ONE_VALUE OUT ROOT
+		MULTI_VALUE EXTRAS
 		REQUIRED OUT ROOT
 		ARGN ${ARGN})
 
-	file(GLOB_RECURSE romfs_files ${ROOT}/*)
-	set(romfs_temp_dir ${CMAKE_BINARY_DIR}/${ROOT})
+	set(romfs_temp_dir ${CMAKE_BINARY_DIR}/tmp/${ROOT})
+	set(romfs_dest_dir ${CMAKE_BINARY_DIR}/${ROOT})
 	set(romfs_src_dir ${CMAKE_SOURCE_DIR}/${ROOT})
-
 	set(romfs_autostart ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
 	set(romfs_pruner ${CMAKE_SOURCE_DIR}/Tools/px_romfs_pruner.py)
 	set(bin_to_obj ${CMAKE_SOURCE_DIR}/cmake/nuttx/bin_to_obj.py)
 
-	#message(STATUS "temp_dir: ${romfs_temp_dir}")
-	#message(STATUS "src_dir: ${romfs_src_dir}")
+	file(GLOB_RECURSE romfs_src_files ${romfs_src_dir} ${romfs_src_dir}/*)
 
-	add_custom_command(OUTPUT rc.autostart
-		COMMAND ${PYTHON_EXECUTABLE} ${romfs_autostart}
-			-a ${romfs_src_dir}/init.d
-			-s rc.autostart
+	px4_copy_tracked(OUT romfs_files
+		FILES ${romfs_src_files}
+		DEST ${romfs_dest_dir}
+		RELATIVE ${romfs_src_dir}
 		)
 
+	if (EXTRAS)
+		px4_copy_tracked(OUT extra_files
+			FILES ${EXTRAS}
+			DEST ${romfs_dest_dir}/extras
+			RELATIVE ${romfs_src_dir}
+			)
+		list(APPEND romfs_files ${extra_files})
+	endif()
 
-	set(io_bin_image
-		${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}.bin)
+	add_custom_command(OUTPUT ${romfs_dest_dir}/init.d/rc.autostart
+		COMMAND ${PYTHON_EXECUTABLE} ${romfs_autostart}
+			-a ${romfs_src_dir}/init.d
+			-s ${romfs_dest_dir}/init.d/rc.autostart
+		)
+	list(APPEND romfs_files ${romfs_dest_dir}/init.d/rc.autostart)
 
 	add_custom_command(OUTPUT romfs.bin
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
-		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
-		COMMAND cmake -E copy rc.autostart ${romfs_temp_dir}/init.d
-		COMMAND cmake -E make_directory ${romfs_temp_dir}/extras
-		COMMAND cmake -E copy ${io_bin_image} ${romfs_temp_dir}/extras
-		#TODO add romfs cleanup of temp file .~, .swp etc
+		COMMAND cmake -E copy_directory ${romfs_dest_dir} ${romfs_temp_dir}
 		COMMAND ${PYTHON_EXECUTABLE} ${romfs_pruner}
 			--folder ${romfs_temp_dir}
 		COMMAND ${GENROMFS} -f ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
 			-d ${romfs_temp_dir} -V "NSHInitVol"
-		DEPENDS ${romfs_files} rc.autostart ${io_bin_image}
+		COMMAND cmake -E remove_directory ${romfs_temp_dir}
+		DEPENDS ${romfs_files}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
 
