@@ -21,6 +21,7 @@ set(WARNINGS
     -Werror=uninitialized
     -Werror=init-self
     -Werror=return-type
+    -Werror=deprecated
     -Wno-packed
     -Wno-frame-larger-than=
     #-Wcast-qual  - generates spurious noreturn attribute warnings,
