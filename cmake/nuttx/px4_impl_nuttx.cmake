@@ -301,20 +301,22 @@ function(px4_nuttx_generate_romfs)
 			-s rc.autostart
 		)
 
+
+	set(io_bin_image
+		${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}.bin)
+
 	add_custom_command(OUTPUT romfs.bin
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
 		COMMAND cmake -E copy rc.autostart ${romfs_temp_dir}/init.d
 		COMMAND cmake -E make_directory ${romfs_temp_dir}/extras
-		COMMAND cmake -E copy
-			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}.bin
-			${romfs_temp_dir}/extras
+		COMMAND cmake -E copy ${io_bin_image} ${romfs_temp_dir}/extras
 		#TODO add romfs cleanup of temp file .~, .swp etc
 		COMMAND ${PYTHON_EXECUTABLE} ${romfs_pruner}
 			--folder ${romfs_temp_dir}
 		COMMAND ${GENROMFS} -f ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
 			-d ${romfs_temp_dir} -V "NSHInitVol"
-		DEPENDS ${romfs_files} rc.autostart
+		DEPENDS ${romfs_files} rc.autostart ${io_bin_image}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
 
