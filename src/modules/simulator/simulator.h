@@ -39,6 +39,7 @@
 #pragma once
 
 #include <semaphore.h>
+#include <errno.h>
 #include <uORB/topics/hil_sensor.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -125,10 +126,35 @@ public:
 		_max_readers(readers),
 		_report_len(sizeof(RType))
 	{
-		sem_init(&_lock, 0, _max_readers);
+		#ifndef __PX4_DARWIN
+		_lock = new sem_t;
+		int ret = sem_init(_lock, 0, _max_readers);
+		if (ret != 0) {
+			PX4_WARN("SEM INIT FAIL: ret %d, %s", ret, strerror(errno));
+		}
+		#else
+		char sem_name[32];
+		sprintf(&sem_name[0], "/%p", this);
+		/* not using O_EXCL as the device handles are unique */
+		_lock = sem_open(sem_name, O_CREAT, 0777, _max_readers);
+
+		if (_lock == SEM_FAILED) {
+			PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+		}
+		#endif
 	}
 
-	~Report() {};
+	~Report() {
+		#ifndef __PX4_DARWIN
+		sem_destroy(_lock);
+		delete _lock;
+		#else
+		/* construct unique semaphore name from pointer address */
+		char sem_name[32];
+		sprintf(&sem_name[0], "/%p", this);
+		sem_unlink(sem_name);
+		#endif
+	}
 
 	bool copyData(void *outbuf, int len)
 	{
@@ -149,23 +175,23 @@ public:
 	}
 
 protected:
-	void read_lock() { sem_wait(&_lock); }
-	void read_unlock() { sem_post(&_lock); }
+	void read_lock() { sem_wait(_lock); }
+	void read_unlock() { sem_post(_lock); }
 	void write_lock()
 	{
 		for (int i=0; i<_max_readers; i++) {
-			sem_wait(&_lock);
+			sem_wait(_lock);
 		}
 	}
 	void write_unlock()
 	{
 		for (int i=0; i<_max_readers; i++) {
-			sem_post(&_lock);
+			sem_post(_lock);
 		}
 	}
 
 	int _readidx;
-	sem_t _lock;
+	sem_t *_lock;
 	const int _max_readers;
 	const int _report_len;
 	RType _buf[2];

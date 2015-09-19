@@ -193,18 +193,29 @@ int px4_ioctl(int fd, int cmd, unsigned long arg)
 
 int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 {
-	sem_t sem;
+	sem_t *sem;
 	int count = 0;
-	int ret;
+	int ret = -1;
 	unsigned int i;
 
 	PX4_DEBUG("Called px4_poll timeout = %d", timeout);
-	sem_init(&sem, 0, 0);
+
+	#ifdef __PX4_DARWIN
+	char sem_name[32];
+	sprintf(sem_name, "/%p", fds);
+	sem = sem_open(sem_name, O_CREAT, 0777, 0);
+	if (_hrt_work_lock == SEM_FAILED) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	#else
+	sem = new sem_t;
+	sem_init(sem, 0, 0);
+	#endif
 
 	// For each fd 
-	for (i=0; i<nfds; ++i)
+	for (i = 0; i < nfds; ++i)
 	{
-		fds[i].sem     = &sem;
+		fds[i].sem     = sem;
 		fds[i].revents = 0;
 		fds[i].priv    = NULL;
 
@@ -222,21 +233,21 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 
 	if (ret >= 0)
 	{
-		if (timeout >= 0)
+		if (timeout > 0)
 		{
 			// Use a work queue task
 			work_s _hpwork;
 
 			hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)&sem, 1000*timeout);
-			sem_wait(&sem);
+			sem_wait(sem);
 
 			// Make sure timer thread is killed before sem goes
 			// out of scope
 			hrt_work_cancel(&_hpwork);
         	}
-		else
+		else if (timeout < 0) 
 		{
-			sem_wait(&sem);
+			sem_wait(sem);
 		}
 
 		// For each fd 
@@ -258,7 +269,12 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 		}
 	}
 
-	sem_destroy(&sem);
+	#ifdef __PX4_DARWIN
+	sem_unlink(sem_name);
+	#else
+	sem_destroy(sem);
+	delete sem;
+	#endif
 
 	return count;
 }

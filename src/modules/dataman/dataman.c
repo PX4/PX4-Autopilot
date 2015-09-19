@@ -51,6 +51,7 @@
 #include <string.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "dataman.h"
 #include <systemlib/param/param.h>
@@ -82,7 +83,8 @@ typedef enum {
 /** Work task work item */
 typedef struct {
 	sq_entry_t link;	/**< list linkage */
-	sem_t wait_sem;
+	sem_t *wait_sem;
+	sem_t wait_sem_data;
 	unsigned char first;
 	unsigned char func;
 	ssize_t result;
@@ -129,18 +131,21 @@ static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
 /* Item type lock mutexes */
 static sem_t *g_item_locks[DM_KEY_NUM_KEYS];
-static sem_t g_sys_state_mutex;
+static sem_t *g_sys_state_mutex;
+sem_t *g_work_queued_sema;	/* To notify worker thread a work item has been queued */
 
 /* The data manager store file handle and file name */
 static int g_fd = -1, g_task_fd = -1;
 static const char *default_device_path = PX4_ROOTFSDIR"/fs/microsd/dataman";
 static char *k_data_manager_device_path = NULL;
+static bool task_running = false;
 
 /* The data manager work queues */
 
 typedef struct {
 	sq_queue_t q;		/* Nuttx queue */
-	sem_t mutex;		/* Mutual exclusion on work queue adds and deletes */
+	sem_t *mutex;		/* Mutual exclusion on work queue adds and deletes */
+	sem_t mutex_data;		/* Mutual exclusion on work queue adds and deletes */
 	unsigned size;		/* Current size of queue */
 	unsigned max_size;	/* Maximum queue size reached */
 } work_q_t;
@@ -148,8 +153,9 @@ typedef struct {
 static work_q_t g_free_q;	/* queue of free work items. So that we don't always need to call malloc and free*/
 static work_q_t g_work_q;	/* pending work items. To be consumed by worker thread */
 
-sem_t g_work_queued_sema;	/* To notify worker thread a work item has been queued */
-sem_t g_init_sema;
+#define Q_MUTEX_NAME "/dataman_q_mutex"
+#define G_WORK_MUTEX_NAME "/dataman_g_work"
+#define G_SYS_MUTEX_NAME "/dataman_g_sys"
 
 static bool g_task_should_exit;	/**< if true, dataman task should exit */
 
@@ -159,26 +165,44 @@ static const unsigned k_sector_size = DM_MAX_DATA_SIZE + DM_SECTOR_HDR_SIZE; /* 
 static void init_q(work_q_t *q)
 {
 	sq_init(&(q->q));		/* Initialize the NuttX queue structure */
-	sem_init(&(q->mutex), 1, 1);	/* Queue is initially unlocked */
+	/* Queue is initially unlocked */
+	#ifdef __PX4_DARWIN
+	/* not using O_EXCL as the device handles are unique */
+	q->mutex = sem_open(Q_MUTEX_NAME, O_CREAT, 0777, 1);
+
+	if (q->mutex == SEM_FAILED) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	#else
+	q->mutex = &q->mutex_data;
+	int sem_ret = sem_init((q->mutex), 0, 1);
+	if (sem_ret) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	#endif
 	q->size = q->max_size = 0;	/* Queue is initially empty */
 }
 
 static inline void
 destroy_q(work_q_t *q)
 {
-	sem_destroy(&(q->mutex));	/* Destroy the queue lock */
+	#ifdef __PX4_DARWIN
+	//sem_unlink(Q_MUTEX_NAME);
+	#else
+	sem_destroy((q->mutex));	/* Destroy the queue lock */
+	#endif
 }
 
 static inline void
 lock_queue(work_q_t *q)
 {
-	sem_wait(&(q->mutex));	/* Acquire the queue lock */
+	sem_wait((q->mutex));	/* Acquire the queue lock */
 }
 
 static inline void
 unlock_queue(work_q_t *q)
 {
-	sem_post(&(q->mutex));	/* Release the queue lock */
+	sem_post((q->mutex));	/* Release the queue lock */
 }
 
 static work_q_item_t *
@@ -221,7 +245,24 @@ create_work_item(void)
 
 	/* If we got one then lock the item*/
 	if (item) {
-		sem_init(&item->wait_sem, 1, 0);        /* Caller will wait on this... initially locked */
+		#ifdef __PX4_DARWIN
+		/* construct unique semaphore name from pointer address */
+		char sem_name[32];
+		sprintf(&sem_name[0], "/%p", item);
+		/* not using O_EXCL as the device handles are unique */
+		item->wait_sem = sem_open(sem_name, O_CREAT, 0777, 0);
+
+		if (item->wait_sem == SEM_FAILED) {
+			PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+		}
+		#else
+		item->wait_sem = &item->wait_sem_data;
+		int sem_ret = sem_init(item->wait_sem, 1, 0);
+		if (sem_ret) {
+			PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+		}
+		#endif
+		/* Caller will wait on this... initially locked */
 	}
 
 	/* return the item pointer, or NULL if all failed */
@@ -233,7 +274,14 @@ create_work_item(void)
 static inline void
 destroy_work_item(work_q_item_t *item)
 {
-	sem_destroy(&item->wait_sem); /* Destroy the item lock */
+	#ifdef __PX4_DARWIN
+	/* construct unique semaphore name from pointer address */
+	char sem_name[32];
+	sprintf(&sem_name[0], "/%p", item);
+	sem_unlink(sem_name);
+	#else
+	sem_destroy(item->wait_sem); /* Destroy the item lock */
+	#endif
 	/* Return the item to the free item queue for later reuse */
 	lock_queue(&g_free_q);
 	sq_addfirst(&item->link, &(g_free_q.q));
@@ -277,10 +325,10 @@ enqueue_work_item_and_wait_for_result(work_q_item_t *item)
 	unlock_queue(&g_work_q);
 
 	/* tell the work thread that work is available */
-	sem_post(&g_work_queued_sema);
+	sem_post(g_work_queued_sema);
 
 	/* wait for the result */
-	sem_wait(&item->wait_sem);
+	sem_wait(item->wait_sem);
 
 	int result = item->result;
 
@@ -691,20 +739,39 @@ task_main(int argc, char *argv[])
 	}
 
 	/* Initialize the item type locks, for now only DM_KEY_MISSION_STATE supports locking */
-	sem_init(&g_sys_state_mutex, 1, 1); /* Initially unlocked */
+
+	#ifdef __PX4_DARWIN
+	/* not using O_EXCL as the device handles are unique */
+	g_sys_state_mutex = sem_open(G_SYS_MUTEX_NAME, O_CREAT, 0777, 1);
+	if (g_sys_state_mutex == SEM_FAILED) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+
+	g_work_queued_sema = sem_open(G_WORK_MUTEX_NAME, O_CREAT, 0777, 0);
+	if (g_work_queued_sema == SEM_FAILED) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	#else
+	int sem_ret = sem_init(g_sys_state_mutex, 1, 1); /* Initially unlocked */
+	if (sem_ret) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	sem_ret = sem_init(g_work_queued_sema, 1, 0);
+	if (sem_ret) {
+		PX4_WARN("SEM INIT FAIL: %s", strerror(errno));
+	}
+	#endif
 
 	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++) {
 		g_item_locks[i] = NULL;
 	}
 
-	g_item_locks[DM_KEY_MISSION_STATE] = &g_sys_state_mutex;
+	g_item_locks[DM_KEY_MISSION_STATE] = g_sys_state_mutex;
 
 	g_task_should_exit = false;
 
 	init_q(&g_work_q);
 	init_q(&g_free_q);
-
-	sem_init(&g_work_queued_sema, 1, 0);
 
 	/* See if the data manage file exists and is a multiple of the sector size */
 	g_task_fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
@@ -729,14 +796,12 @@ task_main(int argc, char *argv[])
 
 	if (g_task_fd < 0) {
 		warnx("Could not open data manager file %s", k_data_manager_device_path);
-		sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
 
 	if ((unsigned)lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
 		close(g_task_fd);
 		warnx("Could not seek data manager file %s", k_data_manager_device_path);
-		sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
 
@@ -771,7 +836,7 @@ task_main(int argc, char *argv[])
 	printf(", data manager file '%s' size is %d bytes\n", k_data_manager_device_path, max_offset);
 
 	/* Tell startup that the worker thread has completed its initialization */
-	sem_post(&g_init_sema);
+	task_running = true;
 
 	/* Start the endless loop, waiting for then processing work requests */
 	while (true) {
@@ -784,7 +849,7 @@ task_main(int argc, char *argv[])
 
 		if (!g_task_should_exit) {
 			/* wait for work */
-			sem_wait(&g_work_queued_sema);
+			sem_wait(g_work_queued_sema);
 		}
 
 		/* Empty the work queue */
@@ -821,7 +886,7 @@ task_main(int argc, char *argv[])
 			}
 
 			/* Inform the caller that work is done */
-			sem_post(&work->wait_sem);
+			sem_post(work->wait_sem);
 		}
 
 		/* time to go???? */
@@ -846,8 +911,13 @@ task_main(int argc, char *argv[])
 
 	destroy_q(&g_work_q);
 	destroy_q(&g_free_q);
-	sem_destroy(&g_work_queued_sema);
-	sem_destroy(&g_sys_state_mutex);
+	#ifdef __PX4_DARWIN
+	sem_unlink(G_WORK_MUTEX_NAME);
+	sem_unlink(G_SYS_MUTEX_NAME);
+	#else
+	sem_destroy(g_work_queued_sema);
+	sem_destroy(g_sys_state_mutex);
+	#endif
 
 	return 0;
 }
@@ -857,17 +927,15 @@ start(void)
 {
 	int task;
 
-	sem_init(&g_init_sema, 1, 0);
-
 	/* start the worker thread */
 	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 1500, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}
 
-	/* wait for the thread to actually initialize */
-	sem_wait(&g_init_sema);
-	sem_destroy(&g_init_sema);
+	while (!task_running) {
+		usleep(500);
+	}
 
 	return 0;
 }
@@ -888,7 +956,7 @@ stop(void)
 {
 	/* Tell the worker task to shut down */
 	g_task_should_exit = true;
-	sem_post(&g_work_queued_sema);
+	sem_post(g_work_queued_sema);
 }
 
 static void
