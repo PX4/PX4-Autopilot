@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 
 			if (infile.is_open()) {
 				for (string line; getline(infile, line, '\n');) {
-					process_line(line, !daemon_mode);
+					process_line(line, false);
 				}
 
 			} else {
