@@ -305,6 +305,10 @@ function(px4_nuttx_generate_romfs)
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
 		COMMAND cmake -E copy rc.autostart ${romfs_temp_dir}/init.d
+		COMMAND cmake -E make_directory ${romfs_temp_dir}/extras
+		COMMAND cmake -E copy
+			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}.bin
+			${romfs_temp_dir}/extras
 		#TODO add romfs cleanup of temp file .~, .swp etc
 		COMMAND ${PYTHON_EXECUTABLE} ${romfs_pruner}
 			--folder ${romfs_temp_dir}
