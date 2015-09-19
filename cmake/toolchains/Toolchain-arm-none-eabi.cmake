@@ -37,7 +37,7 @@ endif()
 cmake_force_cxx_compiler(${CXX_COMPILER} GNU)
 
 # compiler tools
-foreach(tool objcopy nm ld gdb)
+foreach(tool objcopy nm ld gdb gdbtui)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} arm-none-eabi-${tool})
 	if(NOT ${TOOL})

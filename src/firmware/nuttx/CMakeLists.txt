@@ -56,7 +56,14 @@ if(NOT ${BOARD} STREQUAL "sim")
 	configure_file(gdbinit.in .gdbinit)
 
 	add_custom_target(debug
-		COMMAND ${GDB} ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+		COMMAND ${GDBTUI} ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+		DEPENDS firmware_nuttx
+			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+		)
+
+	add_custom_target(debug_io
+		COMMAND ${GDBTUI}
+			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
