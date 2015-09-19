@@ -103,7 +103,7 @@ function(px4_parse_function_args)
 	endif()
 	foreach(arg ${IN_REQUIRED})
 		if (NOT OUT_${arg})
-			message(FATAL_ERROR "${IN_NAME} requires argument ${arg}, ARGN: ${IN_ARGN}")
+			message(FATAL_ERROR "${IN_NAME} requires argument ${arg}\nARGN: ${IN_ARGN}")
 		endif()
 	endforeach()
 	foreach(arg ${IN_OPTIONS} ${IN_ONE_VALUE} ${IN_MULTI_VALUE})
@@ -593,25 +593,25 @@ function(px4_add_common_flags)
 		)
 
 	set(added_include_dirs
-		src
+		${CMAKE_SOURCE_DIR}/src
 		${CMAKE_BINARY_DIR}
 		${CMAKE_BINARY_DIR}/src
-		src/modules
-		src/include
-		src/lib
-		src/platforms
+		${CMAKE_SOURCE_DIR}/src/modules
+		${CMAKE_SOURCE_DIR}/src/include
+		${CMAKE_SOURCE_DIR}/src/lib
+		${CMAKE_SOURCE_DIR}/src/platforms
 		# TODO Build/versioning was in Makefile,
 		# do we need this, how does it work with cmake
-		src/drivers/boards/${BOARD}
+		${CMAKE_SOURCE_DIR}/src/drivers/boards/${BOARD}
 		${CMAKE_BINARY_DIR}
 		${CMAKE_BINARY_DIR}/src/modules/px4_messages
 		${CMAKE_BINARY_DIR}/src/modules
-		mavlink/include/mavlink
+		${CMAKE_SOURCE_DIR}/mavlink/include/mavlink
 		)
 
 	if (NOT ${OS} STREQUAL "qurt")
 		list(APPEND added_include_dirs
-			src/lib/eigen
+			${CMAKE_SOURCE_DIR}/src/lib/eigen
 			)
 	endif()
 

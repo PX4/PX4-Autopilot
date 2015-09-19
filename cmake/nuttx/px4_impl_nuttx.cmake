@@ -61,6 +61,7 @@ include(common/px4_base)
 #
 #	Input:
 #		EXE			: the executable to generate the firmware from
+#		BOARD		: the board
 #
 #	Options:
 #		PARAM_XML	: toggles generation of param_xml	
@@ -74,9 +75,9 @@ include(common/px4_base)
 function(px4_nuttx_add_firmware)
 	px4_parse_function_args(
 		NAME px4_nuttx_add_firmware
-		ONE_VALUE OUT EXE
+		ONE_VALUE BOARD OUT EXE
 		OPTIONS PARAM_XML
-		REQUIRED EXE
+		REQUIRED OUT EXE BOARD
 		ARGN ${ARGN})
 
 	set(process_params ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py)
@@ -111,7 +112,7 @@ function(px4_nuttx_add_firmware)
 			DEPENDS ${EXE}
 			)
 	endif()
-	add_custom_target(build_firmware ALL DEPENDS ${OUT})
+	add_custom_target(build_firmware_${BOARD} ALL DEPENDS ${OUT})
 endfunction()
 
 #=============================================================================
@@ -246,14 +247,14 @@ function(px4_nuttx_add_export)
 		DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG})
 
 	# extract
-	add_custom_command(OUTPUT nuttx_export_${BOARD}.stamp
+	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp
 		COMMAND ${RM} -rf ${nuttx_src}/nuttx-export
-		COMMAND ${UNZIP} ${BOARD}.export -d ${nuttx_src}
-		COMMAND ${TOUCH} nuttx_export_${BOARD}.stamp
-		DEPENDS ${DEPENDS} ${BOARD}.export)
+		COMMAND ${UNZIP} ${CONFIG}.export -d ${nuttx_src}
+		COMMAND ${TOUCH} nuttx_export_${CONFIG}.stamp
+		DEPENDS ${DEPENDS} ${CONFIG}.export)
 
 	add_custom_target(${OUT}
-		DEPENDS nuttx_export_${BOARD}.stamp)
+		DEPENDS nuttx_export_${CONFIG}.stamp)
 
 endfunction()
 
@@ -406,17 +407,24 @@ function(px4_os_add_flags)
 
 	set(added_exe_linker_flags) # none currently
 
-	if ("${BOARD}" STREQUAL "px4fmu-v2")
-		set(arm_build_flags
+	set(cpu_flags)
+	if (${BOARD} STREQUAL "px4fmu-v2")
+		set(cpu_flags
 			-mcpu=cortex-m4
 			-mthumb
 			-march=armv7e-m
 			-mfpu=fpv4-sp-d16
 			-mfloat-abi=hard
 			)
-		list(APPEND c_flags ${arm_build_flags})
-		list(APPEND cxx_flags ${arm_build_flags})
+	elseif (${BOARD} STREQUAL "px4io-v2")
+		set(cpu_flags
+			-mcpu=cortex-m3
+			-mthumb
+			-march=armv7-m
+			)
 	endif()
+	list(APPEND c_flags ${cpu_flags})
+	list(APPEND cxx_flags ${cpu_flags})
 
 	# output
 	foreach(var ${inout_vars})
@@ -455,11 +463,11 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
-	px4_nuttx_add_export(OUT nuttx_export
+	px4_nuttx_add_export(OUT nuttx_export_${BOARD}
 		CONFIG ${BOARD}
 		THREADS ${THREADS}
 		DEPENDS git_nuttx)
-	add_custom_target(${OUT} DEPENDS nuttx_export)
+	add_custom_target(${OUT} DEPENDS nuttx_export_${BOARD})
 endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:

@@ -92,13 +92,13 @@ qurt_eagle_travis:
 
 posix: posix_sitl_simple
 
-sitl_quad:
+sitl_quad: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rcS
 
-sitl_plane:
+sitl_plane: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
 
-sitl_ros:
+sitl_ros: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros
 
 # Other targets
