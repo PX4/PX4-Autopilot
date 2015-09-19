@@ -103,10 +103,12 @@ elseif(${config_io_board} STREQUAL "px4io-v2")
 		)
 endif()
 
-add_executable(firmware_io_nuttx
+set(fw_io_name ${config_io_board}_${LABEL})
+
+add_executable(${fw_io_name}
 	${srcs})
 
-add_dependencies(firmware_io_nuttx
+add_dependencies(${fw_io_name}
 	nuttx_export_${config_io_board}
 	msg_gen
 	io_prebuild_targets
@@ -119,11 +121,11 @@ set(main_link_flags
 	"-Wl,-Map=${CMAKE_BINARY_DIR}/${config_io_board}/main.map"
 	)
 px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
-set_target_properties(firmware_io_nuttx PROPERTIES LINK_FLAGS ${main_link_flags})
+set_target_properties(${fw_io_name} PROPERTIES LINK_FLAGS ${main_link_flags})
 
 set(io_fw_file ${CMAKE_CURRENT_BINARY_DIR}/${config_io_board}.px4)
 
-target_link_libraries(firmware_io_nuttx
+target_link_libraries(${fw_io_name}
 	-Wl,--start-group
 	apps nuttx nosys m gcc
 	${config_io_extra_libs}
@@ -131,7 +133,7 @@ target_link_libraries(firmware_io_nuttx
 
 px4_nuttx_add_firmware(OUT ${io_fw_file}
 	BOARD ${config_io_board}
-	EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_io_nuttx
+	EXE ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}
 	${config_firmware_options}
 	)
 
