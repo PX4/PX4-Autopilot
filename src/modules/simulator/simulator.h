@@ -125,7 +125,7 @@ public:
 		_max_readers(readers),
 		_report_len(sizeof(RType))
 	{
-		sem_init(&_lock, 0, _max_readers);
+		px4_sem_init(&_lock, 0, _max_readers);
 	}
 
 	~Report() {};
@@ -149,23 +149,23 @@ public:
 	}
 
 protected:
-	void read_lock() { sem_wait(&_lock); }
-	void read_unlock() { sem_post(&_lock); }
+	void read_lock() { px4_sem_wait(&_lock); }
+	void read_unlock() { px4_sem_post(&_lock); }
 	void write_lock()
 	{
 		for (int i=0; i<_max_readers; i++) {
-			sem_wait(&_lock);
+			px4_sem_wait(&_lock);
 		}
 	}
 	void write_unlock()
 	{
 		for (int i=0; i<_max_readers; i++) {
-			sem_post(&_lock);
+			px4_sem_post(&_lock);
 		}
 	}
 
 	int _readidx;
-	sem_t _lock;
+	px4_sem_t _lock;
 	const int _max_readers;
 	const int _report_len;
 	RType _buf[2];
