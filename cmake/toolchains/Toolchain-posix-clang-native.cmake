@@ -9,7 +9,6 @@ set(WARNINGS
     -Wpointer-arith
     -Wlogical-op
     -Wmissing-declarations
-    -Wpacked
     -Wno-unused-parameter
     -Werror=format-security
     -Werror=array-bounds
@@ -19,8 +18,11 @@ set(WARNINGS
     -Werror=unused-variable
     -Werror=double-promotion
     -Werror=reorder
-	-Werror=uninitialized
-	-Werror=init-self 
+    -Werror=uninitialized
+    -Werror=init-self
+    -Werror=return-type
+    -Wno-packed
+    -Wno-frame-larger-than=
     #-Wcast-qual  - generates spurious noreturn attribute warnings,
     #               try again later
     #-Wconversion - would be nice, but too many "risky-but-safe"
