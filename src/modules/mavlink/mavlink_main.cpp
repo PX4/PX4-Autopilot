@@ -698,7 +698,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		_is_usb_uart = true;
 	}
 
-#ifdef __PX4_LINUX
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 	/* Put in raw mode */
 	cfmakeraw(&uart_config);
 #endif
@@ -799,7 +799,7 @@ Mavlink::get_free_tx_buf()
 #ifndef __PX4_POSIX
 
 // No FIONWRITE on Linux
-#if !defined(__PX4_LINUX)
+#if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
 	(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
 #endif
 
@@ -971,7 +971,7 @@ Mavlink::resend_message(mavlink_message_t *msg)
 void
 Mavlink::init_udp()
 {
-#ifdef __PX4_LINUX
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 	PX4_INFO("Setting up UDP w/port %d\n",_network_port);
 
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
