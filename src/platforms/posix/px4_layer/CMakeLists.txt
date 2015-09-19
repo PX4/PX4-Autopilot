@@ -37,6 +37,7 @@ px4_add_module(
 	SRCS
 		px4_posix_impl.cpp
 		px4_posix_tasks.cpp
+		px4_sem.cpp
 		lib_crc32.c
 		drv_hrt.c
 		px4_log.c

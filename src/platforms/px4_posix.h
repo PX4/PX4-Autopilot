@@ -48,6 +48,41 @@
 #include <semaphore.h>
 
 
+/* Semaphore handling */
+
+#ifdef __PX4_DARWIN
+
+__BEGIN_DECLS
+
+typedef struct
+{
+	pthread_mutex_t lock;
+	pthread_cond_t wait;
+	int value;
+} px4_sem_t;
+
+__EXPORT int		px4_sem_init(px4_sem_t *s, int pshared, unsigned value);
+__EXPORT int		px4_sem_wait(px4_sem_t *s);
+__EXPORT int		px4_sem_post(px4_sem_t *s);
+__EXPORT int		px4_sem_destroy(px4_sem_t *s);
+
+__END_DECLS
+
+#else
+
+typedef px4_sem_t		sem_t
+
+#define px4_sem_init		_GLOBAL sem_init
+#define px4_sem_wait		_GLOBAL sem_wait
+#define px4_sem_post		_GLOBAL px4_sem_post
+#define px4_sem_destroy		_GLOBAL sem_destroy
+
+
+
+#endif
+
+//###################################
+
 #ifdef __PX4_NUTTX
 
 #define  PX4_F_RDONLY 1
