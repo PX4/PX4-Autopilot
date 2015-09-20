@@ -119,7 +119,7 @@ AttitudePositionEstimatorEKF	*g_estimator = nullptr;
 }
 
 AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
-	SuperBlock(NULL, "EKF"),
+	SuperBlock(NULL, "PE"),
 	_task_should_exit(false),
 	_task_running(false),
 	_estimator_task(-1),
@@ -208,9 +208,9 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_newRangeData(false),
 
 	_mavlink_fd(-1),
-	_mag_offset_x(this, "PE_MAGB_X"),
-	_mag_offset_y(this, "PE_MAGB_Y"),
-	_mag_offset_z(this, "PE_MAGB_Z"),
+	_mag_offset_x(this, "MAGB_X"),
+	_mag_offset_y(this, "MAGB_Y"),
+	_mag_offset_z(this, "MAGB_Z"),
 	_parameters{},
 	_parameter_handles{},
 	_ekf(nullptr),
