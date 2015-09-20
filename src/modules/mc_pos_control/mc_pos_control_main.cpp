@@ -1085,7 +1085,7 @@ MulticopterPositionControl::task_main()
 					_vel_sp(2) = 0.0f;
 				}
 
-				if (!_control_mode.flag_control_position_enabled) {
+				if (!_control_mode.flag_control_velocity_enabled) {
 					_reset_pos_sp = true;
 					_vel_sp(0) = 0.0f;
 					_vel_sp(1) = 0.0f;
