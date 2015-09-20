@@ -493,7 +493,7 @@ ACCELSIM::init()
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	struct accel_report arp = {};
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */

@@ -466,7 +466,7 @@ GYROSIM::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	struct accel_report arp = {};
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -482,7 +482,7 @@ GYROSIM::init()
 
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
+	struct gyro_report grp = {};
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
