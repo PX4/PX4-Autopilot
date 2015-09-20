@@ -71,13 +71,17 @@ __END_DECLS
 
 #else
 
+__BEGIN_DECLS
+
 typedef sem_t px4_sem_t;
 
-#define px4_sem_init		_GLOBAL sem_init
-#define px4_sem_wait		_GLOBAL sem_wait
-#define px4_sem_post		_GLOBAL sem_post
-#define px4_sem_getvalue	_GLOBAL sem_getvalue
-#define px4_sem_destroy		_GLOBAL sem_destroy
+#define px4_sem_init	 sem_init
+#define px4_sem_wait	 sem_wait
+#define px4_sem_post	 sem_post
+#define px4_sem_getvalue sem_getvalue
+#define px4_sem_destroy	 sem_destroy
+
+__END_DECLS
 
 #endif
 
