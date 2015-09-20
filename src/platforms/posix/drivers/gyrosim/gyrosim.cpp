@@ -52,7 +52,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -513,6 +512,7 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		// Get data from the simulator
 		Simulator *sim = Simulator::getInstance();
 		if (sim == NULL) {
+			PX4_WARN("failed accessing simulator");
 			return ENODEV;
 		}
 
@@ -531,6 +531,7 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		if (recv)
 			memcpy(&recv[1], &_regdata[reg-MPUREG_PRODUCT_ID], len-1);
 	}
+
 	return PX4_OK;
 }
 
@@ -767,8 +768,9 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_interval == 0);
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start();
+					}
 
 					return OK;
 				}
