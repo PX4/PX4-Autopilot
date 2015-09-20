@@ -543,7 +543,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 				for (int i = 0; i < len; ++i) {
 					if (mavlink_parse_char(MAVLINK_COMM_0, serial_buf[i], &msg, &status)) {
 						// have a message, handle it
-						handle_message(&msg, publish);
+						handle_message(&msg, true);
 					}
 				}
 			}
