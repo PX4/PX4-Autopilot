@@ -194,7 +194,7 @@ int UavcanNode::start_fw_server()
 
 	if (_servers == nullptr) {
 
-		rv = UavcanServers::start(2, _node);
+		rv = UavcanServers::start(_node);
 
 		if (rv >= 0) {
 			/*
