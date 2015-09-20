@@ -2973,10 +2973,7 @@ get_interface()
 #ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
 
 #ifdef PX4IO_SERIAL_BASE
-	/* try for a serial interface */
-	if (PX4IO_serial_interface != nullptr) {
-		interface = PX4IO_serial_interface();
-	}
+	interface = PX4IO_serial_interface();
 #endif
 
 	if (interface != nullptr) {
@@ -2986,10 +2983,7 @@ get_interface()
 #endif
 
 #ifdef PX4_I2C_OBDEV_PX4IO
-	/* try for an I2C interface if we haven't got a serial one */
-	if (PX4IO_i2c_interface != nullptr) {
-		interface = PX4IO_i2c_interface();
-	}
+	interface = PX4IO_i2c_interface();
 #endif
 
 	if (interface != nullptr) {

@@ -39,6 +39,7 @@
 
 /* XXX trim includes */
 #include <px4_config.h>
+#include <px4_posix.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -177,8 +178,8 @@ PX4IO_serial::PX4IO_serial() :
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
 	_rx_dma_status(_dma_status_inactive),
-	_bus_semaphore(px4_sem_initIALIZER(0)),
-	_completion_semaphore(px4_sem_initIALIZER(0)),
+	_bus_semaphore(SEM_INITIALIZER(0)),
+	_completion_semaphore(SEM_INITIALIZER(0)),
 	_pc_txns(perf_alloc(PC_ELAPSED, "io_txns     ")),
 	_pc_dmasetup(perf_alloc(PC_ELAPSED,	"io_dmasetup ")),
 	_pc_retries(perf_alloc(PC_COUNT,	"io_retries  ")),
@@ -551,7 +552,7 @@ PX4IO_serial::_wait_complete()
 	int ret;
 
 	for (;;) {
-		ret = px4_sem_timedwait(&_completion_semaphore, &abstime);
+		ret = sem_timedwait(&_completion_semaphore, &abstime);
 
 		if (ret == OK) {
 			/* check for DMA errors */
