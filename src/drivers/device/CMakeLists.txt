@@ -33,10 +33,12 @@
 
 set(SRCS)
 
+list(APPEND SRCS
+	ringbuffer.cpp
+	integrator.cpp
+)
+
 if(${OS} STREQUAL "nuttx")
-	list(APPEND SRCS
-		ringbuffer.cpp
-	)
 	if (NOT ${BOARD} STREQUAL "sim")
 		list(APPEND SRCS
 			device_nuttx.cpp
@@ -54,7 +56,6 @@ else()
 		vdev_posix.cpp
 		i2c_posix.cpp
 		sim.cpp
-		ringbuffer.cpp
 	)
 endif()
 
