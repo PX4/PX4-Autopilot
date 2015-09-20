@@ -36,7 +36,7 @@ px4_add_module(
 	PRIORITY "SCHED_PRIORITY_MAX-30"
 	STACK 1200
 	COMPILE_FLAGS
-		-Wframe-larger-than=1400
+		-Wframe-larger-than=1500
 		-Os
 	SRCS
 		sdlog2.c
