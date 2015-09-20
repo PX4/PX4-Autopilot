@@ -37,6 +37,7 @@
  * High-resolution timer with callouts and timekeeping.
  */
 
+#include <px4_time.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
@@ -85,14 +86,11 @@ static void hrt_unlock(void)
 #define MAC_NANO (+1.0E-9)
 #define MAC_GIGA UINT64_C(1000000000)
 #define CLOCK_MONOTONIC 1
-#define clockid_t int
 #define HRT_LOCK_NAME "/hrt_lock"
 
 static double px4_timebase = 0.0;
 
-int clock_gettime(clockid_t clk_id, struct timespec *t);
-
-int clock_gettime(clockid_t clk_id, struct timespec *t)
+int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	if (clk_id != CLOCK_MONOTONIC) {
 		return 1;
@@ -103,16 +101,23 @@ int clock_gettime(clockid_t clk_id, struct timespec *t)
 		mach_timebase_info(&tb);
 		px4_timebase = tb.numer;
 		px4_timebase /= tb.denom;
-		px4_timestart = mach_absolute_time();
+		// px4_timestart = mach_absolute_time();
 	}
 
-	memset(t, 0, sizeof(*t));
+	memset(tp, 0, sizeof(*tp));
 
-	double diff = (mach_absolute_time() - px4_timestart) * px4_timebase;
-	t->tv_sec = diff * MAC_NANO;
-	t->tv_nsec = diff - (t->tv_sec * MAC_GIGA);
+	double diff = mach_absolute_time() * px4_timebase;
+	tp->tv_sec = diff * MAC_NANO;
+	tp->tv_nsec = diff - (tp->tv_sec * MAC_GIGA);
 	return 0;
 }
+
+int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
+{
+	/* do nothing right now */
+	return 0;
+}
+
 #endif
 
 /*
@@ -123,11 +128,11 @@ hrt_abstime hrt_absolute_time(void)
 	struct timespec ts;
 
 	if (!px4_timestart) {
-		clock_gettime(CLOCK_MONOTONIC, &ts);
+		px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 		px4_timestart = ts_to_abstime(&ts);
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &ts);
+	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts) - px4_timestart;
 }
 

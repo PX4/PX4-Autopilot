@@ -56,27 +56,6 @@ __BEGIN_DECLS
 
 long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
 
-#ifdef __PX4_DARWIN
-extern void hrt_init(void);
-
-int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
-{
-	uint64_t currtime = hrt_absolute_time();
-
-	tp->tv_sec = currtime / (1000 * 1000);
-	tp->tv_nsec = (currtime - (currtime * 1000 * 1000)) * 1000;
-
-	return 0;
-}
-
-int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
-{
-	/* do nothing right now */
-	return 0;
-}
-
-#endif
-
 __END_DECLS
 
 namespace px4
