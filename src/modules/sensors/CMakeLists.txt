@@ -37,7 +37,7 @@ px4_add_module(
 	STACK 1200
 	COMPILE_FLAGS
 		-Wno-type-limits
-		-Os
+		-O3
 	SRCS
 		sensors.cpp
 		sensor_params.c
