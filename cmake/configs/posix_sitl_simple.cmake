@@ -6,6 +6,8 @@ set(config_module_list
 	drivers/led
 	drivers/device
 	drivers/boards/sitl
+	drivers/pwm_out_sim
+	drivers/rgbled
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
