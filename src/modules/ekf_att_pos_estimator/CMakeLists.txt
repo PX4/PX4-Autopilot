@@ -36,7 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Weffc++
 		-Wframe-larger-than=3400
-		
+		-O3
 	SRCS
 		ekf_att_pos_estimator_main.cpp
 		ekf_att_pos_estimator_params.c

@@ -33,6 +33,8 @@
 px4_add_module(
 	MODULE modules__attitude_estimator_q
 	MAIN attitude_estimator_q
+	COMPILE_FLAGS
+		-Wframe-larger-than=1400
 	STACK 1200
 	SRCS
 		attitude_estimator_q_main.cpp
