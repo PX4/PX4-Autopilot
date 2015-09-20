@@ -22,6 +22,7 @@ set(WARNINGS
     -Werror=init-self
     -Werror=return-type
     -Werror=deprecated
+    -Werror=unused-private-field
     -Wno-packed
     -Wno-frame-larger-than=
     #-Wcast-qual  - generates spurious noreturn attribute warnings,
