@@ -42,6 +42,8 @@
 #include "LandDetector.h"
 #include <unistd.h>                 //usleep
 #include <drivers/drv_hrt.h>
+#include <px4_config.h>
+#include <px4_defines.h>
 
 LandDetector::LandDetector() :
 	_landDetectedPub(0),
