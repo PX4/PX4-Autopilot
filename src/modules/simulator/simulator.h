@@ -38,7 +38,7 @@
 
 #pragma once
 
-#include <semaphore.h>
+#include <px4_posix.h>
 #include <uORB/topics/hil_sensor.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
