@@ -39,6 +39,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_posix.h>
 #include <px4_time.h>
 #include <stdint.h>
 #include <stdio.h>
