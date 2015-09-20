@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE platforms__posix__work_queue
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		hrt_thread.c
 		hrt_queue.c

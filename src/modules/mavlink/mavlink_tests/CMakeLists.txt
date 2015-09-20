@@ -40,7 +40,6 @@ px4_add_module(
 		-Wno-attributes
 		-Wno-packed
 		-Wno-packed
-		-Os
 	SRCS
 		mavlink_tests.cpp
 		mavlink_ftp_test.cpp

@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__mkblctrl
 	MAIN mkblctrl
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		mkblctrl.cpp
 		mkblctrl_params.c

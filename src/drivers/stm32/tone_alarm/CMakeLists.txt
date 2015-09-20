@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__stm32__tone_alarm
 	MAIN tone_alarm
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		tone_alarm.cpp
 	DEPENDS

@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 1200
 	COMPILE_FLAGS
 		-Wno-attributes
-		-Os
 	SRCS
 		px4flow.cpp
 	DEPENDS

@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN param
 	STACK 1800
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		param.c
 	DEPENDS

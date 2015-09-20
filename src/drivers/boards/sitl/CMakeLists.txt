@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__boards__sitl
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		sitl_led.c
 	DEPENDS

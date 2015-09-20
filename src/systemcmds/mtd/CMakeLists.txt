@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN mtd
 	COMPILE_FLAGS
 		-Wno-error
-		-Os
 	SRCS
 		mtd.c
 		24xxxx_mtd.c

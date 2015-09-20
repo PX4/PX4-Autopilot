@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 1200
 	COMPILE_FLAGS
 		-Weffc++
-		-Os
 	SRCS
 		px4io.cpp
 		px4io_uploader.cpp

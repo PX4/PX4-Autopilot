@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__blinkm
 	MAIN blinkm
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		blinkm.cpp
 	DEPENDS

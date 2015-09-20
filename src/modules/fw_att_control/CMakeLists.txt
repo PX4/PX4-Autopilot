@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN fw_att_control
 	STACK 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		fw_att_control_main.cpp
 		fw_att_control_params.c

@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE systemcmds__usb_connected
 	MAIN usb_connected
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		usb_connected.c
 	DEPENDS

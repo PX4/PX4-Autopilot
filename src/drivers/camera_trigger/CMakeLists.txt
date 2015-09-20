@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__camera_trigger
 	MAIN camera_trigger
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		camera_trigger.cpp
 		camera_trigger_params.c

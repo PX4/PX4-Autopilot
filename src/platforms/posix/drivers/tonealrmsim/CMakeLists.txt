@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE platforms__posix__drivers__tonealrmsim
 	MAIN tone_alarm
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		tone_alarm.cpp
 	DEPENDS

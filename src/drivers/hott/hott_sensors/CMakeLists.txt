@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__hott__hott_sensors
 	MAIN hott_sensors
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		hott_sensors.cpp
 	DEPENDS

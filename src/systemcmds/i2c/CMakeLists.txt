@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE systemcmds__i2c
 	MAIN i2c
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		i2c.c
 	DEPENDS

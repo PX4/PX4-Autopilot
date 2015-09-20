@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE lib__geo_lookup
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		geo_mag_declination.c
 	DEPENDS

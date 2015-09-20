@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__roboclaw
 	MAIN roboclaw
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		roboclaw_main.cpp
 		RoboClaw.cpp

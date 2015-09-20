@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 1200
 	COMPILE_FLAGS
 		-Wno-float-equal
-		-Os
 	SRCS
 		fw_pos_control_l1_main.cpp
 		fw_pos_control_l1_params.c

@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__bma180
 	MAIN bma180
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		bma180.cpp
 	DEPENDS

@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN pwm
 	STACK 1800
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		pwm.c
 	DEPENDS

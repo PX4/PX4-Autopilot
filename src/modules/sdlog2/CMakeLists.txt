@@ -37,7 +37,6 @@ px4_add_module(
 	STACK 1200
 	COMPILE_FLAGS
 		-Wframe-larger-than=1400
-		-Os
 	SRCS
 		sdlog2.c
 		logbuffer.c

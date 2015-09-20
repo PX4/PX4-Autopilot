@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN bottle_drop
 	STACK 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		bottle_drop.cpp
 		bottle_drop_params.c

@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN motor_test
 	STACK 4096
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		motor_test.c
 	DEPENDS

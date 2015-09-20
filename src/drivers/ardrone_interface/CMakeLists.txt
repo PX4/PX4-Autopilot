@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN ardrone_interface
 	STACK 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		ardrone_interface.c
 		ardrone_motor_control.c
