@@ -345,7 +345,7 @@ hrt_call_reschedule()
 static void
 hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime interval, hrt_callout callout, void *arg)
 {
-	//PX4_INFO("hrt_call_internal deadline=%lu interval = %lu", deadline, interval);
+	PX4_DEBUG("hrt_call_internal deadline=%lu interval = %lu", deadline, interval);
 	hrt_lock();
 
 	//PX4_INFO("hrt_call_internal after lock");
@@ -361,7 +361,7 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 		sq_rem(&entry->link, &callout_queue);
 	}
 
-#if 0
+#if 1
 
 	// Use this to debug busy CPU that keeps rescheduling with 0 period time
 	if (interval < HRT_INTERVAL_MIN) {
