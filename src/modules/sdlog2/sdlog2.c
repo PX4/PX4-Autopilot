@@ -47,6 +47,7 @@
 #include <px4_getopt.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
+#include <px4_posix.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef __PX4_DARWIN
