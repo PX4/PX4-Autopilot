@@ -178,9 +178,11 @@ Mavlink::Mavlink() :
 	_rate_tx(0.0f),
 	_rate_txerr(0.0f),
 	_rate_rx(0.0f),
+#ifdef __PX4_POSIX
 	_myaddr{},
 	_src_addr{},
 	_bcast_addr{},
+#endif
 	_socket_fd(-1),
 	_protocol(SERIAL),
 	_network_port(14556),
