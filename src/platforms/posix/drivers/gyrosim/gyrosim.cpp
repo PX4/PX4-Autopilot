@@ -419,6 +419,9 @@ GYROSIM::init()
 		return ret;
 	}
 
+	struct accel_report arp = {};
+	struct gyro_report grp = {};
+
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
 	if (_accel_reports == nullptr) {
@@ -466,7 +469,6 @@ GYROSIM::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp = {};
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -482,7 +484,6 @@ GYROSIM::init()
 
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp = {};
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
@@ -511,8 +512,9 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	if (cmd == MPUREAD) {
 		// Get data from the simulator
 		Simulator *sim = Simulator::getInstance();
-		if (sim == NULL)
+		if (sim == NULL) {
 			return ENODEV;
+		}
 
 		// FIXME - not sure what interrupt status should be
 		recv[1] = 0;
@@ -1012,7 +1014,7 @@ GYROSIM::measure()
 		x++;
 	}
 #endif
-	struct MPUReport mpu_report;
+	struct MPUReport mpu_report = {};
 
 	/* start measuring */
 	perf_begin(_sample_perf);
@@ -1031,8 +1033,8 @@ GYROSIM::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report	arb;
-	gyro_report	grb;
+	accel_report	arb = {};
+	gyro_report	grb = {};
 
 	// for now use local time but this should be the timestamp of the simulator
 	grb.timestamp = hrt_absolute_time();
