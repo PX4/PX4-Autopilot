@@ -111,7 +111,7 @@ lldb_sitl_ros: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros lldb
 
 gdb_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS lldb
+	Tools/sitl_run.sh posix-configs/SITL/init/rcS gdb
 
 gdb_sitl_plane: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing lldb
