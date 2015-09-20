@@ -231,6 +231,7 @@ function(px4_nuttx_add_export)
 		DEPENDS nuttx_copy_${CONFIG}.stamp __nuttx_patch_${CONFIG})
 
 	# export
+	file(GLOB_RECURSE config_files ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
 	add_custom_command(OUTPUT ${CONFIG}.export
 		COMMAND ${ECHO} Configuring NuttX for ${CONFIG}
 		COMMAND ${MAKE} -C${nuttx_src}/nuttx -j${THREADS}
@@ -244,7 +245,7 @@ function(px4_nuttx_add_export)
 			-r CONFIG_ARCH_BOARD=${CONFIG} export
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip
 			${CONFIG}.export
-		DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG})
+		DEPENDS ${config_files} ${DEPENDS} __nuttx_copy_${CONFIG})
 
 	# extract
 	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp

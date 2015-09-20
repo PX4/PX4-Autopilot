@@ -178,12 +178,12 @@ void frsky_send_frame1(int uart)
 			roundf(raw.accelerometer_m_s2[2] * 1000.0f));
 
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_BP,
-			raw.baro_alt_meter);
+			raw.baro_alt_meter[0]);
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_AP,
-			roundf(frac(raw.baro_alt_meter) * 100.0f));
+			roundf(frac(raw.baro_alt_meter[0]) * 100.0f));
 
 	frsky_send_data(uart, FRSKY_ID_TEMP1,
-			roundf(raw.baro_temp_celcius));
+			roundf(raw.baro_temp_celcius[0]));
 
 	frsky_send_data(uart, FRSKY_ID_VFAS,
 			roundf(battery.voltage_v * 10.0f));

@@ -400,13 +400,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.baro_timestamp != baro_timestamp) {
-					baro_timestamp = sensor.baro_timestamp;
+				if (wait_baro && sensor.baro_timestamp[0] != baro_timestamp) {
+					baro_timestamp = sensor.baro_timestamp[0];
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
-						if (PX4_ISFINITE(sensor.baro_alt_meter)) {
-							baro_offset += sensor.baro_alt_meter;
+						if (PX4_ISFINITE(sensor.baro_alt_meter[0])) {
+							baro_offset += sensor.baro_alt_meter[0];
 							baro_init_cnt++;
 						}
 
@@ -475,7 +475,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (sensor.accelerometer_timestamp != accel_timestamp) {
+				if (sensor.accelerometer_timestamp[0] != accel_timestamp) {
 					if (att.R_valid) {
 						/* correct accel bias */
 						sensor.accelerometer_m_s2[0] -= acc_bias[0];
@@ -497,13 +497,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						memset(acc, 0, sizeof(acc));
 					}
 
-					accel_timestamp = sensor.accelerometer_timestamp;
+					accel_timestamp = sensor.accelerometer_timestamp[0];
 					accel_updates++;
 				}
 
-				if (sensor.baro_timestamp != baro_timestamp) {
-					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
-					baro_timestamp = sensor.baro_timestamp;
+				if (sensor.baro_timestamp[0] != baro_timestamp) {
+					corr_baro = baro_offset - sensor.baro_alt_meter[0] - z_est[0];
+					baro_timestamp = sensor.baro_timestamp[0];
 					baro_updates++;
 				}
 			}

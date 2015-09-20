@@ -200,7 +200,7 @@ class SourceParser(object):
                     m = self.re_px4_parameter_definition.match(line)
                     if m:
                         tp, name = m.group(1, 2)
-                        if default_var.has_key(name+'_DEFAULT'):
+                        if (name+'_DEFAULT') in default_var:
                             defval = default_var[name+'_DEFAULT']
                 if tp is not None:
                     # Remove trailing type specifier from numbers: 0.1f => 0.1
