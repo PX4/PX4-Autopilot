@@ -431,10 +431,6 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 		return (fail_on_not_found) ? 1 : 0;
 	}
 
-	printf("%c %s: ",
-	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-	       param_name(param));
-
 	/*
 	 * Set parameter if type is known and conversion from string to value turns out fine
 	 */
@@ -447,7 +443,10 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 			char *end;
 			int32_t newval = strtol(val, &end, 10);
 
-			if (i =!= newval) {
+			if (i != newval) {
+				printf("%c %s: ",
+					param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+					param_name(param));
 				printf("curr: %ld", (long)i);
 				param_set(param, &newval);
 				printf(" -> new: %ld\n", (long)newval);
@@ -467,6 +466,9 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 
 			if (f != newval) {
 #pragma GCC diagnostic pop
+				printf("%c %s: ",
+					param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+					param_name(param));
 				printf("curr: %4.4f", (double)f);
 				param_set(param, &newval);
 				printf(" -> new: %4.4f\n", (double)newval);
