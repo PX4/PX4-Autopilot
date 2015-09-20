@@ -128,7 +128,6 @@ void Simulator::send_controls()
 {
 	mavlink_hil_controls_t msg;
 	pack_actuator_message(msg);
-	//PX4_WARN("Sending HIL_CONTROLS msg");
 	send_mavlink_message(MAVLINK_MSG_ID_HIL_CONTROLS, &msg, 200);
 }
 
@@ -173,7 +172,7 @@ static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t 
 void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 {
 	// write sensor data to memory so that drivers can copy data from there
-	RawMPUData mpu;
+	RawMPUData mpu = {};
 	mpu.accel_x = imu->xacc;
 	mpu.accel_y = imu->yacc;
 	mpu.accel_z = imu->zacc;
@@ -184,21 +183,21 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 
 	write_MPU_data((void *)&mpu);
 
-	RawAccelData accel;
+	RawAccelData accel = {};
 	accel.x = imu->xacc;
 	accel.y = imu->yacc;
 	accel.z = imu->zacc;
 
 	write_accel_data((void *)&accel);
 
-	RawMagData mag;
+	RawMagData mag = {};
 	mag.x = imu->xmag;
 	mag.y = imu->ymag;
 	mag.z = imu->zmag;
 
 	write_mag_data((void *)&mag);
 
-	RawBaroData baro;
+	RawBaroData baro = {};
 	// calculate air pressure from altitude (valid for low altitude)
 	baro.pressure = (PRESS_GROUND - GRAVITY * DENSITY * imu->pressure_alt) / 100.0f; // convert from Pa to mbar
 	baro.altitude = imu->pressure_alt;
@@ -206,7 +205,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 
 	write_baro_data((void *)&baro);
 
-	RawAirspeedData airspeed;
+	RawAirspeedData airspeed = {};
 	airspeed.temperature = imu->temperature;
 	airspeed.diff_pressure = imu->diff_pressure;
 
@@ -347,7 +346,7 @@ void Simulator::send()
 		// wait for up to 100ms for data
 		pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
-		//timed out
+		// timed out
 		if (pret == 0) {
 			continue;
 		}
