@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__md25
 	MAIN md25
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		md25.cpp
 		md25_main.cpp

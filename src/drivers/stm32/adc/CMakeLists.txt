@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__stm32__adc
 	MAIN adc
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		adc.cpp
 	DEPENDS

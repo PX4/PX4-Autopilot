@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE platforms__posix__drivers__barosim
 	MAIN barosim
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		baro.cpp
 		baro_sim.cpp

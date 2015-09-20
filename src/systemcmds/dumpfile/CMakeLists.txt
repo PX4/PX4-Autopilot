@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE systemcmds__dumpfile
 	MAIN dumpfile
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		dumpfile.c
 	DEPENDS

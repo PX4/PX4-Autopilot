@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__pca8574
 	MAIN pca8574
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		pca8574.cpp
 	DEPENDS

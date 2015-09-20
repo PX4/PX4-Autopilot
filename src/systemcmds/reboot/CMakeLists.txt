@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN reboot
 	STACK 800
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		reboot.c
 	DEPENDS

@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN esc_calib
 	STACK 4096
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		esc_calib.c
 	DEPENDS

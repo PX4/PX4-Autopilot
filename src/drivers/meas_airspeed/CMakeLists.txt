@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 1200
 	COMPILE_FLAGS
 		-Weffc++
-		-Os
 	SRCS
 		meas_airspeed.cpp
 	DEPENDS

@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__boards__px4io-v1
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		px4io_init.c
 		px4io_pwm_servo.c

@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 1200
 	COMPILE_FLAGS
 		-Weffc++
-		-Os
 	SRCS
 		mpu9250.cpp
 	DEPENDS

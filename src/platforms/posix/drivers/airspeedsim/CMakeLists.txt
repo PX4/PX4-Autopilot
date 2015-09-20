@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE platforms__posix__drivers__airspeedsim
 	MAIN measairspeedsim
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		airspeedsim.cpp
 		meas_airspeed_sim.cpp

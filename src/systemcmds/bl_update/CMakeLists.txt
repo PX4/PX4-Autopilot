@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN bl_update
 	STACK 4096
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		bl_update.c
 	DEPENDS

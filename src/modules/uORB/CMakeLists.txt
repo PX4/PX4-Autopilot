@@ -75,7 +75,6 @@ px4_add_module(
 	MAIN uorb
 	STACK 2048
 	COMPILE_FLAGS
-		-Os
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common

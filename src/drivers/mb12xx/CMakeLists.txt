@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__mb12xx
 	MAIN mb12xx
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		mb12xx.cpp
 	DEPENDS

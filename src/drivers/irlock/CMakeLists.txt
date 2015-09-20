@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__irlock
 	MAIN irlock
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		irlock.cpp
 	DEPENDS

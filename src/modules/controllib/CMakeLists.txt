@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE modules__controllib
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		test_params.c
 		block/Block.cpp

@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__gimbal
 	MAIN gimbal
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		gimbal.cpp
 	DEPENDS

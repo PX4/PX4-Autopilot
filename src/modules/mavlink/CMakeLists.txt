@@ -40,7 +40,6 @@ px4_add_module(
 		-Wno-packed
 		-DMAVLINK_COMM_NUM_BUFFERS=3
 		-Wno-packed
-		-Os
 	SRCS
 		mavlink.c
 		mavlink_main.cpp

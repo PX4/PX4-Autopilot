@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE lib__launchdetection
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		LaunchDetector.cpp
 		CatapultLaunchMethod.cpp

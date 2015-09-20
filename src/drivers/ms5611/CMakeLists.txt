@@ -51,7 +51,6 @@ px4_add_module(
 	MODULE drivers__ms5611
 	MAIN ms5611
 	COMPILE_FLAGS
-		-Os
 	SRCS ${srcs}
 	DEPENDS
 		platforms__common

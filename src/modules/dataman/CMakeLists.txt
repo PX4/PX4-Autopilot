@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN dataman
 	STACK 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		dataman.c
 	DEPENDS

@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__hott__hott_telemetry
 	MAIN hott_telemetry
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		hott_telemetry.cpp
 	DEPENDS

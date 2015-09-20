@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE platforms__posix__drivers__adcsim
 	MAIN adcsim
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		adcsim.cpp
 	DEPENDS

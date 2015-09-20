@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__hott
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		messages.cpp
 		comms.cpp

@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN ets_airspeed
 	STACK 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		ets_airspeed.cpp
 	DEPENDS

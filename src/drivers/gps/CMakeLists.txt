@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN gps
 	STACK 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		gps.cpp
 		gps_helper.cpp

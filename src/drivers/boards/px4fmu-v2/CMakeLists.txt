@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__boards__px4fmu-v2
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		px4fmu_can.c
 		px4fmu2_init.c

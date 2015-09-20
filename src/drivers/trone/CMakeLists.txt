@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN trone
 	STACK 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		trone.cpp
 	DEPENDS

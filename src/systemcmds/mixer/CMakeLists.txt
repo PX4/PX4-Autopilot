@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 4096
 	COMPILE_FLAGS
 		-Wframe-larger-than=2048
-		-Os
 	SRCS
 		mixer.cpp
 	DEPENDS

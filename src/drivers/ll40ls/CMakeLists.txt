@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__ll40ls
 	MAIN ll40ls
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		ll40ls.cpp
 		LidarLite.cpp

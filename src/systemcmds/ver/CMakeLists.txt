@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN ver
 	STACK 1024
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		ver.c
 	DEPENDS

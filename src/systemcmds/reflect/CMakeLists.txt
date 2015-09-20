@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE systemcmds__reflect
 	MAIN reflect
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		reflect.c
 	DEPENDS

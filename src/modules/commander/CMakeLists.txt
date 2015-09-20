@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 5000
 	COMPILE_FLAGS
 		-Wframe-larger-than=2200
-		-Os
 	SRCS
 		commander.cpp
 		commander_params.c

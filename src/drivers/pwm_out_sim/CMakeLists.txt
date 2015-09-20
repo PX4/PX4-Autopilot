@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN pwm_out_sim
 	STACK 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		pwm_out_sim.cpp
 	DEPENDS
