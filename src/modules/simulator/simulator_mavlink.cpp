@@ -458,10 +458,15 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	char serial_buf[1024];
 
 	struct pollfd fds[2];
+	unsigned fd_count = 1;
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
-	fds[1].fd = serial_fd;
-	fds[1].events = POLLIN;
+
+	if (serial_fd >= 0) {
+		fds[1].fd = serial_fd;
+		fds[1].events = POLLIN;
+		fd_count++;
+	}
 
 	int len = 0;
 
@@ -496,7 +501,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// wait for new mavlink messages to arrive
 	while (true) {
 
-		pret = ::poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		pret = ::poll(&fds[0], fd_count, 100);
 
 		//timed out
 		if (pret == 0) {
