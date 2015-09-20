@@ -232,9 +232,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish) {
 	case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
 		mavlink_hil_optical_flow_t flow;
 		mavlink_msg_hil_optical_flow_decode(msg, &flow);
-		if (publish) {
-			publish_flow_topic(&flow);
-		}
+		publish_flow_topic(&flow);
 		break;
 
 	case MAVLINK_MSG_ID_HIL_GPS:
