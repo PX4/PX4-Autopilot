@@ -98,6 +98,11 @@ void BlockParam<T>::update() {
 }
 
 template <class T>
+void BlockParam<T>::commit() {
+	if (_handle != PARAM_INVALID) param_set(_handle, &_val);
+}
+
+template <class T>
 BlockParam<T>::~BlockParam() {};
 
 template class __EXPORT BlockParam<float>;

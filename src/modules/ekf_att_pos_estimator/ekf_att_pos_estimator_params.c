@@ -259,6 +259,42 @@ PARAM_DEFINE_FLOAT(PE_MAGE_PNOISE, 0.0003f);
 PARAM_DEFINE_FLOAT(PE_MAGB_PNOISE, 0.0003f);
 
 /**
+ * Magnetometer X bias
+ *
+ * The magnetometer bias. This bias is learnt by the filter over time and
+ * persists between boots.
+ *
+ * @min -0.6
+ * @max 0.6
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_MAGB_X, 0.0f);
+
+/**
+ * Magnetometer Y bias
+ *
+ * The magnetometer bias. This bias is learnt by the filter over time and
+ * persists between boots.
+ *
+ * @min -0.6
+ * @max 0.6
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_MAGB_Y, 0.0f);
+
+/**
+ * Magnetometer Z bias
+ *
+ * The magnetometer bias. This bias is learnt by the filter over time and
+ * persists between boots.
+ *
+ * @min -0.6
+ * @max 0.6
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_MAGB_Z, 0.0f);
+
+/**
  * Threshold for filter initialization.
  *
  * If the standard deviation of the GPS position estimate is below this threshold
