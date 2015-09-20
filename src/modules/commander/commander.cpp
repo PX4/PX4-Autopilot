@@ -169,9 +169,6 @@ static int mavlink_fd = 0;
 static int autostart_id;
 
 /* flags */
-static bool isStateForced = false;
-static uint8_t forcedState;
-
 static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
@@ -512,10 +509,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			// Transition the arming state
 			bool cmd_arm = base_mode & MAV_MODE_FLAG_SAFETY_ARMED;
 
-//			arming_ret = arm_disarm(cmd_arm, mavlink_fd, "set mode command");
+			arming_ret = arm_disarm(cmd_arm, mavlink_fd, "set mode command");
 
 			/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
-			mavlink_log_critical(mavlink_fd, "FORCED MANUAL");
 			if (cmd_arm && (arming_ret == TRANSITION_CHANGED) &&
 				(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
 
@@ -527,10 +523,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
 					/* MANUAL */
 					main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_MANUAL);
-					if (main_ret != TRANSITION_DENIED) {
-					    isStateForced = true;
-					    forcedState = vehicle_status_s::MAIN_STATE_MANUAL;
-					}
+
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ALTCTL) {
 					/* ALTCTL */
 					main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_ALTCTL);
@@ -2375,17 +2368,6 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 transition_result_t
 set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_setpoint_s *sp_man)
 {
-    // check to see if state being forced
-    if (isStateForced) {
-        if (sp_man->mode_switch == manual_control_setpoint_s::SWITCH_POS_OFF &&
-                sp_man->acro_switch != manual_control_setpoint_s::SWITCH_POS_ON &&
-                sp_man->offboard_switch != manual_control_setpoint_s::SWITCH_POS_ON) {
-            isStateForced = false;
-            return main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
-        } else {
-            return main_state_transition(status_local,forcedState);
-        }
-    }
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
