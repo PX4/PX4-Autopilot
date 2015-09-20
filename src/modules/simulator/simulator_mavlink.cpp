@@ -370,19 +370,35 @@ void Simulator::send()
 
 void Simulator::initializeSensorData()
 {
-	struct baro_report baro = {};
-	baro.pressure = 120000.0f;
+	// write sensor data to memory so that drivers can copy data from there
+	RawMPUData mpu = {};
+	mpu.accel_z = 9.81f;
 
-	// acceleration report
-	struct accel_report accel = {};
+	write_MPU_data((void *)&mpu);
+
+	RawAccelData accel = {};
 	accel.z = 9.81f;
-	accel.range_m_s2 = 80.0f;
 
-	// gyro report
-	struct gyro_report gyro = {};
+	write_accel_data((void *)&accel);
 
-	// mag report
-	struct mag_report mag = {};
+	RawMagData mag = {};
+	mag.x = 0.4f;
+	mag.y = 0.0f;
+	mag.z = 0.6f;
+
+	write_mag_data((void *)&mag);
+
+	RawBaroData baro = {};
+	// calculate air pressure from altitude (valid for low altitude)
+	baro.pressure = 120000.0f;
+	baro.altitude = 0.0f;
+	baro.temperature = 25.0f;
+
+	write_baro_data((void *)&baro);
+
+	RawAirspeedData airspeed {};
+
+	write_airspeed_data((void *)&airspeed);
 }
 
 void Simulator::pollForMAVLinkMessages(bool publish)
