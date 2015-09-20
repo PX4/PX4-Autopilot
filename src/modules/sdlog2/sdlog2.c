@@ -1083,6 +1083,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 		return 1;
 	}
 
+#if 0
+
+	// DEPRECATED
+
 	/* copy conversion scripts */
 	const char *converter_in = "/etc/logging/conv.zip";
 	char *converter_out = malloc(64);
@@ -1093,6 +1097,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	free(converter_out);
+#endif
 
 	/* initialize log buffer with specified size */
 	warnx("log buffer size: %i bytes", log_buffer_size);
