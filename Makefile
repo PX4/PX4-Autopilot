@@ -92,14 +92,32 @@ qurt_eagle_travis:
 
 posix: posix_sitl_simple
 
-sitl_quad: posix
+run_sitl_quad: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rcS
 
-sitl_plane: posix
+run_sitl_plane: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
 
-sitl_ros: posix
+run_sitl_ros: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros
+
+lldb_sitl_quad: posix
+	Tools/sitl_run.sh posix-configs/SITL/init/rcS lldb
+
+lldb_sitl_plane: posix
+	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing lldb
+
+lldb_sitl_ros: posix
+	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros lldb
+
+sitl_quad:
+	@echo "Deprecated. Use 'run_sitl_quad' instead."
+
+sitl_plane:
+	@echo "Deprecated. Use 'run_sitl_plane' instead."
+
+sitl_ros:
+	@echo "Deprecated. Use 'run_sitl_ros' instead."
 
 # Other targets
 # --------------------------------------------------------------------
