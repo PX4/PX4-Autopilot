@@ -48,6 +48,8 @@
 #include <string.h>
 #include <math.h>
 
+#include <px4_posix.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
