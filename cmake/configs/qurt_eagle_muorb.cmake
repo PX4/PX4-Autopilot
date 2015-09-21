@@ -1,6 +1,6 @@
 include(qurt/px4_impl_qurt)
 
-set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon-7.2.cmake)
+set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon-7.4.cmake)
 
 set(config_module_list
 	drivers/device
