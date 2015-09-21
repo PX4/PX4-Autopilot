@@ -44,7 +44,7 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
-#include <time.h>
+#include <px4_time.h>
 #include <queue.h>
 
 __BEGIN_DECLS
