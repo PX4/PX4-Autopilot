@@ -167,7 +167,6 @@ function(px4_os_add_flags)
                 ${DSPAL_ROOT}/uart_esc/inc
                 src/platforms/qurt/include
                 src/platforms/posix/include
-		src/lib/eigen-3.2
                 )
 
         set(added_definitions
@@ -223,11 +222,14 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
-	add_custom_target(${OUT} DEPENDS git_dspal git_eigen32)
-	add_custom_target(ALL DEPENDS git_eigen32)
-	execute_process(
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/lib/eigen-3.2
-		COMMAND patch -p1 -i ../../../cmake/qurt/qurt_eigen.patch)
+	add_custom_target(git_eigen_patched
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/lib/eigen
+		COMMAND git checkout .
+		COMMAND patch -p1 -i ${CMAKE_SOURCE_DIR}/cmake/qurt/qurt_eigen.patch
+		DEPENDS git_eigen)
+	add_custom_target(${OUT} DEPENDS git_dspal git_eigen_patched)
+	add_custom_target(ALL DEPENDS git_eigen)
+
 endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:

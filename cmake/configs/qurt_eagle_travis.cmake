@@ -3,7 +3,7 @@ include(qurt/px4_impl_qurt)
 # Run a full link with build stubs to make sure qurt target isn't broken
 set(QURT_ENABLE_STUBS "1")
 
-set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon.cmake)
+set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon-7.2.cmake)
 
 set(config_module_list
 	drivers/device
