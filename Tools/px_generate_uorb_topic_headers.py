@@ -44,6 +44,7 @@ import filecmp
 import argparse
 
 try:
+        import em
         import genmsg.template_tools
 except ImportError as e:
         print("python import error: ", e)
@@ -73,6 +74,49 @@ msg_template_map = {'msg.h.template': '@NAME@.h'}
 srv_template_map = {}
 incl_default = ['std_msgs:./msg/std_msgs']
 package = 'px4'
+topics_token = '# TOPICS '
+
+def get_multi_topics(filename):
+    """
+    Get TOPICS names from a "# TOPICS" line 
+    """
+    ofile = open(filename, 'r')
+    text = ofile.read()
+    result = []
+    for each_line in text.split('\n'):
+        if each_line.startswith (topics_token):
+            topic_names_str = each_line.replace(topics_token, "")
+            result.extend(topic_names_str.split(" "))
+    ofile.close()
+    return result
+
+def generate_sources_from_file(filename, outputdir, templatedir):
+        """
+        Converts a single .msg file to a uorb source file
+        """
+        print("Generating sources from {0}".format(filename))
+        msg_context = genmsg.msg_loader.MsgContext.create_default()
+        full_type_name = genmsg.gentools.compute_full_type_name(package, os.path.basename(filename))
+        spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename, full_type_name)
+        topics = get_multi_topics(filename)
+        em_globals = {
+            "file_name_in": filename,
+            "spec": spec,
+            "topics": topics
+        }
+
+        template_file = os.path.join(templatedir, 'msg.cpp.template')
+        output_file = os.path.join(outputdir, spec.short_name + '.cpp')
+
+        ofile = open(output_file, 'w')
+        # todo, reuse interpreter
+        interpreter = em.Interpreter(output=ofile, globals=em_globals, options={em.RAW_OPT:True,em.BUFFERED_OPT:True})
+        if not os.path.isfile(template_file):
+            ofile.close()
+            os.remove(output_file)
+            raise RuntimeError("Template file msg.cpp.template not found in template dir %s" % (templatedir))
+        interpreter.file(open(template_file)) #todo try
+        interpreter.shutdown()
 
 
 def convert_file(filename, outputdir, templatedir, includepath):
@@ -89,7 +133,7 @@ def convert_file(filename, outputdir, templatedir, includepath):
                                                  srv_template_map)
 
 
-def convert_dir(inputdir, outputdir, templatedir):
+def convert_dir(inputdir, outputdir, templatedir, generate_sources=False):
         """
         Converts all .msg files in inputdir to uORB header files
         """
@@ -128,10 +172,9 @@ def convert_dir(inputdir, outputdir, templatedir):
                 if not os.path.isfile(fn):
                         continue
 
-                convert_file(fn,
-                             outputdir,
-                             templatedir,
-                             includepath)
+                convert_file(fn, outputdir, templatedir, includepath)
+                if generate_sources:
+                    generate_sources_from_file(fn, outputdir, templatedir)
 
         return True
 
@@ -167,13 +210,13 @@ def copy_changed(inputdir, outputdir, prefix=''):
                         #print("{0}: unchanged".format(f))
 
 
-def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
+def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix, generate_sources=False):
         """
         Converts all .msg files in inputdir to uORB header files
         Unchanged existing files are not overwritten.
         """
         # Create new headers in temporary output directory
-        convert_dir(inputdir, temporarydir, templatedir)
+        convert_dir(inputdir, temporarydir, templatedir, generate_sources)
         # Copy changed headers from temporary dir to output dir
         copy_changed(temporarydir, outputdir, prefix)
 
@@ -198,9 +241,6 @@ if __name__ == "__main__":
                             help='generate source files also')
         args = parser.parse_args()
 
-        if args.generate_source:
-            msg_template_map['msg.cpp.template'] = '@NAME@.cpp'
-
         if args.file is not None:
                 for f in args.file:
                         convert_file(
@@ -214,4 +254,5 @@ if __name__ == "__main__":
                     args.outputdir,
                     args.templatedir,
                     args.temporarydir,
-                    args.prefix)
+                    args.prefix,
+                    args.generate_source)

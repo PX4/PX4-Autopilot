@@ -90,24 +90,19 @@ topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in sp
 
 #include <px4_config.h>
 #include <drivers/drv_orb_dev.h>
-
 @{
 if spec.short_name.startswith("actuator_controls"):
-    print('#include "actuator_controls.h"')
-}@
-
-@{
+    print('#include <uORB/topics/actuator_controls.h>')
 if spec.short_name.startswith("mission"):
     print('// XXX onboard and offboard mission are still declared here')
     print('// until this is generator supported')
     print('#include <navigator/navigation.h>')
 }@
-
-#include "@(topic_name).h"
+#include <uORB/topics/@(topic_name).h>
 
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
 const char *__orb_@(topic_name)_fields = "@( topic_name.upper() ):@( ";".join(topic_fields) );";
 
-@[for topic in spec.topics]@
+@[for topic in topics]@
 ORB_DEFINE(@topic, struct @uorb_struct, __orb_@(topic_name)_fields);
 @[end for]

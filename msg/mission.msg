@@ -4,4 +4,4 @@ int32 current_seq	# default -1, start at the one changed latest
 
 # fixme: there is no mission definition in objects_common.cpp
 # but it's required for systemcmds/topic_listener/topic_listener
-TOPICS mission offboard_mission onboard_mission
+# TOPICS mission offboard_mission onboard_mission
