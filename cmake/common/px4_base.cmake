@@ -507,9 +507,12 @@ function(px4_add_common_flags)
 		)
 
 	if (${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
-		list(APPEND warnings
-			-Wno-unused-const-variable
-		)
+		# QuRT 6.4.X compiler identifies as Clang but does not support this option
+		if (NOT ${OS} STREQUAL "qurt")
+			list(APPEND warnings
+				-Wno-unused-const-variable
+			)
+		endif()
 	else()
 		list(APPEND warnings
 			-Werror=unused-but-set-variable
