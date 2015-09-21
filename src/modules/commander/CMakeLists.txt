@@ -30,13 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(MODULE_CFLAGS -Os)
+
+if(NOT ${OS} STREQUAL "qurt")
+	list(APPEND MODULE_CFLAGS
+		-Wframe-larger-than=2200)
+endif()
 px4_add_module(
 	MODULE modules__commander
 	MAIN commander
 	STACK 5000
 	COMPILE_FLAGS
-		-Wframe-larger-than=2200
-		-Os
+		${MODULE_CFLAGS}
 	SRCS
 		commander.cpp
 		commander_params.c

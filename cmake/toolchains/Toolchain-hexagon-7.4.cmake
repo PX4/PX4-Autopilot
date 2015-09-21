@@ -35,7 +35,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(common/px4_base)
 
 if(NOT HEXAGON_TOOLS_ROOT)
-	set(HEXAGON_TOOLS_ROOT /opt/7.2.09/Tools)
+	set(HEXAGON_TOOLS_ROOT /opt/7.4/Tools)
 endif()
 
 macro (list2string out in)
@@ -95,7 +95,6 @@ set(ARCHOPTIMIZATION
 	-g
 	-fno-strict-aliasing
 	-fdata-sections
-	-fpic
 	-fno-zero-initialized-in-bss
 	)
 
@@ -108,7 +107,7 @@ set(ARCHCFLAGS
 set(ARCHCXXFLAGS
 	-fno-exceptions
 	-fno-rtti
-#	-std=c++11
+	-std=c++11
 	-fno-threadsafe-statics
 	-DCONFIG_WCHAR_BUILTIN
 	-D__CUSTOM_FILE_IO__
@@ -214,9 +213,9 @@ list2string(CMAKE_EXE_LINKER_FLAGS
 	-g 
 	-mv5 
 	-mG0lib 
-	-lhexagon
 	-G0 
 	-fpic 
+	-shared
 	-Wl,-Bsymbolic
 	-Wl,--wrap=malloc
 	-Wl,--wrap=calloc
