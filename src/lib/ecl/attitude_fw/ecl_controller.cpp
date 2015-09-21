@@ -113,6 +113,11 @@ void ECL_Controller::set_max_rate(float max_rate)
 	_max_rate = max_rate;
 }
 
+void ECL_Controller::set_rate_setpoint(float rate_setpoint)
+{
+	_rate_setpoint = rate_setpoint;
+}
+
 float ECL_Controller::get_rate_error()
 {
 	return _rate_error;
