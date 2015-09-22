@@ -86,6 +86,17 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_V, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_W_Z_VIS_P, 5.0f);
 
 /**
+ * Z axis weight for vision
+ *
+ * Weight (cutoff frequency) for vision altitude velocity measurements.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(INAV_W_Z_VIS_V, 0.0f);
+
+/**
  * Z axis weight for sonar
  *
  * Weight (cutoff frequency) for sonar measurements.
