@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -72,6 +73,8 @@
 #include <drivers/drv_range_finder.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
+
+#include <mathlib/mathlib.h>
 
 #include "mavlink_messages.h"
 #include "mavlink_main.h"
@@ -1126,67 +1129,131 @@ protected:
 	}
 };
 
+class MavlinkStreamVisionPositionNED : public MavlinkStream
+{
+public:
+    const char *get_name() const
+    {
+        return MavlinkStreamVisionPositionNED::get_name_static();
+    }
+
+    static const char *get_name_static()
+    {
+        return "VISION_POSITION_NED";
+    }
+
+    uint8_t get_id()
+    {
+        return MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE;
+    }
+
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamVisionPositionNED(mavlink);
+    }
+
+    unsigned get_size()
+    {
+        return MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    }
+
+private:
+    MavlinkOrbSubscription *_pos_sub;
+    uint64_t _pos_time;
+
+    /* do not allow top copying this class */
+    MavlinkStreamVisionPositionNED(MavlinkStreamVisionPositionNED &);
+    MavlinkStreamVisionPositionNED& operator = (const MavlinkStreamVisionPositionNED &);
+
+protected:
+    explicit MavlinkStreamVisionPositionNED(Mavlink *mavlink) : MavlinkStream(mavlink),
+        _pos_sub(_mavlink->add_orb_subscription(ORB_ID(vision_position_estimate))),
+        _pos_time(0)
+    {}
+
+    void send(const hrt_abstime t)
+    {
+        struct vision_position_estimate_s vpos;
+        memset(&vpos, 0, sizeof(vpos));
+
+        if (_pos_sub->update(&_pos_time, &vpos)) {
+            mavlink_vision_position_estimate_t vmsg;
+            vmsg.usec = vpos.timestamp_boot / 1000;
+            vmsg.x = vpos.x;
+            vmsg.y = vpos.y;
+            vmsg.z = vpos.z;
+            math::Quaternion q(vpos.q);
+            math::Vector<3> rpy = q.to_euler();
+            vmsg.roll = rpy(0);
+            vmsg.pitch = rpy(1);
+            vmsg.yaw = rpy(2);
+
+            _mavlink->send_message(MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE, &vmsg);
+        }
+    }
+};
+
 
 class MavlinkStreamLocalPositionNED : public MavlinkStream
 {
 public:
-	const char *get_name() const
-	{
-		return MavlinkStreamLocalPositionNED::get_name_static();
-	}
+    const char *get_name() const
+    {
+        return MavlinkStreamLocalPositionNED::get_name_static();
+    }
 
-	static const char *get_name_static()
-	{
-		return "LOCAL_POSITION_NED";
-	}
+    static const char *get_name_static()
+    {
+        return "LOCAL_POSITION_NED";
+    }
 
-	uint8_t get_id()
-	{
-		return MAVLINK_MSG_ID_LOCAL_POSITION_NED;
-	}
+    uint8_t get_id()
+    {
+        return MAVLINK_MSG_ID_LOCAL_POSITION_NED;
+    }
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamLocalPositionNED(mavlink);
-	}
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamLocalPositionNED(mavlink);
+    }
 
-	unsigned get_size()
-	{
-		return MAVLINK_MSG_ID_LOCAL_POSITION_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+    unsigned get_size()
+    {
+        return MAVLINK_MSG_ID_LOCAL_POSITION_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    }
 
 private:
-	MavlinkOrbSubscription *_pos_sub;
-	uint64_t _pos_time;
+    MavlinkOrbSubscription *_pos_sub;
+    uint64_t _pos_time;
 
-	/* do not allow top copying this class */
-	MavlinkStreamLocalPositionNED(MavlinkStreamLocalPositionNED &);
-	MavlinkStreamLocalPositionNED& operator = (const MavlinkStreamLocalPositionNED &);
+    /* do not allow top copying this class */
+    MavlinkStreamLocalPositionNED(MavlinkStreamLocalPositionNED &);
+    MavlinkStreamLocalPositionNED& operator = (const MavlinkStreamLocalPositionNED &);
 
 protected:
-	explicit MavlinkStreamLocalPositionNED(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
-		_pos_time(0)
-	{}
+    explicit MavlinkStreamLocalPositionNED(Mavlink *mavlink) : MavlinkStream(mavlink),
+        _pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+        _pos_time(0)
+    {}
 
-	void send(const hrt_abstime t)
-	{
-		struct vehicle_local_position_s pos;
+    void send(const hrt_abstime t)
+    {
+        struct vehicle_local_position_s pos;
 
-		if (_pos_sub->update(&_pos_time, &pos)) {
-			mavlink_local_position_ned_t msg;
+        if (_pos_sub->update(&_pos_time, &pos)) {
+            mavlink_local_position_ned_t msg;
 
-			msg.time_boot_ms = pos.timestamp / 1000;
-			msg.x = pos.x;
-			msg.y = pos.y;
-			msg.z = pos.z;
-			msg.vx = pos.vx;
-			msg.vy = pos.vy;
-			msg.vz = pos.vz;
+            msg.time_boot_ms = pos.timestamp / 1000;
+            msg.x = pos.x;
+            msg.y = pos.y;
+            msg.z = pos.z;
+            msg.vx = pos.vx;
+            msg.vy = pos.vy;
+            msg.vz = pos.vz;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_LOCAL_POSITION_NED, &msg);
-		}
-	}
+            _mavlink->send_message(MAVLINK_MSG_ID_LOCAL_POSITION_NED, &msg);
+        }
+    }
 };
 
 
@@ -1759,18 +1826,18 @@ protected:
 	{
 		struct vehicle_local_position_setpoint_s pos_sp;
 
-		if (_pos_sp_sub->update(&_pos_sp_time, &pos_sp)) {
-			mavlink_position_target_local_ned_t msg{};
+        if (_pos_sp_sub->update(&_pos_sp_time, &pos_sp)) {
+            mavlink_position_target_local_ned_t msg{};
 
-			msg.time_boot_ms = pos_sp.timestamp / 1000;
-			msg.coordinate_frame = MAV_FRAME_LOCAL_NED;
-			msg.x = pos_sp.x;
-			msg.y = pos_sp.y;
-			msg.z = pos_sp.z;
-			msg.yaw = pos_sp.yaw;
-			msg.vx = pos_sp.vx;
-			msg.vy = pos_sp.vy;
-			msg.vz = pos_sp.vz;
+            msg.time_boot_ms = pos_sp.timestamp / 1000;
+            msg.coordinate_frame = MAV_FRAME_LOCAL_NED;
+            msg.x = pos_sp.x;
+            msg.y = pos_sp.y;
+            msg.z = pos_sp.z;
+            msg.yaw = pos_sp.yaw;
+            msg.vx = pos_sp.vx;
+            msg.vy = pos_sp.vy;
+            msg.vz = pos_sp.vz;
             msg.afx = pos_sp.acc_x;
             msg.afy = pos_sp.acc_y;
             msg.afz = pos_sp.acc_z;
@@ -2277,7 +2344,8 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamSystemTime::new_instance, &MavlinkStreamSystemTime::get_name_static),
 	new StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static),
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
-	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
+    new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
+    new StreamListItem(&MavlinkStreamVisionPositionNED::new_instance, &MavlinkStreamVisionPositionNED::get_name_static),
 	new StreamListItem(&MavlinkStreamViconPositionEstimate::new_instance, &MavlinkStreamViconPositionEstimate::get_name_static),
 	new StreamListItem(&MavlinkStreamGPSGlobalOrigin::new_instance, &MavlinkStreamGPSGlobalOrigin::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static),

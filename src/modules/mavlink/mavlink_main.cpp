@@ -1523,6 +1523,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
+	    configure_stream("VISION_POSITION_NED", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1553,6 +1554,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("MANUAL_CONTROL", 5.0f);
 		configure_stream("HIGHRES_IMU", 100.0f);
 		configure_stream("GPS_RAW_INT", 20.0f);
+	    configure_stream("POSITION_TARGET_LOCAL_NED", 10.0f);
 
 	default:
 		break;
