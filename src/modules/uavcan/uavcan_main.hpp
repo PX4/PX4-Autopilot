@@ -38,6 +38,9 @@
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <uavcan/protocol/global_time_sync_master.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
+#include <uavcan/protocol/RestartNode.hpp>
 
 #include <drivers/device/device.h>
 #include <systemlib/perf_counter.h>
@@ -122,7 +125,11 @@ public:
 	static int         getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
 	int             fw_server(eServerAction action);
 	void            attachITxQueueInjector(ITxQueueInjector *injector) {_tx_injector = injector;}
-
+	int             list_params(int remote_node_id);
+	int             save_params(int remote_node_id);
+	int             set_param(int remote_node_id, const char *name, char *value);
+	int             get_param(int remote_node_id, const char *name);
+	int             reset_node(int remote_node_id);
 private:
 
 	void		fill_node_info();
@@ -133,6 +140,16 @@ private:
 	int             start_fw_server();
 	int             stop_fw_server();
 	int             request_fw_check();
+	int             print_params(uavcan::protocol::param::GetSet::Response &resp);
+	int             get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
+	void            set_setget_response(uavcan::protocol::param::GetSet::Response *resp)
+	{
+		_setget_response = resp;
+	}
+	void            free_setget_response(void)
+	{
+		_setget_response = nullptr;
+	}
 
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
@@ -186,5 +203,17 @@ private:
 
 	typedef uavcan::MethodBinder<UavcanNode *, void (UavcanNode::*)(const uavcan::TimerEvent &)> TimerCallback;
 	uavcan::TimerEventForwarder<TimerCallback> _master_timer;
+
+	bool _callback_success;
+	uavcan::protocol::param::GetSet::Response *_setget_response;
+	typedef uavcan::MethodBinder<UavcanNode *,
+		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
+	typedef uavcan::MethodBinder<UavcanNode *,
+		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &)> ExecuteOpcodeCallback;
+	typedef uavcan::MethodBinder<UavcanNode *,
+		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &)> RestartNodeCallback;
+	void cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+	void cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
+	void cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result);
 
 };
