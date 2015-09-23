@@ -68,7 +68,7 @@ extern "C" {
 			size_t s;
 
 			// get stack frames
-			s = backtrace(array, 10);
+			s = backtrace(buf, 10);
 
 			// print out stack frames
 			fprintf(stderr, "Error: signal %d:\n", sig_num);
