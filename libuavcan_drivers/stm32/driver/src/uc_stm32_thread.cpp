@@ -67,16 +67,16 @@ void BusEvent::signalFromInterrupt()
  */
 void Mutex::lock()
 {
-# if (CH_KERNEL_MAJOR == 2)
-    chibios_rt::BaseThread::unlockMutex();
-# else // ChibiOS 3
     mtx_.lock();
-# endif
 }
 
 void Mutex::unlock()
 {
+# if (CH_KERNEL_MAJOR == 2)
+    chibios_rt::BaseThread::unlockMutex();
+# else // ChibiOS 3
     mtx_.unlock();
+# endif
 }
 
 #elif UAVCAN_STM32_NUTTX
