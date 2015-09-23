@@ -47,9 +47,6 @@
 
 #ifdef __PX4_QURT
 #define dprintf(...)
-#define ddeclare(...)
-#else
-#define ddeclare(...) __VA_ARGS__
 #endif
 
 /**
@@ -420,8 +417,8 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 		break;
 
 	case PC_ELAPSED: {
-			ddeclare(struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;)
-			ddeclare(float rms = sqrtf(pce->M2 / (pce->event_count - 1));)
+			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
 			dprintf(fd, "%s: %llu events, %llu overruns, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 				handle->name,
 				(unsigned long long)pce->event_count,
@@ -435,8 +432,8 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 		}
 
 	case PC_INTERVAL: {
-			ddeclare(struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;)
-			ddeclare(float rms = sqrtf(pci->M2 / (pci->event_count - 1));)
+			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
 
 			dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 				handle->name,

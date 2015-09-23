@@ -63,7 +63,6 @@
 
 #include "uORB/uORB.h"
 #include "uORB/topics/parameter_update.h"
-#include "px4_parameters.h"
 
 #if 0
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
@@ -87,11 +86,12 @@ extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
 #else
-// FIXME - start and end are reversed
-static const struct param_info_s *param_info_base = (const struct param_info_s *)&px4_parameters;
+extern char __param_start, __param_end;
+static const struct param_info_s *param_info_base = (struct param_info_s *) &__param_start;
+static const struct param_info_s *param_info_limit = (struct param_info_s *) &__param_end;
 #endif
 
-#define	param_info_count		px4_parameters.param_count
+#define	param_info_count		((unsigned)(param_info_limit - param_info_base))
 
 /**
  * Storage for modified parameters.
@@ -147,14 +147,14 @@ static param_t param_find_internal(const char *name, bool notification);
 static void
 param_lock(void)
 {
-	//do {} while (px4_sem_wait(&param_sem) != 0);
+	//do {} while (sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-	//px4_sem_post(&param_sem);
+	//sem_post(&param_sem);
 }
 
 /** assert that the parameter store is locked */

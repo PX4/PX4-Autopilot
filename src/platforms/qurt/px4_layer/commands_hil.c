@@ -37,7 +37,6 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-const char *get_commands(void);
 const char *get_commands()
 {
 

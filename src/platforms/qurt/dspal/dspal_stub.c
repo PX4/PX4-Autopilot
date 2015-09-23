@@ -33,16 +33,20 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
-//#define STACK_SIZE 0x8000
-//static char __attribute__ ((aligned (16))) stack1[STACK_SIZE];
+#define STACK_SIZE 0x8000
+static char __attribute__ ((aligned (16))) stack1[STACK_SIZE];
 
-static void do_dlopen()
+int main(int argc, char* argv[])
 {
-#if 0
+	int ret = 0;
+	char *builtin[]={"libgcc.so", "libc.so", "libstdc++.so"};
 	void *handle;
 	char *error;
 	void (*entry_function)() = NULL;
 
+	printf("In DSPAL main\n");
+	dlinit(3, builtin);
+#if 0
 	handle = dlopen ("libdspal_client.so", RTLD_LAZY);
 	if (!handle) {
 		printf("Error opening libdspal_client.so\n");
@@ -55,18 +59,6 @@ static void do_dlopen()
 	}
 	dlclose(handle);
 #endif
-}
-	
-
-int main(int argc, char* argv[])
-{
-	int ret = 0;
-	char *builtin[]={"libgcc.so", "libc.so", "libstdc++.so"};
-
-	printf("In DSPAL main\n");
-	dlinit(3, builtin);
-
-	do_dlopen();
 	return ret;
 }
 

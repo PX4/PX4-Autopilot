@@ -39,7 +39,6 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
-#include <px4_posix.h>
 #include <px4_time.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -69,7 +68,7 @@ struct wqueue_s g_work[NWORKERS];
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
-px4_sem_t _work_lock[NWORKERS];
+sem_t _work_lock[NWORKERS];
 
 /****************************************************************************
  * Private Functions
@@ -188,10 +187,10 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
  ****************************************************************************/
 void work_queues_init(void)
 {
-	px4_sem_init(&_work_lock[HPWORK], 0, 1);
-	px4_sem_init(&_work_lock[LPWORK], 0, 1);
+	sem_init(&_work_lock[HPWORK], 0, 1);
+	sem_init(&_work_lock[LPWORK], 0, 1);
 #ifdef CONFIG_SCHED_USRWORK
-	px4_sem_init(&_work_lock[USRWORK], 0, 1);
+	sem_init(&_work_lock[USRWORK], 0, 1);
 #endif
 
 	// Create high priority worker thread

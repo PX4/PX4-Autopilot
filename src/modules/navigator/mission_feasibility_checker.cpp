@@ -51,6 +51,12 @@
 #include <errno.h>
 #include <uORB/topics/fence.h>
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
 MissionFeasibilityChecker::MissionFeasibilityChecker() :
 	_mavlink_fd(-1),
 	_capabilities_sub(-1),

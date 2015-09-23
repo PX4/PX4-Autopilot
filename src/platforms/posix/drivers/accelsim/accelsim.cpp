@@ -448,9 +448,6 @@ ACCELSIM::init()
 {
 	int ret = ERROR;
 
-	struct mag_report mrp = {};
-	struct accel_report arp = {};
-
 	/* do SIM init first */
 	if (VDev::init() != OK) {
 		PX4_WARN("SIM init failed");
@@ -481,6 +478,7 @@ ACCELSIM::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
+	struct mag_report mrp;
 	_mag_reports->get(&mrp);
 
 	/* measurement will have generated a report, publish */
@@ -495,6 +493,7 @@ ACCELSIM::init()
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
+	struct accel_report arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -1015,7 +1014,7 @@ ACCELSIM::measure()
 	} raw_accel_report;
 #pragma pack(pop)
 
-	accel_report accel_report = {};
+	accel_report accel_report;
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
@@ -1024,7 +1023,7 @@ ACCELSIM::measure()
 	memset(&raw_accel_report, 0, sizeof(raw_accel_report));
 	raw_accel_report.cmd = DIR_READ | ACC_READ;
 
-	if (OK != transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report))) {
+	if(OK != transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report))) {
 		return;
 	}
 

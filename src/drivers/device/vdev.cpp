@@ -64,7 +64,7 @@ private:
 	px4_dev_t() {}
 };
 
-#define PX4_MAX_DEV 500
+#define PX4_MAX_DEV 200
 static px4_dev_t *devmap[PX4_MAX_DEV];
 
 /*
@@ -366,7 +366,7 @@ VDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 
 			/* yes? post the notification */
 			if (fds->revents != 0)
-				px4_sem_post(fds->sem);
+				sem_post(fds->sem);
 		} else {
 			PX4_WARN("Store Poll Waiter error.");
 		}
@@ -403,7 +403,7 @@ VDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
 	PX4_DEBUG("VDev::poll_notify_one");
 	int value;
-	px4_sem_getvalue(fds->sem, &value);
+	sem_getvalue(fds->sem, &value);
 
 	/* update the reported event set */
 	fds->revents |= fds->events & events;
@@ -412,9 +412,8 @@ VDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 
 	/* if the state is now interesting, wake the waiter if it's still asleep */
 	/* XXX semcount check here is a vile hack; counting semphores should not be abused as cvars */
-	if ((fds->revents != 0) && (value <= 0)) {
-		px4_sem_post(fds->sem);
-	}
+	if ((fds->revents != 0) && (value <= 0))
+		sem_post(fds->sem);
 }
 
 pollevent_t

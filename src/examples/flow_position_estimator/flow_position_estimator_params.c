@@ -1,6 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
+ *   		 Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,22 +32,41 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <px4_log.h>
-#include <semaphore.h>
-#include <stdio.h>
-#include "work_lock.h"
+
+/*
+ * @file flow_position_estimator_params.c
+ *
+ * Parameters for position estimator
+ */
+
+#include "flow_position_estimator_params.h"
+
+/* Extended Kalman Filter covariances */
+
+/* controller parameters */
+PARAM_DEFINE_FLOAT(FPE_LO_THRUST, 0.4f);
+PARAM_DEFINE_FLOAT(FPE_SONAR_LP_U, 0.5f);
+PARAM_DEFINE_FLOAT(FPE_SONAR_LP_L, 0.2f);
+PARAM_DEFINE_INT32(FPE_DEBUG, 0);
 
 
-extern sem_t _work_lock[];
-
-void work_lock(int id)
+int parameters_init(struct flow_position_estimator_param_handles *h)
 {
-	//PX4_INFO("work_lock %d", id);
-	sem_wait(&_work_lock[id]);
+	/* PID parameters */
+	h->minimum_liftoff_thrust	=	param_find("FPE_LO_THRUST");
+	h->sonar_upper_lp_threshold	=	param_find("FPE_SONAR_LP_U");
+	h->sonar_lower_lp_threshold	=	param_find("FPE_SONAR_LP_L");
+	h->debug					=	param_find("FPE_DEBUG");
+
+	return OK;
 }
 
-void work_unlock(int id)
+int parameters_update(const struct flow_position_estimator_param_handles *h, struct flow_position_estimator_params *p)
 {
-	//PX4_INFO("work_unlock %d", id);
-	sem_post(&_work_lock[id]);
+	param_get(h->minimum_liftoff_thrust, &(p->minimum_liftoff_thrust));
+	param_get(h->sonar_upper_lp_threshold, &(p->sonar_upper_lp_threshold));
+	param_get(h->sonar_lower_lp_threshold, &(p->sonar_lower_lp_threshold));
+	param_get(h->debug, &(p->debug));
+
+	return OK;
 }

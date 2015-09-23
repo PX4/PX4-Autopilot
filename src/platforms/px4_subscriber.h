@@ -38,10 +38,8 @@
  */
 #pragma once
 
-#ifndef CONFIG_ARCH_BOARD_SIM
 #include <functional>
 #include <type_traits>
-#endif
 
 #if defined(__PX4_ROS)
 /* includes when building for ros */
@@ -221,12 +219,10 @@ public:
 protected:
 	uORB::SubscriptionBase * _uorb_sub;	/**< Handle to the subscription */
 
-#ifndef CONFIG_ARCH_BOARD_SIM
 	typename std::remove_reference<decltype(((T*)nullptr)->data())>::type getUORBData()
 	{
 		return (typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub;
 	}
-#endif
 
 	/**
 	 * Get void pointer to last message value
@@ -246,13 +242,8 @@ public:
 	 * @param cbf		Callback, executed on receiving a new message
 	 * @param interval	Minimal interval between calls to callback
 	 */
-	SubscriberUORBCallback(unsigned interval
-#ifndef CONFIG_ARCH_BOARD_SIM
-			       ,std::function<void(const T &)> cbf)
-#else
-		)
-#endif
-		:
+	SubscriberUORBCallback(unsigned interval,
+			       std::function<void(const T &)> cbf) :
 		SubscriberUORB<T>(interval),
 		_cbf(cbf)
 	{}
@@ -286,9 +277,7 @@ public:
 	};
 
 protected:
-#ifndef CONFIG_ARCH_BOARD_SIM
 	std::function<void(const T &)> _cbf;	/**< Callback that the user provided on the subscription */
-#endif
 };
 #endif
 

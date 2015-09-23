@@ -1,6 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
+ *   		 Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,22 +32,37 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <px4_log.h>
-#include <semaphore.h>
-#include <stdio.h>
-#include "work_lock.h"
 
+/*
+ * @file flow_position_estimator_params.h
+ *
+ * Parameters for position estimator
+ */
 
-extern sem_t _work_lock[];
+#include <systemlib/param/param.h>
 
-void work_lock(int id)
-{
-	//PX4_INFO("work_lock %d", id);
-	sem_wait(&_work_lock[id]);
-}
+struct flow_position_estimator_params {
+	float minimum_liftoff_thrust;
+	float sonar_upper_lp_threshold;
+	float sonar_lower_lp_threshold;
+	int debug;
+};
 
-void work_unlock(int id)
-{
-	//PX4_INFO("work_unlock %d", id);
-	sem_post(&_work_lock[id]);
-}
+struct flow_position_estimator_param_handles {
+	param_t minimum_liftoff_thrust;
+	param_t sonar_upper_lp_threshold;
+	param_t sonar_lower_lp_threshold;
+	param_t debug;
+};
+
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+int parameters_init(struct flow_position_estimator_param_handles *h);
+
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct flow_position_estimator_param_handles *h, struct flow_position_estimator_params *p);

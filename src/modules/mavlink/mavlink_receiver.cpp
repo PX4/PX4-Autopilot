@@ -49,6 +49,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <fcntl.h>
+#include <mqueue.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -61,6 +62,7 @@
 #include <float.h>
 #include <unistd.h>
 #ifndef __PX4_POSIX
+#include <sys/prctl.h>
 #include <termios.h>
 #endif
 #include <errno.h>

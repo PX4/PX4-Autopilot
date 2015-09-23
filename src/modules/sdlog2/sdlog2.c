@@ -45,17 +45,10 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
-#include <px4_posix.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef __PX4_DARWIN
-#include <sys/param.h>
-#include <sys/mount.h>
-#else
+#include <sys/prctl.h>
 #include <sys/statfs.h>
-#endif
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -173,7 +166,7 @@ PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
 		log_msgs_skipped++; \
 	}
 
-#define SDLOG_MIN(X,Y) ((X) < (Y) ? (X) : (Y))
+#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
 static bool main_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;			/**< Deamon status flag */
@@ -417,7 +410,7 @@ int sdlog2_main(int argc, char *argv[])
 
 bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
 	struct timespec ts;
-	px4_clock_gettime(CLOCK_REALTIME, &ts);
+	clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
 	time_t utc_time_sec;
 
@@ -1083,10 +1076,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		return 1;
 	}
 
-#if 0
-
-	// DEPRECATED
-
 	/* copy conversion scripts */
 	const char *converter_in = "/etc/logging/conv.zip";
 	char *converter_out = malloc(64);
@@ -1097,7 +1086,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	free(converter_out);
-#endif
 
 	/* initialize log buffer with specified size */
 	warnx("log buffer size: %i bytes", log_buffer_size);
@@ -1407,7 +1395,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (copy_if_updated(ORB_ID(satellite_info), &subs.sat_info_sub, &buf.sat_info)) {
 
 				/* log the SNR of each satellite for a detailed view of signal quality */
-				unsigned sat_info_count = SDLOG_MIN(buf.sat_info.count, sizeof(buf.sat_info.snr) / sizeof(buf.sat_info.snr[0]));
+				unsigned sat_info_count = MIN(buf.sat_info.count, sizeof(buf.sat_info.snr) / sizeof(buf.sat_info.snr[0]));
 				unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
 
 				log_msg.msg_type = LOG_GS0A_MSG;

@@ -67,7 +67,7 @@ struct wqueue_s g_hrt_work;
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
-px4_sem_t _hrt_work_lock;
+sem_t _hrt_work_lock;
 
 /****************************************************************************
  * Private Functions
@@ -262,7 +262,7 @@ static int work_hrtthread(int argc, char *argv[])
 
 void hrt_work_queue_init(void)
 {
-	px4_sem_init(&_hrt_work_lock, 0, 1);
+	sem_init(&_hrt_work_lock, 0, 1);
 
 	// Create high priority worker thread
 	g_hrt_work.pid = px4_task_spawn_cmd("wkr_hrt",
