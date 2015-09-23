@@ -77,7 +77,10 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
-	_esc_controller(_node)
+	_esc_controller(_node),
+	_time_sync_master(_node),
+	_time_sync_slave(_node),
+	_master_timer(_node)
 {
 	_task_should_exit = false;
 	_fw_server_action = None;
@@ -459,6 +462,48 @@ int UavcanNode::add_poll_fd(int fd)
 }
 
 
+void UavcanNode::handle_time_sync(const uavcan::TimerEvent &)
+{
+
+	/*
+	 * Check whether there are higher priority masters in the network.
+	 * If there are, we need to activate the local slave in order to sync with them.
+	 */
+	if (_time_sync_slave.isActive()) { // "Active" means that the slave tracks at least one remote master in the network
+		if (_node.getNodeID() < _time_sync_slave.getMasterNodeID()) {
+			/*
+			 * We're the highest priority master in the network.
+			 * We need to suppress the slave now to prevent it from picking up unwanted sync messages from
+			 * lower priority masters.
+			 */
+			_time_sync_slave.suppress(true);  // SUPPRESS
+
+		} else {
+			/*
+			 * There is at least one higher priority master in the network.
+			 * We need to allow the slave to adjust our local clock in order to be in sync.
+			 */
+			_time_sync_slave.suppress(false);  // UNSUPPRESS
+		}
+
+	} else {
+		/*
+		 * There are no other time sync masters in the network, so we're the only time source.
+		 * The slave must be suppressed anyway to prevent it from disrupting the local clock if a new
+		 * lower priority master suddenly appears in the network.
+		 */
+		_time_sync_slave.suppress(true);
+	}
+
+	/*
+	 * Publish the sync message now, even if we're not a higher priority master.
+	 * Other nodes will be able to pick the right master anyway.
+	 */
+	_time_sync_master.publish();
+}
+
+
+
 int UavcanNode::run()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
@@ -471,6 +516,27 @@ int UavcanNode::run()
 	_actuator_direct_sub = orb_subscribe(ORB_ID(actuator_direct));
 
 	memset(&_outputs, 0, sizeof(_outputs));
+
+        /*
+         * Set up the time synchronization
+         */
+
+        const int slave_init_res = _time_sync_slave.start();
+        if (slave_init_res < 0)
+        {
+            warnx("Failed to start time_sync_slave");
+            _task_should_exit = true;
+        }
+
+        /* When we have a system wide notion of time update (i.e the transition from the initial
+         * System RTC setting to the GPS) we would call uavcan_stm32::clock::setUtc() when that
+         * happens, but for now we use adjustUtc with a correction of 0
+         */
+        uavcan_stm32::clock::adjustUtc(uavcan::UtcDuration::fromUSec(0));
+        _master_timer.setCallback(TimerCallback(this, &UavcanNode::handle_time_sync));
+        _master_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000));
+
+
 
 	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
 
