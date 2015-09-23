@@ -46,11 +46,6 @@
 // Hack until everything is using this header
 #include <systemlib/visibility.h>
 
-/*
- * Pointer to a pack function
- */
-typedef void (*func_ptr)(void *in, void *out);
-
 /**
  * Object metadata.
  */

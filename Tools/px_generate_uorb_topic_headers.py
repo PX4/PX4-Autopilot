@@ -77,18 +77,18 @@ package = 'px4'
 topics_token = '# TOPICS '
 
 def get_multi_topics(filename):
-    """
-    Get TOPICS names from a "# TOPICS" line 
-    """
-    ofile = open(filename, 'r')
-    text = ofile.read()
-    result = []
-    for each_line in text.split('\n'):
-        if each_line.startswith (topics_token):
-            topic_names_str = each_line.replace(topics_token, "")
-            result.extend(topic_names_str.split(" "))
-    ofile.close()
-    return result
+        """
+        Get TOPICS names from a "# TOPICS" line 
+        """
+        ofile = open(filename, 'r')
+        text = ofile.read()
+        result = []
+        for each_line in text.split('\n'):
+                if each_line.startswith (topics_token):
+                        topic_names_str = each_line.replace(topics_token, "")
+                        result.extend(topic_names_str.split(" "))
+        ofile.close()
+        return result
 
 def generate_sources_from_file(filename, outputdir, templatedir):
         """
@@ -99,6 +99,8 @@ def generate_sources_from_file(filename, outputdir, templatedir):
         full_type_name = genmsg.gentools.compute_full_type_name(package, os.path.basename(filename))
         spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename, full_type_name)
         topics = get_multi_topics(filename)
+        if len(topics) == 0:
+            topics.append(spec.short_name)
         em_globals = {
             "file_name_in": filename,
             "spec": spec,
@@ -190,6 +192,9 @@ def copy_changed(inputdir, outputdir, prefix=''):
                 os.makedirs(outputdir)
 
         for f in os.listdir(inputdir):
+                _, f_ext = os.path.splitext(f)
+                if f_ext != ".h":
+                        continue # copy only header files
                 fni = os.path.join(inputdir, f)
                 if os.path.isfile(fni):
                         # Check if f exists in outpoutdir, copy the file if not
