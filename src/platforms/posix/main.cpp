@@ -96,7 +96,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 		if (exit_on_fail && retval) {
 			exit(retval);
 		}
-		usleep(65000);
+		//usleep(65000);
 
 	} else if (command.compare("help") == 0) {
 		list_builtins();
