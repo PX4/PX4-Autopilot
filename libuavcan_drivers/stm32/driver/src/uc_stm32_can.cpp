@@ -58,6 +58,17 @@ static int can2_irq(const int irq, void*);
 }
 #endif
 
+/* STM32F3's only CAN inteface does not have a number. */
+#if defined(STM32F3XX)
+#define RCC_APB1ENR_CAN1EN     RCC_APB1ENR_CANEN
+#define RCC_APB1RSTR_CAN1RST   RCC_APB1RSTR_CANRST
+#define CAN1_TX_IRQn           CAN_TX_IRQn
+#define CAN1_RX0_IRQn          CAN_RX0_IRQn
+#define CAN1_RX1_IRQn          CAN_RX1_IRQn
+#define CAN1_SCE_IRQn          CAN_SCE_IRQn
+#endif
+
+
 namespace uavcan_stm32
 {
 namespace
