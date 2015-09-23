@@ -39,7 +39,6 @@
 
 #pragma once
 
-#include <px4_posix.h>
 #include <sys/types.h>
 #include <stdbool.h>
 #include <inttypes.h>

@@ -178,6 +178,11 @@ Mavlink::Mavlink() :
 	_rate_tx(0.0f),
 	_rate_txerr(0.0f),
 	_rate_rx(0.0f),
+#ifdef __PX4_POSIX
+	_myaddr{},
+	_src_addr{},
+	_bcast_addr{},
+#endif
 	_socket_fd(-1),
 	_protocol(SERIAL),
 	_network_port(14556),
@@ -695,7 +700,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		_is_usb_uart = true;
 	}
 
-#ifdef __PX4_LINUX
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 	/* Put in raw mode */
 	cfmakeraw(&uart_config);
 #endif
@@ -796,7 +801,7 @@ Mavlink::get_free_tx_buf()
 #ifndef __PX4_POSIX
 
 // No FIONWRITE on Linux
-#if !defined(__PX4_LINUX)
+#if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
 	(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
 #endif
 
@@ -883,8 +888,19 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 #else
 	if (get_protocol() == UDP) {
 		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+
+		struct telemetry_status_s &tstatus = get_rx_status();
+
+		/* resend heartbeat via broadcast */
+		if (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
+			(tstatus.heartbeat_time == 0)) &&
+			msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+
+			(void)sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+		}
+
 	} else if (get_protocol() == TCP) {
-		// not implemented, but possible to do so
+		/* not implemented, but possible to do so */
 		warnx("TCP transport pending implementation");
 	}
 #endif
@@ -957,7 +973,7 @@ Mavlink::resend_message(mavlink_message_t *msg)
 void
 Mavlink::init_udp()
 {
-#ifdef __PX4_LINUX
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 	PX4_INFO("Setting up UDP w/port %d\n",_network_port);
 
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
@@ -975,11 +991,17 @@ Mavlink::init_udp()
 		return;
 	}
 
-	// set default target address
+	/* set default target address */
 	memset((char *)&_src_addr, 0, sizeof(_src_addr));
 	_src_addr.sin_family = AF_INET;
 	inet_aton("127.0.0.1", &_src_addr.sin_addr);
 	_src_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
+
+	/* default broadcast address */
+	memset((char *)&_bcast_addr, 0, sizeof(_bcast_addr));
+	_bcast_addr.sin_family = AF_INET;
+	inet_aton("255.255.255.255", &_bcast_addr.sin_addr);
+	_bcast_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
 
 #endif
 }

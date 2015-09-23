@@ -40,6 +40,8 @@
 
 #include "FixedwingLandDetector.h"
 
+#include <px4_config.h>
+#include <px4_defines.h>
 #include <cmath>
 #include <drivers/drv_hrt.h>
 

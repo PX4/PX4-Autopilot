@@ -144,9 +144,13 @@ typedef param_t px4_param_t;
 /* FIXME - Used to satisfy build */
 #define getreg32(a)    (*(volatile uint32_t *)(a))
 
+#ifdef __PX4_QURT
+#define PX4_TICKS_PER_SEC 1000L
+#else
 __BEGIN_DECLS
 extern long PX4_TICKS_PER_SEC;
 __END_DECLS
+#endif
 
 #define USEC_PER_TICK (1000000UL/PX4_TICKS_PER_SEC)
 #define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK) 

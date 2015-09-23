@@ -99,8 +99,7 @@
 
 #include "modules/dataman/dataman.h"
 
-extern device::Device *PX4IO_i2c_interface() weak_function;
-extern device::Device *PX4IO_serial_interface() weak_function;
+#include "px4io_driver.h"
 
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
@@ -2973,10 +2972,9 @@ get_interface()
 
 #ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
 
-	/* try for a serial interface */
-	if (PX4IO_serial_interface != nullptr) {
-		interface = PX4IO_serial_interface();
-	}
+#ifdef PX4IO_SERIAL_BASE
+	interface = PX4IO_serial_interface();
+#endif
 
 	if (interface != nullptr) {
 		goto got;
@@ -2984,10 +2982,9 @@ get_interface()
 
 #endif
 
-	/* try for an I2C interface if we haven't got a serial one */
-	if (PX4IO_i2c_interface != nullptr) {
-		interface = PX4IO_i2c_interface();
-	}
+#ifdef PX4_I2C_OBDEV_PX4IO
+	interface = PX4IO_i2c_interface();
+#endif
 
 	if (interface != nullptr) {
 		goto got;

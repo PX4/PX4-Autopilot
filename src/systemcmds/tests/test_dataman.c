@@ -59,7 +59,7 @@
 
 #include "dataman/dataman.h"
 
-static sem_t *sems;
+static px4_sem_t *sems;
 
 static int
 task_main(int argc, char *argv[])
@@ -137,12 +137,12 @@ task_main(int argc, char *argv[])
 	rend = hrt_absolute_time();
 	warnx("Test %d pass, hit %d, miss %d, io time read %llums. write %llums.",
 	      my_id, hit, miss, (rend - rstart) / NUM_MISSIONS_SUPPORTED / 1000, (wend - wstart) / NUM_MISSIONS_SUPPORTED / 1000);
-	sem_post(sems + my_id);
+	px4_sem_post(sems + my_id);
 	return 0;
 fail:
 	warnx("Test %d fail, buffer %02x %02x %02x %02x %02x %02x",
 	      my_id, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
-	sem_post(sems + my_id);
+	px4_sem_post(sems + my_id);
 	return -1;
 }
 
@@ -155,7 +155,7 @@ int test_dataman(int argc, char *argv[])
 		num_tasks = atoi(argv[1]);
 	}
 
-	sems = (sem_t *)malloc(num_tasks * sizeof(sem_t));
+	sems = (px4_sem_t *)malloc(num_tasks * sizeof(px4_sem_t));
 	warnx("Running %d tasks", num_tasks);
 
 	for (i = 0; i < num_tasks; i++) {
@@ -165,7 +165,7 @@ int test_dataman(int argc, char *argv[])
 		const char *av[2];
 		av[0] = a;
 		av[1] = 0;
-		sem_init(sems + i, 1, 0);
+		px4_sem_init(sems + i, 1, 0);
 
 		/* start the task */
 		if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2048, task_main, av)) <= 0) {
@@ -174,8 +174,8 @@ int test_dataman(int argc, char *argv[])
 	}
 
 	for (i = 0; i < num_tasks; i++) {
-		sem_wait(sems + i);
-		sem_destroy(sems + i);
+		px4_sem_wait(sems + i);
+		px4_sem_destroy(sems + i);
 	}
 
 	free(sems);

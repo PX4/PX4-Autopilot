@@ -169,7 +169,7 @@ private:
 
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
-	sem_t                   _server_command_sem;
+	px4_sem_t                   _server_command_sem;
 	UavcanEscController	_esc_controller;
 	uavcan::GlobalTimeSyncMaster _time_sync_master;
 	uavcan::GlobalTimeSyncSlave _time_sync_slave;
