@@ -766,9 +766,10 @@ int UavcanNode::run()
 
 	/* When we have a system wide notion of time update (i.e the transition from the initial
 	 * System RTC setting to the GPS) we would call uavcan_stm32::clock::setUtc() when that
-	 * happens, but for now we use adjustUtc with a correction of 0
+	 * happens, but for now we use adjustUtc with a correction of the hrt so that the
+	 * time bases are the same
 	 */
-	uavcan_stm32::clock::adjustUtc(uavcan::UtcDuration::fromUSec(0));
+	uavcan_stm32::clock::adjustUtc(uavcan::UtcDuration::fromUSec(hrt_absolute_time()));
 	_master_timer.setCallback(TimerCallback(this, &UavcanNode::handle_time_sync));
 	_master_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000));
 
