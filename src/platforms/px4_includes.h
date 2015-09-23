@@ -87,6 +87,7 @@
 #include <platforms/nuttx/px4_messages/px4_actuator_controls_3.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_rates_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_attitude.h>
+#include <platforms/nuttx/px4_messages/px4_control_state.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_control_mode.h>
 #include <platforms/nuttx/px4_messages/px4_actuator_armed.h>
 #include <platforms/nuttx/px4_messages/px4_parameter_update.h>
