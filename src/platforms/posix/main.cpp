@@ -43,6 +43,7 @@
 #include <sstream>
 #include <vector>
 #include <signal.h>
+#include <execinfo.h>
 
 namespace px4
 {
@@ -61,10 +62,25 @@ extern "C" {
 	void _SigIntHandler(int sig_num);
 	void _SigIntHandler(int sig_num)
 	{
-		cout.flush();
-		cout << endl << "Exiting.." << endl;
-		cout.flush();
-		_exit(0);
+		if (sig_num == SIGSEGV) {
+
+			void *buf[10];
+			size_t s;
+
+			// get stack frames
+			s = backtrace(array, 10);
+
+			// print out stack frames
+			fprintf(stderr, "Error: signal %d:\n", sig_num);
+			backtrace_symbols_fd(buf, s, STDERR_FILENO);
+
+			_exit(1);
+		} else {
+			cout.flush();
+			cout << endl << "Exiting.." << endl;
+			cout.flush();
+			_exit(0);
+		}
 	}
 }
 
@@ -135,6 +151,7 @@ int main(int argc, char **argv)
 {
 	bool daemon_mode = false;
 	signal(SIGINT, _SigIntHandler);
+	signal(SIGSEGV, _SigIntHandler);
 
 	int index = 1;
 	bool error_detected = false;
