@@ -93,6 +93,8 @@ static const char * const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_IN_AIR_RESTORE",
 };
 
+static bool sensor_feedback_provided = false;
+
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status,		///< current vehicle status
 			const struct safety_s   *safety,		///< current safety settings
@@ -241,10 +243,12 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
 			(!status->condition_system_sensors_initialized)) {
-			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
+			if (!sensor_feedback_provided) {
+				mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
+				sensor_feedback_provided = true;
+			}
 			feedback_provided = true;
 			valid_transition = false;
-			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
 		}
 
 		// Finish up the state transition
@@ -253,6 +257,11 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			armed->ready_to_arm = new_arming_state == vehicle_status_s::ARMING_STATE_ARMED || new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY;
 			ret = TRANSITION_CHANGED;
 			status->arming_state = new_arming_state;
+		}
+
+		/* reset feedback state */
+		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+			sensor_feedback_provided = false;
 		}
 
 		/* end of atomic state update */

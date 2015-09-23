@@ -1930,9 +1930,9 @@ int commander_thread_main(int argc, char *argv[])
 
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
+						} else {
+							print_reject_arm("NOT ARMING: Configuration error");
 						}
-					} else {
-						print_reject_arm("NOT ARMING: Configuration error");
 					}
 
 					stick_on_counter = 0;
