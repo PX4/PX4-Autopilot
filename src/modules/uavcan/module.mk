@@ -40,12 +40,11 @@ MODULE_COMMAND = uavcan
 
 MAXOPTIMIZATION = -O3
 MODULE_STACKSIZE = 3200
-WFRAME_LARGER_THAN = 1400
+WFRAME_LARGER_THAN = 1416
 
 # Main
 SRCS += uavcan_main.cpp              \
-	uavcan_servers.cpp           \
-        uavcan_clock.cpp             \
+				uavcan_servers.cpp           \
         uavcan_params.c
 
 # Actuators
@@ -70,7 +69,8 @@ override EXTRADEFINES := $(EXTRADEFINES) \
 -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 \
 -DUAVCAN_NO_ASSERTIONS \
 -DUAVCAN_MEM_POOL_BLOCK_SIZE=48 \
--DUAVCAN_MAX_NETWORK_SIZE_HINT=16
+-DUAVCAN_MAX_NETWORK_SIZE_HINT=16 \
+-DUAVCAN_STM32_TIMER_NUMBER=5
 
 #
 # libuavcan drivers for STM32
