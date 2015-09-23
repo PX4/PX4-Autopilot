@@ -72,9 +72,11 @@
  */
 class UavcanServers
 {
+	static constexpr unsigned NumIfaces = 1;  // UAVCAN_STM32_NUM_IFACES
+
 	static constexpr unsigned MemPoolSize = 64 * uavcan::MemPoolBlockSize;
 
-	static constexpr unsigned MaxCanFramsPerTransfer   =  63;
+	static constexpr unsigned MaxCanFramesPerTransfer   =  63;
 
 	/**
 	 * This number is based on the worst case max number of frames per interface. With
@@ -84,7 +86,7 @@ class UavcanServers
 	 * 1 instead of UAVCAN_STM32_NUM_IFACES into the constructor of the virtual CAN driver.
 	 */
 	static constexpr unsigned QueuePoolSize =
-		(UAVCAN_STM32_NUM_IFACES * uavcan::MemPoolBlockSize *MaxCanFramsPerTransfer);
+		(NumIfaces * uavcan::MemPoolBlockSize * MaxCanFramesPerTransfer);
 
 	static constexpr unsigned StackSize  = 3500;
 	static constexpr unsigned Priority  =  120;
@@ -96,8 +98,8 @@ public:
 
 	virtual		~UavcanServers();
 
-	static int      start(unsigned num_ifaces, uavcan::INode &main_node);
-	static int      stop(void);
+	static int      start(uavcan::INode &main_node);
+	static int      stop();
 
 	SubNode         &get_node() { return _subnode; }
 
@@ -116,8 +118,7 @@ private:
 	pthread_t         _subnode_thread;
 	pthread_mutex_t   _subnode_mutex;
 
-	int		init(unsigned num_ifaces);
-	void            deinit(void);
+	int		init();
 
 	pthread_addr_t	run(pthread_addr_t);
 

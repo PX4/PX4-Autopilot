@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,24 @@
  *
  ****************************************************************************/
 
-/**
- * @file vcdevtest_example.h
- * Example app for Linux
+/*
+ * @file rgbled_params.c
  *
- * @author Mark Charlebois <charlebm@gmail.com>
+ * Parameters defined by the RBG led driver
+ *
+ * @author Nate Weibley <nate.weibley@prioria.com>
  */
-#pragma once
 
-#include <px4_app.h>
 
-class VCDevNode;
+#include <px4_config.h>
+#include <systemlib/param/param.h>
 
-class VCDevExample {
-public:
-	VCDevExample() : _node(0) {};
-
-	~VCDevExample();
-
-	int main();
-
-	static px4::AppState appState; /* track requests to terminate app */
-
-private:
-	int do_poll(int fd, int timeout, int iterations, int delayms_after_poll);
-
-	VCDevNode *_node;
-};
+/**
+ * RGB Led brightness limit
+ *
+ * Set to 0 to disable, 1 for minimum brightness up to 15 (max)
+ *
+ * @min 0
+ * @max 15
+ */
+PARAM_DEFINE_INT32(LED_RGB_MAXBRT, 15);

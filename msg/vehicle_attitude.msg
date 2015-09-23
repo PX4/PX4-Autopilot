@@ -10,6 +10,9 @@ float32 yawspeed	# Yaw body angular rate (rad/s, x forward/y right/z down)
 float32 rollacc		# Roll angular accelration (rad/s^2, x forward/y right/z down)
 float32 pitchacc	# Pitch angular acceleration (rad/s^2, x forward/y right/z down)
 float32 yawacc		# Yaw angular acceleration (rad/s^2, x forward/y right/z down)
+float32 rate_vibration	# Value between 0 and 1 indicating vibration. A value of 0 means no vibration, a value of 1 indicates unbearable vibration levels.
+float32 accel_vibration	# Value between 0 and 1 indicating vibration. A value of 0 means no vibration, a value of 1 indicates unbearable vibration levels.
+float32 mag_vibration	# Value between 0 and 1 indicating vibration. A value of 0 means no vibration, a value of 1 indicates unbearable vibration levels.
 float32[3] rate_offsets	# Offsets of the body angular rates from zero
 float32[9] R		# Rotation matrix, body to world, (Tait-Bryan, NED)
 float32[4] q		# Quaternion (NED)
