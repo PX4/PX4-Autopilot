@@ -82,6 +82,7 @@
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
+#include <ecl/attitude_fw/ecl_heading_controller.h>
 #include <platforms/px4_defines.h>
 
 /**
@@ -248,6 +249,7 @@ private:
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
+	ECL_HeadingController			_heading_ctrl;
 
 
 	/**
@@ -501,6 +503,13 @@ FixedwingAttitudeControl::parameters_update()
 	_yaw_ctrl.set_coordinated_min_speed(_parameters.y_coordinated_min_speed);
 	_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
+
+	/* heading control parameters */
+	_heading_ctrl.set_k_p(_parameters.y_p);
+	_heading_ctrl.set_k_i(_parameters.y_i);
+	_heading_ctrl.set_k_ff(_parameters.y_ff);
+	_heading_ctrl.set_integrator_max(_parameters.y_integrator_max);
+	_heading_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
 	return OK;
 }
@@ -961,18 +970,14 @@ FixedwingAttitudeControl::task_main()
 				control_input.scaler = airspeed_scaling;
 				control_input.lock_integrator = lock_integrator;
 
-				if (_att_sp.fw_control_yaw == true) {
-					// this method controls heading directly with rudder. Used for auto takeoff on runway
-					_yaw_ctrl.set_coordinated_method(ECL_YawController::COORD_METHOD_HEADING);
-				} else {
-					_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
-				}
+				_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 
 				/* Run attitude controllers */
 				if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
 					_roll_ctrl.control_attitude(control_input);
 					_pitch_ctrl.control_attitude(control_input);
 					_yaw_ctrl.control_attitude(control_input); //runs last, because is depending on output of roll and pitch attitude
+					_heading_ctrl.control_attitude(control_input);
 
 					/* Update input data for rate controllers */
 					control_input.roll_rate_setpoint = _roll_ctrl.get_desired_rate();
@@ -1012,7 +1017,14 @@ FixedwingAttitudeControl::task_main()
 						}
 					}
 
-					float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
+					float yaw_u = 0.0f;
+					if (_att_sp.fw_control_yaw == true) {
+						yaw_u = _heading_ctrl.control_bodyrate(control_input);
+					}
+
+					else {
+						yaw_u = _yaw_ctrl.control_bodyrate(control_input);
+					}
 					_actuators.control[2] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 
 					/* add in manual rudder control */

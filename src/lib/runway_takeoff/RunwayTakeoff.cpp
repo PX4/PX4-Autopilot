@@ -105,7 +105,7 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
 		if (airspeed > _airspeed_min.get() * _min_airspeed_scaling) {
 			_state = RunwayTakeoffState::TAKEOFF;
-			mavlink_log_info(mavlink_fd, "#audio: Takeoff airspeed reached");
+			mavlink_log_info(mavlink_fd, "#Takeoff airspeed reached");
 		}
 
 		break;
@@ -113,7 +113,7 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 	case RunwayTakeoffState::TAKEOFF:
 		if (alt_agl > math::max(_runway_takeoff_nav_alt.get(), _climbout_diff.get())) {
 			_state = RunwayTakeoffState::FLY;
-			mavlink_log_info(mavlink_fd, "#audio: Navigating to waypoint");
+			mavlink_log_info(mavlink_fd, "#Navigating to waypoint");
 		}
 
 		break;

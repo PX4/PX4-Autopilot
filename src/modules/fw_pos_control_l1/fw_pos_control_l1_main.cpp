@@ -960,7 +960,7 @@ float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint
 	 * for the whole landing */
 	if (_parameters.land_use_terrain_estimate && (global_pos.terrain_alt_valid || land_useterrain)) {
 		if(!land_useterrain) {
-			mavlink_log_info(_mavlink_fd, "#audio: Landing, using terrain estimate");
+			mavlink_log_info(_mavlink_fd, "Landing, using terrain estimate");
 			land_useterrain = true;
 		}
 		return global_pos.terrain_alt;
@@ -1229,7 +1229,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					} else {
 						target_bearing = _yaw;
 					}
-					mavlink_log_info(_mavlink_fd, "#audio: Landing, heading hold");
+					mavlink_log_info(_mavlink_fd, "#Landing, heading hold");
 				}
 
 //					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
@@ -1290,7 +1290,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
 					if (!land_motor_lim) {
 						land_motor_lim  = true;
-						mavlink_log_info(_mavlink_fd, "#audio: Landing, limiting throttle");
+						mavlink_log_info(_mavlink_fd, "#Landing, limiting throttle");
 					}
 
 				 }
@@ -1314,7 +1314,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						land_motor_lim ? tecs_status_s::TECS_MODE_LAND_THROTTLELIM : tecs_status_s::TECS_MODE_LAND);
 
 				if (!land_noreturn_vertical) {
-					mavlink_log_info(_mavlink_fd, "#audio: Landing, flaring");
+					mavlink_log_info(_mavlink_fd, "#Landing, flaring");
 					land_noreturn_vertical = true;
 				}
 				//warnx("Landing:  flare, _global_pos.alt  %.1f, flare_curve_alt %.1f, flare_curve_alt_last %.1f, flare_length %.1f, wp_distance %.1f", _global_pos.alt, flare_curve_alt, flare_curve_alt_last, flare_length, wp_distance);
@@ -1336,7 +1336,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					/* stay on slope */
 					altitude_desired_rel = landing_slope_alt_rel_desired;
 					if (!land_onslope) {
-						mavlink_log_info(_mavlink_fd, "#audio: Landing, on slope");
+						mavlink_log_info(_mavlink_fd, "#Landing, on slope");
 						land_onslope = true;
 					}
 				} else {
@@ -1367,7 +1367,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
 					_takeoff_ground_alt = _global_pos.alt;
-					mavlink_log_info(_mavlink_fd, "#audio: Takeoff on runway");
+					mavlink_log_info(_mavlink_fd, "#Takeoff on runway");
 				}
 
 				// update navigation
@@ -1417,7 +1417,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					/* Inform user that launchdetection is running */
 					static hrt_abstime last_sent = 0;
 					if(hrt_absolute_time() - last_sent > 4e6) {
-						mavlink_log_critical(_mavlink_fd, "Launchdetection running");
+						mavlink_log_critical(_mavlink_fd, "#Launchdetection running");
 						last_sent = hrt_absolute_time();
 					}
 
@@ -1509,7 +1509,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		/* reset takeoff/launch state */
-		// FIXME: reset on arm/disarm cycle and mode switch
 		if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 			reset_takeoff_state();
 		}
@@ -1750,7 +1749,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	 * already (not by tecs) */
 	if (!(_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 				pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-				launch_detection_state == LAUNCHDETECTION_RES_NONE)) {
+					(launch_detection_state == LAUNCHDETECTION_RES_NONE ||
+					_runway_takeoff.runwayTakeoffEnabled())
+				)) {
 		_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
 	}
 

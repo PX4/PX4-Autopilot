@@ -67,9 +67,6 @@ float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data
 	case COORD_METHOD_CLOSEACC:
 		return control_attitude_impl_accclosedloop(ctl_data);
 
-	case COORD_METHOD_HEADING:
-		return control_heading(ctl_data);
-
 	default:
 		static hrt_abstime last_print = 0;
 
@@ -240,35 +237,4 @@ float ECL_YawController::control_attitude_impl_accclosedloop(const struct ECL_Co
 {
 	/* dont set a rate setpoint */
 	return 0.0f;
-}
-
-float ECL_YawController::control_heading(const struct ECL_ControlData &ctl_data)
-{
-	/* Do not calculate control signal with bad inputs */
-	if (!(PX4_ISFINITE(ctl_data.yaw_setpoint) &&
-	      PX4_ISFINITE(ctl_data.yaw) &&
-	      PX4_ISFINITE(ctl_data.airspeed))) {
-		perf_count(_nonfinite_input_perf);
-		warnx("not controlling yaw");
-		return _rate_setpoint;
-	}
-
-	/* Calculate the error */
-	float yaw_error = ctl_data.yaw_setpoint - ctl_data.yaw;
-
-	/*  Apply P controller: rate setpoint from current error and time constant */
-	_rate_setpoint =  yaw_error / _tc;
-
-	/* limit the rate */
-	if (_max_rate > 0.01f) {
-		if (_rate_setpoint > 0.0f) {
-			_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
-
-		} else {
-			_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
-		}
-
-	}
-
-	return _rate_setpoint;
 }
