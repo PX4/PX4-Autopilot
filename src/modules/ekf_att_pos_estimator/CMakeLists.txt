@@ -30,13 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+set(MODULE_CFLAGS -Weffc++)
+if(NOT ${OS} STREQUAL "qurt")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3400)
+endif()
+
 px4_add_module(
 	MODULE modules__ekf_att_pos_estimator
 	MAIN ekf_att_pos_estimator
-	COMPILE_FLAGS
-		-Weffc++
-		-Wframe-larger-than=3400
-		-O3
+	COMPILE_FLAGS ${MODULE_CFLAGS}
 	SRCS
 		ekf_att_pos_estimator_main.cpp
 		ekf_att_pos_estimator_params.c

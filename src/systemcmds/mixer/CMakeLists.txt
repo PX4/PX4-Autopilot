@@ -30,13 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(MIXER_CFLAGS -Os)
+if(${OS} STREQUAL "qurt")
+	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2176)
+else()
+	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2048)
+endif()
+
 px4_add_module(
 	MODULE systemcmds__mixer
 	MAIN mixer
 	STACK 4096
-	COMPILE_FLAGS
-		-Wframe-larger-than=2048
-		-Os
+	COMPILE_FLAGS ${MIXER_CFLAGS}
 	SRCS
 		mixer.cpp
 	DEPENDS

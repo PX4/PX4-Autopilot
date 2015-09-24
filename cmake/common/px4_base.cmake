@@ -486,7 +486,6 @@ function(px4_add_common_flags)
 		-Wextra
 		#-Wshadow # very verbose due to eigen
 		-Wfloat-equal
-		-Wframe-larger-than=1024
 		-Wpointer-arith
 		-Wmissing-declarations
 		-Wpacked
@@ -506,10 +505,17 @@ function(px4_add_common_flags)
 		#               but generates too many false positives
 		)
 
+	if (NOT ${OS} STREQUAL "qurt")
+		list(APPEND warnings -Wframe-larger-than=1024)
+	endif()
+
 	if (${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
-		list(APPEND warnings
-			-Wno-unused-const-variable
-		)
+		# QuRT 6.4.X compiler identifies as Clang but does not support this option
+		if (NOT ${OS} STREQUAL "qurt")
+			list(APPEND warnings
+				-Wno-unused-const-variable
+			)
+		endif()
 	else()
 		list(APPEND warnings
 			-Werror=unused-but-set-variable
@@ -609,11 +615,9 @@ function(px4_add_common_flags)
 		${CMAKE_SOURCE_DIR}/mavlink/include/mavlink
 		)
 
-	if (NOT ${OS} STREQUAL "qurt")
-		list(APPEND added_include_dirs
-			${CMAKE_SOURCE_DIR}/src/lib/eigen
-			)
-	endif()
+	list(APPEND added_include_dirs
+		src/lib/eigen
+		)
 
 	set(added_link_dirs) # none used currently
 
