@@ -1080,7 +1080,7 @@ FixedwingAttitudeControl::task_main()
 					}
 
 					float yaw_u = 0.0f;
-					if (_att_sp.fw_control_wheel == true) {
+					if (_att_sp.fw_control_yaw == true) {
 						yaw_u = _wheel_ctrl.control_bodyrate(control_input);
 					}
 
