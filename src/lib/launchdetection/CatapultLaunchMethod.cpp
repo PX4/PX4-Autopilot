@@ -39,8 +39,8 @@
  *
  */
 
-#include "CatapultLaunchMethod.h"
 #include <systemlib/err.h>
+#include "CatapultLaunchMethod.h"
 
 namespace launchdetection
 {
