@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ecl_yaw_controller.h
+ * @file ecl_wheel_controller.h
  * Definition of a simple orthogonal coordinated turn yaw PID controller.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
@@ -54,13 +54,13 @@
 
 #include "ecl_controller.h"
 
-class __EXPORT ECL_HeadingController :
+class __EXPORT ECL_WheelController :
     public ECL_Controller
 {
 public:
-    ECL_HeadingController();
+    ECL_WheelController();
 
-    ~ECL_HeadingController();
+    ~ECL_WheelController();
 
     float control_attitude(const struct ECL_ControlData &ctl_data);
 

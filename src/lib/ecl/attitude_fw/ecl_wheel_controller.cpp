@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file ecl_yaw_controller.cpp
+ * @file ecl_wheel_controller.cpp
  * Implementation of a simple orthogonal coordinated turn yaw PID controller.
  *
  * Authors and acknowledgements in header.
  */
 
-#include "ecl_heading_controller.h"
+#include "ecl_wheel_controller.h"
 #include <stdint.h>
 #include <float.h>
 #include <geo/geo.h>
@@ -47,22 +47,20 @@
 #include <systemlib/err.h>
 #include <ecl/ecl.h>
 
-ECL_HeadingController::ECL_HeadingController() :
-    ECL_Controller("heading")
+ECL_WheelController::ECL_WheelController() :
+    ECL_Controller("wheel")
 {
 }
 
-ECL_HeadingController::~ECL_HeadingController()
+ECL_WheelController::~ECL_WheelController()
 {
 }
 
-float ECL_HeadingController::control_bodyrate(const struct ECL_ControlData &ctl_data)
+float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_data)
 {
     /* Do not calculate control signal with bad inputs */
-    if (!(PX4_ISFINITE(ctl_data.roll) && PX4_ISFINITE(ctl_data.pitch) && PX4_ISFINITE(ctl_data.pitch_rate) &&
-          PX4_ISFINITE(ctl_data.yaw_rate) && PX4_ISFINITE(ctl_data.pitch_rate_setpoint) &&
-          PX4_ISFINITE(ctl_data.airspeed_min) && PX4_ISFINITE(ctl_data.airspeed_max) &&
-          PX4_ISFINITE(ctl_data.scaler))) {
+    if (!(PX4_ISFINITE(ctl_data.yaw_rate) &&
+          PX4_ISFINITE(ctl_data.ground_speed))) {
         perf_count(_nonfinite_input_perf);
         return math::constrain(_last_output, -1.0f, 1.0f);
     }
@@ -80,27 +78,21 @@ float ECL_HeadingController::control_bodyrate(const struct ECL_ControlData &ctl_
     }
 
     /* input conditioning */
-    float airspeed = ctl_data.airspeed;
-
-    if (!PX4_ISFINITE(airspeed)) {
-        /* airspeed is NaN, +- INF or not available, pick center of band */
-        airspeed = 0.5f * (ctl_data.airspeed_min + ctl_data.airspeed_max);
-
-    } else if (airspeed < ctl_data.airspeed_min) {
-        airspeed = ctl_data.airspeed_min;
+    float min_speed = 1.0f;
+    /* assume minimum speed to prevent oscillations */
+    float speed = min_speed;
+    if (ctl_data.ground_speed > speed) {
+        speed = ctl_data.ground_speed;
     }
 
-
-    /* Transform setpoint to body angular rates (jacobian) */
-    _bodyrate_setpoint = -sinf(ctl_data.roll) * ctl_data.pitch_rate_setpoint +
-                 cosf(ctl_data.roll) * cosf(ctl_data.pitch) * _rate_setpoint;
+    float scaler = 1.0f / speed;
 
     /* Calculate body angular rate error */
-    _rate_error = _bodyrate_setpoint - ctl_data.yaw_rate; //body angular rate error
+    _rate_error = _rate_setpoint - ctl_data.yaw_rate; //body angular rate error
 
-    if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * ctl_data.airspeed_min) {
+    if (!lock_integrator && _k_i > 0.0f && speed > min_speed) {
 
-        float id = _rate_error * dt;
+        float id = _rate_error * dt * scaler;
 
         /*
          * anti-windup: do not allow integrator to increase if actuator is at limit
@@ -122,23 +114,22 @@ float ECL_HeadingController::control_bodyrate(const struct ECL_ControlData &ctl_
     float integrator_constrained = math::constrain(_integrator * _k_i, -_integrator_max, _integrator_max);
 
     /* Apply PI rate controller and store non-limited output */
-    _last_output = (_bodyrate_setpoint * _k_ff + _rate_error * _k_p + integrator_constrained) * ctl_data.scaler *
-               ctl_data.scaler;  //scaler is proportional to 1/airspeed
-    warnx("yaw:_last_output: %.4f, _integrator: %.4f, _integrator_max: %.4f, airspeed %.4f, _k_i %.4f, _k_p: %.4f", (double)_last_output, (double)_integrator, (double)_integrator_max, (double)airspeed, (double)_k_i, (double)_k_p);
+    _last_output = (_rate_setpoint * _k_ff + _rate_error * _k_p + integrator_constrained) * scaler;
+    /*warnx("wheel: _last_output: %.4f, _integrator: %.4f, _integrator_max: %.4f, speed %.4f, _k_i %.4f, _k_p: %.4f",
+            (double)_last_output, (double)_integrator, (double)_integrator_max, (double)speed, (double)_k_i, (double)_k_p);*/
 
 
     return math::constrain(_last_output, -1.0f, 1.0f);
 }
 
 
-float ECL_HeadingController::control_attitude(const struct ECL_ControlData &ctl_data)
+float ECL_WheelController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
     /* Do not calculate control signal with bad inputs */
     if (!(PX4_ISFINITE(ctl_data.yaw_setpoint) &&
-          PX4_ISFINITE(ctl_data.yaw) &&
-          PX4_ISFINITE(ctl_data.airspeed))) {
+          PX4_ISFINITE(ctl_data.yaw))) {
         perf_count(_nonfinite_input_perf);
-        warnx("not controlling yaw");
+        warnx("not controlling wheel");
         return _rate_setpoint;
     }
 
