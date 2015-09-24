@@ -37,7 +37,7 @@
  */
 
 #include <sys/types.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
