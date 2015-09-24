@@ -144,7 +144,7 @@ void DynamicNodeIDClient::handleAllocation(const ReceivedDataStructure<protocol:
     }
 }
 
-int DynamicNodeIDClient::start(const protocol::HardwareVersion& hardware_version,
+int DynamicNodeIDClient::start(const UniqueID& unique_id,
                                const NodeID preferred_node_id,
                                const TransferPriority transfer_priority)
 {
@@ -157,7 +157,7 @@ int DynamicNodeIDClient::start(const protocol::HardwareVersion& hardware_version
     }
 
     // Unique ID initialization & validation
-    copy(hardware_version.unique_id.begin(), hardware_version.unique_id.end(), unique_id_);
+    copy(unique_id.begin(), unique_id.end(), unique_id_);
     bool unique_id_is_zero = true;
     for (uint8_t i = 0; i < sizeof(unique_id_); i++)
     {

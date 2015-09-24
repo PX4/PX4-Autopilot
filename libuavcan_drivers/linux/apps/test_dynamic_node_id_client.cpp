@@ -44,7 +44,7 @@ uavcan_linux::NodePtr initNodeWithDynamicID(const std::vector<std::string>& ifac
      */
     uavcan::DynamicNodeIDClient client(*node);
 
-    ENFORCE(0 <= client.start(node->getNodeStatusProvider().getHardwareVersion(), preferred_node_id));
+    ENFORCE(0 <= client.start(node->getNodeStatusProvider().getHardwareVersion().unique_id, preferred_node_id));
 
     std::cout << "Waiting for dynamic node ID allocation..." << std::endl;
 
