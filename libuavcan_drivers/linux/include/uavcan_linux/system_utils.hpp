@@ -140,9 +140,9 @@ public:
  *  - Node name string (e.g. "org.uavcan.linux_app.dynamic_node_id_server")
  *  - Instance ID byte, e.g. node ID (optional)
  */
-std::array<std::uint8_t, 16> makeApplicationID(const MachineIDReader::MachineID& machine_id,
-                                               const std::string& node_name,
-                                               const std::uint8_t instance_id = 0)
+inline std::array<std::uint8_t, 16> makeApplicationID(const MachineIDReader::MachineID& machine_id,
+                                                      const std::string& node_name,
+                                                      const std::uint8_t instance_id = 0)
 {
     union HalfID
     {
