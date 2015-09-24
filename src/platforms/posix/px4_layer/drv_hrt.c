@@ -43,6 +43,7 @@
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <errno.h>
 #include "hrt_work.h"
