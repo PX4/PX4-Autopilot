@@ -82,7 +82,7 @@
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
-#include <ecl/attitude_fw/ecl_heading_controller.h>
+#include <ecl/attitude_fw/ecl_wheel_controller.h>
 #include <platforms/px4_defines.h>
 
 /**
@@ -182,6 +182,11 @@ private:
 		float y_coordinated_min_speed;
 		int32_t y_coordinated_method;
 		float y_rmax;
+		float w_p;
+		float w_i;
+		float w_ff;
+		float w_integrator_max;
+		float w_rmax;
 
 		float airspeed_min;
 		float airspeed_trim;
@@ -223,6 +228,11 @@ private:
 		param_t y_coordinated_min_speed;
 		param_t y_coordinated_method;
 		param_t y_rmax;
+		param_t w_p;
+		param_t w_i;
+		param_t w_ff;
+		param_t w_integrator_max;
+		param_t w_rmax;
 
 		param_t airspeed_min;
 		param_t airspeed_trim;
@@ -249,7 +259,7 @@ private:
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
-	ECL_HeadingController			_heading_ctrl;
+	ECL_WheelController			_wheel_ctrl;
 
 
 	/**
@@ -382,6 +392,12 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.y_integrator_max = param_find("FW_YR_IMAX");
 	_parameter_handles.y_rmax = param_find("FW_Y_RMAX");
 
+	_parameter_handles.w_p = param_find("FW_WR_P");
+	_parameter_handles.w_i = param_find("FW_WR_I");
+	_parameter_handles.w_ff = param_find("FW_WR_FF");
+	_parameter_handles.w_integrator_max = param_find("FW_WR_IMAX");
+	_parameter_handles.w_rmax = param_find("FW_W_RMAX");
+
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
@@ -460,6 +476,12 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_coordinated_method, &(_parameters.y_coordinated_method));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 
+	param_get(_parameter_handles.w_p, &(_parameters.w_p));
+	param_get(_parameter_handles.w_i, &(_parameters.w_i));
+	param_get(_parameter_handles.w_ff, &(_parameters.w_ff));
+	param_get(_parameter_handles.w_integrator_max, &(_parameters.w_integrator_max));
+	param_get(_parameter_handles.w_rmax, &(_parameters.w_rmax));
+
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
@@ -504,12 +526,12 @@ FixedwingAttitudeControl::parameters_update()
 	_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
-	/* heading control parameters */
-	_heading_ctrl.set_k_p(_parameters.y_p);
-	_heading_ctrl.set_k_i(_parameters.y_i);
-	_heading_ctrl.set_k_ff(_parameters.y_ff);
-	_heading_ctrl.set_integrator_max(_parameters.y_integrator_max);
-	_heading_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
+	/* wheel control parameters */
+	_wheel_ctrl.set_k_p(_parameters.w_p);
+	_wheel_ctrl.set_k_i(_parameters.w_i);
+	_wheel_ctrl.set_k_ff(_parameters.w_ff);
+	_wheel_ctrl.set_integrator_max(_parameters.w_integrator_max);
+	_wheel_ctrl.set_max_rate(math::radians(_parameters.w_rmax));
 
 	return OK;
 }
@@ -846,6 +868,7 @@ FixedwingAttitudeControl::task_main()
 					}
 					if (_att_sp.yaw_reset_integral) {
 						_yaw_ctrl.reset_integrator();
+						_wheel_ctrl.reset_integrator();
 					}
 				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
 
@@ -871,6 +894,7 @@ FixedwingAttitudeControl::task_main()
 					}
 					if (_att_sp.yaw_reset_integral) {
 						_yaw_ctrl.reset_integrator();
+						_wheel_ctrl.reset_integrator();
 					}
 
 				} else if (_vcontrol_mode.flag_control_altitude_enabled) {
@@ -890,6 +914,7 @@ FixedwingAttitudeControl::task_main()
 					}
 					if (_att_sp.yaw_reset_integral) {
 						_yaw_ctrl.reset_integrator();
+						_wheel_ctrl.reset_integrator();
 					}
 				} else {
 					/*
@@ -940,6 +965,7 @@ FixedwingAttitudeControl::task_main()
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
 					_yaw_ctrl.reset_integrator();
+					_wheel_ctrl.reset_integrator();
 				}
 
 				/* Prepare speed_body_u and speed_body_w */
@@ -969,6 +995,8 @@ FixedwingAttitudeControl::task_main()
 				control_input.airspeed = airspeed;
 				control_input.scaler = airspeed_scaling;
 				control_input.lock_integrator = lock_integrator;
+				control_input.ground_speed = sqrtf(_global_pos.vel_n * _global_pos.vel_n +
+						_global_pos.vel_e * _global_pos.vel_e);
 
 				_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 
@@ -977,7 +1005,7 @@ FixedwingAttitudeControl::task_main()
 					_roll_ctrl.control_attitude(control_input);
 					_pitch_ctrl.control_attitude(control_input);
 					_yaw_ctrl.control_attitude(control_input); //runs last, because is depending on output of roll and pitch attitude
-					_heading_ctrl.control_attitude(control_input);
+					_wheel_ctrl.control_attitude(control_input);
 
 					/* Update input data for rate controllers */
 					control_input.roll_rate_setpoint = _roll_ctrl.get_desired_rate();
@@ -1018,8 +1046,8 @@ FixedwingAttitudeControl::task_main()
 					}
 
 					float yaw_u = 0.0f;
-					if (_att_sp.fw_control_yaw == true) {
-						yaw_u = _heading_ctrl.control_bodyrate(control_input);
+					if (_att_sp.fw_control_wheel == true) {
+						yaw_u = _wheel_ctrl.control_bodyrate(control_input);
 					}
 
 					else {
@@ -1031,6 +1059,7 @@ FixedwingAttitudeControl::task_main()
 					_actuators.control[2] += yaw_manual;
 					if (!PX4_ISFINITE(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
+						_wheel_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("yaw_u %.4f", (double)yaw_u);

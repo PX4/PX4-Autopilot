@@ -75,7 +75,7 @@ public:
 
 	bool runwayTakeoffEnabled() { return (bool)_runway_takeoff_enabled.get(); };
 
-	bool controlYaw();
+	bool controlWheel();
 	bool climbout() { return _climbout; };
 	float getPitch(float tecsPitch);
 	float getRoll(float navigatorRoll);

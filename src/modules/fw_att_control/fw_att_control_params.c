@@ -221,6 +221,55 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
 PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
 
 /**
+ * Wheel steering rate proportional gain
+ *
+ * This defines how much the wheel steering input will be commanded depending on the
+ * current body angular rate error.
+ *
+ * @min 0.005
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_WR_P, 0.05f);
+
+/**
+ * Wheel steering rate integrator gain
+ *
+ * This gain defines how much control response will result out of a steady
+ * state error. It trims any constant error.
+ *
+ * @min 0.0
+ * @max 50.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_WR_I, 0.0f);
+
+/**
+ * Wheel steering rate integrator limit
+ *
+ * The portion of the integrator part in the control surface deflection is
+ * limited to this value
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_WR_IMAX, 0.2f);
+
+/**
+ * Maximum wheel steering rate
+ *
+ * This limits the maximum wheel steering rate the controller will output (in degrees per
+ * second). Setting a value of zero disables the limit.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_W_RMAX, 0.0f);
+
+/**
  * Roll rate feed forward
  *
  * Direct feed forward from rate setpoint to control surface output. Use this
@@ -254,6 +303,17 @@ PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
+
+/**
+ * Wheel steering rate feed forward
+ *
+ * Direct feed forward from rate setpoint to control surface output
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_WR_FF, 0.2f);
 
 /**
  * Minimal speed for yaw coordination

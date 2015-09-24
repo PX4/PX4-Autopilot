@@ -1074,7 +1074,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	bool setpoint = true;
 
-	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
+	_att_sp.fw_control_wheel = false;		// by default we don't want yaw to be contoller directly with rudder
 
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
@@ -1406,9 +1406,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				// assign values
 				_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.nav_roll());
 				_att_sp.yaw_body = _runway_takeoff.getYaw(_l1_control.nav_bearing());
-				_att_sp.fw_control_yaw = _runway_takeoff.controlYaw(); // tell attitude controller if he should control yaw directly
+				_att_sp.fw_control_wheel = _runway_takeoff.controlWheel();
 				_att_sp.pitch_body = _runway_takeoff.getPitch(_tecs.get_pitch_demand());
-
+				/*warnx("yaw: %.4f, roll: %.4f, pitch: %.4f", (double)_att_sp.yaw_body,
+					(double)_att_sp.roll_body, (double)_att_sp.pitch_body);*/
 
 			} else {
 				/* Perform launch detection */

@@ -123,10 +123,10 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 	}
 }
 
-bool RunwayTakeoff::controlYaw()
+bool RunwayTakeoff::controlWheel()
 {
-	// keep controlling yaw with rudder until we have enough ground clearance
-	return _state < RunwayTakeoffState::FLY;
+	// keep controlling wheel until takeoff
+	return _state < RunwayTakeoffState::TAKEOFF;
 }
 
 float RunwayTakeoff::getPitch(float tecsPitch)
@@ -140,6 +140,7 @@ float RunwayTakeoff::getPitch(float tecsPitch)
 
 float RunwayTakeoff::getRoll(float navigatorRoll)
 {
+	// until we have enough ground clearance, set roll to 0
 	if (_state < RunwayTakeoffState::FLY) {
 		return 0.0f;
 	}
