@@ -41,6 +41,7 @@
 
 #include "CatapultLaunchMethod.h"
 #include <systemlib/err.h>
+#include <inttypes.h>
 
 namespace launchdetection
 {
