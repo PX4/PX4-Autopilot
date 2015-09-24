@@ -55,10 +55,11 @@ namespace runwaytakeoff
 {
 
 enum RunwayTakeoffState {
-	THROTTLE_RAMP = 0, /**<  */
-	CLAMPED_TO_RUNWAY = 1, /**<  */
-	TAKEOFF = 2, /**<  */
-	FLY = 3 /**<  */
+	THROTTLE_RAMP = 0, /**< ramping up throttle */
+	CLAMPED_TO_RUNWAY = 1, /**< clamped to runway, controlling yaw directly (wheel or rudder) */
+	TAKEOFF = 2, /**< taking off, get ground clearance, roll 0 */
+	CLIMBOUT = 3, /**< climbout to safe height before navigation, roll limited */
+	FLY = 4 /**< fly towards takeoff waypoint */
 };
 
 class __EXPORT RunwayTakeoff : public control::SuperBlock
@@ -75,7 +76,7 @@ public:
 
 	bool runwayTakeoffEnabled() { return (bool)_runway_takeoff_enabled.get(); };
 
-	bool controlWheel();
+	bool controlYaw();
 	bool climbout() { return _climbout; };
 	float getPitch(float tecsPitch);
 	float getRoll(float navigatorRoll);
@@ -98,6 +99,7 @@ private:
 
 	/** magic values **/
 	float _min_airspeed_scaling;
+	float _max_takeoff_roll;
 
 	/** parameters **/
 	control::BlockParamInt _runway_takeoff_enabled;

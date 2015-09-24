@@ -59,6 +59,7 @@ RunwayTakeoff::RunwayTakeoff() :
 	_init_yaw(0),
 	_climbout(false),
 	_min_airspeed_scaling(1.3f),
+	_max_takeoff_roll(15.0f),
 	_runway_takeoff_enabled(this, "TKOFF"),
 	_runway_takeoff_heading(this, "HDG"),
 	_runway_takeoff_nav_alt(this, "NAV_ALT"),
@@ -111,7 +112,15 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 		break;
 
 	case RunwayTakeoffState::TAKEOFF:
-		if (alt_agl > math::max(_runway_takeoff_nav_alt.get(), _climbout_diff.get())) {
+		if (alt_agl > _runway_takeoff_nav_alt.get()) {
+			_state = RunwayTakeoffState::CLIMBOUT;
+			mavlink_log_info(mavlink_fd, "#Climbout");
+		}
+
+		break;
+
+	case RunwayTakeoffState::CLIMBOUT:
+		if (alt_agl > _climbout_diff.get()) {
 			_state = RunwayTakeoffState::FLY;
 			mavlink_log_info(mavlink_fd, "#Navigating to waypoint");
 		}
@@ -123,10 +132,10 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 	}
 }
 
-bool RunwayTakeoff::controlWheel()
+bool RunwayTakeoff::controlYaw()
 {
-	// keep controlling wheel until takeoff
-	return _state < RunwayTakeoffState::TAKEOFF;
+	// keep controlling yaw directly until we start navigation
+	return _state < RunwayTakeoffState::CLIMBOUT;
 }
 
 float RunwayTakeoff::getPitch(float tecsPitch)
@@ -141,8 +150,15 @@ float RunwayTakeoff::getPitch(float tecsPitch)
 float RunwayTakeoff::getRoll(float navigatorRoll)
 {
 	// until we have enough ground clearance, set roll to 0
-	if (_state < RunwayTakeoffState::FLY) {
+	if (_state < RunwayTakeoffState::CLIMBOUT) {
 		return 0.0f;
+	}
+
+	// allow some roll during climbout
+	else if (_state < RunwayTakeoffState::FLY) {
+		return math::constrain(navigatorRoll,
+				math::radians(-_max_takeoff_roll),
+				math::radians(_max_takeoff_roll));
 	}
 
 	return navigatorRoll;
@@ -186,7 +202,8 @@ float RunwayTakeoff::getThrottle(float tecsThrottle)
 
 bool RunwayTakeoff::resetIntegrators()
 {
-	return _state <= RunwayTakeoffState::TAKEOFF;
+	// reset integrators if we're still on runway
+	return _state < RunwayTakeoffState::TAKEOFF;
 }
 
 float RunwayTakeoff::getMinPitch(float sp_min, float climbout_min, float min)

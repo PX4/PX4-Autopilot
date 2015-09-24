@@ -66,10 +66,10 @@ PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
 PARAM_DEFINE_INT32(RWTO_HDG, 0);
 
 /**
- * Altitude AGL at which navigation towards takeoff waypoint starts.
+ * Altitude AGL at which we have enough ground clearance to allow some roll.
  * Until RWTO_NAV_ALT is reached the plane is held level and only
- * rudder is used to keep the heading (see RWTO_HDG). If this is lower
- * than FW_CLMBOUT_DIFF, FW_CLMBOUT_DIFF is used instead.
+ * rudder is used to keep the heading (see RWTO_HDG). This should be below
+ * FW_CLMBOUT_DIFF if FW_CLMBOUT_DIFF > 0.
  *
  * @min 0.0
  * @max 100.0
