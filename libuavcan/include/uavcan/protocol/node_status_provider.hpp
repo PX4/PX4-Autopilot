@@ -51,6 +51,8 @@ public:
     typedef typename StorageType<typename protocol::NodeStatus::FieldTypes::vendor_specific_status_code>::Type
         VendorSpecificStatusCode;
 
+    typedef typename StorageType<typename protocol::GetNodeInfo::Response::FieldTypes::name>::Type NodeName;
+
     explicit NodeStatusProvider(INode& node)
         : TimerBase(node)
         , creation_timestamp_(node.getMonotonicTime())
@@ -119,8 +121,8 @@ public:
      * Can be set only once before the provider is started.
      * The provider will refuse to start if the node name is not set.
      */
-    const typename protocol::GetNodeInfo::Response::FieldTypes::name& getName() const { return node_info_.name; }
-    void setName(const char* name);
+    const NodeName& getName() const { return node_info_.name; }
+    void setName(const NodeName& name);
 
     /**
      * Node version information.
