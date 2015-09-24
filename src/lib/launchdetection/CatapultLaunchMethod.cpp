@@ -41,8 +41,6 @@
 
 #include "CatapultLaunchMethod.h"
 #include <systemlib/err.h>
-#define __STDC_FORMAT_MACROS
-#include <inttypes.h>
 
 namespace launchdetection
 {
