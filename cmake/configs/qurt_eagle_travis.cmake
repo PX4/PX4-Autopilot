@@ -3,7 +3,7 @@ include(qurt/px4_impl_qurt)
 # Run a full link with build stubs to make sure qurt target isn't broken
 set(QURT_ENABLE_STUBS "1")
 
-set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon.cmake)
+set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-hexagon-7.4.cmake)
 
 set(config_module_list
 	drivers/device
@@ -41,6 +41,7 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
+	modules/controllib
 
 	#
 	# Libraries
@@ -50,7 +51,7 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
-	modules/controllib
+	lib/ecl
 
 	#
 	# QuRT port
