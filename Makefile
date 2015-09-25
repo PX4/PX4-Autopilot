@@ -87,10 +87,15 @@ nuttx_sim_simple:
 posix_sitl_simple:
 	$(call cmake-build,$@)
 
+ros_sitl_simple:
+	$(call cmake-build,$@)
+
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
 posix: posix_sitl_simple
+
+ros: ros_sitl_simple
 
 run_sitl_quad: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rcS
