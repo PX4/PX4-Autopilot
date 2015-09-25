@@ -155,7 +155,7 @@ target_link_libraries( sf0x_test px4_platform )
 add_gtest(sf0x_test)
 
 # param_test
-file(GLOB PX_TOPICS_SRCS ${CMAKE_HOME_DIRECTORY}/../Build/topics_temporary/*.cpp)
+file(GLOB PX_TOPICS_SRCS ${CMAKE_HOME_DIRECTORY}/../Build/topics_temporary/posix/*.cpp)
 add_executable(param_test param_test.cpp
                           hrt.cpp
                           uorb_stub.cpp

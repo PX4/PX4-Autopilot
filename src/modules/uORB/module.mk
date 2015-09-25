@@ -62,6 +62,6 @@ SRCS	+=	  uORBUtils.cpp \
 			  Publication.cpp \
 			  Subscription.cpp
 
-SRCS	+= $(wildcard $(BUILD_DIR)topics_temporary/*.cpp)
+SRCS	+= $(wildcard $(BUILD_DIR)topics_temporary/$(PX4_TARGET_OS)/*.cpp)
 
 MAXOPTIMIZATION	 = -Os
