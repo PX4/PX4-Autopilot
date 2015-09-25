@@ -2,7 +2,7 @@
 
 #include "log_writer.h"
 #include "array.h"
-#include <Px4.h>
+#include <px4.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
