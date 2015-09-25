@@ -31,7 +31,7 @@ namespace uavcan_posix
 /**
  * This interface implements a POSIX compliant IFileServerBackend interface
  */
-class BasicFileSeverBackend : public uavcan::IFileServerBackend
+class BasicFileServerBackend : public uavcan::IFileServerBackend
 {
     enum { FilePermissions = 438 };   ///< 0o666
 
@@ -433,12 +433,12 @@ protected:
     }
 
 public:
-    BasicFileSeverBackend(uavcan::INode& node) :
+    BasicFileServerBackend(uavcan::INode& node) :
         fdcache_(NULL),
         node_(node)
     { }
 
-    ~BasicFileSeverBackend()
+    ~BasicFileServerBackend()
     {
         if (fdcache_ != &fallback_)
         {
@@ -447,6 +447,14 @@ public:
         }
     }
 };
+
+#if __GNUC__
+/// Typo fix in a backwards-compatible way (only for GCC projects). Will be removed someday.
+typedef BasicFileServerBackend
+        BasicFileSeverBackend           // Missing 'r'
+        __attribute__((deprecated));
+#endif
+
 }
 
 #endif // Include guard
