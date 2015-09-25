@@ -1382,7 +1382,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					_mavlink_fd);
 
 				// update tecs
-				float takeoff_pitch_max_deg = _parameters.pitch_limit_max;
+				float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_parameters.pitch_limit_max);
 				float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
 
 				tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,

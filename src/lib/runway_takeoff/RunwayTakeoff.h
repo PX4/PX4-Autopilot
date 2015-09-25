@@ -85,6 +85,7 @@ public:
 	bool resetIntegrators();
 	float getMinAirspeedScaling() { return _min_airspeed_scaling; };
 	float getMinPitch(float sp_min, float climbout_min, float min);
+	float getMaxPitch(float max);
 
 	void reset();
 
@@ -107,6 +108,7 @@ private:
 	control::BlockParamFloat _runway_takeoff_nav_alt;
 	control::BlockParamFloat _runway_takeoff_throttle;
 	control::BlockParamFloat _runway_takeoff_pitch_sp;
+	control::BlockParamFloat _runway_takeoff_max_pitch;
 	control::BlockParamFloat _airspeed_min;
 	control::BlockParamFloat _climbout_diff;
 

@@ -65,6 +65,7 @@ RunwayTakeoff::RunwayTakeoff() :
 	_runway_takeoff_nav_alt(this, "NAV_ALT"),
 	_runway_takeoff_throttle(this, "MAX_THR"),
 	_runway_takeoff_pitch_sp(this, "PSP"),
+	_runway_takeoff_max_pitch(this, "MAX_PITCH"),
 	_airspeed_min(this, "FW_AIRSPD_MIN", false),
 	_climbout_diff(this, "FW_CLMBOUT_DIFF", false)
 {
@@ -83,6 +84,7 @@ void RunwayTakeoff::init(float yaw)
 	_initialized = true;
 	_state = RunwayTakeoffState::THROTTLE_RAMP;
 	_initialized_time = hrt_absolute_time();
+	_climbout = true;
 }
 
 void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
@@ -98,7 +100,6 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 
 	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
 		if (airspeed > _airspeed_min.get() * _min_airspeed_scaling) {
-			_climbout = true;
 			_state = RunwayTakeoffState::TAKEOFF;
 			mavlink_log_info(mavlink_fd, "#Takeoff airspeed reached");
 		}
@@ -215,6 +216,17 @@ float RunwayTakeoff::getMinPitch(float sp_min, float climbout_min, float min)
 
 	else {
 		return min;
+	}
+}
+
+float RunwayTakeoff::getMaxPitch(float max)
+{
+	if (_climbout && _runway_takeoff_max_pitch.get() > 0.1f) {
+		return _runway_takeoff_max_pitch.get();
+	}
+
+	else {
+		return max;
 	}
 }
 
