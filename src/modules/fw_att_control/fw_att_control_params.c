@@ -230,7 +230,7 @@ PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_WR_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_WR_P, 0.3f);
 
 /**
  * Wheel steering rate integrator gain
@@ -242,7 +242,7 @@ PARAM_DEFINE_FLOAT(FW_WR_P, 0.05f);
  * @max 50.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_WR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_WR_I, 0.1f);
 
 /**
  * Wheel steering rate integrator limit
