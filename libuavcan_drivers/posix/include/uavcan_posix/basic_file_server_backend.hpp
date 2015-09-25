@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
+#include <ctime>
 #include <unistd.h>
 #include <fcntl.h>
 
