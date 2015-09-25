@@ -88,7 +88,7 @@ PARAM_DEFINE_FLOAT(RWTO_NAV_ALT, 5.0);
 PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
 
 /**
- * Pitch setpoint during runway takeoff.
+ * Pitch setpoint during taxi / before takeoff airspeed is reached.
  * A taildragger with stearable wheel might need to pitch up
  * a little to keep it's wheel on the ground before airspeed
  * to takeoff is reached.
@@ -98,3 +98,14 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
+
+/**
+ * Max pitch during takeoff.
+ * Fixed-wing settings are used if set to 0. Note that there is also a minimum
+ * pitch of 10 degrees during takeoff, so this must be larger if set.
+ *
+ * @min 0.0
+ * @max 60.0
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
