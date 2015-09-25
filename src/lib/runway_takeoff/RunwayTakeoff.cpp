@@ -87,13 +87,6 @@ void RunwayTakeoff::init(float yaw)
 
 void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 {
-	if (_climbout_diff.get() > 0.0001f && alt_agl < _climbout_diff.get()) {
-		_climbout = true;
-	}
-
-	else {
-		_climbout = false;
-	}
 
 	switch (_state) {
 	case RunwayTakeoffState::THROTTLE_RAMP:
@@ -105,6 +98,7 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 
 	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
 		if (airspeed > _airspeed_min.get() * _min_airspeed_scaling) {
+			_climbout = true;
 			_state = RunwayTakeoffState::TAKEOFF;
 			mavlink_log_info(mavlink_fd, "#Takeoff airspeed reached");
 		}
@@ -121,6 +115,7 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 
 	case RunwayTakeoffState::CLIMBOUT:
 		if (alt_agl > _climbout_diff.get()) {
+			_climbout = false;
 			_state = RunwayTakeoffState::FLY;
 			mavlink_log_info(mavlink_fd, "#Navigating to waypoint");
 		}
@@ -154,11 +149,17 @@ float RunwayTakeoff::getRoll(float navigatorRoll)
 		return 0.0f;
 	}
 
-	// allow some roll during climbout
+	// allow some roll during climbout if waypoint heading is targeted
 	else if (_state < RunwayTakeoffState::FLY) {
-		return math::constrain(navigatorRoll,
-				math::radians(-_max_takeoff_roll),
-				math::radians(_max_takeoff_roll));
+		if (_runway_takeoff_heading.get() == 0) {
+			// otherwise stay at 0 roll
+			return 0.0f;
+
+		} else if (_runway_takeoff_heading.get() == 1) {
+			return math::constrain(navigatorRoll,
+					       math::radians(-_max_takeoff_roll),
+					       math::radians(_max_takeoff_roll));
+		}
 	}
 
 	return navigatorRoll;
