@@ -243,7 +243,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
 			(!status->condition_system_sensors_initialized)) {
-			if (!sensor_feedback_provided) {
+			if (!sensor_feedback_provided || (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
 				mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
 				sensor_feedback_provided = true;
 			}
@@ -260,7 +260,8 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		}
 
 		/* reset feedback state */
-		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
+			valid_transition) {
 			sensor_feedback_provided = false;
 		}
 
@@ -271,15 +272,10 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 	}
 
 	if (ret == TRANSITION_DENIED) {
-#define		WARNSTR "INVAL: %s - %s"
-		/* only print to console here by default as this is too technical to be useful during operation */
-		warnx(WARNSTR, state_names[status->arming_state], state_names[new_arming_state]);
-
-		/* print to MAVLink if we didn't provide any feedback yet */
+		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_log_critical(mavlink_fd, WARNSTR, state_names[status->arming_state], state_names[new_arming_state]);
+			mavlink_and_console_log_critical(mavlink_fd, "INVAL: %s - %s", state_names[status->arming_state], state_names[new_arming_state]);
 		}
-#undef WARNSTR
 	}
 
 	return ret;
