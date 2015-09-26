@@ -73,12 +73,12 @@ Vagrant.configure(2) do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  config.vm.provision "shell", inline: <<-SHELL
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
     # Ensure we start in the Firmware folder
     echo "cd /Firmware" >> ~/.bashrc
     # Install software
     sudo apt-get update
-    sudo apt-get install -y build-essential ccache cmake clang-3.5 lldb-3.5 g++-4.8 gcc-4.8 genromfs libc6-i386 libncurses5-dev python-argparse python-empy python-serial s3cmd texinfo zlib1g-dev git-core
+    sudo apt-get install -y build-essential ccache cmake clang-3.5 lldb-3.5 g++-4.8 gcc-4.8 genromfs libc6-i386 libncurses5-dev python-argparse python-empy python-serial s3cmd texinfo zlib1g-dev git-core zip
     pushd .
     cd ~
     wget -q https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
