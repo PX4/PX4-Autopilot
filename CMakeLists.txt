@@ -138,6 +138,19 @@ set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 #
 # must come before project to set toolchain
 
+string(REPLACE "_" ";" config_args ${CONFIG})
+list(GET config_args 0 OS)
+list(GET config_args 1 BOARD)
+list(GET config_args 2 LABEL)
+set(target_name "${OS}-${BOARD}-${LABEL}")
+
+message(STATUS "${target_name}")
+
+# switch to ros CMake file if building ros
+if (${OS} STREQUAL "ros")
+	include("cmake/ros-CMakeLists.txt")
+else()  # otherwise use the rest of this file
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set(config_module "configs/${CONFIG}")
 include(${config_module})
@@ -178,14 +191,6 @@ set(version_minor 0)
 set(version_patch 1)
 set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
-
-string(REPLACE "_" ";" config_args ${CONFIG})
-list(GET config_args 0 OS)
-list(GET config_args 1 BOARD)
-list(GET config_args 2 LABEL)
-set(target_name "${OS}-${BOARD}-${LABEL}")
-
-message(STATUS "${target_name}")
 
 #=============================================================================
 # programs
@@ -297,5 +302,7 @@ set(CPACK_PACKAGE_CONTACT ${package_contact})
 set(CPACK_GENERATOR "ZIP")
 set(CPACK_SOURCE_GENERATOR "ZIP")
 include(CPack)
+
+endif() # ros alternative endif
 
 # vim: set noet fenc=utf-8 ff=unix ft=cmake :
