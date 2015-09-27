@@ -110,7 +110,7 @@ int check_calibration(int fd, const char* param_template)
 	return !calibration_found;
 }
 
-static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional)
+static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional, int &device_id)
 {
 	bool success = true;
 
@@ -338,50 +338,107 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 
 	/* ---- MAG ---- */
 	if (checkMag) {
+		bool prime_found = false;
+		int32_t prime_id = 0;
+		param_get(param_find("CAL_MAG_PRIME"), &prime_id);
+
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_mag_count; i++) {
 			bool required = (i < max_mandatory_mag_count);
+			int device_id;
 
-			if (!magnometerCheck(mavlink_fd, i, !required) && required) {
+			if (!magnometerCheck(mavlink_fd, i, !required, device_id) && required) {
 				failed = true;
 			}
+
+			if (device_id == prime_id) {
+				prime_found = true;
+			}
+		}
+
+		/* check if the primary device is present */
+		if (!prime_found) {
+			//failed = true;
 		}
 	}
 
 	/* ---- ACCEL ---- */
 	if (checkAcc) {
+		bool prime_found = false;
+		int32_t prime_id = 0;
+		param_get(param_find("CAL_ACC_PRIME"), &prime_id);
+
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_accel_count; i++) {
 			bool required = (i < max_mandatory_accel_count);
+			int device_id
 
-			if (!accelerometerCheck(mavlink_fd, i, !required, checkDynamic) && required) {
+			if (!accelerometerCheck(mavlink_fd, i, !required, checkDynamic, device_id) && required) {
 				failed = true;
 			}
+
+			if (device_id == prime_id) {
+				prime_found = true;
+			}
+		}
+
+		/* check if the primary device is present */
+		if (!prime_found) {
+			//failed = true;
 		}
 	}
 
 	/* ---- GYRO ---- */
 	if (checkGyro) {
+		bool prime_found = false;
+		int32_t prime_id = 0;
+		param_get(param_find("CAL_GYRO_PRIME"), &prime_id);
+
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
 			bool required = (i < max_mandatory_gyro_count);
+			int device_id;
 
-			if (!gyroCheck(mavlink_fd, i, !required) && required) {
+			if (!gyroCheck(mavlink_fd, i, !required, device_id) && required) {
 				failed = true;
 			}
+
+			if (device_id == prime_id) {
+				prime_found = true;
+			}
+		}
+
+		/* check if the primary device is present */
+		if (!prime_found) {
+			//failed = true;
 		}
 	}
 
 	/* ---- BARO ---- */
 	if (checkBaro) {
+		bool prime_found = false;
+		int32_t prime_id = 0;
+		param_get(param_find("CAL_BARO_PRIME"), &prime_id);
+
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_baro_count; i++) {
 			bool required = (i < max_mandatory_baro_count);
+			int device_id;
 
-			if (!baroCheck(mavlink_fd, i, !required) && required) {
+			if (!baroCheck(mavlink_fd, i, !required, device_id) && required) {
 				failed = true;
 			}
+
+			if (device_id == prime_id) {
+				prime_found = true;
+			}
 		}
+
+		// TODO there is no logic in place to calibrate the primary baro yet
+		// // check if the primary device is present 
+		// if (!prime_found) {
+		// 	failed = true;
+		// }
 	}
 
 	/* ---- AIRSPEED ---- */

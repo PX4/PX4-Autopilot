@@ -168,6 +168,9 @@ int do_gyro_calibration(int mavlink_fd)
 		1.0f,	// z scale
 	};
 	
+	int device_prio_max = 0;
+	int32_t device_id_primary = 0;
+
 	for (unsigned s = 0; s < max_gyros; s++) {
 		char str[30];
 		
@@ -199,6 +202,14 @@ int do_gyro_calibration(int mavlink_fd)
 	
 	for (unsigned s = 0; s < max_gyros; s++) {
 		worker_data.gyro_sensor_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
+
+		// Get priority
+		int32_t prio = orb_priority(work_data.gyro_sensor_subs[s]);
+
+		if (prio > device_prio_max) {
+			device_prio_max = prio;
+			device_id_primary = worker_data.device_id[s];
+		}
 	}
 
 	int cancel_sub  = calibrate_cancel_subscribe();
@@ -258,8 +269,11 @@ int do_gyro_calibration(int mavlink_fd)
 	}
 
 	if (res == OK) {
+
 		/* set offset parameters to new values */
 		bool failed = false;
+
+		failed = failed || (OK != param_set_no_notification("CAL_GYRO_PRIME", &(device_id_primary)));
 
 		for (unsigned s = 0; s < max_gyros; s++) {
 			if (worker_data.device_id[s] != 0) {
