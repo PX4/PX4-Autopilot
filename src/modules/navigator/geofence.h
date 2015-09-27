@@ -97,11 +97,13 @@ public:
 
 	int loadFromFile(const char *filename);
 
-	bool isEmpty() {return _verticesCount == 0;}
+	bool isEmpty() {return _vertices_count == 0;}
 
 	int getAltitudeMode() { return _param_altitude_mode.get(); }
 
 	int getSource() { return _param_source.get(); }
+
+	int getGeofenceAction() { return _param_action.get(); }
 
 	void setMavlinkFd(int value) { _mavlinkFd = value; }
 
@@ -114,20 +116,20 @@ private:
 	hrt_abstime _last_horizontal_range_warning;
 	hrt_abstime _last_vertical_range_warning;
 
-	float			_altitude_min;
-	float			_altitude_max;
+	float _altitude_min;
+	float _altitude_max;
 
-	unsigned 			_verticesCount;
+	uint8_t _vertices_count;
 
 	/* Params */
-	control::BlockParamInt _param_geofence_mode;
+	control::BlockParamInt _param_action;
 	control::BlockParamInt _param_altitude_mode;
 	control::BlockParamInt _param_source;
 	control::BlockParamInt _param_counter_threshold;
 	control::BlockParamInt _param_max_hor_distance;
 	control::BlockParamInt _param_max_ver_distance;
 
-	uint8_t			_outside_counter;
+	uint8_t	_outside_counter;
 
 	int _mavlinkFd;
 
