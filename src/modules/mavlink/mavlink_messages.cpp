@@ -1326,43 +1326,43 @@ protected:
 };
 
 
-class MavlinkStreamGPSGlobalOrigin : public MavlinkStream
+class MavlinkStreamHomePosition : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamGPSGlobalOrigin::get_name_static();
+		return MavlinkStreamHomePosition::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "GPS_GLOBAL_ORIGIN";
+		return "HOME_POSITION";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN;
+		return MAVLINK_MSG_ID_HOME_POSITION;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamGPSGlobalOrigin(mavlink);
+		return new MavlinkStreamHomePosition(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return _home_sub->is_published() ? (MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _home_sub->is_published() ? (MAVLINK_MSG_ID_HOME_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
 	MavlinkOrbSubscription *_home_sub;
 
 	/* do not allow top copying this class */
-	MavlinkStreamGPSGlobalOrigin(MavlinkStreamGPSGlobalOrigin &);
-	MavlinkStreamGPSGlobalOrigin& operator = (const MavlinkStreamGPSGlobalOrigin &);
+	MavlinkStreamHomePosition(MavlinkStreamHomePosition &);
+	MavlinkStreamHomePosition& operator = (const MavlinkStreamHomePosition &);
 
 protected:
-	explicit MavlinkStreamGPSGlobalOrigin(Mavlink *mavlink) : MavlinkStream(mavlink),
+	explicit MavlinkStreamHomePosition(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_home_sub(_mavlink->add_orb_subscription(ORB_ID(home_position)))
 	{}
 
@@ -1374,13 +1374,26 @@ protected:
 			struct home_position_s home;
 
 			if (_home_sub->update(&home)) {
-				mavlink_gps_global_origin_t msg;
+				mavlink_home_position_t msg;
 
 				msg.latitude = home.lat * 1e7;
 				msg.longitude = home.lon * 1e7;
 				msg.altitude = home.alt * 1e3f;
 
-				_mavlink->send_message(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN, &msg);
+				msg.x = home.x;
+				msg.y = home.y;
+				msg.z = home.z;
+
+				msg.q[0] = 1.0f;
+				msg.q[1] = 0.0f;
+				msg.q[2] = 0.0f;
+				msg.q[3] = 0.0f;
+
+				msg.approach_x = 0.0f;
+				msg.approach_y = 0.0f;
+				msg.approach_z = 0.0f;
+
+				_mavlink->send_message(MAVLINK_MSG_ID_HOME_POSITION, &msg);
 			}
 		}
 	}
@@ -2437,7 +2450,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
 	new StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static),
-	new StreamListItem(&MavlinkStreamGPSGlobalOrigin::new_instance, &MavlinkStreamGPSGlobalOrigin::get_name_static),
+	new StreamListItem(&MavlinkStreamHomePosition::new_instance, &MavlinkStreamHomePosition::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<1>::new_instance, &MavlinkStreamServoOutputRaw<1>::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<2>::new_instance, &MavlinkStreamServoOutputRaw<2>::get_name_static),
