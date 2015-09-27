@@ -71,6 +71,45 @@
 
 namespace Commander
 {
+
+static int check_calibration(int fd, const char* param_template);
+
+int check_calibration(int fd, const char* param_template)
+{
+	bool calibration_found;
+
+	/* new style: ask device for calibration state */
+	ret = px4_ioctl(fd, SENSORIOCCALTEST, 0);
+
+	calibration_found = (ret == OK);
+
+	/* old style transition: check param values */
+	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+
+	while (!calibration_found) {
+		sprintf(s, param_template, instance);
+		param_t parm = param_find(s);
+
+		/* if the calibration param is not present, abort */
+		if (parm == PARAM_INVALID) {
+			break;
+		}
+
+		/* if param get succeeds */
+		int calibration_devid;
+		if (!param_get(parm, &(calibration_devid))) {
+
+			/* if the devid matches, exit early */
+			if (devid == calibration_devid) {
+				calibration_found = true;
+				break;
+			}
+		}
+	}
+
+	return !calibration_found;
+}
+
 static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional)
 {
 	bool success = true;
@@ -88,13 +127,9 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional)
 		return false;
 	}
 
-	int calibration_devid;
-	int ret;
-	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
-	sprintf(s, "CAL_MAG%u_ID", instance);
-	param_get(param_find(s), &(calibration_devid));
+	int ret = check_calibration(fd, "CAL_MAG%u_ID");
 
-	if (devid != calibration_devid) {
+	if (ret) {
 		mavlink_and_console_log_critical(mavlink_fd,
 						 "PREFLIGHT FAIL: MAG #%u UNCALIBRATED", instance);
 		success = false;
@@ -132,13 +167,9 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 		return false;
 	}
 
-	int calibration_devid;
-	int ret;
-	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
-	sprintf(s, "CAL_ACC%u_ID", instance);
-	param_get(param_find(s), &(calibration_devid));
+	int ret = check_calibration(fd, "CAL_ACC%u_ID");
 
-	if (devid != calibration_devid) {
+	if (ret) {
 		mavlink_and_console_log_critical(mavlink_fd,
 						 "PREFLIGHT FAIL: ACCEL #%u UNCALIBRATED", instance);
 		success = false;
@@ -201,13 +232,9 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional)
 		return false;
 	}
 
-	int calibration_devid;
-	int ret;
-	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
-	sprintf(s, "CAL_GYRO%u_ID", instance);
-	param_get(param_find(s), &(calibration_devid));
+	int ret = check_calibration(fd, "CAL_GYRO%u_ID");
 
-	if (devid != calibration_devid) {
+	if (ret) {
 		mavlink_and_console_log_critical(mavlink_fd,
 						 "PREFLIGHT FAIL: GYRO #%u UNCALIBRATED", instance);
 		success = false;
