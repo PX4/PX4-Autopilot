@@ -252,9 +252,6 @@ void print_reject_arm(const char *msg);
 
 void print_status();
 
-transition_result_t check_navigation_state_machine(struct vehicle_status_s *status,
-		struct vehicle_control_mode_s *control_mode, struct vehicle_local_position_s *local_pos);
-
 transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char *armedBy);
 
 /**
