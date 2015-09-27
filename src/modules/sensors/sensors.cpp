@@ -212,7 +212,7 @@ private:
 	unsigned	_accel_count;			/**< raw accel data count */
 	unsigned	_mag_count;			/**< raw mag data count */
 	unsigned	_baro_count;			/**< raw baro data count */
-	
+
 	int 		_rc_sub;			/**< raw rc channels data subscription */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
@@ -1988,7 +1988,7 @@ Sensors::task_main()
 	} while (0);
 
 	if (ret) {
-		warnx("Sensor initialization failed");
+		warnx("sensor initialization failed");
 		_sensors_task = -1;
 		if (_fd_adc >=0) {
 			px4_close(_fd_adc);
@@ -2068,6 +2068,8 @@ Sensors::task_main()
 
 	raw.timestamp = 0;
 
+	uint64_t _last_config_update = hrt_absolute_time();
+
 	while (!_task_should_exit) {
 
 		/* wait for up to 50ms for data */
@@ -2077,7 +2079,7 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			warnx("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -2085,21 +2087,6 @@ Sensors::task_main()
 
 		/* check vehicle status for changes to publication state */
 		vehicle_control_mode_poll();
-
-		/* keep adding sensors as long as we are not armed */
-		if (!_armed) {
-			_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
-				&raw.gyro_priority[0], &raw.gyro_errcount[0]);
-
-			_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
-				&raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
-
-			_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
-				&raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
-
-			_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
-				&raw.baro_priority[0], &raw.baro_errcount[0]);
-		}
 
 		/* the timestamp of the raw struct is updated by the gyro_poll() method */
 		/* copy most recent sensor data */
@@ -2129,11 +2116,32 @@ Sensors::task_main()
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 		}
 
-		/* check parameters for updates */
-		parameter_update_poll();
+		/* keep adding sensors as long as we are not armed,
+		 * when not adding sensors poll for param updates
+		 */
+		if (!_armed && hrt_elapsed_time(&_last_config_update) > 500 * 1000) {
+			_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
+				&raw.gyro_priority[0], &raw.gyro_errcount[0]);
 
-		/* check rc parameter map for updates */
-		rc_parameter_map_poll();
+			_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
+				&raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
+
+			_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
+				&raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
+
+			_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
+				&raw.baro_priority[0], &raw.baro_errcount[0]);
+
+			_last_config_update = hrt_absolute_time();
+
+		} else {
+
+			/* check parameters for updates */
+			parameter_update_poll();
+
+			/* check rc parameter map for updates */
+			rc_parameter_map_poll();
+		}
 
 		/* Look for new r/c input data */
 		rc_poll();
@@ -2152,7 +2160,7 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = px4_task_spawn_cmd("sensors_task",
+	_sensors_task = px4_task_spawn_cmd("sensors",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       2000,
