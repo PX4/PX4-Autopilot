@@ -173,6 +173,8 @@ int do_accel_calibration(int mavlink_fd)
 {
 	int fd;
 	int32_t device_id[max_accel_sens];
+	int device_prio_max = 0;
+	int32_t device_id_primary = 0;
 
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
@@ -258,6 +260,8 @@ int do_accel_calibration(int mavlink_fd)
 		accel_scale.z_scale = accel_T_rotated(2, 2);
 		
 		bool failed = false;
+
+		failed = failed || (OK != param_set_no_notification("CAL_ACC_PRIME", &(device_id_primary)));
 
 		/* set parameters */
 		(void)sprintf(str, "CAL_ACC%u_XOFF", i);
@@ -370,6 +374,14 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 		struct accel_report arp = {};
 		(void)orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &arp);
 		timestamps[i] = arp.timestamp;
+
+		// Get priority
+		int32_t prio = orb_priority(work_data.subs[i]);
+
+		if (prio > device_prio_max) {
+			device_prio_max = prio;
+			device_id_primary = device_id[i];
+		}
 	}
 
 	if (result == calibrate_return_ok) {
