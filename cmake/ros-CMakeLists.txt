@@ -128,15 +128,15 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${CMAKE_SOURCE_DIR}/src/platforms
-  ${CMAKE_SOURCE_DIR}/src/platforms/ros/px4_messages
-  ${CMAKE_SOURCE_DIR}/src/include
-  ${CMAKE_SOURCE_DIR}/src/modules
+  src/platforms
+  src/platforms/ros/px4_messages
+  src/include
+  src/modules
   ${CMAKE_BINARY_DIR}/src/modules
-  ${CMAKE_SOURCE_DIR}/src/
-  ${CMAKE_SOURCE_DIR}/src/lib
+  src/
+  src/lib
   ${EIGEN_INCLUDE_DIRS}
-  ${CMAKE_SOURCE_DIR}/integrationtests
+  integrationtests
 )
 
 ## generate multiplatform wrapper headers
