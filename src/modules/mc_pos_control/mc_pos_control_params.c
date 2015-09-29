@@ -265,3 +265,31 @@ PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
  */
 PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 120.0f);
 
+/**
+ * Deadzone of X,Y,Z where position hold is enabled
+ *
+ * @unit percent
+ * @min 0.0
+ * @max 1.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_HOLD_DZ, 0.1f);
+
+/**
+ * Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
+ *
+ * @unit m/s
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.5f);
+
+/**
+ * Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
+ *
+ * @unit m/s
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.5f);
+
