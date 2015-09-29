@@ -770,6 +770,8 @@ MulticopterPositionControl::control_offboard(float dt)
 			/* set position setpoint move rate */
 			_vel_sp(0) = _pos_sp_triplet.current.vx;
 			_vel_sp(1) = _pos_sp_triplet.current.vy;
+
+			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
 		}
 
 		if (_pos_sp_triplet.current.yaw_valid) {
@@ -787,6 +789,8 @@ MulticopterPositionControl::control_offboard(float dt)
 
 			/* set altitude setpoint move rate */
 			_vel_sp(2) = _pos_sp_triplet.current.vz;
+
+			_run_alt_control = false; /* request velocity setpoint to be used, instead of position setpoint */
 		}
 	} else {
 		reset_pos_sp();
