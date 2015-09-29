@@ -268,7 +268,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 120.0f);
 /**
  * Deadzone of X,Y,Z where position hold is enabled
  *
- * @unit percent
+ * @unit %
  * @min 0.0
  * @max 1.0
  * @group Multicopter Position Control
