@@ -62,6 +62,8 @@ SRCS	+=	  uORBUtils.cpp \
 			  Publication.cpp \
 			  Subscription.cpp
 
-SRCS	+= $(wildcard $(BUILD_DIR)topics_temporary/$(PX4_TARGET_OS)/*.cpp)
+MODULE_DIR = $(dir $(lastword $(MAKEFILE_LIST)))
+TOPICS_SRC = $(subst ${MODULE_DIR},,$(wildcard $(MODULE_DIR)topics/*.cpp))
+SRCS	+= ${TOPICS_SRC}
 
 MAXOPTIMIZATION	 = -Os

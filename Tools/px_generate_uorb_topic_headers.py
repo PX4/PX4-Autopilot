@@ -192,9 +192,6 @@ def copy_changed(inputdir, outputdir, prefix=''):
                 os.makedirs(outputdir)
 
         for f in os.listdir(inputdir):
-                _, f_ext = os.path.splitext(f)
-                if f_ext != ".h":
-                        continue # copy only header files
                 fni = os.path.join(inputdir, f)
                 if os.path.isfile(fni):
                         # Check if f exists in outpoutdir, copy the file if not
