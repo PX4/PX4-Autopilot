@@ -40,6 +40,7 @@
 
 #include "muorb_test_example.h"
 #include <px4_log.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -88,7 +89,7 @@ int MuorbTestExample::DefaultTest()
 
 	int i = 0;
 	pwm.error_count++;
-	sc.gyro_errcount++;
+	sc.gyro_errcount[0]++;
 
 	while (!appState.exitRequested() && i < 10) {
 

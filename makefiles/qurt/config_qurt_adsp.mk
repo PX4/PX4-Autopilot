@@ -20,10 +20,11 @@ LDFLAGS	+= -lrc_receiver
 #
 
 #
-# Board support modules
+# Board support modules/drivers
 #
 MODULES		+= drivers/device
 MODULES		+= modules/sensors
+MODULES		+= drivers/pressure
 MODULES		+= $(EAGLE_DRIVERS_SRC)/mpu9x50
 MODULES		+= $(EAGLE_DRIVERS_SRC)/uart_esc
 MODULES		+= $(EAGLE_DRIVERS_SRC)/rc_receiver
@@ -70,6 +71,7 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
+MODULES		+= lib/ecl
 
 #
 # QuRT port
