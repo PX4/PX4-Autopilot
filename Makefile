@@ -167,7 +167,7 @@ checksubmodules:
 .PHONY: updatesubmodules
 updatesubmodules:
 	$(Q) (git submodule init)
-	$(Q) (git submodule update)
+	$(Q) (git submodule update -f)
 
 MSG_DIR = $(PX4_BASE)msg
 UORB_TEMPLATE_DIR = $(PX4_BASE)msg/templates/uorb

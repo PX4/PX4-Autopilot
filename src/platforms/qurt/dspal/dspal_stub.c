@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <stdio.h>
+#include <px4_log.h>
 #include <dlfcn.h>
 
 #define STACK_SIZE 0x8000
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 	char *error;
 	void (*entry_function)() = NULL;
 
-	printf("In DSPAL main\n");
+	PX4_INFO("In DSPAL main\n");
 	dlinit(3, builtin);
 #if 0
 	handle = dlopen ("libdspal_client.so", RTLD_LAZY);
@@ -62,3 +62,18 @@ int main(int argc, char* argv[])
 	return ret;
 }
 
+#ifndef HAVE_HEXAGON_SDK
+int dlinit(int a, char **libs)
+{
+	return 1;
+}
+
+void HAP_debug(const char *msg, int level, const char *filename, int line)
+{
+}
+
+int vsnprintf(char *str, size_t size, const char *format, va_list ap)
+{
+	return 1;
+}
+#endif

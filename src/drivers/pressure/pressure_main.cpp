@@ -45,14 +45,9 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_baro.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 #include <semaphore.h>
 #include <pressure_api.h>
-#ifdef __cplusplus
-}
-#endif
 
 /** driver 'main' command */
 extern "C" {

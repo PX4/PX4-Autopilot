@@ -35,6 +35,8 @@
 
 #include <stdbool.h>
 
+__BEGIN_DECLS
+
 /**
  * @file
  * The functions in this file provide the top level, device independent interface
@@ -117,5 +119,7 @@ void pressure_api_close(uint32_t handle);
  * -1 for failure
  */
 int pressure_api_get_sensor_data(uint32_t handle, struct pressure_sensor_data *out_data, bool is_new_data_required);
+
+__END_DECLS
 
 #endif /* PRESSURE_API_H_ */
