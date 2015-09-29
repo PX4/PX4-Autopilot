@@ -177,7 +177,8 @@ private:
 		param_t man_pitch_max;
 		param_t man_yaw_max;
 		param_t mc_att_yaw_p;
-		param_t hold_dz;
+		param_t hold_xy_dz;
+		param_t hold_z_dz;
 		param_t hold_max_xy;
 		param_t hold_max_z;
 	}		_params_handles;		/**< handles for interesting parameters */
@@ -192,7 +193,8 @@ private:
 		float man_pitch_max;
 		float man_yaw_max;
 		float mc_att_yaw_p;
-		float hold_dz;
+		float hold_xy_dz;
+		float hold_z_dz;
 		float hold_max_xy;
 		float hold_max_z;
 
@@ -389,7 +391,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.man_pitch_max = param_find("MPC_MAN_P_MAX");
 	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
-	_params_handles.hold_dz = param_find("MPC_HOLD_DZ");
+	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
+	_params_handles.hold_z_dz = param_find("MPC_HOLD_Z_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 
@@ -480,9 +483,12 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.z_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(2) = v;
-		param_get(_params_handles.hold_dz, &v);
+		param_get(_params_handles.hold_xy_dz, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
-		_params.hold_dz = v;
+		_params.hold_xy_dz = v;
+		param_get(_params_handles.hold_z_dz, &v);
+		v = math::constrain(v, 0.0f, 1.0f);
+		_params.hold_z_dz = v;
 		param_get(_params_handles.hold_max_xy, &v);
 		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
@@ -695,7 +701,7 @@ MulticopterPositionControl::control_manual(float dt)
 	if (_control_mode.flag_control_position_enabled)
 	{
 		/* check for pos. hold */
-		if (fabsf(req_vel_sp(0)) < _params.hold_dz && fabsf(req_vel_sp(1)) < _params.hold_dz)
+		if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz)
 		{
 			if (!_pos_hold_engaged && (_params.hold_max_xy < FLT_EPSILON ||
 																 (fabsf(_vel(0)) < _params.hold_max_xy && fabsf(_vel(1)) < _params.hold_max_xy)))
@@ -721,7 +727,7 @@ MulticopterPositionControl::control_manual(float dt)
 	if (_control_mode.flag_control_altitude_enabled)
 	{
 		/* check for pos. hold */
-		if (fabsf(req_vel_sp(2)) < _params.hold_dz)
+		if (fabsf(req_vel_sp(2)) < _params.hold_z_dz)
 		{
 			if (!_alt_hold_engaged && (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z))
 			{
