@@ -90,9 +90,6 @@
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
-#define VEL_XY_THRESH 	0.5f	// max xy velocity for which pos hold in xy is engaged
-#define VEL_Z_THRESH 	0.5f	// max z velocity for which pos hold in z is engaged
-#define VEL_CMD_THRESH 	0.1f	// min velocity (in xy/z) which is interpreted as velocity command
 
 /**
  * Multicopter position control app start / stop handling function
@@ -217,6 +214,8 @@ private:
 	bool _mode_auto;
 	bool _pos_hold_engaged;
 	bool _alt_hold_engaged;
+	bool _run_pos_control;
+	bool _run_alt_control;
 
 	math::Vector<3> _pos;
 	math::Vector<3> _pos_sp;
@@ -337,7 +336,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_reset_alt_sp(true),
 	_mode_auto(false),
 	_pos_hold_engaged(false),
-	_alt_hold_engaged(false)
+	_alt_hold_engaged(false),
+	_run_pos_control(true),
+	_run_alt_control(true)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_att, 0, sizeof(_att));
@@ -708,12 +709,9 @@ MulticopterPositionControl::control_manual(float dt)
 			_pos_hold_engaged = false;
 		}
 
-		/* compute velocity/position setpoint */
-		if (_pos_hold_engaged) {
-			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
-		}
-		else {
+		/* set requested velocity setpoint */
+		if (!_pos_hold_engaged) {
+			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
 			_vel_sp(0) = req_vel_sp_scaled(0);
 			_vel_sp(1) = req_vel_sp_scaled(1);
 		}
@@ -728,7 +726,6 @@ MulticopterPositionControl::control_manual(float dt)
 			if (!_alt_hold_engaged && (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z))
 			{
 				_alt_hold_engaged = true;
-				_pos_hold_engaged = true;
 				_pos_sp(2) = _pos(2);
 			}
 		}
@@ -736,11 +733,9 @@ MulticopterPositionControl::control_manual(float dt)
 			_alt_hold_engaged = false;
 		}
 
-		/* compute velocity/position setpoint */
-		if (_alt_hold_engaged) {
-			_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
-		}
-		else {
+		/* set requested velocity setpoint */
+		if (!_alt_hold_engaged) {
+			_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
 			_vel_sp(2) = req_vel_sp_scaled(2);
 		}
 	}
@@ -1071,6 +1066,11 @@ MulticopterPositionControl::task_main()
 
 			_vel_ff.zero();
 
+			/* by default, run position/altitude controller. the control_* functions
+			 * can disable this and run velocity controllers directly in this cycle */
+			_run_pos_control = true;
+			_run_alt_control = true;
+
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
 				/* manual control */
@@ -1109,7 +1109,15 @@ MulticopterPositionControl::task_main()
 				}
 
 			} else {
-				/* run position & altitude controllers, position/velocity setpoint already computed in control_* functions */
+				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
+				if (_run_pos_control) {
+					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
+					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+				}
+
+				if (_run_alt_control) {
+					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+				}
 
 				/* make sure velocity setpoint is saturated in xy*/
 				float vel_norm_xy = sqrtf(_vel_sp(0)*_vel_sp(0) + 
