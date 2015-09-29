@@ -309,6 +309,10 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 			/* send autopilot version message */
 			_mavlink->send_autopilot_capabilites();
+
+		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
+			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
@@ -364,6 +368,13 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 			/* terminate other threads and this thread */
 			_mavlink->_task_should_exit = true;
+
+		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+			/* send autopilot version message */
+			_mavlink->send_autopilot_capabilites();
+
+		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
+			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
 		} else {
 
@@ -990,8 +1001,8 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 switch_pos_t
 MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
 {
-	// XXX non-standard 3 pos switch decoding
-	return (buttons >> (sw * 2)) & 3;
+	// This 2-bit method should be used in the future: (buttons >> (sw * 2)) & 3;
+	return (buttons & (1 << sw)) ? manual_control_setpoint_s::SWITCH_POS_ON : manual_control_setpoint_s::SWITCH_POS_OFF;
 }
 
 int
@@ -1101,26 +1112,10 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		rc.values[0] = man.x / 2 + 1500;
 		/* pitch */
 		rc.values[1] = man.y / 2 + 1500;
-
-		/*
-		 * yaw needs special handling as some joysticks have a circular mechanical mask,
-		 * which makes the corner positions unreachable.
-		 * scale yaw up and clip it to overcome this.
-		 */
-		rc.values[2] = man.r / 1.1f + 1500;
-		if (rc.values[2] > 2000) {
-			rc.values[2] = 2000;
-		} else if (rc.values[2] < 1000) {
-			rc.values[2] = 1000;
-		}
-
+		/* yaw */
+		rc.values[2] = man.r / 2 + 1500;
 		/* throttle */
-		rc.values[3] = man.z / 0.9f + 1000;
-		if (rc.values[3] > 2000) {
-			rc.values[3] = 2000;
-		} else if (rc.values[3] < 1000) {
-			rc.values[3] = 1000;
-		}
+		rc.values[3] = man.z / 1 + 1000;
 
 		/* decode all switches which fit into the channel mask */
 		unsigned max_switch = (sizeof(man.buttons) * 8);
@@ -1426,6 +1421,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.gyro_rad_s[0] = imu.xgyro;
 		hil_sensors.gyro_rad_s[1] = imu.ygyro;
 		hil_sensors.gyro_rad_s[2] = imu.zgyro;
+		hil_sensors.gyro_timestamp[0] = timestamp;
 
 		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
 		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
@@ -1433,9 +1429,9 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
 		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
 		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
-		hil_sensors.accelerometer_mode = 0; // TODO what is this?
-		hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
-		hil_sensors.accelerometer_timestamp = timestamp;
+		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?
+		hil_sensors.accelerometer_range_m_s2[0] = 32.7f; // int16
+		hil_sensors.accelerometer_timestamp[0] = timestamp;
 
 		hil_sensors.adc_voltage_v[0] = 0.0f;
 		hil_sensors.adc_voltage_v[1] = 0.0f;
@@ -1447,19 +1443,19 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.magnetometer_ga[0] = imu.xmag;
 		hil_sensors.magnetometer_ga[1] = imu.ymag;
 		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_range_ga = 32.7f; // int16
-		hil_sensors.magnetometer_mode = 0; // TODO what is this
-		hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
-		hil_sensors.magnetometer_timestamp = timestamp;
+		hil_sensors.magnetometer_range_ga[0] = 32.7f; // int16
+		hil_sensors.magnetometer_mode[0] = 0; // TODO what is this
+		hil_sensors.magnetometer_cuttoff_freq_hz[0] = 50.0f;
+		hil_sensors.magnetometer_timestamp[0] = timestamp;
 
-		hil_sensors.baro_pres_mbar = imu.abs_pressure;
-		hil_sensors.baro_alt_meter = imu.pressure_alt;
-		hil_sensors.baro_temp_celcius = imu.temperature;
-		hil_sensors.baro_timestamp = timestamp;
+		hil_sensors.baro_pres_mbar[0] = imu.abs_pressure;
+		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;
+		hil_sensors.baro_temp_celcius[0] = imu.temperature;
+		hil_sensors.baro_timestamp[0] = timestamp;
 
-		hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
-		hil_sensors.differential_pressure_filtered_pa = hil_sensors.differential_pressure_pa;
-		hil_sensors.differential_pressure_timestamp = timestamp;
+		hil_sensors.differential_pressure_pa[0] = imu.diff_pressure * 1e2f; //from hPa to Pa
+		hil_sensors.differential_pressure_filtered_pa[0] = hil_sensors.differential_pressure_pa[0];
+		hil_sensors.differential_pressure_timestamp[0] = timestamp;
 
 		/* publish combined sensor topic */
 		if (_sensors_pub == nullptr) {
@@ -1761,10 +1757,17 @@ MavlinkReceiver::receive_thread(void *arg)
 #ifdef __PX4_POSIX
 	struct sockaddr_in srcaddr;
 	socklen_t addrlen = sizeof(srcaddr);
+
 	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
+		// make sure mavlink app has booted before we start using the socket
+		while (!_mavlink->boot_complete()) {
+			usleep(100000);
+		}
+
 		fds[0].fd = _mavlink->get_socket_fd();
 		fds[0].events = POLLIN;
 	}
+
 #endif
 	ssize_t nread = 0;
 
@@ -1779,12 +1782,18 @@ MavlinkReceiver::receive_thread(void *arg)
 			}
 #ifdef __PX4_POSIX
 			if (_mavlink->get_protocol() == UDP) {
-
 				if (fds[0].revents & POLLIN) {
 					nread = recvfrom(_mavlink->get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
 			} else {
 				// could be TCP or other protocol
+			}
+
+			struct sockaddr_in * srcaddr_last = _mavlink->get_client_source_address();
+			int localhost = (127 << 24) + 1;
+			if (srcaddr_last->sin_addr.s_addr == htonl(localhost) && srcaddr.sin_addr.s_addr != htonl(localhost)) {
+				// if we were sending to localhost before but have a new host then accept him
+				memcpy(srcaddr_last, &srcaddr, sizeof(srcaddr));
 			}
 #endif
 			/* if read failed, this loop won't execute */

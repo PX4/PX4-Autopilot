@@ -40,7 +40,7 @@
 
 #include <px4_config.h>
 
-#include <drivers/device/i2c.h>
+//#include <drivers/device/i2c.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -55,10 +55,11 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
+//#include <nuttx/arch.h>
+//#include <nuttx/wqueue.h>
+//#include <nuttx/clock.h>
 
+#include <px4_workqueue.h>
 #include <arch/board/board.h>
 
 #include <systemlib/airspeed.h>
@@ -69,6 +70,7 @@
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/device.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
@@ -87,7 +89,7 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class __EXPORT AirspeedSim : public device::I2C
+class __EXPORT AirspeedSim : public device::VDev
 {
 public:
 	AirspeedSim(int bus, int address, unsigned conversion_interval, const char *path);
@@ -95,8 +97,8 @@ public:
 
 	virtual int	init();
 
-	virtual ssize_t	read(px4_dev_handle_t *handlep, char *buffer, size_t buflen);
-	virtual int	ioctl(px4_dev_handle_t *handlep, int cmd, unsigned long arg);
+	virtual ssize_t	read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -104,8 +106,10 @@ public:
 	virtual void	print_info();
 
 private:
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer		*_reports;
 	perf_counter_t		_buffer_overflows;
+
+	unsigned _retries;	// XXX this should come from the SIM class
 
 	/* this class has pointer data members and should not be copied */
 	AirspeedSim(const AirspeedSim &);
@@ -122,16 +126,19 @@ protected:
 	virtual int	measure() = 0;
 	virtual int	collect() = 0;
 
+	virtual int	transfer(const uint8_t *send, unsigned send_len,
+					 uint8_t *recv, unsigned recv_len);
+
 	/**
 	 * Update the subsystem status
 	 */
 	void update_status();
 
-	work_s			_work;
+	struct work_s			_work;
 	float			_max_differential_pressure_pa;
 	bool			_sensor_ok;
 	bool			_last_published_sensor_ok;
-	int			_measure_ticks;
+	unsigned			_measure_ticks;
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 

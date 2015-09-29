@@ -406,7 +406,7 @@ Navigator::task_main()
 		/* Check geofence violation */
 		static hrt_abstime last_geofence_check = 0;
 		if (have_geofence_position_data && hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL) {
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos, _home_position_set);
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter[0], _home_pos, _home_position_set);
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 			if (!inside) {
@@ -524,7 +524,7 @@ Navigator::start()
 	/* start the task */
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_DEFAULT - 5,
+					 SCHED_PRIORITY_DEFAULT + 5,
 					 1500,
 					 (px4_main_t)&Navigator::task_main_trampoline,
 					 nullptr);

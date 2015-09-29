@@ -132,7 +132,7 @@ test_mount(int argc, char *argv[])
 		}
 
 		PX4_INFO("Iterations left: #%d / #%d of %d / %d\n(%s)", it_left_fsync, it_left_abort,
-		      fsync_tries, abort_tries, buf);
+			 fsync_tries, abort_tries, buf);
 
 		int it_left_fsync_prev = it_left_fsync;
 

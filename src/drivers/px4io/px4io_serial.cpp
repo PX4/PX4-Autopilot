@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file px4io_serial.cpp
-  *
-  * Serial interface for PX4IO
-  */
+/**
+ * @file px4io_serial.cpp
+ *
+ * Serial interface for PX4IO
+ */
 
 /* XXX trim includes */
 #include <px4_config.h>
@@ -159,7 +159,7 @@ private:
 
 	/* do not allow top copying this class */
 	PX4IO_serial(PX4IO_serial &);
-	PX4IO_serial& operator = (const PX4IO_serial &);
+	PX4IO_serial &operator = (const PX4IO_serial &);
 
 };
 
@@ -199,6 +199,7 @@ PX4IO_serial::~PX4IO_serial()
 		stm32_dmastop(_tx_dma);
 		stm32_dmafree(_tx_dma);
 	}
+
 	if (_rx_dma != nullptr) {
 		stm32_dmastop(_rx_dma);
 		stm32_dmafree(_rx_dma);
@@ -232,8 +233,9 @@ PX4IO_serial::~PX4IO_serial()
 	perf_free(_pc_idle);
 	perf_free(_pc_badidle);
 
-	if (g_interface == this)
+	if (g_interface == this) {
 		g_interface = nullptr;
+	}
 }
 
 int
@@ -243,6 +245,7 @@ PX4IO_serial::init()
 	/* allocate DMA */
 	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
 	_rx_dma = stm32_dmachannel(PX4IO_SERIAL_RX_DMAMAP);
+
 	if ((_tx_dma == nullptr) || (_rx_dma == nullptr)) {
 		return -1;
 	}
@@ -305,19 +308,22 @@ PX4IO_serial::ioctl(unsigned operation, unsigned &arg)
 			for (;;) {
 				while (!(rSR & USART_SR_TXE))
 					;
+
 				rDR = 0x55;
 			}
+
 			return 0;
 
-		case 1:
-			{
+		case 1: {
 				unsigned fails = 0;
+
 				for (unsigned count = 0;; count++) {
 					uint16_t value = count & 0xffff;
 
-					if (write((PX4IO_PAGE_TEST << 8) | PX4IO_P_TEST_LED, &value, 1) != 0)
+					if (write((PX4IO_PAGE_TEST << 8) | PX4IO_P_TEST_LED, &value, 1) != 0) {
 						fails++;
-						
+					}
+
 					if (count >= 5000) {
 						lowsyslog("==== test 1 : %u failures ====\n", fails);
 						perf_print_counter(_pc_txns);
@@ -333,12 +339,15 @@ PX4IO_serial::ioctl(unsigned operation, unsigned &arg)
 						count = 0;
 					}
 				}
+
 				return 0;
 			}
+
 		case 2:
 			lowsyslog("test 2\n");
 			return 0;
 		}
+
 	default:
 		break;
 	}
@@ -353,20 +362,24 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 	uint8_t offset = address & 0xff;
 	const uint16_t *values = reinterpret_cast<const uint16_t *>(data);
 
-	if (count > PKT_MAX_REGS)
+	if (count > PKT_MAX_REGS) {
 		return -EINVAL;
+	}
 
 	sem_wait(&_bus_semaphore);
 
 	int result;
+
 	for (unsigned retries = 0; retries < 3; retries++) {
 
 		_dma_buffer.count_code = count | PKT_CODE_WRITE;
 		_dma_buffer.page = page;
 		_dma_buffer.offset = offset;
 		memcpy((void *)&_dma_buffer.regs[0], (void *)values, (2 * count));
-		for (unsigned i = count; i < PKT_MAX_REGS; i++)
+
+		for (unsigned i = count; i < PKT_MAX_REGS; i++) {
 			_dma_buffer.regs[i] = 0x55aa;
+		}
 
 		/* XXX implement check byte */
 
@@ -386,13 +399,16 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 
 			break;
 		}
+
 		perf_count(_pc_retries);
 	}
 
 	sem_post(&_bus_semaphore);
 
-	if (result == OK)
+	if (result == OK) {
 		result = count;
+	}
+
 	return result;
 }
 
@@ -403,12 +419,14 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 	uint8_t offset = address & 0xff;
 	uint16_t *values = reinterpret_cast<uint16_t *>(data);
 
-	if (count > PKT_MAX_REGS)
+	if (count > PKT_MAX_REGS) {
 		return -EINVAL;
+	}
 
 	sem_wait(&_bus_semaphore);
 
 	int result;
+
 	for (unsigned retries = 0; retries < 3; retries++) {
 
 		_dma_buffer.count_code = count | PKT_CODE_READ;
@@ -428,14 +446,16 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 				result = -EINVAL;
 				perf_count(_pc_protoerrs);
 
-			/* compare the received count with the expected count */
+				/* compare the received count with the expected count */
+
 			} else if (PKT_COUNT(_dma_buffer) != count) {
 
 				/* IO returned the wrong number of registers - no point retrying */
 				result = -EIO;
 				perf_count(_pc_protoerrs);
 
-			/* successful read */				
+				/* successful read */
+
 			} else {
 
 				/* copy back the result */
@@ -444,13 +464,16 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 
 			break;
 		}
+
 		perf_count(_pc_retries);
 	}
 
 	sem_post(&_bus_semaphore);
 
-	if (result == OK)
+	if (result == OK) {
 		result = count;
+	}
+
 	return result;
 }
 
@@ -517,14 +540,16 @@ PX4IO_serial::_wait_complete()
 	/* compute the deadline for a 10ms timeout */
 	struct timespec abstime;
 	clock_gettime(CLOCK_REALTIME, &abstime);
-	abstime.tv_nsec += 10*1000*1000;
-	if (abstime.tv_nsec >= 1000*1000*1000) {
+	abstime.tv_nsec += 10 * 1000 * 1000;
+
+	if (abstime.tv_nsec >= 1000 * 1000 * 1000) {
 		abstime.tv_sec++;
-		abstime.tv_nsec -= 1000*1000*1000;
+		abstime.tv_nsec -= 1000 * 1000 * 1000;
 	}
 
 	/* wait for the transaction to complete - 64 bytes @ 1.5Mbps ~426µs */
 	int ret;
+
 	for (;;) {
 		ret = sem_timedwait(&_completion_semaphore, &abstime);
 
@@ -539,6 +564,7 @@ PX4IO_serial::_wait_complete()
 			/* check packet CRC - corrupt packet errors mean IO receive CRC error */
 			uint8_t crc = _dma_buffer.crc;
 			_dma_buffer.crc = 0;
+
 			if ((crc != crc_packet(&_dma_buffer)) | (PKT_CODE(_dma_buffer) == PKT_CODE_CORRUPT)) {
 				perf_count(_pc_crcerrs);
 				ret = -EIO;
@@ -588,6 +614,7 @@ PX4IO_serial::_do_rx_dma_callback(unsigned status)
 
 		/* check for packet overrun - this will occur after DMA completes */
 		uint32_t sr = rSR;
+
 		if (sr & (USART_SR_ORE | USART_SR_RXNE)) {
 			(void)rDR;
 			status = DMA_STATUS_TEIF;
@@ -607,8 +634,10 @@ PX4IO_serial::_do_rx_dma_callback(unsigned status)
 int
 PX4IO_serial::_interrupt(int irq, void *context)
 {
-	if (g_interface != nullptr)
+	if (g_interface != nullptr) {
 		g_interface->_do_interrupt();
+	}
+
 	return 0;
 }
 
@@ -619,10 +648,10 @@ PX4IO_serial::_do_interrupt()
 	(void)rDR;		/* read DR to clear status */
 
 	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
-		USART_SR_NE |		/* noise error - we have lost a byte due to noise */
-		USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
-		
-		/* 
+		  USART_SR_NE |		/* noise error - we have lost a byte due to noise */
+		  USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
+
+		/*
 		 * If we are in the process of listening for something, these are all fatal;
 		 * abort the DMA with an error.
 		 */
@@ -649,6 +678,7 @@ PX4IO_serial::_do_interrupt()
 
 			/* verify that the received packet is complete */
 			size_t length = sizeof(_dma_buffer) - stm32_dmaresidual(_rx_dma);
+
 			if ((length < 1) || (length < PKT_SIZE(_dma_buffer))) {
 				perf_count(_pc_badidle);
 

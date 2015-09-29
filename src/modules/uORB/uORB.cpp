@@ -261,6 +261,20 @@ int  orb_exists(const struct orb_metadata *meta, int instance)
 }
 
 /**
+ * Get the number of published instances of a topic group
+ *
+ * @param meta    ORB topic metadata.
+ * @return    The number of published instances of this topic
+ */
+int  orb_group_count(const struct orb_metadata *meta)
+{
+	unsigned group_count = 0;
+	while (!uORB::Manager::get_instance()->orb_exists(meta, group_count++)) {};
+
+	return group_count;
+}
+
+/**
  * Return the priority of the topic
  *
  * @param handle  A handle returned from orb_subscribe.
@@ -270,7 +284,7 @@ int  orb_exists(const struct orb_metadata *meta, int instance)
  *      priority, independent of the startup order of the associated publishers.
  * @return    OK on success, ERROR otherwise with errno set accordingly.
  */
-int  orb_priority(int handle, int *priority)
+int  orb_priority(int handle, int32_t *priority)
 {
 	return uORB::Manager::get_instance()->orb_priority(handle, priority);
 }

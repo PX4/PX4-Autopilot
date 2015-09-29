@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file ms5611_spi.cpp
-  *
-  * SPI interface for MS5611
-  */
+/**
+ * @file ms5611_spi.cpp
+ *
+ * SPI interface for MS5611
+ */
 
 /* XXX trim includes */
 #include <px4_config.h>
@@ -117,6 +117,7 @@ device::Device *
 MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 {
 #ifdef PX4_SPI_BUS_EXT
+
 	if (busnum == PX4_SPI_BUS_EXT) {
 #ifdef PX4_SPIDEV_EXT_BARO
 		return new MS5611_SPI(busnum, (spi_dev_e)PX4_SPIDEV_EXT_BARO, prom_buf);
@@ -124,12 +125,13 @@ MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 		return nullptr;
 #endif
 	}
+
 #endif
 	return new MS5611_SPI(busnum, (spi_dev_e)PX4_SPIDEV_BARO, prom_buf);
 }
 
 MS5611_SPI::MS5611_SPI(uint8_t bus, spi_dev_e device, ms5611::prom_u &prom_buf) :
-	SPI("MS5611_SPI", nullptr, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz */),
+	SPI("MS5611_SPI", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000 /* will be rounded to 10.4 MHz */),
 	_prom(prom_buf)
 {
 }
@@ -144,6 +146,7 @@ MS5611_SPI::init()
 	int ret;
 
 	ret = SPI::init();
+
 	if (ret != OK) {
 		DEVICE_DEBUG("SPI init failed");
 		goto out;
@@ -151,6 +154,7 @@ MS5611_SPI::init()
 
 	/* send reset command */
 	ret = _reset();
+
 	if (ret != OK) {
 		DEVICE_DEBUG("reset failed");
 		goto out;
@@ -158,6 +162,7 @@ MS5611_SPI::init()
 
 	/* read PROM */
 	ret = _read_prom();
+
 	if (ret != OK) {
 		DEVICE_DEBUG("prom readout failed");
 		goto out;
@@ -214,6 +219,7 @@ MS5611_SPI::ioctl(unsigned operation, unsigned &arg)
 		errno = ret;
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -244,25 +250,32 @@ MS5611_SPI::_read_prom()
 	usleep(3000);
 
 	/* read and convert PROM words */
-        bool all_zero = true;
+	bool all_zero = true;
+
 	for (int i = 0; i < 8; i++) {
 		uint8_t cmd = (ADDR_PROM_SETUP + (i * 2));
 		_prom.c[i] = _reg16(cmd);
-                if (_prom.c[i] != 0)
+
+		if (_prom.c[i] != 0) {
 			all_zero = false;
-                //DEVICE_DEBUG("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
+		}
+
+		//DEVICE_DEBUG("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
 	}
 
 	/* calculate CRC and return success/failure accordingly */
 	int ret = ms5611::crc4(&_prom.c[0]) ? OK : -EIO;
-        if (ret != OK) {
+
+	if (ret != OK) {
 		DEVICE_DEBUG("crc failed");
-        }
-        if (all_zero) {
+	}
+
+	if (all_zero) {
 		DEVICE_DEBUG("prom all zero");
 		ret = -EIO;
-        }
-        return ret;
+	}
+
+	return ret;
 }
 
 uint16_t

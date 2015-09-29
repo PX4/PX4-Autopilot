@@ -1227,9 +1227,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				_l1_control.navigate_heading(target_bearing, _att.yaw, ground_speed_2d);
 
-				/* limit roll motion to prevent wings from touching the ground first */
-				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
-
 				land_noreturn_horizontal = true;
 
 			} else {
@@ -1241,6 +1238,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
+			if (land_noreturn_horizontal) {
+				/* limit roll motion to prevent wings from touching the ground first */
+				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
+			}
 
 			/* Vertical landing control */
 			//xxx: using the tecs altitude controller for slope control for now
@@ -1363,7 +1364,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				/* Detect launch */
 				launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
 
-				/* update our copy of the laucn detection state */
+				/* update our copy of the launch detection state */
 				launch_detection_state = launchDetector.getLaunchDetected();
 			} else	{
 				/* no takeoff detection --> fly */
@@ -1719,7 +1720,7 @@ FixedwingPositionControl::task_main()
 	}
 
 	/* wakeup source(s) */
-	struct pollfd fds[2];
+	px4_pollfd_struct_t fds[2];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -1732,7 +1733,7 @@ FixedwingPositionControl::task_main()
 	while (!_task_should_exit) {
 
 		/* wait for up to 500ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0) {

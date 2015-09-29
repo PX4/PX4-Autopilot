@@ -143,7 +143,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	// Must add NULL at end of argv
 	taskdata->argv[argc] = (char *)0;
 
-	PX4_WARN("starting task %s", name);
+	PX4_DEBUG("starting task %s", name);
 
 	rv = pthread_attr_init(&attr);
 	if (rv != 0) {
@@ -203,7 +203,7 @@ int px4_task_delete(px4_task_t id)
 {
 	int rv = 0;
 	pthread_t pid;
-	PX4_WARN("Called px4_task_delete");
+	PX4_DEBUG("Called px4_task_delete");
 
 	if (id < PX4_MAX_TASKS && taskmap[id].isused)
 		pid = taskmap[id].pid;
@@ -280,6 +280,17 @@ void px4_show_tasks()
 
 }
 
+bool px4_task_is_running(const char *taskname)
+{
+	int idx;
+	for (idx=0; idx < PX4_MAX_TASKS; idx++)
+	{
+		if (taskmap[idx].isused && (strcmp(taskmap[idx].name.c_str(), taskname) == 0)) {
+			return true;
+		}
+	}
+	return false;
+}
 __BEGIN_DECLS
 
 unsigned long px4_getpid()

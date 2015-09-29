@@ -4,6 +4,7 @@
 
 MODULE_COMMAND	 = rgbled
 
-SRCS		 = rgbled.cpp
+SRCS		 = rgbled.cpp \
+			   rgbled_params.c
 
 MAXOPTIMIZATION	 = -Os

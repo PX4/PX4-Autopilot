@@ -643,28 +643,28 @@ protected:
 		if (_sensor_sub->update(&_sensor_time, &sensor)) {
 			uint16_t fields_updated = 0;
 
-			if (_accel_timestamp != sensor.accelerometer_timestamp) {
+			if (_accel_timestamp != sensor.accelerometer_timestamp[0]) {
 				/* mark first three dimensions as changed */
 				fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-				_accel_timestamp = sensor.accelerometer_timestamp;
+				_accel_timestamp = sensor.accelerometer_timestamp[0];
 			}
 
-			if (_gyro_timestamp != sensor.timestamp) {
+			if (_gyro_timestamp != sensor.gyro_timestamp[0]) {
 				/* mark second group dimensions as changed */
 				fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
-				_gyro_timestamp = sensor.timestamp;
+				_gyro_timestamp = sensor.gyro_timestamp[0];
 			}
 
-			if (_mag_timestamp != sensor.magnetometer_timestamp) {
+			if (_mag_timestamp != sensor.magnetometer_timestamp[0]) {
 				/* mark third group dimensions as changed */
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-				_mag_timestamp = sensor.magnetometer_timestamp;
+				_mag_timestamp = sensor.magnetometer_timestamp[0];
 			}
 
-			if (_baro_timestamp != sensor.baro_timestamp) {
+			if (_baro_timestamp != sensor.baro_timestamp[0]) {
 				/* mark last group dimensions as changed */
 				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
-				_baro_timestamp = sensor.baro_timestamp;
+				_baro_timestamp = sensor.baro_timestamp[0];
 			}
 
 			mavlink_highres_imu_t msg;
@@ -679,10 +679,10 @@ protected:
 			msg.xmag = sensor.magnetometer_ga[0];
 			msg.ymag = sensor.magnetometer_ga[1];
 			msg.zmag = sensor.magnetometer_ga[2];
-			msg.abs_pressure = sensor.baro_pres_mbar;
-			msg.diff_pressure = sensor.differential_pressure_pa;
-			msg.pressure_alt = sensor.baro_alt_meter;
-			msg.temperature = sensor.baro_temp_celcius;
+			msg.abs_pressure = sensor.baro_pres_mbar[0];
+			msg.diff_pressure = sensor.differential_pressure_pa[0];
+			msg.pressure_alt = sensor.baro_alt_meter[0];
+			msg.temperature = sensor.baro_temp_celcius[0];
 			msg.fields_updated = fields_updated;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_HIGHRES_IMU, &msg);
@@ -1326,43 +1326,43 @@ protected:
 };
 
 
-class MavlinkStreamGPSGlobalOrigin : public MavlinkStream
+class MavlinkStreamHomePosition : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamGPSGlobalOrigin::get_name_static();
+		return MavlinkStreamHomePosition::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "GPS_GLOBAL_ORIGIN";
+		return "HOME_POSITION";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN;
+		return MAVLINK_MSG_ID_HOME_POSITION;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamGPSGlobalOrigin(mavlink);
+		return new MavlinkStreamHomePosition(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return _home_sub->is_published() ? (MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _home_sub->is_published() ? (MAVLINK_MSG_ID_HOME_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
 	MavlinkOrbSubscription *_home_sub;
 
 	/* do not allow top copying this class */
-	MavlinkStreamGPSGlobalOrigin(MavlinkStreamGPSGlobalOrigin &);
-	MavlinkStreamGPSGlobalOrigin& operator = (const MavlinkStreamGPSGlobalOrigin &);
+	MavlinkStreamHomePosition(MavlinkStreamHomePosition &);
+	MavlinkStreamHomePosition& operator = (const MavlinkStreamHomePosition &);
 
 protected:
-	explicit MavlinkStreamGPSGlobalOrigin(Mavlink *mavlink) : MavlinkStream(mavlink),
+	explicit MavlinkStreamHomePosition(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_home_sub(_mavlink->add_orb_subscription(ORB_ID(home_position)))
 	{}
 
@@ -1374,13 +1374,26 @@ protected:
 			struct home_position_s home;
 
 			if (_home_sub->update(&home)) {
-				mavlink_gps_global_origin_t msg;
+				mavlink_home_position_t msg;
 
 				msg.latitude = home.lat * 1e7;
 				msg.longitude = home.lon * 1e7;
 				msg.altitude = home.alt * 1e3f;
 
-				_mavlink->send_message(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN, &msg);
+				msg.x = home.x;
+				msg.y = home.y;
+				msg.z = home.z;
+
+				msg.q[0] = 1.0f;
+				msg.q[1] = 0.0f;
+				msg.q[2] = 0.0f;
+				msg.q[3] = 0.0f;
+
+				msg.approach_x = 0.0f;
+				msg.approach_y = 0.0f;
+				msg.approach_z = 0.0f;
+
+				_mavlink->send_message(MAVLINK_MSG_ID_HOME_POSITION, &msg);
 			}
 		}
 	}
@@ -2057,7 +2070,14 @@ protected:
 			msg.y = manual.y * 1000;
 			msg.z = manual.z * 1000;
 			msg.r = manual.r * 1000;
+			unsigned shift = 2;
 			msg.buttons = 0;
+			msg.buttons |= (manual.mode_switch << (shift * 0));
+			msg.buttons |= (manual.return_switch << (shift * 1));
+			msg.buttons |= (manual.posctl_switch << (shift * 2));
+			msg.buttons |= (manual.loiter_switch << (shift * 3));
+			msg.buttons |= (manual.acro_switch << (shift * 4));
+			msg.buttons |= (manual.offboard_switch << (shift * 5));
 
 			_mavlink->send_message(MAVLINK_MSG_ID_MANUAL_CONTROL, &msg);
 		}
@@ -2430,7 +2450,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
 	new StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static),
-	new StreamListItem(&MavlinkStreamGPSGlobalOrigin::new_instance, &MavlinkStreamGPSGlobalOrigin::get_name_static),
+	new StreamListItem(&MavlinkStreamHomePosition::new_instance, &MavlinkStreamHomePosition::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<1>::new_instance, &MavlinkStreamServoOutputRaw<1>::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<2>::new_instance, &MavlinkStreamServoOutputRaw<2>::get_name_static),

@@ -187,8 +187,7 @@ pwm_main(int argc, char *argv[])
 
 			break;
 
-		case 'p':
-			{
+		case 'p': {
 				/* check if this is a param name */
 				if (strncmp("p:", optarg, 2) == 0) {
 
@@ -203,12 +202,15 @@ pwm_main(int argc, char *argv[])
 
 						if (gret == 0) {
 							pwm_value = pwm_parm;
+
 						} else {
 							usage("PARAM LOAD FAIL");
 						}
+
 					} else {
 						usage("PARAM NAME NOT FOUND");
 					}
+
 				} else {
 
 					pwm_value = strtoul(optarg, &ep, 0);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,51 @@
  *
  ****************************************************************************/
 
-#include <uavcan_stm32/uavcan_stm32.hpp>
-#include <drivers/drv_hrt.h>
-
 /**
- * @file uavcan_clock.cpp
+ * @file sitl_led.c
  *
- * Implements a clock for the CAN node.
- *
- * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * sitl LED backend.
  */
 
-namespace uavcan_stm32
-{
-namespace clock
-{
+#include <px4_config.h>
+#include <px4_log.h>
+#include <stdbool.h>
 
-uavcan::MonotonicTime getMonotonic()
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
+
+static bool _led_state[2] = { false , false };
+
+__EXPORT void led_init()
 {
-	return uavcan::MonotonicTime::fromUSec(hrt_absolute_time());
+	PX4_DEBUG("LED_INIT");
 }
 
-uavcan::UtcTime getUtc()
+__EXPORT void led_on(int led)
 {
-	return uavcan::UtcTime();
+	if (led == 1 || led == 0) {
+		PX4_DEBUG("LED%d_ON", led);
+		_led_state[led] = true;
+	}
 }
 
-void adjustUtc(uavcan::UtcDuration adjustment)
+__EXPORT void led_off(int led)
 {
-	(void)adjustment;
+	if (led == 1 || led == 0) {
+		PX4_DEBUG("LED%d_OFF", led);
+		_led_state[led] = false;
+	}
 }
 
-uavcan::uint64_t getUtcUSecFromCanInterrupt();
-
-uavcan::uint64_t getUtcUSecFromCanInterrupt()
+__EXPORT void led_toggle(int led)
 {
-	return 0;
+	if (led == 1 || led == 0) {
+		_led_state[led] = !_led_state[led];
+		PX4_DEBUG("LED%d_TOGGLE: %s", led, _led_state[led] ? "ON" : "OFF");
+
+	}
 }
-
-} // namespace clock
-
-SystemClock &SystemClock::instance()
-{
-	static SystemClock inst;
-	return inst;
-}
-
-}
-

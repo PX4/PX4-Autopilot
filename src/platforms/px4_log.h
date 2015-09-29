@@ -63,7 +63,7 @@ static inline void do_nothing(int level, ...)
 #define PX4_ERR(...)	ROS_WARN(__VA_ARGS__)
 #define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
 #define PX4_INFO(...) 	ROS_WARN(__VA_ARGS__)
-#define PX4_DEBUG(...) 	
+#define PX4_DEBUG(...)
 
 #elif defined(__PX4_QURT)
 #include "qurt_log.h"
@@ -127,6 +127,7 @@ __EXPORT extern uint64_t hrt_absolute_time(void);
 
 __EXPORT extern const char *__px4_log_level_str[5];
 __EXPORT extern int __px4_log_level_current;
+__END_DECLS
 
 // __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
 #define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_WARN
@@ -136,13 +137,13 @@ __EXPORT extern int __px4_log_level_current;
  *
  * To write to a specific stream for each message type, open the streams and
  * set __px4__log_startline to something like:
- * 	if (level <= __px4_log_level_current) printf(_px4_fd[level], 
+ * 	if (level <= __px4_log_level_current) printf(_px4_fd[level],
  *
  * Additional behavior can be added using "{\" for __px4__log_startline and
  * "}" for __px4__log_endline and any other required setup or teardown steps
  ****************************************************************************/
-#define __px4__log_startcond(cond)	if (cond) printf(
-#define __px4__log_startline(level)	if (level <= __px4_log_level_current) printf(
+#define __px4__log_printcond(cond, ...)	    if (cond) printf(__VA_ARGS__)
+#define __px4__log_printline(level, ...)    if (level <= __px4_log_level_current) printf(__VA_ARGS__)
 
 #define __px4__log_timestamp_fmt	"%-10" PRIu64 " "
 #define __px4__log_timestamp_arg 	,hrt_absolute_time()
@@ -171,28 +172,12 @@ __EXPORT extern int __px4_log_level_current;
  * if the first arg/condition is true.
  ****************************************************************************/
 #define __px4_log_named_cond(name, cond, FMT, ...) \
-	__px4__log_startcond(cond)\
+	__px4__log_printcond(cond,\
 	"%s " \
 	FMT\
 	__px4__log_end_fmt \
 	,name, ##__VA_ARGS__\
-	__px4__log_endline
-
-/****************************************************************************
- * __px4_log_named_cond:
- * Convert a message in the form:
- * 	PX4_LOG_COND(__dbg_enabled, "val is %d", val);
- * to
- * 	printf("%-5s val is %d\n", "LOG", val);
- * if the first arg/condition is true.
- ****************************************************************************/
-#define __px4_log_named_cond(name, cond, FMT, ...) \
-	__px4__log_startcond(cond)\
-	"%s " \
-	FMT\
-	__px4__log_end_fmt \
-	,name, ##__VA_ARGS__\
-	__px4__log_endline
+	)
 
 /****************************************************************************
  * __px4_log:
@@ -202,12 +187,12 @@ __EXPORT extern int __px4_log_level_current;
  * 	printf("%-5s val is %d\n", __px4_log_level_str[3], val);
  ****************************************************************************/
 #define __px4_log(level, FMT, ...) \
-	__px4__log_startline(level)\
+	__px4__log_printline(level,\
 	__px4__log_level_fmt \
 	FMT\
 	__px4__log_end_fmt \
 	__px4__log_level_arg(level), ##__VA_ARGS__\
-	__px4__log_endline
+	)
 
 /****************************************************************************
  * __px4_log_timestamp:
@@ -218,7 +203,7 @@ __EXPORT extern int __px4_log_level_current;
  *		hrt_absolute_time(), val);
  ****************************************************************************/
 #define __px4_log_timestamp(level, FMT, ...) \
-	__px4__log_startline(level)\
+	__px4__log_printline(level,\
 	__px4__log_level_fmt\
 	__px4__log_timestamp_fmt\
 	FMT\
@@ -226,7 +211,7 @@ __EXPORT extern int __px4_log_level_current;
 	__px4__log_level_arg(level)\
 	__px4__log_timestamp_arg\
 	, ##__VA_ARGS__\
-	__px4__log_endline
+	)
 
 /****************************************************************************
  * __px4_log_timestamp_thread:
@@ -237,7 +222,7 @@ __EXPORT extern int __px4_log_level_current;
  *		hrt_absolute_time(), pthread_self(), val);
  ****************************************************************************/
 #define __px4_log_timestamp_thread(level, FMT, ...) \
-	__px4__log_startline(level)\
+	__px4__log_printline(level,\
 	__px4__log_level_fmt\
 	__px4__log_timestamp_fmt\
 	__px4__log_thread_fmt\
@@ -247,18 +232,18 @@ __EXPORT extern int __px4_log_level_current;
 	__px4__log_timestamp_arg\
 	__px4__log_thread_arg\
 	, ##__VA_ARGS__\
-	__px4__log_endline
+	)
 
 /****************************************************************************
  * __px4_log_file_and_line:
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s val is %d (file %s line %u)\n", 
+ * 	printf("%-5s val is %d (file %s line %u)\n",
  *		__px4_log_level_str[3], val, __FILE__, __LINE__);
  ****************************************************************************/
 #define __px4_log_file_and_line(level, FMT, ...) \
-	__px4__log_startline(level)\
+	__px4__log_printline(level,\
 	__px4__log_level_fmt\
 	__px4__log_timestamp_fmt\
 	FMT\
@@ -268,19 +253,19 @@ __EXPORT extern int __px4_log_level_current;
 	__px4__log_timestamp_arg\
 	, ##__VA_ARGS__\
 	__px4__log_file_and_line_arg\
-	__px4__log_endline
+	)
 
 /****************************************************************************
  * __px4_log_timestamp_file_and_line:
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s %-10lu val is %d (file %s line %u)\n", 
+ * 	printf("%-5s %-10lu val is %d (file %s line %u)\n",
  *		__px4_log_level_str[3], hrt_absolute_time(),
  *		val, __FILE__, __LINE__);
  ****************************************************************************/
 #define __px4_log_timestamp_file_and_line(level, FMT, ...) \
-	__px4__log_startline(level)\
+	__px4__log_printline(level,\
 	__px4__log_level_fmt\
 	__px4__log_timestamp_fmt\
 	FMT\
@@ -290,19 +275,19 @@ __EXPORT extern int __px4_log_level_current;
 	__px4__log_timestamp_arg\
 	, ##__VA_ARGS__\
 	__px4__log_file_and_line_arg\
-	__px4__log_endline
+	)
 
 /****************************************************************************
  * __px4_log_thread_file_and_line:
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s %#X val is %d (file %s line %u)\n", 
- *		__px4_log_level_str[3], pthread_self(), 
+ * 	printf("%-5s %#X val is %d (file %s line %u)\n",
+ *		__px4_log_level_str[3], pthread_self(),
  *		val, __FILE__, __LINE__);
  ****************************************************************************/
 #define __px4_log_thread_file_and_line(level, FMT, ...) \
-	__px4__log_startline(level)\
+	__px4__log_printline(level,\
 	__px4__log_level_fmt\
 	__px4__log_thread_fmt\
 	FMT\
@@ -312,19 +297,19 @@ __EXPORT extern int __px4_log_level_current;
 	__px4__log_thread_arg\
 	, ##__VA_ARGS__\
 	__px4__log_file_and_line_arg\
-	__px4__log_endline
+	)
 
 /****************************************************************************
  * __px4_log_timestamp_thread_file_and_line:
  * Convert a message in the form:
  * 	PX4_WARN("val is %d", val);
  * to
- * 	printf("%-5s %-10lu %#X val is %d (file %s line %u)\n", 
- *		__px4_log_level_str[3], hrt_absolute_time(), 
+ * 	printf("%-5s %-10lu %#X val is %d (file %s line %u)\n",
+ *		__px4_log_level_str[3], hrt_absolute_time(),
  *		pthread_self(), val, __FILE__, __LINE__);
  ****************************************************************************/
 #define __px4_log_timestamp_thread_file_and_line(level, FMT, ...) \
-	__px4__log_startline(level)\
+	__px4__log_printline(level,\
 	__px4__log_level_fmt\
 	__px4__log_timestamp_fmt\
 	__px4__log_thread_fmt\
@@ -336,7 +321,7 @@ __EXPORT extern int __px4_log_level_current;
 	__px4__log_thread_arg\
 	, ##__VA_ARGS__\
 	__px4__log_file_and_line_arg\
-	__px4__log_endline
+	)
 
 
 /****************************************************************************
@@ -389,5 +374,4 @@ __EXPORT extern int __px4_log_level_current;
 #endif
 #define PX4_LOG_NAMED(name, FMT, ...) 	__px4_log_named_cond(name, true, FMT, ##__VA_ARGS__)
 #define PX4_LOG_NAMED_COND(name, cond, FMT, ...) __px4_log_named_cond(name, cond, FMT, ##__VA_ARGS__)
-__END_DECLS
 #endif

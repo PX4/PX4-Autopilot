@@ -16,7 +16,7 @@ This repository contains the PX4 Flight Core, with the main applications located
   * [Downloads](http://px4.io/firmware/downloads)
 *   Releases
   * [Downloads](https://github.com/PX4/Firmware/releases)
-*   Mailing list: [Google Groups](http://groups.google.com/group/px4users)
+*   Forum / Mailing list: [Google Groups](http://groups.google.com/group/px4users)
 
 ### Users ###
 
@@ -29,7 +29,7 @@ Contributing guide:
   * [PX4 Contribution Guide](http://px4.io/dev/contributing)
 
 Software in the Loop guide:
-Use software in the loop [to get started with the codebase](https://github.com/PX4/Firmware/tree/master/posix-configs/SITL)
+Use software in the loop [to get started with the codebase](https://pixhawk.org/dev/simulation/native_sitl).
 
 Developer guide:
 http://px4.io/dev/
@@ -38,8 +38,10 @@ Testing guide:
 http://px4.io/dev/unit_tests
 
 This repository contains code supporting these boards:
+  * [Snapdragon Flight](https://www.intrinsyc.com/qualcomm-snapdragon-flight/)
   * FMUv1.x
-  * FMUv2.x
+  * FMUv2.x (Pixhawk)
+  * FMUv3.x (Pixhawk 2)
   * AeroCore (v1 and v2)
   * STM32F4Discovery (basic support) [Tutorial](https://pixhawk.org/modules/stm32f4discovery)
 

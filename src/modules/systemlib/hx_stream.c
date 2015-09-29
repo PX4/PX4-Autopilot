@@ -92,8 +92,9 @@ static int	hx_rx_frame(hx_stream_t stream);
 static void
 hx_tx_raw(hx_stream_t stream, uint8_t c)
 {
-	if (write(stream->fd, &c, 1) != 1)
+	if (write(stream->fd, &c, 1) != 1) {
 		stream->tx_error = true;
+	}
 }
 
 static int
@@ -111,8 +112,9 @@ hx_rx_frame(hx_stream_t stream)
 
 	/* not a real frame - too short */
 	if (length < 4) {
-		if (length > 1)
+		if (length > 1) {
 			perf_count(stream->pc_rx_errors);
+		}
 
 		return 0;
 	}
@@ -190,11 +192,12 @@ hx_stream_reset(hx_stream_t stream)
 
 int
 hx_stream_start(hx_stream_t stream,
-	       const void *data,
-	       size_t count)
+		const void *data,
+		size_t count)
 {
-	if (count > HX_STREAM_MAX_FRAME)
+	if (count > HX_STREAM_MAX_FRAME) {
 		return -EINVAL;
+	}
 
 	stream->tx_buf = data;
 	stream->tx_resid = count;
@@ -224,6 +227,7 @@ hx_stream_send_next(hx_stream_t stream)
 			stream->tx_state = TX_SENT_ESCAPE;
 			return CEO;
 		}
+
 		break;
 
 	case TX_SENT_ESCAPE:
@@ -251,12 +255,14 @@ hx_stream_send_next(hx_stream_t stream)
 		/* was the buffer the frame CRC? */
 		if (stream->tx_buf == (pcrc + sizeof(stream->tx_crc))) {
 			stream->tx_state = TX_SEND_END;
+
 		} else {
 			/* no, it was the payload - switch to sending the CRC */
 			stream->tx_buf = pcrc;
 			stream->tx_resid = sizeof(stream->tx_crc);
 		}
 	}
+
 	return c;
 }
 
@@ -268,12 +274,16 @@ hx_stream_send(hx_stream_t stream,
 	int result;
 
 	result = hx_stream_start(stream, data, count);
-	if (result != OK)
+
+	if (result != OK) {
 		return result;
+	}
 
 	int c;
-	while ((c = hx_stream_send_next(stream)) >= 0)
+
+	while ((c = hx_stream_send_next(stream)) >= 0) {
 		hx_tx_raw(stream, c);
+	}
 
 	/* check for transmit error */
 	if (stream->tx_error) {
@@ -306,6 +316,7 @@ hx_stream_rx(hx_stream_t stream, uint8_t c)
 	}
 
 	/* save for later */
-	if (stream->rx_frame_bytes < sizeof(stream->rx_buf))
+	if (stream->rx_frame_bytes < sizeof(stream->rx_buf)) {
 		stream->rx_buf[stream->rx_frame_bytes++] = c;
+	}
 }

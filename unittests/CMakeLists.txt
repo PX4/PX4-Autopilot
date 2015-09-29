@@ -11,6 +11,13 @@ CMAKE_FORCE_CXX_COMPILER( clang++ Clang )
 #set( CMAKE_FIND_ROOT_PATH_MODE_LIBARARY_ONLY )
 #set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE_ONLY )
 
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+  add_compile_options(-Qunused-arguments)
+endif()
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  add_compile_options(-Qunused-arguments)
+endif()
+
 project(unittests)
 enable_testing()
 
@@ -123,8 +130,7 @@ add_executable(mixer_test mixer_test.cpp hrt.cpp
                           ${PX_SRC}/modules/systemlib/mixer/mixer_simple.cpp
                           ${PX_SRC}/modules/systemlib/pwm_limit/pwm_limit.c
                           ${PX_SRC}/systemcmds/tests/test_mixer.cpp)
-
-target_link_libraries( mixer_test LINK_PUBLIC px4_platform )
+target_link_libraries( mixer_test px4_platform )
 
                           
 add_gtest(mixer_test)

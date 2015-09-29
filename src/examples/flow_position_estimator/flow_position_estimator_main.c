@@ -112,11 +112,11 @@ int flow_position_estimator_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		daemon_task = px4_task_spawn_cmd("flow_position_estimator",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_MAX - 5,
-					     4000,
-					     flow_position_estimator_thread_main,
-					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 4000,
+						 flow_position_estimator_thread_main,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);
 	}
 

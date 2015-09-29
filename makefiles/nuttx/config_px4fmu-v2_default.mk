@@ -79,7 +79,7 @@ MODULES 	+= modules/land_detector
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
-# Too high RAM usage due to static allocations
+# Removed from build due to large static allocations
 #MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/attitude_estimator_q
 MODULES		+= modules/ekf_att_pos_estimator
