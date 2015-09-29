@@ -78,10 +78,9 @@ QURTLIBS		+= \
 			   $(QURTLIB)/libqube_compat.a \
 			   $(QURTLIB)/libtimer.a \
 			   $(QURTLIB)/libposix.a \
-			   $(QURTLIB)/../examples/cust_config.o
+			   $(QURTLIB)/../examples/cust_config.o \
 			   $(QCTOOLSLIB)/libhexagon.a \
 			   $(TOOLSLIB)/fini.o
-
 endif
 
 DYNAMIC_LIBS            = \
