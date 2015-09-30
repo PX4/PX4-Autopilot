@@ -70,7 +70,7 @@
 #include "ubx.h"
 #include "mtk.h"
 #include "ashtech.h"
-
+#include "nvs.h"
 
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
@@ -345,6 +345,9 @@ GPS::task_main()
 				_Helper = new ASHTECH(_serial_fd, &_report_gps_pos, _p_report_sat_info);
 				break;
 
+            case GPS_DRIVER_MODE_NVS:
+                _Helper = new NVS(_serial_fd, &_report_gps_pos);
+
 			default:
 				break;
 			}
@@ -440,6 +443,10 @@ GPS::task_main()
 							mode_str = "ASHTECH";
 							break;
 
+                        case GPS_DRIVER_MODE_NVS:
+                            mode_str = "NVS";
+                            break;
+
 						default:
 							break;
 						}
@@ -471,8 +478,12 @@ GPS::task_main()
 				break;
 
 			case GPS_DRIVER_MODE_ASHTECH:
-				_mode = GPS_DRIVER_MODE_UBX;
+                _mode = GPS_DRIVER_MODE_NVS;
 				break;
+
+            case GPS_DRIVER_MODE_NVS:
+                _mode = GPS_DRIVER_MODE_UBX;
+                break;
 
 			default:
 				break;
