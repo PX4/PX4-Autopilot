@@ -48,24 +48,24 @@ PARAM_DEFINE_FLOAT(LPE_SNR_Z, 0.2f);
 PARAM_DEFINE_FLOAT(LPE_LDR_Z, 0.03f);
 
 /**
- * Accelerometer xy noise power (variance/sampling rate).
+ * Accelerometer xy noise power (variance*sampling period).
  *
  * @group Local Position Estimator
- * @unit (m/s^2)^2/s
- * @min 0.01
+ * @unit (m/s^2)^2*s
+ * @min 0.0001
  * @max 2
  */
-PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.135f);
+PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.000736f);
 
 /**
- * Accelerometer z noise power (variance/sampling rate).
+ * Accelerometer z noise power (variance*sampling period).
  *
  * @group Local Position Estimator
- * @unit (m/s^2)^2-s
- * @min 0.01
+ * @unit (m/s^2)^2*s
+ * @min 0.0001
  * @max 2
  */
-PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.175f);
+PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.00137f);
 
 /**
  * Barometric presssure altitude z standard deviation.
@@ -75,7 +75,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.175f);
  * @min 0.01
  * @max 3
  */
-PARAM_DEFINE_FLOAT(LPE_BAR_Z, 0.255f);
+PARAM_DEFINE_FLOAT(LPE_BAR_Z, 1.05f);
 
 /**
  * GPS xy standard deviation.
@@ -85,7 +85,7 @@ PARAM_DEFINE_FLOAT(LPE_BAR_Z, 0.255f);
  * @min 0.01
  * @max 5
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_XY, 0.523f);
+PARAM_DEFINE_FLOAT(LPE_GPS_XY, 0.530f);
 
 /**
  * GPS z standard deviation.
@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_XY, 0.523f);
  * @min 0.01
  * @max 5
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_Z, 3.55f);
+PARAM_DEFINE_FLOAT(LPE_GPS_Z, 2.04f);
 
 /**
  * GPS xy velocity standard deviation.
@@ -105,7 +105,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_Z, 3.55f);
  * @min 0.01
  * @max 2
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_VXY, 0.275f);
+PARAM_DEFINE_FLOAT(LPE_GPS_VXY, 0.152f);
 
 /**
  * GPS z velocity standard deviation.
@@ -115,7 +115,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_VXY, 0.275f);
  * @min 0.01
  * @max 2
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 0.237f);
+PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 0.157f);
 
 /**
  * GPS max eph
@@ -171,7 +171,7 @@ PARAM_DEFINE_INT32(LPE_NO_VISION, 0);
 PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.05f);
 
 /**
- * Position propagation process noise power (variance/sampling rate).
+ * Position propagation process noise power (variance*sampling period).
  *
  * @group Local Position Estimator
  * @unit (m/s)^2/s
@@ -181,7 +181,7 @@ PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.05f);
 PARAM_DEFINE_FLOAT(LPE_PN_P, 0.0f);
 
 /**
- * Velocity propagation process noise power (variance/sampling rate).
+ * Velocity propagation process noise power (variance*sampling period).
  *
  * @group Local Position Estimator
  * @unit m/s

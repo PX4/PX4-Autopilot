@@ -725,13 +725,13 @@ void BlockLocalPositionEstimator::predict()
 	B(X_vy, U_ay) = 1;
 	B(X_vz, U_az) = 1;
 
-	// input noise covariance matrix
+	// input noise power matrix
 	math::Matrix<n_u, n_u> R;
 	R(U_ax, U_ax) = _accel_xy_noise_power.get();
 	R(U_ay, U_ay) = _accel_xy_noise_power.get();
 	R(U_az, U_az) = _accel_z_noise_power.get();
 
-	// process noise covariance matrix
+	// process noise power matrix
 	math::Matrix<n_x, n_x>  Q;
 	Q(X_x, X_x) = _pn_p_noise_power.get();
 	Q(X_y, X_y) = _pn_p_noise_power.get();
