@@ -62,8 +62,7 @@ SRCS	+=	  uORBUtils.cpp \
 			  Publication.cpp \
 			  Subscription.cpp
 
-MODULE_DIR = $(dir $(lastword $(MAKEFILE_LIST)))
-TOPICS_SRC = $(subst ${MODULE_DIR},,$(wildcard $(MODULE_DIR)topics/*.cpp))
-SRCS	+= ${TOPICS_SRC}
+TOPICS_SRCS = $(BUILD_DIR)topics_sources/
+SRCS	+= $(subst $(TOPICS_SRCS), ,$(wildcard $(TOPICS_SRCS)*.cpp))
 
 MAXOPTIMIZATION	 = -Os

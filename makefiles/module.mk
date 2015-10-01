@@ -209,7 +209,7 @@ vpath %.c $(MODULE_SRC)
 $(filter %.c.o,$(OBJS)): %.c.o: %.c $(GLOBAL_DEPS)
 	$(call COMPILE,$<,$@)
 
-vpath %.cpp $(MODULE_SRC)
+vpath %.cpp $(MODULE_SRC):$(BUILD_DIR)topics_sources
 $(filter %.cpp.o,$(OBJS)): %.cpp.o: %.cpp $(GLOBAL_DEPS)
 	$(call COMPILEXX,$<,$@)
 
