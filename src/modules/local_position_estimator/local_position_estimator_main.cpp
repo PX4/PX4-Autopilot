@@ -113,7 +113,7 @@ int local_position_estimator_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("lp_estimator",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 10,
-						 6500,
+						 8000,
 						 local_position_estimator_thread_main,
 						 (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 		exit(0);

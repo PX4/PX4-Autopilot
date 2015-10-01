@@ -174,7 +174,7 @@ PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.05f);
  * Position propagation process noise power (variance*sampling period).
  *
  * @group Local Position Estimator
- * @unit (m/s)^2/s
+ * @unit (m/s)^2*s
  * @min 0
  * @max 1
  */
@@ -184,11 +184,21 @@ PARAM_DEFINE_FLOAT(LPE_PN_P, 0.0f);
  * Velocity propagation process noise power (variance*sampling period).
  *
  * @group Local Position Estimator
- * @unit m/s
+ * @unit (m/s^2)^2*s
  * @min 0
  * @max 5
  */
 PARAM_DEFINE_FLOAT(LPE_PN_V, 0.0f);
+
+/**
+ * Accel bias process noise power (variance*sampling period).
+ *
+ * @group Local Position Estimator
+ * @unit (m/s^2)^2*s
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_FLOAT(LPE_PN_B, 0.01f);
 
 /**
  * Fault detection threshold, for chi-squared dist.

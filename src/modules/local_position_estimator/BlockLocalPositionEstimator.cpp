@@ -64,6 +64,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_mocap_p_stddev(this, "VIC_P"),
 	_pn_p_noise_power(this, "PN_P"),
 	_pn_v_noise_power(this, "PN_V"),
+	_pn_b_noise_power(this, "PN_B"),
 
 	// misc
 	_polls(),
@@ -715,9 +716,10 @@ void BlockLocalPositionEstimator::predict()
 	A(X_z, X_vz) = 1;
 	// derivative of velocity is accelerometer
 	// 	bias + acceleration
-	//_A(X_vx, X_bx) = 1;
-	//_A(X_vy, X_by) = 1;
-	//_A(X_vz, X_bz) = 1;
+	// 	(accel. in input matrix B)
+	A(X_vx, X_bx) = 1;
+	A(X_vy, X_by) = 1;
+	A(X_vz, X_bz) = 1;
 
 	// input matrix
 	math::Matrix<n_x, n_u>  B; // input matrix
@@ -739,6 +741,9 @@ void BlockLocalPositionEstimator::predict()
 	Q(X_vx, X_vx) = _pn_v_noise_power.get();
 	Q(X_vy, X_vy) = _pn_v_noise_power.get();
 	Q(X_vz, X_vz) = _pn_v_noise_power.get();
+	Q(X_bx, X_bx) = _pn_b_noise_power.get();
+	Q(X_by, X_by) = _pn_b_noise_power.get();
+	Q(X_bz, X_bz) = _pn_b_noise_power.get();
 
 	// continuous time kalman filter prediction
 	math::Vector<n_x>  dx = (A * _x + B * _u) * getDt();
@@ -750,11 +755,14 @@ void BlockLocalPositionEstimator::predict()
 		dx(X_y) = 0;
 		dx(X_vx) = 0;
 		dx(X_vy) = 0;
+		dx(X_bx) = 0;
+		dx(X_by) = 0;
 	}
 
 	if (!_canEstimateZ) {
 		dx(X_z) = 0;
 		dx(X_vz) = 0;
+		dx(X_bz) = 0;
 	}
 
 	// propagate

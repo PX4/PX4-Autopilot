@@ -99,7 +99,7 @@ private:
 	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &);
 
 	// constants
-	static const uint8_t n_x = 6;
+	static const uint8_t n_x = 9;
 	static const uint8_t n_u = 3; // 3 accelerations
 	static const uint8_t n_y_flow = 2;
 	static const uint8_t n_y_sonar = 1;
@@ -108,7 +108,7 @@ private:
 	static const uint8_t n_y_gps = 6;
 	static const uint8_t n_y_vision_pos = 3;
 	static const uint8_t n_y_mocap = 3;
-	enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz}; //, X_bx, X_by, X_bz};
+	enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz};
 	enum {U_ax = 0, U_ay, U_az};
 	enum {Y_baro_z = 0};
 	enum {Y_lidar_z = 0};
@@ -207,6 +207,7 @@ private:
 	// process noise
 	BlockParamFloat  _pn_p_noise_power;
 	BlockParamFloat  _pn_v_noise_power;
+	BlockParamFloat  _pn_b_noise_power;
 
 	// misc
 	struct pollfd _polls[3];
