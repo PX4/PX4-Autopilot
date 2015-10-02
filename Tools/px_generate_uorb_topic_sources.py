@@ -69,10 +69,10 @@ __copyright__ = "Copyright (C) 2013-2014 PX4 Development Team."
 __license__ = "BSD"
 __email__ = "againagainst@gmail.com, thomasgubler@gmail.com"
 
-msg_template_map = {'msg.h.template': '@NAME@.h'}
-srv_template_map = {}
-package = 'px4'
-topics_token = '# TOPICS '
+TEMPLATE_FILE = 'msg.cpp.template'
+OUTPUT_FILE_EXT = '.cpp'
+PACKAGE = 'px4'
+TOPICS_TOKEN = '# TOPICS '
 
 
 def get_multi_topics(filename):
@@ -83,8 +83,9 @@ def get_multi_topics(filename):
         text = ofile.read()
         result = []
         for each_line in text.split('\n'):
-                if each_line.startswith (topics_token):
-                        topic_names_str = each_line.replace(topics_token, "")
+                if each_line.startswith (TOPICS_TOKEN):
+                        topic_names_str = each_line.strip()
+                        topic_names_str = topic_names_str.replace(TOPICS_TOKEN, "")
                         result.extend(topic_names_str.split(" "))
         ofile.close()
         return result
@@ -96,7 +97,7 @@ def generate_source_from_file(filename, outputdir, templatedir):
         """
         # print("Generating sources from {0}".format(filename))
         msg_context = genmsg.msg_loader.MsgContext.create_default()
-        full_type_name = genmsg.gentools.compute_full_type_name(package, os.path.basename(filename))
+        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename))
         spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename, full_type_name)
         topics = get_multi_topics(filename)
         if len(topics) == 0:
@@ -111,8 +112,8 @@ def generate_source_from_file(filename, outputdir, templatedir):
         if not os.path.isdir(outputdir):
                 os.makedirs(outputdir)
 
-        template_file = os.path.join(templatedir, 'msg.cpp.template')
-        output_file = os.path.join(outputdir, spec.short_name + '.cpp')
+        template_file = os.path.join(templatedir, TEMPLATE_FILE)
+        output_file = os.path.join(outputdir, spec.short_name + OUTPUT_FILE_EXT)
 
         if os.path.isfile(output_file):
             return False

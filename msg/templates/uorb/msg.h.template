@@ -210,4 +210,6 @@ for constant in spec.constants:
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(@(topic_name));
+@[for multi_topic in topics]@
+ORB_DECLARE(@multi_topic);
+@[end for]

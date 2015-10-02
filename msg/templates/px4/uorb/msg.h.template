@@ -55,7 +55,6 @@
 import genmsg.msgs
 import gencpp
 
-cpp_class = 'px4_%s'%spec.short_name
 native_type = '%s_s'%spec.short_name
 topic_name = spec.short_name
 }@
@@ -74,6 +73,11 @@ topic_name = spec.short_name
 
 namespace px4
 {
+@[for multi_topic in topics]@
+@{
+cpp_class = 'px4_%s'%multi_topic
+}@
+
 
 class __EXPORT @(cpp_class) :
 	public PX4Message<@(native_type)>
@@ -89,7 +93,8 @@ public:
 
 	~@(cpp_class)() {}
 
-	static PX4TopicHandle handle() {return ORB_ID(@(topic_name));}
+	static PX4TopicHandle handle() {return ORB_ID(@(multi_topic));}
 };
+@[end for]
 
 };

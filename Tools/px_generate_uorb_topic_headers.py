@@ -70,23 +70,75 @@ __license__ = "BSD"
 __email__ = "thomasgubler@gmail.com"
 
 
-msg_template_map = {'msg.h.template': '@NAME@.h'}
-srv_template_map = {}
-incl_default = ['std_msgs:./msg/std_msgs']
-package = 'px4'
+TEMPLATE_FILE = 'msg.h.template'
+OUTPUT_FILE_EXT = '.h'
+INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
+PACKAGE = 'px4'
+TOPICS_TOKEN = '# TOPICS '
 
-def convert_file(filename, outputdir, templatedir, includepath):
+
+def get_multi_topics(filename):
         """
-        Converts a single .msg file to a uorb header
+        Get TOPICS names from a "# TOPICS" line
         """
-        #print("Generating headers from {0}".format(filename))
-        genmsg.template_tools.generate_from_file(filename,
-                                                 package,
-                                                 outputdir,
-                                                 templatedir,
-                                                 includepath,
-                                                 msg_template_map,
-                                                 srv_template_map)
+        ofile = open(filename, 'r')
+        text = ofile.read()
+        result = []
+        for each_line in text.split('\n'):
+                if each_line.startswith (TOPICS_TOKEN):
+                        topic_names_str = each_line.strip()
+                        topic_names_str = topic_names_str.replace(TOPICS_TOKEN, "")
+                        result.extend(topic_names_str.split(" "))
+        ofile.close()
+        return result
+
+
+def generate_header_from_file(filename, outputdir, templatedir, includepath):
+        """
+        Converts a single .msg file to a uorb header file
+        """
+        msg_context = genmsg.msg_loader.MsgContext.create_default()
+        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename))
+        spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename, full_type_name)
+        topics = get_multi_topics(filename)
+        if includepath:
+                search_path = genmsg.command_line.includepath_to_dict(includepath)
+        else:
+                search_path = {}
+        genmsg.msg_loader.load_depends(msg_context, spec, search_path)
+        md5sum = genmsg.gentools.compute_md5(msg_context, spec)
+        if len(topics) == 0:
+                topics.append(spec.short_name)
+        em_globals = {
+            "file_name_in": filename,
+            "md5sum": md5sum,
+            "search_path": search_path,
+            "msg_context": msg_context,
+            "spec": spec,
+            "topics": topics
+        }
+
+                # Make sure output directory exists:
+        if not os.path.isdir(outputdir):
+                os.makedirs(outputdir)
+
+        template_file = os.path.join(templatedir, TEMPLATE_FILE)
+        output_file = os.path.join(outputdir, spec.short_name + OUTPUT_FILE_EXT)
+
+        if os.path.isfile(output_file):
+                return False
+
+        ofile = open(output_file, 'w')
+        # todo, reuse interpreter
+        interpreter = em.Interpreter(output=ofile, globals=em_globals, options={em.RAW_OPT:True,em.BUFFERED_OPT:True})
+        if not os.path.isfile(template_file):
+                ofile.close()
+                os.remove(output_file)
+                raise RuntimeError("Template file %s not found in template dir %s" % (template_file, templatedir))
+        interpreter.file(open(template_file)) #todo try
+        interpreter.shutdown()
+        ofile.close()
+        return True
 
 
 def convert_dir(inputdir, outputdir, templatedir):
@@ -117,7 +169,7 @@ def convert_dir(inputdir, outputdir, templatedir):
         if (maxinputtime != 0 and maxouttime != 0 and maxinputtime < maxouttime):
             return False
 
-        includepath = incl_default + [':'.join([package, inputdir])]
+        includepath = INCL_DEFAULT + [':'.join([PACKAGE, inputdir])]
         for f in os.listdir(inputdir):
                 # Ignore hidden files
                 if f.startswith("."):
@@ -128,7 +180,7 @@ def convert_dir(inputdir, outputdir, templatedir):
                 if not os.path.isfile(fn):
                         continue
 
-                convert_file(fn, outputdir, templatedir, includepath)
+                generate_header_from_file(fn, outputdir, templatedir, includepath)
         return True
 
 
@@ -193,15 +245,6 @@ if __name__ == "__main__":
 
         if args.file is not None:
                 for f in args.file:
-                        convert_file(
-                            f,
-                            args.outputdir,
-                            args.templatedir,
-                            incl_default)
+                        generate_header_from_file(f, args.outputdir, args.templatedir, INCL_DEFAULT)
         elif args.dir is not None:
-                convert_dir_save(
-                    args.dir,
-                    args.outputdir,
-                    args.templatedir,
-                    args.temporarydir,
-                    args.prefix)
+                convert_dir_save(args.dir, args.outputdir, args.templatedir, args.temporarydir, args.prefix)
