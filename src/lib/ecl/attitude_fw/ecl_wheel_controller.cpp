@@ -85,7 +85,8 @@ float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_da
         speed = ctl_data.ground_speed;
     }
 
-    float scaler = 1.0f / speed;
+    /* only scale a certain amount with speed else the corrections get to small */
+    float scaler = 0.7f + 0.3f / speed;
 
     /* Calculate body angular rate error */
     _rate_error = _rate_setpoint - ctl_data.yaw_rate; //body angular rate error
