@@ -50,7 +50,7 @@ SRCS		 	= commander.cpp \
 			esc_calibration.cpp \
 			PreflightCheck.cpp
 
-MODULE_STACKSIZE = 5000
+MODULE_STACKSIZE = 1200
 
 MAXOPTIMIZATION	 = -Os
 
