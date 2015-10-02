@@ -139,7 +139,15 @@ sitl_ros:
 all: px4fmu-v2_default
 
 clean:
-	rm -rf build_*/
+	@rm -rf build_*/
+
+distclean: clean
+	@cd NuttX
+	@git clean -d -f -x
+	@cd ..
+	@cd src/lib/uavcan
+	@git clean -d -f -x
+	@cd ../../..
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_io check_weak
