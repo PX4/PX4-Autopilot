@@ -6,8 +6,8 @@
 #
 # @output MAIN1 aileron
 # @output MAIN2 elevator
-# @output MAIN4 rudder
-# @output MAIN3 throttle
+# @output MAIN3 rudder
+# @output MAIN4 throttle
 # @output MAIN5 flaps
 #
 # @output AUX1 feed-through of RC AUX1 channel
