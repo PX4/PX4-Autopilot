@@ -20,3 +20,7 @@
 sh /etc/init.d/rc.fw_defaults
 
 set MIXER AERT
+
+# The ESC requires a specific pulse to arm.
+set PWM_OUT 4
+set PWM_DISARMED p:PWM_DISARMED
