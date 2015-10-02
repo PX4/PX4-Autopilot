@@ -49,6 +49,7 @@
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Andreas Antener <andreas@uaventure.com>
  */
 
 #include <px4_config.h>
