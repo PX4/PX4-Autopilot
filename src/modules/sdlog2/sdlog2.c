@@ -282,8 +282,6 @@ static int write_parameters(int fd);
 
 static bool file_exist(const char *filename);
 
-static int file_copy(const char *file_old, const char *file_new);
-
 /**
  * Check if there is still free space available
  */
@@ -1082,22 +1080,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		warn("ERR: failed creating log dir: %s", log_root);
 		return 1;
 	}
-
-#if 0
-
-	// DEPRECATED
-
-	/* copy conversion scripts */
-	const char *converter_in = "/etc/logging/conv.zip";
-	char *converter_out = malloc(64);
-	snprintf(converter_out, 64, "%s/conv.zip", log_root);
-
-	if (file_copy(converter_in, converter_out) != OK) {
-		warn("unable to copy conversion scripts");
-	}
-
-	free(converter_out);
-#endif
 
 	/* initialize log buffer with specified size */
 	warnx("log buffer size: %i bytes", log_buffer_size);
@@ -1965,46 +1947,6 @@ bool file_exist(const char *filename)
 {
 	struct stat buffer;
 	return stat(filename, &buffer) == 0;
-}
-
-int file_copy(const char *file_old, const char *file_new)
-{
-	FILE *source, *target;
-	source = fopen(file_old, "r");
-	int ret = 0;
-
-	if (source == NULL) {
-		warnx("ERR: open in");
-		return PX4_ERROR;
-	}
-
-	target = fopen(file_new, "w");
-
-	if (target == NULL) {
-		fclose(source);
-		warnx("ERR: open out");
-		return PX4_ERROR;
-	}
-
-	char buf[128];
-	int nread;
-
-	while ((nread = fread(buf, 1, sizeof(buf), source)) > 0) {
-		ret = fwrite(buf, 1, nread, target);
-
-		if (ret <= 0) {
-			warnx("error writing file");
-			ret = PX4_ERROR;
-			break;
-		}
-	}
-
-	fsync(fileno(target));
-
-	fclose(source);
-	fclose(target);
-
-	return PX4_OK;
 }
 
 int check_free_space()
