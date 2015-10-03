@@ -48,6 +48,9 @@
 # directory build_nuttx_px4fmu-v2_default and then call make
 # in that directory with the target upload.
 
+#  explicity set default build target
+all: px4fmu-v2_default
+
 # Parsing
 # --------------------------------------------------------------------
 # assume 1st argument passed is the main target, the
@@ -138,9 +141,6 @@ sitl_ros:
 
 # Other targets
 # --------------------------------------------------------------------
-#  explicity set default build target
-all: px4fmu-v2_default
-
 clean:
 	@rm -rf build_*/
 
@@ -153,7 +153,7 @@ distclean: clean
 	@cd ../../..
 
 # targets handled by cmake
-cmake_targets = test upload package package_source debug debug_io check_weak
+cmake_targets = test upload package package_source debug debug_io check_weak libuavcan
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean

@@ -155,6 +155,9 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set(config_module "configs/${CONFIG}")
 include(${config_module})
 
+# cmake modules
+include(ExternalProject)
+
 # require px4 module interface
 set(px4_required_interface
 	px4_os_prebuild_targets
@@ -270,6 +273,17 @@ px4_generate_messages(TARGET msg_gen
 	)
 
 #=============================================================================
+# external projects
+#
+
+set(ep_base ${CMAKE_BINARY_DIR}/external)
+set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
+
+# add external project install folders to build
+link_directories(${ep_base}/Install/lib)
+include_directories(${ep_base}/Install/include)
+
+#=============================================================================
 # subdirectories
 #
 set(module_libraries)
@@ -285,7 +299,6 @@ add_subdirectory(src/firmware/${OS})
 if (config_io_board)
 	add_subdirectory(src/modules/px4iofirmware)
 endif()
-
 
 #=============================================================================
 # generate git version

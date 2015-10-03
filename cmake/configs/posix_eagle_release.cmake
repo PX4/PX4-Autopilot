@@ -5,7 +5,7 @@ if("${DSPAL_STUBS_ENABLE}" STREQUAL "")
 	set(DSPAL_STUBS_ENABLE "1")
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
 
 set(config_module_list
 	drivers/device
