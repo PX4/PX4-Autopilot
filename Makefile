@@ -75,6 +75,9 @@ endef
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
+px4fmu-v1_default:
+	$(call cmake-build,nuttx_px4fmu-v1_default)
+
 px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
 

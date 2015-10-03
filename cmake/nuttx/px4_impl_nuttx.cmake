@@ -455,13 +455,35 @@ function(px4_os_add_flags)
 	set(added_exe_linker_flags) # none currently
 
 	set(cpu_flags)
-	if (${BOARD} STREQUAL "px4fmu-v2")
+	if (${BOARD} STREQUAL "px4fmu-v1")
 		set(cpu_flags
 			-mcpu=cortex-m4
 			-mthumb
 			-march=armv7e-m
 			-mfpu=fpv4-sp-d16
 			-mfloat-abi=hard
+			)
+	elseif (${BOARD} STREQUAL "px4fmu-v2")
+		set(cpu_flags
+			-mcpu=cortex-m4
+			-mthumb
+			-march=armv7e-m
+			-mfpu=fpv4-sp-d16
+			-mfloat-abi=hard
+			)
+	elseif (${BOARD} STREQUAL "aerocore")
+		set(cpu_flags
+			-mcpu=cortex-m4
+			-mthumb
+			-march=armv7e-m
+			-mfpu=fpv4-sp-d16
+			-mfloat-abi=hard
+			)
+	elseif (${BOARD} STREQUAL "px4io-v1")
+		set(cpu_flags
+			-mcpu=cortex-m3
+			-mthumb
+			-march=armv7-m
 			)
 	elseif (${BOARD} STREQUAL "px4io-v2")
 		set(cpu_flags
