@@ -51,6 +51,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/optical_flow.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
 namespace simulator
@@ -259,11 +260,13 @@ private:
 	orb_advert_t _baro_pub;
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
+	orb_advert_t _flow_pub;
 
 	bool _initialized;
 
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
+	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
 
 #ifndef __PX4_QURT
 	// uORB publisher handlers
