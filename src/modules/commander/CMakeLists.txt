@@ -42,6 +42,7 @@ px4_add_module(
 	STACK 5000
 	COMPILE_FLAGS
 		${MODULE_CFLAGS}
+		-Os
 	SRCS
 		commander.cpp
 		commander_params.c
