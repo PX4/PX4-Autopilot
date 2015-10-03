@@ -105,34 +105,44 @@ void Logger::run_trampoline(int argc, char *argv[]) {
 
 enum class MessageType : uint8_t {
 	FORMAT = 'F',
-	TIME = 'T',
 	DATA = 'D',
-	MULTIDATA = 'M'
+	INFO = 'I',
+	PARAMETER = 'P',
 };
 
 #pragma pack(push, 1)
 struct message_format_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
-	uint8_t msg_id;
-	uint8_t size;
-	uint8_t format_len;
-	char format[256];
-};
+	uint8_t msg_size;
 
-struct message_time_s {
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::TIME);
-	uint64_t timestamp;
+	uint8_t msg_id;
+	uint8_t format_len;
+	char format[254];
 };
 
 struct message_data_header_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::DATA);
-	uint8_t msg_id;
-};
+	uint8_t msg_size;
 
-struct message_multidata_header_s {
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::MULTIDATA);
 	uint8_t msg_id;
 	uint8_t multi_id;
+	uint64_t timestamp;
+};
+
+struct message_info_header_s {
+	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
+	uint8_t msg_size;
+
+	uint8_t key_len;
+	char key[255];
+};
+
+struct message_parameter_header_s {
+	uint8_t msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
+	uint8_t msg_size;
+
+	uint8_t key_len;
+	char key[255];
 };
 #pragma pack(pop)
 
@@ -204,7 +214,7 @@ void Logger::run() {
 		if (_enabled) {
 			_writer.lock();
 
-			_timestamp_written = false;	// Flag to track if timestamp was already written on this update
+			bool data_written = false;
 
 			const hrt_abstime t = hrt_absolute_time();
 
@@ -217,44 +227,29 @@ void Logger::run() {
 				orb_check(sub.fd, &updated);
 				if (updated) {
 					orb_copy(sub.metadata, sub.fd, buffer + sizeof(message_data_header_s));
-					// Write timestamp only before data messages to avoid writing timestamps without data messages
-					if (!write_time(t)) {
-						break;
-					}
-
 					message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 					header->msg_type = static_cast<uint8_t>(MessageType::DATA);
+					header->msg_size = static_cast<uint8_t>(msg_size - 2);
 					header->msg_id = msg_id;
+					header->multi_id = 0x80;	// Non multi, active
+					header->timestamp = t;
 
-					if (!_writer.write(buffer, msg_size)) {
-						break;
+					if (_writer.write(buffer, msg_size)) {
+						data_written = true;
+					} else {
+						break;	// Write buffer overflow
 					}
 				}
 				msg_id++;
 			}
 
 			_writer.unlock();
-			if (_timestamp_written) {
+			if (data_written) {
 				_writer.notify();
 			}
 		}
 
 		usleep(_log_interval);
-	}
-}
-
-bool Logger::write_time(const hrt_abstime &t) {
-	if (!_timestamp_written) {
-		message_time_s msg;
-		msg.timestamp = t;
-		if (_writer.write(&msg, sizeof(msg))) {
-			_timestamp_written = true;
-			return true;
-		} else {
-			return false;
-		}
-	} else {
-		return true;
 	}
 }
 
@@ -335,10 +330,8 @@ void Logger::start_log() {
 	}
 
 	_writer.start_log(file_name);
-	_writer.lock();
 	write_formats();
-	_writer.unlock();
-	_writer.notify();
+	write_parameters();
 	_enabled = true;
 }
 
@@ -349,19 +342,81 @@ void Logger::stop_log() {
 }
 
 void Logger::write_formats() {
+	_writer.lock();
 	message_format_s msg;
 
 	int msg_id = 0;
 	for (LoggerSubscription &sub : _subscriptions) {
 		msg.msg_id = msg_id;
-		msg.size = sub.metadata->o_size;
 		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
 		while (!_writer.write(&msg, msg_size)) {
+			_writer.unlock();
+			_writer.notify();
 			usleep(_log_interval);	// Wait if buffer is full, don't skip FORMAT messages
+			_writer.lock();
 		}
 		msg_id++;
 	}
+	_writer.unlock();
+	_writer.notify();
+}
+
+void Logger::write_parameters() {
+	_writer.lock();
+	uint8_t buffer[sizeof(message_parameter_header_s) + sizeof(param_value_u)];
+	message_parameter_header_s *msg = reinterpret_cast<message_parameter_header_s *>(buffer);
+
+	msg->msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
+	int param_idx = 0;
+	param_t param = 0;
+	do {
+		do {
+			param = param_for_index(param_idx);
+			++param_idx;
+		} while (param != PARAM_INVALID && !param_used(param));
+
+		if (param != PARAM_INVALID) {
+			/* get parameter type and size */
+			const char *type_str;
+			param_type_t type = param_type(param);
+			size_t value_size = 0;
+			switch (type) {
+				case PARAM_TYPE_INT32:
+					type_str = "int32_t";
+					value_size = sizeof(int32_t);
+					break;
+
+				case PARAM_TYPE_FLOAT:
+					type_str = "float";
+					value_size = sizeof(float);
+					break;
+
+				default:
+					continue;
+			}
+
+			/* format parameter key (type and name) */
+			msg->key_len = snprintf(msg->key, sizeof(msg->key), "%s %s", type_str, param_name(param));
+			size_t msg_size = sizeof(*msg) - sizeof(msg->key) + msg->key_len;
+
+			/* copy parameter value directly to buffer */
+			param_get(param, &buffer[msg_size]);
+			msg_size += value_size;
+
+			/* write message */
+			while (!_writer.write(buffer, msg_size)) {
+				/* wait if buffer is full, don't skip PARAMETER messages */
+				_writer.unlock();
+				_writer.notify();
+				usleep(_log_interval);
+				_writer.lock();
+			}
+		}
+	} while ((param != PARAM_INVALID) && (param_idx < (int) param_count()));
+
+	_writer.unlock();
+	_writer.notify();
 }
 
 }

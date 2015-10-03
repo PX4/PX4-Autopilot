@@ -41,8 +41,6 @@ private:
 
 	void run();
 
-	bool write_time(const hrt_abstime &t);
-
 	int create_log_dir();
 
 	static bool file_exist(const char *filename);
@@ -54,6 +52,8 @@ private:
 	void stop_log();
 
 	void write_formats();
+
+	void write_parameters();
 
 	static constexpr size_t 	MAX_TOPICS_NUM = 32;
 	static constexpr size_t 	MAX_TOPICS_GROUPS_NUM = 32;
@@ -70,7 +70,6 @@ private:
     Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions;
     LogWriter					_writer;
     uint32_t					_log_interval;
-	bool						_timestamp_written = false;
 };
 
 Logger *logger_ptr;
