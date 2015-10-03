@@ -825,6 +825,16 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
 		warnx("%s", paramerr);
+	} else if (_parameters.battery_voltage_scaling < 0.0f) {
+		/* apply scaling according to defaults if set to default */
+
+		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+		_parameters.battery_voltage_scaling = 0.0082f;
+		#elif CONFIG_ARCH_BOARD_AEROCORE
+		_parameters.battery_voltage_scaling = 0.0063f;
+		#else
+		_parameters.battery_voltage_scaling = 0.00459340659f;
+		#endif
 	}
 
 	/* scaling of ADC ticks to battery current */
