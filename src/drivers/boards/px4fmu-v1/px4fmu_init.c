@@ -145,6 +145,7 @@ static struct spi_dev_s *spi3;
 
 #include <math.h>
 
+#if 0
 #ifdef __cplusplus
 __EXPORT int matherr(struct __exception *e)
 {
@@ -155,6 +156,7 @@ __EXPORT int matherr(struct exception *e)
 {
 	return 1;
 }
+#endif
 #endif
 
 __EXPORT int nsh_archinitialize(void)
