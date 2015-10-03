@@ -366,7 +366,7 @@ private:
 
 
 	int		init_sensor_class(const struct orb_metadata *meta, int *subs,
-				unsigned *priorities, unsigned *errcount);
+				uint32_t *priorities, uint32_t *errcount);
 
 	/**
 	 * Update our local parameter cache.
@@ -1949,7 +1949,7 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 
 int
 Sensors::init_sensor_class(const struct orb_metadata *meta, int *subs,
-	unsigned *priorities, unsigned *errcount)
+	uint32_t *priorities, uint32_t *errcount)
 {
 	unsigned group_count = orb_group_count(meta);
 

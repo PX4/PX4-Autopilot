@@ -30,50 +30,36 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <px4_log.h>
-#include <dlfcn.h>
 
-#define STACK_SIZE 0x8000
-static char __attribute__ ((aligned (16))) stack1[STACK_SIZE];
+#ifndef PRESSURE_CONTEXT_H_
+#define PRESSURE_CONTEXT_H_
 
-int main(int argc, char* argv[])
+#include <semaphore.h>
+#include <pthread.h>
+#include <dev_fs_lib.h>
+#include <dev_fs_lib_i2c.h>
+
+#include "pressure_api.h"
+
+/**
+ * The maximum length of the device path used when naming the port or bus resources to be
+ * opened.
+ *
+ * TODO: Must be moved back into DspAL header files.
+ */
+#define MAX_LEN_DEVICE_PATH_IN_BYTES 32
+
+struct pressure_context
 {
-	int ret = 0;
-	char *builtin[]={"libgcc.so", "libc.so", "libstdc++.so"};
-	void *handle;
-	char *error;
-	void (*entry_function)() = NULL;
+   char device_path[MAX_LEN_DEVICE_PATH_IN_BYTES];
+   int fildes;
+   int last_error;
+   pthread_mutex_t mutex;
+   sem_t new_data_sem;
+   float altimeter_setting_in_mbars;
+   pthread_t read_thread_handle;
+   char is_thread_running;
+   struct pressure_sensor_data sensor_data;
+};
 
-	PX4_INFO("In DSPAL main\n");
-	dlinit(3, builtin);
-#if 0
-	handle = dlopen ("libdspal_client.so", RTLD_LAZY);
-	if (!handle) {
-		printf("Error opening libdspal_client.so\n");
-		return 1;
-	}
-	entry_function = dlsym(handle, "dspal_entry");
-	if (((error = dlerror()) != NULL) || (entry_function == NULL)) {
-		printf("Error dlsym for dspal_entry");
-		ret = 2;
-	}
-	dlclose(handle);
-#endif
-	return ret;
-}
-
-#ifndef HAVE_HEXAGON_SDK
-int dlinit(int a, char **libs)
-{
-	return 1;
-}
-
-void HAP_debug(const char *msg, int level, const char *filename, int line)
-{
-}
-
-int vsnprintf(char *str, size_t size, const char *format, va_list ap)
-{
-	return 1;
-}
-#endif
+#endif /* PRESSURE_CONTEXT_H_ */

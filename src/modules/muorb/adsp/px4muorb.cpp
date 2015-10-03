@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 #include "px4muorb.hpp"
-#include "qurt.h"
 #include "uORBFastRpcChannel.hpp"
 #include "uORBManager.hpp"
 
@@ -44,13 +43,13 @@
 #include "uORB/topics/sensor_combined.h"
 #include "uORB.h"
 
-#include "HAP_power.h"
-
 #define _ENABLE_MUORB 1
 
 extern "C" {
 int dspal_main(int argc, const char *argv[]);
+void HAP_power_request(int a, int b, int c);
 };
+
 
 
 int px4muorb_orb_initialize()

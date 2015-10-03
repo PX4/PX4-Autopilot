@@ -30,50 +30,53 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <px4_log.h>
-#include <dlfcn.h>
 
-#define STACK_SIZE 0x8000
-static char __attribute__ ((aligned (16))) stack1[STACK_SIZE];
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 
-int main(int argc, char* argv[])
+#include <pressure_sensor.h>
+
+int pressure_sensor_open(const char *i2c_device_path, read_reg_func_t read_reg_func_ptr,
+		write_reg_func_t write_reg_func_ptr, uint32_t* handle)
 {
-	int ret = 0;
-	char *builtin[]={"libgcc.so", "libc.so", "libstdc++.so"};
-	void *handle;
-	char *error;
-	void (*entry_function)() = NULL;
-
-	PX4_INFO("In DSPAL main\n");
-	dlinit(3, builtin);
-#if 0
-	handle = dlopen ("libdspal_client.so", RTLD_LAZY);
-	if (!handle) {
-		printf("Error opening libdspal_client.so\n");
-		return 1;
-	}
-	entry_function = dlsym(handle, "dspal_entry");
-	if (((error = dlerror()) != NULL) || (entry_function == NULL)) {
-		printf("Error dlsym for dspal_entry");
-		ret = 2;
-	}
-	dlclose(handle);
-#endif
-	return ret;
+//	#warning "The pressure sensor driver function pressure_sensor_open() is stubbed out."
+	return -1;
 }
 
-#ifndef HAVE_HEXAGON_SDK
-int dlinit(int a, char **libs)
+void pressure_sensor_close(uint32_t handle)
 {
-	return 1;
+//	#warning "The pressure sensor driver function pressure_sensor_close() is stubbed out."
 }
 
-void HAP_debug(const char *msg, int level, const char *filename, int line)
+int pressure_sensor_read_data(uint32_t handle)
 {
+//	#warning "The pressure sensor driver function pressure_sensor_read_data() is stubbed out."
+  return 0;
 }
 
-int vsnprintf(char *str, size_t size, const char *format, va_list ap)
+uint32_t pressure_sensor_get_pressure_in_pa(uint32_t handle)
 {
-	return 1;
+//	#warning "The pressure sensor driver function pressure_sensor_get_pressure_in_pa() is stubbed out."
+	return 0.0;
 }
-#endif
+
+float pressure_sensor_get_temperature_in_c(uint32_t handle)
+{
+//	#warning "The pressure sensor driver function pressure_sensor_get_temperature_in_c() is stubbed out."
+	return 0.0;
+}
+
+
+
+
+
+
+
+
+
+
+
+

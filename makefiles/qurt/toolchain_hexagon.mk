@@ -63,11 +63,14 @@ OBJDUMP			 = $(HEXAGON_BIN)/$(CROSSDEV)objdump
 HEXAGON_GCC		 = $(HEXAGON_BIN)/$(CROSSDEV)gcc
 
 QURTLIBS		 = \
+			   $(TOOLSLIB)/libstdc++.a \
+
+ifdef HAVE_HEXAGON_SDK
+QURTLIBS		+= \
+			   $(TOOLSLIB)/libc.a \
 			   $(QCTOOLSLIB)/libdl.a \
 			   $(TOOLSLIB)/init.o \
-			   $(TOOLSLIB)/libc.a \
 			   $(TOOLSLIB)/libqcc.a \
-			   $(TOOLSLIB)/libstdc++.a \
 			   $(QURTLIB)/crt0.o \
 			   $(QURTLIB)/libqurt.a \
 			   $(QURTLIB)/libqurtkernel.a \
@@ -77,7 +80,8 @@ QURTLIBS		 = \
 			   $(QURTLIB)/libposix.a \
 			   $(QURTLIB)/../examples/cust_config.o \
 			   $(QCTOOLSLIB)/libhexagon.a \
-			   $(TOOLSLIB)/fini.o 
+			   $(TOOLSLIB)/fini.o
+endif
 
 DYNAMIC_LIBS            = \
 			   -Wl,$(TOOLSLIB)/pic/libstdc++.a
