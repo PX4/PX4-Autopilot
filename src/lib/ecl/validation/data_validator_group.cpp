@@ -109,7 +109,7 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 	while (next != nullptr) {
 		float confidence = next->confidence(timestamp);
 
-		if (i == pre_check_best) {
+		if (static_cast<int>(i) == pre_check_best) {
 			pre_check_prio = next->priority();
 			pre_check_confidence = confidence;
 		}
