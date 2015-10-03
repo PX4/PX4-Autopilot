@@ -255,7 +255,7 @@ PX4FMU	*g_fmu;
 } // namespace
 
 PX4FMU::PX4FMU() :
-	CDev("fmuservo", PX4FMU_DEVICE_PATH),
+	CDev("fmu", PX4FMU_DEVICE_PATH),
 	_mode(MODE_NONE),
 	_pwm_default_rate(50),
 	_pwm_alt_rate(50),
@@ -355,7 +355,7 @@ PX4FMU::init()
 	_task = px4_task_spawn_cmd("fmuservo",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_DEFAULT,
-				   1200,
+				   900,
 				   (main_t)&PX4FMU::task_main_trampoline,
 				   nullptr);
 
