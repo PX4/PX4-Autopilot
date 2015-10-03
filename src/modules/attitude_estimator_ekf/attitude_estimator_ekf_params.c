@@ -96,19 +96,6 @@ PARAM_DEFINE_FLOAT(EKF_ATT_V4_R1, 10000.0f);
 PARAM_DEFINE_FLOAT(EKF_ATT_V4_R2, 100.0f);
 
 /**
- * EKF attitude estimator enabled
- *
- * If enabled, it uses the older EKF filter.
- * However users can enable the new quaternion
- * based complimentary filter by setting EKF_ATT_ENABLED = 0.
- *
- * @min 0
- * @max 1
- * @group Attitude EKF estimator
- */
-PARAM_DEFINE_INT32(EKF_ATT_ENABLED, 1);
-
-/**
  * Moment of inertia matrix diagonal entry (1, 1)
  *
  * @group Attitude EKF estimator
