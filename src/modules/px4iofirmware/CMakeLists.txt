@@ -88,8 +88,8 @@ set(srcs
 	../../lib/rc/sumd.c
 	../../drivers/stm32/drv_hrt.c
 	../../drivers/stm32/drv_pwm_servo.c
-	../../drivers/boards/${config_io_board}/px4iov2_init.c
-	../../drivers/boards/${config_io_board}/px4iov2_pwm_servo.c
+	../../drivers/boards/${config_io_board}/px4io_init.c
+	../../drivers/boards/${config_io_board}/px4io_pwm_servo.c
 	)
 
 if(${config_io_board} STREQUAL "px4io-v1")
