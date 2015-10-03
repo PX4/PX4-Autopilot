@@ -43,7 +43,7 @@ include_directories(${DSDLC_OUTPUT})
 #
 if (COMPILER_IS_GCC_COMPATIBLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wundef")
-    if (USE_CPP03)
+    if (UAVCAN_USE_CPP03)
         message(STATUS "Using C++03")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wno-variadic-macros -Wno-long-long")
     else ()
@@ -128,3 +128,5 @@ if (DEBUG_BUILD)
 else ()
     message(STATUS "Release build type: " ${CMAKE_BUILD_TYPE})
 endif ()
+
+# vim: set et ft=cmake fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
