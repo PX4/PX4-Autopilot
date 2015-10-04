@@ -41,6 +41,7 @@
  * @author Roman Bapst 		<bapstr@ethz.ch>
  * @author Lorenz Meier 	<lm@inf.ethz.ch>
  * @author Thomas Gubler	<thomasgubler@gmail.com>
+ * @author David Vorsin     <davidvorsin@gmail.com>
  *
  */
 #ifndef VTOL_ATT_CONTROL_MAIN_H
@@ -148,6 +149,7 @@ private:
 	orb_advert_t 	_actuators_1_pub;
 	orb_advert_t	_vtol_vehicle_status_pub;
 	orb_advert_t	_v_rates_sp_pub;
+	orb_advert_t	_v_att_sp_pub;
 //*******************data containers***********************************************************
 	struct vehicle_attitude_s			_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			//vehicle attitude setpoint
@@ -210,6 +212,8 @@ private:
 	void 		vehicle_rates_sp_fw_poll();
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
 	void 		vehicle_airspeed_poll();		// Check for changes in airspeed
+	void		vehicle_attitude_setpoint_poll();  //Check for attitude setpoint updates.
+	void		vehicle_attitude_poll();  //Check for attitude updates.
 	void 		vehicle_battery_poll();			// Check for battery updates
 	void		vehicle_cmd_poll();
 	void 		parameters_update_poll();		//Check if parameters have changed
@@ -217,6 +221,7 @@ private:
 	void 		fill_mc_att_rates_sp();
 	void 		fill_fw_att_rates_sp();
 	void		handle_command();
+	void 		publish_transition_att_sp();
 };
 
 #endif

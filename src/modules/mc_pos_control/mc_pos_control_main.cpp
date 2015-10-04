@@ -1462,14 +1462,17 @@ MulticopterPositionControl::task_main()
 
 		/* publish attitude setpoint
 		 * Do not publish if offboard is enabled but position/velocity control is disabled,
-		 * in this case the attitude setpoint is published by the mavlink app
+		 * in this case the attitude setpoint is published by the mavlink app. Also do not publish
+		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+		 * attitude setpoints for the transition).
 		 */
 		if (!(_control_mode.flag_control_offboard_enabled &&
 					!(_control_mode.flag_control_position_enabled ||
-						_control_mode.flag_control_velocity_enabled))) {
-			if (_att_sp_pub != nullptr && (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode)) {
+						_control_mode.flag_control_velocity_enabled))
+					&& !_vehicle_status.vtol_in_transition) {
+			if (_att_sp_pub != nullptr && _vehicle_status.is_rotary_wing) {
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
-			} else if (_att_sp_pub == nullptr && (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode)) {
+			} else if (_att_sp_pub == nullptr && (_vehicle_status.is_rotary_wing)) {
 				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 			}
 		}
