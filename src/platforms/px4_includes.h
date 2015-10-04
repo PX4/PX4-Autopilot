@@ -53,6 +53,8 @@
 #include <px4_vehicle_attitude_setpoint.h>
 #include <px4_manual_control_setpoint.h>
 #include <px4_actuator_controls.h>
+#include <px4_actuator_controls_0.h>
+#include <px4_actuator_controls_virtual_mc.h>
 #include <px4_vehicle_rates_setpoint.h>
 #include <px4_mc_virtual_rates_setpoint.h>
 #include <px4_vehicle_attitude.h>
