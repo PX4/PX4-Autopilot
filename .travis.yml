@@ -1,10 +1,34 @@
 language: cpp
-compiler:
-    - gcc
-    - clang
+compiler: gcc
+env:
+  global:
+    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+    #   via the "travis encrypt" command using the project repo's public key
+    - secure: "nCQtEBd5gQ9zirHNQVpzB0Q8aVKmMuTrlHfZCK5ZOpFItD9zP0YwqUTcw6y8T+14CceY6Go/D+fgeMYR3QmYc2CW0vXMwgBYOFQuPYEef7455ZPdt6wdr4lnyP/B+fj4cWZ4WhV+hMigl2Ly4xaFH6msm+PlIHOdjdaXo3ko0LI="
+  matrix:
+    - TARGET=native
+    - TARGET=lpc11c24
+    - TARGET=stm32
+addons:
+  coverity_scan:
+    project:
+      name: "UAVCAN/libuavcan"
+      description: "UAVCAN in C++"
+    notification_email: pavel.kirienko@gmail.com
+    build_command_prepend: "rm -rf build &> /dev/null || true; mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug"
+    build_command: "make --ignore-errors"
+    branch_pattern: coverity_scan
 before_install:
     - git submodule update --init --recursive
-before_script:
-    - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug
+    - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+    - sudo add-apt-repository ppa:terry.guo/gcc-arm-embedded -y
+    - sudo apt-get update -qq
+    - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8; fi
+    - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+    - sudo apt-get install libgtest-dev gcc-arm-none-eabi
+    - "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
+before_script: "mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug"
 script:
-    - make
+    - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "native" ]; then make ; fi
+    - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "lpc11c24" ]; then cd "$TRAVIS_BUILD_DIR/libuavcan_drivers/lpc11c24/test_olimex_lpc_p11c24" && make all ; fi
+    - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "stm32" ]; then cd "$TRAVIS_BUILD_DIR/libuavcan_drivers/stm32/test_stm32f107" && git clone "https://github.com/Zubax/zubax_chibios" && cd zubax_chibios && git checkout stable_v1 && git submodule update --init --recursive && cd .. && make ; fi
