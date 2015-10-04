@@ -1118,6 +1118,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
 				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			} else {
+				_tecs.reset_state();
 			}
 		}
 		_control_mode_current = FW_POSCTRL_MODE_AUTO;
@@ -1477,6 +1479,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
 				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			} else {
+				_tecs.reset_state();
 			}
 		}
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
@@ -1588,6 +1592,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
 				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			} else {
+				_tecs.reset_state();
 			}
 		}
 		_control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
