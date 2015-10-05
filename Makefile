@@ -158,6 +158,9 @@ posix_sitl_replay:
 ros_sitl_default:
 	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
 
+unittests_all_default:
+	$(call cmake-build,$@)
+
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
