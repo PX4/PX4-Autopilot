@@ -9,6 +9,11 @@ project(uavcan C CXX)
 #=============================================================================
 # build options
 #
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(DEFAULT_UAVCAN_PLATFORM "linux")
+endif()
+
 # options are listed in a table format below
 set(opts
     # name: type: default value: string options list : description
@@ -66,12 +71,12 @@ install(DIRECTORY dsdl DESTINATION share/uavcan)
 add_subdirectory(libuavcan)
 
 # drivers
-add_subdirectory(libuavcan_drivers/posix)
-
 if (${UAVCAN_PLATFORM} STREQUAL "linux")
     message(STATUS "Adding Linux support library")
+    add_subdirectory(libuavcan_drivers/posix)
     add_subdirectory(libuavcan_drivers/linux)
 elseif(${UAVCAN_PLATFORM} STREQUAL "stm32")
+    add_subdirectory(libuavcan_drivers/posix)
     add_subdirectory(libuavcan_drivers/stm32/driver)
 endif()
 
