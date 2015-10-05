@@ -124,6 +124,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
 	_land_detector_pub(nullptr),
+	_landing_target_pub(nullptr),
 	_time_offset_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
@@ -221,6 +222,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
 		handle_message_distance_sensor(msg);
+		break;
+
+	case MAVLINK_MSG_ID_LANDING_TARGET:
+		handle_message_landing_target(msg);
 		break;
 
 	default:
@@ -583,6 +588,89 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
+{
+	/* landing target */
+	mavlink_landing_target_t land_target;
+	mavlink_msg_landing_target_decode(msg, &land_target);
+
+	struct landing_target_s lt;
+	memset(&lt, 0, sizeof(lt));
+
+	lt.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	lt.timestamp_computer = sync_stamp(land_target.time_usec); // Synced time
+
+	lt.target_num = land_target.target_num;
+
+	switch (land_target.frame) {
+		case MAV_FRAME_GLOBAL:
+			lt.frame = MAV_FRAME_GLOBAL;
+			break;
+
+		case MAV_FRAME_LOCAL_NED:
+			lt.frame = MAV_FRAME_LOCAL_NED;
+			break;
+
+		case MAV_FRAME_MISSION:
+			lt.frame = MAV_FRAME_MISSION;
+			break;
+
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+			lt.frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
+			break;
+
+		case MAV_FRAME_LOCAL_ENU:
+			lt.frame = MAV_FRAME_LOCAL_ENU;
+			break;
+
+		case MAV_FRAME_GLOBAL_INT:
+			lt.frame = MAV_FRAME_GLOBAL_INT;
+			break;
+
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+			lt.frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT;
+			break;
+
+		case MAV_FRAME_LOCAL_OFFSET_NED:
+			lt.frame = MAV_FRAME_LOCAL_OFFSET_NED;
+			break;
+
+		case MAV_FRAME_BODY_NED:
+			lt.frame = MAV_FRAME_BODY_NED;
+			break;
+
+		case MAV_FRAME_BODY_OFFSET_NED:
+			lt.frame = MAV_FRAME_BODY_OFFSET_NED;
+			break;
+
+		case MAV_FRAME_GLOBAL_TERRAIN_ALT:
+			lt.frame = MAV_FRAME_GLOBAL_TERRAIN_ALT;
+			break;
+
+		case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT:
+			lt.frame = MAV_FRAME_GLOBAL_TERRAIN_ALT_INT;
+			break;
+
+		default:
+			lt.frame = MAV_FRAME_LOCAL_NED;
+			break;
+	}
+
+	lt.angle_x = land_target.angle_x;
+	lt.angle_y = land_target.angle_y;
+	lt.distance = land_target.distance;
+	lt.size_x = land_target.size_x;
+	lt.size_y = land_target.size_y;
+
+	if (_landing_target_pub == nullptr) {
+		_landing_target_pub = orb_advertise(ORB_ID(landing_target), &lt);
+
+	} else {
+		orb_publish(ORB_ID(landing_target), _landing_target_pub, &lt);
 	}
 }
 

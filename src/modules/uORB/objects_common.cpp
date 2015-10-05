@@ -261,5 +261,8 @@ ORB_DEFINE(mc_att_ctrl_status, struct mc_att_ctrl_status_s);
 #include "topics/distance_sensor.h"
 ORB_DEFINE(distance_sensor, struct distance_sensor_s);
 
+#include "topics/landing_target.h"
+ORB_DEFINE(landing_target, struct landing_target_s);
+
 #include "topics/camera_trigger.h"
 ORB_DEFINE(camera_trigger, struct camera_trigger_s);

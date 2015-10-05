@@ -304,6 +304,15 @@ struct log_DIST_s {
 	float covariance;
 };
 
+/* --- LTRG - LANDING TARGET --- */
+#define LOG_LTRG_MSG 21
+struct log_LTRG_s {
+	uint8_t target_num;
+	float angle_x;
+	float angle_y;
+	float distance;
+};
+
 /* LOG IMU1 and IMU2 MSGs consume IDs 22 and 23 */
 
 
@@ -530,6 +539,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "BBBff",			"Id,Type,Orientation,Distance,Covariance"),
+	LOG_FORMAT(LTRG, "Bfff",			"TargetNumber,AngleX,AngleY,Distance"),
 	LOG_FORMAT_S(TEL0, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL2, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),

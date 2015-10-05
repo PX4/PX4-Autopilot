@@ -101,6 +101,7 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
+#include <uORB/topics/landing_target.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1138,6 +1139,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vtol_vehicle_status_s vtol_status;
 		struct time_offset_s time_offset;
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
+		struct landing_target_s landing_target;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1186,6 +1188,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ENCD_s log_ENCD;
 			struct log_TSYN_s log_TSYN;
 			struct log_MACS_s log_MACS;
+			struct log_LTRG_s log_LTRG;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1228,6 +1231,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int encoders_sub;
 		int tsync_sub;
 		int mc_att_ctrl_status_sub;
+		int landing_target_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1261,6 +1265,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.wind_sub = -1;
 	subs.tsync_sub = -1;
 	subs.mc_att_ctrl_status_sub = -1;
+	subs.landing_target_sub = -1;
 	subs.encoders_sub = -1;
 
 	/* add new topics HERE */
@@ -1815,6 +1820,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_DIST.current_distance = buf.distance_sensor.current_distance;
 			log_msg.body.log_DIST.covariance = buf.distance_sensor.covariance;
 			LOGBUFFER_WRITE_AND_COUNT(DIST);
+		}
+
+		/* --- LANDING TARGET --- */
+		if (copy_if_updated(ORB_ID(landing_target), &subs.landing_target_sub, &buf.landing_target)) {
+			log_msg.msg_type = LOG_LTRG_MSG;
+			log_msg.body.log_LTRG.target_num = buf.landing_target.target_num;
+			log_msg.body.log_LTRG.angle_x = buf.landing_target.angle_x;
+			log_msg.body.log_LTRG.angle_y = buf.landing_target.angle_y;
+			log_msg.body.log_LTRG.distance = buf.landing_target.distance;
+			LOGBUFFER_WRITE_AND_COUNT(LTRG);
 		}
 
 		/* --- ESTIMATOR STATUS --- */
