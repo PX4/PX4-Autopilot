@@ -40,6 +40,8 @@ target_link_libraries(firmware_nuttx
 	${module_libraries}
 	${config_extra_libs}
 	${link_libs}
+	libuavcan_stm32_driver.a
+	libuavcan.a
 	-Wl,--end-group)
 
 add_custom_target(check_weak

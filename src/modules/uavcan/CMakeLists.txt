@@ -30,6 +30,64 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+# uavcan project
+set(uavcan_c_flags ${c_flags})
+list(REMOVE_ITEM uavcan_c_flags -std=gnu++0x -D__CUSTOM_FILE_IO__)
+set(uavcan_cxx_flags ${cxx_flags})
+list(REMOVE_ITEM uavcan_cxx_flags -std=gnu++0x -std=c++11 -D__CUSTOM_FILE_IO__)
+set(uavcan_deps git_uavcan)
+set(uavcan_platform generic)
+
+set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
+
+string(TOUPPER "${OS}" OS_UPPER)
+
+set(uavcan_definitions
+	-DUAVCAN_NO_ASSERTIONS
+	-DUAVCAN_STM32_NUM_IFACES=2
+	-DUAVCAN_USE_EXTERNAL_SNPRINT
+	-DUAVCAN_MEM_POOL_BLOCK_SIZE=48
+	-DUAVCAN_MAX_NETWORK_SIZE_HINT=16
+	-DUAVCAN_STM32_TIMER_NUMBER=5
+	-DUAVCAN_STM32_${OS_UPPER}=1
+	-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
+	)
+set(uavcan_extra_flags ${uavcan_definitions})
+
+if (${OS} STREQUAL "nuttx")
+	set(uavcan_platform stm32)
+	list(APPEND uavcan_extra_flags
+		-I${nuttx_export_dir}/include
+		-I${nuttx_export_dir}/include/cxx
+		-I${nuttx_export_dir}/arch/chip
+		-I${nuttx_export_dir}/arch/common
+		)
+	list(APPEND uavcan_deps nuttx_export_${BOARD})
+endif()
+
+list(APPEND uavcan_c_flags ${uavcan_extra_flags})
+list(APPEND uavcan_cxx_flags ${uavcan_extra_flags})
+
+px4_join(OUT uavcan_c_flags LIST "${uavcan_c_flags}" GLUE " ")
+px4_join(OUT uavcan_cxx_flags LIST "${uavcan_cxx_flags}" GLUE " ")
+
+externalproject_add(libuavcan
+	DEPENDS ${uavcan_deps}
+	UPDATE_COMMAND git submodule update --init
+	SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/lib/uavcan
+	CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+		-DUAVCAN_PLATFORM=${uavcan_platform}
+		-DUAVCAN_OS=${OS}
+		-DCMAKE_CXX_FLAGS=${uavcan_cxx_flags}
+		-DCMAKE_C_FLAGS=${uavcan_c_flags}
+		-DCMAKE_INSTALL_PREFIX=${ep_base}/Install
+)
+
+string(TOUPPER ${OS} OS_UPPER)
+
+add_definitions(${uavcan_definitions})
+
 px4_add_module(
 	MODULE modules__uavcan
 	MAIN uavcan
@@ -41,7 +99,6 @@ px4_add_module(
 		# Main
 		uavcan_main.cpp
 		uavcan_servers.cpp
-		uavcan_clock.cpp
 		uavcan_params.c
 
 		# Actuators
@@ -55,43 +112,7 @@ px4_add_module(
 
 	DEPENDS
 		platforms__common
+		libuavcan	
 	)
 
-# TODO convert rest of module.mk
-
-##
-## libuavcan
-##
-#include $(PX4_LIB_DIR)uavcan/libuavcan/include.mk
-## Use the relitive path to keep the genrated files in the BUILD_DIR
-#SRCS += $(subst  $(PX4_MODULE_SRC),../../,$(LIBUAVCAN_SRC))
-#INCLUDE_DIRS += $(LIBUAVCAN_INC)
-## Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
-## because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
-#override EXTRADEFINES := $(EXTRADEFINES) \
-#-DUAVCAN_CPP_VERSION=UAVCAN_CPP03 \
-#-DUAVCAN_NO_ASSERTIONS \
-#-DUAVCAN_MEM_POOL_BLOCK_SIZE=48 \
-#-DUAVCAN_MAX_NETWORK_SIZE_HINT=16
-
-##
-## libuavcan drivers for STM32
-##
-#include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/stm32/driver/include.mk
-## Use the relitive path to keep the genrated files in the BUILD_DIR
-#SRCS += $(subst  $(PX4_MODULE_SRC),../../,$(LIBUAVCAN_STM32_SRC))
-#INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
-#override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=2
-
-##
-## libuavcan drivers for posix
-##
-#include $(PX4_LIB_DIR)uavcan/libuavcan_drivers/posix/include.mk
-#INCLUDE_DIRS += $(LIBUAVCAN_POSIX_INC)
-
-##
-## Invoke DSDL compiler
-##
-#$(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
-#INCLUDE_DIRS += dsdlc_generated
 ## vim: set noet ft=cmake fenc=utf-8 ff=unix : 

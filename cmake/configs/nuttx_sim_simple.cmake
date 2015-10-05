@@ -2,7 +2,7 @@ include(nuttx/px4_impl_nuttx)
 
 message(WARNING "this is a work in progress and doesn't build yet")
 
-set(CMAKE_TOOLCHAIN_FILE cmake/toolchains/Toolchain-native.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
 	#platforms/nuttx
