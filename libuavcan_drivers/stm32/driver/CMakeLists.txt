@@ -1,5 +1,4 @@
 include_directories(
-    ./src
     ./include
     )
 
