@@ -43,7 +43,6 @@ px4_add_module(
 	STACK 1200
 	SRCS
 		attitude_estimator_q_main.cpp
-		attitude_estimator_q_params.c
 	DEPENDS
 		platforms__common
 	)
