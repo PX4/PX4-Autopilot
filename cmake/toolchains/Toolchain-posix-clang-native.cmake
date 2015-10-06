@@ -26,6 +26,7 @@ set(WARNINGS
     -Werror=unused-private-field
     -Wno-packed
     -Wno-frame-larger-than=
+    -Wno-varargs
     #-Wcast-qual  - generates spurious noreturn attribute warnings,
     #               try again later
     #-Wconversion - would be nice, but too many "risky-but-safe"
@@ -59,6 +60,7 @@ set(C_FLAGS
 #
 set(CXX_WARNINGS
 	-Wno-missing-field-initializers
+	-Wno-varargs
 	)
 set(CXX_FLAGS
 	-fno-exceptions

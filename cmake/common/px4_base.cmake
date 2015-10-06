@@ -490,6 +490,7 @@ function(px4_add_common_flags)
 		-Wpointer-arith
 		-Wmissing-declarations
 		-Wno-unused-parameter
+		-Wno-varargs
 		-Werror=format-security
 		-Werror=array-bounds
 		-Wfatal-errors
