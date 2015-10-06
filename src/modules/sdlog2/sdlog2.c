@@ -1854,11 +1854,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
 			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
 			log_msg.body.log_TECS.totalEnergyError = buf.tecs_status.totalEnergyError;
-			log_msg.body.log_TECS.energyDistributionError = buf.tecs_status.energyDistributionError;
 			log_msg.body.log_TECS.totalEnergyRateError = buf.tecs_status.totalEnergyRateError;
+			log_msg.body.log_TECS.energyDistributionError = buf.tecs_status.energyDistributionError;
 			log_msg.body.log_TECS.energyDistributionRateError = buf.tecs_status.energyDistributionRateError;
-			log_msg.body.log_TECS.throttle_integ = buf.tecs_status.throttle_integ;
 			log_msg.body.log_TECS.pitch_integ = buf.tecs_status.pitch_integ;
+			log_msg.body.log_TECS.throttle_integ = buf.tecs_status.throttle_integ;
 			log_msg.body.log_TECS.mode = (uint8_t)buf.tecs_status.mode;
 			LOGBUFFER_WRITE_AND_COUNT(TECS);
 		}
