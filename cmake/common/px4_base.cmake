@@ -482,13 +482,13 @@ function(px4_add_common_flags)
 
 	set(warnings
 		-Wall
+		-Werror
 		-Wno-sign-compare
 		-Wextra
 		#-Wshadow # very verbose due to eigen
 		-Wfloat-equal
 		-Wpointer-arith
 		-Wmissing-declarations
-		-Wpacked
 		-Wno-unused-parameter
 		-Werror=format-security
 		-Werror=array-bounds

@@ -35,11 +35,11 @@ px4_add_module(
 	MAIN mavlink
 	STACK 1200
 	COMPILE_FLAGS
-		-Weffc++
 		-Wno-attributes
 		-Wno-packed
 		-DMAVLINK_COMM_NUM_BUFFERS=3
 		-Wno-packed
+		-Wframe-larger-than=2000
 		-Os
 	SRCS
 		mavlink.c

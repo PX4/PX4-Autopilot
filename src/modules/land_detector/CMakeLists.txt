@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN land_detector
 	STACK 1200
 	COMPILE_FLAGS
-		-Weffc++
 		-Os
 		
 	SRCS

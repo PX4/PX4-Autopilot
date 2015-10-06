@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE modules__mc_pos_control_multiplatform
 	MAIN mc_pos_control_m
 	COMPILE_FLAGS
-		-Wframe-larger-than=1200
+		-Wframe-larger-than=1900
 		
 	SRCS
 		mc_pos_control_main.cpp

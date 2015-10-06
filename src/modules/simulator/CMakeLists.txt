@@ -40,10 +40,10 @@ px4_add_module(
 	MODULE modules__simulator
 	MAIN simulator
 	COMPILE_FLAGS
-		-Weffc++
 		-Wno-attributes
 		-Wno-packed
 		-Wno-packed
+		-Wframe-larger-than=1500
 		
 	SRCS
 		${SIMULATOR_SRCS}

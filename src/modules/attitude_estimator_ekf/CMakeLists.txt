@@ -35,7 +35,7 @@ px4_add_module(
 	MAIN attitude_estimator_ekf
 	STACK 1200
 	COMPILE_FLAGS
-		-Wframe-larger-than=2400
+		-Wframe-larger-than=3000
 		-Wno-float-equal
 		
 	SRCS

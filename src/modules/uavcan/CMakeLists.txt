@@ -35,7 +35,7 @@
 set(uavcan_c_flags ${c_flags})
 list(REMOVE_ITEM uavcan_c_flags -std=gnu++0x -D__CUSTOM_FILE_IO__)
 set(uavcan_cxx_flags ${cxx_flags})
-list(REMOVE_ITEM uavcan_cxx_flags -std=gnu++0x -std=c++11 -D__CUSTOM_FILE_IO__)
+list(REMOVE_ITEM uavcan_cxx_flags -std=gnu++0x -std=c++11 -Wundef -Werror -D__CUSTOM_FILE_IO__)
 set(uavcan_deps git_uavcan)
 set(uavcan_platform generic)
 
@@ -94,6 +94,8 @@ px4_add_module(
 	MAIN uavcan
 	STACK 3200
 	COMPILE_FLAGS
+		-Wframe-larger-than=1500
+		-Wno-deprecated-declarations
 		-O3
 	SRCS
 

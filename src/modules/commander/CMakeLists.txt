@@ -34,7 +34,7 @@ set(MODULE_CFLAGS -Os)
 
 if(NOT ${OS} STREQUAL "qurt")
 	list(APPEND MODULE_CFLAGS
-		-Wframe-larger-than=2200)
+		-Wframe-larger-than=2600)
 endif()
 px4_add_module(
 	MODULE modules__commander
