@@ -87,7 +87,7 @@ env:
     - PX4_AWS_BUCKET=px4-travis
 
 script:
-  #- make check_format
+  - make check_format
   - arm-none-eabi-gcc --version
   - echo 'Building POSIX Firmware..' && echo -en 'travis_fold:start:script.1\\r'
   - make posix_sitl_simple -j4

@@ -153,6 +153,9 @@ sitl_ros:
 
 # Other targets
 # --------------------------------------------------------------------
+check_format:
+	@./Tools/check_code_style.sh
+
 clean:
 	@rm -rf build_*/
 
