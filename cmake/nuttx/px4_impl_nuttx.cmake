@@ -222,27 +222,22 @@ function(px4_nuttx_add_export)
 
 	# export
 	file(GLOB_RECURSE config_files ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
-	add_custom_command(OUTPUT ${CONFIG}.export
+	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		COMMAND ${ECHO} Configuring NuttX for ${CONFIG}
-		COMMAND ${MAKE} -C${nuttx_src}/nuttx -j${THREADS}
-			-r --quiet distclean
-		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}
-			${nuttx_src}/nuttx/configs
-		COMMAND cd ${nuttx_src}/nuttx/tools &&
-			./configure.sh ${CONFIG}/nsh
+		COMMAND ${MAKE} -C${nuttx_src}/nuttx -r --quiet distclean
+		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
+		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/nsh
 		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
-		COMMAND ${MAKE} -C ${nuttx_src}/nuttx -j${THREADS}
-			-r CONFIG_ARCH_BOARD=${CONFIG} export
-		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip
-			${CONFIG}.export
+		COMMAND ${MAKE} --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export
+		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		DEPENDS ${config_files} ${DEPENDS} __nuttx_copy_${CONFIG})
 
 	# extract
 	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp
 		COMMAND ${RM} -rf ${nuttx_src}/nuttx-export
-		COMMAND ${UNZIP} ${CONFIG}.export -d ${nuttx_src}
+		COMMAND ${UNZIP} -q ${CMAKE_BINARY_DIR}/${CONFIG}.export -d ${nuttx_src}
 		COMMAND ${TOUCH} nuttx_export_${CONFIG}.stamp
-		DEPENDS ${DEPENDS} ${CONFIG}.export)
+		DEPENDS ${DEPENDS} ${CMAKE_BINARY_DIR}/${CONFIG}.export)
 
 	add_custom_target(${OUT}
 		DEPENDS nuttx_export_${CONFIG}.stamp)
