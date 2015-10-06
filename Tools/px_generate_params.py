@@ -3,8 +3,8 @@ import xml.etree.ElementTree as ET
 import os
 
 if len(os.sys.argv) != 2:
-	print "Error in %s" % os.sys.argv[0]
-	print "Usage: %s <parameters.xml>"
+	print("Error in %s" % os.sys.argv[0])
+	print("Usage: %s <parameters.xml>" % os.sys.argv[0])
 	raise SystemExit
 
 fp_header = open("px4_parameters.h", "w")

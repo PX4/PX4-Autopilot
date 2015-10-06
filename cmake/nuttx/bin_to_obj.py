@@ -41,7 +41,7 @@ def run_cmd(cmd, d):
     #print(cmd)
     proc = subprocess.Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
     stdout, stderr = proc.communicate()
-    if stderr != "":
+    if stderr.decode() != "":
         raise RuntimeError(stderr)
     return stdout
 
@@ -57,7 +57,7 @@ run_cmd("{ld:s} -r -o {obj:s}.bin.o {obj:s}.c.o -b binary {in_bin:s}",
 stdout = run_cmd("{nm:s} -p --radix=x {obj:s}.bin.o", locals())
 re_string = r"^([0-9A-F-a-f]+) .*{sym:s}_size\n".format(**locals())
 re_size = re.compile(re_string, re.MULTILINE)
-size_match = re.search(re_size, stdout)
+size_match = re.search(re_size, stdout.decode())
 try:
     size = size_match.group(1)
 except AttributeError as e:
