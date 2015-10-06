@@ -1,6 +1,7 @@
 
 set(WARNINGS
     -Wall
+    -Werror
     -Wextra
     -Wdouble-promotion
     -Wshadow
