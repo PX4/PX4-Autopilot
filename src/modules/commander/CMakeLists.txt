@@ -45,7 +45,6 @@ px4_add_module(
 		-Os
 	SRCS
 		commander.cpp
-		commander_params.c
 		state_machine_helper.cpp
 		commander_helper.cpp
 		calibration_routines.cpp
