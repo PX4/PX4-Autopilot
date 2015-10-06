@@ -40,7 +40,6 @@ px4_add_module(
 		
 	SRCS
 		attitude_estimator_ekf_main.cpp
-		attitude_estimator_ekf_params.c
 		codegen/AttitudeEKF.c
 	DEPENDS
 		platforms__common
