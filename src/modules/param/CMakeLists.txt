@@ -33,17 +33,16 @@
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-px4_generate_parameters(OUT param_files)
-
-set(srcs
-	${param_files}
+px4_generate_parameters_source(OUT param_files
+	XML ${CMAKE_BINARY_DIR}/parameters.xml
+	DEPS xml_gen
 	)
 
 px4_add_module(
 	MODULE modules__param
 	COMPILE_FLAGS
 		-Os
-	SRCS ${srcs}
+	SRCS ${param_files}
 	DEPENDS
 		platforms__common
 	)

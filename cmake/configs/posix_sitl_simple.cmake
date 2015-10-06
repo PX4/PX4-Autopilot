@@ -57,11 +57,6 @@ set(config_module_list
 	lib/launchdetection
 	)
 
-
-set(config_firmware_options
-	PARAM_XML # generate param xml
-	)
-
 set(config_extra_builtin_cmds
 	serdis
 	sercon
