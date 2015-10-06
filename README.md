@@ -47,6 +47,15 @@ make -j8
 sudo make install
 ```
 
+For cross-compiling the procedure is similar.
+
+```bash
+mkdir build
+cd build
+cmake .. -D CMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-stm32-cortex-m4.cmake
+make -j8
+```
+
 The following components will be installed into the system:
 
 * Libuavcan headers and the static library
