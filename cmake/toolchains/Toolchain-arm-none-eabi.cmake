@@ -49,6 +49,9 @@ endforeach()
 foreach(tool gdb gdbtui)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} arm-none-eabi-${tool})
+	if(NOT ${TOOL})
+		message(STATUS "could not find ${tool}")
+	endif()
 endforeach()
 
 # os tools
@@ -56,7 +59,16 @@ foreach(tool echo patch grep rm mkdir nm genromfs cp touch make unzip)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} ${tool})
 	if(NOT ${TOOL})
-		message(FATAL_ERROR "could not find ${TOOL}")
+		message(FATAL_ERROR "could not find ${tool}")
+	endif()
+endforeach()
+
+# optional os tools
+foreach(tool ddd)
+	string(TOUPPER ${tool} TOOL)
+	find_program(${TOOL} ${tool})
+	if(NOT ${TOOL})
+		message(STATUS "could not find ${tool}")
 	endif()
 endforeach()
 

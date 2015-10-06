@@ -153,7 +153,7 @@ distclean: clean
 	@cd ../../..
 
 # targets handled by cmake
-cmake_targets = test upload package package_source debug debug_io check_weak libuavcan
+cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak libuavcan
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean
