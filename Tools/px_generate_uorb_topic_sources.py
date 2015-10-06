@@ -69,7 +69,8 @@ __copyright__ = "Copyright (C) 2013-2014 PX4 Development Team."
 __license__ = "BSD"
 __email__ = "againagainst@gmail.com, thomasgubler@gmail.com"
 
-TEMPLATE_FILE = 'msg.cpp.template'
+TOPIC_TEMPLATE_FILE = 'msg.cpp.template'
+TOPICS_LIST_TEMPLATE_FILE = 'uORBTopics.cpp.template'
 OUTPUT_FILE_EXT = '.cpp'
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
@@ -91,7 +92,14 @@ def get_multi_topics(filename):
         return result
 
 
-def generate_source_from_file(filename, outputdir, templatedir):
+def get_msgs_list(msgdir):
+    """
+    Makes list of msg files in the given directory
+    """
+    return [fn for fn in os.listdir(msgdir) if fn.endswith(".msg")]
+
+
+def generate_source_from_file(filename, outputdir, template_file):
         """
         Converts a single .msg file to a uorb source file
         """
@@ -108,46 +116,56 @@ def generate_source_from_file(filename, outputdir, templatedir):
             "topics": topics
         }
 
-                # Make sure output directory exists:
-        if not os.path.isdir(outputdir):
-                os.makedirs(outputdir)
-
-        template_file = os.path.join(templatedir, TEMPLATE_FILE)
         output_file = os.path.join(outputdir, spec.short_name + OUTPUT_FILE_EXT)
-
         if os.path.isfile(output_file):
             return False
+        generate_by_template(output_file, template_file, em_globals)
 
+        print("{0}: new source file".format(output_file))
+        return True
+
+
+def generate_by_template(output_file, template_file, em_globals):
+        """
+        Invokes empy intepreter to geneate output_file by the
+        given template_file and predefined em_globals dict
+        """
         ofile = open(output_file, 'w')
         # todo, reuse interpreter
         interpreter = em.Interpreter(output=ofile, globals=em_globals, options={em.RAW_OPT:True,em.BUFFERED_OPT:True})
         if not os.path.isfile(template_file):
             ofile.close()
             os.remove(output_file)
-            raise RuntimeError("Template file msg.cpp.template not found in template dir %s" % (templatedir))
+            raise RuntimeError("Template file %s not found" % (template_file))
         interpreter.file(open(template_file)) #todo try
         interpreter.shutdown()
         ofile.close()
-        print("{0}: new source file".format(output_file))
-        return True
 
 
-def convert_dir(inputdir, outputdir, templatedir):
+def convert_dir(msgdir, outputdir, templatedir):
         """
-        Converts all .msg files in inputdir to uORB sources
+        Converts all .msg files in msgdir to uORB sources
         """
-        for f in os.listdir(inputdir):
+        # Make sure output directory exists:
+        if not os.path.isdir(outputdir):
+                os.makedirs(outputdir)
+        template_file = os.path.join(templatedir, TOPIC_TEMPLATE_FILE)
+
+        for f in os.listdir(msgdir):
                 # Ignore hidden files
                 if f.startswith("."):
                         continue
-
-                fn = os.path.join(inputdir, f)
+                fn = os.path.join(msgdir, f)
                 # Only look at actual files
                 if not os.path.isfile(fn):
                         continue
+                generate_source_from_file(fn, outputdir, template_file)
 
-                generate_source_from_file(fn, outputdir, templatedir)
-
+        # generate cpp file with topics list
+        tl_globals = {"msgs" : get_msgs_list(msgdir)}
+        tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
+        tl_out_file = os.path.join(outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
+        generate_by_template(tl_out_file, tl_template_file, tl_globals)
         return True
 
 
