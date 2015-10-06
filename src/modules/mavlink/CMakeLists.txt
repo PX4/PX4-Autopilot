@@ -30,16 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if (${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1500)
+endif()
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
 	STACK 1200
 	COMPILE_FLAGS
+		${MODULE_CFLAGS}
 		-Wno-attributes
 		-Wno-packed
 		-DMAVLINK_COMM_NUM_BUFFERS=3
 		-Wno-packed
-		-Wframe-larger-than=2000
+		-Wno-tautological-constant-out-of-range-compare
 		-Os
 	SRCS
 		mavlink.c

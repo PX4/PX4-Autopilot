@@ -30,10 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if (${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3500)
+endif()
 px4_add_module(
 	MODULE modules__mc_att_control
 	MAIN mc_att_control
 	STACK 1200
+	COMPILE_FLAGS ${MODULE_CFLAGS}
 	SRCS
 		mc_att_control_main.cpp
 		mc_att_control_params.c

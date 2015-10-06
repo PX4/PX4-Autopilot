@@ -33,8 +33,6 @@
 px4_add_module(
 	MODULE modules__mc_att_control_multiplatform
 	MAIN mc_att_control_m
-	COMPILE_FLAGS
-		-Wframe-larger-than=1300
 	SRCS
 		mc_att_control_main.cpp
 		mc_att_control_start_nuttx.cpp

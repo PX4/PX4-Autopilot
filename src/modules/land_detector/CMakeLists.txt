@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 1200
 	COMPILE_FLAGS
 		-Os
-		
 	SRCS
 		land_detector_main.cpp
 		land_detector_params.c

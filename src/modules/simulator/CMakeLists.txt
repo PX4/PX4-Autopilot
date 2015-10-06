@@ -43,8 +43,6 @@ px4_add_module(
 		-Wno-attributes
 		-Wno-packed
 		-Wno-packed
-		-Wframe-larger-than=1500
-		
 	SRCS
 		${SIMULATOR_SRCS}
 	DEPENDS

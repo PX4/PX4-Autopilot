@@ -31,10 +31,8 @@
 #
 ############################################################################
 set(MODULE_CFLAGS -Os)
-
-if(NOT ${OS} STREQUAL "qurt")
-	list(APPEND MODULE_CFLAGS
-		-Wframe-larger-than=2600)
+if(${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=2300)
 endif()
 px4_add_module(
 	MODULE modules__commander
