@@ -706,24 +706,62 @@ endfunction()
 
 #=============================================================================
 #
-#	px4_generate_parameters
+#	px4_generate_parameters_xml
+#
+#	Generates a parameters.xml file.
+#
+#	Usage:
+#		px4_generate_parameters_xml(OUT <param-xml_file>)
+#
+#	Input:
+#		BOARD : the board
+#
+#	Output:
+#		OUT	: the generated xml file
+#
+#	Example:
+#		px4_generate_parameters_xml(OUT parameters.xml)
+#
+function(px4_generate_parameters_xml)
+	px4_parse_function_args(
+		NAME px4_generate_parameters_xml
+		ONE_VALUE OUT BOARD
+		REQUIRED OUT BOARD
+		ARGN ${ARGN})
+	set(path ${CMAKE_SOURCE_DIR}/src)
+	file(GLOB_RECURSE param_src_files ${path}/*.h* ${path}/*.c*)
+	add_custom_command(OUTPUT ${OUT}
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py
+			-s ${path} --board CONFIG_ARCH_${BOARD} --xml
+		DEPENDS ${param_src_files}
+		)
+	set(${OUT} ${${OUT}} PARENT_SCOPE)
+endfunction()
+
+#=============================================================================
+#
+#	px4_generate_parameters_source
 #
 #	Generates a source file with all parameters.
 #
 #	Usage:
-#		px4_generate_parameters(OUT <list-source-files>)
+#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file>)
+#
+#	Input:
+#		XML : the parameters.xml file
+#		DEPS : target dependencies
 #
 #	Output:
-#		OUT	: the generate source files
+#		OUT	: the generated source files
 #
 #	Example:
-#		px4_generate_parameters(OUT parameters.c)
+#		px4_generate_parameters_source(OUT param_files XML parameters.xml)
 #
-function(px4_generate_parameters)
+function(px4_generate_parameters_source)
 	px4_parse_function_args(
-		NAME px4_generate_parameters
-		ONE_VALUE OUT
-		REQUIRED OUT
+		NAME px4_generate_parameters_source
+		ONE_VALUE OUT XML DEPS
+		REQUIRED OUT XML
 		ARGN ${ARGN})
 	set(generated_files
 		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.h
@@ -731,12 +769,44 @@ function(px4_generate_parameters)
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
 	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${CMAKE_SOURCE_DIR}/src --board CONFIG_ARCH_${BOARD} --xml
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py
-			parameters.xml
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML}
+		DEPENDS ${XML} ${DEPS}
 		)
 	set(${OUT} ${generated_files} PARENT_SCOPE)
+endfunction()
+
+#=============================================================================
+#
+#	px4_generate_airframes_xml
+#
+#	Generates airframes.xml
+#
+#	Usage:
+#		px4_generate_airframes_xml(OUT <airframe-xml-file>)
+#
+#	Input:
+#		XML : the airframes.xml file
+#		BOARD : the board
+#
+#	Output:
+#		OUT	: the generated source files
+#
+#	Example:
+#		px4_generate_airframes_xml(OUT airframes.xml)
+#
+function(px4_generate_airframes_xml)
+	px4_parse_function_args(
+		NAME px4_generate_airframes_xml
+		ONE_VALUE OUT BOARD
+		REQUIRED OUT BOARD
+		ARGN ${ARGN})
+	set(process_airframes ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
+	add_custom_command(OUTPUT ${OUT}
+		COMMAND ${PYTHON_EXECUTABLE} ${process_airframes}
+			-a ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
+			--board CONFIG_ARCH_BOARD_${BOARD} --xml
+		)
+	set(${OUT} ${${OUT}} PARENT_SCOPE)
 endfunction()
 
 #=============================================================================

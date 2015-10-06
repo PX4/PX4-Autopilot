@@ -57,7 +57,8 @@ if(NOT ${BOARD} STREQUAL "sim")
 	px4_nuttx_add_firmware(OUT ${fw_file}
 		BOARD ${BOARD}
 		EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
-		${config_firmware_options}
+		PARAM_XML ${CMAKE_BINARY_DIR}/parameters.xml
+		AIRFRAMES_XML ${CMAKE_BINARY_DIR}/airframes.xml
 		)
 
 	configure_file(gdbinit.in .gdbinit)

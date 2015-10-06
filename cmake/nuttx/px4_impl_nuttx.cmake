@@ -57,14 +57,14 @@ include(common/px4_base)
 #	This function adds a nuttx firmware target.
 #
 #	Usage:
-#		px4_nuttx_add_firmware(OUT <out-target> EXE <in-executable>)
+#		px4_nuttx_add_firmware(OUT <out-target> EXE <in-executable>
+#			PARAM_XML <param_xml> AIRFRAMES_XML <airframes_xml>)
 #
 #	Input:
 #		EXE			: the executable to generate the firmware from
 #		BOARD		: the board
-#
-#	Options:
-#		PARAM_XML	: toggles generation of param_xml	
+#		PARAM_XML		: param xml file (optional)
+#		AIRFRAMES_XML	: airframes xml file (optional)
 #
 #	Output:
 #		OUT			: the generated firmware target
@@ -75,43 +75,33 @@ include(common/px4_base)
 function(px4_nuttx_add_firmware)
 	px4_parse_function_args(
 		NAME px4_nuttx_add_firmware
-		ONE_VALUE BOARD OUT EXE
-		OPTIONS PARAM_XML
+		ONE_VALUE BOARD OUT EXE PARAM_XML AIRFRAMES_XML
 		REQUIRED OUT EXE BOARD
 		ARGN ${ARGN})
 
-	set(process_params ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py)
-	set(process_airframes ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
+	set(extra_args)
 
-
-	#TODO handle param_xml
-	if(PARAM_XML)
-		add_custom_command(OUTPUT ${OUT}
-			COMMAND ${PYTHON_EXECUTABLE} ${process_params}
-				--src-path ${CMAKE_SOURCE_DIR}/src
-				--board CONFIG_ARCH_BOARD_${BOARD} --xml
-			COMMAND ${PYTHON_EXECUTABLE} ${process_airframes}
-				-a ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
-				--board CONFIG_ARCH_BOARD_${BOARD} --xml
-			COMMAND ${OBJCOPY} -O binary ${EXE} ${EXE}.bin
-			COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_mkfw.py
-				--prototype ${CMAKE_SOURCE_DIR}/Images/${BOARD}.prototype
-				--git_identity ${CMAKE_SOURCE_DIR}
-				--parameter_xml parameters.xml
-				--airframe_xml airframes.xml
-				--image ${EXE}.bin > ${OUT}
-			DEPENDS ${EXE}
-			)
-	else()
-		add_custom_command(OUTPUT ${OUT}
-			COMMAND ${OBJCOPY} -O binary ${EXE} ${EXE}.bin
-			COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_mkfw.py
-				--prototype ${CMAKE_SOURCE_DIR}/Images/${BOARD}.prototype
-				--git_identity ${CMAKE_SOURCE_DIR}
-				--image ${EXE}.bin > ${OUT}
-			DEPENDS ${EXE}
+	if (PARAM_XML)
+		list(APPEND extra_args
+			--parameter_xml ${PARAM_XML}
 			)
 	endif()
+
+	if (AIRFRAMES_XML)
+		list(APPEND extra_args
+			--airframe_xml ${AIRFRAMES_XML}
+			)
+	endif()
+
+	add_custom_command(OUTPUT ${OUT}
+		COMMAND ${OBJCOPY} -O binary ${EXE} ${EXE}.bin
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_mkfw.py
+			--prototype ${CMAKE_SOURCE_DIR}/Images/${BOARD}.prototype
+			--git_identity ${CMAKE_SOURCE_DIR}
+			${extra_args}
+			--image ${EXE}.bin > ${OUT}
+		DEPENDS ${EXE}
+		)
 	add_custom_target(build_firmware_${BOARD} ALL DEPENDS ${OUT})
 endfunction()
 
