@@ -586,6 +586,34 @@ PARAM_DEFINE_FLOAT(CAL_ACC2_YSCALE, 1.0f);
 PARAM_DEFINE_FLOAT(CAL_ACC2_ZSCALE, 1.0f);
 
 /**
+ * Primary accel ID
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_ACC_PRIME, 0);
+
+/**
+ * Primary gyro ID
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_GYRO_PRIME, 0);
+
+/**
+ * Primary mag ID
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_MAG_PRIME, 0);
+
+/**
+ * Primary baro ID
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
+
+/**
  * Differential pressure sensor offset
  *
  * The offset (zero-reading) in Pascal
