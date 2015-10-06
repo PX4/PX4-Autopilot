@@ -1221,13 +1221,13 @@ int commander_thread_main(int argc, char *argv[])
 	// Run preflight check
 	int32_t rc_in_off = 0;
 	param_get(_param_autostart_id, &autostart_id);
+	param_get(_param_rc_in_off, &rc_in_off);
+	status.rc_input_mode = rc_in_off;
 	if (is_hil_setup(autostart_id)) {
 		// HIL configuration selected: real sensors will be disabled
 		status.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	} else {
-		param_get(_param_rc_in_off, &rc_in_off);
-			status.rc_input_mode = rc_in_off;
 		status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true,
 			checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status.circuit_breaker_engaged_gpsfailure_check);
 		if (!status.condition_system_sensors_initialized) {
