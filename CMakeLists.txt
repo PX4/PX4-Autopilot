@@ -6,10 +6,9 @@ cmake_minimum_required(VERSION 2.8)
 
 project(uavcan C CXX)
 
-#=============================================================================
-# build options
 #
-
+# Build options
+#
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(DEFAULT_UAVCAN_PLATFORM "linux")
 endif()
@@ -20,7 +19,7 @@ set(opts
     "CMAKE_BUILD_TYPE:STRING:RelWithDebInfo:Debug Release RelWithDebInfo MinSizeRel:Build type."
     "CMAKE_CXX_FLAGS:STRING:::C++ flags."
     "CMAKE_C_FLAGS:STRING:::C flags."
-    "UAVCAN_USE_CPP03:BOOL:OFF::Use cpp03 standard."
+    "UAVCAN_USE_CPP03:BOOL:OFF::Use C++03 standard."
     "UAVCAN_PLATFORM:STRING:generic:generic linux stm32:Platform."
     )
 foreach(_opt ${opts})
@@ -50,32 +49,33 @@ foreach(_opt ${opts})
     endif()
 endforeach()
 
-#=============================================================================
-# set flags
+#
+# Set flags
 #
 include_directories(
     ./libuavcan/include/
     ./libuavcan/include/dsdlc_generated
     )
 
-#=============================================================================
-# install
+#
+# Install
 #
 # DSDL definitions
 install(DIRECTORY dsdl DESTINATION share/uavcan)
 
-#=============================================================================
-# subdirectories
+#
+# Subdirectories
 #
 # library
 add_subdirectory(libuavcan)
 
 # drivers
 if (${UAVCAN_PLATFORM} STREQUAL "linux")
-    message(STATUS "Adding Linux support library")
+    message(STATUS "Adding Linux platform driver")
     add_subdirectory(libuavcan_drivers/posix)
     add_subdirectory(libuavcan_drivers/linux)
 elseif(${UAVCAN_PLATFORM} STREQUAL "stm32")
+    message(STATUS "Adding STM32 platform driver")
     add_subdirectory(libuavcan_drivers/posix)
     add_subdirectory(libuavcan_drivers/stm32/driver)
 endif()
