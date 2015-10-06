@@ -59,12 +59,24 @@ all: px4fmu-v2_default
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 j ?= 4
 
+# disable ninja by default for now because it hides upload progress
+#NINJA_BUILD := $(shell ninja --version 2>/dev/null)
+ifdef NINJA_BUILD
+    PX4_CMAKE_GENERATOR ?= "Ninja"
+    PX4_MAKE = ninja
+    PX4_MAKE_ARGS = 
+else
+    PX4_CMAKE_GENERATOR ?= "Unix Makefiles"
+    PX4_MAKE = make
+    PX4_MAKE_ARGS = -j$(j) --no-print-directory
+endif
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G"Unix Makefiles" -DCONFIG=$(1)
-+make -j$(j) -C $(PWD)/build_$@ --no-print-directory $(ARGS)
++@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
++$(PX4_MAKE) -C $(PWD)/build_$@ $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
 # create empty targets to avoid msgs for targets passed to cmake
