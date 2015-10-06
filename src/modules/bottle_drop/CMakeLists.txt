@@ -38,7 +38,6 @@ px4_add_module(
 		-Os
 	SRCS
 		bottle_drop.cpp
-		bottle_drop_params.c
 	DEPENDS
 		platforms__common
 	)
