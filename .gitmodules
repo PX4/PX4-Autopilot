@@ -6,7 +6,7 @@
 	url = git://github.com/PX4/NuttX.git
 [submodule "src/lib/uavcan"]
 	path = src/lib/uavcan
-	url = git://github.com/jgoppert/libuavcan.git
+	url = git://github.com/UAVCAN/libuavcan.git
 [submodule "Tools/genmsg"]
 	path = Tools/genmsg
 	url = https://github.com/ros/genmsg.git

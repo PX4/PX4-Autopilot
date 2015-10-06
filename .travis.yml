@@ -102,7 +102,7 @@ script:
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'
   - make px4fmu-v2_default test
   - echo -en 'travis_fold:end:script.4\\r'
-  - make px4fmu-v2_default package
+  #- make px4fmu-v2_default package
   #- make posix -j4
   #- ccache -s
   #- echo -en 'travis_fold:end:script.1\\r'
