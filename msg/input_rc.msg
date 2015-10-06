@@ -5,6 +5,7 @@ uint8 RC_INPUT_SOURCE_PX4IO_SPEKTRUM = 3
 uint8 RC_INPUT_SOURCE_PX4IO_SBUS = 4
 uint8 RC_INPUT_SOURCE_PX4IO_ST24 = 5
 uint8 RC_INPUT_SOURCE_MAVLINK = 6
+uint8 RC_INPUT_SOURCE_QURT = 7
 
 uint8 RC_INPUT_MAX_CHANNELS = 18 	# Maximum number of R/C input channels in the system. S.Bus has up to 18 channels.
 

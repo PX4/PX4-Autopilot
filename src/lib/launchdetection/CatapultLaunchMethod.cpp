@@ -58,7 +58,8 @@ CatapultLaunchMethod::CatapultLaunchMethod(SuperBlock *parent) :
 
 }
 
-CatapultLaunchMethod::~CatapultLaunchMethod() {
+CatapultLaunchMethod::~CatapultLaunchMethod()
+{
 
 }
 
@@ -69,34 +70,41 @@ void CatapultLaunchMethod::update(float accel_x)
 
 	switch (state) {
 	case LAUNCHDETECTION_RES_NONE:
+
 		/* Detect a acceleration that is longer and stronger as the minimum given by the params */
 		if (accel_x > thresholdAccel.get()) {
 			integrator += dt;
+
 			if (integrator > thresholdTime.get()) {
 				if (motorDelay.get() > 0.0f) {
 					state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
 					warnx("Launch detected: state: enablecontrol, waiting %.2fs until using full"
-							" throttle", (double)motorDelay.get());
+					      " throttle", (double)motorDelay.get());
+
 				} else {
 					/* No motor delay set: go directly to enablemotors state */
 					state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
 					warnx("Launch detected: state: enablemotors (delay not activated)");
 				}
 			}
+
 		} else {
 			/* reset */
 			reset();
 		}
+
 		break;
 
 	case LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL:
-		/* Vehicle is currently controlling attitude but not with full throttle. Waiting undtil delay is
+		/* Vehicle is currently controlling attitude but not with full throttle. Waiting until delay is
 		 * over to allow full throttle */
 		motorDelayCounter += dt;
+
 		if (motorDelayCounter > motorDelay.get()) {
 			warnx("Launch detected: state enablemotors");
 			state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
 		}
+
 		break;
 
 	default:
@@ -119,10 +127,12 @@ void CatapultLaunchMethod::reset()
 	state = LAUNCHDETECTION_RES_NONE;
 }
 
-float CatapultLaunchMethod::getPitchMax(float pitchMaxDefault) {
+float CatapultLaunchMethod::getPitchMax(float pitchMaxDefault)
+{
 	/* If motor is turned on do not impose the extra limit on maximum pitch */
 	if (state == LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		return pitchMaxDefault;
+
 	} else {
 		return pitchMaxPreThrottle.get();
 	}

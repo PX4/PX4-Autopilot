@@ -366,11 +366,6 @@ then
 	fi
 
 	#
-	# UAVCAN
-	#
-	sh /etc/init.d/rc.uavcan
-
-	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	#
 	sh /etc/init.d/rc.sensors
@@ -389,8 +384,6 @@ then
 	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
-	# Wait 10 ms for sensors (workaround for airspeed, to be removed)
-	usleep 10000
 	commander start
 
 	#
@@ -577,6 +570,11 @@ then
 			camera_trigger start
 		fi
 	fi
+
+	#
+	# UAVCAN
+	#
+	sh /etc/init.d/rc.uavcan
 
 	#
 	# Logging

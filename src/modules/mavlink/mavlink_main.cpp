@@ -94,6 +94,7 @@
 #endif
 static const int ERROR = -1;
 
+#define DEFAULT_REMOTE_PORT_UDP			14550 ///< GCS port per MAVLink spec
 #define DEFAULT_DEVICE_NAME			"/dev/ttyS1"
 #define MAX_DATA_RATE				10000000	///< max data rate in bytes/s
 #define MAIN_LOOP_DELAY 			10000	///< 100 Hz @ 1000 bytes/s data rate
@@ -153,7 +154,6 @@ Mavlink::Mavlink() :
 	_receive_thread {},
 	_verbose(false),
 	_forwarding_on(false),
-	_passing_on(false),
 	_ftp_on(false),
 #ifndef __PX4_POSIX
 	_uart_fd(-1),
@@ -885,6 +885,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 	} else if (get_protocol() == TCP) {
 		// not implemented, but possible to do so
+		warnx("TCP transport pending implementation");
 	}
 #endif
 
@@ -974,11 +975,12 @@ Mavlink::init_udp()
 		return;
 	}
 
-	unsigned char inbuf[256];
-	socklen_t addrlen = sizeof(_src_addr);
+	// set default target address
+	memset((char *)&_src_addr, 0, sizeof(_src_addr));
+	_src_addr.sin_family = AF_INET;
+	inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	_src_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
 
-	// wait for client to connect to socket
-	recvfrom(_socket_fd,inbuf,sizeof(inbuf),0,(struct sockaddr *)&_src_addr,&addrlen);
 #endif
 }
 
@@ -1319,7 +1321,7 @@ Mavlink::message_buffer_mark_read(int n)
 void
 Mavlink::pass_message(const mavlink_message_t *msg)
 {
-	if (_passing_on) {
+	if (_forwarding_on) {
 		/* size is 8 bytes plus variable payload */
 		int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
 		pthread_mutex_lock(&_message_buffer_mutex);
@@ -1496,10 +1498,6 @@ Mavlink::task_main(int argc, char *argv[])
 			_forwarding_on = true;
 			break;
 
-		case 'p':
-			_passing_on = true;
-			break;
-
 		case 'v':
 			_verbose = true;
 			break;
@@ -1565,7 +1563,7 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_logbuffer_init(&_logbuffer, 5);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
-	if (_passing_on || _ftp_on) {
+	if (_forwarding_on || _ftp_on) {
 		/* initialize message buffer if multiplexing is on or its needed for FTP.
 		 * make space for two messages plus off-by-one space as we use the empty element
 		 * marker ring buffer approach.
@@ -1639,14 +1637,16 @@ Mavlink::task_main(int argc, char *argv[])
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
+		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("HIGHRES_IMU", 2.0f);
 		configure_stream("ATTITUDE", 20.0f);
 		configure_stream("VFR_HUD", 8.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 3.0f);
 		configure_stream("LOCAL_POSITION_NED", 3.0f);
-		configure_stream("RC_CHANNELS", 4.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 2.0f);
+		configure_stream("RC_CHANNELS", 1.0f);
+		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
 		configure_stream("ATTITUDE_TARGET", 8.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
@@ -1661,13 +1661,16 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 5.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);
 		configure_stream("LOCAL_POSITION_NED", 30.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream("CAMERA_CAPTURE", 2.0f);
+		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("ATTITUDE_TARGET", 10.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream("POSITION_TARGET_LOCAL_NED", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("RC_CHANNELS", 20.0f);
+		configure_stream("SERVO_OUTPUT_RAW_0", 10.0f);
 		configure_stream("VFR_HUD", 10.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
@@ -1683,30 +1686,36 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VFR_HUD", 5.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
+		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("ATTITUDE_TARGET", 10.0f);
 		configure_stream("BATTERY_STATUS", 1.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("RC_CHANNELS", 5.0f);
+		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("VTOL_STATE", 0.5f);
 		break;
 
 	case MAVLINK_MODE_CONFIG:
 		// Enable a number of interesting streams we want via USB
+		configure_stream("SYS_STATUS", 1.0f);
+		configure_stream("HOME_POSITION", 0.5f);
+		configure_stream("GLOBAL_POSITION_INT", 10.0f);
+		configure_stream("ATTITUDE_TARGET", 8.0f);
 		configure_stream("PARAM_VALUE", 300.0f);
 		configure_stream("MISSION_ITEM", 50.0f);
-		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("VFR_HUD", 20.0f);
 		configure_stream("ATTITUDE", 100.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
-		configure_stream("RC_CHANNELS_RAW", 5.0f);
+		configure_stream("RC_CHANNELS", 5.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream("LOCAL_POSITION_NED", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
-		configure_stream("HIGHRES_IMU", 100.0f);
+		configure_stream("HIGHRES_IMU", 50.0f);
 		configure_stream("GPS_RAW_INT", 20.0f);
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("VTOL_STATE", 2.0f);
@@ -1837,7 +1846,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* pass messages from other UARTs or FTP worker */
-		if (_passing_on || _ftp_on) {
+		if (_forwarding_on || _ftp_on) {
 
 			bool is_part;
 			uint8_t *read_ptr;
@@ -1946,7 +1955,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* close mavlink logging device */
 	px4_close(_mavlink_fd);
 
-	if (_passing_on || _ftp_on) {
+	if (_forwarding_on || _ftp_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}

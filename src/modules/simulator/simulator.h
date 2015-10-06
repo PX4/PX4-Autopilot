@@ -51,6 +51,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/optical_flow.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
 namespace simulator {
@@ -91,6 +92,13 @@ struct RawBaroData {
 	float pressure;
 	float altitude;
 	float temperature;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct RawAirspeedData {
+	float temperature;
+	float diff_pressure;
 };
 #pragma pack(pop)
 
@@ -191,12 +199,14 @@ public:
 	bool getMPUReport(uint8_t *buf, int len);
 	bool getBaroSample(uint8_t *buf, int len);
 	bool getGPSSample(uint8_t *buf, int len);
+	bool getAirspeedSample(uint8_t *buf, int len);
 
 	void write_MPU_data(void *buf);
 	void write_accel_data(void *buf);
 	void write_mag_data(void *buf);
 	void write_baro_data(void *buf);
 	void write_gps_data(void *buf);
+	void write_airspeed_data(void *buf);
 
 	bool isInitialized() { return _initialized; }
 
@@ -207,6 +217,7 @@ private:
 	_baro(1),
 	_mag(1),
 	_gps(1),
+	_airspeed(1),
 	_accel_pub(nullptr),
 	_baro_pub(nullptr),
 	_gyro_pub(nullptr),
@@ -238,17 +249,20 @@ private:
 	simulator::Report<simulator::RawBaroData>	_baro;
 	simulator::Report<simulator::RawMagData>	_mag;
 	simulator::Report<simulator::RawGPSData>	_gps;
+	simulator::Report<simulator::RawAirspeedData> _airspeed;
 
 	// uORB publisher handlers
 	orb_advert_t _accel_pub;
 	orb_advert_t _baro_pub;
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
+	orb_advert_t _flow_pub;
 
 	bool _initialized;
 
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
+	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
 
 #ifndef __PX4_QURT
 	// uORB publisher handlers

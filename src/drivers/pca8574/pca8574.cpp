@@ -188,6 +188,7 @@ PCA8574::ioctl(struct file *filp, int cmd, unsigned long arg)
 				if (_values_out) {
 					_mode = IOX_MODE_ON;
 				}
+
 				send_led_values();
 			}
 
@@ -277,15 +278,18 @@ PCA8574::led()
 
 		_update_out = true;
 		_should_run = true;
+
 	} else if (_mode == IOX_MODE_OFF) {
 		_update_out = true;
 		_should_run = false;
+
 	} else {
 
 		// Any of the normal modes
 		if (_blinking > 0) {
 			/* we need to be running to blink */
 			_should_run = true;
+
 		} else {
 			_should_run = false;
 		}
@@ -304,6 +308,7 @@ PCA8574::led()
 			msg |= ((_blink_phase) ? _blinking : 0);
 
 			_blink_phase = !_blink_phase;
+
 		} else {
 			msg = _values_out;
 		}
@@ -513,6 +518,7 @@ pca8574_main(int argc, char *argv[])
 			printf(".");
 			fflush(stdout);
 		}
+
 		printf("\n");
 		fflush(stdout);
 
@@ -520,6 +526,7 @@ pca8574_main(int argc, char *argv[])
 			delete g_pca8574;
 			g_pca8574 = nullptr;
 			exit(0);
+
 		} else {
 			warnx("stop failed.");
 			exit(1);
@@ -542,9 +549,11 @@ pca8574_main(int argc, char *argv[])
 
 		if (channel < 8) {
 			ret = ioctl(fd, (IOX_SET_VALUE + channel), val);
+
 		} else {
 			ret = -1;
 		}
+
 		close(fd);
 		exit(ret);
 	}

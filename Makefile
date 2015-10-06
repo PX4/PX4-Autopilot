@@ -222,9 +222,9 @@ qurtrun:
 tests:	generateuorbtopicheaders
 	$(Q) (mkdir -p $(PX4_BASE)/unittests/build && cd $(PX4_BASE)/unittests/build && cmake .. && $(MAKE) --no-print-directory unittests)
 
-.PHONY: format check_format
+.PHONY: check_format
 check_format:
-	$(Q) (./Tools/check_code_style.sh | sort -n)
+	$(Q) (./Tools/check_code_style.sh)
 
 #
 # Cleanup targets.  'clean' should remove all built products and force

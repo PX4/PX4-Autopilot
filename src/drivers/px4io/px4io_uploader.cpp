@@ -126,8 +126,10 @@ PX4IO_Uploader::upload(const char *filenames[])
 	/* look for the bootloader for 150 ms */
 	for (int i = 0; i < 15; i++) {
 		ret = sync();
+
 		if (ret == OK) {
 			break;
+
 		} else {
 			usleep(10000);
 		}
@@ -143,6 +145,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 	}
 
 	struct stat st;
+
 	if (stat(filename, &st) != 0) {
 		log("Failed to stat %s - %d\n", filename, (int)errno);
 		tcsetattr(_io_fd, TCSANOW, &t_original);
@@ -150,6 +153,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 		_io_fd = -1;
 		return -errno;
 	}
+
 	fw_size = st.st_size;
 
 	if (_fw_fd == -1) {
@@ -180,6 +184,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 		if (ret == OK) {
 			if (bl_rev <= BL_REV) {
 				log("found bootloader revision: %d", bl_rev);
+
 			} else {
 				log("found unsupported bootloader revision %d, exiting", bl_rev);
 				tcsetattr(_io_fd, TCSANOW, &t_original);
@@ -205,6 +210,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 
 		if (bl_rev <= 2) {
 			ret = verify_rev2(fw_size);
+
 		} else {
 			/* verify rev 3 and higher. Every version *needs* to be verified. */
 			ret = verify_rev3(fw_size);
@@ -240,7 +246,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 
 	// sleep for enough time for the IO chip to boot. This makes
 	// forceupdate more reliably startup IO again after update
-	up_udelay(100*1000);
+	up_udelay(100 * 1000);
 
 	return ret;
 }
@@ -274,12 +280,15 @@ int
 PX4IO_Uploader::recv_bytes(uint8_t *p, unsigned count)
 {
 	int ret = OK;
+
 	while (count--) {
 		ret = recv_byte_with_timeout(p++, 5000);
 
-		if (ret != OK)
+		if (ret != OK) {
 			break;
+		}
 	}
+
 	return ret;
 }
 
@@ -296,9 +305,11 @@ PX4IO_Uploader::drain()
 		ret = recv_byte_with_timeout(&c, 40);
 
 #ifdef UDEBUG
+
 		if (ret == OK) {
 			log("discard 0x%02x", c);
 		}
+
 #endif
 	} while (ret == OK);
 }
@@ -309,8 +320,11 @@ PX4IO_Uploader::send(uint8_t c)
 #ifdef UDEBUG
 	log("send 0x%02x", c);
 #endif
-	if (write(_io_fd, &c, 1) != 1)
+
+	if (write(_io_fd, &c, 1) != 1) {
 		return -errno;
+	}
+
 	return OK;
 }
 
@@ -318,11 +332,15 @@ int
 PX4IO_Uploader::send(uint8_t *p, unsigned count)
 {
 	int ret;
+
 	while (count--) {
 		ret = send(*p++);
-		if (ret != OK)
+
+		if (ret != OK) {
 			break;
+		}
 	}
+
 	return ret;
 }
 
@@ -334,13 +352,15 @@ PX4IO_Uploader::get_sync(unsigned timeout)
 
 	ret = recv_byte_with_timeout(c, timeout);
 
-	if (ret != OK)
+	if (ret != OK) {
 		return ret;
+	}
 
 	ret = recv_byte_with_timeout(c + 1, timeout);
 
-	if (ret != OK)
+	if (ret != OK) {
 		return ret;
+	}
 
 	if ((c[0] != PROTO_INSYNC) || (c[1] != PROTO_OK)) {
 		log("bad sync 0x%02x,0x%02x", c[0], c[1]);
@@ -356,8 +376,9 @@ PX4IO_Uploader::sync()
 	drain();
 
 	/* complete any pending program operation */
-	for (unsigned i = 0; i < (PROG_MULTI_MAX + 6); i++)
+	for (unsigned i = 0; i < (PROG_MULTI_MAX + 6); i++) {
 		send(0);
+	}
 
 	send(PROTO_GET_SYNC);
 	send(PROTO_EOC);
@@ -375,8 +396,9 @@ PX4IO_Uploader::get_info(int param, uint32_t &val)
 
 	ret = recv_bytes((uint8_t *)&val, sizeof(val));
 
-	if (ret != OK)
+	if (ret != OK) {
 		return ret;
+	}
 
 	return get_sync();
 }
@@ -395,14 +417,17 @@ static int read_with_retry(int fd, void *buf, size_t n)
 {
 	int ret;
 	uint8_t retries = 0;
+
 	do {
 		ret = read(fd, buf, n);
 	} while (ret == -1 && retries++ < 100);
+
 	if (retries != 0) {
 		printf("read of %u bytes needed %u retries\n",
 		       (unsigned)n,
 		       (unsigned)retries);
 	}
+
 	return ret;
 }
 
@@ -415,6 +440,7 @@ PX4IO_Uploader::program(size_t fw_size)
 	size_t sent = 0;
 
 	file_buf = new uint8_t[PROG_MULTI_MAX];
+
 	if (!file_buf) {
 		log("Can't allocate program buffer");
 		return -ENOMEM;
@@ -430,13 +456,15 @@ PX4IO_Uploader::program(size_t fw_size)
 	while (sent < fw_size) {
 		/* get more bytes to program */
 		size_t n = fw_size - sent;
+
 		if (n > PROG_MULTI_MAX) {
 			n = PROG_MULTI_MAX;
 		}
+
 		count = read_with_retry(_fw_fd, file_buf, n);
 
 		if (count != (ssize_t)n) {
-			log("firmware read of %u bytes at %u failed -> %d errno %d", 
+			log("firmware read of %u bytes at %u failed -> %d errno %d",
 			    (unsigned)n,
 			    (unsigned)sent,
 			    (int)count,
@@ -478,32 +506,37 @@ PX4IO_Uploader::verify_rev2(size_t fw_size)
 	send(PROTO_EOC);
 	ret = get_sync();
 
-	if (ret != OK)
+	if (ret != OK) {
 		return ret;
+	}
 
 	while (sent < fw_size) {
 		/* get more bytes to verify */
 		size_t n = fw_size - sent;
+
 		if (n > sizeof(file_buf)) {
 			n = sizeof(file_buf);
 		}
+
 		count = read_with_retry(_fw_fd, file_buf, n);
 
 		if (count != (ssize_t)n) {
-			log("firmware read of %u bytes at %u failed -> %d errno %d", 
+			log("firmware read of %u bytes at %u failed -> %d errno %d",
 			    (unsigned)n,
 			    (unsigned)sent,
 			    (int)count,
 			    (int)errno);
 		}
 
-		if (count == 0)
+		if (count == 0) {
 			break;
+		}
 
 		sent += count;
 
-		if (count < 0)
+		if (count < 0) {
 			return -errno;
+		}
 
 		ASSERT((count % 4) == 0);
 
@@ -564,13 +597,15 @@ PX4IO_Uploader::verify_rev3(size_t fw_size_local)
 	/* read through the firmware file again and calculate the checksum*/
 	while (bytes_read < fw_size_local) {
 		size_t n = fw_size_local - bytes_read;
+
 		if (n > sizeof(file_buf)) {
 			n = sizeof(file_buf);
 		}
+
 		count = read_with_retry(_fw_fd, file_buf, n);
 
 		if (count != (ssize_t)n) {
-			log("firmware read of %u bytes at %u failed -> %d errno %d", 
+			log("firmware read of %u bytes at %u failed -> %d errno %d",
 			    (unsigned)n,
 			    (unsigned)bytes_read,
 			    (int)count,
@@ -581,9 +616,11 @@ PX4IO_Uploader::verify_rev3(size_t fw_size_local)
 		if (count == 0) {
 			break;
 		}
+
 		/* stop if the file cannot be read */
-		if (count < 0)
+		if (count < 0) {
 			return -errno;
+		}
 
 		/* calculate crc32 sum */
 		sum = crc32part((uint8_t *)&file_buf, sizeof(file_buf), sum);
@@ -601,7 +638,7 @@ PX4IO_Uploader::verify_rev3(size_t fw_size_local)
 	send(PROTO_GET_CRC);
 	send(PROTO_EOC);
 
-	ret = recv_bytes((uint8_t*)(&crc), sizeof(crc));
+	ret = recv_bytes((uint8_t *)(&crc), sizeof(crc));
 
 	if (ret != OK) {
 		log("did not receive CRC checksum");
@@ -621,7 +658,7 @@ int
 PX4IO_Uploader::reboot()
 {
 	send(PROTO_REBOOT);
-	up_udelay(100*1000); // Ensure the farend is in wait for char.
+	up_udelay(100 * 1000); // Ensure the farend is in wait for char.
 	send(PROTO_EOC);
 
 	return OK;

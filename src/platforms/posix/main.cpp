@@ -65,11 +65,15 @@ extern "C" {
 	}
 }
 
+static void print_prompt()
+{
+	cout << "pxh> ";
+}
+
 static void run_cmd(const vector<string> &appargs)
 {
 	// command is appargs[0]
 	string command = appargs[0];
-	cout << "----------------------------------\n";
 
 	if (apps.find(command) != apps.end()) {
 		const char *arg[appargs.size() + 2];
@@ -82,15 +86,20 @@ static void run_cmd(const vector<string> &appargs)
 		}
 
 		arg[i] = (char *)0;
-		cout << "Running: " << command << "\n";
 		apps[command](i, (char **)arg);
-		usleep(40000);
-		cout << "Returning: " << command << "\n";
+		usleep(65000);
+
+	} else if (command.compare("help") == 0) {
+		list_builtins();
+
+	} else if (command.length() == 0) {
+		// Do nothing
 
 	} else {
-		cout << "Invalid command: " << command << endl;
-		list_builtins();
+		cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
+
 	}
+	print_prompt();
 }
 
 static void usage()
@@ -177,16 +186,26 @@ int main(int argc, char **argv)
 		if (!daemon_mode) {
 			string mystr;
 
+			print_prompt();
+
 			while (!_ExitFlag) {
-				cout << "Enter a command and its args:" << endl;
-				getline(cin, mystr);
-				process_line(mystr);
-				mystr = "";
+
+				struct pollfd fds;
+				int ret;
+				fds.fd = 0; /* stdin */
+				fds.events = POLLIN;
+				ret = poll(&fds, 1, 100);
+
+				if (ret > 0) {
+					getline(cin, mystr);
+					process_line(mystr);
+					mystr = "";
+				}
 			}
 
 		} else {
 			while (!_ExitFlag) {
-				sleep(1000000);
+				usleep(100000);
 			}
 		}
 

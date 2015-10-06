@@ -187,11 +187,17 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu) {
 
 	RawBaroData baro;
 	// calculate air pressure from altitude (valid for low altitude)
-	baro.pressure = PRESS_GROUND - GRAVITY * DENSITY * imu->pressure_alt;
+	baro.pressure = (PRESS_GROUND - GRAVITY * DENSITY * imu->pressure_alt) / 100.0f; // convert from Pa to mbar
 	baro.altitude = imu->pressure_alt;
 	baro.temperature = imu->temperature;
 
 	write_baro_data((void *)&baro);
+
+	RawAirspeedData airspeed;
+	airspeed.temperature = imu->temperature;
+	airspeed.diff_pressure = imu->diff_pressure;
+
+	write_airspeed_data((void *)&airspeed);
 }
 
 void Simulator::update_gps(mavlink_hil_gps_t *gps_sim) {
@@ -221,6 +227,12 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish) {
 			publish_sensor_topics(&imu);
 		}
 		update_sensors(&imu);
+		break;
+
+	case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
+		mavlink_hil_optical_flow_t flow;
+		mavlink_msg_hil_optical_flow_decode(msg, &flow);
+		publish_flow_topic(&flow);
 		break;
 
 	case MAVLINK_MSG_ID_HIL_GPS:
@@ -702,5 +714,40 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu) {
 		}
 	}
 
-        return OK;
+				return OK;
+}
+
+int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t* flow_mavlink)
+{
+  uint64_t timestamp = hrt_absolute_time();
+
+  /* gyro */
+	{
+		struct optical_flow_s flow;
+		memset(&flow, 0, sizeof(flow));
+
+		flow.sensor_id = flow_mavlink->sensor_id;
+		flow.timestamp = timestamp;
+		flow.time_since_last_sonar_update = 0;
+		flow.frame_count_since_last_readout = 0; // ?
+		flow.integration_timespan = flow_mavlink->integration_time_us;
+
+		flow.ground_distance_m = flow_mavlink->distance;
+		flow.gyro_temperature = flow_mavlink->temperature;
+		flow.gyro_x_rate_integral = flow_mavlink->integrated_xgyro;
+		flow.gyro_y_rate_integral = flow_mavlink->integrated_ygyro;
+		flow.gyro_z_rate_integral = flow_mavlink->integrated_zgyro;
+		flow.pixel_flow_x_integral = flow_mavlink->integrated_x;
+		flow.pixel_flow_x_integral = flow_mavlink->integrated_y;
+		flow.quality = flow_mavlink->quality;
+
+		if (_flow_pub == nullptr) {
+		_flow_pub = orb_advertise(ORB_ID(optical_flow), &flow);
+
+		} else {
+		orb_publish(ORB_ID(optical_flow), _flow_pub, &flow);
+		}
+	}
+
+	return OK;
 }
