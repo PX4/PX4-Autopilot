@@ -1,38 +1,4457 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>PX4-Firmware</name>
+	<name>px4@Firmware</name>
 	<comment></comment>
 	<projects>
 	</projects>
 	<buildSpec>
 		<buildCommand>
-			<name>org.eclipse.cdt.managedbuilder.core.genmakebuilder</name>
+			<name>org.eclipse.cdt.make.core.makeBuilder</name>
 			<triggers>clean,full,incremental,</triggers>
 			<arguments>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.cleanBuildTarget</key>
+					<value>clean</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.enableCleanBuild</key>
+					<value>true</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.append_environment</key>
+					<value>true</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.stopOnError</key>
+					<value>true</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.enabledIncrementalBuild</key>
+					<value>true</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.build.command</key>
+					<value>/usr/bin/make</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.contents</key>
+					<value>org.eclipse.cdt.make.core.activeConfigSettings</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.build.target.inc</key>
+					<value>all</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.build.arguments</key>
+					<value>-j6</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.buildLocation</key>
+					<value>/home/markw/git/kd0aij/PX4/Firmware</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.useDefaultBuildCmd</key>
+					<value>false</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.environment</key>
+					<value>VERBOSE=1|CMAKE_NO_VERBOSE=1|</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.enableFullBuild</key>
+					<value>true</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.build.target.auto</key>
+					<value>all</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.enableAutoBuild</key>
+					<value>false</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.build.target.clean</key>
+					<value>clean</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.fullBuildTarget</key>
+					<value>all</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.buildArguments</key>
+					<value></value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.build.location</key>
+					<value>/home/markw/git/kd0aij/PX4/Firmware</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.autoBuildTarget</key>
+					<value>all</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.core.errorOutputParser</key>
+					<value>org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GASErrorParser;org.eclipse.cdt.core.GLDErrorParser;</value>
+				</dictionary>
 			</arguments>
 		</buildCommand>
 		<buildCommand>
-			<name>org.eclipse.cdt.managedbuilder.core.ScannerConfigBuilder</name>
-			<triggers>full,incremental,</triggers>
+			<name>org.eclipse.cdt.make.core.ScannerConfigBuilder</name>
 			<arguments>
 			</arguments>
 		</buildCommand>
 	</buildSpec>
 	<natures>
-		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.make.core.makeNature</nature>
+		<nature>org.eclipse.cdt.make.core.ScannerConfigNature</nature>
 		<nature>org.eclipse.cdt.core.ccnature</nature>
-		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
-		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
+		<nature>org.eclipse.cdt.core.cnature</nature>
 	</natures>
-	<filteredResources>
-		<filter>
-			<id>1438876028862</id>
-			<name></name>
-			<type>26</type>
-			<matcher>
-				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-.git</arguments>
-			</matcher>
-		</filter>
-	</filteredResources>
+	<linkedResources>
+		<link>
+			<name>[Subprojects]</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Source Files/ringbuffer.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/device/ringbuffer.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Source Files/integrator.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/device/integrator.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Source Files/device_nuttx.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/device/device_nuttx.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Source Files/cdev.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/device/cdev.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Source Files/i2c_nuttx.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/device/i2c_nuttx.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Source Files/pio.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/device/pio.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Source Files/spi.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/device/spi.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__device/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32/Source Files/drv_hrt.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/stm32/drv_hrt.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32/Source Files/drv_pwm_servo.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/stm32/drv_pwm_servo.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__adc</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__adc/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__adc/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__adc/Source Files/adc.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/stm32/adc/adc.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__adc/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__adc/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__adc/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__adc/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__tone_alarm</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__tone_alarm/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__tone_alarm/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__tone_alarm/Source Files/tone_alarm.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/stm32/tone_alarm/tone_alarm.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__tone_alarm/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__tone_alarm/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__tone_alarm/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__stm32__tone_alarm/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__led</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__led/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__led/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__led/Source Files/led.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/led/led.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__led/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__led/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__led/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__led/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4fmu</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4fmu/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4fmu/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4fmu/Source Files/fmu.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/px4fmu/fmu.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4fmu/Source Files/px4fmu_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/px4fmu/px4fmu_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4fmu/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4fmu/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4fmu/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4fmu/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/Source Files/px4io.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/px4io/px4io.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/Source Files/px4io_uploader.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/px4io/px4io_uploader.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/Source Files/px4io_serial.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/px4io/px4io_serial.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/Source Files/px4io_i2c.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/px4io/px4io_i2c.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/Source Files/px4io_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/px4io/px4io_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4io/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Source Files/px4fmu_can.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/boards/px4fmu-v2/px4fmu_can.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Source Files/px4fmu2_init.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/boards/px4fmu-v2/px4fmu2_init.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Source Files/px4fmu_pwm_servo.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/boards/px4fmu-v2/px4fmu_pwm_servo.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Source Files/px4fmu_spi.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/boards/px4fmu-v2/px4fmu_spi.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Source Files/px4fmu_usb.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/boards/px4fmu-v2/px4fmu_usb.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Source Files/px4fmu2_led.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/boards/px4fmu-v2/px4fmu2_led.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__boards__px4fmu-v2/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__rgbled</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__rgbled/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__rgbled/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__rgbled/Source Files/rgbled.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/rgbled/rgbled.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__rgbled/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__rgbled/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__rgbled/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__rgbled/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu6000</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu6000/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu6000/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu6000/Source Files/mpu6000.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/mpu6000/mpu6000.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu6000/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu6000/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu6000/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu6000/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu9250</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu9250/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu9250/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu9250/Source Files/mpu9250.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/mpu9250/mpu9250.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu9250/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu9250/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu9250/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mpu9250/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__lsm303d</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__lsm303d/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__lsm303d/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__lsm303d/Source Files/lsm303d.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/lsm303d/lsm303d.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__lsm303d/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__lsm303d/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__lsm303d/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__lsm303d/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__l3gd20</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__l3gd20/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__l3gd20/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__l3gd20/Source Files/l3gd20.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/l3gd20/l3gd20.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__l3gd20/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__l3gd20/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__l3gd20/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__l3gd20/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883/Source Files/hmc5883_i2c.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/hmc5883/hmc5883_i2c.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883/Source Files/hmc5883_spi.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/hmc5883/hmc5883_spi.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883/Source Files/hmc5883.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/hmc5883/hmc5883.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hmc5883/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611/Source Files/ms5611_spi.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/ms5611/ms5611_spi.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611/Source Files/ms5611_i2c.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/ms5611/ms5611_i2c.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611/Source Files/ms5611_nuttx.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/ms5611/ms5611_nuttx.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ms5611/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mb12xx</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mb12xx/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mb12xx/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mb12xx/Source Files/mb12xx.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/mb12xx/mb12xx.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mb12xx/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mb12xx/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mb12xx/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mb12xx/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__sf0x</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__sf0x/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__sf0x/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__sf0x/Source Files/sf0x.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/sf0x/sf0x.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__sf0x/Source Files/sf0x_parser.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/sf0x/sf0x_parser.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__sf0x/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__sf0x/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__sf0x/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__sf0x/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/Source Files/ll40ls.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/ll40ls/ll40ls.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/Source Files/LidarLite.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/ll40ls/LidarLite.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/Source Files/LidarLiteI2C.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/ll40ls/LidarLiteI2C.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/Source Files/LidarLitePWM.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/ll40ls/LidarLitePWM.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ll40ls/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__trone</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__trone/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__trone/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__trone/Source Files/trone.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/trone/trone.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__trone/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__trone/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__trone/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__trone/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/Source Files/gps.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/gps/gps.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/Source Files/gps_helper.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/gps/gps_helper.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/Source Files/mtk.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/gps/mtk.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/Source Files/ashtech.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/gps/ashtech.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/Source Files/ubx.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/gps/ubx.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gps/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_out_sim</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_out_sim/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_out_sim/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_out_sim/Source Files/pwm_out_sim.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/pwm_out_sim/pwm_out_sim.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_out_sim/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_out_sim/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_out_sim/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_out_sim/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott/Source Files/messages.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/hott/messages.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott/Source Files/comms.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/hott/comms.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_telemetry</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_telemetry/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_telemetry/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_telemetry/Source Files/hott_telemetry.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/hott/hott_telemetry/hott_telemetry.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_telemetry/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_telemetry/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_telemetry/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_telemetry/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_sensors</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_sensors/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_sensors/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_sensors/Source Files/hott_sensors.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/hott/hott_sensors/hott_sensors.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_sensors/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_sensors/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_sensors/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__hott__hott_sensors/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__blinkm</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__blinkm/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__blinkm/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__blinkm/Source Files/blinkm.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/blinkm/blinkm.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__blinkm/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__blinkm/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__blinkm/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__blinkm/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__airspeed</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__airspeed/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__airspeed/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__airspeed/Source Files/airspeed.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/airspeed/airspeed.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__airspeed/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__airspeed/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__airspeed/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__airspeed/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ets_airspeed</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ets_airspeed/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ets_airspeed/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ets_airspeed/Source Files/ets_airspeed.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/ets_airspeed/ets_airspeed.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ets_airspeed/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ets_airspeed/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ets_airspeed/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__ets_airspeed/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__meas_airspeed</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__meas_airspeed/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__meas_airspeed/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__meas_airspeed/Source Files/meas_airspeed.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/meas_airspeed/meas_airspeed.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__meas_airspeed/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__meas_airspeed/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__meas_airspeed/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__meas_airspeed/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__frsky_telemetry</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__frsky_telemetry/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__frsky_telemetry/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__frsky_telemetry/Source Files/frsky_data.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/frsky_telemetry/frsky_data.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__frsky_telemetry/Source Files/frsky_telemetry.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/frsky_telemetry/frsky_telemetry.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__frsky_telemetry/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__frsky_telemetry/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__frsky_telemetry/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__frsky_telemetry/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sensors</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sensors/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sensors/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sensors/Source Files/sensors.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/sensors/sensors.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sensors/Source Files/sensor_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/sensors/sensor_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sensors/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sensors/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sensors/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sensors/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mkblctrl</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mkblctrl/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mkblctrl/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mkblctrl/Source Files/mkblctrl.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/mkblctrl/mkblctrl.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mkblctrl/Source Files/mkblctrl_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/mkblctrl/mkblctrl_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mkblctrl/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mkblctrl/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mkblctrl/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__mkblctrl/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4flow</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4flow/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4flow/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4flow/Source Files/px4flow.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/px4flow/px4flow.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4flow/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4flow/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4flow/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__px4flow/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__oreoled</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__oreoled/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__oreoled/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__oreoled/Source Files/oreoled.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/oreoled/oreoled.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__oreoled/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__oreoled/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__oreoled/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__oreoled/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gimbal</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gimbal/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gimbal/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gimbal/Source Files/gimbal.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/gimbal/gimbal.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gimbal/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gimbal/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gimbal/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__gimbal/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_input</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_input/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_input/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_input/Source Files/pwm_input.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/pwm_input/pwm_input.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_input/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_input/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_input/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__pwm_input/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__camera_trigger</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__camera_trigger/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__camera_trigger/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__camera_trigger/Source Files/camera_trigger.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/camera_trigger/camera_trigger.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__camera_trigger/Source Files/camera_trigger_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/camera_trigger/camera_trigger_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__camera_trigger/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__camera_trigger/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__camera_trigger/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] drivers__camera_trigger/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__bl_update</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__bl_update/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__bl_update/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__bl_update/Source Files/bl_update.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/bl_update/bl_update.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__bl_update/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__bl_update/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__bl_update/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__bl_update/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mixer</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mixer/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mixer/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mixer/Source Files/mixer.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/mixer/mixer.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mixer/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mixer/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mixer/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mixer/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__param</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__param/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__param/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__param/Source Files/param.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/param/param.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__param/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__param/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__param/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__param/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__perf</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__perf/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__perf/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__perf/Source Files/perf.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/perf/perf.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__perf/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__perf/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__perf/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__perf/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__pwm</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__pwm/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__pwm/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__pwm/Source Files/pwm.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/pwm/pwm.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__pwm/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__pwm/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__pwm/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__pwm/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__esc_calib</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__esc_calib/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__esc_calib/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__esc_calib/Source Files/esc_calib.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/esc_calib/esc_calib.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__esc_calib/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__esc_calib/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__esc_calib/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__esc_calib/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__reboot</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__reboot/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__reboot/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__reboot/Source Files/reboot.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/reboot/reboot.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__reboot/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__reboot/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__reboot/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__reboot/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__top</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__top/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__top/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__top/Source Files/top.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/top/top.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__top/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__top/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__top/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__top/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__config</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__config/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__config/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__config/Source Files/config.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/config/config.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__config/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__config/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__config/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__config/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__nshterm</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__nshterm/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__nshterm/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__nshterm/Source Files/nshterm.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/nshterm/nshterm.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__nshterm/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__nshterm/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__nshterm/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__nshterm/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mtd</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mtd/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mtd/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mtd/Source Files/mtd.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/mtd/mtd.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mtd/Source Files/24xxxx_mtd.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/mtd/24xxxx_mtd.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mtd/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mtd/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mtd/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__mtd/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__dumpfile</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__dumpfile/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__dumpfile/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__dumpfile/Source Files/dumpfile.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/dumpfile/dumpfile.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__dumpfile/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__dumpfile/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__dumpfile/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__dumpfile/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__ver</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__ver/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__ver/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__ver/Source Files/ver.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/systemcmds/ver/ver.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__ver/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__ver/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__ver/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] systemcmds__ver/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/commander.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/commander.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/state_machine_helper.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/state_machine_helper.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/commander_helper.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/commander_helper.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/calibration_routines.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/calibration_routines.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/accelerometer_calibration.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/accelerometer_calibration.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/gyro_calibration.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/gyro_calibration.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/mag_calibration.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/mag_calibration.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/baro_calibration.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/baro_calibration.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/rc_calibration.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/rc_calibration.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/airspeed_calibration.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/airspeed_calibration.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/esc_calibration.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/esc_calibration.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Source Files/PreflightCheck.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/commander/PreflightCheck.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__commander/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/navigator_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/navigator_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/navigator_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/navigator_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/navigator_mode.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/navigator_mode.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/mission_block.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/mission_block.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/mission.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/mission.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/mission_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/mission_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/loiter.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/loiter.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/rtl.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/rtl.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/rtl_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/rtl_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/mission_feasibility_checker.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/mission_feasibility_checker.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/geofence.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/geofence.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/geofence_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/geofence_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/datalinkloss.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/datalinkloss.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/datalinkloss_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/datalinkloss_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/rcloss.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/rcloss.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/rcloss_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/rcloss_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/enginefailure.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/enginefailure.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/gpsfailure.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/gpsfailure.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Source Files/gpsfailure_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/navigator/gpsfailure_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__navigator/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink_mission.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink_mission.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink_parameters.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink_parameters.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink_orb_subscription.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink_orb_subscription.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink_messages.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink_messages.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink_stream.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink_stream.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink_rate_limiter.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink_rate_limiter.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink_receiver.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink_receiver.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Source Files/mavlink_ftp.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mavlink/mavlink_ftp.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mavlink/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__gpio_led</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__gpio_led/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__gpio_led/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__gpio_led/Source Files/gpio_led.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/gpio_led/gpio_led.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__gpio_led/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__gpio_led/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__gpio_led/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__gpio_led/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Source Files/uavcan_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uavcan/uavcan_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Source Files/uavcan_servers.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uavcan/uavcan_servers.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Source Files/uavcan_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uavcan/uavcan_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Source Files/esc.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uavcan/actuators/esc.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Source Files/sensor_bridge.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uavcan/sensors/sensor_bridge.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Source Files/gnss.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uavcan/sensors/gnss.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Source Files/mag.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uavcan/sensors/mag.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Source Files/baro.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uavcan/sensors/baro.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uavcan/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/Source Files/land_detector_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/land_detector/land_detector_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/Source Files/land_detector_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/land_detector/land_detector_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/Source Files/LandDetector.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/land_detector/LandDetector.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/Source Files/MulticopterLandDetector.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/land_detector/MulticopterLandDetector.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/Source Files/FixedwingLandDetector.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/land_detector/FixedwingLandDetector.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__land_detector/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__attitude_estimator_q</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__attitude_estimator_q/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__attitude_estimator_q/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__attitude_estimator_q/Source Files/attitude_estimator_q_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/attitude_estimator_q/attitude_estimator_q_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__attitude_estimator_q/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__attitude_estimator_q/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__attitude_estimator_q/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__attitude_estimator_q/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/Source Files/ekf_att_pos_estimator_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/ekf_att_pos_estimator/ekf_att_pos_estimator_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/Source Files/ekf_att_pos_estimator_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/ekf_att_pos_estimator/ekf_att_pos_estimator_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/Source Files/estimator_22states.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/ekf_att_pos_estimator/estimator_22states.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/Source Files/estimator_utilities.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/ekf_att_pos_estimator/estimator_utilities.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__ekf_att_pos_estimator/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav/Source Files/position_estimator_inav_main.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/position_estimator_inav/position_estimator_inav_main.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav/Source Files/position_estimator_inav_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/position_estimator_inav/position_estimator_inav_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav/Source Files/inertial_filter.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/position_estimator_inav/inertial_filter.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__position_estimator_inav/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Source Files/fw_pos_control_l1_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/fw_pos_control_l1/fw_pos_control_l1_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Source Files/fw_pos_control_l1_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/fw_pos_control_l1/fw_pos_control_l1_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Source Files/landingslope.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/fw_pos_control_l1/landingslope.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Source Files/mTecs.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/fw_pos_control_l1/mtecs/mTecs.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Source Files/limitoverride.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/fw_pos_control_l1/mtecs/limitoverride.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Source Files/mTecs_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/fw_pos_control_l1/mtecs/mTecs_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_pos_control_l1/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_att_control</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_att_control/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_att_control/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_att_control/Source Files/fw_att_control_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/fw_att_control/fw_att_control_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_att_control/Source Files/fw_att_control_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/fw_att_control/fw_att_control_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_att_control/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_att_control/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_att_control/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__fw_att_control/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_att_control</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_att_control/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_att_control/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_att_control/Source Files/mc_att_control_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mc_att_control/mc_att_control_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_att_control/Source Files/mc_att_control_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mc_att_control/mc_att_control_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_att_control/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_att_control/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_att_control/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_att_control/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_pos_control</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_pos_control/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_pos_control/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_pos_control/Source Files/mc_pos_control_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mc_pos_control/mc_pos_control_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_pos_control/Source Files/mc_pos_control_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/mc_pos_control/mc_pos_control_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_pos_control/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_pos_control/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_pos_control/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__mc_pos_control/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Source Files/vtol_att_control_main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/vtol_att_control/vtol_att_control_main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Source Files/vtol_att_control_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/vtol_att_control/vtol_att_control_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Source Files/tiltrotor_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/vtol_att_control/tiltrotor_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Source Files/tiltrotor.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/vtol_att_control/tiltrotor.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Source Files/vtol_type.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/vtol_att_control/vtol_type.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Source Files/tailsitter.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/vtol_att_control/tailsitter.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Source Files/standard_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/vtol_att_control/standard_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Source Files/standard.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/vtol_att_control/standard.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__vtol_att_control/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sdlog2</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sdlog2/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sdlog2/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sdlog2/Source Files/sdlog2.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/sdlog2/sdlog2.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sdlog2/Source Files/logbuffer.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/sdlog2/logbuffer.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sdlog2/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sdlog2/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sdlog2/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__sdlog2/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param/Source Files/px4_parameters.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/param/px4_parameters.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param/Header Files/px4_parameters.h</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/param/px4_parameters.h</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param/CMake Rules/px4_parameters.h.rule</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/param/px4_parameters.h.rule</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__param/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/perf_counter.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/perf_counter.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/param.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/param/param.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/conversions.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/conversions.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/cpuload.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/cpuload.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/pid.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/pid/pid.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/airspeed.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/airspeed.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/system_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/system_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/mavlink_log.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mavlink_log.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/rc_check.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/rc_check.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/otp.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/otp.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/board_serial.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/board_serial.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/pwm_limit.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/pwm_limit/pwm_limit.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/mcu_version.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mcu_version.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/tinybson.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/bson/tinybson.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/circuit_breaker.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/circuit_breaker.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/circuit_breaker_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/circuit_breaker_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/err.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/err.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/printload.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/printload.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/up_cxxinitialize.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/up_cxxinitialize.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Source Files/hx_stream.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/hx_stream.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Source Files/mixer.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Source Files/mixer_group.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer_group.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Source Files/mixer_multirotor.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer_multirotor.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Source Files/mixer_simple.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer_simple.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Source Files/mixer_load.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer_load.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Header Files/mixer_multirotor.generated.h</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer_multirotor.generated.h</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/CMake Rules/mixer_multirotor.generated.h.rule</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer_multirotor.generated.h.rule</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__systemlib__mixer/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/Source Files/test_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/controllib/test_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/Source Files/Block.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/controllib/block/Block.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/Source Files/BlockParam.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/controllib/block/BlockParam.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/Source Files/blocks.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/controllib/uorb/blocks.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/Source Files/blocks.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/controllib/blocks.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__controllib/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files/objects_common.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uORB/objects_common.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files/uORBUtils.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uORB/uORBUtils.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files/uORB.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uORB/uORB.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files/uORBMain.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uORB/uORBMain.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files/Publication.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uORB/Publication.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files/Subscription.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uORB/Subscription.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files/uORBDevices_nuttx.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uORB/uORBDevices_nuttx.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files/uORBTest_UnitTest.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uORB/uORBTest_UnitTest.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Source Files/uORBManager_nuttx.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/uORB/uORBManager_nuttx.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__uORB/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__dataman</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__dataman/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__dataman/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__dataman/Source Files/dataman.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/dataman/dataman.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__dataman/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__dataman/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__dataman/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__dataman/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib/Source Files/test.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/mathlib/math/test/test.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib/Source Files/Limits.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/mathlib/math/Limits.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib__math__filter</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib__math__filter/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib__math__filter/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib__math__filter/Source Files/LowPassFilter2p.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/mathlib/math/filter/LowPassFilter2p.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib__math__filter/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib__math__filter/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib__math__filter/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__mathlib__math__filter/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Source Files/ecl_controller.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/ecl/attitude_fw/ecl_controller.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Source Files/ecl_pitch_controller.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/ecl/attitude_fw/ecl_pitch_controller.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Source Files/ecl_roll_controller.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/ecl/attitude_fw/ecl_roll_controller.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Source Files/ecl_yaw_controller.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/ecl/attitude_fw/ecl_yaw_controller.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Source Files/ecl_l1_pos_controller.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/ecl/l1/ecl_l1_pos_controller.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Source Files/data_validator.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/ecl/validation/data_validator.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Source Files/data_validator_group.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/ecl/validation/data_validator_group.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__ecl/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__external_lgpl</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__external_lgpl/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__external_lgpl/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__external_lgpl/Source Files/tecs.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/external_lgpl/tecs/tecs.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__external_lgpl/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__external_lgpl/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__external_lgpl/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__external_lgpl/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo/Source Files/geo.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/geo/geo.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo_lookup</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo_lookup/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo_lookup/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo_lookup/Source Files/geo_mag_declination.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/geo_lookup/geo_mag_declination.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo_lookup/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo_lookup/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo_lookup/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__geo_lookup/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__conversion</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__conversion/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__conversion/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__conversion/Source Files/rotation.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/conversion/rotation.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__conversion/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__conversion/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__conversion/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__conversion/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection/Source Files/LaunchDetector.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/launchdetection/LaunchDetector.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection/Source Files/CatapultLaunchMethod.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/launchdetection/CatapultLaunchMethod.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection/Source Files/launchdetection_params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/launchdetection/launchdetection_params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] lib__launchdetection/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx/Source Files/px4_nuttx_impl.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/platforms/nuttx/px4_nuttx_impl.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__common</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__common/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__common/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__common/Source Files/px4_getopt.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/platforms/common/px4_getopt.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__common/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__common/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__common/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__common/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx__px4_layer</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx__px4_layer/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx__px4_layer/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx__px4_layer/Source Files/px4_nuttx_tasks.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/platforms/nuttx/px4_layer/px4_nuttx_tasks.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx__px4_layer/Source Files/px4_log.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/platforms/posix/px4_layer/px4_log.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx__px4_layer/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx__px4_layer/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx__px4_layer/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] platforms__nuttx__px4_layer/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__bottle_drop</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__bottle_drop/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__bottle_drop/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__bottle_drop/Source Files/bottle_drop.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/bottle_drop/bottle_drop.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__bottle_drop/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__bottle_drop/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__bottle_drop/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] modules__bottle_drop/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] examples__rover_steering_control</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] examples__rover_steering_control/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] examples__rover_steering_control/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] examples__rover_steering_control/Source Files/main.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/examples/rover_steering_control/main.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] examples__rover_steering_control/Source Files/params.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/examples/rover_steering_control/params.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] examples__rover_steering_control/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] examples__rover_steering_control/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] examples__rover_steering_control/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] examples__rover_steering_control/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] firmware_nuttx</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] firmware_nuttx/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] firmware_nuttx/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] firmware_nuttx/Source Files/builtin_commands.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/firmware/nuttx/builtin_commands.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] firmware_nuttx/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] firmware_nuttx/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] firmware_nuttx/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] firmware_nuttx/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs/CMake Rules/romfs.o.rule</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/firmware/nuttx/romfs.o.rule</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs/CMake Rules/px4io-v2_default.bin.rule</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/firmware/nuttx/extras/px4io-v2_default.bin.rule</location>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[lib] romfs/Object Files/romfs.o</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/firmware/nuttx/romfs.o</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/adc.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/px4iofirmware/adc.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/controls.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/px4iofirmware/controls.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/dsm.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/px4iofirmware/dsm.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/px4io.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/px4iofirmware/px4io.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/registers.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/px4iofirmware/registers.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/safety.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/px4iofirmware/safety.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/sbus.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/px4iofirmware/sbus.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/up_cxxinitialize.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/up_cxxinitialize.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/perf_counter.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/perf_counter.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/mixer.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/px4iofirmware/mixer.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/mixer.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/mixer_group.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer_group.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/mixer_multirotor.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer_multirotor.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/mixer_simple.cpp</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/mixer/mixer_simple.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/pwm_limit.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/pwm_limit/pwm_limit.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/st24.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/rc/st24.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/sumd.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/lib/rc/sumd.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/drv_hrt.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/stm32/drv_hrt.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/drv_pwm_servo.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/stm32/drv_pwm_servo.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/px4io_init.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/boards/px4io-v2/px4io_init.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/px4io_pwm_servo.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/drivers/boards/px4io-v2/px4io_pwm_servo.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/serial.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/px4iofirmware/serial.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Source Files/hx_stream.c</name>
+			<type>1</type>
+			<location>/home/markw/git/kd0aij/PX4/Firmware/src/modules/systemlib/hx_stream.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] px4io-v2_default/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>
