@@ -803,7 +803,7 @@ void MulticopterPositionControl::control_auto(float dt)
 				       &curr_sp.data[0], &curr_sp.data[1]);
 		curr_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
 
-		/* scaled space: 1 == position error resulting max allowed speed, L1 = 1 in this space */
+		/* scaled space: 1 == position error resulting max allowed speed */
 		math::Vector<3> scale = _params.pos_p.edivide(_params.vel_max);	// TODO add mult param here
 
 		/* convert current setpoint to scaled space */
@@ -822,14 +822,14 @@ void MulticopterPositionControl::control_auto(float dt)
 
 			if ((curr_sp - prev_sp).length() > MIN_DIST) {
 
-				/* find X - cross point of L1 sphere and trajectory */
+				/* find X - cross point of unit sphere and trajectory */
 				math::Vector<3> pos_s = _pos.emult(scale);
 				math::Vector<3> prev_sp_s = prev_sp.emult(scale);
 				math::Vector<3> prev_curr_s = curr_sp_s - prev_sp_s;
 				math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
 				float curr_pos_s_len = curr_pos_s.length();
 				if (curr_pos_s_len < 1.0f) {
-					/* copter is closer to waypoint than L1 radius */
+					/* copter is closer to waypoint than unit radius */
 					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
 					if (_pos_sp_triplet.next.valid) {
 						math::Vector<3> next_sp;
@@ -853,7 +853,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 							if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
 								float curr_next_s_len = curr_next_s.length();
-								/* if curr - next distance is larger than L1 radius, limit it */
+								/* if curr - next distance is larger than unit radius, limit it */
 								if (curr_next_s_len > 1.0f) {
 									cos_a_curr_next /= curr_next_s_len;
 								}
@@ -870,7 +870,7 @@ void MulticopterPositionControl::control_auto(float dt)
 				} else {
 					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, pos_sp_s);
 					if (near) {
-						/* L1 sphere crosses trajectory */
+						/* unit sphere crosses trajectory */
 
 					} else {
 						/* copter is too far from trajectory */
