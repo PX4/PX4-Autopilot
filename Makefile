@@ -63,7 +63,7 @@ j ?= 4
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -DCONFIG=$(1)
++mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G"Unix Makefiles" -DCONFIG=$(1)
 +make -j$(j) -C $(PWD)/build_$@ --no-print-directory $(ARGS)
 endef
 
