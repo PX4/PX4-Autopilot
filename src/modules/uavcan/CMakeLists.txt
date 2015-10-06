@@ -74,6 +74,7 @@ px4_join(OUT uavcan_cxx_flags LIST "${uavcan_cxx_flags}" GLUE " ")
 
 externalproject_add(libuavcan
 	DEPENDS ${uavcan_deps}
+	DOWNLOAD_COMMAND ""
 	UPDATE_COMMAND git submodule update --init
 	SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/lib/uavcan
 	CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
