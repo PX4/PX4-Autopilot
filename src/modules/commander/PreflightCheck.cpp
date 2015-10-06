@@ -79,12 +79,15 @@ int check_calibration(int fd, const char* param_template)
 	bool calibration_found;
 
 	/* new style: ask device for calibration state */
-	ret = px4_ioctl(fd, SENSORIOCCALTEST, 0);
+	int ret = px4_ioctl(fd, SENSORIOCCALTEST, 0);
 
 	calibration_found = (ret == OK);
 
 	/* old style transition: check param values */
 	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+
+	char s[20];
+	int instance = 0;
 
 	while (!calibration_found) {
 		sprintf(s, param_template, instance);
@@ -105,6 +108,7 @@ int check_calibration(int fd, const char* param_template)
 				break;
 			}
 		}
+		instance++;
 	}
 
 	return !calibration_found;
@@ -150,7 +154,7 @@ out:
 	return success;
 }
 
-static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional, bool dynamic)
+static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional, bool dynamic, int &device_id)
 {
 	bool success = true;
 
@@ -215,7 +219,7 @@ out:
 	return success;
 }
 
-static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional)
+static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional, int &device_id)
 {
 	bool success = true;
 
@@ -255,7 +259,7 @@ out:
 	return success;
 }
 
-static bool baroCheck(int mavlink_fd, unsigned instance, bool optional)
+static bool baroCheck(int mavlink_fd, unsigned instance, bool optional, int &device_id)
 {
 	bool success = true;
 
@@ -271,6 +275,18 @@ static bool baroCheck(int mavlink_fd, unsigned instance, bool optional)
 
 		return false;
 	}
+
+	// TODO: There is no baro calibration yet, since no external baros exist
+	// int ret = check_calibration(fd, "CAL_BARO%u_ID");
+
+	// if (ret) {
+	// 	mavlink_and_console_log_critical(mavlink_fd,
+	// 					 "PREFLIGHT FAIL: BARO #%u UNCALIBRATED", instance);
+	// 	success = false;
+	// 	goto out;
+	// }
+
+//out:
 
 	px4_close(fd);
 	return success;
@@ -371,7 +387,7 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_accel_count; i++) {
 			bool required = (i < max_mandatory_accel_count);
-			int device_id
+			int device_id;
 
 			if (!accelerometerCheck(mavlink_fd, i, !required, checkDynamic, device_id) && required) {
 				failed = true;
@@ -436,9 +452,9 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 
 		// TODO there is no logic in place to calibrate the primary baro yet
 		// // check if the primary device is present 
-		// if (!prime_found) {
+		if (!prime_found) {
 		// 	failed = true;
-		// }
+		}
 	}
 
 	/* ---- AIRSPEED ---- */
