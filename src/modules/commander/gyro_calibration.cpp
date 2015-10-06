@@ -204,7 +204,8 @@ int do_gyro_calibration(int mavlink_fd)
 		worker_data.gyro_sensor_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
 
 		// Get priority
-		int32_t prio = orb_priority(work_data.gyro_sensor_subs[s]);
+		int32_t prio;
+		orb_priority(worker_data.gyro_sensor_sub[s], &prio);
 
 		if (prio > device_prio_max) {
 			device_prio_max = prio;
@@ -273,7 +274,7 @@ int do_gyro_calibration(int mavlink_fd)
 		/* set offset parameters to new values */
 		bool failed = false;
 
-		failed = failed || (OK != param_set_no_notification("CAL_GYRO_PRIME", &(device_id_primary)));
+		failed = failed || (OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
 
 		for (unsigned s = 0; s < max_gyros; s++) {
 			if (worker_data.device_id[s] != 0) {
