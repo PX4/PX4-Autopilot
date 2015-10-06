@@ -98,7 +98,7 @@ MODULES 	+= modules/vtol_att_control
 #
 # Logging
 #
-MODULES		+= modules/sdlog2
+MODULES		+= modules/logger
 
 #
 # Library modules
