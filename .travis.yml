@@ -1,14 +1,14 @@
 # Build and autotest script for PX4 Firmware
 # http://travis-ci.org
 
-language: cpp
-
 matrix:
   include:
     - os: linux
       sudo: false
+      language: cpp
     - os: osx
       osx_image: beta-xcode6.3
+      language: cpp
 
 cache:
   directories:
