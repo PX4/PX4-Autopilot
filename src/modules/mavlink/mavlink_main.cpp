@@ -1351,11 +1351,9 @@ Mavlink::task_main(int argc, char *argv[])
 				_mode = MAVLINK_MODE_ONBOARD;
 			} else if (strcmp(optarg, "onboard") == 0) {
 				_mode = MAVLINK_MODE_ONBOARD;
-
-			} else if (strcmp(myoptarg, "osd") == 0) {
+			} else if (strcmp(optarg, "osd") == 0) {
 				_mode = MAVLINK_MODE_OSD;
-
-			} else if (strcmp(myoptarg, "config") == 0) {
+			} else if (strcmp(optarg, "config") == 0) {
 				_mode = MAVLINK_MODE_CONFIG;
 			}
 
@@ -1500,6 +1498,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 3.0f);
 		configure_stream("LOCAL_POSITION_NED", 3.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 2.0f);
 		configure_stream("RC_CHANNELS_RAW", 4.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
 		configure_stream("ATTITUDE_TARGET", 8.0f);
