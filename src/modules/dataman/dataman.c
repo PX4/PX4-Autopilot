@@ -149,8 +149,8 @@ typedef struct {
 static work_q_t g_free_q;	/* queue of free work items. So that we don't always need to call malloc and free*/
 static work_q_t g_work_q;	/* pending work items. To be consumed by worker thread */
 
-px4_sem_t g_work_queued_sema;	/* To notify worker thread a work item has been queued */
-px4_sem_t g_init_sema;
+static px4_sem_t g_work_queued_sema;	/* To notify worker thread a work item has been queued */
+static px4_sem_t g_init_sema;
 
 static bool g_task_should_exit;	/**< if true, dataman task should exit */
 
