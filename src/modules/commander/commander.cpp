@@ -195,6 +195,13 @@ static struct offboard_control_mode_s offboard_control_mode;
 static struct home_position_s _home;
 
 static unsigned _last_mission_instance = 0;
+static uint64_t last_manual_input = 0;
+static switch_pos_t last_offboard_switch = 0;
+static switch_pos_t last_return_switch = 0;
+static switch_pos_t last_mode_switch = 0;
+static switch_pos_t last_acro_switch = 0;
+static switch_pos_t last_posctl_switch = 0;
+static switch_pos_t last_loiter_switch = 0;
 
 struct vtol_vehicle_status_s vtol_status;
 
@@ -586,6 +593,14 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 			} else {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+
+				if (arming_ret == TRANSITION_DENIED) {
+					mavlink_log_critical(mavlink_fd, "Rejecting arming cmd");
+				}
+
+				if (main_ret == TRANSITION_DENIED) {
+					mavlink_log_critical(mavlink_fd, "Rejecting mode switch cmd");
+				}
 			}
 		}
 		break;
@@ -2183,7 +2198,6 @@ int commander_thread_main(int argc, char *argv[])
 		// TODO handle mode changes by commands
 		if (main_state_changed || nav_state_changed) {
 			status_changed = true;
-			warnx("main state: %s nav state: %s", main_states_str[status.main_state], nav_states_str[status.nav_state]);
 			mavlink_log_info(mavlink_fd, "Flight mode: %s", nav_states_str[status.nav_state]);
 			main_state_changed = false;
 		}
@@ -2411,6 +2425,27 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	if (status.offboard_control_set_by_command) {
 		return main_state_transition(status_local,vehicle_status_s::MAIN_STATE_OFFBOARD);
 	}
+
+	/* manual setpoint has not updated, do not re-evaluate it */
+	if ((last_manual_input == sp_man->timestamp) ||
+		((last_offboard_switch == sp_man->offboard_switch) &&
+		 (last_return_switch == sp_man->return_switch) &&
+		 (last_mode_switch == sp_man->mode_switch) &&
+		 (last_acro_switch == sp_man->acro_switch) &&
+		 (last_posctl_switch == sp_man->posctl_switch) &&
+		 (last_loiter_switch == sp_man->loiter_switch))) {
+
+		/* no timestamp change or no switch change -> nothing changed */
+		return TRANSITION_NOT_CHANGED;
+	}
+
+	last_manual_input = sp_man->timestamp;
+	last_offboard_switch = sp_man->offboard_switch;
+	last_return_switch = sp_man->return_switch;
+	last_mode_switch = sp_man->mode_switch;
+	last_acro_switch = sp_man->acro_switch;
+	last_posctl_switch = sp_man->posctl_switch;
+	last_loiter_switch = sp_man->loiter_switch;
 
 	/* offboard switch overrides main switch */
 	if (sp_man->offboard_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
