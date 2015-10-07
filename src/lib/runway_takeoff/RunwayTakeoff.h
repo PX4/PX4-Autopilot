@@ -83,7 +83,7 @@ public:
 	float getYaw(float navigatorYaw);
 	float getThrottle(float tecsThrottle);
 	bool resetIntegrators();
-	float getMinAirspeedScaling() { return _min_airspeed_scaling; };
+	float getMinAirspeedScaling() { return _min_airspeed_scaling.get(); };
 	float getMinPitch(float sp_min, float climbout_min, float min);
 	float getMaxPitch(float max);
 
@@ -98,17 +98,15 @@ private:
 	float _init_yaw;
 	bool _climbout;
 
-	/** magic values **/
-	float _min_airspeed_scaling;
-	float _max_takeoff_roll;
-
 	/** parameters **/
 	control::BlockParamInt _runway_takeoff_enabled;
-	control::BlockParamInt _runway_takeoff_heading;
-	control::BlockParamFloat _runway_takeoff_nav_alt;
-	control::BlockParamFloat _runway_takeoff_throttle;
-	control::BlockParamFloat _runway_takeoff_pitch_sp;
-	control::BlockParamFloat _runway_takeoff_max_pitch;
+	control::BlockParamInt _heading_mode;
+	control::BlockParamFloat _nav_alt;
+	control::BlockParamFloat _takeoff_throttle;
+	control::BlockParamFloat _runway_pitch_sp;
+	control::BlockParamFloat _max_takeoff_pitch;
+	control::BlockParamFloat _max_takeoff_roll;
+	control::BlockParamFloat _min_airspeed_scaling;
 	control::BlockParamFloat _airspeed_min;
 	control::BlockParamFloat _climbout_diff;
 

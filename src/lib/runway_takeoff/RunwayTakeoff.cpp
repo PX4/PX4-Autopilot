@@ -58,14 +58,14 @@ RunwayTakeoff::RunwayTakeoff() :
 	_initialized_time(0),
 	_init_yaw(0),
 	_climbout(false),
-	_min_airspeed_scaling(1.3f),
-	_max_takeoff_roll(15.0f),
 	_runway_takeoff_enabled(this, "TKOFF"),
-	_runway_takeoff_heading(this, "HDG"),
-	_runway_takeoff_nav_alt(this, "NAV_ALT"),
-	_runway_takeoff_throttle(this, "MAX_THR"),
-	_runway_takeoff_pitch_sp(this, "PSP"),
-	_runway_takeoff_max_pitch(this, "MAX_PITCH"),
+	_heading_mode(this, "HDG"),
+	_nav_alt(this, "NAV_ALT"),
+	_takeoff_throttle(this, "MAX_THR"),
+	_runway_pitch_sp(this, "PSP"),
+	_max_takeoff_pitch(this, "MAX_PITCH"),
+	_max_takeoff_roll(this, "MAX_ROLL"),
+	_min_airspeed_scaling(this, "AIRSPD_SCL"),
 	_airspeed_min(this, "FW_AIRSPD_MIN", false),
 	_climbout_diff(this, "FW_CLMBOUT_DIFF", false)
 {
@@ -99,7 +99,7 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 		break;
 
 	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
-		if (airspeed > _airspeed_min.get() * _min_airspeed_scaling) {
+		if (airspeed > _airspeed_min.get() * _min_airspeed_scaling.get()) {
 			_state = RunwayTakeoffState::TAKEOFF;
 			mavlink_log_info(mavlink_fd, "#Takeoff airspeed reached");
 		}
@@ -107,7 +107,7 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 		break;
 
 	case RunwayTakeoffState::TAKEOFF:
-		if (alt_agl > _runway_takeoff_nav_alt.get()) {
+		if (alt_agl > _nav_alt.get()) {
 			_state = RunwayTakeoffState::CLIMBOUT;
 			mavlink_log_info(mavlink_fd, "#Climbout");
 		}
@@ -137,7 +137,7 @@ bool RunwayTakeoff::controlYaw()
 float RunwayTakeoff::getPitch(float tecsPitch)
 {
 	if (_state <= RunwayTakeoffState::CLAMPED_TO_RUNWAY) {
-		return math::radians(_runway_takeoff_pitch_sp.get());
+		return math::radians(_runway_pitch_sp.get());
 	}
 
 	return tecsPitch;
@@ -152,14 +152,14 @@ float RunwayTakeoff::getRoll(float navigatorRoll)
 
 	// allow some roll during climbout if waypoint heading is targeted
 	else if (_state < RunwayTakeoffState::FLY) {
-		if (_runway_takeoff_heading.get() == 0) {
+		if (_heading_mode.get() == 0) {
 			// otherwise stay at 0 roll
 			return 0.0f;
 
-		} else if (_runway_takeoff_heading.get() == 1) {
+		} else if (_heading_mode.get() == 1) {
 			return math::constrain(navigatorRoll,
-					       math::radians(-_max_takeoff_roll),
-					       math::radians(_max_takeoff_roll));
+					       math::radians(-_max_takeoff_roll.get()),
+					       math::radians(_max_takeoff_roll).get());
 		}
 	}
 
@@ -169,11 +169,11 @@ float RunwayTakeoff::getRoll(float navigatorRoll)
 float RunwayTakeoff::getYaw(float navigatorYaw)
 {
 	if (_state < RunwayTakeoffState::FLY) {
-		if (_runway_takeoff_heading.get() == 0) {
+		if (_heading_mode.get() == 0) {
 			// fix heading in the direction the airframe points
 			return _init_yaw;
 
-		} else if (_runway_takeoff_heading.get() == 1) {
+		} else if (_heading_mode.get() == 1) {
 			// or head into the direction of the takeoff waypoint
 			// XXX this needs a check if the deviation from actual heading is too big (else we do a full throttle wheel turn on the ground)
 			return navigatorYaw;
@@ -188,14 +188,14 @@ float RunwayTakeoff::getThrottle(float tecsThrottle)
 	switch (_state) {
 	case RunwayTakeoffState::THROTTLE_RAMP: {
 			float throttle = hrt_elapsed_time(&_initialized_time) / (float)2000000 *
-					 _runway_takeoff_throttle.get();
-			return throttle < _runway_takeoff_throttle.get() ?
+					 _takeoff_throttle.get();
+			return throttle < _takeoff_throttle.get() ?
 			       throttle :
-			       _runway_takeoff_throttle.get();
+			       _takeoff_throttle.get();
 		}
 
 	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
-		return _runway_takeoff_throttle.get();
+		return _takeoff_throttle.get();
 
 	default:
 		return tecsThrottle;
@@ -221,8 +221,8 @@ float RunwayTakeoff::getMinPitch(float sp_min, float climbout_min, float min)
 
 float RunwayTakeoff::getMaxPitch(float max)
 {
-	if (_climbout && _runway_takeoff_max_pitch.get() > 0.1f) {
-		return _runway_takeoff_max_pitch.get();
+	if (_climbout && _max_takeoff_pitch.get() > 0.1f) {
+		return _max_takeoff_pitch.get();
 	}
 
 	else {
