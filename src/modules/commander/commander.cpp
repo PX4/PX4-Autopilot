@@ -925,16 +925,16 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_eph = param_find("COM_HOME_H_T");
 	param_t _param_epv = param_find("COM_HOME_V_T");
 
-	const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
-	main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
-	main_states_str[vehicle_status_s::MAIN_STATE_ALTCTL]			= "ALTCTL";
-	main_states_str[vehicle_status_s::MAIN_STATE_POSCTL]			= "POSCTL";
-	main_states_str[vehicle_status_s::MAIN_STATE_AUTO_MISSION]		= "AUTO_MISSION";
-	main_states_str[vehicle_status_s::MAIN_STATE_AUTO_LOITER]			= "AUTO_LOITER";
-	main_states_str[vehicle_status_s::MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
-	main_states_str[vehicle_status_s::MAIN_STATE_ACRO]			= "ACRO";
-	main_states_str[vehicle_status_s::MAIN_STATE_STAB]			= "STAB";
-	main_states_str[vehicle_status_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
+	// const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
+	// main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
+	// main_states_str[vehicle_status_s::MAIN_STATE_ALTCTL]			= "ALTCTL";
+	// main_states_str[vehicle_status_s::MAIN_STATE_POSCTL]			= "POSCTL";
+	// main_states_str[vehicle_status_s::MAIN_STATE_AUTO_MISSION]		= "AUTO_MISSION";
+	// main_states_str[vehicle_status_s::MAIN_STATE_AUTO_LOITER]			= "AUTO_LOITER";
+	// main_states_str[vehicle_status_s::MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
+	// main_states_str[vehicle_status_s::MAIN_STATE_ACRO]			= "ACRO";
+	// main_states_str[vehicle_status_s::MAIN_STATE_STAB]			= "STAB";
+	// main_states_str[vehicle_status_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
 
 	const char *arming_states_str[vehicle_status_s::ARMING_STATE_MAX];
 	arming_states_str[vehicle_status_s::ARMING_STATE_INIT]			= "INIT";
