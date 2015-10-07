@@ -109,3 +109,36 @@ PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
+
+/**
+ * Max pitch during takeoff.
+ * Fixed-wing settings are used if set to 0. Note that there is also a minimum
+ * pitch of 10 degrees during takeoff, so this must be larger if set.
+ *
+ * @min 0.0
+ * @max 60.0
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
+
+/**
+ * Max roll during climbout.
+ * Roll is limited during climbout to ensure enough lift and prevents aggressive
+ * navigation before we're on a safe height.
+ *
+ * @min 0.0
+ * @max 60.0
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_MAX_ROLL, 25.0);
+
+/**
+ * Min. airspeed scaling factor for takeoff.
+ * Pitch up will be commanded when the following airspeed is reached:
+ * FW_AIRSPD_MIN * RWTO_AIRSPD_SCL
+ *
+ * @min 0.0
+ * @max 2.0
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_AIRSPD_SCL, 1.3);
