@@ -35,9 +35,7 @@ px4_add_module(
 	MAIN attitude_estimator_ekf
 	STACK 1200
 	COMPILE_FLAGS
-		-Wframe-larger-than=2400
 		-Wno-float-equal
-		
 	SRCS
 		attitude_estimator_ekf_main.cpp
 		codegen/AttitudeEKF.c

@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-set(MODULE_CFLAGS -Weffc++)
+set(MODULE_CFLAGS )
 if(NOT ${OS} STREQUAL "qurt")
 	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3400)
 endif()

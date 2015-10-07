@@ -482,14 +482,15 @@ function(px4_add_common_flags)
 
 	set(warnings
 		-Wall
+		-Werror
 		-Wno-sign-compare
 		-Wextra
 		#-Wshadow # very verbose due to eigen
 		-Wfloat-equal
 		-Wpointer-arith
 		-Wmissing-declarations
-		-Wpacked
 		-Wno-unused-parameter
+		-Wno-varargs
 		-Werror=format-security
 		-Werror=array-bounds
 		-Wfatal-errors
@@ -505,7 +506,7 @@ function(px4_add_common_flags)
 		#               but generates too many false positives
 		)
 
-	if (NOT ${OS} STREQUAL "qurt")
+	if (${OS} STREQUAL "nuttx")
 		list(APPEND warnings -Wframe-larger-than=1024)
 	endif()
 

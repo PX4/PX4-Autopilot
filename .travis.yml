@@ -87,17 +87,17 @@ env:
     - PX4_AWS_BUCKET=px4-travis
 
 script:
-  #- make check_format
+  - make check_format
   - arm-none-eabi-gcc --version
   - echo 'Building POSIX Firmware..' && echo -en 'travis_fold:start:script.1\\r'
-  - make posix_sitl_simple -j4
+  - make posix_sitl_simple
   - echo -en 'travis_fold:end:script.1\\r'
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.2\\r'
   - make posix_sitl_simple test
   - cat build_posix_sitl_simple/src/modules/systemlib/mixer/mixer_multirotor.generated.h
   - echo -en 'travis_fold:end:script.2\\r'
   - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.3\\r'
-  - make px4fmu-v2_default -j4
+  - make px4fmu-v2_default
   - echo -en 'travis_fold:end:script.3\\r'
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'
   - make px4fmu-v2_default test

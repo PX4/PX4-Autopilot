@@ -31,15 +31,13 @@
 #
 #############################################################################
 set(MODULE_CFLAGS)
-if (NOT ${OS} STREQUAL "qurt")
-	list(APPEND MODULE_CFLAGS
-		-Wframe-larger-than=1400)
+if (${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1400)
 endif()
 px4_add_module(
 	MODULE modules__attitude_estimator_q
 	MAIN attitude_estimator_q
-	COMPILE_FLAGS
-		${MODULE_CFLAGS}
+	COMPILE_FLAGS ${MODULE_CFLAGS}
 	STACK 1200
 	SRCS
 		attitude_estimator_q_main.cpp

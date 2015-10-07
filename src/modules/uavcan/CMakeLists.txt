@@ -35,7 +35,7 @@
 set(uavcan_c_flags ${c_flags})
 list(REMOVE_ITEM uavcan_c_flags -std=gnu++0x -D__CUSTOM_FILE_IO__)
 set(uavcan_cxx_flags ${cxx_flags})
-list(REMOVE_ITEM uavcan_cxx_flags -std=gnu++0x -std=c++11 -D__CUSTOM_FILE_IO__)
+list(REMOVE_ITEM uavcan_cxx_flags -std=gnu++0x -std=c++11 -Wundef -Werror -D__CUSTOM_FILE_IO__)
 set(uavcan_deps git_uavcan)
 set(uavcan_platform generic)
 
@@ -76,8 +76,10 @@ externalproject_add(libuavcan
 	DEPENDS ${uavcan_deps}
 	DOWNLOAD_COMMAND ""
 	UPDATE_COMMAND git submodule update --init
+	LOG_INSTALL 1
 	SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/lib/uavcan
 	CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+		-DUAVCAN_USE_CPP03=ON
 		-DUAVCAN_PLATFORM=${uavcan_platform}
 		-DUAVCAN_OS=${OS}
 		-DCMAKE_CXX_FLAGS=${uavcan_cxx_flags}
@@ -94,6 +96,8 @@ px4_add_module(
 	MAIN uavcan
 	STACK 3200
 	COMPILE_FLAGS
+		-Wframe-larger-than=1500
+		-Wno-deprecated-declarations
 		-O3
 	SRCS
 

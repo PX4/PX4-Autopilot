@@ -40,11 +40,9 @@ px4_add_module(
 	MODULE modules__simulator
 	MAIN simulator
 	COMPILE_FLAGS
-		-Weffc++
 		-Wno-attributes
 		-Wno-packed
 		-Wno-packed
-		
 	SRCS
 		${SIMULATOR_SRCS}
 	DEPENDS

@@ -34,7 +34,7 @@ set(MIXER_CFLAGS -Os)
 if(${OS} STREQUAL "qurt")
 	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2176)
 else()
-	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2048)
+	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2100)
 endif()
 
 px4_add_module(
