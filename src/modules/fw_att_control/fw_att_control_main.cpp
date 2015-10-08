@@ -58,7 +58,6 @@
 #include <drivers/drv_accel.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
@@ -68,6 +67,7 @@
 #include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/mc_virtual_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -126,10 +126,10 @@ private:
 	int		_control_task;			/**< task handle */
 
 	int		_att_sub;			/**< vehicle attitude subscription */
+	int		_ctrl_state_sub;	/**< control state subscription */
 	int		_accel_sub;			/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
-	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_sub;			/**< notification of manual control updates */
@@ -145,11 +145,11 @@ private:
 	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
+	struct control_state_s				_ctrl_state;	/**< control state */
 	struct accel_report				_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s				_airspeed;		/**< airspeed */
 	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
@@ -269,12 +269,6 @@ private:
 	 */
 	void		vehicle_manual_poll();
 
-
-	/**
-	 * Check for airspeed updates.
-	 */
-	void		vehicle_airspeed_poll();
-
 	/**
 	 * Check for accel updates.
 	 */
@@ -327,8 +321,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 /* subscriptions */
 	_att_sub(-1),
+	_ctrl_state_sub(-1),
 	_accel_sub(-1),
-	_airspeed_sub(-1),
 	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
@@ -354,11 +348,11 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 {
 	/* safely initialize structs */
 	_att = {};
+	_ctrl_state = {};
 	_accel = {};
 	_att_sp = {};
 	_rates_sp = {};
 	_manual = {};
-	_airspeed = {};
 	_vcontrol_mode = {};
 	_actuators = {};
 	_actuators_airframe = {};
@@ -540,18 +534,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_airspeed_poll()
-{
-	/* check if there is a new position */
-	bool airspeed_updated;
-	orb_check(_airspeed_sub, &airspeed_updated);
-
-	if (airspeed_updated) {
-		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-	}
-}
-
-void
 FixedwingAttitudeControl::vehicle_accel_poll()
 {
 	/* check if there is a new position */
@@ -624,8 +606,8 @@ FixedwingAttitudeControl::task_main()
 	 */
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_accel_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -641,7 +623,6 @@ FixedwingAttitudeControl::task_main()
 	parameters_update();
 
 	/* get an initial update for all sensor and status data */
-	vehicle_airspeed_poll();
 	vehicle_setpoint_poll();
 	vehicle_accel_poll();
 	vehicle_control_mode_poll();
@@ -700,6 +681,7 @@ FixedwingAttitudeControl::task_main()
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
+			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
 
 			if (_vehicle_status.is_vtol && _parameters.vtol_type == 0) {
@@ -756,12 +738,10 @@ FixedwingAttitudeControl::task_main()
 				PX4_R(_att.R, 2, 2) = R_adapted(2, 2);
 
 				/* lastly, roll- and yawspeed have to be swaped */
-				float helper = _att.rollspeed;
-				_att.rollspeed = -_att.yawspeed;
-				_att.yawspeed = helper;
+				float helper = _ctrl_state.roll_rate;
+				_ctrl_state.roll_rate = -_ctrl_state.yaw_rate;
+				_ctrl_state.yaw_rate = helper;
 			}
-
-			vehicle_airspeed_poll();
 
 			vehicle_setpoint_poll();
 
@@ -813,15 +793,14 @@ FixedwingAttitudeControl::task_main()
 				float airspeed;
 
 				/* if airspeed is not updating, we assume the normal average speed */
-				if (bool nonfinite = !PX4_ISFINITE(_airspeed.true_airspeed_m_s) ||
-				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
+				if (bool nonfinite = !PX4_ISFINITE(_ctrl_state.airspeed)) {
 					airspeed = _parameters.airspeed_trim;
 					if (nonfinite) {
 						perf_count(_nonfinite_input_perf);
 					}
 				} else {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-					airspeed = math::max(0.5f, _airspeed.true_airspeed_m_s);
+					airspeed = math::max(0.5f, _ctrl_state.airspeed);
 				}
 
 				/*
@@ -975,9 +954,9 @@ FixedwingAttitudeControl::task_main()
 				control_input.roll = _att.roll;
 				control_input.pitch = _att.pitch;
 				control_input.yaw = _att.yaw;
-				control_input.roll_rate = _att.rollspeed;
-				control_input.pitch_rate = _att.pitchspeed;
-				control_input.yaw_rate = _att.yawspeed;
+				control_input.roll_rate = _ctrl_state.roll_rate;
+				control_input.pitch_rate = _ctrl_state.pitch_rate;
+				control_input.yaw_rate = _ctrl_state.yaw_rate;
 				control_input.speed_body_u = speed_body_u;
 				control_input.speed_body_v = speed_body_v;
 				control_input.speed_body_w = speed_body_w;
