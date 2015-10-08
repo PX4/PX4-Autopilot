@@ -50,6 +50,7 @@
 #include <controllib/block/BlockParam.hpp>
 #include <mavlink/mavlink_log.h>
 #include <mathlib/mathlib.h>
+#include <math.h>
 
 namespace runwaytakeoff
 {
@@ -75,6 +76,10 @@ public:
 	bool isInitialized() { return _initialized; };
 
 	bool runwayTakeoffEnabled() { return (bool)_runway_takeoff_enabled.get(); };
+	float getMinAirspeedScaling() { return _min_airspeed_scaling.get(); };
+	position_setpoint_s *getStartSP() { return &_start_sp; };
+	position_setpoint_s *getTargetSP() { return &_target_sp; };
+	float getInitYaw() { return _init_yaw; };
 
 	bool controlYaw();
 	bool climbout() { return _climbout; };
@@ -83,9 +88,10 @@ public:
 	float getYaw(float navigatorYaw);
 	float getThrottle(float tecsThrottle);
 	bool resetIntegrators();
-	float getMinAirspeedScaling() { return _min_airspeed_scaling.get(); };
 	float getMinPitch(float sp_min, float climbout_min, float min);
 	float getMaxPitch(float max);
+	math::Vector<2> getPrevWP();
+	math::Vector<2> getCurrWP(math::Vector<2> sp_curr_wp);
 
 	void reset();
 
@@ -97,6 +103,8 @@ private:
 	hrt_abstime _initialized_time;
 	float _init_yaw;
 	bool _climbout;
+	struct position_setpoint_s _start_sp;
+	struct position_setpoint_s _target_sp;
 
 	/** parameters **/
 	control::BlockParamInt _runway_takeoff_enabled;
