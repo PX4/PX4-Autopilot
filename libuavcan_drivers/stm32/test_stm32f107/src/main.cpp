@@ -15,17 +15,12 @@ namespace
 
 uavcan_stm32::CanInitHelper<128> can;
 
-typedef uavcan::Node<16384> Node;
+constexpr unsigned NodePoolSize = 16384;
 
-uavcan::LazyConstructor<Node> node_;
-
-Node& getNode()
+uavcan::Node<NodePoolSize>& getNode()
 {
-    if (!node_.isConstructed())
-    {
-        node_.construct<uavcan::ICanDriver&, uavcan::ISystemClock&>(can.driver, uavcan_stm32::SystemClock::instance());
-    }
-    return *node_;
+    static uavcan::Node<NodePoolSize> node(can.driver, uavcan_stm32::SystemClock::instance());
+    return node;
 }
 
 void init()
@@ -52,10 +47,8 @@ class : public chibios_rt::BaseStaticThread<8192>
 {
     void configureNodeInfo()
     {
-        Node& node = app::getNode();
-
-        node.setNodeID(64);
-        node.setName("org.uavcan.stm32_test_stm32f107");
+        getNode().setNodeID(64);
+        getNode().setName("org.uavcan.stm32_test_stm32f107");
 
         /*
          * Software version
@@ -66,7 +59,7 @@ class : public chibios_rt::BaseStaticThread<8192>
         swver.vcs_commit = GIT_HASH;
         swver.optional_field_flags = swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 
-        node.setSoftwareVersion(swver);
+        getNode().setSoftwareVersion(swver);
 
         lowsyslog("Git commit hash: 0x%08x\n", GIT_HASH);
 
@@ -80,7 +73,7 @@ class : public chibios_rt::BaseStaticThread<8192>
         board::readUniqueID(uid);
         std::copy(std::begin(uid), std::end(uid), std::begin(hwver.unique_id));
 
-        node.setHardwareVersion(hwver);
+        getNode().setHardwareVersion(hwver);
 
         lowsyslog("UDID:");
         for (auto b : hwver.unique_id)
@@ -98,15 +91,13 @@ public:
          */
         configureNodeInfo();
 
-        Node& node = app::getNode();
-
         /*
          * Initializing the UAVCAN node - this may take a while
          */
         while (true)
         {
             // Calling start() multiple times is OK - only the first successfull call will be effective
-            int res = node.start();
+            int res = getNode().start();
 
             if (res < 0)
             {
@@ -122,7 +113,7 @@ public:
         /*
          * Time synchronizer
          */
-        static uavcan::GlobalTimeSyncSlave time_sync_slave(node);
+        static uavcan::GlobalTimeSyncSlave time_sync_slave(getNode());
         {
             const int res = time_sync_slave.start();
             if (res < 0)
@@ -135,10 +126,10 @@ public:
          * Main loop
          */
         lowsyslog("UAVCAN node started\n");
-        node.setModeOperational();
+        getNode().setModeOperational();
         while (true)
         {
-            const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(5000));
+            const int spin_res = getNode().spin(uavcan::MonotonicDuration::fromMSec(5000));
             if (spin_res < 0)
             {
                 lowsyslog("Spin failure: %i\n", spin_res);
@@ -147,9 +138,9 @@ public:
             lowsyslog("Time sync master: %u\n", unsigned(time_sync_slave.getMasterNodeID().get()));
 
             lowsyslog("Memory usage: free=%u used=%u worst=%u\n",
-                      node.getAllocator().getNumFreeBlocks(),
-                      node.getAllocator().getNumUsedBlocks(),
-                      node.getAllocator().getPeakNumUsedBlocks());
+                      getNode().getAllocator().getNumFreeBlocks(),
+                      getNode().getAllocator().getNumUsedBlocks(),
+                      getNode().getAllocator().getPeakNumUsedBlocks());
 
             lowsyslog("CAN errors: %lu %lu\n",
                       static_cast<unsigned long>(can.driver.getIface(0)->getErrorCount()),
