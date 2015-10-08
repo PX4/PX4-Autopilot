@@ -76,6 +76,7 @@
 #include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/mc_virtual_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
@@ -128,6 +129,7 @@ private:
 	int		_control_task;			/**< task handle */
 
 	int		_v_att_sub;				/**< vehicle attitude subscription */
+	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
 	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
 	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
@@ -147,6 +149,7 @@ private:
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
 	struct vehicle_attitude_s			_v_att;				/**< vehicle attitude */
+	struct control_state_s				_ctrl_state;		/**< control state */
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint */
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
 	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
@@ -304,6 +307,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 /* subscriptions */
 	_v_att_sub(-1),
+	_ctrl_state_sub(-1),
 	_v_att_sp_sub(-1),
 	_v_control_mode_sub(-1),
 	_params_sub(-1),
@@ -326,6 +330,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 {
 	memset(&_v_att, 0, sizeof(_v_att));
+	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
 	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
 	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
 	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
@@ -708,9 +713,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	/* current body angular rates */
 	math::Vector<3> rates;
-	rates(0) = _v_att.rollspeed;
-	rates(1) = _v_att.pitchspeed;
-	rates(2) = _v_att.yawspeed;
+	rates(0) = _ctrl_state.roll_rate;
+	rates(1) = _ctrl_state.pitch_rate;
+	rates(2) = _ctrl_state.yaw_rate;
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
@@ -749,6 +754,7 @@ MulticopterAttitudeControl::task_main()
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -798,8 +804,9 @@ MulticopterAttitudeControl::task_main()
 				dt = 0.02f;
 			}
 
-			/* copy attitude topic */
+			/* copy attitude and control state topics */
 			orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
+			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
 			/* check for updates in other topics */
 			parameter_update_poll();
