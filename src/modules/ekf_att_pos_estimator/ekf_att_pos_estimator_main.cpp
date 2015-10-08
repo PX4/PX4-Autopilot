@@ -870,7 +870,6 @@ void AttitudePositionEstimatorEKF::publishControlState()
 
 	// XXX need to announce change of Z reference somehow elegantly
 	_ctrl_state.z_pos = _ekf->states[9] - _filter_ref_offset;
-	//_local_pos.z_stable = _ekf->states[9];
 
 	_ctrl_state.pos_variance[0] = _ekf->P[7][7];
 	_ctrl_state.pos_variance[1] = _ekf->P[8][8];
@@ -882,6 +881,9 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	_ctrl_state.q[1] = _ekf->states[1];
 	_ctrl_state.q[2] = _ekf->states[2];
 	_ctrl_state.q[3] = _ekf->states[3];
+
+	/* Airspeed (Groundspeed - Windspeed) */
+	_ctrl_state.airspeed = sqrt(pow(_ekf->states[4] -  _ekf->states[14], 2) + pow(_ekf->states[5] - _ekf->states[15], 2) + pow(_ekf->states[6], 2));
 
 	/* Attitude Rates */
 	_ctrl_state.roll_rate = _LP_att_P.apply(_ekf->dAngIMU.x / _ekf->dtIMU) - _ekf->states[10] / _ekf->dtIMUfilt;
