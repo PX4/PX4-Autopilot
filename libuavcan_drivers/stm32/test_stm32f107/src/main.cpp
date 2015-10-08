@@ -92,22 +92,12 @@ public:
         configureNodeInfo();
 
         /*
-         * Initializing the UAVCAN node - this may take a while
+         * Initializing the UAVCAN node
          */
-        while (true)
+        const int node_init_res = getNode().start();
+        if (node_init_res < 0)
         {
-            // Calling start() multiple times is OK - only the first successfull call will be effective
-            int res = getNode().start();
-
-            if (res < 0)
-            {
-                lowsyslog("Node initialization failure: %i, will try agin soon\n", res);
-            }
-            else
-            {
-                break;
-            }
-            ::sleep(3);
+            board::die(node_init_res);
         }
 
         /*
