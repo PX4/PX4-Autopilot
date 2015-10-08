@@ -47,6 +47,7 @@
 #include <controllib/block/BlockParam.hpp>
 #include <mavlink/mavlink_log.h>
 #include <mathlib/mathlib.h>
+#include <math.h>
 
 namespace runwaytakeoff
 {
@@ -58,6 +59,8 @@ RunwayTakeoff::RunwayTakeoff() :
 	_initialized_time(0),
 	_init_yaw(0),
 	_climbout(false),
+	_start_sp{},
+	_target_sp{},
 	_runway_takeoff_enabled(this, "TKOFF"),
 	_heading_mode(this, "HDG"),
 	_nav_alt(this, "NAV_ALT"),
@@ -150,17 +153,11 @@ float RunwayTakeoff::getRoll(float navigatorRoll)
 		return 0.0f;
 	}
 
-	// allow some roll during climbout if waypoint heading is targeted
+	// allow some roll during climbout
 	else if (_state < RunwayTakeoffState::FLY) {
-		if (_heading_mode.get() == 0) {
-			// otherwise stay at 0 roll
-			return 0.0f;
-
-		} else if (_heading_mode.get() == 1) {
-			return math::constrain(navigatorRoll,
-					       math::radians(-_max_takeoff_roll.get()),
-					       math::radians(_max_takeoff_roll).get());
-		}
+		return math::constrain(navigatorRoll,
+				       math::radians(-_max_takeoff_roll.get()),
+				       math::radians(_max_takeoff_roll.get()));
 	}
 
 	return navigatorRoll;
@@ -168,18 +165,6 @@ float RunwayTakeoff::getRoll(float navigatorRoll)
 
 float RunwayTakeoff::getYaw(float navigatorYaw)
 {
-	if (_state < RunwayTakeoffState::FLY) {
-		if (_heading_mode.get() == 0) {
-			// fix heading in the direction the airframe points
-			return _init_yaw;
-
-		} else if (_heading_mode.get() == 1) {
-			// or head into the direction of the takeoff waypoint
-			// XXX this needs a check if the deviation from actual heading is too big (else we do a full throttle wheel turn on the ground)
-			return navigatorYaw;
-		}
-	}
-
 	return navigatorYaw;
 }
 
@@ -228,6 +213,30 @@ float RunwayTakeoff::getMaxPitch(float max)
 	else {
 		return max;
 	}
+}
+
+math::Vector<2> RunwayTakeoff::getPrevWP()
+{
+	math::Vector<2> prev_wp;
+	prev_wp(0) = (float)_start_sp.lat;
+	prev_wp(1) = (float)_start_sp.lon;
+	return prev_wp;
+}
+
+math::Vector<2> RunwayTakeoff::getCurrWP(math::Vector<2> sp_curr_wp)
+{
+	if (_heading_mode.get() == 0 && _state < RunwayTakeoffState::FLY) {
+		// navigating towards calculated direction if heading mode 0 and as long as we're in climbout
+		math::Vector<2> curr_wp;
+		curr_wp(0) = (float)_target_sp.lat;
+		curr_wp(1) = (float)_target_sp.lon;
+		return curr_wp;
+
+	} else {
+		// navigating towards next mission waypoint
+		return sp_curr_wp;
+	}
+	
 }
 
 void RunwayTakeoff::reset()
