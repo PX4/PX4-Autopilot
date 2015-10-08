@@ -6,6 +6,7 @@
 #include <zubax_chibios/sys/sys.h>
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
+#include <uavcan/protocol/dynamic_node_id_client.hpp>
 #include "board/board.hpp"
 
 namespace app
@@ -47,7 +48,6 @@ class : public chibios_rt::BaseStaticThread<8192>
 {
     void configureNodeInfo()
     {
-        getNode().setNodeID(64);
         getNode().setName("org.uavcan.stm32_test_stm32f107");
 
         /*
@@ -83,6 +83,33 @@ class : public chibios_rt::BaseStaticThread<8192>
         lowsyslog("\n");
     }
 
+    void performDynamicNodeIDAllocation()
+    {
+        uavcan::DynamicNodeIDClient client(getNode());
+
+        const int client_start_res = client.start(getNode().getHardwareVersion().unique_id);
+        if (client_start_res < 0)
+        {
+            board::die(client_start_res);
+        }
+
+        lowsyslog("Waiting for dynamic node ID allocation...\n");
+        while (!client.isAllocationComplete())
+        {
+            const int spin_res = getNode().spin(uavcan::MonotonicDuration::fromMSec(100));
+            if (spin_res < 0)
+            {
+                lowsyslog("Spin failure: %i\n", spin_res);
+            }
+        }
+
+        lowsyslog("Dynamic node ID %d allocated by %d\n",
+                  int(client.getAllocatedNodeID().get()),
+                  int(client.getAllocatorNodeID().get()));
+
+        getNode().setNodeID(client.getAllocatedNodeID());
+    }
+
 public:
     msg_t main()
     {
@@ -99,6 +126,11 @@ public:
         {
             board::die(node_init_res);
         }
+
+        /*
+         * Waiting for a dynamic node ID allocation
+         */
+        performDynamicNodeIDAllocation();
 
         /*
          * Time synchronizer
