@@ -66,6 +66,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -1108,6 +1109,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_command_s cmd;
 		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
+		struct control_state_s ctrl_state;
 		struct vehicle_attitude_setpoint_s att_sp;
 		struct vehicle_rates_setpoint_s rates_sp;
 		struct actuator_outputs_s act_outputs;
@@ -1158,6 +1160,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ATTC_s log_ATTC;
 			struct log_STAT_s log_STAT;
 			struct log_VTOL_s log_VTOL;
+			struct log_CTS_s log_CTS;
 			struct log_RC_s log_RC;
 			struct log_OUT0_s log_OUT0;
 			struct log_AIRS_s log_AIRS;
@@ -1199,6 +1202,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int vtol_status_sub;
 		int sensor_sub;
 		int att_sub;
+		int ctrl_state_sub;
 		int att_sp_sub;
 		int rates_sp_sub;
 		int act_outputs_sub;
@@ -1236,6 +1240,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.gps_pos_sub = -1;
 	subs.sensor_sub = -1;
 	subs.att_sub = -1;
+	subs.ctrl_state_sub = -1;
 	subs.att_sp_sub = -1;
 	subs.rates_sp_sub = -1;
 	subs.act_outputs_sub = -1;
@@ -1712,6 +1717,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_FLOW.quality = buf.flow.quality;
 			log_msg.body.log_FLOW.sensor_id = buf.flow.sensor_id;
 			LOGBUFFER_WRITE_AND_COUNT(FLOW);
+		}
+
+		/* --- CONTROL STATE --- */
+		if (copy_if_updated(ORB_ID(control_state), &subs.ctrl_state_sub, &buf.ctrl_state)) {
+			log_msg.msg_type = LOG_CTS_MSG;
+			log_msg.body.log_CTS.vx_body = buf.ctrl_state.x_vel;
+			log_msg.body.log_CTS.vy_body = buf.ctrl_state.y_vel;
+			log_msg.body.log_CTS.vz_body = buf.ctrl_state.z_vel;
+			log_msg.body.log_CTS.airspeed = buf.ctrl_state.airspeed;
+			log_msg.body.log_CTS.roll_rate = buf.ctrl_state.roll_rate;
+			log_msg.body.log_CTS.pitch_rate = buf.ctrl_state.pitch_rate;
+			log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
+			LOGBUFFER_WRITE_AND_COUNT(CTS);
 		}
 
 		/* --- RC CHANNELS --- */
