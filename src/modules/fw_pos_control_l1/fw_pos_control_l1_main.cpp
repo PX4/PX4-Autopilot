@@ -76,6 +76,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/sensor_combined.h>
@@ -153,6 +154,7 @@ private:
 	int		_global_pos_sub;
 	int		_pos_sp_triplet_sub;
 	int		_att_sub;			/**< vehicle attitude subscription */
+	int		_ctrl_state_sub;			/**< control state subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_control_mode_sub;		/**< control mode subscription */
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
@@ -165,6 +167,7 @@ private:
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
 
 	struct vehicle_attitude_s			_att;				/**< vehicle attitude */
+	struct control_state_s				_ctrl_state;			/**< control state */
 	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
 	struct navigation_capabilities_s		_nav_capabilities;		/**< navigation capabilities */
 	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
@@ -365,6 +368,11 @@ private:
 	void		vehicle_attitude_poll();
 
 	/**
+	 * Check for changes in control state.
+	 */
+	void		control_state_poll();
+
+	/**
 	 * Check for accel updates.
 	 */
 	void		vehicle_sensor_combined_poll();
@@ -481,6 +489,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_global_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_att_sub(-1),
+	_ctrl_state_sub(-1),
 	_airspeed_sub(-1),
 	_control_mode_sub(-1),
 	_vehicle_status_sub(-1),
@@ -495,6 +504,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* states */
 	_att(),
+	_ctrl_state(),
 	_att_sp(),
 	_nav_capabilities(),
 	_manual(),
@@ -749,32 +759,6 @@ FixedwingPositionControl::vehicle_status_poll()
 }
 
 bool
-FixedwingPositionControl::vehicle_airspeed_poll()
-{
-	/* check if there is an airspeed update or if it timed out */
-	bool airspeed_updated;
-	orb_check(_airspeed_sub, &airspeed_updated);
-
-	if (airspeed_updated) {
-		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-		_airspeed_valid = true;
-		_airspeed_last_valid = hrt_absolute_time();
-
-	} else {
-
-		/* no airspeed updates for one second */
-		if (_airspeed_valid && (hrt_absolute_time() - _airspeed_last_valid) > 1e6) {
-			_airspeed_valid = false;
-		}
-	}
-
-	/* update TECS state */
-	_tecs.enable_airspeed(_airspeed_valid);
-
-	return airspeed_updated;
-}
-
-bool
 FixedwingPositionControl::vehicle_manual_control_setpoint_poll()
 {
 	bool manual_updated;
@@ -804,6 +788,30 @@ FixedwingPositionControl::vehicle_attitude_poll()
 		for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
 				_R_nb(i, j) = PX4_R(_att.R, i, j);
 	}
+}
+
+void
+FixedwingPositionControl::control_state_poll()
+{
+	/* check if there is a new position */
+	bool ctrl_state_updated;
+	orb_check(_ctrl_state_sub, &ctrl_state_updated);
+
+	if (ctrl_state_updated) {
+		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+		_airspeed_valid = true;
+		_airspeed_last_valid = hrt_absolute_time();
+
+	} else {
+
+		/* no airspeed updates for one second */
+		if (_airspeed_valid && (hrt_absolute_time() - _airspeed_last_valid) > 1e6) {
+			_airspeed_valid = false;
+		}
+	}
+
+	/* update TECS state */
+	_tecs.enable_airspeed(_airspeed_valid);
 }
 
 void
@@ -852,7 +860,7 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 	float airspeed;
 
 	if (_airspeed_valid) {
-		airspeed = _airspeed.true_airspeed_m_s;
+		airspeed = _ctrl_state.airspeed;
 
 	} else {
 		airspeed = _parameters.airspeed_min + (_parameters.airspeed_max - _parameters.airspeed_min) / 2.0f;
@@ -1083,7 +1091,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* update TECS filters */
 	if (!_mTecs.getEnabled()) {
-		_tecs.update_state(_global_pos.alt, _airspeed.indicated_airspeed_m_s, _R_nb,
+		_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
 			accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
 	}
 
@@ -1116,7 +1124,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* reset integrators */
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
-				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+				_mTecs.resetDerivatives(_ctrl_state.airspeed);
 			}
 		}
 		_control_mode_current = FW_POSCTRL_MODE_AUTO;
@@ -1475,7 +1483,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* reset integrators */
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
-				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+				_mTecs.resetDerivatives(_ctrl_state.airspeed);
 			}
 		}
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
@@ -1586,7 +1594,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* reset integrators */
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
-				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+				_mTecs.resetDerivatives(_ctrl_state.airspeed);
 			}
 		}
 		_control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
@@ -1698,6 +1706,7 @@ FixedwingPositionControl::task_main()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -1779,9 +1788,9 @@ FixedwingPositionControl::task_main()
 			_global_pos_valid = true;
 
 			vehicle_attitude_poll();
+			control_state_poll();
 			vehicle_setpoint_poll();
 			vehicle_sensor_combined_poll();
-			vehicle_airspeed_poll();
 			vehicle_manual_control_setpoint_poll();
 			// vehicle_baro_poll();
 
@@ -1887,7 +1896,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 			/* use pitch max set by MT param */
 			limitOverride.disablePitchMaxOverride();
 		}
-		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
+		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _ctrl_state.airspeed, v_sp, mode,
 				limitOverride);
 	} else {
 		if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
@@ -1901,7 +1910,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 
 		/* Using tecs library */
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
-					    _airspeed.indicated_airspeed_m_s, eas2tas,
+					    _ctrl_state.airspeed, eas2tas,
 					    climbout_mode, climbout_pitch_min_rad,
 					    throttle_min, throttle_max, throttle_cruise,
 					    pitch_min_rad, pitch_max_rad);
