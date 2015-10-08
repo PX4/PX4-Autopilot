@@ -698,6 +698,7 @@ function(px4_create_git_hash_header)
 		COMMAND git log -n 1 --pretty=format:"%H"
 		OUTPUT_VARIABLE git_desc
 		OUTPUT_STRIP_TRAILING_WHITESPACE
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		)
 	message(STATUS "GIT_DESC = ${git_desc}")
 	set(git_desc_short)
