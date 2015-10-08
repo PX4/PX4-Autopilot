@@ -46,5 +46,7 @@ px4_add_module(
 		mtecs/mTecs_params.c
 	DEPENDS
 		platforms__common
+		lib__external_lgpl
+		lib__ecl
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
