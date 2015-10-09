@@ -516,8 +516,12 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
     /*
      * Hardware initialization
      */
-    can_->MCR &= ~bxcan::MCR_SLEEP; // Exit sleep mode
-    can_->MCR |= bxcan::MCR_INRQ;   // Request init
+    {
+        CriticalSectionLocker lock;
+
+        can_->MCR &= ~bxcan::MCR_SLEEP; // Exit sleep mode
+        can_->MCR |= bxcan::MCR_INRQ;   // Request init
+    }
 
     if (!waitMsrINakBitStateChange(true))
     {
