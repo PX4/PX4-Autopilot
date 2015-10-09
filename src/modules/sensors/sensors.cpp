@@ -366,7 +366,7 @@ private:
 
 
 	int		init_sensor_class(const struct orb_metadata *meta, int *subs,
-				unsigned *priorities, unsigned *errcount);
+				uint32_t *priorities, uint32_t *errcount);
 
 	/**
 	 * Update our local parameter cache.
@@ -825,6 +825,19 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
 		warnx("%s", paramerr);
+	} else if (_parameters.battery_voltage_scaling < 0.0f) {
+		/* apply scaling according to defaults if set to default */
+
+		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+		_parameters.battery_voltage_scaling = 0.0082f;
+		#elif CONFIG_ARCH_BOARD_AEROCORE
+		_parameters.battery_voltage_scaling = 0.0063f;
+		#elif CONFIG_ARCH_BOARD_PX4FMU_V2
+		_parameters.battery_voltage_scaling = 0.00459340659f;
+		#else
+		/* ensure a missing default trips a low voltage lockdown */
+		_parameters.battery_voltage_scaling = 0.00001f;
+		#endif
 	}
 
 	/* scaling of ADC ticks to battery current */
@@ -1949,7 +1962,7 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 
 int
 Sensors::init_sensor_class(const struct orb_metadata *meta, int *subs,
-	unsigned *priorities, unsigned *errcount)
+	uint32_t *priorities, uint32_t *errcount)
 {
 	unsigned group_count = orb_group_count(meta);
 

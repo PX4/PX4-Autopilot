@@ -20,17 +20,32 @@ for index,m in enumerate(raw_messages):
 		temp_list = []
 		f = open(m,'r')
 		for line in f.readlines():
-			if(line.split(' ')[0] == "float32"):
+			if ('float32[' in line.split(' ')[0]):
+				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
+				temp_list.append(("float_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
+			if ('uint64[' in line.split(' ')[0]):
+				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
+				temp_list.append(("uint64_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
+			elif(line.split(' ')[0] == "float32"):
 				temp_list.append(("float",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "uint64"):
+			elif(line.split(' ')[0] == "uint64") and len(line.split('=')) == 1:
 				temp_list.append(("uint64",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif (line.split(' ')[0] == "bool"):
+			elif(line.split(' ')[0] == "uint32") and len(line.split('=')) == 1:
+				temp_list.append(("uint32",line.split(' ')[1].split('\t')[0].split('\n')[0]))
+			elif(line.split(' ')[0] == "uint16") and len(line.split('=')) == 1:
+				temp_list.append(("uint16",line.split(' ')[1].split('\t')[0].split('\n')[0]))
+			elif(line.split(' ')[0] == "int64") and len(line.split('=')) == 1:
+				temp_list.append(("int64",line.split(' ')[1].split('\t')[0].split('\n')[0]))
+			elif(line.split(' ')[0] == "int32") and len(line.split('=')) == 1:
+				temp_list.append(("int32",line.split(' ')[1].split('\t')[0].split('\n')[0]))
+			elif(line.split(' ')[0] == "int16") and len(line.split('=')) == 1:
+				temp_list.append(("int16",line.split(' ')[1].split('\t')[0].split('\n')[0]))
+			elif (line.split(' ')[0] == "bool") and len(line.split('=')) == 1:
 				temp_list.append(("bool",line.split(' ')[1].split('\t')[0].split('\n')[0]))
 			elif (line.split(' ')[0] == "uint8") and len(line.split('=')) == 1:
 				temp_list.append(("uint8",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif ('float32[' in line.split(' ')[0]):
-				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
-				temp_list.append(("float_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
+			elif (line.split(' ')[0] == "int8") and len(line.split('=')) == 1:
+				temp_list.append(("int8",line.split(' ')[1].split('\t')[0].split('\n')[0]))
 
 		f.close()
 		messages.append(m.split('/')[-1].split('.')[0])
@@ -131,12 +146,24 @@ for index,m in enumerate(messages[1:]):
 			print("\t\t\tprintf(\"%s: %%f\\n \",(double)container.%s);" % (item[1], item[1]))
 		elif item[0] == "float_array":
 			print("\t\t\tprintf(\"%s:\");" % item[1])
-			print("\t\t\tfor (int j=0;j<%d;j++) {" % item[2])
+			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
 			print("\t\t\t\tprintf(\"%%f \",(double)container.%s[j]);" % item[1])
 			print("\t\t\t}")
 			print("\t\t\tprintf(\"\\n\");")
 		elif item[0] == "uint64":
 			print("\t\t\tprintf(\"%s: %%\" PRIu64 \"\\n \",container.%s);" % (item[1], item[1]))
+		elif item[0] == "uint64_array":
+			print("\t\t\tprintf(\"%s:\");" % item[1])
+			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
+			print("\t\t\t\tprintf(\"%%\" PRIu64 \" \",container.%s[j]);" % item[1])
+			print("\t\t\t}")
+			print("\t\t\tprintf(\"\\n\");")
+		elif item[0] == "int64":
+			print("\t\t\tprintf(\"%s: %%\" PRI64 \"\\n \",container.%s);" % (item[1], item[1]))
+		elif item[0] == "int32":
+			print("\t\t\tprintf(\"%s: %%d\\n \",container.%s);" % (item[1], item[1]))
+		elif item[0] == "uint32":
+			print("\t\t\tprintf(\"%s: %%d\\n \",container.%s);" % (item[1], item[1]))
 		elif item[0] == "uint8":
 			print("\t\t\tprintf(\"%s: %%u\\n \",container.%s);" % (item[1], item[1]))
 		elif item[0] == "bool":

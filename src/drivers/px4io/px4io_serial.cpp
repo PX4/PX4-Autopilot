@@ -39,6 +39,7 @@
 
 /* XXX trim includes */
 #include <px4_config.h>
+#include <px4_posix.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -68,9 +69,9 @@
 
 #include <modules/px4iofirmware/protocol.h>
 
-#ifdef PX4IO_SERIAL_BASE
+#include "px4io_driver.h"
 
-device::Device	*PX4IO_serial_interface();
+#ifdef PX4IO_SERIAL_BASE
 
 /* serial register accessors */
 #define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + _x))
@@ -116,10 +117,10 @@ private:
 	volatile unsigned	_rx_dma_status;
 
 	/** bus-ownership lock */
-	sem_t			_bus_semaphore;
+	px4_sem_t			_bus_semaphore;
 
 	/** client-waiting lock/signal */
-	sem_t			_completion_semaphore;
+	px4_sem_t			_completion_semaphore;
 
 	/**
 	 * Start the transaction with IO and wait for it to complete.
@@ -219,8 +220,8 @@ PX4IO_serial::~PX4IO_serial()
 	stm32_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
 
 	/* and kill our semaphores */
-	sem_destroy(&_completion_semaphore);
-	sem_destroy(&_bus_semaphore);
+	px4_sem_destroy(&_completion_semaphore);
+	px4_sem_destroy(&_bus_semaphore);
 
 	perf_free(_pc_txns);
 	perf_free(_pc_dmasetup);
@@ -280,8 +281,8 @@ PX4IO_serial::init()
 	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
 
 	/* create semaphores */
-	sem_init(&_completion_semaphore, 0, 0);
-	sem_init(&_bus_semaphore, 0, 1);
+	px4_sem_init(&_completion_semaphore, 0, 0);
+	px4_sem_init(&_bus_semaphore, 0, 1);
 
 
 	/* XXX this could try talking to IO */
@@ -366,7 +367,7 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 		return -EINVAL;
 	}
 
-	sem_wait(&_bus_semaphore);
+	px4_sem_wait(&_bus_semaphore);
 
 	int result;
 
@@ -403,7 +404,7 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 		perf_count(_pc_retries);
 	}
 
-	sem_post(&_bus_semaphore);
+	px4_sem_post(&_bus_semaphore);
 
 	if (result == OK) {
 		result = count;
@@ -423,7 +424,7 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 		return -EINVAL;
 	}
 
-	sem_wait(&_bus_semaphore);
+	px4_sem_wait(&_bus_semaphore);
 
 	int result;
 
@@ -468,7 +469,7 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 		perf_count(_pc_retries);
 	}
 
-	sem_post(&_bus_semaphore);
+	px4_sem_post(&_bus_semaphore);
 
 	if (result == OK) {
 		result = count;
@@ -627,7 +628,7 @@ PX4IO_serial::_do_rx_dma_callback(unsigned status)
 		rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
 
 		/* complete now */
-		sem_post(&_completion_semaphore);
+		px4_sem_post(&_completion_semaphore);
 	}
 }
 

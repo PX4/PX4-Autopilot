@@ -9,18 +9,7 @@
 # filter by setting INAV_ENABLED = 0
 if param compare INAV_ENABLED 1
 then
-	# The system is defaulting to EKF_ATT_ENABLED = 1
-	# and uses the older EKF filter. However users can
-	# enable the new quaternion based complimentary
-	# filter by setting EKF_ATT_ENABLED = 0.
-	# Note that on FMUv1, the EKF att estimator is not
-	# available and the Q estimator runs instead.
-	if param compare EKF_ATT_ENABLED 1
-	then
-		attitude_estimator_ekf start
-	else
-		attitude_estimator_q start
-	fi
+	attitude_estimator_q start
 	position_estimator_inav start
 else
 	ekf_att_pos_estimator start

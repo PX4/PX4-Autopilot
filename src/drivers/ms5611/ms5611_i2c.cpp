@@ -266,12 +266,25 @@ MS5611_I2C::_read_prom()
 	 */
 	usleep(3000);
 
+	uint8_t last_val = 0;
+	bool bits_stuck = true;
+
 	/* read and convert PROM words */
 	for (int i = 0; i < 8; i++) {
 		uint8_t cmd = ADDR_PROM_SETUP + (i * 2);
 
 		if (PX4_OK != transfer(&cmd, 1, &prom_buf[0], 2)) {
 			break;
+		}
+
+		/* check if all bytes are zero */
+		if (i == 0) {
+			/* initalize to first byte read */
+			last_val = prom_buf[0];
+		}
+
+		if (prom_buf[0] != last_val || prom_buf[1] != last_val) {
+			bits_stuck = false;
 		}
 
 		/* assemble 16 bit value and convert from big endian (sensor) to little endian (MCU) */
@@ -281,5 +294,5 @@ MS5611_I2C::_read_prom()
 	}
 
 	/* calculate CRC and return success/failure accordingly */
-	return ms5611::crc4(&_prom.c[0]) ? PX4_OK : -EIO;
+	return (ms5611::crc4(&_prom.c[0]) && !bits_stuck) ? PX4_OK : -EIO;
 }

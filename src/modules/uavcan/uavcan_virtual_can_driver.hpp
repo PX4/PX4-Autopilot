@@ -395,7 +395,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 			int rv = sem_getvalue(&sem, &count);
 
 			if (rv > 0 && count <= 0) {
-				sem_post(&sem);
+				px4_sem_post(&sem);
 			}
 		}
 	};

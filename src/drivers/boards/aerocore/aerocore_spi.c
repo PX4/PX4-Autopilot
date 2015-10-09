@@ -67,7 +67,7 @@
  *
  ************************************************************************************/
 
-__EXPORT void weak_function stm32_spiinitialize(void)
+__EXPORT void stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
 	stm32_configgpio(GPIO_SPI1_NSS);

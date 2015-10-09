@@ -135,7 +135,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	taskdata->argc = argc;
 
 	for (i=0; i<argc; i++) {
-		printf("arg %d %s\n", i, argv[i]);
+		PX4_DEBUG("arg %d %s\n", i, argv[i]);
 		taskdata->argv[i] = (char *)offset;
 		strcpy((char *)offset, argv[i]);
 		offset+=strlen(argv[i])+1;
@@ -271,7 +271,7 @@ void px4_show_tasks()
 	for (idx=0; idx < PX4_MAX_TASKS; idx++)
 	{
 		if (taskmap[idx].isused) {
-			PX4_INFO("   %-10s %lu", taskmap[idx].name.c_str(), taskmap[idx].pid);
+			PX4_INFO("   %-10s %lu", taskmap[idx].name.c_str(), (unsigned long)taskmap[idx].pid);
 			count++;
 		}
 	}

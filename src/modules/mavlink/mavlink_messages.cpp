@@ -72,6 +72,7 @@
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
@@ -2361,76 +2362,96 @@ protected:
 	}
 };
 
-class MavlinkStreamVtolState : public MavlinkStream
+class MavlinkStreamExtendedSysState : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamVtolState::get_name_static();
+		return MavlinkStreamExtendedSysState::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "VTOL_STATE";
+		return "EXTENDED_SYS_STATE";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_VTOL_STATE;
+		return MAVLINK_MSG_ID_EXTENDED_SYS_STATE;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamVtolState(mavlink);
+		return new MavlinkStreamExtendedSysState(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_VTOL_STATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return MAVLINK_MSG_ID_EXTENDED_SYS_STATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
 private:
 	MavlinkOrbSubscription *_status_sub;
+	MavlinkOrbSubscription *_landed_sub;
+	mavlink_extended_sys_state_t _msg;
 
 	/* do not allow top copying this class */
-	MavlinkStreamVtolState(MavlinkStreamVtolState &);
-	MavlinkStreamVtolState &operator = (const MavlinkStreamVtolState &);
+	MavlinkStreamExtendedSysState(MavlinkStreamExtendedSysState &);
+	MavlinkStreamExtendedSysState &operator = (const MavlinkStreamExtendedSysState &);
 
 protected:
-	explicit MavlinkStreamVtolState(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
-	{}
+	explicit MavlinkStreamExtendedSysState(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_landed_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_land_detected))),
+		_msg{}
+	{
+
+		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
+		_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
+	}
 
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_status_s status;
+		struct vehicle_land_detected_s land_detected;
+		bool updated = false;
 
 		if (_status_sub->update(&status)) {
-			mavlink_vtol_state_t msg;
+			updated = true;
 
 			if (status.is_vtol) {
 				if (status.is_rotary_wing) {
 					if (status.in_transition_mode) {
-						msg.state = MAV_VTOL_STATE_TRANSITION_TO_FW;
+						_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_FW;
 
 					} else {
-						msg.state = MAV_VTOL_STATE_MC;
+						_msg.vtol_state = MAV_VTOL_STATE_MC;
 					}
 
 				} else {
 					if (status.in_transition_mode) {
-						msg.state = MAV_VTOL_STATE_TRANSITION_TO_MC;
+						_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_MC;
 
 					} else {
-						msg.state = MAV_VTOL_STATE_FW;
+						_msg.vtol_state = MAV_VTOL_STATE_FW;
 					}
 				}
-
-			} else {
-				msg.state = MAV_VTOL_STATE_UNDEFINED;
 			}
+		}
 
-			_mavlink->send_message(MAVLINK_MSG_ID_VTOL_STATE, &msg);
+		if (_landed_sub->update(&land_detected)) {
+			updated = true;
+
+			if (land_detected.landed) {
+				_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
+			
+			} else {
+				_msg.landed_state = MAV_LANDED_STATE_IN_AIR;
+			}
+		}
+
+		if (updated) {
+			_mavlink->send_message(MAVLINK_MSG_ID_EXTENDED_SYS_STATE, &_msg);
 		}
 	}
 };
@@ -2470,6 +2491,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
-	new StreamListItem(&MavlinkStreamVtolState::new_instance, &MavlinkStreamVtolState::get_name_static),
+	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static),
 	nullptr
 };

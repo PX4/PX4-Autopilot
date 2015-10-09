@@ -42,7 +42,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>

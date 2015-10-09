@@ -306,7 +306,7 @@ CDev::poll(file_t *filp, struct pollfd *fds, bool setup)
 
 			/* yes? post the notification */
 			if (fds->revents != 0)
-				sem_post(fds->sem);
+				px4_sem_post(fds->sem);
 		}
 
 	} else {
@@ -343,7 +343,7 @@ CDev::poll_notify_one(struct pollfd *fds, pollevent_t events)
 	/* if the state is now interesting, wake the waiter if it's still asleep */
 	/* XXX semcount check here is a vile hack; counting semphores should not be abused as cvars */
 	if ((fds->revents != 0) && (fds->sem->semcount <= 0))
-		sem_post(fds->sem);
+		px4_sem_post(fds->sem);
 }
 
 pollevent_t
