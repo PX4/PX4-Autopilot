@@ -68,7 +68,6 @@
 #include <drivers/drv_accel.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -155,7 +154,6 @@ private:
 	int		_pos_sp_triplet_sub;
 	int		_att_sub;			/**< vehicle attitude subscription */
 	int		_ctrl_state_sub;			/**< control state subscription */
-	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_control_mode_sub;		/**< control mode subscription */
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
@@ -171,7 +169,6 @@ private:
 	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
 	struct navigation_capabilities_s		_nav_capabilities;		/**< navigation capabilities */
 	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
-	struct airspeed_s				_airspeed;			/**< airspeed */
 	struct vehicle_control_mode_s			_control_mode;			/**< control mode */
 	struct vehicle_status_s				_vehicle_status;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;			/**< global vehicle position */
@@ -358,11 +355,6 @@ private:
 	bool		vehicle_manual_control_setpoint_poll();
 
 	/**
-	 * Check for airspeed updates.
-	 */
-	bool		vehicle_airspeed_poll();
-
-	/**
 	 * Check for position updates.
 	 */
 	void		vehicle_attitude_poll();
@@ -490,7 +482,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_pos_sp_triplet_sub(-1),
 	_att_sub(-1),
 	_ctrl_state_sub(-1),
-	_airspeed_sub(-1),
 	_control_mode_sub(-1),
 	_vehicle_status_sub(-1),
 	_params_sub(-1),
@@ -508,7 +499,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_att_sp(),
 	_nav_capabilities(),
 	_manual(),
-	_airspeed(),
 	_control_mode(),
 	_vehicle_status(),
 	_global_pos(),
@@ -1710,7 +1700,6 @@ FixedwingPositionControl::task_main()
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
