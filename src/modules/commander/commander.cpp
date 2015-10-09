@@ -1759,6 +1759,9 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (arming_ret == TRANSITION_CHANGED) {
 				arming_state_changed = true;
+			} else if (arming_ret == TRANSITION_DENIED) {
+				/* do not complain if not allowed into standby */
+				arming_ret = TRANSITION_NOT_CHANGED;
 			}
 
 		}
