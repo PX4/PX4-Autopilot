@@ -896,7 +896,11 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 			(tstatus.heartbeat_time == 0)) &&
 			msgid == MAVLINK_MSG_ID_HEARTBEAT) {
 
-			(void)sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+
+			if (bret) {
+				PX4_WARN("sending broadcast failed");
+			}
 		}
 
 	} else if (get_protocol() == TCP) {
@@ -974,7 +978,7 @@ void
 Mavlink::init_udp()
 {
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
-	PX4_INFO("Setting up UDP w/port %d\n",_network_port);
+	PX4_INFO("Setting up UDP w/port %d",_network_port);
 
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
@@ -982,12 +986,18 @@ Mavlink::init_udp()
 	_myaddr.sin_port = htons(_network_port);
 
 	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		PX4_WARN("create socket failed\n");
+		PX4_WARN("create socket failed");
+		return;
+	}
+
+	int broadcast_opt = 1;
+	if (setsockopt(_socket_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt)) < 0) {
+		PX4_WARN("setting broadcast permission failed");
 		return;
 	}
 
 	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
-		PX4_WARN("bind failed\n");
+		PX4_WARN("bind failed");
 		return;
 	}
 
