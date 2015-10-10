@@ -156,6 +156,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 
 	_last_accel(0),
 	_last_mag(0),
+	_prediction_steps(0),
 
 	_sensor_combined{},
 
@@ -995,6 +996,14 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 	_ekf->summedDelVel = _ekf->summedDelVel + _ekf->dVelIMU;
 	_covariancePredictionDt += _ekf->dtIMU;
 
+	// only fuse every few steps
+	if (_prediction_steps < MAX_PREDICITION_STEPS) {
+		_prediction_steps++;
+		return;
+	} else {
+		_prediction_steps = 0;
+	}
+
 	// perform a covariance prediction if the total delta angle has exceeded the limit
 	// or the time limit will be exceeded at the next IMU update
 	if ((_covariancePredictionDt >= (_ekf->covTimeStepMax - _ekf->dtIMU))
@@ -1111,7 +1120,7 @@ int AttitudePositionEstimatorEKF::start()
 	_estimator_task = px4_task_spawn_cmd("ekf_att_pos_estimator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 20,
-					 4800,
+					 4200,
 					 (px4_main_t)&AttitudePositionEstimatorEKF::task_main_trampoline,
 					 nullptr);
 

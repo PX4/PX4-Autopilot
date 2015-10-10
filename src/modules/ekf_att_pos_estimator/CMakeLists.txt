@@ -42,7 +42,6 @@ px4_add_module(
 	COMPILE_FLAGS ${MODULE_CFLAGS}
 	SRCS
 		ekf_att_pos_estimator_main.cpp
-		ekf_att_pos_estimator_params.c
 		estimator_22states.cpp
 		estimator_utilities.cpp
 	DEPENDS
