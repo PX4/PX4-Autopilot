@@ -133,14 +133,14 @@ private:
 	unsigned	_pwm_alt_rate;
 	uint32_t	_pwm_alt_rate_channels;
 	unsigned	_current_update_rate;
-	int		_task;
+	struct work_s	_work;
 	int		_armed_sub;
 	int		_param_sub;
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	int		_class_instance;
 
-	volatile bool	_task_should_exit;
+	volatile bool	_initialized;
 	bool		_servo_armed;
 	bool		_pwm_on;
 
@@ -166,8 +166,11 @@ private:
 
 	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
 
-	static void	task_main_trampoline(int argc, char *argv[]);
-	void		task_main();
+	static void	cycle_trampoline(void *arg);
+
+	void		cycle();
+	void		work_start();
+	void		work_stop();
 
 	static int	control_callback(uintptr_t handle,
 					 uint8_t control_group,
@@ -261,13 +264,13 @@ PX4FMU::PX4FMU() :
 	_pwm_alt_rate(50),
 	_pwm_alt_rate_channels(0),
 	_current_update_rate(0),
-	_task(-1),
+	_work{},
 	_armed_sub(-1),
 	_param_sub(-1),
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_class_instance(0),
-	_task_should_exit(false),
+	_initialized(false),
 	_servo_armed(false),
 	_pwm_on(false),
 	_mixers(nullptr),
@@ -300,23 +303,18 @@ PX4FMU::PX4FMU() :
 
 PX4FMU::~PX4FMU()
 {
-	if (_task != -1) {
+	if (_initialized) {
 		/* tell the task we want it to go away */
-		_task_should_exit = true;
+		work_stop();
 
-		unsigned i = 10;
+		int i = 10;
 
 		do {
 			/* wait 50ms - it should wake every 100ms or so worst-case */
 			usleep(50000);
+			i--;
 
-			/* if we have given up, kill it */
-			if (--i == 0) {
-				task_delete(_task);
-				break;
-			}
-
-		} while (_task != -1);
+		} while (_initialized && i > 0);
 	}
 
 	/* clean up the alternate device node */
@@ -330,7 +328,7 @@ PX4FMU::init()
 {
 	int ret;
 
-	ASSERT(_task == -1);
+	ASSERT(!_initialized);
 
 	/* do regular cdev init */
 	ret = CDev::init();
@@ -348,29 +346,9 @@ PX4FMU::init()
 		warnx("FAILED registering class device");
 	}
 
-	/* reset GPIOs */
-	gpio_reset();
-
-	/* start the IO interface task */
-	_task = px4_task_spawn_cmd("fmuservo",
-				   SCHED_DEFAULT,
-				   SCHED_PRIORITY_DEFAULT,
-				   900,
-				   (main_t)&PX4FMU::task_main_trampoline,
-				   nullptr);
-
-	if (_task < 0) {
-		DEVICE_DEBUG("task start failed: %d", errno);
-		return -errno;
-	}
+	work_start();
 
 	return OK;
-}
-
-void
-PX4FMU::task_main_trampoline(int argc, char *argv[])
-{
-	g_fmu->task_main();
 }
 
 int
@@ -600,221 +578,244 @@ PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 
 
 void
-PX4FMU::task_main()
+PX4FMU::work_start()
 {
-	/* force a reset of the update rate */
-	_current_update_rate = 0;
+	/* schedule a cycle to start things */
+	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, 0);
+}
 
-	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-	_param_sub = orb_subscribe(ORB_ID(parameter_update));
+void
+PX4FMU::cycle_trampoline(void *arg)
+{
+	PX4FMU *dev = reinterpret_cast<PX4FMU *>(arg);
 
-#ifdef HRT_PPM_CHANNEL
-	// rc input, published to ORB
-	struct rc_input_values rc_in;
-	orb_advert_t to_input_rc = 0;
+	dev->cycle();
+}
 
-	memset(&rc_in, 0, sizeof(rc_in));
-	rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-#endif
+void
+PX4FMU::cycle()
+{
+	if (!_initialized) {
+		/* reset GPIOs */
+		gpio_reset();
 
-	/* initialize PWM limit lib */
-	pwm_limit_init(&_pwm_limit);
+		/* force a reset of the update rate */
+		_current_update_rate = 0;
 
-	update_pwm_rev_mask();
+		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+		_param_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	/* loop until killed */
-	while (!_task_should_exit) {
-		if (_groups_subscribed != _groups_required) {
-			subscribe();
-			_groups_subscribed = _groups_required;
-			/* force setting update rate */
-			_current_update_rate = 0;
+	#ifdef HRT_PPM_CHANNEL
+		// rc input, published to ORB
+		struct rc_input_values rc_in;
+		orb_advert_t to_input_rc = 0;
+
+		memset(&rc_in, 0, sizeof(rc_in));
+		rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+	#endif
+
+		/* initialize PWM limit lib */
+		pwm_limit_init(&_pwm_limit);
+
+		update_pwm_rev_mask();
+
+		_initialized = true;
+	}
+
+
+	if (_groups_subscribed != _groups_required) {
+		subscribe();
+		_groups_subscribed = _groups_required;
+		/* force setting update rate */
+		_current_update_rate = 0;
+	}
+
+	/*
+	 * Adjust actuator topic update rate to keep up with
+	 * the highest servo update rate configured.
+	 *
+	 * We always mix at max rate; some channels may update slower.
+	 */
+	unsigned max_rate = (_pwm_default_rate > _pwm_alt_rate) ? _pwm_default_rate : _pwm_alt_rate;
+
+	if (_current_update_rate != max_rate) {
+		_current_update_rate = max_rate;
+		int update_rate_in_ms = int(1000 / _current_update_rate);
+
+		/* reject faster than 500 Hz updates */
+		if (update_rate_in_ms < 2) {
+			update_rate_in_ms = 2;
 		}
 
-		/*
-		 * Adjust actuator topic update rate to keep up with
-		 * the highest servo update rate configured.
-		 *
-		 * We always mix at max rate; some channels may update slower.
-		 */
-		unsigned max_rate = (_pwm_default_rate > _pwm_alt_rate) ? _pwm_default_rate : _pwm_alt_rate;
-
-		if (_current_update_rate != max_rate) {
-			_current_update_rate = max_rate;
-			int update_rate_in_ms = int(1000 / _current_update_rate);
-
-			/* reject faster than 500 Hz updates */
-			if (update_rate_in_ms < 2) {
-				update_rate_in_ms = 2;
-			}
-
-			/* reject slower than 10 Hz updates */
-			if (update_rate_in_ms > 100) {
-				update_rate_in_ms = 100;
-			}
-
-			DEVICE_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
-
-			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-				if (_control_subs[i] > 0) {
-					orb_set_interval(_control_subs[i], update_rate_in_ms);
-				}
-			}
-
-			// set to current max rate, even if we are actually checking slower/faster
-			_current_update_rate = max_rate;
+		/* reject slower than 10 Hz updates */
+		if (update_rate_in_ms > 100) {
+			update_rate_in_ms = 100;
 		}
 
-		/* sleep waiting for data, stopping to check for PPM
-		 * input at 50Hz */
-		int ret = ::poll(_poll_fds, _poll_fds_num, CONTROL_INPUT_DROP_LIMIT_MS);
+		DEVICE_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
 
-		/* this would be bad... */
-		if (ret < 0) {
-			DEVICE_LOG("poll error %d", errno);
-			continue;
+		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			if (_control_subs[i] > 0) {
+				orb_set_interval(_control_subs[i], update_rate_in_ms);
+			}
+		}
 
-		} else if (ret == 0) {
-			/* timeout: no control data, switch to failsafe values */
+		// set to current max rate, even if we are actually checking slower/faster
+		_current_update_rate = max_rate;
+	}
+
+	/* check if anything updated */
+	int ret = ::poll(_poll_fds, _poll_fds_num, 0);
+
+	/* this would be bad... */
+	if (ret < 0) {
+		DEVICE_LOG("poll error %d", errno);
+
+	} else if (ret == 0) {
+		/* timeout: no control data, switch to failsafe values */
 //			warnx("no PWM: failsafe");
 
-		} else {
+	} else {
 
-			/* get controls for required topics */
-			unsigned poll_id = 0;
+		/* get controls for required topics */
+		unsigned poll_id = 0;
 
-			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-				if (_control_subs[i] > 0) {
-					if (_poll_fds[poll_id].revents & POLLIN) {
-						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
-					}
-
-					poll_id++;
-				}
-			}
-
-			/* can we mix? */
-			if (_mixers != nullptr) {
-
-				size_t num_outputs;
-
-				switch (_mode) {
-				case MODE_2PWM:
-					num_outputs = 2;
-					break;
-
-				case MODE_4PWM:
-					num_outputs = 4;
-					break;
-
-				case MODE_6PWM:
-					num_outputs = 6;
-					break;
-
-				case MODE_8PWM:
-					num_outputs = 8;
-					break;
-
-				default:
-					num_outputs = 0;
-					break;
+		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			if (_control_subs[i] > 0) {
+				if (_poll_fds[poll_id].revents & POLLIN) {
+					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 				}
 
-				/* do mixing */
-				float outputs[_max_actuators];
-				num_outputs = _mixers->mix(outputs, num_outputs, NULL);
-
-				/* disable unused ports by setting their output to NaN */
-				for (size_t i = 0; i < sizeof(outputs) / sizeof(outputs[0]); i++) {
-					if (i >= num_outputs) {
-						outputs[i] = NAN_VALUE;
-					}
-				}
-
-				uint16_t pwm_limited[_max_actuators];
-
-				/* the PWM limit call takes care of out of band errors, NaN and constrains */
-				pwm_limit_calc(_servo_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm,
-					       outputs, pwm_limited, &_pwm_limit);
-
-				/* output to the servos */
-				for (size_t i = 0; i < num_outputs; i++) {
-					up_pwm_servo_set(i, pwm_limited[i]);
-				}
-
-				publish_pwm_outputs(pwm_limited, num_outputs);
+				poll_id++;
 			}
 		}
 
-		/* check arming state */
-		bool updated = false;
-		orb_check(_armed_sub, &updated);
+		/* can we mix? */
+		if (_mixers != nullptr) {
 
-		if (updated) {
-			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+			size_t num_outputs;
 
-			/* update the armed status and check that we're not locked down */
-			bool set_armed = (_armed.armed || _armed.prearmed) && !_armed.lockdown;
+			switch (_mode) {
+			case MODE_2PWM:
+				num_outputs = 2;
+				break;
 
-			if (_servo_armed != set_armed) {
-				_servo_armed = set_armed;
+			case MODE_4PWM:
+				num_outputs = 4;
+				break;
+
+			case MODE_6PWM:
+				num_outputs = 6;
+				break;
+
+			case MODE_8PWM:
+				num_outputs = 8;
+				break;
+
+			default:
+				num_outputs = 0;
+				break;
 			}
 
-			/* update PWM status if armed or if disarmed PWM values are set */
-			bool pwm_on = (set_armed || _num_disarmed_set > 0);
+			/* do mixing */
+			float outputs[_max_actuators];
+			num_outputs = _mixers->mix(outputs, num_outputs, NULL);
 
-			if (_pwm_on != pwm_on) {
-				_pwm_on = pwm_on;
-				up_pwm_servo_arm(pwm_on);
+			/* disable unused ports by setting their output to NaN */
+			for (size_t i = 0; i < sizeof(outputs) / sizeof(outputs[0]); i++) {
+				if (i >= num_outputs) {
+					outputs[i] = NAN_VALUE;
+				}
 			}
+
+			uint16_t pwm_limited[_max_actuators];
+
+			/* the PWM limit call takes care of out of band errors, NaN and constrains */
+			pwm_limit_calc(_servo_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm,
+				       outputs, pwm_limited, &_pwm_limit);
+
+			/* output to the servos */
+			for (size_t i = 0; i < num_outputs; i++) {
+				up_pwm_servo_set(i, pwm_limited[i]);
+			}
+
+			publish_pwm_outputs(pwm_limited, num_outputs);
+		}
+	}
+
+	/* check arming state */
+	bool updated = false;
+	orb_check(_armed_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+
+		/* update the armed status and check that we're not locked down */
+		bool set_armed = (_armed.armed || _armed.prearmed) && !_armed.lockdown;
+
+		if (_servo_armed != set_armed) {
+			_servo_armed = set_armed;
 		}
 
-		orb_check(_param_sub, &updated);
+		/* update PWM status if armed or if disarmed PWM values are set */
+		bool pwm_on = (set_armed || _num_disarmed_set > 0);
 
-		if (updated) {
-			parameter_update_s pupdate;
-			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
-
-			update_pwm_rev_mask();
+		if (_pwm_on != pwm_on) {
+			_pwm_on = pwm_on;
+			up_pwm_servo_arm(pwm_on);
 		}
+	}
+
+	orb_check(_param_sub, &updated);
+
+	if (updated) {
+		parameter_update_s pupdate;
+		orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
+
+		update_pwm_rev_mask();
+	}
 
 #ifdef HRT_PPM_CHANNEL
 
-		// see if we have new PPM input data
-		if (ppm_last_valid_decode != rc_in.timestamp_last_signal) {
-			// we have a new PPM frame. Publish it.
-			rc_in.channel_count = ppm_decoded_channels;
+	// see if we have new PPM input data
+	if (ppm_last_valid_decode != rc_in.timestamp_last_signal) {
+		// we have a new PPM frame. Publish it.
+		rc_in.channel_count = ppm_decoded_channels;
 
-			if (rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
-				rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
-			}
-
-			for (uint8_t i = 0; i < rc_in.channel_count; i++) {
-				rc_in.values[i] = ppm_buffer[i];
-			}
-
-			rc_in.timestamp_publication = ppm_last_valid_decode;
-			rc_in.timestamp_last_signal = ppm_last_valid_decode;
-
-			rc_in.rc_ppm_frame_length = ppm_frame_length;
-			rc_in.rssi = RC_INPUT_RSSI_MAX;
-			rc_in.rc_failsafe = false;
-			rc_in.rc_lost = false;
-			rc_in.rc_lost_frame_count = 0;
-			rc_in.rc_total_frame_count = 0;
-
-			/* lazily advertise on first publication */
-			if (to_input_rc == 0) {
-				to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_in);
-
-			} else {
-				orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
-			}
+		if (rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+			rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
 		}
 
-#endif
+		for (uint8_t i = 0; i < rc_in.channel_count; i++) {
+			rc_in.values[i] = ppm_buffer[i];
+		}
 
+		rc_in.timestamp_publication = ppm_last_valid_decode;
+		rc_in.timestamp_last_signal = ppm_last_valid_decode;
+
+		rc_in.rc_ppm_frame_length = ppm_frame_length;
+		rc_in.rssi = RC_INPUT_RSSI_MAX;
+		rc_in.rc_failsafe = false;
+		rc_in.rc_lost = false;
+		rc_in.rc_lost_frame_count = 0;
+		rc_in.rc_total_frame_count = 0;
+
+		/* lazily advertise on first publication */
+		if (to_input_rc == 0) {
+			to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_in);
+
+		} else {
+			orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
+		}
 	}
+
+#endif
+	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, USEC2TICK(CONTROL_INPUT_DROP_LIMIT_MS * 1000));
+}
+
+void PX4FMU::work_stop()
+{
+	work_cancel(HPWORK, &_work);
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
@@ -834,8 +835,7 @@ PX4FMU::task_main()
 	/* note - someone else is responsible for restoring the GPIO config */
 
 	/* tell the dtor that we are exiting */
-	_task = -1;
-	_exit(0);
+	_initialized = false;
 }
 
 int
