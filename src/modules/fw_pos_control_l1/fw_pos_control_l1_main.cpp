@@ -1965,7 +1965,7 @@ FixedwingPositionControl::start()
 	_control_task = px4_task_spawn_cmd("fw_pos_control_l1",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       1600,
+				       1300,
 				       (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
 				       nullptr);
 
