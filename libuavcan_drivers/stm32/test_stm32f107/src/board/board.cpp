@@ -28,7 +28,9 @@ namespace board
 void init()
 {
     halInit();
+
     chibios_rt::System::init();
+
     sdStart(&STDOUT_SD, NULL);
 }
 
@@ -79,6 +81,19 @@ void boardInit(void)
         AFIO_MAPR_CAN_REMAP_REMAP3 |
         AFIO_MAPR_CAN2_REMAP       |
         AFIO_MAPR_USART2_REMAP;
+
+    /*
+     * Enabling the CAN controllers, then configuring GPIO functions for CAN_TX.
+     * Order matters, otherwise the CAN_TX pins will twitch, disturbing the CAN bus.
+     * This is why we can't perform this initialization using ChibiOS GPIO configuration.
+     */
+    RCC->APB1ENR |= RCC_APB1ENR_CAN1EN;
+#if UAVCAN_STM32_NUM_IFACES > 1
+    RCC->APB1ENR |= RCC_APB1ENR_CAN2EN;
+#endif
+
+    palSetPadMode(GPIOD, 1, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
+    palSetPadMode(GPIOB, 6, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
 }
 
 }
