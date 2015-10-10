@@ -88,12 +88,12 @@ void boardInit(void)
      * This is why we can't perform this initialization using ChibiOS GPIO configuration.
      */
     RCC->APB1ENR |= RCC_APB1ENR_CAN1EN;
+    palSetPadMode(GPIOD, 1, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
+
 #if UAVCAN_STM32_NUM_IFACES > 1
     RCC->APB1ENR |= RCC_APB1ENR_CAN2EN;
-#endif
-
-    palSetPadMode(GPIOD, 1, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
     palSetPadMode(GPIOB, 6, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
+#endif
 }
 
 }
