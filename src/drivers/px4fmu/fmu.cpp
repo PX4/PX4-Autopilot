@@ -605,14 +605,14 @@ PX4FMU::cycle()
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	#ifdef HRT_PPM_CHANNEL
+#ifdef HRT_PPM_CHANNEL
 		// rc input, published to ORB
 		struct rc_input_values rc_in;
 		orb_advert_t to_input_rc = 0;
 
 		memset(&rc_in, 0, sizeof(rc_in));
 		rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-	#endif
+#endif
 
 		/* initialize PWM limit lib */
 		pwm_limit_init(&_pwm_limit);
