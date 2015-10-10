@@ -274,7 +274,7 @@ px4_generate_messages(TARGET msg_gen
 px4_generate_parameters_xml(OUT parameters.xml BOARD ${BOARD})
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})
 add_custom_target(xml_gen
-	DEPENDS parameters.xml airframes.xml)
+	DEPENDS git_eigen parameters.xml airframes.xml)
 
 #=============================================================================
 # external projects

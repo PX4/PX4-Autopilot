@@ -56,6 +56,7 @@ px4_add_module(
 		mavlink_rate_limiter.cpp
 		mavlink_receiver.cpp
 		mavlink_ftp.cpp
+		mavlink_params.c
 	DEPENDS
 		platforms__common
 	)

@@ -1,4 +1,6 @@
+#include <dlfcn.h>
 #include <qurt_log.h>
+#include <dspal_platform.h>
 
 void HAP_debug(const char *msg, int level, const char *filename, int line)
 {

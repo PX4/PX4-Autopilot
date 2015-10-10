@@ -38,6 +38,7 @@ set(QURT_LAYER_SRCS
 	drv_hrt.c
 	qurt_stubs.c
 	main.cpp
+	params.c
 	)
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	list(APPEND QURT_LAYER_SRCS

@@ -229,7 +229,7 @@ function(px4_os_prebuild_targets)
 		COMMAND patch -p1 -i ${CMAKE_SOURCE_DIR}/cmake/qurt/qurt_eigen.patch
 		DEPENDS git_eigen)
 	add_custom_target(${OUT} DEPENDS git_dspal git_eigen_patched)
-	add_custom_target(ALL DEPENDS git_eigen)
+	add_custom_target(ALL DEPENDS git_eigen_patched)
 
 endfunction()
 
