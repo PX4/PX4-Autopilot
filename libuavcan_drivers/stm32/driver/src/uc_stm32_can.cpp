@@ -488,10 +488,26 @@ bool CanIface::waitMsrINakBitStateChange(bool target_state)
 
 int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 {
-    int res = 0;
+    /*
+     * We need to silence the controller in the first order, otherwise it may interfere with the following operations.
+     */
+    {
+        CriticalSectionLocker lock;
+
+        can_->MCR &= ~bxcan::MCR_SLEEP; // Exit sleep mode
+        can_->MCR |= bxcan::MCR_INRQ;   // Request init
+
+        can_->IER = 0;                  // Disable interrupts while initialization is in progress
+    }
+
+    if (!waitMsrINakBitStateChange(true))
+    {
+        UAVCAN_STM32_LOG("MSR INAK not set");
+        return -1;
+    }
 
     /*
-     * Object state
+     * Object state - interrupts are disabled, so it's safe to modify it now
      */
     rx_queue_.reset();
     error_cnt_ = 0;
@@ -505,31 +521,17 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
      * CAN timings for this bitrate
      */
     Timings timings;
-    res = computeTimings(bitrate, timings);
-    if (res < 0)
+    const int timings_res = computeTimings(bitrate, timings);
+    if (timings_res < 0)
     {
-        goto leave;
+        return timings_res;
     }
     UAVCAN_STM32_LOG("Timings: presc=%u sjw=%u bs1=%u bs2=%u",
                      unsigned(timings.prescaler), unsigned(timings.sjw), unsigned(timings.bs1), unsigned(timings.bs2));
 
     /*
-     * Hardware initialization
+     * Hardware initialization (the hardware has already confirmed initialization mode, see above)
      */
-    {
-        CriticalSectionLocker lock;
-
-        can_->MCR &= ~bxcan::MCR_SLEEP; // Exit sleep mode
-        can_->MCR |= bxcan::MCR_INRQ;   // Request init
-    }
-
-    if (!waitMsrINakBitStateChange(true))
-    {
-        UAVCAN_STM32_LOG("MSR INAK not set");
-        res = -1;
-        goto leave;
-    }
-
     can_->MCR = bxcan::MCR_ABOM | bxcan::MCR_AWUM | bxcan::MCR_INRQ;  // RM page 648
 
     can_->BTR = ((timings.sjw & 3U)  << 24) |
@@ -549,8 +551,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
     if (!waitMsrINakBitStateChange(false))
     {
         UAVCAN_STM32_LOG("MSR INAK not cleared");
-        res = -1;
-        goto leave;
+        return -1;
     }
 
     /*
@@ -583,8 +584,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
         can_->FMR &= ~bxcan::FMR_FINIT;
     }
 
-leave:
-    return res;
+    return 0;
 }
 
 void CanIface::handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok, const uavcan::uint64_t utc_usec)
