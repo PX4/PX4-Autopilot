@@ -273,6 +273,8 @@ int UavcanServers::init()
 __attribute__((optimize("-O0")))
 pthread_addr_t UavcanServers::run(pthread_addr_t)
 {
+	prctl(PR_SET_NAME, "uavcan fw srv", 0);
+
 	Lock lock(_subnode_mutex);
 
 	while (1) {
