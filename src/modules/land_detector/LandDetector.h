@@ -41,6 +41,7 @@
 #ifndef __LAND_DETECTOR_H__
 #define __LAND_DETECTOR_H__
 
+#include <px4_workqueue.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
@@ -70,7 +71,9 @@ public:
 	 * @brief Blocking function that should be called from it's own task thread. This method will
 	 *        run the underlying algorithm at the desired update rate and publish if the landing state changes.
 	 **/
-	void start();
+	int start();
+
+	static void	cycle_trampoline(void *arg);
 
 protected:
 
@@ -99,13 +102,16 @@ protected:
 	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME = 1000000;	/**< time interval in which wider acceptance thresholds are used after arming */
 
 protected:
-	uintptr_t				_landDetectedPub;		/**< publisher for position in local frame */
+	orb_advert_t				_landDetectedPub;		/**< publisher for position in local frame */
 	struct vehicle_land_detected_s		_landDetected;			/**< local vehicle position */
 	uint64_t				_arming_time;			/**< timestamp of arming time */
 
 private:
 	bool _taskShouldExit;                                               /**< true if it is requested that this task should exit */
 	bool _taskIsRunning;                                                /**< task has reached main loop and is currently running */
+	struct work_s	_work;
+
+	void		cycle();
 };
 
 #endif //__LAND_DETECTOR_H__
