@@ -108,7 +108,7 @@ print("""
 #include <inttypes.h>
 
 #ifndef PRIu64
-#define PRIu64 "ull"
+#define PRIu64 "llu"
 #endif
 
 """)
@@ -128,51 +128,51 @@ int listener_main(int argc, char *argv[]) {
 	}
 """)
 print("\tunsigned num_msgs = atoi(argv[2]);")
-print("\tif(strncmp(argv[1],\"%s\",50)== 0) {" % messages[0])
+print("\tif (strncmp(argv[1],\"%s\",50) == 0) {" % messages[0])
 print("\t\tsub = orb_subscribe(ORB_ID(%s));" % messages[0])
 print("\t\tID = ORB_ID(%s);" % messages[0])
 print("\t\tstruct %s_s container;" % messages[0])
 print("\t\tmemset(&container, 0, sizeof(container));")
 for index,m in enumerate(messages[1:]):
-	print("\t} else if(strncmp(argv[1],\"%s\",50) == 0) {" % m)
+	print("\t} else if (strncmp(argv[1],\"%s\",50) == 0) {" % m)
 	print("\t\tsub = orb_subscribe(ORB_ID(%s));" % m)
 	print("\t\tID = ORB_ID(%s);" % m)
 	print("\t\tstruct %s_s container;" % m)
 	print("\t\tmemset(&container, 0, sizeof(container));")
 	print("\t\tbool updated;")
-	print("\t\tfor(uint32_t i = 0;i<num_msgs;i++) {")
+	print("\t\tfor (unsigned i = 0; i < num_msgs; i++) {")
 	print("\t\t\torb_check(sub,&updated);")
 	print("\t\t\tupdated = true;")
-	print("\t\t\tif(updated) {")
-	print("\t\tprintf(\"\\nTOPIC: %s\");" % m)
+	print("\t\t\tif (updated) {")
+	print("\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);" % m)
 	print("\t\t\torb_copy(ID,sub,&container);")
 	for item in message_elements[index+1]:
 		if item[0] == "float":
-			print("\t\t\tprintf(\"%s: %%f\\n \",(double)container.%s);" % (item[1], item[1]))
+			print("\t\t\tprintf(\"%s: %%f\\n\",(double)container.%s);" % (item[1], item[1]))
 		elif item[0] == "float_array":
-			print("\t\t\tprintf(\"%s:\");" % item[1])
+			print("\t\t\tprintf(\"%s: \");" % item[1])
 			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
 			print("\t\t\t\tprintf(\"%%f \",(double)container.%s[j]);" % item[1])
 			print("\t\t\t}")
 			print("\t\t\tprintf(\"\\n\");")
 		elif item[0] == "uint64":
-			print("\t\t\tprintf(\"%s: %%\" PRIu64 \"\\n \",container.%s);" % (item[1], item[1]))
+			print("\t\t\tprintf(\"%s: %%\" PRIu64 \"\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "uint64_array":
-			print("\t\t\tprintf(\"%s:\");" % item[1])
+			print("\t\t\tprintf(\"%s: \");" % item[1])
 			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\t\tprintf(\"%%\" PRIu64 \" \",container.%s[j]);" % item[1])
+			print("\t\t\t\tprintf(\"%%\" PRIu64 \"\",container.%s[j]);" % item[1])
 			print("\t\t\t}")
 			print("\t\t\tprintf(\"\\n\");")
 		elif item[0] == "int64":
-			print("\t\t\tprintf(\"%s: %%\" PRI64 \"\\n \",container.%s);" % (item[1], item[1]))
+			print("\t\t\tprintf(\"%s: %%\" PRI64 \"\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "int32":
-			print("\t\t\tprintf(\"%s: %%d\\n \",container.%s);" % (item[1], item[1]))
+			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "uint32":
-			print("\t\t\tprintf(\"%s: %%d\\n \",container.%s);" % (item[1], item[1]))
+			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "uint8":
-			print("\t\t\tprintf(\"%s: %%u\\n \",container.%s);" % (item[1], item[1]))
+			print("\t\t\tprintf(\"%s: %%u\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "bool":
-			print("\t\t\tprintf(\"%s: %%s\\n \",container.%s ? \"True\" : \"False\");" % (item[1], item[1]))
+			print("\t\t\tprintf(\"%s: %%s\\n\",container.%s ? \"True\" : \"False\");" % (item[1], item[1]))
 	print("\t\t\t}")
 	print("\t\t}")
 print("\t} else {")
