@@ -213,8 +213,7 @@ function(px4_nuttx_add_export)
 	# copy
 	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
 		COMMAND ${MKDIR} -p ${CMAKE_BINARY_DIR}/${CONFIG}
-		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/NuttX ${nuttx_src}
-		COMMAND ${RM} -rf ${nuttx_src}/.git
+		COMMAND rsync -a --exclude=.git ${CMAKE_SOURCE_DIR}/NuttX/ ${nuttx_src}/
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS})
 	add_custom_target(__nuttx_copy_${CONFIG}
