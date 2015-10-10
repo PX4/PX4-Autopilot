@@ -54,7 +54,7 @@ if ("${BOARD}" STREQUAL "eagle")
 	# The CI test target can use the hil commands
 	if ("${LABEL}" STREQUAL "travis")
 		set(CONFIG_SRC commands_hil.c)
-	else("${LABEL}" STREQUAL "travis")
+	else()
 		set(CONFIG_SRC commands_${LABEL}.c)
 	endif()
 
