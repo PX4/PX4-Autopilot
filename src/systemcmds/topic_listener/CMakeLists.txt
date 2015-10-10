@@ -36,7 +36,9 @@ add_custom_command(OUTPUT topic_listener.cpp
                 )
 
 add_custom_target(generate_topic_listener
-	DEPENDS topic_listener.cpp)
+	DEPENDS
+		topic_listener.cpp
+		${CMAKE_SOURCE_DIR}/Tools/generate_listener.py)
 
 px4_add_module(
 	MODULE systemcmds__topic_listener

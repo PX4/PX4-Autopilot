@@ -53,6 +53,7 @@ set(config_module_list
 	systemcmds/pwm
 	systemcmds/esc_calib
 	systemcmds/reboot
+	systemcmds/topic_listener
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm

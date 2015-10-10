@@ -38,7 +38,6 @@ px4_add_module(
 		-Os
 	SRCS
 		land_detector_main.cpp
-		land_detector_params.c
 		LandDetector.cpp
 		MulticopterLandDetector.cpp
 		FixedwingLandDetector.cpp

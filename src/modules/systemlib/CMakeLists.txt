@@ -41,7 +41,6 @@ set(SRCS
 	cpuload.c
 	pid/pid.c
 	airspeed.c
-	system_params.c
 	mavlink_log.c
 	rc_check.c
 	otp.c
@@ -50,7 +49,6 @@ set(SRCS
 	mcu_version.c
 	bson/tinybson.c
 	circuit_breaker.cpp
-	circuit_breaker_params.c
 	)
 
 if(${OS} STREQUAL "nuttx")
