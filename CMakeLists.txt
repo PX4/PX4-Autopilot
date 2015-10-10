@@ -286,6 +286,9 @@ set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
 # add external project install folders to build
 link_directories(${ep_base}/Install/lib)
 include_directories(${ep_base}/Install/include)
+# add the directories so cmake won't warn
+execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/lib)
+execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
 
 #=============================================================================
 # subdirectories
