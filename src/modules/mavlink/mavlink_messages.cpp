@@ -556,7 +556,7 @@ protected:
 			msg.errors_count2 = status.errors_count2;
 			msg.errors_count3 = status.errors_count3;
 			msg.errors_count4 = status.errors_count4;
-			msg.battery_remaining = (msg.voltage_battery > 0) ?
+			msg.battery_remaining = (status.condition_battery_voltage_valid) ?
 							status.battery_remaining * 100.0f : -1;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_SYS_STATUS, &msg);
@@ -571,14 +571,22 @@ protected:
 				if (i < status.battery_cell_count) {
 					bat_msg.voltages[i] = (status.battery_voltage / status.battery_cell_count) * 1000.0f;
 				} else {
-					bat_msg.voltages[i] = 0;
+					bat_msg.voltages[i] = UINT16_MAX;
 				}
 			}
-			bat_msg.current_battery = status.battery_current * 100.0f;
-			bat_msg.current_consumed = status.battery_discharged_mah;
+
+			if (status.condition_battery_voltage_valid) {
+				bat_msg.current_battery = (bat_msg.current_battery >= 0.0f) ?
+								status.battery_current * 100.0f : -1;
+				bat_msg.current_consumed = (bat_msg.current_consumed >= 0.0f) ?
+								status.battery_discharged_mah : -1;
+				bat_msg.battery_remaining = status.battery_remaining * 100.0f;
+			} else {
+				bat_msg.current_battery = -1.0f;
+				bat_msg.current_consumed = -1.0f;
+				bat_msg.battery_remaining = -1.0f;
+			}
 			bat_msg.energy_consumed = -1.0f;
-			bat_msg.battery_remaining = (status.battery_voltage > 0) ?
-							status.battery_remaining * 100.0f : -1;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_BATTERY_STATUS, &bat_msg);
 		}
