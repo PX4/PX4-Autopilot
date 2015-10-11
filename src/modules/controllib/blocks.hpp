@@ -165,7 +165,7 @@ protected:
 int __EXPORT blockHighPassTest();
 
 /**
- * A 2nd order low pass filter block which uses the 2nd order low pass filter used by px4
+ * A 2nd order low pass filter block which uses the default px4 2nd order low pass filter
  */
 class __EXPORT BlockLowPass2 : public Block
 {
@@ -192,7 +192,7 @@ protected:
 	math::LowPassFilter2p _lp;
 };
 
-// XXX missing test function for BlockLowPass2
+int __EXPORT blockLowPass2Test();
 
 /**
  * A rectangular integrator.

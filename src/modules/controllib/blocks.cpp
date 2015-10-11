@@ -39,6 +39,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <float.h>
 
 #include "blocks.hpp"
 
@@ -51,6 +52,7 @@ int basicBlocksTest()
 	blockLimitSymTest();
 	blockLowPassTest();
 	blockHighPassTest();
+	blockLowPass2Test();
 	blockIntegralTest();
 	blockIntegralTrapTest();
 	blockDerivativeTest();
@@ -204,12 +206,40 @@ float BlockLowPass2::update(float input)
 		setState(input);
 	}
 
-	if (_lp.get_cutoff_freq() != getFCutParam()) {
+	if (fabsf(_lp.get_cutoff_freq() - getFCutParam()) > FLT_EPSILON) {
 		_lp.set_cutoff_frequency(_fs, getFCutParam());
 	}
 	_state = _lp.apply(input);
 	return _state;
 }
+
+int blockLowPass2Test()
+{
+	printf("Test BlockLowPass2\t\t: ");
+	BlockLowPass2 lowPass(NULL, "TEST_LP", 100);
+	// test initial state
+	ASSERT(equal(10.0f, lowPass.getFCutParam()));
+	ASSERT(equal(0.0f, lowPass.getState()));
+	ASSERT(equal(0.0f, lowPass.getDt()));
+	// set dt
+	lowPass.setDt(0.1f);
+	ASSERT(equal(0.1f, lowPass.getDt()));
+	// set state
+	lowPass.setState(1.0f);
+	ASSERT(equal(1.0f, lowPass.getState()));
+	// test update
+	ASSERT(equal(1.06745527f, lowPass.update(2.0f)));
+
+	// test end condition
+	for (int i = 0; i < 100; i++) {
+		lowPass.update(2.0f);
+	}
+
+	ASSERT(equal(2.0f, lowPass.getState()));
+	ASSERT(equal(2.0f, lowPass.update(2.0f)));
+	printf("PASS\n");
+	return 0;
+};
 
 float BlockIntegral::update(float input)
 {
