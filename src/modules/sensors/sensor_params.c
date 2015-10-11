@@ -1810,7 +1810,6 @@ PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
 /**
  * Scaling factor for battery voltage sensor on FMU v2.
  *
- * @board CONFIG_ARCH_BOARD_PX4FMU_V2
  * @group Battery Calibration
  */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
