@@ -107,26 +107,26 @@ Type& CAN = *reinterpret_cast<Type*>(0x40050000);
 /*
  * CNTL
  */
-static constexpr std::uint16_t CNTL_TEST = 1 << 7;
-static constexpr std::uint16_t CNTL_CCE  = 1 << 6;
-static constexpr std::uint16_t CNTL_DAR  = 1 << 5;
-static constexpr std::uint16_t CNTL_EIE  = 1 << 3;
-static constexpr std::uint16_t CNTL_SIE  = 1 << 2;
-static constexpr std::uint16_t CNTL_IE   = 1 << 1;
-static constexpr std::uint16_t CNTL_INIT = 1 << 0;
+static constexpr std::uint32_t CNTL_TEST = 1 << 7;
+static constexpr std::uint32_t CNTL_CCE  = 1 << 6;
+static constexpr std::uint32_t CNTL_DAR  = 1 << 5;
+static constexpr std::uint32_t CNTL_EIE  = 1 << 3;
+static constexpr std::uint32_t CNTL_SIE  = 1 << 2;
+static constexpr std::uint32_t CNTL_IE   = 1 << 1;
+static constexpr std::uint32_t CNTL_INIT = 1 << 0;
 
-static constexpr std::uint16_t CNTL_IRQ_MASK = CNTL_EIE | CNTL_IE | CNTL_SIE;
+static constexpr std::uint32_t CNTL_IRQ_MASK = CNTL_EIE | CNTL_IE | CNTL_SIE;
 
 /*
  * TEST
  */
-static constexpr std::uint16_t TEST_RX       = 1 << 7;
-static constexpr std::uint16_t TEST_LBACK    = 1 << 4;
-static constexpr std::uint16_t TEST_SILENT   = 1 << 3;
-static constexpr std::uint16_t TEST_BASIC    = 1 << 2;
-static constexpr std::uint16_t TEST_TX_SHIFT = 5;
+static constexpr std::uint32_t TEST_RX       = 1 << 7;
+static constexpr std::uint32_t TEST_LBACK    = 1 << 4;
+static constexpr std::uint32_t TEST_SILENT   = 1 << 3;
+static constexpr std::uint32_t TEST_BASIC    = 1 << 2;
+static constexpr std::uint32_t TEST_TX_SHIFT = 5;
 
-enum class TestTx : std::uint16_t
+enum class TestTx : std::uint32_t
 {
     Controller      = 0,
     SamplePoint     = 1,
@@ -137,15 +137,15 @@ enum class TestTx : std::uint16_t
 /*
  * STAT
  */
-static constexpr std::uint16_t STAT_BOFF      = 1 << 7;
-static constexpr std::uint16_t STAT_EWARN     = 1 << 6;
-static constexpr std::uint16_t STAT_EPASS     = 1 << 5;
-static constexpr std::uint16_t STAT_RXOK      = 1 << 4;
-static constexpr std::uint16_t STAT_TXOK      = 1 << 3;
-static constexpr std::uint16_t STAT_LEC_MASK  = 7;
-static constexpr std::uint16_t STAT_LEC_SHIFT = 0;
+static constexpr std::uint32_t STAT_BOFF      = 1 << 7;
+static constexpr std::uint32_t STAT_EWARN     = 1 << 6;
+static constexpr std::uint32_t STAT_EPASS     = 1 << 5;
+static constexpr std::uint32_t STAT_RXOK      = 1 << 4;
+static constexpr std::uint32_t STAT_TXOK      = 1 << 3;
+static constexpr std::uint32_t STAT_LEC_MASK  = 7;
+static constexpr std::uint32_t STAT_LEC_SHIFT = 0;
 
-enum class StatLec : std::uint16_t
+enum class StatLec : std::uint32_t
 {
     NoError     = 0,
     StuffError  = 1,
@@ -160,16 +160,16 @@ enum class StatLec : std::uint16_t
 /*
  * IF.MCTRL
  */
-static constexpr std::uint16_t IF_MCTRL_NEWDAT   = 1 << 15;
-static constexpr std::uint16_t IF_MCTRL_MSGLST   = 1 << 14;
-static constexpr std::uint16_t IF_MCTRL_INTPND   = 1 << 13;
-static constexpr std::uint16_t IF_MCTRL_UMASK    = 1 << 12;
-static constexpr std::uint16_t IF_MCTRL_TXIE     = 1 << 11;
-static constexpr std::uint16_t IF_MCTRL_RXIE     = 1 << 10;
-static constexpr std::uint16_t IF_MCTRL_RMTEN    = 1 << 9;
-static constexpr std::uint16_t IF_MCTRL_TXRQST   = 1 << 8;
-static constexpr std::uint16_t IF_MCTRL_EOB      = 1 << 7;
-static constexpr std::uint16_t IF_MCTRL_DLC_MASK = 15;
+static constexpr std::uint32_t IF_MCTRL_NEWDAT   = 1 << 15;
+static constexpr std::uint32_t IF_MCTRL_MSGLST   = 1 << 14;
+static constexpr std::uint32_t IF_MCTRL_INTPND   = 1 << 13;
+static constexpr std::uint32_t IF_MCTRL_UMASK    = 1 << 12;
+static constexpr std::uint32_t IF_MCTRL_TXIE     = 1 << 11;
+static constexpr std::uint32_t IF_MCTRL_RXIE     = 1 << 10;
+static constexpr std::uint32_t IF_MCTRL_RMTEN    = 1 << 9;
+static constexpr std::uint32_t IF_MCTRL_TXRQST   = 1 << 8;
+static constexpr std::uint32_t IF_MCTRL_EOB      = 1 << 7;
+static constexpr std::uint32_t IF_MCTRL_DLC_MASK = 15;
 
 }
 }
