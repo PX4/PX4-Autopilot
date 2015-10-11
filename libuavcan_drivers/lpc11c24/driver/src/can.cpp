@@ -156,6 +156,9 @@ BitTimingSettings computeBitTimings(std::uint32_t bitrate)
 
 CanDriver CanDriver::self;
 
+#if __GNUC__
+__attribute__((optimize(1)))
+#endif
 uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 {
     static constexpr uavcan::uint32_t BitRatesToTry[] =
@@ -168,6 +171,8 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 
     const auto ListeningDuration = uavcan::MonotonicDuration::fromMSec(1050);
 
+    NVIC_DisableIRQ(CAN_IRQn);
+    LPC_SYSCTL->PRESETCTRL |= (1 << RESET_CAN0);
     Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
 
     for (auto bitrate : BitRatesToTry)
@@ -183,16 +188,24 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
         {
             CriticalSectionLocker locker;
 
-            c_can::CAN.CNTL = c_can::CNTL_INIT | c_can::CNTL_DAR | c_can::CNTL_CCE | c_can::CNTL_TEST;
+            c_can::CAN.CNTL = c_can::CNTL_INIT | c_can::CNTL_CCE | c_can::CNTL_TEST;
 
-            c_can::CAN.BT     = bit_timings.canbtr;
             c_can::CAN.CLKDIV = bit_timings.canclkdiv;
 
-            c_can::CAN.TEST = c_can::TEST_SILENT | (unsigned(c_can::TestTx::HighRecessive) << c_can::TEST_TX_SHIFT);
+            c_can::CAN.BRPE = 0;
+            c_can::CAN.BT   = bit_timings.canbtr;
+
+            c_can::CAN.TEST = c_can::TEST_SILENT;
 
             c_can::CAN.STAT = (unsigned(c_can::StatLec::Unused) << c_can::STAT_LEC_SHIFT);
 
-            c_can::CAN.CNTL = c_can::CNTL_DAR | c_can::CNTL_TEST;
+            c_can::CAN.CNTL = c_can::CNTL_TEST;
+        }
+
+        // TODO THIS IS TEMPORARY, REMOVE LATER
+        if (c_can::CAN.BT != bit_timings.canbtr)
+        {
+            Chip_UART_SendBlocking(LPC_USART, "BT\r\n", 4);
         }
 
         // Listening
@@ -205,7 +218,19 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
                 idle_callback();
             }
 
-            if ((c_can::CAN.STAT >> c_can::STAT_LEC_SHIFT) == unsigned(c_can::StatLec::NoError))
+            const auto LastErrorCode = (c_can::CAN.STAT >> c_can::STAT_LEC_SHIFT) & c_can::STAT_LEC_MASK;
+
+            // TODO THIS IS TEMPORARY, REMOVE LATER
+            if (LastErrorCode != unsigned(c_can::StatLec::Unused) &&
+                LastErrorCode != unsigned(c_can::StatLec::NoError))
+            {
+                const char txt[] = { 'E', char('0' + LastErrorCode), ' ',
+                                     'R', (((c_can::CAN.STAT & c_can::STAT_RXOK) != 0) ? '1' : '0'),
+                                     '\r', '\n' };
+                Chip_UART_SendBlocking(LPC_USART, txt, sizeof(txt));
+            }
+
+            if (LastErrorCode == unsigned(c_can::StatLec::NoError))
             {
                 match_detected = true;
                 break;
