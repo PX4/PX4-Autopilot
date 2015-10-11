@@ -85,6 +85,9 @@ struct Type
     std::uint32_t CLKDIV;               // 0x180
 };
 
+static_assert(offsetof(Type, CNTL)   == 0x000, "C_CAN offset");
+static_assert(offsetof(Type, STAT)   == 0x004, "C_CAN offset");
+static_assert(offsetof(Type, TEST)   == 0x014, "C_CAN offset");
 static_assert(offsetof(Type, BRPE)   == 0x018, "C_CAN offset");
 static_assert(offsetof(Type, IF[0])  == 0x020, "C_CAN offset");
 static_assert(offsetof(Type, IF[1])  == 0x080, "C_CAN offset");
