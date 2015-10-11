@@ -31,6 +31,14 @@
 #
 ############################################################################
 
+# Enforce the presence of the GIT repository
+#
+# We depend on our submodules, so we have to prevent attempts to
+# compile without it being present.
+ifeq ($(wildcard .git),)
+	$(error YOU HAVE TO USE GIT TO DOWNLOAD THIS REPOSITORY. ABORTING.)
+endif
+
 # Help
 # --------------------------------------------------------------------
 # Don't be afraid of this makefile, it is just passing

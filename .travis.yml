@@ -97,6 +97,7 @@ script:
   - cat build_posix_sitl_simple/src/modules/systemlib/mixer/mixer_multirotor.generated.h
   - echo -en 'travis_fold:end:script.2\\r'
   - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.3\\r'
+  - make px4fmu-v1_default
   - make px4fmu-v2_default
   - echo -en 'travis_fold:end:script.3\\r'
   - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'

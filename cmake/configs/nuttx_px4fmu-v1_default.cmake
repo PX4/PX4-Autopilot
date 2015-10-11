@@ -63,7 +63,6 @@ set(config_module_list
 	modules/navigator
 	modules/mavlink
 	modules/gpio_led
-	modules/uavcan
 	modules/land_detector
 
 	#
@@ -99,6 +98,7 @@ set(config_module_list
 	modules/controllib
 	modules/uORB
 	modules/dataman
+	modules/uavcan
 
 	#
 	# Libraries
