@@ -308,6 +308,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 	 * so not in the constructor */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	int param_request_sub = orb_subscribe(ORB_ID(uavcan_parameter_request));
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	/* Set up shared service clients */
 	_param_getset_client.setCallback(GetSetCallback(this, &UavcanServers::cb_getset));
@@ -337,6 +338,9 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 		}
 
 		const int spin_res = _subnode.spin(uavcan::MonotonicDuration::fromMSec(10));
+		if (spin_res < 0) {
+			warnx("node spin error %i", spin_res);
+		}
 
 		// Check for parameter requests (get/set/list)
 		bool param_request_ready;
@@ -534,8 +538,18 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 			}
 		}
 
-		if (spin_res < 0) {
-			warnx("node spin error %i", spin_res);
+		// Shut down once armed
+		// TODO (elsewhere): start up again once disarmed?
+		bool updated;
+		orb_check(armed_sub, &updated);
+		if (updated) {
+			struct actuator_armed_s armed;
+			orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+
+			if (armed.armed && !armed.lockdown) {
+				warnx("UAVCAN command bridge: system armed, exiting now.");
+				break;
+			}
 		}
 	}
 
