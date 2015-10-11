@@ -60,7 +60,8 @@ float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_da
 {
     /* Do not calculate control signal with bad inputs */
     if (!(PX4_ISFINITE(ctl_data.yaw_rate) &&
-          PX4_ISFINITE(ctl_data.ground_speed))) {
+          PX4_ISFINITE(ctl_data.groundspeed) &&
+          PX4_ISFINITE(ctl_data.groundspeed_scaler))) {
         perf_count(_nonfinite_input_perf);
         return math::constrain(_last_output, -1.0f, 1.0f);
     }
@@ -79,21 +80,13 @@ float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_da
 
     /* input conditioning */
     float min_speed = 1.0f;
-    /* assume minimum speed to prevent oscillations */
-    float speed = min_speed;
-    if (ctl_data.ground_speed > speed) {
-        speed = ctl_data.ground_speed;
-    }
-
-    /* only scale a certain amount with speed else the corrections get to small */
-    float scaler = 0.7f + 0.3f / speed;
 
     /* Calculate body angular rate error */
     _rate_error = _rate_setpoint - ctl_data.yaw_rate; //body angular rate error
 
-    if (!lock_integrator && _k_i > 0.0f && speed > min_speed) {
+    if (!lock_integrator && _k_i > 0.0f && ctl_data.groundspeed > min_speed) {
 
-        float id = _rate_error * dt * scaler;
+        float id = _rate_error * dt * ctl_data.groundspeed_scaler;
 
         /*
          * anti-windup: do not allow integrator to increase if actuator is at limit
@@ -115,7 +108,9 @@ float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_da
     float integrator_constrained = math::constrain(_integrator * _k_i, -_integrator_max, _integrator_max);
 
     /* Apply PI rate controller and store non-limited output */
-    _last_output = (_rate_setpoint * _k_ff + _rate_error * _k_p + integrator_constrained) * scaler;
+    _last_output = _rate_setpoint * _k_ff * ctl_data.groundspeed_scaler +
+            _rate_error * _k_p * ctl_data.groundspeed_scaler * ctl_data.groundspeed_scaler +
+            integrator_constrained;
     /*warnx("wheel: _last_output: %.4f, _integrator: %.4f, _integrator_max: %.4f, speed %.4f, _k_i %.4f, _k_p: %.4f",
             (double)_last_output, (double)_integrator, (double)_integrator_max, (double)speed, (double)_k_i, (double)_k_p);*/
 

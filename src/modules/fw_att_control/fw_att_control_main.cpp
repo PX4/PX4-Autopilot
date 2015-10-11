@@ -837,8 +837,15 @@ FixedwingAttitudeControl::task_main()
 				 *
 				 * Forcing the scaling to this value allows reasonable handheld tests.
 				 */
-
 				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min : airspeed);
+
+				/* Use min airspeed to calculate ground speed scaling region.
+				 * Don't scale below gspd_scaling_trim
+				 */
+				float groundspeed = sqrtf(_global_pos.vel_n * _global_pos.vel_n +
+						_global_pos.vel_e * _global_pos.vel_e);
+				float gspd_scaling_trim = (_parameters.airspeed_min * 0.6f);
+				float groundspeed_scaler = gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 
 				float roll_sp = _parameters.rollsp_offset_rad;
 				float pitch_sp = _parameters.pitchsp_offset_rad;
@@ -995,8 +1002,8 @@ FixedwingAttitudeControl::task_main()
 				control_input.airspeed = airspeed;
 				control_input.scaler = airspeed_scaling;
 				control_input.lock_integrator = lock_integrator;
-				control_input.ground_speed = sqrtf(_global_pos.vel_n * _global_pos.vel_n +
-						_global_pos.vel_e * _global_pos.vel_e);
+				control_input.groundspeed = groundspeed;
+				control_input.groundspeed_scaler = groundspeed_scaler;
 
 				_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 
