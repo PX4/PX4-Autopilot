@@ -7,6 +7,11 @@
 namespace board
 {
 
+#if __GNUC__
+__attribute__((noreturn))
+#endif
+void die();
+
 static constexpr unsigned UniqueIDSize = 16;
 
 void readUniqueID(std::uint8_t out_uid[UniqueIDSize]);

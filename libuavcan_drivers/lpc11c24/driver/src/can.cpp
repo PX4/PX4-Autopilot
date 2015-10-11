@@ -183,28 +183,46 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
         {
             CriticalSectionLocker locker;
 
-            c_can::Can.CNTL = c_can::CNTL_DAR | c_can::CNTL_CCE;
+            c_can::CAN.CNTL = c_can::CNTL_INIT | c_can::CNTL_DAR | c_can::CNTL_CCE | c_can::CNTL_TEST;
 
-            c_can::Can.BT     = bit_timings.canbtr;
-            c_can::Can.CLKDIV = bit_timings.canclkdiv;
+            c_can::CAN.BT     = bit_timings.canbtr;
+            c_can::CAN.CLKDIV = bit_timings.canclkdiv;
 
-            c_can::Can.TEST = c_can::TEST_SILENT;
+            c_can::CAN.TEST = c_can::TEST_SILENT | (unsigned(c_can::TestTx::HighRecessive) << c_can::TEST_TX_SHIFT);
 
-            c_can::Can.CNTL = c_can::CNTL_DAR;
+            c_can::CAN.STAT = (unsigned(c_can::StatLec::Unused) << c_can::STAT_LEC_SHIFT);
+
+            c_can::CAN.CNTL = c_can::CNTL_DAR | c_can::CNTL_TEST;
         }
 
         // Listening
         const auto deadline = clock::getMonotonic() + ListeningDuration;
+        bool match_detected = false;
         while (clock::getMonotonic() < deadline)
         {
             if (idle_callback != nullptr)
             {
                 idle_callback();
             }
+
+            if ((c_can::CAN.STAT >> c_can::STAT_LEC_SHIFT) == unsigned(c_can::StatLec::NoError))
+            {
+                match_detected = true;
+                break;
+            }
+        }
+
+        // De-configuring the CAN controller back to reset state
+        c_can::CAN.CNTL = c_can::CNTL_INIT;
+
+        // Termination condition
+        if (match_detected)
+        {
+            return bitrate;
         }
     }
 
-    return 0;
+    return 0;   // No match
 }
 
 int CanDriver::init(uavcan::uint32_t bitrate)

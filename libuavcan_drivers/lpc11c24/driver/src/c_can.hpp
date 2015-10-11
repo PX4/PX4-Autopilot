@@ -98,7 +98,7 @@ static_assert(offsetof(Type, IF[0].DB2) == 0x048, "C_CAN offset");
 static_assert(offsetof(Type, IF[1].DB2) == 0x0A8, "C_CAN offset");
 
 
-Type& Can = *reinterpret_cast<Type*>(0x40050000);
+Type& CAN = *reinterpret_cast<Type*>(0x40050000);
 
 
 /*
@@ -125,10 +125,10 @@ static constexpr std::uint16_t TEST_TX_SHIFT = 5;
 
 enum class TestTx : std::uint16_t
 {
-    Controller  = 0,
-    SamplePoint = 1,
-    Low         = 2,
-    High        = 3
+    Controller      = 0,
+    SamplePoint     = 1,
+    LowDominant     = 2,
+    HighRecessive   = 3
 };
 
 /*
@@ -141,6 +141,18 @@ static constexpr std::uint16_t STAT_RXOK      = 1 << 4;
 static constexpr std::uint16_t STAT_TXOK      = 1 << 3;
 static constexpr std::uint16_t STAT_LEC_MASK  = 7;
 static constexpr std::uint16_t STAT_LEC_SHIFT = 0;
+
+enum class StatLec : std::uint16_t
+{
+    NoError     = 0,
+    StuffError  = 1,
+    FormError   = 2,
+    AckError    = 3,
+    Bit1Error   = 4,
+    Bit0Error   = 5,
+    CRCError    = 6,
+    Unused      = 7
+};
 
 /*
  * IF.MCTRL

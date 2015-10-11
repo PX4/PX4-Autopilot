@@ -132,6 +132,11 @@ void init()
 
 } // namespace
 
+void die()
+{
+    while (true) { }
+}
+
 #if __GNUC__
 __attribute__((optimize(0)))     // Optimization must be disabled lest it hardfaults in the IAP call
 #endif
