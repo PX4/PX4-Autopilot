@@ -88,7 +88,7 @@ public:
  *
  * Events from this class can be routed to many listeners, @ref INodeInfoListener.
  */
-class UAVCAN_EXPORT NodeInfoRetriever : NodeStatusMonitor
+class UAVCAN_EXPORT NodeInfoRetriever : public NodeStatusMonitor
                                       , TimerBase
 {
 public:
