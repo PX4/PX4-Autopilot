@@ -61,7 +61,7 @@
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
 
-#include <mavlink/v1.0/common/mavlink.h>
+#include <v1.0/common/mavlink.h>
 
 ORB_DEFINE(uavcan_parameter_request, struct uavcan_parameter_request_s);
 ORB_DEFINE(uavcan_parameter_value, struct uavcan_parameter_value_s);
@@ -369,7 +369,6 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 					} else {
 						_param_in_progress = true;
 						_param_index = request.param_index;
-						warnx("UAVCAN command bridge: sent GetSet");
 					}
 				} else if (request.message_type == MAVLINK_MSG_ID_PARAM_SET) {
 					uavcan::protocol::param::GetSet::Request req;
@@ -393,7 +392,6 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 					} else {
 						_param_in_progress = true;
 						_param_index = request.param_index;
-						warnx("UAVCAN command bridge: sent GetSet");
 					}
 				} else if (request.message_type == MAVLINK_MSG_ID_PARAM_REQUEST_LIST) {
 					// This triggers the _param_list_in_progress case below.
@@ -415,9 +413,9 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 					_param_list_node_id = get_next_active_node_id(1);
 					_param_list_all_nodes = true;
 
-					warnx("UAVCAN command bridge: starting global param list");
+					warnx("UAVCAN command bridge: starting global param list with node %hhu", _param_list_node_id);
 
-					if (_param_counts[_param_list_node_id.get()] == 0) {
+					if (_param_counts[_param_list_node_id] == 0) {
 						param_count(_param_list_node_id);
 					}
 				}
@@ -432,25 +430,27 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 
 		// Handle parameter listing index/node ID advancement
 		if (_param_list_in_progress && !_param_in_progress && !_count_in_progress) {
-			if (_param_index >= _param_counts[_param_list_node_id.get()]) {
+			if (_param_index >= _param_counts[_param_list_node_id]) {
+				warnx("UAVCAN command bridge: completed param list for node %hhu", _param_list_node_id);
 				// Reached the end of the current node's parameter set.
 				_param_list_in_progress = false;
 
 				if (_param_list_all_nodes) {
 					// We're listing all parameters for all nodes -- get the next node ID
-					uavcan::NodeID next_id = get_next_active_node_id(_param_list_node_id);
-					if (next_id != _param_list_node_id) {
+					uint8_t next_id = get_next_active_node_id(_param_list_node_id);
+					if (next_id < 128) {
+						_param_list_node_id = next_id;
 						/*
 						 * If there is a next node ID, check if that node's parameters
 						 * have been counted before. If not, do it now.
 						 */
-						if (_param_counts[_param_list_node_id.get()] == 0) {
+						if (_param_counts[_param_list_node_id] == 0) {
 							param_count(_param_list_node_id);
 						}
 						// Keep on listing.
 						_param_index = 0;
 						_param_list_in_progress = true;
-						warnx("UAVCAN command bridge: incrementing global param list node ID");
+						warnx("UAVCAN command bridge: started param list for node %hhu", _param_list_node_id);
 					}
 				}
 			}
@@ -466,10 +466,9 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 			int call_res = _param_getset_client.call(_param_list_node_id, req);
 			if (call_res < 0) {
 				_param_list_in_progress = false;
-				warnx("UAVCAN command bridge: couldn't send GetSet: %d", call_res);
+				warnx("UAVCAN command bridge: couldn't send param list GetSet: %d", call_res);
 			} else {
 				_param_in_progress = true;
-				warnx("UAVCAN command bridge: sent GetSet during param list operation");
 			}
 		}
 
@@ -585,8 +584,6 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 		uint8_t node_id = result.getCallID().server_node_id.get();
 
 		if (result.isSuccessful()) {
-			warnx("UAVCAN command bridge: successful GetSet response during param count");
-
 			uavcan::protocol::param::GetSet::Response resp = result.getResponse();
 			if (resp.name.size()) {
 				_param_counts[node_id] = _count_index++;
@@ -599,8 +596,6 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 					_count_in_progress = false;
 					_count_index = 0;
 					warnx("UAVCAN command bridge: couldn't send GetSet during param count: %d", call_res);
-				} else {
-					warnx("UAVCAN command bridge: sent GetSet during param count");
 				}
 			} else {
 				_count_in_progress = false;
@@ -640,8 +635,6 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 				response.int_value = param.value.to<uavcan::protocol::param::Value::Tag::boolean_value>();
 			}
 
-			warnx("UAVCAN command bridge: successful GetSet response for param %s, node %hhu", response.param_id, response.node_id);
-
 			if (_param_response_pub == nullptr) {
 				_param_response_pub = orb_advertise(ORB_ID(uavcan_parameter_value), &response);
 			} else {
@@ -670,19 +663,17 @@ void UavcanServers::param_count(uavcan::NodeID node_id)
 	}
 }
 
-uavcan::NodeID UavcanServers::get_next_active_node_id(const uavcan::NodeID &base)
+uint8_t UavcanServers::get_next_active_node_id(uint8_t base)
 {
-	for (int i = base.get(); i < 128; i++) {
-		if (_node_info_retriever.isNodeKnown(i) && _subnode.getNodeID() != i) {
-			return uavcan::NodeID(i);
-		}
-	}
+	base++;
+	for (; base < 128 && (!_node_info_retriever.isNodeKnown(base) ||
+						   _subnode.getNodeID().get() == base); base++);
 	return base;
 }
 
 void UavcanServers::cb_enumeration_begin(const uavcan::ServiceCallResult<uavcan::protocol::enumeration::Begin> &result)
 {
-	uavcan::NodeID next_id = get_next_active_node_id(result.getCallID().server_node_id);
+	uint8_t next_id = get_next_active_node_id(result.getCallID().server_node_id.get());
 
 	if (!result.isSuccessful()) {
 		warnx("UAVCAN ESC enumeration: begin request for node %hhu timed out.", result.getCallID().server_node_id.get());
@@ -693,7 +684,7 @@ void UavcanServers::cb_enumeration_begin(const uavcan::ServiceCallResult<uavcan:
 		warnx("UAVCAN ESC enumeration: begin request for node %hhu completed OK.", result.getCallID().server_node_id.get());
 	}
 
-	if (next_id != result.getCallID().server_node_id) {
+	if (next_id < 128) {
 		// Still other active nodes to send the request to
 		uavcan::protocol::enumeration::Begin::Request req;
 		req.parameter_name = "esc_index";
@@ -706,7 +697,7 @@ void UavcanServers::cb_enumeration_begin(const uavcan::ServiceCallResult<uavcan:
 			warnx("UAVCAN ESC enumeration: sent Begin request");
 		}
 	} else {
-		warnx("UAVCAN ESC enumeration: completed enumeration on all nodes.");
+		warnx("UAVCAN ESC enumeration: begun enumeration on all nodes.");
 	}
 }
 
@@ -752,7 +743,7 @@ void UavcanServers::cb_enumeration_getset(const uavcan::ServiceCallResult<uavcan
 		uavcan::protocol::param::GetSet::Response resp = result.getResponse();
 		uint8_t esc_index = (uint8_t)resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>();
 		esc_index = std::min((uint8_t)(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize - 1), esc_index);
-		_esc_enumeration_index = std::max(_esc_enumeration_index, esc_index);
+		_esc_enumeration_index = std::max(_esc_enumeration_index, (uint8_t)(esc_index + 1));
 
 		_esc_enumeration_ids[esc_index] = result.getCallID().server_node_id.get();
 
@@ -787,8 +778,10 @@ void UavcanServers::cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::
 
 	(void)_beep_pub.broadcast(beep);
 
+	warnx("UAVCAN ESC enumeration: completed %hhu of %hhu", _esc_enumeration_index, _esc_count);
+
 	if (_esc_enumeration_index == uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize - 1 ||
-			_esc_enumeration_index == _esc_count - 1) {
+			_esc_enumeration_index == _esc_count) {
 		_esc_enumeration_active = false;
 
 		// Tell all ESCs to stop enumerating

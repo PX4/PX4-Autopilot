@@ -92,7 +92,7 @@ class UavcanServers
 	static constexpr unsigned QueuePoolSize =
 		(NumIfaces * uavcan::MemPoolBlockSize * MaxCanFramesPerTransfer);
 
-	static constexpr unsigned StackSize  = 3500;
+	static constexpr unsigned StackSize  = 5000;
 	static constexpr unsigned Priority  =  120;
 
 	typedef uavcan::SubNode<MemPoolSize> SubNode;
@@ -155,15 +155,15 @@ private:
 	 *
 	 * The node's UAVCAN ID is used as the index into the _param_counts array.
 	 */
-	uint16_t _param_counts[128];
+	uint8_t _param_counts[128];
 	bool _count_in_progress;
-	uint16_t _count_index;
+	uint8_t _count_index;
 
 	bool _param_in_progress;
-	uint16_t _param_index;
+	uint8_t _param_index;
 	bool _param_list_in_progress;
 	bool _param_list_all_nodes;
-	uavcan::NodeID _param_list_node_id;
+	uint8_t _param_list_node_id;
 
 	bool _cmd_in_progress;
 
@@ -184,7 +184,7 @@ private:
 	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCallback> _param_getset_client;
 	void param_count(uavcan::NodeID node_id);
 
-	uavcan::NodeID get_next_active_node_id(const uavcan::NodeID &base);
+	uint8_t get_next_active_node_id(uint8_t base);
 
 	bool _mutex_inited;
 	volatile bool _check_fw;
