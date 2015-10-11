@@ -963,7 +963,7 @@ start(enum MS5611_BUS busid)
 			continue;
 		}
 
-		started |= start_bus(bus_options[i]);
+		started = started || start_bus(bus_options[i]);
 	}
 
 	if (!started) {
