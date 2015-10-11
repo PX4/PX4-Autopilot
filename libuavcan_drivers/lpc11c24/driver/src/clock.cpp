@@ -82,6 +82,10 @@ std::uint64_t getUtcUSecFromCanInterrupt()
 
 uavcan::MonotonicTime getMonotonic()
 {
+    if (!initialized)
+    {
+        fail();
+    }
     std::uint64_t usec = 0;
     {
         CriticalSectionLocker locker;
@@ -92,6 +96,10 @@ uavcan::MonotonicTime getMonotonic()
 
 uavcan::UtcTime getUtc()
 {
+    if (!initialized)
+    {
+        fail();
+    }
     std::uint64_t usec = 0;
     if (utc_set)
     {
