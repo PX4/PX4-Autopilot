@@ -150,10 +150,11 @@ public:
     int start(const TransferPriority node_status_transfer_priority = TransferPriority::Default);
 
     /**
-     * Sets the node name, e.g. "com.example.product_name". The node name can be set only once.
-     * Must be executed before the node is started, otherwise the node will refuse to start up.
+     * Gets/sets the node name, e.g. "com.example.product_name". The node name can be set only once.
+     * The name must be set before the node is started, otherwise the node will refuse to start up.
      */
-    void setName(const char* name) { proto_nsp_.setName(name); }
+    const NodeStatusProvider::NodeName& getName() const { return proto_nsp_.getName(); }
+    void setName(const NodeStatusProvider::NodeName& name) { proto_nsp_.setName(name); }
 
     /**
      * Node health code helpers.
@@ -187,10 +188,13 @@ public:
     }
 
     /**
-     * Sets the node version information.
+     * Gets/sets the node version information.
      */
     void setSoftwareVersion(const protocol::SoftwareVersion& version) { proto_nsp_.setSoftwareVersion(version); }
     void setHardwareVersion(const protocol::HardwareVersion& version) { proto_nsp_.setHardwareVersion(version); }
+
+    const protocol::SoftwareVersion& getSoftwareVersion() const { return proto_nsp_.getSoftwareVersion(); }
+    const protocol::HardwareVersion& getHardwareVersion() const { return proto_nsp_.getHardwareVersion(); }
 
     NodeStatusProvider& getNodeStatusProvider() { return proto_nsp_; }
 

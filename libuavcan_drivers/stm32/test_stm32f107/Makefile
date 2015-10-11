@@ -10,8 +10,9 @@ PROJECT = uavcan_test_stm32f107
 
 MAIN ?= main.cpp
 
-CPPSRC = src/$(MAIN) \
-         src/dummy.cpp
+CPPSRC = src/$(MAIN)              \
+         src/dummy.cpp            \
+         src/board/board.cpp
 
 #
 # UAVCAN library
@@ -37,10 +38,15 @@ $(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
 UINCDIR += dsdlc_generated
 
 #
-# Platform
+# Git commit hash
 #
 
-CSRC += src/sys/board.c
+GIT_HASH := $(shell git rev-parse --short HEAD)
+UDEFS += -DGIT_HASH=0x$(GIT_HASH)
+
+#
+# Platform
+#
 
 UINCDIR += src/sys
 

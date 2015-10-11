@@ -63,6 +63,8 @@ class UAVCAN_EXPORT DynamicNodeIDClient : private TimerBase
     void handleAllocation(const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>& msg);
 
 public:
+    typedef protocol::HardwareVersion::FieldTypes::unique_id UniqueID;
+
     DynamicNodeIDClient(INode& node)
         : TimerBase(node)
         , dnida_pub_(node)
@@ -71,7 +73,7 @@ public:
     { }
 
     /**
-     * @param hardware_version  Hardware version information, where unique_id must be set correctly.
+     * @param unique_id         Unique ID of the local node. Must be the same as in the hardware version struct.
      * @param preferred_node_id Node ID that the application would like to take; set to broadcast (zero) if
      *                          the application doesn't have any preference (this is default).
      * @param transfer_priority Transfer priority, Normal by default.
@@ -79,7 +81,7 @@ public:
      *                          Negative error code on failure
      *                          -ErrLogic if 1. the node is not in passive mode or 2. the client is already started
      */
-    int start(const protocol::HardwareVersion& hardware_version,
+    int start(const UniqueID& unique_id,
               const NodeID preferred_node_id = NodeID::Broadcast,
               const TransferPriority transfer_priority = TransferPriority::OneHigherThanLowest);
 

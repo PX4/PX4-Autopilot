@@ -124,11 +124,11 @@ void NodeStatusProvider::setVendorSpecificStatusCode(VendorSpecificStatusCode co
     node_info_.status.vendor_specific_status_code = code;
 }
 
-void NodeStatusProvider::setName(const char* name)
+void NodeStatusProvider::setName(const NodeName& name)
 {
-    if ((name != NULL) && (*name != '\0') && (node_info_.name.empty()))
+    if (node_info_.name.empty())
     {
-        node_info_.name = name;  // The string contents will be copied, not just pointer.
+        node_info_.name = name;
     }
 }
 

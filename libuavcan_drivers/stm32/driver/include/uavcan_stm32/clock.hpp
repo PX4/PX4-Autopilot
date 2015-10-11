@@ -25,6 +25,14 @@ void init();
 uavcan::MonotonicTime getMonotonic();
 
 /**
+ * Sets the driver's notion of the system UTC. It should be called
+ * at startup and any time the system clock is updated from an
+ * external source that is not the UAVCAN Timesync master.
+ * This function is thread safe.
+ */
+void setUtc(uavcan::UtcTime time);
+
+/**
  * Returns UTC time if it has been set, otherwise returns zero time.
  * This function is thread safe.
  */
@@ -42,13 +50,23 @@ void adjustUtc(uavcan::UtcDuration adjustment);
  */
 struct UtcSyncParams
 {
-    float offset_p = 0.01F;                  ///< PPM per one usec error
-    float rate_i = 0.02F;                    ///< PPM per one PPM error for second
-    float rate_error_corner_freq = 0.01F;
-    float max_rate_correction_ppm = 300.0F;
-    float lock_thres_rate_ppm = 2.0F;
-    uavcan::UtcDuration lock_thres_offset = uavcan::UtcDuration::fromMSec(4);
-    uavcan::UtcDuration min_jump = uavcan::UtcDuration::fromMSec(10); ///< Min error to jump rather than change rate
+    float offset_p;                        ///< PPM per one usec error
+    float rate_i;                          ///< PPM per one PPM error for second
+    float rate_error_corner_freq;
+    float max_rate_correction_ppm;
+    float lock_thres_rate_ppm;
+    uavcan::UtcDuration lock_thres_offset;
+    uavcan::UtcDuration min_jump;          ///< Min error to jump rather than change rate
+
+    UtcSyncParams()
+        : offset_p(0.01F)
+        , rate_i(0.02F)
+        , rate_error_corner_freq(0.01F)
+        , max_rate_correction_ppm(300.0F)
+        , lock_thres_rate_ppm(2.0F)
+        , lock_thres_offset(uavcan::UtcDuration::fromMSec(4))
+        , min_jump(uavcan::UtcDuration::fromMSec(10))
+    { }
 };
 
 /**

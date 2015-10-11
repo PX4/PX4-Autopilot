@@ -154,13 +154,13 @@ TEST(dynamic_node_id_server_Server, Basic)
      * Client
      */
     uavcan::DynamicNodeIDClient client(nodes.b);
-    uavcan::protocol::HardwareVersion hwver;
-    for (uavcan::uint8_t i = 0; i < hwver.unique_id.size(); i++)
+    uavcan::protocol::HardwareVersion::FieldTypes::unique_id unique_id;
+    for (uavcan::uint8_t i = 0; i < unique_id.size(); i++)
     {
-        hwver.unique_id[i] = i;
+        unique_id[i] = i;
     }
     const uavcan::NodeID PreferredNodeID = 42;
-    ASSERT_LE(0, client.start(hwver, PreferredNodeID));
+    ASSERT_LE(0, client.start(unique_id, PreferredNodeID));
 
     /*
      * Fire

@@ -15,6 +15,10 @@
 # define UAVCAN_STM32_NUTTX 0
 #endif
 
+#ifndef UAVCAN_STM32_BAREMETAL
+# define UAVCAN_STM32_BAREMETAL 0
+#endif
+
 /**
  * Number of interfaces must be enabled explicitly
  */

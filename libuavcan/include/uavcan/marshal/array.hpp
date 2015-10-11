@@ -521,6 +521,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             {
                 return res_sz;
             }
+            // coverity[result_independent_of_operands]
             if (static_cast<unsigned>(sz) > MaxSize_)   // False 'type-limits' warning occurs here
             {
                 return -ErrInvalidMarshalData;

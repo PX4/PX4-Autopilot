@@ -223,6 +223,8 @@ class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
                                    const uavcan::CanFrame* (& pending_tx)[uavcan::MaxCanIfaces],
                                    uavcan::MonotonicTime blocking_deadline);
 
+    static void initOnce();
+
 public:
     template <unsigned RxQueueCapacity>
     CanDriver(CanRxItem (&rx_queue_storage)[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity])

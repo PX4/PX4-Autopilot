@@ -47,6 +47,15 @@ make -j8
 sudo make install
 ```
 
+For cross-compiling the procedure is similar.
+
+```bash
+mkdir build
+cd build
+cmake .. -D CMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-stm32-cortex-m4.cmake
+make -j8
+```
+
 The following components will be installed into the system:
 
 * Libuavcan headers and the static library
@@ -78,6 +87,8 @@ make
 ```
 
 Test outputs can be found in the build directory under `libuavcan`.
+Note that unit tests must be executed in real time, otherwise they may produce false warnings;
+this implies that they will likely fail if ran on a virtual machine or on a highly loaded system.
 
 Contributors, please follow the [Zubax Style Guide](https://github.com/Zubax/zubax_style_guide).
 

@@ -78,13 +78,13 @@ TEST(dynamic_node_id_server_AllocationRequestManager, Basic)
     /*
      * Client initialization
      */
-    uavcan::protocol::HardwareVersion hwver;
-    for (uavcan::uint8_t i = 0; i < hwver.unique_id.size(); i++)
+    uavcan::protocol::HardwareVersion::FieldTypes::unique_id unique_id;
+    for (uavcan::uint8_t i = 0; i < unique_id.size(); i++)
     {
-        hwver.unique_id[i] = i;
+        unique_id[i] = i;
     }
     const uavcan::NodeID PreferredNodeID = 42;
-    ASSERT_LE(0, client.start(hwver, PreferredNodeID));
+    ASSERT_LE(0, client.start(unique_id, PreferredNodeID));
 
     /*
      * Request manager initialization
@@ -102,9 +102,9 @@ TEST(dynamic_node_id_server_AllocationRequestManager, Basic)
      */
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2000));
 
-    ASSERT_TRUE(handler.matchAndPopLastRequest(hwver.unique_id, PreferredNodeID));
+    ASSERT_TRUE(handler.matchAndPopLastRequest(unique_id, PreferredNodeID));
 
-    ASSERT_LE(0, manager.broadcastAllocationResponse(hwver.unique_id, PreferredNodeID));
+    ASSERT_LE(0, manager.broadcastAllocationResponse(unique_id, PreferredNodeID));
 
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(100));
 

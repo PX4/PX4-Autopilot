@@ -16,6 +16,7 @@
 # include <cstdio>
 # include <ctime>
 # include <cstring>
+#elif UAVCAN_STM32_BAREMETAL
 #else
 # error "Unknown OS"
 #endif
@@ -92,10 +93,81 @@ public:
     void signalFromInterrupt();
 };
 
+class Mutex
+{
+    pthread_mutex_t mutex_;
+
+public:
+    Mutex()
+    {
+        init();
+    }
+
+    int init()
+    {
+        return pthread_mutex_init(&mutex_, NULL);
+    }
+
+    int deinit()
+    {
+        return pthread_mutex_destroy(&mutex_);
+    }
+
+    void lock()
+    {
+        (void)pthread_mutex_lock(&mutex_);
+    }
+
+    void unlock()
+    {
+        (void)pthread_mutex_unlock(&mutex_);
+    }
+};
+#elif UAVCAN_STM32_BAREMETAL
+
+class BusEvent
+{
+    volatile bool ready;
+
+public:
+    BusEvent(CanDriver& can_driver)
+     : ready(false)
+    {
+        (void)can_driver;
+    }
+
+    bool wait(uavcan::MonotonicDuration duration)
+    {
+      bool lready = ready;
+      return __atomic_exchange_n (&lready, false, __ATOMIC_SEQ_CST);
+    }
+
+    void signal()
+    {
+      __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
+    }
+
+    void signalFromInterrupt()
+    {
+      __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
+    }
+};
+
+class Mutex
+{
+public:
+    void lock()
+    {
+
+    };
+    void unlock()
+    {
+
+    };
+};
+
 #endif
 
-
-#if UAVCAN_STM32_CHIBIOS
 
 class MutexLocker
 {
@@ -112,7 +184,5 @@ public:
         mutex_.unlock();
     }
 };
-
-#endif
 
 }

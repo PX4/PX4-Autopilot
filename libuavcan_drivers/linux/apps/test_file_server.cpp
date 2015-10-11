@@ -48,7 +48,7 @@ uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::N
 
 void runForever(const uavcan_linux::NodePtr& node)
 {
-    uavcan_posix::BasicFileSeverBackend backend(*node);
+    uavcan_posix::BasicFileServerBackend backend(*node);
 
     uavcan::FileServer server(*node, backend);
 

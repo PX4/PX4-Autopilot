@@ -21,19 +21,19 @@ TEST(DynamicNodeIDClient, Basic)
     /*
      * Client initialization
      */
-    uavcan::protocol::HardwareVersion hwver;
+    uavcan::protocol::HardwareVersion::FieldTypes::unique_id unique_id;
 
-    ASSERT_LE(-uavcan::ErrInvalidParam, dnidac.start(hwver));  // Empty hardware version is not allowed
+    ASSERT_LE(-uavcan::ErrInvalidParam, dnidac.start(unique_id));  // Empty hardware version is not allowed
 
-    for (uavcan::uint8_t i = 0; i < hwver.unique_id.size(); i++)
+    for (uavcan::uint8_t i = 0; i < unique_id.size(); i++)
     {
-        hwver.unique_id[i] = i;
+        unique_id[i] = i;
     }
 
-    ASSERT_LE(-uavcan::ErrInvalidParam, dnidac.start(hwver, uavcan::NodeID()));
+    ASSERT_LE(-uavcan::ErrInvalidParam, dnidac.start(unique_id, uavcan::NodeID()));
 
     const uavcan::NodeID PreferredNodeID = 42;
-    ASSERT_LE(0, dnidac.start(hwver, PreferredNodeID));
+    ASSERT_LE(0, dnidac.start(unique_id, PreferredNodeID));
 
     ASSERT_FALSE(dnidac.getAllocatedNodeID().isValid());
     ASSERT_FALSE(dnidac.getAllocatorNodeID().isValid());
@@ -56,7 +56,7 @@ TEST(DynamicNodeIDClient, Basic)
     ASSERT_TRUE(dynid_sub.collector.msg->first_part_of_unique_id);
     ASSERT_TRUE(uavcan::equal(dynid_sub.collector.msg->unique_id.begin(),
                               dynid_sub.collector.msg->unique_id.end(),
-                              hwver.unique_id.begin()));
+                              unique_id.begin()));
     dynid_sub.collector.msg.reset();
 
     // Second - rate is no lower than 0.5 Hz
@@ -92,7 +92,7 @@ TEST(DynamicNodeIDClient, Basic)
     {
         uavcan::protocol::dynamic_node_id::Allocation msg;
         msg.unique_id.resize(BytesPerRequest);
-        uavcan::copy(hwver.unique_id.begin(), hwver.unique_id.begin() + BytesPerRequest, msg.unique_id.begin());
+        uavcan::copy(unique_id.begin(), unique_id.begin() + BytesPerRequest, msg.unique_id.begin());
 
         std::cout << "First-stage offer:\n" << msg << std::endl;
 
@@ -106,7 +106,7 @@ TEST(DynamicNodeIDClient, Basic)
         ASSERT_FALSE(dynid_sub.collector.msg->first_part_of_unique_id);
         ASSERT_TRUE(uavcan::equal(dynid_sub.collector.msg->unique_id.begin(),
                                   dynid_sub.collector.msg->unique_id.end(),
-                                  hwver.unique_id.begin() + BytesPerRequest));
+                                  unique_id.begin() + BytesPerRequest));
         dynid_sub.collector.msg.reset();
     }
 
@@ -116,7 +116,7 @@ TEST(DynamicNodeIDClient, Basic)
     {
         uavcan::protocol::dynamic_node_id::Allocation msg;
         msg.unique_id.resize(BytesPerRequest * 2);
-        uavcan::copy(hwver.unique_id.begin(), hwver.unique_id.begin() + BytesPerRequest * 2, msg.unique_id.begin());
+        uavcan::copy(unique_id.begin(), unique_id.begin() + BytesPerRequest * 2, msg.unique_id.begin());
 
         std::cout << "Second-stage offer:\n" << msg << std::endl;
 
@@ -130,7 +130,7 @@ TEST(DynamicNodeIDClient, Basic)
         ASSERT_FALSE(dynid_sub.collector.msg->first_part_of_unique_id);
         ASSERT_TRUE(uavcan::equal(dynid_sub.collector.msg->unique_id.begin(),
                                   dynid_sub.collector.msg->unique_id.end(),
-                                  hwver.unique_id.begin() + BytesPerRequest * 2));
+                                  unique_id.begin() + BytesPerRequest * 2));
         dynid_sub.collector.msg.reset();
     }
 
@@ -145,7 +145,7 @@ TEST(DynamicNodeIDClient, Basic)
         uavcan::protocol::dynamic_node_id::Allocation msg;
         msg.unique_id.resize(16);
         msg.node_id = 72;
-        uavcan::copy(hwver.unique_id.begin(), hwver.unique_id.end(), msg.unique_id.begin());
+        uavcan::copy(unique_id.begin(), unique_id.end(), msg.unique_id.begin());
 
         ASSERT_FALSE(dynid_sub.collector.msg.get());
         ASSERT_LE(0, dynid_pub.broadcast(msg));
@@ -169,11 +169,11 @@ TEST(DynamicNodeIDClient, NonPassiveMode)
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::dynamic_node_id::Allocation> _reg1;
     (void)_reg1;
 
-    uavcan::protocol::HardwareVersion hwver;
-    for (uavcan::uint8_t i = 0; i < hwver.unique_id.size(); i++)
+    uavcan::protocol::HardwareVersion::FieldTypes::unique_id unique_id;
+    for (uavcan::uint8_t i = 0; i < unique_id.size(); i++)
     {
-        hwver.unique_id[i] = i;
+        unique_id[i] = i;
     }
 
-    ASSERT_LE(-uavcan::ErrLogic, dnidac.start(hwver));
+    ASSERT_LE(-uavcan::ErrLogic, dnidac.start(unique_id));
 }
