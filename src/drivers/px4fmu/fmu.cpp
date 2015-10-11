@@ -136,6 +136,8 @@ private:
 	struct work_s	_work;
 	int		_armed_sub;
 	int		_param_sub;
+	struct rc_input_values	_rc_in;
+	orb_advert_t	_to_input_rc;
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	int		_class_instance;
@@ -267,6 +269,8 @@ PX4FMU::PX4FMU() :
 	_work{},
 	_armed_sub(-1),
 	_param_sub(-1),
+	_rc_in{},
+	_to_input_rc(nullptr),
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_class_instance(0),
@@ -296,6 +300,12 @@ PX4FMU::PX4FMU() :
 
 	memset(_controls, 0, sizeof(_controls));
 	memset(_poll_fds, 0, sizeof(_poll_fds));
+
+#ifdef HRT_PPM_CHANNEL
+	// rc input, published to ORB
+	memset(&_rc_in, 0, sizeof(_rc_in));
+	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+#endif
 
 	/* only enable this during development */
 	_debug_enabled = false;
@@ -605,15 +615,6 @@ PX4FMU::cycle()
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
 
-#ifdef HRT_PPM_CHANNEL
-		// rc input, published to ORB
-		struct rc_input_values rc_in;
-		orb_advert_t to_input_rc = 0;
-
-		memset(&rc_in, 0, sizeof(rc_in));
-		rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-#endif
-
 		/* initialize PWM limit lib */
 		pwm_limit_init(&_pwm_limit);
 
@@ -778,34 +779,34 @@ PX4FMU::cycle()
 #ifdef HRT_PPM_CHANNEL
 
 	// see if we have new PPM input data
-	if (ppm_last_valid_decode != rc_in.timestamp_last_signal) {
+	if (ppm_last_valid_decode != _rc_in.timestamp_last_signal) {
 		// we have a new PPM frame. Publish it.
-		rc_in.channel_count = ppm_decoded_channels;
+		_rc_in.channel_count = ppm_decoded_channels;
 
-		if (rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
-			rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+		if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+			_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
 		}
 
-		for (uint8_t i = 0; i < rc_in.channel_count; i++) {
-			rc_in.values[i] = ppm_buffer[i];
+		for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
+			_rc_in.values[i] = ppm_buffer[i];
 		}
 
-		rc_in.timestamp_publication = ppm_last_valid_decode;
-		rc_in.timestamp_last_signal = ppm_last_valid_decode;
+		_rc_in.timestamp_publication = ppm_last_valid_decode;
+		_rc_in.timestamp_last_signal = ppm_last_valid_decode;
 
-		rc_in.rc_ppm_frame_length = ppm_frame_length;
-		rc_in.rssi = RC_INPUT_RSSI_MAX;
-		rc_in.rc_failsafe = false;
-		rc_in.rc_lost = false;
-		rc_in.rc_lost_frame_count = 0;
-		rc_in.rc_total_frame_count = 0;
+		_rc_in.rc_ppm_frame_length = ppm_frame_length;
+		_rc_in.rssi = RC_INPUT_RSSI_MAX;
+		_rc_in.rc_failsafe = false;
+		_rc_in.rc_lost = false;
+		_rc_in.rc_lost_frame_count = 0;
+		_rc_in.rc_total_frame_count = 0;
 
 		/* lazily advertise on first publication */
-		if (to_input_rc == 0) {
-			to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_in);
+		if (_to_input_rc == nullptr) {
+			_to_input_rc = orb_advertise(ORB_ID(input_rc), &_rc_in);
 
 		} else {
-			orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
+			orb_publish(ORB_ID(input_rc), _to_input_rc, &_rc_in);
 		}
 	}
 
