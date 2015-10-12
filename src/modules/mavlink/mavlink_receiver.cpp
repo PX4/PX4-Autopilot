@@ -129,6 +129,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_last_frame(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
+	_hil_prev_gyro{},
+	_hil_prev_accel{},
 	_hil_local_proj_ref{},
 	_offboard_control_mode{},
 	_att_sp{},
@@ -1311,6 +1313,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	}
 	_hil_last_frame = timestamp;
 
+	if (dt < 0.001f) {
+		dt = 0.001f;
+	}
+
 	/* airspeed */
 	{
 		struct airspeed_s airspeed;
@@ -1432,7 +1438,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.gyro_integral_rad[0] = hil_sensors.gyro_rad_s[0] * dt;
 		hil_sensors.gyro_integral_rad[1] = hil_sensors.gyro_rad_s[1] * dt;
 		hil_sensors.gyro_integral_rad[2] = hil_sensors.gyro_rad_s[2] * dt;
+		memcpy(&_hil_prev_gyro[0], &hil_sensors.gyro_integral_rad[0], sizeof(_hil_prev_gyro));
+		hil_sensors.gyro_integral_dt[0] = dt * 1e6f;
 		hil_sensors.gyro_timestamp[0] = timestamp;
+		hil_sensors.gyro_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
 		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
@@ -1440,12 +1449,15 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
 		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
 		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
-		hil_sensors.accelerometer_integral_m_s[0] = hil_sensors.accelerometer_m_s2[0] * dt;
-		hil_sensors.accelerometer_integral_m_s[1] = hil_sensors.accelerometer_m_s2[1] * dt;
-		hil_sensors.accelerometer_integral_m_s[2] = hil_sensors.accelerometer_m_s2[2] * dt;
+		hil_sensors.accelerometer_integral_m_s[0] = (hil_sensors.accelerometer_m_s2[0] * dt + _hil_prev_accel[0]) / 2.0f;
+		hil_sensors.accelerometer_integral_m_s[1] = (hil_sensors.accelerometer_m_s2[1] * dt + _hil_prev_accel[1]) / 2.0f;
+		hil_sensors.accelerometer_integral_m_s[2] = (hil_sensors.accelerometer_m_s2[2] * dt + _hil_prev_accel[2]) / 2.0f;
+		memcpy(&_hil_prev_accel[0], &hil_sensors.accelerometer_integral_m_s[0], sizeof(_hil_prev_accel));
+		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
 		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?
 		hil_sensors.accelerometer_range_m_s2[0] = 32.7f; // int16
 		hil_sensors.accelerometer_timestamp[0] = timestamp;
+		hil_sensors.accelerometer_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.adc_voltage_v[0] = 0.0f;
 		hil_sensors.adc_voltage_v[1] = 0.0f;
@@ -1461,6 +1473,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.magnetometer_mode[0] = 0; // TODO what is this
 		hil_sensors.magnetometer_cuttoff_freq_hz[0] = 50.0f;
 		hil_sensors.magnetometer_timestamp[0] = timestamp;
+		hil_sensors.magnetometer_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.baro_pres_mbar[0] = imu.abs_pressure;
 		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;
