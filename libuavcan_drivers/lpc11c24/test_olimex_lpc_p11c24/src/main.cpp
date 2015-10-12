@@ -159,40 +159,19 @@ int main()
 
     while (true)
     {
-        //const int res = getNode().spin(uavcan::MonotonicDuration::fromMSec(25));
-        const int res = getNode().spinOnce();
+        const int res = getNode().spin(uavcan::MonotonicDuration::fromMSec(25));
         board::setErrorLed(res < 0);
         board::setStatusLed(uavcan_lpc11c24::CanDriver::instance().hadActivity());
-
-        if (uavcan_lpc11c24::CanDriver::instance().hasEmptyTx())
-        {
-            // Abort test
-            static unsigned value = 0;
-            const std::uint8_t payload[] = {
-                0,
-                0,
-                0,
-                0,
-                std::uint8_t(value >> 24),
-                std::uint8_t(value >> 16),
-                std::uint8_t(value >> 8),
-                std::uint8_t(value >> 0),
-            };
-            value++;
-            (void)uavcan_lpc11c24::CanDriver::instance().send(uavcan::CanFrame(123U | uavcan::CanFrame::FlagEFF,
-                                                                               payload, sizeof(payload)),
-                                                              uavcan::MonotonicTime::getMax(),
-                                                              uavcan::CanIOFlagAbortOnError);
-        }
 
         const auto ts = uavcan_lpc11c24::clock::getMonotonic();
         if ((ts - prev_log_at).toMSec() >= 1000)
         {
             prev_log_at = ts;
             // CAN bus off state monitoring
-            board::syslog("CAN bus off: ");
-            board::syslog(intToString(int(uavcan_lpc11c24::CanDriver::instance().isInBusOffState())).c_str());
-            board::syslog("\r\n");
+            if (uavcan_lpc11c24::CanDriver::instance().isInBusOffState())
+            {
+                board::syslog("CAN BUS OFF\r\n");
+            }
             // CAN error counter, for debugging purposes
             board::syslog("CAN errors: ");
             board::syslog(intToString(static_cast<long long>(uavcan_lpc11c24::CanDriver::instance().getErrorCount())).c_str());
