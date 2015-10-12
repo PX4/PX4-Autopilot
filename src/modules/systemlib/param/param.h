@@ -333,6 +333,13 @@ __EXPORT int 		param_save_default(void);
  */
 __EXPORT int 		param_load_default(void);
 
+/**
+ * Generate the hash of all parameters and their values
+ *
+ * @return		CRC32 hash of all param_ids and values
+ */
+__EXPORT uint32_t	param_hash_check(void);
+
 /*
  * Macros creating static parameter definitions.
  *
