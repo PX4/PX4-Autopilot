@@ -35,7 +35,10 @@ namespace
  * TX priority is defined by the message object number, not by the CAN ID (chapter 16.7.3.5 of the user manual),
  * hence we can't use more than one object because that would cause priority inversion on long transfers.
  */
-const unsigned NumMsgObjects = 32;
+constexpr unsigned NumberOfMessageObjects   = 32;
+constexpr unsigned NumberOfTxMessageObjects = 1;
+constexpr unsigned NumberOfRxMessageObjects = NumberOfMessageObjects - NumberOfTxMessageObjects;
+constexpr unsigned TxMessageObjectNumber    = 1;
 
 /**
  * Total number of CAN errors.
@@ -363,7 +366,7 @@ uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::Monotonic
     if (tx_free)
     {
         tx_free = false;   // Mark as pending - will be released in TX callback
-        msgobj.msgobj = 1;
+        msgobj.msgobj = TxMessageObjectNumber;
         LPC_CCAN_API->can_transmit(&msgobj);
         return 1;
     }
@@ -438,7 +441,7 @@ uavcan::uint64_t CanDriver::getErrorCount() const
 
 uavcan::uint16_t CanDriver::getNumFilters() const
 {
-    return NumMsgObjects - 1;  // First msgobj is reserved for TX frame
+    return NumberOfRxMessageObjects;
 }
 
 uavcan::ICanIface* CanDriver::getIface(uavcan::uint8_t iface_index)
