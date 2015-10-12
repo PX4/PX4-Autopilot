@@ -1,6 +1,5 @@
 /****************************************************************************
- *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,40 +30,14 @@
  *
  ****************************************************************************/
 
-/**
- * @file mavlink.c
- * Define MAVLink specific parameters
- *
- * @author Lorenz Meier <lorenz@px4.io>
- */
-
-#include <px4_config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
-#include "mavlink_bridge_header.h"
 #include <systemlib/param/param.h>
 
-mavlink_system_t mavlink_system = {
-	100,
-	50
-}; // System ID, 1-255, Component/Subsystem ID, 1-255
+// This is added because it is a parameter used by commander, yet created by mavlink.  Since mavlink is not
+// running on QURT, we need to manually define it so it is available to commander.  "2" is for quadrotor.
 
-/*
- * Internal function to give access to the channel status for each channel
+// Following is hack to prevent duplicate parameter definition error in param parser
+/**
+ * @board QuRT_App
  */
-extern mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
-{
-	static mavlink_status_t m_mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
-	return &m_mavlink_status[channel];
-}
+PARAM_DEFINE_INT32(MAV_TYPE,2);
 
-/*
- * Internal function to give access to the channel buffer for each channel
- */
-extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
-{
-	static mavlink_message_t m_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
-	return &m_mavlink_buffer[channel];
-}

@@ -53,7 +53,7 @@ set(srcs
 	test_file.c
 	test_file2.c
 	tests_main.c
-	test_param.c
+	test_params.c
 	test_ppm_loopback.c
 	test_rc.c
 	test_conv.cpp
