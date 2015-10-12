@@ -124,49 +124,6 @@
 
 #define PX4_EPOCH_SECS 1234567890L
 
-/**
- * Logging rate.
- *
- * A value of -1 indicates the commandline argument
- * should be obeyed. A value of 0 sets the minimum rate,
- * any other value is interpreted as rate in Hertz. This
- * parameter is only read out before logging starts (which
- * commonly is before arming).
- *
- * @min -1
- * @max  1
- * @group SD Logging
- */
-PARAM_DEFINE_INT32(SDLOG_RATE, -1);
-
-/**
- * Enable extended logging mode.
- *
- * A value of -1 indicates the commandline argument
- * should be obeyed. A value of 0 disables extended
- * logging mode, a value of 1 enables it. This
- * parameter is only read out before logging starts
- * (which commonly is before arming).
- *
- * @min -1
- * @max  1
- * @group SD Logging
- */
-PARAM_DEFINE_INT32(SDLOG_EXT, -1);
-
-/**
- * Use timestamps only if GPS 3D fix is available
- *
- * A value of 1 constrains the log folder creation
- * to only use the time stamp if a 3D GPS lock is
- * present.
- *
- * @min 0
- * @max  1
- * @group SD Logging
- */
-PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
-
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \
 	} else { \

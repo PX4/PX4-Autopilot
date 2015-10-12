@@ -36,12 +36,8 @@
  *
  * Parameters defined by the attitude and position estimator task
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
-
-#include <px4_config.h>
-
-#include <systemlib/param/param.h>
 
 /*
  * Estimator parameters, accessible via MAVLink

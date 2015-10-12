@@ -50,14 +50,24 @@ LandDetector::LandDetector() :
 	_landDetected({0, false}),
 	_arming_time(0),
 	_taskShouldExit(false),
-	_taskIsRunning(false)
+	_taskIsRunning(false),
+	_work{}
 {
 	// ctor
 }
 
 LandDetector::~LandDetector()
 {
+	work_cancel(LPWORK, &_work);
 	_taskShouldExit = true;
+}
+
+int LandDetector::start()
+{
+	/* schedule a cycle to start things */
+	work_queue(LPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this, 0);
+
+	return 0;
 }
 
 void LandDetector::shutdown()
@@ -65,44 +75,44 @@ void LandDetector::shutdown()
 	_taskShouldExit = true;
 }
 
-void LandDetector::start()
+void
+LandDetector::cycle_trampoline(void *arg)
 {
-	// make sure this method has not already been called by another thread
-	if (isRunning()) {
-		return;
+	LandDetector *dev = reinterpret_cast<LandDetector *>(arg);
+
+	dev->cycle();
+}
+
+void LandDetector::cycle()
+{
+	if (!_taskIsRunning) {
+		// advertise the first land detected uORB
+		_landDetected.timestamp = hrt_absolute_time();
+		_landDetected.landed = false;
+		_landDetectedPub = orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
+
+		// initialize land detection algorithm
+		initialize();
+
+		// task is now running, keep doing so until shutdown() has been called
+		_taskIsRunning = true;
+		_taskShouldExit = false;
 	}
 
-	// advertise the first land detected uORB
-	_landDetected.timestamp = hrt_absolute_time();
-	_landDetected.landed = false;
-	_landDetectedPub = (uintptr_t)orb_advertise(ORB_ID(vehicle_land_detected), &_landDetected);
+	bool landDetected = update();
 
-	// initialize land detection algorithm
-	initialize();
+	// publish if land detection state has changed
+	if (_landDetected.landed != landDetected) {
+		_landDetected.timestamp = hrt_absolute_time();
+		_landDetected.landed = landDetected;
 
-	// task is now running, keep doing so until shutdown() has been called
-	_taskIsRunning = true;
-	_taskShouldExit = false;
-
-	while (isRunning()) {
-
-		bool landDetected = update();
-
-		// publish if land detection state has changed
-		if (_landDetected.landed != landDetected) {
-			_landDetected.timestamp = hrt_absolute_time();
-			_landDetected.landed = landDetected;
-
-			// publish the land detected broadcast
-			orb_publish(ORB_ID(vehicle_land_detected), (orb_advert_t)_landDetectedPub, &_landDetected);
-		}
-
-		// limit loop rate
-		usleep(1000000 / LAND_DETECTOR_UPDATE_RATE);
+		// publish the land detected broadcast
+		orb_publish(ORB_ID(vehicle_land_detected), (orb_advert_t)_landDetectedPub, &_landDetected);
 	}
 
-	_taskIsRunning = false;
-	_exit(0);
+	if (!_taskShouldExit) {
+		work_queue(LPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this, USEC2TICK(1000000 / LAND_DETECTOR_UPDATE_RATE));
+	}
 }
 
 bool LandDetector::orb_update(const struct orb_metadata *meta, int handle, void *buffer)

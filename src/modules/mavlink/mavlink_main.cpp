@@ -898,7 +898,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 
 			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
-			if (bret) {
+			if (bret <= 0) {
 				PX4_WARN("sending broadcast failed");
 			}
 		}

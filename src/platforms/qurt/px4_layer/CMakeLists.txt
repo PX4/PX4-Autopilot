@@ -38,6 +38,7 @@ set(QURT_LAYER_SRCS
 	drv_hrt.c
 	qurt_stubs.c
 	main.cpp
+	params.c
 	)
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	list(APPEND QURT_LAYER_SRCS
@@ -53,7 +54,7 @@ if ("${BOARD}" STREQUAL "eagle")
 	# The CI test target can use the hil commands
 	if ("${LABEL}" STREQUAL "travis")
 		set(CONFIG_SRC commands_hil.c)
-	else("${LABEL}" STREQUAL "travis")
+	else()
 		set(CONFIG_SRC commands_${LABEL}.c)
 	endif()
 

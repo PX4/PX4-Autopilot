@@ -731,7 +731,9 @@ function(px4_generate_parameters_xml)
 		REQUIRED OUT BOARD
 		ARGN ${ARGN})
 	set(path ${CMAKE_SOURCE_DIR}/src)
-	file(GLOB_RECURSE param_src_files ${path}/*.h* ${path}/*.c*)
+	file(GLOB_RECURSE param_src_files
+		${CMAKE_SOURCE_DIR}/src/*params.c
+		)
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py
 			-s ${path} --board CONFIG_ARCH_${BOARD} --xml

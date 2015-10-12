@@ -1,6 +1,5 @@
 /****************************************************************************
- *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +41,7 @@
 #include <px4_time.h>
 #include <px4_posix.h>
 #include <px4_defines.h>
+#include <dspal_platform.h>
 #include <vector>
 #include <string>
 #include <map>
@@ -100,15 +100,6 @@ static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
 	bool found_first_char = false;
 	char arg[256];
 
-	// This is added because it is a parameter used by commander, yet created by mavlink.  Since mavlink is not
-	// running on QURT, we need to manually define it so it is available to commander.  "2" is for quadrotor.
-
-	// Following is hack to prevent duplicate parameter definition error in param parser
-	/**
-	 * @board QuRT_App
-	 */
-	PARAM_DEFINE_INT32(MAV_TYPE,2);
-
 	// Eat leading whitespace
 	eat_whitespace(b, i);
 
@@ -152,7 +143,7 @@ extern void init_once(void);
 };
 
 __BEGIN_DECLS
-extern int dspal_main(int argc, char *argv[]);
+int dspal_main(int argc, char *argv[]);
 __END_DECLS
 
 
@@ -164,13 +155,13 @@ int dspal_entry( int argc, char* argv[] )
 	px4::init_once();
 	px4::init(argc, (char **)argv, "mainapp");
 	process_commands(apps, get_commands());
-	usleep( 1000000 ); // give time for all commands to execute before starting external function
+	sleep(1); // give time for all commands to execute before starting external function
 	if(qurt_external_hook)
 	{
 		qurt_external_hook();
 	}
-	for( ;; ){
-		usleep( 1000000 );
+	for(;;){
+		sleep(1);
 	}
         return 0;
 }
