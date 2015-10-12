@@ -196,6 +196,7 @@ private:
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
+	uint64_t _hil_last_frame;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
