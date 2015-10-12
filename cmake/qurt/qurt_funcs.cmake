@@ -46,5 +46,3 @@
 # The macros are called from the top level CMakeLists.txt
 #
 px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
-px4_add_git_submodule(TARGET git_eigen32 PATH "src/lib/eigen-3.2")
-

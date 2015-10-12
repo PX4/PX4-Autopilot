@@ -274,7 +274,7 @@ px4_generate_messages(TARGET msg_gen
 px4_generate_parameters_xml(OUT parameters.xml BOARD ${BOARD})
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})
 add_custom_target(xml_gen
-	DEPENDS parameters.xml airframes.xml)
+	DEPENDS git_eigen parameters.xml airframes.xml)
 
 #=============================================================================
 # external projects
@@ -286,6 +286,9 @@ set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
 # add external project install folders to build
 link_directories(${ep_base}/Install/lib)
 include_directories(${ep_base}/Install/include)
+# add the directories so cmake won't warn
+execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/lib)
+execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
 
 #=============================================================================
 # subdirectories
