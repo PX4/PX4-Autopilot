@@ -105,9 +105,13 @@ UavcanServers::UavcanServers(uavcan::INode &main_node) :
 	_param_list_in_progress(false),
 	_param_list_all_nodes(false),
 	_param_list_node_id(1),
+	_param_dirty_bitmap{0, 0, 0, 0},
+	_param_save_opcode(0),
 	_cmd_in_progress(false),
 	_param_response_pub(nullptr),
 	_param_getset_client(_subnode),
+	_param_opcode_client(_subnode),
+	_param_restartnode_client(_subnode),
 	_mutex_inited(false),
 	_check_fw(false),
 	_esc_enumeration_active(false),
@@ -312,16 +316,12 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 
 	/* Set up shared service clients */
 	_param_getset_client.setCallback(GetSetCallback(this, &UavcanServers::cb_getset));
+	_param_opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanServers::cb_opcode));
+	_param_restartnode_client.setCallback(RestartNodeCallback(this, &UavcanServers::cb_restart));
 	_enumeration_client.setCallback(EnumerationBeginCallback(this, &UavcanServers::cb_enumeration_begin));
 	_enumeration_indication_sub.start(EnumerationIndicationCallback(this, &UavcanServers::cb_enumeration_indication));
 	_enumeration_getset_client.setCallback(GetSetCallback(this, &UavcanServers::cb_enumeration_getset));
 	_enumeration_save_client.setCallback(ExecuteOpcodeCallback(this, &UavcanServers::cb_enumeration_save));
-
-	uavcan::ServiceClient<uavcan::protocol::RestartNode, RestartNodeCallback> restartnode_client(_subnode);
-	restartnode_client.setCallback(RestartNodeCallback(this, &UavcanServers::cb_restart));
-
-	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> opcode_client(_subnode);
-	opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanServers::cb_opcode));
 
 	_count_in_progress = _param_in_progress = _param_list_in_progress = _cmd_in_progress = _param_list_all_nodes = false;
 	memset(_param_counts, 0, sizeof(_param_counts));
@@ -385,6 +385,9 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 					} else {
 						req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = request.int_value;
 					}
+
+					// Set the dirty bit for this node
+					set_node_params_dirty(request.node_id);
 
 					int call_res = _param_getset_client.call(request.node_id, req);
 					if (call_res < 0) {
@@ -485,7 +488,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 				int node_id = static_cast<int>(cmd.param2 + 0.5f);
 				int call_res;
 
-				warnx("UAVCAN command bridge: received command ID %d, node ID %d", command_id, node_id);
+				warnx("UAVCAN command bridge: received UAVCAN command ID %d, node ID %d", command_id, node_id);
 
 				switch (command_id) {
 				case 0:
@@ -502,35 +505,30 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 						}
 						break;
 					}
-				case 2: {
-						// Command is a restart node request
-						uavcan::protocol::RestartNode::Request restart_req;
-						restart_req.magic_number = restart_req.MAGIC_NUMBER;
-						call_res = restartnode_client.call(node_id, restart_req);
-						if (call_res < 0) {
-							warnx("UAVCAN command bridge: couldn't send RestartNode: %d", call_res);
-						} else {
-							_cmd_in_progress = true;
-							warnx("UAVCAN command bridge: sent RestartNode");
-						}
-						break;
-					}
-				case 3:
-				case 4: {
-						// Command is a param save or erase request
-						uavcan::protocol::param::ExecuteOpcode::Request opcode_req;
-						opcode_req.opcode = command_id == 3 ? opcode_req.OPCODE_SAVE : opcode_req.OPCODE_ERASE;
-						call_res = opcode_client.call(node_id, opcode_req);
-						if (call_res < 0) {
-							warnx("UAVCAN command bridge: couldn't send ExecuteOpcode: %d", call_res);
-						} else {
-							_cmd_in_progress = true;
-							warnx("UAVCAN command bridge: sent ExecuteOpcode");
-						}
-						break;
-					}
 				default: {
 						warnx("UAVCAN command bridge: unknown command ID %d", command_id);
+						break;
+					}
+				}
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE) {
+				int command_id = static_cast<int>(cmd.param1 + 0.5f);
+
+				warnx("UAVCAN command bridge: received storage command ID %d", command_id);
+
+				switch (command_id) {
+				case 1: {
+						// Param save request
+						_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
+						param_opcode(get_next_dirty_node_id(1));
+						break;
+					}
+				case 2: {
+						// Command is a param erase request -- apply it to all active nodes by setting the dirty bit
+						_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_ERASE;
+						for (int i = 1; i < 128; i = get_next_active_node_id(i)) {
+							set_node_params_dirty(i);
+						}
+						param_opcode(get_next_dirty_node_id(1));
 						break;
 					}
 				}
@@ -554,22 +552,6 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 
 	warnx("exiting.");
 	return (pthread_addr_t) 0;
-}
-
-void UavcanServers::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result)
-{
-	bool success = result.isSuccessful();
-	uavcan::protocol::RestartNode::Response resp = result.getResponse();
-	success &= resp.ok;
-	_cmd_in_progress = false;
-}
-
-void UavcanServers::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
-{
-	bool success = result.isSuccessful();
-	uavcan::protocol::param::ExecuteOpcode::Response resp = result.getResponse();
-	success &= resp.ok;
-	_cmd_in_progress = false;
 }
 
 void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result)
@@ -663,11 +645,94 @@ void UavcanServers::param_count(uavcan::NodeID node_id)
 	}
 }
 
+void UavcanServers::param_opcode(uavcan::NodeID node_id)
+{
+	uavcan::protocol::param::ExecuteOpcode::Request opcode_req;
+	opcode_req.opcode = _param_save_opcode;
+	int call_res = _param_opcode_client.call(node_id, opcode_req);
+	if (call_res < 0) {
+		warnx("UAVCAN command bridge: couldn't send ExecuteOpcode: %d", call_res);
+	} else {
+		_cmd_in_progress = true;
+		warnx("UAVCAN command bridge: sent ExecuteOpcode");
+	}
+}
+
+void UavcanServers::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
+{
+	bool success = result.isSuccessful();
+	uint8_t node_id = result.getCallID().server_node_id.get();
+	uavcan::protocol::param::ExecuteOpcode::Response resp = result.getResponse();
+	success &= resp.ok;
+	_cmd_in_progress = false;
+
+	if (!result.isSuccessful()) {
+		warnx("UAVCAN command bridge: save request for node %hhu timed out.", node_id);
+	} else if (!result.getResponse().ok) {
+		warnx("UAVCAN command bridge: save request for node %hhu rejected.", node_id);
+	} else {
+		warnx("UAVCAN command bridge: save request for node %hhu completed OK, restarting.", node_id);
+
+		uavcan::protocol::RestartNode::Request restart_req;
+		restart_req.magic_number = restart_req.MAGIC_NUMBER;
+		int call_res = _param_restartnode_client.call(node_id, restart_req);
+		if (call_res < 0) {
+			warnx("UAVCAN command bridge: couldn't send RestartNode: %d", call_res);
+		} else {
+			warnx("UAVCAN command bridge: sent RestartNode");
+			_cmd_in_progress = true;
+		}
+	}
+
+	if (!_cmd_in_progress) {
+		/*
+		 * Something went wrong, so cb_restart is never going to be called as a result of this request.
+		 * To ensure we try to execute the opcode on all nodes that permit it, get the next dirty node
+		 * ID and keep processing here. The dirty bit on the current node is still set, so the
+		 * save/erase attempt will occur when the next save/erase command is received over MAVLink.
+		 */
+		node_id = get_next_dirty_node_id(node_id);
+		if (node_id < 128) {
+			param_opcode(node_id);
+		}
+	}
+}
+
+void UavcanServers::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result)
+{
+	bool success = result.isSuccessful();
+	uint8_t node_id = result.getCallID().server_node_id.get();
+	uavcan::protocol::RestartNode::Response resp = result.getResponse();
+	success &= resp.ok;
+	_cmd_in_progress = false;
+
+	if (success) {
+		warnx("UAVCAN command bridge: restart request for node %hhu completed OK.", node_id);
+		// Clear the dirty flag
+		clear_node_params_dirty(node_id);
+	} else {
+		warnx("UAVCAN command bridge: restart request for node %hhu failed.", node_id);
+	}
+
+	// Get the next dirty node ID and send the same command to it
+	node_id = get_next_dirty_node_id(node_id);
+	if (node_id < 128) {
+		param_opcode(node_id);
+	}
+}
+
 uint8_t UavcanServers::get_next_active_node_id(uint8_t base)
 {
 	base++;
 	for (; base < 128 && (!_node_info_retriever.isNodeKnown(base) ||
 						   _subnode.getNodeID().get() == base); base++);
+	return base;
+}
+
+uint8_t UavcanServers::get_next_dirty_node_id(uint8_t base)
+{
+	base++;
+	for (; base < 128 && !are_node_params_dirty(base); base++);
 	return base;
 }
 
