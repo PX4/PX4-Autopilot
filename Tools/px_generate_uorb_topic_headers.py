@@ -43,6 +43,11 @@ import shutil
 import filecmp
 import argparse
 
+import sys
+px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(px4_tools_dir + "/genmsg/src")
+sys.path.append(px4_tools_dir + "/gencpp/src")
+
 try:
         import genmsg.template_tools
 except ImportError as e:
