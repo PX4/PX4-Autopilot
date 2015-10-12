@@ -44,19 +44,27 @@ constexpr unsigned TxMessageObjectNumber    = 1;
  * Total number of CAN errors.
  * Does not overflow.
  */
-std::uint32_t error_cnt = 0;
+volatile std::uint32_t error_cnt = 0;
 
 /**
- * True if there's no pending TX frame, i.e. write is possible.
+ * False if there's no pending TX frame, i.e. write is possible.
  */
-bool tx_free = true;
+volatile bool tx_pending = false;
+
+/**
+ * Currently pending frame must be aborted on first error.
+ */
+volatile bool tx_abort_on_error = false;
 
 /**
  * Gets updated every time the CAN IRQ handler is being called.
  */
-std::uint64_t last_irq_utc_timestamp = 0;
+volatile std::uint64_t last_irq_utc_timestamp = 0;
 
-bool had_activity;
+/**
+ * Set by the driver on every successful TX or RX; reset by the application.
+ */
+volatile bool had_activity = false;
 
 /**
  * After a received message gets extracted from C_CAN, it will be stored in the RX queue until libuavcan
@@ -77,7 +85,7 @@ class RxQueue
     std::uint8_t len_ = 0;
 
 public:
-    void push(const uavcan::CanFrame& frame, const std::uint64_t& utc_usec)
+    void push(const uavcan::CanFrame& frame, const volatile std::uint64_t& utc_usec)
     {
         buf_[in_].frame    = frame;
         buf_[in_].utc_usec = utc_usec;
@@ -263,10 +271,13 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 
 int CanDriver::init(uavcan::uint32_t bitrate)
 {
+    /*
+     * TODO FIXME Reinitialize the CAN controller after entering the BUS-OFF state
+     */
     CriticalSectionLocker locker;
 
     error_cnt = 0;
-    tx_free = true;
+    tx_pending = false;
     last_irq_utc_timestamp = 0;
     had_activity = false;
 
@@ -274,12 +285,15 @@ int CanDriver::init(uavcan::uint32_t bitrate)
      * C_CAN init
      */
     Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
+
     auto bit_timings = computeBitTimings(bitrate);
     if (!bit_timings.isValid())
     {
         return -1;
     }
+
     LPC_CCAN_API->init_can(reinterpret_cast<std::uint32_t*>(&bit_timings), true);
+
     static CCAN_CALLBACKS_T ccan_callbacks =
     {
         canRxCallback,
@@ -292,7 +306,6 @@ int CanDriver::init(uavcan::uint32_t bitrate)
         nullptr
     };
     LPC_CCAN_API->config_calb(&ccan_callbacks);
-    NVIC_EnableIRQ(CAN_IRQn);
 
     /*
      * Default RX msgobj config:
@@ -307,6 +320,13 @@ int CanDriver::init(uavcan::uint32_t bitrate)
     msg_obj.msgobj = 32;
     LPC_CCAN_API->config_rxmsgobj(&msg_obj);
 
+    /*
+     * Interrupts
+     */
+    c_can::CAN.CNTL |= c_can::CNTL_SIE;         // This is necessary for transmission aborts on error
+
+    NVIC_EnableIRQ(CAN_IRQn);
+
     return 0;
 }
 
@@ -319,7 +339,7 @@ bool CanDriver::hasReadyRx() const
 bool CanDriver::hasEmptyTx() const
 {
     CriticalSectionLocker locker;
-    return tx_free;
+    return !tx_pending;
 }
 
 bool CanDriver::hadActivity()
@@ -330,12 +350,18 @@ bool CanDriver::hadActivity()
     return ret;
 }
 
+uavcan::uint32_t CanDriver::getRxQueueOverflowCount() const
+{
+    CriticalSectionLocker locker;
+    return rx_queue.getOverflowCount();
+}
+
 uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline,
                                 uavcan::CanIOFlags flags)
 {
     if (frame.isErrorFrame() ||
         frame.dlc > 8 ||
-        flags != 0)      // Only plain IO is allowed. Loopback, TX timestamping are not supported by this driver.
+        (flags & uavcan::CanIOFlagLoopback) != 0)   // TX timestamping is not supported by this driver.
     {
         return -1;
     }
@@ -363,9 +389,10 @@ uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::Monotonic
 
     CriticalSectionLocker locker;
 
-    if (tx_free)
+    if (!tx_pending)
     {
-        tx_free = false;   // Mark as pending - will be released in TX callback
+        tx_pending = true;   // Mark as pending - will be released in TX callback
+        tx_abort_on_error = (flags & uavcan::CanIOFlagAbortOnError) != 0;
         msgobj.msgobj = TxMessageObjectNumber;
         LPC_CCAN_API->can_transmit(&msgobj);
         return 1;
@@ -376,7 +403,7 @@ uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::Monotonic
 uavcan::int16_t CanDriver::receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
                                    uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
 {
-    out_ts_monotonic = uavcan_lpc11c24::clock::getMonotonic();
+    out_ts_monotonic = clock::getMonotonic();
     out_flags = 0;                                            // We don't support any IO flags
 
     CriticalSectionLocker locker;
@@ -464,6 +491,8 @@ extern "C"
 
 void canRxCallback(std::uint8_t msg_obj_num)
 {
+    using namespace uavcan_lpc11c24;
+
     CCAN_MSG_OBJ_T msg_obj = CCAN_MSG_OBJ_T();
     msg_obj.msgobj = msg_obj_num;
     LPC_CCAN_API->can_receive(&msg_obj);
@@ -491,23 +520,43 @@ void canRxCallback(std::uint8_t msg_obj_num)
     frame.dlc = msg_obj.dlc;
     uavcan::copy(msg_obj.data, msg_obj.data + msg_obj.dlc, frame.data);
 
-    uavcan_lpc11c24::rx_queue.push(frame, uavcan_lpc11c24::last_irq_utc_timestamp);
-    uavcan_lpc11c24::had_activity = true;
+    rx_queue.push(frame, last_irq_utc_timestamp);
+    had_activity = true;
 }
 
 void canTxCallback(std::uint8_t msg_obj_num)
 {
+    using namespace uavcan_lpc11c24;
+
     (void)msg_obj_num;
-    uavcan_lpc11c24::tx_free = true;
-    uavcan_lpc11c24::had_activity = true;
+
+    tx_pending = false;
+    had_activity = true;
 }
 
 void canErrorCallback(std::uint32_t error_info)
 {
-    (void)error_info;
-    if (uavcan_lpc11c24::error_cnt < 0xFFFFFFFF)
+    /*
+     * TODO FIXME Reinitialize the CAN controller after entering the BUS-OFF state
+     */
+    using namespace uavcan_lpc11c24;
+
+    // Updating the error counter
+    if ((error_info != 0) && (error_cnt < 0xFFFFFFFFUL))
     {
-        uavcan_lpc11c24::error_cnt++;
+        error_cnt++;
+    }
+
+    // Serving abort requests
+    if (tx_pending && tx_abort_on_error)
+    {
+        tx_pending = false;
+        tx_abort_on_error = false;
+
+        // Using the first interface, because this approach seems to be compliant with the BASIC mode (just in case)
+        c_can::CAN.IF[0].CMDREQ = TxMessageObjectNumber;
+        c_can::CAN.IF[0].CMDMSK.W = c_can::IF_CMDMSK_W_WR_RD;   // Clearing IF_CMDMSK_W_TXRQST
+        c_can::CAN.IF[0].MCTRL &= ~c_can::IF_MCTRL_TXRQST;      // Clearing IF_MCTRL_TXRQST
     }
 }
 
@@ -515,7 +564,10 @@ void CAN_IRQHandler();
 
 void CAN_IRQHandler()
 {
-    uavcan_lpc11c24::last_irq_utc_timestamp = uavcan_lpc11c24::clock::getUtcUSecFromCanInterrupt();
+    using namespace uavcan_lpc11c24;
+
+    last_irq_utc_timestamp = clock::getUtcUSecFromCanInterrupt();
+
     LPC_CCAN_API->isr();
 }
 

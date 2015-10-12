@@ -158,6 +158,17 @@ enum class StatLec : std::uint32_t
 };
 
 /*
+ * IF.CMDMSK
+ */
+static constexpr std::uint32_t IF_CMDMSK_W_DATA_A = 1 << 0;
+static constexpr std::uint32_t IF_CMDMSK_W_DATA_B = 1 << 1;
+static constexpr std::uint32_t IF_CMDMSK_W_TXRQST = 1 << 2;
+static constexpr std::uint32_t IF_CMDMSK_W_CTRL   = 1 << 4;
+static constexpr std::uint32_t IF_CMDMSK_W_ARB    = 1 << 5;
+static constexpr std::uint32_t IF_CMDMSK_W_MASK   = 1 << 6;
+static constexpr std::uint32_t IF_CMDMSK_W_WR_RD  = 1 << 7;
+
+/*
  * IF.MCTRL
  */
 static constexpr std::uint32_t IF_MCTRL_NEWDAT   = 1 << 15;

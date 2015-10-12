@@ -53,6 +53,11 @@ public:
      */
     bool hadActivity();
 
+    /**
+     * Returns the number of times the RX queue was overrun.
+     */
+    uavcan::uint32_t getRxQueueOverflowCount() const;
+
     uavcan::int16_t send(const uavcan::CanFrame& frame,
                          uavcan::MonotonicTime tx_deadline,
                          uavcan::CanIOFlags flags) override;
