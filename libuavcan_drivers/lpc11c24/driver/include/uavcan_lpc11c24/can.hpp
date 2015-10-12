@@ -58,6 +58,13 @@ public:
      */
     uavcan::uint32_t getRxQueueOverflowCount() const;
 
+    /**
+     * Whether the controller is currently in bus off state.
+     * Note that the driver recovers the CAN controller from the bus off state automatically!
+     * Therefore, this method serves only monitoring purposes and is not necessary to use.
+     */
+    bool isInBusOffState() const;
+
     uavcan::int16_t send(const uavcan::CanFrame& frame,
                          uavcan::MonotonicTime tx_deadline,
                          uavcan::CanIOFlags flags) override;

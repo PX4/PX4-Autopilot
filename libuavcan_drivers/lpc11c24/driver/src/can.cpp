@@ -271,9 +271,6 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 
 int CanDriver::init(uavcan::uint32_t bitrate)
 {
-    /*
-     * TODO FIXME Reinitialize the CAN controller after entering the BUS-OFF state
-     */
     CriticalSectionLocker locker;
 
     error_cnt = 0;
@@ -356,6 +353,11 @@ uavcan::uint32_t CanDriver::getRxQueueOverflowCount() const
     return rx_queue.getOverflowCount();
 }
 
+bool CanDriver::isInBusOffState() const
+{
+    return (c_can::CAN.STAT & c_can::STAT_BOFF) != 0;
+}
+
 uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline,
                                 uavcan::CanIOFlags flags)
 {
@@ -421,6 +423,16 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
                                   const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
                                   uavcan::MonotonicTime blocking_deadline)
 {
+    const bool bus_off = isInBusOffState();
+    if (bus_off)                                // Recover automatically on bus-off
+    {
+        CriticalSectionLocker locker;
+        if ((c_can::CAN.CNTL & c_can::CNTL_INIT) != 0)
+        {
+            c_can::CAN.CNTL &= ~c_can::CNTL_INIT;
+        }
+    }
+
     const bool noblock = ((inout_masks.read  == 1) && hasReadyRx()) ||
                          ((inout_masks.write == 1) && hasEmptyTx());
 
@@ -448,8 +460,10 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
     }
 
     inout_masks.read  = hasReadyRx() ? 1 : 0;
-    inout_masks.write = hasEmptyTx() ? 1 : 0;
-    return 0;  // Return value doesn't matter as long as it is non-negative
+
+    inout_masks.write = (hasEmptyTx() && !bus_off) ? 1 : 0;     // Disable write while in bus-off
+
+    return 0;           // Return value doesn't matter as long as it is non-negative
 }
 
 uavcan::int16_t CanDriver::configureFilters(const uavcan::CanFilterConfig* filter_configs,
@@ -536,9 +550,6 @@ void canTxCallback(std::uint8_t msg_obj_num)
 
 void canErrorCallback(std::uint32_t error_info)
 {
-    /*
-     * TODO FIXME Reinitialize the CAN controller after entering the BUS-OFF state
-     */
     using namespace uavcan_lpc11c24;
 
     // Updating the error counter
