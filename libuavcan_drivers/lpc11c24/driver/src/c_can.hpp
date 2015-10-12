@@ -101,7 +101,7 @@ static_assert(offsetof(Type, IF[0].DB2) == 0x048, "C_CAN offset");
 static_assert(offsetof(Type, IF[1].DB2) == 0x0A8, "C_CAN offset");
 
 
-Type& CAN = *reinterpret_cast<Type*>(0x40050000);
+volatile Type& CAN = *reinterpret_cast<volatile Type*>(0x40050000);
 
 
 /*
