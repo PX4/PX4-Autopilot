@@ -1306,16 +1306,14 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	float dt;
 
-	if (_hil_last_frame == 0 || timestamp - _hil_last_frame > 0.1f) {
+	if (_hil_last_frame == 0 ||
+	   (imu.time_usec - _hil_last_frame) > (0.1f * 1e6f) ||
+	   (_hil_last_frame >= imu.time_usec)) {
 		dt = 0.01f; /* default to 100 Hz */
 	} else {
-		dt = (timestamp - _hil_last_frame) / 1e6f;
+		dt = (imu.time_usec - _hil_last_frame) / 1e6f;
 	}
-	_hil_last_frame = timestamp;
-
-	if (dt < 0.001f) {
-		dt = 0.001f;
-	}
+	_hil_last_frame = imu.time_usec;
 
 	/* airspeed */
 	{
@@ -1432,12 +1430,12 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.gyro_raw[0] = imu.xgyro * 1000.0f;
 		hil_sensors.gyro_raw[1] = imu.ygyro * 1000.0f;
 		hil_sensors.gyro_raw[2] = imu.zgyro * 1000.0f;
-		hil_sensors.gyro_rad_s[0] = imu.xgyro;
+		hil_sensors.gyro_rad_s[0] = ((imu.xgyro * dt + _hil_prev_gyro[0]) / 2.0f) / dt;
 		hil_sensors.gyro_rad_s[1] = imu.ygyro;
 		hil_sensors.gyro_rad_s[2] = imu.zgyro;
-		hil_sensors.gyro_integral_rad[0] = hil_sensors.gyro_rad_s[0] * dt;
-		hil_sensors.gyro_integral_rad[1] = hil_sensors.gyro_rad_s[1] * dt;
-		hil_sensors.gyro_integral_rad[2] = hil_sensors.gyro_rad_s[2] * dt;
+		hil_sensors.gyro_integral_rad[0] = (hil_sensors.gyro_rad_s[0] * dt + _hil_prev_gyro[0]) / 2.0f;
+		hil_sensors.gyro_integral_rad[1] = (hil_sensors.gyro_rad_s[1] * dt + _hil_prev_gyro[1]) / 2.0f;
+		hil_sensors.gyro_integral_rad[2] = (hil_sensors.gyro_rad_s[2] * dt + _hil_prev_gyro[2]) / 2.0f;
 		memcpy(&_hil_prev_gyro[0], &hil_sensors.gyro_integral_rad[0], sizeof(_hil_prev_gyro));
 		hil_sensors.gyro_integral_dt[0] = dt * 1e6f;
 		hil_sensors.gyro_timestamp[0] = timestamp;
@@ -1446,12 +1444,12 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
 		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
 		hil_sensors.accelerometer_raw[2] = imu.zacc / mg2ms2;
-		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
-		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
-		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
-		hil_sensors.accelerometer_integral_m_s[0] = (hil_sensors.accelerometer_m_s2[0] * dt + _hil_prev_accel[0]) / 2.0f;
-		hil_sensors.accelerometer_integral_m_s[1] = (hil_sensors.accelerometer_m_s2[1] * dt + _hil_prev_accel[1]) / 2.0f;
-		hil_sensors.accelerometer_integral_m_s[2] = (hil_sensors.accelerometer_m_s2[2] * dt + _hil_prev_accel[2]) / 2.0f;
+		hil_sensors.accelerometer_m_s2[0] = ((imu.xacc * dt + _hil_prev_accel[0]) / 2.0f) / dt;
+		hil_sensors.accelerometer_m_s2[1] = ((imu.yacc * dt + _hil_prev_accel[1]) / 2.0f) / dt;
+		hil_sensors.accelerometer_m_s2[2] = (((imu.zacc + 9.80665f) * dt + _hil_prev_accel[2]) / 2.0f) / dt - 9.80665f;
+		hil_sensors.accelerometer_integral_m_s[0] = (imu.xacc * dt + _hil_prev_accel[0]) / 2.0f;
+		hil_sensors.accelerometer_integral_m_s[1] = (imu.yacc * dt + _hil_prev_accel[1]) / 2.0f;
+		hil_sensors.accelerometer_integral_m_s[2] = ((imu.zacc + 9.80665f) * dt + _hil_prev_accel[2]) / 2.0f;
 		memcpy(&_hil_prev_accel[0], &hil_sensors.accelerometer_integral_m_s[0], sizeof(_hil_prev_accel));
 		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
 		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?
