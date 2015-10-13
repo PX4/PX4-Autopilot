@@ -64,9 +64,6 @@
 
 #include <v1.0/common/mavlink.h>
 
-ORB_DEFINE(uavcan_parameter_request, struct uavcan_parameter_request_s);
-ORB_DEFINE(uavcan_parameter_value, struct uavcan_parameter_value_s);
-
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
 # define OK 0

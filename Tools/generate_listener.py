@@ -112,7 +112,7 @@ print("""
 #endif
 
 #ifndef PRI64
-#define PRI64 "ll"
+#define PRI64 "lld"
 #endif
 
 """)

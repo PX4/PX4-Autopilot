@@ -47,6 +47,9 @@
 #include "mavlink_parameters.h"
 #include "mavlink_main.h"
 
+ORB_DEFINE(uavcan_parameter_request, struct uavcan_parameter_request_s);
+ORB_DEFINE(uavcan_parameter_value, struct uavcan_parameter_value_s);
+
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_send_all_index(-1),
 	_rc_param_map_pub(nullptr),
