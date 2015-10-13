@@ -57,9 +57,10 @@ run_cmd("{ld:s} -r -o {obj:s}.bin.o {obj:s}.c.o -b binary {in_bin:s}",
 
 # get size of image
 stdout = run_cmd("{nm:s} -p --radix=x {obj:s}.bin.o", locals())
-re_string = r"^([0-9A-F-a-f]+) .*{sym:s}_size\n".format(**locals())
+re_string = r"^([0-9A-Fa-f]+) .*{sym:s}_size".format(**locals())
 re_size = re.compile(re_string, re.MULTILINE)
 size_match = re.search(re_size, stdout.decode())
+
 try:
     size = size_match.group(1)
 except AttributeError as e:
@@ -78,7 +79,7 @@ with open('{obj:s}.c'.format(**locals()), 'w') as f:
         **locals()))
 
 # do compile
-run_cmd("{c_compiler:s} {c_flags:s} -c {obj:s}.c -o {obj:s}.c.o",
+run_cmd("{c_compiler:s} -I{include_path:s} {c_flags:s} -c {obj:s}.c -o {obj:s}.c.o",
         locals())
 
 # link
