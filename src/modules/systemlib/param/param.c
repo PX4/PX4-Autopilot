@@ -65,6 +65,8 @@
 #include "uORB/topics/parameter_update.h"
 #include "px4_parameters.h"
 
+#include <crc32.h>
+
 #if 0
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
 #else
@@ -1034,4 +1036,27 @@ param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_chang
 
 		func(arg, param);
 	}
+}
+
+uint32_t param_hash_check(void)
+{
+	uint32_t param_hash = 0;
+
+	param_lock();
+
+	/* compute the CRC32 over all string param names and 4 byte values */
+	for (param_t param = 0; handle_in_range(param); param++) {
+		if (!param_used(param)) {
+			continue;
+		}
+
+		const char *name = param_name(param);
+		const void *val = param_get_value_ptr(param);
+		param_hash = crc32part((const uint8_t *)name, strlen(name), param_hash);
+		param_hash = crc32part(val, sizeof(union param_value_u), param_hash);
+	}
+
+	param_unlock();
+
+	return param_hash;
 }
