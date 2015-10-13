@@ -137,6 +137,9 @@ void init()
 void die()
 {
     static const volatile unsigned& DHCSR = *reinterpret_cast<unsigned*>(0xE000EDF0U);
+
+    syslog("FATAL\r\n");
+
     while (true)
     {
         if ((DHCSR & 1U) != 0)
