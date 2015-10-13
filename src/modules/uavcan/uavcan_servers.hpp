@@ -69,6 +69,9 @@
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
 #define UAVCAN_NODE_DB_PATH     "/fs/microsd/uavcan.db"
 #define UAVCAN_FIRMWARE_PATH    "/fs/microsd/fw"
+#define UAVCAN_ROMFS_FW_PATH "/etc/uavcan/fw"
+#define UAVCAN_ROMFS_FW_PREFIX "romfs_"
+#define UAVCAN_MAX_PATH_LENGTH (128 + 40)
 #define UAVCAN_LOG_FILE         UAVCAN_NODE_DB_PATH"/trace.log"
 
 /**
@@ -92,7 +95,7 @@ class UavcanServers
 	static constexpr unsigned QueuePoolSize =
 		(NumIfaces * uavcan::MemPoolBlockSize * MaxCanFramesPerTransfer);
 
-	static constexpr unsigned StackSize  = 4500;
+	static constexpr unsigned StackSize  = 6000;
 	static constexpr unsigned Priority  =  120;
 
 	typedef uavcan::SubNode<MemPoolSize> SubNode;
@@ -221,4 +224,7 @@ private:
 	uavcan::ServiceClient<uavcan::protocol::enumeration::Begin, EnumerationBeginCallback> _enumeration_client;
 	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCallback> _enumeration_getset_client;
 	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> _enumeration_save_client;
+
+	void unpackFwFromROMFS(const char* sd_path, const char* romfs_path);
+	int copyFw(const char* dst, const char* src);
 };

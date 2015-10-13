@@ -36,6 +36,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <dirent.h>
 #include <memory>
 #include <pthread.h>
 #include <systemlib/err.h>
@@ -307,6 +308,12 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 	prctl(PR_SET_NAME, "uavcan fw srv", 0);
 
 	Lock lock(_subnode_mutex);
+
+	/*
+	Copy any firmware bundled in the ROMFS to the appropriate location on the
+	SD card, unless the user has copied other firmware for that device.
+	*/
+	unpackFwFromROMFS(UAVCAN_FIRMWARE_PATH, UAVCAN_ROMFS_FW_PATH);
 
 	/* the subscribe call needs to happen in the same thread,
 	 * so not in the constructor */
@@ -860,4 +867,276 @@ void UavcanServers::cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::
 			warnx("UAVCAN ESC enumeration: sent Begin request to stop enumeration");
 		}
 	}
+}
+
+void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_path) {
+	/*
+	Copy the ROMFS firmware directory to the appropriate location on SD, without
+	overriding any firmware the user has already loaded there.
+
+	The SD firmware directory structure is along the lines of:
+
+		/fs/microsd/fw
+		-	/c
+		-	-	/1a2b3c4d.bin			cache file (copy of /fs/microsd/fw/org.pixhawk.nodename-v1/1.1/1a2b3c4d.bin)
+		-	/org.pixhawk.nodename-v1	device directory for org.pixhawk.nodename-v1
+		-	-	/1.0					version directory for hardware 1.0
+		-	-	/1.1					version directory for hardware 1.1
+		-	-	-	/1a2b3c4d.bin		firmware file for org.pixhawk.nodename-v1 nodes, hardware version 1.1
+		-	/com.example.othernode-v3	device directory for com.example.othernode-v3
+		-	-	/1.0					version directory for hardawre 1.0
+		-	-	-	/deadbeef.bin		firmware file for com.example.othernode-v3, hardware version 1.0
+
+	The ROMFS directory structure is the same, but located at /etc/uavcan/fw
+
+	We iterate over all device directories in the ROMFS base directory, and create
+	corresponding device directories on the SD card if they don't already exist.
+
+	In each device directory, we iterate over each version directory and create a
+	corresponding version directory on the SD card if it doesn't already exist.
+
+	In each version directory, we remove any files with a name starting with "romfs_"
+	in the corresponding directory on the SD card that don't match the bundled firmware
+	filename; if the directory is empty after that process, we copy the bundled firmware.
+	*/
+	const size_t maxlen = UAVCAN_MAX_PATH_LENGTH;
+	const size_t sd_path_len = strlen(sd_path);
+	const size_t romfs_path_len = strlen(romfs_path);
+	struct stat sb;
+	int rv;
+	char dstpath[maxlen + 1];
+	char srcpath[maxlen + 1];
+
+	DIR* const romfs_dir = opendir(romfs_path);
+	if (!romfs_dir) {
+		warnx("base: couldn't open %s", romfs_path);
+		return;
+	}
+
+	memcpy(dstpath, sd_path, sd_path_len + 1);
+	memcpy(srcpath, romfs_path, romfs_path_len + 1);
+
+	// Iterate over all device directories in ROMFS
+	struct dirent* dev_dirent = NULL;
+	while ((dev_dirent = readdir(romfs_dir)) != NULL) {
+		// Skip if not a directory
+		if (!DIRENT_ISDIRECTORY(dev_dirent->d_type)) {
+			continue;
+		}
+
+		// Make sure the path fits
+		size_t dev_dirname_len = strlen(dev_dirent->d_name);
+		size_t srcpath_dev_len = romfs_path_len + 1 + dev_dirname_len;
+		if (srcpath_dev_len > maxlen) {
+			warnx("dev: srcpath '%s/%s' too long", romfs_path, dev_dirent->d_name);
+			continue;
+		}
+		size_t dstpath_dev_len = sd_path_len + 1 + dev_dirname_len;
+		if (dstpath_dev_len > maxlen) {
+			warnx("dev: dstpath '%s/%s' too long", sd_path, dev_dirent->d_name);
+			continue;
+		}
+
+		// Create the device name directory on the SD card if it doesn't already exist
+		dstpath[sd_path_len] = '/';
+		memcpy(&dstpath[sd_path_len + 1], dev_dirent->d_name, dev_dirname_len + 1);
+
+		if (stat(dstpath, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+			rv = mkdir(dstpath, S_IRWXU | S_IRWXG | S_IRWXO);
+			if (rv != 0) {
+				warnx("dev: couldn't create '%s'", dstpath);
+				continue;
+			}
+		}
+
+		// Set up the source path
+		srcpath[romfs_path_len] = '/';
+		memcpy(&srcpath[romfs_path_len + 1], dev_dirent->d_name, dev_dirname_len + 1);
+
+		DIR* const dev_dir = opendir(srcpath);
+		if (!dev_dir) {
+			warnx("dev: couldn't open '%s'", srcpath);
+			continue;
+		}
+
+		// Iterate over all version directories in the current ROMFS device directory
+		struct dirent* ver_dirent = NULL;
+		while ((ver_dirent = readdir(dev_dir)) != NULL) {
+			// Skip if not a directory
+			if (!DIRENT_ISDIRECTORY(ver_dirent->d_type)) {
+				continue;
+			}
+
+			// Make sure the path fits
+			size_t ver_dirname_len = strlen(ver_dirent->d_name);
+			size_t srcpath_ver_len = srcpath_dev_len + 1 + ver_dirname_len;
+			if (srcpath_ver_len > maxlen) {
+				warnx("ver: srcpath '%s/%s' too long", srcpath, ver_dirent->d_name);
+				continue;
+			}
+			size_t dstpath_ver_len = dstpath_dev_len + 1 + ver_dirname_len;
+			if (dstpath_ver_len > maxlen) {
+				warnx("ver: dstpath '%s/%s' too long", dstpath, ver_dirent->d_name);
+				continue;
+			}
+
+			// Create the device version directory on the SD card if it doesn't already exist
+			dstpath[dstpath_dev_len] = '/';
+			memcpy(&dstpath[dstpath_dev_len + 1], ver_dirent->d_name, ver_dirname_len + 1);
+
+			if (stat(dstpath, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+				rv = mkdir(dstpath, S_IRWXU | S_IRWXG | S_IRWXO);
+				if (rv != 0) {
+					warnx("ver: couldn't create '%s'", dstpath);
+					continue;
+				}
+			}
+
+			// Set up the source path
+			srcpath[srcpath_dev_len] = '/';
+			memcpy(&srcpath[srcpath_dev_len + 1], ver_dirent->d_name, ver_dirname_len + 1);
+
+			// Find the name of the bundled firmware file, or move on to the
+			// next directory if there's no file here.
+			DIR* const src_ver_dir = opendir(srcpath);
+			if (!src_ver_dir) {
+				warnx("ver: couldn't open '%s'", srcpath);
+				continue;
+			}
+
+			struct dirent* src_fw_dirent = NULL;
+			while ((src_fw_dirent = readdir(src_ver_dir)) != NULL &&
+					!DIRENT_ISFILE(src_fw_dirent->d_type));
+
+			if (!src_fw_dirent) {
+				(void)closedir(src_ver_dir);
+				continue;
+			}
+
+			size_t fw_len = strlen(src_fw_dirent->d_name);
+
+			bool copy_fw = true;
+
+			// Clear out any romfs_ files in the version directory on the SD card
+			DIR* const dst_ver_dir = opendir(dstpath);
+			if (!dst_ver_dir) {
+				warnx("unlink: couldn't open '%s'", dstpath);
+			} else {
+				struct dirent* fw_dirent = NULL;
+				while ((fw_dirent = readdir(dst_ver_dir)) != NULL) {
+					// Skip if not a file
+					if (!DIRENT_ISFILE(fw_dirent->d_type)) {
+						continue;
+					}
+
+					if (!memcmp(&fw_dirent->d_name[sizeof(UAVCAN_ROMFS_FW_PREFIX) - 1], src_fw_dirent->d_name, fw_len)) {
+						/*
+						 * Exact match between SD card filename and ROMFS filename; must be the same version
+						 * so don't bother deleting and rewriting it.
+						 */
+						copy_fw = false;
+					} else if (!memcmp(fw_dirent->d_name, UAVCAN_ROMFS_FW_PREFIX, sizeof(UAVCAN_ROMFS_FW_PREFIX) - 1)) {
+						size_t fw_len = strlen(fw_dirent->d_name);
+						size_t dstpath_fw_len = dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX) + fw_len;
+						if (dstpath_fw_len > maxlen) {
+							// sizeof(prefix) includes trailing NUL, cancelling out the +1 for the path separator
+							warnx("unlink: path '%s/%s%s' too long", dstpath, UAVCAN_ROMFS_FW_PREFIX, fw_dirent->d_name);
+						} else {
+							// File name starts with "romfs_", delete it.
+							dstpath[dstpath_ver_len] = '/';
+							memcpy(&dstpath[dstpath_ver_len + 1], fw_dirent->d_name, fw_len + 1);
+							unlink(dstpath);
+
+							warnx("unlink: removed '%s/%s%s'", dstpath, UAVCAN_ROMFS_FW_PREFIX, fw_dirent->d_name);
+						}
+					} else {
+						// User file, don't copy firmware
+						copy_fw = false;
+					}
+				}
+				(void)closedir(dst_ver_dir);
+			}
+
+			// If we need to, copy the file from ROMFS to the SD card
+			if (copy_fw) {
+				size_t srcpath_fw_len = srcpath_ver_len + 1 + fw_len;
+				size_t dstpath_fw_len = dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX) + fw_len;
+
+				if (srcpath_fw_len > maxlen) {
+					warnx("copy: srcpath '%s/%s' too long", srcpath, src_fw_dirent->d_name);
+				} else if (dstpath_fw_len > maxlen) {
+					warnx("copy: dstpath '%s/%s%s' too long", dstpath, UAVCAN_ROMFS_FW_PREFIX, src_fw_dirent->d_name);
+				} else {
+					// All OK, make the paths and copy the file
+					srcpath[srcpath_ver_len] = '/';
+					memcpy(&srcpath[srcpath_ver_len + 1], src_fw_dirent->d_name, fw_len + 1);
+
+					dstpath[dstpath_ver_len] = '/';
+					memcpy(&dstpath[dstpath_ver_len + 1], UAVCAN_ROMFS_FW_PREFIX, sizeof(UAVCAN_ROMFS_FW_PREFIX));
+					memcpy(&dstpath[dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX)], src_fw_dirent->d_name, fw_len + 1);
+
+					rv = copyFw(dstpath, srcpath);
+					if (rv != 0) {
+						warnx("copy: '%s' -> '%s' failed: %d", srcpath, dstpath, rv);
+					} else {
+						warnx("copy: '%s' -> '%s' succeeded", srcpath, dstpath);
+					}
+				}
+			}
+
+			(void)closedir(src_ver_dir);
+		}
+
+		(void)closedir(dev_dir);
+	}
+
+	(void)closedir(romfs_dir);
+}
+
+int UavcanServers::copyFw(const char* dst, const char* src) {
+	int rv = 0;
+	int dfd, sfd;
+	uint8_t buffer[512];
+
+	dfd = open(dst, O_WRONLY | O_CREAT, 0666);
+	if (dfd < 0) {
+		warnx("copyFw: couldn't open dst");
+		return -errno;
+	}
+
+	sfd = open(src, O_RDONLY, 0);
+	if (sfd < 0) {
+		(void)close(dfd);
+		warnx("copyFw: couldn't open src");
+		return -errno;
+	}
+
+	ssize_t size = 0;
+	do {
+		size = read(sfd, buffer, sizeof(buffer));
+		if (size < 0) {
+			warnx("copyFw: couldn't read");
+			rv = -errno;
+		} else if (size > 0) {
+			rv = 0;
+			ssize_t remaining = size;
+			ssize_t total_written = 0;
+			ssize_t written = 0;
+			do {
+				written = write(dfd, &buffer[total_written], remaining);
+				if (written < 0) {
+					warnx("copyFw: couldn't write");
+					rv = -errno;
+				} else {
+					total_written += written;
+					remaining -=  written;
+				}
+			} while (written > 0 && remaining > 0);
+		}
+	} while (rv == 0 && size != 0);
+
+	(void)close(dfd);
+	(void)close(sfd);
+
+	return rv;
 }
