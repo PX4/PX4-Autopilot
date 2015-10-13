@@ -111,6 +111,10 @@ print("""
 #define PRIu64 "llu"
 #endif
 
+#ifndef PRI64
+#define PRI64 "ll"
+#endif
+
 """)
 for m in messages:
 	print("#include <uORB/topics/%s.h>" % m)
