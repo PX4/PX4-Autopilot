@@ -1291,6 +1291,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				/* kill the throttle if param requests it */
 				throttle_max = _parameters.throttle_max;
 
+				/* enable direct yaw control using rudder/wheel */
+				_att_sp.yaw_body = target_bearing;
+				_att_sp.fw_control_yaw = true;
+
 				 if (_global_pos.alt < terrain_alt + landingslope.motor_lim_relative_alt() || land_motor_lim) {
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
 					if (!land_motor_lim) {
