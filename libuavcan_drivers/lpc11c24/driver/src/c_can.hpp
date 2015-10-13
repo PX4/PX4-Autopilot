@@ -158,6 +158,11 @@ enum class StatLec : std::uint32_t
 };
 
 /*
+ * IF.CMDREQ
+ */
+static constexpr std::uint32_t IF_CMDREQ_BUSY = 1 << 15;
+
+/*
  * IF.CMDMSK
  */
 static constexpr std::uint32_t IF_CMDMSK_W_DATA_A = 1 << 0;
