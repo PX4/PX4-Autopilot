@@ -1684,6 +1684,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
+        configure_stream("HOME_POSITION", 0.5f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1751,6 +1752,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 20.0f);
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
+        configure_stream("HOME_POSITION", 0.5f);
 
 	default:
 		break;
