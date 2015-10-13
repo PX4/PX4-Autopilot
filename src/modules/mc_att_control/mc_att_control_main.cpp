@@ -75,7 +75,6 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/mc_virtual_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -128,7 +127,6 @@ private:
 	bool	_task_should_exit;		/**< if true, task_main() should exit */
 	int		_control_task;			/**< task handle */
 
-	int		_v_att_sub;				/**< vehicle attitude subscription */
 	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
 	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
@@ -148,7 +146,6 @@ private:
 
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
-	struct vehicle_attitude_s			_v_att;				/**< vehicle attitude */
 	struct control_state_s				_ctrl_state;		/**< control state */
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint */
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
@@ -306,7 +303,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_control_task(-1),
 
 /* subscriptions */
-	_v_att_sub(-1),
 	_ctrl_state_sub(-1),
 	_v_att_sp_sub(-1),
 	_v_control_mode_sub(-1),
@@ -329,7 +325,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
 
 {
-	memset(&_v_att, 0, sizeof(_v_att));
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
 	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
 	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
@@ -619,9 +614,9 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	math::Matrix<3, 3> R_sp;
 	R_sp.set(_v_att_sp.R_body);
 
-	/* rotation matrix for current state */
-	math::Matrix<3, 3> R;
-	R.set(_v_att.R);
+	/* get current rotation matrix from control state quaternions */
+	math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+	math::Matrix<3, 3> R = q_att.to_dcm();
 
 	/* all input data is ready, run controller itself */
 
@@ -753,7 +748,6 @@ MulticopterAttitudeControl::task_main()
 	 */
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -768,7 +762,7 @@ MulticopterAttitudeControl::task_main()
 	/* wakeup source: vehicle attitude */
 	px4_pollfd_struct_t fds[1];
 
-	fds[0].fd = _v_att_sub;
+	fds[0].fd = _ctrl_state_sub;
 	fds[0].events = POLLIN;
 
 	while (!_task_should_exit) {
@@ -805,7 +799,6 @@ MulticopterAttitudeControl::task_main()
 			}
 
 			/* copy attitude and control state topics */
-			orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
 			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
 			/* check for updates in other topics */
@@ -873,7 +866,7 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
 				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
-				_actuators.timestamp_sample = _v_att.timestamp;
+				_actuators.timestamp_sample = _ctrl_state.timestamp;
 
 				_controller_status.roll_rate_integ = _rates_int(0);
 				_controller_status.pitch_rate_integ = _rates_int(1);
