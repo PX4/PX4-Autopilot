@@ -1377,12 +1377,15 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
+        printf("streaming\n");
 		/* we're sending the GPS home periodically to ensure the
 		 * the GCS does pick it up at one point */
 		if (_home_sub->is_published()) {
+            printf("streaming published\n");
 			struct home_position_s home;
 
 			if (_home_sub->update(&home)) {
+                printf("streaming published and updated\n");
 				mavlink_home_position_t msg;
 
 				msg.latitude = home.lat * 1e7;

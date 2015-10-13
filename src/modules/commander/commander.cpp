@@ -867,12 +867,10 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	mavlink_log_info(mavlink_fd, "home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
 	/* announce new home position */
-	if (homePub != nullptr) {
-		orb_publish(ORB_ID(home_position), homePub, &home);
-
-	} else {
-		homePub = orb_advertise(ORB_ID(home_position), &home);
-	}
+    if (homePub == nullptr) {
+        homePub = orb_advertise(ORB_ID(home_position), &home);
+    }
+    orb_publish(ORB_ID(home_position), homePub, &home);
 
 	//Play tune first time we initialize HOME
 	if (!status.condition_home_position_valid) {
