@@ -271,58 +271,56 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 
 int CanDriver::init(uavcan::uint32_t bitrate)
 {
-    CriticalSectionLocker locker;
+    {
+        auto bit_timings = computeBitTimings(bitrate);
+        if (!bit_timings.isValid())
+        {
+            return -1;
+        }
 
-    error_cnt = 0;
-    tx_pending = false;
-    last_irq_utc_timestamp = 0;
-    had_activity = false;
+        CriticalSectionLocker locker;
+
+        error_cnt = 0;
+        tx_abort_on_error = false;
+        tx_pending = false;
+        last_irq_utc_timestamp = 0;
+        had_activity = false;
+
+        /*
+         * C_CAN init
+         */
+        Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
+
+        LPC_CCAN_API->init_can(reinterpret_cast<std::uint32_t*>(&bit_timings), true);
+
+        static CCAN_CALLBACKS_T ccan_callbacks =
+        {
+            canRxCallback,
+            canTxCallback,
+            canErrorCallback,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        };
+        LPC_CCAN_API->config_calb(&ccan_callbacks);
+
+        /*
+         * Interrupts
+         */
+        c_can::CAN.CNTL |= c_can::CNTL_SIE;         // This is necessary for transmission aborts on error
+
+        NVIC_EnableIRQ(CAN_IRQn);
+    }
 
     /*
-     * C_CAN init
+     * Applying default filter configuration (accept all)
      */
-    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
-
-    auto bit_timings = computeBitTimings(bitrate);
-    if (!bit_timings.isValid())
+    if (configureFilters(nullptr, 0) < 0)
     {
         return -1;
     }
-
-    LPC_CCAN_API->init_can(reinterpret_cast<std::uint32_t*>(&bit_timings), true);
-
-    static CCAN_CALLBACKS_T ccan_callbacks =
-    {
-        canRxCallback,
-        canTxCallback,
-        canErrorCallback,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr
-    };
-    LPC_CCAN_API->config_calb(&ccan_callbacks);
-
-    /*
-     * Default RX msgobj config:
-     *  31 - all STD
-     *  32 - all EXT
-     * RTR ignored
-     */
-    CCAN_MSG_OBJ_T msg_obj = CCAN_MSG_OBJ_T();
-    msg_obj.msgobj = 31;
-    LPC_CCAN_API->config_rxmsgobj(&msg_obj);
-    msg_obj.mode_id = CAN_MSGOBJ_EXT;
-    msg_obj.msgobj = 32;
-    LPC_CCAN_API->config_rxmsgobj(&msg_obj);
-
-    /*
-     * Interrupts
-     */
-    c_can::CAN.CNTL |= c_can::CNTL_SIE;         // This is necessary for transmission aborts on error
-
-    NVIC_EnableIRQ(CAN_IRQn);
 
     return 0;
 }
@@ -469,9 +467,73 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
 uavcan::int16_t CanDriver::configureFilters(const uavcan::CanFilterConfig* filter_configs,
                                             uavcan::uint16_t num_configs)
 {
-    (void)filter_configs;
-    (void)num_configs;
-    return -1;
+    CriticalSectionLocker locker;
+
+    /*
+     * If C_CAN is active (INIT=0) and the CAN bus has intensive traffic, RX object configuration may fail.
+     * The solution is to disable the controller while configuration is in progress.
+     * The documentation, as always, doesn't bother to mention this detail. Shame on you, NXP.
+     */
+    struct RAIIDisabler
+    {
+        RAIIDisabler()
+        {
+            c_can::CAN.CNTL |= c_can::CNTL_INIT;
+        }
+        ~RAIIDisabler()
+        {
+            c_can::CAN.CNTL &= ~c_can::CNTL_INIT;
+        }
+    } can_disabler;    // Must be instantiated AFTER the critical section locker
+
+    if (num_configs == 0)
+    {
+        auto msg_obj = CCAN_MSG_OBJ_T();
+        msg_obj.msgobj = NumberOfTxMessageObjects + 1;
+        LPC_CCAN_API->config_rxmsgobj(&msg_obj);    // all STD frames
+
+        msg_obj.mode_id = CAN_MSGOBJ_EXT;
+        msg_obj.msgobj = NumberOfTxMessageObjects + 2;
+        LPC_CCAN_API->config_rxmsgobj(&msg_obj);    // all EXT frames
+    }
+    else if (num_configs <= NumberOfRxMessageObjects)
+    {
+        // Making sure the configs use only EXT frames; otherwise we can't accept them
+        for (unsigned i = 0; i < num_configs; i++)
+        {
+            auto& f = filter_configs[i];
+            if ((f.id & f.mask & uavcan::CanFrame::FlagEFF) == 0)
+            {
+                return -1;
+            }
+        }
+
+        // Installing the configuration
+        for (unsigned i = 0; i < NumberOfRxMessageObjects; i++)
+        {
+            auto msg_obj = CCAN_MSG_OBJ_T();
+            msg_obj.msgobj = std::uint8_t(i + 1U + NumberOfTxMessageObjects);   // Message objects are numbered from 1
+
+            if (i < num_configs)
+            {
+                msg_obj.mode_id = (filter_configs[i].id & uavcan::CanFrame::MaskExtID) | CAN_MSGOBJ_EXT; // Only EXT
+                msg_obj.mask    = filter_configs[i].mask & uavcan::CanFrame::MaskExtID;
+            }
+            else
+            {
+                msg_obj.mode_id = CAN_MSGOBJ_RTR;               // Using this configuration to disable the object
+                msg_obj.mask    = uavcan::CanFrame::MaskStdID;
+            }
+
+            LPC_CCAN_API->config_rxmsgobj(&msg_obj);
+        }
+    }
+    else
+    {
+        return -1;
+    }
+
+    return 0;
 }
 
 uavcan::uint64_t CanDriver::getErrorCount() const
@@ -507,7 +569,7 @@ void canRxCallback(std::uint8_t msg_obj_num)
 {
     using namespace uavcan_lpc11c24;
 
-    CCAN_MSG_OBJ_T msg_obj = CCAN_MSG_OBJ_T();
+    auto msg_obj = CCAN_MSG_OBJ_T();
     msg_obj.msgobj = msg_obj_num;
     LPC_CCAN_API->can_receive(&msg_obj);
 

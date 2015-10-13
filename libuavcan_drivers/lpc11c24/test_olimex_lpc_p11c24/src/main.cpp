@@ -65,7 +65,7 @@ uavcan::Logger& getLogger()
 }
 
 #if __GNUC__
-__attribute__((noinline))
+__attribute__((noinline, optimize(2)))  // Higher optimization breaks the code.
 #endif
 void init()
 {
@@ -97,6 +97,7 @@ void init()
     {
         board::die();
     }
+
     board::syslog("CAN init ok\r\n");
 
     board::resetWatchdog();
@@ -125,6 +126,38 @@ void init()
      * Performing dynamic node ID allocation
      */
     getNode().setNodeID(72);  // TODO
+
+    /*
+     * Example filter configuration.
+     * Can be removed safely.
+     */
+    {
+        constexpr unsigned NumFilters = 3;
+        uavcan::CanFilterConfig filters[NumFilters];
+
+        // Acepting all service transfers addressed to us
+        filters[0].id   = (unsigned(getNode().getNodeID().get()) << 8) | (1U << 7) | uavcan::CanFrame::FlagEFF;
+        filters[0].mask = 0x7F80 | uavcan::CanFrame::FlagEFF;
+
+        // Accepting time sync messages
+        filters[1].id   = (4U << 8) | uavcan::CanFrame::FlagEFF;
+        filters[1].mask = 0xFFFF80 | uavcan::CanFrame::FlagEFF;
+
+        // Accepting zero CAN ID (just for the sake of testing)
+        filters[2].id   = 0 | uavcan::CanFrame::FlagEFF;
+        filters[2].mask = uavcan::CanFrame::MaskExtID | uavcan::CanFrame::FlagEFF;
+
+        const auto before = uavcan_lpc11c24::clock::getMonotonic();
+        if (uavcan_lpc11c24::CanDriver::instance().configureFilters(filters, NumFilters) < 0)
+        {
+            board::syslog("Filter init failed\r\n");
+            board::die();
+        }
+        const auto duration = uavcan_lpc11c24::clock::getMonotonic() - before;
+        board::syslog("CAN filter configuration took ");
+        board::syslog(intToString(duration.toUSec()).c_str());
+        board::syslog(" usec\r\n");
+    }
 
     /*
      * Starting the node
@@ -167,19 +200,28 @@ int main()
         if ((ts - prev_log_at).toMSec() >= 1000)
         {
             prev_log_at = ts;
-            // CAN bus off state monitoring
+
+            /*
+             * CAN bus off state monitoring
+             */
             if (uavcan_lpc11c24::CanDriver::instance().isInBusOffState())
             {
                 board::syslog("CAN BUS OFF\r\n");
             }
-            // CAN error counter, for debugging purposes
+
+            /*
+             * CAN error counter, for debugging purposes
+             */
             board::syslog("CAN errors: ");
             board::syslog(intToString(static_cast<long long>(uavcan_lpc11c24::CanDriver::instance().getErrorCount())).c_str());
             board::syslog(" ");
             board::syslog(intToString(uavcan_lpc11c24::CanDriver::instance().getRxQueueOverflowCount()).c_str());
             board::syslog("\r\n");
-            // We don't want to use formatting functions provided by libuavcan because they rely on std::snprintf()
-            // hence we need to construct the message manually:
+
+            /*
+             * We don't want to use formatting functions provided by libuavcan because they rely on std::snprintf(),
+             * so we need to construct the message manually:
+             */
             uavcan::protocol::debug::LogMessage logmsg;
             logmsg.level.value = uavcan::protocol::debug::LogLevel::INFO;
             logmsg.source = "app";
