@@ -53,7 +53,7 @@ set(uavcan_definitions
 	-DUAVCAN_STM32_${OS_UPPER}=1
 	-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 	)
-set(uavcan_extra_flags ${uavcan_definitions})
+set(uavcan_extra_flags ${uavcan_definitions} -I${CMAKE_SOURCE_DIR}/src/include)
 
 if (${OS} STREQUAL "nuttx")
 	set(uavcan_platform stm32)
