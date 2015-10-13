@@ -1076,7 +1076,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	bool setpoint = true;
 
 	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
-
+	_att_sp.apply_flaps = false;		// by default we don't use flaps
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
 	/* filter speed and altitude for controller */
@@ -1206,6 +1206,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+			// apply full flaps for landings. this flag will also trigger the use of flaperons
+			// if they have been enabled using the corresponding parameter
+			_att_sp.apply_flaps = true;
 
 			float bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));

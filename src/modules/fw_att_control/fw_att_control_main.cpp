@@ -202,6 +202,9 @@ private:
 		float man_roll_max;				/**< Max Roll in rad */
 		float man_pitch_max;			/**< Max Pitch in rad */
 
+		float flaps_scale;				/**< Scale factor for flaps */
+		float flaperon_scale;			/**< Scale factor for flaperons */
+
 		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 	}		_parameters;			/**< local copies of interesting parameters */
@@ -245,6 +248,9 @@ private:
 		param_t pitchsp_offset_deg;
 		param_t man_roll_max;
 		param_t man_pitch_max;
+
+		param_t flaps_scale;
+		param_t flaperon_scale;
 
 		param_t vtol_type;
 
@@ -414,6 +420,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
 
+	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
+	_parameter_handles.flaperon_scale = param_find("FW_FLAPERONS_SCL");
+
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
 	/* fetch initial parameter values */
@@ -497,6 +506,9 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
+
+	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
+	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
 
 	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 
@@ -810,8 +822,20 @@ FixedwingAttitudeControl::task_main()
 			float flaps_control = 0.0f;
 
 			/* map flaps by default to manual if valid */
-			if (PX4_ISFINITE(_manual.flaps)) {
-				flaps_control = _manual.flaps;
+			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled) {
+				flaps_control = _manual.flaps * _parameters.flaps_scale;
+			} else if (_vcontrol_mode.flag_control_auto_enabled) {
+				flaps_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
+			}
+
+			/* default flaperon to center */
+			float flaperon = 0.0f;
+
+			/* map flaperons by default to manual if valid */
+			if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled) {
+				flaperon = _manual.aux2 * _parameters.flaperon_scale;
+			} else if (_vcontrol_mode.flag_control_auto_enabled) {
+				flaperon = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
 			}
 
 			/* decide if in stabilized or full manual control */
@@ -1119,7 +1143,7 @@ FixedwingAttitudeControl::task_main()
 
 			_actuators.control[actuator_controls_s::INDEX_FLAPS] = flaps_control;
 			_actuators.control[5] = _manual.aux1;
-			_actuators.control[6] = _manual.aux2;
+			_actuators.control[actuator_controls_s::INDEX_AIRBRAKES] = flaperon;
 			_actuators.control[7] = _manual.aux3;
 
 			/* lazily publish the setpoint only once available */

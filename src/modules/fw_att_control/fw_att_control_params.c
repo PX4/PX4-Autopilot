@@ -434,3 +434,21 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
+
+/**
+ * Scale factor for flaps
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
+
+/**
+ * Scale factor for flaperons
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);
