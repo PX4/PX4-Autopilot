@@ -23,3 +23,5 @@ bool pitch_reset_integral			# Reset pitch integral part (navigation logic change
 bool yaw_reset_integral				# Reset yaw integral part (navigation logic change)
 
 bool fw_control_yaw					# control heading with rudder (used for auto takeoff on runway)
+
+bool apply_flaps
