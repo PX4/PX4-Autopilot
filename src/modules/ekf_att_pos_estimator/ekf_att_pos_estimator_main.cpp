@@ -1180,11 +1180,12 @@ void AttitudePositionEstimatorEKF::print_status()
 		PX4_INFO("states (terrain)      [22]: %8.4f", (double)_ekf->states[22]);
 
 	} else {
-		PX4_INFO("states (wind)      [13-14]: %8.4f, %8.4f", (double)_ekf->states[13], (double)_ekf->states[14]);
-		PX4_INFO("states (earth mag) [15-17]: %8.4f, %8.4f, %8.4f", (double)_ekf->states[15], (double)_ekf->states[16],
-		       (double)_ekf->states[17]);
-		PX4_INFO("states (body mag)  [18-20]: %8.4f, %8.4f, %8.4f", (double)_ekf->states[18], (double)_ekf->states[19],
-		       (double)_ekf->states[20]);
+		PX4_INFO("states (accel offs)   [13]: %8.4f", (double)_ekf->states[13]);
+		PX4_INFO("states (wind)      [14-15]: %8.4f, %8.4f", (double)_ekf->states[14], (double)_ekf->states[15]);
+		PX4_INFO("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f", (double)_ekf->states[16], (double)_ekf->states[17],
+		       (double)_ekf->states[18]);
+		PX4_INFO("states (mag bias)  [19-21]: %8.4f, %8.4f, %8.4f", (double)_ekf->states[19], (double)_ekf->states[20],
+		       (double)_ekf->states[21]);
 	}
 
 	PX4_INFO("states: %s %s %s %s %s %s %s %s %s %s",
@@ -1263,7 +1264,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		} else {
 			_ekf->dVelIMU.x = 0.5f * (_ekf->accel.x + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 0]);
 			_ekf->dVelIMU.y = 0.5f * (_ekf->accel.y + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 1]);
-			_ekf->dVelIMU.z = 0.5f * (_ekf->accel.z + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 2]);
+			_ekf->dVelIMU.z = 0.5f * (_ekf->accel.z + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 2]) + 9.80665f;
 		}
 
 		_ekf->accel.x = _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 0];
@@ -1331,8 +1332,8 @@ void AttitudePositionEstimatorEKF::pollData()
 	// leave this in as long as larger improvements are still being made.
 	#if 0
 
-	float deltaTIntegral = (_sensor_combined.gyro_integral_dt) / 1e6f;
-	float deltaTIntAcc = (_sensor_combined.accelerometer_integral_dt) / 1e6f;
+	float deltaTIntegral = (_sensor_combined.gyro_integral_dt[0]) / 1e6f;
+	float deltaTIntAcc = (_sensor_combined.accelerometer_integral_dt[0]) / 1e6f;
 
 	static unsigned dtoverflow5 = 0;
 	static unsigned dtoverflow10 = 0;
@@ -1343,13 +1344,21 @@ void AttitudePositionEstimatorEKF::pollData()
 			(double)deltaT, (double)deltaTIntegral, (double)deltaTIntAcc,
 			dtoverflow5, dtoverflow10);
 
-		warnx("DRV: dang: %8.4f %8.4f dvel: %8.4f %8.4f",
+		warnx("EKF: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
 		(double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.z,
-		(double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.z);
+		(double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z);
 
-		warnx("EKF: dang: %8.4f %8.4f dvel: %8.4f %8.4f",
+		warnx("INT: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
+		(double)(_sensor_combined.gyro_integral_rad[0]), (double)(_sensor_combined.gyro_integral_rad[2]),
+		(double)(_sensor_combined.accelerometer_integral_m_s[0]),
+		(double)(_sensor_combined.accelerometer_integral_m_s[1]),
+		(double)(_sensor_combined.accelerometer_integral_m_s[2]));
+
+		warnx("DRV: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
 		(double)(_sensor_combined.gyro_rad_s[0] * deltaT), (double)(_sensor_combined.gyro_rad_s[2] * deltaT),
-		(double)(_sensor_combined.accelerometer_m_s2[0] * deltaT), (double)(_sensor_combined.accelerometer_m_s2[2] * deltaT));
+		(double)(_sensor_combined.accelerometer_m_s2[0] * deltaT),
+		(double)(_sensor_combined.accelerometer_m_s2[1] * deltaT),
+		(double)((_sensor_combined.accelerometer_m_s2[2] + 9.8665f) * deltaT));
 
 		lastprint = hrt_absolute_time();
 	}
