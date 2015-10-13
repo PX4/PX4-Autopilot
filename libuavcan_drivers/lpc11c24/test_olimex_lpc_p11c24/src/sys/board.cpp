@@ -22,6 +22,8 @@ namespace board
 namespace
 {
 
+constexpr unsigned TargetSystemCoreClock = 48000000;
+
 constexpr unsigned ErrorLedPort = 1;
 constexpr unsigned ErrorLedPin  = 10;
 
@@ -93,7 +95,7 @@ void initClock()
 
     SystemCoreClock = Chip_Clock_GetSystemClockRate();
 
-    while (SystemCoreClock != 48000000) { }  // Loop forever if the clock failed to initialize properly
+    while (SystemCoreClock != TargetSystemCoreClock) { }  // Loop forever if the clock failed to initialize properly
 }
 
 void initGpio()
