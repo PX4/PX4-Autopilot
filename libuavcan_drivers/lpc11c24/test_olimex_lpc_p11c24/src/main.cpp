@@ -3,12 +3,25 @@
  */
 
 #include <cstdio>
+#include <cstdlib>
 #include <algorithm>
 #include <board.hpp>
 #include <chip.h>
 #include <uavcan_lpc11c24/uavcan_lpc11c24.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
+#include <uavcan/protocol/dynamic_node_id_client.hpp>
 #include <uavcan/protocol/logger.hpp>
+
+/**
+ * This function re-defines the standard ::rand(), which is used by the class uavcan::DynamicNodeIDClient.
+ * Redefinition is normally not needed, but GCC 4.9 tends to generate broken binaries if it is not redefined.
+ */
+int rand()
+{
+    static int x = 1;
+    x = x * 48271 % 2147483647;
+    return x;
+}
 
 namespace
 {
@@ -64,6 +77,25 @@ uavcan::Logger& getLogger()
     return logger;
 }
 
+uavcan::NodeID performDynamicNodeIDAllocation()
+{
+    uavcan::DynamicNodeIDClient client(getNode());
+
+    const int client_start_res = client.start(getNode().getHardwareVersion().unique_id);
+    if (client_start_res < 0)
+    {
+        board::die();
+    }
+
+    while (!client.isAllocationComplete())
+    {
+        board::resetWatchdog();
+        (void)getNode().spin(uavcan::MonotonicDuration::fromMSec(100));
+    }
+
+    return client.getAllocatedNodeID();
+}
+
 #if __GNUC__
 __attribute__((noinline, optimize(2)))  // Higher optimization breaks the code.
 #endif
@@ -86,10 +118,10 @@ void init()
     std::uint32_t bit_rate = 0;
     while (bit_rate == 0)
     {
-        board::syslog("CAN bitrate detection...\r\n");
+        board::syslog("CAN auto bitrate...\r\n");
         bit_rate = uavcan_lpc11c24::CanDriver::detectBitRate(&board::resetWatchdog);
     }
-    board::syslog("CAN bitrate: ");
+    board::syslog("Bitrate: ");
     board::syslog(intToString(bit_rate).c_str());
     board::syslog("\r\n");
 
@@ -123,9 +155,22 @@ void init()
     board::resetWatchdog();
 
     /*
-     * Performing dynamic node ID allocation
+     * Starting the node and performing dynamic node ID allocation
      */
-    getNode().setNodeID(72);  // TODO
+    if (getNode().start() < 0)
+    {
+        board::die();
+    }
+
+    board::syslog("Node ID allocation...\r\n");
+
+    getNode().setNodeID(performDynamicNodeIDAllocation());
+
+    board::syslog("Node ID ");
+    board::syslog(intToString(getNode().getNodeID().get()).c_str());
+    board::syslog("\r\n");
+
+    board::resetWatchdog();
 
     /*
      * Example filter configuration.
@@ -160,21 +205,18 @@ void init()
     }
 
     /*
-     * Starting the node
+     * Initializing other libuavcan-related objects
      */
-    while (getNode().start() < 0)
+    if (getTimeSyncSlave().start() < 0)
     {
+        board::die();
     }
 
-    board::resetWatchdog();
-
-    while (getTimeSyncSlave().start() < 0)
+    if (getLogger().init() < 0)
     {
+        board::die();
     }
 
-    while (getLogger().init() < 0)
-    {
-    }
     getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
 
     board::resetWatchdog();
