@@ -9,24 +9,26 @@
 #include <cstring>
 #include <numeric>
 
-#define PDRUNCFGUSEMASK 0x0000ED00
-#define PDRUNCFGMASKTMP 0x000000FF
+static constexpr unsigned long PDRUNCFGUSEMASK = 0x0000ED00U;
+static constexpr unsigned long PDRUNCFGMASKTMP = 0x000000FFU;
 
-const uint32_t OscRateIn = 12000000; ///< External crystal
-const uint32_t ExtRateIn = 0;
+const std::uint32_t OscRateIn = 12000000; ///< External crystal
+const std::uint32_t ExtRateIn = 0;
 
-uint32_t SystemCoreClock = 12000000; ///< Initialized to default clock value, will be changed on init
+std::uint32_t SystemCoreClock = 12000000; ///< Initialized to default clock value, will be changed on init
 
 namespace board
 {
 namespace
 {
 
-const unsigned ErrorLedPort = 1;
-const unsigned ErrorLedPin  = 10;
+constexpr unsigned TargetSystemCoreClock = 48000000;
 
-const unsigned StatusLedPort = 1;
-const unsigned StatusLedPin  = 11;
+constexpr unsigned ErrorLedPort = 1;
+constexpr unsigned ErrorLedPin  = 10;
+
+constexpr unsigned StatusLedPort = 1;
+constexpr unsigned StatusLedPin  = 11;
 
 struct PinMuxGroup
 {
@@ -34,10 +36,11 @@ struct PinMuxGroup
     unsigned modefunc : 24;
 };
 
-const PinMuxGroup pinmux[] =
+constexpr PinMuxGroup pinmux[] =
 {
-    { IOCON_PIO1_10, IOCON_FUNC0 | IOCON_MODE_INACT }, // Error LED
-    { IOCON_PIO1_11, IOCON_FUNC0 | IOCON_MODE_INACT }  // Status LED
+    { IOCON_PIO1_10, IOCON_FUNC0 | IOCON_MODE_INACT },                                          // Error LED
+    { IOCON_PIO1_11, IOCON_FUNC0 | IOCON_MODE_INACT },                                          // Status LED
+    { IOCON_PIO1_7,  IOCON_FUNC1 | IOCON_HYS_EN | IOCON_MODE_PULLUP },                          // UART_TXD
 };
 
 
@@ -92,7 +95,7 @@ void initClock()
 
     SystemCoreClock = Chip_Clock_GetSystemClockRate();
 
-    while (SystemCoreClock != 48000000) { }  // Loop forever if the clock failed to initialize properly
+    while (SystemCoreClock != TargetSystemCoreClock) { }  // Loop forever if the clock failed to initialize properly
 }
 
 void initGpio()
@@ -109,6 +112,13 @@ void initGpio()
     LPC_GPIO[StatusLedPort].DIR |= 1 << StatusLedPin;
 }
 
+void initUart()
+{
+    Chip_UART_Init(LPC_USART);
+    Chip_UART_SetBaud(LPC_USART, 115200);
+    Chip_UART_TXEnable(LPC_USART);
+}
+
 void init()
 {
     Chip_SYSCTL_SetBODLevels(SYSCTL_BODRSTLVL_2_06V, SYSCTL_BODINTVAL_RESERVED1);
@@ -117,16 +127,32 @@ void init()
     initWatchdog();
     initClock();
     initGpio();
+    initUart();
 
     resetWatchdog();
 }
 
 } // namespace
 
+void die()
+{
+    static const volatile unsigned& DHCSR = *reinterpret_cast<unsigned*>(0xE000EDF0U);
+
+    syslog("FATAL\r\n");
+
+    while (true)
+    {
+        if ((DHCSR & 1U) != 0)
+        {
+            __asm volatile ("bkpt #0\n");   // Break into the debugger
+        }
+    }
+}
+
 #if __GNUC__
 __attribute__((optimize(0)))     // Optimization must be disabled lest it hardfaults in the IAP call
 #endif
-void readUniqueID(uint8_t out_uid[UniqueIDSize])
+void readUniqueID(std::uint8_t out_uid[UniqueIDSize])
 {
     unsigned aligned_array[4] = {};  // out_uid may be unaligned, so we need to use temp array
     unsigned iap_command = 58;
@@ -147,6 +173,11 @@ void setErrorLed(bool state)
 void resetWatchdog()
 {
     Chip_WWDT_Feed(LPC_WWDT);
+}
+
+void syslog(const char* msg)
+{
+    Chip_UART_SendBlocking(LPC_USART, msg, static_cast<int>(std::strlen(msg)));
 }
 
 } // namespace board

@@ -17,18 +17,18 @@ namespace
 bool initialized = false;
 bool utc_set = false;
 
-int32_t utc_correction_usec_per_overflow_x16 = 0;
-int64_t prev_adjustment = 0;
+std::int32_t utc_correction_usec_per_overflow_x16 = 0;
+std::int64_t prev_adjustment = 0;
 
-uint64_t time_mono = 0;
-uint64_t time_utc = 0;
+std::uint64_t time_mono = 0;
+std::uint64_t time_utc = 0;
 
 /**
  * If this value is too large for the given core clock, reload value will be out of the 24-bit integer range.
  * This will be detected at run time during timer initialization - refer to SysTick_Config().
  */
-const uint32_t USecPerOverflow = 65536 * 2;
-const int32_t MaxUtcSpeedCorrectionX16 = 100 * 16;
+constexpr std::uint32_t USecPerOverflow = 65536 * 2;
+constexpr std::int32_t MaxUtcSpeedCorrectionX16 = 100 * 16;
 
 }
 
@@ -59,30 +59,34 @@ void init()
     }
 }
 
-static uint64_t sampleFromCriticalSection(const volatile uint64_t* const value)
+static std::uint64_t sampleFromCriticalSection(const volatile std::uint64_t* const value)
 {
-    const uint32_t reload = SysTick->LOAD + 1;  // SysTick counts downwards, hence the value subtracted from reload
+    const std::uint32_t reload = SysTick->LOAD + 1;  // SysTick counts downwards, hence the value subtracted from reload
 
-    volatile uint64_t time = *value;
-    volatile uint32_t cycles = reload - SysTick->VAL;
+    volatile std::uint64_t time = *value;
+    volatile std::uint32_t cycles = reload - SysTick->VAL;
 
     if ((SCB->ICSR & SCB_ICSR_PENDSTSET_Msk) == SCB_ICSR_PENDSTSET_Msk)
     {
         cycles = reload - SysTick->VAL;
         time += USecPerOverflow;
     }
-    const uint32_t cycles_per_usec = SystemCoreClock / 1000000;
+    const std::uint32_t cycles_per_usec = SystemCoreClock / 1000000;
     return time + (cycles / cycles_per_usec);
 }
 
-uint64_t getUtcUSecFromCanInterrupt()
+std::uint64_t getUtcUSecFromCanInterrupt()
 {
     return utc_set ? sampleFromCriticalSection(&time_utc) : 0;
 }
 
 uavcan::MonotonicTime getMonotonic()
 {
-    uint64_t usec = 0;
+    if (!initialized)
+    {
+        fail();
+    }
+    std::uint64_t usec = 0;
     {
         CriticalSectionLocker locker;
         usec = sampleFromCriticalSection(&time_mono);
@@ -92,7 +96,11 @@ uavcan::MonotonicTime getMonotonic()
 
 uavcan::UtcTime getUtc()
 {
-    uint64_t usec = 0;
+    if (!initialized)
+    {
+        fail();
+    }
+    std::uint64_t usec = 0;
     if (utc_set)
     {
         CriticalSectionLocker locker;
@@ -108,7 +116,7 @@ uavcan::UtcDuration getPrevUtcAdjustment()
 
 void adjustUtc(uavcan::UtcDuration adjustment)
 {
-    const int64_t adj_delta = adjustment.toUSec() - prev_adjustment;  // This is the P term
+    const std::int64_t adj_delta = adjustment.toUSec() - prev_adjustment;  // This is the P term
     prev_adjustment = adjustment.toUSec();
 
     utc_correction_usec_per_overflow_x16 += adjustment.isPositive() ? 1 : -1; // I
@@ -121,16 +129,16 @@ void adjustUtc(uavcan::UtcDuration adjustment)
 
     if (adjustment.getAbs().toMSec() > 9 || !utc_set)
     {
-        const int64_t adj_usec = adjustment.toUSec();
+        const std::int64_t adj_usec = adjustment.toUSec();
         {
             CriticalSectionLocker locker;
-            if ((adj_usec < 0) && uint64_t(-adj_usec) > time_utc)
+            if ((adj_usec < 0) && std::uint64_t(-adj_usec) > time_utc)
             {
                 time_utc = 1;
             }
             else
             {
-                time_utc = uint64_t(int64_t(time_utc) + adj_usec);
+                time_utc = std::uint64_t(std::int64_t(time_utc) + adj_usec);
             }
         }
         if (!utc_set)
@@ -170,7 +178,7 @@ void SysTick_Handler()
         if (utc_set)
         {
             // Values below 16 are ignored
-            time_utc += uint64_t(int32_t(USecPerOverflow) + (utc_correction_usec_per_overflow_x16 / 16));
+            time_utc += std::uint64_t(std::int32_t(USecPerOverflow) + (utc_correction_usec_per_overflow_x16 / 16));
         }
     }
     else

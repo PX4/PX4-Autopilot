@@ -4,7 +4,18 @@
 
 #pragma once
 
+#include <cstdint>
 #include <chip.h>
+
+/*
+ * Compiler version check
+ */
+#ifdef __GNUC__
+# if (__GNUC__ * 10 + __GNUC_MINOR__) < 49
+#  error "Use GCC 4.9 or newer"
+# endif
+#endif
+
 
 namespace uavcan_lpc11c24
 {
@@ -31,7 +42,7 @@ struct CriticalSectionLocker
 namespace clock
 {
 
-uint64_t getUtcUSecFromCanInterrupt();
+std::uint64_t getUtcUSecFromCanInterrupt();
 
 }
 

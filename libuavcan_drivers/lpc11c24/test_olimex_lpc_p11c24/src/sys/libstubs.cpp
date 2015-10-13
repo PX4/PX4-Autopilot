@@ -13,13 +13,13 @@
 
 void* __dso_handle;
 
-void* operator new(size_t)
+void* operator new(std::size_t)
 {
     std::abort();
     return reinterpret_cast<void*>(0xFFFFFFFF);
 }
 
-void* operator new[](size_t)
+void* operator new[](std::size_t)
 {
     std::abort();
     return reinterpret_cast<void*>(0xFFFFFFFF);
