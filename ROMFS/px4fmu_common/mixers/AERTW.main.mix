@@ -10,22 +10,23 @@ to output 3 and the wheel to output 4.
 Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
 (roll), 1 (pitch), 2 (yaw) and 3 (thrust).
 
-Aileron mixer
--------------
-Two scalers total (output, roll).
+Flaperon mixer (ailerons + flaps)
+---------------------------------
 
 This mixer assumes that the aileron servos are set up correctly mechanically;
 depending on the actual configuration it may be necessary to reverse the scaling
 factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
-As there is only one output, if using two servos adjustments to compensate for
-differences between the servos must be made mechanically.  To obtain the correct
-motion using a Y  cable, the servos can be positioned reversed from one another.
-
-M: 1
+M: 2
 O:      10000  10000      0 -10000  10000
 S: 0 0  10000  10000      0 -10000  10000
+S: 0 6  10000  10000      0 -10000  10000
+
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 0 0  10000  10000      0 -10000  10000
+S: 0 6 -10000 -10000      0 -10000  10000
 
 Elevator mixer
 ------------
