@@ -349,6 +349,7 @@ function(px4_nuttx_add_romfs)
 		#COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND ${PYTHON_EXECUTABLE} ${bin_to_obj}
 			--ld ${LD} --c_flags ${CMAKE_C_FLAGS}
+			--include_path "${CMAKE_SOURCE_DIR}/src/include"
 			--c_compiler ${CMAKE_C_COMPILER}
 			--nm ${NM} --objcopy ${OBJCOPY}
 			--obj romfs.o

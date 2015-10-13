@@ -535,6 +535,7 @@ function(px4_add_common_flags)
 		-ffunction-sections
 		-fdata-sections
 		)
+
 	if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
 		list(APPEND optimization_flags
 			-fno-strength-reduce
@@ -565,6 +566,7 @@ function(px4_add_common_flags)
 	set(cxx_warnings
 		-Wno-missing-field-initializers
 		)
+
 	set(cxx_compile_flags
 		-g
 		-fno-exceptions
@@ -577,7 +579,7 @@ function(px4_add_common_flags)
 
 	set(visibility_flags
 		-fvisibility=hidden
-		"-include ${CMAKE_SOURCE_DIR}/src/include/visibility.h"
+		-include visibility.h
 		)
 
 	set(added_c_flags
