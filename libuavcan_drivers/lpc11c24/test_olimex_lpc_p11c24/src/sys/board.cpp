@@ -134,7 +134,14 @@ void init()
 
 void die()
 {
-    while (true) { }
+    static const volatile unsigned& DHCSR = *reinterpret_cast<unsigned*>(0xE000EDF0U);
+    while (true)
+    {
+        if ((DHCSR & 1U) != 0)
+        {
+            __asm volatile ("bkpt #0\n");   // Break into the debugger
+        }
+    }
 }
 
 #if __GNUC__
