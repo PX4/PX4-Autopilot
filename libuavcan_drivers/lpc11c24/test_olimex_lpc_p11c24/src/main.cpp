@@ -12,6 +12,15 @@
 #include <uavcan/protocol/dynamic_node_id_client.hpp>
 #include <uavcan/protocol/logger.hpp>
 
+/*
+ * GCC 4.9 cannot generate a working binary with higher optimization levels, although
+ *         rest of the firmware can be compiled with -Os.
+ * GCC 4.8 and earlier don't work at all on this firmware.
+ */
+#if __GNUC__
+# pragma GCC optimize 1
+#endif
+
 /**
  * This function re-defines the standard ::rand(), which is used by the class uavcan::DynamicNodeIDClient.
  * Redefinition is normally not needed, but GCC 4.9 tends to generate broken binaries if it is not redefined.
@@ -96,9 +105,6 @@ uavcan::NodeID performDynamicNodeIDAllocation()
     return client.getAllocatedNodeID();
 }
 
-#if __GNUC__
-__attribute__((noinline, optimize(2)))  // Higher optimization breaks the code.
-#endif
 void init()
 {
     board::resetWatchdog();
@@ -192,16 +198,11 @@ void init()
         filters[2].id   = 0 | uavcan::CanFrame::FlagEFF;
         filters[2].mask = uavcan::CanFrame::MaskExtID | uavcan::CanFrame::FlagEFF;
 
-        const auto before = uavcan_lpc11c24::clock::getMonotonic();
         if (uavcan_lpc11c24::CanDriver::instance().configureFilters(filters, NumFilters) < 0)
         {
             board::syslog("Filter init failed\r\n");
             board::die();
         }
-        const auto duration = uavcan_lpc11c24::clock::getMonotonic() - before;
-        board::syslog("CAN filter configuration took ");
-        board::syslog(intToString(duration.toUSec()).c_str());
-        board::syslog(" usec\r\n");
     }
 
     /*
