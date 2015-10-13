@@ -779,13 +779,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		mission_item->altitude_is_relative = true;
 		break;
 
-	case MAV_FRAME_LOCAL_NED:
-	case MAV_FRAME_LOCAL_ENU:
-		return MAV_MISSION_UNSUPPORTED_FRAME;
-
 	case MAV_FRAME_MISSION:
+		// This is a mission item with no coordinate
+		break;
+			
 	default:
-		return MAV_MISSION_ERROR;
+		return MAV_MISSION_UNSUPPORTED_FRAME;
 	}
 
 	switch (mavlink_mission_item->command) {
