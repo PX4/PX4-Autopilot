@@ -177,9 +177,9 @@ distclean: clean
 	@cd NuttX
 	@git clean -d -f -x
 	@cd ..
-	@cd src/lib/uavcan
+	@cd src/modules/uavcan/libuavcan
 	@git clean -d -f -x
-	@cd ../../..
+	@cd ../../../..
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak libuavcan

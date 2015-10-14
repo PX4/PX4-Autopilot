@@ -168,8 +168,8 @@ set(config_io_board
 
 set(config_extra_libs
 	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a
-	libuavcan.a
-	libuavcan_stm32_driver.a
+	uavcan
+	uavcan_stm32_driver
 	)
 
 set(config_io_extra_libs

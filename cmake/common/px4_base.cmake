@@ -138,8 +138,7 @@ function(px4_add_git_submodule)
 	string(REPLACE "/" "_" NAME ${PATH})
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/git_${NAME}.stamp
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule init ${PATH}
-		COMMAND git submodule update -f ${PATH}
+		COMMAND git submodule update --init --recursive -f ${PATH}
 		COMMAND touch ${CMAKE_BINARY_DIR}/git_${NAME}.stamp
 		)
 	add_custom_target(${TARGET}
@@ -544,7 +543,6 @@ function(px4_add_common_flags)
 	endif()
 
 	set(c_warnings
-		-Wbad-function-cast
 		-Wstrict-prototypes
 		-Wmissing-prototypes
 		-Wnested-externs
