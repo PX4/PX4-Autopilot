@@ -1163,6 +1163,7 @@ void AttitudePositionEstimatorEKF::print_status()
 	PX4_INFO("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y,
 	       (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y,
 	       (double)_ekf->correctedDelAng.z);
+
 	PX4_INFO("states (quat)        [0-3]: %8.4f, %8.4f, %8.4f, %8.4f", (double)_ekf->states[0], (double)_ekf->states[1],
 	       (double)_ekf->states[2], (double)_ekf->states[3]);
 	PX4_INFO("states (vel m/s)     [4-6]: %8.4f, %8.4f, %8.4f", (double)_ekf->states[4], (double)_ekf->states[5],
@@ -1342,21 +1343,21 @@ void AttitudePositionEstimatorEKF::pollData()
 	static hrt_abstime lastprint = 0;
 
 	if (hrt_elapsed_time(&lastprint) > 1000000) {
-		warnx("dt: %8.6f, dtg: %8.6f, dta: %8.6f, dt > 5 ms: %u, dt > 10 ms: %u",
+		PX4_WARN("dt: %8.6f, dtg: %8.6f, dta: %8.6f, dt > 5 ms: %u, dt > 10 ms: %u",
 			(double)deltaT, (double)deltaTIntegral, (double)deltaTIntAcc,
 			dtoverflow5, dtoverflow10);
 
-		warnx("EKF: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
+		PX4_WARN("EKF: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
 		(double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.z,
 		(double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z);
 
-		warnx("INT: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
+		PX4_WARN("INT: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
 		(double)(_sensor_combined.gyro_integral_rad[0]), (double)(_sensor_combined.gyro_integral_rad[2]),
 		(double)(_sensor_combined.accelerometer_integral_m_s[0]),
 		(double)(_sensor_combined.accelerometer_integral_m_s[1]),
 		(double)(_sensor_combined.accelerometer_integral_m_s[2]));
 
-		warnx("DRV: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
+		PX4_WARN("DRV: dang: %8.4f %8.4f dvel: %8.4f %8.4f %8.4f",
 		(double)(_sensor_combined.gyro_rad_s[0] * deltaT), (double)(_sensor_combined.gyro_rad_s[2] * deltaT),
 		(double)(_sensor_combined.accelerometer_m_s2[0] * deltaT),
 		(double)(_sensor_combined.accelerometer_m_s2[1] * deltaT),
@@ -1666,8 +1667,6 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		PX4_INFO("running");
-
 		estimator::g_estimator->print_status();
 
 		return 0;
@@ -1692,6 +1691,6 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 		return ret;
 	}
 
-	PX4_ERR("unrecognized command");
+	PX4_WARN("unrecognized command");
 	return 1;
 }
