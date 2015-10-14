@@ -94,7 +94,7 @@ class UavcanNode : public device::CDev
 	 */
 
 	static constexpr unsigned RxQueueLenPerIface = FramePerMSecond * PollTimeoutMs; // At
-	static constexpr unsigned StackSize          = 1600;
+	static constexpr unsigned StackSize          = 1800;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;

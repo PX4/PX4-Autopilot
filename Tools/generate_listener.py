@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import glob
+import os
 import sys
 
 # This script is run from Build/<target>_default.build/$(PX4_BASE)/Firmware/src/systemcmds/topic_listener
@@ -48,7 +49,9 @@ for index,m in enumerate(raw_messages):
 				temp_list.append(("int8",line.split(' ')[1].split('\t')[0].split('\n')[0]))
 
 		f.close()
-		messages.append(m.split('/')[-1].split('.')[0])
+		(m_head, m_tail) = os.path.split(m)
+		messages.append(m_tail.split('.')[0])
+		#messages.append(m.split('/')[-1].split('.')[0])
 		message_elements.append(temp_list)
 
 num_messages = len(messages);
