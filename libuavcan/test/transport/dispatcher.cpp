@@ -52,7 +52,7 @@ static const uavcan::NodeID SELF_NODE_ID(64);
 
 TEST(Dispatcher, Reception)
 {
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> pool;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);

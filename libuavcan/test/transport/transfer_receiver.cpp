@@ -74,15 +74,13 @@ const uavcan::TransferBufferManagerKey RxFrameGenerator::DEFAULT_KEY(42, uavcan:
 template <unsigned BufSize>
 struct Context
 {
-    NullAllocator pool;                 // We don't need dynamic memory for this test
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> pool;
     uavcan::TransferReceiver receiver;  // Must be default constructible and copyable
     uavcan::TransferBufferManager<BufSize> bufmgr;
 
     Context() :
         bufmgr(pool)
-    {
-        assert(pool.allocate(1) == NULL);
-    }
+    { }
 
     ~Context()
     {

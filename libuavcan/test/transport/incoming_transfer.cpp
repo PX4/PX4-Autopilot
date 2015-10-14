@@ -72,7 +72,7 @@ TEST(MultiFrameIncomingTransfer, Basic)
     using uavcan::RxFrame;
     using uavcan::MultiFrameIncomingTransfer;
 
-    NullAllocator poolmgr;                 // We don't need dynamic memory
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> poolmgr;
     uavcan::TransferBufferManager<256> bufmgr(poolmgr);
 
     const RxFrame frame = makeFrame();
