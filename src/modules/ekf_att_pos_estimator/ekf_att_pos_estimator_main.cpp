@@ -159,6 +159,7 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_last_accel(0),
 	_last_mag(0),
 	_prediction_steps(0),
+	_prediction_last(0),
 
 	_sensor_combined{},
 
@@ -1069,11 +1070,12 @@ void AttitudePositionEstimatorEKF::updateSensorFusion(const bool fuseGPS, const 
 	_covariancePredictionDt += _ekf->dtIMU;
 
 	// only fuse every few steps
-	if (_prediction_steps < MAX_PREDICITION_STEPS) {
+	if (_prediction_steps < MAX_PREDICITION_STEPS && ((hrt_absolute_time() - _prediction_last) < 20 * 1000)) {
 		_prediction_steps++;
 		return;
 	} else {
 		_prediction_steps = 0;
+		_prediction_last = hrt_absolute_time();
 	}
 
 	// perform a covariance prediction if the total delta angle has exceeded the limit
