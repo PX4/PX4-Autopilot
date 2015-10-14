@@ -543,6 +543,7 @@ function(px4_add_common_flags)
 	endif()
 
 	set(c_warnings
+		-Wbad-function-cast
 		-Wstrict-prototypes
 		-Wmissing-prototypes
 		-Wnested-externs
