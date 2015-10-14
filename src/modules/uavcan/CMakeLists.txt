@@ -63,7 +63,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wframe-larger-than=1500
 		-Wno-deprecated-declarations
-		-O3
+		-Os
 	SRCS
 		# Main
 		uavcan_main.cpp
