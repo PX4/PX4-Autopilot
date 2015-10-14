@@ -47,7 +47,6 @@
 #include <controllib/block/BlockParam.hpp>
 #include <mavlink/mavlink_log.h>
 #include <mathlib/mathlib.h>
-#include <math.h>
 
 namespace runwaytakeoff
 {
@@ -61,6 +60,7 @@ RunwayTakeoff::RunwayTakeoff() :
 	_climbout(false),
 	_start_sp{},
 	_target_sp{},
+	_throttle_ramp_time(2 * 1e6),
 	_runway_takeoff_enabled(this, "TKOFF"),
 	_heading_mode(this, "HDG"),
 	_nav_alt(this, "NAV_ALT"),
@@ -87,7 +87,7 @@ void RunwayTakeoff::init(float yaw)
 	_initialized = true;
 	_state = RunwayTakeoffState::THROTTLE_RAMP;
 	_initialized_time = hrt_absolute_time();
-	_climbout = true;
+	_climbout = true; // this is true until climbout is finished
 }
 
 void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
@@ -95,7 +95,7 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 
 	switch (_state) {
 	case RunwayTakeoffState::THROTTLE_RAMP:
-		if (hrt_elapsed_time(&_initialized_time) > 1e6) {
+		if (hrt_elapsed_time(&_initialized_time) > _throttle_ramp_time) {
 			_state = RunwayTakeoffState::CLAMPED_TO_RUNWAY;
 		}
 
@@ -131,12 +131,21 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 	}
 }
 
+/*
+ * Returns true as long as we're below navigation altitude
+ */
 bool RunwayTakeoff::controlYaw()
 {
 	// keep controlling yaw directly until we start navigation
 	return _state < RunwayTakeoffState::CLIMBOUT;
 }
 
+/*
+ * Returns pitch setpoint to use.
+ *
+ * Limited (parameter) as long as the plane is on runway. Otherwise
+ * use the one from TECS
+ */
 float RunwayTakeoff::getPitch(float tecsPitch)
 {
 	if (_state <= RunwayTakeoffState::CLAMPED_TO_RUNWAY) {
@@ -146,6 +155,9 @@ float RunwayTakeoff::getPitch(float tecsPitch)
 	return tecsPitch;
 }
 
+/*
+ * Returns the roll setpoint to use.
+ */
 float RunwayTakeoff::getRoll(float navigatorRoll)
 {
 	// until we have enough ground clearance, set roll to 0
@@ -163,16 +175,25 @@ float RunwayTakeoff::getRoll(float navigatorRoll)
 	return navigatorRoll;
 }
 
+/*
+ * Returns the yaw setpoint to use.
+ */
 float RunwayTakeoff::getYaw(float navigatorYaw)
 {
 	return navigatorYaw;
 }
 
+/*
+ * Returns the throttle setpoint to use.
+ *
+ * Ramps up in the beginning, until it lifts off the runway it is set to
+ * parameter value, then it returns the TECS throttle.
+ */
 float RunwayTakeoff::getThrottle(float tecsThrottle)
 {
 	switch (_state) {
 	case RunwayTakeoffState::THROTTLE_RAMP: {
-			float throttle = hrt_elapsed_time(&_initialized_time) / (float)2000000 *
+			float throttle = hrt_elapsed_time(&_initialized_time) / (float)_throttle_ramp_time *
 					 _takeoff_throttle.get();
 			return throttle < _takeoff_throttle.get() ?
 			       throttle :
@@ -193,9 +214,16 @@ bool RunwayTakeoff::resetIntegrators()
 	return _state < RunwayTakeoffState::TAKEOFF;
 }
 
+/*
+ * Returns the minimum pitch for TECS to use.
+ *
+ * In climbout we either want what was set on the waypoint (sp_min) but at least
+ * the climbtout minimum pitch (parameter).
+ * Otherwise use the minimum that is enforced generally (parameter).
+ */
 float RunwayTakeoff::getMinPitch(float sp_min, float climbout_min, float min)
 {
-	if (_climbout) {
+	if (_state < RunwayTakeoffState::FLY) {
 		return math::max(sp_min, climbout_min);
 	}
 
@@ -204,9 +232,15 @@ float RunwayTakeoff::getMinPitch(float sp_min, float climbout_min, float min)
 	}
 }
 
+/*
+ * Returns the maximum pitch for TECS to use.
+ *
+ * Limited by parameter (if set) until climbout is done.
+ */
 float RunwayTakeoff::getMaxPitch(float max)
 {
-	if (_climbout && _max_takeoff_pitch.get() > 0.1f) {
+	// use max pitch from parameter if set (> 0.1)
+	if (_state < RunwayTakeoffState::FLY && _max_takeoff_pitch.get() > 0.1f) {
 		return _max_takeoff_pitch.get();
 	}
 
@@ -215,6 +249,9 @@ float RunwayTakeoff::getMaxPitch(float max)
 	}
 }
 
+/*
+ * Returns the "previous" (start) WP for navigation.
+ */
 math::Vector<2> RunwayTakeoff::getPrevWP()
 {
 	math::Vector<2> prev_wp;
@@ -223,6 +260,9 @@ math::Vector<2> RunwayTakeoff::getPrevWP()
 	return prev_wp;
 }
 
+/*
+ * Returns the "current" (target) WP for navigation.
+ */
 math::Vector<2> RunwayTakeoff::getCurrWP(math::Vector<2> sp_curr_wp)
 {
 	if (_heading_mode.get() == 0 && _state < RunwayTakeoffState::FLY) {
