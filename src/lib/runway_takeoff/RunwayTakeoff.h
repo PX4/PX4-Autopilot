@@ -68,16 +68,14 @@ public:
 	RunwayTakeoff();
 	~RunwayTakeoff();
 
-	void init(float yaw);
-	void update(float airspeed, float alt_agl, int mavlink_fd);
+	void init(float yaw, double current_lat, double current_lon);
+	void update(float airspeed, float alt_agl, double current_lat, double current_lon, int mavlink_fd);
 
 	RunwayTakeoffState getState() { return _state; };
 	bool isInitialized() { return _initialized; };
 
 	bool runwayTakeoffEnabled() { return (bool)_runway_takeoff_enabled.get(); };
 	float getMinAirspeedScaling() { return _min_airspeed_scaling.get(); };
-	position_setpoint_s *getStartSP() { return &_start_sp; };
-	position_setpoint_s *getTargetSP() { return &_target_sp; };
 	float getInitYaw() { return _init_yaw; };
 
 	bool controlYaw();
@@ -89,8 +87,7 @@ public:
 	bool resetIntegrators();
 	float getMinPitch(float sp_min, float climbout_min, float min);
 	float getMaxPitch(float max);
-	math::Vector<2> getPrevWP();
-	math::Vector<2> getCurrWP(math::Vector<2> sp_curr_wp);
+	math::Vector<2> getStartWP();
 
 	void reset();
 
@@ -102,9 +99,8 @@ private:
 	hrt_abstime _initialized_time;
 	float _init_yaw;
 	bool _climbout;
-	struct position_setpoint_s _start_sp;
-	struct position_setpoint_s _target_sp;
 	unsigned _throttle_ramp_time;
+	math::Vector<2> _start_wp;
 
 	/** parameters **/
 	control::BlockParamInt _runway_takeoff_enabled;

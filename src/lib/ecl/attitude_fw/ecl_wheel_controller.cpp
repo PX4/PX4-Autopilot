@@ -111,8 +111,8 @@ float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_da
     _last_output = _rate_setpoint * _k_ff * ctl_data.groundspeed_scaler +
             _rate_error * _k_p * ctl_data.groundspeed_scaler * ctl_data.groundspeed_scaler +
             integrator_constrained;
-    /*warnx("wheel: _last_output: %.4f, _integrator: %.4f, _integrator_max: %.4f, speed %.4f, _k_i %.4f, _k_p: %.4f",
-            (double)_last_output, (double)_integrator, (double)_integrator_max, (double)speed, (double)_k_i, (double)_k_p);*/
+    /*warnx("wheel: _last_output: %.4f, _integrator: %.4f, scaler %.4f",
+            (double)_last_output, (double)_integrator, (double)ctl_data.groundspeed_scaler);*/
 
 
     return math::constrain(_last_output, -1.0f, 1.0f);

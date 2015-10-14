@@ -1375,44 +1375,30 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			if (_runway_takeoff.runwayTakeoffEnabled()) {
 				if (!_runway_takeoff.isInitialized()) {
-					_runway_takeoff.init(_att.yaw);
+					_runway_takeoff.init(_att.yaw, _global_pos.lat, _global_pos.lon);
 
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
 					_takeoff_ground_alt = _global_pos.alt;
 
-					// draw a line from takeoff location into the direction the UAV is heading
-					get_waypoint_heading_distance(
-							_runway_takeoff.getInitYaw(),
-							HDG_HOLD_DIST_NEXT,
-							*_runway_takeoff.getStartSP(),
-							*_runway_takeoff.getTargetSP(),
-							true);
-
 					mavlink_log_info(_mavlink_fd, "#Takeoff on runway");
 				}
 
-				// update takeoff path if we're reaching the end of it
-				if (get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
-					_runway_takeoff.getTargetSP()->lat, _runway_takeoff.getTargetSP()->lon) < HDG_HOLD_REACHED_DIST) {
-					get_waypoint_heading_distance(
-							_runway_takeoff.getInitYaw(),
-							HDG_HOLD_DIST_NEXT,
-							*_runway_takeoff.getStartSP(),
-							*_runway_takeoff.getTargetSP(),
-							false);
-				}
-
-				/* update navigation: _runway_takeoff decides if we target the current WP from setpoint triplet
-				 * or the calculated one through initial heading */
-				_l1_control.navigate_waypoints(_runway_takeoff.getPrevWP(), _runway_takeoff.getCurrWP(curr_wp), current_position, ground_speed_2d);
 				float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt, _global_pos);
 
 				// update runway takeoff helper
 				_runway_takeoff.update(
 					_airspeed.true_airspeed_m_s,
 					_global_pos.alt - terrain_alt,
+					_global_pos.lat,
+					_global_pos.lon,
 					_mavlink_fd);
+
+				/*
+				 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
+				 * If we use the navigator heading or not is decided later.
+				 */
+				_l1_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, current_position, ground_speed_2d);
 
 				// update tecs
 				float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_parameters.pitch_limit_max);

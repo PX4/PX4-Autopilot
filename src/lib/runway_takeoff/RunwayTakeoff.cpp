@@ -58,9 +58,8 @@ RunwayTakeoff::RunwayTakeoff() :
 	_initialized_time(0),
 	_init_yaw(0),
 	_climbout(false),
-	_start_sp{},
-	_target_sp{},
 	_throttle_ramp_time(2 * 1e6),
+	_start_wp(),
 	_runway_takeoff_enabled(this, "TKOFF"),
 	_heading_mode(this, "HDG"),
 	_nav_alt(this, "NAV_ALT"),
@@ -81,16 +80,19 @@ RunwayTakeoff::~RunwayTakeoff()
 
 }
 
-void RunwayTakeoff::init(float yaw)
+void RunwayTakeoff::init(float yaw, double current_lat, double current_lon)
 {
 	_init_yaw = yaw;
 	_initialized = true;
 	_state = RunwayTakeoffState::THROTTLE_RAMP;
 	_initialized_time = hrt_absolute_time();
 	_climbout = true; // this is true until climbout is finished
+	_start_wp(0) = (float)current_lat;
+	_start_wp(1) = (float)current_lon;
 }
 
-void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
+void RunwayTakeoff::update(float airspeed, float alt_agl,
+	double current_lat, double current_lon, int mavlink_fd)
 {
 
 	switch (_state) {
@@ -112,6 +114,16 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 	case RunwayTakeoffState::TAKEOFF:
 		if (alt_agl > _nav_alt.get()) {
 			_state = RunwayTakeoffState::CLIMBOUT;
+
+			/*
+			 * If we started in heading hold mode, move the navigation start WP to the current location now.
+			 * The navigator will take this as starting point to navigate towards the takeoff WP.
+			 */
+			if (_heading_mode.get() == 0) {
+				_start_wp(0) = (float)current_lat;
+				_start_wp(1) = (float)current_lon;
+			}
+
 			mavlink_log_info(mavlink_fd, "#Climbout");
 		}
 
@@ -127,7 +139,7 @@ void RunwayTakeoff::update(float airspeed, float alt_agl, int mavlink_fd)
 		break;
 
 	default:
-		return;
+		break;
 	}
 }
 
@@ -177,10 +189,18 @@ float RunwayTakeoff::getRoll(float navigatorRoll)
 
 /*
  * Returns the yaw setpoint to use.
+ *
+ * In heading hold mode (_heading_mode == 0), it returns initial yaw as long as it's on the
+ * runway. When it has enough ground clearance we start navigation towards WP.
  */
 float RunwayTakeoff::getYaw(float navigatorYaw)
 {
-	return navigatorYaw;
+	if (_heading_mode.get() == 0 && _state < RunwayTakeoffState::CLIMBOUT) {
+		return _init_yaw;
+
+	} else {
+		return navigatorYaw;
+	}
 }
 
 /*
@@ -252,31 +272,9 @@ float RunwayTakeoff::getMaxPitch(float max)
 /*
  * Returns the "previous" (start) WP for navigation.
  */
-math::Vector<2> RunwayTakeoff::getPrevWP()
+math::Vector<2> RunwayTakeoff::getStartWP()
 {
-	math::Vector<2> prev_wp;
-	prev_wp(0) = (float)_start_sp.lat;
-	prev_wp(1) = (float)_start_sp.lon;
-	return prev_wp;
-}
-
-/*
- * Returns the "current" (target) WP for navigation.
- */
-math::Vector<2> RunwayTakeoff::getCurrWP(math::Vector<2> sp_curr_wp)
-{
-	if (_heading_mode.get() == 0 && _state < RunwayTakeoffState::FLY) {
-		// navigating towards calculated direction if heading mode 0 and as long as we're in climbout
-		math::Vector<2> curr_wp;
-		curr_wp(0) = (float)_target_sp.lat;
-		curr_wp(1) = (float)_target_sp.lon;
-		return curr_wp;
-
-	} else {
-		// navigating towards next mission waypoint
-		return sp_curr_wp;
-	}
-	
+	return _start_wp;
 }
 
 void RunwayTakeoff::reset()
