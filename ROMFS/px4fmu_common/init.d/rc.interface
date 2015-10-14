@@ -31,14 +31,14 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == mkblctrl ]
+	if [ $OM == mkblctrl ]
 	then
 		set OUTPUT_DEV /dev/mkblctrl0
 	else
 		set OUTPUT_DEV /dev/pwm_output0
 	fi
 
-	if [ $OUTPUT_MODE == uavcan_esc ]
+	if [ $OM == uavcan_esc ]
 	then
 		set OUTPUT_DEV /dev/uavcan/esc
 	fi
@@ -49,7 +49,7 @@ then
 	else
 		echo "[i] Error loading mixer: $MIXER_FILE"
 		echo "ERROR: Could not load mixer: $MIXER_FILE" >> $LOG_FILE
-		tone_alarm $TUNE_ERR
+		tone_alarm ML<<CP4CP4CP4CP4CP4
 	fi
 
 	unset MIXER_FILE
@@ -58,11 +58,11 @@ else
 	then
 		echo "[i] Mixer not defined"
 		echo "ERROR: Mixer not defined" >> $LOG_FILE
-		tone_alarm $TUNE_ERR
+		tone_alarm ML<<CP4CP4CP4CP4CP4
 	fi
 fi
 
-if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
+if [ $OM == fmu -o $OM == io ]
 then
 	if [ $PWM_OUT != none ]
 	then
@@ -142,7 +142,7 @@ then
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
-			tone_alarm $TUNE_ERR
+			tone_alarm ML<<CP4CP4CP4CP4CP4
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi

@@ -15,9 +15,6 @@ sercon
 #
 set MODE autostart
 
-set FRC /fs/microsd/etc/rc.txt
-set FCONFIG /fs/microsd/etc/config.txt
-set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 set LOG_FILE /fs/microsd/bootlog.txt
 
 #
@@ -50,6 +47,7 @@ fi
 # Look for an init script on the microSD card.
 # Disable autostart if the script found.
 #
+set FRC /fs/microsd/etc/rc.txt
 if [ -f $FRC ]
 then
 	echo "[i] Executing script: $FRC"
@@ -236,6 +234,7 @@ then
 	#
 	# Override parameters from user configuration file
 	#
+	set FCONFIG /fs/microsd/etc/config.txt
 	if [ -f $FCONFIG ]
 	then
 		echo "[i] Custom config: $FCONFIG"
@@ -300,11 +299,11 @@ then
 					set IO_PRESENT yes
 				else
 					echo "ERROR: PX4IO update failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tone_alarm ML<<CP4CP4CP4CP4CP4
 				fi
 			else
 				echo "ERROR: PX4IO update failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 		fi
 		unset IO_FILE
@@ -313,7 +312,7 @@ then
 		then
 			echo "[i] ERROR: PX4IO not found"
 			echo "ERROR: PX4IO not found" >> $LOG_FILE
-			tone_alarm $TUNE_ERR
+			tone_alarm ML<<CP4CP4CP4CP4CP4
 		fi
 	fi
 
@@ -410,7 +409,7 @@ then
 				sh /etc/init.d/rc.io
 			else
 				echo "ERROR: PX4IO start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 		fi
 
@@ -422,7 +421,7 @@ then
 			else
 				echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
 				echo "ERROR: FMU start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 
 			if ver hwcmp PX4FMU_V1
@@ -456,7 +455,7 @@ then
 			else
 				echo "[i] ERROR: MK start failed"
 				echo "ERROR: MK start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 			unset MKBLCTRL_ARG
 		fi
@@ -470,7 +469,7 @@ then
 			else
 				echo "[i] ERROR: PWM SIM output start failed"
 				echo "ERROR: PWM SIM output start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 		fi
 
@@ -486,9 +485,8 @@ then
 					echo "[i] PX4IO started"
 					sh /etc/init.d/rc.io
 				else
-					echo "[i] ERROR: PX4IO start failed"
 					echo "ERROR: PX4IO start failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tone_alarm ML<<CP4CP4CP4CP4CP4
 				fi
 			fi
 		else
@@ -496,11 +494,9 @@ then
 			then
 				if fmu mode_$FMU_MODE
 				then
-					echo "[i] FMU mode_$FMU_MODE started"
 				else
-					echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
 					echo "ERROR: FMU mode_$FMU_MODE start failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tone_alarm ML<<CP4CP4CP4CP4CP4
 				fi
 
 				if ver hwcmp PX4FMU_V1
@@ -574,12 +570,41 @@ then
 	#
 	# UAVCAN
 	#
-	sh /etc/init.d/rc.uavcan
+
+	if param greater UAVCAN_ENABLE 0
+	then
+		if uavcan start
+		then
+		else
+			tone_alarm ML<<CP4CP4CP4CP4CP4
+		fi
+	fi
+
+	if param greater UAVCAN_ENABLE 1
+	then
+		if uavcan start fw
+		then
+		else
+			tone_alarm ML<<CP4CP4CP4CP4CP4
+		fi
+	fi
 
 	#
 	# Logging
 	#
-	sh /etc/init.d/rc.logging
+	if [ -d /fs/microsd ]
+	then
+		if ver hwcmp PX4FMU_V1
+		then
+			if sdlog2 start -r 40 -a -b 3 -t
+			then
+			fi
+		else
+			if sdlog2 start -r 100 -a -b 12 -t
+			then
+			fi
+		fi
+	fi
 
 	#
 	# Start up ARDrone Motor interface
@@ -792,7 +817,6 @@ fi
 
 # There is no further script processing, so we can free some RAM
 # XXX potentially unset all script variables.
-unset TUNE_ERR
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
