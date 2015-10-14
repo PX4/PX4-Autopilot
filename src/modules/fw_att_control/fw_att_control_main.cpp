@@ -242,6 +242,11 @@ private:
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
+	// Rotation matrix and euler angles to extract from control state
+	math::Matrix<3, 3> _R;
+	float _roll;
+	float _pitch;
+	float _yaw;
 
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
@@ -684,6 +689,16 @@ FixedwingAttitudeControl::task_main()
 			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
 
+			/* get current rotation matrix and euler angles from control state quaternions */
+			math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+			_R = q_att.to_dcm();
+
+			math::Vector<3> euler_angles;
+			euler_angles = _R.to_euler();
+			_roll    = euler_angles(0);
+			_pitch   = euler_angles(1);
+			_yaw     = euler_angles(2);
+
 			if (_vehicle_status.is_vtol && _parameters.vtol_type == 0) {
 				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 				 *
@@ -701,41 +716,29 @@ FixedwingAttitudeControl::task_main()
 				 * Rxy	Ryy  Rzy		-Rzy  Ryy  Rxy
 				 * Rxz	Ryz  Rzz		-Rzz  Ryz  Rxz
 				 * */
-				math::Matrix<3, 3> R;				//original rotation matrix
-				math::Matrix<3, 3> R_adapted;		//modified rotation matrix
-				R.set(_att.R);
-				R_adapted.set(_att.R);
+				math::Matrix<3, 3> R_adapted = _R;		//modified rotation matrix
 
 				/* move z to x */
-				R_adapted(0, 0) = R(0, 2);
-				R_adapted(1, 0) = R(1, 2);
-				R_adapted(2, 0) = R(2, 2);
+				R_adapted(0, 0) = _R(0, 2);
+				R_adapted(1, 0) = _R(1, 2);
+				R_adapted(2, 0) = _R(2, 2);
 
 				/* move x to z */
-				R_adapted(0, 2) = R(0, 0);
-				R_adapted(1, 2) = R(1, 0);
-				R_adapted(2, 2) = R(2, 0);
+				R_adapted(0, 2) = _R(0, 0);
+				R_adapted(1, 2) = _R(1, 0);
+				R_adapted(2, 2) = _R(2, 0);
 
 				/* change direction of pitch (convert to right handed system) */
 				R_adapted(0, 0) = -R_adapted(0, 0);
 				R_adapted(1, 0) = -R_adapted(1, 0);
 				R_adapted(2, 0) = -R_adapted(2, 0);
-				math::Vector<3> euler_angles;		//adapted euler angles for fixed wing operation
-				euler_angles = R_adapted.to_euler();
+				euler_angles = R_adapted.to_euler();  //adapted euler angles for fixed wing operation
 
 				/* fill in new attitude data */
-				_att.roll    = euler_angles(0);
-				_att.pitch   = euler_angles(1);
-				_att.yaw     = euler_angles(2);
-				PX4_R(_att.R, 0, 0) = R_adapted(0, 0);
-				PX4_R(_att.R, 0, 1) = R_adapted(0, 1);
-				PX4_R(_att.R, 0, 2) = R_adapted(0, 2);
-				PX4_R(_att.R, 1, 0) = R_adapted(1, 0);
-				PX4_R(_att.R, 1, 1) = R_adapted(1, 1);
-				PX4_R(_att.R, 1, 2) = R_adapted(1, 2);
-				PX4_R(_att.R, 2, 0) = R_adapted(2, 0);
-				PX4_R(_att.R, 2, 1) = R_adapted(2, 1);
-				PX4_R(_att.R, 2, 2) = R_adapted(2, 2);
+				_R = R_adapted;
+				_roll    = euler_angles(0);
+				_pitch   = euler_angles(1);
+				_yaw     = euler_angles(2);
 
 				/* lastly, roll- and yawspeed have to be swaped */
 				float helper = _ctrl_state.roll_rate;
@@ -845,7 +848,7 @@ FixedwingAttitudeControl::task_main()
 					/* the pilot does not want to change direction,
 					 * take straight attitude setpoint from position controller
 					 */
-					if (fabsf(_manual.y) < 0.01f && fabsf(_att.roll) < 0.2f) {
+					if (fabsf(_manual.y) < 0.01f && fabsf(_roll) < 0.2f) {
 						roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 					} else {
 						roll_sp = (_manual.y * _parameters.man_roll_max)
@@ -940,9 +943,9 @@ FixedwingAttitudeControl::task_main()
 				float speed_body_v = 0.0f;
 				float speed_body_w = 0.0f;
 				if(_att.R_valid) 	{
-					speed_body_u = PX4_R(_att.R, 0, 0) * _global_pos.vel_n + PX4_R(_att.R, 1, 0) * _global_pos.vel_e + PX4_R(_att.R, 2, 0) * _global_pos.vel_d;
-					speed_body_v = PX4_R(_att.R, 0, 1) * _global_pos.vel_n + PX4_R(_att.R, 1, 1) * _global_pos.vel_e + PX4_R(_att.R, 2, 1) * _global_pos.vel_d;
-					speed_body_w = PX4_R(_att.R, 0, 2) * _global_pos.vel_n + PX4_R(_att.R, 1, 2) * _global_pos.vel_e + PX4_R(_att.R, 2, 2) * _global_pos.vel_d;
+					speed_body_u = _R(0, 0) * _global_pos.vel_n + _R(1, 0) * _global_pos.vel_e + _R(2, 0) * _global_pos.vel_d;
+					speed_body_v = _R(0, 1) * _global_pos.vel_n + _R(1, 1) * _global_pos.vel_e + _R(2, 1) * _global_pos.vel_d;
+					speed_body_w = _R(0, 2) * _global_pos.vel_n + _R(1, 2) * _global_pos.vel_e + _R(2, 2) * _global_pos.vel_d;
 				} else	{
 					if (_debug && loop_counter % 10 == 0) {
 						warnx("Did not get a valid R\n");
@@ -951,9 +954,9 @@ FixedwingAttitudeControl::task_main()
 
 				/* Prepare data for attitude controllers */
 				struct ECL_ControlData control_input = {};
-				control_input.roll = _att.roll;
-				control_input.pitch = _att.pitch;
-				control_input.yaw = _att.yaw;
+				control_input.roll = _roll;
+				control_input.pitch = _pitch;
+				control_input.yaw = _yaw;
 				control_input.roll_rate = _ctrl_state.roll_rate;
 				control_input.pitch_rate = _ctrl_state.pitch_rate;
 				control_input.yaw_rate = _ctrl_state.yaw_rate;
@@ -1079,9 +1082,9 @@ FixedwingAttitudeControl::task_main()
 
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
-			_actuators.timestamp_sample = _att.timestamp;
+			_actuators.timestamp_sample = _ctrl_state.timestamp;
 			_actuators_airframe.timestamp = hrt_absolute_time();
-			_actuators_airframe.timestamp_sample = _att.timestamp;
+			_actuators_airframe.timestamp_sample = _ctrl_state.timestamp;
 
 			/* Only publish if any of the proper modes are enabled */
 			if(_vcontrol_mode.flag_control_rates_enabled ||
