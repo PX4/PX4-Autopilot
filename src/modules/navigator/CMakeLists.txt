@@ -39,24 +39,17 @@ px4_add_module(
 		-Os
 	SRCS
 		navigator_main.cpp
-		navigator_params.c
 		navigator_mode.cpp
 		mission_block.cpp
 		mission.cpp
-		mission_params.c
 		loiter.cpp
 		rtl.cpp
-		rtl_params.c
 		mission_feasibility_checker.cpp
 		geofence.cpp
-		geofence_params.c
 		datalinkloss.cpp
-		datalinkloss_params.c
 		rcloss.cpp
-		rcloss_params.c
 		enginefailure.cpp
 		gpsfailure.cpp
-		gpsfailure_params.c
 	DEPENDS
 		platforms__common
 	)

@@ -39,10 +39,6 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <px4_config.h>
-
-#include <systemlib/param/param.h>
-
 /*
  * GPS Failure Navigation Mode parameters, accessible via MAVLink
  */
