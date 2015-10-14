@@ -702,7 +702,7 @@ void AttitudePositionEstimatorEKF::task_main()
 
 					// Run separate terrain estimator
 					_terrain_estimator->predict(_ekf->dtIMU, &_att, &_sensor_combined, &_distance);
-					_terrain_estimator->measurement_update(&_gps, &_distance, &_att);
+					_terrain_estimator->measurement_update(hrt_absolute_time(), &_gps, &_distance, &_att);
 
 					// Publish attitude estimations
 					publishAttitude();
