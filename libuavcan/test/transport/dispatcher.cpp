@@ -57,9 +57,7 @@ TEST(Dispatcher, Reception)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry out_trans_reg(pool);
-
-    uavcan::Dispatcher dispatcher(driver, pool, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, pool, clockmock);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
     ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
     ASSERT_EQ(SELF_NODE_ID, dispatcher.getNodeID());
@@ -255,9 +253,7 @@ TEST(Dispatcher, Transmission)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry out_trans_reg(pool);
-
-    uavcan::Dispatcher dispatcher(driver, pool, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, pool, clockmock);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
     ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
 
@@ -280,7 +276,8 @@ TEST(Dispatcher, Transmission)
     ASSERT_FALSE(dispatcher.hasPublisher(123));
     ASSERT_FALSE(dispatcher.hasPublisher(456));
     const uavcan::OutgoingTransferRegistryKey otr_key(123, uavcan::TransferTypeMessageBroadcast, 0);
-    ASSERT_TRUE(out_trans_reg.accessOrCreate(otr_key, uavcan::MonotonicTime::fromMSec(1000000)));
+    ASSERT_TRUE(dispatcher.getOutgoingTransferRegistry().accessOrCreate(otr_key,
+                                                                        uavcan::MonotonicTime::fromMSec(1000000)));
     ASSERT_TRUE(dispatcher.hasPublisher(123));
     ASSERT_FALSE(dispatcher.hasPublisher(456));
 
@@ -319,9 +316,7 @@ TEST(Dispatcher, Spin)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry out_trans_reg(poolmgr);
-
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
     ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
 
@@ -365,9 +360,7 @@ TEST(Dispatcher, Loopback)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry out_trans_reg(poolmgr);
-
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));
 
     {

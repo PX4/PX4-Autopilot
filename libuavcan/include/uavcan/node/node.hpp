@@ -47,7 +47,6 @@ class UAVCAN_EXPORT Node : public INode
     typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
 
     Allocator pool_allocator_;
-    OutgoingTransferRegistry outgoing_trans_reg_;
     Scheduler scheduler_;
 
     NodeStatusProvider proto_nsp_;
@@ -75,8 +74,7 @@ protected:
 
 public:
     Node(ICanDriver& can_driver, ISystemClock& system_clock)
-        : outgoing_trans_reg_(pool_allocator_)
-        , scheduler_(can_driver, pool_allocator_, system_clock, outgoing_trans_reg_)
+        : scheduler_(can_driver, pool_allocator_, system_clock)
         , proto_nsp_(*this)
 #if !UAVCAN_TINY
         , proto_dtp_(*this)

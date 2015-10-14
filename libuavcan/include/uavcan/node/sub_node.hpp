@@ -31,7 +31,6 @@ class UAVCAN_EXPORT SubNode : public INode
     typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
 
     Allocator pool_allocator_;
-    OutgoingTransferRegistry outgoing_trans_reg_;
     Scheduler scheduler_;
 
     uint64_t internal_failure_cnt_;
@@ -46,8 +45,7 @@ protected:
 
 public:
     SubNode(ICanDriver& can_driver, ISystemClock& system_clock) :
-        outgoing_trans_reg_(pool_allocator_),
-        scheduler_(can_driver, pool_allocator_, system_clock, outgoing_trans_reg_),
+        scheduler_(can_driver, pool_allocator_, system_clock),
         internal_failure_cnt_(0)
     { }
 

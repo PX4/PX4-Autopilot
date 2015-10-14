@@ -153,7 +153,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
 
     UAVCAN_ASSERT(!tx_deadline.isZero());
     const MonotonicTime otr_deadline = tx_deadline + max(max_transfer_interval_ * 2,
-                                                         IOutgoingTransferRegistry::MinEntryLifetime);
+                                                         OutgoingTransferRegistry::MinEntryLifetime);
 
     TransferID* const tid = dispatcher_.getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);
     if (tid == NULL)

@@ -20,13 +20,11 @@
 struct TestNode : public uavcan::INode
 {
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 1024, uavcan::MemPoolBlockSize> pool;
-    uavcan::OutgoingTransferRegistry otr;
     uavcan::Scheduler scheduler;
     uint64_t internal_failure_count;
 
     TestNode(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock_driver, uavcan::NodeID self_node_id)
-        : otr(pool)
-        , scheduler(can_driver, pool, clock_driver, otr)
+        : scheduler(can_driver, pool, clock_driver)
         , internal_failure_count(0)
     {
         setNodeID(self_node_id);

@@ -81,7 +81,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
 {
     CanIOManager canio_;
     ISystemClock& sysclock_;
-    IOutgoingTransferRegistry& outgoing_transfer_reg_;
+    OutgoingTransferRegistry outgoing_transfer_reg_;
     TransferPerfCounter perf_;
 
     class ListenerRegistry
@@ -133,10 +133,10 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
     void notifyRxFrameListener(const CanRxFrame& can_frame, CanIOFlags flags);
 
 public:
-    Dispatcher(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
+    Dispatcher(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock)
         : canio_(driver, allocator, sysclock)
         , sysclock_(sysclock)
-        , outgoing_transfer_reg_(otr)
+        , outgoing_transfer_reg_(allocator)
 #if !UAVCAN_TINY
         , rx_listener_(NULL)
 #endif
@@ -201,7 +201,7 @@ public:
      * @}
      */
 
-    IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
+    OutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 
 #if !UAVCAN_TINY
     LoopbackFrameListenerRegistry& getLoopbackFrameListenerRegistry() { return loopback_listeners_; }

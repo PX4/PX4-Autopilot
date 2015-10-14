@@ -92,8 +92,8 @@ class UAVCAN_EXPORT Scheduler : Noncopyable
     void pollCleanup(MonotonicTime mono_ts, uint32_t num_frames_processed_with_last_spin);
 
 public:
-    Scheduler(ICanDriver& can_driver, IPoolAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
-        : dispatcher_(can_driver, allocator, sysclock, otr)
+    Scheduler(ICanDriver& can_driver, IPoolAllocator& allocator, ISystemClock& sysclock)
+        : dispatcher_(can_driver, allocator, sysclock)
         , prev_cleanup_ts_(sysclock.getMonotonic())
         , deadline_resolution_(MonotonicDuration::fromMSec(DefaultDeadlineResolutionMs))
         , cleanup_period_(MonotonicDuration::fromMSec(DefaultCleanupPeriodMs))

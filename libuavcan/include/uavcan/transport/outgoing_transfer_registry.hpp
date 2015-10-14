@@ -60,23 +60,8 @@ public:
  * Outgoing transfer registry keeps track of Transfer ID values for all currently existing local transfer senders.
  * If a local transfer sender was inactive for a sufficiently long time, the outgoing transfer registry will
  * remove the respective Transfer ID tracking object.
- *
- * TODO: Deinterface this.
  */
-class UAVCAN_EXPORT IOutgoingTransferRegistry
-{
-public:
-    static const MonotonicDuration MinEntryLifetime;
-
-    virtual ~IOutgoingTransferRegistry() { }
-
-    virtual TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline) = 0;
-    virtual bool exists(DataTypeID dtid, TransferType tt) const = 0;
-    virtual void cleanup(MonotonicTime deadline) = 0;
-};
-
-
-class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
+class UAVCAN_EXPORT OutgoingTransferRegistry : Noncopyable
 {
     struct Value
     {
@@ -127,53 +112,18 @@ class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry,
     Map<OutgoingTransferRegistryKey, Value> map_;
 
 public:
+    static const MonotonicDuration MinEntryLifetime;
+
     explicit OutgoingTransferRegistry(IPoolAllocator& allocator)
         : map_(allocator)
     { }
 
-    virtual TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline);
+    TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline);
 
-    virtual bool exists(DataTypeID dtid, TransferType tt) const;
+    bool exists(DataTypeID dtid, TransferType tt) const;
 
-    virtual void cleanup(MonotonicTime ts);
+    void cleanup(MonotonicTime ts);
 };
-
-// ----------------------------------------------------------------------------
-
-/*
- * OutgoingTransferRegistry
- * TODO: deinterface and move to .cpp
- */
-inline
-TransferID* OutgoingTransferRegistry::accessOrCreate(const OutgoingTransferRegistryKey& key,
-                                                     MonotonicTime new_deadline)
-{
-    UAVCAN_ASSERT(!new_deadline.isZero());
-    Value* p = map_.access(key);
-    if (p == NULL)
-    {
-        p = map_.insert(key, Value());
-        if (p == NULL)
-        {
-            return NULL;
-        }
-        UAVCAN_TRACE("OutgoingTransferRegistry", "Created %s", key.toString().c_str());
-    }
-    p->deadline = new_deadline;
-    return &p->tid;
-}
-
-inline
-bool OutgoingTransferRegistry::exists(DataTypeID dtid, TransferType tt) const
-{
-    return NULL != map_.find(ExistenceCheckingPredicate(dtid, tt));
-}
-
-inline
-void OutgoingTransferRegistry::cleanup(MonotonicTime ts)
-{
-    map_.removeAllWhere(DeadlineExpiredPredicate(ts));
-}
 
 }
 
