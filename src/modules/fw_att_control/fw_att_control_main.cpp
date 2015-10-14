@@ -66,7 +66,6 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/mc_virtual_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -125,7 +124,6 @@ private:
 	bool		_task_running;			/**< if true, task is running in its mainloop */
 	int		_control_task;			/**< task handle */
 
-	int		_att_sub;			/**< vehicle attitude subscription */
 	int		_ctrl_state_sub;	/**< control state subscription */
 	int		_accel_sub;			/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
@@ -144,7 +142,6 @@ private:
 	orb_id_t _rates_sp_id;	// pointer to correct rates setpoint uORB metadata structure
 	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
 
-	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct control_state_s				_ctrl_state;	/**< control state */
 	struct accel_report				_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
@@ -325,7 +322,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_control_task(-1),
 
 /* subscriptions */
-	_att_sub(-1),
 	_ctrl_state_sub(-1),
 	_accel_sub(-1),
 	_vcontrol_mode_sub(-1),
@@ -352,7 +348,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_debug(false)
 {
 	/* safely initialize structs */
-	_att = {};
 	_ctrl_state = {};
 	_accel = {};
 	_att_sp = {};
@@ -610,7 +605,6 @@ FixedwingAttitudeControl::task_main()
 	 * do subscriptions
 	 */
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_accel_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -640,7 +634,7 @@ FixedwingAttitudeControl::task_main()
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _att_sub;
+	fds[1].fd = _ctrl_state_sub;
 	fds[1].events = POLLIN;
 
 	_task_running = true;
@@ -685,7 +679,6 @@ FixedwingAttitudeControl::task_main()
 				deltaT = 0.01f;
 
 			/* load local copies */
-			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
 
@@ -939,18 +932,9 @@ FixedwingAttitudeControl::task_main()
 				}
 
 				/* Prepare speed_body_u and speed_body_w */
-				float speed_body_u = 0.0f;
-				float speed_body_v = 0.0f;
-				float speed_body_w = 0.0f;
-				if(_att.R_valid) 	{
-					speed_body_u = _R(0, 0) * _global_pos.vel_n + _R(1, 0) * _global_pos.vel_e + _R(2, 0) * _global_pos.vel_d;
-					speed_body_v = _R(0, 1) * _global_pos.vel_n + _R(1, 1) * _global_pos.vel_e + _R(2, 1) * _global_pos.vel_d;
-					speed_body_w = _R(0, 2) * _global_pos.vel_n + _R(1, 2) * _global_pos.vel_e + _R(2, 2) * _global_pos.vel_d;
-				} else	{
-					if (_debug && loop_counter % 10 == 0) {
-						warnx("Did not get a valid R\n");
-					}
-				}
+				float speed_body_u = _R(0, 0) * _global_pos.vel_n + _R(1, 0) * _global_pos.vel_e + _R(2, 0) * _global_pos.vel_d;
+				float speed_body_v = _R(0, 1) * _global_pos.vel_n + _R(1, 1) * _global_pos.vel_e + _R(2, 1) * _global_pos.vel_d;
+				float speed_body_w = _R(0, 2) * _global_pos.vel_n + _R(1, 2) * _global_pos.vel_e + _R(2, 2) * _global_pos.vel_d;
 
 				/* Prepare data for attitude controllers */
 				struct ECL_ControlData control_input = {};
