@@ -74,7 +74,6 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/navigation_capabilities.h>
@@ -152,7 +151,6 @@ private:
 
 	int		_global_pos_sub;
 	int		_pos_sp_triplet_sub;
-	int		_att_sub;			/**< vehicle attitude subscription */
 	int		_ctrl_state_sub;			/**< control state subscription */
 	int		_control_mode_sub;		/**< control mode subscription */
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
@@ -164,7 +162,6 @@ private:
 	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
 
-	struct vehicle_attitude_s			_att;				/**< vehicle attitude */
 	struct control_state_s				_ctrl_state;			/**< control state */
 	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
 	struct navigation_capabilities_s		_nav_capabilities;		/**< navigation capabilities */
@@ -221,6 +218,9 @@ private:
 	float _groundspeed_undershoot;			///< ground speed error to min. speed in m/s
 	bool _global_pos_valid;				///< global position is valid
 	math::Matrix<3, 3> _R_nb;			///< current attitude
+	float _roll;
+	float _pitch;
+	float _yaw;
 
 	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
@@ -355,11 +355,6 @@ private:
 	bool		vehicle_manual_control_setpoint_poll();
 
 	/**
-	 * Check for position updates.
-	 */
-	void		vehicle_attitude_poll();
-
-	/**
 	 * Check for changes in control state.
 	 */
 	void		control_state_poll();
@@ -480,7 +475,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 /* subscriptions */
 	_global_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
-	_att_sub(-1),
 	_ctrl_state_sub(-1),
 	_control_mode_sub(-1),
 	_vehicle_status_sub(-1),
@@ -494,7 +488,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_nav_capabilities_pub(nullptr),
 
 /* states */
-	_att(),
 	_ctrl_state(),
 	_att_sp(),
 	_nav_capabilities(),
@@ -763,23 +756,6 @@ FixedwingPositionControl::vehicle_manual_control_setpoint_poll()
 	return manual_updated;
 }
 
-
-void
-FixedwingPositionControl::vehicle_attitude_poll()
-{
-	/* check if there is a new position */
-	bool att_updated;
-	orb_check(_att_sub, &att_updated);
-
-	if (att_updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
-
-		/* set rotation matrix */
-		for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-				_R_nb(i, j) = PX4_R(_att.R, i, j);
-	}
-}
-
 void
 FixedwingPositionControl::control_state_poll()
 {
@@ -800,6 +776,16 @@ FixedwingPositionControl::control_state_poll()
 		}
 	}
 
+	/* set rotation matrix and euler angles */
+	math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+	_R_nb = q_att.to_dcm();
+
+	math::Vector<3> euler_angles;
+	euler_angles = _R_nb.to_euler();
+	_roll    = euler_angles(0);
+	_pitch   = euler_angles(1);
+	_yaw     = euler_angles(2);
+	
 	/* update TECS state */
 	_tecs.enable_airspeed(_airspeed_valid);
 }
@@ -1122,7 +1108,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* reset hold altitude */
 		_hold_alt = _global_pos.alt;
 		/* reset hold yaw */
-		_hdg_hold_yaw = _att.yaw;
+		_hdg_hold_yaw = _yaw;
 
 		/* get circle mode */
 		bool was_circle_mode = _l1_control.circle_mode();
@@ -1216,14 +1202,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					if (pos_sp_triplet.previous.valid) {
 						target_bearing = bearing_lastwp_currwp;
 					} else {
-						target_bearing = _att.yaw;
+						target_bearing = _yaw;
 					}
 					mavlink_log_info(_mavlink_fd, "#audio: Landing, heading hold");
 				}
 
-//					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_att.yaw));
+//					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
 
-				_l1_control.navigate_heading(target_bearing, _att.yaw, ground_speed_2d);
+				_l1_control.navigate_heading(target_bearing, _yaw, ground_speed_2d);
 
 				land_noreturn_horizontal = true;
 
@@ -1464,7 +1450,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		if (_control_mode_current != FW_POSCTRL_MODE_POSITION) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _global_pos.alt;
-			_hdg_hold_yaw = _att.yaw;
+			_hdg_hold_yaw = _yaw;
 			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
 			_yaw_lock_engaged = false;
 		}
@@ -1517,7 +1503,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		if (fabsf(_manual.y) < HDG_HOLD_MAN_INPUT_THRESH) {
 			/* heading / roll is zero, lock onto current heading */
-			if (fabsf(_att.yawspeed) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
+			if (fabsf(_ctrl_state.yaw_rate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
 				// little yaw movement, lock to current heading
 				_yaw_lock_engaged = true;
 
@@ -1536,7 +1522,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				/* just switched back from non heading-hold to heading hold */
 				if (!_hdg_hold_enabled) {
 					_hdg_hold_enabled = true;
-					_hdg_hold_yaw = _att.yaw;
+					_hdg_hold_yaw = _yaw;
 
 					get_waypoint_heading_distance(_hdg_hold_yaw, HDG_HOLD_DIST_NEXT, _hdg_hold_prev_wp, _hdg_hold_curr_wp, true);
 				}
@@ -1695,7 +1681,6 @@ FixedwingPositionControl::task_main()
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -1776,7 +1761,6 @@ FixedwingPositionControl::task_main()
 			// XXX add timestamp check
 			_global_pos_valid = true;
 
-			vehicle_attitude_poll();
 			control_state_poll();
 			vehicle_setpoint_poll();
 			vehicle_sensor_combined_poll();
@@ -1898,7 +1882,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
 
 		/* Using tecs library */
-		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
+		_tecs.update_pitch_throttle(_R_nb, _pitch, altitude, alt_sp, v_sp,
 					    _ctrl_state.airspeed, eas2tas,
 					    climbout_mode, climbout_pitch_min_rad,
 					    throttle_min, throttle_max, throttle_cruise,
