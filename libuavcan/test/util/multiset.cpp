@@ -108,10 +108,6 @@ TEST(Multiset, Basic)
     ASSERT_LE(1, pool.getNumUsedBlocks());      // One or more
     ASSERT_EQ(4, mset->getSize());
 
-    // Making sure everything is here
-    ASSERT_EQ("1", *mset->getByIndex(0));
-    ASSERT_EQ("2", *mset->getByIndex(1));
-    // 2 and 3 are not tested because their placement depends on number of items per dynamic block
     ASSERT_FALSE(mset->getByIndex(100));
     ASSERT_FALSE(mset->getByIndex(4));
 
@@ -219,16 +215,6 @@ TEST(Multiset, PrimitiveKey)
     ASSERT_EQ(4, *mset->emplace(4));
     ASSERT_EQ(4, mset->getSize());
 
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-    // Only C++11 because C++03 uses one entry per pool block which breaks ordering
-    ASSERT_EQ(1, *mset->getByIndex(0));
-    ASSERT_EQ(2, *mset->getByIndex(1));
-    ASSERT_EQ(3, *mset->getByIndex(2));
-    ASSERT_EQ(4, *mset->getByIndex(3));
-    ASSERT_FALSE(mset->getByIndex(5));
-    ASSERT_FALSE(mset->getByIndex(1000));
-#endif
-
     // Summation and clearing
     {
         SummationOperator<int> summation_operator;
@@ -268,11 +254,9 @@ TEST(Multiset, NoncopyableWithCounter)
 
     mset->removeFirst(NoncopyableWithCounter(0));
     ASSERT_EQ(4, NoncopyableWithCounter::num_objects);
-    ASSERT_EQ(123, mset->getByIndex(0)->value);
 
     mset->removeFirstWhere(&NoncopyableWithCounter::isNegative);
     ASSERT_EQ(3, NoncopyableWithCounter::num_objects);
-    ASSERT_EQ(456, mset->getByIndex(1)->value);                 // -456 is now removed
 
     mset->removeAllWhere(&NoncopyableWithCounter::isNegative);
     ASSERT_EQ(2, NoncopyableWithCounter::num_objects);          // Only 1 and 2 are left

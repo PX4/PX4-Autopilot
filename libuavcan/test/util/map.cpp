@@ -87,14 +87,6 @@ TEST(Map, Basic)
     ASSERT_EQ("d", *map->access("4"));
     ASSERT_FALSE(map->access("hi"));
 
-    // Ordering
-    ASSERT_TRUE(map->getByIndex(0)->match("1"));
-    ASSERT_TRUE(map->getByIndex(1)->match("2"));
-    ASSERT_TRUE(map->getByIndex(2)->match("3"));
-    ASSERT_TRUE(map->getByIndex(3)->match("4"));
-    ASSERT_FALSE(map->getByIndex(4));
-    ASSERT_FALSE(map->getByIndex(1000));
-
     // Modifying existing entries
     *map->access("1") = "A";
     *map->access("2") = "B";
@@ -130,22 +122,17 @@ TEST(Map, Basic)
     ASSERT_EQ("C", *map->access("3"));
     ASSERT_EQ("D", *map->access("4"));
 
-    // Ordering has not changed - first dynamic entry has moved to the first static slot
-    ASSERT_TRUE(map->getByIndex(0)->match("3"));
-    ASSERT_TRUE(map->getByIndex(1)->match("2"));
-    ASSERT_TRUE(map->getByIndex(2)->match("4"));
-
-    // Removing another static
+    // Removing another
     map->remove("2");
-    ASSERT_EQ(1, map->getSize());
-    ASSERT_EQ(1, pool.getNumUsedBlocks());       // No dynamic entries left
+    ASSERT_EQ(2, map->getSize());
+    ASSERT_EQ(2, pool.getNumUsedBlocks());
 
     ASSERT_FALSE(map->access("1"));
     ASSERT_FALSE(map->access("2"));
     ASSERT_EQ("C", *map->access("3"));
     ASSERT_EQ("D", *map->access("4"));
 
-    // Adding some new dynamics
+    // Adding some new
     unsigned max_key_integer = 0;
     for (int i = 0; i < 100; i++)
     {
@@ -192,36 +179,6 @@ TEST(Map, Basic)
     // Making sure the memory will be released
     map.reset();
     ASSERT_EQ(0, pool.getNumUsedBlocks());
-}
-
-
-TEST(Map, NoStatic)
-{
-    using uavcan::Map;
-
-    static const int POOL_BLOCKS = 3;
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
-
-    typedef Map<std::string, std::string> MapType;
-    std::auto_ptr<MapType> map(new MapType(pool));
-
-    // Empty
-    ASSERT_FALSE(map->access("hi"));
-    map->remove("foo");
-    ASSERT_EQ(0, pool.getNumUsedBlocks());
-    ASSERT_FALSE(map->getByIndex(0));
-
-    // Insertion
-    ASSERT_EQ("a", *map->insert("1", "a"));
-    ASSERT_EQ("b", *map->insert("2", "b"));
-    ASSERT_EQ(1, pool.getNumUsedBlocks());
-    ASSERT_EQ(2, map->getSize());
-
-    // Ordering
-    ASSERT_TRUE(map->getByIndex(0)->match("1"));
-    ASSERT_TRUE(map->getByIndex(1)->match("2"));
-    ASSERT_FALSE(map->getByIndex(3));
-    ASSERT_FALSE(map->getByIndex(1000));
 }
 
 
