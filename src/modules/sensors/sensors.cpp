@@ -2022,10 +2022,10 @@ Sensors::task_main()
 	 * do subscriptions
 	 */
 
-	int gcount_prev = _gyro_count;
-	int mcount_prev = _mag_count;
-	int acount_prev = _accel_count;
-	int bcount_prev = _baro_count;
+	unsigned gcount_prev = _gyro_count;
+	unsigned mcount_prev = _mag_count;
+	unsigned acount_prev = _accel_count;
+	unsigned bcount_prev = _baro_count;
 
 	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
 		&raw.gyro_priority[0], &raw.gyro_errcount[0]);
