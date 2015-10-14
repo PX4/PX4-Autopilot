@@ -281,6 +281,7 @@ private:
 		float land_flare_pitch_min_deg;
 		float land_flare_pitch_max_deg;
 		int land_use_terrain_estimate;
+		float land_airspeed_scale;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -329,6 +330,7 @@ private:
 		param_t land_flare_pitch_min_deg;
 		param_t land_flare_pitch_max_deg;
 		param_t land_use_terrain_estimate;
+		param_t land_airspeed_scale;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -572,6 +574,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_flare_pitch_min_deg = param_find("FW_FLARE_PMIN");
 	_parameter_handles.land_flare_pitch_max_deg = param_find("FW_FLARE_PMAX");
 	_parameter_handles.land_use_terrain_estimate= param_find("FW_LND_USETER");
+	_parameter_handles.land_airspeed_scale = param_find("FW_AIRSPD_SCALE");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
@@ -675,6 +678,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_flare_pitch_min_deg, &(_parameters.land_flare_pitch_min_deg));
 	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
 	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
+	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -1263,8 +1267,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			// XXX this could make a great param
 
 			float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
-			float airspeed_land = 1.3f * _parameters.airspeed_min;
-			float airspeed_approach = 1.3f * _parameters.airspeed_min;
+			float airspeed_land = _parameters.land_airspeed_scale * _parameters.airspeed_min;
+			float airspeed_approach = _parameters.land_airspeed_scale * _parameters.airspeed_min;
 
 			/* Get an estimate of the terrain altitude if available, otherwise terrain_alt will be
 			 * equal to _pos_sp_triplet.current.alt */
