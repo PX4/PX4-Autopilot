@@ -30,21 +30,18 @@ namespace uavcan
  * This is the top-level node API.
  * A custom node class can be implemented if needed, in which case it shall inherit INode.
  *
- * @tparam MemPoolSize_     Size of memory pool for this node, in bytes.
- *                          Minimum recommended size is 4K * (number of CAN ifaces + 1).
- *                          For simple nodes this number can be reduced.
- *                          For high-traffic nodes the recommended minimum is
- *                          like 16K * (number of CAN ifaces + 1).
+ * @tparam MemPoolSize      Size of memory pool for this node, in bytes.
+ *                          Please refer to the documentation for details.
+ *                          If this value is zero, the constructor will accept a reference to user-provided allocator.
  */
-template <std::size_t MemPoolSize_>
+template <std::size_t MemPoolSize>
 class UAVCAN_EXPORT Node : public INode
 {
-    enum
-    {
-        MemPoolSize = (MemPoolSize_ < std::size_t(MemPoolBlockSize)) ? std::size_t(MemPoolBlockSize) : MemPoolSize_
-    };
-
-    typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
+    typedef typename
+        Select<(MemPoolSize > 0),
+               PoolAllocator<MemPoolSize, MemPoolBlockSize>, // If pool size is specified, use default allocator
+               IPoolAllocator&                               // Otherwise use reference to user-provided allocator
+              >::Result Allocator;
 
     Allocator pool_allocator_;
     Scheduler scheduler_;
@@ -60,6 +57,12 @@ class UAVCAN_EXPORT Node : public INode
     uint64_t internal_failure_cnt_;
     bool started_;
 
+    void commonInit()
+    {
+        internal_failure_cnt_ = 0;
+        started_ = false;
+    }
+
 protected:
     virtual void registerInternalFailure(const char* msg)
     {
@@ -73,20 +76,43 @@ protected:
     }
 
 public:
-    Node(ICanDriver& can_driver, ISystemClock& system_clock)
-        : scheduler_(can_driver, pool_allocator_, system_clock)
-        , proto_nsp_(*this)
+    /**
+     * This overload is only valid if MemPoolSize > 0.
+     */
+    Node(ICanDriver& can_driver,
+         ISystemClock& system_clock) :
+        scheduler_(can_driver, pool_allocator_, system_clock),
+        proto_nsp_(*this)
 #if !UAVCAN_TINY
         , proto_dtp_(*this)
         , proto_logger_(*this)
         , proto_rrs_(*this)
         , proto_tsp_(*this)
 #endif
-        , internal_failure_cnt_(0)
-        , started_(false)
-    { }
+    {
+        commonInit();
+    }
 
-    virtual Allocator& getAllocator() { return pool_allocator_; }
+    /**
+     * This overload is only valid if MemPoolSize == 0.
+     */
+    Node(ICanDriver& can_driver,
+         ISystemClock& system_clock,
+         IPoolAllocator& allocator) :
+        pool_allocator_(allocator),
+        scheduler_(can_driver, pool_allocator_, system_clock),
+        proto_nsp_(*this)
+#if !UAVCAN_TINY
+        , proto_dtp_(*this)
+        , proto_logger_(*this)
+        , proto_rrs_(*this)
+        , proto_tsp_(*this)
+#endif
+    {
+        commonInit();
+    }
+
+    virtual typename RemoveReference<Allocator>::Type& getAllocator() { return pool_allocator_; }
 
     virtual Scheduler& getScheduler() { return scheduler_; }
     virtual const Scheduler& getScheduler() const { return scheduler_; }

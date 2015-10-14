@@ -20,15 +20,14 @@ namespace uavcan
  * Please refer to the @ref Node<> for documentation concerning the template arguments; refer to the tutorials
  * to lean how to use libuavcan in multiprocess applications.
  */
-template <std::size_t MemPoolSize_>
+template <std::size_t MemPoolSize>
 class UAVCAN_EXPORT SubNode : public INode
 {
-    enum
-    {
-        MemPoolSize = (MemPoolSize_ < std::size_t(MemPoolBlockSize)) ? std::size_t(MemPoolBlockSize) : MemPoolSize_
-    };
-
-    typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
+    typedef typename
+        Select<(MemPoolSize > 0),
+               PoolAllocator<MemPoolSize, MemPoolBlockSize>, // If pool size is specified, use default allocator
+               IPoolAllocator&                               // Otherwise use reference to user-provided allocator
+              >::Result Allocator;
 
     Allocator pool_allocator_;
     Scheduler scheduler_;
@@ -44,12 +43,27 @@ protected:
     }
 
 public:
-    SubNode(ICanDriver& can_driver, ISystemClock& system_clock) :
+    /**
+     * This overload is only valid if MemPoolSize > 0.
+     */
+    SubNode(ICanDriver& can_driver,
+            ISystemClock& system_clock) :
         scheduler_(can_driver, pool_allocator_, system_clock),
         internal_failure_cnt_(0)
     { }
 
-    virtual Allocator& getAllocator() { return pool_allocator_; }
+    /**
+     * This overload is only valid if MemPoolSize == 0.
+     */
+    SubNode(ICanDriver& can_driver,
+            ISystemClock& system_clock,
+            IPoolAllocator& allocator) :
+        pool_allocator_(allocator),
+        scheduler_(can_driver, pool_allocator_, system_clock),
+        internal_failure_cnt_(0)
+    { }
+
+    virtual typename RemoveReference<Allocator>::Type& getAllocator() { return pool_allocator_; }
 
     virtual Scheduler& getScheduler() { return scheduler_; }
     virtual const Scheduler& getScheduler() const { return scheduler_; }
