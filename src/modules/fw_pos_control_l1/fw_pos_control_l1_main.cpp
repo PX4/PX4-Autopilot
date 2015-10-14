@@ -1443,9 +1443,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				_att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
 				_att_sp.pitch_body = _runway_takeoff.getPitch(_tecs.get_pitch_demand());
 
+				// reset integrals except yaw (which also counts for the wheel controller)
 				_att_sp.roll_reset_integral = _runway_takeoff.resetIntegrators();
 				_att_sp.pitch_reset_integral = _runway_takeoff.resetIntegrators();
-				_att_sp.yaw_reset_integral = _runway_takeoff.resetIntegrators();
 
 				/*warnx("yaw: %.4f, roll: %.4f, pitch: %.4f", (double)_att_sp.yaw_body,
 					(double)_att_sp.roll_body, (double)_att_sp.pitch_body);*/
