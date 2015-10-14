@@ -1691,6 +1691,6 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 		return ret;
 	}
 
-	PX4_WARN("unrecognized command");
+	PX4_ERR("unrecognized command");
 	return 1;
 }
