@@ -73,7 +73,7 @@ TEST(MultiFrameIncomingTransfer, Basic)
     using uavcan::MultiFrameIncomingTransfer;
 
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> poolmgr;
-    uavcan::TransferBufferManager<256> bufmgr(poolmgr);
+    uavcan::TransferBufferManager bufmgr(256, poolmgr);
 
     const RxFrame frame = makeFrame();
     uavcan::TransferBufferManagerKey bufmgr_key(frame.getSrcNodeID(), frame.getTransferType());

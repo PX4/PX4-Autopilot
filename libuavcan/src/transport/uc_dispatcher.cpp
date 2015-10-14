@@ -72,11 +72,11 @@ void LoopbackFrameListenerRegistry::invokeListeners(RxFrame& frame)
 /*
  * Dispatcher::ListenerRegister
  */
-bool Dispatcher::ListenerRegistry::add(TransferListenerBase* listener, Mode mode)
+bool Dispatcher::ListenerRegistry::add(TransferListener* listener, Mode mode)
 {
     if (mode == UniqueListener)
     {
-        TransferListenerBase* p = list_.get();
+        TransferListener* p = list_.get();
         while (p)
         {
             if (p->getDataTypeDescriptor().getID() == listener->getDataTypeDescriptor().getID())
@@ -91,14 +91,14 @@ bool Dispatcher::ListenerRegistry::add(TransferListenerBase* listener, Mode mode
     return true;
 }
 
-void Dispatcher::ListenerRegistry::remove(TransferListenerBase* listener)
+void Dispatcher::ListenerRegistry::remove(TransferListener* listener)
 {
     list_.remove(listener);
 }
 
 bool Dispatcher::ListenerRegistry::exists(DataTypeID dtid) const
 {
-    TransferListenerBase* p = list_.get();
+    TransferListener* p = list_.get();
     while (p)
     {
         if (p->getDataTypeDescriptor().getID() == dtid)
@@ -112,10 +112,10 @@ bool Dispatcher::ListenerRegistry::exists(DataTypeID dtid) const
 
 void Dispatcher::ListenerRegistry::cleanup(MonotonicTime ts)
 {
-    TransferListenerBase* p = list_.get();
+    TransferListener* p = list_.get();
     while (p)
     {
-        TransferListenerBase* const next = p->getNextListNode();
+        TransferListener* const next = p->getNextListNode();
         p->cleanup(ts); // p may be modified
         p = next;
     }
@@ -123,10 +123,10 @@ void Dispatcher::ListenerRegistry::cleanup(MonotonicTime ts)
 
 void Dispatcher::ListenerRegistry::handleFrame(const RxFrame& frame)
 {
-    TransferListenerBase* p = list_.get();
+    TransferListener* p = list_.get();
     while (p)
     {
-        TransferListenerBase* const next = p->getNextListNode();
+        TransferListener* const next = p->getNextListNode();
         if (p->getDataTypeDescriptor().getID() == frame.getDataTypeID())
         {
             p->handleFrame(frame); // p may be modified
@@ -311,7 +311,7 @@ void Dispatcher::cleanup(MonotonicTime ts)
     lsrv_resp_.cleanup(ts);
 }
 
-bool Dispatcher::registerMessageListener(TransferListenerBase* listener)
+bool Dispatcher::registerMessageListener(TransferListener* listener)
 {
     if (listener->getDataTypeDescriptor().getKind() != DataTypeKindMessage)
     {
@@ -321,7 +321,7 @@ bool Dispatcher::registerMessageListener(TransferListenerBase* listener)
     return lmsg_.add(listener, ListenerRegistry::ManyListeners);       // Multiple subscribers are OK
 }
 
-bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
+bool Dispatcher::registerServiceRequestListener(TransferListener* listener)
 {
     if (listener->getDataTypeDescriptor().getKind() != DataTypeKindService)
     {
@@ -331,7 +331,7 @@ bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
     return lsrv_req_.add(listener, ListenerRegistry::UniqueListener);  // Only one server per data type
 }
 
-bool Dispatcher::registerServiceResponseListener(TransferListenerBase* listener)
+bool Dispatcher::registerServiceResponseListener(TransferListener* listener)
 {
     if (listener->getDataTypeDescriptor().getKind() != DataTypeKindService)
     {
@@ -341,17 +341,17 @@ bool Dispatcher::registerServiceResponseListener(TransferListenerBase* listener)
     return lsrv_resp_.add(listener, ListenerRegistry::ManyListeners);  // Multiple callers may call same srv
 }
 
-void Dispatcher::unregisterMessageListener(TransferListenerBase* listener)
+void Dispatcher::unregisterMessageListener(TransferListener* listener)
 {
     lmsg_.remove(listener);
 }
 
-void Dispatcher::unregisterServiceRequestListener(TransferListenerBase* listener)
+void Dispatcher::unregisterServiceRequestListener(TransferListener* listener)
 {
     lsrv_req_.remove(listener);
 }
 
-void Dispatcher::unregisterServiceResponseListener(TransferListenerBase* listener)
+void Dispatcher::unregisterServiceResponseListener(TransferListener* listener)
 {
     lsrv_resp_.remove(listener);
 }

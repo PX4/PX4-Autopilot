@@ -96,11 +96,11 @@ public:
 /**
  * Internal, refer to the transport dispatcher class.
  */
-class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncopyable
+class UAVCAN_EXPORT TransferListener : public LinkedListNode<TransferListener>, Noncopyable
 {
     const DataTypeDescriptor& data_type_;
-    Map<TransferBufferManagerKey, TransferReceiver>& receivers_;
-    ITransferBufferManager& bufmgr_;
+    TransferBufferManager bufmgr_;
+    Map<TransferBufferManagerKey, TransferReceiver> receivers_;
     TransferPerfCounter& perf_;
     const TransferCRC crc_base_;                      ///< Pre-initialized with data type hash, thus constant
     bool allow_anonymous_transfers_;
@@ -108,10 +108,10 @@ class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListene
     class TimedOutReceiverPredicate
     {
         const MonotonicTime ts_;
-        ITransferBufferManager& parent_bufmgr_;
+        TransferBufferManager& parent_bufmgr_;
 
     public:
-        TimedOutReceiverPredicate(MonotonicTime arg_ts, ITransferBufferManager& arg_bufmgr)
+        TimedOutReceiverPredicate(MonotonicTime arg_ts, TransferBufferManager& arg_bufmgr)
             : ts_(arg_ts)
             , parent_bufmgr_(arg_bufmgr)
         { }
@@ -122,25 +122,28 @@ class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListene
     bool checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const;
 
 protected:
-    TransferListenerBase(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
-                         Map<TransferBufferManagerKey, TransferReceiver>& receivers,
-                         ITransferBufferManager& bufmgr)
-        : data_type_(data_type)
-        , receivers_(receivers)
-        , bufmgr_(bufmgr)
-        , perf_(perf)
-        , crc_base_(data_type.getSignature().toTransferCRC())
-        , allow_anonymous_transfers_(false)
-    { }
-
-    virtual ~TransferListenerBase() { }
-
     void handleReception(TransferReceiver& receiver, const RxFrame& frame, TransferBufferAccessor& tba);
     void handleAnonymousTransferReception(const RxFrame& frame);
 
     virtual void handleIncomingTransfer(IncomingTransfer& transfer) = 0;
 
 public:
+    TransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
+                     uint16_t max_buffer_size, IPoolAllocator& allocator)
+        : data_type_(data_type)
+        , bufmgr_(max_buffer_size, allocator)
+        , receivers_(allocator)
+        , perf_(perf)
+        , crc_base_(data_type.getSignature().toTransferCRC())
+        , allow_anonymous_transfers_(false)
+    { }
+
+    virtual ~TransferListener()
+    {
+        // Map must be cleared before bufmgr is destroyed
+        receivers_.clear();
+    }
+
     const DataTypeDescriptor& getDataTypeDescriptor() const { return data_type_; }
 
     /**
@@ -152,29 +155,6 @@ public:
     void cleanup(MonotonicTime ts);
 
     virtual void handleFrame(const RxFrame& frame);
-};
-
-/**
- * This class should be derived by transfer receivers (subscribers, servers).
- */
-template <unsigned MaxBufSize>
-class UAVCAN_EXPORT TransferListener : public TransferListenerBase
-{
-    TransferBufferManager<MaxBufSize> bufmgr_;
-    Map<TransferBufferManagerKey, TransferReceiver> receivers_;
-
-public:
-    TransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type, IPoolAllocator& allocator)
-        : TransferListenerBase(perf, data_type, receivers_, bufmgr_)
-        , bufmgr_(allocator)
-        , receivers_(allocator)
-    { }
-
-    virtual ~TransferListener()
-    {
-        // Map must be cleared before bufmgr is destroyed
-        receivers_.clear();
-    }
 };
 
 /**
@@ -194,19 +174,16 @@ public:
 /**
  * This class should be derived by callers.
  */
-template <unsigned MaxBufSize>
-class UAVCAN_EXPORT TransferListenerWithFilter : public TransferListener<MaxBufSize>
+class UAVCAN_EXPORT TransferListenerWithFilter : public TransferListener
 {
     const ITransferAcceptanceFilter* filter_;
 
     virtual void handleFrame(const RxFrame& frame);
 
 public:
-    typedef TransferListener<MaxBufSize> BaseType;
-
     TransferListenerWithFilter(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
-                               IPoolAllocator& allocator)
-        : BaseType(perf, data_type, allocator)
+                               uint16_t max_buffer_size, IPoolAllocator& allocator)
+        : TransferListener(perf, data_type, max_buffer_size, allocator)
         , filter_(NULL)
     { }
 
@@ -215,27 +192,6 @@ public:
         filter_ = acceptance_filter;
     }
 };
-
-// ----------------------------------------------------------------------------
-
-/*
- * TransferListenerWithFilter<>
- */
-template <unsigned MaxBufSize>
-void TransferListenerWithFilter<MaxBufSize>::handleFrame(const RxFrame& frame)
-{
-    if (filter_ != NULL)
-    {
-        if (filter_->shouldAcceptFrame(frame))
-        {
-            BaseType::handleFrame(frame);
-        }
-    }
-    else
-    {
-        UAVCAN_ASSERT(0);
-    }
-}
 
 }
 

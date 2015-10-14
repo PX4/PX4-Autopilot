@@ -9,11 +9,11 @@
 
 class TransferListenerEmulator : public IncomingTransferEmulatorBase
 {
-    uavcan::TransferListenerBase& target_;
+    uavcan::TransferListener& target_;
     const uavcan::DataTypeDescriptor data_type_;
 
 public:
-    TransferListenerEmulator(uavcan::TransferListenerBase& target, const uavcan::DataTypeDescriptor& type,
+    TransferListenerEmulator(uavcan::TransferListener& target, const uavcan::DataTypeDescriptor& type,
                              uavcan::NodeID dst_node_id = 127)
         : IncomingTransferEmulatorBase(dst_node_id)
         , target_(target)
@@ -38,7 +38,7 @@ TEST(TransferListener, BasicMFT)
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * NUM_POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
     uavcan::TransferPerfCounter perf;
-    TestListener<256> subscriber(perf, type, pool);
+    TestListener subscriber(perf, type, 256, pool);
 
     /*
      * Test data
@@ -96,7 +96,7 @@ TEST(TransferListener, CrcFailure)
     static const int NUM_POOL_BLOCKS = 100;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * NUM_POOL_BLOCKS, uavcan::MemPoolBlockSize> poolmgr;
     uavcan::TransferPerfCounter perf;
-    TestListener<256> subscriber(perf, type, poolmgr);  // Static buffer only, 2 entries
+    TestListener subscriber(perf, type, 256, poolmgr);  // Static buffer only, 2 entries
 
     /*
      * Generating transfers with damaged payload (CRC is not valid)
@@ -140,7 +140,7 @@ TEST(TransferListener, BasicSFT)
     static const int NUM_POOL_BLOCKS = 100;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * NUM_POOL_BLOCKS, uavcan::MemPoolBlockSize> poolmgr;
     uavcan::TransferPerfCounter perf;
-    TestListener<0> subscriber(perf, type, poolmgr); // Max buf size is 0, i.e. SFT-only
+    TestListener subscriber(perf, type, 0, poolmgr); // Max buf size is 0, i.e. SFT-only
 
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
@@ -176,7 +176,7 @@ TEST(TransferListener, Cleanup)
     static const int NUM_POOL_BLOCKS = 100;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * NUM_POOL_BLOCKS, uavcan::MemPoolBlockSize> poolmgr;
     uavcan::TransferPerfCounter perf;
-    TestListener<256> subscriber(perf, type, poolmgr);  // Static buffer only, 1 entry
+    TestListener subscriber(perf, type, 256, poolmgr);
 
     /*
      * Generating transfers
@@ -208,7 +208,7 @@ TEST(TransferListener, Cleanup)
     /*
      * Cleanup with huge timestamp value will remove all entries
      */
-    static_cast<uavcan::TransferListenerBase&>(subscriber).cleanup(tsMono(100000000));
+    static_cast<uavcan::TransferListener&>(subscriber).cleanup(tsMono(100000000));
 
     /*
      * Sending the same transfers again - they will be accepted since registres were cleared
@@ -232,7 +232,7 @@ TEST(TransferListener, AnonymousTransfers)
     static const int NUM_POOL_BLOCKS = 100;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * NUM_POOL_BLOCKS, uavcan::MemPoolBlockSize> poolmgr;
     uavcan::TransferPerfCounter perf;
-    TestListener<0> subscriber(perf, type, poolmgr);
+    TestListener subscriber(perf, type, 0, poolmgr);
 
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
@@ -264,5 +264,5 @@ TEST(TransferListener, Sizes)
 {
     using namespace uavcan;
 
-    std::cout << "sizeof(TransferListener<64>): " << sizeof(TransferListener<64>) << std::endl;
+    std::cout << "sizeof(TransferListener): " << sizeof(TransferListener) << std::endl;
 }

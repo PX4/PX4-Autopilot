@@ -20,15 +20,6 @@
 
 namespace uavcan
 {
-
-template <typename ServiceDataType>
-class UAVCAN_EXPORT ServiceResponseTransferListenerInstantiationHelper
-{
-public:
-    typedef typename TransferListenerInstantiationHelper<typename ServiceDataType::Response,
-                                                         TransferListenerWithFilter>::Type Type;
-};
-
 /**
  * This struct describes a pending service call.
  * Refer to @ref ServiceClient to learn more about service calls.
@@ -225,8 +216,7 @@ template <typename DataType_,
           >
 class UAVCAN_EXPORT ServiceClient
     : public GenericSubscriber<DataType_,
-                               typename DataType_::Response,
-                               typename ServiceResponseTransferListenerInstantiationHelper<DataType_>::Type>
+                               typename DataType_::Response, TransferListenerWithFilter>
     , public ServiceClientBase
 {
 public:
@@ -239,8 +229,7 @@ public:
 private:
     typedef ServiceClient<DataType, Callback> SelfType;
     typedef GenericPublisher<DataType, RequestType> PublisherType;
-    typedef typename ServiceResponseTransferListenerInstantiationHelper<DataType>::Type TransferListenerType;
-    typedef GenericSubscriber<DataType, ResponseType, TransferListenerType> SubscriberType;
+    typedef GenericSubscriber<DataType, ResponseType, TransferListenerWithFilter> SubscriberType;
 
     typedef Multiset<CallState> CallRegistry;
 
@@ -537,7 +526,7 @@ int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const Reque
      * Configuring the listener so it will accept only the matching responses
      * TODO move to init(), but this requires to somewhat refactor GenericSubscriber<> (remove TransferForwarder)
      */
-    TransferListenerType* const tl = SubscriberType::getTransferListener();
+    TransferListenerWithFilter* const tl = SubscriberType::getTransferListener();
     if (tl == NULL)
     {
         UAVCAN_ASSERT(0);  // Must have been created

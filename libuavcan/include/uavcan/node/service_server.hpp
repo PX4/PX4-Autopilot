@@ -88,8 +88,7 @@ template <typename DataType_,
 #endif
           >
 class UAVCAN_EXPORT ServiceServer
-    : public GenericSubscriber<DataType_, typename DataType_::Request,
-                               typename TransferListenerInstantiationHelper<typename DataType_::Request>::Type>
+    : public GenericSubscriber<DataType_, typename DataType_::Request, TransferListener>
 {
 public:
     typedef DataType_ DataType;
@@ -98,8 +97,7 @@ public:
     typedef Callback_ Callback;
 
 private:
-    typedef typename TransferListenerInstantiationHelper<RequestType>::Type TransferListenerType;
-    typedef GenericSubscriber<DataType, RequestType, TransferListenerType> SubscriberType;
+    typedef GenericSubscriber<DataType, RequestType, TransferListener> SubscriberType;
     typedef GenericPublisher<DataType, ResponseType> PublisherType;
 
     PublisherType publisher_;

@@ -123,9 +123,9 @@ TEST(TransferSender, Basic)
         }
     }
 
-    TestListener<512> sub_msg(dispatcher_rx.getTransferPerfCounter(),      TYPES[0], poolmgr);
-    TestListener<512> sub_srv_req(dispatcher_rx.getTransferPerfCounter(),  TYPES[1], poolmgr);
-    TestListener<512> sub_srv_resp(dispatcher_rx.getTransferPerfCounter(), TYPES[1], poolmgr);
+    TestListener sub_msg(dispatcher_rx.getTransferPerfCounter(),      TYPES[0], 512, poolmgr);
+    TestListener sub_srv_req(dispatcher_rx.getTransferPerfCounter(),  TYPES[1], 512, poolmgr);
+    TestListener sub_srv_resp(dispatcher_rx.getTransferPerfCounter(), TYPES[1], 512, poolmgr);
 
     dispatcher_rx.registerMessageListener(&sub_msg);
     dispatcher_rx.registerServiceRequestListener(&sub_srv_req);

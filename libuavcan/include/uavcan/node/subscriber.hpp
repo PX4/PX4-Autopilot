@@ -43,15 +43,13 @@ template <typename DataType_,
 #endif
           >
 class UAVCAN_EXPORT Subscriber
-    : public GenericSubscriber<DataType_, DataType_,
-                               typename TransferListenerInstantiationHelper<DataType_>::Type>
+    : public GenericSubscriber<DataType_, DataType_, TransferListener>
 {
 public:
     typedef Callback_ Callback;
 
 private:
-    typedef typename TransferListenerInstantiationHelper<DataType_>::Type TransferListenerType;
-    typedef GenericSubscriber<DataType_, DataType_, TransferListenerType> BaseType;
+    typedef GenericSubscriber<DataType_, DataType_, TransferListener> BaseType;
 
     Callback callback_;
 
