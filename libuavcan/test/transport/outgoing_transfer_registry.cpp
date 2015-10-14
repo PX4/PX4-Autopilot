@@ -12,7 +12,7 @@
 TEST(OutgoingTransferRegistry, Basic)
 {
     using uavcan::OutgoingTransferRegistryKey;
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 4, uavcan::MemPoolBlockSize> poolmgr;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 2, uavcan::MemPoolBlockSize> poolmgr;
     uavcan::OutgoingTransferRegistry otr(poolmgr);
 
     otr.cleanup(tsMono(1000));
