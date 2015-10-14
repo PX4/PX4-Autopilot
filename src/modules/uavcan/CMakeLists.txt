@@ -81,7 +81,7 @@ px4_add_module(
 
 	DEPENDS
 		platforms__common
-		uavcan	
+		uavcan
 	)
 
 ## vim: set noet ft=cmake fenc=utf-8 ff=unix : 
