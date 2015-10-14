@@ -213,8 +213,8 @@ function(px4_nuttx_add_export)
 	# copy
 	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
 		COMMAND ${MKDIR} -p ${CMAKE_BINARY_DIR}/${CONFIG}
-		COMMAND ${RM} -rf ${nuttx_src}
-		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/NuttX ${nuttx_src}
+		COMMAND ${MKDIR} -p ${nuttx_src}
+		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
 		COMMAND ${RM} -rf ${nuttx_src}/.git
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS})
