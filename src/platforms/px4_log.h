@@ -130,7 +130,7 @@ __EXPORT extern int __px4_log_level_current;
 __END_DECLS
 
 // __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
-#define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_WARN
+#define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_ERROR
 
 /****************************************************************************
  * Implementation of log section formatting based on printf
