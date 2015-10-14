@@ -31,10 +31,12 @@ TEST(SubNode, Basic)
     swver.minor = 1;
     swver.vcs_commit = 0xDEADBEEF;
 
+    std::cout << "sizeof(uavcan::SubNode<0>): " << sizeof(uavcan::SubNode<0>) << std::endl;
+
     /*
      * uavcan::Node
      */
-    uavcan::Node<0> node1(nodes.can_a, nodes.clock_a);
+    uavcan::Node<1024> node1(nodes.can_a, nodes.clock_a);
     node1.setName("com.example");
     node1.setNodeID(1);
     node1.setSoftwareVersion(swver);
@@ -42,8 +44,7 @@ TEST(SubNode, Basic)
     /*
      * uavcan::SubNode
      */
-    uavcan::SubNode<0> node2(nodes.can_b, nodes.clock_b);
-    std::cout << "sizeof(uavcan::SubNode<0>): " << sizeof(uavcan::SubNode<0>) << std::endl;
+    uavcan::SubNode<1024> node2(nodes.can_b, nodes.clock_b);
 
     BackgroundSpinner bgspinner(node2, node1);
     bgspinner.startPeriodic(uavcan::MonotonicDuration::fromMSec(10));

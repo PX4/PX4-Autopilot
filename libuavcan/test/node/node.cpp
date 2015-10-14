@@ -31,11 +31,12 @@ TEST(Node, Basic)
     swver.minor = 1;
     swver.vcs_commit = 0xDEADBEEF;
 
+    std::cout << "sizeof(uavcan::Node<0>): " << sizeof(uavcan::Node<0>) << std::endl;
+
     /*
      * uavcan::Node
      */
-    uavcan::Node<0> node1(nodes.can_a, nodes.clock_a);
-    std::cout << "sizeof(uavcan::Node<0>): " << sizeof(uavcan::Node<0>) << std::endl;
+    uavcan::Node<1024> node1(nodes.can_a, nodes.clock_a);
     node1.setName("com.example");
     node1.setNodeID(1);
     node1.setSoftwareVersion(swver);
@@ -43,7 +44,7 @@ TEST(Node, Basic)
     /*
      * Companion test node
      */
-    uavcan::Node<0> node2(nodes.can_b, nodes.clock_b);
+    uavcan::Node<1024> node2(nodes.can_b, nodes.clock_b);
     node2.setName("foobar");
     node2.setNodeID(2);
     node2.setSoftwareVersion(swver);
