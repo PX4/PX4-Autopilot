@@ -38,7 +38,6 @@ px4_add_module(
 		-Os
 	SRCS
 		fw_att_control_main.cpp
-		fw_att_control_params.c
 	DEPENDS
 		platforms__common
 	)
