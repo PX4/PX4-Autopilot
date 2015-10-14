@@ -138,11 +138,7 @@ public:
         , allow_anonymous_transfers_(false)
     { }
 
-    virtual ~TransferListener()
-    {
-        // Map must be cleared before bufmgr is destroyed
-        receivers_.clear();
-    }
+    virtual ~TransferListener();
 
     const DataTypeDescriptor& getDataTypeDescriptor() const { return data_type_; }
 

@@ -187,6 +187,12 @@ void TransferListener::handleAnonymousTransferReception(const RxFrame& frame)
     }
 }
 
+TransferListener::~TransferListener()
+{
+    // Map must be cleared before bufmgr is destroyed
+    receivers_.clear();
+}
+
 void TransferListener::cleanup(MonotonicTime ts)
 {
     receivers_.removeAllWhere(TimedOutReceiverPredicate(ts, bufmgr_));
