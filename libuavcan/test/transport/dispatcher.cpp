@@ -57,7 +57,7 @@ TEST(Dispatcher, Reception)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(pool);
+    uavcan::OutgoingTransferRegistry out_trans_reg(pool);
 
     uavcan::Dispatcher dispatcher(driver, pool, clockmock, out_trans_reg);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
@@ -86,7 +86,7 @@ TEST(Dispatcher, Reception)
         makeDataType(uavcan::DataTypeKindService, 1)
     };
 
-    typedef TestListener<512, 2, 2> Subscriber;
+    typedef TestListener<512> Subscriber;
     typedef std::auto_ptr<Subscriber> SubscriberPtr;
     static const int NUM_SUBSCRIBERS = 6;
     SubscriberPtr subscribers[NUM_SUBSCRIBERS] =
@@ -255,7 +255,7 @@ TEST(Dispatcher, Transmission)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(pool);
+    uavcan::OutgoingTransferRegistry out_trans_reg(pool);
 
     uavcan::Dispatcher dispatcher(driver, pool, clockmock, out_trans_reg);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
@@ -319,7 +319,7 @@ TEST(Dispatcher, Spin)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
+    uavcan::OutgoingTransferRegistry out_trans_reg(poolmgr);
 
     uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
@@ -365,7 +365,7 @@ TEST(Dispatcher, Loopback)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
+    uavcan::OutgoingTransferRegistry out_trans_reg(poolmgr);
 
     uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));

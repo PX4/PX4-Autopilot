@@ -76,7 +76,7 @@ struct Context
 {
     NullAllocator pool;                 // We don't need dynamic memory for this test
     uavcan::TransferReceiver receiver;  // Must be default constructible and copyable
-    uavcan::TransferBufferManager<BufSize, 1> bufmgr;
+    uavcan::TransferBufferManager<BufSize> bufmgr;
 
     Context() :
         bufmgr(pool)

@@ -31,8 +31,7 @@ class UAVCAN_EXPORT GlobalTimeSyncSlave : Noncopyable
                          void (GlobalTimeSyncSlave::*)(const ReceivedDataStructure<protocol::GlobalTimeSync>&)>
         GlobalTimeSyncCallback;
 
-    // Static buffers are explicitly disabled because time should never be unicasted.
-    Subscriber<protocol::GlobalTimeSync, GlobalTimeSyncCallback, 2, 0> sub_;
+    Subscriber<protocol::GlobalTimeSync, GlobalTimeSyncCallback> sub_;
 
     UtcTime prev_ts_utc_;
     MonotonicTime prev_ts_mono_;

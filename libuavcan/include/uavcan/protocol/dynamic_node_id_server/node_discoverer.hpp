@@ -84,7 +84,7 @@ class NodeDiscoverer : TimerBase
         { }
     };
 
-    typedef Map<NodeID, NodeData, 10> NodeMap;
+    typedef Map<NodeID, NodeData> NodeMap;
 
     /**
      * When this number of attempts has been made, the discoverer will give up and assume that the node
@@ -101,10 +101,10 @@ class NodeDiscoverer : TimerBase
     IEventTracer& tracer_;
 
     BitSet<NodeID::Max + 1> committed_node_mask_;       ///< Nodes that are marked will not be queried
-    NodeMap node_map_;                                  ///< Will not work in UAVCAN_TINY
+    NodeMap node_map_;
 
     ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback> get_node_info_client_;
-    Subscriber<protocol::NodeStatus, NodeStatusCallback, MaxNetworkSizeHint, 0> node_status_sub_;
+    Subscriber<protocol::NodeStatus, NodeStatusCallback> node_status_sub_;
 
     /*
      * Methods

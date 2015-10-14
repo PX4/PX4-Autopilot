@@ -60,6 +60,8 @@ public:
  * Outgoing transfer registry keeps track of Transfer ID values for all currently existing local transfer senders.
  * If a local transfer sender was inactive for a sufficiently long time, the outgoing transfer registry will
  * remove the respective Transfer ID tracking object.
+ *
+ * TODO: Deinterface this.
  */
 class UAVCAN_EXPORT IOutgoingTransferRegistry
 {
@@ -74,7 +76,6 @@ public:
 };
 
 
-template <int NumStaticEntries>
 class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
 {
     struct Value
@@ -123,7 +124,7 @@ class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry,
         }
     };
 
-    Map<OutgoingTransferRegistryKey, Value, NumStaticEntries> map_;
+    Map<OutgoingTransferRegistryKey, Value> map_;
 
 public:
     explicit OutgoingTransferRegistry(IPoolAllocator& allocator)
@@ -140,11 +141,12 @@ public:
 // ----------------------------------------------------------------------------
 
 /*
- * OutgoingTransferRegistry<>
+ * OutgoingTransferRegistry
+ * TODO: deinterface and move to .cpp
  */
-template <int NumStaticEntries>
-TransferID* OutgoingTransferRegistry<NumStaticEntries>::accessOrCreate(const OutgoingTransferRegistryKey& key,
-                                                                       MonotonicTime new_deadline)
+inline
+TransferID* OutgoingTransferRegistry::accessOrCreate(const OutgoingTransferRegistryKey& key,
+                                                     MonotonicTime new_deadline)
 {
     UAVCAN_ASSERT(!new_deadline.isZero());
     Value* p = map_.access(key);
@@ -161,14 +163,14 @@ TransferID* OutgoingTransferRegistry<NumStaticEntries>::accessOrCreate(const Out
     return &p->tid;
 }
 
-template <int NumStaticEntries>
-bool OutgoingTransferRegistry<NumStaticEntries>::exists(DataTypeID dtid, TransferType tt) const
+inline
+bool OutgoingTransferRegistry::exists(DataTypeID dtid, TransferType tt) const
 {
     return NULL != map_.find(ExistenceCheckingPredicate(dtid, tt));
 }
 
-template <int NumStaticEntries>
-void OutgoingTransferRegistry<NumStaticEntries>::cleanup(MonotonicTime ts)
+inline
+void OutgoingTransferRegistry::cleanup(MonotonicTime ts)
 {
     map_.removeAllWhere(DeadlineExpiredPredicate(ts));
 }

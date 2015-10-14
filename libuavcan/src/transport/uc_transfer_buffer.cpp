@@ -291,58 +291,9 @@ int StaticTransferBufferManagerEntryImpl::write(unsigned offset, const uint8_t* 
     return buf_.write(offset, data, len);
 }
 
-bool StaticTransferBufferManagerEntryImpl::migrateFrom(const TransferBufferManagerEntry* tbme)
-{
-    if (tbme == NULL || tbme->isEmpty())
-    {
-        UAVCAN_ASSERT(0);
-        return false;
-    }
-
-    // Resetting self and moving all data from the source
-    TransferBufferManagerEntry::reset(tbme->getKey());
-    const int res = tbme->read(0, buf_.getRawPtr(), buf_.getSize());
-    if (res < 0)
-    {
-        TransferBufferManagerEntry::reset();
-        return false;
-    }
-    buf_.setMaxWritePos(uint16_t(res));
-    if (res < int(buf_.getSize()))
-    {
-        return true;
-    }
-
-    // Now we need to make sure that all data can fit the storage
-    uint8_t dummy = 0;
-    if (tbme->read(buf_.getSize(), &dummy, 1) > 0)
-    {
-        TransferBufferManagerEntry::reset();            // Damn, the buffer was too large
-        return false;
-    }
-    return true;
-}
-
 /*
  * TransferBufferManagerImpl
  */
-StaticTransferBufferManagerEntryImpl* TransferBufferManagerImpl::findFirstStatic(const TransferBufferManagerKey& key)
-{
-    for (unsigned i = 0; true; i++)
-    {
-        StaticTransferBufferManagerEntryImpl* const sb = getStaticByIndex(uint16_t(i));
-        if (sb == NULL)
-        {
-            break;
-        }
-        if (sb->getKey() == key)
-        {
-            return sb;
-        }
-    }
-    return NULL;
-}
-
 DynamicTransferBufferManagerEntry* TransferBufferManagerImpl::findFirstDynamic(const TransferBufferManagerKey& key)
 {
     DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
@@ -356,40 +307,6 @@ DynamicTransferBufferManagerEntry* TransferBufferManagerImpl::findFirstDynamic(c
         dyn = dyn->getNextListNode();
     }
     return NULL;
-}
-
-void TransferBufferManagerImpl::optimizeStorage()
-{
-    while (!dynamic_buffers_.isEmpty())
-    {
-        StaticTransferBufferManagerEntryImpl* const sb = findFirstStatic(TransferBufferManagerKey());
-        if (sb == NULL)
-        {
-            break;
-        }
-        DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
-        UAVCAN_ASSERT(dyn);
-        UAVCAN_ASSERT(!dyn->isEmpty());
-        if (sb->migrateFrom(dyn))
-        {
-            UAVCAN_ASSERT(!dyn->isEmpty());
-            UAVCAN_TRACE("TransferBufferManager", "Storage optimization: Migrated %s",
-                         dyn->getKey().toString().c_str());
-            dynamic_buffers_.remove(dyn);
-            DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
-        }
-        else
-        {
-            /* Migration can fail if a dynamic buffer contains more data than a static buffer can accomodate.
-             * This should never happen during normal operation because dynamic buffers are limited in growth.
-             */
-            UAVCAN_TRACE("TransferBufferManager", "Storage optimization: MIGRATION FAILURE %s MAXSIZE %u",
-                         dyn->getKey().toString().c_str(), max_buf_size_);
-            UAVCAN_ASSERT(0);
-            sb->reset();
-            break;
-        }
-    }
 }
 
 TransferBufferManagerImpl::~TransferBufferManagerImpl()
@@ -411,11 +328,6 @@ ITransferBuffer* TransferBufferManagerImpl::access(const TransferBufferManagerKe
         UAVCAN_ASSERT(0);
         return NULL;
     }
-    TransferBufferManagerEntry* tbme = findFirstStatic(key);
-    if (tbme)
-    {
-        return tbme;
-    }
     return findFirstDynamic(key);
 }
 
@@ -428,27 +340,17 @@ ITransferBuffer* TransferBufferManagerImpl::create(const TransferBufferManagerKe
     }
     remove(key);
 
-    TransferBufferManagerEntry* tbme = findFirstStatic(TransferBufferManagerKey());
+    DynamicTransferBufferManagerEntry* tbme = DynamicTransferBufferManagerEntry::instantiate(allocator_, max_buf_size_);
     if (tbme == NULL)
     {
-        DynamicTransferBufferManagerEntry* dyn =
-            DynamicTransferBufferManagerEntry::instantiate(allocator_, max_buf_size_);
-        tbme = dyn;
-        if (dyn == NULL)
-        {
-            return NULL;     // Epic fail.
-        }
-        dynamic_buffers_.insert(dyn);
-        UAVCAN_TRACE("TransferBufferManager", "Dynamic buffer created [st=%u, dyn=%u], %s",
-                     getNumStaticBuffers(), getNumDynamicBuffers(), key.toString().c_str());
-    }
-    else
-    {
-        UAVCAN_TRACE("TransferBufferManager", "Static buffer created [st=%u, dyn=%u], %s",
-                     getNumStaticBuffers(), getNumDynamicBuffers(), key.toString().c_str());
+        return NULL;     // Epic fail.
     }
 
-    if (tbme)
+    dynamic_buffers_.insert(tbme);
+
+    UAVCAN_TRACE("TransferBufferManager", "Buffer created [num=%u], %s", getNumBuffers(), key.toString().c_str());
+
+    if (tbme != NULL)
     {
         UAVCAN_ASSERT(tbme->isEmpty());
         tbme->reset(key);
@@ -460,19 +362,10 @@ void TransferBufferManagerImpl::remove(const TransferBufferManagerKey& key)
 {
     UAVCAN_ASSERT(!key.isEmpty());
 
-    TransferBufferManagerEntry* const tbme = findFirstStatic(key);
-    if (tbme)
-    {
-        UAVCAN_TRACE("TransferBufferManager", "Static buffer deleted, %s", key.toString().c_str());
-        tbme->reset();
-        optimizeStorage();
-        return;
-    }
-
     DynamicTransferBufferManagerEntry* dyn = findFirstDynamic(key);
-    if (dyn)
+    if (dyn != NULL)
     {
-        UAVCAN_TRACE("TransferBufferManager", "Dynamic buffer deleted, %s", key.toString().c_str());
+        UAVCAN_TRACE("TransferBufferManager", "Buffer deleted, %s", key.toString().c_str());
         dynamic_buffers_.remove(dyn);
         DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
     }
@@ -480,30 +373,12 @@ void TransferBufferManagerImpl::remove(const TransferBufferManagerKey& key)
 
 bool TransferBufferManagerImpl::isEmpty() const
 {
-    return (getNumStaticBuffers() == 0) && (getNumDynamicBuffers() == 0);
+    return getNumBuffers() == 0;
 }
 
-unsigned TransferBufferManagerImpl::getNumDynamicBuffers() const
+unsigned TransferBufferManagerImpl::getNumBuffers() const
 {
     return dynamic_buffers_.getLength();
-}
-
-unsigned TransferBufferManagerImpl::getNumStaticBuffers() const
-{
-    unsigned res = 0;
-    for (unsigned i = 0; true; i++)
-    {
-        StaticTransferBufferManagerEntryImpl* const sb = getStaticByIndex(uint16_t(i));
-        if (sb == NULL)
-        {
-            break;
-        }
-        if (!sb->isEmpty())
-        {
-            res++;
-        }
-    }
-    return res;
 }
 
 }

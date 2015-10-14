@@ -34,38 +34,23 @@ namespace uavcan
  *                          In C++11 mode this type defaults to std::function<>.
  *                          In C++03 mode this type defaults to a plain function pointer; use binder to
  *                          call member functions as callbacks.
- *
- * @tparam NumStaticReceivers   Number of statically allocated receiver objects. If there's more publishers
- *                              of this message, extra receivers will be allocated in the memory pool.
- *
- * @tparam NumStaticBufs        Number of statically allocated receiver buffers. If there's more concurrent
- *                              incoming transfers, extra buffers will be allocated in the memory pool.
  */
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-          typename Callback_ = std::function<void (const ReceivedDataStructure<DataType_>&)>,
+          typename Callback_ = std::function<void (const ReceivedDataStructure<DataType_>&)>
 #else
-          typename Callback_ = void (*)(const ReceivedDataStructure<DataType_>&),
-#endif
-#if UAVCAN_TINY
-          unsigned NumStaticReceivers = 0,
-          unsigned NumStaticBufs = 0
-#else
-          unsigned NumStaticReceivers = 2,
-          unsigned NumStaticBufs = 1
+          typename Callback_ = void (*)(const ReceivedDataStructure<DataType_>&)
 #endif
           >
 class UAVCAN_EXPORT Subscriber
     : public GenericSubscriber<DataType_, DataType_,
-                               typename TransferListenerInstantiationHelper<DataType_, NumStaticReceivers,
-                                                                            NumStaticBufs>::Type>
+                               typename TransferListenerInstantiationHelper<DataType_>::Type>
 {
 public:
     typedef Callback_ Callback;
 
 private:
-    typedef typename TransferListenerInstantiationHelper<DataType_, NumStaticReceivers, NumStaticBufs>::Type
-        TransferListenerType;
+    typedef typename TransferListenerInstantiationHelper<DataType_>::Type TransferListenerType;
     typedef GenericSubscriber<DataType_, DataType_, TransferListenerType> BaseType;
 
     Callback callback_;

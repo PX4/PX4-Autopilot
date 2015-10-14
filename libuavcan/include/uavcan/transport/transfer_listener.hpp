@@ -99,7 +99,7 @@ public:
 class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncopyable
 {
     const DataTypeDescriptor& data_type_;
-    MapBase<TransferBufferManagerKey, TransferReceiver>& receivers_;
+    Map<TransferBufferManagerKey, TransferReceiver>& receivers_;
     ITransferBufferManager& bufmgr_;
     TransferPerfCounter& perf_;
     const TransferCRC crc_base_;                      ///< Pre-initialized with data type hash, thus constant
@@ -123,7 +123,7 @@ class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListene
 
 protected:
     TransferListenerBase(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
-                         MapBase<TransferBufferManagerKey, TransferReceiver>& receivers,
+                         Map<TransferBufferManagerKey, TransferReceiver>& receivers,
                          ITransferBufferManager& bufmgr)
         : data_type_(data_type)
         , receivers_(receivers)
@@ -157,24 +157,18 @@ public:
 /**
  * This class should be derived by transfer receivers (subscribers, servers).
  */
-template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
+template <unsigned MaxBufSize>
 class UAVCAN_EXPORT TransferListener : public TransferListenerBase
 {
-    TransferBufferManager<MaxBufSize, NumStaticBufs> bufmgr_;
-    Map<TransferBufferManagerKey, TransferReceiver, NumStaticReceivers> receivers_;
+    TransferBufferManager<MaxBufSize> bufmgr_;
+    Map<TransferBufferManagerKey, TransferReceiver> receivers_;
 
 public:
     TransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type, IPoolAllocator& allocator)
         : TransferListenerBase(perf, data_type, receivers_, bufmgr_)
         , bufmgr_(allocator)
         , receivers_(allocator)
-    {
-#if UAVCAN_TINY
-        StaticAssert<NumStaticBufs == 0>::check();
-        StaticAssert<NumStaticReceivers == 0>::check();
-#endif
-        StaticAssert<(NumStaticReceivers >= NumStaticBufs)>::check();  // Otherwise it would be meaningless
-    }
+    { }
 
     virtual ~TransferListener()
     {
@@ -200,15 +194,15 @@ public:
 /**
  * This class should be derived by callers.
  */
-template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-class UAVCAN_EXPORT TransferListenerWithFilter : public TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>
+template <unsigned MaxBufSize>
+class UAVCAN_EXPORT TransferListenerWithFilter : public TransferListener<MaxBufSize>
 {
     const ITransferAcceptanceFilter* filter_;
 
     virtual void handleFrame(const RxFrame& frame);
 
 public:
-    typedef TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers> BaseType;
+    typedef TransferListener<MaxBufSize> BaseType;
 
     TransferListenerWithFilter(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
                                IPoolAllocator& allocator)
@@ -227,8 +221,8 @@ public:
 /*
  * TransferListenerWithFilter<>
  */
-template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-void TransferListenerWithFilter<MaxBufSize, NumStaticBufs, NumStaticReceivers>::handleFrame(const RxFrame& frame)
+template <unsigned MaxBufSize>
+void TransferListenerWithFilter<MaxBufSize>::handleFrame(const RxFrame& frame)
 {
     if (filter_ != NULL)
     {

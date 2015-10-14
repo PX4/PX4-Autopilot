@@ -38,7 +38,7 @@ TEST(TransferListener, BasicMFT)
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * NUM_POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
     uavcan::TransferPerfCounter perf;
-    TestListener<256, 1, 1> subscriber(perf, type, pool);
+    TestListener<256> subscriber(perf, type, pool);
 
     /*
      * Test data
@@ -95,7 +95,7 @@ TEST(TransferListener, CrcFailure)
 
     NullAllocator poolmgr;                                    // No dynamic memory
     uavcan::TransferPerfCounter perf;
-    TestListener<256, 2, 2> subscriber(perf, type, poolmgr);  // Static buffer only, 2 entries
+    TestListener<256> subscriber(perf, type, poolmgr);  // Static buffer only, 2 entries
 
     /*
      * Generating transfers with damaged payload (CRC is not valid)
@@ -138,7 +138,7 @@ TEST(TransferListener, BasicSFT)
 
     NullAllocator poolmgr;                                 // No dynamic memory. At all.
     uavcan::TransferPerfCounter perf;
-    TestListener<0, 0, 5> subscriber(perf, type, poolmgr); // Max buf size is 0, i.e. SFT-only
+    TestListener<0> subscriber(perf, type, poolmgr); // Max buf size is 0, i.e. SFT-only
 
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
@@ -174,7 +174,7 @@ TEST(TransferListener, Cleanup)
 
     NullAllocator poolmgr;                                    // No dynamic memory
     uavcan::TransferPerfCounter perf;
-    TestListener<256, 1, 2> subscriber(perf, type, poolmgr);  // Static buffer only, 1 entry
+    TestListener<256> subscriber(perf, type, poolmgr);  // Static buffer only, 1 entry
 
     /*
      * Generating transfers
@@ -229,7 +229,7 @@ TEST(TransferListener, AnonymousTransfers)
 
     NullAllocator poolmgr;
     uavcan::TransferPerfCounter perf;
-    TestListener<0, 0, 0> subscriber(perf, type, poolmgr);
+    TestListener<0> subscriber(perf, type, poolmgr);
 
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
@@ -261,5 +261,5 @@ TEST(TransferListener, Sizes)
 {
     using namespace uavcan;
 
-    std::cout << "sizeof(TransferListener<64, 1, 2>): " << sizeof(TransferListener<64, 1, 2>) << std::endl;
+    std::cout << "sizeof(TransferListener<64>): " << sizeof(TransferListener<64>) << std::endl;
 }

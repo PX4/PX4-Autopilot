@@ -229,10 +229,10 @@ TEST(TransferBufferManager, Basic)
     using uavcan::TransferBufferManagerKey;
     using uavcan::ITransferBuffer;
 
-    static const int POOL_BLOCKS = 6;
+    static const int POOL_BLOCKS = 8;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
-    typedef TransferBufferManager<MGR_MAX_BUFFER_SIZE, 2> TransferBufferManagerType;
+    typedef TransferBufferManager<MGR_MAX_BUFFER_SIZE> TransferBufferManagerType;
     std::auto_ptr<TransferBufferManagerType> mgr(new TransferBufferManagerType(pool));
 
     // Empty
@@ -250,40 +250,32 @@ TEST(TransferBufferManager, Basic)
         TransferBufferManagerKey(64, uavcan::TransferTypeMessageBroadcast)
     };
 
-    // Static 0
     ASSERT_TRUE((tbb = mgr->create(keys[0])));
     ASSERT_EQ(MGR_MAX_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[0], tbb));
-    ASSERT_EQ(1, mgr->getNumStaticBuffers());
+    ASSERT_EQ(1, mgr->getNumBuffers());
 
-    // Static 1
     ASSERT_TRUE((tbb = mgr->create(keys[1])));
     ASSERT_EQ(MGR_MAX_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[1], tbb));
-    ASSERT_EQ(2, mgr->getNumStaticBuffers());
-    ASSERT_EQ(0, mgr->getNumDynamicBuffers());
+    ASSERT_EQ(0, mgr->getNumBuffers());
     ASSERT_EQ(0, pool.getNumUsedBlocks());
 
-    // Dynamic 0
     ASSERT_TRUE((tbb = mgr->create(keys[2])));
     ASSERT_EQ(1, pool.getNumUsedBlocks());      // Empty dynamic buffer occupies one block
     ASSERT_EQ(MGR_MAX_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[2], tbb));
-    ASSERT_EQ(2, mgr->getNumStaticBuffers());
-    ASSERT_EQ(1, mgr->getNumDynamicBuffers());
+    ASSERT_EQ(1, mgr->getNumBuffers());
     ASSERT_LT(1, pool.getNumUsedBlocks());
 
     std::cout << "TransferBufferManager - Basic: Pool usage: " << pool.getNumUsedBlocks() << std::endl;
 
-    // Dynamic 2
     ASSERT_TRUE((tbb = mgr->create(keys[3])));
     ASSERT_LT(0, pool.getNumUsedBlocks());
 
     ASSERT_LT(0, fillTestData(MGR_TEST_DATA[3], tbb));
-    ASSERT_EQ(2, mgr->getNumStaticBuffers());
-    ASSERT_EQ(2, mgr->getNumDynamicBuffers());
+    ASSERT_EQ(2, mgr->getNumBuffers());
 
     // Dynamic 3 - will fail due to OOM
     ASSERT_FALSE((tbb = mgr->create(keys[4])));
-    ASSERT_EQ(2, mgr->getNumStaticBuffers());
-    ASSERT_EQ(2, mgr->getNumDynamicBuffers());
+    ASSERT_EQ(2, mgr->getNumBuffers());
 
     // Making sure all buffers contain proper data
     ASSERT_TRUE((tbb = mgr->access(keys[0])));
@@ -298,18 +290,14 @@ TEST(TransferBufferManager, Basic)
     ASSERT_TRUE((tbb = mgr->access(keys[3])));
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[3], *tbb));
 
-    // Freeing one static buffer; one dynamic must migrate
     mgr->remove(keys[1]);
     ASSERT_FALSE(mgr->access(keys[1]));
-    ASSERT_EQ(2, mgr->getNumStaticBuffers());
-    ASSERT_EQ(1, mgr->getNumDynamicBuffers());   // One migrated to the static
+    ASSERT_EQ(1, mgr->getNumBuffers());
     ASSERT_LT(0, pool.getNumFreeBlocks());
 
-    // Removing NodeID 0; one dynamic must migrate
     mgr->remove(keys[0]);
     ASSERT_FALSE(mgr->access(keys[0]));
-    ASSERT_EQ(2, mgr->getNumStaticBuffers());
-    ASSERT_EQ(0, mgr->getNumDynamicBuffers());
+    ASSERT_EQ(0, mgr->getNumBuffers());
 
     // At this time we have the following NodeID: 2, 127
     ASSERT_TRUE((tbb = mgr->access(keys[2])));
@@ -336,7 +324,7 @@ TEST(TransferBufferManager, Basic)
 
 TEST(TransferBufferManager, EmptySpecialization)
 {
-    uavcan::TransferBufferManager<0, 0> mgr;
+    uavcan::TransferBufferManager<0> mgr;
     (void)mgr;
     ASSERT_GE(sizeof(void*), sizeof(mgr));
 }

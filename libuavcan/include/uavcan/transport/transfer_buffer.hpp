@@ -194,8 +194,6 @@ public:
 
     virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
     virtual int write(unsigned offset, const uint8_t* data, unsigned len);
-
-    bool migrateFrom(const TransferBufferManagerEntry* tbme);
 };
 
 template <uint16_t Size>
@@ -250,11 +248,7 @@ class TransferBufferManagerImpl : public ITransferBufferManager, Noncopyable
     IPoolAllocator& allocator_;
     const uint16_t max_buf_size_;
 
-    virtual StaticTransferBufferManagerEntryImpl* getStaticByIndex(uint16_t index) const = 0;
-
-    StaticTransferBufferManagerEntryImpl* findFirstStatic(const TransferBufferManagerKey& key);
     DynamicTransferBufferManagerEntry* findFirstDynamic(const TransferBufferManagerKey& key);
-    void optimizeStorage();
 
 public:
     TransferBufferManagerImpl(uint16_t max_buf_size, IPoolAllocator& allocator)
@@ -269,49 +263,20 @@ public:
     virtual void remove(const TransferBufferManagerKey& key);
     virtual bool isEmpty() const;
 
-    unsigned getNumDynamicBuffers() const;
-    unsigned getNumStaticBuffers() const;
-};
-
-template <uint16_t MaxBufSize, uint8_t NumStaticBufs>
-class UAVCAN_EXPORT TransferBufferManager : public TransferBufferManagerImpl
-{
-    mutable StaticTransferBufferManagerEntry<MaxBufSize> static_buffers_[NumStaticBufs];
-
-    virtual StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t index) const
-    {
-        return (index < NumStaticBufs) ? &static_buffers_[index] : NULL;
-    }
-
-public:
-    explicit TransferBufferManager(IPoolAllocator& allocator)
-        : TransferBufferManagerImpl(MaxBufSize, allocator)
-    {
-#if UAVCAN_TINY
-        StaticAssert<(NumStaticBufs == 0)>::check();   // Static buffers in UAVCAN_TINY mode are not allowed
-#endif
-        StaticAssert<(MaxBufSize > 0)>::check();
-    }
+    unsigned getNumBuffers() const;
 };
 
 template <uint16_t MaxBufSize>
-class UAVCAN_EXPORT TransferBufferManager<MaxBufSize, 0> : public TransferBufferManagerImpl
+class UAVCAN_EXPORT TransferBufferManager : public TransferBufferManagerImpl
 {
-    virtual StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t) const
-    {
-        return NULL;
-    }
-
 public:
-    explicit TransferBufferManager(IPoolAllocator& allocator)
-        : TransferBufferManagerImpl(MaxBufSize, allocator)
-    {
-        StaticAssert<(MaxBufSize > 0)>::check();
-    }
+    explicit TransferBufferManager(IPoolAllocator& allocator) :
+        TransferBufferManagerImpl(MaxBufSize, allocator)
+    { }
 };
 
 template <>
-class UAVCAN_EXPORT TransferBufferManager<0, 0> : public ITransferBufferManager
+class UAVCAN_EXPORT TransferBufferManager<0> : public ITransferBufferManager
 {
 public:
     TransferBufferManager() { }

@@ -190,6 +190,5 @@ TEST(dynamic_node_id_server, ObjectSizes)
     std::cout << "ServiceServer<AppendEntries>:  " << sizeof(ServiceServer<AppendEntries>) << std::endl;
     std::cout << "ServiceClient<AppendEntries>:  " << sizeof(ServiceClient<AppendEntries>) << std::endl;
     std::cout << "ServiceServer<RequestVote>:    " << sizeof(ServiceServer<RequestVote>) << std::endl;
-    std::cout << "ServiceClient<RequestVote,~,5>:"
-              << sizeof(ServiceClient<RequestVote, void (*)(const ServiceCallResult<RequestVote>&), 5>) << std::endl;
+    std::cout << "ServiceClient<RequestVote>:    " << sizeof(ServiceClient<RequestVote>) << std::endl;
 }

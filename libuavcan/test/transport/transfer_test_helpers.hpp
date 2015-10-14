@@ -117,10 +117,10 @@ struct Transfer
  * In reality, uavcan::TransferListener should accept only specific transfer types
  * which are dispatched/filtered by uavcan::Dispatcher.
  */
-template <unsigned MAX_BUF_SIZE, unsigned NUM_STATIC_BUFS, unsigned NUM_STATIC_RECEIVERS>
-class TestListener : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS>
+template <unsigned MAX_BUF_SIZE>
+class TestListener : public uavcan::TransferListener<MAX_BUF_SIZE>
 {
-    typedef uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS> Base;
+    typedef uavcan::TransferListener<MAX_BUF_SIZE> Base;
 
     std::queue<Transfer> transfers_;
 

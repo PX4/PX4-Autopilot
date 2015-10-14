@@ -20,9 +20,7 @@ namespace uavcan
  * Please refer to the @ref Node<> for documentation concerning the template arguments; refer to the tutorials
  * to lean how to use libuavcan in multiprocess applications.
  */
-template <std::size_t MemPoolSize_,
-          unsigned OutgoingTransferRegistryStaticEntries = 10
-          >
+template <std::size_t MemPoolSize_>
 class UAVCAN_EXPORT SubNode : public INode
 {
     enum
@@ -33,7 +31,7 @@ class UAVCAN_EXPORT SubNode : public INode
     typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
 
     Allocator pool_allocator_;
-    OutgoingTransferRegistry<OutgoingTransferRegistryStaticEntries> outgoing_trans_reg_;
+    OutgoingTransferRegistry outgoing_trans_reg_;
     Scheduler scheduler_;
 
     uint64_t internal_failure_cnt_;

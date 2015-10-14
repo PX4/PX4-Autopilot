@@ -35,22 +35,8 @@ namespace uavcan
  *                          For simple nodes this number can be reduced.
  *                          For high-traffic nodes the recommended minimum is
  *                          like 16K * (number of CAN ifaces + 1).
- *
- * @tparam OutgoingTransferRegistryStaticEntries    Number of statically allocated objects
- *                                                  to track Transfer ID for outgoing transfers.
- *                                                  Normally it should be equal to expected number of
- *                                                  publishers and service callers, but it's not necessary.
- *                                                  Additional objects for Transfer ID tracking will
- *                                                  be allocated in the memory pool if needed.
- *                                                  Default value is acceptable for any use case.
  */
-template <std::size_t MemPoolSize_,
-#if UAVCAN_TINY
-          unsigned OutgoingTransferRegistryStaticEntries = 0
-#else
-          unsigned OutgoingTransferRegistryStaticEntries = 10
-#endif
-          >
+template <std::size_t MemPoolSize_>
 class UAVCAN_EXPORT Node : public INode
 {
     enum
@@ -61,7 +47,7 @@ class UAVCAN_EXPORT Node : public INode
     typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
 
     Allocator pool_allocator_;
-    OutgoingTransferRegistry<OutgoingTransferRegistryStaticEntries> outgoing_trans_reg_;
+    OutgoingTransferRegistry outgoing_trans_reg_;
     Scheduler scheduler_;
 
     NodeStatusProvider proto_nsp_;
@@ -260,9 +246,8 @@ public:
 
 // ----------------------------------------------------------------------------
 
-template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries>::start(
-    const TransferPriority priority)
+template <std::size_t MemPoolSize_>
+int Node<MemPoolSize_>::start(const TransferPriority priority)
 {
     if (started_)
     {
