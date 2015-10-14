@@ -187,16 +187,13 @@ then
 	set PWM_AUX_MIN none
 	set PWM_AUX_MAX none
 	set FAILSAFE_AUX none
-	set MK_MODE none
 	set FMU_MODE pwm
 	set AUX_MODE pwm
 	set MAVLINK_F default
 	set EXIT_ON_END no
 	set MAV_TYPE none
-	set LOAD_DAPPS yes
-	set GPS yes
-	set GPS_FAKE no
 	set FAILSAFE none
+	set MK_MODE none
 
 	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts
@@ -350,13 +347,15 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
-		set GPS no
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
 		fi
+		unset HIL
+	else
+		unset HIL
+		gps start
 	fi
-	unset HIL
 
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
@@ -368,19 +367,6 @@ then
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	#
 	sh /etc/init.d/rc.sensors
-	
-	if [ $GPS == yes ]
-	then
-		if [ $GPS_FAKE == yes ]
-		then
-			echo "[i] Faking GPS"
-			gps start -f
-		else
-			gps start
-		fi
-	fi
-	unset GPS
-	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
 	commander start
@@ -440,11 +426,11 @@ then
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			set MKBLCTRL_ARG ""
-			if [ $MKBLCTRL_MODE == x ]
+			if [ $MK_MODE == x ]
 			then
 				set MKBLCTRL_ARG "-mkmode x"
 			fi
-			if [ $MKBLCTRL_MODE == + ]
+			if [ $MK_MODE == + ]
 			then
 				set MKBLCTRL_ARG "-mkmode +"
 			fi
@@ -639,10 +625,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard fixedwing apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.fw_apps
-		fi
+		sh /etc/init.d/rc.fw_apps
 	fi
 
 	#
@@ -703,10 +686,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard multicopter apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.mc_apps
-		fi
+		sh /etc/init.d/rc.mc_apps
 	fi
 
 	#
@@ -751,10 +731,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard vtol apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.vtol_apps
-		fi
+		sh /etc/init.d/rc.vtol_apps
 	fi
 
 	#
@@ -769,10 +746,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard rover apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.axialracing_ax10_apps
-		fi
+		sh /etc/init.d/rc.axialracing_ax10_apps
 
 		param set MAV_TYPE 10
 	fi

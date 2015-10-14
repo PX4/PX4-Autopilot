@@ -31,14 +31,14 @@ then
 		fi
 	fi
 
-	if [ $OM == mkblctrl ]
+	if [ $OUTPUT_MODE == mkblctrl ]
 	then
 		set OUTPUT_DEV /dev/mkblctrl0
 	else
 		set OUTPUT_DEV /dev/pwm_output0
 	fi
 
-	if [ $OM == uavcan_esc ]
+	if [ $OUTPUT_MODE == uavcan_esc ]
 	then
 		set OUTPUT_DEV /dev/uavcan/esc
 	fi
@@ -62,7 +62,7 @@ else
 	fi
 fi
 
-if [ $OM == fmu -o $OM == io ]
+if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
 then
 	if [ $PWM_OUT != none ]
 	then
@@ -195,3 +195,4 @@ unset PWM_AUX_MAX
 unset FAILSAFE_AUX
 unset OUTPUT_DEV
 unset OUTPUT_AUX_DEV
+unset FAILSAFE
