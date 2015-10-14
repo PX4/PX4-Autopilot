@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
@@ -164,6 +165,36 @@ protected:
 int __EXPORT blockHighPassTest();
 
 /**
+ * A 2nd order low pass filter block which uses the default px4 2nd order low pass filter
+ */
+class __EXPORT BlockLowPass2 : public Block
+{
+public:
+// methods
+	BlockLowPass2(SuperBlock *parent, const char *name, float sample_freq) :
+		Block(parent, name),
+		_state(0.0 / 0.0 /* initialize to invalid val, force into is_finite() check on first call */),
+		_fCut(this, ""), // only one parameter, no need to name
+		_fs(sample_freq),
+		_lp(_fs, _fCut.get())
+	{};
+	virtual ~BlockLowPass2() {};
+	float update(float input);
+// accessors
+	float getState() { return _state; }
+	float getFCutParam() { return _fCut.get(); }
+	void setState(float state) { _state = _lp.reset(state); }
+protected:
+// attributes
+	float _state;
+	control::BlockParamFloat _fCut;
+	float _fs;
+	math::LowPassFilter2p _lp;
+};
+
+int __EXPORT blockLowPass2Test();
+
+/**
  * A rectangular integrator.
  * A limiter is built into the class to bound the
  * integral's internal state. This is important
@@ -263,6 +294,7 @@ public:
 	void setU(float u) {_u = u;}
 	float getU() {return _u;}
 	float getLP() {return _lowPass.getFCut();}
+	float getO() { return _lowPass.getState(); }
 protected:
 // attributes
 	float _u; /**< previous input */
