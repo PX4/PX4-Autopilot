@@ -576,23 +576,6 @@ then
 	fi
 
 	#
-	# Logging
-	#
-	if [ -d /fs/microsd ]
-	then
-		if ver hwcmp PX4FMU_V1
-		then
-			if sdlog2 start -r 40 -a -b 3 -t
-			then
-			fi
-		else
-			if sdlog2 start -r 100 -a -b 12 -t
-			then
-			fi
-		fi
-	fi
-
-	#
 	# Start up ARDrone Motor interface
 	#
 	if [ $OUTPUT_MODE == ardrone ]
@@ -751,15 +734,6 @@ then
 		param set MAV_TYPE 10
 	fi
 
-	unset MIXER
-	unset MAV_TYPE
-	unset OUTPUT_MODE
-
-	#
-	# Start the navigator
-	#
-	navigator start
-
 	#
 	# Generic setup (autostart ID not found)
 	#
@@ -767,6 +741,42 @@ then
 	then
 		echo "[i] No autostart ID found"
 
+	fi
+
+	unset MIXER
+	unset MAV_TYPE
+	unset OUTPUT_MODE
+	unset VEHICLE_TYPE
+
+	# Run no SD alarm
+	if [ $LOG_FILE == /dev/null ]
+	then
+		echo "[i] No microSD card found"
+		# Play SOS
+		tone_alarm error
+	fi
+	unset LOG_FILE
+
+	#
+	# Start the navigator
+	#
+	navigator start
+
+	#
+	# Logging
+	#
+	if [ -d /fs/microsd ]
+	then
+		if ver hwcmp PX4FMU_V1
+		then
+			if sdlog2 start -r 40 -a -b 3 -t
+			then
+			fi
+		else
+			if sdlog2 start -r 100 -a -b 12 -t
+			then
+			fi
+		fi
 	fi
 
 	# Start any custom addons
@@ -777,14 +787,6 @@ then
 		sh $FEXTRAS
 	fi
 	unset FEXTRAS
-
-	# Run no SD alarm
-	if [ $LOG_FILE == /dev/null ]
-	then
-		echo "[i] No microSD card found"
-		# Play SOS
-		tone_alarm error
-	fi
 
 # End of autostart
 fi
