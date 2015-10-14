@@ -181,5 +181,17 @@ then
 
 	fi
 fi
+
+unset PWM_OUT
+unset PWM_RATE
+unset PWM_DISARMED
+unset PWM_MIN
+unset PWM_MAX
+unset PWM_AUX_OUT
+unset PWM_AUX_RATE
+unset PWM_AUX_DISARMED
+unset PWM_AUX_MIN
+unset PWM_AUX_MAX
+unset FAILSAFE_AUX
 unset OUTPUT_DEV
 unset OUTPUT_AUX_DEV
