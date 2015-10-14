@@ -104,13 +104,13 @@ endef
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
-px4fmu-v1_default:
+px4fmu-v1_default: git-init
 	$(call cmake-build,nuttx_px4fmu-v1_default)
 
-px4fmu-v2_default:
+px4fmu-v2_default: git-init
 	$(call cmake-build,nuttx_px4fmu-v2_default)
 
-px4fmu-v2_simple:
+px4fmu-v2_simple: git-init
 	$(call cmake-build,nuttx_px4fmu-v2_simple)
 
 nuttx_sim_simple:
@@ -180,6 +180,11 @@ distclean: clean
 	@cd src/modules/uavcan/libuavcan
 	@git clean -d -f -x
 	@cd ../../../..
+
+# XXX this is not the right way to fix it, but we need a temporary solution
+# for average joe
+git-init:
+	@git submodule update --init --recursive
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak libuavcan
