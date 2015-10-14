@@ -72,9 +72,9 @@
 namespace Commander
 {
 
-static int check_calibration(int fd, const char* param_template);
+static int check_calibration(int fd, const char* param_template, int &devid);
 
-int check_calibration(int fd, const char* param_template)
+int check_calibration(int fd, const char* param_template, int &devid)
 {
 	bool calibration_found;
 
@@ -82,13 +82,13 @@ int check_calibration(int fd, const char* param_template)
 	int ret = px4_ioctl(fd, SENSORIOCCALTEST, 0);
 
 	calibration_found = (ret == OK);
-
-	/* old style transition: check param values */
-	int devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+	
+	devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 
 	char s[20];
 	int instance = 0;
 
+	/* old style transition: check param values */
 	while (!calibration_found) {
 		sprintf(s, param_template, instance);
 		param_t parm = param_find(s);
@@ -131,7 +131,7 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional, in
 		return false;
 	}
 
-	int ret = check_calibration(fd, "CAL_MAG%u_ID");
+	int ret = check_calibration(fd, "CAL_MAG%u_ID", device_id);
 
 	if (ret) {
 		mavlink_and_console_log_critical(mavlink_fd,
@@ -171,7 +171,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 		return false;
 	}
 
-	int ret = check_calibration(fd, "CAL_ACC%u_ID");
+	int ret = check_calibration(fd, "CAL_ACC%u_ID", device_id);
 
 	if (ret) {
 		mavlink_and_console_log_critical(mavlink_fd,
@@ -236,7 +236,7 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional, int &dev
 		return false;
 	}
 
-	int ret = check_calibration(fd, "CAL_GYRO%u_ID");
+	int ret = check_calibration(fd, "CAL_GYRO%u_ID", device_id);
 
 	if (ret) {
 		mavlink_and_console_log_critical(mavlink_fd,
@@ -275,6 +275,8 @@ static bool baroCheck(int mavlink_fd, unsigned instance, bool optional, int &dev
 
 		return false;
 	}
+
+	device_id = -1000;
 
 	// TODO: There is no baro calibration yet, since no external baros exist
 	// int ret = check_calibration(fd, "CAL_BARO%u_ID");
@@ -361,7 +363,7 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_mag_count; i++) {
 			bool required = (i < max_mandatory_mag_count);
-			int device_id;
+			int device_id = -1;
 
 			if (!magnometerCheck(mavlink_fd, i, !required, device_id) && required) {
 				failed = true;
@@ -373,8 +375,9 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		}
 
 		/* check if the primary device is present */
-		if (!prime_found) {
-			//failed = true;
+		if (!prime_found && prime_id != 0) {
+			mavlink_log_critical(mavlink_fd, "warning: primary compass not operational");
+			failed = true;
 		}
 	}
 
@@ -387,7 +390,7 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_accel_count; i++) {
 			bool required = (i < max_mandatory_accel_count);
-			int device_id;
+			int device_id = -1;
 
 			if (!accelerometerCheck(mavlink_fd, i, !required, checkDynamic, device_id) && required) {
 				failed = true;
@@ -399,8 +402,9 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		}
 
 		/* check if the primary device is present */
-		if (!prime_found) {
-			//failed = true;
+		if (!prime_found && prime_id != 0) {
+			mavlink_log_critical(mavlink_fd, "warning: primary accelerometer not operational");
+			failed = true;
 		}
 	}
 
@@ -413,7 +417,7 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
 			bool required = (i < max_mandatory_gyro_count);
-			int device_id;
+			int device_id = -1;
 
 			if (!gyroCheck(mavlink_fd, i, !required, device_id) && required) {
 				failed = true;
@@ -425,8 +429,9 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		}
 
 		/* check if the primary device is present */
-		if (!prime_found) {
-			//failed = true;
+		if (!prime_found && prime_id != 0) {
+			mavlink_log_critical(mavlink_fd, "warning: primary gyro not operational");
+			failed = true;
 		}
 	}
 
@@ -439,7 +444,7 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_baro_count; i++) {
 			bool required = (i < max_mandatory_baro_count);
-			int device_id;
+			int device_id = -1;
 
 			if (!baroCheck(mavlink_fd, i, !required, device_id) && required) {
 				failed = true;
@@ -452,8 +457,9 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 
 		// TODO there is no logic in place to calibrate the primary baro yet
 		// // check if the primary device is present 
-		if (!prime_found) {
-		// 	failed = true;
+		if (!prime_found && prime_id != 0) {
+			mavlink_log_critical(mavlink_fd, "warning: primary barometer not operational");
+			failed = true;
 		}
 	}
 
@@ -467,12 +473,13 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 	/* ---- RC CALIBRATION ---- */
 	if (checkRC) {
 		if (rc_calibration_check(mavlink_fd) != OK) {
+			mavlink_log_critical(mavlink_fd, "RC calibration check failed");
 			failed = true;
 		}
 	}
 
 	/* ---- Global Navigation Satellite System receiver ---- */
-	if(checkGNSS) {
+	if (checkGNSS) {
 		if(!gnssCheck(mavlink_fd)) {
 			failed = true;
 		}
