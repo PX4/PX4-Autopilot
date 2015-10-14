@@ -80,5 +80,5 @@ extern bool crc4(uint16_t *n_prom);
 } /* namespace */
 
 /* interface factories */
-extern device::Device *BAROSIM_sim_interface(barosim::prom_u &prom_buf, uint8_t busnum) __attribute__((weak));
+extern device::Device *BAROSIM_sim_interface(barosim::prom_u &prom_buf, uint8_t busnum);
 typedef device::Device *(*BAROSIM_constructor)(barosim::prom_u &prom_buf, uint8_t busnum);

@@ -48,6 +48,7 @@
 /* includes when building for ros */
 #include "ros/ros.h"
 #include <list>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <type_traits>
 #else

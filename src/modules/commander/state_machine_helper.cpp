@@ -48,6 +48,8 @@
 #include <string.h>
 #include <math.h>
 
+#include <px4_posix.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
@@ -63,12 +65,6 @@
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 #include "PreflightCheck.h"
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current  state you can index into the array which
@@ -96,6 +92,8 @@ static const char * const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_REBOOT",
 	"ARMING_STATE_IN_AIR_RESTORE",
 };
+
+static bool sensor_feedback_provided = false;
 
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status,		///< current vehicle status
@@ -245,10 +243,12 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
 			(!status->condition_system_sensors_initialized)) {
-			mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
+			if (!sensor_feedback_provided || (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+				mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
+				sensor_feedback_provided = true;
+			}
 			feedback_provided = true;
 			valid_transition = false;
-			status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY_ERROR;
 		}
 
 		// Finish up the state transition
@@ -259,6 +259,12 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			status->arming_state = new_arming_state;
 		}
 
+		/* reset feedback state */
+		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
+			valid_transition) {
+			sensor_feedback_provided = false;
+		}
+
 		/* end of atomic state update */
 		#ifdef __PX4_NUTTX
 		irqrestore(flags);
@@ -266,15 +272,10 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 	}
 
 	if (ret == TRANSITION_DENIED) {
-#define		WARNSTR "INVAL: %s - %s"
-		/* only print to console here by default as this is too technical to be useful during operation */
-		warnx(WARNSTR, state_names[status->arming_state], state_names[new_arming_state]);
-
-		/* print to MAVLink if we didn't provide any feedback yet */
+		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_log_critical(mavlink_fd, WARNSTR, state_names[status->arming_state], state_names[new_arming_state]);
+			mavlink_and_console_log_critical(mavlink_fd, "INVAL: %s - %s", state_names[status->arming_state], state_names[new_arming_state]);
 		}
-#undef WARNSTR
 	}
 
 	return ret;

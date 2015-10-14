@@ -159,7 +159,14 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 {
 	baro_report report;
 
-	report.timestamp   = msg.getMonotonicTimestamp().toUSec();
+	/*
+	 * FIXME HACK
+	 * This code used to rely on msg.getMonotonicTimestamp().toUSec() instead of HRT.
+	 * It stopped working when the time sync feature has been introduced, because it caused libuavcan
+	 * to use an independent time source (based on hardware TIM5) instead of HRT.
+	 * The proper solution is to be developed.
+	 */
+	report.timestamp   = hrt_absolute_time();
 	report.temperature = last_temperature_kelvin - 273.15F;
 	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
 	report.error_count = 0;

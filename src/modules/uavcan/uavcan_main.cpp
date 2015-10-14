@@ -55,6 +55,8 @@
 #include "uavcan_main.hpp"
 #include <uavcan/util/templates.hpp>
 
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
+
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
 # define OK 0
@@ -77,7 +79,11 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
-	_esc_controller(_node)
+	_esc_controller(_node),
+	_time_sync_master(_node),
+	_time_sync_slave(_node),
+	_master_timer(_node),
+	_setget_response(0)
 {
 	_task_should_exit = false;
 	_fw_server_action = None;
@@ -94,7 +100,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 		std::abort();
 	}
 
-	res = sem_init(&_server_command_sem, 0 , 0);
+	res = px4_sem_init(&_server_command_sem, 0 , 0);
 
 	if (res < 0) {
 		std::abort();
@@ -158,7 +164,7 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_esc_mixer_output_elapsed);
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
 	pthread_mutex_destroy(&_node_mutex);
-	sem_destroy(&_server_command_sem);
+	px4_sem_destroy(&_server_command_sem);
 
 }
 
@@ -186,6 +192,239 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 	return rv;
 }
 
+int UavcanNode::print_params(uavcan::protocol::param::GetSet::Response &resp)
+{
+	if (resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
+		return std::printf("name: %s %lld\n", resp.name.c_str(),
+				   resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>());
+
+	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
+		return   std::printf("name: %s %.4f\n", resp.name.c_str(),
+				     static_cast<double>(resp.value.to<uavcan::protocol::param::Value::Tag::real_value>()));
+
+	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::boolean_value)) {
+		return std::printf("name: %s %d\n", resp.name.c_str(),
+				   resp.value.to<uavcan::protocol::param::Value::Tag::boolean_value>());
+
+	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::string_value)) {
+		return std::printf("name: %s '%s'\n", resp.name.c_str(),
+				   resp.value.to<uavcan::protocol::param::Value::Tag::string_value>().c_str());
+	}
+
+	return -1;
+}
+
+void UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
+{
+	uavcan::protocol::param::ExecuteOpcode::Response resp;
+	_callback_success = result.isSuccessful();
+	resp = result.getResponse();
+	_callback_success &= resp.ok;
+}
+
+int  UavcanNode::save_params(int remote_node_id)
+{
+	uavcan::protocol::param::ExecuteOpcode::Request opcode_req;
+	opcode_req.opcode = opcode_req.OPCODE_SAVE;
+	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> client(_node);
+	client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
+	_callback_success = false;
+	int call_res = client.call(remote_node_id, opcode_req);
+
+	if (call_res >= 0) {
+		while (client.hasPendingCalls()) {
+			usleep(10000);
+		}
+	}
+
+	if (!_callback_success) {
+		std::printf("Failed to save parameters: %d\n", call_res);
+		return -1;
+	}
+
+	return 0;
+}
+
+void UavcanNode::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result)
+{
+	uavcan::protocol::RestartNode::Response resp;
+	_callback_success = result.isSuccessful();
+	resp = result.getResponse();
+	_callback_success &= resp.ok;
+}
+
+int  UavcanNode::reset_node(int remote_node_id)
+{
+	uavcan::protocol::RestartNode::Request restart_req;
+	restart_req.magic_number = restart_req.MAGIC_NUMBER;
+	uavcan::ServiceClient<uavcan::protocol::RestartNode, RestartNodeCallback> client(_node);
+	client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
+	_callback_success = false;
+	int call_res = client.call(remote_node_id, restart_req);
+
+	if (call_res >= 0) {
+		while (client.hasPendingCalls()) {
+			usleep(10000);
+		}
+	}
+
+	if (!call_res) {
+		std::printf("Failed to reset node: %d\n", remote_node_id);
+		return -1;
+	}
+
+	return 0;
+}
+
+int  UavcanNode::list_params(int remote_node_id)
+{
+	int rv = 0;
+	int index = 0;
+	uavcan::protocol::param::GetSet::Response resp;
+	set_setget_response(&resp);
+
+	while (true) {
+		uavcan::protocol::param::GetSet::Request req;
+		req.index =  index++;
+		_callback_success = false;
+		int call_res = get_set_param(remote_node_id, nullptr, req);
+
+		if (call_res < 0 || !_callback_success) {
+			std::printf("Failed to get param: %d\n", call_res);
+			rv = -1;
+			break;
+		}
+
+		if (resp.name.empty()) { // Empty name means no such param, which means we're finished
+			break;
+		}
+
+		print_params(resp);
+	}
+
+	free_setget_response();
+	return rv;
+}
+
+
+void UavcanNode::cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result)
+{
+	_callback_success = result.isSuccessful();
+	*_setget_response = result.getResponse();
+}
+
+int  UavcanNode::get_set_param(int remote_node_id, const char *name, uavcan::protocol::param::GetSet::Request &req)
+{
+	if (name != nullptr) {
+		req.name = name;
+	}
+
+	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCallback> client(_node);
+	client.setCallback(GetSetCallback(this, &UavcanNode::cb_setget));
+	_callback_success = false;
+	int call_res = client.call(remote_node_id, req);
+
+	if (call_res >= 0) {
+
+		while (client.hasPendingCalls()) {
+			usleep(10000);
+		}
+
+		if (!_callback_success) {
+			call_res = -1;
+		}
+	}
+
+	return call_res;
+}
+
+int  UavcanNode::set_param(int remote_node_id, const char *name, char *value)
+{
+	uavcan::protocol::param::GetSet::Request req;
+	uavcan::protocol::param::GetSet::Response resp;
+	set_setget_response(&resp);
+	int rv = get_set_param(remote_node_id, name, req);
+
+	if (rv < 0 || resp.name.empty()) {
+		std::printf("Failed to retrieve param: %s\n", name);
+		rv = -1;
+
+	} else {
+
+		rv = 0;
+		req = {};
+
+		if (resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
+			int64_t i = std::strtoull(value, NULL, 10);
+			int64_t min = resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>();
+			int64_t max = resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>();
+
+			if (i >= min &&  i <= max) {
+				req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = i;
+
+			} else {
+				std::printf("Invalid value for: %s must be between %lld and %lld\n", name, min, max);
+				rv = -1;
+			}
+
+		} else if (resp.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
+			float f = static_cast<float>(std::atof(value));
+			float min = resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>();
+			float max = resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>();
+
+			if (f >= min &&  f <= max) {
+				req.value.to<uavcan::protocol::param::Value::Tag::real_value>() = f;
+
+			} else {
+				std::printf("Invalid value for: %s must be between %.4f and %.4f\n", name, static_cast<double>(min),
+					    static_cast<double>(max));
+				rv = -1;
+			}
+
+		} else if (resp.value.is(uavcan::protocol::param::Value::Tag::boolean_value)) {
+			int8_t i = (value[0] == '1' || value[0] == 't') ? 1 : 0;
+			req.value.to<uavcan::protocol::param::Value::Tag::boolean_value>() = i;
+
+		} else if (resp.value.is(uavcan::protocol::param::Value::Tag::string_value)) {
+			req.value.to<uavcan::protocol::param::Value::Tag::string_value>() = value;
+		}
+
+		if (rv == 0) {
+			rv = get_set_param(remote_node_id, name, req);
+
+			if (rv < 0 || resp.name.empty()) {
+				std::printf("Failed to set param: %s\n", name);
+				return -1;
+			}
+
+			return 0;
+		}
+	}
+
+	free_setget_response();
+	return rv;
+}
+
+int  UavcanNode::get_param(int remote_node_id, const char *name)
+{
+	uavcan::protocol::param::GetSet::Request req;
+	uavcan::protocol::param::GetSet::Response resp;
+	set_setget_response(&resp);
+	int rv = get_set_param(remote_node_id, name, req);
+
+	if (rv < 0 || resp.name.empty()) {
+		std::printf("Failed to get param: %s\n", name);
+		rv = -1;
+
+	} else {
+		print_params(resp);
+		rv = 0;
+	}
+
+	free_setget_response();
+	return rv;
+}
+
 int UavcanNode::start_fw_server()
 {
 	int rv = -1;
@@ -208,7 +447,7 @@ int UavcanNode::start_fw_server()
 	}
 
 	_fw_server_action = None;
-	sem_post(&_server_command_sem);
+	px4_sem_post(&_server_command_sem);
 	return rv;
 }
 
@@ -224,7 +463,7 @@ int UavcanNode::request_fw_check()
 	}
 
 	_fw_server_action = None;
-	sem_post(&_server_command_sem);
+	px4_sem_post(&_server_command_sem);
 	return rv;
 
 }
@@ -248,7 +487,7 @@ int UavcanNode::stop_fw_server()
 	}
 
 	_fw_server_action = None;
-	sem_post(&_server_command_sem);
+	px4_sem_post(&_server_command_sem);
 	return rv;
 }
 
@@ -263,7 +502,7 @@ int UavcanNode::fw_server(eServerAction action)
 	case CheckFW:
 		if (_fw_server_action == None) {
 			_fw_server_action = action;
-			sem_wait(&_server_command_sem);
+			px4_sem_wait(&_server_command_sem);
 			rv = _fw_server_status;
 		}
 
@@ -291,8 +530,10 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
 	 * fail during initialization.
 	 */
+	#ifdef GPIO_CAN1_RX
 	stm32_configgpio(GPIO_CAN1_RX);
 	stm32_configgpio(GPIO_CAN1_TX);
+	#endif
 	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
 	stm32_configgpio(GPIO_CAN2_TX);
 
@@ -459,6 +700,48 @@ int UavcanNode::add_poll_fd(int fd)
 }
 
 
+void UavcanNode::handle_time_sync(const uavcan::TimerEvent &)
+{
+
+	/*
+	 * Check whether there are higher priority masters in the network.
+	 * If there are, we need to activate the local slave in order to sync with them.
+	 */
+	if (_time_sync_slave.isActive()) { // "Active" means that the slave tracks at least one remote master in the network
+		if (_node.getNodeID() < _time_sync_slave.getMasterNodeID()) {
+			/*
+			 * We're the highest priority master in the network.
+			 * We need to suppress the slave now to prevent it from picking up unwanted sync messages from
+			 * lower priority masters.
+			 */
+			_time_sync_slave.suppress(true);  // SUPPRESS
+
+		} else {
+			/*
+			 * There is at least one higher priority master in the network.
+			 * We need to allow the slave to adjust our local clock in order to be in sync.
+			 */
+			_time_sync_slave.suppress(false);  // UNSUPPRESS
+		}
+
+	} else {
+		/*
+		 * There are no other time sync masters in the network, so we're the only time source.
+		 * The slave must be suppressed anyway to prevent it from disrupting the local clock if a new
+		 * lower priority master suddenly appears in the network.
+		 */
+		_time_sync_slave.suppress(true);
+	}
+
+	/*
+	 * Publish the sync message now, even if we're not a higher priority master.
+	 * Other nodes will be able to pick the right master anyway.
+	 */
+	_time_sync_master.publish();
+}
+
+
+
 int UavcanNode::run()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
@@ -471,6 +754,28 @@ int UavcanNode::run()
 	_actuator_direct_sub = orb_subscribe(ORB_ID(actuator_direct));
 
 	memset(&_outputs, 0, sizeof(_outputs));
+
+	/*
+	 * Set up the time synchronization
+	 */
+
+	const int slave_init_res = _time_sync_slave.start();
+
+	if (slave_init_res < 0) {
+		warnx("Failed to start time_sync_slave");
+		_task_should_exit = true;
+	}
+
+	/* When we have a system wide notion of time update (i.e the transition from the initial
+	 * System RTC setting to the GPS) we would call uavcan_stm32::clock::setUtc() when that
+	 * happens, but for now we use adjustUtc with a correction of the hrt so that the
+	 * time bases are the same
+	 */
+	uavcan_stm32::clock::adjustUtc(uavcan::UtcDuration::fromUSec(hrt_absolute_time()));
+	_master_timer.setCallback(TimerCallback(this, &UavcanNode::handle_time_sync));
+	_master_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000));
+
+
 
 	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
 
@@ -678,7 +983,7 @@ UavcanNode::control_callback(uintptr_t handle, uint8_t control_group, uint8_t co
 int
 UavcanNode::teardown()
 {
-	sem_post(&_server_command_sem);
+	px4_sem_post(&_server_command_sem);
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
@@ -870,7 +1175,7 @@ UavcanNode::print_info()
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start [fw]|status|stop [all|fw]|arm|disarm|update fw}");
+	      "\tuavcan {start [fw]|status|stop [all|fw]|arm|disarm|update fw|param [set|get|list|save] nodeid [name] [value]|reset nodeid}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -954,6 +1259,60 @@ int uavcan_main(int argc, char *argv[])
 	if (!std::strcmp(argv[1], "disarm")) {
 		inst->arm_actuators(false);
 		::exit(0);
+	}
+
+	/*
+	 * Parameter setting commands
+	 *
+	 *  uavcan param list <node>
+	 *  uavcan param save <node>
+	 *  uavcan param get <node> <name>
+	 *  uavcan param set <node> <name> <value>
+	 *
+	 */
+	int node_arg = !std::strcmp(argv[1], "reset") ? 2 : 3;
+
+	if (!std::strcmp(argv[1], "param") || node_arg == 2) {
+		if (argc < node_arg + 1) {
+			errx(1, "Node id required");
+		}
+
+		int nodeid = atoi(argv[node_arg]);
+
+		if (nodeid  == 0 || nodeid  > 127 || nodeid  == inst->get_node().getNodeID().get()) {
+			errx(1, "Invalid Node id");
+		}
+
+		if (node_arg == 2) {
+
+			return inst->reset_node(nodeid);
+
+		} else if (!std::strcmp(argv[2], "list")) {
+
+			return inst->list_params(nodeid);
+
+		} else if (!std::strcmp(argv[2], "save")) {
+
+			return inst->save_params(nodeid);
+
+		} else if (!std::strcmp(argv[2], "get")) {
+			if (argc < 5) {
+				errx(1, "Name required");
+			}
+
+			return inst->get_param(nodeid, argv[4]);
+
+		} else if (!std::strcmp(argv[2], "set")) {
+			if (argc < 5) {
+				errx(1, "Name required");
+			}
+
+			if (argc < 6) {
+				errx(1, "Value required");
+			}
+
+			return inst->set_param(nodeid, argv[4], argv[5]);
+		}
 	}
 
 	if (!std::strcmp(argv[1], "stop")) {

@@ -151,7 +151,7 @@ class SourceParser(object):
         Returns list of supported file extensions that can be parsed by this
         parser. The parser uses any extension.
         """
-        return [""]
+        return ["", ".hil"]
 
     def Parse(self, path, contents):
         """

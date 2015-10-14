@@ -100,6 +100,7 @@ private:
 	int _prev_best;		/**< the previous best index */
 	uint64_t _first_failover_time;	/**< timestamp where the first failover occured or zero if none occured */
 	unsigned _toggle_count;		/**< number of back and forth switches between two sensors */
+	static constexpr float MIN_REGULAR_CONFIDENCE = 0.9f;
 
 	/* we don't want this class to be copied */
 	DataValidatorGroup(const DataValidatorGroup&);

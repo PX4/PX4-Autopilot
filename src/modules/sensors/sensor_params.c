@@ -1807,36 +1807,12 @@ PARAM_DEFINE_INT32(RC_DSM_BIND, -1);
  */
 PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 /**
  * Scaling factor for battery voltage sensor on FMU v2.
  *
- * @board CONFIG_ARCH_BOARD_PX4FMU_V2
  * @group Battery Calibration
  */
-PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
-#elif CONFIG_ARCH_BOARD_AEROCORE
-/**
- * Scaling factor for battery voltage sensor on AeroCore.
- *
- * For R70 = 133K, R71 = 10K --> scale = 1.8 * 143 / (4096*10) = 0.0063
- *
- * @board CONFIG_ARCH_BOARD_AEROCORE
- * @group Battery Calibration
- */
-PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0063f);
-#else
-/**
- * Scaling factor for battery voltage sensor on FMU v1.
- *
- * FMUv1 standalone: 1/(10 / (47+10)) * (3.3 / 4095) = 0.00459340659
- * FMUv1 with PX4IO: 0.00459340659
- * FMUv1 with PX4IOAR: (3.3f * 52.0f / 5.0f / 4095.0f) = 0.00838095238
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.00459340659f);
-#endif
+PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
 
 /**
  * Scaling factor for battery current sensor.

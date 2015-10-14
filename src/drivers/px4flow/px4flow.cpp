@@ -216,6 +216,10 @@ PX4FLOW::~PX4FLOW()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
+
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int

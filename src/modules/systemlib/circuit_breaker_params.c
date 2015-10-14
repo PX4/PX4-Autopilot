@@ -42,8 +42,6 @@
  * parameter needs to set to the key (magic).
  */
 
-#include <px4.h>
-
 /**
  * Circuit breaker for power supply check
  *

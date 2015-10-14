@@ -45,6 +45,7 @@
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_time.h>
+#include <px4_tasks.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,9 +58,6 @@
 #include <systemlib/err.h>
 #include <systemlib/circuit_breaker.h>
 //#include <debug.h>
-#ifndef __PX4_QURT
-#include <sys/prctl.h>
-#endif
 #include <sys/stat.h>
 #include <string.h>
 #include <math.h>
@@ -197,6 +195,13 @@ static struct offboard_control_mode_s offboard_control_mode;
 static struct home_position_s _home;
 
 static unsigned _last_mission_instance = 0;
+static uint64_t last_manual_input = 0;
+static switch_pos_t last_offboard_switch = 0;
+static switch_pos_t last_return_switch = 0;
+static switch_pos_t last_mode_switch = 0;
+static switch_pos_t last_acro_switch = 0;
+static switch_pos_t last_posctl_switch = 0;
+static switch_pos_t last_loiter_switch = 0;
 
 struct vtol_vehicle_status_s vtol_status;
 
@@ -410,7 +415,8 @@ void usage(const char *reason)
 void print_status()
 {
 	warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
-	warnx("usb powered: %s", (status.usb_connected) ? "yes" : "no");
+	warnx("power: USB: %s, BRICK: %s", (status.usb_connected) ? "[OK]" : "[NO]",
+		(status.condition_power_input_valid) ? " [OK]" : "[NO]");
 	warnx("avionics rail: %6.2f V", (double)status.avionics_power_rail_voltage);
 	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", _home.lat, _home.lon, (double)_home.alt);
 	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
@@ -587,6 +593,14 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 			} else {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+
+				if (arming_ret == TRANSITION_DENIED) {
+					mavlink_log_critical(mavlink_fd, "Rejecting arming cmd");
+				}
+
+				if (main_ret == TRANSITION_DENIED) {
+					mavlink_log_critical(mavlink_fd, "Rejecting mode switch cmd");
+				}
 			}
 		}
 		break;
@@ -911,16 +925,16 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_eph = param_find("COM_HOME_H_T");
 	param_t _param_epv = param_find("COM_HOME_V_T");
 
-	const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
-	main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
-	main_states_str[vehicle_status_s::MAIN_STATE_ALTCTL]			= "ALTCTL";
-	main_states_str[vehicle_status_s::MAIN_STATE_POSCTL]			= "POSCTL";
-	main_states_str[vehicle_status_s::MAIN_STATE_AUTO_MISSION]		= "AUTO_MISSION";
-	main_states_str[vehicle_status_s::MAIN_STATE_AUTO_LOITER]			= "AUTO_LOITER";
-	main_states_str[vehicle_status_s::MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
-	main_states_str[vehicle_status_s::MAIN_STATE_ACRO]			= "ACRO";
-	main_states_str[vehicle_status_s::MAIN_STATE_STAB]			= "STAB";
-	main_states_str[vehicle_status_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
+	// const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
+	// main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
+	// main_states_str[vehicle_status_s::MAIN_STATE_ALTCTL]			= "ALTCTL";
+	// main_states_str[vehicle_status_s::MAIN_STATE_POSCTL]			= "POSCTL";
+	// main_states_str[vehicle_status_s::MAIN_STATE_AUTO_MISSION]		= "AUTO_MISSION";
+	// main_states_str[vehicle_status_s::MAIN_STATE_AUTO_LOITER]			= "AUTO_LOITER";
+	// main_states_str[vehicle_status_s::MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
+	// main_states_str[vehicle_status_s::MAIN_STATE_ACRO]			= "ACRO";
+	// main_states_str[vehicle_status_s::MAIN_STATE_STAB]			= "STAB";
+	// main_states_str[vehicle_status_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
 
 	const char *arming_states_str[vehicle_status_s::ARMING_STATE_MAX];
 	arming_states_str[vehicle_status_s::ARMING_STATE_INIT]			= "INIT";
@@ -1222,13 +1236,13 @@ int commander_thread_main(int argc, char *argv[])
 	// Run preflight check
 	int32_t rc_in_off = 0;
 	param_get(_param_autostart_id, &autostart_id);
+	param_get(_param_rc_in_off, &rc_in_off);
+	status.rc_input_mode = rc_in_off;
 	if (is_hil_setup(autostart_id)) {
 		// HIL configuration selected: real sensors will be disabled
 		status.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	} else {
-		param_get(_param_rc_in_off, &rc_in_off);
-			status.rc_input_mode = rc_in_off;
 		status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true,
 			checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status.circuit_breaker_engaged_gpsfailure_check);
 		if (!status.condition_system_sensors_initialized) {
@@ -1745,6 +1759,9 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (arming_ret == TRANSITION_CHANGED) {
 				arming_state_changed = true;
+			} else if (arming_ret == TRANSITION_DENIED) {
+				/* do not complain if not allowed into standby */
+				arming_ret = TRANSITION_NOT_CHANGED;
 			}
 
 		}
@@ -1885,7 +1902,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSIST mode and landed) -> disarm
 			 * do it only for rotary wings */
-			if (status.is_rotary_wing &&
+			if (status.is_rotary_wing && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 			    (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) &&
 			    (status.main_state == vehicle_status_s::MAIN_STATE_MANUAL ||
 			    	status.main_state == vehicle_status_s::MAIN_STATE_ACRO ||
@@ -1915,7 +1932,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
-			if (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
+			if (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF ) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 
 					/* we check outside of the transition function here because the requirement
@@ -1932,9 +1949,9 @@ int commander_thread_main(int argc, char *argv[])
 
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
+						} else {
+							print_reject_arm("NOT ARMING: Configuration error");
 						}
-					} else {
-						print_reject_arm("NOT ARMING: Configuration error");
 					}
 
 					stick_on_counter = 0;
@@ -2184,7 +2201,6 @@ int commander_thread_main(int argc, char *argv[])
 		// TODO handle mode changes by commands
 		if (main_state_changed || nav_state_changed) {
 			status_changed = true;
-			warnx("main state: %s nav state: %s", main_states_str[status.main_state], nav_states_str[status.nav_state]);
 			mavlink_log_info(mavlink_fd, "Flight mode: %s", nav_states_str[status.nav_state]);
 			main_state_changed = false;
 		}
@@ -2357,7 +2373,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			} else if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
 				rgbled_set_color(RGBLED_COLOR_RED);
 			} else {
-				if (status_local->condition_global_position_valid) {
+				if (status_local->condition_home_position_valid) {
 					rgbled_set_color(RGBLED_COLOR_GREEN);
 
 				} else {
@@ -2412,6 +2428,27 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	if (status.offboard_control_set_by_command) {
 		return main_state_transition(status_local,vehicle_status_s::MAIN_STATE_OFFBOARD);
 	}
+
+	/* manual setpoint has not updated, do not re-evaluate it */
+	if ((last_manual_input == sp_man->timestamp) ||
+		((last_offboard_switch == sp_man->offboard_switch) &&
+		 (last_return_switch == sp_man->return_switch) &&
+		 (last_mode_switch == sp_man->mode_switch) &&
+		 (last_acro_switch == sp_man->acro_switch) &&
+		 (last_posctl_switch == sp_man->posctl_switch) &&
+		 (last_loiter_switch == sp_man->loiter_switch))) {
+
+		/* no timestamp change or no switch change -> nothing changed */
+		return TRANSITION_NOT_CHANGED;
+	}
+
+	last_manual_input = sp_man->timestamp;
+	last_offboard_switch = sp_man->offboard_switch;
+	last_return_switch = sp_man->return_switch;
+	last_mode_switch = sp_man->mode_switch;
+	last_acro_switch = sp_man->acro_switch;
+	last_posctl_switch = sp_man->posctl_switch;
+	last_loiter_switch = sp_man->loiter_switch;
 
 	/* offboard switch overrides main switch */
 	if (sp_man->offboard_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
@@ -2804,7 +2841,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result)
 
 void *commander_low_prio_loop(void *arg)
 {
-#ifndef __PX4_QURT
+#if defined(__PX4_LINUX) || defined(__PX4_NUTTX)
 	/* Set thread name */
 	prctl(PR_SET_NAME, "commander_low_prio", getpid());
 #endif

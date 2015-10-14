@@ -244,7 +244,7 @@ do_load(const char *param_file_name)
 	int fd = open(param_file_name, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open '%s'", param_file_name);
+		warn("open failed '%s'", param_file_name);
 		return 1;
 	}
 
@@ -431,10 +431,6 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 		return (fail_on_not_found) ? 1 : 0;
 	}
 
-	printf("%c %s: ",
-	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-	       param_name(param));
-
 	/*
 	 * Set parameter if type is known and conversion from string to value turns out fine
 	 */
@@ -447,10 +443,10 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 			char *end;
 			int32_t newval = strtol(val, &end, 10);
 
-			if (i == newval) {
-				printf("unchanged\n");
-
-			} else {
+			if (i != newval) {
+				printf("%c %s: ",
+				       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+				       param_name(param));
 				printf("curr: %ld", (long)i);
 				param_set(param, &newval);
 				printf(" -> new: %ld\n", (long)newval);
@@ -468,11 +464,11 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 
-			if (f == newval) {
+			if (f != newval) {
 #pragma GCC diagnostic pop
-				printf("unchanged\n");
-
-			} else {
+				printf("%c %s: ",
+				       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+				       param_name(param));
 				printf("curr: %4.4f", (double)f);
 				param_set(param, &newval);
 				printf(" -> new: %4.4f\n", (double)newval);
