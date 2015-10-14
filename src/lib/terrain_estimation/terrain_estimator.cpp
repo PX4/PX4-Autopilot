@@ -38,6 +38,8 @@
 
 #include "terrain_estimator.h"
 
+#define DISTANCE_TIMEOUT 100000		// time in usec after which laser is considered dead
+
 TerrainEstimator::TerrainEstimator() :
 	_distance_last(0.0f),
 	_terrain_valid(false),
@@ -100,9 +102,14 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	       B * R * B.transposed() + Q) * dt;
 }
 
-void TerrainEstimator::measurement_update(const struct vehicle_gps_position_s *gps, const struct distance_sensor_s *distance,
+void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicle_gps_position_s *gps, const struct distance_sensor_s *distance,
 				const struct vehicle_attitude_s *attitude)
 {
+	// terrain estimate is invalid if we have range sensor timeout
+	if (time_ref - distance->timestamp > DISTANCE_TIMEOUT) {
+		_terrain_valid = false;
+	}
+
 	if (distance->timestamp > _time_last_distance) {
 
 		float d = distance->current_distance;
