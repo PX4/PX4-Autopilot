@@ -50,7 +50,6 @@
 #include <controllib/block/BlockParam.hpp>
 #include <mavlink/mavlink_log.h>
 #include <mathlib/mathlib.h>
-#include <math.h>
 
 namespace runwaytakeoff
 {
@@ -105,6 +104,7 @@ private:
 	bool _climbout;
 	struct position_setpoint_s _start_sp;
 	struct position_setpoint_s _target_sp;
+	unsigned _throttle_ramp_time;
 
 	/** parameters **/
 	control::BlockParamInt _runway_takeoff_enabled;
