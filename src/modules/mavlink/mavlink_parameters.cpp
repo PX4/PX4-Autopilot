@@ -49,6 +49,7 @@
 
 ORB_DEFINE(uavcan_parameter_request, struct uavcan_parameter_request_s);
 ORB_DEFINE(uavcan_parameter_value, struct uavcan_parameter_value_s);
+#define HASH_PARAM "_HASH_CHECK"
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_send_all_index(-1),
@@ -163,13 +164,27 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 				/* when no index is given, loop through string ids and compare them */
 				if (req_read.param_index < 0) {
-					/* local name buffer to enforce null-terminated string */
-					char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1];
-					strncpy(name, req_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-					/* enforce null termination */
-					name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
-					/* attempt to find parameter and send it */
-					send_param(param_find_no_notification(name));
+					if (strncmp(req_read.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN) == 0) {
+						/* return hash check for cached params */
+						uint32_t hash = param_hash_check();
+
+						/* build the one-off response message */
+						mavlink_param_value_t msg;
+						msg.param_count = param_count_used();
+						msg.param_index = -1;
+						strncpy(msg.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+						msg.param_type = MAV_PARAM_TYPE_UINT32;
+						memcpy(&msg.param_value, &hash, sizeof(hash));
+						_mavlink->send_message(MAVLINK_MSG_ID_PARAM_VALUE, &msg);
+					} else {
+						/* local name buffer to enforce null-terminated string */
+						char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1];
+						strncpy(name, req_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+						/* enforce null termination */
+						name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
+						/* attempt to find parameter and send it */
+						send_param(param_find_no_notification(name));
+					}
 
 				} else {
 					/* when index is >= 0, send this parameter again */

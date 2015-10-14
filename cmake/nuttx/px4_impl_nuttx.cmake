@@ -213,7 +213,9 @@ function(px4_nuttx_add_export)
 	# copy
 	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
 		COMMAND ${MKDIR} -p ${CMAKE_BINARY_DIR}/${CONFIG}
-		COMMAND rsync -a --exclude=.git ${CMAKE_SOURCE_DIR}/NuttX/ ${nuttx_src}/
+		COMMAND ${MKDIR} -p ${nuttx_src}
+		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
+		COMMAND ${RM} -rf ${nuttx_src}/.git
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS})
 	add_custom_target(__nuttx_copy_${CONFIG}
@@ -227,7 +229,7 @@ function(px4_nuttx_add_export)
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
 		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/nsh
 		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
-		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export
+		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > /dev/null
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
 		DEPENDS ${config_files} ${DEPENDS} __nuttx_copy_${CONFIG})
 
@@ -347,6 +349,7 @@ function(px4_nuttx_add_romfs)
 		#COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND ${PYTHON_EXECUTABLE} ${bin_to_obj}
 			--ld ${LD} --c_flags ${CMAKE_C_FLAGS}
+			--include_path "${CMAKE_SOURCE_DIR}/src/include"
 			--c_compiler ${CMAKE_C_COMPILER}
 			--nm ${NM} --objcopy ${OBJCOPY}
 			--obj romfs.o

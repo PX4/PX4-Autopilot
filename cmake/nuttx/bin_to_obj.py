@@ -12,6 +12,7 @@ from subprocess import PIPE
 parser = argparse.ArgumentParser(description='Convert bin to obj.')
 parser.add_argument('--c_flags', required=True)
 parser.add_argument('--c_compiler', required=True)
+parser.add_argument('--include_path', required=True)
 parser.add_argument('--nm', required=True)
 parser.add_argument('--ld', required=True)
 parser.add_argument('--objcopy', required=True)
@@ -23,6 +24,7 @@ args = parser.parse_args()
 in_bin = args.bin
 c_flags = args.c_flags
 c_compiler = args.c_compiler
+include_path = args.include_path
 nm = args.nm
 ld = args.ld
 obj = args.obj
@@ -46,7 +48,7 @@ def run_cmd(cmd, d):
     return stdout
 
 # do compile
-run_cmd("{c_compiler:s} {c_flags:s} -c {obj:s}.c -o {obj:s}.c.o",
+run_cmd("{c_compiler:s} -I{include_path:s} {c_flags:s} -c {obj:s}.c -o {obj:s}.c.o",
         locals())
 
 # link
@@ -55,9 +57,10 @@ run_cmd("{ld:s} -r -o {obj:s}.bin.o {obj:s}.c.o -b binary {in_bin:s}",
 
 # get size of image
 stdout = run_cmd("{nm:s} -p --radix=x {obj:s}.bin.o", locals())
-re_string = r"^([0-9A-F-a-f]+) .*{sym:s}_size\n".format(**locals())
+re_string = r"^([0-9A-Fa-f]+) .*{sym:s}_size".format(**locals())
 re_size = re.compile(re_string, re.MULTILINE)
 size_match = re.search(re_size, stdout.decode())
+
 try:
     size = size_match.group(1)
 except AttributeError as e:
@@ -76,7 +79,7 @@ with open('{obj:s}.c'.format(**locals()), 'w') as f:
         **locals()))
 
 # do compile
-run_cmd("{c_compiler:s} {c_flags:s} -c {obj:s}.c -o {obj:s}.c.o",
+run_cmd("{c_compiler:s} -I{include_path:s} {c_flags:s} -c {obj:s}.c -o {obj:s}.c.o",
         locals())
 
 # link

@@ -4,8 +4,8 @@
 [submodule "NuttX"]
 	path = NuttX
 	url = git://github.com/PX4/NuttX.git
-[submodule "src/lib/uavcan"]
-	path = src/lib/uavcan
+[submodule "src/modules/uavcan/libuavcan"]
+	path = src/modules/uavcan/libuavcan
 	url = git://github.com/UAVCAN/libuavcan.git
 [submodule "Tools/genmsg"]
 	path = Tools/genmsg
