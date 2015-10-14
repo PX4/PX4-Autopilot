@@ -19,7 +19,7 @@
 
 struct TestNode : public uavcan::INode
 {
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 1024, uavcan::MemPoolBlockSize> pool;
     uavcan::OutgoingTransferRegistry otr;
     uavcan::Scheduler scheduler;
     uint64_t internal_failure_count;
