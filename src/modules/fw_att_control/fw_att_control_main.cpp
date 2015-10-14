@@ -421,7 +421,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
 
 	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
-	_parameter_handles.flaperon_scale = param_find("FW_FLAPERONS_SCL");
+	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
 
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
@@ -823,7 +823,7 @@ FixedwingAttitudeControl::task_main()
 
 			/* map flaps by default to manual if valid */
 			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled) {
-				flaps_control = _manual.flaps * _parameters.flaps_scale;
+				flaps_control = 0.5f * (_manual.flaps + 1.0f ) * _parameters.flaps_scale;
 			} else if (_vcontrol_mode.flag_control_auto_enabled) {
 				flaps_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
 			}
@@ -833,7 +833,7 @@ FixedwingAttitudeControl::task_main()
 
 			/* map flaperons by default to manual if valid */
 			if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled) {
-				flaperon = _manual.aux2 * _parameters.flaperon_scale;
+				flaperon = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
 			} else if (_vcontrol_mode.flag_control_auto_enabled) {
 				flaperon = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
 			}
