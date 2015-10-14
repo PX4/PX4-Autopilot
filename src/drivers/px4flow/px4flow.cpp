@@ -77,11 +77,13 @@
 
 #include <board_config.h>
 
+#include "i2c_frame.h"
+
 /* Configuration Constants */
 #define I2C_FLOW_ADDRESS 		0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
 
 /* PX4FLOW Registers addresses */
-#define PX4FLOW_REG			0x16	///< Measure Register 22
+#define PX4FLOW_REG			I2C_FRAME_SIZE	///< Measure Register
 
 #define PX4FLOW_CONVERSION_INTERVAL	100000	///< in microseconds! 20000 = 50 Hz 100000 = 10Hz
 #define PX4FLOW_I2C_MAX_BUS_SPEED	400000	///< 400 KHz maximum speed
@@ -98,8 +100,6 @@ static const int ERROR = -1;
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
-
-#include "i2c_frame.h"
 
 struct i2c_frame f;
 struct i2c_integral_frame f_integral;
@@ -269,7 +269,7 @@ PX4FLOW::probe()
 	// 0x42) we check if a I2C_FRAME_SIZE byte transfer works from address
 	// 0. The ll40ls gives an error for that, whereas the flow
 	// happily returns some data
-	if (transfer(nullptr, 0, &val[0], 22) != OK) {
+	if (transfer(nullptr, 0, &val[0], I2C_FRAME_SIZE) != OK) {
 		return -EIO;
 	}
 
@@ -479,7 +479,7 @@ PX4FLOW::collect()
 		ret = transfer(nullptr, 0, &val[0], I2C_FRAME_SIZE + I2C_INTEGRAL_FRAME_SIZE);
 	}
 
-	if (PX4FLOW_REG == 0x16) {
+	if (PX4FLOW_REG == I2C_FRAME_SIZE) {
 		ret = transfer(nullptr, 0, &val[0], I2C_INTEGRAL_FRAME_SIZE);
 	}
 
@@ -495,7 +495,7 @@ PX4FLOW::collect()
 		memcpy(&f_integral, &(val[I2C_FRAME_SIZE]), I2C_INTEGRAL_FRAME_SIZE);
 	}
 
-	if (PX4FLOW_REG == 0x16) {
+	if (PX4FLOW_REG == I2C_FRAME_SIZE) {
 		memcpy(&f_integral, val, I2C_INTEGRAL_FRAME_SIZE);
 	}
 
