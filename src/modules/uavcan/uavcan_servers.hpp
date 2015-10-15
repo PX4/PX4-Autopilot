@@ -42,16 +42,20 @@
 #include <uavcan/node/sub_node.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
 
-# include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
-# include <uavcan/protocol/node_info_retriever.hpp>
-# include <uavcan_posix/basic_file_server_backend.hpp>
-# include <uavcan/protocol/firmware_update_trigger.hpp>
-# include <uavcan/protocol/file_server.hpp>
-# include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
-# include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
-# include <uavcan_posix/firmware_version_checker.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
+#include <uavcan/protocol/node_info_retriever.hpp>
+#include <uavcan_posix/basic_file_server_backend.hpp>
+#include <uavcan/protocol/firmware_update_trigger.hpp>
+#include <uavcan/protocol/file_server.hpp>
+#include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
+#include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
+#include <uavcan_posix/firmware_version_checker.hpp>
+#include <uavcan/equipment/esc/RawCommand.hpp>
+#include <uavcan/equipment/indication/BeepCommand.hpp>
+#include <uavcan/protocol/enumeration/Begin.hpp>
+#include <uavcan/protocol/enumeration/Indication.hpp>
 
-# include "uavcan_virtual_can_driver.hpp"
+#include "uavcan_virtual_can_driver.hpp"
 
 /**
  * @file uavcan_servers.hpp
@@ -65,6 +69,9 @@
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
 #define UAVCAN_NODE_DB_PATH     "/fs/microsd/uavcan.db"
 #define UAVCAN_FIRMWARE_PATH    "/fs/microsd/fw"
+#define UAVCAN_ROMFS_FW_PATH "/etc/uavcan/fw"
+#define UAVCAN_ROMFS_FW_PREFIX "romfs_"
+#define UAVCAN_MAX_PATH_LENGTH (128 + 40)
 #define UAVCAN_LOG_FILE         UAVCAN_NODE_DB_PATH"/trace.log"
 
 /**
@@ -88,7 +95,7 @@ class UavcanServers
 	static constexpr unsigned QueuePoolSize =
 		(NumIfaces * uavcan::MemPoolBlockSize * MaxCanFramesPerTransfer);
 
-	static constexpr unsigned StackSize  = 3500;
+	static constexpr unsigned StackSize  = 6000;
 	static constexpr unsigned Priority  =  120;
 
 	typedef uavcan::SubNode<MemPoolSize> SubNode;
@@ -140,7 +147,84 @@ private:
 	uavcan::FirmwareUpdateTrigger   _fw_upgrade_trigger;
 	uavcan::BasicFileServer         _fw_server;
 
+	/*
+	 * The MAVLink parameter bridge needs to know the maximum parameter index
+	 * of each node so that clients can determine when parameter listings have
+	 * finished. We do that by querying a node's entire parameter set whenever
+	 * a parameter message is received for a node with a zero _param_count,
+	 * and storing the count here. If a node doesn't respond, or doesn't have
+	 * any parameters, its count will stay at zero and we'll try to query the
+	 * set again next time.
+	 *
+	 * The node's UAVCAN ID is used as the index into the _param_counts array.
+	 */
+	uint8_t _param_counts[128];
+	bool _count_in_progress;
+	uint8_t _count_index;
+
+	bool _param_in_progress;
+	uint8_t _param_index;
+	bool _param_list_in_progress;
+	bool _param_list_all_nodes;
+	uint8_t _param_list_node_id;
+
+	uint32_t _param_dirty_bitmap[4];
+	uint8_t _param_save_opcode;
+
+	bool _cmd_in_progress;
+
+	// uORB topic handle for MAVLink parameter responses
+	orb_advert_t _param_response_pub;
+
+	typedef uavcan::MethodBinder<UavcanServers *,
+		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
+	typedef uavcan::MethodBinder<UavcanServers *,
+		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &)> ExecuteOpcodeCallback;
+	typedef uavcan::MethodBinder<UavcanServers *,
+		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &)> RestartNodeCallback;
+	void cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+	void cb_count(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+	void cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
+	void cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result);
+
+	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCallback> _param_getset_client;
+	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> _param_opcode_client;
+	uavcan::ServiceClient<uavcan::protocol::RestartNode, RestartNodeCallback> _param_restartnode_client;
+	void param_count(uavcan::NodeID node_id);
+	void param_opcode(uavcan::NodeID node_id);
+
+	uint8_t get_next_active_node_id(uint8_t base);
+	uint8_t get_next_dirty_node_id(uint8_t base);
+	void set_node_params_dirty(uint8_t node_id) { _param_dirty_bitmap[node_id >> 5] |= 1 << (node_id & 31); }
+	void clear_node_params_dirty(uint8_t node_id) { _param_dirty_bitmap[node_id >> 5] &= ~(1 << (node_id & 31)); }
+	bool are_node_params_dirty(uint8_t node_id) const { return bool((_param_dirty_bitmap[node_id >> 5] >> (node_id & 31)) & 1); }
+
 	bool _mutex_inited;
 	volatile bool _check_fw;
 
+	// ESC enumeration
+	bool _esc_enumeration_active;
+	uint8_t _esc_enumeration_ids[uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize];
+	uint8_t _esc_enumeration_index;
+	uint8_t _esc_set_index;
+	uint8_t _esc_count;
+
+	typedef uavcan::MethodBinder<UavcanServers *,
+		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::enumeration::Begin> &)> EnumerationBeginCallback;
+	typedef uavcan::MethodBinder<UavcanServers *,
+		void (UavcanServers::*)(const uavcan::ReceivedDataStructure<uavcan::protocol::enumeration::Indication>&)>
+		EnumerationIndicationCallback;
+	void cb_enumeration_begin(const uavcan::ServiceCallResult<uavcan::protocol::enumeration::Begin> &result);
+	void cb_enumeration_indication(const uavcan::ReceivedDataStructure<uavcan::protocol::enumeration::Indication> &msg);
+	void cb_enumeration_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+	void cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
+
+	uavcan::Publisher<uavcan::equipment::indication::BeepCommand> _beep_pub;
+	uavcan::Subscriber<uavcan::protocol::enumeration::Indication, EnumerationIndicationCallback> _enumeration_indication_sub;
+	uavcan::ServiceClient<uavcan::protocol::enumeration::Begin, EnumerationBeginCallback> _enumeration_client;
+	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCallback> _enumeration_getset_client;
+	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> _enumeration_save_client;
+
+	void unpackFwFromROMFS(const char* sd_path, const char* romfs_path);
+	int copyFw(const char* dst, const char* src);
 };

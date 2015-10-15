@@ -39,11 +39,9 @@ px4_add_module(
 		-Os
 	SRCS
 		fw_pos_control_l1_main.cpp
-		fw_pos_control_l1_params.c
 		landingslope.cpp
 		mtecs/mTecs.cpp
 		mtecs/limitoverride.cpp
-		mtecs/mTecs_params.c
 	DEPENDS
 		platforms__common
 		lib__external_lgpl

@@ -24,11 +24,16 @@ for index,m in enumerate(raw_messages):
 			if ('float32[' in line.split(' ')[0]):
 				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
 				temp_list.append(("float_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
-			if ('uint64[' in line.split(' ')[0]):
+			elif ('float64[' in line.split(' ')[0]):
+				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
+				temp_list.append(("double_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
+			elif ('uint64[' in line.split(' ')[0]):
 				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
 				temp_list.append(("uint64_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
 			elif(line.split(' ')[0] == "float32"):
 				temp_list.append(("float",line.split(' ')[1].split('\t')[0].split('\n')[0]))
+			elif(line.split(' ')[0] == "float64"):
+				temp_list.append(("double",line.split(' ')[1].split('\t')[0].split('\n')[0]))
 			elif(line.split(' ')[0] == "uint64") and len(line.split('=')) == 1:
 				temp_list.append(("uint64",line.split(' ')[1].split('\t')[0].split('\n')[0]))
 			elif(line.split(' ')[0] == "uint32") and len(line.split('=')) == 1:
@@ -114,6 +119,10 @@ print("""
 #define PRIu64 "llu"
 #endif
 
+#ifndef PRI64
+#define PRI64 "lld"
+#endif
+
 """)
 for m in messages:
 	print("#include <uORB/topics/%s.h>" % m)
@@ -151,11 +160,19 @@ for index,m in enumerate(messages[1:]):
 	print("\t\t\torb_copy(ID,sub,&container);")
 	for item in message_elements[index+1]:
 		if item[0] == "float":
-			print("\t\t\tprintf(\"%s: %%f\\n\",(double)container.%s);" % (item[1], item[1]))
+			print("\t\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
 		elif item[0] == "float_array":
 			print("\t\t\tprintf(\"%s: \");" % item[1])
 			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\t\tprintf(\"%%f \",(double)container.%s[j]);" % item[1])
+			print("\t\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);" % item[1])
+			print("\t\t\t}")
+			print("\t\t\tprintf(\"\\n\");")
+		elif item[0] == "double":
+			print("\t\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
+		elif item[0] == "double_array":
+			print("\t\t\tprintf(\"%s: \");" % item[1])
+			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
+			print("\t\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);" % item[1])
 			print("\t\t\t}")
 			print("\t\t\tprintf(\"\\n\");")
 		elif item[0] == "uint64":

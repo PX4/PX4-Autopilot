@@ -802,6 +802,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE:
+	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_UAVCAN:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:

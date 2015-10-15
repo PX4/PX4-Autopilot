@@ -40,7 +40,6 @@ px4_add_module(
 		-O3
 	SRCS
 		sensors.cpp
-		sensor_params.c
 	DEPENDS
 		platforms__common
 	)

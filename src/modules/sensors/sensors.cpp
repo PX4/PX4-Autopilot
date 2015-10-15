@@ -1412,6 +1412,8 @@ Sensors::parameter_update_poll(bool forced)
 				(void)sprintf(str, "CAL_MAG%u_ID", i);
 				int device_id;
 				failed = failed || (OK != param_get(param_find(str), &device_id));
+				(void)sprintf(str, "CAL_MAG%u_ROT", i);
+				(void)param_find(str);
 
 				if (failed) {
 					px4_close(fd);
@@ -2020,6 +2022,11 @@ Sensors::task_main()
 	 * do subscriptions
 	 */
 
+	unsigned gcount_prev = _gyro_count;
+	unsigned mcount_prev = _mag_count;
+	unsigned acount_prev = _accel_count;
+	unsigned bcount_prev = _baro_count;
+
 	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
 		&raw.gyro_priority[0], &raw.gyro_errcount[0]);
 
@@ -2031,6 +2038,15 @@ Sensors::task_main()
 
 	_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
 		&raw.baro_priority[0], &raw.baro_errcount[0]);
+
+	if (gcount_prev != _gyro_count ||
+	    mcount_prev != _mag_count ||
+	    acount_prev != _accel_count ||
+	    bcount_prev != _baro_count) {
+
+		/* reload calibration params */
+		parameter_update_poll(true);
+	}
 
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
