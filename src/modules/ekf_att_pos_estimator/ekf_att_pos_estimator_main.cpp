@@ -1267,7 +1267,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		} else {
 			_ekf->dVelIMU.x = 0.5f * (_ekf->accel.x + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 0]);
 			_ekf->dVelIMU.y = 0.5f * (_ekf->accel.y + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 1]);
-			_ekf->dVelIMU.z = 0.5f * (_ekf->accel.z + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 2]) + 9.80665f;
+			_ekf->dVelIMU.z = 0.5f * (_ekf->accel.z + _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 2]);
 		}
 
 		_ekf->accel.x = _sensor_combined.accelerometer_m_s2[_accel_main * 3 + 0];
