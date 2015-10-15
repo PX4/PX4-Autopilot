@@ -6,17 +6,13 @@
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <malloc.h>
 
-inline bool atomicCompareAndSwap(void** address, void* expected, void* replacement)
-{
-    return __sync_bool_compare_and_swap(address, expected, replacement);
-}
 
 TEST(HeapBasedPoolAllocator, Basic)
 {
     std::cout << ">>> HEAP BEFORE:" << std::endl;
     malloc_stats();
 
-    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, atomicCompareAndSwap> al(64);
+    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize> al(64);
 
     ASSERT_EQ(0, al.getNumCachedBlocks());
 
@@ -63,25 +59,22 @@ TEST(HeapBasedPoolAllocator, Basic)
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
 #include <thread>
+#include <mutex>
 
-inline bool atomicCompareAndSwapWithRescheduling(void** address, void* expected, void* replacement)
+struct RaiiSynchronizer
 {
-    /*
-     * Yield is added for testing reasons, making CAS failure more likely
-     */
-    if ((float(std::rand()) / float(RAND_MAX)) < 0.05)
-    {
-        std::this_thread::yield();
-    }
-    return __sync_bool_compare_and_swap(address, expected, replacement);
-}
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> guard{mutex};
+};
+
+std::mutex RaiiSynchronizer::mutex;
 
 TEST(HeapBasedPoolAllocator, Concurrency)
 {
     std::cout << ">>> HEAP BEFORE:" << std::endl;
     malloc_stats();
 
-    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, atomicCompareAndSwapWithRescheduling> al(1);
+    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, RaiiSynchronizer> al(1);
 
     volatile bool terminate = false;
 

@@ -18,25 +18,9 @@ namespace uavcan
  *  - Call @ref shrink() - this method frees all blocks that are unused at the moment.
  *  - Destroy the object - the desctructor calls @ref shrink().
  *
- * All operations are thread-safe, the safety is obtained through the standard atomic compare-and-swap operator (CAS).
- * If thread safety is not required, the CAS operator can be replaced with a dummy version that simply performs the
- * assignment without any checks.
- * If thread safety is required, but the hardware does not support atomic exchange operations, CAS can be emulated
- * with a mutex or a critical section roughly as follows:
- *
- *     bool softwareAtomicCompareAndSwap(void** address, void* expected, void* replacement)
- *     {
- *         RaiiSynchronizationPrimitive lock;
- *         if (*address != expected)
- *         {
- *             return false;
- *         }
- *         *address = replacement;
- *         return true;
- *     }
+ * TODO: notes on thread-safety.
  */
-template <std::size_t BlockSize,
-          bool (*AtomicCompareAndSwap)(void** address, void* expected, void* replacement)>
+template <std::size_t BlockSize, typename RaiiSynchronizer = char>
 class UAVCAN_EXPORT HeapBasedPoolAllocator : public IPoolAllocator, Noncopyable
 {
     union Node
@@ -53,21 +37,22 @@ class UAVCAN_EXPORT HeapBasedPoolAllocator : public IPoolAllocator, Noncopyable
 
     Node* popCache()
     {
-        // http://www.ibm.com/developerworks/aix/library/au-multithreaded_structures2/
-        for (;;)
+        RaiiSynchronizer lock;
+        (void)lock;
+        Node* const p = cache_;
+        if (p != NULL)
         {
-            Node* volatile const result = cache_;
-            if (result == NULL)
-            {
-                break;
-            }
-            if ((cache_ != NULL) &&
-                AtomicCompareAndSwap(reinterpret_cast<void**>(const_cast<Node**>(&cache_)), result, result->next))
-            {
-                return result;
-            }
+            cache_ = cache_->next;
         }
-        return NULL;
+        return p;
+    }
+
+    void pushCache(Node* node)
+    {
+        RaiiSynchronizer lock;
+        (void)lock;
+        node->next = cache_;
+        cache_ = node;
     }
 
 public:
@@ -111,17 +96,10 @@ public:
      */
     virtual void deallocate(const void* ptr)
     {
-        if (ptr == NULL)
+        if (ptr != NULL)
         {
-            return;
+            pushCache(static_cast<Node*>(const_cast<void*>(ptr)));
         }
-
-        Node* volatile const n = static_cast<Node*>(const_cast<void*>(ptr));
-        do
-        {
-            n->next = cache_;
-        }
-        while (!AtomicCompareAndSwap(reinterpret_cast<void**>(const_cast<Node**>(&cache_)), n->next, n));
     }
 
     /**
