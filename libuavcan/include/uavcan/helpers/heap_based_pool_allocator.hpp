@@ -49,6 +49,7 @@ class UAVCAN_EXPORT HeapBasedPoolAllocator : public IPoolAllocator, Noncopyable
     };
 
     Node* volatile cache_;
+    uint16_t reported_num_blocks_;
 
     Node* popCache()
     {
@@ -73,7 +74,10 @@ public:
     /**
      * The allocator initializes with empty cache, so first allocations will be served from heap.
      */
-    HeapBasedPoolAllocator() : cache_(NULL) { }
+    HeapBasedPoolAllocator(uint16_t reported_num_blocks) :
+        cache_(NULL),
+        reported_num_blocks_(reported_num_blocks)
+    { }
 
     /**
      * The destructor de-allocates all blocks that are currently in the cache.
@@ -121,9 +125,10 @@ public:
     }
 
     /**
-     * Heap-based pool is virutally infinite in size, so this method just returns maximum possible number of blocks.
+     * Heap-based pool is virutally infinite in size, so this method just returns some pre-defined value.
      */
-    virtual uint16_t getNumBlocks() const { return NumericTraits<uint16_t>::max(); }
+    virtual uint16_t getNumBlocks() const { return reported_num_blocks_; }
+    void setReportedNumBlocks(uint16_t x) { reported_num_blocks_ = x; }
 
     /**
      * Frees all blocks that are not in use at the moment.

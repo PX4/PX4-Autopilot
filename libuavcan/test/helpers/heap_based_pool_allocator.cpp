@@ -16,9 +16,13 @@ TEST(HeapBasedPoolAllocator, Basic)
     std::cout << ">>> HEAP BEFORE:" << std::endl;
     malloc_stats();
 
-    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, atomicCompareAndSwap> al;
+    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, atomicCompareAndSwap> al(64);
 
     ASSERT_EQ(0, al.getNumCachedBlocks());
+
+    ASSERT_EQ(64, al.getNumBlocks());
+    al.setReportedNumBlocks(123);
+    ASSERT_EQ(123, al.getNumBlocks());
 
     void* a = al.allocate(10);
     void* b = al.allocate(10);
@@ -77,7 +81,7 @@ TEST(HeapBasedPoolAllocator, Concurrency)
     std::cout << ">>> HEAP BEFORE:" << std::endl;
     malloc_stats();
 
-    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, atomicCompareAndSwapWithRescheduling> al;
+    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, atomicCompareAndSwapWithRescheduling> al(1);
 
     volatile bool terminate = false;
 
