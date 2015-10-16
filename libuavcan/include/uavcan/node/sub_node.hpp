@@ -20,7 +20,7 @@ namespace uavcan
  * Please refer to the @ref Node<> for documentation concerning the template arguments; refer to the tutorials
  * to lean how to use libuavcan in multiprocess applications.
  */
-template <std::size_t MemPoolSize>
+template <std::size_t MemPoolSize = 0>
 class UAVCAN_EXPORT SubNode : public INode
 {
     typedef typename

@@ -34,7 +34,7 @@ namespace uavcan
  *                          Please refer to the documentation for details.
  *                          If this value is zero, the constructor will accept a reference to user-provided allocator.
  */
-template <std::size_t MemPoolSize>
+template <std::size_t MemPoolSize = 0>
 class UAVCAN_EXPORT Node : public INode
 {
     typedef typename
