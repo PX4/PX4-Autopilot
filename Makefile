@@ -89,7 +89,7 @@ endif
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
++@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then git submodule update --init --recursive --force && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
 +$(PX4_MAKE) -C $(PWD)/build_$@ $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
@@ -104,13 +104,13 @@ endef
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
-px4fmu-v1_default: git-init
+px4fmu-v1_default:
 	$(call cmake-build,nuttx_px4fmu-v1_default)
 
-px4fmu-v2_default: git-init
+px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
 
-px4fmu-v2_simple: git-init
+px4fmu-v2_simple:
 	$(call cmake-build,nuttx_px4fmu-v2_simple)
 
 nuttx_sim_simple:
@@ -172,19 +172,8 @@ check_format:
 
 clean:
 	@rm -rf build_*/
-
-distclean: clean
-	@cd NuttX
-	@git clean -d -f -x
-	@cd ..
-	@cd src/modules/uavcan/libuavcan
-	@git clean -d -f -x
-	@cd ../../../..
-
-# XXX this is not the right way to fix it, but we need a temporary solution
-# for average joe
-git-init:
-	@git submodule update --init --recursive
+	@(cd NuttX && git clean -d -f -x)
+	@(cd src/modules/uavcan/libuavcan && git clean -d -f -x)
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak libuavcan

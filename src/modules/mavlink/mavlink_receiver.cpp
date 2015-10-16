@@ -1444,12 +1444,12 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
 		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
 		hil_sensors.accelerometer_raw[2] = imu.zacc / mg2ms2;
-		hil_sensors.accelerometer_m_s2[0] = ((imu.xacc * dt + _hil_prev_accel[0]) / 2.0f) / dt;
-		hil_sensors.accelerometer_m_s2[1] = ((imu.yacc * dt + _hil_prev_accel[1]) / 2.0f) / dt;
-		hil_sensors.accelerometer_m_s2[2] = (((imu.zacc + 9.80665f) * dt + _hil_prev_accel[2]) / 2.0f) / dt - 9.80665f;
+		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
+		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
+		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
 		hil_sensors.accelerometer_integral_m_s[0] = (imu.xacc * dt + _hil_prev_accel[0]) / 2.0f;
 		hil_sensors.accelerometer_integral_m_s[1] = (imu.yacc * dt + _hil_prev_accel[1]) / 2.0f;
-		hil_sensors.accelerometer_integral_m_s[2] = ((imu.zacc + 9.80665f) * dt + _hil_prev_accel[2]) / 2.0f;
+		hil_sensors.accelerometer_integral_m_s[2] = (imu.zacc * dt + _hil_prev_accel[2]) / 2.0f;
 		memcpy(&_hil_prev_accel[0], &hil_sensors.accelerometer_integral_m_s[0], sizeof(_hil_prev_accel));
 		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
 		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?

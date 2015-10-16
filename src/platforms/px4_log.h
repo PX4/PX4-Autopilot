@@ -130,7 +130,7 @@ __EXPORT extern int __px4_log_level_current;
 __END_DECLS
 
 // __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
-#define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_WARN
+#define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_ERROR
 
 /****************************************************************************
  * Implementation of log section formatting based on printf
@@ -357,8 +357,8 @@ __END_DECLS
 /****************************************************************************
  * Non-verbose settings for a Release build to minimize strings in build
  ****************************************************************************/
-#define PX4_PANIC(FMT, ...)	__px4_log_file_and_line(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
-#define PX4_ERR(FMT, ...)	__px4_log_file_and_line(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
+#define PX4_PANIC(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
 #define PX4_WARN(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
@@ -366,9 +366,9 @@ __END_DECLS
 /****************************************************************************
  * Medium verbose settings for a default build
  ****************************************************************************/
-#define PX4_PANIC(FMT, ...)	__px4_log_file_and_line(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
-#define PX4_ERR(FMT, ...)	__px4_log_file_and_line(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
-#define PX4_WARN(FMT, ...) 	__px4_log_file_and_line(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
+#define PX4_PANIC(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
 #endif

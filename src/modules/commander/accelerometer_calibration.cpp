@@ -156,6 +156,10 @@ static const int ERROR = -1;
 
 static const char *sensor_name = "accel";
 
+static int32_t device_id[max_accel_sens];
+static int device_prio_max = 0;
+static int32_t device_id_primary = 0;
+
 calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors);
 calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num);
 int mat_invert3(float src[3][3], float dst[3][3]);
@@ -172,7 +176,6 @@ typedef struct  {
 int do_accel_calibration(int mavlink_fd)
 {
 	int fd;
-	int32_t device_id[max_accel_sens];
 
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
@@ -258,6 +261,8 @@ int do_accel_calibration(int mavlink_fd)
 		accel_scale.z_scale = accel_T_rotated(2, 2);
 		
 		bool failed = false;
+
+		failed = failed || (OK != param_set_no_notification(param_find("CAL_ACC_PRIME"), &(device_id_primary)));
 
 		/* set parameters */
 		(void)sprintf(str, "CAL_ACC%u_XOFF", i);
@@ -370,6 +375,15 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 		struct accel_report arp = {};
 		(void)orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &arp);
 		timestamps[i] = arp.timestamp;
+
+		// Get priority
+		int32_t prio;
+		orb_priority(worker_data.subs[i], &prio);
+
+		if (prio > device_prio_max) {
+			device_prio_max = prio;
+			device_id_primary = device_id[i];
+		}
 	}
 
 	if (result == calibrate_return_ok) {

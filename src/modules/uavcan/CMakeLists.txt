@@ -63,7 +63,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wframe-larger-than=1500
 		-Wno-deprecated-declarations
-		-O3
+		-Os
 	SRCS
 		# Main
 		uavcan_main.cpp
@@ -81,7 +81,7 @@ px4_add_module(
 
 	DEPENDS
 		platforms__common
-		uavcan	
+		uavcan
 	)
 
 ## vim: set noet ft=cmake fenc=utf-8 ff=unix : 
