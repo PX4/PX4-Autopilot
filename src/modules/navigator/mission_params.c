@@ -39,10 +39,6 @@
  * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#include <px4_config.h>
-
-#include <systemlib/param/param.h>
-
 /*
  * Mission parameters, accessible via MAVLink
  */

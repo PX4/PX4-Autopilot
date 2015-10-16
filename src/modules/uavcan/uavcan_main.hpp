@@ -36,6 +36,12 @@
 #include <px4_config.h>
 
 #include <uavcan_stm32/uavcan_stm32.hpp>
+#include <uavcan/protocol/global_time_sync_master.hpp>
+#include <uavcan/protocol/global_time_sync_slave.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
+#include <uavcan/protocol/RestartNode.hpp>
+
 #include <drivers/device/device.h>
 #include <systemlib/perf_counter.h>
 
@@ -48,7 +54,7 @@
 #include "actuators/esc.hpp"
 #include "sensors/sensor_bridge.hpp"
 
-# include "uavcan_servers.hpp"
+#include "uavcan_servers.hpp"
 
 /**
  * @file uavcan_main.hpp
@@ -88,7 +94,7 @@ class UavcanNode : public device::CDev
 	 */
 
 	static constexpr unsigned RxQueueLenPerIface = FramePerMSecond * PollTimeoutMs; // At
-	static constexpr unsigned StackSize          = 1600;
+	static constexpr unsigned StackSize          = 1800;
 
 public:
 	typedef uavcan::Node<MemPoolSize> Node;
@@ -119,8 +125,13 @@ public:
 	static int         getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
 	int             fw_server(eServerAction action);
 	void            attachITxQueueInjector(ITxQueueInjector *injector) {_tx_injector = injector;}
-
+	int             list_params(int remote_node_id);
+	int             save_params(int remote_node_id);
+	int             set_param(int remote_node_id, const char *name, char *value);
+	int             get_param(int remote_node_id, const char *name);
+	int             reset_node(int remote_node_id);
 private:
+
 	void		fill_node_info();
 	int		init(uavcan::NodeID node_id);
 	void		node_spin_once();
@@ -129,6 +140,16 @@ private:
 	int             start_fw_server();
 	int             stop_fw_server();
 	int             request_fw_check();
+	int             print_params(uavcan::protocol::param::GetSet::Response &resp);
+	int             get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
+	void            set_setget_response(uavcan::protocol::param::GetSet::Response *resp)
+	{
+		_setget_response = resp;
+	}
+	void            free_setget_response(void)
+	{
+		_setget_response = nullptr;
+	}
 
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
@@ -148,8 +169,10 @@ private:
 
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
-	sem_t                   _server_command_sem;
+	px4_sem_t                   _server_command_sem;
 	UavcanEscController	_esc_controller;
+	uavcan::GlobalTimeSyncMaster _time_sync_master;
+	uavcan::GlobalTimeSyncSlave _time_sync_slave;
 
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 
@@ -175,4 +198,22 @@ private:
 	perf_counter_t _perfcnt_node_spin_elapsed        = perf_alloc(PC_ELAPSED, "uavcan_node_spin_elapsed");
 	perf_counter_t _perfcnt_esc_mixer_output_elapsed = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_output_elapsed");
 	perf_counter_t _perfcnt_esc_mixer_total_elapsed  = perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_total_elapsed");
+
+	void handle_time_sync(const uavcan::TimerEvent &);
+
+	typedef uavcan::MethodBinder<UavcanNode *, void (UavcanNode::*)(const uavcan::TimerEvent &)> TimerCallback;
+	uavcan::TimerEventForwarder<TimerCallback> _master_timer;
+
+	bool _callback_success;
+	uavcan::protocol::param::GetSet::Response *_setget_response;
+	typedef uavcan::MethodBinder<UavcanNode *,
+		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
+	typedef uavcan::MethodBinder<UavcanNode *,
+		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &)> ExecuteOpcodeCallback;
+	typedef uavcan::MethodBinder<UavcanNode *,
+		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &)> RestartNodeCallback;
+	void cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+	void cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
+	void cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result);
+
 };

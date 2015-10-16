@@ -45,10 +45,17 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
+#include <px4_tasks.h>
+#include <px4_time.h>
+#include <px4_posix.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/prctl.h>
+#ifdef __PX4_DARWIN
+#include <sys/param.h>
+#include <sys/mount.h>
+#else
 #include <sys/statfs.h>
+#endif
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -117,56 +124,13 @@
 
 #define PX4_EPOCH_SECS 1234567890L
 
-/**
- * Logging rate.
- *
- * A value of -1 indicates the commandline argument
- * should be obeyed. A value of 0 sets the minimum rate,
- * any other value is interpreted as rate in Hertz. This
- * parameter is only read out before logging starts (which
- * commonly is before arming).
- *
- * @min -1
- * @max  1
- * @group SD Logging
- */
-PARAM_DEFINE_INT32(SDLOG_RATE, -1);
-
-/**
- * Enable extended logging mode.
- *
- * A value of -1 indicates the commandline argument
- * should be obeyed. A value of 0 disables extended
- * logging mode, a value of 1 enables it. This
- * parameter is only read out before logging starts
- * (which commonly is before arming).
- *
- * @min -1
- * @max  1
- * @group SD Logging
- */
-PARAM_DEFINE_INT32(SDLOG_EXT, -1);
-
-/**
- * Use timestamps only if GPS 3D fix is available
- *
- * A value of 1 constrains the log folder creation
- * to only use the time stamp if a 3D GPS lock is
- * present.
- *
- * @min 0
- * @max  1
- * @group SD Logging
- */
-PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
-
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \
 	} else { \
 		log_msgs_skipped++; \
 	}
 
-#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
+#define SDLOG_MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
 static bool main_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;			/**< Deamon status flag */
@@ -274,8 +238,6 @@ static int write_version(int fd);
 static int write_parameters(int fd);
 
 static bool file_exist(const char *filename);
-
-static int file_copy(const char *file_old, const char *file_new);
 
 /**
  * Check if there is still free space available
@@ -410,7 +372,7 @@ int sdlog2_main(int argc, char *argv[])
 
 bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
 	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
 	time_t utc_time_sec;
 
@@ -1076,17 +1038,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		return 1;
 	}
 
-	/* copy conversion scripts */
-	const char *converter_in = "/etc/logging/conv.zip";
-	char *converter_out = malloc(64);
-	snprintf(converter_out, 64, "%s/conv.zip", log_root);
-
-	if (file_copy(converter_in, converter_out) != OK) {
-		warn("unable to copy conversion scripts");
-	}
-
-	free(converter_out);
-
 	/* initialize log buffer with specified size */
 	warnx("log buffer size: %i bytes", log_buffer_size);
 
@@ -1395,7 +1346,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (copy_if_updated(ORB_ID(satellite_info), &subs.sat_info_sub, &buf.sat_info)) {
 
 				/* log the SNR of each satellite for a detailed view of signal quality */
-				unsigned sat_info_count = MIN(buf.sat_info.count, sizeof(buf.sat_info.snr) / sizeof(buf.sat_info.snr[0]));
+				unsigned sat_info_count = SDLOG_MIN(buf.sat_info.count, sizeof(buf.sat_info.snr) / sizeof(buf.sat_info.snr[0]));
 				unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
 
 				log_msg.msg_type = LOG_GS0A_MSG;
@@ -1860,11 +1811,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
 			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
 			log_msg.body.log_TECS.totalEnergyError = buf.tecs_status.totalEnergyError;
-			log_msg.body.log_TECS.energyDistributionError = buf.tecs_status.energyDistributionError;
 			log_msg.body.log_TECS.totalEnergyRateError = buf.tecs_status.totalEnergyRateError;
+			log_msg.body.log_TECS.energyDistributionError = buf.tecs_status.energyDistributionError;
 			log_msg.body.log_TECS.energyDistributionRateError = buf.tecs_status.energyDistributionRateError;
-			log_msg.body.log_TECS.throttle_integ = buf.tecs_status.throttle_integ;
 			log_msg.body.log_TECS.pitch_integ = buf.tecs_status.pitch_integ;
+			log_msg.body.log_TECS.throttle_integ = buf.tecs_status.throttle_integ;
 			log_msg.body.log_TECS.mode = (uint8_t)buf.tecs_status.mode;
 			LOGBUFFER_WRITE_AND_COUNT(TECS);
 		}
@@ -1953,46 +1904,6 @@ bool file_exist(const char *filename)
 {
 	struct stat buffer;
 	return stat(filename, &buffer) == 0;
-}
-
-int file_copy(const char *file_old, const char *file_new)
-{
-	FILE *source, *target;
-	source = fopen(file_old, "r");
-	int ret = 0;
-
-	if (source == NULL) {
-		warnx("ERR: open in");
-		return PX4_ERROR;
-	}
-
-	target = fopen(file_new, "w");
-
-	if (target == NULL) {
-		fclose(source);
-		warnx("ERR: open out");
-		return PX4_ERROR;
-	}
-
-	char buf[128];
-	int nread;
-
-	while ((nread = fread(buf, 1, sizeof(buf), source)) > 0) {
-		ret = fwrite(buf, 1, nread, target);
-
-		if (ret <= 0) {
-			warnx("error writing file");
-			ret = PX4_ERROR;
-			break;
-		}
-	}
-
-	fsync(fileno(target));
-
-	fclose(source);
-	fclose(target);
-
-	return PX4_OK;
 }
 
 int check_free_space()

@@ -56,8 +56,8 @@ extern "C" {
 
 static void timer_cb(void *data)
 {
-	sem_t *p_sem = (sem_t *)data;
-	sem_post(p_sem);
+	px4_sem_t *p_sem = (px4_sem_t *)data;
+	px4_sem_post(p_sem);
 	PX4_DEBUG("timer_handler: Timer expired");
 }
 
@@ -193,13 +193,13 @@ int px4_ioctl(int fd, int cmd, unsigned long arg)
 
 int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 {
-	sem_t sem;
+	px4_sem_t sem;
 	int count = 0;
 	int ret = -1;
 	unsigned int i;
 
 	PX4_DEBUG("Called px4_poll timeout = %d", timeout);
-	sem_init(&sem, 0, 0);
+	px4_sem_init(&sem, 0, 0);
 
 	// For each fd 
 	for (i=0; i<nfds; ++i)
@@ -228,7 +228,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 			work_s _hpwork;
 
 			hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)&sem, 1000*timeout);
-			sem_wait(&sem);
+			px4_sem_wait(&sem);
 
 			// Make sure timer thread is killed before sem goes
 			// out of scope
@@ -236,7 +236,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
         	}
 		else if (timeout < 0) 
 		{
-			sem_wait(&sem);
+			px4_sem_wait(&sem);
 		}
 
 		// For each fd 
@@ -258,7 +258,7 @@ int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 		}
 	}
 
-	sem_destroy(&sem);
+	px4_sem_destroy(&sem);
 
 	return count;
 }

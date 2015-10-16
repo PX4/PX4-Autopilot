@@ -98,7 +98,9 @@ static void list_builtins(void)
 
 static int shutdown_main(int argc, char *argv[])
 {
-	cout << "Shutting down" << endl;
+	cout.flush();
+	cout << endl << "Shutting down" << endl;
+	cout.flush();
 	exit(0);
 }
 
@@ -131,6 +133,15 @@ static int sleep_main(int argc, char *argv[])
 		return 1;
 	}
 	sleep(atoi(argv[1]));
+	return 0;
+}
+static int usleep_main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		cout << "Usage: usleep <microseconds>" << endl;
+		return 1;
+	}
+	usleep(atoi(argv[1]));
 	return 0;
 }
 """)

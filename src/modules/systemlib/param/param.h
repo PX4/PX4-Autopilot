@@ -333,6 +333,13 @@ __EXPORT int 		param_save_default(void);
  */
 __EXPORT int 		param_load_default(void);
 
+/**
+ * Generate the hash of all parameters and their values
+ *
+ * @return		CRC32 hash of all param_ids and values
+ */
+__EXPORT uint32_t	param_hash_check(void);
+
 /*
  * Macros creating static parameter definitions.
  *
@@ -346,34 +353,13 @@ __EXPORT int 		param_load_default(void);
  */
 
 /** define an int32 parameter */
-#define PARAM_DEFINE_INT32(_name, _default)		\
-	static const					\
-	__attribute__((used, section("__param")))	\
-	struct param_info_s __param__##_name = {	\
-		#_name,					\
-		PARAM_TYPE_INT32,			\
-		.val.i = _default			\
-	}
+#define PARAM_DEFINE_INT32(_name, _default)
 
 /** define a float parameter */
-#define PARAM_DEFINE_FLOAT(_name, _default)		\
-	static const					\
-	__attribute__((used, section("__param")))	\
-	struct param_info_s __param__##_name = {	\
-		#_name,					\
-		PARAM_TYPE_FLOAT,			\
-		.val.f = _default			\
-	}
+#define PARAM_DEFINE_FLOAT(_name, _default)
 
 /** define a parameter that points to a structure */
-#define PARAM_DEFINE_STRUCT(_name, _default)		\
-	static const					\
-	__attribute__((used, section("__param")))	\
-	struct param_info_s __param__##_name = {	\
-		#_name,					\
-		PARAM_TYPE_STRUCT + sizeof(_default),	\
-		.val.p = &_default			\
-	}
+#define PARAM_DEFINE_STRUCT(_name, _default)
 
 /**
  * Parameter value union.

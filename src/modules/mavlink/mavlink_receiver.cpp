@@ -49,7 +49,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <mqueue.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -62,7 +61,6 @@
 #include <float.h>
 #include <unistd.h>
 #ifndef __PX4_POSIX
-#include <sys/prctl.h>
 #include <termios.h>
 #endif
 #include <errno.h>
@@ -128,8 +126,11 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
+	_hil_last_frame(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
+	_hil_prev_gyro{},
+	_hil_prev_accel{},
 	_hil_local_proj_ref{},
 	_offboard_control_mode{},
 	_att_sp{},
@@ -309,6 +310,10 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 			/* send autopilot version message */
 			_mavlink->send_autopilot_capabilites();
+
+		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
+			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
@@ -364,6 +369,13 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 			/* terminate other threads and this thread */
 			_mavlink->_task_should_exit = true;
+
+		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+			/* send autopilot version message */
+			_mavlink->send_autopilot_capabilites();
+
+		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
+			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
 		} else {
 
@@ -1292,6 +1304,17 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	uint64_t timestamp = hrt_absolute_time();
 
+	float dt;
+
+	if (_hil_last_frame == 0 ||
+	   (imu.time_usec - _hil_last_frame) > (0.1f * 1e6f) ||
+	   (_hil_last_frame >= imu.time_usec)) {
+		dt = 0.01f; /* default to 100 Hz */
+	} else {
+		dt = (imu.time_usec - _hil_last_frame) / 1e6f;
+	}
+	_hil_last_frame = imu.time_usec;
+
 	/* airspeed */
 	{
 		struct airspeed_s airspeed;
@@ -1407,10 +1430,16 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.gyro_raw[0] = imu.xgyro * 1000.0f;
 		hil_sensors.gyro_raw[1] = imu.ygyro * 1000.0f;
 		hil_sensors.gyro_raw[2] = imu.zgyro * 1000.0f;
-		hil_sensors.gyro_rad_s[0] = imu.xgyro;
+		hil_sensors.gyro_rad_s[0] = ((imu.xgyro * dt + _hil_prev_gyro[0]) / 2.0f) / dt;
 		hil_sensors.gyro_rad_s[1] = imu.ygyro;
 		hil_sensors.gyro_rad_s[2] = imu.zgyro;
+		hil_sensors.gyro_integral_rad[0] = (hil_sensors.gyro_rad_s[0] * dt + _hil_prev_gyro[0]) / 2.0f;
+		hil_sensors.gyro_integral_rad[1] = (hil_sensors.gyro_rad_s[1] * dt + _hil_prev_gyro[1]) / 2.0f;
+		hil_sensors.gyro_integral_rad[2] = (hil_sensors.gyro_rad_s[2] * dt + _hil_prev_gyro[2]) / 2.0f;
+		memcpy(&_hil_prev_gyro[0], &hil_sensors.gyro_integral_rad[0], sizeof(_hil_prev_gyro));
+		hil_sensors.gyro_integral_dt[0] = dt * 1e6f;
 		hil_sensors.gyro_timestamp[0] = timestamp;
+		hil_sensors.gyro_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
 		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
@@ -1418,9 +1447,15 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
 		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
 		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
+		hil_sensors.accelerometer_integral_m_s[0] = (imu.xacc * dt + _hil_prev_accel[0]) / 2.0f;
+		hil_sensors.accelerometer_integral_m_s[1] = (imu.yacc * dt + _hil_prev_accel[1]) / 2.0f;
+		hil_sensors.accelerometer_integral_m_s[2] = (imu.zacc * dt + _hil_prev_accel[2]) / 2.0f;
+		memcpy(&_hil_prev_accel[0], &hil_sensors.accelerometer_integral_m_s[0], sizeof(_hil_prev_accel));
+		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
 		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?
 		hil_sensors.accelerometer_range_m_s2[0] = 32.7f; // int16
 		hil_sensors.accelerometer_timestamp[0] = timestamp;
+		hil_sensors.accelerometer_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.adc_voltage_v[0] = 0.0f;
 		hil_sensors.adc_voltage_v[1] = 0.0f;
@@ -1436,6 +1471,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.magnetometer_mode[0] = 0; // TODO what is this
 		hil_sensors.magnetometer_cuttoff_freq_hz[0] = 50.0f;
 		hil_sensors.magnetometer_timestamp[0] = timestamp;
+		hil_sensors.magnetometer_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.baro_pres_mbar[0] = imu.abs_pressure;
 		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;

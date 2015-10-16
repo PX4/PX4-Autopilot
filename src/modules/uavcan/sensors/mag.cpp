@@ -146,7 +146,14 @@ void UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<ua
 {
 	lock();
 	_report.range_ga = 1.3F;   // Arbitrary number, doesn't really mean anything
-	_report.timestamp = msg.getMonotonicTimestamp().toUSec();
+	/*
+	 * FIXME HACK
+	 * This code used to rely on msg.getMonotonicTimestamp().toUSec() instead of HRT.
+	 * It stopped working when the time sync feature has been introduced, because it caused libuavcan
+	 * to use an independent time source (based on hardware TIM5) instead of HRT.
+	 * The proper solution is to be developed.
+	 */
+	_report.timestamp = hrt_absolute_time();
 
 	_report.x = (msg.magnetic_field_ga[0] - _scale.x_offset) * _scale.x_scale;
 	_report.y = (msg.magnetic_field_ga[1] - _scale.y_offset) * _scale.y_scale;

@@ -42,7 +42,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -230,7 +229,7 @@ GPS::init()
 
 	/* start the GPS driver worker task */
 	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				SCHED_PRIORITY_SLOW_DRIVER, 1500, (main_t)&GPS::task_main_trampoline, nullptr);
+				SCHED_PRIORITY_SLOW_DRIVER, 1200, (main_t)&GPS::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
 		warnx("task start failed: %d", errno);

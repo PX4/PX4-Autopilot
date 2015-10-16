@@ -161,6 +161,7 @@ public:
 
 protected:
 	const char	*_name;			/**< driver name */
+	char		*_lock_name;		/**< name of the semaphore */
 	bool		_debug_enabled;		/**< if true, debug messages are printed */
 	union DeviceId	_device_id;             /**< device identifier information */
 
@@ -180,7 +181,7 @@ protected:
 	 */
 	void		lock() {
 		DEVICE_DEBUG("lock");
-		do {} while (sem_wait(&_lock) != 0);
+		do {} while (px4_sem_wait(&_lock) != 0);
 	}
 
 	/**
@@ -188,11 +189,11 @@ protected:
 	 */
 	void		unlock() {
 		DEVICE_DEBUG("unlock");
-		sem_post(&_lock);
+		px4_sem_post(&_lock);
 	}
 
 private:
-	sem_t		_lock;
+	px4_sem_t		_lock;
 
 	/** disable copy construction for this and all subclasses */
 	Device(const Device &);

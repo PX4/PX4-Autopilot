@@ -233,7 +233,10 @@ esc_calib_main(int argc, char *argv[])
 		ret = poll(&fds, 1, 0);
 
 		if (ret > 0) {
-			read(0, &c, 1);
+			if (read(0, &c, 1) <= 0) {
+				printf("ESC calibration read error\n");
+				return 0;
+			}
 
 			if (c == 'y' || c == 'Y') {
 				break;
@@ -315,7 +318,10 @@ esc_calib_main(int argc, char *argv[])
 		ret = poll(&fds, 1, 0);
 
 		if (ret > 0) {
-			read(0, &c, 1);
+			if (read(0, &c, 1) <= 0) {
+				printf("ESC calibration read error\n");
+				goto done;
+			}
 
 			if (c == 13) {
 				break;
@@ -352,7 +358,10 @@ esc_calib_main(int argc, char *argv[])
 		ret = poll(&fds, 1, 0);
 
 		if (ret > 0) {
-			read(0, &c, 1);
+			if (read(0, &c, 1) <= 0) {
+				printf("ESC calibration read error\n");
+				goto done;
+			}
 
 			if (c == 13) {
 				break;

@@ -76,8 +76,8 @@ def main():
                                                         pruned_content += line
 
                         # overwrite old scratch file
-                        with open(file_path, "w") as f:
-                                f.write(pruned_content)
+                        with open(file_path, "wb") as f:
+                                f.write(pruned_content.encode("ascii", errors='strict'))
 
 
 if __name__ == '__main__':

@@ -39,6 +39,7 @@
  * @author Nuno Marques <n.marques21@hotmail.com>
  */
 
+#include <px4_posix.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -896,7 +897,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
-		dt = fmaxf(fminf(0.02, dt), 0.002);		// constrain dt from 2 to 20 ms
+		dt = fmaxf(fminf(0.02, dt), 0.0002);		// constrain dt from 0.2 to 20 ms
 		t_prev = t;
 
 		/* increase EPH/EPV on each step */
