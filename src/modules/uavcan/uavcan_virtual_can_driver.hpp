@@ -329,11 +329,7 @@ public:
 /**
  * Objects of this class are owned by the sub-node thread.
  * This class does not use heap memory.
- * @tparam SharedMemoryPoolSize         Amount of memory, in bytes, that will be statically allocated for the
- *                                      memory pool that will be shared across all interfaces for RX/TX queues.
- *                                      Typically this value should be no less than 4K per interface.
  */
-template <unsigned SharedMemoryPoolSize>
 class VirtualCanDriver : public uavcan::ICanDriver,
 	public uavcan::IRxFrameListener,
 	public ITxQueueInjector,
@@ -402,7 +398,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 	Event event_;               ///< Used to unblock the select() call when IO happens.
 	pthread_mutex_t driver_mutex_;    ///< Shared across all ifaces
-	uavcan::PoolAllocator<SharedMemoryPoolSize, uavcan::MemPoolBlockSize> allocator_;   ///< Shared across all ifaces
+	uavcan::IPoolAllocator& allocator_;   ///< Shared across all ifaces
 	uavcan::LazyConstructor<VirtualCanIface> ifaces_[uavcan::MaxCanIfaces];
 	const unsigned num_ifaces_;
 	uavcan::ISystemClock &clock_;
@@ -476,7 +472,11 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 	}
 
 public:
-	VirtualCanDriver(unsigned arg_num_ifaces, uavcan::ISystemClock &system_clock) :
+	VirtualCanDriver(unsigned arg_num_ifaces,
+		         uavcan::ISystemClock &system_clock,
+		         uavcan::IPoolAllocator& allocator,
+		         unsigned virtual_iface_block_allocation_quota) :
+		allocator_(allocator),
 		num_ifaces_(arg_num_ifaces),
 		clock_(system_clock)
 	{
@@ -485,11 +485,7 @@ public:
 
 		assert(num_ifaces_ > 0 && num_ifaces_ <= uavcan::MaxCanIfaces);
 
-		const unsigned quota_per_iface = allocator_.getNumBlocks() / num_ifaces_;
-		const unsigned quota_per_queue = quota_per_iface;             // 2x overcommit
-
-		UAVCAN_TRACE("VirtualCanDriver", "Total blocks: %u, quota per queue: %u",
-			     unsigned(allocator_.getNumBlocks()), unsigned(quota_per_queue));
+		const unsigned quota_per_queue = virtual_iface_block_allocation_quota;             // 2x overcommit
 
 		for (unsigned i = 0; i < num_ifaces_; i++) {
 			ifaces_[i].template construct<uavcan::IPoolAllocator &, uavcan::ISystemClock &,

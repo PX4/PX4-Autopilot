@@ -81,24 +81,10 @@ class UavcanServers
 {
 	static constexpr unsigned NumIfaces = 1;  // UAVCAN_STM32_NUM_IFACES
 
-	static constexpr unsigned MemPoolSize = 64 * uavcan::MemPoolBlockSize;
-
-	static constexpr unsigned MaxCanFramesPerTransfer   =  63;
-
-	/**
-	 * This number is based on the worst case max number of frames per interface. With
-	 * MemPoolBlockSize set at 48 this is 6048 Bytes.
-	 *
-	 * The servers can be forced to use the primary interface only, this can be achieved simply by passing
-	 * 1 instead of UAVCAN_STM32_NUM_IFACES into the constructor of the virtual CAN driver.
-	 */
-	static constexpr unsigned QueuePoolSize =
-		(NumIfaces * uavcan::MemPoolBlockSize * MaxCanFramesPerTransfer);
-
 	static constexpr unsigned StackSize  = 6000;
 	static constexpr unsigned Priority  =  120;
 
-	typedef uavcan::SubNode<MemPoolSize> SubNode;
+	static constexpr unsigned VirtualIfaceBlockAllocationQuota =  80;
 
 public:
 	UavcanServers(uavcan::INode &main_node);
@@ -108,7 +94,7 @@ public:
 	static int      start(uavcan::INode &main_node);
 	static int      stop();
 
-	SubNode         &get_node() { return _subnode; }
+	uavcan::SubNode<> &get_node() { return _subnode; }
 
 	static UavcanServers *instance() { return _instance; }
 
@@ -131,12 +117,10 @@ private:
 
 	static UavcanServers	*_instance;            ///< singleton pointer
 
-	typedef VirtualCanDriver<QueuePoolSize> vCanDriver;
+	VirtualCanDriver _vdriver;
 
-	vCanDriver    _vdriver;
-
-	uavcan::SubNode<MemPoolSize>  _subnode;   ///< library instance
-	uavcan::INode                &_main_node; ///< library instance
+	uavcan::SubNode<>  _subnode;
+	uavcan::INode      &_main_node;
 
 	uavcan_posix::dynamic_node_id_server::FileEventTracer _tracer;
 	uavcan_posix::dynamic_node_id_server::FileStorageBackend _storage_backend;

@@ -77,7 +77,8 @@
 UavcanNode *UavcanNode::_instance;
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
-	_node(can_driver, system_clock),
+	_pool_allocator(MemoryPoolBlockCapacitySoftLimit, MemoryPoolBlockCapacityHardLimit),
+	_node(can_driver, system_clock, _pool_allocator),
 	_node_mutex(),
 	_esc_controller(_node),
 	_time_sync_master(_node),
