@@ -12,13 +12,12 @@ TEST(HeapBasedPoolAllocator, Basic)
     std::cout << ">>> HEAP BEFORE:" << std::endl;
     malloc_stats();
 
-    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize> al(64);
+    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize> al(0xEEEE);
 
     ASSERT_EQ(0, al.getNumCachedBlocks());
 
-    ASSERT_EQ(64, al.getNumBlocks());
-    al.setReportedNumBlocks(123);
-    ASSERT_EQ(123, al.getNumBlocks());
+    ASSERT_EQ(0xEEEE, al.getBlockCapacity());
+    ASSERT_EQ(0xFFFF, al.getBlockCapacityHardLimit());
 
     void* a = al.allocate(10);
     void* b = al.allocate(10);
@@ -74,7 +73,10 @@ TEST(HeapBasedPoolAllocator, Concurrency)
     std::cout << ">>> HEAP BEFORE:" << std::endl;
     malloc_stats();
 
-    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, RaiiSynchronizer> al(1);
+    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, RaiiSynchronizer> al(1000);
+
+    ASSERT_EQ(1000, al.getBlockCapacity());
+    ASSERT_EQ(2000, al.getBlockCapacityHardLimit());
 
     volatile bool terminate = false;
 

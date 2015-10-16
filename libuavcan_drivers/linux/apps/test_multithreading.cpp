@@ -373,11 +373,11 @@ public:
     {
         assert(num_ifaces_ > 0 && num_ifaces_ <= uavcan::MaxCanIfaces);
 
-        const unsigned quota_per_iface = allocator_.getNumBlocks() / num_ifaces_;
+        const unsigned quota_per_iface = allocator_.getBlockCapacity() / num_ifaces_;
         const unsigned quota_per_queue = quota_per_iface;             // 2x overcommit
 
         UAVCAN_TRACE("VirtualCanDriver", "Total blocks: %u, quota per queue: %u",
-                     unsigned(allocator_.getNumBlocks()), unsigned(quota_per_queue));
+                     unsigned(allocator_.getBlockCapacity()), unsigned(quota_per_queue));
 
         for (unsigned i = 0; i < num_ifaces_; i++)
         {

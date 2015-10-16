@@ -26,7 +26,10 @@ public:
     virtual void* allocate(std::size_t size) = 0;
     virtual void deallocate(const void* ptr) = 0;
 
-    virtual uint16_t getNumBlocks() const = 0;
+    /**
+     * Returns the maximum number of blocks this allocator can allocate.
+     */
+    virtual uint16_t getBlockCapacity() const = 0;
 };
 
 /**
@@ -61,7 +64,7 @@ public:
     virtual void* allocate(std::size_t size);
     virtual void deallocate(const void* ptr);
 
-    virtual uint16_t getNumBlocks() const { return NumBlocks; }
+    virtual uint16_t getBlockCapacity() const { return NumBlocks; }
 
     /**
      * Return the number of blocks that are currently allocated/unallocated.
@@ -96,7 +99,7 @@ public:
     virtual void* allocate(std::size_t size);
     virtual void deallocate(const void* ptr);
 
-    virtual uint16_t getNumBlocks() const;
+    virtual uint16_t getBlockCapacity() const;
 };
 
 // ----------------------------------------------------------------------------

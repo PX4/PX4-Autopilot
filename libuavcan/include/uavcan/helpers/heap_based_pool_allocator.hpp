@@ -33,7 +33,9 @@ class UAVCAN_EXPORT HeapBasedPoolAllocator : public IPoolAllocator, Noncopyable
     };
 
     Node* volatile cache_;
-    uint16_t reported_num_blocks_;
+
+    const uint16_t capacity_soft_limit_;
+    const uint16_t capacity_hard_limit_;
 
     Node* popCache()
     {
@@ -58,10 +60,20 @@ class UAVCAN_EXPORT HeapBasedPoolAllocator : public IPoolAllocator, Noncopyable
 public:
     /**
      * The allocator initializes with empty cache, so first allocations will be served from heap.
+     *
+     * @param block_capacity_soft_limit     Block capacity that will be reported via @ref getBlockCapacity().
+     *
+     * @param block_capacity_hard_limit     Real block capacity limit; the number of allocated blocks will never
+     *                                      exceed this value. Hard limit should be higher than soft limit.
+     *                                      Default value is two times the soft limit.
      */
-    HeapBasedPoolAllocator(uint16_t reported_num_blocks) :
+    HeapBasedPoolAllocator(uint16_t block_capacity_soft_limit,
+                           uint16_t block_capacity_hard_limit = 0) :
         cache_(NULL),
-        reported_num_blocks_(reported_num_blocks)
+        capacity_soft_limit_(block_capacity_soft_limit),
+        capacity_hard_limit_((block_capacity_hard_limit > 0) ? block_capacity_hard_limit :
+                             static_cast<uint16_t>(min(static_cast<uint32_t>(block_capacity_soft_limit) * 2U,
+                                                       static_cast<uint32_t>(NumericTraits<uint16_t>::max()))))
     { }
 
     /**
@@ -103,10 +115,14 @@ public:
     }
 
     /**
-     * Heap-based pool is virutally infinite in size, so this method just returns some pre-defined value.
+     * The soft limit.
      */
-    virtual uint16_t getNumBlocks() const { return reported_num_blocks_; }
-    void setReportedNumBlocks(uint16_t x) { reported_num_blocks_ = x; }
+    virtual uint16_t getBlockCapacity() const { return capacity_soft_limit_; }
+
+    /**
+     * The hard limit.
+     */
+    uint16_t getBlockCapacityHardLimit() const { return capacity_hard_limit_; }
 
     /**
      * Frees all blocks that are not in use at the moment.

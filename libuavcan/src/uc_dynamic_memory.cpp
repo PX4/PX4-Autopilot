@@ -33,9 +33,9 @@ void LimitedPoolAllocator::deallocate(const void* ptr)
     }
 }
 
-uint16_t LimitedPoolAllocator::getNumBlocks() const
+uint16_t LimitedPoolAllocator::getBlockCapacity() const
 {
-    return min(max_blocks_, allocator_.getNumBlocks());
+    return min(max_blocks_, allocator_.getBlockCapacity());
 }
 
 }

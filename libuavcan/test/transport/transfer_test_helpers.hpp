@@ -316,5 +316,5 @@ class NullAllocator : public uavcan::IPoolAllocator
 public:
     virtual void* allocate(std::size_t) { return NULL; }
     virtual void deallocate(const void*) { }
-    virtual uint16_t getNumBlocks() const { return 0; }
+    virtual uint16_t getBlockCapacity() const { return 0; }
 };
