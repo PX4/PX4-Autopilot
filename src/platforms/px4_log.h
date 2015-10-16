@@ -64,6 +64,7 @@ static inline void do_nothing(int level, ...)
 #define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
 #define PX4_INFO(...) 	ROS_WARN(__VA_ARGS__)
 #define PX4_DEBUG(...)
+#define PX4_BACKTRACE()
 
 #elif defined(__PX4_QURT)
 #include "qurt_log.h"
@@ -72,6 +73,7 @@ static inline void do_nothing(int level, ...)
  ****************************************************************************/
 #define PX4_LOG(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_ALWAYS, __FILE__, __LINE__, FMT, ##__VA_ARGS__)
 #define PX4_INFO(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_ALWAYS, __FILE__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_BACKTRACE()
 
 #if defined(TRACE_BUILD)
 /****************************************************************************
@@ -127,7 +129,10 @@ __EXPORT extern uint64_t hrt_absolute_time(void);
 
 __EXPORT extern const char *__px4_log_level_str[5];
 __EXPORT extern int __px4_log_level_current;
+__EXPORT extern void px4_backtrace(void);
 __END_DECLS
+
+#define PX4_BACKTRACE() px4_backtrace()
 
 // __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
 #define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_ERROR

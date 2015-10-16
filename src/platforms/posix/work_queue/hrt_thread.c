@@ -165,6 +165,7 @@ static void hrt_work_process()
 
 			if (!worker) {
 				PX4_ERR("MESSED UP: worker = 0");
+				PX4_BACKTRACE();
 
 			} else {
 				worker(arg);
