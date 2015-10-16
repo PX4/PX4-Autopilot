@@ -1120,6 +1120,13 @@ UavcanNode::print_info()
 
 	(void)pthread_mutex_lock(&_node_mutex);
 
+	// Memory status
+	printf("Pool allocator status:\n");
+	printf("\tCapacity hard/soft: %u/%u blocks\n",
+		_pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
+	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
+	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
+
 	// ESC mixer status
 	printf("ESC actuators control groups: sub: %u / req: %u / fds: %u\n",
 	       (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
@@ -1170,13 +1177,20 @@ UavcanNode::print_info()
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
+void UavcanNode::shrink()
+{
+	(void)pthread_mutex_lock(&_node_mutex);
+	_pool_allocator.shrink();
+	(void)pthread_mutex_unlock(&_node_mutex);
+}
+
 /*
  * App entry point
  */
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start [fw]|status|stop [all|fw]|arm|disarm|update fw|param [set|get|list|save] nodeid [name] [value]|reset nodeid}");
+	      "\tuavcan {start [fw]|status|stop [all|fw]|shrink|arm|disarm|update fw|param [set|get|list|save] nodeid [name] [value]|reset nodeid}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -1249,6 +1263,11 @@ int uavcan_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		inst->print_info();
+		::exit(0);
+	}
+
+	if (!std::strcmp(argv[1], "shrink")) {
+		inst->shrink();
 		::exit(0);
 	}
 
