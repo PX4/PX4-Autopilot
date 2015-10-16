@@ -20,10 +20,25 @@ namespace uavcan
  *  - Call @ref shrink() - this method frees all blocks that are unused at the moment.
  *  - Destroy the object - the desctructor calls @ref shrink().
  *
- * TODO: notes on thread-safety.
+ * The pool can be limited in growth with hard and soft limits.
+ * The soft limit defines the value that will be reported via @ref IPoolAllocator::getBlockCapacity().
+ * The hard limit defines the maximum number of blocks that can be allocated from heap.
+ * Typically, the hard limit should be equal or greater than the soft limit.
+ *
+ * The allocator can be made thread-safe (optional) by means of providing a RAII-lock type via the second template
+ * argument. The allocator uses the lock only to access the shared state, therefore critical sections are only a few
+ * cycles long, which implies that it should be acceptable to use hardware IRQ disabling instead of a mutex for
+ * performance reasons. For example, an IRQ-based RAII-lock type can be implemented as follows:
+ *     struct RaiiSynchronizer
+ *     {
+ *         RaiiSynchronizer()  { __disable_irq(); }
+ *         ~RaiiSynchronizer() { __enable_irq(); }
+ *     };
  */
-template <std::size_t BlockSize, typename RaiiSynchronizer = char>
-class UAVCAN_EXPORT HeapBasedPoolAllocator : public IPoolAllocator, Noncopyable
+template <std::size_t BlockSize,
+          typename RaiiSynchronizer = char>
+class UAVCAN_EXPORT HeapBasedPoolAllocator : public IPoolAllocator,
+                                             Noncopyable
 {
     union Node
     {
