@@ -167,6 +167,22 @@
 # endif
 #endif
 
+#ifndef UAVCAN_LIKELY
+# if __GNUC__
+#  define UAVCAN_LIKELY(x) __builtin_expect(!!(x), true)
+# else
+#  define UAVCAN_LIKELY(x) (x)
+# endif
+#endif
+
+#ifndef UAVCAN_UNLIKELY
+# if __GNUC__
+#  define UAVCAN_UNLIKELY(x) __builtin_expect(!!(x), false)
+# else
+#  define UAVCAN_UNLIKELY(x) (x)
+# endif
+#endif
+
 namespace uavcan
 {
 /**
