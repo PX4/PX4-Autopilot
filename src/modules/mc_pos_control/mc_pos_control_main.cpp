@@ -784,12 +784,12 @@ MulticopterPositionControl::control_offboard(float dt)
 			{
 				if (!_pos_hold_engaged) {
 					_pos_hold_engaged = true;
-					_pos_sp(0) = _pos(0);
-					_pos_sp(1) = _pos(1);
 				}
 			}
 			else {
 				_pos_hold_engaged = false;
+				_pos_sp(0) = _pos(0);
+				_pos_sp(1) = _pos(1);
 			}
 
 			/* set requested velocity setpoint */
@@ -820,11 +820,11 @@ MulticopterPositionControl::control_offboard(float dt)
 			{
 				if (!_alt_hold_engaged) {
 					_alt_hold_engaged = true;
-					_pos_sp(2) = _pos(2);
 				}
 			}
 			else {
 				_alt_hold_engaged = false;
+				_pos_sp(2) = _pos(2);
 			}
 
 			/* set requested velocity setpoint */
