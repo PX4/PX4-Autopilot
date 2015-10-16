@@ -6,6 +6,8 @@
 #define UAVCAN_HELPERS_HEAP_BASED_POOL_ALLOCATOR_HPP_INCLUDED
 
 #include <cstdlib>
+#include <uavcan/build_config.hpp>
+#include <uavcan/debug.hpp>
 #include <uavcan/dynamic_memory.hpp>
 
 namespace uavcan
@@ -32,34 +34,18 @@ class UAVCAN_EXPORT HeapBasedPoolAllocator : public IPoolAllocator, Noncopyable
         long long _aligner2;
     };
 
-    Node* volatile cache_;
-
     const uint16_t capacity_soft_limit_;
     const uint16_t capacity_hard_limit_;
 
-    Node* popCache()
-    {
-        RaiiSynchronizer lock;
-        (void)lock;
-        Node* const p = cache_;
-        if (p != NULL)
-        {
-            cache_ = cache_->next;
-        }
-        return p;
-    }
+    uint16_t num_reserved_blocks_;
+    uint16_t num_allocated_blocks_;
+    uint16_t peak_allocated_blocks_;
 
-    void pushCache(Node* node)
-    {
-        RaiiSynchronizer lock;
-        (void)lock;
-        node->next = cache_;
-        cache_ = node;
-    }
+    Node* reserve_;
 
 public:
     /**
-     * The allocator initializes with empty cache, so first allocations will be served from heap.
+     * The allocator initializes with empty reserve, so first allocations will be served from heap.
      *
      * @param block_capacity_soft_limit     Block capacity that will be reported via @ref getBlockCapacity().
      *
@@ -69,21 +55,33 @@ public:
      */
     HeapBasedPoolAllocator(uint16_t block_capacity_soft_limit,
                            uint16_t block_capacity_hard_limit = 0) :
-        cache_(NULL),
         capacity_soft_limit_(block_capacity_soft_limit),
         capacity_hard_limit_((block_capacity_hard_limit > 0) ? block_capacity_hard_limit :
                              static_cast<uint16_t>(min(static_cast<uint32_t>(block_capacity_soft_limit) * 2U,
-                                                       static_cast<uint32_t>(NumericTraits<uint16_t>::max()))))
+                                                       static_cast<uint32_t>(NumericTraits<uint16_t>::max())))),
+        num_reserved_blocks_(0),
+        num_allocated_blocks_(0),
+        peak_allocated_blocks_(0),
+        reserve_(NULL)
     { }
 
     /**
-     * The destructor de-allocates all blocks that are currently in the cache.
+     * The destructor de-allocates all blocks that are currently in the reserve.
      * BLOCKS THAT ARE CURRENTLY HELD BY THE APPLICATION WILL LEAK.
      */
-    ~HeapBasedPoolAllocator() { shrink(); }
+    ~HeapBasedPoolAllocator()
+    {
+        shrink();
+#if UAVCAN_DEBUG
+        if (num_allocated_blocks_ > 0)
+        {
+            UAVCAN_TRACE("HeapBasedPoolAllocator", "%u BLOCKS LEAKED", num_allocated_blocks_);
+        }
+#endif
+    }
 
     /**
-     * Takes a block from the cache, unless it's empty.
+     * Takes a block from the reserve, unless it's empty.
      * In the latter case, allocates a new block in the heap.
      */
     virtual void* allocate(std::size_t size)
@@ -92,25 +90,64 @@ public:
         {
             return NULL;
         }
-        if (Node* n = popCache())
+
         {
-            return n;
+            RaiiSynchronizer lock;
+            (void)lock;
+
+            Node* const p = reserve_;
+
+            if (UAVCAN_LIKELY(p != NULL))
+            {
+                reserve_ = reserve_->next;
+                num_allocated_blocks_++;
+
+                if (UAVCAN_UNLIKELY(num_allocated_blocks_ > peak_allocated_blocks_))
+                {
+                    peak_allocated_blocks_ = num_allocated_blocks_;
+                }
+                return p;
+            }
+
+            if (num_reserved_blocks_ >= capacity_hard_limit_)   // Hard limit reached, no further allocations
+            {
+                return NULL;
+            }
         }
-        else
+
+        // Unlikely branch
+        void* const m = std::malloc(sizeof(Node));
+        if (m != NULL)
         {
-            return std::malloc(sizeof(Node));
+            RaiiSynchronizer lock;
+            (void)lock;
+
+            num_reserved_blocks_++;
+            num_allocated_blocks_++;
+            if (num_allocated_blocks_ > peak_allocated_blocks_)
+            {
+                peak_allocated_blocks_ = num_allocated_blocks_;
+            }
         }
+        return m;
     }
 
     /**
-     * Puts the block back to cache.
+     * Puts the block back to reserve.
      * The block will not be free()d automatically; see @ref shrink().
      */
     virtual void deallocate(const void* ptr)
     {
         if (ptr != NULL)
         {
-            pushCache(static_cast<Node*>(const_cast<void*>(ptr)));
+            RaiiSynchronizer lock;
+            (void)lock;
+
+            Node* const node = static_cast<Node*>(const_cast<void*>(ptr));
+            node->next = reserve_;
+            reserve_ = node;
+
+            num_allocated_blocks_--;
         }
     }
 
@@ -126,30 +163,51 @@ public:
 
     /**
      * Frees all blocks that are not in use at the moment.
+     * Post-condition is getNumAllocatedBlocks() == getNumReservedBlocks().
      */
     void shrink()
     {
-        while (Node* p = popCache())
+        Node* p = NULL;
+        for (;;)
         {
+            {
+                RaiiSynchronizer lock;
+                (void)lock;
+                // Removing from reserve and updating the counter.
+                p = reserve_;
+                if (p != NULL)
+                {
+                    reserve_ = reserve_->next;
+                    num_reserved_blocks_--;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            // Then freeing, having left the critical section.
             std::free(p);
         }
     }
 
     /**
-     * This function naively counts the number of cached blocks.
-     * It is not thread-safe and is mostly designed for testing and debugging purposes.
-     * Don't use it in production code.
+     * Number of blocks that are currently in use by the application.
      */
-    unsigned getNumCachedBlocks()
+    uint16_t getNumAllocatedBlocks() const
     {
-        unsigned out = 0;
-        Node* p = cache_;
-        while (p != NULL)
-        {
-            out++;
-            p = p->next;
-        }
-        return out;
+        RaiiSynchronizer lock;
+        (void)lock;
+        return num_allocated_blocks_;
+    }
+
+    /**
+     * Number of blocks that are acquired from the heap.
+     */
+    uint16_t getNumReservedBlocks() const
+    {
+        RaiiSynchronizer lock;
+        (void)lock;
+        return num_reserved_blocks_;
     }
 };
 

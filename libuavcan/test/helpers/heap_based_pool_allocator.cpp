@@ -14,7 +14,8 @@ TEST(HeapBasedPoolAllocator, Basic)
 
     uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize> al(0xEEEE);
 
-    ASSERT_EQ(0, al.getNumCachedBlocks());
+    ASSERT_EQ(0, al.getNumReservedBlocks());
+    ASSERT_EQ(0, al.getNumAllocatedBlocks());
 
     ASSERT_EQ(0xEEEE, al.getBlockCapacity());
     ASSERT_EQ(0xFFFF, al.getBlockCapacityHardLimit());
@@ -24,35 +25,79 @@ TEST(HeapBasedPoolAllocator, Basic)
     void* c = al.allocate(10);
     void* d = al.allocate(10);
 
-    ASSERT_EQ(0, al.getNumCachedBlocks());
+    ASSERT_EQ(4, al.getNumReservedBlocks());
+    ASSERT_EQ(4, al.getNumAllocatedBlocks());
 
     al.deallocate(a);
-    ASSERT_EQ(1, al.getNumCachedBlocks());
+    ASSERT_EQ(4, al.getNumReservedBlocks());
+    ASSERT_EQ(3, al.getNumAllocatedBlocks());
 
     al.deallocate(b);
-    ASSERT_EQ(2, al.getNumCachedBlocks());
+    ASSERT_EQ(4, al.getNumReservedBlocks());
+    ASSERT_EQ(2, al.getNumAllocatedBlocks());
 
     al.deallocate(c);
-    ASSERT_EQ(3, al.getNumCachedBlocks());
+    ASSERT_EQ(4, al.getNumReservedBlocks());
+    ASSERT_EQ(1, al.getNumAllocatedBlocks());
 
     a = al.allocate(10);
-    ASSERT_EQ(2, al.getNumCachedBlocks());
+    ASSERT_EQ(4, al.getNumReservedBlocks());
+    ASSERT_EQ(2, al.getNumAllocatedBlocks());
     ASSERT_EQ(c, a);
 
     al.deallocate(a);
-    ASSERT_EQ(3, al.getNumCachedBlocks());
+    ASSERT_EQ(4, al.getNumReservedBlocks());
+    ASSERT_EQ(1, al.getNumAllocatedBlocks());
 
     al.shrink();
-    ASSERT_EQ(0, al.getNumCachedBlocks());
+    ASSERT_EQ(1, al.getNumReservedBlocks());
+    ASSERT_EQ(1, al.getNumAllocatedBlocks());
 
     al.deallocate(d);
-    ASSERT_EQ(1, al.getNumCachedBlocks());
+    ASSERT_EQ(1, al.getNumReservedBlocks());
+    ASSERT_EQ(0, al.getNumAllocatedBlocks());
 
     al.shrink();
-    ASSERT_EQ(0, al.getNumCachedBlocks());
+    ASSERT_EQ(0, al.getNumReservedBlocks());
+    ASSERT_EQ(0, al.getNumAllocatedBlocks());
 
     std::cout << ">>> HEAP AFTER:" << std::endl;
     malloc_stats();
+}
+
+
+TEST(HeapBasedPoolAllocator, Limits)
+{
+    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize> al(2);
+
+    ASSERT_EQ(2, al.getBlockCapacity());
+    ASSERT_EQ(4, al.getBlockCapacityHardLimit());
+
+    ASSERT_EQ(0, al.getNumReservedBlocks());
+    ASSERT_EQ(0, al.getNumAllocatedBlocks());
+
+    void* a = al.allocate(10);
+    void* b = al.allocate(10);
+    void* c = al.allocate(10);
+    void* d = al.allocate(10);
+
+    ASSERT_TRUE(a);
+    ASSERT_TRUE(b);
+    ASSERT_TRUE(c);
+    ASSERT_TRUE(d);
+
+    ASSERT_FALSE(al.allocate(10));
+
+    ASSERT_EQ(4, al.getNumReservedBlocks());
+    ASSERT_EQ(4, al.getNumAllocatedBlocks());
+
+    al.deallocate(a);
+    al.deallocate(b);
+    al.deallocate(c);
+    al.deallocate(d);
+
+    ASSERT_EQ(4, al.getNumReservedBlocks());
+    ASSERT_EQ(0, al.getNumAllocatedBlocks());
 }
 
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
@@ -119,7 +164,8 @@ TEST(HeapBasedPoolAllocator, Concurrency)
     /*
      * Now, there must not be any leaked memory, because the worker threads deallocate everything before completion.
      */
-    //std::cout << "Cached blocks: " << al.getNumCachedBlocks() << std::endl;
+    std::cout << "Allocated: " << al.getNumAllocatedBlocks() << std::endl;
+    std::cout << "Reserved:  " << al.getNumReservedBlocks() << std::endl;
 
     std::cout << ">>> HEAP BEFORE SHRINK:" << std::endl;
     malloc_stats();
