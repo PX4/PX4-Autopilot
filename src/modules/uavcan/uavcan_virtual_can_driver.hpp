@@ -114,6 +114,14 @@ public:
 		uavcan::IsDynamicallyAllocatable<Item>::check();
 	}
 
+	~Queue()
+	{
+		while (!isEmpty())
+		{
+			pop();
+		}
+	}
+
 	bool isEmpty() const { return list_.isEmpty(); }
 
 	/**
