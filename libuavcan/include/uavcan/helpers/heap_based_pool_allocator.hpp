@@ -54,7 +54,6 @@ class UAVCAN_EXPORT HeapBasedPoolAllocator : public IPoolAllocator,
 
     uint16_t num_reserved_blocks_;
     uint16_t num_allocated_blocks_;
-    uint16_t peak_allocated_blocks_;
 
     Node* reserve_;
 
@@ -76,7 +75,6 @@ public:
                                                        static_cast<uint32_t>(NumericTraits<uint16_t>::max())))),
         num_reserved_blocks_(0),
         num_allocated_blocks_(0),
-        peak_allocated_blocks_(0),
         reserve_(NULL)
     { }
 
@@ -116,11 +114,6 @@ public:
             {
                 reserve_ = reserve_->next;
                 num_allocated_blocks_++;
-
-                if (UAVCAN_UNLIKELY(num_allocated_blocks_ > peak_allocated_blocks_))
-                {
-                    peak_allocated_blocks_ = num_allocated_blocks_;
-                }
                 return p;
             }
 
@@ -139,10 +132,6 @@ public:
 
             num_reserved_blocks_++;
             num_allocated_blocks_++;
-            if (num_allocated_blocks_ > peak_allocated_blocks_)
-            {
-                peak_allocated_blocks_ = num_allocated_blocks_;
-            }
         }
         return m;
     }
