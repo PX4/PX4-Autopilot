@@ -22,3 +22,6 @@
 [submodule "src/lib/dspal"]
 	path = src/lib/dspal
 	url = https://github.com/mcharleb/dspal.git
+[submodule "Tools/jMAVSim"]
+	path = Tools/jMAVSim
+	url = https://github.com/PX4/jMAVSim.git
