@@ -10,6 +10,7 @@ matrix:
       sudo: false
     - os: osx
       osx_image: beta-xcode6.3
+      sudo: true
 
 cache:
   directories:
@@ -23,13 +24,14 @@ addons:
     packages:
     - build-essential
     - ccache
-    - cmake
     - clang-3.5
+    - cmake
     - g++-4.8
     - gcc-4.8
     - genromfs
     - libc6-i386
     - libncurses5-dev
+    - ninja-build
     - python-argparse
     - python-empy
     - python-serial
@@ -55,10 +57,11 @@ before_install:
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
       && brew update
+      && brew install astyle
+      && brew install gcc-arm-none-eabi
       && brew install genromfs
       && brew install kconfig-frontends
-      && brew install gcc-arm-none-eabi
-      && brew install astyle
+      && brew install ninja
       && sudo easy_install pip
       && sudo pip install pyserial empy
       ;
@@ -81,6 +84,7 @@ before_script:
 
 env:
   global:
+    - NINJA_BUILD=1
 # AWS KEY: $PX4_AWS_KEY
     - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
 # AWS SECRET: $PX4_AWS_SECRET
@@ -90,37 +94,11 @@ env:
 script:
   - make check_format
   - arm-none-eabi-gcc --version
-  - echo 'Building POSIX Firmware..' && echo -en 'travis_fold:start:script.1\\r'
-  - make posix_sitl_simple
-  - echo -en 'travis_fold:end:script.1\\r'
-  - echo 'Running Tests..' && echo -en 'travis_fold:start:script.2\\r'
-  - make posix_sitl_simple test
-  - cat build_posix_sitl_simple/src/modules/systemlib/mixer/mixer_multirotor.generated.h
-  - echo -en 'travis_fold:end:script.2\\r'
-  - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.3\\r'
-  - make px4fmu-v1_default
-  - make px4fmu-v2_default
-  - echo -en 'travis_fold:end:script.3\\r'
-  - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'
-  - make px4fmu-v2_default test
-  - echo -en 'travis_fold:end:script.4\\r'
-  #- make px4fmu-v2_default package
-  #- make posix -j4
-  #- ccache -s
-  #- echo -en 'travis_fold:end:script.1\\r'
-  #- echo 'Running Tests..' && echo -en 'travis_fold:start:script.2\\r'
-  #- make tests
-  #- cat src/modules/systemlib/mixer/mixer_multirotor.generated.h
-  #- echo -en 'travis_fold:end:script.2\\r'
-  #- echo 'Building NuttX..' && echo -en 'travis_fold:start:script.3\\r'
-  #- make archives
-  #- ccache -s
-  #- echo -en 'travis_fold:end:script.3\\r'
-  #- echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.4\\r'
-  #- make -j4
-  #- make size
-  #- ccache -s
-  #- echo -en 'travis_fold:end:script.4\\r'
+  - echo 'Building POSIX Firmware..' && make posix_sitl_simple
+  - echo 'Running Tests..' && make posix_sitl_simple test && cat build_posix_sitl_simple/src/modules/systemlib/mixer/mixer_multirotor.generated.h
+  - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
+  - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
+  - echo 'Running Tests..' && make px4fmu-v2_default test
   #- zip Firmware.zip Images/*.px4
 
 #after_script:
