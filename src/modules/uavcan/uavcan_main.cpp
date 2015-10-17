@@ -1069,6 +1069,7 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 			unsigned buflen = strnlen(buf, 1024);
 
 			if (_mixers == nullptr) {
+				// TODO: Do we have to delete it when stopping?
 				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
 			}
 
