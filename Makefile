@@ -132,6 +132,9 @@ ros: ros_sitl_simple
 run_sitl_quad: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rcS
 
+run_sitl_iris: posix
+	Tools/sitl_run.sh posix-configs/SITL/init/rcS_iris_gazebo
+
 run_sitl_plane: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
 
