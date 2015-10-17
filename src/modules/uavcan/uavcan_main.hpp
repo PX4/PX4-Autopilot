@@ -56,6 +56,7 @@
 #include "sensors/sensor_bridge.hpp"
 
 #include "uavcan_servers.hpp"
+#include "allocator.hpp"
 
 /**
  * @file uavcan_main.hpp
@@ -95,9 +96,6 @@ class UavcanNode : public device::CDev
 
 	static constexpr unsigned RxQueueLenPerIface = FramePerMSecond * PollTimeoutMs; // At
 	static constexpr unsigned StackSize          = 1800;
-
-	static constexpr unsigned MemoryPoolBlockCapacitySoftLimit = 250;
-	static constexpr unsigned MemoryPoolBlockCapacityHardLimit = 500;
 
 public:
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
@@ -171,13 +169,7 @@ private:
 
 	static UavcanNode	*_instance;			///< singleton pointer
 
-	struct MemoryPoolSynchronizer
-	{
-		const ::irqstate_t state = ::irqsave();
-		~MemoryPoolSynchronizer() { ::irqrestore(state); }
-	};
-
-	uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, MemoryPoolSynchronizer> _pool_allocator;
+	uavcan_node::Allocator _pool_allocator;
 
 	uavcan::Node<>		_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
