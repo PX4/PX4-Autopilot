@@ -110,6 +110,7 @@ public:
 private:
 	pthread_t         _subnode_thread;
 	pthread_mutex_t   _subnode_mutex;
+	volatile bool     _subnode_thread_should_exit = false;
 
 	int		init();
 
