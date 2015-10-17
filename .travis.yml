@@ -99,22 +99,24 @@ script:
   - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
   - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
   - echo 'Running Tests..' && make px4fmu-v2_default test
-  #- zip Firmware.zip Images/*.px4
 
-#after_script:
-  #- git clone git://github.com/PX4/CI-Tools.git
-  #- ./CI-Tools/s3cmd-configure
-## upload newest build for this branch with s3 index
-  #- ./CI-Tools/s3cmd-put Images/px4*.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
-## archive newest build by date with s3 index
-  #- ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
-  #- ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
-## upload top level index.html and timestamp.html
-  #- ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
-  #- ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
-  #- echo ""
-  #- echo "Binaries have been posted to:"
-  #- echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
+after_success:
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+         cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
+      && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
+      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4
+      && git clone git://github.com/PX4/CI-Tools.git
+      && ./CI-Tools/s3cmd-configure
+      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+      && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
+      && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
+      && ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
+      && ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
+      && echo ""
+      && echo "Binaries have been posted to:"
+      && echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
+      ;
+    fi
 
 deploy:
   provider: releases
