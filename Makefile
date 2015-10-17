@@ -130,7 +130,7 @@ posix: posix_sitl_simple
 ros: ros_sitl_simple
 
 run_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS
+	Tools/sitl_run.sh posix-configs/SITL/init/rcS none jmavsim
 
 run_sitl_iris: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rcS_iris_gazebo
@@ -142,7 +142,7 @@ run_sitl_ros: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros
 
 lldb_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS lldb
+	Tools/sitl_run.sh posix-configs/SITL/init/rcS lldb jmavsim
 
 lldb_sitl_plane: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing lldb
@@ -151,7 +151,7 @@ lldb_sitl_ros: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros lldb
 
 gdb_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS gdb
+	Tools/sitl_run.sh posix-configs/SITL/init/rcS gdb jmavsim
 
 gdb_sitl_plane: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing lldb
