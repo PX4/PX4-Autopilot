@@ -100,9 +100,9 @@ protected:
 
     ~GenericSubscriberBase() { }
 
-    int genericStart(TransferListenerBase* listener, bool (Dispatcher::*registration_method)(TransferListenerBase*));
+    int genericStart(TransferListener* listener, bool (Dispatcher::*registration_method)(TransferListener*));
 
-    void stop(TransferListenerBase* listener);
+    void stop(TransferListener* listener);
 
 public:
     /**
@@ -113,31 +113,6 @@ public:
     uint32_t getFailureCount() const { return failure_count_; }
 
     INode& getNode() const { return node_; }
-};
-
-/**
- * This helper class does some compile-time magic on the transport layer machinery. For authorized personnel only.
- */
-template <typename DataStruct_,
-          unsigned NumStaticReceivers_,
-          unsigned NumStaticBufs_,
-          template<unsigned, unsigned, unsigned> class TransferListenerTemplate = TransferListener
-         >
-class UAVCAN_EXPORT TransferListenerInstantiationHelper
-{
-    enum { DataTypeMaxByteLen = BitLenToByteLen<DataStruct_::MaxBitLen>::Result };
-    enum { NeedsBuffer = int(DataTypeMaxByteLen) > int(GuaranteedPayloadLenPerFrame) };
-    enum { BufferSize = NeedsBuffer ? DataTypeMaxByteLen : 0 };
-#if UAVCAN_TINY
-    enum { NumStaticBufs = 0 };
-    enum { NumStaticReceivers = 0 };
-#else
-    enum { NumStaticBufs = NeedsBuffer ? NumStaticBufs_: 0 };
-    enum { NumStaticReceivers = NumStaticReceivers_ };
-#endif
-
-public:
-    typedef TransferListenerTemplate<BufferSize, NumStaticBufs, NumStaticReceivers> Type;
 };
 
 /**
@@ -160,9 +135,15 @@ class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberBase
         }
 
     public:
-        TransferForwarder(SelfType& obj, const DataTypeDescriptor& data_type, IPoolAllocator& allocator)
-            : TransferListenerType(obj.node_.getDispatcher().getTransferPerfCounter(), data_type, allocator)
-            , obj_(obj)
+        TransferForwarder(SelfType& obj,
+                          const DataTypeDescriptor& data_type,
+                          uint16_t max_buffer_size,
+                          IPoolAllocator& allocator) :
+            TransferListenerType(obj.node_.getDispatcher().getTransferPerfCounter(),
+                                 data_type,
+                                 max_buffer_size,
+                                 allocator),
+            obj_(obj)
         { }
     };
 
@@ -172,20 +153,19 @@ class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberBase
 
     void handleIncomingTransfer(IncomingTransfer& transfer);
 
-    int genericStart(bool (Dispatcher::*registration_method)(TransferListenerBase*));
+    int genericStart(bool (Dispatcher::*registration_method)(TransferListener*));
 
 protected:
     struct ReceivedDataStructureSpec : public ReceivedDataStructure<DataStruct>
     {
         ReceivedDataStructureSpec() { }
 
-        ReceivedDataStructureSpec(const IncomingTransfer* arg_transfer)
-            : ReceivedDataStructure<DataStruct>(arg_transfer)
+        ReceivedDataStructureSpec(const IncomingTransfer* arg_transfer) :
+            ReceivedDataStructure<DataStruct>(arg_transfer)
         { }
     };
 
-    explicit GenericSubscriber(INode& node)
-        : GenericSubscriberBase(node)
+    explicit GenericSubscriber(INode& node) : GenericSubscriberBase(node)
     { }
 
     virtual ~GenericSubscriber() { stop(); }
@@ -256,8 +236,10 @@ int GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::checkInit()
         return -ErrUnknownDataType;
     }
 
-    forwarder_.template construct<SelfType&, const DataTypeDescriptor&, IPoolAllocator&>
-        (*this, *descr, node_.getAllocator());
+    static const uint16_t MaxBufferSize = BitLenToByteLen<DataStruct::MaxBitLen>::Result;
+
+    forwarder_.template construct<SelfType&, const DataTypeDescriptor&, uint16_t, IPoolAllocator&>
+        (*this, *descr, MaxBufferSize, node_.getAllocator());
 
     return 0;
 }
@@ -295,7 +277,7 @@ void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomi
 
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
 int GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::
-genericStart(bool (Dispatcher::*registration_method)(TransferListenerBase*))
+genericStart(bool (Dispatcher::*registration_method)(TransferListener*))
 {
     const int res = checkInit();
     if (res < 0)

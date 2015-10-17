@@ -71,7 +71,7 @@ TEST(Multiset, Basic)
     static const int POOL_BLOCKS = 3;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
-    typedef Multiset<std::string, 2> MultisetType;
+    typedef Multiset<std::string> MultisetType;
     std::auto_ptr<MultisetType> mset(new MultisetType(pool));
 
     typedef SummationOperator<std::string> StringConcatenationOperator;
@@ -86,9 +86,8 @@ TEST(Multiset, Basic)
     // Static addion
     ASSERT_EQ("1", *mset->emplace("1"));
     ASSERT_EQ("2", *mset->emplace("2"));
-    ASSERT_EQ(0, pool.getNumUsedBlocks());
-    ASSERT_EQ(2, mset->getNumStaticItems());
-    ASSERT_EQ(0, mset->getNumDynamicItems());
+    ASSERT_LE(1, pool.getNumUsedBlocks());      // One or more
+    ASSERT_EQ(2, mset->getSize());
 
     // Ordering
     ASSERT_TRUE(*mset->getByIndex(0) == "1");
@@ -103,22 +102,14 @@ TEST(Multiset, Basic)
     // Dynamic addition
     ASSERT_EQ("3", *mset->emplace("3"));
     ASSERT_EQ("3", *mset->getByIndex(2));
-    ASSERT_EQ(1, pool.getNumUsedBlocks());
+    ASSERT_LE(1, pool.getNumUsedBlocks());      // One or more
 
     ASSERT_EQ("4", *mset->emplace("4"));
     ASSERT_LE(1, pool.getNumUsedBlocks());      // One or more
-    ASSERT_EQ(2, mset->getNumStaticItems());
-    ASSERT_EQ(2, mset->getNumDynamicItems());
+    ASSERT_EQ(4, mset->getSize());
 
-    // Making sure everything is here
-    ASSERT_EQ("1", *mset->getByIndex(0));
-    ASSERT_EQ("2", *mset->getByIndex(1));
-    // 2 and 3 are not tested because their placement depends on number of items per dynamic block
     ASSERT_FALSE(mset->getByIndex(100));
     ASSERT_FALSE(mset->getByIndex(4));
-
-    const std::string data_at_pos2 = *mset->getByIndex(2);
-    const std::string data_at_pos3 = *mset->getByIndex(3);
 
     // Finding some items
     ASSERT_EQ("1", *mset->find(FindPredicate("1")));
@@ -134,23 +125,10 @@ TEST(Multiset, Basic)
         ASSERT_EQ(4, op.accumulator.size());
     }
 
-    // Removing one static; ordering will be preserved
+    // Removing some
     mset->removeFirst("1");
     mset->removeFirst("foo");                           // There's no such thing anyway
-    ASSERT_LE(1, pool.getNumUsedBlocks());
-    ASSERT_EQ(1, mset->getNumStaticItems());
-    ASSERT_EQ(2, mset->getNumDynamicItems());           // This container does not move items
-
-    // Ordering has not changed
-    ASSERT_EQ("2", *mset->getByIndex(0));       // Entry "1" was here
-    ASSERT_EQ(data_at_pos2, *mset->getByIndex(1));
-    ASSERT_EQ(data_at_pos3, *mset->getByIndex(2));
-
-    // Removing another static
     mset->removeFirst("2");
-    ASSERT_EQ(0, mset->getNumStaticItems());
-    ASSERT_EQ(2, mset->getNumDynamicItems());
-    ASSERT_LE(1, pool.getNumUsedBlocks());
 
     // Adding some new items
     unsigned max_value_integer = 0;
@@ -219,7 +197,7 @@ TEST(Multiset, PrimitiveKey)
     static const int POOL_BLOCKS = 3;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
-    typedef Multiset<int, 2> MultisetType;
+    typedef Multiset<int> MultisetType;
     std::auto_ptr<MultisetType> mset(new MultisetType(pool));
 
     // Empty
@@ -236,16 +214,6 @@ TEST(Multiset, PrimitiveKey)
     ASSERT_EQ(3, *mset->emplace(3));
     ASSERT_EQ(4, *mset->emplace(4));
     ASSERT_EQ(4, mset->getSize());
-
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-    // Only C++11 because C++03 uses one entry per pool block which breaks ordering
-    ASSERT_EQ(1, *mset->getByIndex(0));
-    ASSERT_EQ(2, *mset->getByIndex(1));
-    ASSERT_EQ(3, *mset->getByIndex(2));
-    ASSERT_EQ(4, *mset->getByIndex(3));
-    ASSERT_FALSE(mset->getByIndex(5));
-    ASSERT_FALSE(mset->getByIndex(1000));
-#endif
 
     // Summation and clearing
     {
@@ -269,7 +237,7 @@ TEST(Multiset, NoncopyableWithCounter)
     static const int POOL_BLOCKS = 3;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
-    typedef Multiset<NoncopyableWithCounter, 2> MultisetType;
+    typedef Multiset<NoncopyableWithCounter> MultisetType;
     std::auto_ptr<MultisetType> mset(new MultisetType(pool));
 
     ASSERT_EQ(0, NoncopyableWithCounter::num_objects);
@@ -286,11 +254,9 @@ TEST(Multiset, NoncopyableWithCounter)
 
     mset->removeFirst(NoncopyableWithCounter(0));
     ASSERT_EQ(4, NoncopyableWithCounter::num_objects);
-    ASSERT_EQ(123, mset->getByIndex(0)->value);
 
     mset->removeFirstWhere(&NoncopyableWithCounter::isNegative);
     ASSERT_EQ(3, NoncopyableWithCounter::num_objects);
-    ASSERT_EQ(456, mset->getByIndex(1)->value);                 // -456 is now removed
 
     mset->removeAllWhere(&NoncopyableWithCounter::isNegative);
     ASSERT_EQ(2, NoncopyableWithCounter::num_objects);          // Only 1 and 2 are left

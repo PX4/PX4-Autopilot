@@ -81,19 +81,19 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
 {
     CanIOManager canio_;
     ISystemClock& sysclock_;
-    IOutgoingTransferRegistry& outgoing_transfer_reg_;
+    OutgoingTransferRegistry outgoing_transfer_reg_;
     TransferPerfCounter perf_;
 
     class ListenerRegistry
     {
-        LinkedListRoot<TransferListenerBase> list_;
+        LinkedListRoot<TransferListener> list_;
 
         class DataTypeIDInsertionComparator
         {
             const DataTypeID id_;
         public:
             explicit DataTypeIDInsertionComparator(DataTypeID id) : id_(id) { }
-            bool operator()(const TransferListenerBase* listener) const
+            bool operator()(const TransferListener* listener) const
             {
                 UAVCAN_ASSERT(listener);
                 return id_ > listener->getDataTypeDescriptor().getID();
@@ -103,15 +103,15 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
     public:
         enum Mode { UniqueListener, ManyListeners };
 
-        bool add(TransferListenerBase* listener, Mode mode);
-        void remove(TransferListenerBase* listener);
+        bool add(TransferListener* listener, Mode mode);
+        void remove(TransferListener* listener);
         bool exists(DataTypeID dtid) const;
         void cleanup(MonotonicTime ts);
         void handleFrame(const RxFrame& frame);
 
         unsigned getNumEntries() const { return list_.getLength(); }
 
-        const LinkedListRoot<TransferListenerBase>& getList() const { return list_; }
+        const LinkedListRoot<TransferListener>& getList() const { return list_; }
     };
 
     ListenerRegistry lmsg_;
@@ -133,10 +133,10 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
     void notifyRxFrameListener(const CanRxFrame& can_frame, CanIOFlags flags);
 
 public:
-    Dispatcher(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
+    Dispatcher(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock)
         : canio_(driver, allocator, sysclock)
         , sysclock_(sysclock)
-        , outgoing_transfer_reg_(otr)
+        , outgoing_transfer_reg_(allocator)
 #if !UAVCAN_TINY
         , rx_listener_(NULL)
 #endif
@@ -162,13 +162,13 @@ public:
 
     void cleanup(MonotonicTime ts);
 
-    bool registerMessageListener(TransferListenerBase* listener);
-    bool registerServiceRequestListener(TransferListenerBase* listener);
-    bool registerServiceResponseListener(TransferListenerBase* listener);
+    bool registerMessageListener(TransferListener* listener);
+    bool registerServiceRequestListener(TransferListener* listener);
+    bool registerServiceResponseListener(TransferListener* listener);
 
-    void unregisterMessageListener(TransferListenerBase* listener);
-    void unregisterServiceRequestListener(TransferListenerBase* listener);
-    void unregisterServiceResponseListener(TransferListenerBase* listener);
+    void unregisterMessageListener(TransferListener* listener);
+    void unregisterServiceRequestListener(TransferListener* listener);
+    void unregisterServiceResponseListener(TransferListener* listener);
 
     bool hasSubscriber(DataTypeID dtid) const;
     bool hasPublisher(DataTypeID dtid) const;
@@ -185,15 +185,15 @@ public:
      * removed from this list as soon as the corresponding service call is complete.
      * @{
      */
-    const LinkedListRoot<TransferListenerBase>& getListOfMessageListeners() const
+    const LinkedListRoot<TransferListener>& getListOfMessageListeners() const
     {
         return lmsg_.getList();
     }
-    const LinkedListRoot<TransferListenerBase>& getListOfServiceRequestListeners() const
+    const LinkedListRoot<TransferListener>& getListOfServiceRequestListeners() const
     {
         return lsrv_req_.getList();
     }
-    const LinkedListRoot<TransferListenerBase>& getListOfServiceResponseListeners() const
+    const LinkedListRoot<TransferListener>& getListOfServiceResponseListeners() const
     {
         return lsrv_resp_.getList();
     }
@@ -201,7 +201,7 @@ public:
      * @}
      */
 
-    IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
+    OutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 
 #if !UAVCAN_TINY
     LoopbackFrameListenerRegistry& getLoopbackFrameListenerRegistry() { return loopback_listeners_; }

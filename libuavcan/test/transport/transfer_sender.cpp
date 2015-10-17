@@ -29,17 +29,15 @@ static int sendOne(uavcan::TransferSender& sender, const std::string& data,
 
 TEST(TransferSender, Basic)
 {
-    NullAllocator poolmgr;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> poolmgr;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
-
     static const uavcan::NodeID TX_NODE_ID(64);
     static const uavcan::NodeID RX_NODE_ID(65);
-    uavcan::Dispatcher dispatcher_tx(driver, poolmgr, clockmock, out_trans_reg);
-    uavcan::Dispatcher dispatcher_rx(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher_tx(driver, poolmgr, clockmock);
+    uavcan::Dispatcher dispatcher_rx(driver, poolmgr, clockmock);
     ASSERT_TRUE(dispatcher_tx.setNodeID(TX_NODE_ID));
     ASSERT_TRUE(dispatcher_rx.setNodeID(RX_NODE_ID));
 
@@ -123,9 +121,9 @@ TEST(TransferSender, Basic)
         }
     }
 
-    TestListener<512, 2, 2> sub_msg(dispatcher_rx.getTransferPerfCounter(),      TYPES[0], poolmgr);
-    TestListener<512, 2, 2> sub_srv_req(dispatcher_rx.getTransferPerfCounter(),  TYPES[1], poolmgr);
-    TestListener<512, 2, 2> sub_srv_resp(dispatcher_rx.getTransferPerfCounter(), TYPES[1], poolmgr);
+    TestListener sub_msg(dispatcher_rx.getTransferPerfCounter(),      TYPES[0], 512, poolmgr);
+    TestListener sub_srv_req(dispatcher_rx.getTransferPerfCounter(),  TYPES[1], 512, poolmgr);
+    TestListener sub_srv_resp(dispatcher_rx.getTransferPerfCounter(), TYPES[1], 512, poolmgr);
 
     dispatcher_rx.registerMessageListener(&sub_msg);
     dispatcher_rx.registerServiceRequestListener(&sub_srv_req);
@@ -190,15 +188,13 @@ struct TransferSenderTestLoopbackFrameListener : public uavcan::LoopbackFrameLis
 
 TEST(TransferSender, Loopback)
 {
-    NullAllocator poolmgr;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> poolmgr;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
-
     static const uavcan::NodeID TX_NODE_ID(64);
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock);
     ASSERT_TRUE(dispatcher.setNodeID(TX_NODE_ID));
 
     uavcan::DataTypeDescriptor desc = makeDataType(uavcan::DataTypeKindMessage, 1, "Foobar");
@@ -231,14 +227,12 @@ TEST(TransferSender, Loopback)
 
 TEST(TransferSender, PassiveMode)
 {
-    NullAllocator poolmgr;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> poolmgr;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
-
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock);
 
     uavcan::TransferSender sender(dispatcher, makeDataType(uavcan::DataTypeKindMessage, 123),
                                   uavcan::CanTxQueue::Volatile);

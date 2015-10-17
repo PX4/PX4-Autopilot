@@ -10,6 +10,7 @@
 #endif
 
 #include <uavcan/node/abstract_node.hpp>
+#include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <memory>
 #include <set>
 #include <queue>
@@ -19,15 +20,20 @@
 
 struct TestNode : public uavcan::INode
 {
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> pool;
-    uavcan::OutgoingTransferRegistry<8> otr;
+    /*
+     * This class used to use the simple pool allocator instead:
+     *  uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 1024, uavcan::MemPoolBlockSize> pool;
+     * It has been replaced because unlike the simple allocator, heap-based one is not tested as extensively.
+     * Moreover, heap based allocator prints and error message upon destruction if some memory has not been freed.
+     */
+    uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize> pool;
     uavcan::Scheduler scheduler;
     uint64_t internal_failure_count;
 
-    TestNode(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock_driver, uavcan::NodeID self_node_id)
-        : otr(pool)
-        , scheduler(can_driver, pool, clock_driver, otr)
-        , internal_failure_count(0)
+    TestNode(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock_driver, uavcan::NodeID self_node_id) :
+        pool(1024),
+        scheduler(can_driver, pool, clock_driver),
+        internal_failure_count(0)
     {
         setNodeID(self_node_id);
     }

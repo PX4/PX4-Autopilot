@@ -167,6 +167,22 @@
 # endif
 #endif
 
+#ifndef UAVCAN_LIKELY
+# if __GNUC__
+#  define UAVCAN_LIKELY(x) __builtin_expect(!!(x), true)
+# else
+#  define UAVCAN_LIKELY(x) (x)
+# endif
+#endif
+
+#ifndef UAVCAN_UNLIKELY
+# if __GNUC__
+#  define UAVCAN_UNLIKELY(x) __builtin_expect(!!(x), false)
+# else
+#  define UAVCAN_UNLIKELY(x) (x)
+# endif
+#endif
+
 namespace uavcan
 {
 /**
@@ -237,24 +253,6 @@ static const unsigned MaxCanAcceptanceFilters = UAVCAN_MAX_CAN_ACCEPTANCE_FILTER
 #else
 /// Default that should be OK for any platform.
 static const unsigned MaxCanAcceptanceFilters = 32;
-#endif
-
-/**
- * This constant defines how many receiver objects will be statically pre-allocated by classes that listen to messages
- * of type uavcan.protocol.NodeStatus from other nodes. If the number of publishers exceeds this value, extra
- * listeners will be allocated in the dynamic memory (one block per listener).
- *
- * The default value is safe to use in any application (since extra memory can always be retrieved from the pool).
- * Applications that are extremely memory sensitive and are not expected to operate in large networks can override
- * the default with a lower value.
- *
- * Note that nodes that aren't using classes that monitor the network (e.g. NodeStatusMonitor, dynamic node ID
- * allocation servers) do not depend on this configuration parameter in any way.
- */
-#ifdef UAVCAN_MAX_NETWORK_SIZE_HINT
-static const unsigned MaxNetworkSizeHint = UAVCAN_MAX_NETWORK_SIZE_HINT;
-#else
-static const unsigned MaxNetworkSizeHint = 64;  ///< Rest will go into the dynamic memory
 #endif
 
 }

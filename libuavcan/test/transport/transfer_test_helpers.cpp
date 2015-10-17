@@ -11,7 +11,7 @@ TEST(TransferTestHelpers, Transfer)
 {
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
 
-    uavcan::TransferBufferManager<128, 1> mgr(pool);
+    uavcan::TransferBufferManager mgr(128, pool);
     uavcan::TransferBufferAccessor tba(mgr, uavcan::TransferBufferManagerKey(0, uavcan::TransferTypeMessageBroadcast));
 
     uavcan::RxFrame frame(uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, 0, 0),

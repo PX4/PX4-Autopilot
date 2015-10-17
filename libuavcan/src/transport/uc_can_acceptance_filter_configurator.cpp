@@ -38,8 +38,8 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessage
         return -ErrMemory;
     }
 
-    const TransferListenerBase* p = node_.getDispatcher().getListOfMessageListeners().get();
-    while (p)
+    const TransferListener* p = node_.getDispatcher().getListOfMessageListeners().get();
+    while (p != NULL)
     {
         CanFilterConfig cfg;
         cfg.id = static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 8;

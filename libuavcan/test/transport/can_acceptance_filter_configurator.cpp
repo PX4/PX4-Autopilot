@@ -145,10 +145,10 @@ TEST(CanAcceptanceFilter, Basic_test)
         std::cout << "config.MK [" << i << "]= " << configure_array.getByIndex(i)->mask << std::endl;
     }
 
-    ASSERT_EQ(configure_array.getByIndex(0)->id, 0);
-    ASSERT_EQ(configure_array.getByIndex(0)->mask, 255);
-    ASSERT_EQ(configure_array.getByIndex(1)->id, 256000);
-    ASSERT_EQ(configure_array.getByIndex(1)->mask, 16771968);
+    ASSERT_EQ(configure_array.getByIndex(0)->id, 256000);
+    ASSERT_EQ(configure_array.getByIndex(0)->mask, 16771968);
+    ASSERT_EQ(configure_array.getByIndex(1)->id, 0);
+    ASSERT_EQ(configure_array.getByIndex(1)->mask, 255);
     ASSERT_EQ(configure_array.getByIndex(2)->id, 6272);
     ASSERT_EQ(configure_array.getByIndex(2)->mask, 32640);
     ASSERT_EQ(configure_array.getByIndex(3)->id, 262144);
@@ -170,16 +170,16 @@ TEST(CanAcceptanceFilter, Basic_test)
 
     for (uint16_t i = 0; i<configure_array_size; i++)
     {
-        std::cout << "config.ID [" << i << "]= " << configure_array.getByIndex(i)->id << std::endl;
-        std::cout << "config.MK [" << i << "]= " << configure_array.getByIndex(i)->mask << std::endl;
+        std::cout << "config.ID [" << i << "]= " << configure_array_2.getByIndex(i)->id << std::endl;
+        std::cout << "config.MK [" << i << "]= " << configure_array_2.getByIndex(i)->mask << std::endl;
     }
 
-    ASSERT_EQ(configure_array_2.getByIndex(0)->id, 6272);
-    ASSERT_EQ(configure_array_2.getByIndex(0)->mask, 32640);
+    ASSERT_EQ(configure_array_2.getByIndex(0)->id, 256000);
+    ASSERT_EQ(configure_array_2.getByIndex(0)->mask, 16771968);
     ASSERT_EQ(configure_array_2.getByIndex(1)->id, 262144);
     ASSERT_EQ(configure_array_2.getByIndex(1)->mask, 16776320);
-    ASSERT_EQ(configure_array_2.getByIndex(2)->id, 256000);
-    ASSERT_EQ(configure_array_2.getByIndex(2)->mask, 16771968);
+    ASSERT_EQ(configure_array_2.getByIndex(2)->id, 6272);
+    ASSERT_EQ(configure_array_2.getByIndex(2)->mask, 32640);
     ASSERT_EQ(configure_array_2.getByIndex(3)->id, 262144);
     ASSERT_EQ(configure_array_2.getByIndex(3)->mask, 16771968);
 }

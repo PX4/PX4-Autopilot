@@ -65,7 +65,7 @@ private:
     static const unsigned DefaultAnonMsgMask = 0xFF;
     static const unsigned DefaultAnonMsgID = 0x0;
 
-    typedef uavcan::Multiset<CanFilterConfig, 1> MultisetConfigContainer;
+    typedef uavcan::Multiset<CanFilterConfig> MultisetConfigContainer;
 
     static CanFilterConfig mergeFilters(CanFilterConfig &a_, CanFilterConfig &b_);
     static uint8_t countBits(uint32_t n_);

@@ -295,10 +295,10 @@ CanIOManager::CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISyste
 
     if (mem_blocks_per_iface == 0)
     {
-        mem_blocks_per_iface = allocator.getNumBlocks() / (num_ifaces_ + 1U) + 1U;
+        mem_blocks_per_iface = allocator.getBlockCapacity() / (num_ifaces_ + 1U) + 1U;
     }
     UAVCAN_TRACE("CanIOManager", "Memory blocks per iface: %u, total: %u",
-                 unsigned(mem_blocks_per_iface), unsigned(allocator.getNumBlocks()));
+                 unsigned(mem_blocks_per_iface), unsigned(allocator.getBlockCapacity()));
 
     for (int i = 0; i < num_ifaces_; i++)
     {

@@ -117,17 +117,16 @@ struct Transfer
  * In reality, uavcan::TransferListener should accept only specific transfer types
  * which are dispatched/filtered by uavcan::Dispatcher.
  */
-template <unsigned MAX_BUF_SIZE, unsigned NUM_STATIC_BUFS, unsigned NUM_STATIC_RECEIVERS>
-class TestListener : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS>
+class TestListener : public uavcan::TransferListener
 {
-    typedef uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS> Base;
+    typedef uavcan::TransferListener Base;
 
     std::queue<Transfer> transfers_;
 
 public:
     TestListener(uavcan::TransferPerfCounter& perf, const uavcan::DataTypeDescriptor& data_type,
-                 uavcan::IPoolAllocator& allocator)
-        : Base(perf, data_type, allocator)
+                 uavcan::uint16_t max_buffer_size, uavcan::IPoolAllocator& allocator)
+        : Base(perf, data_type, max_buffer_size, allocator)
     { }
 
     void handleIncomingTransfer(uavcan::IncomingTransfer& transfer)
@@ -166,7 +165,7 @@ public:
         return res;
     }
 
-    int getNumReceivedTransfers() const { return transfers_.size(); }
+    unsigned getNumReceivedTransfers() const { return static_cast<unsigned>(transfers_.size()); }
     bool isEmpty() const { return transfers_.empty(); }
 };
 
@@ -317,5 +316,5 @@ class NullAllocator : public uavcan::IPoolAllocator
 public:
     virtual void* allocate(std::size_t) { return NULL; }
     virtual void deallocate(const void*) { }
-    virtual uint16_t getNumBlocks() const { return 0; }
+    virtual uint16_t getBlockCapacity() const { return 0; }
 };

@@ -20,8 +20,36 @@ std::string OutgoingTransferRegistryKey::toString() const
 #endif
 
 /*
- * IOutgoingTransferRegistry
+ * OutgoingTransferRegistry
  */
-const MonotonicDuration IOutgoingTransferRegistry::MinEntryLifetime = MonotonicDuration::fromMSec(2000);
+const MonotonicDuration OutgoingTransferRegistry::MinEntryLifetime = MonotonicDuration::fromMSec(2000);
+
+TransferID* OutgoingTransferRegistry::accessOrCreate(const OutgoingTransferRegistryKey& key,
+                                                     MonotonicTime new_deadline)
+{
+    UAVCAN_ASSERT(!new_deadline.isZero());
+    Value* p = map_.access(key);
+    if (p == NULL)
+    {
+        p = map_.insert(key, Value());
+        if (p == NULL)
+        {
+            return NULL;
+        }
+        UAVCAN_TRACE("OutgoingTransferRegistry", "Created %s", key.toString().c_str());
+    }
+    p->deadline = new_deadline;
+    return &p->tid;
+}
+
+bool OutgoingTransferRegistry::exists(DataTypeID dtid, TransferType tt) const
+{
+    return NULL != map_.find(ExistenceCheckingPredicate(dtid, tt));
+}
+
+void OutgoingTransferRegistry::cleanup(MonotonicTime ts)
+{
+    map_.removeAllWhere(DeadlineExpiredPredicate(ts));
+}
 
 }

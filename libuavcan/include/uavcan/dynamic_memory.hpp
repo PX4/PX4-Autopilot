@@ -26,14 +26,30 @@ public:
     virtual void* allocate(std::size_t size) = 0;
     virtual void deallocate(const void* ptr) = 0;
 
-    virtual uint16_t getNumBlocks() const = 0;
+    /**
+     * Returns the maximum number of blocks this allocator can allocate.
+     */
+    virtual uint16_t getBlockCapacity() const = 0;
 };
 
 /**
  * Classic implementation of a pool allocator (Meyers).
+ *
+ * The allocator can be made thread-safe (optional) by means of providing a RAII-lock type via the second template
+ * argument. The allocator uses the lock only to access the shared state, therefore critical sections are only a few
+ * cycles long, which implies that it should be acceptable to use hardware IRQ disabling instead of a mutex for
+ * performance reasons. For example, an IRQ-based RAII-lock type can be implemented as follows:
+ *     struct RaiiSynchronizer
+ *     {
+ *         RaiiSynchronizer()  { __disable_irq(); }
+ *         ~RaiiSynchronizer() { __enable_irq(); }
+ *     };
  */
-template <std::size_t PoolSize, uint8_t BlockSize>
-class UAVCAN_EXPORT PoolAllocator : public IPoolAllocator, Noncopyable
+template <std::size_t PoolSize,
+          uint8_t BlockSize,
+          typename RaiiSynchronizer = char>
+class UAVCAN_EXPORT PoolAllocator : public IPoolAllocator,
+                                    Noncopyable
 {
     union Node
     {
@@ -61,18 +77,33 @@ public:
     virtual void* allocate(std::size_t size);
     virtual void deallocate(const void* ptr);
 
-    virtual uint16_t getNumBlocks() const { return NumBlocks; }
+    virtual uint16_t getBlockCapacity() const { return NumBlocks; }
 
     /**
      * Return the number of blocks that are currently allocated/unallocated.
      */
-    uint16_t getNumUsedBlocks() const { return used_; }
-    uint16_t getNumFreeBlocks() const { return static_cast<uint16_t>(NumBlocks - used_); }
+    uint16_t getNumUsedBlocks() const
+    {
+        RaiiSynchronizer lock;
+        (void)lock;
+        return used_;
+    }
+    uint16_t getNumFreeBlocks() const
+    {
+        RaiiSynchronizer lock;
+        (void)lock;
+        return static_cast<uint16_t>(NumBlocks - used_);
+    }
 
     /**
      * Returns the maximum number of blocks that were ever allocated at the same time.
      */
-    uint16_t getPeakNumUsedBlocks() const { return max_used_; }
+    uint16_t getPeakNumUsedBlocks() const
+    {
+        RaiiSynchronizer lock;
+        (void)lock;
+        return max_used_;
+    }
 };
 
 /**
@@ -96,7 +127,7 @@ public:
     virtual void* allocate(std::size_t size);
     virtual void deallocate(const void* ptr);
 
-    virtual uint16_t getNumBlocks() const;
+    virtual uint16_t getBlockCapacity() const;
 };
 
 // ----------------------------------------------------------------------------
@@ -104,11 +135,11 @@ public:
 /*
  * PoolAllocator<>
  */
-template <std::size_t PoolSize, uint8_t BlockSize>
-const uint16_t PoolAllocator<PoolSize, BlockSize>::NumBlocks;
+template <std::size_t PoolSize, uint8_t BlockSize, typename RaiiSynchronizer>
+const uint16_t PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::NumBlocks;
 
-template <std::size_t PoolSize, uint8_t BlockSize>
-PoolAllocator<PoolSize, BlockSize>::PoolAllocator() :
+template <std::size_t PoolSize, uint8_t BlockSize, typename RaiiSynchronizer>
+PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::PoolAllocator() :
     free_list_(reinterpret_cast<Node*>(pool_.bytes)),
     used_(0),
     max_used_(0)
@@ -125,13 +156,16 @@ PoolAllocator<PoolSize, BlockSize>::PoolAllocator() :
     free_list_[NumBlocks - 1].next = NULL;
 }
 
-template <std::size_t PoolSize, uint8_t BlockSize>
-void* PoolAllocator<PoolSize, BlockSize>::allocate(std::size_t size)
+template <std::size_t PoolSize, uint8_t BlockSize, typename RaiiSynchronizer>
+void* PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::allocate(std::size_t size)
 {
     if (free_list_ == NULL || size > BlockSize)
     {
         return NULL;
     }
+
+    RaiiSynchronizer lock;
+    (void)lock;
 
     void* pmem = free_list_;
     free_list_ = free_list_->next;
@@ -147,13 +181,16 @@ void* PoolAllocator<PoolSize, BlockSize>::allocate(std::size_t size)
     return pmem;
 }
 
-template <std::size_t PoolSize, uint8_t BlockSize>
-void PoolAllocator<PoolSize, BlockSize>::deallocate(const void* ptr)
+template <std::size_t PoolSize, uint8_t BlockSize, typename RaiiSynchronizer>
+void PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::deallocate(const void* ptr)
 {
     if (ptr == NULL)
     {
         return;
     }
+
+    RaiiSynchronizer lock;
+    (void)lock;
 
     Node* p = static_cast<Node*>(const_cast<void*>(ptr));
     p->next = free_list_;

@@ -75,7 +75,7 @@ private:
 
     typedef MethodBinder<NodeStatusMonitor*, void (NodeStatusMonitor::*)(const TimerEvent&)> TimerCallback;
 
-    Subscriber<protocol::NodeStatus, NodeStatusCallback, MaxNetworkSizeHint, 0> sub_;
+    Subscriber<protocol::NodeStatus, NodeStatusCallback> sub_;
 
     TimerEventForwarder<TimerCallback> timer_;
 

@@ -126,8 +126,8 @@ private:
      */
     ServiceServer<AppendEntries, AppendEntriesCallback>         append_entries_srv_;
     ServiceClient<AppendEntries, AppendEntriesResponseCallback> append_entries_client_;
-    ServiceServer<RequestVote, RequestVoteCallback> request_vote_srv_;
-    ServiceClient<RequestVote, RequestVoteResponseCallback, MaxNumFollowers> request_vote_client_;
+    ServiceServer<RequestVote, RequestVoteCallback>         request_vote_srv_;
+    ServiceClient<RequestVote, RequestVoteResponseCallback> request_vote_client_;
 
     /*
      * Methods

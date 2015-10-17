@@ -7,8 +7,8 @@
 namespace uavcan
 {
 
-int GenericSubscriberBase::genericStart(TransferListenerBase* listener,
-                                        bool (Dispatcher::*registration_method)(TransferListenerBase*))
+int GenericSubscriberBase::genericStart(TransferListener* listener,
+                                        bool (Dispatcher::*registration_method)(TransferListener*))
 {
     if (listener == NULL)
     {
@@ -24,7 +24,7 @@ int GenericSubscriberBase::genericStart(TransferListenerBase* listener,
     return 0;
 }
 
-void GenericSubscriberBase::stop(TransferListenerBase* listener)
+void GenericSubscriberBase::stop(TransferListener* listener)
 {
     if (listener != NULL)
     {

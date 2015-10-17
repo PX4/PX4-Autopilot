@@ -23,11 +23,9 @@ namespace uavcan
  * Slow but memory efficient unordered multiset. Unlike Map<>, this container does not move objects, so
  * they don't have to be copyable.
  *
- * Items can be allocated in a static buffer or in the node's memory pool if the static buffer is exhausted.
- *
- * Number of static entries must not be less than 1.
+ * Items will be allocated in the node's memory pool.
  */
-template <typename T, unsigned NumStaticEntries>
+template <typename T>
 class UAVCAN_EXPORT Multiset : Noncopyable
 {
     struct Item : ::uavcan::Noncopyable
@@ -122,7 +120,6 @@ private:
      */
     LinkedListRoot<Chunk> list_;
     IPoolAllocator& allocator_;
-    Item static_[NumStaticEntries];
 
     /*
      * Methods
@@ -333,13 +330,7 @@ public:
      * Counts number of items stored.
      * Best case complexity is O(N).
      */
-    unsigned getSize() const { return getNumStaticItems() + getNumDynamicItems(); }
-
-    /**
-     * For testing, do not use directly.
-     */
-    unsigned getNumStaticItems() const;
-    unsigned getNumDynamicItems() const;
+    unsigned getSize() const;
 };
 
 // ----------------------------------------------------------------------------
@@ -347,21 +338,10 @@ public:
 /*
  * Multiset<>
  */
-template <typename T, unsigned NumStaticEntries>
-typename Multiset<T, NumStaticEntries>::Item* Multiset<T, NumStaticEntries>::findOrCreateFreeSlot()
+template <typename T>
+typename Multiset<T>::Item* Multiset<T>::findOrCreateFreeSlot()
 {
-#if !UAVCAN_TINY
-    // Search in static pool
-    for (unsigned i = 0; i < NumStaticEntries; i++)
-    {
-        if (!static_[i].isConstructed())
-        {
-            return &static_[i];
-        }
-    }
-#endif
-
-    // Search in dynamic pool
+    // Search
     {
         Chunk* p = list_.get();
         while (p)
@@ -375,7 +355,7 @@ typename Multiset<T, NumStaticEntries>::Item* Multiset<T, NumStaticEntries>::fin
         }
     }
 
-    // Create new dynamic chunk
+    // Create new chunk
     Chunk* const chunk = Chunk::instantiate(allocator_);
     if (chunk == NULL)
     {
@@ -385,8 +365,8 @@ typename Multiset<T, NumStaticEntries>::Item* Multiset<T, NumStaticEntries>::fin
     return &chunk->items[0];
 }
 
-template <typename T, unsigned NumStaticEntries>
-void Multiset<T, NumStaticEntries>::compact()
+template <typename T>
+void Multiset<T>::compact()
 {
     Chunk* p = list_.get();
     while (p)
@@ -410,29 +390,11 @@ void Multiset<T, NumStaticEntries>::compact()
     }
 }
 
-template <typename T, unsigned NumStaticEntries>
+template <typename T>
 template <typename Predicate>
-void Multiset<T, NumStaticEntries>::removeWhere(Predicate predicate, const RemoveStrategy strategy)
+void Multiset<T>::removeWhere(Predicate predicate, const RemoveStrategy strategy)
 {
     unsigned num_removed = 0;
-
-#if !UAVCAN_TINY
-    for (unsigned i = 0; i < NumStaticEntries; i++)
-    {
-        if (static_[i].isConstructed())
-        {
-            if (predicate(*static_[i].ptr))
-            {
-                num_removed++;
-                static_[i].destroy();
-                if (strategy == RemoveOne)
-                {
-                    break;
-                }
-            }
-        }
-    }
-#endif
 
     Chunk* p = list_.get();
     while (p != NULL)
@@ -470,23 +432,10 @@ void Multiset<T, NumStaticEntries>::removeWhere(Predicate predicate, const Remov
     }
 }
 
-template <typename T, unsigned NumStaticEntries>
+template <typename T>
 template <typename Predicate>
-T* Multiset<T, NumStaticEntries>::find(Predicate predicate)
+T* Multiset<T>::find(Predicate predicate)
 {
-#if !UAVCAN_TINY
-    for (unsigned i = 0; i < NumStaticEntries; i++)
-    {
-        if (static_[i].isConstructed())
-        {
-            if (predicate(*static_[i].ptr))
-            {
-                return static_[i].ptr;
-            }
-        }
-    }
-#endif
-
     Chunk* p = list_.get();
     while (p != NULL)
     {
@@ -508,21 +457,8 @@ T* Multiset<T, NumStaticEntries>::find(Predicate predicate)
     return NULL;
 }
 
-template <typename T, unsigned NumStaticEntries>
-unsigned Multiset<T, NumStaticEntries>::getNumStaticItems() const
-{
-    unsigned num = 0;
-#if !UAVCAN_TINY
-    for (unsigned i = 0; i < NumStaticEntries; i++)
-    {
-        num += static_[i].isConstructed() ? 1U : 0U;
-    }
-#endif
-    return num;
-}
-
-template <typename T, unsigned NumStaticEntries>
-unsigned Multiset<T, NumStaticEntries>::getNumDynamicItems() const
+template <typename T>
+unsigned Multiset<T>::getSize() const
 {
     unsigned num = 0;
     Chunk* p = list_.get();

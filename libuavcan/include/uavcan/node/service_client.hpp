@@ -20,17 +20,6 @@
 
 namespace uavcan
 {
-
-template <typename ServiceDataType, unsigned NumStaticReceiversAndBuffers>
-class UAVCAN_EXPORT ServiceResponseTransferListenerInstantiationHelper
-{
-public: // so much templating it hurts
-    typedef typename TransferListenerInstantiationHelper<typename ServiceDataType::Response,
-                                                         NumStaticReceiversAndBuffers,
-                                                         NumStaticReceiversAndBuffers,
-                                                         TransferListenerWithFilter>::Type Type;
-};
-
 /**
  * This struct describes a pending service call.
  * Refer to @ref ServiceClient to learn more about service calls.
@@ -217,24 +206,17 @@ public:
  *                          In C++11 mode this type defaults to std::function<>.
  *                          In C++03 mode this type defaults to a plain function pointer; use binder to
  *                          call member functions as callbacks.
- *
- * @tparam NumStaticCalls_  Number of concurrent calls that the class will be able to handle without using the
- *                          memory pool. Note that this is NOT the maximum possible number of concurrent calls,
- *                          there's no such limit. Defaults to one.
  */
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-          typename Callback_ = std::function<void (const ServiceCallResult<DataType_>&)>,
+          typename Callback_ = std::function<void (const ServiceCallResult<DataType_>&)>
 #else
-          typename Callback_ = void (*)(const ServiceCallResult<DataType_>&),
+          typename Callback_ = void (*)(const ServiceCallResult<DataType_>&)
 #endif
-          unsigned NumStaticCalls_ = 1
           >
 class UAVCAN_EXPORT ServiceClient
     : public GenericSubscriber<DataType_,
-                               typename DataType_::Response,
-                               typename ServiceResponseTransferListenerInstantiationHelper<DataType_,
-                                                                                           NumStaticCalls_>::Type>
+                               typename DataType_::Response, TransferListenerWithFilter>
     , public ServiceClientBase
 {
 public:
@@ -244,16 +226,12 @@ public:
     typedef ServiceCallResult<DataType> ServiceCallResultType;
     typedef Callback_ Callback;
 
-    enum { NumStaticCalls = NumStaticCalls_ };
-
 private:
     typedef ServiceClient<DataType, Callback> SelfType;
     typedef GenericPublisher<DataType, RequestType> PublisherType;
-    typedef typename ServiceResponseTransferListenerInstantiationHelper<DataType, NumStaticCalls>::Type
-            TransferListenerType;
-    typedef GenericSubscriber<DataType, ResponseType, TransferListenerType> SubscriberType;
+    typedef GenericSubscriber<DataType, ResponseType, TransferListenerWithFilter> SubscriberType;
 
-    typedef Multiset<CallState, NumStaticCalls> CallRegistry;
+    typedef Multiset<CallState> CallRegistry;
 
     struct TimeoutCallbackCaller
     {
@@ -424,8 +402,8 @@ public:
 
 // ----------------------------------------------------------------------------
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-void ServiceClient<DataType_, Callback_, NumStaticCalls_>::invokeCallback(ServiceCallResultType& result)
+template <typename DataType_, typename Callback_>
+void ServiceClient<DataType_, Callback_>::invokeCallback(ServiceCallResultType& result)
 {
     if (coerceOrFallback<bool>(callback_, true))
     {
@@ -437,8 +415,8 @@ void ServiceClient<DataType_, Callback_, NumStaticCalls_>::invokeCallback(Servic
     }
 }
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-bool ServiceClient<DataType_, Callback_, NumStaticCalls_>::shouldAcceptFrame(const RxFrame& frame) const
+template <typename DataType_, typename Callback_>
+bool ServiceClient<DataType_, Callback_>::shouldAcceptFrame(const RxFrame& frame) const
 {
     UAVCAN_ASSERT(frame.getTransferType() == TransferTypeServiceResponse); // Other types filtered out by dispatcher
 
@@ -447,9 +425,8 @@ bool ServiceClient<DataType_, Callback_, NumStaticCalls_>::shouldAcceptFrame(con
 
 }
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-void ServiceClient<DataType_, Callback_, NumStaticCalls_>::
-handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
+template <typename DataType_, typename Callback_>
+void ServiceClient<DataType_, Callback_>::handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
 {
     UAVCAN_ASSERT(response.getTransferType() == TransferTypeServiceResponse);
 
@@ -460,8 +437,8 @@ handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
 }
 
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-void ServiceClient<DataType_, Callback_, NumStaticCalls_>::handleDeadline(MonotonicTime)
+template <typename DataType_, typename Callback_>
+void ServiceClient<DataType_, Callback_>::handleDeadline(MonotonicTime)
 {
     UAVCAN_TRACE("ServiceClient", "Shared deadline event received");
     /*
@@ -484,8 +461,8 @@ void ServiceClient<DataType_, Callback_, NumStaticCalls_>::handleDeadline(Monoto
     }
 }
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-int ServiceClient<DataType_, Callback_, NumStaticCalls_>::addCallState(ServiceCallID call_id)
+template <typename DataType_, typename Callback_>
+int ServiceClient<DataType_, Callback_>::addCallState(ServiceCallID call_id)
 {
     if (call_registry_.isEmpty())
     {
@@ -507,16 +484,16 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::addCallState(ServiceCa
     return 0;
 }
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_node_id, const RequestType& request)
+template <typename DataType_, typename Callback_>
+int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const RequestType& request)
 {
    ServiceCallID dummy;
    return call(server_node_id, request, dummy);
 }
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_node_id, const RequestType& request,
-                                                               ServiceCallID& out_call_id)
+template <typename DataType_, typename Callback_>
+int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const RequestType& request,
+                                              ServiceCallID& out_call_id)
 {
     if (!coerceOrFallback<bool>(callback_, true))
     {
@@ -549,7 +526,7 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_nod
      * Configuring the listener so it will accept only the matching responses
      * TODO move to init(), but this requires to somewhat refactor GenericSubscriber<> (remove TransferForwarder)
      */
-    TransferListenerType* const tl = SubscriberType::getTransferListener();
+    TransferListenerWithFilter* const tl = SubscriberType::getTransferListener();
     if (tl == NULL)
     {
         UAVCAN_ASSERT(0);  // Must have been created
@@ -573,8 +550,8 @@ int ServiceClient<DataType_, Callback_, NumStaticCalls_>::call(NodeID server_nod
     return publisher_res;
 }
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancelCall(ServiceCallID call_id)
+template <typename DataType_, typename Callback_>
+void ServiceClient<DataType_, Callback_>::cancelCall(ServiceCallID call_id)
 {
     call_registry_.removeFirstWhere(CallStateMatchingPredicate(call_id));
     if (call_registry_.isEmpty())
@@ -583,21 +560,21 @@ void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancelCall(ServiceCal
     }
 }
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-void ServiceClient<DataType_, Callback_, NumStaticCalls_>::cancelAllCalls()
+template <typename DataType_, typename Callback_>
+void ServiceClient<DataType_, Callback_>::cancelAllCalls()
 {
     call_registry_.clear();
     SubscriberType::stop();
 }
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-bool ServiceClient<DataType_, Callback_, NumStaticCalls_>::hasPendingCallToServer(NodeID server_node_id) const
+template <typename DataType_, typename Callback_>
+bool ServiceClient<DataType_, Callback_>::hasPendingCallToServer(NodeID server_node_id) const
 {
     return NULL != call_registry_.find(ServerSearchPredicate(server_node_id));
 }
 
-template <typename DataType_, typename Callback_, unsigned NumStaticCalls_>
-ServiceCallID ServiceClient<DataType_, Callback_, NumStaticCalls_>::getCallIDByIndex(unsigned index) const
+template <typename DataType_, typename Callback_>
+ServiceCallID ServiceClient<DataType_, Callback_>::getCallIDByIndex(unsigned index) const
 {
     const CallState* const id = call_registry_.getByIndex(index);
     return (id == NULL) ? ServiceCallID() : id->getCallID();

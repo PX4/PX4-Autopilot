@@ -9,6 +9,58 @@
 namespace uavcan
 {
 /*
+ * StaticTransferBufferImpl
+ */
+int StaticTransferBufferImpl::read(unsigned offset, uint8_t* data, unsigned len) const
+{
+    if (!data)
+    {
+        UAVCAN_ASSERT(0);
+        return -ErrInvalidParam;
+    }
+    if (offset >= max_write_pos_)
+    {
+        return 0;
+    }
+    if ((offset + len) > max_write_pos_)
+    {
+        len = max_write_pos_ - offset;
+    }
+    UAVCAN_ASSERT((offset + len) <= max_write_pos_);
+    (void)copy(data_ + offset, data_ + offset + len, data);
+    return int(len);
+}
+
+int StaticTransferBufferImpl::write(unsigned offset, const uint8_t* data, unsigned len)
+{
+    if (!data)
+    {
+        UAVCAN_ASSERT(0);
+        return -ErrInvalidParam;
+    }
+    if (offset >= size_)
+    {
+        return 0;
+    }
+    if ((offset + len) > size_)
+    {
+        len = size_ - offset;
+    }
+    UAVCAN_ASSERT((offset + len) <= size_);
+    (void)copy(data, data + len, data_ + offset);
+    max_write_pos_ = max(uint16_t(offset + len), uint16_t(max_write_pos_));
+    return int(len);
+}
+
+void StaticTransferBufferImpl::reset()
+{
+    max_write_pos_ = 0;
+#if UAVCAN_DEBUG
+    fill(data_, data_ + size_, uint8_t(0));
+#endif
+}
+
+/*
  * TransferBufferManagerKey
  */
 #if UAVCAN_TOSTRING
@@ -23,8 +75,8 @@ std::string TransferBufferManagerKey::toString() const
 /*
  * DynamicTransferBuffer::Block
  */
-DynamicTransferBufferManagerEntry::Block*
-DynamicTransferBufferManagerEntry::Block::instantiate(IPoolAllocator& allocator)
+TransferBufferManagerEntry::Block*
+TransferBufferManagerEntry::Block::instantiate(IPoolAllocator& allocator)
 {
     void* const praw = allocator.allocate(sizeof(Block));
     if (praw == NULL)
@@ -34,7 +86,7 @@ DynamicTransferBufferManagerEntry::Block::instantiate(IPoolAllocator& allocator)
     return new (praw) Block;
 }
 
-void DynamicTransferBufferManagerEntry::Block::destroy(Block*& obj, IPoolAllocator& allocator)
+void TransferBufferManagerEntry::Block::destroy(Block*& obj, IPoolAllocator& allocator)
 {
     if (obj != NULL)
     {
@@ -44,8 +96,8 @@ void DynamicTransferBufferManagerEntry::Block::destroy(Block*& obj, IPoolAllocat
     }
 }
 
-void DynamicTransferBufferManagerEntry::Block::read(uint8_t*& outptr, unsigned target_offset,
-                                                    unsigned& total_offset, unsigned& left_to_read)
+void TransferBufferManagerEntry::Block::read(uint8_t*& outptr, unsigned target_offset,
+                                             unsigned& total_offset, unsigned& left_to_read)
 {
     UAVCAN_ASSERT(outptr);
     for (unsigned i = 0; (i < Block::Size) && (left_to_read > 0); i++, total_offset++)
@@ -58,7 +110,7 @@ void DynamicTransferBufferManagerEntry::Block::read(uint8_t*& outptr, unsigned t
     }
 }
 
-void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsigned target_offset,
+void TransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsigned target_offset,
                                                      unsigned& total_offset, unsigned& left_to_write)
 {
     UAVCAN_ASSERT(inptr);
@@ -75,46 +127,28 @@ void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsi
 /*
  * DynamicTransferBuffer
  */
-DynamicTransferBufferManagerEntry* DynamicTransferBufferManagerEntry::instantiate(IPoolAllocator& allocator,
+TransferBufferManagerEntry* TransferBufferManagerEntry::instantiate(IPoolAllocator& allocator,
                                                                                   uint16_t max_size)
 {
-    void* const praw = allocator.allocate(sizeof(DynamicTransferBufferManagerEntry));
+    void* const praw = allocator.allocate(sizeof(TransferBufferManagerEntry));
     if (praw == NULL)
     {
         return NULL;
     }
-    return new (praw) DynamicTransferBufferManagerEntry(allocator, max_size);
+    return new (praw) TransferBufferManagerEntry(allocator, max_size);
 }
 
-void DynamicTransferBufferManagerEntry::destroy(DynamicTransferBufferManagerEntry*& obj, IPoolAllocator& allocator)
+void TransferBufferManagerEntry::destroy(TransferBufferManagerEntry*& obj, IPoolAllocator& allocator)
 {
     if (obj != NULL)
     {
-        obj->~DynamicTransferBufferManagerEntry();
+        obj->~TransferBufferManagerEntry();
         allocator.deallocate(obj);
         obj = NULL;
     }
 }
 
-void DynamicTransferBufferManagerEntry::doReset()
-{
-    max_write_pos_ = 0;
-    Block* p = blocks_.get();
-    while (p)
-    {
-        Block* const next = p->getNextListNode();
-        blocks_.remove(p);
-        Block::destroy(p, allocator_);
-        p = next;
-    }
-}
-
-void DynamicTransferBufferManagerEntry::resetImpl()
-{
-    doReset();
-}
-
-int DynamicTransferBufferManagerEntry::read(unsigned offset, uint8_t* data, unsigned len) const
+int TransferBufferManagerEntry::read(unsigned offset, uint8_t* data, unsigned len) const
 {
     if (!data)
     {
@@ -150,7 +184,7 @@ int DynamicTransferBufferManagerEntry::read(unsigned offset, uint8_t* data, unsi
     return int(len);
 }
 
-int DynamicTransferBufferManagerEntry::write(unsigned offset, const uint8_t* data, unsigned len)
+int TransferBufferManagerEntry::write(unsigned offset, const uint8_t* data, unsigned len)
 {
     if (!data)
     {
@@ -221,131 +255,26 @@ int DynamicTransferBufferManagerEntry::write(unsigned offset, const uint8_t* dat
     return int(actually_written);
 }
 
-/*
- * StaticTransferBufferImpl
- */
-int StaticTransferBufferImpl::read(unsigned offset, uint8_t* data, unsigned len) const
+void TransferBufferManagerEntry::reset(const TransferBufferManagerKey& key)
 {
-    if (!data)
-    {
-        UAVCAN_ASSERT(0);
-        return -ErrInvalidParam;
-    }
-    if (offset >= max_write_pos_)
-    {
-        return 0;
-    }
-    if ((offset + len) > max_write_pos_)
-    {
-        len = max_write_pos_ - offset;
-    }
-    UAVCAN_ASSERT((offset + len) <= max_write_pos_);
-    (void)copy(data_ + offset, data_ + offset + len, data);
-    return int(len);
-}
-
-int StaticTransferBufferImpl::write(unsigned offset, const uint8_t* data, unsigned len)
-{
-    if (!data)
-    {
-        UAVCAN_ASSERT(0);
-        return -ErrInvalidParam;
-    }
-    if (offset >= size_)
-    {
-        return 0;
-    }
-    if ((offset + len) > size_)
-    {
-        len = size_ - offset;
-    }
-    UAVCAN_ASSERT((offset + len) <= size_);
-    (void)copy(data, data + len, data_ + offset);
-    max_write_pos_ = max(uint16_t(offset + len), uint16_t(max_write_pos_));
-    return int(len);
-}
-
-void StaticTransferBufferImpl::reset()
-{
+    key_ = key;
     max_write_pos_ = 0;
-#if UAVCAN_DEBUG
-    fill(data_, data_ + size_, uint8_t(0));
-#endif
+    Block* p = blocks_.get();
+    while (p)
+    {
+        Block* const next = p->getNextListNode();
+        blocks_.remove(p);
+        Block::destroy(p, allocator_);
+        p = next;
+    }
 }
 
 /*
- * StaticTransferBufferManagerEntryImpl
+ * TransferBufferManager
  */
-void StaticTransferBufferManagerEntryImpl::resetImpl()
+TransferBufferManagerEntry* TransferBufferManager::findFirst(const TransferBufferManagerKey& key)
 {
-    buf_.reset();
-}
-
-int StaticTransferBufferManagerEntryImpl::read(unsigned offset, uint8_t* data, unsigned len) const
-{
-    return buf_.read(offset, data, len);
-}
-
-int StaticTransferBufferManagerEntryImpl::write(unsigned offset, const uint8_t* data, unsigned len)
-{
-    return buf_.write(offset, data, len);
-}
-
-bool StaticTransferBufferManagerEntryImpl::migrateFrom(const TransferBufferManagerEntry* tbme)
-{
-    if (tbme == NULL || tbme->isEmpty())
-    {
-        UAVCAN_ASSERT(0);
-        return false;
-    }
-
-    // Resetting self and moving all data from the source
-    TransferBufferManagerEntry::reset(tbme->getKey());
-    const int res = tbme->read(0, buf_.getRawPtr(), buf_.getSize());
-    if (res < 0)
-    {
-        TransferBufferManagerEntry::reset();
-        return false;
-    }
-    buf_.setMaxWritePos(uint16_t(res));
-    if (res < int(buf_.getSize()))
-    {
-        return true;
-    }
-
-    // Now we need to make sure that all data can fit the storage
-    uint8_t dummy = 0;
-    if (tbme->read(buf_.getSize(), &dummy, 1) > 0)
-    {
-        TransferBufferManagerEntry::reset();            // Damn, the buffer was too large
-        return false;
-    }
-    return true;
-}
-
-/*
- * TransferBufferManagerImpl
- */
-StaticTransferBufferManagerEntryImpl* TransferBufferManagerImpl::findFirstStatic(const TransferBufferManagerKey& key)
-{
-    for (unsigned i = 0; true; i++)
-    {
-        StaticTransferBufferManagerEntryImpl* const sb = getStaticByIndex(uint16_t(i));
-        if (sb == NULL)
-        {
-            break;
-        }
-        if (sb->getKey() == key)
-        {
-            return sb;
-        }
-    }
-    return NULL;
-}
-
-DynamicTransferBufferManagerEntry* TransferBufferManagerImpl::findFirstDynamic(const TransferBufferManagerKey& key)
-{
-    DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
+    TransferBufferManagerEntry* dyn = buffers_.get();
     while (dyn)
     {
         UAVCAN_ASSERT(!dyn->isEmpty());
@@ -358,68 +287,29 @@ DynamicTransferBufferManagerEntry* TransferBufferManagerImpl::findFirstDynamic(c
     return NULL;
 }
 
-void TransferBufferManagerImpl::optimizeStorage()
+TransferBufferManager::~TransferBufferManager()
 {
-    while (!dynamic_buffers_.isEmpty())
-    {
-        StaticTransferBufferManagerEntryImpl* const sb = findFirstStatic(TransferBufferManagerKey());
-        if (sb == NULL)
-        {
-            break;
-        }
-        DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
-        UAVCAN_ASSERT(dyn);
-        UAVCAN_ASSERT(!dyn->isEmpty());
-        if (sb->migrateFrom(dyn))
-        {
-            UAVCAN_ASSERT(!dyn->isEmpty());
-            UAVCAN_TRACE("TransferBufferManager", "Storage optimization: Migrated %s",
-                         dyn->getKey().toString().c_str());
-            dynamic_buffers_.remove(dyn);
-            DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
-        }
-        else
-        {
-            /* Migration can fail if a dynamic buffer contains more data than a static buffer can accomodate.
-             * This should never happen during normal operation because dynamic buffers are limited in growth.
-             */
-            UAVCAN_TRACE("TransferBufferManager", "Storage optimization: MIGRATION FAILURE %s MAXSIZE %u",
-                         dyn->getKey().toString().c_str(), max_buf_size_);
-            UAVCAN_ASSERT(0);
-            sb->reset();
-            break;
-        }
-    }
-}
-
-TransferBufferManagerImpl::~TransferBufferManagerImpl()
-{
-    DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
+    TransferBufferManagerEntry* dyn = buffers_.get();
     while (dyn)
     {
-        DynamicTransferBufferManagerEntry* const next = dyn->getNextListNode();
-        dynamic_buffers_.remove(dyn);
-        DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
+        TransferBufferManagerEntry* const next = dyn->getNextListNode();
+        buffers_.remove(dyn);
+        TransferBufferManagerEntry::destroy(dyn, allocator_);
         dyn = next;
     }
 }
 
-ITransferBuffer* TransferBufferManagerImpl::access(const TransferBufferManagerKey& key)
+ITransferBuffer* TransferBufferManager::access(const TransferBufferManagerKey& key)
 {
     if (key.isEmpty())
     {
         UAVCAN_ASSERT(0);
         return NULL;
     }
-    TransferBufferManagerEntry* tbme = findFirstStatic(key);
-    if (tbme)
-    {
-        return tbme;
-    }
-    return findFirstDynamic(key);
+    return findFirst(key);
 }
 
-ITransferBuffer* TransferBufferManagerImpl::create(const TransferBufferManagerKey& key)
+ITransferBuffer* TransferBufferManager::create(const TransferBufferManagerKey& key)
 {
     if (key.isEmpty())
     {
@@ -428,27 +318,17 @@ ITransferBuffer* TransferBufferManagerImpl::create(const TransferBufferManagerKe
     }
     remove(key);
 
-    TransferBufferManagerEntry* tbme = findFirstStatic(TransferBufferManagerKey());
+    TransferBufferManagerEntry* tbme = TransferBufferManagerEntry::instantiate(allocator_, max_buf_size_);
     if (tbme == NULL)
     {
-        DynamicTransferBufferManagerEntry* dyn =
-            DynamicTransferBufferManagerEntry::instantiate(allocator_, max_buf_size_);
-        tbme = dyn;
-        if (dyn == NULL)
-        {
-            return NULL;     // Epic fail.
-        }
-        dynamic_buffers_.insert(dyn);
-        UAVCAN_TRACE("TransferBufferManager", "Dynamic buffer created [st=%u, dyn=%u], %s",
-                     getNumStaticBuffers(), getNumDynamicBuffers(), key.toString().c_str());
-    }
-    else
-    {
-        UAVCAN_TRACE("TransferBufferManager", "Static buffer created [st=%u, dyn=%u], %s",
-                     getNumStaticBuffers(), getNumDynamicBuffers(), key.toString().c_str());
+        return NULL;     // Epic fail.
     }
 
-    if (tbme)
+    buffers_.insert(tbme);
+
+    UAVCAN_TRACE("TransferBufferManager", "Buffer created [num=%u], %s", getNumBuffers(), key.toString().c_str());
+
+    if (tbme != NULL)
     {
         UAVCAN_ASSERT(tbme->isEmpty());
         tbme->reset(key);
@@ -456,54 +336,27 @@ ITransferBuffer* TransferBufferManagerImpl::create(const TransferBufferManagerKe
     return tbme;
 }
 
-void TransferBufferManagerImpl::remove(const TransferBufferManagerKey& key)
+void TransferBufferManager::remove(const TransferBufferManagerKey& key)
 {
     UAVCAN_ASSERT(!key.isEmpty());
 
-    TransferBufferManagerEntry* const tbme = findFirstStatic(key);
-    if (tbme)
+    TransferBufferManagerEntry* dyn = findFirst(key);
+    if (dyn != NULL)
     {
-        UAVCAN_TRACE("TransferBufferManager", "Static buffer deleted, %s", key.toString().c_str());
-        tbme->reset();
-        optimizeStorage();
-        return;
-    }
-
-    DynamicTransferBufferManagerEntry* dyn = findFirstDynamic(key);
-    if (dyn)
-    {
-        UAVCAN_TRACE("TransferBufferManager", "Dynamic buffer deleted, %s", key.toString().c_str());
-        dynamic_buffers_.remove(dyn);
-        DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
+        UAVCAN_TRACE("TransferBufferManager", "Buffer deleted, %s", key.toString().c_str());
+        buffers_.remove(dyn);
+        TransferBufferManagerEntry::destroy(dyn, allocator_);
     }
 }
 
-bool TransferBufferManagerImpl::isEmpty() const
+bool TransferBufferManager::isEmpty() const
 {
-    return (getNumStaticBuffers() == 0) && (getNumDynamicBuffers() == 0);
+    return getNumBuffers() == 0;
 }
 
-unsigned TransferBufferManagerImpl::getNumDynamicBuffers() const
+unsigned TransferBufferManager::getNumBuffers() const
 {
-    return dynamic_buffers_.getLength();
-}
-
-unsigned TransferBufferManagerImpl::getNumStaticBuffers() const
-{
-    unsigned res = 0;
-    for (unsigned i = 0; true; i++)
-    {
-        StaticTransferBufferManagerEntryImpl* const sb = getStaticByIndex(uint16_t(i));
-        if (sb == NULL)
-        {
-            break;
-        }
-        if (!sb->isEmpty())
-        {
-            res++;
-        }
-    }
-    return res;
+    return buffers_.getLength();
 }
 
 }

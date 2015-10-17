@@ -52,14 +52,12 @@ static const uavcan::NodeID SELF_NODE_ID(64);
 
 TEST(Dispatcher, Reception)
 {
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 100, uavcan::MemPoolBlockSize> pool;
 
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(pool);
-
-    uavcan::Dispatcher dispatcher(driver, pool, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, pool, clockmock);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
     ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
     ASSERT_EQ(SELF_NODE_ID, dispatcher.getNodeID());
@@ -86,17 +84,17 @@ TEST(Dispatcher, Reception)
         makeDataType(uavcan::DataTypeKindService, 1)
     };
 
-    typedef TestListener<512, 2, 2> Subscriber;
-    typedef std::auto_ptr<Subscriber> SubscriberPtr;
-    static const int NUM_SUBSCRIBERS = 6;
-    SubscriberPtr subscribers[NUM_SUBSCRIBERS] =
+    typedef std::auto_ptr<TestListener> TestListenerPtr;
+    static const int MaxBufSize = 512;
+    static const int NumSubscribers = 6;
+    TestListenerPtr subscribers[NumSubscribers] =
     {
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[0], pool)), // msg
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[0], pool)), // msg // Two similar
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[1], pool)), // msg
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[2], pool)), // srv
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[3], pool)), // srv
-        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[3], pool))  // srv // Repeat again
+        TestListenerPtr(new TestListener(dispatcher.getTransferPerfCounter(), TYPES[0], MaxBufSize, pool)), // msg
+        TestListenerPtr(new TestListener(dispatcher.getTransferPerfCounter(), TYPES[0], MaxBufSize, pool)), // msg // Two similar
+        TestListenerPtr(new TestListener(dispatcher.getTransferPerfCounter(), TYPES[1], MaxBufSize, pool)), // msg
+        TestListenerPtr(new TestListener(dispatcher.getTransferPerfCounter(), TYPES[2], MaxBufSize, pool)), // srv
+        TestListenerPtr(new TestListener(dispatcher.getTransferPerfCounter(), TYPES[3], MaxBufSize, pool)), // srv
+        TestListenerPtr(new TestListener(dispatcher.getTransferPerfCounter(), TYPES[3], MaxBufSize, pool))  // srv // Repeat again
     };
 
     static const std::string DATA[6] =
@@ -139,7 +137,7 @@ TEST(Dispatcher, Reception)
     /*
      * Registration
      */
-    for (int i = 0; i < NUM_SUBSCRIBERS; i++)
+    for (int i = 0; i < NumSubscribers; i++)
     {
         ASSERT_FALSE(dispatcher.hasSubscriber(subscribers[i]->getDataTypeDescriptor().getID()));
         ASSERT_FALSE(dispatcher.hasPublisher(subscribers[i]->getDataTypeDescriptor().getID()));
@@ -153,7 +151,7 @@ TEST(Dispatcher, Reception)
     ASSERT_TRUE(dispatcher.registerServiceResponseListener(subscribers[4].get()));
     ASSERT_TRUE(dispatcher.registerServiceResponseListener(subscribers[5].get()));
 
-    for (int i = 0; i < NUM_SUBSCRIBERS; i++)
+    for (int i = 0; i < NumSubscribers; i++)
     {
         ASSERT_FALSE(dispatcher.hasPublisher(subscribers[i]->getDataTypeDescriptor().getID()));
     }
@@ -177,7 +175,7 @@ TEST(Dispatcher, Reception)
     ASSERT_EQ(1, dispatcher.getNumServiceRequestListeners());
     ASSERT_EQ(2, dispatcher.getNumServiceResponseListeners());
 
-    for (int i = 0; i < NUM_SUBSCRIBERS; i++)
+    for (int i = 0; i < NumSubscribers; i++)
     {
         ASSERT_TRUE(subscribers[i]->isEmpty());
     }
@@ -214,7 +212,7 @@ TEST(Dispatcher, Reception)
 
     ASSERT_TRUE(subscribers[5]->matchAndPop(transfers[3]));
 
-    for (int i = 0; i < NUM_SUBSCRIBERS; i++)
+    for (int i = 0; i < NumSubscribers; i++)
     {
         ASSERT_TRUE(subscribers[i]->isEmpty());
     }
@@ -255,9 +253,7 @@ TEST(Dispatcher, Transmission)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(pool);
-
-    uavcan::Dispatcher dispatcher(driver, pool, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, pool, clockmock);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
     ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
 
@@ -280,7 +276,8 @@ TEST(Dispatcher, Transmission)
     ASSERT_FALSE(dispatcher.hasPublisher(123));
     ASSERT_FALSE(dispatcher.hasPublisher(456));
     const uavcan::OutgoingTransferRegistryKey otr_key(123, uavcan::TransferTypeMessageBroadcast, 0);
-    ASSERT_TRUE(out_trans_reg.accessOrCreate(otr_key, uavcan::MonotonicTime::fromMSec(1000000)));
+    ASSERT_TRUE(dispatcher.getOutgoingTransferRegistry().accessOrCreate(otr_key,
+                                                                        uavcan::MonotonicTime::fromMSec(1000000)));
     ASSERT_TRUE(dispatcher.hasPublisher(123));
     ASSERT_FALSE(dispatcher.hasPublisher(456));
 
@@ -319,9 +316,7 @@ TEST(Dispatcher, Spin)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
-
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
     ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
 
@@ -365,9 +360,7 @@ TEST(Dispatcher, Loopback)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
-
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock);
     ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));
 
     {

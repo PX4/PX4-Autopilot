@@ -156,7 +156,6 @@ private:
         }
     };
 
-    enum { NumStaticCalls = 2 };
     enum { DefaultNumRequestAttempts = 16 };
     enum { DefaultTimerIntervalMSec = 40 };  ///< Read explanation in the class documentation
 
@@ -165,9 +164,9 @@ private:
      */
     Entry entries_[NodeID::Max];  // [1, NodeID::Max]
 
-    Multiset<INodeInfoListener*, 2> listeners_;
+    Multiset<INodeInfoListener*> listeners_;
 
-    ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback, NumStaticCalls> get_node_info_client_;
+    ServiceClient<protocol::GetNodeInfo, GetNodeInfoResponseCallback> get_node_info_client_;
 
     MonotonicDuration request_interval_;
 
