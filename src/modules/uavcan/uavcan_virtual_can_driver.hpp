@@ -404,9 +404,8 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 		}
 	};
 
-	Event event_;               ///< Used to unblock the select() call when IO happens.
+	Event event_;                     ///< Used to unblock the select() call when IO happens.
 	pthread_mutex_t driver_mutex_;    ///< Shared across all ifaces
-	uavcan::IPoolAllocator& allocator_;   ///< Shared across all ifaces
 	uavcan::LazyConstructor<VirtualCanIface> ifaces_[uavcan::MaxCanIfaces];
 	const unsigned num_ifaces_;
 	uavcan::ISystemClock &clock_;
@@ -484,7 +483,6 @@ public:
 		         uavcan::ISystemClock &system_clock,
 		         uavcan::IPoolAllocator& allocator,
 		         unsigned virtual_iface_block_allocation_quota) :
-		allocator_(allocator),
 		num_ifaces_(arg_num_ifaces),
 		clock_(system_clock)
 	{
@@ -496,8 +494,9 @@ public:
 		const unsigned quota_per_queue = virtual_iface_block_allocation_quota;             // 2x overcommit
 
 		for (unsigned i = 0; i < num_ifaces_; i++) {
-			ifaces_[i].template construct<uavcan::IPoolAllocator &, uavcan::ISystemClock &,
-				pthread_mutex_t &, unsigned>(allocator_, clock_, driver_mutex_, quota_per_queue);
+			ifaces_[i].template
+				construct<uavcan::IPoolAllocator&, uavcan::ISystemClock&, pthread_mutex_t&, unsigned>
+					(allocator, clock_, driver_mutex_, quota_per_queue);
 		}
 	}
 
