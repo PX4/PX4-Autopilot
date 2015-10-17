@@ -144,10 +144,9 @@ UavcanNode::~UavcanNode()
 		} while (_task != -1);
 	}
 
-	/* clean up the alternate device node */
-	// unregister_driver(PWM_OUTPUT_DEVICE_PATH);
-
-	::close(_armed_sub);
+	(void)::close(_armed_sub);
+	(void)::close(_test_motor_sub);
+	(void)::close(_actuator_direct_sub);
 
 	// Removing the sensor bridges
 	auto br = _sensor_bridges.getHead();
@@ -166,6 +165,10 @@ UavcanNode::~UavcanNode()
 	pthread_mutex_destroy(&_node_mutex);
 	px4_sem_destroy(&_server_command_sem);
 
+	// Is it allowed to delete it like that?
+	if (_mixers != nullptr) {
+		delete _mixers;
+	}
 }
 
 int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
@@ -965,6 +968,8 @@ int UavcanNode::run()
 		}
 	}
 
+	(void)::close(busevent_fd);
+
 	teardown();
 	warnx("exiting.");
 
@@ -1069,7 +1074,6 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 			unsigned buflen = strnlen(buf, 1024);
 
 			if (_mixers == nullptr) {
-				// TODO: Do we have to delete it when stopping?
 				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
 			}
 
