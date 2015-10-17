@@ -37,5 +37,6 @@ px4_add_module(
 		accelsim.cpp
 	DEPENDS
 		platforms__common
+		git_jmavsim
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
