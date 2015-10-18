@@ -1131,11 +1131,24 @@ UavcanNode::print_info()
 	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
 	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
+	// UAVCAN node perfcounters
+	printf("UAVCAN node status:\n");
+	printf("\tInternal failures: %llu\n", _node.getInternalFailureCount());
+	printf("\tTransfer errors:   %llu\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
+	printf("\tRX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
+	printf("\tTX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
+
 	// CAN driver status
-	printf("CAN status:\n");
 	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
+		printf("CAN%u status:\n", unsigned(i + 1));
+
 		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
-		printf("\tCAN%u: errors: %llu\n", unsigned(i + 1), iface->getErrorCount());
+		printf("\tHW errors: %llu\n", iface->getErrorCount());
+
+		auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
+		printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
+		printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
+		printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
 	}
 
 	// ESC mixer status
