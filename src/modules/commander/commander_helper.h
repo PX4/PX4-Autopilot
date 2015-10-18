@@ -78,6 +78,7 @@ void rgbled_set_mode(rgbled_mode_t mode);
 void rgbled_set_pattern(rgbled_pattern_t *pattern);
 
 int battery_init();
+void get_battery_params();
 
 /**
  * Estimate remaining battery charge.
@@ -87,10 +88,9 @@ int battery_init();
  *
  * @param voltage the current battery voltage
  * @param discharged the discharged capacity
- * @param throttle_normalized the normalized throttle magnitude from 0 to 1. Negative throttle should be converted to this range as well, as it consumes energy.
  * @return the estimated remaining capacity in 0..1
  */
-float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized);
+float battery_remaining_estimate_voltage(float voltage, float discharged);
 
 unsigned battery_get_n_cells();
 

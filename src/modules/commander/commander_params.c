@@ -87,39 +87,7 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
 /**
- * Empty cell voltage.
- *
- * Defines the voltage where a single cell of the battery is considered empty.
- *
- * @group Battery Calibration
- * @unit V
- */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
-
-/**
- * Full cell voltage.
- *
- * Defines the voltage where a single cell of the battery is considered full.
- *
- * @group Battery Calibration
- * @unit V
- */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
-
-/**
- * Voltage drop per cell on 100% load
- *
- * This implicitely defines the internal resistance
- * to maximum current ratio and assumes linearity.
- *
- * @group Battery Calibration
- * @unit V
- * @min 0.0
- */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
-
-/**
- * Number of cells.
+ * Number of battery cells.
  *
  * Defines the number of cells the attached battery consists of.
  *
@@ -128,17 +96,80 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
  * @min 1
  * @max 10
  */
-PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
+PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
+
+/**
+ * Full battery cell voltage.
+ *
+ * Defines the voltage at which one battery cell is considered full.
+ * The default value corresponds to a fully-charged standard Lithium-Polymer (LiPo) cell.
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @min 0.0
+ */
+PARAM_DEFINE_FLOAT(BAT_V_CELL_FULL, 4.2f);
+
+/**
+ * Low battery cell voltage.
+ *
+ * Defines the voltage at which one battery cell is considered low.
+ * The default value corresponds to a low-voltage standard Lithium-Polymer (LiPo) cell.
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @min 0.0
+ */
+PARAM_DEFINE_FLOAT(BAT_V_CELL_LOW, 3.8f);
+
+/**
+ * Critical battery cell voltage.
+ *
+ * Defines the voltage at which one battery cell is considered critically empty.
+ * The default value corresponds to a critical-voltage standard Lithium-Polymer (LiPo) cell.
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @min 0.0
+ */
+PARAM_DEFINE_FLOAT(BAT_V_CELL_CRIT, 3.2f);
 
 /**
  * Battery capacity.
  *
  * Defines the capacity of the attached battery.
+ * Setting this value to -1 disables remaining battery estimation based on discharged capacity.
  *
  * @group Battery Calibration
- * @unit mA
+ * @unit mAh
  */
-PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+PARAM_DEFINE_INT32(BAT_CAPACITY, 0);
+
+
+/**
+ * Low battery charge.
+ *
+ * Defines the percentage charge at which the battery is considered low.
+ *
+ * @group Battery Calibration
+ * @unit %
+ * @min 0
+ * @max 100
+ */
+PARAM_DEFINE_INT32(BAT_PERC_LOW, 35);
+
+/**
+ * Critical battery charge.
+ *
+ * Defines the percentage charge at which the battery is considered critically empty.
+ *
+ * @group Battery Calibration
+ * @unit %
+ * @min 0
+ * @max 100
+ */
+PARAM_DEFINE_INT32(BAT_PERC_CRIT, 25);
+
 
 /**
  * Datalink loss mode enabled.
