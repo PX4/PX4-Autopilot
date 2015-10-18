@@ -13,9 +13,6 @@
 [submodule "Tools/gencpp"]
 	path = Tools/gencpp
 	url = https://github.com/ros/gencpp.git
-[submodule "unittests/gtest"]
-	path = unittests/gtest
-	url = https://github.com/sjwilks/gtest.git
 [submodule "src/lib/eigen"]
 	path = src/lib/eigen
 	url = https://github.com/PX4/eigen.git
@@ -25,3 +22,6 @@
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
+[submodule "unittests/googletest"]
+	path = unittests/googletest
+	url = https://github.com/google/googletest.git
