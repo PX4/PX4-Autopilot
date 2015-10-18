@@ -1131,6 +1131,13 @@ UavcanNode::print_info()
 	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
 	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
+	// CAN driver status
+	printf("CAN status:\n");
+	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
+		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
+		printf("\tCAN%u: errors: %llu\n", unsigned(i + 1), iface->getErrorCount());
+	}
+
 	// ESC mixer status
 	printf("ESC actuators control groups: sub: %u / req: %u / fds: %u\n",
 	       (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
