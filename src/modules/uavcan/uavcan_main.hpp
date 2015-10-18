@@ -80,7 +80,7 @@ class UavcanNode : public device::CDev
 	static constexpr unsigned FramePerSecond     = MaxBitRatePerSec / bitPerFrame;
 	static constexpr unsigned FramePerMSecond    = ((FramePerSecond / 1000) + 1);
 
-	static constexpr unsigned PollTimeoutMs      = 10;
+	static constexpr unsigned PollTimeoutMs      = 3;
 
 	/*
 	 * This memory is reserved for uavcan to use for queuing CAN frames.
