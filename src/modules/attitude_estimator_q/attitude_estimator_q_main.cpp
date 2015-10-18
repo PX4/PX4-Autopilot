@@ -158,6 +158,7 @@ private:
 	/* Low pass filter for attitude rates */
 	math::LowPassFilter2p _lp_roll_rate;
 	math::LowPassFilter2p _lp_pitch_rate;
+	math::LowPassFilter2p _lp_yaw_rate;
 
 	hrt_abstime _vel_prev_t = 0;
 
@@ -185,8 +186,9 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_voter_gyro(3),
 	_voter_accel(3),
 	_voter_mag(3),
-	_lp_roll_rate(250.0f, 20.0f),
-	_lp_pitch_rate(250.0f, 20.0f)
+	_lp_roll_rate(250.0f, 18.0f),
+	_lp_pitch_rate(250.0f, 18.0f),
+	_lp_yaw_rate(250, 10.0f)
 {
 	_voter_mag.set_timeout(200000);
 	
@@ -423,7 +425,7 @@ void AttitudeEstimatorQ::task_main()
 		 */
 		att.rollspeed = _lp_roll_rate.apply(_rates(0));
 		att.pitchspeed = _lp_pitch_rate.apply(_rates(1));
-		att.yawspeed = _rates(2);
+		att.yawspeed = _lp_yaw_rate.apply(_rates(2));
 
 		for (int i = 0; i < 3; i++) {
 			att.g_comp[i] = _accel(i) - _pos_acc(i);
