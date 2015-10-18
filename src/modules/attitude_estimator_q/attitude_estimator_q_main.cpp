@@ -398,7 +398,7 @@ void AttitudeEstimatorQ::task_main()
 
 		// Time from previous iteration
 		hrt_abstime now = hrt_absolute_time();
-		float dt = (last_time > 0) ? ((now  - last_time) / 1000000.0f) : 0.0f;
+		float dt = (last_time > 0) ? ((now  - last_time) / 1000000.0f) : 0.00001f;
 		last_time = now;
 
 		if (dt > _dt_max) {
