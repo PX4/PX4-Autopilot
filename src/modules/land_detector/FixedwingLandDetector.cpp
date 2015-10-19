@@ -49,18 +49,18 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
 	_vehicleLocalPositionSub(-1),
-	_vehicleLocalPosition({}),
-	_airspeedSub(-1),
-	_vehicleStatusSub(-1),
-	_armingSub(-1),
-	_airspeed{},
-	_vehicleStatus{},
-	_arming{},
-	_parameterSub(-1),
-	_velocity_xy_filtered(0.0f),
-	_velocity_z_filtered(0.0f),
-	_airspeed_filtered(0.0f),
-	_landDetectTrigger(0)
+	_vehicleLocalPosition( {}),
+		       _airspeedSub(-1),
+		       _vehicleStatusSub(-1),
+		       _armingSub(-1),
+		       _airspeed{},
+		       _vehicleStatus{},
+		       _arming{},
+		       _parameterSub(-1),
+		       _velocity_xy_filtered(0.0f),
+		       _velocity_z_filtered(0.0f),
+		       _airspeed_filtered(0.0f),
+		       _landDetectTrigger(0)
 {
 	_paramHandle.maxVelocity = param_find("LNDFW_VEL_XY_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDFW_VEL_Z_MAX");
@@ -101,10 +101,12 @@ bool FixedwingLandDetector::update()
 
 	if (hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500 * 1000) {
 		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicleLocalPosition.vx *
-					_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
+				_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
+
 		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
 		}
+
 		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_vehicleLocalPosition.vz);
 
 		if (PX4_ISFINITE(val)) {

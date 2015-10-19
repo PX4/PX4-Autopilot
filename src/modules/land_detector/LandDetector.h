@@ -99,7 +99,8 @@ protected:
 
 	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold
                                                                           before triggering a land */
-	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME = 1000000;	/**< time interval in which wider acceptance thresholds are used after arming */
+	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME =
+		1000000;	/**< time interval in which wider acceptance thresholds are used after arming */
 
 protected:
 	orb_advert_t				_landDetectedPub;		/**< publisher for position in local frame */
