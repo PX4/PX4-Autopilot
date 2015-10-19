@@ -30,8 +30,7 @@ __BEGIN_DECLS
 
 #if 0
 #if !defined(__cplusplus)
-struct timespec
-{
+struct timespec {
 	time_t tv_sec;
 	long tv_nsec;
 };
