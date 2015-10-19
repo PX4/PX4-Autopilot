@@ -800,6 +800,10 @@ FixedwingAttitudeControl::task_main()
 
 			vehicle_status_poll();
 
+			// the position controller will not emit attitude setpoints in some modes
+			// we need to make sure that this flag is reset
+			_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
+
 			/* lock integrator until control is started */
 			bool lock_integrator;
 
