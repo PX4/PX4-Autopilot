@@ -43,7 +43,8 @@
 
 #include <mathlib/mathlib.h>
 
-class Integrator {
+class Integrator
+{
 public:
 	Integrator(uint64_t auto_reset_interval = 4000 /* 250 Hz */, bool coning_compensation = false);
 	virtual ~Integrator();
@@ -91,6 +92,6 @@ private:
 	bool _coning_comp_on;				/**< coning compensation */
 
 	/* we don't want this class to be copied */
-	Integrator(const Integrator&);
-	Integrator operator=(const Integrator&);
+	Integrator(const Integrator &);
+	Integrator operator=(const Integrator &);
 };

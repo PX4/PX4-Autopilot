@@ -37,7 +37,7 @@
  * Definitions for the generic base classes in the virtual device framework.
  */
 
-#pragma once 
+#pragma once
 
 /*
  * Includes here should only cover the needs of the framework definitions.
@@ -118,17 +118,17 @@ public:
 	 * @param data		The buffer from which values should be read.
 	 * @param count		The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
-	 */	 
+	 */
 	virtual int	dev_write(unsigned address, void *data, unsigned count);
 
-        /**
-         * Perform a device-specific operation.
-         *
-         * @param operation     The operation to perform.
-         * @param arg           An argument to the operation.
-         * @return              Negative errno on error, OK or positive value on success.
-         */
-        virtual int     dev_ioctl(unsigned operation, unsigned &arg);
+	/**
+	 * Perform a device-specific operation.
+	 *
+	 * @param operation     The operation to perform.
+	 * @param arg           An argument to the operation.
+	 * @return              Negative errno on error, OK or positive value on success.
+	 */
+	virtual int     dev_ioctl(unsigned operation, unsigned &arg);
 
 	/*
 	  device bus types for DEVID
@@ -148,13 +148,13 @@ public:
 	  parameter protocol without loss of information.
 	 */
 	struct DeviceStructure {
-		enum DeviceBusType bus_type:3;
-		uint8_t bus:5;     // which instance of the bus type
-		uint8_t address;   // address on the bus (eg. I2C address)
-		uint8_t devtype;   // device class specific device type
-	};
+		enum DeviceBusType bus_type : 3;
+			uint8_t bus: 5;    // which instance of the bus type
+			uint8_t address;   // address on the bus (eg. I2C address)
+			uint8_t devtype;   // device class specific device type
+		};
 
-	union DeviceId {
+		union DeviceId {
 		struct DeviceStructure devid_s;
 		uint32_t devid;
 	};
@@ -179,7 +179,8 @@ protected:
 	 *
 	 * Note that we must loop as the wait may be interrupted by a signal.
 	 */
-	void		lock() {
+	void		lock()
+	{
 		DEVICE_DEBUG("lock");
 		do {} while (px4_sem_wait(&_lock) != 0);
 	}
@@ -187,7 +188,8 @@ protected:
 	/**
 	 * Release the driver lock.
 	 */
-	void		unlock() {
+	void		unlock()
+	{
 		DEVICE_DEBUG("unlock");
 		px4_sem_post(&_lock);
 	}
@@ -330,7 +332,7 @@ public:
 	 *
 	 * @return the file system string of the device handle
 	 */
-	const char*	get_devname() { return _devname; }
+	const char	*get_devname() { return _devname; }
 
 protected:
 
@@ -395,7 +397,7 @@ protected:
 	 */
 	virtual int	close_last(file_t *filep);
 
-        /**
+	/**
 	 * Register a class device name, automatically adding device
 	 * class instance suffix if need be.
 	 *
@@ -404,7 +406,7 @@ protected:
 	 */
 	virtual int register_class_devname(const char *class_devname);
 
-        /**
+	/**
 	 * Register a class device name, automatically adding device
 	 * class instance suffix if need be.
 	 *
@@ -442,7 +444,7 @@ private:
 	int		remove_poll_waiter(px4_pollfd_struct_t *fds);
 
 	/* do not allow copying this class */
-	VDev(const VDev&);
+	VDev(const VDev &);
 	//VDev operator=(const VDev&);
 };
 
@@ -464,7 +466,7 @@ public:
 	PIO(const char *name,
 	    const char *devname,
 	    unsigned long base
-	    );
+	   );
 	virtual ~PIO();
 
 	virtual int	init();
@@ -476,7 +478,8 @@ protected:
 	 *
 	 * @param offset	Register offset in bytes from the base address.
 	 */
-	uint32_t	reg(uint32_t offset) {
+	uint32_t	reg(uint32_t offset)
+	{
 		return *(volatile uint32_t *)(_base + offset);
 	}
 
@@ -486,7 +489,8 @@ protected:
 	 * @param offset	Register offset in bytes from the base address.
 	 * @param value	Value to write.
 	 */
-	void		reg(uint32_t offset, uint32_t value) {
+	void		reg(uint32_t offset, uint32_t value)
+	{
 		*(volatile uint32_t *)(_base + offset) = value;
 	}
 
@@ -500,7 +504,8 @@ protected:
 	 * @param clearbits	Bits to clear in the register
 	 * @param setbits	Bits to set in the register
 	 */
-	void		modify(uint32_t offset, uint32_t clearbits, uint32_t setbits) {
+	void		modify(uint32_t offset, uint32_t clearbits, uint32_t setbits)
+	{
 		uint32_t val = reg(offset);
 		val &= ~clearbits;
 		val |= setbits;
@@ -516,8 +521,8 @@ private:
 
 // class instance for primary driver of each class
 enum CLASS_DEVICE {
-	CLASS_DEVICE_PRIMARY=0,
-	CLASS_DEVICE_SECONDARY=1,
-	CLASS_DEVICE_TERTIARY=2
+	CLASS_DEVICE_PRIMARY = 0,
+	CLASS_DEVICE_SECONDARY = 1,
+	CLASS_DEVICE_TERTIARY = 2
 };
 
