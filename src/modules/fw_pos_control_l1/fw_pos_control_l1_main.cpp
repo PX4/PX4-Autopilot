@@ -963,7 +963,7 @@ float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint
 
 	/* Decide if the terrain estimation can be used, once we switched to using the terrain we stick with it
 	 * for the whole landing */
-	if (_parameters.land_use_terrain_estimate && (global_pos.terrain_alt_valid || land_useterrain)) {
+	if (_parameters.land_use_terrain_estimate && global_pos.terrain_alt_valid) {
 		if(!land_useterrain) {
 			mavlink_log_info(_mavlink_fd, "Landing, using terrain estimate");
 			land_useterrain = true;
