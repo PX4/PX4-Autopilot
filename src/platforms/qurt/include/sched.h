@@ -3,8 +3,7 @@
 #define SCHED_FIFO     1
 #define SCHED_RR       2
 
-struct sched_param
-{
+struct sched_param {
 	int sched_priority;
 };
 

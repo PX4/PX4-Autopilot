@@ -39,5 +39,5 @@
 /**
  * @board QuRT_App
  */
-PARAM_DEFINE_INT32(MAV_TYPE,2);
+PARAM_DEFINE_INT32(MAV_TYPE, 2);
 
