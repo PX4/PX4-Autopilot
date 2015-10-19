@@ -70,13 +70,14 @@ px4_systemreset(bool to_bootloader)
 		/* XXX wow, this is evil - write a magic number into backup register zero */
 		*(uint32_t *)0x40002850 = 0xb007b007;
 	}
+
 	up_systemreset();
 
 	/* lock up here */
-	while(true);
+	while (true);
 }
 
-int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char * const argv[])
+int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
 {
 	int pid;
 
