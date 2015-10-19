@@ -6,7 +6,22 @@ for fn in $(find src/examples \
                  src/include \
                  src/drivers \
                  src/platforms \
+                 src/firmware \
                  src/lib/launchdetection \
+                 src/lib/geo \
+                 src/lib/geo_lookup \
+                 src/lib/conversion \
+                 src/lib/rc \
+                 src/lib/version \
+                 src/modules/attitude_estimator_q \
+                 src/modules/gpio_led \
+                 src/modules/land_detector \
+                 src/modules/muorb \
+                 src/modules/px4iofirmware \
+                 src/modules/param \
+                 src/modules/sensors \
+                 src/modules/simulator \
+                 src/modules/uORB \
                  src/modules/bottle_drop \
                  src/modules/dataman \
                  src/modules/fixedwing_backside \
