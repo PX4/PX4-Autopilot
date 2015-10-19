@@ -53,6 +53,8 @@ set(C_WARNINGS
 set(C_FLAGS
 	-std=gnu99
 	-fno-common
+	-fsanitize=address
+	-fno-omit-frame-pointer
 	)
 
 #=============================================================================
@@ -67,6 +69,8 @@ set(CXX_FLAGS
 	-fno-rtti
 	-std=gnu++0x
 	-fno-threadsafe-statics
+	-fsanitize=address
+	-fno-omit-frame-pointer
 	-DCONFIG_WCHAR_BUILTIN
 	-D__CUSTOM_FILE_IO__
 	)
@@ -75,6 +79,7 @@ set(CXX_FLAGS
 #		ld flags
 #
 set(LD_FLAGS
+	-fsanitize=address
 	-Wl,--warn-common
 	-Wl,--gc-sections
 	)
