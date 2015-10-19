@@ -274,7 +274,7 @@ void hrt_work_queue_init(void)
 					    work_hrtthread,
 					    (char *const *)NULL);
 
-	
+
 #ifdef __PX4_QURT
 	signal(SIGALRM, _sighandler);
 #else

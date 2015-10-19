@@ -237,6 +237,7 @@ void	hrt_init(void)
 	sq_init(&callout_queue);
 
 	int sem_ret = px4_sem_init(&_hrt_lock, 0, 1);
+
 	if (sem_ret) {
 		PX4_ERR("SEM INIT FAIL: %s", strerror(errno));
 	}
