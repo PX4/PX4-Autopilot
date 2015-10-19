@@ -119,8 +119,8 @@ print("""
 #define PRIu64 "llu"
 #endif
 
-#ifndef PRI64
-#define PRI64 "lld"
+#ifndef PRId64
+#define PRId64 "lld"
 #endif
 
 """)
@@ -184,7 +184,7 @@ for index,m in enumerate(messages[1:]):
 			print("\t\t\t}")
 			print("\t\t\tprintf(\"\\n\");")
 		elif item[0] == "int64":
-			print("\t\t\tprintf(\"%s: %%\" PRI64 \"\\n\",container.%s);" % (item[1], item[1]))
+			print("\t\t\tprintf(\"%s: %%\" PRId64 \"\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "int32":
 			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "uint32":
