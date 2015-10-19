@@ -246,7 +246,7 @@ PX4FLOW::init()
 		struct distance_sensor_s ds_report = {};
 
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-							     &_orb_class_instance, ORB_PRIO_HIGH);
+					 &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_distance_sensor_topic == nullptr) {
 			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
@@ -503,22 +503,34 @@ PX4FLOW::collect()
 	struct optical_flow_s report;
 
 	report.timestamp = hrt_absolute_time();
+
 	report.pixel_flow_x_integral = static_cast<float>(f_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians
+
 	report.pixel_flow_y_integral = static_cast<float>(f_integral.pixel_flow_y_integral) / 10000.0f;//convert to radians
+
 	report.frame_count_since_last_readout = f_integral.frame_count_since_last_readout;
+
 	report.ground_distance_m = static_cast<float>(f_integral.ground_distance) / 1000.0f;//convert to meters
+
 	report.quality = f_integral.qual; //0:bad ; 255 max quality
+
 	report.gyro_x_rate_integral = static_cast<float>(f_integral.gyro_x_rate_integral) / 10000.0f; //convert to radians
+
 	report.gyro_y_rate_integral = static_cast<float>(f_integral.gyro_y_rate_integral) / 10000.0f; //convert to radians
+
 	report.gyro_z_rate_integral = static_cast<float>(f_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
+
 	report.integration_timespan = f_integral.integration_timespan; //microseconds
+
 	report.time_since_last_sonar_update = f_integral.sonar_timestamp;//microseconds
+
 	report.gyro_temperature = f_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
 
 	report.sensor_id = 0;
 
 	/* rotate measurements according to parameter */
 	float zeroval = 0.0f;
+
 	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
 
 	if (_px4flow_topic == nullptr) {
@@ -659,12 +671,13 @@ int
 start()
 {
 	int fd;
-	
+
 	/* entry check: */
 	if (start_in_progress) {
 		warnx("start already in progress");
 		return 1;
 	}
+
 	start_in_progress = true;
 
 	if (g_dev != nullptr) {
@@ -676,22 +689,24 @@ start()
 	warnx("scanning I2C buses for device..");
 
 	int retry_nr = 0;
+
 	while (1) {
 		const int busses_to_try[] = {
 			PX4_I2C_BUS_EXPANSION,
-			#ifdef PX4_I2C_BUS_ESC
+#ifdef PX4_I2C_BUS_ESC
 			PX4_I2C_BUS_ESC,
-			#endif
+#endif
 			PX4_I2C_BUS_ONBOARD,
 			-1
 		};
 
 		const int *cur_bus = busses_to_try;
 
-		while(*cur_bus != -1) {
+		while (*cur_bus != -1) {
 			/* create the driver */
 			/* warnx("trying bus %d", *cur_bus); */
 			g_dev = new PX4FLOW(*cur_bus);
+
 			if (g_dev == nullptr) {
 				/* this is a fatal error */
 				break;
@@ -713,7 +728,7 @@ start()
 
 		/* check whether we found it: */
 		if (*cur_bus != -1) {
-			
+
 			/* check for failure: */
 			if (g_dev == nullptr) {
 				break;
@@ -740,16 +755,17 @@ start()
 			// warnx("PX4FLOW not found on I2C busses. Retrying in %d ms. Giving up in %d retries.", START_RETRY_TIMEOUT, START_RETRY_COUNT - retry_nr);
 			usleep(START_RETRY_TIMEOUT * 1000);
 			retry_nr++;
+
 		} else {
 			break;
 		}
 	}
-	
+
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
-	
+
 	start_in_progress = false;
 	return 1;
 }
@@ -793,8 +809,7 @@ test()
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
-	if (sz != sizeof(report))
-	{
+	if (sz != sizeof(report)) {
 		warnx("immediate read failed");
 	}
 
