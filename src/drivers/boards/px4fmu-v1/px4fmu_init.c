@@ -223,23 +223,23 @@ __EXPORT int nsh_archinitialize(void)
 	 * Keep the SPI2 init optional and conditionally initialize the ADC pins
 	 */
 
-	#ifdef CONFIG_STM32_SPI2
-		spi2 = up_spiinitialize(2);
-		/* Default SPI2 to 1MHz and de-assert the known chip selects. */
-		SPI_SETFREQUENCY(spi2, 10000000);
-		SPI_SETBITS(spi2, 8);
-		SPI_SETMODE(spi2, SPIDEV_MODE3);
-		SPI_SELECT(spi2, PX4_SPIDEV_GYRO, false);
-		SPI_SELECT(spi2, PX4_SPIDEV_ACCEL_MAG, false);
+#ifdef CONFIG_STM32_SPI2
+	spi2 = up_spiinitialize(2);
+	/* Default SPI2 to 1MHz and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi2, 10000000);
+	SPI_SETBITS(spi2, 8);
+	SPI_SETMODE(spi2, SPIDEV_MODE3);
+	SPI_SELECT(spi2, PX4_SPIDEV_GYRO, false);
+	SPI_SELECT(spi2, PX4_SPIDEV_ACCEL_MAG, false);
 
-		message("[boot] Initialized SPI port2 (ADC IN12/13 blocked)\n");
-	#else
-		spi2 = NULL;
-		message("[boot] Enabling IN12/13 instead of SPI2\n");
-		/* no SPI2, use pins for ADC */
-		stm32_configgpio(GPIO_ADC1_IN12);
-		stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
-	#endif
+	message("[boot] Initialized SPI port2 (ADC IN12/13 blocked)\n");
+#else
+	spi2 = NULL;
+	message("[boot] Enabling IN12/13 instead of SPI2\n");
+	/* no SPI2, use pins for ADC */
+	stm32_configgpio(GPIO_ADC1_IN12);
+	stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
+#endif
 
 	/* Get the SPI port for the microSD slot */
 
