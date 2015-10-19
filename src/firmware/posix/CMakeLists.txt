@@ -10,7 +10,7 @@ add_executable(mainapp
 	apps.h
 	)
 
-if (NOT APPLE)
+if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang" OR NOT APPLE)
 	target_link_libraries(mainapp
 		-Wl,--start-group
 		${module_libraries}
