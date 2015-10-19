@@ -1227,8 +1227,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				wp_distance_save = 0.0f;
 			}
 
-			//warnx("wp dist: %d, alt err: %d, noret: %s", (int)wp_distance, (int)altitude_error, (land_noreturn) ? "YES" : "NO");
-			if (wp_distance < _parameters.land_heading_hold_horizontal_distance || land_noreturn_horizontal) {
+			// we want the plane to keep tracking the desired flight path until we start flaring
+			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
+			if (land_noreturn_vertical) {
 
 				/* heading hold, along the line connecting this and the last waypoint */
 
