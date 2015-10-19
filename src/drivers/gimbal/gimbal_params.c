@@ -43,14 +43,25 @@
 
 #include <systemlib/param/param.h>
 
+/**
+ * Consider mount operation mode.
+ *
+ * If set to 1, mount mode will be enforced.
+ *
+ * @min 0
+ * @max 1
+ * @group Gimbal
+ */
+PARAM_DEFINE_INT32(GMB_USE_MNT, 0);
 
 /**
- * Auxilary switch to use for mount control.
+ * Auxilary switch to set mount operation mode.
  *
- * Set to 0 to disable manual mount control.
+ * Set to 0 to disable manual mode control.
  *
- * Mount control off means the gimbal is put into safe/locked position.
- * Mount control on means the gimbal can move freely, and landing gear
+ * If set to an auxilary switch:
+ * Switch off means the gimbal is put into safe/locked position.
+ * Switch on means the gimbal can move freely, and landing gear
  * will be retracted if applicable.
  *
  * @min 0

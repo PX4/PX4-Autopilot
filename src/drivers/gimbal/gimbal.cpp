@@ -148,10 +148,12 @@ private:
 
 	struct {
 		int aux_mnt_chn;
+		int use_mnt;
 	} _parameters;
 
 	struct {
 		param_t aux_mnt_chn;
+		param_t use_mnt;
 	} _params_handles;
 
 	/**
@@ -214,6 +216,7 @@ Gimbal::Gimbal() :
 	_debug_enabled = false;
 
 	_params_handles.aux_mnt_chn = param_find("GMB_AUX_MNT_CHN");
+	_params_handles.use_mnt = param_find("GMB_USE_MNT");
 	update_params();
 
 	// work_cancel in the dtor will explode if we don't do this...
@@ -299,6 +302,7 @@ void
 Gimbal::update_params()
 {
 	param_get(_params_handles.aux_mnt_chn, &_parameters.aux_mnt_chn);
+	param_get(_params_handles.use_mnt, &_parameters.use_mnt);
 }
 
 void
@@ -488,23 +492,26 @@ Gimbal::cycle()
 
 	}
 
-	switch (_mount_mode) {
-	case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
-		out_mount_mode = -1.0f;
-		roll = 0.0f;
-		pitch = 0.0f;
-		yaw = 0.0f;
-		break;
+	/* consider mount mode if parameter is set */
+	if (_parameters.use_mnt > 0) {
+		switch (_mount_mode) {
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
+			out_mount_mode = -1.0f;
+			roll = 0.0f;
+			pitch = 0.0f;
+			yaw = 0.0f;
+			break;
 
-	case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
-	case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-	case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
-	case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-		out_mount_mode = 1.0f;
-		break;
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
+			out_mount_mode = 1.0f;
+			break;
 
-	default:
-		out_mount_mode = -1.0f;
+		default:
+			out_mount_mode = -1.0f;
+		}
 	}
 
 	if (updated) {
