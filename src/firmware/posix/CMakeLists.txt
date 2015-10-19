@@ -10,7 +10,7 @@ add_executable(mainapp
 	apps.h
 	)
 
-if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+if (NOT APPLE)
 	target_link_libraries(mainapp
 		-Wl,--start-group
 		${module_libraries}
@@ -18,17 +18,10 @@ if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
 		-Wl,--end-group
 		)
 else()
-	if (APPLE)
-		target_link_libraries(mainapp
-			${module_libraries}
-			pthread m
-			)
-	else()
-		target_link_libraries(mainapp
-			${module_libraries}
-			pthread m rt
-			)
-	endif()
+	target_link_libraries(mainapp
+		${module_libraries}
+		pthread m
+		)
 endif()
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
