@@ -92,8 +92,10 @@ static void usage(const char *reason);
 static void
 usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		warnx("%s\n", reason);
+	}
+
 	warnx("usage: {start|stop|status} [-d <UART>]\n\n");
 	exit(1);
 }
@@ -122,11 +124,11 @@ int ardrone_interface_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		ardrone_interface_task = px4_task_spawn_cmd("ardrone_interface",
-						    SCHED_DEFAULT,
-						    SCHED_PRIORITY_MAX - 15,
-						    1100,
-						    ardrone_interface_thread_main,
-						    (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 15,
+					 1100,
+					 ardrone_interface_thread_main,
+					 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);
 	}
 
@@ -138,9 +140,11 @@ int ardrone_interface_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			warnx("running");
+
 		} else {
 			warnx("not started");
 		}
+
 		exit(0);
 	}
 
@@ -212,19 +216,23 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		}
 
 		if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--motor") == 0) {
-			if (i+1 < argc) {
-				int motor = atoi(argv[i+1]);
+			if (i + 1 < argc) {
+				int motor = atoi(argv[i + 1]);
+
 				if (motor > 0 && motor < 5) {
 					test_motor = motor;
+
 				} else {
 					thread_running = false;
 					errx(1, "supply a motor # between 1 and 4. Example: -m 1\n %s", commandline_usage);
 				}
+
 			} else {
 				thread_running = false;
 				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
 			}
 		}
+
 		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //device set
 			if (argc > i + 1) {
 				device = argv[i + 1];
@@ -314,6 +322,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 				int motors[4] = {0, 0, 0, 0};
 				motors[test_motor - 1] = 10;
 				ardrone_write_motor_commands(ardrone_write, motors[0], motors[1], motors[2], motors[3]);
+
 			} else {
 				ardrone_write_motor_commands(ardrone_write, 10, 10, 10, 10);
 			}
@@ -338,33 +347,33 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		}
 
 		if (counter % 24 == 0) {
-			if (led_counter == 0) ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0 , 0);
+			if (led_counter == 0) { ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0 , 0); }
 
-			if (led_counter == 1) ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0 , 0);
+			if (led_counter == 1) { ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0 , 0); }
 
-			if (led_counter == 2) ar_set_leds(ardrone_write, 1, 0, 0, 0, 0, 0, 0 , 0);
+			if (led_counter == 2) { ar_set_leds(ardrone_write, 1, 0, 0, 0, 0, 0, 0 , 0); }
 
-			if (led_counter == 3) ar_set_leds(ardrone_write, 0, 0, 0, 1, 0, 0, 0 , 0);
+			if (led_counter == 3) { ar_set_leds(ardrone_write, 0, 0, 0, 1, 0, 0, 0 , 0); }
 
-			if (led_counter == 4) ar_set_leds(ardrone_write, 0, 0, 1, 1, 0, 0, 0 , 0);
+			if (led_counter == 4) { ar_set_leds(ardrone_write, 0, 0, 1, 1, 0, 0, 0 , 0); }
 
-			if (led_counter == 5) ar_set_leds(ardrone_write, 0, 0, 1, 0, 0, 0, 0 , 0);
+			if (led_counter == 5) { ar_set_leds(ardrone_write, 0, 0, 1, 0, 0, 0, 0 , 0); }
 
-			if (led_counter == 6) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 1, 0 , 0);
+			if (led_counter == 6) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 1, 0 , 0); }
 
-			if (led_counter == 7) ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 1, 0 , 0);
+			if (led_counter == 7) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 1, 0 , 0); }
 
-			if (led_counter == 8) ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 0, 0 , 0);
+			if (led_counter == 8) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 0, 0 , 0); }
 
-			if (led_counter == 9) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 0 , 1);
+			if (led_counter == 9) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 0 , 1); }
 
-			if (led_counter == 10) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 1);
+			if (led_counter == 10) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 1); }
 
-			if (led_counter == 11) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 0);
+			if (led_counter == 11) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 0); }
 
 			led_counter++;
 
-			if (led_counter == 12) led_counter = 0;
+			if (led_counter == 12) { led_counter = 0; }
 		}
 
 		/* run at approximately 200 Hz */
