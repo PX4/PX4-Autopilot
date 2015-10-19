@@ -65,9 +65,10 @@ public:
 	 * 	between updates
 	 */
 	SubscriptionBase(const struct orb_metadata *meta,
-		unsigned interval=0) :
+			 unsigned interval = 0) :
 		_meta(meta),
-		_handle() {
+		_handle()
+	{
 		setHandle(orb_subscribe(getMeta()));
 		orb_set_interval(getHandle(), interval);
 	}
@@ -75,7 +76,8 @@ public:
 	/**
 	 * Check if there is a new update.
 	 * */
-	bool updated() {
+	bool updated()
+	{
 		bool isUpdated = false;
 		orb_check(_handle, &isUpdated);
 		return isUpdated;
@@ -85,7 +87,8 @@ public:
 	 * Update the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	void update(void * data) {
+	void update(void *data)
+	{
 		if (updated()) {
 			orb_copy(_meta, _handle, data);
 		}
@@ -94,7 +97,8 @@ public:
 	/**
 	 * Deconstructor
 	 */
-	virtual ~SubscriptionBase() {
+	virtual ~SubscriptionBase()
+	{
 		orb_unsubscribe(_handle);
 	}
 // accessors
@@ -108,9 +112,9 @@ protected:
 	int _handle;
 private:
 	// forbid copy
-	SubscriptionBase(const SubscriptionBase& other);
+	SubscriptionBase(const SubscriptionBase &other);
 	// forbid assignment
-	SubscriptionBase& operator = (const SubscriptionBase &);
+	SubscriptionBase &operator = (const SubscriptionBase &);
 };
 
 /**
@@ -139,11 +143,12 @@ public:
 	 * 	that this should be appended to.
 	 */
 	SubscriptionNode(const struct orb_metadata *meta,
-		unsigned interval=0,
-		List<SubscriptionNode *> * list=nullptr) :
+			 unsigned interval = 0,
+			 List<SubscriptionNode *> *list = nullptr) :
 		SubscriptionBase(meta, interval),
-		_interval(interval) {
-		if (list != nullptr) list->add(this);
+		_interval(interval)
+	{
+		if (list != nullptr) { list->add(this); }
 	}
 
 	/**
@@ -179,8 +184,8 @@ public:
 	 * 	list during construction
 	 */
 	Subscription(const struct orb_metadata *meta,
-		unsigned interval=0,
-		List<SubscriptionNode *> * list=nullptr);
+		     unsigned interval = 0,
+		     List<SubscriptionNode *> *list = nullptr);
 	/**
 	 * Deconstructor
 	 */
@@ -190,7 +195,8 @@ public:
 	/**
 	 * Create an update function that uses the embedded struct.
 	 */
-	void update() {
+	void update()
+	{
 		SubscriptionBase::update(getDataVoidPtr());
 	}
 
