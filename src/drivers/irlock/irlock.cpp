@@ -388,8 +388,8 @@ int IRLOCK::read_device_block(struct irlock_s *block)
 
 	/** convert to angles **/
 	block->target_num = target_num;
-	block->angle_x = (((float)(pixel_x-IRLOCK_CENTER_X))/IRLOCK_PIXELS_PER_RADIAN_X);
-	block->angle_y = (((float)(pixel_y-IRLOCK_CENTER_Y))/IRLOCK_PIXELS_PER_RADIAN_Y);
+	block->angle_x = (((float)(pixel_x - IRLOCK_CENTER_X)) / IRLOCK_PIXELS_PER_RADIAN_X);
+	block->angle_y = (((float)(pixel_y - IRLOCK_CENTER_Y)) / IRLOCK_PIXELS_PER_RADIAN_Y);
 	block->size_x = pixel_size_x / IRLOCK_PIXELS_PER_RADIAN_X;
 	block->size_y = pixel_size_y / IRLOCK_PIXELS_PER_RADIAN_Y;
 
