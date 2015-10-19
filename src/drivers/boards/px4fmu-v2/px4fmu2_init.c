@@ -118,12 +118,12 @@ __END_DECLS
 
 static GRAN_HANDLE dma_allocator;
 
-/* 
- * The DMA heap size constrains the total number of things that can be 
+/*
+ * The DMA heap size constrains the total number of things that can be
  * ready to do DMA at a time.
  *
  * For example, FAT DMA depends on one sector-sized buffer per filesystem plus
- * one sector-sized buffer per file. 
+ * one sector-sized buffer per file.
  *
  * We use a fundamental alignment / granule size of 64B; this is sufficient
  * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
@@ -138,8 +138,10 @@ dma_alloc_init(void)
 					sizeof(g_dma_heap),
 					7,  /* 128B granule - must be > alignment (XXX bug?) */
 					6); /* 64B alignment */
+
 	if (dma_allocator == NULL) {
 		message("[boot] DMA allocator setup FAILED");
+
 	} else {
 		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
 	}
@@ -214,12 +216,12 @@ static struct sdio_dev_s *sdio;
 /*#ifdef __cplusplus*/
 /*__EXPORT int matherr(struct __exception *e)*/
 /*{*/
-	/*return 1;*/
+/*return 1;*/
 /*}*/
 /*#else*/
 /*__EXPORT int matherr(struct exception *e)*/
 /*{*/
-	/*return 1;*/
+/*return 1;*/
 /*}*/
 /*#endif*/
 
@@ -326,10 +328,11 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
 
-	#ifdef CONFIG_MMCSD
+#ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
 
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+
 	if (!sdio) {
 		message("[boot] Failed to initialize SDIO slot %d\n",
 			CONFIG_NSH_MMCSDSLOTNO);
@@ -338,6 +341,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Now bind the SDIO interface to the MMC/SD driver */
 	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
+
 	if (ret != OK) {
 		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
@@ -346,7 +350,7 @@ __EXPORT int nsh_archinitialize(void)
 	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
 	sdio_mediachange(sdio, true);
 
-	#endif
+#endif
 
 	return OK;
 }
