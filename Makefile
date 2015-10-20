@@ -66,6 +66,7 @@ all: px4fmu-v2_default
 # by cmake in the subdirectory
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 j ?= 4
+DEBUGGER ?= "disable"
 
 # disable ninja by default for now because it hides upload progress
 #NINJA_BUILD := $(shell ninja --version 2>/dev/null)
@@ -89,7 +90,7 @@ endif
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then git submodule update --init --recursive --force && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
++@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then git submodule update --init --recursive --force && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) -DDEBUGGER=$(DEBUGGER); fi
 +$(PX4_MAKE) -C $(PWD)/build_$@ $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
@@ -131,36 +132,6 @@ posix_sitl_default: posix_sitl_simple
 
 ros: ros_sitl_simple
 
-run_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS none jmavsim
-
-run_sitl_iris: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS_iris_gazebo
-
-run_sitl_plane: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
-
-run_sitl_ros: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros
-
-lldb_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS lldb jmavsim
-
-lldb_sitl_plane: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing lldb
-
-lldb_sitl_ros: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros lldb
-
-gdb_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS gdb jmavsim
-
-gdb_sitl_plane: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing lldb
-
-gdb_sitl_ros: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros lldb
-
 sitl_quad:
 	@echo "Deprecated. Use 'run_sitl_quad' instead."
 
@@ -181,7 +152,8 @@ clean:
 	@(cd src/modules/uavcan/libuavcan && git clean -d -f -x)
 
 # targets handled by cmake
-cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak libuavcan
+cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak libuavcan \
+	run_sitl_iris run_sitl_ros run_sitl_quad run_sitl_plane config
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean
