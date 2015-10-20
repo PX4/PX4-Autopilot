@@ -142,7 +142,7 @@ void BlockMultiModeBacksideAutopilot::update()
 
 	// store old position command before update if new command sent
 	if (_missionCmd.updated()) {
-		_lastMissionCmd = _missionCmd.getData();
+		_lastMissionCmd = _missionCmd.get();
 	}
 
 	// check for new updates
@@ -152,15 +152,17 @@ void BlockMultiModeBacksideAutopilot::update()
 	updateSubscriptions();
 
 	// default all output to zero unless handled by mode
-	for (unsigned i = 4; i < NUM_ACTUATOR_CONTROLS; i++) {
-		_actuators.control[i] = 0.0f;
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
+		_actuators.get().control[i] = 0.0f;
 	}
 
 	// only update guidance in auto mode
-	if (_status.main_state == MAIN_STATE_AUTO) {
+	if (_status.get().main_state == vehicle_status_s::MAIN_STATE_AUTO_MISSION) {
 		// TODO use vehicle_control_mode here?
 		// update guidance
-		_guide.update(_pos, _att, _missionCmd.current, _lastMissionCmd.current);
+		_guide.update(_pos.get(), _att.get(),
+			      _missionCmd.get().current,
+			      _lastMissionCmd.current);
 	}
 
 	// XXX handle STABILIZED (loiter on spot) as well
@@ -168,32 +170,32 @@ void BlockMultiModeBacksideAutopilot::update()
 	// the setpoint should update to loitering around this position
 
 	// handle autopilot modes
-	if (_status.main_state == MAIN_STATE_AUTO) {
+	if (_status.get().main_state == vehicle_status_s::MAIN_STATE_AUTO) {
 
 		// calculate velocity, XXX should be airspeed,
 		// but using ground speed for now for the purpose
 		// of control we will limit the velocity feedback between
 		// the min/max velocity
 		float v = _vLimit.update(sqrtf(
-						 _pos.vel_n * _pos.vel_n +
-						 _pos.vel_e * _pos.vel_e +
-						 _pos.vel_d * _pos.vel_d));
+						 _pos.get().vel_n * _pos.get().vel_n +
+						 _pos.get().vel_e * _pos.get().vel_e +
+						 _pos.get().vel_d * _pos.get().vel_d));
 
 		// limit velocity command between min/max velocity
 		float vCmd = _vLimit.update(_vCmd.get());
 
 		// altitude hold
-		float dThrottle = _h2Thr.update(_missionCmd.current.alt - _pos.alt);
+		float dThrottle = _h2Thr.update(_missionCmd.get().current.alt - _pos.get().alt);
 
 		// heading hold
-		float psiError = _wrap_pi(_guide.getPsiCmd() - _att.yaw);
+		float psiError = _wrap_pi(_guide.getPsiCmd() - _att.get().yaw);
 		float phiCmd = _phiLimit.update(_psi2Phi.update(psiError));
-		float pCmd = _phi2P.update(phiCmd - _att.roll);
+		float pCmd = _phi2P.update(phiCmd - _att.get().roll);
 
 		// velocity hold
 		// negative sign because nose over to increase speed
 		float thetaCmd = _theLimit.update(-_v2Theta.update(vCmd - v));
-		float qCmd = _theta2Q.update(thetaCmd - _att.pitch);
+		float qCmd = _theta2Q.update(thetaCmd - _att.get().pitch);
 
 		// yaw rate cmd
 		float rCmd = 0;
@@ -203,14 +205,16 @@ void BlockMultiModeBacksideAutopilot::update()
 		float outputScale = velocityRatio * velocityRatio;
 		// this term scales the output based on the dynamic pressure change from trim
 		_stabilization.update(pCmd, qCmd, rCmd,
-				      _att.rollspeed, _att.pitchspeed, _att.yawspeed,
+				      _att.get().rollspeed,
+				      _att.get().pitchspeed,
+				      _att.get().yawspeed,
 				      outputScale);
 
 		// output
-		_actuators.control[CH_AIL] = _stabilization.getAileron() + _trimAil.get();
-		_actuators.control[CH_ELV] = _stabilization.getElevator() + _trimElv.get();
-		_actuators.control[CH_RDR] = _stabilization.getRudder() + _trimRdr.get();
-		_actuators.control[CH_THR] = dThrottle + _trimThr.get();
+		_actuators.get().control[CH_AIL] = _stabilization.getAileron() + _trimAil.get();
+		_actuators.get().control[CH_ELV] = _stabilization.getElevator() + _trimElv.get();
+		_actuators.get().control[CH_RDR] = _stabilization.getRudder() + _trimRdr.get();
+		_actuators.get().control[CH_THR] = dThrottle + _trimThr.get();
 
 		// XXX limit throttle to manual setting (safety) for now.
 		// If it turns out to be confusing, it can be removed later once
@@ -218,28 +222,29 @@ void BlockMultiModeBacksideAutopilot::update()
 		// This is not a hack, but a design choice.
 
 		// do not limit in HIL
-		if (_status.hil_state != HIL_STATE_ON) {
+		if (_status.get().hil_state != _vehicle_status::HIL_STATE_ON) {
 			/* limit to value of manual throttle */
-			_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
-						     _actuators.control[CH_THR] : _manual.throttle;
+			_actuators.get().control[CH_THR] =
+				(_actuators.get().control[CH_THR] < _manual.get().z) ?
+				_actuators.get().control[CH_THR] : _manual.get().z;
 		}
 
-	} else if (_status.main_state == MAIN_STATE_MANUAL) {
-		_actuators.control[CH_AIL] = _manual.roll;
-		_actuators.control[CH_ELV] = _manual.pitch;
-		_actuators.control[CH_RDR] = _manual.yaw;
-		_actuators.control[CH_THR] = _manual.throttle;
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
+		_actuators.get().control[CH_AIL] = _manual.get().y;
+		_actuators.get().control[CH_ELV] = _manual.get().x;
+		_actuators.get().control[CH_RDR] = _manual.get().r;
+		_actuators.get().control[CH_THR] = _manual.get().z;
 
-	} else if (_status.main_state == MAIN_STATE_ALTCTL ||
-		   _status.main_state == MAIN_STATE_POSCTL /* TODO, implement pos control */) {
+	} else if (_status.get().main_state == vehicle_status_s::MAIN_STATE_ALTCTL ||
+		   _status.get().main_state == vehicle_status_s::MAIN_STATE_POSCTL /* TODO, implement pos control */) {
 
 		// calculate velocity, XXX should be airspeed, but using ground speed for now
 		// for the purpose of control we will limit the velocity feedback between
 		// the min/max velocity
 		float v = _vLimit.update(sqrtf(
-						 _pos.vel_n * _pos.vel_n +
-						 _pos.vel_e * _pos.vel_e +
-						 _pos.vel_d * _pos.vel_d));
+						 _pos.get().vel_n * _pos.get().vel_n +
+						 _pos.get().vel_e * _pos.get().vel_e +
+						 _pos.get().vel_d * _pos.get().vel_d));
 
 		// pitch channel -> rate of climb
 		// TODO, might want to put a gain on this, otherwise commanding
@@ -248,33 +253,35 @@ void BlockMultiModeBacksideAutopilot::update()
 		//_crMax.get()*_manual.pitch - _pos.vz);
 
 		// roll channel -> bank angle
-		float phiCmd = _phiLimit.update(_manual.roll * _phiLimit.getMax());
-		float pCmd = _phi2P.update(phiCmd - _att.roll);
+		float phiCmd = _phiLimit.update(_manual.get().y * _phiLimit.getMax());
+		float pCmd = _phi2P.update(phiCmd - _att.get().roll);
 
 		// throttle channel -> velocity
 		// negative sign because nose over to increase speed
-		float vCmd = _vLimit.update(_manual.throttle *
+		float vCmd = _vLimit.update(_manual.get().z *
 					    (_vLimit.getMax() - _vLimit.getMin()) +
 					    _vLimit.getMin());
 		float thetaCmd = _theLimit.update(-_v2Theta.update(vCmd - v));
-		float qCmd = _theta2Q.update(thetaCmd - _att.pitch);
+		float qCmd = _theta2Q.update(thetaCmd - _att.get().pitch);
 
 		// yaw rate cmd
 		float rCmd = 0;
 
 		// stabilization
 		_stabilization.update(pCmd, qCmd, rCmd,
-				      _att.rollspeed, _att.pitchspeed, _att.yawspeed);
+				      _att.get().rollspeed,
+				      _att.get().pitchspeed,
+				      _att.get().yawspeed);
 
 		// output
-		_actuators.control[CH_AIL] = _stabilization.getAileron() + _trimAil.get();
-		_actuators.control[CH_ELV] = _stabilization.getElevator() + _trimElv.get();
-		_actuators.control[CH_RDR] = _stabilization.getRudder() + _trimRdr.get();
+		_actuators.get().control[CH_AIL] = _stabilization.getAileron() + _trimAil.get();
+		_actuators.get().control[CH_ELV] = _stabilization.getElevator() + _trimElv.get();
+		_actuators.get().control[CH_RDR] = _stabilization.getRudder() + _trimRdr.get();
 
 		// currently using manual throttle
 		// XXX if you enable this watch out, vz might be very noisy
 		//_actuators.control[CH_THR] = dThrottle + _trimThr.get();
-		_actuators.control[CH_THR] = _manual.throttle;
+		_actuators.get().control[CH_THR] = _manual.get().z;
 
 		// XXX limit throttle to manual setting (safety) for now.
 		// If it turns out to be confusing, it can be removed later once
@@ -282,10 +289,11 @@ void BlockMultiModeBacksideAutopilot::update()
 		// This is not a hack, but a design choice.
 
 		/* do not limit in HIL */
-		if (_status.hil_state != HIL_STATE_ON) {
+		if (_status.get().hil_state != vehicle_status_s::HIL_STATE_ON) {
 			/* limit to value of manual throttle */
-			_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
-						     _actuators.control[CH_THR] : _manual.throttle;
+			_actuators.get().control[CH_THR] =
+				(_actuators.get().control[CH_THR] < _manual.get().z) ?
+				_actuators.get().control[CH_THR] : _manual.get().z;
 		}
 
 		// body rates controller, disabled for now
@@ -294,13 +302,13 @@ void BlockMultiModeBacksideAutopilot::update()
 	} else if (
 		0 /*_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS*/) {	// TODO use vehicle_control_mode here?
 
-		_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
-				      _att.rollspeed, _att.pitchspeed, _att.yawspeed);
+		_stabilization.update(_manual.get().y, _manual.get().x, _manual.get().r,
+				      _att.get().rollspeed, _att.get().pitchspeed, _att.get().yawspeed);
 
-		_actuators.control[CH_AIL] = _stabilization.getAileron();
-		_actuators.control[CH_ELV] = _stabilization.getElevator();
-		_actuators.control[CH_RDR] = _stabilization.getRudder();
-		_actuators.control[CH_THR] = _manual.throttle;
+		_actuators.get().control[CH_AIL] = _stabilization.getAileron();
+		_actuators.get().control[CH_ELV] = _stabilization.getElevator();
+		_actuators.get().control[CH_RDR] = _stabilization.getRudder();
+		_actuators.get().control[CH_THR] = _manual.get().z;
 	}
 
 	// update all publications
@@ -311,8 +319,8 @@ BlockMultiModeBacksideAutopilot::~BlockMultiModeBacksideAutopilot()
 {
 	// send one last publication when destroyed, setting
 	// all output to zero
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
-		_actuators.control[i] = 0.0f;
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
+		_actuators.get().control[i] = 0.0f;
 	}
 
 	updatePublications();
