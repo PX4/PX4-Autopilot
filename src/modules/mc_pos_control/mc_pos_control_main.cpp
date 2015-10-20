@@ -155,6 +155,10 @@ private:
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
 
+	control::BlockDerivative _vel_x_deriv;
+	control::BlockDerivative _vel_y_deriv;
+	control::BlockDerivative _vel_z_deriv;
+
 	struct {
 		param_t thr_min;
 		param_t thr_max;
@@ -331,6 +335,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_global_vel_sp_pub(nullptr),
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
+	_vel_x_deriv(this, "VELD"),
+	_vel_y_deriv(this, "VELD"),
+	_vel_z_deriv(this, "VELD"),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 
@@ -1039,6 +1046,9 @@ MulticopterPositionControl::task_main()
 		float dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.0f;
 		t_prev = t;
 
+		// set dt for control blocks
+		setDt(dt);
+
 		if (_control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
 			_reset_pos_sp = true;
@@ -1217,8 +1227,12 @@ MulticopterPositionControl::task_main()
 					/* velocity error */
 					math::Vector<3> vel_err = _vel_sp - _vel;
 
-					/* derivative of velocity error, not includes setpoint acceleration */
-					math::Vector<3> vel_err_d = (_vel - _vel_prev) / dt;
+					/* derivative of velocity error, /
+					 * does not includes setpoint acceleration */
+					math::Vector<3> vel_err_d;
+					vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
+					vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
+					vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 
 					/* thrust vector in NED frame */
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + vel_err_d.emult(_params.vel_d) + thrust_int;
