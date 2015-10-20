@@ -36,7 +36,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <nuttx/arch.h>
-#include <algorithm>
 #include "uORBDevices_nuttx.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
@@ -684,4 +683,3 @@ uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
 
 	return rc;
 }
-
