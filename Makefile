@@ -133,13 +133,13 @@ posix_sitl_default: posix_sitl_simple
 ros: ros_sitl_simple
 
 sitl_quad:
-	@echo "Deprecated. Use 'run_sitl_quad' instead."
+	@echo "Deprecated. Use 'make posix_sitl_default run_sitl_quad' instead."
 
 sitl_plane:
-	@echo "Deprecated. Use 'run_sitl_plane' instead."
+	@echo "Deprecated. Use 'make posix_sitl_default run_sitl_plane' instead."
 
 sitl_ros:
-	@echo "Deprecated. Use 'run_sitl_ros' instead."
+	@echo "Deprecated. Use 'make posix_sitl_default run_sitl_ros' instead."
 
 # Other targets
 # --------------------------------------------------------------------
