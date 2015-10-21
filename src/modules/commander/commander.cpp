@@ -246,6 +246,9 @@ void print_reject_arm(const char *msg);
 
 void print_status();
 
+transition_result_t check_navigation_state_machine(struct vehicle_status_s *status,
+		struct vehicle_control_mode_s *control_mode, struct vehicle_local_position_s *local_pos);
+
 transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char *armedBy);
 
 /**
@@ -941,6 +944,7 @@ int commander_thread_main(int argc, char *argv[])
 	const char *nav_states_str[vehicle_status_s::NAVIGATION_STATE_MAX];
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_MANUAL]			= "MANUAL";
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_STAB]				= "STAB";
+	nav_states_str[vehicle_status_s::NAVIGATION_STATE_RATTITUDE]		= "RATTITUDE";
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_POSCTL]			= "POSCTL";
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
@@ -1978,13 +1982,14 @@ int commander_thread_main(int argc, char *argv[])
 
 			status.rc_signal_lost = false;
 
-			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSIST mode and landed) -> disarm
+			/* check if left stick is in lower left position and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed) -> disarm
 			 * do it only for rotary wings */
 			if (status.is_rotary_wing && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 			    (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) &&
 			    (status.main_state == vehicle_status_s::MAIN_STATE_MANUAL ||
 			    	status.main_state == vehicle_status_s::MAIN_STATE_ACRO ||
 			    	status.main_state == vehicle_status_s::MAIN_STATE_STAB ||
+			    	status.main_state == vehicle_status_s::MAIN_STATE_RATTITUDE ||
 			    	status.condition_landed) &&
 			    sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 
@@ -2196,6 +2201,7 @@ int commander_thread_main(int argc, char *argv[])
 			 * and both failed we want to terminate the flight */
 			if (status.main_state !=vehicle_status_s::MAIN_STATE_MANUAL &&
 			    status.main_state !=vehicle_status_s::MAIN_STATE_ACRO &&
+			    status.main_state !=vehicle_status_s::MAIN_STATE_RATTITUDE &&
 			    status.main_state !=vehicle_status_s::MAIN_STATE_STAB &&
 			    status.main_state !=vehicle_status_s::MAIN_STATE_ALTCTL &&
 			    status.main_state !=vehicle_status_s::MAIN_STATE_POSCTL &&
@@ -2220,6 +2226,7 @@ int commander_thread_main(int argc, char *argv[])
 			 * If we are in manual (controlled with RC):
 			 * if both failed we want to terminate the flight */
 			if ((status.main_state ==vehicle_status_s::MAIN_STATE_ACRO ||
+			     status.main_state ==vehicle_status_s::MAIN_STATE_RATTITUDE ||
 			     status.main_state ==vehicle_status_s::MAIN_STATE_MANUAL ||
 			     status.main_state !=vehicle_status_s::MAIN_STATE_STAB ||
 			     status.main_state ==vehicle_status_s::MAIN_STATE_ALTCTL ||
@@ -2513,13 +2520,14 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	}
 
 	/* manual setpoint has not updated, do not re-evaluate it */
-	if ((_last_sp_man.timestamp == sp_man->timestamp) ||
-		((_last_sp_man.offboard_switch == sp_man->offboard_switch) &&
-		 (_last_sp_man.return_switch == sp_man->return_switch) &&
-		 (_last_sp_man.mode_switch == sp_man->mode_switch) &&
-		 (_last_sp_man.acro_switch == sp_man->acro_switch) &&
-		 (_last_sp_man.posctl_switch == sp_man->posctl_switch) &&
-		 (_last_sp_man.loiter_switch == sp_man->loiter_switch))) {
+	if ((last_manual_input == sp_man->timestamp) ||
+		((last_offboard_switch == sp_man->offboard_switch) &&
+		 (last_return_switch == sp_man->return_switch) &&
+		 (last_mode_switch == sp_man->mode_switch) &&
+		 (last_acro_switch == sp_man->acro_switch) &&
+		 (last_rattitude_switch == sp_man->rattitude_switch) &&
+		 (last_posctl_switch == sp_man->posctl_switch) &&
+		 (last_loiter_switch == sp_man->loiter_switch))) {
 
 		// update these fields for the geofence system
 		_last_sp_man.timestamp = sp_man->timestamp;
@@ -2585,7 +2593,16 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
 			}
 
-		} else {
+		} 
+		if(sp_man->rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON){
+			/* Similar to acro transitions for multirotors.  FW aircraft don't need a 
+			 * rattitude mode.*/
+			if (status.is_rotary_wing) {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_RATTITUDE);
+			} else {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
+			}
+		}else {
 			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
 		}
 
@@ -2706,6 +2723,18 @@ set_control_mode()
 		control_mode.flag_control_termination_enabled = false;
 		/* override is not ok in stabilized mode */
 		control_mode.flag_external_manual_override_ok = false;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:
+		control_mode.flag_control_manual_enabled = true;
+		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_rates_enabled = true;
+		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_climb_rate_enabled = false;
+		control_mode.flag_control_position_enabled = false;
+		control_mode.flag_control_velocity_enabled = false;
+		control_mode.flag_control_termination_enabled = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
