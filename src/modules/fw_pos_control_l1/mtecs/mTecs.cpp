@@ -53,7 +53,7 @@ mTecs::mTecs() :
 	_airspeedMin(this, "FW_AIRSPD_MIN", false),
 	/* Publications */
 #if defined(__PX4_NUTTX)
-	_status(ORB_ID(tecs_status), &getPublications()),
+	_status(ORB_ID(tecs_status), -1, &getPublications()),
 #endif // defined(__PX4_NUTTX)
 	/* control blocks */
 	_controlTotalEnergy(this, "THR"),
@@ -111,8 +111,8 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 
 #if defined(__PX4_NUTTX)
 	/* Write part of the status message */
-	_status.altitudeSp = altitudeSp;
-	_status.altitude_filtered = altitudeFiltered;
+	_status.get().altitudeSp = altitudeSp;
+	_status.get().altitude_filtered = altitudeFiltered;
 #endif // defined(__PX4_NUTTX)
 
 
@@ -149,8 +149,8 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 
 #if defined(__PX4_NUTTX)
 	/* Write part of the status message */
-	_status.airspeedSp = airspeedSp;
-	_status.airspeed_filtered = airspeedFiltered;
+	_status.get().airspeedSp = airspeedSp;
+	_status.get().airspeed_filtered = airspeedFiltered;
 #endif // defined(__PX4_NUTTX)
 
 

@@ -317,7 +317,8 @@ public:
 		_kP(this, "") // only one param, no need to name
 	{};
 	virtual ~BlockP() {};
-	float update(float input) {
+	float update(float input)
+	{
 		return getKP() * input;
 	}
 // accessors
@@ -343,7 +344,8 @@ public:
 		_kI(this, "I")
 	{};
 	virtual ~BlockPI() {};
-	float update(float input) {
+	float update(float input)
+	{
 		return getKP() * input +
 		       getKI() * getIntegral().update(input);
 	}
@@ -374,7 +376,8 @@ public:
 		_kD(this, "D")
 	{};
 	virtual ~BlockPD() {};
-	float update(float input) {
+	float update(float input)
+	{
 		return getKP() * input +
 		       getKD() * getDerivative().update(input);
 	}
@@ -407,7 +410,8 @@ public:
 		_kD(this, "D")
 	{};
 	virtual ~BlockPID() {};
-	float update(float input) {
+	float update(float input)
+	{
 		return getKP() * input +
 		       getKI() * getIntegral().update(input) +
 		       getKD() * getDerivative().update(input);
@@ -440,11 +444,13 @@ public:
 		SuperBlock(parent, name),
 		_trim(this, "TRIM"),
 		_limit(this, ""),
-		_val(0) {
+		_val(0)
+	{
 		update(0);
 	};
 	virtual ~BlockOutput() {};
-	void update(float input) {
+	void update(float input)
+	{
 		_val = _limit.update(input + getTrim());
 	}
 // accessors
@@ -472,13 +478,15 @@ public:
 			 const char *name) :
 		Block(parent, name),
 		_min(this, "MIN"),
-		_max(this, "MAX") {
+		_max(this, "MAX")
+	{
 		// seed should be initialized somewhere
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	};
 	virtual ~BlockRandUniform() {};
-	float update() {
+	float update()
+	{
 		static float rand_max = MAX_RAND;
 		float rand_val = rand();
 		float bounds = getMax() - getMin();
@@ -503,13 +511,15 @@ public:
 		       const char *name) :
 		Block(parent, name),
 		_mean(this, "MEAN"),
-		_stdDev(this, "DEV") {
+		_stdDev(this, "DEV")
+	{
 		// seed should be initialized somewhere
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	};
 	virtual ~BlockRandGauss() {};
-	float update() {
+	float update()
+	{
 		static float V1, V2, S;
 		static int phase = 0;
 		float X;
