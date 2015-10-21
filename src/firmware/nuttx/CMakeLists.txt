@@ -51,7 +51,7 @@ if(NOT ${BOARD} STREQUAL "sim")
 		)
 	if (config_io_board)
 	    add_dependencies(romfs fw_io)
-    endif()
+	endif()
 	set(fw_file
 		${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
 
