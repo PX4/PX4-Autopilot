@@ -190,12 +190,10 @@ private:
 		param_t pitch_rate_max;
 		param_t yaw_rate_max;
 
-		param_t man_roll_max;
-		param_t man_pitch_max;
-		param_t man_yaw_max;
 		param_t acro_roll_max;
 		param_t acro_pitch_max;
 		param_t acro_yaw_max;
+		param_t rattitude_thres;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -212,11 +210,8 @@ private:
 		float yaw_rate_max;
 		math::Vector<3> mc_rate_max;		/**< attitude rate limits in stabilized modes */
 
-		float man_roll_max;
-		float man_pitch_max;
-		float man_yaw_max;
 		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
-
+		float rattitude_thres;
 	}		_params;
 
 	/**
@@ -346,11 +341,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.roll_rate_max = 0.0f;
 	_params.pitch_rate_max = 0.0f;
 	_params.yaw_rate_max = 0.0f;
-	_params.man_roll_max = 0.0f;
-	_params.man_pitch_max = 0.0f;
-	_params.man_yaw_max = 0.0f;
 	_params.mc_rate_max.zero();
 	_params.acro_rate_max.zero();
+	_params.rattitude_thres = 1.0f;
 
 	_rates_prev.zero();
 	_rates_sp.zero();
@@ -380,12 +373,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.roll_rate_max	= 	param_find("MC_ROLLRATE_MAX");
 	_params_handles.pitch_rate_max	= 	param_find("MC_PITCHRATE_MAX");
 	_params_handles.yaw_rate_max	= 	param_find("MC_YAWRATE_MAX");
-	_params_handles.man_roll_max	= 	param_find("MC_MAN_R_MAX");
-	_params_handles.man_pitch_max	= 	param_find("MC_MAN_P_MAX");
-	_params_handles.man_yaw_max		= 	param_find("MC_MAN_Y_MAX");
 	_params_handles.acro_roll_max	= 	param_find("MC_ACRO_R_MAX");
 	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
-	_params_handles.acro_yaw_max		= 	param_find("MC_ACRO_Y_MAX");
+	_params_handles.acro_yaw_max	= 	param_find("MC_ACRO_Y_MAX");
+	_params_handles.rattitude_thres = 	param_find("MC_RATT_TH");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -466,14 +457,6 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.yaw_rate_max, &_params.yaw_rate_max);
 	_params.mc_rate_max(2) = math::radians(_params.yaw_rate_max);
 
-	/* manual attitude control scale */
-	param_get(_params_handles.man_roll_max, &_params.man_roll_max);
-	param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
-	param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
-	_params.man_roll_max = math::radians(_params.man_roll_max);
-	_params.man_pitch_max = math::radians(_params.man_pitch_max);
-	_params.man_yaw_max = math::radians(_params.man_yaw_max);
-
 	/* manual rate control scale and auto mode roll/pitch rate limits */
 	param_get(_params_handles.acro_roll_max, &v);
 	_params.acro_rate_max(0) = math::radians(v);
@@ -481,6 +464,9 @@ MulticopterAttitudeControl::parameters_update()
 	_params.acro_rate_max(1) = math::radians(v);
 	param_get(_params_handles.acro_yaw_max, &v);
 	_params.acro_rate_max(2) = math::radians(v);
+
+	/* stick deflection needed in rattitude mode to control rates not angles */
+	param_get(_params_handles.rattitude_thres, &_params.rattitude_thres);
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
@@ -810,22 +796,45 @@ MulticopterAttitudeControl::task_main()
 			vehicle_motor_limits_poll();
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
+
 				control_attitude(dt);
 
-				/* publish attitude rates setpoint */
-				_v_rates_sp.roll = _rates_sp(0);
-				_v_rates_sp.pitch = _rates_sp(1);
-				_v_rates_sp.yaw = _rates_sp(2);
-				_v_rates_sp.thrust = _thrust_sp;
-				_v_rates_sp.timestamp = hrt_absolute_time();
+				/* Check if we want to directly pass through manual rate setpoints*/
+				if(_vehicle_status.main_state == vehicle_status_s::MAIN_STATE_RATTITUDE){
+					/* Calculate the manual rates for all channels */
+					math::Vector<3> man_rates = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);	
+					
+					/* Check all channels and replace attitude controler rate setpoint if manual input greater than threshold*/
+					_v_rates_sp.roll = (fabsf(_manual_control_sp.y) > _params.rattitude_thres) ? man_rates(0) : _rates_sp(0);
+					_v_rates_sp.pitch = (fabsf(_manual_control_sp.x) > _params.rattitude_thres) ? man_rates(1) : _rates_sp(1);
+					_v_rates_sp.yaw = (fabsf(_manual_control_sp.r) > _params.rattitude_thres) ? man_rates(2) : _rates_sp(2);
+					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_v_rates_sp_pub != nullptr) {
-					orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
+					/* publish attitude rates setpoint */
+					if (_v_rates_sp_pub != nullptr) {
+						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
 
-				} else if (_rates_sp_id) {
-					_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+					} else if (_rates_sp_id) {
+						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+					}
+				}else{
+
+
+					/* publish attitude rates setpoint */
+					_v_rates_sp.roll = _rates_sp(0);
+					_v_rates_sp.pitch = _rates_sp(1);
+					_v_rates_sp.yaw = _rates_sp(2);
+					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.timestamp = hrt_absolute_time();
+
+					if (_v_rates_sp_pub != nullptr) {
+						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
+
+					} else if (_rates_sp_id) {
+						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+					}
 				}
-
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled) {
