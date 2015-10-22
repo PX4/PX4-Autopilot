@@ -224,6 +224,8 @@ __END_DECLS
 
 #endif
 
+#if defined(__PX4_QURT)
+
 #define PX4_ROOTFSDIR
 #define DEFAULT_PARAM_FILE "/fs/eeprom/parameters"
 
@@ -231,6 +233,8 @@ __END_DECLS
 
 // Missing math.h defines
 #define PX4_ISFINITE(x) __builtin_isfinite(x)
+
+#endif
 
 /*
  *Defines for all platforms
