@@ -141,7 +141,8 @@ private:
 	int					_cycling_rate;	/* */
 	uint8_t				_index_counter;	/* temporary sonar i2c address */
 	std::vector<uint8_t>	addr_ind; 	/* temp sonar i2c address vector */
-	std::vector<float>	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
+	std::vector<float>
+	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
 
 
 	/**
@@ -561,7 +562,7 @@ SRF02::collect()
 	uint8_t val[2] = {0, 0};
 	uint8_t cmd = 0x02;
 	perf_begin(_sample_perf);
-	ret = transfer(&cmd,1,nullptr,0);
+	ret = transfer(&cmd, 1, nullptr, 0);
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
@@ -583,6 +584,7 @@ SRF02::collect()
 	if (addr_ind.size() == 1) {
 		report.distance = si_units;
 		report.distance_vector[0] = si_units;
+
 		for (unsigned i = 1; i < (SRF02_MAX_RANGEFINDERS); i++) {
 			report.distance_vector[i] = 0;
 		}
