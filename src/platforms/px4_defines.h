@@ -224,8 +224,6 @@ __END_DECLS
 
 #endif
 
-#if defined(__PX4_QURT)
-
 #define PX4_ROOTFSDIR
 #define DEFAULT_PARAM_FILE "/fs/eeprom/parameters"
 
@@ -233,16 +231,6 @@ __END_DECLS
 
 // Missing math.h defines
 #define PX4_ISFINITE(x) __builtin_isfinite(x)
-
-// FIXME - these are missing for clang++ but not for clang
-#if defined(__cplusplus)
-#define isfinite(x) true
-#define isnan(x) false
-#define isinf(x) false
-#define fminf(x, y) ((x) > (y) ? y : x)
-#endif
-
-#endif
 
 /*
  *Defines for all platforms
