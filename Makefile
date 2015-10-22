@@ -138,7 +138,7 @@ run_sitl_quad: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rcS none jmavsim
 
 run_sitl_iris: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS_iris_gazebo
+	Tools/sitl_run.sh posix-configs/SITL/init/rcS_iris_gazebo none gazebo
 
 run_sitl_plane: posix
 	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
