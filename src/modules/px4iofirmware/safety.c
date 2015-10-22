@@ -110,7 +110,7 @@ safety_check_button(void *arg)
 	 * length in all cases of the if/else struct below.
 	 */
 	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
-		(r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)) {
+	    (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)) {
 
 		if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
@@ -149,6 +149,7 @@ safety_check_button(void *arg)
 
 	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) {
 		pattern = LED_PATTERN_FMU_ARMED;
+
 	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK) {
 		pattern = LED_PATTERN_FMU_OK_TO_ARM;
 
@@ -176,6 +177,7 @@ failsafe_blink(void *arg)
 	/* blink the failsafe LED if we don't have FMU input */
 	if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
 		failsafe = !failsafe;
+
 	} else {
 		failsafe = false;
 	}

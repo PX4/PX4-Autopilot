@@ -219,7 +219,7 @@ hrt_call_enter(struct hrt_call *entry)
  *
  * This routine simulates a timer interrupt handler
  */
-static void 
+static void
 hrt_tim_isr(void *p)
 {
 
@@ -249,7 +249,7 @@ hrt_call_reschedule()
 	uint32_t	ticks = USEC2TICK(HRT_INTERVAL_MAX);
 
 	//printf("hrt_call_reschedule\n");
-	
+
 	/*
 	 * Determine what the next deadline will be.
 	 *
@@ -275,10 +275,10 @@ hrt_call_reschedule()
 		}
 	}
 
-	// There is no timer ISR, so simulate one by putting an event on the 
+	// There is no timer ISR, so simulate one by putting an event on the
 	// high priority work queue
 	//printf("ticks = %u\n", ticks);
-        work_queue(HPWORK, &_hrt_work, (worker_t)&hrt_tim_isr, NULL, ticks);
+	work_queue(HPWORK, &_hrt_work, (worker_t)&hrt_tim_isr, NULL, ticks);
 }
 
 static void
@@ -286,6 +286,7 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 {
 	//printf("hrt_call_internal\n");
 	hrt_lock();
+
 	//printf("hrt_call_internal after lock\n");
 	/* if the entry is currently queued, remove it */
 	/* note that we are using a potentially uninitialised
@@ -295,8 +296,9 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 	   queue for the uninitialised entry->link but we don't do
 	   anything actually unsafe.
 	*/
-	if (entry->deadline != 0)
+	if (entry->deadline != 0) {
 		sq_rem(&entry->link, &callout_queue);
+	}
 
 	entry->deadline = deadline;
 	entry->period = interval;
@@ -360,17 +362,20 @@ hrt_call_invoke(void)
 	hrt_abstime deadline;
 
 	hrt_lock();
+
 	while (true) {
 		/* get the current time */
 		hrt_abstime now = hrt_absolute_time();
 
 		call = (struct hrt_call *)sq_peek(&callout_queue);
 
-		if (call == NULL)
+		if (call == NULL) {
 			break;
+		}
 
-		if (call->deadline > now)
+		if (call->deadline > now) {
 			break;
+		}
 
 		sq_rem(&call->link, &callout_queue);
 		//lldbg("call pop\n");
@@ -404,6 +409,7 @@ hrt_call_invoke(void)
 			hrt_call_enter(call);
 		}
 	}
+
 	hrt_unlock();
 }
 

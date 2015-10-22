@@ -86,12 +86,12 @@ public:
 	/**
 	 * Get the last message value
 	 */
-	virtual T& get() {return _msg_current;}
+	virtual T &get() {return _msg_current;}
 
 	/**
 	 * Get the last native message value
 	 */
-	virtual decltype(((T*)nullptr)->data()) data()
+	virtual decltype(((T *)nullptr)->data()) data()
 	{
 		return _msg_current.data();
 	}
@@ -135,7 +135,7 @@ protected:
 	 * Called on topic update, saves the current message and then calls the provided callback function
 	 * needs to use the native type as it is called by ROS
 	 */
-	void callback(const typename std::remove_reference<decltype(((T*)nullptr)->data())>::type &msg)
+	void callback(const typename std::remove_reference < decltype(((T *)nullptr)->data()) >::type &msg)
 	{
 		/* Store data */
 		this->_msg_current.data() = msg;
@@ -197,7 +197,8 @@ public:
 		_uorb_sub(new uORB::SubscriptionBase(T::handle(), interval))
 	{}
 
-	virtual ~SubscriberUORB() {
+	virtual ~SubscriberUORB()
+	{
 		delete _uorb_sub;
 	};
 
@@ -219,19 +220,19 @@ public:
 	int getUORBHandle() { return _uorb_sub->getHandle(); }
 
 protected:
-	uORB::SubscriptionBase * _uorb_sub;	/**< Handle to the subscription */
+	uORB::SubscriptionBase *_uorb_sub;	/**< Handle to the subscription */
 
 #ifndef CONFIG_ARCH_BOARD_SIM
-	typename std::remove_reference<decltype(((T*)nullptr)->data())>::type getUORBData()
+	typename std::remove_reference < decltype(((T *)nullptr)->data()) >::type getUORBData()
 	{
-		return (typename std::remove_reference<decltype(((T*)nullptr)->data())>::type)*_uorb_sub;
+		return (typename std::remove_reference < decltype(((T *)nullptr)->data()) >::type) * _uorb_sub;
 	}
 #endif
 
 	/**
 	 * Get void pointer to last message value
 	 */
-	void *get_void_ptr() { return (void *)&(this->_msg_current.data()); }
+	void *get_void_ptr() { return (void *) & (this->_msg_current.data()); }
 
 };
 
@@ -248,9 +249,9 @@ public:
 	 */
 	SubscriberUORBCallback(unsigned interval
 #ifndef CONFIG_ARCH_BOARD_SIM
-			       ,std::function<void(const T &)> cbf)
+			       , std::function<void(const T &)> cbf)
 #else
-		)
+			      )
 #endif
 		:
 		SubscriberUORB<T>(interval),

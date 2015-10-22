@@ -227,6 +227,7 @@ SF0X::SF0X(const char *port) :
 
 	/* clear ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag &= ~ONLCR;
+
 	/* no parity, one stop bit */
 	uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
@@ -281,10 +282,12 @@ SF0X::init()
 
 		/* do regular cdev init */
 		ret = CDev::init();
-		if (ret != OK) break;
+
+		if (ret != OK) { break; }
 
 		/* allocate basic report buffers */
 		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
+
 		if (_reports == nullptr) {
 			warnx("mem err");
 			ret = -1;
@@ -298,14 +301,14 @@ SF0X::init()
 			struct distance_sensor_s ds_report = {};
 
 			_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-								     &_orb_class_instance, ORB_PRIO_HIGH);
+						 &_orb_class_instance, ORB_PRIO_HIGH);
 
 			if (_distance_sensor_topic == nullptr) {
 				DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 			}
 		}
 
-	} while(0);
+	} while (0);
 
 	/* close the fd */
 	::close(_fd);
@@ -570,6 +573,7 @@ SF0X::collect()
 		} else {
 			return -EAGAIN;
 		}
+
 	} else if (ret == 0) {
 		return -EAGAIN;
 	}
@@ -691,11 +695,13 @@ SF0X::cycle()
 			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
 				DEVICE_LOG("collection error #%u", _consecutive_fail_count);
 			}
+
 			_consecutive_fail_count++;
 
 			/* restart the measurement state machine */
 			start();
 			return;
+
 		} else {
 			/* apparently success */
 			_consecutive_fail_count = 0;
@@ -886,7 +892,7 @@ test()
 
 		warnx("read #%u", i);
 		warnx("valid %u", (float)report.current_distance > report.min_distance
-			&& (float)report.current_distance < report.max_distance ? 1 : 0);
+		      && (float)report.current_distance < report.max_distance ? 1 : 0);
 		warnx("measurement:  %0.3f m", (double)report.current_distance);
 		warnx("time: %llu", report.timestamp);
 	}

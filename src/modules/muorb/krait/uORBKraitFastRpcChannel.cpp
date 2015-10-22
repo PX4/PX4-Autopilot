@@ -139,11 +139,11 @@ int16_t uORB::KraitFastRpcChannel::send_message(const char *messageName, int32_t
 		if ((t3 - t2) > _snd_msg_max) { _snd_msg_max = (t3 - t2); }
 
 		_snd_msg_avg = ((double)((_snd_msg_avg * (_snd_msg_count - 1)) +
-				(unsigned long)(t3 - t2))) / (double)(_snd_msg_count);
+					 (unsigned long)(t3 - t2))) / (double)(_snd_msg_count);
 	}
 
 	_overall_snd_avg = ((double)((_overall_snd_avg * (_overall_snd_count - 1)) +
-				(unsigned long)(t4 - t1))) / (double)(_overall_snd_count);
+				     (unsigned long)(t4 - t1))) / (double)(_overall_snd_count);
 
 	if ((t4 - _log_check_time) > _log_check_interval) {
 		/*

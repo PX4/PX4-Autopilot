@@ -228,6 +228,7 @@ px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
 px4_add_git_submodule(TARGET git_eigen PATH "src/lib/eigen")
 px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
 px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
+px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 
 add_custom_target(submodule_clean
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

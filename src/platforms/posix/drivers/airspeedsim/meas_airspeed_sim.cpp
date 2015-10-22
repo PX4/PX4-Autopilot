@@ -153,12 +153,12 @@ MEASAirspeedSim::collect()
 	int	ret = -EIO;
 
 	/* read from the sensor */
-	#pragma pack(push, 1)
+#pragma pack(push, 1)
 	struct {
 		float		temperature;
 		float		diff_pressure;
 	} airspeed_report;
-	#pragma pack(pop)
+#pragma pack(pop)
 
 
 	perf_begin(_sample_perf);
@@ -458,7 +458,7 @@ test()
 
 	if (fd < 0) {
 		PX4_ERR("%s open failed (try 'meas_airspeed_sim start' if the driver is not running", PATH_MS4525);
-			return 1;
+		return 1;
 	}
 
 	/* do a simple demand read */

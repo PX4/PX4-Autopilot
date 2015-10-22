@@ -65,9 +65,11 @@ int px4_sem_wait(px4_sem_t *s)
 {
 	pthread_mutex_lock(&(s->lock));
 	s->value--;
-	if(s->value < 0) {
-	        pthread_cond_wait(&(s->wait), &(s->lock));
+
+	if (s->value < 0) {
+		pthread_cond_wait(&(s->wait), &(s->lock));
 	}
+
 	pthread_mutex_unlock(&(s->lock));
 
 	return 0;
@@ -77,9 +79,11 @@ int px4_sem_post(px4_sem_t *s)
 {
 	pthread_mutex_lock(&(s->lock));
 	s->value++;
-	if(s->value <= 0) {
+
+	if (s->value <= 0) {
 		pthread_cond_signal(&(s->wait));
 	}
+
 	pthread_mutex_unlock(&(s->lock));
 
 	return 0;

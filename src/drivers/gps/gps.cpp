@@ -211,8 +211,9 @@ GPS::~GPS()
 	}
 
 	/* well, kill it anyway, though this will probably crash */
-	if (_task != -1)
+	if (_task != -1) {
 		task_delete(_task);
+	}
 
 	g_dev = nullptr;
 
@@ -224,12 +225,13 @@ GPS::init()
 	int ret = ERROR;
 
 	/* do regular cdev init */
-	if (CDev::init() != OK)
+	if (CDev::init() != OK) {
 		goto out;
+	}
 
 	/* start the GPS driver worker task */
 	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				SCHED_PRIORITY_SLOW_DRIVER, 1200, (main_t)&GPS::task_main_trampoline, nullptr);
+				   SCHED_PRIORITY_SLOW_DRIVER, 1200, (main_t)&GPS::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
 		warnx("task start failed: %d", errno);
@@ -305,9 +307,10 @@ GPS::task_main()
 			_report_gps_pos.vel_n_m_s = 0.0f;
 			_report_gps_pos.vel_e_m_s = 0.0f;
 			_report_gps_pos.vel_d_m_s = 0.0f;
-			_report_gps_pos.vel_m_s = sqrtf(_report_gps_pos.vel_n_m_s * _report_gps_pos.vel_n_m_s + _report_gps_pos.vel_e_m_s * _report_gps_pos.vel_e_m_s + _report_gps_pos.vel_d_m_s * _report_gps_pos.vel_d_m_s);
+			_report_gps_pos.vel_m_s = sqrtf(_report_gps_pos.vel_n_m_s * _report_gps_pos.vel_n_m_s + _report_gps_pos.vel_e_m_s *
+							_report_gps_pos.vel_e_m_s + _report_gps_pos.vel_d_m_s * _report_gps_pos.vel_d_m_s);
 			_report_gps_pos.cog_rad = 0.0f;
-			_report_gps_pos.vel_ned_valid = true;				
+			_report_gps_pos.vel_ned_valid = true;
 
 			/* no time and satellite information simulated */
 
@@ -392,14 +395,16 @@ GPS::task_main()
 				}
 
 				int helper_ret;
+
 				while ((helper_ret = _Helper->receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
-	//				lock();
+					//				lock();
 					/* opportunistic publishing - else invalid data would end up on the bus */
 
 					if (!(_pub_blocked)) {
 						if (helper_ret & 1) {
 							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 						}
+
 						if (_p_report_sat_info && (helper_ret & 2)) {
 							if (_report_sat_info_pub != nullptr) {
 								orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
@@ -508,7 +513,7 @@ void
 GPS::print_info()
 {
 	//GPS Mode
-	if(_fake_gps) {
+	if (_fake_gps) {
 		warnx("protocol: SIMULATED");
 	}
 
@@ -522,27 +527,27 @@ GPS::print_info()
 			warnx("protocol: MTK");
 			break;
 
-	case GPS_DRIVER_MODE_ASHTECH:
-		warnx("protocol: ASHTECH");
-		break;
+		case GPS_DRIVER_MODE_ASHTECH:
+			warnx("protocol: ASHTECH");
+			break;
 
 		default:
 			break;
-		}		
+		}
 	}
 
 	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_healthy) ? "OK" : "NOT OK");
-	warnx("sat info: %s, noise: %d, jamming detected: %s", 
-		(_p_report_sat_info != nullptr) ? "enabled" : "disabled", 
-		_report_gps_pos.noise_per_ms, 
-		_report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
+	warnx("sat info: %s, noise: %d, jamming detected: %s",
+	      (_p_report_sat_info != nullptr) ? "enabled" : "disabled",
+	      _report_gps_pos.noise_per_ms,
+	      _report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
 
 	if (_report_gps_pos.timestamp_position != 0) {
 		warnx("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
-				_report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
+		      _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
 		warnx("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
 		warnx("vel: %.2fm/s, %.2fm/s, %.2fm/s", (double)_report_gps_pos.vel_n_m_s,
-			(double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
+		      (double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
 		warnx("eph: %.2fm, epv: %.2fm", (double)_report_gps_pos.eph, (double)_report_gps_pos.epv);
 		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
 		warnx("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
@@ -575,17 +580,20 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info)
 {
 	int fd;
 
-	if (g_dev != nullptr)
+	if (g_dev != nullptr) {
 		errx(1, "already started");
+	}
 
 	/* create the driver */
 	g_dev = new GPS(uart_path, fake_gps, enable_sat_info);
 
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
 		goto fail;
+	}
 
-	if (OK != g_dev->init())
+	if (OK != g_dev->init()) {
 		goto fail;
+	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(GPS0_DEVICE_PATH, O_RDONLY);
@@ -639,11 +647,13 @@ reset()
 {
 	int fd = open(GPS0_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "failed ");
+	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		err(1, "reset failed");
+	}
 
 	exit(0);
 }
@@ -654,8 +664,9 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
 		errx(1, "not running");
+	}
 
 	g_dev->print_info();
 
@@ -690,39 +701,45 @@ gps_main(int argc, char *argv[])
 
 		/* Detect fake gps option */
 		for (int i = 2; i < argc; i++) {
-			if (!strcmp(argv[i], "-f"))
+			if (!strcmp(argv[i], "-f")) {
 				fake_gps = true;
+			}
 		}
 
 		/* Detect sat info option */
 		for (int i = 2; i < argc; i++) {
-			if (!strcmp(argv[i], "-s"))
+			if (!strcmp(argv[i], "-s")) {
 				enable_sat_info = true;
+			}
 		}
 
 		gps::start(device_name, fake_gps, enable_sat_info);
 	}
 
-	if (!strcmp(argv[1], "stop"))
+	if (!strcmp(argv[1], "stop")) {
 		gps::stop();
+	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(argv[1], "test")) {
 		gps::test();
+	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(argv[1], "reset")) {
 		gps::reset();
+	}
 
 	/*
 	 * Print driver status.
 	 */
-	if (!strcmp(argv[1], "status"))
+	if (!strcmp(argv[1], "status")) {
 		gps::info();
+	}
 
 out:
 	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'\n [-d /dev/ttyS0-n][-f (for enabling fake)][-s (to enable sat info)]");

@@ -92,7 +92,7 @@ typedef param_t px4_param_t;
  */
 #if defined(__PX4_NUTTX)
 
-#define PX4_ROOTFSDIR 
+#define PX4_ROOTFSDIR
 
 /* XXX this is a hack to resolve conflicts with NuttX headers */
 #if !defined(__PX4_TESTS)
@@ -119,7 +119,7 @@ typedef param_t px4_param_t;
 #define PRId64 "lld"
 #endif
 
-/* 
+/*
  * POSIX Specific defines
  */
 #elif defined(__PX4_POSIX)
@@ -138,7 +138,7 @@ typedef param_t px4_param_t;
 
 /* FIXME - Used to satisfy build */
 //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
-#define UNIQUE_ID       0x1FFF7A10  
+#define UNIQUE_ID       0x1FFF7A10
 #define STM32_SYSMEM_UID "SIMULATIONID"
 
 /* FIXME - Used to satisfy build */
@@ -153,12 +153,12 @@ __END_DECLS
 #endif
 
 #define USEC_PER_TICK (1000000UL/PX4_TICKS_PER_SEC)
-#define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK) 
+#define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK)
 
 #define px4_statfs_buf_f_bavail_t unsigned long
 
 #if defined(__PX4_QURT)
-#define PX4_ROOTFSDIR 
+#define PX4_ROOTFSDIR
 #else
 #define PX4_ROOTFSDIR "rootfs"
 #endif
@@ -166,7 +166,7 @@ __END_DECLS
 #endif
 
 
-/* 
+/*
  * Defines for ROS and Linux
  */
 #if defined(__PX4_ROS) || defined(__PX4_POSIX)
@@ -226,7 +226,7 @@ __END_DECLS
 
 #if defined(__PX4_QURT)
 
-#define PX4_ROOTFSDIR 
+#define PX4_ROOTFSDIR
 #define DEFAULT_PARAM_FILE "/fs/eeprom/parameters"
 
 #define SIOCDEVPRIVATE 999999
@@ -244,7 +244,7 @@ __END_DECLS
 
 #endif
 
-/* 
+/*
  *Defines for all platforms
  */
 

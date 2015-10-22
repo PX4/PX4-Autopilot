@@ -204,8 +204,9 @@ GPSSIM::~GPSSIM()
 	}
 
 	/* well, kill it anyway, though this will probably crash */
-	if (_task != -1)
+	if (_task != -1) {
 		px4_task_delete(_task);
+	}
 
 	g_dev = nullptr;
 }
@@ -216,12 +217,13 @@ GPSSIM::init()
 	int ret = ERROR;
 
 	/* do regular cdev init */
-	if (VDev::init() != OK)
+	if (VDev::init() != OK) {
 		goto out;
+	}
 
 	/* start the GPS driver worker task */
 	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				SCHED_PRIORITY_DEFAULT, 1500, (px4_main_t)&GPSSIM::task_main_trampoline, nullptr);
+				   SCHED_PRIORITY_DEFAULT, 1500, (px4_main_t)&GPSSIM::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
 		PX4_ERR("task start failed: %d", errno);
@@ -263,7 +265,8 @@ GPSSIM::task_main_trampoline(void *arg)
 }
 
 int
-GPSSIM::receive(int timeout) {
+GPSSIM::receive(int timeout)
+{
 	Simulator *sim = Simulator::getInstance();
 	simulator::RawGPSData gps;
 	sim->getGPSSample((uint8_t *)&gps, sizeof(gps));
@@ -275,11 +278,11 @@ GPSSIM::receive(int timeout) {
 	_report_gps_pos.timestamp_variance = hrt_absolute_time();
 	_report_gps_pos.eph = (float)gps.eph * 1e-2f;
 	_report_gps_pos.epv = (float)gps.epv * 1e-2f;
-	_report_gps_pos.vel_m_s = (float)(gps.vel)/100.0f;
-	_report_gps_pos.vel_n_m_s = (float)(gps.vn)/100.0f;
-	_report_gps_pos.vel_e_m_s = (float)(gps.ve)/100.0f;
-	_report_gps_pos.vel_d_m_s = (float)(gps.vd)/100.0f;
-	_report_gps_pos.cog_rad = (float)(gps.cog)*3.1415f/(100.0f * 180.0f);
+	_report_gps_pos.vel_m_s = (float)(gps.vel) / 100.0f;
+	_report_gps_pos.vel_n_m_s = (float)(gps.vn) / 100.0f;
+	_report_gps_pos.vel_e_m_s = (float)(gps.ve) / 100.0f;
+	_report_gps_pos.vel_d_m_s = (float)(gps.vd) / 100.0f;
+	_report_gps_pos.cog_rad = (float)(gps.cog) * 3.1415f / (100.0f * 180.0f);
 	_report_gps_pos.fix_type = gps.fix_type;
 	_report_gps_pos.satellites_used = gps.satellites_visible;
 
@@ -309,9 +312,10 @@ GPSSIM::task_main()
 			_report_gps_pos.vel_n_m_s = 0.0f;
 			_report_gps_pos.vel_e_m_s = 0.0f;
 			_report_gps_pos.vel_d_m_s = 0.0f;
-			_report_gps_pos.vel_m_s = sqrtf(_report_gps_pos.vel_n_m_s * _report_gps_pos.vel_n_m_s + _report_gps_pos.vel_e_m_s * _report_gps_pos.vel_e_m_s + _report_gps_pos.vel_d_m_s * _report_gps_pos.vel_d_m_s);
+			_report_gps_pos.vel_m_s = sqrtf(_report_gps_pos.vel_n_m_s * _report_gps_pos.vel_n_m_s + _report_gps_pos.vel_e_m_s *
+							_report_gps_pos.vel_e_m_s + _report_gps_pos.vel_d_m_s * _report_gps_pos.vel_d_m_s);
 			_report_gps_pos.cog_rad = 0.0f;
-			_report_gps_pos.vel_ned_valid = true;				
+			_report_gps_pos.vel_ned_valid = true;
 
 			//no time and satellite information simulated
 
@@ -325,6 +329,7 @@ GPSSIM::task_main()
 			}
 
 			usleep(2e5);
+
 		} else {
 			//Publish initial report that we have access to a GPS
 			//Make sure to clear any stale data in case driver is reset
@@ -350,7 +355,8 @@ GPSSIM::task_main()
 				/* opportunistic publishing - else invalid data would end up on the bus */
 
 				if (!(_pub_blocked)) {
-						orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
 					if (_p_report_sat_info) {
 						if (_report_sat_info_pub != nullptr) {
 							orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
@@ -361,6 +367,7 @@ GPSSIM::task_main()
 					}
 				}
 			}
+
 			lock();
 		}
 	}
@@ -383,7 +390,7 @@ void
 GPSSIM::print_info()
 {
 	//GPS Mode
-	if(_fake_gps) {
+	if (_fake_gps) {
 		PX4_INFO("protocol: faked");
 	}
 
@@ -392,17 +399,17 @@ GPSSIM::print_info()
 	}
 
 	PX4_INFO("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_healthy) ? "OK" : "NOT OK");
-	PX4_INFO("sat info: %s, noise: %d, jamming detected: %s", 
-		(_p_report_sat_info != nullptr) ? "enabled" : "disabled", 
-		_report_gps_pos.noise_per_ms, 
-		_report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
+	PX4_INFO("sat info: %s, noise: %d, jamming detected: %s",
+		 (_p_report_sat_info != nullptr) ? "enabled" : "disabled",
+		 _report_gps_pos.noise_per_ms,
+		 _report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
 
 	if (_report_gps_pos.timestamp_position != 0) {
 		PX4_INFO("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
-				_report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
+			 _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
 		PX4_INFO("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
 		PX4_INFO("vel: %.2fm/s, %.2fm/s, %.2fm/s", (double)_report_gps_pos.vel_n_m_s,
-			(double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
+			 (double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
 		PX4_INFO("eph: %.2fm, epv: %.2fm", (double)_report_gps_pos.eph, (double)_report_gps_pos.epv);
 		//PX4_INFO("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
 		//PX4_INFO("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
