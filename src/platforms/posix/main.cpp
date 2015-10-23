@@ -66,6 +66,13 @@ extern "C" {
 		cout.flush();
 		_exit(0);
 	}
+	void _SigFpeHandler(int sig_num);
+	void _SigFpeHandler(int sig_num)
+	{
+		cout.flush();
+		cout << endl << "floating point exception" << endl;
+		cout.flush();
+	}
 }
 
 static void print_prompt()
@@ -137,6 +144,7 @@ int main(int argc, char **argv)
 {
 	bool daemon_mode = false;
 	signal(SIGINT, _SigIntHandler);
+	signal(SIGFPE, _SigFpeHandler);
 
 	int index = 1;
 	bool error_detected = false;
