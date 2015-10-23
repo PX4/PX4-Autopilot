@@ -496,7 +496,13 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
 		fi
+
 	fi
+
+	#
+	# MAVLink for S-Model (QHAC)
+	#
+	mavlink start -d /dev/ttyS2 -b 57600
 
 	#
 	# Logging
