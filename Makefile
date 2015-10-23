@@ -125,6 +125,9 @@ ros_sitl_simple:
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
+posix_eagle_release:
+	$(call cmake-build,$@)
+
 posix: posix_sitl_simple
 
 posix_sitl_default: posix_sitl_simple
