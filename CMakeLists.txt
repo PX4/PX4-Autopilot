@@ -132,6 +132,8 @@ set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
 set(THREADS "4" CACHE STRING
 	"number of threads to use for external build processes")
 set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
+set(DEBUGGER "disable" CACHE STRING "debugger to use")
+set_property(CACHE DEBUGGER PROPERTY STRINGS "disable;gdb;lldb")
 
 #=============================================================================
 # configuration
@@ -234,6 +236,19 @@ add_custom_target(submodule_clean
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND git submodule deinit -f .
 	COMMAND rm -rf .git/modules/*
+	)
+
+#=============================================================================
+# misc targets
+#
+add_custom_target(check_format
+	COMMAND Tools/check_code_style.sh
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	)
+
+add_custom_target(config
+	COMMAND cmake-gui .
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 	)
 
 #=============================================================================
