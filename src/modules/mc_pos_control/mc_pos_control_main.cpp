@@ -181,6 +181,8 @@ private:
 		param_t hold_z_dz;
 		param_t hold_max_xy;
 		param_t hold_max_z;
+		param_t hold_max_xy_offboard;
+		param_t hold_max_z_offboard;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -197,6 +199,8 @@ private:
 		float hold_z_dz;
 		float hold_max_xy;
 		float hold_max_z;
+		float hold_max_xy_offboard;
+		float hold_max_z_offboard;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -395,7 +399,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_z_dz = param_find("MPC_HOLD_Z_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
-
+	_params_handles.hold_max_xy_offboard = param_find("MPC_OFFB_HOLD_XY");
+	_params_handles.hold_max_z_offboard = param_find("MPC_OFFB_HOLD_Z");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -493,6 +498,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
 		_params.hold_max_z = (v < 0.0f ? 0.0f : v);
+		param_get(_params_handles.hold_max_xy_offboard, &v);
+		_params.hold_max_xy_offboard = (v < 0.0f ? 0.0f : v);
+		param_get(_params_handles.hold_max_z_offboard, &v);
+		_params.hold_max_z_offboard = (v < 0.0f ? 0.0f : v);
 
 		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
 
@@ -758,21 +767,40 @@ MulticopterPositionControl::control_offboard(float dt)
 	}
 
 	if (_pos_sp_triplet.current.valid) {
+
+		/** HORIZONTAL POSITION/VELOCITY HANDLING **/
+
 		if (_control_mode.flag_control_position_enabled && _pos_sp_triplet.current.position_valid) {
 			/* control position */
 			_pos_sp(0) = _pos_sp_triplet.current.x;
 			_pos_sp(1) = _pos_sp_triplet.current.y;
 		} else if (_control_mode.flag_control_velocity_enabled && _pos_sp_triplet.current.velocity_valid) {
 			/* control velocity */
-			/* reset position setpoint to current position if needed */
-			reset_pos_sp();
 
-			/* set position setpoint move rate */
-			_vel_sp(0) = _pos_sp_triplet.current.vx;
-			_vel_sp(1) = _pos_sp_triplet.current.vy;
+			/* check for pos. hold (take norm since this is in NED and separate checks for vx/vy makes no sense) */
+			float req_vel_sp_norm = sqrtf(_pos_sp_triplet.current.vx * _pos_sp_triplet.current.vx + _pos_sp_triplet.current.vy * _pos_sp_triplet.current.vy);
 
-			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
+			if (req_vel_sp_norm < _params.hold_max_xy_offboard)
+			{
+				if (!_pos_hold_engaged) {
+					_pos_hold_engaged = true;
+				}
+			}
+			else {
+				_pos_hold_engaged = false;
+				_pos_sp(0) = _pos(0);
+				_pos_sp(1) = _pos(1);
+			}
+
+			/* set requested velocity setpoint */
+			if (!_pos_hold_engaged) {
+				_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
+				_vel_sp(0) = _pos_sp_triplet.current.vx;
+				_vel_sp(1) = _pos_sp_triplet.current.vy;
+			}
 		}
+
+		/** YAW POSITION/VELOCITY **/
 
 		if (_pos_sp_triplet.current.yaw_valid) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
@@ -780,17 +808,30 @@ MulticopterPositionControl::control_offboard(float dt)
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
 		}
 
+		/** VERTICAL POSITION/VELOCITY HANDLING **/
+
 		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.position_valid) {
 			/* Control altitude */
 			_pos_sp(2) = _pos_sp_triplet.current.z;
 		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
-			/* reset alt setpoint to current altitude if needed */
-			reset_alt_sp();
 
-			/* set altitude setpoint move rate */
-			_vel_sp(2) = _pos_sp_triplet.current.vz;
+			/* check for alt. hold */
+			if (fabsf(_pos_sp_triplet.current.vz) < _params.hold_max_z_offboard)
+			{
+				if (!_alt_hold_engaged) {
+					_alt_hold_engaged = true;
+				}
+			}
+			else {
+				_alt_hold_engaged = false;
+				_pos_sp(2) = _pos(2);
+			}
 
-			_run_alt_control = false; /* request velocity setpoint to be used, instead of position setpoint */
+			/* set requested velocity setpoint */
+			if (!_alt_hold_engaged) {
+				_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
+				_vel_sp(2) = _pos_sp_triplet.current.vz;
+			}
 		}
 	} else {
 		reset_pos_sp();

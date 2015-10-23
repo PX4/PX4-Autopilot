@@ -303,3 +303,20 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.5f);
  */
 PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.5f);
 
+/**
+ * Maximum mangitude of horizontal velocity setpoint for which position hold is enabled in OFFBOARD mode (use 0 to disable check)
+ *
+ * @unit m/s
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_OFFB_HOLD_XY, 0.0f);
+
+/**
+ * Maximum mangitude of vertical velocity setpoint for which altitude hold is enabled in OFFBOARD mode (use 0 to disable check)
+ *
+ * @unit m/s
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_OFFB_HOLD_Z, 0.0f);
