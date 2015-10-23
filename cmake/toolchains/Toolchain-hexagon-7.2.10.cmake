@@ -35,7 +35,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(common/px4_base)
 
 if(NOT HEXAGON_TOOLS_ROOT)
-	set(HEXAGON_TOOLS_ROOT /opt/HEXAGON_Tools/7.2.10/Tools)
+	set(HEXAGON_TOOLS_ROOT $ENV{HOME}/Qualcomm/HEXAGON_Tools/7.2.10/Tools)
 endif()
 
 macro (list2string out in)
