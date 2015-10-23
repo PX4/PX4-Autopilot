@@ -1494,6 +1494,18 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* copy avionics voltage */
 				status.avionics_power_rail_voltage = system_power.voltage5V_v;
+
+				if (status.usb_connected && !system_power.usb_connected) {
+					/*
+					 * apparently the USB cable went away but we are still powered,
+					 * so lets reset to a classic non-usb state.
+					 */
+					usleep(100000);
+					mavlink_log_critical(mavlink_fd, "USB disconnected, rebooting.")
+					usleep(400000);
+					px4_systemreset(false);
+				}
+
 				status.usb_connected = system_power.usb_connected;
 			}
 		}

@@ -737,5 +737,12 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		checkAirspeed = true;
 	}
 
-	return !Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true);
+	bool prearm_ok = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true);
+
+	if (status->usb_connected) {
+		prearm_ok = false;
+		mavlink_log_critical(mavlink_fd, "NOT ARMING: Flying with USB connected prohibited");
+	}
+
+	return !prearm_ok;
 }
