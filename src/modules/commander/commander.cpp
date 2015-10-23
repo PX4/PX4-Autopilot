@@ -2320,7 +2320,7 @@ int commander_thread_main(int argc, char *argv[])
 			if ((status.main_state ==vehicle_status_s::MAIN_STATE_ACRO ||
 			     status.main_state ==vehicle_status_s::MAIN_STATE_RATTITUDE ||
 			     status.main_state ==vehicle_status_s::MAIN_STATE_MANUAL ||
-			     status.main_state !=vehicle_status_s::MAIN_STATE_STAB ||
+			     status.main_state ==vehicle_status_s::MAIN_STATE_STAB ||
 			     status.main_state ==vehicle_status_s::MAIN_STATE_ALTCTL ||
 			     status.main_state ==vehicle_status_s::MAIN_STATE_POSCTL) &&
 			    ((status.rc_signal_lost && status.gps_failure) ||
