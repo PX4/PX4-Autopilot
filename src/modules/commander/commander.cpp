@@ -183,6 +183,7 @@ static hrt_abstime commander_boot_timestamp = 0;
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
 static uint64_t last_print_mode_reject_time = 0;
+static uint64_t _inair_last_time = 0;
 
 static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
@@ -1638,6 +1639,16 @@ int commander_thread_main(int argc, char *argv[])
 				} else {
 					mavlink_log_critical(mavlink_fd, "TAKEOFF DETECTED");
 				}
+			}
+
+			if (land_detector.landed) {
+				if (_inair_last_time > 0 && ((hrt_absolute_time() - _inair_last_time) > 5 * 1000 * 1000)) {
+					mavlink_log_critical(mavlink_fd, "AUTO DISARMING AFTER LANDING");
+					arm_disarm(false, mavlink_fd, "auto disarm on land");
+					_inair_last_time = 0;
+				}
+			} else {
+				_inair_last_time = land_detector.timestamp;
 			}
 		}
 
