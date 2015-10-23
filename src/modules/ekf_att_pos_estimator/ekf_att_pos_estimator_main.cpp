@@ -1122,7 +1122,7 @@ int AttitudePositionEstimatorEKF::start()
 	_estimator_task = px4_task_spawn_cmd("ekf_att_pos_estimator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 20,
-					 3900,
+					 4600,
 					 (px4_main_t)&AttitudePositionEstimatorEKF::task_main_trampoline,
 					 nullptr);
 
