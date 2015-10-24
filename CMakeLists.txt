@@ -21,6 +21,7 @@ set(opts
     "CMAKE_C_FLAGS:STRING:::C flags."
     "UAVCAN_USE_CPP03:BOOL:OFF::Use C++03 standard."
     "UAVCAN_PLATFORM:STRING:generic:generic linux stm32:Platform."
+    "CONTINUOUS_INTEGRATION_BUILD:BOOL:OFF::Disable error redirection and timing tests"
     )
 foreach(_opt ${opts})
     # arguments are : delimited
