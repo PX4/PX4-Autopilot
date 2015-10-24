@@ -526,9 +526,6 @@ void AttitudePositionEstimatorEKF::task_main()
 	_landDetectorSub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_armedSub = orb_subscribe(ORB_ID(actuator_armed));
 
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vstatus_sub, 200);
-
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	/* sets also parameters in the EKF object */
