@@ -85,6 +85,8 @@ Vagrant.configure(2) do |config|
     tar -jxf gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
     exportline="export PATH=$HOME/gcc-arm-none-eabi-4_8-2014q3/bin:\$PATH"
     if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
+    exportline2="export HEXAGON_TOOLS_ROOT=$HOME/Qualcomm/HEXAGON_Tools/7.2.10/Tools"
+    if grep -Fxq "$exportline2" ~/.profile; then echo nothing to do ; else echo $exportline2 >> ~/.profile; fi
     . ~/.profile
     popd
     # setup ccache
