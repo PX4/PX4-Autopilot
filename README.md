@@ -2,6 +2,7 @@ UAVCAN stack in C++
 ===================
 
 [![Coverity Scan](https://scan.coverity.com/projects/1513/badge.svg)](https://scan.coverity.com/projects/1513)
+[![Travis CI](https://travis-ci.org/UAVCAN/libuavcan.svg?branch=master)](https://travis-ci.org/UAVCAN/libuavcan)
 
 Portable reference implementation of the [UAVCAN protocol stack](http://uavcan.org) in C++ for embedded systems
 and Linux.
@@ -20,7 +21,7 @@ UAVCAN is a lightweight protocol designed for reliable communication in aerospac
 
 ### Dependencies
 
-* Python 2.7 or 3.2 or newer
+* Python 2.7 or 3.3 or newer
 
 Note that this reporitory includes [Pyuavcan](http://uavcan.org/Implementations/Pyuavcan) as a submodule.
 Such inclusion enables the library to be built even if pyuavcan is not installed in the system.
@@ -120,3 +121,5 @@ tar czvf uavcan.tgz cov-int
 ```
 
 Then upload the resulting archive to Coverity.
+
+Automatic check can be triggered by pushing to the branch `coverity_scan`.
