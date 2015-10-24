@@ -795,31 +795,19 @@ MulticopterAttitudeControl::task_main()
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
 
+			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
+			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't 
+			 * even bother running the attitude controllers */
+			if(_vehicle_status.main_state == vehicle_status_s::MAIN_STATE_RATTITUDE){
+				if (fabsf(_manual_control_sp.y) > _params.rattitude_thres ||
+				    fabsf(_manual_control_sp.x) > _params.rattitude_thres){
+					 	_v_control_mode.flag_control_attitude_enabled = false;
+					 }
+			}
+
 			if (_v_control_mode.flag_control_attitude_enabled) {
 
 				control_attitude(dt);
-
-				/* Check if we want to directly pass through manual rate setpoints*/
-				if(_vehicle_status.main_state == vehicle_status_s::MAIN_STATE_RATTITUDE){
-					/* Calculate the manual rates for all channels */
-					math::Vector<3> man_rates = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);	
-					
-					/* Check all channels and replace attitude controler rate setpoint if manual input greater than threshold*/
-					_v_rates_sp.roll = (fabsf(_manual_control_sp.y) > _params.rattitude_thres) ? man_rates(0) : _rates_sp(0);
-					_v_rates_sp.pitch = (fabsf(_manual_control_sp.x) > _params.rattitude_thres) ? man_rates(1) : _rates_sp(1);
-					_v_rates_sp.yaw = (fabsf(_manual_control_sp.r) > _params.rattitude_thres) ? man_rates(2) : _rates_sp(2);
-					_v_rates_sp.thrust = _thrust_sp;
-					_v_rates_sp.timestamp = hrt_absolute_time();
-
-					/* publish attitude rates setpoint */
-					if (_v_rates_sp_pub != nullptr) {
-						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
-
-					} else if (_rates_sp_id) {
-						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
-					}
-				}else{
-
 
 					/* publish attitude rates setpoint */
 					_v_rates_sp.roll = _rates_sp(0);
@@ -834,7 +822,7 @@ MulticopterAttitudeControl::task_main()
 					} else if (_rates_sp_id) {
 						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
 					}
-				}
+				//}
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled) {
