@@ -662,12 +662,6 @@ FixedwingAttitudeControl::task_main()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vcontrol_mode_sub, 200);
-	/* do not limit the attitude updates in order to minimize latency.
-	 * actuator outputs are still limited by the individual drivers
-	 * properly to not saturate IO or physical limitations */
-
 	parameters_update();
 
 	/* get an initial update for all sensor and status data */
