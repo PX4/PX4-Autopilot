@@ -216,6 +216,7 @@ __END_DECLS
 #ifndef __PX4_QURT
 
 #if defined(__cplusplus)
+#include <cmath>
 #define PX4_ISFINITE(x) std::isfinite(x)
 #else
 #define PX4_ISFINITE(x) isfinite(x)

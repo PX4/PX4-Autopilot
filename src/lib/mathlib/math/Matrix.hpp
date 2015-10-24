@@ -49,8 +49,7 @@
 #ifdef CONFIG_ARCH_ARM
 #include "../CMSIS/Include/arm_math.h"
 #else
-#include <platforms/ros/eigen_math.h>
-#include <Eigen/Eigen>
+#include "modules/local_position_estimator/matrix/src/Matrix.hpp"
 #endif
 #include <platforms/px4_defines.h>
 
@@ -308,11 +307,9 @@ public:
 		arm_mat_mult_f32(&arm_mat, &m.arm_mat, &res.arm_mat);
 		return res;
 #else
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
-				(this->arm_mat.pData);
-		Eigen::Matrix<float, N, P, Eigen::RowMajor> Him = Eigen::Map<Eigen::Matrix<float, N, P, Eigen::RowMajor> >
-				(m.arm_mat.pData);
-		Eigen::Matrix<float, M, P, Eigen::RowMajor> Product = Me * Him;
+		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
+		matrix::Matrix<float, N, P> Him(m.arm_mat.pData);
+		matrix::Matrix<float, M, P> Product = Me * Him;
 		Matrix<M, P> res(Product.data());
 		return res;
 #endif
@@ -327,10 +324,8 @@ public:
 		arm_mat_trans_f32(&this->arm_mat, &res.arm_mat);
 		return res;
 #else
-		Eigen::Matrix<float, N, M, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, N, M, Eigen::RowMajor> >
-				(this->arm_mat.pData);
-		Me.transposeInPlace();
-		Matrix<N, M> res(Me.data());
+		matrix::Matrix<float, N, M> Me(this->arm_mat.pData);
+		Matrix<N, M> res(Me.transpose().data());
 		return res;
 #endif
 	}
@@ -344,9 +339,8 @@ public:
 		arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
 		return res;
 #else
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
-				(this->arm_mat.pData);
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> MyInverse = Me.inverse(); //not sure if A = A.inverse() is a good idea
+		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
+		matrix::Matrix<float, M, N> MyInverse = Me.inverse(); //not sure if A = A.inverse() is a good idea
 		Matrix<M, N> res(MyInverse.data());
 		return res;
 #endif
@@ -413,10 +407,9 @@ public:
 		arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
 #else
 		//probably nicer if this could go into a function like "eigen_mat_mult" or so
-		Eigen::Matrix<float, M, N, Eigen::RowMajor> Me = Eigen::Map<Eigen::Matrix<float, M, N, Eigen::RowMajor> >
-				(this->arm_mat.pData);
-		Eigen::VectorXf Vec = Eigen::Map<Eigen::VectorXf>(v.arm_col.pData, N);
-		Eigen::VectorXf Product = Me * Vec;
+		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
+		matrix::Matrix<float, N, 1> Vec(v.arm_col.pData);
+		matrix::Matrix<float, M, 1> Product = Me * Vec;
 		Vector<M> res(Product.data());
 #endif
 		return res;
