@@ -263,6 +263,8 @@ Navigator::task_main()
 	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 	_geofence.setMavlinkFd(_mavlink_fd);
 
+	bool have_geofence_position_data = false;
+
 	/* Try to load the geofence:
 	 * if /fs/microsd/etc/geofence.txt load from this file
 	 * else clear geofence data in datamanager */
@@ -302,42 +304,24 @@ Navigator::task_main()
 	navigation_capabilities_update();
 	params_update();
 
-	/* rate limit position and sensor updates to 50 Hz */
-	orb_set_interval(_global_pos_sub, 20);
-	orb_set_interval(_sensor_combined_sub, 20);
-
 	hrt_abstime mavlink_open_time = 0;
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[8];
+	px4_pollfd_struct_t fds[1] = {};
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _home_pos_sub;
-	fds[1].events = POLLIN;
-	fds[2].fd = _capabilities_sub;
-	fds[2].events = POLLIN;
-	fds[3].fd = _vstatus_sub;
-	fds[3].events = POLLIN;
-	fds[4].fd = _control_mode_sub;
-	fds[4].events = POLLIN;
-	fds[5].fd = _param_update_sub;
-	fds[5].events = POLLIN;
-	fds[6].fd = _sensor_combined_sub;
-	fds[6].events = POLLIN;
-	fds[7].fd = _gps_pos_sub;
-	fds[7].events = POLLIN;
 
 	while (!_task_should_exit) {
 
 		/* wait for up to 200ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 200);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
 
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
-			PX4_WARN("timed out");
+			PX4_WARN("navigator timed out");
 			continue;
 
 		} else if (pret < 0) {
@@ -354,10 +338,11 @@ Navigator::task_main()
 			_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 		}
 
-		static bool have_geofence_position_data = false;
+		bool updated;
 
 		/* gps updated */
-		if (fds[7].revents & POLLIN) {
+		orb_check(_gps_pos_sub, &updated);
+		if (updated) {
 			gps_position_update();
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
 				have_geofence_position_data = true;
@@ -365,33 +350,39 @@ Navigator::task_main()
 		}
 
 		/* sensors combined updated */
-		if (fds[6].revents & POLLIN) {
+		orb_check(_sensor_combined_sub, &updated);
+		if (updated) {
 			sensor_combined_update();
 		}
 
 		/* parameters updated */
-		if (fds[5].revents & POLLIN) {
+		orb_check(_param_update_sub, &updated);
+		if (updated) {
 			params_update();
 			updateParams();
 		}
 
 		/* vehicle control mode updated */
-		if (fds[4].revents & POLLIN) {
+		orb_check(_control_mode_sub, &updated);
+		if (updated) {
 			vehicle_control_mode_update();
 		}
 
 		/* vehicle status updated */
-		if (fds[3].revents & POLLIN) {
+		orb_check(_vstatus_sub, &updated);
+		if (updated) {
 			vehicle_status_update();
 		}
 
 		/* navigation capabilities updated */
-		if (fds[2].revents & POLLIN) {
+		orb_check(_capabilities_sub, &updated);
+		if (updated) {
 			navigation_capabilities_update();
 		}
 
 		/* home position updated */
-		if (fds[1].revents & POLLIN) {
+		orb_check(_home_pos_sub, &updated);
+		if (updated) {
 			home_position_update();
 		}
 
