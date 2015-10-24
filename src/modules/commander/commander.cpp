@@ -881,7 +881,7 @@ int commander_thread_main(int argc, char *argv[])
 	commander_initialized = false;
 
 	bool arm_tune_played = false;
-	bool was_armed = false;
+	bool was_landed = true;
 
 	bool startup_in_hil = false;
 
@@ -1029,16 +1029,14 @@ int commander_thread_main(int argc, char *argv[])
 		px4_task_exit(ERROR);
 	}
 
-	/* armed topic */
-	orb_advert_t armed_pub;
 	/* Initialize armed with all false */
 	memset(&armed, 0, sizeof(armed));
+	/* armed topic */
+	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
 	/* vehicle control mode topic */
 	memset(&control_mode, 0, sizeof(control_mode));
 	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
-
-	armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
 	/* home position */
 	orb_advert_t home_pub = nullptr;
@@ -2250,9 +2248,10 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
-		else if (arming_state_changed && armed.armed && !was_armed && now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL) {
+		else if (was_landed && !status.condition_landed && now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL) {
 			commander_set_home_position(home_pub, _home, local_position, global_position);
 		}
+		was_landed = status.condition_landed;
 
 		/* print new state */
 		if (arming_state_changed) {
@@ -2260,8 +2259,6 @@ int commander_thread_main(int argc, char *argv[])
 			mavlink_log_info(mavlink_fd, "[cmd] arming state: %s", arming_states_str[status.arming_state]);
 			arming_state_changed = false;
 		}
-
-		was_armed = armed.armed;
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status, (bool)datalink_loss_enabled,
