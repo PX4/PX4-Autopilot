@@ -95,8 +95,8 @@ env:
 script:
   - make check_format
   - arm-none-eabi-gcc --version
-  - echo 'Building POSIX Firmware..' && make posix_sitl_simple
-  - echo 'Running Tests..' && make posix_sitl_simple test && cat build_posix_sitl_simple/src/modules/systemlib/mixer/mixer_multirotor.generated.h
+  - echo 'Building POSIX Firmware..' && make posix_sitl_default
+  - echo 'Running Tests..' && make posix_sitl_default test
   - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
   - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
   - echo 'Running Tests..' && make px4fmu-v2_default test
