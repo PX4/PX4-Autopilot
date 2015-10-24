@@ -100,6 +100,14 @@ script:
   - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
   - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
   - echo 'Running Tests..' && make px4fmu-v2_default test
+  - echo 'Building UAVCAN node firmware..' && git clone https://github.com/thiemar/vectorcontrol
+  - cd vectorcontrol
+  - BOARD=s2740vc_1_0 make && BOARD=px4esc_1_6 make
+  - cd ..
+  - mkdir -p ROMFS/px4fmu_common/uavcan/fw/com.thiemar.s2740vc-v1/1.0/
+  - mkdir -p ROMFS/px4fmu_common/uavcan/fw/org.pixhawk.px4esc-v1/1.0/
+  - cp vectorcontrol/firmware/com.thiemar.s2740vc-v1-1.0.00000000.uavcan.bin ROMFS/px4fmu_common/uavcan/fw/com.thiemar.s2740vc-v1/1.0/00000000.uavcan.bin
+  - cp vectorcontrol/firmware/org.pixhawk.px4esc-v1-1.0.00000000.uavcan.bin ROMFS/px4fmu_common/uavcan/fw/org.pixhawk.px4esc-v1/1.0/00000000.uavcan.bin
 
 after_success:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
