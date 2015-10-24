@@ -339,7 +339,6 @@ PWMSim::task_main()
 	_current_update_rate = 0;
 
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -392,8 +391,6 @@ PWMSim::task_main()
 				update_rate_in_ms = 2;
 			}
 
-			orb_set_interval(_t_actuators, update_rate_in_ms);
-			// up_pwm_servo_set_rate(_update_rate);
 			_current_update_rate = _update_rate;
 		}
 
