@@ -523,7 +523,7 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 void
 GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
-	PX4_INFO("GYROSIM::_set_sample_rate %uHz", desired_sample_rate_hz);
+	PX4_INFO("GYROSIM::_set_sample_rate %u Hz", desired_sample_rate_hz);
 
 	if (desired_sample_rate_hz == 0 ||
 	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
@@ -1010,7 +1010,7 @@ void
 GYROSIM::_measure()
 {
 
-#if 0
+#if 1
 	static int x = 0;
 
 	// Verify the samples are being taken at the expected rate
