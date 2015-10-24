@@ -35,7 +35,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(common/px4_base)
 
 if(NOT HEXAGON_TOOLS_ROOT)
-	set(HEXAGON_TOOLS_ROOT /opt/7.4/Tools)
+	set(HEXAGON_TOOLS_ROOT $ENV{HOME}/Qualcomm/HEXAGON_Tools/7.2.10/Tools)
 endif()
 
 macro (list2string out in)
@@ -53,7 +53,7 @@ set(HEXAGON_LIB_DIR ${HEXAGON_TOOLS_ROOT}/gnu/hexagon/lib)
 set(HEXAGON_ISS_DIR ${HEXAGON_TOOLS_ROOT}/lib/iss)
 set(TOOLSLIB ${HEXAGON_TOOLS_ROOT}/target/hexagon/lib/${V_ARCH}/G0)
 
-# Use the HexagonTools compiler (6.4.05)
+# Use the HexagonTools compiler (7.2.10)
 set(CMAKE_C_COMPILER	${HEXAGON_BIN}/${CROSSDEV}clang)
 set(CMAKE_CXX_COMPILER  ${HEXAGON_BIN}/${CROSSDEV}clang++)
 
@@ -82,6 +82,7 @@ set(ARCHCPUFLAGS
 add_definitions(
 	-D_PID_T -D_UID_T -D_TIMER_T
 	-Dnoreturn_function= 
+	-D_HAS_C9X
 	-D__EXPORT= 
 	-Drestrict=
 	-D_DEBUG

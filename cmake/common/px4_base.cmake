@@ -492,7 +492,6 @@ function(px4_add_common_flags)
 		-Wpointer-arith
 		-Wmissing-declarations
 		-Wno-unused-parameter
-		-Wno-varargs
 		-Werror=format-security
 		-Werror=array-bounds
 		-Wfatal-errors
@@ -517,6 +516,7 @@ function(px4_add_common_flags)
 		if (NOT ${OS} STREQUAL "qurt")
 			list(APPEND warnings
 				-Wno-unused-const-variable
+				-Wno-varargs
 			)
 		endif()
 	else()
