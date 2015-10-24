@@ -80,7 +80,7 @@
 /* MB12xx Registers addresses */
 
 #define SRF02_TAKE_RANGE_REG	0x51		/* Measure range Register */
-#define SRF02_SET_ADDRESS_0	0xA0		/* Change address 0 Register */ 
+#define SRF02_SET_ADDRESS_0	0xA0		/* Change address 0 Register */
 #define SRF02_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
 #define SRF02_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
 
