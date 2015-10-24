@@ -406,7 +406,6 @@ public:
 		Vector<M> res;
 		arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
 #else
-		//probably nicer if this could go into a function like "eigen_mat_mult" or so
 		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
 		matrix::Matrix<float, N, 1> Vec(v.arm_col.pData);
 		matrix::Matrix<float, M, 1> Product = Me * Vec;
