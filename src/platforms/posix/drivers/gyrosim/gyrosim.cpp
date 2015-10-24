@@ -551,7 +551,7 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 void
 GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
-	PX4_INFO("GYROSIM::_set_sample_rate %uHz", desired_sample_rate_hz);
+	PX4_INFO("GYROSIM::_set_sample_rate %u Hz", desired_sample_rate_hz);
 
 	if (desired_sample_rate_hz == 0 ||
 	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
@@ -569,10 +569,11 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 	// register dumps look correct
 	write_reg(MPUREG_SMPLRT_DIV, div - 1);
 
-	_sample_rate = 1000 / div;
-	PX4_INFO("GYROSIM: Changed sample rate to %uHz", _sample_rate);
-	_call_interval = 1000000 / _sample_rate;
+	_sample_rate = desired_sample_rate_hz;
+	PX4_INFO("GYROSIM: Changed sample rate to %u Hz", _sample_rate);
+	_call_interval = 1000000 / desired_sample_rate_hz;
 	hrt_cancel(&_call);
+	PX4_INFO("GYROSIM: Interval %u", _call_interval);
 	hrt_call_every(&_call, _call_interval, _call_interval, (hrt_callout)&GYROSIM::measure_trampoline, this);
 }
 
@@ -1055,7 +1056,7 @@ void
 GYROSIM::measure()
 {
 
-#if 0
+#if 1
 	static int x = 0;
 
 	// Verify the samples are being taken at the expected rate
