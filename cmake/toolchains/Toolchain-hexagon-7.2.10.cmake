@@ -34,8 +34,12 @@ include(CMakeForceCompiler)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(common/px4_base)
 
-if(NOT HEXAGON_TOOLS_ROOT)
-	set(HEXAGON_TOOLS_ROOT $ENV{HOME}/Qualcomm/HEXAGON_Tools/7.2.10/Tools)
+if ("$ENV{HEXAGON_TOOLS_ROOT}" STREQUAL "")
+	message(FATAL_ERROR
+		"The HexagonTools version 7.2.10 must be installed and the environment variable HEXAGON_TOOLS_ROOT must be set"
+		"(e.g. export HEXAGON_TOOLS_ROOT=/opt/HEXAGON_Tools/7.2.10/Tools)")
+else()
+	set(HEXAGON_TOOLS_ROOT $ENV{HEXAGON_TOOLS_ROOT})
 endif()
 
 macro (list2string out in)
@@ -239,3 +243,12 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 # for libraries and headers in the target directories
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+# The Hexagon compiler doesn't support the -rdynamic flag and this is set
+# in the base cmake scripts. We have to redefine the __linux_compiler_gnu
+# macro for cmake 2.8 to work
+set(__LINUX_COMPILER_GNU 1)
+macro(__linux_compiler_gnu lang)
+  set(CMAKE_SHARED_LIBRARY_LINK_${lang}_FLAGS "")
+endmacro()
+
