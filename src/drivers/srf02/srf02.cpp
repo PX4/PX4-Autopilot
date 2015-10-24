@@ -34,11 +34,10 @@
 /**
  * @file srf02.cpp
  *
- * Driver for the SRF02 sonar range finders connected via I2C,
- * adapted from the Maxbotix (mb12xx) driver.
+ * Driver for the SRF02 sonar range finder adapted from the Maxbotix sonar range finder driver (mb12xx).
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -69,18 +68,19 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
 
 /* Configuration Constants */
-#define SRF02_MAX_RANGEFINDERS 4
 #define SRF02_BUS 		PX4_I2C_BUS_EXPANSION
 #define SRF02_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
 #define SRF02_DEVICE_PATH	"/dev/srf02"
 
-/* SRF02 Registers addresses */
+/* MB12xx Registers addresses */
 
 #define SRF02_TAKE_RANGE_REG	0x51		/* Measure range Register */
+#define SRF02_SET_ADDRESS_0	0xA0		/* Change address 0 Register */ 
 #define SRF02_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
 #define SRF02_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
 
@@ -125,13 +125,14 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer	*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
-	int					_class_instance;
+	int				_class_instance;
+	int				_orb_class_instance;
 
-	orb_advert_t		_range_finder_topic;
+	orb_advert_t		_distance_sensor_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -201,7 +202,7 @@ private:
 extern "C" __EXPORT int srf02_main(int argc, char *argv[]);
 
 SRF02::SRF02(int bus, int address) :
-	I2C("SRF02", SRF02_DEVICE_PATH, bus, address, 100000),
+	I2C("MB12xx", SRF02_DEVICE_PATH, bus, address, 100000),
 	_min_distance(SRF02_MIN_DISTANCE),
 	_max_distance(SRF02_MAX_DISTANCE),
 	_reports(nullptr),
@@ -209,7 +210,8 @@ SRF02::SRF02(int bus, int address) :
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
-	_range_finder_topic(-1),
+	_orb_class_instance(-1),
+	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "srf02_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "srf02_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "srf02_buffer_overflows")),
@@ -219,7 +221,7 @@ SRF02::SRF02(int bus, int address) :
 
 {
 	/* enable debug() calls */
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	/* work_cancel in the dtor will explode if we don't do this... */
 	memset(&_work, 0, sizeof(_work));
@@ -256,7 +258,7 @@ SRF02::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(range_finder_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
 	_index_counter = SRF02_BASEADDR;	/* set temp sonar i2c address to base adress */
 	set_address(_index_counter);		/* set I2c port to temp sonar i2c adress */
@@ -269,12 +271,13 @@ SRF02::init()
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* get a publish handle on the range finder topic */
-		struct range_finder_report rf_report = {};
+		struct distance_sensor_s ds_report = {};
 
-		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+					 &_orb_class_instance, ORB_PRIO_LOW);
 
-		if (_range_finder_topic < 0) {
-			log("failed to create sensor_range_finder object. Did you start uOrb?");
+		if (_distance_sensor_topic == nullptr) {
+			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -284,14 +287,14 @@ SRF02::init()
 	/* check for connected rangefinders on each i2c port:
 	   We start from i2c base address (0x70 = 112) and count downwards
 	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
-	for (unsigned counter = 0; counter <= SRF02_MAX_RANGEFINDERS; counter++) {
+	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
 		_index_counter = SRF02_BASEADDR - counter;	/* set temp sonar i2c address to base adress - counter */
 		set_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
 		int ret2 = measure();
 
 		if (ret2 == 0) { /* sonar is present -> store address_index in array */
 			addr_ind.push_back(_index_counter);
-			debug("sonar added");
+			DEVICE_DEBUG("sonar added");
 			_latest_sonar_measurements.push_back(200);
 		}
 	}
@@ -309,10 +312,10 @@ SRF02::init()
 
 	/* show the connected sonars in terminal */
 	for (unsigned i = 0; i < addr_ind.size(); i++) {
-		log("sonar %d with address %d added", (i + 1), addr_ind[i]);
+		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
-	debug("Number of sonars connected: %d", addr_ind.size());
+	DEVICE_DEBUG("Number of sonars connected: %d", addr_ind.size());
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -470,8 +473,8 @@ ssize_t
 SRF02::read(struct file *filp, char *buffer, size_t buflen)
 {
 
-	unsigned count = buflen / sizeof(struct range_finder_report);
-	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
+	unsigned count = buflen / sizeof(struct distance_sensor_s);
+	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -544,7 +547,7 @@ SRF02::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		debug("i2c::transfer returned %d", ret);
+		DEVICE_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -562,64 +565,34 @@ SRF02::collect()
 	uint8_t val[2] = {0, 0};
 	uint8_t cmd = 0x02;
 	perf_begin(_sample_perf);
+
 	ret = transfer(&cmd, 1, nullptr, 0);
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		debug("error reading from sensor: %d", ret);
+		DEVICE_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
 	}
 
-	uint16_t distance = val[0] << 8 | val[1];
-	float si_units = (distance * 1.0f) / 100.0f; /* cm to m */
-	struct range_finder_report report;
+	uint16_t distance_cm = val[0] << 8 | val[1];
+	float distance_m = float(distance_cm) * 1e-2f;
 
-	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
+	struct distance_sensor_s report;
 	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-
-	/* if only one sonar, write it to the original distance parameter so that it's still used as altitude sonar */
-	if (addr_ind.size() == 1) {
-		report.distance = si_units;
-		report.distance_vector[0] = si_units;
-
-		for (unsigned i = 1; i < (SRF02_MAX_RANGEFINDERS); i++) {
-			report.distance_vector[i] = 0;
-		}
-
-		report.just_updated = 0;
-
-	} else {
-		/* for multiple sonars connected */
-
-		/* don't use the original single sonar variable */
-		report.distance = 0;
-
-		/* intermediate vector _latest_sonar_measurements is used to store the measurements as every cycle the other sonar values 			of the report are thrown away and/or filled in with garbage. We don't want this. We want the report to give the latest 			value for each connected sonar */
-		_latest_sonar_measurements[_cycle_counter] = si_units;
-
-		for (unsigned i = 0; i < (_latest_sonar_measurements.size()); i++) {
-			report.distance_vector[i] = _latest_sonar_measurements[i];
-		}
-
-		/* a just_updated variable is added to indicate to autopilot (ardupilot or whatever) which sonar has most recently been 		collected as this could be of use for Kalman filters */
-		report.just_updated = _index_counter;
-
-		/* Make sure all elements of the distance vector for which no sonar is connected are zero to prevent strange numbers */
-		for (unsigned i = 0; i < (SRF02_MAX_RANGEFINDERS - addr_ind.size()); i++) {
-			report.distance_vector[addr_ind.size() + i] = 0;
-		}
-	}
-
-	report.minimum_distance = get_minimum_distance();
-	report.maximum_distance = get_maximum_distance();
-	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+	report.orientation = 8;
+	report.current_distance = distance_m;
+	report.min_distance = get_minimum_distance();
+	report.max_distance = get_maximum_distance();
+	report.covariance = 0.0f;
+	/* TODO: set proper ID */
+	report.id = 0;
 
 	/* publish it, if we are the primary */
-	if (_range_finder_topic >= 0) {
-		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	if (_distance_sensor_topic != nullptr) {
+		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
 
 	if (_reports->force(&report)) {
@@ -653,9 +626,9 @@ SRF02::start()
 		true,
 		subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER
 	};
-	static orb_advert_t pub = -1;
+	static orb_advert_t pub = nullptr;
 
-	if (pub > 0) {
+	if (pub != nullptr) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
 
 
@@ -690,7 +663,7 @@ SRF02::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			debug("collection error");
+			DEVICE_DEBUG("collection error");
 			/* if error restart the measurement state machine */
 			start();
 			return;
@@ -729,7 +702,7 @@ SRF02::cycle()
 
 	/* Perform measurement */
 	if (OK != measure()) {
-		debug("measure error sonar adress %d", _index_counter);
+		DEVICE_DEBUG("measure error sonar adress %d", _index_counter);
 	}
 
 	/* next phase is collection */
@@ -844,7 +817,7 @@ void stop()
 void
 test()
 {
-	struct range_finder_report report;
+	struct distance_sensor_s report;
 	ssize_t sz;
 	int ret;
 
@@ -862,8 +835,8 @@ test()
 	}
 
 	warnx("single read");
-	warnx("measurement: %0.2f of sonar %d", (double)report.distance_vector[report.just_updated], report.just_updated);
-	warnx("time:        %lld", report.timestamp);
+	warnx("measurement: %0.2f m", (double)report.current_distance);
+	warnx("time:        %llu", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -891,13 +864,10 @@ test()
 		}
 
 		warnx("periodic read %u", i);
-
-		/* Print the sonar rangefinder report sonar distance vector */
-		for (uint8_t count = 0; count < SRF02_MAX_RANGEFINDERS; count++) {
-			warnx("measurement: %0.3f of sonar %u", (double)report.distance_vector[count], count + 1);
-		}
-
-		warnx("time:        %lld", report.timestamp);
+		warnx("valid %u", (float)report.current_distance > report.min_distance
+		      && (float)report.current_distance < report.max_distance ? 1 : 0);
+		warnx("measurement: %0.3f", (double)report.current_distance);
+		warnx("time:        %llu", report.timestamp);
 	}
 
 	/* reset the sensor polling to default rate */
