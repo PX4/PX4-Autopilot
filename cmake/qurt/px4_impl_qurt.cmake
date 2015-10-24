@@ -222,14 +222,7 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
-	add_custom_target(git_eigen_patched
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/lib/eigen
-		COMMAND git checkout .
-		COMMAND git checkout master
-		COMMAND patch -p1 -i ${CMAKE_SOURCE_DIR}/cmake/qurt/qurt_eigen.patch
-		DEPENDS git_eigen)
-	add_custom_target(${OUT} DEPENDS git_dspal git_eigen_patched)
-	add_custom_target(ALL DEPENDS git_eigen_patched)
+	add_custom_target(${OUT} DEPENDS git_dspal git_eigen)
 
 endfunction()
 

@@ -7,7 +7,7 @@ px4_nuttx_generate_builtin_commands(
 
 px4_nuttx_add_romfs(OUT romfs
 	ROOT ROMFS/px4fmu_common
-	EXTRAS ${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}.bin
+	EXTRAS ${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin
 	)
 
 add_dependencies(romfs fw_io)
@@ -81,21 +81,21 @@ if(NOT ${BOARD} STREQUAL "sim")
 
 	add_custom_target(debug_io
 		COMMAND ${GDB}
-			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}
+			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
 	add_custom_target(debug_io_tui
 		COMMAND ${GDBTUI}
-			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}
+			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
 	add_custom_target(debug_io_ddd
 		COMMAND ${DDD} --debugger ${GDB}
-			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}_${LABEL}
+			${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}
 		DEPENDS firmware_nuttx
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)

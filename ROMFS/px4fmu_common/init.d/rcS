@@ -260,11 +260,11 @@ then
 		#
 		# Check if PX4IO present and update firmware if needed
 		#
-		if [ -f /etc/extras/px4io-v2_default.bin ]
+		if [ -f /etc/extras/px4io-v2.bin ]
 		then
-			set IO_FILE /etc/extras/px4io-v2_default.bin
+			set IO_FILE /etc/extras/px4io-v2.bin
 		else
-			set IO_FILE /etc/extras/px4io-v1_default.bin
+			set IO_FILE /etc/extras/px4io-v1.bin
 		fi
 
 		if px4io checkcrc ${IO_FILE}

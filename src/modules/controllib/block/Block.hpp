@@ -58,8 +58,8 @@ static const uint16_t maxPublicationsPerBlock = 100;
 static const uint8_t blockNameLengthMax = 80;
 
 // forward declaration
-class SuperBlock;
 class BlockParamBase;
+class SuperBlock;
 
 /**
  */
@@ -81,9 +81,9 @@ public:
 protected:
 // accessors
 	SuperBlock *getParent() { return _parent; }
-	List<uORB::SubscriptionNode *> & getSubscriptions() { return _subscriptions; }
-	List<uORB::PublicationNode *> & getPublications() { return _publications; }
-	List<BlockParamBase *> & getParams() { return _params; }
+	List<uORB::SubscriptionNode *> &getSubscriptions() { return _subscriptions; }
+	List<uORB::PublicationNode *> &getPublications() { return _publications; }
+	List<BlockParamBase *> &getParams() { return _params; }
 // attributes
 	const char *_name;
 	SuperBlock *_parent;
@@ -94,8 +94,8 @@ protected:
 
 private:
 	/* this class has pointer data members and should not be copied (private constructor) */
-	Block(const control::Block&);
-	Block operator=(const control::Block&);
+	Block(const control::Block &);
+	Block operator=(const control::Block &);
 };
 
 class __EXPORT SuperBlock :
@@ -106,28 +106,32 @@ public:
 // methods
 	SuperBlock(SuperBlock *parent, const char *name) :
 		Block(parent, name),
-		_children() {
+		_children()
+	{
 	}
 	virtual ~SuperBlock() {};
 	virtual void setDt(float dt);
-	virtual void updateParams() {
+	virtual void updateParams()
+	{
 		Block::updateParams();
 
-		if (getChildren().getHead() != NULL) updateChildParams();
+		if (getChildren().getHead() != NULL) { updateChildParams(); }
 	}
-	virtual void updateSubscriptions() {
+	virtual void updateSubscriptions()
+	{
 		Block::updateSubscriptions();
 
-		if (getChildren().getHead() != NULL) updateChildSubscriptions();
+		if (getChildren().getHead() != NULL) { updateChildSubscriptions(); }
 	}
-	virtual void updatePublications() {
+	virtual void updatePublications()
+	{
 		Block::updatePublications();
 
-		if (getChildren().getHead() != NULL) updateChildPublications();
+		if (getChildren().getHead() != NULL) { updateChildPublications(); }
 	}
 protected:
 // methods
-	List<Block *> & getChildren() { return _children; }
+	List<Block *> &getChildren() { return _children; }
 	void updateChildParams();
 	void updateChildSubscriptions();
 	void updateChildPublications();

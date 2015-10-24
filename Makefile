@@ -127,6 +127,8 @@ qurt_eagle_travis:
 
 posix: posix_sitl_simple
 
+posix_sitl_default: posix_sitl_simple
+
 ros: ros_sitl_simple
 
 run_sitl_quad: posix

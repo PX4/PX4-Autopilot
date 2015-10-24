@@ -28,6 +28,7 @@ for fn in $(find src/examples \
                  src/modules/segway \
                  src/modules/unit_test \
                  src/modules/systemlib \
+                 src/modules/controllib \
                    -path './Build' -prune -o \
                    -path './mavlink' -prune -o \
                    -path './NuttX' -prune -o \
