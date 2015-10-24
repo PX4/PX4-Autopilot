@@ -58,7 +58,8 @@ public:
 	 * Accessors/ Assignment etc.
 	 */
 
-	T * data() {
+	T *data()
+	{
 		return _data[0];
 	}
 
