@@ -113,10 +113,16 @@ px4fmu-v2_default:
 px4fmu-v2_simple:
 	$(call cmake-build,nuttx_px4fmu-v2_simple)
 
+px4fmu-v2_lpe:
+	$(call cmake-build,nuttx_px4fmu-v2_lpe)
+
 nuttx_sim_simple:
 	$(call cmake-build,$@)
 
 posix_sitl_simple:
+	$(call cmake-build,$@)
+
+posix_sitl_lpe:
 	$(call cmake-build,$@)
 
 ros_sitl_simple:
@@ -134,44 +140,13 @@ posix_sitl_default: posix_sitl_simple
 
 ros: ros_sitl_simple
 
-run_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS none jmavsim
+sitl_deprecation:
+	@echo "Deprecated. Use 'make posix_sitl_default run_sitl' instead."
+	@echo "Change init script with 'make posix_sitl_default config'"
 
-run_sitl_iris: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS_iris_gazebo none gazebo
-
-run_sitl_plane: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing
-
-run_sitl_ros: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros
-
-lldb_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS lldb jmavsim
-
-lldb_sitl_plane: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing lldb
-
-lldb_sitl_ros: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros lldb
-
-gdb_sitl_quad: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rcS gdb jmavsim
-
-gdb_sitl_plane: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc.fixed_wing lldb
-
-gdb_sitl_ros: posix
-	Tools/sitl_run.sh posix-configs/SITL/init/rc_iris_ros lldb
-
-sitl_quad:
-	@echo "Deprecated. Use 'run_sitl_quad' instead."
-
-sitl_plane:
-	@echo "Deprecated. Use 'run_sitl_plane' instead."
-
-sitl_ros:
-	@echo "Deprecated. Use 'run_sitl_ros' instead."
+sitl_quad: sitl_deprecation
+sitl_plane: sitl_deprecation
+sitl_ros: sitl_deprecation
 
 # Other targets
 # --------------------------------------------------------------------
@@ -184,7 +159,8 @@ clean:
 	@(cd src/modules/uavcan/libuavcan && git clean -d -f -x)
 
 # targets handled by cmake
-cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak libuavcan
+cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
+	run_sitl config
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean

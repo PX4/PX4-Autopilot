@@ -62,6 +62,27 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
+set(config_sitl_rcS
+	posix-configs/SITL/init/rcS
+	CACHE FILEPATH "init script for sitl"
+	)
+
+set(config_sitl_viewer
+	jmavsim
+	CACHE STRING "viewer for sitl"
+	)
+set_property(CACHE config_sitl_viewer
+	PROPERTY STRINGS "jmavsim;none")
+
+set(config_sitl_debugger
+	disable
+	CACHE STRING "debugger for sitl"
+	)
+set_property(CACHE config_sitl_debugger
+	PROPERTY STRINGS "disable;gdb;lldb")
+
+
+
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	MAIN "sercon" STACK "2048")

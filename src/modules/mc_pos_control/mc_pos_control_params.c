@@ -303,3 +303,11 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.5f);
  */
 PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.5f);
 
+/**
+ * Low pass filter cut freq. for numerical velocity derivative
+ *
+ * @unit Hz
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
