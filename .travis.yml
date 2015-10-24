@@ -97,8 +97,8 @@ env:
 script:
   - make check_format
   - arm-none-eabi-gcc --version
-  - echo 'Building POSIX Firmware..' && make posix_sitl_simple
-  - echo 'Running Tests..' && make posix_sitl_simple test
+  - echo 'Building POSIX Firmware..' && make posix_sitl_default
+  - echo 'Running Tests..' && make posix_sitl_default test
   - echo 'Building UAVCAN node firmware..' && git clone https://github.com/thiemar/vectorcontrol
   - cd vectorcontrol
   - BOARD=s2740vc_1_0 make && BOARD=px4esc_1_6 make
