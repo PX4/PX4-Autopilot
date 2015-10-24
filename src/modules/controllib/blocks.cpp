@@ -539,6 +539,7 @@ int blockRandGaussTest()
 	}
 
 	float stdDev = sqrt(sum / (n - 1));
+	(void)(stdDev);
 	ASSERT(equal(mean, blockRandGauss.getMean(), 1e-1));
 	ASSERT(equal(stdDev, blockRandGauss.getStdDev(), 1e-1));
 	printf("PASS\n");

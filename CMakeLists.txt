@@ -237,6 +237,19 @@ add_custom_target(submodule_clean
 	)
 
 #=============================================================================
+# misc targets
+#
+add_custom_target(check_format
+	COMMAND Tools/check_code_style.sh
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	)
+
+add_custom_target(config
+	COMMAND cmake-gui .
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	)
+
+#=============================================================================
 # external libraries
 #
 px4_os_prebuild_targets(OUT prebuild_targets
