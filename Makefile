@@ -119,13 +119,13 @@ px4fmu-v2_lpe:
 nuttx_sim_simple:
 	$(call cmake-build,$@)
 
-posix_sitl_simple:
+posix_sitl_default:
 	$(call cmake-build,$@)
 
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
-ros_sitl_simple:
+ros_sitl_default:
 	$(call cmake-build,$@)
 
 qurt_eagle_travis:
@@ -134,19 +134,15 @@ qurt_eagle_travis:
 posix_eagle_release:
 	$(call cmake-build,$@)
 
-posix: posix_sitl_simple
-
-posix_sitl_default: posix_sitl_simple
-
-ros: ros_sitl_simple
+posix: posix_sitl_default
 
 sitl_deprecation:
 	@echo "Deprecated. Use 'make posix_sitl_default run_sitl' instead."
 	@echo "Change init script with 'make posix_sitl_default config'"
 
-sitl_quad: sitl_deprecation
-sitl_plane: sitl_deprecation
-sitl_ros: sitl_deprecation
+run_sitl_quad: sitl_deprecation
+run_sitl_plane: sitl_deprecation
+run_sitl_ros: sitl_deprecation
 
 # Other targets
 # --------------------------------------------------------------------
