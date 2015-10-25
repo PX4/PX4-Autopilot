@@ -20,7 +20,7 @@ fi
 # kill process names that might stil
 # be running from last time
 pkill mainapp
-pkill `jps | grep Simulator | cut -d" " -f1`
+kill -9 `jps | grep Simulator | cut -d" " -f1`
 
 cp Tools/posix_lldbinit $build_path/src/firmware/posix/.lldbinit
 cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
