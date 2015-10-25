@@ -28,6 +28,7 @@ add_custom_target(run_sitl
 	COMMAND Tools/sitl_run.sh "${config_sitl_rcS}" "${config_sitl_debugger}"
 	"${config_sitl_viewer}" "${CMAKE_BINARY_DIR}"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	USES_TERMINAL
 	)
 add_dependencies(run_sitl mainapp)
 

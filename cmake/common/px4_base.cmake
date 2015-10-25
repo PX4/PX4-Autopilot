@@ -433,6 +433,7 @@ function(px4_add_upload)
 		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 		COMMENT "uploading ${BUNDLE}"
 		VERBATIM
+		USES_TERMINAL
 		)
 endfunction()
 

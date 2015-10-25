@@ -68,11 +68,11 @@ ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 j ?= 4
 
 # disable ninja by default for now because it hides upload progress
-#NINJA_BUILD := $(shell ninja --version 2>/dev/null)
+NINJA_BUILD := $(shell ninja --version 2>/dev/null)
 ifdef NINJA_BUILD
     PX4_CMAKE_GENERATOR ?= "Ninja"
     PX4_MAKE = ninja
-    PX4_MAKE_ARGS = 
+    PX4_MAKE_ARGS =
 else
 
 ifdef SYSTEMROOT
@@ -89,6 +89,7 @@ endif
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
++@if [ $(PX4_CMAKE_GENERATOR) == "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
 +@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then git submodule update --init --recursive --force && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
 +$(PX4_MAKE) -C $(PWD)/build_$@ $(PX4_MAKE_ARGS) $(ARGS)
 endef
