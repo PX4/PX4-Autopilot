@@ -117,7 +117,9 @@
 #
 #=============================================================================
 
-cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
+# Warning: Changing this modifies CMake's internal workings
+# and leads to wrong toolchain detection
+cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 #=============================================================================
 # parameters
