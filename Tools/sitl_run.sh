@@ -4,6 +4,7 @@ rc_script=$1
 debugger=$2
 program=$3
 build_path=$4
+curr_dir=`pwd`
 
 echo SITL ARGS
 echo rc_script: $rc_script
@@ -41,7 +42,17 @@ elif [ "$3" == "gazebo" ]
 then
 	if [ -x "$(command -v gazebo)" ]
 	then
-		gazebo ${SITL_GAZEBO_PATH}/worlds/iris.world &
+		# Set the plugin path so Gazebo finds our model and sim
+		GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:$curr_dir/Tools/sitl_gazebo/Build
+		# Set the model path so Gazebo finds the airframes
+		GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$curr_dir/Tools/sitl_gazebo/models
+		# Disable online model lookup since this is quite experimental and unstable
+		GAZEBO_MODEL_DATABASE_URI=""
+		mkdir -p Tools/sitl_gazebo/Build
+		cd Tools/sitl_gazebo/Build
+		cmake ..
+		make -j4
+		gazebo ../worlds/iris.world &
 		SIM_PID=`echo $!`
 	else
 		echo "You need to have gazebo simulator installed!"
