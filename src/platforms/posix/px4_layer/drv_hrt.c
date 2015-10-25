@@ -87,7 +87,6 @@ static void hrt_unlock(void)
 #define MAC_NANO (+1.0E-9)
 #define MAC_GIGA UINT64_C(1000000000)
 #define CLOCK_MONOTONIC 1
-#define HRT_LOCK_NAME "/hrt_lock"
 
 static double px4_timebase = 0.0;
 
@@ -128,7 +127,7 @@ hrt_abstime hrt_absolute_time(void)
 {
 	struct timespec ts;
 
-	if (!px4_timestart) {
+	if (px4_timestart == 0) {
 		px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 		px4_timestart = ts_to_abstime(&ts);
 	}
@@ -240,6 +239,7 @@ void	hrt_init(void)
 
 	if (sem_ret) {
 		PX4_ERR("SEM INIT FAIL: %s", strerror(errno));
+		_exit(1);
 	}
 
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
@@ -347,7 +347,7 @@ hrt_call_reschedule()
 static void
 hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime interval, hrt_callout callout, void *arg)
 {
-	PX4_DEBUG("hrt_call_internal deadline=%lu interval = %lu", deadline, interval);
+	PX4_INFO("hrt_call_internal deadline=%llu interval = %llu", deadline, interval);
 	hrt_lock();
 
 	//PX4_INFO("hrt_call_internal after lock");
@@ -366,10 +366,10 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 #if 1
 
 	// Use this to debug busy CPU that keeps rescheduling with 0 period time
-	/*if (interval < HRT_INTERVAL_MIN) {*/
-	/*PX4_ERR("hrt_call_internal interval too short: %" PRIu64, interval);*/
-	/*PX4_BACKTRACE();*/
-	/*}*/
+	if (/*(interval != 0) &&*/ (interval < HRT_INTERVAL_MIN)) {
+		PX4_ERR("hrt_call_internal interval too short: %" PRIu64, interval);
+		PX4_BACKTRACE();
+	}
 
 #endif
 	entry->deadline = deadline;
@@ -442,12 +442,14 @@ hrt_call_invoke(void)
 		call = (struct hrt_call *)sq_peek(&callout_queue);
 
 		if (call == NULL) {
+			PX4_INFO("broke on null");
 			break;
 		}
 
-		if (call->deadline > now) {
-			break;
-		}
+		// if (call->deadline > now) {
+		// 	PX4_INFO("broke on timeout");
+		// 	continue;
+		// }
 
 		sq_rem(&call->link, &callout_queue);
 		//PX4_INFO("call pop");
@@ -463,7 +465,7 @@ hrt_call_invoke(void)
 			// Unlock so we don't deadlock in callback
 			hrt_unlock();
 
-			//PX4_INFO("call %p: %p(%p)", call, call->callout, call->arg);
+			//PX4_INFO("call %p: %p(%p), period: %llu", call, call->callout, call->arg, call->period);
 			call->callout(call->arg);
 
 			hrt_lock();
@@ -480,6 +482,8 @@ hrt_call_invoke(void)
 			}
 
 			hrt_call_enter(call);
+		} else {
+			PX4_INFO("callout removed");
 		}
 	}
 
