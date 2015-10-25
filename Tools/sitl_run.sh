@@ -20,7 +20,12 @@ fi
 # kill process names that might stil
 # be running from last time
 pkill mainapp
-kill -9 `jps | grep Simulator | cut -d" " -f1`
+jmavsim_pid=`jps | grep Simulator | cut -d" " -f1`
+echo jmavsim_pid=\"${jmavsim_pid}\"
+if [ -n "$jmavsim_pid" ]
+then
+	kill $jmavsim_pid
+fi
 
 cp Tools/posix_lldbinit $build_path/src/firmware/posix/.lldbinit
 cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
