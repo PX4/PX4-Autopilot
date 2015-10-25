@@ -80,6 +80,8 @@ Vagrant.configure(2) do |config|
     # Ensure we start in the Firmware folder
     echo "cd /Firmware" >> ~/.bashrc
     # Install software
+    sudo add-apt-repository ppa:terry.guo/gcc-arm-embedded -y
+    sudo add-apt-repository ppa:george-edison55/cmake-3.x -y
     sudo apt-get update
     sudo apt-get install -y build-essential ccache cmake clang-3.5 lldb-3.5 g++-4.8 gcc-4.8 genromfs libc6-i386 libncurses5-dev python-argparse python-empy python-serial s3cmd texinfo zlib1g-dev git-core zip gdb gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
     pushd .
