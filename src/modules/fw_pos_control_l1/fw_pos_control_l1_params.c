@@ -179,7 +179,7 @@ PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
  * @max 150.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 25.0f);
+PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
 
 /**
  * Maximum climb rate
