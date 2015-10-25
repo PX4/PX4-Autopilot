@@ -367,7 +367,6 @@ VDev::ioctl(file_t *filep, int cmd, unsigned long arg)
 
 	case DEVIOCGDEVICEID:
 		ret = (int)_device_id.devid;
-		PX4_INFO("IOCTL DEVIOCGDEVICEID %d", ret);
 		break;
 
 	default:
