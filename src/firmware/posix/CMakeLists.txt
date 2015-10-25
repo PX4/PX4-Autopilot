@@ -34,8 +34,6 @@ add_dependencies(run_config mainapp)
 
 foreach(viewer jmavsim gazebo)
 	foreach(debugger none gdb lldb)
-		message(STATUS "viewer: ${viewer}")
-		message(STATUS "debugger: ${debugger}")
 		if (debugger STREQUAL "none")
 			set(_targ_name "${viewer}")
 		else()
