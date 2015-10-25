@@ -523,7 +523,7 @@ int blockRandUniformTest()
 	}
 
 	ASSERT_CL(equal(mean, (blockRandUniform.getMin() +
-			    blockRandUniform.getMax()) / 2, 1e-1));
+			       blockRandUniform.getMax()) / 2, 1e-1));
 	printf("PASS\n");
 	return 0;
 }
