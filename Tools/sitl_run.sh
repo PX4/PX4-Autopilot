@@ -17,6 +17,12 @@ then
 	exit 1
 fi
 
+# kill process names that might stil
+# be running from last time
+pkill java
+pkill mainapp
+
+
 cp Tools/posix_lldbinit $build_path/src/firmware/posix/.lldbinit
 cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
 
@@ -28,7 +34,6 @@ then
 	ant
 	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
 	SIM_PID=echo $!
-	cd ../..
 elif [ "$3" == "gazebo" ]
 then
 	if [ -x "$(command -v gazebo)" ]
