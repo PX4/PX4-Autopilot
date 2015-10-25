@@ -32,9 +32,11 @@
 ############################################################################
 px4_add_module(
 	MODULE modules__controllib
+	MAIN controllib_test
 	COMPILE_FLAGS
 		-Os
 	SRCS
+		controllib_test_main.cpp
 		test_params.c
 		block/Block.cpp
 		block/BlockParam.cpp
