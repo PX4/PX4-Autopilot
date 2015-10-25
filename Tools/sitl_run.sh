@@ -1,10 +1,28 @@
 #!/bin/bash
-cp Tools/posix_lldbinit build_posix_sitl_simple/src/firmware/posix/.lldbinit
-cp Tools/posix.gdbinit build_posix_sitl_simple/src/firmware/posix/.gdbinit
+
+rc_script=$1
+debugger=$2
+program=$3
+build_path=$4
+
+echo SITL ARGS
+echo rc_script: $rc_script
+echo debugger: $debugger
+echo program: $program
+echo build_path: $buid_path
+
+if [ "$#" != 4 ]
+then
+	echo usage: sitl_run.sh rc_script debugger program build_path
+	exit 1
+fi
+
+cp Tools/posix_lldbinit $build_path/src/firmware/posix/.lldbinit
+cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
 
 SIM_PID=0
 
-if [ "$3" == "jmavsim" ]
+if [ "$program" == "jmavsim" ]
 then
 	cd Tools/jMAVSim
 	ant
@@ -22,19 +40,19 @@ then
 		exit 1
 	fi
 fi
-cd build_posix_sitl_simple/src/firmware/posix
+cd $build_path/src/firmware/posix
 mkdir -p rootfs/fs/microsd
 mkdir -p rootfs/eeprom
 touch rootfs/eeprom/parameters
 # Start Java simulator
-if [ "$2" == "lldb" ]
+if [ "$debugger" == "lldb" ]
 then
-	lldb -- mainapp ../../../../$1
-elif [ "$2" == "gdb" ]
+	lldb -- mainapp ../../../../$rc_script
+elif [ "$debugger" == "gdb" ]
 then
-	gdb --args mainapp ../../../../$1
+	gdb --args mainapp ../../../../$rc_script
 else
-	./mainapp ../../../../$1
+	./mainapp ../../../../$rc_script
 fi
 
 if [ "$3" == "jmavsim" ]

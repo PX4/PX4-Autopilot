@@ -30,18 +30,28 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(depends
-	msg_gen
-	prebuild_targets
-	git_mavlink
-	git_uavcan
-	)
+if(${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=6500)
+elseif(${OS} STREQUAL "posix")
+	list(APPEND MODULE_CFLAGS -Wno-error)
+	# add matrix tests
+	add_subdirectory(matrix)
+endif()
+
+# use custom matrix lib instead of Eigen
+add_definitions(-DUSE_MATRIX_LIB)
+
 
 px4_add_module(
-	MODULE platforms__common
+	MODULE modules__local_position_estimator
+	MAIN local_position_estimator
+	STACK 9216
+	COMPILE_FLAGS ${MODULE_CFLAGS}
 	SRCS
-		px4_getopt.c
+		local_position_estimator_main.cpp
+		BlockLocalPositionEstimator.cpp
+		params.c
 	DEPENDS
-		${depends}
+		platforms__common
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

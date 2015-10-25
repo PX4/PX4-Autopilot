@@ -21,6 +21,7 @@ addons:
     sources:
     - kubuntu-backports
     - ubuntu-toolchain-r-test
+    - george-edison55-precise-backports
     packages:
     - build-essential
     - ccache

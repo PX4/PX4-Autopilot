@@ -225,7 +225,6 @@ px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_gtest PATH "unittets/gtest")
 px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
-px4_add_git_submodule(TARGET git_eigen PATH "src/lib/eigen")
 px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
 px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
 px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
@@ -234,6 +233,19 @@ add_custom_target(submodule_clean
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND git submodule deinit -f .
 	COMMAND rm -rf .git/modules/*
+	)
+
+#=============================================================================
+# misc targets
+#
+add_custom_target(check_format
+	COMMAND Tools/check_code_style.sh
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	)
+
+add_custom_target(config
+	COMMAND cmake-gui .
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 	)
 
 #=============================================================================
@@ -275,7 +287,7 @@ px4_generate_messages(TARGET msg_gen
 px4_generate_parameters_xml(OUT parameters.xml BOARD ${BOARD})
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})
 add_custom_target(xml_gen
-	DEPENDS git_eigen parameters.xml airframes.xml)
+	DEPENDS parameters.xml airframes.xml)
 
 #=============================================================================
 # external projects

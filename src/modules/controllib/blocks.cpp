@@ -123,7 +123,7 @@ int blockLimitSymTest()
 
 float BlockLowPass::update(float input)
 {
-	if (!isfinite(getState())) {
+	if (!PX4_ISFINITE(getState())) {
 		setState(input);
 	}
 
@@ -203,7 +203,7 @@ int blockHighPassTest()
 
 float BlockLowPass2::update(float input)
 {
-	if (!isfinite(getState())) {
+	if (!PX4_ISFINITE(getState())) {
 		setState(input);
 	}
 
@@ -539,6 +539,7 @@ int blockRandGaussTest()
 	}
 
 	float stdDev = sqrt(sum / (n - 1));
+	(void)(stdDev);
 	ASSERT(equal(mean, blockRandGauss.getMean(), 1e-1));
 	ASSERT(equal(stdDev, blockRandGauss.getStdDev(), 1e-1));
 	printf("PASS\n");
