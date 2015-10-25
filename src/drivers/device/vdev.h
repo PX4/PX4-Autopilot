@@ -181,7 +181,7 @@ protected:
 	 */
 	void		lock()
 	{
-		DEVICE_DEBUG("lock");
+		//DEVICE_DEBUG("lock");
 		do {} while (px4_sem_wait(&_lock) != 0);
 	}
 
@@ -190,7 +190,7 @@ protected:
 	 */
 	void		unlock()
 	{
-		DEVICE_DEBUG("unlock");
+		//DEVICE_DEBUG("unlock");
 		px4_sem_post(&_lock);
 	}
 
