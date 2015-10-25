@@ -9,8 +9,8 @@
 
 namespace uavcan
 {
-void bitarrayCopy(const unsigned char* src, size_t src_offset, size_t src_len,
-                  unsigned char* dst, size_t dst_offset)
+void bitarrayCopy(const unsigned char* src, std::size_t src_offset, std::size_t src_len,
+                  unsigned char* dst, std::size_t dst_offset)
 {
     /*
      * Should never be called on a zero-length buffer. The caller will also ensure that the bit
@@ -20,7 +20,7 @@ void bitarrayCopy(const unsigned char* src, size_t src_offset, size_t src_len,
     UAVCAN_ASSERT(src_len > 0U);
     UAVCAN_ASSERT(src_offset < 8U && dst_offset < 8U);
 
-    const size_t last_bit = src_offset + src_len;
+    const std::size_t last_bit = src_offset + src_len;
     while (last_bit - src_offset)
     {
         const uint8_t src_bit_offset = src_offset % 8U;
@@ -28,7 +28,7 @@ void bitarrayCopy(const unsigned char* src, size_t src_offset, size_t src_len,
 
         // The number of bits to copy
         const uint8_t max_offset = uavcan::max(src_bit_offset, dst_bit_offset);
-        const size_t copy_bits = uavcan::min(last_bit - src_offset, (size_t)(8U - max_offset));
+        const std::size_t copy_bits = uavcan::min(last_bit - src_offset, (std::size_t)(8U - max_offset));
 
         /*
          * The mask indicating which bits of dest to update:
