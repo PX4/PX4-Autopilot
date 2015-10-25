@@ -21,8 +21,8 @@ namespace uavcan
  * @param dst_org       Destination array
  * @param dst_offset    Bit offset of the first destination byte
  */
-void bitarrayCopy(const unsigned char* src_org, unsigned src_offset, unsigned src_len,
-                  unsigned char* dst_org, unsigned dst_offset);
+void bitarrayCopy(const unsigned char* src_org, std::size_t src_offset, std::size_t src_len,
+                  unsigned char* dst_org, std::size_t dst_offset);
 
 /**
  * This class treats a chunk of memory as an array of bits.
