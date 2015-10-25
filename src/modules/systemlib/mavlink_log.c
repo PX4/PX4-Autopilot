@@ -101,6 +101,10 @@ __EXPORT int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink
 
 __EXPORT void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int severity, const char *fmt, ...)
 {
+	if (!fmt) {
+		return;
+	}
+
 	va_list ap;
 	va_start(ap, fmt);
 	int end = (lb->start + lb->count) % lb->size;
@@ -119,6 +123,10 @@ __EXPORT void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int seve
 
 __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...)
 {
+	if (!fmt) {
+		return;
+	}
+
 	va_list ap;
 	va_start(ap, fmt);
 	char text[MAVLINK_LOG_MAXLEN + 1];
