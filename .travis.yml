@@ -21,10 +21,12 @@ addons:
     sources:
     - kubuntu-backports
     - ubuntu-toolchain-r-test
+    - george-edison55-precise-backports
     packages:
     - build-essential
     - ccache
     - clang-3.5
+    - cmake
     - g++-4.8
     - gcc-4.8
     - genromfs
@@ -42,11 +44,6 @@ before_install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          pushd .
       && cd ~
-      && wget http://www.cmake.org/files/v3.2/cmake-3.2.2-Linux-x86_64.sh -O /tmp/cmake_install.sh
-      && mkdir -p cmake
-      && sh /tmp/cmake_install.sh --exclude-subdir --prefix=${HOME}/cmake
-      && export PATH="${HOME}/cmake/bin:${PATH}"
-      && cmake --version
       && wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
       && tar -jxf gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
       && exportline="export PATH=$HOME/gcc-arm-none-eabi-4_8-2014q3/bin:\$PATH"
