@@ -10,7 +10,7 @@ echo SITL ARGS
 echo rc_script: $rc_script
 echo debugger: $debugger
 echo program: $program
-echo build_path: $buid_path
+echo build_path: $build_path
 
 if [ "$#" != 4 ]
 then
@@ -20,6 +20,7 @@ fi
 
 # kill process names that might stil
 # be running from last time
+pkill gazebo
 pkill mainapp
 jmavsim_pid=`jps | grep Simulator | cut -d" " -f1`
 if [ -n "$jmavsim_pid" ]
@@ -43,11 +44,12 @@ then
 	if [ -x "$(command -v gazebo)" ]
 	then
 		# Set the plugin path so Gazebo finds our model and sim
-		GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:$curr_dir/Tools/sitl_gazebo/Build
+		export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:$curr_dir/Tools/sitl_gazebo/Build
 		# Set the model path so Gazebo finds the airframes
-		GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$curr_dir/Tools/sitl_gazebo/models
+		export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$curr_dir/Tools/sitl_gazebo/models
 		# Disable online model lookup since this is quite experimental and unstable
-		GAZEBO_MODEL_DATABASE_URI=""
+		export GAZEBO_MODEL_DATABASE_URI=""
+		export SITL_GAZEBO_PATH=$curr_dir/Tools/sitl_gazebo
 		mkdir -p Tools/sitl_gazebo/Build
 		cd Tools/sitl_gazebo/Build
 		cmake ..
