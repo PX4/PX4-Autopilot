@@ -56,10 +56,6 @@ if (DEBUG_BUILD)
     add_definitions(-DUAVCAN_DEBUG=1)
 endif ()
 
-if (CONTINUOUS_INTEGRATION_BUILD)
-    add_definitions(-DUAVCAN_NO_TIMING_SENSITIVE_TESTS=1)
-endif ()
-
 include_directories(include)
 
 #
@@ -97,9 +93,9 @@ function(add_libuavcan_test name library flags) # Adds GTest executable and crea
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
     if (CONTINUOUS_INTEGRATION_BUILD)
-        # Don't redirect test output
+        # Don't redirect test output, and don't run tests suffixed with "RealTime"
         add_custom_command(TARGET ${name} POST_BUILD
-                           COMMAND ./${name}
+                           COMMAND ./${name} --gtest_filter=-*RealTime
                            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     else ()
         add_custom_command(TARGET ${name} POST_BUILD

@@ -151,13 +151,6 @@
 # define UAVCAN_USE_EXTERNAL_FLOAT16_CONVERSION 0
 #endif
 
-/*
- * Disables timing-dependent tests in the test suite, since these may fail on virtualized machines
- */
-#ifndef UAVCAN_NO_TIMING_SENSITIVE_TESTS
-# define UAVCAN_NO_TIMING_SENSITIVE_TESTS 0
-#endif
-
 /**
  * Run time checks.
  * Resolves to the standard assert() by default.
