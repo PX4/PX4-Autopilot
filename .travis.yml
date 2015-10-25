@@ -21,11 +21,12 @@ addons:
     sources:
     - kubuntu-backports
     - ubuntu-toolchain-r-test
+    - george-edison55-precise-backports
     packages:
     - build-essential
     - ccache
     - clang-3.5
-    - cmake
+    - cmake-3.2
     - g++-4.8
     - gcc-4.8
     - genromfs
