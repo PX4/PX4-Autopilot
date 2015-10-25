@@ -1,121 +1,59 @@
 /*
- * Fast bit array copy algorithm.
- * Source: http://stackoverflow.com/questions/3534535/whats-a-time-efficient-algorithm-to-copy-unaligned-bit-arrays
- * Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
 #include <uavcan/marshal/bit_stream.hpp>
 #include <climits>
 #include <cstring>
 #include <cstddef>
+
 namespace uavcan
 {
-
-static const unsigned char reverse_mask[]     = { 0x00U, 0x80U, 0xC0U, 0xE0U, 0xF0U, 0xF8U, 0xFCU, 0xFEU, 0xFFU };
-static const unsigned char reverse_mask_xor[] = { 0xFFU, 0x7FU, 0x3FU, 0x1FU, 0x0FU, 0x07U, 0x03U, 0x01U, 0x00U };
-
-#define PREPARE_FIRST_COPY()                                       \
-    do {                                                           \
-    if (src_len >= (CHAR_BIT - dst_offset_modulo)) {               \
-        *dst &= reverse_mask[dst_offset_modulo];                   \
-        src_len -= CHAR_BIT - dst_offset_modulo;                   \
-    } else {                                                       \
-        *dst &= reverse_mask[dst_offset_modulo] |                  \
-                reverse_mask_xor[dst_offset_modulo + src_len];     \
-        c &= reverse_mask[dst_offset_modulo + src_len];            \
-        src_len = 0;                                               \
-    } } while (0)
-
-
-void bitarrayCopy(const unsigned char* src_org, unsigned src_offset, unsigned src_len,
-                  unsigned char* dst_org, unsigned dst_offset)
+void bitarrayCopy(const unsigned char* src, size_t src_offset, size_t src_len,
+                  unsigned char* dst, size_t dst_offset)
 {
-    if (src_len > 0U)
+    /*
+     * Should never be called on a zero-length buffer. The caller will also ensure that the bit
+     * offsets never exceed one byte.
+     */
+
+    UAVCAN_ASSERT(src_len > 0U);
+    UAVCAN_ASSERT(src_offset < 8U && dst_offset < 8U);
+
+    const size_t last_bit = src_offset + src_len;
+    while (last_bit - src_offset)
     {
-        const unsigned char *src = src_org + (src_offset / CHAR_BIT);
-        unsigned char *dst = dst_org + (dst_offset / CHAR_BIT);
+        const uint8_t src_bit_offset = src_offset % 8U;
+        const uint8_t dst_bit_offset = dst_offset % 8U;
 
-        const unsigned src_offset_modulo = src_offset % CHAR_BIT;
-        const unsigned dst_offset_modulo = dst_offset % CHAR_BIT;
+        // The number of bits to copy
+        const uint8_t max_offset = uavcan::max(src_bit_offset, dst_bit_offset);
+        const size_t copy_bits = uavcan::min(last_bit - src_offset, (size_t)(8U - max_offset));
 
-        if (src_offset_modulo == dst_offset_modulo)
-        {
-            if (src_offset_modulo > 0U)
-            {
-                unsigned char c = reverse_mask_xor[dst_offset_modulo] & *src++;
-                PREPARE_FIRST_COPY();
-                *dst++ |= c;
-            }
+        /*
+         * The mask indicating which bits of dest to update:
+         * dst_byte_offset           copy_bits          write_mask
+         * 0                         8                  11111111
+         * 0                         7                  11111110
+         * ...
+         * 0                         1                  10000000
+         * ...
+         * 4                         4                  00001111
+         * 4                         3                  00001110
+         * 4                         2                  00001100
+         * 4                         1                  00001000
+         * ...
+         * 7                         1                  00000001
+         */
+        const uint8_t write_mask = uint8_t(uint8_t(0xFF00U >> copy_bits) >> dst_bit_offset);
 
-            const unsigned byte_len = src_len / CHAR_BIT;
-            const unsigned src_len_modulo = src_len % CHAR_BIT;
+        // The value to be extracted from src, shifted into the dst location
+        const uint8_t src_data = uint8_t((src[src_offset / 8U] << src_bit_offset) >> dst_bit_offset);
 
-            if (byte_len > 0U)
-            {
-                (void)std::memcpy(dst, src, byte_len);
-                src += byte_len;
-                dst += byte_len;
-            }
-            if (src_len_modulo > 0U)
-            {
-                *dst &= reverse_mask_xor[src_len_modulo];
-                *dst |= reverse_mask[src_len_modulo] & *src;
-            }
-        }
-        else
-        {
-            unsigned bit_diff_ls = 0U;
-            unsigned bit_diff_rs = 0U;
-            unsigned char c = 0U;
-            /*
-             * Begin: Line things up on destination.
-             */
-            if (src_offset_modulo > dst_offset_modulo)
-            {
-                bit_diff_ls = src_offset_modulo - dst_offset_modulo;
-                bit_diff_rs = CHAR_BIT - bit_diff_ls;
+        dst[dst_offset / 8U] = uint8_t((dst[dst_offset / 8U] & ~write_mask) | (src_data & write_mask));
 
-                c = static_cast<unsigned char>(*src++ << bit_diff_ls);
-                c = static_cast<unsigned char>(c | (*src >> bit_diff_rs));
-                c &= reverse_mask_xor[dst_offset_modulo];
-            }
-            else
-            {
-                bit_diff_rs = dst_offset_modulo - src_offset_modulo;
-                bit_diff_ls = CHAR_BIT - bit_diff_rs;
-
-                c = static_cast<unsigned char>(*src >> bit_diff_rs & reverse_mask_xor[dst_offset_modulo]);
-            }
-            PREPARE_FIRST_COPY();
-            *dst++ |= c;
-
-            /*
-             * Middle: copy with only shifting the source.
-             */
-            int byte_len = int(src_len / CHAR_BIT);
-
-            while (--byte_len >= 0)
-            {
-                c = static_cast<unsigned char>(*src++ << bit_diff_ls);
-                c = static_cast<unsigned char>(c | (*src >> bit_diff_rs));
-                *dst++ = c;
-            }
-
-            /*
-             * End: copy the remaing bits;
-             */
-            unsigned src_len_modulo = src_len % CHAR_BIT;
-            if (src_len_modulo > 0U)
-            {
-                c = static_cast<unsigned char>(*src++ << bit_diff_ls);
-                c = static_cast<unsigned char>(c | (*src >> bit_diff_rs));
-                c &= reverse_mask[src_len_modulo];
-
-                *dst &= reverse_mask_xor[src_len_modulo];
-                *dst |= c;
-            }
-        }
+        src_offset += copy_bits;
+        dst_offset += copy_bits;
     }
 }
-
 }
