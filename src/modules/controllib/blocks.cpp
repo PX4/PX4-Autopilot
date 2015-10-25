@@ -123,7 +123,7 @@ int blockLimitSymTest()
 
 float BlockLowPass::update(float input)
 {
-	if (!isfinite(getState())) {
+	if (!PX4_ISFINITE(getState())) {
 		setState(input);
 	}
 
@@ -203,7 +203,7 @@ int blockHighPassTest()
 
 float BlockLowPass2::update(float input)
 {
-	if (!isfinite(getState())) {
+	if (!PX4_ISFINITE(getState())) {
 		setState(input);
 	}
 

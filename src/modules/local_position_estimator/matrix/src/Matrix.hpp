@@ -58,6 +58,11 @@ public:
 	 * Accessors/ Assignment etc.
 	 */
 
+	T *data()
+	{
+		return _data[0];
+	}
+
 	inline size_t rows() const
 	{
 		return _rows;
