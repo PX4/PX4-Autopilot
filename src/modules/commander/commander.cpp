@@ -796,8 +796,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			}
 
 			if (cmd_result == vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED) {
-				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home->lat, home->lon, (double)home->alt);
-				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home->lat, home->lon, (double)home->alt);
+				mavlink_and_console_log_info(mavlink_fd, "Home position: %.7f, %.7f, %.2f", home->lat, home->lon, (double)home->alt);
 
 				/* announce new home position */
 				if (*home_pub != nullptr) {
@@ -2062,12 +2061,12 @@ int commander_thread_main(int argc, char *argv[])
 			static bool flight_termination_printed = false;
 
 			if (!flight_termination_printed) {
-				warnx("Flight termination because of navigator request");
+				mavlink_and_console_log_critical(mavlink_fd, "Geofence violation: flight termination");
 				flight_termination_printed = true;
 			}
 
 			if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-				mavlink_log_critical(mavlink_fd, "Flight termination active");
+				mavlink_and_console_log_critical(mavlink_fd, "Flight termination active");
 			}
 		}
 
