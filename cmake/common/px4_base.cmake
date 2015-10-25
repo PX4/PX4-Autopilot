@@ -633,10 +633,16 @@ function(px4_add_common_flags)
 		-DCONFIG_ARCH_BOARD_${board_config}
 		)
 
-
+	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
+		set(added_exe_link_flags
+			-Wl,--warn-common
+			-Wl,--gc-sections
+			)
+	else()
 		set(added_exe_link_flags
 			-Wl,--warn-common
 			)
+	endif()
 
 	# output
 	foreach(var ${inout_vars})
