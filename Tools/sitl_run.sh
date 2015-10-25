@@ -38,7 +38,7 @@ then
 	if [ -x "$(command -v gazebo)" ]
 	then
 		gazebo ${SITL_GAZEBO_PATH}/worlds/iris.world &
-		SIM_PID=echo $!
+		SIM_PID=`echo $!`
 	else
 		echo "You need to have gazebo simulator installed!"
 		exit 1
