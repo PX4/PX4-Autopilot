@@ -390,8 +390,6 @@ PWMSim::task_main()
 	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
 
 
-	DEVICE_LOG("starting");
-
 	/* loop until killed */
 	while (!_task_should_exit) {
 
