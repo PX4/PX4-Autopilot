@@ -378,8 +378,6 @@ PWMSim::task_main()
 		break;
 	}
 
-	DEVICE_LOG("starting");
-
 	/* loop until killed */
 	while (!_task_should_exit) {
 
