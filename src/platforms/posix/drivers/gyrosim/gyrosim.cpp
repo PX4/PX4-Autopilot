@@ -1056,7 +1056,7 @@ void
 GYROSIM::measure()
 {
 
-#if 1
+#if 0
 	static int x = 0;
 
 	// Verify the samples are being taken at the expected rate
