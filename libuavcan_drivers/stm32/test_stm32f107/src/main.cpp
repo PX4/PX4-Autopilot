@@ -28,6 +28,13 @@ void init()
 {
     board::init();
 
+    /*
+     * CAN auto bit rate detection.
+     * Automatic bit rate detection requires that the bus has at least one other CAN node publishing some
+     * frames periodically.
+     * Auto bit rate detection can be bypassed byif the desired bit rate is passed directly to can.init(), e.g.:
+     *   can.init(1000000);
+     */
     int res = 0;
     do
     {
