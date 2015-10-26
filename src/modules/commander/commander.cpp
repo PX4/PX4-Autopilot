@@ -921,6 +921,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_eph = param_find("COM_HOME_H_T");
 	param_t _param_epv = param_find("COM_HOME_V_T");
 	param_t _param_geofence_action = param_find("GF_ACTION");
+	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 
 	// const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
 	// main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
@@ -1270,6 +1271,8 @@ int commander_thread_main(int argc, char *argv[])
 
 	int autosave_params; /**< Autosave of parameters enabled/disabled, loaded from parameter */
 
+	int32_t disarm_when_landed = 0;
+
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
@@ -1349,6 +1352,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
+			param_get(_param_disarm_land, &disarm_when_landed);
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
@@ -1623,12 +1627,13 @@ int commander_thread_main(int argc, char *argv[])
 			    &(status.condition_local_altitude_valid), &status_changed);
 
 		/* Update land detector */
+		static bool check_for_disarming = false;
 		orb_check(land_detector_sub, &updated);
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), land_detector_sub, &land_detector);
 		}
 
-		if (updated && status.condition_local_altitude_valid) {
+		if ((updated && status.condition_local_altitude_valid) || check_for_disarming) {
 			if (status.condition_landed != land_detector.landed) {
 				status.condition_landed = land_detector.landed;
 				status_changed = true;
@@ -1641,14 +1646,22 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (land_detector.landed) {
-				if (_inair_last_time > 0 && ((hrt_absolute_time() - _inair_last_time) > 5 * 1000 * 1000)) {
-					mavlink_log_critical(mavlink_fd, "AUTO DISARMING AFTER LANDING");
-					arm_disarm(false, mavlink_fd, "auto disarm on land");
-					_inair_last_time = 0;
+			if (disarm_when_landed > 0) {
+				if (land_detector.landed) {
+					if (!check_for_disarming && _inair_last_time > 0) {
+						_inair_last_time = land_detector.timestamp;
+						check_for_disarming = true;
+					}
+
+					if (_inair_last_time > 0 && ((hrt_absolute_time() - _inair_last_time) > (hrt_abstime)disarm_when_landed * 1000 * 1000)) {
+						mavlink_log_critical(mavlink_fd, "AUTO DISARMING AFTER LANDING");
+						arm_disarm(false, mavlink_fd, "auto disarm on land");
+						_inair_last_time = 0;
+						check_for_disarming = false;
+					}
+				} else {
+					_inair_last_time = land_detector.timestamp;
 				}
-			} else {
-				_inair_last_time = land_detector.timestamp;
 			}
 		}
 
