@@ -749,8 +749,7 @@ void BlockLocalPositionEstimator::predict()
 	if (_integrate.get() && _sub_att.get().R_valid) {
 		Matrix3f R_att(_sub_att.get().R);
 		Vector3f a(_sub_sensor.get().accelerometer_m_s2);
-		Vector3f b(_x(X_bx), _x(X_by), _x(X_bz));
-		_u = R_att * (a - b);
+		_u = R_att * a;
 		_u(U_az) += 9.81f; // add g
 
 	} else {
