@@ -27,7 +27,7 @@ before_install:
     - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
     - sudo apt-get install libgtest-dev gcc-arm-none-eabi
     - "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
-before_script: "mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug"
+before_script: "mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DCONTINUOUS_INTEGRATION_BUILD=1"
 script:
     - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "native" ]; then make ; fi
     - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "lpc11c24" ]; then cd "$TRAVIS_BUILD_DIR/libuavcan_drivers/lpc11c24/test_olimex_lpc_p11c24" && make all ; fi

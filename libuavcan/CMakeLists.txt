@@ -92,9 +92,16 @@ function(add_libuavcan_test name library flags) # Adds GTest executable and crea
 
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
-    add_custom_command(TARGET ${name} POST_BUILD
-                       COMMAND ./${name} 1>"${name}.log" 2>&1
-                       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    if (CONTINUOUS_INTEGRATION_BUILD)
+        # Don't redirect test output, and don't run tests suffixed with "RealTime"
+        add_custom_command(TARGET ${name} POST_BUILD
+                           COMMAND ./${name} --gtest_filter=-*RealTime
+                           WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    else ()
+        add_custom_command(TARGET ${name} POST_BUILD
+                           COMMAND ./${name} 1>"${name}.log" 2>&1
+                           WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    endif()
 endfunction()
 
 if (DEBUG_BUILD)
