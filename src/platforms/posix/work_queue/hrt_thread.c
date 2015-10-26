@@ -63,7 +63,7 @@
  ****************************************************************************/
 
 /* The state of each work queue. */
-struct wqueue_s g_hrt_work;
+struct wqueue_s g_hrt_work = {};
 
 /****************************************************************************
  * Private Variables
