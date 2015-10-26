@@ -68,12 +68,12 @@ touch rootfs/eeprom/parameters
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
 then
-	lldb -- mainapp ../../../../$rc_script
+	lldb -- mainapp ../../../../${rc_script}_${program}
 elif [ "$debugger" == "gdb" ]
 then
-	gdb --args mainapp ../../../../$rc_script
+	gdb --args mainapp ../../../../${rc_script}_${program}
 else
-	./mainapp ../../../../$rc_script
+	./mainapp ../../../../${rc_script}_${program}
 fi
 
 if [ "$3" == "jmavsim" ]
