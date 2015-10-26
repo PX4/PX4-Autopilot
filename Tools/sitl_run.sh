@@ -38,7 +38,7 @@ then
 	cd Tools/jMAVSim
 	ant
 	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
-	SIM_PID=echo $!
+	SIM_PID=`echo $!`
 elif [ "$3" == "gazebo" ]
 then
 	if [ -x "$(command -v gazebo)" ]
