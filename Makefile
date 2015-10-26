@@ -36,7 +36,19 @@
 # We depend on our submodules, so we have to prevent attempts to
 # compile without it being present.
 ifeq ($(wildcard .git),)
-	$(error YOU HAVE TO USE GIT TO DOWNLOAD THIS REPOSITORY. ABORTING.)
+    $(error YOU HAVE TO USE GIT TO DOWNLOAD THIS REPOSITORY. ABORTING.)
+endif
+
+CMAKE_VER := $(shell Tools/check_cmake.sh; echo $$?)
+ifneq ($(CMAKE_VER),0)
+    $(warning Not a valid CMake version or CMake not installed.)
+    $(warning On Ubuntu, install or upgrade via:)
+    $(warning )
+    $(warning sudo add-apt-repository ppa:george-edison55/cmake-3.x -y)
+    $(warning sudo apt-get update)
+    $(warning sudo apt-get install cmake)
+    $(warning )
+    $(error Fatal)
 endif
 
 # Help
