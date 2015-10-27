@@ -149,7 +149,7 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define PRINT_INTERVAL	5000000
 #define PRINT_MODE_REJECT_INTERVAL	10000000
 
-#define INAIR_RESTART_HOLDOFF_INTERVAL	2000000
+#define INAIR_RESTART_HOLDOFF_INTERVAL	1000000
 
 #define HIL_ID_MIN 1000
 #define HIL_ID_MAX 1999
@@ -882,6 +882,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	bool arm_tune_played = false;
 	bool was_landed = true;
+	bool was_armed = false;
 
 	bool startup_in_hil = false;
 
@@ -2248,10 +2249,12 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
-		else if (was_landed && !status.condition_landed && now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL) {
+		else if (((!was_armed && armed.armed) || (was_landed && !status.condition_landed)) &&
+			(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
 			commander_set_home_position(home_pub, _home, local_position, global_position);
 		}
 		was_landed = status.condition_landed;
+		was_armed = armed.armed;
 
 		/* print new state */
 		if (arming_state_changed) {
