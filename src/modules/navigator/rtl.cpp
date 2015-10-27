@@ -190,7 +190,7 @@ RTL::set_rtl_item()
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
-		_mission_item.yaw = NAN;
+		_mission_item.yaw = _navigator->get_home_position()->yaw;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
