@@ -290,6 +290,30 @@ PARAM_DEFINE_FLOAT(INAV_LAND_THR, 0.2f);
 PARAM_DEFINE_FLOAT(INAV_DELAY_GPS, 0.2f);
 
 /**
+ * Flow module offset (center of rotation) in X direction
+ *
+ * Yaw X flow compensation
+ *
+ * @min -1.0
+ * @max 1.0
+ * @unit m
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_X, 0.0f);
+
+/**
+ * Flow module offset (center of rotation) in Y direction
+ *
+ * Yaw Y flow compensation
+ *
+ * @min -1.0
+ * @max 1.0
+ * @unit m
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_Y, 0.0f);
+
+/**
  * Disable vision input
  *
  * Set to the appropriate key (328754) to disable vision input.
@@ -338,6 +362,8 @@ int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 	h->land_thr = param_find("INAV_LAND_THR");
 	h->no_vision = param_find("CBRK_NO_VISION");
 	h->delay_gps = param_find("INAV_DELAY_GPS");
+	h->flow_module_offset_x = param_find("INAV_FLOW_DIST_X");
+	h->flow_module_offset_y = param_find("INAV_FLOW_DIST_Y");
 
 	return 0;
 }
@@ -366,6 +392,8 @@ int inav_parameters_update(const struct position_estimator_inav_param_handles *h
 	param_get(h->land_thr, &(p->land_thr));
 	param_get(h->no_vision, &(p->no_vision));
 	param_get(h->delay_gps, &(p->delay_gps));
+	param_get(h->flow_module_offset_x, &(p->flow_module_offset_x));
+	param_get(h->flow_module_offset_y, &(p->flow_module_offset_y));
 
 	return 0;
 }

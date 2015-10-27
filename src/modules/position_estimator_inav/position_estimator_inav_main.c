@@ -322,16 +322,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	hrt_abstime lidar_time = 0;			// time of last lidar measurement (not filtered)
 	hrt_abstime lidar_valid_time = 0;	// time of last lidar measurement used for correction (filtered)
 
-	//----------test--------------------------
-	float flow_test[] = { 0.0f, 0.0f };
-	float pos_test[] = { 0.0f, 0.0f };
-	float flow_test_average[] = { 0.0f, 0.0f };
 	int n_flow = 0;
-	float gyro_offset_filtered[] = { 0.0f, 0.0f };
-	float flow_gyrospeed[] = { 0.0f, 0.0f };
-	float flow_gyrospeed_filtered[] = { 0.0f, 0.0f };
-	float att_gyrospeed_filtered[] = { 0.0f, 0.0f };
-	//----------------------------------------
+	float gyro_offset_filtered[] = { 0.0f, 0.0f, 0.0f };
+	float flow_gyrospeed[] = { 0.0f, 0.0f, 0.0f };
+	float flow_gyrospeed_filtered[] = { 0.0f, 0.0f, 0.0f };
+	float att_gyrospeed_filtered[] = { 0.0f, 0.0f, 0.0f };
+	float yaw_comp[] = { 0.0f, 0.0f };
 
 	bool gps_valid = false;			// GPS is valid
 	bool lidar_valid = false;		// lidar is valid
@@ -505,12 +501,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 								acc[i] += PX4_R(att.R, i, j) * sensor.accelerometer_m_s2[j];
 							}
 						}
-						//------------test----------------------
-						//dont convert into NED for tests
-						//acc[0] = sensor.accelerometer_m_s2[0];
-						//acc[1] = sensor.accelerometer_m_s2[1];
-						//acc[2] = sensor.accelerometer_m_s2[2];
-						//---------------------------------------
 
 						acc[2] += CONSTANTS_ONE_G;
 
@@ -580,7 +570,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float flow_q = flow.quality / 255.0f;
 				float dist_bottom = - z_est[0] - surface_offset; //lidar.current_distance;
 
-				if (dist_bottom > 0.21f && flow_q > params.flow_q_min /*&& (t < lidar_valid_time + lidar_valid_timeout) && PX4_R(att.R, 2, 2) > 0.7f*/) {
+				if (dist_bottom > 0.21f && flow_q > params.flow_q_min) {
 					/* distance to surface */
 					//float flow_dist = dist_bottom / PX4_R(att.R, 2, 2); //use this if using sonar
 					float flow_dist = dist_bottom; //use this if using lidar
@@ -599,11 +589,45 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					//this flag is not working -->
 					flow_accurate = true; //already checked if flow_q > 0.3
 
+
+					/*calculate offset of flow-gyro using already calibrated gyro from autopilot*/
+					flow_gyrospeed[0] = flow.gyro_x_rate_integral/(float)flow.integration_timespan*1000000.0f;
+					flow_gyrospeed[1] = flow.gyro_y_rate_integral/(float)flow.integration_timespan*1000000.0f;
+					flow_gyrospeed[2] = flow.gyro_z_rate_integral/(float)flow.integration_timespan*1000000.0f;
+					
+					//moving average
+					if (n_flow >= 100) {
+						gyro_offset_filtered[0] = flow_gyrospeed_filtered[0] - att_gyrospeed_filtered[0];
+						gyro_offset_filtered[1] = flow_gyrospeed_filtered[1] - att_gyrospeed_filtered[1];
+						gyro_offset_filtered[2] = flow_gyrospeed_filtered[2] - att_gyrospeed_filtered[2];
+						n_flow = 0;
+						flow_gyrospeed_filtered[0] = 0.0f;
+						flow_gyrospeed_filtered[1] = 0.0f;
+						flow_gyrospeed_filtered[2] = 0.0f;
+						att_gyrospeed_filtered[0] = 0.0f;
+						att_gyrospeed_filtered[1] = 0.0f;
+						att_gyrospeed_filtered[2] = 0.0f;
+					} else {
+						flow_gyrospeed_filtered[0] = (flow_gyrospeed[0] + n_flow * flow_gyrospeed_filtered[0]) / (n_flow + 1);
+						flow_gyrospeed_filtered[1] = (flow_gyrospeed[1] + n_flow * flow_gyrospeed_filtered[1]) / (n_flow + 1);
+						flow_gyrospeed_filtered[2] = (flow_gyrospeed[2] + n_flow * flow_gyrospeed_filtered[2]) / (n_flow + 1);
+						att_gyrospeed_filtered[0] = (att.pitchspeed + n_flow * att_gyrospeed_filtered[0]) / (n_flow + 1);
+						att_gyrospeed_filtered[1] = (att.rollspeed + n_flow * att_gyrospeed_filtered[1]) / (n_flow + 1);
+						att_gyrospeed_filtered[2] = (att.yawspeed + n_flow * att_gyrospeed_filtered[2]) / (n_flow + 1);
+						n_flow++;
+					}
+					
+
+					/*yaw compensation (flow sensor is not in center of rotation) -> params in QGC*/
+					yaw_comp[0] = params.flow_module_offset_x * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
+					yaw_comp[1] =  - params.flow_module_offset_y * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
+
+
 					/* convert raw flow to angular flow (rad/s) */
 					float flow_ang[2];
 					//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
-					flow_ang[0] = (flow.pixel_flow_x_integral - flow.gyro_x_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[0];//flow.flow_raw_x * params.flow_k / 1000.0f / flow_dt;
-					flow_ang[1] = (flow.pixel_flow_y_integral - flow.gyro_y_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[1];//flow.flow_raw_y * params.flow_k / 1000.0f / flow_dt;
+					flow_ang[0] = (flow.pixel_flow_x_integral - flow.gyro_x_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[0] - yaw_comp[0];//flow.flow_raw_x * params.flow_k / 1000.0f / flow_dt;
+					flow_ang[1] = (flow.pixel_flow_y_integral - flow.gyro_y_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[1] - yaw_comp[1];//flow.flow_raw_y * params.flow_k / 1000.0f / flow_dt;
 					/* flow measurements vector */
 					float flow_m[3];
 					flow_m[0] = -flow_ang[0] * flow_dist;
@@ -619,43 +643,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 					}
 
-					//-----------test-------------------
-					//do not transform to NED for testing
-					//flow_v[0] = flow_m[0];
-					//flow_v[1] = flow_m[1];
-
-					flow_test[0] = flow_v[0];
-					flow_test[1] = flow_v[1];
-
-					flow_test_average[0] = (flow.pixel_flow_x_integral + flow_test_average[0] * n_flow) / (n_flow + 1);
-					flow_test_average[1] = (flow.pixel_flow_y_integral + flow_test_average[1] * n_flow) / (n_flow + 1);
-
-					//calculate offset of flow-gyro using already calibrated gyro from autopilot
-					flow_gyrospeed[0] = flow.gyro_x_rate_integral/(float)flow.integration_timespan*1000000.0f;
-					flow_gyrospeed[1] = flow.gyro_y_rate_integral/(float)flow.integration_timespan*1000000.0f;
-					
-					
-					
-					//moving average
-					if (n_flow >= 100) {
-						gyro_offset_filtered[0] = flow_gyrospeed_filtered[0] - att_gyrospeed_filtered[0];
-						gyro_offset_filtered[1] = flow_gyrospeed_filtered[1] - att_gyrospeed_filtered[1];
-						n_flow = 0;
-						flow_gyrospeed_filtered[0] = 0.0f;
-						flow_gyrospeed_filtered[1] = 0.0f;
-						att_gyrospeed_filtered[0] = 0.0f;
-						att_gyrospeed_filtered[1] = 0.0f;
-					} else {
-						flow_gyrospeed_filtered[0] = (flow_gyrospeed[0] + n_flow * flow_gyrospeed_filtered[0]) / (n_flow + 1);
-						flow_gyrospeed_filtered[1] = (flow_gyrospeed[1] + n_flow * flow_gyrospeed_filtered[1]) / (n_flow + 1);
-						att_gyrospeed_filtered[0] = (att.rollspeed + n_flow * att_gyrospeed_filtered[0]) / (n_flow + 1);
-						att_gyrospeed_filtered[1] = (att.rollspeed + n_flow * att_gyrospeed_filtered[1]) / (n_flow + 1);
-						n_flow++;
-						//mavlink_log_info(mavlink_fd, "n_flow = %d\n", (int)n_flow);
-					}
-					
-					//----------------------------------
-
 					/* velocity correction */
 					corr_flow[0] = flow_v[0] - x_est[1];
 					corr_flow[1] = flow_v[1] - y_est[1];
@@ -669,11 +656,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (!flow_accurate) {
 						w_flow *= 0.05f;
 					}
-
-					//--------test-------------
-					//mavlink_log_info(mavlink_fd, "flow_accurate = %d\t w_flow = %4.4f\n", (int)flow_accurate, (double)w_flow);
-					//w_flow = 0.8;
-					//-------------------------
 
 					/* under ideal conditions, on 1m distance assume EPH = 10cm */
 					eph_flow = 0.1f / w_flow;
@@ -1282,27 +1264,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				buf_ptr = 0;
 			}
 
-			//-------------test--------------
-			pos_test[0] += flow_test[0] * dt;
-			pos_test[1] += flow_test[1] * dt;
-			//-------------------------------
-
 			/* publish local position */
 			local_pos.xy_valid = can_estimate_xy;
 			local_pos.v_xy_valid = can_estimate_xy;
 			local_pos.xy_global = local_pos.xy_valid && use_gps_xy;
 			local_pos.z_global = local_pos.z_valid && use_gps_z;
-			local_pos.x = corr_baro; //test
 			local_pos.x = x_est[0];
-			local_pos.vx = surface_offset; // flow_test[0]; //test
 			local_pos.vx = x_est[1];
-			local_pos.y = acc_bias[2]; //test
 			local_pos.y = y_est[0];
-			local_pos.vy = flow_gyrospeed_filtered[0]; //test
 			local_pos.vy = y_est[1];
-			local_pos.z = lidar.current_distance; //flow_test[0];  //test
 			local_pos.z = z_est[0];
-			local_pos.vz = - z_est[0] - surface_offset; //flow_test[1]; //test
 			local_pos.vz = z_est[1];
 			local_pos.yaw = att.yaw;
 			local_pos.dist_bottom_valid = dist_bottom_valid;
@@ -1311,7 +1282,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (local_pos.dist_bottom_valid) {
 				local_pos.dist_bottom = -z_est[0] - surface_offset;
-				local_pos.dist_bottom_rate = -z_est[1] - surface_offset_rate;
+				local_pos.dist_bottom_rate = - z_est[1] - surface_offset_rate;
 			}
 
 			local_pos.timestamp = t;

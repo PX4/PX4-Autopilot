@@ -65,6 +65,8 @@ struct position_estimator_inav_params {
 	float land_thr;
 	int32_t no_vision;
 	float delay_gps;
+	float flow_module_offset_x;
+	float flow_module_offset_y;
 };
 
 struct position_estimator_inav_param_handles {
@@ -91,6 +93,8 @@ struct position_estimator_inav_param_handles {
 	param_t land_thr;
 	param_t no_vision;
 	param_t delay_gps;
+	param_t flow_module_offset_x;
+	param_t flow_module_offset_y;
 };
 
 #define CBRK_NO_VISION_KEY	328754
