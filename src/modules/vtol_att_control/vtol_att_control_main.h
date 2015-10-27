@@ -190,7 +190,6 @@ private:
 	/* for multicopters it is usual to have a non-zero idle speed of the engines
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
-	unsigned _motor_count;	// number of motors
 	float _airspeed_tot;
 	int _transition_command;
 
