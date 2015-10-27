@@ -288,11 +288,11 @@ Standard::set_max_mc(unsigned pwm_value)
 	int ret;
 	unsigned servo_count;
 	char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	int fd = open(dev, 0);
+	int fd = px4_open(dev, 0);
 
-	if (fd < 0) {err(1, "can't open %s", dev);}
+	if (fd < 0) {PX4_WARN("can't open %s", dev);}
 
-	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
@@ -301,9 +301,9 @@ Standard::set_max_mc(unsigned pwm_value)
 		pwm_values.channel_count = _params->vtol_motor_count;
 	}
 
-	ret = ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
+	ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
 
-	if (ret != OK) {errx(ret, "failed setting max values");}
+	if (ret != OK) {PX4_WARN("failed setting max values");}
 
-	close(fd);
+	px4_close(fd);
 }

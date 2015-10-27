@@ -150,7 +150,7 @@ VtolAttitudeControl::~VtolAttitudeControl()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_control_task);
+				px4_task_delete(_control_task);
 				break;
 			}
 		} while (_control_task != -1);
@@ -442,7 +442,7 @@ VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 
 void VtolAttitudeControl::task_main()
 {
-	warnx("started");
+	PX4_WARN("started");
 	fflush(stdout);
 
 	/* do subscriptions */
@@ -471,7 +471,7 @@ void VtolAttitudeControl::task_main()
 	_vtol_type->set_idle_mc();
 
 	/* wakeup source*/
-	struct pollfd fds[3];	/*input_mc, input_fw, parameters*/
+	px4_pollfd_struct_t fds[3];	/*input_mc, input_fw, parameters*/
 
 	fds[0].fd     = _actuator_inputs_mc;
 	fds[0].events = POLLIN;
@@ -491,7 +491,7 @@ void VtolAttitudeControl::task_main()
 		}
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 
 		/* timed out - periodic check for _task_should_exit */
@@ -633,7 +633,7 @@ void VtolAttitudeControl::task_main()
 
 	warnx("exit");
 	_control_task = -1;
-	_exit(0);
+	return;
 }
 
 int
@@ -646,11 +646,11 @@ VtolAttitudeControl::start()
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 10,
 				       2048,
-				       (main_t)&VtolAttitudeControl::task_main_trampoline,
+				       (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
 				       nullptr);
 
 	if (_control_task < 0) {
-		warn("task start failed");
+		PX4_WARN("task start failed");
 		return -errno;
 	}
 
@@ -661,49 +661,53 @@ VtolAttitudeControl::start()
 int vtol_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		errx(1, "usage: vtol_att_control {start|stop|status}");
+		PX4_WARN("usage: vtol_att_control {start|stop|status}");
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (VTOL_att_control::g_control != nullptr) {
-			errx(1, "already running");
+			PX4_WARN("already running");
+			return 0;
 		}
 
 		VTOL_att_control::g_control = new VtolAttitudeControl;
 
 		if (VTOL_att_control::g_control == nullptr) {
-			errx(1, "alloc failed");
+			PX4_WARN("alloc failed");
+			return 1;
 		}
 
 		if (OK != VTOL_att_control::g_control->start()) {
 			delete VTOL_att_control::g_control;
 			VTOL_att_control::g_control = nullptr;
-			err(1, "start failed");
+			PX4_WARN("start failed");
+			return 1;
 		}
 
-		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		if (VTOL_att_control::g_control == nullptr) {
-			errx(1, "not running");
+			PX4_WARN("not running");
+			return 0;
 		}
 
 		delete VTOL_att_control::g_control;
 		VTOL_att_control::g_control = nullptr;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (VTOL_att_control::g_control) {
-			errx(0, "running");
+			PX4_WARN("running");
 
 		} else {
-			errx(1, "not running");
+			PX4_WARN("not running");
 		}
+		return 0;
 	}
 
-	warnx("unrecognized command");
+	PX4_WARN("unrecognized command");
 	return 1;
 }

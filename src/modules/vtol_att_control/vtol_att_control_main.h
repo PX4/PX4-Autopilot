@@ -46,6 +46,10 @@
 #ifndef VTOL_ATT_CONTROL_MAIN_H
 #define VTOL_ATT_CONTROL_MAIN_H
 
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,7 +84,6 @@
 #include <systemlib/circuit_breaker.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
-#include <nuttx/fs/ioctl.h>
 #include <fcntl.h>
 
 #include "tiltrotor.h"
