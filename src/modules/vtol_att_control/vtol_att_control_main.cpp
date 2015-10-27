@@ -741,11 +741,7 @@ VtolAttitudeControl::start()
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 10,
 					   2048,
-<<<<<<< HEAD
 					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
-=======
-					   (main_t)&VtolAttitudeControl::task_main_trampoline,
->>>>>>> fixed code style
 					   nullptr);
 
 	if (_control_task < 0) {
