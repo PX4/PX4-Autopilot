@@ -105,6 +105,7 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 #define HDG_HOLD_YAWRATE_THRESH 	0.15f 		// max yawrate at which plane locks yaw for heading hold mode
 #define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll input from user which does not change the locked heading
 #define TAKEOFF_IDLE				0.2f 		// idle speed for POSCTRL/ATTCTRL (when landed and throttle stick > 0)
+#define T_ALT_TIMEOUT 				1 			// time after which we abort landing if terrain estimate is not valid
 
 static constexpr float THROTTLE_THRESH = 0.05f; 	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH = 0.85f;	///< a throttle / pitch input above this value leads to the system switching to climbout mode
@@ -195,6 +196,11 @@ private:
 	bool land_motor_lim;
 	bool land_onslope;
 	bool land_useterrain;
+
+	// terrain estimation states
+	float _t_alt_prev_valid;	//**< last terrain estimate which was valid */
+	hrt_abstime _time_last_t_alt; //*< time at which we had last valid terrain alt */
+	hrt_abstime _time_started_landing;	//*< time at which landing started */
 
 	bool _was_in_air;	/**< indicated wether the plane was in the air in the previous interation*/
 	hrt_abstime _time_went_in_air;	/**< time at which the plane went in the air */
@@ -530,6 +536,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_motor_lim(false),
 	land_onslope(false),
 	land_useterrain(false),
+	_t_alt_prev_valid(0),
+	_time_last_t_alt(0),
+	_time_started_landing(0),
 	_was_in_air(false),
 	_time_went_in_air(0),
 	_runway_takeoff(),
@@ -1198,13 +1207,24 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
-			if (in_takeoff_situation()) {
+			float alt_sp;
+			if (_nav_capabilities.abort_landing == true) {
+				// if we entered loiter due to an aborted landing, demand
+				// altitude setpoint well above landing waypoint
+				alt_sp = _pos_sp_triplet.current.alt + 2.0f * _parameters.climbout_diff;
+			} else {
+				// use altitude given by wapoint
+				alt_sp = _pos_sp_triplet.current.alt;
+			}
+
+			if (in_takeoff_situation() ||
+				((_global_pos.alt < _pos_sp_triplet.current.alt + _parameters.climbout_diff ) && _nav_capabilities.abort_landing == true)) {
 					/* limit roll motion to ensure enough lift */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
 							math::radians(15.0f));
 			}
 
-			tecs_update_pitch_throttle(_pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
+			tecs_update_pitch_throttle(alt_sp, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
 						math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
 						_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 						false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
@@ -1214,6 +1234,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			// apply full flaps for landings. this flag will also trigger the use of flaperons
 			// if they have been enabled using the corresponding parameter
 			_att_sp.apply_flaps = true;
+
+			// save time at which we started landing
+			if (_time_started_landing == 0) {
+				_time_started_landing = hrt_absolute_time();
+			}
 
 			float bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
@@ -1273,7 +1298,40 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			/* Get an estimate of the terrain altitude if available, otherwise terrain_alt will be
 			 * equal to _pos_sp_triplet.current.alt */
-			float terrain_alt = get_terrain_altitude_landing(_pos_sp_triplet.current.alt, _global_pos);
+			float terrain_alt;
+			if (_parameters.land_use_terrain_estimate) {
+				if (_global_pos.terrain_alt_valid) {
+					// all good, have valid terrain altitude
+					terrain_alt = _global_pos.terrain_alt;
+					_t_alt_prev_valid = terrain_alt;
+					_time_last_t_alt = hrt_absolute_time();
+				} else if (_time_last_t_alt == 0) {
+					// we have started landing phase but don't have valid terrain
+					// wait for some time, maybe we will soon get a valid estimate
+					// until then just use the altitude of the landing waypoint
+					if (hrt_elapsed_time(&_time_started_landing) < 5 * 1000 * 1000) {
+						terrain_alt = _pos_sp_triplet.current.alt;
+					} else {
+						// still no valid terrain, abort landing
+						terrain_alt = _pos_sp_triplet.current.alt;
+						_nav_capabilities.abort_landing = true;
+					}
+				} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT * 1000 * 1000)
+					|| land_noreturn_vertical) {
+					// use previous terrain estimate for some time and hope to recover
+					// if we are already flaring (land_noreturn_vertical) then just
+					//  go with the old estimate
+					terrain_alt = _t_alt_prev_valid;
+				} else {
+					// terrain alt was not valid for long time, abort landing
+					terrain_alt = _t_alt_prev_valid;
+					_nav_capabilities.abort_landing = true;
+				}
+			} else {
+				// no terrain estimation, just use landing waypoint altitude
+				terrain_alt = _pos_sp_triplet.current.alt;
+			}
+			
 
 			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
 			float L_altitude_rel = _pos_sp_triplet.previous.valid ?
@@ -1720,8 +1778,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/** MANUAL FLIGHT **/
 
-		/* reset hold altitude */
+		// reset hold altitude
 		_hold_alt = _global_pos.alt;
+
+		// reset terrain estimation relevant values
+		_time_started_landing = 0;
+		_time_last_t_alt = 0;
+
+		// reset lading abort state
+		_nav_capabilities.abort_landing = false;
 
 		/* no flight mode applies, do not publish an attitude setpoint */
 		setpoint = false;

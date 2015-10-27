@@ -440,8 +440,15 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-				_pos_sp_triplet_published_invalid_once = false;
-				_navigation_mode = &_mission;
+				if (_nav_caps.abort_landing) {
+					// pos controller aborted landing, requests loiter
+					// above landing waypoint
+					_navigation_mode = &_loiter;
+					_pos_sp_triplet_published_invalid_once = false;
+				} else {
+					_pos_sp_triplet_published_invalid_once = false;
+					_navigation_mode = &_mission;
+				}
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 				_pos_sp_triplet_published_invalid_once = false;
