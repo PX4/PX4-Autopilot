@@ -143,6 +143,9 @@ ros_sitl_simple:
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
+qurt_eagle_release:
+	$(call cmake-build,$@)
+
 posix_eagle_release:
 	$(call cmake-build,$@)
 

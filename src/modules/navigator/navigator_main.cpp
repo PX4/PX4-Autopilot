@@ -405,10 +405,14 @@ Navigator::task_main()
 
 		/* Check geofence violation */
 		static hrt_abstime last_geofence_check = 0;
-		if (have_geofence_position_data && hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL) {
+		if (have_geofence_position_data &&
+			(_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+			(hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
 			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter[0], _home_pos, _home_position_set);
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
+
+			_geofence_result.geofence_action = _geofence.getGeofenceAction();
 			if (!inside) {
 				/* inform other apps via the mission result */
 				_geofence_result.geofence_violated = true;
