@@ -143,7 +143,7 @@ PARAM_DEFINE_FLOAT(LPE_EPH_MAX, 3.0f);
  * @min 0.0
  * @max 1.0
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_DELAY, 0.3f);
+PARAM_DEFINE_FLOAT(LPE_GPS_DELAY, 0.25f);
 
 /**
  * Vision xy standard deviation.
