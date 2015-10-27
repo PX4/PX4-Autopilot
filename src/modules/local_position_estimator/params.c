@@ -135,7 +135,15 @@ PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 0.237f);
  */
 PARAM_DEFINE_FLOAT(LPE_EPH_MAX, 3.0f);
 
-
+/**
+ * GPS delay
+ *
+ * @group Local Position Estimator
+ * @unit seconds
+ * @min 0.0
+ * @max 1.0
+ */
+PARAM_DEFINE_FLOAT(LPE_GPS_DELAY, 0.3f);
 
 /**
  * Vision xy standard deviation.
