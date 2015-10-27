@@ -82,7 +82,7 @@ Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integ
 		// Coning compensation derived by Paul Riseborough and Jonathan Challinger,
 		// following:
 		// Tian et al (2010) Three-loop Integration of GPS and Strapdown INS with Coning and Sculling Compensation
-     		// Available: http://www.sage.unsw.edu.au/snap/publications/tian_etal2010b.pdf
+		// Available: http://www.sage.unsw.edu.au/snap/publications/tian_etal2010b.pdf
 
 		i += ((_integral_auto + _last_delta * (1.0f / 6.0f)) % i) * 0.5f;
 	}
@@ -117,6 +117,7 @@ math::Vector<3>
 Integrator::read(bool auto_reset)
 {
 	math::Vector<3> val = _integral_read;
+
 	if (auto_reset) {
 		_integral_read(0) = 0.0f;
 		_integral_read(1) = 0.0f;

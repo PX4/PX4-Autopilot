@@ -54,7 +54,7 @@ __BEGIN_DECLS
 #include <arch/board/board.h>
 
 #define UDID_START		0x1FFF7A10
- 
+
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
@@ -66,13 +66,13 @@ __BEGIN_DECLS
 
 
 #define GPIO_LED1       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN12)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN12)
 #define GPIO_LED2       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
 #define GPIO_LED3       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
 #define GPIO_LED4       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
 
 /* SPI chip selects */
 #define GPIO_SPI_CS_MEMS    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)

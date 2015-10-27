@@ -45,6 +45,7 @@ class Parameter(object):
         "min": 5,
         "max": 4,
         "unit": 3,
+        "decimal": 2,
         # all others == 0 (sorted alphabetically)
     }
 
@@ -106,7 +107,7 @@ class SourceParser(object):
     re_remove_dots = re.compile(r'\.+$')
     re_remove_carriage_return = re.compile('\n+')
 
-    valid_tags = set(["group", "board", "min", "max", "unit"])
+    valid_tags = set(["group", "board", "min", "max", "unit", "decimal"])
 
     # Order of parameter groups
     priority = {

@@ -3468,12 +3468,12 @@ px4io_main(int argc, char *argv[])
 
 		} else {
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-			fn[0] = "/etc/extras/px4io-v1_default.bin";
+			fn[0] = "/etc/extras/px4io-v1.bin";
 			fn[1] =	"/fs/microsd/px4io1.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";
 			fn[3] =	nullptr;
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-			fn[0] = "/etc/extras/px4io-v2_default.bin";
+			fn[0] = "/etc/extras/px4io-v2.bin";
 			fn[1] =	"/fs/microsd/px4io2.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";
 			fn[3] =	nullptr;

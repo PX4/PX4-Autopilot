@@ -199,6 +199,7 @@ UBX::configure(unsigned &baudrate)
 	if (wait_for_ack(UBX_MSG_CFG_SBAS, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
 	}
+
 #endif
 
 	/* configure message rates */
@@ -207,41 +208,50 @@ UBX::configure(unsigned &baudrate)
 	/* try to set rate for NAV-PVT */
 	/* (implemented for ubx7+ modules only, use NAV-SOL, NAV-POSLLH, NAV-VELNED and NAV-TIMEUTC for ubx6) */
 	configure_message_rate(UBX_MSG_NAV_PVT, 1);
+
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		_use_nav_pvt = false;
+
 	} else {
 		_use_nav_pvt = true;
 	}
+
 	UBX_DEBUG("%susing NAV-PVT", _use_nav_pvt ? "" : "not ");
 
 	if (!_use_nav_pvt) {
 		configure_message_rate(UBX_MSG_NAV_TIMEUTC, 5);
+
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
 
 		configure_message_rate(UBX_MSG_NAV_POSLLH, 1);
+
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
 
 		configure_message_rate(UBX_MSG_NAV_SOL, 1);
+
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
 
 		configure_message_rate(UBX_MSG_NAV_VELNED, 1);
+
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
 	}
 
 	configure_message_rate(UBX_MSG_NAV_SVINFO, (_satellite_info != nullptr) ? 5 : 0);
+
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
 	}
 
 	configure_message_rate(UBX_MSG_MON_HW, 1);
+
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
 	}
@@ -269,9 +279,11 @@ UBX::wait_for_ack(const uint16_t msg, const unsigned timeout, const bool report)
 
 	if (_ack_state == UBX_ACK_GOT_ACK) {
 		ret = 0;	// ACK received ok
+
 	} else if (report) {
 		if (_ack_state == UBX_ACK_GOT_NAK) {
 			UBX_DEBUG("ubx msg 0x%04x NAK", SWAP16((unsigned)msg));
+
 		} else {
 			UBX_DEBUG("ubx msg 0x%04x ACK timeout", SWAP16((unsigned)msg));
 		}
@@ -359,6 +371,7 @@ UBX::parse_char(const uint8_t b)
 			UBX_TRACE_PARSER("\nA");
 			_decode_state = UBX_DECODE_SYNC2;
 		}
+
 		break;
 
 	/* Expecting Sync2 */
@@ -370,6 +383,7 @@ UBX::parse_char(const uint8_t b)
 		} else {		// Sync1 not followed by Sync2: reset parser
 			decode_init();
 		}
+
 		break;
 
 	/* Expecting Class */
@@ -401,38 +415,48 @@ UBX::parse_char(const uint8_t b)
 		UBX_TRACE_PARSER("F");
 		add_byte_to_checksum(b);
 		_rx_payload_length |= b << 8;	// calculate payload size
+
 		if (payload_rx_init() != 0) {	// start payload reception
 			// payload will not be handled, discard message
 			decode_init();
+
 		} else {
 			_decode_state = (_rx_payload_length > 0) ? UBX_DECODE_PAYLOAD : UBX_DECODE_CHKSUM1;
 		}
+
 		break;
 
 	/* Expecting payload */
 	case UBX_DECODE_PAYLOAD:
 		UBX_TRACE_PARSER(".");
 		add_byte_to_checksum(b);
+
 		switch (_rx_msg) {
 		case UBX_MSG_NAV_SVINFO:
 			ret = payload_rx_add_nav_svinfo(b);	// add a NAV-SVINFO payload byte
 			break;
+
 		case UBX_MSG_MON_VER:
 			ret = payload_rx_add_mon_ver(b);	// add a MON-VER payload byte
 			break;
+
 		default:
 			ret = payload_rx_add(b);		// add a payload byte
 			break;
 		}
+
 		if (ret < 0) {
 			// payload not handled, discard message
 			decode_init();
+
 		} else if (ret > 0) {
 			// payload complete, expecting checksum
 			_decode_state = UBX_DECODE_CHKSUM1;
+
 		} else {
 			// expecting more payload, stay in state UBX_DECODE_PAYLOAD
 		}
+
 		ret = 0;
 		break;
 
@@ -441,18 +465,22 @@ UBX::parse_char(const uint8_t b)
 		if (_rx_ck_a != b) {
 			UBX_WARN("ubx checksum err");
 			decode_init();
+
 		} else {
 			_decode_state = UBX_DECODE_CHKSUM2;
 		}
+
 		break;
 
 	/* Expecting second checksum byte */
 	case UBX_DECODE_CHKSUM2:
 		if (_rx_ck_b != b) {
 			UBX_WARN("ubx checksum err");
+
 		} else {
 			ret = payload_rx_done();	// finish payload processing
 		}
+
 		decode_init();
 		break;
 
@@ -475,83 +503,116 @@ UBX::payload_rx_init()
 
 	switch (_rx_msg) {
 	case UBX_MSG_NAV_PVT:
-		if (   (_rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX7)		/* u-blox 7 msg format */
-		    && (_rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX8))	/* u-blox 8+ msg format */
+		if ((_rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX7)		/* u-blox 7 msg format */
+		    && (_rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX8)) {	/* u-blox 8+ msg format */
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!_configured)
-			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
-		else if (!_use_nav_pvt)
-			_rx_state = UBX_RXMSG_DISABLE;	// disable if not using NAV-PVT
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+
+		} else if (!_use_nav_pvt) {
+			_rx_state = UBX_RXMSG_DISABLE;        // disable if not using NAV-PVT
+		}
+
 		break;
 
 	case UBX_MSG_NAV_POSLLH:
-		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_posllh_t))
+		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_posllh_t)) {
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!_configured)
-			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
-		else if (_use_nav_pvt)
-			_rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+
+		} else if (_use_nav_pvt) {
+			_rx_state = UBX_RXMSG_DISABLE;        // disable if using NAV-PVT instead
+		}
+
 		break;
 
 	case UBX_MSG_NAV_SOL:
-		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_sol_t))
+		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_sol_t)) {
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!_configured)
-			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
-		else if (_use_nav_pvt)
-			_rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+
+		} else if (_use_nav_pvt) {
+			_rx_state = UBX_RXMSG_DISABLE;        // disable if using NAV-PVT instead
+		}
+
 		break;
 
 	case UBX_MSG_NAV_TIMEUTC:
-		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_timeutc_t))
+		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_timeutc_t)) {
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!_configured)
-			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
-		else if (_use_nav_pvt)
-			_rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+
+		} else if (_use_nav_pvt) {
+			_rx_state = UBX_RXMSG_DISABLE;        // disable if using NAV-PVT instead
+		}
+
 		break;
 
 	case UBX_MSG_NAV_SVINFO:
-		if (_satellite_info == nullptr)
-			_rx_state = UBX_RXMSG_DISABLE;	// disable if sat info not requested
-		else if (!_configured)
-			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
-		else
-			memset(_satellite_info, 0, sizeof(*_satellite_info));	// initialize sat info
+		if (_satellite_info == nullptr) {
+			_rx_state = UBX_RXMSG_DISABLE;        // disable if sat info not requested
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+
+		} else {
+			memset(_satellite_info, 0, sizeof(*_satellite_info));        // initialize sat info
+		}
+
 		break;
 
 	case UBX_MSG_NAV_VELNED:
-		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_velned_t))
+		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_velned_t)) {
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!_configured)
-			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
-		else if (_use_nav_pvt)
-			_rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+
+		} else if (_use_nav_pvt) {
+			_rx_state = UBX_RXMSG_DISABLE;        // disable if using NAV-PVT instead
+		}
+
 		break;
 
 	case UBX_MSG_MON_VER:
 		break;		// unconditionally handle this message
 
 	case UBX_MSG_MON_HW:
-		if (   (_rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx6_t))	/* u-blox 6 msg format */
-		    && (_rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx7_t)))	/* u-blox 7+ msg format */
+		if ((_rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx6_t))	/* u-blox 6 msg format */
+		    && (_rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx7_t))) {	/* u-blox 7+ msg format */
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!_configured)
-			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+		}
+
 		break;
 
 	case UBX_MSG_ACK_ACK:
-		if (_rx_payload_length != sizeof(ubx_payload_rx_ack_ack_t))
+		if (_rx_payload_length != sizeof(ubx_payload_rx_ack_ack_t)) {
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (_configured)
-			_rx_state = UBX_RXMSG_IGNORE;	// ignore if _configured
+
+		} else if (_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if _configured
+		}
+
 		break;
 
 	case UBX_MSG_ACK_NAK:
-		if (_rx_payload_length != sizeof(ubx_payload_rx_ack_nak_t))
+		if (_rx_payload_length != sizeof(ubx_payload_rx_ack_nak_t)) {
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (_configured)
-			_rx_state = UBX_RXMSG_IGNORE;	// ignore if _configured
+
+		} else if (_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if _configured
+		}
+
 		break;
 
 	default:
@@ -624,32 +685,39 @@ UBX::payload_rx_add_nav_svinfo(const uint8_t b)
 	if (_rx_payload_index < sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
 		// Fill Part 1 buffer
 		_buf.raw[_rx_payload_index] = b;
+
 	} else {
 		if (_rx_payload_index == sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
 			// Part 1 complete: decode Part 1 buffer
 			_satellite_info->count = MIN(_buf.payload_rx_nav_svinfo_part1.numCh, satellite_info_s::SAT_INFO_MAX_SATELLITES);
-			UBX_TRACE_SVINFO("SVINFO len %u  numCh %u\n", (unsigned)_rx_payload_length, (unsigned)_buf.payload_rx_nav_svinfo_part1.numCh);
+			UBX_TRACE_SVINFO("SVINFO len %u  numCh %u\n", (unsigned)_rx_payload_length,
+					 (unsigned)_buf.payload_rx_nav_svinfo_part1.numCh);
 		}
-		if (_rx_payload_index < sizeof(ubx_payload_rx_nav_svinfo_part1_t) + _satellite_info->count * sizeof(ubx_payload_rx_nav_svinfo_part2_t)) {
+
+		if (_rx_payload_index < sizeof(ubx_payload_rx_nav_svinfo_part1_t) + _satellite_info->count * sizeof(
+			    ubx_payload_rx_nav_svinfo_part2_t)) {
 			// Still room in _satellite_info: fill Part 2 buffer
-			unsigned buf_index = (_rx_payload_index - sizeof(ubx_payload_rx_nav_svinfo_part1_t)) % sizeof(ubx_payload_rx_nav_svinfo_part2_t);
+			unsigned buf_index = (_rx_payload_index - sizeof(ubx_payload_rx_nav_svinfo_part1_t)) % sizeof(
+						     ubx_payload_rx_nav_svinfo_part2_t);
 			_buf.raw[buf_index] = b;
+
 			if (buf_index == sizeof(ubx_payload_rx_nav_svinfo_part2_t) - 1) {
 				// Part 2 complete: decode Part 2 buffer
-				unsigned sat_index = (_rx_payload_index - sizeof(ubx_payload_rx_nav_svinfo_part1_t)) / sizeof(ubx_payload_rx_nav_svinfo_part2_t);
+				unsigned sat_index = (_rx_payload_index - sizeof(ubx_payload_rx_nav_svinfo_part1_t)) / sizeof(
+							     ubx_payload_rx_nav_svinfo_part2_t);
 				_satellite_info->used[sat_index]	= (uint8_t)(_buf.payload_rx_nav_svinfo_part2.flags & 0x01);
 				_satellite_info->snr[sat_index]		= (uint8_t)(_buf.payload_rx_nav_svinfo_part2.cno);
 				_satellite_info->elevation[sat_index]	= (uint8_t)(_buf.payload_rx_nav_svinfo_part2.elev);
 				_satellite_info->azimuth[sat_index]	= (uint8_t)((float)_buf.payload_rx_nav_svinfo_part2.azim * 255.0f / 360.0f);
 				_satellite_info->svid[sat_index]	= (uint8_t)(_buf.payload_rx_nav_svinfo_part2.svid);
 				UBX_TRACE_SVINFO("SVINFO #%02u  used %u  snr %3u  elevation %3u  azimuth %3u  svid %3u\n",
-						(unsigned)sat_index + 1,
-						(unsigned)_satellite_info->used[sat_index],
-						(unsigned)_satellite_info->snr[sat_index],
-						(unsigned)_satellite_info->elevation[sat_index],
-						(unsigned)_satellite_info->azimuth[sat_index],
-						(unsigned)_satellite_info->svid[sat_index]
-				);
+						 (unsigned)sat_index + 1,
+						 (unsigned)_satellite_info->used[sat_index],
+						 (unsigned)_satellite_info->snr[sat_index],
+						 (unsigned)_satellite_info->elevation[sat_index],
+						 (unsigned)_satellite_info->azimuth[sat_index],
+						 (unsigned)_satellite_info->svid[sat_index]
+						);
 			}
 		}
 	}
@@ -672,6 +740,7 @@ UBX::payload_rx_add_mon_ver(const uint8_t b)
 	if (_rx_payload_index < sizeof(ubx_payload_rx_mon_ver_part1_t)) {
 		// Fill Part 1 buffer
 		_buf.raw[_rx_payload_index] = b;
+
 	} else {
 		if (_rx_payload_index == sizeof(ubx_payload_rx_mon_ver_part1_t)) {
 			// Part 1 complete: decode Part 1 buffer and calculate hash for SW&HW version strings
@@ -681,9 +750,12 @@ UBX::payload_rx_add_mon_ver(const uint8_t b)
 			UBX_DEBUG("VER hw  \"%10s\"", _buf.payload_rx_mon_ver_part1.hwVersion);
 			UBX_DEBUG("VER sw  \"%30s\"", _buf.payload_rx_mon_ver_part1.swVersion);
 		}
+
 		// fill Part 2 buffer
-		unsigned buf_index = (_rx_payload_index - sizeof(ubx_payload_rx_mon_ver_part1_t)) % sizeof(ubx_payload_rx_mon_ver_part2_t);
+		unsigned buf_index = (_rx_payload_index - sizeof(ubx_payload_rx_mon_ver_part1_t)) % sizeof(
+					     ubx_payload_rx_mon_ver_part2_t);
 		_buf.raw[buf_index] = b;
+
 		if (buf_index == sizeof(ubx_payload_rx_mon_ver_part2_t) - 1) {
 			// Part 2 complete: decode Part 2 buffer
 			UBX_DEBUG("VER ext \" %30s\"", _buf.payload_rx_mon_ver_part2.extension);
@@ -717,13 +789,11 @@ UBX::payload_rx_done(void)
 		UBX_TRACE_RXMSG("Rx NAV-PVT\n");
 
 		//Check if position fix flag is good
-		if ((_buf.payload_rx_nav_pvt.flags & UBX_RX_NAV_PVT_FLAGS_GNSSFIXOK) == 1)
-		{
+		if ((_buf.payload_rx_nav_pvt.flags & UBX_RX_NAV_PVT_FLAGS_GNSSFIXOK) == 1) {
 			_gps_position->fix_type		 = _buf.payload_rx_nav_pvt.fixType;
 			_gps_position->vel_ned_valid = true;
-		}
-		else
-		{
+
+		} else {
 			_gps_position->fix_type		 = 0;
 			_gps_position->vel_ned_valid = false;
 		}
@@ -748,10 +818,9 @@ UBX::payload_rx_done(void)
 		_gps_position->c_variance_rad	= (float)_buf.payload_rx_nav_pvt.headAcc * M_DEG_TO_RAD_F * 1e-5f;
 
 		//Check if time and date fix flags are good
-		if( (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDDATE)
-		 && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDTIME) 
-		 && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_FULLYRESOLVED))
-		{
+		if ((_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDDATE)
+		    && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDTIME)
+		    && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_FULLYRESOLVED)) {
 			/* convert to unix timestamp */
 			struct tm timeinfo;
 			timeinfo.tm_year	= _buf.payload_rx_nav_pvt.year - 1900;
@@ -770,12 +839,14 @@ UBX::payload_rx_done(void)
 				timespec ts;
 				ts.tv_sec = epoch;
 				ts.tv_nsec = _buf.payload_rx_nav_pvt.nano;
+
 				if (clock_settime(CLOCK_REALTIME, &ts)) {
 					warn("failed setting clock");
 				}
 
 				_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
 				_gps_position->time_utc_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
+
 			} else {
 				_gps_position->time_utc_usec = 0;
 			}
@@ -827,8 +898,7 @@ UBX::payload_rx_done(void)
 	case UBX_MSG_NAV_TIMEUTC:
 		UBX_TRACE_RXMSG("Rx NAV-TIMEUTC\n");
 
-		if(_buf.payload_rx_nav_timeutc.valid & UBX_RX_NAV_TIMEUTC_VALID_VALIDUTC)
-		{
+		if (_buf.payload_rx_nav_timeutc.valid & UBX_RX_NAV_TIMEUTC_VALID_VALIDUTC) {
 			// convert to unix timestamp
 			struct tm timeinfo;
 			timeinfo.tm_year	= _buf.payload_rx_nav_timeutc.year - 1900;
@@ -849,12 +919,14 @@ UBX::payload_rx_done(void)
 				timespec ts;
 				ts.tv_sec = epoch;
 				ts.tv_nsec = _buf.payload_rx_nav_timeutc.nano;
+
 				if (clock_settime(CLOCK_REALTIME, &ts)) {
 					warn("failed setting clock");
 				}
 
 				_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
 				_gps_position->time_utc_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
+
 			} else {
 				_gps_position->time_utc_usec = 0;
 			}
@@ -922,6 +994,7 @@ UBX::payload_rx_done(void)
 			ret = 0;	// don't handle message
 			break;
 		}
+
 		break;
 
 	case UBX_MSG_ACK_ACK:
@@ -999,39 +1072,44 @@ UBX::send_message(const uint16_t msg, const uint8_t *payload, const uint16_t len
 	header.length	= length;
 
 	// Calculate checksum
-	calc_checksum(((uint8_t*)&header) + 2, sizeof(header) - 2, &checksum);  // skip 2 sync bytes
-	if (payload != nullptr)
+	calc_checksum(((uint8_t *)&header) + 2, sizeof(header) - 2, &checksum); // skip 2 sync bytes
+
+	if (payload != nullptr) {
 		calc_checksum(payload, length, &checksum);
+	}
 
 	// Send message
 	write(_fd, (const void *)&header, sizeof(header));
-	if (payload != nullptr)
+
+	if (payload != nullptr) {
 		write(_fd, (const void *)payload, length);
+	}
+
 	write(_fd, (const void *)&checksum, sizeof(checksum));
 }
 
 uint32_t
 UBX::fnv1_32_str(uint8_t *str, uint32_t hval)
 {
-    uint8_t *s = str;
+	uint8_t *s = str;
 
-    /*
-     * FNV-1 hash each octet in the buffer
-     */
-    while (*s) {
+	/*
+	 * FNV-1 hash each octet in the buffer
+	 */
+	while (*s) {
 
-	/* multiply by the 32 bit FNV magic prime mod 2^32 */
+		/* multiply by the 32 bit FNV magic prime mod 2^32 */
 #if defined(NO_FNV_GCC_OPTIMIZATION)
-	hval *= FNV1_32_PRIME;
+		hval *= FNV1_32_PRIME;
 #else
-	hval += (hval<<1) + (hval<<4) + (hval<<7) + (hval<<8) + (hval<<24);
+		hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
 #endif
 
-	/* xor the bottom with the current octet */
-	hval ^= (uint32_t)*s++;
-    }
+		/* xor the bottom with the current octet */
+		hval ^= (uint32_t) * s++;
+	}
 
-    /* return our new hash value */
-    return hval;
+	/* return our new hash value */
+	return hval;
 }
 

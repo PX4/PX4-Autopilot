@@ -47,12 +47,11 @@
 
 LandDetector::LandDetector() :
 	_landDetectedPub(0),
-	_landDetected({0, false}),
-	_arming_time(0),
-	_taskShouldExit(false),
-	_taskIsRunning(false),
-	_work{}
-{
+	_landDetected( {0, false}),
+	       _arming_time(0),
+	       _taskShouldExit(false),
+	       _taskIsRunning(false),
+_work{} {
 	// ctor
 }
 
@@ -111,7 +110,8 @@ void LandDetector::cycle()
 	}
 
 	if (!_taskShouldExit) {
-		work_queue(LPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this, USEC2TICK(1000000 / LAND_DETECTOR_UPDATE_RATE));
+		work_queue(LPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this,
+			   USEC2TICK(1000000 / LAND_DETECTOR_UPDATE_RATE));
 	}
 }
 

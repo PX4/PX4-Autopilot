@@ -103,7 +103,7 @@ elseif(${config_io_board} STREQUAL "px4io-v2")
 		)
 endif()
 
-set(fw_io_name ${config_io_board}_${LABEL})
+set(fw_io_name ${config_io_board})
 
 add_executable(${fw_io_name}
 	${srcs})

@@ -127,8 +127,8 @@ private:
 	int 			_fd;
 	std::string		_dname;
 
-	I2C(const device::I2C&);
-	I2C operator=(const device::I2C&);
+	I2C(const device::I2C &);
+	I2C operator=(const device::I2C &);
 };
 
 } // namespace device

@@ -127,7 +127,7 @@ protected:
 	virtual int	collect() = 0;
 
 	virtual int	transfer(const uint8_t *send, unsigned send_len,
-					 uint8_t *recv, unsigned recv_len);
+				 uint8_t *recv, unsigned recv_len);
 
 	/**
 	 * Update the subsystem status

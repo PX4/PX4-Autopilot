@@ -123,9 +123,10 @@ int blockLimitSymTest()
 
 float BlockLowPass::update(float input)
 {
-	if (!isfinite(getState())) {
+	if (!PX4_ISFINITE(getState())) {
 		setState(input);
 	}
+
 	float b = 2 * float(M_PI) * getFCut() * getDt();
 	float a = b / (1 + b);
 	setState(a * input + (1 - a)*getState());
@@ -202,13 +203,14 @@ int blockHighPassTest()
 
 float BlockLowPass2::update(float input)
 {
-	if (!isfinite(getState())) {
+	if (!PX4_ISFINITE(getState())) {
 		setState(input);
 	}
 
 	if (fabsf(_lp.get_cutoff_freq() - getFCutParam()) > FLT_EPSILON) {
 		_lp.set_cutoff_frequency(_fs, getFCutParam());
 	}
+
 	_state = _lp.apply(input);
 	return _state;
 }
@@ -340,8 +342,10 @@ int blockIntegralTrapTest()
 float BlockDerivative::update(float input)
 {
 	float output;
+
 	if (_initialized) {
 		output = _lowPass.update((input - getU()) / getDt());
+
 	} else {
 		// if this is the first call to update
 		// we have no valid derivative
@@ -351,6 +355,7 @@ float BlockDerivative::update(float input)
 		output = 0.0f;
 		_initialized = true;
 	}
+
 	setU(input);
 	return output;
 }
@@ -534,6 +539,7 @@ int blockRandGaussTest()
 	}
 
 	float stdDev = sqrt(sum / (n - 1));
+	(void)(stdDev);
 	ASSERT(equal(mean, blockRandGauss.getMean(), 1e-1));
 	ASSERT(equal(stdDev, blockRandGauss.getStdDev(), 1e-1));
 	printf("PASS\n");

@@ -433,6 +433,7 @@ function(px4_add_upload)
 		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 		COMMENT "uploading ${BUNDLE}"
 		VERBATIM
+		USES_TERMINAL
 		)
 endfunction()
 
@@ -492,7 +493,6 @@ function(px4_add_common_flags)
 		-Wpointer-arith
 		-Wmissing-declarations
 		-Wno-unused-parameter
-		-Wno-varargs
 		-Werror=format-security
 		-Werror=array-bounds
 		-Wfatal-errors
@@ -512,11 +512,12 @@ function(px4_add_common_flags)
 		list(APPEND warnings -Wframe-larger-than=1024)
 	endif()
 
-	if (${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT ${OS} STREQUAL "qurt")
 			list(APPEND warnings
 				-Wno-unused-const-variable
+				-Wno-varargs
 			)
 		endif()
 	else()
@@ -539,7 +540,7 @@ function(px4_add_common_flags)
 		-fdata-sections
 		)
 
-	if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		list(APPEND optimization_flags
 			-fno-strength-reduce
 			-fno-builtin-printf
@@ -553,7 +554,7 @@ function(px4_add_common_flags)
 		-Wnested-externs
 		)
 
-	if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		list(APPEND c_warnings
 			-Wold-style-declaration
 			-Wmissing-parameter-type
@@ -632,7 +633,7 @@ function(px4_add_common_flags)
 		-DCONFIG_ARCH_BOARD_${board_config}
 		)
 
-	if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		set(added_exe_link_flags
 			-Wl,--warn-common
 			-Wl,--gc-sections

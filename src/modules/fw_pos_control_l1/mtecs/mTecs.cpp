@@ -53,7 +53,7 @@ mTecs::mTecs() :
 	_airspeedMin(this, "FW_AIRSPD_MIN", false),
 	/* Publications */
 #if defined(__PX4_NUTTX)
-	_status(ORB_ID(tecs_status), &getPublications()),
+	_status(ORB_ID(tecs_status), -1, &getPublications()),
 #endif // defined(__PX4_NUTTX)
 	/* control blocks */
 	_controlTotalEnergy(this, "THR"),
@@ -88,8 +88,8 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 		float airspeedSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
-	if (!isfinite(flightPathAngle) || !isfinite(altitude) ||
-			!isfinite(altitudeSp) || !isfinite(airspeed) || !isfinite(airspeedSp) || !isfinite(mode)) {
+	if (!PX4_ISFINITE(flightPathAngle) || !PX4_ISFINITE(altitude) ||
+			!PX4_ISFINITE(altitudeSp) || !PX4_ISFINITE(airspeed) || !PX4_ISFINITE(airspeedSp) || !PX4_ISFINITE(mode)) {
 		return -1;
 	}
 
@@ -111,8 +111,8 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 
 #if defined(__PX4_NUTTX)
 	/* Write part of the status message */
-	_status.altitudeSp = altitudeSp;
-	_status.altitude_filtered = altitudeFiltered;
+	_status.get().altitudeSp = altitudeSp;
+	_status.get().altitude_filtered = altitudeFiltered;
 #endif // defined(__PX4_NUTTX)
 
 
@@ -125,8 +125,8 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 		float airspeedSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
-	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
-			!isfinite(airspeed) || !isfinite(airspeedSp) || !isfinite(mode)) {
+	if (!PX4_ISFINITE(flightPathAngle) || !PX4_ISFINITE(flightPathAngleSp) ||
+			!PX4_ISFINITE(airspeed) || !PX4_ISFINITE(airspeedSp) || !PX4_ISFINITE(mode)) {
 		return -1;
 	}
 
@@ -149,8 +149,8 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 
 #if defined(__PX4_NUTTX)
 	/* Write part of the status message */
-	_status.airspeedSp = airspeedSp;
-	_status.airspeed_filtered = airspeedFiltered;
+	_status.get().airspeedSp = airspeedSp;
+	_status.get().airspeed_filtered = airspeedFiltered;
 #endif // defined(__PX4_NUTTX)
 
 
@@ -163,8 +163,8 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 		float accelerationLongitudinalSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
-	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
-			!isfinite(airspeedFiltered) || !isfinite(accelerationLongitudinalSp) || !isfinite(mode)) {
+	if (!PX4_ISFINITE(flightPathAngle) || !PX4_ISFINITE(flightPathAngleSp) ||
+			!PX4_ISFINITE(airspeedFiltered) || !PX4_ISFINITE(accelerationLongitudinalSp) || !PX4_ISFINITE(mode)) {
 		return -1;
 	}
 	/* time measurement */

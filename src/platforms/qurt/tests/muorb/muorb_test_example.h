@@ -37,7 +37,8 @@
 #include "uORB/topics/esc_status.h"
 #include "uORB/topics/vehicle_command.h"
 
-class MuorbTestExample {
+class MuorbTestExample
+{
 public:
 	MuorbTestExample() {};
 	~MuorbTestExample() {};

@@ -132,7 +132,7 @@ int LidarLiteI2C::init()
 		measure();
 		_reports->get(&ds_report);
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-							     &_orb_class_instance, ORB_PRIO_LOW);
+					 &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic == nullptr) {
 			DEVICE_DEBUG("failed to create distance_sensor object. Did you start uOrb?");
@@ -165,12 +165,16 @@ int LidarLiteI2C::lidar_transfer(const uint8_t *send, unsigned send_len, uint8_t
 {
 	if (send != NULL && send_len > 0) {
 		int ret = transfer(send, send_len, NULL, 0);
-		if (ret != OK)
+
+		if (ret != OK) {
 			return ret;
+		}
 	}
+
 	if (recv != NULL && recv_len > 0) {
 		return transfer(NULL, 0, recv, recv_len);
 	}
+
 	return OK;
 }
 
@@ -345,8 +349,10 @@ int LidarLiteI2C::measure()
 int LidarLiteI2C::reset_sensor()
 {
 	int ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
-	if (ret != OK)
+
+	if (ret != OK) {
 		return ret;
+	}
 
 	// wait for sensor reset to complete
 	usleep(1000);
@@ -447,7 +453,7 @@ int LidarLiteI2C::collect()
 	}
 
 	_last_distance = distance_cm;
-	
+
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();

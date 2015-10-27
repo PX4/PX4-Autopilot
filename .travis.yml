@@ -4,11 +4,13 @@
 language: cpp
 
 matrix:
+  fast_finish: true
   include:
     - os: linux
       sudo: false
     - os: osx
       osx_image: beta-xcode6.3
+      sudo: true
 
 cache:
   directories:
@@ -19,16 +21,18 @@ addons:
     sources:
     - kubuntu-backports
     - ubuntu-toolchain-r-test
+    - george-edison55-precise-backports
     packages:
     - build-essential
     - ccache
-    - cmake
     - clang-3.5
+    - cmake
     - g++-4.8
     - gcc-4.8
     - genromfs
     - libc6-i386
     - libncurses5-dev
+    - ninja-build
     - python-argparse
     - python-empy
     - python-serial
@@ -54,10 +58,11 @@ before_install:
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
       && brew update
+      && brew install astyle
+      && brew install gcc-arm-none-eabi
       && brew install genromfs
       && brew install kconfig-frontends
-      && brew install gcc-arm-none-eabi
-      && brew install astyle
+      && brew install ninja
       && sudo easy_install pip
       && sudo pip install pyserial empy
       ;
@@ -80,6 +85,7 @@ before_script:
 
 env:
   global:
+    - NINJA_BUILD=1
 # AWS KEY: $PX4_AWS_KEY
     - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
 # AWS SECRET: $PX4_AWS_SECRET
@@ -89,53 +95,29 @@ env:
 script:
   - make check_format
   - arm-none-eabi-gcc --version
-  - echo 'Building POSIX Firmware..' && echo -en 'travis_fold:start:script.1\\r'
-  - make posix_sitl_simple
-  - echo -en 'travis_fold:end:script.1\\r'
-  - echo 'Running Tests..' && echo -en 'travis_fold:start:script.2\\r'
-  - make posix_sitl_simple test
-  - cat build_posix_sitl_simple/src/modules/systemlib/mixer/mixer_multirotor.generated.h
-  - echo -en 'travis_fold:end:script.2\\r'
-  - echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.3\\r'
-  - make px4fmu-v1_default
-  - make px4fmu-v2_default
-  - echo -en 'travis_fold:end:script.3\\r'
-  - echo 'Running Tests..' && echo -en 'travis_fold:start:script.4\\r'
-  - make px4fmu-v2_default test
-  - echo -en 'travis_fold:end:script.4\\r'
-  #- make px4fmu-v2_default package
-  #- make posix -j4
-  #- ccache -s
-  #- echo -en 'travis_fold:end:script.1\\r'
-  #- echo 'Running Tests..' && echo -en 'travis_fold:start:script.2\\r'
-  #- make tests
-  #- cat src/modules/systemlib/mixer/mixer_multirotor.generated.h
-  #- echo -en 'travis_fold:end:script.2\\r'
-  #- echo 'Building NuttX..' && echo -en 'travis_fold:start:script.3\\r'
-  #- make archives
-  #- ccache -s
-  #- echo -en 'travis_fold:end:script.3\\r'
-  #- echo 'Building NuttX Firmware..' && echo -en 'travis_fold:start:script.4\\r'
-  #- make -j4
-  #- make size
-  #- ccache -s
-  #- echo -en 'travis_fold:end:script.4\\r'
-  #- zip Firmware.zip Images/*.px4
+  - echo 'Building POSIX Firmware..' && make posix_sitl_simple
+  - echo 'Running Tests..' && make posix_sitl_simple test && cat build_posix_sitl_simple/src/modules/systemlib/mixer/mixer_multirotor.generated.h
+  - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
+  - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
+  - echo 'Running Tests..' && make px4fmu-v2_default test
 
-#after_script:
-  #- git clone git://github.com/PX4/CI-Tools.git
-  #- ./CI-Tools/s3cmd-configure
-## upload newest build for this branch with s3 index
-  #- ./CI-Tools/s3cmd-put Images/px4*.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
-## archive newest build by date with s3 index
-  #- ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
-  #- ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
-## upload top level index.html and timestamp.html
-  #- ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
-  #- ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
-  #- echo ""
-  #- echo "Binaries have been posted to:"
-  #- echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
+after_success:
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+         cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
+      && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
+      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4
+      && git clone git://github.com/PX4/CI-Tools.git
+      && ./CI-Tools/s3cmd-configure
+      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+      && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
+      && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
+      && ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
+      && ./CI-Tools/s3cmd-put CI-Tools/timestamp.html timestamp.html
+      && echo ""
+      && echo "Binaries have been posted to:"
+      && echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
+      ;
+    fi
 
 deploy:
   provider: releases

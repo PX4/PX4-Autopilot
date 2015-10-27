@@ -769,7 +769,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 	return OK;
 }
 
-int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t* flow_mavlink)
+int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
@@ -794,10 +794,10 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t* flow_mavlink)
 		flow.quality = flow_mavlink->quality;
 
 		if (_flow_pub == nullptr) {
-		_flow_pub = orb_advertise(ORB_ID(optical_flow), &flow);
+			_flow_pub = orb_advertise(ORB_ID(optical_flow), &flow);
 
 		} else {
-		orb_publish(ORB_ID(optical_flow), _flow_pub, &flow);
+			orb_publish(ORB_ID(optical_flow), _flow_pub, &flow);
 		}
 	}
 

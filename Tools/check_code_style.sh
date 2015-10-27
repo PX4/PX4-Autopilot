@@ -4,22 +4,32 @@ failed=0
 for fn in $(find src/examples \
                  src/systemcmds \
                  src/include \
-                 src/drivers/blinkm \
-                 src/drivers/bma180 \
-                 src/drivers/pca9685 \
-                 src/drivers/pca8574 \
-                 src/drivers/md25 \
-                 src/drivers/ms5611 \
-                 src/drivers/stm32 \
-                 src/drivers/px4io \
-                 src/drivers/px4fmu \
+                 src/drivers \
+                 src/platforms \
+                 src/firmware \
                  src/lib/launchdetection \
+                 src/lib/geo \
+                 src/lib/geo_lookup \
+                 src/lib/conversion \
+                 src/lib/rc \
+                 src/lib/version \
+                 src/modules/attitude_estimator_q \
+                 src/modules/gpio_led \
+                 src/modules/land_detector \
+                 src/modules/muorb \
+                 src/modules/px4iofirmware \
+                 src/modules/param \
+                 src/modules/sensors \
+                 src/modules/simulator \
+                 src/modules/uORB \
                  src/modules/bottle_drop \
                  src/modules/dataman \
                  src/modules/fixedwing_backside \
                  src/modules/segway \
+                 src/modules/local_position_estimator \
                  src/modules/unit_test \
                  src/modules/systemlib \
+                 src/modules/controllib \
                    -path './Build' -prune -o \
                    -path './mavlink' -prune -o \
                    -path './NuttX' -prune -o \

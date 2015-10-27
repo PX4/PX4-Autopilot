@@ -117,12 +117,12 @@ __END_DECLS
 
 static GRAN_HANDLE dma_allocator;
 
-/* 
- * The DMA heap size constrains the total number of things that can be 
+/*
+ * The DMA heap size constrains the total number of things that can be
  * ready to do DMA at a time.
  *
  * For example, FAT DMA depends on one sector-sized buffer per filesystem plus
- * one sector-sized buffer per file. 
+ * one sector-sized buffer per file.
  *
  * We use a fundamental alignment / granule size of 64B; this is sufficient
  * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
@@ -137,8 +137,10 @@ dma_alloc_init(void)
 					sizeof(g_dma_heap),
 					7,  /* 128B granule - must be > alignment (XXX bug?) */
 					6); /* 64B alignment */
+
 	if (dma_allocator == NULL) {
 		message("[boot] DMA allocator setup FAILED");
+
 	} else {
 		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
 	}
@@ -262,11 +264,13 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure Sensors on SPI bus #3 */
 	spi3 = up_spiinitialize(3);
+
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
 		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
+
 	/* Default: 1MHz, 8 bits, Mode 3 */
 	SPI_SETFREQUENCY(spi3, 10000000);
 	SPI_SETBITS(spi3, 8);
@@ -279,11 +283,13 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Configure FRAM on SPI bus #4 */
 	spi4 = up_spiinitialize(4);
+
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
 		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
+
 	/* Default: ~10MHz, 8 bits, Mode 3 */
 	SPI_SETFREQUENCY(spi4, 10 * 1000 * 1000);
 	SPI_SETBITS(spi4, 8);
