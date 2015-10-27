@@ -185,20 +185,8 @@ struct log_STAT_s {
 	float load;
 };
 
-/* --- CONTROL STATE --- */
-#define LOG_CTS_MSG 11
-struct log_CTS_s {
-	float vx_body;
-	float vy_body;
-	float vz_body;
-	float airspeed;
-	float roll_rate;
-	float pitch_rate;
-	float yaw_rate;
-};
-
 /* --- RC - RC INPUT CHANNELS --- */
-#define LOG_RC_MSG 12
+#define LOG_RC_MSG 11
 struct log_RC_s {
 	float channel[8];
 	uint8_t channel_count;
@@ -206,13 +194,13 @@ struct log_RC_s {
 };
 
 /* --- OUT0 - ACTUATOR_0 OUTPUT --- */
-#define LOG_OUT0_MSG 13
+#define LOG_OUT0_MSG 12
 struct log_OUT0_s {
 	float output[8];
 };
 
 /* --- AIRS - AIRSPEED --- */
-#define LOG_AIRS_MSG 14
+#define LOG_AIRS_MSG 13
 struct log_AIRS_s {
 	float indicated_airspeed;
 	float true_airspeed;
@@ -220,7 +208,7 @@ struct log_AIRS_s {
 };
 
 /* --- ARSP - ATTITUDE RATE SET POINT --- */
-#define LOG_ARSP_MSG 15
+#define LOG_ARSP_MSG 14
 struct log_ARSP_s {
 	float roll_rate_sp;
 	float pitch_rate_sp;
@@ -228,7 +216,7 @@ struct log_ARSP_s {
 };
 
 /* --- FLOW - OPTICAL FLOW --- */
-#define LOG_FLOW_MSG 16
+#define LOG_FLOW_MSG 15
 struct log_FLOW_s {
 	uint8_t sensor_id;
 	float pixel_flow_x_integral;
@@ -245,7 +233,7 @@ struct log_FLOW_s {
 };
 
 /* --- GPOS - GLOBAL POSITION ESTIMATE --- */
-#define LOG_GPOS_MSG 17
+#define LOG_GPOS_MSG 16
 struct log_GPOS_s {
 	int32_t lat;
 	int32_t lon;
@@ -259,7 +247,7 @@ struct log_GPOS_s {
 };
 
 /* --- GPSP - GLOBAL POSITION SETPOINT --- */
-#define LOG_GPSP_MSG 18
+#define LOG_GPSP_MSG 17
 struct log_GPSP_s {
 	uint8_t nav_state;
 	int32_t lat;
@@ -273,7 +261,7 @@ struct log_GPSP_s {
 };
 
 /* --- ESC - ESC STATE --- */
-#define LOG_ESC_MSG 19
+#define LOG_ESC_MSG 18
 struct log_ESC_s {
 	uint16_t counter;
 	uint8_t  esc_count;
@@ -290,7 +278,7 @@ struct log_ESC_s {
 };
 
 /* --- GVSP - GLOBAL VELOCITY SETPOINT --- */
-#define LOG_GVSP_MSG 20
+#define LOG_GVSP_MSG 19
 struct log_GVSP_s {
 	float vx;
 	float vy;
@@ -298,7 +286,7 @@ struct log_GVSP_s {
 };
 
 /* --- BATT - BATTERY --- */
-#define LOG_BATT_MSG 21
+#define LOG_BATT_MSG 20
 struct log_BATT_s {
 	float voltage;
 	float voltage_filtered;
@@ -307,7 +295,7 @@ struct log_BATT_s {
 };
 
 /* --- DIST - RANGE SENSOR DISTANCE --- */
-#define LOG_DIST_MSG 22
+#define LOG_DIST_MSG 21
 struct log_DIST_s {
 	uint8_t id;
 	uint8_t type;
@@ -316,11 +304,11 @@ struct log_DIST_s {
 	float covariance;
 };
 
-/* LOG IMU1 and IMU2 MSGs consume IDs 23 and 24 */
+/* LOG IMU1 and IMU2 MSGs consume IDs 22 and 23 */
 
 
 /* --- PWR - ONBOARD POWER SYSTEM --- */
-#define LOG_PWR_MSG 25
+#define LOG_PWR_MSG 24
 struct log_PWR_s {
 	float peripherals_5v;
 	float servo_rail_5v;
@@ -333,7 +321,7 @@ struct log_PWR_s {
 };
 
 /* --- MOCP - MOCAP ATTITUDE AND POSITION --- */
-#define LOG_MOCP_MSG 26
+#define LOG_MOCP_MSG 25
 struct log_MOCP_s {
 	float qw;
 	float qx;
@@ -345,31 +333,31 @@ struct log_MOCP_s {
 };
 
 /* --- GS0A - GPS SNR #0, SAT GROUP A --- */
-#define LOG_GS0A_MSG 27
+#define LOG_GS0A_MSG 26
 struct log_GS0A_s {
 	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- GS0B - GPS SNR #0, SAT GROUP B --- */
-#define LOG_GS0B_MSG 28
+#define LOG_GS0B_MSG 27
 struct log_GS0B_s {
 	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- GS1A - GPS SNR #1, SAT GROUP A --- */
-#define LOG_GS1A_MSG 29
+#define LOG_GS1A_MSG 28
 struct log_GS1A_s {
 	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- GS1B - GPS SNR #1, SAT GROUP B --- */
-#define LOG_GS1B_MSG 30
+#define LOG_GS1B_MSG 29
 struct log_GS1B_s {
 	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- TECS - TECS STATUS --- */
-#define LOG_TECS_MSG 31
+#define LOG_TECS_MSG 30
 struct log_TECS_s {
 	float altitudeSp;
 	float altitudeFiltered;
@@ -390,7 +378,7 @@ struct log_TECS_s {
 };
 
 /* --- WIND - WIND ESTIMATE --- */
-#define LOG_WIND_MSG 32
+#define LOG_WIND_MSG 31
 struct log_WIND_s {
 	float x;
 	float y;
@@ -399,7 +387,7 @@ struct log_WIND_s {
 };
 
 /* --- EST0 - ESTIMATOR STATUS --- */
-#define LOG_EST0_MSG 33
+#define LOG_EST0_MSG 32
 struct log_EST0_s {
 	float s[12];
 	uint8_t n_states;
@@ -409,28 +397,28 @@ struct log_EST0_s {
 };
 
 /* --- EST1 - ESTIMATOR STATUS --- */
-#define LOG_EST1_MSG 34
+#define LOG_EST1_MSG 33
 struct log_EST1_s {
 	float s[16];
 };
 
 /* --- EST2 - ESTIMATOR STATUS --- */
-#define LOG_EST2_MSG 35
+#define LOG_EST2_MSG 34
 struct log_EST2_s {
     float cov[12];
 };
 
 /* --- EST3 - ESTIMATOR STATUS --- */
-#define LOG_EST3_MSG 36
+#define LOG_EST3_MSG 35
 struct log_EST3_s {
     float cov[16];
 };
 
 /* --- TEL0..3 - TELEMETRY STATUS --- */
-#define LOG_TEL0_MSG 37
-#define LOG_TEL1_MSG 38
-#define LOG_TEL2_MSG 39
-#define LOG_TEL3_MSG 40
+#define LOG_TEL0_MSG 36
+#define LOG_TEL1_MSG 37
+#define LOG_TEL2_MSG 38
+#define LOG_TEL3_MSG 39
 struct log_TEL_s {
 	uint8_t rssi;
 	uint8_t remote_rssi;
@@ -443,7 +431,7 @@ struct log_TEL_s {
 };
 
 /* --- VISN - VISION POSITION --- */
-#define LOG_VISN_MSG 41
+#define LOG_VISN_MSG 40
 struct log_VISN_s {
 	float x;
 	float y;
@@ -458,7 +446,7 @@ struct log_VISN_s {
 };
 
 /* --- ENCODERS - ENCODER DATA --- */
-#define LOG_ENCD_MSG 42
+#define LOG_ENCD_MSG 41
 struct log_ENCD_s {
 	int64_t cnt0;
 	float vel0;
@@ -467,26 +455,38 @@ struct log_ENCD_s {
 };
 
 /* --- AIR SPEED SENSORS - DIFF. PRESSURE --- */
-#define LOG_AIR1_MSG 43
+#define LOG_AIR1_MSG 42
 
 /* --- VTOL - VTOL VEHICLE STATUS */
-#define LOG_VTOL_MSG 44
+#define LOG_VTOL_MSG 43
 struct log_VTOL_s {
 	float airspeed_tot;
 };
 
 /* --- TIMESYNC - TIME SYNCHRONISATION OFFSET */
-#define LOG_TSYN_MSG 45
+#define LOG_TSYN_MSG 44
 struct log_TSYN_s {
 	uint64_t time_offset;
 };
 
 /* --- MACS - MULTIROTOR ATTITUDE CONTROLLER STATUS */
-#define LOG_MACS_MSG 47
+#define LOG_MACS_MSG 45
 struct log_MACS_s {
 	float roll_rate_integ;
 	float pitch_rate_integ;
 	float yaw_rate_integ;
+};
+
+/* --- CONTROL STATE --- */
+#define LOG_CTS_MSG 47
+struct log_CTS_s {
+	float vx_body;
+	float vy_body;
+	float vz_body;
+	float airspeed;
+	float roll_rate;
+	float pitch_rate;
+	float yaw_rate;
 };
 
 /* WARNING: ID 46 is already in use for ATTC1 */

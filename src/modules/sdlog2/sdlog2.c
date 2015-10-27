@@ -1060,7 +1060,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_command_s cmd;
 		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
-		struct control_state_s ctrl_state;
 		struct vehicle_attitude_setpoint_s att_sp;
 		struct vehicle_rates_setpoint_s rates_sp;
 		struct actuator_outputs_s act_outputs;
@@ -1091,6 +1090,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vtol_vehicle_status_s vtol_status;
 		struct time_offset_s time_offset;
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
+		struct control_state_s ctrl_state;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1111,7 +1111,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ATTC_s log_ATTC;
 			struct log_STAT_s log_STAT;
 			struct log_VTOL_s log_VTOL;
-			struct log_CTS_s log_CTS;
 			struct log_RC_s log_RC;
 			struct log_OUT0_s log_OUT0;
 			struct log_AIRS_s log_AIRS;
@@ -1140,6 +1139,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ENCD_s log_ENCD;
 			struct log_TSYN_s log_TSYN;
 			struct log_MACS_s log_MACS;
+			struct log_CTS_s log_CTS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1153,7 +1153,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int vtol_status_sub;
 		int sensor_sub;
 		int att_sub;
-		int ctrl_state_sub;
 		int att_sp_sub;
 		int rates_sp_sub;
 		int act_outputs_sub;
@@ -1183,6 +1182,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int encoders_sub;
 		int tsync_sub;
 		int mc_att_ctrl_status_sub;
+		int ctrl_state_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1191,7 +1191,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.gps_pos_sub = -1;
 	subs.sensor_sub = -1;
 	subs.att_sub = -1;
-	subs.ctrl_state_sub = -1;
 	subs.att_sp_sub = -1;
 	subs.rates_sp_sub = -1;
 	subs.act_outputs_sub = -1;
@@ -1217,6 +1216,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.wind_sub = -1;
 	subs.tsync_sub = -1;
 	subs.mc_att_ctrl_status_sub = -1;
+	subs.ctrl_state_sub = -1;
 	subs.encoders_sub = -1;
 
 	/* add new topics HERE */
@@ -1670,19 +1670,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(FLOW);
 		}
 
-		/* --- CONTROL STATE --- */
-		if (copy_if_updated(ORB_ID(control_state), &subs.ctrl_state_sub, &buf.ctrl_state)) {
-			log_msg.msg_type = LOG_CTS_MSG;
-			log_msg.body.log_CTS.vx_body = buf.ctrl_state.x_vel;
-			log_msg.body.log_CTS.vy_body = buf.ctrl_state.y_vel;
-			log_msg.body.log_CTS.vz_body = buf.ctrl_state.z_vel;
-			log_msg.body.log_CTS.airspeed = buf.ctrl_state.airspeed;
-			log_msg.body.log_CTS.roll_rate = buf.ctrl_state.roll_rate;
-			log_msg.body.log_CTS.pitch_rate = buf.ctrl_state.pitch_rate;
-			log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
-			LOGBUFFER_WRITE_AND_COUNT(CTS);
-		}
-
 		/* --- RC CHANNELS --- */
 		if (copy_if_updated(ORB_ID(rc_channels), &subs.rc_sub, &buf.rc)) {
 			log_msg.msg_type = LOG_RC_MSG;
@@ -1872,6 +1859,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_MACS.pitch_rate_integ = buf.mc_att_ctrl_status.pitch_rate_integ;
 			log_msg.body.log_MACS.yaw_rate_integ = buf.mc_att_ctrl_status.yaw_rate_integ;
 			LOGBUFFER_WRITE_AND_COUNT(MACS);
+		}
+
+		/* --- CONTROL STATE --- */
+		if (copy_if_updated(ORB_ID(control_state), &subs.ctrl_state_sub, &buf.ctrl_state)) {
+			log_msg.msg_type = LOG_CTS_MSG;
+			log_msg.body.log_CTS.vx_body = buf.ctrl_state.x_vel;
+			log_msg.body.log_CTS.vy_body = buf.ctrl_state.y_vel;
+			log_msg.body.log_CTS.vz_body = buf.ctrl_state.z_vel;
+			log_msg.body.log_CTS.airspeed = buf.ctrl_state.airspeed;
+			log_msg.body.log_CTS.roll_rate = buf.ctrl_state.roll_rate;
+			log_msg.body.log_CTS.pitch_rate = buf.ctrl_state.pitch_rate;
+			log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
+			LOGBUFFER_WRITE_AND_COUNT(CTS);
 		}
 
 		/* signal the other thread new data, but not yet unlock */
