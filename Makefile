@@ -156,8 +156,8 @@ posix_sitl_default: posix_sitl_simple
 ros: ros_sitl_simple
 
 sitl_deprecation:
-	@echo "Deprecated. Use 'make posix_sitl_default run_sitl' instead."
-	@echo "Change init script with 'make posix_sitl_default config'"
+	@echo "Deprecated. Use 'make posix_sitl_default jmavsim' or"
+	@echo "'make posix_sitl_default gazebo' if Gazebo is preferred."
 
 sitl_quad: sitl_deprecation
 sitl_plane: sitl_deprecation
