@@ -331,6 +331,7 @@ void BlockLocalPositionEstimator::update()
 	// state history
 	_xHistory.push_back(_x);
 	_tHistory.push_back(dt);
+
 	while (_xHistory.size() > x_history_size) {
 		_xHistory.pop_front();
 		_tHistory.pop_front();
@@ -751,14 +752,19 @@ void BlockLocalPositionEstimator::initP()
 	_P(X_bz, X_bz) = 1e-6;
 }
 
-Matrix<float, BlockLocalPositionEstimator::n_x, 1> BlockLocalPositionEstimator::getXDelayed(float delay) {
+Matrix<float, BlockLocalPositionEstimator::n_x, 1> BlockLocalPositionEstimator::getXDelayed(float delay)
+{
 	float dt_sum = 0;
 	int i = _tHistory.size();
-	while (i > 0 ) {
+
+	while (i > 0) {
 		dt_sum += _tHistory[i];
-		if (dt_sum >= delay) break;
+
+		if (dt_sum >= delay) { break; }
+
 		i--;
 	}
+
 	return _xHistory[i];
 }
 
