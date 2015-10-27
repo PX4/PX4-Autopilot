@@ -50,6 +50,8 @@ before_install:
       && if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
       && . ~/.profile
       && popd
+      && git clone git://github.com/PX4/CI-Tools.git
+      && ./CI-Tools/s3cmd-configure
       && mkdir -p ~/bin
       && wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
       && astyle --version
@@ -106,8 +108,6 @@ after_success:
          cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
       && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
       && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4
-      && git clone git://github.com/PX4/CI-Tools.git
-      && ./CI-Tools/s3cmd-configure
       && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
       && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
