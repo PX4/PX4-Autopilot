@@ -187,6 +187,9 @@ static uint64_t last_print_mode_reject_time = 0;
 static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
 
+/* ACRO_STAB mode threshold */
+static float mc_acro_stab_thresh = 0;
+
 static struct vehicle_status_s status;
 static struct actuator_armed_s armed;
 static struct safety_s safety;
@@ -925,6 +928,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
 	param_t _param_eph = param_find("COM_HOME_H_T");
 	param_t _param_epv = param_find("COM_HOME_V_T");
+	param_t _param_mc_acro_stab = param_find("MC_ACRO_STAB");
 
 	// const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
 	// main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
@@ -1338,6 +1342,9 @@ int commander_thread_main(int argc, char *argv[])
 				/* re-check RC calibration */
 				rc_calibration_check(mavlink_fd);
 			}
+
+			/* ACRO_STAB mode hack */
+			param_get(_param_mc_acro_stab, &mc_acro_stab_thresh);
 
 			/* Safety parameters */
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
@@ -2425,7 +2432,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
-	/* if offboard is set allready by a mavlink command, abort */
+	/* if offboard is set already by a mavlink command, abort */
 	if (status.offboard_control_set_by_command) {
 		return main_state_transition(status_local,vehicle_status_s::MAIN_STATE_OFFBOARD);
 	}
@@ -2493,15 +2500,20 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	case manual_control_setpoint_s::SWITCH_POS_OFF:		// MANUAL
 		if (sp_man->acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 
-			/* manual mode is stabilized already for multirotors, so switch to acro
-			 * for any non-manual mode
+			/* Override acro mode for fixed wing, since manual is not stabilized anyway.
+			 * Also override if mc_acro_stab_thresh is nonzero and both roll and pitch demand
+			 * are below the threshold.
+			 *       must do this here instead of in mc_att_control since we rely
+			 *       on mc_pos_control to publish the attitude SP
 			 */
-			if (status.is_rotary_wing) {
-				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_ACRO);
-			} else {
+			if (!status.is_rotary_wing
+				|| ((mc_acro_stab_thresh > 0)
+					&& ((fabsf(sp_man->x) < mc_acro_stab_thresh)
+					&& (fabsf(sp_man->y) < mc_acro_stab_thresh)))) {
 				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
+			} else {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_ACRO);
 			}
-
 		} else {
 			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
 		}
