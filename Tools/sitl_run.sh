@@ -54,8 +54,10 @@ then
 		cd Tools/sitl_gazebo/Build
 		cmake ..
 		make -j4
-		gazebo ../worlds/iris.world &
+		gzserver ../worlds/iris.world &
 		SIM_PID=`echo $!`
+		gzclient&
+		GUI_PID=`echo $!`
 	else
 		echo "You need to have gazebo simulator installed!"
 		exit 1
@@ -82,4 +84,5 @@ then
 elif [ "$3" == "gazebo" ]
 then
 	kill -9 $SIM_PID
+	kill -9 $GUI_PID
 fi
