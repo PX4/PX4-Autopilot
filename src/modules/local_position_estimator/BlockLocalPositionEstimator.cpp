@@ -758,11 +758,9 @@ Matrix<float, BlockLocalPositionEstimator::n_x, 1> BlockLocalPositionEstimator::
 	int i = _tHistory.size();
 
 	while (i > 0) {
-		dt_sum += _tHistory[i];
-
-		if (dt_sum >= delay) { break; }
-
 		i--;
+		dt_sum += _tHistory[i];
+		if (dt_sum >= delay) { break; }
 	}
 
 	return _xHistory[i];
