@@ -72,6 +72,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
@@ -221,7 +222,7 @@ void usage(const char *reason);
  */
 bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd,
 		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
-		    struct vehicle_local_position_s *local_pos, orb_advert_t *home_pub);
+		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub);
 
 /**
  * Mainloop of commander.
@@ -253,7 +254,8 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char *armed
 *		 time the vehicle is armed with a good GPS fix.
 **/
 static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home,
-					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition);
+					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
+					const vehicle_attitude_s &attitude);
 
 /**
  * Loop that runs at a lower rate and priority for calibration and parameter tasks.
@@ -291,7 +293,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = px4_task_spawn_cmd("commander",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 40,
-					     3400,
+					     3500,
 					     commander_thread_main,
 					     (char * const *)&argv[0]);
 
@@ -490,7 +492,7 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 bool handle_command(struct vehicle_status_s *status_local, const struct safety_s *safety_local,
 		    struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
 		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
-		    struct vehicle_local_position_s *local_pos, orb_advert_t *home_pub)
+		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -524,7 +526,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			if (cmd_arm && (arming_ret == TRANSITION_CHANGED) &&
 				(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
 
-				commander_set_home_position(*home_pub, *home, *local_pos, *global_pos);
+				commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude);
 			}
 
 			if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
@@ -833,7 +835,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 *		 time the vehicle is armed with a good GPS fix.
 **/
 static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home,
-					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition)
+					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition,
+					const vehicle_attitude_s &attitude)
 {
 	//Need global position fix to be able to set home
 	if (!status.condition_global_position_valid) {
@@ -854,6 +857,8 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	home.x = localPosition.x;
 	home.y = localPosition.y;
 	home.z = localPosition.z;
+
+	home.yaw = attitude.yaw;
 
 	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
 	mavlink_log_info(mavlink_fd, "home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
@@ -1137,13 +1142,15 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to local position data */
 	int local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	struct vehicle_local_position_s local_position;
-	memset(&local_position, 0, sizeof(local_position));
+	struct vehicle_local_position_s local_position = {};
+
+	/* Subscribe to attitude data */
+	int attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	struct vehicle_attitude_s attitude = {};
 
 	/* Subscribe to land detector */
 	int land_detector_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	struct vehicle_land_detected_s land_detector;
-	memset(&land_detector, 0, sizeof(land_detector));
+	struct vehicle_land_detected_s land_detector = {};
 
 	/*
 	 * The home position is set based on GPS only, to prevent a dependency between
@@ -1571,6 +1578,14 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			/* position changed */
 			orb_copy(ORB_ID(vehicle_local_position), local_position_sub, &local_position);
+		}
+
+		/* update attitude estimate */
+		orb_check(attitude_sub, &updated);
+
+		if (updated) {
+			/* position changed */
+			orb_copy(ORB_ID(vehicle_attitude), attitude_sub, &attitude);
 		}
 
 		//update condition_global_position_valid
@@ -2183,7 +2198,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
 			/* handle it */
-			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position, &home_pub)) {
+			if (handle_command(&status, &safety, &cmd, &armed, &_home, &global_position, &local_position, &attitude, &home_pub)) {
 				status_changed = true;
 			}
 		}
@@ -2245,14 +2260,15 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* First time home position update - but only if disarmed */
 		if (!status.condition_home_position_valid && !armed.armed) {
-			commander_set_home_position(home_pub, _home, local_position, global_position);
+			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
 		}
 
-		/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
+		/* update home position on arming if at least 1s from commander start spent to avoid setting home on in-air restart */
 		else if (((!was_armed && armed.armed) || (was_landed && !status.condition_landed)) &&
 			(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
-			commander_set_home_position(home_pub, _home, local_position, global_position);
+			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
 		}
+
 		was_landed = status.condition_landed;
 		was_armed = armed.armed;
 
