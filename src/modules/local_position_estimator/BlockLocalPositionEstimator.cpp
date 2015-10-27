@@ -760,6 +760,7 @@ Matrix<float, BlockLocalPositionEstimator::n_x, 1> BlockLocalPositionEstimator::
 	while (i > 0) {
 		i--;
 		dt_sum += _tHistory[i];
+
 		if (dt_sum >= delay) { break; }
 	}
 
