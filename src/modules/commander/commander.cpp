@@ -2520,14 +2520,14 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	}
 
 	/* manual setpoint has not updated, do not re-evaluate it */
-	if ((last_manual_input == sp_man->timestamp) ||
-		((last_offboard_switch == sp_man->offboard_switch) &&
-		 (last_return_switch == sp_man->return_switch) &&
-		 (last_mode_switch == sp_man->mode_switch) &&
-		 (last_acro_switch == sp_man->acro_switch) &&
-		 (last_rattitude_switch == sp_man->rattitude_switch) &&
-		 (last_posctl_switch == sp_man->posctl_switch) &&
-		 (last_loiter_switch == sp_man->loiter_switch))) {
+	if ((_last_sp_man.timestamp == sp_man->timestamp) ||
+		((_last_sp_man.offboard_switch == sp_man->offboard_switch) &&
+		 (_last_sp_man.return_switch == sp_man->return_switch) &&
+		 (_last_sp_man.mode_switch == sp_man->mode_switch) &&
+		 (_last_sp_man.acro_switch == sp_man->acro_switch) &&
+		 (_last_sp_man.rattitude_switch == sp_man->rattitude_switch) &&
+		 (_last_sp_man.posctl_switch == sp_man->posctl_switch) &&
+		 (_last_sp_man.loiter_switch == sp_man->loiter_switch))) {
 
 		// update these fields for the geofence system
 		_last_sp_man.timestamp = sp_man->timestamp;
