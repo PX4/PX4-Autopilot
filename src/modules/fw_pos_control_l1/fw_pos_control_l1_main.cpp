@@ -1252,6 +1252,16 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				wp_distance_save = 0.0f;
 			}
 
+			// create virtual waypoint which is on the desired flight path but
+			// some distance behind landing waypoint. This will make sure that the plane
+			// will always follow the desired flight path even if we get close or past
+			// the landing waypoint
+			math::Vector<2> curr_wp_shifted;
+			double lat;
+			double lon;
+			create_waypoint_from_line_and_dist(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon, pos_sp_triplet.previous.lat,pos_sp_triplet.previous.lon, -1000.0f, &lat, &lon);
+			curr_wp_shifted(0) = (float)lat;
+			curr_wp_shifted(1) = (float)lon;
 			// we want the plane to keep tracking the desired flight path until we start flaring
 			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
 			if (land_noreturn_vertical) {
@@ -1276,7 +1286,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			} else {
 
 				/* normal navigation */
-				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+				_l1_control.navigate_waypoints(prev_wp, curr_wp_shifted, current_position, ground_speed_2d);
 			}
 
 			_att_sp.roll_body = _l1_control.nav_roll();
