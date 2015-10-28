@@ -109,7 +109,7 @@ int LidarLitePWM::init()
 	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
 	/* get a publish handle on the distance_sensor topic */
-	struct distance_sensor_s ds_report;
+	struct distance_sensor_s ds_report = {};
 	measure();
 	_reports->get(&ds_report);
 	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
