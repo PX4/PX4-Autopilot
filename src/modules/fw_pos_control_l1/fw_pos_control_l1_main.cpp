@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/fw_virtual_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -164,6 +165,8 @@ private:
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
 	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
+
+	orb_id_t _attitude_setpoint_id;
 
 	struct vehicle_attitude_s			_att;				/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
@@ -494,6 +497,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_tecs_status_pub(nullptr),
 	_nav_capabilities_pub(nullptr),
 
+/* publication ID */
+	_attitude_setpoint_id(0),
+
 /* states */
 	_att(),
 	_att_sp(),
@@ -746,6 +752,14 @@ FixedwingPositionControl::vehicle_status_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+		/* set correct uORB ID, depending on if vehicle is VTOL or not */
+		if (!_attitude_setpoint_id) {
+			if (_vehicle_status.is_vtol) {
+				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
+			} else {
+				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+			}
+		}
 	}
 }
 
@@ -1797,13 +1811,13 @@ FixedwingPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub != nullptr && !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+				if (_attitude_sp_pub != nullptr) {
 					/* publish the attitude setpoint */
-					orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &_att_sp);
+					orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
 
-				} else if (_attitude_sp_pub == nullptr && !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+				} else if (_attitude_setpoint_id) {
 					/* advertise and publish */
-					_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+					_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
 
 				/* XXX check if radius makes sense here */

@@ -71,6 +71,9 @@ void Tailsitter::update_mc_state()
 		set_idle_mc();
 		flag_idle_mc = true;
 	}
+
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 }
 
 void Tailsitter::update_fw_state()
@@ -79,6 +82,9 @@ void Tailsitter::update_fw_state()
 		set_idle_fw();
 		flag_idle_mc = false;
 	}
+
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 }
 
 void Tailsitter::update_transition_state()
