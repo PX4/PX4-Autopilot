@@ -227,7 +227,10 @@ private:
 	BlockParamFloat  _beta_max;
 
 	BlockParamFloat  _mocap_p_stddev;
-
+	
+	BlockParamFloat  _flow_board_x_offs;
+	BlockParamFloat  _flow_board_y_offs;
+	
 	// process noise
 	BlockParamFloat  _pn_p_noise_power;
 	BlockParamFloat  _pn_v_noise_power;
@@ -278,6 +281,7 @@ private:
 	// flow integration
 	float _flowX;
 	float _flowY;
+	float _flowGyroBias[3];
 	float _flowMeanQual;
 
 	// referene lat/lon
