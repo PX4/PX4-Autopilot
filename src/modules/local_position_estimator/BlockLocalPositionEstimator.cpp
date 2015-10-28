@@ -903,15 +903,29 @@ void BlockLocalPositionEstimator::correctFlow()
 	} else {
 		flow_speed[0] = 0;
 		flow_speed[1] = 0;
+		flow_gyrospeed[0] = 0;
+		flow_gyrospeed[1] = 0;
+		flow_gyrospeed[2] = 0;
 	}
 
 	flow_speed[2] = 0.0f;
+	
+	// filtered gyro readings for logging
+	flow_gyrospeed[0] -= _flowGyroBias[0];
+	flow_gyrospeed[1] -= _flowGyroBias[1];
+	flow_gyrospeed[2] -= _flowGyroBias[2];
 
 	// update filtered flow 
 	_pub_filtered_flow.get().sumx += flow_speed[0] * dt;
 	_pub_filtered_flow.get().sumy += flow_speed[1] * dt;
 	_pub_filtered_flow.get().vx = flow_speed[0];
 	_pub_filtered_flow.get().vy = flow_speed[1];
+	_pub_filtered_flow.get().gyro_rad_s[0] = flow_gyrospeed[0];
+	_pub_filtered_flow.get().gyro_rad_s[1] = flow_gyrospeed[1];
+	_pub_filtered_flow.get().gyro_rad_s[2] = flow_gyrospeed[2];
+	_pub_filtered_flow.get().gyro_bias[0] = _flowGyroBias[0];
+	_pub_filtered_flow.get().gyro_bias[1] = _flowGyroBias[1];
+	_pub_filtered_flow.get().gyro_bias[2] = _flowGyroBias[2];
 
 	// convert to globalframe velocity
 	for (uint8_t i = 0; i < 3; i++) {
