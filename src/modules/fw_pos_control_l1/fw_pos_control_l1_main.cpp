@@ -197,10 +197,11 @@ private:
 	bool land_onslope;
 	bool land_useterrain;
 
-	// terrain estimation states
+	// landing relevant states
 	float _t_alt_prev_valid;	//**< last terrain estimate which was valid */
 	hrt_abstime _time_last_t_alt; //*< time at which we had last valid terrain alt */
 	hrt_abstime _time_started_landing;	//*< time at which landing started */
+	float height_flare;					//*< estimated height to ground at which flare started */
 
 	bool _was_in_air;	/**< indicated wether the plane was in the air in the previous interation*/
 	hrt_abstime _time_went_in_air;	/**< time at which the plane went in the air */
@@ -539,6 +540,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_t_alt_prev_valid(0),
 	_time_last_t_alt(0),
 	_time_started_landing(0),
+	height_flare(0.0f),
 	_was_in_air(false),
 	_time_went_in_air(0),
 	_runway_takeoff(),
@@ -1396,10 +1398,18 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						land_motor_lim ? tecs_status_s::TECS_MODE_LAND_THROTTLELIM : tecs_status_s::TECS_MODE_LAND);
 
 				if (!land_noreturn_vertical) {
+					// just started with the flaring phase
+					_att_sp.pitch_body = 0.0f;
+					height_flare = _global_pos.alt - terrain_alt;
 					mavlink_log_info(_mavlink_fd, "#Landing, flaring");
 					land_noreturn_vertical = true;
+				} else {
+					if (_global_pos.vel_d > 0.1f) {
+						_att_sp.pitch_body = _parameters.land_flare_pitch_min_deg * (height_flare - (_global_pos.alt - terrain_alt)) / height_flare;
+					} else {
+						_att_sp.pitch_body = _att_sp.pitch_body;
+					}
 				}
-				//warnx("Landing:  flare, _global_pos.alt  %.1f, flare_curve_alt %.1f, flare_curve_alt_last %.1f, flare_length %.1f, wp_distance %.1f", _global_pos.alt, flare_curve_alt, flare_curve_alt_last, flare_length, wp_distance);
 
 				flare_curve_alt_rel_last = flare_curve_alt_rel;
 			} else {
@@ -1852,7 +1862,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	if (!(_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 				pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 					(launch_detection_state == LAUNCHDETECTION_RES_NONE ||
-					_runway_takeoff.runwayTakeoffEnabled())
+					_runway_takeoff.runwayTakeoffEnabled() ||
+					land_noreturn_vertical)
 				)) {
 		_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
 	}
