@@ -1264,9 +1264,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			create_waypoint_from_line_and_dist(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon, pos_sp_triplet.previous.lat,pos_sp_triplet.previous.lon, -1000.0f, &lat, &lon);
 			curr_wp_shifted(0) = (float)lat;
 			curr_wp_shifted(1) = (float)lon;
+
 			// we want the plane to keep tracking the desired flight path until we start flaring
 			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
-			if (land_noreturn_vertical) {
+			//if (land_noreturn_vertical) {
+			if (wp_distance < _parameters.land_heading_hold_horizontal_distance || land_noreturn_horizontal) {
 
 				/* heading hold, along the line connecting this and the last waypoint */
 
@@ -1288,7 +1290,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			} else {
 
 				/* normal navigation */
-				_l1_control.navigate_waypoints(prev_wp, curr_wp_shifted, current_position, ground_speed_2d);
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 			}
 
 			_att_sp.roll_body = _l1_control.nav_roll();
@@ -1405,7 +1407,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					land_noreturn_vertical = true;
 				} else {
 					if (_global_pos.vel_d > 0.1f) {
-						_att_sp.pitch_body = _parameters.land_flare_pitch_min_deg * (height_flare - (_global_pos.alt - terrain_alt)) / height_flare;
+						_att_sp.pitch_body = math::radians(_parameters.land_flare_pitch_min_deg) *
+								math::constrain((height_flare - (_global_pos.alt - terrain_alt)) / height_flare, 0.0f, 1.0f);
 					} else {
 						_att_sp.pitch_body = _att_sp.pitch_body;
 					}
@@ -1859,12 +1862,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* During a takeoff waypoint while waiting for launch the pitch sp is set
 	 * already (not by tecs) */
-	if (!(_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
-				pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
+	if (!(_control_mode_current ==  FW_POSCTRL_MODE_AUTO && (
+				(pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 					(launch_detection_state == LAUNCHDETECTION_RES_NONE ||
-					_runway_takeoff.runwayTakeoffEnabled() ||
-					land_noreturn_vertical)
-				)) {
+					_runway_takeoff.runwayTakeoffEnabled())) ||
+				(pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND &&
+					land_noreturn_vertical))
+	)) {
 		_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
 	}
 
