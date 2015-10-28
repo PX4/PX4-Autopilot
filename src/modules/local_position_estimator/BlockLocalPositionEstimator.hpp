@@ -6,7 +6,7 @@
 #include <lib/geo/geo.h>
 
 #ifdef USE_MATRIX_LIB
-#include "matrix/src/Matrix.hpp"
+#include "matrix/Matrix.hpp"
 using namespace matrix;
 #else
 #include <Eigen/Eigen>
