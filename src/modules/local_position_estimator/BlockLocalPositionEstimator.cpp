@@ -62,6 +62,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_no_vision(this, "NO_VISION"),
 	_beta_max(this, "BETA_MAX"),
 	_mocap_p_stddev(this, "VIC_P"),
+	_flow_board_x_offs(this, "FLOW_X_OFF"),	// TODO fix
+	_flow_board_y_offs(this, "FLOW_Y_OFF"),  // TODO
 	_pn_p_noise_power(this, "PN_P"),
 	_pn_v_noise_power(this, "PN_V"),
 	_pn_b_noise_power(this, "PN_B"),
@@ -112,6 +114,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// flow integration
 	_flowX(0),
 	_flowY(0),
+	_flowGyroBias(),
 	_flowMeanQual(0),
 
 	// reference lat/lon
@@ -853,10 +856,11 @@ void BlockLocalPositionEstimator::correctFlow()
 		_flow_xy_stddev.get() * _flow_xy_stddev.get();
 
 	float flow_speed[3] = {0.0f, 0.0f, 0.0f};
+	float flow_gyrospeed[3] = {0.0f, 0.0f, 0.0f};
 	float global_speed[3] = {0.0f, 0.0f, 0.0f};
 
-	/* calc dt between flow timestamps */
-	/* ignore first flow msg */
+	// calc dt between flow timestamps
+	// ignore first flow msg
 	if (_time_last_flow == 0) {
 		_time_last_flow = _sub_flow.get().timestamp;
 		return;
@@ -864,17 +868,37 @@ void BlockLocalPositionEstimator::correctFlow()
 
 	float dt = (_sub_flow.get().timestamp - _time_last_flow) * 1.0e-6f ;
 	_time_last_flow = _sub_flow.get().timestamp;
+	
+	float alpha = 0.4; // The closer alpha is to 1.0, the faster the moving average updates 
+			   // TODO use the Dt to calculate alpha
 
-	// calculate velocity over ground
 	if (_sub_flow.get().integration_timespan > 0) {
-		flow_speed[0] = (_sub_flow.get().pixel_flow_x_integral /
-				 (_sub_flow.get().integration_timespan / 1e6f) -
-				 _sub_att.get().pitchspeed) *		// Body rotation correction TODO check this
-				_x(X_z);
-		flow_speed[1] = (_sub_flow.get().pixel_flow_y_integral /
-				 (_sub_flow.get().integration_timespan / 1e6f) -
-				 _sub_att.get().rollspeed) *		// Body rotation correction
-				_x(X_z);
+		
+		// estimate gyro bias for the flow board's gyro using flight controller's calibrated gyro
+		flow_gyrospeed[0] = _sub_flow.get().gyro_x_rate_integral/_sub_flow.get().integration_timespan*1e6f;
+		flow_gyrospeed[1] = _sub_flow.get().gyro_y_rate_integral/_sub_flow.get().integration_timespan*1e6f;
+		flow_gyrospeed[2] = _sub_flow.get().gyro_z_rate_integral/_sub_flow.get().integration_timespan*1e6f;
+		
+		// exponential moving average
+		_flowGyroBias[0] = alpha * (flow_gyrospeed[0] - _sub_att.get().pitchspeed) + (1.0f-alpha)*_flowGyroBias[0];
+		_flowGyroBias[1] = alpha * (flow_gyrospeed[1] - _sub_att.get().rollspeed) + (1.0f-alpha)*_flowGyroBias[1];
+		_flowGyroBias[2] = alpha * (flow_gyrospeed[2] - _sub_att.get().yawspeed) + (1.0f-alpha)*_flowGyroBias[2];
+	
+		// yaw rotation compensation 
+		float yaw_comp[2] = {0.0f, 0.0f};
+		
+		yaw_comp[0] = _flow_board_x_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
+		yaw_comp[1] =  - _flow_board_y_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
+
+		// calculate velocity over ground
+		flow_speed[0] = ((_sub_flow.get().pixel_flow_x_integral - _sub_flow.get().gyro_x_rate_integral) /
+				 (_sub_flow.get().integration_timespan * 1e6f)
+				 + _flowGyroBias[0] - yaw_comp[0]) *
+				_x(X_z);		// TODO use terrain estimate here
+		flow_speed[1] = ((_sub_flow.get().pixel_flow_y_integral - _sub_flow.get().gyro_y_rate_integral) /
+				 (_sub_flow.get().integration_timespan * 1e6f) -
+				 + _flowGyroBias[1] - yaw_comp[1]) *	
+				 _x(X_z);		// TODO use terrain estimate here
 
 	} else {
 		flow_speed[0] = 0;
@@ -883,13 +907,11 @@ void BlockLocalPositionEstimator::correctFlow()
 
 	flow_speed[2] = 0.0f;
 
-	/* update filtered flow */
+	// update filtered flow 
 	_pub_filtered_flow.get().sumx += flow_speed[0] * dt;
 	_pub_filtered_flow.get().sumy += flow_speed[1] * dt;
 	_pub_filtered_flow.get().vx = flow_speed[0];
 	_pub_filtered_flow.get().vy = flow_speed[1];
-
-	// TODO add yaw rotation correction (with distance to vehicle zero)
 
 	// convert to globalframe velocity
 	for (uint8_t i = 0; i < 3; i++) {
