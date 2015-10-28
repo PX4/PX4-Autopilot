@@ -1323,7 +1323,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					// we have started landing phase but don't have valid terrain
 					// wait for some time, maybe we will soon get a valid estimate
 					// until then just use the altitude of the landing waypoint
-					if (hrt_elapsed_time(&_time_started_landing) < 5 * 1000 * 1000) {
+					if (hrt_elapsed_time(&_time_started_landing) < 10 * 1000 * 1000) {
 						terrain_alt = _pos_sp_triplet.current.alt;
 					} else {
 						// still no valid terrain, abort landing
