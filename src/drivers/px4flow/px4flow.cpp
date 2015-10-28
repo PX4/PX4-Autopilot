@@ -531,6 +531,8 @@ PX4FLOW::collect()
 
 	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
 
+	rotate_3f(_sensor_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
+
 	if (_px4flow_topic == nullptr) {
 		_px4flow_topic = orb_advertise(ORB_ID(optical_flow), &report);
 
