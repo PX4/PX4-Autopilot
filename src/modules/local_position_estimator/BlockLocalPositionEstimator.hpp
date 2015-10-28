@@ -181,13 +181,15 @@ private:
 	uORB::Subscription<vehicle_attitude_setpoint_s> _sub_att_sp;
 	uORB::Subscription<optical_flow_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
-	uORB::Subscription<distance_sensor_s> _sub_distance;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
 	uORB::Subscription<home_position_s> _sub_home;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
+	uORB::Subscription<distance_sensor_s> * _distance_subs[ORB_MULTI_MAX_INSTANCES];
+	uORB::Subscription<distance_sensor_s> * _sub_lidar;
+	uORB::Subscription<distance_sensor_s> * _sub_sonar;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
