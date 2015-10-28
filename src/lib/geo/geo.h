@@ -236,6 +236,12 @@ __EXPORT int globallocalconverter_getref(double *lat_0, double *lon_0, float *al
  */
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
+
+// TODO put description for both functions and improve naming
+__EXPORT void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist, double *lat_target, double *lon_target);
+
+__EXPORT void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist, double *end_lat, double *end_lon);
+
 /**
  * Returns the bearing to the next waypoint in radians.
  *

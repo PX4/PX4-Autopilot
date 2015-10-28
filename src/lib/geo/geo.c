@@ -298,6 +298,31 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
 	return CONSTANTS_RADIUS_OF_EARTH * c;
 }
 
+__EXPORT void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist, double *lat_target, double *lon_target)
+{
+	float heading;
+	if (fabsf(dist) < FLT_EPSILON) {
+		*lat_target = lat_A;
+		*lon_target = lon_A;
+	}
+	else if (dist >= FLT_EPSILON) {
+		heading = get_bearing_to_next_waypoint(lat_A, lon_A, lat_B, lon_B);
+		waypoint_from_heading_and_distance(lat_A, lon_A, heading, dist, lat_target, lon_target);
+	} else {
+		heading = get_bearing_to_next_waypoint(lat_A, lon_A, lat_B, lon_B);
+		heading = _wrap_2pi(heading + 180.0f * M_PI_F);
+		waypoint_from_heading_and_distance(lat_A, lon_A, heading, dist, lat_target, lon_target);
+	}
+}
+
+__EXPORT void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist, double *lat_end, double *lon_end)
+{
+	bearing = _wrap_2pi(bearing);
+	double radius_ratio = (double)(dist / CONSTANTS_RADIUS_OF_EARTH);
+
+	*lat_end = asin(sin(lat_start) * cos(radius_ratio) + cos(lat_start) * sin(radius_ratio) * cos((double)bearing));
+	*lon_end = lon_start + atan2(sin((double)bearing) * sin(radius_ratio) * cos(lat_start), cos(radius_ratio) - sin(lat_start) * sin(*lat_end));
+}
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
