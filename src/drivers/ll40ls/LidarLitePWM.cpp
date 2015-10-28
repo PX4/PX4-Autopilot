@@ -118,7 +118,7 @@ int LidarLitePWM::init()
 	if (_distance_sensor_topic == nullptr) {
 		DEVICE_DEBUG("failed to create distance_sensor object. Did you start uOrb?");
 	}
-	
+
 	return OK;
 }
 
