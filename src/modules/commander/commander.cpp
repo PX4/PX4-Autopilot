@@ -2594,7 +2594,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 			}
 
 		} 
-		if(sp_man->rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON){
+		else if(sp_man->rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON){
 			/* Similar to acro transitions for multirotors.  FW aircraft don't need a 
 			 * rattitude mode.*/
 			if (status.is_rotary_wing) {
