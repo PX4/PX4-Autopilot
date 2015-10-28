@@ -163,6 +163,8 @@ private:
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
 	bool		_debug;				/**< if set to true, print debug output */
 
+	math::Vector<3> _omega_sp;		/**< desired bodyrates vector */
+
 	struct {
 		float tconst;
 		float p_p;
@@ -364,6 +366,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_actuators_airframe = {};
 	_global_pos = {};
 	_vehicle_status = {};
+
+	_omega_sp.zero();
 
 
 	_parameter_handles.tconst = param_find("FW_ATT_TC");
@@ -658,6 +662,7 @@ FixedwingAttitudeControl::task_main()
 	fds[1].events = POLLIN;
 
 	_task_running = true;
+
 
 	while (!_task_should_exit) {
 		static int loop_counter = 0;
@@ -994,9 +999,25 @@ FixedwingAttitudeControl::task_main()
 
 				/* Run attitude controllers */
 				if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
-					_roll_ctrl.control_attitude(control_input);
-					_pitch_ctrl.control_attitude(control_input);
-					_yaw_ctrl.control_attitude(control_input); //runs last, because is depending on output of roll and pitch attitude
+
+					// do quaternion based control
+					math::Quaternion q;
+					math::Quaternion q_sp;
+					q.from_euler(_att.roll, _att.pitch, 0.0f);
+					q_sp.from_euler(roll_sp, pitch_sp, 0.0f);
+
+					// compute quaternion error
+					math::Quaternion q_sp_inv = {q_sp(0),-q_sp(1),-q_sp(2),-q_sp(3)};
+					math::Quaternion q_error;
+					q_error = q_sp_inv * q;
+
+					// compute desired bodyrates
+					_omega_sp = q_error(0) > 0.0f ? -q_error.imag() * 2.0f  /_parameters.tconst : q_error.imag() * 2.0f / _parameters.tconst;
+
+					// set desired bodyrates
+					_roll_ctrl.set_rate_setpoint(_omega_sp(0));
+					_pitch_ctrl.set_rate_setpoint(_omega_sp(1));
+					_yaw_ctrl.set_rate_setpoint(0.0f);
 
 					/* Update input data for rate controllers */
 					control_input.roll_rate_setpoint = _roll_ctrl.get_desired_rate();

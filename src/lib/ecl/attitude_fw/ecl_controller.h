@@ -95,6 +95,7 @@ public:
 	void set_k_ff(float k_ff);
 	void set_integrator_max(float max);
 	void set_max_rate(float max_rate);
+	void set_rate_setpoint(float rate_setpoint);
 
 	/* Getters */
 	float get_rate_error();
