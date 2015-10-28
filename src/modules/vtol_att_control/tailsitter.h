@@ -31,13 +31,13 @@
  *
  ****************************************************************************/
 
- /**
- * @file tiltrotor.h
- *
- * @author Roman Bapst 		<bapstroman@gmail.com>
- * @author David Vorsin     <davidvorsin@gmail.com>
- *
- */
+/**
+* @file tiltrotor.h
+*
+* @author Roman Bapst 		<bapstroman@gmail.com>
+* @author David Vorsin     <davidvorsin@gmail.com>
+*
+*/
 
 #ifndef TAILSITTER_H
 #define TAILSITTER_H
@@ -114,7 +114,7 @@ private:
 	struct {
 		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
 		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
-	}_vtol_schedule;
+	} _vtol_schedule;
 
 	float _airspeed_tot; 		/** speed estimation for propwash controlled surfaces */
 	float _roll_weight_mc;		/**< multicopter desired roll moment weight */
@@ -125,7 +125,7 @@ private:
 	float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
 
 
-    /** should this anouncement stay? **/
+	/** should this anouncement stay? **/
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
 

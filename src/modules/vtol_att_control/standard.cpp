@@ -254,7 +254,7 @@ void Standard::update_fw_state()
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
-	// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again	
+	// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again
 	if (!_flag_enable_mc_motors) {
 		set_max_mc(950);
 		set_idle_fw();  // force them to stop, not just idle

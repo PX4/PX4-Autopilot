@@ -512,6 +512,7 @@ void VtolAttitudeControl::publish_att_sp()
 	if (_v_att_sp_pub != nullptr) {
 		/* publish the attitude setpoint */
 		orb_publish(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_pub, &_v_att_sp);
+
 	} else {
 		/* advertise and publish */
 		_v_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
@@ -740,7 +741,11 @@ VtolAttitudeControl::start()
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 10,
 					   2048,
+<<<<<<< HEAD
 					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
+=======
+					   (main_t)&VtolAttitudeControl::task_main_trampoline,
+>>>>>>> fixed code style
 					   nullptr);
 
 	if (_control_task < 0) {

@@ -306,6 +306,7 @@ void Tiltrotor::update_transition_state()
 		_throttle_transition = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
 		_flag_was_in_trans_mode = true;
 	}
+
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 		// for the first part of the transition the rear rotors are enabled
 		if (_rear_motors != ENABLED) {
