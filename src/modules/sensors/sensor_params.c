@@ -733,6 +733,24 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
+ * PX4Flow module offset (from center of rotation) in X direction
+ *
+ * This parameter defines the translational offset (X) of the PX4Flow board for yaw-rotation compensation
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_FLOW_X_OFF, 0.0f);
+
+/**
+ * PX4Flow module offset (from center of rotation) in Y direction
+ *
+ * This parameter defines the translational offset (Y) of the PX4Flow board for yaw-rotation compensation
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_FLOW_Y_OFF, 0.0f);
+
+/**
  * External magnetometer rotation
  *
  * This parameter defines the rotation of the external magnetometer relative
