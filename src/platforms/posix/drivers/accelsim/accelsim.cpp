@@ -108,11 +108,6 @@ public:
 	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	//void			print_info();
-
-	/**
 	 * dump register values
 	 */
 	void			print_registers();
@@ -120,8 +115,8 @@ public:
 protected:
 	friend class 		ACCELSIM_mag;
 
-	virtual ssize_t		mag_read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int		mag_ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	ssize_t			mag_read(device::file_t *filp, char *buffer, size_t buflen);
+	int			mag_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	int			transfer(uint8_t *send, uint8_t *recv, unsigned len);
 private:
@@ -302,7 +297,6 @@ public:
 protected:
 	friend class ACCELSIM;
 
-	void		parent_poll_notify();
 private:
 	ACCELSIM	*_parent;
 
@@ -1147,12 +1141,6 @@ out:
 	return ret;
 }
 
-void
-ACCELSIM_mag::parent_poll_notify()
-{
-	poll_notify(POLLIN);
-}
-
 ssize_t
 ACCELSIM_mag::read(device::file_t *filp, char *buffer, size_t buflen)
 {
@@ -1278,7 +1266,6 @@ info()
 	}
 
 	PX4_DEBUG("state @ %p", g_dev);
-	//g_dev->print_info();
 
 	return 0;
 }
