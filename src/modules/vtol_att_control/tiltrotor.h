@@ -130,8 +130,6 @@ private:
 	}_vtol_schedule;
 
 	float _tilt_control;		/**< actuator value for the tilt servo */
-	float _roll_weight_mc;		/**< multicopter desired roll moment weight */
-	float _yaw_weight_mc;		/**< multicopter desired yaw moment weight */
 
 	const float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
 

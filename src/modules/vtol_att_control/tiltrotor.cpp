@@ -47,8 +47,6 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 VtolType(attc),
 _rear_motors(ENABLED),
 _tilt_control(0.0f),
-_roll_weight_mc(1.0f),
-_yaw_weight_mc(1.0f),
 _min_front_trans_dur(0.5f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
