@@ -31,12 +31,12 @@
  *
  ****************************************************************************/
 
- /**
- * @file airframe.cpp
- *
- * @author Roman Bapst 		<bapstroman@gmail.com>
- *
- */
+/**
+* @file airframe.cpp
+*
+* @author Roman Bapst 		<bapstroman@gmail.com>
+*
+*/
 
 #include "vtol_type.h"
 #include "drivers/drv_pwm_output.h"
@@ -44,8 +44,8 @@
 #include "vtol_att_control_main.h"
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
-_attc(att_controller),
-_vtol_mode(ROTARY_WING)
+	_attc(att_controller),
+	_vtol_mode(ROTARY_WING)
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
@@ -70,7 +70,7 @@ _vtol_mode(ROTARY_WING)
 
 VtolType::~VtolType()
 {
-	
+
 }
 
 /**

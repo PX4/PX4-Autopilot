@@ -104,24 +104,24 @@ public:
 	int start();	/* start the task and return OK on success */
 	bool is_fixed_wing_requested();
 
-	struct vehicle_attitude_s* 			get_att () {return &_v_att;}
-	struct vehicle_attitude_setpoint_s* get_att_sp () {return &_v_att_sp;}
-	struct vehicle_rates_setpoint_s* 	get_rates_sp () {return &_v_rates_sp;}
-	struct vehicle_rates_setpoint_s* 	get_mc_virtual_rates_sp () {return &_mc_virtual_v_rates_sp;}
-	struct vehicle_rates_setpoint_s* 	get_fw_virtual_rates_sp () {return &_fw_virtual_v_rates_sp;}
-	struct manual_control_setpoint_s* 	get_manual_control_sp () {return &_manual_control_sp;}
-	struct vehicle_control_mode_s* 		get_control_mode () {return &_v_control_mode;}
-	struct vtol_vehicle_status_s*		get_vehicle_status () {return &_vtol_vehicle_status;}
-	struct actuator_controls_s* 		get_actuators_out0 () {return &_actuators_out_0;}
-	struct actuator_controls_s* 		get_actuators_out1 () {return &_actuators_out_1;}
-	struct actuator_controls_s* 		get_actuators_mc_in () {return &_actuators_mc_in;}
-	struct actuator_controls_s* 		get_actuators_fw_in () {return &_actuators_fw_in;}
-	struct actuator_armed_s* 			get_armed () {return &_armed;}
-	struct vehicle_local_position_s* 	get_local_pos () {return &_local_pos;}
-	struct airspeed_s* 					get_airspeed () {return &_airspeed;}
-	struct battery_status_s* 			get_batt_status () {return &_batt_status;}
+	struct vehicle_attitude_s 			*get_att() {return &_v_att;}
+	struct vehicle_attitude_setpoint_s *get_att_sp() {return &_v_att_sp;}
+	struct vehicle_rates_setpoint_s 	*get_rates_sp() {return &_v_rates_sp;}
+	struct vehicle_rates_setpoint_s 	*get_mc_virtual_rates_sp() {return &_mc_virtual_v_rates_sp;}
+	struct vehicle_rates_setpoint_s 	*get_fw_virtual_rates_sp() {return &_fw_virtual_v_rates_sp;}
+	struct manual_control_setpoint_s 	*get_manual_control_sp() {return &_manual_control_sp;}
+	struct vehicle_control_mode_s 		*get_control_mode() {return &_v_control_mode;}
+	struct vtol_vehicle_status_s		*get_vehicle_status() {return &_vtol_vehicle_status;}
+	struct actuator_controls_s 		*get_actuators_out0() {return &_actuators_out_0;}
+	struct actuator_controls_s 		*get_actuators_out1() {return &_actuators_out_1;}
+	struct actuator_controls_s 		*get_actuators_mc_in() {return &_actuators_mc_in;}
+	struct actuator_controls_s 		*get_actuators_fw_in() {return &_actuators_fw_in;}
+	struct actuator_armed_s 			*get_armed() {return &_armed;}
+	struct vehicle_local_position_s 	*get_local_pos() {return &_local_pos;}
+	struct airspeed_s 					*get_airspeed() {return &_airspeed;}
+	struct battery_status_s 			*get_batt_status() {return &_batt_status;}
 
-	struct Params* 						get_params () {return &_params;}
+	struct Params 						*get_params() {return &_params;}
 
 
 private:
@@ -189,10 +189,10 @@ private:
 
 	int _transition_command;
 
-	VtolType * _vtol_type;	// base class for different vtol types
-	Tiltrotor * _tiltrotor;	// tailsitter vtol type
-	Tailsitter * _tailsitter;	// tiltrotor vtol type
-	Standard * _standard;	// standard vtol type
+	VtolType *_vtol_type;	// base class for different vtol types
+	Tiltrotor *_tiltrotor;	// tailsitter vtol type
+	Tailsitter *_tailsitter;	// tiltrotor vtol type
+	Standard *_standard;	// standard vtol type
 
 //*****************Member functions***********************************************************************
 
