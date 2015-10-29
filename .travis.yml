@@ -107,8 +107,8 @@ script:
   - cd ..
   - mkdir -p ROMFS/px4fmu_common/uavcan/fw/com.thiemar.s2740vc-v1/1.0/
   - mkdir -p ROMFS/px4fmu_common/uavcan/fw/org.pixhawk.px4esc-v1/1.0/
-  - cp vectorcontrol/firmware/com.thiemar.s2740vc-v1-1.0.00000000.uavcan.bin ROMFS/px4fmu_common/uavcan/fw/com.thiemar.s2740vc-v1/1.0/00000000.bin
-  - cp vectorcontrol/firmware/org.pixhawk.px4esc-v1-1.0.00000000.uavcan.bin ROMFS/px4fmu_common/uavcan/fw/org.pixhawk.px4esc-v1/1.0/00000000.bin
+  - cp vectorcontrol/firmware/com.thiemar.s2740vc-v1-1.0.*.bin ROMFS/px4fmu_common/uavcan/fw/com.thiemar.s2740vc-v1/1.0/.
+  - cp vectorcontrol/firmware/org.pixhawk.px4esc-v1-1.0.*.bin ROMFS/px4fmu_common/uavcan/fw/org.pixhawk.px4esc-v1/1.0/.
   - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
   - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
   - echo 'Running Tests..' && make px4fmu-v2_default test
