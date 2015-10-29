@@ -31,7 +31,7 @@
 #
 ############################################################################
 if(${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3800)
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3890)
 endif()
 px4_add_module(
 	MODULE modules__position_estimator_inav
