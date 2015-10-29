@@ -41,15 +41,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <string.h>
-#include <fcntl.h>
 #include <poll.h>
-#include <errno.h>
-#include <stdio.h>
 #include <math.h>
 #include <unistd.h>
 #include <px4_getopt.h>
@@ -64,7 +59,6 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
-#include <drivers/drv_tone_alarm.h>
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
