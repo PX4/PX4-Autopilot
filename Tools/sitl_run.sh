@@ -3,18 +3,27 @@
 rc_script=$1
 debugger=$2
 program=$3
-build_path=$4
+model=$4
+build_path=$5
 curr_dir=`pwd`
 
 echo SITL ARGS
 echo rc_script: $rc_script
 echo debugger: $debugger
 echo program: $program
+echo model: $model
 echo build_path: $build_path
 
-if [ "$#" != 4 ]
+if [ "$model" == "" ] || [ "$model" == "none" ]
 then
-	echo usage: sitl_run.sh rc_script debugger program build_path
+	echo "empty model, setting iris as default"
+	model="iris"
+fi
+
+if [ "$#" != 5 ]
+then
+	echo usage: sitl_run.sh rc_script debugger program model build_path
+	echo ""
 	exit 1
 fi
 
@@ -54,9 +63,9 @@ then
 		cd Tools/sitl_gazebo/Build
 		cmake ..
 		make -j4
-		gzserver ../worlds/iris.world &
+		gzserver ../worlds/${model}.world &
 		SIM_PID=`echo $!`
-		gzclient&
+		gzclient &
 		GUI_PID=`echo $!`
 	else
 		echo "You need to have gazebo simulator installed!"
@@ -78,10 +87,10 @@ else
 	./mainapp ../../../../${rc_script}_${program}
 fi
 
-if [ "$3" == "jmavsim" ]
+if [ "$program" == "jmavsim" ]
 then
 	kill -9 $SIM_PID
-elif [ "$3" == "gazebo" ]
+elif [ "$program" == "gazebo" ]
 then
 	kill -9 $SIM_PID
 	kill -9 $GUI_PID
