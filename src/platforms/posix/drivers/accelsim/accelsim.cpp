@@ -228,41 +228,6 @@ private:
 	void			mag_measure();
 
 	/**
-	 * Read a register from the ACCELSIM
-	 *
-	 * @param		The register to read.
-	 * @return		The value that was read.
-	 */
-	uint8_t			read_reg(unsigned reg);
-
-	/**
-	 * Write a register in the ACCELSIM
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void			write_reg(unsigned reg, uint8_t value);
-
-	/**
-	 * Modify a register in the ACCELSIM
-	 *
-	 * Bits are cleared before bits are set.
-	 *
-	 * @param reg		The register to modify.
-	 * @param clearbits	Bits in the register to clear.
-	 * @param setbits	Bits in the register to set.
-	 */
-	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
-
-	/**
-	 * Write a register in the ACCELSIM, updating _checked_values
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void			write_checked_reg(unsigned reg, uint8_t value);
-
-	/**
 	 * Set the ACCELSIM accel measurement range.
 	 *
 	 * @param max_g	The measurement range of the accel is in g (9.81m/s^2)
@@ -329,25 +294,25 @@ public:
 	ACCELSIM_mag(ACCELSIM *parent);
 	~ACCELSIM_mag();
 
-	virtual ssize_t			read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t	read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
-	virtual int			init();
+	virtual int	init();
 
 protected:
 	friend class ACCELSIM;
 
-	void				parent_poll_notify();
+	void		parent_poll_notify();
 private:
-	ACCELSIM				*_parent;
+	ACCELSIM	*_parent;
 
-	orb_advert_t			_mag_topic;
-	int				_mag_orb_class_instance;
-	int				_mag_class_instance;
+	orb_advert_t	_mag_topic;
+	int		_mag_orb_class_instance;
+	int		_mag_class_instance;
 
-	void				measure();
+	void		measure();
 
-	void				measure_trampoline(void *arg);
+	void		measure_trampoline(void *arg);
 
 	/* this class does not allow copying due to ptr data members */
 	ACCELSIM_mag(const ACCELSIM_mag &);
@@ -391,8 +356,6 @@ ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
 	_last_temperature(0),
 	_checked_next(0)
 {
-
-
 	// enable debug() calls
 	_debug_enabled = false;
 
@@ -886,53 +849,6 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	}
 }
 
-uint8_t
-ACCELSIM::read_reg(unsigned reg)
-{
-	uint8_t cmd[2];
-
-	cmd[0] = reg | DIR_READ;
-	cmd[1] = 0;
-
-	transfer(cmd, cmd, sizeof(cmd));
-
-	return cmd[1];
-}
-
-void
-ACCELSIM::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t	cmd[2];
-
-	cmd[0] = reg | DIR_WRITE;
-	cmd[1] = value;
-
-	transfer(cmd, nullptr, sizeof(cmd));
-}
-
-void
-ACCELSIM::write_checked_reg(unsigned reg, uint8_t value)
-{
-	write_reg(reg, value);
-
-	for (uint8_t i = 0; i < ACCELSIM_NUM_CHECKED_REGISTERS; i++) {
-		if (reg == _checked_registers[i]) {
-			_checked_values[i] = value;
-		}
-	}
-}
-
-void
-ACCELSIM::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
-{
-	uint8_t	val;
-
-	val = read_reg(reg);
-	val &= ~clearbits;
-	val |= setbits;
-	write_checked_reg(reg, val);
-}
-
 int
 ACCELSIM::accel_set_range(unsigned max_g)
 {
@@ -1086,51 +1002,6 @@ ACCELSIM::measure()
 	accel_report.y_raw = (int16_t)(raw_accel_report.y / _accel_range_scale);
 	accel_report.z_raw = (int16_t)(raw_accel_report.z / _accel_range_scale);
 
-	// float xraw_f = (int16_t)(raw_accel_report.x/_accel_range_scale);
-	// float yraw_f = (int16_t)(raw_accel_report.y / _accel_range_scale);
-	// float zraw_f = (int16_t)(raw_accel_report.z / _accel_range_scale);
-
-	// // apply user specified rotation
-	// rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	// float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	// float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	// float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
-
-	/*
-	  we have logs where the accelerometers get stuck at a fixed
-	  large value. We want to detect this and mark the sensor as
-	  being faulty
-	 */
-	// if (fabsf(_last_accel[0] - x_in_new) < 0.001f &&
-	//     fabsf(_last_accel[1] - y_in_new) < 0.001f &&
-	//     fabsf(_last_accel[2] - z_in_new) < 0.001f &&
-	//     fabsf(x_in_new) > 20 &&
-	//     fabsf(y_in_new) > 20 &&
-	//     fabsf(z_in_new) > 20) {
-	// 	_constant_accel_count += 1;
-	// } else {
-	// 	_constant_accel_count = 0;
-	// }
-	// if (_constant_accel_count > 100) {
-	// 	// we've had 100 constant accel readings with large
-	// 	// values. The sensor is almost certainly dead. We
-	// 	// will raise the error_count so that the top level
-	// 	// flight code will know to avoid this sensor, but
-	// 	// we'll still give the data so that it can be logged
-	// 	// and viewed
-	// 	perf_count(_bad_values);
-	// 	_constant_accel_count = 0;
-	// }
-
-	// _last_accel[0] = x_in_new;
-	// _last_accel[1] = y_in_new;
-	// _last_accel[2] = z_in_new;
-
-	// accel_report.x = _accel_filter_x.apply(x_in_new);
-	// accel_report.y = _accel_filter_y.apply(y_in_new);
-	// accel_report.z = _accel_filter_z.apply(z_in_new);
-
 	accel_report.x = raw_accel_report.x;
 	accel_report.y = raw_accel_report.y;
 	accel_report.z = raw_accel_report.z;
@@ -1217,13 +1088,6 @@ ACCELSIM::mag_measure()
 
 	/* apply user specified rotation */
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	// mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	// mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	// mag_report.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
-	// mag_report.scaling = _mag_range_scale;
-	// mag_report.range_ga = (float)_mag_range_ga;
-	// mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
 	/* remember the temperature. The datasheet isn't clear, but it
 	 * seems to be a signed offset from 25 degrees C in units of 0.125C
