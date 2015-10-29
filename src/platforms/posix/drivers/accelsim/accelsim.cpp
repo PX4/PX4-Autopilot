@@ -172,10 +172,6 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define ACCELSIM_NUM_CHECKED_REGISTERS 1
-	static const uint8_t	_checked_registers[ACCELSIM_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[ACCELSIM_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
 
 	/**
 	 * Start automatic measurement.
@@ -274,12 +270,6 @@ private:
 	ACCELSIM operator=(const ACCELSIM &);
 };
 
-/*
-  list of registers that will be checked in check_registers(). Note
-  that ADDR_WHO_AM_I must be first in the list.
- */
-const uint8_t ACCELSIM::_checked_registers[ACCELSIM_NUM_CHECKED_REGISTERS] = { ADDR_WHO_AM_I };
-
 /**
  * Helper class implementing the mag driver node.
  */
@@ -347,8 +337,7 @@ ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
 	_accel_filter_z(ACCELSIM_ACCEL_DEFAULT_RATE, ACCELSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_constant_accel_count(0),
-	_last_temperature(0),
-	_checked_next(0)
+	_last_temperature(0)
 {
 	// enable debug() calls
 	_debug_enabled = false;
