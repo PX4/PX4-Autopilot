@@ -39,7 +39,6 @@
  * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
  * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011.
  *
- * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton.babushkin@me.com>
  *
