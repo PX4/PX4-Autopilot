@@ -92,6 +92,7 @@
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/input_rc.h>
 
 #include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
@@ -922,6 +923,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_epv = param_find("COM_HOME_V_T");
 	param_t _param_geofence_action = param_find("GF_ACTION");
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
+	param_t _param_map_mode_sw = param_find("RC_MAP_MODE_SW");
 
 	// const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
 	// main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
@@ -1272,6 +1274,7 @@ int commander_thread_main(int argc, char *argv[])
 	int autosave_params; /**< Autosave of parameters enabled/disabled, loaded from parameter */
 
 	int32_t disarm_when_landed = 0;
+	int32_t map_mode_sw = 0;
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -1337,6 +1340,16 @@ int commander_thread_main(int argc, char *argv[])
 
 				status_changed = true;
 
+				// check if main mode switch has been assigned and if so run preflight checks in order
+				// to update status.condition_sensors_initialised
+				int32_t map_mode_sw_new;
+				param_get(_param_map_mode_sw, &map_mode_sw_new);
+
+				if (map_mode_sw == 0 && map_mode_sw != map_mode_sw_new && map_mode_sw_new < input_rc_s::RC_INPUT_MAX_CHANNELS && map_mode_sw_new > 0) {
+					status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed,
+							!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
+				}
+
 				/* re-check RC calibration */
 				rc_calibration_check(mavlink_fd);
 			}
@@ -1353,6 +1366,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
+			param_get(_param_map_mode_sw, &map_mode_sw);
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
