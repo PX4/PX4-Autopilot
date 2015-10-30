@@ -128,8 +128,6 @@ after_success:
       && echo https://px4-travis.s3.amazonaws.com/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/Firmware.zip
       ;
     fi
-  - git log -n 1 --pretty=format:"%H"
-  - git rev-parse HEAD
 
 deploy:
   provider: releases
