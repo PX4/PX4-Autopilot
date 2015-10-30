@@ -85,7 +85,7 @@ def convert_type(spec_type):
         return c_type + "[" + str(array_length) + "]"
     return c_type
 
-topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in spec.parsed_fields()]
+topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in spec.parsed_fields()[1:]]
 }@
 
 #include <px4_config.h>
