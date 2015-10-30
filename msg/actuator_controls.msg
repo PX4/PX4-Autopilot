@@ -6,7 +6,7 @@ uint8 INDEX_YAW = 2
 uint8 INDEX_THROTTLE = 3
 uint8 INDEX_FLAPS = 4
 uint8 GROUP_INDEX_ATTITUDE = 0
-uint64 timestamp
+# timestamp for the topic will be generated automatically
 uint64 timestamp_sample	    # the timestamp the data this control response is based on was sampled
 float32[8] control
 
