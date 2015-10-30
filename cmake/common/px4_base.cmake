@@ -700,7 +700,7 @@ function(px4_create_git_hash_header)
 		REQUIRED HEADER 
 		ARGN ${ARGN})
 	execute_process(
-		COMMAND git log -n 1 --pretty=format:"%H"
+		COMMAND git rev-parse HEAD
 		OUTPUT_VARIABLE git_desc
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
