@@ -55,9 +55,7 @@ private:
 
 	void write_parameters();
 
-	static constexpr size_t 	MAX_TOPICS_NUM = 32;
-	static constexpr size_t 	MAX_TOPICS_GROUPS_NUM = 32;
-	static constexpr uint8_t 	MAGIC_NUM = 0x77;
+	static constexpr size_t 	MAX_TOPICS_NUM = 128;
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 	static constexpr const char *		LOG_ROOT = PX4_ROOTFSDIR"/fs/microsd/log";

@@ -2,9 +2,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/sensor_mag.h>
 
 using namespace px4::logger;
 
@@ -96,9 +93,6 @@ void Logger::run_trampoline(int argc, char *argv[]) {
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
 	} else {
-		logger_ptr->add_topic(ORB_ID(sensor_accel));
-		logger_ptr->add_topic(ORB_ID(sensor_gyro));
-		logger_ptr->add_topic(ORB_ID(sensor_mag));
 		logger_ptr->run();
 	}
 }
@@ -146,6 +140,9 @@ struct message_parameter_header_s {
 };
 #pragma pack(pop)
 
+
+static constexpr size_t MAX_DATA_SIZE = 255 - 2;
+
 Logger::Logger(size_t buffer_size, unsigned log_interval) :
 		_writer((_log_buffer = new uint8_t[buffer_size]), buffer_size),
 		_log_interval(log_interval) {
@@ -175,15 +172,32 @@ Logger::~Logger() {
 }
 
 void Logger::add_topic(const orb_metadata *topic) {
+	if (topic->o_size > MAX_DATA_SIZE) {
+		warn("skip topic %s, data size is too large: %i (max is %i)", topic->o_name, topic->o_size, MAX_DATA_SIZE);
+		return;
+	}
+	size_t fields_len = strlen(topic->o_fields);
+	if (fields_len > sizeof(message_format_s::format)) {
+		warn("skip topic %s, format string is too large: %i (max is %i)", topic->o_name, fields_len, sizeof(message_format_s::format));
+		return;
+	}
 	_subscriptions.push_back(LoggerSubscription(orb_subscribe(topic), topic));
 }
 
 void Logger::add_all_topics() {
-	// TODO
+	orb_metadata **topics = orb_get_topics();
+	for (size_t i = 0; i < orb_topics_count; i++) {
+		add_topic(topics[i]);
+	}
 }
 
 void Logger::run() {
 	warnx("started");
+
+	if (_subscriptions.size() == 0) {
+		warnx("log all topics");
+		add_all_topics();
+	}
 
 	int mkdir_ret = mkdir(LOG_ROOT, S_IRWXU | S_IRWXG | S_IRWXO);
 
