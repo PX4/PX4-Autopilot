@@ -126,7 +126,7 @@ struct message_data_header_s {
 
 	uint8_t msg_id;
 	uint8_t multi_id;
-	uint64_t timestamp;
+	//uint64_t timestamp;	// this field already included in each data struct
 };
 
 struct message_info_header_s {
@@ -216,8 +216,6 @@ void Logger::run() {
 
 			bool data_written = false;
 
-			const hrt_abstime t = hrt_absolute_time();
-
 			// Write data messages for normal subscriptions
 			int msg_id = 0;
 			for (LoggerSubscription &sub : _subscriptions) {
@@ -232,7 +230,6 @@ void Logger::run() {
 					header->msg_size = static_cast<uint8_t>(msg_size - 2);
 					header->msg_id = msg_id;
 					header->multi_id = 0x80;	// Non multi, active
-					header->timestamp = t;
 
 					if (_writer.write(buffer, msg_size)) {
 						data_written = true;
@@ -350,6 +347,7 @@ void Logger::write_formats() {
 		msg.msg_id = msg_id;
 		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
+		msg.msg_size = msg_size - 2;
 		while (!_writer.write(&msg, msg_size)) {
 			_writer.unlock();
 			_writer.notify();
@@ -403,6 +401,8 @@ void Logger::write_parameters() {
 			/* copy parameter value directly to buffer */
 			param_get(param, &buffer[msg_size]);
 			msg_size += value_size;
+
+			msg->msg_size = msg_size - 2;
 
 			/* write message */
 			while (!_writer.write(buffer, msg_size)) {
