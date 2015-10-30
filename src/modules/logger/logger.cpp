@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
+#include <uORB/uORBTopics.h>
 
 using namespace px4::logger;
 
@@ -185,8 +186,8 @@ void Logger::add_topic(const orb_metadata *topic) {
 }
 
 void Logger::add_all_topics() {
-	orb_metadata **topics = orb_get_topics();
-	for (size_t i = 0; i < orb_topics_count; i++) {
+	const orb_metadata **topics = orb_get_topics();
+	for (size_t i = 0; i < orb_topics_count(); i++) {
 		add_topic(topics[i]);
 	}
 }
