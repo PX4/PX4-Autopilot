@@ -42,13 +42,13 @@ cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
 
 SIM_PID=0
 
-if [ "$program" == "jmavsim" ]
+if [ "$program" == "jmavsim" ] && [ "$no_sim" == "" ]
 then
 	cd Tools/jMAVSim
 	ant
 	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
-elif [ "$3" == "gazebo" ]
+elif [ "$3" == "gazebo" ] && [ "$no_sim" == "" ]
 then
 	if [ -x "$(command -v gazebo)" ]
 	then
