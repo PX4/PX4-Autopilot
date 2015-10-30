@@ -403,7 +403,7 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 	mavlink_msg_mission_ack_decode(msg, &wpa);
 
 	if (CHECK_SYSID_COMPID_MISSION(wpa)) {
-		if ((msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid)) {
+		if ((msg->sysid == _transfer_partner_sysid/* && msg->compid == _transfer_partner_compid*/)) {
 			if (_state == MAVLINK_WPM_STATE_SENDLIST) {
 				_time_last_recv = hrt_absolute_time();
 
@@ -504,7 +504,7 @@ MavlinkMissionManager::handle_mission_request(const mavlink_message_t *msg)
 	mavlink_msg_mission_request_decode(msg, &wpr);
 
 	if (CHECK_SYSID_COMPID_MISSION(wpr)) {
-		if (msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid) {
+		if (msg->sysid == _transfer_partner_sysid/* && msg->compid == _transfer_partner_compid*/) {
 			if (_state == MAVLINK_WPM_STATE_SENDLIST) {
 				_time_last_recv = hrt_absolute_time();
 
