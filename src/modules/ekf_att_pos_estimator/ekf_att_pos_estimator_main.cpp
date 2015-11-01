@@ -588,6 +588,11 @@ void AttitudePositionEstimatorEKF::task_main()
 				/* system is in HIL now, wait for measurements to come in one last round */
 				usleep(60000);
 
+				/* HIL is slow, set permissive timeouts */
+				_voter_gyro.set_timeout(500000);
+				_voter_accel.set_timeout(500000);
+				_voter_mag.set_timeout(500000);
+
 				/* now read all sensor publications to ensure all real sensor data is purged */
 				orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 
@@ -1223,6 +1228,23 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 
+	/* set time fields */
+	IMUusec = _sensor_combined.timestamp;
+	float deltaT = (_sensor_combined.timestamp - _last_sensor_timestamp) / 1e6f;
+
+	/* guard against too large deltaT's */
+	if (!PX4_ISFINITE(deltaT) || deltaT > 1.0f || deltaT < 0.0001f) {
+
+		if (PX4_ISFINITE(_ekf->dtIMUfilt) && _ekf->dtIMUfilt < 0.5f && _ekf->dtIMUfilt > 0.0001f) {
+			deltaT = _ekf->dtIMUfilt;
+		} else {
+			deltaT = 0.01f;
+		}
+	}
+
+	/* fill in last data set */
+	_ekf->dtIMU = deltaT;
+
 	// Feed validator with recent sensor data
 
 	for (unsigned i = 0; i < (sizeof(_sensor_combined.gyro_timestamp) / sizeof(_sensor_combined.gyro_timestamp[0])); i++) {
@@ -1245,6 +1267,11 @@ void AttitudePositionEstimatorEKF::pollData()
 			_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 1];
 			_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 2];
 		} else {
+			float dt_gyro = _sensor_combined.gyro_integral_dt[_gyro_main] / 1e6f;
+			if (PX4_ISFINITE(dt_gyro) && (dt_gyro < 0.5f) && (dt_gyro > 0.00001f)) {
+				deltaT = dt_gyro;
+				_ekf->dtIMU = deltaT;
+			}
 			_ekf->dAngIMU.x = 0.5f * (_ekf->angRate.x + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 0]) * _ekf->dtIMU;
 			_ekf->dAngIMU.y = 0.5f * (_ekf->angRate.y + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 1]) * _ekf->dtIMU;
 			_ekf->dAngIMU.z = 0.5f * (_ekf->angRate.z + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 2]) * _ekf->dtIMU;
@@ -1317,19 +1344,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		_vibration_warning_timestamp = 0;
 	}
 
-	IMUusec = _sensor_combined.timestamp;
-
-	float deltaT = (_sensor_combined.timestamp - _last_sensor_timestamp) / 1e6f;
 	_last_sensor_timestamp = _sensor_combined.timestamp;
-
-	/* guard against too large deltaT's */
-	if (!PX4_ISFINITE(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
-		deltaT = 0.01f;
-	}
-
-	// Always store data, independent of init status
-	/* fill in last data set */
-	_ekf->dtIMU = deltaT;
 
 	// XXX this is for assessing the filter performance
 	// leave this in as long as larger improvements are still being made.
@@ -1342,7 +1357,7 @@ void AttitudePositionEstimatorEKF::pollData()
 	static unsigned dtoverflow10 = 0;
 	static hrt_abstime lastprint = 0;
 
-	if (hrt_elapsed_time(&lastprint) > 1000000) {
+	if (hrt_elapsed_time(&lastprint) > 1000000 || _sensor_combined.gyro_rad_s[0] > 4.0f) {
 		PX4_WARN("dt: %8.6f, dtg: %8.6f, dta: %8.6f, dt > 5 ms: %u, dt > 10 ms: %u",
 			(double)deltaT, (double)deltaTIntegral, (double)deltaTIntAcc,
 			dtoverflow5, dtoverflow10);
@@ -1361,7 +1376,15 @@ void AttitudePositionEstimatorEKF::pollData()
 		(double)(_sensor_combined.gyro_rad_s[0] * deltaT), (double)(_sensor_combined.gyro_rad_s[2] * deltaT),
 		(double)(_sensor_combined.accelerometer_m_s2[0] * deltaT),
 		(double)(_sensor_combined.accelerometer_m_s2[1] * deltaT),
-		(double)((_sensor_combined.accelerometer_m_s2[2] + 9.8665f) * deltaT));
+		(double)(_sensor_combined.accelerometer_m_s2[2] * deltaT));
+
+		PX4_WARN("EKF rate: %8.4f, %8.4f, %8.4f",
+				(double)_att.rollspeed, (double)_att.pitchspeed, (double)_att.yawspeed);
+
+		PX4_WARN("DRV rate: %8.4f, %8.4f, %8.4f",
+				(double)_sensor_combined.gyro_rad_s[0],
+				(double)_sensor_combined.gyro_rad_s[1],
+				(double)_sensor_combined.gyro_rad_s[2]);
 
 		lastprint = hrt_absolute_time();
 	}
