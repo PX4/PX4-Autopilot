@@ -34,7 +34,10 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_gps(ORB_ID(vehicle_gps_position), 0, 0, &getSubscriptions()),
 	_sub_vision_pos(ORB_ID(vision_position_estimate), 0, 0, &getSubscriptions()),
 	_sub_mocap(ORB_ID(att_pos_mocap), 0, 0, &getSubscriptions()),
-
+	_distance_subs(),
+	_sub_lidar(NULL),
+	_sub_sonar(NULL),
+	
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
 	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
