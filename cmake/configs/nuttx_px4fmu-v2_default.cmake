@@ -45,6 +45,7 @@ set(config_module_list
 	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger
+    drivers/bst
 
 	#
 	# System commands
