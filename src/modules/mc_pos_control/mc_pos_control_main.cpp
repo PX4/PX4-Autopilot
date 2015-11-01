@@ -714,16 +714,18 @@ MulticopterPositionControl::control_manual(float dt)
 																 (fabsf(_vel(0)) < _params.hold_max_xy && fabsf(_vel(1)) < _params.hold_max_xy)))
 			{
 				_pos_hold_engaged = true;
+			} else {
+				_pos_hold_engaged = false;
 			}
 		}
 		else {
 			_pos_hold_engaged = false;
-			_pos_sp(0) = _pos(0);
-			_pos_sp(1) = _pos(1);
 		}
 
 		/* set requested velocity setpoint */
 		if (!_pos_hold_engaged) {
+			_pos_sp(0) = _pos(0);
+			_pos_sp(1) = _pos(1);
 			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
 			_vel_sp(0) = req_vel_sp_scaled(0);
 			_vel_sp(1) = req_vel_sp_scaled(1);
