@@ -2825,7 +2825,7 @@ bool AttPosEKF::VelNEDDiverged()
     Vector3f delta = current_vel - gps_vel;
     float delta_len = delta.length();
 
-    bool excessive = (delta_len > 20.0f);
+    bool excessive = (delta_len > 30.0f);
 
     current_ekf_state.error |= excessive;
     current_ekf_state.velOffsetExcessive = excessive;
