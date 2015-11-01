@@ -93,6 +93,7 @@
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/filtered_bottom_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
@@ -1076,6 +1077,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct att_pos_mocap_s att_pos_mocap;
 		struct vision_position_estimate_s vision_pos;
 		struct optical_flow_s flow;
+		struct filtered_bottom_flow_s filtered_flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
 		struct airspeed_s airspeed;
@@ -1120,6 +1122,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_AIRS_s log_AIRS;
 			struct log_ARSP_s log_ARSP;
 			struct log_FLOW_s log_FLOW;
+			struct log_FFLW_s log_FFLW;
 			struct log_GPOS_s log_GPOS;
 			struct log_GPSP_s log_GPSP;
 			struct log_ESC_s log_ESC;
@@ -1171,6 +1174,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int att_pos_mocap_sub;
 		int vision_pos_sub;
 		int flow_sub;
+		int filtered_flow_sub;
 		int rc_sub;
 		int airspeed_sub;
 		int esc_sub;
@@ -1207,6 +1211,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.att_pos_mocap_sub = -1;
 	subs.vision_pos_sub = -1;
 	subs.flow_sub = -1;
+	subs.filtered_flow_sub = -1;
 	subs.rc_sub = -1;
 	subs.airspeed_sub = -1;
 	subs.esc_sub = -1;
@@ -1672,6 +1677,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_FLOW.quality = buf.flow.quality;
 			log_msg.body.log_FLOW.sensor_id = buf.flow.sensor_id;
 			LOGBUFFER_WRITE_AND_COUNT(FLOW);
+		}
+		
+		/* --- FILTERED FLOW --- */
+		if (copy_if_updated(ORB_ID(filtered_bottom_flow), &subs.filtered_flow_sub, &buf.filtered_flow)) {
+			log_msg.msg_type = LOG_FFLW_MSG;
+			log_msg.body.log_FFLW.x_vel_integ = buf.filtered_flow.sumx;
+			log_msg.body.log_FFLW.y_vel_integ = buf.filtered_flow.sumy;
+			log_msg.body.log_FFLW.x_vel = buf.filtered_flow.vx;
+			log_msg.body.log_FFLW.y_vel = buf.filtered_flow.vy;
+			log_msg.body.log_FFLW.gyro_x_rate = buf.filtered_flow.gyro_rad_s[0];
+			log_msg.body.log_FFLW.gyro_y_rate = buf.filtered_flow.gyro_rad_s[1];
+			log_msg.body.log_FFLW.gyro_z_rate = buf.filtered_flow.gyro_rad_s[2];
+			log_msg.body.log_FFLW.gyro_x_bias = buf.filtered_flow.gyro_bias[0];
+			log_msg.body.log_FFLW.gyro_y_bias = buf.filtered_flow.gyro_bias[1];
+			log_msg.body.log_FFLW.gyro_z_bias = buf.filtered_flow.gyro_bias[2];
+			LOGBUFFER_WRITE_AND_COUNT(FFLW);
 		}
 
 		/* --- RC CHANNELS --- */

@@ -493,6 +493,21 @@ struct log_CTS_s {
 
 /* WARNING: ID 46 is already in use for ATTC1 */
 
+/* --- FFLW - FILTERED OPTICAL FLOW STATUS */
+#define LOG_FFLW_MSG 47
+struct log_FFLW_s {
+	float x_vel_integ;
+	float y_vel_integ;
+	float x_vel;
+	float y_vel;
+	float gyro_x_rate;
+	float gyro_y_rate;
+	float gyro_z_rate;
+	float gyro_x_bias;
+	float gyro_y_bias;
+	float gyro_z_bias;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -565,6 +580,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
+	LOG_FORMAT(FFLW, "ffffff", "XIntg,YIntg,VelX,VelY,RateX,RateY,RateZ,BiasX,BiasY,BiasZ"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
