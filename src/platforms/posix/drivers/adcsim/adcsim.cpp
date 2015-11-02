@@ -199,7 +199,6 @@ ADCSIM	*g_adc;
 int
 test(void)
 {
-
 	DriverHandle h = DriverMgr::getHandle(ADCSIM0_DEVICE_PATH);
 
 	if (!h.isValid()) {
@@ -245,7 +244,7 @@ adcsim_main(int argc, char *argv[])
 		}
 	}
 
-	if (argc > 1) {
+	if (argc > 1 && g_adc) {
 		if (!strcmp(argv[1], "test")) {
 			ret = test();
 		}
