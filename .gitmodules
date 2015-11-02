@@ -28,3 +28,6 @@
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
 	url = https://github.com/PX4/Matrix.git
+[submodule "src/lib/DriverFramework"]
+	path = src/lib/DriverFramework
+	url = https://github.com/PX4/DriverFramework.git
