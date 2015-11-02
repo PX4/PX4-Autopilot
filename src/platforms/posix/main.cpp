@@ -43,6 +43,9 @@
 #include <sstream>
 #include <vector>
 #include <signal.h>
+#include "apps.h"
+#include "px4_middleware.h"
+#include "DriverFramework.hpp"
 
 namespace px4
 {
@@ -52,9 +55,6 @@ void init_once(void);
 using namespace std;
 
 typedef int (*px4_main_t)(int argc, char *argv[]);
-
-#include "apps.h"
-#include "px4_middleware.h"
 
 static bool _ExitFlag = false;
 extern "C" {
@@ -184,6 +184,7 @@ int main(int argc, char **argv)
 	}
 
 	if (!error_detected) {
+		DriverFramework::Framework::initialize();
 		px4::init_once();
 
 		px4::init(argc, argv, "mainapp");
@@ -236,5 +237,6 @@ int main(int argc, char **argv)
 
 		vector<string> shutdown_cmd = { "shutdown" };
 		run_cmd(shutdown_cmd, true);
+		DriverFramework::Framework::shutdown();
 	}
 }
