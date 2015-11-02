@@ -215,7 +215,8 @@ ToneAlarm::ToneAlarm() :
 	_default_tune_number(0),
 	_user_tune(nullptr),
 	_tune(nullptr),
-	_next(nullptr)
+	_next(nullptr),
+	_note_call{}
 {
 	// enable debug() calls
 	//_debug_enabled = true;
@@ -376,6 +377,7 @@ ToneAlarm::start_tune(const char *tune)
 	_repeat = false;		// otherwise command-line tunes repeat forever...
 
 	// schedule a callback to start playing
+	_note_call = {};
 	hrt_call_after(&_note_call, 0, (hrt_callout)next_trampoline, this);
 }
 
@@ -385,6 +387,7 @@ ToneAlarm::next_note()
 	// do we have an inter-note gap to wait for?
 	if (_silence_length > 0) {
 		stop_note();
+		_note_call = {};
 		hrt_call_after(&_note_call, (hrt_abstime)_silence_length, (hrt_callout)next_trampoline, this);
 		_silence_length = 0;
 		return;
@@ -482,6 +485,7 @@ ToneAlarm::next_note()
 
 		case 'P':	// pause for a note length
 			stop_note();
+			_note_call = {};
 			hrt_call_after(&_note_call,
 				       (hrt_abstime)rest_duration(next_number(), next_dots()),
 				       (hrt_callout)next_trampoline,
@@ -510,6 +514,7 @@ ToneAlarm::next_note()
 
 			if (note == 0) {
 				// this is a rest - pause for the current note length
+				_note_call = {};
 				hrt_call_after(&_note_call,
 					       (hrt_abstime)rest_duration(_note_length, next_dots()),
 					       (hrt_callout)next_trampoline,
@@ -567,6 +572,7 @@ ToneAlarm::next_note()
 	start_note(note);
 
 	// and arrange a callback when the note should stop
+	_note_call = {};
 	hrt_call_after(&_note_call, (hrt_abstime)duration, (hrt_callout)next_trampoline, this);
 	return;
 
