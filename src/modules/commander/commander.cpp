@@ -1269,7 +1269,7 @@ int commander_thread_main(int argc, char *argv[])
 	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
 
-	uint8_t geofence_action = 0;
+	int32_t geofence_action = 0;
 
 	/* Thresholds for engine failure detection */
 	int32_t ef_throttle_thres = 1.0f;
