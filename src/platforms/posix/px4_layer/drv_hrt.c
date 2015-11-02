@@ -48,7 +48,7 @@
 #include <errno.h>
 #include "hrt_work.h"
 
-static struct sq_queue_s	callout_queue;
+static struct sq_queue_s	callout_queue = {};
 
 /* latency histogram */
 #define LATENCY_BUCKET_COUNT 8
