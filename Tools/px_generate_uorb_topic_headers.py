@@ -43,6 +43,11 @@ import shutil
 import filecmp
 import argparse
 
+import sys
+px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(px4_tools_dir + "/genmsg/src")
+sys.path.append(px4_tools_dir + "/gencpp/src")
+
 try:
         import em
         import genmsg.template_tools
@@ -118,7 +123,7 @@ def generate_header_from_file(filename, outputdir, templatedir, includepath):
             "topics": topics
         }
 
-                # Make sure output directory exists:
+        # Make sure output directory exists:
         if not os.path.isdir(outputdir):
                 os.makedirs(outputdir)
 
@@ -184,7 +189,7 @@ def convert_dir(inputdir, outputdir, templatedir):
         return True
 
 
-def copy_changed(inputdir, outputdir, prefix=''):
+def copy_changed(inputdir, outputdir, prefix='', quiet=False):
         """
         Copies files from inputdir to outputdir if they don't exist in
         ouputdir or if their content changed
@@ -194,14 +199,15 @@ def copy_changed(inputdir, outputdir, prefix=''):
         if not os.path.isdir(outputdir):
                 os.makedirs(outputdir)
 
-        for f in os.listdir(inputdir):
-                fni = os.path.join(inputdir, f)
+        for input_file in os.listdir(inputdir):
+                fni = os.path.join(inputdir, input_file)
                 if os.path.isfile(fni):
-                        # Check if f exists in outpoutdir, copy the file if not
-                        fno = os.path.join(outputdir, prefix + f)
+                        # Check if input_file exists in outpoutdir, copy the file if not
+                        fno = os.path.join(outputdir, prefix + input_file)
                         if not os.path.isfile(fno):
                                 shutil.copy(fni, fno)
-                                print("{0}: new header file".format(fno))
+                                if not quiet:
+                                    print("{0}: new header file".format(fno))
                                 continue
 
                         if os.path.getmtime(fni) > os.path.getmtime(fno):
@@ -209,13 +215,15 @@ def copy_changed(inputdir, outputdir, prefix=''):
                                 # only copy if contents do not match
                                 if not filecmp.cmp(fni, fno):
                                         shutil.copy(fni, fno)
-                                        print("{0}: updated".format(fni))
+                                        if not quiet:
+                                            print("{0}: updated".format(input_file))
                                         continue
 
-                        #print("{0}: unchanged".format(f))
+                        if not quiet:
+                            print("{0}: unchanged".format(input_file))
 
 
-def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
+def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix, quiet=False):
         """
         Converts all .msg files in inputdir to uORB header files
         Unchanged existing files are not overwritten.
@@ -223,7 +231,7 @@ def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
         # Create new headers in temporary output directory
         convert_dir(inputdir, temporarydir, templatedir)
         # Copy changed headers from temporary dir to output dir
-        copy_changed(temporarydir, outputdir, prefix)
+        copy_changed(temporarydir, outputdir, prefix, quiet)
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
@@ -241,10 +249,19 @@ if __name__ == "__main__":
         parser.add_argument('-p', dest='prefix', default='',
                             help='string added as prefix to the output file '
                             ' name when converting directories')
+        parser.add_argument('-q', dest='quiet', default=False, action='store_true',
+                            help='string added as prefix to the output file '
+                            ' name when converting directories')
         args = parser.parse_args()
 
         if args.file is not None:
                 for f in args.file:
                         generate_header_from_file(f, args.outputdir, args.templatedir, INCL_DEFAULT)
         elif args.dir is not None:
-                convert_dir_save(args.dir, args.outputdir, args.templatedir, args.temporarydir, args.prefix)
+                convert_dir_save(
+                    args.dir,
+                    args.outputdir,
+                    args.templatedir,
+                    args.temporarydir,
+                    args.prefix,
+                    args.quiet)

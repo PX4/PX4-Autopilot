@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file HMC5883_SPI.cpp
-  *
-  * SPI interface for HMC5983
-  */
+/**
+ * @file HMC5883_SPI.cpp
+ *
+ * SPI interface for HMC5983
+ */
 
 /* XXX trim includes */
 #include <px4_config.h>
@@ -77,7 +77,7 @@ public:
 	virtual ~HMC5883_SPI();
 
 	virtual int	init();
-	virtual int	read(unsigned address, void *data, unsigned count); 
+	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
 	virtual int	ioctl(unsigned operation, unsigned &arg);
@@ -91,7 +91,7 @@ HMC5883_SPI_interface(int bus)
 }
 
 HMC5883_SPI::HMC5883_SPI(int bus, spi_dev_e device) :
-	SPI("HMC5883_SPI", nullptr, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz */)
+	SPI("HMC5883_SPI", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000 /* will be rounded to 10.4 MHz */)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 }
@@ -106,6 +106,7 @@ HMC5883_SPI::init()
 	int ret;
 
 	ret = SPI::init();
+
 	if (ret != OK) {
 		DEVICE_DEBUG("SPI init failed");
 		return -EIO;
@@ -148,10 +149,9 @@ HMC5883_SPI::ioctl(unsigned operation, unsigned &arg)
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
 
-	default:
-	{
-		ret = -EINVAL;
-	}
+	default: {
+			ret = -EINVAL;
+		}
 	}
 
 	return ret;

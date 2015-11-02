@@ -78,13 +78,13 @@ void CatapultLaunchMethod::update(float accel_x)
 			if (integrator > thresholdTime.get()) {
 				if (motorDelay.get() > 0.0f) {
 					state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
-					warnx("Launch detected: state: enablecontrol, waiting %.2fs until using full"
-					      " throttle", (double)motorDelay.get());
+					warnx("Launch detected: enablecontrol, waiting %8.4fs until full throttle",
+					      double(motorDelay.get()));
 
 				} else {
 					/* No motor delay set: go directly to enablemotors state */
 					state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
-					warnx("Launch detected: state: enablemotors (delay not activated)");
+					warnx("Launch detected: enablemotors (delay not activated)");
 				}
 			}
 

@@ -54,36 +54,88 @@
 #include "topics/vehicle_attitude_setpoint.h"
 #include "topics/vehicle_rates_setpoint.h"
 #include "topics/rc_channels.h"
+#include "topics/battery_status.h"
+#include "topics/optical_flow.h"
+#include "topics/distance_sensor.h"
+#include "topics/home_position.h"
 #include "topics/vehicle_control_mode.h"
 #include "topics/actuator_armed.h"
+#include "topics/att_pos_mocap.h"
+#include "topics/vision_position_estimate.h"
+
+#include <px4_defines.h>
 
 namespace uORB
 {
 
-template<class T>
-Subscription<T>::Subscription(
-	const struct orb_metadata *meta,
-	unsigned interval,
-	List<SubscriptionNode *> *list) :
-	T(), // initialize data structure to zero
-	SubscriptionNode(meta, interval, list)
+SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta,
+				   unsigned interval, unsigned instance) :
+	_meta(meta),
+	_instance(instance),
+	_handle()
+{
+	if (_instance > 0) {
+		_handle =  orb_subscribe_multi(
+				   getMeta(), instance);
+
+	} else {
+		_handle =  orb_subscribe(getMeta());
+	}
+
+	if (_handle < 0) { warnx("sub failed"); }
+
+	orb_set_interval(getHandle(), interval);
+}
+
+bool SubscriptionBase::updated()
+{
+	bool isUpdated = false;
+	int ret = orb_check(_handle, &isUpdated);
+
+	if (ret != PX4_OK) { warnx("orb check failed"); }
+
+	return isUpdated;
+}
+
+void SubscriptionBase::update(void *data)
+{
+	if (updated()) {
+		int ret = orb_copy(_meta, _handle, data);
+
+		if (ret != PX4_OK) { warnx("orb copy failed"); }
+	}
+}
+
+SubscriptionBase::~SubscriptionBase()
+{
+	int ret = orb_unsubscribe(_handle);
+
+	if (ret != PX4_OK) { warnx("orb unsubscribe failed"); }
+}
+
+template <class T>
+Subscription<T>::Subscription(const struct orb_metadata *meta,
+			      unsigned interval,
+			      int instance,
+			      List<SubscriptionNode *> *list) :
+	SubscriptionNode(meta, interval, instance, list),
+	_data() // initialize data structure to zero
 {
 }
 
-template<class T>
-Subscription<T>::~Subscription() {}
-
-template<class T>
-void *Subscription<T>::getDataVoidPtr()
+template <class T>
+Subscription<T>::~Subscription()
 {
-	return (void *)(T *)(this);
 }
 
-template<class T>
-T Subscription<T>::getData()
+template <class T>
+void Subscription<T>::update()
 {
-	return T(*this);
+	SubscriptionBase::update((void *)(&_data));
 }
+
+template <class T>
+const T &Subscription<T>::get() { return _data; }
 
 template class __EXPORT Subscription<parameter_update_s>;
 template class __EXPORT Subscription<actuator_controls_s>;
@@ -104,5 +156,11 @@ template class __EXPORT Subscription<vehicle_rates_setpoint_s>;
 template class __EXPORT Subscription<rc_channels_s>;
 template class __EXPORT Subscription<vehicle_control_mode_s>;
 template class __EXPORT Subscription<actuator_armed_s>;
+template class __EXPORT Subscription<battery_status_s>;
+template class __EXPORT Subscription<home_position_s>;
+template class __EXPORT Subscription<optical_flow_s>;
+template class __EXPORT Subscription<distance_sensor_s>;
+template class __EXPORT Subscription<att_pos_mocap_s>;
+template class __EXPORT Subscription<vision_position_estimate_s>;
 
 } // namespace uORB

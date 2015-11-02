@@ -95,8 +95,7 @@
 
 #include "modules/dataman/dataman.h"
 
-extern device::Device *PX4IO_i2c_interface() weak_function;
-extern device::Device *PX4IO_serial_interface() weak_function;
+#include "px4io_driver.h"
 
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
@@ -865,7 +864,7 @@ PX4IO::init()
 	_task = px4_task_spawn_cmd("px4io",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				   1800,
+				   1500,
 				   (main_t)&PX4IO::task_main_trampoline,
 				   nullptr);
 
@@ -2969,10 +2968,9 @@ get_interface()
 
 #ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
 
-	/* try for a serial interface */
-	if (PX4IO_serial_interface != nullptr) {
-		interface = PX4IO_serial_interface();
-	}
+#ifdef PX4IO_SERIAL_BASE
+	interface = PX4IO_serial_interface();
+#endif
 
 	if (interface != nullptr) {
 		goto got;
@@ -2980,10 +2978,9 @@ get_interface()
 
 #endif
 
-	/* try for an I2C interface if we haven't got a serial one */
-	if (PX4IO_i2c_interface != nullptr) {
-		interface = PX4IO_i2c_interface();
-	}
+#ifdef PX4_I2C_OBDEV_PX4IO
+	interface = PX4IO_i2c_interface();
+#endif
 
 	if (interface != nullptr) {
 		goto got;
@@ -3467,12 +3464,12 @@ px4io_main(int argc, char *argv[])
 
 		} else {
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-			fn[0] = "/etc/extras/px4io-v1_default.bin";
+			fn[0] = "/etc/extras/px4io-v1.bin";
 			fn[1] =	"/fs/microsd/px4io1.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";
 			fn[3] =	nullptr;
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-			fn[0] = "/etc/extras/px4io-v2_default.bin";
+			fn[0] = "/etc/extras/px4io-v2.bin";
 			fn[1] =	"/fs/microsd/px4io2.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";
 			fn[3] =	nullptr;

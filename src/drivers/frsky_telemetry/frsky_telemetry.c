@@ -83,6 +83,7 @@ static int frsky_open_uart(const char *uart_name, struct termios *uart_config_or
 
 	/* Back up the original UART configuration to restore it after exit */
 	int termios_state;
+
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
 		warnx("ERR: tcgetattr%s: %d\n", uart_name, termios_state);
 		close(uart);
@@ -120,9 +121,9 @@ static int frsky_open_uart(const char *uart_name, struct termios *uart_config_or
 static void usage()
 {
 	fprintf(stderr,
-			"usage: frsky_telemetry start [-d <devicename>]\n"
-			"       frsky_telemetry stop\n"
-			"       frsky_telemetry status\n");
+		"usage: frsky_telemetry start [-d <devicename>]\n"
+		"       frsky_telemetry stop\n"
+		"       frsky_telemetry status\n");
 	exit(1);
 }
 
@@ -139,6 +140,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	argv += 2;
 
 	int ch;
+
 	while ((ch = getopt(argc, argv, "d:")) != EOF) {
 		switch (ch) {
 		case 'd':
@@ -155,8 +157,9 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	struct termios uart_config_original;
 	const int uart = frsky_open_uart(device_name, &uart_config_original);
 
-	if (uart < 0)
+	if (uart < 0) {
 		err(1, "could not open %s", device_name);
+	}
 
 	/* Subscribe to topics */
 	frsky_init();
@@ -165,6 +168,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 	/* Main thread loop */
 	unsigned int iteration = 0;
+
 	while (!thread_should_exit) {
 
 		/* Sleep 200 ms */
@@ -174,14 +178,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		frsky_send_frame1(uart);
 
 		/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
-		if (iteration % 5 == 0)
-		{
+		if (iteration % 5 == 0) {
 			frsky_send_frame2(uart);
 		}
 
 		/* Send frame 3 (every 5000ms): date, time */
-		if (iteration % 25 == 0)
-		{
+		if (iteration % 25 == 0) {
 			frsky_send_frame3(uart);
 
 			iteration = 0;
@@ -212,16 +214,17 @@ int frsky_telemetry_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		/* this is not an error */
-		if (thread_running)
+		if (thread_running) {
 			errx(0, "frsky_telemetry already running");
+		}
 
 		thread_should_exit = false;
 		frsky_task = px4_task_spawn_cmd("frsky_telemetry",
-					  SCHED_DEFAULT,
-					  SCHED_PRIORITY_DEFAULT,
-					  2000,
-					  frsky_telemetry_thread_main,
-					  (char * const *)argv);
+						SCHED_DEFAULT,
+						SCHED_PRIORITY_DEFAULT,
+						2000,
+						frsky_telemetry_thread_main,
+						(char *const *)argv);
 
 		while (!thread_running) {
 			usleep(200);
@@ -233,8 +236,9 @@ int frsky_telemetry_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "stop")) {
 
 		/* this is not an error */
-		if (!thread_running)
+		if (!thread_running) {
 			errx(0, "frsky_telemetry already stopped");
+		}
 
 		thread_should_exit = true;
 

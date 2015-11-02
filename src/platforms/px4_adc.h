@@ -52,13 +52,12 @@
 
 // FIXME - this needs to be a px4_adc_msg_s type
 // Curently copied from NuttX
-struct adc_msg_s
-{
-  uint8_t      am_channel;               /* The 8-bit ADC Channel */
-  int32_t      am_data;                  /* ADC convert result (4 bytes) */
-} __attribute__ ((packed));
+struct adc_msg_s {
+	uint8_t      am_channel;               /* The 8-bit ADC Channel */
+	int32_t      am_data;                  /* ADC convert result (4 bytes) */
+} __attribute__((packed));
 
-// Example settings 
+// Example settings
 #define ADC_BATTERY_VOLTAGE_CHANNEL     10
 #define ADC_BATTERY_CURRENT_CHANNEL     ((uint8_t)(-1))
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL    11

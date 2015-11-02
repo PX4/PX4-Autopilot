@@ -103,17 +103,23 @@ __EXPORT void led_toggle(int led)
 {
 	switch (led) {
 	case 0:
-		if (stm32_gpioread(GPIO_LED0))
+		if (stm32_gpioread(GPIO_LED0)) {
 			stm32_gpiowrite(GPIO_LED0, false);
-		else
+
+		} else {
 			stm32_gpiowrite(GPIO_LED0, true);
+		}
+
 		break;
 
 	case 1:
-		if (stm32_gpioread(GPIO_LED1))
+		if (stm32_gpioread(GPIO_LED1)) {
 			stm32_gpiowrite(GPIO_LED1, false);
-		else
+
+		} else {
 			stm32_gpiowrite(GPIO_LED1, true);
+		}
+
 		break;
 
 	default:

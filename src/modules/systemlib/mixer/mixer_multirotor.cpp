@@ -315,8 +315,13 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 
 		// scale yaw if it violates limits. inform about yaw limit reached
 		if (out < 0.0f) {
-			yaw = -((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
-				roll_pitch_scale + thrust + boost) / _rotors[i].yaw_scale;
+			if (fabsf(_rotors[i].yaw_scale) <= FLT_EPSILON) {
+				yaw = 0.0f;
+
+			} else {
+				yaw = -((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
+					roll_pitch_scale + thrust + boost) / _rotors[i].yaw_scale;
+			}
 
 			if (status_reg != NULL) {
 				(*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;
@@ -326,8 +331,14 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 			// allow to reduce thrust to get some yaw response
 			float thrust_reduction = fminf(0.15f, out - 1.0f);
 			thrust -= thrust_reduction;
-			yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
-				       roll_pitch_scale + thrust + boost)) / _rotors[i].yaw_scale;
+
+			if (fabsf(_rotors[i].yaw_scale) <= FLT_EPSILON) {
+				yaw = 0.0f;
+
+			} else {
+				yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
+					       roll_pitch_scale + thrust + boost)) / _rotors[i].yaw_scale;
+			}
 
 			if (status_reg != NULL) {
 				(*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;

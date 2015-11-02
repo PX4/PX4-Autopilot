@@ -125,63 +125,63 @@ struct eam_module_msg {
 #define GAM_SENSOR_TEXT_ID		0xd0
 
 struct gam_module_msg {
-        uint8_t start;			/**< Start byte	*/
-        uint8_t gam_sensor_id;		/**< GAM sensor id */
-        uint8_t warning_beeps;
-        uint8_t sensor_text_id;
-        uint8_t alarm_invers1;
-        uint8_t alarm_invers2;                                                              
-        uint8_t cell1;			/**< Lipo cell voltages. Not supported.	*/
-        uint8_t cell2;
-        uint8_t cell3;
-        uint8_t cell4;
-        uint8_t cell5;
-        uint8_t cell6;
-        uint8_t batt1_L;		/**< Battery 1 voltage LSB value. 0.1V steps. 50 = 5.5V	*/
-        uint8_t batt1_H;
-        uint8_t batt2_L;		/**< Battery 2 voltage LSB value. 0.1V steps. 50 = 5.5V	*/
-        uint8_t batt2_H;
-        uint8_t temperature1;		/**< Temperature 1. offset of 20. a value of 20 = 0°C */
-        uint8_t temperature2;		/**< Temperature 2. offset of 20. a value of 20 = 0°C */
-        uint8_t fuel_procent;		/**< Fuel capacity in %. Values 0 - 100 */
-					/**< Graphical display ranges: 0 25% 50% 75% 100% */
-        uint8_t fuel_ml_L;		/**< Fuel in ml scale. Full = 65535 */
-        uint8_t fuel_ml_H;
-        uint8_t rpm_L;			/**< RPM in 10 RPM steps. 300 = 3000rpm */
-        uint8_t rpm_H;
-        uint8_t altitude_L;		/**< Altitude in meters. offset of 500, 500 = 0m */
-        uint8_t altitude_H;
-        uint8_t climbrate_L;		/**< Climb rate in 0.01m/s. Value of 30000 = 0.00 m/s */
-        uint8_t climbrate_H;
-        uint8_t climbrate3s;		/**< Climb rate in m/3sec. Value of 120 = 0m/3sec */
-        uint8_t current_L;		/**< Current in 0.1A steps */
-        uint8_t current_H;
-        uint8_t main_voltage_L;		/**< Main power voltage using 0.1V steps */
-        uint8_t main_voltage_H;
-        uint8_t batt_cap_L;		/**< Used battery capacity in 10mAh steps */
-        uint8_t batt_cap_H;
-        uint8_t speed_L;		/**< Speed in km/h */
-        uint8_t speed_H;
-        uint8_t min_cell_volt;		/**< Minimum cell voltage in 2mV steps. 124 = 2,48V */
-        uint8_t min_cell_volt_num;	/**< Number of the cell with the lowest voltage */
-        uint8_t rpm2_L;			/**< RPM in 10 RPM steps. 300 = 3000rpm */
-        uint8_t rpm2_H;
-        uint8_t general_error_number;	/**< Voice error == 12. TODO: more docu */
-        uint8_t pressure;		/**< Pressure up to 16bar. 0,1bar scale. 20 = 2bar */
-        uint8_t version;
-        uint8_t stop;			/**< Stop byte */
-        uint8_t checksum;		/**< Lower 8-bits of all bytes summed */
+	uint8_t start;			/**< Start byte	*/
+	uint8_t gam_sensor_id;		/**< GAM sensor id */
+	uint8_t warning_beeps;
+	uint8_t sensor_text_id;
+	uint8_t alarm_invers1;
+	uint8_t alarm_invers2;
+	uint8_t cell1;			/**< Lipo cell voltages. Not supported.	*/
+	uint8_t cell2;
+	uint8_t cell3;
+	uint8_t cell4;
+	uint8_t cell5;
+	uint8_t cell6;
+	uint8_t batt1_L;		/**< Battery 1 voltage LSB value. 0.1V steps. 50 = 5.5V	*/
+	uint8_t batt1_H;
+	uint8_t batt2_L;		/**< Battery 2 voltage LSB value. 0.1V steps. 50 = 5.5V	*/
+	uint8_t batt2_H;
+	uint8_t temperature1;		/**< Temperature 1. offset of 20. a value of 20 = 0°C */
+	uint8_t temperature2;		/**< Temperature 2. offset of 20. a value of 20 = 0°C */
+	uint8_t fuel_procent;		/**< Fuel capacity in %. Values 0 - 100 */
+	/**< Graphical display ranges: 0 25% 50% 75% 100% */
+	uint8_t fuel_ml_L;		/**< Fuel in ml scale. Full = 65535 */
+	uint8_t fuel_ml_H;
+	uint8_t rpm_L;			/**< RPM in 10 RPM steps. 300 = 3000rpm */
+	uint8_t rpm_H;
+	uint8_t altitude_L;		/**< Altitude in meters. offset of 500, 500 = 0m */
+	uint8_t altitude_H;
+	uint8_t climbrate_L;		/**< Climb rate in 0.01m/s. Value of 30000 = 0.00 m/s */
+	uint8_t climbrate_H;
+	uint8_t climbrate3s;		/**< Climb rate in m/3sec. Value of 120 = 0m/3sec */
+	uint8_t current_L;		/**< Current in 0.1A steps */
+	uint8_t current_H;
+	uint8_t main_voltage_L;		/**< Main power voltage using 0.1V steps */
+	uint8_t main_voltage_H;
+	uint8_t batt_cap_L;		/**< Used battery capacity in 10mAh steps */
+	uint8_t batt_cap_H;
+	uint8_t speed_L;		/**< Speed in km/h */
+	uint8_t speed_H;
+	uint8_t min_cell_volt;		/**< Minimum cell voltage in 2mV steps. 124 = 2,48V */
+	uint8_t min_cell_volt_num;	/**< Number of the cell with the lowest voltage */
+	uint8_t rpm2_L;			/**< RPM in 10 RPM steps. 300 = 3000rpm */
+	uint8_t rpm2_H;
+	uint8_t general_error_number;	/**< Voice error == 12. TODO: more docu */
+	uint8_t pressure;		/**< Pressure up to 16bar. 0,1bar scale. 20 = 2bar */
+	uint8_t version;
+	uint8_t stop;			/**< Stop byte */
+	uint8_t checksum;		/**< Lower 8-bits of all bytes summed */
 };
 
 /* GPS sensor constants. */
 #define GPS_SENSOR_ID		0x8a
 #define GPS_SENSOR_TEXT_ID	0xa0
 
-/** 
+/**
  * The GPS sensor message
- * Struct based on: https://code.google.com/p/diy-hott-gps/downloads 
+ * Struct based on: https://code.google.com/p/diy-hott-gps/downloads
  */
-struct gps_module_msg { 
+struct gps_module_msg {
 	uint8_t start;			/**< Start byte */
 	uint8_t sensor_id;		/**< GPS sensor ID*/
 	uint8_t warning;		/**< 0…= warning beeps */
@@ -191,19 +191,19 @@ struct gps_module_msg {
 	uint8_t flight_direction;	/**< 119 = Flightdir./dir. 1 = 2°; 0° (North), 9 0° (East), 180° (South), 270° (West) */
 	uint8_t gps_speed_L;		/**< 8 = /GPS speed low byte 8km/h */
 	uint8_t gps_speed_H;		/**< 0 = /GPS speed high byte */
-	  
+
 	uint8_t latitude_ns;		/**< 000 = N = 48°39’988 */
 	uint8_t latitude_min_L;		/**< 231 0xE7 = 0x12E7 = 4839 */
 	uint8_t latitude_min_H;		/**< 018 18 = 0x12 */
 	uint8_t latitude_sec_L;		/**< 171 220 = 0xDC = 0x03DC =0988 */
 	uint8_t latitude_sec_H;		/**< 016 3 = 0x03 */
-	 
+
 	uint8_t longitude_ew;		/**< 000  = E= 9° 25’9360 */
 	uint8_t longitude_min_L;	/**< 150 157 = 0x9D = 0x039D = 0925 */
 	uint8_t longitude_min_H;	/**< 003 3 = 0x03 */
 	uint8_t longitude_sec_L;	/**< 056 144 = 0x90 0x2490 = 9360 */
 	uint8_t longitude_sec_H;	/**< 004 36 = 0x24 */
-	  
+
 	uint8_t distance_L;		/**< 027 123 = /distance low byte 6 = 6 m */
 	uint8_t distance_H;		/**< 036 35 = /distance high byte */
 	uint8_t altitude_L;		/**< 243 244 = /Altitude low byte 500 = 0m */

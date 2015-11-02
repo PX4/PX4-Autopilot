@@ -58,6 +58,7 @@
 RTL::RTL(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_rtl_state(RTL_STATE_NONE),
+	_rtl_start_lock(false),
 	_param_return_alt(this, "RTL_RETURN_ALT", false),
 	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
 	_param_land_delay(this, "RTL_LAND_DELAY", false)
@@ -95,6 +96,7 @@ RTL::on_activation()
 		} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
 			   + _param_return_alt.get()) {
 			_rtl_state = RTL_STATE_CLIMB;
+			_rtl_start_lock = false;
 
 		/* otherwise go straight to return */
 		} else {
@@ -102,6 +104,7 @@ RTL::on_activation()
 			_rtl_state = RTL_STATE_RETURN;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.altitude = _navigator->get_global_position()->alt;
+			_rtl_start_lock = false;
 		}
 
 	}
@@ -126,7 +129,10 @@ RTL::set_rtl_item()
 	/* make sure we have the latest params */
 	updateParams();
 
-	set_previous_pos_setpoint();
+	if (!_rtl_start_lock) {
+		set_previous_pos_setpoint();
+	}
+
 	_navigator->set_can_loiter_at_sp(false);
 
 	switch (_rtl_state) {
@@ -182,6 +188,8 @@ RTL::set_rtl_item()
 		mavlink_log_critical(_navigator->get_mavlink_fd(), "RTL: return at %d m (%d m above home)",
 			(int)(_mission_item.altitude),
 			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
+
+		_rtl_start_lock = true;
 		break;
 	}
 
@@ -190,7 +198,7 @@ RTL::set_rtl_item()
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
-		_mission_item.yaw = NAN;
+		_mission_item.yaw = _navigator->get_home_position()->yaw;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
@@ -213,7 +221,7 @@ RTL::set_rtl_item()
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
-		_mission_item.yaw = NAN;
+		_mission_item.yaw = _navigator->get_home_position()->yaw;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
@@ -239,7 +247,7 @@ RTL::set_rtl_item()
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.altitude = _navigator->get_home_position()->alt;
-		_mission_item.yaw = NAN;
+		_mission_item.yaw = _navigator->get_home_position()->yaw;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LAND;
@@ -258,6 +266,7 @@ RTL::set_rtl_item()
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.altitude = _navigator->get_home_position()->alt;
+		// Do not change / control yaw in landed
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;

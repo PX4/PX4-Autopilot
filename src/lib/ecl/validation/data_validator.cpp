@@ -44,9 +44,10 @@
 
 DataValidator::DataValidator(DataValidator *prev_sibling) :
 	_time_last(0),
-	_timeout_interval(70000),
+	_timeout_interval(20000),
 	_event_count(0),
 	_error_count(0),
+	_error_density(0),
 	_priority(0),
 	_mean{0.0f},
 	_lp{0.0f},
@@ -68,6 +69,13 @@ void
 DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in, int priority_in)
 {
 	_event_count++;
+
+	if (error_count_in > _error_count) {
+		_error_density += (error_count_in - _error_count);
+	} else if (_error_density > 0) {
+		_error_density--;
+	}
+
 	_error_count = error_count_in;
 	_priority = priority_in;
 
@@ -123,7 +131,13 @@ DataValidator::confidence(uint64_t timestamp)
 		return 0.0f;
 	}
 
-	return 1.0f;
+	/* cap error density counter at window size */
+	if (_error_density > ERROR_DENSITY_WINDOW) {
+		_error_density = ERROR_DENSITY_WINDOW;
+	}
+
+	/* return local error density for last N measurements */
+	return 1.0f - (_error_density / ERROR_DENSITY_WINDOW);
 }
 
 int
@@ -136,12 +150,13 @@ void
 DataValidator::print()
 {
 	if (_time_last == 0) {
-		ECL_INFO("\tno data\n");
+		ECL_INFO("\tno data");
 		return;
 	}
 
 	for (unsigned i = 0; i < _dimensions; i++) {
-		ECL_INFO("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f\n",
-			(double) _value[i], (double)_lp[i], (double)_mean[i], (double)_rms[i]);
+		ECL_INFO("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f conf: %8.4f",
+			(double) _value[i], (double)_lp[i], (double)_mean[i],
+			(double)_rms[i], (double)confidence(hrt_absolute_time()));
 	}
 }

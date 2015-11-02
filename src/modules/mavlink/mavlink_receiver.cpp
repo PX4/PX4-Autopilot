@@ -49,7 +49,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <mqueue.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -62,7 +61,6 @@
 #include <float.h>
 #include <unistd.h>
 #ifndef __PX4_POSIX
-#include <sys/prctl.h>
 #include <termios.h>
 #endif
 #include <errno.h>
@@ -128,8 +126,11 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
+	_hil_last_frame(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
+	_hil_prev_gyro{},
+	_hil_prev_accel{},
 	_hil_local_proj_ref{},
 	_offboard_control_mode{},
 	_att_sp{},
@@ -1115,7 +1116,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		/* yaw */
 		rc.values[2] = man.r / 2 + 1500;
 		/* throttle */
-		rc.values[3] = man.z / 1 + 1000;
+		rc.values[3] = fminf(fmaxf(man.z / 0.9f + 800, 1000.0f), 2000.0f);
 
 		/* decode all switches which fit into the channel mask */
 		unsigned max_switch = (sizeof(man.buttons) * 8);
@@ -1303,10 +1304,25 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	uint64_t timestamp = hrt_absolute_time();
 
+	float dt;
+
+	if (_hil_last_frame == 0 ||
+	   (timestamp <= _hil_last_frame) ||
+	   (timestamp - _hil_last_frame) > (0.1f * 1e6f) ||
+	   (_hil_last_frame >= timestamp)) {
+		dt = 0.01f; /* default to 100 Hz */
+		memset(&_hil_prev_gyro[0], 0, sizeof(_hil_prev_gyro));
+		_hil_prev_accel[0] = 0.0f;
+		_hil_prev_accel[1] = 0.0f;
+		_hil_prev_accel[2] = 9.866f;
+	} else {
+		dt = (timestamp - _hil_last_frame) / 1e6f;
+	}
+	_hil_last_frame = timestamp;
+
 	/* airspeed */
 	{
-		struct airspeed_s airspeed;
-		memset(&airspeed, 0, sizeof(airspeed));
+		struct airspeed_s airspeed = {};
 
 		float ias = calc_indicated_airspeed(imu.diff_pressure * 1e2f);
 		// XXX need to fix this
@@ -1326,8 +1342,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* gyro */
 	{
-		struct gyro_report gyro;
-		memset(&gyro, 0, sizeof(gyro));
+		struct gyro_report gyro = {};
 
 		gyro.timestamp = timestamp;
 		gyro.x_raw = imu.xgyro * 1000.0f;
@@ -1348,8 +1363,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* accelerometer */
 	{
-		struct accel_report accel;
-		memset(&accel, 0, sizeof(accel));
+		struct accel_report accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = imu.xacc / mg2ms2;
@@ -1370,8 +1384,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* magnetometer */
 	{
-		struct mag_report mag;
-		memset(&mag, 0, sizeof(mag));
+		struct mag_report mag = {};
 
 		mag.timestamp = timestamp;
 		mag.x_raw = imu.xmag * 1000.0f;
@@ -1392,8 +1405,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* baro */
 	{
-		struct baro_report baro;
-		memset(&baro, 0, sizeof(baro));
+		struct baro_report baro = {};
 
 		baro.timestamp = timestamp;
 		baro.pressure = imu.abs_pressure;
@@ -1410,8 +1422,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* sensor combined */
 	{
-		struct sensor_combined_s hil_sensors;
-		memset(&hil_sensors, 0, sizeof(hil_sensors));
+		struct sensor_combined_s hil_sensors = {};
 
 		hil_sensors.timestamp = timestamp;
 
@@ -1421,7 +1432,13 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.gyro_rad_s[0] = imu.xgyro;
 		hil_sensors.gyro_rad_s[1] = imu.ygyro;
 		hil_sensors.gyro_rad_s[2] = imu.zgyro;
+		hil_sensors.gyro_integral_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]) * dt;
+		hil_sensors.gyro_integral_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]) * dt;
+		hil_sensors.gyro_integral_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]) * dt;
+		memcpy(&_hil_prev_gyro[0], &hil_sensors.gyro_rad_s[0], sizeof(_hil_prev_gyro));
+		hil_sensors.gyro_integral_dt[0] = dt * 1e6f;
 		hil_sensors.gyro_timestamp[0] = timestamp;
+		hil_sensors.gyro_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
 		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
@@ -1429,9 +1446,15 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
 		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
 		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
+		hil_sensors.accelerometer_integral_m_s[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]) * dt;
+		hil_sensors.accelerometer_integral_m_s[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]) * dt;
+		hil_sensors.accelerometer_integral_m_s[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]) * dt;
+		memcpy(&_hil_prev_accel[0], &hil_sensors.accelerometer_m_s2[0], sizeof(_hil_prev_accel));
+		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
 		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?
 		hil_sensors.accelerometer_range_m_s2[0] = 32.7f; // int16
 		hil_sensors.accelerometer_timestamp[0] = timestamp;
+		hil_sensors.accelerometer_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.adc_voltage_v[0] = 0.0f;
 		hil_sensors.adc_voltage_v[1] = 0.0f;
@@ -1447,6 +1470,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.magnetometer_mode[0] = 0; // TODO what is this
 		hil_sensors.magnetometer_cuttoff_freq_hz[0] = 50.0f;
 		hil_sensors.magnetometer_timestamp[0] = timestamp;
+		hil_sensors.magnetometer_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.baro_pres_mbar[0] = imu.abs_pressure;
 		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;
@@ -1468,12 +1492,11 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* battery status */
 	{
-		struct battery_status_s hil_battery_status;
-		memset(&hil_battery_status, 0, sizeof(hil_battery_status));
+		struct battery_status_s hil_battery_status = {};
 
 		hil_battery_status.timestamp = timestamp;
-		hil_battery_status.voltage_v = 11.1f;
-		hil_battery_status.voltage_filtered_v = 11.1f;
+		hil_battery_status.voltage_v = 11.5f;
+		hil_battery_status.voltage_filtered_v = 11.5f;
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
 

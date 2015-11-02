@@ -99,7 +99,7 @@ def get_msgs_list(msgdir):
     return [fn for fn in os.listdir(msgdir) if fn.endswith(".msg")]
 
 
-def generate_source_from_file(filename, outputdir, template_file):
+def generate_source_from_file(filename, outputdir, template_file, quiet=False):
         """
         Converts a single .msg file to a uorb source file
         """
@@ -120,8 +120,8 @@ def generate_source_from_file(filename, outputdir, template_file):
         if os.path.isfile(output_file):
             return False
         generate_by_template(output_file, template_file, em_globals)
-
-        print("{0}: new source file".format(output_file))
+        if not quiet:
+            print("{0}: new source file".format(output_file))
         return True
 
 
@@ -142,7 +142,7 @@ def generate_by_template(output_file, template_file, em_globals):
         ofile.close()
 
 
-def convert_dir(msgdir, outputdir, templatedir):
+def convert_dir(msgdir, outputdir, templatedir, quiet=False):
         """
         Converts all .msg files in msgdir to uORB sources
         """
@@ -159,7 +159,7 @@ def convert_dir(msgdir, outputdir, templatedir):
                 # Only look at actual files
                 if not os.path.isfile(fn):
                         continue
-                generate_source_from_file(fn, outputdir, template_file)
+                generate_source_from_file(fn, outputdir, template_file, quiet)
 
         # generate cpp file with topics list
         tl_globals = {"msgs" : get_msgs_list(msgdir)}
@@ -175,10 +175,13 @@ if __name__ == "__main__":
         parser.add_argument('-f', dest='file', help="files to convert (use only without -d)", nargs="+")
         parser.add_argument('-e', dest='templatedir', help='directory with template files',)
         parser.add_argument('-o', dest='outputdir', help='output directory for source files')
+        parser.add_argument('-q', dest='quiet', default=False, action='store_true',
+                            help='string added as prefix to the output file '
+                            ' name when converting directories')
         args = parser.parse_args()
 
         if args.file is not None:
                 for f in args.file:
-                        generate_source_from_file(f, args.outputdir, args.templatedir)
+                        generate_source_from_file(f, args.outputdir, args.templatedir, args.quiet)
         elif args.dir is not None:
-                convert_dir(args.dir, args.outputdir, args.templatedir)
+                convert_dir(args.dir, args.outputdir, args.templatedir, args.quiet)

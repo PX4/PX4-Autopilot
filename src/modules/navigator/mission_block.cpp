@@ -153,7 +153,7 @@ MissionBlock::is_mission_item_reached()
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		/* TODO: removed takeoff, why? */
-		if (_navigator->get_vstatus()->is_rotary_wing && isfinite(_mission_item.yaw)) {
+		if (_navigator->get_vstatus()->is_rotary_wing && PX4_ISFINITE(_mission_item.yaw)) {
 
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);

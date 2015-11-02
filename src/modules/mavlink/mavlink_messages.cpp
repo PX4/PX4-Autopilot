@@ -72,6 +72,8 @@
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/estimator_status.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
@@ -555,7 +557,7 @@ protected:
 			msg.errors_count2 = status.errors_count2;
 			msg.errors_count3 = status.errors_count3;
 			msg.errors_count4 = status.errors_count4;
-			msg.battery_remaining = (msg.voltage_battery > 0) ?
+			msg.battery_remaining = (status.condition_battery_voltage_valid) ?
 							status.battery_remaining * 100.0f : -1;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_SYS_STATUS, &msg);
@@ -570,14 +572,22 @@ protected:
 				if (i < status.battery_cell_count) {
 					bat_msg.voltages[i] = (status.battery_voltage / status.battery_cell_count) * 1000.0f;
 				} else {
-					bat_msg.voltages[i] = 0;
+					bat_msg.voltages[i] = UINT16_MAX;
 				}
 			}
-			bat_msg.current_battery = status.battery_current * 100.0f;
-			bat_msg.current_consumed = status.battery_discharged_mah;
+
+			if (status.condition_battery_voltage_valid) {
+				bat_msg.current_battery = (bat_msg.current_battery >= 0.0f) ?
+								status.battery_current * 100.0f : -1;
+				bat_msg.current_consumed = (bat_msg.current_consumed >= 0.0f) ?
+								status.battery_discharged_mah : -1;
+				bat_msg.battery_remaining = status.battery_remaining * 100.0f;
+			} else {
+				bat_msg.current_battery = -1.0f;
+				bat_msg.current_consumed = -1.0f;
+				bat_msg.battery_remaining = -1.0f;
+			}
 			bat_msg.energy_consumed = -1.0f;
-			bat_msg.battery_remaining = (status.battery_voltage > 0) ?
-							status.battery_remaining * 100.0f : -1;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_BATTERY_STATUS, &bat_msg);
 		}
@@ -1261,6 +1271,78 @@ protected:
 	}
 };
 
+
+class MavlinkStreamLocalPositionNEDCOV : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamLocalPositionNEDCOV::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "LOCAL_POSITION_NED_COV";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamLocalPositionNEDCOV(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_est_sub;
+	uint64_t _est_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamLocalPositionNEDCOV(MavlinkStreamLocalPositionNEDCOV &);
+	MavlinkStreamLocalPositionNEDCOV& operator = (const MavlinkStreamLocalPositionNEDCOV &);
+
+protected:
+	explicit MavlinkStreamLocalPositionNEDCOV(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
+		_est_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct estimator_status_s est;
+
+		if (_est_sub->update(&_est_time, &est)) {
+			mavlink_local_position_ned_cov_t msg;
+
+			msg.time_boot_ms = est.timestamp / 1000;
+			msg.x = est.states[0];
+			msg.y = est.states[1];
+			msg.z = est.states[2];
+			msg.vx = est.states[3];
+			msg.vy = est.states[4];
+			msg.vz = est.states[5];
+			msg.ax = est.states[6];
+			msg.ay = est.states[7];
+			msg.az = est.states[8];
+			for (int i=0;i<9;i++) {
+				msg.covariance[i] = est.covariances[i];
+			}
+			msg.covariance[9] = est.nan_flags;
+			msg.covariance[10] = est.health_flags;
+			msg.covariance[11] = est.timeout_flags;
+			memcpy(msg.covariance, est.covariances, sizeof(est.covariances));
+
+			_mavlink->send_message(MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV, &msg);
+		}
+	}
+};
 
 class MavlinkStreamAttPosMocap : public MavlinkStream
 {
@@ -2361,76 +2443,96 @@ protected:
 	}
 };
 
-class MavlinkStreamVtolState : public MavlinkStream
+class MavlinkStreamExtendedSysState : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamVtolState::get_name_static();
+		return MavlinkStreamExtendedSysState::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "VTOL_STATE";
+		return "EXTENDED_SYS_STATE";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_VTOL_STATE;
+		return MAVLINK_MSG_ID_EXTENDED_SYS_STATE;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamVtolState(mavlink);
+		return new MavlinkStreamExtendedSysState(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_VTOL_STATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return MAVLINK_MSG_ID_EXTENDED_SYS_STATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
 private:
 	MavlinkOrbSubscription *_status_sub;
+	MavlinkOrbSubscription *_landed_sub;
+	mavlink_extended_sys_state_t _msg;
 
 	/* do not allow top copying this class */
-	MavlinkStreamVtolState(MavlinkStreamVtolState &);
-	MavlinkStreamVtolState &operator = (const MavlinkStreamVtolState &);
+	MavlinkStreamExtendedSysState(MavlinkStreamExtendedSysState &);
+	MavlinkStreamExtendedSysState &operator = (const MavlinkStreamExtendedSysState &);
 
 protected:
-	explicit MavlinkStreamVtolState(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
-	{}
+	explicit MavlinkStreamExtendedSysState(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_landed_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_land_detected))),
+		_msg{}
+	{
+
+		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
+		_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
+	}
 
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_status_s status;
+		struct vehicle_land_detected_s land_detected;
+		bool updated = false;
 
 		if (_status_sub->update(&status)) {
-			mavlink_vtol_state_t msg;
+			updated = true;
 
 			if (status.is_vtol) {
 				if (status.is_rotary_wing) {
 					if (status.in_transition_mode) {
-						msg.state = MAV_VTOL_STATE_TRANSITION_TO_FW;
+						_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_FW;
 
 					} else {
-						msg.state = MAV_VTOL_STATE_MC;
+						_msg.vtol_state = MAV_VTOL_STATE_MC;
 					}
 
 				} else {
 					if (status.in_transition_mode) {
-						msg.state = MAV_VTOL_STATE_TRANSITION_TO_MC;
+						_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_MC;
 
 					} else {
-						msg.state = MAV_VTOL_STATE_FW;
+						_msg.vtol_state = MAV_VTOL_STATE_FW;
 					}
 				}
-
-			} else {
-				msg.state = MAV_VTOL_STATE_UNDEFINED;
 			}
+		}
 
-			_mavlink->send_message(MAVLINK_MSG_ID_VTOL_STATE, &msg);
+		if (_landed_sub->update(&land_detected)) {
+			updated = true;
+
+			if (land_detected.landed) {
+				_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
+			
+			} else {
+				_msg.landed_state = MAV_LANDED_STATE_IN_AIR;
+			}
+		}
+
+		if (updated) {
+			_mavlink->send_message(MAVLINK_MSG_ID_EXTENDED_SYS_STATE, &_msg);
 		}
 	}
 };
@@ -2449,6 +2551,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static),
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
+	new StreamListItem(&MavlinkStreamLocalPositionNEDCOV::new_instance, &MavlinkStreamLocalPositionNEDCOV::get_name_static),
 	new StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static),
 	new StreamListItem(&MavlinkStreamHomePosition::new_instance, &MavlinkStreamHomePosition::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static),
@@ -2470,6 +2573,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
-	new StreamListItem(&MavlinkStreamVtolState::new_instance, &MavlinkStreamVtolState::get_name_static),
+	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static),
 	nullptr
 };

@@ -82,6 +82,12 @@ public:
 	float*			value() { return _value; }
 
 	/**
+	 * Get the used status of this validator
+	 * @return		true if this validator ever saw data
+	 */
+	bool			used() { return (_time_last > 0); }
+
+	/**
 	 * Get the priority of this validator
 	 * @return		the stored priority
 	 */
@@ -112,6 +118,7 @@ private:
 	uint64_t _timeout_interval;		/**< interval in which the datastream times out in us */
 	uint64_t _event_count;			/**< total data counter */
 	uint64_t _error_count;			/**< error count */
+	int _error_density;			/**< ratio between successful reads and errors */
 	int _priority;				/**< sensor nominal priority */
 	float _mean[_dimensions];		/**< mean of value */
 	float _lp[3];				/**< low pass value */
@@ -120,7 +127,8 @@ private:
 	float _value[3];			/**< last value */
 	float _value_equal_count;		/**< equal values in a row */
 	DataValidator *_sibling;		/**< sibling in the group */
-	const unsigned NORETURN_ERRCOUNT = 100;	/**< if the error count reaches this value, return sensor as invalid */
+	const unsigned NORETURN_ERRCOUNT = 10000;	/**< if the error count reaches this value, return sensor as invalid */
+	const float ERROR_DENSITY_WINDOW = 100.0f; /**< window in measurement counts for errors */
 	const unsigned VALUE_EQUAL_COUNT_MAX = 100;	/**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
 
 	/* we don't want this class to be copied */

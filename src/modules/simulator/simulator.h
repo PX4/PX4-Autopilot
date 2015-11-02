@@ -38,7 +38,7 @@
 
 #pragma once
 
-#include <semaphore.h>
+#include <px4_posix.h>
 #include <uORB/topics/hil_sensor.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -51,26 +51,28 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/optical_flow.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
-namespace simulator {
+namespace simulator
+{
 
 // FIXME - what is the endianness of these on actual device?
 #pragma pack(push, 1)
 struct RawAccelData {
-		float temperature;
-        float x;
-        float y;
-        float z;
+	float temperature;
+	float x;
+	float y;
+	float z;
 };
 #pragma pack(pop)
 
 #pragma pack(push, 1)
 struct RawMagData {
-		float temperature;
-        float x;
-        float y;
-        float z;
+	float temperature;
+	float x;
+	float y;
+	float z;
 };
 #pragma pack(pop)
 
@@ -103,29 +105,30 @@ struct RawAirspeedData {
 
 #pragma pack(push, 1)
 struct RawGPSData {
- int32_t lat;
- int32_t lon;
- int32_t alt;
- uint16_t eph;
- uint16_t epv;
- uint16_t vel;
- int16_t vn;
- int16_t ve;
- int16_t vd;
- uint16_t cog;
- uint8_t fix_type;
- uint8_t satellites_visible;
+	int32_t lat;
+	int32_t lon;
+	int32_t alt;
+	uint16_t eph;
+	uint16_t epv;
+	uint16_t vel;
+	int16_t vn;
+	int16_t ve;
+	int16_t vd;
+	uint16_t cog;
+	uint8_t fix_type;
+	uint8_t satellites_visible;
 };
 #pragma pack(pop)
 
-template <typename RType> class Report {
+template <typename RType> class Report
+{
 public:
 	Report(int readers) :
 		_readidx(0),
 		_max_readers(readers),
 		_report_len(sizeof(RType))
 	{
-		sem_init(&_lock, 0, _max_readers);
+		px4_sem_init(&_lock, 0, _max_readers);
 	}
 
 	~Report() {};
@@ -135,6 +138,7 @@ public:
 		if (len != _report_len) {
 			return false;
 		}
+
 		read_lock();
 		memcpy(outbuf, &_buf[_readidx], _report_len);
 		read_unlock();
@@ -149,23 +153,23 @@ public:
 	}
 
 protected:
-	void read_lock() { sem_wait(&_lock); }
-	void read_unlock() { sem_post(&_lock); }
+	void read_lock() { px4_sem_wait(&_lock); }
+	void read_unlock() { px4_sem_post(&_lock); }
 	void write_lock()
 	{
-		for (int i=0; i<_max_readers; i++) {
-			sem_wait(&_lock);
+		for (int i = 0; i < _max_readers; i++) {
+			px4_sem_wait(&_lock);
 		}
 	}
 	void write_unlock()
 	{
-		for (int i=0; i<_max_readers; i++) {
-			sem_post(&_lock);
+		for (int i = 0; i < _max_readers; i++) {
+			px4_sem_post(&_lock);
 		}
 	}
 
 	int _readidx;
-	sem_t _lock;
+	px4_sem_t _lock;
 	const int _max_readers;
 	const int _report_len;
 	RType _buf[2];
@@ -173,7 +177,8 @@ protected:
 
 };
 
-class Simulator {
+class Simulator
+{
 public:
 	static Simulator *getInstance();
 
@@ -211,32 +216,32 @@ public:
 
 private:
 	Simulator() :
-	_accel(1),
-	_mpu(1),
-	_baro(1),
-	_mag(1),
-	_gps(1),
-	_airspeed(1),
-	_accel_pub(nullptr),
-	_baro_pub(nullptr),
-	_gyro_pub(nullptr),
-	_mag_pub(nullptr),
-	_initialized(false)
+		_accel(1),
+		_mpu(1),
+		_baro(1),
+		_mag(1),
+		_gps(1),
+		_airspeed(1),
+		_accel_pub(nullptr),
+		_baro_pub(nullptr),
+		_gyro_pub(nullptr),
+		_mag_pub(nullptr),
+		_initialized(false)
 #ifndef __PX4_QURT
-	,
-	_rc_channels_pub(nullptr),
-	_actuator_outputs_sub(-1),
-	_vehicle_attitude_sub(-1),
-	_manual_sub(-1),
-	_vehicle_status_sub(-1),
-	_rc_input{},
-	_actuators{},
-	_attitude{},
-	_manual{},
-	_vehicle_status{}
+		,
+		_rc_channels_pub(nullptr),
+		_actuator_outputs_sub(-1),
+		_vehicle_attitude_sub(-1),
+		_manual_sub(-1),
+		_vehicle_status_sub(-1),
+		_rc_input{},
+		_actuators{},
+		_attitude{},
+		_manual{},
+		_vehicle_status{}
 #endif
 	{}
-	~Simulator() { _instance=NULL; }
+	~Simulator() { _instance = NULL; }
 
 	void initializeSensorData();
 
@@ -255,11 +260,13 @@ private:
 	orb_advert_t _baro_pub;
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
+	orb_advert_t _flow_pub;
 
 	bool _initialized;
 
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
+	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
 
 #ifndef __PX4_QURT
 	// uORB publisher handlers

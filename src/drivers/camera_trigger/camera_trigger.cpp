@@ -195,6 +195,7 @@ CameraTrigger::CameraTrigger() :
 	// Convert number to individual channels
 	unsigned i = 0;
 	int single_pin;
+
 	while ((single_pin = pin_list % 10)) {
 
 		_pins[i] = single_pin - 1;
@@ -226,18 +227,19 @@ CameraTrigger::control(bool on)
 	if (on) {
 		// schedule trigger on and off calls
 		hrt_call_every(&_engagecall, 500, (_interval * 1000),
-				       (hrt_callout)&CameraTrigger::engage, this);
+			       (hrt_callout)&CameraTrigger::engage, this);
 
 		// schedule trigger on and off calls
 		hrt_call_every(&_disengagecall, 500 + (_activation_time * 1000), (_interval * 1000),
-				       (hrt_callout)&CameraTrigger::disengage, this);
+			       (hrt_callout)&CameraTrigger::disengage, this);
+
 	} else {
 		// cancel all calls
 		hrt_cancel(&_engagecall);
 		hrt_cancel(&_disengagecall);
 		// ensure that the pin is off
 		hrt_call_after(&_disengagecall, 500,
-				       (hrt_callout)&CameraTrigger::disengage, this);
+			       (hrt_callout)&CameraTrigger::disengage, this);
 	}
 
 	_trigger_enabled = on;
@@ -249,7 +251,7 @@ CameraTrigger::start()
 
 	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
 		stm32_configgpio(_gpios[_pins[i]]);
-		stm32_gpiowrite(_gpios[_pins[i]], !_polarity);	
+		stm32_gpiowrite(_gpios[_pins[i]], !_polarity);
 	}
 
 	// enable immediate if configured that way
@@ -316,7 +318,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 	}
 
 	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline,
-		camera_trigger::g_camera_trigger, USEC2TICK(poll_interval_usec));
+		   camera_trigger::g_camera_trigger, USEC2TICK(poll_interval_usec));
 }
 
 void
@@ -361,7 +363,7 @@ CameraTrigger::info()
 {
 	warnx("state : %s", _trigger_enabled ? "enabled" : "disabled");
 	warnx("pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
-		_polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
+	      _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
 	warnx("interval : %.2f", (double)_interval);
 }
 

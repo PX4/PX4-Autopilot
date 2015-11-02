@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file baro_sim.cpp
-  *
-  * Simulation interface for barometer
-  */
+/**
+ * @file baro_sim.cpp
+ *
+ * Simulation interface for barometer
+ */
 
 /* XXX trim includes */
 #include <px4_config.h>
@@ -182,7 +182,7 @@ int
 BARO_SIM::_measure(unsigned addr)
 {
 	/*
-	 * Disable retries on this command; we can't know whether failure 
+	 * Disable retries on this command; we can't know whether failure
 	 * means the device did or did not see the command.
 	 */
 	_retries = 0;
@@ -201,25 +201,28 @@ BARO_SIM::_read_prom()
 
 int
 BARO_SIM::transfer(const uint8_t *send, unsigned send_len,
-				 uint8_t *recv, unsigned recv_len)
+		   uint8_t *recv, unsigned recv_len)
 {
 	// TODO add Simulation data connection so calls retrieve
 	// data from the simulator
 	if (recv_len == 0) {
 		PX4_DEBUG("BARO_SIM measurement requested");
-	}
-	else if (send_len != 1 || send[0] != 0 ) {
+
+	} else if (send_len != 1 || send[0] != 0) {
 		PX4_WARN("BARO_SIM::transfer invalid param %u %u %u", send_len, send[0], recv_len);
 		return 1;
-	}
-	else {
+
+	} else {
 		Simulator *sim = Simulator::getInstance();
+
 		if (sim == NULL) {
 			PX4_ERR("Error BARO_SIM::transfer no simulator");
 			return -ENODEV;
 		}
+
 		PX4_DEBUG("BARO_SIM::transfer getting sample");
 		sim->getBaroSample(recv, recv_len);
 	}
+
 	return 0;
 }

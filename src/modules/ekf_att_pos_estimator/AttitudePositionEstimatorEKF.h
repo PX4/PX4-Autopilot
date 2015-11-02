@@ -133,6 +133,8 @@ public:
      */
     int set_debuglevel(unsigned debug) { _debug = debug; return 0; }
 
+    static constexpr unsigned MAX_PREDICITION_STEPS = 3; /**< maximum number of prediction steps between updates */
+
 private:
     bool        _task_should_exit;      /**< if true, sensor task should exit */
     bool        _task_running;          /**< if true, task is running in its mainloop */
@@ -174,6 +176,8 @@ private:
 
     hrt_abstime _last_accel;
     hrt_abstime _last_mag;
+    unsigned _prediction_steps;
+    uint64_t _prediction_last;
 
     struct sensor_combined_s            _sensor_combined;
 

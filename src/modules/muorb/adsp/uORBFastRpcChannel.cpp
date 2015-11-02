@@ -183,6 +183,7 @@ int16_t uORB::FastRpcChannel::send_message(const char *messageName, int32_t leng
 	}
 
 	if ((unsigned long)DataQSize() < _min_q) { _min_q = (unsigned long)DataQSize(); }
+
 	if ((unsigned long)DataQSize() > _max_q) { _max_q = (unsigned long)DataQSize(); }
 
 	_count++;
@@ -367,6 +368,7 @@ int16_t uORB::FastRpcChannel::get_data
 		if (rc != 0) {
 			topic_name[0] = '\0';
 		}
+
 		/*
 		PX4_DEBUG("GetData: %30s: t1: %lu t2: %lu t3: %lu", topic_name, (unsigned long)t1, (unsigned long)t2,
 			  (unsigned long)t3);
@@ -464,9 +466,13 @@ int16_t uORB::FastRpcChannel::get_bulk_data
 	hrt_abstime t3 = hrt_absolute_time();
 
 	if ((unsigned long)(t3 - t1) > _get_bulk_max) { _get_bulk_max = (unsigned long)(t3 - t1); }
+
 	if ((unsigned long)(t3 - t1) < _get_bulk_min) { _get_bulk_min = (unsigned long)(t3 - t1); }
+
 	if ((unsigned long)(*topic_count) > _bulk_topic_count_max) { _bulk_topic_count_max = (unsigned long)(*topic_count); }
+
 	if ((unsigned long)(*topic_count) < _bulk_topic_count_min) { _bulk_topic_count_min = (unsigned long)(*topic_count); }
+
 	if ((unsigned long)(t3 - check_time) > 10000000) {
 		//PX4_DEBUG("GetData: t1: %lu t2: %lu t3: %lu", (unsigned long)t1, (unsigned long)t2, (unsigned long)t3);
 		//PX4_DEBUG(".... dt1: %7lu dt2: %7lu Q: %d", (unsigned long)(t2 - t1), (unsigned long)(t3 - t2), DataQSize());
