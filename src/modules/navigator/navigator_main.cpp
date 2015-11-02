@@ -314,6 +314,8 @@ Navigator::task_main()
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
 
+	bool global_pos_available_once = false;
+
 	while (!_task_should_exit) {
 
 		/* wait for up to 200ms for data */
@@ -321,7 +323,9 @@ Navigator::task_main()
 
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
-			PX4_WARN("navigator timed out");
+			if (global_pos_available_once) {
+				PX4_WARN("navigator timed out");
+			}
 			continue;
 
 		} else if (pret < 0) {
@@ -329,6 +333,8 @@ Navigator::task_main()
 			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
+
+		global_pos_available_once = true;
 
 		perf_begin(_loop_perf);
 
