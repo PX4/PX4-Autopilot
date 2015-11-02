@@ -1,16 +1,17 @@
 #!nsh
 #
-# @name Bormatec Maja
+# @name Applied Aeronautics Albatross
 #
 # @type Standard Plane
 #
-# @output MAIN1 aileron
-# @output MAIN2 aileron
-# @output MAIN3 elevator
-# @output MAIN4 rudder
+# @output MAIN1 aileron right
+# @output MAIN2 aileron left
+# @output MAIN3 v-tail right
+# @output MAIN4 v-tail left
 # @output MAIN5 throttle
 # @output MAIN6 wheel
-# @output MAIN7 flaps
+# @output MAIN7 flaps right
+# @output MAIN8 flaps left
 #
 # @output AUX1 feed-through of RC AUX1 channel
 # @output AUX2 feed-through of RC AUX2 channel
@@ -41,7 +42,7 @@ then
     param set PWM_DISARMED 1000
 fi
 
-set MIXER AAERTWF
+set MIXER AAVVTWFF
 
 # use PWM parameters for throttle channel
 set PWM_OUT 5
