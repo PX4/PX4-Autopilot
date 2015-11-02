@@ -1800,7 +1800,7 @@ MavlinkReceiver::receive_thread(void *arg)
 
 				/*
 				 * to avoid reading very small chunks wait for data before reading
-				 * this is designed to target ~30 bytes at a time
+				 * this is designed to target one message, so >20 bytes at a time
 				 */
 				const unsigned character_count = 20;
 
