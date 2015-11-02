@@ -129,7 +129,7 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_spiinitialize();
 
 	/* configure LEDs (empty call to NuttX' ) */
-	board_led_initialize();
+	board_autoled_initialize();
 }
 
 /****************************************************************************
@@ -218,7 +218,7 @@ __EXPORT int board_app_initialize(void)
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\r\n");
-		board_led_on(LED_AMBER);
+		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -260,7 +260,7 @@ __EXPORT int board_app_initialize(void)
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
-		board_led_on(LED_AMBER);
+		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -269,7 +269,7 @@ __EXPORT int board_app_initialize(void)
 
 	if (result != OK) {
 		message("[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
-		board_led_on(LED_AMBER);
+		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
 

@@ -15,11 +15,11 @@ index 18ab6b8..cb4f1a1 100644
  int sigignore(int signo);
  int sigprocmask(int how, FAR const sigset_t *set, FAR sigset_t *oset);
 diff --git NuttX/nuttx/include/stdlib.h NuttX/nuttx/include/stdlib.h
-index 12a1b95..86b0112 100644
+index ff10da1..cd4071e 100644
 --- NuttX/nuttx/include/stdlib.h
 +++ NuttX/nuttx/include/stdlib.h
-@@ -227,7 +227,10 @@ void     qsort(FAR void *base, size_t nmemb, size_t size,
-                int (*compar)(FAR const void *, FAR const void *));
+@@ -201,7 +201,10 @@ FAR void *zalloc(size_t);
+ FAR void *calloc(size_t, size_t);
  
  #ifdef CONFIG_CAN_PASS_STRUCTS
 +#pragma GCC diagnostic push
@@ -30,7 +30,7 @@ index 12a1b95..86b0112 100644
  int      mallinfo(struct mallinfo *info);
  #endif
 diff --git NuttX/nuttx/include/sys/stat.h NuttX/nuttx/include/sys/stat.h
-index a27d224..7ffee80 100644
+index 3f2658b..41c8604 100644
 --- NuttX/nuttx/include/sys/stat.h
 +++ NuttX/nuttx/include/sys/stat.h
 @@ -131,7 +131,10 @@ extern "C"

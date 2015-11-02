@@ -114,7 +114,7 @@ __END_DECLS
 __EXPORT void stm32_boardinitialize(void)
 {
 	/* configure LEDs */
-	board_led_initialize();
+	board_autoled_initialize();
 #if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || \
     defined(CONFIG_STM32_SPI3)
 	board_spiinitialize();

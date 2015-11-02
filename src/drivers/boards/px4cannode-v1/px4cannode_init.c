@@ -111,7 +111,7 @@ __END_DECLS
 __EXPORT void stm32_boardinitialize(void)
 {
 	/* configure LEDs */
-	board_led_initialize();
+	board_autoled_initialize();
 	board_button_initialize();
 	stm32_configgpio(GPIO_CAN_CTRL);
 #if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || \

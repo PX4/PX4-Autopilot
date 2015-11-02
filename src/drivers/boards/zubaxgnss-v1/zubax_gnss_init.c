@@ -111,7 +111,7 @@ __END_DECLS
 __EXPORT void stm32_boardinitialize(void)
 {
 	/* configure LEDs */
-	board_led_initialize();
+	board_autoled_initialize();
 }
 
 

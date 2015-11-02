@@ -200,7 +200,7 @@ stm32_boardinitialize(void)
 	stm32_spiinitialize();
 
 	/* configure LEDs */
-	board_led_initialize();
+	board_autoled_initialize();
 }
 
 /****************************************************************************
@@ -431,7 +431,7 @@ __EXPORT int board_app_initialize(void)
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\n");
-		board_led_on(LED_AMBER);
+		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -451,7 +451,7 @@ __EXPORT int board_app_initialize(void)
 
 	if (!spi2) {
 		message("[boot] FAILED to initialize SPI port 2\n");
-		board_led_on(LED_AMBER);
+		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
 

@@ -235,7 +235,7 @@ int nsh_archinitialize(void);
  *   <arch>_led_intialize().  But there are a few architectures where the
  *   LED initialization function is still called from common chip
  *   architecture logic.  This interface is not, however, a common board
- *   interface in any event and the name board_led_initialization is
+ *   interface in any event and the name board_autoled_initialization is
  *   deprecated.
  *
  * Input Parameters:
@@ -247,7 +247,7 @@ int nsh_archinitialize(void);
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_LEDS
-void board_led_initialize(void);
+void board_autoled_initialize(void);
 #endif
 
 /************************************************************************************

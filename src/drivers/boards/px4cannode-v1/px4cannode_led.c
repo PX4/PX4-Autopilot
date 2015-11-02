@@ -76,7 +76,7 @@ __EXPORT void led_init(void)
 	}
 }
 
-__EXPORT void board_led_initialize(void)
+__EXPORT void board_autoled_initialize(void)
 {
 	led_init();
 }
@@ -113,7 +113,7 @@ static bool g_initialized;
 
 // Nuttx Usages
 
-__EXPORT void board_led_on(int led)
+__EXPORT void board_autoled_on(int led)
 {
 	switch (led) {
 	default:
@@ -144,11 +144,11 @@ __EXPORT void board_led_on(int led)
 }
 
 /****************************************************************************
- * Name: board_led_off
+ * Name: board_autoled_off
  ****************************************************************************/
 
 
-__EXPORT void board_led_off(int led)
+__EXPORT void board_autoled_off(int led)
 {
 	switch (led) {
 	default:
