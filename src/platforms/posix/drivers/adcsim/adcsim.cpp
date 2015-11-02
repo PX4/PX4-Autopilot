@@ -65,36 +65,33 @@
 
 #include <uORB/topics/system_power.h>
 
+#include "SyncObj.hpp"
+#include "VirtDriverObj.hpp"
 
-class ADCSIM : public device::VDev
+using namespace DriverFramework;
+
+#define ADC_BASE_DEV_PATH "/dev/adc"
+
+class ADCSIM : public VirtDriverObj
 {
 public:
 	ADCSIM(uint32_t channels);
-	~ADCSIM();
+	virtual ~ADCSIM();
 
-	virtual int		init();
-
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t len);
-
-protected:
-	virtual int		open_first(device::file_t *filp);
-	virtual int		close_last(device::file_t *filp);
+	static int		read(DriverHandle &h, adc_msg_s *sample, size_t num_samples);
 
 private:
-	static const hrt_abstime _tickrate = 10000;	/**< 100Hz base rate */
-
-	hrt_call		_call;
+	WorkHandle		_call;
 	perf_counter_t		_sample_perf;
 
 	unsigned		_channel_count;
 	adc_msg_s		*_samples;		/**< sample buffer */
 
 	/** work trampoline */
-	static void		_tick_trampoline(void *arg);
+	static void		_tick_trampoline(void *arg, WorkHandle &h);
 
 	/** worker function */
-	void			_tick();
+	virtual void		_measure();
 
 	/**
 	 * Sample a single channel and return the measured value.
@@ -105,13 +102,11 @@ private:
 	 */
 	uint16_t		_sample(unsigned channel);
 
-	// update system_power ORB topic, only on FMUv2
-	void update_system_power(void);
+	SyncObj 		m_lock;
 };
 
 ADCSIM::ADCSIM(uint32_t channels) :
-	VDev("adcsim", ADCSIM0_DEVICE_PATH),
-	_call(),
+	VirtDriverObj("adcsim", ADC_BASE_DEV_PATH, 10000),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr)
@@ -151,75 +146,34 @@ ADCSIM::~ADCSIM()
 	}
 }
 
-int
-ADCSIM::init()
+int ADCSIM::read(DriverHandle &h, adc_msg_s *sample, size_t num_samples)
 {
-	DEVICE_DEBUG("init done");
+	ADCSIM *me = DriverMgr::getDriverObjByHandle<ADCSIM>(h);
+	if (me) {
+		if (num_samples > me->_channel_count) {
+			num_samples = me->_channel_count;
+		}
+		size_t len = num_samples * sizeof(adc_msg_s);
 
-	/* create the device node */
-	return VDev::init();
-}
-
-int
-ADCSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	return -ENOTTY;
-}
-
-ssize_t
-ADCSIM::read(device::file_t *filp, char *buffer, size_t len)
-{
-	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
-
-	if (len > maxsize) {
-		len = maxsize;
+		/* block interrupts while copying samples to avoid racing with an update */
+		me->m_lock.lock();
+		memcpy((void *)sample, (void *)(me->_samples), len);
+		me->m_lock.unlock();
+		return num_samples;
 	}
 
-	/* block interrupts while copying samples to avoid racing with an update */
-	memcpy(buffer, _samples, len);
-
-	return len;
-}
-
-int
-ADCSIM::open_first(device::file_t *filp)
-{
-	/* get fresh data */
-	_tick();
-
-	/* and schedule regular updates */
-	hrt_call_every(&_call, _tickrate, _tickrate, _tick_trampoline, this);
-
-	return 0;
-}
-
-int
-ADCSIM::close_last(device::file_t *filp)
-{
-	hrt_cancel(&_call);
-	return 0;
+	return -1;
 }
 
 void
-ADCSIM::_tick_trampoline(void *arg)
+ADCSIM::_measure()
 {
-	(reinterpret_cast<ADCSIM *>(arg))->_tick();
-}
-
-void
-ADCSIM::_tick()
-{
+	m_lock.lock();
 	/* scan the channel set and sample each */
 	for (unsigned i = 0; i < _channel_count; i++) {
 		_samples[i].am_data = _sample(_samples[i].am_channel);
 	}
-
-	update_system_power();
-}
-
-void
-ADCSIM::update_system_power(void)
-{
+	m_lock.unlock();
 }
 
 uint16_t
@@ -246,19 +200,19 @@ int
 test(void)
 {
 
-	int fd = px4_open(ADCSIM0_DEVICE_PATH, O_RDONLY);
+	DriverHandle h = DriverMgr::getHandle(ADCSIM0_DEVICE_PATH);
 
-	if (fd < 0) {
-		PX4_ERR("can't open ADCSIM device");
+	if (!h.isValid()) {
+		PX4_ERR("can't open ADCSIM device (%d)", h.getError());
 		return 1;
 	}
 
 	for (unsigned i = 0; i < 50; i++) {
 		adc_msg_s data[12];
-		ssize_t count = px4_read(fd, data, sizeof(data));
+		ssize_t count = ADCSIM::read(h, data, sizeof(data));
 
 		if (count < 0) {
-			PX4_ERR("read error");
+			PX4_ERR("read error (%d)", h.getError());
 			return 1;
 		}
 
@@ -271,7 +225,7 @@ test(void)
 		usleep(500000);
 	}
 
-	px4_close(fd);
+	DriverMgr::releaseHandle(h);
 	return 0;
 }
 }
@@ -287,12 +241,6 @@ adcsim_main(int argc, char *argv[])
 
 		if (g_adc == nullptr) {
 			PX4_ERR("couldn't allocate the ADCSIM driver");
-			return 1;
-		}
-
-		if (g_adc->init() != OK) {
-			delete g_adc;
-			PX4_ERR("ADCSIM init failed");
 			return 1;
 		}
 	}
