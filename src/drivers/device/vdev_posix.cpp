@@ -270,7 +270,7 @@ extern "C" {
 		if (ret >= 0) {
 			if (timeout > 0) {
 				// Use a work queue task
-				work_s _hpwork;
+				work_s _hpwork = {};
 
 				hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)&sem, 1000 * timeout);
 				px4_sem_wait(&sem);
