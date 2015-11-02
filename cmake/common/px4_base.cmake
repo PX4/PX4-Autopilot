@@ -530,14 +530,14 @@ function(px4_add_common_flags)
 		)
 	endif()
 
-	set(max_optimization -Os)
+	set(max_optimization -O1)
 
 	set(optimization_flags
 		-fno-strict-aliasing
-		-fomit-frame-pointer
 		-funsafe-math-optimizations
 		-ffunction-sections
 		-fdata-sections
+		-g -fsanitize=address -fno-omit-frame-pointer
 		)
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
