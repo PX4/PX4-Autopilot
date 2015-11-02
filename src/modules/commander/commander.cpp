@@ -3051,11 +3051,8 @@ void *commander_low_prio_loop(void *arg)
 				if (need_param_autosave_timeout > 0 && hrt_elapsed_time(&need_param_autosave_timeout) > 200000ULL) {
 					int ret = param_save_default();
 
-					if (ret == OK) {
-						mavlink_and_console_log_info(mavlink_fd, "settings autosaved");
-
-					} else {
-						mavlink_and_console_log_critical(mavlink_fd, "settings save error");
+					if (ret != OK) {
+						mavlink_and_console_log_critical(mavlink_fd, "settings auto save error");
 					}
 
 					need_param_autosave = false;
