@@ -299,7 +299,7 @@ void AttitudeEstimatorQ::task_main()
 
 	hrt_abstime last_time = 0;
 
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd = _sensors_sub;
 	fds[0].events = POLLIN;
 
@@ -313,10 +313,12 @@ void AttitudeEstimatorQ::task_main()
 		if (ret < 0) {
 			// Poll error, sleep and try again
 			usleep(10000);
+			PX4_WARN("Q POLL ERROR");
 			continue;
 
 		} else if (ret == 0) {
 			// Poll timeout, do nothing
+			PX4_WARN("Q POLL TIMEOUT");
 			continue;
 		}
 
