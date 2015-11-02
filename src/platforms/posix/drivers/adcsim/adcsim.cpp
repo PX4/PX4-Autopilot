@@ -87,9 +87,6 @@ private:
 	unsigned		_channel_count;
 	adc_msg_s		*_samples;		/**< sample buffer */
 
-	/** work trampoline */
-	static void		_tick_trampoline(void *arg, WorkHandle &h);
-
 	/** worker function */
 	virtual void		_measure();
 
