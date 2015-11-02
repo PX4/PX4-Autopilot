@@ -110,7 +110,6 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	unsigned long structsize;
 	char *p = (char *)argv;
 
-	pthread_t task = {};
 	pthread_attr_t attr;
 	struct sched_param param = {};
 
@@ -127,10 +126,9 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	}
 
 	structsize = sizeof(pthdata_t) + (argc + 1) * sizeof(char *);
-	pthdata_t *taskdata;
 
 	// not safe to pass stack data to the thread creation
-	taskdata = (pthdata_t *)malloc(structsize + len);
+	pthdata_t *taskdata = (pthdata_t *)malloc(structsize + len);
 	memset(taskdata, 0, structsize + len);
 	offset = ((unsigned long)taskdata) + structsize;
 
@@ -179,16 +177,30 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
-	rv = pthread_create(&task, &attr, &entry_adapter, (void *) taskdata);
+	pthread_mutex_lock(&task_mutex);
+
+	int taskid = 0;
+
+	for (i = 0; i < PX4_MAX_TASKS; ++i) {
+		if (taskmap[i].isused == false) {
+			taskmap[i].name = name;
+			taskmap[i].isused = true;
+			taskid = i;
+			break;
+		}
+	}
+
+	rv = pthread_create(&taskmap[taskid].pid, &attr, &entry_adapter, (void *) taskdata);
 
 	if (rv != 0) {
 
 		if (rv == EPERM) {
 			//printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
-			rv = pthread_create(&task, NULL, &entry_adapter, (void *) taskdata);
+			rv = pthread_create(&taskmap[taskid].pid, NULL, &entry_adapter, (void *) taskdata);
 
 			if (rv != 0) {
 				PX4_ERR("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
+				taskmap[taskid].isused = false;
 				return (rv < 0) ? rv : -rv;
 			}
 
@@ -197,15 +209,6 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		}
 	}
 
-	pthread_mutex_lock(&task_mutex);
-	for (i = 0; i < PX4_MAX_TASKS; ++i) {
-		if (taskmap[i].isused == false) {
-			taskmap[i].pid = task;
-			taskmap[i].name = name;
-			taskmap[i].isused = true;
-			break;
-		}
-	}
 	pthread_mutex_unlock(&task_mutex);
 
 	if (i >= PX4_MAX_TASKS) {
