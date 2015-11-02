@@ -62,6 +62,7 @@
 #define SHELL_TASK_ID (PX4_MAX_TASKS+1)
 
 pthread_t _shell_task_id = 0;
+pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct task_entry {
 	pthread_t pid;
@@ -70,7 +71,7 @@ struct task_entry {
 	task_entry() : isused(false) {}
 };
 
-static task_entry taskmap[PX4_MAX_TASKS];
+static task_entry taskmap[PX4_MAX_TASKS] = {};
 
 typedef struct {
 	px4_main_t entry;
@@ -109,9 +110,9 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	unsigned long structsize;
 	char *p = (char *)argv;
 
-	pthread_t task;
+	pthread_t task = {};
 	pthread_attr_t attr;
-	struct sched_param param;
+	struct sched_param param = {};
 
 	// Calculate argc
 	while (p != (char *)0) {
@@ -130,6 +131,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	// not safe to pass stack data to the thread creation
 	taskdata = (pthdata_t *)malloc(structsize + len);
+	memset(taskdata, 0, structsize + len);
 	offset = ((unsigned long)taskdata) + structsize;
 
 	taskdata->entry = entry;
@@ -195,6 +197,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		}
 	}
 
+	pthread_mutex_lock(&task_mutex);
 	for (i = 0; i < PX4_MAX_TASKS; ++i) {
 		if (taskmap[i].isused == false) {
 			taskmap[i].pid = task;
@@ -203,6 +206,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			break;
 		}
 	}
+	pthread_mutex_unlock(&task_mutex);
 
 	if (i >= PX4_MAX_TASKS) {
 		return -ENOSPC;
@@ -224,9 +228,11 @@ int px4_task_delete(px4_task_t id)
 		return -EINVAL;
 	}
 
+	pthread_mutex_lock(&task_mutex);
 	// If current thread then exit, otherwise cancel
 	if (pthread_self() == pid) {
 		taskmap[id].isused = false;
+		pthread_mutex_unlock(&task_mutex);
 		pthread_exit(0);
 
 	} else {
@@ -234,6 +240,7 @@ int px4_task_delete(px4_task_t id)
 	}
 
 	taskmap[id].isused = false;
+	pthread_mutex_unlock(&task_mutex);
 
 	return rv;
 }
@@ -246,6 +253,7 @@ void px4_task_exit(int ret)
 	// Get pthread ID from the opaque ID
 	for (i = 0; i < PX4_MAX_TASKS; ++i) {
 		if (taskmap[i].pid == pid) {
+			pthread_mutex_lock(&task_mutex);
 			taskmap[i].isused = false;
 			break;
 		}
@@ -257,6 +265,7 @@ void px4_task_exit(int ret)
 	} else {
 		PX4_DEBUG("px4_task_exit: %s", taskmap[i].name.c_str());
 	}
+	pthread_mutex_unlock(&task_mutex);
 
 	pthread_exit((void *)(unsigned long)ret);
 }
@@ -268,7 +277,9 @@ int px4_task_kill(px4_task_t id, int sig)
 	PX4_DEBUG("Called px4_task_kill %d", sig);
 
 	if (id < PX4_MAX_TASKS && taskmap[id].isused && taskmap[id].pid != 0) {
+		pthread_mutex_lock(&task_mutex);
 		pid = taskmap[id].pid;
+		pthread_mutex_unlock(&task_mutex);
 
 	} else {
 		return -EINVAL;
@@ -326,7 +337,9 @@ const char *getprogname()
 
 	for (int i = 0; i < PX4_MAX_TASKS; i++) {
 		if (taskmap[i].isused && taskmap[i].pid == pid) {
+			pthread_mutex_lock(&task_mutex);
 			return taskmap[i].name.c_str();
+			pthread_mutex_unlock(&task_mutex);
 		}
 	}
 
