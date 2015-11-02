@@ -164,6 +164,7 @@ function(px4_os_add_flags)
                 src/lib/eigen
                 src/platforms/posix/include
                 mavlink/include/mavlink
+                src/lib/DriverFramework/framework/include
                 )
 
 if(UNIX AND APPLE)
