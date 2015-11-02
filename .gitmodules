@@ -25,3 +25,6 @@
 [submodule "unittests/googletest"]
 	path = unittests/googletest
 	url = https://github.com/google/googletest.git
+[submodule "src/lib/DriverFramework"]
+	path = src/lib/DriverFramework
+	url = https://github.com/mcharleb/DriverFramework.git
