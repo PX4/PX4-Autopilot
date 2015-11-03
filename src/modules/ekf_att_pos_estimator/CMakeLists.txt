@@ -32,7 +32,7 @@
 ############################################################################
 
 set(MODULE_CFLAGS )
-if(NOT ${OS} STREQUAL "qurt")
+if(${OS} STREQUAL "nuttx")
 	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3400)
 endif()
 

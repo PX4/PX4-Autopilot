@@ -391,6 +391,14 @@ then
 	#
 	set TTYS1_BUSY no
 
+	#
+	# Check if UAVCAN is enabled, default to it for ESCs
+	#
+	if param greater UAVCAN_ENABLE 2
+	then
+		set OUTPUT_MODE uavcan_esc
+	fi
+
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
 	if [ $OUTPUT_MODE != none ]
 	then

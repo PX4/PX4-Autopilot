@@ -38,8 +38,6 @@
  * @author Anton Babushkin <anton@px4.io>
  */
 
-#include <systemlib/param/param.h>
-
 /**
  * Minimum thrust in auto thrust control
  *

@@ -134,3 +134,16 @@ PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_GPSFAIL, 240024);
+
+/**
+ * Circuit breaker for disabling buzzer
+ *
+ * Setting this parameter to 782097 will disable the buzzer audio notification.
+ *
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 782097
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_BUZZER, 0);

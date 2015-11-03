@@ -117,6 +117,8 @@
 #
 #=============================================================================
 
+# Warning: Changing this modifies CMake's internal workings
+# and leads to wrong toolchain detection
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 #=============================================================================
@@ -184,6 +186,7 @@ project(px4 CXX C ASM)
 if (NOT ${CMAKE_VERSION} VERSION_LESS 3.0.0)
 	cmake_policy(SET CMP0045 NEW) # error on non-existent target in get prop
 	cmake_policy(SET CMP0046 NEW) # no non-existent targets as dependencies
+	cmake_policy(SET CMP0025 OLD) # still report AppleClang as Clang
 endif()
 if (NOT ${CMAKE_VERSION} VERSION_LESS 3.1.0)
 	cmake_policy(SET CMP0054 NEW) # don't dereference quoted variables
@@ -228,6 +231,7 @@ px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
 px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
 px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
 px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
+px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
 
 add_custom_target(submodule_clean
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
