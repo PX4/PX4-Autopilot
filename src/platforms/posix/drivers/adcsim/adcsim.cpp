@@ -78,10 +78,9 @@ public:
 	ADCSIM(uint32_t channels);
 	virtual ~ADCSIM();
 
-	virtual ssize_t		read(void *buffer, ssize_t len);
+	virtual ssize_t		devRead(void *buffer, size_t len);
 
 private:
-	WorkHandle		_call;
 	perf_counter_t		_sample_perf;
 
 	unsigned		_channel_count;
@@ -144,7 +143,7 @@ ADCSIM::~ADCSIM()
 }
 
 ssize_t
-ADCSIM::read(void *buffer, ssize_t len)
+ADCSIM::devRead(void *buffer, size_t len)
 {
 	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
  
