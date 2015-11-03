@@ -984,3 +984,10 @@ CONFIG_READLINE_ECHO=y
 # CONFIG_SYSTEM_VI is not set
 # CONFIG_SYSTEM_STACKMONITOR is not set
 # CONFIG_SYSTEM_ZMODEM is not set
+
+#
+# The following line is needed because the upstream tools that generates
+# the include/nuttx/include/config.h file adds logic that relies on this
+# and our build flags include -Werror=undef
+#
+CONFIG_NSOCKET_DESCRIPTORS=0
