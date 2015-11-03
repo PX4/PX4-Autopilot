@@ -69,10 +69,10 @@
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
 
-//#include <drivers/device/device.h>
+#include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
-//#include <drivers/drv_accel.h>
-//#include <drivers/drv_gyro.h>
+#include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
@@ -277,11 +277,11 @@ private:
 /**
  * Helper class implementing the gyro driver node.
  */
-class GYROSIM_gyro : public VirtDevObj
+class GYROSIM_gyro  : public VirtDevObj
 {
 public:
 	GYROSIM_gyro(GYROSIM *parent, const char *path);
-	virtual ~GYROSIM_gyro();
+	virtual ~GYROSIM_gyro() {}
 
 	virtual ssize_t		devRead(void *buffer, size_t buflen);
 	virtual int		devIOCTL(unsigned long cmd, void *arg);
@@ -293,12 +293,11 @@ protected:
 
 	void			parent_poll_notify();
 
-	virtual void 		_measure();
+	virtual void 		_measure() {};
 private:
 	GYROSIM			*_parent;
 	orb_advert_t		_gyro_topic;
 	int			_gyro_orb_class_instance;
-	int			_gyro_class_instance;
 
 	/* do not allow to copy this class due to pointer data members */
 	GYROSIM_gyro(const GYROSIM_gyro &);
@@ -385,7 +384,7 @@ GYROSIM::~GYROSIM()
 int
 GYROSIM::init()
 {
-	int ret;
+	int ret = 1;
 
 	struct accel_report arp = {};
 
@@ -1102,9 +1101,8 @@ GYROSIM::_measure()
 
 
 	/* notify anyone waiting for data */
-	// FIXME 
-	//poll_notify(POLLIN);
-	//_gyro->parent_poll_notify();
+	updateNotify();
+	_gyro->parent_poll_notify();
 
 	if (!(_pub_blocked)) {
 		/* log the time of this report */
@@ -1162,13 +1160,14 @@ GYROSIM::print_registers()
 
 
 GYROSIM_gyro::GYROSIM_gyro(GYROSIM *parent, const char *path) :
+	// Set sample interval to 0 since device is read by parent
 	VirtDevObj("GYROSIM_gyro", path, 0),
 	_parent(parent),
 	_gyro_topic(nullptr),
-	_gyro_orb_class_instance(-1),
-	_gyro_class_instance(-1)
+	_gyro_orb_class_instance(-1)
 {
 }
+
 
 int
 GYROSIM_gyro::init()
@@ -1176,13 +1175,11 @@ GYROSIM_gyro::init()
 	return start();
 }
 
-#if 0
 void
 GYROSIM_gyro::parent_poll_notify()
 {
-	poll_notify(POLLIN);
+	updateNotify();
 }
-#endif
 
 ssize_t
 GYROSIM_gyro::devRead(void *buffer, size_t buflen)
