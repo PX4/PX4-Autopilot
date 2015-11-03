@@ -71,6 +71,7 @@ set(config_module_list
 	modules/gpio_led
 	modules/uavcan
 	modules/land_detector
+	modules/sbg
 
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
