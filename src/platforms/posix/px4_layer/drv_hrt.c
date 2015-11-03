@@ -37,12 +37,15 @@
  * High-resolution timer with callouts and timekeeping.
  */
 
+#include <px4_time.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <errno.h>
 #include "hrt_work.h"
 
 static struct sq_queue_s	callout_queue;
@@ -59,22 +62,23 @@ static void		hrt_call_reschedule(void);
 #define HRT_INTERVAL_MIN	50
 #define HRT_INTERVAL_MAX	50000000
 
-static sem_t 	_hrt_lock;
+static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
+static hrt_abstime px4_timestart = 0;
 
 static void
 hrt_call_invoke(void);
 
+__EXPORT hrt_abstime hrt_reset(void);
+
 static void hrt_lock(void)
 {
-	//printf("hrt_lock\n");
-	sem_wait(&_hrt_lock);
+	px4_sem_wait(&_hrt_lock);
 }
 
 static void hrt_unlock(void)
 {
-	//printf("hrt_unlock\n");
-	sem_post(&_hrt_lock);
+	px4_sem_post(&_hrt_lock);
 }
 
 #ifdef __PX4_DARWIN
@@ -83,33 +87,38 @@ static void hrt_unlock(void)
 #define MAC_NANO (+1.0E-9)
 #define MAC_GIGA UINT64_C(1000000000)
 #define CLOCK_MONOTONIC 1
-#define clockid_t int
+#define HRT_LOCK_NAME "/hrt_lock"
 
 static double px4_timebase = 0.0;
-static uint64_t px4_timestart = 0;
 
-int clock_gettime(clockid_t clk_id, struct timespec *t)
+int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	if (clk_id != CLOCK_MONOTONIC) {
 		return 1;
 	}
 
-	// XXX multithreading locking
 	if (!px4_timestart) {
-		mach_timebase_info_data_t tb = { 0 };
+		mach_timebase_info_data_t tb = {};
 		mach_timebase_info(&tb);
 		px4_timebase = tb.numer;
 		px4_timebase /= tb.denom;
-		px4_timestart = mach_absolute_time();
+		// px4_timestart = mach_absolute_time();
 	}
 
-	memset(t, 0, sizeof(*t));
+	memset(tp, 0, sizeof(*tp));
 
-	double diff = (mach_absolute_time() - px4_timestart) * px4_timebase;
-	t->tv_sec = diff * MAC_NANO;
-	t->tv_nsec = diff - (t->tv_sec * MAC_GIGA);
+	double diff = mach_absolute_time() * px4_timebase;
+	tp->tv_sec = diff * MAC_NANO;
+	tp->tv_nsec = diff - (tp->tv_sec * MAC_GIGA);
 	return 0;
 }
+
+int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
+{
+	/* do nothing right now */
+	return 0;
+}
+
 #endif
 
 /*
@@ -119,8 +128,19 @@ hrt_abstime hrt_absolute_time(void)
 {
 	struct timespec ts;
 
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ts_to_abstime(&ts);
+	if (!px4_timestart) {
+		px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+		px4_timestart = ts_to_abstime(&ts);
+	}
+
+	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts_to_abstime(&ts) - px4_timestart;
+}
+
+__EXPORT hrt_abstime hrt_reset(void)
+{
+	px4_timestart = 0;
+	return hrt_absolute_time();
 }
 
 /*
@@ -214,9 +234,14 @@ void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
  */
 void	hrt_init(void)
 {
-	//printf("hrt_init\n");
 	sq_init(&callout_queue);
-	sem_init(&_hrt_lock, 0, 1);
+
+	int sem_ret = px4_sem_init(&_hrt_lock, 0, 1);
+
+	if (sem_ret) {
+		PX4_ERR("SEM INIT FAIL: %s", strerror(errno));
+	}
+
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
 }
 
@@ -322,7 +347,7 @@ hrt_call_reschedule()
 static void
 hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime interval, hrt_callout callout, void *arg)
 {
-	//PX4_INFO("hrt_call_internal deadline=%lu interval = %lu", deadline, interval);
+	PX4_DEBUG("hrt_call_internal deadline=%lu interval = %lu", deadline, interval);
 	hrt_lock();
 
 	//PX4_INFO("hrt_call_internal after lock");
@@ -338,12 +363,13 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 		sq_rem(&entry->link, &callout_queue);
 	}
 
-#if 0
+#if 1
 
 	// Use this to debug busy CPU that keeps rescheduling with 0 period time
-	if (interval < HRT_INTERVAL_MIN) {
-		PX4_ERR("hrt_call_internal interval too short: %" PRIu64, interval);
-	}
+	/*if (interval < HRT_INTERVAL_MIN) {*/
+	/*PX4_ERR("hrt_call_internal interval too short: %" PRIu64, interval);*/
+	/*PX4_BACKTRACE();*/
+	/*}*/
 
 #endif
 	entry->deadline = deadline;

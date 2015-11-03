@@ -227,6 +227,7 @@ SF0X::SF0X(const char *port) :
 
 	/* clear ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag &= ~ONLCR;
+
 	/* no parity, one stop bit */
 	uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
@@ -281,10 +282,12 @@ SF0X::init()
 
 		/* do regular cdev init */
 		ret = CDev::init();
-		if (ret != OK) break;
+
+		if (ret != OK) { break; }
 
 		/* allocate basic report buffers */
 		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
+
 		if (_reports == nullptr) {
 			warnx("mem err");
 			ret = -1;
@@ -293,19 +296,17 @@ SF0X::init()
 
 		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-		if (_class_instance == CLASS_DEVICE_PRIMARY) {
-			/* get a publish handle on the range finder topic */
-			struct distance_sensor_s ds_report = {};
+		/* get a publish handle on the range finder topic */
+		struct distance_sensor_s ds_report = {};
 
-			_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-								     &_orb_class_instance, ORB_PRIO_HIGH);
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+					 &_orb_class_instance, ORB_PRIO_HIGH);
 
-			if (_distance_sensor_topic == nullptr) {
-				log("failed to create distance_sensor object. Did you start uOrb?");
-			}
+		if (_distance_sensor_topic == nullptr) {
+			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 		}
 
-	} while(0);
+	} while (0);
 
 	/* close the fd */
 	::close(_fd);
@@ -532,7 +533,7 @@ SF0X::measure()
 
 	if (ret != sizeof(cmd)) {
 		perf_count(_comms_errors);
-		log("write fail %d", ret);
+		DEVICE_LOG("write fail %d", ret);
 		return ret;
 	}
 
@@ -559,7 +560,7 @@ SF0X::collect()
 	ret = ::read(_fd, &readbuf[0], readlen);
 
 	if (ret < 0) {
-		debug("read err: %d", ret);
+		DEVICE_DEBUG("read err: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 
@@ -570,6 +571,7 @@ SF0X::collect()
 		} else {
 			return -EAGAIN;
 		}
+
 	} else if (ret == 0) {
 		return -EAGAIN;
 	}
@@ -589,7 +591,7 @@ SF0X::collect()
 		return -EAGAIN;
 	}
 
-	debug("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
+	DEVICE_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
 
 	struct distance_sensor_s report;
 
@@ -689,13 +691,15 @@ SF0X::cycle()
 
 			/* we know the sensor needs about four seconds to initialize */
 			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
-				log("collection error #%u", _consecutive_fail_count);
+				DEVICE_LOG("collection error #%u", _consecutive_fail_count);
 			}
+
 			_consecutive_fail_count++;
 
 			/* restart the measurement state machine */
 			start();
 			return;
+
 		} else {
 			/* apparently success */
 			_consecutive_fail_count = 0;
@@ -722,7 +726,7 @@ SF0X::cycle()
 
 	/* measurement phase */
 	if (OK != measure()) {
-		log("measure error");
+		DEVICE_LOG("measure error");
 	}
 
 	/* next phase is collection */
@@ -854,7 +858,7 @@ test()
 	}
 
 	warnx("single read");
-	warnx("val:  %0.2f m", (double)report.current_distance);
+	warnx("measurement:  %0.2f m", (double)report.current_distance);
 	warnx("time: %llu", report.timestamp);
 
 	/* start the sensor polling at 2 Hz rate */
@@ -885,7 +889,9 @@ test()
 		}
 
 		warnx("read #%u", i);
-		warnx("val:  %0.3f m", (double)report.current_distance);
+		warnx("valid %u", (float)report.current_distance > report.min_distance
+		      && (float)report.current_distance < report.max_distance ? 1 : 0);
+		warnx("measurement:  %0.3f m", (double)report.current_distance);
 		warnx("time: %llu", report.timestamp);
 	}
 

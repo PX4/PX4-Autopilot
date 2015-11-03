@@ -4,7 +4,7 @@
 # att & pos estimator, att & pos control.
 #
 
-attitude_estimator_ekf start
+attitude_estimator_q start
 #ekf_att_pos_estimator start
 position_estimator_inav start
 
@@ -13,3 +13,9 @@ mc_att_control start
 mc_pos_control start
 fw_att_control start
 fw_pos_control_l1 start
+
+#
+# Start Land Detector
+# Multicopter for now until we have something for VTOL
+#
+land_detector start multicopter

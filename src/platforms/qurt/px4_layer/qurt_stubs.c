@@ -30,60 +30,91 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include "px4_log.h"
+#include <semaphore.h>
 
-//extern "C" {
+void block_indefinite(void);
+void _Read_uleb(void);
+void _Parse_fde_instr(void);
+void _Parse_csd(void);
+void _Valbytes(void);
+void _Get_eh_data(void);
+void _Parse_lsda(void);
+void __cxa_guard_release(void);
+void _Read_enc_ptr(void);
+void _Read_sleb(void);
+void __cxa_guard_acquire(void);
+void __cxa_pure_virtual(void);
 
-void _Read_uleb( void )
+void block_indefinite(void)
 {
+	sem_t forever;
+	sem_init(&forever, 0, 0);
+	sem_wait(&forever);
 }
 
-void _Parse_fde_instr( void )
+void _Read_uleb(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void _Parse_csd( void )
+void _Parse_fde_instr(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void _Locksyslock( void )
+void _Parse_csd(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void _Unlocksyslock( void )
+void _Valbytes(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void _Valbytes( void )
+void _Get_eh_data(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void _Get_eh_data( void )
+void _Parse_lsda(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void _Parse_lsda( void )
+void __cxa_guard_release(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void __cxa_guard_release( void )
+void _Read_enc_ptr(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void _Read_enc_ptr( void )
+void _Read_sleb(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void _Read_sleb( void )
+void __cxa_guard_acquire(void)
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
 
-void __cxa_guard_acquire( void )
+void __cxa_pure_virtual()
 {
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
 }
-
-void __cxa_pure_virtual() 
-{ 
-   while (1); 
-}
-
-//}

@@ -89,20 +89,14 @@ enum ORB_PRIO {
 /**
  * Declare (prototype) the uORB metadata for a topic.
  *
- * Note that optional topics are declared weak; this allows a potential
- * subscriber to attempt to subscribe to a topic that is not known to the
- * system at runtime.  The ORB_ID() macro will return NULL/nullptr for
- * such a topic, and attempts to advertise or subscribe to it will
- * return -1/ENOENT (see below).
- *
  * @param _name		The name of the topic.
  */
 #if defined(__cplusplus)
 # define ORB_DECLARE(_name)		extern "C" const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT
 #else
 # define ORB_DECLARE(_name)		extern const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT
 #endif
 
 /**
@@ -135,7 +129,7 @@ __BEGIN_DECLS
  * a file-descriptor-based handle would not otherwise be in scope for the
  * publisher.
  */
-typedef void *	orb_advert_t;
+typedef void 	*orb_advert_t;
 
 /**
  * Advertise as the publisher of a topic.
@@ -329,6 +323,14 @@ extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
 
 /**
+ * Get the number of published instances of a topic group
+ *
+ * @param meta    ORB topic metadata.
+ * @return    The number of published instances of this topic
+ */
+extern int	orb_group_count(const struct orb_metadata *meta) __EXPORT;
+
+/**
  * Return the priority of the topic
  *
  * @param handle	A handle returned from orb_subscribe.
@@ -338,7 +340,7 @@ extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
  *			priority, independent of the startup order of the associated publishers.
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
-extern int	orb_priority(int handle, int *priority) __EXPORT;
+extern int	orb_priority(int handle, int32_t *priority) __EXPORT;
 
 /**
  * Set the minimum interval between which updates are seen for a subscription.

@@ -269,7 +269,7 @@ public:
 	 *      priority, independent of the startup order of the associated publishers.
 	 * @return    OK on success, ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_priority(int handle, int *priority) ;
+	int  orb_priority(int handle, int32_t *priority) ;
 
 	/**
 	 * Set the minimum interval between which updates are seen for a subscription.
@@ -346,7 +346,7 @@ private: // class methods
 	);
 
 private: // data members
-	static Manager _Instance;
+	static Manager *_Instance;
 	// the communicator channel instance.
 	uORBCommunicator::IChannel *_comm_channel;
 	ORBSet _remote_subscriber_topics;

@@ -44,6 +44,7 @@
 #include <drivers/drv_device.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 namespace device
 {
@@ -54,8 +55,12 @@ Device::Device(const char *name) :
 	_name(name),
 	_debug_enabled(false)
 {
-	sem_init(&_lock, 0, 1);
-        
+	int ret = px4_sem_init(&_lock, 0, 1);
+
+	if (ret != 0) {
+		PX4_WARN("SEM INIT FAIL: ret %d, %s", ret, strerror(errno));
+	}
+
 	/* setup a default device ID. When bus_type is UNKNOWN the
 	   other fields are invalid */
 	_device_id.devid = 0;
@@ -67,7 +72,7 @@ Device::Device(const char *name) :
 
 Device::~Device()
 {
-	sem_destroy(&_lock);
+	px4_sem_destroy(&_lock);
 }
 
 int
@@ -78,57 +83,27 @@ Device::init()
 	return ret;
 }
 
-void
-Device::log(const char *fmt, ...)
-{
-	va_list	ap;
-
-	PX4_INFO("[%s] ", _name);
-	va_start(ap, fmt);
-        PX4_INFO( fmt, ap );
-	//vprintf(fmt, ap);
-	va_end(ap);
-	//printf("\n");
-	//fflush(stdout);
-}
-
-void
-Device::debug(const char *fmt, ...)
-{
-	va_list	ap;
-
-	if (_debug_enabled) {
-		PX4_INFO("<%s> ", _name);
-		//printf("<%s> ", _name);
-		va_start(ap, fmt);
-		//vprintf(fmt, ap);
-		PX4_INFO(fmt, ap);
-		va_end(ap);
-		//printf("\n");
-		//fflush(stdout);
-	}
-}
-
 int
 Device::dev_read(unsigned offset, void *data, unsigned count)
 {
-        return -ENODEV;
+	return -ENODEV;
 }
 
 int
 Device::dev_write(unsigned offset, void *data, unsigned count)
 {
-        return -ENODEV;
+	return -ENODEV;
 }
 
 int
 Device::dev_ioctl(unsigned operation, unsigned &arg)
 {
-        switch (operation) {
-        case DEVIOCGDEVICEID:
-                return (int)_device_id.devid;
-        }
-        return -ENODEV;
+	switch (operation) {
+	case DEVIOCGDEVICEID:
+		return (int)_device_id.devid;
+	}
+
+	return -ENODEV;
 }
 
 } // namespace device

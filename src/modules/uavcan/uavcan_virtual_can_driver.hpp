@@ -35,7 +35,7 @@
 
 #pragma once
 
-#include <px4_config.h>
+#include <nuttx/config.h>
 
 #include <cstdlib>
 #include <cstdint>
@@ -50,13 +50,6 @@
 #include <uavcan/node/sub_node.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
 
-#ifdef DEBUG_VCAN_DRIVER
-#define PX4_DEBUG(fmt,...) syslog(LOG_DEBUG, fmt"\n",__VA_ARGS__)
-#define PX4_VDEBUG(fmt,...)
-#else
-#define PX4_DEBUG(fmt,...)
-#define PX4_VDEBUG(fmt,...)
-#endif
 /*
  * General purpose wrapper around os's mutual exclusion
  * mechanism.
@@ -87,13 +80,11 @@ public:
 
 	static int init(pthread_mutex_t &thier_mutex_)
 	{
-		PX4_DEBUG("init(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
 		return pthread_mutex_init(&thier_mutex_, NULL);
 	}
 
 	static int deinit(pthread_mutex_t &thier_mutex_)
 	{
-		PX4_DEBUG("deinit(pthread_mutex_t& thier_mutex_=0x%8x)", &thier_mutex_);
 		return pthread_mutex_destroy(&thier_mutex_);
 	}
 
@@ -201,8 +192,7 @@ class VirtualCanIface : public uavcan::ICanIface,
 	 * Simple inheritance or composition won't work here, because the 40 byte limit will be exceeded,
 	 * rendering this class unusable with Queue<>.
 	 */
-	struct RxItem: public uavcan::CanFrame
-	{
+	struct RxItem: public uavcan::CanFrame {
 		const uavcan::MonotonicTime ts_mono;
 		const uavcan::UtcTime ts_utc;
 		const uavcan::CanIOFlags flags;
@@ -300,9 +290,9 @@ public:
 			const int res = main_node.injectTxFrame(e->frame, e->deadline, iface_mask,
 								uavcan::CanTxQueue::Qos(e->qos), e->flags);
 
-                        prioritized_tx_queue_.remove(e);
+			prioritized_tx_queue_.remove(e);
 
-                        if (res <= 0) {
+			if (res <= 0) {
 				break;
 			}
 
@@ -358,13 +348,11 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 		int init()
 		{
-			PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
 			return sem_init(&sem, 0, 0);
 		}
 
 		int deinit()
 		{
-			PX4_DEBUG("init(sem_init(&sem, 0, 0)=0x%8x)", &sem);
 			return sem_destroy(&sem);
 		}
 
@@ -383,7 +371,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 		void waitFor(uavcan::MonotonicDuration duration)
 		{
-			static const unsigned NsPerSec = 1000000000;
+			static const int NsPerSec = 1000000000;
 
 			if (duration.isPositive()) {
 				auto abstime = ::timespec();
@@ -403,12 +391,11 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 
 		void signal()
 		{
-			PX4_VDEBUG("signal()=0x%8x)", &sem);
 			int count;
 			int rv = sem_getvalue(&sem, &count);
 
 			if (rv > 0 && count <= 0) {
-				sem_post(&sem);
+				px4_sem_post(&sem);
 			}
 		}
 	};
@@ -431,7 +418,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 	 * This and other methods of ICanDriver will be invoked by the sub-node thread.
 	 */
 	int16_t select(uavcan::CanSelectMasks &inout_masks,
-		       const uavcan::CanFrame* (&)[uavcan::MaxCanIfaces],
+		       const uavcan::CanFrame * (&)[uavcan::MaxCanIfaces],
 		       uavcan::MonotonicTime blocking_deadline) override
 	{
 		bool need_block = (inout_masks.write == 0);    // Write queue is infinite

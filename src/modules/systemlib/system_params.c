@@ -37,9 +37,6 @@
  * System wide parameters
  */
 
-#include <px4_config.h>
-#include <systemlib/param/param.h>
-
 /**
  * Auto-start script index.
  *

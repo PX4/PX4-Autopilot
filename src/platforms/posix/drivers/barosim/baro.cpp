@@ -72,12 +72,6 @@ enum BAROSIM_BUS {
 	BAROSIM_BUS_SIM_EXTERNAL
 };
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
 
@@ -95,7 +89,7 @@ static const int ERROR = -1;
 class BAROSIM : public device::VDev
 {
 public:
-	BAROSIM(device::Device *interface, barosim::prom_u &prom_buf, const char* path);
+	BAROSIM(device::Device *interface, barosim::prom_u &prom_buf, const char *path);
 	~BAROSIM();
 
 	virtual int		init();
@@ -201,7 +195,7 @@ protected:
  */
 extern "C" __EXPORT int barosim_main(int argc, char *argv[]);
 
-BAROSIM::BAROSIM(device::Device *interface, barosim::prom_u &prom_buf, const char* path) :
+BAROSIM::BAROSIM(device::Device *interface, barosim::prom_u &prom_buf, const char *path) :
 	VDev("BAROSIM", path),
 	_interface(interface),
 	_prom(prom_buf.s),
@@ -230,12 +224,14 @@ BAROSIM::~BAROSIM()
 	/* make sure we are truly inactive */
 	stop_cycle();
 
-	if (_class_instance != -1)
+	if (_class_instance != -1) {
 		unregister_class_devname(get_devname(), _class_instance);
+	}
 
 	/* free any existing reports */
-	if (_reports != nullptr)
+	if (_reports != nullptr) {
 		delete _reports;
+	}
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -250,11 +246,12 @@ int
 BAROSIM::init()
 {
 	int ret;
-	debug("BAROSIM::init");
+	DEVICE_DEBUG("BAROSIM::init");
 
 	ret = VDev::init();
+
 	if (ret != OK) {
-		debug("VDev init failed");
+		DEVICE_DEBUG("VDev init failed");
 		goto out;
 	}
 
@@ -262,7 +259,7 @@ BAROSIM::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
-		debug("can't get memory for reports");
+		DEVICE_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -276,10 +273,10 @@ BAROSIM::init()
 	_reports->flush();
 
 	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
-				&_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+					  &_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
-	if (_baro_topic == (orb_advert_t)(-1)) {
-			PX4_ERR("failed to create sensor_baro publication");
+	if (_baro_topic == nullptr) {
+		PX4_ERR("failed to create sensor_baro publication");
 	}
 
 	/* this do..while is goto without goto */
@@ -335,8 +332,9 @@ BAROSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 	int ret = 0;
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is enabled */
 	if (_measure_ticks > 0) {
@@ -389,8 +387,9 @@ BAROSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 		}
 
 		/* state machine will have generated a report, copy it out */
-		if (_reports->get(brp))
+		if (_reports->get(brp)) {
 			ret = sizeof(*brp);
+		}
 
 	} while (0);
 
@@ -402,23 +401,23 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case SENSORIOCSPOLLRATE: 
+	case SENSORIOCSPOLLRATE:
 		switch (arg) {
 
-			/* switching to manual polling */
+		/* switching to manual polling */
 		case SENSOR_POLLRATE_MANUAL:
 			stop_cycle();
 			_measure_ticks = 0;
 			return OK;
 
-			/* external signalling not supported */
+		/* external signalling not supported */
 		case SENSOR_POLLRATE_EXTERNAL:
 
-			/* zero would be bad */
+		/* zero would be bad */
 		case 0:
 			return -EINVAL;
 
-			/* set default/max polling rate */
+		/* set default/max polling rate */
 		case SENSOR_POLLRATE_MAX:
 		case SENSOR_POLLRATE_DEFAULT: {
 				/* do we need to start internal polling? */
@@ -428,13 +427,14 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				_measure_ticks = USEC2TICK(BAROSIM_CONVERSION_INTERVAL);
 
 				/* if we need to start the poll state machine, do it */
-				if (want_start)
+				if (want_start) {
 					start_cycle();
+				}
 
 				return OK;
 			}
 
-			/* adjust to a legal polling interval in Hz */
+		/* adjust to a legal polling interval in Hz */
 		default: {
 				/* do we need to start internal polling? */
 				bool want_start = (_measure_ticks == 0);
@@ -443,36 +443,41 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				unsigned long ticks = USEC2TICK(1000000 / arg);
 
 				/* check against maximum rate */
-				if (ticks < USEC2TICK(BAROSIM_CONVERSION_INTERVAL))
+				if (ticks < USEC2TICK(BAROSIM_CONVERSION_INTERVAL)) {
 					return -EINVAL;
+				}
 
 				/* update interval for next measurement */
 				_measure_ticks = ticks;
 
 				/* if we need to start the poll state machine, do it */
-				if (want_start)
+				if (want_start) {
 					start_cycle();
+				}
 
 				return OK;
 			}
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0)
+		if (_measure_ticks == 0) {
 			return SENSOR_POLLRATE_MANUAL;
+		}
 
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		if (!_reports->resize(arg)) {
-			return -ENOMEM;
+			if (!_reports->resize(arg)) {
+				return -ENOMEM;
+			}
+
+			return OK;
 		}
-		return OK;
-	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _reports->size();
@@ -487,8 +492,9 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case BAROIOCSMSLPRESSURE:
 
 		/* range-check for sanity */
-		if ((arg < 80000) || (arg > 120000))
+		if ((arg < 80000) || (arg > 120000)) {
 			return -EINVAL;
+		}
 
 		_msl_pressure = arg;
 		return OK;
@@ -543,6 +549,7 @@ BAROSIM::cycle()
 
 		/* perform collection */
 		ret = collect();
+
 		if (ret != OK) {
 			/* issue a reset command to the sensor */
 			_interface->dev_ioctl(IOCTL_RESET, dummy);
@@ -575,8 +582,9 @@ BAROSIM::cycle()
 
 	/* measurement phase */
 	ret = measure();
+
 	if (ret != OK) {
-		//log("measure error %d", ret);
+		//DEVICE_LOG("measure error %d", ret);
 		/* issue a reset command to the sensor */
 		_interface->dev_ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
@@ -611,8 +619,10 @@ BAROSIM::measure()
 	 * Send the command to begin measuring.
 	 */
 	ret = _interface->dev_ioctl(IOCTL_MEASURE, addr);
-	if (OK != ret)
+
+	if (OK != ret) {
 		perf_count(_comms_errors);
+	}
 
 	perf_end(_measure_perf);
 
@@ -637,10 +647,11 @@ BAROSIM::collect()
 	struct baro_report report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
-        report.error_count = perf_event_count(_comms_errors);
+	report.error_count = perf_event_count(_comms_errors);
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
 	ret = _interface->dev_read(0, (void *)&baro_report, sizeof(baro_report));
+
 	if (ret < 0) {
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
@@ -653,6 +664,7 @@ BAROSIM::collect()
 		report.altitude = baro_report.altitude;
 		report.temperature = baro_report.temperature;
 		report.timestamp = hrt_absolute_time();
+
 	} else {
 		report.pressure = baro_report.pressure;
 		report.altitude = baro_report.altitude;
@@ -664,8 +676,8 @@ BAROSIM::collect()
 			if (_baro_topic != nullptr) {
 				/* publish it */
 				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
-			}
-			else {
+
+			} else {
 				PX4_WARN("BAROSIM::collect _baro_topic not initialized");
 			}
 		}
@@ -799,6 +811,7 @@ start_bus(struct barosim_bus_option &bus)
 
 	prom_u prom_buf;
 	device::Device *interface = bus.interface_constructor(prom_buf, bus.busnum);
+
 	if (interface->init() != OK) {
 		delete interface;
 		PX4_ERR("no device on bus %u", (unsigned)bus.busid);
@@ -806,13 +819,14 @@ start_bus(struct barosim_bus_option &bus)
 	}
 
 	bus.dev = new BAROSIM(interface, prom_buf, bus.devpath);
+
 	if (bus.dev != nullptr && OK != bus.dev->init()) {
 		delete bus.dev;
 		bus.dev = NULL;
 		PX4_ERR("bus init failed %p", bus.dev);
 		return false;
 	}
-			
+
 	int fd = px4_open(bus.devpath, O_RDONLY);
 
 	/* set the poll rate to default, starts automatic data collection */
@@ -820,6 +834,7 @@ start_bus(struct barosim_bus_option &bus)
 		PX4_ERR("can't open baro device");
 		return false;
 	}
+
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		px4_close(fd);
 		PX4_ERR("failed setting default poll rate");
@@ -870,6 +885,7 @@ test()
 	int fd;
 
 	fd = px4_open(bus.devpath, O_RDONLY);
+
 	if (fd < 0) {
 		PX4_ERR("open failed (try 'barosim start' if the driver is not running)");
 		return 1;
@@ -947,6 +963,7 @@ reset()
 	int fd;
 
 	fd = px4_open(bus.devpath, O_RDONLY);
+
 	if (fd < 0) {
 		PX4_ERR("failed ");
 		return 1;
@@ -961,6 +978,7 @@ reset()
 		PX4_ERR("driver poll restart failed");
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -970,13 +988,15 @@ reset()
 int
 info()
 {
-	for (uint8_t i=0; i<NUM_BUS_OPTIONS; i++) {
+	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
 		struct barosim_bus_option &bus = bus_options[i];
+
 		if (bus.dev != nullptr) {
 			PX4_INFO("%s", bus.devpath);
 			bus.dev->print_info();
 		}
 	}
+
 	return 0;
 }
 
@@ -1085,26 +1105,30 @@ barosim_main(int argc, char *argv[])
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(verb, "start"))
+	if (!strcmp(verb, "start")) {
 		ret = barosim::start();
+	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	else if (!strcmp(verb, "test"))
+	else if (!strcmp(verb, "test")) {
 		ret = barosim::test();
+	}
 
 	/*
 	 * Reset the driver.
 	 */
-	else if (!strcmp(verb, "reset"))
+	else if (!strcmp(verb, "reset")) {
 		ret = barosim::reset();
+	}
 
 	/*
 	 * Print driver information.
 	 */
-	else if (!strcmp(verb, "info"))
+	else if (!strcmp(verb, "info")) {
 		ret = barosim::info();
+	}
 
 	/*
 	 * Perform MSL pressure calibration given an altitude in metres
@@ -1119,10 +1143,11 @@ barosim_main(int argc, char *argv[])
 		long altitude = strtol(argv[2], nullptr, 10);
 
 		ret = barosim::calibrate(altitude);
-	}
-	else {
+
+	} else {
 		barosim::usage();
 		return 1;
 	}
+
 	return ret;
 }

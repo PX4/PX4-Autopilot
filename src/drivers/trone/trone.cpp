@@ -125,6 +125,7 @@ private:
 	work_s				_work;
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
+	uint8_t				_valid;
 	int					_measure_ticks;
 	bool				_collect_phase;
 	int				_class_instance;
@@ -211,7 +212,8 @@ static const uint8_t crc_table[] = {
 	0xfa, 0xfd, 0xf4, 0xf3
 };
 
-/* static uint8_t crc8(uint8_t *p, uint8_t len) {
+static uint8_t crc8(uint8_t *p, uint8_t len)
+{
 	uint16_t i;
 	uint16_t crc = 0x0;
 
@@ -221,7 +223,7 @@ static const uint8_t crc_table[] = {
 	}
 
 	return crc & 0xFF;
-}*/
+}
 
 /*
  * Driver 'main' command.
@@ -234,6 +236,7 @@ TRONE::TRONE(int bus, int address) :
 	_max_distance(TRONE_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
+	_valid(0),
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
@@ -299,10 +302,10 @@ TRONE::init()
 		_reports->get(&ds_report);
 
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-							     &_orb_class_instance, ORB_PRIO_LOW);
+					 &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic == nullptr) {
-			log("failed to create distance_sensor object. Did you start uOrb?");
+			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 		}
 	}
 
@@ -316,23 +319,23 @@ out:
 int
 TRONE::probe()
 {
-	uint8_t who_am_i=0;
+	uint8_t who_am_i = 0;
 
 	const uint8_t cmd = TRONE_WHO_AM_I_REG;
-    
-    // set the I2C bus address
-    set_address(TRONE_BASEADDR);
-        
-    // can't use a single transfer as TROne need a bit of time for internal processing
-	if (transfer(&cmd, 1, nullptr, 0) == OK) {
-        if ( transfer(nullptr, 0, &who_am_i, 1) == OK && who_am_i == TRONE_WHO_AM_I_REG_VAL){
-            return measure();
-        }
-	}     
 
-	debug("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
-		(unsigned)who_am_i,
-		TRONE_WHO_AM_I_REG_VAL);
+	// set the I2C bus address
+	set_address(TRONE_BASEADDR);
+
+	// can't use a single transfer as TROne need a bit of time for internal processing
+	if (transfer(&cmd, 1, nullptr, 0) == OK) {
+		if (transfer(nullptr, 0, &who_am_i, 1) == OK && who_am_i == TRONE_WHO_AM_I_REG_VAL) {
+			return measure();
+		}
+	}
+
+	DEVICE_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
+		     (unsigned)who_am_i,
+		     TRONE_WHO_AM_I_REG_VAL);
 
 	// not found on any address
 	return -EIO;
@@ -549,7 +552,7 @@ TRONE::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
+		DEVICE_LOG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -571,7 +574,7 @@ TRONE::collect()
 	ret = transfer(nullptr, 0, &val[0], 3);
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
+		DEVICE_LOG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -591,6 +594,10 @@ TRONE::collect()
 	report.covariance = 0.0f;
 	/* TODO: set proper ID */
 	report.id = 0;
+
+	// This validation check can be used later
+	_valid = crc8(val, 2) == val[2] && (float)report.current_distance > report.min_distance
+		 && (float)report.current_distance < report.max_distance ? 1 : 0;
 
 	/* publish it, if we are the primary */
 	if (_distance_sensor_topic != nullptr) {
@@ -659,7 +666,7 @@ TRONE::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
+			DEVICE_LOG("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -674,10 +681,10 @@ TRONE::cycle()
 		if (_measure_ticks > USEC2TICK(TRONE_CONVERSION_INTERVAL)) {
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
-				&_work,
-				(worker_t)&TRONE::cycle_trampoline,
-				this,
-				_measure_ticks - USEC2TICK(TRONE_CONVERSION_INTERVAL));
+				   &_work,
+				   (worker_t)&TRONE::cycle_trampoline,
+				   this,
+				   _measure_ticks - USEC2TICK(TRONE_CONVERSION_INTERVAL));
 
 			return;
 		}
@@ -685,7 +692,7 @@ TRONE::cycle()
 
 	/* measurement phase */
 	if (OK != measure()) {
-		log("measure error");
+		DEVICE_LOG("measure error");
 	}
 
 	/* next phase is collection */
@@ -693,10 +700,10 @@ TRONE::cycle()
 
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
-		&_work,
-		(worker_t)&TRONE::cycle_trampoline,
-		this,
-		USEC2TICK(TRONE_CONVERSION_INTERVAL));
+		   &_work,
+		   (worker_t)&TRONE::cycle_trampoline,
+		   this,
+		   USEC2TICK(TRONE_CONVERSION_INTERVAL));
 }
 
 void

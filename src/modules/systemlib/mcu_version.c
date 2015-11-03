@@ -33,7 +33,7 @@
 
 /**
  * @file mcu_version.c
- * 
+ *
  * Read out the microcontroller version from the board
  *
  * @author Lorenz Meier <lorenz@px4.io>
@@ -67,9 +67,9 @@
 void mcu_unique_id(uint32_t *uid_96_bit)
 {
 #ifdef __PX4_NUTTX
-        uid_96_bit[0] = getreg32(STM32_SYSMEM_UID);
-        uid_96_bit[1] = getreg32(STM32_SYSMEM_UID+4);
-        uid_96_bit[2] = getreg32(STM32_SYSMEM_UID+8);
+	uid_96_bit[0] = getreg32(STM32_SYSMEM_UID);
+	uid_96_bit[1] = getreg32(STM32_SYSMEM_UID+4);
+	uid_96_bit[2] = getreg32(STM32_SYSMEM_UID+8);
 #else
 	uid_96_bit[0] = 0;
 	uid_96_bit[1] = 1;
@@ -77,36 +77,37 @@ void mcu_unique_id(uint32_t *uid_96_bit)
 #endif
 }
 
-int mcu_version(char* rev, char** revstr)
+int mcu_version(char *rev, char **revstr)
 {
-#ifdef CONFIG_ARCH_CHIP_STM32
+#ifdef __PX4_NUTTX
 	uint32_t abc = getreg32(STM32_DEBUGMCU_BASE);
 
 	int32_t chip_version = abc & DEVID_MASK;
 	enum MCU_REV revid = (abc & REVID_MASK) >> 16;
 
 	switch (chip_version) {
+
 	case STM32F40x_41x:
 		*revstr = "STM32F40x";
 		break;
-        case STM32F42x_43x:
-                *revstr = "STM32F42x";
-                break;
-        case STM32F103_LD:
-                *revstr = "STM32F1xx Low";
-                break;
-        case STM32F103_MD:
-                *revstr = "STM32F1xx Med";
-                break;
-        case STM32F103_HD:
-              *revstr = "STM32F1xx Hi";
-              break;
-        case STM32F103_XLD:
-              *revstr = "STM32F1xx XL";
-              break;
-        case STM32F103_CON:
-              *revstr = "STM32F1xx Con";
-               break;
+	case STM32F42x_43x:
+		*revstr = "STM32F42x";
+		break;
+	case STM32F103_LD:
+		*revstr = "STM32F1xx Low";
+		break;
+	case STM32F103_MD:
+		*revstr = "STM32F1xx Med";
+		break;
+	case STM32F103_HD:
+	  *revstr = "STM32F1xx Hi";
+	  break;
+	case STM32F103_XLD:
+	  *revstr = "STM32F1xx XL";
+	  break;
+	case STM32F103_CON:
+	  *revstr = "STM32F1xx Con";
+	   break;
 	default:
 		*revstr = "STM32F???";
 		break;
@@ -114,26 +115,26 @@ int mcu_version(char* rev, char** revstr)
 
 	switch (revid) {
 
-		case MCU_REV_STM32F4_REV_A:
-			*rev = 'A';
-			break;
-		case MCU_REV_STM32F4_REV_Z:
-			*rev = 'Z';
-			break;
-		case MCU_REV_STM32F4_REV_Y:
-			*rev = 'Y';
-			break;
-		case MCU_REV_STM32F4_REV_1:
-			*rev = '1';
-			break;
-		case MCU_REV_STM32F4_REV_3:
-			*rev = '3';
-			break;
-		default:
-		  // todo add rev for 103 - if needed
-			*rev = '?';
-			revid = -1;
-			break;
+	case MCU_REV_STM32F4_REV_A:
+		*rev = 'A';
+		break;
+	case MCU_REV_STM32F4_REV_Z:
+		*rev = 'Z';
+		break;
+	case MCU_REV_STM32F4_REV_Y:
+		*rev = 'Y';
+		break;
+	case MCU_REV_STM32F4_REV_1:
+		*rev = '1';
+		break;
+	case MCU_REV_STM32F4_REV_3:
+		*rev = '3';
+		break;
+	default:
+	  // todo add rev for 103 - if needed
+		*rev = '?';
+		revid = -1;
+		break;
 	}
 
 	return revid;

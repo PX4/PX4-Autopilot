@@ -48,7 +48,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 
@@ -95,7 +94,9 @@ const struct {
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"tone",		test_tone,	0},
 	{"sleep",		test_sleep,	OPT_NOJIGTEST},
+#ifdef __PX4_NUTTX
 	{"time",		test_time,	OPT_NOJIGTEST},
+#endif
 	{"perf",		test_perf,	OPT_NOJIGTEST},
 	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST},
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST},

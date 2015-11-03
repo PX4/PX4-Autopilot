@@ -59,18 +59,18 @@
 
 using namespace px4;
 
-class MulticopterPositionControl
+class MulticopterPositionControlMultiplatform
 {
 public:
 	/**
 	 * Constructor
 	 */
-	MulticopterPositionControl();
+	MulticopterPositionControlMultiplatform();
 
 	/**
 	 * Destructor, also kills task.
 	 */
-	~MulticopterPositionControl();
+	~MulticopterPositionControlMultiplatform();
 
 	/* Callbacks for topics */
 	void handle_vehicle_attitude(const px4_vehicle_attitude &msg);

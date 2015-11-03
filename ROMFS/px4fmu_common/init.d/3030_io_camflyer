@@ -1,6 +1,45 @@
 #!nsh
+#
+# @name IO Camflyer
+#
+# @url https://pixhawk.org/platforms/planes/bormatec_camflyer_q
+#
+# @type Flying Wing
+#
+# @output MAIN1 left aileron
+# @output MAIN2 right aileron
+# @output MAIN4 throttle
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Simon Wilks <simon@px4.io>
+#
 
 sh /etc/init.d/rc.fw_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	param set FW_AIRSPD_MAX 15
+	param set FW_AIRSPD_MIN 10
+	param set FW_AIRSPD_TRIM 13
+	param set FW_ATT_TC 0.3
+	param set FW_L1_DAMPING 0.74
+	param set FW_L1_PERIOD 16
+	param set FW_LND_ANG 15
+	param set FW_LND_FLALT 5
+	param set FW_LND_HHDIST 15
+	param set FW_LND_HVIRT 13
+	param set FW_LND_TLALT 5
+	param set FW_THR_LND_MAX 0
+	param set FW_PR_FF 0.35
+	param set FW_PR_IMAX 0.4
+	param set FW_PR_P 0.08
+	param set FW_RR_FF 0.6
+	param set FW_RR_IMAX 0.2
+	param set FW_RR_P 0.04
+fi
 
 set MIXER Q
 # Provide ESC a constant 1000 us pulse while disarmed

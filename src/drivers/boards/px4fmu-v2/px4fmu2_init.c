@@ -148,6 +148,7 @@ dma_alloc_init(void)
 
 	if (dma_allocator == NULL) {
 		message("[boot] DMA allocator setup FAILED");
+
 	} else {
 		g_dma_perf = perf_alloc(PC_COUNT, "DMA allocations");
 	}
@@ -218,17 +219,18 @@ static struct sdio_dev_s *sdio;
 
 #include <math.h>
 
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
+/* TODO XXX commented this out to get cmake build working */
+/*#ifdef __cplusplus*/
+/*__EXPORT int matherr(struct __exception *e)*/
+/*{*/
+/*return 1;*/
+/*}*/
+/*#else*/
+/*__EXPORT int matherr(struct exception *e)*/
+/*{*/
+/*return 1;*/
+/*}*/
+/*#endif*/
 
 __EXPORT int board_app_initialize(void)
 {
@@ -473,7 +475,7 @@ __EXPORT int board_app_initialize(void)
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
 	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
 
-	#ifdef CONFIG_MMCSD
+#ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
 
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
@@ -495,7 +497,7 @@ __EXPORT int board_app_initialize(void)
 	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
 	sdio_mediachange(sdio, true);
 
-	#endif
+#endif
 
 	return OK;
 }

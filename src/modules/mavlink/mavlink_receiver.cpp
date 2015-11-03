@@ -35,9 +35,9 @@
  * @file mavlink_receiver.cpp
  * MAVLink protocol message receive and dispatch
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
+ * @author Thomas Gubler <thomas@px4.io>
  */
 
 /* XXX trim includes */
@@ -49,7 +49,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <mqueue.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -62,7 +61,6 @@
 #include <float.h>
 #include <unistd.h>
 #ifndef __PX4_POSIX
-#include <sys/prctl.h>
 #include <termios.h>
 #endif
 #include <errno.h>
@@ -118,7 +116,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rates_sp_pub(nullptr),
 	_force_sp_pub(nullptr),
 	_pos_sp_triplet_pub(nullptr),
-	_vicon_position_pub(nullptr),
+	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
 	_telemetry_status_pub(nullptr),
 	_rc_pub(nullptr),
@@ -128,15 +126,20 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
+	_hil_last_frame(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
+	_hil_prev_gyro{},
+	_hil_prev_accel{},
 	_hil_local_proj_ref{},
 	_offboard_control_mode{},
 	_att_sp{},
 	_rates_sp{},
 	_time_offset_avg_alpha(0.6),
 	_time_offset(0),
-	_orb_class_instance(-1)
+	_orb_class_instance(-1),
+	_mom_switch_pos{},
+	_mom_switch_state(0)
 {
 
 }
@@ -169,8 +172,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_set_mode(msg);
 		break;
 
-	case MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE:
-		handle_message_vicon_position_estimate(msg);
+	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
+		handle_message_att_pos_mocap(msg);
 		break;
 
 	case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
@@ -195,6 +198,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:
 		handle_message_manual_control(msg);
+		break;
+
+	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
+		handle_message_rc_channels_override(msg);
 		break;
 
 	case MAVLINK_MSG_ID_HEARTBEAT:
@@ -275,7 +282,21 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	mavlink_command_long_t cmd_mavlink;
 	mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
-	if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid)
+	/* evaluate if this system should accept this command */
+	bool target_ok;
+	switch (cmd_mavlink.command) {
+
+		case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
+			/* broadcast */
+			target_ok = (cmd_mavlink.target_system == 0);
+			break;
+
+		default:
+			target_ok = (cmd_mavlink.target_system == mavlink_system.sysid);
+			break;
+	}
+
+	if (target_ok && ((cmd_mavlink.target_component == mavlink_system.compid)
 			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
@@ -289,6 +310,10 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 			/* send autopilot version message */
 			_mavlink->send_autopilot_capabilites();
+
+		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
+			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
@@ -344,6 +369,13 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 			/* terminate other threads and this thread */
 			_mavlink->_task_should_exit = true;
+
+		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+			/* send autopilot version message */
+			_mavlink->send_autopilot_capabilites();
+
+		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
+			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
 		} else {
 
@@ -556,27 +588,34 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 }
 
 void
-MavlinkReceiver::handle_message_vicon_position_estimate(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 {
-	mavlink_vicon_position_estimate_t pos;
-	mavlink_msg_vicon_position_estimate_decode(msg, &pos);
+	mavlink_att_pos_mocap_t mocap;
+	mavlink_msg_att_pos_mocap_decode(msg, &mocap);
 
-	struct vehicle_vicon_position_s vicon_position;
-	memset(&vicon_position, 0, sizeof(vicon_position));
+	struct att_pos_mocap_s att_pos_mocap;
+	memset(&att_pos_mocap, 0, sizeof(att_pos_mocap));
 
-	vicon_position.timestamp = hrt_absolute_time();
-	vicon_position.x = pos.x;
-	vicon_position.y = pos.y;
-	vicon_position.z = pos.z;
-	vicon_position.roll = pos.roll;
-	vicon_position.pitch = pos.pitch;
-	vicon_position.yaw = pos.yaw;
+	// Use the component ID to identify the mocap system
+	att_pos_mocap.id = msg->compid;
 
-	if (_vicon_position_pub == nullptr) {
-		_vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+	att_pos_mocap.timestamp_boot = hrt_absolute_time(); // Monotonic time
+	att_pos_mocap.timestamp_computer = sync_stamp(mocap.time_usec); // Synced time
+
+	att_pos_mocap.q[0] = mocap.q[0];
+	att_pos_mocap.q[1] = mocap.q[1];
+	att_pos_mocap.q[2] = mocap.q[2];
+	att_pos_mocap.q[3] = mocap.q[3];
+
+	att_pos_mocap.x = mocap.x;
+	att_pos_mocap.y = mocap.y;
+	att_pos_mocap.z = mocap.z;
+
+	if (_att_pos_mocap_pub == nullptr) {
+		_att_pos_mocap_pub = orb_advertise(ORB_ID(att_pos_mocap), &att_pos_mocap);
 
 	} else {
-		orb_publish(ORB_ID(vehicle_vicon_position), _vicon_position_pub, &vicon_position);
+		orb_publish(ORB_ID(att_pos_mocap), _att_pos_mocap_pub, &att_pos_mocap);
 	}
 }
 
@@ -929,8 +968,8 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 {
-	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
-	if (_mavlink->get_channel() < TELEMETRY_STATUS_ORB_ID_NUM) {
+	/* telemetry status supported only on first ORB_MULTI_MAX_INSTANCES mavlink channels */
+	if (_mavlink->get_channel() < ORB_MULTI_MAX_INSTANCES) {
 		mavlink_radio_status_t rstatus;
 		mavlink_msg_radio_status_decode(msg, &rstatus);
 
@@ -939,7 +978,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		tstatus.timestamp = hrt_absolute_time();
 		tstatus.telem_time = tstatus.timestamp;
 		/* tstatus.heartbeat_time is set by system heartbeats */
-		tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
+		tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
 		tstatus.rssi = rstatus.rssi;
 		tstatus.remote_rssi = rstatus.remrssi;
 		tstatus.txbuf = rstatus.txbuf;
@@ -951,23 +990,96 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		tstatus.component_id = msg->compid;
 
 		if (_telemetry_status_pub == nullptr) {
-			_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
+			int multi_instance;
+			_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_HIGH);
 
 		} else {
-			orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
+			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
 		}
 	}
 }
 
-static switch_pos_t decode_switch_pos(uint16_t buttons, int sw) {
-	return (buttons >> (sw * 2)) & 3;
+switch_pos_t
+MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
+{
+	// This 2-bit method should be used in the future: (buttons >> (sw * 2)) & 3;
+	return (buttons & (1 << sw)) ? manual_control_setpoint_s::SWITCH_POS_ON : manual_control_setpoint_s::SWITCH_POS_OFF;
 }
 
-static int decode_switch_pos_n(uint16_t buttons, int sw) {
-	if (buttons & (1 << sw)) {
-		return 1;
+int
+MavlinkReceiver::decode_switch_pos_n(uint16_t buttons, unsigned sw)
+{
+
+	bool on = (buttons & (1 << sw));
+
+	if (sw < MOM_SWITCH_COUNT) {
+
+		bool last_on = (_mom_switch_state & (1 << sw));
+
+		/* first switch is 2-pos, rest is 2 pos */
+		unsigned state_count = (sw == 0) ? 3 : 2;
+
+		/* only transition on low state */
+		if (!on && (on != last_on)) {
+
+			_mom_switch_pos[sw]++;
+			if (_mom_switch_pos[sw] == state_count) {
+				_mom_switch_pos[sw] = 0;
+			}
+		}
+
+		/* state_count - 1 is the number of intervals and 1000 is the range,
+		 * with 2 states 0 becomes 0, 1 becomes 1000. With
+		 * 3 states 0 becomes 0, 1 becomes 500, 2 becomes 1000,
+		 * and so on for more states.
+		 */
+		return (_mom_switch_pos[sw] * 1000) / (state_count - 1) + 1000;
+
 	} else {
-		return 0;
+		/* return the current state */
+		return on * 1000 + 1000;
+	}
+}
+
+void
+MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
+{
+	mavlink_rc_channels_override_t man;
+	mavlink_msg_rc_channels_override_decode(msg, &man);
+
+	// Check target
+	if (man.target_system != 0 && man.target_system != _mavlink->get_system_id()) {
+		return;
+	}
+
+	struct rc_input_values rc = {};
+	rc.timestamp_publication = hrt_absolute_time();
+	rc.timestamp_last_signal = rc.timestamp_publication;
+
+	rc.channel_count = 8;
+	rc.rc_failsafe = false;
+	rc.rc_lost = false;
+	rc.rc_lost_frame_count = 0;
+	rc.rc_total_frame_count = 1;
+	rc.rc_ppm_frame_length = 0;
+	rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+	rc.rssi = RC_INPUT_RSSI_MAX;
+
+	/* channels */
+	rc.values[0] = man.chan1_raw;
+	rc.values[1] = man.chan2_raw;
+	rc.values[2] = man.chan3_raw;
+	rc.values[3] = man.chan4_raw;
+	rc.values[4] = man.chan5_raw;
+	rc.values[5] = man.chan6_raw;
+	rc.values[6] = man.chan7_raw;
+	rc.values[7] = man.chan8_raw;
+
+	if (_rc_pub == nullptr) {
+		_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
+
+	} else {
+		orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
 	}
 }
 
@@ -994,40 +1106,30 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		rc.rc_lost_frame_count = 0;
 		rc.rc_total_frame_count = 1;
 		rc.rc_ppm_frame_length = 0;
-		rc.input_source = RC_INPUT_SOURCE_MAVLINK;
+		rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
 		rc.rssi = RC_INPUT_RSSI_MAX;
 
 		/* roll */
 		rc.values[0] = man.x / 2 + 1500;
 		/* pitch */
 		rc.values[1] = man.y / 2 + 1500;
-
-		/*
-		 * yaw needs special handling as some joysticks have a circular mechanical mask,
-		 * which makes the corner positions unreachable.
-		 * scale yaw up and clip it to overcome this.
-		 */
-		rc.values[2] = man.r / 1.1f + 1500;
-		if (rc.values[2] > 2000) {
-			rc.values[2] = 2000;
-		} else if (rc.values[2] < 1000) {
-			rc.values[2] = 1000;
-		}
-
+		/* yaw */
+		rc.values[2] = man.r / 2 + 1500;
 		/* throttle */
-		rc.values[3] = man.z / 0.9f + 1000;
-		if (rc.values[3] > 2000) {
-			rc.values[3] = 2000;
-		} else if (rc.values[3] < 1000) {
-			rc.values[3] = 1000;
+		rc.values[3] = fminf(fmaxf(man.z / 0.9f + 800, 1000.0f), 2000.0f);
+
+		/* decode all switches which fit into the channel mask */
+		unsigned max_switch = (sizeof(man.buttons) * 8);
+		unsigned max_channels = (sizeof(rc.values) / sizeof(rc.values[0]));
+		if (max_switch > (max_channels - 4)) {
+			max_switch = (max_channels - 4);
 		}
 
-		rc.values[4] = decode_switch_pos_n(man.buttons, 0) * 1000 + 1000;
-		rc.values[5] = decode_switch_pos_n(man.buttons, 1) * 1000 + 1000;
-		rc.values[6] = decode_switch_pos_n(man.buttons, 2) * 1000 + 1000;
-		rc.values[7] = decode_switch_pos_n(man.buttons, 3) * 1000 + 1000;
-		rc.values[8] = decode_switch_pos_n(man.buttons, 4) * 1000 + 1000;
-		rc.values[9] = decode_switch_pos_n(man.buttons, 5) * 1000 + 1000;
+		/* fill all channels */
+		for (unsigned i = 0; i < max_switch; i++) {
+			rc.values[i + 4] = decode_switch_pos_n(man.buttons, i);
+		}
+		_mom_switch_state = man.buttons;
 
 		if (_rc_pub == nullptr) {
 			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
@@ -1065,7 +1167,7 @@ void
 MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 {
 	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
-	if (_mavlink->get_channel() < TELEMETRY_STATUS_ORB_ID_NUM) {
+	if (_mavlink->get_channel() < ORB_MULTI_MAX_INSTANCES) {
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
@@ -1081,10 +1183,11 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.heartbeat_time = tstatus.timestamp;
 
 			if (_telemetry_status_pub == nullptr) {
-				_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
+				int multi_instance;
+				_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_HIGH);
 
 			} else {
-				orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
+				orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
 			}
 		}
 	}
@@ -1201,10 +1304,25 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	uint64_t timestamp = hrt_absolute_time();
 
+	float dt;
+
+	if (_hil_last_frame == 0 ||
+	   (timestamp <= _hil_last_frame) ||
+	   (timestamp - _hil_last_frame) > (0.1f * 1e6f) ||
+	   (_hil_last_frame >= timestamp)) {
+		dt = 0.01f; /* default to 100 Hz */
+		memset(&_hil_prev_gyro[0], 0, sizeof(_hil_prev_gyro));
+		_hil_prev_accel[0] = 0.0f;
+		_hil_prev_accel[1] = 0.0f;
+		_hil_prev_accel[2] = 9.866f;
+	} else {
+		dt = (timestamp - _hil_last_frame) / 1e6f;
+	}
+	_hil_last_frame = timestamp;
+
 	/* airspeed */
 	{
-		struct airspeed_s airspeed;
-		memset(&airspeed, 0, sizeof(airspeed));
+		struct airspeed_s airspeed = {};
 
 		float ias = calc_indicated_airspeed(imu.diff_pressure * 1e2f);
 		// XXX need to fix this
@@ -1224,8 +1342,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* gyro */
 	{
-		struct gyro_report gyro;
-		memset(&gyro, 0, sizeof(gyro));
+		struct gyro_report gyro = {};
 
 		gyro.timestamp = timestamp;
 		gyro.x_raw = imu.xgyro * 1000.0f;
@@ -1246,8 +1363,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* accelerometer */
 	{
-		struct accel_report accel;
-		memset(&accel, 0, sizeof(accel));
+		struct accel_report accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = imu.xacc / mg2ms2;
@@ -1268,8 +1384,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* magnetometer */
 	{
-		struct mag_report mag;
-		memset(&mag, 0, sizeof(mag));
+		struct mag_report mag = {};
 
 		mag.timestamp = timestamp;
 		mag.x_raw = imu.xmag * 1000.0f;
@@ -1290,8 +1405,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* baro */
 	{
-		struct baro_report baro;
-		memset(&baro, 0, sizeof(baro));
+		struct baro_report baro = {};
 
 		baro.timestamp = timestamp;
 		baro.pressure = imu.abs_pressure;
@@ -1308,8 +1422,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* sensor combined */
 	{
-		struct sensor_combined_s hil_sensors;
-		memset(&hil_sensors, 0, sizeof(hil_sensors));
+		struct sensor_combined_s hil_sensors = {};
 
 		hil_sensors.timestamp = timestamp;
 
@@ -1319,6 +1432,13 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.gyro_rad_s[0] = imu.xgyro;
 		hil_sensors.gyro_rad_s[1] = imu.ygyro;
 		hil_sensors.gyro_rad_s[2] = imu.zgyro;
+		hil_sensors.gyro_integral_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]) * dt;
+		hil_sensors.gyro_integral_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]) * dt;
+		hil_sensors.gyro_integral_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]) * dt;
+		memcpy(&_hil_prev_gyro[0], &hil_sensors.gyro_rad_s[0], sizeof(_hil_prev_gyro));
+		hil_sensors.gyro_integral_dt[0] = dt * 1e6f;
+		hil_sensors.gyro_timestamp[0] = timestamp;
+		hil_sensors.gyro_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
 		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
@@ -1326,9 +1446,15 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.accelerometer_m_s2[0] = imu.xacc;
 		hil_sensors.accelerometer_m_s2[1] = imu.yacc;
 		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
-		hil_sensors.accelerometer_mode = 0; // TODO what is this?
-		hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
-		hil_sensors.accelerometer_timestamp = timestamp;
+		hil_sensors.accelerometer_integral_m_s[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]) * dt;
+		hil_sensors.accelerometer_integral_m_s[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]) * dt;
+		hil_sensors.accelerometer_integral_m_s[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]) * dt;
+		memcpy(&_hil_prev_accel[0], &hil_sensors.accelerometer_m_s2[0], sizeof(_hil_prev_accel));
+		hil_sensors.accelerometer_integral_dt[0] = dt * 1e6f;
+		hil_sensors.accelerometer_mode[0] = 0; // TODO what is this?
+		hil_sensors.accelerometer_range_m_s2[0] = 32.7f; // int16
+		hil_sensors.accelerometer_timestamp[0] = timestamp;
+		hil_sensors.accelerometer_priority[0] = ORB_PRIO_HIGH;
 
 		hil_sensors.adc_voltage_v[0] = 0.0f;
 		hil_sensors.adc_voltage_v[1] = 0.0f;
@@ -1340,19 +1466,20 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.magnetometer_ga[0] = imu.xmag;
 		hil_sensors.magnetometer_ga[1] = imu.ymag;
 		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_range_ga = 32.7f; // int16
-		hil_sensors.magnetometer_mode = 0; // TODO what is this
-		hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
-		hil_sensors.magnetometer_timestamp = timestamp;
+		hil_sensors.magnetometer_range_ga[0] = 32.7f; // int16
+		hil_sensors.magnetometer_mode[0] = 0; // TODO what is this
+		hil_sensors.magnetometer_cuttoff_freq_hz[0] = 50.0f;
+		hil_sensors.magnetometer_timestamp[0] = timestamp;
+		hil_sensors.magnetometer_priority[0] = ORB_PRIO_HIGH;
 
-		hil_sensors.baro_pres_mbar = imu.abs_pressure;
-		hil_sensors.baro_alt_meter = imu.pressure_alt;
-		hil_sensors.baro_temp_celcius = imu.temperature;
-		hil_sensors.baro_timestamp = timestamp;
+		hil_sensors.baro_pres_mbar[0] = imu.abs_pressure;
+		hil_sensors.baro_alt_meter[0] = imu.pressure_alt;
+		hil_sensors.baro_temp_celcius[0] = imu.temperature;
+		hil_sensors.baro_timestamp[0] = timestamp;
 
-		hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
-		hil_sensors.differential_pressure_filtered_pa = hil_sensors.differential_pressure_pa;
-		hil_sensors.differential_pressure_timestamp = timestamp;
+		hil_sensors.differential_pressure_pa[0] = imu.diff_pressure * 1e2f; //from hPa to Pa
+		hil_sensors.differential_pressure_filtered_pa[0] = hil_sensors.differential_pressure_pa[0];
+		hil_sensors.differential_pressure_timestamp[0] = timestamp;
 
 		/* publish combined sensor topic */
 		if (_sensors_pub == nullptr) {
@@ -1365,12 +1492,11 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* battery status */
 	{
-		struct battery_status_s hil_battery_status;
-		memset(&hil_battery_status, 0, sizeof(hil_battery_status));
+		struct battery_status_s hil_battery_status = {};
 
 		hil_battery_status.timestamp = timestamp;
-		hil_battery_status.voltage_v = 11.1f;
-		hil_battery_status.voltage_filtered_v = 11.1f;
+		hil_battery_status.voltage_v = 11.5f;
+		hil_battery_status.voltage_filtered_v = 11.5f;
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
 
@@ -1624,34 +1750,75 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 void *
 MavlinkReceiver::receive_thread(void *arg)
 {
-#ifndef __PX4_POSIX
-	int uart_fd = _mavlink->get_uart_fd();
 
 	const int timeout = 500;
+#ifdef __PX4_POSIX
+	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
+	uint8_t buf[1600];
+#else
+	/* the serial port buffers internally as well, we just need to fit a small chunk */
 	uint8_t buf[32];
-
+#endif
 	mavlink_message_t msg;
 
-	/* set thread name */
-	char thread_name[24];
-	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
-	prctl(PR_SET_NAME, thread_name, getpid());
-
 	struct pollfd fds[1];
-	fds[0].fd = uart_fd;
-	fds[0].events = POLLIN;
 
+	int uart_fd = -1;
+
+	if (_mavlink->get_protocol() == SERIAL) {
+		uart_fd = _mavlink->get_uart_fd();
+#ifndef __PX4_POSIX
+		/* set thread name */
+		char thread_name[24];
+		sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
+		prctl(PR_SET_NAME, thread_name, getpid());
+#endif
+
+		fds[0].fd = uart_fd;
+		fds[0].events = POLLIN;
+	}
+#ifdef __PX4_POSIX
+	struct sockaddr_in srcaddr;
+	socklen_t addrlen = sizeof(srcaddr);
+
+	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
+		// make sure mavlink app has booted before we start using the socket
+		while (!_mavlink->boot_complete()) {
+			usleep(100000);
+		}
+
+		fds[0].fd = _mavlink->get_socket_fd();
+		fds[0].events = POLLIN;
+	}
+
+#endif
 	ssize_t nread = 0;
 
 	while (!_mavlink->_task_should_exit) {
-		if (poll(fds, 1, timeout) > 0) {
-
-			/* non-blocking read. read may return negative values */
-			if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
-				/* to avoid reading very small chunks wait for data before reading */
-				usleep(1000);
+		if (poll(&fds[0], 1, timeout) > 0) {
+			if (_mavlink->get_protocol() == SERIAL) {
+				/* non-blocking read. read may return negative values */
+				if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
+					/* to avoid reading very small chunks wait for data before reading */
+					usleep(1000);
+				}
+			}
+#ifdef __PX4_POSIX
+			if (_mavlink->get_protocol() == UDP) {
+				if (fds[0].revents & POLLIN) {
+					nread = recvfrom(_mavlink->get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
+				}
+			} else {
+				// could be TCP or other protocol
 			}
 
+			struct sockaddr_in * srcaddr_last = _mavlink->get_client_source_address();
+			int localhost = (127 << 24) + 1;
+			if (srcaddr_last->sin_addr.s_addr == htonl(localhost) && srcaddr.sin_addr.s_addr != htonl(localhost)) {
+				// if we were sending to localhost before but have a new host then accept him
+				memcpy(srcaddr_last, &srcaddr, sizeof(srcaddr));
+			}
+#endif
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
 				if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
@@ -1667,7 +1834,6 @@ MavlinkReceiver::receive_thread(void *arg)
 			_mavlink->count_rxbytes(nread);
 		}
 	}
-#endif
 
 	return NULL;
 }

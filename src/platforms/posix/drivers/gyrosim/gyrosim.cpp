@@ -34,12 +34,15 @@
 /**
  * @file gyrosim.cpp
  *
- * Driver for the simulated gyro 
+ * Driver for the simulated gyro
  *
  * @author Andrew Tridgell
  * @author Pat Hickey
  * @author Mark Charlebois
  */
+
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 #include <px4_config.h>
 #include <px4_getopt.h>
@@ -49,7 +52,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -85,37 +87,19 @@
 #define MPUREG_CONFIG			0x1A
 #define MPUREG_GYRO_CONFIG		0x1B
 #define MPUREG_ACCEL_CONFIG		0x1C
-#define MPUREG_INT_PIN_CFG		0x37
-#define MPUREG_INT_ENABLE		0x38
 #define MPUREG_INT_STATUS		0x3A
-#define MPUREG_USER_CTRL		0x6A
-#define MPUREG_PWR_MGMT_1		0x6B
-#define MPUREG_PWR_MGMT_2		0x6C
 #define MPUREG_PRODUCT_ID		0x0C
 
 // Product ID Description for GYROSIM
 // high 4 bits 	low 4 bits
 // Product Name	Product Revision
 #define GYROSIMES_REV_C4		0x14
-#define GYROSIMES_REV_C5		0x15
-#define GYROSIMES_REV_D6		0x16
-#define GYROSIMES_REV_D7		0x17
-#define GYROSIMES_REV_D8		0x18
-#define GYROSIM_REV_C4			0x54
-#define GYROSIM_REV_C5			0x55
-#define GYROSIM_REV_D6			0x56
-#define GYROSIM_REV_D7			0x57
-#define GYROSIM_REV_D8			0x58
-#define GYROSIM_REV_D9			0x59
-#define GYROSIM_REV_D10			0x5A
 
-#define GYROSIM_ACCEL_DEFAULT_RATE			1000
-#define GYROSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
+#define GYROSIM_ACCEL_DEFAULT_RATE	1000
 
-#define GYROSIM_GYRO_DEFAULT_RATE			1000
-#define GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ		30
+#define GYROSIM_GYRO_DEFAULT_RATE	1000
 
-#define GYROSIM_ONE_G					9.80665f
+#define GYROSIM_ONE_G			9.80665f
 
 #ifdef PX4_SPI_BUS_EXT
 #define EXTERNAL_BUS PX4_SPI_BUS_EXT
@@ -185,16 +169,6 @@ private:
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_system_latency_perf;
 	perf_counter_t		_controller_latency_perf;
-
-	uint8_t			_register_wait;
-	uint64_t		_reset_wait;
-
-	math::LowPassFilter2p	_accel_filter_x;
-	math::LowPassFilter2p	_accel_filter_y;
-	math::LowPassFilter2p	_accel_filter_z;
-	math::LowPassFilter2p	_gyro_filter_x;
-	math::LowPassFilter2p	_gyro_filter_y;
-	math::LowPassFilter2p	_gyro_filter_z;
 
 	enum Rotation		_rotation;
 
@@ -268,7 +242,7 @@ private:
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
-	 int 			self_test();
+	int 			self_test();
 
 	/**
 	 * Accel self test
@@ -282,7 +256,7 @@ private:
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
-	 int 			gyro_self_test();
+	int 			gyro_self_test();
 
 	/*
 	  set sample rate (approximate) - 1kHz to 5Hz
@@ -290,8 +264,8 @@ private:
 	void _set_sample_rate(unsigned desired_sample_rate_hz);
 
 	/* do not allow to copy this class due to pointer data members */
-	GYROSIM(const GYROSIM&);
-	GYROSIM operator=(const GYROSIM&);
+	GYROSIM(const GYROSIM &);
+	GYROSIM operator=(const GYROSIM &);
 
 #pragma pack(push, 1)
 	/**
@@ -340,8 +314,8 @@ private:
 	int			_gyro_class_instance;
 
 	/* do not allow to copy this class due to pointer data members */
-	GYROSIM_gyro(const GYROSIM_gyro&);
-	GYROSIM_gyro operator=(const GYROSIM_gyro&);
+	GYROSIM_gyro(const GYROSIM_gyro &);
+	GYROSIM_gyro operator=(const GYROSIM_gyro &);
 };
 
 /** driver 'main' command */
@@ -372,14 +346,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_reset_retries(perf_alloc(PC_COUNT, "gyrosim_reset_retries")),
 	_system_latency_perf(perf_alloc_once(PC_ELAPSED, "sys_latency")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
-	_register_wait(0),
-	_reset_wait(0),
-	_accel_filter_x(GYROSIM_ACCEL_DEFAULT_RATE, GYROSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_y(GYROSIM_ACCEL_DEFAULT_RATE, GYROSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_z(GYROSIM_ACCEL_DEFAULT_RATE, GYROSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_x(GYROSIM_GYRO_DEFAULT_RATE, GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_y(GYROSIM_GYRO_DEFAULT_RATE, GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_z(GYROSIM_GYRO_DEFAULT_RATE, GYROSIM_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_last_temperature(0)
 {
@@ -423,13 +389,17 @@ GYROSIM::~GYROSIM()
 	delete _gyro;
 
 	/* free any existing reports */
-	if (_accel_reports != nullptr)
+	if (_accel_reports != nullptr) {
 		delete _accel_reports;
-	if (_gyro_reports != nullptr)
-		delete _gyro_reports;
+	}
 
-	if (_accel_class_instance != -1)
+	if (_gyro_reports != nullptr) {
+		delete _gyro_reports;
+	}
+
+	if (_accel_class_instance != -1) {
 		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
+	}
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -452,14 +422,20 @@ GYROSIM::init()
 		return ret;
 	}
 
+	struct accel_report arp = {};
+
+	struct gyro_report grp = {};
+
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+
 	if (_accel_reports == nullptr) {
 		PX4_WARN("_accel_reports creation failed");
 		goto out;
 	}
 
 	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+
 	if (_gyro_reports == nullptr) {
 		PX4_WARN("_gyro_reports creation failed");
 		goto out;
@@ -488,9 +464,10 @@ GYROSIM::init()
 
 	/* do VDev init for the gyro device node, keep it optional */
 	ret = _gyro->init();
+
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		debug("gyro init failed");
+		DEVICE_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -499,27 +476,25 @@ GYROSIM::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-		&_accel_orb_class_instance, ORB_PRIO_HIGH);
+					   &_accel_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_accel_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
-	}
-	else {
+
+	} else {
 		_pub_blocked = false;
 	}
 
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-		&_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
+			     &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
@@ -544,24 +519,29 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	if (cmd == MPUREAD) {
 		// Get data from the simulator
 		Simulator *sim = Simulator::getInstance();
-		if (sim == NULL)
+
+		if (sim == NULL) {
+			PX4_WARN("failed accessing simulator");
 			return ENODEV;
+		}
 
 		// FIXME - not sure what interrupt status should be
 		recv[1] = 0;
 		// skip cmd and status bytes
-		sim->getMPUReport(&recv[2], len-2);
+		sim->getMPUReport(&recv[2], len - 2);
+
+	} else if (cmd & DIR_READ) {
+		PX4_DEBUG("Reading %u bytes from register %u", len - 1, reg);
+		memcpy(&_regdata[reg - MPUREG_PRODUCT_ID], &send[1], len - 1);
+
+	} else {
+		PX4_DEBUG("Writing %u bytes to register %u", len - 1, reg);
+
+		if (recv) {
+			memcpy(&recv[1], &_regdata[reg - MPUREG_PRODUCT_ID], len - 1);
+		}
 	}
-	else if (cmd & DIR_READ)
-	{
-		PX4_DEBUG("Reading %u bytes from register %u", len-1, reg);
-		memcpy(&_regdata[reg-MPUREG_PRODUCT_ID], &send[1], len-1);
-	}
-	else {
-		PX4_DEBUG("Writing %u bytes to register %u", len-1, reg);
-		if (recv)
-			memcpy(&recv[1], &_regdata[reg-MPUREG_PRODUCT_ID], len-1);
-	}
+
 	return PX4_OK;
 }
 
@@ -571,17 +551,29 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 void
 GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
+	PX4_INFO("GYROSIM::_set_sample_rate %uHz", desired_sample_rate_hz);
+
 	if (desired_sample_rate_hz == 0 ||
-			desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
-			desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
+	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
+	    desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
 		desired_sample_rate_hz = GYROSIM_GYRO_DEFAULT_RATE;
 	}
 
 	uint8_t div = 1000 / desired_sample_rate_hz;
-	if(div>200) div=200;
-	if(div<1) div=1;
-	write_reg(MPUREG_SMPLRT_DIV, div-1);
+
+	if (div > 200) { div = 200; }
+
+	if (div < 1) { div = 1; }
+
+	// This does nothing in the simulator but writes the value in the "register" so
+	// register dumps look correct
+	write_reg(MPUREG_SMPLRT_DIV, div - 1);
+
 	_sample_rate = 1000 / div;
+	PX4_INFO("GYROSIM: Changed sample rate to %uHz", _sample_rate);
+	_call_interval = 1000000 / _sample_rate;
+	hrt_cancel(&_call);
+	hrt_call_every(&_call, _call_interval, _call_interval, (hrt_callout)&GYROSIM::measure_trampoline, this);
 }
 
 ssize_t
@@ -590,8 +582,9 @@ GYROSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 	unsigned count = buflen / sizeof(accel_report);
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
 	if (_call_interval == 0) {
@@ -600,17 +593,21 @@ GYROSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if no data, error (we could block here) */
-	if (_accel_reports->empty())
+	if (_accel_reports->empty()) {
 		return -EAGAIN;
+	}
 
 	perf_count(_accel_reads);
 
 	/* copy reports out of our buffer to the caller */
 	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
 	int transferred = 0;
+
 	while (count--) {
-		if (!_accel_reports->get(arp))
+		if (!_accel_reports->get(arp)) {
 			break;
+		}
+
 		transferred++;
 		arp++;
 	}
@@ -635,24 +632,34 @@ GYROSIM::accel_self_test()
 {
 	return OK;
 
-	if (self_test())
+	if (self_test()) {
 		return 1;
+	}
 
 	/* inspect accel offsets */
-	if (fabsf(_accel_scale.x_offset) < 0.000001f)
+	if (fabsf(_accel_scale.x_offset) < 0.000001f) {
 		return 1;
-	if (fabsf(_accel_scale.x_scale - 1.0f) > 0.4f || fabsf(_accel_scale.x_scale - 1.0f) < 0.000001f)
-		return 1;
+	}
 
-	if (fabsf(_accel_scale.y_offset) < 0.000001f)
+	if (fabsf(_accel_scale.x_scale - 1.0f) > 0.4f || fabsf(_accel_scale.x_scale - 1.0f) < 0.000001f) {
 		return 1;
-	if (fabsf(_accel_scale.y_scale - 1.0f) > 0.4f || fabsf(_accel_scale.y_scale - 1.0f) < 0.000001f)
-		return 1;
+	}
 
-	if (fabsf(_accel_scale.z_offset) < 0.000001f)
+	if (fabsf(_accel_scale.y_offset) < 0.000001f) {
 		return 1;
-	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f)
+	}
+
+	if (fabsf(_accel_scale.y_scale - 1.0f) > 0.4f || fabsf(_accel_scale.y_scale - 1.0f) < 0.000001f) {
 		return 1;
+	}
+
+	if (fabsf(_accel_scale.z_offset) < 0.000001f) {
+		return 1;
+	}
+
+	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f) {
+		return 1;
+	}
 
 	return 0;
 }
@@ -662,8 +669,9 @@ GYROSIM::gyro_self_test()
 {
 	return OK;
 
-	if (self_test())
+	if (self_test()) {
 		return 1;
+	}
 
 	/*
 	 * Maximum deviation of 20 degrees, according to
@@ -679,27 +687,35 @@ GYROSIM::gyro_self_test()
 	const float max_scale = 0.3f;
 
 	/* evaluate gyro offsets, complain if offset -> zero or larger than 20 dps. */
-	if (fabsf(_gyro_scale.x_offset) > max_offset)
+	if (fabsf(_gyro_scale.x_offset) > max_offset) {
 		return 1;
+	}
 
 	/* evaluate gyro scale, complain if off by more than 30% */
-	if (fabsf(_gyro_scale.x_scale - 1.0f) > max_scale)
+	if (fabsf(_gyro_scale.x_scale - 1.0f) > max_scale) {
 		return 1;
+	}
 
-	if (fabsf(_gyro_scale.y_offset) > max_offset)
+	if (fabsf(_gyro_scale.y_offset) > max_offset) {
 		return 1;
-	if (fabsf(_gyro_scale.y_scale - 1.0f) > max_scale)
-		return 1;
+	}
 
-	if (fabsf(_gyro_scale.z_offset) > max_offset)
+	if (fabsf(_gyro_scale.y_scale - 1.0f) > max_scale) {
 		return 1;
-	if (fabsf(_gyro_scale.z_scale - 1.0f) > max_scale)
+	}
+
+	if (fabsf(_gyro_scale.z_offset) > max_offset) {
 		return 1;
+	}
+
+	if (fabsf(_gyro_scale.z_scale - 1.0f) > max_scale) {
+		return 1;
+	}
 
 	/* check if all scales are zero */
 	if ((fabsf(_gyro_scale.x_offset) < 0.000001f) &&
-		(fabsf(_gyro_scale.y_offset) < 0.000001f) &&
-		(fabsf(_gyro_scale.z_offset) < 0.000001f)) {
+	    (fabsf(_gyro_scale.y_offset) < 0.000001f) &&
+	    (fabsf(_gyro_scale.z_offset) < 0.000001f)) {
 		/* if all are zero, this device is not calibrated */
 		return 1;
 	}
@@ -713,8 +729,9 @@ GYROSIM::gyro_read(device::file_t *filp, char *buffer, size_t buflen)
 	unsigned count = buflen / sizeof(gyro_report);
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
 	if (_call_interval == 0) {
@@ -723,17 +740,21 @@ GYROSIM::gyro_read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if no data, error (we could block here) */
-	if (_gyro_reports->empty())
+	if (_gyro_reports->empty()) {
 		return -EAGAIN;
+	}
 
 	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
 	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
 	int transferred = 0;
+
 	while (count--) {
-		if (!_gyro_reports->get(grp))
+		if (!_gyro_reports->get(grp)) {
 			break;
+		}
+
 		transferred++;
 		grp++;
 	}
@@ -753,58 +774,46 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-				/* switching to manual polling */
+			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
 				stop();
 				_call_interval = 0;
 				return OK;
 
-				/* external signalling not supported */
+			/* external signalling not supported */
 			case SENSOR_POLLRATE_EXTERNAL:
 
-				/* zero would be bad */
+			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-				/* set default/max polling rate */
+			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
 				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
 
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, GYROSIM_ACCEL_DEFAULT_RATE);
 
-				/* adjust to a legal polling interval in Hz */
+			/* adjust to a legal polling interval in Hz */
 			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
-
 					/* convert hz to hrt interval via microseconds */
 					unsigned ticks = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 1000)
+					if (ticks < 1000) {
 						return -EINVAL;
-
-					// adjust filters
-					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f/ticks;
-					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-
-
-					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					}
 
 					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval = ticks;
+					_call_interval = ticks;
+
+					/* do we need to start internal polling? */
+					bool want_start = (_call_interval == 0);
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start();
+					}
 
 					return OK;
 				}
@@ -812,22 +821,24 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0)
+		if (_call_interval == 0) {
 			return SENSOR_POLLRATE_MANUAL;
+		}
 
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		if (!_accel_reports->resize(arg)) {
-			return -ENOMEM;
+			if (!_accel_reports->resize(arg)) {
+				return -ENOMEM;
+			}
+
+			return OK;
 		}
-
-		return OK;
-	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _accel_reports->size();
@@ -839,24 +850,18 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		_set_sample_rate(arg);
 		return OK;
 
-	case ACCELIOCGLOWPASS:
-		return _accel_filter_x.get_cutoff_freq();
-
 	case ACCELIOCSLOWPASS:
-		// set software filtering
-		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
-	case ACCELIOCSSCALE:
-		{
+	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_scale *s = (struct accel_scale *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
+
 			if (sum > 2.0f && sum < 4.0f) {
 				memcpy(&_accel_scale, s, sizeof(_accel_scale));
 				return OK;
+
 			} else {
 				return -EINVAL;
 			}
@@ -871,7 +876,7 @@ GYROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return set_accel_range(arg);
 
 	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2)/GYROSIM_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / GYROSIM_ONE_G + 0.5f);
 
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
@@ -887,23 +892,24 @@ GYROSIM::gyro_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-		/* these are shared with the accel side */
+	/* these are shared with the accel side */
 	case SENSORIOCSPOLLRATE:
 	case SENSORIOCGPOLLRATE:
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
 
-		if (!_gyro_reports->resize(arg)) {
-			return -ENOMEM;
+			if (!_gyro_reports->resize(arg)) {
+				return -ENOMEM;
+			}
+
+			return OK;
 		}
-
-		return OK;
-	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _gyro_reports->size();
@@ -915,13 +921,7 @@ GYROSIM::gyro_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		_set_sample_rate(arg);
 		return OK;
 
-	case GYROIOCGLOWPASS:
-		return _gyro_filter_x.get_cutoff_freq();
 	case GYROIOCSLOWPASS:
-		// set hardware filtering
-		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case GYROIOCSSCALE:
@@ -940,6 +940,7 @@ GYROSIM::gyro_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		// _gyro_range_scale = xx
 		// _gyro_range_rad_s = xx
 		return -EINVAL;
+
 	case GYROIOCGRANGE:
 		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
@@ -971,7 +972,7 @@ GYROSIM::write_reg(unsigned reg, uint8_t value)
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
-        // general register transfer at low clock speed
+	// general register transfer at low clock speed
 	transfer(cmd, nullptr, sizeof(cmd));
 }
 
@@ -980,14 +981,11 @@ GYROSIM::set_accel_range(unsigned max_g_in)
 {
 	// workaround for bugged versions of MPU6k (rev C)
 	switch (_product) {
-		case GYROSIMES_REV_C4:
-		case GYROSIMES_REV_C5:
-		case GYROSIM_REV_C4:
-		case GYROSIM_REV_C5:
-			write_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
-			_accel_range_scale = (GYROSIM_ONE_G / 4096.0f);
-			_accel_range_m_s2 = 8.0f * GYROSIM_ONE_G;
-			return OK;
+	case GYROSIMES_REV_C4:
+		write_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
+		_accel_range_scale = (GYROSIM_ONE_G / 4096.0f);
+		_accel_range_m_s2 = 8.0f * GYROSIM_ONE_G;
+		return OK;
 	}
 
 	uint8_t afs_sel;
@@ -998,14 +996,17 @@ GYROSIM::set_accel_range(unsigned max_g_in)
 		afs_sel = 3;
 		lsb_per_g = 2048;
 		max_accel_g = 16;
+
 	} else if (max_g_in > 4) { //  8g - AFS_SEL = 2
 		afs_sel = 2;
 		lsb_per_g = 4096;
 		max_accel_g = 8;
+
 	} else if (max_g_in > 2) { //  4g - AFS_SEL = 1
 		afs_sel = 1;
 		lsb_per_g = 8192;
 		max_accel_g = 4;
+
 	} else {                //  2g - AFS_SEL = 0
 		afs_sel = 0;
 		lsb_per_g = 16384;
@@ -1030,7 +1031,9 @@ GYROSIM::start()
 	_gyro_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&GYROSIM::measure_trampoline, this);
+	if (_call_interval > 0) {
+		hrt_call_every(&_call, _call_interval, _call_interval, (hrt_callout)&GYROSIM::measure_trampoline, this);
+	}
 }
 
 void
@@ -1051,7 +1054,21 @@ GYROSIM::measure_trampoline(void *arg)
 void
 GYROSIM::measure()
 {
-	struct MPUReport mpu_report;
+
+#if 0
+	static int x = 0;
+
+	// Verify the samples are being taken at the expected rate
+	if (x == 99) {
+		x = 0;
+		PX4_INFO("GYROSIM::measure %" PRIu64, hrt_absolute_time());
+
+	} else {
+		x++;
+	}
+
+#endif
+	struct MPUReport mpu_report = {};
 
 	/* start measuring */
 	perf_begin(_sample_perf);
@@ -1061,8 +1078,8 @@ GYROSIM::measure()
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
 
-        // sensor transfer at high clock speed
-        //set_frequency(GYROSIM_HIGH_BUS_SPEED);
+	// sensor transfer at high clock speed
+	//set_frequency(GYROSIM_HIGH_BUS_SPEED);
 	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report))) {
 		return;
 	}
@@ -1070,23 +1087,17 @@ GYROSIM::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report		arb;
-	gyro_report		grb;
+	accel_report	arb = {};
+	gyro_report	grb = {};
 
-	/*
-	 * Adjust and scale results to m/s^2.
-	 */
+	// for now use local time but this should be the timestamp of the simulator
 	grb.timestamp = hrt_absolute_time();
 	arb.timestamp = grb.timestamp;
-
-	// this sleep is needed because the timing of the drivers is not yet working
-	usleep(1000);
-
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
 	// whether it has had failures
-        grb.error_count = arb.error_count = 0;
+	grb.error_count = arb.error_count = 0;	// FIXME
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1115,21 +1126,21 @@ GYROSIM::measure()
 
 	_last_temperature = mpu_report.temp;
 
-	arb.temperature_raw = (int16_t)((mpu_report.temp - 35.0f)*361.0f);
+	arb.temperature_raw = (int16_t)((mpu_report.temp - 35.0f) * 361.0f);
 	arb.temperature = _last_temperature;
 
 	arb.x = mpu_report.accel_x;
 	arb.y = mpu_report.accel_y;
 	arb.z = mpu_report.accel_z;
 
-	grb.x_raw = (int16_t)(mpu_report.gyro_x/_gyro_range_scale);
-	grb.y_raw = (int16_t)(mpu_report.gyro_y/_gyro_range_scale);
-	grb.z_raw = (int16_t)(mpu_report.gyro_z/_gyro_range_scale);
+	grb.x_raw = (int16_t)(mpu_report.gyro_x / _gyro_range_scale);
+	grb.y_raw = (int16_t)(mpu_report.gyro_y / _gyro_range_scale);
+	grb.z_raw = (int16_t)(mpu_report.gyro_z / _gyro_range_scale);
 
 	grb.scaling = _gyro_range_scale;
 	grb.range_rad_s = _gyro_range_rad_s;
 
-	grb.temperature_raw = (int16_t)((mpu_report.temp - 35.0f)*361.0f);
+	grb.temperature_raw = (int16_t)((mpu_report.temp - 35.0f) * 361.0f);
 	grb.temperature = _last_temperature;
 
 	grb.x = mpu_report.gyro_x;
@@ -1143,6 +1154,7 @@ GYROSIM::measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 	_gyro->parent_poll_notify();
+
 	if (!(_pub_blocked)) {
 		/* log the time of this report */
 		perf_begin(_controller_latency_perf);
@@ -1176,22 +1188,25 @@ GYROSIM::print_info()
 void
 GYROSIM::print_registers()
 {
-	char buf[6*13+1];
-	int i=0;
+	char buf[6 * 13 + 1];
+	int i = 0;
 
 	buf[0] = '\0';
 	PX4_INFO("GYROSIM registers");
-	for (uint8_t reg=MPUREG_PRODUCT_ID; reg<=108; reg++) {
+
+	for (uint8_t reg = MPUREG_PRODUCT_ID; reg <= 108; reg++) {
 		uint8_t v = read_reg(reg);
-		sprintf(&buf[i*6], "%02x:%02x ",(unsigned)reg, (unsigned)v);
+		sprintf(&buf[i * 6], "%02x:%02x ", (unsigned)reg, (unsigned)v);
 		i++;
-		if ((i+1) % 13 == 0) {
+
+		if ((i + 1) % 13 == 0) {
 			PX4_INFO("%s", buf);
-			i=0;
+			i = 0;
 			buf[i] = '\0';
 		}
 	}
-	PX4_INFO("%s",buf);
+
+	PX4_INFO("%s", buf);
 }
 
 
@@ -1206,8 +1221,9 @@ GYROSIM_gyro::GYROSIM_gyro(GYROSIM *parent, const char *path) :
 
 GYROSIM_gyro::~GYROSIM_gyro()
 {
-	if (_gyro_class_instance != -1)
+	if (_gyro_class_instance != -1) {
 		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
+	}
 }
 
 int
@@ -1220,7 +1236,7 @@ GYROSIM_gyro::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		debug("gyro init failed");
+		DEVICE_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -1246,11 +1262,12 @@ GYROSIM_gyro::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 
 	switch (cmd) {
-		case DEVIOCGDEVICEID:
-			return (int)VDev::ioctl(filp, cmd, arg);
-			break;
-		default:
-			return _parent->gyro_ioctl(filp, cmd, arg);
+	case DEVIOCGDEVICEID:
+		return (int)VDev::ioctl(filp, cmd, arg);
+		break;
+
+	default:
+		return _parent->gyro_ioctl(filp, cmd, arg);
 	}
 }
 
@@ -1280,7 +1297,7 @@ int
 start(enum Rotation rotation)
 {
 	int fd;
-        GYROSIM **g_dev_ptr = &g_dev_sim;
+	GYROSIM **g_dev_ptr = &g_dev_sim;
 	const char *path_accel = MPU_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = MPU_DEVICE_PATH_GYRO;
 
@@ -1293,17 +1310,20 @@ start(enum Rotation rotation)
 	/* create the driver */
 	*g_dev_ptr = new GYROSIM(path_accel, path_gyro, rotation);
 
-	if (*g_dev_ptr == nullptr)
+	if (*g_dev_ptr == nullptr) {
 		goto fail;
+	}
 
-	if (OK != (*g_dev_ptr)->init())
+	if (OK != (*g_dev_ptr)->init()) {
 		goto fail;
+	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = px4_open(path_accel, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		goto fail;
+	}
 
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		px4_close(fd);
@@ -1315,8 +1335,8 @@ start(enum Rotation rotation)
 fail:
 
 	if (*g_dev_ptr != nullptr) {
-            delete (*g_dev_ptr);
-            *g_dev_ptr = nullptr;
+		delete(*g_dev_ptr);
+		*g_dev_ptr = nullptr;
 	}
 
 	PX4_WARN("driver start failed");
@@ -1327,13 +1347,16 @@ int
 stop()
 {
 	GYROSIM **g_dev_ptr = &g_dev_sim;
+
 	if (*g_dev_ptr != nullptr) {
 		delete *g_dev_ptr;
 		*g_dev_ptr = nullptr;
+
 	} else {
 		/* warn, but not an error */
 		PX4_WARN("already stopped.");
 	}
+
 	return 0;
 }
 
@@ -1374,7 +1397,7 @@ test()
 	}
 
 	/* do a simple demand read */
-	sz = read(fd, &a_report, sizeof(a_report));
+	sz = px4_read(fd, &a_report, sizeof(a_report));
 
 	if (sz != sizeof(a_report)) {
 		PX4_WARN("ret: %zd, expected: %zd", sz, sizeof(a_report));
@@ -1391,10 +1414,10 @@ test()
 	PX4_INFO("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
 	PX4_INFO("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
 	PX4_INFO("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-	      (double)(a_report.range_m_s2 / GYROSIM_ONE_G));
+		 (double)(a_report.range_m_s2 / GYROSIM_ONE_G));
 
 	/* do a simple demand read */
-	sz = read(fd_gyro, &g_report, sizeof(g_report));
+	sz = px4_read(fd_gyro, &g_report, sizeof(g_report));
 
 	if (sz != sizeof(g_report)) {
 		PX4_WARN("ret: %zd, expected: %zd", sz, sizeof(g_report));
@@ -1409,7 +1432,7 @@ test()
 	PX4_INFO("gyro y: \t%d\traw", (int)g_report.y_raw);
 	PX4_INFO("gyro z: \t%d\traw", (int)g_report.z_raw);
 	PX4_INFO("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
-	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
+		 (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
 	PX4_INFO("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
 	PX4_INFO("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
@@ -1421,7 +1444,7 @@ test()
 	reset();
 	PX4_INFO("PASS");
 
-	
+
 	return 0;
 }
 
@@ -1450,11 +1473,11 @@ reset()
 		goto reset_fail;
 	}
 
-        px4_close(fd);
+	px4_close(fd);
 	return 0;
 
 reset_fail:
-        px4_close(fd);
+	px4_close(fd);
 	return 1;
 }
 
@@ -1464,7 +1487,8 @@ reset_fail:
 int
 info()
 {
-        GYROSIM **g_dev_ptr = &g_dev_sim;
+	GYROSIM **g_dev_ptr = &g_dev_sim;
+
 	if (*g_dev_ptr == nullptr) {
 		PX4_ERR("driver not running");
 		return 1;
@@ -1483,6 +1507,7 @@ int
 regdump()
 {
 	GYROSIM **g_dev_ptr = &g_dev_sim;
+
 	if (*g_dev_ptr == nullptr) {
 		PX4_ERR("driver not running");
 		return 1;
@@ -1514,11 +1539,13 @@ gyrosim_main(int argc, char *argv[])
 	/* jump over start/off/etc and look at options first */
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (enum Rotation)atoi(myoptarg);
 			break;
+
 		default:
 			gyrosim::usage();
 			return 0;

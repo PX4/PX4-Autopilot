@@ -97,8 +97,13 @@ then
 	fi
 fi
 
-# check if should load secondary mixer
-if [ $MIXER_AUX != none ]
+# This is a FMUv2+ thing
+if ver hwcmp PX4FMU_V1
+then
+	set MIXER_AUX none
+fi
+
+if [ $MIXER_AUX != none -a $AUX_MODE != none ]
 then
 	#
 	# Load aux mixer
@@ -118,20 +123,28 @@ then
 		fi
 	fi
 
-	if [ $MIXER_AUX_FILE != none -a $FMU_MODE == pwm ]
+	if [ $MIXER_AUX_FILE != none ]
 	then
-		if fmu mode_pwm
+		if fmu mode_$AUX_MODE
 		then
-			if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
+			if [ -e $OUTPUT_AUX_DEV ]
 			then
-				echo "[i] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
+				if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
+				then
+					echo "[i] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
+				else
+					echo "[i] Error loading mixer: $MIXER_AUX_FILE"
+					echo "ERROR: Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+				fi
 			else
-				echo "[i] Error loading mixer: $MIXER_AUX_FILE"
-				echo "ERROR: Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+				set PWM_AUX_OUT none
+				set FAILSAFE_AUX none
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
 			tone_alarm $TUNE_ERR
+			set PWM_AUX_OUT none
+			set FAILSAFE_AUX none
 		fi
 
 		if [ $PWM_AUX_OUT != none ]
@@ -169,3 +182,4 @@ then
 	fi
 fi
 unset OUTPUT_DEV
+unset OUTPUT_AUX_DEV

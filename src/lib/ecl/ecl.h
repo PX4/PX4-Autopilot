@@ -38,6 +38,9 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <px4_log.h>
 
 #define ecl_absolute_time hrt_absolute_time
 #define ecl_elapsed_time hrt_elapsed_time
+#define ECL_WARN PX4_WARN
+#define ECL_INFO PX4_INFO

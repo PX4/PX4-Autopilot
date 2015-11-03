@@ -35,13 +35,11 @@
  * @file ets_airspeed.cpp
  * @author Simon Wilks
  * @author Mark Charlebois (simulator)
- *
- * Driver for the Simulated Airspeed Sensor based on Eagle Tree Airspeed V3.
+ * @author Roman Bapst (simulator)
+ * Driver for the Simulated AirspeedSim Sensor based on Eagle Tree AirspeedSim V3.
  */
 
 #include <px4_config.h>
-
-#include <drivers/device/i2c.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -56,8 +54,6 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <arch/board/board.h>
-
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
@@ -71,12 +67,15 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
 
-#include <drivers/airspeed/airspeed.h>
+#include <simulator/simulator.h>
 
-Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char* path) :
-	I2C("Airspeed", path, bus, address),
+#include "airspeedsim.h"
+
+AirspeedSim::AirspeedSim(int bus, int address, unsigned conversion_interval, const char *path) :
+	VDev("AIRSPEEDSIM", path),
 	_reports(nullptr),
 	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows")),
+	_retries(0),
 	_max_differential_pressure_pa(0),
 	_sensor_ok(false),
 	_last_published_sensor_ok(true), /* initialize differently to force publication */
@@ -97,17 +96,19 @@ Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const cha
 	memset(&_work, 0, sizeof(_work));
 }
 
-Airspeed::~Airspeed()
+AirspeedSim::~AirspeedSim()
 {
 	/* make sure we are truly inactive */
 	stop();
 
-	if (_class_instance != -1)
+	if (_class_instance != -1) {
 		unregister_class_devname(AIRSPEED_BASE_DEVICE_PATH, _class_instance);
+	}
 
 	/* free any existing reports */
-	if (_reports != nullptr)
+	if (_reports != nullptr) {
 		delete _reports;
+	}
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -116,18 +117,22 @@ Airspeed::~Airspeed()
 }
 
 int
-Airspeed::init()
+AirspeedSim::init()
 {
 	int ret = ERROR;
 
-	/* do I2C init (and probe) first */
-	if (I2C::init() != OK)
+	/* init base class */
+	if (VDev::init() != OK) {
+		DEVICE_DEBUG("VDev init failed");
 		goto out;
+	}
 
 	/* allocate basic report buffers */
 	_reports = new ringbuffer::RingBuffer(2, sizeof(differential_pressure_s));
-	if (_reports == nullptr)
+
+	if (_reports == nullptr) {
 		goto out;
+	}
 
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(AIRSPEED_BASE_DEVICE_PATH);
@@ -143,8 +148,9 @@ Airspeed::init()
 		/* measurement will have generated a report, publish */
 		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
 
-		if (_airspeed_pub == nullptr)
+		if (_airspeed_pub == nullptr) {
 			PX4_WARN("uORB started?");
+		}
 	}
 
 	ret = OK;
@@ -154,7 +160,7 @@ out:
 }
 
 int
-Airspeed::probe()
+AirspeedSim::probe()
 {
 	/* on initial power up the device may need more than one retry
 	   for detection. Once it is running the number of retries can
@@ -163,33 +169,33 @@ Airspeed::probe()
 	_retries = 4;
 	int ret = measure();
 
-        // drop back to 2 retries once initialised
+	// drop back to 2 retries once initialised
 	_retries = 2;
 	return ret;
 }
 
 int
-Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+AirspeedSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-				/* switching to manual polling */
+			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
 				stop();
 				_measure_ticks = 0;
 				return OK;
 
-				/* external signalling (DRDY) not supported */
+			/* external signalling (DRDY) not supported */
 			case SENSOR_POLLRATE_EXTERNAL:
 
-				/* zero would be bad */
+			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-				/* set default/max polling rate */
+			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
@@ -199,13 +205,14 @@ Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					_measure_ticks = USEC2TICK(_conversion_interval);
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start();
+					}
 
 					return OK;
 				}
 
-				/* adjust to a legal polling interval in Hz */
+			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -214,15 +221,17 @@ Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					unsigned long ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_conversion_interval))
+					if (ticks < USEC2TICK(_conversion_interval)) {
 						return -EINVAL;
+					}
 
 					/* update interval for next measurement */
 					_measure_ticks = ticks;
 
 					/* if we need to start the poll state machine, do it */
-					if (want_start)
+					if (want_start) {
 						start();
+					}
 
 					return OK;
 				}
@@ -230,21 +239,24 @@ Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0)
+		if (_measure_ticks == 0) {
 			return SENSOR_POLLRATE_MANUAL;
+		}
 
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100))
+			if ((arg < 1) || (arg > 100)) {
 				return -EINVAL;
+			}
 
 			//irqstate_t flags = irqsave();
 			if (!_reports->resize(arg)) {
 				//irqrestore(flags);
 				return -ENOMEM;
 			}
+
 			//irqrestore(flags);
 
 			return OK;
@@ -258,34 +270,36 @@ Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return -EINVAL;
 
 	case AIRSPEEDIOCSSCALE: {
-		struct airspeed_scale *s = (struct airspeed_scale*)arg;
-		_diff_pres_offset = s->offset_pa;
-		return OK;
+			struct airspeed_scale *s = (struct airspeed_scale *)arg;
+			_diff_pres_offset = s->offset_pa;
+			return OK;
 		}
 
 	case AIRSPEEDIOCGSCALE: {
-		struct airspeed_scale *s = (struct airspeed_scale*)arg;
-		s->offset_pa = _diff_pres_offset;
-		s->scale = 1.0f;
-		return OK;
+			struct airspeed_scale *s = (struct airspeed_scale *)arg;
+			s->offset_pa = _diff_pres_offset;
+			s->scale = 1.0f;
+			return OK;
 		}
 
 	default:
 		/* give it to the superclass */
-		return I2C::ioctl(filp, cmd, arg);
+		//return I2C::ioctl(filp, cmd, arg);	XXX SIM should be super class
+		return 0;
 	}
 }
 
 ssize_t
-Airspeed::read(device::file_t *filp, char *buffer, size_t buflen)
+AirspeedSim::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(differential_pressure_s);
 	differential_pressure_s *abuf = reinterpret_cast<differential_pressure_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is enabled */
 	if (_measure_ticks > 0) {
@@ -336,24 +350,24 @@ Airspeed::read(device::file_t *filp, char *buffer, size_t buflen)
 }
 
 void
-Airspeed::start()
+AirspeedSim::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&AirspeedSim::cycle_trampoline, this, 1);
 }
 
 void
-Airspeed::stop()
+AirspeedSim::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-Airspeed::update_status()
+AirspeedSim::update_status()
 {
 	if (_sensor_ok != _last_published_sensor_ok) {
 		/* notify about state change */
@@ -366,6 +380,7 @@ Airspeed::update_status()
 
 		if (_subsys_pub != nullptr) {
 			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
+
 		} else {
 			_subsys_pub = orb_advertise(ORB_ID(subsystem_info), &info);
 		}
@@ -375,9 +390,9 @@ Airspeed::update_status()
 }
 
 void
-Airspeed::cycle_trampoline(void *arg)
+AirspeedSim::cycle_trampoline(void *arg)
 {
-	Airspeed *dev = (Airspeed *)arg;
+	AirspeedSim *dev = (AirspeedSim *)arg;
 
 	dev->cycle();
 	// XXX we do not know if this is
@@ -387,7 +402,7 @@ Airspeed::cycle_trampoline(void *arg)
 }
 
 void
-Airspeed::print_info()
+AirspeedSim::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -397,8 +412,31 @@ Airspeed::print_info()
 }
 
 void
-Airspeed::new_report(const differential_pressure_s &report)
+AirspeedSim::new_report(const differential_pressure_s &report)
 {
-	if (!_reports->force(&report))
+	if (!_reports->force(&report)) {
 		perf_count(_buffer_overflows);
+	}
+}
+
+int
+AirspeedSim::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+{
+	if (recv_len > 0) {
+		// this is equivalent to the collect phase
+		Simulator *sim = Simulator::getInstance();
+
+		if (sim == NULL) {
+			PX4_ERR("Error BARO_SIM::transfer no simulator");
+			return -ENODEV;
+		}
+
+		PX4_DEBUG("BARO_SIM::transfer getting sample");
+		sim->getAirspeedSample(recv, recv_len);
+
+	} else {
+		// we don't need measure phase
+	}
+
+	return 0;
 }

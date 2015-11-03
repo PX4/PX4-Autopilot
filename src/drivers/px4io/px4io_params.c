@@ -129,3 +129,14 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV7, 0);
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_MAIN_REV8, 0);
+
+/**
+ * Enable S.BUS out
+ *
+ * Set to 1 to enable S.BUS version 1 output instead of RSSI.
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_SBUS_MODE, 0);

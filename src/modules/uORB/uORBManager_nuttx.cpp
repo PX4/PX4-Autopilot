@@ -42,13 +42,17 @@
 
 
 //=========================  Static initializations =================
-uORB::Manager uORB::Manager::_Instance;
+uORB::Manager *uORB::Manager::_Instance = nullptr;
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 uORB::Manager *uORB::Manager::get_instance()
 {
-	return &_Instance;
+	if (_Instance == nullptr) {
+		_Instance = new uORB::Manager();
+	}
+
+	return _Instance;
 }
 
 //-----------------------------------------------------------------------------
@@ -162,7 +166,7 @@ int uORB::Manager::orb_stat(int handle, uint64_t *time)
 	return ioctl(handle, ORBIOCLASTUPDATE, (unsigned long)(uintptr_t)time);
 }
 
-int uORB::Manager::orb_priority(int handle, int *priority)
+int uORB::Manager::orb_priority(int handle, int32_t *priority)
 {
 	return ioctl(handle, ORBIOCGPRIORITY, (unsigned long)(uintptr_t)priority);
 }

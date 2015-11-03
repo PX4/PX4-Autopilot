@@ -4,51 +4,44 @@ set VEHICLE_TYPE mc
 
 if [ $AUTOCNF == yes ]
 then
-	param set MC_ROLL_P 7.0
-	param set MC_ROLLRATE_P 0.1
-	param set MC_ROLLRATE_I 0.0
-	param set MC_ROLLRATE_D 0.003
-	param set MC_PITCH_P 7.0
-	param set MC_PITCHRATE_P 0.1
-	param set MC_PITCHRATE_I 0.0
-	param set MC_PITCHRATE_D 0.003
-	param set MC_YAW_P 2.8
-	param set MC_YAWRATE_P 0.2
-	param set MC_YAWRATE_I 0.1
-	param set MC_YAWRATE_D 0.0
-	param set MC_YAW_FF 0.5
-
-	param set MPC_THR_MAX 1.0
-	param set MPC_THR_MIN 0.1
-	param set MPC_XY_P 1.0
-	param set MPC_XY_VEL_P 0.1
-	param set MPC_XY_VEL_I 0.02
-	param set MPC_XY_VEL_D 0.01
-	param set MPC_XY_VEL_MAX 5
-	param set MPC_XY_FF 0.5
-	param set MPC_Z_P 1.0
-	param set MPC_Z_VEL_P 0.1
-	param set MPC_Z_VEL_I 0.02
-	param set MPC_Z_VEL_D 0.0
-	param set MPC_Z_VEL_MAX 3
-	param set MPC_Z_FF 0.5
-	param set MPC_TILTMAX_AIR 45.0
-	param set MPC_TILTMAX_LND 15.0
-	param set MPC_LAND_SPEED 1.0
-
 	param set PE_VELNE_NOISE 0.5
-	param set PE_VELD_NOISE 0.7
+	param set PE_VELD_NOISE 0.35
 	param set PE_POSNE_NOISE 0.5
-	param set PE_POSD_NOISE 1.0
-	param set PE_GBIAS_PNOISE 0.000001
-	param set PE_ABIAS_PNOISE 0.0001
+	param set PE_POSD_NOISE 1.25
 
 	param set NAV_ACC_RAD 2.0
 	param set RTL_RETURN_ALT 30.0
 	param set RTL_DESCEND_ALT 10.0
+	param set PWM_DISARMED 900
+	param set PWM_MIN 1075
+	param set PWM_MAX 1950
 fi
 
+# Transitional support: ensure suitable PWM min/max param values
+if param compare PWM_MIN 1000
+then
+	param set PWM_MIN 1075
+fi
+if param compare PWM_MAX 2000
+then
+	param set PWM_MAX 1950
+fi
+if param compare PWM_DISARMED 0
+then
+	param set PWM_DISARMED 900
+fi
+
+# set environment variables (!= parameters)
 set PWM_RATE 400
-set PWM_DISARMED 900
-set PWM_MIN 1075
-set PWM_MAX 2000
+# tell the mixer to use parameters for these instead
+set PWM_DISARMED p:PWM_DISARMED
+set PWM_MIN p:PWM_MIN
+set PWM_MAX p:PWM_MAX
+
+# This is the gimbal pass mixer
+set MIXER_AUX pass
+set PWM_AUX_RATE 50
+set PWM_AUX_OUT 1234
+set PWM_AUX_DISARMED 1500
+set PWM_AUX_MIN 1000
+set PWM_AUX_MAX 2000

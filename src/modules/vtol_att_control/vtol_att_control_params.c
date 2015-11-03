@@ -43,10 +43,10 @@
 /**
  * VTOL number of engines
  *
- * @min 1
+ * @min 0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_MOT_COUNT,0);
+PARAM_DEFINE_INT32(VT_MOT_COUNT, 0);
 
 /**
  * Idle speed of VTOL when in multicopter mode
@@ -54,7 +54,7 @@ PARAM_DEFINE_INT32(VT_MOT_COUNT,0);
  * @min 900
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_IDLE_PWM_MC,900);
+PARAM_DEFINE_INT32(VT_IDLE_PWM_MC, 900);
 
 /**
  * Minimum airspeed in multicopter mode
@@ -64,7 +64,7 @@ PARAM_DEFINE_INT32(VT_IDLE_PWM_MC,900);
  * @min 0.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MIN,10.0f);
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MIN, 10.0f);
 
 /**
  * Maximum airspeed in multicopter mode
@@ -74,7 +74,7 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MIN,10.0f);
  * @min 0.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MAX,30.0f);
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MAX, 30.0f);
 
 /**
  * Trim airspeed when in multicopter mode
@@ -84,7 +84,7 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_MAX,30.0f);
  * @min 0.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM,10.0f);
+PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM, 10.0f);
 
 /**
  * Permanent stabilization in fw mode
@@ -96,7 +96,7 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM,10.0f);
  * @max 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_PERM_STAB,0);
+PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
 
 /**
  * Fixed wing pitch trim
@@ -107,7 +107,7 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB,0);
  * @max 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM,0.0f);
+PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
 
 /**
  * Motor max power
@@ -118,18 +118,18 @@ PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM,0.0f);
  * @min 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_POWER_MAX,120.0f);
+PARAM_DEFINE_FLOAT(VT_POWER_MAX, 120.0f);
 
 /**
  * Propeller efficiency parameter
  *
  * Influences propeller efficiency at different power settings. Should be tuned beforehand.
  *
- * @min 0.5
+ * @min 0.0
  * @max 0.9
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_PROP_EFF,0.0f);
+PARAM_DEFINE_FLOAT(VT_PROP_EFF, 0.0f);
 
 /**
  * Total airspeed estimate low-pass filter gain
@@ -140,5 +140,68 @@ PARAM_DEFINE_FLOAT(VT_PROP_EFF,0.0f);
  * @max 0.99
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN,0.3f);
+PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN, 0.3f);
 
+/**
+ * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
+ *
+ * @min 0
+ * @max 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_TYPE, 0);
+
+/**
+ * Lock elevons in multicopter mode
+ *
+ * If set to 1 the elevons are locked in multicopter mode
+ *
+ * @min 0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 0);
+
+/**
+ * Duration of a front transition
+ *
+ * Time in seconds used for a transition
+ *
+ * @min 0.0
+ * @max 5
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 3.0f);
+
+/**
+ * Duration of a back transition
+ *
+ * Time in seconds used for a back transition
+ *
+ * @min 0.0
+ * @max 5
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 2.0f);
+
+/**
+ * Transition blending airspeed
+ *
+ * Airspeed at which we can start blending both fw and mc controls. Set to 0 to disable.
+ *
+ * @min 0.0
+ * @max 20.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ARSP_BLEND, 8.0f);
+
+/**
+ * Transition airspeed
+ *
+ * Airspeed at which we can switch to fw mode
+ *
+ * @min 1.0
+ * @max 20
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);

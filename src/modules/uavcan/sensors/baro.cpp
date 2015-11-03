@@ -65,14 +65,14 @@ int UavcanBarometerBridge::init()
 	res = _sub_air_pressure_data.start(AirPressureCbBinder(this, &UavcanBarometerBridge::air_pressure_sub_cb));
 
 	if (res < 0) {
-		log("failed to start uavcan sub: %d", res);
+		DEVICE_LOG("failed to start uavcan sub: %d", res);
 		return res;
 	}
 
 	res = _sub_air_temperature_data.start(AirTemperatureCbBinder(this, &UavcanBarometerBridge::air_temperature_sub_cb));
 
 	if (res < 0) {
-		log("failed to start uavcan sub: %d", res);
+		DEVICE_LOG("failed to start uavcan sub: %d", res);
 		return res;
 	}
 
@@ -109,7 +109,7 @@ int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 
 			} else {
-				log("new msl pressure %u", _msl_pressure);
+				DEVICE_LOG("new msl pressure %u", _msl_pressure);
 				_msl_pressure = arg;
 				return OK;
 			}
@@ -159,7 +159,14 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 {
 	baro_report report;
 
-	report.timestamp   = msg.getMonotonicTimestamp().toUSec();
+	/*
+	 * FIXME HACK
+	 * This code used to rely on msg.getMonotonicTimestamp().toUSec() instead of HRT.
+	 * It stopped working when the time sync feature has been introduced, because it caused libuavcan
+	 * to use an independent time source (based on hardware TIM5) instead of HRT.
+	 * The proper solution is to be developed.
+	 */
+	report.timestamp   = hrt_absolute_time();
 	report.temperature = last_temperature_kelvin - 273.15F;
 	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
 	report.error_count = 0;

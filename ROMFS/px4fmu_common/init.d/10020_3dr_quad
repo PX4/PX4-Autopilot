@@ -1,0 +1,30 @@
+#!nsh
+#
+# @name 3DR DIY Quad
+#
+# @type Quadrotor x
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	param set MC_ROLL_P 6.5
+	param set MC_ROLLRATE_P 0.08
+	param set MC_ROLLRATE_I 0.1
+	param set MC_ROLLRATE_D 0.004
+	param set MC_PITCH_P 6.0
+	param set MC_PITCHRATE_P 0.16
+	param set MC_PITCHRATE_I 0.09
+	param set MC_PITCHRATE_D 0.004
+	param set MC_YAW_P 4
+fi
+
+set MIXER quad_x
+
+set PWM_OUT 1234
+
+set PWM_MIN 1100
+set PWM_MAX 1950

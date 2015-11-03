@@ -54,6 +54,9 @@
 
 #include <nuttx/fs/fs.h>
 
+#define DEVICE_LOG(FMT, ...) PX4_LOG_NAMED(_name, FMT, ##__VA_ARGS__)
+#define DEVICE_DEBUG(FMT, ...) PX4_LOG_NAMED_COND(_name, _debug_enabled, FMT, ##__VA_ARGS__)
+
 /**
  * Namespace encapsulating all device framework classes, functions and data.
  */
@@ -115,7 +118,7 @@ public:
 	 * @param data		The buffer from which values should be read.
 	 * @param count		The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
-	 */	 
+	 */
 	virtual int	write(unsigned address, void *data, unsigned count);
 
 	/**
@@ -144,13 +147,13 @@ public:
 	  parameter protocol without loss of information.
 	 */
 	struct DeviceStructure {
-		enum DeviceBusType bus_type:3;
-		uint8_t bus:5;     // which instance of the bus type
-		uint8_t address;   // address on the bus (eg. I2C address)
-		uint8_t devtype;   // device class specific device type
-	};
+		enum DeviceBusType bus_type : 3;
+			uint8_t bus: 5;    // which instance of the bus type
+			uint8_t address;   // address on the bus (eg. I2C address)
+			uint8_t devtype;   // device class specific device type
+		};
 
-	union DeviceId {
+		union DeviceId {
 		struct DeviceStructure devid_s;
 		uint32_t devid;
 	};
@@ -186,32 +189,18 @@ protected:
 	 *
 	 * Note that we must loop as the wait may be interrupted by a signal.
 	 */
-	void		lock() {
+	void		lock()
+	{
 		do {} while (sem_wait(&_lock) != 0);
 	}
 
 	/**
 	 * Release the driver lock.
 	 */
-	void		unlock() {
+	void		unlock()
+	{
 		sem_post(&_lock);
 	}
-
-	/**
-	 * Log a message.
-	 *
-	 * The message is prefixed with the driver name, and followed
-	 * by a newline.
-	 */
-	void		log(const char *fmt, ...);
-
-	/**
-	 * Print a debug message.
-	 *
-	 * The message is prefixed with the driver name, and followed
-	 * by a newline.
-	 */
-	void		debug(const char *fmt, ...);
 
 private:
 	int		_irq;
@@ -429,7 +418,7 @@ protected:
 	 */
 	virtual int	close_last(file_t *filp);
 
-        /**
+	/**
 	 * Register a class device name, automatically adding device
 	 * class instance suffix if need be.
 	 *
@@ -438,7 +427,7 @@ protected:
 	 */
 	virtual int register_class_devname(const char *class_devname);
 
-        /**
+	/**
 	 * Register a class device name, automatically adding device
 	 * class instance suffix if need be.
 	 *
@@ -453,7 +442,7 @@ protected:
 	 *
 	 * @return the file system string of the device handle
 	 */
-	const char*	get_devname() { return _devname; }
+	const char	*get_devname() { return _devname; }
 
 	bool		_pub_blocked;		/**< true if publishing should be blocked */
 
@@ -483,8 +472,8 @@ private:
 	int		remove_poll_waiter(struct pollfd *fds);
 
 	/* do not allow copying this class */
-	CDev(const CDev&);
-	CDev operator=(const CDev&);
+	CDev(const CDev &);
+	CDev operator=(const CDev &);
 };
 
 /**
@@ -516,7 +505,8 @@ protected:
 	 *
 	 * @param offset	Register offset in bytes from the base address.
 	 */
-	uint32_t	reg(uint32_t offset) {
+	uint32_t	reg(uint32_t offset)
+	{
 		return *(volatile uint32_t *)(_base + offset);
 	}
 
@@ -526,7 +516,8 @@ protected:
 	 * @param offset	Register offset in bytes from the base address.
 	 * @param value	Value to write.
 	 */
-	void		reg(uint32_t offset, uint32_t value) {
+	void		reg(uint32_t offset, uint32_t value)
+	{
 		*(volatile uint32_t *)(_base + offset) = value;
 	}
 
@@ -540,7 +531,8 @@ protected:
 	 * @param clearbits	Bits to clear in the register
 	 * @param setbits	Bits to set in the register
 	 */
-	void		modify(uint32_t offset, uint32_t clearbits, uint32_t setbits) {
+	void		modify(uint32_t offset, uint32_t clearbits, uint32_t setbits)
+	{
 		uint32_t val = reg(offset);
 		val &= ~clearbits;
 		val |= setbits;
@@ -555,9 +547,9 @@ private:
 
 // class instance for primary driver of each class
 enum CLASS_DEVICE {
-	CLASS_DEVICE_PRIMARY=0,
-	CLASS_DEVICE_SECONDARY=1,
-	CLASS_DEVICE_TERTIARY=2
+	CLASS_DEVICE_PRIMARY = 0,
+	CLASS_DEVICE_SECONDARY = 1,
+	CLASS_DEVICE_TERTIARY = 2
 };
 
 #endif /* _DEVICE_DEVICE_H */

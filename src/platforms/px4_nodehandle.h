@@ -48,6 +48,7 @@
 /* includes when building for ros */
 #include "ros/ros.h"
 #include <list>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <type_traits>
 #else
@@ -85,7 +86,7 @@ public:
 	template<typename T>
 	Subscriber<T> *subscribe(void(*fp)(const T &), unsigned interval)
 	{
-		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle*)this, std::bind(fp, std::placeholders::_1));
+		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle *)this, std::bind(fp, std::placeholders::_1));
 		_subs.push_back(sub);
 		return (Subscriber<T> *)sub;
 	}
@@ -98,7 +99,7 @@ public:
 	template<typename T, typename C>
 	Subscriber<T> *subscribe(void(C::*fp)(const T &), C *obj, unsigned interval)
 	{
-		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle*)this, std::bind(fp, obj, std::placeholders::_1));
+		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle *)this, std::bind(fp, obj, std::placeholders::_1));
 		_subs.push_back(sub);
 		return (Subscriber<T> *)sub;
 	}
@@ -109,7 +110,7 @@ public:
 	template<typename T>
 	Subscriber<T> *subscribe(unsigned interval)
 	{
-		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle*)this);
+		SubscriberBase *sub = new SubscriberROS<T>((ros::NodeHandle *)this);
 		_subs.push_back(sub);
 		return (Subscriber<T> *)sub;
 	}
@@ -118,11 +119,11 @@ public:
 	 * Advertise topic
 	 */
 	template<typename T>
-	Publisher<T>* advertise()
+	Publisher<T> *advertise()
 	{
-		PublisherROS<T> *pub =  new PublisherROS<T>((ros::NodeHandle*)this);
-		_pubs.push_back((PublisherBase*)pub);
-		return (Publisher<T>*)pub;
+		PublisherROS<T> *pub =  new PublisherROS<T>((ros::NodeHandle *)this);
+		_pubs.push_back((PublisherBase *)pub);
+		return (Publisher<T> *)pub;
 	}
 
 	/**
@@ -241,7 +242,7 @@ public:
 	{
 		PublisherUORB<T> *pub = new PublisherUORB<T>();
 		_pubs.add(pub);
-		return (Publisher<T>*)pub;
+		return (Publisher<T> *)pub;
 	}
 
 	/**

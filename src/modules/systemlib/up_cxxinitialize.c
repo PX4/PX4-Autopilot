@@ -126,27 +126,25 @@ extern uint32_t _etext;
 __EXPORT void up_cxxinitialize(void);
 void up_cxxinitialize(void)
 {
-  initializer_t *initp;
+	initializer_t *initp;
 
-  cxxdbg("_sinit: %p _einit: %p _stext: %p _etext: %p\n",
-         &_sinit, &_einit, &_stext, &_etext);
+	cxxdbg("_sinit: %p _einit: %p _stext: %p _etext: %p\n",
+	       &_sinit, &_einit, &_stext, &_etext);
 
-  /* Visit each entry in the initialzation table */
+	/* Visit each entry in the initialzation table */
 
-  for (initp = &_sinit; initp != &_einit; initp++)
-    {
-      initializer_t initializer = *initp;
-      cxxdbg("initp: %p initializer: %p\n", initp, initializer);
+	for (initp = &_sinit; initp != &_einit; initp++) {
+		initializer_t initializer = *initp;
+		cxxdbg("initp: %p initializer: %p\n", initp, initializer);
 
-      /* Make sure that the address is non-NULL and lies in the text region
-       * defined by the linker script.  Some toolchains may put NULL values
-       * or counts in the initialization table
-       */
+		/* Make sure that the address is non-NULL and lies in the text region
+		 * defined by the linker script.  Some toolchains may put NULL values
+		 * or counts in the initialization table
+		 */
 
-      if ((void*)initializer > (void*)&_stext && (void*)initializer < (void*)&_etext)
-        {
-          cxxdbg("Calling %p\n", initializer);
-          initializer();
-        }
-    }
+		if ((void *)initializer > (void *)&_stext && (void *)initializer < (void *)&_etext) {
+			cxxdbg("Calling %p\n", initializer);
+			initializer();
+		}
+	}
 }

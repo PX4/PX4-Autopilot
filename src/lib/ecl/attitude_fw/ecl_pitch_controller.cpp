@@ -60,49 +60,15 @@ ECL_PitchController::~ECL_PitchController()
 
 float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
-	float roll = ctl_data.roll;
 
 	/* Do not calculate control signal with bad inputs */
-	if (!(isfinite(ctl_data.pitch_setpoint) &&
-	      isfinite(roll) &&
-	      isfinite(ctl_data.pitch) &&
-	      isfinite(ctl_data.airspeed))) {
+	if (!(PX4_ISFINITE(ctl_data.pitch_setpoint) &&
+	      PX4_ISFINITE(ctl_data.roll) &&
+	      PX4_ISFINITE(ctl_data.pitch) &&
+	      PX4_ISFINITE(ctl_data.airspeed))) {
 		perf_count(_nonfinite_input_perf);
 		warnx("not controlling pitch");
 		return _rate_setpoint;
-	}
-
-	/* flying inverted (wings upside down) ? */
-	bool inverted = false;
-
-	/* roll is used as feedforward term and inverted flight needs to be considered */
-	if (fabsf(roll) < math::radians(90.0f)) {
-		/* not inverted, but numerically still potentially close to infinity */
-		roll = math::constrain(roll, math::radians(-80.0f), math::radians(80.0f));
-
-	} else {
-		/* inverted flight, constrain on the two extremes of -pi..+pi to avoid infinity */
-
-		/* note: the ranges are extended by 10 deg here to avoid numeric resolution effects */
-		if (roll > 0.0f) {
-			/* right hemisphere */
-			roll = math::constrain(roll, math::radians(100.0f), math::radians(180.0f));
-
-		} else {
-			/* left hemisphere */
-			roll = math::constrain(roll, math::radians(-100.0f), math::radians(-180.0f));
-		}
-	}
-
-	/* input conditioning */
-	float airspeed = constrain_airspeed(ctl_data.airspeed, ctl_data.airspeed_min, ctl_data.airspeed_max);
-	/* calculate the offset in the rate resulting from rolling  */
-	//xxx needs explanation and conversion to body angular rates or should be removed
-	float turn_offset = fabsf((CONSTANTS_ONE_G / airspeed) *
-				  tanf(roll) * sinf(roll)) * _roll_ff;
-
-	if (inverted) {
-		turn_offset = -turn_offset;
 	}
 
 	/* Calculate the error */
@@ -111,11 +77,7 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 	/*  Apply P controller: rate setpoint from current error and time constant */
 	_rate_setpoint =  pitch_error / _tc;
 
-	/* add turn offset */
-	_rate_setpoint += turn_offset;
-
-	/* limit the rate */ //XXX: move to body angluar rates
-
+	/* limit the rate */
 	if (_max_rate > 0.01f && _max_rate_neg > 0.01f) {
 		if (_rate_setpoint > 0.0f) {
 			_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
@@ -132,14 +94,14 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(isfinite(ctl_data.roll) &&
-	      isfinite(ctl_data.pitch) &&
-	      isfinite(ctl_data.pitch_rate) &&
-	      isfinite(ctl_data.yaw_rate) &&
-	      isfinite(ctl_data.yaw_rate_setpoint) &&
-	      isfinite(ctl_data.airspeed_min) &&
-	      isfinite(ctl_data.airspeed_max) &&
-	      isfinite(ctl_data.scaler))) {
+	if (!(PX4_ISFINITE(ctl_data.roll) &&
+	      PX4_ISFINITE(ctl_data.pitch) &&
+	      PX4_ISFINITE(ctl_data.pitch_rate) &&
+	      PX4_ISFINITE(ctl_data.yaw_rate) &&
+	      PX4_ISFINITE(ctl_data.yaw_rate_setpoint) &&
+	      PX4_ISFINITE(ctl_data.airspeed_min) &&
+	      PX4_ISFINITE(ctl_data.airspeed_max) &&
+	      PX4_ISFINITE(ctl_data.scaler))) {
 		perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
@@ -160,11 +122,48 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	_bodyrate_setpoint = cosf(ctl_data.roll) * _rate_setpoint +
 			     cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.yaw_rate_setpoint;
 
-	/* Transform estimation to body angular rates (jacobian) */
-	float pitch_bodyrate = cosf(ctl_data.roll) * ctl_data.pitch_rate +
-			       cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.yaw_rate;
+	/* apply turning offset to desired bodyrate setpoint*/
+	/* flying inverted (wings upside down)*/
+	bool inverted = false;
+	float constrained_roll;
+	/* roll is used as feedforward term and inverted flight needs to be considered */
+	if (fabsf(ctl_data.roll) < math::radians(90.0f)) {
+		/* not inverted, but numerically still potentially close to infinity */
+		constrained_roll = math::constrain(ctl_data.roll, math::radians(-80.0f), math::radians(80.0f));
 
-	_rate_error = _bodyrate_setpoint - pitch_bodyrate;
+	} else {
+		/* inverted flight, constrain on the two extremes of -pi..+pi to avoid infinity */
+		inverted = true;
+		/* note: the ranges are extended by 10 deg here to avoid numeric resolution effects */
+		if (ctl_data.roll > 0.0f) {
+			/* right hemisphere */
+			constrained_roll = math::constrain(ctl_data.roll, math::radians(100.0f), math::radians(180.0f));
+
+		} else {
+			/* left hemisphere */
+			constrained_roll = math::constrain(ctl_data.roll, math::radians(-100.0f), math::radians(-180.0f));
+		}
+	}
+
+	/* input conditioning */
+	float airspeed = constrain_airspeed(ctl_data.airspeed, ctl_data.airspeed_min, ctl_data.airspeed_max);
+
+	/* Calculate desired body fixed y-axis angular rate needed to compensate for roll angle.
+	   For reference see Automatic Control of Aircraft and Missiles by John H. Blakelock, pg. 175
+	   Availible on google books 8/11/2015: 
+	   https://books.google.com/books?id=ubcczZUDCsMC&pg=PA175#v=onepage&q&f=false*/
+	float body_fixed_turn_offset = (fabsf((CONSTANTS_ONE_G / airspeed) *
+				  		tanf(constrained_roll) * sinf(constrained_roll)));
+
+	if (inverted) {
+		body_fixed_turn_offset = -body_fixed_turn_offset;
+	}
+
+	/* Finally add the turn offset to your bodyrate setpoint*/
+	_bodyrate_setpoint += body_fixed_turn_offset;
+
+
+	_rate_error = _bodyrate_setpoint - ctl_data.pitch_rate;
 
 	if (!lock_integrator && _k_i > 0.0f) {
 

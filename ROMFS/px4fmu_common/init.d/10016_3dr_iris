@@ -1,8 +1,10 @@
 #!nsh
 #
-# 3DR Iris Quadcopter
+# @name 3DR Iris Quadrotor
 #
-# Anton Babushkin <anton@px4.io>
+# @type Quadrotor Wide
+#
+# @maintainer Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
@@ -11,11 +13,11 @@ if [ $AUTOCNF == yes ]
 then
 	# TODO tune roll/pitch separately
 	param set MC_ROLL_P 7.0
-	param set MC_ROLLRATE_P 0.13
+	param set MC_ROLLRATE_P 0.15
 	param set MC_ROLLRATE_I 0.05
 	param set MC_ROLLRATE_D 0.004
 	param set MC_PITCH_P 7.0
-	param set MC_PITCHRATE_P 0.13
+	param set MC_PITCHRATE_P 0.15
 	param set MC_PITCHRATE_I 0.05
 	param set MC_PITCHRATE_D 0.004
 	param set MC_YAW_P 2.5
@@ -30,6 +32,3 @@ fi
 set MIXER quad_w
 
 set PWM_OUT 1234
-
-set PWM_MIN 1200
-set PWM_MAX 1950

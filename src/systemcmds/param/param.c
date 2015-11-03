@@ -62,15 +62,20 @@
 
 __EXPORT int param_main(int argc, char *argv[]);
 
+enum COMPARE_OPERATOR {
+	COMPARE_OPERATOR_EQUAL = 0,
+	COMPARE_OPERATOR_GREATER = 1,
+};
+
 static int 	do_save(const char *param_file_name);
 static int	do_save_default(void);
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name);
-static void	do_show(const char *search_string);
-static void	do_show_index(const char *index, bool used_index);
+static int	do_show(const char *search_string);
+static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
-static int	do_compare(const char *name, char *vals[], unsigned comparisons);
+static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op);
 static int 	do_reset(const char *excludes[], int num_excludes);
 static int	do_reset_nostart(const char *excludes[], int num_excludes);
 
@@ -125,12 +130,10 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "show")) {
 			if (argc >= 3) {
-				do_show(argv[2]);
-				return 0;
+				return do_show(argv[2]);
 
 			} else {
-				do_show(NULL);
-				return 0;
+				return do_show(NULL);
 			}
 		}
 
@@ -153,10 +156,20 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "compare")) {
 			if (argc >= 4) {
-				return do_compare(argv[2], &argv[3], argc - 3);
+				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_EQUAL);
 
 			} else {
 				warnx("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
+				return 1;
+			}
+		}
+
+		if (!strcmp(argv[1], "greater")) {
+			if (argc >= 4) {
+				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_GREATER);
+
+			} else {
+				warnx("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
 				return 1;
 			}
 		}
@@ -181,7 +194,7 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "index_used")) {
 			if (argc >= 3) {
-				do_show_index(argv[2], true);
+				return do_show_index(argv[2], true);
 
 			} else {
 				warnx("no index provided");
@@ -191,7 +204,7 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "index")) {
 			if (argc >= 3) {
-				do_show_index(argv[2], false);
+				return do_show_index(argv[2], false);
 
 			} else {
 				warnx("no index provided");
@@ -200,7 +213,7 @@ param_main(int argc, char *argv[])
 		}
 	}
 
-	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare', 'select' or 'save'");
+	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare',\n'index', 'index_used', 'select' or 'save'");
 	return 1;
 }
 
@@ -270,7 +283,7 @@ do_load(const char *param_file_name)
 	int fd = open(param_file_name, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open '%s'", param_file_name);
+		warn("open failed '%s'", param_file_name);
 		return 1;
 	}
 
@@ -307,15 +320,17 @@ do_import(const char *param_file_name)
 }
 #endif
 
-static void
+static int
 do_show(const char *search_string)
 {
 	printf("Symbols: x = used, + = saved, * = unsaved\n");
 	param_foreach(do_show_print, (char *)search_string, false, false);
 	printf("\n %u parameters total, %u used.\n", param_count(), param_count_used());
+
+	return 0;
 }
 
-static void
+static int
 do_show_index(const char *index, bool used_index)
 {
 	char *end;
@@ -332,7 +347,8 @@ do_show_index(const char *index, bool used_index)
 	}
 
 	if (param == PARAM_INVALID) {
-		return;
+		warnx("param not found for index %u", i);
+		return 1;
 	}
 
 	printf("index %d: %c %c %s [%d,%d] : ", i, (param_used(param) ? 'x' : ' '),
@@ -358,7 +374,7 @@ do_show_index(const char *index, bool used_index)
 		printf("<unknown type %d>\n", 0 + param_type(param));
 	}
 
-	exit(0);
+	return 0;
 }
 
 static void
@@ -455,10 +471,6 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 		return (fail_on_not_found) ? 1 : 0;
 	}
 
-	printf("%c %s: ",
-	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-	       param_name(param));
-
 	/*
 	 * Set parameter if type is known and conversion from string to value turns out fine
 	 */
@@ -471,10 +483,10 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 			char *end;
 			int32_t newval = strtol(val, &end, 10);
 
-			if (i == newval) {
-				printf("unchanged\n");
-
-			} else {
+			if (i != newval) {
+				printf("%c %s: ",
+				       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+				       param_name(param));
 				printf("curr: %ld", (long)i);
 				param_set(param, &newval);
 				printf(" -> new: %ld\n", (long)newval);
@@ -492,11 +504,11 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 
-			if (f == newval) {
+			if (f != newval) {
 #pragma GCC diagnostic pop
-				printf("unchanged\n");
-
-			} else {
+				printf("%c %s: ",
+				       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+				       param_name(param));
 				printf("curr: %4.4f", (double)f);
 				param_set(param, &newval);
 				printf(" -> new: %4.4f\n", (double)newval);
@@ -515,7 +527,7 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 }
 
 static int
-do_compare(const char *name, char *vals[], unsigned comparisons)
+do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmp_op)
 {
 	int32_t i;
 	float f;
@@ -545,7 +557,8 @@ do_compare(const char *name, char *vals[], unsigned comparisons)
 
 				int j = strtol(vals[k], &end, 10);
 
-				if (i == j) {
+				if (((cmp_op == COMPARE_OPERATOR_EQUAL) && (i == j)) ||
+				    ((cmp_op == COMPARE_OPERATOR_GREATER) && (i > j))) {
 					printf(" %ld: ", (long)i);
 					ret = 0;
 				}
@@ -564,7 +577,8 @@ do_compare(const char *name, char *vals[], unsigned comparisons)
 
 				float g = strtod(vals[k], &end);
 
-				if (fabsf(f - g) < 1e-7f) {
+				if (((cmp_op == COMPARE_OPERATOR_EQUAL) && (fabsf(f - g) < 1e-7f)) ||
+				    ((cmp_op == COMPARE_OPERATOR_GREATER) && (f > g))) {
 					printf(" %4.4f: ", (double)f);
 					ret = 0;
 				}

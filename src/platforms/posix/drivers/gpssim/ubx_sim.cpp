@@ -76,13 +76,11 @@ UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct sate
 	_gps_position(gps_position),
 	_satellite_info(satellite_info),
 {
-
 }
 
 UBX::~UBX()
 {
 }
-
 
 int UBX_SIM::configure(unsigned &baudrate)
 {
@@ -92,7 +90,7 @@ int UBX_SIM::configure(unsigned &baudrate)
 int	// -1 = error, 0 = no message handled, 1 = message handled, 2 = sat info message handled
 UBX_SIM::receive(const unsigned timeout)
 {
-		/* copy data from simulator here */
-		usleep(1000000);
-		return 1;
+	/* copy data from simulator here */
+	usleep(1000000);
+	return 1;
 }

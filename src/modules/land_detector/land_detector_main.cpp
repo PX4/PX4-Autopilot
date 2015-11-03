@@ -38,6 +38,10 @@
  * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
 #include <unistd.h>					//usleep
 #include <stdio.h>
 #include <string.h>
@@ -63,48 +67,33 @@ extern "C" __EXPORT int land_detector_main(int argc, char *argv[]);
 
 //Private variables
 static LandDetector *land_detector_task = nullptr;
-static int _landDetectorTaskID = -1;
 static char _currentMode[12];
-
-/**
-* Deamon thread function
-**/
-static void land_detector_deamon_thread(int argc, char *argv[])
-{
-	land_detector_task->start();
-}
 
 /**
 * Stop the task, force killing it if it doesn't stop by itself
 **/
 static void land_detector_stop()
 {
-	if (land_detector_task == nullptr || _landDetectorTaskID == -1) {
-		errx(1, "not running");
+	if (land_detector_task == nullptr) {
+		warnx("not running");
 		return;
 	}
 
 	land_detector_task->shutdown();
 
-	//Wait for task to die
+	// Wait for task to die
 	int i = 0;
 
 	do {
 		/* wait 20ms */
 		usleep(20000);
 
-		/* if we have given up, kill it */
-		if (++i > 50) {
-			task_delete(_landDetectorTaskID);
-			break;
-		}
-	} while (land_detector_task->isRunning());
+	} while (land_detector_task->isRunning() && ++i < 50);
 
 
 	delete land_detector_task;
 	land_detector_task = nullptr;
-	_landDetectorTaskID = -1;
-	errx(0, "land_detector has been stopped");
+	warnx("land_detector has been stopped");
 }
 
 /**
@@ -112,8 +101,8 @@ static void land_detector_stop()
 **/
 static int land_detector_start(const char *mode)
 {
-	if (land_detector_task != nullptr || _landDetectorTaskID != -1) {
-		errx(1, "already running");
+	if (land_detector_task != nullptr) {
+		warnx("already running");
 		return -1;
 	}
 
@@ -125,26 +114,21 @@ static int land_detector_start(const char *mode)
 		land_detector_task = new MulticopterLandDetector();
 
 	} else {
-		errx(1, "[mode] must be either 'fixedwing' or 'multicopter'");
+		warnx("[mode] must be either 'fixedwing' or 'multicopter'");
 		return -1;
 	}
 
 	//Check if alloc worked
 	if (land_detector_task == nullptr) {
-		errx(1, "alloc failed");
+		warnx("alloc failed");
 		return -1;
 	}
 
 	//Start new thread task
-	_landDetectorTaskID = px4_task_spawn_cmd("land_detector",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_DEFAULT,
-					     1000,
-					     (main_t)&land_detector_deamon_thread,
-					     nullptr);
+	int ret = land_detector_task->start();
 
-	if (_landDetectorTaskID < 0) {
-		errx(1, "task start failed: %d", -errno);
+	if (ret) {
+		warnx("task start failed: %d", -errno);
 		return -1;
 	}
 
@@ -163,18 +147,18 @@ static int land_detector_start(const char *mode)
 			usleep(50000);
 
 			if (hrt_absolute_time() > timeout) {
-				err(1, "start failed - timeout");
+				warnx("start failed - timeout");
 				land_detector_stop();
-				exit(1);
+				return 1;
 			}
 		}
+
 		printf("\n");
 	}
 
 	//Remember current active mode
 	strncpy(_currentMode, mode, 12);
 
-	exit(0);
 	return 0;
 }
 
@@ -189,12 +173,17 @@ int land_detector_main(int argc, char *argv[])
 	}
 
 	if (argc >= 2 && !strcmp(argv[1], "start")) {
-		land_detector_start(argv[2]);
+		if (land_detector_start(argv[2]) != 0) {
+			warnx("land_detector start failed");
+			return 1;
+		}
+
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		land_detector_stop();
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
@@ -204,13 +193,14 @@ int land_detector_main(int argc, char *argv[])
 				warnx("running (%s): %s", _currentMode, (land_detector_task->isLanded()) ? "LANDED" : "IN AIR");
 
 			} else {
-				errx(1, "exists, but not running (%s)", _currentMode);
+				warnx("exists, but not running (%s)", _currentMode);
 			}
 
-			exit(0);
+			return 0;
 
 		} else {
-			errx(1, "not running");
+			warnx("not running");
+			return 1;
 		}
 	}
 

@@ -32,27 +32,14 @@
 ############################################################################
 
 #
-# NuttX / uORB adapter library
+# POSIX platform dependent files
 #
 
 SRCS		 = 	\
 			px4_posix_impl.cpp \
 			px4_posix_tasks.cpp  \
-			hrt_thread.c \
-			hrt_queue.c \
-			hrt_work_cancel.c \
-			work_thread.c \
-			work_lock.c \
-			work_queue.c \
-			work_cancel.c \
 			lib_crc32.c \
 			drv_hrt.c \
-			queue.c \
-			dq_addlast.c \
-			dq_remfirst.c \
-			sq_addlast.c \
-			sq_remfirst.c \
-			sq_addafter.c \
-			dq_rem.c 
+			px4_log.c
 
 MAXOPTIMIZATION	 = -Os

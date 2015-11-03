@@ -226,11 +226,11 @@ BottleDrop::start()
 
 	/* start the task */
 	_main_task = px4_task_spawn_cmd("bottle_drop",
-				    SCHED_DEFAULT,
-				    SCHED_PRIORITY_DEFAULT + 15,
-				    1500,
-				    (main_t)&BottleDrop::task_main_trampoline,
-				    nullptr);
+					SCHED_DEFAULT,
+					SCHED_PRIORITY_DEFAULT + 15,
+					1500,
+					(main_t)&BottleDrop::task_main_trampoline,
+					nullptr);
 
 	if (_main_task < 0) {
 		warn("task start failed");
@@ -256,6 +256,7 @@ BottleDrop::open_bay()
 	if (_doors_opened == 0) {
 		_doors_opened = hrt_absolute_time();
 	}
+
 	warnx("open doors");
 
 	actuators_publish();
@@ -326,8 +327,10 @@ BottleDrop::actuators_publish()
 
 	} else {
 		_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators);
+
 		if (_actuator_pub != nullptr) {
 			return OK;
+
 		} else {
 			return -1;
 		}
@@ -338,7 +341,7 @@ void
 BottleDrop::task_main()
 {
 
-	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 	mavlink_log_info(_mavlink_fd, "[bottle_drop] started");
 
 	_command_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -459,6 +462,7 @@ BottleDrop::task_main()
 		}
 
 		orb_check(vehicle_global_position_sub, &updated);
+
 		if (updated) {
 			/* copy global position */
 			orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &_global_pos);
@@ -478,12 +482,14 @@ BottleDrop::task_main()
 
 			// Get wind estimate
 			orb_check(_wind_estimate_sub, &updated);
+
 			if (updated) {
 				orb_copy(ORB_ID(wind_estimate), _wind_estimate_sub, &wind);
 			}
 
 			// Get vehicle position
 			orb_check(vehicle_global_position_sub, &updated);
+
 			if (updated) {
 				// copy global position
 				orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &_global_pos);
@@ -491,6 +497,7 @@ BottleDrop::task_main()
 
 			// Get parameter updates
 			orb_check(parameter_update_sub, &updated);
+
 			if (updated) {
 				// copy global position
 				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
@@ -502,6 +509,7 @@ BottleDrop::task_main()
 			}
 
 			orb_check(_command_sub, &updated);
+
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_command), _command_sub, &_command);
 				handle_command(&_command);
@@ -515,25 +523,27 @@ BottleDrop::task_main()
 			// Distance to drop position and angle error to approach vector
 			// are relevant in all states greater than target valid (which calculates these positions)
 			if (_drop_state > DROP_STATE_TARGET_VALID) {
-				distance_real = fabsf(get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, _drop_position.lat, _drop_position.lon));
+				distance_real = fabsf(get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, _drop_position.lat,
+						      _drop_position.lon));
 
 				float ground_direction = atan2f(_global_pos.vel_e, _global_pos.vel_n);
-				float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat, flight_vector_e.lon);
+				float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
+							   flight_vector_e.lon);
 
 				approach_error = _wrap_pi(ground_direction - approach_direction);
 
 				if (counter % 90 == 0) {
-					mavlink_log_info(_mavlink_fd, "drop distance %u, heading error %u", (unsigned)distance_real, (unsigned)math::degrees(approach_error));
+					mavlink_log_info(_mavlink_fd, "drop distance %u, heading error %u", (unsigned)distance_real,
+							 (unsigned)math::degrees(approach_error));
 				}
 			}
 
 			switch (_drop_state) {
-				case DROP_STATE_INIT:
-					// do nothing
-					break;
+			case DROP_STATE_INIT:
+				// do nothing
+				break;
 
-				case DROP_STATE_TARGET_VALID:
-				{
+			case DROP_STATE_TARGET_VALID: {
 
 					az = g;							// acceleration in z direction[m/s^2]
 					vz = 0; 						// velocity in z direction [m/s]
@@ -626,27 +636,30 @@ BottleDrop::task_main()
 						_onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &_onboard_mission);
 					}
 
-					float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat, flight_vector_e.lon);
-					mavlink_log_critical(_mavlink_fd, "position set, approach heading: %u", (unsigned)distance_real, (unsigned)math::degrees(approach_direction + M_PI_F));
+					float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
+								   flight_vector_e.lon);
+					mavlink_log_critical(_mavlink_fd, "position set, approach heading: %u", (unsigned)distance_real,
+							     (unsigned)math::degrees(approach_direction + M_PI_F));
 
 					_drop_state = DROP_STATE_TARGET_SET;
 				}
 				break;
 
-				case DROP_STATE_TARGET_SET:
-				{
-					float distance_wp2 = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, flight_vector_e.lat, flight_vector_e.lon);
+			case DROP_STATE_TARGET_SET: {
+					float distance_wp2 = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, flight_vector_e.lat,
+							     flight_vector_e.lon);
 
 					if (distance_wp2 < distance_real) {
 						_onboard_mission.current_seq = 0;
 						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+
 					} else {
 
 						// We're close enough - open the bay
 						distance_open_door = math::max(10.0f, 3.0f * fabsf(t_door * groundspeed_body));
 
 						if (isfinite(distance_real) && distance_real < distance_open_door &&
-							fabsf(approach_error) < math::radians(20.0f)) {
+						    fabsf(approach_error) < math::radians(20.0f)) {
 							open_bay();
 							_drop_state = DROP_STATE_BAY_OPEN;
 							mavlink_log_info(_mavlink_fd, "#audio: opening bay");
@@ -655,52 +668,55 @@ BottleDrop::task_main()
 				}
 				break;
 
-				case DROP_STATE_BAY_OPEN:
-					{
-						if (_drop_approval) {
-							map_projection_project(&ref, _global_pos.lat, _global_pos.lon, &x_l, &y_l);
-							x_f = x_l + _global_pos.vel_n * dt_runs;
-							y_f = y_l + _global_pos.vel_e * dt_runs;
-							map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
-							future_distance = get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon);
+			case DROP_STATE_BAY_OPEN: {
+					if (_drop_approval) {
+						map_projection_project(&ref, _global_pos.lat, _global_pos.lon, &x_l, &y_l);
+						x_f = x_l + _global_pos.vel_n * dt_runs;
+						y_f = y_l + _global_pos.vel_e * dt_runs;
+						map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
+						future_distance = get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon);
 
-							if (isfinite(distance_real) &&
-								(distance_real < precision) && ((distance_real < future_distance))) {
-									drop();
-									_drop_state = DROP_STATE_DROPPED;
-									mavlink_log_info(_mavlink_fd, "#audio: payload dropped");
-							} else {
+						if (isfinite(distance_real) &&
+						    (distance_real < precision) && ((distance_real < future_distance))) {
+							drop();
+							_drop_state = DROP_STATE_DROPPED;
+							mavlink_log_info(_mavlink_fd, "#audio: payload dropped");
 
-								float distance_wp2 = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, flight_vector_e.lat, flight_vector_e.lon);
+						} else {
 
-								if (distance_wp2 < distance_real) {
-									_onboard_mission.current_seq = 0;
-									orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
-								}
+							float distance_wp2 = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, flight_vector_e.lat,
+									     flight_vector_e.lon);
+
+							if (distance_wp2 < distance_real) {
+								_onboard_mission.current_seq = 0;
+								orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 							}
 						}
 					}
-					break;
+				}
+				break;
 
-				case DROP_STATE_DROPPED:
-					/* 2s after drop, reset and close everything again */
-					if ((hrt_elapsed_time(&_doors_opened) > 2 * 1000 * 1000)) {
-						_drop_state = DROP_STATE_INIT;
-						_drop_approval = false;
-						lock_release();
-						close_bay();
-						mavlink_log_info(_mavlink_fd, "#audio: closing bay");
+			case DROP_STATE_DROPPED:
 
-						// remove onboard mission
-						_onboard_mission.current_seq = -1;
-						_onboard_mission.count = 0;
-						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
-					}
-					break;
+				/* 2s after drop, reset and close everything again */
+				if ((hrt_elapsed_time(&_doors_opened) > 2 * 1000 * 1000)) {
+					_drop_state = DROP_STATE_INIT;
+					_drop_approval = false;
+					lock_release();
+					close_bay();
+					mavlink_log_info(_mavlink_fd, "#audio: closing bay");
 
-				case DROP_STATE_BAY_CLOSED:
-					// do nothing
-					break;
+					// remove onboard mission
+					_onboard_mission.current_seq = -1;
+					_onboard_mission.count = 0;
+					orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+				}
+
+				break;
+
+			case DROP_STATE_BAY_CLOSED:
+				// do nothing
+				break;
 			}
 
 			counter++;
@@ -726,6 +742,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 {
 	switch (cmd->command) {
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
+
 		/*
 		 * param1 and param2 set to 1: open and drop
 		 * param1 set to 1: open
@@ -775,7 +792,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		_target_position.alt = cmd->param7;
 		_drop_state = DROP_STATE_TARGET_VALID;
 		mavlink_log_info(_mavlink_fd, "got target: %8.4f, %8.4f, %8.4f", (double)_target_position.lat,
-			(double)_target_position.lon, (double)_target_position.alt);
+				 (double)_target_position.lon, (double)_target_position.alt);
 		map_projection_init(&ref, _target_position.lat, _target_position.lon);
 		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;

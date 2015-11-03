@@ -90,7 +90,7 @@ recv_req_id(int uart, uint8_t *id)
 	static const int timeout_ms = 1000;  // TODO make it a define
 
 	uint8_t mode;
-	
+
 	struct pollfd fds;
 	fds.fd = uart;
 	fds.events = POLLIN;
@@ -106,6 +106,7 @@ recv_req_id(int uart, uint8_t *id)
 
 		/* Read the device ID being polled */
 		read(uart, id, sizeof(*id));
+
 	} else {
 		warnx("UART timeout on TX/RX port");
 		return ERROR;
@@ -120,6 +121,7 @@ send_data(int uart, uint8_t *buffer, size_t size)
 	usleep(POST_READ_DELAY_IN_USECS);
 
 	uint16_t checksum = 0;
+
 	for (size_t i = 0; i < size; i++) {
 		if (i == size - 1) {
 			/* Set the checksum: the first uint8_t is taken as the checksum. */
@@ -167,6 +169,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	const int uart = open_uart(device);
+
 	if (uart < 0) {
 		errx(1, "Failed opening HoTT UART, exiting.");
 		thread_running = false;
@@ -178,6 +181,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 	size_t size = 0;
 	uint8_t id = 0;
 	bool connected = true;
+
 	while (!thread_should_exit) {
 		// Listen for and serve poll from the receiver.
 		if (recv_req_id(uart, &id) == OK) {
@@ -190,9 +194,11 @@ hott_telemetry_thread_main(int argc, char *argv[])
 			case EAM_SENSOR_ID:
 				build_eam_response(buffer, &size);
 				break;
+
 			case GAM_SENSOR_ID:
 				build_gam_response(buffer, &size);
 				break;
+
 			case GPS_SENSOR_ID:
 				build_gps_response(buffer, &size);
 				break;
@@ -202,6 +208,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 			}
 
 			send_data(uart, buffer, size);
+
 		} else {
 			connected = false;
 			warnx("syncing");
@@ -236,11 +243,11 @@ hott_telemetry_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = px4_task_spawn_cmd(daemon_name,
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_DEFAULT,
-					 2048,
-					 hott_telemetry_thread_main,
-					 (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_DEFAULT,
+						 2048,
+						 hott_telemetry_thread_main,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);
 	}
 

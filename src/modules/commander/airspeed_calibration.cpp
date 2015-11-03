@@ -75,12 +75,12 @@ int do_airspeed_calibration(int mavlink_fd)
 {
 	int result = OK;
 	unsigned calibration_counter = 0;
-	const unsigned maxcount = 3000;
+	const unsigned maxcount = 2400;
 
 	/* give directions */
 	mavlink_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
-	const unsigned calibration_count = 2000;
+	const unsigned calibration_count = (maxcount * 2) / 3;
 
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	struct differential_pressure_s diff_pres;
@@ -204,10 +204,10 @@ int do_airspeed_calibration(int mavlink_fd)
 	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
 	while (calibration_counter < maxcount) {
 
-        if (calibrate_cancel_check(mavlink_fd, cancel_sub)) {
-		goto error_return;
-        }
-        
+		if (calibrate_cancel_check(mavlink_fd, cancel_sub)) {
+			goto error_return;
+		}
+
 		/* wait blocking for new data */
 		px4_pollfd_struct_t fds[1];
 		fds[0].fd = diff_pres_sub;

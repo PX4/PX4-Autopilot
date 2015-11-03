@@ -128,6 +128,7 @@ Navigator::Navigator() :
 	_att_sp{},
 	_home_position_set(false),
 	_mission_item_valid(false),
+	_mission_instance_count(0),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence{},
 	_geofence_violation_warning_sent(false),
@@ -309,7 +310,7 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[8];
+	px4_pollfd_struct_t fds[8];
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
@@ -331,16 +332,17 @@ Navigator::task_main()
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		/* wait for up to 200ms for data */
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 200);
 
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
+			PX4_WARN("timed out");
 			continue;
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			warn("poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -403,10 +405,14 @@ Navigator::task_main()
 
 		/* Check geofence violation */
 		static hrt_abstime last_geofence_check = 0;
-		if (have_geofence_position_data && hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL) {
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos, _home_position_set);
+		if (have_geofence_position_data &&
+			(_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+			(hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter[0], _home_pos, _home_position_set);
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
+
+			_geofence_result.geofence_action = _geofence.getGeofenceAction();
 			if (!inside) {
 				/* inform other apps via the mission result */
 				_geofence_result.geofence_violated = true;
@@ -522,8 +528,8 @@ Navigator::start()
 	/* start the task */
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX -5,
-					 1700,
+					 SCHED_PRIORITY_DEFAULT + 5,
+					 1500,
 					 (px4_main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
@@ -669,6 +675,8 @@ int navigator_main(int argc, char *argv[])
 void
 Navigator::publish_mission_result()
 {
+	_mission_result.instance_count = _mission_instance_count;
+	
 	/* lazily publish the mission result only once available */
 	if (_mission_result_pub != nullptr) {
 		/* publish mission result */
@@ -685,6 +693,7 @@ Navigator::publish_mission_result()
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;
+	_mission_result.valid = true;
 }
 
 void

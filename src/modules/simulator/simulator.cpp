@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <drivers/drv_led.h>
 
 #include "simulator.h"
@@ -86,111 +86,67 @@ bool Simulator::getGPSSample(uint8_t *buf, int len)
 	return _gps.copyData(buf, len);
 }
 
-void Simulator::write_MPU_data(void *buf) {
+bool Simulator::getAirspeedSample(uint8_t *buf, int len)
+{
+	return _airspeed.copyData(buf, len);
+}
+
+void Simulator::write_MPU_data(void *buf)
+{
 	_mpu.writeData(buf);
 }
 
-void Simulator::write_accel_data(void *buf) {
+void Simulator::write_accel_data(void *buf)
+{
 	_accel.writeData(buf);
 }
 
-void Simulator::write_mag_data(void *buf) {
+void Simulator::write_mag_data(void *buf)
+{
 	_mag.writeData(buf);
 }
 
-void Simulator::write_baro_data(void *buf) {
+void Simulator::write_baro_data(void *buf)
+{
 	_baro.writeData(buf);
 }
 
-void Simulator::write_gps_data(void *buf) {
+void Simulator::write_gps_data(void *buf)
+{
 	_gps.writeData(buf);
+}
+
+void Simulator::write_airspeed_data(void *buf)
+{
+	_airspeed.writeData(buf);
 }
 
 int Simulator::start(int argc, char *argv[])
 {
 	int ret = 0;
 	_instance = new Simulator();
+
 	if (_instance) {
-		PX4_INFO("Simulator started");
 		drv_led_start();
+
 		if (argv[2][1] == 's') {
+			_instance->initializeSensorData();
 #ifndef __PX4_QURT
-			_instance->updateSamples();
+			// Update sensor data
+			_instance->pollForMAVLinkMessages(false);
 #endif
+
 		} else {
-			_instance->publishSensorsCombined();
+			// Update sensor data
+			_instance->pollForMAVLinkMessages(true);
 		}
-	}
-	else {
+
+	} else {
 		PX4_WARN("Simulator creation failed");
 		ret = 1;
 	}
+
 	return ret;
-}
-
-void Simulator::publishSensorsCombined() {
-
-	struct baro_report baro;
-	memset(&baro,0,sizeof(baro));
-	baro.pressure = 120000.0f;
-
-	// acceleration report
-	struct accel_report accel;
-	memset(&accel,0,sizeof(accel));
-	accel.z = 9.81f;
-	accel.range_m_s2 = 80.0f;
-
-	// gyro report
-	struct gyro_report gyro;
-	memset(&gyro, 0 ,sizeof(gyro));
-
-	// mag report
-	struct mag_report mag;
-	memset(&mag, 0 ,sizeof(mag));
-	// init publishers
-	_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
-	_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
-	_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
-	_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
-
-	struct sensor_combined_s sensors;
-	memset(&sensors, 0, sizeof(sensors));
-	// fill sensors with some data
-	sensors.accelerometer_m_s2[2] = 9.81f;
-	sensors.magnetometer_ga[0] = 0.2f;
-	sensors.timestamp = hrt_absolute_time();
-	sensors.accelerometer_timestamp = hrt_absolute_time();
-	sensors.magnetometer_timestamp = hrt_absolute_time();
-	sensors.baro_timestamp = hrt_absolute_time();
-	// advertise
-	_sensor_combined_pub = orb_advertise(ORB_ID(sensor_combined), &sensors);
-
-	hrt_abstime time_last = hrt_absolute_time();
-	uint64_t delta;
-	for(;;) {
-		delta = hrt_absolute_time() - time_last;
-		if(delta > (uint64_t)1000000) {
-			time_last = hrt_absolute_time();
-			sensors.timestamp = time_last;
-			sensors.accelerometer_timestamp = time_last;
-			sensors.magnetometer_timestamp = time_last;
-			sensors.baro_timestamp = time_last;
-			baro.timestamp = time_last;
-			accel.timestamp = time_last;
-			gyro.timestamp = time_last;
-			mag.timestamp = time_last;
-			// publish the sensor values
-			//PX4_DEBUG("Publishing SensorsCombined\n");
-			orb_publish(ORB_ID(sensor_combined), _sensor_combined_pub, &sensors);
-			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
-			orb_publish(ORB_ID(sensor_accel), _accel_pub, &baro);
-			orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &baro);
-			orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
-		}
-		else {
-			usleep(1000000-delta);
-		}
-	}
 }
 
 static void usage()
@@ -202,87 +158,58 @@ static void usage()
 
 __BEGIN_DECLS
 extern int simulator_main(int argc, char *argv[]);
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
 __END_DECLS
 
 extern "C" {
 
-int simulator_main(int argc, char *argv[])
-{
-	int ret = 0;
-	if (argc == 3 && strcmp(argv[1], "start") == 0) {
-		if (strcmp(argv[2], "-s") == 0 || strcmp(argv[2], "-p") == 0) {
-			if (g_sim_task >= 0) {
-				warnx("Simulator already started");
-				return 0;
+	int simulator_main(int argc, char *argv[])
+	{
+		int ret = 0;
+
+		if (argc == 3 && strcmp(argv[1], "start") == 0) {
+			if (strcmp(argv[2], "-s") == 0 || strcmp(argv[2], "-p") == 0) {
+				if (g_sim_task >= 0) {
+					warnx("Simulator already started");
+					return 0;
+				}
+
+				g_sim_task = px4_task_spawn_cmd("Simulator",
+								SCHED_DEFAULT,
+								SCHED_PRIORITY_MAX - 5,
+								1500,
+								Simulator::start,
+								argv);
+
+				// now wait for the command to complete
+				while (true) {
+					if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
+						break;
+
+					} else {
+						usleep(100000);
+					}
+				}
+
+			} else {
+				usage();
+				ret = -EINVAL;
 			}
-			g_sim_task = px4_task_spawn_cmd("Simulator",
-				SCHED_DEFAULT,
-				SCHED_PRIORITY_MAX - 5,
-				1500,
-				Simulator::start,
-				argv);
-		}
-		else
-		{
+
+		} else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
+			if (g_sim_task < 0) {
+				PX4_WARN("Simulator not running");
+
+			} else {
+				px4_task_delete(g_sim_task);
+				g_sim_task = -1;
+			}
+
+		} else {
 			usage();
 			ret = -EINVAL;
 		}
-	}
-	else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
-		if (g_sim_task < 0) {
-			PX4_WARN("Simulator not running");
-		}
-		else {
-			px4_task_delete(g_sim_task);
-			g_sim_task = -1;
-		}
-	}
-	else {
-		usage();
-		ret = -EINVAL;
+
+		return ret;
 	}
 
-	return ret;
 }
-
-}
-
-bool static _led_state[2] = { false , false };
-
-__EXPORT void led_init()
-{
-	PX4_DEBUG("LED_INIT");
-}
-
-__EXPORT void led_on(int led)
-{
-	if (led == 1 || led == 0)
-	{
-		PX4_DEBUG("LED%d_ON", led);
-		_led_state[led] = true;
-	}
-}
-
-__EXPORT void led_off(int led)
-{
-	if (led == 1 || led == 0)
-	{
-		PX4_DEBUG("LED%d_OFF", led);
-		_led_state[led] = false;
-	}
-}
-
-__EXPORT void led_toggle(int led)
-{
-	if (led == 1 || led == 0)
-	{
-		_led_state[led] = !_led_state[led];
-		PX4_DEBUG("LED%d_TOGGLE: %s", led, _led_state[led] ? "ON" : "OFF");
-
-	}
-}
-

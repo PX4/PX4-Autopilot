@@ -40,6 +40,9 @@
 
 #include <px4_config.h>
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
@@ -77,11 +80,13 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 	vfprintf(stderr, fmt, args);
 
 	/* convenience as many parts of NuttX use negative errno */
-	if (errcode < 0)
+	if (errcode < 0) {
 		errcode = -errcode;
+	}
 
-	if (errcode < NOCODE)
+	if (errcode < NOCODE) {
 		fprintf(stderr, ": %s", strerror(errcode));
+	}
 
 	fprintf(stderr, "\n");
 #elif CONFIG_ARCH_LOWPUTC
@@ -89,11 +94,13 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 	lowvsyslog(fmt, args);
 
 	/* convenience as many parts of NuttX use negative errno */
-	if (errcode < 0)
+	if (errcode < 0) {
 		errcode = -errcode;
+	}
 
-	if (errcode < NOCODE)
+	if (errcode < NOCODE) {
 		lowsyslog(": %s", strerror(errcode));
+	}
 
 	lowsyslog("\n");
 #endif

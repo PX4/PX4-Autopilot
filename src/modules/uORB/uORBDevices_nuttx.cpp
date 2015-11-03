@@ -36,7 +36,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <nuttx/arch.h>
-#include <algorithm>
 #include "uORBDevices_nuttx.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
@@ -639,10 +638,12 @@ uORB::DeviceMaster::ioctl(struct file *filp, int cmd, unsigned long arg)
 						if ((existing_node != nullptr) && !(existing_node->is_published())) {
 							/* nothing has been published yet, lets claim it */
 							ret = OK;
+
 						} else {
 							/* otherwise: data has already been published, keep looking */
 						}
 					}
+
 					/* also discard the name now */
 					free((void *)objname);
 					free((void *)devpath);
@@ -682,4 +683,3 @@ uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
 
 	return rc;
 }
-

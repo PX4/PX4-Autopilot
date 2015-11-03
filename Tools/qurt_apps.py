@@ -48,6 +48,8 @@ print """
 
 #include <px4_tasks.h>
 #include <px4_posix.h>
+#include <px4_log.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -64,6 +66,7 @@ static int list_tasks_main(int argc, char *argv[]);
 static int list_files_main(int argc, char *argv[]);
 static int list_devices_main(int argc, char *argv[]);
 static int list_topics_main(int argc, char *argv[]);
+static int sleep_main(int argc, char *argv[]);
 }
 
 
@@ -78,6 +81,7 @@ print '\tapps["list_tasks"] = list_tasks_main;'
 print '\tapps["list_files"] = list_files_main;'
 print '\tapps["list_devices"] = list_devices_main;'
 print '\tapps["list_topics"] = list_topics_main;'
+print '\tapps["sleep"] = sleep_main;'
 
 print """
 }
@@ -116,6 +120,18 @@ static int list_files_main(int argc, char *argv[])
 {
 	px4_show_files();
 	return 0;
+}
+static int sleep_main(int argc, char *argv[])
+{
+        if (argc != 2) {
+           PX4_WARN( "Usage: sleep <seconds>" );
+           return 1;
+        }
+
+        unsigned long usecs = ( (unsigned long) atol( argv[1] ) ) * 1000 * 1000;
+        PX4_WARN("Sleeping for %s, %ld",argv[1],usecs);
+        usleep( usecs );
+        return 0;
 }
 """
 

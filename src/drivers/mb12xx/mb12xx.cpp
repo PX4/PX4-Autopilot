@@ -143,7 +143,8 @@ private:
 	int					_cycling_rate;	/* */
 	uint8_t				_index_counter;	/* temporary sonar i2c address */
 	std::vector<uint8_t>	addr_ind; 	/* temp sonar i2c address vector */
-	std::vector<float>	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
+	std::vector<float>
+	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
 
 
 	/**
@@ -254,7 +255,7 @@ MB12XX::init()
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
-		goto out;
+		return ret;
 	}
 
 	/* allocate basic report buffers */
@@ -264,21 +265,19 @@ MB12XX::init()
 	set_address(_index_counter);		/* set I2c port to temp sonar i2c adress */
 
 	if (_reports == nullptr) {
-		goto out;
+		return ret;
 	}
 
 	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* get a publish handle on the range finder topic */
-		struct distance_sensor_s ds_report = {};
+	/* get a publish handle on the range finder topic */
+	struct distance_sensor_s ds_report = {};
 
-		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-							     &_orb_class_instance, ORB_PRIO_LOW);
+	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+				 &_orb_class_instance, ORB_PRIO_LOW);
 
-		if (_distance_sensor_topic == nullptr) {
-			log("failed to create distance_sensor object. Did you start uOrb?");
-		}
+	if (_distance_sensor_topic == nullptr) {
+		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 	}
 
 	// XXX we should find out why we need to wait 200 ms here
@@ -294,7 +293,7 @@ MB12XX::init()
 
 		if (ret2 == 0) { /* sonar is present -> store address_index in array */
 			addr_ind.push_back(_index_counter);
-			debug("sonar added");
+			DEVICE_DEBUG("sonar added");
 			_latest_sonar_measurements.push_back(200);
 		}
 	}
@@ -312,15 +311,15 @@ MB12XX::init()
 
 	/* show the connected sonars in terminal */
 	for (unsigned i = 0; i < addr_ind.size(); i++) {
-		log("sonar %d with address %d added", (i + 1), addr_ind[i]);
+		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
-	debug("Number of sonars connected: %d", addr_ind.size());
+	DEVICE_DEBUG("Number of sonars connected: %d", addr_ind.size());
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
-out:
+
 	return ret;
 }
 
@@ -545,7 +544,7 @@ MB12XX::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		debug("i2c::transfer returned %d", ret);
+		DEVICE_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -567,7 +566,7 @@ MB12XX::collect()
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		debug("error reading from sensor: %d", ret);
+		DEVICE_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -660,7 +659,7 @@ MB12XX::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			debug("collection error");
+			DEVICE_DEBUG("collection error");
 			/* if error restart the measurement state machine */
 			start();
 			return;
@@ -699,7 +698,7 @@ MB12XX::cycle()
 
 	/* Perform measurement */
 	if (OK != measure()) {
-		debug("measure error sonar adress %d", _index_counter);
+		DEVICE_DEBUG("measure error sonar adress %d", _index_counter);
 	}
 
 	/* next phase is collection */
@@ -832,6 +831,7 @@ test()
 	}
 
 	warnx("single read");
+	warnx("measurement: %0.2f m", (double)report.current_distance);
 	warnx("time:        %llu", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
@@ -860,6 +860,9 @@ test()
 		}
 
 		warnx("periodic read %u", i);
+		warnx("valid %u", (float)report.current_distance > report.min_distance
+		      && (float)report.current_distance < report.max_distance ? 1 : 0);
+		warnx("measurement: %0.3f", (double)report.current_distance);
 		warnx("time:        %llu", report.timestamp);
 	}
 

@@ -50,9 +50,13 @@
 #include <mavlink/mavlink_log.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/actuator_controls.h>
 
 #include "navigator.h"
 #include "mission_block.h"
+
+actuator_controls_s actuators;
+orb_advert_t actuator_pub_fd;
 
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
@@ -60,7 +64,9 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_mission_item({0}),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0)
+	_time_first_inside_orbit(0),
+	_actuators{},
+	_actuator_pub(nullptr)
 {
 }
 
@@ -71,6 +77,15 @@ MissionBlock::~MissionBlock()
 bool
 MissionBlock::is_mission_item_reached()
 {
+	if (_mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
+		actuator_pub_fd = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
+		memset(&actuators, 0, sizeof(actuators));
+		actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
+		actuators.timestamp = hrt_absolute_time();
+		orb_publish(ORB_ID(actuator_controls_2), actuator_pub_fd, &actuators);
+		return true;
+	}
+
 	if (_mission_item.nav_cmd == NAV_CMD_IDLE) {
 		return false;
 	}
@@ -138,7 +153,7 @@ MissionBlock::is_mission_item_reached()
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		/* TODO: removed takeoff, why? */
-		if (_navigator->get_vstatus()->is_rotary_wing && isfinite(_mission_item.yaw)) {
+		if (_navigator->get_vstatus()->is_rotary_wing && PX4_ISFINITE(_mission_item.yaw)) {
 
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);
@@ -193,6 +208,13 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->pitch_min = item->pitch_min;
 
 	switch (item->nav_cmd) {
+	case NAV_CMD_DO_SET_SERVO:
+			/* Set current position for loitering set point*/
+			sp->lat = _navigator->get_global_position()->lat;
+			sp->lon = _navigator->get_global_position()->lon;
+			sp->alt = _navigator->get_global_position()->alt;
+			sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+			break;
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;
@@ -228,7 +250,7 @@ MissionBlock::set_previous_pos_setpoint()
 }
 
 void
-MissionBlock::set_loiter_item(struct mission_item_s *item)
+MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 {
 	if (_navigator->get_vstatus()->condition_landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
@@ -246,10 +268,14 @@ MissionBlock::set_loiter_item(struct mission_item_s *item)
 			item->altitude = pos_sp_triplet->current.alt;
 
 		} else {
-			/* use current position */
+			/* use current position and use return altitude as clearance */
 			item->lat = _navigator->get_global_position()->lat;
 			item->lon = _navigator->get_global_position()->lon;
 			item->altitude = _navigator->get_global_position()->alt;
+
+			if (min_clearance > 0.0f && item->altitude < _navigator->get_home_position()->alt + min_clearance) {
+				item->altitude = _navigator->get_home_position()->alt + min_clearance;
+			}
 		}
 
 		item->altitude_is_relative = false;

@@ -34,10 +34,9 @@ then
 	param set FW_RR_P 0.02
 
 	param set PE_VELNE_NOISE 0.5
-	param set PE_VELD_NOISE 0.7
+	param set PE_VELD_NOISE 0.3
 	param set PE_POSNE_NOISE 0.5
-	param set PE_POSD_NOISE 1.0
-	param set PE_GBIAS_PNOISE 0.000001
+	param set PE_POSD_NOISE 1.25
 	param set PE_ABIAS_PNOISE 0.0001
 fi
 

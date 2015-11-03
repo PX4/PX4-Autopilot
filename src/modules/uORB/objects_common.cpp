@@ -45,23 +45,23 @@
 
 #include <drivers/drv_orb_dev.h>
 
-#include <drivers/drv_mag.h>
-ORB_DEFINE(sensor_mag, struct mag_report);
+#include "topics/sensor_mag.h"
+ORB_DEFINE(sensor_mag, struct sensor_mag_s);
 
-#include <drivers/drv_accel.h>
-ORB_DEFINE(sensor_accel, struct accel_report);
+#include "topics/sensor_accel.h"
+ORB_DEFINE(sensor_accel, struct sensor_accel_s);
 
-#include <drivers/drv_gyro.h>
-ORB_DEFINE(sensor_gyro, struct gyro_report);
+#include "topics/sensor_gyro.h"
+ORB_DEFINE(sensor_gyro, struct sensor_gyro_s);
 
-#include <drivers/drv_baro.h>
-ORB_DEFINE(sensor_baro, struct baro_report);
+#include "topics/sensor_baro.h"
+ORB_DEFINE(sensor_baro, struct sensor_baro_s);
 
-#include <drivers/drv_pwm_output.h>
-ORB_DEFINE(output_pwm, struct pwm_output_values);
+#include "topics/output_pwm.h"
+ORB_DEFINE(output_pwm, struct output_pwm_s);
 
-#include <drivers/drv_rc_input.h>
-ORB_DEFINE(input_rc, struct rc_input_values);
+#include "topics/input_rc.h"
+ORB_DEFINE(input_rc, struct input_rc_s);
 
 #include "topics/pwm_input.h"
 ORB_DEFINE(pwm_input, struct pwm_input_s);
@@ -71,6 +71,9 @@ ORB_DEFINE(vehicle_attitude, struct vehicle_attitude_s);
 
 #include "topics/sensor_combined.h"
 ORB_DEFINE(sensor_combined, struct sensor_combined_s);
+
+#include "topics/hil_sensor.h"
+ORB_DEFINE(hil_sensor, struct hil_sensor_s);
 
 #include "topics/vehicle_gps_position.h"
 ORB_DEFINE(vehicle_gps_position, struct vehicle_gps_position_s);
@@ -108,8 +111,8 @@ ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 #include "topics/vehicle_local_position.h"
 ORB_DEFINE(vehicle_local_position, struct vehicle_local_position_s);
 
-#include "topics/vehicle_vicon_position.h"
-ORB_DEFINE(vehicle_vicon_position, struct vehicle_vicon_position_s);
+#include "topics/att_pos_mocap.h"
+ORB_DEFINE(att_pos_mocap, struct att_pos_mocap_s);
 
 #include "topics/vehicle_rates_setpoint.h"
 ORB_DEFINE(vehicle_rates_setpoint, struct vehicle_rates_setpoint_s);
@@ -137,6 +140,10 @@ ORB_DEFINE(position_setpoint_triplet, struct position_setpoint_triplet_s);
 ORB_DEFINE(vehicle_global_velocity_setpoint, struct vehicle_global_velocity_setpoint_s);
 
 #include "topics/mission.h"
+ORB_DEFINE(mission, struct mission_s);
+// XXX onboard and offboard mission are still declared here until this is
+// generator supported
+#include <navigator/navigation.h>
 ORB_DEFINE(offboard_mission, struct mission_s);
 ORB_DEFINE(onboard_mission, struct mission_s);
 
@@ -207,10 +214,7 @@ ORB_DEFINE(actuator_direct, struct actuator_direct_s);
 ORB_DEFINE(multirotor_motor_limits, struct multirotor_motor_limits_s);
 
 #include "topics/telemetry_status.h"
-ORB_DEFINE(telemetry_status_0, struct telemetry_status_s);
-ORB_DEFINE(telemetry_status_1, struct telemetry_status_s);
-ORB_DEFINE(telemetry_status_2, struct telemetry_status_s);
-ORB_DEFINE(telemetry_status_3, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status, struct telemetry_status_s);
 
 #include "topics/test_motor.h"
 ORB_DEFINE(test_motor, struct test_motor_s);
@@ -256,3 +260,6 @@ ORB_DEFINE(mc_att_ctrl_status, struct mc_att_ctrl_status_s);
 
 #include "topics/distance_sensor.h"
 ORB_DEFINE(distance_sensor, struct distance_sensor_s);
+
+#include "topics/camera_trigger.h"
+ORB_DEFINE(camera_trigger, struct camera_trigger_s);

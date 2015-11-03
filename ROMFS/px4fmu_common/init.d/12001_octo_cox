@@ -1,8 +1,10 @@
 #!nsh
 #
-# Generic 10" Octo coaxial geometry
+# @name Generic 10" Octo coaxial geometry
 #
-# Lorenz Meier <lorenz@px4.io>
+# @type Octorotor Coaxial
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults

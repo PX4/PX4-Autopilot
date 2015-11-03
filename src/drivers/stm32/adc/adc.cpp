@@ -115,7 +115,7 @@ protected:
 
 private:
 	static const hrt_abstime _tickrate = 10000;	/**< 100Hz base rate */
-	
+
 	hrt_call		_call;
 	perf_counter_t		_sample_perf;
 
@@ -161,11 +161,13 @@ ADC::ADC(uint32_t channels) :
 			_channel_count++;
 		}
 	}
+
 	_samples = new adc_msg_s[_channel_count];
 
 	/* prefill the channel numbers in the sample array */
 	if (_samples != nullptr) {
 		unsigned index = 0;
+
 		for (unsigned i = 0; i < 32; i++) {
 			if (channels & (1 << i)) {
 				_samples[index].am_channel = i;
@@ -178,8 +180,9 @@ ADC::ADC(uint32_t channels) :
 
 ADC::~ADC()
 {
-	if (_samples != nullptr)
+	if (_samples != nullptr) {
 		delete _samples;
+	}
 }
 
 int
@@ -189,8 +192,11 @@ ADC::init()
 #ifdef ADC_CR2_CAL
 	rCR2 |= ADC_CR2_CAL;
 	usleep(100);
-	if (rCR2 & ADC_CR2_CAL)
+
+	if (rCR2 & ADC_CR2_CAL) {
 		return -1;
+	}
+
 #endif
 
 	/* arbitrarily configure all channels for 55 cycle sample time */
@@ -201,7 +207,7 @@ ADC::init()
 	rCR1 = 0;
 
 	/* enable the temperature sensor / Vrefint channel if supported*/
-	rCR2 = 
+	rCR2 =
 #ifdef ADC_CR2_TSVREFE
 		/* enable the temperature sensor in CR2 */
 		ADC_CR2_TSVREFE |
@@ -216,7 +222,7 @@ ADC::init()
 	/* configure for a single-channel sequence */
 	rSQR1 = 0;
 	rSQR2 = 0;
-	rSQR3 = 0;	/* will be updated with the channel each tick */ 
+	rSQR3 = 0;	/* will be updated with the channel each tick */
 
 	/* power-cycle the ADC and turn it on */
 	rCR2 &= ~ADC_CR2_ADON;
@@ -229,17 +235,18 @@ ADC::init()
 	/* kick off a sample and wait for it to complete */
 	hrt_abstime now = hrt_absolute_time();
 	rCR2 |= ADC_CR2_SWSTART;
+
 	while (!(rSR & ADC_SR_EOC)) {
 
 		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 500) {
-			log("sample timeout");
+			DEVICE_LOG("sample timeout");
 			return -1;
 		}
 	}
 
 
-	debug("init done");
+	DEVICE_DEBUG("init done");
 
 	/* create the device node */
 	return CDev::init();
@@ -256,8 +263,9 @@ ADC::read(file *filp, char *buffer, size_t len)
 {
 	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
 
-	if (len > maxsize)
+	if (len > maxsize) {
 		len = maxsize;
+	}
 
 	/* block interrupts while copying samples to avoid racing with an update */
 	irqstate_t flags = irqsave();
@@ -296,8 +304,10 @@ void
 ADC::_tick()
 {
 	/* scan the channel set and sample each */
-	for (unsigned i = 0; i < _channel_count; i++)
+	for (unsigned i = 0; i < _channel_count; i++) {
 		_samples[i].am_data = _sample(_samples[i].am_channel);
+	}
+
 	update_system_power();
 }
 
@@ -309,6 +319,7 @@ ADC::update_system_power(void)
 	system_power.timestamp = hrt_absolute_time();
 
 	system_power.voltage5V_v = 0;
+
 	for (unsigned i = 0; i < _channel_count; i++) {
 		if (_samples[i].am_channel == 4) {
 			// it is 2:1 scaled
@@ -331,9 +342,11 @@ ADC::update_system_power(void)
 	/* lazily publish */
 	if (_to_system_power != nullptr) {
 		orb_publish(ORB_ID(system_power), _to_system_power, &system_power);
+
 	} else {
 		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
 	}
+
 #endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 }
 
@@ -343,8 +356,9 @@ ADC::_sample(unsigned channel)
 	perf_begin(_sample_perf);
 
 	/* clear any previous EOC */
-	if (rSR & ADC_SR_EOC)
+	if (rSR & ADC_SR_EOC) {
 		rSR &= ~ADC_SR_EOC;
+	}
 
 	/* run a single conversion right now - should take about 60 cycles (a few microseconds) max */
 	rSQR3 = channel;
@@ -352,11 +366,12 @@ ADC::_sample(unsigned channel)
 
 	/* wait for the conversion to complete */
 	hrt_abstime now = hrt_absolute_time();
+
 	while (!(rSR & ADC_SR_EOC)) {
 
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
-			log("sample timeout");
+			DEVICE_LOG("sample timeout");
 			return 0xffff;
 		}
 	}
@@ -382,20 +397,23 @@ test(void)
 {
 
 	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
-	if (fd < 0)
+
+	if (fd < 0) {
 		err(1, "can't open ADC device");
+	}
 
 	for (unsigned i = 0; i < 50; i++) {
 		adc_msg_s data[12];
 		ssize_t count = read(fd, data, sizeof(data));
 
-		if (count < 0)
+		if (count < 0) {
 			errx(1, "read error");
+		}
 
 		unsigned channels = count / sizeof(data[0]);
 
 		for (unsigned j = 0; j < channels; j++) {
-			printf ("%d: %u  ", data[j].am_channel, data[j].am_data);
+			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
 		}
 
 		printf("\n");
@@ -410,22 +428,12 @@ int
 adc_main(int argc, char *argv[])
 {
 	if (g_adc == nullptr) {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-		/* XXX this hardcodes the default channel set for PX4FMUv1 - should be configurable */
-		g_adc = new ADC((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-		/* XXX this hardcodes the default channel set for PX4FMUv2 - should be configurable */
-		g_adc = new ADC((1 << 2) | (1 << 3) | (1 << 4) | 
-			(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
-#endif
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-		/* XXX this hardcodes the default channel set for AeroCore - should be configurable */
-		g_adc = new ADC((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
-#endif
+		/* XXX this hardcodes the default channel set for the board in board_config.h - should be configurable */
+		g_adc = new ADC(ADC_CHANNELS);
 
-		if (g_adc == nullptr)
+		if (g_adc == nullptr) {
 			errx(1, "couldn't allocate the ADC driver");
+		}
 
 		if (g_adc->init() != OK) {
 			delete g_adc;
@@ -434,8 +442,9 @@ adc_main(int argc, char *argv[])
 	}
 
 	if (argc > 1) {
-		if (!strcmp(argv[1], "test"))
+		if (!strcmp(argv[1], "test")) {
 			test();
+		}
 	}
 
 	exit(0);

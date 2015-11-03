@@ -45,10 +45,11 @@
 
 #include <drivers/drv_gpio.h>
 #include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_log.h>
 #include <sys/types.h>
 #include <systemlib/err.h>
 
-#include <debug.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -92,7 +93,7 @@ static int open_uart(const char *device)
 	int uart = open(device, O_RDWR | O_NOCTTY);
 
 	if (uart < 0) {
-		errx(1, "FAIL: Error opening port");
+		PX4_ERR("FAIL: Error opening port");
 		return ERROR;
 	}
 
@@ -107,12 +108,12 @@ static int open_uart(const char *device)
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		errx(1, "FAIL: Error setting baudrate / termios config for cfsetispeed, cfsetospeed");
+		PX4_ERR("FAIL: Error setting baudrate / termios config for cfsetispeed, cfsetospeed");
 		return ERROR;
 	}
 
 	if (tcsetattr(uart, TCSANOW, &uart_config) < 0) {
-		errx(1, "FAIL: Error setting baudrate / termios config for tcsetattr");
+		PX4_ERR("FAIL: Error setting baudrate / termios config for tcsetattr");
 		return ERROR;
 	}
 
@@ -129,11 +130,11 @@ static int open_uart(const char *device)
 
 int test_hott_telemetry(int argc, char *argv[])
 {
-	warnx("HoTT Telemetry Test Requirements:");
-	warnx("- Radio on and Electric Air. Mod on (telemetry -> sensor select).");
-	warnx("- Receiver telemetry port must be in telemetry mode.");
-	warnx("- Connect telemetry wire to /dev/ttyS1 (USART2).");
-	warnx("Testing...");
+	PX4_INFO("HoTT Telemetry Test Requirements:");
+	PX4_INFO("- Radio on and Electric Air. Mod on (telemetry -> sensor select).");
+	PX4_INFO("- Receiver telemetry port must be in telemetry mode.");
+	PX4_INFO("- Connect telemetry wire to /dev/ttyS1 (USART2).");
+	PX4_INFO("Testing...");
 
 	const char device[] = "/dev/ttyS1";
 	int fd = open_uart(device);
@@ -143,8 +144,10 @@ int test_hott_telemetry(int argc, char *argv[])
 		return ERROR;
 	}
 
+#ifdef TIOCSSINGLEWIRE
 	/* Activate single wire mode */
 	ioctl(fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+#endif
 
 	char send = 'a';
 	write(fd, &send, 1);
@@ -154,12 +157,13 @@ int test_hott_telemetry(int argc, char *argv[])
 	struct pollfd fds[] = { { .fd = fd, .events = POLLIN } };
 
 	if (poll(fds, 1, timeout) == 0) {
-		errx(1, "FAIL: Could not read sent data.");
+		PX4_ERR("FAIL: Could not read sent data.");
+		return 1;
 	}
 
 	char receive;
 	read(fd, &receive, 1);
-	warnx("PASS: Single wire enabled. Sent %x and received %x", send, receive);
+	PX4_INFO("PASS: Single wire enabled. Sent %x and received %x", send, receive);
 
 
 	/* Attempt to read HoTT poll messages from the HoTT receiver */
@@ -170,8 +174,8 @@ int test_hott_telemetry(int argc, char *argv[])
 
 	for (; received_count < 5; received_count++) {
 		if (poll(fds, 1, timeout) == 0) {
-			errx(1, "FAIL: Could not read sent data. Is your HoTT receiver plugged in on %s?", device);
-			break;
+			PX4_ERR("FAIL: Could not read sent data. Is your HoTT receiver plugged in on %s?", device);
+			return 1;
 
 		} else {
 			read(fd, &byte, 1);
@@ -187,21 +191,23 @@ int test_hott_telemetry(int argc, char *argv[])
 
 	if (received_count > 0 && valid_count > 0) {
 		if (received_count == max_polls && valid_count == max_polls) {
-			warnx("PASS: Received %d out of %d valid byte pairs from the HoTT receiver device.", received_count, max_polls);
+			PX4_INFO("PASS: Received %d out of %d valid byte pairs from the HoTT receiver device.", received_count, max_polls);
 
 		} else {
-			warnx("WARN: Received %d out of %d byte pairs of which %d were valid from the HoTT receiver device.", received_count,
-			      max_polls, valid_count);
+			PX4_WARN("WARN: Received %d out of %d byte pairs of which %d were valid from the HoTT receiver device.", received_count,
+				 max_polls, valid_count);
 		}
 
 	} else {
 		/* Let's work out what went wrong */
 		if (received_count == 0) {
-			errx(1, "FAIL: Could not read any polls from HoTT receiver device.");
+			PX4_ERR("FAIL: Could not read any polls from HoTT receiver device.");
+			return 1;
 		}
 
 		if (valid_count == 0) {
-			errx(1, "FAIL: Received unexpected values from the HoTT receiver device.");
+			PX4_ERR("FAIL: Received unexpected values from the HoTT receiver device.");
+			return 1;
 		}
 	}
 
@@ -221,21 +227,24 @@ int test_hott_telemetry(int argc, char *argv[])
 		usleep(1000);
 	}
 
-	warnx("PASS: Response sent to the HoTT receiver device. Voltage should now show 2.5V.");
+	PX4_INFO("PASS: Response sent to the HoTT receiver device. Voltage should now show 2.5V.");
 
 
+#ifdef TIOCSSINGLEWIRE
 	/* Disable single wire */
 	ioctl(fd, TIOCSSINGLEWIRE, ~SER_SINGLEWIRE_ENABLED);
+#endif
 
 	write(fd, &send, 1);
 
 	/* We should timeout as there will be nothing to read (TX and RX no longer connected) */
 	if (poll(fds, 1, timeout) == 0) {
-		errx(1, "FAIL: timeout expected.");
+		PX4_ERR("FAIL: timeout expected.");
+		return 1;
 	}
 
-	warnx("PASS: Single wire disabled.");
+	PX4_INFO("PASS: Single wire disabled.");
 
 	close(fd);
-	exit(0);
+	return 0;
 }

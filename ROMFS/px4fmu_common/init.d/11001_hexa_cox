@@ -1,8 +1,10 @@
 #!nsh
 #
-# Generic 10" Hexa coaxial geometry
+# @name Generic Hexa coaxial geometry
 #
-# Lorenz Meier <lorenz@px4.io>
+# @type Hexarotor Coaxial
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults

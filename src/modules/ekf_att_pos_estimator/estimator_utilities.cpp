@@ -38,7 +38,6 @@
  */
 
 #include "estimator_utilities.h"
-#include <algorithm>
 
 // Define EKF_DEBUG here to enable the debug print calls
 // if the macro is not set, these will be completely
@@ -71,6 +70,9 @@ ekf_debug(const char *fmt, ...)
 
 void ekf_debug(const char *fmt, ...) { while(0){} }
 #endif
+
+/* we don't want to pull in the standard lib just to swap two floats */
+void swap_var(float &d1, float &d2);
 
 float Vector3f::length(void) const
 {
@@ -108,9 +110,9 @@ void Mat3f::identity() {
 Mat3f Mat3f::transpose() const
 {
     Mat3f ret = *this;
-    std::swap(ret.x.y, ret.y.x);
-    std::swap(ret.x.z, ret.z.x);
-    std::swap(ret.y.z, ret.z.y);
+    swap_var(ret.x.y, ret.y.x);
+    swap_var(ret.x.z, ret.z.x);
+    swap_var(ret.y.z, ret.z.y);
     return ret;
 }
 
@@ -222,4 +224,11 @@ Vector3f operator/(const Vector3f &vec, const float scalar)
     vecOut.y = vec.y / scalar;
     vecOut.z = vec.z / scalar;
     return vecOut;
+}
+
+void swap_var(float &d1, float &d2)
+{
+    float tmp = d1;
+    d1 = d2;
+    d2 = tmp;
 }

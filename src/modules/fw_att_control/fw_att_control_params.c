@@ -40,11 +40,6 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#include <px4_config.h>
-
-#include <systemlib/param/param.h>
-
-
 /*
  * Controller parameters, accessible via MAVLink
  *
@@ -64,7 +59,7 @@
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.5f);
+PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.4f);
 
 /**
  * Pitch rate proportional gain.
@@ -76,7 +71,7 @@ PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.5f);
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
 
 /**
  * Pitch rate integrator gain.
@@ -84,11 +79,11 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.05f);
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
- * @min 0.0
- * @max 50.0
+ * @min 0.005
+ * @max 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.02f);
 
 /**
  * Maximum positive / up pitch rate.
@@ -101,7 +96,7 @@ PARAM_DEFINE_FLOAT(FW_PR_I, 0.0f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
 
 /**
  * Maximum negative / down pitch rate.
@@ -114,7 +109,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 
 /**
  * Pitch rate integrator limit
@@ -126,18 +121,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 0.0f);
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.2f);
-
-/**
- * Roll to Pitch feedforward gain.
- *
- * This compensates during turns and ensures the nose stays level.
- *
- * @min 0.0
- * @max 2.0
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
 
 /**
  * Roll rate proportional Gain
@@ -157,11 +141,11 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
- * @min 0.0
- * @max 100.0
+ * @min 0.005
+ * @max 0.2
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_RR_I, 0.01f);
 
 /**
  * Roll Integrator Anti-Windup
@@ -185,7 +169,7 @@ PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
  * @max 90.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_R_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
 
 /**
  * Yaw rate proportional gain
@@ -247,7 +231,7 @@ PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
  * @max 10.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_FF, 0.3f);
+PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
 
 /**
  * Pitch rate feed forward
@@ -258,7 +242,7 @@ PARAM_DEFINE_FLOAT(FW_RR_FF, 0.3f);
  * @max 10.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_FF, 0.4f);
+PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
 
 /**
  * Yaw rate feed forward

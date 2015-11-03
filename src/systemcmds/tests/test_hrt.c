@@ -46,7 +46,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -125,7 +124,7 @@ int test_tone(int argc, char *argv[])
 	int fd, result;
 	unsigned long tone;
 
-	fd = open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	fd = px4_open(TONEALARM0_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0) {
 		printf("failed opening " TONEALARM0_DEVICE_PATH "\n");
@@ -139,7 +138,7 @@ int test_tone(int argc, char *argv[])
 	}
 
 	if (tone  == 0) {
-		result = ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
+		result = px4_ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
 
 		if (result < 0) {
 			printf("failed clearing alarms\n");
@@ -150,14 +149,14 @@ int test_tone(int argc, char *argv[])
 		}
 
 	} else {
-		result = ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
+		result = px4_ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
 
 		if (result < 0) {
 			printf("failed clearing alarms\n");
 			goto out;
 		}
 
-		result = ioctl(fd, TONE_SET_ALARM, tone);
+		result = px4_ioctl(fd, TONE_SET_ALARM, tone);
 
 		if (result < 0) {
 			printf("failed setting alarm %lu\n", tone);
@@ -170,7 +169,7 @@ int test_tone(int argc, char *argv[])
 out:
 
 	if (fd >= 0) {
-		close(fd);
+		px4_close(fd);
 	}
 
 	return 0;
