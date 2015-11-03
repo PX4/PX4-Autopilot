@@ -403,11 +403,11 @@ int commander_main(int argc, char *argv[])
 
 void usage(const char *reason)
 {
-	if (reason) {
-		PX4_INFO("%s\n", reason);
+	if (reason && *reason > 0) {
+		PX4_INFO("%s", reason);
 	}
 
-	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm}\n\n");
+	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm}\n");
 }
 
 void print_status()
