@@ -51,9 +51,6 @@
 Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_airspeed_tot(0.0f),
-	_roll_weight_mc(1.0f),
-	_pitch_weight_mc(1.0f),
-	_yaw_weight_mc(1.0f),
 	_min_front_trans_dur(0.5f),
 
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control-tailsitter")),

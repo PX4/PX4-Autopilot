@@ -117,9 +117,6 @@ private:
 	} _vtol_schedule;
 
 	float _airspeed_tot; 		/** speed estimation for propwash controlled surfaces */
-	float _roll_weight_mc;		/**< multicopter desired roll moment weight */
-	float _pitch_weight_mc;		/**< multicopter desired pitch moment weight */
-	float _yaw_weight_mc;		/**< multicopter desired yaw moment weight */
 
 	/** not sure about it yet ?! **/
 	float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */

@@ -197,6 +197,9 @@ private:
 		param_t elevons_mc_lock;
 	} _params_handles;
 
+	/* for multicopters it is usual to have a non-zero idle speed of the engines
+	 * for fixed wings we want to have an idle speed of zero since we do not want
+	 * to waste energy when gliding. */
 	int _transition_command;
 
 	VtolType *_vtol_type;	// base class for different vtol types
