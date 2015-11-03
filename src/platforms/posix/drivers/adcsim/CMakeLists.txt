@@ -39,5 +39,6 @@ px4_add_module(
 		adcsim.cpp
 	DEPENDS
 		platforms__common
+		git_driverframework
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
