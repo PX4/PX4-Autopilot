@@ -560,8 +560,8 @@ int uavcannode_start(int argc, char *argv[])
 	} else {
 
 		// Node ID
-		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
-		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+		(void)param_get(param_find("CANNODE_NODE_ID"), &node_id);
+		(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
 	}
 
 	if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
