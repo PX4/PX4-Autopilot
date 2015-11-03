@@ -121,8 +121,9 @@
 # and leads to wrong toolchain detection
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
-SET (CMAKE_C_COMPILER /usr/bin/clang-3.6)
-SET (CMAKE_CXX_COMPILER /usr/bin/clang++-3.6)
+# Use clang
+#SET (CMAKE_C_COMPILER /usr/bin/clang-3.6)
+#SET (CMAKE_CXX_COMPILER /usr/bin/clang++-3.6)
 
 #=============================================================================
 # parameters
