@@ -146,11 +146,11 @@ ssize_t
 ADCSIM::devRead(void *buffer, size_t len)
 {
 	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
- 
+
 	if (len > maxsize) {
 		len = maxsize;
 	}
- 
+
 	/* block interrupts while copying samples to avoid racing with an update */
 	m_lock.lock();
 	memcpy(buffer, _samples, len);
@@ -163,10 +163,12 @@ void
 ADCSIM::_measure()
 {
 	m_lock.lock();
+
 	/* scan the channel set and sample each */
 	for (unsigned i = 0; i < _channel_count; i++) {
 		_samples[i].am_data = _sample(_samples[i].am_channel);
 	}
+
 	m_lock.unlock();
 }
 
