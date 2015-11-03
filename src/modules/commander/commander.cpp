@@ -1269,7 +1269,7 @@ int commander_thread_main(int argc, char *argv[])
 	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
 
-	uint8_t geofence_action = 0;
+	int32_t geofence_action = 0;
 
 	/* Thresholds for engine failure detection */
 	int32_t ef_throttle_thres = 1.0f;
@@ -3051,11 +3051,10 @@ void *commander_low_prio_loop(void *arg)
 				if (need_param_autosave_timeout > 0 && hrt_elapsed_time(&need_param_autosave_timeout) > 200000ULL) {
 					int ret = param_save_default();
 
-					if (ret == OK) {
-						mavlink_and_console_log_info(mavlink_fd, "settings autosaved");
-
+					if (ret != OK) {
+						mavlink_and_console_log_critical(mavlink_fd, "settings auto save error");
 					} else {
-						mavlink_and_console_log_critical(mavlink_fd, "settings save error");
+						warnx("settings saved.");
 					}
 
 					need_param_autosave = false;

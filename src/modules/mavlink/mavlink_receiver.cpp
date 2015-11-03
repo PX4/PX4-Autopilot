@@ -1757,7 +1757,7 @@ MavlinkReceiver::receive_thread(void *arg)
 	uint8_t buf[1600];
 #else
 	/* the serial port buffers internally as well, we just need to fit a small chunk */
-	uint8_t buf[32];
+	uint8_t buf[64];
 #endif
 	mavlink_message_t msg;
 
@@ -1797,10 +1797,17 @@ MavlinkReceiver::receive_thread(void *arg)
 	while (!_mavlink->_task_should_exit) {
 		if (poll(&fds[0], 1, timeout) > 0) {
 			if (_mavlink->get_protocol() == SERIAL) {
+
+				/*
+				 * to avoid reading very small chunks wait for data before reading
+				 * this is designed to target one message, so >20 bytes at a time
+				 */
+				const unsigned character_count = 20;
+
 				/* non-blocking read. read may return negative values */
-				if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
-					/* to avoid reading very small chunks wait for data before reading */
-					usleep(1000);
+				if ((nread = ::read(uart_fd, buf, sizeof(buf))) < (ssize_t)character_count) {
+					unsigned sleeptime = (1.0f / (_mavlink->get_baudrate() / 10)) * character_count * 1000000;
+					usleep(sleeptime);
 				}
 			}
 #ifdef __PX4_POSIX
