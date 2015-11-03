@@ -2095,6 +2095,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 		/* send the closing newline */
 		msg->text[0] = '\n';
 		msg->text[1] = '\0';
+
 		for (int i = 0; i < 30; i++) {
 			/* failed, but give it a 2nd shot */
 			ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, (sizeof(px4io_mixdata) + 2) / 2);
