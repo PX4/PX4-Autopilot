@@ -817,6 +817,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (gps_valid) {
 					if (gps.eph > max_eph_epv || gps.epv > max_eph_epv || gps.fix_type < 3) {
 						gps_valid = false;
+						ref_inited = false; //if gps gets lost it has to init again to avoid jumps
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 					}
 
