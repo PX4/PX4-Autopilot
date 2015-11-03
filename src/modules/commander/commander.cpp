@@ -3053,6 +3053,8 @@ void *commander_low_prio_loop(void *arg)
 
 					if (ret != OK) {
 						mavlink_and_console_log_critical(mavlink_fd, "settings auto save error");
+					} else {
+						warnx("settings saved.");
 					}
 
 					need_param_autosave = false;
