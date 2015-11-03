@@ -66,19 +66,19 @@
 #include <uORB/topics/system_power.h>
 
 #include "SyncObj.hpp"
-#include "VirtDriverObj.hpp"
+#include "VirtDevObj.hpp"
 
 using namespace DriverFramework;
 
 #define ADC_BASE_DEV_PATH "/dev/adc"
 
-class ADCSIM : public VirtDriverObj
+class ADCSIM : public VirtDevObj
 {
 public:
 	ADCSIM(uint32_t channels);
 	virtual ~ADCSIM();
 
-	static int		read(DriverHandle &h, adc_msg_s *sample, size_t num_samples);
+	virtual ssize_t		read(void *buffer, ssize_t len);
 
 private:
 	WorkHandle		_call;
@@ -103,7 +103,7 @@ private:
 };
 
 ADCSIM::ADCSIM(uint32_t channels) :
-	VirtDriverObj("adcsim", ADC_BASE_DEV_PATH, 10000),
+	VirtDevObj("adcsim", ADC_BASE_DEV_PATH, 10000),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr)
@@ -143,23 +143,21 @@ ADCSIM::~ADCSIM()
 	}
 }
 
-int ADCSIM::read(DriverHandle &h, adc_msg_s *sample, size_t num_samples)
+ssize_t
+ADCSIM::read(void *buffer, ssize_t len)
 {
-	ADCSIM *me = DriverMgr::getDriverObjByHandle<ADCSIM>(h);
-	if (me) {
-		if (num_samples > me->_channel_count) {
-			num_samples = me->_channel_count;
-		}
-		size_t len = num_samples * sizeof(adc_msg_s);
-
-		/* block interrupts while copying samples to avoid racing with an update */
-		me->m_lock.lock();
-		memcpy((void *)sample, (void *)(me->_samples), len);
-		me->m_lock.unlock();
-		return num_samples;
+	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
+ 
+	if (len > maxsize) {
+		len = maxsize;
 	}
+ 
+	/* block interrupts while copying samples to avoid racing with an update */
+	m_lock.lock();
+	memcpy(buffer, _samples, len);
+	m_lock.unlock();
 
-	return -1;
+	return len;
 }
 
 void
@@ -196,7 +194,8 @@ ADCSIM	*g_adc;
 int
 test(void)
 {
-	DriverHandle h = DriverMgr::getHandle(ADCSIM0_DEVICE_PATH);
+	DevHandle h;
+	DevMgr::getHandle(ADCSIM0_DEVICE_PATH, h);
 
 	if (!h.isValid()) {
 		PX4_ERR("can't open ADCSIM device (%d)", h.getError());
@@ -205,7 +204,7 @@ test(void)
 
 	for (unsigned i = 0; i < 50; i++) {
 		adc_msg_s data[12];
-		ssize_t count = ADCSIM::read(h, data, sizeof(data));
+		ssize_t count = h.read(data, sizeof(data));
 
 		if (count < 0) {
 			PX4_ERR("read error (%d)", h.getError());
@@ -221,7 +220,7 @@ test(void)
 		usleep(500000);
 	}
 
-	DriverMgr::releaseHandle(h);
+	DevMgr::releaseHandle(h);
 	return 0;
 }
 }
