@@ -176,6 +176,10 @@ if(UNIX AND APPLE)
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
+        set(added_exe_linker_flags
+		-lpthread
+		)
+
 else()
 
         set(added_definitions
@@ -185,11 +189,12 @@ else()
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
-endif()
 
         set(added_exe_linker_flags
-		-lpthread
+		-lpthread -lrt
 		)
+
+endif()
 	
 
 	# Add the toolchain specific flags
