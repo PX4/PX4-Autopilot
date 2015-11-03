@@ -3,6 +3,8 @@
 
 language: cpp
 
+compiler: clang
+
 matrix:
   fast_finish: true
   include:
