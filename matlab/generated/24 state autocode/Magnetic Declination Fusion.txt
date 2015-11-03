@@ -1,0 +1,15 @@
+/* 
+Autocode for fusion of a magnetic declination estimate where the innovation is given by 
+
+innovation = atan2f(magMeasEarthFrameEast,magMeasEarthFrameNorth) - declinationAngle;
+
+magMeasEarthFrameEast and magMeasEarthFrameNorth are obtained by rotating the magnetometer measurements from body frame to earth frame.
+declinationAngle is the estimated declination as that location
+
+This fusion method is used to constrain the rotation of the earth field vector when there are no earth relative measurements 
+(e.g. using optical flow without GPS, or when the vehicle is stationary) to provide an absolute yaw reference. In this situation the presence of yaw gyro errors
+can cause the magnetic declination of the earth field estimates to slowly rotate.
+*/
+
+// Calculate intermediate variablefloat t2 = 1.0f/magN;float t4 = magE*t2;float t3 = tanf(t4);float t5 = t3*t3;float t6 = t5+1.0f;float t7 = 1.0f/(magN*magN);float t8 = P[17][17]*t2*t6;float t15 = P[16][17]*magE*t6*t7;float t9 = t8-t15;float t10 = t2*t6*t9;float t11 = P[17][16]*t2*t6;float t16 = P[16][16]*magE*t6*t7;float t12 = t11-t16;float t17 = magE*t6*t7*t12;float t13 = R_DECL+t10-t17;float t14 = 1.0f/t13;float t18 = magE;float t19 = magN;float t21 = 1.0f/t19;float t22 = t18*t21;float t20 = tanf(t22);float t23 = t20*t20;float t24 = t23+1.0f;// Calculate the observation Jacobian
+// Note only 2 terms are non-zero which can be used in matrix operations for calculation of Kalman gains and covariance update to significantly reduce costfloat H_MAG[24];H_MAG[16] = -t18*1.0f/(t19*t19)*t24;H_MAG[17] = t21*t24;
