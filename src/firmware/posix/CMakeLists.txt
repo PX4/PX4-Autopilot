@@ -14,7 +14,8 @@ if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang" OR NOT APPLE)
 	target_link_libraries(mainapp
 		-Wl,--start-group
 		${module_libraries}
-		${driver_framework_libraries}
+		df_driver_framework
+		${df_driver_libraries}
 		pthread m rt
 		-Wl,--end-group
 		)
