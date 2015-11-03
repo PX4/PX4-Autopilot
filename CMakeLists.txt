@@ -121,6 +121,9 @@
 # and leads to wrong toolchain detection
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
+SET (CMAKE_C_COMPILER /usr/bin/clang-3.6)
+SET (CMAKE_CXX_COMPILER /usr/bin/clang++-3.6)
+
 #=============================================================================
 # parameters
 #
@@ -320,6 +323,7 @@ foreach(module ${config_module_list})
 endforeach()
 
 add_subdirectory(src/firmware/${OS})
+add_subdirectory(src/lib/DriverFramework)
 
 if (config_io_board)
 	add_subdirectory(src/modules/px4iofirmware)
