@@ -23,8 +23,6 @@ if (NOT CMAKE_BUILD_TYPE)
 	message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
 endif()
 
-option(COVERAGE "enable coverage" ON)
-
 list(APPEND CMAKE_CXX_FLAGS
 	${CMAKE_CXX_FLAGS}
 	-Wall
@@ -38,7 +36,7 @@ enable_testing()
 
 include_directories(matrix)
 
-file(GLOB_RECURSE COV_SRCS matrix/*.h*)
+file(GLOB_RECURSE COV_SRCS matrix/*.hpp test/*.cpp)
 
 # Setup the coveralls target and tell it to gather
 # coverage data for all the lib sources.
