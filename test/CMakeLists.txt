@@ -1,3 +1,9 @@
+add_library(instantiation
+	instantiation.cpp
+	)
+
+link_libraries(instantiation)
+
 set(tests
 	setIdentity
 	inverse
@@ -11,7 +17,6 @@ set(tests
 	vector
 	vector3
 	euler
-	instantiation
 	)
 
 foreach(test ${tests})
