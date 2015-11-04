@@ -32,17 +32,13 @@ list(APPEND CMAKE_CXX_FLAGS
 	-Werror
 	-Wfatal-errors
 	)
-if (COVERAGE)
-	list(APPEND CMAKE_CXX_FLAGS
-		-fprofile-arcs
-		-ftest-coverage
-		)
-endif()
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 enable_testing()
 
 include_directories(matrix)
+
+file(GLOB_RECURSE COV_SRCS matrix/*.h*)
 
 # Setup the coveralls target and tell it to gather
 # coverage data for all the lib sources.
