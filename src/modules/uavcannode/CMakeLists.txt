@@ -46,11 +46,17 @@ add_definitions(
 		-DUAVCAN_STM32_TIMER_NUMBER=2
 		-DUAVCAN_USE_CPP03=ON
 		-DUAVCAN_USE_EXTERNAL_SNPRINT
+		-DAPP_VERSION_MAJOR=${UAVCANBLID_SW_VERSION_MAJOR}
+		-DAPP_VERSION_MINOR=${UAVCANBLID_SW_VERSION_MINOR}
+		-DHW_UAVCAN_NAME=${UAVCANBLID_NAME}
+		-DHW_VERSION_MAJOR=${UAVCANBLID_HW_VERSION_MAJOR}
+		-DHW_VERSION_MINOR=${UAVCANBLID_HW_VERSION_MINOR}
 		)
 
 px4_share_subdirectory(RELDIR ../uavcan/libuavcan ARGS EXCLUDE_FROM_ALL)
 add_dependencies(uavcan platforms__nuttx)
 
+include_directories(../../drivers/bootloaders/include)
 include_directories(../uavcan/libuavcan/libuavcan/include)
 include_directories(../uavcan/libuavcan/libuavcan/include/dsdlc_generated)
 include_directories(../uavcan/libuavcan/libuavcan_drivers/posix/include)

@@ -4,10 +4,9 @@ px4_nuttx_configure(HWCLASS m3 CONFIG nsh)
 
 #
 # UAVCAN boot loadable Module ID
-#
 
-set(UAVCANBLID_SW_VERSION_MAJOR,0)
-set(UAVCANBLID_SW_VERSION_MINOR,1)
+set(UAVCANBLID_SW_VERSION_MAJOR 0)
+set(UAVCANBLID_SW_VERSION_MINOR 1)
 
 #
 # Bring in common uavcan hardware version definitions
