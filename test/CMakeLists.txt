@@ -1,9 +1,3 @@
-add_library(instantiation
-	instantiation.cpp
-	)
-
-link_libraries(instantiation)
-
 set(tests
 	setIdentity
 	inverse

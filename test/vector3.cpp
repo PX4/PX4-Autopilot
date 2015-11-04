@@ -4,6 +4,8 @@
 
 using namespace matrix;
 
+template class Vector<float, 3>;
+
 int main()
 {
     Vector3f a(1, 0, 0);

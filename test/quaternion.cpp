@@ -4,6 +4,11 @@
 
 using namespace matrix;
 
+// instantiate so coverage works
+template class Quaternion<float>;
+template class Euler<float>;
+template class Dcm<float>;
+
 int main()
 {
     // test default ctor
@@ -12,7 +17,7 @@ int main()
     assert(q(1) == 0);
     assert(q(2) == 0);
     assert(q(3) == 0);
-    
+
     q = Quatf(0.1825742f, 0.3651484f, 0.5477226f, 0.7302967f);
     assert(q(0) == 0.1825742f);
     assert(q(1) == 0.3651484f);

@@ -3,6 +3,8 @@
 
 using namespace matrix;
 
+template class Matrix<float, 3, 3>;
+
 int main()
 {
     Matrix3f A;

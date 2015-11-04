@@ -49,7 +49,7 @@ enable_testing()
 
 include_directories(matrix)
 
-file(GLOB_RECURSE COV_SRCS matrix/*.hpp matrix/*.cpp test/*.hpp test/*.cpp)
+file(GLOB_RECURSE COV_SRCS matrix/*.hpp matrix/*.cpp)
 
 # Setup the coveralls target and tell it to gather
 # coverage data for all the lib sources.
