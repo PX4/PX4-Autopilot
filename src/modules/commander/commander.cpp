@@ -288,7 +288,7 @@ bool usb_connected(void);
 bool usb_connected()
 {
 	struct stat buffer;
-	return stat("/dev/ttyACM00", &buffer) == 0;
+	return stat("/dev/ttyACM0", &buffer) == 0;
 }
 
 
