@@ -7,7 +7,11 @@
 #include <Scalar.hpp>
 #include <Quaternion.hpp>
 
-template Vector<float, 2>;
-template Euler<float>;
-template Scalar<float>;
-template Matrix<float, 3, 3>;
+namespace matrix {
+
+template class Vector<float, 2>;
+template class Euler<float>;
+template class Scalar<float>;
+template class Matrix<float, 3, 3>;
+
+};

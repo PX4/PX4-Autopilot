@@ -12,6 +12,9 @@
 namespace matrix
 {
 
+template <typename Type, size_t M, size_t N>
+class Matrix;
+
 template<typename Type, size_t M>
 class Vector : public Matrix<Type, M, 1>
 {
@@ -102,12 +105,6 @@ public:
         self = self - other;
     }
 
-    void operator*=(const Vector<Type, M> &other)
-    {
-        Vector<Type, M> &self = *this;
-        self = self * other;
-    }
-
     /**
      * Scalar Operations
      */
@@ -127,7 +124,7 @@ public:
     Vector<Type, M> operator+(Type scalar) const
     {
         Vector<Type, M> res;
-        Vector<Type, M> &self = *this;
+        const Vector<Type, M> &self = *this;
 
         for (size_t i = 0; i < M; i++) {
             res(i) = self(i) + scalar;

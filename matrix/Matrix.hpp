@@ -14,8 +14,13 @@
 #include <string.h>
 #include <math.h>
 
+#include "Vector.hpp"
+
 namespace matrix
 {
+
+template <typename Type, size_t M>
+class Vector;
 
 template<typename Type, size_t  M, size_t N>
 class Matrix
@@ -173,7 +178,7 @@ public:
     Matrix<Type, M, N> operator+(Type scalar) const
     {
         Matrix<Type, M, N> res;
-        Matrix<Type, M, N> &self = *this;
+        const Matrix<Type, M, N> &self = *this;
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
@@ -265,9 +270,9 @@ public:
         return res;
     }
 
-    Matrix<Type, M, 1> diagonal() const
+    Vector<Type, M> diagonal() const
     {
-        Matrix<Type, M, 1> res;
+        Vector<Type, M> res;
         // force square for now
         const Matrix<Type, M, M> &self = *this;
 

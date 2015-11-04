@@ -1,3 +1,8 @@
+if (COVERALLS)
+	add_library(coverage
+		coverage.cpp)
+endif()
+
 set(tests
 	setIdentity
 	inverse
