@@ -31,6 +31,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_log.h>
 
 #ifdef __PX4_NUTTX
 #include <nuttx/clock.h>
@@ -433,7 +434,7 @@ int UavcanNode::run()
 
 		// this would be bad...
 		if (poll_ret < 0) {
-			log("poll error %d", errno);
+			PX4_ERR("poll error %d", errno);
 			continue;
 
 		} else {

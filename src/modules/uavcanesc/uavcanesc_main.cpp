@@ -391,7 +391,7 @@ int UavcanEsc::run()
 
 		// this would be bad...
 		if (poll_ret < 0) {
-			log("poll error %d", errno);
+			PX4_ERR("poll error %d", errno);
 			continue;
 
 		} else {
