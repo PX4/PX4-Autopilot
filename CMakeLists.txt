@@ -32,6 +32,7 @@ if (COVERALLS)
 		-fno-inline
 		-fno-inline-small-functions
 		-fno-default-inline
+		--coverage
 		)
 endif()
 
