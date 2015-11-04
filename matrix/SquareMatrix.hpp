@@ -202,6 +202,13 @@ public:
 
 typedef SquareMatrix<float, 3> SquareMatrix3f;
 
+template<typename Type, size_t M>
+SquareMatrix<Type, M> eye() {
+    SquareMatrix<Type, M> m;
+    m.setIdentity();
+    return m;
+}
+
 }; // namespace matrix
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

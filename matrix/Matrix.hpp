@@ -295,6 +295,13 @@ public:
 
 };
 
+template<typename Type, size_t M, size_t N>
+Matrix<Type, M, N> & zero() {
+    Matrix<Type, M, N> m;
+    m.setZero();
+    return m;
+}
+
 typedef Matrix<float, 3, 3> Matrix3f;
 
 }; // namespace matrix
