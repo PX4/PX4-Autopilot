@@ -88,7 +88,7 @@ public:
         return r;
     }
 
-    Matrix<Type, 4, 1> derivative(const Matrix<Type, 3, 1> & w) const {
+    Matrix<Type, 4, 1> derivative(const Vector<Type, 3> & w) const {
         const Quaternion &q = *this;
         Type dataQ[] = {
             q(0), -q(1), -q(2), -q(3),

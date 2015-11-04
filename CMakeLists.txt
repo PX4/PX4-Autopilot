@@ -7,7 +7,7 @@ set(VERSION_PATCH "0")
 project(matrix CXX)
 
 option(COVERALLS "Turn on coveralls support" OFF)
-option(COVERALLS_UPLOAD "Upload the generated coveralls json" ON)
+option(COVERALLS_UPLOAD "Upload the generated coveralls json" OFF)
 
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
@@ -26,13 +26,20 @@ set(CMAKE_CXX_FLAGS
 	)
 
 if (COVERALLS)
-	include(Coveralls)
-	coveralls_turn_on_coverage()
 	list(APPEND CMAKE_CXX_FLAGS
 		-fno-inline
 		-fno-inline-small-functions
 		-fno-default-inline
 		--coverage
+		)
+	include(Coveralls)
+	coveralls_turn_on_coverage()
+	add_custom_target(coverage
+		COMMAND lcov --capture --directory . --output-file coverage.info
+		COMMAND genhtml coverage.info --output-directory out
+		COMMAND firefox out/index.html
+		WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+		DEPENDS coveralls
 		)
 endif()
 
@@ -42,7 +49,7 @@ enable_testing()
 
 include_directories(matrix)
 
-file(GLOB_RECURSE COV_SRCS matrix/*.hpp matrix/*.cpp)
+file(GLOB_RECURSE COV_SRCS matrix/*.hpp matrix/*.cpp test/*.hpp test/*.cpp)
 
 # Setup the coveralls target and tell it to gather
 # coverage data for all the lib sources.
