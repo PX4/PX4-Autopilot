@@ -118,7 +118,7 @@ after_success:
          cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
       && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
       && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4
-      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
       && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
