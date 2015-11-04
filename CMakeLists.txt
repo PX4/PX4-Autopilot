@@ -9,27 +9,32 @@ project(matrix CXX)
 option(COVERALLS "Turn on coveralls support" OFF)
 option(COVERALLS_UPLOAD "Upload the generated coveralls json" ON)
 
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} 
-	${CMAKE_SOURCE_DIR}/cmake/coveralls-cmake/cmake)
-
-if (COVERALLS)
-	include(Coveralls)
-	coveralls_turn_on_coverage()
-endif()
-
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
 	message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
 endif()
 
-list(APPEND CMAKE_CXX_FLAGS
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} 
+	${CMAKE_SOURCE_DIR}/cmake/coveralls-cmake/cmake)
+
+set(CMAKE_CXX_FLAGS
 	${CMAKE_CXX_FLAGS}
 	-Wall
 	-Weffc++
 	-Werror
 	-Wfatal-errors
 	)
+
+if (COVERALLS)
+	include(Coveralls)
+	coveralls_turn_on_coverage()
+	list(APPEND CMAKE_CXX_FLAGS
+		-fno-inline
+		-fno-inline-small-functions
+		-fno-default-inline
+		)
+endif()
+
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 enable_testing()
