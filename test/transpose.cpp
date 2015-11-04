@@ -16,3 +16,5 @@ int main()
     assert(A_T == A_T_check);
     return 0;
 }
+
+/* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

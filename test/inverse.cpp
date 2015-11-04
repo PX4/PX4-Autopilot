@@ -15,16 +15,18 @@ int main()
     assert(A_I == A_I_check);
 
     // stess test
-    static const size_t n = 100;
+    static const size_t n = 50;
     Matrix<float, n, n> A_large;
     A_large.setIdentity();
     Matrix<float, n, n> A_large_I;
     A_large_I.setZero();
 
-    for (size_t i = 0; i < 100; i++) {
+    for (size_t i = 0; i < 50; i++) {
         A_large_I = A_large.inverse();
         assert(A_large == A_large_I);
     }
 
     return 0;
 }
+
+/* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
