@@ -28,6 +28,7 @@ public:
 
     Dcm() : Matrix<Type, 3, 3>()
     {
+        Matrix<Type, 3, 3>::setIdentity();
     }
 
     Dcm(const Quaternion<Type> & q) {

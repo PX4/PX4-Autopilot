@@ -21,17 +21,18 @@ int main()
 
     // test euler ctor
     q = Quatf(Eulerf(0.1f, 0.2f, 0.3f));
-    assert((q - Quatf(0.983347f, 0.034271f, 0.106021f, 0.143572f)).norm() < 1e-3);
+    assert((q - Quatf(0.983347f, 0.034271f, 0.106021f, 0.143572f)).norm() < 1e-5);
+
     // test dcm ctor
-    //q = Quatf(Dcmf());
-    //assert(q == Quatf(1.0f, 0.0f, 0.0f, 0.0f));
+    q = Quatf(Dcmf());
+    assert(q == Quatf(1.0f, 0.0f, 0.0f, 0.0f));
     // TODO test derivative
     // test accessors
-    //q(0) = 0.1f;
-    //q(1) = 0.2f;
-    //q(2) = 0.3f;
-    //q(3) = 0.4f;
-    //assert(q == Quatf(0.1f, 0.2f, 0.3f, 0.4f));
+    q(0) = 0.1f;
+    q(1) = 0.2f;
+    q(2) = 0.3f;
+    q(3) = 0.4f;
+    assert(q == Quatf(0.1f, 0.2f, 0.3f, 0.4f));
     return 0;
 }
 
