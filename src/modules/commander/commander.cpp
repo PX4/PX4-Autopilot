@@ -182,6 +182,7 @@ static int daemon_task;					/**< Handle of daemon task / thread */
 static bool need_param_autosave = false;		/**< Flag set to true if parameters should be autosaved in next iteration (happens on param update and if functionality is enabled) */
 static bool _usb_telemetry_active = false;
 static hrt_abstime commander_boot_timestamp = 0;
+static bool _usb_connect_file_mode = true;
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
@@ -275,8 +276,20 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result);
  */
 bool is_hil_setup(int id);
 
-bool is_hil_setup(int id) {
+bool is_hil_setup(int id)
+{
 	return (id >= HIL_ID_MIN) && (id <= HIL_ID_MAX);
+}
+
+/**
+ * @return Check if USB is connected
+ */
+bool usb_connected(void);
+
+bool usb_connected()
+{
+	struct stat buffer;
+	return stat("/dev/ttyACM0", &buffer) == 0;
 }
 
 
@@ -1510,6 +1523,22 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(system_power), system_power_sub, &system_power);
+
+			/* test if we need to fall back to file mode USB connected detection */
+			if (_usb_connect_file_mode && !system_power.usb_connected &&
+				(system_power.usb_connected == usb_connected())) {
+				_usb_connect_file_mode = false;
+			}
+
+			/* re-confirm USB connected state for technically incompatible hardware
+			 * designs such as the AUAV-X2. This has a minor performance hit on the
+			 * X2 due to the filesystem access, but there is really nothing we can
+			 * do about this. This check is only run once for a fully compatible
+			 * hardware design (e.g. Pixhawk 1 / 2 and Pixfalcon).
+			 */
+			if (_usb_connect_file_mode) {
+				system_power.usb_connected = usb_connected();
+			}
 
 			if (hrt_elapsed_time(&system_power.timestamp) < 200000) {
 				if (system_power.servo_valid &&
