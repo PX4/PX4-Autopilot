@@ -67,6 +67,7 @@
 
 #include <uORB/topics/system_power.h>
 
+#if defined(ADC_CHANNELS)
 /*
  * Register accessors.
  * For now, no reason not to just use ADC1.
@@ -449,3 +450,4 @@ adc_main(int argc, char *argv[])
 
 	exit(0);
 }
+#endif
