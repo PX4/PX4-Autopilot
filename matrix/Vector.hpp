@@ -12,25 +12,25 @@
 namespace matrix
 {
 
-template<typename Type, size_t N>
-class Vector : public Matrix<Type, N, 1>
+template<typename Type, size_t M>
+class Vector : public Matrix<Type, M, 1>
 {
 public:
     virtual ~Vector() {};
 
-    Vector() : Matrix<Type, N, 1>()
+    Vector() : Matrix<Type, M, 1>()
     {
     }
 
     inline Type operator()(size_t i) const
     {
-        const Matrix<Type, N, 1> &v = *this;
+        const Matrix<Type, M, 1> &v = *this;
         return v(i, 0);
     }
 
     inline Type &operator()(size_t i)
     {
-        Matrix<Type, N, 1> &v = *this;
+        Matrix<Type, M, 1> &v = *this;
         return v(i, 0);
     }
 
@@ -47,6 +47,110 @@ public:
         Vector &a(*this);
         return sqrt(a.dot(a));
     }
+
+    /**
+     * Vector Operations
+     */
+
+    Vector<Type, M> operator+(const Vector<Type, M> &other) const
+    {
+        Vector<Type, M> res;
+        const Vector<Type, M> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            res(i) = self(i) + other(i);
+        }
+
+        return res;
+    }
+
+    bool operator==(const Vector<Type, M> &other) const
+    {
+        Vector<Type, M> res;
+        const Vector<Type, M> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            if (self(i) != other(i)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    Vector<Type, M> operator-(const Vector<Type, M> &other) const
+    {
+        Vector<Type, M> res;
+        const Vector<Type, M> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            res(i) = self(i) - other(i);
+        }
+
+        return res;
+    }
+
+    void operator+=(const Vector<Type, M> &other)
+    {
+        Vector<Type, M> &self = *this;
+        self = self + other;
+    }
+
+    void operator-=(const Vector<Type, M> &other)
+    {
+        Vector<Type, M> &self = *this;
+        self = self - other;
+    }
+
+    void operator*=(const Vector<Type, M> &other)
+    {
+        Vector<Type, M> &self = *this;
+        self = self * other;
+    }
+
+    /**
+     * Scalar Operations
+     */
+
+    Vector<Type, M> operator*(Type scalar) const
+    {
+        Vector<Type, M> res;
+        const Vector<Type, M> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            res(i) = self(i) * scalar;
+        }
+
+        return res;
+    }
+
+    Vector<Type, M> operator+(Type scalar) const
+    {
+        Vector<Type, M> res;
+        Vector<Type, M> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            res(i) = self(i) + scalar;
+        }
+
+        return res;
+    }
+
+    void operator*=(Type scalar)
+    {
+        Vector<Type, M> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            self(i) = self(i) * scalar;
+        }
+    }
+
+    void operator/=(Type scalar)
+    {
+        Vector<Type, M> &self = *this;
+        self = self * (1.0f / scalar);
+    }
+
 };
 
 }; // namespace matrix

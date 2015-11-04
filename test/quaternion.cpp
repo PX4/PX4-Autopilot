@@ -6,16 +6,32 @@ using namespace matrix;
 
 int main()
 {
-    Quatf p(1, 2, 3, 4);
-    assert(p(0) == 1);
-    assert(p(1) == 2);
-    assert(p(2) == 3);
-    assert(p(3) == 4);
+    // test default ctor
+    Quatf q;
+    assert(q(0) == 1);
+    assert(q(1) == 0);
+    assert(q(2) == 0);
+    assert(q(3) == 0);
+    
+    q = Quatf(0.1825742f, 0.3651484f, 0.5477226f, 0.7302967f);
+    assert(q(0) == 0.1825742f);
+    assert(q(1) == 0.3651484f);
+    assert(q(2) == 0.5477226f);
+    assert(q(3) == 0.7302967f);
 
-    Quatf q(0, 1, 0, 0);
-    Quatf r = p*q;
-    Dcmf dcm = Dcmf(p);
-    Eulerf e = Eulerf(p);
+    // test euler ctor
+    q = Quatf(Eulerf(0.1f, 0.2f, 0.3f));
+    assert((q - Quatf(0.983347f, 0.034271f, 0.106021f, 0.143572f)).norm() < 1e-3);
+    // test dcm ctor
+    //q = Quatf(Dcmf());
+    //assert(q == Quatf(1.0f, 0.0f, 0.0f, 0.0f));
+    // TODO test derivative
+    // test accessors
+    //q(0) = 0.1f;
+    //q(1) = 0.2f;
+    //q(2) = 0.3f;
+    //q(3) = 0.4f;
+    //assert(q == Quatf(0.1f, 0.2f, 0.3f, 0.4f));
     return 0;
 }
 

@@ -64,7 +64,7 @@ public:
                cosPhi_2 * sinTheta_2 * sinPsi_2;
         q(2) = cosPhi_2 * sinTheta_2 * cosPsi_2 +
                sinPhi_2 * cosTheta_2 * sinPsi_2;
-        q(3) = cosPhi_2 * cosTheta_2 * sinPsi_2 +
+        q(3) = cosPhi_2 * cosTheta_2 * sinPsi_2 -
                sinPhi_2 * sinTheta_2 * cosPsi_2;
     }
 
