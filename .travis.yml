@@ -4,6 +4,8 @@ script:
   make && ctest -V && make coveralls
 env:
   global:
+  - export COVERALLS_SERVICE_NAME=travis-ci
+  - export COVERALLS_REPO_TOKEN=4MDwjIvimPGcxcHZQf0iS1aLHNfeQG9dN
   - secure: vj6Y9LaNhnfWH+3AoqOIY/k5Ymb0zKlXJSlfa1qBnWC94/NDQjbV+6Lk1Ct1izzPmFbCiRwp/auwcUT0p3aUNNFshEUrL5rlHOwr4zLMqxdwKfUXA7X7NSJS2EJSgMm0to0iSzuCeub3E5Y7fdDpmWTZ9bD5E31wck/5kzjiuw0G8mtdOLeOnfERCZw/VTxLwKkdjU3+m64IYzAh9tWsyM1ZpVX0c7KjjPt29qYb45xmQ7XrWlKl9fHabKbTvopISas56Q95K46pcF9sDraP0+KVk6f5rVOjYppvRmT6BJwRjDRG/rC6Q0BSfZuUm8a0OgFxc2MG3sxKT/QfMMDzuxJWbewakam0hcPJl34cFzqgIuMeQ7bK1yitsFBCqo9b/noMMp4vX9Hkm8b1f4QHTuk2fqOqorP0hOQxhWUcNs8J2jG1nDOjB5wrv9fOyerAZjZ8fvzHkMh/aZ3Xj9Sw7PVxiue1eyRXHQgn2/IcerrhlujawGbjsvLvrmQ+v5A3xvh4q6iJ5glIv1dhGaEEGMrp8httjLUAzZJpSAdyyWnJtnD+5KLH7BOKT+ptuXRnU6H97nUlXIHujx4btEpIhYebEX+pmAfOwK8WP3DDG5ikbmf2BuaI/qOhPtUzf5PJiN/+vRKNYf6ijXBBr4Cq7pWSJotQRfoHXvfE4vFa+zA=
 addons:
   coverity_scan:
