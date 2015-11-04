@@ -31,9 +31,9 @@ public:
     {
         Quaternion &q = *this;
         q(0) = 1;
-        q(1) = 2;
-        q(2) = 3;
-        q(3) = 4;
+        q(1) = 0;
+        q(2) = 0;
+        q(3) = 0;
     }
 
     Quaternion(const Dcm<Type> & dcm) :
