@@ -65,8 +65,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_no_vision(this, "NO_VISION"),
 	_beta_max(this, "BETA_MAX"),
 	_mocap_p_stddev(this, "VIC_P"),
-	_flow_board_x_offs(this, "FLOW_X_OFF"),	// TODO fix
-	_flow_board_y_offs(this, "FLOW_Y_OFF"),  // TODO
+	_flow_board_x_offs(NULL, "SENS_FLOW_X_OFF"),
+	_flow_board_y_offs(NULL, "SENS_FLOW_Y_OFF"),
 	_pn_p_noise_power(this, "PN_P"),
 	_pn_v_noise_power(this, "PN_V"),
 	_pn_b_noise_power(this, "PN_B"),
