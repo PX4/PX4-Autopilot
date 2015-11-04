@@ -1,0 +1,50 @@
+NOTES FOR FUSION OF MEASUREMENTS USING AUTOCODE FRAGMENTS
+
+The auto-code for the fusion of the various measurements provides in most cases the observation Jacobian and Kalman gain matrix for that observation. 
+Where no Kalman gain is provided, it will need to be calculated using the usual K = P*transpose(H)/(H*P*transpose(H) + R) where:
+
+K = Kalman Gain matrix
+H = observation partial derivative matrix (observaton Jacobian)
+R = observation variance
+(H*P*transpose(H) + R) is the innovation variance (always a scalar)
+
+When the observation is a vector, it is always assumed that the errors in the vectors are uncorelated to each other and the observations are fused 
+sequentially, so no matrix inversion is required.
+
+It is important that maximum useage of the sparsity in the H matrix be taken advantage of. If a sparse math library is available it could be used, 
+otherwise the matrix operations should need unrolled with inclusion of conditional statements to improve efficiency. Examples of this technique can 
+be found in the existing att_pos_ekf_estimator library
+
+It is important that the attitude error state vector (first three states) be zeroed prior to fusion of a new observation. This is becasue it is assumed 
+that the predicted quaternion attitude is corrected using the attitude error estimate each time an observation is fused. 
+
+Measurement fusion steps:
+
+1) Calculate the innovation
+
+2) Calculate the observation partial derivative (Jacobian) vector. For direct state observations this has not been provided as it is trivial, 
+eg  [0 0 0 1 0 .....] for a north velocity measurement
+
+3) Calculate the innovation variance and apply an innovatino consistency check to determine if he observation should be fused. BTW, if
+(H*P*transpose(H) + R) < R, then the covariance matrix has become ill conditioned and should probably be reset. Certainly fusion of data
+should not be performed if H*P*transpose(H) < 0
+
+4) Calculate the Kalman gain vector
+
+5) Zero the first three states in the state vector
+
+6) Calculate and apply a correction to the states which is the  product of the Kalman gain matrix and innovation
+
+7) The first three states represent the estimated angular misalignment vector. Rotate the predicted quaternion from the last INS calculation through 
+the reciprocal rotation to remove the error
+
+8) Update the covariance using the standard P = (I - K*H)*P operator, taking advatage of sparseness in the H and I matrices. This has been implemented 
+in the code as a P - KHP operation. Note, the use of the short rather thn Joseph or other mumerically more accurate form of the equation and use of single
+precision operations means that numerical stability can be an issue, so symmetry and non-negative diagonal elements must be enforced after every
+covariance update.
+
+NOTES FOR COVARIANCE PREDICTION
+
+Only expression for the upper diagonal is provided. The values will need to be copied across to the lower diagnal elements assuming symmetry
+Process noise for time invariant states, eg Gyro bias, has not been included in the auto-code. The process noise variance for these states will 
+need to be added in a separate operation.
