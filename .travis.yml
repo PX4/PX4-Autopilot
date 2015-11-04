@@ -1,0 +1,9 @@
+language: cpp
+compiler:
+    - gcc
+
+script: mkdir build && cd build && cmake .. && ctest -V
+
+os:
+    - linux
+    - osx
