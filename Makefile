@@ -136,6 +136,9 @@ px4fmu-v2_simple:
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
 
+px4cannode-v1_default:
+	$(call cmake-build,nuttx_px4cannode-v1_default)
+
 nuttx_sim_simple:
 	$(call cmake-build,$@)
 

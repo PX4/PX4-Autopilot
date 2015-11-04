@@ -867,5 +867,33 @@ function(px4_copy_tracked)
 	set(${OUT} ${_files_out} PARENT_SCOPE)
 endfunction()
 
+#=============================================================================
+#
+#	px4_share_subdirectory
+#
+#	This function simplifes sharing a sub directory
+#
+#	Usage:
+#		px4_share_subdirectory(RELDIR <relative path> ARGS <args>)
+#
+#	Input:
+#		RELDIR	: The relitive path to share.
+#		ARGS		: Any optional arguments to pass to add_subdirectory
+#
+#	Output:
+#						: None
+#
+#	Example:
+#		px4_share_subdirectory(RELDIR ../uavcan/libuavcan  ARGS EXCLUDE_FROM_ALL)
+#
+function(px4_share_subdirectory)
+	px4_parse_function_args(
+		NAME px4_share_subdirectory
+		ONE_VALUE OUT RELDIR
+		MULTI_VALUE ARGS
+		REQUIRED RELDIR
+		ARGN ${ARGN})
+		add_subdirectory(${RELDIR} ${RELDIR}/${RELDIR} ${ARGS})
+endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:

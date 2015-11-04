@@ -313,6 +313,7 @@ function(px4_nuttx_add_romfs)
 		REQUIRED OUT ROOT
 		ARGN ${ARGN})
 
+	set(romfs_used y PARENT_SCOPE)
 	set(romfs_temp_dir ${CMAKE_BINARY_DIR}/tmp/${ROOT})
 	set(romfs_src_dir ${CMAKE_SOURCE_DIR}/${ROOT})
 	set(romfs_autostart ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
@@ -400,7 +401,6 @@ endfunction()
 #			INCLUDES <list>)
 #
 function(px4_os_add_flags)
-
 	set(inout_vars
 		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
 
@@ -444,7 +444,7 @@ function(px4_os_add_flags)
 	set(added_exe_linker_flags) # none currently
 
 	set(cpu_flags)
-	if (${BOARD} STREQUAL "px4fmu-v1")
+	if (${config_nuttx_hw} STREQUAL "m4")
 		set(cpu_flags
 			-mcpu=cortex-m4
 			-mthumb
@@ -452,29 +452,7 @@ function(px4_os_add_flags)
 			-mfpu=fpv4-sp-d16
 			-mfloat-abi=hard
 			)
-	elseif (${BOARD} STREQUAL "px4fmu-v2")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "aerocore")
-		set(cpu_flags
-			-mcpu=cortex-m4
-			-mthumb
-			-march=armv7e-m
-			-mfpu=fpv4-sp-d16
-			-mfloat-abi=hard
-			)
-	elseif (${BOARD} STREQUAL "px4io-v1")
-		set(cpu_flags
-			-mcpu=cortex-m3
-			-mthumb
-			-march=armv7-m
-			)
-	elseif (${BOARD} STREQUAL "px4io-v2")
+	elseif (${config_nuttx_hw} STREQUAL "m3")
 		set(cpu_flags
 			-mcpu=cortex-m3
 			-mthumb
@@ -526,6 +504,45 @@ function(px4_os_prebuild_targets)
 		THREADS ${THREADS}
 		DEPENDS git_nuttx)
 	add_custom_target(${OUT} DEPENDS nuttx_export_${BOARD})
+endfunction()
+
+#=============================================================================
+#
+#	px4_nuttx_configure
+#
+#	This function sets the nuttx configuration
+#
+#	Usage:
+#		px4_nuttx_configure(
+#	    HWCLASS <m3|m4>
+#		  CONFIG <nsh|bootloader
+#		  ROMFS <y|n>
+#			)
+#
+#	Input:
+#	  HWCLASS 		: the class of hardware
+#	  CONFIG : the nuttx condufiguration to use
+#	  ROMFS 	: Weather or not to use incllude theROMFS
+#
+#	Output:
+#		OUT	: None
+#
+#	Example:
+#		px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y)
+#
+function(px4_nuttx_configure)
+	px4_parse_function_args(
+			NAME px4_nuttx_configure
+			ONE_VALUE HWCLASS CONFIG ROMFS
+			REQUIRED HWCLASS CONFIG
+			ARGN ${ARGN})
+	set(config_nuttx_config ${CONFIG} PARENT_SCOPE)
+	set(config_nuttx_hw ${HWCLASS} PARENT_SCOPE)
+	if ("${ROMFS}" STREQUAL "y")
+		set(romfs_used ${ROMFS} PARENT_SCOPE)
+		set(HASROMFS "with ROMFS")
+	endif()
+	message(STATUS "Nuttx build for ${BOARD} on ${HWCLASS} hardware, using ${CONFIG} ${HASROMFS}")
 endfunction()
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:
