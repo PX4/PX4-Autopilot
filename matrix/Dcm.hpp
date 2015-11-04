@@ -22,41 +22,56 @@ template<typename Type>
 class Dcm : public Matrix<Type, 3, 3>
 {
 public:
-	virtual ~Dcm() {};
+    virtual ~Dcm() {};
 
-	typedef Matrix<Type, 3, 1> Vector3;
+    typedef Matrix<Type, 3, 1> Vector3;
 
-	Dcm() : Matrix<Type, 3, 3>()
-	{
-	}
+    Dcm() : Matrix<Type, 3, 3>()
+    {
+    }
 
-	Dcm(const Quaternion<Type> & q) {
-		// TODO
-		Dcm &c = *this;
-		c(0, 0) = 0;
-		c(0, 1) = 0;
-		c(0, 2) = 0;
-		c(1, 0) = 0;
-		c(1, 1) = 0;
-		c(1, 2) = 0;
-		c(2, 0) = 0;
-		c(2, 1) = 0;
-		c(2, 2) = 0;
-	}
+    Dcm(const Quaternion<Type> & q) {
+        Dcm &dcm = *this;
+        Type a = q(0);
+        Type b = q(1);
+        Type c = q(2);
+        Type d = q(3);
+        Type aSq = a*a;
+        Type bSq = b*b;
+        Type cSq = c*c;
+        Type dSq = d*d;
+        dcm(0, 0) = aSq + bSq - cSq - dSq;
+        dcm(0, 1) = 2 * (b * c - a * d);
+        dcm(0, 2) = 2 * (a * c + b * d);
+        dcm(1, 0) = 2 * (b * c + a * d);
+        dcm(1, 1) = aSq - bSq + cSq - dSq;
+        dcm(1, 2) = 2 * (c * d - a * b);
+        dcm(2, 0) = 2 * (b * d - a * c);
+        dcm(2, 1) = 2 * (a * b + c * d);
+        dcm(2, 2) = aSq - bSq - cSq + dSq;
+    }
 
-	Dcm(const Euler<Type> & e) {
-		// TODO
-		Dcm &c = *this;
-		c(0, 0) = 0;
-		c(0, 1) = 0;
-		c(0, 2) = 0;
-		c(1, 0) = 0;
-		c(1, 1) = 0;
-		c(1, 2) = 0;
-		c(2, 0) = 0;
-		c(2, 1) = 0;
-		c(2, 2) = 0;
-	}
+    Dcm(const Euler<Type> & euler) {
+        Dcm &dcm = *this;
+        Type cosPhi = cosf(euler.phi());
+        Type sinPhi = sinf(euler.phi());
+        Type cosThe = cosf(euler.theta());
+        Type sinThe = sinf(euler.theta());
+        Type cosPsi = cosf(euler.psi());
+        Type sinPsi = sinf(euler.psi());
+
+        dcm(0, 0) = cosThe * cosPsi;
+        dcm(0, 1) = -cosPhi * sinPsi + sinPhi * sinThe * cosPsi;
+        dcm(0, 2) = sinPhi * sinPsi + cosPhi * sinThe * cosPsi;
+
+        dcm(1, 0) = cosThe * sinPsi;
+        dcm(1, 1) = cosPhi * cosPsi + sinPhi * sinThe * sinPsi;
+        dcm(1, 2) = -sinPhi * cosPsi + cosPhi * sinThe * sinPsi;
+
+        dcm(2, 0) = -sinThe;
+        dcm(2, 1) = sinPhi * cosThe;
+        dcm(2, 2) = cosPhi * cosThe;
+    }
 };
 
 typedef Dcm<float> Dcmf;

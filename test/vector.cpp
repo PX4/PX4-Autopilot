@@ -6,8 +6,10 @@ using namespace matrix;
 
 int main()
 {
-	Vector<float, 5> v;
-	float n = v.norm();
-	float r = v.dot(v);
-	return 0;
+    Vector<float, 5> v;
+    float n = v.norm();
+    (void)n;
+    float r = v.dot(v);
+    (void)r;
+    return 0;
 }
