@@ -13,8 +13,12 @@ add_executable(firmware_nuttx
 set(nuttx_export_dir ${CMAKE_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
 
 set(link_libs
-	romfs apps nuttx m gcc
+		apps nuttx m gcc
 	)
+
+if("${romfs_used}" STREQUAL "y")
+	list(APPEND link_libs romfs)
+endif()
 
 if(NOT ${BOARD} STREQUAL "sim")
 	list(APPEND link_libs nosys)
