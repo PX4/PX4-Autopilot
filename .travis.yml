@@ -1,4 +1,5 @@
 language: c
+sudo: false
 script:
   - mkdir -p build
   - cd build
