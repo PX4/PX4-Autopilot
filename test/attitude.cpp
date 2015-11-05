@@ -96,22 +96,35 @@ int main()
     // euler gimbal lock check
     // note if theta = pi/2, then roll is set to zero
     float pi_2 = float(M_PI_2);
-    Eulerf euler_gimbal_lock(0.0f, pi_2, 0.0f);
+    Eulerf euler_gimbal_lock(0.1f, pi_2, 0.2f);
     Dcmf dcm_lock(euler_gimbal_lock);
     Eulerf euler_gimbal_lock_out(dcm_lock);
-    euler_gimbal_lock_out.print();
-    euler_gimbal_lock.print();
+    euler_gimbal_lock_out.T().print();
+    euler_gimbal_lock.T().print();
     assert(euler_gimbal_lock == euler_gimbal_lock_out);
 
     // note if theta = pi/2, then roll is set to zero
-    Eulerf euler_gimbal_lock2(0.0f, -pi_2, 0.0f);
+    Eulerf euler_gimbal_lock2(0.1f, -pi_2, 0.2f);
     Dcmf dcm_lock2(euler_gimbal_lock2);
     Eulerf euler_gimbal_lock_out2(dcm_lock2);
-    euler_gimbal_lock_out2.print();
-    euler_gimbal_lock2.print();
+    euler_gimbal_lock_out2.T().print();
+    euler_gimbal_lock2.T().print();
     assert(euler_gimbal_lock2 == euler_gimbal_lock_out2);
 
+    // quaterion copy ctors
+    float data_v4[] = {1, 2, 3, 4};
+    Vector<float, 4> v4(data_v4);
+    Quatf q_from_v(v4);
+    assert(q_from_v == v4);
 
-}
+    Matrix<float, 4, 1> m4(data_v4);
+    Quatf q_from_m(m4);
+    assert(q_from_m == m4);
+
+    // quaternion derivate
+    Vector<float, 4> q_dot = q.derivative(Vector3f(1, 2, 3));
+    printf("q_dot:\n");
+    q_dot.T().print();
+};
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
