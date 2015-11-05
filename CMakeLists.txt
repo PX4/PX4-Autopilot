@@ -20,9 +20,24 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 set(CMAKE_CXX_FLAGS
 	${CMAKE_CXX_FLAGS}
 	-Wall
-	-Weffc++
-	-Werror
+	-Wno-sign-compare
+	-Wextra
+	-Wshadow
+	-Wfloat-equal
+	-Wpointer-arith
+	-Wmissing-declarations
+	-Wno-unused-parameter
+	-Werror=format-security
+	-Werror=array-bounds
 	-Wfatal-errors
+	-Werror=unused-variable
+	-Werror=reorder
+	-Werror=uninitialized
+	-Werror=init-self
+	-Wcast-qual
+	-Wconversion
+	-Wcast-align
+	-Werror
 	)
 
 if (COVERALLS)

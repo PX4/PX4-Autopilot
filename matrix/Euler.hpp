@@ -30,33 +30,28 @@ public:
     {
     }
 
-    Euler(Type phi, Type theta, Type psi) : Vector<Type, 3>()
+    Euler(Type phi_, Type theta_, Type psi_) : Vector<Type, 3>()
     {
-        this->phi() = phi;
-        this->theta() = theta;
-        this->psi() = psi;
+        phi() = phi_;
+        theta() = theta_;
+        psi() = psi_;
     }
 
     Euler(const Dcm<Type> & dcm) {
-        Type theta = asin(-dcm(2, 0));
-        Type phi = 0;
-        Type psi = 0;
+        theta() = Type(asin(-dcm(2, 0)));
 
-        if (fabs(theta - M_PI_2) < 1.0e-3) {
-            psi = atan2(dcm(1, 2) - dcm(0, 1),
-                        dcm(0, 2) + dcm(1, 1));
+        if (fabs(theta() - M_PI_2) < 1.0e-3) {
+            psi() = Type(atan2(dcm(1, 2) - dcm(0, 1),
+                        dcm(0, 2) + dcm(1, 1)));
 
-        } else if (fabs(theta + M_PI_2) < 1.0e-3) {
-            psi = atan2(dcm(1, 2) - dcm(0, 1),
-                        dcm(0, 2) + dcm(1, 1));
+        } else if (fabs(theta() + M_PI_2) < 1.0e-3) {
+            psi() = Type(atan2(dcm(1, 2) - dcm(0, 1),
+                        dcm(0, 2) + dcm(1, 1)));
 
         } else {
-            phi = atan2f(dcm(2, 1), dcm(2, 2));
-            psi = atan2f(dcm(1, 0), dcm(0, 0));
+            phi() = Type(atan2f(dcm(2, 1), dcm(2, 2)));
+            psi() = Type(atan2f(dcm(1, 0), dcm(0, 0)));
         }
-        this->phi() = phi;
-        this->theta() = theta;
-        this->psi() = psi;
     }
 
     Euler(const Quaternion<Type> & q) {

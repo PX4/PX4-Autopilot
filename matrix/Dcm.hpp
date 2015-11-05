@@ -31,7 +31,7 @@ public:
         Matrix<Type, 3, 3>::setIdentity();
     }
 
-    Dcm(const Type *data) : Matrix<Type, 3, 3>(data)
+    Dcm(const Type *data_) : Matrix<Type, 3, 3>(data_)
     {
     }
 

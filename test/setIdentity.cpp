@@ -13,10 +13,10 @@ int main()
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             if (i == j) {
-                assert(A(i, j) == 1);
+                assert( fabs(A(i, j) -  1) < 1e-7);
 
             } else {
-                assert(A(i, j) == 0);
+                assert( fabs(A(i, j) -  0) < 1e-7);
             }
         }
     }

@@ -31,8 +31,8 @@ public:
     {
     }
 
-    SquareMatrix(const Type *data) :
-        Matrix<Type, M, M>(data)
+    SquareMatrix(const Type *data_) :
+        Matrix<Type, M, M>(data_)
     {
     }
 
@@ -181,7 +181,7 @@ public:
         SquareMatrix<float, M> res;
         res.setIdentity();
         SquareMatrix<float, M> A_pow = *this;
-        float k_fact = 1;
+        size_t k_fact = 1;
         size_t k = 1;
 
         while (k < n) {

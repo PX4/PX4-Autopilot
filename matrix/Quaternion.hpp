@@ -40,24 +40,24 @@ public:
         Vector<Type, 4>()
     {
         Quaternion &q = *this;
-        q(0) = 0.5 * sqrt(1 + dcm(0, 0) +
-                          dcm(1, 1) + dcm(2, 2));
-        q(1) = (dcm(2, 1) - dcm(1, 2)) /
-               (4 * q(0));
-        q(2) = (dcm(0, 2) - dcm(2, 0)) /
-               (4 * q(0));
-        q(3) = (dcm(1, 0) - dcm(0, 1)) /
-               (4 * q(0));
+        q(0) = Type(0.5 * sqrt(1 + dcm(0, 0) +
+                          dcm(1, 1) + dcm(2, 2)));
+        q(1) = Type((dcm(2, 1) - dcm(1, 2)) /
+               (4 * q(0)));
+        q(2) = Type((dcm(0, 2) - dcm(2, 0)) /
+               (4 * q(0)));
+        q(3) = Type((dcm(1, 0) - dcm(0, 1)) /
+               (4 * q(0)));
     }
 
     Quaternion(const Euler<Type> & euler) {
         Quaternion &q = *this;
-        Type cosPhi_2 = cos(euler.phi() / 2.0);
-        Type cosTheta_2 = cos(euler.theta() / 2.0);
-        Type cosPsi_2 = cos(euler.psi() / 2.0);
-        Type sinPhi_2 = sin(euler.phi() / 2.0);
-        Type sinTheta_2 = sin(euler.theta() / 2.0);
-        Type sinPsi_2 = sin(euler.psi() / 2.0);
+        Type cosPhi_2 = Type(cos(euler.phi() / 2.0));
+        Type cosTheta_2 = Type(cos(euler.theta() / 2.0));
+        Type cosPsi_2 = Type(cos(euler.psi() / 2.0));
+        Type sinPhi_2 = Type(sin(euler.phi() / 2.0));
+        Type sinTheta_2 = Type(sin(euler.theta() / 2.0));
+        Type sinPsi_2 = Type(sin(euler.psi() / 2.0));
         q(0) = cosPhi_2 * cosTheta_2 * cosPsi_2 +
                sinPhi_2 * sinTheta_2 * sinPsi_2;
         q(1) = sinPhi_2 * cosTheta_2 * cosPsi_2 -
@@ -102,7 +102,7 @@ public:
         v(1) = w(0);
         v(2) = w(1);
         v(3) = w(2);
-        return Q * v * 0.5;
+        return Q * v * Type(0.5);
     }
 };
 

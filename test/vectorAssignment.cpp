@@ -14,17 +14,19 @@ int main()
 
     v.print();
 
-    assert(v(0) == 1);
-    assert(v(1) == 2);
-    assert(v(2) == 3);
+    static const float eps = 1e-7f;
+
+    assert(fabs(v(0) - 1) < eps);
+    assert(fabs(v(1) - 2) < eps);
+    assert(fabs(v(2) - 3) < eps);
 
     Vector3f v2(4, 5, 6);
 
     v2.print();
 
-    assert(v2(0) == 4);
-    assert(v2(1) == 5);
-    assert(v2(2) == 6);
+    assert(fabs(v2(0) - 4) < eps);
+    assert(fabs(v2(1) - 5) < eps);
+    assert(fabs(v2(2) - 6) < eps);
 
     return 0;
 }

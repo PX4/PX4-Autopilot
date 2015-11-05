@@ -58,7 +58,7 @@ public:
 
     Type norm() const {
         const Vector &a(*this);
-        return sqrt(a.dot(a));
+        return Type(sqrt(a.dot(a)));
     }
 
     inline void normalize() {
@@ -79,20 +79,6 @@ public:
         }
 
         return res;
-    }
-
-    bool operator==(const Vector<Type, M> &other) const
-    {
-        Vector<Type, M> res;
-        const Vector<Type, M> &self = *this;
-
-        for (size_t i = 0; i < M; i++) {
-            if (self(i) != other(i)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     Vector<Type, M> operator-(const Vector<Type, M> &other) const

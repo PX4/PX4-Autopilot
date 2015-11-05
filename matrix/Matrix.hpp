@@ -38,10 +38,10 @@ public:
     {
     }
 
-    Matrix(const Type *data) :
+    Matrix(const Type *data_) :
         _data()
     {
-        memcpy(_data, data, sizeof(_data));
+        memcpy(_data, data_, sizeof(_data));
     }
 
     Matrix(const Matrix &other) :
@@ -113,10 +113,11 @@ public:
     {
         Matrix<Type, M, N> res;
         const Matrix<Type, M, N> &self = *this;
+        static const Type eps = Type(1e-7);
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                if (self(i , j) != other(i, j)) {
+                if (fabs(self(i , j) - other(i, j)) > eps) {
                     return false;
                 }
             }
@@ -298,7 +299,7 @@ public:
         Matrix<Type, M, N> r;
         for (int i=0; i<M; i++) {
             for (int j=0; j<M; j++) {
-                r(i,j) = fabs((*this)(i,j));
+                r(i,j) = Type(fabs((*this)(i,j)));
             }
         }
         return r;
@@ -306,30 +307,30 @@ public:
 
     Type max()
     {
-        Type max = (*this)(0,0);
+        Type max_val = (*this)(0,0);
         for (int i=0; i<M; i++) {
             for (int j=0; j<M; j++) {
                 Type val = (*this)(i,j);
-                if (val > max) {
-                    max = val;
+                if (val > max_val) {
+                    max_val = val;
                 }
             }
         }
-        return max;
+        return max_val;
     }
 
     Type min()
     {
-        Type min = (*this)(0,0);
+        Type min_val = (*this)(0,0);
         for (int i=0; i<M; i++) {
             for (int j=0; j<M; j++) {
                 Type val = (*this)(i,j);
-                if (val < min) {
-                    min = val;
+                if (val < min_val) {
+                    min_val = val;
                 }
             }
         }
-        return min;
+        return min_val;
     }
 
 };
