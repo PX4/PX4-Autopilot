@@ -47,18 +47,22 @@ public:
         return v(i, 0);
     }
 
-    Type dot(const Vector & b) {
-        Vector &a(*this);
+    Type dot(const Vector & b) const {
+        const Vector &a(*this);
         Type r = 0;
-        for (int i = 0; i<3; i++) {
+        for (int i = 0; i<M; i++) {
             r += a(i)*b(i);
         }
         return r;
     }
 
-    Type norm() {
-        Vector &a(*this);
+    Type norm() const {
+        const Vector &a(*this);
         return sqrt(a.dot(a));
+    }
+
+    inline void normalize() {
+        (*this) /= norm();
     }
 
     /**
@@ -129,6 +133,11 @@ public:
         }
 
         return res;
+    }
+
+    Vector<Type, M> operator/(Type scalar) const
+    {
+        return (*this)*(1.0/scalar);
     }
 
     Vector<Type, M> operator+(Type scalar) const

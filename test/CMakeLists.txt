@@ -6,11 +6,9 @@ set(tests
 	matrixAssignment
 	matrixScalarMult
 	transpose
-	quaternion
-	dcm
 	vector
 	vector3
-	euler
+	attitude
 	filter
 	)
 

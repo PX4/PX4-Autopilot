@@ -31,6 +31,14 @@ public:
         Matrix<Type, 3, 3>::setIdentity();
     }
 
+    Dcm(const Type *data) : Matrix<Type, 3, 3>(data)
+    {
+    }
+
+    Dcm(const Matrix<Type, 3, 3> &other) : Matrix<Type, 3, 3>(other)
+    {
+    }
+
     Dcm(const Quaternion<Type> & q) {
         Dcm &dcm = *this;
         Type a = q(0);

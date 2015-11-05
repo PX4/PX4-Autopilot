@@ -42,11 +42,11 @@ public:
         Type phi = 0;
         Type psi = 0;
 
-        if (abs(theta - M_PI_2) < 1.0e-3) {
+        if (fabs(theta - M_PI_2) < 1.0e-3) {
             psi = atan2(dcm(1, 2) - dcm(0, 1),
                         dcm(0, 2) + dcm(1, 1));
 
-        } else if (abs(theta + M_PI_2) < 1.0e-3) {
+        } else if (fabs(theta + M_PI_2) < 1.0e-3) {
             psi = atan2(dcm(1, 2) - dcm(0, 1),
                         dcm(0, 2) + dcm(1, 1));
 

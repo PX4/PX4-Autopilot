@@ -293,6 +293,45 @@ public:
         }
     }
 
+    Matrix<Type, M, N> abs()
+    {
+        Matrix<Type, M, N> r;
+        for (int i=0; i<M; i++) {
+            for (int j=0; j<M; j++) {
+                r(i,j) = fabs((*this)(i,j));
+            }
+        }
+        return r;
+    }
+
+    Type max()
+    {
+        Type max = (*this)(0,0);
+        for (int i=0; i<M; i++) {
+            for (int j=0; j<M; j++) {
+                Type val = (*this)(i,j);
+                if (val > max) {
+                    max = val;
+                }
+            }
+        }
+        return max;
+    }
+
+    Type min()
+    {
+        Type min = (*this)(0,0);
+        for (int i=0; i<M; i++) {
+            for (int j=0; j<M; j++) {
+                Type val = (*this)(i,j);
+                if (val < min) {
+                    min = val;
+                }
+            }
+        }
+        return min;
+    }
+
 };
 
 template<typename Type, size_t M, size_t N>
