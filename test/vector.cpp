@@ -9,15 +9,12 @@ template class Vector<float, 5>;
 
 int main()
 {
-    Vector<float, 5> v;
-    float n = v.norm();
-    (void)n;
-    float r = v.dot(v);
-    (void)r;
-
-    Vector<float, 5> v2(v);
-    assert(v == v2);
-
+    float data1[] = {1,2,3,4,5};
+    float data2[] = {6,7,8,9,10};
+    Vector<float, 5> v1(data1);
+    assert(fabs(v1.norm() - 7.416198487095663f) < 1e-5);
+    Vector<float, 5> v2(data2);
+    assert(fabs(v1.dot(v2) - 130.0f) < 1e-5);
     return 0;
 }
 
