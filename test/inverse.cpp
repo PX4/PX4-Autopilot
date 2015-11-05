@@ -14,10 +14,12 @@ int main()
 {
     float data[9] = {1, 2, 3,
                      4, 5, 6,
-                     7, 8, 10};
+                     7, 8, 10
+                    };
     float data_check[9] = {-0.66666667f, -1.33333333f,  1.        ,
                            -0.66666667f,  3.66666667f, -2.        ,
-                            1.        , -2.        ,  1.        };
+                           1.        , -2.        ,  1.
+                          };
 
     SquareMatrix<float, 3> A(data);
     SquareMatrix<float, 3> A_I = inv(A);

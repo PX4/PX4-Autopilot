@@ -11,7 +11,8 @@ int main()
 {
     float data[9] = {1, 2, 3,
                      4, 5, 6,
-                     7, 8, 10};
+                     7, 8, 10
+                    };
     SquareMatrix<float, 3> A(data);
     Vector3<float> diag_check(1, 5, 10);
     A.diag().T().print();
@@ -21,7 +22,8 @@ int main()
     float data_check[9] = {
         1.01158503f,  0.02190432f,  0.03238144f,
         0.04349195f,  1.05428524f,  0.06539627f,
-        0.07576783f,  0.08708946f,  1.10894048f};
+        0.07576783f,  0.08708946f,  1.10894048f
+    };
 
     printf("expm(A*t)\n");
     float dt = 0.01f;
