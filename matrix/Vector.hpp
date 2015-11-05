@@ -123,7 +123,7 @@ public:
 
     Vector<Type, M> operator/(Type scalar) const
     {
-        return (*this)*(1.0/scalar);
+        return (*this)*(Type(1.0)/scalar);
     }
 
     Vector<Type, M> operator+(Type scalar) const
