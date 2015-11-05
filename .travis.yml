@@ -3,7 +3,7 @@ sudo: false
 script:
   - mkdir -p build
   - cd build
-  - cmake -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON -DCMAKE_BUILD_TYPE=Debug ..
+  - cmake -DCOVERAGE=ON -DCOVERALLS_UPLOAD=ON -DCMAKE_BUILD_TYPE=Debug ..
   - make
   - make check_format
   - ctest

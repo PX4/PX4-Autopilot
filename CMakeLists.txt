@@ -6,7 +6,7 @@ set(VERSION_PATCH "0")
 
 project(matrix CXX)
 
-option(COVERALLS "Turn on coveralls support" OFF)
+option(COVERAGE "Enable code coverage" OFF)
 option(COVERALLS_UPLOAD "Upload the generated coveralls json" OFF)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -40,7 +40,7 @@ set(CMAKE_CXX_FLAGS
 	#-Werror
 	)
 
-if (COVERALLS)
+if (COVERAGE)
 	list(APPEND CMAKE_CXX_FLAGS
 		-fno-inline
 		-fno-inline-small-functions
