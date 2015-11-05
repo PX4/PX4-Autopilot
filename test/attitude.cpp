@@ -33,6 +33,14 @@ int main()
     assert(e == e_zero);
     assert(e == e);
 
+    // euler vector ctor
+    Vector<float, 3> v;
+    v(0) = 0.1f;
+    v(1) = 0.2f;
+    v(2) = 0.3f;
+    Eulerf euler_copy(v);
+    assert(euler_copy == euler_check);
+
     // quaternion ctor
     Quatf q(1, 2, 3, 4);
     assert(fabs(q(0) - 1) < eps);
@@ -83,6 +91,26 @@ int main()
     // dcm to quaterion
     Quatf q2(dcm_check);
     assert(q2 == q_check);
+
+
+    // euler gimbal lock check
+    // note if theta = pi/2, then roll is set to zero
+    float pi_2 = float(M_PI_2);
+    Eulerf euler_gimbal_lock(0.0f, pi_2, 0.0f);
+    Dcmf dcm_lock(euler_gimbal_lock);
+    Eulerf euler_gimbal_lock_out(dcm_lock);
+    euler_gimbal_lock_out.print();
+    euler_gimbal_lock.print();
+    assert(euler_gimbal_lock == euler_gimbal_lock_out);
+
+    // note if theta = pi/2, then roll is set to zero
+    Eulerf euler_gimbal_lock2(0.0f, -pi_2, 0.0f);
+    Dcmf dcm_lock2(euler_gimbal_lock2);
+    Eulerf euler_gimbal_lock_out2(dcm_lock2);
+    euler_gimbal_lock_out2.print();
+    euler_gimbal_lock2.print();
+    assert(euler_gimbal_lock2 == euler_gimbal_lock_out2);
+
 
 }
 

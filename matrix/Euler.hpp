@@ -49,19 +49,22 @@ public:
 
     Euler(const Dcm<Type> & dcm) : Vector<Type, 3>()
     {
-        theta() = Type(asin(-dcm(2, 0)));
+        Type psi_val = Type(atan(dcm(1, 0)/ dcm(0, 0)));
+        Type theta_val = Type(asin(-dcm(2,0)));
+        Type phi_val = Type(atan(dcm(2, 1)/ dcm(2, 2)));
 
-        if (fabs(theta() - M_PI_2) < 1.0e-3) {
-            psi() = Type(atan2(dcm(1, 2) - dcm(0, 1),
-                               dcm(0, 2) + dcm(1, 1)));
-
-        } else if (fabs(theta() + M_PI_2) < 1.0e-3) {
-            psi() = Type(atan2(dcm(1, 2) - dcm(0, 1),
-                               dcm(0, 2) + dcm(1, 1)));
-
-        } else {
-            phi() = Type(atan2f(dcm(2, 1), dcm(2, 2)));
-            psi() = Type(atan2f(dcm(1, 0), dcm(0, 0)));
+        // protection against gimbal lock
+        psi() = 0;
+        theta() = 0;
+        phi() = 0;
+        if (isfinite(psi_val)) {
+            psi() = psi_val;
+        }
+        if (isfinite(theta_val)) {
+            theta() = theta_val;
+        }
+        if (isfinite(phi_val)) {
+            phi() = phi_val;
         }
     }
 

@@ -215,9 +215,9 @@ public:
      * Misc. Functions
      */
 
-    void print()
+    void print() const
     {
-        Matrix<Type, M, N> &self = *this;
+        const Matrix<Type, M, N> &self = *this;
         printf("\n");
 
         for (size_t i = 0; i < M; i++) {
