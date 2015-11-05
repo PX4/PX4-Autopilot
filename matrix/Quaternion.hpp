@@ -1,5 +1,5 @@
 /**
- * @file Matrix.hpp
+ * @file Quaternion.hpp
  *
  * A quaternion class.
  *
