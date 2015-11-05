@@ -7,10 +7,10 @@ format_wildcards="""
 ./test/*.*pp
 """
 
-echo astyle: $astyle
-echo format: $format
+#echo astyle: $astyle
+#echo format: $format
 
-if [[ $format ]] 
+if [[ $format -eq 1 ]]
 then
 	echo formatting
 	$astyle ${format_wildcards}
@@ -22,4 +22,6 @@ else
 		echo need to format
 		exit 1
 	fi
+	echo no formatting needed
+	exit 0
 fi
