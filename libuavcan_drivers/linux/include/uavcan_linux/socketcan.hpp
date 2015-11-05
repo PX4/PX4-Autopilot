@@ -321,7 +321,7 @@ public:
      *
      * @ref max_frames_in_socket_tx_queue       See a note in the class comment.
      */
-    SocketCanIface(const SystemClock& clock, int socket_fd, int max_frames_in_socket_tx_queue = 3)
+    SocketCanIface(const SystemClock& clock, int socket_fd, int max_frames_in_socket_tx_queue = 2)
         : clock_(clock)
         , fd_(socket_fd)
         , max_frames_in_socket_tx_queue_(max_frames_in_socket_tx_queue)
