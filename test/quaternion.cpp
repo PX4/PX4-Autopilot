@@ -18,6 +18,12 @@ int main()
     assert(q(2) == 0);
     assert(q(3) == 0);
 
+    q = Quatf(1,2,3,4);
+    assert(q(0) == 1);
+    assert(q(1) == 2);
+    assert(q(2) == 3);
+    assert(q(3) == 4);
+
     q = Quatf(0.1825742f, 0.3651484f, 0.5477226f, 0.7302967f);
     assert(q(0) == 0.1825742f);
     assert(q(1) == 0.3651484f);

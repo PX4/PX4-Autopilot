@@ -209,6 +209,15 @@ SquareMatrix<Type, M> eye() {
     return m;
 }
 
+template<typename Type, size_t M>
+SquareMatrix<Type, M> diag(Vector<Type, M> d) {
+    SquareMatrix<Type, M> m;
+    for (size_t i=0; i<M; i++) {
+        m(i,i) = d(i);
+    }
+    return m;
+}
+
 }; // namespace matrix
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

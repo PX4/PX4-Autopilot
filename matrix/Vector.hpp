@@ -25,6 +25,16 @@ public:
     {
     }
 
+    Vector(const Vector<Type, M> & other) :
+        Matrix<Type, M, 1>(other)
+    {
+    }
+
+    Vector(const Matrix<Type, M, 1> & other) :
+        Matrix<Type, M, 1>(other)
+    {
+    }
+
     inline Type operator()(size_t i) const
     {
         const Matrix<Type, M, 1> &v = *this;

@@ -11,6 +11,7 @@ set(tests
 	vector
 	vector3
 	euler
+	filter
 	)
 
 foreach(test ${tests})
