@@ -20,7 +20,7 @@ int main()
                             1.        , -2.        ,  1.        };
 
     SquareMatrix<float, 3> A(data);
-    SquareMatrix<float, 3> A_I = A.inverse();
+    SquareMatrix<float, 3> A_I = inv(A);
     SquareMatrix<float, 3> A_I_check(data_check);
     A_I.print();
     A_I_check.print();
@@ -33,7 +33,7 @@ int main()
     A_large_I.setZero();
 
     for (size_t i = 0; i < n_large; i++) {
-        A_large_I = A_large.inverse();
+        A_large_I = inv(A_large);
         assert(A_large == A_large_I);
     }
 
