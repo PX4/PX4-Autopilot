@@ -22,6 +22,7 @@ set(CMAKE_CXX_FLAGS
 	-Wall
 	-Weffc++
 	-Werror
+	-std=c++11
 	#-Wfatal-errors
 	)
 
