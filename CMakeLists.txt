@@ -52,7 +52,7 @@ if (COVERALLS)
 	add_custom_target(coverage
 		COMMAND lcov --capture --directory . --output-file coverage.info
 		COMMAND genhtml coverage.info --output-directory out
-		COMMAND firefox out/index.html
+		COMMAND x-www-browser out/index.html
 		WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
 		DEPENDS coveralls
 		)

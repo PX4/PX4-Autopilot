@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "filter.hpp"
+#include "matrix.hpp"
 
 using namespace matrix;
 

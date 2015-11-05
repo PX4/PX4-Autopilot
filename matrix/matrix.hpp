@@ -7,3 +7,5 @@
 #include "Euler.hpp"
 #include "Dcm.hpp"
 #include "Scalar.hpp"
+
+#include "filter.hpp"
