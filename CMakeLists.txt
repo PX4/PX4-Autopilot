@@ -29,7 +29,7 @@ set(CMAKE_CXX_FLAGS
 	-Wno-unused-parameter
 	-Werror=format-security
 	-Werror=array-bounds
-	-Wfatal-errors
+	#-Wfatal-errors
 	-Werror=unused-variable
 	-Werror=reorder
 	-Werror=uninitialized
@@ -37,7 +37,7 @@ set(CMAKE_CXX_FLAGS
 	-Wcast-qual
 	-Wconversion
 	-Wcast-align
-	-Werror
+	#-Werror
 	)
 
 if (COVERALLS)

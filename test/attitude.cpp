@@ -1,8 +1,6 @@
 #include <cassert>
 #include <cstdio>
 
-#include "Quaternion.hpp"
-#include "Vector3.hpp"
 #include "matrix.hpp"
 
 using namespace matrix;
@@ -27,7 +25,13 @@ int main()
 
     // euler ctor
     euler_check.T().print();
-    assert((euler_check - Vector3f(0.1f, 0.2f, 0.3f)).norm() < eps);
+    assert(euler_check == Vector3f(0.1f, 0.2f, 0.3f));
+
+    // euler default ctor
+    Eulerf e;
+    Eulerf e_zero = zero<float, 3, 1>();
+    assert(e == e_zero);
+    assert(e == e);
 
     // quaternion ctor
     Quatf q(1, 2, 3, 4);
@@ -36,38 +40,49 @@ int main()
     assert(fabs(q(2) - 3) < eps);
     assert(fabs(q(3) - 4) < eps);
 
+    // quat normalization
     q.T().print();
     q.normalize();
     q.T().print();
-    assert((q - Quatf(
-                0.18257419f,  0.36514837f,  0.54772256f,  0.73029674f)
-           ).norm() < eps);
+    assert(q == Quatf(0.18257419f,  0.36514837f,
+                0.54772256f,  0.73029674f));
+
+    // quat default ctor
+    q = Quatf();
+    assert(q == Quatf(1, 0, 0, 0));
 
     // euler to quaternion
     q = Quatf(euler_check);
     q.T().print();
-    assert((q - q_check).norm() < eps);
+    assert(q == q_check);
 
     // euler to dcm
     Dcmf dcm(euler_check);
     dcm.print();
-    assert((dcm - dcm_check).abs().max() < eps);
+    assert(dcm == dcm_check);
 
     // quaternion to euler
     Eulerf e1(q_check);
-    assert((e1 - euler_check).norm() < eps);
+    assert(e1 == euler_check);
 
     // quaternion to dcm
     Dcmf dcm1(q_check);
-    assert((dcm1 - dcm_check).abs().max() < eps);
+    dcm1.print();
+    assert(dcm1 == dcm_check);
+
+    // dcm default ctor
+    Dcmf dcm2;
+    dcm2.print();
+    SquareMatrix<float, 3> I = eye<float, 3>();
+    assert(dcm2 == I);
 
     // dcm to euler
     Eulerf e2(dcm_check);
-    assert((e2 - euler_check).norm() < eps);
+    assert(e2 == euler_check);
 
     // dcm to quaterion
     Quatf q2(dcm_check);
-    assert((q2 - q_check).norm() < eps);
+    assert(q2 == q_check);
 
 }
 

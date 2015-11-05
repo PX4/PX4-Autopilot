@@ -8,15 +8,17 @@
 
 #pragma once
 
-#include <Matrix.hpp>
-#include <Quaternion.hpp>
-#include <Euler.hpp>
+#include "matrix.hpp"
+
 
 namespace matrix
 {
 
 template<typename Type>
 class Quaternion;
+
+template<typename Type>
+class Euler;
 
 template<typename Type>
 class Dcm : public Matrix<Type, 3, 3>
@@ -28,7 +30,7 @@ public:
 
     Dcm() : Matrix<Type, 3, 3>()
     {
-        Matrix<Type, 3, 3>::setIdentity();
+        (*this) = eye<Type, 3>();
     }
 
     Dcm(const Type *data_) : Matrix<Type, 3, 3>(data_)

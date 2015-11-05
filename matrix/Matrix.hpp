@@ -26,10 +26,9 @@ template<typename Type, size_t  M, size_t N>
 class Matrix
 {
 
-protected:
-    Type _data[M][N];
-
 public:
+
+    Type _data[M][N];
 
     virtual ~Matrix() {};
 
@@ -111,9 +110,8 @@ public:
 
     bool operator==(const Matrix<Type, M, N> &other) const
     {
-        Matrix<Type, M, N> res;
         const Matrix<Type, M, N> &self = *this;
-        static const Type eps = Type(1e-7);
+        static const Type eps = Type(1e-6);
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
@@ -336,7 +334,7 @@ public:
 };
 
 template<typename Type, size_t M, size_t N>
-Matrix<Type, M, N> & zero() {
+Matrix<Type, M, N> zero() {
     Matrix<Type, M, N> m;
     m.setZero();
     return m;

@@ -30,6 +30,16 @@ public:
     {
     }
 
+    Euler(const Vector<Type, 3> & other) :
+        Vector<Type, 3>(other)
+    {
+    }
+
+    Euler(const Matrix<Type, 3, 1> & other) :
+        Vector<Type, 3>(other)
+    {
+    }
+
     Euler(Type phi_, Type theta_, Type psi_) : Vector<Type, 3>()
     {
         phi() = phi_;
@@ -37,7 +47,8 @@ public:
         psi() = psi_;
     }
 
-    Euler(const Dcm<Type> & dcm) {
+    Euler(const Dcm<Type> & dcm) : Vector<Type, 3>()
+    {
         theta() = Type(asin(-dcm(2, 0)));
 
         if (fabs(theta() - M_PI_2) < 1.0e-3) {
@@ -54,7 +65,9 @@ public:
         }
     }
 
-    Euler(const Quaternion<Type> & q) {
+    Euler(const Quaternion<Type> & q) :
+        Vector<Type, 3>()
+    {
         *this = Euler(Dcm<Type>(q));
     }
 

@@ -36,6 +36,16 @@ public:
         q(3) = 0;
     }
 
+    Quaternion(const Vector<Type, 4> & other) :
+        Vector<Type, 4>(other)
+    {
+    }
+
+    Quaternion(const Matrix<Type, 4, 1> & other) :
+        Vector<Type, 4>(other)
+    {
+    }
+
     Quaternion(const Dcm<Type> & dcm) :
         Vector<Type, 4>()
     {
@@ -50,7 +60,9 @@ public:
                     (4 * q(0)));
     }
 
-    Quaternion(const Euler<Type> & euler) {
+    Quaternion(const Euler<Type> & euler) :
+        Vector<Type, 4>()
+    {
         Quaternion &q = *this;
         Type cosPhi_2 = Type(cos(euler.phi() / 2.0));
         Type cosTheta_2 = Type(cos(euler.theta() / 2.0));
@@ -68,7 +80,8 @@ public:
                sinPhi_2 * sinTheta_2 * cosPsi_2;
     }
 
-    Quaternion(Type a, Type b, Type c, Type d) : Vector<Type, 4>()
+    Quaternion(Type a, Type b, Type c, Type d) :
+        Vector<Type, 4>()
     {
         Quaternion &q = *this;
         q(0) = a;
