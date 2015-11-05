@@ -23,7 +23,7 @@ Options:
       8 - 1   Mbps (UAVCAN recommended, default)
 
 Example:
-    $0 /dev/ttyUSB3 /dev/ttyUSB0 -s4 /dev/ttyACM0
+    `basename $0` /dev/ttyUSB3 /dev/ttyUSB0 -s4 /dev/ttyACM0
 The example above initializes:
     /dev/ttyUSB3 --> slcan0 @ 1Mbps
     /dev/ttyUSB0 --> slcan1 @ 1Mbps

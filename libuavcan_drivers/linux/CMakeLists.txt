@@ -12,6 +12,13 @@ project(libuavcan_linux)
 install(DIRECTORY include/uavcan_linux DESTINATION include)
 
 #
+# Scripts
+#
+install(DIRECTORY scripts/
+        USE_SOURCE_PERMISSIONS
+        DESTINATION bin)
+
+#
 # System dependecies 
 #
 find_package(Threads REQUIRED)
