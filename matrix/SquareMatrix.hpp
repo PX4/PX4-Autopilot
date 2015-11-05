@@ -36,7 +36,7 @@ public:
     {
     }
 
-    SquareMatrix(const Matrix<float, M, M> &other) :
+    SquareMatrix(const Matrix<Type, M, M> &other) :
         Matrix<Type, M, M>(other)
     {
     }
@@ -176,16 +176,16 @@ public:
         return res;
     }
 
-    SquareMatrix<Type, M> expm(float dt, size_t n) const
+    SquareMatrix<Type, M> expm(Type dt, size_t n) const
     {
-        SquareMatrix<float, M> res;
+        SquareMatrix<Type, M> res;
         res.setIdentity();
-        SquareMatrix<float, M> A_pow = *this;
+        SquareMatrix<Type, M> A_pow = *this;
         size_t k_fact = 1;
         size_t k = 1;
 
         while (k < n) {
-            res += A_pow * (float(pow(dt, k)) / k_fact);
+            res += A_pow * (Type(pow(dt, k)) / k_fact);
 
             if (k == n) {
                 break;
