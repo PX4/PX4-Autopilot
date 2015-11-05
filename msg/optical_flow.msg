@@ -1,7 +1,7 @@
 # Optical flow in NED body frame in SI units.
 # @see http://en.wikipedia.org/wiki/International_System_of_Units
  
-uint64 timestamp		# in microseconds since system start
+# timestamp (uint64,  in microseconds since system start) will be generated automatically
 uint8 sensor_id			# id of the sensor emitting the flow value
 float32 pixel_flow_x_integral	# accumulated optical flow in radians around x axis
 float32 pixel_flow_y_integral	# accumulated optical flow in radians around y axis

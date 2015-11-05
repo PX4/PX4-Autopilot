@@ -1,5 +1,5 @@
 
-uint64 timestamp				# in microseconds since system start
+# timestamp (uint64,  in microseconds since system start) will be generated automatically
 						# is set whenever the writing thread stores new data
 
 bool flag_armed

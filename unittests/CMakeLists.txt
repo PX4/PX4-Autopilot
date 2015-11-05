@@ -161,11 +161,13 @@ target_link_libraries( sf0x_test px4_platform )
 add_gtest(sf0x_test)
 
 # param_test
+file(GLOB PX_TOPICS_SRCS ${CMAKE_SOURCE_DIR}/../Build/topics_sources/*.cpp)
 add_executable(param_test param_test.cpp
                           hrt.cpp
                           uorb_stub.cpp
                           ${PX_SRC}/modules/systemlib/param/param.c
                           ${PX_SRC}/modules/systemlib/bson/tinybson.c
+                          ${PX_TOPICS_SRCS}
                           )
 target_link_libraries( param_test px4_platform )                          
                           
@@ -177,9 +179,9 @@ add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp
                           uorb_unittests/uORBCommunicatorMockLoopback.cpp
                           ${PX_SRC}/modules/uORB/uORBDevices_posix.cpp
                           ${PX_SRC}/modules/uORB/uORBManager_posix.cpp
-                          ${PX_SRC}/modules/uORB/objects_common.cpp
                           ${PX_SRC}/modules/uORB/uORBUtils.cpp
                           ${PX_SRC}/modules/uORB/uORB.cpp
+                          ${PX_TOPICS_SRCS}
                           )
 target_link_libraries( uorb_tests px4_platform )
                           

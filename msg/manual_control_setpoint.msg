@@ -3,7 +3,7 @@ uint8 SWITCH_POS_NONE = 0		# switch is not mapped
 uint8 SWITCH_POS_ON = 1			# switch activated (value = 1)
 uint8 SWITCH_POS_MIDDLE = 2		# middle position (value = 0)
 uint8 SWITCH_POS_OFF = 3		# switch not activated (value = -1)
-uint64 timestamp
+# timestamp for the topic will be generated automatically
 
 # Any of the channels may not be available and be set to NaN
 # to indicate that it does not contain valid data.

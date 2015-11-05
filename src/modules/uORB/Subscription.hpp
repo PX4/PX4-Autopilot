@@ -183,6 +183,10 @@ public:
 	 */
 	void update();
 
+	/**
+	 * Create an update function that uses the embedded struct.
+	 */
+	bool check_updated();
 	/*
 	 * This function gets the T struct data
 	 * */

@@ -52,7 +52,9 @@
 struct orb_metadata {
 	const char *o_name;		/**< unique object name */
 	const size_t o_size;		/**< object size */
+	const char *o_fields;		/**< semicolon separated list of fields */
 };
+
 
 typedef const struct orb_metadata *orb_id_t;
 
@@ -110,11 +112,13 @@ enum ORB_PRIO {
  *
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
+ * @param _func		The pointer to a function that packs topic
  */
-#define ORB_DEFINE(_name, _struct)			\
+#define ORB_DEFINE(_name, _struct, _fields)			\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
-		sizeof(_struct)				\
+		sizeof(_struct),				\
+		_fields				\
 	}; struct hack
 
 __BEGIN_DECLS

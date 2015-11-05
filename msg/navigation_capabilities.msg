@@ -1,4 +1,4 @@
-uint64 timestamp		# timestamp this topic was emitted
+# timestamp (uint64,  timestamp this topic was emitted) will be generated automatically
 float32 turn_distance		# the optimal distance to a waypoint to switch to the next
 float32 landing_horizontal_slope_displacement
 float32 landing_slope_angle_rad

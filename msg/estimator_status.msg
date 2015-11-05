@@ -1,4 +1,4 @@
-uint64 timestamp		# Timestamp in microseconds since boot
+# timestamp (uint64,  Timestamp in microseconds since boot) will be generated automatically
 float32[32] states		# Internal filter states
 float32 n_states		# Number of states effectively used
 uint8 nan_flags			# Bitmask to indicate NaN states

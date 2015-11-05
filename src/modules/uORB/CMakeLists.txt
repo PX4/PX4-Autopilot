@@ -37,7 +37,7 @@ include_directories(
 	)
 
 set(SRCS
-	objects_common.cpp
+    # TODO: add auto-generated topics sources
 	uORBUtils.cpp
 	uORB.cpp
 	uORBMain.cpp
@@ -69,6 +69,10 @@ elseif(${OS} STREQUAL "qurt")
 		uORBManager_posix.cpp
 		)
 endif()
+
+# add generated sources
+file(GLOB_RECURSE GENERATED_SRCS ${CMAKE_BINARY_DIR}/topics_sources/*.cpp)
+list(APPEND SRCS ${GENERATED_SRCS})
 
 px4_add_module(
 	MODULE modules__uORB
