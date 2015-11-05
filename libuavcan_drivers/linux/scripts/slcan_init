@@ -1,0 +1,87 @@
+#!/bin/bash
+#
+# Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@zubax.com>
+#
+
+HELP="Register slcan-enabled Serial-to-CAN adapters as network interfaces.
+Usage:
+    `basename $0` [options] <tty0> [[options] <tty1> ...]
+First device will be mapped to the interface slcan0, second will be mapped to
+slcan1, and so on. Keep in mind that the effect of this script is not
+additive, i.e. all existing slcan interfaces will be removed and replaced with
+new ones. The package 'can-utils' has to be installed in order to use slcan.
+
+Options:
+  -s<X> (where X is a number in range [1, 8]) Set CAN speed to:
+      1 - 20  Kbps
+      2 - 50  Kbps
+      3 - 100 Kbps
+      4 - 125 Kbps (UAVCAN recommended)
+      5 - 250 Kbps (UAVCAN recommended)
+      6 - 500 Kbps (UAVCAN recommended)
+      7 - 800 Kbps
+      8 - 1   Mbps (UAVCAN recommended, default)
+
+Example:
+    $0 /dev/ttyUSB3 /dev/ttyUSB0 -s4 /dev/ttyACM0
+The example above initializes:
+    /dev/ttyUSB3 --> slcan0 @ 1Mbps
+    /dev/ttyUSB0 --> slcan1 @ 1Mbps
+    /dev/ttyACM0 --> slcan2 @ 125kbps"
+
+function die() { echo $@ >&2; exit 1; }
+
+if [ "$1" == '--help' ] || [ "$1" == '-h' ]; then echo "$HELP"; exit; fi
+
+[ -n "$1" ] || die "Invalid usage. Use --help to get help."
+
+[ "$(id -u)" == "0" ] || die "Must be root"
+
+# ---------------------------------------------------------
+
+function deinitialize() {
+    echo "Terminating slcand..."
+    slcand_kill_retries=10
+    while killall slcand &> /dev/null
+    do
+        (( slcand_kill_retries -= 1 ))
+        [[ "$slcand_kill_retries" > 0 ]] || die "Failed to kill slcand"
+        sleep 1
+    done
+}
+
+function handle_tty() {
+    tty=$(readlink -f $1)
+    tty=${tty/'/dev/'}
+    iface="$IFACE_BASENAME$NEXT_IFACE_INDEX"
+
+    stty -F /dev/$tty ispeed 3000000 ospeed 3000000 || return 1
+    slcan_attach -f -o -s$SPEED_CODE /dev/$tty  || return 2
+
+    slcand $tty || return 3
+    sleep 1 # FIXME
+    ifconfig $iface up || return 4
+
+    NEXT_IFACE_INDEX=$((NEXT_IFACE_INDEX + 1))
+}
+
+NEXT_IFACE_INDEX=0
+IFACE_BASENAME='slcan'
+SPEED_CODE=8
+
+deinitialize
+
+while [ -n "$1" ]; do
+    case $1 in
+    -s[1-8])
+        SPEED_CODE=${1:2}
+        ;;
+    -*)
+        die "Invalid option: $1"
+        ;;
+    *)
+        handle_tty $1 || die "Failed to configure the interface $1"
+        ;;
+    esac
+    shift
+done
