@@ -41,13 +41,13 @@ public:
     {
         Quaternion &q = *this;
         q(0) = Type(0.5 * sqrt(1 + dcm(0, 0) +
-                          dcm(1, 1) + dcm(2, 2)));
+                               dcm(1, 1) + dcm(2, 2)));
         q(1) = Type((dcm(2, 1) - dcm(1, 2)) /
-               (4 * q(0)));
+                    (4 * q(0)));
         q(2) = Type((dcm(0, 2) - dcm(2, 0)) /
-               (4 * q(0)));
+                    (4 * q(0)));
         q(3) = Type((dcm(1, 0) - dcm(0, 1)) /
-               (4 * q(0)));
+                    (4 * q(0)));
     }
 
     Quaternion(const Euler<Type> & euler) {

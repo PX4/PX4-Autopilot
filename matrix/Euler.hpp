@@ -42,11 +42,11 @@ public:
 
         if (fabs(theta() - M_PI_2) < 1.0e-3) {
             psi() = Type(atan2(dcm(1, 2) - dcm(0, 1),
-                        dcm(0, 2) + dcm(1, 1)));
+                               dcm(0, 2) + dcm(1, 1)));
 
         } else if (fabs(theta() + M_PI_2) < 1.0e-3) {
             psi() = Type(atan2(dcm(1, 2) - dcm(0, 1),
-                        dcm(0, 2) + dcm(1, 1)));
+                               dcm(0, 2) + dcm(1, 1)));
 
         } else {
             phi() = Type(atan2f(dcm(2, 1), dcm(2, 2)));
