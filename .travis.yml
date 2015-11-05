@@ -1,6 +1,4 @@
 language: c
-before_install:
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update && sudo apt-get install -y astyle; fi
 script:
   - mkdir -p build
   - cd build
@@ -23,3 +21,7 @@ addons:
     build_command_prepend: mkdir -p build && cd build && cmake .. && make
     build_command: make -C build -j 4
     branch_pattern: coverity_scan
+  apt:
+    packages:
+      - cmake
+      - astyle
