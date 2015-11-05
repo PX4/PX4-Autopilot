@@ -1,6 +1,7 @@
 #!/bin/bash
 echo pwd:$PWD
-format=$1
+astyle=$1
+format=$2
 format_wildcards="""
 ./matrix/*.*pp
 ./test/*.*pp
@@ -9,10 +10,10 @@ format_wildcards="""
 if [[ $format ]] 
 then
 	echo formatting
-	astyle ${format_wildcards}
+	$astyle ${format_wildcards}
 else
 	echo checking format
-	astyle --dry-run ${format_wildcards} | grep Formatted
+	$astyle --dry-run ${format_wildcards} | grep Formatted
 	if [[ $? -eq 0 ]]
 	then
 		echo need to format
