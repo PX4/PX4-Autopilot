@@ -38,6 +38,7 @@
 # 	OS Specific Functions
 #
 #		* px4_nuttx_add_firmware
+#		* px4_nuttx_make_uavcan_bootloadable
 #		* px4_nuttx_generate_builtin_commands
 #		* px4_nuttx_add_export
 #		* px4_nuttx_add_romfs
@@ -103,6 +104,71 @@ function(px4_nuttx_add_firmware)
 		DEPENDS ${EXE}
 		)
 	add_custom_target(build_firmware_${BOARD} ALL DEPENDS ${OUT})
+endfunction()
+
+#=============================================================================
+#
+#	px4_nuttx_make_uavcan_bootloadable
+#
+#	This function adds a uavcan boot loadable target.
+#
+#	Usage:
+#	  px4_nuttx_make_uavcan_bootloadable(
+#	   BOARD	<board>
+#	   BIN <input bin file>)
+#	   HWNAME <uavcan name>
+#	   HW_MAJOR <number>
+#	   HW_MINOR <number>
+#	   SW_MAJOR <number>
+#	   SW_MINOR <number>)
+#
+#	Input:
+#	  BOARD      : the board
+#	  BIN        : the bin file to generate the bootloadable image from
+#	  HWNAME     : the uavcan name
+#	  HW_MAJOR   : the major hardware revision
+#	  HW_MINOR   : the minor hardware revision
+#	  SW_MAJOR   : the major software revision
+#	  SW_MINOR   : the minor software revision
+#
+#	Output:
+#		OUT			: None
+#
+#	Example:
+#	px4_nuttx_make_uavcan_bootloadable(
+#	  BOARD ${BOARD}
+#		BIN ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+#		HWNAME ${uavcanblid_name}
+#		HW_MAJOR ${uavcanblid_hw_version_major}
+#		HW_MINOR ${uavcanblid_hw_version_minor}
+#		SW_MAJOR ${uavcanblid_sw_version_major}
+#		SW_MINOR ${uavcanblid_sw_version_minor}
+#	 )
+#
+function(px4_nuttx_make_uavcan_bootloadable)
+	px4_parse_function_args(
+		NAME px4_nuttx_make_uavcan_bootloadable
+		ONE_VALUE BOARD BIN HWNAME HW_MAJOR HW_MINOR SW_MAJOR SW_MINOR
+		REQUIRED BOARD BIN HWNAME HW_MAJOR HW_MINOR SW_MAJOR SW_MINOR
+		ARGN ${ARGN})
+	string(REPLACE "\"" "" HWNAME ${HWNAME})
+	execute_process(
+		COMMAND git rev-list HEAD --max-count=1 --abbrev=8 --abbrev-commit
+		OUTPUT_VARIABLE uavcanbl_git_desc
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	)
+  if ("${uavcanbl_git_desc}" STREQUAL "")
+		set(uavcanbl_git_desc ffffffff)
+  endif()		
+	set(uavcan_bl_imange_name ${HWNAME}-${HW_MAJOR}.${HW_MINOR}-${SW_MAJOR}.${SW_MINOR}.${uavcanbl_git_desc}.uavcan.bin)
+	message(STATUS "Generating UAVCAN Bootable as ${uavcan_bl_imange_name}")
+	add_custom_command(OUTPUT ${uavcan_bl_imange_name}
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/make_can_boot_descriptor.py
+			-v --use-git-hash ${BIN} ${uavcan_bl_imange_name}
+		DEPENDS firmware_nuttx
+		)
+	add_custom_target(build_uavcan_bl_${BOARD} ALL DEPENDS ${uavcan_bl_imange_name})
 endfunction()
 
 #=============================================================================
@@ -193,6 +259,9 @@ function(px4_nuttx_add_export)
 
 	set(nuttx_src ${CMAKE_BINARY_DIR}/${CONFIG}/NuttX)
 
+	file(GLOB nuttx_patches RELATIVE ${CMAKE_SOURCE_DIR}
+	    ${CMAKE_SOURCE_DIR}/nuttx-patches/*.patch)
+
 	# copy
 	add_custom_target(__nuttx_copy_${CONFIG}
 		DEPENDS nuttx_copy_${CONFIG}.stamp)
@@ -202,12 +271,11 @@ function(px4_nuttx_add_export)
 		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
 		COMMAND ${RM} -rf ${nuttx_src}/.git
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
-		DEPENDS ${DEPENDS})
+		DEPENDS ${DEPENDS} ${nuttx_patches})
 	
 	# patch
 	add_custom_target(__nuttx_patch_${CONFIG}) 
-	file(GLOB nuttx_patches RELATIVE ${CMAKE_SOURCE_DIR}
-	    ${CMAKE_SOURCE_DIR}/nuttx-patches/*.patch)
+
 	foreach(patch ${nuttx_patches})
 		string(REPLACE "/" "_" patch_name "${patch}-${CONFIG}")
 	    message(STATUS "nuttx-patch: ${patch}")
@@ -215,10 +283,10 @@ function(px4_nuttx_add_export)
 		  COMMAND ${CMAKE_COMMAND} ARGS -E chdir ${nuttx_src} 
 				${PATCH} -p1 -N  < ${CMAKE_SOURCE_DIR}/${patch}
 			COMMAND ${TOUCH} nuttx_patch_${patch_name}.stamp
-			DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG}
+			DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG} ${patch}
 			)
 	    add_custom_target(nuttx_patch_${patch_name}
-				DEPENDS  nuttx_patch_${patch_name}.stamp)
+				DEPENDS nuttx_patch_${patch_name}.stamp)
 	    add_dependencies(__nuttx_patch_${CONFIG} nuttx_patch_${patch_name})
 	endforeach()
 
@@ -233,7 +301,7 @@ function(px4_nuttx_add_export)
 		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > /dev/null
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
-		DEPENDS ${config_files} ${DEPENDS} __nuttx_patch_${CONFIG})
+		DEPENDS ${config_files} ${DEPENDS} __nuttx_patch_${CONFIG} ${nuttx_patches})
 
 	# extract
 	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp
