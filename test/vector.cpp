@@ -14,6 +14,10 @@ int main()
     (void)n;
     float r = v.dot(v);
     (void)r;
+
+    Vector<float, 5> v2(v);
+    assert(v == v2);
+
     return 0;
 }
 

@@ -165,7 +165,7 @@ public:
         return inverse();
     }
 
-    Vector<Type, M> diagonal() const
+    Vector<Type, M> diag() const
     {
         Vector<Type, M> res;
         const SquareMatrix<Type, M> &self = *this;
@@ -176,28 +176,6 @@ public:
         return res;
     }
 
-    SquareMatrix<Type, M> expm(Type dt, size_t n) const
-    {
-        SquareMatrix<Type, M> res;
-        res.setIdentity();
-        SquareMatrix<Type, M> A_pow = *this;
-        size_t k_fact = 1;
-        size_t k = 1;
-
-        while (k < n) {
-            res += A_pow * (Type(pow(dt, Type(k))) / Type(k_fact));
-
-            if (k == n) {
-                break;
-            }
-
-            A_pow *= A_pow;
-            k_fact *= k;
-            k++;
-        }
-
-        return res;
-    }
 };
 
 typedef SquareMatrix<float, 3> SquareMatrix3f;
@@ -216,6 +194,22 @@ SquareMatrix<Type, M> diag(Vector<Type, M> d) {
         m(i,i) = d(i);
     }
     return m;
+}
+
+template<typename Type, size_t M>
+SquareMatrix<Type, M> expm(const SquareMatrix<Type, M> & A, size_t order=5)
+{
+    SquareMatrix<Type, M> res;
+    SquareMatrix<Type, M> A_pow = A;
+    res.setIdentity();
+    size_t i_factorial = 1;
+    for (size_t i=1; i<=order; i++) {
+        i_factorial *= i;
+        res += A_pow / Type(i_factorial);
+        A_pow *= A_pow;
+    }
+
+    return res;
 }
 
 }; // namespace matrix

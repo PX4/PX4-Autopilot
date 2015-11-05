@@ -10,6 +10,7 @@ set(tests
 	vector3
 	attitude
 	filter
+	squareMatrix
 	)
 
 foreach(test ${tests})

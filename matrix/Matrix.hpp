@@ -14,7 +14,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "Vector.hpp"
+#include "matrix.hpp"
 
 namespace matrix
 {
@@ -173,6 +173,11 @@ public:
         }
 
         return res;
+    }
+
+    inline Matrix<Type, M, N> operator/(Type scalar) const
+    {
+        return (*this)*(1/scalar);
     }
 
     Matrix<Type, M, N> operator+(Type scalar) const

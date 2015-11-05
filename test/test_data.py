@@ -1,6 +1,7 @@
 from __future__ import print_function
 from pylab import *
 from pprint import pprint
+import scipy.linalg
 
 # test cases, derived from doc/nasa_rotation_def.pdf
 
@@ -100,5 +101,26 @@ pprint(q3)
 print('\nq3_norm:')
 q3_norm =q3 / norm(q3)
 pprint(q3_norm)
+
+print('\ninverse')
+A = array([[1,2,3], [4,5,6], [7,8,10]])
+pprint(A)
+pprint(inv(A))
+
+print('\nmatrix exponential')
+A = 0.01*array([[1.0,2.0,3.0], [4.0,5.0,6.0], [7.0,8.0,10.0]])
+eA_check = scipy.linalg.expm(A)
+
+pprint(eA_check)
+
+eA_approx = eye(3)
+k = 1.0
+A_pow = A
+for i in range(1,3):
+    k *= i
+    # print(i, k, '\n', A_pow/k, '\n')
+    eA_approx +=  A_pow/k
+    A_pow = A_pow.dot(A)
+print(eA_approx)
 
 # vim: set et ft=python fenc=utf-8 ff=unix sts=4 sw=4 ts=8 : 
