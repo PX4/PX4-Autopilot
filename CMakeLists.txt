@@ -41,6 +41,7 @@ set(CMAKE_CXX_FLAGS
 	)
 
 if (COVERAGE)
+	set(COVERALLS ON)
 	list(APPEND CMAKE_CXX_FLAGS
 		-fno-inline
 		-fno-inline-small-functions
