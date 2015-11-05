@@ -216,7 +216,8 @@ void Logger::run() {
 	while (!_task_should_exit) {
 		// Start/stop logging when system arm/disarm
 		if (_vehicle_status_sub.check_updated()) {
-			bool armed = (_vehicle_status_sub.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (_vehicle_status_sub.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+			bool armed = (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
+					     (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
 			if (_enabled != armed) {
 				if (armed) {
 					start_log();
