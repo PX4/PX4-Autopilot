@@ -754,22 +754,23 @@ endfunction()
 #	Generates a source file with all parameters.
 #
 #	Usage:
-#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file>)
+#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file> [SCOPE <cmake file for scoping>])
 #
 #	Input:
-#		XML : the parameters.xml file
-#		DEPS : target dependencies
+#		XML   : the parameters.xml file
+#		SCOPE : the cmake file used to limit scope of the paramaters
+#		DEPS  : target dependencies
 #
 #	Output:
 #		OUT	: the generated source files
 #
 #	Example:
-#		px4_generate_parameters_source(OUT param_files XML parameters.xml)
+#		px4_generate_parameters_source(OUT param_files XML parameters.xml SCOPE ${OS}_${BOARD}_${LABEL}.cmake )
 #
 function(px4_generate_parameters_source)
 	px4_parse_function_args(
 		NAME px4_generate_parameters_source
-		ONE_VALUE OUT XML DEPS
+		ONE_VALUE OUT XML SCOPE DEPS
 		REQUIRED OUT XML
 		ARGN ${ARGN})
 	set(generated_files
@@ -778,7 +779,7 @@ function(px4_generate_parameters_source)
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
 	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML}
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_generate_params.py ${XML} ${SCOPE}
 		DEPENDS ${XML} ${DEPS}
 		)
 	set(${OUT} ${generated_files} PARENT_SCOPE)
