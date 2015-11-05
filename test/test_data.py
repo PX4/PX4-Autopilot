@@ -90,6 +90,7 @@ assert(abs(dcm[:,0].dot(dcm[:,2])) < 1e-10)
 print('\ndcm:')
 pprint(dcm)
 
+print('\nq*q', quat_prod(q, q))
 
 q2 = quat_prod(q, q)
 pprint(q2)
@@ -103,7 +104,7 @@ q3_norm =q3 / norm(q3)
 pprint(q3_norm)
 
 print('\ninverse')
-A = array([[1,2,3], [4,5,6], [7,8,10]])
+A = array([[0,2,3], [4,5,6], [7,8,10]])
 pprint(A)
 pprint(inv(A))
 

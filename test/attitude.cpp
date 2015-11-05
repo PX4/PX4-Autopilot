@@ -125,6 +125,12 @@ int main()
     Vector<float, 4> q_dot = q.derivative(Vector3f(1, 2, 3));
     printf("q_dot:\n");
     q_dot.T().print();
+
+    // quaternion product
+    Quatf q_prod_check(
+            0.93394439f, 0.0674002f, 0.20851f, 0.28236266f);
+    assert(q_prod_check == q_check*q_check);
+
 };
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

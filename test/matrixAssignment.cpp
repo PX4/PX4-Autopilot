@@ -51,6 +51,26 @@ int main()
 
     assert(m3 == m2);
 
+    float data_row_02_swap[9] = {
+        7, 8, 9,
+        4, 5, 6,
+        1, 2, 3,
+    };
+
+    float data_col_02_swap[9] = {
+        3, 2, 1,
+        6, 5, 4,
+        9, 8, 7};
+
+    Matrix3f m4(data);
+
+
+    m4.swapCols(0, 2);
+    assert(m4 == Matrix3f(data_col_02_swap));
+    m4.swapCols(0, 2);
+    m4.swapRows(0, 2);
+    assert(m4 == Matrix3f(data_row_02_swap));
+    assert(fabs(m4.min() - 1) < 1e-5);
     return 0;
 }
 

@@ -12,21 +12,21 @@ template class SquareMatrix<float, n_large>;
 
 int main()
 {
-    float data[9] = {1, 2, 3,
+    float data[9] = {0, 2, 3,
                      4, 5, 6,
                      7, 8, 10
                     };
-    float data_check[9] = {-0.66666667f, -1.33333333f,  1.        ,
-                           -0.66666667f,  3.66666667f, -2.        ,
-                           1.        , -2.        ,  1.
-                          };
+    float data_check[9] = {
+        -0.4f, -0.8f,  0.6f,
+        -0.4f,  4.2f, -2.4f,
+        0.6f, -2.8f,  1.6f};
 
     SquareMatrix<float, 3> A(data);
     SquareMatrix<float, 3> A_I = inv(A);
     SquareMatrix<float, 3> A_I_check(data_check);
     A_I.print();
     A_I_check.print();
-    assert(A_I == A_I_check);
+    assert((A_I - A_I_check).abs().max() < 1e-5);
 
     // stess test
     SquareMatrix<float, n_large> A_large;
@@ -38,6 +38,9 @@ int main()
         A_large_I = inv(A_large);
         assert(A_large == A_large_I);
     }
+
+    SquareMatrix<float, 3> zero_test = zero<float, 3, 3>();
+    inv(zero_test);
 
     return 0;
 }
