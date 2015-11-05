@@ -60,7 +60,8 @@ int main()
     float data_col_02_swap[9] = {
         3, 2, 1,
         6, 5, 4,
-        9, 8, 7};
+        9, 8, 7
+    };
 
     Matrix3f m4(data);
 

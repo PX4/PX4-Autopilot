@@ -19,7 +19,8 @@ int main()
     float data_check[9] = {
         -0.4f, -0.8f,  0.6f,
         -0.4f,  4.2f, -2.4f,
-        0.6f, -2.8f,  1.6f};
+        0.6f, -2.8f,  1.6f
+    };
 
     SquareMatrix<float, 3> A(data);
     SquareMatrix<float, 3> A_I = inv(A);
