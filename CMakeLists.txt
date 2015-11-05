@@ -22,7 +22,7 @@ set(CMAKE_CXX_FLAGS
 	-Wall
 	-Weffc++
 	-Werror
-	#-Wfatal-errors
+	-Wfatal-errors
 	)
 
 if (COVERALLS)

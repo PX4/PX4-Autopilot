@@ -7,6 +7,9 @@ format_wildcards="""
 ./test/*.*pp
 """
 
+echo astyle: $astyle
+echo format: $format
+
 if [[ $format ]] 
 then
 	echo formatting
