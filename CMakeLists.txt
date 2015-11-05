@@ -22,7 +22,6 @@ set(CMAKE_CXX_FLAGS
 	-Wall
 	-Weffc++
 	-Werror
-	-std=c++11
 	#-Wfatal-errors
 	)
 
@@ -65,12 +64,16 @@ endif()
 add_subdirectory(test)
 
 add_custom_target(format
-	COMMAND astyle --recursive
-		${CMAKE_SOURCE_DIR}/matrix/*.*pp
-		${CMAKE_SOURCE_DIR}/test/*.*pp
+	COMMAND scripts/format.sh 1
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	VERBATIM
-	)
+)
+
+add_custom_target(check_format
+	COMMAND scripts/format.sh
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	VERBATIM
+)
 
 set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})

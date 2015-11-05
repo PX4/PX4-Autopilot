@@ -1,6 +1,12 @@
 language: c
 script:
-  - mkdir -p build && cd build && cmake -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON -DCMAKE_BUILD_TYPE=Debug .. && make && ctest -V && make coveralls
+  - mkdir -p build
+  - cd build
+  - cmake -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON -DCMAKE_BUILD_TYPE=Debug ..
+  - make
+  - make check_format
+  - ctest -V
+  - make coveralls
 env:
   global:
   - export COVERALLS_SERVICE_NAME=travis-ci
