@@ -194,6 +194,11 @@ public:
         return res;
     }
 
+    inline Matrix<Type, M, N> operator-(Type scalar) const
+    {
+        return (*this) + (-1*scalar);
+    }
+
     void operator*=(Type scalar)
     {
         Matrix<Type, M, N> &self = *this;
@@ -210,6 +215,17 @@ public:
         Matrix<Type, M, N> &self = *this;
         self = self * (1.0f / scalar);
     }
+
+    inline void operator+=(Type scalar)
+    {
+        *this = (*this) + scalar;
+    }
+
+    inline void operator-=(Type scalar)
+    {
+        *this = (*this) - scalar;
+    }
+
 
     /**
      * Misc. Functions
