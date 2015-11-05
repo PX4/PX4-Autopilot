@@ -185,7 +185,7 @@ public:
         size_t k = 1;
 
         while (k < n) {
-            res += A_pow * (Type(pow(dt, k)) / Type(k_fact));
+            res += A_pow * (Type(pow(dt, Type(k))) / Type(k_fact));
 
             if (k == n) {
                 break;
