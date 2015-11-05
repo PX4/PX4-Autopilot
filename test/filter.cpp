@@ -21,7 +21,7 @@ int main()
     float beta = 0;
     kalman_correct<float, 6, 5>(P, C, R, r, dx, beta);
 
-    dx.print();
+    dx.T().print();
     printf("beta: %g\n", beta);
 
     float data_check[] = {0.5,1,1.5,2,2.5,0};

@@ -6,6 +6,7 @@ script:
   - cmake -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON -DCMAKE_BUILD_TYPE=Debug ..
   - make
   - make check_format
+  - ctest
   - ctest -V
   - make coveralls
 env:
