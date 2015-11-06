@@ -44,7 +44,6 @@ px4_add_module(
 	SRCS
 		sdlog2.c
 		logbuffer.c
-		params.c
 	DEPENDS
 		platforms__common
 	)

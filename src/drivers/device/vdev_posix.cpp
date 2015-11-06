@@ -52,6 +52,8 @@
 
 using namespace device;
 
+pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
+
 extern "C" {
 
 	static void timer_cb(void *data)
@@ -68,7 +70,27 @@ extern "C" {
 
 	inline bool valid_fd(int fd)
 	{
-		return (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != NULL);
+		pthread_mutex_lock(&filemutex);
+		bool ret = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != NULL);
+		pthread_mutex_unlock(&filemutex);
+		return ret;
+	}
+
+	inline VDev *get_vdev(int fd)
+	{
+		pthread_mutex_lock(&filemutex);
+		bool valid = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != NULL);
+		VDev *dev;
+
+		if (valid) {
+			dev = (VDev *)(filemap[fd]->vdev);
+
+		} else {
+			dev = nullptr;
+		}
+
+		pthread_mutex_unlock(&filemutex);
+		return dev;
 	}
 
 	int px4_open(const char *path, int flags, ...)
@@ -93,12 +115,17 @@ extern "C" {
 		}
 
 		if (dev) {
+
+			pthread_mutex_lock(&filemutex);
+
 			for (i = 0; i < PX4_MAX_FD; ++i) {
 				if (filemap[i] == 0) {
 					filemap[i] = new device::file_t(flags, dev, i);
 					break;
 				}
 			}
+
+			pthread_mutex_unlock(&filemutex);
 
 			if (i < PX4_MAX_FD) {
 				ret = dev->open(filemap[i]);
@@ -125,11 +152,14 @@ extern "C" {
 	{
 		int ret;
 
-		if (valid_fd(fd)) {
-			VDev *dev = (VDev *)(filemap[fd]->vdev);
-			PX4_DEBUG("px4_close fd = %d", fd);
+		VDev *dev = get_vdev(fd);
+
+		if (dev) {
+			pthread_mutex_lock(&filemutex);
 			ret = dev->close(filemap[fd]);
-			filemap[fd] = NULL;
+			filemap[fd] = nullptr;
+			pthread_mutex_unlock(&filemutex);
+			PX4_DEBUG("px4_close fd = %d", fd);
 
 		} else {
 			ret = -EINVAL;
@@ -147,8 +177,9 @@ extern "C" {
 	{
 		int ret;
 
-		if (valid_fd(fd)) {
-			VDev *dev = (VDev *)(filemap[fd]->vdev);
+		VDev *dev = get_vdev(fd);
+
+		if (dev) {
 			PX4_DEBUG("px4_read fd = %d", fd);
 			ret = dev->read(filemap[fd], (char *)buffer, buflen);
 
@@ -168,8 +199,9 @@ extern "C" {
 	{
 		int ret;
 
-		if (valid_fd(fd)) {
-			VDev *dev = (VDev *)(filemap[fd]->vdev);
+		VDev *dev = get_vdev(fd);
+
+		if (dev) {
 			PX4_DEBUG("px4_write fd = %d", fd);
 			ret = dev->write(filemap[fd], (const char *)buffer, buflen);
 
@@ -190,8 +222,9 @@ extern "C" {
 		PX4_DEBUG("px4_ioctl fd = %d", fd);
 		int ret = 0;
 
-		if (valid_fd(fd)) {
-			VDev *dev = (VDev *)(filemap[fd]->vdev);
+		VDev *dev = get_vdev(fd);
+
+		if (dev) {
 			ret = dev->ioctl(filemap[fd], cmd, arg);
 
 		} else {
@@ -221,9 +254,10 @@ extern "C" {
 			fds[i].revents = 0;
 			fds[i].priv    = NULL;
 
+			VDev *dev = get_vdev(fds[i].fd);
+
 			// If fd is valid
-			if (valid_fd(fds[i].fd)) {
-				VDev *dev = (VDev *)(filemap[fds[i].fd]->vdev);;
+			if (dev) {
 				PX4_DEBUG("px4_poll: VDev->poll(setup) %d", fds[i].fd);
 				ret = dev->poll(filemap[fds[i].fd], &fds[i], true);
 
@@ -251,9 +285,11 @@ extern "C" {
 
 			// For each fd
 			for (i = 0; i < nfds; ++i) {
+
+				VDev *dev = get_vdev(fds[i].fd);
+
 				// If fd is valid
-				if (valid_fd(fds[i].fd)) {
-					VDev *dev = (VDev *)(filemap[fds[i].fd]->vdev);;
+				if (dev) {
 					PX4_DEBUG("px4_poll: VDev->poll(teardown) %d", fds[i].fd);
 					ret = dev->poll(filemap[fds[i].fd], &fds[i], false);
 

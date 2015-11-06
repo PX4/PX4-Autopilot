@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,68 +30,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file navigator_rtl.h
- * Helper class for RTL
+ * @file controllib.cpp
+ * Unit testing for controllib.
  *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author James Goppert <james.goppert@gmail.com>
  */
 
-#ifndef NAVIGATOR_RTL_H
-#define NAVIGATOR_RTL_H
+#include "blocks.hpp"
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+extern "C" __EXPORT int controllib_test_main(int argc, char *argv[]);
 
-#include <navigator/navigation.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_global_position.h>
-
-#include "navigator_mode.h"
-#include "mission_block.h"
-
-class Navigator;
-
-class RTL : public MissionBlock
+int controllib_test_main(int argc, char *argv[])
 {
-public:
-	RTL(Navigator *navigator, const char *name);
-
-	~RTL();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
-
-private:
-	/**
-	 * Set the RTL item
-	 */
-	void		set_rtl_item();
-
-	/**
-	 * Move to next RTL item
-	 */
-	void		advance_rtl();
-
-	enum RTLState {
-		RTL_STATE_NONE = 0,
-		RTL_STATE_CLIMB,
-		RTL_STATE_RETURN,
-		RTL_STATE_DESCEND,
-		RTL_STATE_LOITER,
-		RTL_STATE_LAND,
-		RTL_STATE_LANDED,
-	} _rtl_state;
-
-	bool _rtl_start_lock;
-
-	control::BlockParamFloat _param_return_alt;
-	control::BlockParamFloat _param_descend_alt;
-	control::BlockParamFloat _param_land_delay;
-};
-
-#endif
+	(void)argc;
+	(void)argv;
+	control::basicBlocksTest();
+	return 0;
+}

@@ -44,9 +44,17 @@ ifneq ($(CMAKE_VER),0)
     $(warning Not a valid CMake version or CMake not installed.)
     $(warning On Ubuntu, install or upgrade via:)
     $(warning )
+    $(warning 3rd party PPA:)
     $(warning sudo add-apt-repository ppa:george-edison55/cmake-3.x -y)
     $(warning sudo apt-get update)
     $(warning sudo apt-get install cmake)
+    $(warning )
+    $(warning Official website:)
+    $(warning wget https://cmake.org/files/v3.3/cmake-3.3.2-Linux-x86_64.sh)
+    $(warning chmod +x cmake-3.3.2-Linux-x86_64.sh)
+    $(warning sudo mkdir /opt/cmake-3.3.2)
+    $(warning sudo ./cmake-3.3.2-Linux-x86_64.sh --prefix=/opt/cmake-3.3.2 --exclude-subdir)
+    $(warning export PATH=/opt/cmake-3.3.2/bin:$$PATH)
     $(warning )
     $(error Fatal)
 endif
@@ -156,8 +164,8 @@ posix_sitl_default: posix_sitl_simple
 ros: ros_sitl_simple
 
 sitl_deprecation:
-	@echo "Deprecated. Use 'make posix_sitl_default run_sitl' instead."
-	@echo "Change init script with 'make posix_sitl_default config'"
+	@echo "Deprecated. Use 'make posix_sitl_default jmavsim' or"
+	@echo "'make posix_sitl_default gazebo' if Gazebo is preferred."
 
 sitl_quad: sitl_deprecation
 sitl_plane: sitl_deprecation
@@ -176,7 +184,7 @@ clean:
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim \
-	jmavsim_gdb jmavsim_lldb
+	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_vtol gazebo_iris gazebo_vtol
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean

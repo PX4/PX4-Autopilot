@@ -716,20 +716,22 @@ MulticopterPositionControl::control_manual(float dt)
 		/* check for pos. hold */
 		if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz)
 		{
-			if (!_pos_hold_engaged && (_params.hold_max_xy < FLT_EPSILON ||
-																 (fabsf(_vel(0)) < _params.hold_max_xy && fabsf(_vel(1)) < _params.hold_max_xy)))
-			{
-				_pos_hold_engaged = true;
+			if (!_pos_hold_engaged) {
+				if (_params.hold_max_xy < FLT_EPSILON || (fabsf(_vel(0)) < _params.hold_max_xy && fabsf(_vel(1)) < _params.hold_max_xy)) {
+					_pos_hold_engaged = true;
+				} else {
+					_pos_hold_engaged = false;
+				}
 			}
 		}
 		else {
 			_pos_hold_engaged = false;
-			_pos_sp(0) = _pos(0);
-			_pos_sp(1) = _pos(1);
 		}
 
 		/* set requested velocity setpoint */
 		if (!_pos_hold_engaged) {
+			_pos_sp(0) = _pos(0);
+			_pos_sp(1) = _pos(1);
 			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
 			_vel_sp(0) = req_vel_sp_scaled(0);
 			_vel_sp(1) = req_vel_sp_scaled(1);
@@ -859,17 +861,44 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
+	bool current_setpoint_valid = false;
+	bool previous_setpoint_valid = false;
+
+	math::Vector<3> prev_sp;
+	math::Vector<3> curr_sp;
+
 	if (_pos_sp_triplet.current.valid) {
-		/* in case of interrupted mission don't go to waypoint but stay at current position */
-		_reset_pos_sp = true;
-		_reset_alt_sp = true;
 
 		/* project setpoint to local frame */
-		math::Vector<3> curr_sp;
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
 				       &curr_sp.data[0], &curr_sp.data[1]);
 		curr_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
+
+		if (PX4_ISFINITE(curr_sp(0)) &&
+			PX4_ISFINITE(curr_sp(1)) &&
+			PX4_ISFINITE(curr_sp(2))) {
+			current_setpoint_valid = true;
+		}
+	}
+
+	if (_pos_sp_triplet.previous.valid) {
+		map_projection_project(&_ref_pos,
+					   _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
+					   &prev_sp.data[0], &prev_sp.data[1]);
+		prev_sp(2) = -(_pos_sp_triplet.previous.alt - _ref_alt);
+
+		if (PX4_ISFINITE(prev_sp(0)) &&
+			PX4_ISFINITE(prev_sp(1)) &&
+			PX4_ISFINITE(prev_sp(2))) {
+			previous_setpoint_valid = true;
+		}
+	}
+
+	if (current_setpoint_valid) {
+		/* in case of interrupted mission don't go to waypoint but stay at current position */
+		_reset_pos_sp = true;
+		_reset_alt_sp = true;
 
 		/* scaled space: 1 == position error resulting max allowed speed */
 		math::Vector<3> scale = _params.pos_p.edivide(_params.vel_max);	// TODO add mult param here
@@ -880,13 +909,8 @@ void MulticopterPositionControl::control_auto(float dt)
 		/* by default use current setpoint as is */
 		math::Vector<3> pos_sp_s = curr_sp_s;
 
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION && _pos_sp_triplet.previous.valid) {
+		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION && previous_setpoint_valid) {
 			/* follow "previous - current" line */
-			math::Vector<3> prev_sp;
-			map_projection_project(&_ref_pos,
-						   _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
-						   &prev_sp.data[0], &prev_sp.data[1]);
-			prev_sp(2) = -(_pos_sp_triplet.previous.alt - _ref_alt);
 
 			if ((curr_sp - prev_sp).length() > MIN_DIST) {
 
