@@ -35,6 +35,11 @@ public:
     {
     }
 
+    Vector(const Type *data_) :
+        Matrix<Type, M, 1>(data_)
+    {
+    }
+
     inline Type operator()(size_t i) const
     {
         const Matrix<Type, M, 1> &v = *this;
