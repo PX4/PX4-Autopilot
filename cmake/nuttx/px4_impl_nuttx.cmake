@@ -264,9 +264,10 @@ function(px4_nuttx_add_export)
 
 	# copy
 	add_custom_target(__nuttx_copy_${CONFIG}
-		DEPENDS nuttx_copy_${CONFIG}.stamp)
+		DEPENDS nuttx_copy_${CONFIG}.stamp
+	)
 	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
-		COMMAND ${MKDIR} -p ${CMAKE_BINARY_DIR}/${CONFIG}
+		COMMAND ${RM} -fr ${nuttx_src}
 		COMMAND ${MKDIR} -p ${nuttx_src}
 		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
 		COMMAND ${RM} -rf ${nuttx_src}/.git
@@ -274,20 +275,25 @@ function(px4_nuttx_add_export)
 		DEPENDS ${DEPENDS} ${nuttx_patches})
 	
 	# patch
+
 	add_custom_target(__nuttx_patch_${CONFIG}) 
 
 	foreach(patch ${nuttx_patches})
 		string(REPLACE "/" "_" patch_name "${patch}-${CONFIG}")
 	    message(STATUS "nuttx-patch: ${patch}")
-		add_custom_command(OUTPUT nuttx_patch_${patch_name}.stamp
+		add_custom_command(OUTPUT ${nuttx_src}/nuttx_patch_${patch_name}.stamp
 		  COMMAND ${CMAKE_COMMAND} ARGS -E chdir ${nuttx_src} 
 				${PATCH} -p1 -N  < ${CMAKE_SOURCE_DIR}/${patch}
-			COMMAND ${TOUCH} nuttx_patch_${patch_name}.stamp
+			COMMAND ${TOUCH} ${nuttx_src}/nuttx_patch_${patch_name}.stamp
 			DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG} ${patch}
 			)
 	    add_custom_target(nuttx_patch_${patch_name}
-				DEPENDS nuttx_patch_${patch_name}.stamp)
-	    add_dependencies(__nuttx_patch_${CONFIG} nuttx_patch_${patch_name})
+				DEPENDS ${nuttx_src}/nuttx_patch_${patch_name}.stamp
+				__nuttx_copy_${CONFIG}
+			)
+			add_dependencies(__nuttx_patch_${CONFIG}
+				nuttx_patch_${patch_name}
+			)
 	endforeach()
 
 
