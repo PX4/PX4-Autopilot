@@ -49,7 +49,7 @@
 #ifdef CONFIG_ARCH_ARM
 #include "../CMSIS/Include/arm_math.h"
 #else
-#include "modules/local_position_estimator/matrix/src/Matrix.hpp"
+#include "matrix/matrix.hpp"
 #endif
 #include <platforms/px4_defines.h>
 

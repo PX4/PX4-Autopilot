@@ -622,7 +622,7 @@ function(px4_add_common_flags)
 		)
 
 	list(APPEND added_include_dirs
-		src/lib/eigen
+		src/lib/matrix
 		)
 
 	set(added_link_dirs) # none used currently

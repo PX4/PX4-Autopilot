@@ -25,3 +25,6 @@
 [submodule "unittests/googletest"]
 	path = unittests/googletest
 	url = https://github.com/google/googletest.git
+[submodule "src/lib/matrix"]
+	path = src/lib/matrix
+	url = https://github.com/dronecrew/matrix.git
