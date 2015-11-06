@@ -40,6 +40,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_posix.h>
 #include <stdint.h>
 #include <signal.h>
 #include <stdio.h>
@@ -67,7 +68,7 @@ struct wqueue_s g_hrt_work;
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
-sem_t _hrt_work_lock;
+px4_sem_t _hrt_work_lock;
 
 /****************************************************************************
  * Private Functions
@@ -164,6 +165,7 @@ static void hrt_work_process()
 
 			if (!worker) {
 				PX4_ERR("MESSED UP: worker = 0");
+				PX4_BACKTRACE();
 
 			} else {
 				worker(arg);
@@ -262,7 +264,7 @@ static int work_hrtthread(int argc, char *argv[])
 
 void hrt_work_queue_init(void)
 {
-	sem_init(&_hrt_work_lock, 0, 1);
+	px4_sem_init(&_hrt_work_lock, 0, 1);
 
 	// Create high priority worker thread
 	g_hrt_work.pid = px4_task_spawn_cmd("wkr_hrt",
@@ -272,7 +274,7 @@ void hrt_work_queue_init(void)
 					    work_hrtthread,
 					    (char *const *)NULL);
 
-	
+
 #ifdef __PX4_QURT
 	signal(SIGALRM, _sighandler);
 #else

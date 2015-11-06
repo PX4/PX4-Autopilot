@@ -37,7 +37,7 @@
  * Base class for devices on simulation bus.
  */
 
-#pragma once 
+#pragma once
 
 #include "vdev.h"
 
@@ -98,14 +98,14 @@ protected:
 	 *			otherwise.
 	 */
 	virtual int	transfer(const uint8_t *send, unsigned send_len,
-					 uint8_t *recv, unsigned recv_len);
+				 uint8_t *recv, unsigned recv_len);
 
 private:
 	uint16_t		_address;
-	const char *		_devname;
+	const char 		*_devname;
 
-	SIM(const device::SIM&);
-	SIM operator=(const device::SIM&);
+	SIM(const device::SIM &);
+	SIM operator=(const device::SIM &);
 };
 
 } // namespace device

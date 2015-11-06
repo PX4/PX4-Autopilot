@@ -43,6 +43,11 @@ import shutil
 import filecmp
 import argparse
 
+import sys
+px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(px4_tools_dir + "/genmsg/src")
+sys.path.append(px4_tools_dir + "/gencpp/src")
+
 try:
         import genmsg.template_tools
 except ImportError as e:
@@ -79,7 +84,7 @@ def convert_file(filename, outputdir, templatedir, includepath):
         """
         Converts a single .msg file to a uorb header
         """
-        print("Generating headers from {0}".format(filename))
+        #print("Generating headers from {0}".format(filename))
         genmsg.template_tools.generate_from_file(filename,
                                                  package,
                                                  outputdir,
@@ -136,7 +141,7 @@ def convert_dir(inputdir, outputdir, templatedir):
         return True
 
 
-def copy_changed(inputdir, outputdir, prefix=''):
+def copy_changed(inputdir, outputdir, prefix='', quiet=False):
         """
         Copies files from inputdir to outputdir if they don't exist in
         ouputdir or if their content changed
@@ -153,7 +158,8 @@ def copy_changed(inputdir, outputdir, prefix=''):
                         fno = os.path.join(outputdir, prefix + f)
                         if not os.path.isfile(fno):
                                 shutil.copy(fni, fno)
-                                print("{0}: new header file".format(f))
+                                if not quiet:
+                                    print("{0}: new header file".format(f))
                                 continue
 
                         if os.path.getmtime(fni) > os.path.getmtime(fno):
@@ -161,13 +167,15 @@ def copy_changed(inputdir, outputdir, prefix=''):
                                 # only copy if contents do not match
                                 if not filecmp.cmp(fni, fno):
                                         shutil.copy(fni, fno)
-                                        print("{0}: updated".format(f))
+                                        if not quiet:
+                                            print("{0}: updated".format(f))
                                         continue
 
-                        #print("{0}: unchanged".format(f))
+                        if not quiet:
+                            print("{0}: unchanged".format(f))
 
 
-def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
+def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix, quiet=False):
         """
         Converts all .msg files in inputdir to uORB header files
         Unchanged existing files are not overwritten.
@@ -175,7 +183,7 @@ def convert_dir_save(inputdir, outputdir, templatedir, temporarydir, prefix):
         # Create new headers in temporary output directory
         convert_dir(inputdir, temporarydir, templatedir)
         # Copy changed headers from temporary dir to output dir
-        copy_changed(temporarydir, outputdir, prefix)
+        copy_changed(temporarydir, outputdir, prefix, quiet)
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
@@ -193,6 +201,9 @@ if __name__ == "__main__":
         parser.add_argument('-p', dest='prefix', default='',
                             help='string added as prefix to the output file '
                             ' name when converting directories')
+        parser.add_argument('-q', dest='quiet', default=False, action='store_true',
+                            help='string added as prefix to the output file '
+                            ' name when converting directories')
         args = parser.parse_args()
 
         if args.file is not None:
@@ -208,4 +219,5 @@ if __name__ == "__main__":
                     args.outputdir,
                     args.templatedir,
                     args.temporarydir,
-                    args.prefix)
+                    args.prefix,
+                    args.quiet)

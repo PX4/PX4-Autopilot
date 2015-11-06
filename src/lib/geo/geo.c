@@ -83,16 +83,19 @@ __EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference
 	return ref->timestamp;
 }
 
-__EXPORT int map_projection_global_init(double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT int map_projection_global_init(double lat_0, double lon_0,
+					uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 	if (strcmp("commander", getprogname()) == 0) {
 		return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
+
 	} else {
 		return -1;
 	}
 }
 
-__EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
+		uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 
 	ref->lat_rad = lat_0 * M_DEG_TO_RAD;
@@ -106,7 +109,8 @@ __EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *
 	return 0;
 }
 
-__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0,
+				 double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 	return map_projection_init_timestamped(ref, lat_0, lon_0, hrt_absolute_time());
 }
@@ -116,7 +120,8 @@ __EXPORT int map_projection_global_reference(double *ref_lat_rad, double *ref_lo
 	return map_projection_reference(&mp_ref, ref_lat_rad, ref_lon_rad);
 }
 
-__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad, double *ref_lon_rad)
+__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad,
+				      double *ref_lon_rad)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -134,7 +139,8 @@ __EXPORT int map_projection_global_project(double lat, double lon, float *x, flo
 
 }
 
-__EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
+__EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x,
+				    float *y)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -161,7 +167,8 @@ __EXPORT int map_projection_global_reproject(float x, float y, double *lat, doub
 	return map_projection_reproject(&mp_ref, x, y, lat, lon);
 }
 
-__EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
+__EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat,
+				      double *lon)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -212,14 +219,16 @@ __EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, 
 {
 	if (strcmp("commander", getprogname()) == 0) {
 		gl_ref.alt = alt_0;
-		if (!map_projection_global_init(lat_0, lon_0, timestamp))
-		{
+
+		if (!map_projection_global_init(lat_0, lon_0, timestamp)) {
 			gl_ref.init_done = true;
 			return 0;
+
 		} else {
 			gl_ref.init_done = false;
 			return -1;
 		}
+
 	} else {
 		return -1;
 	}
@@ -260,8 +269,7 @@ __EXPORT int globallocalconverter_getref(double *lat_0, double *lon_0, float *al
 		return -1;
 	}
 
-	if (map_projection_global_getref(lat_0, lon_0))
-	{
+	if (map_projection_global_getref(lat_0, lon_0)) {
 		return -1;
 	}
 
@@ -283,7 +291,8 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
 	double d_lat = lat_next_rad - lat_now_rad;
 	double d_lon = lon_next_rad - lon_now_rad;
 
-	double a = sin(d_lat / (double)2.0) * sin(d_lat / (double)2.0) + sin(d_lon / (double)2.0) * sin(d_lon / (double)2.0) * cos(lat_now_rad) * cos(lat_next_rad);
+	double a = sin(d_lat / (double)2.0) * sin(d_lat / (double)2.0) + sin(d_lon / (double)2.0) * sin(d_lon /
+			(double)2.0) * cos(lat_now_rad) * cos(lat_next_rad);
 	double c = (double)2.0 * atan2(sqrt(a), sqrt((double)1.0 - a));
 
 	return CONSTANTS_RADIUS_OF_EARTH * c;
@@ -299,14 +308,16 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) , cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
+	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) ,
+			     cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
 	theta = _wrap_pi(theta);
 
 	return theta;
 }
 
-__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e)
+__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n,
+		float *v_e)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -316,11 +327,13 @@ __EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	*v_n = CONSTANTS_RADIUS_OF_EARTH * (cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
+	*v_n = CONSTANTS_RADIUS_OF_EARTH * (cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(
+			d_lon));
 	*v_e = CONSTANTS_RADIUS_OF_EARTH * sin(d_lon) * cos(lat_next_rad);
 }
 
-__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e)
+__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next,
+		float *v_n, float *v_e)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -335,7 +348,8 @@ __EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, d
 	*v_e = CONSTANTS_RADIUS_OF_EARTH * d_lon * cos(lat_now_rad);
 }
 
-__EXPORT void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res, double *lon_res)
+__EXPORT void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
+		double *lon_res)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -346,7 +360,8 @@ __EXPORT void add_vector_to_global_position(double lat_now, double lon_now, floa
 
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
 
-__EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end)
+__EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
+				  double lat_start, double lon_start, double lat_end, double lon_end)
 {
 // This function returns the distance to the nearest point on the track line.  Distance is positive if current
 // position is right of the track and negative if left of the track as seen from a point on the track line
@@ -397,7 +412,8 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, d
 }
 
 
-__EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
+__EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
+				 double lat_center, double lon_center,
 				 float radius, float arc_start_bearing, float arc_sweep)
 {
 	// This function returns the distance to the nearest point on the track arc.  Distance is positive if current
@@ -436,10 +452,12 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 	in_sector = false;
 
 	// Case where sector does not span zero
-	if (bearing_sector_end >= bearing_sector_start && bearing_now >= bearing_sector_start && bearing_now <= bearing_sector_end) { in_sector = true; }
+	if (bearing_sector_end >= bearing_sector_start && bearing_now >= bearing_sector_start
+	    && bearing_now <= bearing_sector_end) { in_sector = true; }
 
 	// Case where sector does span zero
-	if (bearing_sector_end < bearing_sector_start && (bearing_now > bearing_sector_start || bearing_now < bearing_sector_end)) { in_sector = true; }
+	if (bearing_sector_end < bearing_sector_start && (bearing_now > bearing_sector_start
+			|| bearing_now < bearing_sector_end)) { in_sector = true; }
 
 	// If in the sector then calculate distance and bearing to closest point
 	if (in_sector) {
@@ -479,6 +497,7 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 		if (dist_to_start < dist_to_end) {
 			crosstrack_error->distance = dist_to_start;
 			crosstrack_error->bearing = get_bearing_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
+
 		} else {
 			crosstrack_error->past_end = true;
 			crosstrack_error->distance = dist_to_end;
@@ -539,6 +558,7 @@ __EXPORT float _wrap_pi(float bearing)
 	}
 
 	int c = 0;
+
 	while (bearing >= M_PI_F) {
 		bearing -= M_TWOPI_F;
 
@@ -548,6 +568,7 @@ __EXPORT float _wrap_pi(float bearing)
 	}
 
 	c = 0;
+
 	while (bearing < -M_PI_F) {
 		bearing += M_TWOPI_F;
 
@@ -567,6 +588,7 @@ __EXPORT float _wrap_2pi(float bearing)
 	}
 
 	int c = 0;
+
 	while (bearing >= M_TWOPI_F) {
 		bearing -= M_TWOPI_F;
 
@@ -576,6 +598,7 @@ __EXPORT float _wrap_2pi(float bearing)
 	}
 
 	c = 0;
+
 	while (bearing < 0.0f) {
 		bearing += M_TWOPI_F;
 
@@ -595,6 +618,7 @@ __EXPORT float _wrap_180(float bearing)
 	}
 
 	int c = 0;
+
 	while (bearing >= 180.0f) {
 		bearing -= 360.0f;
 
@@ -604,6 +628,7 @@ __EXPORT float _wrap_180(float bearing)
 	}
 
 	c = 0;
+
 	while (bearing < -180.0f) {
 		bearing += 360.0f;
 
@@ -623,6 +648,7 @@ __EXPORT float _wrap_360(float bearing)
 	}
 
 	int c = 0;
+
 	while (bearing >= 360.0f) {
 		bearing -= 360.0f;
 
@@ -632,6 +658,7 @@ __EXPORT float _wrap_360(float bearing)
 	}
 
 	c = 0;
+
 	while (bearing < 0.0f) {
 		bearing += 360.0f;
 

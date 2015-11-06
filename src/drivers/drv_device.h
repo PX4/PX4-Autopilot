@@ -68,7 +68,7 @@
 #ifdef __PX4_POSIX
 
 #ifndef SIOCDEVPRIVATE
- #define SIOCDEVPRIVATE 1
+#define SIOCDEVPRIVATE 1
 #endif
 
 #define DIOC_GETPRIV    SIOCDEVPRIVATE

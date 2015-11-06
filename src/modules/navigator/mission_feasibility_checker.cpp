@@ -51,12 +51,6 @@
 #include <errno.h>
 #include <uORB/topics/fence.h>
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 MissionFeasibilityChecker::MissionFeasibilityChecker() :
 	_mavlink_fd(-1),
 	_capabilities_sub(-1),
@@ -342,7 +336,7 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 
 					} else {
 						/* item is too far from home */
-						mavlink_log_critical(_mavlink_fd, "Waypoint too far: %d m,[MIS_DIST_1WP=%d]", (int)dist_to_1wp, (int)dist_first_wp);
+						mavlink_log_critical(_mavlink_fd, "First waypoint too far: %d m,refusing mission", (int)dist_to_1wp, (int)dist_first_wp);
 						warning_issued = true;
 						return false;
 					}

@@ -81,6 +81,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/tecs_status.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -1117,6 +1118,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
 				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			} else {
+				_tecs.reset_state();
 			}
 		}
 		_control_mode_current = FW_POSCTRL_MODE_AUTO;
@@ -1476,6 +1479,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
 				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			} else {
+				_tecs.reset_state();
 			}
 		}
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
@@ -1587,6 +1592,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
 				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			} else {
+				_tecs.reset_state();
 			}
 		}
 		_control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
@@ -1965,7 +1972,7 @@ FixedwingPositionControl::start()
 	_control_task = px4_task_spawn_cmd("fw_pos_control_l1",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       1600,
+				       1300,
 				       (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
 				       nullptr);
 

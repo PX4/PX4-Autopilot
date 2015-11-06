@@ -40,9 +40,11 @@
 
 #pragma once
 
-namespace px4 {
+namespace px4
+{
 
-class AppState {
+class AppState
+{
 public:
 	~AppState() {}
 
@@ -65,8 +67,8 @@ protected:
 	bool _isRunning;
 #endif
 private:
-	AppState(const AppState&); 
-	const AppState& operator=(const AppState&);
+	AppState(const AppState &);
+	const AppState &operator=(const AppState &);
 };
 }
 

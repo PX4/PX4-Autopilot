@@ -44,13 +44,19 @@ static char isvalidopt(char p, const char *options, int *takesarg)
 {
 	int idx = 0;
 	*takesarg = 0;
-	while (options[idx] != 0 && p != options[idx])
+
+	while (options[idx] != 0 && p != options[idx]) {
 		++idx;
-	if (options[idx] == 0)
+	}
+
+	if (options[idx] == 0) {
 		return '?';
-	if (options[idx+1] == ':') {
+	}
+
+	if (options[idx + 1] == ':') {
 		*takesarg = 1;
 	}
+
 	return options[idx];
 }
 
@@ -67,40 +73,50 @@ static int reorder(int argc, char **argv, const char *options)
 	while (idx < argc && argv[idx] != 0) {
 		if (argv[idx][0] == '-') {
 			c = isvalidopt(argv[idx][1], options, &takesarg);
-			if (c == '?')
+
+			if (c == '?') {
 				return 1;
+			}
+
 			tmp_argv[tmpidx] = argv[idx];
 			tmpidx++;
+
 			if (takesarg) {
-				tmp_argv[tmpidx] = argv[idx+1];
+				tmp_argv[tmpidx] = argv[idx + 1];
 				// printf("tmp_argv[%d] = %s\n", tmpidx, tmp_argv[tmpidx]);
 				tmpidx++;
 				idx++;
 			}
 		}
+
 		idx++;
 	}
 
 	// Add non-options to the end
 	idx = 1;
+
 	while (idx < argc && argv[idx] != 0) {
 		if (argv[idx][0] == '-') {
 			c = isvalidopt(argv[idx][1], options, &takesarg);
-			if (c == '?')
+
+			if (c == '?') {
 				return c;
+			}
+
 			if (takesarg) {
 				idx++;
 			}
-		}
-		else {
+
+		} else {
 			tmp_argv[tmpidx] = argv[idx];
 			tmpidx++;
 		}
+
 		idx++;
 	}
 
 	// Reorder argv
-	for (idx=1; idx < argc; idx++) {
+	for (idx = 1; idx < argc; idx++) {
 		argv[idx] = tmp_argv[idx];
 	}
 
@@ -128,24 +144,32 @@ __EXPORT int px4_getopt(int argc, char *argv[], const char *options, int *myopti
 	int takesarg;
 
 	if (*myoptind == 1)
-		if (reorder(argc, argv, options) != 0)
+		if (reorder(argc, argv, options) != 0) {
 			return (int)'?';
+		}
 
 	p = argv[*myoptind];
 
-	if (*myoptarg == 0)
+	if (*myoptarg == 0) {
 		*myoptarg = argv[*myoptind];
+	}
 
 	if (p && options && myoptind && p[0] == '-') {
 		c = isvalidopt(p[1], options, &takesarg);
-		if (c == '?')
+
+		if (c == '?') {
 			return (int)c;
+		}
+
 		*myoptind += 1;
+
 		if (takesarg) {
 			*myoptarg = argv[*myoptind];
 			*myoptind += 1;
 		}
+
 		return (int)c;
 	}
+
 	return -1;
 }

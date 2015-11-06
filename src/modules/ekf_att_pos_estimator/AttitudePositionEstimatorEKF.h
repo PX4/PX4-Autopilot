@@ -177,6 +177,7 @@ private:
     hrt_abstime _last_accel;
     hrt_abstime _last_mag;
     unsigned _prediction_steps;
+    uint64_t _prediction_last;
 
     struct sensor_combined_s            _sensor_combined;
 

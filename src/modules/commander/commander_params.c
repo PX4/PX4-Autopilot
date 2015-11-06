@@ -274,3 +274,16 @@ PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
  * @max 2
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
+
+/**
+ * Time-out for auto disarm after landing
+ *
+ * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
+ * automatically disarmed in case a landing situation has been detected during this period.
+ * A value of zero means that automatic disarming is disabled.
+ *
+ * @group Commander
+ * @min 0
+ */
+PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
+

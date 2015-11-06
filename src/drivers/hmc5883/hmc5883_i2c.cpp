@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file HMC5883_I2C.cpp
-  *
-  * I2C interface for HMC5883 / HMC 5983
-  */
+/**
+ * @file HMC5883_I2C.cpp
+ *
+ * I2C interface for HMC5883 / HMC 5983
+ */
 
 /* XXX trim includes */
 #include <px4_config.h>
@@ -72,7 +72,7 @@ public:
 	virtual ~HMC5883_I2C();
 
 	virtual int	init();
-	virtual int	read(unsigned address, void *data, unsigned count); 
+	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
 	virtual int	ioctl(unsigned operation, unsigned &arg);
@@ -118,11 +118,13 @@ HMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 		if (_bus == PX4_I2C_BUS_EXPANSION) {
 			return 1;
+
 		} else {
 			return 0;
 		}
+
 #else
-                return 1;
+		return 1;
 #endif
 
 	case DEVIOCGDEVICEID:

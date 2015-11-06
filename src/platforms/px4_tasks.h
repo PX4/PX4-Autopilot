@@ -80,6 +80,12 @@ typedef int px4_task_t;
 #error "No target OS defined"
 #endif
 
+#if defined (__PX4_LINUX) || defined(__PX4_NUTTX)
+#include <sys/prctl.h>
+#else
+#define prctl(_action, _string, _pid)
+#endif
+
 typedef int px4_task_t;
 
 typedef struct {
@@ -99,11 +105,11 @@ __EXPORT void px4_systemreset(bool to_bootloader) noreturn_function;
 
 /** Starts a task and performs any specific accounting, scheduler setup, etc. */
 __EXPORT px4_task_t px4_task_spawn_cmd(const char *name,
-			int priority,
-			int scheduler,
-			int stack_size,
-			px4_main_t entry,
-			char * const argv[]);
+				       int priority,
+				       int scheduler,
+				       int stack_size,
+				       px4_main_t entry,
+				       char *const argv[]);
 
 /** Deletes a task - does not do resource cleanup **/
 __EXPORT int px4_task_delete(px4_task_t pid);

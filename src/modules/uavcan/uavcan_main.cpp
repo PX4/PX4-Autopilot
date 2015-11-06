@@ -100,7 +100,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 		std::abort();
 	}
 
-	res = sem_init(&_server_command_sem, 0 , 0);
+	res = px4_sem_init(&_server_command_sem, 0 , 0);
 
 	if (res < 0) {
 		std::abort();
@@ -164,7 +164,7 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_esc_mixer_output_elapsed);
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
 	pthread_mutex_destroy(&_node_mutex);
-	sem_destroy(&_server_command_sem);
+	px4_sem_destroy(&_server_command_sem);
 
 }
 
@@ -447,7 +447,7 @@ int UavcanNode::start_fw_server()
 	}
 
 	_fw_server_action = None;
-	sem_post(&_server_command_sem);
+	px4_sem_post(&_server_command_sem);
 	return rv;
 }
 
@@ -463,7 +463,7 @@ int UavcanNode::request_fw_check()
 	}
 
 	_fw_server_action = None;
-	sem_post(&_server_command_sem);
+	px4_sem_post(&_server_command_sem);
 	return rv;
 
 }
@@ -487,7 +487,7 @@ int UavcanNode::stop_fw_server()
 	}
 
 	_fw_server_action = None;
-	sem_post(&_server_command_sem);
+	px4_sem_post(&_server_command_sem);
 	return rv;
 }
 
@@ -502,7 +502,7 @@ int UavcanNode::fw_server(eServerAction action)
 	case CheckFW:
 		if (_fw_server_action == None) {
 			_fw_server_action = action;
-			sem_wait(&_server_command_sem);
+			px4_sem_wait(&_server_command_sem);
 			rv = _fw_server_status;
 		}
 
@@ -530,8 +530,10 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
 	 * fail during initialization.
 	 */
+	#ifdef GPIO_CAN1_RX
 	stm32_configgpio(GPIO_CAN1_RX);
 	stm32_configgpio(GPIO_CAN1_TX);
+	#endif
 	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
 	stm32_configgpio(GPIO_CAN2_TX);
 
@@ -981,7 +983,7 @@ UavcanNode::control_callback(uintptr_t handle, uint8_t control_group, uint8_t co
 int
 UavcanNode::teardown()
 {
-	sem_post(&_server_command_sem);
+	px4_sem_post(&_server_command_sem);
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
