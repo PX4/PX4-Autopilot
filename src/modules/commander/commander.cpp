@@ -2704,8 +2704,23 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 			print_reject_mode(status_local, "ALTCTL");
 		}
 
-		// fallback to MANUAL
-		res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
+		// fallback to MANUAL, ACRO, RATTITUDE or STAB dependant on switches
+		if (sp_man->acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			if (status.is_rotary_wing) {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_ACRO);
+			} else {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
+			}
+		} else if (sp_man->rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			if (status.is_rotary_wing) {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_RATTITUDE);
+			} else {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
+			}
+		} else {
+			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
+		}
+
 		// TRANSITION_DENIED is not possible here
 		break;
 
@@ -2750,8 +2765,22 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 			break;	// changed successfully or already in this state
 		}
 
-		// fallback to MANUAL
-		res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
+		// fallback to MANUAL, ACRO, RATTITUDE or STAB dependant on switches
+		if (sp_man->acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			if (status.is_rotary_wing) {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_ACRO);
+			} else {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
+			}
+		} else if (sp_man->rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			if (status.is_rotary_wing) {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_RATTITUDE);
+			} else {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
+			}
+		} else {
+			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
+		}
 		// TRANSITION_DENIED is not possible here
 		break;
 
