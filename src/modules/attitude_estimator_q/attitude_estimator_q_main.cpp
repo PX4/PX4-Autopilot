@@ -54,6 +54,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vision_position_estimate.h>
@@ -123,6 +124,7 @@ private:
 	int		_mocap_sub = -1;
 	int		_global_pos_sub = -1;
 	orb_advert_t	_att_pub = nullptr;
+	orb_advert_t	_ctrl_state_pub = nullptr;
 
 	struct {
 		param_t	w_acc;
@@ -522,6 +524,34 @@ void AttitudeEstimatorQ::task_main()
 
 		} else {
 			orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
+		}
+
+		struct control_state_s ctrl_state = {};
+
+		ctrl_state.timestamp = sensors.timestamp;
+
+		/* Attitude quaternions for control state */
+		ctrl_state.q[0] = _q(0);
+
+		ctrl_state.q[1] = _q(1);
+
+		ctrl_state.q[2] = _q(2);
+
+		ctrl_state.q[3] = _q(3);
+
+		/* Attitude rates for control state */
+		ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
+
+		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
+
+		ctrl_state.roll_rate = _rates(2);
+
+		/* Publish to control state topic */
+		if (_ctrl_state_pub == nullptr) {
+			_ctrl_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
+
+		} else {
+			orb_publish(ORB_ID(control_state), _ctrl_state_pub, &ctrl_state);
 		}
 	}
 }
