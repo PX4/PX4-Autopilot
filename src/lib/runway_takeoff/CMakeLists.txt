@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013, 2014 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-#
-# RunwayTakeoff Library
-#
-
-SRCS         =  RunwayTakeoff.cpp \
-            runway_takeoff_params.c
-
-MAXOPTIMIZATION  = -Os
+px4_add_module(
+	MODULE lib__runway_takeoff
+	COMPILE_FLAGS
+		-Os
+	SRCS
+		RunwayTakeoff.cpp
+		runway_takeoff_params.c
+	DEPENDS
+		platforms__common
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

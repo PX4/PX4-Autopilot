@@ -30,7 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-SRCS		= terrain_estimator.cpp
-
-MAXOPTIMIZATION	 = -Os
+px4_add_module(
+	MODULE lib__terrain_estimation
+	COMPILE_FLAGS
+		-Os
+	SRCS
+		terrain_estimator.cpp
+	DEPENDS
+		platforms__common
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
