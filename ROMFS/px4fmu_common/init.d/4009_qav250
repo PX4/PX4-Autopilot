@@ -27,13 +27,8 @@ then
 	param set MC_YAWRATE_P 0.2
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
-	param set PWM_MIN 1230
+	param set PWM_MIN 1075
 	param set PWM_THR_MIN 0.06
 	param set PWM_MANTHR_MIN 0.06
 fi
 
-# Transitional support: ensure suitable PWM min/max param values
-#if param compare PWM_MIN 1075
-#then
-#	param set PWM_MIN 1230
-#fi
