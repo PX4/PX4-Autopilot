@@ -477,6 +477,18 @@ struct log_MACS_s {
 	float yaw_rate_integ;
 };
 
+/* --- CONTROL STATE --- */
+#define LOG_CTS_MSG 47
+struct log_CTS_s {
+	float vx_body;
+	float vy_body;
+	float vz_body;
+	float airspeed;
+	float roll_rate;
+	float pitch_rate;
+	float yaw_rate;
+};
+
 /* WARNING: ID 46 is already in use for ATTC1 */
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
@@ -519,6 +531,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT(STAT, "BBBfBBf",		"MainState,ArmS,Failsafe,BatRem,BatWarn,Landed,Load"),
 	LOG_FORMAT(VTOL, "f",		"Arsp"),
+	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
 	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
 	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "fff",			"IndSpeed,TrueSpeed,AirTemp"),
