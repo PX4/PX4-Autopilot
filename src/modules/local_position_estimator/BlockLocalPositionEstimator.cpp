@@ -811,7 +811,7 @@ void BlockLocalPositionEstimator::predict()
 	Q(X_bz, X_bz) = _pn_b_noise_power.get();
 
 	// continuous time kalman filter prediction
-	Matrix<float, n_x, 1> dx = (A * _x + B * _u) * getDt();
+	Vector<float, n_x> dx = (A * _x + B * _u) * getDt();
 
 	// only predict for components we have
 	// valid measurements for
@@ -904,16 +904,16 @@ void BlockLocalPositionEstimator::correctFlow()
 	_flowY += global_speed[1] * dt;
 
 	// measurement
-	Vector2f y;
+	Vector<float, 2> y;
 	y(0) = _flowX;
 	y(1) = _flowY;
 
 	// residual
-	Vector2f r = y - C * _x;
+	Vector<float, 2> r = y - C * _x;
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_flow, n_y_flow> S_I =
-		(C * _P * C.transpose() + R).inverse();
+		inv<float, n_y_flow>(C * _P * C.transpose() + R);
 
 	// fault detection
 	float beta = sqrtf((r.transpose() * (S_I * r))(0, 0));
@@ -981,17 +981,17 @@ void BlockLocalPositionEstimator::correctSonar()
 	}
 
 	// measurement
-	Matrix<float, n_y_sonar, 1> y;
+	Vector<float, n_y_sonar> y;
 	y(0) = (d - _sonarAltHome) *
 	       cosf(_sub_att.get().roll) *
 	       cosf(_sub_att.get().pitch);
 
 	// residual
-	Matrix<float, n_y_sonar, 1> r = y - C * _x;
+	Vector<float, n_y_sonar> r = y - C * _x;
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_sonar, n_y_sonar> S_I =
-		(C * _P * C.transpose() + R).inverse();
+		inv<float, n_y_sonar>(C * _P * C.transpose() + R);
 
 	// fault detection
 	float beta = sqrtf((r.transpose()  * (S_I * r))(0, 0));
@@ -1032,7 +1032,7 @@ void BlockLocalPositionEstimator::correctSonar()
 void BlockLocalPositionEstimator::correctBaro()
 {
 
-	Matrix<float, n_y_baro, 1> y;
+	Vector<float, n_y_baro> y;
 	y(0) = _sub_sensor.get().baro_alt_meter[0] - _baroAltHome;
 
 	// baro measurement matrix
@@ -1046,8 +1046,8 @@ void BlockLocalPositionEstimator::correctBaro()
 
 	// residual
 	Matrix<float, n_y_baro, n_y_baro> S_I =
-		((C * _P * C.transpose()) + R).inverse();
-	Matrix<float, n_y_baro, 1> r = y - (C * _x);
+		inv<float, n_y_baro>((C * _P * C.transpose()) + R);
+	Vector<float, n_y_baro> r = y - (C * _x);
 
 	// fault detection
 	float beta = sqrtf((r.transpose() * (S_I * r))(0, 0));
@@ -1060,7 +1060,7 @@ void BlockLocalPositionEstimator::correctBaro()
 		}
 
 		// lower baro trust
-		S_I = ((C * _P * C.transpose()) + R * 10).inverse();
+		S_I = inv<float, n_y_baro>((C * _P * C.transpose()) + R * 10);
 
 	} else if (_baroFault) {
 		_baroFault = FAULT_NONE;
@@ -1104,15 +1104,15 @@ void BlockLocalPositionEstimator::correctLidar()
 		R(0, 0) = cov;
 	}
 
-	Matrix<float, n_y_lidar, 1> y;
+	Vector<float, n_y_lidar> y;
 	y.setZero();
 	y(0) = (d - _lidarAltHome) *
 	       cosf(_sub_att.get().roll) *
 	       cosf(_sub_att.get().pitch);
 
 	// residual
-	Matrix<float, n_y_lidar, n_y_lidar> S_I = ((C * _P * C.transpose()) + R).inverse();
-	Matrix<float, n_y_lidar, 1> r = y - C * _x;
+	Matrix<float, n_y_lidar, n_y_lidar> S_I = inv<float, n_y_lidar>((C * _P * C.transpose()) + R);
+	Vector<float, n_y_lidar> r = y - C * _x;
 
 	// fault detection
 	float beta = sqrtf((r.transpose() * (S_I * r))(0, 0));
@@ -1166,7 +1166,7 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 	//printf("home: lat %10g, lon, %10g alt %10g\n", _sub_home.lat, _sub_home.lon, double(_sub_home.alt));
 	//printf("local: x %10g y %10g z %10g\n", double(px), double(py), double(pz));
 
-	Matrix<float, 6, 1> y;
+	Vector<float, 6> y;
 	y.setZero();
 	y(0) = px;
 	y(1) = py;
@@ -1213,8 +1213,8 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 	R(5, 5) = var_vz;
 
 	// residual
-	Matrix<float, 6, 1> r = y - C * _x;
-	Matrix<float, 6, 6> S_I = (C * _P * C.transpose() + R).inverse();
+	Vector<float, 6> r = y - C * _x;
+	Matrix<float, 6, 6> S_I = inv<float, 6>(C * _P * C.transpose() + R);
 
 	// fault detection
 	float beta = sqrtf((r.transpose() * (S_I * r))(0, 0));
@@ -1245,7 +1245,7 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 		}
 
 		// trust GPS less
-		S_I = ((C * _P * C.transpose()) + R * 10).inverse();
+		S_I = inv<float, 6>((C * _P * C.transpose()) + R * 10);
 
 	} else if (_gpsFault) {
 		_gpsFault = FAULT_NONE;
@@ -1266,7 +1266,7 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 void BlockLocalPositionEstimator::correctVision()
 {
 
-	Matrix<float, 3, 1> y;
+	Vector<float, 3> y;
 	y.setZero();
 	y(0) = _sub_vision_pos.get().x - _visionHome(0);
 	y(1) = _sub_vision_pos.get().y - _visionHome(1);
@@ -1287,7 +1287,7 @@ void BlockLocalPositionEstimator::correctVision()
 	R(Y_vision_z, Y_vision_z) = _vision_z_stddev.get() * _vision_z_stddev.get();
 
 	// residual
-	Matrix<float, n_y_vision, n_y_vision> S_I = ((C * _P * C.transpose()) + R).inverse();
+	Matrix<float, n_y_vision, n_y_vision> S_I = inv<float, n_y_vision>((C * _P * C.transpose()) + R);
 	Matrix<float, n_y_vision, 1> r = y - C * _x;
 
 	// fault detection
@@ -1301,7 +1301,7 @@ void BlockLocalPositionEstimator::correctVision()
 		}
 
 		// trust less
-		S_I = ((C * _P * C.transpose()) + R * 10).inverse();
+		S_I = inv<float, n_y_vision>((C * _P * C.transpose()) + R * 10);
 
 	} else if (_visionFault) {
 		_visionFault = FAULT_NONE;
@@ -1322,7 +1322,7 @@ void BlockLocalPositionEstimator::correctVision()
 void BlockLocalPositionEstimator::correctmocap()
 {
 
-	Matrix<float, n_y_mocap, 1> y;
+	Vector<float, n_y_mocap> y;
 	y.setZero();
 	y(Y_mocap_x) = _sub_mocap.get().x - _mocapHome(0);
 	y(Y_mocap_y) = _sub_mocap.get().y - _mocapHome(1);
@@ -1345,7 +1345,7 @@ void BlockLocalPositionEstimator::correctmocap()
 	R(Y_mocap_z, Y_mocap_z) = mocap_p_var;
 
 	// residual
-	Matrix<float, n_y_mocap, n_y_mocap> S_I = ((C * _P * C.transpose()) + R).inverse();
+	Matrix<float, n_y_mocap, n_y_mocap> S_I = inv<float, n_y_mocap>((C * _P * C.transpose()) + R);
 	Matrix<float, n_y_mocap, 1> r = y - C * _x;
 
 	// fault detection
@@ -1359,7 +1359,7 @@ void BlockLocalPositionEstimator::correctmocap()
 		}
 
 		// trust less
-		S_I = ((C * _P * C.transpose()) + R * 10).inverse();
+		S_I = inv<float, n_y_mocap>((C * _P * C.transpose()) + R * 10);
 
 	} else if (_mocapFault) {
 		_mocapFault = FAULT_NONE;

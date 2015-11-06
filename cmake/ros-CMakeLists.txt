@@ -136,6 +136,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}/src/modules
   src/
   src/lib
+  src/lib/matrix
   ${EIGEN_INCLUDE_DIRS}
   integrationtests
 )
