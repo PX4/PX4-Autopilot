@@ -69,7 +69,7 @@ static bool _home_position_set = false;
 static double _home_lat = 0.0d;
 static double _home_lon = 0.0d;
 
-void 
+void
 init_sub_messages(void)
 {
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
@@ -80,7 +80,7 @@ init_sub_messages(void)
 	_esc_sub = orb_subscribe(ORB_ID(esc_status));
 }
 
-void 
+void
 init_pub_messages(void)
 {
 }
@@ -122,12 +122,13 @@ publish_gam_message(const uint8_t *buffer)
 	/* announce the esc if needed, just publish else */
 	if (_esc_pub != nullptr) {
 		orb_publish(ORB_ID(esc_status), _esc_pub, &esc);
+
 	} else {
 		_esc_pub = orb_advertise(ORB_ID(esc_status), &esc);
 	}
 }
 
-void 
+void
 build_eam_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the current sensor values */
@@ -147,7 +148,7 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	msg.start = START_BYTE;
 	msg.eam_sensor_id = EAM_SENSOR_ID;
 	msg.sensor_text_id = EAM_SENSOR_TEXT_ID;
-	
+
 	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius[0] + 20);
 	msg.temperature2 = msg.temperature1 - BOARD_TEMP_OFFSET_DEG;
 
@@ -170,7 +171,7 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	memcpy(buffer, &msg, *size);
 }
 
-void 
+void
 build_gam_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the ESC Status values */
@@ -185,7 +186,7 @@ build_gam_response(uint8_t *buffer, size_t *size)
 	msg.start = START_BYTE;
 	msg.gam_sensor_id = GAM_SENSOR_ID;
 	msg.sensor_text_id = GAM_SENSOR_TEXT_ID;
-	
+
 	msg.temperature1 = (uint8_t)(esc.esc[0].esc_temperature + 20.0F);
 	msg.temperature2 = 20;  // 0 deg. C.
 
@@ -205,7 +206,7 @@ build_gam_response(uint8_t *buffer, size_t *size)
 	memcpy(buffer, &msg, *size);
 }
 
-void 
+void
 build_gps_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the current sensor values */
@@ -213,7 +214,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 	memset(&raw, 0, sizeof(raw));
 	orb_copy(ORB_ID(sensor_combined), _sensor_sub, &raw);
 
- 	/* get a local copy of the battery data */
+	/* get a local copy of the battery data */
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
 	orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);
@@ -241,12 +242,13 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		uint16_t speed = (uint16_t)(gps.vel_m_s * 3.6f);
 		msg.gps_speed_L = (uint8_t)speed & 0xff;
 		msg.gps_speed_H = (uint8_t)(speed >> 8) & 0xff;
-		
-		/* Get latitude in degrees, minutes and seconds */
-		double lat = ((double)(gps.lat))*1e-7d;
 
-		/* Set the N or S specifier */		
+		/* Get latitude in degrees, minutes and seconds */
+		double lat = ((double)(gps.lat)) * 1e-7d;
+
+		/* Set the N or S specifier */
 		msg.latitude_ns = 0;
+
 		if (lat < 0) {
 			msg.latitude_ns = 1;
 			lat = abs(lat);
@@ -265,32 +267,34 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		msg.latitude_sec_H = (uint8_t)(lat_sec >> 8) & 0xff;
 
 		/* Get longitude in degrees, minutes and seconds */
-		double lon = ((double)(gps.lon))*1e-7d;
+		double lon = ((double)(gps.lon)) * 1e-7d;
 
 		/* Set the E or W specifier */
 		msg.longitude_ew = 0;
+
 		if (lon < 0) {
 			msg.longitude_ew = 1;
 			lon = abs(lon);
 		}
 
 		convert_to_degrees_minutes_seconds(lon, &deg, &min, &sec);
-		
+
 		uint16_t lon_min = (uint16_t)(deg * 100 + min);
 		msg.longitude_min_L = (uint8_t)lon_min & 0xff;
 		msg.longitude_min_H = (uint8_t)(lon_min >> 8) & 0xff;
 		uint16_t lon_sec = (uint16_t)(sec);
 		msg.longitude_sec_L = (uint8_t)lon_sec & 0xff;
 		msg.longitude_sec_H = (uint8_t)(lon_sec >> 8) & 0xff;
-		
+
 		/* Altitude */
-		uint16_t alt = (uint16_t)(gps.alt*1e-3f + 500.0f);
+		uint16_t alt = (uint16_t)(gps.alt * 1e-3f + 500.0f);
 		msg.altitude_L = (uint8_t)alt & 0xff;
 		msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
 
 		/* Get any (and probably only ever one) _home_sub postion report */
 		bool updated;
 		orb_check(_home_sub, &updated);
+
 		if (updated) {
 			/* get a local copy of the home position data */
 			struct home_position_s home;

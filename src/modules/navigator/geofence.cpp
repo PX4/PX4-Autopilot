@@ -53,13 +53,7 @@
 #include <geo/geo.h>
 #include <drivers/drv_hrt.h>
 
-#define GEOFENCE_OFF 0
-#define GEOFENCE_FILE_ONLY 1
-#define GEOFENCE_MAX_DISTANCES_ONLY 2
-#define GEOFENCE_FILE_AND_MAX_DISTANCES 3
-
 #define GEOFENCE_RANGE_WARNING_LIMIT 3000000
-
 
 /* Oddly, ERROR is not defined for C++ */
 #ifdef ERROR
@@ -76,8 +70,8 @@ Geofence::Geofence() :
 	_last_vertical_range_warning(0),
 	_altitude_min(0),
 	_altitude_max(0),
-	_verticesCount(0),
-	_param_geofence_mode(this, "MODE"),
+	_vertices_count(0),
+	_param_action(this, "ACTION"),
 	_param_altitude_mode(this, "ALTMODE"),
 	_param_source(this, "SOURCE"),
 	_param_counter_threshold(this, "COUNT"),
@@ -138,7 +132,6 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 
 bool Geofence::inside(double lat, double lon, float altitude)
 {
-	if (_param_geofence_mode.get() >= GEOFENCE_MAX_DISTANCES_ONLY) {
 		int32_t max_horizontal_distance = _param_max_hor_distance.get();
 		int32_t max_vertical_distance = _param_max_ver_distance.get();
 
@@ -152,7 +145,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
 					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_log_critical(_mavlinkFd, "Geofence exceeded max vertical distance by %.1f m",
+						mavlink_and_console_log_critical(_mavlinkFd, "Geofence exceeded max vertical distance by %.1f m",
 								     (double)(dist_z - max_vertical_distance));
 						_last_vertical_range_warning = hrt_absolute_time();
 					}
@@ -162,7 +155,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
 					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_log_critical(_mavlinkFd, "Geofence exceeded max horizontal distance by %.1f m",
+						mavlink_and_console_log_critical(_mavlinkFd, "Geofence exceeded max horizontal distance by %.1f m",
 								     (double)(dist_xy - max_horizontal_distance));
 						_last_horizontal_range_warning = hrt_absolute_time();
 					}
@@ -171,7 +164,6 @@ bool Geofence::inside(double lat, double lon, float altitude)
 				}
 			}
 		}
-	}
 
 	bool inside_fence = inside_polygon(lat, lon, altitude);
 
@@ -194,12 +186,6 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 bool Geofence::inside_polygon(double lat, double lon, float altitude)
 {
-	/* Return true if geofence is disabled or only checking max distances */
-	if ((_param_geofence_mode.get() == GEOFENCE_OFF)
-	    || (_param_geofence_mode.get() == GEOFENCE_MAX_DISTANCES_ONLY)) {
-		return true;
-	}
-
 	if (valid()) {
 
 		if (!isEmpty()) {
@@ -219,7 +205,7 @@ bool Geofence::inside_polygon(double lat, double lon, float altitude)
 			struct fence_vertex_s temp_vertex_j;
 
 			/* Red until fence is finished */
-			for (unsigned i = 0, j = _verticesCount - 1; i < _verticesCount; j = i++) {
+			for (unsigned i = 0, j = _vertices_count - 1; i < _vertices_count; j = i++) {
 				if (dm_read(DM_KEY_FENCE_POINTS, i, &temp_vertex_i, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
 					break;
 				}
@@ -259,7 +245,7 @@ Geofence::valid()
 	}
 
 	// Otherwise
-	if ((_verticesCount < 4) || (_verticesCount > fence_s::GEOFENCE_MAX_VERTICES)) {
+	if ((_vertices_count < 4) || (_vertices_count > fence_s::GEOFENCE_MAX_VERTICES)) {
 		warnx("Fence must have at least 3 sides and not more than %d", fence_s::GEOFENCE_MAX_VERTICES - 1);
 		return false;
 	}
@@ -415,7 +401,7 @@ Geofence::loadFromFile(const char *filename)
 
 	/* Check if import was successful */
 	if (gotVertical && pointCounter > 0) {
-		_verticesCount = pointCounter;
+		_vertices_count = pointCounter;
 		warnx("Geofence: imported successfully");
 		mavlink_log_info(_mavlinkFd, "Geofence imported");
 		rc = OK;

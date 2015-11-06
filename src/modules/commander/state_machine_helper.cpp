@@ -304,6 +304,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	switch (new_main_state) {
 	case vehicle_status_s::MAIN_STATE_MANUAL:
 	case vehicle_status_s::MAIN_STATE_ACRO:
+	case vehicle_status_s::MAIN_STATE_RATTITUDE:
 	case vehicle_status_s::MAIN_STATE_STAB:
 		ret = TRANSITION_CHANGED;
 		break;
@@ -528,6 +529,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 	switch (status->main_state) {
 	case vehicle_status_s::MAIN_STATE_ACRO:
 	case vehicle_status_s::MAIN_STATE_MANUAL:
+	case vehicle_status_s::MAIN_STATE_RATTITUDE:
 	case vehicle_status_s::MAIN_STATE_STAB:
 	case vehicle_status_s::MAIN_STATE_ALTCTL:
 	case vehicle_status_s::MAIN_STATE_POSCTL:
@@ -553,6 +555,10 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 
 			case vehicle_status_s::MAIN_STATE_MANUAL:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+				break;
+
+			case vehicle_status_s::MAIN_STATE_RATTITUDE:
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
 				break;
 
 			case vehicle_status_s::MAIN_STATE_STAB:
@@ -737,5 +743,12 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		checkAirspeed = true;
 	}
 
-	return !Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true);
+	bool prearm_ok = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true);
+
+	if (status->usb_connected) {
+		prearm_ok = false;
+		mavlink_log_critical(mavlink_fd, "NOT ARMING: Flying with USB connected prohibited");
+	}
+
+	return !prearm_ok;
 }

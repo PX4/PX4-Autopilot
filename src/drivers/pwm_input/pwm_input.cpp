@@ -302,6 +302,7 @@ PWMIN::init()
 	CDev::init();
 
 	_reports = new ringbuffer::RingBuffer(2, sizeof(struct pwm_input_s));
+
 	if (_reports == nullptr) {
 		return -ENOMEM;
 	}
@@ -490,6 +491,7 @@ PWMIN::read(struct file *filp, char *buffer, size_t buflen)
 			buf++;
 		}
 	}
+
 	/* if there was no data, warn the caller */
 	return ret ? ret : -EAGAIN;
 }

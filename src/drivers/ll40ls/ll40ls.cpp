@@ -80,7 +80,7 @@ LidarLiteI2C	*g_dev_int;
 LidarLiteI2C	*g_dev_ext;
 LidarLitePWM	*g_dev_pwm;
 
-LidarLite * get_dev(const bool use_i2c, const int bus);
+LidarLite *get_dev(const bool use_i2c, const int bus);
 void	start(const bool use_i2c, const int bus);
 void	stop(const bool use_i2c, const int bus);
 void	test(const bool use_i2c, const int bus);
@@ -92,19 +92,25 @@ void	usage();
 /**
  * Get the correct device pointer
  */
-LidarLite * get_dev(const bool use_i2c, const int bus) {
-	LidarLite * g_dev = nullptr;
+LidarLite *get_dev(const bool use_i2c, const int bus)
+{
+	LidarLite *g_dev = nullptr;
+
 	if (use_i2c) {
-		g_dev = static_cast<LidarLite*>(bus == PX4_I2C_BUS_ONBOARD ? g_dev_int : g_dev_ext);
+		g_dev = static_cast<LidarLite *>(bus == PX4_I2C_BUS_ONBOARD ? g_dev_int : g_dev_ext);
+
 		if (g_dev == nullptr) {
 			errx(1, "i2c driver not running");
 		}
+
 	} else {
-		g_dev = static_cast<LidarLite*>(g_dev_pwm);
+		g_dev = static_cast<LidarLite *>(g_dev_pwm);
+
 		if (g_dev == nullptr) {
 			errx(1, "pwm driver not running");
 		}
 	}
+
 	return g_dev;
 };
 
@@ -114,7 +120,7 @@ LidarLite * get_dev(const bool use_i2c, const int bus) {
 void start(const bool use_i2c, const int bus)
 {
 	if (g_dev_int != nullptr || g_dev_ext != nullptr || g_dev_pwm != nullptr) {
-		errx(1,"driver already started");
+		errx(1, "driver already started");
 	}
 
 	if (use_i2c) {
@@ -254,18 +260,21 @@ void stop(const bool use_i2c, const int bus)
 				delete g_dev_int;
 				g_dev_int = nullptr;
 			}
+
 		} else {
 			if (g_dev_ext != nullptr) {
 				delete g_dev_ext;
 				g_dev_ext = nullptr;
 			}
 		}
+
 	} else {
 		if (g_dev_pwm != nullptr)  {
 			delete g_dev_pwm;
 			g_dev_pwm = nullptr;
 		}
 	}
+
 	exit(0);
 }
 
@@ -334,7 +343,7 @@ test(const bool use_i2c, const int bus)
 
 		warnx("periodic read %u", i);
 		warnx("valid %u", (float)report.current_distance > report.min_distance
-			&& (float)report.current_distance < report.max_distance ? 1 : 0);
+		      && (float)report.current_distance < report.max_distance ? 1 : 0);
 		warnx("measurement: %0.3f m", (double)report.current_distance);
 		warnx("time:        %lld", report.timestamp);
 	}
@@ -386,7 +395,7 @@ reset(const bool use_i2c, const int bus)
 void
 info(const bool use_i2c, const int bus)
 {
-	LidarLite * g_dev = get_dev(use_i2c, bus);
+	LidarLite *g_dev = get_dev(use_i2c, bus);
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 	exit(0);
@@ -398,7 +407,7 @@ info(const bool use_i2c, const int bus)
 void
 regdump(const bool use_i2c, const int bus)
 {
-	LidarLite * g_dev = get_dev(use_i2c, bus);
+	LidarLite *g_dev = get_dev(use_i2c, bus);
 	printf("regdump @ %p\n", g_dev);
 	g_dev->print_registers();
 	exit(0);

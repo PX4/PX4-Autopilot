@@ -44,38 +44,36 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
-typedef  struct i2c_frame
-{
-    uint16_t frame_count;
-    int16_t pixel_flow_x_sum;
-    int16_t pixel_flow_y_sum;
-    int16_t flow_comp_m_x;
-    int16_t flow_comp_m_y;
-    int16_t qual;
-    int16_t gyro_x_rate;
-    int16_t gyro_y_rate;
-    int16_t gyro_z_rate;
-    uint8_t gyro_range;
-    uint8_t sonar_timestamp;
-    int16_t ground_distance;
+typedef  struct i2c_frame {
+	uint16_t frame_count;
+	int16_t pixel_flow_x_sum;
+	int16_t pixel_flow_y_sum;
+	int16_t flow_comp_m_x;
+	int16_t flow_comp_m_y;
+	int16_t qual;
+	int16_t gyro_x_rate;
+	int16_t gyro_y_rate;
+	int16_t gyro_z_rate;
+	uint8_t gyro_range;
+	uint8_t sonar_timestamp;
+	int16_t ground_distance;
 } i2c_frame;
 
 #define I2C_FRAME_SIZE (sizeof(i2c_frame))
 
 
-typedef struct i2c_integral_frame
-{
-    uint16_t frame_count_since_last_readout;
-    int16_t pixel_flow_x_integral;
-    int16_t pixel_flow_y_integral;
-    int16_t gyro_x_rate_integral;
-    int16_t gyro_y_rate_integral;
-    int16_t gyro_z_rate_integral;
-    uint32_t integration_timespan;
-    uint32_t sonar_timestamp;
-    uint16_t ground_distance;
-    int16_t gyro_temperature;
-    uint8_t qual;
+typedef struct i2c_integral_frame {
+	uint16_t frame_count_since_last_readout;
+	int16_t pixel_flow_x_integral;
+	int16_t pixel_flow_y_integral;
+	int16_t gyro_x_rate_integral;
+	int16_t gyro_y_rate_integral;
+	int16_t gyro_z_rate_integral;
+	uint32_t integration_timespan;
+	uint32_t sonar_timestamp;
+	uint16_t ground_distance;
+	int16_t gyro_temperature;
+	uint8_t qual;
 } i2c_integral_frame;
 
 #define I2C_INTEGRAL_FRAME_SIZE (sizeof(i2c_integral_frame))

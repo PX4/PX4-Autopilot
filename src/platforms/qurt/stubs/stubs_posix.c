@@ -79,7 +79,7 @@ int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *p
 	return 1;
 }
 
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg)
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg)
 {
 	return 1;
 }

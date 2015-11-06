@@ -152,6 +152,7 @@ static int land_detector_start(const char *mode)
 				return 1;
 			}
 		}
+
 		printf("\n");
 	}
 
@@ -176,6 +177,7 @@ int land_detector_main(int argc, char *argv[])
 			warnx("land_detector start failed");
 			return 1;
 		}
+
 		return 0;
 	}
 

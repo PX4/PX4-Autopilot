@@ -134,7 +134,8 @@ protected:
 	 *
 	 * @param address	The new bus address to set.
 	 */
-	void		set_address(uint16_t address) {
+	void		set_address(uint16_t address)
+	{
 		_address = address;
 		_device_id.devid_s.address = _address;
 	}

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2014 Anton Matosov <anton.matosov@gmail.com>. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-
-SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
-MULTI_TABLES := $(SELF_DIR)multi_tables.py
-
-# Add explicit dependency, as implicit one doesn't work often.
-$(SELF_DIR)mixer_multirotor.cpp : $(SELF_DIR)mixer_multirotor.generated.h
-
-$(SELF_DIR)mixer_multirotor.generated.h : $(MULTI_TABLES)
-	$(Q) $(PYTHON) $(MULTI_TABLES) > $(SELF_DIR)mixer_multirotor.generated.h
+px4_add_module(
+	MODULE drivers__srf02
+	MAIN srf02
+	COMPILE_FLAGS
+		-Os
+	SRCS
+		srf02.cpp
+	DEPENDS
+		platforms__common
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

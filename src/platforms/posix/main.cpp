@@ -66,6 +66,13 @@ extern "C" {
 		cout.flush();
 		_exit(0);
 	}
+	void _SigFpeHandler(int sig_num);
+	void _SigFpeHandler(int sig_num)
+	{
+		cout.flush();
+		cout << endl << "floating point exception" << endl;
+		cout.flush();
+	}
 }
 
 static void print_prompt()
@@ -96,6 +103,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 		if (exit_on_fail && retval) {
 			exit(retval);
 		}
+
 		usleep(65000);
 
 	} else if (command.compare("help") == 0) {
@@ -108,6 +116,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 		cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 
 	}
+
 	print_prompt();
 }
 
@@ -135,6 +144,7 @@ int main(int argc, char **argv)
 {
 	bool daemon_mode = false;
 	signal(SIGINT, _SigIntHandler);
+	signal(SIGFPE, _SigFpeHandler);
 
 	int index = 1;
 	bool error_detected = false;

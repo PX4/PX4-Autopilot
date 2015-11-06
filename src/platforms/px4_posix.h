@@ -54,8 +54,7 @@
 
 __BEGIN_DECLS
 
-typedef struct
-{
+typedef struct {
 	pthread_mutex_t lock;
 	pthread_cond_t wait;
 	int value;
@@ -97,7 +96,7 @@ typedef struct pollfd px4_pollfd_struct_t;
 #if defined(__cplusplus)
 #define _GLOBAL ::
 #else
-#define _GLOBAL 
+#define _GLOBAL
 #endif
 #define px4_open 	_GLOBAL open
 #define px4_close 	_GLOBAL close
@@ -118,14 +117,14 @@ typedef struct pollfd px4_pollfd_struct_t;
 typedef short pollevent_t;
 
 typedef struct {
-  /* This part of the struct is POSIX-like */
-  int		fd;       /* The descriptor being polled */
-  pollevent_t 	events;   /* The input event flags */
-  pollevent_t 	revents;  /* The output event flags */
+	/* This part of the struct is POSIX-like */
+	int		fd;       /* The descriptor being polled */
+	pollevent_t 	events;   /* The input event flags */
+	pollevent_t 	revents;  /* The output event flags */
 
-  /* Required for PX4 compatability */
-  px4_sem_t   *sem;  	/* Pointer to semaphore used to post output event */
-  void   *priv;     	/* For use by drivers */
+	/* Required for PX4 compatability */
+	px4_sem_t   *sem;  	/* Pointer to semaphore used to post output event */
+	void   *priv;     	/* For use by drivers */
 } px4_pollfd_struct_t;
 
 __BEGIN_DECLS
@@ -150,8 +149,8 @@ extern int px4_errno;
 
 __EXPORT void		px4_show_devices(void);
 __EXPORT void		px4_show_files(void);
-__EXPORT const char *	px4_get_device_names(unsigned int *handle);
+__EXPORT const char 	*px4_get_device_names(unsigned int *handle);
 
 __EXPORT void		px4_show_topics(void);
-__EXPORT const char *	px4_get_topic_names(unsigned int *handle);
+__EXPORT const char 	*px4_get_topic_names(unsigned int *handle);
 __END_DECLS

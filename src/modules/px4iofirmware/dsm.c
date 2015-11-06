@@ -90,8 +90,9 @@ static bool
 dsm_decode_channel(uint16_t raw, unsigned shift, unsigned *channel, unsigned *value)
 {
 
-	if (raw == 0xffff)
+	if (raw == 0xffff) {
 		return false;
+	}
 
 	*channel = (raw >> shift) & 0xf;
 
@@ -132,18 +133,21 @@ dsm_guess_format(bool reset)
 		unsigned channel, value;
 
 		/* if the channel decodes, remember the assigned number */
-		if (dsm_decode_channel(raw, 10, &channel, &value) && (channel < 31))
+		if (dsm_decode_channel(raw, 10, &channel, &value) && (channel < 31)) {
 			cs10 |= (1 << channel);
+		}
 
-		if (dsm_decode_channel(raw, 11, &channel, &value) && (channel < 31))
+		if (dsm_decode_channel(raw, 11, &channel, &value) && (channel < 31)) {
 			cs11 |= (1 << channel);
+		}
 
 		/* XXX if we cared, we could look for the phase bit here to decide 1 vs. 2-dsm_frame format */
 	}
 
 	/* wait until we have seen plenty of frames - 5 should normally be enough */
-	if (samples++ < 5)
+	if (samples++ < 5) {
 		return;
+	}
 
 	/*
 	 * Iterate the set of sensible sniffed channel sets and see whether
@@ -170,11 +174,13 @@ dsm_guess_format(bool reset)
 
 	for (unsigned i = 0; i < (sizeof(masks) / sizeof(masks[0])); i++) {
 
-		if (cs10 == masks[i])
+		if (cs10 == masks[i]) {
 			votes10++;
+		}
 
-		if (cs11 == masks[i])
+		if (cs11 == masks[i]) {
 			votes11++;
+		}
 	}
 
 	if ((votes11 == 1) && (votes10 == 0)) {
@@ -210,8 +216,9 @@ dsm_init(const char *device)
 	POWER_SPEKTRUM(true);
 #endif
 
-	if (dsm_fd < 0)
+	if (dsm_fd < 0) {
 		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
+	}
 
 	if (dsm_fd >= 0) {
 
@@ -251,13 +258,14 @@ void
 dsm_bind(uint16_t cmd, int pulses)
 {
 #if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)
-	#warning DSM BIND NOT IMPLEMENTED ON UNKNOWN PLATFORM
+#warning DSM BIND NOT IMPLEMENTED ON UNKNOWN PLATFORM
 #else
 	const uint32_t usart1RxAsOutp =
 		GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN10;
 
-	if (dsm_fd < 0)
+	if (dsm_fd < 0) {
 		return;
+	}
 
 	switch (cmd) {
 
@@ -297,6 +305,7 @@ dsm_bind(uint16_t cmd, int pulses)
 			up_udelay(120);
 			stm32_gpiowrite(usart1RxAsOutp, true);
 		}
+
 		break;
 
 	case dsm_bind_reinit_uart:
@@ -306,6 +315,7 @@ dsm_bind(uint16_t cmd, int pulses)
 		break;
 
 	}
+
 #endif
 }
 
@@ -329,8 +339,9 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 	 * If we have lost signal for at least a second, reset the
 	 * format guessing heuristic.
 	 */
-	if (((frame_time - dsm_last_frame_time) > 1000000) && (dsm_channel_shift != 0))
+	if (((frame_time - dsm_last_frame_time) > 1000000) && (dsm_channel_shift != 0)) {
 		dsm_guess_format(true);
+	}
 
 	/* we have received something we think is a dsm_frame */
 	dsm_last_frame_time = frame_time;
@@ -358,20 +369,24 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 		uint16_t raw = (dp[0] << 8) | dp[1];
 		unsigned channel, value;
 
-		if (!dsm_decode_channel(raw, dsm_channel_shift, &channel, &value))
+		if (!dsm_decode_channel(raw, dsm_channel_shift, &channel, &value)) {
 			continue;
+		}
 
 		/* ignore channels out of range */
-		if (channel >= PX4IO_RC_INPUT_CHANNELS)
+		if (channel >= PX4IO_RC_INPUT_CHANNELS) {
 			continue;
+		}
 
 		/* update the decoded channel count */
-		if (channel >= *num_values)
+		if (channel >= *num_values) {
 			*num_values = channel + 1;
+		}
 
 		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding. */
-		if (dsm_channel_shift == 10)
+		if (dsm_channel_shift == 10) {
 			value *= 2;
+		}
 
 		/*
 		 * Spektrum scaling is special. There are these basic considerations
@@ -421,8 +436,9 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 	 * lines, so if we get a channel count of 13, we'll return 12 (the last
 	 * data index that is stable).
 	 */
-	if (*num_values == 13)
+	if (*num_values == 13) {
 		*num_values = 12;
+	}
 
 	if (dsm_channel_shift == 11) {
 		/* Set the 11-bit data indicator */
@@ -482,6 +498,7 @@ dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **by
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1) {
 		return false;
+
 	} else {
 		*n_bytes = ret;
 		*bytes = &dsm_frame[dsm_partial_frame_count];
@@ -497,8 +514,9 @@ dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **by
 	/*
 	 * If we don't have a full dsm frame, return
 	 */
-	if (dsm_partial_frame_count < DSM_FRAME_SIZE)
+	if (dsm_partial_frame_count < DSM_FRAME_SIZE) {
 		return false;
+	}
 
 	/*
 	 * Great, it looks like we might have a dsm frame.  Go ahead and

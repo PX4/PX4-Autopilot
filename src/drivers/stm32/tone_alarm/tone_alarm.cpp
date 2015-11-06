@@ -116,6 +116,7 @@
 #include <stm32_tim.h>
 
 #include <systemlib/err.h>
+#include <systemlib/circuit_breaker.h>
 
 /* Check that tone alarm and HRT timers are different */
 #if defined(TONE_ALARM_TIMER)  && defined(HRT_TIMER)
@@ -273,6 +274,8 @@
 # define rDMAR    	REG(STM32_GTIM_DMAR_OFFSET)
 #endif
 
+#define CBRK_BUZZER_KEY 782097
+
 class ToneAlarm : public device::CDev
 {
 public:
@@ -287,6 +290,12 @@ public:
 	{
 		return _tune_names[tune];
 	}
+
+	enum {
+		CBRK_OFF = 0,
+		CBRK_ON,
+		CBRK_UNINIT
+	};
 
 private:
 	static const unsigned	_tune_max = 1024 * 8; // be reasonable about user tunes
@@ -307,6 +316,7 @@ private:
 	unsigned		_octave;
 	unsigned		_silence_length; // if nonzero, silence before next note
 	bool			_repeat;	// if true, tune restarts at end
+	int				_cbrk;	//if true, no audio output
 
 	hrt_call		_note_call;	// HRT callout for note completion
 
@@ -375,7 +385,8 @@ ToneAlarm::ToneAlarm() :
 	_default_tune_number(0),
 	_user_tune(nullptr),
 	_tune(nullptr),
-	_next(nullptr)
+	_next(nullptr),
+	_cbrk(CBRK_UNINIT)
 {
 	// enable debug() calls
 	//_debug_enabled = true;
@@ -537,6 +548,13 @@ ToneAlarm::rest_duration(unsigned rest_length, unsigned dots)
 void
 ToneAlarm::start_note(unsigned note)
 {
+	// check if circuit breaker is enabled
+	if (_cbrk == CBRK_UNINIT) {
+		_cbrk = circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY);
+	}
+
+	if (_cbrk != CBRK_OFF) { return; }
+
 	// compute the divisor
 	unsigned divisor = note_to_divisor(note);
 

@@ -1898,7 +1898,7 @@ void sdlog2_status()
 }
 
 /**
- * @return 0 if file exists
+ * @return true if file exists
  */
 bool file_exist(const char *filename)
 {

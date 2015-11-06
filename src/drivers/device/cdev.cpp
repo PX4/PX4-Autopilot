@@ -100,14 +100,16 @@ CDev::CDev(const char *name,
 	_registered(false),
 	_open_count(0)
 {
-	for (unsigned i = 0; i < _max_pollwaiters; i++)
+	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		_pollset[i] = nullptr;
+	}
 }
 
 CDev::~CDev()
 {
-	if (_registered)
+	if (_registered) {
 		unregister_driver(_devname);
+	}
 }
 
 int
@@ -124,13 +126,16 @@ CDev::register_class_devname(const char *class_devname)
 		char name[32];
 		snprintf(name, sizeof(name), "%s%d", class_devname, class_instance);
 		ret = register_driver(name, &fops, 0666, (void *)this);
-		if (ret == OK) break;
+
+		if (ret == OK) { break; }
+
 		class_instance++;
 	}
 
 	if (class_instance == 4) {
 		return ret;
 	}
+
 	return class_instance;
 }
 
@@ -148,15 +153,17 @@ CDev::init()
 	// base class init first
 	int ret = Device::init();
 
-	if (ret != OK)
+	if (ret != OK) {
 		goto out;
+	}
 
 	// now register the driver
 	if (_devname != nullptr) {
 		ret = register_driver(_devname, &fops, 0666, (void *)this);
 
-		if (ret != OK)
+		if (ret != OK) {
 			goto out;
+		}
 
 		_registered = true;
 	}
@@ -182,8 +189,9 @@ CDev::open(file_t *filp)
 		/* first-open callback may decline the open */
 		ret = open_first(filp);
 
-		if (ret != OK)
+		if (ret != OK) {
 			_open_count--;
+		}
 	}
 
 	unlock();
@@ -209,8 +217,9 @@ CDev::close(file_t *filp)
 		_open_count--;
 
 		/* callback cannot decline the close */
-		if (_open_count == 0)
+		if (_open_count == 0) {
 			ret = close_last(filp);
+		}
 
 	} else {
 		ret = -EBADF;
@@ -250,26 +259,30 @@ CDev::ioctl(file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-		/* fetch a pointer to the driver's private data */
+	/* fetch a pointer to the driver's private data */
 	case DIOC_GETPRIV:
 		*(void **)(uintptr_t)arg = (void *)this;
 		return OK;
 		break;
+
 	case DEVIOCSPUBBLOCK:
 		_pub_blocked = (arg != 0);
 		return OK;
 		break;
+
 	case DEVIOCGPUBBLOCK:
 		return _pub_blocked;
 		break;
 	}
 
 	/* try the superclass. The different ioctl() function form
-         * means we need to copy arg */
-        unsigned arg2 = arg;
+	 * means we need to copy arg */
+	unsigned arg2 = arg;
 	int ret = Device::ioctl(cmd, arg2);
-	if (ret != -ENODEV)
+
+	if (ret != -ENODEV) {
 		return ret;
+	}
 
 	return -ENOTTY;
 }
@@ -305,8 +318,9 @@ CDev::poll(file_t *filp, struct pollfd *fds, bool setup)
 			fds->revents |= fds->events & poll_state(filp);
 
 			/* yes? post the notification */
-			if (fds->revents != 0)
+			if (fds->revents != 0) {
 				px4_sem_post(fds->sem);
+			}
 		}
 
 	} else {
@@ -328,8 +342,9 @@ CDev::poll_notify(pollevent_t events)
 	irqstate_t state = irqsave();
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++)
-		if (nullptr != _pollset[i])
+		if (nullptr != _pollset[i]) {
 			poll_notify_one(_pollset[i], events);
+		}
 
 	irqrestore(state);
 }
@@ -342,8 +357,9 @@ CDev::poll_notify_one(struct pollfd *fds, pollevent_t events)
 
 	/* if the state is now interesting, wake the waiter if it's still asleep */
 	/* XXX semcount check here is a vile hack; counting semphores should not be abused as cvars */
-	if ((fds->revents != 0) && (fds->sem->semcount <= 0))
+	if ((fds->revents != 0) && (fds->sem->semcount <= 0)) {
 		px4_sem_post(fds->sem);
+	}
 }
 
 pollevent_t

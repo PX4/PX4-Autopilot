@@ -698,6 +698,9 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	} else {
 		_is_usb_uart = true;
+		/* USB has no baudrate, but use a magic number for 'fast' */
+		_baudrate = 2000000;
+		_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB;
 	}
 
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
@@ -1676,7 +1679,6 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 3.0f);
 		configure_stream("LOCAL_POSITION_NED", 3.0f);
-		configure_stream("NAMED_VALUE_FLOAT", 2.0f);
 		configure_stream("RC_CHANNELS", 1.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
@@ -2095,8 +2097,12 @@ Mavlink::display_status()
 			printf("3DR RADIO\n");
 			break;
 
+		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB:
+			printf("USB CDC\n");
+			break;
+
 		default:
-			printf("UNKNOWN RADIO\n");
+			printf("GENERIC LINK OR RADIO\n");
 			break;
 		}
 

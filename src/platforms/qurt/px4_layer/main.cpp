@@ -50,8 +50,8 @@
 
 using namespace std;
 
-extern void init_app_map(map<string,px4_main_t> &apps);
-extern void list_builtins(map<string,px4_main_t> &apps);
+extern void init_app_map(map<string, px4_main_t> &apps);
+extern void list_builtins(map<string, px4_main_t> &apps);
 static px4_task_t g_dspal_task = -1;
 
 __BEGIN_DECLS
@@ -61,24 +61,27 @@ extern const char *get_commands(void);
 void qurt_external_hook(void) __attribute__((weak));
 __END_DECLS
 
-static void run_cmd(map<string,px4_main_t> &apps, const vector<string> &appargs) {
+static void run_cmd(map<string, px4_main_t> &apps, const vector<string> &appargs)
+{
 	// command is appargs[0]
 	string command = appargs[0];
+
 	if (apps.find(command) != apps.end()) {
-		const char *arg[2+1];
+		const char *arg[2 + 1];
 
 		unsigned int i = 0;
+
 		while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 			arg[i] = (char *)appargs[i].c_str();
 			PX4_WARN("  arg = '%s'\n", arg[i]);
 			++i;
 		}
+
 		arg[i] = (char *)0;
 		//PX4_DEBUG_PRINTF(i);
-		apps[command](i,(char **)arg);
-	}
-	else
-	{
+		apps[command](i, (char **)arg);
+
+	} else {
 		PX4_WARN("NOT FOUND.");
 		list_builtins(apps);
 	}
@@ -88,14 +91,15 @@ void eat_whitespace(const char *&b, int &i)
 {
 	// Eat whitespace
 	while (b[i] == ' ' || b[i] == '\t') { ++i; }
+
 	b = &b[i];
-	i=0;
+	i = 0;
 }
 
-static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
+static void process_commands(map<string, px4_main_t> &apps, const char *cmds)
 {
 	vector<string> appargs;
-	int i=0;
+	int i = 0;
 	const char *b = cmds;
 	bool found_first_char = false;
 	char arg[256];
@@ -103,7 +107,7 @@ static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
 	// Eat leading whitespace
 	eat_whitespace(b, i);
 
-	for(;;) {
+	for (;;) {
 		// End of command line
 		if (b[i] == '\n' || b[i] == '\0') {
 			strncpy(arg, b, i);
@@ -112,20 +116,26 @@ static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
 
 			// If we have a command to run
 			if (appargs.size() > 0) {
-			  PX4_WARN("Processing command: %s",appargs[0].c_str());
-			  for(int ai=1;ai<(int)appargs.size();ai++)
-   			         PX4_WARN("   > arg: %s",appargs[ai].c_str());
-			  run_cmd(apps, appargs);
+				PX4_WARN("Processing command: %s", appargs[0].c_str());
+
+				for (int ai = 1; ai < (int)appargs.size(); ai++) {
+					PX4_WARN("   > arg: %s", appargs[ai].c_str());
+				}
+
+				run_cmd(apps, appargs);
 			}
+
 			appargs.clear();
+
 			if (b[i] == '\n') {
 				eat_whitespace(b, ++i);
 				continue;
-			}
-			else {
+
+			} else {
 				break;
 			}
 		}
+
 		// End of arg
 		else if (b[i] == ' ') {
 			strncpy(arg, b, i);
@@ -134,11 +144,13 @@ static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
 			eat_whitespace(b, ++i);
 			continue;
 		}
+
 		++i;
 	}
 }
 
-namespace px4 {
+namespace px4
+{
 extern void init_once(void);
 };
 
@@ -147,23 +159,25 @@ int dspal_main(int argc, char *argv[]);
 __END_DECLS
 
 
-int dspal_entry( int argc, char* argv[] )
+int dspal_entry(int argc, char *argv[])
 {
 	PX4_INFO("In main\n");
-	map<string,px4_main_t> apps;
+	map<string, px4_main_t> apps;
 	init_app_map(apps);
 	px4::init_once();
 	px4::init(argc, (char **)argv, "mainapp");
 	process_commands(apps, get_commands());
 	sleep(1); // give time for all commands to execute before starting external function
-	if(qurt_external_hook)
-	{
+
+	if (qurt_external_hook) {
 		qurt_external_hook();
 	}
-	for(;;){
+
+	for (;;) {
 		sleep(1);
 	}
-        return 0;
+
+	return 0;
 }
 
 static void usage()
@@ -174,32 +188,32 @@ static void usage()
 
 extern "C" {
 
-int dspal_main(int argc, char *argv[])
-{
-	int ret = 0;
-	if (argc == 2 && strcmp(argv[1], "start") == 0) {
+	int dspal_main(int argc, char *argv[])
+	{
+		int ret = 0;
+
+		if (argc == 2 && strcmp(argv[1], "start") == 0) {
 			g_dspal_task = px4_task_spawn_cmd("dspal",
-				SCHED_DEFAULT,
-				SCHED_PRIORITY_MAX - 5,
-				1500,
-				dspal_entry,
-				argv);
+							  SCHED_DEFAULT,
+							  SCHED_PRIORITY_MAX - 5,
+							  1500,
+							  dspal_entry,
+							  argv);
 
-	}
-	else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
-		if (g_dspal_task < 0) {
-			PX4_WARN("start up thread not running");
-		}
-		else {
-			px4_task_delete(g_dspal_task);
-			g_dspal_task = -1;
-		}
-	}
-	else {
-		usage();
-		ret = -1;
-	}
+		} else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
+			if (g_dspal_task < 0) {
+				PX4_WARN("start up thread not running");
 
-	return ret;
-}
+			} else {
+				px4_task_delete(g_dspal_task);
+				g_dspal_task = -1;
+			}
+
+		} else {
+			usage();
+			ret = -1;
+		}
+
+		return ret;
+	}
 }

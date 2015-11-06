@@ -37,10 +37,6 @@ set(depends
 	git_uavcan
 	)
 
-if(${OS} STREQUAL "posix" OR ${BOARD} STREQUAL "sim")
-	list(APPEND depends git_eigen)
-endif()
-
 px4_add_module(
 	MODULE platforms__common
 	SRCS

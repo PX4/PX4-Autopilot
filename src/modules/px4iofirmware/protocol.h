@@ -46,7 +46,7 @@
  *
  * The first two bytes of each write select a page and offset address
  * respectively. Subsequent reads and writes increment the offset within
- * the page. 
+ * the page.
  *
  * Some pages are read- or write-only.
  *
@@ -56,7 +56,7 @@
  * Writes to unimplemented registers are ignored. Reads from unimplemented
  * registers return undefined values.
  *
- * As convention, values that would be floating point in other parts of 
+ * As convention, values that would be floating point in other parts of
  * the PX4 system are expressed as signed integer values scaled by 10000,
  * e.g. control values range from -10000..10000.  Use the REG_TO_SIGNED and
  * SIGNED_TO_REG macros to convert between register representation and
@@ -66,7 +66,7 @@
  * readable pages to be densely packed. Page numbers do not need to be
  * packed.
  *
- * Definitions marked [1] are only valid on PX4IOv1 boards. Likewise, 
+ * Definitions marked [1] are only valid on PX4IOv1 boards. Likewise,
  * [2] denotes definitions specific to the PX4IOv2 board.
  */
 
@@ -218,14 +218,14 @@ enum {							/* DSM bind states */
 	dsm_bind_send_pulses,
 	dsm_bind_reinit_uart
 };
-						/* 8 */
+/* 8 */
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
 #define PX4IO_P_SETUP_REBOOT_BL			10	/* reboot IO into bootloader */
 #define PX4IO_REBOOT_BL_MAGIC			14662	/* required argument for reboot (random) */
 
 #define PX4IO_P_SETUP_CRC			11	/* get CRC of IO firmware */
-						/* storage space of 12 occupied by CRC */
+/* storage space of 12 occupied by CRC */
 #define PX4IO_P_SETUP_FORCE_SAFETY_OFF		12	/* force safety switch into
                                                            'armed' (PWM enabled) state - this is a non-data write and
                                                            hence index 12 can safely be used. */
@@ -339,8 +339,7 @@ struct IOPacket {
 #define PKT_CODE(_p)	((_p).count_code & PKT_CODE_MASK)
 #define PKT_SIZE(_p)	((size_t)((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p))))
 
-static const uint8_t crc8_tab[256] __attribute__((unused)) =
-{
+static const uint8_t crc8_tab[256] __attribute__((unused)) = {
 	0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,
 	0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A, 0x2D,
 	0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65,
@@ -383,8 +382,9 @@ crc_packet(struct IOPacket *pkt)
 	uint8_t *p = (uint8_t *)pkt;
 	uint8_t c = 0;
 
-	while (p < end)
-		c = crc8_tab[c ^ *(p++)];
+	while (p < end) {
+		c = crc8_tab[c ^ * (p++)];
+	}
 
 	return c;
 }

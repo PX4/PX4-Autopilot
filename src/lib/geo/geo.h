@@ -113,7 +113,8 @@ __EXPORT int map_projection_global_reference(double *ref_lat_rad, double *ref_lo
  * Writes the reference values of the projection given by the argument to ref_lat and ref_lon
  * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad, double *ref_lon_rad);
+__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad,
+				      double *ref_lon_rad);
 
 /**
  * Initializes the global map transformation.
@@ -158,15 +159,16 @@ __EXPORT int map_projection_init(struct map_projection_reference_s *ref, double 
 __EXPORT int map_projection_global_project(double lat, double lon, float *x, float *y);
 
 
- /* Transforms a point in the geographic coordinate system to the local
-  * azimuthal equidistant plane using the projection given by the argument
- * @param x north
- * @param y east
- * @param lat in degrees (47.1234567°, not 471234567°)
- * @param lon in degrees (8.1234567°, not 81234567°)
- * @return 0 if map_projection_init was called before, -1 else
- */
-__EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y);
+/* Transforms a point in the geographic coordinate system to the local
+ * azimuthal equidistant plane using the projection given by the argument
+* @param x north
+* @param y east
+* @param lat in degrees (47.1234567°, not 471234567°)
+* @param lon in degrees (8.1234567°, not 81234567°)
+* @return 0 if map_projection_init was called before, -1 else
+*/
+__EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x,
+				    float *y);
 
 /**
  * Transforms a point in the local azimuthal equidistant plane to the
@@ -190,7 +192,8 @@ __EXPORT int map_projection_global_reproject(float x, float y, double *lat, doub
  * @param lon in degrees (8.1234567°, not 81234567°)
  * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon);
+__EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat,
+				      double *lon);
 
 /**
  * Get reference position of the global map projection
@@ -243,15 +246,20 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
  */
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
-__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e);
+__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n,
+		float *v_e);
 
-__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e);
+__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next,
+		float *v_n, float *v_e);
 
-__EXPORT void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res, double *lon_res);
+__EXPORT void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
+		double *lon_res);
 
-__EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
+__EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
+				  double lat_start, double lon_start, double lat_end, double lon_end);
 
-__EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
+__EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
+				 double lat_center, double lon_center,
 				 float radius, float arc_start_bearing, float arc_sweep);
 
 /*

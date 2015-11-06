@@ -237,6 +237,7 @@ void	hrt_init(void)
 	sq_init(&callout_queue);
 
 	int sem_ret = px4_sem_init(&_hrt_lock, 0, 1);
+
 	if (sem_ret) {
 		PX4_ERR("SEM INIT FAIL: %s", strerror(errno));
 	}
@@ -365,9 +366,10 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 #if 1
 
 	// Use this to debug busy CPU that keeps rescheduling with 0 period time
-	if (interval < HRT_INTERVAL_MIN) {
-		PX4_ERR("hrt_call_internal interval too short: %" PRIu64, interval);
-	}
+	/*if (interval < HRT_INTERVAL_MIN) {*/
+	/*PX4_ERR("hrt_call_internal interval too short: %" PRIu64, interval);*/
+	/*PX4_BACKTRACE();*/
+	/*}*/
 
 #endif
 	entry->deadline = deadline;
