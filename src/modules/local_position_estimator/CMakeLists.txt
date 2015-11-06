@@ -34,8 +34,6 @@ if(${OS} STREQUAL "nuttx")
 	list(APPEND MODULE_CFLAGS -Wframe-larger-than=6500)
 elseif(${OS} STREQUAL "posix")
 	list(APPEND MODULE_CFLAGS -Wno-error)
-	# add matrix tests
-	add_subdirectory(matrix)
 endif()
 
 # use custom matrix lib instead of Eigen

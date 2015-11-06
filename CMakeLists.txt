@@ -324,6 +324,11 @@ if (config_io_board)
 	add_subdirectory(src/modules/px4iofirmware)
 endif()
 
+if(${OS} STREQUAL "posix")
+	# matrix library unit testing
+	add_subdirectory(src/lib/matrix)
+endif()
+
 #=============================================================================
 # generate git version
 #

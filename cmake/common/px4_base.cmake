@@ -611,6 +611,7 @@ function(px4_add_common_flags)
 		${CMAKE_SOURCE_DIR}/src/modules
 		${CMAKE_SOURCE_DIR}/src/include
 		${CMAKE_SOURCE_DIR}/src/lib
+		${CMAKE_SOURCE_DIR}/src/lib/matrix
 		${CMAKE_SOURCE_DIR}/src/platforms
 		# TODO Build/versioning was in Makefile,
 		# do we need this, how does it work with cmake
