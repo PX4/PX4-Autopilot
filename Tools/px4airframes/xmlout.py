@@ -72,9 +72,13 @@ class XMLOutput():
                             xml_field.text = value
                     for code in param.GetOutputCodes():
                         value = param.GetOutputValue(code)
+                        valstrs = value.split(";")
                         xml_field = ET.SubElement(xml_param, "output")
                         xml_field.attrib["name"] = code
-                        xml_field.text = value
+                        for attrib in valstrs[1:]:
+                            attribstrs = attrib.split(":")
+                            xml_field.attrib[attribstrs[0].strip()] = attribstrs[1].strip()
+                        xml_field.text = valstrs[0]
                 if last_param_name != param.GetName():
                     board_specific_param_set = False
         indent(xml_parameters)

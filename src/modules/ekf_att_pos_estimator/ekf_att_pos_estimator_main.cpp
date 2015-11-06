@@ -1672,8 +1672,6 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 			PX4_INFO(".");
 		}
 
-		PX4_INFO(" ");
-
 		return 0;
 	}
 
