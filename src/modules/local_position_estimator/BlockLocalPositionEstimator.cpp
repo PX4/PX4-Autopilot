@@ -59,6 +59,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gps_vxy_stddev(this, "GPS_VXY"),
 	_gps_vz_stddev(this, "GPS_VZ"),
 	_gps_eph_max(this, "EPH_MAX"),
+	_gps_delay(this, "GPS_DELAY"),
 	_vision_xy_stddev(this, "VIS_XY"),
 	_vision_z_stddev(this, "VIS_Z"),
 	_no_vision(this, "NO_VISION"),
@@ -144,6 +145,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_err_perf(),
 
 	// kf matrices
+	_xHistory(),
 	_x(), _u(), _P()
 {
 	// setup event triggering based on new flow messages to integrate
@@ -325,6 +327,16 @@ void BlockLocalPositionEstimator::update()
 
 	// do prediction
 	predict();
+
+	// state history
+	_xHistory.push_back(_x);
+	_tHistory.push_back(dt);
+
+	while (_xHistory.size() > x_history_size) {
+		_xHistory.pop_front();
+		_tHistory.pop_front();
+		assert(_xHistory.size() == _tHistory.size());
+	}
 
 	// sensor corrections/ initializations
 	if (gpsUpdated) {
@@ -738,6 +750,21 @@ void BlockLocalPositionEstimator::initP()
 	_P(X_bx, X_bx) = 1e-6;
 	_P(X_by, X_by) = 1e-6;
 	_P(X_bz, X_bz) = 1e-6;
+}
+
+Matrix<float, BlockLocalPositionEstimator::n_x, 1> BlockLocalPositionEstimator::getXDelayed(float delay)
+{
+	float dt_sum = 0;
+	int i = _tHistory.size();
+
+	while (i > 0) {
+		i--;
+		dt_sum += _tHistory[i];
+
+		if (dt_sum >= delay) { break; }
+	}
+
+	return _xHistory[i];
 }
 
 void BlockLocalPositionEstimator::predict()
@@ -1166,7 +1193,7 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 	//printf("home: lat %10g, lon, %10g alt %10g\n", _sub_home.lat, _sub_home.lon, double(_sub_home.alt));
 	//printf("local: x %10g y %10g z %10g\n", double(px), double(py), double(pz));
 
-	Matrix<float, 6, 1> y;
+	Matrix<float, n_y_gps, 1> y;
 	y.setZero();
 	y(0) = px;
 	y(1) = py;
@@ -1213,8 +1240,8 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 	R(5, 5) = var_vz;
 
 	// residual
-	Matrix<float, 6, 1> r = y - C * _x;
-	Matrix<float, 6, 6> S_I = (C * _P * C.transpose() + R).inverse();
+	Matrix<float, n_y_gps, 1> r = y - C * getXDelayed(_gps_delay.get());
+	Matrix<float, n_y_gps, n_y_gps> S_I = (C * _P * C.transpose() + R).inverse();
 
 	// fault detection
 	float beta = sqrtf((r.transpose() * (S_I * r))(0, 0));
@@ -1266,7 +1293,7 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 void BlockLocalPositionEstimator::correctVision()
 {
 
-	Matrix<float, 3, 1> y;
+	Matrix<float, n_y_vision, 1> y;
 	y.setZero();
 	y(0) = _sub_vision_pos.get().x - _visionHome(0);
 	y(1) = _sub_vision_pos.get().y - _visionHome(1);

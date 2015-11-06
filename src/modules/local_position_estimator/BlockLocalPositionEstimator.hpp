@@ -4,6 +4,7 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/perf_counter.h>
 #include <lib/geo/geo.h>
+#include <deque>
 
 #ifdef USE_MATRIX_LIB
 #include "matrix/src/Matrix.hpp"
@@ -118,6 +119,8 @@ private:
 	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &);
 
 	// constants
+	static const uint8_t x_history_size = 50;
+	// history provides approx 0.01*50 =  500 ms max delay
 	static const uint8_t n_x = 9;
 	static const uint8_t n_u = 3; // 3 accelerations
 	static const uint8_t n_y_flow = 2;
@@ -141,6 +144,8 @@ private:
 	// methods
 	// ----------------------------
 	void initP();
+
+	Matrix<float, n_x, 1> getXDelayed(float delay);
 
 	// predict the next state
 	void predict();
@@ -218,6 +223,7 @@ private:
 	BlockParamFloat  _gps_vz_stddev;
 
 	BlockParamFloat  _gps_eph_max;
+	BlockParamFloat  _gps_delay;
 
 	BlockParamFloat  _vision_xy_stddev;
 	BlockParamFloat  _vision_z_stddev;
@@ -304,6 +310,8 @@ private:
 	perf_counter_t _err_perf;
 
 	// state space
+	std::deque<Matrix<float, n_x, 1>> _xHistory;
+	std::deque<float> _tHistory;
 	Matrix<float, n_x, 1>  _x; // state vector
 	Matrix<float, n_u, 1>  _u; // input vector
 	Matrix<float, n_x, n_x>  _P; // state covariance matrix
