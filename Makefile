@@ -181,8 +181,6 @@ check_format:
 
 clean:
 	@rm -rf build_*/
-	@(cd NuttX && git clean -d -f -x)
-	@(cd src/modules/uavcan/libuavcan && git clean -d -f -x)
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
