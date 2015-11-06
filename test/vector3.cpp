@@ -12,6 +12,8 @@ int main()
     Vector3f a(1, 0, 0);
     Vector3f b(0, 1, 0);
     Vector3f c = a.cross(b);
+    c.print();
+    assert (c == Vector3f(0,0,1));
     return 0;
 }
 

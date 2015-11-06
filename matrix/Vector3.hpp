@@ -50,14 +50,12 @@ public:
         v(2) = z;
     }
 
-    Vector3 cross(const Vector3 & b) {
-        // TODO
-        Vector3 &a(*this);
-        (void)a;
+    Vector3 cross(const Vector3 & b)  const {
+        const Vector3 &a(*this);
         Vector3 c;
-        c(0) = 0;
-        c(1) = 0;
-        c(2) = 0;
+        c(0) = a(1)*b(2) - a(2)*b(1);
+        c(1) = -a(0)*b(2) + a(2)*b(0);
+        c(2) = a(0)*b(1) - a(1)*b(0);
         return c;
     }
 };
