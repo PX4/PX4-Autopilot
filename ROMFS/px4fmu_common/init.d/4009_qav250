@@ -16,9 +16,9 @@ sh /etc/init.d/4001_quad_x
 if [ $AUTOCNF == yes ]
 then
 	param set MC_ROLL_P 7.0
-	param set MC_ROLLRATE_P 0.08
+	param set MC_ROLLRATE_P 0.05
 	param set MC_ROLLRATE_I 0.05
-	param set MC_ROLLRATE_D 0.003
+	param set MC_ROLLRATE_D 0.002
 	param set MC_PITCH_P 7.0
 	param set MC_PITCHRATE_P 0.08
 	param set MC_PITCHRATE_I 0.1
