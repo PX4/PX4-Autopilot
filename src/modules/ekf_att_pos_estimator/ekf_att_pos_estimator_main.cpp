@@ -700,6 +700,9 @@ void AttitudePositionEstimatorEKF::task_main()
 					// Publish attitude estimations
 					publishAttitude();
 
+					// publish control state
+					publishControlState();
+
 					// Publish Local Position estimations
 					publishLocalPosition();
 
