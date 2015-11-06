@@ -13,13 +13,32 @@
 namespace matrix
 {
 
+template <typename Type, size_t M>
+class Vector;
+
 template<typename Type>
 class Vector3 : public Vector<Type, 3>
 {
 public:
     virtual ~Vector3() {};
 
-    Vector3() : Vector<Type, 3>()
+    Vector3() :
+        Vector<Type, 3>()
+    {
+    }
+
+    Vector3(const Vector<Type, 3> & other) :
+        Vector<Type, 3>(other)
+    {
+    }
+
+    Vector3(const Matrix<Type, 3, 1> & other) :
+        Vector<Type, 3>(other)
+    {
+    }
+
+    Vector3(const Type *data_) :
+        Vector<Type, 3>(data_)
     {
     }
 
