@@ -139,6 +139,9 @@ px4fmu-v2_lpe:
 px4cannode-v1_default:
 	$(call cmake-build,nuttx_px4cannode-v1_default)
 
+px4cannode-v1_bootloader:
+	$(call cmake-build,nuttx_px4cannode-v1_bootloader)
+
 nuttx_sim_simple:
 	$(call cmake-build,$@)
 

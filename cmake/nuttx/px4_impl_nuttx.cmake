@@ -300,10 +300,10 @@ function(px4_nuttx_add_export)
 	# export
 	file(GLOB_RECURSE config_files ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${CONFIG}.export
-		COMMAND ${ECHO} Configuring NuttX for ${CONFIG}
+		COMMAND ${ECHO} Configuring NuttX for ${CONFIG} with ${config_nuttx_config}
 		COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
 		COMMAND ${CP} -r ${CMAKE_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
-		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/nsh
+		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config}
 		COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > /dev/null
 		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${CMAKE_BINARY_DIR}/${CONFIG}.export
@@ -499,6 +499,7 @@ function(px4_os_add_flags)
 		${nuttx_export_dir}/include/cxx
 		${nuttx_export_dir}/arch/chip
 		${nuttx_export_dir}/arch/common
+    ${nuttx_export_dir}/arch/armv7-m
 		)
 	set(added_link_dirs
 		${nuttx_export_dir}/libs

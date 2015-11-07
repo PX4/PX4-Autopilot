@@ -107,6 +107,15 @@ const bl_timer_cb_t null_cb = { 0, 0 };
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+/* We use the linker --wrap ability to wrap the NuttX stm32 call out to
+ * the sceduler's sched_process_timer and service it here. Thus replacing
+ * the NuttX scheduler with are timer driven scheduling.
+ */
+void __wrap_sched_process_timer(void);
 
 /****************************************************************************
  * Public Functions
@@ -151,7 +160,7 @@ time_ms_t timer_tic(void)
  ****************************************************************************/
 
 __EXPORT
-void sched_process_timer(void)
+void __wrap_sched_process_timer(void)
 {
 	PROBE(1, true);
 	PROBE(1, false);

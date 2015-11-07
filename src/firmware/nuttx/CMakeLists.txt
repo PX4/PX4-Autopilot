@@ -20,10 +20,19 @@ if("${romfs_used}" STREQUAL "y")
 	list(APPEND link_libs romfs)
 endif()
 
+#
+# Bootloaders use a different ld file, a seperate startup file
+# and need to override the os version of sched_process_timer
+#
+if("${config_nuttx_config}" STREQUAL "bootloader")
+	set(nuttx_ld_prefix "bootloader")
+	set(nuttx_startup_files ${nuttx_export_dir}/startup/${nuttx_startup_files})
+	set(nuttx_bootloader_wrapers "-Wl,-wrap,sched_process_timer")
+endif()
+
 if(NOT ${BOARD} STREQUAL "sim")
-	list(APPEND link_libs nosys)
 	set(main_link_flags
-		"-T${nuttx_export_dir}/build/ld.script"
+		"-T${nuttx_export_dir}/build/${nuttx_ld_prefix}ld.script"
 		"-Wl,-Map=${CMAKE_BINARY_DIR}/${BOARD}/main.map"
 		)
 	px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
@@ -31,9 +40,12 @@ if(NOT ${BOARD} STREQUAL "sim")
 endif()
 
 target_link_libraries(firmware_nuttx
-	-Wl,--start-group
+	-Wl,--warn-common
+	-Wl,--gc-sections
+	-Wl,--start-group ${nuttx_startup_files}
 	${module_libraries}
 	${config_extra_libs}
+	${nuttx_bootloader_wrapers}
 	${link_libs}
 	-Wl,--end-group)
 
@@ -57,12 +69,17 @@ if(NOT ${BOARD} STREQUAL "sim")
 	set(fw_file
 		${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
 
+#
+# Bootloaders do not need .px4 or xml
+#
+if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
 	px4_nuttx_add_firmware(OUT ${fw_file}
 		BOARD ${BOARD}
 		EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
 		PARAM_XML ${CMAKE_BINARY_DIR}/parameters.xml
 		AIRFRAMES_XML ${CMAKE_BINARY_DIR}/airframes.xml
 		)
+endif()
 
 	configure_file(gdbinit.in .gdbinit)
 
