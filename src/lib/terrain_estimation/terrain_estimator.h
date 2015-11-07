@@ -65,12 +65,13 @@ public:
 	float get_velocity() {return _x(1);};
 
 	void predict(float dt, const struct vehicle_attitude_s *attitude, const struct sensor_combined_s *sensor,
-		const struct distance_sensor_s *distance);
-	void measurement_update(uint64_t time_ref, const struct vehicle_gps_position_s *gps, const struct distance_sensor_s *distance,
+		     const struct distance_sensor_s *distance);
+	void measurement_update(uint64_t time_ref, const struct vehicle_gps_position_s *gps,
+				const struct distance_sensor_s *distance,
 				const struct vehicle_attitude_s *attitude);
 
 private:
-	enum {n_x=3};
+	enum {n_x = 3};
 
 	float _distance_last;
 	bool _terrain_valid;

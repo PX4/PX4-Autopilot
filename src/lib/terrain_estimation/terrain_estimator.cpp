@@ -51,16 +51,19 @@ TerrainEstimator::TerrainEstimator() :
 	_P.setIdentity();
 }
 
-bool TerrainEstimator::is_distance_valid(float distance) {
+bool TerrainEstimator::is_distance_valid(float distance)
+{
 	if (distance > 40.0f || distance < 0.00001f) {
 		return false;
+
 	} else {
 		return true;
 	}
 }
 
-void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitude, const struct sensor_combined_s *sensor,
-		const struct distance_sensor_s *distance)
+void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitude,
+			       const struct sensor_combined_s *sensor,
+			       const struct distance_sensor_s *distance)
 {
 	if (attitude->R_valid) {
 		matrix::Matrix<float, 3, 3> R_att(attitude->R);
@@ -76,25 +79,25 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	// dynamics matrix
 	matrix::Matrix<float, n_x, n_x> A;
 	A.setZero();
-	A(0,1) = 1;
-	A(1,2) = 1;
+	A(0, 1) = 1;
+	A(1, 2) = 1;
 
 	// input matrix
-	matrix::Matrix<float, n_x,1>  B;
+	matrix::Matrix<float, n_x, 1>  B;
 	B.setZero();
-	B(1,0) = 1;
+	B(1, 0) = 1;
 
 	// input noise variance
 	float R = 0.135f;
 
 	// process noise convariance
 	matrix::Matrix<float, n_x, n_x>  Q;
-	Q(0,0) = 0;
-	Q(1,1) = 0;
+	Q(0, 0) = 0;
+	Q(1, 1) = 0;
 
 	// do prediction
 	matrix::Vector<float, n_x>  dx = (A * _x) * dt;
-	dx(1) += B(1,0) * _u_z * dt;
+	dx(1) += B(1, 0) * _u_z * dt;
 
 	// propagate state and covariance matrix
 	_x += dx;
@@ -102,8 +105,9 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	       B * R * B.transpose() + Q) * dt;
 }
 
-void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicle_gps_position_s *gps, const struct distance_sensor_s *distance,
-				const struct vehicle_attitude_s *attitude)
+void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicle_gps_position_s *gps,
+		const struct distance_sensor_s *distance,
+		const struct vehicle_attitude_s *attitude)
 {
 	// terrain estimate is invalid if we have range sensor timeout
 	if (time_ref - distance->timestamp > DISTANCE_TIMEOUT) {
@@ -124,7 +128,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 
 		// residual
 		matrix::Matrix<float, 1, 1> S_I = (C * _P * C.transpose());
-		S_I(0,0) += R;
+		S_I(0, 0) += R;
 		S_I = matrix::inv<float, 1> (S_I);
 		matrix::Vector<float, 1> r = y - C * _x;
 
@@ -140,6 +144,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 		// estimate to be invalid
 		if (!is_distance_valid(distance->current_distance) && !is_distance_valid(_distance_last)) {
 			_terrain_valid = false;
+
 		} else {
 			_terrain_valid = true;
 		}
@@ -150,7 +155,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 
 	if (gps->timestamp_position > _time_last_gps && gps->fix_type >= 3) {
 		matrix::Matrix<float, 1, n_x> C;
-		C(0,1) = 1;
+		C(0, 1) = 1;
 
 		float R = 0.056f;
 
@@ -159,7 +164,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 
 		// residual
 		matrix::Matrix<float, 1, 1> S_I = (C * _P * C.transpose());
-		S_I(0,0) += R;
+		S_I(0, 0) += R;
 		S_I = matrix::inv<float, 1>(S_I);
 		matrix::Vector<float, 1> r = y - C * _x;
 
@@ -172,6 +177,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 
 	// reinitialise filter if we find bad data
 	bool reinit = false;
+
 	for (int i = 0; i < n_x; i++) {
 		if (!PX4_ISFINITE(_x(i))) {
 			reinit = true;
@@ -180,7 +186,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 
 	for (int i = 0; i < n_x; i++) {
 		for (int j = 0; j < n_x; j++) {
-			if (!PX4_ISFINITE(_P(i,j))) {
+			if (!PX4_ISFINITE(_P(i, j))) {
 				reinit = true;
 			}
 		}
@@ -189,7 +195,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 	if (reinit) {
 		memset(&_x._data[0], 0, sizeof(_x._data));
 		_P.setZero();
-		_P(0,0) = _P(1,1) = _P(2,2) = 0.1f;
+		_P(0, 0) = _P(1, 1) = _P(2, 2) = 0.1f;
 	}
 
 }

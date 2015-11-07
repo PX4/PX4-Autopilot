@@ -92,7 +92,7 @@ void RunwayTakeoff::init(float yaw, double current_lat, double current_lon)
 }
 
 void RunwayTakeoff::update(float airspeed, float alt_agl,
-	double current_lat, double current_lon, int mavlink_fd)
+			   double current_lat, double current_lon, int mavlink_fd)
 {
 
 	switch (_state) {
