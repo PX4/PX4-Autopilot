@@ -12,3 +12,65 @@ A simple and efficient template based matrix library.
 
 ## Limitations
 * No dynamically sized matrices.
+
+## Example
+
+```c++
+	// define an euler angle (Body 3(yaw)-2(pitch)-1(roll) rotation)
+	float roll = 0.1f;
+	float pitch = 0.2f;
+	float yaw = 0.3f;
+	Eulerf euler(roll, pitch, yaw);
+
+	// convert to quaternion from euler
+	Quatf q_nb(euler);
+
+	// convert to DCM from quaternion
+	Dcmf dcm(q_nb);
+
+	// do some kalman filtering
+	const size_t n_x = 5;
+	const size_t n_y = 3;
+
+	// define matrix sizes
+	SquareMatrix<float, n_x> P;
+	Vector<float, n_x> x;
+	Vector<float, n_y> y;
+	Matrix<float, n_y, n_x> C;
+	SquareMatrix<float, n_y> R;
+	SquareMatrix<float, n_y> S;
+	Matrix<float, n_x, n_y> K;
+
+	// define measurement matrix
+	C = zero<float, n_y, n_x>(); // or C.setZero()
+	C(0,0) = 1;
+	C(1,1) = 2;
+	C(2,2) = 3;
+
+	// set x to zero
+	x = zero<float, n_x, 1>(); // or x.setZero()
+
+	// set P to identity * 0.01
+	P = eye<float, n_x>()*0.01;
+
+	// set R to identity * 0.1
+	R = eye<float, n_y>()*0.1;
+
+	// measurement
+	y(0) = 1;
+	y(1) = 2;
+	y(2) = 3;
+
+	// innovation
+	r = y - C*x;
+
+	// innovations variance
+	S = C*P*C.T() + R;
+
+	// Kalman gain matrix
+	K = P*C.T()*S.I();
+	// S.I() is the inverse, defined for SquareMatrix
+
+	// correction
+	x += K*r;
+```
