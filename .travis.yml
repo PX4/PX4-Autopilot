@@ -12,17 +12,8 @@ script:
 env:
   global:
   - export COVERALLS_SERVICE_NAME=travis-ci
-  - export COVERALLS_REPO_TOKEN=4MDwjIvimPGcxcHZQf0iS1aLHNfeQG9dN
-  - secure: vj6Y9LaNhnfWH+3AoqOIY/k5Ymb0zKlXJSlfa1qBnWC94/NDQjbV+6Lk1Ct1izzPmFbCiRwp/auwcUT0p3aUNNFshEUrL5rlHOwr4zLMqxdwKfUXA7X7NSJS2EJSgMm0to0iSzuCeub3E5Y7fdDpmWTZ9bD5E31wck/5kzjiuw0G8mtdOLeOnfERCZw/VTxLwKkdjU3+m64IYzAh9tWsyM1ZpVX0c7KjjPt29qYb45xmQ7XrWlKl9fHabKbTvopISas56Q95K46pcF9sDraP0+KVk6f5rVOjYppvRmT6BJwRjDRG/rC6Q0BSfZuUm8a0OgFxc2MG3sxKT/QfMMDzuxJWbewakam0hcPJl34cFzqgIuMeQ7bK1yitsFBCqo9b/noMMp4vX9Hkm8b1f4QHTuk2fqOqorP0hOQxhWUcNs8J2jG1nDOjB5wrv9fOyerAZjZ8fvzHkMh/aZ3Xj9Sw7PVxiue1eyRXHQgn2/IcerrhlujawGbjsvLvrmQ+v5A3xvh4q6iJ5glIv1dhGaEEGMrp8httjLUAzZJpSAdyyWnJtnD+5KLH7BOKT+ptuXRnU6H97nUlXIHujx4btEpIhYebEX+pmAfOwK8WP3DDG5ikbmf2BuaI/qOhPtUzf5PJiN/+vRKNYf6ijXBBr4Cq7pWSJotQRfoHXvfE4vFa+zA=
+  - secure: "dA+jGAR9O3f+xsh6h7e7coeM0dU1vHiiM7kIPh5TvbbifDQiF5s2uxFQziZVSnLuohRD9oNODiJFz077n+svp7S9t77sdks0+7r61pkD5LlVItZ6ol5jQCfiksyMw6q5ChEes9KSKEfdFRjuDvQUHwShgpsXVAurizA2Hs3MziWxfIlOPULY4UCCm5+TLoY+vXmfFc4bwk2knxpIP8pYRd+xKYAiN9QC1fJiglipuKHaYbo2+ZYrM92RD0Cl+BZdWyI7vD7zmeXV6mstzAFZ20c63NhNNCYRy0VIC3hLB8zKMuvCZdJnpmSRfFt5uJYJPNcORc1ypeY7/CGMm5Rq1lNwxehFO3/++/aHE8H7GR0cTiKndPO0jDu48j+GUB4k1HHSsVEpj7vO7F3FOO0619xxybDFk1zFjHw8KTbdSXmBERldYAKZOP0JKZxp6CU5DXOO2dunumZAzl6WHJjhRMPFqPheE4e+I2YOEHvXTwDcEO/lMwacr6nuaZZXxEh/TwEdqsIRd9bvsoG1zuVQnZm+atLp3oF4QW8nI5l6qe6R+3l5dEgJGtz5hOsiEpWrwWk6ub2VCdELcgpPZyZcdwu/bKvXx3ndW6LjqzcLxMGxM3rdxx6J+b7Es/vkmT1SXFcxiUjpKkUf04Bb8SmGdbJdAKRZuSRFtjqsU0tHPfo="
 addons:
-  coverity_scan:
-    project:
-      name: dronecrew/matrix
-      description: Build submitted via Travis CI
-    notification_email: james.goppert@gmail.com
-    build_command_prepend: mkdir -p build && cd build && cmake .. && make
-    build_command: make -C build -j 4
-    branch_pattern: coverity_scan
   apt:
     packages:
       - cmake
