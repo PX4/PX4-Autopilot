@@ -2,8 +2,8 @@
 
 A simple and efficient template based matrix library.
 
-## License (BSD)
-* The Matrix library is licensed under a permissive 3-clause BSD license. Contributions must be made under the same license.
+## License
+* (BSD) The Matrix library is licensed under a permissive 3-clause BSD license. Contributions must be made under the same license.
 
 ## Features
 * Compile time size checking.
