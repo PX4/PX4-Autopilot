@@ -25,6 +25,9 @@ class Quaternion : public Vector<Type, 4>
 public:
     virtual ~Quaternion() {};
 
+    typedef Matrix<Type, 4, 1> Matrix41;
+    typedef Matrix<Type, 3, 1> Matrix31;
+
     Quaternion() :
         Vector<Type, 4>()
     {
@@ -35,12 +38,7 @@ public:
         q(3) = 0;
     }
 
-    Quaternion(const Vector<Type, 4> & other) :
-        Vector<Type, 4>(other)
-    {
-    }
-
-    Quaternion(const Matrix<Type, 4, 1> & other) :
+    Quaternion(const Matrix41 & other) :
         Vector<Type, 4>(other)
     {
     }
@@ -100,7 +98,7 @@ public:
         return r;
     }
 
-    Matrix<Type, 4, 1> derivative(const Vector<Type, 3> & w) const {
+    Matrix41 derivative(const Matrix31 & w) const {
         const Quaternion &q = *this;
         Type dataQ[] = {
             q(0), -q(1), -q(2), -q(3),
@@ -111,9 +109,9 @@ public:
         Matrix<Type, 4, 4> Q(dataQ);
         Vector<Type, 4> v;
         v(0) = 0;
-        v(1) = w(0);
-        v(2) = w(1);
-        v(3) = w(2);
+        v(1) = w(0,0);
+        v(2) = w(1,0);
+        v(3) = w(2,0);
         return Q * v * Type(0.5);
     }
 };

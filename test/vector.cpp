@@ -15,6 +15,7 @@ int main()
     assert(fabs(v1.norm() - 7.416198487095663f) < 1e-5);
     Vector<float, 5> v2(data2);
     assert(fabs(v1.dot(v2) - 130.0f) < 1e-5);
+    assert(fabs(v1*v2 - 130.0f) < 1e-5);
     v2.normalize();
     Vector<float, 5> v3(v2);
     assert(v2 == v3);

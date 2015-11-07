@@ -21,42 +21,39 @@ class Vector : public Matrix<Type, M, 1>
 public:
     virtual ~Vector() {};
 
-    Vector() : Matrix<Type, M, 1>()
+    typedef Matrix<Type, M, 1> MatrixM1;
+
+    Vector() : MatrixM1()
     {
     }
 
-    Vector(const Vector<Type, M> & other) :
-        Matrix<Type, M, 1>(other)
-    {
-    }
-
-    Vector(const Matrix<Type, M, 1> & other) :
-        Matrix<Type, M, 1>(other)
+    Vector(const MatrixM1 & other) :
+        MatrixM1(other)
     {
     }
 
     Vector(const Type *data_) :
-        Matrix<Type, M, 1>(data_)
+        MatrixM1(data_)
     {
     }
 
     inline Type operator()(size_t i) const
     {
-        const Matrix<Type, M, 1> &v = *this;
+        const MatrixM1 &v = *this;
         return v(i, 0);
     }
 
     inline Type &operator()(size_t i)
     {
-        Matrix<Type, M, 1> &v = *this;
+        MatrixM1 &v = *this;
         return v(i, 0);
     }
 
-    Type dot(const Vector & b) const {
+    Type dot(const MatrixM1 & b) const {
         const Vector &a(*this);
         Type r = 0;
         for (int i = 0; i<M; i++) {
-            r += a(i)*b(i);
+            r += a(i)*b(i,0);
         }
         return r;
     }
@@ -68,6 +65,10 @@ public:
 
     inline void normalize() {
         (*this) /= norm();
+    }
+
+    Type operator*(const MatrixM1 & b) const {
+        return (*this).dot(b);
     }
 };
 

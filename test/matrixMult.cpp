@@ -23,6 +23,12 @@ int main()
     R2 *= A_I;
     R2.print();
     assert(R2 == I);
+
+
+    Matrix3f A2 = eye<float, 3>()*2;
+    Matrix3f B = A2.emult(A2);
+    Matrix3f B_check = eye<float, 3>()*4;
+    assert(B == B_check);
     return 0;
 }
 
