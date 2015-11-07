@@ -14,7 +14,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "matrix.hpp"
+#include "math.hpp"
 
 namespace matrix
 {

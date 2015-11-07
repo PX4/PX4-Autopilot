@@ -63,7 +63,7 @@ string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 enable_testing()
 
-include_directories(matrix)
+include_directories(${CMAKE_SOURCE_DIR})
 
 file(GLOB_RECURSE COV_SRCS matrix/*.hpp matrix/*.cpp)
 

@@ -1,6 +1,6 @@
 #include <assert.h>
 
-#include "matrix.hpp"
+#include <matrix/math.hpp>
 
 using namespace matrix;
 

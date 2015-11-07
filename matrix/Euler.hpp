@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "matrix.hpp"
+#include "math.hpp"
 
 #include <cmath>
 

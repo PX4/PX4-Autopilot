@@ -1,7 +1,7 @@
 #include <cassert>
 #include <cstdio>
 
-#include "matrix.hpp"
+#include <matrix/math.hpp>
 
 using namespace matrix;
 
