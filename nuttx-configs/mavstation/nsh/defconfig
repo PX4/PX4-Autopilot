@@ -521,7 +521,7 @@ CONFIG_NPTHREAD_KEYS=2
 # Performance Monitoring
 #
 # CONFIG_SCHED_CPULOAD is not set
-# CONFIG_SCHED_INSTRUMENTATION is not set
+CONFIG_SCHED_INSTRUMENTATION=y
 
 #
 # Files and I/O
