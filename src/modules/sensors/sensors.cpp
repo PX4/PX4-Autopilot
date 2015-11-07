@@ -850,7 +850,7 @@ Sensors::parameters_update()
 		_parameters.battery_voltage_scaling = 0.0082f;
 #elif CONFIG_ARCH_BOARD_AEROCORE
 		_parameters.battery_voltage_scaling = 0.0063f;
-#elif CONFIG_ARCH_BOARD_PX4FMU_V2
+#elif CONFIG_ARCH_BOARD_PX4FMU_V1
 		_parameters.battery_voltage_scaling = 0.00459340659f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
