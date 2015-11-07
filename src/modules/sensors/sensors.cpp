@@ -1250,7 +1250,7 @@ Sensors::vehicle_control_mode_poll()
 void
 Sensors::parameter_update_poll(bool forced)
 {
-	bool param_updated;
+	bool param_updated = false;
 
 	/* Check if any parameter has changed */
 	orb_check(_params_sub, &param_updated);
