@@ -60,7 +60,7 @@ if(NOT ${BOARD} STREQUAL "sim")
 	if ("${romfs_used}" STREQUAL "y")
 		message(STATUS "Adding ROMFS on ${BOARD}")
 		px4_nuttx_add_romfs(OUT romfs
-			ROOT ROMFS/px4fmu_common
+			ROOT ROMFS/${config_romfs_root}
 			EXTRAS ${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin
 			)
 		add_dependencies(romfs fw_io)

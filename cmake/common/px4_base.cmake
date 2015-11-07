@@ -815,7 +815,7 @@ function(px4_generate_airframes_xml)
 	set(process_airframes ${CMAKE_SOURCE_DIR}/Tools/px_process_airframes.py)
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${process_airframes}
-			-a ${CMAKE_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
+			-a ${CMAKE_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d
 			--board CONFIG_ARCH_BOARD_${BOARD} --xml
 		)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)

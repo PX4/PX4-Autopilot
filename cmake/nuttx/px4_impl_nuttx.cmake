@@ -595,13 +595,15 @@ endfunction()
 #		px4_nuttx_configure(
 #	    HWCLASS <m3|m4>
 #		  CONFIG <nsh|bootloader
-#		  ROMFS <y|n>
+#		  [ROMFS <y|n>
+#		  ROMFSROOT <root>]
 #			)
 #
 #	Input:
 #	  HWCLASS 		: the class of hardware
-#	  CONFIG : the nuttx condufiguration to use
-#	  ROMFS 	: Weather or not to use incllude theROMFS
+#	  CONFIG 		  : the nuttx condufiguration to use
+#	  ROMFS 	    : whether or not to use incllude theROMFS
+#	  ROMFSROOT	  : If ROMFS used set the root the default is px4fmu_common
 #
 #	Output:
 #		OUT	: None
@@ -612,14 +614,20 @@ endfunction()
 function(px4_nuttx_configure)
 	px4_parse_function_args(
 			NAME px4_nuttx_configure
-			ONE_VALUE HWCLASS CONFIG ROMFS
+			ONE_VALUE HWCLASS CONFIG ROMFS ROMFSROOT
 			REQUIRED HWCLASS CONFIG
 			ARGN ${ARGN})
 	set(config_nuttx_config ${CONFIG} PARENT_SCOPE)
 	set(config_nuttx_hw ${HWCLASS} PARENT_SCOPE)
 	if ("${ROMFS}" STREQUAL "y")
 		set(romfs_used ${ROMFS} PARENT_SCOPE)
-		set(HASROMFS "with ROMFS")
+		if (NOT DEFINED ROMFSROOT)
+	    set(config_romfs_root px4fmu_common)
+	  else()
+	    set(config_romfs_root ${ROMFSROOT})
+		endif()
+		set(HASROMFS "with ROMFS on ${config_romfs_root}")
+		set(config_romfs_root ${config_romfs_root} PARENT_SCOPE)
 	endif()
 	message(STATUS "Nuttx build for ${BOARD} on ${HWCLASS} hardware, using ${CONFIG} ${HASROMFS}")
 endfunction()
