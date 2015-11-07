@@ -91,7 +91,7 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 	struct timeval now;
 	int rv = gettimeofday(&now, NULL);
 
-	if(rv) {
+	if (rv) {
 		return rv;
 	}
 
