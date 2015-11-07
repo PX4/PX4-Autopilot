@@ -46,9 +46,9 @@ TerrainEstimator::TerrainEstimator() :
 	_time_last_distance(0),
 	_time_last_gps(0)
 {
-	_x.zero();
+	memset(&_x._data[0], 0, sizeof(_x._data));
 	_u_z = 0.0f;
-	_P.identity();
+	_P.setIdentity();
 }
 
 bool TerrainEstimator::is_distance_valid(float distance) {
@@ -63,9 +63,9 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 		const struct distance_sensor_s *distance)
 {
 	if (attitude->R_valid) {
-		math::Matrix<3, 3> R_att(attitude->R);
-		math::Vector<3> a(&sensor->accelerometer_m_s2[0]);
-		math::Vector<3> u;
+		matrix::Matrix<float, 3, 3> R_att(attitude->R);
+		matrix::Vector<float, 3> a(&sensor->accelerometer_m_s2[0]);
+		matrix::Vector<float, 3> u;
 		u = R_att * a;
 		_u_z = u(2) + 9.81f; // compensate for gravity
 
@@ -74,32 +74,32 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	}
 
 	// dynamics matrix
-	math::Matrix<n_x, n_x> A;
-	A.zero();
+	matrix::Matrix<float, n_x, n_x> A;
+	A.setZero();
 	A(0,1) = 1;
 	A(1,2) = 1;
 
 	// input matrix
-	math::Matrix<n_x,1>  B;
-	B.zero();
+	matrix::Matrix<float, n_x,1>  B;
+	B.setZero();
 	B(1,0) = 1;
 
 	// input noise variance
 	float R = 0.135f;
 
 	// process noise convariance
-	math::Matrix<n_x, n_x>  Q;
+	matrix::Matrix<float, n_x, n_x>  Q;
 	Q(0,0) = 0;
 	Q(1,1) = 0;
 
 	// do prediction
-	math::Vector<n_x>  dx = (A * _x) * dt;
+	matrix::Vector<float, n_x>  dx = (A * _x) * dt;
 	dx(1) += B(1,0) * _u_z * dt;
 
 	// propagate state and covariance matrix
 	_x += dx;
-	_P += (A * _P + _P * A.transposed() +
-	       B * R * B.transposed() + Q) * dt;
+	_P += (A * _P + _P * A.transpose() +
+	       B * R * B.transpose() + Q) * dt;
 }
 
 void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicle_gps_position_s *gps, const struct distance_sensor_s *distance,
@@ -114,21 +114,21 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 
 		float d = distance->current_distance;
 
-		math::Matrix<1, n_x> C;
+		matrix::Matrix<float, 1, n_x> C;
 		C(0, 0) = -1; // measured altitude,
 
 		float R = 0.009f;
 
-		math::Vector<1> y;
+		matrix::Vector<float, 1> y;
 		y(0) = d * cosf(attitude->roll) * cosf(attitude->pitch);
 
 		// residual
-		math::Matrix<1, 1> S_I = (C * _P * C.transposed());
+		matrix::Matrix<float, 1, 1> S_I = (C * _P * C.transpose());
 		S_I(0,0) += R;
-		S_I = S_I.inversed();
-		math::Vector<1> r = y - C * _x;
+		S_I = matrix::inv<float, 1> (S_I);
+		matrix::Vector<float, 1> r = y - C * _x;
 
-		math::Matrix<n_x, 1> K = _P * C.transposed() * S_I;
+		matrix::Matrix<float, n_x, 1> K = _P * C.transpose() * S_I;
 
 		// some sort of outlayer rejection
 		if (fabsf(distance->current_distance - _distance_last) < 1.0f) {
@@ -149,21 +149,21 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 	}
 
 	if (gps->timestamp_position > _time_last_gps && gps->fix_type >= 3) {
-		math::Matrix<1, n_x> C;
+		matrix::Matrix<float, 1, n_x> C;
 		C(0,1) = 1;
 
 		float R = 0.056f;
 
-		math::Vector<1> y;
+		matrix::Vector<float, 1> y;
 		y(0) = gps->vel_d_m_s;
 
 		// residual
-		math::Matrix<1, 1> S_I = (C * _P * C.transposed());
+		matrix::Matrix<float, 1, 1> S_I = (C * _P * C.transpose());
 		S_I(0,0) += R;
-		S_I = S_I.inversed();
-		math::Vector<1> r = y - C * _x;
+		S_I = matrix::inv<float, 1>(S_I);
+		matrix::Vector<float, 1> r = y - C * _x;
 
-		math::Matrix<n_x, 1> K = _P * C.transposed() * S_I;
+		matrix::Matrix<float, n_x, 1> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
 
@@ -187,8 +187,8 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 	}
 
 	if (reinit) {
-		_x.zero();
-		_P.zero();
+		memset(&_x._data[0], 0, sizeof(_x._data));
+		_P.setZero();
 		_P(0,0) = _P(1,1) = _P(2,2) = 0.1f;
 	}
 

@@ -36,6 +36,7 @@
  */
 
 #include <lib/mathlib/mathlib.h>
+#include "matrix/Matrix.hpp"
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -75,9 +76,9 @@ private:
 	bool _terrain_valid;
 
 	// kalman filter variables
-	math::Vector<n_x> _x;		// state: ground distance, velocity, accel bias in z direction
+	matrix::Vector<float, n_x> _x;		// state: ground distance, velocity, accel bias in z direction
 	float  _u_z;			// acceleration in earth z direction
-	math::Matrix<3, 3> _P;	// covariance matrix
+	matrix::Matrix<float, 3, 3> _P;	// covariance matrix
 
 	// timestamps
 	uint64_t _time_last_distance;
