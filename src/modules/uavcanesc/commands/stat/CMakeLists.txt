@@ -1,7 +1,6 @@
 ############################################################################
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
-#   Author: David Sidrane<david_s5@nscdg.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,17 +31,19 @@
 #
 ############################################################################
 
-#
-# UAVCAN ESC Commands
-#
+px4_add_module(
+	MODULE modules__uavcanesc__commands__stat
+	MAIN cfg
+	STACK 1024
+	COMPILE_FLAGS
+		-Wno-deprecated-declarations
+		-O3
+	SRCS
+	 esc_stat.cpp
 
-MODULE_COMMAND = cfg
+	DEPENDS
+		platforms__common
 
-MAXOPTIMIZATION = -O3
+	)
 
-MODULE_STACKSIZE = 1024
-
-
-# Main
-SRCS += esc_cfg.cpp
-
+## vim: set noet ft=cmake fenc=utf-8 ff=unix :

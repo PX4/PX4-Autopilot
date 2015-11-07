@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,15 +31,18 @@
 #
 ############################################################################
 
-#
-# Build nshterm utility
-#
+px4_add_module(
+	MODULE modules__uavcanesc__commands__cfg
+	MAIN cfg
+	STACK 1024
+	COMPILE_FLAGS
+		-Wno-deprecated-declarations
+		-O3
+	SRCS
+	 esc_cfg.cpp
 
-MODULE_COMMAND	 = nshterm
-SRCS		 = nshterm.c
+	DEPENDS
+		platforms__common
+	)
 
-MODULE_STACKSIZE = 1500
-
-MAXOPTIMIZATION	 = -Os
-
-MODULE_PRIORITY	= "SCHED_PRIORITY_DEFAULT-30"
+## vim: set noet ft=cmake fenc=utf-8 ff=unix :

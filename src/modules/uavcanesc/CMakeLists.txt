@@ -1,7 +1,6 @@
 ############################################################################
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
-#   Author: David Sidrane<david_s5@nscdg.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,17 +31,56 @@
 #
 ############################################################################
 
-#
-# UAVCAN ESC Commands
-#
+set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
+set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
 
-MODULE_COMMAND = dc
+string(TOUPPER "${OS}" OS_UPPER)
+add_definitions(
+		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
+		-DUAVCAN_MAX_NETWORK_SIZE_HINT=16
+		-DUAVCAN_MEM_POOL_BLOCK_SIZE=48
+		-DUAVCAN_NO_ASSERTIONS
+		-DUAVCAN_PLATFORM=stm32
+		-DUAVCAN_STM32_${OS_UPPER}=1
+		-DUAVCAN_STM32_NUM_IFACES=1
+		-DUAVCAN_STM32_TIMER_NUMBER=2
+		-DUAVCAN_USE_CPP03=ON
+		-DUAVCAN_USE_EXTERNAL_SNPRINT
+		-DAPP_VERSION_MAJOR=${uavcanblid_sw_version_major}
+		-DAPP_VERSION_MINOR=${uavcanblid_sw_version_minor}
+		-DHW_UAVCAN_NAME=${uavcanblid_name}
+		-DHW_VERSION_MAJOR=${uavcanblid_hw_version_major}
+		-DHW_VERSION_MINOR=${uavcanblid_hw_version_minor}
+		)
 
-MAXOPTIMIZATION = -O3
+px4_share_subdirectory(RELDIR ../uavcan/libuavcan ARGS EXCLUDE_FROM_ALL)
+add_dependencies(uavcan platforms__nuttx)
 
-MODULE_STACKSIZE = 1024
+include_directories(../../drivers/bootloaders/include)
+include_directories(../uavcan/libuavcan/libuavcan/include)
+include_directories(../uavcan/libuavcan/libuavcan/include/dsdlc_generated)
+include_directories(../uavcan/libuavcan/libuavcan_drivers/posix/include)
+include_directories(../uavcan/libuavcan/libuavcan_drivers/stm32/driver/include)
+include_directories(../systemlib/flashparams)
 
+px4_add_module(
+	MODULE modules__uavcanesc
+	MAIN uavcanesc
+	STACK 4096
+	COMPILE_FLAGS
+		-Wno-deprecated-declarations
+		-O3
+	SRCS
+	uavcanesc_main.cpp
+    indication_controller.cpp
+    led.cpp
+    uavcanesc_params.c
+    ../systemlib/flashparams/flashparams.c
+    ../systemlib/flashparams/flashfs.c
 
-# Main
-SRCS += esc_dc.cpp
+	DEPENDS
+		platforms__common
+		uavcan
+	)
 
+## vim: set noet ft=cmake fenc=utf-8 ff=unix : 

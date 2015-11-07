@@ -1,7 +1,6 @@
 ############################################################################
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
-#   Author: David Sidrane<david_s5@nscdg.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,17 +31,37 @@
 #
 ############################################################################
 
-#
-# UAVCAN ESC Commands
-#
+include_directories(../../bootloaders/include)
 
-MODULE_COMMAND = selftest
+set(SRCS)
+list(APPEND SRCS
+    px4esc_init.c
+    px4esc_led.c
+    px4esc_usb.c
+   ../../../drivers/bootloaders/src/common/boot_app_shared.c
+   ../../../drivers/bootloaders/src/util/crc.c
+)
 
-MAXOPTIMIZATION = -O3
+if(${OS} STREQUAL "nuttx")
+	if (NOT ${BOARD} STREQUAL "sim")
+		list(APPEND SRCS
+			../../../drivers/device/device_nuttx.cpp
+			../../../drivers/device/cdev.cpp
+		)
+	endif()
+else()
+	list(APPEND SRCS
+		../../../drivers/device/device_posix.cpp
+		../../../drivers/device/vdev.cpp
+	)
+endif()
 
-MODULE_STACKSIZE = 1024
-
-
-# Main
-SRCS += esc_selftest.cpp
-
+px4_add_module(
+	MODULE drivers__boards__px4esc-v1
+	COMPILE_FLAGS
+		-Os
+	SRCS ${SRCS}
+	DEPENDS
+		platforms__common
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
