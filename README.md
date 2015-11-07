@@ -10,5 +10,5 @@ A simple and efficient template based matrix library.
 * Euler angle (321), DCM, Quaternion conversion through constructors.
 * High testing coverage. 
 
-## Limitation
+## Limitations
 * No dynamically sized matrices.
