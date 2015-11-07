@@ -94,6 +94,20 @@ public:
         return res;
     }
 
+    Matrix<Type, M, N> emult(const Matrix<Type, M, N> &other) const
+    {
+        Matrix<Type, M, N> res;
+        const Matrix<Type, M, N> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                res(i , j) = self(i, j)*other(i, j);
+            }
+        }
+
+        return res;
+    }
+
     Matrix<Type, M, N> operator+(const Matrix<Type, M, N> &other) const
     {
         Matrix<Type, M, N> res;

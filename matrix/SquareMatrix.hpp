@@ -79,7 +79,7 @@ SquareMatrix<Type, M> diag(Vector<Type, M> d) {
 }
 
 template<typename Type, size_t M>
-SquareMatrix<Type, M> expm(const SquareMatrix<Type, M> & A, size_t order=5)
+SquareMatrix<Type, M> expm(const Matrix<Type, M, M> & A, size_t order=5)
 {
     SquareMatrix<Type, M> res;
     SquareMatrix<Type, M> A_pow = A;

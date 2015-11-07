@@ -50,13 +50,6 @@ if (COVERAGE)
 		)
 	include(Coveralls)
 	coveralls_turn_on_coverage()
-	add_custom_target(coverage
-		COMMAND lcov --capture --directory . --output-file coverage.info
-		COMMAND genhtml coverage.info --output-directory out
-		COMMAND x-www-browser out/index.html
-		WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
-		DEPENDS coveralls
-		)
 endif()
 
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
