@@ -1457,7 +1457,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			if (_runway_takeoff.runwayTakeoffEnabled()) {
 				if (!_runway_takeoff.isInitialized()) {
-					_runway_takeoff.init(_att.yaw, _global_pos.lat, _global_pos.lon);
+					math::Quaternion q(&_ctrl_state.q[0]);
+					math::Vector<3> euler = q.to_euler();
+					_runway_takeoff.init(euler(2), _global_pos.lat, _global_pos.lon);
 
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
@@ -1470,7 +1472,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				// update runway takeoff helper
 				_runway_takeoff.update(
-					_airspeed.true_airspeed_m_s,
+					_ctrl_state.airspeed,
 					_global_pos.alt - terrain_alt,
 					_global_pos.lat,
 					_global_pos.lon,
