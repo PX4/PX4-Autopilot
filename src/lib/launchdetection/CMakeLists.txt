@@ -37,7 +37,6 @@ px4_add_module(
 	SRCS
 		LaunchDetector.cpp
 		CatapultLaunchMethod.cpp
-		launchdetection_params.c
 	DEPENDS
 		platforms__common
 	)
