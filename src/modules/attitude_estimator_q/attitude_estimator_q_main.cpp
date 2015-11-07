@@ -544,7 +544,7 @@ void AttitudeEstimatorQ::task_main()
 
 		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
 
-		ctrl_state.roll_rate = _rates(2);
+		ctrl_state.yaw_rate = _rates(2);
 
 		/* Publish to control state topic */
 		if (_ctrl_state_pub == nullptr) {
