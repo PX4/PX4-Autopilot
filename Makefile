@@ -136,11 +136,32 @@ px4fmu-v2_simple:
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
 
+mavstation_default:
+	$(call cmake-build,nuttx_mavstation_default)
+
 px4cannode-v1_default:
 	$(call cmake-build,nuttx_px4cannode-v1_default)
 
+px4esc-v1_default:
+	$(call cmake-build,nuttx_px4esc-v1_default)
+
+s2740vc-v1_default:
+	$(call cmake-build,nuttx_s2740vc-v1_default)
+
 px4cannode-v1_bootloader:
 	$(call cmake-build,nuttx_px4cannode-v1_bootloader)
+
+px4esc-v1_bootloader:
+	$(call cmake-build,nuttx_px4esc-v1_bootloader)
+
+px4flow-v2_bootloader:
+	$(call cmake-build,nuttx_px4flow-v2_bootloader)
+
+s2740vc-v1_bootloader:
+	$(call cmake-build,nuttx_s2740vc-v1_bootloader)
+
+zubaxgnss-v1_bootloader:
+	$(call cmake-build,nuttx_zubaxgnss-v1_bootloader)
 
 nuttx_sim_simple:
 	$(call cmake-build,$@)
