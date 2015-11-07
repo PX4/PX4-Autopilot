@@ -258,9 +258,11 @@ function(px4_nuttx_add_export)
 		ARGN ${ARGN})
 
 	set(nuttx_src ${CMAKE_BINARY_DIR}/${CONFIG}/NuttX)
-
-	file(GLOB nuttx_patches RELATIVE ${CMAKE_SOURCE_DIR}
-	    ${CMAKE_SOURCE_DIR}/nuttx-patches/*.patch)
+	#
+	# Use full path to patshes so that nested builds
+	# (px4pio) can find the dependencies.
+	#
+	file(GLOB nuttx_patches ${CMAKE_SOURCE_DIR}/nuttx-patches/*.patch)
 
 	# copy
 	add_custom_target(__nuttx_copy_${CONFIG}
@@ -273,17 +275,19 @@ function(px4_nuttx_add_export)
 		COMMAND ${RM} -rf ${nuttx_src}/.git
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS} ${nuttx_patches})
+#todo: Add the nuttx source (md5 of git recursive staus) to the dependencies
 	
 	# patch
 
 	add_custom_target(__nuttx_patch_${CONFIG}) 
 
 	foreach(patch ${nuttx_patches})
-		string(REPLACE "/" "_" patch_name "${patch}-${CONFIG}")
+		string(REPLACE "${CMAKE_SOURCE_DIR}" "" patch_name "${patch}-${CONFIG}")
+		string(REPLACE "/" "_" patch_name "${patch_name}")
 	    message(STATUS "nuttx-patch: ${patch}")
 		add_custom_command(OUTPUT ${nuttx_src}/nuttx_patch_${patch_name}.stamp
 		  COMMAND ${CMAKE_COMMAND} ARGS -E chdir ${nuttx_src} 
-				${PATCH} -p1 -N  < ${CMAKE_SOURCE_DIR}/${patch}
+				${PATCH} -p1 -N  < ${patch}
 			COMMAND ${TOUCH} ${nuttx_src}/nuttx_patch_${patch_name}.stamp
 			DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG} ${patch}
 			)
