@@ -10,6 +10,8 @@
 
 #include "matrix.hpp"
 
+#include <cmath>
+
 namespace matrix
 {
 
@@ -56,13 +58,13 @@ public:
         psi() = 0;
         theta() = 0;
         phi() = 0;
-        if (isfinite(psi_val)) {
+        if (std::isfinite(psi_val)) {
             psi() = psi_val;
         }
-        if (isfinite(theta_val)) {
+        if (std::isfinite(theta_val)) {
             theta() = theta_val;
         }
-        if (isfinite(phi_val)) {
+        if (std::isfinite(phi_val)) {
             phi() = phi_val;
         }
     }
