@@ -55,13 +55,16 @@ OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
 MAXOPTIMIZATION		 = -Os
-ARCHCPUFLAGS		 = -mcpu=cortex-m3 \
-			   -mthumb \
-			   -march=armv7-m
+ARCHCPUFLAGS = -mcpu=cortex-m4 \
+    -mthumb \
+    -march=armv7e-m \
+    -mfpu=fpv4-sp-d16 \
+    -mfloat-abi=hard
 
-# enable precise stack overflow tracking
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
-INSTRUMENTATIONDEFINES	 = -finstrument-functions -ffixed-r10
+# enable precise stack overflow tracking
+INSTRUMENTATIONDEFINES   = -finstrument-functions \
+                           -ffixed-r10
 endif
 
 # use our linker script
