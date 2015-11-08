@@ -3,8 +3,8 @@
 #include <fcntl.h>
 #include <systemlib/err.h>
 
-static const int 		MIN_FLOW_QUALITY = 100;
-static const int 		REQ_INIT_COUNT = 100;
+static const int 		MIN_FLOW_QUALITY = 50;
+static const int 		REQ_INIT_COUNT = 75;
 
 static const uint32_t 		VISION_POSITION_TIMEOUT = 500000;
 static const uint32_t 		MOCAP_TIMEOUT = 200000;
