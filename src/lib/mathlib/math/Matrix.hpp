@@ -339,9 +339,8 @@ public:
 		arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
 		return res;
 #else
-		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
-		matrix::Matrix<float, M, N> MyInverse = Me.inverse(); //not sure if A = A.inverse() is a good idea
-		Matrix<M, N> res(MyInverse.data());
+		matrix::SquareMatrix<float, M> Me = matrix::Matrix<float, M, N>(this->arm_mat.pData);
+		Matrix<M, N> res(Me.I().data());
 		return res;
 #endif
 	}
