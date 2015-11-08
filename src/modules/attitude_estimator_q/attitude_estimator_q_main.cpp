@@ -473,7 +473,7 @@ void AttitudeEstimatorQ::task_main()
 			_vel_prev_t = 0;
 		}
 
-		// Time from previous iteration
+		/* time from previous iteration */
 		hrt_abstime now = hrt_absolute_time();
 		float dt = (last_time > 0) ? ((now  - last_time) / 1000000.0f) : 0.00001f;
 		last_time = now;
@@ -516,18 +516,15 @@ void AttitudeEstimatorQ::task_main()
 		att.accel_vibration = _voter_accel.get_vibration_factor(hrt_absolute_time());
 		att.mag_vibration = _voter_mag.get_vibration_factor(hrt_absolute_time());
 
-		if (_att_pub == nullptr) {
-			_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
-
-		} else {
-			orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
-		}
+		/* the instance count is not used here */
+		int att_inst;
+		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
 
 		struct control_state_s ctrl_state = {};
 
 		ctrl_state.timestamp = sensors.timestamp;
 
-		/* Attitude quaternions for control state */
+		/* attitude quaternions for control state */
 		ctrl_state.q[0] = _q(0);
 
 		ctrl_state.q[1] = _q(1);
@@ -536,20 +533,17 @@ void AttitudeEstimatorQ::task_main()
 
 		ctrl_state.q[3] = _q(3);
 
-		/* Attitude rates for control state */
+		/* attitude rates for control state */
 		ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
 
 		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
 
 		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
-		/* Publish to control state topic */
-		if (_ctrl_state_pub == nullptr) {
-			_ctrl_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-		} else {
-			orb_publish(ORB_ID(control_state), _ctrl_state_pub, &ctrl_state);
-		}
+		/* the instance count is not used here */
+		int ctrl_inst;
+		/* publish to control state topic */
+		orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH);
 	}
 }
 
