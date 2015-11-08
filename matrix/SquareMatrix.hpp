@@ -22,6 +22,9 @@ namespace matrix
 template <typename Type, size_t M, size_t N>
 class Matrix;
 
+template <typename Type, size_t M>
+class Vector;
+
 template<typename Type, size_t  M>
 class SquareMatrix : public Matrix<Type, M, M>
 {
