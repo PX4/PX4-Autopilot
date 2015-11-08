@@ -31,21 +31,21 @@
  *
  ****************************************************************************/
 
- /**
- * @file airframe.cpp
- *
- * @author Roman Bapst 		<bapstroman@gmail.com>
- *
- */
+/**
+* @file airframe.cpp
+*
+* @author Roman Bapst 		<bapstroman@gmail.com>
+*
+*/
 
 #include "vtol_type.h"
 #include "drivers/drv_pwm_output.h"
-#include <nuttx/fs/ioctl.h>
+#include <px4_defines.h>
 #include "vtol_att_control_main.h"
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
-_attc(att_controller),
-_vtol_mode(ROTARY_WING)
+	_attc(att_controller),
+	_vtol_mode(ROTARY_WING)
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
@@ -70,7 +70,7 @@ _vtol_mode(ROTARY_WING)
 
 VtolType::~VtolType()
 {
-	
+
 }
 
 /**
@@ -81,11 +81,11 @@ void VtolType::set_idle_mc()
 	int ret;
 	unsigned servo_count;
 	char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	int fd = open(dev, 0);
+	int fd = px4_open(dev, 0);
 
-	if (fd < 0) {err(1, "can't open %s", dev);}
+	if (fd < 0) {PX4_WARN("can't open %s", dev);}
 
-	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	unsigned pwm_value = _params->idle_pwm_mc;
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
@@ -95,11 +95,11 @@ void VtolType::set_idle_mc()
 		pwm_values.channel_count++;
 	}
 
-	ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
+	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
-	if (ret != OK) {errx(ret, "failed setting min values");}
+	if (ret != OK) {PX4_WARN("failed setting min values");}
 
-	close(fd);
+	px4_close(fd);
 
 	flag_idle_mc = true;
 }
@@ -111,9 +111,9 @@ void VtolType::set_idle_fw()
 {
 	int ret;
 	char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	int fd = open(dev, 0);
+	int fd = px4_open(dev, 0);
 
-	if (fd < 0) {err(1, "can't open %s", dev);}
+	if (fd < 0) {PX4_WARN("can't open %s", dev);}
 
 	unsigned pwm_value = PWM_LOWEST_MIN;
 	struct pwm_output_values pwm_values;
@@ -125,9 +125,9 @@ void VtolType::set_idle_fw()
 		pwm_values.channel_count++;
 	}
 
-	ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
+	ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
-	if (ret != OK) {errx(ret, "failed setting min values");}
+	if (ret != OK) {PX4_WARN("failed setting min values");}
 
-	close(fd);
+	px4_close(fd);
 }

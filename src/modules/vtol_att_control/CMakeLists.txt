@@ -38,12 +38,9 @@ px4_add_module(
 		
 	SRCS
 		vtol_att_control_main.cpp
-		vtol_att_control_params.c
-		tiltrotor_params.c
 		tiltrotor.cpp
 		vtol_type.cpp
 		tailsitter.cpp
-		standard_params.c
 		standard.cpp
 	DEPENDS
 		platforms__common

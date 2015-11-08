@@ -35,6 +35,7 @@ set(depends
 	prebuild_targets
 	git_mavlink
 	git_uavcan
+	git_matrix
 	)
 
 px4_add_module(

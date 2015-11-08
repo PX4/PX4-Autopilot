@@ -850,7 +850,7 @@ Sensors::parameters_update()
 		_parameters.battery_voltage_scaling = 0.0082f;
 #elif CONFIG_ARCH_BOARD_AEROCORE
 		_parameters.battery_voltage_scaling = 0.0063f;
-#elif CONFIG_ARCH_BOARD_PX4FMU_V2
+#elif CONFIG_ARCH_BOARD_PX4FMU_V1
 		_parameters.battery_voltage_scaling = 0.00459340659f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
@@ -1250,7 +1250,7 @@ Sensors::vehicle_control_mode_poll()
 void
 Sensors::parameter_update_poll(bool forced)
 {
-	bool param_updated;
+	bool param_updated = false;
 
 	/* Check if any parameter has changed */
 	orb_check(_params_sub, &param_updated);
@@ -2146,7 +2146,7 @@ Sensors::task_main()
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[1] = {};
 
 	/* use the gyro to pace output */
 	fds[0].fd = _gyro_sub[0];
