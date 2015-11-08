@@ -203,7 +203,7 @@ extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const v
  * @return	zero on success, error number on failure
  */
 extern int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data, int *instance,
-			    int priority)
+			    int priority);
 
 /**
  * Publish new data to a topic.
