@@ -207,7 +207,7 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_voter_mag(3),
 	_lp_roll_rate(250.0f, 18.0f),
 	_lp_pitch_rate(250.0f, 18.0f),
-	_lp_yaw_rate(250, 10.0f)
+	_lp_yaw_rate(250.0f, 10.0f)
 {
 	_voter_mag.set_timeout(200000);
 
@@ -495,12 +495,9 @@ void AttitudeEstimatorQ::task_main()
 		att.pitch = euler(1);
 		att.yaw = euler(2);
 
-		/* the complimentary filter should reflect the true system
-		 * state, but we need smoother outputs for the control system
-		 */
-		att.rollspeed = _lp_roll_rate.apply(_rates(0));
-		att.pitchspeed = _lp_pitch_rate.apply(_rates(1));
-		att.yawspeed = _lp_yaw_rate.apply(_rates(2));
+		att.rollspeed = _rates(0);
+		att.pitchspeed = _rates(1);
+		att.yawspeed = _rates(2);
 
 		for (int i = 0; i < 3; i++) {
 			att.g_comp[i] = _accel(i) - _pos_acc(i);
@@ -532,19 +529,14 @@ void AttitudeEstimatorQ::task_main()
 
 		/* Attitude quaternions for control state */
 		ctrl_state.q[0] = _q(0);
-
 		ctrl_state.q[1] = _q(1);
-
 		ctrl_state.q[2] = _q(2);
-
 		ctrl_state.q[3] = _q(3);
 
 		/* Attitude rates for control state */
 		ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
-
 		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
-
-		ctrl_state.yaw_rate = _rates(2);
+		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
 		/* Publish to control state topic */
 		if (_ctrl_state_pub == nullptr) {
