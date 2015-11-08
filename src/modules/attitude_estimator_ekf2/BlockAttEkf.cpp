@@ -20,9 +20,9 @@ BlockAttEkf::BlockAttEkf() :
 	_omega_dot_x(this, "ALPHA"),
 	_omega_dot_y(this, "ALPHA"),
 	_omega_dot_z(this, "ALPHA"),
-	_a_x(this, "ACCEL"),
-	_a_y(this, "ACCEL"),
-	_a_z(this, "ACCEL"),
+	_a_x(this, "ACCEL_LP"),
+	_a_y(this, "ACCEL_LP"),
+	_a_z(this, "ACCEL_LP"),
 	// states
 	_q_nr(1, 0, 0, 0),
 	_b_gyro(0, 0, 0),
@@ -236,29 +236,29 @@ void BlockAttEkf::correct_accel()
 	float q_3 = _q_nr(3);
 
 	// TODO make sure matches g used in pos filter
-	float g = -9.8;
+	float g = 9.8;
 
 	// measurement matrix
 	Matrix<float, 3, 6> C;
 	C.setZero();
-	C(0, 1) = -g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
-	C(0, 2) = g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
-	C(1, 0) = g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
-	C(1, 2) = g * (2 * q_0 * q_2 - 2 * q_1 * q_3);
-	C(2, 0) = -g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
-	C(2, 1) = g * (-2 * q_0 * q_2 + 2 * q_1 * q_3);
+	C(0, 1) = g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
+	C(0, 2) = -g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
+	C(1, 0) = -g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
+	C(1, 2) = -g * (2 * q_0 * q_2 - 2 * q_1 * q_3);
+	C(2, 0) = g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
+	C(2, 1) = -g * (-2 * q_0 * q_2 + 2 * q_1 * q_3);
 
 	// acceleration
 	// TODO debug why a_x.. etc aren't helpful
-	float a_x = _a_x.getState();
-	float a_y = _a_y.getState();
-	float a_z = _a_z.getState();
+	float a_x = 0; //_a_x.getState();
+	float a_y = 0; //_a_y.getState();
+	float a_z = 0; //_a_z.getState();
 
 	// predicted measurement
 	Vector3f y_h;
-	y_h(0) = a_x + g * (-2 * q_0 * q_2 + 2 * q_1 * q_3);
-	y_h(1) = a_y + g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
-	y_h(2) = a_z + g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
+	y_h(0) = a_x - g * (-2 * q_0 * q_2 + 2 * q_1 * q_3);
+	y_h(1) = a_y - g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
+	y_h(2) = a_z - g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
 
 	// measurement noise
 	float accel_stddev = _accel_stddev.get();
