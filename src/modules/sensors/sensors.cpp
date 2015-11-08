@@ -2146,7 +2146,7 @@ Sensors::task_main()
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[1] = {};
 
 	/* use the gyro to pace output */
 	fds[0].fd = _gyro_sub[0];
