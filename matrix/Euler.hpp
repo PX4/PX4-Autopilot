@@ -10,8 +10,6 @@
 
 #include "math.hpp"
 
-#include <cmath>
-
 namespace matrix
 {
 
@@ -54,17 +52,17 @@ public:
         Type theta_val = Type(asin(-dcm(2,0)));
         Type phi_val = Type(atan(dcm(2, 1)/ dcm(2, 2)));
 
-        // protection against gimbal lock
+        // protection against NaN if dcm(0,0) or dcm(2,2) == 0
         psi() = 0;
         theta() = 0;
         phi() = 0;
-        if (std::isfinite(psi_val)) {
+        if (psi() >= -M_PI_2 && psi() <= M_PI_2) {
             psi() = psi_val;
         }
-        if (std::isfinite(theta_val)) {
+        if (theta() >= -M_PI_2 && theta() <= M_PI_2) {
             theta() = theta_val;
         }
-        if (std::isfinite(phi_val)) {
+        if (phi() >= -M_PI_2 && phi() <= M_PI_2) {
             phi() = phi_val;
         }
     }
