@@ -628,11 +628,23 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 	struct offboard_control_mode_s offboard_control_mode;
 	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
 
+	bool values_finite = PX4_ISFINITE(set_position_target_local_ned.x) &&
+						 PX4_ISFINITE(set_position_target_local_ned.y) &&
+						 PX4_ISFINITE(set_position_target_local_ned.z) &&
+						 PX4_ISFINITE(set_position_target_local_ned.vx) &&
+						 PX4_ISFINITE(set_position_target_local_ned.vy) &&
+						 PX4_ISFINITE(set_position_target_local_ned.vz) &&
+						 PX4_ISFINITE(set_position_target_local_ned.afx) &&
+						 PX4_ISFINITE(set_position_target_local_ned.afy) &&
+						 PX4_ISFINITE(set_position_target_local_ned.afz) &&
+						 PX4_ISFINITE(set_position_target_local_ned.yaw);
+
 	/* Only accept messages which are intended for this system */
 	if ((mavlink_system.sysid == set_position_target_local_ned.target_system ||
 				set_position_target_local_ned.target_system == 0) &&
 			(mavlink_system.compid == set_position_target_local_ned.target_component ||
-			 set_position_target_local_ned.target_component == 0)) {
+			 	set_position_target_local_ned.target_component == 0) &&
+			values_finite) {
 
 		/* convert mavlink type (local, NED) to uORB offboard control struct */
 		offboard_control_mode.ignore_position = (bool)(set_position_target_local_ned.type_mask & 0x7);
@@ -719,7 +731,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 
 					/* set the yaw sp value */
-					if (!offboard_control_mode.ignore_attitude && !isnan(set_position_target_local_ned.yaw)) {
+					if (!offboard_control_mode.ignore_attitude) {
 						pos_sp_triplet.current.yaw_valid = true;
 						pos_sp_triplet.current.yaw = set_position_target_local_ned.yaw;
 
@@ -728,7 +740,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 
 					/* set the yawrate sp value */
-					if (!offboard_control_mode.ignore_bodyrate && !isnan(set_position_target_local_ned.yaw)) {
+					if (!offboard_control_mode.ignore_bodyrate) {
 						pos_sp_triplet.current.yawspeed_valid = true;
 						pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
 
@@ -737,13 +749,14 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 					//XXX handle global pos setpoints (different MAV frames)
 
-
-					if (_pos_sp_triplet_pub == nullptr) {
-						_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet),
-								&pos_sp_triplet);
-					} else {
-						orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub,
-								&pos_sp_triplet);
+					if (valid) {
+						if (_pos_sp_triplet_pub == nullptr) {
+							_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet),
+									&pos_sp_triplet);
+						} else {
+							orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub,
+									&pos_sp_triplet);
+						}
 					}
 
 				}
