@@ -529,13 +529,18 @@ void AttitudeEstimatorQ::task_main()
 
 		/* Attitude quaternions for control state */
 		ctrl_state.q[0] = _q(0);
+
 		ctrl_state.q[1] = _q(1);
+
 		ctrl_state.q[2] = _q(2);
+
 		ctrl_state.q[3] = _q(3);
 
 		/* Attitude rates for control state */
 		ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
+
 		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
+
 		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
 		/* Publish to control state topic */
