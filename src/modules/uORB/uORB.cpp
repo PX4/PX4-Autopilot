@@ -133,6 +133,8 @@ int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, cons
 	} else {
 		return orb_publish(meta, handle, data);
 	}
+
+	return -1;
 }
 
 /**
