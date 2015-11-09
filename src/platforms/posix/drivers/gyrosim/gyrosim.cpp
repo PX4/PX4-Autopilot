@@ -308,7 +308,7 @@ private:
 extern "C" { __EXPORT int gyrosim_main(int argc, char *argv[]); }
 
 GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation rotation) :
-	VirtDevObj("GYROSIM", path_accel, 1000),
+	VirtDevObj("GYROSIM", path_accel, nullptr, 1000),
 	_gyro(new GYROSIM_gyro(this, path_gyro)),
 	_product(GYROSIMES_REV_C4),
 	_accel_reports(nullptr),
@@ -484,7 +484,7 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		// Get data from the simulator
 		Simulator *sim = Simulator::getInstance();
 
-		if (sim == NULL) {
+		if (sim == nullptr) {
 			PX4_WARN("failed accessing simulator");
 			return ENODEV;
 		}
@@ -1161,7 +1161,7 @@ GYROSIM::print_registers()
 
 GYROSIM_gyro::GYROSIM_gyro(GYROSIM *parent, const char *path) :
 	// Set sample interval to 0 since device is read by parent
-	VirtDevObj("GYROSIM_gyro", path, 0),
+	VirtDevObj("GYROSIM_gyro", path, nullptr, 0),
 	_parent(parent),
 	_gyro_topic(nullptr),
 	_gyro_orb_class_instance(-1)
@@ -1226,10 +1226,10 @@ void	usage();
 int
 start(enum Rotation rotation)
 {
-	int fd;
 	GYROSIM **g_dev_ptr = &g_dev_sim;
 	const char *path_accel = MPU_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = MPU_DEVICE_PATH_GYRO;
+	DevHandle h;
 
 	if (*g_dev_ptr != nullptr) {
 		/* if already started, the still command succeeded */
@@ -1249,18 +1249,18 @@ start(enum Rotation rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = px4_open(path_accel, O_RDONLY);
+	DevMgr::getHandle(path_accel, h);
 
-	if (fd < 0) {
+	if (!h.isValid()) {
 		goto fail;
 	}
 
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		px4_close(fd);
+	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+		DevMgr::releaseHandle(h);
 		goto fail;
 	}
 
-	px4_close(fd);
+	DevMgr::releaseHandle(h);
 	return 0;
 fail:
 
@@ -1469,7 +1469,7 @@ gyrosim_main(int argc, char *argv[])
 
 	/* jump over start/off/etc and look at options first */
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {

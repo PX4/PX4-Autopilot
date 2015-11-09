@@ -102,7 +102,7 @@ private:
 };
 
 ADCSIM::ADCSIM(uint32_t channels) :
-	VirtDevObj("adcsim", ADC_BASE_DEV_PATH, 10000),
+	VirtDevObj("adcsim", "/dev/adcsim", ADC_BASE_DEV_PATH, 10000),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr)
