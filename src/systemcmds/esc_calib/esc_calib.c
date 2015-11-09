@@ -54,8 +54,6 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#include <nuttx/fs/ioctl.h>
-
 #include <arch/board/board.h>
 
 #include "systemlib/systemlib.h"
