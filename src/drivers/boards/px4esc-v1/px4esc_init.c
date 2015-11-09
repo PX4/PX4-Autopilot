@@ -189,13 +189,13 @@ __EXPORT int board_app_initialize(void)
 
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t  sector_map[] = {
-	        {1, 16 * 1024, 0x08004000},
-	        {2, 16 * 1024, 0x08008000},
-	        {0, 0, 0},
+		{1, 16 * 1024, 0x08004000},
+		{2, 16 * 1024, 0x08008000},
+		{0, 0, 0},
 	};
-        static uint8_t param_buffer[PARAMETER_BUFFER_SIZE];
+	static uint8_t param_buffer[PARAMETER_BUFFER_SIZE];
 
-        parameter_flashfs_init(sector_map, param_buffer, sizeof(param_buffer));
+	parameter_flashfs_init(sector_map, param_buffer, sizeof(param_buffer));
 #endif
 	return result;
 }

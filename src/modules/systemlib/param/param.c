@@ -600,9 +600,9 @@ int param_set_external(param_t param, const void *val, bool mark_saved, bool not
 	return param_set_internal(param, val, mark_saved, notify_changes);
 }
 
-const void * param_get_value_ptr_external(param_t param)
+const void *param_get_value_ptr_external(param_t param)
 {
-  return param_get_value_ptr(param);
+	return param_get_value_ptr(param);
 }
 #endif
 

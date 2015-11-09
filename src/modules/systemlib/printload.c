@@ -242,14 +242,17 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 			ssize_t stack_free = 0;
 
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
+
 			if (system_load.tasks[i].tcb->pid == 0) {
 				stack_size = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
 				stack_free = up_check_intstack_remain();
+
 			} else {
 #endif
 				stack_free = up_check_tcbstack_remain(system_load.tasks[i].tcb);
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
 			}
+
 #endif
 
 			dprintf(fd, "%s%4d %*-s %8lld %2d.%03d %5u/%5u %3u (%3u) ",

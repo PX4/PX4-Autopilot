@@ -66,9 +66,9 @@
  * Storage for modified parameters.
  */
 struct param_wbuf_s {
-        param_t                 param;
-        union param_value_u     val;
-        bool                    unsaved;
+	param_t                 param;
+	union param_value_u     val;
+	bool                    unsaved;
 };
 
 
@@ -76,274 +76,274 @@ struct param_wbuf_s {
 static void
 param_lock(void)
 {
-        //do {} while (sem_wait(&param_sem) != 0);
+	//do {} while (sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-        //sem_post(&param_sem);
+	//sem_post(&param_sem);
 }
 
 
 static int
 param_export_internal(bool only_unsaved)
 {
-        struct param_wbuf_s *s = NULL;
-        struct bson_encoder_s encoder;
-        int     result = -1;
+	struct param_wbuf_s *s = NULL;
+	struct bson_encoder_s encoder;
+	int     result = -1;
 
-        param_lock();
+	param_lock();
 
-        uint8_t *buffer = 0;
-        size_t buf_size;
+	uint8_t *buffer = 0;
+	size_t buf_size;
 
-        parameter_flashfs_alloc(parameters_token, &buffer, &buf_size);
+	parameter_flashfs_alloc(parameters_token, &buffer, &buf_size);
 
-        bson_encoder_init_buf(&encoder, buffer, buf_size);
+	bson_encoder_init_buf(&encoder, buffer, buf_size);
 
-        /* no modified parameters -> we are done */
-        if (param_values == NULL) {
-                result = 0;
-                goto out;
-        }
+	/* no modified parameters -> we are done */
+	if (param_values == NULL) {
+		result = 0;
+		goto out;
+	}
 
-        while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
+	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
 
-                int32_t i;
-                float   f;
+		int32_t i;
+		float   f;
 
-                /*
-                 * If we are only saving values changed since last save, and this
-                 * one hasn't, then skip it
-                 */
-                if (only_unsaved && !s->unsaved) {
-                        continue;
-                }
+		/*
+		 * If we are only saving values changed since last save, and this
+		 * one hasn't, then skip it
+		 */
+		if (only_unsaved && !s->unsaved) {
+			continue;
+		}
 
-                s->unsaved = false;
+		s->unsaved = false;
 
-                /* append the appropriate BSON type object */
+		/* append the appropriate BSON type object */
 
-                switch (param_type(s->param)) {
+		switch (param_type(s->param)) {
 
-                case PARAM_TYPE_INT32:
-                        param_get(s->param, &i);
+		case PARAM_TYPE_INT32:
+			param_get(s->param, &i);
 
-                        if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
-                                debug("BSON append failed for '%s'", param_name(s->param));
-                                goto out;
-                        }
+			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
+				debug("BSON append failed for '%s'", param_name(s->param));
+				goto out;
+			}
 
-                        break;
+			break;
 
-                case PARAM_TYPE_FLOAT:
-                        param_get(s->param, &f);
+		case PARAM_TYPE_FLOAT:
+			param_get(s->param, &f);
 
-                        if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
-                                debug("BSON append failed for '%s'", param_name(s->param));
-                                goto out;
-                        }
+			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
+				debug("BSON append failed for '%s'", param_name(s->param));
+				goto out;
+			}
 
-                        break;
+			break;
 
-                case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-                        if (bson_encoder_append_binary(&encoder,
-                                                       param_name(s->param),
-                                                       BSON_BIN_BINARY,
-                                                       param_size(s->param),
-                                                       param_get_value_ptr_external(s->param))) {
-                                debug("BSON append failed for '%s'", param_name(s->param));
-                                goto out;
-                        }
+		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
+			if (bson_encoder_append_binary(&encoder,
+						       param_name(s->param),
+						       BSON_BIN_BINARY,
+						       param_size(s->param),
+						       param_get_value_ptr_external(s->param))) {
+				debug("BSON append failed for '%s'", param_name(s->param));
+				goto out;
+			}
 
-                        break;
+			break;
 
-                default:
-                        debug("unrecognized parameter type");
-                        goto out;
-                }
-        }
+		default:
+			debug("unrecognized parameter type");
+			goto out;
+		}
+	}
 
-        result = 0;
-        parameter_flashfs_write(parameters_token, bson_encoder_buf_data(&encoder), bson_encoder_buf_size(&encoder));
+	result = 0;
+	parameter_flashfs_write(parameters_token, bson_encoder_buf_data(&encoder), bson_encoder_buf_size(&encoder));
 
 out:
-        param_unlock();
+	param_unlock();
 
-        if (result == 0) {
+	if (result == 0) {
 //                result = bson_encoder_fini(&encoder);
-        }
+	}
 
-        return result;
+	return result;
 }
 
 struct param_import_state {
-        bool mark_saved;
+	bool mark_saved;
 };
 
 static int
 param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 {
-        float f;
-        int32_t i;
-        void *v, *tmp = NULL;
-        int result = -1;
-        struct param_import_state *state = (struct param_import_state *)private;
+	float f;
+	int32_t i;
+	void *v, *tmp = NULL;
+	int result = -1;
+	struct param_import_state *state = (struct param_import_state *)private;
 
-        /*
-         * EOO means the end of the parameter object. (Currently not supporting
-         * nested BSON objects).
-         */
-        if (node->type == BSON_EOO) {
-                debug("end of parameters");
-                return 0;
-        }
+	/*
+	 * EOO means the end of the parameter object. (Currently not supporting
+	 * nested BSON objects).
+	 */
+	if (node->type == BSON_EOO) {
+		debug("end of parameters");
+		return 0;
+	}
 
-        /*
-         * Find the parameter this node represents.  If we don't know it,
-         * ignore the node.
-         */
-        param_t param = param_find_no_notification(node->name);
+	/*
+	 * Find the parameter this node represents.  If we don't know it,
+	 * ignore the node.
+	 */
+	param_t param = param_find_no_notification(node->name);
 
-        if (param == PARAM_INVALID) {
-                debug("ignoring unrecognised parameter '%s'", node->name);
-                return 1;
-        }
+	if (param == PARAM_INVALID) {
+		debug("ignoring unrecognised parameter '%s'", node->name);
+		return 1;
+	}
 
-        /*
-         * Handle setting the parameter from the node
-         */
+	/*
+	 * Handle setting the parameter from the node
+	 */
 
-        switch (node->type) {
-        case BSON_INT32:
-                if (param_type(param) != PARAM_TYPE_INT32) {
-                        debug("unexpected type for '%s", node->name);
-                        goto out;
-                }
+	switch (node->type) {
+	case BSON_INT32:
+		if (param_type(param) != PARAM_TYPE_INT32) {
+			debug("unexpected type for '%s", node->name);
+			goto out;
+		}
 
-                i = node->i;
-                v = &i;
-                break;
+		i = node->i;
+		v = &i;
+		break;
 
-        case BSON_DOUBLE:
-                if (param_type(param) != PARAM_TYPE_FLOAT) {
-                        debug("unexpected type for '%s", node->name);
-                        goto out;
-                }
+	case BSON_DOUBLE:
+		if (param_type(param) != PARAM_TYPE_FLOAT) {
+			debug("unexpected type for '%s", node->name);
+			goto out;
+		}
 
-                f = node->d;
-                v = &f;
-                break;
+		f = node->d;
+		v = &f;
+		break;
 
-        case BSON_BINDATA:
-                if (node->subtype != BSON_BIN_BINARY) {
-                        debug("unexpected subtype for '%s", node->name);
-                        goto out;
-                }
+	case BSON_BINDATA:
+		if (node->subtype != BSON_BIN_BINARY) {
+			debug("unexpected subtype for '%s", node->name);
+			goto out;
+		}
 
-                if (bson_decoder_data_pending(decoder) != param_size(param)) {
-                        debug("bad size for '%s'", node->name);
-                        goto out;
-                }
+		if (bson_decoder_data_pending(decoder) != param_size(param)) {
+			debug("bad size for '%s'", node->name);
+			goto out;
+		}
 
-                /* XXX check actual file data size? */
-                tmp = malloc(param_size(param));
+		/* XXX check actual file data size? */
+		tmp = malloc(param_size(param));
 
-                if (tmp == NULL) {
-                        debug("failed allocating for '%s'", node->name);
-                        goto out;
-                }
+		if (tmp == NULL) {
+			debug("failed allocating for '%s'", node->name);
+			goto out;
+		}
 
-                if (bson_decoder_copy_data(decoder, tmp)) {
-                        debug("failed copying data for '%s'", node->name);
-                        goto out;
-                }
+		if (bson_decoder_copy_data(decoder, tmp)) {
+			debug("failed copying data for '%s'", node->name);
+			goto out;
+		}
 
-                v = tmp;
-                break;
+		v = tmp;
+		break;
 
-        default:
-                debug("unrecognised node type");
-                goto out;
-        }
+	default:
+		debug("unrecognised node type");
+		goto out;
+	}
 
-        if (param_set_external(param, v, state->mark_saved, true)) {
+	if (param_set_external(param, v, state->mark_saved, true)) {
 
-                debug("error setting value for '%s'", node->name);
-                goto out;
-        }
+		debug("error setting value for '%s'", node->name);
+		goto out;
+	}
 
-        if (tmp != NULL) {
-                free(tmp);
-                tmp = NULL;
-        }
+	if (tmp != NULL) {
+		free(tmp);
+		tmp = NULL;
+	}
 
-        /* don't return zero, that means EOF */
-        result = 1;
+	/* don't return zero, that means EOF */
+	result = 1;
 
 out:
 
-        if (tmp != NULL) {
-                free(tmp);
-        }
+	if (tmp != NULL) {
+		free(tmp);
+	}
 
-        return result;
+	return result;
 }
 
 static int
 param_import_internal(bool mark_saved)
 {
-        struct bson_decoder_s decoder;
-        int result = -1;
-        struct param_import_state state;
+	struct bson_decoder_s decoder;
+	int result = -1;
+	struct param_import_state state;
 
-        uint8_t *buffer = 0;
-        size_t buf_size;
-        parameter_flashfs_read(parameters_token, &buffer, &buf_size);
+	uint8_t *buffer = 0;
+	size_t buf_size;
+	parameter_flashfs_read(parameters_token, &buffer, &buf_size);
 
-        if (bson_decoder_init_buf(&decoder, buffer, buf_size, param_import_callback, &state)) {
-                debug("decoder init failed");
-                goto out;
-        }
+	if (bson_decoder_init_buf(&decoder, buffer, buf_size, param_import_callback, &state)) {
+		debug("decoder init failed");
+		goto out;
+	}
 
-        state.mark_saved = mark_saved;
+	state.mark_saved = mark_saved;
 
-        do {
-                result = bson_decoder_next(&decoder);
+	do {
+		result = bson_decoder_next(&decoder);
 
-        } while (result > 0);
+	} while (result > 0);
 
 out:
 
-        if (result < 0) {
-                debug("BSON error decoding parameters");
-        }
+	if (result < 0) {
+		debug("BSON error decoding parameters");
+	}
 
-        return result;
+	return result;
 }
 
 int flash_param_save(void)
 {
-  return param_export_internal(false);
+	return param_export_internal(false);
 }
 
 
 int flash_param_save_default(void)
 {
-  return param_export_internal(false);
+	return param_export_internal(false);
 }
 
 
 int flash_param_load(void)
 {
-  param_reset_all();
-  return param_import_internal(true);
+	param_reset_all();
+	return param_import_internal(true);
 }
 
 int flash_param_import(void)
 {
-  return 0;
+	return 0;
 }
 

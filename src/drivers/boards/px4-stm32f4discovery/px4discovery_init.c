@@ -117,7 +117,7 @@ __EXPORT void
 stm32_boardinitialize(void)
 {
 	/* configure LEDs */
-       board_autoled_initialize();
+	board_autoled_initialize();
 }
 
 /****************************************************************************
@@ -145,11 +145,11 @@ __EXPORT int matherr(struct exception *e)
 __EXPORT int board_app_initialize(void)
 {
 
-  #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
-        /* run C++ ctors before we go any further */
+	/* run C++ ctors before we go any further */
 
-        up_cxxinitialize();
+	up_cxxinitialize();
 
 #       if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
 #               error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
