@@ -65,6 +65,12 @@ def main():
                         metavar="FILENAME",
                         help="Create XML file"
                              " (default FILENAME: parameters.xml)")
+    parser.add_argument("-i", "--inject-xml",
+                        nargs='?',
+                        const="../Tools/parameters_injected.xml",
+                        metavar="FILENAME",
+                        help="Inject additional param XML file"
+                             " (default FILENAME: ../Tools/parameters_injected.xml)")
     parser.add_argument("-b", "--board",
                          nargs='?',
                          const="",
@@ -124,7 +130,7 @@ def main():
     # Output to XML file
     if args.xml:
         print("Creating XML file " + args.xml)
-        out = xmlout.XMLOutput(param_groups, args.board)
+        out = xmlout.XMLOutput(param_groups, args.board, args.inject_xml)
         out.Save(args.xml)
 
     # Output to DokuWiki tables
