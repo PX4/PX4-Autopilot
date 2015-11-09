@@ -741,7 +741,7 @@ function(px4_generate_parameters_xml)
 		)
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${path} --board CONFIG_ARCH_${BOARD} --xml
+			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
 		DEPENDS ${param_src_files}
 		)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)
