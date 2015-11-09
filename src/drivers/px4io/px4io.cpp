@@ -2090,11 +2090,11 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 
 		} while (buflen > 0);
 
-		/* ensure a closing newline */
+		int ret;
+
+		/* send the closing newline */
 		msg->text[0] = '\n';
 		msg->text[1] = '\0';
-
-		int ret;
 
 		for (int i = 0; i < 30; i++) {
 			/* failed, but give it a 2nd shot */
@@ -2108,27 +2108,24 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			}
 		}
 
-		if (ret) {
-			return ret;
+		if (ret == 0) {
+			/* success, exit */
+			break;
 		}
 
 		retries--;
 
-		DEVICE_LOG("mixer sent");
+	} while (retries > 0);
 
-	} while (retries > 0 && (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK)));
+	if (retries == 0) {
+		mavlink_and_console_log_info(_mavlink_fd, "[IO] mixer upload fail");
+		/* load must have failed for some reason */
+		return -EINVAL;
 
-	/* check for the mixer-OK flag */
-	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK) {
-		mavlink_log_info(_mavlink_fd, "[IO] mixer upload ok");
-		return 0;
+	} else {
+		/* all went well, set the mixer ok flag */
+		return io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_MIXER_OK);
 	}
-
-	DEVICE_LOG("mixer rejected by IO");
-	mavlink_log_info(_mavlink_fd, "[IO] mixer upload fail");
-
-	/* load must have failed for some reason */
-	return -EINVAL;
 }
 
 void

@@ -36,6 +36,7 @@ set(config_module_list
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/navigator
+	modules/vtol_att_control
 	modules/mc_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control_multiplatform

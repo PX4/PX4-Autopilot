@@ -31,15 +31,15 @@
  *
  ****************************************************************************/
 
- /**
- * @file standard.h
- * VTOL with fixed multirotor motor configurations (such as quad) and a pusher
- * (or puller aka tractor) motor for forward flight.
- *
- * @author Simon Wilks 		<simon@uaventure.com>
- * @author Roman Bapst 		<bapstroman@gmail.com>
- *
- */
+/**
+* @file standard.h
+* VTOL with fixed multirotor motor configurations (such as quad) and a pusher
+* (or puller aka tractor) motor for forward flight.
+*
+* @author Simon Wilks 		<simon@uaventure.com>
+* @author Roman Bapst 		<bapstroman@gmail.com>
+*
+*/
 
 #ifndef STANDARD_H
 #define STANDARD_H
@@ -52,7 +52,7 @@ class Standard : public VtolType
 
 public:
 
-	Standard(VtolAttitudeControl * _att_controller);
+	Standard(VtolAttitudeControl *_att_controller);
 	~Standard();
 
 	void update_vtol_state();
@@ -89,7 +89,7 @@ private:
 	struct {
 		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
-	}_vtol_schedule;
+	} _vtol_schedule;
 
 	bool _flag_enable_mc_motors;
 	float _pusher_throttle;
