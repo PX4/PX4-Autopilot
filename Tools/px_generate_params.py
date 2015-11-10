@@ -8,6 +8,7 @@ class Scope(object):
 	"""
 	Single parameter group
 	"""
+	re_deep_lines = re.compile(r'.*\/.*\/')
 	def __init__(self, ):
 		self.scope = set()
 
@@ -27,7 +28,12 @@ class Scope(object):
 		"""
 		if len(self.scope) == 0:
 			return True
+		# Anything in the form xxxxx/yyyyy/zzzzz....
+		# is treated as xxxxx/yyyyy
+		while (self.re_deep_lines.match(scope)):
+			scope = os.path.dirname(scope)
 		return scope in self.scope
+			
 
 
 class CMakeParser(object):
