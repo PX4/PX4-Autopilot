@@ -45,7 +45,7 @@
 namespace device
 {
 
-unsigned int I2C::_bus_clocks[3] = { 100000, 100000, 100000 };
+unsigned int I2C::_bus_clocks[3] = { 0, 0, 0 };
 
 I2C::I2C(const char *name,
 	 const char *devname,
