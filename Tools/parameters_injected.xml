@@ -55,7 +55,7 @@
       <short_desc>Extended status ID</short_desc>
       <long_desc>Extended status ID</long_desc>
       <min>1</min>
-      <max>1023</max>
+      <max>1000000</max>
     </parameter>
     <parameter default="50000" name="int_ext_status" type="INT32">
       <short_desc>Extended status interval (µs)</short_desc>
