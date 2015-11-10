@@ -83,6 +83,12 @@ then
 elif [ "$debugger" == "gdb" ]
 then
 	gdb --args mainapp ../../../../${rc_script}_${program}
+elif [ "$debugger" == "ddd" ]
+then
+	ddd --debugger gdb --args mainapp ../../../../${rc_script}_${program}
+elif [ "$debugger" == "valgrind" ]
+then
+	valgrind ./mainapp ../../../../${rc_script}_${program}
 else
 	./mainapp ../../../../${rc_script}_${program}
 fi

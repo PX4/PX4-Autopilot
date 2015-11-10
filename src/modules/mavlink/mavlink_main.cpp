@@ -698,6 +698,9 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	} else {
 		_is_usb_uart = true;
+		/* USB has no baudrate, but use a magic number for 'fast' */
+		_baudrate = 2000000;
+		_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB;
 	}
 
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
@@ -2094,8 +2097,12 @@ Mavlink::display_status()
 			printf("3DR RADIO\n");
 			break;
 
+		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB:
+			printf("USB CDC\n");
+			break;
+
 		default:
-			printf("UNKNOWN RADIO\n");
+			printf("GENERIC LINK OR RADIO\n");
 			break;
 		}
 
