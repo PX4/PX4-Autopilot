@@ -54,7 +54,7 @@
 #include "barosim.h"
 #include "board_config.h"
 
-device::Device *BAROSIM_sim_interface(barosim::prom_u &prom_buf);
+DevObj *BAROSIM_sim_interface(barosim::prom_u &prom_buf);
 
 class BARO_SIM : public device::SIM
 {
@@ -94,10 +94,10 @@ private:
 
 };
 
-device::Device *
+DevObj *
 BAROSIM_sim_interface(barosim::prom_u &prom_buf, uint8_t busnum)
 {
-	return new BARO_SIM(busnum, prom_buf);
+	return reinterpret_cast<DevObj *>(new BARO_SIM(busnum, prom_buf));
 }
 
 BARO_SIM::BARO_SIM(uint8_t bus, barosim::prom_u &prom) :

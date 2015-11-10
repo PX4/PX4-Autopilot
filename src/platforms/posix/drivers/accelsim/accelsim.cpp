@@ -53,7 +53,6 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
-#include <drivers/device/device.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
@@ -244,10 +243,8 @@ public:
 	ACCELSIM_mag(ACCELSIM *parent);
 	~ACCELSIM_mag();
 
-	virtual ssize_t	read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
-
-	virtual int	init();
+	virtual ssize_t	devRead(void *buffer, size_t buflen);
+	virtual int	devIOCTL(unsigned long cmd, void *arg);
 
 protected:
 	friend class ACCELSIM;
@@ -913,7 +910,7 @@ ACCELSIM::_measure()
 	/* notify anyone waiting for data */
 	DevMgr::updateNotify(*this);
 
-	if (!(_pub_blocked)) {
+	if (!(m_pub_blocked)) {
 		/* publish it */
 
 		// The first call to measure() is from init() and _accel_topic is not
@@ -1000,9 +997,9 @@ ACCELSIM::mag_measure()
 	_mag_reports->force(&mag_report);
 
 	/* notify anyone waiting for data */
-	DevMgr::updateNotify(*this)
+	DevMgr::updateNotify(*this);
 
-	if (!(_pub_blocked)) {
+	if (!(m_pub_blocked)) {
 		/* publish it */
 		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
 	}
@@ -1014,7 +1011,7 @@ ACCELSIM::mag_measure()
 }
 
 ACCELSIM_mag::ACCELSIM_mag(ACCELSIM *parent) :
-	VirtDev("ACCELSIM_mag", ACCELSIM_DEVICE_PATH_MAG, MAG_BASE_DEVICE_PATH, 10000),
+	VirtDevObj("ACCELSIM_mag", ACCELSIM_DEVICE_PATH_MAG, MAG_BASE_DEVICE_PATH, 10000),
 	_parent(parent),
 	_mag_topic(nullptr),
 	_mag_orb_class_instance(-1),
@@ -1027,7 +1024,7 @@ ACCELSIM_mag::~ACCELSIM_mag()
 }
 
 ssize_t
-ACCELSIM_mag::devRead(char *buffer, size_t buflen)
+ACCELSIM_mag::devRead(void *buffer, size_t buflen)
 {
 	return _parent->mag_read(buffer, buflen);
 }
@@ -1037,7 +1034,7 @@ ACCELSIM_mag::devIOCTL(unsigned long cmd, void *arg)
 {
 	switch (cmd) {
 	case DEVIOCGDEVICEID:
-		return (int)VirtDevObj::ioctl(cmd, arg);
+		return (int)VirtDevObj::devIOCTL(cmd, arg);
 		break;
 
 	default:
@@ -1077,6 +1074,9 @@ start(enum Rotation rotation)
 		return 0;
 	}
 
+	DevHandle h;
+	DevHandle h_mag;
+
 	/* create the driver */
 	g_dev = new ACCELSIM(ACCELSIM_DEVICE_PATH_ACCEL, rotation);
 
@@ -1091,7 +1091,6 @@ start(enum Rotation rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	DevHandle h;
 	DevMgr::getHandle(ACCELSIM_DEVICE_PATH_ACCEL, h);
 
 	if (!h.isValid()) {
@@ -1099,18 +1098,17 @@ start(enum Rotation rotation)
 		goto fail;
 	}
 
-	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 		DevMgr::releaseHandle(h);
 		goto fail;
 	}
 
-	DevHandle h_mag;
 	DevMgr::getHandle(ACCELSIM_DEVICE_PATH_MAG, h_mag);
 
 	/* don't fail if mag dev cannot be opened */
 	if (!h_mag.isValid()) {
-		if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
 			PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 		}
 

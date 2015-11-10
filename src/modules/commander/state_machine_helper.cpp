@@ -65,6 +65,10 @@
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 #include "PreflightCheck.h"
+#ifndef __PX4_NUTTX
+#include "DevMgr.hpp"
+using namespace DriverFramework;
+#endif
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current  state you can index into the array which
@@ -463,30 +467,30 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 
 #else
 
-				const char *devname;
-				unsigned int handle = 0;
+				std::string devname;
+				unsigned int index = 0;
 				for(;;) {
-					devname = px4_get_device_names(&handle);
-					if (devname == NULL)
+					if (DevMgr::getNextDeviceName(index, devname) < 0) {
 						break;
+					}
 
 					/* skip mavlink */
-					if (!strcmp("/dev/mavlink", devname)) {
+					if (!strcmp("/dev/mavlink", devname.c_str())) {
 						continue;
 					}
 
+					DevHandle h;
+					DevMgr::getHandle(devname.c_str(), h);
 
-					int sensfd = px4_open(devname, 0);
-
-					if (sensfd < 0) {
-						warn("failed opening device %s", devname);
+					if (!h.isValid()) {
+						warn("failed opening device %s", devname.c_str());
 						continue;
 					}
 
-					int block_ret = px4_ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
-					px4_close(sensfd);
+					int block_ret = h.ioctl(DEVIOCSPUBBLOCK, (void *)1);
+					DevMgr::releaseHandle(h);
 
-					printf("Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
+					printf("Disabling %s: %s\n", devname.c_str(), (block_ret == OK) ? "OK" : "ERROR");
 				}
 
 				ret = TRANSITION_CHANGED;

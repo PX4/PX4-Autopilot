@@ -109,17 +109,18 @@
 
 #include <systemlib/err.h>
 
+#include "VirtDevObj.hpp"
 
-class ToneAlarm : public device::VDev
+using namespace DriverFramework;
+
+class ToneAlarm : public VirtDevObj
 {
 public:
 	ToneAlarm();
 	~ToneAlarm();
 
-	virtual int		init();
-
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
-	virtual ssize_t		write(device::file_t *filp, const char *buffer, size_t len);
+	virtual int		devIOCTL(unsigned long cmd, void *arg);
+	virtual ssize_t		devWrite(const void *buffer, size_t len);
 	inline const char	*name(int tune)
 	{
 		return _tune_names[tune];
@@ -196,6 +197,8 @@ private:
 	//
 	static void		next_trampoline(void *arg);
 
+	// Unused
+	virtual void _measure() {}
 };
 
 // semitone offsets from C for the characters 'A'-'G'
@@ -208,7 +211,7 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 
 ToneAlarm::ToneAlarm() :
-	VDev("tone_alarm", TONEALARM0_DEVICE_PATH),
+	VirtDevObj("tone_alarm", TONEALARM0_DEVICE_PATH, nullptr, 0),
 	_default_tune_number(0),
 	_user_tune(nullptr),
 	_tune(nullptr),
@@ -249,21 +252,6 @@ ToneAlarm::ToneAlarm() :
 
 ToneAlarm::~ToneAlarm()
 {
-}
-
-int
-ToneAlarm::init()
-{
-	int ret;
-
-	ret = VDev::init();
-
-	if (ret != OK) {
-		return ret;
-	}
-
-	DEVICE_DEBUG("ready");
-	return OK;
 }
 
 unsigned
@@ -653,21 +641,21 @@ ToneAlarm::next_trampoline(void *arg)
 
 
 int
-ToneAlarm::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+ToneAlarm::devIOCTL(unsigned long cmd, void *arg)
 {
 	int result = OK;
 
-	DEVICE_DEBUG("ioctl %i %lu", cmd, arg);
+	unsigned long ul_arg = (unsigned long)arg;
 
-//	irqstate_t flags = irqsave();
+	PX4_DEBUG("ToneAlarm::devIOCTL %i %lu", cmd, ul_arg);
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
 	case TONE_SET_ALARM:
-		PX4_INFO("TONE_SET_ALARM %lu", arg);
+		PX4_INFO("TONE_SET_ALARM %lu", ul_arg);
 
-		if (arg < TONE_NUMBER_OF_TUNES) {
-			if (arg == TONE_STOP_TUNE) {
+		if (ul_arg < TONE_NUMBER_OF_TUNES) {
+			if (ul_arg == TONE_STOP_TUNE) {
 				// stop the tune
 				_tune = nullptr;
 				_next = nullptr;
@@ -676,10 +664,10 @@ ToneAlarm::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			} else {
 				/* always interrupt alarms, unless they are repeating and already playing */
-				if (!(_repeat && _default_tune_number == arg)) {
+				if (!(_repeat && _default_tune_number == ul_arg)) {
 					/* play the selected tune */
-					_default_tune_number = arg;
-					start_tune(_default_tunes[arg]);
+					_default_tune_number = ul_arg;
+					start_tune(_default_tunes[ul_arg]);
 				}
 			}
 
@@ -694,18 +682,16 @@ ToneAlarm::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		break;
 	}
 
-//	irqrestore(flags);
-
 	/* give it to the superclass if we didn't like it */
 	if (result == -ENOTTY) {
-		result = VDev::ioctl(filp, cmd, arg);
+		result = VirtDevObj::devIOCTL(cmd, arg);
 	}
 
 	return result;
 }
 
 ssize_t
-ToneAlarm::write(device::file_t *filp, const char *buffer, size_t len)
+ToneAlarm::devWrite(const void *buffer, size_t len)
 {
 	// sanity-check the buffer for length and nul-termination
 	if (len > _tune_max) {
@@ -726,13 +712,15 @@ ToneAlarm::write(device::file_t *filp, const char *buffer, size_t len)
 		_user_tune = nullptr;
 	}
 
+	const char *buf = reinterpret_cast<const char *>(buffer);
+
 	// if the new tune is empty, we're done
-	if (buffer[0] == '\0') {
+	if (buf[0] == '\0') {
 		return OK;
 	}
 
 	// allocate a copy of the new tune
-	_user_tune = strndup(buffer, len);
+	_user_tune = strndup(buf, len);
 
 	if (_user_tune == nullptr) {
 		return -ENOMEM;
@@ -778,17 +766,18 @@ play_tune(unsigned tune)
 int
 play_string(const char *str, bool free_buffer)
 {
-	int	fd, ret;
+	int ret;
 
-	fd = px4_open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	DevHandle h;
+	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h);
 
-	if (fd < 0) {
-		PX4_WARN("Error: failed to open %s", TONEALARM0_DEVICE_PATH);
+	if (!h.isValid()) {
+		PX4_WARN("Error: failed to get handle to %s", TONEALARM0_DEVICE_PATH);
 		return 1;
 	}
 
-	ret = px4_write(fd, str, strlen(str) + 1);
-	px4_close(fd);
+	ret = h.write(str, strlen(str) + 1);
+	DevMgr::releaseHandle(h);
 
 	if (free_buffer) {
 		free((void *)str);
