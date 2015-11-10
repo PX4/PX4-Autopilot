@@ -19,8 +19,9 @@ int main()
     Vector<float, n_y> r(data);
 
     Vector<float, n_x> dx;
+    SquareMatrix<float, n_x> dP;
     float beta = 0;
-    kalman_correct<float, 6, 5>(P, C, R, r, dx, beta);
+    kalman_correct<float, 6, 5>(P, C, R, r, dx, dP, beta);
 
     dx.T().print();
     printf("beta: %g\n", beta);
