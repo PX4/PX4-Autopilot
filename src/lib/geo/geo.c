@@ -319,14 +319,21 @@ __EXPORT void create_waypoint_from_line_and_dist(double lat_A, double lon_A, dou
 }
 
 __EXPORT void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
-		double *lat_end, double *lon_end)
+		double *lat_target, double *lon_target)
 {
 	bearing = _wrap_2pi(bearing);
 	double radius_ratio = (double)(fabs(dist) / CONSTANTS_RADIUS_OF_EARTH);
 
-	*lat_end = asin(sin(lat_start) * cos(radius_ratio) + cos(lat_start) * sin(radius_ratio) * cos((double)bearing));
-	*lon_end = lon_start + atan2(sin((double)bearing) * sin(radius_ratio) * cos(lat_start),
-				     cos(radius_ratio) - sin(lat_start) * sin(*lat_end));
+	double lat_start_rad = lat_start / (double)180.0 * M_PI;
+	double lon_start_rad = lon_start / (double)180.0 * M_PI;
+
+	*lat_target = asin(sin(lat_start_rad) * cos(radius_ratio) + cos(lat_start_rad) * sin(radius_ratio) * cos((
+				   double)bearing));
+	*lon_target = lon_start_rad + atan2(sin((double)bearing) * sin(radius_ratio) * cos(lat_start_rad),
+					    cos(radius_ratio) - sin(lat_start_rad) * sin(*lat_target));
+
+	*lat_target *= (double)180.0 / M_PI;
+	*lon_target *= (double)180.0 / M_PI;
 }
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
