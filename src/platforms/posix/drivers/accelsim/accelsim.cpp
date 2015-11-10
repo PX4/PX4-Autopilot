@@ -44,7 +44,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <poll.h>
 #include <math.h>
 #include <unistd.h>
 #include <px4_getopt.h>
@@ -63,15 +62,9 @@
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
+#include <VirtDevObj.hpp>
 
 #define ACCELSIM_DEVICE_PATH_ACCEL	"/dev/sim_accel"
-#define ACCELSIM_DEVICE_PATH_ACCEL_EXT	"/dev/sim_accel_ext"
 #define ACCELSIM_DEVICE_PATH_MAG	"/dev/sim_mag"
 
 #define ADDR_WHO_AM_I			0x0F
@@ -87,10 +80,11 @@ static const int ERROR = -1;
 
 extern "C" { __EXPORT int accelsim_main(int argc, char *argv[]); }
 
+using namespace DriverFramework;
 
 class ACCELSIM_mag;
 
-class ACCELSIM : public device::VDev
+class ACCELSIM : public VirtDevObj
 {
 public:
 	ACCELSIM(const char *path, enum Rotation rotation);
@@ -98,8 +92,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t		devRead(void *buffer, size_t buflen);
+	virtual int		devIOCTL(unsigned long cmd, void *arg);
 
 	/**
 	 * dump register values
@@ -109,8 +103,8 @@ public:
 protected:
 	friend class 		ACCELSIM_mag;
 
-	ssize_t			mag_read(device::file_t *filp, char *buffer, size_t buflen);
-	int			mag_ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	ssize_t			mag_read(void *buffer, size_t buflen);
+	int			mag_ioctl(unsigned long cmd, void *arg);
 
 	int			transfer(uint8_t *send, uint8_t *recv, unsigned len);
 private:
@@ -123,8 +117,8 @@ private:
 	unsigned		_call_accel_interval;
 	unsigned		_call_mag_interval;
 
-	ringbuffer::RingBuffer		*_accel_reports;
-	ringbuffer::RingBuffer		*_mag_reports;
+	ringbuffer::RingBuffer	*_accel_reports;
+	ringbuffer::RingBuffer	*_mag_reports;
 
 	struct accel_scale	_accel_scale;
 	unsigned		_accel_range_m_s2;
@@ -168,14 +162,9 @@ private:
 	// reset
 
 	/**
-	 * Start automatic measurement.
+	 * Override Start automatic measurement.
 	 */
-	void			start();
-
-	/**
-	 * Stop automatic measurement.
-	 */
-	void			stop();
+	virtual int			start();
 
 	/**
 	 * Reset chip.
@@ -185,27 +174,9 @@ private:
 	void			reset();
 
 	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
-
-	/**
-	 * Static trampoline for the mag because it runs at a lower rate
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		mag_measure_trampoline(void *arg);
-
-	/**
 	 * Fetch accel measurements from the sensor and update the report ring.
 	 */
-	void			measure();
+	virtual void			_measure();
 
 	/**
 	 * Fetch mag measurements from the sensor and update the report ring.
@@ -267,7 +238,7 @@ private:
 /**
  * Helper class implementing the mag driver node.
  */
-class ACCELSIM_mag : public device::VDev
+class ACCELSIM_mag : public VirtDevObj
 {
 public:
 	ACCELSIM_mag(ACCELSIM *parent);
@@ -288,9 +259,7 @@ private:
 	int		_mag_orb_class_instance;
 	int		_mag_class_instance;
 
-	void		measure();
-
-	void		measure_trampoline(void *arg);
+	virtual void	_measure();
 
 	/* this class does not allow copying due to ptr data members */
 	ACCELSIM_mag(const ACCELSIM_mag &);
@@ -299,7 +268,7 @@ private:
 
 
 ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
-	VDev("ACCELSIM", path),
+	VirtDevObj("ACCELSIM", path, ACCEL_BASE_DEVICE_PATH, 1000),
 	_mag(new ACCELSIM_mag(this)),
 	_accel_call{},
 	_mag_call{},
@@ -333,15 +302,11 @@ ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
 	_constant_accel_count(0),
 	_last_temperature(0)
 {
-	// enable debug() calls
-	_debug_enabled = false;
-
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
+	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
 
 	/* Prime _mag with parents devid. */
-	_mag->_device_id.devid = _device_id.devid;
-	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_ACCELSIM;
-
+	_mag->m_id.dev_id = m_id.dev_id;
+	_mag->m_id.dev_id_s.devtype = DRV_MAG_DEVTYPE_ACCELSIM;
 
 	// default scale factors
 	_accel_scale.x_offset = 0.0f;
@@ -373,10 +338,6 @@ ACCELSIM::~ACCELSIM()
 		delete _mag_reports;
 	}
 
-	if (_accel_class_instance != -1) {
-		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
-	}
-
 	delete _mag;
 
 	/* delete the perf counter */
@@ -390,13 +351,13 @@ ACCELSIM::~ACCELSIM()
 int
 ACCELSIM::init()
 {
-	int ret = ERROR;
+	int ret = -1;
 
 	struct mag_report mrp = {};
 	struct accel_report arp = {};
 
 	/* do SIM init first */
-	if (VDev::init() != OK) {
+	if (VirtDevObj::init() != 0) {
 		PX4_WARN("SIM init failed");
 		goto out;
 	}
@@ -416,7 +377,7 @@ ACCELSIM::init()
 
 	reset();
 
-	/* do VDev init for the mag device node */
+	/* do init for the mag device node */
 	ret = _mag->init();
 
 	if (ret != OK) {
@@ -425,7 +386,7 @@ ACCELSIM::init()
 	}
 
 	/* fill report structures */
-	measure();
+	_measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
 	_mag_reports->get(&mrp);
@@ -437,9 +398,6 @@ ACCELSIM::init()
 	if (_mag->_mag_topic == nullptr) {
 		PX4_WARN("ADVERT ERR");
 	}
-
-
-	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
 	_accel_reports->get(&arp);
@@ -490,7 +448,7 @@ ACCELSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 }
 
 ssize_t
-ACCELSIM::read(device::file_t *filp, char *buffer, size_t buflen)
+ACCELSIM::devRead(void *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct accel_report);
 	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
@@ -518,7 +476,7 @@ ACCELSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement */
-	measure();
+	_measure();
 
 	/* measurement will have generated a report, copy it out */
 	if (_accel_reports->get(arb)) {
@@ -529,7 +487,7 @@ ACCELSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 }
 
 ssize_t
-ACCELSIM::mag_read(device::file_t *filp, char *buffer, size_t buflen)
+ACCELSIM::mag_read(void *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct mag_report);
 	mag_report *mrb = reinterpret_cast<mag_report *>(buffer);
@@ -559,7 +517,7 @@ ACCELSIM::mag_read(device::file_t *filp, char *buffer, size_t buflen)
 
 	/* manual measurement */
 	_mag_reports->flush();
-	_mag->measure();
+	_mag->_measure();
 
 	/* measurement will have generated a report, copy it out */
 	if (_mag_reports->get(mrb)) {
@@ -570,12 +528,13 @@ ACCELSIM::mag_read(device::file_t *filp, char *buffer, size_t buflen)
 }
 
 int
-ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+ACCELSIM::devIOCTL(unsigned long cmd, void *arg)
 {
+	unsigned long ul_arg = (unsigned long)arg;
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
+			switch (ul_arg) {
 
 			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
@@ -592,10 +551,10 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 1600);
+				return devIOCTL(SENSORIOCSPOLLRATE, (void *)1600);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, ACCELSIM_ACCEL_DEFAULT_RATE);
+				return devIOCTL(SENSORIOCSPOLLRATE, (void *)ACCELSIM_ACCEL_DEFAULT_RATE);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
@@ -603,7 +562,7 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_accel_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned period = 1000000 / arg;
+					unsigned period = 1000000 / ul_arg;
 
 					/* check against maximum sane rate */
 					if (period < 500) {
@@ -611,7 +570,7 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					}
 
 					/* adjust filters */
-					accel_set_driver_lowpass_filter((float)arg, _accel_filter_x.get_cutoff_freq());
+					accel_set_driver_lowpass_filter((float)ul_arg, _accel_filter_x.get_cutoff_freq());
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
@@ -636,11 +595,11 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
+			if ((ul_arg < 1) || (ul_arg > 100)) {
 				return -EINVAL;
 			}
 
-			if (!_accel_reports->resize(arg)) {
+			if (!_accel_reports->resize(ul_arg)) {
 				return -ENOMEM;
 			}
 
@@ -655,13 +614,13 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case ACCELIOCSSAMPLERATE:
-		return accel_set_samplerate(arg);
+		return accel_set_samplerate(ul_arg);
 
 	case ACCELIOCGSAMPLERATE:
 		return _accel_samplerate;
 
 	case ACCELIOCSLOWPASS: {
-			return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)arg);
+			return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)ul_arg);
 		}
 
 	case ACCELIOCSSCALE: {
@@ -680,7 +639,7 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSRANGE:
 		/* arg needs to be in G */
-		return accel_set_range(arg);
+		return accel_set_range(ul_arg);
 
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
@@ -688,7 +647,7 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((struct accel_scale *) arg, &(_accel_scale), sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSELFTEST:
@@ -696,17 +655,18 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(filp, cmd, arg);
+		return VirtDevObj::devIOCTL(cmd, arg);
 	}
 }
 
 int
-ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
+ACCELSIM::mag_ioctl(unsigned long cmd, void *arg)
 {
+	unsigned long ul_arg = (unsigned long)arg;
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
+			switch (ul_arg) {
 
 			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
@@ -725,7 +685,7 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT:
 				/* 100 Hz is max for mag */
-				return mag_ioctl(filp, SENSORIOCSPOLLRATE, 100);
+				return mag_ioctl(SENSORIOCSPOLLRATE, (void *)100);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
@@ -733,7 +693,7 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_mag_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned period = 1000000 / arg;
+					unsigned period = 1000000 / ul_arg;
 
 					/* check against maximum sane rate (1ms) */
 					if (period < 10000) {
@@ -765,11 +725,11 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
+			if ((ul_arg < 1) || (ul_arg > 100)) {
 				return -EINVAL;
 			}
 
-			if (!_mag_reports->resize(arg)) {
+			if (!_mag_reports->resize(ul_arg)) {
 				return -ENOMEM;
 			}
 
@@ -784,7 +744,7 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case MAGIOCSSAMPLERATE:
-		return mag_set_samplerate(arg);
+		return mag_set_samplerate(ul_arg);
 
 	case MAGIOCGSAMPLERATE:
 		return _mag_samplerate;
@@ -805,7 +765,7 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case MAGIOCSRANGE:
-		return mag_set_range(arg);
+		return mag_set_range(ul_arg);
 
 	case MAGIOCGRANGE:
 		return _mag_range_ga;
@@ -822,7 +782,7 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(filp, cmd, arg);
+		return VirtDevObj::devIOCTL(cmd, arg);
 	}
 }
 
@@ -868,7 +828,7 @@ ACCELSIM::mag_set_samplerate(unsigned frequency)
 	return OK;
 }
 
-void
+int
 ACCELSIM::start()
 {
 	/* make sure we are stopped first */
@@ -878,49 +838,11 @@ ACCELSIM::start()
 	_accel_reports->flush();
 	_mag_reports->flush();
 
-	/* start polling at the specified rate */
-	//PX4_INFO("ACCELSIM::start accel %u", _call_accel_interval);
-	hrt_call_every(&_accel_call, 1000, _call_accel_interval, (hrt_callout)&ACCELSIM::measure_trampoline, this);
-
-	// There is a race here where SENSORIOCSPOLLRATE on the accel starts polling of mag but _call_mag_interval is 0
-	if (_call_mag_interval == 0) {
-		//PX4_INFO("_call_mag_interval uninitilized - would have set period delay of 0");
-		_call_mag_interval = 10000; // Max 100Hz
-	}
-
-	//PX4_INFO("ACCELSIM::start mag %u", _call_mag_interval);
-	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&ACCELSIM::mag_measure_trampoline, this);
+	return VirtDevObj::start();
 }
 
 void
-ACCELSIM::stop()
-{
-	hrt_cancel(&_accel_call);
-	hrt_cancel(&_mag_call);
-}
-
-void
-ACCELSIM::measure_trampoline(void *arg)
-{
-	//PX4_INFO("ACCELSIM::measure_trampoline");
-	ACCELSIM *dev = (ACCELSIM *)arg;
-
-	/* make another measurement */
-	dev->measure();
-}
-
-void
-ACCELSIM::mag_measure_trampoline(void *arg)
-{
-	//PX4_INFO("ACCELSIM::mag_measure_trampoline");
-	ACCELSIM *dev = (ACCELSIM *)arg;
-
-	/* make another measurement */
-	dev->mag_measure();
-}
-
-void
-ACCELSIM::measure()
+ACCELSIM::_measure()
 {
 	/* status register and data as read back from the device */
 
@@ -989,7 +911,7 @@ ACCELSIM::measure()
 	_accel_reports->force(&accel_report);
 
 	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+	DevMgr::updateNotify(*this);
 
 	if (!(_pub_blocked)) {
 		/* publish it */
@@ -1078,7 +1000,7 @@ ACCELSIM::mag_measure()
 	_mag_reports->force(&mag_report);
 
 	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+	DevMgr::updateNotify(*this)
 
 	if (!(_pub_blocked)) {
 		/* publish it */
@@ -1092,7 +1014,7 @@ ACCELSIM::mag_measure()
 }
 
 ACCELSIM_mag::ACCELSIM_mag(ACCELSIM *parent) :
-	VDev("ACCELSIM_mag", ACCELSIM_DEVICE_PATH_MAG),
+	VirtDev("ACCELSIM_mag", ACCELSIM_DEVICE_PATH_MAG, MAG_BASE_DEVICE_PATH, 10000),
 	_parent(parent),
 	_mag_topic(nullptr),
 	_mag_orb_class_instance(-1),
@@ -1102,57 +1024,31 @@ ACCELSIM_mag::ACCELSIM_mag(ACCELSIM *parent) :
 
 ACCELSIM_mag::~ACCELSIM_mag()
 {
-	if (_mag_class_instance != -1) {
-		unregister_class_devname(MAG_BASE_DEVICE_PATH, _mag_class_instance);
-	}
-}
-
-int
-ACCELSIM_mag::init()
-{
-	int ret;
-
-	ret = VDev::init();
-
-	if (ret != OK) {
-		goto out;
-	}
-
-	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
-
-out:
-	return ret;
 }
 
 ssize_t
-ACCELSIM_mag::read(device::file_t *filp, char *buffer, size_t buflen)
+ACCELSIM_mag::devRead(char *buffer, size_t buflen)
 {
-	return _parent->mag_read(filp, buffer, buflen);
+	return _parent->mag_read(buffer, buflen);
 }
 
 int
-ACCELSIM_mag::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+ACCELSIM_mag::devIOCTL(unsigned long cmd, void *arg)
 {
 	switch (cmd) {
 	case DEVIOCGDEVICEID:
-		return (int)VDev::ioctl(filp, cmd, arg);
+		return (int)VirtDevObj::ioctl(cmd, arg);
 		break;
 
 	default:
-		return _parent->mag_ioctl(filp, cmd, arg);
+		return _parent->mag_ioctl(cmd, arg);
 	}
 }
 
 void
-ACCELSIM_mag::measure()
+ACCELSIM_mag::_measure()
 {
 	_parent->mag_measure();
-}
-
-void
-ACCELSIM_mag::measure_trampoline(void *arg)
-{
-	_parent->mag_measure_trampoline(arg);
 }
 
 /**
@@ -1176,8 +1072,6 @@ void	usage();
 int
 start(enum Rotation rotation)
 {
-	int fd, fd_mag;
-
 	if (g_dev != nullptr) {
 		PX4_WARN("already started");
 		return 0;
@@ -1197,24 +1091,26 @@ start(enum Rotation rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = px4_open(ACCELSIM_DEVICE_PATH_ACCEL, O_RDONLY);
+	DevHandle h;
+	DevMgr::getHandle(ACCELSIM_DEVICE_PATH_ACCEL, h);
 
-	if (fd < 0) {
+	if (!h.isValid()) {
 		PX4_WARN("open %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 		goto fail;
 	}
 
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
-		px4_close(fd);
+		DevMgr::releaseHandle(h);
 		goto fail;
 	}
 
-	fd_mag = px4_open(ACCELSIM_DEVICE_PATH_MAG, O_RDONLY);
+	DevHandle h_mag;
+	DevMgr::getHandle(ACCELSIM_DEVICE_PATH_MAG, h_mag);
 
 	/* don't fail if mag dev cannot be opened */
-	if (0 <= fd_mag) {
-		if (px4_ioctl(fd_mag, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (!h_mag.isValid()) {
+		if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 			PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 		}
 
@@ -1222,8 +1118,8 @@ start(enum Rotation rotation)
 		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 	}
 
-	px4_close(fd);
-	px4_close(fd_mag);
+	DevMgr::releaseHandle(h);
+	DevMgr::releaseHandle(h_mag);
 
 	return 0;
 fail:
