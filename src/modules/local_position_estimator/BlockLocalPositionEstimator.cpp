@@ -37,7 +37,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_distance_subs(),
 	_sub_lidar(NULL),
 	_sub_sonar(NULL),
-	
+
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
 	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
@@ -159,11 +159,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	_polls[POLL_SENSORS].fd = _sub_sensor.getHandle();
 	_polls[POLL_SENSORS].events = POLLIN;
-	
+
 	//subscribe to all distance sensors
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			_distance_subs[i] = new uORB::Subscription<distance_sensor_s>(
-				ORB_ID(distance_sensor), 0, i, &getSubscriptions());
+		_distance_subs[i] = new uORB::Subscription<distance_sensor_s>(
+			ORB_ID(distance_sensor), 0, i, &getSubscriptions());
 	}
 
 	// initialize P to identity*0.1
@@ -210,17 +210,17 @@ void BlockLocalPositionEstimator::update()
 
 	// set dt for all child blocks
 	setDt(dt);
-	
+
 	// auto-detect connected rangefinders while not armed
-	if(!_sub_armed.get().armed && (_sub_lidar == NULL || _sub_sonar == NULL)) {
+	if (!_sub_armed.get().armed && (_sub_lidar == NULL || _sub_sonar == NULL)) {
 		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			if(_distance_subs[i]->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
-				_sub_lidar == NULL) {
+			if (_distance_subs[i]->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
+			    _sub_lidar == NULL) {
 				_sub_lidar = _distance_subs[i];
 				warnx("[lpe] Lidar detected with ID %i", i);
-			}
-			else if(_distance_subs[i]->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
-				_sub_sonar == NULL) {
+
+			} else if (_distance_subs[i]->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
+				   _sub_sonar == NULL) {
 				_sub_sonar = _distance_subs[i];
 				warnx("[lpe] Sonar detected with ID %i", i);
 			}
@@ -237,8 +237,10 @@ void BlockLocalPositionEstimator::update()
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = false;
 	bool sonarUpdated = false;
-	if(_sub_lidar != NULL)	lidarUpdated = _sub_lidar->updated();
-	if(_sub_sonar != NULL)	sonarUpdated = _sub_sonar->updated();
+
+	if (_sub_lidar != NULL)	{ lidarUpdated = _sub_lidar->updated(); }
+
+	if (_sub_sonar != NULL)	{ sonarUpdated = _sub_sonar->updated(); }
 
 	// get new data
 	updateSubscriptions();
@@ -532,7 +534,7 @@ void BlockLocalPositionEstimator::initSonar()
 
 	// collect sonar data
 	bool valid = false;
-	float d = _sub_lidar->get().current_distance;
+	float d = _sub_sonar->get().current_distance;
 
 	if (d < _sub_sonar->get().max_distance &&
 	    d > _sub_sonar->get().min_distance) {
@@ -871,25 +873,25 @@ void BlockLocalPositionEstimator::correctFlow()
 
 	float dt = (_sub_flow.get().timestamp - _time_last_flow) * 1.0e-6f ;
 	_time_last_flow = _sub_flow.get().timestamp;
-	
-	float alpha = 0.4; // The closer alpha is to 1.0, the faster the moving average updates 
-			   // TODO use the Dt to calculate alpha
+
+	float alpha = 0.4; // The closer alpha is to 1.0, the faster the moving average updates
+	// TODO use the Dt to calculate alpha
 
 	if (_sub_flow.get().integration_timespan > 0) {
-		
+
 		// estimate gyro bias for the flow board's gyro using flight controller's calibrated gyro
-		flow_gyrospeed[0] = _sub_flow.get().gyro_x_rate_integral/_sub_flow.get().integration_timespan*1e6f;
-		flow_gyrospeed[1] = _sub_flow.get().gyro_y_rate_integral/_sub_flow.get().integration_timespan*1e6f;
-		flow_gyrospeed[2] = _sub_flow.get().gyro_z_rate_integral/_sub_flow.get().integration_timespan*1e6f;
-		
+		flow_gyrospeed[0] = _sub_flow.get().gyro_x_rate_integral / _sub_flow.get().integration_timespan * 1e6f;
+		flow_gyrospeed[1] = _sub_flow.get().gyro_y_rate_integral / _sub_flow.get().integration_timespan * 1e6f;
+		flow_gyrospeed[2] = _sub_flow.get().gyro_z_rate_integral / _sub_flow.get().integration_timespan * 1e6f;
+
 		// exponential moving average
-		_flowGyroBias[0] = alpha * (flow_gyrospeed[0] - _sub_att.get().pitchspeed) + (1.0f-alpha)*_flowGyroBias[0];
-		_flowGyroBias[1] = alpha * (flow_gyrospeed[1] - _sub_att.get().rollspeed) + (1.0f-alpha)*_flowGyroBias[1];
-		_flowGyroBias[2] = alpha * (flow_gyrospeed[2] - _sub_att.get().yawspeed) + (1.0f-alpha)*_flowGyroBias[2];
-	
-		// yaw rotation compensation 
+		_flowGyroBias[0] = alpha * (flow_gyrospeed[0] - _sub_att.get().pitchspeed) + (1.0f - alpha) * _flowGyroBias[0];
+		_flowGyroBias[1] = alpha * (flow_gyrospeed[1] - _sub_att.get().rollspeed) + (1.0f - alpha) * _flowGyroBias[1];
+		_flowGyroBias[2] = alpha * (flow_gyrospeed[2] - _sub_att.get().yawspeed) + (1.0f - alpha) * _flowGyroBias[2];
+
+		// yaw rotation compensation
 		float yaw_comp[2] = {0.0f, 0.0f};
-		
+
 		yaw_comp[0] = _flow_board_x_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
 		yaw_comp[1] =  - _flow_board_y_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
 
@@ -900,8 +902,8 @@ void BlockLocalPositionEstimator::correctFlow()
 				_x(X_z);		// TODO use terrain estimate here
 		flow_speed[1] = ((_sub_flow.get().pixel_flow_y_integral - _sub_flow.get().gyro_y_rate_integral) /
 				 (_sub_flow.get().integration_timespan * 1e6f) -
-				 + _flowGyroBias[1] - yaw_comp[1]) *	
-				 _x(X_z);		// TODO use terrain estimate here
+				 + _flowGyroBias[1] - yaw_comp[1]) *
+				_x(X_z);		// TODO use terrain estimate here
 
 	} else {
 		flow_speed[0] = 0;
@@ -912,13 +914,13 @@ void BlockLocalPositionEstimator::correctFlow()
 	}
 
 	flow_speed[2] = 0.0f;
-	
+
 	// filtered gyro readings for logging
 	flow_gyrospeed[0] -= _flowGyroBias[0];
 	flow_gyrospeed[1] -= _flowGyroBias[1];
 	flow_gyrospeed[2] -= _flowGyroBias[2];
 
-	// update filtered flow 
+	// update filtered flow
 	_pub_filtered_flow.get().sumx += flow_speed[0] * dt;
 	_pub_filtered_flow.get().sumy += flow_speed[1] * dt;
 	_pub_filtered_flow.get().vx = flow_speed[0];
