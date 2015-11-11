@@ -187,9 +187,9 @@ private:
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
-	uORB::Subscription<distance_sensor_s> * _distance_subs[ORB_MULTI_MAX_INSTANCES];
-	uORB::Subscription<distance_sensor_s> * _sub_lidar;
-	uORB::Subscription<distance_sensor_s> * _sub_sonar;
+	uORB::Subscription<distance_sensor_s> *_distance_subs[ORB_MULTI_MAX_INSTANCES];
+	uORB::Subscription<distance_sensor_s> *_sub_lidar;
+	uORB::Subscription<distance_sensor_s> *_sub_sonar;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
@@ -227,10 +227,10 @@ private:
 	BlockParamFloat  _beta_max;
 
 	BlockParamFloat  _mocap_p_stddev;
-	
+
 	BlockParamFloat  _flow_board_x_offs;
 	BlockParamFloat  _flow_board_y_offs;
-	
+
 	// process noise
 	BlockParamFloat  _pn_p_noise_power;
 	BlockParamFloat  _pn_v_noise_power;
