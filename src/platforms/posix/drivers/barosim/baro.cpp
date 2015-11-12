@@ -264,8 +264,10 @@ BAROSIM::init()
 	}
 
 	struct baro_report brp;
+
 	/* do a first measurement cycle to populate reports with valid data */
 	_measure_phase = 0;
+
 	_reports->flush();
 
 	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
