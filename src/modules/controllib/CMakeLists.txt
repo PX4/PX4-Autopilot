@@ -40,6 +40,7 @@ px4_add_module(
 		test_params.c
 		block/Block.cpp
 		block/BlockParam.cpp
+		estimators/BlockAttPosEst.cpp
 		uorb/blocks.cpp
 		blocks.cpp
 	DEPENDS
