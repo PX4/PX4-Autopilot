@@ -5,7 +5,7 @@
 namespace matrix {
 
 template<typename Type, size_t M, size_t N>
-void kalman_correct(
+int kalman_correct(
     const SquareMatrix<Type, M> & P,
     const Matrix<Type, N, M> & C,
     const SquareMatrix<Type, N> & R,
@@ -20,6 +20,7 @@ void kalman_correct(
     dx = K*r;
     beta = Scalar<Type>(r.T()*S_I*r);
     dP = K*C*P*(-1);
+    return 0;
 }
 
 }; // namespace matrix

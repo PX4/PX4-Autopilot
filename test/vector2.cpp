@@ -5,7 +5,7 @@
 
 using namespace matrix;
 
-template class Vector<float, 3>;
+template class Vector<float, 2>;
 
 int main()
 {

@@ -5,7 +5,15 @@
 
 using namespace matrix;
 
-template class Vector<float, 5>;
+template int kalman_correct<float, 6, 5>(
+    const SquareMatrix<float, 6> & P,
+    const Matrix<float, 5, 6> & C,
+    const SquareMatrix<float, 5> & R,
+    const Vector<float, 5> &r,
+    Vector<float, 6> & dx,
+    SquareMatrix<float, 6> & dP,
+    float & beta
+);
 
 int main()
 {

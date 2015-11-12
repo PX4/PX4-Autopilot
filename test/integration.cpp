@@ -5,6 +5,14 @@
 
 using namespace matrix;
 
+// instantiate template to ensure coverage check
+template int integrate_rk4<float, 6>(
+    Vector<float, 6> (*f)(float, Vector<float, 6>),
+    Vector<float, 6> & y,
+    float & t,
+    float h
+);
+
 Vector<float, 6> f(float t, Vector<float, 6> y);
 
 Vector<float, 6> f(float t, Vector<float, 6> y) {
