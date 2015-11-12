@@ -37,7 +37,7 @@ set(CMAKE_CXX_FLAGS
 	-Wcast-qual
 	-Wconversion
 	-Wcast-align
-	#-Werror
+	-Werror
 	)
 
 if (COVERAGE)

@@ -20,24 +20,31 @@ namespace matrix
 {
 
 template<typename Type>
-class Scalar : public Matrix<Type, 1, 1>
+class Scalar
 {
 public:
     virtual ~Scalar() {};
 
-    Scalar() : Matrix<Type, 1, 1>()
+    Scalar() : _value()
     {
     }
 
     Scalar(const Matrix<Type, 1, 1> & other)
     {
-        (*this)(0,0) = other(0,0);
+        _value = other(0,0);
+    }
+
+    Scalar(float other)
+    {
+        _value = other;
     }
 
     operator Type()
     {
-        return (*this)(0,0);
+        return _value;
     }
+private:
+    Type _value;
 
 };
 

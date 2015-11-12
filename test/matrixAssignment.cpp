@@ -65,6 +65,7 @@ int main()
 
     Matrix3f m4(data);
 
+    assert(-m4 == m4*(-1));
 
     m4.swapCols(0, 2);
     assert(m4 == Matrix3f(data_col_02_swap));
@@ -72,6 +73,11 @@ int main()
     m4.swapRows(0, 2);
     assert(m4 == Matrix3f(data_row_02_swap));
     assert(fabs(m4.min() - 1) < 1e-5);
+
+    Scalar<float> s;
+    s = 1;
+    assert(fabs(s - 1) < 1e-5);
+
     return 0;
 }
 

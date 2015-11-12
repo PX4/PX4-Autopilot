@@ -11,6 +11,7 @@ set(tests
 	vector3
 	attitude
 	filter
+	integration
 	squareMatrix
 	)
 

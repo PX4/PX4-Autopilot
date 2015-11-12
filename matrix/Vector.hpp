@@ -67,9 +67,6 @@ public:
         (*this) /= norm();
     }
 
-    Type operator*(const MatrixM1 & b) const {
-        return (*this).dot(b);
-    }
 };
 
 }; // namespace matrix

@@ -40,7 +40,7 @@ int main()
         assert(A_large == A_large_I);
     }
 
-    SquareMatrix<float, 3> zero_test = zero<float, 3, 3>();
+    SquareMatrix<float, 3> zero_test = zeros<float, 3, 3>();
     inv(zero_test);
 
     return 0;

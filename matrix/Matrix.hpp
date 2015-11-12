@@ -152,6 +152,21 @@ public:
         return res;
     }
 
+    // unary minus
+    Matrix<Type, M, N> operator-() const
+    {
+        Matrix<Type, M, N> res;
+        const Matrix<Type, M, N> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                res(i , j) = -self(i, j);
+            }
+        }
+
+        return res;
+    }
+
     void operator+=(const Matrix<Type, M, N> &other)
     {
         Matrix<Type, M, N> &self = *this;
@@ -287,6 +302,22 @@ public:
         memset(_data, 0, sizeof(_data));
     }
 
+    void setAll(Type val)
+    {
+        Matrix<Type, M, N> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                self(i, j) = val;
+            }
+        }
+    }
+
+    inline void setOne()
+    {
+        setAll(1);
+    }
+
     void setIdentity()
     {
         setZero();
@@ -369,9 +400,16 @@ public:
 };
 
 template<typename Type, size_t M, size_t N>
-Matrix<Type, M, N> zero() {
+Matrix<Type, M, N> zeros() {
     Matrix<Type, M, N> m;
     m.setZero();
+    return m;
+}
+
+template<typename Type, size_t M, size_t N>
+Matrix<Type, M, N> ones() {
+    Matrix<Type, M, N> m;
+    m.setOne();
     return m;
 }
 

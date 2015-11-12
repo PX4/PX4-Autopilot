@@ -29,7 +29,7 @@ int main()
 
     // euler default ctor
     Eulerf e;
-    Eulerf e_zero = zero<float, 3, 1>();
+    Eulerf e_zero = zeros<float, 3, 1>();
     assert(e == e_zero);
     assert(e == e);
 
