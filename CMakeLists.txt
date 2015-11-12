@@ -6,16 +6,21 @@ set(VERSION_PATCH "0")
 
 project(matrix CXX)
 
-option(COVERAGE "Enable code coverage" OFF)
-option(COVERALLS_UPLOAD "Upload the generated coveralls json" OFF)
-
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
 	message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
 endif()
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
+	STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Profile")
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} 
-	${CMAKE_SOURCE_DIR}/cmake/coveralls-cmake/cmake)
+set(CMAKE_CXX_FLAGS_PROFILE
+	${CMAKE_CXX_FLAGS_DEBUG}
+	--coverage
+	-fno-inline
+	-fno-inline-small-functions
+	-fno-default-inline
+	)
+string(REPLACE ";" " " CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE}")
 
 set(CMAKE_CXX_FLAGS
 	${CMAKE_CXX_FLAGS}
@@ -39,19 +44,6 @@ set(CMAKE_CXX_FLAGS
 	-Wcast-align
 	-Werror
 	)
-
-if (COVERAGE)
-	set(COVERALLS ON)
-	list(APPEND CMAKE_CXX_FLAGS
-		-fno-inline
-		-fno-inline-small-functions
-		-fno-default-inline
-		--coverage
-		)
-	include(Coveralls)
-	coveralls_turn_on_coverage()
-endif()
-
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 enable_testing()
@@ -59,16 +51,6 @@ enable_testing()
 include_directories(${CMAKE_SOURCE_DIR})
 
 file(GLOB_RECURSE COV_SRCS matrix/*.hpp matrix/*.cpp)
-
-# Setup the coveralls target and tell it to gather
-# coverage data for all the lib sources.
-if (COVERALLS)
-	coveralls_setup(
-		"${COV_SRCS}"
-        ${COVERALLS_UPLOAD}                 
-		"${CMAKE_SOURCE_DIR}/cmake/coveralls-cmake/cmake"
-		)
-endif()
 
 add_subdirectory(test)
 

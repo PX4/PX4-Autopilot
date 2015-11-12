@@ -1,14 +1,14 @@
 language: c
 sudo: false
+install:
+  - pip install --user cpp-coveralls
 script:
-  - mkdir -p build
-  - cd build
-  - cmake -DCOVERAGE=ON -DCOVERALLS_UPLOAD=ON -DCMAKE_BUILD_TYPE=Debug ..
+  - cmake -DCMAKE_BUILD_TYPE=Profile .
   - make
   - make check_format
-  - ctest
-  - ctest -V
-  - make coveralls
+  - make test
+after_success:
+  - cpp-coveralls
 env:
   global:
   - export COVERALLS_SERVICE_NAME=travis-ci

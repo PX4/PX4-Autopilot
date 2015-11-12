@@ -1,3 +1,0 @@
-[submodule "cmake/coveralls-cmake"]
-	path = cmake/coveralls-cmake
-	url = https://github.com/JoakimSoderberg/coveralls-cmake.git
