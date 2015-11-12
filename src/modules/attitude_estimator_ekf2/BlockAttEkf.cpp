@@ -1,6 +1,7 @@
 #include "BlockAttEkf.hpp"
 
 #include <matrix/integration.hpp>
+#include <matrix/filter.hpp>
 #include <drivers/drv_hrt.h>
 
 Vector<float, 4> q_dynamics(float t, const Vector<float, 4> & y, const Vector<float, 3> & omega_nr);
@@ -28,9 +29,9 @@ BlockAttEkf::BlockAttEkf() :
 	_omega_dot_x(this, "ALPHA"),
 	_omega_dot_y(this, "ALPHA"),
 	_omega_dot_z(this, "ALPHA"),
-	_a_x(this, "ACCEL_LP"),
-	_a_y(this, "ACCEL_LP"),
-	_a_z(this, "ACCEL_LP"),
+	_a_x(this, "ACCEL"),
+	_a_y(this, "ACCEL"),
+	_a_z(this, "ACCEL"),
 	// states
 	_q_nr(1, 0, 0, 0),
 	_b_gyro(0, 0, 0),
@@ -104,20 +105,12 @@ void BlockAttEkf::update()
 		predict();
 	}
 
-	// correct mag
+	// correct mag/ accel
 	uint64_t mag_now = _sub_sensor.get().magnetometer_timestamp[0];
 
 	if (mag_now != _mag_timestamp) {
 		_mag_timestamp = mag_now;
-		correct_mag();
-	}
-
-	// correct accel
-	uint64_t accel_now = _sub_sensor.get().accelerometer_timestamp[0];
-
-	if (accel_now != _accel_timestamp) {
-		_accel_timestamp = accel_now;
-		correct_accel();
+		correct_mag_accel();
 	}
 
 	// normalize quaternion after corrections
@@ -180,10 +173,17 @@ void BlockAttEkf::predict()
 	_P += (A * _P + _P * A.T() + Q) * getDt();
 }
 
-void BlockAttEkf::correct_mag()
+void BlockAttEkf::correct_mag_accel()
 {
-	Vector3f y(&(_sub_sensor.get().magnetometer_ga[0]));
-	y.normalize();
+	Vector3f y_mag(&(_sub_sensor.get().magnetometer_ga[0]));
+	y_mag.normalize();
+
+	Vector3f y_accel(&(_sub_sensor.get().accelerometer_m_s2[0]));
+	Vector<float, 6> y;
+	for (int i=0;i<3;i++) {
+		y(0) = y_mag(i);
+		y(3+i) = y_accel(i);
+	}
 
 	// quaternion
 	float q_0 = _q_nr(0);
@@ -191,13 +191,22 @@ void BlockAttEkf::correct_mag()
 	float q_2 = _q_nr(2);
 	float q_3 = _q_nr(3);
 
+	// TODO make sure matches g used in pos filter
+	float g = 9.8;
+
 	// TODO set based on mag inc, dec
 	float m_N = 0.375;
 	float m_E = 0.071;
 	float m_D = 0.928;
 
+	// acceleration
+	// TODO
+	float a_x = 0; //_a_x.getO();
+	float a_y = 0; //_a_y.getO();
+	float a_z = 0; //_a_z.getO();
+
 	// measurement matrix
-	Matrix<float, 3, 6> C;
+	Matrix<float, 6, 6> C;
 	C.setZero();
 	C(0, 1) = -m_D * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3) - m_E * (-2 * q_0 * q_1 + 2 * q_2 * q_3) - m_N *
 		  (2 * q_0 * q_2 + 2 * q_1 * q_3);
@@ -211,73 +220,45 @@ void BlockAttEkf::correct_mag()
 		  (-2 * q_0 * q_3 + 2 * q_1 * q_2);
 	C(2, 1) = m_D * (-2 * q_0 * q_2 + 2 * q_1 * q_3) + m_E * (2 * q_0 * q_3 + 2 * q_1 * q_2) + m_N *
 		  (q_0 * q_0 + q_1 * q_1 - q_2 * q_2 - q_3 * q_3);
+	C(3, 1) = g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
+	C(3, 2) = -g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
+	C(4, 0) = -g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
+	C(5, 2) = -g * (2 * q_0 * q_2 - 2 * q_1 * q_3);
+	C(5, 0) = g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
+	C(5, 1) = -g * (-2 * q_0 * q_2 + 2 * q_1 * q_3);
 
 	// measurement noise
 	float mag_stddev = _mag_stddev.get();
-	SquareMatrix<float, 3> R;
+	float accel_stddev = _accel_stddev.get();
+	SquareMatrix<float, 6> R;
 	R.setZero();
 	R(0, 0) = mag_stddev * mag_stddev;
 	R(1, 1) = mag_stddev * mag_stddev;
 	R(2, 2) = mag_stddev * mag_stddev;
+	R(3, 3) = accel_stddev * accel_stddev;
+	R(4, 4) = accel_stddev * accel_stddev;
+	R(5, 5) = accel_stddev * accel_stddev;
 
 	// predicted measurement
-	Vector3f y_h;
+	Vector<float, 6> y_h;
 	y_h(0) = m_D * (-2 * q_0 * q_2 + 2 * q_1 * q_3) + m_E * (2 * q_0 * q_3 + 2 * q_1 * q_2) + m_N *
 		 (q_0 * q_0 + q_1 * q_1 - q_2 * q_2 - q_3 * q_3);
 	y_h(1) = m_D * (2 * q_0 * q_1 + 2 * q_2 * q_3) + m_E * (q_0 * q_0 - q_1 * q_1 + q_2 * q_2 - q_3 * q_3) + m_N *
 		 (-2 * q_0 * q_3 + 2 * q_1 * q_2);
 	y_h(2) = m_D * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3) + m_E * (-2 * q_0 * q_1 + 2 * q_2 * q_3) + m_N *
 		 (2 * q_0 * q_2 + 2 * q_1 * q_3);
+	y_h(3) = a_x - g * (-2 * q_0 * q_2 + 2 * q_1 * q_3);
+	y_h(4) = a_y - g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
+	y_h(5) = a_z - g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
 
 	// kalman filter correction
-	kalman_correction<6, 3>(C, R, y, y_h);
-}
-
-void BlockAttEkf::correct_accel()
-{
-	Vector3f y(&(_sub_sensor.get().accelerometer_m_s2[0]));
-
-	// quaternion
-	float q_0 = _q_nr(0);
-	float q_1 = _q_nr(1);
-	float q_2 = _q_nr(2);
-	float q_3 = _q_nr(3);
-
-	// TODO make sure matches g used in pos filter
-	float g = 9.8;
-
-	// measurement matrix
-	Matrix<float, 3, 6> C;
-	C.setZero();
-	C(0, 1) = g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
-	C(0, 2) = -g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
-	C(1, 0) = -g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
-	C(1, 2) = -g * (2 * q_0 * q_2 - 2 * q_1 * q_3);
-	C(2, 0) = g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
-	C(2, 1) = -g * (-2 * q_0 * q_2 + 2 * q_1 * q_3);
-
-	// acceleration
-	// TODO debug why a_x.. etc aren't helpful
-	//float a_x = _a_x.getState();
-	//float a_y = _a_y.getState();
-	//float a_z = _a_z.getState();
-
-	// predicted measurement
-	Vector3f y_h;
-	y_h(0) = a_x - g * (-2 * q_0 * q_2 + 2 * q_1 * q_3);
-	y_h(1) = a_y - g * (2 * q_0 * q_1 + 2 * q_2 * q_3);
-	y_h(2) = a_z - g * (q_0 * q_0 - q_1 * q_1 - q_2 * q_2 + q_3 * q_3);
-
-	// measurement noise
-	float accel_stddev = _accel_stddev.get();
-	Matrix<float, 3, 3> R;
-	R.setZero();
-	R(0, 0) = accel_stddev * accel_stddev;
-	R(1, 1) = accel_stddev * accel_stddev;
-	R(2, 2) = accel_stddev * accel_stddev;
-
-	// kalman filter correction
-	kalman_correction<6, 3>(C, R, y, y_h);
+	SquareMatrix<float, 6> dP;
+	Vector<float, 6> dx;
+	float beta;
+	kalman_correct(_P, C, R, y - y_h, dx, dP, beta);
+	_P += dP;
+	_q_nr *= Quatf(Eulerf(dx(0), dx(1), dx(2)));
+	_b_gyro += Vector3f(dx(3), dx(4), dx(5));
 }
 
 void BlockAttEkf::publish_attitude()
@@ -305,7 +286,7 @@ void BlockAttEkf::publish_attitude()
 	pub2.yawspeed = _omega_nr(2);
 	Vector3f y_accel(&(_sub_sensor.get().accelerometer_m_s2[0]));
 	Vector3f g_comp = y_accel -
-		Vector3f(_a_x.getState(), _a_y.getState(), _a_z.getState());
+		Vector3f(_a_x.getO(), _a_y.getO(), _a_z.getO());
 	for (int i=0; i<3; i++) {
 		pub2.g_comp[i] = g_comp(i);
 	}
@@ -315,28 +296,4 @@ void BlockAttEkf::publish_attitude()
 	pub2.accel_vibration = 0;
 	pub2.mag_vibration = 0;
 	_pub_att.update();
-}
-
-template<int n_x, int n_y>
-void BlockAttEkf::kalman_correction(const Matrix<float, n_y, n_x> &C, const SquareMatrix<float, n_y> &R, const Vector<float, n_y> &y,
-				    const Vector<float, n_y> &y_h)
-{
-	// kalman filter correction
-	SquareMatrix<float, n_y> S = C * _P * C.T() + R;
-	Vector<float, n_y> r = y - y_h;
-	Matrix<float, n_x, n_y> K = _P * C.T() * S.I();
-	Vector<float, n_x> d_x = K * r;
-
-	// quaternion correction, multiplicative
-	Quatf d_alpha(Eulerf(d_x(0), d_x(1), d_x(2)));
-	_q_nr = _q_nr * d_alpha;
-
-	// bias correction, additive
-	Vector3f d_b(d_x(3), d_x(4), d_x(5));
-	_b_gyro += d_b;
-
-	// update covariance matrix
-	SquareMatrix<float, n_x> I;
-	I.setIdentity();
-	_P = (I - K * C) * _P;
 }

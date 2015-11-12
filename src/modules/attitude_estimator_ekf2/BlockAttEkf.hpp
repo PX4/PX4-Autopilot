@@ -22,13 +22,8 @@ public:
 	BlockAttEkf();
 	void update();
 	void predict();
-	void correct_mag();
-	void correct_accel();
+	void correct_mag_accel();
 	void publish_attitude();
-
-	template<int n_x, int n_y>
-	void kalman_correction(const Matrix<float, n_y, n_x> &C, const SquareMatrix<float, n_y> &R, const Vector<float, n_y> &y,
-						const Vector<float, n_y> &y_h);
 
 private:
 	// publications
@@ -53,9 +48,9 @@ private:
 	control::BlockDerivative _omega_dot_z;
 
 	// derivative
-	control::BlockLowPass _a_x;
-	control::BlockLowPass _a_y;
-	control::BlockLowPass _a_z;
+	control::BlockDerivative _a_x;
+	control::BlockDerivative _a_y;
+	control::BlockDerivative _a_z;
 
 	// states
 	Quatf _q_nr; // quaternion from nav to ref frame
