@@ -8,7 +8,7 @@ script:
   - make check_format
   - make test
 after_success:
-  - cpp-coveralls
+  - cpp-coveralls -i matrix
 env:
   global:
   - export COVERALLS_SERVICE_NAME=travis-ci
