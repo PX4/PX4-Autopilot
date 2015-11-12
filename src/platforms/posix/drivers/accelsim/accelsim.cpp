@@ -47,6 +47,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <px4_getopt.h>
+#include <errno.h>
 
 #include <simulator/simulator.h>
 
