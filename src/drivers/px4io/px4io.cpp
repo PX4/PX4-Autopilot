@@ -1780,8 +1780,8 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 
 	/* get RSSI from input channel */
 	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
-		int rssi = (input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) /
-			   ((_rssi_pwm_max - _rssi_pwm_min) / 100);
+		int rssi = ((input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) * 100) /
+			   (_rssi_pwm_max - _rssi_pwm_min);
 		rssi = rssi > 100 ? 100 : rssi;
 		rssi = rssi < 0 ? 0 : rssi;
 		input_rc.rssi = rssi;
