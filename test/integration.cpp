@@ -5,28 +5,20 @@
 
 using namespace matrix;
 
-// instantiate template to ensure coverage check
-template int integrate_rk4<float, 6>(
-    Vector<float, 6> (*f)(float, Vector<float, 6>),
-    const Vector<float, 6> & y0,
-    float t0,
-    float h,
-    Vector<float, 6> & y1
-);
+Vector<float, 6> f(float t, const Vector<float, 6> & y, const Vector<float, 3> & u);
 
-Vector<float, 6> f(float t, Vector<float, 6> y);
-
-Vector<float, 6> f(float t, Vector<float, 6> y) {
+Vector<float, 6> f(float t, const Vector<float, 6> & y, const Vector<float, 3> & u) {
     return ones<float, 6, 1>();
 }
 
 int main()
 {
     Vector<float, 6> y = ones<float, 6, 1>();
+    Vector<float, 3> u = ones<float, 3, 1>();
     float t = 1;
     float h = 0.1f;
     y.T().print();
-    integrate_rk4(f, y, t, h, y);
+    integrate_rk4(f, y, u, t, h, y);
     y.T().print();
     assert(y == (ones<float, 6, 1>()*1.1f));
     return 0;
