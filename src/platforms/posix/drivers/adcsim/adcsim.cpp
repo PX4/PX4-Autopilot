@@ -111,6 +111,7 @@ private:
 
 ADCSIM::ADCSIM(uint32_t channels) :
 	VDev("adcsim", ADCSIM0_DEVICE_PATH),
+	_call(),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr)

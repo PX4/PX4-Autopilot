@@ -229,34 +229,32 @@ PX4FLOW::init()
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
-		goto out;
+		return ret;
 	}
 
 	/* allocate basic report buffers */
 	_reports = new ringbuffer::RingBuffer(2, sizeof(optical_flow_s));
 
 	if (_reports == nullptr) {
-		goto out;
+		return ret;
 	}
 
 	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* get a publish handle on the range finder topic */
-		struct distance_sensor_s ds_report = {};
+	/* get a publish handle on the range finder topic */
+	struct distance_sensor_s ds_report = {};
 
-		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-					 &_orb_class_instance, ORB_PRIO_HIGH);
+	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+				 &_orb_class_instance, ORB_PRIO_HIGH);
 
-		if (_distance_sensor_topic == nullptr) {
-			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
-		}
+	if (_distance_sensor_topic == nullptr) {
+		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
 	}
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
-out:
+
 	return ret;
 }
 

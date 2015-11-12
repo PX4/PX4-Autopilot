@@ -622,7 +622,7 @@ function(px4_add_common_flags)
 		)
 
 	list(APPEND added_include_dirs
-		src/lib/eigen
+		src/lib/matrix
 		)
 
 	set(added_link_dirs) # none used currently
@@ -700,7 +700,7 @@ function(px4_create_git_hash_header)
 		REQUIRED HEADER 
 		ARGN ${ARGN})
 	execute_process(
-		COMMAND git log -n 1 --pretty=format:"%H"
+		COMMAND git rev-parse HEAD
 		OUTPUT_VARIABLE git_desc
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -741,7 +741,7 @@ function(px4_generate_parameters_xml)
 		)
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${path} --board CONFIG_ARCH_${BOARD} --xml
+			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
 		DEPENDS ${param_src_files}
 		)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)

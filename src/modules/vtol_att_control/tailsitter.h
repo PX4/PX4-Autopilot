@@ -31,12 +31,12 @@
  *
  ****************************************************************************/
 
- /**
- * @file tiltrotor.h
- *
- * @author Roman Bapst 		<bapstroman@gmail.com>
- *
- */
+/**
+* @file tiltrotor.h
+*
+* @author Roman Bapst 		<bapstroman@gmail.com>
+*
+*/
 
 #ifndef TAILSITTER_H
 #define TAILSITTER_H
@@ -48,7 +48,7 @@ class Tailsitter : public VtolType
 {
 
 public:
-	Tailsitter(VtolAttitudeControl * _att_controller);
+	Tailsitter(VtolAttitudeControl *_att_controller);
 	~Tailsitter();
 
 	void update_vtol_state();

@@ -134,12 +134,14 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 
 	/* publications */
 	_att_pub(nullptr),
+	_ctrl_state_pub(nullptr),
 	_global_pos_pub(nullptr),
 	_local_pos_pub(nullptr),
 	_estimator_status_pub(nullptr),
 	_wind_pub(nullptr),
 
 	_att{},
+	_ctrl_state{},
 	_gyro{},
 	_accel{},
 	_mag{},
@@ -588,6 +590,11 @@ void AttitudePositionEstimatorEKF::task_main()
 				/* system is in HIL now, wait for measurements to come in one last round */
 				usleep(60000);
 
+				/* HIL is slow, set permissive timeouts */
+				_voter_gyro.set_timeout(500000);
+				_voter_accel.set_timeout(500000);
+				_voter_mag.set_timeout(500000);
+
 				/* now read all sensor publications to ensure all real sensor data is purged */
 				orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 
@@ -692,6 +699,9 @@ void AttitudePositionEstimatorEKF::task_main()
 
 					// Publish attitude estimations
 					publishAttitude();
+
+					// publish control state
+					publishControlState();
 
 					// Publish Local Position estimations
 					publishLocalPosition();
@@ -817,9 +827,9 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitch = euler(1);
 	_att.yaw = euler(2);
 
-	_att.rollspeed = _LP_att_P.apply(_ekf->dAngIMU.x / _ekf->dtIMU) - _ekf->states[10] / _ekf->dtIMUfilt;
-	_att.pitchspeed = _LP_att_Q.apply(_ekf->dAngIMU.y / _ekf->dtIMU) - _ekf->states[11] / _ekf->dtIMUfilt;
-	_att.yawspeed = _LP_att_R.apply(_ekf->dAngIMU.z / _ekf->dtIMU) - _ekf->states[12] / _ekf->dtIMUfilt;
+	_att.rollspeed = _ekf->dAngIMU.x / _ekf->dtIMU - _ekf->states[10] / _ekf->dtIMUfilt;
+	_att.pitchspeed = _ekf->dAngIMU.y / _ekf->dtIMU - _ekf->states[11] / _ekf->dtIMUfilt;
+	_att.yawspeed = _ekf->dAngIMU.z / _ekf->dtIMU - _ekf->states[12] / _ekf->dtIMUfilt;
 
 	// gyro offsets
 	_att.rate_offsets[0] = _ekf->states[10] / _ekf->dtIMUfilt;
@@ -828,12 +838,82 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 
 	/* lazily publish the attitude only once available */
 	if (_att_pub != nullptr) {
-		/* publish the attitude setpoint */
+		/* publish the attitude */
 		orb_publish(ORB_ID(vehicle_attitude), _att_pub, &_att);
 
 	} else {
 		/* advertise and publish */
 		_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
+	}
+}
+
+void AttitudePositionEstimatorEKF::publishControlState()
+{
+	/* Accelerations in Body Frame */
+	_ctrl_state.x_acc = _ekf->accel.x;
+	_ctrl_state.y_acc = _ekf->accel.y;
+	_ctrl_state.z_acc = _ekf->accel.z;
+
+	/* Velocity in Body Frame */
+	Vector3f v_n(_ekf->states[4], _ekf->states[5], _ekf->states[6]);
+	Vector3f v_n_var(_ekf->P[4][4], _ekf->P[5][5], _ekf->P[6][6]);
+	Vector3f v_b = _ekf->Tnb * v_n;
+	Vector3f v_b_var = _ekf->Tnb * v_n_var;
+
+	_ctrl_state.x_vel = v_b.x;
+	_ctrl_state.y_vel = v_b.y;
+	_ctrl_state.z_vel = v_b.z;
+
+	_ctrl_state.vel_variance[0] = v_b_var.x;
+	_ctrl_state.vel_variance[1] = v_b_var.y;
+	_ctrl_state.vel_variance[2] = v_b_var.z;
+
+	/* Local Position */
+	_ctrl_state.x_pos = _ekf->states[7];
+	_ctrl_state.y_pos = _ekf->states[8];
+
+	// XXX need to announce change of Z reference somehow elegantly
+	_ctrl_state.z_pos = _ekf->states[9] - _filter_ref_offset;
+
+	_ctrl_state.pos_variance[0] = _ekf->P[7][7];
+	_ctrl_state.pos_variance[1] = _ekf->P[8][8];
+	_ctrl_state.pos_variance[2] = _ekf->P[9][9];
+
+	/* Attitude */
+	_ctrl_state.timestamp = _last_sensor_timestamp;
+	_ctrl_state.q[0] = _ekf->states[0];
+	_ctrl_state.q[1] = _ekf->states[1];
+	_ctrl_state.q[2] = _ekf->states[2];
+	_ctrl_state.q[3] = _ekf->states[3];
+
+	/* Airspeed (Groundspeed - Windspeed) */
+	_ctrl_state.airspeed = sqrt(pow(_ekf->states[4] -  _ekf->states[14], 2) + pow(_ekf->states[5] - _ekf->states[15], 2) + pow(_ekf->states[6], 2));
+
+	/* Attitude Rates */
+	_ctrl_state.roll_rate = _LP_att_P.apply(_ekf->dAngIMU.x / _ekf->dtIMU) - _ekf->states[10] / _ekf->dtIMUfilt;
+	_ctrl_state.pitch_rate = _LP_att_Q.apply(_ekf->dAngIMU.y / _ekf->dtIMU) - _ekf->states[11] / _ekf->dtIMUfilt;
+	_ctrl_state.yaw_rate = _LP_att_R.apply(_ekf->dAngIMU.z / _ekf->dtIMU) - _ekf->states[12] / _ekf->dtIMUfilt;
+
+	/* Guard from bad data */
+	if (!PX4_ISFINITE(_ctrl_state.x_vel) ||
+		!PX4_ISFINITE(_ctrl_state.y_vel) ||
+		!PX4_ISFINITE(_ctrl_state.z_vel) ||
+		!PX4_ISFINITE(_ctrl_state.x_pos) ||
+		!PX4_ISFINITE(_ctrl_state.y_pos) ||
+		!PX4_ISFINITE(_ctrl_state.z_pos))
+	{
+		// bad data, abort publication
+		return;
+	}
+
+	/* lazily publish the control state only once available */
+	if (_ctrl_state_pub != nullptr) {
+		/* publish the control state */
+		orb_publish(ORB_ID(control_state), _ctrl_state_pub, &_ctrl_state);
+
+	} else {
+		/* advertise and publish */
+		_ctrl_state_pub = orb_advertise(ORB_ID(control_state), &_ctrl_state);
 	}
 }
 
@@ -1223,6 +1303,23 @@ void AttitudePositionEstimatorEKF::pollData()
 
 	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 
+	/* set time fields */
+	IMUusec = _sensor_combined.timestamp;
+	float deltaT = (_sensor_combined.timestamp - _last_sensor_timestamp) / 1e6f;
+
+	/* guard against too large deltaT's */
+	if (!PX4_ISFINITE(deltaT) || deltaT > 1.0f || deltaT < 0.0001f) {
+
+		if (PX4_ISFINITE(_ekf->dtIMUfilt) && _ekf->dtIMUfilt < 0.5f && _ekf->dtIMUfilt > 0.0001f) {
+			deltaT = _ekf->dtIMUfilt;
+		} else {
+			deltaT = 0.01f;
+		}
+	}
+
+	/* fill in last data set */
+	_ekf->dtIMU = deltaT;
+
 	// Feed validator with recent sensor data
 
 	for (unsigned i = 0; i < (sizeof(_sensor_combined.gyro_timestamp) / sizeof(_sensor_combined.gyro_timestamp[0])); i++) {
@@ -1245,6 +1342,11 @@ void AttitudePositionEstimatorEKF::pollData()
 			_ekf->dAngIMU.y = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 1];
 			_ekf->dAngIMU.z = _sensor_combined.gyro_integral_rad[_gyro_main * 3 + 2];
 		} else {
+			float dt_gyro = _sensor_combined.gyro_integral_dt[_gyro_main] / 1e6f;
+			if (PX4_ISFINITE(dt_gyro) && (dt_gyro < 0.5f) && (dt_gyro > 0.00001f)) {
+				deltaT = dt_gyro;
+				_ekf->dtIMU = deltaT;
+			}
 			_ekf->dAngIMU.x = 0.5f * (_ekf->angRate.x + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 0]) * _ekf->dtIMU;
 			_ekf->dAngIMU.y = 0.5f * (_ekf->angRate.y + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 1]) * _ekf->dtIMU;
 			_ekf->dAngIMU.z = 0.5f * (_ekf->angRate.z + _sensor_combined.gyro_rad_s[_gyro_main * 3 + 2]) * _ekf->dtIMU;
@@ -1317,19 +1419,7 @@ void AttitudePositionEstimatorEKF::pollData()
 		_vibration_warning_timestamp = 0;
 	}
 
-	IMUusec = _sensor_combined.timestamp;
-
-	float deltaT = (_sensor_combined.timestamp - _last_sensor_timestamp) / 1e6f;
 	_last_sensor_timestamp = _sensor_combined.timestamp;
-
-	/* guard against too large deltaT's */
-	if (!PX4_ISFINITE(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
-		deltaT = 0.01f;
-	}
-
-	// Always store data, independent of init status
-	/* fill in last data set */
-	_ekf->dtIMU = deltaT;
 
 	// XXX this is for assessing the filter performance
 	// leave this in as long as larger improvements are still being made.
@@ -1342,7 +1432,7 @@ void AttitudePositionEstimatorEKF::pollData()
 	static unsigned dtoverflow10 = 0;
 	static hrt_abstime lastprint = 0;
 
-	if (hrt_elapsed_time(&lastprint) > 1000000) {
+	if (hrt_elapsed_time(&lastprint) > 1000000 || _sensor_combined.gyro_rad_s[0] > 4.0f) {
 		PX4_WARN("dt: %8.6f, dtg: %8.6f, dta: %8.6f, dt > 5 ms: %u, dt > 10 ms: %u",
 			(double)deltaT, (double)deltaTIntegral, (double)deltaTIntAcc,
 			dtoverflow5, dtoverflow10);
@@ -1361,7 +1451,15 @@ void AttitudePositionEstimatorEKF::pollData()
 		(double)(_sensor_combined.gyro_rad_s[0] * deltaT), (double)(_sensor_combined.gyro_rad_s[2] * deltaT),
 		(double)(_sensor_combined.accelerometer_m_s2[0] * deltaT),
 		(double)(_sensor_combined.accelerometer_m_s2[1] * deltaT),
-		(double)((_sensor_combined.accelerometer_m_s2[2] + 9.8665f) * deltaT));
+		(double)(_sensor_combined.accelerometer_m_s2[2] * deltaT));
+
+		PX4_WARN("EKF rate: %8.4f, %8.4f, %8.4f",
+				(double)_att.rollspeed, (double)_att.pitchspeed, (double)_att.yawspeed);
+
+		PX4_WARN("DRV rate: %8.4f, %8.4f, %8.4f",
+				(double)_sensor_combined.gyro_rad_s[0],
+				(double)_sensor_combined.gyro_rad_s[1],
+				(double)_sensor_combined.gyro_rad_s[2]);
 
 		lastprint = hrt_absolute_time();
 	}
@@ -1648,8 +1746,6 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 			usleep(50000);
 			PX4_INFO(".");
 		}
-
-		PX4_INFO(" ");
 
 		return 0;
 	}

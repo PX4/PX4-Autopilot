@@ -269,6 +269,7 @@ private:
 
 		int rc_map_mode_sw;
 		int rc_map_return_sw;
+		int rc_map_rattitude_sw;
 		int rc_map_posctl_sw;
 		int rc_map_loiter_sw;
 		int rc_map_acro_sw;
@@ -287,6 +288,7 @@ private:
 		int32_t rc_fails_thr;
 		float rc_assist_th;
 		float rc_auto_th;
+		float rc_rattitude_th;
 		float rc_posctl_th;
 		float rc_return_th;
 		float rc_loiter_th;
@@ -294,6 +296,7 @@ private:
 		float rc_offboard_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
+		bool rc_rattitude_inv;
 		bool rc_posctl_inv;
 		bool rc_return_inv;
 		bool rc_loiter_inv;
@@ -325,6 +328,7 @@ private:
 
 		param_t rc_map_mode_sw;
 		param_t rc_map_return_sw;
+		param_t rc_map_rattitude_sw;
 		param_t rc_map_posctl_sw;
 		param_t rc_map_loiter_sw;
 		param_t rc_map_acro_sw;
@@ -347,6 +351,7 @@ private:
 		param_t rc_fails_thr;
 		param_t rc_assist_th;
 		param_t rc_auto_th;
+		param_t rc_rattitude_th;
 		param_t rc_posctl_th;
 		param_t rc_return_th;
 		param_t rc_loiter_th;
@@ -575,6 +580,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
 
 	/* optional mode switches, not mapped per default */
+	_parameter_handles.rc_map_rattitude_sw = param_find("RC_MAP_RATT_SW");
 	_parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");
 	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
 	_parameter_handles.rc_map_acro_sw = param_find("RC_MAP_ACRO_SW");
@@ -598,6 +604,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_fails_thr = param_find("RC_FAILS_THR");
 	_parameter_handles.rc_assist_th = param_find("RC_ASSIST_TH");
 	_parameter_handles.rc_auto_th = param_find("RC_AUTO_TH");
+	_parameter_handles.rc_rattitude_th = param_find("RC_RATT_TH");
 	_parameter_handles.rc_posctl_th = param_find("RC_POSCTL_TH");
 	_parameter_handles.rc_return_th = param_find("RC_RETURN_TH");
 	_parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
@@ -742,6 +749,10 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
+	if (param_get(_parameter_handles.rc_map_rattitude_sw, &(_parameters.rc_map_rattitude_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
 	if (param_get(_parameter_handles.rc_map_posctl_sw, &(_parameters.rc_map_posctl_sw)) != OK) {
 		warnx("%s", paramerr);
 	}
@@ -779,6 +790,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_auto_th, &(_parameters.rc_auto_th));
 	_parameters.rc_auto_inv = (_parameters.rc_auto_th < 0);
 	_parameters.rc_auto_th = fabs(_parameters.rc_auto_th);
+	param_get(_parameter_handles.rc_rattitude_th, &(_parameters.rc_rattitude_th));
+	_parameters.rc_rattitude_inv = (_parameters.rc_rattitude_th < 0);
+	_parameters.rc_rattitude_th = fabs(_parameters.rc_rattitude_th);
 	param_get(_parameter_handles.rc_posctl_th, &(_parameters.rc_posctl_th));
 	_parameters.rc_posctl_inv = (_parameters.rc_posctl_th < 0);
 	_parameters.rc_posctl_th = fabs(_parameters.rc_posctl_th);
@@ -803,6 +817,7 @@ Sensors::parameters_update()
 
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_MODE] = _parameters.rc_map_mode_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_RETURN] = _parameters.rc_map_return_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_RATTITUDE] = _parameters.rc_map_rattitude_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL] = _parameters.rc_map_posctl_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_LOITER] = _parameters.rc_map_loiter_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ACRO] = _parameters.rc_map_acro_sw - 1;
@@ -835,7 +850,7 @@ Sensors::parameters_update()
 		_parameters.battery_voltage_scaling = 0.0082f;
 #elif CONFIG_ARCH_BOARD_AEROCORE
 		_parameters.battery_voltage_scaling = 0.0063f;
-#elif CONFIG_ARCH_BOARD_PX4FMU_V2
+#elif CONFIG_ARCH_BOARD_PX4FMU_V1
 		_parameters.battery_voltage_scaling = 0.00459340659f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
@@ -1235,7 +1250,7 @@ Sensors::vehicle_control_mode_poll()
 void
 Sensors::parameter_update_poll(bool forced)
 {
-	bool param_updated;
+	bool param_updated = false;
 
 	/* Check if any parameter has changed */
 	orb_check(_params_sub, &param_updated);
@@ -1928,6 +1943,9 @@ Sensors::rc_poll()
 			/* mode switches */
 			manual.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th,
 					     _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
+			manual.rattitude_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RATTITUDE,
+						  _parameters.rc_rattitude_th,
+						  _parameters.rc_rattitude_inv);
 			manual.posctl_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL, _parameters.rc_posctl_th,
 					       _parameters.rc_posctl_inv);
 			manual.return_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RETURN, _parameters.rc_return_th,
@@ -2128,7 +2146,7 @@ Sensors::task_main()
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[1] = {};
 
 	/* use the gyro to pace output */
 	fds[0].fd = _gyro_sub[0];

@@ -26,27 +26,37 @@ endif()
 
 add_custom_target(run_config
 	COMMAND Tools/sitl_run.sh "${config_sitl_rcS}" "${config_sitl_debugger}"
-	"${config_sitl_viewer}" "${CMAKE_BINARY_DIR}"
+	"${config_sitl_viewer}" "${config_sitl_model}" "${CMAKE_BINARY_DIR}"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	USES_TERMINAL
 	)
 add_dependencies(run_config mainapp)
 
-foreach(viewer jmavsim gazebo)
-	foreach(debugger none gdb lldb)
-		if (debugger STREQUAL "none")
-			set(_targ_name "${viewer}")
-		else()
-			set(_targ_name "${viewer}_${debugger}")
-		endif()
-		add_custom_target(${_targ_name}
-			COMMAND Tools/sitl_run.sh "${config_sitl_rcS}"
-			"${debugger}"
-			"${viewer}" "${CMAKE_BINARY_DIR}"
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-			USES_TERMINAL
-			)
-		add_dependencies(${_targ_name} mainapp)
+foreach(viewer none jmavsim gazebo)
+	foreach(debugger none gdb lldb ddd valgrind)
+		foreach(model none iris vtol)
+			if (debugger STREQUAL "none")
+				if (model STREQUAL "none")
+					set(_targ_name "${viewer}")
+				else()
+					set(_targ_name "${viewer}_${model}")
+				endif()
+			else()
+				if (model STREQUAL "none")
+					set(_targ_name "${viewer}___${debugger}")
+				else()
+					set(_targ_name "${viewer}_${model}_${debugger}")
+				endif()
+			endif()
+			add_custom_target(${_targ_name}
+				COMMAND Tools/sitl_run.sh "${config_sitl_rcS}"
+				"${debugger}"
+				"${viewer}" "${model}" "${CMAKE_BINARY_DIR}"
+				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+				USES_TERMINAL
+				)
+			add_dependencies(${_targ_name} mainapp)
+		endforeach()
 	endforeach()
 endforeach()
 

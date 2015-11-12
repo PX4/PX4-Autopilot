@@ -81,9 +81,7 @@ typedef struct {
 
 static void *entry_adapter(void *ptr)
 {
-	pthdata_t *data;
-	data = (pthdata_t *) ptr;
-
+	pthdata_t *data = (pthdata_t *) ptr;
 	data->entry(data->argc, data->argv);
 	free(ptr);
 	PX4_DEBUG("Before px4_task_exit");
