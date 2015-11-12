@@ -1,6 +1,14 @@
 #include "BlockAttEkf.hpp"
 
+#include <matrix/integration.hpp>
 #include <drivers/drv_hrt.h>
+
+Vector<float, 4> q_dynamics(float t, const Vector<float, 4> & y, const Vector<float, 3> & omega_nr);
+
+Vector<float, 4> q_dynamics(float t, const Vector<float, 4> & y, const Vector<float, 3> & omega_nr) {
+	Quatf q(y(0), y(1), y(2), y(3));
+	return q.derivative(omega_nr);
+}
 
 BlockAttEkf::BlockAttEkf() :
 	SuperBlock(NULL, "AE2"),
@@ -165,8 +173,8 @@ void BlockAttEkf::predict()
 	Q(5, 5) = bias_dot_stddev * bias_dot_stddev;
 
 	// propagate state
-	// TODO, improve integration method, just using euler method
-	_q_nr += _q_nr.derivative(_omega_nr) * getDt();
+	integrate_rk4(&q_dynamics, _q_nr,
+			_omega_nr, 0.0f, getDt(), _q_nr);
 
 	// propagate covariance matrix
 	_P += (A * _P + _P * A.T() + Q) * getDt();
@@ -250,9 +258,9 @@ void BlockAttEkf::correct_accel()
 
 	// acceleration
 	// TODO debug why a_x.. etc aren't helpful
-	float a_x = 0; //_a_x.getState();
-	float a_y = 0; //_a_y.getState();
-	float a_z = 0; //_a_z.getState();
+	//float a_x = _a_x.getState();
+	//float a_y = _a_y.getState();
+	//float a_z = _a_z.getState();
 
 	// predicted measurement
 	Vector3f y_h;
