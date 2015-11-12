@@ -369,12 +369,25 @@ void AttitudeEstimatorQ::task_main()
 
 			_data_good = true;
 
-			if (!_failsafe && (_voter_gyro.failover_count() > 0 ||
-					   _voter_accel.failover_count() > 0 ||
-					   _voter_mag.failover_count() > 0)) {
+			if (!_failsafe) {
+				if (_voter_gyro.failover_count() > 0) {
+					_failsafe = true;
+					mavlink_and_console_log_emergency(_mavlink_fd, "Gyro failure!");
+				}
 
-				_failsafe = true;
-				mavlink_and_console_log_emergency(_mavlink_fd, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
+				if (_voter_accel.failover_count() > 0) {
+					_failsafe = true;
+					mavlink_and_console_log_emergency(_mavlink_fd, "Accel failure!");
+				}
+
+				if (_voter_mag.failover_count() > 0) {
+					_failsafe = true;
+					mavlink_and_console_log_emergency(_mavlink_fd, "Mag failure!");
+				}
+
+				if (_failsafe) {
+					mavlink_and_console_log_emergency(_mavlink_fd, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
+				}
 			}
 
 			if (!_vibration_warning && (_voter_gyro.get_vibration_factor(curr_time) > _vibration_warning_threshold ||

@@ -199,7 +199,7 @@ void
 DataValidatorGroup::print()
 {
 	/* print the group's state */
-	ECL_INFO("validator: best: %d, prev best: %d, failsafe: %s (# %u)",
+	ECL_INFO("validator: best: %d, prev best: %d, failsafe: %s (%u events)",
 		_curr_best, _prev_best, (_toggle_count > 0) ? "YES" : "NO",
 		_toggle_count);
 
