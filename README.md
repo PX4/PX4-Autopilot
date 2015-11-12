@@ -13,6 +13,20 @@ A simple and efficient template based matrix library.
 ## Limitations
 * No dynamically sized matrices.
 
+## Library Overview
+
+* matrix/math.hpp : Provides matrix math routines.
+	* Matrix (MxN)
+	* Square Matrix (MxM, has inverse)
+	* Vector (Mx1)
+	* Scalar (1x1)
+
+* matrix/filter.hpp : Provides filtering routines.
+	* kalman_correct
+
+* matrix/integrate.hpp : Provides integration routines.
+	* integrate_rk4 (Runge-Kutta 4th order)
+
 ## Example
 
 ```c++
@@ -73,4 +87,5 @@ A simple and efficient template based matrix library.
 
 	// correction
 	x += K*r;
+
 ```
