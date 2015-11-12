@@ -6,12 +6,12 @@ namespace matrix {
 
 template<typename Type, size_t M, size_t N>
 int kalman_correct(
-    const SquareMatrix<Type, M> & P,
+    const Matrix<Type, M, M> & P,
     const Matrix<Type, N, M> & C,
-    const SquareMatrix<Type, N> & R,
-    const Vector<Type, N> &r,
-    Vector<Type, M> & dx,
-    SquareMatrix<Type, M> & dP,
+    const Matrix<Type, N, N> & R,
+    const Matrix<Type, N, 1> &r,
+    Matrix<Type, M, 1> & dx,
+    Matrix<Type, M, M> & dP,
     float & beta
 )
 {

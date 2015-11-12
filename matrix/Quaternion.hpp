@@ -98,6 +98,12 @@ public:
         return r;
     }
 
+    void operator*=(const Quaternion & other)
+    {
+        Quaternion &self = *this;
+        self = self * other;
+    }
+
     Matrix41 derivative(const Matrix31 & w) const {
         const Quaternion &q = *this;
         Type dataQ[] = {
