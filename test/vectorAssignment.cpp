@@ -29,6 +29,10 @@ int main()
     assert(fabs(v2(1) - 5) < eps);
     assert(fabs(v2(2) - 6) < eps);
 
+    SquareMatrix<float, 3> m = diag(Vector3f(1,2,3));
+    assert(fabs(m(0, 0) - 1) < eps);
+    assert(fabs(m(1, 1) - 2) < eps);
+    assert(fabs(m(2, 2) - 3) < eps);
     return 0;
 }
 

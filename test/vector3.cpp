@@ -14,6 +14,14 @@ int main()
     Vector3f c = a.cross(b);
     c.print();
     assert (c == Vector3f(0,0,1));
+    c = a % b;
+    assert (c == Vector3f(0,0,1));
+    Matrix<float, 3, 1> d(c);
+    Vector3f e(d);
+    assert (e == d);
+    float data[] = {4, 5, 6};
+    Vector3f f(data);
+    assert (f == Vector3f(4, 5, 6));
     return 0;
 }
 
