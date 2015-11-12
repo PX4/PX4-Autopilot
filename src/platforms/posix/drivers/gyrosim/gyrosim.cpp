@@ -1161,11 +1161,7 @@ GYROSIM::print_registers()
 
 GYROSIM_gyro::GYROSIM_gyro(GYROSIM *parent, const char *path) :
 	// Set sample interval to 0 since device is read by parent
-<<<<<<< HEAD
-	VirtDevObj("GYROSIM_gyro", path, 0),
-=======
 	VirtDevObj("GYROSIM_gyro", path, nullptr, 0),
->>>>>>> 40c079efa8f7d8cc402890384cb9ce4e01f6a1c7
 	_parent(parent),
 	_gyro_topic(nullptr),
 	_gyro_orb_class_instance(-1)
