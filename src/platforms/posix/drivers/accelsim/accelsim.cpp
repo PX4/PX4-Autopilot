@@ -529,6 +529,7 @@ int
 ACCELSIM::devIOCTL(unsigned long cmd, void *arg)
 {
 	unsigned long ul_arg = (unsigned long)arg;
+
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE: {
@@ -661,6 +662,7 @@ int
 ACCELSIM::mag_ioctl(unsigned long cmd, void *arg)
 {
 	unsigned long ul_arg = (unsigned long)arg;
+
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE: {
