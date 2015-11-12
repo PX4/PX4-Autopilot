@@ -46,6 +46,7 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
+#ifdef __PX4_NUTTX
 /*
  * ioctl() definitions
  */
@@ -64,6 +65,11 @@
  * (such as compass offsets) to specific sensors
  */
 #define DEVIOCGDEVICEID	_DEVICEIOC(2)
+
+#else
+#include "DevObj.hpp"
+
+#endif
 
 #ifdef __PX4_POSIX
 

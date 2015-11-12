@@ -426,7 +426,7 @@ GYROSIM::init()
 	_gyro_scale.z_scale  = 1.0f;
 
 
-	/* do VDev init for the gyro device node, keep it optional */
+	/* do init for the gyro device node, keep it optional */
 	ret = _gyro->init();
 
 	/* if probe/setup failed, bail now */

@@ -45,6 +45,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "DevMgr.hpp"
+
+using namespace DriverFramework;
+
 namespace device
 {
 
@@ -533,7 +537,7 @@ VDev *VDev::getDev(const char *path)
 void VDev::showDevices()
 {
 	int i = 0;
-	PX4_INFO("Devices:");
+	PX4_INFO("PX4 Devices:");
 
 	pthread_mutex_lock(&devmutex);
 
@@ -544,6 +548,15 @@ void VDev::showDevices()
 	}
 
 	pthread_mutex_unlock(&devmutex);
+
+	PX4_INFO("DF Devices:");
+
+	std::string devname;
+	for (unsigned int index=0; i == 0; ++i) {
+		if (DevMgr::getNextDeviceName(index, devname) == 0) {
+			PX4_INFO("   %s", devname.c_str());
+		}
+	}
 }
 
 void VDev::showTopics()

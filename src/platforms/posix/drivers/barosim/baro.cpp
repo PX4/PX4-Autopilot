@@ -48,7 +48,6 @@
 #include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
-#include <poll.h>
 #include <errno.h>
 #include <stdio.h>
 #include <math.h>
@@ -67,6 +66,7 @@
 #include <systemlib/err.h>
 
 #include "barosim.h"
+#include "VirtDevObj.hpp"
 
 enum BAROSIM_BUS {
 	BAROSIM_BUS_SIM_EXTERNAL
@@ -86,16 +86,16 @@ enum BAROSIM_BUS {
 #define BAROSIM_CONVERSION_INTERVAL	10000	/* microseconds */
 #define BAROSIM_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 
-class BAROSIM : public device::VDev
+class BAROSIM : public VirtDevObj
 {
 public:
-	BAROSIM(device::Device *interface, barosim::prom_u &prom_buf, const char *path);
+	BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path);
 	~BAROSIM();
 
 	virtual int		init();
 
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t		devRead(void *buffer, size_t buflen);
+	virtual int		devIOCTL(unsigned long cmd, void *arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -103,7 +103,7 @@ public:
 	void			print_info();
 
 protected:
-	Device			*_interface;
+	DevObj			*_interface;
 
 	barosim::prom_s		_prom;
 
@@ -182,7 +182,10 @@ protected:
 	 *
 	 * @return		OK if the measurement command was successful.
 	 */
-	virtual int		measure();
+	int			measure();
+
+	// Unused
+	virtual void _measure() {}
 
 	/**
 	 * Collect the result of the most recent measurement.
@@ -195,8 +198,8 @@ protected:
  */
 extern "C" __EXPORT int barosim_main(int argc, char *argv[]);
 
-BAROSIM::BAROSIM(device::Device *interface, barosim::prom_u &prom_buf, const char *path) :
-	VDev("BAROSIM", path),
+BAROSIM::BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path) :
+	VirtDevObj("BAROSIM", path, BARO_BASE_DEVICE_PATH, 0),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_measure_ticks(0),
@@ -224,10 +227,6 @@ BAROSIM::~BAROSIM()
 	/* make sure we are truly inactive */
 	stop_cycle();
 
-	if (_class_instance != -1) {
-		unregister_class_devname(get_devname(), _class_instance);
-	}
-
 	/* free any existing reports */
 	if (_reports != nullptr) {
 		delete _reports;
@@ -246,12 +245,12 @@ int
 BAROSIM::init()
 {
 	int ret;
-	DEVICE_DEBUG("BAROSIM::init");
+	//PX4_DEBUG("BAROSIM::init");
 
-	ret = VDev::init();
+	ret = VirtDevObj::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("VDev init failed");
+		PX4_ERR("VirtDevObj init failed");
 		goto out;
 	}
 
@@ -259,13 +258,10 @@ BAROSIM::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
-		DEVICE_DEBUG("can't get memory for reports");
+		PX4_ERR("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
-
-	/* register alternate interfaces if we have to */
-	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
 	struct baro_report brp;
 	/* do a first measurement cycle to populate reports with valid data */
@@ -325,7 +321,7 @@ out:
 }
 
 ssize_t
-BAROSIM::read(device::file_t *filp, char *buffer, size_t buflen)
+BAROSIM::devRead(void *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct baro_report);
 	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
@@ -397,12 +393,14 @@ BAROSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 }
 
 int
-BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+BAROSIM::devIOCTL(unsigned long cmd, void *arg)
 {
+	unsigned long ul_arg = (unsigned long)arg;
+
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE:
-		switch (arg) {
+		switch (ul_arg) {
 
 		/* switching to manual polling */
 		case SENSOR_POLLRATE_MANUAL:
@@ -440,7 +438,7 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				bool want_start = (_measure_ticks == 0);
 
 				/* convert hz to tick interval via microseconds */
-				unsigned long ticks = USEC2TICK(1000000 / arg);
+				unsigned long ticks = USEC2TICK(1000000 / ul_arg);
 
 				/* check against maximum rate */
 				if (ticks < USEC2TICK(BAROSIM_CONVERSION_INTERVAL)) {
@@ -468,11 +466,11 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
+			if ((ul_arg < 1) || (ul_arg > 100)) {
 				return -EINVAL;
 			}
 
-			if (!_reports->resize(arg)) {
+			if (!_reports->resize(ul_arg)) {
 				return -ENOMEM;
 			}
 
@@ -492,11 +490,11 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case BAROIOCSMSLPRESSURE:
 
 		/* range-check for sanity */
-		if ((arg < 80000) || (arg > 120000)) {
+		if ((ul_arg < 80000) || (ul_arg > 120000)) {
 			return -EINVAL;
 		}
 
-		_msl_pressure = arg;
+		_msl_pressure = ul_arg;
 		return OK;
 
 	case BAROIOCGMSLPRESSURE:
@@ -508,7 +506,7 @@ BAROSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	/* give it to the bus-specific superclass */
 	// return bus_ioctl(filp, cmd, arg);
-	return VDev::ioctl(filp, cmd, arg);
+	return VirtDevObj::devIOCTL(cmd, arg);
 }
 
 void
@@ -542,7 +540,7 @@ void
 BAROSIM::cycle()
 {
 	int ret;
-	unsigned dummy;
+	void *dummy = nullptr;
 
 	/* collection phase? */
 	if (_collect_phase) {
@@ -552,7 +550,7 @@ BAROSIM::cycle()
 
 		if (ret != OK) {
 			/* issue a reset command to the sensor */
-			_interface->dev_ioctl(IOCTL_RESET, dummy);
+			_interface->devIOCTL(IOCTL_RESET, (void *)dummy);
 			/* reset the collection state machine and try again */
 			start_cycle();
 			return;
@@ -586,7 +584,7 @@ BAROSIM::cycle()
 	if (ret != OK) {
 		//DEVICE_LOG("measure error %d", ret);
 		/* issue a reset command to the sensor */
-		_interface->dev_ioctl(IOCTL_RESET, dummy);
+		_interface->devIOCTL(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
 		start_cycle();
 		return;
@@ -613,12 +611,12 @@ BAROSIM::measure()
 	/*
 	 * In phase zero, request temperature; in other phases, request pressure.
 	 */
-	unsigned addr = (_measure_phase == 0) ? ADDR_CMD_CONVERT_D2 : ADDR_CMD_CONVERT_D1;
+	unsigned long addr = (_measure_phase == 0) ? ADDR_CMD_CONVERT_D2 : ADDR_CMD_CONVERT_D1;
 
 	/*
 	 * Send the command to begin measuring.
 	 */
-	ret = _interface->dev_ioctl(IOCTL_MEASURE, addr);
+	ret = _interface->devIOCTL(IOCTL_MEASURE, (void *)addr);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -650,7 +648,7 @@ BAROSIM::collect()
 	report.error_count = perf_event_count(_comms_errors);
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
-	ret = _interface->dev_read(0, (void *)&baro_report, sizeof(baro_report));
+	ret = _interface->devRead((void *)&baro_report, sizeof(baro_report));
 
 	if (ret < 0) {
 		perf_count(_comms_errors);
@@ -672,7 +670,7 @@ BAROSIM::collect()
 		report.timestamp = hrt_absolute_time();
 
 		/* publish it */
-		if (!(_pub_blocked)) {
+		if (!(m_pub_blocked)) {
 			if (_baro_topic != nullptr) {
 				/* publish it */
 				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
@@ -687,7 +685,7 @@ BAROSIM::collect()
 		}
 
 		/* notify anyone waiting for data */
-		poll_notify(POLLIN);
+		DevMgr::updateNotify(*this);
 	}
 
 	/* update the measurement state machine */
@@ -810,7 +808,7 @@ start_bus(struct barosim_bus_option &bus)
 	}
 
 	prom_u prom_buf;
-	device::Device *interface = bus.interface_constructor(prom_buf, bus.busnum);
+	DevObj *interface = bus.interface_constructor(prom_buf, bus.busnum);
 
 	if (interface->init() != OK) {
 		delete interface;
@@ -827,21 +825,22 @@ start_bus(struct barosim_bus_option &bus)
 		return false;
 	}
 
-	int fd = px4_open(bus.devpath, O_RDONLY);
+	DevHandle h;
+	DevMgr::getHandle(bus.devpath, h);
 
 	/* set the poll rate to default, starts automatic data collection */
-	if (fd == -1) {
+	if (!h.isValid()) {
 		PX4_ERR("can't open baro device");
 		return false;
 	}
 
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		px4_close(fd);
+	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+		DevMgr::releaseHandle(h);
 		PX4_ERR("failed setting default poll rate");
 		return false;
 	}
 
-	px4_close(fd);
+	DevMgr::releaseHandle(h);
 	return true;
 }
 
@@ -882,17 +881,16 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd;
+	DevHandle h;
+	DevMgr::getHandle(bus.devpath, h);
 
-	fd = px4_open(bus.devpath, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("open failed (try 'barosim start' if the driver is not running)");
+	if (!h.isValid()) {
+		PX4_ERR("getHandle failed (try 'barosim start' if the driver is not running)");
 		return 1;
 	}
 
 	/* do a simple demand read */
-	sz = px4_read(fd, &report, sizeof(report));
+	sz = h.read(&report, sizeof(report));
 
 	if (sz != sizeof(report)) {
 		PX4_ERR("immediate read failed");
@@ -906,38 +904,37 @@ test()
 	PX4_INFO("time:        %lld", (long long)report.timestamp);
 
 	/* set the queue depth to 10 */
-	if (OK != px4_ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
+	if (OK != h.ioctl(SENSORIOCSQUEUEDEPTH, (void *)10UL)) {
 		PX4_ERR("failed to set queue depth");
-		px4_close(fd);
+		DevMgr::releaseHandle(h);
 		return 1;
 	}
 
 	/* start the sensor polling at 2Hz */
-	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+	if (OK != h.ioctl(SENSORIOCSPOLLRATE, (void *)2UL)) {
 		PX4_ERR("failed to set 2Hz poll rate");
-		px4_close(fd);
+		DevMgr::releaseHandle(h);
 		return 1;
 	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
-		px4_pollfd_struct_t fds;
+		UpdateList in_set, out_set;
+		in_set.push_back(&h);
 
 		/* wait for data to be ready */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = px4_poll(&fds, 1, 2000);
+		ret = DevMgr::waitForUpdate(in_set, out_set, 1000);
 
 		if (ret != 1) {
 			PX4_WARN("timed out waiting for sensor data");
 		}
 
 		/* now go get it */
-		sz = px4_read(fd, &report, sizeof(report));
+		sz = h.read(&report, sizeof(report));
 
 		if (sz != sizeof(report)) {
 			PX4_ERR("periodic read failed");
-			px4_close(fd);
+			DevMgr::releaseHandle(h);
 			return 1;
 		}
 
@@ -948,7 +945,7 @@ test()
 		PX4_INFO("time:        %lld", (long long)report.timestamp);
 	}
 
-	px4_close(fd);
+	DevMgr::releaseHandle(h);
 	PX4_INFO("PASS");
 	return 0;
 }
@@ -960,21 +957,21 @@ int
 reset()
 {
 	struct barosim_bus_option &bus = bus_options[0];
-	int fd;
 
-	fd = px4_open(bus.devpath, O_RDONLY);
+	DevHandle h;
+	DevMgr::getHandle(bus.devpath, h);
 
-	if (fd < 0) {
+	if (!h.isValid()) {
 		PX4_ERR("failed ");
 		return 1;
 	}
 
-	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
+	if (h.ioctl(SENSORIOCRESET, 0) < 0) {
 		PX4_ERR("driver reset failed");
 		return 1;
 	}
 
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("driver poll restart failed");
 		return 1;
 	}
@@ -1008,20 +1005,19 @@ calibrate(unsigned altitude)
 {
 	struct barosim_bus_option &bus = bus_options[0];
 	struct baro_report report;
-	float	pressure;
-	float	p1;
+	float  pressure;
+	float  p1;
 
-	int fd;
+	DevHandle h;
+	DevMgr::getHandle(bus.devpath, h);
 
-	fd = px4_open(bus.devpath, O_RDONLY);
-
-	if (fd < 0) {
+	if (!h.isValid()) {
 		PX4_ERR("open failed (try 'barosim start' if the driver is not running)");
 		return 1;
 	}
 
 	/* start the sensor polling at max */
-	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX)) {
+	if (OK != h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_MAX)) {
 		PX4_ERR("failed to set poll rate");
 		return 1;
 	}
@@ -1030,14 +1026,13 @@ calibrate(unsigned altitude)
 	pressure = 0.0f;
 
 	for (unsigned i = 0; i < 20; i++) {
-		px4_pollfd_struct_t fds;
 		int ret;
 		ssize_t sz;
+		UpdateList in_set, out_set;
+		in_set.push_back(&h);
 
 		/* wait for data to be ready */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = px4_poll(&fds, 1, 1000);
+		ret = DevMgr::waitForUpdate(in_set, out_set, 1000);
 
 		if (ret != 1) {
 			PX4_ERR("timed out waiting for sensor data");
@@ -1045,7 +1040,7 @@ calibrate(unsigned altitude)
 		}
 
 		/* now go get it */
-		sz = px4_read(fd, &report, sizeof(report));
+		sz = h.read(&report, sizeof(report));
 
 		if (sz != sizeof(report)) {
 			PX4_ERR("sensor read failed");
@@ -1073,12 +1068,12 @@ calibrate(unsigned altitude)
 	/* save as integer Pa */
 	p1 *= 1000.0f;
 
-	if (px4_ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK) {
+	if (h.ioctl(BAROIOCSMSLPRESSURE, (void *)((unsigned long)(p1))) != OK) {
 		PX4_WARN("BAROIOCSMSLPRESSURE");
 		return 1;
 	}
 
-	px4_close(fd);
+	DevMgr::releaseHandle(h);
 	return 0;
 }
 
