@@ -550,13 +550,14 @@ void VDev::showDevices()
 	pthread_mutex_unlock(&devmutex);
 
 	PX4_INFO("DF Devices:");
+	// TODO NOT IMPLEMENTED
 
-	std::string devname;
-	for (unsigned int index=0; i == 0; ++i) {
-		if (DevMgr::getNextDeviceName(index, devname) == 0) {
-			PX4_INFO("   %s", devname.c_str());
-		}
-	}
+	// std::string devname;
+	// for (unsigned int index=0; i == 0; ++i) {
+	// 	if (DevMgr::getNextDeviceName(index, devname) == 0) {
+	// 		PX4_INFO("   %s", devname.c_str());
+	// 	}
+	// }
 }
 
 void VDev::showTopics()
