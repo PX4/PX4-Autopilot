@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,49 +37,37 @@
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-#include <drivers/drv_baro.h>
-#include <drivers/device/ringbuffer.h>
+#include <systemlib/err.h>
+#include <uavcan/uavcan.hpp>
+#include <uavcan/helpers/heap_based_pool_allocator.hpp>
 
-#include <uavcan/equipment/air_data/StaticPressure.hpp>
-#include <uavcan/equipment/air_data/StaticTemperature.hpp>
-
-class RingBuffer;
-
-class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
+// TODO: Entire UAVCAN application should be moved into a namespace later; this is the first step.
+namespace uavcan_node
 {
-public:
-	static const char *const NAME;
 
-	UavcanBarometerBridge(uavcan::INode &node);
-
-	const char *get_name() const override { return NAME; }
-
-	int init() override;
-
-private:
-	ssize_t read(struct file *filp, char *buffer, size_t buflen);
-	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
-
-	void air_pressure_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg);
-	void air_temperature_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg);
-
-	typedef uavcan::MethodBinder < UavcanBarometerBridge *,
-		void (UavcanBarometerBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &) >
-		AirPressureCbBinder;
-
-	typedef uavcan::MethodBinder < UavcanBarometerBridge *,
-		void (UavcanBarometerBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &) >
-		AirTemperatureCbBinder;
-
-	uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure, AirPressureCbBinder> _sub_air_pressure_data;
-	uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, AirTemperatureCbBinder> _sub_air_temperature_data;
-
-	ringbuffer::RingBuffer _reports;
-
-	unsigned _msl_pressure = 101325;
-	float last_temperature_kelvin = 0.0f;
-
+struct AllocatorSynchronizer
+{
+	const ::irqstate_t state = ::irqsave();
+	~AllocatorSynchronizer() { ::irqrestore(state); }
 };
+
+struct Allocator : public uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer>
+{
+	static constexpr unsigned CapacitySoftLimit = 250;
+	static constexpr unsigned CapacityHardLimit = 500;
+
+	Allocator() :
+		uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer>(CapacitySoftLimit, CapacityHardLimit)
+	{ }
+
+	~Allocator()
+	{
+	        if (getNumAllocatedBlocks() > 0)
+	        {
+	        	warnx("UAVCAN LEAKS MEMORY: %u BLOCKS (%u BYTES) LOST",
+	        		getNumAllocatedBlocks(), getNumAllocatedBlocks() * uavcan::MemPoolBlockSize);
+	        }
+	}
+};
+
+}
