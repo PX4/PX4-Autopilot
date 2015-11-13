@@ -95,7 +95,7 @@ public:
 	virtual int		init();
 
 	virtual ssize_t		devRead(void *buffer, size_t buflen);
-	virtual int		devIOCTL(unsigned long cmd, void *arg);
+	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -395,14 +395,13 @@ BAROSIM::devRead(void *buffer, size_t buflen)
 }
 
 int
-BAROSIM::devIOCTL(unsigned long cmd, void *arg)
+BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
-	unsigned long ul_arg = (unsigned long)arg;
 
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE:
-		switch (ul_arg) {
+		switch (arg) {
 
 		/* switching to manual polling */
 		case SENSOR_POLLRATE_MANUAL:
@@ -440,7 +439,7 @@ BAROSIM::devIOCTL(unsigned long cmd, void *arg)
 				bool want_start = (_measure_ticks == 0);
 
 				/* convert hz to tick interval via microseconds */
-				unsigned long ticks = USEC2TICK(1000000 / ul_arg);
+				unsigned long ticks = USEC2TICK(1000000 / arg);
 
 				/* check against maximum rate */
 				if (ticks < USEC2TICK(BAROSIM_CONVERSION_INTERVAL)) {
@@ -468,11 +467,11 @@ BAROSIM::devIOCTL(unsigned long cmd, void *arg)
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((ul_arg < 1) || (ul_arg > 100)) {
+			if ((arg < 1) || (arg > 100)) {
 				return -EINVAL;
 			}
 
-			if (!_reports->resize(ul_arg)) {
+			if (!_reports->resize(arg)) {
 				return -ENOMEM;
 			}
 
@@ -492,11 +491,11 @@ BAROSIM::devIOCTL(unsigned long cmd, void *arg)
 	case BAROIOCSMSLPRESSURE:
 
 		/* range-check for sanity */
-		if ((ul_arg < 80000) || (ul_arg > 120000)) {
+		if ((arg < 80000) || (arg > 120000)) {
 			return -EINVAL;
 		}
 
-		_msl_pressure = ul_arg;
+		_msl_pressure = arg;
 		return OK;
 
 	case BAROIOCGMSLPRESSURE:
@@ -542,7 +541,7 @@ void
 BAROSIM::cycle()
 {
 	int ret;
-	void *dummy = nullptr;
+	unsigned long dummy = 0;
 
 	/* collection phase? */
 	if (_collect_phase) {
@@ -552,7 +551,7 @@ BAROSIM::cycle()
 
 		if (ret != OK) {
 			/* issue a reset command to the sensor */
-			_interface->devIOCTL(IOCTL_RESET, (void *)dummy);
+			_interface->devIOCTL(IOCTL_RESET, dummy);
 			/* reset the collection state machine and try again */
 			start_cycle();
 			return;
@@ -618,7 +617,7 @@ BAROSIM::measure()
 	/*
 	 * Send the command to begin measuring.
 	 */
-	ret = _interface->devIOCTL(IOCTL_MEASURE, (void *)addr);
+	ret = _interface->devIOCTL(IOCTL_MEASURE, addr);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
