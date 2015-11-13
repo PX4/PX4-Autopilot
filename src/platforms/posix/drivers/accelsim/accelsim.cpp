@@ -93,7 +93,7 @@ public:
 	virtual int		init();
 
 	virtual ssize_t		devRead(void *buffer, size_t buflen);
-	virtual int		devIOCTL(unsigned long cmd, void *arg);
+	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
 
 	/**
 	 * dump register values
@@ -104,7 +104,7 @@ protected:
 	friend class 		ACCELSIM_mag;
 
 	ssize_t			mag_read(void *buffer, size_t buflen);
-	int			mag_ioctl(unsigned long cmd, void *arg);
+	int			mag_ioctl(unsigned long cmd, unsigned long arg);
 
 	int			transfer(uint8_t *send, uint8_t *recv, unsigned len);
 private:
@@ -245,7 +245,7 @@ public:
 	~ACCELSIM_mag();
 
 	virtual ssize_t	devRead(void *buffer, size_t buflen);
-	virtual int	devIOCTL(unsigned long cmd, void *arg);
+	virtual int	devIOCTL(unsigned long cmd, unsigned long arg);
 
 protected:
 	friend class ACCELSIM;
@@ -526,7 +526,7 @@ ACCELSIM::mag_read(void *buffer, size_t buflen)
 }
 
 int
-ACCELSIM::devIOCTL(unsigned long cmd, void *arg)
+ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
 	unsigned long ul_arg = (unsigned long)arg;
 
@@ -550,10 +550,10 @@ ACCELSIM::devIOCTL(unsigned long cmd, void *arg)
 
 			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
-				return devIOCTL(SENSORIOCSPOLLRATE, (void *)1600);
+				return devIOCTL(SENSORIOCSPOLLRATE, 1600);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return devIOCTL(SENSORIOCSPOLLRATE, (void *)ACCELSIM_ACCEL_DEFAULT_RATE);
+				return devIOCTL(SENSORIOCSPOLLRATE, ACCELSIM_ACCEL_DEFAULT_RATE);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
@@ -659,14 +659,14 @@ ACCELSIM::devIOCTL(unsigned long cmd, void *arg)
 }
 
 int
-ACCELSIM::mag_ioctl(unsigned long cmd, void *arg)
+ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 {
 	unsigned long ul_arg = (unsigned long)arg;
 
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE: {
-			switch (ul_arg) {
+			switch (arg) {
 
 			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
@@ -685,7 +685,7 @@ ACCELSIM::mag_ioctl(unsigned long cmd, void *arg)
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT:
 				/* 100 Hz is max for mag */
-				return mag_ioctl(SENSORIOCSPOLLRATE, (void *)100);
+				return mag_ioctl(SENSORIOCSPOLLRATE, 100);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
@@ -725,11 +725,11 @@ ACCELSIM::mag_ioctl(unsigned long cmd, void *arg)
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((ul_arg < 1) || (ul_arg > 100)) {
+			if ((arg < 1) || (arg > 100)) {
 				return -EINVAL;
 			}
 
-			if (!_mag_reports->resize(ul_arg)) {
+			if (!_mag_reports->resize(arg)) {
 				return -ENOMEM;
 			}
 
@@ -765,7 +765,7 @@ ACCELSIM::mag_ioctl(unsigned long cmd, void *arg)
 		return OK;
 
 	case MAGIOCSRANGE:
-		return mag_set_range(ul_arg);
+		return mag_set_range(arg);
 
 	case MAGIOCGRANGE:
 		return _mag_range_ga;
@@ -1033,7 +1033,7 @@ ACCELSIM_mag::devRead(void *buffer, size_t buflen)
 }
 
 int
-ACCELSIM_mag::devIOCTL(unsigned long cmd, void *arg)
+ACCELSIM_mag::devIOCTL(unsigned long cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case DEVIOCGDEVICEID:
