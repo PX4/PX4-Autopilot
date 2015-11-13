@@ -119,7 +119,7 @@ public:
 	ToneAlarm();
 	~ToneAlarm();
 
-	virtual int		devIOCTL(unsigned long cmd, void *arg);
+	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
 	virtual ssize_t		devWrite(const void *buffer, size_t len);
 	inline const char	*name(int tune)
 	{
@@ -641,21 +641,19 @@ ToneAlarm::next_trampoline(void *arg)
 
 
 int
-ToneAlarm::devIOCTL(unsigned long cmd, void *arg)
+ToneAlarm::devIOCTL(unsigned long cmd, unsigned long arg)
 {
 	int result = OK;
 
-	unsigned long ul_arg = (unsigned long)arg;
-
-	PX4_DEBUG("ToneAlarm::devIOCTL %i %lu", cmd, ul_arg);
+	PX4_DEBUG("ToneAlarm::devIOCTL %i %lu", cmd, arg);
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
 	case TONE_SET_ALARM:
-		PX4_INFO("TONE_SET_ALARM %lu", ul_arg);
+		PX4_INFO("TONE_SET_ALARM %lu", arg);
 
-		if (ul_arg < TONE_NUMBER_OF_TUNES) {
-			if (ul_arg == TONE_STOP_TUNE) {
+		if (arg < TONE_NUMBER_OF_TUNES) {
+			if (arg == TONE_STOP_TUNE) {
 				// stop the tune
 				_tune = nullptr;
 				_next = nullptr;
@@ -664,10 +662,10 @@ ToneAlarm::devIOCTL(unsigned long cmd, void *arg)
 
 			} else {
 				/* always interrupt alarms, unless they are repeating and already playing */
-				if (!(_repeat && _default_tune_number == ul_arg)) {
+				if (!(_repeat && _default_tune_number == arg)) {
 					/* play the selected tune */
-					_default_tune_number = ul_arg;
-					start_tune(_default_tunes[ul_arg]);
+					_default_tune_number = arg;
+					start_tune(_default_tunes[arg]);
 				}
 			}
 
@@ -860,18 +858,19 @@ tone_alarm_main(int argc, char *argv[])
 		}
 
 		/* if it looks like a PLAY string... */
-		else if (strlen(argv1) > 2) {
+		else if (argv1 && (strlen(argv1) > 2)) {
 			if (*argv1 == 'M') {
 				ret = play_string(argv1, false);
 			}
 
 		} else {
 			/* It might be a tune name */
-			for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++)
+			for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++) {
 				if (!strcmp(g_dev->name(tune), argv1)) {
 					ret = play_tune(tune);
 					return ret;
 				}
+			}
 
 			PX4_WARN("unrecognized command, try 'start', 'stop', an alarm number or name, or a file name starting with a '/'");
 			ret = 1;
