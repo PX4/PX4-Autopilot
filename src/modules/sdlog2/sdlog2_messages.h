@@ -189,6 +189,7 @@ struct log_STAT_s {
 #define LOG_RC_MSG 11
 struct log_RC_s {
 	float channel[8];
+	uint8_t rssi;
 	uint8_t channel_count;
 	uint8_t signal_lost;
 };
@@ -532,7 +533,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(STAT, "BBBfBBf",		"MainState,ArmS,Failsafe,BatRem,BatWarn,Landed,Load"),
 	LOG_FORMAT(VTOL, "f",		"Arsp"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
-	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
+	LOG_FORMAT(RC, "ffffffffBBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,RSSI,Count,SignalLost"),
 	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "fff",			"IndSpeed,TrueSpeed,AirTemp"),
 	LOG_FORMAT(ARSP, "fff",			"RollRateSP,PitchRateSP,YawRateSP"),
