@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,41 +31,75 @@
  *
  ****************************************************************************/
 
-/**
- * @file version.h
+/*
+ * @file px4fmu_pwm_servo.c
  *
- * Tools for system version detection.
+ * Configuration data for the stm32 pwm_servo driver.
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Note that these arrays must always be fully-sized.
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <stdint.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+#include <stm32.h>
+#include <stm32_gpio.h>
+#include <stm32_tim.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
+#include <drivers/stm32/drv_pwm_servo.h>
+#include <drivers/drv_pwm_output.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V3
-#define	HW_ARCH "PX4FMU_V3"
-#endif
+#include "board_config.h"
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
+__EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
+	{
+		.base = STM32_TIM1_BASE,
+		.clock_register = STM32_RCC_APB2ENR,
+		.clock_bit = RCC_APB2ENR_TIM1EN,
+		.clock_freq = STM32_APB2_TIM1_CLKIN
+	},
+	{
+		.base = STM32_TIM4_BASE,
+		.clock_register = STM32_RCC_APB1ENR,
+		.clock_bit = RCC_APB1ENR_TIM4EN,
+		.clock_freq = STM32_APB1_TIM4_CLKIN
+	}
+};
 
-#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
-#define HW_ARCH "PX4_STM32F4DISCOVERY"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_SITL
-#define	HW_ARCH "LINUXTEST"
-#endif
-#ifdef CONFIG_ARCH_BOARD_EAGLE
-#define	HW_ARCH "LINUXTEST"
-#endif
-#endif /* VERSION_H_ */
+__EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
+	{
+		.gpio = GPIO_TIM1_CH4OUT,
+		.timer_index = 0,
+		.timer_channel = 4,
+		.default_value = 1000,
+	},
+	{
+		.gpio = GPIO_TIM1_CH3OUT,
+		.timer_index = 0,
+		.timer_channel = 3,
+		.default_value = 1000,
+	},
+	{
+		.gpio = GPIO_TIM1_CH2OUT,
+		.timer_index = 0,
+		.timer_channel = 2,
+		.default_value = 1000,
+	},
+	{
+		.gpio = GPIO_TIM1_CH1OUT,
+		.timer_index = 0,
+		.timer_channel = 1,
+		.default_value = 1000,
+	},
+	{
+		.gpio = GPIO_TIM4_CH2OUT,
+		.timer_index = 1,
+		.timer_channel = 2,
+		.default_value = 1000,
+	},
+	{
+		.gpio = GPIO_TIM4_CH3OUT,
+		.timer_index = 1,
+		.timer_channel = 3,
+		.default_value = 1000,
+	}
+};
