@@ -82,6 +82,3 @@ extern bool crc4(uint16_t *n_prom);
 
 using namespace DriverFramework;
 
-/* interface factories */
-extern DevObj *BAROSIM_sim_interface(barosim::prom_u &prom_buf, uint8_t busnum);
-typedef DevObj *(*BAROSIM_constructor)(barosim::prom_u &prom_buf, uint8_t busnum);

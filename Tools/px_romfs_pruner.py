@@ -40,7 +40,7 @@ Delete all comments and newlines before ROMFS is converted to an image
 """
 
 from __future__ import print_function
-import argparse
+import argparse, re
 import os
 
 
@@ -64,7 +64,7 @@ def main():
 
                         # read file line by line
                         pruned_content = ""
-                        with open(file_path, "r") as f:
+                        with open(file_path, "rU") as f:
                                 for line in f:
 
                                         # handle mixer files differently than startup files
@@ -76,6 +76,7 @@ def main():
                                                         pruned_content += line
                        # overwrite old scratch file
                         with open(file_path, "wb") as f:
+                                pruned_content = re.sub("\r\n", "\n", pruned_content)
                                 f.write(pruned_content.encode("ascii", errors='strict'))
 
 

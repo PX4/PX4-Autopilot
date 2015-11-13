@@ -69,6 +69,9 @@ ORB_DEFINE(pwm_input, struct pwm_input_s);
 #include "topics/vehicle_attitude.h"
 ORB_DEFINE(vehicle_attitude, struct vehicle_attitude_s);
 
+#include "topics/control_state.h"
+ORB_DEFINE(control_state, struct control_state_s);
+
 #include "topics/sensor_combined.h"
 ORB_DEFINE(sensor_combined, struct sensor_combined_s);
 

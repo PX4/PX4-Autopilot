@@ -469,8 +469,19 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			 * Allow FMU override of arming state (to allow in-air restores),
 			 * but only if the arming state is not in sync on the IO side.
 			 */
-			if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
+
+			if (PX4IO_P_STATUS_FLAGS_MIXER_OK & value) {
+				r_status_flags |= PX4IO_P_STATUS_FLAGS_MIXER_OK;
+
+			} else if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
 				r_status_flags = value;
+
+			}
+
+			if (PX4IO_P_STATUS_FLAGS_MIXER_OK & r_status_flags) {
+
+				/* update failsafe values, now that the mixer is set to ok */
+				mixer_set_failsafe();
 			}
 
 			break;

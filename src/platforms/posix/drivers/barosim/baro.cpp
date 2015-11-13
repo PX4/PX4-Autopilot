@@ -65,12 +65,11 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
+#include <simulator/simulator.h>
 #include "barosim.h"
 #include "VirtDevObj.hpp"
 
-enum BAROSIM_BUS {
-	BAROSIM_BUS_SIM_EXTERNAL
-};
+#define BAROSIM_DEV_PATH "/dev/baro_sim"
 
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
@@ -89,7 +88,7 @@ enum BAROSIM_BUS {
 class BAROSIM : public VirtDevObj
 {
 public:
-	BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path);
+	BAROSIM(const char *path);
 	~BAROSIM();
 
 	virtual int		init();
@@ -103,8 +102,6 @@ public:
 	void			print_info();
 
 protected:
-	DevObj			*_interface;
-
 	barosim::prom_s		_prom;
 
 	struct work_s		_work;
@@ -191,6 +188,12 @@ protected:
 	 * Collect the result of the most recent measurement.
 	 */
 	virtual int		collect();
+
+	int _reset_sensor();
+
+	int _transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
+
+	int read_measurement(void *data, unsigned count);
 };
 
 /*
@@ -198,10 +201,8 @@ protected:
  */
 extern "C" __EXPORT int barosim_main(int argc, char *argv[]);
 
-BAROSIM::BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path) :
+BAROSIM::BAROSIM(const char *path) :
 	VirtDevObj("BAROSIM", path, BARO_BASE_DEVICE_PATH, 0),
-	_interface(interface),
-	_prom(prom_buf.s),
 	_measure_ticks(0),
 	_reports(nullptr),
 	_collect_phase(false),
@@ -222,6 +223,8 @@ BAROSIM::BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path)
 	memset(&_work, 0, sizeof(_work));
 }
 
+static BAROSIM *g_barosim = nullptr;
+
 BAROSIM::~BAROSIM()
 {
 	/* make sure we are truly inactive */
@@ -237,8 +240,6 @@ BAROSIM::~BAROSIM()
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
 	perf_free(_buffer_overflows);
-
-	delete _interface;
 }
 
 int
@@ -540,7 +541,6 @@ void
 BAROSIM::cycle()
 {
 	int ret;
-	void *dummy = nullptr;
 
 	/* collection phase? */
 	if (_collect_phase) {
@@ -550,7 +550,7 @@ BAROSIM::cycle()
 
 		if (ret != OK) {
 			/* issue a reset command to the sensor */
-			_interface->devIOCTL(IOCTL_RESET, (void *)dummy);
+			_reset_sensor();
 			/* reset the collection state machine and try again */
 			start_cycle();
 			return;
@@ -584,7 +584,7 @@ BAROSIM::cycle()
 	if (ret != OK) {
 		//DEVICE_LOG("measure error %d", ret);
 		/* issue a reset command to the sensor */
-		_interface->devIOCTL(IOCTL_RESET, dummy);
+		_reset_sensor();
 		/* reset the collection state machine and try again */
 		start_cycle();
 		return;
@@ -611,12 +611,8 @@ BAROSIM::measure()
 	/*
 	 * In phase zero, request temperature; in other phases, request pressure.
 	 */
-	unsigned long addr = (_measure_phase == 0) ? ADDR_CMD_CONVERT_D2 : ADDR_CMD_CONVERT_D1;
-
-	/*
-	 * Send the command to begin measuring.
-	 */
-	ret = _interface->devIOCTL(IOCTL_MEASURE, (void *)addr);
+	uint8_t cmd = (_measure_phase == 0) ? ADDR_CMD_CONVERT_D2 : ADDR_CMD_CONVERT_D1;
+	ret = _transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -648,7 +644,7 @@ BAROSIM::collect()
 	report.error_count = perf_event_count(_comms_errors);
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
-	ret = _interface->devRead((void *)&baro_report, sizeof(baro_report));
+	ret = read_measurement((void *)&baro_report, sizeof(baro_report));
 
 	if (ret < 0) {
 		perf_count(_comms_errors);
@@ -696,6 +692,14 @@ BAROSIM::collect()
 	return OK;
 }
 
+int
+BAROSIM::_reset_sensor()
+{
+	uint8_t	cmd = ADDR_RESET_CMD;
+
+	return _transfer(&cmd, 1, nullptr, 0);
+}
+
 void
 BAROSIM::print_info()
 {
@@ -727,25 +731,10 @@ BAROSIM::print_info()
 namespace barosim
 {
 
-/*
-  list of supported bus configurations
- */
-struct barosim_bus_option {
-	enum BAROSIM_BUS busid;
-	const char *devpath;
-	BAROSIM_constructor interface_constructor;
-	uint8_t busnum;
-	BAROSIM *dev;
-} bus_options[] = {
-	{ BAROSIM_BUS_SIM_EXTERNAL, "/dev/baro_sim", &BAROSIM_sim_interface, PX4_SIM_BUS_TEST, NULL },
-};
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
-
-bool	start_bus(struct barosim_bus_option &bus);
+bool	start_bus();
 int	start();
 int	test();
 int	reset();
-int	info();
 int	calibrate(unsigned altitude);
 void	usage();
 
@@ -800,33 +789,24 @@ crc4(uint16_t *n_prom)
  * Start the driver.
  */
 bool
-start_bus(struct barosim_bus_option &bus)
+start_bus()
 {
-	if (bus.dev != nullptr) {
+	if (g_barosim != nullptr) {
 		PX4_ERR("bus option already started");
 		return false;
 	}
 
-	prom_u prom_buf;
-	DevObj *interface = bus.interface_constructor(prom_buf, bus.busnum);
+	g_barosim = new BAROSIM(BAROSIM_DEV_PATH);
 
-	if (interface->init() != OK) {
-		delete interface;
-		PX4_ERR("no device on bus %u", (unsigned)bus.busid);
-		return false;
-	}
-
-	bus.dev = new BAROSIM(interface, prom_buf, bus.devpath);
-
-	if (bus.dev != nullptr && OK != bus.dev->init()) {
-		delete bus.dev;
-		bus.dev = NULL;
-		PX4_ERR("bus init failed %p", bus.dev);
+	if (g_barosim != nullptr && OK != g_barosim->init()) {
+		delete g_barosim;
+		g_barosim = NULL;
+		PX4_ERR("barosim init failed");
 		return false;
 	}
 
 	DevHandle h;
-	DevMgr::getHandle(bus.devpath, h);
+	DevMgr::getHandle(BAROSIM_DEV_PATH, h);
 
 	/* set the poll rate to default, starts automatic data collection */
 	if (!h.isValid()) {
@@ -856,7 +836,7 @@ start()
 {
 	bool started = false;
 
-	started |= start_bus(bus_options[0]);
+	started |= start_bus();
 
 	if (!started) {
 		PX4_ERR("driver start failed");
@@ -876,13 +856,12 @@ start()
 int
 test()
 {
-	struct barosim_bus_option &bus = bus_options[0];
 	struct baro_report report;
 	ssize_t sz;
 	int ret;
 
 	DevHandle h;
-	DevMgr::getHandle(bus.devpath, h);
+	DevMgr::getHandle(BAROSIM_DEV_PATH, h);
 
 	if (!h.isValid()) {
 		PX4_ERR("getHandle failed (try 'barosim start' if the driver is not running)");
@@ -956,10 +935,8 @@ test()
 int
 reset()
 {
-	struct barosim_bus_option &bus = bus_options[0];
-
 	DevHandle h;
-	DevMgr::getHandle(bus.devpath, h);
+	DevMgr::getHandle(BAROSIM_DEV_PATH, h);
 
 	if (!h.isValid()) {
 		PX4_ERR("failed ");
@@ -980,36 +957,17 @@ reset()
 }
 
 /**
- * Print a little info about the driver.
- */
-int
-info()
-{
-	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
-		struct barosim_bus_option &bus = bus_options[i];
-
-		if (bus.dev != nullptr) {
-			PX4_INFO("%s", bus.devpath);
-			bus.dev->print_info();
-		}
-	}
-
-	return 0;
-}
-
-/**
  * Calculate actual MSL pressure given current altitude
  */
 int
 calibrate(unsigned altitude)
 {
-	struct barosim_bus_option &bus = bus_options[0];
 	struct baro_report report;
 	float  pressure;
 	float  p1;
 
 	DevHandle h;
-	DevMgr::getHandle(bus.devpath, h);
+	DevMgr::getHandle(BAROSIM_DEV_PATH, h);
 
 	if (!h.isValid()) {
 		PX4_ERR("open failed (try 'barosim start' if the driver is not running)");
@@ -1080,7 +1038,7 @@ calibrate(unsigned altitude)
 void
 usage()
 {
-	PX4_WARN("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate <altitude>'");
+	PX4_WARN("missing command: try 'start', 'test', 'test2', 'reset', 'calibrate <altitude>'");
 }
 
 } // namespace
@@ -1119,13 +1077,6 @@ barosim_main(int argc, char *argv[])
 	}
 
 	/*
-	 * Print driver information.
-	 */
-	else if (!strcmp(verb, "info")) {
-		ret = barosim::info();
-	}
-
-	/*
 	 * Perform MSL pressure calibration given an altitude in metres
 	 */
 	else if (!strcmp(verb, "calibrate")) {
@@ -1146,3 +1097,59 @@ barosim_main(int argc, char *argv[])
 
 	return ret;
 }
+
+int
+BAROSIM::_transfer(const uint8_t *send, unsigned send_len,
+		   uint8_t *recv, unsigned recv_len)
+{
+	// TODO add Simulation data connection so calls retrieve
+	// data from the simulator
+	if (recv_len == 0) {
+		PX4_DEBUG("BAROSIM measurement requested");
+
+	} else if (send_len != 1 || send[0] != 0) {
+		PX4_WARN("BAROSIM::_transfer invalid param %u %u %u", send_len, send[0], recv_len);
+		return 1;
+
+	} else {
+		Simulator *sim = Simulator::getInstance();
+
+		if (sim == NULL) {
+			PX4_ERR("Error BAROSIM::_transfer no simulator");
+			return -ENODEV;
+		}
+
+		PX4_DEBUG("BAROSIM::_transfer getting sample");
+		sim->getBaroSample(recv, recv_len);
+	}
+
+	return 0;
+}
+
+int
+BAROSIM::read_measurement(void *data, unsigned count)
+{
+	/*
+	union _cvt {
+		uint8_t	b[4];
+		uint32_t w;
+	} *cvt = (_cvt *)data;
+	*/
+
+	/* read the most recent measurement */
+	uint8_t cmd = 0;
+	int ret = _transfer(&cmd, 1, static_cast<uint8_t *>(data), count);
+
+	/*
+	if (ret == PX4_OK) {
+		// fetch the raw value
+		cvt->b[0] = buf[2];
+		cvt->b[1] = buf[1];
+		cvt->b[2] = buf[0];
+		cvt->b[3] = 0;
+	}
+	*/
+
+	return ret;
+}
+
