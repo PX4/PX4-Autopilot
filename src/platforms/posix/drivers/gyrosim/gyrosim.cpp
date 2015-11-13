@@ -1172,7 +1172,8 @@ GYROSIM_gyro::GYROSIM_gyro(GYROSIM *parent, const char *path) :
 int
 GYROSIM_gyro::init()
 {
-	return start();
+	int ret = VirtDevObj::init();
+	return ret ? ret : start();
 }
 
 void
