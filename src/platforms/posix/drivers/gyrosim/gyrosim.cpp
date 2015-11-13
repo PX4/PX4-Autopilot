@@ -128,7 +128,7 @@ public:
 	virtual int		start();
 
 	virtual ssize_t		devRead(void *buffer, size_t buflen);
-	virtual int		devIOCTL(unsigned long cmd, void *arg);
+	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
 	int			transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
 	/**
@@ -142,7 +142,7 @@ protected:
 	friend class GYROSIM_gyro;
 
 	virtual ssize_t		gyro_read(void *buffer, size_t buflen);
-	virtual int		gyro_ioctl(unsigned long cmd, void *arg);
+	virtual int		gyro_ioctl(unsigned long cmd, unsigned long arg);
 
 private:
 	GYROSIM_gyro		*_gyro;
@@ -284,7 +284,7 @@ public:
 	virtual ~GYROSIM_gyro() {}
 
 	virtual ssize_t		devRead(void *buffer, size_t buflen);
-	virtual int		devIOCTL(unsigned long cmd, void *arg);
+	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
 
 	virtual int		init();
 
@@ -726,9 +726,8 @@ GYROSIM::gyro_read(void *buffer, size_t buflen)
 }
 
 int
-GYROSIM::devIOCTL(unsigned long cmd, void *arg)
+GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
-	unsigned long ul_arg = (unsigned long)arg;
 
 	switch (cmd) {
 
@@ -736,7 +735,7 @@ GYROSIM::devIOCTL(unsigned long cmd, void *arg)
 		return reset();
 
 	case SENSORIOCSPOLLRATE: {
-			switch (ul_arg) {
+			switch (arg) {
 
 			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
@@ -753,15 +752,15 @@ GYROSIM::devIOCTL(unsigned long cmd, void *arg)
 
 			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
-				return devIOCTL(SENSORIOCSPOLLRATE, (void *)1000);
+				return devIOCTL(SENSORIOCSPOLLRATE, 1000);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return devIOCTL(SENSORIOCSPOLLRATE, (void *)GYROSIM_ACCEL_DEFAULT_RATE);
+				return devIOCTL(SENSORIOCSPOLLRATE, GYROSIM_ACCEL_DEFAULT_RATE);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / ul_arg;
+					unsigned ticks = 1000000 / arg;
 
 					/* check against maximum sane rate */
 					if (ticks < 1000) {
@@ -793,11 +792,11 @@ GYROSIM::devIOCTL(unsigned long cmd, void *arg)
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((ul_arg < 1) || (ul_arg > 100)) {
+			if ((arg < 1) || (arg > 100)) {
 				return -EINVAL;
 			}
 
-			if (!_accel_reports->resize(ul_arg)) {
+			if (!_accel_reports->resize(arg)) {
 				return -ENOMEM;
 			}
 
@@ -811,7 +810,7 @@ GYROSIM::devIOCTL(unsigned long cmd, void *arg)
 		return _sample_rate;
 
 	case ACCELIOCSSAMPLERATE:
-		_set_sample_rate(ul_arg);
+		_set_sample_rate(arg);
 		return OK;
 
 	case ACCELIOCSLOWPASS:
@@ -819,7 +818,7 @@ GYROSIM::devIOCTL(unsigned long cmd, void *arg)
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
-			struct accel_scale *s = (struct accel_scale *) ul_arg;
+			struct accel_scale *s = (struct accel_scale *) arg;
 			float sum = s->x_scale + s->y_scale + s->z_scale;
 
 			if (sum > 2.0f && sum < 4.0f) {
@@ -833,11 +832,11 @@ GYROSIM::devIOCTL(unsigned long cmd, void *arg)
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_scale *) ul_arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
-		return set_accel_range(ul_arg);
+		return set_accel_range(arg);
 
 	case ACCELIOCGRANGE:
 		return (unsigned long)((_accel_range_m_s2) / GYROSIM_ONE_G + 0.5f);
@@ -852,10 +851,8 @@ GYROSIM::devIOCTL(unsigned long cmd, void *arg)
 }
 
 int
-GYROSIM::gyro_ioctl(unsigned long cmd, void *arg)
+GYROSIM::gyro_ioctl(unsigned long cmd, unsigned long arg)
 {
-	unsigned long ul_arg = (unsigned long)arg;
-
 	switch (cmd) {
 
 	/* these are shared with the accel side */
@@ -866,11 +863,11 @@ GYROSIM::gyro_ioctl(unsigned long cmd, void *arg)
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((ul_arg < 1) || (ul_arg > 100)) {
+			if ((arg < 1) || (arg > 100)) {
 				return -EINVAL;
 			}
 
-			if (!_gyro_reports->resize(ul_arg)) {
+			if (!_gyro_reports->resize(arg)) {
 				return -ENOMEM;
 			}
 
@@ -884,7 +881,7 @@ GYROSIM::gyro_ioctl(unsigned long cmd, void *arg)
 		return _sample_rate;
 
 	case GYROIOCSSAMPLERATE:
-		_set_sample_rate(ul_arg);
+		_set_sample_rate(arg);
 		return OK;
 
 	case GYROIOCSLOWPASS:
@@ -1161,7 +1158,7 @@ GYROSIM::print_registers()
 
 GYROSIM_gyro::GYROSIM_gyro(GYROSIM *parent, const char *path) :
 	// Set sample interval to 0 since device is read by parent
-	VirtDevObj("GYROSIM_gyro", path, nullptr, 0),
+	VirtDevObj("GYROSIM_gyro", path, "", 0),
 	_parent(parent),
 	_gyro_topic(nullptr),
 	_gyro_orb_class_instance(-1)
@@ -1188,7 +1185,7 @@ GYROSIM_gyro::devRead(void *buffer, size_t buflen)
 }
 
 int
-GYROSIM_gyro::devIOCTL(unsigned long cmd, void *arg)
+GYROSIM_gyro::devIOCTL(unsigned long cmd, unsigned long arg)
 {
 
 	switch (cmd) {
