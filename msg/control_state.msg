@@ -16,3 +16,4 @@ float32[4] q 			# Attitude Quaternion
 float32 roll_rate		# Roll body angular rate (rad/s, x forward/y right/z down)
 float32 pitch_rate		# Pitch body angular rate (rad/s, x forward/y right/z down)
 float32 yaw_rate		# Yaw body angular rate (rad/s, x forward/y right/z down)
+float32 horz_acc_mag		# Magnitude of the horizontal acceleration
