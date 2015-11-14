@@ -50,11 +50,13 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
 	_controlStateSub(-1),
-	_controlState{},
 	_vehicleStatusSub(-1),
 	_armingSub(-1),
+	_airspeedSub(-1),
+	_controlState{},
 	_vehicleStatus{},
 	_arming{},
+	_airspeed{},
 	_parameterSub(-1),
 	_velocity_xy_filtered(0.0f),
 	_velocity_z_filtered(0.0f),
@@ -76,6 +78,7 @@ void FixedwingLandDetector::initialize()
 	_controlStateSub = orb_subscribe(ORB_ID(control_state));
 	_vehicleStatusSub = orb_subscribe(ORB_ID(vehicle_status));
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
+	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
 
 	updateParameterCache(true);
 }
@@ -85,6 +88,7 @@ void FixedwingLandDetector::updateSubscriptions()
 	orb_update(ORB_ID(control_state), _controlStateSub, &_controlState);
 	orb_update(ORB_ID(vehicle_status), _vehicleStatusSub, &_vehicleStatus);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
+	orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 }
 
 bool FixedwingLandDetector::update()
@@ -117,7 +121,7 @@ bool FixedwingLandDetector::update()
 			_velocity_z_filtered = val;
 		}
 
-		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _controlState.airspeed;
+		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
 
 		if (_lastTime != 0) {
 			/* a leaking integrator prevents biases from building up, but
@@ -125,6 +129,7 @@ bool FixedwingLandDetector::update()
 			 */
 			_accel_x_integral = _accel_x_integral * 0.8f + _controlState.horz_acc_mag * 0.18f;
 		}
+
 	}
 
 	// crude land detector for fixedwing
