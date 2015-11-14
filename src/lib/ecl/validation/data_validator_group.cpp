@@ -240,7 +240,7 @@ DataValidatorGroup::failover_index()
 	unsigned i = 0;
 	
 	while (next != nullptr) {
-		if (next->used() && (next->state() != DataValidator::ERROR_FLAG_NO_ERROR) && (i == _prev_best)) {
+		if (next->used() && (next->state() != DataValidator::ERROR_FLAG_NO_ERROR) && (i == (unsigned)_prev_best)) {
 			return i;
 		}
 		next = next->sibling();
@@ -256,7 +256,7 @@ DataValidatorGroup::failover_state()
 	unsigned i = 0;
 	
 	while (next != nullptr) {
-		if (next->used() && (next->state() != DataValidator::ERROR_FLAG_NO_ERROR) && (i == _prev_best)) {
+		if (next->used() && (next->state() != DataValidator::ERROR_FLAG_NO_ERROR) && (i == (unsigned)_prev_best)) {
 			return next->state();
 		}
 		next = next->sibling();

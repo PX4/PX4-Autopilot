@@ -347,15 +347,17 @@ void AttitudeEstimatorQ::task_main()
 
 					_voter_gyro.put(i, sensors.gyro_timestamp[i], &gyro[0], sensors.gyro_errcount[i], sensors.gyro_priority[i]);
 				}
+
 				/* ignore empty fields */
 				if (sensors.accelerometer_timestamp[i] > 0) {
 					_voter_accel.put(i, sensors.accelerometer_timestamp[i], &sensors.accelerometer_m_s2[i * 3],
-						sensors.accelerometer_errcount[i], sensors.accelerometer_priority[i]);
+							 sensors.accelerometer_errcount[i], sensors.accelerometer_priority[i]);
 				}
+
 				/* ignore empty fields */
 				if (sensors.magnetometer_timestamp[i] > 0) {
 					_voter_mag.put(i, sensors.magnetometer_timestamp[i], &sensors.magnetometer_ga[i * 3],
-					       sensors.magnetometer_errcount[i], sensors.magnetometer_priority[i]);
+						       sensors.magnetometer_errcount[i], sensors.magnetometer_priority[i]);
 				}
 			}
 
@@ -375,19 +377,42 @@ void AttitudeEstimatorQ::task_main()
 			_data_good = true;
 
 			if (!_failsafe) {
+				uint32_t flags = DataValidator::ERROR_FLAG_NO_ERROR;
+
 				if (_voter_gyro.failover_count() > 0) {
 					_failsafe = true;
-					mavlink_and_console_log_emergency(_mavlink_fd, "Gyro failure!");
+					flags = _voter_gyro.failover_state();
+					mavlink_and_console_log_emergency(_mavlink_fd, "Gyro #%i failure :%s%s%s%s%s!",
+									  _voter_gyro.failover_index(),
+									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
 				}
 
 				if (_voter_accel.failover_count() > 0) {
 					_failsafe = true;
-					mavlink_and_console_log_emergency(_mavlink_fd, "Accel failure!");
+					flags = _voter_accel.failover_state();
+					mavlink_and_console_log_emergency(_mavlink_fd, "Accel #%i failure :%s%s%s%s%s!",
+									  _voter_accel.failover_index(),
+									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
 				}
 
 				if (_voter_mag.failover_count() > 0) {
 					_failsafe = true;
-					mavlink_and_console_log_emergency(_mavlink_fd, "Mag failure!");
+					flags = _voter_mag.failover_state();
+					mavlink_and_console_log_emergency(_mavlink_fd, "Mag #%i failure :%s%s%s%s%s!",
+									  _voter_mag.failover_index(),
+									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
+									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
 				}
 
 				if (_failsafe) {
