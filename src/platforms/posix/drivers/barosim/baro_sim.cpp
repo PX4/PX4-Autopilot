@@ -64,7 +64,7 @@ public:
 
 	virtual int	init();
 	virtual int	dev_read(unsigned offset, void *data, unsigned count);
-	virtual int	dev_ioctl(unsigned operation, unsigned &arg);
+	virtual int	dev_ioctl(unsigned operation, unsigned arg);
 
 	virtual int	transfer(const uint8_t *send, unsigned send_len,
 				 uint8_t *recv, unsigned recv_len);
@@ -143,7 +143,7 @@ BARO_SIM::dev_read(unsigned offset, void *data, unsigned count)
 }
 
 int
-BARO_SIM::dev_ioctl(unsigned operation, unsigned &arg)
+BARO_SIM::dev_ioctl(unsigned operation, unsigned arg)
 {
 	int ret;
 
@@ -207,6 +207,10 @@ BARO_SIM::transfer(const uint8_t *send, unsigned send_len,
 	// data from the simulator
 	if (recv_len == 0) {
 		PX4_DEBUG("BARO_SIM measurement requested");
+
+	} else if (send_len == 1 || send[0] != 12) {
+		/* measure command */
+		return 0;
 
 	} else if (send_len != 1 || send[0] != 0) {
 		PX4_WARN("BARO_SIM::transfer invalid param %u %u %u", send_len, send[0], recv_len);
