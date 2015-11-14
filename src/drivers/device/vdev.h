@@ -128,7 +128,7 @@ public:
 	 * @param arg           An argument to the operation.
 	 * @return              Negative errno on error, OK or positive value on success.
 	 */
-	virtual int     dev_ioctl(unsigned operation, unsigned &arg);
+	virtual int     dev_ioctl(unsigned operation, unsigned arg);
 
 	/*
 	  device bus types for DEVID

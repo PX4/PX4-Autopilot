@@ -96,7 +96,7 @@ Device::dev_write(unsigned offset, void *data, unsigned count)
 }
 
 int
-Device::dev_ioctl(unsigned operation, unsigned &arg)
+Device::dev_ioctl(unsigned operation, unsigned arg)
 {
 	switch (operation) {
 	case DEVIOCGDEVICEID:
