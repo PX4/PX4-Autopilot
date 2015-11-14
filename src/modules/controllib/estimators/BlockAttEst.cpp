@@ -1,23 +1,21 @@
-#include "BlockAttPosEst.hpp"
+#include "BlockAttEst.hpp"
 #include <px4_posix.h>
 
-BlockAttPosEst::BlockAttPosEst(SuperBlock * parent, const char * name) :
-	BlockAttEst(parent, name),
+BlockAttEst::BlockAttEst(SuperBlock * parent, const char * name) :
+	SuperBlock(parent, name),
 	// Publications (meta, priority, list)
 	// Subscriptions (meta, interval, instance, list)
 	_subSensor(ORB_ID(sensor_combined), 0, 0, &getSubscriptions()),
 	_subParam(ORB_ID(parameter_update), 0, 0, &getSubscriptions()),
 	_subControlMode(ORB_ID(vehicle_control_mode), 0, 0, &getSubscriptions()),
-	_subGps(ORB_ID(vehicle_gps_position), 0, 0, &getSubscriptions()),
 	_timestamp(0),
 	_timestampGyro(0),
-	_timestampBaro(0),
 	_timestampMag(0),
 	_timestampAccel(0)
 {
 }
 
-void BlockAttPosEst::update() {
+void BlockAttEst::update() {
 
 	// poll
 	px4_pollfd_struct_t fds[1];
@@ -37,7 +35,6 @@ void BlockAttPosEst::update() {
 	printf("dt: %g\n", double(getDt()));
 	_timestamp = now;
 	handleSensor();
-	handleGps();
 	handleParam();
 }
 
@@ -45,13 +42,12 @@ void BlockAttPosEst::update() {
  * Subscription handlers
  */
 
-void BlockAttPosEst::handleSensor() {
+void BlockAttEst::handleSensor() {
 	if (!_subSensor.updated()) return;
 	_subSensor.update();
 
 	// new available data
 	bool gyroUpdate = false;
-	bool baroUpdate = false;
 	bool accelUpdate = false;
 	bool magUpdate = false;
 
@@ -61,12 +57,6 @@ void BlockAttPosEst::handleSensor() {
 		//printf("dt gyro: %g\n", double((nowGyro - _timestampGyro)/1.0e6f));
 		_timestampGyro = nowGyro;
 		gyroUpdate = true;
-	}
-	uint64_t nowBaro = _subSensor.get().baro_timestamp[0];
-	if (_timestampBaro != nowBaro) {
-		//printf("dt baro: %g\n", double((nowBaro - _timestampBaro)/1.0e6f));
-		_timestampBaro = nowBaro;
-		baroUpdate = true;
 	}
 	uint64_t nowMag = _subSensor.get().magnetometer_timestamp[0];
 	if (_timestampMag != nowMag) {
@@ -106,32 +96,10 @@ void BlockAttPosEst::handleSensor() {
 		y(5) = 0;
 		correctMagAccel(y, R);
 	}
-	if (baroUpdate) {
-		SMat1 R;
-	   	R(0,0) = 1;
-		Vec1 y;
-	   	y(0) = 0;
-		correctAbsAlt(y, R);
-	}
 }
 
-void BlockAttPosEst::handleParam() {
+void BlockAttEst::handleParam() {
 	if (!_subParam.updated()) return;
 	_subParam.update();
 	updateParams();
-}
-
-void BlockAttPosEst::handleGps() {
-	if (!_subGps.updated()) return;
-	_subGps.update();
-	SMat6 R;
-	R.setIdentity();
-	Vec6 y;
-	y(0) = 0;
-	y(1) = 0;
-	y(2) = 0;
-	y(3) = 0;
-	y(4) = 0;
-	y(5) = 0;
-	correctPosVel(y, R);
 }

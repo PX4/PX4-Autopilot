@@ -1,8 +1,8 @@
-#include "BlockAttPosEst.hpp"
+#include "BlockPosEst.hpp"
 #include <px4_posix.h>
 
-BlockAttPosEst::BlockAttPosEst(SuperBlock * parent, const char * name) :
-	BlockAttEst(parent, name),
+BlockPosEst::BlockPosEst(SuperBlock * parent, const char * name) :
+	SuperBlock(parent, name),
 	// Publications (meta, priority, list)
 	// Subscriptions (meta, interval, instance, list)
 	_subSensor(ORB_ID(sensor_combined), 0, 0, &getSubscriptions()),
@@ -17,7 +17,7 @@ BlockAttPosEst::BlockAttPosEst(SuperBlock * parent, const char * name) :
 {
 }
 
-void BlockAttPosEst::update() {
+void BlockPosEst::update() {
 
 	// poll
 	px4_pollfd_struct_t fds[1];
@@ -45,7 +45,7 @@ void BlockAttPosEst::update() {
  * Subscription handlers
  */
 
-void BlockAttPosEst::handleSensor() {
+void BlockPosEst::handleSensor() {
 	if (!_subSensor.updated()) return;
 	_subSensor.update();
 
@@ -115,13 +115,13 @@ void BlockAttPosEst::handleSensor() {
 	}
 }
 
-void BlockAttPosEst::handleParam() {
+void BlockPosEst::handleParam() {
 	if (!_subParam.updated()) return;
 	_subParam.update();
 	updateParams();
 }
 
-void BlockAttPosEst::handleGps() {
+void BlockPosEst::handleGps() {
 	if (!_subGps.updated()) return;
 	_subGps.update();
 	SMat6 R;

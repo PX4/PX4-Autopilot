@@ -40,6 +40,7 @@ px4_add_module(
 	COMPILE_FLAGS ${MODULE_CFLAGS}
 	STACK 1200
 	SRCS
+		BlockAttEstQ.cpp
 		attitude_estimator_q_main.cpp
 	DEPENDS
 		platforms__common

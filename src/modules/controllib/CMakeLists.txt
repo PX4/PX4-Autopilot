@@ -41,6 +41,8 @@ px4_add_module(
 		block/Block.cpp
 		block/BlockParam.cpp
 		estimators/BlockAttPosEst.cpp
+		estimators/BlockPosEst.cpp
+		estimators/BlockAttEst.cpp
 		uorb/blocks.cpp
 		blocks.cpp
 	DEPENDS

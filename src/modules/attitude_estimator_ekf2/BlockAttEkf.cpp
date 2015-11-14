@@ -123,11 +123,15 @@ void BlockAttEkf::update()
 void BlockAttEkf::predict()
 {
 	// calculate mean of gyro over interval
-	//Vector<3> y_gyro(&(_sub_sensor.get().gyro_integral_rad[0]));
-	//float dt_gyro = _sub_sensor.get().gyro_integral_dt[0]/1.0e6f;
-	//y_gyro /= dt_gyro;
-
-	Vector3f y_gyro(&(_sub_sensor.get().gyro_rad_s[0]));
+	Vector<float, 3> y_gyro;
+	for (int i=0; i<3; i++) {
+		float dt_gyro = _sub_sensor.get().gyro_integral_dt[i]/1.0e6f;
+		if (dt_gyro > 0) {
+			y_gyro(i) = _sub_sensor.get().gyro_integral_rad[i]/dt_gyro;
+		} else {
+			y_gyro(i) = _sub_sensor.get().gyro_rad_s[i];
+		}
+	}
 
 	// angular velocity of reference frame wrt nav frame
 	_omega_nr = y_gyro - _b_gyro;

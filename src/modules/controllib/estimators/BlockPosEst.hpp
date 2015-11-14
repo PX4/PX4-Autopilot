@@ -12,8 +12,6 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
-#include "BlockAttEst.hpp"
-
 using namespace matrix;
 
 typedef Vector<float, 1> Vec1;
@@ -23,9 +21,9 @@ typedef SquareMatrix<float, 1> SMat1;
 typedef SquareMatrix<float, 3> SMat3;
 typedef SquareMatrix<float, 6> SMat6;
 
-class BlockAttPosEst : public BlockAttEst {
+class BlockPosEst : public control::SuperBlock {
 public:
-	BlockAttPosEst(SuperBlock * parent, const char * name);
+	BlockPosEst(SuperBlock * parent, const char * name);
 	void update();
 protected:
 	// correction

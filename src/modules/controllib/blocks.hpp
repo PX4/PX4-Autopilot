@@ -171,12 +171,11 @@ class __EXPORT BlockLowPass2 : public Block
 {
 public:
 // methods
-	BlockLowPass2(SuperBlock *parent, const char *name, float sample_freq) :
+	BlockLowPass2(SuperBlock *parent, const char *name) :
 		Block(parent, name),
 		_state(0.0 / 0.0 /* initialize to invalid val, force into is_finite() check on first call */),
-		_fCut(this, ""), // only one parameter, no need to name
-		_fs(sample_freq),
-		_lp(_fs, _fCut.get())
+		_fCut(this, "FCUT"), // cut frequency
+		_lp(1e3, _fCut.get())
 	{};
 	virtual ~BlockLowPass2() {};
 	float update(float input);
@@ -188,7 +187,6 @@ protected:
 // attributes
 	float _state;
 	control::BlockParamFloat _fCut;
-	float _fs;
 	math::LowPassFilter2p _lp;
 };
 
