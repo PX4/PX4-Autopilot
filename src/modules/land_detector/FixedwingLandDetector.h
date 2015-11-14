@@ -107,9 +107,7 @@ private:
 	float _velocity_xy_filtered;
 	float _velocity_z_filtered;
 	float _airspeed_filtered;
-	float _accel_x_integral;
-	uint64_t _lastTime;
-	float _lastXAccel;
+	float _accel_horz_lp;
 	uint64_t _landDetectTrigger;
 };
 

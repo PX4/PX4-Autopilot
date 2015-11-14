@@ -61,9 +61,7 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_velocity_xy_filtered(0.0f),
 	_velocity_z_filtered(0.0f),
 	_airspeed_filtered(0.0f),
-	_accel_x_integral(0.0f),
-	_lastTime(0),
-	_lastXAccel(0.0f),
+	_accel_horz_lp(0.0f),
 	_landDetectTrigger(0)
 {
 	_paramHandle.maxVelocity = param_find("LNDFW_VEL_XY_MAX");
@@ -93,9 +91,6 @@ void FixedwingLandDetector::updateSubscriptions()
 
 bool FixedwingLandDetector::update()
 {
-	_lastXAccel = _controlState.x_acc;
-	_lastTime = _controlState.timestamp;
-
 	// First poll for new data from our subscriptions
 	updateSubscriptions();
 
@@ -123,12 +118,9 @@ bool FixedwingLandDetector::update()
 
 		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
 
-		if (_lastTime != 0) {
-			/* a leaking integrator prevents biases from building up, but
-			 * gives a mostly correct response for short impulses
-			 */
-			_accel_x_integral = _accel_x_integral * 0.8f + _controlState.horz_acc_mag * 0.18f;
-		}
+		// a leaking lowpass prevents biases from building up, but
+		// gives a mostly correct response for short impulses
+		_accel_horz_lp = _accel_horz_lp * 0.8f + _controlState.horz_acc_mag * 0.18f;
 
 	}
 
@@ -136,7 +128,7 @@ bool FixedwingLandDetector::update()
 	if (_velocity_xy_filtered < _params.maxVelocity
 	    && _velocity_z_filtered < _params.maxClimbRate
 	    && _airspeed_filtered < _params.maxAirSpeed
-	    && _accel_x_integral < _params.maxIntVelocity) {
+	    && _accel_horz_lp < _params.maxIntVelocity) {
 
 		// these conditions need to be stable for a period of time before we trust them
 		if (now > _landDetectTrigger) {
@@ -147,8 +139,6 @@ bool FixedwingLandDetector::update()
 		// reset land detect trigger
 		_landDetectTrigger = now + LAND_DETECTOR_TRIGGER_TIME;
 	}
-
-	_lastTime = _controlState.timestamp;
 
 	return landDetected;
 }
