@@ -425,7 +425,6 @@ int create_log_dir()
 			mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {
-				warnx("log dir created: %s", log_dir);
 				break;
 
 			} else if (errno != EEXIST) {
