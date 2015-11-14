@@ -130,6 +130,8 @@ int main()
     Quatf q_prod_check(
         0.93394439f, 0.0674002f, 0.20851f, 0.28236266f);
     assert(q_prod_check == q_check*q_check);
+    q_check *= q_check;
+    assert(q_prod_check == q_check);
 
 };
 
