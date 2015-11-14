@@ -2189,8 +2189,7 @@ int commander_thread_main(int argc, char *argv[])
 					if (telemetry_last_dl_loss[i] > 0) {
 						mavlink_and_console_log_info(mavlink_fd, "data link #%i regained", i);
 					} else if (telemetry_last_dl_loss[i] == 0){
-					/* report a new link */
-						mavlink_and_console_log_info(mavlink_fd, "new data link connected : #%i", i);
+					/* do not report a new data link in order to not spam the user */
 						status.data_link_found_new = true;
 						status_changed = true;
 					}
