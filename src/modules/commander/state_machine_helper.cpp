@@ -177,7 +177,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 					// Fail transition if we need safety switch press
 					} else if (safety->safety_switch_available && !safety->safety_off) {
 
-						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first!");
+						mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first!");
 						feedback_provided = true;
 						valid_transition = false;
 					}
@@ -202,10 +202,10 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 								feedback_provided = true;
 								valid_transition = false;
 							} else if (status->avionics_power_rail_voltage < 4.9f) {
-								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+								mavlink_and_console_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 							} else if (status->avionics_power_rail_voltage > 5.4f) {
-								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+								mavlink_and_console_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 							}
 						}
@@ -392,7 +392,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 		switch (new_state) {
 		case vehicle_status_s::HIL_STATE_OFF:
 			/* we're in HIL and unexpected things can happen if we disable HIL now */
-			mavlink_log_critical(mavlink_fd, "Not switching off HIL (safety)");
+			mavlink_and_console_log_critical(mavlink_fd, "Not switching off HIL (safety)");
 			ret = TRANSITION_DENIED;
 			break;
 
@@ -465,7 +465,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 					closedir(d);
 
 					ret = TRANSITION_CHANGED;
-					mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
+					mavlink_and_console_log_critical(mavlink_fd, "Switched to ON hil state");
 
 				} else {
 					/* failed opening dir */
@@ -502,11 +502,11 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 				}
 
 				ret = TRANSITION_CHANGED;
-				mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
+				mavlink_and_console_log_critical(mavlink_fd, "Switched to ON hil state");
 #endif
 
 			} else {
-				mavlink_log_critical(mavlink_fd, "Not switching to HIL when armed");
+				mavlink_and_console_log_critical(mavlink_fd, "Not switching to HIL when armed");
 				ret = TRANSITION_DENIED;
 			}
 			break;
@@ -759,9 +759,9 @@ int preflight_check(const struct vehicle_status_s *status, const int mavlink_fd,
 
 	bool preflight_ok = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true, reportFailures);
 		
-	if (status->usb_connected && prearm) {
+	if (!status->cb_usb && status->usb_connected && prearm) {
 		preflight_ok = false;
-		if(reportFailures) mavlink_log_critical(mavlink_fd, "NOT ARMING: Flying with USB connected prohibited");
+		if(reportFailures) mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Flying with USB connected prohibited");
 	}
 
 	return !preflight_ok;

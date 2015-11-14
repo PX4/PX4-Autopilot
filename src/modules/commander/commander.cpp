@@ -390,15 +390,20 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "arm")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
-		arm_disarm(true, mavlink_fd_local, "command line");
-		warnx("note: not updating home position on commandline arming!");
+		if (TRANSITION_CHANGED == arm_disarm(true, mavlink_fd_local, "command line")) {
+			warnx("note: not updating home position on commandline arming!");
+		} else {
+			warnx("arming failed");
+		}
 		px4_close(mavlink_fd_local);
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
-		arm_disarm(false, mavlink_fd_local, "command line");
+		if (TRANSITION_DENIED == arm_disarm(false, mavlink_fd_local, "command line")) {
+			warnx("rejected disarm");
+		}
 		px4_close(mavlink_fd_local);
 		return 0;
 	}
@@ -2513,6 +2518,8 @@ get_circuit_breaker_params()
 {
 	status.circuit_breaker_engaged_power_check =
 		circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+	status.cb_usb =
+		circuit_breaker_enabled("CBRK_USB_CHK", CBRK_USB_CHK_KEY);
 	status.circuit_breaker_engaged_airspd_check =
 		circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
 	status.circuit_breaker_engaged_enginefailure_check =
