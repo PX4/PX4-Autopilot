@@ -52,7 +52,7 @@
  * @unit meters
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
+PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
 
 /**
  * Enable persistent onboard mission storage

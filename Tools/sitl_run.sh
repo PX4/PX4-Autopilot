@@ -56,8 +56,8 @@ then
 		export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:$curr_dir/Tools/sitl_gazebo/Build
 		# Set the model path so Gazebo finds the airframes
 		export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$curr_dir/Tools/sitl_gazebo/models
-		# Disable online model lookup since this is quite experimental and unstable
-		export GAZEBO_MODEL_DATABASE_URI=""
+		# The next line would disable online model lookup, can be commented in, in case of unstable behaviour.
+		# export GAZEBO_MODEL_DATABASE_URI=""
 		export SITL_GAZEBO_PATH=$curr_dir/Tools/sitl_gazebo
 		mkdir -p Tools/sitl_gazebo/Build
 		cd Tools/sitl_gazebo/Build

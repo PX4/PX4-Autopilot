@@ -36,6 +36,7 @@
 #include <px4_config.h>
 
 #include <uavcan_stm32/uavcan_stm32.hpp>
+#include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <uavcan/protocol/global_time_sync_master.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
 #include <uavcan/protocol/param/GetSet.hpp>
@@ -55,6 +56,7 @@
 #include "sensors/sensor_bridge.hpp"
 
 #include "uavcan_servers.hpp"
+#include "allocator.hpp"
 
 /**
  * @file uavcan_main.hpp
@@ -78,9 +80,8 @@ class UavcanNode : public device::CDev
 	static constexpr unsigned FramePerSecond     = MaxBitRatePerSec / bitPerFrame;
 	static constexpr unsigned FramePerMSecond    = ((FramePerSecond / 1000) + 1);
 
-	static constexpr unsigned PollTimeoutMs      = 10;
+	static constexpr unsigned PollTimeoutMs      = 3;
 
-	static constexpr unsigned MemPoolSize = 64 * uavcan::MemPoolBlockSize;
 	/*
 	 * This memory is reserved for uavcan to use for queuing CAN frames.
 	 * At 1Mbit there is approximately one CAN frame every 145 uS.
@@ -97,7 +98,6 @@ class UavcanNode : public device::CDev
 	static constexpr unsigned StackSize          = 1800;
 
 public:
-	typedef uavcan::Node<MemPoolSize> Node;
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 	enum eServerAction {None, Start, Stop, CheckFW , Busy};
 
@@ -109,7 +109,7 @@ public:
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
 
-	Node		&get_node() { return _node; }
+	uavcan::Node<>	&get_node() { return _node; }
 
 	// TODO: move the actuator mixing stuff into the ESC controller class
 	static int	control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
@@ -121,6 +121,8 @@ public:
 
 	void		print_info();
 
+	void		shrink();
+
 	static UavcanNode *instance() { return _instance; }
 	static int         getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
 	int             fw_server(eServerAction action);
@@ -130,8 +132,8 @@ public:
 	int             set_param(int remote_node_id, const char *name, char *value);
 	int             get_param(int remote_node_id, const char *name);
 	int             reset_node(int remote_node_id);
-private:
 
+private:
 	void		fill_node_info();
 	int		init(uavcan::NodeID node_id);
 	void		node_spin_once();
@@ -167,7 +169,9 @@ private:
 
 	static UavcanNode	*_instance;			///< singleton pointer
 
-	Node			_node;				///< library instance
+	uavcan_node::Allocator _pool_allocator;
+
+	uavcan::Node<>		_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
 	px4_sem_t                   _server_command_sem;
 	UavcanEscController	_esc_controller;

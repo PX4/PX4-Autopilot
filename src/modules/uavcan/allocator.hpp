@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,53 +32,42 @@
  ****************************************************************************/
 
 /**
- * @file PreflightCheck.h
- *
- * Preflight check for main system components
- *
- * @author Johan Jansen <jnsn.johan@gmail.com>
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
 #pragma once
 
-namespace Commander
+#include <systemlib/err.h>
+#include <uavcan/uavcan.hpp>
+#include <uavcan/helpers/heap_based_pool_allocator.hpp>
+
+// TODO: Entire UAVCAN application should be moved into a namespace later; this is the first step.
+namespace uavcan_node
 {
-/**
-* Runs a preflight check on all sensors to see if they are properly calibrated and healthy
-*
-* The function won't fail the test if optional sensors are not found, however,
-* it will fail the test if optional sensors are found but not in working condition.
-*
-* @param mavlink_fd
-*   Mavlink output file descriptor for feedback when a sensor fails
-* @param checkMag
-*   true if the magneteometer should be checked
-* @param checkAcc
-*   true if the accelerometers should be checked
-* @param checkGyro
-*   true if the gyroscopes should be checked
-* @param checkBaro
-*   true if the barometer should be checked
-* @param checkAirspeed
-*   true if the airspeed sensor should be checked
-* @param checkRC
-*   true if the Remote Controller should be checked
-* @param checkGNSS
-*   true if the GNSS receiver should be checked
-**/
-bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc,
-    bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic, bool reportFailures = false);
 
-const unsigned max_mandatory_gyro_count = 1;
-const unsigned max_optional_gyro_count = 3;
+struct AllocatorSynchronizer
+{
+	const ::irqstate_t state = ::irqsave();
+	~AllocatorSynchronizer() { ::irqrestore(state); }
+};
 
-const unsigned max_mandatory_accel_count = 1;
-const unsigned max_optional_accel_count = 3;
+struct Allocator : public uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer>
+{
+	static constexpr unsigned CapacitySoftLimit = 250;
+	static constexpr unsigned CapacityHardLimit = 500;
 
-const unsigned max_mandatory_mag_count = 1;
-const unsigned max_optional_mag_count = 3;
+	Allocator() :
+		uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer>(CapacitySoftLimit, CapacityHardLimit)
+	{ }
 
-const unsigned max_mandatory_baro_count = 1;
-const unsigned max_optional_baro_count = 1;
+	~Allocator()
+	{
+	        if (getNumAllocatedBlocks() > 0)
+	        {
+	        	warnx("UAVCAN LEAKS MEMORY: %u BLOCKS (%u BYTES) LOST",
+	        		getNumAllocatedBlocks(), getNumAllocatedBlocks() * uavcan::MemPoolBlockSize);
+	        }
+	}
+};
 
 }
