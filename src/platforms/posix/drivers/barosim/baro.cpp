@@ -245,6 +245,7 @@ int
 BAROSIM::init()
 {
 	int ret;
+	struct baro_report brp = {};
 	//PX4_DEBUG("BAROSIM::init");
 
 	ret = VirtDevObj::init();
@@ -262,8 +263,6 @@ BAROSIM::init()
 		ret = -ENOMEM;
 		goto out;
 	}
-
-	struct baro_report brp;
 
 	/* do a first measurement cycle to populate reports with valid data */
 	_measure_phase = 0;
