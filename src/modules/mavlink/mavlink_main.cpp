@@ -1712,6 +1712,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* camera trigger is rate limited at the source, do not limit here */
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
+		configure_stream("VISION_POSITION_NED", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
