@@ -5,9 +5,9 @@
 
 using namespace matrix;
 
-Vector<float, 6> f(float t, const Vector<float, 6> & y, const Vector<float, 3> & u);
+Vector<float, 6> f(float t, const Matrix<float, 6, 1> & y, const Matrix<float, 3, 1> & u);
 
-Vector<float, 6> f(float t, const Vector<float, 6> & y, const Vector<float, 3> & u) {
+Vector<float, 6> f(float t, const Matrix<float, 6, 1> & y, const Matrix<float, 3, 1> & u) {
     return ones<float, 6, 1>();
 }
 
