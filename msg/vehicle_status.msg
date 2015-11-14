@@ -120,6 +120,8 @@ bool in_transition_mode
 bool condition_battery_voltage_valid
 bool condition_system_in_air_restore		# true if we can restore in mid air
 bool condition_system_sensors_initialized
+bool condition_system_prearm_error_reported	# true if errors have already been reported 
+bool condition_system_hotplug_timeout		# true if the hotplug sensor search is over
 bool condition_system_returned_to_home
 bool condition_auto_mission_available
 bool condition_global_position_valid		# set to true by the commander app if the quality of the position estimate is good enough to use it for navigation
@@ -139,6 +141,7 @@ bool rc_signal_lost_cmd				# true if RC lost mode is commanded
 bool rc_input_blocked				# set if RC input should be ignored temporarily
 uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual control to RC in mapping.
 
+bool data_link_found_new			# new datalink to GCS found
 bool data_link_lost				# datalink to GCS lost
 bool data_link_lost_cmd				# datalink to GCS lost mode commanded
 uint8 data_link_lost_counter			# counts unique data link lost events

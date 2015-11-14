@@ -93,8 +93,6 @@ static const char * const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_IN_AIR_RESTORE",
 };
 
-static bool sensor_feedback_provided = false;
-
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status,		///< current vehicle status
 			const struct safety_s   *safety,		///< current safety settings
@@ -122,10 +120,18 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		 */
 		int prearm_ret = OK;
 
-		/* only perform the check if we have to */
+		/* only perform the pre-arm check if we have to */
 		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
 				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
-			prearm_ret = prearm_check(status, mavlink_fd);
+			prearm_ret = preflight_check(status, mavlink_fd, true /* pre-arm */ );
+		}
+		/* re-run the pre-flight check as long as sensors are failing */
+		if (!status->condition_system_sensors_initialized 
+				&& (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED ||
+				    new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+             			&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+            		prearm_ret = preflight_check(status, mavlink_fd, false /* pre-flight */);
+			status->condition_system_sensors_initialized = !prearm_ret;
 		}
 
 		/*
@@ -243,9 +249,11 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
 			(!status->condition_system_sensors_initialized)) {
-			if (!sensor_feedback_provided || (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+			if ((!status->condition_system_prearm_error_reported && 
+			      status->condition_system_hotplug_timeout) || 
+			     (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
 				mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
-				sensor_feedback_provided = true;
+				status->condition_system_prearm_error_reported = true;
 			}
 			feedback_provided = true;
 			valid_transition = false;
@@ -262,7 +270,11 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		/* reset feedback state */
 		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
 			valid_transition) {
-			sensor_feedback_provided = false;
+			status->condition_system_prearm_error_reported = false;
+		}
+		if(status->data_link_found_new == true)
+		{
+			status->condition_system_prearm_error_reported = false;
 		}
 
 		/* end of atomic state update */
@@ -731,11 +743,13 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 	return status->nav_state != nav_state_old;
 }
 
-int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
+int preflight_check(const struct vehicle_status_s *status, const int mavlink_fd, bool prearm)
 {
-	/* at this point this equals the preflight check, but might add additional
-	 * quantities later.
+	/* 
 	 */
+	bool reportFailures = false;
+	reportFailures = !status->condition_system_prearm_error_reported && status->condition_system_hotplug_timeout;
+	
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
@@ -743,12 +757,12 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		checkAirspeed = true;
 	}
 
-	bool prearm_ok = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true);
-
-	if (status->usb_connected) {
-		prearm_ok = false;
-		mavlink_log_critical(mavlink_fd, "NOT ARMING: Flying with USB connected prohibited");
+	bool preflight_ok = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true, reportFailures);
+		
+	if (status->usb_connected && prearm) {
+		preflight_ok = false;
+		if(reportFailures) mavlink_log_critical(mavlink_fd, "NOT ARMING: Flying with USB connected prohibited");
 	}
 
-	return !prearm_ok;
+	return !preflight_ok;
 }
