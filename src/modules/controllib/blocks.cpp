@@ -211,7 +211,7 @@ float BlockLowPass2::update(float input)
 	}
 
 	if (fabsf(_lp.get_cutoff_freq() - getFCutParam()) > FLT_EPSILON) {
-		_lp.set_cutoff_frequency(_fs, getFCutParam());
+		_lp.set_cutoff_frequency(1.0f/getDt(), getFCutParam());
 	}
 
 	_state = _lp.apply(input);
@@ -221,7 +221,7 @@ float BlockLowPass2::update(float input)
 int blockLowPass2Test()
 {
 	printf("Test BlockLowPass2\t\t: ");
-	BlockLowPass2 lowPass(NULL, "TEST_LP", 100);
+	BlockLowPass2 lowPass(NULL, "TEST_LP");
 	// test initial state
 	ASSERT_CL(equal(10.0f, lowPass.getFCutParam()));
 	ASSERT_CL(equal(0.0f, lowPass.getState()));

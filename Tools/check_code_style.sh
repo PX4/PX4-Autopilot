@@ -27,6 +27,7 @@ for fn in $(find src/examples \
                  src/modules/fixedwing_backside \
                  src/modules/segway \
                  src/modules/local_position_estimator \
+                 src/modules/attitude_estimator_ekf2 \
                  src/modules/unit_test \
                  src/modules/systemlib \
                  src/modules/controllib \

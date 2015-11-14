@@ -143,3 +143,23 @@ PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);
+
+/**
+ * Low pass filter cut frequency, for roll/pitch
+ *
+ * @group Attitude Q estimator
+ * @min 10
+ * @max 100
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(ATT_LP, 18.0f);
+
+/**
+ * Low pass filter cut frequency, for yaw
+ *
+ * @group Attitude Q estimator
+ * @min 10
+ * @max 100
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(ATT_R_LP, 10.0f);

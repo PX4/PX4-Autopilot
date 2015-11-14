@@ -29,19 +29,21 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-#############################################################################
-set(MODULE_CFLAGS)
+############################################################################
 if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1400)
+	set(MODULE_CFLAGS -Wframe-larger-than=10240)
 endif()
 px4_add_module(
-	MODULE modules__attitude_estimator_q
-	MAIN attitude_estimator_q
-	COMPILE_FLAGS ${MODULE_CFLAGS}
-	STACK 1200
+	MODULE modules__attitude_estimator_ekf2
+	MAIN attitude_estimator_ekf2
+	STACK 2048
+	COMPILE_FLAGS
+		${MODULE_CFLAGS}
+		-Wno-float-equal
 	SRCS
-		BlockAttEstQ.cpp
-		attitude_estimator_q_main.cpp
+		params.c
+		BlockAttEkf.cpp
+		attitude_estimator_ekf2_main.cpp
 	DEPENDS
 		platforms__common
 	)
