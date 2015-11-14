@@ -46,6 +46,7 @@ struct attitude_estimator_ekf_params {
 	float q[4];
 	float moment_inertia_J[9];
 	int32_t use_moment_inertia;
+	int32_t use_vision;
 	float roll_off;
 	float pitch_off;
 	float yaw_off;
@@ -58,6 +59,7 @@ struct attitude_estimator_ekf_param_handles {
 	param_t q0, q1, q2, q3;
 	param_t moment_inertia_J[3]; /**< diagonal entries of the matrix */
 	param_t use_moment_inertia;
+	param_t use_vision;
 	param_t mag_decl;
 	param_t acc_comp;
 };

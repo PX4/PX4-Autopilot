@@ -124,6 +124,7 @@ int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 	h->moment_inertia_J[1]  =   param_find("ATT_J22");
 	h->moment_inertia_J[2]  =   param_find("ATT_J33");
 	h->use_moment_inertia	=   param_find("ATT_J_EN");
+	h->use_vision   =   param_find("ATT_VIS_EN");
 
 	return OK;
 }
@@ -144,6 +145,7 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 	}
 
 	param_get(h->use_moment_inertia, &(p->use_moment_inertia));
+	param_get(h->use_vision, &(p->use_vision));
 
 	return OK;
 }
@@ -493,7 +495,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					bool mocap_updated = false;
 					orb_check(mocap_sub, &mocap_updated);
 
-					if (vision_updated) {
+					if (ekf_params.use_vision && vision_updated) {
 						orb_copy(ORB_ID(vision_position_estimate), vision_sub, &vision);
 					}
 
