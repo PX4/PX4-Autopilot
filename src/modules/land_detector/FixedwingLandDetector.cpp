@@ -36,6 +36,7 @@
  * Land detection algorithm for fixedwings
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include "FixedwingLandDetector.h"
@@ -48,30 +49,31 @@
 FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
-	_vehicleLocalPositionSub(-1),
-	_vehicleLocalPosition( {}),
-		       _airspeedSub(-1),
-		       _vehicleStatusSub(-1),
-		       _armingSub(-1),
-		       _airspeed{},
-		       _vehicleStatus{},
-		       _arming{},
-		       _parameterSub(-1),
-		       _velocity_xy_filtered(0.0f),
-		       _velocity_z_filtered(0.0f),
-		       _airspeed_filtered(0.0f),
-		       _landDetectTrigger(0)
+	_controlStateSub(-1),
+	_controlState{},
+	_vehicleStatusSub(-1),
+	_armingSub(-1),
+	_vehicleStatus{},
+	_arming{},
+	_parameterSub(-1),
+	_velocity_xy_filtered(0.0f),
+	_velocity_z_filtered(0.0f),
+	_airspeed_filtered(0.0f),
+	_accel_x_integral(0.0f),
+	_lastTime(0),
+	_lastXAccel(0.0f),
+	_landDetectTrigger(0)
 {
 	_paramHandle.maxVelocity = param_find("LNDFW_VEL_XY_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDFW_VEL_Z_MAX");
 	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
+	_paramHandle.maxIntVelocity = param_find("LNDFW_VELI_MAX");
 }
 
 void FixedwingLandDetector::initialize()
 {
 	// Subscribe to local position and airspeed data
-	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
+	_controlStateSub = orb_subscribe(ORB_ID(control_state));
 	_vehicleStatusSub = orb_subscribe(ORB_ID(vehicle_status));
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 
@@ -80,14 +82,16 @@ void FixedwingLandDetector::initialize()
 
 void FixedwingLandDetector::updateSubscriptions()
 {
-	orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
-	orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
+	orb_update(ORB_ID(control_state), _controlStateSub, &_controlState);
 	orb_update(ORB_ID(vehicle_status), _vehicleStatusSub, &_vehicleStatus);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 }
 
 bool FixedwingLandDetector::update()
 {
+	_lastXAccel = _controlState.x_acc;
+	_lastTime = _controlState.timestamp;
+
 	// First poll for new data from our subscriptions
 	updateSubscriptions();
 
@@ -99,29 +103,35 @@ bool FixedwingLandDetector::update()
 	const uint64_t now = hrt_absolute_time();
 	bool landDetected = false;
 
-	if (hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500 * 1000) {
-		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicleLocalPosition.vx *
-				_vehicleLocalPosition.vx + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy);
+	if (hrt_elapsed_time(&_controlState.timestamp) < 500 * 1000) {
+		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_controlState.x_vel *
+				_controlState.x_vel + _controlState.y_vel * _controlState.y_vel);
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
 		}
 
-		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_vehicleLocalPosition.vz);
+		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_controlState.z_vel);
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_z_filtered = val;
 		}
-	}
 
-	if (hrt_elapsed_time(&_airspeed.timestamp) < 500 * 1000) {
-		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
+		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _controlState.airspeed;
+
+		if (_lastTime != 0) {
+			/* a leaking integrator prevents biases from building up, but
+			 * gives a mostly correct response for short impulses
+			 */
+			_accel_x_integral = _accel_x_integral * 0.8f + _controlState.horz_acc_mag * 0.18f;
+		}
 	}
 
 	// crude land detector for fixedwing
 	if (_velocity_xy_filtered < _params.maxVelocity
 	    && _velocity_z_filtered < _params.maxClimbRate
-	    && _airspeed_filtered < _params.maxAirSpeed) {
+	    && _airspeed_filtered < _params.maxAirSpeed
+	    && _accel_x_integral < _params.maxIntVelocity) {
 
 		// these conditions need to be stable for a period of time before we trust them
 		if (now > _landDetectTrigger) {
@@ -132,6 +142,8 @@ bool FixedwingLandDetector::update()
 		// reset land detect trigger
 		_landDetectTrigger = now + LAND_DETECTOR_TRIGGER_TIME;
 	}
+
+	_lastTime = _controlState.timestamp;
 
 	return landDetected;
 }
@@ -151,5 +163,6 @@ void FixedwingLandDetector::updateParameterCache(const bool force)
 		param_get(_paramHandle.maxVelocity, &_params.maxVelocity);
 		param_get(_paramHandle.maxClimbRate, &_params.maxClimbRate);
 		param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
+		param_get(_paramHandle.maxIntVelocity, &_params.maxIntVelocity);
 	}
 }

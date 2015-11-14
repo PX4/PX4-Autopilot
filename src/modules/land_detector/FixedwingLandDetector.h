@@ -42,8 +42,7 @@
 #define __FIXED_WING_LAND_DETECTOR_H__
 
 #include "LandDetector.h"
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
@@ -83,21 +82,21 @@ private:
 		param_t maxVelocity;
 		param_t maxClimbRate;
 		param_t maxAirSpeed;
+		param_t maxIntVelocity;
 	}		_paramHandle;
 
 	struct {
 		float maxVelocity;
 		float maxClimbRate;
 		float maxAirSpeed;
+		float maxIntVelocity;
 	} _params;
 
 private:
-	int					_vehicleLocalPositionSub;	/**< notification of local position */
-	struct vehicle_local_position_s		_vehicleLocalPosition;		/**< the result from local position subscription */
-	int					_airspeedSub;
+	int					_controlStateSub;	/**< notification of local position */
+	struct control_state_s			_controlState;		/**< the result from local position subscription */
 	int					_vehicleStatusSub;
 	int					_armingSub;
-	struct airspeed_s			_airspeed;
 	struct vehicle_status_s 		_vehicleStatus;
 	struct actuator_armed_s			_arming;
 	int 					_parameterSub;
@@ -105,6 +104,9 @@ private:
 	float _velocity_xy_filtered;
 	float _velocity_z_filtered;
 	float _airspeed_filtered;
+	float _accel_x_integral;
+	uint64_t _lastTime;
+	float _lastXAccel;
 	uint64_t _landDetectTrigger;
 };
 
