@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +35,7 @@
  * @file mavlink_log.c
  * MAVLink text logging.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <px4_posix.h>
@@ -106,7 +105,7 @@ __EXPORT void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int seve
 	va_start(ap, fmt);
 	int end = (lb->start + lb->count) % lb->size;
 	lb->elems[end].severity = severity;
-	vsnprintf(lb->elems[end].text, sizeof(lb->elems[0].text), fmt, ap);
+	vsnprintf(lb->elems[end].text, sizeof(lb->elems[end].text), fmt, ap);
 	va_end(ap);
 
 	/* increase count */
