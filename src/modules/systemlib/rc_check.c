@@ -202,8 +202,8 @@ int rc_calibration_check(int mavlink_fd, bool report_fail)
 
 		if (report_fail) {
 			mavlink_and_console_log_critical(mavlink_fd, "%d config error%s for %d RC channel%s.",
-					total_fail_count,
-					(total_fail_count > 1) ? "s" : "", channels_failed, (channels_failed > 1) ? "s" : "");
+							 total_fail_count,
+							 (total_fail_count > 1) ? "s" : "", channels_failed, (channels_failed > 1) ? "s" : "");
 		}
 
 		usleep(100000);
