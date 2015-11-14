@@ -15,6 +15,7 @@ using namespace matrix;
 
 typedef Vector<float, 1> Vec1;
 typedef Vector3<float> Vec3;
+typedef Vector<float, 4> Vec4;
 typedef Vector<float, 6> Vec6;
 typedef SquareMatrix<float, 1> SMat1;
 typedef SquareMatrix<float, 3> SMat3;

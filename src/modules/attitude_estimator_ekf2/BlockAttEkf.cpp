@@ -4,11 +4,12 @@
 #include <matrix/filter.hpp>
 #include <drivers/drv_hrt.h>
 
-Vector<float, 4> q_dynamics(float t, const Vector<float, 4> & y, const Vector<float, 3> & omega_nr);
+Vector<float, 4> q_dynamics(float t, const Matrix<float, 4, 1> & y,
+		const Matrix<float, 3, 1> & omega_nr);
 
-Vector<float, 4> q_dynamics(float t, const Vector<float, 4> & y, const Vector<float, 3> & omega_nr) {
-	Quatf q(y(0), y(1), y(2), y(3));
-	return q.derivative(omega_nr);
+Vector<float, 4> q_dynamics(float t, const Matrix<float, 4, 1> & y,
+		const Matrix<float, 3, 1> & omega_nr) {
+	return Quatf(y).derivative(omega_nr);
 }
 
 BlockAttEkf::BlockAttEkf() :
@@ -170,7 +171,8 @@ void BlockAttEkf::predict()
 	Q(5, 5) = bias_dot_stddev * bias_dot_stddev;
 
 	// propagate state
-	integrate_rk4(&q_dynamics, _q_nr,
+	integrate_rk4(
+			&q_dynamics, _q_nr,
 			_omega_nr, 0.0f, getDt(), _q_nr);
 
 	// propagate covariance matrix
