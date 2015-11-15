@@ -628,11 +628,24 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 	struct offboard_control_mode_s offboard_control_mode;
 	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
 
+	bool values_finite = 
+		PX4_ISFINITE(set_position_target_local_ned.x) &&
+		PX4_ISFINITE(set_position_target_local_ned.y) &&
+		PX4_ISFINITE(set_position_target_local_ned.z) &&
+		PX4_ISFINITE(set_position_target_local_ned.vx) &&
+		PX4_ISFINITE(set_position_target_local_ned.vy) &&
+		PX4_ISFINITE(set_position_target_local_ned.vz) &&
+		PX4_ISFINITE(set_position_target_local_ned.afx) &&
+		PX4_ISFINITE(set_position_target_local_ned.afy) &&
+		PX4_ISFINITE(set_position_target_local_ned.afz) &&
+		PX4_ISFINITE(set_position_target_local_ned.yaw);
+
 	/* Only accept messages which are intended for this system */
 	if ((mavlink_system.sysid == set_position_target_local_ned.target_system ||
 				set_position_target_local_ned.target_system == 0) &&
 			(mavlink_system.compid == set_position_target_local_ned.target_component ||
-			 set_position_target_local_ned.target_component == 0)) {
+			 	set_position_target_local_ned.target_component == 0) &&
+			values_finite) {
 
 		/* convert mavlink type (local, NED) to uORB offboard control struct */
 		offboard_control_mode.ignore_position = (bool)(set_position_target_local_ned.type_mask & 0x7);
@@ -719,7 +732,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 
 					/* set the yaw sp value */
-					if (!offboard_control_mode.ignore_attitude && !isnan(set_position_target_local_ned.yaw)) {
+					if (!offboard_control_mode.ignore_attitude) {
 						pos_sp_triplet.current.yaw_valid = true;
 						pos_sp_triplet.current.yaw = set_position_target_local_ned.yaw;
 
@@ -728,7 +741,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 
 					/* set the yawrate sp value */
-					if (!offboard_control_mode.ignore_bodyrate && !isnan(set_position_target_local_ned.yaw)) {
+					if (!offboard_control_mode.ignore_bodyrate) {
 						pos_sp_triplet.current.yawspeed_valid = true;
 						pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
 
@@ -736,7 +749,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 						pos_sp_triplet.current.yawspeed_valid = false;
 					}
 					//XXX handle global pos setpoints (different MAV frames)
-
 
 					if (_pos_sp_triplet_pub == nullptr) {
 						_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet),
@@ -766,10 +778,21 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 	struct actuator_controls_s actuator_controls;
 	memset(&actuator_controls, 0, sizeof(actuator_controls));//XXX breaks compatibility with multiple setpoints
 
+	bool values_finite = 
+		PX4_ISFINITE(set_actuator_control_target.controls[0]) &&
+		PX4_ISFINITE(set_actuator_control_target.controls[1]) &&
+		PX4_ISFINITE(set_actuator_control_target.controls[2]) &&
+		PX4_ISFINITE(set_actuator_control_target.controls[3]) &&
+		PX4_ISFINITE(set_actuator_control_target.controls[4]) &&
+		PX4_ISFINITE(set_actuator_control_target.controls[5]) &&
+		PX4_ISFINITE(set_actuator_control_target.controls[6]) &&
+		PX4_ISFINITE(set_actuator_control_target.controls[7]);
+
 	if ((mavlink_system.sysid == set_actuator_control_target.target_system ||
 		    set_actuator_control_target.target_system == 0) &&
 		(mavlink_system.compid == set_actuator_control_target.target_component ||
-		    set_actuator_control_target.target_component == 0)) {
+		    set_actuator_control_target.target_component == 0) &&
+		values_finite) {
 
 		/* ignore all since we are setting raw actuators here */
 		offboard_control_mode.ignore_thrust             = true;
@@ -859,11 +882,22 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 	mavlink_set_attitude_target_t set_attitude_target;
 	mavlink_msg_set_attitude_target_decode(msg, &set_attitude_target);
 
+	bool values_finite =
+		PX4_ISFINITE(set_attitude_target.q[0]) &&
+		PX4_ISFINITE(set_attitude_target.q[1]) &&
+		PX4_ISFINITE(set_attitude_target.q[2]) &&
+		PX4_ISFINITE(set_attitude_target.q[3]) &&
+		PX4_ISFINITE(set_attitude_target.thrust) &&
+		PX4_ISFINITE(set_attitude_target.body_roll_rate) &&
+		PX4_ISFINITE(set_attitude_target.body_pitch_rate) &&
+		PX4_ISFINITE(set_attitude_target.body_yaw_rate);
+
 	/* Only accept messages which are intended for this system */
 	if ((mavlink_system.sysid == set_attitude_target.target_system ||
 				set_attitude_target.target_system == 0) &&
 			(mavlink_system.compid == set_attitude_target.target_component ||
-			 set_attitude_target.target_component == 0)) {
+				set_attitude_target.target_component == 0) &&
+			values_finite) {
 
 		/* set correct ignore flags for thrust field: copy from mavlink message */
 		_offboard_control_mode.ignore_thrust = (bool)(set_attitude_target.type_mask & (1 << 6));
