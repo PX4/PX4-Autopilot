@@ -43,6 +43,7 @@
 #include <ecl/ecl.h>
 
 DataValidator::DataValidator(DataValidator *prev_sibling) :
+	_error_mask(ERROR_FLAG_NO_ERROR),
 	_time_last(0),
 	_timeout_interval(20000),
 	_event_count(0),
@@ -111,39 +112,45 @@ DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in, in
 float
 DataValidator::confidence(uint64_t timestamp)
 {
+	float ret = 1.0f;
+	
 	/* check if we have any data */
 	if (_time_last == 0) {
-		return 0.0f;
+		_error_mask |= ERROR_FLAG_NO_DATA;
+		ret = 0.0f;
 	}
-
-	/* check error count limit */
-	if (_error_count > NORETURN_ERRCOUNT) {
-		return 0.0f;
+	
+	/* timed out - that's it */
+	if (timestamp - _time_last > _timeout_interval) {
+		_error_mask |= ERROR_FLAG_TIMEOUT;
+		ret = 0.0f;
 	}
 
 	/* we got the exact same sensor value N times in a row */
 	if (_value_equal_count > VALUE_EQUAL_COUNT_MAX) {
-		return 0.0f;
+		_error_mask |= ERROR_FLAG_STALE_DATA;
+		ret = 0.0f;
 	}
-
-	/* timed out - that's it */
-	if (timestamp - _time_last > _timeout_interval) {
-		return 0.0f;
+	
+	/* check error count limit */
+	if (_error_count > NORETURN_ERRCOUNT) {
+		_error_mask |= ERROR_FLAG_HIGH_ERRCOUNT;
+		ret = 0.0f;
 	}
 
 	/* cap error density counter at window size */
 	if (_error_density > ERROR_DENSITY_WINDOW) {
+		_error_mask |= ERROR_FLAG_HIGH_ERRDENSITY;
 		_error_density = ERROR_DENSITY_WINDOW;
 	}
-
-	/* return local error density for last N measurements */
-	return 1.0f - (_error_density / ERROR_DENSITY_WINDOW);
-}
-
-int
-DataValidator::priority()
-{
-	return _priority;
+	
+	/* no critical errors */
+	if(ret > 0.0f) {
+		/* return local error density for last N measurements */
+		ret = 1.0f - (_error_density / ERROR_DENSITY_WINDOW);
+	}
+	
+	return ret;
 }
 
 void
