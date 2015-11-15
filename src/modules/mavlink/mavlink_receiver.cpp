@@ -671,6 +671,11 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		/* yawrate ignore flag mapps to ignore_bodyrate */
 		offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
 
+
+		bool is_takeoff_sp = (bool)(set_position_target_local_ned.type_mask & 0x1000);
+		bool is_land_sp = (bool)(set_position_target_local_ned.type_mask & 0x2000);
+		bool is_loiter_sp = (bool)(set_position_target_local_ned.type_mask & 0x3000);
+
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
 		if (_offboard_control_mode_pub == nullptr) {
@@ -709,7 +714,16 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					pos_sp_triplet.previous.valid = false;
 					pos_sp_triplet.next.valid = false;
 					pos_sp_triplet.current.valid = true;
-					pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION; //XXX support others
+
+					if (is_takeoff_sp) {
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+					} else if(is_land_sp) {
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+					} else if(is_loiter_sp) {
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					} else {
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+					}
 
 					/* set the local pos values */
 					if (!offboard_control_mode.ignore_position) {
