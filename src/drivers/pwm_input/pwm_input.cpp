@@ -85,7 +85,7 @@
 #include <fcntl.h>
 
 /* Reset pin define */
-#define GPIO_VDD_RANGEFINDER_EN GPIO_GPIO5_OUTPUT
+#define GPIO_VDD_RANGEFINDER_EN GPIO_GPIO3_OUTPUT
 
 #if HRT_TIMER == PWMIN_TIMER
 #error cannot share timer between HRT and PWMIN
