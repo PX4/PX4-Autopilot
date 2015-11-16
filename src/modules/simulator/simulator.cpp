@@ -135,9 +135,11 @@ int Simulator::start(int argc, char *argv[])
 			// Update sensor data
 			_instance->pollForMAVLinkMessages(false);
 #endif
+
 		} else if (argv[2][1] == 'p') {
 			// Update sensor data
 			_instance->pollForMAVLinkMessages(true);
+
 		} else {
 			_instance->initializeSensorData();
 			_instance->_initialized = true;
@@ -170,7 +172,7 @@ extern "C" {
 		int ret = 0;
 
 		if (argc == 3 && strcmp(argv[1], "start") == 0) {
-			if (strcmp(argv[2], "-s") == 0 || 
+			if (strcmp(argv[2], "-s") == 0 ||
 			    strcmp(argv[2], "-p") == 0 ||
 			    strcmp(argv[2], "-t") == 0) {
 				if (g_sim_task >= 0) {

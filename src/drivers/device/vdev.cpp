@@ -555,13 +555,15 @@ void VDev::showDevices()
 	std::string devname;
 	unsigned int index = 0;
 	i = 0;
+
 	do {
 		// Each look increments index and returns -1 if end reached
-	 	i = DevMgr::getNextDeviceName(index, devname);
+		i = DevMgr::getNextDeviceName(index, devname);
+
 		if (i == 0) {
-	 		PX4_INFO("   %s", devname.c_str());
-	 	}
-	} while (i==0);
+			PX4_INFO("   %s", devname.c_str());
+		}
+	} while (i == 0);
 }
 
 void VDev::showTopics()
