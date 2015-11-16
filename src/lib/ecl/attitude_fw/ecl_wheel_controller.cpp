@@ -33,7 +33,7 @@
 
 /**
  * @file ecl_wheel_controller.cpp
- * Implementation of a simple orthogonal coordinated turn yaw PID controller.
+ * Implementation of a simple PID wheel controller for heading tracking.
  *
  * Authors and acknowledgements in header.
  */

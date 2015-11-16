@@ -245,7 +245,7 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
  * @param lon_A waypoint A longitude in degrees (8.1234567°, not 81234567°)
  * @param lat_B waypoint B latitude in degrees (47.1234567°, not 471234567°)
  * @param lon_B waypoint B longitude in degrees (8.1234567°, not 81234567°)
- * @param dist distance of target waypoint from waypoint A (can be negative)
+ * @param dist distance of target waypoint from waypoint A in meters (can be negative)
  * @param lat_target latitude of target waypoint C in degrees (47.1234567°, not 471234567°)
  * @param lon_target longitude of target waypoint C in degrees (47.1234567°, not 471234567°)
  */
@@ -254,11 +254,12 @@ __EXPORT void create_waypoint_from_line_and_dist(double lat_A, double lon_A, dou
 
 /**
  * Creates a waypoint from given waypoint, distance and bearing
+ * see http://www.movable-type.co.uk/scripts/latlong.html
  *
  * @param lat_start latitude of starting waypoint in degrees (47.1234567°, not 471234567°)
  * @param lon_start longitude of starting waypoint in degrees (8.1234567°, not 81234567°)
- * @param bearing
- * @param distance
+ * @param bearing in rad
+ * @param distance in meters
  * @param lat_target latitude of target waypoint in degrees (47.1234567°, not 471234567°)
  * @param lon_target longitude of target waypoint in degrees (47.1234567°, not 471234567°)
  */

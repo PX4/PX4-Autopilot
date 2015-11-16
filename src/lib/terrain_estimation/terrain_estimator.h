@@ -51,14 +51,14 @@
 * The measurement_update(...) function does a measurement update based on range finder and gps
 * velocity measurements. Both functions should always be called together when there is new
 * acceleration data available.
-* The is_valid() function provides information wether the estimate is valid.
+* The is_valid() function provides information whether the estimate is valid.
 */
 
 class __EXPORT TerrainEstimator
 {
 public:
 	TerrainEstimator();
-	~TerrainEstimator();
+	~TerrainEstimator() {};
 
 	bool is_valid() {return _terrain_valid;}
 	float get_distance_to_ground() {return -_x(0);}
@@ -85,6 +85,7 @@ private:
 	uint64_t _time_last_distance;
 	uint64_t _time_last_gps;
 
+	/*
 	struct {
 		float var_acc_z;
 		float var_p_z;
@@ -92,6 +93,7 @@ private:
 		float var_lidar;
 		float var_gps_vz;
 	} _params;
+	*/
 
 	bool is_distance_valid(float distance);
 

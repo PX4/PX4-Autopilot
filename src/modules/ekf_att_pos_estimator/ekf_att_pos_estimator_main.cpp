@@ -270,7 +270,7 @@ AttitudePositionEstimatorEKF::~AttitudePositionEstimatorEKF()
 			}
 		} while (_estimator_task != -1);
 	}
-
+	delete _terrain_estimator;
 	delete _ekf;
 
 	estimator::g_estimator = nullptr;
