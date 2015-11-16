@@ -834,7 +834,7 @@ start_bus(struct barosim_bus_option &bus)
 		return false;
 	}
 
-	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		DevMgr::releaseHandle(h);
 		PX4_ERR("failed setting default poll rate");
 		return false;
@@ -904,14 +904,14 @@ test()
 	PX4_INFO("time:        %lld", (long long)report.timestamp);
 
 	/* set the queue depth to 10 */
-	if (OK != h.ioctl(SENSORIOCSQUEUEDEPTH, (void *)10UL)) {
+	if (OK != h.ioctl(SENSORIOCSQUEUEDEPTH, 10UL)) {
 		PX4_ERR("failed to set queue depth");
 		DevMgr::releaseHandle(h);
 		return 1;
 	}
 
 	/* start the sensor polling at 2Hz */
-	if (OK != h.ioctl(SENSORIOCSPOLLRATE, (void *)2UL)) {
+	if (OK != h.ioctl(SENSORIOCSPOLLRATE, 2UL)) {
 		PX4_ERR("failed to set 2Hz poll rate");
 		DevMgr::releaseHandle(h);
 		return 1;
@@ -971,7 +971,7 @@ reset()
 		return 1;
 	}
 
-	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("driver poll restart failed");
 		return 1;
 	}
@@ -1017,7 +1017,7 @@ calibrate(unsigned altitude)
 	}
 
 	/* start the sensor polling at max */
-	if (OK != h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_MAX)) {
+	if (OK != h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX)) {
 		PX4_ERR("failed to set poll rate");
 		return 1;
 	}
@@ -1068,7 +1068,7 @@ calibrate(unsigned altitude)
 	/* save as integer Pa */
 	p1 *= 1000.0f;
 
-	if (h.ioctl(BAROIOCSMSLPRESSURE, (void *)((unsigned long)(p1))) != OK) {
+	if (h.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(p1)) != OK) {
 		PX4_WARN("BAROIOCSMSLPRESSURE");
 		return 1;
 	}

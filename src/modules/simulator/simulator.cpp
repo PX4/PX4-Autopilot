@@ -135,10 +135,12 @@ int Simulator::start(int argc, char *argv[])
 			// Update sensor data
 			_instance->pollForMAVLinkMessages(false);
 #endif
-
-		} else {
+		} else if (argv[2][1] == 'p') {
 			// Update sensor data
 			_instance->pollForMAVLinkMessages(true);
+		} else {
+			_instance->initializeSensorData();
+			_instance->_initialized = true;
 		}
 
 	} else {
@@ -151,9 +153,10 @@ int Simulator::start(int argc, char *argv[])
 
 static void usage()
 {
-	PX4_WARN("Usage: simulator {start -[sc] |stop}");
+	PX4_WARN("Usage: simulator {start -[spt] |stop}");
 	PX4_WARN("Simulate raw sensors:     simulator start -s");
 	PX4_WARN("Publish sensors combined: simulator start -p");
+	PX4_WARN("Dummy unit test data:     simulator start -t");
 }
 
 __BEGIN_DECLS
@@ -167,7 +170,9 @@ extern "C" {
 		int ret = 0;
 
 		if (argc == 3 && strcmp(argv[1], "start") == 0) {
-			if (strcmp(argv[2], "-s") == 0 || strcmp(argv[2], "-p") == 0) {
+			if (strcmp(argv[2], "-s") == 0 || 
+			    strcmp(argv[2], "-p") == 0 ||
+			    strcmp(argv[2], "-t") == 0) {
 				if (g_sim_task >= 0) {
 					warnx("Simulator already started");
 					return 0;

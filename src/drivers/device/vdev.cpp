@@ -552,12 +552,16 @@ void VDev::showDevices()
 	PX4_INFO("DF Devices:");
 	// TODO NOT IMPLEMENTED
 
-	// std::string devname;
-	// for (unsigned int index=0; i == 0; ++i) {
-	// 	if (DevMgr::getNextDeviceName(index, devname) == 0) {
-	// 		PX4_INFO("   %s", devname.c_str());
-	// 	}
-	// }
+	std::string devname;
+	unsigned int index = 0;
+	i = 0;
+	do {
+		// Each look increments index and returns -1 if end reached
+	 	i = DevMgr::getNextDeviceName(index, devname);
+		if (i == 0) {
+	 		PX4_INFO("   %s", devname.c_str());
+	 	}
+	} while (i==0);
 }
 
 void VDev::showTopics()

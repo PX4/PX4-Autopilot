@@ -467,33 +467,55 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 
 #else
 
-				// TODO NOT IMPLEMENTED
+				// Handle VDev devices
+				const char *devname;
+				unsigned int handle = 0;
+				for(;;) {
+					devname = px4_get_device_names(&handle);
+					if (devname == NULL)
+						break;
 
-				// std::string devname;
-				// unsigned int index = 0;
-				// for(;;) {
-				// 	if (DevMgr::getNextDeviceName(index, devname) < 0) {
-				// 		break;
-				// 	}
+						/* skip mavlink */
+					if (!strcmp("/dev/mavlink", devname)) {
+							continue;
+					}
 
-				// 	/* skip mavlink */
-				// 	if (!strcmp("/dev/mavlink", devname.c_str())) {
-				// 		continue;
-				// 	}
 
-				// 	DevHandle h;
-				// 	DevMgr::getHandle(devname.c_str(), h);
+					int sensfd = px4_open(devname, 0);
 
-				// 	if (!h.isValid()) {
-				// 		warn("failed opening device %s", devname.c_str());
-				// 		continue;
-				// 	}
+					if (sensfd < 0) {
+						warn("failed opening device %s", devname);
+							continue;
+					}
 
-				// 	int block_ret = h.ioctl(DEVIOCSPUBBLOCK, (void *)1);
-				// 	DevMgr::releaseHandle(h);
+					int block_ret = px4_ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
+					px4_close(sensfd);
 
-				// 	printf("Disabling %s: %s\n", devname.c_str(), (block_ret == OK) ? "OK" : "ERROR");
-				// }
+					printf("Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
+				}
+
+
+				// Handle DF devices
+				std::string dfdevname;
+				unsigned int index = 0;
+				for(;;) {
+					if (DevMgr::getNextDeviceName(index, dfdevname) < 0) {
+						break;
+					}
+
+					DevHandle h;
+					DevMgr::getHandle(dfdevname.c_str(), h);
+
+					if (!h.isValid()) {
+						warn("failed opening device %s", dfdevname.c_str());
+						continue;
+					}
+
+					int block_ret = h.ioctl(DEVIOCSPUBBLOCK, 1);
+					DevMgr::releaseHandle(h);
+
+					printf("Disabling %s: %s\n", dfdevname.c_str(), (block_ret == OK) ? "OK" : "ERROR");
+				}
 
 				ret = TRANSITION_CHANGED;
 				mavlink_log_critical(mavlink_fd, "Switched to ON hil state");

@@ -1101,7 +1101,7 @@ start(enum Rotation rotation)
 		goto fail;
 	}
 
-	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 		DevMgr::releaseHandle(h);
 		goto fail;
@@ -1111,7 +1111,7 @@ start(enum Rotation rotation)
 
 	/* don't fail if mag dev cannot be opened */
 	if (h_mag.isValid()) {
-		if (h_mag.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+		if (h_mag.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 			PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_MAG);
 		}
 

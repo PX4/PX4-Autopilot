@@ -1253,7 +1253,7 @@ start(enum Rotation rotation)
 		goto fail;
 	}
 
-	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		DevMgr::releaseHandle(h);
 		goto fail;
 	}
@@ -1321,7 +1321,7 @@ test()
 	}
 
 	/* reset to manual polling */
-	if (h_accel.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_MANUAL) < 0) {
+	if (h_accel.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
 		PX4_ERR("reset to manual polling");
 		return 1;
 	}
@@ -1394,12 +1394,12 @@ reset()
 	}
 
 
-	if (h.ioctl(SENSORIOCRESET, (void *)0) < 0) {
+	if (h.ioctl(SENSORIOCRESET, 0) < 0) {
 		PX4_ERR("driver reset failed");
 		goto reset_fail;
 	}
 
-	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("driver poll restart failed");
 		goto reset_fail;
 	}
