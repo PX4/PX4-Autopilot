@@ -239,6 +239,12 @@ adcsim_main(int argc, char *argv[])
 			PX4_ERR("couldn't allocate the ADCSIM driver");
 			return 1;
 		}
+
+		ret = g_adc->init();
+		if (ret != 0) {
+			PX4_ERR("ADCSIM init failed (%d)", ret);
+			return 1;
+		}
 	}
 
 	if (argc > 1 && g_adc) {
