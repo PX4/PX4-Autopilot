@@ -38,7 +38,6 @@ px4_add_module(
 		mc_att_control_start_nuttx.cpp
 		mc_att_control.cpp
 		mc_att_control_base.cpp
-		mc_att_control_params.c
 	DEPENDS
 		platforms__common
 	)

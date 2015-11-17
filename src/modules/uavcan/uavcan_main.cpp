@@ -77,7 +77,7 @@
 UavcanNode *UavcanNode::_instance;
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
-	_node(can_driver, system_clock),
+	_node(can_driver, system_clock, _pool_allocator),
 	_node_mutex(),
 	_esc_controller(_node),
 	_time_sync_master(_node),
@@ -144,10 +144,9 @@ UavcanNode::~UavcanNode()
 		} while (_task != -1);
 	}
 
-	/* clean up the alternate device node */
-	// unregister_driver(PWM_OUTPUT_DEVICE_PATH);
-
-	::close(_armed_sub);
+	(void)::close(_armed_sub);
+	(void)::close(_test_motor_sub);
+	(void)::close(_actuator_direct_sub);
 
 	// Removing the sensor bridges
 	auto br = _sensor_bridges.getHead();
@@ -166,6 +165,10 @@ UavcanNode::~UavcanNode()
 	pthread_mutex_destroy(&_node_mutex);
 	px4_sem_destroy(&_server_command_sem);
 
+	// Is it allowed to delete it like that?
+	if (_mixers != nullptr) {
+		delete _mixers;
+	}
 }
 
 int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
@@ -965,6 +968,8 @@ int UavcanNode::run()
 		}
 	}
 
+	(void)::close(busevent_fd);
+
 	teardown();
 	warnx("exiting.");
 
@@ -1119,6 +1124,33 @@ UavcanNode::print_info()
 
 	(void)pthread_mutex_lock(&_node_mutex);
 
+	// Memory status
+	printf("Pool allocator status:\n");
+	printf("\tCapacity hard/soft: %u/%u blocks\n",
+		_pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
+	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
+	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
+
+	// UAVCAN node perfcounters
+	printf("UAVCAN node status:\n");
+	printf("\tInternal failures: %llu\n", _node.getInternalFailureCount());
+	printf("\tTransfer errors:   %llu\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
+	printf("\tRX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
+	printf("\tTX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
+
+	// CAN driver status
+	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
+		printf("CAN%u status:\n", unsigned(i + 1));
+
+		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
+		printf("\tHW errors: %llu\n", iface->getErrorCount());
+
+		auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
+		printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
+		printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
+		printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
+	}
+
 	// ESC mixer status
 	printf("ESC actuators control groups: sub: %u / req: %u / fds: %u\n",
 	       (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
@@ -1169,13 +1201,20 @@ UavcanNode::print_info()
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
+void UavcanNode::shrink()
+{
+	(void)pthread_mutex_lock(&_node_mutex);
+	_pool_allocator.shrink();
+	(void)pthread_mutex_unlock(&_node_mutex);
+}
+
 /*
  * App entry point
  */
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start [fw]|status|stop [all|fw]|arm|disarm|update fw|param [set|get|list|save] nodeid [name] [value]|reset nodeid}");
+	      "\tuavcan {start [fw]|status|stop [all|fw]|shrink|arm|disarm|update fw|param [set|get|list|save] nodeid [name] [value]|reset nodeid}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -1248,6 +1287,11 @@ int uavcan_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		inst->print_info();
+		::exit(0);
+	}
+
+	if (!std::strcmp(argv[1], "shrink")) {
+		inst->shrink();
 		::exit(0);
 	}
 

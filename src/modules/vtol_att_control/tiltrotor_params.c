@@ -35,7 +35,7 @@
  * @file tiltrotor_params.c
  * Parameters for vtol attitude controller.
  *
- * @author Roman Bapst <bapstroman@gmail.com>
+ * @author Roman Bapst <roman@px4.io>
  */
 
 #include <systemlib/param/param.h>

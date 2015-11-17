@@ -33,7 +33,7 @@ add_custom_target(run_config
 add_dependencies(run_config mainapp)
 
 foreach(viewer none jmavsim gazebo)
-	foreach(debugger none gdb lldb)
+	foreach(debugger none gdb lldb ddd valgrind)
 		foreach(model none iris vtol)
 			if (debugger STREQUAL "none")
 				if (model STREQUAL "none")

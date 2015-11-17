@@ -31,12 +31,12 @@
  *
  ****************************************************************************/
 
- /**
- * @file airframe.h
- *
- * @author Roman Bapst 		<bapstroman@gmail.com>
- *
- */
+/**
+* @file airframe.h
+*
+* @author Roman Bapst 		<bapstroman@gmail.com>
+*
+*/
 
 #ifndef VTOL_TYPE_H
 #define VTOL_TYPE_H
@@ -85,7 +85,7 @@ public:
 	void set_idle_mc();
 	void set_idle_fw();
 
-	mode get_mode () {return _vtol_mode;};
+	mode get_mode() {return _vtol_mode;};
 
 protected:
 	VtolAttitudeControl *_attc;
