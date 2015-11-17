@@ -56,7 +56,7 @@ public:
 	CatapultLaunchMethod(SuperBlock *parent);
 	~CatapultLaunchMethod();
 
-	void update(float accel_x);
+    void update(float accel_x, bool landed);
 	LaunchDetectionResult getLaunchDetected() const;
 	void reset();
 	float getPitchMax(float pitchMaxDefault);

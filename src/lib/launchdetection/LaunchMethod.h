@@ -58,7 +58,7 @@ enum LaunchDetectionResult {
 class LaunchMethod
 {
 public:
-	virtual void update(float accel_x) = 0;
+        virtual void update(float accel_x, bool landed) = 0;
 	virtual LaunchDetectionResult getLaunchDetected() const = 0;
 	virtual void reset() = 0;
 

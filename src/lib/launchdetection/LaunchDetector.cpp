@@ -76,11 +76,11 @@ void LaunchDetector::reset()
 
 }
 
-void LaunchDetector::update(float accel_x)
+void LaunchDetector::update(float accel_x, bool landed)
 {
 	if (launchdetection_on.get() == 1) {
 		for (unsigned i = 0; i < (sizeof(launchMethods) / sizeof(launchMethods[0])); i++) {
-			launchMethods[i]->update(accel_x);
+            launchMethods[i]->update(accel_x, landed);
 		}
 	}
 }

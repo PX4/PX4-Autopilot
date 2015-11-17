@@ -58,9 +58,9 @@ public:
 	~LaunchDetector();
 	void reset();
 
-	void update(float accel_x);
+    void update(float accel_x, bool landed);
 	LaunchDetectionResult getLaunchDetected();
-	bool launchDetectionEnabled() { return (bool)launchdetection_on.get(); };
+    bool launchDetectionEnabled() { return (bool)launchdetection_on.get(); }
 
 	float getThrottlePreTakeoff() {return throttlePreTakeoff.get(); }
 

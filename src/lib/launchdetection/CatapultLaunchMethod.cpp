@@ -63,19 +63,24 @@ CatapultLaunchMethod::~CatapultLaunchMethod()
 
 }
 
-void CatapultLaunchMethod::update(float accel_x)
+void CatapultLaunchMethod::update(float accel_x, bool landed)
 {
 	float dt = (float)hrt_elapsed_time(&last_timestamp) * 1e-6f;
 	last_timestamp = hrt_absolute_time();
+
+    if (landed) {
+        reset();
+        return;
+    }
 
 	switch (state) {
 	case LAUNCHDETECTION_RES_NONE:
 
 		/* Detect a acceleration that is longer and stronger as the minimum given by the params */
-		if (accel_x > thresholdAccel.get()) {
+        if (accel_x > thresholdAccel.get() || !landed) {
 			integrator += dt;
 
-			if (integrator > thresholdTime.get()) {
+            if (integrator > thresholdTime.get() || !landed) {
 				if (motorDelay.get() > 0.0f) {
 					state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
 					warnx("Launch detected: enablecontrol, waiting %8.4fs until full throttle",
