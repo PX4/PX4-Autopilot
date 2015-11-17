@@ -498,7 +498,7 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 	if (checkRC) {
 		if (rc_calibration_check(mavlink_fd, reportFailures) != OK) {
 			if (reportFailures) {
-				mavlink_log_critical(mavlink_fd, "RC calibration check failed");
+				mavlink_and_console_log_critical(mavlink_fd, "RC calibration check failed");
 			}
 			failed = true;
 		}
