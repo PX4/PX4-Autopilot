@@ -1101,7 +1101,7 @@ start(enum Rotation rotation)
 		goto fail;
 	}
 
-	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 		DevMgr::releaseHandle(h);
 		goto fail;
@@ -1110,13 +1110,13 @@ start(enum Rotation rotation)
 	DevMgr::getHandle(ACCELSIM_DEVICE_PATH_MAG, h_mag);
 
 	/* don't fail if mag dev cannot be opened */
-	if (!h_mag.isValid()) {
-		if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
-			PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+	if (h_mag.isValid()) {
+		if (h_mag.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_MAG);
 		}
 
 	} else {
-		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_MAG);
 	}
 
 	DevMgr::releaseHandle(h);
@@ -1180,6 +1180,11 @@ accelsim_main(int argc, char *argv[])
 			accelsim::usage();
 			return 0;
 		}
+	}
+
+	if (argc <= 1) {
+		accelsim::usage();
+		return 1;
 	}
 
 	const char *verb = argv[myoptind];

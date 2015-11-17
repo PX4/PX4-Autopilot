@@ -308,7 +308,7 @@ private:
 extern "C" { __EXPORT int gyrosim_main(int argc, char *argv[]); }
 
 GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation rotation) :
-	VirtDevObj("GYROSIM", path_accel, nullptr, 1000),
+	VirtDevObj("GYROSIM", path_accel, ACCEL_BASE_DEVICE_PATH, 1000),
 	_gyro(new GYROSIM_gyro(this, path_gyro)),
 	_product(GYROSIMES_REV_C4),
 	_accel_reports(nullptr),
@@ -389,6 +389,14 @@ GYROSIM::init()
 	struct accel_report arp = {};
 
 	struct gyro_report grp = {};
+
+	ret = VirtDevObj::init();
+
+	if (ret != 0) {
+		PX4_WARN("Base class init failed");
+		ret = 1;
+		goto out;
+	}
 
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
@@ -1158,7 +1166,7 @@ GYROSIM::print_registers()
 
 GYROSIM_gyro::GYROSIM_gyro(GYROSIM *parent, const char *path) :
 	// Set sample interval to 0 since device is read by parent
-	VirtDevObj("GYROSIM_gyro", path, "", 0),
+	VirtDevObj("GYROSIM_gyro", path, GYRO_BASE_DEVICE_PATH, 0),
 	_parent(parent),
 	_gyro_topic(nullptr),
 	_gyro_orb_class_instance(-1)
@@ -1169,7 +1177,8 @@ GYROSIM_gyro::GYROSIM_gyro(GYROSIM *parent, const char *path) :
 int
 GYROSIM_gyro::init()
 {
-	return start();
+	int ret = VirtDevObj::init();
+	return ret ? ret : start();
 }
 
 void
@@ -1252,7 +1261,7 @@ start(enum Rotation rotation)
 		goto fail;
 	}
 
-	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		DevMgr::releaseHandle(h);
 		goto fail;
 	}
@@ -1320,7 +1329,7 @@ test()
 	}
 
 	/* reset to manual polling */
-	if (h_accel.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_MANUAL) < 0) {
+	if (h_accel.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
 		PX4_ERR("reset to manual polling");
 		return 1;
 	}
@@ -1393,12 +1402,12 @@ reset()
 	}
 
 
-	if (h.ioctl(SENSORIOCRESET, (void *)0) < 0) {
+	if (h.ioctl(SENSORIOCRESET, 0) < 0) {
 		PX4_ERR("driver reset failed");
 		goto reset_fail;
 	}
 
-	if (h.ioctl(SENSORIOCSPOLLRATE, (void *)SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("driver poll restart failed");
 		goto reset_fail;
 	}
