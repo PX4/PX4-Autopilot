@@ -1469,6 +1469,10 @@ PX4FMU::sensor_reset(int ms)
 	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
 
+	stm32_configgpio(GPIO_SPI1_SCK);
+	stm32_configgpio(GPIO_SPI1_MISO);
+	stm32_configgpio(GPIO_SPI1_MOSI);
+
 	// // XXX bring up the EXTI pins again
 	// stm32_configgpio(GPIO_GYRO_DRDY);
 	// stm32_configgpio(GPIO_MAG_DRDY);
