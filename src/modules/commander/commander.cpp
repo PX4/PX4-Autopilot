@@ -1699,10 +1699,10 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 
 				if (status.condition_landed) {
-					mavlink_log_critical(mavlink_fd, "LANDING DETECTED");
+					mavlink_and_console_log_info(mavlink_fd, "LANDING DETECTED");
 
 				} else {
-					mavlink_log_critical(mavlink_fd, "TAKEOFF DETECTED");
+					mavlink_and_console_log_info(mavlink_fd, "TAKEOFF DETECTED");
 				}
 			}
 
