@@ -381,7 +381,6 @@ PWMSim::task_main()
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_armed_sub, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -390,8 +389,6 @@ PWMSim::task_main()
 	/* advertise the mixed control outputs, insist on the first group output */
 	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
 
-
-	DEVICE_LOG("starting");
 
 	/* loop until killed */
 	while (!_task_should_exit) {

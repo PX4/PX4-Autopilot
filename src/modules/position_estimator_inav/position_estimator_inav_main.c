@@ -390,9 +390,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	/* first parameters update */
 	inav_parameters_update(&pos_inav_param_handles, &params);
 
-	px4_pollfd_struct_t fds_init[1] = {
-		{ .fd = sensor_combined_sub, .events = POLLIN },
-	};
+	px4_pollfd_struct_t fds_init[1] = {};
+	fds_init[0].fd = sensor_combined_sub;
+	fds_init[0].events = POLLIN;
 
 	/* wait for initial baro value */
 	bool wait_baro = true;
@@ -400,11 +400,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	while (wait_baro && !thread_should_exit) {
-		int ret = px4_poll(fds_init, 1, 1000);
+		int ret = px4_poll(&fds_init[0], 1, 1000);
 
 		if (ret < 0) {
 			/* poll error */
 			mavlink_log_info(mavlink_fd, "[inav] poll error on init");
+			PX4_WARN("INAV poll error");
 
 		} else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
@@ -430,6 +431,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 				}
 			}
+		} else {
+			PX4_WARN("INAV poll timeout");
 		}
 	}
 

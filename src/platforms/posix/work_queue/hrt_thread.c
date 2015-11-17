@@ -63,7 +63,7 @@
  ****************************************************************************/
 
 /* The state of each work queue. */
-struct wqueue_s g_hrt_work;
+struct wqueue_s g_hrt_work = {};
 
 /****************************************************************************
  * Private Variables
@@ -143,7 +143,7 @@ static void hrt_work_process()
 		if (elapsed >= work->delay) {
 			/* Remove the ready-to-execute work from the list */
 
-			(void)dq_rem((struct dq_entry_s *)work, &wqueue->q);
+			(void)dq_rem((struct dq_entry_s *) & (work->dq), &(wqueue->q));
 			//PX4_INFO("Dequeued work=%p", work);
 
 			/* Extract the work description from the entry (in case the work

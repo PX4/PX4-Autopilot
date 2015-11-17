@@ -2114,9 +2114,6 @@ Sensors::task_main()
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vcontrol_mode_sub, 200);
-
 	/*
 	 * do advertisements
 	 */

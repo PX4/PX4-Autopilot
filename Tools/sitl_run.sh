@@ -48,7 +48,7 @@ then
 	ant
 	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
-elif [ "$3" == "gazebo" ] && [ "$no_sim" == "" ]
+elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
 then
 	if [ -x "$(command -v gazebo)" ]
 	then

@@ -41,9 +41,6 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#include <px4_config.h>
-#include <systemlib/param/param.h>
-
 /**
  * ID of the board this parameter set was calibrated on.
  *
@@ -1805,7 +1802,6 @@ PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
  */
 PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 /**
  * Enable relay control of relay 1 mapped to the Spektrum receiver power supply
  *
@@ -1814,7 +1810,6 @@ PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
-#endif
 
 /**
  * DSM binding trigger.

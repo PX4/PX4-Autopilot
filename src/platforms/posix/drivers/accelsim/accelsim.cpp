@@ -879,7 +879,7 @@ ACCELSIM::start()
 	_mag_reports->flush();
 
 	/* start polling at the specified rate */
-	//PX4_INFO("ACCELSIM::start accel %u", _call_accel_interval);
+	PX4_INFO("ACCELSIM::start accel %u", _call_accel_interval);
 	hrt_call_every(&_accel_call, 1000, _call_accel_interval, (hrt_callout)&ACCELSIM::measure_trampoline, this);
 
 	// There is a race here where SENSORIOCSPOLLRATE on the accel starts polling of mag but _call_mag_interval is 0

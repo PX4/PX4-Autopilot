@@ -48,7 +48,7 @@
 #include <errno.h>
 #include "hrt_work.h"
 
-static struct sq_queue_s	callout_queue;
+static struct sq_queue_s	callout_queue = {};
 
 /* latency histogram */
 #define LATENCY_BUCKET_COUNT 8
@@ -63,7 +63,7 @@ static void		hrt_call_reschedule(void);
 #define HRT_INTERVAL_MAX	50000000
 
 static px4_sem_t 	_hrt_lock;
-static struct work_s	_hrt_work;
+static struct work_s	_hrt_work = {};
 static hrt_abstime px4_timestart = 0;
 
 static void

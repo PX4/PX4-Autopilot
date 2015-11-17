@@ -326,7 +326,7 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_gyro(new GYROSIM_gyro(this, path_gyro)),
 	_product(GYROSIMES_REV_C4),
 	_call{},
-	_call_interval(0),
+	_call_interval(1000000 / GYROSIM_ACCEL_DEFAULT_RATE),
 	_accel_reports(nullptr),
 	_accel_scale{},
 	_accel_range_scale(0.0f),
@@ -338,7 +338,7 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
-	_sample_rate(1000),
+	_sample_rate(GYROSIM_ACCEL_DEFAULT_RATE),
 	_accel_reads(perf_alloc(PC_COUNT, "gyrosim_accel_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "gyrosim_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "gyrosim_read")),
@@ -551,7 +551,7 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 void
 GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
-	PX4_INFO("GYROSIM::_set_sample_rate %uHz", desired_sample_rate_hz);
+	PX4_INFO("GYROSIM::_set_sample_rate %u Hz", desired_sample_rate_hz);
 
 	if (desired_sample_rate_hz == 0 ||
 	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
@@ -569,10 +569,11 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 	// register dumps look correct
 	write_reg(MPUREG_SMPLRT_DIV, div - 1);
 
-	_sample_rate = 1000 / div;
-	PX4_INFO("GYROSIM: Changed sample rate to %uHz", _sample_rate);
-	_call_interval = 1000000 / _sample_rate;
+	_sample_rate = desired_sample_rate_hz;
+	PX4_INFO("GYROSIM: Changed sample rate to %u Hz", _sample_rate);
+	_call_interval = 1000000 / desired_sample_rate_hz;
 	hrt_cancel(&_call);
+	PX4_INFO("GYROSIM: Interval %u", _call_interval);
 	hrt_call_every(&_call, _call_interval, _call_interval, (hrt_callout)&GYROSIM::measure_trampoline, this);
 }
 
