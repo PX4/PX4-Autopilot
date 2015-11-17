@@ -1349,13 +1349,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				}
 
 				/* Detect launch */
-				launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
+                launchDetector.update(_sensor_combined.accelerometer_m_s2[0], _vehicle_status.condition_landed);
 
 				/* update our copy of the launch detection state */
 				launch_detection_state = launchDetector.getLaunchDetected();
 			} else	{
-				/* no takeoff detection --> fly */
-				launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+                /* no takeoff detection --> fall back to landed state */
+                if (_vehicle_status.condition_landed) {
+                    launch_detection_state = LAUNCHDETECTION_RES_NONE;
+                } else {
+                    launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+                }
 			}
 
 			/* Set control values depending on the detection state */
@@ -1426,6 +1430,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				_att_sp.roll_body = 0.0f;
 				_att_sp.pitch_body = math::max(math::radians(pos_sp_triplet.current.pitch_min),
 						math::radians(10.0f));
+
+                /* Set idle throttle if configured */
+                _att_sp.thrust = launchDetector.getThrottlePreTakeoff();
 			}
 
 		}
@@ -1485,7 +1492,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 
 		/* throttle limiting */
-		throttle_max = _parameters.throttle_max;
+        if (_vehicle_status.condition_landed) {
+            /* landed, use pre-takeoff throttle */
+            throttle_max = launchDetector.getThrottlePreTakeoff();
+        } else {
+            /* in air, use max throttle */
+            throttle_max = _parameters.throttle_max;
+        }
+
+        /* if the user commands zero throttle, keep it at zero */
 		if (fabsf(_manual.z) < THROTTLE_THRESH) {
 			throttle_max = 0.0f;
 		}
