@@ -994,6 +994,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		float w_xy_vision_p = params.w_xy_vision_p;
 		float w_xy_vision_v = params.w_xy_vision_v;
 		float w_z_vision_p = params.w_z_vision_p;
+        float w_z_vision_v = params.w_z_vision_v;
 
 		float w_mocap_p = params.w_mocap_p;
 
@@ -1052,6 +1053,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_vision_z) {
 			accel_bias_corr[2] -= corr_vision[2][0] * w_z_vision_p * w_z_vision_p;
+			accel_bias_corr[2] -= corr_vision[2][1] * w_z_vision_v;
 		}
 
 		/* accelerometer bias correction for MOCAP (use buffered rotation matrix) */
@@ -1126,6 +1128,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (use_vision_z) {
 			epv = fminf(epv, epv_vision);
 			inertial_filter_correct(corr_vision[2][0], dt, z_est, 0, w_z_vision_p);
+            inertial_filter_correct(corr_vision[2][1], dt, z_est, 1, w_z_vision_v);
 		}
 
 		if (use_mocap) {

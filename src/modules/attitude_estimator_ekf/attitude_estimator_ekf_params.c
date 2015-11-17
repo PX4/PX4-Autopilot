@@ -129,3 +129,16 @@ PARAM_DEFINE_FLOAT(ATT_J33, 0.0037);
  * @max 1
  */
 PARAM_DEFINE_INT32(ATT_J_EN, 0);
+
+/**
+ * Vision used in estimator
+ *
+ * If set to != 0 the vision will be used in the estimator
+ *
+ * @group Attitude EKF estimator
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(ATT_VIS_EN, 0);
+
+
