@@ -126,7 +126,6 @@ Navigator::Navigator() :
 	_pos_sp_triplet{},
 	_mission_result{},
 	_att_sp{},
-	_home_position_set(false),
 	_mission_item_valid(false),
 	_mission_instance_count(0),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
@@ -206,17 +205,13 @@ Navigator::sensor_combined_update()
 }
 
 void
-Navigator::home_position_update()
+Navigator::home_position_update(bool force)
 {
 	bool updated = false;
 	orb_check(_home_pos_sub, &updated);
 
-	if (updated) {
+	if (updated || force) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-
-		if (_home_pos.timestamp > 0) {
-			_home_position_set = true;
-		}
 	}
 }
 
@@ -298,7 +293,7 @@ Navigator::task_main()
 	global_position_update();
 	gps_position_update();
 	sensor_combined_update();
-	home_position_update();
+	home_position_update(true);
 	navigation_capabilities_update();
 	params_update();
 
@@ -408,7 +403,7 @@ Navigator::task_main()
 		if (have_geofence_position_data &&
 			(_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 			(hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter[0], _home_pos, _home_position_set);
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter[0], _home_pos, home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 
@@ -489,7 +484,7 @@ Navigator::task_main()
 		}
 
 		/* iterate through navigation modes and set active/inactive for each */
-		for(unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
+		for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
 			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 

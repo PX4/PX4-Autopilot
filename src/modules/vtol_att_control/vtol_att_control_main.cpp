@@ -690,6 +690,7 @@ int vtol_att_control_main(int argc, char *argv[])
 			return 1;
 		}
 
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {

@@ -113,6 +113,7 @@ __BEGIN_DECLS
 #define GPIO_SPI_CS_EXT3	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
 
 #define PX4_SPI_BUS_SENSORS	1
+#define PX4_SPI_BUS_RAMTRON	2
 #define PX4_SPI_BUS_EXT		4
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */

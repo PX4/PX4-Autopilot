@@ -154,7 +154,7 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if (_airspeed->true_airspeed_m_s >= _params_standard.airspeed_trans) {
+			if (_airspeed->true_airspeed_m_s >= _params_standard.airspeed_trans || !_armed->armed) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				// we can turn off the multirotor motors now
 				_flag_enable_mc_motors = false;

@@ -89,9 +89,8 @@
             specification sheet; accuracy will help control performance but
             some deviation from the specified value is acceptable.</long_desc>
       <unit>RPM/v</unit>
-      <decimal>0</decimal>
       <min>0</min>
-      <max>100</max>
+      <max>4000</max>
     </parameter>
       <parameter default="0.0" name="mot_ls" type="FLOAT">
       <short_desc>READ ONLY: Motor inductance in henries.</short_desc>
@@ -116,7 +115,7 @@
       <unit>Ohms</unit>
       <decimal>3</decimal>
     </parameter>
-    <parameter default=".5" name="mot_v_accel" type="INT32">
+    <parameter default="0.5" name="mot_v_accel" type="FLOAT">
       <short_desc>Acceleration limit (V)</short_desc>
       <long_desc>Acceleration limit (V)</long_desc>
       <unit>Volts</unit>
