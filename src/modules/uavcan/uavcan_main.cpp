@@ -533,12 +533,17 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
 	 * fail during initialization.
 	 */
-	#ifdef GPIO_CAN1_RX
+#if defined(GPIO_CAN1_RX)
 	stm32_configgpio(GPIO_CAN1_RX);
 	stm32_configgpio(GPIO_CAN1_TX);
-	#endif
+#endif
+#if defined(GPIO_CAN2_RX)
 	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
 	stm32_configgpio(GPIO_CAN2_TX);
+#endif
+#if !defined(GPIO_CAN1_RX) &&  !defined(GPIO_CAN2_RX)
+# error  "Need to define GPIO_CAN1_RX and/or GPIO_CAN2_RX"
+#endif
 
 	/*
 	 * CAN driver init
