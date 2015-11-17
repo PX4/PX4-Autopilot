@@ -241,6 +241,7 @@ adcsim_main(int argc, char *argv[])
 		}
 
 		ret = g_adc->init();
+
 		if (ret != 0) {
 			PX4_ERR("ADCSIM init failed (%d)", ret);
 			return 1;

@@ -1186,6 +1186,7 @@ accelsim_main(int argc, char *argv[])
 		accelsim::usage();
 		return 1;
 	}
+
 	const char *verb = argv[myoptind];
 
 	/*

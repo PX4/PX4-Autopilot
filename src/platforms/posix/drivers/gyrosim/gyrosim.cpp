@@ -391,6 +391,7 @@ GYROSIM::init()
 	struct gyro_report grp = {};
 
 	ret = VirtDevObj::init();
+
 	if (ret != 0) {
 		PX4_WARN("Base class init failed");
 		ret = 1;
