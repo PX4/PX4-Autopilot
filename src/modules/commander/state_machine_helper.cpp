@@ -753,7 +753,7 @@ int preflight_check(const struct vehicle_status_s *status, const int mavlink_fd,
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
-	if (!status->circuit_breaker_engaged_airspd_check && (!status->is_rotary_wing || status->is_vtol) {
+	if (!status->circuit_breaker_engaged_airspd_check && (!status->is_rotary_wing || status->is_vtol)) {
 		checkAirspeed = true;
 	}
 

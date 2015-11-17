@@ -362,6 +362,8 @@ int commander_main(int argc, char *argv[])
 				calib_ret = do_level_calibration(mavlink_fd);
 			} else if (!strcmp(argv[2], "esc")) {
 				calib_ret = do_esc_calibration(mavlink_fd, &armed);
+			} else if (!strcmp(argv[2], "airspeed")) {
+				calib_ret = do_airspeed_calibration(mavlink_fd);
 			} else {
 				warnx("argument %s unsupported.", argv[2]);
 			}
