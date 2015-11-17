@@ -586,8 +586,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					/* set this flag if flow should be accurate according to current velocity and attitude rate estimate */
 					flow_accurate = fabsf(body_v_est[1] / flow_dist - att.rollspeed) < max_flow &&
 							fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow;
-					//this flag is not working -->
-					flow_accurate = true; //already checked if flow_q > 0.3
 
 
 					/*calculate offset of flow-gyro using already calibrated gyro from autopilot*/
@@ -817,7 +815,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (gps_valid) {
 					if (gps.eph > max_eph_epv || gps.epv > max_eph_epv || gps.fix_type < 3) {
 						gps_valid = false;
-						ref_inited = false; //if gps gets lost it has to init again to avoid jumps
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 					}
 
@@ -841,7 +838,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						} else if (t > ref_init_start + ref_init_delay) {
 							ref_inited = true;
-
+							
 							/* set position estimate to (0, 0, 0), use GPS velocity for XY */
 							x_est[0] = 0.0f;
 							x_est[1] = gps.vel_n_m_s;
@@ -866,7 +863,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						float gps_proj[2];
 						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));
 
-						/* reset position estimate when GPS becomes good */
+						/* reset position estimate and ref when GPS becomes good */
 						if (reset_est) {
 							x_est[0] = gps_proj[0];
 							x_est[1] = gps.vel_n_m_s;
@@ -879,6 +876,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						if (est_i < 0) {
 							est_i += EST_BUF_SIZE;
 						}
+
+						//mavlink_log_info(mavlink_fd, "est_i = %d\n", (int)est_i);
 
 						/* calculate correction for position */
 						corr_gps[0][0] = gps_proj[0] - est_buf[est_i][0][0];
@@ -954,8 +953,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		t_prev = t;
 
 		/* increase EPH/EPV on each step */
+		if (eph < 0.000001f) { //get case where eph is 0 -> would stay 0
+			eph = 0.001;
+		}
 		if (eph < max_eph_epv) {
 			eph *= 1.0f + dt;
+		}
+		if (epv < 0.000001f) { //get case where epv is 0 -> would stay 0
+			epv = 0.001;
 		}
 		if (epv < max_eph_epv) {
 			epv += 0.005f * dt;	// add 1m to EPV each 200s (baro drift)
@@ -969,11 +974,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_vision_z = vision_valid && params.w_z_vision_p > MIN_VALID_W;
 		/* use MOCAP if it's valid and has a valid weight parameter */
 		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W;
+		if(params.disable_mocap) { //disable mocap if fake gps is used
+			use_mocap = false;
+		}
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps_xy);
 
+		
 		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_xy || use_mocap;
-
+		//mavlink_log_info(mavlink_fd, "eph = %2.6f\t gps eph = %2.4f\n", (double)eph, (double)gps.eph);
 		bool dist_bottom_valid = (t < lidar_valid_time + lidar_valid_timeout);
 
 		if (dist_bottom_valid) {
@@ -1167,7 +1176,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				inertial_filter_correct(corr_flow[0], dt, x_est, 1, params.w_xy_flow * w_flow);
 				inertial_filter_correct(corr_flow[1], dt, y_est, 1, params.w_xy_flow * w_flow);
-				//mavlink_log_info(mavlink_fd, "w_flow = %2.4f\t w_xy_flow = %2.4f\n", (double)w_flow, (double)params.w_xy_flow);
 			}
 
 			if (use_gps_xy) {
@@ -1265,6 +1273,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				buf_ptr = 0;
 			}
 
+			
 			/* publish local position */
 			local_pos.xy_valid = can_estimate_xy;
 			local_pos.v_xy_valid = can_estimate_xy;
