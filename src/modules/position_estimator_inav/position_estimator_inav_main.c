@@ -863,7 +863,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						float gps_proj[2];
 						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));
 
-						/* reset position estimate and ref when GPS becomes good */
+						/* reset position estimate when GPS becomes good */
 						if (reset_est) {
 							x_est[0] = gps_proj[0];
 							x_est[1] = gps.vel_n_m_s;
@@ -876,8 +876,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						if (est_i < 0) {
 							est_i += EST_BUF_SIZE;
 						}
-
-						//mavlink_log_info(mavlink_fd, "est_i = %d\n", (int)est_i);
 
 						/* calculate correction for position */
 						corr_gps[0][0] = gps_proj[0] - est_buf[est_i][0][0];
@@ -982,7 +980,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		
 		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_xy || use_mocap;
-		//mavlink_log_info(mavlink_fd, "eph = %2.6f\t gps eph = %2.4f\n", (double)eph, (double)gps.eph);
+
 		bool dist_bottom_valid = (t < lidar_valid_time + lidar_valid_timeout);
 
 		if (dist_bottom_valid) {
