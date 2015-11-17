@@ -429,6 +429,7 @@ function(px4_os_add_flags)
 		)
 	set(added_definitions
 		-D__PX4_NUTTX
+		-D__DF_NUTTX
 		)
 	set(added_c_flags
 		-nodefaultlibs
