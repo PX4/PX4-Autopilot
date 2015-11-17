@@ -564,6 +564,10 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
 		fi
+		if param compare SYS_COMPANION 257600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
+		fi
 		# Sensors on the PWM interface bank
 		# clear pins 5 and 6
 		if param compare SENS_EN_LL40LS 1
