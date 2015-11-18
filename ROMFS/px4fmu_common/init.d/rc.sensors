@@ -84,8 +84,8 @@ else
 		then
 		fi
 
-		# Internal SPI bus try MPU6K on ICM-20608-G is rotated 180 deg roll, 270 deg yaw
-		if mpu6000 -R 14 start
+		# Internal SPI bus ICM-20608-G is rotated 180 deg roll, 270 deg yaw
+		if mpu6000 -R 14 -T 20608 start
 		then
 		fi
 	else
