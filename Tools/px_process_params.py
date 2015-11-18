@@ -130,7 +130,7 @@ def main():
     # Output to XML file
     if args.xml:
         print("Creating XML file " + args.xml)
-        out = xmlout.XMLOutput(param_groups, args.board, args.inject_xml)
+        out = xmlout.XMLOutput(param_groups, args.board, os.path.join(args.src_path, args.inject_xml))
         out.Save(args.xml)
 
     # Output to DokuWiki tables
