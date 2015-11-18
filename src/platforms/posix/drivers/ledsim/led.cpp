@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,37 +32,110 @@
  ****************************************************************************/
 
 /**
- * @file drv_led.h
+ * @file led.cpp
  *
- * LED driver API
+ * LED driver.
  */
 
-#pragma once
+#include <px4_config.h>
+#include <drivers/drv_led.h>
+#include <stdio.h>
 
-#include <px4_defines.h>
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include "VirtDevObj.hpp"
 
-#define LED_BASE_DEVICE_PATH		"/dev/led"
-#define LED0_DEVICE_PATH		"/dev/led0"
+using namespace DriverFramework;
 
-#define _LED_BASE		0x2800
-
-/* PX4 LED colour codes */
-#define LED_AMBER		1
-#define LED_RED			1	/* some boards have red rather than amber */
-#define LED_BLUE		0
-#define LED_SAFETY		2
-
-#define LED_ON			_PX4_IOC(_LED_BASE, 0)
-#define LED_OFF			_PX4_IOC(_LED_BASE, 1)
-#define LED_TOGGLE		_PX4_IOC(_LED_BASE, 2)
-
-__BEGIN_DECLS
+#define DEVICE_DEBUG PX4_INFO
 
 /*
- * Initialise the LED driver.
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
  */
-__EXPORT void drv_led_start(void);
-
+__BEGIN_DECLS
+extern void led_init();
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
 __END_DECLS
+
+class LED : public VirtDevObj
+{
+public:
+	LED();
+	virtual ~LED();
+
+	virtual int		init();
+	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
+
+protected:
+	virtual void		_measure() {}
+};
+
+LED::LED() :
+	VirtDevObj("led", "/dev/ledsim", LED_BASE_DEVICE_PATH, 0)
+{
+	// force immediate init/device registration
+	init();
+}
+
+LED::~LED()
+{
+}
+
+int
+LED::init()
+{
+	DEVICE_DEBUG("LED::init");
+	int ret = VirtDevObj::init();
+	if (ret == 0) {
+		led_init();
+	}
+
+	return ret;
+}
+
+int
+LED::devIOCTL(unsigned long cmd, unsigned long arg)
+{
+	int result = OK;
+
+	switch (cmd) {
+	case LED_ON:
+		led_on(arg);
+		break;
+
+	case LED_OFF:
+		led_off(arg);
+		break;
+
+	case LED_TOGGLE:
+		led_toggle(arg);
+		break;
+
+
+	default:
+		result = VirtDevObj::devIOCTL(cmd, arg);
+	}
+
+	return result;
+}
+
+namespace
+{
+LED	*gLED;
+}
+
+void
+drv_led_start(void)
+{
+	if (gLED == nullptr) {
+		gLED = new LED;
+
+		if (gLED != nullptr) {
+			gLED->init();
+		}
+	}
+}

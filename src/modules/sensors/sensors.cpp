@@ -926,7 +926,7 @@ Sensors::accel_init()
 {
 	DevHandle h_accel;
 	DevMgr::getHandle(ACCEL0_DEVICE_PATH, h_accel);
-	
+
 	if (!h_accel.isValid()) {
 		warnx("FATAL: no accelerometer found: %s (%d)", ACCEL0_DEVICE_PATH, h_accel.getError());
 		return ERROR;
@@ -971,7 +971,7 @@ Sensors::mag_init()
 
 	DevHandle h_mag;
 	DevMgr::getHandle(MAG0_DEVICE_PATH, h_mag);
-	
+
 	if (!h_mag.isValid()) {
 		warnx("FATAL: no magnetometer found: %s (%d)", MAG0_DEVICE_PATH, h_mag.getError());
 		return ERROR;

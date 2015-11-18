@@ -741,17 +741,17 @@ ToneAlarm	*g_dev;
 int
 play_tune(unsigned tune)
 {
-	int	fd, ret;
+	int ret;
 
-	fd = px4_open(TONEALARM0_DEVICE_PATH, 0);
+	DevHandle h;
+	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h);
 
-	if (fd < 0) {
-		PX4_WARN("Error: failed to open %s", TONEALARM0_DEVICE_PATH);
+	if (!h.isValid()) {
+		PX4_WARN("Error: failed to open %s (%d)", TONEALARM0_DEVICE_PATH, h.getError());
 		return 1;
 	}
 
-	ret = px4_ioctl(fd, TONE_SET_ALARM, tune);
-	px4_close(fd);
+	ret = h.ioctl(TONE_SET_ALARM, tune);
 
 	if (ret != 0) {
 		PX4_WARN("TONE_SET_ALARM");
