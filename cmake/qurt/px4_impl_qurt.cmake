@@ -165,6 +165,7 @@ function(px4_os_add_flags)
                 ${DSPAL_ROOT}/sys/sys 
                 ${DSPAL_ROOT}/mpu_spi/inc
                 ${DSPAL_ROOT}/uart_esc/inc
+		src/lib/DriverFramework/framework/include
                 src/platforms/qurt/include
                 src/platforms/posix/include
                 )
@@ -172,6 +173,7 @@ function(px4_os_add_flags)
         set(added_definitions
                 -D__PX4_QURT 
 		-D__PX4_POSIX
+		-D__DF_QURT
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
@@ -184,6 +186,8 @@ function(px4_os_add_flags)
 	# Clear -rdynamic flag which fails for hexagon
 	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+	set(DF_TARGET "qurt")
 
 	# output
 	foreach(var ${inout_vars})
