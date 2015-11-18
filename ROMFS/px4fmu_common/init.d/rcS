@@ -217,7 +217,12 @@ then
 	#
 	if param compare SYS_USE_IO 1
 	then
-		set USE_IO yes
+		if ver hwcmp PX4FMU_V4
+		then
+			set USE_IO no
+		else
+			set USE_IO yes
+		fi
 	else
 		set USE_IO no
 	fi
