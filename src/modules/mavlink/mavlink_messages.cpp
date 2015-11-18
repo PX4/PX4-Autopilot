@@ -2537,6 +2537,89 @@ protected:
 	}
 };
 
+class MavlinkStreamAltitude : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamAltitude::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "ALTITUDE";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ALTITUDE;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamAltitude(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_ALTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_global_pos_sub;
+	uint64_t _global_pos_time;
+
+	MavlinkOrbSubscription *_local_pos_sub;
+	uint64_t _local_pos_time;
+
+	MavlinkOrbSubscription *_home_sub;
+	uint64_t _home_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamAltitude(MavlinkStreamAltitude &);
+	MavlinkStreamAltitude& operator = (const MavlinkStreamAltitude &);
+
+protected:
+	explicit MavlinkStreamAltitude(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
+		_global_pos_time(0),
+		_local_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_local_pos_time(0),
+		_home_sub(_mavlink->add_orb_subscription(ORB_ID(home_position))),
+		_home_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct vehicle_global_position_s global_pos;
+		struct vehicle_local_position_s local_pos;
+		struct home_position_s home;
+
+		bool updated = _global_pos_sub->update(&_global_pos_time, &global_pos);
+		updated |= _local_pos_sub->update(&_local_pos_time, &local_pos);
+		updated |= _home_sub->update(&_home_time, &home);
+
+		if (updated) {
+			mavlink_altitude_t msg;
+
+			msg.altitude_monotonic = global_pos.alt;
+			msg.altitude_amsl = global_pos.alt;
+			msg.altitude_local = -local_pos.z;
+			msg.altitude_relative = home.alt;
+
+			if (global_pos.terrain_alt_valid) {
+				msg.altitude_terrain = global_pos.terrain_alt;
+				msg.bottom_clearance = global_pos.alt - global_pos.terrain_alt;
+			} else {
+				msg.altitude_terrain = -1001;
+				msg.bottom_clearance = -1;
+			}
+
+			_mavlink->send_message(MAVLINK_MSG_ID_ALTITUDE, &msg);
+		}
+	}
+};
+
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
 	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static),
@@ -2574,5 +2657,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
 	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static),
+	new StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static),
 	nullptr
 };
