@@ -1277,7 +1277,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				set_mode(MODE_4PWM);
 				break;
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) ||  defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 
 			case 6:
 				set_mode(MODE_6PWM);
@@ -1492,6 +1492,79 @@ PX4FMU::sensor_reset(int ms)
 
 #endif
 #endif
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
+
+	if (ms < 1) {
+		ms = 1;
+	}
+
+	/* disable SPI bus */
+	stm32_configgpio(GPIO_SPI_CS_OFF_MPU9250);
+	stm32_configgpio(GPIO_SPI_CS_OFF_HMC5983);
+	stm32_configgpio(GPIO_SPI_CS_OFF_MS5611);
+	stm32_configgpio(GPIO_SPI_CS_OFF_ICM_20608_G);
+
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
+
+	stm32_configgpio(GPIO_SPI1_SCK_OFF);
+	stm32_configgpio(GPIO_SPI1_MISO_OFF);
+	stm32_configgpio(GPIO_SPI1_MOSI_OFF);
+
+	stm32_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
+
+	stm32_configgpio(GPIO_DRDY_OFF_MPU9250);
+	stm32_configgpio(GPIO_DRDY_OFF_HMC5983);
+	stm32_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
+
+	stm32_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_HMC5983, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
+
+	/* set the sensor rail off */
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+
+	/* wait for the sensor rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the sensor rail back on */
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+
+	/* wait a bit before starting SPI, different times didn't influence results */
+	usleep(100);
+
+	/* reconfigure the SPI pins */
+#ifdef CONFIG_STM32_SPI1
+	stm32_configgpio(GPIO_SPI_CS_MPU9250);
+	stm32_configgpio(GPIO_SPI_CS_HMC5983);
+	stm32_configgpio(GPIO_SPI_CS_MS5611);
+	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
+
+	/* De-activate all peripherals,
+	 * required for some peripheral
+	 * state machines
+	 */
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 1);
+
+	// // XXX bring up the EXTI pins again
+	// stm32_configgpio(GPIO_GYRO_DRDY);
+	// stm32_configgpio(GPIO_MAG_DRDY);
+	// stm32_configgpio(GPIO_ACCEL_DRDY);
+	// stm32_configgpio(GPIO_EXTI_MPU_DRDY);
+
+#endif
+#endif
 }
 
 void
@@ -1515,6 +1588,31 @@ PX4FMU::peripheral_reset(int ms)
 
 	/* switch the peripheral rail back on */
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+#endif
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
+
+	if (ms < 1) {
+		ms = 10;
+	}
+
+	/* set the peripheral rails off */
+	stm32_configgpio(GPIO_PERIPH_3V3_EN);
+
+	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 0);
+
+	bool last =  stm32_gpioread(GPIO_SPEKTRUM_POWER);
+	/* Keep Spektum on to discharge rail*/
+	stm32_gpiowrite(GPIO_SPEKTRUM_POWER, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	stm32_gpiowrite(GPIO_SPEKTRUM_POWER, last);
+	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
 #endif
 }
 
@@ -1707,7 +1805,7 @@ fmu_new_mode(PortMode new_mode)
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) ||  defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 		servo_mode = PX4FMU::MODE_6PWM;
 #endif
 #if defined(CONFIG_ARCH_BOARD_AEROCORE)
@@ -1715,7 +1813,7 @@ fmu_new_mode(PortMode new_mode)
 #endif
 		break;
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) ||  defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 
 	case PORT_PWM4:
 		/* select 4-pin PWM mode */
@@ -2023,7 +2121,7 @@ fmu_main(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) ||  defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 
 	} else if (!strcmp(verb, "mode_pwm4")) {
 		new_mode = PORT_PWM4;
@@ -2112,7 +2210,7 @@ fmu_main(int argc, char *argv[])
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	fprintf(stderr,
 		"  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_AEROCORE)
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4) || defined(CONFIG_ARCH_BOARD_AEROCORE)
 	fprintf(stderr, "  mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
 #endif
 	exit(1);
