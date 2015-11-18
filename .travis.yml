@@ -60,11 +60,9 @@ before_install:
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
       && brew update
-      && brew install astyle
-      && brew install gcc-arm-none-eabi
+      && brew install cmake ninja astyle gcc-arm-none-eabi
       && brew install genromfs
       && brew install kconfig-frontends
-      && brew install ninja
       && sudo easy_install pip
       && sudo pip install pyserial empy
       ;
