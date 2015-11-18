@@ -484,7 +484,7 @@ Navigator::task_main()
 		}
 
 		/* iterate through navigation modes and set active/inactive for each */
-		for(unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
+		for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
 			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 
