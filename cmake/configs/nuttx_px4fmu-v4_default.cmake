@@ -12,7 +12,7 @@ set(config_module_list
 	drivers/stm32/tone_alarm
 	drivers/led
 	drivers/px4fmu
-	drivers/boards/px4fmu-v3
+	drivers/boards/px4fmu-v4
 	drivers/rgbled
 	drivers/mpu9250
 	drivers/hmc5883

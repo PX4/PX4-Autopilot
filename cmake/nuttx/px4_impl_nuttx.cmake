@@ -458,7 +458,7 @@ function(px4_os_add_flags)
 			-mfpu=fpv4-sp-d16
 			-mfloat-abi=hard
 			)
-	elseif (${BOARD} STREQUAL "px4fmu-v3")
+	elseif (${BOARD} STREQUAL "px4fmu-v4")
 		set(cpu_flags
 			-mcpu=cortex-m4
 			-mthumb
