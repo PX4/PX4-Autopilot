@@ -72,7 +72,7 @@ static uint32_t g_ledmap[] = {
 __EXPORT void led_init(void)
 {
 	/* Configure LED GPIOs for output */
-	for (size_t l = 0; l < (sizeof(g_ledmap)/sizeof(g_ledmap[0])); l++) {
+	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
 		stm32_configgpio(g_ledmap[l]);
 	}
 }
