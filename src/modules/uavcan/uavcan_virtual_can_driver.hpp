@@ -494,9 +494,8 @@ public:
 		const unsigned quota_per_queue = virtual_iface_block_allocation_quota;             // 2x overcommit
 
 		for (unsigned i = 0; i < num_ifaces_; i++) {
-			ifaces_[i].template
-				construct<uavcan::IPoolAllocator&, uavcan::ISystemClock&, pthread_mutex_t&, unsigned>
-					(allocator, clock_, driver_mutex_, quota_per_queue);
+			ifaces_[i].construct<uavcan::IPoolAllocator&, uavcan::ISystemClock&, pthread_mutex_t&,
+					     unsigned>(allocator, clock_, driver_mutex_, quota_per_queue);
 		}
 	}
 
