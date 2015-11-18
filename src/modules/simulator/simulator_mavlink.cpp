@@ -80,7 +80,7 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 	// for now we only support quadrotors
 	unsigned n = 4;
 
-	if (_vehicle_status.is_rotary_wing) {
+	if (_vehicle_status.is_rotary_wing || _vehicle_status.is_vtol) {
 		for (unsigned i = 0; i < 8; i++) {
 			if (_actuators.output[i] > PWM_LOWEST_MIN / 2) {
 				if (i < n) {
@@ -113,7 +113,7 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 
 	actuator_msg.time_usec = hrt_absolute_time();
 	actuator_msg.roll_ailerons = out[0];
-	actuator_msg.pitch_elevator = _vehicle_status.is_rotary_wing ? out[1] : -out[1];
+	actuator_msg.pitch_elevator = (_vehicle_status.is_rotary_wing || _vehicle_status.is_vtol)  ? out[1] : -out[1];
 	actuator_msg.yaw_rudder = out[2];
 	actuator_msg.throttle = out[3];
 	actuator_msg.aux1 = out[4];
