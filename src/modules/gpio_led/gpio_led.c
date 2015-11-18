@@ -208,12 +208,14 @@ void gpio_led_start(FAR void *arg)
 	char *gpio_dev;
 
 #if defined(PX4IO_DEVICE_PATH)
+
 	if (priv->use_io) {
 		gpio_dev = PX4IO_DEVICE_PATH;
 
 	} else {
 		gpio_dev = PX4FMU_DEVICE_PATH;
 	}
+
 #else
 	gpio_dev = PX4FMU_DEVICE_PATH;
 #endif

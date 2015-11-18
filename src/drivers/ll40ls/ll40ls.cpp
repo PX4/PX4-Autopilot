@@ -232,11 +232,14 @@ void start(const bool use_i2c, const int bus)
 fail:
 
 #ifdef PX4_I2C_BUS_ONBOARD
+
 	if (g_dev_int != nullptr && (bus == -1 || bus == PX4_I2C_BUS_ONBOARD)) {
 		delete g_dev_int;
 		g_dev_int = nullptr;
 	}
+
 #endif
+
 	if (g_dev_ext != nullptr && (bus == -1 || bus == PX4_I2C_BUS_EXPANSION)) {
 		delete g_dev_ext;
 		g_dev_ext = nullptr;
@@ -261,6 +264,7 @@ void stop(const bool use_i2c, const int bus)
 				delete g_dev_ext;
 				g_dev_ext = nullptr;
 			}
+
 		} else {
 			if (g_dev_int != nullptr) {
 				delete g_dev_int;
