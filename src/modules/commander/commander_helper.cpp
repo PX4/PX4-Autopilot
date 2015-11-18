@@ -96,7 +96,7 @@ bool is_vtol(const struct vehicle_status_s * current_status) {
 		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_OCTOROTOR);
 }
 
-static int buzzer = -1;
+static DevHandle h_buzzer;
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
 static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for repeating tunes or silence
 static int tune_current = TONE_STOP_TUNE;		// currently playing tune, can be interrupted after tune_end
@@ -136,9 +136,10 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
 
-	buzzer = px4_open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	DevHandle h_buzzer;
+	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h_buzzer);
 
-	if (buzzer < 0) {
+	if (!h_buzzer.isValid()) {
 		PX4_WARN("Buzzer: px4_open fail\n");
 		return ERROR;
 	}
@@ -148,12 +149,12 @@ int buzzer_init()
 
 void buzzer_deinit()
 {
-	px4_close(buzzer);
+	DevMgr::releaseHandle(h_buzzer);
 }
 
 void set_tune_override(int tune)
 {
-	px4_ioctl(buzzer, TONE_SET_ALARM, tune);
+	h_buzzer.ioctl(TONE_SET_ALARM, tune);
 }
 
 void set_tune(int tune)
@@ -164,7 +165,7 @@ void set_tune(int tune)
 	if (tune_end == 0 || new_tune_duration != 0 || hrt_absolute_time() > tune_end) {
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
-			px4_ioctl(buzzer, TONE_SET_ALARM, tune);
+			h_buzzer.ioctl(TONE_SET_ALARM, tune);
 		}
 
 		tune_current = tune;

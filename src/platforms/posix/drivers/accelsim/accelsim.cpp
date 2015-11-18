@@ -349,19 +349,16 @@ ACCELSIM::~ACCELSIM()
 int
 ACCELSIM::init()
 {
-	PX4_INFO("ACCELSIM::init");
 	int ret = -1;
 
 	struct mag_report mrp = {};
 	struct accel_report arp = {};
 
-	PX4_INFO("ACCELSIM::init before VirtDevObj::init()");
 	/* do SIM init first */
 	if (VirtDevObj::init() != 0) {
 		PX4_WARN("SIM init failed");
 		goto out;
 	}
-	PX4_INFO("ACCELSIM::init after VirtDevObj::init()");
 
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
