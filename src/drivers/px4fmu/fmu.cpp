@@ -121,7 +121,7 @@ private:
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	static const unsigned _max_actuators = 4;
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V3)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 	static const unsigned _max_actuators = 6;
 #endif
 #if defined(CONFIG_ARCH_BOARD_AEROCORE)
@@ -232,7 +232,7 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 	{GPIO_VDD_5V_HIPOWER_OC, 0,                       0},
 	{GPIO_VDD_5V_PERIPH_OC,  0,                       0},
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V3)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 	{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
 	{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
 	{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0},

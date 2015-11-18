@@ -31,16 +31,16 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__boards__px4fmu-v3
+	MODULE drivers__boards__px4fmu-v4
 	COMPILE_FLAGS
 		-Os
 	SRCS
 		px4fmu_can.c
-		px4fmu3_init.c
+		px4fmu_init.c
 		px4fmu_pwm_servo.c
 		px4fmu_spi.c
 		px4fmu_usb.c
-		px4fmu3_led.c
+		px4fmu_led.c
 	DEPENDS
 		platforms__common
 	)
