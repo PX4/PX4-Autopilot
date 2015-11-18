@@ -3,11 +3,9 @@ include(posix/px4_impl_posix)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
-	drivers/led
 	drivers/device
 	drivers/boards/sitl
 	drivers/pwm_out_sim
-	drivers/rgbled
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
@@ -18,6 +16,8 @@ set(config_module_list
 	platforms/posix/drivers/airspeedsim
 	platforms/posix/drivers/barosim
 	platforms/posix/drivers/gyrosim
+	platforms/posix/drivers/rgbledsim
+	platforms/posix/drivers/ledsim
 	systemcmds/param
 	systemcmds/mixer
 	systemcmds/ver
