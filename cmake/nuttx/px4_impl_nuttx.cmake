@@ -441,7 +441,7 @@ function(px4_os_add_flags)
 		-nostdlib
 		)
 
-	set(added_exe_linker_flags -lstdc++) # none currently
+	set(added_exe_linker_flags) # none currently
 
 	set(cpu_flags)
 	if (${BOARD} STREQUAL "px4fmu-v1")
