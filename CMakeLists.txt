@@ -336,8 +336,9 @@ endforeach()
 
 add_subdirectory(src/firmware/${OS})
 
+add_subdirectory(src/lib/DriverFramework/framework/src)
+#add_dependencies(df_driver_framework nuttx_export_${CONFIG}.stamp)
 if (NOT "${OS}" STREQUAL "nuttx")
-	add_subdirectory(src/lib/DriverFramework)
 endif()
 
 if (config_io_board)

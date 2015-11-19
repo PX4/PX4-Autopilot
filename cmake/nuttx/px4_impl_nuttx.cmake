@@ -423,7 +423,6 @@ function(px4_os_add_flags)
 		${nuttx_export_dir}/include/cxx
 		${nuttx_export_dir}/arch/chip
 		${nuttx_export_dir}/arch/common
-		src/lib/DriverFramework/framework/include
 		)
 	set(added_link_dirs
 		${nuttx_export_dir}/libs

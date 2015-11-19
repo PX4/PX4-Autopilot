@@ -165,7 +165,6 @@ function(px4_os_add_flags)
                 ${DSPAL_ROOT}/sys/sys 
                 ${DSPAL_ROOT}/mpu_spi/inc
                 ${DSPAL_ROOT}/uart_esc/inc
-		src/lib/DriverFramework/framework/include
                 src/platforms/qurt/include
                 src/platforms/posix/include
                 )
