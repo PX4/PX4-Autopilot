@@ -588,7 +588,7 @@ RGBLEDSIM::send_led_rgb()
 int
 RGBLEDSIM::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 {
-	uint8_t result[2];
+	uint8_t result[2] = {0, 0};
 	int ret;
 
 	ret = transfer(nullptr, 0, &result[0], 2);

@@ -510,6 +510,7 @@ reset()
 {
 	DevHandle h;
 	DevMgr::getHandle(GPSSIM_DEVICE_PATH, h);
+
 	if (!h.isValid()) {
 		PX4_ERR("failed ");
 	}

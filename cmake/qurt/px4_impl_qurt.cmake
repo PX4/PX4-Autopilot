@@ -187,7 +187,7 @@ function(px4_os_add_flags)
 	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-	set(DF_TARGET "qurt")
+	set(DF_TARGET "qurt" PARENT_SCOPE)
 
 	# output
 	foreach(var ${inout_vars})

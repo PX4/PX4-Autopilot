@@ -335,10 +335,9 @@ foreach(module ${config_module_list})
 endforeach()
 
 add_subdirectory(src/firmware/${OS})
-add_subdirectory(src/lib/DriverFramework)
 
-if("${OS}" STREQUAL "nuttx")
-	add_dependencies(df_driver_framework nuttx_export_${BOARD})
+if (NOT "${OS}" STREQUAL "nuttx")
+	add_subdirectory(src/lib/DriverFramework)
 endif()
 
 if (config_io_board)

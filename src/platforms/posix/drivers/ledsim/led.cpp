@@ -90,6 +90,7 @@ LED::init()
 {
 	DEVICE_DEBUG("LED::init");
 	int ret = VirtDevObj::init();
+
 	if (ret == 0) {
 		led_init();
 	}
