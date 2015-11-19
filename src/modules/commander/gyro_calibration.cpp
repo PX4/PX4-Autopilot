@@ -238,7 +238,7 @@ int do_gyro_calibration(int mavlink_fd)
 			float zdiff = worker_data.gyro_report_0.z - worker_data.gyro_scale[0].z_offset;
 
 			/* maximum allowable calibration error in radians */
-			const float maxoff = 0.0055f;
+			const float maxoff = 0.01f;
 
 			if (!PX4_ISFINITE(worker_data.gyro_scale[0].x_offset) ||
 			    !PX4_ISFINITE(worker_data.gyro_scale[0].y_offset) ||
