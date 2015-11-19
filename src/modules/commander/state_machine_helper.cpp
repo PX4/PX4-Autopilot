@@ -743,12 +743,12 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 	return status->nav_state != nav_state_old;
 }
 
-int preflight_check(const struct vehicle_status_s *status, const int mavlink_fd, bool prearm)
+int preflight_check(const struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report)
 {
 	/* 
 	 */
-	bool reportFailures = false;
-	reportFailures = !status->condition_system_prearm_error_reported && status->condition_system_hotplug_timeout;
+	bool reportFailures = force_report || (!status->data_link_lost &&
+		!status->condition_system_prearm_error_reported && status->condition_system_hotplug_timeout);
 	
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not

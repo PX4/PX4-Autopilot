@@ -382,9 +382,9 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "check")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		int checkres = 0;
-		checkres = preflight_check(&status, mavlink_fd_local, false);
+		checkres = preflight_check(&status, mavlink_fd_local, false, true);
 		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
-		checkres = preflight_check(&status, mavlink_fd_local, true);
+		checkres = preflight_check(&status, mavlink_fd_local, true, true);
 		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 		px4_close(mavlink_fd_local);
 		return 0;
