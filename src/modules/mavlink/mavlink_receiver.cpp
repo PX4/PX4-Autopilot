@@ -279,6 +279,27 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	_mavlink->set_has_received_messages(true);
 }
 
+bool
+MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_component)
+{
+	/* evaluate if this system should accept this command */
+	bool target_ok = false;
+	switch (command) {
+
+		case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
+			/* broadcast and ignore component */
+			target_ok = (target_system == 0) || (target_system == mavlink_system.sysid);
+			break;
+
+		default:
+			target_ok = (target_system == mavlink_system.sysid) && ((target_component == mavlink_system.compid)
+			|| (target_component == MAV_COMP_ID_ALL));
+			break;
+	}
+
+	return target_ok;
+}
+
 void
 MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 {
@@ -286,22 +307,9 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	mavlink_command_long_t cmd_mavlink;
 	mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
-	/* evaluate if this system should accept this command */
-	bool target_ok;
-	switch (cmd_mavlink.command) {
+	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-		case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
-			/* broadcast */
-			target_ok = (cmd_mavlink.target_system == 0);
-			break;
-
-		default:
-			target_ok = (cmd_mavlink.target_system == mavlink_system.sysid);
-			break;
-	}
-
-	if (target_ok && ((cmd_mavlink.target_component == mavlink_system.compid)
-			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+	if (target_ok) {
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
@@ -362,8 +370,9 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	mavlink_command_int_t cmd_mavlink;
 	mavlink_msg_command_int_decode(msg, &cmd_mavlink);
 
-	if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid)
-			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
+
+	if (target_ok) {
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
