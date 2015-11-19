@@ -229,7 +229,12 @@ then
 	then
 		echo "[i] No autostart"
 	else
-		sh /etc/init.d/rc.autostart
+		if param compare SYS_AUTOSTART 10020
+		then
+			sh /etc/init.d/10020_3dr_quad
+		else
+			sh /etc/init.d/rc.autostart
+		fi
 	fi
 	unset MODE
 
