@@ -123,6 +123,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		/* only perform the pre-arm check if we have to */
 		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
 				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+
 			prearm_ret = preflight_check(status, mavlink_fd, true /* pre-arm */ );
 		}
 		/* re-run the pre-flight check as long as sensors are failing */
@@ -130,6 +131,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 				&& (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED ||
 				    new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
              			&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+
             		prearm_ret = preflight_check(status, mavlink_fd, false /* pre-flight */);
 			status->condition_system_sensors_initialized = !prearm_ret;
 		}
@@ -270,10 +272,6 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		/* reset feedback state */
 		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
 			valid_transition) {
-			status->condition_system_prearm_error_reported = false;
-		}
-		if(status->data_link_found_new == true)
-		{
 			status->condition_system_prearm_error_reported = false;
 		}
 
@@ -743,7 +741,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 	return status->nav_state != nav_state_old;
 }
 
-int preflight_check(const struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report)
+int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report)
 {
 	/* 
 	 */
@@ -761,7 +759,14 @@ int preflight_check(const struct vehicle_status_s *status, const int mavlink_fd,
 		
 	if (!status->cb_usb && status->usb_connected && prearm) {
 		preflight_ok = false;
-		if(reportFailures) mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Flying with USB connected prohibited");
+		if (reportFailures) {
+			mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Flying with USB connected prohibited");
+		}
+	}
+
+	/* report once, then set the flag */
+	if (mavlink_fd >= 0 && reportFailures && !preflight_ok) {
+		status->condition_system_prearm_error_reported = true;
 	}
 
 	return !preflight_ok;

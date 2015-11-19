@@ -65,6 +65,6 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 
 bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished, const bool stay_in_failsafe);
 
-int preflight_check(const struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report=false);
+int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report=false);
 
 #endif /* STATE_MACHINE_HELPER_H_ */
