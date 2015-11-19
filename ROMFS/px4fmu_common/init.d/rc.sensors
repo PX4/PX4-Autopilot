@@ -75,17 +75,18 @@ else
 		fi
 
 		# Internal SPI bus
-		if hmc5883 -C -T -S -R 8 start
+		if hmc5883 -C -T -S -R 0
+		 start
 		then
 		fi
 
-		# Internal SPI bus mpu9250 is rotated ??
-		if mpu9250 -R 0 start
+		# Internal SPI bus mpu9250 is rotated 90 deg yaw
+		if mpu9250 -R 2 start
 		then
 		fi
 
-		# Internal SPI bus ICM-20608-G is rotated 180 deg roll, 270 deg yaw
-		if mpu6000 -R 14 -T 20608 start
+		# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
+		if mpu6000 -R 2 -T 20608 start
 		then
 		fi
 	else
