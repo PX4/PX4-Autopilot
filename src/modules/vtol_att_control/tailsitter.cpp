@@ -177,8 +177,8 @@ void Tailsitter::update_vtol_state()
 		case TRANSITION_FRONT_P1:
 
 			// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
-			if ((_airspeed->true_airspeed_m_s >= _params_tailsitter.airspeed_trans)
-			    && (_v_att->pitch <= PITCH_TRANSITION_FRONT_P1)) {
+			if ((_airspeed->true_airspeed_m_s >= _params_tailsitter.airspeed_trans
+			    && _v_att->pitch <= PITCH_TRANSITION_FRONT_P1) || !_armed->armed) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				//_vtol_schedule.transition_start = hrt_absolute_time();
 			}
