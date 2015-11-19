@@ -197,7 +197,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 	if (dynamic) {
 		/* check measurement result range */
 		struct accel_report acc;
-		ret = px4_read(fd, &acc, sizeof(acc));
+		ret = h.read(&acc, sizeof(acc));
 
 		if (ret == sizeof(acc)) {
 			/* evaluate values */
@@ -219,9 +219,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 #endif
 
 out:
-#ifdef __PX4_NUTTX
-	px4_close(fd);
-#endif
+	DevMgr::releaseHandle(h);
 	return success;
 }
 

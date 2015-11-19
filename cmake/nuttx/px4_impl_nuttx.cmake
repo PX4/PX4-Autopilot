@@ -423,6 +423,7 @@ function(px4_os_add_flags)
 		${nuttx_export_dir}/include/cxx
 		${nuttx_export_dir}/arch/chip
 		${nuttx_export_dir}/arch/common
+		src/lib/DriverFramework/framework/include
 		)
 	set(added_link_dirs
 		${nuttx_export_dir}/libs
@@ -440,7 +441,7 @@ function(px4_os_add_flags)
 		-nostdlib
 		)
 
-	set(added_exe_linker_flags) # none currently
+	set(added_exe_linker_flags -lstdc++) # none currently
 
 	set(cpu_flags)
 	if (${BOARD} STREQUAL "px4fmu-v1")
@@ -489,6 +490,8 @@ function(px4_os_add_flags)
 		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
 		#message(STATUS "nuttx: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 	endforeach()
+
+	set(DF_TARGET "nuttx" PARENT_SCOPE)
 
 endfunction()
 
