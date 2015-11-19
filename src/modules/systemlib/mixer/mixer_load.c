@@ -52,7 +52,6 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 
 	/* open the mixer definition file */
 	fp = fopen(fname, "r");
-    printf("%s\n",fname);
 
 	if (fp == NULL) {
 		warnx("file not found");
@@ -107,10 +106,8 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 		}
 
 		/* add the line to the buffer */
-        strcat(buf, line);
-    }
-
-   printf("%s\n",buf);
+		strcat(buf, line);
+	}
 
 	fclose(fp);
 	return 0;
