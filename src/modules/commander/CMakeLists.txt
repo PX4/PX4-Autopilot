@@ -37,7 +37,7 @@ endif()
 px4_add_module(
 	MODULE modules__commander
 	MAIN commander
-	STACK 3000
+	STACK 4096
 	COMPILE_FLAGS
 		${MODULE_CFLAGS}
 		-Os
