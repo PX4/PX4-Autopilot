@@ -74,9 +74,8 @@ else
 		then
 		fi
 
-		# Internal SPI bus
-		if hmc5883 -C -T -S -R 0
-		 start
+		# Internal SPI bus is rotated 90 deg yaw
+		if hmc5883 -C -T -S -R 2 start
 		then
 		fi
 
