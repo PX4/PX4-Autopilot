@@ -271,6 +271,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 		/* reset feedback state */
 		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
+			status->arming_state != vehicle_status_s::ARMING_STATE_INIT &&
 			valid_transition) {
 			status->condition_system_prearm_error_reported = false;
 		}
@@ -745,8 +746,8 @@ int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool 
 {
 	/* 
 	 */
-	bool reportFailures = force_report || (!status->data_link_lost &&
-		!status->condition_system_prearm_error_reported && status->condition_system_hotplug_timeout);
+	bool reportFailures = force_report || (!status->condition_system_prearm_error_reported &&
+		status->condition_system_hotplug_timeout);
 	
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
@@ -755,7 +756,9 @@ int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool 
 		checkAirspeed = true;
 	}
 
-	bool preflight_ok = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true, reportFailures);
+	bool preflight_ok = Commander::preflightCheck(mavlink_fd, true, true, true, true,
+				checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF),
+				!status->circuit_breaker_engaged_gpsfailure_check, true, reportFailures);
 		
 	if (!status->cb_usb && status->usb_connected && prearm) {
 		preflight_ok = false;

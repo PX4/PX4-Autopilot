@@ -1034,7 +1034,7 @@ int commander_thread_main(int argc, char *argv[])
 	// XXX for now just set sensors as initialized
 	status.condition_system_sensors_initialized = true;
 	
-	status.condition_system_prearm_error_reported = true;
+	status.condition_system_prearm_error_reported = false;
 	status.condition_system_hotplug_timeout = false;
 
 	status.counter++;
@@ -2197,9 +2197,11 @@ int commander_thread_main(int argc, char *argv[])
 						mavlink_and_console_log_info(mavlink_fd, "data link #%i regained", i);
 					} else if (telemetry_last_dl_loss[i] == 0) {
 						/* new link */
-						status.condition_system_prearm_error_reported = false;
-						status_changed = true;
 					}
+
+					/* got link again or new */
+					status.condition_system_prearm_error_reported = false;
+					status_changed = true;
 
 					telemetry_lost[i] = false;
 					have_link = true;
