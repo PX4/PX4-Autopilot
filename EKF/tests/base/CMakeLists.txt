@@ -31,18 +31,14 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE lib__ecl
+	MODULE lib__ecl__EKF__tests__base
+	MAIN base
+	STACK 4096
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		attitude_fw/ecl_controller.cpp
-		attitude_fw/ecl_pitch_controller.cpp
-		attitude_fw/ecl_roll_controller.cpp
-		attitude_fw/ecl_yaw_controller.cpp
-		l1/ecl_l1_pos_controller.cpp
-		validation/data_validator.cpp
-		validation/data_validator_group.cpp
-		EKF/estimator_base.cpp
-		EKF/ekf.cpp
+		base.cpp
+	DEPENDS
+		platforms__common
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
