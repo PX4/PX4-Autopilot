@@ -148,6 +148,8 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define OFFBOARD_TIMEOUT		500000
 #define DIFFPRESS_TIMEOUT		2000000
 
+#define HOTPLUG_SENS_TIMEOUT		(8 * 1000 * 1000)	/**< wait for hotplug sensors to come online for upto 10 seconds */
+
 #define PRINT_INTERVAL	5000000
 #define PRINT_MODE_REJECT_INTERVAL	10000000
 
@@ -299,7 +301,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = px4_task_spawn_cmd("commander",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 40,
-					     3500,
+					     3600,
 					     commander_thread_main,
 					     (char * const *)&argv[0]);
 
@@ -360,6 +362,8 @@ int commander_main(int argc, char *argv[])
 				calib_ret = do_level_calibration(mavlink_fd);
 			} else if (!strcmp(argv[2], "esc")) {
 				calib_ret = do_esc_calibration(mavlink_fd, &armed);
+			} else if (!strcmp(argv[2], "airspeed")) {
+				calib_ret = do_airspeed_calibration(mavlink_fd);
 			} else {
 				warnx("argument %s unsupported.", argv[2]);
 			}
@@ -377,23 +381,31 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "check")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
-		int checkres = prearm_check(&status, mavlink_fd_local);
+		int checkres = 0;
+		checkres = preflight_check(&status, mavlink_fd_local, false, true);
+		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
+		checkres = preflight_check(&status, mavlink_fd_local, true, true);
+		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 		px4_close(mavlink_fd_local);
-		warnx("FINAL RESULT: %s", (checkres == 0) ? "OK" : "FAILED");
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "arm")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
-		arm_disarm(true, mavlink_fd_local, "command line");
-		warnx("note: not updating home position on commandline arming!");
+		if (TRANSITION_CHANGED == arm_disarm(true, mavlink_fd_local, "command line")) {
+			warnx("note: not updating home position on commandline arming!");
+		} else {
+			warnx("arming failed");
+		}
 		px4_close(mavlink_fd_local);
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
-		arm_disarm(false, mavlink_fd_local, "command line");
+		if (TRANSITION_DENIED == arm_disarm(false, mavlink_fd_local, "command line")) {
+			warnx("rejected disarm");
+		}
 		px4_close(mavlink_fd_local);
 		return 0;
 	}
@@ -891,6 +903,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* not yet initialized */
 	commander_initialized = false;
 
+	bool sensor_fail_tune_played = false;
 	bool arm_tune_played = false;
 	bool was_landed = true;
 	bool was_armed = false;
@@ -1020,6 +1033,9 @@ int commander_thread_main(int argc, char *argv[])
 
 	// XXX for now just set sensors as initialized
 	status.condition_system_sensors_initialized = true;
+	
+	status.condition_system_prearm_error_reported = false;
+	status.condition_system_hotplug_timeout = false;
 
 	status.counter++;
 	status.timestamp = hrt_absolute_time();
@@ -1101,7 +1117,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	bool updated = false;
 
-	rc_calibration_check(mavlink_fd);
+	rc_calibration_check(mavlink_fd, true);
 
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
@@ -1243,6 +1259,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	// Run preflight check
 	int32_t rc_in_off = 0;
+	bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 	param_get(_param_autostart_id, &autostart_id);
 	param_get(_param_rc_in_off, &rc_in_off);
 	status.rc_input_mode = rc_in_off;
@@ -1251,14 +1268,10 @@ int commander_thread_main(int argc, char *argv[])
 		status.condition_system_sensors_initialized = false;
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	} else {
-		status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true,
-			checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status.circuit_breaker_engaged_gpsfailure_check);
-		if (!status.condition_system_sensors_initialized) {
-			set_tune_override(TONE_GPS_WARNING_TUNE); //sensor fail tune
-		}
-		else {
+			// sensor diagnostics done continiously, not just at boot so don't warn about any issues just yet
+			status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true,
+			checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status.circuit_breaker_engaged_gpsfailure_check, false);
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
-		}
 	}
 
 	commander_boot_timestamp = hrt_absolute_time();
@@ -1291,7 +1304,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2600);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 2880);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
@@ -1354,11 +1367,11 @@ int commander_thread_main(int argc, char *argv[])
 
 				if (map_mode_sw == 0 && map_mode_sw != map_mode_sw_new && map_mode_sw_new < input_rc_s::RC_INPUT_MAX_CHANNELS && map_mode_sw_new > 0) {
 					status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed,
-							!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
+							!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check, hotplug_timeout);
 				}
 
 				/* re-check RC calibration */
-				rc_calibration_check(mavlink_fd);
+				rc_calibration_check(mavlink_fd, true);
 			}
 
 			/* Safety parameters */
@@ -1446,6 +1459,8 @@ int commander_thread_main(int argc, char *argv[])
 				    !armed.armed) {
 
 				    	bool chAirspeed = false;
+				    	bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
+				    	
 					/* Perform airspeed check only if circuit breaker is not
 					 * engaged and it's not a rotary wing */
 					if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
@@ -1456,11 +1471,11 @@ int commander_thread_main(int argc, char *argv[])
 					if (is_hil_setup(autostart_id)) {
 						/* HIL configuration: check only RC input */
 						(void)Commander::preflightCheck(mavlink_fd, false, false, false, false, false,
-								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), false);
+								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), false, true);
 					} else {
 						/* check sensors also */
 						(void)Commander::preflightCheck(mavlink_fd, true, true, true, true, chAirspeed,
-								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
+								!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check, hotplug_timeout);
 					}
 				}
 
@@ -1686,10 +1701,10 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 
 				if (status.condition_landed) {
-					mavlink_log_critical(mavlink_fd, "LANDING DETECTED");
+					mavlink_and_console_log_info(mavlink_fd, "LANDING DETECTED");
 
 				} else {
-					mavlink_log_critical(mavlink_fd, "TAKEOFF DETECTED");
+					mavlink_and_console_log_info(mavlink_fd, "TAKEOFF DETECTED");
 				}
 			}
 
@@ -2177,10 +2192,16 @@ int commander_thread_main(int argc, char *argv[])
 				if (telemetry_lost[i] &&
 				    hrt_elapsed_time(&telemetry_last_dl_loss[i]) > datalink_regain_timeout * 1e6) {
 
-					/* only report a regain */
+					/* report a regain */
 					if (telemetry_last_dl_loss[i] > 0) {
 						mavlink_and_console_log_info(mavlink_fd, "data link #%i regained", i);
+					} else if (telemetry_last_dl_loss[i] == 0) {
+						/* new link */
 					}
+
+					/* got link again or new */
+					status.condition_system_prearm_error_reported = false;
+					status_changed = true;
 
 					telemetry_lost[i] = false;
 					have_link = true;
@@ -2414,7 +2435,7 @@ int commander_thread_main(int argc, char *argv[])
 		} else {
 			set_tune(TONE_STOP_TUNE);
 		}
-
+		
 		/* reset arm_tune_played when disarmed */
 		if (!armed.armed || (safety.safety_switch_available && !safety.safety_off)) {
 
@@ -2424,6 +2445,21 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			arm_tune_played = false;
+		}
+		
+		/* play sensor failure tunes if we already waited for hotplug sensors to come up and failed */
+		hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
+		
+		if (!sensor_fail_tune_played && (!status.condition_system_sensors_initialized && hotplug_timeout)) {
+			set_tune_override(TONE_GPS_WARNING_TUNE);
+			sensor_fail_tune_played = true;
+			status_changed = true;
+		}
+		
+		/* update timeout flag */
+		if(!(hotplug_timeout == status.condition_system_hotplug_timeout)) {
+			status.condition_system_hotplug_timeout = hotplug_timeout;
+			status_changed = true;
 		}
 
 		counter++;
@@ -2482,6 +2518,8 @@ get_circuit_breaker_params()
 {
 	status.circuit_breaker_engaged_power_check =
 		circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+	status.cb_usb =
+		circuit_breaker_enabled("CBRK_USB_CHK", CBRK_USB_CHK_KEY);
 	status.circuit_breaker_engaged_airspd_check =
 		circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
 	status.circuit_breaker_engaged_enginefailure_check =
@@ -2508,17 +2546,22 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 	/* driving rgbled */
 	if (changed) {
 		bool set_normal_color = false;
-
+		bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
+		
 		/* set mode */
 		if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			rgbled_set_mode(RGBLED_MODE_ON);
 			set_normal_color = true;
 
-		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR || !status.condition_system_sensors_initialized) {
+		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR || (!status.condition_system_sensors_initialized && hotplug_timeout)) {
 			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 			rgbled_set_color(RGBLED_COLOR_RED);
 
 		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+			rgbled_set_mode(RGBLED_MODE_BREATHE);
+			set_normal_color = true;
+		
+		} else if (!status.condition_system_sensors_initialized && !hotplug_timeout) {
 			rgbled_set_mode(RGBLED_MODE_BREATHE);
 			set_normal_color = true;
 
@@ -2536,7 +2579,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			} else if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
 				rgbled_set_color(RGBLED_COLOR_RED);
 			} else {
-				if (status_local->condition_home_position_valid) {
+				if (status_local->condition_home_position_valid && status_local->condition_global_position_valid) {
 					rgbled_set_color(RGBLED_COLOR_GREEN);
 
 				} else {
@@ -3197,6 +3240,7 @@ void *commander_low_prio_loop(void *arg)
 						// so this would be prone to false negatives.
 
 						bool checkAirspeed = false;
+						bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 						/* Perform airspeed check only if circuit breaker is not
 						 * engaged and it's not a rotary wing */
 						if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
@@ -3204,7 +3248,7 @@ void *commander_low_prio_loop(void *arg)
 						}
 
 						status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed,
-							!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check);
+							!(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check, hotplug_timeout);
 
 						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, false /* fRunPreArmChecks */, mavlink_fd);
 

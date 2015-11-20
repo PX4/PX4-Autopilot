@@ -56,6 +56,7 @@
 #define CBRK_FLIGHTTERM_KEY	121212
 #define CBRK_ENGINEFAIL_KEY	284953
 #define CBRK_GPSFAIL_KEY	240024
+#define CBRK_USB_CHK_KEY	197848
 
 #include <stdbool.h>
 

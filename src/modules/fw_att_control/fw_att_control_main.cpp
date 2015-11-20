@@ -82,6 +82,7 @@
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
+#include <ecl/attitude_fw/ecl_wheel_controller.h>
 #include <platforms/px4_defines.h>
 
 /**
@@ -160,6 +161,10 @@ private:
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
 	bool		_debug;				/**< if set to true, print debug output */
 
+	float _flaps_cmd_last;
+	float _flaperons_cmd_last;
+
+
 	struct {
 		float tconst;
 		float p_p;
@@ -181,6 +186,11 @@ private:
 		float y_coordinated_min_speed;
 		int32_t y_coordinated_method;
 		float y_rmax;
+		float w_p;
+		float w_i;
+		float w_ff;
+		float w_integrator_max;
+		float w_rmax;
 
 		float airspeed_min;
 		float airspeed_trim;
@@ -195,6 +205,9 @@ private:
 		float pitchsp_offset_rad;		/**< Pitch Setpoint Offset in rad */
 		float man_roll_max;				/**< Max Roll in rad */
 		float man_pitch_max;			/**< Max Pitch in rad */
+
+		float flaps_scale;				/**< Scale factor for flaps */
+		float flaperon_scale;			/**< Scale factor for flaperons */
 
 		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
@@ -222,6 +235,11 @@ private:
 		param_t y_coordinated_min_speed;
 		param_t y_coordinated_method;
 		param_t y_rmax;
+		param_t w_p;
+		param_t w_i;
+		param_t w_ff;
+		param_t w_integrator_max;
+		param_t w_rmax;
 
 		param_t airspeed_min;
 		param_t airspeed_trim;
@@ -234,6 +252,9 @@ private:
 		param_t pitchsp_offset_deg;
 		param_t man_roll_max;
 		param_t man_pitch_max;
+
+		param_t flaps_scale;
+		param_t flaperon_scale;
 
 		param_t vtol_type;
 
@@ -248,6 +269,7 @@ private:
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
+	ECL_WheelController			_wheel_ctrl;
 
 
 	/**
@@ -345,7 +367,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fw att control nonfinite output")),
 /* states */
 	_setpoint_valid(false),
-	_debug(false)
+	_debug(false),
+	_flaps_cmd_last(0),
+	_flaperons_cmd_last(0)
 {
 	/* safely initialize structs */
 	_ctrl_state = {};
@@ -380,6 +404,12 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.y_integrator_max = param_find("FW_YR_IMAX");
 	_parameter_handles.y_rmax = param_find("FW_Y_RMAX");
 
+	_parameter_handles.w_p = param_find("FW_WR_P");
+	_parameter_handles.w_i = param_find("FW_WR_I");
+	_parameter_handles.w_ff = param_find("FW_WR_FF");
+	_parameter_handles.w_integrator_max = param_find("FW_WR_IMAX");
+	_parameter_handles.w_rmax = param_find("FW_W_RMAX");
+
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
@@ -395,6 +425,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
+
+	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
+	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
 
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
@@ -458,6 +491,12 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_coordinated_method, &(_parameters.y_coordinated_method));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 
+	param_get(_parameter_handles.w_p, &(_parameters.w_p));
+	param_get(_parameter_handles.w_i, &(_parameters.w_i));
+	param_get(_parameter_handles.w_ff, &(_parameters.w_ff));
+	param_get(_parameter_handles.w_integrator_max, &(_parameters.w_integrator_max));
+	param_get(_parameter_handles.w_rmax, &(_parameters.w_rmax));
+
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
@@ -473,6 +512,9 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
 	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
 	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
+
+	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
+	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
 
 	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 
@@ -501,6 +543,13 @@ FixedwingAttitudeControl::parameters_update()
 	_yaw_ctrl.set_coordinated_min_speed(_parameters.y_coordinated_min_speed);
 	_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
+
+	/* wheel control parameters */
+	_wheel_ctrl.set_k_p(_parameters.w_p);
+	_wheel_ctrl.set_k_i(_parameters.w_i);
+	_wheel_ctrl.set_k_ff(_parameters.w_ff);
+	_wheel_ctrl.set_integrator_max(_parameters.w_integrator_max);
+	_wheel_ctrl.set_max_rate(math::radians(_parameters.w_rmax));
 
 	return OK;
 }
@@ -751,6 +800,10 @@ FixedwingAttitudeControl::task_main()
 
 			vehicle_status_poll();
 
+			// the position controller will not emit attitude setpoints in some modes
+			// we need to make sure that this flag is reset
+			_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
+
 			/* lock integrator until control is started */
 			bool lock_integrator;
 
@@ -778,9 +831,53 @@ FixedwingAttitudeControl::task_main()
 			/* default flaps to center */
 			float flaps_control = 0.0f;
 
+			static float delta_flaps = 0;
+
 			/* map flaps by default to manual if valid */
-			if (PX4_ISFINITE(_manual.flaps)) {
-				flaps_control = _manual.flaps;
+			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled) {
+				flaps_control = 0.5f * (_manual.flaps + 1.0f ) * _parameters.flaps_scale;
+			} else if (_vcontrol_mode.flag_control_auto_enabled) {
+				flaps_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
+			}
+
+			// move the actual control value continuous with time
+			static hrt_abstime t_flaps_changed = 0;
+			if (fabsf(flaps_control - _flaps_cmd_last) > 0.01f) {
+				t_flaps_changed = hrt_absolute_time();
+				delta_flaps = flaps_control - _flaps_cmd_last;
+				_flaps_cmd_last = flaps_control;
+			}
+
+			static float flaps_applied = 0.0f;
+
+			if (fabsf(flaps_applied - flaps_control) > 0.01f) {
+				flaps_applied = (flaps_control - delta_flaps) + (float)hrt_elapsed_time(&t_flaps_changed) * (delta_flaps) / 1000000;
+			}
+
+			/* default flaperon to center */
+			float flaperon = 0.0f;
+
+			static float delta_flaperon = 0.0f;
+
+			/* map flaperons by default to manual if valid */
+			if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled) {
+				flaperon = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
+			} else if (_vcontrol_mode.flag_control_auto_enabled) {
+				flaperon = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
+			}
+
+			// move the actual control value continuous with time
+			static hrt_abstime t_flaperons_changed = 0;
+			if (fabsf(flaperon - _flaperons_cmd_last) > 0.01f) {
+				t_flaperons_changed = hrt_absolute_time();
+				delta_flaperon = flaperon - _flaperons_cmd_last;
+				_flaperons_cmd_last = flaperon;
+			}
+
+			static float flaperon_applied = 0.0f;
+
+			if (fabsf(flaperon_applied - flaperon) > 0.01f) {
+				flaperon_applied = (flaperon - delta_flaperon) + (float)hrt_elapsed_time(&t_flaperons_changed) * (delta_flaperon) / 1000000;
 			}
 
 			/* decide if in stabilized or full manual control */
@@ -806,11 +903,19 @@ FixedwingAttitudeControl::task_main()
 				 *
 				 * Forcing the scaling to this value allows reasonable handheld tests.
 				 */
-
 				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min : airspeed);
+
+				/* Use min airspeed to calculate ground speed scaling region.
+				 * Don't scale below gspd_scaling_trim
+				 */
+				float groundspeed = sqrtf(_global_pos.vel_n * _global_pos.vel_n +
+						_global_pos.vel_e * _global_pos.vel_e);
+				float gspd_scaling_trim = (_parameters.airspeed_min * 0.6f);
+				float groundspeed_scaler = gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 
 				float roll_sp = _parameters.rollsp_offset_rad;
 				float pitch_sp = _parameters.pitchsp_offset_rad;
+				float yaw_sp = 0.0f;
 				float yaw_manual = 0.0f;
 				float throttle_sp = 0.0f;
 
@@ -824,6 +929,7 @@ FixedwingAttitudeControl::task_main()
 					/* read in attitude setpoint from attitude setpoint uorb topic */
 					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
+					yaw_sp = _att_sp.yaw_body;
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
@@ -835,6 +941,7 @@ FixedwingAttitudeControl::task_main()
 					}
 					if (_att_sp.yaw_reset_integral) {
 						_yaw_ctrl.reset_integrator();
+						_wheel_ctrl.reset_integrator();
 					}
 				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
 
@@ -860,6 +967,7 @@ FixedwingAttitudeControl::task_main()
 					}
 					if (_att_sp.yaw_reset_integral) {
 						_yaw_ctrl.reset_integrator();
+						_wheel_ctrl.reset_integrator();
 					}
 
 				} else if (_vcontrol_mode.flag_control_altitude_enabled) {
@@ -879,6 +987,7 @@ FixedwingAttitudeControl::task_main()
 					}
 					if (_att_sp.yaw_reset_integral) {
 						_yaw_ctrl.reset_integrator();
+						_wheel_ctrl.reset_integrator();
 					}
 				} else {
 					/*
@@ -929,6 +1038,7 @@ FixedwingAttitudeControl::task_main()
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
 					_yaw_ctrl.reset_integrator();
+					_wheel_ctrl.reset_integrator();
 				}
 
 				/* Prepare speed_body_u and speed_body_w */
@@ -952,17 +1062,23 @@ FixedwingAttitudeControl::task_main()
 				control_input.acc_body_z = _accel.z;
 				control_input.roll_setpoint = roll_sp;
 				control_input.pitch_setpoint = pitch_sp;
+				control_input.yaw_setpoint = yaw_sp;
 				control_input.airspeed_min = _parameters.airspeed_min;
 				control_input.airspeed_max = _parameters.airspeed_max;
 				control_input.airspeed = airspeed;
 				control_input.scaler = airspeed_scaling;
 				control_input.lock_integrator = lock_integrator;
+				control_input.groundspeed = groundspeed;
+				control_input.groundspeed_scaler = groundspeed_scaler;
+
+				_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 
 				/* Run attitude controllers */
 				if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
 					_roll_ctrl.control_attitude(control_input);
 					_pitch_ctrl.control_attitude(control_input);
 					_yaw_ctrl.control_attitude(control_input); //runs last, because is depending on output of roll and pitch attitude
+					_wheel_ctrl.control_attitude(control_input);
 
 					/* Update input data for rate controllers */
 					control_input.roll_rate_setpoint = _roll_ctrl.get_desired_rate();
@@ -1002,13 +1118,21 @@ FixedwingAttitudeControl::task_main()
 						}
 					}
 
-					float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
+					float yaw_u = 0.0f;
+					if (_att_sp.fw_control_yaw == true) {
+						yaw_u = _wheel_ctrl.control_bodyrate(control_input);
+					}
+
+					else {
+						yaw_u = _yaw_ctrl.control_bodyrate(control_input);
+					}
 					_actuators.control[2] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 
 					/* add in manual rudder control */
 					_actuators.control[2] += yaw_manual;
 					if (!PX4_ISFINITE(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
+						_wheel_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
 						if (_debug && loop_counter % 10 == 0) {
 							warnx("yaw_u %.4f", (double)yaw_u);
@@ -1059,9 +1183,9 @@ FixedwingAttitudeControl::task_main()
 				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 			}
 
-			_actuators.control[actuator_controls_s::INDEX_FLAPS] = flaps_control;
+			_actuators.control[actuator_controls_s::INDEX_FLAPS] = flaps_applied;
 			_actuators.control[5] = _manual.aux1;
-			_actuators.control[6] = _manual.aux2;
+			_actuators.control[actuator_controls_s::INDEX_AIRBRAKES] = flaperon_applied;
 			_actuators.control[7] = _manual.aux3;
 
 			/* lazily publish the setpoint only once available */

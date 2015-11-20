@@ -99,9 +99,9 @@ using namespace DriverFramework;
 // Product Name	Product Revision
 #define GYROSIMES_REV_C4		0x14
 
-#define GYROSIM_ACCEL_DEFAULT_RATE	1000
+#define GYROSIM_ACCEL_DEFAULT_RATE	400
 
-#define GYROSIM_GYRO_DEFAULT_RATE	1000
+#define GYROSIM_GYRO_DEFAULT_RATE	400
 
 #define GYROSIM_ONE_G			9.80665f
 

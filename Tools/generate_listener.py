@@ -17,7 +17,7 @@ for index,m in enumerate(raw_messages):
 	temp_list_floats = []
 	temp_list_uint64 = []
 	temp_list_bool = []
-	if("actuator_control" not in m and "pwm_input" not in m and "position_setpoint" not in m):
+	if("pwm_input" not in m and "position_setpoint" not in m):
 		temp_list = []
 		f = open(m,'r')
 		for line in f.readlines():
@@ -55,9 +55,11 @@ for index,m in enumerate(raw_messages):
 
 		f.close()
 		(m_head, m_tail) = os.path.split(m)
-		messages.append(m_tail.split('.')[0])
+		message = m_tail.split('.')[0]
+		if message != "actuator_controls":
+			messages.append(message)
+			message_elements.append(temp_list)
 		#messages.append(m.split('/')[-1].split('.')[0])
-		message_elements.append(temp_list)
 
 num_messages = len(messages);
 

@@ -548,7 +548,7 @@ PWMSim::control_callback(uintptr_t handle,
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
 	if (_armed) {
-		input = controls->control[control_index];
+		input = controls[control_group].control[control_index];
 
 	} else {
 		/* clamp actuator to zero if not armed */

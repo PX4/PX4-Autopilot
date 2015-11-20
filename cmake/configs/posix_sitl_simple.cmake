@@ -56,6 +56,8 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/launchdetection
+	lib/terrain_estimation
+	lib/runway_takeoff
 	)
 
 set(config_extra_builtin_cmds
