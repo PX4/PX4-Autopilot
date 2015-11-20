@@ -523,8 +523,12 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 				switch (command_id) {
 				case 1: {
 						// Param save request
-						_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
-						param_opcode(get_next_dirty_node_id(1));
+						int node_id;
+						node_id = get_next_dirty_node_id(1);
+						if (node_id < 128) {
+							_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
+							param_opcode(node_id);
+						}
 						break;
 					}
 				case 2: {
