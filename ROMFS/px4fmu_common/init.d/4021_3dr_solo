@@ -1,10 +1,10 @@
 #!nsh
 #
-# @name 3DR DIY Quad
+# @name Solo 3dr
 #
 # @type Quadrotor x
 #
-# @maintainer Lorenz Meier <lorenz@px4.io>
+# @maintainer Peidong Liu <peidong.liu@inf.ethz.ch>
 #
 
 sh /etc/init.d/rc.mc_defaults
