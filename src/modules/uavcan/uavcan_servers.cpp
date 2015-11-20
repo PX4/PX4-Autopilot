@@ -575,7 +575,8 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 		if (result.isSuccessful()) {
 			uavcan::protocol::param::GetSet::Response resp = result.getResponse();
 			if (resp.name.size()) {
-				_param_counts[node_id] = _count_index++;
+				_count_index++;
+				_param_counts[node_id] = _count_index;
 
 				uavcan::protocol::param::GetSet::Request req;
 				req.index = _count_index;
