@@ -137,6 +137,10 @@ static void usage()
 
 static void process_line(string &line, bool exit_on_fail)
 {
+	if (line.length() == 0) {
+		printf("\n");
+	} 
+
 	vector<string> appargs(8);
 
 	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
