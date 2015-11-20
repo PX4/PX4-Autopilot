@@ -744,20 +744,24 @@ MulticopterPositionControl::control_manual(float dt)
 		/* check for pos. hold */
 		if (fabsf(req_vel_sp(2)) < _params.hold_z_dz)
 		{
-			if (!_alt_hold_engaged && (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z))
+			if (!_alt_hold_engaged)
 			{
-				_alt_hold_engaged = true;
+				if (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z) {
+					_alt_hold_engaged = true;
+				} else {
+					_alt_hold_engaged = false;
+				}
 			}
 		}
 		else {
 			_alt_hold_engaged = false;
-			_pos_sp(2) = _pos(2);
 		}
 
 		/* set requested velocity setpoint */
 		if (!_alt_hold_engaged) {
 			_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
 			_vel_sp(2) = req_vel_sp_scaled(2);
+			_pos_sp(2) = _pos(2);
 		}
 	}
 }
