@@ -237,33 +237,37 @@ class SDLog2Parser:
             self.__csv_updated = False
         show_fields = self.__filterMsg(msg_name)
         if (show_fields != None):
-            if runningPython3:
-                data = list(struct.unpack(msg_struct, self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length]))
-            else:
-                data = list(struct.unpack(msg_struct, str(self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length])))
-            for i in range(len(data)):
-                if type(data[i]) is str:
-                    data[i] = _parseCString(data[i])
-                m = msg_mults[i]
-                if m != None:
-                    data[i] = data[i] * m
-            if self.__debug_out:
-                s = []
-                for i in range(len(data)):
-                    label = msg_labels[i]
-                    if show_fields == "*" or label in show_fields:
-                        s.append(label + "=" + str(data[i]))
-                print("MSG %s: %s" % (msg_name, ", ".join(s)))
-            else:
-                # update CSV data buffer
-                for i in range(len(data)):
-                    label = msg_labels[i]
-                    if label in show_fields:
-                        self.__csv_data[msg_name + "_" + label] = data[i]
-                        if self.__time_msg != None and msg_name != self.__time_msg:
-                            self.__csv_updated = True
-                if self.__time_msg == None:
-                    self.__printCSVRow()
+            try:
+	            if runningPython3:
+	                data = list(struct.unpack(msg_struct, self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length]))
+	            else:
+	                data = list(struct.unpack(msg_struct, str(self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length])))
+	            for i in range(len(data)):
+	                if type(data[i]) is str:
+	                    data[i] = _parseCString(data[i])
+	                m = msg_mults[i]
+	                if m != None:
+	                    data[i] = data[i] * m
+	            if self.__debug_out:
+	                s = []
+	                for i in range(len(data)):
+	                    label = msg_labels[i]
+	                    if show_fields == "*" or label in show_fields:
+	                        s.append(label + "=" + str(data[i]))
+	                print("MSG %s: %s" % (msg_name, ", ".join(s)))
+	            else:
+	                # update CSV data buffer
+	                for i in range(len(data)):
+	                    label = msg_labels[i]
+	                    if label in show_fields:
+	                        self.__csv_data[msg_name + "_" + label] = data[i]
+	                        if self.__time_msg != None and msg_name != self.__time_msg:
+	                            self.__csv_updated = True
+	                if self.__time_msg == None:
+	                    self.__printCSVRow()
+            except:
+                print("unexpected error")
+
         self.__ptr += msg_length
 
 def _main():
