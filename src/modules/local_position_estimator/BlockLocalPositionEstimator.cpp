@@ -874,15 +874,14 @@ void BlockLocalPositionEstimator::correctFlow()
 	float dt = (_sub_flow.get().timestamp - _time_last_flow) * 1.0e-6f ;
 	_time_last_flow = _sub_flow.get().timestamp;
 
-	float alpha = 0.4; // The closer alpha is to 1.0, the faster the moving average updates
-	// TODO use the Dt to calculate alpha
+	float alpha = 0.2; // lowpass gyro bias
 
 	if (_sub_flow.get().integration_timespan > 0) {
 
 		// estimate gyro bias for the flow board's gyro using flight controller's calibrated gyro
-		flow_gyrospeed[0] = _sub_flow.get().gyro_x_rate_integral / _sub_flow.get().integration_timespan * 1e6f;
-		flow_gyrospeed[1] = _sub_flow.get().gyro_y_rate_integral / _sub_flow.get().integration_timespan * 1e6f;
-		flow_gyrospeed[2] = _sub_flow.get().gyro_z_rate_integral / _sub_flow.get().integration_timespan * 1e6f;
+		flow_gyrospeed[0] = _sub_flow.get().gyro_x_rate_integral / (_sub_flow.get().integration_timespan / 1e6f);
+		flow_gyrospeed[1] = _sub_flow.get().gyro_y_rate_integral / (_sub_flow.get().integration_timespan / 1e6f);
+		flow_gyrospeed[2] = _sub_flow.get().gyro_z_rate_integral / (_sub_flow.get().integration_timespan / 1e6f);
 
 		// exponential moving average
 		_flowGyroBias[0] = alpha * (flow_gyrospeed[0] - _sub_att.get().pitchspeed) + (1.0f - alpha) * _flowGyroBias[0];
@@ -892,18 +891,18 @@ void BlockLocalPositionEstimator::correctFlow()
 		// yaw rotation compensation
 		float yaw_comp[2] = {0.0f, 0.0f};
 
-		yaw_comp[0] = _flow_board_x_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
-		yaw_comp[1] =  - _flow_board_y_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
+		yaw_comp[0] = - _flow_board_y_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
+		yaw_comp[1] =   _flow_board_x_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
 
 		// calculate velocity over ground
 		flow_speed[0] = ((_sub_flow.get().pixel_flow_x_integral - _sub_flow.get().gyro_x_rate_integral) /
-				 (_sub_flow.get().integration_timespan * 1e6f)
+				 (_sub_flow.get().integration_timespan / 1e6f)
 				 + _flowGyroBias[0] - yaw_comp[0]) *
-				_x(X_z);		// TODO use terrain estimate here
+				-_x(X_z);		// TODO use terrain estimate here
 		flow_speed[1] = ((_sub_flow.get().pixel_flow_y_integral - _sub_flow.get().gyro_y_rate_integral) /
-				 (_sub_flow.get().integration_timespan * 1e6f) -
+				 (_sub_flow.get().integration_timespan / 1e6f) -
 				 + _flowGyroBias[1] - yaw_comp[1]) *
-				_x(X_z);		// TODO use terrain estimate here
+				-_x(X_z);		// TODO use terrain estimate here
 
 	} else {
 		flow_speed[0] = 0;
