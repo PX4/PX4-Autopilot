@@ -920,7 +920,7 @@ test()
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
 		UpdateList in_set, out_set;
-		in_set.push_back(&h);
+		in_set.pushBack(&h);
 
 		/* wait for data to be ready */
 		ret = DevMgr::waitForUpdate(in_set, out_set, 1000);
@@ -1029,7 +1029,7 @@ calibrate(unsigned altitude)
 		int ret;
 		ssize_t sz;
 		UpdateList in_set, out_set;
-		in_set.push_back(&h);
+		in_set.pushBack(&h);
 
 		/* wait for data to be ready */
 		ret = DevMgr::waitForUpdate(in_set, out_set, 1000);

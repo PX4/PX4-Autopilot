@@ -550,16 +550,16 @@ void VDev::showDevices()
 	pthread_mutex_unlock(&devmutex);
 
 	PX4_INFO("DF Devices:");
-	std::string dev_path, instance_path;
+	const char *dev_path;
 	unsigned int index = 0;
 	i = 0;
 
 	do {
 		// Each look increments index and returns -1 if end reached
-		i = DevMgr::getNextDevicePath(index, dev_path, instance_path);
+		i = DevMgr::getNextDeviceName(index, &dev_path);
 
 		if (i == 0) {
-			PX4_INFO("   %s (%s)", dev_path.c_str(), instance_path.c_str());
+			PX4_INFO("   %s", dev_path);
 		}
 	} while (i == 0);
 }

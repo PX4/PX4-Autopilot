@@ -52,6 +52,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include <px4_workqueue.h>
 
