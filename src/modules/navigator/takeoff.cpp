@@ -50,7 +50,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 
-#include "Takeoff.h"
+#include "takeoff.h"
 #include "navigator.h"
 
 Takeoff::Takeoff(Navigator *navigator, const char *name) :
