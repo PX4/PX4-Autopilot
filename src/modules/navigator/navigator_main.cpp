@@ -71,6 +71,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/vehicle_command.h>
 #include <drivers/drv_baro.h>
 
 #include <systemlib/err.h>
@@ -111,6 +112,7 @@ Navigator::Navigator() :
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
 	_param_update_sub(-1),
+	_vehicle_command_sub(-1),
 	_pos_sp_triplet_pub(nullptr),
 	_mission_result_pub(nullptr),
 	_geofence_result_pub(nullptr),
@@ -135,6 +137,7 @@ Navigator::Navigator() :
 	_navigation_mode(nullptr),
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
+	_takeoff(this, "TKF"),
 	_rtl(this, "RTL"),
 	_rcLoss(this, "RCL"),
 	_dataLinkLoss(this, "DLL"),
@@ -157,6 +160,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[4] = &_engineFailure;
 	_navigation_mode_array[5] = &_gpsFailure;
 	_navigation_mode_array[6] = &_rcLoss;
+	_navigation_mode_array[7] = &_takeoff;
 
 	updateParams();
 }
@@ -286,6 +290,7 @@ Navigator::task_main()
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -398,6 +403,18 @@ Navigator::task_main()
 			}
 		}
 
+		bool updated;
+		orb_check(_vehicle_command_sub, &updated);
+
+		if (updated) {
+			vehicle_command_s cmd;
+			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
+
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
+				warnx("navigator: got takeoff coordinates");
+			}
+		}
+
 		/* Check geofence violation */
 		static hrt_abstime last_geofence_check = 0;
 		if (have_geofence_position_data &&
@@ -465,6 +482,10 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_rtl;
+				break;
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_takeoff;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
