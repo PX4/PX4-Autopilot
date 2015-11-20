@@ -351,6 +351,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 	case vehicle_status_s::MAIN_STATE_AUTO_MISSION:
 	case vehicle_status_s::MAIN_STATE_AUTO_RTL:
+	case vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF:
 		/* need global position and home position */
 		if (status->condition_global_position_valid && status->condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
@@ -744,6 +745,27 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		}
 		break;
 
+	case vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF:
+		/* require global position and home */
+
+		if (status->engine_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+		} else if ((!status->condition_global_position_valid ||
+					!status->condition_home_position_valid)) {
+			status->failsafe = true;
+
+			if (status->condition_local_position_valid) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+			}
+		} else {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
+		}
+		break;
+
 	case vehicle_status_s::MAIN_STATE_OFFBOARD:
 		/* require offboard control, otherwise stay where you are */
 		if (status->offboard_control_signal_lost && !status->rc_signal_lost) {
@@ -785,7 +807,7 @@ int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool 
 	}
 
 	bool preflight_ok = Commander::preflightCheck(mavlink_fd, true, true, true, true,
-				checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF),
+				checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
 				!status->circuit_breaker_engaged_gpsfailure_check, true, reportFailures);
 		
 	if (!status->cb_usb && status->usb_connected && prearm) {
