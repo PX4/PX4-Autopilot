@@ -137,7 +137,7 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 	}
 	
 	for (unsigned s = 0; s < max_gyros; s++) {
-		if (worker_data->device_id[s] != 0 && calibration_counter[s] < calibration_count / 4) {
+		if (worker_data->device_id[s] != 0 && calibration_counter[s] < calibration_count / 2) {
 			mavlink_and_console_log_critical(worker_data->mavlink_fd, "[cal] ERROR: missing data, sensor %d", s)
 			return calibrate_return_error;
 		}

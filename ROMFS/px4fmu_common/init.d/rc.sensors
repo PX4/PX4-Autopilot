@@ -79,13 +79,13 @@ else
 		then
 		fi
 
-		# Internal SPI bus mpu9250 is rotated 90 deg yaw
-		if mpu9250 -R 2 start
+		# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
+		if mpu6000 -R 2 -T 20608 start
 		then
 		fi
 
-		# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-		if mpu6000 -R 2 -T 20608 start
+		# Internal SPI bus mpu9250 is rotated 90 deg yaw
+		if mpu9250 -R 2 start
 		then
 		fi
 	else
