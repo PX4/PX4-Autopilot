@@ -88,9 +88,9 @@ then
 	ddd --debugger gdb --args mainapp ../../../../${rc_script}_${program}
 elif [ "$debugger" == "valgrind" ]
 then
-	valgrind ./mainapp ../../../../${rc_script}_${program}
+	valgrind ./mainapp ../../../../${rc_script}_${program}_${model}
 else
-	./mainapp ../../../../${rc_script}_${program}
+	./mainapp ../../../../${rc_script}_${program}_${model}
 fi
 
 if [ "$program" == "jmavsim" ]

@@ -124,8 +124,10 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional, in
 
 	if (fd < 0) {
 		if (!optional) {
-			if(report_fail) mavlink_and_console_log_critical(mavlink_fd,
+			if (report_fail) {
+				mavlink_and_console_log_critical(mavlink_fd,
 							 "PREFLIGHT FAIL: NO MAG SENSOR #%u", instance);
+			}
 		}
 
 		return false;
@@ -134,8 +136,10 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional, in
 	int ret = check_calibration(fd, "CAL_MAG%u_ID", device_id);
 
 	if (ret) {
-		if(report_fail) mavlink_and_console_log_critical(mavlink_fd,
+		if (report_fail) {
+			mavlink_and_console_log_critical(mavlink_fd,
 						 "PREFLIGHT FAIL: MAG #%u UNCALIBRATED", instance);
+		}
 		success = false;
 		goto out;
 	}
@@ -143,8 +147,10 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional, in
 	ret = px4_ioctl(fd, MAGIOCSELFTEST, 0);
 
 	if (ret != OK) {
-		if(report_fail) mavlink_and_console_log_critical(mavlink_fd,
+		if (report_fail) {
+			mavlink_and_console_log_critical(mavlink_fd,
 						 "PREFLIGHT FAIL: MAG #%u SELFTEST FAILED", instance);
+		}
 		success = false;
 		goto out;
 	}
@@ -164,8 +170,10 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 
 	if (fd < 0) {
 		if (!optional) {
-			if(report_fail) mavlink_and_console_log_critical(mavlink_fd,
+			if (report_fail) {
+				mavlink_and_console_log_critical(mavlink_fd,
 							 "PREFLIGHT FAIL: NO ACCEL SENSOR #%u", instance);
+			}
 		}
 
 		return false;
@@ -174,8 +182,10 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 	int ret = check_calibration(fd, "CAL_ACC%u_ID", device_id);
 
 	if (ret) {
-		if(report_fail) mavlink_and_console_log_critical(mavlink_fd,
+		if (report_fail) {
+			mavlink_and_console_log_critical(mavlink_fd,
 						 "PREFLIGHT FAIL: ACCEL #%u UNCALIBRATED", instance);
+		}
 		success = false;
 		goto out;
 	}
@@ -183,8 +193,10 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 	ret = px4_ioctl(fd, ACCELIOCSELFTEST, 0);
 
 	if (ret != OK) {
-		if(report_fail) mavlink_and_console_log_critical(mavlink_fd,
+		if (report_fail) {
+			mavlink_and_console_log_critical(mavlink_fd,
 						 "PREFLIGHT FAIL: ACCEL #%u SELFTEST FAILED", instance);
+		}
 		success = false;
 		goto out;
 	}
@@ -200,7 +212,9 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 			float accel_magnitude = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
 
 			if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
-				if(report_fail) mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: ACCEL RANGE, hold still on arming");
+				if (report_fail) {
+					mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: ACCEL RANGE, hold still on arming");
+				}
 				/* this is frickin' fatal */
 				success = false;
 				goto out;
@@ -506,7 +520,7 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 
 	/* ---- Global Navigation Satellite System receiver ---- */
 	if (checkGNSS) {
-		if(!gnssCheck(mavlink_fd, reportFailures)) {
+		if (!gnssCheck(mavlink_fd, reportFailures)) {
 			failed = true;
 		}
 	}
