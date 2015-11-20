@@ -494,7 +494,7 @@ struct log_CTS_s {
 /* WARNING: ID 46 is already in use for ATTC1 */
 
 /* --- FFLW - FILTERED OPTICAL FLOW STATUS */
-#define LOG_FFLW_MSG 47
+#define LOG_FFLW_MSG 48
 struct log_FFLW_s {
 	float x_vel_integ;
 	float y_vel_integ;
