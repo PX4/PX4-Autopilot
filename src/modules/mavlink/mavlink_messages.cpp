@@ -2602,7 +2602,7 @@ protected:
 		if (updated) {
 			mavlink_altitude_t msg;
 
-			msg.altitude_monotonic = global_pos.alt;
+			msg.altitude_monotonic = global_pos.pressure_alt;
 			msg.altitude_amsl = global_pos.alt;
 			msg.altitude_local = -local_pos.z;
 			msg.altitude_relative = home.alt;
