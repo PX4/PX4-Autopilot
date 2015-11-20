@@ -139,7 +139,7 @@ static void process_line(string &line, bool exit_on_fail)
 {
 	if (line.length() == 0) {
 		printf("\n");
-	} 
+	}
 
 	vector<string> appargs(8);
 
