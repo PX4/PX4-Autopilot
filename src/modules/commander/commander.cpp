@@ -301,7 +301,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = px4_task_spawn_cmd("commander",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 40,
-					     3500,
+					     3600,
 					     commander_thread_main,
 					     (char * const *)&argv[0]);
 
@@ -382,9 +382,9 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "check")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 		int checkres = 0;
-		checkres = preflight_check(&status, mavlink_fd_local, false);
+		checkres = preflight_check(&status, mavlink_fd_local, false, true);
 		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
-		checkres = preflight_check(&status, mavlink_fd_local, true);
+		checkres = preflight_check(&status, mavlink_fd_local, true, true);
 		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 		px4_close(mavlink_fd_local);
 		return 0;
@@ -1034,7 +1034,7 @@ int commander_thread_main(int argc, char *argv[])
 	// XXX for now just set sensors as initialized
 	status.condition_system_sensors_initialized = true;
 	
-	status.condition_system_prearm_error_reported = true;
+	status.condition_system_prearm_error_reported = false;
 	status.condition_system_hotplug_timeout = false;
 
 	status.counter++;
@@ -1304,7 +1304,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2600);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 2880);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
@@ -2195,11 +2195,13 @@ int commander_thread_main(int argc, char *argv[])
 					/* report a regain */
 					if (telemetry_last_dl_loss[i] > 0) {
 						mavlink_and_console_log_info(mavlink_fd, "data link #%i regained", i);
-					} else if (telemetry_last_dl_loss[i] == 0){
-					/* do not report a new data link in order to not spam the user */
-						status.data_link_found_new = true;
-						status_changed = true;
+					} else if (telemetry_last_dl_loss[i] == 0) {
+						/* new link */
 					}
+
+					/* got link again or new */
+					status.condition_system_prearm_error_reported = false;
+					status_changed = true;
 
 					telemetry_lost[i] = false;
 					have_link = true;
@@ -2208,10 +2210,6 @@ int commander_thread_main(int argc, char *argv[])
 					/* telemetry was healthy also in last iteration
 					 * we don't have to check a timeout */
 					have_link = true;
-					if(status.data_link_found_new) {
-						status.data_link_found_new = false;
-						status_changed = true;
-					}
 				}
 
 			} else {
