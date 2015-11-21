@@ -48,7 +48,7 @@ then
 	ant
 	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
-elif [ "$3" == "gazebo" ] && [ "$no_sim" == "" ]
+elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
 then
 	if [ -x "$(command -v gazebo)" ]
 	then
@@ -79,13 +79,13 @@ touch rootfs/eeprom/parameters
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
 then
-	lldb -- mainapp ../../../../${rc_script}_${program}
+	lldb -- mainapp ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "gdb" ]
 then
-	gdb --args mainapp ../../../../${rc_script}_${program}
+	gdb --args mainapp ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "ddd" ]
 then
-	ddd --debugger gdb --args mainapp ../../../../${rc_script}_${program}
+	ddd --debugger gdb --args mainapp ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "valgrind" ]
 then
 	valgrind ./mainapp ../../../../${rc_script}_${program}_${model}
