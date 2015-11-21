@@ -1039,6 +1039,7 @@ int
 ACCELSIM_mag::devIOCTL(unsigned long cmd, unsigned long arg)
 {
 	int ret;
+
 	switch (cmd) {
 	case DEVIOCGDEVICEID:
 		ret = (int)VirtDevObj::devIOCTL(cmd, arg);
