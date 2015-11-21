@@ -199,7 +199,7 @@ protected:
 extern "C" __EXPORT int barosim_main(int argc, char *argv[]);
 
 BAROSIM::BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path) :
-	VirtDevObj("BAROSIM", path, BARO_BASE_DEVICE_PATH, 0),
+	VirtDevObj("BAROSIM", path, BARO_BASE_DEVICE_PATH, 1e6 / 100),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_measure_ticks(0),
