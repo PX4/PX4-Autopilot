@@ -311,6 +311,7 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	VirtDevObj("GYROSIM", path_accel, ACCEL_BASE_DEVICE_PATH, 1000),
 	_gyro(new GYROSIM_gyro(this, path_gyro)),
 	_product(GYROSIMES_REV_C4),
+	_call{},
 	_accel_reports(nullptr),
 	_accel_scale{},
 	_accel_range_scale(0.0f),
