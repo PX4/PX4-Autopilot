@@ -266,7 +266,7 @@ private:
 
 
 ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
-	VirtDevObj("ACCELSIM", path, ACCEL_BASE_DEVICE_PATH, 1000),
+	VirtDevObj("ACCELSIM", path, ACCEL_BASE_DEVICE_PATH, 1e6 / 400),
 	_mag(new ACCELSIM_mag(this)),
 	_accel_call{},
 	_mag_call{},
@@ -300,6 +300,7 @@ ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
 	_constant_accel_count(0),
 	_last_temperature(0)
 {
+	m_id.dev_id_s.bus = 1;
 	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
 
 	/* Prime _mag with parents devid. */
@@ -1020,6 +1021,8 @@ ACCELSIM_mag::ACCELSIM_mag(ACCELSIM *parent) :
 	_mag_orb_class_instance(-1),
 	_mag_class_instance(-1)
 {
+	m_id.dev_id_s.bus = 1;
+	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
 }
 
 ACCELSIM_mag::~ACCELSIM_mag()
@@ -1035,9 +1038,12 @@ ACCELSIM_mag::devRead(void *buffer, size_t buflen)
 int
 ACCELSIM_mag::devIOCTL(unsigned long cmd, unsigned long arg)
 {
+	int ret;
 	switch (cmd) {
 	case DEVIOCGDEVICEID:
-		return (int)VirtDevObj::devIOCTL(cmd, arg);
+		ret = (int)VirtDevObj::devIOCTL(cmd, arg);
+		//PX4_WARN("DEVICE ID: %d", ret);
+		return ret;
 		break;
 
 	default:
@@ -1146,6 +1152,9 @@ info()
 	}
 
 	PX4_DEBUG("state @ %p", g_dev);
+
+	unsigned dummy = 0;
+	PX4_WARN("device_id: %u", (unsigned int)g_dev->devIOCTL(DEVIOCGDEVICEID, dummy));
 
 	return 0;
 }
