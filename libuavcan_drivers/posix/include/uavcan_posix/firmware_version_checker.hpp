@@ -251,12 +251,12 @@ protected:
          *    org.pixhawk.px4cannode-v1-0.1.59efc137.uavcan.bin
          *    +---fw
          *        +-c                           <----------- Files are cashed here.
-         *          +--- 59efc137.bin           <----------  A unknown Firmware file
+         *          +--- px4cannode-v1.59efc137.bin <------  A Firmware file
          *        +---org.pixhawk.px4cannode-v1 <---------- node_info.name
          *        +---1.0 <-------------------------------- node_info.name's hardware_version.major,minor
-         *            + - 59efc137.bin          <----------- A well known file must match the name
+         *            + - px4cannode-v1.59efc137.bin  <---- A well known file must match the name
          *                                                   in the root fw folder, so if it does not exist
-         *                                                   it is copied up
+         *                                                   it is copied up MUST BE < 32 Characters
          */
         bool rv = false;
 
