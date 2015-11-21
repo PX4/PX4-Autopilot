@@ -92,10 +92,6 @@ bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRota
 		failed = failed || !checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence, home_alt, home_valid);
 	}
 
-	if (!failed) {
-		mavlink_log_info(_mavlink_fd, "Mission checked and ready.");
-	}
-
 	return !failed;
 }
 
