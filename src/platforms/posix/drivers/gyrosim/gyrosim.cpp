@@ -166,7 +166,6 @@ private:
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 
-	unsigned		_sample_rate;
 	perf_counter_t		_accel_reads;
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
@@ -308,7 +307,7 @@ private:
 extern "C" { __EXPORT int gyrosim_main(int argc, char *argv[]); }
 
 GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation rotation) :
-	VirtDevObj("GYROSIM", path_accel, ACCEL_BASE_DEVICE_PATH, 1000),
+	VirtDevObj("GYROSIM", path_accel, ACCEL_BASE_DEVICE_PATH, 1e6 / 400),
 	_gyro(new GYROSIM_gyro(this, path_gyro)),
 	_product(GYROSIMES_REV_C4),
 	_call{},
@@ -323,7 +322,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
-	_sample_rate(1000),
 	_accel_reads(perf_alloc(PC_COUNT, "gyrosim_accel_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "gyrosim_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "gyrosim_read")),
@@ -335,6 +333,7 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_last_temperature(0)
 {
 
+	m_id.dev_id_s.bus = 1;
 	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_GYROSIM;
 
 	/* Prime _gyro with parents devid. */
@@ -542,9 +541,10 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 	// register dumps look correct
 	write_reg(MPUREG_SMPLRT_DIV, div - 1);
 
-	_sample_rate = 1000 / div;
-	PX4_INFO("GYROSIM: Changed sample rate to %uHz", _sample_rate);
-	setSampleInterval(1000000 / _sample_rate);
+	unsigned sample_rate = 1000 / div;
+	PX4_INFO("GYROSIM: Changed sample rate to %uHz", sample_rate);
+	setSampleInterval(1000000 / sample_rate);
+	_gyro->setSampleInterval(1000000 / sample_rate);
 }
 
 ssize_t
@@ -816,7 +816,7 @@ GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		return _accel_reports->size();
 
 	case ACCELIOCGSAMPLERATE:
-		return _sample_rate;
+		return 1e6 / m_sample_interval_usecs;
 
 	case ACCELIOCSSAMPLERATE:
 		_set_sample_rate(arg);
@@ -887,7 +887,7 @@ GYROSIM::gyro_ioctl(unsigned long cmd, unsigned long arg)
 		return _gyro_reports->size();
 
 	case GYROIOCGSAMPLERATE:
-		return _sample_rate;
+		return 1e6 / m_sample_interval_usecs;
 
 	case GYROIOCSSAMPLERATE:
 		_set_sample_rate(arg);
@@ -1179,6 +1179,7 @@ int
 GYROSIM_gyro::init()
 {
 	int ret = VirtDevObj::init();
+	printf("init ret: %d\n", ret);
 	return ret ? ret : start();
 }
 
@@ -1434,6 +1435,8 @@ info()
 
 	PX4_INFO("state @ %p", *g_dev_ptr);
 	(*g_dev_ptr)->print_info();
+	unsigned dummy = 0;
+	PX4_INFO("device_id: %u", (unsigned int)(*g_dev_ptr)->devIOCTL(DEVIOCGDEVICEID, dummy));
 
 	return 0;
 }
