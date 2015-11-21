@@ -418,6 +418,8 @@ int commander_main(int argc, char *argv[])
 			/* see if we got a home position */
 			if (status.condition_home_position_valid) {
 				vehicle_command_s cmd = {};
+				cmd.target_system = status.system_id;
+				cmd.target_component = status.component_id;
 
 				cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
 				// cmd.param1 = 0.25f; /* minimum pitch */
@@ -2086,7 +2088,6 @@ int commander_thread_main(int argc, char *argv[])
 			} else {
 				/* the mission is valid */
 				tune_mission_ok(true);
-				warnx("mission ok");
 			}
 
 			/* prevent further feedback until the mission changes */
@@ -2428,7 +2429,6 @@ int commander_thread_main(int argc, char *argv[])
 		// TODO handle mode changes by commands
 		if (main_state_changed || nav_state_changed) {
 			status_changed = true;
-			mavlink_log_info(mavlink_fd, "Flight mode: %s", nav_states_str[status.nav_state]);
 			main_state_changed = false;
 		}
 
