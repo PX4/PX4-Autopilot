@@ -474,8 +474,9 @@ PWMSim::task_main()
 			}
 
 			/* do mixing */
-			actuator_outputs_s outputs;
+			actuator_outputs_s outputs = {};
 			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
+			outputs.noutputs = num_outputs;
 			outputs.timestamp = hrt_absolute_time();
 
 			/* disable unused ports by setting their output to NaN */
