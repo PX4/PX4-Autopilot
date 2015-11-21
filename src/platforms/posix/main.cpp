@@ -75,6 +75,7 @@ extern "C" {
 	{
 		cout.flush();
 		cout << endl << "floating point exception" << endl;
+		PX4_BACKTRACE();
 		cout.flush();
 	}
 }
@@ -102,13 +103,16 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 		}
 
 		arg[i] = (char *)0;
+
+		if (exit_on_fail) {
+			cout << endl;
+		}
+
 		int retval = apps[command](i, (char **)arg);
 
 		if (exit_on_fail && retval) {
 			exit(retval);
 		}
-
-		usleep(65000);
 
 	} else if (command.compare("help") == 0) {
 		list_builtins();
@@ -117,11 +121,13 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 		// Do nothing
 
 	} else {
-		cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
+		cout << endl << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 
 	}
 
-	print_prompt();
+	if (exit_on_fail) {
+		print_prompt();
+	}
 }
 
 static void usage()
