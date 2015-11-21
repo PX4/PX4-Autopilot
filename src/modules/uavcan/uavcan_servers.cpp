@@ -886,14 +886,15 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 
 		/fs/microsd/fw
 		-	/c
-		-	-	/1a2b3c4d.bin			cache file (copy of /fs/microsd/fw/org.pixhawk.nodename-v1/1.1/1a2b3c4d.bin)
-		-	/org.pixhawk.nodename-v1	device directory for org.pixhawk.nodename-v1
-		-	-	/1.0					version directory for hardware 1.0
-		-	-	/1.1					version directory for hardware 1.1
-		-	-	-	/1a2b3c4d.bin		firmware file for org.pixhawk.nodename-v1 nodes, hardware version 1.1
-		-	/com.example.othernode-v3	device directory for com.example.othernode-v3
-		-	-	/1.0					version directory for hardawre 1.0
-		-	-	-	/deadbeef.bin		firmware file for com.example.othernode-v3, hardware version 1.0
+			-	/nodename-v1-1.0.25d0137d.bin		cache file (copy of /fs/microsd/fw/org.pixhawk.nodename-v1/1.1/nodename-v1-1.0.25d0137d.bin)
+			-	/othernode-v3-1.6.25d0137d.bin		cache file (copy of /fs/microsd/fw/com.example.othernode-v3/1.6/othernode-v3-1.6.25d0137d.bin)
+		-	/org.pixhawk.nodename-v1				device directory for org.pixhawk.nodename-v1
+		-	-	/1.0								version directory for hardware 1.0
+		-	-	/1.1								version directory for hardware 1.1
+		-	-	-	/nodename-v1-1.0.25d0137d.bin	firmware file for org.pixhawk.nodename-v1 nodes, hardware version 1.1
+		-	/com.example.othernode-v3				device directory for com.example.othernode-v3
+		-	-	/1.0								version directory for hardawre 1.0
+		-	-	-	/othernode-v3-1.6.25d0137d.bin	firmware file for com.example.othernode-v3, hardware version 1.6
 
 	The ROMFS directory structure is the same, but located at /etc/uavcan/fw
 
@@ -1037,7 +1038,7 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 						continue;
 					}
 
-					if (!memcmp(&fw_dirent->d_name[sizeof(UAVCAN_ROMFS_FW_PREFIX) - 1], src_fw_dirent->d_name, fw_len)) {
+					if (!memcmp(&fw_dirent->d_name, src_fw_dirent->d_name, fw_len)) {
 						/*
 						 * Exact match between SD card filename and ROMFS filename; must be the same version
 						 * so don't bother deleting and rewriting it.
@@ -1048,14 +1049,13 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 						size_t dstpath_fw_len = dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX) + fw_len;
 						if (dstpath_fw_len > maxlen) {
 							// sizeof(prefix) includes trailing NUL, cancelling out the +1 for the path separator
-							warnx("unlink: path '%s/%s%s' too long", dstpath, UAVCAN_ROMFS_FW_PREFIX, fw_dirent->d_name);
+							warnx("unlink: path '%s/%s' too long", dstpath, fw_dirent->d_name);
 						} else {
-							// File name starts with "romfs_", delete it.
+							// File name starts with "_", delete it.
 							dstpath[dstpath_ver_len] = '/';
 							memcpy(&dstpath[dstpath_ver_len + 1], fw_dirent->d_name, fw_len + 1);
 							unlink(dstpath);
-
-							warnx("unlink: removed '%s/%s%s'", dstpath, UAVCAN_ROMFS_FW_PREFIX, fw_dirent->d_name);
+							warnx("unlink: removed '%s/%s'", dstpath, fw_dirent->d_name);
 						}
 					} else {
 						// User file, don't copy firmware
@@ -1068,20 +1068,19 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 			// If we need to, copy the file from ROMFS to the SD card
 			if (copy_fw) {
 				size_t srcpath_fw_len = srcpath_ver_len + 1 + fw_len;
-				size_t dstpath_fw_len = dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX) + fw_len;
+				size_t dstpath_fw_len = dstpath_ver_len + fw_len;
 
 				if (srcpath_fw_len > maxlen) {
 					warnx("copy: srcpath '%s/%s' too long", srcpath, src_fw_dirent->d_name);
 				} else if (dstpath_fw_len > maxlen) {
-					warnx("copy: dstpath '%s/%s%s' too long", dstpath, UAVCAN_ROMFS_FW_PREFIX, src_fw_dirent->d_name);
+					warnx("copy: dstpath '%s/%s' too long", dstpath, src_fw_dirent->d_name);
 				} else {
 					// All OK, make the paths and copy the file
 					srcpath[srcpath_ver_len] = '/';
 					memcpy(&srcpath[srcpath_ver_len + 1], src_fw_dirent->d_name, fw_len + 1);
 
 					dstpath[dstpath_ver_len] = '/';
-					memcpy(&dstpath[dstpath_ver_len + 1], UAVCAN_ROMFS_FW_PREFIX, sizeof(UAVCAN_ROMFS_FW_PREFIX));
-					memcpy(&dstpath[dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX)], src_fw_dirent->d_name, fw_len + 1);
+					memcpy(&dstpath[dstpath_ver_len], src_fw_dirent->d_name, fw_len + 1);
 
 					rv = copyFw(dstpath, srcpath);
 					if (rv != 0) {

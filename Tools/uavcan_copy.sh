@@ -1,20 +1,21 @@
 #!/bin/bash
 UAVCANFW=../ROMFS/px4fmu_common/uavcan/fw
+ROMFS_REFIX=_
 echo Removing : $UAVCANFW
 rm -fr $UAVCANFW
 for f in $(find firmware -type f -name "*.*.bin")
 do
   UAVCAN_NAME=$(echo $f | cut -d"/" -f2 | cut -d. -f1-4 | cut -d- -f1-2)
   UAVCAN_HW=$(echo $f cut -d/ -f2 | cut -d. -f1-4 | cut -d- -f3)
-  DST=$(echo $f | cut -d. -f3-7 | cut -d- -f1,2,3).$(echo $f | cut -d. -f6,7)
+  DST=${ROMFS_REFIX}$(echo $f | cut -d. -f3-7 | cut -d- -f1,2,3).$(echo $f | cut -d. -f6,7)
   # deal with legacy non conforming naming
   if [[ ${DST:(-7)} == bin.bin ]]
   then
     echo " WARNING: Improper name format!!!!!!!!! $f see should be <uavcan_name>-<HW_MAJOR>.<HW_MINOR)-<HW_MAJOR>.<HW_MINOR).<git hash[8]>.bin"
-    DST=${DST%???}
+    DST=${DST%????}
   fi
+  echo Processing file: $f Length:${#DST}
   if [ ${#DST} -le 28 ]
-    echo Processing file: $f
   then
     if [ -d "${UAVCANFW}/${UAVCAN_NAME}/${UAVCAN_HW}" ]
     then
