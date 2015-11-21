@@ -2043,6 +2043,13 @@ test(bool external_bus)
 	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
 	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
+	/* reset to default polling */
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		err(1, "reset to default polling");
+	}
+
+	close(fd);
+	close(fd_gyro);
 
 	/* XXX add poll-rate tests here too */
 
