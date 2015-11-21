@@ -44,14 +44,14 @@
 #include <drivers/drv_range_finder.h>
 
 /* Device limits */
-#define LL40LS_MIN_DISTANCE (0.00f)
-#define LL40LS_MAX_DISTANCE (60.00f)
+#define LL40LS_MIN_DISTANCE (0.10f)
+#define LL40LS_MAX_DISTANCE (40.00f)
 
 // normal conversion wait time
-#define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
+#define LL40LS_CONVERSION_INTERVAL (50*1000UL) /* 50ms */
 
 // maximum time to wait for a conversion to complete.
-#define LL40LS_CONVERSION_TIMEOUT 100*1000UL /* 100ms */
+#define LL40LS_CONVERSION_TIMEOUT (100*1000UL) /* 100ms */
 
 class LidarLite
 {

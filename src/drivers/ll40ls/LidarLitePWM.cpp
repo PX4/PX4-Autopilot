@@ -196,6 +196,16 @@ int LidarLitePWM::measure()
 		return reset_sensor();
 	}
 
+	uint32_t pulse_interval = _range.timestamp - _lastTimeStamp;
+	_lastTimeStamp = _range.timestamp;
+
+	// Normal reporting interval for LidarLite in PWM mode is 50msec
+	if (pulse_interval > 60*1000UL) {
+		// report an invalid range of 0m, to avoid glitches on takeoff
+		printf("LL_pwm dropout length: %d\n", pulse_interval);
+		_range.current_distance = 0.0f;
+	}
+
 	if (_distance_sensor_topic != nullptr) {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
 	}
