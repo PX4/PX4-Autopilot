@@ -392,23 +392,21 @@ Navigator::task_main()
 			home_position_update();
 		}
 
-		/* global position updated */
-		if (fds[0].revents & POLLIN) {
-			global_position_update();
-			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-				have_geofence_position_data = true;
-			}
-		}
-
-		bool updated;
 		orb_check(_vehicle_command_sub, &updated);
-
 		if (updated) {
 			vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
 				warnx("navigator: got takeoff coordinates");
+			}
+		}
+
+		/* global position updated */
+		if (fds[0].revents & POLLIN) {
+			global_position_update();
+			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
+				have_geofence_position_data = true;
 			}
 		}
 
