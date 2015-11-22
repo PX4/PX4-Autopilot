@@ -989,6 +989,9 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 	param_t _param_map_mode_sw = param_find("RC_MAP_MODE_SW");
 
+	// These are too verbose, but we will retain them a little longer
+	// until we are sure we really don't need them.
+
 	// const char *main_states_str[vehicle_status_s::MAIN_STATE_MAX];
 	// main_states_str[vehicle_status_s::MAIN_STATE_MANUAL]			= "MANUAL";
 	// main_states_str[vehicle_status_s::MAIN_STATE_ALTCTL]			= "ALTCTL";
@@ -1000,34 +1003,34 @@ int commander_thread_main(int argc, char *argv[])
 	// main_states_str[vehicle_status_s::MAIN_STATE_STAB]			= "STAB";
 	// main_states_str[vehicle_status_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
 
-	const char *arming_states_str[vehicle_status_s::ARMING_STATE_MAX];
-	arming_states_str[vehicle_status_s::ARMING_STATE_INIT]			= "INIT";
-	arming_states_str[vehicle_status_s::ARMING_STATE_STANDBY]			= "STANDBY";
-	arming_states_str[vehicle_status_s::ARMING_STATE_ARMED]			= "ARMED";
-	arming_states_str[vehicle_status_s::ARMING_STATE_ARMED_ERROR]		= "ARMED_ERROR";
-	arming_states_str[vehicle_status_s::ARMING_STATE_STANDBY_ERROR]		= "STANDBY_ERROR";
-	arming_states_str[vehicle_status_s::ARMING_STATE_REBOOT]			= "REBOOT";
-	arming_states_str[vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE]		= "IN_AIR_RESTORE";
+	// const char *arming_states_str[vehicle_status_s::ARMING_STATE_MAX];
+	// arming_states_str[vehicle_status_s::ARMING_STATE_INIT]			= "INIT";
+	// arming_states_str[vehicle_status_s::ARMING_STATE_STANDBY]			= "STANDBY";
+	// arming_states_str[vehicle_status_s::ARMING_STATE_ARMED]			= "ARMED";
+	// arming_states_str[vehicle_status_s::ARMING_STATE_ARMED_ERROR]		= "ARMED_ERROR";
+	// arming_states_str[vehicle_status_s::ARMING_STATE_STANDBY_ERROR]		= "STANDBY_ERROR";
+	// arming_states_str[vehicle_status_s::ARMING_STATE_REBOOT]			= "REBOOT";
+	// arming_states_str[vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE]		= "IN_AIR_RESTORE";
 
-	const char *nav_states_str[vehicle_status_s::NAVIGATION_STATE_MAX];
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_MANUAL]			= "MANUAL";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_STAB]				= "STAB";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_RATTITUDE]		= "RATTITUDE";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_POSCTL]			= "POSCTL";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER]		= "AUTO_LOITER";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTL]		= "AUTO_RTL";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF]		= "AUTO_TAKEOFF";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER]		= "AUTO_RCRECOVER";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS]		= "AUTO_RTGS";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL]	= "AUTO_LANDENGFAIL";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL]	= "AUTO_LANDGPSFAIL";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_ACRO]			= "ACRO";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_LAND]			= "LAND";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_DESCEND]		= "DESCEND";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_TERMINATION]		= "TERMINATION";
-	nav_states_str[vehicle_status_s::NAVIGATION_STATE_OFFBOARD]		= "OFFBOARD";
+	// const char *nav_states_str[vehicle_status_s::NAVIGATION_STATE_MAX];
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_MANUAL]			= "MANUAL";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_STAB]				= "STAB";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_RATTITUDE]		= "RATTITUDE";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_POSCTL]			= "POSCTL";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER]		= "AUTO_LOITER";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTL]		= "AUTO_RTL";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF]		= "AUTO_TAKEOFF";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER]		= "AUTO_RCRECOVER";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS]		= "AUTO_RTGS";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL]	= "AUTO_LANDENGFAIL";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL]	= "AUTO_LANDGPSFAIL";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_ACRO]			= "ACRO";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_LAND]			= "LAND";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_DESCEND]		= "DESCEND";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_TERMINATION]		= "TERMINATION";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_OFFBOARD]		= "OFFBOARD";
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -2404,7 +2407,6 @@ int commander_thread_main(int argc, char *argv[])
 		/* print new state */
 		if (arming_state_changed) {
 			status_changed = true;
-			mavlink_log_info(mavlink_fd, "[cmd] arming state: %s", arming_states_str[status.arming_state]);
 			arming_state_changed = false;
 		}
 
