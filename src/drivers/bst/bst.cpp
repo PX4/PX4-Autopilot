@@ -58,8 +58,10 @@ extern "C" __EXPORT int bst_main(int argc, char *argv[]);
 
 #define BST_ADDR		0x76
 
-namespace px4 {
-namespace bst {
+namespace px4
+{
+namespace bst
+{
 
 #pragma pack(push, 1)
 
@@ -105,7 +107,8 @@ struct BSTBattery {
 
 #pragma pack(pop)
 
-class BST : public device::I2C {
+class BST : public device::I2C
+{
 public:
 	BST(int bus);
 
@@ -140,7 +143,8 @@ private:
 	void			cycle();
 
 	template <typename T>
-	void			send_packet(BSTPacket<T> &packet) {
+	void			send_packet(BSTPacket<T> &packet)
+	{
 		packet.length = sizeof(packet) - 1;	// Length
 		packet.crc = crc8(reinterpret_cast<uint8_t *>(&packet.type), sizeof(packet) - 2);
 
@@ -148,58 +152,63 @@ private:
 	}
 
 	template <typename T_SEND, typename T_RECV>
-	void				send_packet(BSTPacket<T_SEND> &packet_send, BSTPacket<T_RECV> &packet_recv) {
+	void				send_packet(BSTPacket<T_SEND> &packet_send, BSTPacket<T_RECV> &packet_recv)
+	{
 		packet_send.length = sizeof(packet_send) - 1;	// Length
 		packet_send.crc = crc8(reinterpret_cast<uint8_t *>(&packet_send.type), sizeof(packet_send) - 2);
-		transfer(reinterpret_cast<uint8_t *>(&packet_send), sizeof(packet_send), reinterpret_cast<uint8_t *>(&packet_recv), sizeof(packet_recv));
+		transfer(reinterpret_cast<uint8_t *>(&packet_send), sizeof(packet_send), reinterpret_cast<uint8_t *>(&packet_recv),
+			 sizeof(packet_recv));
 	}
 
 	static uint8_t	crc8(uint8_t *data, size_t len);
 
 	//! Byte swap unsigned short
-	uint16_t swap_uint16( uint16_t val )
+	uint16_t swap_uint16(uint16_t val)
 	{
-	    return (val << 8) | (val >> 8 );
+		return (val << 8) | (val >> 8);
 	}
 
 	//! Byte swap short
-	int16_t swap_int16( int16_t val )
+	int16_t swap_int16(int16_t val)
 	{
-	    return (val << 8) | ((val >> 8) & 0xFF);
+		return (val << 8) | ((val >> 8) & 0xFF);
 	}
 
 	//! Byte swap unsigned int
-	uint32_t swap_uint32( uint32_t val )
+	uint32_t swap_uint32(uint32_t val)
 	{
-	    val = ((val << 8) & 0xFF00FF00 ) | ((val >> 8) & 0xFF00FF );
-	    return (val << 16) | (val >> 16);
+		val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
+		return (val << 16) | (val >> 16);
 	}
 
 	//! Byte swap int
-	int32_t swap_int32( int32_t val )
+	int32_t swap_int32(int32_t val)
 	{
-	    val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF );
-	    return (val << 16) | ((val >> 16) & 0xFFFF);
+		val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
+		return (val << 16) | ((val >> 16) & 0xFFFF);
 	}
 };
 
 static BST *g_bst = nullptr;
 
 BST::BST(int bus) :
-		I2C("bst", BST_DEVICE_PATH, bus, BST_ADDR
-		#ifdef __PX4_NUTTX
-			,100000 /* maximum speed supported */
-		#endif
-			) {
+	I2C("bst", BST_DEVICE_PATH, bus, BST_ADDR
+#ifdef __PX4_NUTTX
+	    , 100000 /* maximum speed supported */
+#endif
+	   )
+{
 }
 
-BST::~BST() {
+BST::~BST()
+{
 	_should_run = false;
 
 	work_cancel(LPWORK, &_work);
 }
 
-int BST::probe() {
+int BST::probe()
+{
 	int retries_prev = _retries;
 	_retries = 3;
 
@@ -208,26 +217,33 @@ int BST::probe() {
 	dev_info_req.payload.cmd = 0x04;
 	BSTPacket<BSTDeviceInfoReply> dev_info_reply = {};
 	send_packet(dev_info_req, dev_info_reply);
+
 	if (dev_info_reply.type != 0x05) {
 		warnx("no devices found");
 		return -EIO;
 	}
+
 	uint8_t *reply_raw = reinterpret_cast<uint8_t *>(&dev_info_reply);
 	uint8_t crc_calc = crc8(reinterpret_cast<uint8_t *>(&dev_info_reply.type), dev_info_reply.length - 1);
 	uint8_t crc_recv = reply_raw[dev_info_reply.length];
+
 	if (crc_recv != crc_calc) {
 		warnx("CRC error: got %02x, should be %02x", (int)crc_recv, (int)crc_calc);
 		return -EIO;
 	}
+
 	dev_info_reply.payload.dev_name[dev_info_reply.payload.dev_name_len] = '\0';
-	warnx("device info: hardware ID: 0x%08X, firmware ID: 0x%04X, device name: %s", (int)swap_uint32(dev_info_reply.payload.hw_id), (int)swap_uint16(dev_info_reply.payload.fw_id), dev_info_reply.payload.dev_name);
+	warnx("device info: hardware ID: 0x%08X, firmware ID: 0x%04X, device name: %s",
+	      (int)swap_uint32(dev_info_reply.payload.hw_id), (int)swap_uint16(dev_info_reply.payload.fw_id),
+	      dev_info_reply.payload.dev_name);
 
 	_retries = retries_prev;
 
 	return OK;
 }
 
-int BST::init() {
+int BST::init()
+{
 	int ret;
 	ret = I2C::init();
 
@@ -240,11 +256,13 @@ int BST::init() {
 	return OK;
 }
 
-void BST::start_trampoline(void *arg) {
+void BST::start_trampoline(void *arg)
+{
 	reinterpret_cast<BST *>(arg)->start();
 }
 
-void BST::start() {
+void BST::start()
+{
 	_should_run = true;
 
 	_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -256,15 +274,18 @@ void BST::start() {
 	work_queue(LPWORK, &_work, BST::cycle_trampoline, this, 0);
 }
 
-void BST::cycle_trampoline(void *arg) {
+void BST::cycle_trampoline(void *arg)
+{
 	reinterpret_cast<BST *>(arg)->cycle();
 }
 
-void BST::cycle() {
+void BST::cycle()
+{
 	if (_should_run) {
 		bool updated = false;
 
 		orb_check(_attitude_sub, &updated);
+
 		if (updated) {
 			vehicle_attitude_s att;
 			orb_copy(ORB_ID(vehicle_attitude), _attitude_sub, &att);
@@ -278,6 +299,7 @@ void BST::cycle() {
 
 		updated = false;
 		orb_check(_battery_sub, &updated);
+
 		if (updated) {
 			battery_status_s batt;
 			orb_copy(ORB_ID(battery_status), _battery_sub, &batt);
@@ -294,9 +316,11 @@ void BST::cycle() {
 
 		updated = false;
 		orb_check(_gps_sub, &updated);
+
 		if (updated) {
 			vehicle_gps_position_s gps;
 			orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);
+
 			if (gps.fix_type >= 3 && gps.eph < 50.0f) {
 				BSTPacket<BSTGPSPosition> bst_gps = {};
 				bst_gps.type = 0x02;
@@ -314,18 +338,19 @@ void BST::cycle() {
 	}
 }
 
-uint8_t BST::crc8(uint8_t *data, size_t len) {
-    uint8_t crc = 0x00;
+uint8_t BST::crc8(uint8_t *data, size_t len)
+{
+	uint8_t crc = 0x00;
 
-    while (len--) {
-        crc ^= *data++;
+	while (len--) {
+		crc ^= *data++;
 
-        for (int i = 0; i < 8; i++) {
-            crc = crc & 0x80 ? (crc << 1) ^ 0xD5 : crc << 1;
-        }
-    }
+		for (int i = 0; i < 8; i++) {
+			crc = crc & 0x80 ? (crc << 1) ^ 0xD5 : crc << 1;
+		}
+	}
 
-    return crc;
+	return crc;
 }
 
 }
@@ -333,7 +358,8 @@ uint8_t BST::crc8(uint8_t *data, size_t len) {
 
 using namespace px4::bst;
 
-int bst_main(int argc, char *argv[]) {
+int bst_main(int argc, char *argv[])
+{
 	if (argc < 2) {
 		errx(1, "missing command\n%s", commandline_usage);
 	}
