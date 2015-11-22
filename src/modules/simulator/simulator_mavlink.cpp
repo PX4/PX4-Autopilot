@@ -65,7 +65,7 @@ static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 static int openUart(const char *uart_name, int baud);
 
 static int _fd;
-static unsigned char _buf[200];
+static unsigned char _buf[1024];
 sockaddr_in _srcaddr;
 static socklen_t _addrlen = sizeof(_srcaddr);
 
