@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,20 +31,18 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__mpu9250
-	MAIN mpu9250
-	STACK_MAIN 1200
+	MODULE drivers__lps25h
+	MAIN lps25h
+	STACK 1200
 	COMPILE_FLAGS
 		-Weffc++
 		-Os
 	SRCS
-		mpu9250.cpp
-		mpu9250_i2c.cpp
-		mpu9250_spi.cpp
-		main.cpp
-		gyro.cpp
-		mag.cpp
+		lps25h.cpp
+		lps25h_i2c.cpp
+		lps25h_spi.cpp
+
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

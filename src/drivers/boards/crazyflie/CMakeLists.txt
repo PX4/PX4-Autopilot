@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,19 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__mpu9250
-	MAIN mpu9250
-	STACK_MAIN 1200
-	COMPILE_FLAGS
-		-Weffc++
-		-Os
+	MODULE drivers__boards__crazyflie
 	SRCS
-		mpu9250.cpp
-		mpu9250_i2c.cpp
-		mpu9250_spi.cpp
-		main.cpp
-		gyro.cpp
-		mag.cpp
+		crazyflie_init.c
+		crazyflie_usb.c
+		crazyflie_led.c
+		crazyflie_timer_config.c
 	DEPENDS
 		platforms__common
 	)

@@ -45,7 +45,7 @@ if(NOT ${BOARD} STREQUAL "sim")
 	if (config_io_board)
 		set(extras "${PX4_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin")
 	endif()
-	
+
 	set(romfs_dir "ROMFS/px4fmu_common")
 	if (${BOARD} STREQUAL "tap-v1")
 		set(romfs_dir "ROMFS/tap_common")

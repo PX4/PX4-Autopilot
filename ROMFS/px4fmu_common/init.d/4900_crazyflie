@@ -1,0 +1,54 @@
+#!nsh
+#
+# @name Crazyflie config
+#
+# @type Quadrotor x
+#
+# @maintainer Tim Dyer <dyer.ti@gmail.com>
+#
+
+# uorb start
+
+# Params
+
+# System status LEDs
+
+# waypoint storage
+
+# Sensors
+mpu9250 -R 12 start
+ak8963 start
+lps25h start
+sensors start
+
+commander start
+
+# Output mode
+crazyflie start
+
+# MAVLINK
+# mavlink start -r 1200 -d /dev/ttyS***
+
+# MAVTYPE
+param set MAV_TYPE 2
+
+exit 1
+
+set OUTPUT_DEV /dev/pwm_output0
+set MIXER_FILE /etc/mixers/quad_x.main.mix
+if mixer load $OUTPUT_DEV $MIXER_FILE
+then
+	echo "[i] Mixer: $MIXER_FILE on $OUTPUT_DEV"
+else
+	echo "[i] Error loading mixer: $MIXER_FILE"
+	echo "ERROR: Could not load mixer: $MIXER_FILE" >> $LOG_FILE
+	tone_alarm $TUNE_ERR
+fi
+
+sh /etc/init.d/rc.mc_apps
+
+# Navigator
+navigator start
+
+# Boot complete
+mavlink boot_complete
