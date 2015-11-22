@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE drivers__camera_trigger
 	MAIN camera_trigger
+	STACK 1200
 	COMPILE_FLAGS
 		-Os
 	SRCS
