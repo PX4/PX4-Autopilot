@@ -1291,6 +1291,9 @@ Sensors::parameter_update_poll(bool forced)
 					continue;
 				}
 
+				int id = h.ioctl(DEVIOCGDEVICEID, 0);
+				PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
+
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
 					struct gyro_scale gscale = {};
@@ -1359,6 +1362,9 @@ Sensors::parameter_update_poll(bool forced)
 					DevMgr::releaseHandle(h);
 					continue;
 				}
+
+				int id = h.ioctl(DEVIOCGDEVICEID, 0);
+				PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
 
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
@@ -1437,6 +1443,9 @@ Sensors::parameter_update_poll(bool forced)
 					DevMgr::releaseHandle(h);
 					continue;
 				}
+
+				int id = h.ioctl(DEVIOCGDEVICEID, 0);
+				PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
 
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
@@ -2101,9 +2110,6 @@ Sensors::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vcontrol_mode_sub, 200);
 
 	/*
 	 * do advertisements
