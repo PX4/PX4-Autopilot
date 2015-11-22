@@ -1,26 +1,13 @@
-#ifdef PX4_SPI_BUS_EXT
-#define EXTERNAL_BUS PX4_SPI_BUS_EXT
-#else
-#define EXTERNAL_BUS 0
-#endif
-
-/*
-  the MPU9250 can only handle high SPI bus speeds on the sensor and
-  interrupt status registers. All other registers have a maximum 1MHz
-  SPI speed
- */
-#define MPU9250_LOW_BUS_SPEED				1000*1000
-#define MPU9250_HIGH_BUS_SPEED				11*1000*1000
 
 #define MPU9250_ONE_G					9.80665f
 
 class MPU9250_mag;
 class MPU9250_gyro;
 
-class MPU9250 : public device::SPI
+class MPU9250 : public device::CDev
 {
 public:
-	MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device,
+	MPU9250(device::Device *interface, const char *path_accel, const char *path_gyro, const char *path_mag,
 		enum Rotation rotation);
 	virtual ~MPU9250();
 
@@ -40,6 +27,8 @@ public:
 	void 			test_error();
 
 protected:
+	Device			*_interface;
+
 	virtual int		probe();
 
 	friend class MPU9250_mag;
@@ -265,3 +254,28 @@ private:
 	};
 #pragma pack(pop)
 };
+
+
+
+/*
+  The MPU9250 can only handle high bus speeds on the sensor and
+  interrupt status registers. All other registers have a maximum 1MHz
+  Communication with all registers of the device is performed using either
+  I2C at 400kHz or SPI at 1MHz. For applications requiring faster communications,
+  the sensor and interrupt registers may be read using SPI at 20MHz
+ */
+#define MPU9250_LOW_BUS_SPEED				0
+#define MPU9250_HIGH_BUS_SPEED				0x8000
+#  define MPU9250_IS_HIGH_SPEED(r) 			((r) & MPU9250_HIGH_BUS_SPEED)
+#  define MPU9250_REG(r) 					((r) &~MPU9250_HIGH_BUS_SPEED)
+#  define MPU9250_SET_SPEED(r, s) 			((r)|(s))
+#  define MPU9250_HIGH_SPEED_OP(r) 			MPU9250_SET_SPEED((r), MPU9250_HIGH_BUS_SPEED)
+#  define MPU9250_LOW_SPEED_OP(r)			MPU9250_REG((r))
+
+
+/* interface factories */
+extern device::Device *MPU9250_SPI_interface(int bus, int device_type, bool external_bus);
+extern device::Device *MPU9250_I2C_interface(int bus, int device_type, bool external_bus);
+extern int MPU9250_probe(device::Device *dev, int device_type);
+
+typedef device::Device *(*MPU9250_constructor)(int, int, bool);

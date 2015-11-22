@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * nsh_romfsetc.h
  *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * This file is a stub for 'make export' purposes; the actual ROMFS
+ * must be supplied by the library client.
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
-
-/* The preferred method for publishing a board name up is to
- * provide board_name()
- *
- */
-__BEGIN_DECLS
-
-__EXPORT const char *board_name(void);
-
-__END_DECLS
-
-#if defined(CONFIG_ARCH_BOARD_SITL)
-#  define	HW_ARCH "SITL"
-#elif defined(CONFIG_ARCH_BOARD_EAGLE)
-#  define	HW_ARCH "EAGLE"
-#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-#  define HW_ARCH "EXCELSIOR"
-#elif defined(CONFIG_ARCH_BOARD_RPI)
-#  define	HW_ARCH "RPI"
-#elif defined(CONFIG_ARCH_BOARD_BEBOP)
-#  define	HW_ARCH "BEBOP"
-#elif defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-#  define HW_ARCH "CRAZYFLIE"
-#else
-#define HW_ARCH (board_name())
-#endif
-
-#endif /* VERSION_H_ */
+extern unsigned char romfs_img[];
+extern unsigned int romfs_img_len;

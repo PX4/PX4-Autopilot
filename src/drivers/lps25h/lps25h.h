@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * @file lps25h.h
  *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Shared defines for the lps25h driver.
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#pragma once
 
-/* The preferred method for publishing a board name up is to
- * provide board_name()
- *
- */
-__BEGIN_DECLS
+#define ADDR_WHO_AM_I		0x0F
 
-__EXPORT const char *board_name(void);
+#define ID_WHO_AM_I		0xBD
 
-__END_DECLS
-
-#if defined(CONFIG_ARCH_BOARD_SITL)
-#  define	HW_ARCH "SITL"
-#elif defined(CONFIG_ARCH_BOARD_EAGLE)
-#  define	HW_ARCH "EAGLE"
-#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-#  define HW_ARCH "EXCELSIOR"
-#elif defined(CONFIG_ARCH_BOARD_RPI)
-#  define	HW_ARCH "RPI"
-#elif defined(CONFIG_ARCH_BOARD_BEBOP)
-#  define	HW_ARCH "BEBOP"
-#elif defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-#  define HW_ARCH "CRAZYFLIE"
-#else
-#define HW_ARCH (board_name())
-#endif
-
-#endif /* VERSION_H_ */
+/* interface factories */
+extern device::Device *LPS25H_SPI_interface(int bus);
+extern device::Device *LPS25H_I2C_interface(int bus);
+typedef device::Device *(*LPS25H_constructor)(int);

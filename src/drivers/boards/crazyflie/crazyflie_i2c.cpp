@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *         Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +33,33 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * @file crazyflie_i2c.c
  *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Crazyflie I2C configuration
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <px4_config.h>
 
-/* The preferred method for publishing a board name up is to
- * provide board_name()
+
+#include "board_config.h"
+#include <arch/board/board.h>
+#include <drivers/device/i2c.h>
+/****************************************************************************
+ * Name: board_i2c_initialize
  *
- */
-__BEGIN_DECLS
+ * Description:
+ *   Called to set I2C bus frequncies.
+ *
+ ****************************************************************************/
 
-__EXPORT const char *board_name(void);
+int board_i2c_initialize(void)
+{
 
-__END_DECLS
+	int ret = device::I2C::set_bus_clock(PX4_I2C_BUS_ONBOARD, PX4_I2C_BUS_ONBOARD_HZ);
 
-#if defined(CONFIG_ARCH_BOARD_SITL)
-#  define	HW_ARCH "SITL"
-#elif defined(CONFIG_ARCH_BOARD_EAGLE)
-#  define	HW_ARCH "EAGLE"
-#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-#  define HW_ARCH "EXCELSIOR"
-#elif defined(CONFIG_ARCH_BOARD_RPI)
-#  define	HW_ARCH "RPI"
-#elif defined(CONFIG_ARCH_BOARD_BEBOP)
-#  define	HW_ARCH "BEBOP"
-#elif defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-#  define HW_ARCH "CRAZYFLIE"
-#else
-#define HW_ARCH (board_name())
-#endif
+	if (ret == OK) {
+		ret = device::I2C::set_bus_clock(PX4_I2C_BUS_EXPANSION, PX4_I2C_BUS_EXPANSION_HZ);
+	}
 
-#endif /* VERSION_H_ */
+	return ret;
+}

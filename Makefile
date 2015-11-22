@@ -171,6 +171,9 @@ px4-stm32f4discovery_default:
 mindpx-v2_default:
 	$(call cmake-build,nuttx_mindpx-v2_default)
 
+crazyflie_default:
+	$(call cmake-build,nuttx_crazyflie_default)
+
 posix_sitl_default:
 	$(call cmake-build,$@)
 

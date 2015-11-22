@@ -34,7 +34,7 @@
 /**
  * @file mpu9250.cpp
  *
- * Driver for the Invensense MPU9250 connected via SPI.
+ * Driver for the Invensense MPU9250 connected via I2C or SPI.
  *
  * @author Andrew Tridgell
  *
@@ -215,9 +215,12 @@ const uint8_t MPU9250::_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPU
 									   };
 
 
-MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device,
+MPU9250::MPU9250(device::Device *interface, const char *path_accel, const char *path_gyro, const char *path_mag,
 		 enum Rotation rotation) :
-	SPI("MPU9250", path_accel, bus, device, SPIDEV_MODE3, MPU9250_LOW_BUS_SPEED),
+	CDev("MPU9250", path_accel),
+	_interface(interface),
+	_interface_bus(interface_bus),
+	//SPI("MPU9250", path_accel, bus, device, SPIDEV_MODE3, MPU9250_LOW_BUS_SPEED),
 	_gyro(new MPU9250_gyro(this, path_gyro)),
 	_mag(new MPU9250_mag(this, path_mag)),
 	_whoami(0),
@@ -333,14 +336,27 @@ MPU9250::init()
 {
 	int ret;
 
-	/* do SPI init (and probe) first */
-	ret = SPI::init();
 
-	/* if probe/setup failed, bail now */
+
+	/* do init */
+
+	ret = CDev::init();
+
+	/* if init failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI setup failed");
+		DEVICE_DEBUG("CDev init failed");
 		return ret;
 	}
+
+
+//	/* do SPI init (and probe) first */
+//	ret = SPI::init();
+
+//	/* if probe/setup failed, bail now */
+//	if (ret != OK) {
+//		DEVICE_DEBUG("SPI setup failed");
+//		return ret;
+//	}
 
 	ret = probe();
 
@@ -742,7 +758,8 @@ MPU9250::test_error()
 	// development as a handy way to test the reset logic
 	uint8_t data[16];
 	memset(data, 0, sizeof(data));
-	transfer(data, data, sizeof(data));
+	_interface->read(MPU6000_SET_SPEED(MPUREG_INT_STATUS, MPU6000_LOW_BUS_SPEED), data, sizeof(data));
+	//transfer(data, data, sizeof(data));
 	::printf("error triggered\n");
 	print_registers();
 }
@@ -1047,13 +1064,22 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return SPI::ioctl(filp, cmd, arg);
+		return CDev::ioctl(filp, cmd, arg);
 	}
 }
 
 uint8_t
 MPU9250::read_reg(unsigned reg, uint32_t speed)
 {
+
+	// From MPU6000 implementation
+	uint8_t buf;
+	_interface->read(MPU6000_SET_SPEED(reg, speed), &buf, 1);
+	return buf;
+
+
+
+
 	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
 
 	// general register transfer at low clock speed
@@ -1067,6 +1093,16 @@ MPU9250::read_reg(unsigned reg, uint32_t speed)
 uint16_t
 MPU9250::read_reg16(unsigned reg)
 {
+	uint8_t buf[2];
+
+	// general register transfer at low clock speed
+
+	_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf));
+	return (uint16_t)(buf[0] << 8) | buf[1];
+
+
+
+
 	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
 
 	// general register transfer at low clock speed
@@ -1080,6 +1116,12 @@ MPU9250::read_reg16(unsigned reg)
 void
 MPU9250::write_reg(unsigned reg, uint8_t value)
 {
+	// general register transfer at low clock speed
+
+	return _interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
+
+
+
 	uint8_t	cmd[2];
 
 	cmd[0] = reg | DIR_WRITE;
@@ -1313,10 +1355,9 @@ MPU9250::measure()
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
 
-	// sensor transfer at high clock speed
-	set_frequency(MPU9250_HIGH_BUS_SPEED);
-
-	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report))) {
+	if (sizeof(mpu_report) != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
+			(uint8_t *)&mpu_report,
+			sizeof(mpu_report))) {
 		return;
 	}
 

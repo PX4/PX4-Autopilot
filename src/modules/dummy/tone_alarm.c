@@ -33,40 +33,18 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * @file tone_alarm.c
  *
- * Tools for system version detection.
+ * Dummy tone_alarm to prevent nsh errors.
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Tim Dyer <>
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <px4_defines.h>
 
-/* The preferred method for publishing a board name up is to
- * provide board_name()
- *
- */
-__BEGIN_DECLS
+__EXPORT int tone_alarm_main(int argc, char *argv[]);
 
-__EXPORT const char *board_name(void);
-
-__END_DECLS
-
-#if defined(CONFIG_ARCH_BOARD_SITL)
-#  define	HW_ARCH "SITL"
-#elif defined(CONFIG_ARCH_BOARD_EAGLE)
-#  define	HW_ARCH "EAGLE"
-#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-#  define HW_ARCH "EXCELSIOR"
-#elif defined(CONFIG_ARCH_BOARD_RPI)
-#  define	HW_ARCH "RPI"
-#elif defined(CONFIG_ARCH_BOARD_BEBOP)
-#  define	HW_ARCH "BEBOP"
-#elif defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-#  define HW_ARCH "CRAZYFLIE"
-#else
-#define HW_ARCH (board_name())
-#endif
-
-#endif /* VERSION_H_ */
+int tone_alarm_main(int argc, char *argv[])
+{
+	return OK;
+}

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +32,65 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * @file crazyflie_led.c
  *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Crazyflie LED backend.
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <nuttx/config.h>
 
-/* The preferred method for publishing a board name up is to
- * provide board_name()
- *
+#include <stdbool.h>
+
+#include "stm32.h"
+#include "board_config.h"
+
+#include <arch/board/board.h>
+
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
  */
 __BEGIN_DECLS
-
-__EXPORT const char *board_name(void);
-
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
 __END_DECLS
 
-#if defined(CONFIG_ARCH_BOARD_SITL)
-#  define	HW_ARCH "SITL"
-#elif defined(CONFIG_ARCH_BOARD_EAGLE)
-#  define	HW_ARCH "EAGLE"
-#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-#  define HW_ARCH "EXCELSIOR"
-#elif defined(CONFIG_ARCH_BOARD_RPI)
-#  define	HW_ARCH "RPI"
-#elif defined(CONFIG_ARCH_BOARD_BEBOP)
-#  define	HW_ARCH "BEBOP"
-#elif defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-#  define HW_ARCH "CRAZYFLIE"
-#else
-#define HW_ARCH (board_name())
-#endif
+__EXPORT void led_init()
+{
+	/* Configure LED1 GPIO for output */
 
-#endif /* VERSION_H_ */
+	stm32_configgpio(GPIO_LED1);
+}
+
+__EXPORT void led_on(int led)
+{
+	if (led == 1) {
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_LED1, false);
+	}
+}
+
+__EXPORT void led_off(int led)
+{
+	if (led == 1) {
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_LED1, true);
+	}
+}
+
+__EXPORT void led_toggle(int led)
+{
+	if (led == 1) {
+		if (stm32_gpioread(GPIO_LED1)) {
+			stm32_gpiowrite(GPIO_LED1, false);
+
+		} else {
+			stm32_gpiowrite(GPIO_LED1, true);
+		}
+	}
+}

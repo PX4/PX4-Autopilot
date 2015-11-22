@@ -159,6 +159,10 @@
 /* no GPIO driver on the ASC board */
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_CRAZYFLIE
+/* no GPIO driver on the CRAZYFLIE board */
+#endif
+
 #ifdef CONFIG_ARCH_BOARD_SITL
 /* no GPIO driver on the SITL configuration */
 #endif
@@ -168,7 +172,8 @@
 	!defined(CONFIG_ARCH_BOARD_AEROCORE) && !defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
 	!defined(CONFIG_ARCH_BOARD_MINDPX_V2) && \
 	!defined(CONFIG_ARCH_BOARD_PX4FMU_V4) && !defined(CONFIG_ARCH_BOARD_SITL) && \
-	!defined(CONFIG_ARCH_BOARD_TAP_V1) && !defined(CONFIG_ARCH_BOARD_ASC_V1)
+	!defined(CONFIG_ARCH_BOARD_TAP_V1) && !defined(CONFIG_ARCH_BOARD_ASC_V1) && \
+	!defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
 # error No CONFIG_ARCH_BOARD_xxxx set
 #endif
 /*
