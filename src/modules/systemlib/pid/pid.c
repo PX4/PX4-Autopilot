@@ -52,6 +52,10 @@
 #include <math.h>
 
 #define SIGMA 0.000001f
+#define F_CUT 17.0f
+
+// private function declaration
+static float apply_pt1_element(PID_t *pid, float dterm, float dt);
 
 __EXPORT void pid_init(PID_t *pid, pid_mode_t mode, float dt_min)
 {
@@ -65,6 +69,7 @@ __EXPORT void pid_init(PID_t *pid, pid_mode_t mode, float dt_min)
 	pid->output_limit = 0.0f;
 	pid->error_previous = 0.0f;
 	pid->last_output = 0.0f;
+	pid->last_dterm = 0.0f;
 }
 
 __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float integral_limit, float output_limit)
@@ -109,6 +114,14 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 	return ret;
 }
 
+static float apply_pt1_element(PID_t *pid, float dterm, float dt)
+{
+	static const float RC = 1.0f / ((float)M_TWOPI * F_CUT );
+	
+	pid->last_dterm = pid->last_dterm + dt / (RC + dt) * (dterm - pid->last_dterm);
+	return pid->last_dterm;
+}
+
 __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt)
 {
 	if (!isfinite(sp) || !isfinite(val) || !isfinite(val_dot) || !isfinite(dt)) {
@@ -140,6 +153,9 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		d = 0.0f;
 	}
 
+	// pt1 low pass filter
+	d = apply_pt1_element(pid, d, dt);
+	
 	/* calculate PD output */
 	float output = (error * pid->kp) + (d * pid->kd);
 

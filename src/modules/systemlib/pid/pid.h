@@ -79,6 +79,7 @@ typedef struct {
 	float output_limit;
 	float error_previous;
 	float last_output;
+	float last_dterm;
 } PID_t;
 
 __EXPORT void pid_init(PID_t *pid, pid_mode_t mode, float dt_min);
