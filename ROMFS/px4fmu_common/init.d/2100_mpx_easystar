@@ -9,4 +9,17 @@
 
 sh /etc/init.d/rc.fw_defaults
  
-set MIXER easystar
+set MIXER BigFat
+# PX4IO PWM output will be used by default
+set PWM_OUT 1    # Change parameters for the first 4 outputs
+#set PWM_RATE 400        # Set PWM rate to 400 Hz for better performance
+set PWM_DISARMED 900    # Motors should stop at this PWM value
+set PWM_MIN 1000
+set PWM_MAX 2000
+set FAILSAFE 1500
+
+#set MIXER_AUX BigFat
+#set PWM_AUX_RATE 50
+#set PWM_AUX_OUT 123
+#set PWM_AUX_MIN 1000
+#set PWM_AUX_MAX 2000

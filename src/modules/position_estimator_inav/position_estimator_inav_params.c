@@ -158,10 +158,10 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_VIS_V, 0.0f);
  * Weight (cutoff frequency) for optical flow (velocity) measurements.
  *
  * @min 0.0
- * @max 30.0
+ * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_XY_FLOW, 10.0f);
+PARAM_DEFINE_FLOAT(INAV_W_XY_FLOW, 9.0f);
 
 /**
  * XY axis weight for resetting velocity
@@ -314,6 +314,17 @@ PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_X, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_FLOW_DIST_Y, 0.0f);
 
 /**
+ * Disable mocap (set 0 if using fake gps)
+ *
+ * Disable mocap
+ *
+ * @min 0
+ * @max 1
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(INAV_DISAB_MOCAP, 0);
+
+/**
  * Disable vision input
  *
  * Set to the appropriate key (328754) to disable vision input.
@@ -364,6 +375,7 @@ int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 	h->delay_gps = param_find("INAV_DELAY_GPS");
 	h->flow_module_offset_x = param_find("INAV_FLOW_DIST_X");
 	h->flow_module_offset_y = param_find("INAV_FLOW_DIST_Y");
+	h->disable_mocap = param_find("INAV_DISAB_MOCAP");
 
 	return 0;
 }
@@ -394,6 +406,7 @@ int inav_parameters_update(const struct position_estimator_inav_param_handles *h
 	param_get(h->delay_gps, &(p->delay_gps));
 	param_get(h->flow_module_offset_x, &(p->flow_module_offset_x));
 	param_get(h->flow_module_offset_y, &(p->flow_module_offset_y));
+	param_get(h->disable_mocap, &(p->disable_mocap));
 
 	return 0;
 }

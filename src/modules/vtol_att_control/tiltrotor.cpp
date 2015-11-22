@@ -205,7 +205,8 @@ void Tiltrotor::update_vtol_state()
 		case TRANSITION_FRONT_P1:
 
 			// check if we have reached airspeed to switch to fw mode
-			if (_airspeed->true_airspeed_m_s >= _params_tiltrotor.airspeed_trans) {
+			// also allow switch if we are not armed for the sake of bench testing
+			if (_airspeed->true_airspeed_m_s >= _params_tiltrotor.airspeed_trans || !_armed->armed) {
 				_vtol_schedule.flight_mode = TRANSITION_FRONT_P2;
 				_vtol_schedule.transition_start = hrt_absolute_time();
 			}

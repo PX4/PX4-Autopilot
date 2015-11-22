@@ -80,6 +80,20 @@ public:
 	 * @return		the number of failovers
 	 */
 	unsigned		failover_count();
+	
+	/**
+	 * Get the index of the failed sensor in the group
+	 *
+	 * @return		index of the failed sensor
+	 */
+	int			failover_index();
+	
+	/**
+	 * Get the error state of the failed sensor in the group
+	 *
+	 * @return		bitmask with erro states of the failed sensor
+	 */
+	uint32_t		failover_state();
 
 	/**
 	 * Print the validator value
