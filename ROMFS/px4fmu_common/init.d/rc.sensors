@@ -3,8 +3,20 @@
 # Standard startup script for PX4FMU v1, v2, v3 onboard sensor drivers.
 #
 
-if ms5611 -s start
+if ver hwcmp PX4FMU_V1
 then
+	if ms5611 start
+	then
+	fi
+else
+	if ms5611 -s start
+	then
+	fi
+
+	# Blacksheep telemetry
+	if bst start
+	then
+	fi
 fi
 
 if adc start
