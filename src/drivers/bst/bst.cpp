@@ -50,7 +50,6 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/battery_status.h>
 
-#define DEFAULT_DEVICE 1	// TODO use PX4 define for external I2C
 #define BST_DEVICE_PATH "/dev/bst0"
 
 static const char commandline_usage[] = "usage: bst start|status|stop";
@@ -346,7 +345,7 @@ int bst_main(int argc, char *argv[]) {
 			exit(0);
 		}
 
-		g_bst = new BST(DEFAULT_DEVICE);
+		g_bst = new BST(PX4_I2C_BUS_EXPANSION);
 
 		if (g_bst != nullptr && OK != g_bst->init()) {
 			delete g_bst;
