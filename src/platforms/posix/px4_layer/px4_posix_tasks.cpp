@@ -232,6 +232,7 @@ int px4_task_delete(px4_task_t id)
 	}
 
 	pthread_mutex_lock(&task_mutex);
+
 	// If current thread then exit, otherwise cancel
 	if (pthread_self() == pid) {
 		taskmap[id].isused = false;
@@ -268,6 +269,7 @@ void px4_task_exit(int ret)
 	} else {
 		PX4_DEBUG("px4_task_exit: %s", taskmap[i].name.c_str());
 	}
+
 	pthread_mutex_unlock(&task_mutex);
 
 	pthread_exit((void *)(unsigned long)ret);
