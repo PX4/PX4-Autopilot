@@ -56,13 +56,6 @@ pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
 
 extern "C" {
 
-	static void timer_cb(void *data)
-	{
-		px4_sem_t *p_sem = (px4_sem_t *)data;
-		px4_sem_post(p_sem);
-		PX4_DEBUG("timer_handler: Timer expired");
-	}
-
 #define PX4_MAX_FD 200
 	static device::file_t *filemap[PX4_MAX_FD] = {};
 
@@ -269,15 +262,13 @@ extern "C" {
 
 		if (ret >= 0) {
 			if (timeout > 0) {
-				// Use a work queue task
-				work_s _hpwork = {};
 
-				hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)&sem, 1000 * timeout);
-				px4_sem_wait(&sem);
+				struct timespec ts;
+				px4_clock_gettime(CLOCK_REALTIME, &ts);
+				ts.tv_sec += timeout / 1000;
+				ts.tv_nsec += (1000 * 1000 * timeout) % (1000 * 1000 * 1000);
 
-				// Make sure timer thread is killed before sem goes
-				// out of scope
-				hrt_work_cancel(&_hpwork);
+				px4_sem_timedwait(&sem, &ts);
 
 			} else if (timeout < 0) {
 				px4_sem_wait(&sem);
