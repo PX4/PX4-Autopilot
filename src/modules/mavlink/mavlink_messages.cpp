@@ -2602,6 +2602,8 @@ protected:
 		if (updated) {
 			mavlink_altitude_t msg;
 
+			msg.time_usec = hrt_absolute_time();
+
 			msg.altitude_monotonic = global_pos.pressure_alt;
 			msg.altitude_amsl = global_pos.alt;
 			msg.altitude_local = -local_pos.z;
