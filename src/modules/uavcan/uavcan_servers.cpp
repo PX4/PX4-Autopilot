@@ -1046,7 +1046,7 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 						copy_fw = false;
 					} else if (!memcmp(fw_dirent->d_name, UAVCAN_ROMFS_FW_PREFIX, sizeof(UAVCAN_ROMFS_FW_PREFIX) - 1)) {
 						size_t fw_len = strlen(fw_dirent->d_name);
-						size_t dstpath_fw_len = dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX) + fw_len;
+						size_t dstpath_fw_len = dstpath_ver_len + fw_len;
 						if (dstpath_fw_len > maxlen) {
 							// sizeof(prefix) includes trailing NUL, cancelling out the +1 for the path separator
 							warnx("unlink: path '%s/%s' too long", dstpath, fw_dirent->d_name);
@@ -1080,7 +1080,7 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 					memcpy(&srcpath[srcpath_ver_len + 1], src_fw_dirent->d_name, fw_len + 1);
 
 					dstpath[dstpath_ver_len] = '/';
-					memcpy(&dstpath[dstpath_ver_len], src_fw_dirent->d_name, fw_len + 1);
+					memcpy(&dstpath[dstpath_ver_len +1], src_fw_dirent->d_name, fw_len + 1);
 
 					rv = copyFw(dstpath, srcpath);
 					if (rv != 0) {
