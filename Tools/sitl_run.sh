@@ -78,6 +78,10 @@ cd $build_path/src/firmware/posix
 mkdir -p rootfs/fs/microsd
 mkdir -p rootfs/eeprom
 touch rootfs/eeprom/parameters
+
+# Do not exit on failure now from here on because we want the complete cleanup
+set +e
+
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
 then
