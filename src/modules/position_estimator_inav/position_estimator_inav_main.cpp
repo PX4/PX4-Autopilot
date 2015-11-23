@@ -95,7 +95,7 @@ static const hrt_abstime lidar_valid_timeout = 1000000;	// estimate lidar distan
 static const unsigned updates_counter_len = 1000000;
 static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
 
-__EXPORT int position_estimator_inav_main(int argc, char *argv[]);
+extern "C" __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
 int position_estimator_inav_thread_main(int argc, char *argv[]);
 
@@ -390,9 +390,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	/* first parameters update */
 	inav_parameters_update(&pos_inav_param_handles, &params);
 
-	px4_pollfd_struct_t fds_init[1] = {
-		{ .fd = sensor_combined_sub, .events = POLLIN },
-	};
+	px4_pollfd_struct_t fds_init[1];
+	fds_init[0].fd = sensor_combined_sub;
+	fds_init[0].events = POLLIN;
 
 	/* wait for initial baro value */
 	bool wait_baro = true;
@@ -434,9 +434,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	}
 
 	/* main loop */
-	px4_pollfd_struct_t fds[1] = {
-		{ .fd = vehicle_attitude_sub, .events = POLLIN },
-	};
+	px4_pollfd_struct_t fds[1];
+	fds[0].fd = vehicle_attitude_sub;
+	fds[0].events = POLLIN;
 
 	while (!thread_should_exit) {
 		int ret = px4_poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate
