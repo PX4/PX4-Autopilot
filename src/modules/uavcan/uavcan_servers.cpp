@@ -1055,7 +1055,7 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 							dstpath[dstpath_ver_len] = '/';
 							memcpy(&dstpath[dstpath_ver_len + 1], fw_dirent->d_name, fw_len + 1);
 							unlink(dstpath);
-							warnx("unlink: removed '%s/%s'", dstpath, fw_dirent->d_name);
+							warnx("unlink: removed '%s'", dstpath);
 						}
 					} else {
 						// User file, don't copy firmware
