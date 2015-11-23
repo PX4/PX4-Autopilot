@@ -75,7 +75,7 @@ int px4_sem_wait(px4_sem_t *s)
 	return 0;
 }
 
-int px4_sem_timedwait(px4_sem_t * s, const struct timespec * abstime)
+int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 {
 	pthread_mutex_lock(&(s->lock));
 	s->value--;
