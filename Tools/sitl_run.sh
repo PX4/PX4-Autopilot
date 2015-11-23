@@ -53,7 +53,7 @@ then
 	if [ -x "$(command -v gazebo)" ]
 	then
 		# Set the plugin path so Gazebo finds our model and sim
-		export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:$curr_dir/Tools/sitl_gazebo/Build
+		export GAZEBO_PLUGIN_PATH=$curr_dir/Tools/sitl_gazebo/Build:${GAZEBO_PLUGIN_PATH}
 		# Set the model path so Gazebo finds the airframes
 		export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$curr_dir/Tools/sitl_gazebo/models
 		# The next line would disable online model lookup, can be commented in, in case of unstable behaviour.
@@ -61,11 +61,11 @@ then
 		export SITL_GAZEBO_PATH=$curr_dir/Tools/sitl_gazebo
 		mkdir -p Tools/sitl_gazebo/Build
 		cd Tools/sitl_gazebo/Build
-		cmake ..
+		cmake -Wno-dev ..
 		make -j4
-		gzserver ../worlds/${model}.world &
+		gzserver --verbose ../worlds/${model}.world &
 		SIM_PID=`echo $!`
-		gzclient &
+		gzclient --verbose &
 		GUI_PID=`echo $!`
 	else
 		echo "You need to have gazebo simulator installed!"
