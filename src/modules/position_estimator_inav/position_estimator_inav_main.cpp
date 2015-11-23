@@ -74,6 +74,7 @@
 #include <drivers/drv_hrt.h>
 #include <platforms/px4_defines.h>
 
+#include <terrain_estimation/terrain_estimator.h>
 #include "position_estimator_inav_params.h"
 #include "inertial_filter.h"
 
@@ -396,6 +397,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* wait for initial baro value */
 	bool wait_baro = true;
+
+	TerrainEstimator *terrain_estimator = new TerrainEstimator();
 
 	thread_running = true;
 
@@ -1228,6 +1231,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
 
+		/* run terrain estimator */
+		terrain_estimator->predict(dt, &att, &sensor, &lidar);
+		terrain_estimator->measurement_update(hrt_absolute_time(), &gps, &lidar, &att);
+
 		if (inav_verbose_mode) {
 			/* print updates rate */
 			if (t > updates_counter_start + updates_counter_len) {
@@ -1317,6 +1324,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				global_pos.eph = eph;
 				global_pos.epv = epv;
+
+				if (terrain_estimator->is_valid()) {
+					global_pos.terrain_alt = global_pos.alt - terrain_estimator->get_distance_to_ground();
+					global_pos.terrain_alt_valid = true;
+				} else {
+					global_pos.terrain_alt_valid = false;
+				}
 
 				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
