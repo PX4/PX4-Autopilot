@@ -37,6 +37,8 @@ then
 	kill $jmavsim_pid
 fi
 
+set -e
+
 cp Tools/posix_lldbinit $build_path/src/firmware/posix/.lldbinit
 cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
 
