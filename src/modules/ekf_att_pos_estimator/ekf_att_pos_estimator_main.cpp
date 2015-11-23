@@ -1016,7 +1016,7 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	}
 
 	/* baro altitude */
-	_global_pos.pressure_alt = _baro_alt_filt;
+	_global_pos.pressure_alt = _ekf->baroHgt;
 
 	_global_pos.yaw = _local_pos.yaw;
 
