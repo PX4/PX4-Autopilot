@@ -1336,6 +1336,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					global_pos.terrain_alt_valid = false;
 				}
 
+				global_pos.pressure_alt = sensor.baro_alt_meter[0];
+
 				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
 

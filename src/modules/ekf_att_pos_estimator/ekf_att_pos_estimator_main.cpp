@@ -1015,6 +1015,9 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 		_global_pos.terrain_alt_valid = false;
 	}
 
+	/* baro altitude */
+	_global_pos.pressure_alt = _baro_alt_filt;
+
 	_global_pos.yaw = _local_pos.yaw;
 
 	const float dtLastGoodGPS = static_cast<float>(hrt_absolute_time() - _previousGPSTimestamp) / 1e6f;
