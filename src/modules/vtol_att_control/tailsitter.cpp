@@ -186,12 +186,6 @@ void Tailsitter::update_vtol_state()
 			break;
 
 		case TRANSITION_FRONT_P2:
-			// NOT USED
-			// check if we have reached pitch angle to switch to FW mode
-			//if (_v_att->pitch <= PITCH_TRANSITION_FRONT_P2) {
-			//	_vtol_schedule.flight_mode = FW_MODE;
-			//}
-			break;
 
 		case TRANSITION_BACK:
 			// failsafe into fixed wing mode
@@ -467,7 +461,7 @@ void Tailsitter::fill_actuator_outputs()
 			// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
 			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
 				_actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	//roll elevon
-			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = 0;	//pitch elevon
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	//pitch elevon
 		}
 
 		break;
