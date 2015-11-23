@@ -907,6 +907,7 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 	In each version directory, we remove any files with a name starting with "romfs_"
 	in the corresponding directory on the SD card that don't match the bundled firmware
 	filename; if the directory is empty after that process, we copy the bundled firmware.
+	todo:This code would benefit from the use of strcat.
 	*/
 	const size_t maxlen = UAVCAN_MAX_PATH_LENGTH;
 	const size_t sd_path_len = strlen(sd_path);
