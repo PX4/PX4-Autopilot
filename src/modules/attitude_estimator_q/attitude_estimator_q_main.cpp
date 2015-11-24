@@ -287,6 +287,13 @@ void AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[])
 
 void AttitudeEstimatorQ::task_main()
 {
+
+#ifdef __PX4_POSIX
+	perf_counter_t _perf_accel(perf_alloc_once(PC_ELAPSED, "sim_accel_delay"));
+	perf_counter_t _perf_mpu(perf_alloc_once(PC_ELAPSED, "sim_mpu_delay"));
+	perf_counter_t _perf_mag(perf_alloc_once(PC_ELAPSED, "sim_mag_delay"));
+#endif
+
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	_vision_sub = orb_subscribe(ORB_ID(vision_position_estimate));
@@ -380,6 +387,12 @@ void AttitudeEstimatorQ::task_main()
 
 			if (!_failsafe) {
 				uint32_t flags = DataValidator::ERROR_FLAG_NO_ERROR;
+
+			#ifdef __PX4_POSIX
+				perf_end(_perf_accel);
+				perf_end(_perf_mpu);
+				perf_end(_perf_mag);
+			#endif
 
 				if (_voter_gyro.failover_count() > 0) {
 					_failsafe = true;
