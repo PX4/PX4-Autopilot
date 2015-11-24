@@ -1232,7 +1232,7 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 			usleep(MAIN_LOOP_DELAY / 2);
 		} while (_subscribe_to_stream != nullptr);
 
-		delete s;
+		delete[] s;
 	}
 }
 
