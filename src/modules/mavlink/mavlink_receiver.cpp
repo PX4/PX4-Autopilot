@@ -1325,8 +1325,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		struct airspeed_s airspeed = {};
 
 		float ias = calc_indicated_airspeed(imu.diff_pressure * 1e2f);
-		// XXX need to fix this
-		float tas = ias;
+		float tas = calc_true_airspeed_from_indicated(ias, imu.abs_pressure * 100, imu.temperature);
 
 		airspeed.timestamp = timestamp;
 		airspeed.indicated_airspeed_m_s = ias;
