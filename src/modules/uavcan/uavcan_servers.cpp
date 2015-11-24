@@ -897,6 +897,8 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 		-	-	-	/othernode-v3-1.6.25d0137d.bin	firmware file for com.example.othernode-v3, hardware version 1.6
 
 	The ROMFS directory structure is the same, but located at /etc/uavcan/fw
+	Files located there are prefixed with _ to identify them a comming from the rom
+	file system.
 
 	We iterate over all device directories in the ROMFS base directory, and create
 	corresponding device directories on the SD card if they don't already exist.
@@ -904,10 +906,12 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 	In each device directory, we iterate over each version directory and create a
 	corresponding version directory on the SD card if it doesn't already exist.
 
-	In each version directory, we remove any files with a name starting with "romfs_"
+	In each version directory, we remove any files with a name starting with "_"
 	in the corresponding directory on the SD card that don't match the bundled firmware
 	filename; if the directory is empty after that process, we copy the bundled firmware.
+
 	todo:This code would benefit from the use of strcat.
+
 	*/
 	const size_t maxlen = UAVCAN_MAX_PATH_LENGTH;
 	const size_t sd_path_len = strlen(sd_path);
