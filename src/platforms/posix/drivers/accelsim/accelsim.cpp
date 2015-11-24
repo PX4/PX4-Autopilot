@@ -766,6 +766,7 @@ ACCELSIM::start()
 	//PX4_INFO("ACCELSIM::start");
 	/* make sure we are stopped first */
 	int ret = stop();
+
 	if (ret != 0) {
 		PX4_ERR("ACCELSIM::start stop failed");
 	}
@@ -775,9 +776,11 @@ ACCELSIM::start()
 	_mag_reports->flush();
 
 	int ret2 = VirtDevObj::start();
+
 	if (ret2 != 0) {
 		PX4_ERR("ACCELSIM::start base class start failed");
 	}
+
 	return (ret != 0 || ret2 != 0) ? -1 : 0;
 }
 
@@ -785,7 +788,6 @@ int
 ACCELSIM::stop()
 {
 	//PX4_INFO("ACCELSIM::stop");
-	//PX4_BACKTRACE();
 	return VirtDevObj::stop();
 }
 

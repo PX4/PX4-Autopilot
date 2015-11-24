@@ -48,8 +48,6 @@
 
 #include <px4_posix.h>
 
-#include <list>
-
 int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 {
 	// We do not used the process shared arg
