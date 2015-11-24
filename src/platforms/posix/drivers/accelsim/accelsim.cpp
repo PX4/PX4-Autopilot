@@ -111,12 +111,6 @@ private:
 
 	ACCELSIM_mag		*_mag;
 
-	struct hrt_call		_accel_call;
-	struct hrt_call		_mag_call;
-
-	unsigned		_call_accel_interval;
-	unsigned		_call_mag_interval;
-
 	ringbuffer::RingBuffer	*_accel_reports;
 	ringbuffer::RingBuffer	*_mag_reports;
 
@@ -157,26 +151,20 @@ private:
 	// last temperature value
 	float			_last_temperature;
 
-	// this is used to support runtime checking of key
-	// configuration registers to detect SPI bus errors and sensor
-	// reset
-
 	/**
 	 * Override Start automatic measurement.
 	 */
-	virtual int			start();
+	virtual int		start();
 
 	/**
-	 * Reset chip.
-	 *
-	 * Resets the chip and measurements ranges, but not scale and offset.
+	 * Override Stop automatic measurement.
 	 */
-	void			reset();
+	virtual int		stop();
 
 	/**
 	 * Fetch accel measurements from the sensor and update the report ring.
 	 */
-	virtual void			_measure();
+	virtual void		_measure();
 
 	/**
 	 * Fetch mag measurements from the sensor and update the report ring.
@@ -210,26 +198,6 @@ private:
 	 */
 	int			accel_set_driver_lowpass_filter(float samplerate, float bandwidth);
 
-	/**
-	 * Set the ACCELSIM internal accel sampling frequency.
-	 *
-	 * @param frequency	The internal accel sampling frequency is set to not less than
-	 *			this value.
-	 *			Zero selects the maximum rate supported.
-	 * @return		OK if the value can be supported.
-	 */
-	int			accel_set_samplerate(unsigned frequency);
-
-	/**
-	 * Set the ACCELSIM internal mag sampling frequency.
-	 *
-	 * @param frequency	The internal mag sampling frequency is set to not less than
-	 *			this value.
-	 *			Zero selects the maximum rate supported.
-	 * @return		OK if the value can be supported.
-	 */
-	int			mag_set_samplerate(unsigned frequency);
-
 	/* this class cannot be copied */
 	ACCELSIM(const ACCELSIM &);
 	ACCELSIM operator=(const ACCELSIM &);
@@ -246,6 +214,9 @@ public:
 
 	virtual ssize_t	devRead(void *buffer, size_t buflen);
 	virtual int	devIOCTL(unsigned long cmd, unsigned long arg);
+
+	virtual int 	start();
+	virtual int 	stop();
 
 protected:
 	friend class ACCELSIM;
@@ -268,10 +239,6 @@ private:
 ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
 	VirtDevObj("ACCELSIM", path, ACCEL_BASE_DEVICE_PATH, 1e6 / 400),
 	_mag(new ACCELSIM_mag(this)),
-	_accel_call{},
-	_mag_call{},
-	_call_accel_interval(0),
-	_call_mag_interval(0),
 	_accel_reports(nullptr),
 	_mag_reports(nullptr),
 	_accel_scale{},
@@ -326,6 +293,7 @@ ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
 ACCELSIM::~ACCELSIM()
 {
 	/* make sure we are truly inactive */
+	_mag->stop();
 	stop();
 
 	/* free any existing reports */
@@ -374,8 +342,6 @@ ACCELSIM::init()
 		goto out;
 	}
 
-	reset();
-
 	/* do init for the mag device node */
 	ret = _mag->init();
 
@@ -411,11 +377,6 @@ ACCELSIM::init()
 
 out:
 	return ret;
-}
-
-void
-ACCELSIM::reset()
-{
 }
 
 int
@@ -459,7 +420,7 @@ ACCELSIM::devRead(void *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_call_accel_interval > 0) {
+	if (m_sample_interval_usecs > 0) {
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 */
@@ -498,7 +459,7 @@ ACCELSIM::mag_read(void *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_call_mag_interval > 0) {
+	if (_mag->m_sample_interval_usecs > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -539,7 +500,7 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
 				stop();
-				_call_accel_interval = 0;
+				m_sample_interval_usecs = 0;
 				return OK;
 
 			/* external signalling not supported */
@@ -558,14 +519,11 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_accel_interval == 0);
-
 					/* convert hz to hrt interval via microseconds */
-					unsigned period = 1000000 / ul_arg;
+					unsigned interval = 1000000 / ul_arg;
 
 					/* check against maximum sane rate */
-					if (period < 500) {
+					if (interval < 500) {
 						return -EINVAL;
 					}
 
@@ -573,13 +531,7 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 					accel_set_driver_lowpass_filter((float)ul_arg, _accel_filter_x.get_cutoff_freq());
 
 					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_accel_call.period = _call_accel_interval = period;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
+					setSampleInterval(interval);
 
 					return OK;
 				}
@@ -587,11 +539,11 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_call_accel_interval == 0) {
+		if (m_sample_interval_usecs == 0) {
 			return SENSOR_POLLRATE_MANUAL;
 		}
 
-		return 1000000 / _call_accel_interval;
+		return 1000000 / m_sample_interval_usecs;
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
@@ -610,11 +562,12 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		return _accel_reports->size();
 
 	case SENSORIOCRESET:
-		reset();
+		// Nothing to do for simulator
 		return OK;
 
 	case ACCELIOCSSAMPLERATE:
-		return accel_set_samplerate(ul_arg);
+		// No need to set internal sampling rate for simulator
+		return OK;
 
 	case ACCELIOCGSAMPLERATE:
 		return _accel_samplerate;
@@ -671,8 +624,8 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 
 			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_mag_interval = 0;
+				_mag->stop();
+				_mag->m_sample_interval_usecs = 0;
 				return OK;
 
 			/* external signalling not supported */
@@ -690,27 +643,16 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_mag_interval == 0);
-
 					/* convert hz to hrt interval via microseconds */
-					unsigned period = 1000000 / ul_arg;
+					unsigned interval = 1000000 / ul_arg;
 
 					/* check against maximum sane rate (1ms) */
-					if (period < 10000) {
+					if (interval < 10000) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_mag_call.period = _call_mag_interval = period;
-
-					//PX4_INFO("SET _call_mag_interval=%u", _call_mag_interval);
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
+					_mag->setSampleInterval(interval);
 
 					return OK;
 				}
@@ -718,11 +660,11 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_call_mag_interval == 0) {
+		if (_mag->m_sample_interval_usecs == 0) {
 			return SENSOR_POLLRATE_MANUAL;
 		}
 
-		return 1000000 / _call_mag_interval;
+		return 1000000 / _mag->m_sample_interval_usecs;
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
@@ -741,11 +683,12 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 		return _mag_reports->size();
 
 	case SENSORIOCRESET:
-		reset();
+		// Nothing to do for simulator
 		return OK;
 
 	case MAGIOCSSAMPLERATE:
-		return mag_set_samplerate(ul_arg);
+		// No need to set internal sampling rate for simulator
+		return OK;
 
 	case MAGIOCGSAMPLERATE:
 		return _mag_samplerate;
@@ -818,40 +761,45 @@ ACCELSIM::accel_set_driver_lowpass_filter(float samplerate, float bandwidth)
 }
 
 int
-ACCELSIM::accel_set_samplerate(unsigned frequency)
-{
-	return OK;
-}
-
-int
-ACCELSIM::mag_set_samplerate(unsigned frequency)
-{
-	return OK;
-}
-
-int
 ACCELSIM::start()
 {
+	//PX4_INFO("ACCELSIM::start");
 	/* make sure we are stopped first */
-	stop();
+	int ret = stop();
+	if (ret != 0) {
+		PX4_ERR("ACCELSIM::start stop failed");
+	}
 
 	/* reset the report ring */
 	_accel_reports->flush();
 	_mag_reports->flush();
 
-	return VirtDevObj::start();
+	int ret2 = VirtDevObj::start();
+	if (ret2 != 0) {
+		PX4_ERR("ACCELSIM::start base class start failed");
+	}
+	return (ret != 0 || ret2 != 0) ? -1 : 0;
+}
+
+int
+ACCELSIM::stop()
+{
+	//PX4_INFO("ACCELSIM::stop");
+	//PX4_BACKTRACE();
+	return VirtDevObj::stop();
 }
 
 void
 ACCELSIM::_measure()
 {
+	//PX4_INFO("ACCELSIM::_measure");
 	/* status register and data as read back from the device */
 
 #pragma pack(push, 1)
 	struct {
 		uint8_t		cmd;
 		uint8_t		status;
-		float temperature;
+		float		temperature;
 		float		x;
 		float		y;
 		float		z;
@@ -1052,9 +1000,21 @@ ACCELSIM_mag::devIOCTL(unsigned long cmd, unsigned long arg)
 	}
 }
 
-void
-ACCELSIM_mag::_measure()
+int ACCELSIM_mag::start()
 {
+	//PX4_INFO("ACCELSIM_mag::start");
+	return VirtDevObj::start();
+}
+
+int ACCELSIM_mag::stop()
+{
+	//PX4_INFO("ACCELSIM_mag::stop");
+	return VirtDevObj::stop();
+}
+
+void ACCELSIM_mag::_measure()
+{
+	//PX4_INFO("ACCELSIM_mag::_measure");
 	_parent->mag_measure();
 }
 
