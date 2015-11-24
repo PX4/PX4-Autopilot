@@ -24,6 +24,7 @@ set(config_module_list
 	systemcmds/esc_calib
 	systemcmds/reboot
 	systemcmds/topic_listener
+	systemcmds/perf
 	modules/uORB
 	modules/param
 	modules/systemlib
