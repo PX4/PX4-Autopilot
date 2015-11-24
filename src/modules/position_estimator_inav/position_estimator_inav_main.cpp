@@ -1048,7 +1048,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				c += R_gps[j][i] * accel_bias_corr[j];
 			}
 
-			if (isfinite(c)) {
+			if (PX4_ISFINITE(c)) {
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
@@ -1088,7 +1088,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
-			if (isfinite(c)) {
+			if (PX4_ISFINITE(c)) {
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
@@ -1113,7 +1113,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
-			if (isfinite(c)) {
+			if (PX4_ISFINITE(c)) {
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
@@ -1121,7 +1121,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* inertial filter prediction for altitude */
 		inertial_filter_predict(dt, z_est, acc[2]);
 
-		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
+		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1148,7 +1148,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(corr_mocap[2][0], dt, z_est, 0, w_mocap_p);
 		}
 
-		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
+		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);										
@@ -1167,7 +1167,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_predict(dt, x_est, acc[0]);
 			inertial_filter_predict(dt, y_est, acc[1]);
 
-			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
+			if (!(PX4_ISFINITE(x_est[0]) && PX4_ISFINITE(x_est[1]) && PX4_ISFINITE(y_est[0]) && PX4_ISFINITE(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1214,7 +1214,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				inertial_filter_correct(corr_mocap[1][0], dt, y_est, 0, w_mocap_p);
 			}
 
-			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
+			if (!(PX4_ISFINITE(x_est[0]) && PX4_ISFINITE(x_est[1]) && PX4_ISFINITE(y_est[0]) && PX4_ISFINITE(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
