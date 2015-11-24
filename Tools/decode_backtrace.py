@@ -85,12 +85,14 @@ def load_symbol_map():
 
 # Find the function for the specified call stack address
 def lookup(addr):
-	i=0
+	i=1
 	while i < len(funcaddr) and addr > funcaddr[i]:
 		i=i+1
 	if i >= len(funcaddr):
 		return -1
-	return i
+
+	# return the function before this one
+	return i-1
 
 if len(os.sys.argv) != 2:
 	usage()
