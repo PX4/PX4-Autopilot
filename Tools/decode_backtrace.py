@@ -35,7 +35,7 @@
 import os
 import subprocess
 
-# The PX4_BACKTRACE() macro can be used to generate backtraces in the 
+# The PX4_BACKTRACE() macro can be used to generate backtraces in the
 # running code. These provide the addresses only. This utility can be
 # used to decode the backtrace into a readable form:
 #
