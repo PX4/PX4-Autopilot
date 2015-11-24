@@ -74,6 +74,7 @@
 #include <drivers/drv_hrt.h>
 #include <platforms/px4_defines.h>
 
+#include <terrain_estimation/terrain_estimator.h>
 #include "position_estimator_inav_params.h"
 #include "inertial_filter.h"
 
@@ -95,7 +96,7 @@ static const hrt_abstime lidar_valid_timeout = 1000000;	// estimate lidar distan
 static const unsigned updates_counter_len = 1000000;
 static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
 
-__EXPORT int position_estimator_inav_main(int argc, char *argv[]);
+extern "C" __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
 int position_estimator_inav_thread_main(int argc, char *argv[]);
 
@@ -390,12 +391,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	/* first parameters update */
 	inav_parameters_update(&pos_inav_param_handles, &params);
 
-	px4_pollfd_struct_t fds_init[1] = {
-		{ .fd = sensor_combined_sub, .events = POLLIN },
-	};
+	px4_pollfd_struct_t fds_init[1];
+	fds_init[0].fd = sensor_combined_sub;
+	fds_init[0].events = POLLIN;
 
 	/* wait for initial baro value */
 	bool wait_baro = true;
+
+	TerrainEstimator *terrain_estimator = new TerrainEstimator();
 
 	thread_running = true;
 
@@ -434,9 +437,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	}
 
 	/* main loop */
-	px4_pollfd_struct_t fds[1] = {
-		{ .fd = vehicle_attitude_sub, .events = POLLIN },
-	};
+	px4_pollfd_struct_t fds[1];
+	fds[0].fd = vehicle_attitude_sub;
+	fds[0].events = POLLIN;
 
 	while (!thread_should_exit) {
 		int ret = px4_poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate
@@ -523,9 +526,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_check(optical_flow_sub, &updated);
 			orb_check(distance_sensor_sub, &updated2);
 
+			/* update lidar separately, needed by terrain estimator */
+			if (updated2) {
+				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
+			}
+
 			if (updated && updated2) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
-				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
 
 				/* calculate time from previous update */
 //				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
@@ -1041,7 +1048,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				c += R_gps[j][i] * accel_bias_corr[j];
 			}
 
-			if (isfinite(c)) {
+			if (PX4_ISFINITE(c)) {
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
@@ -1081,7 +1088,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
-			if (isfinite(c)) {
+			if (PX4_ISFINITE(c)) {
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
@@ -1106,7 +1113,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
-			if (isfinite(c)) {
+			if (PX4_ISFINITE(c)) {
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
@@ -1114,7 +1121,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* inertial filter prediction for altitude */
 		inertial_filter_predict(dt, z_est, acc[2]);
 
-		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
+		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1141,7 +1148,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(corr_mocap[2][0], dt, z_est, 0, w_mocap_p);
 		}
 
-		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
+		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);										
@@ -1160,7 +1167,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_predict(dt, x_est, acc[0]);
 			inertial_filter_predict(dt, y_est, acc[1]);
 
-			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
+			if (!(PX4_ISFINITE(x_est[0]) && PX4_ISFINITE(x_est[1]) && PX4_ISFINITE(y_est[0]) && PX4_ISFINITE(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1207,7 +1214,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				inertial_filter_correct(corr_mocap[1][0], dt, y_est, 0, w_mocap_p);
 			}
 
-			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
+			if (!(PX4_ISFINITE(x_est[0]) && PX4_ISFINITE(x_est[1]) && PX4_ISFINITE(y_est[0]) && PX4_ISFINITE(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1227,6 +1234,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(-x_est[1], dt, x_est, 1, params.w_xy_res_v);
 			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
+
+		/* run terrain estimator */
+		terrain_estimator->predict(dt, &att, &sensor, &lidar);
+		terrain_estimator->measurement_update(hrt_absolute_time(), &gps, &lidar, &att);
 
 		if (inav_verbose_mode) {
 			/* print updates rate */
@@ -1317,6 +1328,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				global_pos.eph = eph;
 				global_pos.epv = epv;
+
+				if (terrain_estimator->is_valid()) {
+					global_pos.terrain_alt = global_pos.alt - terrain_estimator->get_distance_to_ground();
+					global_pos.terrain_alt_valid = true;
+				} else {
+					global_pos.terrain_alt_valid = false;
+				}
 
 				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);

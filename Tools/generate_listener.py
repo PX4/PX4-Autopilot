@@ -200,6 +200,7 @@ for index,m in enumerate(messages[1:]):
 print("\t} else {")
 print("\t\t printf(\" Topic did not match any known topics\\n\");")
 print("\t}")
+print("\t\torb_unsubscribe(sub);")
 print("\t return 0;")
 
 print("}")

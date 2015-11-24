@@ -247,8 +247,19 @@ int main(int argc, char **argv)
 						buf_ptr_write = 0;
 					}
 
-					string_buffer[buf_ptr_write] = mystr;
-					buf_ptr_write++;
+					if (buf_ptr_write > 0) {
+						if (mystr != string_buffer[buf_ptr_write - 1]) {
+							string_buffer[buf_ptr_write] = mystr;
+							buf_ptr_write++;
+						}
+
+					} else {
+						if (mystr != string_buffer[CMD_BUFF_SIZE - 1]) {
+							string_buffer[buf_ptr_write] = mystr;
+							buf_ptr_write++;
+						}
+					}
+
 					process_line(mystr, !daemon_mode);
 					mystr = "";
 					buf_ptr_read = buf_ptr_write;
@@ -258,8 +269,10 @@ int main(int argc, char **argv)
 						c = getchar();	// skip first one, does not have the info
 						c = getchar();
 
+						// arrow up
 						if (c == 'A') {
 							buf_ptr_read--;
+							// arrow down
 
 						} else if (c == 'B') {
 							if (buf_ptr_read < buf_ptr_write) {

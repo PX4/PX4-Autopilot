@@ -70,6 +70,7 @@
 
 #include <drivers/device/spi.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
@@ -173,11 +174,15 @@
 
 #define MPU_WHOAMI_9250			0x71
 
-#define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	41
 #define MPU9250_ACCEL_DEFAULT_RATE	1000
+#define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
 #define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
 #define MPU9250_GYRO_DEFAULT_RATE	1000
+/* rates need to be the same between accel and gyro */
+#define MPU9250_GYRO_MAX_OUTPUT_RATE			MPU9250_ACCEL_MAX_OUTPUT_RATE
 #define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
+
+#define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	41
 
 #define MPU9250_ONE_G					9.80665f
 
@@ -279,6 +284,9 @@ private:
 	math::LowPassFilter2p	_gyro_filter_x;
 	math::LowPassFilter2p	_gyro_filter_y;
 	math::LowPassFilter2p	_gyro_filter_z;
+
+	Integrator		_accel_int;
+	Integrator		_gyro_int;
 
 	enum Rotation		_rotation;
 
@@ -535,6 +543,8 @@ MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_int(1000000 / MPU9250_ACCEL_MAX_OUTPUT_RATE),
+	_gyro_int(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_checked_next(0),
 	_last_temperature(0),
@@ -667,7 +677,7 @@ MPU9250::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
+					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_accel_topic == nullptr) {
 		warnx("ADVERT FAIL");
@@ -679,7 +689,7 @@ MPU9250::init()
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
+			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		warnx("ADVERT FAIL");
@@ -1669,6 +1679,14 @@ MPU9250::measure()
 	arb.y = _accel_filter_y.apply(y_in_new);
 	arb.z = _accel_filter_z.apply(z_in_new);
 
+	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
+	math::Vector<3> aval_integrated;
+
+	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
+	arb.x_integral = aval_integrated(0);
+	arb.y_integral = aval_integrated(1);
+	arb.z_integral = aval_integrated(2);
+
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
@@ -1696,6 +1714,14 @@ MPU9250::measure()
 	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
 	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
 
+	math::Vector<3> gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
+	math::Vector<3> gval_integrated;
+
+	bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
+	grb.x_integral = gval_integrated(0);
+	grb.y_integral = gval_integrated(1);
+	grb.z_integral = gval_integrated(2);
+
 	grb.scaling = _gyro_range_scale;
 	grb.range_rad_s = _gyro_range_rad_s;
 
@@ -1706,10 +1732,15 @@ MPU9250::measure()
 	_gyro_reports->force(&grb);
 
 	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-	_gyro->parent_poll_notify();
+	if (accel_notify) {
+		poll_notify(POLLIN);
+	}
 
-	if (!(_pub_blocked)) {
+	if (gyro_notify) {
+		_gyro->parent_poll_notify();
+	}
+
+	if (accel_notify && !(_pub_blocked)) {
 		/* log the time of this report */
 		perf_begin(_controller_latency_perf);
 		perf_begin(_system_latency_perf);
@@ -1717,7 +1748,7 @@ MPU9250::measure()
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}
 
-	if (!(_pub_blocked)) {
+	if (gyro_notify && !(_pub_blocked)) {
 		/* publish it */
 		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
 	}
@@ -2012,6 +2043,13 @@ test(bool external_bus)
 	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
 	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
+	/* reset to default polling */
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		err(1, "reset to default polling");
+	}
+
+	close(fd);
+	close(fd_gyro);
 
 	/* XXX add poll-rate tests here too */
 
