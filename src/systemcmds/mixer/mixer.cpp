@@ -93,12 +93,12 @@ mixer_main(int argc, char *argv[])
 static void
 usage(const char *reason)
 {
-	if (reason) {
-		PX4_INFO("%s\n", reason);
+	if (reason && *reason) {
+		PX4_INFO("%s", reason);
 	}
 
-	PX4_INFO("usage:\n");
-	PX4_INFO("  mixer load <device> <filename>\n");
+	PX4_INFO("usage:");
+	PX4_INFO("  mixer load <device> <filename>");
 }
 
 static int

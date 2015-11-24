@@ -422,7 +422,9 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 		} else {
 			_mavlink->send_statustext_critical("REJ. WP CMD: partner id mismatch");
 
-			if (_verbose) { warnx("WPM: MISSION_ACK ERROR: rejected, partner ID mismatch"); }
+			if (_verbose) {
+				warnx("WPM: MISSION_ACK ERR: ID mismatch");
+			}
 		}
 	}
 }
@@ -473,13 +475,13 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 		if (_state == MAVLINK_WPM_STATE_IDLE || _state == MAVLINK_WPM_STATE_SENDLIST) {
 			_time_last_recv = hrt_absolute_time();
 
-			if (_count > 0) {
-				_state = MAVLINK_WPM_STATE_SENDLIST;
-				_transfer_seq = 0;
-				_transfer_count = _count;
-				_transfer_partner_sysid = msg->sysid;
-				_transfer_partner_compid = msg->compid;
+			_state = MAVLINK_WPM_STATE_SENDLIST;
+			_transfer_seq = 0;
+			_transfer_count = _count;
+			_transfer_partner_sysid = msg->sysid;
+			_transfer_partner_compid = msg->compid;
 
+			if (_count > 0) {
 				if (_verbose) { warnx("WPM: MISSION_REQUEST_LIST OK, %u mission items to send", _transfer_count); }
 
 			} else {
@@ -598,9 +600,8 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 
 				/* alternate dataman ID anyway to let navigator know about changes */
 				update_active_mission(_dataman_id == 0 ? 1 : 0, 0, 0);
-				_mavlink->send_statustext_info("WPM: COUNT 0: CLEAR MISSION");
 
-				// TODO send ACK?
+				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
 				_transfer_in_progress = false;
 				return;
 			}
@@ -711,8 +712,6 @@ MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 		if (_transfer_seq == _transfer_count) {
 			/* got all new mission items successfully */
 			if (_verbose) { warnx("WPM: MISSION_ITEM got all %u items, current_seq=%u, changing state to MAVLINK_WPM_STATE_IDLE", _transfer_count, _transfer_current_seq); }
-
-			_mavlink->send_statustext_info("WPM: Transfer complete.");
 
 			_state = MAVLINK_WPM_STATE_IDLE;
 

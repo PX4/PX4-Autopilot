@@ -387,7 +387,7 @@ float battery_remaining_estimate_voltage(float voltage, float discharged, float 
 	// XXX this time constant needs to become tunable
 	// but really, the right fix are smart batteries.
 	float val = throttle_lowpassed * 0.97f + throttle_normalized * 0.03f;
-	if (isfinite(val)) {
+	if (PX4_ISFINITE(val)) {
 		throttle_lowpassed = val;
 	}
 

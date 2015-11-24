@@ -22,6 +22,7 @@ set(config_module_list
 	drivers/hmc5883
 	drivers/ms5611
 	drivers/mb12xx
+	drivers/srf02
 	drivers/sf0x
 	drivers/ll40ls
 	drivers/trone
@@ -36,7 +37,7 @@ set(config_module_list
 	drivers/meas_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
-	drivers/mkblctrl
+	#drivers/mkblctrl
 	drivers/px4flow
 	drivers/oreoled
 	drivers/gimbal
@@ -53,7 +54,7 @@ set(config_module_list
 	systemcmds/pwm
 	systemcmds/esc_calib
 	systemcmds/reboot
-	systemcmds/topic_listener
+	#systemcmds/topic_listener
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm
@@ -117,6 +118,8 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
+	lib/terrain_estimation
+	lib/runway_takeoff
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config

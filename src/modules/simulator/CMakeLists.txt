@@ -47,6 +47,8 @@ px4_add_module(
 		${SIMULATOR_SRCS}
 	DEPENDS
 		platforms__common
+		git_jmavsim
+		git_gazebo
 	)
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

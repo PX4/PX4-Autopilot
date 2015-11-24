@@ -1,2 +1,2 @@
-handle SIGCONT nostop
+handle SIGCONT nostop noprint nopass
 run

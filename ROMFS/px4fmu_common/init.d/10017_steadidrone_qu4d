@@ -30,7 +30,4 @@ fi
 
 set MIXER quad_w
 
-set PWM_MIN 1210
-set PWM_MAX 2100
-
 set PWM_OUT 1234

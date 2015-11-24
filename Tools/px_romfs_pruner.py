@@ -40,7 +40,7 @@ Delete all comments and newlines before ROMFS is converted to an image
 """
 
 from __future__ import print_function
-import argparse
+import argparse, re
 import os
 
 
@@ -57,14 +57,14 @@ def main():
         for (root, dirs, files) in os.walk(args.folder):
                 for file in files:
                         # only prune text files
-                        if ".zip" in file or ".bin" in file or ".swp" in file or ".data" in file:
+                        if ".zip" in file or ".bin" in file or ".swp" in file or ".data" in file or ".DS_Store" in file:
                                 continue
 
                         file_path = os.path.join(root, file)
 
                         # read file line by line
                         pruned_content = ""
-                        with open(file_path, "r") as f:
+                        with open(file_path, "rU") as f:
                                 for line in f:
 
                                         # handle mixer files differently than startup files
@@ -74,9 +74,9 @@ def main():
                                         else:
                                                 if not line.isspace() and not line.strip().startswith("#"):
                                                         pruned_content += line
-
-                        # overwrite old scratch file
+                       # overwrite old scratch file
                         with open(file_path, "wb") as f:
+                                pruned_content = re.sub("\r\n", "\n", pruned_content)
                                 f.write(pruned_content.encode("ascii", errors='strict'))
 
 

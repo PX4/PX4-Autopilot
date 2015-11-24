@@ -149,6 +149,7 @@ public:
 		MAVLINK_MODE_CUSTOM,
 		MAVLINK_MODE_ONBOARD,
 		MAVLINK_MODE_OSD,
+		MAVLINK_MODE_MAGIC,
 		MAVLINK_MODE_CONFIG
 	};
 
@@ -287,6 +288,8 @@ public:
 	MavlinkStream *		get_streams() const { return _streams; }
 
 	float			get_rate_mult();
+
+	float			get_baudrate() { return _baudrate; }
 
 	/* Functions for waiting to start transmission until message received. */
 	void			set_has_received_messages(bool received_messages) { _received_messages = received_messages; }

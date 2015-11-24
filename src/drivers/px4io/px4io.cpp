@@ -1780,8 +1780,8 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 
 	/* get RSSI from input channel */
 	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
-		int rssi = (input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) /
-			   ((_rssi_pwm_max - _rssi_pwm_min) / 100);
+		int rssi = ((input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) * 100) /
+			   (_rssi_pwm_max - _rssi_pwm_min);
 		rssi = rssi > 100 ? 100 : rssi;
 		rssi = rssi < 0 ? 0 : rssi;
 		input_rc.rssi = rssi;
@@ -2090,11 +2090,11 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 
 		} while (buflen > 0);
 
-		/* ensure a closing newline */
+		int ret;
+
+		/* send the closing newline */
 		msg->text[0] = '\n';
 		msg->text[1] = '\0';
-
-		int ret;
 
 		for (int i = 0; i < 30; i++) {
 			/* failed, but give it a 2nd shot */
@@ -2108,27 +2108,24 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			}
 		}
 
-		if (ret) {
-			return ret;
+		if (ret == 0) {
+			/* success, exit */
+			break;
 		}
 
 		retries--;
 
-		DEVICE_LOG("mixer sent");
+	} while (retries > 0);
 
-	} while (retries > 0 && (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK)));
+	if (retries == 0) {
+		mavlink_and_console_log_info(_mavlink_fd, "[IO] mixer upload fail");
+		/* load must have failed for some reason */
+		return -EINVAL;
 
-	/* check for the mixer-OK flag */
-	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK) {
-		mavlink_log_info(_mavlink_fd, "[IO] mixer upload ok");
-		return 0;
+	} else {
+		/* all went well, set the mixer ok flag */
+		return io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_MIXER_OK);
 	}
-
-	DEVICE_LOG("mixer rejected by IO");
-	mavlink_log_info(_mavlink_fd, "[IO] mixer upload fail");
-
-	/* load must have failed for some reason */
-	return -EINVAL;
 }
 
 void
