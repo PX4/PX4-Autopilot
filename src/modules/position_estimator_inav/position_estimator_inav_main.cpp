@@ -526,9 +526,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_check(optical_flow_sub, &updated);
 			orb_check(distance_sensor_sub, &updated2);
 
+			/* update lidar separately, needed by terrain estimator */
+			if (updated2) {
+				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
+			}
+
 			if (updated && updated2) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
-				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
 
 				/* calculate time from previous update */
 //				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
