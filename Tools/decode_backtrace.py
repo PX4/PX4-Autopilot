@@ -39,19 +39,23 @@ import subprocess
 # running code. These provide the addresses only. This utility can be
 # used to decode the backtrace into a readable form:
 #
-# Example
+# Example:
 # If the following lines were pasted into the shell after running decode_backtrace.py
+#
 # INFO  Backtrace: 10
-# INFO  ./mainapp(px4_backtrace+0x27) [0x42b0d1]
-# INFO  ./mainapp() [0x42d44d]
-# INFO  ./mainapp() [0x42d3c6]
+# INFO  ./mainapp(px4_backtrace+0x27) [0x42b212]
+# INFO  ./mainapp() [0x42d608]
+# INFO  ./mainapp() [0x42d57e]
+# INFO  ./mainapp() [0x4ba48d]
 #
 # The output would be:
-# 0x42b0d1 _sighandler (0x42b15b)
-# 0x42d44d ACCELSIM::devRead(void*, unsigned long) (0x42d4be)
-# 0x42d3c6 ACCELSIM::stop() (0x42d442)
 #
-# The output is:
+# 0x42b212 px4_backtrace (0x42b1eb)
+# 0x42d608 ACCELSIM::devRead(void*, unsigned long) (0x42d600)
+# 0x42d57e ACCELSIM::start() (0x42d578)
+# 0x4ba48d DriverFramework::DevObj::addHandle(DriverFramework::DevHandle&) (0x4ba42e)
+#
+# The output format is:
 # <backtrace address> <function name> (<function address>)
 
 
