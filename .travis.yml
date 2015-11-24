@@ -59,7 +59,7 @@ before_install:
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
-      && brew update; brew update &&
+      && brew update; brew update
       && brew install cmake ninja astyle gcc-arm-none-eabi
       && brew install genromfs
       && brew install kconfig-frontends
