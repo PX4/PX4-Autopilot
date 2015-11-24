@@ -182,6 +182,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 	mpu.gyro_z = imu->zgyro;
 
 	write_MPU_data((void *)&mpu);
+	perf_begin(_perf_mpu);
 
 	RawAccelData accel = {};
 	accel.x = imu->xacc;
@@ -189,6 +190,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 	accel.z = imu->zacc;
 
 	write_accel_data((void *)&accel);
+	perf_begin(_perf_accel);
 
 	RawMagData mag = {};
 	mag.x = imu->xmag;
@@ -196,6 +198,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 	mag.z = imu->zmag;
 
 	write_mag_data((void *)&mag);
+	perf_begin(_perf_mag);
 
 	RawBaroData baro = {};
 	// calculate air pressure from altitude (valid for low altitude)
@@ -235,14 +238,23 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 {
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_HIL_SENSOR:
+		{
 		mavlink_hil_sensor_t imu;
 		mavlink_msg_hil_sensor_decode(msg, &imu);
+
+		uint64_t sim_timestamp = imu.time_usec;
+		struct timespec ts;
+		px4_clock_gettime(CLOCK_REALTIME, &ts);
+		uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
+
+		perf_set(_perf_sim_delay, timestamp - sim_timestamp);
 
 		if (publish) {
 			publish_sensor_topics(&imu);
 		}
 
 		update_sensors(&imu);
+		}
 		break;
 
 	case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
@@ -379,12 +391,12 @@ void Simulator::initializeSensorData()
 	RawMPUData mpu = {};
 	mpu.accel_z = 9.81f;
 
-	write_MPU_data((void *)&mpu);
+	write_MPU_data(&mpu);
 
 	RawAccelData accel = {};
 	accel.z = 9.81f;
 
-	write_accel_data((void *)&accel);
+	write_accel_data(&accel);
 
 	RawMagData mag = {};
 	mag.x = 0.4f;
@@ -399,11 +411,11 @@ void Simulator::initializeSensorData()
 	baro.altitude = 0.0f;
 	baro.temperature = 25.0f;
 
-	write_baro_data((void *)&baro);
+	write_baro_data(&baro);
 
 	RawAirspeedData airspeed {};
 
-	write_airspeed_data((void *)&airspeed);
+	write_airspeed_data(&airspeed);
 }
 
 void Simulator::pollForMAVLinkMessages(bool publish)
@@ -664,8 +676,6 @@ int openUart(const char *uart_name, int baud)
 int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 {
 
-
-	//uint64_t timestamp = imu->time_usec;
 	uint64_t timestamp = hrt_absolute_time();
 
 	if ((imu->fields_updated & 0x1FFF) != 0x1FFF) {
