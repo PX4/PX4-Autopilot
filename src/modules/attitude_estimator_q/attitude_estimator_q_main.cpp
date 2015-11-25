@@ -388,11 +388,11 @@ void AttitudeEstimatorQ::task_main()
 			if (!_failsafe) {
 				uint32_t flags = DataValidator::ERROR_FLAG_NO_ERROR;
 
-			#ifdef __PX4_POSIX
+#ifdef __PX4_POSIX
 				perf_end(_perf_accel);
 				perf_end(_perf_mpu);
 				perf_end(_perf_mag);
-			#endif
+#endif
 
 				if (_voter_gyro.failover_count() > 0) {
 					_failsafe = true;
