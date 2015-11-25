@@ -601,7 +601,7 @@ void AttitudeEstimatorQ::task_main()
 		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
 		/* Airspeed - take airspeed measurement directly here as no wind is estimated */
-		ctrl_state.airspeed = _airspeed.true_airspeed_m_s;
+		ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
 
 		/* Publish to control state topic */
 		if (_ctrl_state_pub == nullptr) {
