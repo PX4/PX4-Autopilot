@@ -445,6 +445,7 @@ GYROSIM::init()
 	}
 
 	ret = start();
+
 	if (ret != OK) {
 		PX4_ERR("gyro accel start failed (%d)", ret);
 		return ret;
