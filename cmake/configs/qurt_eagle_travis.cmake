@@ -26,6 +26,7 @@ set(config_module_list
 	modules/ekf_att_pos_estimator
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
+	modules/local_position_estimator
 
 	#
 	# Vehicle Control
