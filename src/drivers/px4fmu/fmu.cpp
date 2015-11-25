@@ -141,6 +141,8 @@ private:
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	int		_class_instance;
+	int		_sbus_fd;
+	int		_dsm_fd;
 
 	volatile bool	_initialized;
 	bool		_servo_armed;
@@ -285,6 +287,8 @@ PX4FMU::PX4FMU() :
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_class_instance(0),
+	_sbus_fd(-1),
+	_dsm_fd(-1),
 	_initialized(false),
 	_servo_armed(false),
 	_pwm_on(false),
@@ -316,6 +320,14 @@ PX4FMU::PX4FMU() :
 	// rc input, published to ORB
 	memset(&_rc_in, 0, sizeof(_rc_in));
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+#endif
+
+#ifdef SBUS_SERIAL_PORT
+	_sbus_fd = sbus_init(SBUS_SERIAL_PORT, true);
+#endif
+
+#ifdef DSM_SERIAL_PORT
+	_dsm_fd = dsm_init(DSM_SERIAL_PORT);
 #endif
 
 	/* only enable this during development */
