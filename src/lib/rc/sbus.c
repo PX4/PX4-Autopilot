@@ -43,14 +43,8 @@
 #include <unistd.h>
 #include <termios.h>
 
-#include <systemlib/ppm_decode.h>
-
+#include "sbus.h"
 #include <drivers/drv_hrt.h>
-
-#define DEBUG
-#include "px4io.h"
-#include "protocol.h"
-#include "debug.h"
 
 #define SBUS_FRAME_SIZE		25
 #define SBUS_INPUT_CHANNELS	16
@@ -77,8 +71,6 @@
 #define SBUS_SCALE_FACTOR ((SBUS_TARGET_MAX - SBUS_TARGET_MIN) / (SBUS_RANGE_MAX - SBUS_RANGE_MIN))
 #define SBUS_SCALE_OFFSET (int)(SBUS_TARGET_MIN - (SBUS_SCALE_FACTOR * SBUS_RANGE_MIN + 0.5f))
 
-static int sbus_fd = -1;
-
 static hrt_abstime last_rx_time;
 static hrt_abstime last_frame_time;
 static hrt_abstime last_txframe_time = 0;
@@ -93,11 +85,9 @@ static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_
 			bool *sbus_frame_drop, uint16_t max_channels);
 
 int
-sbus_init(const char *device)
+sbus_init(const char *device, bool singlewire)
 {
-	if (sbus_fd < 0) {
-		sbus_fd = open(device, O_RDWR | O_NONBLOCK);
-	}
+	int sbus_fd = open(device, O_RDWR | O_NONBLOCK);
 
 	if (sbus_fd >= 0) {
 		struct termios t;
@@ -108,21 +98,24 @@ sbus_init(const char *device)
 		t.c_cflag |= (CSTOPB | PARENB);
 		tcsetattr(sbus_fd, TCSANOW, &t);
 
+		if (singlewire) {
+			/* only defined in configs capable of IOCTL */
+			#ifdef SBUS_SERIAL_PORT
+			ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+			#endif
+		}
+
 		/* initialise the decoder */
 		partial_frame_count = 0;
 		last_rx_time = hrt_absolute_time();
 
-		debug("S.Bus: ready");
-
-	} else {
-		debug("S.Bus: open failed");
 	}
 
 	return sbus_fd;
 }
 
 void
-sbus1_output(uint16_t *values, uint16_t num_values)
+sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 {
 	uint8_t byteindex = 1; /*Data starts one byte into the sbus frame. */
 	uint8_t offset = 0;
@@ -161,14 +154,14 @@ sbus1_output(uint16_t *values, uint16_t num_values)
 	}
 }
 void
-sbus2_output(uint16_t *values, uint16_t num_values)
+sbus2_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 {
 	char b = 'B';
 	write(sbus_fd, &b, 1);
 }
 
 bool
-sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels)
+sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
@@ -331,7 +324,7 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 	}
 
 	/* decode switch channels if data fields are wide enough */
-	if (PX4IO_RC_INPUT_CHANNELS > 17 && chancount > 15) {
+	if (max_values > 17 && chancount > 15) {
 		chancount = 18;
 
 		/* channel 17 (index 16) */
