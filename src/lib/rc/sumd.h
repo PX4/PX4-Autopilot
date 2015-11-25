@@ -102,7 +102,7 @@ __EXPORT int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_
 				 uint16_t *channels, uint16_t max_chan_count);
 */
 __EXPORT int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count,
-		uint16_t *channels, uint16_t max_chan_count);
+			 uint16_t *channels, uint16_t max_chan_count);
 
 
 __END_DECLS
