@@ -134,6 +134,10 @@ Navigator::Navigator() :
 	_geofence{},
 	_geofence_violation_warning_sent(false),
 	_inside_fence(true),
+	_can_loiter_at_sp(false),
+	_pos_sp_triplet_updated(false),
+	_pos_sp_triplet_published_invalid_once(false),
+	_mission_result_updated(false),
 	_navigation_mode(nullptr),
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
@@ -143,10 +147,6 @@ Navigator::Navigator() :
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
 	_gpsFailure(this, "GPSF"),
-	_can_loiter_at_sp(false),
-	_pos_sp_triplet_updated(false),
-	_pos_sp_triplet_published_invalid_once(false),
-	_mission_result_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
@@ -694,7 +694,7 @@ void
 Navigator::publish_mission_result()
 {
 	_mission_result.instance_count = _mission_instance_count;
-	
+
 	/* lazily publish the mission result only once available */
 	if (_mission_result_pub != nullptr) {
 		/* publish mission result */
