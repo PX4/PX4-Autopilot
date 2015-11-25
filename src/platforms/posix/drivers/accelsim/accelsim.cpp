@@ -538,6 +538,7 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 					if (want_start) {
 						start();
 					}
+
 					return OK;
 				}
 			}
@@ -664,6 +665,7 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 					if (want_start) {
 						_mag->start();
 					}
+
 					return OK;
 				}
 			}
