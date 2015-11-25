@@ -208,11 +208,11 @@ __BEGIN_DECLS
 #define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
-#define HRT_TIMER		8	/* use timer8 for the HRT */
+#define HRT_TIMER		3	/* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL	4	/* use capture/compare channel */
 
-#define HRT_PPM_CHANNEL		2	/* use capture/compare channel 2 */
-#define GPIO_PPM_IN			(GPIO_ALT|GPIO_AF3|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN7)
+#define HRT_PPM_CHANNEL		3	/* use capture/compare channel 2 */
+#define GPIO_PPM_IN			(GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER			4
