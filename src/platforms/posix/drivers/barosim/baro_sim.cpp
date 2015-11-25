@@ -42,11 +42,7 @@
 #include <px4_defines.h>
 
 #include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <assert.h>
-//#include <debug.h>
-#include <errno.h>
 #include <unistd.h>
 
 #include <drivers/device/sim.h>
@@ -54,96 +50,33 @@
 #include "barosim.h"
 #include "board_config.h"
 
-DevObj *BAROSIM_sim_interface(barosim::prom_u &prom_buf);
-
-class BARO_SIM : public device::SIM
-{
-public:
-	BARO_SIM(uint8_t bus, barosim::prom_u &prom_buf);
-	virtual ~BARO_SIM();
-
-	virtual int	init();
-	virtual int	dev_read(unsigned offset, void *data, unsigned count);
-	virtual int	dev_ioctl(unsigned operation, unsigned arg);
-
-	virtual int	transfer(const uint8_t *send, unsigned send_len,
-				 uint8_t *recv, unsigned recv_len);
-private:
-	//barosim::prom_u	&_prom;
-
-	/**
-	 * Send a reset command to the barometer simulator.
-	 *
-	 * This is required after any bus reset.
-	 */
-	int		_reset();
-
-	/**
-	 * Send a measure command to the barometer simulator.
-	 *
-	 * @param addr		Which address to use for the measure operation.
-	 */
-	int		_measure(unsigned addr);
-
-	/**
-	 * Read the MS5611 PROM
-	 *
-	 * @return		PX4_OK if the PROM reads successfully.
-	 */
-	int		_read_prom();
-
-};
-
-DevObj *
-BAROSIM_sim_interface(barosim::prom_u &prom_buf, uint8_t busnum)
-{
-	return reinterpret_cast<DevObj *>(new BARO_SIM(busnum, prom_buf));
-}
-
-BARO_SIM::BARO_SIM(uint8_t bus, barosim::prom_u &prom) :
-	SIM("BARO_SIM", "/dev/BARO_SIM", bus, 0)
+BAROSIM_DEV::BAROSIM_DEV() :
+	VirtDevObj("BAROSIM_DEV", "/dev/BAROSIM_DEV", BARO_BASE_DEVICE_PATH, 0)
 {
 }
 
-BARO_SIM::~BARO_SIM()
+BAROSIM_DEV::~BAROSIM_DEV()
 {
 }
 
 int
-BARO_SIM::init()
+BAROSIM_DEV::init()
 {
-	return SIM::init();
+	return VirtDevObj::init();
 }
 
-int
-BARO_SIM::dev_read(unsigned offset, void *data, unsigned count)
+ssize_t 
+BAROSIM_DEV::devRead(void *data, size_t count)
 {
-	/*
-	union _cvt {
-		uint8_t	b[4];
-		uint32_t w;
-	} *cvt = (_cvt *)data;
-	*/
-
 	/* read the most recent measurement */
 	uint8_t cmd = 0;
 	int ret = transfer(&cmd, 1, static_cast<uint8_t *>(data), count);
-
-	/*
-	if (ret == PX4_OK) {
-		// fetch the raw value
-		cvt->b[0] = buf[2];
-		cvt->b[1] = buf[1];
-		cvt->b[2] = buf[0];
-		cvt->b[3] = 0;
-	}
-	*/
 
 	return ret;
 }
 
 int
-BARO_SIM::dev_ioctl(unsigned operation, unsigned arg)
+BAROSIM_DEV::devIOCTL(unsigned long operation, unsigned long arg)
 {
 	int ret;
 
@@ -153,7 +86,7 @@ BARO_SIM::dev_ioctl(unsigned operation, unsigned arg)
 		break;
 
 	case IOCTL_MEASURE:
-		ret = _measure(arg);
+		ret = _doMeasurement(arg);
 		break;
 
 	default:
@@ -164,69 +97,60 @@ BARO_SIM::dev_ioctl(unsigned operation, unsigned arg)
 }
 
 int
-BARO_SIM::_reset()
+BAROSIM_DEV::_reset()
 {
-	unsigned	old_retrycount = _retries;
 	uint8_t		cmd = ADDR_RESET_CMD;
 	int		result;
 
 	/* bump the retry count */
-	_retries = 10;
 	result = transfer(&cmd, 1, nullptr, 0);
-	_retries = old_retrycount;
 
 	return result;
 }
 
 int
-BARO_SIM::_measure(unsigned addr)
+BAROSIM_DEV::_doMeasurement(unsigned addr)
 {
-	/*
-	 * Disable retries on this command; we can't know whether failure
-	 * means the device did or did not see the command.
-	 */
-	_retries = 0;
-
 	uint8_t cmd = addr;
 	return transfer(&cmd, 1, nullptr, 0);
 }
 
 int
-BARO_SIM::_read_prom()
+BAROSIM_DEV::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
-	int ret = 1;
-	// TODO input simlation data
-	return ret;
-}
-
-int
-BARO_SIM::transfer(const uint8_t *send, unsigned send_len,
-		   uint8_t *recv, unsigned recv_len)
-{
-	// TODO add Simulation data connection so calls retrieve
-	// data from the simulator
-	if (recv_len == 0) {
-		PX4_DEBUG("BARO_SIM measurement requested");
-
-	} else if (send_len == 1 || send[0] != 12) {
-		/* measure command */
+	if (send_len == 1 && send[0] == ADDR_RESET_CMD) {
+		/* reset command */
 		return 0;
 
-	} else if (send_len != 1 || send[0] != 0) {
-		PX4_WARN("BARO_SIM::transfer invalid param %u %u %u", send_len, send[0], recv_len);
-		return 1;
+	} else if (send_len == 1 && (send[0] == ADDR_CMD_CONVERT_D2 || send[0] == ADDR_CMD_CONVERT_D1)) {
+		/* measure command */
+		if (send[0] == ADDR_CMD_CONVERT_D2) {
+		} else {
+		}
+		return 0;
 
-	} else {
+	} else if (send[0] == 0 && send_len == 1) {
+		/* read requested */
 		Simulator *sim = Simulator::getInstance();
 
 		if (sim == NULL) {
-			PX4_ERR("Error BARO_SIM::transfer no simulator");
+			PX4_ERR("Error BAROSIM_DEV::transfer no simulator");
 			return -ENODEV;
 		}
 
-		PX4_DEBUG("BARO_SIM::transfer getting sample");
+		PX4_DEBUG("BAROSIM_DEV::transfer getting sample");
 		sim->getBaroSample(recv, recv_len);
+		return recv_len;
+
+	} else {
+		PX4_WARN("BAROSIM_DEV::transfer invalid param %u %u %u", send_len, send[0], recv_len);
+		return 1;
 	}
 
+
 	return 0;
+}
+
+void BAROSIM_DEV::_measure()
+{
 }

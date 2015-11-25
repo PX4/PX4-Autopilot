@@ -530,9 +530,14 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 					/* adjust filters */
 					accel_set_driver_lowpass_filter((float)ul_arg, _accel_filter_x.get_cutoff_freq());
 
+					bool want_start = (m_sample_interval_usecs == 0);
+
 					/* update interval for next measurement */
 					setSampleInterval(interval);
 
+					if (want_start) {
+						start();
+					}
 					return OK;
 				}
 			}
@@ -651,9 +656,14 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 						return -EINVAL;
 					}
 
+					bool want_start = (_mag->m_sample_interval_usecs == 0);
+
 					/* update interval for next measurement */
 					_mag->setSampleInterval(interval);
 
+					if (want_start) {
+						_mag->start();
+					}
 					return OK;
 				}
 			}
@@ -765,11 +775,7 @@ ACCELSIM::start()
 {
 	//PX4_INFO("ACCELSIM::start");
 	/* make sure we are stopped first */
-	int ret = stop();
-
-	if (ret != 0) {
-		PX4_ERR("ACCELSIM::start stop failed");
-	}
+	stop();
 
 	/* reset the report ring */
 	_accel_reports->flush();
@@ -781,7 +787,7 @@ ACCELSIM::start()
 		PX4_ERR("ACCELSIM::start base class start failed");
 	}
 
-	return (ret != 0 || ret2 != 0) ? -1 : 0;
+	return (ret2 != 0) ? -1 : 0;
 }
 
 int

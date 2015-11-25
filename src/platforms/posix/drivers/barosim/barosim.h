@@ -36,7 +36,7 @@
  *
  * Shared defines for the ms5611 driver.
  */
-#include "DevObj.hpp"
+#include "VirtDevObj.hpp"
 
 #define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
 #define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start pressure conversion */
@@ -82,6 +82,35 @@ extern bool crc4(uint16_t *n_prom);
 
 using namespace DriverFramework;
 
-/* interface factories */
-extern DevObj *BAROSIM_sim_interface(barosim::prom_u &prom_buf, uint8_t busnum);
-typedef DevObj *(*BAROSIM_constructor)(barosim::prom_u &prom_buf, uint8_t busnum);
+class BAROSIM_DEV : public VirtDevObj
+{
+public:
+	BAROSIM_DEV();
+	virtual ~BAROSIM_DEV();
+
+	virtual int	init();
+	virtual ssize_t	devRead(void *data, size_t count);
+	virtual int	devIOCTL(unsigned long operation, unsigned long arg);
+
+	virtual int	transfer(const uint8_t *send, unsigned send_len,
+				 uint8_t *recv, unsigned recv_len);
+
+protected:
+	virtual void _measure();
+
+private:
+	/**
+	 * Send a reset command to the barometer simulator.
+	 *
+	 * This is required after any bus reset.
+	 */
+	int		_reset();
+
+	/**
+	 * Send a measure command to the barometer simulator.
+	 *
+	 * @param addr		Which address to use for the measure operation.
+	 */
+	int		_doMeasurement(unsigned addr);
+
+};

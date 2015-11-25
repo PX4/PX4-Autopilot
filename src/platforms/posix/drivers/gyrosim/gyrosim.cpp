@@ -384,6 +384,7 @@ GYROSIM::~GYROSIM()
 int
 GYROSIM::init()
 {
+	PX4_INFO("GYROSIM::init");
 	int ret = 1;
 
 	struct accel_report arp = {};
@@ -443,7 +444,13 @@ GYROSIM::init()
 		return ret;
 	}
 
-	start();
+	ret = start();
+	if (ret != OK) {
+		PX4_ERR("gyro accel start failed (%d)", ret);
+		return ret;
+	}
+
+	// Do not call _gyro->start()  because polling is done in accel
 
 	_measure();
 
@@ -1179,8 +1186,8 @@ int
 GYROSIM_gyro::init()
 {
 	int ret = VirtDevObj::init();
-	printf("init ret: %d\n", ret);
-	return ret ? ret : start();
+	PX4_INFO("GYROSIM_gyro::init base class ret: %d", ret);
+	return ret;
 }
 
 void

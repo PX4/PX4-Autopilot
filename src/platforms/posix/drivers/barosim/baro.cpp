@@ -68,16 +68,13 @@
 #include "barosim.h"
 #include "VirtDevObj.hpp"
 
-enum BAROSIM_BUS {
-	BAROSIM_BUS_SIM_EXTERNAL
-};
-
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
 
 /* helper macro for arithmetic - returns the square of the argument */
 #define POW2(_x)		((_x) * (_x))
 
+#define BAROSIM_DEV_PATH "/dev/barosim"
 /*
  * BAROSIM internal constants and data structures.
  */
@@ -89,7 +86,7 @@ enum BAROSIM_BUS {
 class BAROSIM : public VirtDevObj
 {
 public:
-	BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path);
+	BAROSIM(const char *path);
 	~BAROSIM();
 
 	virtual int		init();
@@ -103,12 +100,9 @@ public:
 	void			print_info();
 
 protected:
-	DevObj			*_interface;
-
-	barosim::prom_s		_prom;
+	BAROSIM_DEV		*_interface;
 
 	struct work_s		_work;
-	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
 
@@ -127,7 +121,6 @@ protected:
 
 	orb_advert_t		_baro_topic;
 	int			_orb_class_instance;
-	int			_class_instance;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
@@ -185,7 +178,7 @@ protected:
 	int			measure();
 
 	// Unused
-	virtual void _measure() {}
+	virtual void _measure();
 
 	/**
 	 * Collect the result of the most recent measurement.
@@ -193,16 +186,16 @@ protected:
 	virtual int		collect();
 };
 
+static BAROSIM *g_barosim = nullptr;
+
 /*
  * Driver 'main' command.
  */
 extern "C" __EXPORT int barosim_main(int argc, char *argv[]);
 
-BAROSIM::BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path) :
+BAROSIM::BAROSIM(const char *path) :
 	VirtDevObj("BAROSIM", path, BARO_BASE_DEVICE_PATH, 1e6 / 100),
-	_interface(interface),
-	_prom(prom_buf.s),
-	_measure_ticks(0),
+	_interface(nullptr),
 	_reports(nullptr),
 	_collect_phase(false),
 	_measure_phase(0),
@@ -212,7 +205,6 @@ BAROSIM::BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path)
 	_msl_pressure(101325),
 	_baro_topic(nullptr),
 	_orb_class_instance(-1),
-	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "barosim_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "barosim_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "barosim_comms_errors")),
@@ -220,6 +212,8 @@ BAROSIM::BAROSIM(DevObj *interface, barosim::prom_u &prom_buf, const char *path)
 {
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
+
+	_interface = new BAROSIM_DEV;
 }
 
 BAROSIM::~BAROSIM()
@@ -334,7 +328,7 @@ BAROSIM::devRead(void *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (m_sample_interval_usecs > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -396,7 +390,6 @@ BAROSIM::devRead(void *buffer, size_t buflen)
 int
 BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
-
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE:
@@ -405,7 +398,8 @@ BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		/* switching to manual polling */
 		case SENSOR_POLLRATE_MANUAL:
 			stop_cycle();
-			_measure_ticks = 0;
+			setSampleInterval(0);
+			m_sample_interval_usecs = 0;
 			return OK;
 
 		/* external signalling not supported */
@@ -418,39 +412,27 @@ BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		/* set default/max polling rate */
 		case SENSOR_POLLRATE_MAX:
 		case SENSOR_POLLRATE_DEFAULT: {
-				/* do we need to start internal polling? */
-				bool want_start = (_measure_ticks == 0);
-
-				/* set interval for next measurement to minimum legal value */
-				_measure_ticks = USEC2TICK(BAROSIM_CONVERSION_INTERVAL);
-
-				/* if we need to start the poll state machine, do it */
-				if (want_start) {
-					start_cycle();
-				}
-
+				setSampleInterval(BAROSIM_CONVERSION_INTERVAL);
 				return OK;
 			}
 
 		/* adjust to a legal polling interval in Hz */
 		default: {
-				/* do we need to start internal polling? */
-				bool want_start = (_measure_ticks == 0);
-
 				/* convert hz to tick interval via microseconds */
-				unsigned long ticks = USEC2TICK(1000000 / arg);
+				unsigned long interval = 1000000 / arg;
 
 				/* check against maximum rate */
-				if (ticks < USEC2TICK(BAROSIM_CONVERSION_INTERVAL)) {
+				if (interval < BAROSIM_CONVERSION_INTERVAL) {
 					return -EINVAL;
 				}
 
-				/* update interval for next measurement */
-				_measure_ticks = ticks;
+				bool want_start = (m_sample_interval_usecs == 0);
 
-				/* if we need to start the poll state machine, do it */
+				/* update interval for next measurement */
+				setSampleInterval(interval);
+
 				if (want_start) {
-					start_cycle();
+					start();
 				}
 
 				return OK;
@@ -458,11 +440,11 @@ BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
+		if (m_sample_interval_usecs == 0) {
 			return SENSOR_POLLRATE_MANUAL;
 		}
 
-		return (1000 / _measure_ticks);
+		return (1000000 / m_sample_interval_usecs);
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
@@ -519,21 +501,20 @@ BAROSIM::start_cycle()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&BAROSIM::cycle_trampoline, this, 1);
+	setSampleInterval(1000);
+	start();
 }
 
 void
 BAROSIM::stop_cycle()
 {
-	work_cancel(HPWORK, &_work);
+	setSampleInterval(0);
 }
 
 void
-BAROSIM::cycle_trampoline(void *arg)
+BAROSIM::_measure()
 {
-	BAROSIM *dev = reinterpret_cast<BAROSIM *>(arg);
-
-	dev->cycle();
+	cycle();
 }
 
 void
@@ -551,8 +532,10 @@ BAROSIM::cycle()
 		if (ret != OK) {
 			/* issue a reset command to the sensor */
 			_interface->devIOCTL(IOCTL_RESET, dummy);
+
 			/* reset the collection state machine and try again */
 			start_cycle();
+
 			return;
 		}
 
@@ -564,15 +547,9 @@ BAROSIM::cycle()
 		 * Don't inject one after temperature measurements, so we can keep
 		 * doing pressure measurements at something close to the desired rate.
 		 */
-		if ((_measure_phase != 0) &&
-		    (_measure_ticks > USEC2TICK(BAROSIM_CONVERSION_INTERVAL))) {
+		if (_measure_phase != 0) {
 
-			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&BAROSIM::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(BAROSIM_CONVERSION_INTERVAL));
+			setSampleInterval(BAROSIM_CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -585,6 +562,7 @@ BAROSIM::cycle()
 		//DEVICE_LOG("measure error %d", ret);
 		/* issue a reset command to the sensor */
 		_interface->devIOCTL(IOCTL_RESET, dummy);
+
 		/* reset the collection state machine and try again */
 		start_cycle();
 		return;
@@ -593,12 +571,7 @@ BAROSIM::cycle()
 	/* next phase is collection */
 	_collect_phase = true;
 
-	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&BAROSIM::cycle_trampoline,
-		   this,
-		   USEC2TICK(BAROSIM_CONVERSION_INTERVAL));
+	setSampleInterval(BAROSIM_CONVERSION_INTERVAL);
 }
 
 int
@@ -702,7 +675,7 @@ BAROSIM::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
-	PX4_INFO("poll interval:  %u ticks", _measure_ticks);
+	PX4_INFO("poll interval:  %u usec", m_sample_interval_usecs);
 	_reports->print_info("report queue");
 	PX4_INFO("TEMP:           %ld", (long)_TEMP);
 	PX4_INFO("SENS:           %lld", (long long)_SENS);
@@ -710,44 +683,9 @@ BAROSIM::print_info()
 	PX4_INFO("P:              %.3f", (double)_P);
 	PX4_INFO("T:              %.3f", (double)_T);
 	PX4_INFO("MSL pressure:   %10.4f", (double)(_msl_pressure / 100.f));
-
-	PX4_INFO("factory_setup             %u", _prom.factory_setup);
-	PX4_INFO("c1_pressure_sens          %u", _prom.c1_pressure_sens);
-	PX4_INFO("c2_pressure_offset        %u", _prom.c2_pressure_offset);
-	PX4_INFO("c3_temp_coeff_pres_sens   %u", _prom.c3_temp_coeff_pres_sens);
-	PX4_INFO("c4_temp_coeff_pres_offset %u", _prom.c4_temp_coeff_pres_offset);
-	PX4_INFO("c5_reference_temp         %u", _prom.c5_reference_temp);
-	PX4_INFO("c6_temp_coeff_temp        %u", _prom.c6_temp_coeff_temp);
-	PX4_INFO("serial_and_crc            %u", _prom.serial_and_crc);
 }
 
-/**
- * Local functions in support of the shell command.
- */
-namespace barosim
-{
-
-/*
-  list of supported bus configurations
- */
-struct barosim_bus_option {
-	enum BAROSIM_BUS busid;
-	const char *devpath;
-	BAROSIM_constructor interface_constructor;
-	uint8_t busnum;
-	BAROSIM *dev;
-} bus_options[] = {
-	{ BAROSIM_BUS_SIM_EXTERNAL, "/dev/baro_sim", &BAROSIM_sim_interface, PX4_SIM_BUS_TEST, NULL },
-};
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
-
-bool	start_bus(struct barosim_bus_option &bus);
-int	start();
-int	test();
-int	reset();
-int	info();
-int	calibrate(unsigned altitude);
-void	usage();
+namespace barosim {
 
 /**
  * BAROSIM crc4 cribbed from the datasheet
@@ -795,38 +733,26 @@ crc4(uint16_t *n_prom)
 	return (0x000F & crc_read) == (n_rem ^ 0x00);
 }
 
-
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver
+ * is either successfully up and running or failed to start.
  */
-bool
-start_bus(struct barosim_bus_option &bus)
+static int
+start()
 {
-	if (bus.dev != nullptr) {
-		PX4_ERR("bus option already started");
-		return false;
-	}
+	g_barosim = new BAROSIM(BAROSIM_DEV_PATH);
 
-	prom_u prom_buf;
-	DevObj *interface = bus.interface_constructor(prom_buf, bus.busnum);
-
-	if (interface->init() != OK) {
-		delete interface;
-		PX4_ERR("no device on bus %u", (unsigned)bus.busid);
-		return false;
-	}
-
-	bus.dev = new BAROSIM(interface, prom_buf, bus.devpath);
-
-	if (bus.dev != nullptr && OK != bus.dev->init()) {
-		delete bus.dev;
-		bus.dev = NULL;
-		PX4_ERR("bus init failed %p", bus.dev);
+	if (g_barosim != nullptr && OK != g_barosim->init()) {
+		delete g_barosim;
+		g_barosim = NULL;
+		PX4_ERR("bus init failed");
 		return false;
 	}
 
 	DevHandle h;
-	DevMgr::getHandle(bus.devpath, h);
+	DevMgr::getHandle(BAROSIM_DEV_PATH, h);
 
 	/* set the poll rate to default, starts automatic data collection */
 	if (!h.isValid()) {
@@ -846,43 +772,19 @@ start_bus(struct barosim_bus_option &bus)
 
 
 /**
- * Start the driver.
- *
- * This function call only returns once the driver
- * is either successfully up and running or failed to start.
- */
-int
-start()
-{
-	bool started = false;
-
-	started |= start_bus(bus_options[0]);
-
-	if (!started) {
-		PX4_ERR("driver start failed");
-		return 1;
-	}
-
-	// driver started OK
-	return 0;
-}
-
-
-/**
  * Perform some basic functional tests on the driver;
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-int
+static int
 test()
 {
-	struct barosim_bus_option &bus = bus_options[0];
 	struct baro_report report;
 	ssize_t sz;
 	int ret;
 
 	DevHandle h;
-	DevMgr::getHandle(bus.devpath, h);
+	DevMgr::getHandle(BAROSIM_DEV_PATH, h);
 
 	if (!h.isValid()) {
 		PX4_ERR("getHandle failed (try 'barosim start' if the driver is not running)");
@@ -953,13 +855,11 @@ test()
 /**
  * Reset the driver.
  */
-int
+static int
 reset()
 {
-	struct barosim_bus_option &bus = bus_options[0];
-
 	DevHandle h;
-	DevMgr::getHandle(bus.devpath, h);
+	DevMgr::getHandle(BAROSIM_DEV_PATH, h);
 
 	if (!h.isValid()) {
 		PX4_ERR("failed ");
@@ -982,16 +882,12 @@ reset()
 /**
  * Print a little info about the driver.
  */
-int
+static int
 info()
 {
-	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
-		struct barosim_bus_option &bus = bus_options[i];
-
-		if (bus.dev != nullptr) {
-			PX4_INFO("%s", bus.devpath);
-			bus.dev->print_info();
-		}
+	if (g_barosim != nullptr) {
+		PX4_INFO("%s", BAROSIM_DEV_PATH);
+		g_barosim->print_info();
 	}
 
 	return 0;
@@ -1000,16 +896,15 @@ info()
 /**
  * Calculate actual MSL pressure given current altitude
  */
-int
+static int
 calibrate(unsigned altitude)
 {
-	struct barosim_bus_option &bus = bus_options[0];
 	struct baro_report report;
 	float  pressure;
 	float  p1;
 
 	DevHandle h;
-	DevMgr::getHandle(bus.devpath, h);
+	DevMgr::getHandle(BAROSIM_DEV_PATH, h);
 
 	if (!h.isValid()) {
 		PX4_ERR("open failed (try 'barosim start' if the driver is not running)");
@@ -1077,13 +972,13 @@ calibrate(unsigned altitude)
 	return 0;
 }
 
-void
+static void
 usage()
 {
 	PX4_WARN("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate <altitude>'");
 }
 
-} // namespace
+}; // namespace barosim
 
 int
 barosim_main(int argc, char *argv[])
