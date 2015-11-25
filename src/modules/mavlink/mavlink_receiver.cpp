@@ -539,7 +539,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	/* copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 	vcmd.param1 = new_mode.base_mode;
 	vcmd.param2 = custom_mode.main_mode;
-	vcmd.param3 = 0;
+	vcmd.param3 = custom_mode.sub_mode;
 	vcmd.param4 = 0;
 	vcmd.param5 = 0;
 	vcmd.param6 = 0;

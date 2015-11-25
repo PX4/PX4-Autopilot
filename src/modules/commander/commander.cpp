@@ -559,6 +559,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_MODE: {
 			uint8_t base_mode = (uint8_t)cmd->param1;
 			uint8_t custom_main_mode = (uint8_t)cmd->param2;
+			uint8_t custom_sub_mode = (uint8_t)cmd->param3;
 
 			transition_result_t arming_ret = TRANSITION_NOT_CHANGED;
 
@@ -596,7 +597,22 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
-					main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_MISSION);
+					switch(custom_sub_mode) {
+					case PX4_CUSTOM_SUB_MODE_AUTO_LOITER:
+						main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_LOITER);
+						break;
+					case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
+						main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_MISSION);
+						break;
+					case PX4_CUSTOM_SUB_MODE_AUTO_RTL:
+						main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_RTL);
+						break;
+
+					default:
+						main_ret = TRANSITION_DENIED;
+						mavlink_log_critical(mavlink_fd, "Unsupported auto command");
+						break;
+					}
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ACRO) {
 					/* ACRO */
