@@ -100,9 +100,9 @@ sbus_init(const char *device, bool singlewire)
 
 		if (singlewire) {
 			/* only defined in configs capable of IOCTL */
-			#ifdef SBUS_SERIAL_PORT
+#ifdef SBUS_SERIAL_PORT
 			ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
-			#endif
+#endif
 		}
 
 		/* initialise the decoder */
@@ -161,7 +161,8 @@ sbus2_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 }
 
 bool
-sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels)
+sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
+	   uint16_t max_channels)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
