@@ -685,7 +685,8 @@ BAROSIM::print_info()
 	PX4_INFO("MSL pressure:   %10.4f", (double)(_msl_pressure / 100.f));
 }
 
-namespace barosim {
+namespace barosim
+{
 
 /**
  * BAROSIM crc4 cribbed from the datasheet
