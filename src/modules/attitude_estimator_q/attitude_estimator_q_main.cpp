@@ -59,6 +59,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -122,6 +123,7 @@ private:
 	int		_params_sub = -1;
 	int		_vision_sub = -1;
 	int		_mocap_sub = -1;
+	int		_airspeed_sub = -1;
 	int		_global_pos_sub = -1;
 	orb_advert_t	_att_pub = nullptr;
 	orb_advert_t	_ctrl_state_pub = nullptr;
@@ -160,6 +162,8 @@ private:
 
 	att_pos_mocap_s _mocap = {};
 	Vector<3>	_mocap_hdg;
+
+	airspeed_s _airspeed = {};
 
 	Quaternion	_q;
 	Vector<3>	_rates;
@@ -291,6 +295,8 @@ void AttitudeEstimatorQ::task_main()
 
 	_vision_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
+
+	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -473,6 +479,14 @@ void AttitudeEstimatorQ::task_main()
 			_mocap_hdg = Rmoc.transposed() * v;
 		}
 
+		// Update airspeed
+		bool airspeed_updated = false;
+		orb_check(_airspeed_sub, &airspeed_updated);
+
+		if (airspeed_updated) {
+			orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+		}
+
 		// Check for timeouts on data
 		if (_ext_hdg_mode == 1) {
 			_ext_hdg_good = _vision.timestamp_boot > 0 && (hrt_elapsed_time(&_vision.timestamp_boot) < 500000);
@@ -585,6 +599,9 @@ void AttitudeEstimatorQ::task_main()
 		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
 
 		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
+
+		/* Airspeed - take airspeed measurement directly here as no wind is estimated */
+		ctrl_state.airspeed = _airspeed.true_airspeed_m_s;
 
 		/* Publish to control state topic */
 		if (_ctrl_state_pub == nullptr) {
