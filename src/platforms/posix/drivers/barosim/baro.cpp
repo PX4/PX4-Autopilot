@@ -202,6 +202,8 @@ BAROSIM::BAROSIM(const char *path) :
 	_TEMP(0),
 	_OFF(0),
 	_SENS(0),
+	_P(0.0),
+	_T(0.0),
 	_msl_pressure(101325),
 	_baro_topic(nullptr),
 	_orb_class_instance(-1),
