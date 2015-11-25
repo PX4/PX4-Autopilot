@@ -65,7 +65,7 @@ BAROSIM_DEV::init()
 	return VirtDevObj::init();
 }
 
-ssize_t 
+ssize_t
 BAROSIM_DEV::devRead(void *data, size_t count)
 {
 	/* read the most recent measurement */
@@ -127,6 +127,7 @@ BAROSIM_DEV::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, uns
 		if (send[0] == ADDR_CMD_CONVERT_D2) {
 		} else {
 		}
+
 		return 0;
 
 	} else if (send[0] == 0 && send_len == 1) {
