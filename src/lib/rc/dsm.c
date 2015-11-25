@@ -50,11 +50,11 @@
 #include <drivers/drv_hrt.h>
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
- #include <px4io.h>
+#include <px4io.h>
 #endif
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V2
- #include <px4io.h>
+#include <px4io.h>
 #endif
 
 #define DSM_FRAME_SIZE		16		/**<DSM frame size in bytes*/
