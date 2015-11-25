@@ -79,7 +79,7 @@ touch rootfs/eeprom/parameters
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
 then
-	lldb -- mainapp ../../../../${rc_script}_${program}
+	lldb -- mainapp ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "gdb" ]
 then
 	gdb --args mainapp ../../../../${rc_script}_${program}
