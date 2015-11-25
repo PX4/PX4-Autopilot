@@ -237,23 +237,22 @@ void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
 void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 {
 	switch (msg->msgid) {
-	case MAVLINK_MSG_ID_HIL_SENSOR:
-		{
-		mavlink_hil_sensor_t imu;
-		mavlink_msg_hil_sensor_decode(msg, &imu);
+	case MAVLINK_MSG_ID_HIL_SENSOR: {
+			mavlink_hil_sensor_t imu;
+			mavlink_msg_hil_sensor_decode(msg, &imu);
 
-		uint64_t sim_timestamp = imu.time_usec;
-		struct timespec ts;
-		px4_clock_gettime(CLOCK_REALTIME, &ts);
-		uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
+			uint64_t sim_timestamp = imu.time_usec;
+			struct timespec ts;
+			px4_clock_gettime(CLOCK_REALTIME, &ts);
+			uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
 
-		perf_set(_perf_sim_delay, timestamp - sim_timestamp);
+			perf_set(_perf_sim_delay, timestamp - sim_timestamp);
 
-		if (publish) {
-			publish_sensor_topics(&imu);
-		}
+			if (publish) {
+				publish_sensor_topics(&imu);
+			}
 
-		update_sensors(&imu);
+			update_sensors(&imu);
 		}
 		break;
 
