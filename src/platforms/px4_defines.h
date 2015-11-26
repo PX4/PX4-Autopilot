@@ -40,6 +40,7 @@
 #pragma once
 
 #include <px4_log.h>
+#include <math.h>
 
 /* Get the name of the default value fiven the param name */
 #define PX4_PARAM_DEFAULT_VALUE_NAME(_name) PARAM_##_name##_DEFAULT
