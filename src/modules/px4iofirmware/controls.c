@@ -77,7 +77,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	uint16_t temp_count = r_raw_rc_count;
 	uint8_t n_bytes = 0;
 	uint8_t *bytes;
-	*dsm_updated = dsm_input(r_raw_rc_values, &temp_count, &n_bytes, &bytes);
+	*dsm_updated = dsm_input(r_raw_rc_values, &temp_count, &n_bytes, &bytes, PX4IO_RC_INPUT_CHANNELS);
 
 	if (*dsm_updated) {
 		r_raw_rc_count = temp_count & 0x7fff;
