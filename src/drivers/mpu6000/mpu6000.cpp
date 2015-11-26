@@ -151,6 +151,15 @@
 #define MPU_WHOAMI_6000			0x68
 #define ICM_WHOAMI_20608		0xaf
 
+// ICM2608 specific registers
+
+/* this is an undocumented register which
+   if set incorrectly results in getting a 2.7m/s/s offset
+   on the Y axis of the accelerometer
+*/
+#define MPUREG_ICM_UNDOC1		0x11
+#define MPUREG_ICM_UNDOC1_VALUE		0xc9
+
 // Product ID Description for ICM2608
 // There is none
 
@@ -301,7 +310,7 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define MPU6000_NUM_CHECKED_REGISTERS 9
+#define MPU6000_NUM_CHECKED_REGISTERS 10
 	static const uint8_t	_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_values[MPU6000_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_next;
@@ -486,7 +495,8 @@ const uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS] = { MPU
 									     MPUREG_GYRO_CONFIG,
 									     MPUREG_ACCEL_CONFIG,
 									     MPUREG_INT_ENABLE,
-									     MPUREG_INT_PIN_CFG
+									     MPUREG_INT_PIN_CFG,
+									     MPUREG_ICM_UNDOC1
 									   };
 
 
@@ -788,6 +798,10 @@ int MPU6000::reset()
 	usleep(1000);
 	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
 	usleep(1000);
+
+	if (is_icm_device()) {
+		write_checked_reg(MPUREG_ICM_UNDOC1, MPUREG_ICM_UNDOC1_VALUE);
+	}
 
 	// Oscillator set
 	// write_reg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
@@ -1668,6 +1682,11 @@ MPU6000::check_registers(void)
 	  the data registers.
 	*/
 	uint8_t v;
+
+	// the MPUREG_ICM_UNDOC1 is specific to the ICM20608 (and undocumented)
+	if (_checked_registers[_checked_next] == MPUREG_ICM_UNDOC1 && !is_icm_device()) {
+		_checked_next = (_checked_next + 1) % MPU6000_NUM_CHECKED_REGISTERS;
+	}
 
 	if ((v = read_reg(_checked_registers[_checked_next], MPU6000_HIGH_BUS_SPEED)) !=
 	    _checked_values[_checked_next]) {
