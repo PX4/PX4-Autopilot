@@ -814,7 +814,18 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 			status->failsafe = true;
 
 			if (status->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+				if (status->offboard_control_lost_rtl_timestamp == 0) {
+					/* RTL when offboard lost is disabled */
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
+
+				} else if (status->offboard_control_lost_rtl_timestamp > hrt_absolute_time()) {
+					/* wait before switching to RTL */
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
+				} else {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+				}
+
 			} else if (status->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 			} else {

@@ -162,6 +162,7 @@ bool offboard_control_signal_lost
 bool offboard_control_signal_weak
 uint64 offboard_control_signal_lost_interval	# interval in microseconds without an offboard control message
 bool offboard_control_set_by_command		# true if the offboard mode was set by a mavlink command and should not be overridden by RC
+uint64 offboard_control_lost_rtl_timestamp	# timestamp when offboard control was lost
 
 # see SYS_STATUS mavlink message for the following
 uint32 onboard_control_sensors_present
