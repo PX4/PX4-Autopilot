@@ -46,7 +46,7 @@
 __BEGIN_DECLS
 
 __EXPORT int	dsm_init(const char *device);
-__EXPORT bool	dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes);
+__EXPORT bool	dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes, unsigned max_values);
 __EXPORT void	dsm_bind(uint16_t cmd, int pulses);
 
 __END_DECLS
