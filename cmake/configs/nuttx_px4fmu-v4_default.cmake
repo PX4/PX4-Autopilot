@@ -109,6 +109,7 @@ set(config_module_list
 	#lib/mathlib/CMSIS
 	lib/mathlib
 	lib/mathlib/math/filter
+	lib/rc
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
