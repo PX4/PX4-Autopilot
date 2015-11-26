@@ -38,6 +38,7 @@ px4_add_module(
 		st24.c
 		sumd.c
 		sbus.c
+		dsm.c
 	DEPENDS
 		platforms__common
 	)

@@ -68,6 +68,9 @@ static unsigned dsm_partial_frame_count;	/**< Count of bytes received for curren
 static unsigned dsm_channel_shift;			/**< Channel resolution, 0=unknown, 1=10 bit, 2=11 bit */
 static unsigned dsm_frame_drops;			/**< Count of incomplete DSM frames */
 
+static bool
+dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, unsigned max_values);
+
 /**
  * Attempt to decode a single channel raw channel datum
  *
@@ -265,7 +268,6 @@ void
 dsm_bind(uint16_t cmd, int pulses)
 {
 #if !defined(GPIO_USART1_RX_SPEKTRUM)
-#warning DSM BIND NOT IMPLEMENTED ON UNKNOWN PLATFORM
 #else
 
 	if (dsm_fd < 0) {
@@ -332,8 +334,8 @@ dsm_bind(uint16_t cmd, int pulses)
  * @param[out] num_values pointer to number of raw channel values returned
  * @return true=DSM frame successfully decoded, false=no update
  */
-static bool
-dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
+bool
+dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, unsigned max_values)
 {
 	/*
 	debug("DSM dsm_frame %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x",
@@ -379,7 +381,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 		}
 
 		/* ignore channels out of range */
-		if (channel >= PX4IO_RC_INPUT_CHANNELS) {
+		if (channel >= max_values) {
 			continue;
 		}
 
@@ -478,7 +480,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
  * @return true=decoded raw channel values updated, false=no update
  */
 bool
-dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes)
+dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes, unsigned max_values)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
@@ -528,5 +530,5 @@ dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **by
 	 * decode it.
 	 */
 	dsm_partial_frame_count = 0;
-	return dsm_decode(now, values, num_values);
+	return dsm_decode(now, values, num_values, max_values);
 }
