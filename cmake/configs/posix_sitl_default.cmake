@@ -32,23 +32,15 @@ set(config_module_list
 	modules/sensors
 	modules/simulator
 	modules/mavlink
+	modules/dataman
 	modules/attitude_estimator_ekf
-	modules/attitude_estimator_q
+	#modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/navigator
 	modules/vtol_att_control
-	modules/mc_pos_control
-	modules/mc_att_control
-	modules/mc_pos_control_multiplatform
-	modules/mc_att_control_multiplatform
-	modules/land_detector
-	modules/fw_att_control
-	modules/fw_pos_control_l1
-	modules/dataman
-	modules/sdlog2
-	modules/commander
 	modules/controllib
+	modules/ekf2
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/conversion
@@ -59,6 +51,7 @@ set(config_module_list
 	lib/launchdetection
 	lib/terrain_estimation
 	lib/runway_takeoff
+	lib/ecl/EKF/tests/base
 	)
 
 set(config_extra_builtin_cmds
