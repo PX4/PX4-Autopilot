@@ -46,6 +46,7 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+#include <lib/conversion/rotation.h>
 
 #include "tests.h"
 
@@ -358,6 +359,29 @@ int test_mathlib(int argc, char *argv[])
 				rc = 1;
 			}
 		}
+	}
+
+	{
+		// test get_rot_matrix() from lib/conversion for the identity case
+		float tol = 0.00001f;
+		Matrix<3, 3> R;
+		get_rot_matrix((enum Rotation)0, &R);
+		Matrix<3, 3> I;
+		I.identity();
+
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				if (fabsf(R.data[i][j] - I.data[i][j]) > tol) {
+					PX4_WARN("get_rot_matrix() from lib/conversion/rotation.h not working correctly for identity");
+					rc = 1;
+				}
+			}
+		}
+
+		if (rc == 0) {
+			PX4_WARN("all tests passed");
+		}
+
 	}
 	return rc;
 }
