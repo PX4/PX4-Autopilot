@@ -642,7 +642,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 	struct offboard_control_mode_s offboard_control_mode;
 	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));//XXX breaks compatibility with multiple setpoints
 
-	bool values_finite = 
+	bool values_finite =
 		PX4_ISFINITE(set_position_target_local_ned.x) &&
 		PX4_ISFINITE(set_position_target_local_ned.y) &&
 		PX4_ISFINITE(set_position_target_local_ned.z) &&
@@ -658,7 +658,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 	if ((mavlink_system.sysid == set_position_target_local_ned.target_system ||
 				set_position_target_local_ned.target_system == 0) &&
 			(mavlink_system.compid == set_position_target_local_ned.target_component ||
-			 	set_position_target_local_ned.target_component == 0) &&
+				set_position_target_local_ned.target_component == 0) &&
 			values_finite) {
 
 		/* convert mavlink type (local, NED) to uORB offboard control struct */
@@ -675,6 +675,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		bool is_takeoff_sp = (bool)(set_position_target_local_ned.type_mask & 0x1000);
 		bool is_land_sp = (bool)(set_position_target_local_ned.type_mask & 0x2000);
 		bool is_loiter_sp = (bool)(set_position_target_local_ned.type_mask & 0x3000);
+		bool is_idle_sp = (bool)(set_position_target_local_ned.type_mask & 0x4000);
 
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
@@ -717,10 +718,16 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 					if (is_takeoff_sp) {
 						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
-					} else if(is_land_sp) {
+
+					} else if (is_land_sp) {
 						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
-					} else if(is_loiter_sp) {
+
+					} else if (is_loiter_sp) {
 						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+
+					} else if (is_idle_sp) {
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+
 					} else {
 						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					}
@@ -806,7 +813,7 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 	struct actuator_controls_s actuator_controls;
 	memset(&actuator_controls, 0, sizeof(actuator_controls));//XXX breaks compatibility with multiple setpoints
 
-	bool values_finite = 
+	bool values_finite =
 		PX4_ISFINITE(set_actuator_control_target.controls[0]) &&
 		PX4_ISFINITE(set_actuator_control_target.controls[1]) &&
 		PX4_ISFINITE(set_actuator_control_target.controls[2]) &&
