@@ -105,6 +105,36 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 PARAM_DEFINE_INT32(NAV_RCL_ACT, 0);
 
 /**
+ * Set offboard loss failsafe mode
+ *
+ * The offboard loss failsafe will only be entered after a timeout,
+ * set by COM_OF_LOSS_T in seconds.
+ *
+ * @value 0 Land at current position
+ * @value 1 Loiter
+ * @value 2 Return to Land
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_OBL_ACT, 0);
+
+/**
+ * Set offboard loss failsafe mode when RC is available
+ *
+ * The offboard loss failsafe will only be entered after a timeout,
+ * set by COM_OF_LOSS_T in seconds.
+ *
+ * @value 0 Position control
+ * @value 1 Altitude control
+ * @value 2 Manual
+ * @value 3 Return to Land
+ * @value 4 Land at current position
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_OBL_RC_ACT, 0);
+
+/**
  * Airfield home Lat
  *
  * Latitude of airfield home waypoint
