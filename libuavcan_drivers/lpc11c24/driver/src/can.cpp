@@ -154,6 +154,7 @@ BitTimingSettings computeBitTimings(std::uint32_t bitrate)
         case 500000:  return BitTimingSettings{ 0, 0x1c05 }; // 16 quanta, 87.5%
         case 250000:  return BitTimingSettings{ 0, 0x1c0b }; // 16 quanta, 87.5%
         case 125000:  return BitTimingSettings{ 0, 0x1c17 }; // 16 quanta, 87.5%
+        case 100000:  return BitTimingSettings{ 0, 0x1c1d }; // 16 quanta, 87.5%
         default:      return BitTimingSettings{ 0, 0 };
         }
     }
@@ -174,7 +175,8 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
         1000000,
         500000,
         250000,
-        125000
+        125000,
+        100000
     };
 
     const auto ListeningDuration = uavcan::MonotonicDuration::fromMSec(1050);
