@@ -94,7 +94,7 @@
  * This is the analog to FMU_INPUT_DROP_LIMIT_US on the IO side
  */
 
-#define CONTROL_INPUT_DROP_LIMIT_MS		20
+#define CONTROL_INPUT_DROP_LIMIT_MS		2
 #define NAN_VALUE	(0.0f/0.0f)
 
 class PX4FMU : public device::CDev
