@@ -1094,7 +1094,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 			struct gyro_report	gyro_report;
 
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub[i], &gyro_report);
-
+			
 			math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 			vect = _board_rotation * vect;
 

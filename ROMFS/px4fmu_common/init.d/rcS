@@ -28,7 +28,7 @@ if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
 	echo "[i] microSD mounted: /fs/microsd"
 	# Start playing the startup tune
-	tone_alarm start
+	## start
 else
 	tone_alarm MBAGP
 	if mkfatfs /dev/mmcsd0
