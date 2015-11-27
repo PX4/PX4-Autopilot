@@ -361,8 +361,8 @@ public:
     Matrix<Type, M, N> abs()
     {
         Matrix<Type, M, N> r;
-        for (int i=0; i<M; i++) {
-            for (int j=0; j<M; j++) {
+        for (size_t i=0; i<M; i++) {
+            for (size_t j=0; j<M; j++) {
                 r(i,j) = Type(fabs((*this)(i,j)));
             }
         }
@@ -372,8 +372,8 @@ public:
     Type max()
     {
         Type max_val = (*this)(0,0);
-        for (int i=0; i<M; i++) {
-            for (int j=0; j<M; j++) {
+        for (size_t i=0; i<M; i++) {
+            for (size_t j=0; j<M; j++) {
                 Type val = (*this)(i,j);
                 if (val > max_val) {
                     max_val = val;
@@ -386,8 +386,8 @@ public:
     Type min()
     {
         Type min_val = (*this)(0,0);
-        for (int i=0; i<M; i++) {
-            for (int j=0; j<M; j++) {
+        for (size_t i=0; i<M; i++) {
+            for (size_t j=0; j<M; j++) {
                 Type val = (*this)(i,j);
                 if (val < min_val) {
                     min_val = val;

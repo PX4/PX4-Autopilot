@@ -133,6 +133,66 @@ int main()
     q_check *= q_check;
     assert(q_prod_check == q_check);
 
+    // quaternion inverse
+    q = q_check.inversed();
+    assert(fabsf(q_check(0) - q(0)) < eps);
+    assert(fabsf(q_check(1) + q(1)) < eps);
+    assert(fabsf(q_check(2) + q(2)) < eps);
+    assert(fabsf(q_check(3) + q(3)) < eps);
+
+    q = q_check;
+    q.invert();
+    assert(fabsf(q_check(0) - q(0)) < eps);
+    assert(fabsf(q_check(1) + q(1)) < eps);
+    assert(fabsf(q_check(2) + q(2)) < eps);
+    assert(fabsf(q_check(3) + q(3)) < eps);
+
+    // rotate quaternion (nonzero rotation)
+    Quatf qI(1.0f, 0.0f, 0.0f, 0.0f);
+    Vector<float, 3> rot;
+    rot(0) = 1.0f;
+    rot(1) = rot(2) = 0.0f;
+    qI.rotate(rot);
+    Quatf q_true(cosf(1.0f / 2), sinf(1.0f / 2), 0.0f, 0.0f);
+    assert(fabsf(qI(0) - q_true(0)) < eps);
+    assert(fabsf(qI(1) - q_true(1)) < eps);
+    assert(fabsf(qI(2) - q_true(2)) < eps);
+    assert(fabsf(qI(3) - q_true(3)) < eps);
+
+    // rotate quaternion (zero rotation)
+    qI = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
+    rot(0) = 0.0f;
+    rot(1) = rot(2) = 0.0f;
+    qI.rotate(rot);
+    q_true = Quatf(cosf(0.0f), sinf(0.0f), 0.0f, 0.0f);
+    assert(fabsf(qI(0) - q_true(0)) < eps);
+    assert(fabsf(qI(1) - q_true(1)) < eps);
+    assert(fabsf(qI(2) - q_true(2)) < eps);
+    assert(fabsf(qI(3) - q_true(3)) < eps);
+
+    // get rotation axis from quaternion (nonzero rotation)
+    q = Quatf(cosf(1.0f / 2), 0.0f, sinf(1.0f / 2), 0.0f);
+    rot = q.to_axis_angle();
+    assert(fabsf(rot(0)) < eps);
+    assert(fabsf(rot(1) -1.0f) < eps);
+    assert(fabsf(rot(2)) < eps);
+
+    // get rotation axis from quaternion (zero rotation)
+    q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
+    rot = q.to_axis_angle();
+    assert(fabsf(rot(0)) < eps);
+    assert(fabsf(rot(1)) < eps);
+    assert(fabsf(rot(2)) < eps);
+
+    // from axis angle (zero rotation)
+    rot(0) = rot(1) = rot(2) = 0.0f;
+    q.from_axis_angle(rot, 0.0f);
+    q_true = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
+    assert(fabsf(q(0) - q_true(0)) < eps);
+    assert(fabsf(q(1) - q_true(1)) < eps);
+    assert(fabsf(q(2) - q_true(2)) < eps);
+    assert(fabsf(q(3) - q_true(3)) < eps);
+
 };
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
