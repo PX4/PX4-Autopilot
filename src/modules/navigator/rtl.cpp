@@ -92,9 +92,30 @@ RTL::on_activation()
 			_rtl_state = RTL_STATE_LANDED;
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "no RTL when landed");
 
+		/* for multicopters:
+		 * if we're already inside the acceptance radius at home position, don't climb again
+		 */
+		} else if (_navigator->get_vstatus()->is_rotary_wing &&
+				get_distance_to_next_waypoint(_navigator->get_global_position()->lat,
+				_navigator->get_global_position()->lon, _navigator->get_home_position()->lat,
+				_navigator->get_home_position()->lon) < _navigator->get_acceptance_radius()) {
+
+			/* if still above descend altitude, go to descend, otherwise go to loiter directly */
+			if (_navigator->get_global_position()->alt > _navigator->get_home_position()->alt
+					+ _param_descend_alt.get()) {
+				_rtl_state = RTL_STATE_DESCEND;
+
+			} else {
+				/* set altitude setpoint to current altitude */
+				_rtl_state = RTL_STATE_LOITER;
+				_mission_item.altitude_is_relative = false;
+				_mission_item.altitude = _navigator->get_global_position()->alt;
+				_rtl_start_lock = false;
+			}
+
 		/* if lower than return altitude, climb up first */
 		} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
-			   + _param_return_alt.get()) {
+				+ _param_return_alt.get()) {
 			_rtl_state = RTL_STATE_CLIMB;
 			_rtl_start_lock = false;
 
@@ -219,8 +240,7 @@ RTL::set_rtl_item()
 
 		_mission_item.lat = _navigator->get_home_position()->lat;
 		_mission_item.lon = _navigator->get_home_position()->lon;
-		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
+		// don't change altitude
 		_mission_item.yaw = _navigator->get_home_position()->yaw;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
