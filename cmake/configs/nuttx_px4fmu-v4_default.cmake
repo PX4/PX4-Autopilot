@@ -58,6 +58,7 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/tests
 
 	#
 	# General system control

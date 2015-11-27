@@ -206,6 +206,8 @@ private:
 
 
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
+	_vel_prev(0, 0, 0),
+	_pos_acc(0, 0, 0),
 	_voter_gyro(3),
 	_voter_accel(3),
 	_voter_mag(3),
@@ -724,6 +726,8 @@ bool AttitudeEstimatorQ::update(float dt)
 		// Project magnetometer correction to body frame
 		corr += _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, -mag_err)) * _w_mag;
 	}
+
+	_q.normalize();
 
 	// Accelerometer correction
 	// Project 'k' unit vector of earth frame to body frame

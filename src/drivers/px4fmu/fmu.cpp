@@ -327,12 +327,9 @@ PX4FMU::PX4FMU() :
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
 #endif
 
-#ifdef SBUS_SERIAL_PORT
-	_sbus_fd = sbus_init(SBUS_SERIAL_PORT, true);
-#endif
-
-#ifdef DSM_SERIAL_PORT
-	_dsm_fd = dsm_init(DSM_SERIAL_PORT);
+#ifdef GPIO_SBUS_INV
+	// this board has a GPIO to control SBUS inversion
+	stm32_configgpio(GPIO_SBUS_INV);
 #endif
 
 	/* only enable this during development */
@@ -648,6 +645,15 @@ PX4FMU::cycle()
 
 		update_pwm_rev_mask();
 
+#ifdef SBUS_SERIAL_PORT
+		_sbus_fd = sbus_init(SBUS_SERIAL_PORT, true);
+#endif
+
+	#ifdef DSM_SERIAL_PORT
+	// XXX rather than opening it we need to cycle between protocols until one is locked in
+	//_dsm_fd = dsm_init(DSM_SERIAL_PORT);
+	#endif
+
 		_initialized = true;
 	}
 
@@ -839,14 +845,11 @@ PX4FMU::cycle()
 	}
 #endif
 
-#ifdef DSM_SERIAL_PORT
-	//_dsm_fd = dsm_init(DSM_SERIAL_PORT);
-#endif
-
 #ifdef HRT_PPM_CHANNEL
 
 	// see if we have new PPM input data
-	if (ppm_last_valid_decode != _rc_in.timestamp_last_signal) {
+	if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) &&
+		ppm_decoded_channels > 3) {
 		// we have a new PPM frame. Publish it.
 		_rc_in.channel_count = ppm_decoded_channels;
 
