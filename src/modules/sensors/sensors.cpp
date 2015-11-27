@@ -542,6 +542,7 @@ Sensors::Sensors() :
 
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
+	memset(&_parameters, 0, sizeof(_parameters));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 
 	/* basic r/c parameters */

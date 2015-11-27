@@ -1183,8 +1183,7 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.heartbeat_time = tstatus.timestamp;
 
 			if (_telemetry_status_pub == nullptr) {
-				int multi_instance;
-				_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_HIGH);
+				_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, NULL, ORB_PRIO_HIGH);
 
 			} else {
 				orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
@@ -1837,8 +1836,10 @@ MavlinkReceiver::receive_thread(void *arg)
 				}
 			}
 
-			/* count received bytes */
-			_mavlink->count_rxbytes(nread);
+			/* count received bytes (nread will be -1 on read error) */
+			if (nread > 0) {
+				_mavlink->count_rxbytes(nread);
+			}
 		}
 	}
 
