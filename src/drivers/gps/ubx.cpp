@@ -874,6 +874,7 @@ UBX::payload_rx_done(void)
 		_gps_position->alt	= _buf.payload_rx_nav_posllh.hMSL;
 		_gps_position->eph	= (float)_buf.payload_rx_nav_posllh.hAcc * 1e-3f; // from mm to m
 		_gps_position->epv	= (float)_buf.payload_rx_nav_posllh.vAcc * 1e-3f; // from mm to m
+		_gps_position->alt_ellipsoid = _buf.payload_rx_nav_posllh.height;
 
 		_gps_position->timestamp_position = hrt_absolute_time();
 
