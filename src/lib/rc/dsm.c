@@ -52,7 +52,7 @@
 #include <drivers/drv_hrt.h>
 
 #ifndef GPIO_SPEKTRUM_PWR_EN
-	#error DSM input driver not supported by this board config
+#error DSM input driver not supported by this board config
 #endif
 
 #define DSM_FRAME_SIZE		16		/**<DSM frame size in bytes*/
@@ -258,6 +258,7 @@ dsm_init(const char *device)
 
 	if (!ret) {
 		return dsm_fd;
+
 	} else {
 		return -1;
 	}

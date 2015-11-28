@@ -126,6 +126,7 @@ sbus_init(const char *device, bool singlewire)
 
 	if (!ret) {
 		return sbus_fd;
+
 	} else {
 		return -1;
 	}
