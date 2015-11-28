@@ -594,7 +594,7 @@ PX4FMU::update_pwm_rev_mask()
 void
 PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 {
-	actuator_outputs_s outputs;
+	actuator_outputs_s outputs = {};
 	outputs.noutputs = numvalues;
 	outputs.timestamp = hrt_absolute_time();
 
