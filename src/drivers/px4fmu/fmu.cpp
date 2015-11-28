@@ -649,10 +649,10 @@ PX4FMU::cycle()
 		_sbus_fd = sbus_init(SBUS_SERIAL_PORT, true);
 #endif
 
-	#ifdef DSM_SERIAL_PORT
-	// XXX rather than opening it we need to cycle between protocols until one is locked in
-	//_dsm_fd = dsm_init(DSM_SERIAL_PORT);
-	#endif
+#ifdef DSM_SERIAL_PORT
+		// XXX rather than opening it we need to cycle between protocols until one is locked in
+		//_dsm_fd = dsm_init(DSM_SERIAL_PORT);
+#endif
 
 		_initialized = true;
 	}
@@ -843,13 +843,14 @@ PX4FMU::cycle()
 
 		rc_updated = true;
 	}
+
 #endif
 
 #ifdef HRT_PPM_CHANNEL
 
 	// see if we have new PPM input data
 	if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) &&
-		ppm_decoded_channels > 3) {
+	    ppm_decoded_channels > 3) {
 		// we have a new PPM frame. Publish it.
 		_rc_in.channel_count = ppm_decoded_channels;
 
