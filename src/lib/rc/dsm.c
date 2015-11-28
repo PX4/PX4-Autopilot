@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,8 @@
  */
 
 #include <px4_config.h>
+#include <board_config.h>
+#include <px4_defines.h>
 #include <nuttx/arch.h>
 
 #include <fcntl.h>
@@ -49,12 +51,8 @@
 #include "dsm.h"
 #include <drivers/drv_hrt.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-#include <px4io.h>
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
-#include <px4io.h>
+#ifndef GPIO_SPEKTRUM_PWR_EN
+	#error DSM input driver not supported by this board config
 #endif
 
 #define DSM_FRAME_SIZE		16		/**<DSM frame size in bytes*/
@@ -210,25 +208,13 @@ dsm_guess_format(bool reset)
 	dsm_guess_format(true);
 }
 
-/**
- * Initialize the DSM receive functionality
- *
- * Open the UART for receiving DSM frames and configure it appropriately
- *
- * @param[in] device Device name of DSM UART
- */
 int
-dsm_init(const char *device)
+dsm_config(int dsm_fd)
 {
-
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 	// enable power on DSM connector
 	POWER_SPEKTRUM(true);
-#endif
 
-	if (dsm_fd < 0) {
-		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
-	}
+	int ret = -1;
 
 	if (dsm_fd >= 0) {
 
@@ -247,15 +233,34 @@ dsm_init(const char *device)
 		/* reset the format detector */
 		dsm_guess_format(true);
 
-		//debug("DSM: ready");
-
-	} else {
-
-		//debug("DSM: open failed");
-
+		ret = 0;
 	}
 
-	return dsm_fd;
+	return ret;
+}
+
+/**
+ * Initialize the DSM receive functionality
+ *
+ * Open the UART for receiving DSM frames and configure it appropriately
+ *
+ * @param[in] device Device name of DSM UART
+ */
+int
+dsm_init(const char *device)
+{
+
+	if (dsm_fd < 0) {
+		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
+	}
+
+	int ret = dsm_config(dsm_fd);
+
+	if (!ret) {
+		return dsm_fd;
+	} else {
+		return -1;
+	}
 }
 
 /**
@@ -267,43 +272,32 @@ dsm_init(const char *device)
 void
 dsm_bind(uint16_t cmd, int pulses)
 {
-#if !defined(GPIO_USART1_RX_SPEKTRUM)
-#else
-
 	if (dsm_fd < 0) {
 		return;
 	}
 
 	switch (cmd) {
 
-	case dsm_bind_power_down:
+	case DSM_CMD_BIND_POWER_DOWN:
 
 		/*power down DSM satellite*/
-#if defined(CONFIG_ARCH_BOARD_PX4IO_V1)
-		POWER_RELAY1(0);
-#elif defined(CONFIG_ARCH_BOARD_PX4IO_V2)
 		POWER_SPEKTRUM(0);
-#endif
 		break;
 
-	case dsm_bind_power_up:
+	case DSM_CMD_BIND_POWER_UP:
 
 		/*power up DSM satellite*/
-#if defined(CONFIG_ARCH_BOARD_PX4IO_V1)
-		POWER_RELAY1(1);
-#elif defined(CONFIG_ARCH_BOARD_PX4IO_V2)
 		POWER_SPEKTRUM(1);
-#endif
 		dsm_guess_format(true);
 		break;
 
-	case dsm_bind_set_rx_out:
+	case DSM_CMD_BIND_SET_RX_OUT:
 
 		/*Set UART RX pin to active output mode*/
 		stm32_configgpio(GPIO_USART1_RX_SPEKTRUM);
 		break;
 
-	case dsm_bind_send_pulses:
+	case DSM_CMD_BIND_SEND_PULSES:
 
 		/*Pulse RX pin a number of times*/
 		for (int i = 0; i < pulses; i++) {
@@ -315,15 +309,13 @@ dsm_bind(uint16_t cmd, int pulses)
 
 		break;
 
-	case dsm_bind_reinit_uart:
+	case DSM_CMD_BIND_REINIT_UART:
 
 		/*Restore USART RX pin to RS232 receive mode*/
 		stm32_configgpio(GPIO_USART1_RX);
 		break;
 
 	}
-
-#endif
 }
 
 /**
