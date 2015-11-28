@@ -46,7 +46,16 @@
 __BEGIN_DECLS
 
 __EXPORT int	dsm_init(const char *device);
+__EXPORT int	dsm_config(int dsm_fd);
 __EXPORT bool	dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes, unsigned max_values);
 __EXPORT void	dsm_bind(uint16_t cmd, int pulses);
+
+enum {							/* DSM bind states */
+	DSM_CMD_BIND_POWER_DOWN = 0,
+	DSM_CMD_BIND_POWER_UP,
+	DSM_CMD_BIND_SET_RX_OUT,
+	DSM_CMD_BIND_SEND_PULSES,
+	DSM_CMD_BIND_REINIT_UART
+} DSM_CMD;
 
 __END_DECLS
