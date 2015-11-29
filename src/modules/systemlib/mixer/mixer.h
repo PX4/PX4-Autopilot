@@ -481,7 +481,7 @@ public:
 	 *				compared to thrust.
 	 * @param yaw_wcale		Scaling factor applied to yaw inputs compared
 	 *				to thrust.
-	 * @param deadband		Minumum rotor control output value; usually
+	 * @param idle_speed		Minumum rotor control output value; usually
 	 *				tuned to ensure that rotors never stall at the
 	 * 				low end of their control range.
 	 */
@@ -491,7 +491,7 @@ public:
 			float roll_scale,
 			float pitch_scale,
 			float yaw_scale,
-			float deadband);
+			float idle_speed);
 	~MultirotorMixer();
 
 	/**

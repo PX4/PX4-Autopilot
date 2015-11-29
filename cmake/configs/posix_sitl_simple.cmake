@@ -36,6 +36,7 @@ set(config_module_list
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/navigator
+	modules/vtol_att_control
 	modules/mc_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control_multiplatform
@@ -55,12 +56,35 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/launchdetection
+	lib/terrain_estimation
+	lib/runway_takeoff
 	)
 
 set(config_extra_builtin_cmds
 	serdis
 	sercon
 	)
+
+set(config_sitl_rcS
+	posix-configs/SITL/init/rcS
+	CACHE FILEPATH "init script for sitl"
+	)
+
+set(config_sitl_viewer
+	jmavsim
+	CACHE STRING "viewer for sitl"
+	)
+set_property(CACHE config_sitl_viewer
+	PROPERTY STRINGS "jmavsim;none")
+
+set(config_sitl_debugger
+	disable
+	CACHE STRING "debugger for sitl"
+	)
+set_property(CACHE config_sitl_debugger
+	PROPERTY STRINGS "disable;gdb;lldb")
+
+
 
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES

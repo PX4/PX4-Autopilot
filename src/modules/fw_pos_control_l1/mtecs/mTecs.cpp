@@ -88,8 +88,8 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 		float airspeedSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
-	if (!isfinite(flightPathAngle) || !isfinite(altitude) ||
-			!isfinite(altitudeSp) || !isfinite(airspeed) || !isfinite(airspeedSp) || !isfinite(mode)) {
+	if (!PX4_ISFINITE(flightPathAngle) || !PX4_ISFINITE(altitude) ||
+			!PX4_ISFINITE(altitudeSp) || !PX4_ISFINITE(airspeed) || !PX4_ISFINITE(airspeedSp) || !PX4_ISFINITE(mode)) {
 		return -1;
 	}
 
@@ -125,8 +125,8 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 		float airspeedSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
-	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
-			!isfinite(airspeed) || !isfinite(airspeedSp) || !isfinite(mode)) {
+	if (!PX4_ISFINITE(flightPathAngle) || !PX4_ISFINITE(flightPathAngleSp) ||
+			!PX4_ISFINITE(airspeed) || !PX4_ISFINITE(airspeedSp) || !PX4_ISFINITE(mode)) {
 		return -1;
 	}
 
@@ -163,8 +163,8 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 		float accelerationLongitudinalSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
-	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
-			!isfinite(airspeedFiltered) || !isfinite(accelerationLongitudinalSp) || !isfinite(mode)) {
+	if (!PX4_ISFINITE(flightPathAngle) || !PX4_ISFINITE(flightPathAngleSp) ||
+			!PX4_ISFINITE(airspeedFiltered) || !PX4_ISFINITE(accelerationLongitudinalSp) || !PX4_ISFINITE(mode)) {
 		return -1;
 	}
 	/* time measurement */

@@ -85,8 +85,8 @@
 UavcanServers *UavcanServers::_instance;
 UavcanServers::UavcanServers(uavcan::INode &main_node) :
 	_subnode_thread(-1),
-	_vdriver(NumIfaces, uavcan_stm32::SystemClock::instance()),
-	_subnode(_vdriver, uavcan_stm32::SystemClock::instance()),
+	_vdriver(NumIfaces, uavcan_stm32::SystemClock::instance(), main_node.getAllocator(), VirtualIfaceBlockAllocationQuota),
+	_subnode(_vdriver, uavcan_stm32::SystemClock::instance(), main_node.getAllocator()),
 	_main_node(main_node),
 	_tracer(),
 	_storage_backend(),
@@ -141,12 +141,13 @@ int UavcanServers::stop()
 		return -1;
 	}
 
-	_instance = nullptr;
-
-	if (server->_subnode_thread != -1) {
-		pthread_cancel(server->_subnode_thread);
-		pthread_join(server->_subnode_thread, NULL);
+	if (server->_subnode_thread) {
+		warnx("stopping fw srv thread...");
+		server->_subnode_thread_should_exit = true;
+		(void)pthread_join(server->_subnode_thread, NULL);
 	}
+
+	_instance = nullptr;
 
 	server->_main_node.getDispatcher().removeRxFrameListener();
 
@@ -334,7 +335,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 	memset(_esc_enumeration_ids, 0, sizeof(_esc_enumeration_ids));
 	_esc_enumeration_index = 0;
 
-	while (1) {
+	while (!_subnode_thread_should_exit) {
 
 		if (_check_fw == true) {
 			_check_fw = false;
@@ -522,8 +523,12 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 				switch (command_id) {
 				case 1: {
 						// Param save request
-						_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
-						param_opcode(get_next_dirty_node_id(1));
+						int node_id;
+						node_id = get_next_dirty_node_id(1);
+						if (node_id < 128) {
+							_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
+							param_opcode(node_id);
+						}
 						break;
 					}
 				case 2: {
@@ -554,7 +559,9 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 		}
 	}
 
-	warnx("exiting.");
+	_subnode_thread_should_exit = false;
+
+	warnx("exiting");
 	return (pthread_addr_t) 0;
 }
 
@@ -572,7 +579,8 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 		if (result.isSuccessful()) {
 			uavcan::protocol::param::GetSet::Response resp = result.getResponse();
 			if (resp.name.size()) {
-				_param_counts[node_id] = _count_index++;
+				_count_index++;
+				_param_counts[node_id] = _count_index;
 
 				uavcan::protocol::param::GetSet::Request req;
 				req.index = _count_index;

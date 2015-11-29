@@ -93,8 +93,6 @@ static const char * const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_IN_AIR_RESTORE",
 };
 
-static bool sensor_feedback_provided = false;
-
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status,		///< current vehicle status
 			const struct safety_s   *safety,		///< current safety settings
@@ -122,10 +120,20 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		 */
 		int prearm_ret = OK;
 
-		/* only perform the check if we have to */
+		/* only perform the pre-arm check if we have to */
 		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
 				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
-			prearm_ret = prearm_check(status, mavlink_fd);
+
+			prearm_ret = preflight_check(status, mavlink_fd, true /* pre-arm */ );
+		}
+		/* re-run the pre-flight check as long as sensors are failing */
+		if (!status->condition_system_sensors_initialized 
+				&& (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED ||
+				    new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+             			&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+
+            		prearm_ret = preflight_check(status, mavlink_fd, false /* pre-flight */);
+			status->condition_system_sensors_initialized = !prearm_ret;
 		}
 
 		/*
@@ -171,7 +179,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 					// Fail transition if we need safety switch press
 					} else if (safety->safety_switch_available && !safety->safety_off) {
 
-						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first!");
+						mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first!");
 						feedback_provided = true;
 						valid_transition = false;
 					}
@@ -196,10 +204,10 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 								feedback_provided = true;
 								valid_transition = false;
 							} else if (status->avionics_power_rail_voltage < 4.9f) {
-								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+								mavlink_and_console_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 							} else if (status->avionics_power_rail_voltage > 5.4f) {
-								mavlink_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+								mavlink_and_console_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 							}
 						}
@@ -243,9 +251,11 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 			(new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 			(status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR) &&
 			(!status->condition_system_sensors_initialized)) {
-			if (!sensor_feedback_provided || (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+			if ((!status->condition_system_prearm_error_reported && 
+			      status->condition_system_hotplug_timeout) || 
+			     (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
 				mavlink_and_console_log_critical(mavlink_fd, "Not ready to fly: Sensors need inspection");
-				sensor_feedback_provided = true;
+				status->condition_system_prearm_error_reported = true;
 			}
 			feedback_provided = true;
 			valid_transition = false;
@@ -261,8 +271,9 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 		/* reset feedback state */
 		if (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR &&
+			status->arming_state != vehicle_status_s::ARMING_STATE_INIT &&
 			valid_transition) {
-			sensor_feedback_provided = false;
+			status->condition_system_prearm_error_reported = false;
 		}
 
 		/* end of atomic state update */
@@ -304,6 +315,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	switch (new_main_state) {
 	case vehicle_status_s::MAIN_STATE_MANUAL:
 	case vehicle_status_s::MAIN_STATE_ACRO:
+	case vehicle_status_s::MAIN_STATE_RATTITUDE:
 	case vehicle_status_s::MAIN_STATE_STAB:
 		ret = TRANSITION_CHANGED;
 		break;
@@ -379,7 +391,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 		switch (new_state) {
 		case vehicle_status_s::HIL_STATE_OFF:
 			/* we're in HIL and unexpected things can happen if we disable HIL now */
-			mavlink_log_critical(mavlink_fd, "Not switching off HIL (safety)");
+			mavlink_and_console_log_critical(mavlink_fd, "Not switching off HIL (safety)");
 			ret = TRANSITION_DENIED;
 			break;
 
@@ -452,7 +464,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 					closedir(d);
 
 					ret = TRANSITION_CHANGED;
-					mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
+					mavlink_and_console_log_critical(mavlink_fd, "Switched to ON hil state");
 
 				} else {
 					/* failed opening dir */
@@ -489,11 +501,11 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 				}
 
 				ret = TRANSITION_CHANGED;
-				mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
+				mavlink_and_console_log_critical(mavlink_fd, "Switched to ON hil state");
 #endif
 
 			} else {
-				mavlink_log_critical(mavlink_fd, "Not switching to HIL when armed");
+				mavlink_and_console_log_critical(mavlink_fd, "Not switching to HIL when armed");
 				ret = TRANSITION_DENIED;
 			}
 			break;
@@ -528,6 +540,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 	switch (status->main_state) {
 	case vehicle_status_s::MAIN_STATE_ACRO:
 	case vehicle_status_s::MAIN_STATE_MANUAL:
+	case vehicle_status_s::MAIN_STATE_RATTITUDE:
 	case vehicle_status_s::MAIN_STATE_STAB:
 	case vehicle_status_s::MAIN_STATE_ALTCTL:
 	case vehicle_status_s::MAIN_STATE_POSCTL:
@@ -553,6 +566,10 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 
 			case vehicle_status_s::MAIN_STATE_MANUAL:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+				break;
+
+			case vehicle_status_s::MAIN_STATE_RATTITUDE:
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
 				break;
 
 			case vehicle_status_s::MAIN_STATE_STAB:
@@ -725,17 +742,35 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 	return status->nav_state != nav_state_old;
 }
 
-int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
+int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report)
 {
-	/* at this point this equals the preflight check, but might add additional
-	 * quantities later.
+	/* 
 	 */
+	bool reportFailures = force_report || (!status->condition_system_prearm_error_reported &&
+		status->condition_system_hotplug_timeout);
+	
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
-	if (!status->circuit_breaker_engaged_airspd_check && !status->is_rotary_wing) {
+	if (!status->circuit_breaker_engaged_airspd_check && (!status->is_rotary_wing || status->is_vtol)) {
 		checkAirspeed = true;
 	}
 
-	return !Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF), !status->circuit_breaker_engaged_gpsfailure_check, true);
+	bool preflight_ok = Commander::preflightCheck(mavlink_fd, true, true, true, true,
+				checkAirspeed, !(status->rc_input_mode == vehicle_status_s::RC_IN_MODE_OFF),
+				!status->circuit_breaker_engaged_gpsfailure_check, true, reportFailures);
+		
+	if (!status->cb_usb && status->usb_connected && prearm) {
+		preflight_ok = false;
+		if (reportFailures) {
+			mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Flying with USB connected prohibited");
+		}
+	}
+
+	/* report once, then set the flag */
+	if (mavlink_fd >= 0 && reportFailures && !preflight_ok) {
+		status->condition_system_prearm_error_reported = true;
+	}
+
+	return !preflight_ok;
 }

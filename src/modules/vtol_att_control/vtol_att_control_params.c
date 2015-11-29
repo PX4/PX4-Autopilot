@@ -35,10 +35,8 @@
  * @file vtol_att_control_params.c
  * Parameters for vtol attitude controller.
  *
- * @author Roman Bapst <bapstr@ethz.ch>
+ * @author Roman Bapst <roman@px4.io>
  */
-
-#include <systemlib/param/param.h>
 
 /**
  * VTOL number of engines

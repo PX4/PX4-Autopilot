@@ -5,13 +5,6 @@ px4_nuttx_generate_builtin_commands(
 		${config_extra_builtin_cmds}
 	)
 
-px4_nuttx_add_romfs(OUT romfs
-	ROOT ROMFS/px4fmu_common
-	EXTRAS ${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin
-	)
-
-add_dependencies(romfs fw_io)
-
 # add executable
 add_executable(firmware_nuttx
 	builtin_commands.c)
@@ -33,8 +26,6 @@ if(NOT ${BOARD} STREQUAL "sim")
 	set_target_properties(firmware_nuttx PROPERTIES LINK_FLAGS ${main_link_flags})
 endif()
 
-set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${target_name}.px4)
-
 target_link_libraries(firmware_nuttx
 	-Wl,--start-group
 	${module_libraries}
@@ -49,6 +40,14 @@ add_custom_target(check_weak
 	)
 
 if(NOT ${BOARD} STREQUAL "sim")
+
+
+	px4_nuttx_add_romfs(OUT romfs
+		ROOT ROMFS/px4fmu_common
+		EXTRAS ${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin
+		)
+	add_dependencies(romfs fw_io)
+
 	set(fw_file
 		${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
 

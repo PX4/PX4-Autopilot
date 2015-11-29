@@ -698,6 +698,9 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	} else {
 		_is_usb_uart = true;
+		/* USB has no baudrate, but use a magic number for 'fast' */
+		_baudrate = 2000000;
+		_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB;
 	}
 
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
@@ -1520,6 +1523,9 @@ Mavlink::task_main(int argc, char *argv[])
 			} else if (strcmp(myoptarg, "osd") == 0) {
 				_mode = MAVLINK_MODE_OSD;
 
+			} else if (strcmp(myoptarg, "magic") == 0) {
+				_mode = MAVLINK_MODE_MAGIC;
+
 			} else if (strcmp(myoptarg, "config") == 0) {
 				_mode = MAVLINK_MODE_CONFIG;
 			}
@@ -1706,7 +1712,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
-		/* camera trigger is rate limited at the source, do not limit here */
+		//camera trigger is rate limited at the source, do not limit here
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		break;
@@ -1724,6 +1730,10 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("RC_CHANNELS", 5.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
+		break;
+
+	case MAVLINK_MODE_MAGIC:
+		//stream nothing
 		break;
 
 	case MAVLINK_MODE_CONFIG:
@@ -2094,8 +2104,12 @@ Mavlink::display_status()
 			printf("3DR RADIO\n");
 			break;
 
+		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB:
+			printf("USB CDC\n");
+			break;
+
 		default:
-			printf("UNKNOWN RADIO\n");
+			printf("GENERIC LINK OR RADIO\n");
 			break;
 		}
 

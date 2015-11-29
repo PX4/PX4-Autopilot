@@ -9,7 +9,7 @@ matrix:
     - os: linux
       sudo: false
     - os: osx
-      osx_image: beta-xcode6.3
+      osx_image: xcode7
       sudo: true
 
 cache:
@@ -21,6 +21,7 @@ addons:
     sources:
     - kubuntu-backports
     - ubuntu-toolchain-r-test
+    - george-edison55-precise-backports
     packages:
     - build-essential
     - ccache
@@ -49,6 +50,8 @@ before_install:
       && if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
       && . ~/.profile
       && popd
+      && git clone git://github.com/PX4/CI-Tools.git
+      && ./CI-Tools/s3cmd-configure
       && mkdir -p ~/bin
       && wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
       && astyle --version
@@ -56,12 +59,10 @@ before_install:
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
-      && brew update
-      && brew install astyle
-      && brew install gcc-arm-none-eabi
+      && brew update; brew update
+      && brew install cmake ninja astyle gcc-arm-none-eabi
       && brew install genromfs
       && brew install kconfig-frontends
-      && brew install ninja
       && sudo easy_install pip
       && sudo pip install pyserial empy
       ;
@@ -72,6 +73,8 @@ before_script:
   - mkdir -p ~/bin
   - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-g++
   - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-gcc
+  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-size
+  - ln -s /usr/bin/ccache ~/bin/arm-none-eabi-objcopy
   - ln -s /usr/bin/ccache ~/bin/clang++
   - ln -s /usr/bin/ccache ~/bin/clang++-3.4
   - ln -s /usr/bin/ccache ~/bin/clang++-3.5
@@ -95,7 +98,13 @@ script:
   - make check_format
   - arm-none-eabi-gcc --version
   - echo 'Building POSIX Firmware..' && make posix_sitl_simple
-  - echo 'Running Tests..' && make posix_sitl_simple test && cat build_posix_sitl_simple/src/modules/systemlib/mixer/mixer_multirotor.generated.h
+  - echo 'Running Tests..' && make posix_sitl_simple test
+  - echo 'Building UAVCAN node firmware..' && git clone https://github.com/thiemar/vectorcontrol
+  - cd vectorcontrol
+  - BOARD=s2740vc_1_0 make && BOARD=px4esc_1_6 make
+  - cd ..
+  - mkdir -p ROMFS/px4fmu_common/uavcan/fw/com.thiemar.s2740vc-v1/1.0/
+  - mkdir -p ROMFS/px4fmu_common/uavcan/fw/org.pixhawk.px4esc-v1/1.0/
   - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
   - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
   - echo 'Running Tests..' && make px4fmu-v2_default test
@@ -105,9 +114,7 @@ after_success:
          cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
       && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
       && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4
-      && git clone git://github.com/PX4/CI-Tools.git
-      && ./CI-Tools/s3cmd-configure
-      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
       && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put CI-Tools/index.html index.html

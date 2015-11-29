@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 
-#include <systemlib/param/param.h>
-
 /**
  * Logging rate.
  *
@@ -43,7 +41,7 @@
  * commonly is before arming).
  *
  * @min -1
- * @max  1
+ * @max  100
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_RATE, -1);

@@ -18,4 +18,4 @@ fw_pos_control_l1 start
 # Start Land Detector
 # Multicopter for now until we have something for VTOL
 #
-land_detector start multicopter
+land_detector start vtol
