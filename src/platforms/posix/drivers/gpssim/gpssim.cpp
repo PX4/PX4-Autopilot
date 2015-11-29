@@ -169,7 +169,7 @@ GPSSIM	*g_dev = nullptr;
 
 
 GPSSIM::GPSSIM(const char *uart_path, bool fake_gps, bool enable_sat_info) :
-	VirtDevObj("gps", GPSSIM_DEVICE_PATH, nullptr, 0),
+	VirtDevObj("gps", GPSSIM_DEVICE_PATH, nullptr, 1e6 / 10),
 	_task_should_exit(false),
 	//_healthy(false),
 	//_mode_changed(false),

@@ -53,7 +53,6 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <px4_workqueue.h>
 #include <arch/board/board.h>
 #include <board_config.h>
 
@@ -61,6 +60,8 @@
 #include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
+
+#include <simulator/simulator.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -83,6 +84,8 @@
 #define BAROSIM_CONVERSION_INTERVAL	10000	/* microseconds */
 #define BAROSIM_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 
+using namespace DriverFramework;
+
 class BAROSIM : public VirtDevObj
 {
 public:
@@ -100,9 +103,6 @@ public:
 	void			print_info();
 
 protected:
-	BAROSIM_DEV		*_interface;
-
-	struct work_s		_work;
 
 	ringbuffer::RingBuffer	*_reports;
 
@@ -155,6 +155,8 @@ protected:
 	 */
 	void			cycle();
 
+	int			transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
+
 	/**
 	 * Get the internal / external state
 	 *
@@ -195,7 +197,6 @@ extern "C" __EXPORT int barosim_main(int argc, char *argv[]);
 
 BAROSIM::BAROSIM(const char *path) :
 	VirtDevObj("BAROSIM", path, BARO_BASE_DEVICE_PATH, 1e6 / 100),
-	_interface(nullptr),
 	_reports(nullptr),
 	_collect_phase(false),
 	_measure_phase(0),
@@ -212,10 +213,7 @@ BAROSIM::BAROSIM(const char *path) :
 	_comms_errors(perf_alloc(PC_COUNT, "barosim_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "barosim_buffer_overflows"))
 {
-	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 
-	_interface = new BAROSIM_DEV;
 }
 
 BAROSIM::~BAROSIM()
@@ -234,7 +232,6 @@ BAROSIM::~BAROSIM()
 	perf_free(_comms_errors);
 	perf_free(_buffer_overflows);
 
-	delete _interface;
 }
 
 int
@@ -392,6 +389,8 @@ BAROSIM::devRead(void *buffer, size_t buflen)
 int
 BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
+	PX4_WARN("baro IOCTL %llu", hrt_absolute_time());
+
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE:
@@ -510,6 +509,7 @@ BAROSIM::start_cycle()
 void
 BAROSIM::stop_cycle()
 {
+	stop();
 	setSampleInterval(0);
 }
 
@@ -523,7 +523,8 @@ void
 BAROSIM::cycle()
 {
 	int ret;
-	unsigned long dummy = 0;
+
+	//PX4_WARN("baro cycle %llu", hrt_absolute_time());
 
 	/* collection phase? */
 	if (_collect_phase) {
@@ -532,11 +533,14 @@ BAROSIM::cycle()
 		ret = collect();
 
 		if (ret != OK) {
-			/* issue a reset command to the sensor */
-			_interface->devIOCTL(IOCTL_RESET, dummy);
+			uint8_t		cmd = ADDR_RESET_CMD;
+			int		result;
+
+			/* bump the retry count */
+			result = transfer(&cmd, 1, nullptr, 0);
 
 			/* reset the collection state machine and try again */
-			start_cycle();
+			//start_cycle();
 
 			return;
 		}
@@ -551,7 +555,7 @@ BAROSIM::cycle()
 		 */
 		if (_measure_phase != 0) {
 
-			setSampleInterval(BAROSIM_CONVERSION_INTERVAL);
+			//setSampleInterval(BAROSIM_CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -563,23 +567,25 @@ BAROSIM::cycle()
 	if (ret != OK) {
 		//DEVICE_LOG("measure error %d", ret);
 		/* issue a reset command to the sensor */
-		_interface->devIOCTL(IOCTL_RESET, dummy);
+		//_interface->devIOCTL(IOCTL_RESET, dummy);
 
 		/* reset the collection state machine and try again */
-		start_cycle();
+		//start_cycle();
 		return;
 	}
 
 	/* next phase is collection */
 	_collect_phase = true;
 
-	setSampleInterval(BAROSIM_CONVERSION_INTERVAL);
+	//setSampleInterval(BAROSIM_CONVERSION_INTERVAL);
 }
 
 int
 BAROSIM::measure()
 {
 	int ret;
+
+	//PX4_WARN("baro measure %llu", hrt_absolute_time());
 
 	perf_begin(_measure_perf);
 
@@ -591,7 +597,8 @@ BAROSIM::measure()
 	/*
 	 * Send the command to begin measuring.
 	 */
-	ret = _interface->devIOCTL(IOCTL_MEASURE, addr);
+	uint8_t cmd = addr;
+	ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -603,8 +610,47 @@ BAROSIM::measure()
 }
 
 int
+BAROSIM::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+{
+	if (send_len == 1 && send[0] == ADDR_RESET_CMD) {
+		/* reset command */
+		return 0;
+
+	} else if (send_len == 1 && (send[0] == ADDR_CMD_CONVERT_D2 || send[0] == ADDR_CMD_CONVERT_D1)) {
+		/* measure command */
+		if (send[0] == ADDR_CMD_CONVERT_D2) {
+		} else {
+		}
+
+		return 0;
+
+	} else if (send[0] == 0 && send_len == 1) {
+		/* read requested */
+		Simulator *sim = Simulator::getInstance();
+
+		if (sim == NULL) {
+			PX4_ERR("Error BAROSIM_DEV::transfer no simulator");
+			return -ENODEV;
+		}
+
+		PX4_DEBUG("BAROSIM_DEV::transfer getting sample");
+		sim->getBaroSample(recv, recv_len);
+		return recv_len;
+
+	} else {
+		PX4_WARN("BAROSIM_DEV::transfer invalid param %u %u %u", send_len, send[0], recv_len);
+		return 1;
+	}
+
+
+	return 0;
+}
+
+int
 BAROSIM::collect()
 {
+	//PX4_WARN("baro collect %llu", hrt_absolute_time());
+
 	int ret;
 
 #pragma pack(push, 1)
@@ -623,7 +669,8 @@ BAROSIM::collect()
 	report.error_count = perf_event_count(_comms_errors);
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
-	ret = _interface->devRead((void *)&baro_report, sizeof(baro_report));
+	uint8_t cmd = 0;
+	ret = transfer(&cmd, 1, (uint8_t*)&report, sizeof(baro_report));
 
 	if (ret < 0) {
 		perf_count(_comms_errors);
@@ -660,7 +707,8 @@ BAROSIM::collect()
 		}
 
 		/* notify anyone waiting for data */
-		DevMgr::updateNotify(*this);
+		//DevMgr::updateNotify(*this);
+		updateNotify();
 	}
 
 	/* update the measurement state machine */

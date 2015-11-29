@@ -79,38 +79,3 @@ union prom_u {
 extern bool crc4(uint16_t *n_prom);
 
 } /* namespace */
-
-using namespace DriverFramework;
-
-class BAROSIM_DEV : public VirtDevObj
-{
-public:
-	BAROSIM_DEV();
-	virtual ~BAROSIM_DEV();
-
-	virtual int	init();
-	virtual ssize_t	devRead(void *data, size_t count);
-	virtual int	devIOCTL(unsigned long operation, unsigned long arg);
-
-	virtual int	transfer(const uint8_t *send, unsigned send_len,
-				 uint8_t *recv, unsigned recv_len);
-
-protected:
-	virtual void _measure();
-
-private:
-	/**
-	 * Send a reset command to the barometer simulator.
-	 *
-	 * This is required after any bus reset.
-	 */
-	int		_reset();
-
-	/**
-	 * Send a measure command to the barometer simulator.
-	 *
-	 * @param addr		Which address to use for the measure operation.
-	 */
-	int		_doMeasurement(unsigned addr);
-
-};
