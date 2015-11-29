@@ -94,7 +94,7 @@
  * This is the analog to FMU_INPUT_DROP_LIMIT_US on the IO side
  */
 
-#define CONTROL_INPUT_DROP_LIMIT_MS		2
+#define CONTROL_INPUT_DROP_LIMIT_US		1500
 #define NAN_VALUE	(0.0f/0.0f)
 
 class PX4FMU : public device::CDev
@@ -887,7 +887,7 @@ PX4FMU::cycle()
 		}
 	}
 
-	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, USEC2TICK(CONTROL_INPUT_DROP_LIMIT_MS * 1000));
+	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, USEC2TICK(CONTROL_INPUT_DROP_LIMIT_US));
 }
 
 void PX4FMU::work_stop()
