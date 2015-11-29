@@ -85,13 +85,14 @@ MavlinkOrbSubscription::update(uint64_t *time, void* data)
 		time_topic = 0;
 	}
 
-	if (orb_copy(_topic, _fd, data)) {
-		if (data) {
-			/* error copying topic data */
-			memset(data, 0, _topic->o_size);
-		}
+	if (! data) {
 		return false;
+	}
 
+	if (orb_copy(_topic, _fd, data)) {
+		/* error copying topic data */
+		memset(data, 0, _topic->o_size);
+		return false;
 	} else {
 		/* data copied successfully */
 		_published = true;
