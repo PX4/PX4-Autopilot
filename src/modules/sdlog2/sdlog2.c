@@ -311,7 +311,7 @@ int sdlog2_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("sdlog2",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_DEFAULT - 30,
-						 3000,
+						 3300,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
 
