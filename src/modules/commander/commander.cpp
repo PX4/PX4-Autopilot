@@ -597,21 +597,26 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
-					switch(custom_sub_mode) {
-					case PX4_CUSTOM_SUB_MODE_AUTO_LOITER:
-						main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_LOITER);
-						break;
-					case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
-						main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_MISSION);
-						break;
-					case PX4_CUSTOM_SUB_MODE_AUTO_RTL:
-						main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_RTL);
-						break;
+					if (custom_sub_mode > 0) {
+						switch(custom_sub_mode) {
+						case PX4_CUSTOM_SUB_MODE_AUTO_LOITER:
+							main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_LOITER);
+							break;
+						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
+							main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_MISSION);
+							break;
+						case PX4_CUSTOM_SUB_MODE_AUTO_RTL:
+							main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_RTL);
+							break;
 
-					default:
-						main_ret = TRANSITION_DENIED;
-						mavlink_log_critical(mavlink_fd, "Unsupported auto command");
-						break;
+						default:
+							main_ret = TRANSITION_DENIED;
+							mavlink_log_critical(mavlink_fd, "Unsupported auto mode");
+							break;
+						}
+
+					} else {
+						main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_MISSION);
 					}
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ACRO) {
