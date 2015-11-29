@@ -333,6 +333,10 @@ void AttitudeEstimatorQ::task_main()
 		// Update sensors
 		sensor_combined_s sensors;
 
+		int best_gyro = 0;
+		int best_accel = 0;
+		int best_mag = 0;
+
 		if (!orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors)) {
 			// Feed validator with recent sensor data
 
@@ -368,8 +372,6 @@ void AttitudeEstimatorQ::task_main()
 						       sensors.magnetometer_errcount[i], sensors.magnetometer_priority[i]);
 				}
 			}
-
-			int best_gyro, best_accel, best_mag;
 
 			// Get best measurement values
 			hrt_abstime curr_time = hrt_absolute_time();
