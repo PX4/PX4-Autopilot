@@ -174,8 +174,7 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
 	 * frame transmission time is ~2ms.
 	 *
-	 * We expect to only be called when bytes arrive for processing,
-	 * and if an interval of more than 3ms passes between calls,
+	 * If an interval of more than 4ms passes between calls,
 	 * the first byte we read will be the first byte of a frame.
 	 *
 	 * In the case where byte(s) are dropped from a frame, this also
@@ -184,7 +183,7 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 */
 	now = hrt_absolute_time();
 
-	if ((now - last_rx_time) > 3000) {
+	if ((now - last_rx_time) > 4000) {
 		if (partial_frame_count > 0) {
 			sbus_frame_drops++;
 			partial_frame_count = 0;

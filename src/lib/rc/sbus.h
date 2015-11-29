@@ -47,6 +47,24 @@
 __BEGIN_DECLS
 
 __EXPORT int	sbus_init(const char *device, bool singlewire);
+
+/**
+ * Parse serial bytes on the S.BUS bus
+ *
+ * The S.bus protocol doesn't provide reliable framing,
+ * so we detect frame boundaries by the inter-frame delay.
+ *
+ * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
+ * frame transmission time is ~2ms.
+ *
+ * If an interval of more than 4ms (7 ms frame spacing plus margin)
+ * passes between calls, the first byte we read will be the first
+ * byte of a frame.
+ *
+ * In the case where byte(s) are dropped from a frame, this also
+ * provides a degree of protection. Of course, it would be better
+ * if we didn't drop bytes...
+ */
 __EXPORT bool	sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe,
 			   bool *sbus_frame_drop,
 			   uint16_t max_channels);
