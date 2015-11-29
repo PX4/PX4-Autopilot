@@ -233,5 +233,10 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			y = -y;
 			return;
 		}
+	case ROTATION_PITCH_90_ROLL_90: {
+			tmp = x; x = y;
+			y = -z; z = -tmp;
+			return;
+		}
 	}
 }
