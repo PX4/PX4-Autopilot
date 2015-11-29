@@ -205,9 +205,9 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_voter_gyro(3),
 	_voter_accel(3),
 	_voter_mag(3),
-	_lp_roll_rate(250.0f, 18.0f),
-	_lp_pitch_rate(250.0f, 18.0f),
-	_lp_yaw_rate(250.0f, 10.0f)
+	_lp_roll_rate(250.0f, 30.0f),
+	_lp_pitch_rate(250.0f, 30.0f),
+	_lp_yaw_rate(250.0f, 20.0f)
 {
 	_voter_mag.set_timeout(200000);
 
