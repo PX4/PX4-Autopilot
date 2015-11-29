@@ -171,7 +171,6 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
-	perf_counter_t		_system_latency_perf;
 	perf_counter_t		_controller_latency_perf;
 
 	enum Rotation		_rotation;
@@ -327,7 +326,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_sample_perf(perf_alloc(PC_ELAPSED, "gyrosim_read")),
 	_good_transfers(perf_alloc(PC_COUNT, "gyrosim_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "gyrosim_reset_retries")),
-	_system_latency_perf(perf_alloc_once(PC_ELAPSED, "sys_latency")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_rotation(rotation),
 	_last_temperature(0)
@@ -1121,7 +1119,6 @@ GYROSIM::_measure()
 	if (!(_pub_blocked)) {
 		/* log the time of this report */
 		perf_begin(_controller_latency_perf);
-		perf_begin(_system_latency_perf);
 		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}
