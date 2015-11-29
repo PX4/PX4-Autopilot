@@ -153,7 +153,7 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define PRINT_INTERVAL	5000000
 #define PRINT_MODE_REJECT_INTERVAL	10000000
 
-#define INAIR_RESTART_HOLDOFF_INTERVAL	1000000
+#define INAIR_RESTART_HOLDOFF_INTERVAL	500000
 
 #define HIL_ID_MIN 1000
 #define HIL_ID_MAX 1999
@@ -573,7 +573,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 			arming_ret = arm_disarm(cmd_arm, mavlink_fd, "set mode command");
 
-			/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
+			/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
 			if (cmd_arm && (arming_ret == TRANSITION_CHANGED) &&
 				(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
 
@@ -2393,7 +2393,7 @@ int commander_thread_main(int argc, char *argv[])
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
 		}
 
-		/* update home position on arming if at least 1s from commander start spent to avoid setting home on in-air restart */
+		/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
 		else if (((!was_armed && armed.armed) || (was_landed && !status.condition_landed)) &&
 			(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
