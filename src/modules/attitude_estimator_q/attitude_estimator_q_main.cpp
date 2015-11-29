@@ -556,9 +556,9 @@ void AttitudeEstimatorQ::task_main()
 		att.pitch = euler(1);
 		att.yaw = euler(2);
 
-		att.rollspeed = _rates(0);
-		att.pitchspeed = _rates(1);
-		att.yawspeed = _rates(2);
+		att.rollspeed = sensors.gyro_rad_s[best_gyro * 3 + 0] + _gyro_bias(0); //_rates(0);
+		att.pitchspeed = sensors.gyro_rad_s[best_gyro * 3 + 1] + _gyro_bias(1); //_rates(1);
+		att.yawspeed = sensors.gyro_rad_s[best_gyro * 3 + 2] + _gyro_bias(2); //_rates(2);
 
 		for (int i = 0; i < 3; i++) {
 			att.g_comp[i] = _accel(i) - _pos_acc(i);
@@ -598,11 +598,11 @@ void AttitudeEstimatorQ::task_main()
 		ctrl_state.q[3] = _q(3);
 
 		/* Attitude rates for control state */
-		ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
+		ctrl_state.roll_rate = sensors.gyro_rad_s[best_gyro * 3 + 0] + _gyro_bias(0);//_lp_roll_rate.apply(_rates(0));
 
-		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
+		ctrl_state.pitch_rate = sensors.gyro_rad_s[best_gyro * 3 + 1] + _gyro_bias(1);//_lp_pitch_rate.apply(_rates(1));
 
-		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
+		ctrl_state.yaw_rate = sensors.gyro_rad_s[best_gyro * 3 + 2] + _gyro_bias(2);//_lp_yaw_rate.apply(_rates(2));
 
 		/* Airspeed - take airspeed measurement directly here as no wind is estimated */
 		ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
