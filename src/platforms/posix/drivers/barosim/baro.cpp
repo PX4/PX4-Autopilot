@@ -534,10 +534,13 @@ BAROSIM::cycle()
 
 		if (ret != OK) {
 			uint8_t		cmd = ADDR_RESET_CMD;
-			int		result;
 
 			/* bump the retry count */
-			result = transfer(&cmd, 1, nullptr, 0);
+			ret = transfer(&cmd, 1, nullptr, 0);
+
+			if (OK != ret) {
+				perf_count(_comms_errors);
+			}
 
 			/* reset the collection state machine and try again */
 			//start_cycle();
