@@ -59,6 +59,7 @@
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/fw_virtual_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_virtual_fw.h>
@@ -142,6 +143,7 @@ private:
 
 	orb_id_t _rates_sp_id;	// pointer to correct rates setpoint uORB metadata structure
 	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
+	orb_id_t _attitude_setpoint_id;
 
 	struct control_state_s				_ctrl_state;	/**< control state */
 	struct accel_report				_accel;			/**< body frame accelerations */
@@ -360,6 +362,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_rates_sp_id(0),
 	_actuators_id(0),
+	_attitude_setpoint_id(0),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
@@ -633,9 +636,11 @@ FixedwingAttitudeControl::vehicle_status_poll()
 			if (_vehicle_status.is_vtol) {
 				_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
+				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
 			} else {
 				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_0);
+				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
 			}
 		}
 	}
@@ -1015,15 +1020,12 @@ FixedwingAttitudeControl::task_main()
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
-					if (!_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
-						if (_attitude_sp_pub != nullptr) {
-							/* publish the attitude setpoint */
-							orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &att_sp);
-
-						} else {
-							/* advertise and publish */
-							_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
-						}
+					if (_attitude_sp_pub != nullptr) {
+						/* publish the attitude setpoint */
+						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &att_sp);
+					} else if (_attitude_setpoint_id) {
+						/* advertise and publish */
+						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &att_sp);
 					}
 				}
 

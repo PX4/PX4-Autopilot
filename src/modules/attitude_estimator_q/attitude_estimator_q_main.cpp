@@ -59,6 +59,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -122,6 +123,7 @@ private:
 	int		_params_sub = -1;
 	int		_vision_sub = -1;
 	int		_mocap_sub = -1;
+	int		_airspeed_sub = -1;
 	int		_global_pos_sub = -1;
 	orb_advert_t	_att_pub = nullptr;
 	orb_advert_t	_ctrl_state_pub = nullptr;
@@ -160,6 +162,8 @@ private:
 
 	att_pos_mocap_s _mocap = {};
 	Vector<3>	_mocap_hdg;
+
+	airspeed_s _airspeed = {};
 
 	Quaternion	_q;
 	Vector<3>	_rates;
@@ -202,6 +206,8 @@ private:
 
 
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
+	_vel_prev(0, 0, 0),
+	_pos_acc(0, 0, 0),
 	_voter_gyro(3),
 	_voter_accel(3),
 	_voter_mag(3),
@@ -258,7 +264,7 @@ int AttitudeEstimatorQ::start()
 	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   2100,
+					   2400,
 					   (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
 					   nullptr);
 
@@ -299,6 +305,8 @@ void AttitudeEstimatorQ::task_main()
 	_vision_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 
+	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 
@@ -333,6 +341,10 @@ void AttitudeEstimatorQ::task_main()
 
 		// Update sensors
 		sensor_combined_s sensors;
+
+		int best_gyro = 0;
+		int best_accel = 0;
+		int best_mag = 0;
 
 		if (!orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors)) {
 			// Feed validator with recent sensor data
@@ -369,8 +381,6 @@ void AttitudeEstimatorQ::task_main()
 						       sensors.magnetometer_errcount[i], sensors.magnetometer_priority[i]);
 				}
 			}
-
-			int best_gyro, best_accel, best_mag;
 
 			// Get best measurement values
 			hrt_abstime curr_time = hrt_absolute_time();
@@ -488,6 +498,14 @@ void AttitudeEstimatorQ::task_main()
 			_mocap_hdg = Rmoc.transposed() * v;
 		}
 
+		// Update airspeed
+		bool airspeed_updated = false;
+		orb_check(_airspeed_sub, &airspeed_updated);
+
+		if (airspeed_updated) {
+			orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+		}
+
 		// Check for timeouts on data
 		if (_ext_hdg_mode == 1) {
 			_ext_hdg_good = _vision.timestamp_boot > 0 && (hrt_elapsed_time(&_vision.timestamp_boot) < 500000);
@@ -600,6 +618,9 @@ void AttitudeEstimatorQ::task_main()
 		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
 
 		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
+
+		/* Airspeed - take airspeed measurement directly here as no wind is estimated */
+		ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
 
 		/* Publish to control state topic */
 		if (_ctrl_state_pub == nullptr) {
@@ -722,6 +743,8 @@ bool AttitudeEstimatorQ::update(float dt)
 		// Project magnetometer correction to body frame
 		corr += _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, -mag_err)) * _w_mag;
 	}
+
+	_q.normalize();
 
 	// Accelerometer correction
 	// Project 'k' unit vector of earth frame to body frame

@@ -69,6 +69,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/control_state.h>
+#include <uORB/topics/mc_virtual_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
@@ -140,6 +141,8 @@ private:
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
+
+	orb_id_t _attitude_setpoint_id;
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
 	struct control_state_s				_ctrl_state;			/**< vehicle attitude */
@@ -336,6 +339,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
 	_global_vel_sp_pub(nullptr),
+	_attitude_setpoint_id(0),
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_vel_x_deriv(this, "VELD"),
@@ -533,6 +537,14 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+		/* set correct uORB ID, depending on if vehicle is VTOL or not */
+		if (!_attitude_setpoint_id) {
+			if (_vehicle_status.is_vtol) {
+				_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
+			} else {
+				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+			}
+		}
 	}
 
 	orb_check(_ctrl_state_sub, &updated);
@@ -1141,6 +1153,16 @@ MulticopterPositionControl::task_main()
 			_run_pos_control = true;
 			_run_alt_control = true;
 
+			// reset the horizontal and vertical position hold flags for non-manual modes
+			// or if position is not controlled
+			if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
+				_pos_hold_engaged = false;
+			}
+
+			if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
+				_alt_hold_engaged = false;
+			}
+
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
 				/* manual control */
@@ -1173,10 +1195,9 @@ MulticopterPositionControl::task_main()
 
 				/* publish attitude setpoint */
 				if (_att_sp_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
-
-				} else {
-					_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+				} else if (_attitude_setpoint_id) {
+					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
 
 			} else {
@@ -1600,16 +1621,18 @@ MulticopterPositionControl::task_main()
 
 		/* publish attitude setpoint
 		 * Do not publish if offboard is enabled but position/velocity control is disabled,
-		 * in this case the attitude setpoint is published by the mavlink app
+		 * in this case the attitude setpoint is published by the mavlink app. Also do not publish
+		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+		 * attitude setpoints for the transition).
 		 */
 		if (!(_control_mode.flag_control_offboard_enabled &&
-		      !(_control_mode.flag_control_position_enabled ||
-			_control_mode.flag_control_velocity_enabled))) {
-			if (_att_sp_pub != nullptr && (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode)) {
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
+					!(_control_mode.flag_control_position_enabled ||
+						_control_mode.flag_control_velocity_enabled))) {
 
-			} else if (_att_sp_pub == nullptr && (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode)) {
-				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+			if (_att_sp_pub != nullptr) {
+				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+			} else if (_attitude_setpoint_id) {
+				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 			}
 		}
 

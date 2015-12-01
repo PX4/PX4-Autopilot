@@ -48,6 +48,7 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+#include <rc/sbus.h>
 
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/mixer/mixer.h>
@@ -70,6 +71,8 @@ static bool should_arm = false;
 static bool should_arm_nothrottle = false;
 static bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
+
+extern int _sbus_fd;
 
 /* selected control values and count for mixing */
 enum mixer_source {
@@ -292,10 +295,10 @@ mixer_tick(void)
 		/* set S.BUS1 or S.BUS2 outputs */
 
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
+			sbus2_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 
 		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
+			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
@@ -306,11 +309,11 @@ mixer_tick(void)
 
 		/* set S.BUS1 or S.BUS2 outputs */
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus1_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
 		}
 
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
 		}
 	}
 }

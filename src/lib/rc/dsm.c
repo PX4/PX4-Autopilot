@@ -46,9 +46,16 @@
 #include <unistd.h>
 #include <termios.h>
 
+#include "dsm.h"
 #include <drivers/drv_hrt.h>
 
-#include "px4io.h"
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
+#include <px4io.h>
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+#include <px4io.h>
+#endif
 
 #define DSM_FRAME_SIZE		16		/**<DSM frame size in bytes*/
 #define DSM_FRAME_CHANNELS	7		/**<Max supported DSM channels*/
@@ -60,6 +67,9 @@ static uint8_t dsm_frame[DSM_FRAME_SIZE];	/**< DSM dsm frame receive buffer */
 static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
 static unsigned dsm_channel_shift;			/**< Channel resolution, 0=unknown, 1=10 bit, 2=11 bit */
 static unsigned dsm_frame_drops;			/**< Count of incomplete DSM frames */
+
+static bool
+dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, unsigned max_values);
 
 /**
  * Attempt to decode a single channel raw channel datum
@@ -185,18 +195,18 @@ dsm_guess_format(bool reset)
 
 	if ((votes11 == 1) && (votes10 == 0)) {
 		dsm_channel_shift = 11;
-		debug("DSM: 11-bit format");
+		//debug("DSM: 11-bit format");
 		return;
 	}
 
 	if ((votes10 == 1) && (votes11 == 0)) {
 		dsm_channel_shift = 10;
-		debug("DSM: 10-bit format");
+		//debug("DSM: 10-bit format");
 		return;
 	}
 
 	/* call ourselves to reset our state ... we have to try again */
-	debug("DSM: format detect fail, 10: 0x%08x %d 11: 0x%08x %d", cs10, votes10, cs11, votes11);
+	//debug("DSM: format detect fail, 10: 0x%08x %d 11: 0x%08x %d", cs10, votes10, cs11, votes11);
 	dsm_guess_format(true);
 }
 
@@ -237,11 +247,11 @@ dsm_init(const char *device)
 		/* reset the format detector */
 		dsm_guess_format(true);
 
-		debug("DSM: ready");
+		//debug("DSM: ready");
 
 	} else {
 
-		debug("DSM: open failed");
+		//debug("DSM: open failed");
 
 	}
 
@@ -257,11 +267,8 @@ dsm_init(const char *device)
 void
 dsm_bind(uint16_t cmd, int pulses)
 {
-#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)
-#warning DSM BIND NOT IMPLEMENTED ON UNKNOWN PLATFORM
+#if !defined(GPIO_USART1_RX_SPEKTRUM)
 #else
-	const uint32_t usart1RxAsOutp =
-		GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN10;
 
 	if (dsm_fd < 0) {
 		return;
@@ -272,9 +279,9 @@ dsm_bind(uint16_t cmd, int pulses)
 	case dsm_bind_power_down:
 
 		/*power down DSM satellite*/
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
+#if defined(CONFIG_ARCH_BOARD_PX4IO_V1)
 		POWER_RELAY1(0);
-#else /* CONFIG_ARCH_BOARD_PX4IO_V2 */
+#elif defined(CONFIG_ARCH_BOARD_PX4IO_V2)
 		POWER_SPEKTRUM(0);
 #endif
 		break;
@@ -282,9 +289,9 @@ dsm_bind(uint16_t cmd, int pulses)
 	case dsm_bind_power_up:
 
 		/*power up DSM satellite*/
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
+#if defined(CONFIG_ARCH_BOARD_PX4IO_V1)
 		POWER_RELAY1(1);
-#else /* CONFIG_ARCH_BOARD_PX4IO_V2 */
+#elif defined(CONFIG_ARCH_BOARD_PX4IO_V2)
 		POWER_SPEKTRUM(1);
 #endif
 		dsm_guess_format(true);
@@ -293,7 +300,7 @@ dsm_bind(uint16_t cmd, int pulses)
 	case dsm_bind_set_rx_out:
 
 		/*Set UART RX pin to active output mode*/
-		stm32_configgpio(usart1RxAsOutp);
+		stm32_configgpio(GPIO_USART1_RX_SPEKTRUM);
 		break;
 
 	case dsm_bind_send_pulses:
@@ -301,9 +308,9 @@ dsm_bind(uint16_t cmd, int pulses)
 		/*Pulse RX pin a number of times*/
 		for (int i = 0; i < pulses; i++) {
 			up_udelay(120);
-			stm32_gpiowrite(usart1RxAsOutp, false);
+			stm32_gpiowrite(GPIO_USART1_RX_SPEKTRUM, false);
 			up_udelay(120);
-			stm32_gpiowrite(usart1RxAsOutp, true);
+			stm32_gpiowrite(GPIO_USART1_RX_SPEKTRUM, true);
 		}
 
 		break;
@@ -327,8 +334,8 @@ dsm_bind(uint16_t cmd, int pulses)
  * @param[out] num_values pointer to number of raw channel values returned
  * @return true=DSM frame successfully decoded, false=no update
  */
-static bool
-dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
+bool
+dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, unsigned max_values)
 {
 	/*
 	debug("DSM dsm_frame %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x",
@@ -374,7 +381,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 		}
 
 		/* ignore channels out of range */
-		if (channel >= PX4IO_RC_INPUT_CHANNELS) {
+		if (channel >= max_values) {
 			continue;
 		}
 
@@ -473,7 +480,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
  * @return true=decoded raw channel values updated, false=no update
  */
 bool
-dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes)
+dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes, unsigned max_values)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
@@ -523,5 +530,5 @@ dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **by
 	 * decode it.
 	 */
 	dsm_partial_frame_count = 0;
-	return dsm_decode(now, values, num_values);
+	return dsm_decode(now, values, num_values, max_values);
 }
