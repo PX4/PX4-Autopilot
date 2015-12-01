@@ -75,6 +75,7 @@ static task_entry taskmap[PX4_MAX_TASKS] = {};
 
 typedef struct {
 	px4_main_t entry;
+	const char* name;
 	int argc;
 	char *argv[];
 	// strings are allocated after the
@@ -83,6 +84,19 @@ typedef struct {
 static void *entry_adapter(void *ptr)
 {
 	pthdata_t *data = (pthdata_t *) ptr;
+
+	int rv;
+	// set the threads name
+	#ifdef __PX4_DARWIN
+	rv = pthread_setname_np(data->name);
+	#else
+	rv = pthread_setname_np(pthread_self(), data->name);
+	#endif
+
+	if (rv) {
+		PX4_ERR("px4_task_spawn_cmd: failed to set name of thread %d %d\n", rv, errno);
+	}
+
 	data->entry(data->argc, data->argv);
 	free(ptr);
 	PX4_DEBUG("Before px4_task_exit");
@@ -132,6 +146,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	memset(taskdata, 0, structsize + len);
 	offset = ((unsigned long)taskdata) + structsize;
 
+	taskdata->name = name;
 	taskdata->entry = entry;
 	taskdata->argc = argc;
 
