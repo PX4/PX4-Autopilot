@@ -116,6 +116,7 @@ px4_systemreset(bool to_bootloader)
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry,
 			      char *const argv[])
 {
+
 	int rv;
 	int argc = 0;
 	int i;
@@ -365,4 +366,27 @@ const char *getprogname()
 
 	return "Unknown App";
 }
+
+int px4_prctl(int option, const char* arg2, unsigned pid)
+{
+	int rv;
+
+	switch (option) {
+		case PR_SET_NAME:
+				// set the threads name
+				#ifdef __PX4_DARWIN
+				rv = pthread_setname_np(arg2);
+				#else
+				rv = pthread_setname_np(pthread_self(), arg2);
+				#endif
+			break;
+		default:
+			rv = -1;
+			PX4_WARN("FAILED SETTING TASK NAME");
+			break;
+	}
+
+	return rv;
+}
+
 __END_DECLS
