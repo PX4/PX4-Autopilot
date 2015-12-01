@@ -662,7 +662,7 @@ BAROSIM::collect()
 
 	perf_begin(_sample_perf);
 
-	struct baro_report report;
+	struct baro_report report = {};
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
