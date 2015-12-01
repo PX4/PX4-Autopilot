@@ -119,6 +119,14 @@ static void hrt_work_process()
 	uint32_t remaining;
 	uint32_t next;
 
+	int rv;
+	// set the threads name
+	#ifdef __PX4_DARWIN
+	rv = pthread_setname_np("HRT");
+	#else
+	rv = pthread_setname_np(pthread_self(), "HRT");
+	#endif
+
 	/* Then process queued work.  We need to keep interrupts disabled while
 	 * we process items in the work list.
 	 */
