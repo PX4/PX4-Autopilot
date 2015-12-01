@@ -49,6 +49,9 @@
 #elif defined(__PX4_NUTTX)
 typedef int px4_task_t;
 
+#include <sys/prctl.h>
+#define px4_prctl prctl
+
 /** Default scheduler type */
 #if CONFIG_RR_INTERVAL > 0
 # define SCHED_DEFAULT  SCHED_RR
@@ -80,10 +83,7 @@ typedef int px4_task_t;
 #error "No target OS defined"
 #endif
 
-#if defined (__PX4_NUTTX)
-#include <sys/prctl.h>
-#define px4_prctl prctl
-#elif defined (__PX4_LINUX)
+#if defined (__PX4_LINUX)
 #include <sys/prctl.h>
 #else
 #define PR_SET_NAME	1
