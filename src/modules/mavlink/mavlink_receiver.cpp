@@ -1750,10 +1750,15 @@ void *
 MavlinkReceiver::receive_thread(void *arg)
 {
 
+	/* set thread name */
+	char thread_name[24];
+	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
+	px4_prctl(PR_SET_NAME, thread_name, getpid());
+
 	const int timeout = 500;
 #ifdef __PX4_POSIX
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
-	uint8_t buf[1600];
+	uint8_t buf[1600 * 5];
 #else
 	/* the serial port buffers internally as well, we just need to fit a small chunk */
 	uint8_t buf[64];
@@ -1766,12 +1771,6 @@ MavlinkReceiver::receive_thread(void *arg)
 
 	if (_mavlink->get_protocol() == SERIAL) {
 		uart_fd = _mavlink->get_uart_fd();
-#ifndef __PX4_POSIX
-		/* set thread name */
-		char thread_name[24];
-		sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
-		prctl(PR_SET_NAME, thread_name, getpid());
-#endif
 
 		fds[0].fd = uart_fd;
 		fds[0].events = POLLIN;
@@ -1873,6 +1872,7 @@ void MavlinkReceiver::smooth_time_offset(uint64_t offset_ns)
 
 void *MavlinkReceiver::start_helper(void *context)
 {
+
 	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink *)context);
 
 	rcv->receive_thread(NULL);
