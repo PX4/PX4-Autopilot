@@ -48,7 +48,7 @@ if [ "$program" == "jmavsim" ] && [ "$no_sim" == "" ]
 then
 	cd Tools/jMAVSim
 	ant
-	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
+	nice -n -10 java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
 elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
 then
@@ -65,7 +65,7 @@ then
 		cd Tools/sitl_gazebo/Build
 		cmake -Wno-dev ..
 		make -j4
-		gzserver --verbose ../worlds/${model}.world &
+		nice -n -10 gzserver --verbose ../worlds/${model}.world &
 		SIM_PID=`echo $!`
 		gzclient --verbose &
 		GUI_PID=`echo $!`
@@ -96,7 +96,7 @@ elif [ "$debugger" == "valgrind" ]
 then
 	valgrind ./mainapp ../../../../${rc_script}_${program}_${model}
 else
-	./mainapp ../../../../${rc_script}_${program}_${model}
+	nice -n -10 ./mainapp ../../../../${rc_script}_${program}_${model}
 fi
 
 if [ "$program" == "jmavsim" ]
