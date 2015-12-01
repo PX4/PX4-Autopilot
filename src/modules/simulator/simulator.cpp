@@ -182,7 +182,7 @@ extern "C" {
 
 				g_sim_task = px4_task_spawn_cmd("simulator",
 								SCHED_DEFAULT,
-								SCHED_PRIORITY_MAX - 5,
+								SCHED_PRIORITY_MAX,
 								1500,
 								Simulator::start,
 								argv);

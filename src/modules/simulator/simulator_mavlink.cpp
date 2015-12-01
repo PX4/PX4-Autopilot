@@ -457,7 +457,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
 
 	/* low priority */
-	param.sched_priority = SCHED_PRIORITY_DEFAULT;
+	param.sched_priority = SCHED_PRIORITY_DEFAULT + 40;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 
 	// setup serial connection to autopilot (used to get manual controls)
@@ -533,11 +533,11 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// wait for new mavlink messages to arrive
 	while (true) {
 
-		pret = ::poll(&fds[0], fd_count, 100);
+		pret = ::poll(&fds[0], fd_count, 10);
 
 		//timed out
 		if (pret == 0) {
-			PX4_WARN("mavlink sim timeout for 100 ms");
+			PX4_WARN("mavlink sim timeout for 10 ms");
 			continue;
 		}
 
