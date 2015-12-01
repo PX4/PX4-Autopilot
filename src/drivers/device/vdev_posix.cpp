@@ -243,6 +243,14 @@ extern "C" {
 		int ret = -1;
 		unsigned int i;
 
+		const unsigned NAMELEN = 32;
+		char thread_name[NAMELEN] = {};
+		int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+
+		if (nret || thread_name[0] == 0) {
+			PX4_WARN("failed getting thread name");
+		}
+
 		PX4_DEBUG("Called px4_poll timeout = %d", timeout);
 		px4_sem_init(&sem, 0, 0);
 
@@ -257,13 +265,10 @@ extern "C" {
 
 			// If fd is valid
 			if (dev) {
-				PX4_DEBUG("px4_poll: VDev->poll(setup) %d", fds[i].fd);
+				PX4_DEBUG("%s: px4_poll: VDev->poll(setup) %d", thread_name, fds[i].fd);
 				ret = dev->poll(filemap[fds[i].fd], &fds[i], true);
 
 				if (ret < 0) {
-					const unsigned NAMELEN = 32;
-					char thread_name[NAMELEN] = {};
-					(void)pthread_getname_np(pthread_self(), thread_name, NAMELEN);
 					PX4_WARN("%s: px4_poll() error: %s",
 						thread_name, strerror(errno));
 					break;
@@ -301,6 +306,10 @@ extern "C" {
 					ret = -ret;
 				}
 
+				if (ret && ret != -ETIMEDOUT) {
+					PX4_WARN("%s: px4_poll() sem error", thread_name);
+				}
+
 			} else if (timeout < 0) {
 				px4_sem_wait(&sem);
 			}
@@ -313,11 +322,11 @@ extern "C" {
 
 				// If fd is valid
 				if (dev) {
-					PX4_DEBUG("px4_poll: VDev->poll(teardown) %d", fds[i].fd);
+					PX4_DEBUG("%s: px4_poll: VDev->poll(teardown) %d", thread_name, fds[i].fd);
 					ret = dev->poll(filemap[fds[i].fd], &fds[i], false);
 
 					if (ret < 0) {
-						PX4_WARN("px4_poll() 2nd poll fail");
+						PX4_WARN("%s: px4_poll() 2nd poll fail", thread_name);
 						break;
 					}
 
@@ -325,11 +334,6 @@ extern "C" {
 						count += 1;
 					}
 				}
-			}
-
-			// If nothing is ready 
-			if (count == 0) {
-				usleep(timeout * 1000);
 			}
 		}
 
