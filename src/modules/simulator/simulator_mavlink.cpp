@@ -500,7 +500,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	PX4_INFO("Waiting for initial data on UDP. Please start the flight simulator to proceed..");
 
 	while (pret <= 0) {
-		pret = ::poll(&fds[0], (sizeof(fds[0]) / sizeof(fds[0])), 100);
+		pret = ::poll(&fds[0], fd_count, 100);
 	}
 
 	PX4_INFO("Found initial message, pret = %d", pret);
@@ -537,6 +537,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 
 		//timed out
 		if (pret == 0) {
+			PX4_WARN("mavlink sim timeout for 100 ms");
 			continue;
 		}
 
@@ -556,7 +557,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 				mavlink_message_t msg;
 				mavlink_status_t status;
 
-				for (int i = 0; i < len; ++i) {
+				for (int i = 0; i < len; i++) {
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &status)) {
 						// have a message, handle it
 						handle_message(&msg, publish);
@@ -566,7 +567,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		}
 
 		// got data from PIXHAWK
-		if (fds[1].revents & POLLIN) {
+		if (fd_count > 1 && fds[1].revents & POLLIN) {
 			len = ::read(serial_fd, serial_buf, sizeof(serial_buf));
 
 			if (len > 0) {
