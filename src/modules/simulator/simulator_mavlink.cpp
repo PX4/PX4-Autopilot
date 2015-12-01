@@ -358,12 +358,12 @@ void Simulator::send()
 	fds[0].fd = _actuator_outputs_sub;
 	fds[0].events = POLLIN;
 
-	int rv;
+
 	// set the threads name
 #ifdef __PX4_DARWIN
-	rv = pthread_setname_np("sim_send");
+	pthread_setname_np("sim_send");
 #else
-	rv = pthread_setname_np(pthread_self(), "sim_send");
+	pthread_setname_np(pthread_self(), "sim_send");
 #endif
 
 	int pret;
@@ -523,12 +523,12 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
 	pthread_attr_destroy(&sender_thread_attr);
 
-	int rv;
+
 	// set the threads name
 #ifdef __PX4_DARWIN
-	rv = pthread_setname_np("sim_rcv");
+	pthread_setname_np("sim_rcv");
 #else
-	rv = pthread_setname_np(pthread_self(), "sim_rcv");
+	pthread_setname_np(pthread_self(), "sim_rcv");
 #endif
 
 	// wait for new mavlink messages to arrive
