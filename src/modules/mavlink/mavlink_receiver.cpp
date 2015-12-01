@@ -43,6 +43,7 @@
 /* XXX trim includes */
 #include <px4_config.h>
 #include <px4_time.h>
+#include <px4_tasks.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
