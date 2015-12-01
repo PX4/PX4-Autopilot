@@ -180,7 +180,7 @@ extern "C" {
 					return 0;
 				}
 
-				g_sim_task = px4_task_spawn_cmd("Simulator",
+				g_sim_task = px4_task_spawn_cmd("simulator",
 								SCHED_DEFAULT,
 								SCHED_PRIORITY_MAX - 5,
 								1500,
