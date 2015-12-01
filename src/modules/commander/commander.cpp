@@ -3114,10 +3114,8 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result)
 
 void *commander_low_prio_loop(void *arg)
 {
-#if defined(__PX4_LINUX) || defined(__PX4_NUTTX)
 	/* Set thread name */
-	prctl(PR_SET_NAME, "commander_low_prio", getpid());
-#endif
+	px4_prctl(PR_SET_NAME, "commander_low_prio", getpid());
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
