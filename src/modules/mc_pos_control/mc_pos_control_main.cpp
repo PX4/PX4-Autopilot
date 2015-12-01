@@ -1370,9 +1370,10 @@ MulticopterPositionControl::task_main()
 								}
 							}
 						}
+					}
 
-					} else {
-						/* thrust compensation for altitude only control mode */
+					if (_control_mode.flag_control_altitude_enabled) {
+						/* thrust compensation for altitude only control modes */
 						float att_comp;
 
 						if (_R(2, 2) > TILT_COS_MAX) {
