@@ -195,7 +195,7 @@ void work_queues_init(void)
 #endif
 
 	// Create high priority worker thread
-	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
+	g_work[HPWORK].pid = px4_task_spawn_cmd("hpwork",
 						SCHED_DEFAULT,
 						SCHED_PRIORITY_MAX - 1,
 						2000,
@@ -203,7 +203,7 @@ void work_queues_init(void)
 						(char *const *)NULL);
 
 	// Create low priority worker thread
-	g_work[LPWORK].pid = px4_task_spawn_cmd("wkr_low",
+	g_work[LPWORK].pid = px4_task_spawn_cmd("lpwork",
 						SCHED_DEFAULT,
 						SCHED_PRIORITY_MIN,
 						2000,
@@ -305,6 +305,14 @@ int work_lpthread(int argc, char *argv[])
 int work_usrthread(int argc, char *argv[])
 {
 	/* Loop forever */
+
+	int rv;
+	// set the threads name
+	#ifdef __PX4_DARWIN
+	rv = pthread_setname_np("USR");
+	#else
+	rv = pthread_setname_np(pthread_self(), "USR");
+	#endif
 
 	for (;;) {
 		/* Then process queued work.  We need to keep interrupts disabled while
