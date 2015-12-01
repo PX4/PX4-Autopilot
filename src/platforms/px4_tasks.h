@@ -131,7 +131,7 @@ __EXPORT bool px4_task_is_running(const char *taskname);
 
 #ifdef __PX4_POSIX
 /** set process (and thread) options */
-__EXPORT int px4_prctl(int option, const char* arg2, unsigned pid);
+__EXPORT int px4_prctl(int option, const char *arg2, unsigned pid);
 #endif
 
 __END_DECLS
