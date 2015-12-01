@@ -72,6 +72,7 @@ int px4_sem_wait(px4_sem_t *s)
 
 	if (s->value < 0) {
 		ret = pthread_cond_wait(&(s->wait), &(s->lock));
+
 	} else {
 		ret = 0;
 	}
@@ -97,14 +98,15 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 
 	if (s->value < 0) {
 		ret = pthread_cond_timedwait(&(s->wait), &(s->lock), abstime);
+
 	} else {
 		ret = 0;
 	}
 
 	int err = errno;
-	#ifdef __PX4_DARWIN
+#ifdef __PX4_DARWIN
 	err = ret;
-	#endif
+#endif
 
 	if (err != 0 && err != ETIMEDOUT) {
 		setbuf(stdout, NULL);
@@ -132,6 +134,7 @@ int px4_sem_post(px4_sem_t *s)
 
 	if (s->value <= 0) {
 		ret = pthread_cond_signal(&(s->wait));
+
 	} else {
 		ret = 0;
 	}

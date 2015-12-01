@@ -75,7 +75,7 @@ static task_entry taskmap[PX4_MAX_TASKS] = {};
 
 typedef struct {
 	px4_main_t entry;
-	const char* name;
+	const char *name;
 	int argc;
 	char *argv[];
 	// strings are allocated after the
@@ -87,11 +87,11 @@ static void *entry_adapter(void *ptr)
 
 	int rv;
 	// set the threads name
-	#ifdef __PX4_DARWIN
+#ifdef __PX4_DARWIN
 	rv = pthread_setname_np(data->name);
-	#else
+#else
 	rv = pthread_setname_np(pthread_self(), data->name);
-	#endif
+#endif
 
 	if (rv) {
 		PX4_ERR("px4_task_spawn_cmd: failed to set name of thread %d %d\n", rv, errno);
@@ -367,23 +367,24 @@ const char *getprogname()
 	return "Unknown App";
 }
 
-int px4_prctl(int option, const char* arg2, unsigned pid)
+int px4_prctl(int option, const char *arg2, unsigned pid)
 {
 	int rv;
 
 	switch (option) {
-		case PR_SET_NAME:
-				// set the threads name
-				#ifdef __PX4_DARWIN
-				rv = pthread_setname_np(arg2);
-				#else
-				rv = pthread_setname_np(pthread_self(), arg2);
-				#endif
-			break;
-		default:
-			rv = -1;
-			PX4_WARN("FAILED SETTING TASK NAME");
-			break;
+	case PR_SET_NAME:
+		// set the threads name
+#ifdef __PX4_DARWIN
+		rv = pthread_setname_np(arg2);
+#else
+		rv = pthread_setname_np(pthread_self(), arg2);
+#endif
+		break;
+
+	default:
+		rv = -1;
+		PX4_WARN("FAILED SETTING TASK NAME");
+		break;
 	}
 
 	return rv;

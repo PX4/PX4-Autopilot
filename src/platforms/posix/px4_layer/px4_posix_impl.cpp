@@ -89,11 +89,11 @@ void init(int argc, char *argv[], const char *app_name)
 	printf("\n");
 
 	// set the threads name
-	#ifdef __PX4_DARWIN
+#ifdef __PX4_DARWIN
 	(void)pthread_setname_np(app_name);
-	#else
+#else
 	(void)pthread_setname_np(pthread_self(), app_name);
-	#endif
+#endif
 }
 
 uint64_t get_time_micros()
