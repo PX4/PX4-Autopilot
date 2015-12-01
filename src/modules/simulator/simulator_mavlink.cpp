@@ -348,14 +348,22 @@ void Simulator::poll_topics()
 void *Simulator::sending_trampoline(void *)
 {
 	_instance->send();
-	return 0;	// why do I have to put this???
+	return nullptr;
 }
 
 void Simulator::send()
 {
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd = _actuator_outputs_sub;
 	fds[0].events = POLLIN;
+
+	int rv;
+	// set the threads name
+	#ifdef __PX4_DARWIN
+	rv = pthread_setname_np("sim_send");
+	#else
+	rv = pthread_setname_np(pthread_self(), "sim_send");
+	#endif
 
 	int pret;
 
@@ -371,8 +379,6 @@ void Simulator::send()
 		// this is undesirable but not much we can do
 		if (pret < 0) {
 			PX4_WARN("poll error %d, %d", pret, errno);
-			// sleep a bit before next try
-			usleep(100000);
 			continue;
 		}
 
@@ -515,6 +521,14 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
 	pthread_attr_destroy(&sender_thread_attr);
+
+	int rv;
+	// set the threads name
+	#ifdef __PX4_DARWIN
+	rv = pthread_setname_np("sim_rcv");
+	#else
+	rv = pthread_setname_np(pthread_self(), "sim_rcv");
+	#endif
 
 	// wait for new mavlink messages to arrive
 	while (true) {
