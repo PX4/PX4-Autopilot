@@ -45,6 +45,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
+#ifdef __PX4_LINUX
+#define _GNU_SOURCE
+#endif
+#include <pthread.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include "work_lock.h"
