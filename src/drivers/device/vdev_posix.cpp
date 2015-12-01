@@ -233,6 +233,11 @@ extern "C" {
 
 	int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
 	{
+		if (nfds == 0) {
+			PX4_WARN("px4_poll with no fds");
+			return -1;
+		}
+
 		px4_sem_t sem;
 		int count = 0;
 		int ret = -1;
@@ -241,7 +246,8 @@ extern "C" {
 		PX4_DEBUG("Called px4_poll timeout = %d", timeout);
 		px4_sem_init(&sem, 0, 0);
 
-		// For each fd
+		// Go through all fds and check them for a pollable state
+		bool fd_pollable = false;
 		for (i = 0; i < nfds; ++i) {
 			fds[i].sem     = &sem;
 			fds[i].revents = 0;
@@ -255,26 +261,52 @@ extern "C" {
 				ret = dev->poll(filemap[fds[i].fd], &fds[i], true);
 
 				if (ret < 0) {
+					const unsigned NAMELEN = 32;
+					char thread_name[NAMELEN] = {};
+					(void)pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+					PX4_WARN("%s: px4_poll() error: %s",
+						thread_name, strerror(errno));
 					break;
+				}
+
+				if (ret >= 0) {
+					fd_pollable = true;
 				}
 			}
 		}
 
-		if (ret >= 0) {
+		// If any FD can be polled, lock the semaphore and
+		// check for new data
+		if (fd_pollable) {
 			if (timeout > 0) {
 
+				// Get the current time
 				struct timespec ts;
 				px4_clock_gettime(CLOCK_REALTIME, &ts);
-				ts.tv_sec += timeout / 1000;
-				ts.tv_nsec += (1000 * 1000 * timeout) % (1000 * 1000 * 1000);
 
-				px4_sem_timedwait(&sem, &ts);
+				// Calculate an absolute time in the future
+				const unsigned billion = (1000 * 1000 * 1000);
+				unsigned tdiff = timeout;
+				uint64_t nsecs = ts.tv_nsec + (tdiff * 1000 * 1000);
+				ts.tv_sec += nsecs / billion;
+				nsecs -= (nsecs / billion) * billion;
+				ts.tv_nsec = nsecs;
+
+				// Execute a blocking wait for that time in the future
+				errno = 0;
+				ret = px4_sem_timedwait(&sem, &ts);
+
+				// Ensure ret is negative on failure
+				if (ret > 0) {
+					ret = -ret;
+				}
 
 			} else if (timeout < 0) {
 				px4_sem_wait(&sem);
 			}
 
-			// For each fd
+			// We have waited now (or not, depending on timeout),
+			// go through all fds and count how many have data
 			for (i = 0; i < nfds; ++i) {
 
 				VDev *dev = get_vdev(fds[i].fd);
@@ -285,6 +317,7 @@ extern "C" {
 					ret = dev->poll(filemap[fds[i].fd], &fds[i], false);
 
 					if (ret < 0) {
+						PX4_WARN("px4_poll() 2nd poll fail");
 						break;
 					}
 
@@ -293,11 +326,18 @@ extern "C" {
 					}
 				}
 			}
+
+			// If nothing is ready 
+			if (count == 0) {
+				usleep(timeout * 1000);
+			}
 		}
 
 		px4_sem_destroy(&sem);
 
-		return count;
+		// Return the positive count if present,
+		// return the negative error number if failed
+		return (count) ? count : ret;
 	}
 
 	int px4_fsync(int fd)
