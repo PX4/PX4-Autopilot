@@ -308,11 +308,11 @@ int work_usrthread(int argc, char *argv[])
 
 	int rv;
 	// set the threads name
-	#ifdef __PX4_DARWIN
+#ifdef __PX4_DARWIN
 	rv = pthread_setname_np("USR");
-	#else
+#else
 	rv = pthread_setname_np(pthread_self(), "USR");
-	#endif
+#endif
 
 	for (;;) {
 		/* Then process queued work.  We need to keep interrupts disabled while
