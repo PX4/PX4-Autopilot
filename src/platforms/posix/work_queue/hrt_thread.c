@@ -41,12 +41,6 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
-#ifdef __PX4_LINUX
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-#endif
-#include <pthread.h>
 #include <stdint.h>
 #include <signal.h>
 #include <stdio.h>
@@ -130,7 +124,8 @@ static void hrt_work_process()
 #ifdef __PX4_DARWIN
 	rv = pthread_setname_np("HRT");
 #else
-	rv = pthread_setname_np(pthread_self(), "HRT");
+	// The Linux headers do not actually contain this
+	//rv = pthread_setname_np(pthread_self(), "HRT");
 #endif
 
 	/* Then process queued work.  We need to keep interrupts disabled while
