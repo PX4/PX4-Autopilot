@@ -49,6 +49,9 @@
 #include "hrt_work.h"
 #include <drivers/drv_hrt.h>
 #include "px4_time.h"
+#ifdef __PX4_LINUX
+#define _GNU_SOURCE
+#endif
 #include <pthread.h>
 
 extern pthread_t _shell_task_id;

@@ -48,6 +48,10 @@
 #include <sched.h>
 #include <unistd.h>
 #include <string.h>
+#ifdef __PX4_LINUX
+#define _GNU_SOURCE
+#endif
+#include <pthread.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
