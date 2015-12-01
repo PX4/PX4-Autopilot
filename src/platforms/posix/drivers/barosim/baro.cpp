@@ -653,11 +653,11 @@ BAROSIM::collect()
 	int ret;
 
 #pragma pack(push, 1)
-	struct {
+	struct raw_baro_s {
 		float		pressure;
 		float		altitude;
 		float		temperature;
-	} baro_report;
+	} raw_baro;
 #pragma pack(pop)
 
 	perf_begin(_sample_perf);
@@ -669,7 +669,7 @@ BAROSIM::collect()
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
 	uint8_t cmd = 0;
-	ret = transfer(&cmd, 1, (uint8_t *)&report, sizeof(baro_report));
+	ret = transfer(&cmd, 1, (uint8_t*)(&raw_baro), sizeof(raw_baro));
 
 	if (ret < 0) {
 		perf_count(_comms_errors);
@@ -679,16 +679,14 @@ BAROSIM::collect()
 
 	/* handle a measurement */
 	if (_measure_phase == 0) {
-		report.pressure = baro_report.pressure;
-		report.altitude = baro_report.altitude;
-		report.temperature = baro_report.temperature;
-		report.timestamp = hrt_absolute_time();
+		report.pressure = raw_baro.pressure;
+		report.altitude = raw_baro.altitude;
+		report.temperature = raw_baro.temperature;
 
 	} else {
-		report.pressure = baro_report.pressure;
-		report.altitude = baro_report.altitude;
-		report.temperature = baro_report.temperature;
-		report.timestamp = hrt_absolute_time();
+		report.pressure = raw_baro.pressure;
+		report.altitude = raw_baro.altitude;
+		report.temperature = raw_baro.temperature;
 
 		/* publish it */
 		if (!(m_pub_blocked)) {
