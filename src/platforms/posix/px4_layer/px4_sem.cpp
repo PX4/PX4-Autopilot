@@ -95,6 +95,7 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 	}
 
 	s->value--;
+	errno = 0;
 
 	if (s->value < 0) {
 		ret = pthread_cond_timedwait(&(s->wait), &(s->lock), abstime);
@@ -103,10 +104,7 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 		ret = 0;
 	}
 
-	int err = errno;
-#ifdef __PX4_DARWIN
-	err = ret;
-#endif
+	int err = ret;
 
 	if (err != 0 && err != ETIMEDOUT) {
 		setbuf(stdout, NULL);
@@ -119,7 +117,7 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 
 	int mret = pthread_mutex_unlock(&(s->lock));
 
-	return (ret) ? ret : mret;
+	return (err) ? err : mret;
 }
 
 int px4_sem_post(px4_sem_t *s)
