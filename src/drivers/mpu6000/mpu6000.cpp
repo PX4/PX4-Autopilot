@@ -1913,14 +1913,12 @@ MPU6000::measure()
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
-    if(is_icm_device()) // if it is an ICM20608
-    {
-        _last_temperature = (report.temp) / 326.8f + 25.0f;
-    }
-    else // If it is an MPU6000
-    {
-        _last_temperature = (report.temp) / 361.0f + 35.0f;
-    }
+	if (is_icm_device()) { // if it is an ICM20608
+		_last_temperature = (report.temp) / 326.8f + 25.0f;
+
+	} else { // If it is an MPU6000
+		_last_temperature = (report.temp) / 361.0f + 35.0f;
+	}
 
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
