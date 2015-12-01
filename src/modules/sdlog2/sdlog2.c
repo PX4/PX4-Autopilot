@@ -555,7 +555,7 @@ int open_perf_file(const char* str)
 static void *logwriter_thread(void *arg)
 {
 	/* set name */
-	prctl(PR_SET_NAME, "sdlog2_writer", 0);
+	px4_prctl(PR_SET_NAME, "sdlog2_writer", 0);
 
 	int log_fd = open_log_file();
 
