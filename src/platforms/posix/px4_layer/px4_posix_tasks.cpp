@@ -38,6 +38,7 @@
  */
 
 #include <px4_log.h>
+#include <px4_defines.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,9 +49,6 @@
 #include <sched.h>
 #include <unistd.h>
 #include <string.h>
-#ifdef __PX4_LINUX
-#define _GNU_SOURCE
-#endif
 #include <pthread.h>
 
 #include <sys/stat.h>

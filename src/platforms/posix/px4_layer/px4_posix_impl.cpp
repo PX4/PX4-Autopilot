@@ -40,6 +40,7 @@
 #include <px4_defines.h>
 #include <px4_middleware.h>
 #include <px4_workqueue.h>
+#include <px4_defines.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <signal.h>
@@ -49,9 +50,6 @@
 #include "hrt_work.h"
 #include <drivers/drv_hrt.h>
 #include "px4_time.h"
-#ifdef __PX4_LINUX
-#define _GNU_SOURCE
-#endif
 #include <pthread.h>
 
 extern pthread_t _shell_task_id;

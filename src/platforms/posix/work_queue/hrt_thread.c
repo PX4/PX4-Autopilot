@@ -41,9 +41,6 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
-#ifdef __PX4_LINUX
-#define _GNU_SOURCE
-#endif
 #include <pthread.h>
 #include <stdint.h>
 #include <signal.h>
