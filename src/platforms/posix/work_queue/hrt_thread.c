@@ -119,10 +119,9 @@ static void hrt_work_process()
 	uint32_t remaining;
 	uint32_t next;
 
-	int rv;
 	// set the threads name
 #ifdef __PX4_DARWIN
-	rv = pthread_setname_np("HRT");
+	pthread_setname_np("HRT");
 #else
 	// The Linux headers do not actually contain this
 	//rv = pthread_setname_np(pthread_self(), "HRT");
