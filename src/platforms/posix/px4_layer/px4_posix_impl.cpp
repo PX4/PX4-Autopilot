@@ -49,6 +49,7 @@
 #include "hrt_work.h"
 #include <drivers/drv_hrt.h>
 #include "px4_time.h"
+#include <pthread.h>
 
 extern pthread_t _shell_task_id;
 
@@ -86,6 +87,13 @@ void init(int argc, char *argv[], const char *app_name)
 	printf("Ready to fly.\n");
 	printf("\n");
 	printf("\n");
+
+	// set the threads name
+	#ifdef __PX4_DARWIN
+	(void)pthread_setname_np(app_name);
+	#else
+	(void)pthread_setname_np(pthread_self(), app_name);
+	#endif
 }
 
 uint64_t get_time_micros()
