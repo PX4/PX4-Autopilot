@@ -39,9 +39,6 @@
 #include <drivers/drv_pwm_output.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#ifdef __PX4_LINUX
-#define _GNU_SOURCE
-#endif
 #include <pthread.h>
 
 extern "C" __EXPORT hrt_abstime hrt_reset(void);

@@ -36,9 +36,6 @@
 #include "px4_tasks.h"
 #include <drivers/drv_hrt.h>
 #include <cstdio>
-#ifdef __PX4_LINUX
-#define _GNU_SOURCE
-#endif
 #include <pthread.h>
 
 #define LOG_TAG "uORBKraitFastRpcChannel.cpp"
