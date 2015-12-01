@@ -256,6 +256,7 @@ extern "C" {
 
 		// Go through all fds and check them for a pollable state
 		bool fd_pollable = false;
+
 		for (i = 0; i < nfds; ++i) {
 			fds[i].sem     = &sem;
 			fds[i].revents = 0;
@@ -270,7 +271,7 @@ extern "C" {
 
 				if (ret < 0) {
 					PX4_WARN("%s: px4_poll() error: %s",
-						thread_name, strerror(errno));
+						 thread_name, strerror(errno));
 					break;
 				}
 
