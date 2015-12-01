@@ -669,7 +669,7 @@ BAROSIM::collect()
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
 	uint8_t cmd = 0;
-	ret = transfer(&cmd, 1, (uint8_t*)(&raw_baro), sizeof(raw_baro));
+	ret = transfer(&cmd, 1, (uint8_t *)(&raw_baro), sizeof(raw_baro));
 
 	if (ret < 0) {
 		perf_count(_comms_errors);
