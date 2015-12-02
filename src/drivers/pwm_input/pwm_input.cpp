@@ -599,6 +599,7 @@ static void pwmin_test(void)
 			       (unsigned)buf.period,
 			       (unsigned)buf.pulse_width,
 			       (unsigned)buf.error_count);
+
 		} else {
 			/* no data, retry in 2 ms */
 			::usleep(2000);
