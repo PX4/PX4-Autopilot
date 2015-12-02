@@ -608,6 +608,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 						case PX4_CUSTOM_SUB_MODE_AUTO_RTL:
 							main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_RTL);
 							break;
+						case PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF:
+							main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF);
+							break;
 
 						default:
 							main_ret = TRANSITION_DENIED;
