@@ -1149,13 +1149,6 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		manual.r = man.r / 1000.0f;
 		manual.z = man.z / 1000.0f;
 
-		manual.mode_switch = decode_switch_pos(man.buttons, 0);
-		manual.return_switch = decode_switch_pos(man.buttons, 1);
-		manual.posctl_switch = decode_switch_pos(man.buttons, 2);
-		manual.loiter_switch = decode_switch_pos(man.buttons, 3);
-		manual.acro_switch = decode_switch_pos(man.buttons, 4);
-		manual.offboard_switch = decode_switch_pos(man.buttons, 5);
-
 		if (_manual_pub == nullptr) {
 			_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
 
