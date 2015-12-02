@@ -71,6 +71,7 @@
 
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
@@ -172,6 +173,9 @@ private:
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_controller_latency_perf;
+
+	Integrator _accel_int;
+	Integrator _gyro_int;
 
 	enum Rotation		_rotation;
 
@@ -327,6 +331,8 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_good_transfers(perf_alloc(PC_COUNT, "gyrosim_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "gyrosim_reset_retries")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
+	_accel_int(1000000 / GYROSIM_ACCEL_DEFAULT_RATE, true),
+	_gyro_int(1000000 / GYROSIM_GYRO_DEFAULT_RATE, true),
 	_rotation(rotation),
 	_last_temperature(0)
 {
@@ -1094,6 +1100,14 @@ GYROSIM::_measure()
 	arb.y = mpu_report.accel_y;
 	arb.z = mpu_report.accel_z;
 
+	math::Vector<3> aval(mpu_report.accel_x, mpu_report.accel_y, mpu_report.accel_z);
+	math::Vector<3> aval_integrated;
+
+	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
+	arb.x_integral = aval_integrated(0);
+	arb.y_integral = aval_integrated(1);
+	arb.z_integral = aval_integrated(2);
+
 	grb.x_raw = (int16_t)(mpu_report.gyro_x / _gyro_range_scale);
 	grb.y_raw = (int16_t)(mpu_report.gyro_y / _gyro_range_scale);
 	grb.z_raw = (int16_t)(mpu_report.gyro_z / _gyro_range_scale);
@@ -1108,24 +1122,39 @@ GYROSIM::_measure()
 	grb.y = mpu_report.gyro_y;
 	grb.z = mpu_report.gyro_z;
 
+	math::Vector<3> gval(mpu_report.gyro_x, mpu_report.gyro_y, mpu_report.gyro_z);
+	math::Vector<3> gval_integrated;
+
+	bool gyro_notify = _gyro_int.put(grb.timestamp, gval, gval_integrated, grb.integral_dt);
+	grb.x_integral = gval_integrated(0);
+	grb.y_integral = gval_integrated(1);
+	grb.z_integral = gval_integrated(2);
+
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
 
 
-	/* notify anyone waiting for data */
-	updateNotify();
-	_gyro->parent_poll_notify();
+	if (accel_notify) {
+		/* notify anyone waiting for data */
+		updateNotify();
+		_gyro->parent_poll_notify();
 
-	if (!(_pub_blocked)) {
-		/* log the time of this report */
-		perf_begin(_controller_latency_perf);
-		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+		if (!(_pub_blocked)) {
+			/* log the time of this report */
+			perf_begin(_controller_latency_perf);
+			/* publish it */
+			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+		}
 	}
 
-	if (!(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+	if (gyro_notify) {
+		updateNotify();
+		_gyro->parent_poll_notify();
+
+		if (!(_pub_blocked)) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+		}
 	}
 
 	/* stop measuring */
