@@ -91,6 +91,7 @@
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
+#define VEL_FILTER_GAIN 0.98f	// low pass gain for filtering manual velocity setpoints
 
 /**
  * Multicopter position control app start / stop handling function
@@ -236,6 +237,9 @@ private:
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
 
+	float _req_vel_x_last;	// manual control: last commanded x velocity
+	float _req_vel_y_last;	// // manual control: last commanded y velocity
+
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -355,7 +359,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_alt_hold_engaged(false),
 	_run_pos_control(true),
 	_run_alt_control(true),
-	_yaw(0.0f)
+	_yaw(0.0f),
+	_req_vel_x_last(0.0f),
+	_req_vel_y_last(0.0f)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
@@ -537,10 +543,12 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (!_attitude_setpoint_id) {
 			if (_vehicle_status.is_vtol) {
 				_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
+
 			} else {
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
 			}
@@ -690,9 +698,12 @@ MulticopterPositionControl::control_manual(float dt)
 	}
 
 	if (_control_mode.flag_control_position_enabled) {
-		/* set horizontal velocity setpoint with roll/pitch stick */
-		req_vel_sp(0) = _manual.x;
-		req_vel_sp(1) = _manual.y;
+		// set horizontal velocity setpoint with roll/pitch stick
+		// apply a low pass filter to avoid velocity steps
+		req_vel_sp(0) = _req_vel_x_last * VEL_FILTER_GAIN + (1.0f - VEL_FILTER_GAIN) * _manual.x;
+		req_vel_sp(1) = _req_vel_y_last * VEL_FILTER_GAIN + (1.0f - VEL_FILTER_GAIN) * _manual.y;
+		_req_vel_x_last = req_vel_sp(0);
+		_req_vel_y_last = req_vel_sp(1);
 	}
 
 	if (_control_mode.flag_control_altitude_enabled) {
@@ -1196,6 +1207,7 @@ MulticopterPositionControl::task_main()
 				/* publish attitude setpoint */
 				if (_att_sp_pub != nullptr) {
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+
 				} else if (_attitude_setpoint_id) {
 					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
@@ -1627,11 +1639,12 @@ MulticopterPositionControl::task_main()
 		 * attitude setpoints for the transition).
 		 */
 		if (!(_control_mode.flag_control_offboard_enabled &&
-					!(_control_mode.flag_control_position_enabled ||
-						_control_mode.flag_control_velocity_enabled))) {
+		      !(_control_mode.flag_control_position_enabled ||
+			_control_mode.flag_control_velocity_enabled))) {
 
 			if (_att_sp_pub != nullptr) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+
 			} else if (_attitude_setpoint_id) {
 				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 			}
