@@ -1677,11 +1677,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- RC CHANNELS --- */
 		if (copy_if_updated(ORB_ID(rc_channels), &subs.rc_sub, &buf.rc)) {
 			log_msg.msg_type = LOG_RC_MSG;
-			/* Copy only the first 8 channels of 14 */
+			/* Copy only the first 12 channels of 18 */
 			memcpy(log_msg.body.log_RC.channel, buf.rc.channels, sizeof(log_msg.body.log_RC.channel));
 			log_msg.body.log_RC.rssi = buf.rc.rssi;
 			log_msg.body.log_RC.channel_count = buf.rc.channel_count;
 			log_msg.body.log_RC.signal_lost = buf.rc.signal_lost;
+			log_msg.body.log_RC.frame_drop = buf.rc.frame_drop_count;
 			LOGBUFFER_WRITE_AND_COUNT(RC);
 		}
 
