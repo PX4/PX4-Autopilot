@@ -143,7 +143,14 @@ MissionBlock::is_mission_item_reached()
 			}
 		} else {
 			/* for normal mission items used their acceptance radius */
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(_mission_item.acceptance_radius)) {
+			float mission_acceptance_radius = _navigator->get_acceptance_radius(_mission_item.acceptance_radius);
+
+			/* if set to zero use the default instead */
+			if (mission_acceptance_radius < 0.001f) {
+				mission_acceptance_radius = _navigator->get_acceptance_radius();
+			}
+
+			if (dist >= 0.0f && dist <= mission_acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 		}
