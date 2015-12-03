@@ -53,6 +53,8 @@
 #define SBUS_FRAMELOST_BIT	2
 #define SBUS1_FRAME_DELAY	14000
 
+#define SBUS_SINGLE_CHAR_LEN_US		((1/((100000/10)) * 1000 * 1000)
+
 /*
   Measured values with Futaba FX-30/R6108SB:
     -+100% on TX:  PCM 1.100/1.520/1.950ms -> SBus raw values: 350/1024/1700  (100% ATV)
@@ -81,6 +83,12 @@ static unsigned partial_frame_count;
 
 unsigned sbus_frame_drops;
 
+unsigned
+sbus_dropped_frames()
+{
+	return sbus_frame_drops;
+}
+
 static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe,
 			bool *sbus_frame_drop, uint16_t max_channels);
 
@@ -108,7 +116,7 @@ sbus_init(const char *device, bool singlewire)
 		/* initialise the decoder */
 		partial_frame_count = 0;
 		last_rx_time = hrt_absolute_time();
-
+		sbus_frame_drops = 0;
 	}
 
 	return sbus_fd;
@@ -172,9 +180,9 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 * so we detect frame boundaries by the inter-frame delay.
 	 *
 	 * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
-	 * frame transmission time is ~2ms.
+	 * frame transmission time is ~2500 us.
 	 *
-	 * If an interval of more than 4ms passes between calls,
+	 * If an interval of more than 2ms passes between calls,
 	 * the first byte we read will be the first byte of a frame.
 	 *
 	 * In the case where byte(s) are dropped from a frame, this also
@@ -183,6 +191,9 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 */
 	now = hrt_absolute_time();
 
+	/*
+	 * If we timed out, reset the decoder
+	 */
 	if ((now - last_rx_time) > 4000) {
 		if (partial_frame_count > 0) {
 			sbus_frame_drops++;
@@ -198,6 +209,13 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1) {
+		return false;
+	}
+
+	/* if the first byte of the frame is not the start symbol, give up instantly */
+	if (frame[0] != SBUS_START_SYMBOL) {
+		sbus_frame_drops++;
+		partial_frame_count = 0;
 		return false;
 	}
 
@@ -264,7 +282,7 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 	    uint16_t max_values)
 {
 	/* check frame boundary markers to avoid out-of-sync cases */
-	if ((frame[0] != 0x0f)) {
+	if ((frame[0] != SBUS_START_SYMBOL)) {
 		sbus_frame_drops++;
 		return false;
 	}
