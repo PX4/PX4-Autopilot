@@ -188,9 +188,12 @@ int UavcanServers::start(uavcan::INode &main_node)
 	struct sched_param param;
 
 	pthread_attr_init(&tattr);
+	(void)pthread_attr_getschedparam(&tattr, &param);
 	tattr.stacksize = StackSize;
 	param.sched_priority = Priority;
-	pthread_attr_setschedparam(&tattr, &param);
+	if (pthread_attr_setschedparam(&tattr, &param)) {
+		warnx("setting sched params failed");
+	}
 
 	static auto run_trampoline = [](void *) {return UavcanServers::_instance->run(_instance);};
 
