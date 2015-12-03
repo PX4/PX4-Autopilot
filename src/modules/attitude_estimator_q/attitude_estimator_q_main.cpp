@@ -776,12 +776,13 @@ bool AttitudeEstimatorQ::update(float dt)
 	return true;
 }
 
-void AttitudeEstimatorQ::update_mag_declination(float new_declination) {
+void AttitudeEstimatorQ::update_mag_declination(float new_declination)
+{
 	// Apply initial declination or trivial rotations without changing estimation
 	if (!_inited || fabsf(new_declination - _mag_decl) < 0.0001f) {
 		_mag_decl = new_declination;
-	}
-	else {
+
+	} else {
 		// Immediately rotate current estimation to avoid gyro bias growth
 		Quaternion decl_rotation;
 		decl_rotation.from_yaw(new_declination - _mag_decl);
