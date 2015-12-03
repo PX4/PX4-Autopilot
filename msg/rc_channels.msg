@@ -26,3 +26,4 @@ uint8 channel_count						# Number of valid channels
 int8[20] function						# Functions mapping
 uint8 rssi							# Receive signal strength index
 bool signal_lost						# Control signal lost, should be checked together with topic timeout
+uint32 frame_drop_count						# Number of dropped frames
