@@ -164,8 +164,12 @@ ORB_DEFINE(fence_vertex, struct fence_vertex_s);
 
 #include "topics/vehicle_attitude_setpoint.h"
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);
-ORB_DEFINE(mc_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s);
-ORB_DEFINE(fw_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s);
+
+#include "topics/mc_virtual_attitude_setpoint.h"
+ORB_DEFINE(mc_virtual_attitude_setpoint, struct mc_virtual_attitude_setpoint_s);
+
+#include "topics/fw_virtual_attitude_setpoint.h"
+ORB_DEFINE(fw_virtual_attitude_setpoint, struct fw_virtual_attitude_setpoint_s);
 
 #include "topics/manual_control_setpoint.h"
 ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);

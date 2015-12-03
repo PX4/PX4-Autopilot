@@ -86,12 +86,7 @@ __EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference
 __EXPORT int map_projection_global_init(double lat_0, double lon_0,
 					uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
-	if (strcmp("commander", getprogname()) == 0) {
-		return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
-
-	} else {
-		return -1;
-	}
+	return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
 }
 
 __EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
@@ -217,19 +212,14 @@ __EXPORT int map_projection_global_getref(double *lat_0, double *lon_0)
 }
 __EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t timestamp)
 {
-	if (strcmp("commander", getprogname()) == 0) {
-		gl_ref.alt = alt_0;
+	gl_ref.alt = alt_0;
 
-		if (!map_projection_global_init(lat_0, lon_0, timestamp)) {
-			gl_ref.init_done = true;
-			return 0;
-
-		} else {
-			gl_ref.init_done = false;
-			return -1;
-		}
+	if (!map_projection_global_init(lat_0, lon_0, timestamp)) {
+		gl_ref.init_done = true;
+		return 0;
 
 	} else {
+		gl_ref.init_done = false;
 		return -1;
 	}
 }
@@ -298,6 +288,41 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
 	return CONSTANTS_RADIUS_OF_EARTH * c;
 }
 
+__EXPORT void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist,
+		double *lat_target, double *lon_target)
+{
+	if (fabsf(dist) < FLT_EPSILON) {
+		*lat_target = lat_A;
+		*lon_target = lon_A;
+
+	} else if (dist >= FLT_EPSILON) {
+		float heading = get_bearing_to_next_waypoint(lat_A, lon_A, lat_B, lon_B);
+		waypoint_from_heading_and_distance(lat_A, lon_A, heading, dist, lat_target, lon_target);
+
+	} else {
+		float heading = get_bearing_to_next_waypoint(lat_A, lon_A, lat_B, lon_B);
+		heading = _wrap_2pi(heading + M_PI_F);
+		waypoint_from_heading_and_distance(lat_A, lon_A, heading, dist, lat_target, lon_target);
+	}
+}
+
+__EXPORT void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
+		double *lat_target, double *lon_target)
+{
+	bearing = _wrap_2pi(bearing);
+	double radius_ratio = (double)(fabs(dist) / CONSTANTS_RADIUS_OF_EARTH);
+
+	double lat_start_rad = lat_start * M_DEG_TO_RAD;
+	double lon_start_rad = lon_start * M_DEG_TO_RAD;
+
+	*lat_target = asin(sin(lat_start_rad) * cos(radius_ratio) + cos(lat_start_rad) * sin(radius_ratio) * cos((
+				   double)bearing));
+	*lon_target = lon_start_rad + atan2(sin((double)bearing) * sin(radius_ratio) * cos(lat_start_rad),
+					    cos(radius_ratio) - sin(lat_start_rad) * sin(*lat_target));
+
+	*lat_target *= M_RAD_TO_DEG;
+	*lon_target *= M_RAD_TO_DEG;
+}
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;

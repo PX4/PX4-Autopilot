@@ -52,6 +52,8 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/ecl
+	lib/terrain_estimation
+	lib/runway_takeoff
 
 	#
 	# QuRT port

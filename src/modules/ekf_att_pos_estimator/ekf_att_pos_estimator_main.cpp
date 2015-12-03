@@ -212,12 +212,15 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_parameters{},
 	_parameter_handles{},
 	_ekf(nullptr),
+	_terrain_estimator(nullptr),
 
 	_LP_att_P(250.0f, 20.0f),
 	_LP_att_Q(250.0f, 20.0f),
 	_LP_att_R(250.0f, 20.0f)
 {
 	_voter_mag.set_timeout(200000);
+
+	_terrain_estimator = new TerrainEstimator();
 
 	_parameter_handles.vel_delay_ms = param_find("PE_VEL_DELAY_MS");
 	_parameter_handles.pos_delay_ms = param_find("PE_POS_DELAY_MS");
@@ -267,7 +270,7 @@ AttitudePositionEstimatorEKF::~AttitudePositionEstimatorEKF()
 			}
 		} while (_estimator_task != -1);
 	}
-
+	delete _terrain_estimator;
 	delete _ekf;
 
 	estimator::g_estimator = nullptr;
@@ -523,9 +526,6 @@ void AttitudePositionEstimatorEKF::task_main()
 	_landDetectorSub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_armedSub = orb_subscribe(ORB_ID(actuator_armed));
 
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vstatus_sub, 200);
-
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	/* sets also parameters in the EKF object */
@@ -697,6 +697,10 @@ void AttitudePositionEstimatorEKF::task_main()
 					// Run EKF data fusion steps
 					updateSensorFusion(_gpsIsGood, _newDataMag, _newRangeData, _newHgtData, _newAdsData);
 
+					// Run separate terrain estimator
+					_terrain_estimator->predict(_ekf->dtIMU, &_att, &_sensor_combined, &_distance);
+					_terrain_estimator->measurement_update(hrt_absolute_time(), &_gps, &_distance, &_att);
+
 					// Publish attitude estimations
 					publishAttitude();
 
@@ -852,7 +856,9 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	/* Accelerations in Body Frame */
 	_ctrl_state.x_acc = _ekf->accel.x;
 	_ctrl_state.y_acc = _ekf->accel.y;
-	_ctrl_state.z_acc = _ekf->accel.z;
+	_ctrl_state.z_acc = _ekf->accel.z - _ekf->states[13];
+
+	_ctrl_state.horz_acc_mag = _ekf->getAccNavMagHorizontal();
 
 	/* Velocity in Body Frame */
 	Vector3f v_n(_ekf->states[4], _ekf->states[5], _ekf->states[6]);
@@ -887,8 +893,10 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	_ctrl_state.q[3] = _ekf->states[3];
 
 	/* Airspeed (Groundspeed - Windspeed) */
-	_ctrl_state.airspeed = sqrt(pow(_ekf->states[4] -  _ekf->states[14], 2) + pow(_ekf->states[5] - _ekf->states[15], 2) + pow(_ekf->states[6], 2));
-
+	//_ctrl_state.airspeed = sqrt(pow(_ekf->states[4] -  _ekf->states[14], 2) + pow(_ekf->states[5] - _ekf->states[15], 2) + pow(_ekf->states[6], 2));
+	// the line above was introduced by the control state PR. The airspeed it gives is totally wrong and leads to horrible flight performance in SITL
+	// and in outdoor tests
+	_ctrl_state.airspeed = _airspeed.true_airspeed_m_s;
 	/* Attitude Rates */
 	_ctrl_state.roll_rate = _LP_att_P.apply(_ekf->dAngIMU.x / _ekf->dtIMU) - _ekf->states[10] / _ekf->dtIMUfilt;
 	_ctrl_state.pitch_rate = _LP_att_Q.apply(_ekf->dAngIMU.y / _ekf->dtIMU) - _ekf->states[11] / _ekf->dtIMUfilt;
@@ -997,9 +1005,12 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	}
 
 	/* terrain altitude */
-	_global_pos.terrain_alt = _ekf->hgtRef - _ekf->flowStates[1];
-	_global_pos.terrain_alt_valid = (_distance_last_valid > 0) &&
-					(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
+	if (_terrain_estimator->is_valid()) {
+		_global_pos.terrain_alt = _global_pos.alt - _terrain_estimator->get_distance_to_ground();
+		_global_pos.terrain_alt_valid = true;
+	} else {
+		_global_pos.terrain_alt_valid = false;
+	}
 
 	_global_pos.yaw = _local_pos.yaw;
 

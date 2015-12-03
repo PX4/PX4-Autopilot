@@ -49,6 +49,9 @@
 #elif defined(__PX4_NUTTX)
 typedef int px4_task_t;
 
+#include <sys/prctl.h>
+#define px4_prctl prctl
+
 /** Default scheduler type */
 #if CONFIG_RR_INTERVAL > 0
 # define SCHED_DEFAULT  SCHED_RR
@@ -80,10 +83,10 @@ typedef int px4_task_t;
 #error "No target OS defined"
 #endif
 
-#if defined (__PX4_LINUX) || defined(__PX4_NUTTX)
+#if defined (__PX4_LINUX)
 #include <sys/prctl.h>
 #else
-#define prctl(_action, _string, _pid)
+#define PR_SET_NAME	1
 #endif
 
 typedef int px4_task_t;
@@ -125,6 +128,11 @@ __EXPORT void px4_show_tasks(void);
 
 /** See if a task is running **/
 __EXPORT bool px4_task_is_running(const char *taskname);
+
+#ifdef __PX4_POSIX
+/** set process (and thread) options */
+__EXPORT int px4_prctl(int option, const char *arg2, unsigned pid);
+#endif
 
 __END_DECLS
 

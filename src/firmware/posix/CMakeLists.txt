@@ -14,6 +14,8 @@ if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang" OR NOT APPLE)
 	target_link_libraries(mainapp
 		-Wl,--start-group
 		${module_libraries}
+		df_driver_framework
+		${df_driver_libraries}
 		pthread m rt
 		-Wl,--end-group
 		)
@@ -34,7 +36,7 @@ add_dependencies(run_config mainapp)
 
 foreach(viewer none jmavsim gazebo)
 	foreach(debugger none gdb lldb ddd valgrind)
-		foreach(model none iris vtol)
+		foreach(model none iris tailsitter)
 			if (debugger STREQUAL "none")
 				if (model STREQUAL "none")
 					set(_targ_name "${viewer}")

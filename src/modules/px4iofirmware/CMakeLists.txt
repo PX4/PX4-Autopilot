@@ -64,6 +64,7 @@ px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
 include_directories(
 	${include_dirs}
 	${CMAKE_BINARY_DIR}/src/modules/systemlib/mixer
+	.
 	)
 link_directories(${link_dirs})
 add_definitions(${definitions})
@@ -71,11 +72,9 @@ add_definitions(${definitions})
 set(srcs
 	adc.c
 	controls.c
-	dsm.c
 	px4io.c
 	registers.c
 	safety.c
-	sbus.c
 	../systemlib/up_cxxinitialize.c
 	../systemlib/perf_counter.c
 	mixer.cpp
@@ -86,6 +85,8 @@ set(srcs
 	../systemlib/pwm_limit/pwm_limit.c
 	../../lib/rc/st24.c
 	../../lib/rc/sumd.c
+	../../lib/rc/sbus.c
+	../../lib/rc/dsm.c
 	../../drivers/stm32/drv_hrt.c
 	../../drivers/stm32/drv_pwm_servo.c
 	../../drivers/boards/${config_io_board}/px4io_init.c

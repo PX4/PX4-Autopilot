@@ -24,6 +24,7 @@ target_link_libraries(mainapp
 	-Wl,--whole-archive
 	${module_libraries}
 	${target_libraries}
+	df_driver_framework
 	m
 	-Wl,--no-whole-archive
 	-Wl,${TOOLSLIB}/pic/libstdc++.a)

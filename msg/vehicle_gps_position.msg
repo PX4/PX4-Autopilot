@@ -3,6 +3,7 @@ uint64 timestamp_position	# Timestamp for position information
 int32 lat			# Latitude in 1E-7 degrees 
 int32 lon			# Longitude in 1E-7 degrees 
 int32 alt			# Altitude in 1E-3 meters (millimeters) above MSL  
+int32 alt_ellipsoid # Altitude in 1E-3 meters (millimeters) above Ellipsoid
 
 uint64 timestamp_variance
 float32 s_variance_m_s		# speed accuracy estimate m/s 

@@ -289,3 +289,29 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 		item->origin = ORIGIN_ONBOARD;
 	}
 }
+
+void
+MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance, float min_pitch)
+{
+	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+
+	/* use current position and use return altitude as clearance */
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
+	item->altitude = _navigator->get_global_position()->alt;
+
+	if (min_clearance > 0.0f) {
+		item->altitude += min_clearance;
+	}
+
+	item->altitude_is_relative = false;
+	item->yaw = NAN;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_direction = 1;
+	item->acceptance_radius = (_navigator->get_acceptance_radius() > min_clearance / 2.0f) ?
+					(min_clearance / 2) : _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->pitch_min = min_pitch;
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
+}

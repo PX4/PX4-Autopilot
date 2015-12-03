@@ -130,6 +130,9 @@ px4fmu-v1_default:
 px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
 
+px4fmu-v4_default:
+	$(call cmake-build,nuttx_px4fmu-v4_default)
+
 px4fmu-v2_simple:
 	$(call cmake-build,nuttx_px4fmu-v2_simple)
 
@@ -139,13 +142,13 @@ px4fmu-v2_lpe:
 nuttx_sim_simple:
 	$(call cmake-build,$@)
 
-posix_sitl_simple:
+posix_sitl_default:
 	$(call cmake-build,$@)
 
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
-ros_sitl_simple:
+ros_sitl_default:
 	$(call cmake-build,$@)
 
 qurt_eagle_travis:
@@ -157,19 +160,15 @@ qurt_eagle_release:
 posix_eagle_release:
 	$(call cmake-build,$@)
 
-posix: posix_sitl_simple
-
-posix_sitl_default: posix_sitl_simple
-
-ros: ros_sitl_simple
+posix: posix_sitl_default
 
 sitl_deprecation:
 	@echo "Deprecated. Use 'make posix_sitl_default jmavsim' or"
 	@echo "'make posix_sitl_default gazebo' if Gazebo is preferred."
 
-sitl_quad: sitl_deprecation
-sitl_plane: sitl_deprecation
-sitl_ros: sitl_deprecation
+run_sitl_quad: sitl_deprecation
+run_sitl_plane: sitl_deprecation
+run_sitl_ros: sitl_deprecation
 
 # Other targets
 # --------------------------------------------------------------------
@@ -180,11 +179,12 @@ clean:
 	@rm -rf build_*/
 	@(cd NuttX && git clean -d -f -x)
 	@(cd src/modules/uavcan/libuavcan && git clean -d -f -x)
+	@(git submodule sync)
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim \
-	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_vtol gazebo_iris gazebo_vtol
+	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_tailsitter
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean

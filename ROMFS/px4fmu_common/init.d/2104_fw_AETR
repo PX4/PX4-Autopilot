@@ -21,6 +21,8 @@ sh /etc/init.d/rc.fw_defaults
 
 set MIXER AETR
 
-# The ESC requires a specific pulse to arm.
+# use PWM parameters for throttle channel
 set PWM_OUT 3
 set PWM_DISARMED p:PWM_DISARMED
+set PWM_MIN p:PWM_MIN
+set PWM_MAX p:PWM_MAX
