@@ -838,7 +838,7 @@ PX4FMU::cycle()
 		_rc_in.rssi = (!sbus_frame_drop) ? RC_INPUT_RSSI_MAX : 0;
 		_rc_in.rc_failsafe = false;
 		_rc_in.rc_lost = false;
-		_rc_in.rc_lost_frame_count = 0;
+		_rc_in.rc_lost_frame_count = sbus_dropped_frames();
 		_rc_in.rc_total_frame_count = 0;
 
 		rc_updated = true;
