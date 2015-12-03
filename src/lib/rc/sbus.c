@@ -46,6 +46,8 @@
 #include "sbus.h"
 #include <drivers/drv_hrt.h>
 
+#define SBUS_START_SYMBOL	0x0f
+
 #define SBUS_FRAME_SIZE		25
 #define SBUS_INPUT_CHANNELS	16
 #define SBUS_FLAGS_BYTE		23
@@ -194,51 +196,57 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	/*
 	 * If we timed out, reset the decoder
 	 */
-	if ((now - last_rx_time) > 4000) {
+	if ((now - last_rx_time) > 6000) {
 		if (partial_frame_count > 0) {
 			sbus_frame_drops++;
 			partial_frame_count = 0;
 		}
 	}
 
-	/*
-	 * Fetch bytes, but no more than we would need to complete
-	 * the current frame.
-	 */
-	ret = read(sbus_fd, &frame[partial_frame_count], SBUS_FRAME_SIZE - partial_frame_count);
+	bool decode_success = false;
 
-	/* if the read failed for any reason, just give up here */
-	if (ret < 1) {
-		return false;
-	}
+	do {
+		/*
+		 * Fetch bytes, but no more than we would need to complete
+		 * the current frame.
+		 */
+		ret = read(sbus_fd, &frame[partial_frame_count], SBUS_FRAME_SIZE - partial_frame_count);
 
-	/* if the first byte of the frame is not the start symbol, give up instantly */
-	if (frame[0] != SBUS_START_SYMBOL) {
-		sbus_frame_drops++;
+		/* if the read failed for any reason, just give up here */
+		if (ret < 1) {
+			continue;
+		}
+
+		last_rx_time = now;
+
+		/* if the first byte of the frame is not the start symbol, give up instantly */
+		if (frame[0] != SBUS_START_SYMBOL) {
+			sbus_frame_drops++;
+			partial_frame_count = 0;
+			continue;
+		}
+
+		/*
+		 * Add bytes to the current frame
+		 */
+		partial_frame_count += ret;
+
+		/*
+		 * If we don't have a full frame, return
+		 */
+		if (partial_frame_count < SBUS_FRAME_SIZE) {
+			continue;
+		}
+
+		/*
+		 * Great, it looks like we might have a frame.  Go ahead and
+		 * decode it.
+		 */
 		partial_frame_count = 0;
-		return false;
-	}
+		decode_success = decode_success || sbus_decode(now, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
+	} while (ret > 0);
 
-	last_rx_time = now;
-
-	/*
-	 * Add bytes to the current frame
-	 */
-	partial_frame_count += ret;
-
-	/*
-	 * If we don't have a full frame, return
-	 */
-	if (partial_frame_count < SBUS_FRAME_SIZE) {
-		return false;
-	}
-
-	/*
-	 * Great, it looks like we might have a frame.  Go ahead and
-	 * decode it.
-	 */
-	partial_frame_count = 0;
-	return sbus_decode(now, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
+	return decode_success;
 }
 
 /*
