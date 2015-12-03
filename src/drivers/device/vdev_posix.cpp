@@ -99,7 +99,7 @@ extern "C" {
 		    strncmp(path, "/dev/", 5) != 0) {
 			va_list p;
 			va_start(p, flags);
-			mode = va_arg(p, mode_t);
+			mode = va_arg(p, int);
 			va_end(p);
 
 			// Create the file
