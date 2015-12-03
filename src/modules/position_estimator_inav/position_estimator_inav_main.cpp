@@ -428,8 +428,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						wait_baro = false;
 						baro_offset /= (float) baro_init_cnt;
-						warnx("baro offset: %d m", (int)baro_offset);
-						mavlink_log_info(mavlink_fd, "[inav] baro offset: %d m", (int)baro_offset);
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
 					}
