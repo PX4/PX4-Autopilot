@@ -139,6 +139,7 @@ private:
 		param_t	bias_max;
 		param_t vibe_thresh;
 		param_t	ext_hdg_mode;
+		param_t airspeed_trim;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	float		_w_accel = 0.0f;
@@ -152,6 +153,9 @@ private:
 	float		_vibration_warning_threshold = 1.0f;
 	hrt_abstime	_vibration_warning_timestamp = 0;
 	int		_ext_hdg_mode = 0;
+
+	float _airspeed_trim =
+		0.0f;	/**< trim airspeed for fixed wings or VTOL. Used in case airspeed sensor fails to update. */
 
 	Vector<3>	_gyro;
 	Vector<3>	_accel;
@@ -230,6 +234,7 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_params_handles.bias_max	= param_find("ATT_BIAS_MAX");
 	_params_handles.vibe_thresh	= param_find("ATT_VIBE_THRESH");
 	_params_handles.ext_hdg_mode	= param_find("ATT_EXT_HDG_M");
+	_params_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 }
 
 /**
@@ -622,8 +627,13 @@ void AttitudeEstimatorQ::task_main()
 
 		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
-		/* Airspeed - take airspeed measurement directly here as no wind is estimated */
-		ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+		// Airspeed - take airspeed measurement directly here as no wind is estimated
+		if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_elapsed_time(&_airspeed.timestamp) < 1e6) {
+			ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+
+		} else {
+			ctrl_state.airspeed = _airspeed_trim;
+		}
 
 		/* Publish to control state topic */
 		if (_ctrl_state_pub == nullptr) {
@@ -663,6 +673,7 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 		param_get(_params_handles.bias_max, &_bias_max);
 		param_get(_params_handles.vibe_thresh, &_vibration_warning_threshold);
 		param_get(_params_handles.ext_hdg_mode, &_ext_hdg_mode);
+		param_get(_params_handles.airspeed_trim, &_airspeed_trim);
 	}
 }
 
