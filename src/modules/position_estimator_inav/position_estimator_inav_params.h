@@ -68,6 +68,7 @@ struct position_estimator_inav_params {
 	float flow_module_offset_x;
 	float flow_module_offset_y;
 	int32_t disable_mocap;
+	int32_t enable_lidar_alt_est;
 };
 
 struct position_estimator_inav_param_handles {
@@ -97,6 +98,7 @@ struct position_estimator_inav_param_handles {
 	param_t flow_module_offset_x;
 	param_t flow_module_offset_y;
 	param_t disable_mocap;
+	param_t enable_lidar_alt_est;
 };
 
 #define CBRK_NO_VISION_KEY	328754
