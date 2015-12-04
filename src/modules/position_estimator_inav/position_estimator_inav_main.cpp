@@ -261,8 +261,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
 	float baro_offset = 0.0f;		// baro offset for reference altitude, initialized on start, then adjusted
-	float surface_offset = 0.0f;	// ground level offset from reference altitude
-	float surface_offset_rate = 0.0f;	// surface offset change rate
 
 	hrt_abstime accel_timestamp = 0;
 	hrt_abstime baro_timestamp = 0;
@@ -310,14 +308,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		{ 0.0f },		// D (pos)
 	};
 
+	float dist_ground = 0.0f;		//variables for lidar altitude estimation
+	float dist_ground_filtered = 0.0f;
 	float corr_lidar = 0.0f;
-	float corr_lidar_filtered = 0.0f;
+	float lidar_offset = 0.0f;
+	int lidar_offset_count = 0;
+	bool lidar_first = true;
+	bool use_lidar = false;
+	bool use_lidar_prev = false;
 
 	float corr_flow[] = { 0.0f, 0.0f };	// N E
 	float w_flow = 0.0f;
 
-	float lidar_prev = 0.0f;
-	//hrt_abstime flow_prev = 0;			// time of last flow measurement
 	hrt_abstime lidar_time = 0;			// time of last lidar measurement (not filtered)
 	hrt_abstime lidar_valid_time = 0;	// time of last lidar measurement used for correction (filtered)
 
@@ -327,6 +329,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float flow_gyrospeed_filtered[] = { 0.0f, 0.0f, 0.0f };
 	float att_gyrospeed_filtered[] = { 0.0f, 0.0f, 0.0f };
 	float yaw_comp[] = { 0.0f, 0.0f };
+	hrt_abstime flow_time = 0;
 
 	bool gps_valid = false;			// GPS is valid
 	bool lidar_valid = false;		// lidar is valid
@@ -455,7 +458,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			attitude_updates++;
 
 			bool updated;
-			bool updated2;
 
 			/* parameter update */
 			orb_check(parameter_update_sub, &updated);
@@ -519,62 +521,61 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 			}
 
-			/* optical flow */
-			orb_check(optical_flow_sub, &updated);
-			orb_check(distance_sensor_sub, &updated2);
 
+			/* lidar alt estimation */
+			orb_check(distance_sensor_sub, &updated);
 			/* update lidar separately, needed by terrain estimator */
-			if (updated2) {
+			if (updated) {
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
 			}
+			
+			if (updated && lidar.current_distance > 0.2f && lidar.current_distance < 10.0f && (PX4_R(att.R, 2, 2) > 0.7f)) { //check if altitude estimation for lidar is enabled and new sensor data
 
-			if (updated && updated2) {
+				if (!use_lidar_prev && use_lidar)
+					lidar_first = true;
+				use_lidar_prev = use_lidar;
+
+				lidar_time = t;
+				dist_ground = lidar.current_distance * PX4_R(att.R, 2, 2); //vertical distance
+				
+				if (lidar_first) {
+					lidar_first = false;
+					dist_ground_filtered = dist_ground;
+					lidar_offset = dist_ground_filtered + z_est[0];
+					mavlink_log_info(mavlink_fd, "[inav] LIDAR: new ground offset");
+					warnx("[inav] LIDAR: new ground offset");
+				}	
+
+				corr_lidar = lidar_offset - dist_ground - z_est[0];
+
+				if (fabsf(corr_lidar) > params.lidar_err) { //check for spike
+					corr_lidar = 0;
+					lidar_valid = false;
+					lidar_offset_count++;
+					if (lidar_offset_count > 3) { //if consecutive bigger/smaller measurements -> new ground offset -> reinit
+						lidar_first = true;
+						lidar_offset_count = 0;
+					}
+				} else {
+					dist_ground_filtered = (1 - params.lidar_filt) * dist_ground_filtered + params.lidar_filt * dist_ground;
+					corr_lidar = lidar_offset - dist_ground_filtered - z_est[0];
+					lidar_valid = true;
+					lidar_offset_count = 0;
+					lidar_valid_time = t;
+				}
+			}
+
+			/* optical flow */
+			orb_check(optical_flow_sub, &updated);
+
+			if (updated && lidar_valid) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 
-				/* calculate time from previous update */
-//				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
-//				flow_prev = flow.flow_timestamp;
-
-				if ((lidar.current_distance > 0.21f) &&
-					(lidar.current_distance < 4.0f) &&
-					/*(PX4_R(att.R, 2, 2) > 0.7f) &&*/
-					(fabsf(lidar.current_distance - lidar_prev) > FLT_EPSILON)) {
-
-					lidar_time = t;
-					lidar_prev = lidar.current_distance;
-					corr_lidar = lidar.current_distance + surface_offset + z_est[0];
-					corr_lidar_filtered += (corr_lidar - corr_lidar_filtered) * params.lidar_filt;
-
-					if (fabsf(corr_lidar) > params.lidar_err) {
-						/* correction is too large: spike or new ground level? */
-						if (fabsf(corr_lidar - corr_lidar_filtered) > params.lidar_err) {
-							/* spike detected, ignore */
-							corr_lidar = 0.0f;
-							lidar_valid = false;
-
-						} else {
-							/* new ground level */
-							surface_offset -= corr_lidar;
-							surface_offset_rate = 0.0f;
-							corr_lidar = 0.0f;
-							corr_lidar_filtered = 0.0f;
-							lidar_valid_time = t;
-							lidar_valid = true;
-							local_pos.surface_bottom_timestamp = t;
-							mavlink_log_info(mavlink_fd, "[inav] new surface level: %d", (int)surface_offset);
-						}
-
-					} else {
-						/* correction is ok, use it */
-						lidar_valid_time = t;
-						lidar_valid = true;
-					}
-				}
-
+				flow_time = t;
 				float flow_q = flow.quality / 255.0f;
-				float dist_bottom = - z_est[0] - surface_offset; //lidar.current_distance;
+				float dist_bottom = lidar.current_distance;
 
-				if (dist_bottom > 0.21f && flow_q > params.flow_q_min) {
+				if (dist_bottom > 0.21f && flow_q > params.flow_q_min && PX4_R(att.R, 2, 2) > 0.7f) {
 					/* distance to surface */
 					//float flow_dist = dist_bottom / PX4_R(att.R, 2, 2); //use this if using sonar
 					float flow_dist = dist_bottom; //use this if using lidar
@@ -590,7 +591,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					/* set this flag if flow should be accurate according to current velocity and attitude rate estimate */
 					flow_accurate = fabsf(body_v_est[1] / flow_dist - att.rollspeed) < max_flow &&
 							fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow;
-
 
 					/*calculate offset of flow-gyro using already calibrated gyro from autopilot*/
 					flow_gyrospeed[0] = flow.gyro_x_rate_integral/(float)flow.integration_timespan*1000000.0f;
@@ -631,10 +631,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					flow_ang[0] = (flow.pixel_flow_x_integral - flow.gyro_x_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[0] - yaw_comp[0];//flow.flow_raw_x * params.flow_k / 1000.0f / flow_dt;
 					flow_ang[1] = (flow.pixel_flow_y_integral - flow.gyro_y_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[1] - yaw_comp[1];//flow.flow_raw_y * params.flow_k / 1000.0f / flow_dt;
 					/* flow measurements vector */
+					
 					float flow_m[3];
 					flow_m[0] = -flow_ang[0] * flow_dist;
 					flow_m[1] = -flow_ang[1] * flow_dist;
 					flow_m[2] = z_est[1];
+					
 					/* velocity in NED */
 					float flow_v[2] = { 0.0f, 0.0f };
 
@@ -780,6 +782,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (gps.eph > max_eph_epv || gps.epv > max_eph_epv || gps.fix_type < 3) {
 						gps_valid = false;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
+						warnx("[inav] GPS signal lost");
 					}
 
 				} else {
@@ -787,6 +790,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						gps_valid = true;
 						reset_est = true;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
+						warnx("[inav] GPS signal found");
 					}
 				}
 
@@ -829,10 +833,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						/* reset position estimate when GPS becomes good */
 						if (reset_est) {
+
 							x_est[0] = gps_proj[0];
 							x_est[1] = gps.vel_n_m_s;
 							y_est[0] = gps_proj[1];
 							y_est[1] = gps.vel_e_m_s;
+
 						}
 
 						/* calculate index of estimated values in buffer */
@@ -876,9 +882,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on FLOW topic */
-		if ((flow_valid || lidar_valid) && t > flow.timestamp + flow_topic_timeout) {
+		if ((flow_valid || lidar_valid) && t > (flow_time + flow_topic_timeout)) {
 			flow_valid = false;
-			lidar_valid = false;
 			warnx("FLOW timeout");
 			mavlink_log_info(mavlink_fd, "[inav] FLOW timeout");
 		}
@@ -906,8 +911,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		/* check for lidar measurement timeout */
 		if (lidar_valid && (t > (lidar_time + lidar_timeout))) {
-			corr_lidar = 0.0f;
 			lidar_valid = false;
+			warnx("LIDAR timeout");
+			mavlink_log_info(mavlink_fd, "[inav] LIDAR timeout");
 		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
@@ -942,21 +948,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps_xy);
 
+		/* use LIDAR if it's valid and lidar altitude estimation is enabled */
+		use_lidar = lidar_valid && params.enable_lidar_alt_est;
 
 		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_xy || use_mocap;
 
 		bool dist_bottom_valid = (t < lidar_valid_time + lidar_valid_timeout);
-
-		if (dist_bottom_valid) {
-			/* surface distance prediction */
-			surface_offset += surface_offset_rate * dt;
-
-			/* surface distance correction */
-			if (lidar_valid) {
-				surface_offset_rate -= corr_lidar * 0.5f * params.w_z_lidar * params.w_z_lidar * dt;
-				surface_offset -= corr_lidar * params.w_z_lidar * dt;
-			}
-		}
 
 		float w_xy_gps_p = params.w_xy_gps_p * w_gps_xy;
 		float w_xy_gps_v = params.w_xy_gps_v * w_gps_xy;
@@ -1054,13 +1051,17 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		accel_bias_corr[0] = 0.0f;
 		accel_bias_corr[1] = 0.0f;
 		accel_bias_corr[2] = 0.0f;
-
+		
 		if (use_flow) {
 			accel_bias_corr[0] -= corr_flow[0] * params.w_xy_flow;
 			accel_bias_corr[1] -= corr_flow[1] * params.w_xy_flow;
 		}
-
-		accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
+		
+		if (use_lidar) {
+			accel_bias_corr[2] -= corr_lidar * params.w_z_lidar * params.w_z_lidar;
+		} else {
+			accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
+		}
 
 		/* transform error vector from NED frame to body frame */
 		for (int i = 0; i < 3; i++) {
@@ -1074,7 +1075,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
-
+		
 		/* inertial filter prediction for altitude */
 		inertial_filter_predict(dt, z_est, acc[2]);
 
@@ -1086,7 +1087,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* inertial filter correction for altitude */
-		inertial_filter_correct(corr_baro, dt, z_est, 0, params.w_z_baro);
+		if (use_lidar) {
+			inertial_filter_correct(corr_lidar, dt, z_est, 0, params.w_z_lidar);
+		} else {
+			inertial_filter_correct(corr_baro, dt, z_est, 0, params.w_z_baro);
+		}
 
 		if (use_gps_z) {
 			epv = fminf(epv, gps.epv);
@@ -1257,8 +1262,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.epv = epv;
 
 			if (local_pos.dist_bottom_valid) {
-				local_pos.dist_bottom = -z_est[0] - surface_offset;
-				local_pos.dist_bottom_rate = - z_est[1] - surface_offset_rate;
+				local_pos.dist_bottom = dist_ground;
+				local_pos.dist_bottom_rate = - z_est[1];
 			}
 
 			local_pos.timestamp = t;
