@@ -1844,7 +1844,7 @@ int
 PX4IO::io_publish_pwm_outputs()
 {
 	/* data we are going to fetch */
-	actuator_outputs_s outputs;
+	actuator_outputs_s outputs = {};
 	multirotor_motor_limits_s motor_limits;
 
 	outputs.timestamp = hrt_absolute_time();

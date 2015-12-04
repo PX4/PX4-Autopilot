@@ -71,4 +71,9 @@ __EXPORT bool	sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bo
 __EXPORT void	sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values);
 __EXPORT void	sbus2_output(int sbus_fd, uint16_t *values, uint16_t num_values);
 
+/**
+ * The number of incomplete frames we encountered
+ */
+__EXPORT unsigned	sbus_dropped_frames(void);
+
 __END_DECLS

@@ -46,12 +46,16 @@
 #include "sbus.h"
 #include <drivers/drv_hrt.h>
 
+#define SBUS_START_SYMBOL	0x0f
+
 #define SBUS_FRAME_SIZE		25
 #define SBUS_INPUT_CHANNELS	16
 #define SBUS_FLAGS_BYTE		23
 #define SBUS_FAILSAFE_BIT	3
 #define SBUS_FRAMELOST_BIT	2
 #define SBUS1_FRAME_DELAY	14000
+
+#define SBUS_SINGLE_CHAR_LEN_US		((1/((100000/10)) * 1000 * 1000)
 
 /*
   Measured values with Futaba FX-30/R6108SB:
@@ -81,6 +85,12 @@ static unsigned partial_frame_count;
 
 unsigned sbus_frame_drops;
 
+unsigned
+sbus_dropped_frames()
+{
+	return sbus_frame_drops;
+}
+
 static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe,
 			bool *sbus_frame_drop, uint16_t max_channels);
 
@@ -108,7 +118,7 @@ sbus_init(const char *device, bool singlewire)
 		/* initialise the decoder */
 		partial_frame_count = 0;
 		last_rx_time = hrt_absolute_time();
-
+		sbus_frame_drops = 0;
 	}
 
 	return sbus_fd;
@@ -172,9 +182,9 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 * so we detect frame boundaries by the inter-frame delay.
 	 *
 	 * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
-	 * frame transmission time is ~2ms.
+	 * frame transmission time is ~2500 us.
 	 *
-	 * If an interval of more than 4ms passes between calls,
+	 * If an interval of more than 2ms passes between calls,
 	 * the first byte we read will be the first byte of a frame.
 	 *
 	 * In the case where byte(s) are dropped from a frame, this also
@@ -183,44 +193,60 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 */
 	now = hrt_absolute_time();
 
-	if ((now - last_rx_time) > 4000) {
+	/*
+	 * If we timed out, reset the decoder
+	 */
+	if ((now - last_rx_time) > 3600) {
 		if (partial_frame_count > 0) {
 			sbus_frame_drops++;
 			partial_frame_count = 0;
 		}
 	}
 
-	/*
-	 * Fetch bytes, but no more than we would need to complete
-	 * the current frame.
-	 */
-	ret = read(sbus_fd, &frame[partial_frame_count], SBUS_FRAME_SIZE - partial_frame_count);
+	bool decode_success = false;
 
-	/* if the read failed for any reason, just give up here */
-	if (ret < 1) {
-		return false;
-	}
+	do {
+		/*
+		 * Fetch bytes, but no more than we would need to complete
+		 * the current frame.
+		 */
+		ret = read(sbus_fd, &frame[partial_frame_count], SBUS_FRAME_SIZE - partial_frame_count);
 
-	last_rx_time = now;
+		/* if the read failed for any reason, just give up here */
+		if (ret < 1) {
+			break;
+		}
 
-	/*
-	 * Add bytes to the current frame
-	 */
-	partial_frame_count += ret;
+		last_rx_time = now;
 
-	/*
-	 * If we don't have a full frame, return
-	 */
-	if (partial_frame_count < SBUS_FRAME_SIZE) {
-		return false;
-	}
+		/*
+		 * Add bytes to the current frame
+		 */
+		partial_frame_count += ret;
 
-	/*
-	 * Great, it looks like we might have a frame.  Go ahead and
-	 * decode it.
-	 */
-	partial_frame_count = 0;
-	return sbus_decode(now, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
+		/* if the first byte of the frame is not the start symbol, give up instantly */
+		if (partial_frame_count > 0 && (frame[0] != SBUS_START_SYMBOL)) {
+			sbus_frame_drops++;
+			partial_frame_count = 0;
+			continue;
+		}
+
+		/*
+		 * If we don't have a full frame, return
+		 */
+		if (partial_frame_count < SBUS_FRAME_SIZE) {
+			continue;
+		}
+
+		/*
+		 * Great, it looks like we might have a frame.  Go ahead and
+		 * decode it.
+		 */
+		partial_frame_count = 0;
+		decode_success = decode_success || sbus_decode(now, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
+	} while (ret > 0);
+
+	return decode_success;
 }
 
 /*
@@ -264,7 +290,7 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 	    uint16_t max_values)
 {
 	/* check frame boundary markers to avoid out-of-sync cases */
-	if ((frame[0] != 0x0f)) {
+	if ((frame[0] != SBUS_START_SYMBOL)) {
 		sbus_frame_drops++;
 		return false;
 	}
