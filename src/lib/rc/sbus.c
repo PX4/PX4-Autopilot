@@ -196,7 +196,7 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	/*
 	 * If we timed out, reset the decoder
 	 */
-	if ((now - last_rx_time) > 6000) {
+	if ((now - last_rx_time) > 3600) {
 		if (partial_frame_count > 0) {
 			sbus_frame_drops++;
 			partial_frame_count = 0;
