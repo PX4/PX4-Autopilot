@@ -214,22 +214,22 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 
 		/* if the read failed for any reason, just give up here */
 		if (ret < 1) {
-			continue;
+			break;
 		}
 
 		last_rx_time = now;
-
-		/* if the first byte of the frame is not the start symbol, give up instantly */
-		if (frame[0] != SBUS_START_SYMBOL) {
-			sbus_frame_drops++;
-			partial_frame_count = 0;
-			continue;
-		}
 
 		/*
 		 * Add bytes to the current frame
 		 */
 		partial_frame_count += ret;
+
+		/* if the first byte of the frame is not the start symbol, give up instantly */
+		if (partial_frame_count > 0 && (frame[0] != SBUS_START_SYMBOL)) {
+			sbus_frame_drops++;
+			partial_frame_count = 0;
+			continue;
+		}
 
 		/*
 		 * If we don't have a full frame, return
