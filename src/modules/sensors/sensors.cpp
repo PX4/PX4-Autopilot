@@ -65,7 +65,6 @@
 #include <mathlib/mathlib.h>
 
 #include <px4_adc.h>
-//#include <nuttx/analog/adc.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -199,7 +198,7 @@ private:
 	void		rc_poll();
 
 	/* XXX should not be here - should be own driver */
-	int 		_fd_adc;			/**< ADC driver handle */
+	DevHandle 	_h_adc;				/**< ADC driver handle */
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
 	bool 		_task_should_exit;		/**< if true, sensor task should exit */
@@ -489,7 +488,7 @@ Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors() :
-	_fd_adc(-1),
+	_h_adc(),
 	_last_adc(0),
 
 	_task_should_exit(true),
@@ -1025,11 +1024,10 @@ int
 Sensors::adc_init()
 {
 
-	DevHandle h_adc;
-	DevMgr::getHandle(ADC0_DEVICE_PATH, h_adc);
+	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
 
-	if (!h_adc.isValid()) {
-		warnx("FATAL: no ADC found: %s (%d)", ADC0_DEVICE_PATH, h_adc.getError());
+	if (!_h_adc.isValid()) {
+		warnx("FATAL: no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
 		return ERROR;
 	}
 
@@ -1619,7 +1617,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
 		struct adc_msg_s buf_adc[12];
 		/* read all channels available */
-		int ret = px4_read(_fd_adc, &buf_adc, sizeof(buf_adc));
+		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
@@ -2058,10 +2056,7 @@ Sensors::task_main()
 		warnx("sensor initialization failed");
 		_sensors_task = -1;
 
-		if (_fd_adc >= 0) {
-			px4_close(_fd_adc);
-			_fd_adc = -1;
-		}
+		DevMgr::releaseHandle(_h_adc);
 
 		return;
 	}
