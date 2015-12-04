@@ -96,11 +96,14 @@ bool is_vtol(const struct vehicle_status_s * current_status) {
 		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_OCTOROTOR);
 }
 
-static DevHandle h_buzzer;
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
 static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for repeating tunes or silence
 static int tune_current = TONE_STOP_TUNE;		// currently playing tune, can be interrupted after tune_end
 static unsigned int tune_durations[TONE_NUMBER_OF_TUNES];
+
+static DevHandle h_leds;
+static DevHandle h_rgbleds;
+static DevHandle h_buzzer;
 
 static param_t bat_v_empty_h;
 static param_t bat_v_full_h;
@@ -136,7 +139,6 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
 
-	DevHandle h_buzzer;
 	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h_buzzer);
 
 	if (!h_buzzer.isValid()) {
@@ -267,9 +269,6 @@ int blink_msg_state()
 		return 1;
 	}
 }
-
-static DevHandle h_leds;
-static DevHandle h_rgbleds;
 
 int led_init()
 {
