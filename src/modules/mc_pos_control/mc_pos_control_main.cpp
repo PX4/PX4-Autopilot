@@ -188,6 +188,7 @@ private:
 		param_t hold_z_dz;
 		param_t hold_max_xy;
 		param_t hold_max_z;
+		param_t acc_hor_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -204,6 +205,7 @@ private:
 		float hold_z_dz;
 		float hold_max_xy;
 		float hold_max_z;
+		float acc_hor_max;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -232,6 +234,7 @@ private:
 	math::Vector<3> _vel_sp;
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 	math::Vector<3> _vel_ff;
+	math::Vector<3> _vel_sp_prev;
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -384,6 +387,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_sp.zero();
 	_vel_prev.zero();
 	_vel_ff.zero();
+	_vel_sp_prev.zero();
 
 	_R.identity();
 
@@ -412,6 +416,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_z_dz = param_find("MPC_HOLD_Z_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
+	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
 
 
 	/* fetch initial parameter values */
@@ -510,6 +515,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
 		_params.hold_max_z = (v < 0.0f ? 0.0f : v);
+		param_get(_params_handles.acc_hor_max, &v);
+		_params.acc_hor_max = v;
 
 		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
 
@@ -537,10 +544,12 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (!_attitude_setpoint_id) {
 			if (_vehicle_status.is_vtol) {
 				_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
+
 			} else {
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
 			}
@@ -1179,6 +1188,23 @@ MulticopterPositionControl::task_main()
 				control_auto(dt);
 			}
 
+			// limit total horizontal acceleration
+			math::Vector<2> acc_hor;
+			acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
+			acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
+
+			if (acc_hor.length() > _params.acc_hor_max) {
+				acc_hor.normalize();
+				acc_hor *= _params.acc_hor_max;
+				math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
+				math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
+				_vel_sp(0) = vel_sp_hor(0);
+				_vel_sp(1) = vel_sp_hor(1);
+			}
+
+			_vel_sp_prev = _vel_sp;
+
+
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 			    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
@@ -1196,6 +1222,7 @@ MulticopterPositionControl::task_main()
 				/* publish attitude setpoint */
 				if (_att_sp_pub != nullptr) {
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+
 				} else if (_attitude_setpoint_id) {
 					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
@@ -1627,11 +1654,12 @@ MulticopterPositionControl::task_main()
 		 * attitude setpoints for the transition).
 		 */
 		if (!(_control_mode.flag_control_offboard_enabled &&
-					!(_control_mode.flag_control_position_enabled ||
-						_control_mode.flag_control_velocity_enabled))) {
+		      !(_control_mode.flag_control_position_enabled ||
+			_control_mode.flag_control_velocity_enabled))) {
 
 			if (_att_sp_pub != nullptr) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+
 			} else if (_attitude_setpoint_id) {
 				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 			}
