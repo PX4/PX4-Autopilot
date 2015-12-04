@@ -186,6 +186,9 @@ void Standard::update_vtol_state()
 
 void Standard::update_transition_state()
 {
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 		if (_params_standard.front_trans_dur <= 0.0f) {
 			// just set the final target throttle value
@@ -242,11 +245,15 @@ void Standard::update_transition_state()
 
 void Standard::update_mc_state()
 {
-	// do nothing
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 }
 
 void Standard::update_fw_state()
 {
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 	// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again
 	if (!_flag_enable_mc_motors) {
 		set_max_mc(950);

@@ -128,7 +128,7 @@ public:
 	 * @param arg           An argument to the operation.
 	 * @return              Negative errno on error, OK or positive value on success.
 	 */
-	virtual int     dev_ioctl(unsigned operation, unsigned &arg);
+	virtual int     dev_ioctl(unsigned operation, unsigned arg);
 
 	/*
 	  device bus types for DEVID
@@ -181,7 +181,7 @@ protected:
 	 */
 	void		lock()
 	{
-		DEVICE_DEBUG("lock");
+		//DEVICE_DEBUG("lock");
 		do {} while (px4_sem_wait(&_lock) != 0);
 	}
 
@@ -190,7 +190,7 @@ protected:
 	 */
 	void		unlock()
 	{
-		DEVICE_DEBUG("unlock");
+		//DEVICE_DEBUG("unlock");
 		px4_sem_post(&_lock);
 	}
 

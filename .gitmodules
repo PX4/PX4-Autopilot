@@ -15,7 +15,7 @@
 	url = https://github.com/ros/gencpp.git
 [submodule "src/lib/dspal"]
 	path = src/lib/dspal
-	url = https://github.com/mcharleb/dspal.git
+	url = https://github.com/ATLFlight/dspal.git
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
@@ -28,3 +28,6 @@
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
 	url = https://github.com/PX4/Matrix.git
+[submodule "src/lib/DriverFramework"]
+	path = src/lib/DriverFramework
+	url = https://github.com/PX4/DriverFramework.git

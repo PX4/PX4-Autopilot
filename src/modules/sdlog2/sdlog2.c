@@ -311,7 +311,7 @@ int sdlog2_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("sdlog2",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_DEFAULT - 30,
-						 3000,
+						 3300,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
 
@@ -555,7 +555,7 @@ int open_perf_file(const char* str)
 static void *logwriter_thread(void *arg)
 {
 	/* set name */
-	prctl(PR_SET_NAME, "sdlog2_writer", 0);
+	px4_prctl(PR_SET_NAME, "sdlog2_writer", 0);
 
 	int log_fd = open_log_file();
 
@@ -686,9 +686,12 @@ void sdlog2_start_log()
 	pthread_attr_init(&logwriter_attr);
 
 	struct sched_param param;
+	(void)pthread_attr_getschedparam(&logwriter_attr, &param);
 	/* low priority, as this is expensive disk I/O */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
-	(void)pthread_attr_setschedparam(&logwriter_attr, &param);
+	if (pthread_attr_setschedparam(&logwriter_attr, &param)) {
+		warnx("sdlog2: failed setting sched params");
+	}
 
 	pthread_attr_setstacksize(&logwriter_attr, 2048);
 

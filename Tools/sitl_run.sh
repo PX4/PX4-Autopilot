@@ -37,6 +37,8 @@ then
 	kill $jmavsim_pid
 fi
 
+set -e
+
 cp Tools/posix_lldbinit $build_path/src/firmware/posix/.lldbinit
 cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
 
@@ -46,14 +48,14 @@ if [ "$program" == "jmavsim" ] && [ "$no_sim" == "" ]
 then
 	cd Tools/jMAVSim
 	ant
-	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
+	nice -n -10 java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
-elif [ "$3" == "gazebo" ] && [ "$no_sim" == "" ]
+elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
 then
 	if [ -x "$(command -v gazebo)" ]
 	then
 		# Set the plugin path so Gazebo finds our model and sim
-		export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:$curr_dir/Tools/sitl_gazebo/Build
+		export GAZEBO_PLUGIN_PATH=$curr_dir/Tools/sitl_gazebo/Build:${GAZEBO_PLUGIN_PATH}
 		# Set the model path so Gazebo finds the airframes
 		export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$curr_dir/Tools/sitl_gazebo/models
 		# The next line would disable online model lookup, can be commented in, in case of unstable behaviour.
@@ -61,11 +63,11 @@ then
 		export SITL_GAZEBO_PATH=$curr_dir/Tools/sitl_gazebo
 		mkdir -p Tools/sitl_gazebo/Build
 		cd Tools/sitl_gazebo/Build
-		cmake ..
+		cmake -Wno-dev ..
 		make -j4
-		gzserver ../worlds/${model}.world &
+		nice -n -10 gzserver --verbose ../worlds/${model}.world &
 		SIM_PID=`echo $!`
-		gzclient &
+		gzclient --verbose &
 		GUI_PID=`echo $!`
 	else
 		echo "You need to have gazebo simulator installed!"
@@ -76,21 +78,25 @@ cd $build_path/src/firmware/posix
 mkdir -p rootfs/fs/microsd
 mkdir -p rootfs/eeprom
 touch rootfs/eeprom/parameters
+
+# Do not exit on failure now from here on because we want the complete cleanup
+set +e
+
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
 then
-	lldb -- mainapp ../../../../${rc_script}_${program}
+	lldb -- mainapp ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "gdb" ]
 then
-	gdb --args mainapp ../../../../${rc_script}_${program}
+	gdb --args mainapp ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "ddd" ]
 then
-	ddd --debugger gdb --args mainapp ../../../../${rc_script}_${program}
+	ddd --debugger gdb --args mainapp ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "valgrind" ]
 then
 	valgrind ./mainapp ../../../../${rc_script}_${program}_${model}
 else
-	./mainapp ../../../../${rc_script}_${program}_${model}
+	nice -n -10 ./mainapp ../../../../${rc_script}_${program}_${model}
 fi
 
 if [ "$program" == "jmavsim" ]

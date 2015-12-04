@@ -10,10 +10,12 @@ add_executable(mainapp
 	apps.h
 	)
 
-if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang" OR NOT APPLE)
+if (NOT ${CMAKE_C_COMPILER_ID} STREQUAL "Clang" AND NOT APPLE)
 	target_link_libraries(mainapp
 		-Wl,--start-group
 		${module_libraries}
+		df_driver_framework
+		${df_driver_libraries}
 		pthread m rt
 		-Wl,--end-group
 		)

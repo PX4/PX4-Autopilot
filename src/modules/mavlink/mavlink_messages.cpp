@@ -155,6 +155,14 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
 			break;
 
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF;
+			break;
+
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
@@ -969,7 +977,7 @@ protected:
 		struct vehicle_gps_position_s gps;
 
 		if (_gps_sub->update(&_gps_time, &gps)) {
-			mavlink_gps_raw_int_t msg;
+			mavlink_gps_raw_int_t msg = {};
 
 			msg.time_usec = gps.timestamp_position;
 			msg.fix_type = gps.fix_type;

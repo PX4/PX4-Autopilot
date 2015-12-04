@@ -170,25 +170,32 @@ if(UNIX AND APPLE)
         set(added_definitions
 		-D__PX4_POSIX
 		-D__PX4_DARWIN
+		-D__DF_DARWIN
 		-DCLOCK_MONOTONIC=1
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
+
+        set(added_exe_linker_flags
+		-lpthread
+		)
 
 else()
 
         set(added_definitions
 		-D__PX4_POSIX
 		-D__PX4_LINUX 
+		-D__DF_LINUX 
 		-DCLOCK_MONOTONIC=1
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
-endif()
 
         set(added_exe_linker_flags
-		-lpthread
+		-lpthread -lrt
 		)
+
+endif()
 	
 
 	# Add the toolchain specific flags

@@ -172,6 +172,7 @@ function(px4_os_add_flags)
         set(added_definitions
                 -D__PX4_QURT 
 		-D__PX4_POSIX
+		-D__DF_QURT
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
@@ -184,6 +185,8 @@ function(px4_os_add_flags)
 	# Clear -rdynamic flag which fails for hexagon
 	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+	set(DF_TARGET "qurt" PARENT_SCOPE)
 
 	# output
 	foreach(var ${inout_vars})

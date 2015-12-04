@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-#
-# Makefile to build the generic airspeed driver.
-#
-MODULE_COMMAND	= measairspeedsim
-
-SRCS			= airspeedsim.cpp meas_airspeed_sim.cpp
-
-MAXOPTIMIZATION	 = -Os
+px4_add_module(
+	MODULE platforms__posix__drivers__rgbledsim
+	MAIN rgbledsim
+	COMPILE_FLAGS
+		-Os
+	SRCS
+		rgbled.cpp
+	DEPENDS
+		platforms__common
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

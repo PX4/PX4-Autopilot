@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-#
-# STM32 ADC driver
-#
-
-MODULE_COMMAND	= adcsim
-
-SRCS		= adcsim.cpp
-
-MAXOPTIMIZATION	 = -Os
+px4_add_module(
+	MODULE drivers__boards__px4fmu-v4
+	COMPILE_FLAGS
+		-Os
+	SRCS
+		px4fmu_can.c
+		px4fmu_init.c
+		px4fmu_pwm_servo.c
+		px4fmu_spi.c
+		px4fmu_usb.c
+		px4fmu_led.c
+	DEPENDS
+		platforms__common
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

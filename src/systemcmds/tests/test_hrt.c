@@ -37,7 +37,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
-
+#include <px4_posix.h>
 #include <sys/types.h>
 #include <sys/time.h>
 

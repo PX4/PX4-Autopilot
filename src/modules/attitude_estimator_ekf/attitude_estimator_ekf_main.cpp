@@ -284,8 +284,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
-	/* rate-limit raw data updates to 333 Hz (sensors app publishes at 200, so this is just paranoid) */
-	orb_set_interval(sub_raw, 3);
 
 	/* subscribe to GPS */
 	int sub_gps = orb_subscribe(ORB_ID(vehicle_gps_position));

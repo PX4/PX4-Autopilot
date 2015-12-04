@@ -56,6 +56,8 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
 
+	_flag_was_in_trans_mode = false;
+
 	_params_handles_tiltrotor.front_trans_dur = param_find("VT_F_TRANS_DUR");
 	_params_handles_tiltrotor.back_trans_dur = param_find("VT_B_TRANS_DUR");
 	_params_handles_tiltrotor.tilt_mc = param_find("VT_TILT_MC");
@@ -250,6 +252,9 @@ void Tiltrotor::update_vtol_state()
 
 void Tiltrotor::update_mc_state()
 {
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 	// make sure motors are not tilted
 	_tilt_control = _params_tiltrotor.tilt_mc;
 
@@ -271,6 +276,9 @@ void Tiltrotor::update_mc_state()
 
 void Tiltrotor::update_fw_state()
 {
+	// copy virtual attitude setpoint to real attitude setpoint
+	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 	// make sure motors are tilted forward
 	_tilt_control = _params_tiltrotor.tilt_fw;
 
@@ -292,6 +300,13 @@ void Tiltrotor::update_fw_state()
 
 void Tiltrotor::update_transition_state()
 {
+	if (!_flag_was_in_trans_mode) {
+		// save desired heading for transition and last thrust value
+		_yaw_transition = _v_att->yaw;
+		_throttle_transition = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+		_flag_was_in_trans_mode = true;
+	}
+
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 		// for the first part of the transition the rear rotors are enabled
 		if (_rear_motors != ENABLED) {
@@ -354,6 +369,9 @@ void Tiltrotor::update_transition_state()
 
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
 	_mc_yaw_weight = math::constrain(_mc_yaw_weight, 0.0f, 1.0f);
+
+	// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
+	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 }
 
 void Tiltrotor::update_external_state()

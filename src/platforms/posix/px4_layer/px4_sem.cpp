@@ -43,12 +43,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <errno.h>
 
 #ifdef __PX4_DARWIN
 
 #include <px4_posix.h>
-
-#include <list>
 
 int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 {
@@ -63,39 +62,108 @@ int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 
 int px4_sem_wait(px4_sem_t *s)
 {
-	pthread_mutex_lock(&(s->lock));
+	int ret = pthread_mutex_lock(&(s->lock));
+
+	if (ret) {
+		return ret;
+	}
+
 	s->value--;
 
 	if (s->value < 0) {
-		pthread_cond_wait(&(s->wait), &(s->lock));
+		ret = pthread_cond_wait(&(s->wait), &(s->lock));
+
+	} else {
+		ret = 0;
 	}
 
-	pthread_mutex_unlock(&(s->lock));
+	if (ret) {
+		PX4_WARN("px4_sem_wait failure");
+	}
 
-	return 0;
+	int mret = pthread_mutex_unlock(&(s->lock));
+
+	return (ret) ? ret : mret;
+}
+
+int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
+{
+	int ret = pthread_mutex_lock(&(s->lock));
+
+	if (ret) {
+		return ret;
+	}
+
+	s->value--;
+	errno = 0;
+
+	if (s->value < 0) {
+		ret = pthread_cond_timedwait(&(s->wait), &(s->lock), abstime);
+
+	} else {
+		ret = 0;
+	}
+
+	int err = ret;
+
+	if (err != 0 && err != ETIMEDOUT) {
+		setbuf(stdout, NULL);
+		setbuf(stderr, NULL);
+		const unsigned NAMELEN = 32;
+		char thread_name[NAMELEN] = {};
+		(void)pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+		PX4_WARN("%s: px4_sem_timedwait failure: ret: %d, %s", thread_name, ret, strerror(err));
+	}
+
+	int mret = pthread_mutex_unlock(&(s->lock));
+
+	return (err) ? err : mret;
 }
 
 int px4_sem_post(px4_sem_t *s)
 {
-	pthread_mutex_lock(&(s->lock));
+	int ret = pthread_mutex_lock(&(s->lock));
+
+	if (ret) {
+		return ret;
+	}
+
 	s->value++;
 
 	if (s->value <= 0) {
-		pthread_cond_signal(&(s->wait));
+		ret = pthread_cond_signal(&(s->wait));
+
+	} else {
+		ret = 0;
 	}
 
-	pthread_mutex_unlock(&(s->lock));
+	if (ret) {
+		PX4_WARN("px4_sem_post failure");
+	}
 
-	return 0;
+	int mret = pthread_mutex_unlock(&(s->lock));
+
+	// return the cond signal failure if present,
+	// else return the mutex status
+	return (ret) ? ret : mret;
 }
 
 int px4_sem_getvalue(px4_sem_t *s, int *sval)
 {
-	pthread_mutex_lock(&(s->lock));
-	*sval = s->value;
-	pthread_mutex_unlock(&(s->lock));
+	int ret = pthread_mutex_lock(&(s->lock));
 
-	return 0;
+	if (ret) {
+		PX4_WARN("px4_sem_getvalue failure");
+	}
+
+	if (ret) {
+		return ret;
+	}
+
+	*sval = s->value;
+	ret = pthread_mutex_unlock(&(s->lock));
+
+	return ret;
 }
 
 int px4_sem_destroy(px4_sem_t *s)

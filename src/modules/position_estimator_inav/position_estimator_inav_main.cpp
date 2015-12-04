@@ -74,6 +74,7 @@
 #include <drivers/drv_hrt.h>
 #include <platforms/px4_defines.h>
 
+#include <terrain_estimation/terrain_estimator.h>
 #include "position_estimator_inav_params.h"
 #include "inertial_filter.h"
 
@@ -95,7 +96,7 @@ static const hrt_abstime lidar_valid_timeout = 1000000;	// estimate lidar distan
 static const unsigned updates_counter_len = 1000000;
 static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
 
-__EXPORT int position_estimator_inav_main(int argc, char *argv[]);
+extern "C" __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
 int position_estimator_inav_thread_main(int argc, char *argv[]);
 
@@ -153,7 +154,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",
-					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5000,
+					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5300,
 					       position_estimator_inav_thread_main,
 					       (argv && argc > 2) ? (char * const *) &argv[2] : (char * const *) NULL);
 		return 0;
@@ -216,7 +217,7 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 	fclose(f);
 }
 #else
-#define write_debug_log(...) 
+#define write_debug_log(...)
 #endif
 
 /****************************************************************************
@@ -380,6 +381,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	orb_advert_t vehicle_global_position_pub = NULL;
 
 	struct position_estimator_inav_params params;
+	memset(&params, 0, sizeof(params));
 	struct position_estimator_inav_param_handles pos_inav_param_handles;
 	/* initialize parameter handles */
 	inav_parameters_init(&pos_inav_param_handles);
@@ -390,21 +392,24 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	/* first parameters update */
 	inav_parameters_update(&pos_inav_param_handles, &params);
 
-	px4_pollfd_struct_t fds_init[1] = {
-		{ .fd = sensor_combined_sub, .events = POLLIN },
-	};
+	px4_pollfd_struct_t fds_init[1] = {};
+	fds_init[0].fd = sensor_combined_sub;
+	fds_init[0].events = POLLIN;
 
 	/* wait for initial baro value */
 	bool wait_baro = true;
 
+	TerrainEstimator *terrain_estimator = new TerrainEstimator();
+
 	thread_running = true;
 
 	while (wait_baro && !thread_should_exit) {
-		int ret = px4_poll(fds_init, 1, 1000);
+		int ret = px4_poll(&fds_init[0], 1, 1000);
 
 		if (ret < 0) {
 			/* poll error */
 			mavlink_log_info(mavlink_fd, "[inav] poll error on init");
+			PX4_WARN("INAV poll error");
 
 		} else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
@@ -423,20 +428,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						wait_baro = false;
 						baro_offset /= (float) baro_init_cnt;
-						warnx("baro offset: %d m", (int)baro_offset);
-						mavlink_log_info(mavlink_fd, "[inav] baro offset: %d m", (int)baro_offset);
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
 					}
 				}
 			}
+		} else {
+			PX4_WARN("INAV poll timeout");
 		}
 	}
 
 	/* main loop */
-	px4_pollfd_struct_t fds[1] = {
-		{ .fd = vehicle_attitude_sub, .events = POLLIN },
-	};
+	px4_pollfd_struct_t fds[1];
+	fds[0].fd = vehicle_attitude_sub;
+	fds[0].events = POLLIN;
 
 	while (!thread_should_exit) {
 		int ret = px4_poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate
@@ -523,9 +528,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_check(optical_flow_sub, &updated);
 			orb_check(distance_sensor_sub, &updated2);
 
+			/* update lidar separately, needed by terrain estimator */
+			if (updated2) {
+				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
+			}
+
 			if (updated && updated2) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
-				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
 
 				/* calculate time from previous update */
 //				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
@@ -592,7 +601,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					flow_gyrospeed[0] = flow.gyro_x_rate_integral/(float)flow.integration_timespan*1000000.0f;
 					flow_gyrospeed[1] = flow.gyro_y_rate_integral/(float)flow.integration_timespan*1000000.0f;
 					flow_gyrospeed[2] = flow.gyro_z_rate_integral/(float)flow.integration_timespan*1000000.0f;
-					
+
 					//moving average
 					if (n_flow >= 100) {
 						gyro_offset_filtered[0] = flow_gyrospeed_filtered[0] - att_gyrospeed_filtered[0];
@@ -614,7 +623,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						att_gyrospeed_filtered[2] = (att.yawspeed + n_flow * att_gyrospeed_filtered[2]) / (n_flow + 1);
 						n_flow++;
 					}
-					
+
 
 					/*yaw compensation (flow sensor is not in center of rotation) -> params in QGC*/
 					yaw_comp[0] = params.flow_module_offset_x * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
@@ -838,7 +847,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						} else if (t > ref_init_start + ref_init_delay) {
 							ref_inited = true;
-							
+
 							/* set position estimate to (0, 0, 0), use GPS velocity for XY */
 							x_est[0] = 0.0f;
 							x_est[1] = gps.vel_n_m_s;
@@ -978,7 +987,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps_xy);
 
-		
+
 		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_xy || use_mocap;
 
 		bool dist_bottom_valid = (t < lidar_valid_time + lidar_valid_timeout);
@@ -1041,7 +1050,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				c += R_gps[j][i] * accel_bias_corr[j];
 			}
 
-			if (isfinite(c)) {
+			if (PX4_ISFINITE(c)) {
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
@@ -1081,7 +1090,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
-			if (isfinite(c)) {
+			if (PX4_ISFINITE(c)) {
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
@@ -1106,7 +1115,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				c += PX4_R(att.R, j, i) * accel_bias_corr[j];
 			}
 
-			if (isfinite(c)) {
+			if (PX4_ISFINITE(c)) {
 				acc_bias[i] += c * params.w_acc_bias * dt;
 			}
 		}
@@ -1114,7 +1123,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* inertial filter prediction for altitude */
 		inertial_filter_predict(dt, z_est, acc[2]);
 
-		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
+		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1141,10 +1150,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(corr_mocap[2][0], dt, z_est, 0, w_mocap_p);
 		}
 
-		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
+		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
-										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);										
+										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 			memcpy(z_est, z_est_prev, sizeof(z_est));
 			memset(corr_gps, 0, sizeof(corr_gps));
 			memset(corr_vision, 0, sizeof(corr_vision));
@@ -1160,7 +1169,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_predict(dt, x_est, acc[0]);
 			inertial_filter_predict(dt, y_est, acc[1]);
 
-			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
+			if (!(PX4_ISFINITE(x_est[0]) && PX4_ISFINITE(x_est[1]) && PX4_ISFINITE(y_est[0]) && PX4_ISFINITE(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1207,7 +1216,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				inertial_filter_correct(corr_mocap[1][0], dt, y_est, 0, w_mocap_p);
 			}
 
-			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
+			if (!(PX4_ISFINITE(x_est[0]) && PX4_ISFINITE(x_est[1]) && PX4_ISFINITE(y_est[0]) && PX4_ISFINITE(y_est[1]))) {
 				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
 										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
@@ -1227,6 +1236,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(-x_est[1], dt, x_est, 1, params.w_xy_res_v);
 			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
+
+		/* run terrain estimator */
+		terrain_estimator->predict(dt, &att, &sensor, &lidar);
+		terrain_estimator->measurement_update(hrt_absolute_time(), &gps, &lidar, &att);
 
 		if (inav_verbose_mode) {
 			/* print updates rate */
@@ -1271,7 +1284,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				buf_ptr = 0;
 			}
 
-			
+
 			/* publish local position */
 			local_pos.xy_valid = can_estimate_xy;
 			local_pos.v_xy_valid = can_estimate_xy;
@@ -1317,6 +1330,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				global_pos.eph = eph;
 				global_pos.epv = epv;
+
+				if (terrain_estimator->is_valid()) {
+					global_pos.terrain_alt = global_pos.alt - terrain_estimator->get_distance_to_ground();
+					global_pos.terrain_alt_valid = true;
+				} else {
+					global_pos.terrain_alt_valid = false;
+				}
 
 				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
