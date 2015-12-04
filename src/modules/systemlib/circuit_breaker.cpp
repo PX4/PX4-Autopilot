@@ -49,9 +49,11 @@
 bool circuit_breaker_enabled(const char *breaker, int32_t magic)
 {
 	int32_t val = -1;
+
 	if (PX4_PARAM_GET_BYNAME(breaker, &val) == 0 && val == magic) {
 		return true;
 	}
+
 	return false;
 }
 
