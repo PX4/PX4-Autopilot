@@ -149,11 +149,14 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 	double cos_d_lon = cos(lon_rad - ref->lon_rad);
 
 	double arg = ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon;
+
 	if (arg > 1.0) {
 		arg = 1.0;
+
 	} else if (arg < -1.0) {
 		arg = -1.0;
 	}
+
 	double c = acos(arg);
 	double k = (fabs(c) < DBL_EPSILON) ? 1.0 : (c / sin(c));
 
