@@ -192,7 +192,7 @@
 #define MPU6000_GYRO_MAX_OUTPUT_RATE			MPU6000_ACCEL_MAX_OUTPUT_RATE
 #define MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ		30
 
-#define MPU6000_DEFAULT_ONCHIP_FILTER_FREQ		42
+#define MPU6000_DEFAULT_ONCHIP_FILTER_FREQ		188	/* valid values: 42, 98, 188, 256 */
 
 #define MPU6000_ONE_G					9.80665f
 
@@ -1317,14 +1317,14 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
-					_set_dlpf_filter(cutoff_freq_hz);
+					//_set_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_set_dlpf_filter(cutoff_freq_hz_gyro);
+					//_set_dlpf_filter(cutoff_freq_hz_gyro);
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
@@ -1391,7 +1391,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSLOWPASS:
 		// set hardware filtering
-		_set_dlpf_filter(arg);
+		//_set_dlpf_filter(arg);
 		// set software filtering
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1476,7 +1476,7 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSLOWPASS:
 		// set hardware filtering
-		_set_dlpf_filter(arg);
+		//_set_dlpf_filter(arg);
 		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
