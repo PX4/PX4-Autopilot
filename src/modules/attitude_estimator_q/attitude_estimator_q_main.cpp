@@ -389,7 +389,8 @@ void AttitudeEstimatorQ::task_main()
 			_mag.set(_voter_mag.get_best(curr_time, &best_mag));
 
 			if (_accel.length() < 0.01f || _mag.length() < 0.01f) {
-				warnx("WARNING: degenerate accel / mag!");
+				//warnx("WARNING: degenerate accel / mag!");
+				usleep(1000);
 				continue;
 			}
 
@@ -571,9 +572,10 @@ void AttitudeEstimatorQ::task_main()
 		att.pitch = euler(1);
 		att.yaw = euler(2);
 
-		att.rollspeed = _rates(0);
-		att.pitchspeed = _rates(1);
-		att.yawspeed = _rates(2);
+		// XXX this is a stopgap and will be reworked
+		att.rollspeed = sensors.gyro_rad_s[0] - _gyro_bias(0);//_rates(0);
+		att.pitchspeed = sensors.gyro_rad_s[1] - _gyro_bias(1);//_rates(1);
+		att.yawspeed = sensors.gyro_rad_s[2] - _gyro_bias(2);//_rates(2);
 
 		for (int i = 0; i < 3; i++) {
 			att.g_comp[i] = _accel(i) - _pos_acc(i);
