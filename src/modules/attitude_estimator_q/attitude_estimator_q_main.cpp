@@ -202,6 +202,9 @@ private:
 	bool init();
 
 	bool update(float dt);
+
+	// Update magnetic declination (in rads) immediately changing yaw rotation
+	void update_mag_declination(float new_declination);
 };
 
 
@@ -522,7 +525,7 @@ void AttitudeEstimatorQ::task_main()
 
 			if (_mag_decl_auto && _gpos.eph < 20.0f && hrt_elapsed_time(&_gpos.timestamp) < 1000000) {
 				/* set magnetic declination automatically */
-				_mag_decl = math::radians(get_mag_declination(_gpos.lat, _gpos.lon));
+				update_mag_declination(math::radians(get_mag_declination(_gpos.lat, _gpos.lon)));
 			}
 		}
 
@@ -650,7 +653,7 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 		param_get(_params_handles.w_gyro_bias, &_w_gyro_bias);
 		float mag_decl_deg = 0.0f;
 		param_get(_params_handles.mag_decl, &mag_decl_deg);
-		_mag_decl = math::radians(mag_decl_deg);
+		update_mag_declination(math::radians(mag_decl_deg));
 		int32_t mag_decl_auto_int;
 		param_get(_params_handles.mag_decl_auto, &mag_decl_auto_int);
 		_mag_decl_auto = mag_decl_auto_int != 0;
@@ -685,6 +688,12 @@ bool AttitudeEstimatorQ::init()
 
 	// Convert to quaternion
 	_q.from_dcm(R);
+
+	// Compensate for magnetic declination
+	Quaternion decl_rotation;
+	decl_rotation.from_yaw(_mag_decl);
+	_q = decl_rotation * _q;
+
 	_q.normalize();
 
 	if (PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
@@ -788,6 +797,20 @@ bool AttitudeEstimatorQ::update(float dt)
 	return true;
 }
 
+void AttitudeEstimatorQ::update_mag_declination(float new_declination)
+{
+	// Apply initial declination or trivial rotations without changing estimation
+	if (!_inited || fabsf(new_declination - _mag_decl) < 0.0001f) {
+		_mag_decl = new_declination;
+
+	} else {
+		// Immediately rotate current estimation to avoid gyro bias growth
+		Quaternion decl_rotation;
+		decl_rotation.from_yaw(new_declination - _mag_decl);
+		_q = decl_rotation * _q;
+		_mag_decl = new_declination;
+	}
+}
 
 int attitude_estimator_q_main(int argc, char *argv[])
 {
