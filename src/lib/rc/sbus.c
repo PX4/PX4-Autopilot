@@ -134,6 +134,7 @@ sbus_init(const char *device, bool singlewire)
 		/* initialise the decoder */
 		partial_frame_count = 0;
 		last_rx_time = hrt_absolute_time();
+		last_frame_time = last_rx_time;
 		sbus_frame_drops = 0;
 	}
 
@@ -226,7 +227,7 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 				}
 			}
 
-			if (rc_control_packet) {
+			if (rc_control_packet && last_frame_time > 0) {
 				/* we should not be reading anything in this state if synced */
 				sbus_frame_drops++;
 			}
