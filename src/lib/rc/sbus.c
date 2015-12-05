@@ -49,7 +49,7 @@
 #define SBUS_START_SYMBOL	0x0f
 
 #define SBUS_FRAME_SIZE		25
-#define SBUS_MAX_BUF_SIZE	(SBUS_FRAME_SIZE + 15)
+#define SBUS_MAX_BUF_SIZE	(SBUS_FRAME_SIZE + 10)
 #define SBUS_INPUT_CHANNELS	16
 #define SBUS_FLAGS_BYTE		23
 #define SBUS_FAILSAFE_BIT	3
@@ -58,8 +58,7 @@
 
 #define SBUS_SINGLE_CHAR_LEN_US		(1/((100000/10)) * 1000 * 1000)
 
-#define SBUS_FRAME_INTERVAL_US	(SBUS_SINGLE_CHAR_LEN_US * SBUS_FRAME_SIZE)
-#define SBUS_FRAME_GAP_US	6200
+#define SBUS_FRAME_INTERVAL_US	2500
 #define SBUS_MIN_CALL_INTERVAL_US	(SBUS_FRAME_GAP_US / 3)
 #define SBUS_EPSILON_US	2500
 
@@ -210,6 +209,7 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 */
 	now = hrt_absolute_time();
 
+	// XXX rewrite this using a proper protocol parser not relying on timing
 	if (sbus_sync == SBUS_SYNC_PHASE0) {
 
 		/* empty the UART buffer */
@@ -254,7 +254,7 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	/*
 	 * Get all data
 	 */
-	ret = read(sbus_fd, &frame[partial_frame_count], SBUS_MAX_BUF_SIZE);
+	ret = read(sbus_fd, &frame[partial_frame_count], SBUS_FRAME_SIZE - partial_frame_count);
 
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1) {
@@ -367,9 +367,16 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 	case 0xA3:
 	case 0x63:
 	case 0xE3:
+	case 0x04:
+	case 0x14:
+	case 0x24:
+	case 0x34:
 		break;
 
 	default:
+		sbus_frame_drops++;
+		sbus_sync = SBUS_SYNC_PHASE0;
+		return false;
 		/* we expect one of the bits above, but there are some we don't know yet */
 		break;
 	}
