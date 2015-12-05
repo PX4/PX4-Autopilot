@@ -94,7 +94,7 @@
  * This is the analog to FMU_INPUT_DROP_LIMIT_US on the IO side
  */
 
-#define CONTROL_INPUT_DROP_LIMIT_US		1600
+#define CONTROL_INPUT_DROP_LIMIT_US		2000
 #define NAN_VALUE	(0.0f/0.0f)
 
 class PX4FMU : public device::CDev
@@ -702,6 +702,9 @@ PX4FMU::cycle()
 	/* check if anything updated */
 	int ret = ::poll(_poll_fds, _poll_fds_num, 0);
 
+	/* log if main actuator updated and sync */
+	int main_out_latency = 0;
+
 	/* this would be bad... */
 	if (ret < 0) {
 		DEVICE_LOG("poll error %d", errno);
@@ -719,6 +722,20 @@ PX4FMU::cycle()
 			if (_control_subs[i] > 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
 					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
+
+					/* main outputs */
+					if (i == 0) {
+						//main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
+
+						/* do only correct within the current phase */
+						if (abs(main_out_latency) > CONTROL_INPUT_DROP_LIMIT_US) {
+							main_out_latency = CONTROL_INPUT_DROP_LIMIT_US;
+						}
+
+						if (main_out_latency < 250) {
+							main_out_latency = 0;
+						}
+					}
 				}
 
 				poll_id++;
@@ -887,7 +904,8 @@ PX4FMU::cycle()
 		}
 	}
 
-	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, USEC2TICK(CONTROL_INPUT_DROP_LIMIT_US));
+	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this,
+		   USEC2TICK(CONTROL_INPUT_DROP_LIMIT_US - main_out_latency));
 }
 
 void PX4FMU::work_stop()
@@ -2172,7 +2190,6 @@ fmu_main(int argc, char *argv[])
 		     (unsigned)id[6], (unsigned)id[7], (unsigned)id[8], (unsigned)id[9], (unsigned)id[10], (unsigned)id[11]);
 	}
 
-
 	if (fmu_start() != OK) {
 		errx(1, "failed to start the FMU driver");
 	}
@@ -2222,6 +2239,11 @@ fmu_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "test")) {
 		test();
+	}
+
+	if (!strcmp(verb, "info")) {
+		warnx("frame drops: %u", sbus_dropped_frames());
+		return 0;
 	}
 
 	if (!strcmp(verb, "fake")) {
