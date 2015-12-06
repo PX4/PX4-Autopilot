@@ -1689,6 +1689,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
+		configure_stream("ALTITUDE", 1.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1715,6 +1716,7 @@ Mavlink::task_main(int argc, char *argv[])
 		//camera trigger is rate limited at the source, do not limit here
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
+		configure_stream("ALTITUDE", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1730,6 +1732,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("RC_CHANNELS", 5.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
+		configure_stream("ALTITUDE", 1.0f);
 		break;
 
 	case MAVLINK_MODE_MAGIC:
@@ -1760,6 +1763,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 20.0f);
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
+		configure_stream("ALTITUDE", 10.0f);
 
 	default:
 		break;
