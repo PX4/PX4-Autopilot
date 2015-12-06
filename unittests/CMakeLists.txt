@@ -37,7 +37,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -g")
 #set(CMAKE_INCLUDE_SYSTEM_FLAG_C "-isystem" )
 #set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem" )
 
-set(GTEST_DIR gtest)
+set(GTEST_DIR googletest)
 add_subdirectory(${GTEST_DIR})
 include_directories(${GTEST_DIR}/include)
 
@@ -48,10 +48,15 @@ include_directories(${PX_SRC}/modules)
 include_directories(${PX_SRC}/modules/uORB)
 include_directories(${PX_SRC}/lib)
 include_directories(${PX_SRC}/drivers)
+include_directories(${PX_SRC}/lib/DriverFramework/framework/include)
+include_directories(${PX_SRC}/../build_posix_sitl_default/src/modules)
+include_directories(${PX_SRC}/../build_posix_sitl_default/src/modules/uORB)
+include_directories(${PX_SRC}/../build_posix_sitl_default/src)
+include_directories(${PX_SRC}/../build_posix_sitl_default/src/modules/param)
 include_directories(${PX_SRC}/platforms)
 include_directories(${PX_SRC}/platforms/posix/include)
 include_directories(${PX_SRC}/platforms/posix/px4_layer)
-include_directories(${PX_SRC}/drivers/device )
+include_directories(${PX_SRC}/drivers/device)
 
 
 add_definitions(-D__EXPORT=)
@@ -101,13 +106,15 @@ add_library( px4_platform
                            ${PX_SRC}/platforms/posix/work_queue/dq_addlast.c
                            ${PX_SRC}/platforms/posix/px4_layer/lib_crc32.c
                            ${PX_SRC}/platforms/posix/px4_layer/drv_hrt.c
+                           ${PX_SRC}/platforms/posix/px4_layer/px4_sem.cpp
                            ${PX_SRC}/drivers/device/device_posix.cpp 
                            ${PX_SRC}/drivers/device/vdev.cpp 
                            ${PX_SRC}/drivers/device/vfile.cpp
                            ${PX_SRC}/drivers/device/vdev_posix.cpp
                            ${PX_SRC}/drivers/device/i2c_posix.cpp 
                            ${PX_SRC}/drivers/device/sim.cpp 
-                           ${PX_SRC}/drivers/device/ringbuffer.cpp                           
+                           ${PX_SRC}/drivers/device/ringbuffer.cpp
+                           ${PX_SRC}/../build_posix_sitl_default/src/modules/param/px4_parameters.c                         
  )
                            
 #target_include_directories( px4_platform PUBLIC ${PX_SRC}/platforms )                           
@@ -146,14 +153,9 @@ target_link_libraries( sbus2_test px4_platform )
 add_gtest(sbus2_test)
 
 # st24_test
-add_executable(st24_test st24_test.cpp hrt.cpp ${PX_SRC}/lib/rc/st24.c)
-target_link_libraries( st24_test px4_platform )
-add_gtest(st24_test)
-
-# sumd_test
-add_executable(sumd_test sumd_test.cpp hrt.cpp ${PX_SRC}/lib/rc/sumd.c)
-target_link_libraries( sumd_test px4_platform )
-add_gtest(sumd_test)
+add_executable(rc_input_test st24_test.cpp hrt.cpp ${PX_SRC}/lib/rc/st24.c sumd_test.cpp ${PX_SRC}/lib/rc/sumd.c)
+target_link_libraries(rc_input_test px4_platform)
+add_gtest(rc_input_test)
 
 # sf0x_test
 add_executable(sf0x_test sf0x_test.cpp ${PX_SRC}/drivers/sf0x/sf0x_parser.cpp)
@@ -172,15 +174,15 @@ target_link_libraries( param_test px4_platform )
 add_gtest(param_test)
 
 # uorb test
-add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp
-                          uorb_unittests/uORBCommunicatorMock.cpp
-                          uorb_unittests/uORBCommunicatorMockLoopback.cpp
-                          ${PX_SRC}/modules/uORB/uORBDevices_posix.cpp
-                          ${PX_SRC}/modules/uORB/uORBManager_posix.cpp
-                          ${PX_SRC}/modules/uORB/objects_common.cpp
-                          ${PX_SRC}/modules/uORB/uORBUtils.cpp
-                          ${PX_SRC}/modules/uORB/uORB.cpp
-                          )
-target_link_libraries( uorb_tests px4_platform )
+#add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp
+#                          uorb_unittests/uORBCommunicatorMock.cpp
+#                          uorb_unittests/uORBCommunicatorMockLoopback.cpp
+#                          ${PX_SRC}/modules/uORB/uORBDevices_posix.cpp
+#                          ${PX_SRC}/modules/uORB/uORBManager_posix.cpp
+#                          ${PX_SRC}/modules/uORB/objects_common.cpp
+#                          ${PX_SRC}/modules/uORB/uORBUtils.cpp
+#                          ${PX_SRC}/modules/uORB/uORB.cpp
+#                          )
+#target_link_libraries( uorb_tests px4_platform )
                           
-add_gtest(uorb_tests)
+#add_gtest(uorb_tests)
