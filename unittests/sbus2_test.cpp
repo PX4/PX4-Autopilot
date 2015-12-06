@@ -44,7 +44,6 @@ TEST(SBUS2Test, SBUS2)
 
 	// Init the parser
 	uint8_t frame[SBUS_BUFFER_SIZE];
-	unsigned partial_frame_count = 0;
 	uint16_t rc_values[18];
 	uint16_t num_values;
 	unsigned sbus_frame_drops = 0;
@@ -53,60 +52,32 @@ TEST(SBUS2Test, SBUS2)
 	bool sbus_frame_drop;
 	uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
 
-	float last_time = 0;
-
 	int rate_limiter = 0;
+	unsigned last_drop = 0;
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 
 		ASSERT_GT(ret, 0);
 
-		unsigned last_drop = sbus_frame_drops + sbus_frame_resets;
-
-		unsigned interval_us = ((f - last_time) * 1000 * 1000);
-
-		if (interval_us > SBUS_INTER_FRAME_TIMEOUT) {
-			if (partial_frame_count != 0) {
-				warnx("[ %08.4fs ] INTERVAL: %f - FRAME RESET, DROPPED %d bytes",
-					interval_us / 1e6, f, partial_frame_count);
-
-				printf("\t\tdropped: ");
-				for (int i = 0; i < partial_frame_count; i++) {
-					printf("%02X ", frame[i]);
-				}
-				printf("\n");
-
-				sbus_frame_resets++;
-			}
-
-			partial_frame_count = 0;
-		}
-
-		last_time = f;
-
-		frame[partial_frame_count] = x;
-		partial_frame_count++;
-
-		//warnx("%f: 0x%02x, first: 0x%02x, last: 0x%02x, pcount: %u", (double)f, x, frame[0], frame[24], partial_frame_count);
-
-		if (partial_frame_count == sizeof(frame)) {
-			partial_frame_count = 0;
-			warnx("FRAME SIZE OVERFLOW!\n\n\n");
-		}
-
+		frame[0] = x;
+		unsigned len = 1;
+		
 		// Pipe the data into the parser
 		hrt_abstime now = hrt_absolute_time();
 
-		if (rate_limiter % byte_offset == 0) {
-			bool result = sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values,
+		// if (rate_limiter % byte_offset == 0) {
+			bool result = sbus_parse(now, &frame[0], len, rc_values, &num_values,
 				&sbus_failsafe, &sbus_frame_drop, &sbus_frame_drops, max_channels);
 
-			if (result)
-				warnx("decoded packet");
-		}
+			if (result) {
+				//warnx("decoded packet");
+			}
+		// }
 
-		if (last_drop != (sbus_frame_drops + sbus_frame_resets))
+		if (last_drop != (sbus_frame_drops + sbus_frame_resets)) {
 			warnx("frame dropped, now #%d", (sbus_frame_drops + sbus_frame_resets));
+			last_drop = sbus_frame_drops + sbus_frame_resets;
+		}
 
 		rate_limiter++;
 	}
