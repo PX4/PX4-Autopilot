@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,9 +33,9 @@
 
 /**
  * @file ekf.h
- * Definition of ekf attitude position estimator class.
+ * Class for core functions for ekf attitude and position estimator.
  *
- * @author Roman Bast <bastroman@gmail.com>
+ * @author Roman Bast <bapstroman@gmail.com>
  *
  */
 
@@ -52,13 +52,18 @@ public:
 
 private:
 
+	static const uint8_t _kNumStates = 24;
 	bool _filter_initialised;
 
 	bool _fuse_height;	// true if there is new baro data
 	bool _fuse_pos;		// true if there is new position data from gps
 	bool _fuse_vel;		// true if there is new velocity data from gps
 
+	float P[_kNumStates][_kNumStates];	// state covariance matrix
+
 	bool initialiseFilter(void);
+
+	void initialiseCovariance();
 
 	void predictState();
 
@@ -71,6 +76,10 @@ private:
 	void fuseAirspeed();
 
 	void fuseRange();
+
+	void resetVelocity();
+
+	void resetPosition();
 
 
 };

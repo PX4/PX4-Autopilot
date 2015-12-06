@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file estimator_base.h
  * Definition of base class for attitude estimators
  *
- * @author Roman Bast <bastroman@gmail.com>
+ * @author Roman Bast <bapstroman@gmail.com>
  *
  */
 
@@ -63,6 +63,8 @@ class EstimatorBase
 public:
 	EstimatorBase();
 	~EstimatorBase();
+
+	virtual void update() = 0;
 
 	// set delta angle imu data
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel);
@@ -159,8 +161,25 @@ protected:
 		uint32_t airspeed_delay_ms;
 		float 	requiredEph;
 		float 	requiredEpv;
-	} _params;
 
+		float dax_noise;
+		float day_noise;
+		float daz_noise;
+		float dvx_noise;
+		float dvy_noise;
+		float dvz_noise;
+
+		float delta_ang_sig;
+		float delta_vel_sig;
+		float delta_pos_sig;
+		float delta_gyro_bias_sig;
+		float delta_gyro_scale_sig;
+		float delta_vel_bias_z_sig;
+		float delta_mag_body_sig;
+		float delta_mag_earth_sig;
+		float delta_wind_sig;
+
+	} _params;
 
 	static const uint8_t OBS_BUFFER_LENGTH = 5;
 	static const uint8_t IMU_BUFFER_LENGTH = 25;
@@ -228,4 +247,3 @@ public:
 	void printGps(struct gpsSample *data);
 	void printStoredGps();
 };
-

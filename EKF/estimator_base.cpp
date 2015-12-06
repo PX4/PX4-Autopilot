@@ -35,7 +35,7 @@
  * @file estimator_base.cpp
  * Definition of base class for attitude estimators
  *
- * @author Roman Bast <bastroman@gmail.com>
+ * @author Roman Bast <bapstroman@gmail.com>
  *
  */
 
@@ -264,6 +264,21 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_params.airspeed_delay_ms = 0;
 	_params.requiredEph = 10;
 	_params.requiredEpv = 10;
+	_params.dax_noise = 0.0f;
+	_params.day_noise = 0.0f;
+	_params.daz_noise = 0.0f;
+	_params.dvx_noise = 0.0f;
+	_params.dvy_noise = 0.0f;
+	_params.dvz_noise = 0.0f;
+	_params.delta_ang_sig = 0.0f;
+	_params.delta_vel_sig = 0.0f;
+	_params.delta_pos_sig = 0.0f;
+	_params.delta_gyro_bias_sig = 0.0f;
+	_params.delta_gyro_scale_sig = 0.0f;
+	_params.delta_vel_bias_z_sig = 0.0f;
+	_params.delta_mag_body_sig = 0.0f;
+	_params.delta_mag_earth_sig = 0.0f;
+	_params.delta_wind_sig = 0.0f;
 
 	_dt_imu_avg = 0.0f;
 	_imu_time_last = time_usec;
