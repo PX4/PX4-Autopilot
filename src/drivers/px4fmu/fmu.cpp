@@ -2242,7 +2242,9 @@ fmu_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "info")) {
+#ifdef SBUS_SERIAL_PORT
 		warnx("frame drops: %u", sbus_dropped_frames());
+#endif
 		return 0;
 	}
 
