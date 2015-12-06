@@ -4,7 +4,7 @@
 
 #include "../../src/systemcmds/tests/tests.h"
 #include <drivers/drv_hrt.h>
-#include <px4iofirmware/px4io.h>
+#include <rc/sbus.h>
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
 
@@ -38,7 +38,8 @@ TEST(SBUS2Test, SBUS2)
 
 	// Trash the first 20 lines
 	for (unsigned i = 0; i < 20; i++) {
-		(void)fscanf(fp, "%f,%x,,", &f, &x);
+		char buf[200];
+		(void)fgets(buf, sizeof(buf), fp);
 	}
 
 	// Init the parser
@@ -46,7 +47,7 @@ TEST(SBUS2Test, SBUS2)
 	unsigned partial_frame_count = 0;
 	uint16_t rc_values[18];
 	uint16_t num_values;
-	uint16_t sbus_frame_drops = 0;
+	unsigned sbus_frame_drops = 0;
 	unsigned sbus_frame_resets = 0;
 	bool sbus_failsafe;
 	bool sbus_frame_drop;
@@ -58,14 +59,16 @@ TEST(SBUS2Test, SBUS2)
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 
+		ASSERT_GT(ret, 0);
+
 		unsigned last_drop = sbus_frame_drops + sbus_frame_resets;
 
 		unsigned interval_us = ((f - last_time) * 1000 * 1000);
 
 		if (interval_us > SBUS_INTER_FRAME_TIMEOUT) {
 			if (partial_frame_count != 0) {
-				warnx("[ %08.4fs ] INTERVAL: %u - FRAME RESET, DROPPED %d bytes",
-					interval_us, f, partial_frame_count);
+				warnx("[ %08.4fs ] INTERVAL: %f - FRAME RESET, DROPPED %d bytes",
+					interval_us / 1e6, f, partial_frame_count);
 
 				printf("\t\tdropped: ");
 				for (int i = 0; i < partial_frame_count; i++) {
@@ -96,8 +99,7 @@ TEST(SBUS2Test, SBUS2)
 
 		if (rate_limiter % byte_offset == 0) {
 			bool result = sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values,
-				&sbus_failsafe, &sbus_frame_drop, max_channels);
-			sbus_frame_drops = sbus_dropped_frames();
+				&sbus_failsafe, &sbus_frame_drop, &sbus_frame_drops, max_channels);
 
 			if (result)
 				warnx("decoded packet");
