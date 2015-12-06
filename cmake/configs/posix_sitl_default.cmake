@@ -37,7 +37,10 @@ set(config_module_list
 	#modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
+	modules/mc_pos_control
+	modules/mc_att_control
 	modules/navigator
+	modules/commander
 	modules/vtol_att_control
 	modules/controllib
 	modules/ekf2
@@ -51,7 +54,6 @@ set(config_module_list
 	lib/launchdetection
 	lib/terrain_estimation
 	lib/runway_takeoff
-	lib/ecl/EKF/tests/base
 	)
 
 set(config_extra_builtin_cmds
