@@ -235,7 +235,7 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 * Try to decode something with what we got
 	 */
 	if (sbus_parse(now, &buf[0], ret, values, num_values, sbus_failsafe,
-		sbus_frame_drop, &sbus_frame_drops, max_channels)) {
+		       sbus_frame_drop, &sbus_frame_drops, max_channels)) {
 
 		sbus_decoded = true;
 	}
