@@ -4,5 +4,13 @@ mixer_test
 sf0x_test
 sbus2_test
 autodeclination_test
-st24_test
+rc_input_test
+conversion_test
+param_test
+*.a
 sample_unittest
+CMakeCache.txt
+CMakeFiles
+CTestTestfile.cmake
+cmake_install.cmake
+Makefile

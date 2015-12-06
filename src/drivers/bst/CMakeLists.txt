@@ -31,13 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__gimbal
-	MAIN gimbal
+	MODULE drivers__bst
+	MAIN bst
+	STACK 1200
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		gimbal.cpp
-		gimbal_params.c
+		bst.cpp
 	DEPENDS
 		platforms__common
 	)

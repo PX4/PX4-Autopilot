@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -31,29 +31,41 @@
  *
  ****************************************************************************/
 
-/*
- * @file circuit_breaker.c
+/**
+ * @file gimbal_params.c
  *
- * Circuit breaker parameters.
- * Analog to real aviation circuit breakers these parameters
- * allow to disable subsystems. They are not supported as standard
- * operation procedure and are only provided for development purposes.
- * To ensure they are not activated accidentally, the associated
- * parameter needs to set to the key (magic).
+ * Parameters for the gimbal controller.
+ *
+ * @author Andreas Antener <andreas@uaventure.com>
  */
 
-#include <stdint.h>
-#include <px4_defines.h>
-#include <systemlib/circuit_breaker.h>
+#include <px4_config.h>
 
-bool circuit_breaker_enabled(const char *breaker, int32_t magic)
-{
-	int32_t val = -1;
+#include <systemlib/param/param.h>
 
-	if (PX4_PARAM_GET_BYNAME(breaker, &val) == 0 && val == magic) {
-		return true;
-	}
+/**
+ * Consider mount operation mode.
+ *
+ * If set to 1, mount mode will be enforced.
+ *
+ * @min 0
+ * @max 1
+ * @group Gimbal
+ */
+PARAM_DEFINE_INT32(GMB_USE_MNT, 0);
 
-	return false;
-}
-
+/**
+ * Auxilary switch to set mount operation mode.
+ *
+ * Set to 0 to disable manual mode control.
+ *
+ * If set to an auxilary switch:
+ * Switch off means the gimbal is put into safe/locked position.
+ * Switch on means the gimbal can move freely, and landing gear
+ * will be retracted if applicable.
+ *
+ * @min 0
+ * @max 3
+ * @group Gimbal
+ */
+PARAM_DEFINE_INT32(GMB_AUX_MNT_CHN, 0);

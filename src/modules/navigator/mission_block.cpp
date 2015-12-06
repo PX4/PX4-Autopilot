@@ -146,7 +146,7 @@ MissionBlock::is_mission_item_reached()
 			float mission_acceptance_radius = _navigator->get_acceptance_radius(_mission_item.acceptance_radius);
 
 			/* if set to zero use the default instead */
-			if (mission_acceptance_radius < 0.001f) {
+			if (mission_acceptance_radius < NAV_EPSILON_POSITION) {
 				mission_acceptance_radius = _navigator->get_acceptance_radius();
 			}
 
@@ -210,7 +210,8 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->lon = item->lon;
 	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
 	sp->yaw = item->yaw;
-	sp->loiter_radius = item->loiter_radius;
+	sp->loiter_radius = (item->loiter_radius > NAV_EPSILON_POSITION) ? item->loiter_radius :
+				_navigator->get_loiter_radius();
 	sp->loiter_direction = item->loiter_direction;
 	sp->pitch_min = item->pitch_min;
 

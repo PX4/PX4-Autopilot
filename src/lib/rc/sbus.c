@@ -101,7 +101,7 @@ sbus_init(const char *device, bool singlewire)
 		if (singlewire) {
 			/* only defined in configs capable of IOCTL */
 #ifdef SBUS_SERIAL_PORT
-			ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+			//ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 #endif
 		}
 
