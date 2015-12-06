@@ -39,10 +39,6 @@
  * @author Andreas Antener <andreas@uaventure.com>
  */
 
-#include <px4_config.h>
-
-#include <systemlib/param/param.h>
-
 /**
  * Enable or disable runway takeoff with landing gear
  *

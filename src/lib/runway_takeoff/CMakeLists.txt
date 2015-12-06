@@ -36,7 +36,6 @@ px4_add_module(
 		-Os
 	SRCS
 		RunwayTakeoff.cpp
-		runway_takeoff_params.c
 	DEPENDS
 		platforms__common
 	)
