@@ -68,7 +68,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/airspeed.h>
 
-#include <ecl/EKF/estimator_base.h>
+#include <ecl/EKF/ekf.h>
 
 
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
@@ -128,7 +128,7 @@ private:
 
 Ekf2::Ekf2()
 {
-	_ekf = new EstimatorBase();
+	_ekf = new Ekf();
 }
 
 Ekf2::~Ekf2()
@@ -225,6 +225,8 @@ void Ekf2::task_main()
 		if (airspeed_updated) {
 			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.indicated_airspeed_m_s);
 		}
+
+		_ekf->update();
 	}
 }
 
