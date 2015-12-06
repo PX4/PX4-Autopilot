@@ -86,6 +86,10 @@ static void hrt_unlock(void)
 #include <sys/time.h>
 #define CLOCK_REALTIME 0
 
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC 1
+#endif
+
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	struct timeval now;
