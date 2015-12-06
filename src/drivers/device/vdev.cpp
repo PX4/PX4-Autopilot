@@ -562,6 +562,7 @@ void VDev::showDevices()
 			PX4_INFO("   %s", dev_path);
 		}
 	} while (i == 0);
+
 #endif
 }
 
