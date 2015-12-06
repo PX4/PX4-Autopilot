@@ -83,6 +83,7 @@ struct log_ATSP_s {
 #define LOG_IMU_MSG 4
 #define LOG_IMU1_MSG 22
 #define LOG_IMU2_MSG 23
+#define LOG_IMUT_MSG 48     /* IMUT: temperature corrected IMU values */
 struct log_IMU_s {
 	float acc_x;
 	float acc_y;
@@ -479,6 +480,8 @@ struct log_MACS_s {
 	float yaw_rate_integ;
 };
 
+/* WARNING: ID 46 is already in use for ATTC1 */
+
 /* --- CONTROL STATE --- */
 #define LOG_CTS_MSG 47
 struct log_CTS_s {
@@ -491,7 +494,7 @@ struct log_CTS_s {
 	float yaw_rate;
 };
 
-/* WARNING: ID 46 is already in use for ATTC1 */
+/* WARNING: ID 48 is already in use for IMUT */
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
@@ -524,6 +527,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(IMU, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(IMU1, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(IMU2, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
+	LOG_FORMAT_S(IMUT, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(SENS, SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
 	LOG_FORMAT_S(AIR1, SENS, "fffff",	"BaroPa,BaroAlt,BaroTmp,DiffPres,DiffPresF"),
 	LOG_FORMAT(LPOS, "ffffffffLLfBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,GFlg,EPH,EPV"),

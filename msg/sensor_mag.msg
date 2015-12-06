@@ -6,6 +6,9 @@ float32 z
 float32 range_ga
 float32 scaling
 float32 temperature
+float32 x_tc        # temperature compensated axis
+float32 y_tc        # temperature compensated axis
+float32 z_tc        # temperature compensated axis
 
 int16 x_raw
 int16 y_raw

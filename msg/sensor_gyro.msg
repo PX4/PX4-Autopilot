@@ -10,6 +10,9 @@ float32 z_integral	# delta angle in the NED Z board axis in rad/s in the integra
 float32 temperature	# temperature in degrees celcius
 float32 range_rad_s
 float32 scaling
+float32 x_tc        # temperature compensated axis in rad/s
+float32 y_tc        # temperature compensated axis in rad/s
+float32 z_tc        # temperature compensated axis in rad/s
 
 int16 x_raw
 int16 y_raw

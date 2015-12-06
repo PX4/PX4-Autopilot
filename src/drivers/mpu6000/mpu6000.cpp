@@ -69,6 +69,7 @@
 
 #include <drivers/device/spi.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/device/polycomp.h>
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
@@ -266,6 +267,7 @@ private:
 	unsigned		_call_interval;
 
 	ringbuffer::RingBuffer	*_accel_reports;
+	PolyComp		*_accel_comp;
 
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
@@ -275,6 +277,7 @@ private:
 	int			_accel_class_instance;
 
 	ringbuffer::RingBuffer	*_gyro_reports;
+	PolyComp		*_gyro_comp;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
@@ -300,6 +303,13 @@ private:
 	math::LowPassFilter2p	_gyro_filter_x;
 	math::LowPassFilter2p	_gyro_filter_y;
 	math::LowPassFilter2p	_gyro_filter_z;
+	/* temp compensation filters */
+	math::LowPassFilter2p	_accel_filter_x_tc;
+	math::LowPassFilter2p	_accel_filter_y_tc;
+	math::LowPassFilter2p	_accel_filter_z_tc;
+	math::LowPassFilter2p	_gyro_filter_x_tc;
+	math::LowPassFilter2p	_gyro_filter_y_tc;
+	math::LowPassFilter2p	_gyro_filter_z_tc;
 
 	Integrator		_accel_int;
 	Integrator		_gyro_int;
@@ -542,6 +552,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_call{},
 	_call_interval(0),
 	_accel_reports(nullptr),
+	_accel_comp(nullptr),
 	_accel_scale{},
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
@@ -549,6 +560,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
 	_gyro_reports(nullptr),
+	_gyro_comp(nullptr),
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
@@ -570,6 +582,13 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_gyro_filter_x(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	/* filters for temperature corrected value */
+	_accel_filter_x_tc(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_y_tc(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_z_tc(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_x_tc(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_y_tc(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_z_tc(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_int(1000000 / MPU6000_ACCEL_MAX_OUTPUT_RATE),
 	_gyro_int(1000000 / MPU6000_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
@@ -620,8 +639,16 @@ MPU6000::~MPU6000()
 		delete _accel_reports;
 	}
 
+	if (_accel_comp != nullptr) {
+		delete _accel_comp;
+	}
+
 	if (_gyro_reports != nullptr) {
 		delete _gyro_reports;
+	}
+
+	if (_gyro_comp != nullptr) {
+		delete _gyro_comp;
 	}
 
 	if (_accel_class_instance != -1) {
@@ -660,9 +687,21 @@ MPU6000::init()
 		goto out;
 	}
 
+	_accel_comp = new PolyComp();
+
+	if (_accel_comp == nullptr) {
+		goto out;
+	}
+
 	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
 	if (_gyro_reports == nullptr) {
+		goto out;
+	}
+
+	_gyro_comp = new PolyComp();
+
+	if (_gyro_comp == nullptr) {
 		goto out;
 	}
 
@@ -1321,6 +1360,10 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+					/* temperature corrected filters have same properties */
+					_accel_filter_x_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+					_accel_filter_y_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+					_accel_filter_z_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
@@ -1328,6 +1371,10 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					/* temperature corrected filters have same properties */
+					_gyro_filter_x_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					_gyro_filter_y_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					_gyro_filter_z_tc.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
@@ -1396,6 +1443,10 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		/* also adjust temp-compensation filters */
+		_accel_filter_x_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_accel_filter_y_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_accel_filter_z_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case ACCELIOCSSCALE: {
@@ -1405,6 +1456,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			if (sum > 2.0f && sum < 4.0f) {
 				memcpy(&_accel_scale, s, sizeof(_accel_scale));
+				_accel_comp->set_coeffs(_accel_scale);
 				return OK;
 
 			} else {
@@ -1480,11 +1532,16 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		/* also adjust temp-compensation filters */
+		_gyro_filter_x_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_gyro_filter_y_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_gyro_filter_z_tc.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_scale *) arg, sizeof(_gyro_scale));
+		_gyro_comp->set_coeffs(_gyro_scale);
 		return OK;
 
 	case GYROIOCGSCALE:
@@ -1894,6 +1951,7 @@ MPU6000::measure()
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
+	// non-temperature compensated
 	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
@@ -1901,6 +1959,15 @@ MPU6000::measure()
 	arb.x = _accel_filter_x.apply(x_in_new);
 	arb.y = _accel_filter_y.apply(y_in_new);
 	arb.z = _accel_filter_z.apply(z_in_new);
+
+	// temperature compensated
+	float x_in_new_tc = _accel_comp->get(0, (xraw_f * _accel_range_scale), report.temp);
+	float y_in_new_tc = _accel_comp->get(1, (yraw_f * _accel_range_scale), report.temp);
+	float z_in_new_tc = _accel_comp->get(2, (zraw_f * _accel_range_scale), report.temp);
+
+	arb.x_tc = _accel_filter_x_tc.apply(x_in_new_tc);
+	arb.y_tc = _accel_filter_y_tc.apply(y_in_new_tc);
+	arb.z_tc = _accel_filter_z_tc.apply(z_in_new_tc);
 
 	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
 	math::Vector<3> aval_integrated;
@@ -1934,6 +2001,7 @@ MPU6000::measure()
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
+	// non-temperature compensated
 	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
 	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
 	float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
@@ -1941,6 +2009,15 @@ MPU6000::measure()
 	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
 	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
 	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
+
+	// temperature compensated
+	float x_gyro_in_new_tc = _gyro_comp->get(0, grb.x, _last_temperature);
+	float y_gyro_in_new_tc = _gyro_comp->get(1, grb.y, _last_temperature);
+	float z_gyro_in_new_tc = _gyro_comp->get(2, grb.z, _last_temperature);
+
+	grb.x_tc = _gyro_filter_x_tc.apply(x_gyro_in_new_tc);
+	grb.y_tc = _gyro_filter_y_tc.apply(y_gyro_in_new_tc);
+	grb.z_tc = _gyro_filter_z_tc.apply(z_gyro_in_new_tc);
 
 	math::Vector<3> gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
 	math::Vector<3> gval_integrated;
