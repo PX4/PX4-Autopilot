@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,17 +37,28 @@
  * Template RingBuffer.
  */
 
+#include <cstdio>
+#include <cstring>
+
 template <typename data_type>
 class RingBuffer
 {
 public:
-	RingBuffer() {_buffer = NULL;};
+	RingBuffer()
+	{
+		_buffer = NULL;
+		_head = _tail = _size = 0;
+	}
 	~RingBuffer() {delete _buffer;}
 
-	bool allocate(unsigned size)
+	bool allocate(int size)
 	{
-		if (size == 0) {
+		if (size <= 0) {
 			return false;
+		}
+
+		if (_buffer != NULL) {
+			delete _buffer;
 		}
 
 		_buffer = new data_type[size];
@@ -60,10 +71,16 @@ public:
 		return true;
 	}
 
-	inline void push(data_type sample)
+	inline void push(data_type sample, bool debug = false)
 	{
-		_buffer[_head] = sample;
-		_head = (_head + 1) % _size;
+		if (debug) {
+			printf("elapsed %i\n", sample.time_us - _time_last);
+			_time_last = sample.time_us;
+		}
+
+		int head_new = (_head + 1) % _size;
+		_buffer[head_new] = sample;
+		_head = head_new;
 
 		// move tail if we overwrite it
 		if (_head == _tail && _size > 1) {
@@ -76,22 +93,38 @@ public:
 		return _buffer[_tail];
 	}
 
-	inline bool pop_first_older_than(uint64_t timestamp, data_type &sample)
+	inline data_type get_newest()
 	{
-		// start looking from oldest data of buffer
-		for (unsigned i = 0; i < _size; i++) {
-			unsigned index = (_tail + i) % _size;
+		return _buffer[_head];
+	}
 
-			if (timestamp >= _buffer[index].time_us) {
-				sample = _buffer[_tail + i];
-				// now we can set the tail to the item
-				// which comes after the one we removed
-				_tail = (_tail + i + 1);
+	inline bool pop_first_older_than(uint64_t timestamp, data_type *sample)
+	{
+		// start looking from newest observation data
+		for (unsigned i = 0; i < _size; i++) {
+			int index = (_head - i);
+			index = index < 0 ? _size + index : index;
+
+			if (timestamp >= _buffer[index].time_us && timestamp - _buffer[index].time_us < 100000) {
+
+				memcpy(sample, &_buffer[index], sizeof(*sample));
+
+				// Now we can set the tail to the item which comes after the one we removed
+				// since we don't want to have any older data in the buffer
+				if (index == _head) {
+					_tail = _head;
+
+				} else {
+					_tail = (index + 1) % _size;
+				}
+
+				_buffer[index].time_us = 0;
+
 				return true;
 			}
 
-			if (index == _head) {
-				// we have reached the head and haven't found anything
+			if (index == _tail) {
+				// we have reached the tail and haven't got a match
 				return false;
 			}
 		}
@@ -107,4 +140,7 @@ public:
 private:
 	data_type *_buffer;
 	unsigned _head, _tail, _size;
+
+	// debug
+	uint64_t _time_last;
 };
