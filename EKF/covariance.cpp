@@ -43,7 +43,7 @@
 #include "ekf.h"
 #include <math.h>
 
-#define sq sqrtf
+#define sq(_arg)	powf(_arg, 2.0f)
 
 void Ekf::initialiseCovariance()
 {
@@ -148,7 +148,7 @@ void Ekf::predictCovariance()
 	float delta_wind_sig = _params.delta_wind_sig;
 
 	// intermediate calculations
-	float SF[25];
+	float SF[25] = {};
 	SF[0] = daz_b / 2 + dazNoise / 2 - (daz * daz_s) / 2;
 	SF[1] = day_b / 2 + dayNoise / 2 - (day * day_s) / 2;
 	SF[2] = dax_b / 2 + daxNoise / 2 - (dax * dax_s) / 2;
@@ -164,7 +164,7 @@ void Ekf::predictCovariance()
 	SF[12] = q1 / 2 + (q0 * SF[2]) / 2 + (q2 * SF[0]) / 2 + (q3 * SF[1]) / 2;
 	SF[13] = q1 / 2 - (q0 * SF[2]) / 2 + (q2 * SF[0]) / 2 - (q3 * SF[1]) / 2;
 	SF[14] = q3 / 2 + (q0 * SF[0]) / 2 + (q1 * SF[1]) / 2 + (q2 * SF[2]) / 2;
-	SF[15] = - sqrtf(q0) - sq(q1) - sq(q2) - sq(q3);
+	SF[15] = - sq(q0) - sq(q1) - sq(q2) - sq(q3);
 	SF[16] = dvz_b - dvz + dvzNoise;
 	SF[17] = dvx - dvxNoise;
 	SF[18] = dvy - dvyNoise;
@@ -175,14 +175,14 @@ void Ekf::predictCovariance()
 	SF[23] = SF[19] - sq(q0) - sq(q1) + sq(q3);
 	SF[24] = 2 * q1 * q2;
 
-	float SG[5];
+	float SG[5] = {};
 	SG[0] = - sq(q0) - sq(q1) - sq(q2) - sq(q3);
 	SG[1] = sq(q3);
 	SG[2] = sq(q2);
 	SG[3] = sq(q1);
 	SG[4] = sq(q0);
 
-	float SQ[8];
+	float SQ[8] = {};
 	SQ[0] = - dvyNoise * (2 * q0 * q1 + 2 * q2 * q3) * (SG[1] - SG[2] + SG[3] - SG[4]) - dvzNoise *
 		(2 * q0 * q1 - 2 * q2 * q3) * (SG[1] - SG[2] - SG[3] + SG[4]) - dvxNoise * (2 * q0 * q2 - 2 * q1 * q3) *
 		(2 * q0 * q3 + 2 * q1 * q2);
@@ -198,7 +198,7 @@ void Ekf::predictCovariance()
 	SQ[6] = 2 * q1 * q2;
 	SQ[7] = SG[4];
 
-	float SPP[23];
+	float SPP[23] = {};
 	SPP[0] = SF[17] * (2 * q0 * q1 + 2 * q2 * q3) + SF[18] * (2 * q0 * q2 - 2 * q1 * q3);
 	SPP[1] = SF[18] * (2 * q0 * q2 + 2 * q1 * q3) + SF[16] * (SF[24] - 2 * q0 * q3);
 	SPP[2] = 2 * q3 * SF[8] + 2 * q1 * SF[11] - 2 * q0 * SF[14] - 2 * q2 * SF[13];
@@ -224,7 +224,7 @@ void Ekf::predictCovariance()
 	SPP[22] = SF[15];
 
 	// covariance update
-	float nextP[24][24];
+	float nextP[24][24] = {};
 	nextP[0][0] = daxNoise * SQ[3] + SPP[5] * (P[0][0] * SPP[5] - P[1][0] * SPP[4] + P[2][0] * SPP[7] + P[9][0] * SPP[22] +
 			P[12][0] * SPP[18]) - SPP[4] * (P[0][1] * SPP[5] - P[1][1] * SPP[4] + P[2][1] * SPP[7] + P[9][1] * SPP[22] + P[12][1] *
 					SPP[18]) + SPP[7] * (P[0][2] * SPP[5] - P[1][2] * SPP[4] + P[2][2] * SPP[7] + P[9][2] * SPP[22] + P[12][2] * SPP[18]) +
