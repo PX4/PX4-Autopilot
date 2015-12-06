@@ -148,7 +148,8 @@ target_link_libraries( conversion_test px4_platform )
 add_gtest(conversion_test)
 
 # sbus2_test
-add_executable(sbus2_test sbus2_test.cpp hrt.cpp)
+add_executable(sbus2_test sbus2_test.cpp hrt.cpp
+                          ${PX_SRC}/lib/rc/sbus.c)
 target_link_libraries( sbus2_test px4_platform )
 add_gtest(sbus2_test)
 
