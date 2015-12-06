@@ -20,32 +20,66 @@ TEST(SBUS2Test, SBUS2)
 	ASSERT_TRUE(fp);
 	warnx("loading data from: %s", filepath);
 
+	// if (argc < 2)
+	// 	errx(1, "Need a filename for the input file");
+
+	int byte_offset = 7;
+
+	// if (argc > 2) {
+	// 	char* end;
+	// 	byte_offset = strtol(argv[2],&end,10);
+	// }
+
+	warnx("RUNNING TEST WITH BYTE OFFSET OF: %d", byte_offset);
+
 	float f;
 	unsigned x;
 	int ret;
 
 	// Trash the first 20 lines
 	for (unsigned i = 0; i < 20; i++) {
-		char buf[200];
-		(void)fgets(buf, sizeof(buf), fp);
+		(void)fscanf(fp, "%f,%x,,", &f, &x);
 	}
 
 	// Init the parser
-	uint8_t frame[30];
+	uint8_t frame[SBUS_BUFFER_SIZE];
 	unsigned partial_frame_count = 0;
-	//uint16_t rc_values[18];
-	//uint16_t num_values;
-	//bool sbus_failsafe;
-	//bool sbus_frame_drop;
-	//uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
+	uint16_t rc_values[18];
+	uint16_t num_values;
+	uint16_t sbus_frame_drops = 0;
+	unsigned sbus_frame_resets = 0;
+	bool sbus_failsafe;
+	bool sbus_frame_drop;
+	uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
 
 	float last_time = 0;
 
+	int rate_limiter = 0;
+
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
-		if (((f - last_time) * 1000 * 1000) > 3000) {
+
+		unsigned last_drop = sbus_frame_drops + sbus_frame_resets;
+
+		unsigned interval_us = ((f - last_time) * 1000 * 1000);
+
+		if (interval_us > SBUS_INTER_FRAME_TIMEOUT) {
+			if (partial_frame_count != 0) {
+				warnx("[ %08.4fs ] INTERVAL: %u - FRAME RESET, DROPPED %d bytes",
+					interval_us, f, partial_frame_count);
+
+				printf("\t\tdropped: ");
+				for (int i = 0; i < partial_frame_count; i++) {
+					printf("%02X ", frame[i]);
+				}
+				printf("\n");
+
+				sbus_frame_resets++;
+			}
+
 			partial_frame_count = 0;
-			//warnx("FRAME RESET\n\n");
 		}
+
+		last_time = f;
 
 		frame[partial_frame_count] = x;
 		partial_frame_count++;
@@ -54,15 +88,25 @@ TEST(SBUS2Test, SBUS2)
 
 		if (partial_frame_count == sizeof(frame)) {
 			partial_frame_count = 0;
+			warnx("FRAME SIZE OVERFLOW!\n\n\n");
 		}
 
-		last_time = f;
-
 		// Pipe the data into the parser
-		//hrt_abstime now = hrt_absolute_time();
+		hrt_abstime now = hrt_absolute_time();
 
-		//if (partial_frame_count % 25 == 0)
-		//sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);
+		if (rate_limiter % byte_offset == 0) {
+			bool result = sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values,
+				&sbus_failsafe, &sbus_frame_drop, max_channels);
+			sbus_frame_drops = sbus_dropped_frames();
+
+			if (result)
+				warnx("decoded packet");
+		}
+
+		if (last_drop != (sbus_frame_drops + sbus_frame_resets))
+			warnx("frame dropped, now #%d", (sbus_frame_drops + sbus_frame_resets));
+
+		rate_limiter++;
 	}
 
 	ASSERT_EQ(ret, EOF);
