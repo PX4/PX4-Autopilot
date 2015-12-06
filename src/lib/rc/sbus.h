@@ -73,7 +73,7 @@ __EXPORT bool	sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bo
 			   bool *sbus_frame_drop,
 			   uint16_t max_channels);
 __EXPORT bool	sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
-	uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, unsigned *frame_drops, uint16_t max_channels);
+			   uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, unsigned *frame_drops, uint16_t max_channels);
 __EXPORT void	sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values);
 __EXPORT void	sbus2_output(int sbus_fd, uint16_t *values, uint16_t num_values);
 
