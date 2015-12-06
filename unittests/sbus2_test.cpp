@@ -4,6 +4,8 @@
 
 #include "../../src/systemcmds/tests/tests.h"
 #include <drivers/drv_hrt.h>
+// Enable S.BUS parser output
+#define SBUS_DEBUG
 #include <rc/sbus.h>
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
@@ -61,17 +63,18 @@ TEST(SBUS2Test, SBUS2)
 
 		frame[0] = x;
 		unsigned len = 1;
-		
+
 		// Pipe the data into the parser
 		hrt_abstime now = hrt_absolute_time();
 
 		// if (rate_limiter % byte_offset == 0) {
-			bool result = sbus_parse(now, &frame[0], len, rc_values, &num_values,
-				&sbus_failsafe, &sbus_frame_drop, &sbus_frame_drops, max_channels);
+		bool result = sbus_parse(now, &frame[0], len, rc_values, &num_values,
+					 &sbus_failsafe, &sbus_frame_drop, &sbus_frame_drops, max_channels);
 
-			if (result) {
-				//warnx("decoded packet");
-			}
+		if (result) {
+			//warnx("decoded packet");
+		}
+
 		// }
 
 		if (last_drop != (sbus_frame_drops + sbus_frame_resets)) {
