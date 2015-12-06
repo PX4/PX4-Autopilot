@@ -1,5 +1,4 @@
 Time [s],Value,Parity Error,Framing Error
-0,0x0F,,
 0.00012,0x11,,
 0.00024,0x04,,
 0.00036,0x20,,
