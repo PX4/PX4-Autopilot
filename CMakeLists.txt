@@ -44,5 +44,7 @@ px4_add_module(
 		validation/data_validator_group.cpp
 		EKF/estimator_base.cpp
 		EKF/ekf.cpp
+		EKF/ekf_helper.cpp
+		EKF/covariance.cpp
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
