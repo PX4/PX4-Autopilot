@@ -1291,7 +1291,7 @@ Sensors::parameter_update_poll(bool forced)
 				}
 
 				int id = h.ioctl(DEVIOCGDEVICEID, 0);
-				PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
+				//PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
 
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
