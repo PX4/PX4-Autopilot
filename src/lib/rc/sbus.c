@@ -49,8 +49,6 @@
 
 #define SBUS_START_SYMBOL	0x0f
 
-#define SBUS_FRAME_SIZE		25
-#define SBUS_MAX_BUF_SIZE	(SBUS_FRAME_SIZE + 10)
 #define SBUS_INPUT_CHANNELS	16
 #define SBUS_FLAGS_BYTE		23
 #define SBUS_FAILSAFE_BIT	3
@@ -199,7 +197,7 @@ bool
 sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
 	   uint16_t max_channels)
 {
-	ssize_t		ret;
+	int		ret = 1;
 	hrt_abstime	now;
 
 	/*
@@ -219,37 +217,30 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 */
 	now = hrt_absolute_time();
 
-	if ((now - last_rx_time) > SBUS_INTER_FRAME_TIMEOUT) {
-		if (partial_frame_count > 0) {
-			sbus_frame_drops++;
-			partial_frame_count = 0;
-		}
-	}
-
 	/*
 	 * Fetch bytes, but no more than we would need to complete
 	 * a complete frame.
 	 */
-	uint8_t buf[SBUS_FRAME_SIZE];
-	bool decoded = false;
+	uint8_t buf[SBUS_FRAME_SIZE * 2];
+	bool sbus_decoded = false;
 
-	do {
-		ret = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE);
+	ret = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE);
 
-		/* if the read failed for any reason, just give up here */
-		if (ret < 1) {
-			return false;
-		}
+	/* if the read failed for any reason, just give up here */
+	if (ret < 1) {
+		return false;
+	}
 
-		/*
-		 * Try to decode something with what we got
-		 */
-		decoded = decoded
-			  || sbus_parse(now, buf, ret, values, num_values, sbus_failsafe, sbus_frame_drop, &sbus_frame_drops, max_channels);
+	/*
+	 * Try to decode something with what we got
+	 */
+	if (sbus_parse(now, &buf[0], ret, values, num_values, sbus_failsafe,
+		sbus_frame_drop, &sbus_frame_drops, max_channels)) {
 
-	} while (ret > 0);
+		sbus_decoded = true;
+	}
 
-	return decoded;
+	return sbus_decoded;
 }
 
 bool
@@ -418,7 +409,6 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 				}
 
 				if (partial_frame_count < 24) {
-					decode_ret = false;
 					break;
 				}
 
@@ -453,7 +443,9 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 
 	}
 
-	*frame_drops = sbus_frame_drops;
+	if (frame_drops) {
+		*frame_drops = sbus_frame_drops;
+	}
 
 	/* return false as default */
 	return decode_ret;

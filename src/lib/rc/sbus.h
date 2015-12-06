@@ -46,7 +46,6 @@
 
 __BEGIN_DECLS
 
-#define SBUS_INTER_FRAME_TIMEOUT	3000	/**< 3000 us frame timeout */
 #define SBUS_FRAME_SIZE			25
 #define SBUS_BUFFER_SIZE		(SBUS_FRAME_SIZE + SBUS_FRAME_SIZE / 2)
 
