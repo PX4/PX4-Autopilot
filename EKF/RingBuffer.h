@@ -48,6 +48,7 @@ public:
 	{
 		_buffer = NULL;
 		_head = _tail = _size = 0;
+		_first_write = true;
 	}
 	~RingBuffer() {delete _buffer;}
 
@@ -68,6 +69,7 @@ public:
 		}
 
 		_size = size;
+		_first_write = true;
 		return true;
 	}
 
@@ -78,13 +80,24 @@ public:
 			_time_last = sample.time_us;
 		}
 
-		int head_new = (_head + 1) % _size;
+		int head_new = _head;
+
+		if (_first_write) {
+			head_new = _head;
+
+		} else {
+			head_new = (_head + 1) % _size;
+		}
+
 		_buffer[head_new] = sample;
 		_head = head_new;
 
 		// move tail if we overwrite it
-		if (_head == _tail && _size > 1) {
+		if (_head == _tail && !_first_write) {
 			_tail = (_tail + 1) % _size;
+
+		} else {
+			_first_write = false;
 		}
 	}
 
@@ -113,6 +126,7 @@ public:
 				// since we don't want to have any older data in the buffer
 				if (index == _head) {
 					_tail = _head;
+					_first_write = true;
 
 				} else {
 					_tail = (index + 1) % _size;
@@ -140,6 +154,7 @@ public:
 private:
 	data_type *_buffer;
 	unsigned _head, _tail, _size;
+	bool _first_write;
 
 	// debug
 	uint64_t _time_last;
