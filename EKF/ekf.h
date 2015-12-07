@@ -41,6 +41,8 @@
 
 #include "estimator_base.h"
 
+#define sq(_arg)	powf(_arg, 2.0f)
+
 class Ekf : public EstimatorBase
 {
 public:
@@ -48,18 +50,25 @@ public:
 	Ekf();
 	~Ekf();
 
-	void update();
+	bool update();
 
 private:
 
-	static const uint8_t _kNumStates = 24;
+	static const uint8_t _k_num_states = 24;
+	static constexpr float _k_earth_rate = 0.000072921f;
+
 	bool _filter_initialised;
+	bool _earth_rate_initialised;
 
 	bool _fuse_height;	// true if there is new baro data
 	bool _fuse_pos;		// true if there is new position data from gps
 	bool _fuse_vel;		// true if there is new velocity data from gps
 
-	float P[_kNumStates][_kNumStates];	// state covariance matrix
+	Vector3f _earth_rate_NED;
+
+	matrix::Dcm<float> _R_prev;
+
+	float P[_k_num_states][_k_num_states];	// state covariance matrix
 
 	bool initialiseFilter(void);
 
@@ -69,17 +78,37 @@ private:
 
 	void predictCovariance();
 
-	void fusePosVel();
+	void fuseMag(uint8_t index);
 
-	void fuseMag();
+	void fuseHeading();
 
 	void fuseAirspeed();
 
 	void fuseRange();
 
+	void fuseVelPosHeight();
+
 	void resetVelocity();
 
 	void resetPosition();
+
+	void makeCovSymetrical();
+
+	void limitCov();
+
+	void printCovToFile(char const *filename);
+
+	void assertCovNiceness();
+
+	void makeSymmetrical();
+
+	void constrainStates();
+
+	void fuse(float *K, float innovation);
+
+	void printStates();
+
+	void calcEarthRateNED(Vector3f &omega, double lat_rad) const;
 
 
 };

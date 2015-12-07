@@ -46,5 +46,7 @@ px4_add_module(
 		EKF/ekf.cpp
 		EKF/ekf_helper.cpp
 		EKF/covariance.cpp
+		EKF/vel_pos_fusion.cpp
+		EKF/heading_fusion.cpp
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

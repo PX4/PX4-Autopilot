@@ -64,7 +64,7 @@ public:
 	EstimatorBase();
 	~EstimatorBase();
 
-	virtual void update() = 0;
+	virtual bool update() = 0;
 
 	// set delta angle imu data
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel);
@@ -111,6 +111,7 @@ protected:
 		Quaternion  quat_nominal;
 		Vector3f    vel;
 		Vector3f    pos;
+		uint64_t 	time_us;
 	};
 
 	struct imuSample {
@@ -118,40 +119,40 @@ protected:
 		Vector3f    delta_vel;
 		float       delta_ang_dt;
 		float       delta_vel_dt;
-		uint32_t    time_us;
+		uint64_t    time_us;
 	};
 
 	struct gpsSample {
 		Vector2f    pos;
 		float       hgt;
 		Vector3f    vel;
-		uint32_t    time_us;
+		uint64_t    time_us;
 	};
 
 	struct magSample {
 		Vector3f    mag;
-		uint32_t    time_us;
+		uint64_t    time_us;
 	};
 
 	struct baroSample {
 		float       hgt;
-		uint32_t    time_us;
+		uint64_t    time_us;
 	};
 
 	struct rangeSample {
 		float       rng;
-		uint32_t    time_us;
+		uint64_t    time_us;
 	};
 
 	struct airspeedSample {
 		float       airspeed;
-		uint32_t    time_us;
+		uint64_t    time_us;
 	};
 
 	struct flowSample {
 		Vector2f    flowRadXY;
 		Vector2f    flowRadXYcomp;
-		uint32_t    time_us;
+		uint64_t    time_us;
 	};
 
 	struct {
@@ -162,31 +163,32 @@ protected:
 		float 	requiredEph;
 		float 	requiredEpv;
 
-		float dax_noise;
-		float day_noise;
-		float daz_noise;
-		float dvx_noise;
-		float dvy_noise;
-		float dvz_noise;
+		float gyro_noise;
+		float accel_noise;
 
-		float delta_ang_sig;
-		float delta_vel_sig;
-		float delta_pos_sig;
-		float delta_gyro_bias_sig;
-		float delta_gyro_scale_sig;
-		float delta_vel_bias_z_sig;
-		float delta_mag_body_sig;
-		float delta_mag_earth_sig;
-		float delta_wind_sig;
+		// process noise
+		float gyro_bias_p_noise;
+		float accel_bias_p_noise;
+		float gyro_scale_p_noise;
+		float mag_p_noise;
+		float wind_vel_p_noise;
+
+		float gps_vel_noise;
+		float gps_pos_noise;
+		float baro_noise;
+
+		float mag_heading_noise;	// measurement noise used for simple heading fusion
+		float mag_declination_deg;	// magnetic declination in degrees
+		float heading_innov_gate;	// innovation gate for heading innovation test
 
 	} _params;
 
-	static const uint8_t OBS_BUFFER_LENGTH = 5;
-	static const uint8_t IMU_BUFFER_LENGTH = 25;
+	static const uint8_t OBS_BUFFER_LENGTH = 10;
+	static const uint8_t IMU_BUFFER_LENGTH = 30;
 	static const unsigned FILTER_UPDATE_PERRIOD_MS = 10;
 
 	float _dt_imu_avg;
-	uint32_t _imu_time_last;
+	uint64_t _imu_time_last;
 
 	imuSample _imu_sample_delayed;
 	imuSample _imu_down_sampled;
@@ -200,17 +202,23 @@ protected:
 	airspeedSample _airspeed_sample_delayed;
 	flowSample _flow_sample_delayed;
 
+	outputSample _output_delayed;
+
 	struct map_projection_reference_s _posRef;
 	float _gps_alt_ref;
 
 
-	uint32_t _imu_ticks;
+	uint64_t _imu_ticks;
 
 	bool _imu_updated;
 	bool _start_predict_enabled;
 	bool _initialised;
 	bool _gps_initialised;
 	bool _gps_speed_valid;
+
+	bool _mag_healthy;		// computed by mag innovation test
+
+	bool _in_air;			// indicates if the vehicle is in the air
 
 	RingBuffer<imuSample> _imu_buffer;
 	RingBuffer<gpsSample> _gps_buffer;
@@ -227,6 +235,15 @@ protected:
 	uint64_t _time_last_baro;
 	uint64_t _time_last_range;
 	uint64_t _time_last_airspeed;
+
+	// flags capturing information about severe nummerical problems for various fusions
+	struct {
+		bool bad_mag_x:1;
+		bool bad_mag_y:1;
+		bool bad_mag_z:1;
+		bool bad_airspeed:1;
+		bool bad_sideslip:1;
+	} _fault_status;
 
 
 	void initialiseVariables(uint64_t timestamp);
@@ -246,4 +263,23 @@ public:
 	void printStoredBaro();
 	void printGps(struct gpsSample *data);
 	void printStoredGps();
+
+	void copy_quaternion(float *quat) {
+		for (unsigned i = 0; i < 4; i++) {
+			quat[i] = _state.quat_nominal(i);
+		}
+	}
+	void copy_velocity(float *vel) {
+		for (unsigned i = 0; i < 3; i++) {
+			vel[i] = _state.vel(i);
+		}
+	}
+	void copy_position(float *pos) {
+		for (unsigned i = 0; i < 3; i++) {
+			pos[i] = _state.pos(i);
+		}
+	}
+	void copy_timestamp(uint64_t *time_us) {
+		*time_us = _imu_time_last;
+	}
 };

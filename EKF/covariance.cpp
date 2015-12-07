@@ -42,37 +42,38 @@
 
 #include "ekf.h"
 #include <math.h>
+ #include <mathlib/mathlib.h>
 
 #define sq(_arg)	powf(_arg, 2.0f)
 
 void Ekf::initialiseCovariance()
 {
-	for (unsigned i = 0; i < _kNumStates; i++) {
-		for (unsigned j = 0; j < _kNumStates; j++) {
+	for (unsigned i = 0; i < _k_num_states; i++) {
+		for (unsigned j = 0; j < _k_num_states; j++) {
 			P[i][j] = 0.0f;
 		}
 	}
 
 	// XXX use initial guess for the diagonal elements for the covariance matrix
 	// angle error
-	P[0][0] = 0.1f;
-	P[1][1] = 0.1f;
-	P[2][2] = 0.1f;
+	P[0][0] = 0.001f;
+	P[1][1] = 0.001f;
+	P[2][2] = 0.001f;
 
 	// velocity
-	P[3][3] = 9.0f;
-	P[4][4] = 9.0f;
-	P[5][5] = 9.0f;
+	P[3][3] = 0.1f;
+	P[4][4] = 0.1f;
+	P[5][5] = 0.1f;
 
 	// position
-	P[6][6] = 9.0f;
-	P[7][7] = 9.0f;
-	P[8][8] = 9.0f;
+	P[6][6] = 0.1f;
+	P[7][7] = 0.1f;
+	P[8][8] = 0.1f;
 
 	// gyro bias
-	P[9][9] = 0.001f;
-	P[10][10] = 0.001f;
-	P[11][11] = 0.001f;
+	P[9][9] = 0.00001f;
+	P[10][10] = 0.00001f;
+	P[11][11] = 0.00001f;
 
 	// gyro scale
 	P[12][12] = 0.0001f;
@@ -93,8 +94,8 @@ void Ekf::initialiseCovariance()
 	P[21][21] = 0.0001f;
 
 	// wind
-	P[22][22] = 4.0f;
-	P[23][23] = 4.0f;
+	P[22][22] = 0.01f;
+	P[23][23] = 0.01f;
 
 }
 
@@ -124,28 +125,50 @@ void Ekf::predictCovariance()
 
 	float dvz_b = _state.accel_z_bias;
 
-	float dt = _imu_sample_delayed.delta_ang_dt;
+	float dt = _imu_sample_delayed.delta_vel_dt;
+
+	// compute process noise
+	float process_noise[_k_num_states] = {};
+
+	float d_ang_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1e-4f);
+	float d_vel_bias_sig = dt * math::constrain(_params.accel_bias_p_noise, 1e-6f, 1e-2f);
+	float d_ang_scale_sig = dt * math::constrain(_params.gyro_scale_p_noise, 1e-6f, 1e-2f);
+	float mag_I_sig = dt * math::constrain(_params.mag_p_noise, 1e-4f, 1e-1f);
+	float mag_B_sig = dt * math::constrain(_params.mag_p_noise, 1e-4f, 1e-1f);
+	float wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.01f, 1.0f);
+
+	for (unsigned i = 0; i < 9; i++) {
+		process_noise[i] = 0.0f;
+	}
+	for (unsigned i = 9; i < 12; i++) {
+		process_noise[i] = sq(d_ang_bias_sig);
+	}
+	for (unsigned i = 12; i < 15; i++) {
+		process_noise[i] = sq(d_ang_scale_sig);
+	}
+	process_noise[15] = sq(d_vel_bias_sig);
+
+	for (unsigned i = 16; i < 19; i++) {
+		process_noise[i] = sq(mag_I_sig);
+	}
+	for (unsigned i = 19; i < 22; i++) {
+		process_noise[i] = sq(mag_B_sig);
+	}
+	for (unsigned i = 22; i < 24; i++) {
+		process_noise[i] = sq(wind_vel_sig);
+	}
+
 
 	// assign input noise
 	// inputs to the system are 3 delta angles and 3 delta velocities
-	float daxNoise = _params.dax_noise;
-	float dayNoise = _params.day_noise;
-	float dazNoise = _params.daz_noise;
+	float daxNoise, dayNoise, dazNoise;
+	float dvxNoise, dvyNoise, dvzNoise;
+	float gyro_noise = math::constrain(_params.gyro_noise, 1e-4f, 1e-2f);
+	daxNoise = dayNoise = dazNoise = dt * gyro_noise;
+	float accel_noise = math::constrain(_params.accel_noise, 1e-2f, 1.0f);
+	dvxNoise = dvyNoise = dvzNoise = dt * accel_noise;
 
-	float dvxNoise = _params.dvx_noise;
-	float dvyNoise = _params.dvy_noise;
-	float dvzNoise = _params.dvz_noise;
-
-	// assign process noise variables
-	float delta_ang_sig = _params.delta_ang_sig;
-	float delta_vel_sig = _params.delta_vel_sig;
-	float delta_pos_sig = _params.delta_pos_sig;
-	float delta_gyro_bias_sig = _params.delta_gyro_bias_sig;
-	float delta_gyro_scale_sig = _params.delta_gyro_scale_sig;
-	float delta_vel_bias_z_sig = _params.delta_vel_bias_z_sig;
-	float delta_mag_body_sig = _params.delta_mag_body_sig;
-	float delta_mag_earth_sig = _params.delta_mag_earth_sig;
-	float delta_wind_sig = _params.delta_wind_sig;
+	// predict covarinace matrix
 
 	// intermediate calculations
 	float SF[25] = {};
@@ -632,35 +655,104 @@ void Ekf::predictCovariance()
 	nextP[22][23] = P[22][23];
 	nextP[23][23] = P[23][23];
 
-	// add process noise to diagonal
-	for (int i = 0; i < 3; i++) {nextP[i][i] += delta_ang_sig * delta_ang_sig;}
+	// add process noise
+	for (unsigned i = 0; i < _k_num_states; i++) {
+		nextP[i][i] += process_noise[i];
+	}
 
-	for (int i = 3; i < 6; i++) {nextP[i][i] += delta_vel_sig * delta_vel_sig;}
-
-	for (int i = 6; i < 9; i++) {nextP[i][i] += delta_vel_sig * delta_pos_sig;}
-
-	for (int i = 9; i < 12; i++) {nextP[i][i] += delta_gyro_bias_sig * delta_gyro_bias_sig;}
-
-	for (int i = 12; i < 15; i++) {nextP[i][i] += delta_gyro_scale_sig * delta_gyro_scale_sig;}
-
-	nextP[15][15] += delta_vel_bias_z_sig * delta_vel_bias_z_sig;
-
-	for (int i = 16; i < 19; i++) {nextP[i][i] += delta_mag_earth_sig * delta_mag_earth_sig;}
-
-	for (int i = 19; i < 22; i++) {nextP[i][i] += delta_mag_body_sig * delta_mag_body_sig;}
-
-	for (int i = 19; i < 24; i++) {nextP[i][i] += delta_wind_sig * delta_wind_sig;}
+	// stop position covariance growth if our total position variance reaches 100m
+	// this can happen if we loose gps for some time
+	if ((P[6][6] + P[7][7]) > 1e4f) {
+		for (uint8_t i = 6; i < 8; i++) {
+			for (uint8_t j = 0; j < _k_num_states; j++) {
+				nextP[i][j] = P[i][j];
+				nextP[j][i] = P[j][i];
+			}
+		}
+	}
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
-	for (unsigned row = 1; row < _kNumStates; row++) {
+	for (unsigned row = 1; row < _k_num_states; row++) {
 		for (unsigned column = 0 ; column < row; column++) {
 			nextP[row][column] = nextP[column][row];
 		}
 	}
 
-	for (unsigned row = 0; row < _kNumStates; row++) {
-		for (unsigned column = 0; column < _kNumStates; column++) {
-			P[row][column] = nextP[row][column];
+	for (unsigned i = 0; i < _k_num_states; i++) {
+		P[i][i] = nextP[i][i];
+	}
+
+	for (unsigned row = 1; row < _k_num_states; row++) {
+		for (unsigned column = 0; column < row; column++) {
+			P[row][column] = 0.5f * (nextP[row][column] + nextP[column][row]);
+			P[column][row] = P[row][column];
 		}
 	}
+
+	limitCov();
 }
+
+void Ekf::limitCov()
+{
+	// Covariance diagonal limits. Use same values for states which
+	// belong to the same group (e.g. vel_x, vel_y, vel_z)
+	float P_lim[9] = {};
+	P_lim[0] = 1.0f;		// angle error max var
+	P_lim[1] = 1000.0f;		// velocity max var
+	P_lim[2] = 1000000.0f;		// positiion max var
+	P_lim[3] = 0.001f;		// gyro bias max var
+	P_lim[4] = 0.01f;		// gyro scale max var
+	P_lim[5] = 0.1f;		// delta velocity z bias max var
+	P_lim[6] = 0.01f;		// earth mag field max var
+	P_lim[7] = 0.01f;		// body mag field max var
+	P_lim[8] = 1000.0f;		// wind max var
+
+	for (int i = 0; i < 3; i++) {
+
+		math::constrain(P[i][i], 0.0f, P_lim[0]);
+	}
+
+	for (int i = 3; i < 6; i++) {
+
+		math::constrain(P[i][i], 0.0f, P_lim[1]);
+	}
+
+	for (int i = 6; i < 9; i++) {
+
+
+		math::constrain(P[i][i], 0.0f, P_lim[2]);
+	}
+
+	for (int i = 9; i < 12; i++) {
+
+
+		math::constrain(P[i][i], 0.0f, P_lim[3]);
+	}
+
+	for (int i = 12; i < 15; i++) {
+
+
+		math::constrain(P[i][i], 0.0f, P_lim[4]);
+	}
+
+
+	math::constrain(P[15][15], 0.0f, P_lim[5]);
+
+	for (int i = 16; i < 19; i++) {
+
+		math::constrain(P[i][i], 0.0f, P_lim[6]);
+	}
+
+	for (int i = 19; i < 22; i++) {
+
+
+		math::constrain(P[i][i], 0.0f, P_lim[7]);
+	}
+
+	for (int i = 22; i < 24; i++) {
+
+		math::constrain(P[i][i], 0.0f, P_lim[8]);
+	}
+}
+
+

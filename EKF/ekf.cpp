@@ -42,9 +42,15 @@
 #include "ekf.h"
 #include <drivers/drv_hrt.h>
 
-Ekf::Ekf()
+Ekf::Ekf():
+	_filter_initialised(false),
+	_earth_rate_initialised(false),
+	_fuse_height(false),
+	_fuse_pos(false),
+	_fuse_vel(false)
 {
-
+	_earth_rate_NED.setZero();
+	_R_prev = matrix::Dcm<float>();
 }
 
 
@@ -53,22 +59,24 @@ Ekf::~Ekf()
 
 }
 
-void Ekf::update()
+bool Ekf::update()
 {
+	bool ret = false;	// indicates if there has been an update
 	if (!_filter_initialised) {
 		_filter_initialised = initialiseFilter();
 	}
-
+	printStates();
 	// prediction
 	if (_imu_updated) {
+		ret = true;
 		predictState();
 		predictCovariance();
-		_imu_updated = false;
 	}
 
 	// measurement updates
+
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		fuseMag();
+		fuseHeading();
 	}
 
 	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
@@ -80,8 +88,10 @@ void Ekf::update()
 		_fuse_vel = true;
 	}
 
+
 	if (_fuse_height || _fuse_pos || _fuse_vel) {
-		fusePosVel();
+		fuseVelPosHeight();
+		_fuse_vel = _fuse_pos = _fuse_height = false;
 	}
 
 	if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)) {
@@ -92,11 +102,20 @@ void Ekf::update()
 		fuseAirspeed();
 	}
 
+	// write to output if this has been a prediction step
+	if (_imu_updated) {
+		_output_delayed.vel = _state.vel;
+		_output_delayed.pos = _state.pos;
+		_output_delayed.quat_nominal = _state.quat_nominal;
+		_output_delayed.time_us = _imu_time_last;
+		_imu_updated = false;
+	}
+
+	return ret;
 }
 
 bool Ekf::initialiseFilter(void)
 {
-
 	_state.ang_error.setZero();
 	_state.vel.setZero();
 	_state.pos.setZero();
@@ -133,38 +152,35 @@ bool Ekf::initialiseFilter(void)
 
 void Ekf::predictState()
 {
-	// compute transformation matrix from body to world frame
-	matrix::Dcm<float> R(_state.quat_nominal);
-	R.transpose();
+	if (!_earth_rate_initialised) {
+		if (_gps_initialised) {
+			calcEarthRateNED(_earth_rate_NED, _posRef.lat_rad );
+			_earth_rate_initialised = true;
+		}
+	}
 
 	// attitude error state prediciton
-	Quaternion dq;
-	dq.from_axis_angle(_imu_sample_delayed.delta_ang);
+	matrix::Dcm<float> R_to_earth(_state.quat_nominal);	// transformation matrix from body to world frame
+	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_prev * _earth_rate_NED * _imu_sample_delayed.delta_ang_dt;
+	Quaternion dq;	// delta quaternion since last update
+	dq.from_axis_angle(corrected_delta_ang);
 	_state.quat_nominal = dq * _state.quat_nominal;
 	_state.quat_nominal.normalize();
+
+	_R_prev = R_to_earth.transpose();
 
 	Vector3f vel_last = _state.vel;
 
 	// predict velocity states
-	_state.vel += R * _imu_sample_delayed.delta_vel;
+	_state.vel += R_to_earth * _imu_sample_delayed.delta_vel;
 	_state.vel(2) += 9.81f * _imu_sample_delayed.delta_vel_dt;
 
 	// predict position states via trapezoidal integration of velocity
 	_state.pos += (vel_last + _state.vel) * _imu_sample_delayed.delta_vel_dt * 0.5f;
 
-	//matrix::Euler<float> euler(_state.quat_nominal);
-	//printf("roll pitch yaw %.5f %.5f %.5f\n", (double)euler(2), (double)euler(1), (double)euler(0));
+	constrainStates();
 }
 
-
-void Ekf::fusePosVel()
-{
-
-}
-
-void Ekf::fuseMag()
-{
-}
 
 void Ekf::fuseAirspeed()
 {
@@ -173,5 +189,48 @@ void Ekf::fuseAirspeed()
 
 void Ekf::fuseRange()
 {
+
+}
+
+void Ekf::printStates()
+{
+	static int counter = 0;
+
+	if (counter % 50 == 0) {
+		printf("ang error\n");
+		for(int i = 0; i < 3; i++) {
+			printf("ang_e %i %.5f\n", i, (double)_state.ang_error(i));
+		}
+
+		matrix::Euler<float> euler(_state.quat_nominal);
+		printf("yaw pitch roll %.5f %.5f %.5f\n", (double)euler(2), (double)euler(1), (double)euler(0));
+
+		printf("vel\n");
+		for(int i = 0; i < 3; i++) {
+			printf("v %i %.5f\n", i, (double)_state.vel(i));
+		}
+
+		printf("pos\n");
+		for(int i = 0; i < 3; i++) {
+			printf("p %i %.5f\n", i, (double)_state.pos(i));
+		}
+
+		printf("g gyro_bias\n");
+		for(int i = 0; i < 3; i++) {
+			printf("gb %i %.5f\n", i, (double)_state.gyro_bias(i));
+		}
+
+		printf("gyro_scale\n");
+		for(int i = 0; i < 3; i++) {
+			printf("gs %i %.5f\n", i, (double)_state.gyro_scale(i));
+		}
+
+		printf("mag_I\n");
+		for(int i = 0; i < 3; i++) {
+			printf("mI %i %.5f\n", i, (double)_state.mag_I(i));
+		}
+		counter = 0;
+	}
+	counter++;
 
 }

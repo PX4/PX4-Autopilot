@@ -53,7 +53,7 @@ EstimatorBase::~EstimatorBase()
 
 }
 
-// read integrated imu data and store to buffer
+// Accumulate imu data and store to buffer at desired rate
 void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang,
 			       float *delta_vel)
 {
@@ -132,7 +132,6 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 	_imu_sample_delayed = _imu_buffer.get_oldest();
 }
 
-
 void EstimatorBase::setMagData(uint64_t time_usec, float *data)
 {
 
@@ -161,11 +160,9 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		return;
 	}
 
-
 	if (time_usec - _time_last_gps > 70000 && gps_is_good(gps)) {
-
 		gpsSample gps_sample_new = {};
-		gps_sample_new.time_us = time_usec - _params.gps_delay_ms * 1000;
+		gps_sample_new.time_us = gps->time_usec - _params.gps_delay_ms * 1000;
 
 
 		gps_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2;
@@ -260,25 +257,24 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 
 	_params.mag_delay_ms = 0;
 	_params.baro_delay_ms = 0;
-	_params.gps_delay_ms = 0;
+	_params.gps_delay_ms = 200;
 	_params.airspeed_delay_ms = 0;
-	_params.requiredEph = 10;
-	_params.requiredEpv = 10;
-	_params.dax_noise = 0.0f;
-	_params.day_noise = 0.0f;
-	_params.daz_noise = 0.0f;
-	_params.dvx_noise = 0.0f;
-	_params.dvy_noise = 0.0f;
-	_params.dvz_noise = 0.0f;
-	_params.delta_ang_sig = 0.0f;
-	_params.delta_vel_sig = 0.0f;
-	_params.delta_pos_sig = 0.0f;
-	_params.delta_gyro_bias_sig = 0.0f;
-	_params.delta_gyro_scale_sig = 0.0f;
-	_params.delta_vel_bias_z_sig = 0.0f;
-	_params.delta_mag_body_sig = 0.0f;
-	_params.delta_mag_earth_sig = 0.0f;
-	_params.delta_wind_sig = 0.0f;
+	_params.requiredEph = 200;
+	_params.requiredEpv = 200;
+	_params.gyro_noise = 1e-3f;
+	_params.accel_noise = 1e-1f;
+	_params.gyro_bias_p_noise = 1e-5f;
+	_params.accel_bias_p_noise = 1e-3f;
+	_params.gyro_scale_p_noise = 1e-4f;
+	_params.mag_p_noise = 1e-2f;
+	_params.wind_vel_p_noise = 0.05f;
+
+	_params.gps_vel_noise = 0.05f;
+	_params.gps_pos_noise = 1.0f;
+	_params.baro_noise = 0.1f;
+	_params.mag_heading_noise = 3e-2f;
+	_params.mag_declination_deg = 10.0f;
+	_params.heading_innov_gate = 0.5f;
 
 	_dt_imu_avg = 0.0f;
 	_imu_time_last = time_usec;
@@ -308,12 +304,17 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_gps_initialised = false;
 	_gps_speed_valid = false;
 
+	_mag_healthy = false;
+	_in_air = true;			// XXX get this flag from the application
+
 	_time_last_imu = 0;
 	_time_last_gps = 0;
 	_time_last_mag = 0;
 	_time_last_baro = 0;
 	_time_last_range = 0;
 	_time_last_airspeed = 0;
+
+	memset(&_fault_status, 0, sizeof(_fault_status));
 
 }
 
