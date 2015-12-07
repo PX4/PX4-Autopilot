@@ -235,6 +235,7 @@ private:
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
+	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -397,6 +398,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_prev.zero();
 	_vel_ff.zero();
 	_vel_sp_prev.zero();
+	_vel_err_d.zero();
 
 	_R.identity();
 
@@ -1155,18 +1157,38 @@ MulticopterPositionControl::task_main()
 
 		update_ref();
 
+		/* Update velocity derivative,
+		 * independent of the current flight mode
+		 */
+		if (_local_pos.timestamp > 0) {
+
+			if (PX4_ISFINITE(_local_pos.x) &&
+				PX4_ISFINITE(_local_pos.y) &&
+				PX4_ISFINITE(_local_pos.z)) {
+
+				_pos(0) = _local_pos.x;
+				_pos(1) = _local_pos.y;
+				_pos(2) = _local_pos.z;
+			}
+
+			if (PX4_ISFINITE(_local_pos.vx) &&
+				PX4_ISFINITE(_local_pos.vy) &&
+				PX4_ISFINITE(_local_pos.vz)) {
+
+				_vel(0) = _local_pos.vx;
+				_vel(1) = _local_pos.vy;
+				_vel(2) = _local_pos.vz;
+			}
+
+			_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
+			_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
+			_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
+		}
+
 		if (_control_mode.flag_control_altitude_enabled ||
 		    _control_mode.flag_control_position_enabled ||
 		    _control_mode.flag_control_climb_rate_enabled ||
 		    _control_mode.flag_control_velocity_enabled) {
-
-			_pos(0) = _local_pos.x;
-			_pos(1) = _local_pos.y;
-			_pos(2) = _local_pos.z;
-
-			_vel(0) = _local_pos.vx;
-			_vel(1) = _local_pos.vy;
-			_vel(2) = _local_pos.vz;
 
 			_vel_ff.zero();
 
@@ -1341,15 +1363,8 @@ MulticopterPositionControl::task_main()
 					/* velocity error */
 					math::Vector<3> vel_err = _vel_sp - _vel;
 
-					/* derivative of velocity error, /
-					 * does not includes setpoint acceleration */
-					math::Vector<3> vel_err_d;
-					vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
-					vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
-					vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
-
 					/* thrust vector in NED frame */
-					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + vel_err_d.emult(_params.vel_d) + thrust_int;
+					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
 
 					if (!_control_mode.flag_control_velocity_enabled) {
 						thrust_sp(0) = 0.0f;
