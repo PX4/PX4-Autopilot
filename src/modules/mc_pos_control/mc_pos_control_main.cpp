@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 - 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -261,12 +261,21 @@ private:
 	 */
 	void		update_ref();
 	/**
-	 * Reset position setpoint to current position
+	 * Reset position setpoint to current position.
+	 *
+	 * This reset will only occur if the _reset_pos_sp flag has been set.
+	 * The general logic is to first "activate" the flag in the flight
+	 * regime where a switch to a position control mode should hold the
+	 * very last position. Once switching to a position control mode
+	 * the last position is stored once.
 	 */
 	void		reset_pos_sp();
 
 	/**
-	 * Reset altitude setpoint to current altitude
+	 * Reset altitude setpoint to current altitude.
+	 *
+	 * This reset will only occur if the _reset_alt_sp flag has been set.
+	 * The general logic follows the reset_pos_sp() architecture.
 	 */
 	void		reset_alt_sp();
 
@@ -650,7 +659,8 @@ MulticopterPositionControl::reset_pos_sp()
 					- _params.vel_ff(0) * _vel_sp(0)) / _params.pos_p(0);
 		_pos_sp(1) = _pos(1) + (_vel(1) - PX4_R(_att_sp.R_body, 1, 2) * _att_sp.thrust / _params.vel_p(1)
 					- _params.vel_ff(1) * _vel_sp(1)) / _params.pos_p(1);
-		mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
+
+		//mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
 	}
 }
 
@@ -660,7 +670,7 @@ MulticopterPositionControl::reset_alt_sp()
 	if (_reset_alt_sp) {
 		_reset_alt_sp = false;
 		_pos_sp(2) = _pos(2) + (_vel(2) - _params.vel_ff(2) * _vel_sp(2)) / _params.pos_p(2);
-		mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
+		//mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
 	}
 }
 
@@ -873,6 +883,8 @@ void MulticopterPositionControl::control_auto(float dt)
 		/* reset position setpoint on AUTO mode activation */
 		reset_pos_sp();
 		reset_alt_sp();
+		/* set current velocity as last target velocity to smooth out transition */
+		_vel_sp_prev = _vel;
 	}
 
 	//Poll position setpoint
@@ -1124,6 +1136,7 @@ MulticopterPositionControl::task_main()
 			/* reset setpoints and integrals on arming */
 			_reset_pos_sp = true;
 			_reset_alt_sp = true;
+			_vel_sp_prev.zero();
 			reset_int_z = true;
 			reset_int_xy = true;
 			reset_yaw_sp = true;
@@ -1646,6 +1659,8 @@ MulticopterPositionControl::task_main()
 
 		/* update previous velocity for velocity controller D part */
 		_vel_prev = _vel;
+		/* store last velocity in case a mode switch to auto occurs */
+		_vel_sp_prev = _vel;
 
 		/* publish attitude setpoint
 		 * Do not publish if offboard is enabled but position/velocity control is disabled,
