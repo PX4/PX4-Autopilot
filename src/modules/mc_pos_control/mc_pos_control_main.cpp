@@ -1201,23 +1201,6 @@ MulticopterPositionControl::task_main()
 				control_auto(dt);
 			}
 
-			// limit total horizontal acceleration
-			math::Vector<2> acc_hor;
-			acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
-			acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
-
-			if (acc_hor.length() > _params.acc_hor_max) {
-				acc_hor.normalize();
-				acc_hor *= _params.acc_hor_max;
-				math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
-				math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
-				_vel_sp(0) = vel_sp_hor(0);
-				_vel_sp(1) = vel_sp_hor(1);
-			}
-
-			_vel_sp_prev = _vel_sp;
-
-
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 			    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
@@ -1290,6 +1273,22 @@ MulticopterPositionControl::task_main()
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 					_vel_sp(2) = _params.land_speed;
 				}
+
+				// limit total horizontal acceleration
+				math::Vector<2> acc_hor;
+				acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
+				acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
+
+				if (acc_hor.length() > _params.acc_hor_max) {
+					acc_hor.normalize();
+					acc_hor *= _params.acc_hor_max;
+					math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
+					math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
+					_vel_sp(0) = vel_sp_hor(0);
+					_vel_sp(1) = vel_sp_hor(1);
+				}
+
+				_vel_sp_prev = _vel_sp;
 
 				_global_vel_sp.vx = _vel_sp(0);
 				_global_vel_sp.vy = _vel_sp(1);
