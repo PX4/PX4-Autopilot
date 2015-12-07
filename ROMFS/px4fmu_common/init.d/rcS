@@ -239,6 +239,13 @@ then
 	unset MODE
 
 	#
+	# Wipe incompatible settings for boards not having two outputs
+	if ver hwcmp PX4FMU_V4
+	then
+		set MIXER_AUX none
+	fi
+
+	#
 	# Override parameters from user configuration file
 	#
 	if [ -f $FCONFIG ]
