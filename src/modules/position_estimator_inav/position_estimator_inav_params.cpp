@@ -228,7 +228,7 @@ PARAM_DEFINE_FLOAT(INAV_FLOW_Q_MIN, 0.3f);
  * @max 1.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_LIDAR_FILT, 0.05f);
+PARAM_DEFINE_FLOAT(INAV_LIDAR_FILT, 0.3f);
 
 /**
  * Sonar maximal error for new surface
