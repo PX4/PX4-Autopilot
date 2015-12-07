@@ -68,6 +68,7 @@
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/board_serial.h>
 #include <systemlib/param/param.h>
+#include <systemlib/perf_counter.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 
@@ -172,6 +173,8 @@ private:
 	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
+
+	perf_counter_t	_perf_pwm_sync;
 
 	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
 
@@ -306,7 +309,8 @@ PX4FMU::PX4FMU() :
 	_disarmed_pwm{0},
 	_reverse_pwm_mask(0),
 	_num_failsafe_set(0),
-	_num_disarmed_set(0)
+	_num_disarmed_set(0),
+	_perf_pwm_sync(perf_alloc(PC_ELAPSED, "fmu_pwm_sync"))
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -354,6 +358,8 @@ PX4FMU::~PX4FMU()
 
 	/* clean up the alternate device node */
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
+
+	perf_free(_perf_pwm_sync);
 
 	g_fmu = nullptr;
 }
@@ -725,15 +731,26 @@ PX4FMU::cycle()
 
 					/* main outputs */
 					if (i == 0) {
-						//main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
+
+						/* estimate the offset interval between motor out generation and update */
+						int sched_offset = hrt_absolute_time() - _controls[i].timestamp;
+
+						const int phase_eps = 250;
 
 						/* do only correct within the current phase */
-						if (abs(main_out_latency) > CONTROL_INPUT_DROP_LIMIT_US) {
-							main_out_latency = CONTROL_INPUT_DROP_LIMIT_US;
-						}
+						if ((sched_offset < CONTROL_INPUT_DROP_LIMIT_US - phase_eps) &&
+						    (sched_offset > - CONTROL_INPUT_DROP_LIMIT_US + phase_eps)) {
 
-						if (main_out_latency < 250) {
-							main_out_latency = 0;
+							/* we are now in the same phase, count */
+							perf_set(_perf_pwm_sync, sched_offset);
+
+							/* do not correct really tiny offsets */
+							if (sched_offset > 0 && sched_offset < 250) {
+								sched_offset = 0;
+							}
+
+							// XXX this to be enabled after we gathered more data
+							//main_out_latency = sched_offset;
 						}
 					}
 				}
