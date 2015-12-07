@@ -1690,6 +1690,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("OPTICAL_FLOW_RAD", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
+		configure_stream("VISION_POSITION_NED", 10.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1717,6 +1718,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("ALTITUDE", 10.0f);
+		configure_stream("VISION_POSITION_NED", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1764,6 +1766,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("ALTITUDE", 10.0f);
+		configure_stream("VISION_POSITION_NED", 10.0f);
 
 	default:
 		break;
