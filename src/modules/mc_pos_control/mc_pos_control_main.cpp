@@ -1599,6 +1599,9 @@ MulticopterPositionControl::task_main()
 			_mode_auto = false;
 			reset_int_z = true;
 			reset_int_xy = true;
+
+			/* store last velocity in case a mode switch to position control occurs */
+			_vel_sp_prev = _vel;
 		}
 
 		/* generate attitude setpoint from manual controls */
@@ -1658,8 +1661,6 @@ MulticopterPositionControl::task_main()
 
 		/* update previous velocity for velocity controller D part */
 		_vel_prev = _vel;
-		/* store last velocity in case a mode switch to auto occurs */
-		_vel_sp_prev = _vel;
 
 		/* publish attitude setpoint
 		 * Do not publish if offboard is enabled but position/velocity control is disabled,
