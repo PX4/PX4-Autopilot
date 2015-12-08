@@ -57,3 +57,6 @@ ROMFS/*/*/rc.autostart
 rootfs/
 *.autosave
 CMakeLists.txt.user
+GPATH
+GRTAGS
+GTAGS
