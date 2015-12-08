@@ -58,7 +58,6 @@ struct position_estimator_inav_params {
 	float w_acc_bias;
 	float flow_k;
 	float flow_q_min;
-	float lidar_filt;
 	float lidar_err;
 	float land_t;
 	float land_disp;
@@ -88,7 +87,6 @@ struct position_estimator_inav_param_handles {
 	param_t w_acc_bias;
 	param_t flow_k;
 	param_t flow_q_min;
-	param_t lidar_filt;
 	param_t lidar_err;
 	param_t land_t;
 	param_t land_disp;
