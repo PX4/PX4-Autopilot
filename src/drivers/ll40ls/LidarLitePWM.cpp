@@ -45,6 +45,7 @@
 #include "LidarLitePWM.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_input.h>
 
@@ -63,6 +64,9 @@ LidarLitePWM::LidarLitePWM(const char *path) :
 	_pwm{},
 	_distance_sensor_topic(nullptr),
 	_range{},
+	_lastTimeStamp(0),
+	_pulseCount(0),
+	_lastDistance(0.0f),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_pwm_read")),
 	_read_errors(perf_alloc(PC_COUNT, "ll40ls_pwm_read_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_pwm_buffer_overflows")),
@@ -201,11 +205,29 @@ int LidarLitePWM::measure()
 
 	// Normal reporting interval for LidarLite in PWM mode is 50msec
 	if (pulse_interval > 60*1000UL) {
-		// report an invalid range of 0m, to avoid glitches on takeoff
 		printf("LL_pwm dropout length: %d\n", pulse_interval);
-		_range.current_distance = 0.0f;
+		_pulseCount = 0;
+	} else {
+		if (_pulseCount < 4) {
+			_pulseCount++;
+			if (_pulseCount < 4) {
+				printf("_pulseCount: %d, distance: %6.3f\n", _pulseCount, (double)_range.current_distance);
+				// report an invalid range of 0m, to avoid glitches on takeoff
+				_range.current_distance = 0.0f;
+			}
+		} else {
+			_lastDistance = _range.current_distance;
+		}
+	}
+	// check for range discontinuity
+	float deltaRange = _lastDistance - _range.current_distance;
+	if (fabsf(deltaRange) > 1.0f) {
+		printf("LL range discontinuity: %6.3f\n", (double)deltaRange);
+		printf("holding last distance: %6.3f\n", (double)_lastDistance);
+		_range.current_distance = _lastDistance;
 	}
 
+	
 	if (_distance_sensor_topic != nullptr) {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
 	}
