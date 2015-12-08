@@ -309,7 +309,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	};
 
 	float dist_ground = 0.0f;		//variables for lidar altitude estimation
-	float dist_ground_filtered = 0.0f;
 	float corr_lidar = 0.0f;
 	float lidar_offset = 0.0f;
 	int lidar_offset_count = 0;
@@ -540,8 +539,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				
 				if (lidar_first) {
 					lidar_first = false;
-					dist_ground_filtered = dist_ground;
-					lidar_offset = dist_ground_filtered + z_est[0];
+					lidar_offset = dist_ground + z_est[0];
 					mavlink_log_info(mavlink_fd, "[inav] LIDAR: new ground offset");
 					warnx("[inav] LIDAR: new ground offset");
 				}	
@@ -557,8 +555,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						lidar_offset_count = 0;
 					}
 				} else {
-					dist_ground_filtered = (1 - params.lidar_filt) * dist_ground_filtered + params.lidar_filt * dist_ground;
-					corr_lidar = lidar_offset - dist_ground_filtered - z_est[0];
+					corr_lidar = lidar_offset - dist_ground - z_est[0];
 					lidar_valid = true;
 					lidar_offset_count = 0;
 					lidar_valid_time = t;
