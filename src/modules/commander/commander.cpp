@@ -1187,8 +1187,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	bool updated = false;
 
-	rc_calibration_check(mavlink_fd, true);
-
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
 	memset(&safety, 0, sizeof(safety));
@@ -1439,9 +1437,6 @@ int commander_thread_main(int argc, char *argv[])
 					status.condition_system_sensors_initialized = Commander::preflightCheck(mavlink_fd, true, true, true, true, checkAirspeed,
 							(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status.circuit_breaker_engaged_gpsfailure_check, hotplug_timeout);
 				}
-
-				/* re-check RC calibration */
-				rc_calibration_check(mavlink_fd, true);
 			}
 
 			/* Safety parameters */
