@@ -48,10 +48,10 @@
 #define LL40LS_MAX_DISTANCE (25.00f)
 
 // normal conversion wait time
-#define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
+#define LL40LS_CONVERSION_INTERVAL (50*1000UL) /* 50ms */
 
 // maximum time to wait for a conversion to complete.
-#define LL40LS_CONVERSION_TIMEOUT 100*1000UL /* 100ms */
+#define LL40LS_CONVERSION_TIMEOUT (100*1000UL) /* 100ms */
 
 class LidarLite
 {
