@@ -402,10 +402,10 @@ void BlockLocalPositionEstimator::update()
 
 	if (mocapUpdated) {
 		if (!_mocapInitialized) {
-			initmocap();
+			initMocap();
 
 		} else {
-			correctmocap();
+			correctMocap();
 		}
 	}
 
@@ -609,7 +609,7 @@ void BlockLocalPositionEstimator::initVision()
 	}
 }
 
-void BlockLocalPositionEstimator::initmocap()
+void BlockLocalPositionEstimator::initMocap()
 {
 	// collect mocap data
 	if (!_mocapInitialized) {
@@ -1353,7 +1353,7 @@ void BlockLocalPositionEstimator::correctVision()
 	_time_last_vision_p = _sub_vision_pos.get().timestamp_boot;
 }
 
-void BlockLocalPositionEstimator::correctmocap()
+void BlockLocalPositionEstimator::correctMocap()
 {
 
 	Vector<float, n_y_mocap> y;

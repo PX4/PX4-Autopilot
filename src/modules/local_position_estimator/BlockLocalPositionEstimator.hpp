@@ -152,7 +152,7 @@ private:
 	void correctFlow();
 	void correctSonar();
 	void correctVision();
-	void correctmocap();
+	void correctMocap();
 
 	// sensor initialization
 	void updateHome();
@@ -162,7 +162,7 @@ private:
 	void initSonar();
 	void initFlow();
 	void initVision();
-	void initmocap();
+	void initMocap();
 
 	// publications
 	void publishLocalPos();
