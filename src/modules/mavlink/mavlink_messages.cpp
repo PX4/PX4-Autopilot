@@ -2013,6 +2013,9 @@ protected:
 			msg.vx = pos_sp.vx;
 			msg.vy = pos_sp.vy;
 			msg.vz = pos_sp.vz;
+			msg.afx = pos_sp.acc_x;
+			msg.afy = pos_sp.acc_y;
+			msg.afz = pos_sp.acc_z;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED, &msg);
 		}
