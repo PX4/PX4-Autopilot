@@ -72,6 +72,13 @@ private:
 
 	float P[_k_num_states][_k_num_states];	// state covariance matrix
 
+	// complementary filter states
+	Vector3f _delta_angle_corr;
+	Vector3f _delta_vel_corr;
+	Vector3f _vel_corr;
+
+	void calculateOutputStates();
+
 	bool initialiseFilter(void);
 
 	void initialiseCovariance();
@@ -110,7 +117,8 @@ private:
 
 	void printStates();
 
-	void calcEarthRateNED(Vector3f &omega, double lat_rad) const;
+	void printStatesFast();
 
+	void calcEarthRateNED(Vector3f &omega, double lat_rad) const;
 
 };

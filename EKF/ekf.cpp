@@ -52,6 +52,9 @@ Ekf::Ekf():
 {
 	_earth_rate_NED.setZero();
 	_R_prev = matrix::Dcm<float>();
+	_delta_angle_corr.setZero();
+	_delta_vel_corr.setZero();
+	_vel_corr.setZero();
 }
 
 
@@ -65,8 +68,12 @@ bool Ekf::update()
 	bool ret = false;	// indicates if there has been an update
 	if (!_filter_initialised) {
 		_filter_initialised = initialiseFilter();
+		if (!_filter_initialised) {
+			return false;
+		}
 	}
 	printStates();
+	//printStatesFast();
 	// prediction
 	if (_imu_updated) {
 		ret = true;
@@ -105,14 +112,7 @@ bool Ekf::update()
 		fuseAirspeed();
 	}
 
-	// write to output if this has been a prediction step
-	if (_imu_updated) {
-		_output_delayed.vel = _state.vel;
-		_output_delayed.pos = _state.pos;
-		_output_delayed.quat_nominal = _state.quat_nominal;
-		_output_delayed.time_us = _imu_time_last;
-		_imu_updated = false;
-	}
+	calculateOutputStates();
 
 	return ret;
 }
@@ -142,8 +142,17 @@ bool Ekf::initialiseFilter(void)
 		roll = -asinf(accel_init(1) / cosf(pitch));
 	}
 
-	matrix::Euler<float> euler_init(0, pitch, roll);
+	matrix::Euler<float> euler_init(roll, pitch, 0.0f);
 	_state.quat_nominal = Quaternion(euler_init);
+
+	magSample mag_init = _mag_buffer.get_newest();
+	if (mag_init.time_us == 0) {
+		return false;
+	}
+
+	matrix::Dcm<float> R_to_earth(euler_init);
+	_state.mag_I = R_to_earth * mag_init.mag;
+
 
 	resetVelocity();
 	resetPosition();
@@ -182,6 +191,73 @@ void Ekf::predictState()
 	_state.pos += (vel_last + _state.vel) * _imu_sample_delayed.delta_vel_dt * 0.5f;
 
 	constrainStates();
+}
+
+void Ekf::calculateOutputStates()
+{
+	imuSample imu_new = _imu_sample_new;
+	Vector3f delta_angle;
+	delta_angle(0) = imu_new.delta_ang(0) * _state.gyro_scale(0);
+	delta_angle(1) = imu_new.delta_ang(1) * _state.gyro_scale(1);
+	delta_angle(2) = imu_new.delta_ang(2) * _state.gyro_scale(2);
+
+	delta_angle -= _state.gyro_bias;
+
+	Vector3f delta_vel = imu_new.delta_vel;
+	delta_vel(2) -= _state.accel_z_bias;
+
+	delta_angle += _delta_angle_corr;
+	Quaternion dq;
+	dq.from_axis_angle(delta_angle);
+
+	_output_new.time_us = imu_new.time_us;
+	_output_new.quat_nominal = dq * _output_new.quat_nominal;
+	_output_new.quat_nominal.normalize();
+
+	matrix::Dcm<float> R_to_earth(_output_new.quat_nominal);
+
+	Vector3f delta_vel_NED = R_to_earth * delta_vel + _delta_vel_corr;
+	delta_vel_NED(2) += 9.81f * imu_new.delta_vel_dt;
+
+	Vector3f vel_last = _output_new.vel;
+
+	_output_new.vel += delta_vel_NED;
+
+	_output_new.pos += (_output_new.vel + vel_last) * (imu_new.delta_vel_dt * 0.5f) + _vel_corr * imu_new.delta_vel_dt;
+
+	if (_imu_updated) {
+		_output_buffer.push(_output_new);
+		_imu_updated = false;
+	}
+
+	if (!_output_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_output_sample_delayed))
+	{
+		return;
+	}
+
+	Quaternion quat_inv = _state.quat_nominal.inversed();
+	Quaternion q_error =  _output_sample_delayed.quat_nominal * quat_inv;
+	q_error.normalize();
+	Vector3f delta_ang_error;
+
+	float scalar;
+
+	if (q_error(0) >= 0.0f) {
+		scalar = -2.0f;
+	} else {
+		scalar = 2.0f;
+	}
+
+	delta_ang_error(0) = scalar * q_error(1);
+	delta_ang_error(1) = scalar * q_error(2);
+	delta_ang_error(2) = scalar * q_error(3);
+
+	_delta_angle_corr = delta_ang_error * imu_new.delta_ang_dt;
+
+	_delta_vel_corr = (_state.vel - _output_sample_delayed.vel) * imu_new.delta_vel_dt;
+
+	_vel_corr = (_state.pos - _output_sample_delayed.pos);
+
 }
 
 
@@ -236,4 +312,29 @@ void Ekf::printStates()
 	}
 	counter++;
 
+}
+
+void Ekf::printStatesFast()
+{
+	static int counter_fast = 0;
+
+	if (counter_fast % 50 == 0) {
+		printf("quaternion\n");
+		for(int i = 0; i < 4; i++) {
+			printf("quat %i %.5f\n", i, (double)_output_new.quat_nominal(i));
+		}
+
+		printf("vel\n");
+		for(int i = 0; i < 3; i++) {
+			printf("v %i %.5f\n", i, (double)_output_new.vel(i));
+		}
+
+		printf("pos\n");
+		for(int i = 0; i < 3; i++) {
+			printf("p %i %.5f\n", i, (double)_output_new.pos(i));
+		}
+
+		counter_fast = 0;
+	}
+	counter_fast++;
 }

@@ -83,6 +83,8 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 
 	imu_sample_new.time_us = time_usec;
 
+	_imu_sample_new = imu_sample_new;
+
 	imu_sample_new.delta_ang(0) = imu_sample_new.delta_ang(0) * _state.gyro_scale(0);
 	imu_sample_new.delta_ang(1) = imu_sample_new.delta_ang(1) * _state.gyro_scale(1);
 	imu_sample_new.delta_ang(2) = imu_sample_new.delta_ang(2) * _state.gyro_scale(2);
@@ -273,7 +275,7 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_params.gps_pos_noise = 1.0f;
 	_params.baro_noise = 0.1f;
 	_params.mag_heading_noise = 3e-2f;
-	_params.mag_declination_deg = 10.0f;
+	_params.mag_declination_deg = 0.0f;
 	_params.heading_innov_gate = 0.5f;
 
 	_dt_imu_avg = 0.0f;
@@ -284,6 +286,10 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_imu_sample_delayed.delta_ang_dt = 0.0f;
 	_imu_sample_delayed.delta_vel_dt = 0.0f;
 	_imu_sample_delayed.time_us = time_usec;
+
+	_output_new.vel.setZero();
+	_output_new.pos.setZero();
+	_output_new.quat_nominal = matrix::Quaternion<float>();
 
 	_imu_down_sampled.delta_ang.setZero();
 	_imu_down_sampled.delta_vel.setZero();

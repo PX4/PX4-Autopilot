@@ -202,7 +202,9 @@ protected:
 	airspeedSample _airspeed_sample_delayed;
 	flowSample _flow_sample_delayed;
 
-	outputSample _output_delayed;
+	outputSample _output_sample_delayed;
+	outputSample _output_new;
+	imuSample _imu_sample_new;
 
 	struct map_projection_reference_s _posRef;
 	float _gps_alt_ref;
@@ -266,17 +268,17 @@ public:
 
 	void copy_quaternion(float *quat) {
 		for (unsigned i = 0; i < 4; i++) {
-			quat[i] = _state.quat_nominal(i);
+			quat[i] = _output_new.quat_nominal(i);
 		}
 	}
 	void copy_velocity(float *vel) {
 		for (unsigned i = 0; i < 3; i++) {
-			vel[i] = _state.vel(i);
+			vel[i] = _output_new.vel(i);
 		}
 	}
 	void copy_position(float *pos) {
 		for (unsigned i = 0; i < 3; i++) {
-			pos[i] = _state.pos(i);
+			pos[i] = _output_new.pos(i);
 		}
 	}
 	void copy_timestamp(uint64_t *time_us) {
