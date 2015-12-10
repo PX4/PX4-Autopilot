@@ -67,6 +67,9 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/control_state.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -117,6 +120,15 @@ private:
 	int		_gps_sub = -1;
 	int		_airspeed_sub = -1;
 
+	orb_advert_t _att_pub;
+	orb_advert_t _lpos_pub;
+	orb_advert_t _control_state_pub;
+
+	/* Low pass filter for attitude rates */
+	math::LowPassFilter2p _lp_roll_rate;
+	math::LowPassFilter2p _lp_pitch_rate;
+	math::LowPassFilter2p _lp_yaw_rate;
+
 	EstimatorBase *_ekf;
 
 
@@ -126,9 +138,15 @@ private:
 
 };
 
-Ekf2::Ekf2()
+Ekf2::Ekf2():
+_lp_roll_rate(250.0f, 30.0f),
+_lp_pitch_rate(250.0f, 30.0f),
+_lp_yaw_rate(250.0f, 20.0f)
 {
 	_ekf = new Ekf();
+	_att_pub = nullptr;
+	_lpos_pub = nullptr;
+	_control_state_pub = nullptr;
 }
 
 Ekf2::~Ekf2()
@@ -226,7 +244,64 @@ void Ekf2::task_main()
 			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.indicated_airspeed_m_s);
 		}
 
+		struct vehicle_attitude_s att;
+		struct vehicle_local_position_s lpos;
+		att.timestamp = hrt_absolute_time();
+		lpos.timestamp = hrt_absolute_time();
 		_ekf->update();
+
+		_ekf->copy_quaternion(att.q);
+		matrix::Quaternion<float> q(att.q[0], att.q[1], att.q[2], att.q[3]);
+		matrix::Euler<float> euler(q);
+		att.roll = euler(0);
+		att.pitch = euler(1);
+		att.yaw = euler(2);
+
+		float pos[3] = {};
+		float vel[3] = {};
+
+		_ekf->copy_position(pos);
+		lpos.x = pos[0];
+		lpos.y = pos[1];
+		lpos.z = pos[2];
+
+		_ekf->copy_velocity(vel);
+		lpos.vx = vel[0];
+		lpos.vy = vel[1];
+		lpos.vz = vel[2];
+
+		control_state_s ctrl_state = {};
+		ctrl_state.timestamp = hrt_absolute_time();
+		ctrl_state.roll_rate = _lp_roll_rate.apply(sensors.gyro_rad_s[0]);
+
+		ctrl_state.pitch_rate = _lp_pitch_rate.apply(sensors.gyro_rad_s[1]);
+
+		ctrl_state.yaw_rate = _lp_yaw_rate.apply(sensors.gyro_rad_s[2]);
+
+		ctrl_state.q[0] = q(0);
+		ctrl_state.q[1] = q(1);
+		ctrl_state.q[2] = q(2);
+		ctrl_state.q[3] = q(3);
+
+		if (_control_state_pub == nullptr) {
+			_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
+		} else {
+			orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
+		}
+
+		if (_att_pub == nullptr) {
+			_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+		} else {
+			orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
+		}
+
+		if (_lpos_pub == nullptr) {
+			_lpos_pub = orb_advertise(ORB_ID(vehicle_local_position), &lpos);
+		} else {
+			orb_publish(ORB_ID(vehicle_local_position), _lpos_pub, &lpos);
+		}
+
+
 	}
 }
 
