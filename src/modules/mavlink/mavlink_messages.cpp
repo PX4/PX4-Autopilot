@@ -920,7 +920,7 @@ protected:
 		if (updated) {
 			mavlink_vfr_hud_t msg;
 
-			msg.airspeed = airspeed.true_airspeed_m_s;
+			msg.airspeed = airspeed.indicated_airspeed_m_s;
 			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
 			msg.heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
