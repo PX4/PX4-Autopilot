@@ -64,6 +64,8 @@ private:
 	bool _fuse_pos;		// true if there is new position data from gps
 	bool _fuse_vel;		// true if there is new velocity data from gps
 
+	uint8_t _mag_fuse_index;	// counter for sequential mag axis fusion
+
 	Vector3f _earth_rate_NED;
 
 	matrix::Dcm<float> _R_prev;

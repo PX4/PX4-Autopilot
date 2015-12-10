@@ -47,7 +47,8 @@ Ekf::Ekf():
 	_earth_rate_initialised(false),
 	_fuse_height(false),
 	_fuse_pos(false),
-	_fuse_vel(false)
+	_fuse_vel(false),
+	_mag_fuse_index(0)
 {
 	_earth_rate_NED.setZero();
 	_R_prev = matrix::Dcm<float>();
@@ -76,7 +77,9 @@ bool Ekf::update()
 	// measurement updates
 
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		fuseHeading();
+		//fuseHeading();
+		fuseMag(_mag_fuse_index);
+		_mag_fuse_index = (_mag_fuse_index + 1) % 3;
 	}
 
 	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
@@ -197,9 +200,9 @@ void Ekf::printStates()
 	static int counter = 0;
 
 	if (counter % 50 == 0) {
-		printf("ang error\n");
-		for(int i = 0; i < 3; i++) {
-			printf("ang_e %i %.5f\n", i, (double)_state.ang_error(i));
+		printf("quaternion\n");
+		for(int i = 0; i < 4; i++) {
+			printf("quat %i %.5f\n", i, (double)_state.quat_nominal(i));
 		}
 
 		matrix::Euler<float> euler(_state.quat_nominal);
@@ -215,19 +218,19 @@ void Ekf::printStates()
 			printf("p %i %.5f\n", i, (double)_state.pos(i));
 		}
 
-		printf("g gyro_bias\n");
-		for(int i = 0; i < 3; i++) {
-			printf("gb %i %.5f\n", i, (double)_state.gyro_bias(i));
-		}
-
 		printf("gyro_scale\n");
 		for(int i = 0; i < 3; i++) {
 			printf("gs %i %.5f\n", i, (double)_state.gyro_scale(i));
 		}
 
-		printf("mag_I\n");
+		printf("mag earth\n");
 		for(int i = 0; i < 3; i++) {
 			printf("mI %i %.5f\n", i, (double)_state.mag_I(i));
+		}
+
+		printf("mag bias\n");
+		for(int i = 0; i < 3; i++) {
+			printf("mB %i %.5f\n", i, (double)_state.mag_B(i));
 		}
 		counter = 0;
 	}
