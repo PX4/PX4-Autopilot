@@ -91,6 +91,7 @@
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
+#define ONE_G	9.8066f
 
 /**
  * Multicopter position control app start / stop handling function
@@ -235,6 +236,7 @@ private:
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
+	math::Vector<3> _thrust_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
@@ -1407,6 +1409,7 @@ MulticopterPositionControl::task_main()
 					}
 
 					if (_control_mode.flag_control_velocity_enabled) {
+
 						/* limit max tilt */
 						if (thr_min >= 0.0f && tilt_max < M_PI_F / 2 - 0.05f) {
 							/* absolute horizontal thrust */
@@ -1494,6 +1497,36 @@ MulticopterPositionControl::task_main()
 						}
 					}
 
+					/* limit max change rate */
+					math::Vector<2> jerk_hor;
+					math::Vector<3> thrust_diff = thrust_sp - _thrust_sp_prev;
+
+					/* this is jerk times dt
+					 * we call it jerk so its clear what the intention is -
+					 * to limit the jerk, not the total acceleration.
+					 */
+					jerk_hor(0) = thrust_diff(0);
+					jerk_hor(1) = thrust_diff(1);
+
+					/* because we compare with jerk times dt, we multiply here as well */
+					float max_hor_jerk = (_params.acc_hor_max / ONE_G) * dt;
+
+					if (jerk_hor.length() > max_hor_jerk) {
+						/* bring it to length one */
+						jerk_hor.normalize();
+						/* bring it to the max length for jerk * dt for the next step */
+						jerk_hor *= max_hor_jerk;
+						/* now use the previous trust setpoint and add the allowable delta */
+						math::Vector<2> thrust_sp_hor_prev(_thrust_sp_prev(0), _thrust_sp_prev(1));
+						math::Vector<2> thrust_sp_hor = thrust_sp_hor_prev + jerk_hor;
+
+						thrust_sp(0) = thrust_sp_hor(0);
+						thrust_sp(1) = thrust_sp_hor(1);
+					}
+
+					/* store last thrust vector */
+					_thrust_sp_prev = thrust_sp;
+
 					/* calculate attitude setpoint from thrust vector */
 					if (_control_mode.flag_control_velocity_enabled) {
 						/* desired body_z axis = -normalize(thrust_vector) */
@@ -1577,9 +1610,9 @@ MulticopterPositionControl::task_main()
 					_att_sp.thrust = thrust_abs;
 
 					/* save thrust setpoint for logging */
-					_local_pos_sp.acc_x = thrust_sp(0);
-					_local_pos_sp.acc_y = thrust_sp(1);
-					_local_pos_sp.acc_z = thrust_sp(2);
+					_local_pos_sp.acc_x = thrust_sp(0) * ONE_G;
+					_local_pos_sp.acc_y = thrust_sp(1) * ONE_G;
+					_local_pos_sp.acc_z = thrust_sp(2) * ONE_G;
 
 					_att_sp.timestamp = hrt_absolute_time();
 
@@ -1620,7 +1653,8 @@ MulticopterPositionControl::task_main()
 		}
 
 		/* generate attitude setpoint from manual controls */
-		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
+		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled
+			&& !_control_mode.flag_control_velocity_enabled) {
 
 			/* reset yaw setpoint to current position if needed */
 			if (reset_yaw_sp) {
@@ -1669,6 +1703,8 @@ MulticopterPositionControl::task_main()
 			q_sp.from_dcm(R_sp);
 			memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 			_att_sp.timestamp = hrt_absolute_time();
+
+			_thrust_sp_prev = R_sp * math::Vector<3>(0, 0, -_att_sp.thrust);
 
 		} else {
 			reset_yaw_sp = true;
