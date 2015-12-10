@@ -122,7 +122,7 @@ using namespace DriverFramework;
 
 
 #define BATT_V_LOWPASS			0.001f
-#define BATT_V_IGNORE_THRESHOLD		2.5f
+#define BATT_V_IGNORE_THRESHOLD		2.1f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
