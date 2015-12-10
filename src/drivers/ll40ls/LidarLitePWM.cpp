@@ -204,10 +204,11 @@ int LidarLitePWM::measure()
 	_lastTimeStamp = _range.timestamp;
 
 	// Normal reporting interval for LidarLite in PWM mode is 50msec
-	if (pulse_interval > 60*1000UL) {
+	if (pulse_interval > 60 * 1000UL) {
 		// missed pulse, frequently associated with invalid pulsewidth measurements
 		printf("LL_pwm dropout length: %d\n", pulse_interval);
 		_pulseCount = 0;
+
 	} else {
 		// wait for 4 successive pulses at 50msec intervals before accepting pulsewidth
 		if (_pulseCount < 4) {
@@ -215,24 +216,28 @@ int LidarLitePWM::measure()
 			// hold last valid range reported to avoid glitches
 			printf("_pulseCount: %d, distance: %6.3f, forcing to _lastDistance\n", _pulseCount, (double)_range.current_distance);
 			_range.current_distance = _lastDistance;
+
 			if (_pulseCount >= 4) {
 				// next pulse will be accepted as valid, if received within 60msec
 				printf("pulse train detected\n");
 			}
+
 		} else {
 			// valid pulse train, reset lastDistance
 			_lastDistance = _range.current_distance;
 		}
 	}
+
 	// check for range discontinuity
 	float deltaRange = _range.current_distance - _lastDistance;
+
 	if (fabsf(deltaRange) > 1.0f) {
 		printf("LL range discontinuity: %6.3f\n", (double)deltaRange);
 		printf("   holding last distance: %6.3f\n", (double)_lastDistance);
 		_range.current_distance = _lastDistance;
 	}
 
-	
+
 	if (_distance_sensor_topic != nullptr) {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
 	}
