@@ -194,11 +194,11 @@ int LidarLitePWM::measure()
 	_range.id = 0;
 
 	/* Due to a bug in older versions of the LidarLite firmware, we have to reset sensor on (distance == 0) */
-	if (_range.current_distance <= 0.0f) {
-		perf_count(_sensor_zero_resets);
-		perf_end(_sample_perf);
-		return reset_sensor();
-	}
+//	if (_range.current_distance <= 0.0f) {
+//		perf_count(_sensor_zero_resets);
+//		perf_end(_sample_perf);
+//		return reset_sensor();
+//	}
 
 	uint32_t pulse_interval = _range.timestamp - _lastTimeStamp;
 	_lastTimeStamp = _range.timestamp;
