@@ -387,9 +387,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	/* fetch initial parameter values */
 	parameters_update();
-	vehicle_status_poll();
 
-	if (_vehicle_status.is_vtol && _params.vtol_type == 0) {
+	if (_params.vtol_type == 0) {
 		// the vehicle is a tailsitter, use optimal recovery control strategy
 		_ts_opt_recovery = new TailsitterRecovery();
 	}
@@ -835,6 +834,8 @@ MulticopterAttitudeControl::task_main()
 					control_attitude(dt);
 
 				} else {
+					vehicle_attitude_setpoint_poll();
+					_thrust_sp = _v_att_sp.thrust;
 					math::Quaternion q(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
 					math::Quaternion q_sp(&_v_att_sp.q_d[0]);
 					_ts_opt_recovery->setAttGains(_params.att_p, _params.yaw_ff);
