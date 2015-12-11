@@ -229,7 +229,7 @@ private:
 	/* throttle and airspeed states */
 	float _airspeed_error;				///< airspeed error to setpoint in m/s
 	bool _airspeed_valid;				///< flag if a valid airspeed estimate exists
-	uint64_t _airspeed_last_valid;			///< last time airspeed was valid. Used to detect sensor failures
+	uint64_t _airspeed_last_received;			///< last time airspeed was received. Used to detect timeouts.
 	float _groundspeed_undershoot;			///< ground speed error to min. speed in m/s
 	bool _global_pos_valid;				///< global position is valid
 	math::Matrix<3, 3> _R_nb;			///< current attitude
@@ -558,7 +558,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	launchDetector(),
 	_airspeed_error(0.0f),
 	_airspeed_valid(false),
-	_airspeed_last_valid(0),
+	_airspeed_last_received(0),
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
 	_l1_control(),
@@ -807,13 +807,13 @@ FixedwingPositionControl::control_state_poll()
 
 	if (ctrl_state_updated) {
 		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
-		_airspeed_valid = true;
-		_airspeed_last_valid = hrt_absolute_time();
+		_airspeed_valid = _ctrl_state.airspeed_valid;
+		_airspeed_last_received = hrt_absolute_time();
 
 	} else {
 
 		/* no airspeed updates for one second */
-		if (_airspeed_valid && (hrt_absolute_time() - _airspeed_last_valid) > 1e6) {
+		if (_airspeed_valid && (hrt_absolute_time() - _airspeed_last_received) > 1e6) {
 			_airspeed_valid = false;
 		}
 	}

@@ -623,7 +623,14 @@ void AttitudeEstimatorQ::task_main()
 		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
 		/* Airspeed - take airspeed measurement directly here as no wind is estimated */
-		ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+		if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
+		    && _airspeed.timestamp > 0) {
+			ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+			ctrl_state.airspeed_valid = true;
+
+		} else {
+			ctrl_state.airspeed_valid = false;
+		}
 
 		/* Publish to control state topic */
 		if (_ctrl_state_pub == nullptr) {
