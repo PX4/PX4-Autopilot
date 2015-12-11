@@ -42,7 +42,6 @@
 #include <px4_config.h>
 #include <board_config.h>
 #include <px4_defines.h>
-#include <nuttx/arch.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -52,7 +51,12 @@
 #include <drivers/drv_hrt.h>
 
 #ifndef GPIO_SPEKTRUM_PWR_EN
-#error DSM input driver not supported by this board config
+#warning DSM input driver not supporting binding by this board config
+ #define POWER_SPEKTRUM(arg)
+#endif
+
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
+ #define up_udelay(arg)
 #endif
 
 #define DSM_FRAME_SIZE		16		/**<DSM frame size in bytes*/
