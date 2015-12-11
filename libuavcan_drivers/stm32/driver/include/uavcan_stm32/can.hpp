@@ -12,6 +12,19 @@
 namespace uavcan_stm32
 {
 /**
+ * Driver error codes.
+ * These values can be returned from driver functions negated.
+ */
+//static const uavcan::int16_t ErrUnknown               = 1000; ///< Reserved for future use
+static const uavcan::int16_t ErrNotImplemented          = 1001; ///< Feature not implemented
+static const uavcan::int16_t ErrInvalidBitRate          = 1002; ///< Bit rate not supported
+static const uavcan::int16_t ErrLogic                   = 1003; ///< Internal logic error
+static const uavcan::int16_t ErrUnsupportedFrame        = 1004; ///< Frame not supported (e.g. RTR, CAN FD, etc)
+static const uavcan::int16_t ErrMsrInakNotSet           = 1005; ///< INAK bit of the MSR register is not 1
+static const uavcan::int16_t ErrMsrInakNotCleared       = 1006; ///< INAK bit of the MSR register is not 0
+static const uavcan::int16_t ErrBitRateNotDetected      = 1007; ///< Auto bit rate detection could not be finished
+
+/**
  * RX queue item.
  * The application shall not use this directly.
  */
@@ -287,7 +300,7 @@ public:
      * This overload simply configures the provided bitrate.
      * Auto bit rate detection will not be performed.
      * Bitrate value must be positive.
-     * @return  Negative value on error; non-negative on success.
+     * @return  Negative value on error; non-negative on success. Refer to constants Err*.
      */
     int init(uavcan::uint32_t bitrate)
     {
@@ -306,7 +319,7 @@ public:
      *                          If auto detection was used, the function will update the argument
      *                          with established bit rate. In case of an error the value will be undefined.
      *
-     * @return                  Negative value on error; non-negative on success.
+     * @return                  Negative value on error; non-negative on success. Refer to constants Err*.
      */
     template <typename DelayCallable>
     int init(DelayCallable delay_callable, uavcan::uint32_t& inout_bitrate = BitRateAutoDetect)
@@ -346,7 +359,7 @@ public:
                 }
             }
 
-            return -1;
+            return -ErrBitRateNotDetected;
         }
     }
 
