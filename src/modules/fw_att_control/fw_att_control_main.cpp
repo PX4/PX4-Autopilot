@@ -889,11 +889,13 @@ FixedwingAttitudeControl::task_main()
 				float airspeed;
 
 				/* if airspeed is not updating, we assume the normal average speed */
-				if (bool nonfinite = !PX4_ISFINITE(_ctrl_state.airspeed)) {
+				if (bool nonfinite = !PX4_ISFINITE(_ctrl_state.airspeed) || !_ctrl_state.airspeed_valid) {
 					airspeed = _parameters.airspeed_trim;
+
 					if (nonfinite) {
 						perf_count(_nonfinite_input_perf);
 					}
+
 				} else {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 					airspeed = math::max(0.5f, _ctrl_state.airspeed);
