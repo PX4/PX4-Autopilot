@@ -1652,9 +1652,10 @@ MulticopterPositionControl::task_main()
 			_vel_sp_prev = _vel;
 		}
 
+		math::Matrix<3, 3> R_sp;
+
 		/* generate attitude setpoint from manual controls */
-		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled
-			&& !_control_mode.flag_control_velocity_enabled) {
+		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
 			/* reset yaw setpoint to current position if needed */
 			if (reset_yaw_sp) {
@@ -1694,7 +1695,6 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* construct attitude setpoint rotation matrix */
-			math::Matrix<3, 3> R_sp;
 			R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
 
@@ -1703,8 +1703,6 @@ MulticopterPositionControl::task_main()
 			q_sp.from_dcm(R_sp);
 			memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 			_att_sp.timestamp = hrt_absolute_time();
-
-			_thrust_sp_prev = R_sp * math::Vector<3>(0, 0, -_att_sp.thrust);
 
 		} else {
 			reset_yaw_sp = true;
@@ -1722,6 +1720,8 @@ MulticopterPositionControl::task_main()
 		if (!(_control_mode.flag_control_offboard_enabled &&
 		      !(_control_mode.flag_control_position_enabled ||
 			_control_mode.flag_control_velocity_enabled))) {
+
+			_thrust_sp_prev = R_sp * math::Vector<3>(0, 0, -_att_sp.thrust);
 
 			if (_att_sp_pub != nullptr) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
