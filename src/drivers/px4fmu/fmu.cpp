@@ -90,12 +90,8 @@
 # include <systemlib/ppm_decode.h>
 #endif
 
-/*
- * This is the analog to FMU_INPUT_DROP_LIMIT_US on the IO side
- */
-
-#define CONTROL_INPUT_DROP_LIMIT_US		2000
-#define NAN_VALUE	(0.0f/0.0f)
+#define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
+#define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
 
 class PX4FMU : public device::CDev
 {
@@ -123,15 +119,7 @@ public:
 	int		set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 private:
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	static const unsigned _max_actuators = 4;
-#endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
-	static const unsigned _max_actuators = 6;
-#endif
-#if defined(CONFIG_ARCH_BOARD_AEROCORE)
-	static const unsigned _max_actuators = 8;
-#endif
+	static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
 	Mode		_mode;
 	unsigned	_pwm_default_rate;
@@ -189,7 +177,7 @@ private:
 	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 	void		update_pwm_rev_mask();
-	void	publish_pwm_outputs(uint16_t *values, size_t numvalues);
+	void		publish_pwm_outputs(uint16_t *values, size_t numvalues);
 
 	struct GPIOConfig {
 		uint32_t	input;
@@ -321,11 +309,9 @@ PX4FMU::PX4FMU() :
 	memset(_controls, 0, sizeof(_controls));
 	memset(_poll_fds, 0, sizeof(_poll_fds));
 
-#ifdef HRT_PPM_CHANNEL
 	// rc input, published to ORB
 	memset(&_rc_in, 0, sizeof(_rc_in));
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-#endif
 
 #ifdef GPIO_SBUS_INV
 	// this board has a GPIO to control SBUS inversion
@@ -728,8 +714,8 @@ PX4FMU::cycle()
 						//main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
 
 						/* do only correct within the current phase */
-						if (abs(main_out_latency) > CONTROL_INPUT_DROP_LIMIT_US) {
-							main_out_latency = CONTROL_INPUT_DROP_LIMIT_US;
+						if (abs(main_out_latency) > SCHEDULE_INTERVAL) {
+							main_out_latency = SCHEDULE_INTERVAL;
 						}
 
 						if (main_out_latency < 250) {
@@ -905,7 +891,7 @@ PX4FMU::cycle()
 	}
 
 	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this,
-		   USEC2TICK(CONTROL_INPUT_DROP_LIMIT_US - main_out_latency));
+		   USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
 }
 
 void PX4FMU::work_stop()
@@ -1683,9 +1669,9 @@ PX4FMU::peripheral_reset(int ms)
 
 	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 0);
 
-	bool last =  stm32_gpioread(GPIO_SPEKTRUM_POWER);
+	bool last = stm32_gpioread(GPIO_SPEKTRUM_PWR_EN);
 	/* Keep Spektum on to discharge rail*/
-	stm32_gpiowrite(GPIO_SPEKTRUM_POWER, 1);
+	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -1694,7 +1680,7 @@ PX4FMU::peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	stm32_gpiowrite(GPIO_SPEKTRUM_POWER, last);
+	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
 	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
 #endif
 }
