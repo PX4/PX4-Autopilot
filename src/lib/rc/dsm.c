@@ -439,15 +439,6 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
 		/* scaled integer for decent accuracy while staying efficient */
 		value = ((((int)value - 1024) * 1000) / 1700) + 1500;
 
-        /* if the value is unrealistic, fail the parsing entirely */
-        if (value < 600 || value > 2400) {
-#ifdef DSM_DEBUG
-            printf("DSM: VALUE RANGE FAIL\n");
-#endif
-            dsm_chan_count = 0;
-            return false;
-        }
-
 		/*
 		 * Store the decoded channel into the R/C input buffer, taking into
 		 * account the different ideas about channel assignement that we have.
@@ -497,6 +488,18 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
 #ifdef DSM_DEBUG
     printf("PARSED PACKET\n");
 #endif
+
+    /* check all values */
+    for (unsigned i = 0; i < *num_values; i++) {
+        /* if the value is unrealistic, fail the parsing entirely */
+        if (values[i] < 600 || values[i] > 2400) {
+#ifdef DSM_DEBUG
+            printf("DSM: VALUE RANGE FAIL\n");
+#endif
+            dsm_chan_count = 0;
+            return false;
+        }
+    }
 
 	return true;
 }
@@ -641,6 +644,7 @@ dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
                 /* if decoding failed, set proto to desync */
                 if (decode_ret == false) {
                     dsm_decode_state = DSM_DECODE_STATE_DESYNC;
+                    dsm_frame_drops++;
                 }
             }
             break;
