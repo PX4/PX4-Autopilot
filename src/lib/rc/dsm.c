@@ -57,7 +57,7 @@
  #define dsm_udelay(arg)    up_udelay(arg)
 #endif
 
-#define DSM_DEBUG
+//#define DSM_DEBUG
 
 static enum DSM_DECODE_STATE {
     DSM_DECODE_STATE_DESYNC = 0,
