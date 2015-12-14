@@ -1652,8 +1652,6 @@ MulticopterPositionControl::task_main()
 			_vel_sp_prev = _vel;
 		}
 
-		math::Matrix<3, 3> R_sp;
-
 		/* generate attitude setpoint from manual controls */
 		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
@@ -1694,9 +1692,19 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
+			math::Matrix<3, 3> R_sp;
+
 			/* construct attitude setpoint rotation matrix */
 			R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+
+			/* reset the acceleration set point for all non-attitude flight modes */
+			if (!(_control_mode.flag_control_offboard_enabled &&
+		      !(_control_mode.flag_control_position_enabled ||
+			_control_mode.flag_control_velocity_enabled))) {
+
+				_thrust_sp_prev = R_sp * math::Vector<3>(0, 0, -_att_sp.thrust);
+			}
 
 			/* copy quaternion setpoint to attitude setpoint topic */
 			math::Quaternion q_sp;
@@ -1720,8 +1728,6 @@ MulticopterPositionControl::task_main()
 		if (!(_control_mode.flag_control_offboard_enabled &&
 		      !(_control_mode.flag_control_position_enabled ||
 			_control_mode.flag_control_velocity_enabled))) {
-
-			_thrust_sp_prev = R_sp * math::Vector<3>(0, 0, -_att_sp.thrust);
 
 			if (_att_sp_pub != nullptr) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
