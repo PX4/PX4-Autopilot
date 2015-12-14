@@ -76,21 +76,21 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 {
 	float out[8] = {};
 
-	const float pwm_center = (PWM_HIGHEST_MAX + PWM_LOWEST_MIN) / 2;
+	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
 	// for now we only support quadrotors
 	unsigned n = 4;
 
 	if (_vehicle_status.is_rotary_wing || _vehicle_status.is_vtol) {
 		for (unsigned i = 0; i < 8; i++) {
-			if (_actuators.output[i] > PWM_LOWEST_MIN / 2) {
+			if (_actuators.output[i] > PWM_DEFAULT_MIN / 2) {
 				if (i < n) {
 					// scale PWM out 900..2100 us to 0..1 for rotors */
-					out[i] = (_actuators.output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
+					out[i] = (_actuators.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 
 				} else {
 					// scale PWM out 900..2100 us to -1..1 for other channels */
-					out[i] = (_actuators.output[i] - pwm_center) / ((PWM_HIGHEST_MAX - PWM_LOWEST_MIN) / 2);
+					out[i] = (_actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 				}
 
 			} else {
