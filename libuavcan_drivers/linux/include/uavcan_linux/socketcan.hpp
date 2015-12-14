@@ -148,6 +148,9 @@ class SocketCanIface : public uavcan::ICanIface
     std::queue<RxItem> rx_queue_;                                   // TODO: Use pool allocator
     std::unordered_multiset<std::uint32_t> pending_loopback_ids_;   // TODO: Use pool allocator
 
+    std::vector<uavcan::CanFilterConfig> hw_filters_container_;
+    bool filters_configured_ = false;
+
     void registerError(SocketCanError e) { errors_[e]++; }
 
     void incrementNumFramesInSocketTxQueue()
@@ -301,7 +304,17 @@ class SocketCanIface : public uavcan::ICanIface
                 if (accept)
                 {
                     rx.ts_utc += clock_.getPrivateAdjustment();
-                    rx_queue_.push(rx);
+                    if (filters_configured_)
+                    {
+                        if (checkHWFilters(rx.frame))
+                        {
+                            rx_queue_.push(rx);
+                        }
+                    }
+                    else
+                    {
+                        rx_queue_.push(rx);
+                    }
                 }
             }
             else if (res == 0)
@@ -313,6 +326,22 @@ class SocketCanIface : public uavcan::ICanIface
                 registerError(SocketCanError::SocketReadFailure);
             }
         }
+    }
+
+    /**
+     * Returns true if a frame accepted by HW filters
+     */
+    bool checkHWFilters(const uavcan::CanFrame frame)
+    {
+        uint16_t container_size = hw_filters_container_.size();
+        for (uint16_t i = 0; i < container_size; i++)
+        {
+            if (((frame.id & hw_filters_container_[i].mask) ^ hw_filters_container_[i].id) == 0)
+            {
+                return 1;
+            }
+        }
+        return 0;
     }
 
 public:
@@ -404,38 +433,46 @@ public:
             assert(0);
             return -1;
         }
-        std::vector< ::can_filter> filts(num_configs);
+        hw_filters_container_.clear();
+        hw_filters_container_.resize(num_configs);
+
         for (unsigned i = 0; i < num_configs; i++)
         {
             const uavcan::CanFilterConfig& fc = filter_configs[i];
-            filts[i].can_id   = fc.id   & uavcan::CanFrame::MaskExtID;
-            filts[i].can_mask = fc.mask & uavcan::CanFrame::MaskExtID;
+            hw_filters_container_[i].id   = fc.id   & uavcan::CanFrame::MaskExtID;
+            hw_filters_container_[i].mask = fc.mask & uavcan::CanFrame::MaskExtID;
             if (fc.id & uavcan::CanFrame::FlagEFF)
             {
-                filts[i].can_id |= CAN_EFF_FLAG;
+                hw_filters_container_[i].id |= CAN_EFF_FLAG;
             }
             if (fc.id & uavcan::CanFrame::FlagRTR)
             {
-                filts[i].can_id |= CAN_RTR_FLAG;
+                hw_filters_container_[i].id |= CAN_RTR_FLAG;
             }
             if (fc.mask & uavcan::CanFrame::FlagEFF)
             {
-                filts[i].can_mask |= CAN_EFF_FLAG;
+                hw_filters_container_[i].mask |= CAN_EFF_FLAG;
             }
             if (fc.mask & uavcan::CanFrame::FlagRTR)
             {
-                filts[i].can_mask |= CAN_RTR_FLAG;
+                hw_filters_container_[i].mask |= CAN_RTR_FLAG;
             }
         }
-        int ret = setsockopt(fd_, SOL_CAN_RAW, CAN_RAW_FILTER, filts.data(), sizeof(::can_filter) * num_configs);
-        return (ret < 0) ? -1 : 0;
+
+        if (! hw_filters_container_.empty())
+        {
+            filters_configured_ = true;
+            return 0;
+        }
+
+        return -1;
     }
 
     /**
      * SocketCAN emulates the CAN filters in software, so the number of filters is virtually unlimited.
      * This method returns a constant value.
      */
-    std::uint16_t getNumFilters() const override { return 255; }
+    std::uint16_t getNumFilters() const override { return 8; }
 
     /**
      * Returns total number of errors of each kind detected since the object was created.
