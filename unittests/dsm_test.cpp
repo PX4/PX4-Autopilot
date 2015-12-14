@@ -36,10 +36,8 @@ TEST(DSMTest, DSM)
 	uint8_t frame[20];
 	uint16_t rc_values[18];
 	uint16_t num_values;
-	unsigned sbus_frame_drops = 0;
-	unsigned sbus_frame_resets = 0;
-	bool sbus_failsafe;
-	bool sbus_frame_drop;
+	bool dsm_11_bit;
+	unsigned dsm_frame_drops = 0;
 	uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
 
 	int rate_limiter = 0;
@@ -53,19 +51,20 @@ TEST(DSMTest, DSM)
 		unsigned len = 1;
 
 		// Pipe the data into the parser
-		hrt_abstime now = hrt_absolute_time();
-
-		// if (rate_limiter % byte_offset == 0) {
-		bool result = false;//sbus_parse(now, &frame[0], len, rc_values, &num_values,
-		// 			 &sbus_failsafe, &sbus_frame_drop, &sbus_frame_drops, max_channels);
+		bool result = dsm_parse(f*1e6, &frame[0], len, rc_values, &num_values,
+						&dsm_11_bit, &dsm_frame_drops, max_channels);
 
 		if (result) {
-			//warnx("decoded packet");
+			warnx("decoded packet with %d channels and %s encoding:", num_values, (dsm_11_bit) ? "11 bit" : "10 bit");
+
+			for (unsigned i = 0; i < num_values; i++) {
+				printf("chan #%u:\t%d\n", i, (int)rc_values[i]);
+			}
 		}
 
-		if (last_drop != (sbus_frame_drops + sbus_frame_resets)) {
-			warnx("frame dropped, now #%d", (sbus_frame_drops + sbus_frame_resets));
-			last_drop = sbus_frame_drops + sbus_frame_resets;
+		if (last_drop != (dsm_frame_drops)) {
+			warnx("frame dropped, now #%d", (dsm_frame_drops));
+			last_drop = dsm_frame_drops;
 		}
 
 		rate_limiter++;
