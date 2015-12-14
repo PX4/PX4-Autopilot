@@ -44,6 +44,10 @@
 #include <termios.h>
 #include <string.h>
 
+#ifdef TIOCSSINGLEWIRE
+#include <sys/ioctl.h>
+#endif
+
 #include "sbus.h"
 #include <drivers/drv_hrt.h>
 
@@ -149,7 +153,7 @@ sbus_config(int sbus_fd, bool singlewire)
 		if (singlewire) {
 			/* only defined in configs capable of IOCTL */
 #ifdef TIOCSSINGLEWIRE
-			ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+            ioctl(sbus_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 #endif
 		}
 
