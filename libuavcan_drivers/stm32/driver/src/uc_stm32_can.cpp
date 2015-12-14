@@ -206,7 +206,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
 {
     if (target_bitrate < 1)
     {
-        return -1;
+        return -ErrInvalidBitRate;
     }
 
     /*
@@ -263,7 +263,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
     {
         if (bs1_bs2_sum <= 2)
         {
-            return -1;          // No solution
+            return -ErrInvalidBitRate;          // No solution
         }
         bs1_bs2_sum--;
     }
@@ -271,7 +271,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
     const uavcan::uint32_t prescaler = prescaler_bs / (1 + bs1_bs2_sum);
     if ((prescaler < 1U) || (prescaler > 1024U))
     {
-        return -1;              // No solution
+        return -ErrInvalidBitRate;              // No solution
     }
 
     /*
@@ -334,7 +334,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
     if ((target_bitrate != (pclk / (prescaler * (1 + solution.bs1 + solution.bs2)))) || !solution.isValid())
     {
         UAVCAN_ASSERT(0);
-        return -1;
+        return -ErrLogic;
     }
 
     UAVCAN_STM32_LOG("Timings: quanta/bit: %d, sample point location: %.1f%%",
@@ -352,7 +352,7 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame& frame, uavcan::MonotonicT
 {
     if (frame.isErrorFrame() || frame.dlc > 8)
     {
-        return -1;  // WTF man how to handle that
+        return -ErrUnsupportedFrame;
     }
 
     /*
@@ -462,7 +462,7 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig* filter
     CriticalSectionLocker lock;
     (void)filter_configs;
     (void)num_configs;
-    return -1;
+    return -ErrNotImplemented;
 }
 
 bool CanIface::waitMsrINakBitStateChange(bool target_state)
@@ -503,7 +503,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
     if (!waitMsrINakBitStateChange(true))
     {
         UAVCAN_STM32_LOG("MSR INAK not set");
-        return -1;
+        return -ErrMsrInakNotSet;
     }
 
     /*
@@ -551,7 +551,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
     if (!waitMsrINakBitStateChange(false))
     {
         UAVCAN_STM32_LOG("MSR INAK not cleared");
-        return -1;
+        return -ErrMsrInakNotCleared;
     }
 
     /*
