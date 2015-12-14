@@ -237,6 +237,9 @@ __BEGIN_DECLS
 
 #define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
 #define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
+#define SPEKTRUM_RX_HIGH(_s)	stm32_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_s))
+#define SPEKTRUM_RX_AS_UART()		stm32_configgpio(GPIO_USART1_RX)		
+#define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_USART1_RX_SPEKTRUM)
 
 /****************************************************************************************************
  * Public Types
