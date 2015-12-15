@@ -83,13 +83,39 @@
 #define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu6000_accel_ext"
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu6000_gyro_ext"
 
+/*
+ * When using 4 Khz sampling the cpu will read out the device
+ * at 1 kHz, the FIFO will be enabled in loose oldest mode
+ * and the Gyro will sample at 8 kHz, the accel and temperature
+ * will be sampled at 4 khZ
+ *
+ * MPUREG_CONFIG will be configured
+ *  as 0x07 DLP 7
+ * MPUREG_GYRO_CONFIG will be configured
+ *  as 0x18 FCHOICE 0
+ * MPUREG_ACCEL_CONFIG2 will be configured
+ *  as 0x08 ACCELL_FCHOICE_B 1 and DLPF 0
+ *
+ */
 // MPU 6000 registers
-#define MPUREG_WHOAMI			0x75
+// This register only has an effect when FCHOICE_B is 00b and DLP is 1-6
 #define MPUREG_SMPLRT_DIV		0x19
+
 #define MPUREG_CONFIG			0x1A
+# define FIFO_MODE_LOSS			(0 << 6)
+# define FIFO_MODE_STOP			(1 << 6)
+
 #define MPUREG_GYRO_CONFIG		0x1B
 #define MPUREG_ACCEL_CONFIG		0x1C
+#define MPUREG_ACCEL_CONFIG2	0x1D
+# define ACCEL_FCHOICE_B		(1 << 3)
+
 #define MPUREG_FIFO_EN			0x23
+# define TEMP_FIFO_EN			(1 << 7)
+# define XG_FIFO_EN				(1 << 6)
+# define YG_FIFO_EN				(1 << 5)
+# define ZG_FIFO_EN				(1 << 4)
+# define ACCEL_FIFO_EN			(1 << 3)
 #define MPUREG_INT_PIN_CFG		0x37
 #define MPUREG_INT_ENABLE		0x38
 #define MPUREG_INT_STATUS		0x3A
@@ -108,11 +134,16 @@
 #define MPUREG_GYRO_ZOUT_H		0x47
 #define MPUREG_GYRO_ZOUT_L		0x48
 #define MPUREG_USER_CTRL		0x6A
+# define BIT_FIFO_EN			(1 << 6)
+# define BIT_I2C_IF_DIS			(1 << 4)
+# define BIT_FIFO_RST			(1 << 3)
+
 #define MPUREG_PWR_MGMT_1		0x6B
 #define MPUREG_PWR_MGMT_2		0x6C
 #define MPUREG_FIFO_COUNTH		0x72
 #define MPUREG_FIFO_COUNTL		0x73
 #define MPUREG_FIFO_R_W			0x74
+#define MPUREG_WHOAMI			0x75
 #define MPUREG_PRODUCT_ID		0x0C
 #define MPUREG_TRIM1			0x0D
 #define MPUREG_TRIM2			0x0E
@@ -145,7 +176,6 @@
 #define BITS_DLPF_CFG_MASK		0x07
 #define BIT_INT_ANYRD_2CLEAR		0x10
 #define BIT_RAW_RDY_EN			0x01
-#define BIT_I2C_IF_DIS			0x10
 #define BIT_INT_STATUS_DATA		0x01
 
 #define MPU_WHOAMI_6000			0x68
@@ -210,6 +240,7 @@
 #define MPU6000_LOW_BUS_SPEED				1000*1000
 #define MPU6000_HIGH_BUS_SPEED				11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU6K */
 
+#define ICM20608_BUS_SPEED					8*1000*1000
 /*
   we set the timer interrupt to run a bit faster than the desired
   sample rate and then throw away duplicates by comparing
@@ -288,6 +319,7 @@ private:
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
+	perf_counter_t		_fifo_resets;
 	perf_counter_t		_duplicates;
 	perf_counter_t		_controller_latency_perf;
 
@@ -366,6 +398,11 @@ private:
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
 	void			measure();
+
+	/**
+	 * Reset the fifi.
+	 */
+	void			reset_fifo();
 
 	/**
 	 * Read a register from the MPU6000
@@ -464,13 +501,8 @@ private:
 	MPU6000 operator=(const MPU6000 &);
 
 #pragma pack(push, 1)
-	/**
-	 * Report conversation within the MPU6000, including command byte and
-	 * interrupt status.
-	 */
-	struct MPUReport {
-		uint8_t		cmd;
-		uint8_t		status;
+
+	struct IMUData {
 		uint8_t		accel_x[2];
 		uint8_t		accel_y[2];
 		uint8_t		accel_z[2];
@@ -479,7 +511,40 @@ private:
 		uint8_t		gyro_y[2];
 		uint8_t		gyro_z[2];
 	};
+
+	/**
+	 * Report conversation within the MPU6000, including command byte and
+	 * interrupt status.
+	 */
+	struct MPUReport {
+		uint8_t		cmd;
+		uint8_t		status;
+		IMUData		data;
+	};
+
+	/**
+	 * Report conversation within the ICM20608, including command byte
+	 */
+	struct ICMFIFOCnt {
+		uint8_t		cmd;
+		uint8_t		fifo_count[2];
+	};
+
+#define MAX_FIFO_REC 6
+#define MIN_FIFO_REC 4
+	struct IMUReport {
+		uint8_t		cmd;
+		IMUData		data[MIN_FIFO_REC];
+	};
+
 #pragma pack(pop)
+
+	/**
+	 * Process measurements from the sensor.
+	 */
+	int			process(IMUData &imu);
+
+
 };
 
 /*
@@ -560,6 +625,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_bad_registers(perf_alloc(PC_COUNT, "mpu6000_bad_registers")),
 	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6000_reset_retries")),
+	_fifo_resets(perf_alloc(PC_COUNT, "icm20806_fifo_resets")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu6000_duplicates")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
@@ -636,6 +702,7 @@ MPU6000::~MPU6000()
 	perf_free(_bad_registers);
 	perf_free(_good_transfers);
 	perf_free(_reset_retries);
+	perf_free(_fifo_resets);
 	perf_free(_duplicates);
 }
 
@@ -799,6 +866,8 @@ int MPU6000::reset()
 
 	if (is_icm_device()) {
 		write_checked_reg(MPUREG_ICM_UNDOC1, MPUREG_ICM_UNDOC1_VALUE);
+		write_reg(MPUREG_FIFO_EN, TEMP_FIFO_EN | XG_FIFO_EN | YG_FIFO_EN | ZG_FIFO_EN | ACCEL_FIFO_EN);
+		write_checked_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS | BIT_FIFO_EN);
 	}
 
 	// Oscillator set
@@ -879,7 +948,7 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 	/*
 	   choose next highest filter frequency available
 	 */
-	if (frequency_hz == 0) {
+	if (frequency_hz == 0 || frequency_hz == 4000) {
 		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
 
 	} else if (frequency_hz <= 5) {
@@ -1085,7 +1154,8 @@ MPU6000::factory_self_test()
 	float gyro_ftrim[3];
 
 	// get baseline values without self-test enabled
-	set_frequency(MPU6000_HIGH_BUS_SPEED);
+	set_frequency(is_icm_device() ? ICM20608_BUS_SPEED : MPU6000_HIGH_BUS_SPEED);
+
 
 	memset(accel_baseline, 0, sizeof(accel_baseline));
 	memset(gyro_baseline, 0, sizeof(gyro_baseline));
@@ -1097,12 +1167,12 @@ MPU6000::factory_self_test()
 		mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
 		transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report));
 
-		accel_baseline[0] += int16_t_from_bytes(mpu_report.accel_x);
-		accel_baseline[1] += int16_t_from_bytes(mpu_report.accel_y);
-		accel_baseline[2] += int16_t_from_bytes(mpu_report.accel_z);
-		gyro_baseline[0] += int16_t_from_bytes(mpu_report.gyro_x);
-		gyro_baseline[1] += int16_t_from_bytes(mpu_report.gyro_y);
-		gyro_baseline[2] += int16_t_from_bytes(mpu_report.gyro_z);
+		accel_baseline[0] += int16_t_from_bytes(mpu_report.data.accel_x);
+		accel_baseline[1] += int16_t_from_bytes(mpu_report.data.accel_y);
+		accel_baseline[2] += int16_t_from_bytes(mpu_report.data.accel_z);
+		gyro_baseline[0] += int16_t_from_bytes(mpu_report.data.gyro_x);
+		gyro_baseline[1] += int16_t_from_bytes(mpu_report.data.gyro_y);
+		gyro_baseline[2] += int16_t_from_bytes(mpu_report.data.gyro_z);
 	}
 
 #if 1
@@ -1119,19 +1189,20 @@ MPU6000::factory_self_test()
 	up_udelay(20000);
 
 	// get values with self-test enabled
-	set_frequency(MPU6000_HIGH_BUS_SPEED);
+	set_frequency(is_icm_device() ? ICM20608_BUS_SPEED : MPU6000_HIGH_BUS_SPEED);
+
 
 
 	for (uint8_t i = 0; i < repeats; i++) {
 		up_udelay(1000);
 		mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
 		transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report));
-		accel[0] += int16_t_from_bytes(mpu_report.accel_x);
-		accel[1] += int16_t_from_bytes(mpu_report.accel_y);
-		accel[2] += int16_t_from_bytes(mpu_report.accel_z);
-		gyro[0] += int16_t_from_bytes(mpu_report.gyro_x);
-		gyro[1] += int16_t_from_bytes(mpu_report.gyro_y);
-		gyro[2] += int16_t_from_bytes(mpu_report.gyro_z);
+		accel[0] += int16_t_from_bytes(mpu_report.data.accel_x);
+		accel[1] += int16_t_from_bytes(mpu_report.data.accel_y);
+		accel[2] += int16_t_from_bytes(mpu_report.data.accel_z);
+		gyro[0] += int16_t_from_bytes(mpu_report.data.gyro_x);
+		gyro[1] += int16_t_from_bytes(mpu_report.data.gyro_y);
+		gyro[2] += int16_t_from_bytes(mpu_report.data.gyro_z);
 	}
 
 	for (uint8_t i = 0; i < 3; i++) {
@@ -1516,11 +1587,16 @@ MPU6000::read_reg(unsigned reg, uint32_t speed)
 {
 	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
 
-	// There is no MPUREG_PRODUCT_ID on the icm device
-	// so lets make dummy it up and allow the rest of the
-	// code to run as is
-	if (reg == MPUREG_PRODUCT_ID && is_icm_device()) {
-		return ICM20608_REV_00;
+	// icm device has one access speed for all registers
+	if (is_icm_device()) {
+		speed = ICM20608_BUS_SPEED;
+
+		//There is no MPUREG_PRODUCT_ID on the icm device
+		// so lets make dummy it up and allow the rest of the
+		// code to run as is
+		if (reg == MPUREG_PRODUCT_ID) {
+			return ICM20608_REV_00;
+		}
 	}
 
 	// general register transfer at low clock speed
@@ -1536,8 +1612,8 @@ MPU6000::read_reg16(unsigned reg)
 {
 	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
 
-	// general register transfer at low clock speed
-	set_frequency(MPU6000_LOW_BUS_SPEED);
+	// general register transfer at low clock speed if needed
+	set_frequency(is_icm_device() ? ICM20608_BUS_SPEED : MPU6000_LOW_BUS_SPEED);
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -1552,8 +1628,8 @@ MPU6000::write_reg(unsigned reg, uint8_t value)
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
-	// general register transfer at low clock speed
-	set_frequency(MPU6000_LOW_BUS_SPEED);
+	// general register transfer at low clock speed if needed
+	set_frequency(is_icm_device() ? ICM20608_BUS_SPEED : MPU6000_LOW_BUS_SPEED);
 
 	transfer(cmd, nullptr, sizeof(cmd));
 }
@@ -1624,6 +1700,11 @@ MPU6000::set_accel_range(unsigned max_g_in)
 	write_checked_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
 	_accel_range_scale = (MPU6000_ONE_G / lsb_per_g);
 	_accel_range_m_s2 = max_accel_g * MPU6000_ONE_G;
+
+	if (is_icm_device()) {
+		write_reg(MPUREG_ACCEL_CONFIG2, (ACCEL_FCHOICE_B | BITS_DLPF_CFG_256HZ_NOLPF2));
+
+	}
 
 	return OK;
 }
@@ -1728,20 +1809,35 @@ MPU6000::check_registers(void)
 	_checked_next = (_checked_next + 1) % MPU6000_NUM_CHECKED_REGISTERS;
 }
 
+
 void
-MPU6000::measure()
+MPU6000::reset_fifo()
 {
-	if (_in_factory_test) {
-		// don't publish any data while in factory test mode
-		return;
+	perf_count(_fifo_resets);
+	modify_reg(MPUREG_USER_CTRL, 0, BIT_FIFO_RST);
+}
+
+
+int
+MPU6000::process(IMUData &imu)
+{
+	/*
+	   see if this is duplicate accelerometer data. Note that we
+	   can't use the data ready interrupt status bit in the status
+	   register as that also goes high on new gyro data, and when
+	   we run with BITS_DLPF_CFG_256HZ_NOLPF2 the gyro is being
+	   sampled at 8kHz, so we would incorrectly think we have new
+	   data when we are in fact getting duplicate accelerometer data.
+	*/
+	if (!_got_duplicate && memcmp(&imu.accel_x[0], &_last_accel[0], 6) == 0) {
+		// it isn't new data - wait for next timer
+		perf_count(_duplicates);
+		_got_duplicate = true;
+		return 1;
 	}
 
-	if (hrt_absolute_time() < _reset_wait) {
-		// we're waiting for a reset to complete
-		return;
-	}
-
-	struct MPUReport mpu_report;
+	memcpy(&_last_accel[0], &imu.accel_x[0], 6);
+	_got_duplicate = false;
 
 	struct Report {
 		int16_t		accel_x;
@@ -1752,56 +1848,19 @@ MPU6000::measure()
 		int16_t		gyro_y;
 		int16_t		gyro_z;
 	} report;
-
-	/* start measuring */
-	perf_begin(_sample_perf);
-
-	/*
-	 * Fetch the full set of measurements from the MPU6000 in one pass.
-	 */
-	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
-
-	// sensor transfer at high clock speed
-	set_frequency(MPU6000_HIGH_BUS_SPEED);
-
-	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report))) {
-		return;
-	}
-
-	check_registers();
-
-	/*
-	   see if this is duplicate accelerometer data. Note that we
-	   can't use the data ready interrupt status bit in the status
-	   register as that also goes high on new gyro data, and when
-	   we run with BITS_DLPF_CFG_256HZ_NOLPF2 the gyro is being
-	   sampled at 8kHz, so we would incorrectly think we have new
-	   data when we are in fact getting duplicate accelerometer data.
-	*/
-	if (!_got_duplicate && memcmp(&mpu_report.accel_x[0], &_last_accel[0], 6) == 0) {
-		// it isn't new data - wait for next timer
-		perf_end(_sample_perf);
-		perf_count(_duplicates);
-		_got_duplicate = true;
-		return;
-	}
-
-	memcpy(&_last_accel[0], &mpu_report.accel_x[0], 6);
-	_got_duplicate = false;
-
 	/*
 	 * Convert from big to little endian
 	 */
 
-	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
-	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
-	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+	report.accel_x = int16_t_from_bytes(imu.accel_x);
+	report.accel_y = int16_t_from_bytes(imu.accel_y);
+	report.accel_z = int16_t_from_bytes(imu.accel_z);
 
-	report.temp = int16_t_from_bytes(mpu_report.temp);
+	report.temp = int16_t_from_bytes(imu.temp);
 
-	report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
-	report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
-	report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);
+	report.gyro_x = int16_t_from_bytes(imu.gyro_x);
+	report.gyro_y = int16_t_from_bytes(imu.gyro_y);
+	report.gyro_z = int16_t_from_bytes(imu.gyro_z);
 
 	if (report.accel_x == 0 &&
 	    report.accel_y == 0 &&
@@ -1812,12 +1871,11 @@ MPU6000::measure()
 	    report.gyro_z == 0) {
 		// all zero data - probably a SPI bus error
 		perf_count(_bad_transfers);
-		perf_end(_sample_perf);
 		// note that we don't call reset() here as a reset()
 		// costs 20ms with interrupts disabled. That means if
 		// the mpu6k does go bad it would cause a FMU failure,
 		// regardless of whether another sensor is available,
-		return;
+		return 2;
 	}
 
 	perf_count(_good_transfers);
@@ -1827,7 +1885,7 @@ MPU6000::measure()
 		// the sensor again. We still increment
 		// _good_transfers, but don't return any data yet
 		_register_wait--;
-		return;
+		return -1;
 	}
 
 
@@ -1980,8 +2038,96 @@ MPU6000::measure()
 		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
 	}
 
+	return 0;
+}
+
+void
+MPU6000::measure()
+{
+	MPUReport mpu_report;
+	IMUReport fifo;
+	uint32_t num_process = 1;
+	IMUData *pimu = &mpu_report.data;
+
+	if (_in_factory_test) {
+		// don't publish any data while in factory test mode
+		return;
+	}
+
+	if (hrt_absolute_time() < _reset_wait) {
+		// we're waiting for a reset to complete
+		return;
+	}
+
+	/* start measuring */
+	perf_begin(_sample_perf);
+
+	if (is_icm_device()) {
+
+		ICMFIFOCnt fifo_cnt;
+		fifo_cnt.cmd = DIR_READ | MPUREG_FIFO_COUNTH;
+
+		/*
+		 * Read the fifo Count
+		 */
+		if (OK != transfer((uint8_t *)&fifo_cnt, ((uint8_t *)&fifo_cnt), sizeof(fifo_cnt))) {
+			return;
+		}
+
+		uint16_t count = int16_t_from_bytes(fifo_cnt.fifo_count);
+
+
+		if (count >= sizeof(IMUData)  * MAX_FIFO_REC) {
+			reset_fifo();
+			return;
+		}
+
+
+		if (count < sizeof(IMUData) * MIN_FIFO_REC) {
+			return;
+		}
+
+		fifo.cmd = DIR_READ | MPUREG_FIFO_R_W;
+
+		if (OK != transfer((uint8_t *)&fifo, ((uint8_t *)&fifo), sizeof(fifo) + 1)) {
+			return;
+		}
+
+		pimu = & fifo.data[0];
+		num_process = MIN_FIFO_REC;
+
+	} else {
+
+		/*
+		 * Fetch the full set of measurements from the MPU6000 in one pass.
+		 */
+		mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
+
+		// sensor transfer at high clock speed
+		set_frequency(MPU6000_HIGH_BUS_SPEED);
+
+
+		if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report))) {
+			return;
+		}
+
+		pimu = &mpu_report.data;
+		num_process = 1;
+	}
+
+	check_registers();
+
+	int rs = 0;
+
+	do {
+		rs = process(*pimu);
+		pimu++;
+	} while (rs == 0 && --num_process);
+
 	/* stop measuring */
-	perf_end(_sample_perf);
+	if (rs >= 0) {
+		perf_end(_sample_perf);
+	}
 }
 
 void
@@ -1994,6 +2140,7 @@ MPU6000::print_info()
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
+	perf_print_counter(_fifo_resets);
 	perf_print_counter(_duplicates);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
