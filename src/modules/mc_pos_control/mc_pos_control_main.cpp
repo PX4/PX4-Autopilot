@@ -1284,6 +1284,8 @@ MulticopterPositionControl::task_main()
 				}
 
 				if (!_control_mode.flag_control_velocity_enabled) {
+					_vel_sp_prev(0) = _vel(0);
+					_vel_sp_prev(1) = _vel(1);
 					_vel_sp(0) = 0.0f;
 					_vel_sp(1) = 0.0f;
 				}
@@ -1366,6 +1368,7 @@ MulticopterPositionControl::task_main()
 					math::Vector<3> vel_err = _vel_sp - _vel;
 
 					/* thrust vector in NED frame */
+					// TODO?: + _vel_sp.emult(_params.vel_ff)
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
 
 					if (!_control_mode.flag_control_velocity_enabled) {
@@ -1496,36 +1499,6 @@ MulticopterPositionControl::task_main()
 							thrust_int(2) = 0.0f;
 						}
 					}
-
-					/* limit max change rate */
-					math::Vector<2> jerk_hor;
-					math::Vector<3> thrust_diff = thrust_sp - _thrust_sp_prev;
-
-					/* this is jerk times dt
-					 * we call it jerk so its clear what the intention is -
-					 * to limit the jerk, not the total acceleration.
-					 */
-					jerk_hor(0) = thrust_diff(0);
-					jerk_hor(1) = thrust_diff(1);
-
-					/* because we compare with jerk times dt, we multiply here as well */
-					float max_hor_jerk = (_params.acc_hor_max / ONE_G) * dt;
-
-					if (jerk_hor.length() > max_hor_jerk) {
-						/* bring it to length one */
-						jerk_hor.normalize();
-						/* bring it to the max length for jerk * dt for the next step */
-						jerk_hor *= max_hor_jerk;
-						/* now use the previous trust setpoint and add the allowable delta */
-						math::Vector<2> thrust_sp_hor_prev(_thrust_sp_prev(0), _thrust_sp_prev(1));
-						math::Vector<2> thrust_sp_hor = thrust_sp_hor_prev + jerk_hor;
-
-						thrust_sp(0) = thrust_sp_hor(0);
-						thrust_sp(1) = thrust_sp_hor(1);
-					}
-
-					/* store last thrust vector */
-					_thrust_sp_prev = thrust_sp;
 
 					/* calculate attitude setpoint from thrust vector */
 					if (_control_mode.flag_control_velocity_enabled) {
