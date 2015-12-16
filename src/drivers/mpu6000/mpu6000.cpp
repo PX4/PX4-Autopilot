@@ -530,8 +530,8 @@ private:
 		uint8_t		fifo_count[2];
 	};
 
-#define MAX_FIFO_REC 6
-#define MIN_FIFO_REC 4
+#define MAX_FIFO_REC 24
+#define MIN_FIFO_REC 12
 	struct IMUReport {
 		uint8_t		cmd;
 		IMUData		data[MIN_FIFO_REC];
@@ -542,7 +542,7 @@ private:
 	/**
 	 * Process measurements from the sensor.
 	 */
-	int			process(IMUData &imu);
+	int			process(IMUData &imu, uint64_t time_stamp);
 
 
 };
@@ -948,7 +948,7 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 	/*
 	   choose next highest filter frequency available
 	 */
-	if (frequency_hz == 0 || frequency_hz == 4000) {
+	if (frequency_hz == 0 || frequency_hz == 4000 || is_icm_device()) {
 		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
 
 	} else if (frequency_hz <= 5) {
@@ -1819,7 +1819,7 @@ MPU6000::reset_fifo()
 
 
 int
-MPU6000::process(IMUData &imu)
+MPU6000::process(IMUData &imu, uint64_t time_stamp)
 {
 	/*
 	   see if this is duplicate accelerometer data. Note that we
@@ -1915,7 +1915,7 @@ MPU6000::process(IMUData &imu)
 	/*
 	 * Adjust and scale results to m/s^2.
 	 */
-	grb.timestamp = arb.timestamp = hrt_absolute_time();
+	grb.timestamp = arb.timestamp =  time_stamp;
 
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
@@ -2118,11 +2118,17 @@ MPU6000::measure()
 	check_registers();
 
 	int rs = 0;
+	static uint64_t last_time_stamp = 0;
+	uint64_t time_stamp = hrt_absolute_time();
+	uint64_t dt = (time_stamp - last_time_stamp) / num_process;
 
-	do {
-		rs = process(*pimu);
-		pimu++;
-	} while (rs == 0 && --num_process);
+	if (last_time_stamp != 0) {
+		for (int i = 0; rs >= 0 && i < num_process; i++) {
+			rs = process(pimu[i], last_time_stamp + (dt * (i + 1)));
+		}
+	}
+
+	last_time_stamp = time_stamp;
 
 	/* stop measuring */
 	if (rs >= 0) {
