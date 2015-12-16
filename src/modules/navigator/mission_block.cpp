@@ -323,3 +323,51 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance,
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
 }
+
+void
+MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_location)
+{
+	item->nav_cmd = NAV_CMD_LAND;
+
+	/* use current position */
+	if (at_current_location) {
+		item->lat = _navigator->get_global_position()->lat;
+		item->lon = _navigator->get_global_position()->lon;
+	
+	/* use home position */
+	} else {
+		item->lat = _navigator->get_home_position()->lat;
+		item->lon = _navigator->get_home_position()->lon;
+	}
+
+	item->altitude = 0;
+	item->altitude_is_relative = false;
+	item->yaw = NAN;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_direction = 1;
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->pitch_min = 0.0f;
+	item->autocontinue = true;
+	item->origin = ORIGIN_ONBOARD;
+}
+
+void
+MissionBlock::set_idle_item(struct mission_item_s *item)
+{
+	item->nav_cmd = NAV_CMD_IDLE;
+	item->lat = _navigator->get_home_position()->lat;
+	item->lon = _navigator->get_home_position()->lon;
+	item->altitude_is_relative = false;
+	item->altitude = _navigator->get_home_position()->alt;
+	item->yaw = NAN;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_direction = 1;
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->pitch_min = 0.0f;
+	item->autocontinue = true;
+	item->origin = ORIGIN_ONBOARD;
+}
+
+
