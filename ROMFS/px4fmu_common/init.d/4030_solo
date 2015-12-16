@@ -1,0 +1,29 @@
+#!nsh
+#
+# @name Generic Quadrotor X config
+#
+# @type Quadrotor x
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF == yes ]
+then
+    param set MC_PITCHRATE_P    0.13
+    param set MC_ROLLRATE_P     0.13
+    param set MPC_MANTHR_MIN    0.08
+
+    # enable high bandwidth mavlink by default
+    param set SYS_COMPANION     921601
+fi
+
+set MIXER solo
+
+set PWM_OUT 1234
+set MIXER_AUX none
