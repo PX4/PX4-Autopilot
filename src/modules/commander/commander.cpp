@@ -1083,6 +1083,7 @@ int commander_thread_main(int argc, char *argv[])
 	status.rc_input_blocked = false;
 	status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
 	status.main_state =vehicle_status_s::MAIN_STATE_MANUAL;
+	status.main_state_prev = vehicle_status_s::MAIN_STATE_MAX;
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
 
@@ -2348,6 +2349,25 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+		/* handle main state after takeoff and land */
+		if (status.main_state == vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF
+				&& mission_result.finished) {
+
+			// transition back to state we had before takeoff
+			if (status.main_state_prev < vehicle_status_s::MAIN_STATE_MAX
+					&& status.main_state_prev != vehicle_status_s::MAIN_STATE_AUTO_LAND) {
+				main_state_transition(&status, status.main_state_prev);
+			}
+
+		} else if (status.main_state == vehicle_status_s::MAIN_STATE_AUTO_LAND
+				&& status.condition_landed) {
+
+			// transition back to state we had before takeoff
+			if (status.main_state_prev < vehicle_status_s::MAIN_STATE_MAX
+					&& status.main_state_prev != vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF) {
+				main_state_transition(&status, status.main_state_prev);
+			}
+		}
 
 		/* handle commands last, as the system needs to be updated to handle them */
 		orb_check(cmd_sub, &updated);
