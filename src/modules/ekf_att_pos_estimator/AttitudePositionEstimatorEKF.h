@@ -49,6 +49,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_status.h>
@@ -68,6 +69,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #include <geo/geo.h>
+#include <terrain_estimation/terrain_estimator.h>
 #include <systemlib/perf_counter.h>
 #include <lib/ecl/validation/data_validator_group.h>
 #include "estimator_22states.h"
@@ -133,6 +135,8 @@ public:
      */
     int set_debuglevel(unsigned debug) { _debug = debug; return 0; }
 
+    static constexpr unsigned MAX_PREDICITION_STEPS = 3; /**< maximum number of prediction steps between updates */
+
 private:
     bool        _task_should_exit;      /**< if true, sensor task should exit */
     bool        _task_running;          /**< if true, task is running in its mainloop */
@@ -152,12 +156,14 @@ private:
     int     _armedSub;
 
     orb_advert_t    _att_pub;           /**< vehicle attitude */
+    orb_advert_t    _ctrl_state_pub;        /**< control state */
     orb_advert_t    _global_pos_pub;        /**< global position */
     orb_advert_t    _local_pos_pub;         /**< position in local frame */
     orb_advert_t    _estimator_status_pub;      /**< status of the estimator */
     orb_advert_t    _wind_pub;          /**< wind estimate */
 
     struct vehicle_attitude_s           _att;           /**< vehicle attitude */
+    struct control_state_s              _ctrl_state;    /**< control state */
     struct gyro_report                  _gyro;
     struct accel_report                 _accel;
     struct mag_report                   _mag;
@@ -174,6 +180,8 @@ private:
 
     hrt_abstime _last_accel;
     hrt_abstime _last_mag;
+    unsigned _prediction_steps;
+    uint64_t _prediction_last;
 
     struct sensor_combined_s            _sensor_combined;
 
@@ -271,6 +279,8 @@ private:
 
     AttPosEKF                   *_ekf;
 
+    TerrainEstimator            *_terrain_estimator;
+
     /* Low pass filter for attitude rates */
     math::LowPassFilter2p _LP_att_P;
     math::LowPassFilter2p _LP_att_Q;
@@ -315,6 +325,12 @@ private:
     *   Publish the euler and quaternions for attitude estimation
     **/
     void publishAttitude();
+
+    /**
+    * @brief
+    *   Publish the system state for control modules
+    **/
+    void publishControlState();
 
     /**
     * @brief

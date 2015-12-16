@@ -89,20 +89,14 @@ enum ORB_PRIO {
 /**
  * Declare (prototype) the uORB metadata for a topic.
  *
- * Note that optional topics are declared weak; this allows a potential
- * subscriber to attempt to subscribe to a topic that is not known to the
- * system at runtime.  The ORB_ID() macro will return NULL/nullptr for
- * such a topic, and attempts to advertise or subscribe to it will
- * return -1/ENOENT (see below).
- *
  * @param _name		The name of the topic.
  */
 #if defined(__cplusplus)
 # define ORB_DECLARE(_name)		extern "C" const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT
 #else
 # define ORB_DECLARE(_name)		extern const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT
 #endif
 
 /**
@@ -372,7 +366,6 @@ __END_DECLS
 
 /* Diverse uORB header defines */ //XXX: move to better location
 #define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
-typedef struct vehicle_attitude_setpoint_s fw_virtual_attitude_setpoint_s;
 typedef uint8_t arming_state_t;
 typedef uint8_t main_state_t;
 typedef uint8_t hil_state_t;

@@ -40,20 +40,15 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#include <px4_config.h>
-
-#include <systemlib/param/param.h>
-
-
 /*
  * Controller parameters, accessible via MAVLink
  *
  */
 
 /**
- * Attitude Time Constant
+ * Attitude Roll Time Constant
  *
- * This defines the latency between a step input and the achieved setpoint
+ * This defines the latency between a roll step input and the achieved setpoint
  * (inverse to a P gain). Half a second is a good start value and fits for
  * most average systems. Smaller systems may require smaller values, but as
  * this will wear out servos faster, the value should only be decreased as
@@ -64,7 +59,23 @@
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.4f);
+PARAM_DEFINE_FLOAT(FW_R_TC, 0.4f);
+
+/**
+ * Attitude Pitch Time Constant
+ *
+ * This defines the latency between a pitch step input and the achieved setpoint
+ * (inverse to a P gain). Half a second is a good start value and fits for
+ * most average systems. Smaller systems may require smaller values, but as
+ * this will wear out servos faster, the value should only be decreased as
+ * needed.
+ *
+ * @unit seconds
+ * @min 0.2
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 
 /**
  * Pitch rate proportional gain.
@@ -226,6 +237,55 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
 PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
 
 /**
+ * Wheel steering rate proportional gain
+ *
+ * This defines how much the wheel steering input will be commanded depending on the
+ * current body angular rate error.
+ *
+ * @min 0.005
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_WR_P, 0.5f);
+
+/**
+ * Wheel steering rate integrator gain
+ *
+ * This gain defines how much control response will result out of a steady
+ * state error. It trims any constant error.
+ *
+ * @min 0.0
+ * @max 50.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_WR_I, 0.1f);
+
+/**
+ * Wheel steering rate integrator limit
+ *
+ * The portion of the integrator part in the control surface deflection is
+ * limited to this value
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_WR_IMAX, 1.0f);
+
+/**
+ * Maximum wheel steering rate
+ *
+ * This limits the maximum wheel steering rate the controller will output (in degrees per
+ * second). Setting a value of zero disables the limit.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_W_RMAX, 0.0f);
+
+/**
  * Roll rate feed forward
  *
  * Direct feed forward from rate setpoint to control surface output. Use this
@@ -259,6 +319,17 @@ PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
+
+/**
+ * Wheel steering rate feed forward
+ *
+ * Direct feed forward from rate setpoint to control surface output
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_WR_FF, 0.2f);
 
 /**
  * Minimal speed for yaw coordination
@@ -379,3 +450,21 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
+
+/**
+ * Scale factor for flaps
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
+
+/**
+ * Scale factor for flaperons
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);

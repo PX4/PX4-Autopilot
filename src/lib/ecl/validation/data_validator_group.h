@@ -80,6 +80,20 @@ public:
 	 * @return		the number of failovers
 	 */
 	unsigned		failover_count();
+	
+	/**
+	 * Get the index of the failed sensor in the group
+	 *
+	 * @return		index of the failed sensor
+	 */
+	int			failover_index();
+	
+	/**
+	 * Get the error state of the failed sensor in the group
+	 *
+	 * @return		bitmask with erro states of the failed sensor
+	 */
+	uint32_t		failover_state();
 
 	/**
 	 * Print the validator value
@@ -100,6 +114,7 @@ private:
 	int _prev_best;		/**< the previous best index */
 	uint64_t _first_failover_time;	/**< timestamp where the first failover occured or zero if none occured */
 	unsigned _toggle_count;		/**< number of back and forth switches between two sensors */
+	static constexpr float MIN_REGULAR_CONFIDENCE = 0.9f;
 
 	/* we don't want this class to be copied */
 	DataValidatorGroup(const DataValidatorGroup&);

@@ -35,6 +35,7 @@
  * Basic shell to execute builtin "apps"
  *
  * @author Mark Charlebois <charlebm@gmail.com>
+ * @auther Roman Bapst <bapstroman@gmail.com>
  */
 
 #include <iostream>
@@ -43,6 +44,10 @@
 #include <sstream>
 #include <vector>
 #include <signal.h>
+#include "apps.h"
+#include "px4_middleware.h"
+#include "DriverFramework.hpp"
+#include <termios.h>
 
 namespace px4
 {
@@ -53,24 +58,36 @@ using namespace std;
 
 typedef int (*px4_main_t)(int argc, char *argv[]);
 
-#include "apps.h"
-#include "px4_middleware.h"
+#define CMD_BUFF_SIZE	100
 
 static bool _ExitFlag = false;
 extern "C" {
 	void _SigIntHandler(int sig_num);
 	void _SigIntHandler(int sig_num)
 	{
-		_ExitFlag = true;
+		cout.flush();
+		cout << endl << "Exiting.." << endl;
+		cout.flush();
+		_exit(0);
+	}
+	void _SigFpeHandler(int sig_num);
+	void _SigFpeHandler(int sig_num)
+	{
+		cout.flush();
+		cout << endl << "floating point exception" << endl;
+		PX4_BACKTRACE();
+		cout.flush();
 	}
 }
 
 static void print_prompt()
 {
+	cout.flush();
 	cout << "pxh> ";
+	cout.flush();
 }
 
-static void run_cmd(const vector<string> &appargs)
+static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 {
 	// command is appargs[0]
 	string command = appargs[0];
@@ -86,8 +103,16 @@ static void run_cmd(const vector<string> &appargs)
 		}
 
 		arg[i] = (char *)0;
-		apps[command](i, (char **)arg);
-		usleep(65000);
+
+		if (exit_on_fail) {
+			cout << endl;
+		}
+
+		int retval = apps[command](i, (char **)arg);
+
+		if (exit_on_fail && retval) {
+			exit(retval);
+		}
 
 	} else if (command.compare("help") == 0) {
 		list_builtins();
@@ -96,10 +121,13 @@ static void run_cmd(const vector<string> &appargs)
 		// Do nothing
 
 	} else {
-		cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
+		cout << endl << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 
 	}
-	print_prompt();
+
+	if (exit_on_fail) {
+		print_prompt();
+	}
 }
 
 static void usage()
@@ -113,19 +141,24 @@ static void usage()
 	cout << "   -h            - help/usage information" << std::endl;
 }
 
-static void process_line(string &line)
+static void process_line(string &line, bool exit_on_fail)
 {
-	vector<string> appargs(8);
+	if (line.length() == 0) {
+		printf("\n");
+	}
+
+	vector<string> appargs(10);
 
 	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
-			   appargs[7];
-	run_cmd(appargs);
+			   appargs[7] >> appargs[8] >> appargs[9];
+	run_cmd(appargs, exit_on_fail);
 }
 
 int main(int argc, char **argv)
 {
 	bool daemon_mode = false;
 	signal(SIGINT, _SigIntHandler);
+	signal(SIGFPE, _SigFpeHandler);
 
 	int index = 1;
 	bool error_detected = false;
@@ -165,6 +198,7 @@ int main(int argc, char **argv)
 	}
 
 	if (!error_detected) {
+		DriverFramework::Framework::initialize();
 		px4::init_once();
 
 		px4::init(argc, argv, "mainapp");
@@ -175,7 +209,7 @@ int main(int argc, char **argv)
 
 			if (infile.is_open()) {
 				for (string line; getline(infile, line, '\n');) {
-					process_line(line);
+					process_line(line, false);
 				}
 
 			} else {
@@ -184,22 +218,95 @@ int main(int argc, char **argv)
 		}
 
 		if (!daemon_mode) {
-			string mystr;
+			string mystr = "";
+			string string_buffer[CMD_BUFF_SIZE];
+			int buf_ptr_write = 0;
+			int buf_ptr_read = 0;
 
 			print_prompt();
 
+			// change input mode so that we can manage shell
+			struct termios term;
+			tcgetattr(0, &term);
+			term.c_lflag &= ~ICANON;
+			term.c_lflag &= ~ECHO;
+			tcsetattr(0, TCSANOW, &term);
+			setbuf(stdin, NULL);
+
 			while (!_ExitFlag) {
 
-				struct pollfd fds;
-				int ret;
-				fds.fd = 0; /* stdin */
-				fds.events = POLLIN;
-				ret = poll(&fds, 1, 100);
+				char c = getchar();
 
-				if (ret > 0) {
-					getline(cin, mystr);
-					process_line(mystr);
+				switch (c) {
+				case 127:	// backslash
+					if (mystr.length() > 0) {
+						mystr.pop_back();
+						printf("%c[2K", 27);	// clear line
+						cout << (char)13;
+						print_prompt();
+						cout << mystr;
+					}
+
+					break;
+
+				case'\n':	// user hit enter
+					if (buf_ptr_write == CMD_BUFF_SIZE) {
+						buf_ptr_write = 0;
+					}
+
+					if (buf_ptr_write > 0) {
+						if (mystr != string_buffer[buf_ptr_write - 1]) {
+							string_buffer[buf_ptr_write] = mystr;
+							buf_ptr_write++;
+						}
+
+					} else {
+						if (mystr != string_buffer[CMD_BUFF_SIZE - 1]) {
+							string_buffer[buf_ptr_write] = mystr;
+							buf_ptr_write++;
+						}
+					}
+
+					process_line(mystr, !daemon_mode);
 					mystr = "";
+					buf_ptr_read = buf_ptr_write;
+					break;
+
+				case '\033': {	// arrow keys
+						c = getchar();	// skip first one, does not have the info
+						c = getchar();
+
+						// arrow up
+						if (c == 'A') {
+							buf_ptr_read--;
+							// arrow down
+
+						} else if (c == 'B') {
+							if (buf_ptr_read < buf_ptr_write) {
+								buf_ptr_read++;
+							}
+
+						} else {
+							// TODO: Support editing current line
+						}
+
+						if (buf_ptr_read < 0) {
+							buf_ptr_read = 0;
+						}
+
+						string saved_cmd = string_buffer[buf_ptr_read];
+						printf("%c[2K", 27);
+						cout << (char)13;
+						mystr = saved_cmd;
+						print_prompt();
+						cout << mystr;
+						break;
+					}
+
+				default:	// any other input
+					cout << c;
+					mystr += c;
+					break;
 				}
 			}
 
@@ -212,10 +319,11 @@ int main(int argc, char **argv)
 		if (px4_task_is_running("muorb")) {
 			// sending muorb stop is needed if it is running to exit cleanly
 			vector<string> muorb_stop_cmd = { "muorb", "stop" };
-			run_cmd(muorb_stop_cmd);
+			run_cmd(muorb_stop_cmd, !daemon_mode);
 		}
 
 		vector<string> shutdown_cmd = { "shutdown" };
-		run_cmd(shutdown_cmd);
+		run_cmd(shutdown_cmd, true);
+		DriverFramework::Framework::shutdown();
 	}
 }

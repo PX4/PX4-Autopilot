@@ -121,5 +121,10 @@
  */
 #define SENSORIOCGROTATION	_SENSORIOC(6)
 
+/**
+ * Test the sensor calibration
+ */
+#define SENSORIOCCALTEST	_SENSORIOC(7)
+
 #endif /* _DRV_SENSOR_H */
 

@@ -97,24 +97,35 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 
 	// XXX This should eventually also include voting
 	int pre_check_best = _curr_best;
+	float pre_check_confidence = 1.0f;
+	int pre_check_prio = -1;
 	float max_confidence = -1.0f;
 	int max_priority = -1000;
 	int max_index = -1;
-	uint64_t min_error_count = 30000;
 	DataValidator *best = nullptr;
 
 	unsigned i = 0;
 
 	while (next != nullptr) {
 		float confidence = next->confidence(timestamp);
-		if (confidence > max_confidence ||
-			(fabsf(confidence - max_confidence) < 0.01f &&
-				((next->error_count() < min_error_count) &&
-				(next->priority() >= max_priority)))) {
+
+		if (static_cast<int>(i) == pre_check_best) {
+			pre_check_prio = next->priority();
+			pre_check_confidence = confidence;
+		}
+
+		/*
+		 * Switch if:
+		 * 1) the confidence is higher and priority is equal or higher
+		 * 2) the confidence is no less than 1% different and the priority is higher
+		 */
+		if (((max_confidence < MIN_REGULAR_CONFIDENCE) && (confidence >= MIN_REGULAR_CONFIDENCE)) ||
+			(confidence > max_confidence && (next->priority() >= max_priority)) ||
+			(fabsf(confidence - max_confidence) < 0.01f && (next->priority() > max_priority))
+			) {
 			max_index = i;
 			max_confidence = confidence;
 			max_priority = next->priority();
-			min_error_count = next->error_count();
 			best = next;
 		}
 
@@ -125,17 +136,31 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 	/* the current best sensor is not matching the previous best sensor */
 	if (max_index != _curr_best) {
 
+		bool true_failsafe = true;
+
+		/* check whether the switch was a failsafe or preferring a higher priority sensor */
+		if (pre_check_prio != -1 && pre_check_prio < max_priority &&
+			fabsf(pre_check_confidence - max_confidence) < 0.1f) {
+			/* this is not a failover */
+			true_failsafe = false;
+			/* reset error flags, this is likely a hotplug sensor coming online late */
+			best->reset_state();
+		}
+
 		/* if we're no initialized, initialize the bookkeeping but do not count a failsafe */
 		if (_curr_best < 0) {
 			_prev_best = max_index;
 		} else {
 			/* we were initialized before, this is a real failsafe */
 			_prev_best = pre_check_best;
-			_toggle_count++;
 
-			/* if this is the first time, log when we failed */
-			if (_first_failover_time == 0) {
-				_first_failover_time = timestamp;
+			if (true_failsafe) {
+				_toggle_count++;
+
+				/* if this is the first time, log when we failed */
+				if (_first_failover_time == 0) {
+					_first_failover_time = timestamp;
+				}
 			}
 		}
 
@@ -176,17 +201,27 @@ void
 DataValidatorGroup::print()
 {
 	/* print the group's state */
-	ECL_INFO("validator: best: %d, prev best: %d, failsafe: %s (# %u)",
+	ECL_INFO("validator: best: %d, prev best: %d, failsafe: %s (%u events)",
 		_curr_best, _prev_best, (_toggle_count > 0) ? "YES" : "NO",
 		_toggle_count);
-
 
 	DataValidator *next = _first;
 	unsigned i = 0;
 
 	while (next != nullptr) {
-		ECL_INFO("sensor #%u:\n", i);
-		next->print();
+		if (next->used()) {
+			uint32_t flags = next->state();
+			
+			ECL_INFO("sensor #%u, prio: %d, state:%s%s%s%s%s%s", i, next->priority(),
+			((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " NO_DATA" : ""),
+			((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE_DATA" : ""),
+			((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " DATA_TIMEOUT" : ""),
+			((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " HIGH_ERRCOUNT" : ""),
+			((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " HIGH_ERRDENSITY" : ""),
+			((flags == DataValidator::ERROR_FLAG_NO_ERROR) ? " OK" : ""));
+			
+			next->print();
+		}
 		next = next->sibling();
 		i++;
 	}
@@ -196,4 +231,36 @@ unsigned
 DataValidatorGroup::failover_count()
 {
 	return _toggle_count;
+}
+
+int
+DataValidatorGroup::failover_index()
+{
+	DataValidator *next = _first;
+	unsigned i = 0;
+	
+	while (next != nullptr) {
+		if (next->used() && (next->state() != DataValidator::ERROR_FLAG_NO_ERROR) && (i == (unsigned)_prev_best)) {
+			return i;
+		}
+		next = next->sibling();
+		i++;
+	}
+	return -1;
+}
+
+uint32_t
+DataValidatorGroup::failover_state()
+{	
+	DataValidator *next = _first;
+	unsigned i = 0;
+	
+	while (next != nullptr) {
+		if (next->used() && (next->state() != DataValidator::ERROR_FLAG_NO_ERROR) && (i == (unsigned)_prev_best)) {
+			return next->state();
+		}
+		next = next->sibling();
+		i++;
+	}
+	return DataValidator::ERROR_FLAG_NO_ERROR;
 }

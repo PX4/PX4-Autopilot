@@ -39,9 +39,6 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_config.h>
-#include <systemlib/param/param.h>
-
 /*
  * Controller parameters, accessible via MAVLink
  */
@@ -182,7 +179,7 @@ PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
  * @max 150.0
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 25.0f);
+PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
 
 /**
  * Maximum climb rate
@@ -446,3 +443,15 @@ PARAM_DEFINE_FLOAT(FW_FLARE_PMIN, 2.5f);
  *
  */
 PARAM_DEFINE_FLOAT(FW_FLARE_PMAX, 15.0f);
+
+/**
+ * Takeoff and landing airspeed scale factor
+ *
+ * Multiplying this factor with the minimum airspeed of the plane
+ * gives the target airspeed for takeoff and landing approach.
+ *
+ * @min 1.0
+ * @max 1.5
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_SCALE, 1.3f);

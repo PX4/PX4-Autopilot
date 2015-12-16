@@ -45,6 +45,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "DevMgr.hpp"
+
+using namespace DriverFramework;
+
 namespace device
 {
 
@@ -54,8 +58,9 @@ struct px4_dev_t {
 	char *name;
 	void *cdev;
 
-	px4_dev_t(const char *n, void *c) : cdev(c) {
-		name = strdup(n); 
+	px4_dev_t(const char *n, void *c) : cdev(c)
+	{
+		name = strdup(n);
 	}
 
 	~px4_dev_t() { free(name); }
@@ -64,8 +69,9 @@ private:
 	px4_dev_t() {}
 };
 
-#define PX4_MAX_DEV 200
+#define PX4_MAX_DEV 500
 static px4_dev_t *devmap[PX4_MAX_DEV];
+pthread_mutex_t devmutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
  * The standard NuttX operation dispatch table can't call C++ member functions
@@ -85,21 +91,26 @@ VDev::VDev(const char *name,
 	_open_count(0)
 {
 	PX4_DEBUG("VDev::VDev");
-	for (unsigned i = 0; i < _max_pollwaiters; i++)
+
+	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		_pollset[i] = nullptr;
+	}
 }
 
 VDev::~VDev()
 {
 	PX4_DEBUG("VDev::~VDev");
-	if (_registered)
+
+	if (_registered) {
 		unregister_driver(_devname);
+	}
 }
 
 int
 VDev::register_class_devname(const char *class_devname)
 {
 	PX4_DEBUG("VDev::register_class_devname %s", class_devname);
+
 	if (class_devname == nullptr) {
 		return -EINVAL;
 	}
@@ -111,13 +122,16 @@ VDev::register_class_devname(const char *class_devname)
 		char name[32];
 		snprintf(name, sizeof(name), "%s%d", class_devname, class_instance);
 		ret = register_driver(name, (void *)this);
-		if (ret == OK) break;
+
+		if (ret == OK) { break; }
+
 		class_instance++;
 	}
 
 	if (class_instance == 4) {
 		return ret;
 	}
+
 	return class_instance;
 }
 
@@ -127,17 +141,23 @@ VDev::register_driver(const char *name, void *data)
 	PX4_DEBUG("VDev::register_driver %s", name);
 	int ret = -ENOSPC;
 
-	if (name == NULL || data == NULL)
+	if (name == NULL || data == NULL) {
 		return -EINVAL;
+	}
 
 	// Make sure the device does not already exist
 	// FIXME - convert this to a map for efficiency
-	for (int i=0;i<PX4_MAX_DEV; ++i) {
-		if (devmap[i] && (strcmp(devmap[i]->name,name) == 0)) {
+
+	pthread_mutex_lock(&devmutex);
+
+	for (int i = 0; i < PX4_MAX_DEV; ++i) {
+		if (devmap[i] && (strcmp(devmap[i]->name, name) == 0)) {
+			pthread_mutex_unlock(&devmutex);
 			return -EEXIST;
 		}
 	}
-	for (int i=0;i<PX4_MAX_DEV; ++i) {
+
+	for (int i = 0; i < PX4_MAX_DEV; ++i) {
 		if (devmap[i] == NULL) {
 			devmap[i] = new px4_dev_t(name, (void *)data);
 			PX4_DEBUG("Registered DEV %s", name);
@@ -145,9 +165,13 @@ VDev::register_driver(const char *name, void *data)
 			break;
 		}
 	}
+
+	pthread_mutex_unlock(&devmutex);
+
 	if (ret != PX4_OK) {
 		PX4_ERR("No free devmap entries - increase PX4_MAX_DEV");
 	}
+
 	return ret;
 }
 
@@ -157,10 +181,13 @@ VDev::unregister_driver(const char *name)
 	PX4_DEBUG("VDev::unregister_driver %s", name);
 	int ret = -EINVAL;
 
-	if (name == NULL)
+	if (name == NULL) {
 		return -EINVAL;
+	}
 
-	for (int i=0;i<PX4_MAX_DEV; ++i) {
+	pthread_mutex_lock(&devmutex);
+
+	for (int i = 0; i < PX4_MAX_DEV; ++i) {
 		if (devmap[i] && (strcmp(name, devmap[i]->name) == 0)) {
 			delete devmap[i];
 			devmap[i] = NULL;
@@ -169,6 +196,9 @@ VDev::unregister_driver(const char *name)
 			break;
 		}
 	}
+
+	pthread_mutex_unlock(&devmutex);
+
 	return ret;
 }
 
@@ -178,14 +208,21 @@ VDev::unregister_class_devname(const char *class_devname, unsigned class_instanc
 	PX4_DEBUG("VDev::unregister_class_devname");
 	char name[32];
 	snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
-	for (int i=0;i<PX4_MAX_DEV; ++i) {
-		if (devmap[i] && strcmp(devmap[i]->name,name) == 0) {
+
+	pthread_mutex_lock(&devmutex);
+
+	for (int i = 0; i < PX4_MAX_DEV; ++i) {
+		if (devmap[i] && strcmp(devmap[i]->name, name) == 0) {
 			delete devmap[i];
 			PX4_DEBUG("Unregistered class DEV %s", name);
 			devmap[i] = NULL;
+			pthread_mutex_unlock(&devmutex);
 			return PX4_OK;
 		}
 	}
+
+	pthread_mutex_unlock(&devmutex);
+
 	return -EINVAL;
 }
 
@@ -197,15 +234,17 @@ VDev::init()
 	// base class init first
 	int ret = Device::init();
 
-	if (ret != PX4_OK)
+	if (ret != PX4_OK) {
 		goto out;
+	}
 
 	// now register the driver
 	if (_devname != nullptr) {
 		ret = register_driver(_devname, (void *)this);
 
-		if (ret != PX4_OK)
+		if (ret != PX4_OK) {
 			goto out;
+		}
 
 		_registered = true;
 	}
@@ -232,8 +271,9 @@ VDev::open(file_t *filep)
 		/* first-open callback may decline the open */
 		ret = open_first(filep);
 
-		if (ret != PX4_OK)
+		if (ret != PX4_OK) {
 			_open_count--;
+		}
 	}
 
 	unlock();
@@ -261,8 +301,9 @@ VDev::close(file_t *filep)
 		_open_count--;
 
 		/* callback cannot decline the close */
-		if (_open_count == 0)
+		if (_open_count == 0) {
 			ret = close_last(filep);
+		}
 
 	} else {
 		ret = -EBADF;
@@ -309,22 +350,25 @@ VDev::ioctl(file_t *filep, int cmd, unsigned long arg)
 
 	switch (cmd) {
 
-		/* fetch a pointer to the driver's private data */
+	/* fetch a pointer to the driver's private data */
 	case DIOC_GETPRIV:
 		*(void **)(uintptr_t)arg = (void *)this;
 		ret = PX4_OK;
 		break;
+
 	case DEVIOCSPUBBLOCK:
 		_pub_blocked = (arg != 0);
 		ret = PX4_OK;
 		break;
+
 	case DEVIOCGPUBBLOCK:
 		ret = _pub_blocked;
 		break;
-        case DEVIOCGDEVICEID:
-                ret = (int)_device_id.devid;
-		PX4_INFO("IOCTL DEVIOCGDEVICEID %d", ret);
+
+	case DEVIOCGDEVICEID:
+		ret = (int)_device_id.devid;
 		break;
+
 	default:
 		break;
 	}
@@ -365,8 +409,10 @@ VDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 			fds->revents |= fds->events & poll_state(filep);
 
 			/* yes? post the notification */
-			if (fds->revents != 0)
-				sem_post(fds->sem);
+			if (fds->revents != 0) {
+				px4_sem_post(fds->sem);
+			}
+
 		} else {
 			PX4_WARN("Store Poll Waiter error.");
 		}
@@ -392,8 +438,9 @@ VDev::poll_notify(pollevent_t events)
 	lock();
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++)
-		if (nullptr != _pollset[i])
+		if (nullptr != _pollset[i]) {
 			poll_notify_one(_pollset[i], events);
+		}
 
 	unlock();
 }
@@ -403,17 +450,18 @@ VDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
 	PX4_DEBUG("VDev::poll_notify_one");
 	int value;
-	sem_getvalue(fds->sem, &value);
+	px4_sem_getvalue(fds->sem, &value);
 
 	/* update the reported event set */
 	fds->revents |= fds->events & events;
 
-	PX4_DEBUG(" Events fds=%p %0x %0x %0x %d",fds, fds->revents, fds->events, events, value);
+	PX4_DEBUG(" Events fds=%p %0x %0x %0x %d", fds, fds->revents, fds->events, events, value);
 
 	/* if the state is now interesting, wake the waiter if it's still asleep */
 	/* XXX semcount check here is a vile hack; counting semphores should not be abused as cvars */
-	if ((fds->revents != 0) && (value <= 0))
-		sem_post(fds->sem);
+	if ((fds->revents != 0) && (value <= 0)) {
+		px4_sem_post(fds->sem);
+	}
 }
 
 pollevent_t
@@ -431,6 +479,7 @@ VDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 	 * Look for a free slot.
 	 */
 	PX4_DEBUG("VDev::store_poll_waiter");
+
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (nullptr == _pollset[i]) {
 
@@ -448,6 +497,7 @@ int
 VDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 {
 	PX4_DEBUG("VDev::remove_poll_waiter");
+
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (fds == _pollset[i]) {
 
@@ -464,65 +514,108 @@ VDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 VDev *VDev::getDev(const char *path)
 {
 	PX4_DEBUG("VDev::getDev");
-	int i=0;
-	for (; i<PX4_MAX_DEV; ++i) {
+	int i = 0;
+
+	pthread_mutex_lock(&devmutex);
+
+	for (; i < PX4_MAX_DEV; ++i) {
 		//if (devmap[i]) {
 		//	printf("%s %s\n", devmap[i]->name, path);
 		//}
 		if (devmap[i] && (strcmp(devmap[i]->name, path) == 0)) {
+			pthread_mutex_unlock(&devmutex);
 			return (VDev *)(devmap[i]->cdev);
 		}
 	}
+
+	pthread_mutex_unlock(&devmutex);
+
 	return NULL;
 }
 
 void VDev::showDevices()
 {
-	int i=0;
-	PX4_INFO("Devices:");
-	for (; i<PX4_MAX_DEV; ++i) {
+	int i = 0;
+	PX4_INFO("PX4 Devices:");
+
+	pthread_mutex_lock(&devmutex);
+
+	for (; i < PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/dev/", 5) == 0) {
 			PX4_INFO("   %s", devmap[i]->name);
 		}
 	}
+
+	pthread_mutex_unlock(&devmutex);
+
+#ifndef __PX4_UNIT_TESTS
+	PX4_INFO("DF Devices:");
+	const char *dev_path;
+	unsigned int index = 0;
+	i = 0;
+
+	do {
+		// Each look increments index and returns -1 if end reached
+		i = DevMgr::getNextDeviceName(index, &dev_path);
+
+		if (i == 0) {
+			PX4_INFO("   %s", dev_path);
+		}
+	} while (i == 0);
+
+#endif
 }
 
 void VDev::showTopics()
 {
-	int i=0;
+	int i = 0;
 	PX4_INFO("Devices:");
-	for (; i<PX4_MAX_DEV; ++i) {
+
+	pthread_mutex_lock(&devmutex);
+
+	for (; i < PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/obj/", 5) == 0) {
 			PX4_INFO("   %s", devmap[i]->name);
 		}
 	}
+
+	pthread_mutex_unlock(&devmutex);
 }
 
 void VDev::showFiles()
 {
-	int i=0;
+	int i = 0;
 	PX4_INFO("Files:");
-	for (; i<PX4_MAX_DEV; ++i) {
+
+	pthread_mutex_lock(&devmutex);
+
+	for (; i < PX4_MAX_DEV; ++i) {
 		if (devmap[i] && strncmp(devmap[i]->name, "/obj/", 5) != 0 &&
-				 strncmp(devmap[i]->name, "/dev/", 5) != 0) {
+		    strncmp(devmap[i]->name, "/dev/", 5) != 0) {
 			PX4_INFO("   %s", devmap[i]->name);
 		}
 	}
+
+	pthread_mutex_unlock(&devmutex);
 }
 
 const char *VDev::topicList(unsigned int *next)
 {
-	for (;*next<PX4_MAX_DEV; (*next)++)
-		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/obj/", 5) == 0)
+	for (; *next < PX4_MAX_DEV; (*next)++)
+		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/obj/", 5) == 0) {
 			return devmap[(*next)++]->name;
+		}
+
 	return NULL;
 }
 
 const char *VDev::devList(unsigned int *next)
 {
-	for (;*next<PX4_MAX_DEV; (*next)++)
-		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/dev/", 5) == 0)
+	for (; *next < PX4_MAX_DEV; (*next)++)
+		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/dev/", 5) == 0) {
 			return devmap[(*next)++]->name;
+		}
+
 	return NULL;
 }
 

@@ -96,7 +96,15 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 
 	auto report = ::vehicle_gps_position_s();
 
-	report.timestamp_position = msg.getMonotonicTimestamp().toUSec();
+	/*
+	 * FIXME HACK
+	 * There used to be the following line of code:
+	 * 	report.timestamp_position = msg.getMonotonicTimestamp().toUSec();
+	 * It stopped working when the time sync feature has been introduced, because it caused libuavcan
+	 * to use an independent time source (based on hardware TIM5) instead of HRT.
+	 * The proper solution is to be developed.
+	 */
+	report.timestamp_position = hrt_absolute_time();
 	report.lat = msg.latitude_deg_1e8 / 10;
 	report.lon = msg.longitude_deg_1e8 / 10;
 	report.alt = msg.height_msl_mm;

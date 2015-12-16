@@ -73,6 +73,10 @@ static constexpr unsigned int calibration_sides = 6;			///< The total number of 
 static constexpr unsigned int calibration_total_points = 240;		///< The total points per magnetometer
 static constexpr unsigned int calibraton_duration_seconds = 42; 	///< The total duration the routine is allowed to take
 
+int32_t	device_ids[max_mags];
+int device_prio_max = 0;
+int32_t device_id_primary = 0;
+
 calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mags]);
 
 /// Data passed to calibration worker routine
@@ -108,7 +112,6 @@ int do_mag_calibration(int mavlink_fd)
 	
 	// Determine which mags are available and reset each
 
-	int32_t	device_ids[max_mags];
 	char str[30];
 
 	for (size_t i=0; i<max_mags; i++) {
@@ -434,6 +437,15 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 					result = calibrate_return_error;
 					break;
 				}
+
+				// Get priority
+				int32_t prio;
+				orb_priority(worker_data.sub_mag[cur_mag], &prio);
+
+				if (prio > device_prio_max) {
+					device_prio_max = prio;
+					device_id_primary = device_ids[cur_mag];
+				}
 			}
 		}
 	}
@@ -550,6 +562,9 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 	}
 	
 	if (result == calibrate_return_ok) {
+
+		(void)param_set_no_notification(param_find("CAL_MAG_PRIME"), &(device_id_primary));
+
 		for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
 			if (device_ids[cur_mag] != 0) {
 				int fd_mag = -1;

@@ -1,5 +1,6 @@
 import sys
 import re
+import os
 
 class ParameterGroup(object):
     """
@@ -151,7 +152,7 @@ class SourceParser(object):
         Returns list of supported file extensions that can be parsed by this
         parser. The parser uses any extension.
         """
-        return [""]
+        return ["", ".hil"]
 
     def Parse(self, path, contents):
         """
@@ -160,7 +161,7 @@ class SourceParser(object):
         """
 
         airframe_id = None
-        airframe_id = path.rsplit('/',1)[1].split('_',1)[0]
+        airframe_id = os.path.split(path)[1].split('_',1)[0]
 
         # Skip if not numeric
         if (not self.IsNumber(airframe_id)):

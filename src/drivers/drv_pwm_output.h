@@ -65,7 +65,7 @@ __BEGIN_DECLS
 #define pwm_output_values output_pwm_s
 
 #ifndef PWM_OUTPUT_MAX_CHANNELS
- #define PWM_OUTPUT_MAX_CHANNELS output_pwm_s::PWM_OUTPUT_MAX_CHANNELS
+#define PWM_OUTPUT_MAX_CHANNELS output_pwm_s::PWM_OUTPUT_MAX_CHANNELS
 #endif
 
 /**
@@ -76,7 +76,7 @@ __BEGIN_DECLS
 /**
  * Lowest minimum PWM in us
  */
-#define PWM_LOWEST_MIN 900
+#define PWM_LOWEST_MIN 90
 
 /**
  * Default minimum PWM in us
@@ -101,7 +101,7 @@ __BEGIN_DECLS
 /**
  * Lowest PWM allowed as the maximum PWM
  */
-#define PWM_LOWEST_MAX 950
+#define PWM_LOWEST_MAX 200
 
 /**
  * Do not output a channel with this value

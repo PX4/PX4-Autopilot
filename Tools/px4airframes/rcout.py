@@ -1,5 +1,6 @@
 from xml.sax.saxutils import escape
 import codecs
+import os
 
 class RCOutput():
     def __init__(self, groups, board):
@@ -30,7 +31,7 @@ class RCOutput():
         for group in groups:
             result += "# GROUP: %s\n\n" % group.GetName()
             for param in group.GetParams():
-                path = param.GetPath().rsplit('/', 1)[1]
+                path = os.path.split(param.GetPath())[1]
                 id_val = param.GetId()
                 name = param.GetFieldValue("short_desc")
                 long_desc = param.GetFieldValue("long_desc")

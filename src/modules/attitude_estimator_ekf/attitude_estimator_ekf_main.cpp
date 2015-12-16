@@ -108,6 +108,46 @@ usage(const char *reason)
 	fprintf(stderr, "usage: attitude_estimator_ekf {start|stop|status} [-p <additional params>]\n\n");
 }
 
+int parameters_init(struct attitude_estimator_ekf_param_handles *h)
+{
+	/* PID parameters */
+	h->q0 	=	param_find("EKF_ATT_V3_Q0");
+	h->q1 	=	param_find("EKF_ATT_V3_Q1");
+	h->q2 	=	param_find("EKF_ATT_V3_Q2");
+	h->q3 	=	param_find("EKF_ATT_V3_Q3");
+
+	h->r0 	=	param_find("EKF_ATT_V4_R0");
+	h->r1 	=	param_find("EKF_ATT_V4_R1");
+	h->r2 	=	param_find("EKF_ATT_V4_R2");
+
+	h->moment_inertia_J[0]  =   param_find("ATT_J11");
+	h->moment_inertia_J[1]  =   param_find("ATT_J22");
+	h->moment_inertia_J[2]  =   param_find("ATT_J33");
+	h->use_moment_inertia	=   param_find("ATT_J_EN");
+
+	return OK;
+}
+
+int parameters_update(const struct attitude_estimator_ekf_param_handles *h, struct attitude_estimator_ekf_params *p)
+{
+	param_get(h->q0, &(p->q[0]));
+	param_get(h->q1, &(p->q[1]));
+	param_get(h->q2, &(p->q[2]));
+	param_get(h->q3, &(p->q[3]));
+
+	param_get(h->r0, &(p->r[0]));
+	param_get(h->r1, &(p->r[1]));
+	param_get(h->r2, &(p->r[2]));
+
+	for (int i = 0; i < 3; i++) {
+		param_get(h->moment_inertia_J[i], &(p->moment_inertia_J[3 * i + i]));
+	}
+
+	param_get(h->use_moment_inertia, &(p->use_moment_inertia));
+
+	return OK;
+}
+
 /**
  * The attitude_estimator_ekf app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -244,8 +284,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
-	/* rate-limit raw data updates to 333 Hz (sensors app publishes at 200, so this is just paranoid) */
-	orb_set_interval(sub_raw, 3);
 
 	/* subscribe to GPS */
 	int sub_gps = orb_subscribe(ORB_ID(vehicle_gps_position));

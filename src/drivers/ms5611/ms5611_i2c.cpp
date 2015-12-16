@@ -45,7 +45,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
-//#include <debug.h>
 #include <errno.h>
 #include <unistd.h>
 
@@ -71,20 +70,16 @@ public:
 	virtual ~MS5611_I2C();
 
 	virtual int	init();
-	virtual ssize_t	read(device::file_t *handlep, char *data, size_t count);
-	virtual int	ioctl(device::file_t *handlep, int cmd, unsigned long arg);
+	virtual int	read(unsigned offset, void *data, unsigned count);
+	virtual int	ioctl(unsigned operation, unsigned &arg);
 
-#ifdef __PX4_NUTTX
 protected:
 	virtual int	probe();
-#endif
 
 private:
 	ms5611::prom_u	&_prom;
 
-#ifdef __PX4_NUTTX
 	int		_probe_address(uint8_t address);
-#endif
 
 	/**
 	 * Send a reset command to the MS5611.
@@ -116,13 +111,7 @@ MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 }
 
 MS5611_I2C::MS5611_I2C(uint8_t bus, ms5611::prom_u &prom) :
-	I2C("MS5611_I2C",
-#ifdef __PX4_NUTTX
-	    nullptr, bus, 0, 400000
-#else
-	    "/dev/MS5611_I2C", bus, 0
-#endif
-	   ),
+	I2C("MS5611_I2C", nullptr, bus, 0, 400000),
 	_prom(prom)
 {
 }
@@ -138,8 +127,8 @@ MS5611_I2C::init()
 	return I2C::init();
 }
 
-ssize_t
-MS5611_I2C::read(device::file_t *handlep, char *data, size_t buflen)
+int
+MS5611_I2C::read(unsigned offset, void *data, unsigned count)
 {
 	union _cvt {
 		uint8_t	b[4];
@@ -163,11 +152,11 @@ MS5611_I2C::read(device::file_t *handlep, char *data, size_t buflen)
 }
 
 int
-MS5611_I2C::ioctl(device::file_t *handlep, int cmd, unsigned long arg)
+MS5611_I2C::ioctl(unsigned operation, unsigned &arg)
 {
 	int ret;
 
-	switch (cmd) {
+	switch (operation) {
 	case IOCTL_RESET:
 		ret = _reset();
 		break;
@@ -183,7 +172,6 @@ MS5611_I2C::ioctl(device::file_t *handlep, int cmd, unsigned long arg)
 	return ret;
 }
 
-#ifdef __PX4_NUTTX
 int
 MS5611_I2C::probe()
 {
@@ -220,8 +208,6 @@ MS5611_I2C::_probe_address(uint8_t address)
 
 	return PX4_OK;
 }
-#endif
-
 
 int
 MS5611_I2C::_reset()
@@ -266,12 +252,25 @@ MS5611_I2C::_read_prom()
 	 */
 	usleep(3000);
 
+	uint8_t last_val = 0;
+	bool bits_stuck = true;
+
 	/* read and convert PROM words */
 	for (int i = 0; i < 8; i++) {
 		uint8_t cmd = ADDR_PROM_SETUP + (i * 2);
 
 		if (PX4_OK != transfer(&cmd, 1, &prom_buf[0], 2)) {
 			break;
+		}
+
+		/* check if all bytes are zero */
+		if (i == 0) {
+			/* initalize to first byte read */
+			last_val = prom_buf[0];
+		}
+
+		if (prom_buf[0] != last_val || prom_buf[1] != last_val) {
+			bits_stuck = false;
 		}
 
 		/* assemble 16 bit value and convert from big endian (sensor) to little endian (MCU) */
@@ -281,5 +280,5 @@ MS5611_I2C::_read_prom()
 	}
 
 	/* calculate CRC and return success/failure accordingly */
-	return ms5611::crc4(&_prom.c[0]) ? PX4_OK : -EIO;
+	return (ms5611::crc4(&_prom.c[0]) && !bits_stuck) ? PX4_OK : -EIO;
 }

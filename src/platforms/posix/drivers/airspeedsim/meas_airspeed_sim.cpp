@@ -153,12 +153,12 @@ MEASAirspeedSim::collect()
 	int	ret = -EIO;
 
 	/* read from the sensor */
-	#pragma pack(push, 1)
+#pragma pack(push, 1)
 	struct {
 		float		temperature;
 		float		diff_pressure;
 	} airspeed_report;
-	#pragma pack(pop)
+#pragma pack(pop)
 
 
 	perf_begin(_sample_perf);
@@ -291,7 +291,7 @@ MEASAirspeedSim::cycle()
 void
 MEASAirspeedSim::voltage_correction(float &diff_press_pa, float &temperature)
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 
 	if (_t_system_power == -1) {
 		_t_system_power = orb_subscribe(ORB_ID(system_power));
@@ -353,12 +353,6 @@ MEASAirspeedSim::voltage_correction(float &diff_press_pa, float &temperature)
  */
 namespace meas_airspeed_sim
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 MEASAirspeedSim	*g_dev = nullptr;
 
@@ -464,7 +458,7 @@ test()
 
 	if (fd < 0) {
 		PX4_ERR("%s open failed (try 'meas_airspeed_sim start' if the driver is not running", PATH_MS4525);
-			return 1;
+		return 1;
 	}
 
 	/* do a simple demand read */
@@ -589,7 +583,7 @@ measairspeedsim_main(int argc, char *argv[])
 		}
 	}
 
-	int ret;
+	int ret = 0;
 
 	/*
 	 * Start/load the driver.

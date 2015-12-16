@@ -149,6 +149,7 @@ public:
 		MAVLINK_MODE_CUSTOM,
 		MAVLINK_MODE_ONBOARD,
 		MAVLINK_MODE_OSD,
+		MAVLINK_MODE_MAGIC,
 		MAVLINK_MODE_CONFIG
 	};
 
@@ -288,6 +289,8 @@ public:
 
 	float			get_rate_mult();
 
+	float			get_baudrate() { return _baudrate; }
+
 	/* Functions for waiting to start transmission until message received. */
 	void			set_has_received_messages(bool received_messages) { _received_messages = received_messages; }
 	bool			get_has_received_messages() { return _received_messages; }
@@ -417,6 +420,7 @@ private:
 #ifdef __PX4_POSIX
 	struct sockaddr_in _myaddr;
 	struct sockaddr_in _src_addr;
+	struct sockaddr_in _bcast_addr;
 
 #endif
 	int _socket_fd;

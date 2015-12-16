@@ -43,11 +43,12 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <cmath>
-#include <algorithm>
 
 #ifndef M_PI_F
 #define M_PI_F static_cast<float>(M_PI)
 #endif
+
+#define MIN_AIRSPEED_MEAS 5.0f
 
 constexpr float EKF_COVARIANCE_DIVERGED = 1.0e8f;
 
@@ -1687,7 +1688,7 @@ void AttPosEKF::FuseAirspeed()
     // Calculate the predicted airspeed
     VtasPred = sqrtf((ve - vwe)*(ve - vwe) + (vn - vwn)*(vn - vwn) + vd*vd);
     // Perform fusion of True Airspeed measurement
-    if (useAirspeed && fuseVtasData && (VtasPred > 1.0f) && (VtasMeas > 8.0f))
+    if (useAirspeed && fuseVtasData && (VtasPred > 1.0f) && (VtasMeas > MIN_AIRSPEED_MEAS))
     {
         // Calculate observation jacobians
         SH_TAS[0] = 1/(sqrtf(sq(ve - vwe) + sq(vn - vwn) + sq(vd)));
@@ -1851,7 +1852,7 @@ void AttPosEKF::FuseOptFlow()
     Vector3f relVelSensor;
 
     // Perform sequential fusion of optical flow measurements only with valid tilt and height
-    flowStates[1] = std::max(flowStates[1], statesAtFlowTime[9] + minFlowRng);
+    flowStates[1] = fmax(flowStates[1], statesAtFlowTime[9] + minFlowRng);
     float heightAboveGndEst = flowStates[1] - statesAtFlowTime[9];
     bool validTilt = Tnb.z.z > 0.71f;
     if (validTilt)
@@ -2111,7 +2112,7 @@ void AttPosEKF::OpticalFlowEKF()
         } else {
             return;
         }
-        distanceTravelledSq = std::min(distanceTravelledSq, 100.0f);
+        distanceTravelledSq = fmin(distanceTravelledSq, 100.0f);
         Popt[1][1] += (distanceTravelledSq * sq(gndHgtSigma));
     }
 
@@ -2151,7 +2152,7 @@ void AttPosEKF::OpticalFlowEKF()
         varInnovRng = 1.0f/SK_RNG[1];
 
         // constrain terrain height to be below the vehicle
-        flowStates[1] = std::max(flowStates[1], statesAtRngTime[9] + minFlowRng);
+        flowStates[1] = fmax(flowStates[1], statesAtRngTime[9] + minFlowRng);
 
         // estimate range to centre of image
         range = (flowStates[1] - statesAtRngTime[9]) * SK_RNG[2];
@@ -2171,7 +2172,7 @@ void AttPosEKF::OpticalFlowEKF()
             }
             // constrain the states
             flowStates[0] = ConstrainFloat(flowStates[0], 0.1f, 10.0f);
-            flowStates[1] = std::max(flowStates[1], statesAtRngTime[9] + minFlowRng);
+            flowStates[1] = fmax(flowStates[1], statesAtRngTime[9] + minFlowRng);
 
             // correct the covariance matrix
             float nextPopt[2][2];
@@ -2180,8 +2181,8 @@ void AttPosEKF::OpticalFlowEKF()
             nextPopt[1][0] = -Popt[1][0]*((Popt[1][1]*SK_RNG[1]*SK_RNG[2]) * SK_RNG[2] - 1.0f);
             nextPopt[1][1] = -Popt[1][1]*((Popt[1][1]*SK_RNG[1]*SK_RNG[2]) * SK_RNG[2] - 1.0f);
             // prevent the state variances from becoming negative and maintain symmetry
-            Popt[0][0] = std::max(nextPopt[0][0],0.0f);
-            Popt[1][1] = std::max(nextPopt[1][1],0.0f);
+            Popt[0][0] = fmax(nextPopt[0][0],0.0f);
+            Popt[1][1] = fmax(nextPopt[1][1],0.0f);
             Popt[0][1] = 0.5f * (nextPopt[0][1] + nextPopt[1][0]);
             Popt[1][0] = Popt[0][1];
         }
@@ -2220,7 +2221,7 @@ void AttPosEKF::OpticalFlowEKF()
         vel.z          = statesAtFlowTime[6];
 
         // constrain terrain height to be below the vehicle
-        flowStates[1] = std::max(flowStates[1], statesAtFlowTime[9] + minFlowRng);
+        flowStates[1] = fmax(flowStates[1], statesAtFlowTime[9] + minFlowRng);
 
         // estimate range to centre of image
         range = (flowStates[1] - statesAtFlowTime[9]) / Tnb_flow.z.z;
@@ -2288,7 +2289,7 @@ void AttPosEKF::OpticalFlowEKF()
                 }
                 // constrain the states
                 flowStates[0] = ConstrainFloat(flowStates[0], 0.1f, 10.0f);
-                flowStates[1] = std::max(flowStates[1], statesAtFlowTime[9] + minFlowRng);
+                flowStates[1] = fmax(flowStates[1], statesAtFlowTime[9] + minFlowRng);
 
                 // correct the covariance matrix
                 for (uint8_t i = 0; i < 2 ; i++) {
@@ -2304,8 +2305,8 @@ void AttPosEKF::OpticalFlowEKF()
                 }
 
                 // prevent the state variances from becoming negative and maintain symmetry
-                Popt[0][0] = std::max(nextPopt[0][0],0.0f);
-                Popt[1][1] = std::max(nextPopt[1][1],0.0f);
+                Popt[0][0] = fmax(nextPopt[0][0],0.0f);
+                Popt[1][1] = fmax(nextPopt[1][1],0.0f);
                 Popt[0][1] = 0.5f * (nextPopt[0][1] + nextPopt[1][0]);
                 Popt[1][0] = Popt[0][1];
             }
@@ -2595,7 +2596,7 @@ void AttPosEKF::CovarianceInit()
     P[13][13] = sq(0.2f*dtIMU);
 
     //Wind velocities
-    P[14][14] = 0.0f;
+    P[14][14] = 0.01f;
     P[15][15]  = P[14][14];
 
     //Earth magnetic field
@@ -2826,7 +2827,7 @@ bool AttPosEKF::VelNEDDiverged()
     Vector3f delta = current_vel - gps_vel;
     float delta_len = delta.length();
 
-    bool excessive = (delta_len > 20.0f);
+    bool excessive = (delta_len > 30.0f);
 
     current_ekf_state.error |= excessive;
     current_ekf_state.velOffsetExcessive = excessive;

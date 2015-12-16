@@ -14,7 +14,7 @@
 # @output AUX2 feed-through of RC AUX2 channel
 # @output AUX3 feed-through of RC AUX3 channel
 #
-# @maintainer Simon Wilks <simon@px4.io>
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.fw_defaults
@@ -39,6 +39,9 @@ then
 	param set FW_RR_P 0.04
 fi
 
+# Configure this as plane
+set MAV_TYPE 1
+# Set mixer
 set MIXER wingwing
 # Provide ESC a constant 1000 us pulse
 set PWM_OUT 4

@@ -41,43 +41,30 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
 #include <math.h>
 #include <unistd.h>
 #include <px4_getopt.h>
+#include <errno.h>
 
 #include <simulator/simulator.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
-#include <drivers/device/device.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
-#include <drivers/drv_tone_alarm.h>
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
+#include <VirtDevObj.hpp>
 
 #define ACCELSIM_DEVICE_PATH_ACCEL	"/dev/sim_accel"
-#define ACCELSIM_DEVICE_PATH_ACCEL_EXT	"/dev/sim_accel_ext"
 #define ACCELSIM_DEVICE_PATH_MAG	"/dev/sim_mag"
 
 #define ADDR_WHO_AM_I			0x0F
@@ -93,24 +80,20 @@ static const int ERROR = -1;
 
 extern "C" { __EXPORT int accelsim_main(int argc, char *argv[]); }
 
+using namespace DriverFramework;
 
 class ACCELSIM_mag;
 
-class ACCELSIM : public device::VDev
+class ACCELSIM : public VirtDevObj
 {
 public:
-	ACCELSIM(const char* path, enum Rotation rotation);
+	ACCELSIM(const char *path, enum Rotation rotation);
 	virtual ~ACCELSIM();
 
 	virtual int		init();
 
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	//void			print_info();
+	virtual ssize_t		devRead(void *buffer, size_t buflen);
+	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
 
 	/**
 	 * dump register values
@@ -120,22 +103,16 @@ public:
 protected:
 	friend class 		ACCELSIM_mag;
 
-	virtual ssize_t		mag_read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int		mag_ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	ssize_t			mag_read(void *buffer, size_t buflen);
+	int			mag_ioctl(unsigned long cmd, unsigned long arg);
 
 	int			transfer(uint8_t *send, uint8_t *recv, unsigned len);
 private:
 
 	ACCELSIM_mag		*_mag;
 
-	struct hrt_call		_accel_call;
-	struct hrt_call		_mag_call;
-
-	unsigned		_call_accel_interval;
-	unsigned		_call_mag_interval;
-
-	ringbuffer::RingBuffer		*_accel_reports;
-	ringbuffer::RingBuffer		*_mag_reports;
+	ringbuffer::RingBuffer	*_accel_reports;
+	ringbuffer::RingBuffer	*_mag_reports;
 
 	struct accel_scale	_accel_scale;
 	unsigned		_accel_range_m_s2;
@@ -174,93 +151,25 @@ private:
 	// last temperature value
 	float			_last_temperature;
 
-	// this is used to support runtime checking of key
-	// configuration registers to detect SPI bus errors and sensor
-	// reset
-#define ACCELSIM_NUM_CHECKED_REGISTERS 1
-	static const uint8_t	_checked_registers[ACCELSIM_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[ACCELSIM_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
+	/**
+	 * Override Start automatic measurement.
+	 */
+	virtual int		start();
 
 	/**
-	 * Start automatic measurement.
+	 * Override Stop automatic measurement.
 	 */
-	void			start();
-
-	/**
-	 * Stop automatic measurement.
-	 */
-	void			stop();
-
-	/**
-	 * Reset chip.
-	 *
-	 * Resets the chip and measurements ranges, but not scale and offset.
-	 */
-	void			reset();
-
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
-
-	/**
-	 * Static trampoline for the mag because it runs at a lower rate
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		mag_measure_trampoline(void *arg);
+	virtual int		stop();
 
 	/**
 	 * Fetch accel measurements from the sensor and update the report ring.
 	 */
-	void			measure();
+	virtual void		_measure();
 
 	/**
 	 * Fetch mag measurements from the sensor and update the report ring.
 	 */
 	void			mag_measure();
-
-	/**
-	 * Read a register from the ACCELSIM
-	 *
-	 * @param		The register to read.
-	 * @return		The value that was read.
-	 */
-	uint8_t			read_reg(unsigned reg);
-
-	/**
-	 * Write a register in the ACCELSIM
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void			write_reg(unsigned reg, uint8_t value);
-
-	/**
-	 * Modify a register in the ACCELSIM
-	 *
-	 * Bits are cleared before bits are set.
-	 *
-	 * @param reg		The register to modify.
-	 * @param clearbits	Bits in the register to clear.
-	 * @param setbits	Bits in the register to set.
-	 */
-	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
-
-	/**
-	 * Write a register in the ACCELSIM, updating _checked_values
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void			write_checked_reg(unsigned reg, uint8_t value);
 
 	/**
 	 * Set the ACCELSIM accel measurement range.
@@ -289,79 +198,47 @@ private:
 	 */
 	int			accel_set_driver_lowpass_filter(float samplerate, float bandwidth);
 
-	/**
-	 * Set the ACCELSIM internal accel sampling frequency.
-	 *
-	 * @param frequency	The internal accel sampling frequency is set to not less than
-	 *			this value.
-	 *			Zero selects the maximum rate supported.
-	 * @return		OK if the value can be supported.
-	 */
-	int			accel_set_samplerate(unsigned frequency);
-
-	/**
-	 * Set the ACCELSIM internal mag sampling frequency.
-	 *
-	 * @param frequency	The internal mag sampling frequency is set to not less than
-	 *			this value.
-	 *			Zero selects the maximum rate supported.
-	 * @return		OK if the value can be supported.
-	 */
-	int			mag_set_samplerate(unsigned frequency);
-
 	/* this class cannot be copied */
-	ACCELSIM(const ACCELSIM&);
-	ACCELSIM operator=(const ACCELSIM&);
+	ACCELSIM(const ACCELSIM &);
+	ACCELSIM operator=(const ACCELSIM &);
 };
-
-/*
-  list of registers that will be checked in check_registers(). Note
-  that ADDR_WHO_AM_I must be first in the list.
- */
-const uint8_t ACCELSIM::_checked_registers[ACCELSIM_NUM_CHECKED_REGISTERS] = { ADDR_WHO_AM_I };
 
 /**
  * Helper class implementing the mag driver node.
  */
-class ACCELSIM_mag : public device::VDev
+class ACCELSIM_mag : public VirtDevObj
 {
 public:
 	ACCELSIM_mag(ACCELSIM *parent);
 	~ACCELSIM_mag();
 
-	virtual ssize_t			read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t	devRead(void *buffer, size_t buflen);
+	virtual int	devIOCTL(unsigned long cmd, unsigned long arg);
 
-	virtual int			init();
+	virtual int 	start();
+	virtual int 	stop();
 
 protected:
 	friend class ACCELSIM;
 
-	void				parent_poll_notify();
 private:
-	ACCELSIM				*_parent;
+	ACCELSIM	*_parent;
 
-	orb_advert_t			_mag_topic;
-	int				_mag_orb_class_instance;
-	int				_mag_class_instance;
+	orb_advert_t	_mag_topic;
+	int		_mag_orb_class_instance;
+	int		_mag_class_instance;
 
-	void				measure();
-
-	void				measure_trampoline(void *arg);
+	virtual void	_measure();
 
 	/* this class does not allow copying due to ptr data members */
-	ACCELSIM_mag(const ACCELSIM_mag&);
-	ACCELSIM_mag operator=(const ACCELSIM_mag&);
+	ACCELSIM_mag(const ACCELSIM_mag &);
+	ACCELSIM_mag operator=(const ACCELSIM_mag &);
 };
 
 
-ACCELSIM::ACCELSIM(const char* path, enum Rotation rotation) :
-	VDev("ACCELSIM", path),
+ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
+	VirtDevObj("ACCELSIM", path, ACCEL_BASE_DEVICE_PATH, 1e6 / 400),
 	_mag(new ACCELSIM_mag(this)),
-	_accel_call{},
-	_mag_call{},
-	_call_accel_interval(0),
-	_call_mag_interval(0),
 	_accel_reports(nullptr),
 	_mag_reports(nullptr),
 	_accel_scale{},
@@ -388,20 +265,14 @@ ACCELSIM::ACCELSIM(const char* path, enum Rotation rotation) :
 	_accel_filter_z(ACCELSIM_ACCEL_DEFAULT_RATE, ACCELSIM_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_rotation(rotation),
 	_constant_accel_count(0),
-	_last_temperature(0),
-	_checked_next(0)
+	_last_temperature(0)
 {
+	m_id.dev_id_s.bus = 1;
+	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
 
-
-	// enable debug() calls
-	_debug_enabled = false;
-
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
-	
 	/* Prime _mag with parents devid. */
-	_mag->_device_id.devid = _device_id.devid;
-	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_ACCELSIM;
-
+	_mag->m_id.dev_id = m_id.dev_id;
+	_mag->m_id.dev_id_s.devtype = DRV_MAG_DEVTYPE_ACCELSIM;
 
 	// default scale factors
 	_accel_scale.x_offset = 0.0f;
@@ -422,16 +293,17 @@ ACCELSIM::ACCELSIM(const char* path, enum Rotation rotation) :
 ACCELSIM::~ACCELSIM()
 {
 	/* make sure we are truly inactive */
+	_mag->stop();
 	stop();
 
 	/* free any existing reports */
-	if (_accel_reports != nullptr)
+	if (_accel_reports != nullptr) {
 		delete _accel_reports;
-	if (_mag_reports != nullptr)
-		delete _mag_reports;
+	}
 
-	if (_accel_class_instance != -1)
-		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
+	if (_mag_reports != nullptr) {
+		delete _mag_reports;
+	}
 
 	delete _mag;
 
@@ -446,10 +318,13 @@ ACCELSIM::~ACCELSIM()
 int
 ACCELSIM::init()
 {
-	int ret = ERROR;
+	int ret = -1;
+
+	struct mag_report mrp = {};
+	struct accel_report arp = {};
 
 	/* do SIM init first */
-	if (VDev::init() != OK) {
+	if (VirtDevObj::init() != 0) {
 		PX4_WARN("SIM init failed");
 		goto out;
 	}
@@ -457,48 +332,44 @@ ACCELSIM::init()
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
 
-	if (_accel_reports == nullptr)
+	if (_accel_reports == nullptr) {
 		goto out;
+	}
 
 	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
-	if (_mag_reports == nullptr)
+	if (_mag_reports == nullptr) {
 		goto out;
+	}
 
-	reset();
-
-	/* do VDev init for the mag device node */
+	/* do init for the mag device node */
 	ret = _mag->init();
+
 	if (ret != OK) {
 		PX4_WARN("MAG init failed");
 		goto out;
 	}
 
 	/* fill report structures */
-	measure();
+	_measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct mag_report mrp;
 	_mag_reports->get(&mrp);
 
 	/* measurement will have generated a report, publish */
 	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-		&_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
+					       &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_mag->_mag_topic == nullptr) {
 		PX4_WARN("ADVERT ERR");
 	}
 
-
-	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
-
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-		&_accel_orb_class_instance, ORB_PRIO_DEFAULT);
+					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
 
 	if (_accel_topic == nullptr) {
 		PX4_WARN("ADVERT ERR");
@@ -506,11 +377,6 @@ ACCELSIM::init()
 
 out:
 	return ret;
-}
-
-void
-ACCELSIM::reset()
-{
 }
 
 int
@@ -521,16 +387,20 @@ ACCELSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	if (cmd & DIR_READ) {
 		// Get data from the simulator
 		Simulator *sim = Simulator::getInstance();
-		if (sim == NULL)
+
+		if (sim == NULL) {
 			return ENODEV;
+		}
 
 		// FIXME - not sure what interrupt status should be
 		recv[1] = 0;
+
 		// skip cmd and status bytes
 		if (cmd & ACC_READ) {
-			sim->getRawAccelReport(&recv[2], len-2);
+			sim->getRawAccelReport(&recv[2], len - 2);
+
 		} else if (cmd & MAG_READ) {
-			sim->getMagReport(&recv[2], len-2);
+			sim->getMagReport(&recv[2], len - 2);
 		}
 	}
 
@@ -538,18 +408,19 @@ ACCELSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 }
 
 ssize_t
-ACCELSIM::read(device::file_t *filp, char *buffer, size_t buflen)
+ACCELSIM::devRead(void *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct accel_report);
 	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is enabled */
-	if (_call_accel_interval > 0) {
+	if (m_sample_interval_usecs > 0) {
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 */
@@ -565,28 +436,30 @@ ACCELSIM::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement */
-	measure();
+	_measure();
 
 	/* measurement will have generated a report, copy it out */
-	if (_accel_reports->get(arb))
+	if (_accel_reports->get(arb)) {
 		ret = sizeof(*arb);
+	}
 
 	return ret;
 }
 
 ssize_t
-ACCELSIM::mag_read(device::file_t *filp, char *buffer, size_t buflen)
+ACCELSIM::mag_read(void *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct mag_report);
 	mag_report *mrb = reinterpret_cast<mag_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
-	if (count < 1)
+	if (count < 1) {
 		return -ENOSPC;
+	}
 
 	/* if automatic measurement is enabled */
-	if (_call_mag_interval > 0) {
+	if (_mag->m_sample_interval_usecs > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -604,27 +477,30 @@ ACCELSIM::mag_read(device::file_t *filp, char *buffer, size_t buflen)
 
 	/* manual measurement */
 	_mag_reports->flush();
-	_mag->measure();
+	_mag->_measure();
 
 	/* measurement will have generated a report, copy it out */
-	if (_mag_reports->get(mrb))
+	if (_mag_reports->get(mrb)) {
 		ret = sizeof(*mrb);
+	}
 
 	return ret;
 }
 
 int
-ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
+	unsigned long ul_arg = (unsigned long)arg;
+
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE: {
-		switch (arg) {
+			switch (ul_arg) {
 
 			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
 				stop();
-				_call_accel_interval = 0;
+				m_sample_interval_usecs = 0;
 				return OK;
 
 			/* external signalling not supported */
@@ -636,97 +512,101 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 1600);
+				return devIOCTL(SENSORIOCSPOLLRATE, 1600);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, ACCELSIM_ACCEL_DEFAULT_RATE);
+				return devIOCTL(SENSORIOCSPOLLRATE, ACCELSIM_ACCEL_DEFAULT_RATE);
 
-				/* adjust to a legal polling interval in Hz */
+			/* adjust to a legal polling interval in Hz */
 			default: {
-				/* do we need to start internal polling? */
-				bool want_start = (_call_accel_interval == 0);
+					/* convert hz to hrt interval via microseconds */
+					unsigned interval = 1000000 / ul_arg;
 
-				/* convert hz to hrt interval via microseconds */
-				unsigned period = 1000000 / arg;
+					/* check against maximum sane rate */
+					if (interval < 500) {
+						return -EINVAL;
+					}
 
-				/* check against maximum sane rate */
-				if (period < 500)
-					return -EINVAL;
+					/* adjust filters */
+					accel_set_driver_lowpass_filter((float)ul_arg, _accel_filter_x.get_cutoff_freq());
 
-				/* adjust filters */
-				accel_set_driver_lowpass_filter((float)arg, _accel_filter_x.get_cutoff_freq());
+					bool want_start = (m_sample_interval_usecs == 0);
 
-				/* update interval for next measurement */
-				/* XXX this is a bit shady, but no other way to adjust... */
-				_accel_call.period = _call_accel_interval = period;
+					/* update interval for next measurement */
+					setSampleInterval(interval);
 
-				/* if we need to start the poll state machine, do it */
-				if (want_start)
-					start();
+					if (want_start) {
+						start();
+					}
 
-				return OK;
+					return OK;
+				}
 			}
 		}
-	}
 
 	case SENSORIOCGPOLLRATE:
-		if (_call_accel_interval == 0)
+		if (m_sample_interval_usecs == 0) {
 			return SENSOR_POLLRATE_MANUAL;
-
-		return 1000000 / _call_accel_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
-
-		if (!_accel_reports->resize(arg)) {
-			return -ENOMEM;
 		}
 
-		return OK;
-	}
+		return 1000000 / m_sample_interval_usecs;
+
+	case SENSORIOCSQUEUEDEPTH: {
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((ul_arg < 1) || (ul_arg > 100)) {
+				return -EINVAL;
+			}
+
+			if (!_accel_reports->resize(ul_arg)) {
+				return -ENOMEM;
+			}
+
+			return OK;
+		}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _accel_reports->size();
 
 	case SENSORIOCRESET:
-		reset();
+		// Nothing to do for simulator
 		return OK;
 
 	case ACCELIOCSSAMPLERATE:
-		return accel_set_samplerate(arg);
+		// No need to set internal sampling rate for simulator
+		return OK;
 
 	case ACCELIOCGSAMPLERATE:
 		return _accel_samplerate;
 
 	case ACCELIOCSLOWPASS: {
-		return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)arg);
-	}
+			return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)ul_arg);
+		}
 
 	case ACCELIOCSSCALE: {
-		/* copy scale, but only if off by a few percent */
-		struct accel_scale *s = (struct accel_scale *) arg;
-		float sum = s->x_scale + s->y_scale + s->z_scale;
-		if (sum > 2.0f && sum < 4.0f) {
-			memcpy(&_accel_scale, s, sizeof(_accel_scale));
-			return OK;
-		} else {
-			return -EINVAL;
+			/* copy scale, but only if off by a few percent */
+			struct accel_scale *s = (struct accel_scale *) arg;
+			float sum = s->x_scale + s->y_scale + s->z_scale;
+
+			if (sum > 2.0f && sum < 4.0f) {
+				memcpy(&_accel_scale, s, sizeof(_accel_scale));
+				return OK;
+
+			} else {
+				return -EINVAL;
+			}
 		}
-	}
 
 	case ACCELIOCSRANGE:
 		/* arg needs to be in G */
-		return accel_set_range(arg);
+		return accel_set_range(ul_arg);
 
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
-		return (unsigned long)((_accel_range_m_s2)/ACCELSIM_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2) / ACCELSIM_ONE_G + 0.5f);
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((struct accel_scale *) arg, &(_accel_scale), sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSELFTEST:
@@ -734,22 +614,24 @@ ACCELSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(filp, cmd, arg);
+		return VirtDevObj::devIOCTL(cmd, arg);
 	}
 }
 
 int
-ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
+ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 {
+	unsigned long ul_arg = (unsigned long)arg;
+
 	switch (cmd) {
 
 	case SENSORIOCSPOLLRATE: {
-		switch (arg) {
+			switch (arg) {
 
 			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_mag_interval = 0;
+				_mag->stop();
+				_mag->m_sample_interval_usecs = 0;
 				return OK;
 
 			/* external signalling not supported */
@@ -763,29 +645,26 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT:
 				/* 100 Hz is max for mag */
-				return mag_ioctl(filp, SENSORIOCSPOLLRATE, 100);
+				return mag_ioctl(SENSORIOCSPOLLRATE, 100);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_mag_interval == 0);
-
 					/* convert hz to hrt interval via microseconds */
-					unsigned period = 1000000 / arg;
+					unsigned interval = 1000000 / ul_arg;
 
 					/* check against maximum sane rate (1ms) */
-					if (period < 10000)
+					if (interval < 10000) {
 						return -EINVAL;
+					}
+
+					bool want_start = (_mag->m_sample_interval_usecs == 0);
 
 					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_mag_call.period = _call_mag_interval = period;
+					_mag->setSampleInterval(interval);
 
-					//PX4_INFO("SET _call_mag_interval=%u", _call_mag_interval);
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start)
-						start();
+					if (want_start) {
+						_mag->start();
+					}
 
 					return OK;
 				}
@@ -793,32 +672,35 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_call_mag_interval == 0)
+		if (_mag->m_sample_interval_usecs == 0) {
 			return SENSOR_POLLRATE_MANUAL;
-
-		return 1000000 / _call_mag_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 1) || (arg > 100))
-			return -EINVAL;
-
-		if (!_mag_reports->resize(arg)) {
-			return -ENOMEM;
 		}
 
-		return OK;
-	}
+		return 1000000 / _mag->m_sample_interval_usecs;
+
+	case SENSORIOCSQUEUEDEPTH: {
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
+
+			if (!_mag_reports->resize(arg)) {
+				return -ENOMEM;
+			}
+
+			return OK;
+		}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _mag_reports->size();
 
 	case SENSORIOCRESET:
-		reset();
+		// Nothing to do for simulator
 		return OK;
 
 	case MAGIOCSSAMPLERATE:
-		return mag_set_samplerate(arg);
+		// No need to set internal sampling rate for simulator
+		return OK;
 
 	case MAGIOCGSAMPLERATE:
 		return _mag_samplerate;
@@ -853,56 +735,11 @@ ACCELSIM::mag_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	case MAGIOCSELFTEST:
 		return OK;
+
 	default:
 		/* give it to the superclass */
-		return VDev::ioctl(filp, cmd, arg);
+		return VirtDevObj::devIOCTL(cmd, arg);
 	}
-}
-
-uint8_t
-ACCELSIM::read_reg(unsigned reg)
-{
-	uint8_t cmd[2];
-
-	cmd[0] = reg | DIR_READ;
-	cmd[1] = 0;
-
-	transfer(cmd, cmd, sizeof(cmd));
-
-	return cmd[1];
-}
-
-void
-ACCELSIM::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t	cmd[2];
-
-	cmd[0] = reg | DIR_WRITE;
-	cmd[1] = value;
-
-	transfer(cmd, nullptr, sizeof(cmd));
-}
-
-void
-ACCELSIM::write_checked_reg(unsigned reg, uint8_t value)
-{
-	write_reg(reg, value);
-	for (uint8_t i=0; i<ACCELSIM_NUM_CHECKED_REGISTERS; i++) {
-		if (reg == _checked_registers[i]) {
-			_checked_values[i] = value;
-		}
-	}
-}
-
-void
-ACCELSIM::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
-{
-	uint8_t	val;
-
-	val = read_reg(reg);
-	val &= ~clearbits;
-	val |= setbits;
-	write_checked_reg(reg, val);
 }
 
 int
@@ -936,20 +773,9 @@ ACCELSIM::accel_set_driver_lowpass_filter(float samplerate, float bandwidth)
 }
 
 int
-ACCELSIM::accel_set_samplerate(unsigned frequency)
-{
-	return OK;
-}
-
-int
-ACCELSIM::mag_set_samplerate(unsigned frequency)
-{
-	return OK;
-}
-
-void
 ACCELSIM::start()
 {
+	//PX4_INFO("ACCELSIM::start");
 	/* make sure we are stopped first */
 	stop();
 
@@ -957,64 +783,40 @@ ACCELSIM::start()
 	_accel_reports->flush();
 	_mag_reports->flush();
 
-	/* start polling at the specified rate */
-	//PX4_INFO("ACCELSIM::start accel %u", _call_accel_interval);
-	hrt_call_every(&_accel_call, 1000, _call_accel_interval, (hrt_callout)&ACCELSIM::measure_trampoline, this);
+	int ret2 = VirtDevObj::start();
 
-	// There is a race here where SENSORIOCSPOLLRATE on the accel starts polling of mag but _call_mag_interval is 0
-	if (_call_mag_interval == 0) {
-		//PX4_INFO("_call_mag_interval uninitilized - would have set period delay of 0");
-		_call_mag_interval = 10000; // Max 100Hz
+	if (ret2 != 0) {
+		PX4_ERR("ACCELSIM::start base class start failed");
 	}
 
-	//PX4_INFO("ACCELSIM::start mag %u", _call_mag_interval);
-	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&ACCELSIM::mag_measure_trampoline, this);
+	return (ret2 != 0) ? -1 : 0;
 }
 
-void
+int
 ACCELSIM::stop()
 {
-	hrt_cancel(&_accel_call);
-	hrt_cancel(&_mag_call);
+	//PX4_INFO("ACCELSIM::stop");
+	return VirtDevObj::stop();
 }
 
 void
-ACCELSIM::measure_trampoline(void *arg)
+ACCELSIM::_measure()
 {
-	//PX4_INFO("ACCELSIM::measure_trampoline");
-	ACCELSIM *dev = (ACCELSIM *)arg;
-
-	/* make another measurement */
-	dev->measure();
-}
-
-void
-ACCELSIM::mag_measure_trampoline(void *arg)
-{
-	//PX4_INFO("ACCELSIM::mag_measure_trampoline");
-	ACCELSIM *dev = (ACCELSIM *)arg;
-
-	/* make another measurement */
-	dev->mag_measure();
-}
-
-void
-ACCELSIM::measure()
-{
+	//PX4_INFO("ACCELSIM::_measure");
 	/* status register and data as read back from the device */
 
 #pragma pack(push, 1)
 	struct {
 		uint8_t		cmd;
 		uint8_t		status;
-		float temperature;
+		float		temperature;
 		float		x;
 		float		y;
 		float		z;
 	} raw_accel_report;
 #pragma pack(pop)
 
-	accel_report accel_report;
+	accel_report accel_report = {};
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
@@ -1023,7 +825,7 @@ ACCELSIM::measure()
 	memset(&raw_accel_report, 0, sizeof(raw_accel_report));
 	raw_accel_report.cmd = DIR_READ | ACC_READ;
 
-	if(OK != transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report))) {
+	if (OK != transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report))) {
 		return;
 	}
 
@@ -1052,56 +854,11 @@ ACCELSIM::measure()
 	// register reads and bad values. This allows the higher level
 	// code to decide if it should use this sensor based on
 	// whether it has had failures
-        accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
+	accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	accel_report.x_raw = (int16_t)(raw_accel_report.x/_accel_range_scale);
+	accel_report.x_raw = (int16_t)(raw_accel_report.x / _accel_range_scale);
 	accel_report.y_raw = (int16_t)(raw_accel_report.y / _accel_range_scale);
 	accel_report.z_raw = (int16_t)(raw_accel_report.z / _accel_range_scale);
-
-	// float xraw_f = (int16_t)(raw_accel_report.x/_accel_range_scale);
-	// float yraw_f = (int16_t)(raw_accel_report.y / _accel_range_scale);
-	// float zraw_f = (int16_t)(raw_accel_report.z / _accel_range_scale);
-
-	// // apply user specified rotation
-	// rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	// float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	// float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	// float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
-
-	/*
-	  we have logs where the accelerometers get stuck at a fixed
-	  large value. We want to detect this and mark the sensor as
-	  being faulty
-	 */
-	// if (fabsf(_last_accel[0] - x_in_new) < 0.001f &&
-	//     fabsf(_last_accel[1] - y_in_new) < 0.001f &&
-	//     fabsf(_last_accel[2] - z_in_new) < 0.001f &&
-	//     fabsf(x_in_new) > 20 &&
-	//     fabsf(y_in_new) > 20 &&
-	//     fabsf(z_in_new) > 20) {
-	// 	_constant_accel_count += 1;
-	// } else {
-	// 	_constant_accel_count = 0;
-	// }
-	// if (_constant_accel_count > 100) {
-	// 	// we've had 100 constant accel readings with large
-	// 	// values. The sensor is almost certainly dead. We
-	// 	// will raise the error_count so that the top level
-	// 	// flight code will know to avoid this sensor, but
-	// 	// we'll still give the data so that it can be logged
-	// 	// and viewed
-	// 	perf_count(_bad_values);
-	// 	_constant_accel_count = 0;
-	// }
-
-	// _last_accel[0] = x_in_new;
-	// _last_accel[1] = y_in_new;
-	// _last_accel[2] = z_in_new;
-
-	// accel_report.x = _accel_filter_x.apply(x_in_new);
-	// accel_report.y = _accel_filter_y.apply(y_in_new);
-	// accel_report.z = _accel_filter_z.apply(z_in_new);
 
 	accel_report.x = raw_accel_report.x;
 	accel_report.y = raw_accel_report.y;
@@ -1113,9 +870,9 @@ ACCELSIM::measure()
 	_accel_reports->force(&accel_report);
 
 	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+	DevMgr::updateNotify(*this);
 
-	if (!(_pub_blocked)) {
+	if (!(m_pub_blocked)) {
 		/* publish it */
 
 		// The first call to measure() is from init() and _accel_topic is not
@@ -1156,7 +913,7 @@ ACCELSIM::mag_measure()
 	memset(&raw_mag_report, 0, sizeof(raw_mag_report));
 	raw_mag_report.cmd = DIR_READ | MAG_READ;
 
-	if(OK != transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report))) {
+	if (OK != transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report))) {
 		return;
 	}
 
@@ -1190,13 +947,6 @@ ACCELSIM::mag_measure()
 	/* apply user specified rotation */
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	// mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	// mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	// mag_report.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
-	// mag_report.scaling = _mag_range_scale;
-	// mag_report.range_ga = (float)_mag_range_ga;
-	// mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
-
 	/* remember the temperature. The datasheet isn't clear, but it
 	 * seems to be a signed offset from 25 degrees C in units of 0.125C
 	 */
@@ -1209,9 +959,9 @@ ACCELSIM::mag_measure()
 	_mag_reports->force(&mag_report);
 
 	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+	DevMgr::updateNotify(*this);
 
-	if (!(_pub_blocked)) {
+	if (!(m_pub_blocked)) {
 		/* publish it */
 		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
 	}
@@ -1223,69 +973,59 @@ ACCELSIM::mag_measure()
 }
 
 ACCELSIM_mag::ACCELSIM_mag(ACCELSIM *parent) :
-	VDev("ACCELSIM_mag", ACCELSIM_DEVICE_PATH_MAG),
+	VirtDevObj("ACCELSIM_mag", ACCELSIM_DEVICE_PATH_MAG, MAG_BASE_DEVICE_PATH, 10000),
 	_parent(parent),
 	_mag_topic(nullptr),
 	_mag_orb_class_instance(-1),
 	_mag_class_instance(-1)
 {
+	m_id.dev_id_s.bus = 1;
+	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
 }
 
 ACCELSIM_mag::~ACCELSIM_mag()
 {
-	if (_mag_class_instance != -1)
-		unregister_class_devname(MAG_BASE_DEVICE_PATH, _mag_class_instance);
-}
-
-int
-ACCELSIM_mag::init()
-{
-	int ret;
-
-	ret = VDev::init();
-	if (ret != OK)
-		goto out;
-
-	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
-
-out:
-	return ret;
-}
-
-void
-ACCELSIM_mag::parent_poll_notify()
-{
-	poll_notify(POLLIN);
 }
 
 ssize_t
-ACCELSIM_mag::read(device::file_t *filp, char *buffer, size_t buflen)
+ACCELSIM_mag::devRead(void *buffer, size_t buflen)
 {
-	return _parent->mag_read(filp, buffer, buflen);
+	return _parent->mag_read(buffer, buflen);
 }
 
 int
-ACCELSIM_mag::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+ACCELSIM_mag::devIOCTL(unsigned long cmd, unsigned long arg)
 {
+	int ret;
+
 	switch (cmd) {
-		case DEVIOCGDEVICEID:
-			return (int)VDev::ioctl(filp, cmd, arg);
-			break;
-		default:
-			return _parent->mag_ioctl(filp, cmd, arg);
+	case DEVIOCGDEVICEID:
+		ret = (int)VirtDevObj::devIOCTL(cmd, arg);
+		//PX4_WARN("DEVICE ID: %d", ret);
+		return ret;
+		break;
+
+	default:
+		return _parent->mag_ioctl(cmd, arg);
 	}
 }
 
-void
-ACCELSIM_mag::measure()
+int ACCELSIM_mag::start()
 {
-	_parent->mag_measure();
+	//PX4_INFO("ACCELSIM_mag::start");
+	return VirtDevObj::start();
 }
 
-void
-ACCELSIM_mag::measure_trampoline(void *arg)
+int ACCELSIM_mag::stop()
 {
-	_parent->mag_measure_trampoline(arg);
+	//PX4_INFO("ACCELSIM_mag::stop");
+	return VirtDevObj::stop();
+}
+
+void ACCELSIM_mag::_measure()
+{
+	//PX4_INFO("ACCELSIM_mag::_measure");
+	_parent->mag_measure();
 }
 
 /**
@@ -1309,11 +1049,13 @@ void	usage();
 int
 start(enum Rotation rotation)
 {
-	int fd, fd_mag;
 	if (g_dev != nullptr) {
-		PX4_WARN( "already started");
+		PX4_WARN("already started");
 		return 0;
 	}
+
+	DevHandle h;
+	DevHandle h_mag;
 
 	/* create the driver */
 	g_dev = new ACCELSIM(ACCELSIM_DEVICE_PATH_ACCEL, rotation);
@@ -1329,34 +1071,33 @@ start(enum Rotation rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = px4_open(ACCELSIM_DEVICE_PATH_ACCEL, O_RDONLY);
+	DevMgr::getHandle(ACCELSIM_DEVICE_PATH_ACCEL, h);
 
-	if (fd < 0) {
+	if (!h.isValid()) {
 		PX4_WARN("open %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
 		goto fail;
 	}
 
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (h.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
-        	px4_close(fd);
+		DevMgr::releaseHandle(h);
 		goto fail;
 	}
 
-	fd_mag = px4_open(ACCELSIM_DEVICE_PATH_MAG, O_RDONLY);
+	DevMgr::getHandle(ACCELSIM_DEVICE_PATH_MAG, h_mag);
 
 	/* don't fail if mag dev cannot be opened */
-	if (0 <= fd_mag) {
-		if (px4_ioctl(fd_mag, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+	if (h_mag.isValid()) {
+		if (h_mag.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_MAG);
 		}
-	}
-	else
-	{
-		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_ACCEL);
+
+	} else {
+		PX4_ERR("ioctl SENSORIOCSPOLLRATE %s failed", ACCELSIM_DEVICE_PATH_MAG);
 	}
 
-        px4_close(fd);
-        px4_close(fd_mag);
+	DevMgr::releaseHandle(h);
+	DevMgr::releaseHandle(h_mag);
 
 	return 0;
 fail:
@@ -1382,7 +1123,9 @@ info()
 	}
 
 	PX4_DEBUG("state @ %p", g_dev);
-	//g_dev->print_info();
+
+	unsigned dummy = 0;
+	PX4_WARN("device_id: %u", (unsigned int)g_dev->devIOCTL(DEVIOCGDEVICEID, dummy));
 
 	return 0;
 }
@@ -1404,7 +1147,7 @@ accelsim_main(int argc, char *argv[])
 	enum Rotation rotation = ROTATION_NONE;
 	int ret;
 	int myoptind = 1;
-	const char * myoptarg = NULL;
+	const char *myoptarg = NULL;
 
 	/* jump over start/off/etc and look at options first */
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
@@ -1412,10 +1155,16 @@ accelsim_main(int argc, char *argv[])
 		case 'R':
 			rotation = (enum Rotation)atoi(myoptarg);
 			break;
+
 		default:
 			accelsim::usage();
 			return 0;
 		}
+	}
+
+	if (argc <= 1) {
+		accelsim::usage();
+		return 1;
 	}
 
 	const char *verb = argv[myoptind];
@@ -1423,18 +1172,21 @@ accelsim_main(int argc, char *argv[])
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(verb, "start"))
+	if (!strcmp(verb, "start")) {
 		ret = accelsim::start(rotation);
+	}
 
 	/*
 	 * Print driver information.
 	 */
-	else if (!strcmp(verb, "info"))
+	else if (!strcmp(verb, "info")) {
 		ret = accelsim::info();
+	}
 
 	else {
 		accelsim::usage();
 		return 1;
 	}
+
 	return ret;
 }
