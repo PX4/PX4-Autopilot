@@ -16,24 +16,22 @@ const unsigned CanAcceptanceFilterConfigurator::DefaultAnonMsgID;
 
 int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessages load_mode)
 {
-    multiset_configs_.clear();
-
     if (load_mode == AcceptAnonymousMessages)
     {
         CanFilterConfig anon_frame_cfg;
-        anon_frame_cfg.id = DefaultAnonMsgID;
-        anon_frame_cfg.mask = DefaultAnonMsgMask;
+        anon_frame_cfg.id = DefaultAnonMsgID | CanFrame::FlagEFF;
+        anon_frame_cfg.mask = DefaultAnonMsgMask | CanFrame::FlagEFF | CanFrame::FlagRTR | CanFrame::FlagERR;
         if (multiset_configs_.emplace(anon_frame_cfg) == NULL)
         {
             return -ErrMemory;
         }
     }
 
-    CanFilterConfig service_resp_cfg;
-    service_resp_cfg.id = DefaultFilterServiceID;
-    service_resp_cfg.id |= static_cast<uint32_t>(node_.getNodeID().get()) << 8;
-    service_resp_cfg.mask = DefaultFilterServiceMask;
-    if (multiset_configs_.emplace(service_resp_cfg) == NULL)
+    CanFilterConfig service_cfg;
+    service_cfg.id = DefaultFilterServiceID;
+    service_cfg.id |= (static_cast<uint32_t>(node_.getNodeID().get()) << 8) | CanFrame::FlagEFF;
+    service_cfg.mask = DefaultFilterServiceMask | CanFrame::FlagEFF | CanFrame::FlagRTR | CanFrame::FlagERR;
+    if (multiset_configs_.emplace(service_cfg) == NULL)
     {
         return -ErrMemory;
     }
@@ -42,8 +40,8 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessage
     while (p != NULL)
     {
         CanFilterConfig cfg;
-        cfg.id = static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 8;
-        cfg.mask = DefaultFilterMsgMask;
+        cfg.id = (static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 8) | CanFrame::FlagEFF;
+        cfg.mask = DefaultFilterMsgMask | CanFrame::FlagEFF | CanFrame::FlagRTR | CanFrame::FlagERR;
         if (multiset_configs_.emplace(cfg) == NULL)
         {
             return -ErrMemory;
@@ -56,20 +54,10 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessage
         return -ErrLogic;
     }
 
-#if UAVCAN_DEBUG
-    for (uint16_t i = 0; i < multiset_configs_.getSize(); i++)
-    {
-        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::loadInputConfiguration()", "cfg.ID [%u] = %d", i,
-                     multiset_configs_.getByIndex(i)->id);
-        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::loadInputConfiguration()", "cfg.MK [%u] = %d", i,
-                     multiset_configs_.getByIndex(i)->mask);
-    }
-#endif
-
     return 0;
 }
 
-int16_t CanAcceptanceFilterConfigurator::computeConfiguration()
+int16_t CanAcceptanceFilterConfigurator::mergeConfigurations()
 {
     const uint16_t acceptance_filters_number = getNumFilters();
     if (acceptance_filters_number == 0)
@@ -115,12 +103,27 @@ int16_t CanAcceptanceFilterConfigurator::computeConfiguration()
 int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
 {
     CanFilterConfig filter_conf_array[MaxCanAcceptanceFilters];
-    const unsigned int filter_array_size = multiset_configs_.getSize();
+    unsigned int filter_array_size = multiset_configs_.getSize();
+
+    const uint16_t acceptance_filters_number = getNumFilters();
+    if (acceptance_filters_number == 0)
+    {
+        UAVCAN_TRACE("CanAcceptanceFilter", "No HW filters available");
+        return -ErrDriver;
+    }
+
+    if (filter_array_size > acceptance_filters_number)
+    {
+        UAVCAN_TRACE("CanAcceptanceFilter", "Too many filter configurations. Executing computeConfiguration()");
+        computeConfiguration(IgnoreAnonymousMessages);
+        filter_array_size = multiset_configs_.getSize();
+    }
 
     if (filter_array_size > MaxCanAcceptanceFilters)
     {
         UAVCAN_ASSERT(0);
         return -ErrLogic;
+        UAVCAN_TRACE("CanAcceptanceFilter", "Failed to apply HW filter configuration");
     }
 
     for (uint16_t i = 0; i < filter_array_size; i++)
@@ -130,6 +133,16 @@ int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
         filter_conf_array[i] = temp_filter_config;
     }
 
+#if UAVCAN_DEBUG
+    for (uint16_t i = 0; i < multiset_configs_.getSize(); i++)
+    {
+        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::applyConfiguration()", "cfg.ID [%u] = %d", i,
+                     multiset_configs_.getByIndex(i)->id);
+        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::applyConfiguration()", "cfg.MK [%u] = %d", i,
+                     multiset_configs_.getByIndex(i)->mask);
+    }
+#endif
+
     ICanDriver& can_driver = node_.getDispatcher().getCanIOManager().getCanDriver();
     for (uint8_t i = 0; i < node_.getDispatcher().getCanIOManager().getNumIfaces(); i++)
     {
@@ -137,19 +150,21 @@ int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
         if (iface == NULL)
         {
             return -ErrDriver;
+            UAVCAN_TRACE("CanAcceptanceFilter", "Failed to apply HW filter configuration");
         }
         int16_t num = iface->configureFilters(reinterpret_cast<CanFilterConfig*>(&filter_conf_array),
                                               static_cast<uint16_t>(filter_array_size));
         if (num < 0)
         {
             return -ErrDriver;
+            UAVCAN_TRACE("CanAcceptanceFilter", "Failed to apply HW filter configuration");
         }
     }
 
     return 0;
 }
 
-int CanAcceptanceFilterConfigurator::configureFilters(AnonymousMessages mode)
+int CanAcceptanceFilterConfigurator::computeConfiguration(AnonymousMessages mode)
 {
     if (getNumFilters() == 0)
     {
@@ -164,17 +179,11 @@ int CanAcceptanceFilterConfigurator::configureFilters(AnonymousMessages mode)
         return fill_array_error;
     }
 
-    int16_t compute_configuration_error = computeConfiguration();
-    if (compute_configuration_error != 0)
+    int16_t merge_configurations_error = mergeConfigurations();
+    if (merge_configurations_error != 0)
     {
         UAVCAN_TRACE("CanAcceptanceFilter", "Failed to compute optimal acceptance fliter's configuration");
-        return compute_configuration_error;
-    }
-
-    if (applyConfiguration() != 0)
-    {
-        UAVCAN_TRACE("CanAcceptanceFilter", "Failed to apply HW filter configuration");
-        return -ErrDriver;
+        return merge_configurations_error;
     }
 
     return 0;
@@ -182,8 +191,10 @@ int CanAcceptanceFilterConfigurator::configureFilters(AnonymousMessages mode)
 
 uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
 {
+	if (filters_number_ == 0)
+	{
     static const uint16_t InvalidOut = 0xFFFF;
-    uint16_t out = InvalidOut;
+        uint16_t out = InvalidOut;
     ICanDriver& can_driver = node_.getDispatcher().getCanIOManager().getCanDriver();
 
     for (uint8_t i = 0; i < node_.getDispatcher().getCanIOManager().getNumIfaces(); i++)
@@ -204,6 +215,22 @@ uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
     }
 
     return (out == InvalidOut) ? 0 : out;
+	}
+	else
+	{
+		return filters_number_;
+	}
+}
+
+int16_t CanAcceptanceFilterConfigurator::addFilterConfig(const CanFilterConfig& config)
+{
+    CanFilterConfig supl_config = config;
+    if (multiset_configs_.emplace(supl_config) == NULL)
+    {
+        return -ErrMemory;
+    }
+
+	return 0;
 }
 
 CanFilterConfig CanAcceptanceFilterConfigurator::mergeFilters(CanFilterConfig& a_, CanFilterConfig& b_)
