@@ -55,7 +55,7 @@ public:
 	Standard(VtolAttitudeControl *_att_controller);
 	~Standard();
 
-	void update_vtol_state(int mavlink_fd);
+	void update_vtol_state();
 	void update_mc_state();
 	void update_fw_state();
 	void update_transition_state();

@@ -152,7 +152,7 @@ int Tiltrotor::get_motor_off_channels(int channels)
 	return channel_bitmap;
 }
 
-void Tiltrotor::update_vtol_state(int mavlink_fd)
+void Tiltrotor::update_vtol_state()
 {
 	parameters_update();
 
@@ -172,21 +172,25 @@ void Tiltrotor::update_vtol_state(int mavlink_fd)
 		case FW_MODE:
 			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
 			_vtol_schedule.transition_start = hrt_absolute_time();
+			mavlink_log_critical(_attc->get_mavlink_fd(), "Transition Back!");
 			break;
 
 		case TRANSITION_FRONT_P1:
 			// failsafe into multicopter mode
 			_vtol_schedule.flight_mode = MC_MODE;
+			mavlink_log_critical(_attc->get_mavlink_fd(), "MC MODE!");
 			break;
 
 		case TRANSITION_FRONT_P2:
 			// failsafe into multicopter mode
 			_vtol_schedule.flight_mode = MC_MODE;
+			mavlink_log_critical(_attc->get_mavlink_fd(), "MC MODE!");
 			break;
 
 		case TRANSITION_BACK:
 			if (_tilt_control <= _params_tiltrotor.tilt_mc) {
 				_vtol_schedule.flight_mode = MC_MODE;
+				mavlink_log_critical(_attc->get_mavlink_fd(), "MC MODE!");
 			}
 
 			break;
@@ -199,6 +203,7 @@ void Tiltrotor::update_vtol_state(int mavlink_fd)
 			// initialise a front transition
 			_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
 			_vtol_schedule.transition_start = hrt_absolute_time();
+			mavlink_log_critical(_attc->get_mavlink_fd(), "Transition Front P1!");
 			break;
 
 		case FW_MODE:
@@ -211,6 +216,7 @@ void Tiltrotor::update_vtol_state(int mavlink_fd)
 			if (_airspeed->true_airspeed_m_s >= _params_tiltrotor.airspeed_trans || !_armed->armed) {
 				_vtol_schedule.flight_mode = TRANSITION_FRONT_P2;
 				_vtol_schedule.transition_start = hrt_absolute_time();
+				mavlink_log_critical(_attc->get_mavlink_fd(), "Transition Front P2!");
 			}
 
 			break;
@@ -221,6 +227,7 @@ void Tiltrotor::update_vtol_state(int mavlink_fd)
 			if (_tilt_control >= _params_tiltrotor.tilt_fw) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				_tilt_control = _params_tiltrotor.tilt_fw;
+				mavlink_log_critical(_attc->get_mavlink_fd(), "FW MODE!");
 			}
 
 			break;
@@ -228,6 +235,7 @@ void Tiltrotor::update_vtol_state(int mavlink_fd)
 		case TRANSITION_BACK:
 			// failsafe into fixed wing mode
 			_vtol_schedule.flight_mode = FW_MODE;
+			mavlink_log_critical(_attc->get_mavlink_fd(), "FW MODE!");
 			break;
 		}
 	}

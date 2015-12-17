@@ -45,7 +45,6 @@
  *
  */
 #include "vtol_att_control_main.h"
-#include <mavlink/mavlink_log.h>
 
 namespace VTOL_att_control
 {
@@ -58,6 +57,7 @@ VtolAttitudeControl *g_control;
 VtolAttitudeControl::VtolAttitudeControl() :
 	_task_should_exit(false),
 	_control_task(-1),
+	_mavlink_fd(-1),
 
 	//init subscription handlers
 	_v_att_sub(-1),
@@ -531,8 +531,7 @@ void VtolAttitudeControl::task_main()
 	PX4_WARN("started");
 	fflush(stdout);
 
-	static int mavlink_fd;
-	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/* do subscriptions */
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
@@ -561,6 +560,9 @@ void VtolAttitudeControl::task_main()
 
 	// make sure we start with idle in mc mode
 	_vtol_type->set_idle_mc();
+	
+	hrt_abstime mavlink_open_time = 0;
+	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source*/
 	px4_pollfd_struct_t fds[3];	/*input_mc, input_fw, parameters*/
@@ -573,6 +575,13 @@ void VtolAttitudeControl::task_main()
 	fds[2].events = POLLIN;
 
 	while (!_task_should_exit) {
+		
+		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
+			/* try to reopen the mavlink log device with specified interval */
+			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
+			_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
+		}
+		
 		/*Advertise/Publish vtol vehicle status*/
 		if (_vtol_vehicle_status_pub != nullptr) {
 			orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
@@ -628,7 +637,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_cmd_poll();
 
 		// update the vtol state machine which decides which mode we are in
-		_vtol_type->update_vtol_state(mavlink_fd);
+		_vtol_type->update_vtol_state();
 
 		// reset transition command if not in offboard control
 		if (!_v_control_mode.flag_control_offboard_enabled) {

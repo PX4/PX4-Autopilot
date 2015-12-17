@@ -41,7 +41,6 @@
 
 #include "standard.h"
 #include "vtol_att_control_main.h"
- #include <mavlink/mavlink_log.h>
 
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
@@ -97,7 +96,7 @@ Standard::parameters_update()
 	return OK;
 }
 
-void Standard::update_vtol_state(int mavlink_fd)
+void Standard::update_vtol_state()
 {
 	parameters_update();
 
@@ -121,7 +120,7 @@ void Standard::update_vtol_state(int mavlink_fd)
 			_flag_enable_mc_motors = true;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 
-			mavlink_log_critical(mavlink_fd, "Transition to mc!");
+			mavlink_log_critical(_attc->get_mavlink_fd(), "Transition To MC!");
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// failsafe back to mc mode
@@ -130,7 +129,7 @@ void Standard::update_vtol_state(int mavlink_fd)
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
 
-			mavlink_log_critical(mavlink_fd, "Rotary Wing!");
+			mavlink_log_critical(_attc->get_mavlink_fd(), "MC MODE!");
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed
@@ -138,7 +137,7 @@ void Standard::update_vtol_state(int mavlink_fd)
 			    (_params_standard.back_trans_dur * 1000000.0f)) {
 				_vtol_schedule.flight_mode = MC_MODE;
 
-			   	mavlink_log_critical(mavlink_fd, "Rotary Wing!"); 
+			   	mavlink_log_critical(_attc->get_mavlink_fd(), "MC MODE!"); 
 			}
 		}
 
@@ -152,7 +151,7 @@ void Standard::update_vtol_state(int mavlink_fd)
 			_vtol_schedule.flight_mode = TRANSITION_TO_FW;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 
-			mavlink_log_critical(mavlink_fd, "Transition to FW!");
+			mavlink_log_critical(_attc->get_mavlink_fd(), "Transition to FW!");
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// in fw mode
@@ -169,14 +168,14 @@ void Standard::update_vtol_state(int mavlink_fd)
 				_flag_enable_mc_motors = false;
 				// don't set pusher throttle here as it's being ramped up elsewhere
 
-				mavlink_log_critical(mavlink_fd, "Fix Wing!");
+				mavlink_log_critical(_attc->get_mavlink_fd(), "FW MODE!");
 			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// transitioning to mc mode & transition switch on - failsafe back into fw mode
 			_vtol_schedule.flight_mode = FW_MODE;
 
-			mavlink_log_critical(mavlink_fd, "Fix Wing!");
+			mavlink_log_critical(_attc->get_mavlink_fd(), "FW MODE!");
 		}
 	}
 

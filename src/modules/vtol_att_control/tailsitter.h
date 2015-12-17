@@ -57,7 +57,7 @@ public:
 	/**
 	 * Update vtol state.
 	 */
-	void update_vtol_state(int mavlink_fd);
+	void update_vtol_state();
 
 	/**
 	 * Update multicopter state.
