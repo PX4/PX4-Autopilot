@@ -554,6 +554,8 @@ then
 			if ver hwcmp PX4FMU_V4
 			then
 				set MAVLINK_F "-r 1200 -d /dev/ttyS2"
+				# Start MAVLink on Wifi (ESP8266 port)
+				mavlink start -r 800000 -b 921600 -d /dev/ttyS0
 			fi
 		fi
 	fi
