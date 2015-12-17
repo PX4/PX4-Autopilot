@@ -117,13 +117,12 @@ void VtolType::set_idle_fw()
 
 	if (fd < 0) {PX4_WARN("can't open %s", dev);}
 
-	unsigned pwm_value = PWM_LOWEST_MIN;
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
 
-		pwm_values.values[i] = pwm_value;
+		pwm_values.values[i] = PWM_MOTOR_OFF;
 		pwm_values.channel_count++;
 	}
 
