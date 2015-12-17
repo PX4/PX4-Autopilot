@@ -86,7 +86,7 @@
 #define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
 
 #define SPEKTRUM_RX_HIGH(_s)	stm32_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_s))
-#define SPEKTRUM_RX_AS_UART()		stm32_configgpio(GPIO_USART1_RX)		
+#define SPEKTRUM_RX_AS_UART()		stm32_configgpio(GPIO_USART1_RX)
 #define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_USART1_RX_SPEKTRUM)
 
 /* Analog inputs ********************************************************************/
