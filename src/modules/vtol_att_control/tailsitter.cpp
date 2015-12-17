@@ -119,7 +119,7 @@ Tailsitter::parameters_update()
 	return OK;
 }
 
-void Tailsitter::update_vtol_state()
+void Tailsitter::update_vtol_state(int mavlink_fd)
 {
 	parameters_update();
 

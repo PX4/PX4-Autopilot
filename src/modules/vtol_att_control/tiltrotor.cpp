@@ -152,7 +152,7 @@ int Tiltrotor::get_motor_off_channels(int channels)
 	return channel_bitmap;
 }
 
-void Tiltrotor::update_vtol_state()
+void Tiltrotor::update_vtol_state(int mavlink_fd)
 {
 	parameters_update();
 

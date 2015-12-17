@@ -45,6 +45,7 @@
  *
  */
 #include "vtol_att_control_main.h"
+#include <mavlink/mavlink_log.h>
 
 namespace VTOL_att_control
 {
@@ -530,6 +531,9 @@ void VtolAttitudeControl::task_main()
 	PX4_WARN("started");
 	fflush(stdout);
 
+	static int mavlink_fd;
+	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
 	/* do subscriptions */
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
@@ -624,7 +628,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_cmd_poll();
 
 		// update the vtol state machine which decides which mode we are in
-		_vtol_type->update_vtol_state();
+		_vtol_type->update_vtol_state(mavlink_fd);
 
 		// reset transition command if not in offboard control
 		if (!_v_control_mode.flag_control_offboard_enabled) {
