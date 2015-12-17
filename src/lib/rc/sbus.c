@@ -153,7 +153,7 @@ sbus_config(int sbus_fd, bool singlewire)
 		if (singlewire) {
 			/* only defined in configs capable of IOCTL */
 #ifdef TIOCSSINGLEWIRE
-            ioctl(sbus_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+			ioctl(sbus_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 #endif
 		}
 
