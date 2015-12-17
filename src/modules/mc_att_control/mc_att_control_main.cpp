@@ -659,7 +659,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		q.from_dcm(R.transposed() * R_sp);
 		math::Vector<3> e_R_d = q.imag();
 		e_R_d.normalize();
-		e_R_d *= 2.0f * atan2f(e_R_d.length(), q(0));
+		e_R_d *= 2.0f * acosf(q(0));
 
 		/* use fusion of Z axis based rotation and direct rotation */
 		float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;
