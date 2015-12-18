@@ -13,6 +13,13 @@ endif()
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
 	STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Profile")
 
+option (SUPPORT_STDIOSTREAM
+	"If enabled provides support for << operator (as used with
+	std::cout)" OFF)
+if((SUPPORT_STDIOSTREAM))
+	add_definitions(-DSUPPORT_STDIOSTREAM)
+endif()
+
 set(CMAKE_CXX_FLAGS_PROFILE
 	${CMAKE_CXX_FLAGS_DEBUG}
 	--coverage
