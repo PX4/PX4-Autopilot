@@ -55,6 +55,7 @@
  * @group Radio Calibration
  * @min -0.25
  * @max 0.25
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
 
@@ -69,6 +70,7 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
  * @group Radio Calibration
  * @min -0.25
  * @max 0.25
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 
@@ -83,6 +85,7 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
  * @group Radio Calibration
  * @min -0.25
  * @max 0.25
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
@@ -93,6 +96,7 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  *
  * @group Battery Calibration
  * @unit V
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
 
@@ -103,6 +107,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
  *
  * @group Battery Calibration
  * @unit V
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
 
@@ -115,6 +120,8 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
  * @group Battery Calibration
  * @unit V
  * @min 0.0
+ * @max 1.5
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
 
@@ -137,6 +144,7 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
  *
  * @group Battery Calibration
  * @unit mA
+ * @decimal 0
  */
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
 
@@ -184,6 +192,7 @@ PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
  * @group Commander
  * @min 0.0
  * @max 1.0
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 
@@ -196,6 +205,7 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
  * @min 0.0
  * @max 30.0
  * @unit ampere
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
 
@@ -209,6 +219,7 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  * @unit second
  * @min 0.0
  * @max 60.0
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 
@@ -221,6 +232,7 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
  * @unit second
  * @min 0
  * @max 35
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
 
@@ -233,6 +245,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * @unit meter
  * @min 2
  * @max 15
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
 
@@ -245,6 +258,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
  * @unit meter
  * @min 5
  * @max 25
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
 

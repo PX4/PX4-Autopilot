@@ -59,6 +59,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -122,6 +123,7 @@ private:
 	int		_params_sub = -1;
 	int		_vision_sub = -1;
 	int		_mocap_sub = -1;
+	int		_airspeed_sub = -1;
 	int		_global_pos_sub = -1;
 	orb_advert_t	_att_pub = nullptr;
 	orb_advert_t	_ctrl_state_pub = nullptr;
@@ -161,6 +163,8 @@ private:
 	att_pos_mocap_s _mocap = {};
 	Vector<3>	_mocap_hdg;
 
+	airspeed_s _airspeed = {};
+
 	Quaternion	_q;
 	Vector<3>	_rates;
 	Vector<3>	_gyro_bias;
@@ -198,16 +202,21 @@ private:
 	bool init();
 
 	bool update(float dt);
+
+	// Update magnetic declination (in rads) immediately changing yaw rotation
+	void update_mag_declination(float new_declination);
 };
 
 
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
+	_vel_prev(0, 0, 0),
+	_pos_acc(0, 0, 0),
 	_voter_gyro(3),
 	_voter_accel(3),
 	_voter_mag(3),
-	_lp_roll_rate(250.0f, 18.0f),
-	_lp_pitch_rate(250.0f, 18.0f),
-	_lp_yaw_rate(250.0f, 10.0f)
+	_lp_roll_rate(250.0f, 30.0f),
+	_lp_pitch_rate(250.0f, 30.0f),
+	_lp_yaw_rate(250.0f, 20.0f)
 {
 	_voter_mag.set_timeout(200000);
 
@@ -258,7 +267,7 @@ int AttitudeEstimatorQ::start()
 	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   2100,
+					   2400,
 					   (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
 					   nullptr);
 
@@ -287,10 +296,19 @@ void AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[])
 
 void AttitudeEstimatorQ::task_main()
 {
+
+#ifdef __PX4_POSIX
+	perf_counter_t _perf_accel(perf_alloc_once(PC_ELAPSED, "sim_accel_delay"));
+	perf_counter_t _perf_mpu(perf_alloc_once(PC_ELAPSED, "sim_mpu_delay"));
+	perf_counter_t _perf_mag(perf_alloc_once(PC_ELAPSED, "sim_mag_delay"));
+#endif
+
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	_vision_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
+
+	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -299,7 +317,7 @@ void AttitudeEstimatorQ::task_main()
 
 	hrt_abstime last_time = 0;
 
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd = _sensors_sub;
 	fds[0].events = POLLIN;
 
@@ -313,10 +331,12 @@ void AttitudeEstimatorQ::task_main()
 		if (ret < 0) {
 			// Poll error, sleep and try again
 			usleep(10000);
+			PX4_WARN("Q POLL ERROR");
 			continue;
 
 		} else if (ret == 0) {
 			// Poll timeout, do nothing
+			PX4_WARN("Q POLL TIMEOUT");
 			continue;
 		}
 
@@ -324,6 +344,10 @@ void AttitudeEstimatorQ::task_main()
 
 		// Update sensors
 		sensor_combined_s sensors;
+
+		int best_gyro = 0;
+		int best_accel = 0;
+		int best_mag = 0;
 
 		if (!orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors)) {
 			// Feed validator with recent sensor data
@@ -361,8 +385,6 @@ void AttitudeEstimatorQ::task_main()
 				}
 			}
 
-			int best_gyro, best_accel, best_mag;
-
 			// Get best measurement values
 			hrt_abstime curr_time = hrt_absolute_time();
 			_gyro.set(_voter_gyro.get_best(curr_time, &best_gyro));
@@ -378,6 +400,12 @@ void AttitudeEstimatorQ::task_main()
 
 			if (!_failsafe) {
 				uint32_t flags = DataValidator::ERROR_FLAG_NO_ERROR;
+
+#ifdef __PX4_POSIX
+				perf_end(_perf_accel);
+				perf_end(_perf_mpu);
+				perf_end(_perf_mag);
+#endif
 
 				if (_voter_gyro.failover_count() > 0) {
 					_failsafe = true;
@@ -473,6 +501,14 @@ void AttitudeEstimatorQ::task_main()
 			_mocap_hdg = Rmoc.transposed() * v;
 		}
 
+		// Update airspeed
+		bool airspeed_updated = false;
+		orb_check(_airspeed_sub, &airspeed_updated);
+
+		if (airspeed_updated) {
+			orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+		}
+
 		// Check for timeouts on data
 		if (_ext_hdg_mode == 1) {
 			_ext_hdg_good = _vision.timestamp_boot > 0 && (hrt_elapsed_time(&_vision.timestamp_boot) < 500000);
@@ -489,7 +525,7 @@ void AttitudeEstimatorQ::task_main()
 
 			if (_mag_decl_auto && _gpos.eph < 20.0f && hrt_elapsed_time(&_gpos.timestamp) < 1000000) {
 				/* set magnetic declination automatically */
-				_mag_decl = math::radians(get_mag_declination(_gpos.lat, _gpos.lon));
+				update_mag_declination(math::radians(get_mag_declination(_gpos.lat, _gpos.lon)));
 			}
 		}
 
@@ -586,6 +622,16 @@ void AttitudeEstimatorQ::task_main()
 
 		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
+		/* Airspeed - take airspeed measurement directly here as no wind is estimated */
+		if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
+		    && _airspeed.timestamp > 0) {
+			ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+			ctrl_state.airspeed_valid = true;
+
+		} else {
+			ctrl_state.airspeed_valid = false;
+		}
+
 		/* Publish to control state topic */
 		if (_ctrl_state_pub == nullptr) {
 			_ctrl_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
@@ -614,7 +660,7 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 		param_get(_params_handles.w_gyro_bias, &_w_gyro_bias);
 		float mag_decl_deg = 0.0f;
 		param_get(_params_handles.mag_decl, &mag_decl_deg);
-		_mag_decl = math::radians(mag_decl_deg);
+		update_mag_declination(math::radians(mag_decl_deg));
 		int32_t mag_decl_auto_int;
 		param_get(_params_handles.mag_decl_auto, &mag_decl_auto_int);
 		_mag_decl_auto = mag_decl_auto_int != 0;
@@ -649,6 +695,12 @@ bool AttitudeEstimatorQ::init()
 
 	// Convert to quaternion
 	_q.from_dcm(R);
+
+	// Compensate for magnetic declination
+	Quaternion decl_rotation;
+	decl_rotation.from_yaw(_mag_decl);
+	_q = decl_rotation * _q;
+
 	_q.normalize();
 
 	if (PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
@@ -708,6 +760,8 @@ bool AttitudeEstimatorQ::update(float dt)
 		corr += _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, -mag_err)) * _w_mag;
 	}
 
+	_q.normalize();
+
 	// Accelerometer correction
 	// Project 'k' unit vector of earth frame to body frame
 	// Vector<3> k = _q.conjugate_inversed(Vector<3>(0.0f, 0.0f, 1.0f));
@@ -750,6 +804,20 @@ bool AttitudeEstimatorQ::update(float dt)
 	return true;
 }
 
+void AttitudeEstimatorQ::update_mag_declination(float new_declination)
+{
+	// Apply initial declination or trivial rotations without changing estimation
+	if (!_inited || fabsf(new_declination - _mag_decl) < 0.0001f) {
+		_mag_decl = new_declination;
+
+	} else {
+		// Immediately rotate current estimation to avoid gyro bias growth
+		Quaternion decl_rotation;
+		decl_rotation.from_yaw(new_declination - _mag_decl);
+		_q = decl_rotation * _q;
+		_mag_decl = new_declination;
+	}
+}
 
 int attitude_estimator_q_main(int argc, char *argv[])
 {

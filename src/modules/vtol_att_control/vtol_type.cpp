@@ -49,6 +49,8 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
+	_mc_virtual_att_sp = _attc->get_mc_virtual_att_sp();
+	_fw_virtual_att_sp = _attc->get_fw_virtual_att_sp();
 	_v_rates_sp = _attc->get_rates_sp();
 	_mc_virtual_v_rates_sp = _attc->get_mc_virtual_rates_sp();
 	_fw_virtual_v_rates_sp = _attc->get_fw_virtual_rates_sp();
@@ -115,13 +117,12 @@ void VtolType::set_idle_fw()
 
 	if (fd < 0) {PX4_WARN("can't open %s", dev);}
 
-	unsigned pwm_value = PWM_LOWEST_MIN;
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
 
-		pwm_values.values[i] = pwm_value;
+		pwm_values.values[i] = PWM_MOTOR_OFF;
 		pwm_values.channel_count++;
 	}
 

@@ -65,7 +65,6 @@
 #include <mathlib/mathlib.h>
 
 #include <px4_adc.h>
-//#include <nuttx/analog/adc.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -97,6 +96,10 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_parameter_map.h>
 
+#include "DevMgr.hpp"
+
+using namespace DriverFramework;
+
 /**
  * Analog layout:
  * FMU:
@@ -119,7 +122,7 @@
 
 
 #define BATT_V_LOWPASS			0.001f
-#define BATT_V_IGNORE_THRESHOLD		2.5f
+#define BATT_V_IGNORE_THRESHOLD		2.1f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
@@ -195,7 +198,7 @@ private:
 	void		rc_poll();
 
 	/* XXX should not be here - should be own driver */
-	int 		_fd_adc;			/**< ADC driver handle */
+	DevHandle 	_h_adc;				/**< ADC driver handle */
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
 	bool 		_task_should_exit;		/**< if true, sensor task should exit */
@@ -485,7 +488,7 @@ Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors() :
-	_fd_adc(-1),
+	_h_adc(),
 	_last_adc(0),
 
 	_task_should_exit(true),
@@ -538,6 +541,7 @@ Sensors::Sensors() :
 
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
+	memset(&_parameters, 0, sizeof(_parameters));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 
 	/* basic r/c parameters */
@@ -846,7 +850,7 @@ Sensors::parameters_update()
 	} else if (_parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 		_parameters.battery_voltage_scaling = 0.0082f;
 #elif CONFIG_ARCH_BOARD_AEROCORE
 		_parameters.battery_voltage_scaling = 0.0063f;
@@ -898,23 +902,20 @@ Sensors::parameters_update()
 
 	/* update barometer qnh setting */
 	param_get(_parameter_handles.baro_qnh, &(_parameters.baro_qnh));
-	int	barofd;
-	barofd = px4_open(BARO0_DEVICE_PATH, 0);
+	DevHandle h_baro;
+	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
-	if (barofd < 0) {
-		warnx("ERROR: no barometer found on %s", BARO0_DEVICE_PATH);
+	if (!h_baro.isValid()) {
+		warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
 		return ERROR;
 
 	} else {
-		int baroret = px4_ioctl(barofd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
+		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
 
 		if (baroret) {
 			warnx("qnh could not be set");
-			px4_close(barofd);
 			return ERROR;
 		}
-
-		px4_close(barofd);
 	}
 
 	return OK;
@@ -923,23 +924,20 @@ Sensors::parameters_update()
 int
 Sensors::accel_init()
 {
-	int	fd;
+	DevHandle h_accel;
+	DevMgr::getHandle(ACCEL0_DEVICE_PATH, h_accel);
 
-	fd = px4_open(ACCEL0_DEVICE_PATH, 0);
-
-	if (fd < 0) {
-		warnx("FATAL: no accelerometer found: %s", ACCEL0_DEVICE_PATH);
+	if (!h_accel.isValid()) {
+		warnx("FATAL: no accelerometer found: %s (%d)", ACCEL0_DEVICE_PATH, h_accel.getError());
 		return ERROR;
 
 	} else {
 
 		/* set the accel internal sampling rate to default rate */
-		px4_ioctl(fd, ACCELIOCSSAMPLERATE, ACCEL_SAMPLERATE_DEFAULT);
+		h_accel.ioctl(ACCELIOCSSAMPLERATE, ACCEL_SAMPLERATE_DEFAULT);
 
 		/* set the driver to poll at default rate */
-		px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-
-		px4_close(fd);
+		h_accel.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
 	}
 
 	return OK;
@@ -948,23 +946,20 @@ Sensors::accel_init()
 int
 Sensors::gyro_init()
 {
-	int	fd;
+	DevHandle h_gyro;
+	DevMgr::getHandle(GYRO0_DEVICE_PATH, h_gyro);
 
-	fd = px4_open(GYRO0_DEVICE_PATH, 0);
-
-	if (fd < 0) {
-		warnx("FATAL: no gyro found: %s", GYRO0_DEVICE_PATH);
+	if (!h_gyro.isValid()) {
+		warnx("FATAL: no gyro found: %s (%d)", GYRO0_DEVICE_PATH, h_gyro.getError());
 		return ERROR;
 
 	}
 
 	/* set the gyro internal sampling rate to default rate */
-	px4_ioctl(fd, GYROIOCSSAMPLERATE, GYRO_SAMPLERATE_DEFAULT);
+	h_gyro.ioctl(GYROIOCSSAMPLERATE, GYRO_SAMPLERATE_DEFAULT);
 
 	/* set the driver to poll at default rate */
-	px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-
-	px4_close(fd);
+	h_gyro.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
 
 	return OK;
 }
@@ -972,32 +967,32 @@ Sensors::gyro_init()
 int
 Sensors::mag_init()
 {
-	int	fd;
 	int	ret;
 
-	fd = px4_open(MAG0_DEVICE_PATH, 0);
+	DevHandle h_mag;
+	DevMgr::getHandle(MAG0_DEVICE_PATH, h_mag);
 
-	if (fd < 0) {
-		warnx("FATAL: no magnetometer found: %s", MAG0_DEVICE_PATH);
+	if (!h_mag.isValid()) {
+		warnx("FATAL: no magnetometer found: %s (%d)", MAG0_DEVICE_PATH, h_mag.getError());
 		return ERROR;
 	}
 
 	/* try different mag sampling rates */
 
 
-	ret = px4_ioctl(fd, MAGIOCSSAMPLERATE, 150);
+	ret = h_mag.ioctl(MAGIOCSSAMPLERATE, 150);
 
 	if (ret == OK) {
 		/* set the pollrate accordingly */
-		px4_ioctl(fd, SENSORIOCSPOLLRATE, 150);
+		h_mag.ioctl(SENSORIOCSPOLLRATE, 150);
 
 	} else {
-		ret = px4_ioctl(fd, MAGIOCSSAMPLERATE, 100);
+		ret = h_mag.ioctl(MAGIOCSSAMPLERATE, 100);
 
 		/* if the slower sampling rate still fails, something is wrong */
 		if (ret == OK) {
 			/* set the driver to poll also at the slower rate */
-			px4_ioctl(fd, SENSORIOCSPOLLRATE, 100);
+			h_mag.ioctl(SENSORIOCSPOLLRATE, 100);
 
 		} else {
 			warnx("FATAL: mag sampling rate could not be set");
@@ -1005,27 +1000,22 @@ Sensors::mag_init()
 		}
 	}
 
-	px4_close(fd);
-
 	return OK;
 }
 
 int
 Sensors::baro_init()
 {
-	int	fd;
+	DevHandle h_baro;
+	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
-	fd = px4_open(BARO0_DEVICE_PATH, 0);
-
-	if (fd < 0) {
-		warnx("FATAL: No barometer found: %s", BARO0_DEVICE_PATH);
+	if (!h_baro.isValid()) {
+		warnx("FATAL: No barometer found: %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
 		return ERROR;
 	}
 
 	/* set the driver to poll at 150Hz */
-	px4_ioctl(fd, SENSORIOCSPOLLRATE, 150);
-
-	px4_close(fd);
+	h_baro.ioctl(SENSORIOCSPOLLRATE, 150);
 
 	return OK;
 }
@@ -1034,10 +1024,10 @@ int
 Sensors::adc_init()
 {
 
-	_fd_adc = px4_open(ADC0_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
+	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
 
-	if (_fd_adc < 0) {
-		warnx("FATAL: no ADC found: %s", ADC0_DEVICE_PATH);
+	if (!_h_adc.isValid()) {
+		warnx("FATAL: no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
 		return ERROR;
 	}
 
@@ -1277,9 +1267,10 @@ Sensors::parameter_update_poll(bool forced)
 			res = ERROR;
 			(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
 
-			int fd = px4_open(str, 0);
+			DevHandle h;
+			DevMgr::getHandle(str, h);
 
-			if (fd < 0) {
+			if (!h.isValid()) {
 				continue;
 			}
 
@@ -1295,12 +1286,15 @@ Sensors::parameter_update_poll(bool forced)
 				failed = failed || (OK != param_get(param_find(str), &device_id));
 
 				if (failed) {
-					px4_close(fd);
+					DevMgr::releaseHandle(h);
 					continue;
 				}
 
+				//int id = h.ioctl(DEVIOCGDEVICEID, 0);
+				//PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
+
 				/* if the calibration is for this device, apply it */
-				if (device_id == px4_ioctl(fd, DEVIOCGDEVICEID, 0)) {
+				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
 					struct gyro_scale gscale = {};
 					(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
@@ -1320,7 +1314,7 @@ Sensors::parameter_update_poll(bool forced)
 
 					} else {
 						/* apply new scaling and offsets */
-						res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale);
+						res = h.ioctl(GYROIOCSSCALE, (long unsigned int)&gscale);
 
 						if (res) {
 							warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
@@ -1337,8 +1331,6 @@ Sensors::parameter_update_poll(bool forced)
 			if (config_ok) {
 				gyro_count++;
 			}
-
-			px4_close(fd);
 		}
 
 		/* run through all accel sensors */
@@ -1347,9 +1339,10 @@ Sensors::parameter_update_poll(bool forced)
 			res = ERROR;
 			(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 
-			int fd = px4_open(str, 0);
+			DevHandle h;
+			DevMgr::getHandle(str, h);
 
-			if (fd < 0) {
+			if (!h.isValid()) {
 				continue;
 			}
 
@@ -1365,12 +1358,15 @@ Sensors::parameter_update_poll(bool forced)
 				failed = failed || (OK != param_get(param_find(str), &device_id));
 
 				if (failed) {
-					px4_close(fd);
+					DevMgr::releaseHandle(h);
 					continue;
 				}
 
+				// int id = h.ioctl(DEVIOCGDEVICEID, 0);
+				// PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
+
 				/* if the calibration is for this device, apply it */
-				if (device_id == px4_ioctl(fd, DEVIOCGDEVICEID, 0)) {
+				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
 					struct accel_scale gscale = {};
 					(void)sprintf(str, "CAL_ACC%u_XOFF", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
@@ -1390,7 +1386,7 @@ Sensors::parameter_update_poll(bool forced)
 
 					} else {
 						/* apply new scaling and offsets */
-						res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&gscale);
+						res = h.ioctl(ACCELIOCSSCALE, (long unsigned int)&gscale);
 
 						if (res) {
 							warnx(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
@@ -1407,8 +1403,6 @@ Sensors::parameter_update_poll(bool forced)
 			if (config_ok) {
 				accel_count++;
 			}
-
-			px4_close(fd);
 		}
 
 		/* run through all mag sensors */
@@ -1423,9 +1417,10 @@ Sensors::parameter_update_poll(bool forced)
 			res = ERROR;
 			(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
 
-			int fd = px4_open(str, 0);
+			DevHandle h;
+			DevMgr::getHandle(str, h);
 
-			if (fd < 0) {
+			if (!h.isValid()) {
 				/* the driver is not running, abort */
 				continue;
 			}
@@ -1444,12 +1439,15 @@ Sensors::parameter_update_poll(bool forced)
 				(void)param_find(str);
 
 				if (failed) {
-					px4_close(fd);
+					DevMgr::releaseHandle(h);
 					continue;
 				}
 
+				// int id = h.ioctl(DEVIOCGDEVICEID, 0);
+				// PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
+
 				/* if the calibration is for this device, apply it */
-				if (device_id == px4_ioctl(fd, DEVIOCGDEVICEID, 0)) {
+				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
 					struct mag_scale gscale = {};
 					(void)sprintf(str, "CAL_MAG%u_XOFF", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
@@ -1466,7 +1464,7 @@ Sensors::parameter_update_poll(bool forced)
 
 					(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
-					if (px4_ioctl(fd, MAGIOCGEXTERNAL, 0) <= 0) {
+					if (h.ioctl(MAGIOCGEXTERNAL, 0) <= 0) {
 						/* mag is internal */
 						_mag_rotation[s] = _board_rotation;
 						/* reset param to -1 to indicate internal mag */
@@ -1520,7 +1518,7 @@ Sensors::parameter_update_poll(bool forced)
 
 					} else {
 						/* apply new scaling and offsets */
-						res = px4_ioctl(fd, MAGIOCSSCALE, (long unsigned int)&gscale);
+						res = h.ioctl(MAGIOCSSCALE, (long unsigned int)&gscale);
 
 						if (res) {
 							warnx(CAL_ERROR_APPLY_CAL_MSG, "mag", i);
@@ -1537,8 +1535,6 @@ Sensors::parameter_update_poll(bool forced)
 			if (config_ok) {
 				mag_count++;
 			}
-
-			px4_close(fd);
 		}
 
 		int fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
@@ -1621,7 +1617,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
 		struct adc_msg_s buf_adc[12];
 		/* read all channels available */
-		int ret = px4_read(_fd_adc, &buf_adc, sizeof(buf_adc));
+		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
@@ -1912,6 +1908,7 @@ Sensors::rc_poll()
 		_rc.rssi = rc_input.rssi;
 		_rc.signal_lost = signal_lost;
 		_rc.timestamp = rc_input.timestamp_last_signal;
+		_rc.frame_drop_count = rc_input.rc_lost_frame_count;
 
 		/* publish rc_channels topic even if signal is invalid, for debug */
 		if (_rc_pub != nullptr) {
@@ -2060,10 +2057,7 @@ Sensors::task_main()
 		warnx("sensor initialization failed");
 		_sensors_task = -1;
 
-		if (_fd_adc >= 0) {
-			px4_close(_fd_adc);
-			_fd_adc = -1;
-		}
+		DevMgr::releaseHandle(_h_adc);
 
 		return;
 	}
@@ -2113,9 +2107,6 @@ Sensors::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vcontrol_mode_sub, 200);
 
 	/*
 	 * do advertisements

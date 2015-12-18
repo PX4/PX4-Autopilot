@@ -193,7 +193,7 @@ int test_mixer(int argc, char *argv[])
 	/* run through arming phase */
 	for (unsigned i = 0; i < output_max; i++) {
 		actuator_controls[i] = 0.1f;
-		r_page_servo_disarmed[i] = PWM_LOWEST_MIN;
+		r_page_servo_disarmed[i] = PWM_MOTOR_OFF;
 		r_page_servo_control_min[i] = PWM_DEFAULT_MIN;
 		r_page_servo_control_max[i] = PWM_DEFAULT_MAX;
 	}

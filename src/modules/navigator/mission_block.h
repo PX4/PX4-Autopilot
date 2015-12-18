@@ -96,6 +96,11 @@ protected:
 	 */
 	void set_loiter_item(struct mission_item_s *item, float min_clearance = -1.0f);
 
+	/**
+	 * Set a takeoff mission item
+	 */
+	void set_takeoff_item(struct mission_item_s *item, float min_clearance = -1.0f, float min_pitch = 0.0f);
+
 	mission_item_s _mission_item;
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;

@@ -67,6 +67,7 @@ struct position_estimator_inav_params {
 	float delay_gps;
 	float flow_module_offset_x;
 	float flow_module_offset_y;
+	int32_t disable_mocap;
 };
 
 struct position_estimator_inav_param_handles {
@@ -95,6 +96,7 @@ struct position_estimator_inav_param_handles {
 	param_t delay_gps;
 	param_t flow_module_offset_x;
 	param_t flow_module_offset_y;
+	param_t disable_mocap;
 };
 
 #define CBRK_NO_VISION_KEY	328754

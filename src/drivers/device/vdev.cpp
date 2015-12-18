@@ -45,6 +45,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "DevMgr.hpp"
+
+using namespace DriverFramework;
+
 namespace device
 {
 
@@ -363,7 +367,6 @@ VDev::ioctl(file_t *filep, int cmd, unsigned long arg)
 
 	case DEVIOCGDEVICEID:
 		ret = (int)_device_id.devid;
-		PX4_INFO("IOCTL DEVIOCGDEVICEID %d", ret);
 		break;
 
 	default:
@@ -533,7 +536,7 @@ VDev *VDev::getDev(const char *path)
 void VDev::showDevices()
 {
 	int i = 0;
-	PX4_INFO("Devices:");
+	PX4_INFO("PX4 Devices:");
 
 	pthread_mutex_lock(&devmutex);
 
@@ -544,6 +547,23 @@ void VDev::showDevices()
 	}
 
 	pthread_mutex_unlock(&devmutex);
+
+#ifndef __PX4_UNIT_TESTS
+	PX4_INFO("DF Devices:");
+	const char *dev_path;
+	unsigned int index = 0;
+	i = 0;
+
+	do {
+		// Each look increments index and returns -1 if end reached
+		i = DevMgr::getNextDeviceName(index, &dev_path);
+
+		if (i == 0) {
+			PX4_INFO("   %s", dev_path);
+		}
+	} while (i == 0);
+
+#endif
 }
 
 void VDev::showTopics()

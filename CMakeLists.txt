@@ -121,6 +121,10 @@
 # and leads to wrong toolchain detection
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
+# Use clang
+#SET (CMAKE_C_COMPILER /usr/bin/clang-3.6)
+#SET (CMAKE_CXX_COMPILER /usr/bin/clang++-3.6)
+
 #=============================================================================
 # parameters
 #
@@ -145,6 +149,16 @@ list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 set(target_name "${OS}-${BOARD}-${LABEL}")
+
+if("${OS}" STREQUAL "posix")
+	if (APPLE)
+		set(DF_TARGET darwin)
+	else()
+		set(DF_TARGET linux)
+	endif()
+else()
+	set(DF_TARGET ${OS})
+endif()
 
 message(STATUS "${target_name}")
 
@@ -230,6 +244,7 @@ px4_add_git_submodule(TARGET git_gtest PATH "unittets/gtest")
 px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
 px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
 px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
+px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
 px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
@@ -320,6 +335,11 @@ foreach(module ${config_module_list})
 endforeach()
 
 add_subdirectory(src/firmware/${OS})
+
+add_subdirectory(src/lib/DriverFramework/framework/src)
+#add_dependencies(df_driver_framework nuttx_export_${CONFIG}.stamp)
+if (NOT "${OS}" STREQUAL "nuttx")
+endif()
 
 if (config_io_board)
 	add_subdirectory(src/modules/px4iofirmware)

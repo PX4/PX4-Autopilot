@@ -212,6 +212,16 @@ public:
 	}
 
 	/**
+	 * simplified version of the above method to create quaternion representing rotation only by yaw
+	 */
+	void from_yaw(float yaw) {
+		data[0] = cosf(yaw / 2.0f);
+		data[1] = 0.0f;
+		data[2] = 0.0f;
+		data[3] = sinf(yaw / 2.0f);
+	}
+
+	/**
 	 * create Euler angles vector from the quaternion
 	 */
 	Vector<3> to_euler() const {

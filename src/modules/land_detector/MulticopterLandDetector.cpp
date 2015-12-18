@@ -95,6 +95,13 @@ bool MulticopterLandDetector::update()
 	// first poll for new data from our subscriptions
 	updateSubscriptions();
 
+	updateParameterCache(false);
+
+	return get_landed_state();
+}
+
+bool MulticopterLandDetector::get_landed_state()
+{
 	// only trigger flight conditions if we are armed
 	if (!_arming.armed) {
 		_arming_time = 0;
