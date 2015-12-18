@@ -50,7 +50,7 @@
  * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_Z_BARO, 0.5f);
+PARAM_DEFINE_FLOAT(INAV_W_Z_BARO, 0.3f);
 
 /**
  * Z axis weight for GPS
@@ -61,7 +61,7 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_BARO, 0.5f);
  * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_P, 0.005f);
+PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_P, 0.8f);
 
 /**
  * Z velocity weight for GPS
@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_P, 0.005f);
  * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_V, 0.0f);
+PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_V, 1.0f);
 
 /**
  * Z axis weight for vision
