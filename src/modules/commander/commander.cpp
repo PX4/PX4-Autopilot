@@ -2352,20 +2352,16 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* reset main state after takeoff and land */
-		if (status.main_state == vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF
-				&& mission_result.finished) {
+		/* reset main state after takeoff or land has been completed */
+		/* only switch back to at least altitude controlled modes */
+		if (status.main_state_prev == vehicle_status_s::MAIN_STATE_POSCTL ||
+			status.main_state_prev == vehicle_status_s::MAIN_STATE_ALTCTL) {
 
-			if (status.main_state_prev < vehicle_status_s::MAIN_STATE_MAX
-					&& status.main_state_prev != vehicle_status_s::MAIN_STATE_AUTO_LAND) {
-				main_state_transition(&status, status.main_state_prev);
-			}
+			if ((status.main_state == vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF
+					&& mission_result.finished) ||
+				(status.main_state == vehicle_status_s::MAIN_STATE_AUTO_LAND
+					&& status.condition_landed)) {
 
-		} else if (status.main_state == vehicle_status_s::MAIN_STATE_AUTO_LAND
-				&& status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-
-			if (status.main_state_prev < vehicle_status_s::MAIN_STATE_MAX
-					&& status.main_state_prev != vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF) {
 				main_state_transition(&status, status.main_state_prev);
 			}
 		}
