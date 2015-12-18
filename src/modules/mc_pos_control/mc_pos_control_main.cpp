@@ -1248,6 +1248,33 @@ MulticopterPositionControl::task_main()
 					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
 
+			} else if (_control_mode.flag_control_manual_enabled
+					&& _vehicle_status.condition_landed) {
+				/* don't run controller when landed */
+				_reset_pos_sp = true;
+				_reset_alt_sp = true;
+				_mode_auto = false;
+				reset_int_z = true;
+				reset_int_xy = true;
+
+				R.identity();
+				memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
+				_att_sp.R_valid = true;
+
+				_att_sp.roll_body = 0.0f;
+				_att_sp.pitch_body = 0.0f;
+				_att_sp.yaw_body = _yaw;
+				_att_sp.thrust = 0.0f;
+
+				_att_sp.timestamp = hrt_absolute_time();
+
+				/* publish attitude setpoint */
+				if (_att_sp_pub != nullptr) {
+					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+				} else if (_attitude_setpoint_id) {
+					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+				}
+
 			} else {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
