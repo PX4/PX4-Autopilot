@@ -241,6 +241,7 @@ private:
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
+	float _landing_thrust;
 
 	/**
 	 * Update our local parameter cache.
@@ -370,7 +371,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_alt_hold_engaged(false),
 	_run_pos_control(true),
 	_run_alt_control(true),
-	_yaw(0.0f)
+	_yaw(0.0f),
+	_landing_thrust(1.0f)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
@@ -1420,6 +1422,7 @@ MulticopterPositionControl::task_main()
 					}
 
 					float tilt_max = _params.tilt_max_air;
+					float thr_max = _params.thr_max;
 
 					/* adjust limits for landing mode */
 					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
@@ -1430,6 +1433,15 @@ MulticopterPositionControl::task_main()
 						if (thr_min < 0.0f) {
 							thr_min = 0.0f;
 						}
+
+						/* don't let it throttle up again during landing */
+						if (thrust_sp(2) < 0.0f && thrust_sp(2) < _landing_thrust) {
+							_landing_thrust = thrust_sp(2);
+						}
+						thr_max = -_landing_thrust;
+
+					} else {
+						_landing_thrust = _params.thr_max;
 					}
 
 					/* limit min lift */
@@ -1481,19 +1493,19 @@ MulticopterPositionControl::task_main()
 					/* limit max thrust */
 					float thrust_abs = thrust_sp.length();
 
-					if (thrust_abs > _params.thr_max) {
+					if (thrust_abs > thr_max) {
 						if (thrust_sp(2) < 0.0f) {
-							if (-thrust_sp(2) > _params.thr_max) {
+							if (-thrust_sp(2) > thr_max) {
 								/* thrust Z component is too large, limit it */
 								thrust_sp(0) = 0.0f;
 								thrust_sp(1) = 0.0f;
-								thrust_sp(2) = -_params.thr_max;
+								thrust_sp(2) = -thr_max;
 								saturation_xy = true;
 								saturation_z = true;
 
 							} else {
 								/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
-								float thrust_xy_max = sqrtf(_params.thr_max * _params.thr_max - thrust_sp(2) * thrust_sp(2));
+								float thrust_xy_max = sqrtf(thr_max * thr_max - thrust_sp(2) * thrust_sp(2));
 								float thrust_xy_abs = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
 								float k = thrust_xy_max / thrust_xy_abs;
 								thrust_sp(0) *= k;
@@ -1503,13 +1515,13 @@ MulticopterPositionControl::task_main()
 
 						} else {
 							/* Z component is negative, going down, simply limit thrust vector */
-							float k = _params.thr_max / thrust_abs;
+							float k = thr_max / thrust_abs;
 							thrust_sp *= k;
 							saturation_xy = true;
 							saturation_z = true;
 						}
 
-						thrust_abs = _params.thr_max;
+						thrust_abs = thr_max;
 					}
 
 					/* update integrals */
