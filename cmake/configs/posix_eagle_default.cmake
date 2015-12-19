@@ -40,6 +40,7 @@ set(config_module_list
 	lib/conversion
 	lib/terrain_estimation
 	lib/runway_takeoff
+	lib/tailsitter_recovery
 
 	platforms/common
 	platforms/posix/px4_layer
