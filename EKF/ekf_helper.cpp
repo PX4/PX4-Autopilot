@@ -40,8 +40,10 @@
  */
 
 #include "ekf.h"
+#ifdef __PX4_POSIX
 #include <iostream>
 #include <fstream>
+#endif
 #include <iomanip>
 #include <mathlib/mathlib.h>
 
@@ -79,6 +81,7 @@ void Ekf::resetPosition()
 	_state.pos(2) = baro_newest.hgt;
 }
 
+#ifdef __PX4_POSIX
 void Ekf::printCovToFile(char const *filename)
 {
 	std::ofstream myfile;
@@ -94,6 +97,7 @@ void Ekf::printCovToFile(char const *filename)
 		myfile << "\n\n\n\n\n\n\n\n\n\n";
 	}
 }
+#endif
 
 // This checks if the diagonal of the covariance matrix is non-negative
 // and that the matrix is symmetric
