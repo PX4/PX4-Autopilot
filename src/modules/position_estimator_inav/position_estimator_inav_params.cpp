@@ -384,6 +384,7 @@ int inav_parameters_update(const struct position_estimator_inav_param_handles *h
 {
 	param_get(h->w_z_baro, &(p->w_z_baro));
 	param_get(h->w_z_gps_p, &(p->w_z_gps_p));
+	param_get(h->w_z_gps_v, &(p->w_z_gps_v));
 	param_get(h->w_z_vision_p, &(p->w_z_vision_p));
 	param_get(h->w_z_lidar, &(p->w_z_lidar));
 	param_get(h->w_xy_gps_p, &(p->w_xy_gps_p));

@@ -309,3 +309,13 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.5f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
+
+/**
+ * Maximum horizonal acceleration in velocity controlled modes
+ *
+ * @unit m/s/s
+ * @min 2.0
+ * @max 10.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 4.0f);
