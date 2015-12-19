@@ -136,9 +136,9 @@ int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
 #if UAVCAN_DEBUG
     for (uint16_t i = 0; i < multiset_configs_.getSize(); i++)
     {
-        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::applyConfiguration()", "cfg.ID [%u] = %d", i,
+        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::applyConfiguration()", "cfg.ID [%u] = %u", i,
                      multiset_configs_.getByIndex(i)->id);
-        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::applyConfiguration()", "cfg.MK [%u] = %d", i,
+        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::applyConfiguration()", "cfg.MK [%u] = %u", i,
                      multiset_configs_.getByIndex(i)->mask);
     }
 #endif
