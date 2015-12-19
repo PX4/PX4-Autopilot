@@ -91,7 +91,18 @@ public:
 	 * Get the priority of this validator
 	 * @return		the stored priority
 	 */
-	int			priority();
+	int			priority() { return (_priority); }
+	
+	/**
+	 * Get the error state of this validator
+	 * @return		the bitmask with the error status
+	 */
+	uint32_t		state() { return _error_mask; }
+	
+	/**
+	 * Reset the error state of this validator
+	 */
+	void			reset_state() { _error_mask = ERROR_FLAG_NO_ERROR; }
 
 	/**
 	 * Get the RMS values of this validator
@@ -111,9 +122,20 @@ public:
 	 * @param timeout_interval_us The timeout interval in microseconds
 	 */
 	void			set_timeout(uint64_t timeout_interval_us) { _timeout_interval = timeout_interval_us; }
+	
+	/**
+	 * Data validator error states 
+	 */
+	static constexpr uint32_t ERROR_FLAG_NO_ERROR      	= (0x00000000U);
+	static constexpr uint32_t ERROR_FLAG_NO_DATA       	= (0x00000001U);
+	static constexpr uint32_t ERROR_FLAG_STALE_DATA    	= (0x00000001U << 1);
+	static constexpr uint32_t ERROR_FLAG_TIMEOUT 	   	= (0x00000001U << 2);
+	static constexpr uint32_t ERROR_FLAG_HIGH_ERRCOUNT 	= (0x00000001U << 3);
+	static constexpr uint32_t ERROR_FLAG_HIGH_ERRDENSITY 	= (0x00000001U << 4);
 
 private:
 	static const unsigned _dimensions = 3;
+	uint32_t _error_mask;			/**< sensor error state */
 	uint64_t _time_last;			/**< last timestamp */
 	uint64_t _timeout_interval;		/**< interval in which the datastream times out in us */
 	uint64_t _event_count;			/**< total data counter */
