@@ -2132,6 +2132,12 @@ int commander_thread_main(int argc, char *argv[])
 
 			status.rc_signal_lost = false;
 
+			/* check throttle kill switch */
+			if (sp_man.kill_switch != 0) {
+				/* set lockdown flag */
+				armed.lockdown = TRUE;
+			}
+
 			/* check if left stick is in lower left position and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed) -> disarm
 			 * do it only for rotary wings */
 			if (status.is_rotary_wing && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&

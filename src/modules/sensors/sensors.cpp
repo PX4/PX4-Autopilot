@@ -297,6 +297,7 @@ private:
 		float rc_loiter_th;
 		float rc_acro_th;
 		float rc_offboard_th;
+		float rc_killswitch_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
 		bool rc_rattitude_inv;
@@ -305,6 +306,7 @@ private:
 		bool rc_loiter_inv;
 		bool rc_acro_inv;
 		bool rc_offboard_inv;
+		bool rc_killswitch_inv;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -1953,6 +1955,8 @@ Sensors::rc_poll()
 					     _parameters.rc_acro_inv);
 			manual.offboard_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD,
 						 _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
+			manual.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
+					 _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub != nullptr) {
