@@ -1970,6 +1970,12 @@ Sensors::rc_poll()
 			manual.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
 					 _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
 
+			static int prtcnt = 0;
+			if (prtcnt++ > 50) {
+				prtcnt = 0;
+				warnx("kill channel: %10.5f, manual.kill_switch: %d\n", (double)_rc.channels[7], manual.kill_switch);
+			}
+
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub != nullptr) {
 				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual);

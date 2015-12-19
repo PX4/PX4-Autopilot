@@ -2133,9 +2133,17 @@ int commander_thread_main(int argc, char *argv[])
 			status.rc_signal_lost = false;
 
 			/* check throttle kill switch */
-			if (sp_man.kill_switch != 0) {
+			static int prtcnt = 0;
+			if (prtcnt++ > 25) {
+				prtcnt = 0;
+				warnx("sp_man.kill_switch: %d\n", sp_man.kill_switch);
+				warnx("armed.lockdown: %d\n", armed.lockdown);
+			}
+			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				/* set lockdown flag */
 				armed.lockdown = TRUE;
+			} else {
+				armed.lockdown = FALSE;
 			}
 
 			/* check if left stick is in lower left position and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed) -> disarm
