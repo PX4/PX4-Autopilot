@@ -242,6 +242,7 @@ private:
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
 	float _landing_thrust;
+	hrt_abstime _landing_started;
 
 	/**
 	 * Update our local parameter cache.
@@ -372,7 +373,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_run_pos_control(true),
 	_run_alt_control(true),
 	_yaw(0.0f),
-	_landing_thrust(1.0f)
+	_landing_thrust(1.0f),
+	_landing_started(0)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
@@ -943,10 +945,6 @@ void MulticopterPositionControl::control_auto(float dt)
 	}
 
 	if (current_setpoint_valid) {
-		/* in case of interrupted mission don't go to waypoint but stay at current position */
-		_reset_pos_sp = true;
-		_reset_alt_sp = true;
-
 		/* scaled space: 1 == position error resulting max allowed speed */
 		math::Vector<3> scale = _params.pos_p.edivide(_params.vel_max);	// TODO add mult param here
 
@@ -1051,14 +1049,20 @@ void MulticopterPositionControl::control_auto(float dt)
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
 
-		/* if we're near the current pos SP don't reset it anymore, else it will make if jump back,
-		 * especially noticable in altitude after takeoff.
+		/* 
+		 * if we're already near the current takeoff setpoint don't reset in case we switch back to posctl.
+		 * this makes the takeoff finish smoothly.
 		 */
-		if (current_setpoint_valid
+		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 				&& _pos_sp_triplet.current.acceptance_radius > 0.0f
-				&& (curr_sp - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius) {
+				&& (_pos - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius * 1.1f) {
 			_reset_pos_sp = false;
 			_reset_alt_sp = false;
+
+		/* otherwise: in case of interrupted mission don't go to waypoint but stay at current position */
+		} else {
+			_reset_pos_sp = true;
+			_reset_alt_sp = true;
 		}
 
 	} else {
@@ -1431,6 +1435,7 @@ MulticopterPositionControl::task_main()
 						thr_min = 0.0f;
 					}
 
+					float thrust_abs = thrust_sp.length();
 					float tilt_max = _params.tilt_max_air;
 					float thr_max = _params.thr_max;
 
@@ -1439,19 +1444,26 @@ MulticopterPositionControl::task_main()
 					    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 						/* limit max tilt and min lift when landing */
 						tilt_max = _params.tilt_max_land;
+						if (_landing_started == 0) {
+							_landing_started = hrt_absolute_time();
+						}
 
 						if (thr_min < 0.0f) {
 							thr_min = 0.0f;
 						}
 
 						/* don't let it throttle up again during landing */
-						if (thrust_sp(2) < 0.0f && thrust_sp(2) < _landing_thrust) {
-							_landing_thrust = thrust_sp(2);
+						if (thrust_sp(2) < 0.0f && thrust_abs < _landing_thrust
+								&& hrt_elapsed_time(&_landing_started) > 15e5) {
+							_landing_thrust = thrust_abs;
 						}
-						// XXX: we probably need to add a margin here becaue we're limiting the complete thrust vector further down
-						thr_max = -_landing_thrust;
+						/* add 5% to give it some margin to compensate external influences */
+						thr_max = _landing_thrust + 0.05f * _landing_thrust;
+						/*PX4_WARN("thrust: abs %.4f, sp(2) %.4f, _landing_thrust %.4f, vel_err(2) %.4f, vel_sp(2) %.4f, vel(2) %.4f",
+							(double) thrust_abs, (double) thrust_sp(2), (double) _landing_thrust, (double) vel_err(2), (double) _vel_sp(2), (double) _vel(2));*/
 
 					} else {
+						_landing_started = 0;
 						_landing_thrust = _params.thr_max;
 					}
 
@@ -1502,8 +1514,6 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* limit max thrust */
-					float thrust_abs = thrust_sp.length();
-
 					if (thrust_abs > thr_max) {
 						if (thrust_sp(2) < 0.0f) {
 							if (-thrust_sp(2) > thr_max) {
