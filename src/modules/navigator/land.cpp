@@ -79,7 +79,6 @@ Land::on_activation()
     struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
     pos_sp_triplet->previous.valid = false;
     mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-    pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
     pos_sp_triplet->next.valid = false;
 
     _navigator->set_can_loiter_at_sp(false);

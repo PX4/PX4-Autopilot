@@ -1051,6 +1051,16 @@ void MulticopterPositionControl::control_auto(float dt)
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
 
+		/* if we're near the current pos SP don't reset it anymore, else it will make if jump back,
+		 * especially noticable in altitude after takeoff.
+		 */
+		if (current_setpoint_valid
+				&& _pos_sp_triplet.current.acceptance_radius > 0.0f
+				&& (curr_sp - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius) {
+			_reset_pos_sp = false;
+			_reset_alt_sp = false;
+		}
+
 	} else {
 		/* no waypoint, do nothing, setpoint was already reset */
 	}
@@ -1438,6 +1448,7 @@ MulticopterPositionControl::task_main()
 						if (thrust_sp(2) < 0.0f && thrust_sp(2) < _landing_thrust) {
 							_landing_thrust = thrust_sp(2);
 						}
+						// XXX: we probably need to add a margin here becaue we're limiting the complete thrust vector further down
 						thr_max = -_landing_thrust;
 
 					} else {
