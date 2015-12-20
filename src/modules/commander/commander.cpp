@@ -2132,20 +2132,6 @@ int commander_thread_main(int argc, char *argv[])
 
 			status.rc_signal_lost = false;
 
-			/* check throttle kill switch */
-			static int prtcnt = 0;
-			if (prtcnt++ > 25) {
-				prtcnt = 0;
-				warnx("sp_man.kill_switch: %d\n", sp_man.kill_switch);
-				warnx("armed.lockdown: %d\n", armed.lockdown);
-			}
-			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-				/* set lockdown flag */
-				armed.lockdown = TRUE;
-			} else {
-				armed.lockdown = FALSE;
-			}
-
 			/* check if left stick is in lower left position and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed) -> disarm
 			 * do it only for rotary wings */
 			if (status.is_rotary_wing && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
@@ -2247,6 +2233,18 @@ int commander_thread_main(int argc, char *argv[])
 			} else if (main_res == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
 				mavlink_log_critical(mavlink_fd, "main state transition denied");
+			}
+
+			/* check throttle kill switch */
+			int prevLockdown = armed.lockdown;
+			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				/* set lockdown flag */
+				armed.lockdown = TRUE;
+			} else {
+				armed.lockdown = FALSE;
+			}
+			if (prevLockdown != armed.lockdown) {
+				warnx("armed.lockdown: %d\n", armed.lockdown);
 			}
 
 		} else {

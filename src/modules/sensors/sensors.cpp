@@ -620,6 +620,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
 	_parameter_handles.rc_acro_th = param_find("RC_ACRO_TH");
 	_parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
+	_parameter_handles.rc_killswitch_th = param_find("RC_KILLSWITCH_TH");
 
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
@@ -822,7 +823,7 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_offboard_th, &(_parameters.rc_offboard_th));
 	_parameters.rc_offboard_inv = (_parameters.rc_offboard_th < 0);
 	_parameters.rc_offboard_th = fabs(_parameters.rc_offboard_th);
-	param_get(_parameter_handles.rc_killswitch_th, &(_parameters.rc_offboard_th));
+	param_get(_parameter_handles.rc_killswitch_th, &(_parameters.rc_killswitch_th));
 	_parameters.rc_killswitch_inv = (_parameters.rc_killswitch_th < 0);
 	_parameters.rc_killswitch_th = fabs(_parameters.rc_killswitch_th);
 
@@ -1969,12 +1970,6 @@ Sensors::rc_poll()
 						 _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
 			manual.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
 					 _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
-
-			static int prtcnt = 0;
-			if (prtcnt++ > 50) {
-				prtcnt = 0;
-				warnx("kill channel: %10.5f, manual.kill_switch: %d\n", (double)_rc.channels[7], manual.kill_switch);
-			}
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub != nullptr) {
