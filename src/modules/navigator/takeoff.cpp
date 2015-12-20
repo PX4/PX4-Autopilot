@@ -97,5 +97,11 @@ Takeoff::on_active()
 	if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
 		_navigator->get_mission_result()->finished = true;
 		_navigator->set_mission_result_updated();
+
+		/* set loiter item so position controllers stop doing takeoff logic */
+		set_loiter_item(&_mission_item);
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
