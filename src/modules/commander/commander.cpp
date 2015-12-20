@@ -2236,15 +2236,15 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* check throttle kill switch */
-			int prevLockdown = armed.lockdown;
+			int prev_lockdown = armed.lockdown;
 			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				/* set lockdown flag */
-				armed.lockdown = TRUE;
-			} else {
-				armed.lockdown = FALSE;
+				armed.lockdown = true;
 			}
-			if (prevLockdown != armed.lockdown) {
-				warnx("armed.lockdown: %d\n", armed.lockdown);
+
+			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+				prev_lockdown != armed.lockdown) {
+				mavlink_and_console_log_critical(mavlink_fd, "RC KILL SWITCH ON");
 			}
 
 		} else {
