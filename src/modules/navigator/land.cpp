@@ -74,6 +74,10 @@ Land::on_activation()
 {
     /* set current mission item to Land */
     set_land_item(&_mission_item, true);
+    _navigator->get_mission_result()->reached = false;
+    _navigator->get_mission_result()->finished = false;
+    _navigator->set_mission_result_updated();
+    reset_mission_item_reached();
 
     /* convert mission item to current setpoint */
     struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -89,7 +93,13 @@ Land::on_activation()
 void
 Land::on_active()
 {
-    if (is_mission_item_reached()) {
+    if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
+        _navigator->get_mission_result()->finished = true;
+        _navigator->set_mission_result_updated();
         set_idle_item(&_mission_item);
+
+        struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+        mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+        _navigator->set_position_setpoint_triplet_updated();
     }
 }
