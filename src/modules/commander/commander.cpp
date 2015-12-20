@@ -392,9 +392,7 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "arm")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
-		if (TRANSITION_CHANGED == arm_disarm(true, mavlink_fd_local, "command line")) {
-			warnx("note: not updating home position on commandline arming!");
-		} else {
+		if (TRANSITION_CHANGED != arm_disarm(true, mavlink_fd_local, "command line")) {
 			warnx("arming failed");
 		}
 		px4_close(mavlink_fd_local);
@@ -412,11 +410,12 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "takeoff")) {
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
-		if (TRANSITION_CHANGED == arm_disarm(true, mavlink_fd_local, "command line")) {
-			warnx("note: not updating home position on commandline arming!");
 
-			/* see if we got a home position */
-			if (status.condition_home_position_valid) {
+		/* see if we got a home position */
+		if (status.condition_home_position_valid) {
+
+			if (TRANSITION_CHANGED == arm_disarm(true, mavlink_fd_local, "command line")) {
+
 				vehicle_command_s cmd = {};
 				cmd.target_system = status.system_id;
 				cmd.target_component = status.component_id;
@@ -433,12 +432,13 @@ int commander_main(int argc, char *argv[])
 				(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
 
 			} else {
-				warnx("rejecting takeoff, no position lock yet");
+				warnx("arming failed");
 			}
 
 		} else {
-			warnx("arming failed");
+			warnx("rejecting takeoff, no position lock yet. Please retry..");
 		}
+
 		px4_close(mavlink_fd_local);
 		return 0;
 	}
@@ -707,6 +707,13 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 				} else {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+					/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
+					if (cmd_arms && (arming_res == TRANSITION_CHANGED) &&
+						(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
+
+						commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude);
+					}
 				}
 			}
 		}
