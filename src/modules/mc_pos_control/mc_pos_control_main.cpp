@@ -1651,8 +1651,12 @@ MulticopterPositionControl::task_main()
 
 			/* control roll and pitch directly if we no aiding velocity controller is active */
 			if (!_control_mode.flag_control_velocity_enabled) {
-				_att_sp.roll_body = _manual.y * _params.man_roll_max;
-				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+				float manual_body_frame_x =  _manual.x * cosf(_att_sp.yaw_body - _yaw) + _manual.y * sinf(_att_sp.yaw_body - _yaw);
+				float manual_body_frame_y =  -_manual.x * sinf(_att_sp.yaw_body - _yaw) + _manual.y * cosf(_att_sp.yaw_body - _yaw);
+				_att_sp.roll_body = manual_body_frame_y * _params.man_roll_max;
+				_att_sp.pitch_body = -manual_body_frame_x * _params.man_pitch_max;
+				//_att_sp.roll_body =  _manual.y * _params.man_roll_max;
+				//_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 			}
 
 			/* control throttle directly if no climb rate controller is active */

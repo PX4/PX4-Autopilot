@@ -88,6 +88,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 #include <fcntl.h>
+#include <mavlink/mavlink_log.h>
 
 #include "tiltrotor.h"
 #include "tailsitter.h"
@@ -106,6 +107,7 @@ public:
 
 	int start();	/* start the task and return OK on success */
 	bool is_fixed_wing_requested();
+	int		get_mavlink_fd() { return _mavlink_fd; }
 
 	struct vehicle_attitude_s 				*get_att() {return &_v_att;}
 	struct vehicle_attitude_setpoint_s		*get_att_sp() {return &_v_att_sp;}
@@ -133,6 +135,8 @@ private:
 //******************flags & handlers******************************************************
 	bool _task_should_exit;
 	int _control_task;		//task handle for VTOL attitude controller
+	
+	int		_mavlink_fd;			/**< the file descriptor to send messages over mavlink */
 
 	/* handlers for subscriptions */
 	int		_v_att_sub;				//vehicle attitude subscription

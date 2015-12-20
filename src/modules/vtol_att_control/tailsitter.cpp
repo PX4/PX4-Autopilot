@@ -139,11 +139,13 @@ void Tailsitter::update_vtol_state()
 		case FW_MODE:
 			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
 			_vtol_schedule.transition_start = hrt_absolute_time();
+			mavlink_log_critical(_attc->get_mavlink_fd(), "Transition Back!");
 			break;
 
 		case TRANSITION_FRONT_P1:
 			// failsafe into multicopter mode
 			_vtol_schedule.flight_mode = MC_MODE;
+			mavlink_log_critical(_attc->get_mavlink_fd(), "MC MODE!");
 			break;
 
 		case TRANSITION_FRONT_P2:
@@ -157,6 +159,7 @@ void Tailsitter::update_vtol_state()
 			// check if we have reached pitch angle to switch to MC mode
 			if (_v_att->pitch >= PITCH_TRANSITION_BACK) {
 				_vtol_schedule.flight_mode = MC_MODE;
+				mavlink_log_critical(_attc->get_mavlink_fd(), "MC MODE!");
 			}
 
 			break;
@@ -169,6 +172,7 @@ void Tailsitter::update_vtol_state()
 			// initialise a front transition
 			_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
 			_vtol_schedule.transition_start = hrt_absolute_time();
+			mavlink_log_critical(_attc->get_mavlink_fd(), "Transition front P1!");
 			break;
 
 		case FW_MODE:
@@ -180,6 +184,7 @@ void Tailsitter::update_vtol_state()
 			if ((_airspeed->true_airspeed_m_s >= _params_tailsitter.airspeed_trans
 			    && _v_att->pitch <= PITCH_TRANSITION_FRONT_P1) || !_armed->armed) {
 				_vtol_schedule.flight_mode = FW_MODE;
+				mavlink_log_critical(_attc->get_mavlink_fd(), "FW MODE!");
 				//_vtol_schedule.transition_start = hrt_absolute_time();
 			}
 
@@ -190,6 +195,7 @@ void Tailsitter::update_vtol_state()
 		case TRANSITION_BACK:
 			// failsafe into fixed wing mode
 			_vtol_schedule.flight_mode = FW_MODE;
+			mavlink_log_critical(_attc->get_mavlink_fd(), "FW MODE!");
 
 			/*  **LATER***  if pitch is closer to mc (-45>)
 			*   go to transition P1

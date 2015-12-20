@@ -120,6 +120,8 @@ void Standard::update_vtol_state()
 			_flag_enable_mc_motors = true;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 
+			mavlink_log_critical(_attc->get_mavlink_fd(), "Transition To MC!");
+
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// failsafe back to mc mode
 			_vtol_schedule.flight_mode = MC_MODE;
@@ -127,11 +129,15 @@ void Standard::update_vtol_state()
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
 
+			mavlink_log_critical(_attc->get_mavlink_fd(), "MC MODE!");
+
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed
 			if (hrt_elapsed_time(&_vtol_schedule.transition_start) >
 			    (_params_standard.back_trans_dur * 1000000.0f)) {
 				_vtol_schedule.flight_mode = MC_MODE;
+
+			   	mavlink_log_critical(_attc->get_mavlink_fd(), "MC MODE!"); 
 			}
 		}
 
@@ -144,6 +150,8 @@ void Standard::update_vtol_state()
 			// start transition to fw mode
 			_vtol_schedule.flight_mode = TRANSITION_TO_FW;
 			_vtol_schedule.transition_start = hrt_absolute_time();
+
+			mavlink_log_critical(_attc->get_mavlink_fd(), "Transition to FW!");
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// in fw mode
@@ -159,11 +167,15 @@ void Standard::update_vtol_state()
 				// we can turn off the multirotor motors now
 				_flag_enable_mc_motors = false;
 				// don't set pusher throttle here as it's being ramped up elsewhere
+
+				mavlink_log_critical(_attc->get_mavlink_fd(), "FW MODE!");
 			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// transitioning to mc mode & transition switch on - failsafe back into fw mode
 			_vtol_schedule.flight_mode = FW_MODE;
+
+			mavlink_log_critical(_attc->get_mavlink_fd(), "FW MODE!");
 		}
 	}
 
