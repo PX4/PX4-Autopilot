@@ -180,6 +180,8 @@ private:
 		param_t xy_ff;
 		param_t tilt_max_air;
 		param_t land_speed;
+		param_t tko_jmpspd;
+		param_t tko_speed;
 		param_t tilt_max_land;
 		param_t man_roll_max;
 		param_t man_pitch_max;
@@ -197,6 +199,8 @@ private:
 		float thr_max;
 		float tilt_max_air;
 		float land_speed;
+		float tko_jmpspd;
+		float tko_speed;
 		float tilt_max_land;
 		float man_roll_max;
 		float man_pitch_max;
@@ -243,6 +247,8 @@ private:
 	float _yaw;				/**< yaw angle (euler) */
 	float _landing_thrust;
 	hrt_abstime _landing_started;
+	int _takeoff_jumped;
+	float _vel_z_lp;
 
 	/**
 	 * Update our local parameter cache.
@@ -374,7 +380,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_run_alt_control(true),
 	_yaw(0.0f),
 	_landing_thrust(1.0f),
-	_landing_started(0)
+	_landing_started(0),
+	_takeoff_jumped(0),
+	_vel_z_lp(0)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
@@ -424,6 +432,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
+	_params_handles.tko_jmpspd	= param_find("MPC_TKO_JMPSPD");
+	_params_handles.tko_speed	= param_find("MPC_TKO_SPEED");
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
 	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
 	_params_handles.man_pitch_max = param_find("MPC_MAN_P_MAX");
@@ -486,6 +496,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
 		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
+		param_get(_params_handles.tko_jmpspd, &_params.tko_jmpspd);
+		param_get(_params_handles.tko_speed, &_params.tko_speed);
 		param_get(_params_handles.tilt_max_land, &_params.tilt_max_land);
 		_params.tilt_max_land = math::radians(_params.tilt_max_land);
 
@@ -1343,6 +1355,31 @@ MulticopterPositionControl::task_main()
 					_vel_sp(2) = _params.land_speed;
 				}
 
+				/* velocity handling during takeoff */
+				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
+				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+
+					switch (_takeoff_jumped) {
+					case 0:
+						/* do a quick jump until we shoot over takeoff speed */
+						_vel_sp(2) = -_params.tko_jmpspd;
+
+						if (_vel(2) < -_params.tko_speed) {
+							_takeoff_jumped = 1;
+						}
+						break;
+
+					case 1:
+						/* slowly reduce forced takeoff speed to set climb rate */
+						float tmp = 0.3f * dt + _vel_sp_prev(2);
+						_vel_sp(2) = math::min(tmp, -_params.tko_speed);
+						break;
+					}
+
+				} else {
+					_takeoff_jumped = 0;
+				}
+
 				// limit total horizontal acceleration
 				math::Vector<2> acc_hor;
 				acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
@@ -1355,6 +1392,8 @@ MulticopterPositionControl::task_main()
 					math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
 					_vel_sp(0) = vel_sp_hor(0);
 					_vel_sp(1) = vel_sp_hor(1);
+
+					/*PX4_WARN("vel limited %.4f, %.4f", (double)_vel_sp(0), (double)_vel_sp(1));*/
 				}
 
 				_vel_sp_prev = _vel_sp;
@@ -1438,29 +1477,49 @@ MulticopterPositionControl::task_main()
 					float thrust_abs = thrust_sp.length();
 					float tilt_max = _params.tilt_max_air;
 					float thr_max = _params.thr_max;
+					_vel_z_lp = _vel_z_lp * 0.9f + 0.1f * _vel(2);
 
 					/* adjust limits for landing mode */
 					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
 					    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 						/* limit max tilt and min lift when landing */
 						tilt_max = _params.tilt_max_land;
-						if (_landing_started == 0) {
-							_landing_started = hrt_absolute_time();
-						}
 
 						if (thr_min < 0.0f) {
 							thr_min = 0.0f;
 						}
 
+						if (_landing_started == 0) {
+							_landing_started = hrt_absolute_time();
+						}
+						float vel_z_change = (_vel(2) - _vel_prev(2)) / dt;
+
 						/* don't let it throttle up again during landing */
 						if (thrust_sp(2) < 0.0f && thrust_abs < _landing_thrust
+								/* fix landing thrust after a certain time when velocity change is minimal */
+								&& (float)fabs(vel_z_change) < 0.05f
+								&& _vel_z_lp > 0.5f * _params.land_speed
 								&& hrt_elapsed_time(&_landing_started) > 15e5) {
 							_landing_thrust = thrust_abs;
 						}
+
+						/* assume ground, reduce thrust */
+						if (hrt_elapsed_time(&_landing_started) > 15e5
+								&& _landing_thrust > FLT_EPSILON
+								&& _vel_z_lp < 0.1f) {
+							_landing_thrust = 0.0f;
+						}
+
+						/* if we suddenly fall, reset landing logic and remove thrust limit */
+						if (hrt_elapsed_time(&_landing_started) > 15e5
+								&& _landing_thrust < FLT_EPSILON
+								&& vel_z_change > 4.0f) {
+							_landing_thrust = _params.thr_max;
+							_landing_started = 0;
+						}
+
 						/* add 5% to give it some margin to compensate external influences */
 						thr_max = _landing_thrust + 0.05f * _landing_thrust;
-						/*PX4_WARN("thrust: abs %.4f, sp(2) %.4f, _landing_thrust %.4f, vel_err(2) %.4f, vel_sp(2) %.4f, vel(2) %.4f",
-							(double) thrust_abs, (double) thrust_sp(2), (double) _landing_thrust, (double) vel_err(2), (double) _vel_sp(2), (double) _vel(2));*/
 
 					} else {
 						_landing_started = 0;
