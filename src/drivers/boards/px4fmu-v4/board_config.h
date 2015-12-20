@@ -65,7 +65,7 @@ __BEGIN_DECLS
 //{0,                      GPIO_PERIPH_3V3_EN,      0},	Owned by the 8266 driver
 //{0,                      GPIO_SBUS_INV,           0},	https://github.com/PX4/Firmware/blob/master/src/modules/px4iofirmware/sbus.c
 //{GPIO_8266_GPIO0,        0,                       0},   Owned by the 8266 driver
-//{0,                      GPIO_SPEKTRUM_POWER,     0},	Owned Spektum driver input to auto pilot
+//{0,                      GPIO_SPEKTRUM_PWR_EN,     0},	Owned Spektum driver input to auto pilot
 //{0,                      GPIO_8266_PD,            0},	Owned by the 8266 driver
 //{0,                      GPIO_8266_RST,           0},	Owned by the 8266 driver
 
