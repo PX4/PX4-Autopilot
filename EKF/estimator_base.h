@@ -212,15 +212,15 @@ protected:
 
 	uint64_t _imu_ticks;
 
-	bool _imu_updated;
-	bool _start_predict_enabled;
-	bool _initialised;
-	bool _gps_initialised;
-	bool _gps_speed_valid;
+	bool _imu_updated = false;
+	bool _start_predict_enabled = false;
+	bool _initialised = false;
+	bool _gps_initialised = false;
+	bool _gps_speed_valid = false;
 
-	bool _mag_healthy;		// computed by mag innovation test
+	bool _mag_healthy = false;		// computed by mag innovation test
 
-	bool _in_air;			// indicates if the vehicle is in the air
+	bool _in_air = true;			// indicates if the vehicle is in the air
 
 	RingBuffer<imuSample> _imu_buffer;
 	RingBuffer<gpsSample> _gps_buffer;
