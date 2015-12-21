@@ -148,6 +148,9 @@ posix_sitl_default:
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
+posix_sitl_ekf2:
+	$(call cmake-build,$@)
+
 ros_sitl_default:
 	$(call cmake-build,$@)
 
