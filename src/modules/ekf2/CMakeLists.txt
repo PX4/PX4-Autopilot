@@ -32,13 +32,13 @@
 #############################################################################
 set(MODULE_CFLAGS)
 if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=60000)
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=4000)
 endif()
 px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
 	COMPILE_FLAGS ${MODULE_CFLAGS}
-	STACK 60000
+	STACK 1000
 	SRCS
 		ekf2_main.cpp
 	DEPENDS

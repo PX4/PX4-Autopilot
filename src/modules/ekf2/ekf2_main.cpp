@@ -318,7 +318,7 @@ int Ekf2::start()
 	_control_task = px4_task_spawn_cmd("ekf2",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   30000,
+					   9000,
 					   (px4_main_t)&Ekf2::task_main_trampoline,
 					   nullptr);
 
@@ -374,7 +374,7 @@ int ekf2_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "print")) {
 		if (ekf2::instance != nullptr) {
-			ekf2::instance->print();
+			
 			return 0;
 		}
 
