@@ -45,6 +45,8 @@ sensors start
 commander start
 land_detector start multicopter
 navigator start
+attitude_estimator_q start
+position_estimator_inav start
 mc_pos_control start
 mc_att_control start
 mixer load /dev/pwm_output0 ../../../../ROMFS/px4fmu_common/mixers/quad_x.main.mix
@@ -59,4 +61,3 @@ mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 mavlink boot_complete
 sdlog2 start -r 100 -e -t -a
-ekf2 start
