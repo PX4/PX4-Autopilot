@@ -360,7 +360,7 @@ void EstimatorBase::printStoredIMU()
 
 void EstimatorBase::printIMU(struct imuSample *data)
 {
-	printf("time %i\n", data->time_us);
+	printf("time %llu\n", data->time_us);
 	printf("delta_ang_dt %.5f\n", (double)data->delta_ang_dt);
 	printf("delta_vel_dt %.5f\n", (double)data->delta_vel_dt);
 	printf("dA: %.5f %.5f %.5f \n", (double)data->delta_ang(0), (double)data->delta_ang(1), (double)data->delta_ang(2));
@@ -388,14 +388,14 @@ void EstimatorBase::printStoredMag()
 
 void EstimatorBase::printMag(struct magSample *data)
 {
-	printf("time %i\n", data->time_us);
+	printf("time %llu\n", data->time_us);
 	printf("mag: %.5f %.5f %.5f \n\n", (double)data->mag(0), (double)data->mag(1), (double)data->mag(2));
 
 }
 
 void EstimatorBase::printBaro(struct baroSample *data)
 {
-	printf("time %i\n", data->time_us);
+	printf("time %llu\n", data->time_us);
 	printf("baro: %.5f\n\n", (double)data->hgt);
 }
 
@@ -410,7 +410,7 @@ void EstimatorBase::printStoredBaro()
 
 void EstimatorBase::printGps(struct gpsSample *data)
 {
-	printf("time %i\n", data->time_us);
+	printf("time %llu\n", data->time_us);
 	printf("gps pos: %.5f %.5f %.5f\n", (double)data->pos(0), (double)data->pos(1), (double)data->hgt);
 	printf("gps vel %.5f %.5f %.5f\n\n", (double)data->vel(0), (double)data->vel(1), (double)data->vel(2));
 }
