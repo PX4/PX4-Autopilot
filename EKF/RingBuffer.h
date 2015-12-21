@@ -76,7 +76,7 @@ public:
 	inline void push(data_type sample, bool debug = false)
 	{
 		if (debug) {
-			printf("elapsed %i\n", sample.time_us - _time_last);
+			printf("elapsed %llu\n", sample.time_us - _time_last);
 			_time_last = sample.time_us;
 		}
 
@@ -120,11 +120,12 @@ public:
 
 			if (timestamp >= _buffer[index].time_us && timestamp - _buffer[index].time_us < 100000) {
 
-				memcpy(sample, &_buffer[index], sizeof(*sample));
+				// TODO Re-evaluate the static cast and usage patterns
+				memcpy(static_cast<void*>(sample), static_cast<void*>(&_buffer[index]), sizeof(*sample));
 
 				// Now we can set the tail to the item which comes after the one we removed
 				// since we don't want to have any older data in the buffer
-				if (index == _head) {
+				if (index == static_cast<int>(_head)) {
 					_tail = _head;
 					_first_write = true;
 
@@ -137,7 +138,7 @@ public:
 				return true;
 			}
 
-			if (index == _tail) {
+			if (index == static_cast<int>(_tail)) {
 				// we have reached the tail and haven't got a match
 				return false;
 			}
