@@ -17,7 +17,7 @@ else
 		attitude_estimator_q start
 		local_position_estimator start
 	else
-		ekf_att_pos_estimator start
+		ekf2 start
 	fi
 fi
 

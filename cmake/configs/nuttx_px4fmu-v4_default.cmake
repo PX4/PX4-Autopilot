@@ -80,6 +80,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
+	modules/ekf2
 
 	#
 	# Vehicle Control
