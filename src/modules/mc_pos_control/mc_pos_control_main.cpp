@@ -1065,7 +1065,8 @@ void MulticopterPositionControl::control_auto(float dt)
 		 * if we're already near the current takeoff setpoint don't reset in case we switch back to posctl.
 		 * this makes the takeoff finish smoothly.
 		 */
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+				|| _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)
 				&& _pos_sp_triplet.current.acceptance_radius > 0.0f
 				/* need to detect we're close a bit before the navigator switches from takeoff to next waypoint */
 				&& (_pos - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius * 1.2f) {
