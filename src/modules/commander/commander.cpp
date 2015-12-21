@@ -1556,7 +1556,9 @@ int commander_thread_main(int argc, char *argv[])
 					_usb_telemetry_active = true;
 				}
 
-				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
+				if (telemetry.heartbeat_time > 0) {
+					telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
+				}
 			}
 		}
 
