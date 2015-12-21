@@ -1573,6 +1573,8 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* limit max thrust */
+					thrust_abs = thrust_sp.length(); /* recalculate because it might have changed */
+
 					if (thrust_abs > thr_max) {
 						if (thrust_sp(2) < 0.0f) {
 							if (-thrust_sp(2) > thr_max) {
