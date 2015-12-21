@@ -72,7 +72,7 @@ bool Ekf::update()
 			return false;
 		}
 	}
-	printStates();
+	//printStates();
 	//printStatesFast();
 	// prediction
 	if (_imu_updated) {
