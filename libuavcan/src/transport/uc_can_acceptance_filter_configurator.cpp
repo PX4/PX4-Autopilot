@@ -193,35 +193,35 @@ int CanAcceptanceFilterConfigurator::computeConfiguration(AnonymousMessages mode
 
 uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
 {
-	if (filters_number_ == 0)
-	{
-    static const uint16_t InvalidOut = 0xFFFF;
-    uint16_t out = InvalidOut;
-    ICanDriver& can_driver = node_.getDispatcher().getCanIOManager().getCanDriver();
-
-    for (uint8_t i = 0; i < node_.getDispatcher().getCanIOManager().getNumIfaces(); i++)
+    if (filters_number_ == 0)
     {
-        const ICanIface* iface = can_driver.getIface(i);
-        if (iface == NULL)
-        {
-            UAVCAN_ASSERT(0);
-            out = 0;
-            break;
-        }
-        const uint16_t num = iface->getNumFilters();
-        out = min(out, num);
-        if (out > MaxCanAcceptanceFilters)
-        {
-            out = MaxCanAcceptanceFilters;
-        }
-    }
+        static const uint16_t InvalidOut = 0xFFFF;
+        uint16_t out = InvalidOut;
+        ICanDriver& can_driver = node_.getDispatcher().getCanIOManager().getCanDriver();
 
-    return (out == InvalidOut) ? 0 : out;
-	}
-	else
-	{
-		return filters_number_;
-	}
+        for (uint8_t i = 0; i < node_.getDispatcher().getCanIOManager().getNumIfaces(); i++)
+        {
+            const ICanIface* iface = can_driver.getIface(i);
+            if (iface == NULL)
+            {
+                UAVCAN_ASSERT(0);
+                out = 0;
+                break;
+            }
+            const uint16_t num = iface->getNumFilters();
+            out = min(out, num);
+            if (out > MaxCanAcceptanceFilters)
+            {
+                out = MaxCanAcceptanceFilters;
+            }
+        }
+
+        return (out == InvalidOut) ? 0 : out;
+    }
+    else
+    {
+        return filters_number_;
+    }
 }
 
 int16_t CanAcceptanceFilterConfigurator::addFilterConfig(const CanFilterConfig& config)
@@ -231,7 +231,7 @@ int16_t CanAcceptanceFilterConfigurator::addFilterConfig(const CanFilterConfig& 
         return -ErrMemory;
     }
 
-	return 0;
+    return 0;
 }
 
 CanFilterConfig CanAcceptanceFilterConfigurator::mergeFilters(CanFilterConfig& a_, CanFilterConfig& b_)
@@ -253,5 +253,4 @@ uint8_t CanAcceptanceFilterConfigurator::countBits(uint32_t n_)
 
     return c_;
 }
-
 }

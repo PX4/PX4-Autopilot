@@ -68,7 +68,7 @@ private:
 
     typedef uavcan::Multiset<CanFilterConfig> MultisetConfigContainer;
 
-    static CanFilterConfig mergeFilters(CanFilterConfig &a_, CanFilterConfig &b_);
+    static CanFilterConfig mergeFilters(CanFilterConfig& a_, CanFilterConfig& b_);
     static uint8_t countBits(uint32_t n_);
     uint16_t getNumFilters() const;
 
@@ -127,5 +127,4 @@ public:
 };
 
 }
-
 #endif // UAVCAN_BUILD_CONFIG_HPP_INCLUDED

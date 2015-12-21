@@ -58,7 +58,7 @@ class SocketCanIface : public uavcan::ICanIface
 {
     static inline ::can_frame makeSocketCanFrame(const uavcan::CanFrame& uavcan_frame)
     {
-        ::can_frame sockcan_frame { uavcan_frame.id & uavcan::CanFrame::MaskExtID, uavcan_frame.dlc, { } };
+        ::can_frame sockcan_frame { uavcan_frame.id& uavcan::CanFrame::MaskExtID, uavcan_frame.dlc, { } };
         (void)std::copy(uavcan_frame.data, uavcan_frame.data + uavcan_frame.dlc, sockcan_frame.data);
         if (uavcan_frame.isExtended())
         {
@@ -310,7 +310,6 @@ class SocketCanIface : public uavcan::ICanIface
                 {
                     rx.ts_utc += clock_.getPrivateAdjustment();
                     rx_queue_.push(rx);
-
                 }
             }
             else if (res == 0)
@@ -327,9 +326,9 @@ class SocketCanIface : public uavcan::ICanIface
     /**
      * Returns true if a frame accepted by HW filters
      */
-    bool checkHWFilters (const ::can_frame frame) const
+    bool checkHWFilters(const ::can_frame frame) const
     {
-        if (! hw_filters_container_.empty())
+        if (!hw_filters_container_.empty())
         {
             uint16_t container_size = hw_filters_container_.size();
             for (uint16_t i = 0; i < container_size; i++)
@@ -486,7 +485,7 @@ public:
     /**
      * Returns number of errors of each kind in a map.
      */
-    const decltype(errors_)& getErrors() const { return errors_; }
+    const decltype(errors_) & getErrors() const { return errors_; }
 
     int getFileDescriptor() const { return fd_; }
 
@@ -537,7 +536,7 @@ public:
                 goto fail;
             }
             // Non-blocking
-            if (::fcntl(s, F_SETFL , O_NONBLOCK) < 0)
+            if (::fcntl(s, F_SETFL, O_NONBLOCK) < 0)
             {
                 goto fail;
             }
