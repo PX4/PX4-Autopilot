@@ -3,6 +3,7 @@ UAVCAN stack in C++
 
 [![Coverity Scan](https://scan.coverity.com/projects/1513/badge.svg)](https://scan.coverity.com/projects/1513)
 [![Travis CI](https://travis-ci.org/UAVCAN/libuavcan.svg?branch=master)](https://travis-ci.org/UAVCAN/libuavcan)
+[![Gitter](https://img.shields.io/badge/gitter-join%20chat-green.svg)](https://gitter.im/UAVCAN/general)
 
 Portable reference implementation of the [UAVCAN protocol stack](http://uavcan.org) in C++ for embedded systems
 and Linux.
