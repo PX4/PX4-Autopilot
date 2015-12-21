@@ -247,7 +247,7 @@ private:
 	float _yaw;				/**< yaw angle (euler) */
 	float _landing_thrust;
 	hrt_abstime _landing_started;
-	int _takeoff_jumped;
+	bool _takeoff_jumped;
 	float _vel_z_lp;
 
 	/**
@@ -381,7 +381,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_yaw(0.0f),
 	_landing_thrust(1.0f),
 	_landing_started(0),
-	_takeoff_jumped(0),
+	_takeoff_jumped(false),
 	_vel_z_lp(0)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
@@ -1075,7 +1075,8 @@ void MulticopterPositionControl::control_auto(float dt)
 		 */
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 				&& _pos_sp_triplet.current.acceptance_radius > 0.0f
-				&& (_pos - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius * 1.1f) {
+				/* need to detect we're close a bit before the navigator switches from takeoff to next waypoint */
+				&& (_pos - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius * 1.2f) {
 			_reset_pos_sp = false;
 			_reset_alt_sp = false;
 
@@ -1360,25 +1361,23 @@ MulticopterPositionControl::task_main()
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
-					switch (_takeoff_jumped) {
-					case 0:
+					if (!_takeoff_jumped) {
 						/* do a quick jump until we shoot over takeoff speed */
 						_vel_sp(2) = -_params.tko_jmpspd;
 
 						if (_vel(2) < -_params.tko_speed) {
-							_takeoff_jumped = 1;
+							_takeoff_jumped = true;
 						}
-						break;
 
-					case 1:
-						/* slowly reduce forced takeoff speed to set climb rate */
-						float tmp = 0.3f * dt + _vel_sp_prev(2);
+					} else {
+						/* slowly reduce forced takeoff speed to set climb rate (in 3 sec) */
+						float decel = _params.tko_jmpspd - _params.tko_speed;
+						float tmp = decel / 3.0f * dt + _vel_sp_prev(2);
 						_vel_sp(2) = math::min(tmp, -_params.tko_speed);
-						break;
 					}
 
 				} else {
-					_takeoff_jumped = 0;
+					_takeoff_jumped = false;
 				}
 
 				// limit total horizontal acceleration
@@ -1393,8 +1392,6 @@ MulticopterPositionControl::task_main()
 					math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
 					_vel_sp(0) = vel_sp_hor(0);
 					_vel_sp(1) = vel_sp_hor(1);
-
-					/*PX4_WARN("vel limited %.4f, %.4f", (double)_vel_sp(0), (double)_vel_sp(1));*/
 				}
 
 				_vel_sp_prev = _vel_sp;
@@ -1478,7 +1475,8 @@ MulticopterPositionControl::task_main()
 					float thrust_abs = thrust_sp.length();
 					float tilt_max = _params.tilt_max_air;
 					float thr_max = _params.thr_max;
-					_vel_z_lp = _vel_z_lp * 0.9f + 0.1f * _vel(2);
+					/* filter vel_z over 1/8sec */
+					_vel_z_lp = _vel_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * _vel(2);
 
 					/* adjust limits for landing mode */
 					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
@@ -1514,6 +1512,7 @@ MulticopterPositionControl::task_main()
 						/* if we suddenly fall, reset landing logic and remove thrust limit */
 						if (hrt_elapsed_time(&_landing_started) > 15e5
 								&& _landing_thrust < FLT_EPSILON
+								/* XXX: magic value, assuming free fall above 4m/s2 acceleration */
 								&& vel_z_change > 4.0f) {
 							_landing_thrust = _params.thr_max;
 							_landing_started = 0;
