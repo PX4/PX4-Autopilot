@@ -33,4 +33,4 @@
 	url = https://github.com/PX4/DriverFramework.git
 [submodule "src/lib/ecl"]
 	path = src/lib/ecl
-	url = https://github.com/LorenzMeier/ecl.git
+	url = https://github.com/PX4/ecl.git
