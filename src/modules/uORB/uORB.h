@@ -366,7 +366,6 @@ __END_DECLS
 
 /* Diverse uORB header defines */ //XXX: move to better location
 #define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
-typedef struct vehicle_attitude_setpoint_s fw_virtual_attitude_setpoint_s;
 typedef uint8_t arming_state_t;
 typedef uint8_t main_state_t;
 typedef uint8_t hil_state_t;

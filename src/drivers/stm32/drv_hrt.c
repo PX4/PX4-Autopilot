@@ -221,6 +221,7 @@
 /*
  * Specific registers and bits used by HRT sub-functions
  */
+/* FIXME! There is an interaction in the CCMR registers that prevents using Chan 1 as the timer and chan 2 as the PPM*/
 #if HRT_TIMER_CHANNEL == 1
 # define rCCR_HRT	rCCR1			/* compare register for HRT */
 # define DIER_HRT	GTIM_DIER_CC1IE		/* interrupt enable for HRT */
@@ -294,7 +295,7 @@ static void		hrt_call_invoke(void);
 #  define GTIM_CCER_CC4NP 0
 #  define PPM_EDGE_FLIP
 # endif
-
+/* FIXME! There is an interaction in the CCMR registers that prevents using Chan 1 as the timer and chan 2 as the PPM*/
 # if HRT_PPM_CHANNEL == 1
 #  define rCCR_PPM	rCCR1			/* capture register for PPM */
 #  define DIER_PPM	GTIM_DIER_CC1IE		/* capture interrupt (non-DMA mode) */

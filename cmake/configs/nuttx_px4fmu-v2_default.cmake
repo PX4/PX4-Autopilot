@@ -2,6 +2,8 @@ include(nuttx/px4_impl_nuttx)
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
+set(config_uavcan_num_ifaces 2)
+
 set(config_module_list
 	#
 	# Board support modules

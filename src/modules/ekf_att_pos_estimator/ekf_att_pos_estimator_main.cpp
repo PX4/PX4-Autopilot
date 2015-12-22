@@ -859,7 +859,9 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	/* Accelerations in Body Frame */
 	_ctrl_state.x_acc = _ekf->accel.x;
 	_ctrl_state.y_acc = _ekf->accel.y;
-	_ctrl_state.z_acc = _ekf->accel.z;
+	_ctrl_state.z_acc = _ekf->accel.z - _ekf->states[13];
+
+	_ctrl_state.horz_acc_mag = _ekf->getAccNavMagHorizontal();
 
 	/* Velocity in Body Frame */
 	Vector3f v_n(_ekf->states[4], _ekf->states[5], _ekf->states[6]);
