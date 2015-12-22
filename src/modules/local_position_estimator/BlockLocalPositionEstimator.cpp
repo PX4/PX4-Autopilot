@@ -206,14 +206,15 @@ void BlockLocalPositionEstimator::update()
 	float dt = (newTimeStamp - _timeStamp) / 1.0e6f;
 	_timeStamp = newTimeStamp;
 
-	//printf("dt: %0.5g\n", double(dt));
-
 	// set dt for all child blocks
 	setDt(dt);
 
 	// auto-detect connected rangefinders while not armed
 	if (!_sub_armed.get().armed && (_sub_lidar == NULL || _sub_sonar == NULL)) {
 		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			if(_distance_subs[i]->get().timestamp == 0) {	
+				continue; // ignore sensors with no data coming in
+			}
 			if (_distance_subs[i]->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
 			    _sub_lidar == NULL) {
 				_sub_lidar = _distance_subs[i];
