@@ -2244,6 +2244,18 @@ int commander_thread_main(int argc, char *argv[])
 				mavlink_log_critical(mavlink_fd, "main state transition denied");
 			}
 
+			/* check throttle kill switch */
+			int prev_lockdown = armed.lockdown;
+			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				/* set lockdown flag */
+				armed.lockdown = true;
+			}
+
+			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+				prev_lockdown != armed.lockdown) {
+				mavlink_and_console_log_critical(mavlink_fd, "RC KILL SWITCH ON");
+			}
+
 		} else {
 			if (!status.rc_input_blocked && !status.rc_signal_lost) {
 				mavlink_log_critical(mavlink_fd, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
