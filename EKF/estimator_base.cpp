@@ -311,7 +311,7 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_gps_speed_valid = false;
 
 	_mag_healthy = false;
-	_in_air = true;			// XXX get this flag from the application
+	_in_air = false;			// XXX get this flag from the application
 
 	_time_last_imu = 0;
 	_time_last_gps = 0;

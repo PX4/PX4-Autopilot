@@ -85,9 +85,9 @@ bool Ekf::update()
 	// measurement updates
 
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		//fuseHeading();
-		fuseMag(_mag_fuse_index);
-		_mag_fuse_index = (_mag_fuse_index + 1) % 3;
+		fuseHeading();
+		//fuseMag(_mag_fuse_index);
+		//_mag_fuse_index = (_mag_fuse_index + 1) % 3;
 	}
 
 	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
