@@ -48,7 +48,8 @@ Ekf::Ekf():
 	_fuse_height(false),
 	_fuse_pos(false),
 	_fuse_vel(false),
-	_mag_fuse_index(0)
+	_mag_fuse_index(0),
+	_time_last_fake_gps(0)
 {
 	_earth_rate_NED.setZero();
 	_R_prev = matrix::Dcm<float>();
@@ -96,6 +97,9 @@ bool Ekf::update()
 	if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed)) {
 		_fuse_pos = true;
 		_fuse_vel = true;
+	} else if (_time_last_imu - _time_last_gps > 2000000 && _time_last_imu - _time_last_fake_gps > 70000) {
+		_fuse_vel = true;
+		_gps_sample_delayed.vel.setZero();
 	}
 
 
@@ -142,13 +146,16 @@ bool Ekf::initialiseFilter(void)
 		roll = -asinf(accel_init(1) / cosf(pitch));
 	}
 
-	matrix::Euler<float> euler_init(roll, pitch, 0.0f);
-	_state.quat_nominal = Quaternion(euler_init);
-
 	magSample mag_init = _mag_buffer.get_newest();
 	if (mag_init.time_us == 0) {
 		return false;
 	}
+
+	float yaw_init = atan2f(mag_init.mag(1), mag_init.mag(0));
+
+	matrix::Euler<float> euler_init(roll, pitch, yaw_init);
+	_state.quat_nominal = Quaternion(euler_init);
+
 
 	matrix::Dcm<float> R_to_earth(euler_init);
 	_state.mag_I = R_to_earth * mag_init.mag;

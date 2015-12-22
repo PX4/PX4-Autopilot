@@ -69,7 +69,7 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 
 	_time_last_imu = time_usec;
 
-	if (_imu_time_last > 0) {
+	if (_time_last_imu > 0) {
 		_dt_imu_avg = 0.8f * _dt_imu_avg + 0.2f * dt;
 	}
 
