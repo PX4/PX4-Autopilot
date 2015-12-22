@@ -97,7 +97,7 @@ public:
 	 * Get the error state of this validator
 	 * @return		the bitmask with the error status
 	 */
-	uint32_t		state() { return (_error_mask); }
+	uint32_t		state() { return _error_mask; }
 	
 	/**
 	 * Reset the error state of this validator

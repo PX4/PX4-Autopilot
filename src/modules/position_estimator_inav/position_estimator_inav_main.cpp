@@ -217,7 +217,7 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 	fclose(f);
 }
 #else
-#define write_debug_log(...) 
+#define write_debug_log(...)
 #endif
 
 /****************************************************************************
@@ -381,6 +381,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	orb_advert_t vehicle_global_position_pub = NULL;
 
 	struct position_estimator_inav_params params;
+	memset(&params, 0, sizeof(params));
 	struct position_estimator_inav_param_handles pos_inav_param_handles;
 	/* initialize parameter handles */
 	inav_parameters_init(&pos_inav_param_handles);
@@ -391,7 +392,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	/* first parameters update */
 	inav_parameters_update(&pos_inav_param_handles, &params);
 
-	px4_pollfd_struct_t fds_init[1];
+	px4_pollfd_struct_t fds_init[1] = {};
 	fds_init[0].fd = sensor_combined_sub;
 	fds_init[0].events = POLLIN;
 
@@ -403,11 +404,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	while (wait_baro && !thread_should_exit) {
-		int ret = px4_poll(fds_init, 1, 1000);
+		int ret = px4_poll(&fds_init[0], 1, 1000);
 
 		if (ret < 0) {
 			/* poll error */
 			mavlink_log_info(mavlink_fd, "[inav] poll error on init");
+			PX4_WARN("INAV poll error");
 
 		} else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
@@ -426,13 +428,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						wait_baro = false;
 						baro_offset /= (float) baro_init_cnt;
-						warnx("baro offset: %d m", (int)baro_offset);
-						mavlink_log_info(mavlink_fd, "[inav] baro offset: %d m", (int)baro_offset);
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
 					}
 				}
 			}
+		} else {
+			PX4_WARN("INAV poll timeout");
 		}
 	}
 
@@ -599,7 +601,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					flow_gyrospeed[0] = flow.gyro_x_rate_integral/(float)flow.integration_timespan*1000000.0f;
 					flow_gyrospeed[1] = flow.gyro_y_rate_integral/(float)flow.integration_timespan*1000000.0f;
 					flow_gyrospeed[2] = flow.gyro_z_rate_integral/(float)flow.integration_timespan*1000000.0f;
-					
+
 					//moving average
 					if (n_flow >= 100) {
 						gyro_offset_filtered[0] = flow_gyrospeed_filtered[0] - att_gyrospeed_filtered[0];
@@ -621,7 +623,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						att_gyrospeed_filtered[2] = (att.yawspeed + n_flow * att_gyrospeed_filtered[2]) / (n_flow + 1);
 						n_flow++;
 					}
-					
+
 
 					/*yaw compensation (flow sensor is not in center of rotation) -> params in QGC*/
 					yaw_comp[0] = params.flow_module_offset_x * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
@@ -845,7 +847,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						} else if (t > ref_init_start + ref_init_delay) {
 							ref_inited = true;
-							
+
 							/* set position estimate to (0, 0, 0), use GPS velocity for XY */
 							x_est[0] = 0.0f;
 							x_est[1] = gps.vel_n_m_s;
@@ -985,7 +987,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps_xy);
 
-		
+
 		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_xy || use_mocap;
 
 		bool dist_bottom_valid = (t < lidar_valid_time + lidar_valid_timeout);
@@ -1151,7 +1153,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (!(PX4_ISFINITE(z_est[0]) && PX4_ISFINITE(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev,
 										acc, corr_gps, w_xy_gps_p, w_xy_gps_v, corr_mocap, w_mocap_p,
-										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);										
+										corr_vision, w_xy_vision_p, w_z_vision_p, w_xy_vision_v);
 			memcpy(z_est, z_est_prev, sizeof(z_est));
 			memset(corr_gps, 0, sizeof(corr_gps));
 			memset(corr_vision, 0, sizeof(corr_vision));
@@ -1282,7 +1284,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				buf_ptr = 0;
 			}
 
-			
+
 			/* publish local position */
 			local_pos.xy_valid = can_estimate_xy;
 			local_pos.v_xy_valid = can_estimate_xy;
@@ -1335,6 +1337,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				} else {
 					global_pos.terrain_alt_valid = false;
 				}
+
+				global_pos.pressure_alt = sensor.baro_alt_meter[0];
 
 				if (vehicle_global_position_pub == NULL) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);

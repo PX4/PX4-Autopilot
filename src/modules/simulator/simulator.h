@@ -50,6 +50,7 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
+#include <systemlib/perf_counter.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/optical_flow.h>
 #include <v1.0/mavlink_types.h>
@@ -222,6 +223,13 @@ private:
 		_mag(1),
 		_gps(1),
 		_airspeed(1),
+		_perf_accel(perf_alloc_once(PC_ELAPSED, "sim_accel_delay")),
+		_perf_mpu(perf_alloc_once(PC_ELAPSED, "sim_mpu_delay")),
+		_perf_baro(perf_alloc_once(PC_ELAPSED, "sim_baro_delay")),
+		_perf_mag(perf_alloc_once(PC_ELAPSED, "sim_mag_delay")),
+		_perf_gps(perf_alloc_once(PC_ELAPSED, "sim_gps_delay")),
+		_perf_airspeed(perf_alloc_once(PC_ELAPSED, "sim_airspeed_delay")),
+		_perf_sim_delay(perf_alloc_once(PC_ELAPSED, "sim_network_delay")),
 		_accel_pub(nullptr),
 		_baro_pub(nullptr),
 		_gyro_pub(nullptr),
@@ -254,6 +262,14 @@ private:
 	simulator::Report<simulator::RawMagData>	_mag;
 	simulator::Report<simulator::RawGPSData>	_gps;
 	simulator::Report<simulator::RawAirspeedData> _airspeed;
+
+	perf_counter_t _perf_accel;
+	perf_counter_t _perf_mpu;
+	perf_counter_t _perf_baro;
+	perf_counter_t _perf_mag;
+	perf_counter_t _perf_gps;
+	perf_counter_t _perf_airspeed;
+	perf_counter_t _perf_sim_delay;
 
 	// uORB publisher handlers
 	orb_advert_t _accel_pub;

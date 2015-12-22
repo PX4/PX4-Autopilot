@@ -14,6 +14,7 @@ for fn in $(find src/examples \
                  src/lib/rc \
                  src/lib/version \
                  src/modules/attitude_estimator_q \
+                 src/modules/fw_att_control \
                  src/modules/gpio_led \
                  src/modules/land_detector \
                  src/modules/muorb \

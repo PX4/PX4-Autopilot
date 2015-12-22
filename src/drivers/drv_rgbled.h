@@ -42,6 +42,8 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#define RGBLED_BASE_DEVICE_PATH "/dev/rgbled"
+
 /* more devices will be 1, 2, etc */
 #define RGBLED0_DEVICE_PATH "/dev/rgbled0"
 

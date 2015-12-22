@@ -289,7 +289,6 @@ private:
 	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
-	perf_counter_t		_system_latency_perf;
 	perf_counter_t		_controller_latency_perf;
 
 	uint8_t			_register_wait;
@@ -562,7 +561,6 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_good_transfers(perf_alloc(PC_COUNT, "mpu6000_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6000_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu6000_duplicates")),
-	_system_latency_perf(perf_alloc_once(PC_ELAPSED, "sys_latency")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_register_wait(0),
 	_reset_wait(0),
@@ -1915,7 +1913,12 @@ MPU6000::measure()
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
-	_last_temperature = (report.temp) / 361.0f + 35.0f;
+	if (is_icm_device()) { // if it is an ICM20608
+		_last_temperature = (report.temp) / 326.8f + 25.0f;
+
+	} else { // If it is an MPU6000
+		_last_temperature = (report.temp) / 361.0f + 35.0f;
+	}
 
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
@@ -1968,7 +1971,6 @@ MPU6000::measure()
 	if (accel_notify && !(_pub_blocked)) {
 		/* log the time of this report */
 		perf_begin(_controller_latency_perf);
-		perf_begin(_system_latency_perf);
 		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}

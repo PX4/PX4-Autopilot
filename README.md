@@ -38,10 +38,10 @@ Testing guide:
 http://px4.io/dev/unit_tests
 
 This repository contains code supporting these boards:
-  * [Snapdragon Flight](https://www.intrinsyc.com/qualcomm-snapdragon-flight/)
+  * [Snapdragon Flight](http://dev.px4.io/hardware-snapdragon.html)
   * FMUv1.x
-  * FMUv2.x (Pixhawk)
-  * FMUv3.x (Pixhawk 2)
+  * FMUv2.x ([Pixhawk](http://dev.px4.io/hardware-pixhawk.html), Pixhawk 2 and [Pixfalcon](http://dev.px4.io/hardware-pixfalcon.html))
+  * FMUv4.x (Pixhawk X and [Pixracer](http://dev.px4.io/hardware-pixracer.html))
   * AeroCore (v1 and v2)
   * STM32F4Discovery (basic support) [Tutorial](https://pixhawk.org/modules/stm32f4discovery)
 

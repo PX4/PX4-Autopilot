@@ -117,6 +117,8 @@ protected:
 	float _mc_roll_weight;	// weight for multicopter attitude controller roll output
 	float _mc_pitch_weight;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight;	// weight for multicopter attitude controller yaw output
+	float _mc_throttle_weight;	// weight for multicopter throttle command. Used to avoid
+	// motors spinning up or cutting too fast whend doing transitions.
 
 	float _yaw_transition;	// yaw angle in which transition will take place
 	float _pitch_transition_start;  // pitch angle at the start of transition (tailsitter)

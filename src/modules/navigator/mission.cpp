@@ -303,7 +303,7 @@ Mission::advance_mission()
 	}
 }
 
-int
+float
 Mission::get_absolute_altitude_for_item(struct mission_item_s &mission_item)
 {
 	if (_mission_item.altitude_is_relative) {

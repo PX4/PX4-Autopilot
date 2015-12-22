@@ -65,36 +65,29 @@
 
 #include <uORB/topics/system_power.h>
 
+#include "SyncObj.hpp"
+#include "VirtDevObj.hpp"
 
-class ADCSIM : public device::VDev
+using namespace DriverFramework;
+
+#define ADC_BASE_DEV_PATH "/dev/adc"
+
+class ADCSIM : public VirtDevObj
 {
 public:
 	ADCSIM(uint32_t channels);
-	~ADCSIM();
+	virtual ~ADCSIM();
 
-	virtual int		init();
-
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t len);
-
-protected:
-	virtual int		open_first(device::file_t *filp);
-	virtual int		close_last(device::file_t *filp);
+	virtual ssize_t		devRead(void *buffer, size_t len);
 
 private:
-	static const hrt_abstime _tickrate = 10000;	/**< 100Hz base rate */
-
-	hrt_call		_call;
 	perf_counter_t		_sample_perf;
 
 	unsigned		_channel_count;
 	adc_msg_s		*_samples;		/**< sample buffer */
 
-	/** work trampoline */
-	static void		_tick_trampoline(void *arg);
-
 	/** worker function */
-	void			_tick();
+	virtual void		_measure();
 
 	/**
 	 * Sample a single channel and return the measured value.
@@ -105,13 +98,11 @@ private:
 	 */
 	uint16_t		_sample(unsigned channel);
 
-	// update system_power ORB topic, only on FMUv2
-	void update_system_power(void);
+	SyncObj 		m_lock;
 };
 
 ADCSIM::ADCSIM(uint32_t channels) :
-	VDev("adcsim", ADCSIM0_DEVICE_PATH),
-	_call(),
+	VirtDevObj("adcsim", "/dev/adcsim", ADC_BASE_DEV_PATH, 10000),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr)
@@ -151,23 +142,8 @@ ADCSIM::~ADCSIM()
 	}
 }
 
-int
-ADCSIM::init()
-{
-	DEVICE_DEBUG("init done");
-
-	/* create the device node */
-	return VDev::init();
-}
-
-int
-ADCSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	return -ENOTTY;
-}
-
 ssize_t
-ADCSIM::read(device::file_t *filp, char *buffer, size_t len)
+ADCSIM::devRead(void *buffer, size_t len)
 {
 	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
 
@@ -176,50 +152,24 @@ ADCSIM::read(device::file_t *filp, char *buffer, size_t len)
 	}
 
 	/* block interrupts while copying samples to avoid racing with an update */
+	m_lock.lock();
 	memcpy(buffer, _samples, len);
+	m_lock.unlock();
 
 	return len;
 }
 
-int
-ADCSIM::open_first(device::file_t *filp)
-{
-	/* get fresh data */
-	_tick();
-
-	/* and schedule regular updates */
-	hrt_call_every(&_call, _tickrate, _tickrate, _tick_trampoline, this);
-
-	return 0;
-}
-
-int
-ADCSIM::close_last(device::file_t *filp)
-{
-	hrt_cancel(&_call);
-	return 0;
-}
-
 void
-ADCSIM::_tick_trampoline(void *arg)
+ADCSIM::_measure()
 {
-	(reinterpret_cast<ADCSIM *>(arg))->_tick();
-}
+	m_lock.lock();
 
-void
-ADCSIM::_tick()
-{
 	/* scan the channel set and sample each */
 	for (unsigned i = 0; i < _channel_count; i++) {
 		_samples[i].am_data = _sample(_samples[i].am_channel);
 	}
 
-	update_system_power();
-}
-
-void
-ADCSIM::update_system_power(void)
-{
+	m_lock.unlock();
 }
 
 uint16_t
@@ -245,20 +195,20 @@ ADCSIM	*g_adc;
 int
 test(void)
 {
+	DevHandle h;
+	DevMgr::getHandle(ADCSIM0_DEVICE_PATH, h);
 
-	int fd = px4_open(ADCSIM0_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("can't open ADCSIM device");
+	if (!h.isValid()) {
+		PX4_ERR("can't open ADCSIM device (%d)", h.getError());
 		return 1;
 	}
 
 	for (unsigned i = 0; i < 50; i++) {
 		adc_msg_s data[12];
-		ssize_t count = px4_read(fd, data, sizeof(data));
+		ssize_t count = h.read(data, sizeof(data));
 
 		if (count < 0) {
-			PX4_ERR("read error");
+			PX4_ERR("read error (%d)", h.getError());
 			return 1;
 		}
 
@@ -271,7 +221,7 @@ test(void)
 		usleep(500000);
 	}
 
-	px4_close(fd);
+	DevMgr::releaseHandle(h);
 	return 0;
 }
 }
@@ -290,14 +240,15 @@ adcsim_main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (g_adc->init() != OK) {
-			delete g_adc;
-			PX4_ERR("ADCSIM init failed");
+		ret = g_adc->init();
+
+		if (ret != 0) {
+			PX4_ERR("ADCSIM init failed (%d)", ret);
 			return 1;
 		}
 	}
 
-	if (argc > 1) {
+	if (argc > 1 && g_adc) {
 		if (!strcmp(argv[1], "test")) {
 			ret = test();
 		}

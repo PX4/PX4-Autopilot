@@ -161,6 +161,13 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
+	rv = pthread_attr_getschedparam(&attr, &param);
+
+	if (rv != 0) {
+		PX4_WARN("px4_task_spawn_cmd: failed to get thread sched param");
+		return (rv < 0) ? rv : -rv;
+	}
+
 #if 0
 	rv = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 

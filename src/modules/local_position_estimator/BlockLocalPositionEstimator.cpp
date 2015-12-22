@@ -711,6 +711,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().terrain_alt = 0;
 		_pub_gpos.get().terrain_alt_valid = false;
 		_pub_gpos.get().dead_reckoning = !_canEstimateXY && !_xyTimeout;
+		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter[0];
 		_pub_gpos.update();
 	}
 }

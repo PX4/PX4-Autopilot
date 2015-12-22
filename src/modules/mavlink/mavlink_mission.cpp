@@ -813,7 +813,14 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
 	mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
 	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
-	mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+
+	/* unsigned, so can't be negative, only check for overflow */
+	if (mavlink_mission_item->command >= NAV_CMD_INVALID) {
+		mission_item->nav_cmd = NAV_CMD_INVALID;
+
+	} else {
+		mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+	}
 
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	// mission_item->index = mavlink_mission_item->seq;

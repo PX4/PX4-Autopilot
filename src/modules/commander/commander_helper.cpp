@@ -63,6 +63,9 @@
 #include <drivers/drv_rgbled.h>
 
 #include "commander_helper.h"
+#include "DevMgr.hpp"
+
+using namespace DriverFramework;
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -93,11 +96,14 @@ bool is_vtol(const struct vehicle_status_s * current_status) {
 		current_status->system_type == vehicle_status_s::VEHICLE_TYPE_VTOL_OCTOROTOR);
 }
 
-static int buzzer = -1;
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
 static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for repeating tunes or silence
 static int tune_current = TONE_STOP_TUNE;		// currently playing tune, can be interrupted after tune_end
 static unsigned int tune_durations[TONE_NUMBER_OF_TUNES];
+
+static DevHandle h_leds;
+static DevHandle h_rgbleds;
+static DevHandle h_buzzer;
 
 static param_t bat_v_empty_h;
 static param_t bat_v_full_h;
@@ -133,10 +139,10 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
 
-	buzzer = px4_open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h_buzzer);
 
-	if (buzzer < 0) {
-		warnx("Buzzer: px4_open fail\n");
+	if (!h_buzzer.isValid()) {
+		PX4_WARN("Buzzer: px4_open fail\n");
 		return ERROR;
 	}
 
@@ -145,12 +151,12 @@ int buzzer_init()
 
 void buzzer_deinit()
 {
-	px4_close(buzzer);
+	DevMgr::releaseHandle(h_buzzer);
 }
 
 void set_tune_override(int tune)
 {
-	px4_ioctl(buzzer, TONE_SET_ALARM, tune);
+	h_buzzer.ioctl(TONE_SET_ALARM, tune);
 }
 
 void set_tune(int tune)
@@ -161,7 +167,7 @@ void set_tune(int tune)
 	if (tune_end == 0 || new_tune_duration != 0 || hrt_absolute_time() > tune_end) {
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
-			px4_ioctl(buzzer, TONE_SET_ALARM, tune);
+			h_buzzer.ioctl(TONE_SET_ALARM, tune);
 		}
 
 		tune_current = tune;
@@ -264,30 +270,27 @@ int blink_msg_state()
 	}
 }
 
-static int leds = -1;
-static int rgbleds = -1;
-
 int led_init()
 {
 	blink_msg_end = 0;
 
 	/* first open normal LEDs */
-	leds = px4_open(LED0_DEVICE_PATH, 0);
+	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
 
-	if (leds < 0) {
-		warnx("LED: px4_open fail\n");
+	if (!h_leds.isValid()) {
+		PX4_WARN("LED: getHandle fail\n");
 		return ERROR;
 	}
 
 	/* the blue LED is only available on FMUv1 & AeroCore but not FMUv2 */
-	(void)px4_ioctl(leds, LED_ON, LED_BLUE);
+	(void)h_leds.ioctl(LED_ON, LED_BLUE);
 
 	/* switch blue off */
 	led_off(LED_BLUE);
 
 	/* we consider the amber led mandatory */
-	if (px4_ioctl(leds, LED_ON, LED_AMBER)) {
-		warnx("Amber LED: px4_ioctl fail\n");
+	if (h_leds.ioctl(LED_ON, LED_AMBER)) {
+		PX4_WARN("Amber LED: ioctl fail\n");
 		return ERROR;
 	}
 
@@ -295,10 +298,11 @@ int led_init()
 	led_off(LED_AMBER);
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
-	rgbleds = px4_open(RGBLED0_DEVICE_PATH, 0);
+	DevHandle h;
+	DevMgr::getHandle(RGBLED0_DEVICE_PATH, h_rgbleds);
 
-	if (rgbleds < 0) {
-		warnx("No RGB LED found at " RGBLED0_DEVICE_PATH);
+	if (!h_rgbleds.isValid()) {
+		PX4_WARN("No RGB LED found at " RGBLED0_DEVICE_PATH);
 	}
 
 	return 0;
@@ -306,64 +310,41 @@ int led_init()
 
 void led_deinit()
 {
-	if (leds >= 0) {
-		px4_close(leds);
-	}
-
-	if (rgbleds >= 0) {
-		px4_close(rgbleds);
-	}
+	DevMgr::releaseHandle(h_leds);
+	DevMgr::releaseHandle(h_rgbleds);
 }
 
 int led_toggle(int led)
 {
-	if (leds < 0) {
-		return leds;
-	}
-	return px4_ioctl(leds, LED_TOGGLE, led);
+	return h_leds.ioctl(LED_TOGGLE, led);
 }
 
 int led_on(int led)
 {
-	if (leds < 0) {
-		return leds;
-	}
-	return px4_ioctl(leds, LED_ON, led);
+	return h_leds.ioctl(LED_ON, led);
 }
 
 int led_off(int led)
 {
-	if (leds < 0) {
-		return leds;
-	}
-	return px4_ioctl(leds, LED_OFF, led);
+	return h_leds.ioctl(LED_OFF, led);
 }
 
 void rgbled_set_color(rgbled_color_t color)
 {
 
-	if (rgbleds < 0) {
-		return;
-	}
-	px4_ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
+	h_rgbleds.ioctl(RGBLED_SET_COLOR, (unsigned long)color);
 }
 
 void rgbled_set_mode(rgbled_mode_t mode)
 {
 
-	if (rgbleds < 0) {
-		return;
-	}
-	px4_ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
+	h_rgbleds.ioctl(RGBLED_SET_MODE, (unsigned long)mode);
 }
 
 void rgbled_set_pattern(rgbled_pattern_t *pattern)
 {
 
-	if (rgbleds < 0) {
-		return;
-	}
-	px4_ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
+	h_rgbleds.ioctl(RGBLED_SET_PATTERN, (unsigned long)pattern);
 }
 
 unsigned battery_get_n_cells() {

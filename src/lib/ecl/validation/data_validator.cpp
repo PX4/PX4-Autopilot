@@ -118,34 +118,34 @@ DataValidator::confidence(uint64_t timestamp)
 	if (_time_last == 0) {
 		_error_mask |= ERROR_FLAG_NO_DATA;
 		ret = 0.0f;
-	}
-	
+
 	/* timed out - that's it */
-	if (timestamp - _time_last > _timeout_interval) {
+	} else if (timestamp - _time_last > _timeout_interval) {
 		_error_mask |= ERROR_FLAG_TIMEOUT;
 		ret = 0.0f;
-	}
 
 	/* we got the exact same sensor value N times in a row */
-	if (_value_equal_count > VALUE_EQUAL_COUNT_MAX) {
+	} else if (_value_equal_count > VALUE_EQUAL_COUNT_MAX) {
 		_error_mask |= ERROR_FLAG_STALE_DATA;
 		ret = 0.0f;
-	}
-	
+
 	/* check error count limit */
-	if (_error_count > NORETURN_ERRCOUNT) {
+	} else if (_error_count > NORETURN_ERRCOUNT) {
 		_error_mask |= ERROR_FLAG_HIGH_ERRCOUNT;
 		ret = 0.0f;
-	}
 
 	/* cap error density counter at window size */
-	if (_error_density > ERROR_DENSITY_WINDOW) {
+	} else if (_error_density > ERROR_DENSITY_WINDOW) {
 		_error_mask |= ERROR_FLAG_HIGH_ERRDENSITY;
 		_error_density = ERROR_DENSITY_WINDOW;
+
+	/* no error */
+	} else {
+		_error_mask = ERROR_FLAG_NO_ERROR;
 	}
 	
 	/* no critical errors */
-	if(ret > 0.0f) {
+	if (ret > 0.0f) {
 		/* return local error density for last N measurements */
 		ret = 1.0f - (_error_density / ERROR_DENSITY_WINDOW);
 	}

@@ -69,21 +69,23 @@
 
 #include "PreflightCheck.h"
 
+#include "DevMgr.hpp"
+
+using namespace DriverFramework;
+
 namespace Commander
 {
 
-static int check_calibration(int fd, const char* param_template, int &devid);
-
-int check_calibration(int fd, const char* param_template, int &devid)
+static int check_calibration(DevHandle &h, const char* param_template, int &devid)
 {
 	bool calibration_found;
 
 	/* new style: ask device for calibration state */
-	int ret = px4_ioctl(fd, SENSORIOCCALTEST, 0);
+	int ret = h.ioctl(SENSORIOCCALTEST, 0);
 
 	calibration_found = (ret == OK);
 	
-	devid = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+	devid = h.ioctl(DEVIOCGDEVICEID, 0);
 
 	char s[20];
 	int instance = 0;
@@ -120,9 +122,10 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional, in
 
 	char s[30];
 	sprintf(s, "%s%u", MAG_BASE_DEVICE_PATH, instance);
-	int fd = px4_open(s, 0);
+	DevHandle h;
+	DevMgr::getHandle(s, h);
 
-	if (fd < 0) {
+	if (!h.isValid()) {
 		if (!optional) {
 			if (report_fail) {
 				mavlink_and_console_log_critical(mavlink_fd,
@@ -133,7 +136,7 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional, in
 		return false;
 	}
 
-	int ret = check_calibration(fd, "CAL_MAG%u_ID", device_id);
+	int ret = check_calibration(h, "CAL_MAG%u_ID", device_id);
 
 	if (ret) {
 		if (report_fail) {
@@ -144,7 +147,7 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional, in
 		goto out;
 	}
 
-	ret = px4_ioctl(fd, MAGIOCSELFTEST, 0);
+	ret = h.ioctl(MAGIOCSELFTEST, 0);
 
 	if (ret != OK) {
 		if (report_fail) {
@@ -156,7 +159,7 @@ static bool magnometerCheck(int mavlink_fd, unsigned instance, bool optional, in
 	}
 
 out:
-	px4_close(fd);
+	DevMgr::releaseHandle(h);
 	return success;
 }
 
@@ -166,9 +169,10 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 
 	char s[30];
 	sprintf(s, "%s%u", ACCEL_BASE_DEVICE_PATH, instance);
-	int fd = px4_open(s, O_RDONLY);
+	DevHandle h;
+	DevMgr::getHandle(s, h);
 
-	if (fd < 0) {
+	if (!h.isValid()) {
 		if (!optional) {
 			if (report_fail) {
 				mavlink_and_console_log_critical(mavlink_fd,
@@ -179,7 +183,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 		return false;
 	}
 
-	int ret = check_calibration(fd, "CAL_ACC%u_ID", device_id);
+	int ret = check_calibration(h, "CAL_ACC%u_ID", device_id);
 
 	if (ret) {
 		if (report_fail) {
@@ -190,7 +194,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 		goto out;
 	}
 
-	ret = px4_ioctl(fd, ACCELIOCSELFTEST, 0);
+	ret = h.ioctl(ACCELIOCSELFTEST, 0);
 
 	if (ret != OK) {
 		if (report_fail) {
@@ -205,7 +209,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 	if (dynamic) {
 		/* check measurement result range */
 		struct accel_report acc;
-		ret = px4_read(fd, &acc, sizeof(acc));
+		ret = h.read(&acc, sizeof(acc));
 
 		if (ret == sizeof(acc)) {
 			/* evaluate values */
@@ -231,7 +235,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 #endif
 
 out:
-	px4_close(fd);
+	DevMgr::releaseHandle(h);
 	return success;
 }
 
@@ -241,9 +245,10 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional, int &dev
 
 	char s[30];
 	sprintf(s, "%s%u", GYRO_BASE_DEVICE_PATH, instance);
-	int fd = px4_open(s, 0);
+	DevHandle h;
+	DevMgr::getHandle(s, h);
 
-	if (fd < 0) {
+	if (!h.isValid()) {
 		if (!optional) {
 			if (report_fail) {
 				mavlink_and_console_log_critical(mavlink_fd,
@@ -254,7 +259,7 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional, int &dev
 		return false;
 	}
 
-	int ret = check_calibration(fd, "CAL_GYRO%u_ID", device_id);
+	int ret = check_calibration(h, "CAL_GYRO%u_ID", device_id);
 
 	if (ret) {
 		if (report_fail) {
@@ -265,7 +270,7 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional, int &dev
 		goto out;
 	}
 
-	ret = px4_ioctl(fd, GYROIOCSELFTEST, 0);
+	ret = h.ioctl(GYROIOCSELFTEST, 0);
 
 	if (ret != OK) {
 		if (report_fail) {
@@ -277,7 +282,7 @@ static bool gyroCheck(int mavlink_fd, unsigned instance, bool optional, int &dev
 	}
 
 out:
-	px4_close(fd);
+	DevMgr::releaseHandle(h);
 	return success;
 }
 
@@ -287,9 +292,10 @@ static bool baroCheck(int mavlink_fd, unsigned instance, bool optional, int &dev
 
 	char s[30];
 	sprintf(s, "%s%u", BARO_BASE_DEVICE_PATH, instance);
-	int fd = px4_open(s, 0);
+	DevHandle h;
+	DevMgr::getHandle(s, h);
 
-	if (fd < 0) {
+	if (!h.isValid()) {
 		if (!optional) {
 			if (report_fail) {
 				mavlink_and_console_log_critical(mavlink_fd,
@@ -314,7 +320,7 @@ static bool baroCheck(int mavlink_fd, unsigned instance, bool optional, int &dev
 
 //out:
 
-	px4_close(fd);
+	DevMgr::releaseHandle(h);
 	return success;
 }
 
