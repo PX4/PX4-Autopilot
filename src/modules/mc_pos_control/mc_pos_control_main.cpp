@@ -1364,8 +1364,10 @@ MulticopterPositionControl::task_main()
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
 					if (!_takeoff_jumped) {
-						/* do a quick jump until we shoot over takeoff speed */
-						_vel_sp(2) = -_params.tko_jmpspd;
+						/* do a quick jump (ramp vel sp up in 1/2sec) until we shoot over takeoff speed */
+						float accel = _vel_sp_prev(2) - _params.tko_jmpspd;
+						float tmp = _vel_sp_prev(2) + accel * dt * 2.0f;
+						_vel_sp(2) = math::max(tmp, -_params.tko_jmpspd);
 
 						if (_vel(2) < -_params.tko_speed) {
 							_takeoff_jumped = true;
