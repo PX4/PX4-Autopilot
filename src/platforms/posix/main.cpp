@@ -227,7 +227,14 @@ int main(int argc, char **argv)
 			// Lock this application in the current working dir
 			// this is not an attempt to secure the environment,
 			// rather, to replicate a deployed file system.
-			char pwd_path[PATH_MAX];
+
+#ifdef PATH_MAX
+			const unsigned path_max_len = PATH_MAX;
+#else
+			const unsigned path_max_len = 1024;
+#endif
+
+			char pwd_path[path_max_len];
 			const char *folderpath = "/rootfs/";
 
 			if (nullptr == getcwd(pwd_path, sizeof(pwd_path))) {
