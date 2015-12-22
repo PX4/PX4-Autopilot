@@ -510,7 +510,8 @@ void BlockLocalPositionEstimator::initLidar()
 	float d = _sub_lidar->get().current_distance;
 
 	if (d < _sub_lidar->get().max_distance &&
-	    d > _sub_lidar->get().min_distance) {
+	    d > _sub_lidar->get().min_distance &&
+	    _sub_lidar->get().timestamp != 0) {
 		valid = true;
 	}
 
@@ -538,7 +539,8 @@ void BlockLocalPositionEstimator::initSonar()
 	float d = _sub_sonar->get().current_distance;
 
 	if (d < _sub_sonar->get().max_distance &&
-	    d > _sub_sonar->get().min_distance) {
+	    d > _sub_sonar->get().min_distance &&
+	    _sub_sonar->get().timestamp != 0) {
 		valid = true;
 	}
 
@@ -1000,6 +1002,9 @@ void BlockLocalPositionEstimator::correctFlow()
 
 void BlockLocalPositionEstimator::correctSonar()
 {
+
+	if (_sub_sonar->get().timestamp == 0) { return; }
+
 	float d = _sub_sonar->get().current_distance;
 
 	// sonar measurement matrix and noise matrix
@@ -1119,6 +1124,8 @@ void BlockLocalPositionEstimator::correctBaro()
 
 void BlockLocalPositionEstimator::correctLidar()
 {
+
+	if (_sub_lidar->get().timestamp == 0) { return; }
 
 	float d = _sub_lidar->get().current_distance;
 
