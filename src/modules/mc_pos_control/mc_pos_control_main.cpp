@@ -249,6 +249,7 @@ private:
 	hrt_abstime _landing_started;
 	bool _takeoff_jumped;
 	float _vel_z_lp;
+	float _acc_z_lp;
 
 	/**
 	 * Update our local parameter cache.
@@ -382,7 +383,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_landing_thrust(1.0f),
 	_landing_started(0),
 	_takeoff_jumped(false),
-	_vel_z_lp(0)
+	_vel_z_lp(0),
+	_acc_z_lp(0)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
@@ -1478,6 +1480,9 @@ MulticopterPositionControl::task_main()
 					float thr_max = _params.thr_max;
 					/* filter vel_z over 1/8sec */
 					_vel_z_lp = _vel_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * _vel(2);
+					/* filter vel_z change over 1/8sec */
+					float vel_z_change = (_vel(2) - _vel_prev(2)) / dt;
+					_acc_z_lp = _acc_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * vel_z_change;
 
 					/* adjust limits for landing mode */
 					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
@@ -1492,12 +1497,11 @@ MulticopterPositionControl::task_main()
 						if (_landing_started == 0) {
 							_landing_started = hrt_absolute_time();
 						}
-						float vel_z_change = (_vel(2) - _vel_prev(2)) / dt;
 
 						/* don't let it throttle up again during landing */
 						if (thrust_sp(2) < 0.0f && thrust_abs < _landing_thrust
 								/* fix landing thrust after a certain time when velocity change is minimal */
-								&& (float)fabs(vel_z_change) < 0.05f
+								&& (float)fabs(_acc_z_lp) < 0.1f
 								&& _vel_z_lp > 0.5f * _params.land_speed
 								&& hrt_elapsed_time(&_landing_started) > 15e5) {
 							_landing_thrust = thrust_abs;
@@ -1506,7 +1510,8 @@ MulticopterPositionControl::task_main()
 						/* assume ground, reduce thrust */
 						if (hrt_elapsed_time(&_landing_started) > 15e5
 								&& _landing_thrust > FLT_EPSILON
-								&& _vel_z_lp < 0.1f) {
+								&& _vel_z_lp < 0.1f
+								) {
 							_landing_thrust = 0.0f;
 						}
 
@@ -1514,7 +1519,9 @@ MulticopterPositionControl::task_main()
 						if (hrt_elapsed_time(&_landing_started) > 15e5
 								&& _landing_thrust < FLT_EPSILON
 								/* XXX: magic value, assuming free fall above 4m/s2 acceleration */
-								&& vel_z_change > 4.0f) {
+								&& (_acc_z_lp > 4.0f
+								|| _vel_z_lp > 2.0f * _params.land_speed)
+								) {
 							_landing_thrust = _params.thr_max;
 							_landing_started = 0;
 						}
