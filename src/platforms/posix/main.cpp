@@ -45,6 +45,7 @@
 #include <vector>
 #include <signal.h>
 #include <unistd.h>
+#include <stdio.h>
 #include "apps.h"
 #include "px4_middleware.h"
 #include "DriverFramework.hpp"
