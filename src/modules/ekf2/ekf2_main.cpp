@@ -283,6 +283,16 @@ void Ekf2::task_main()
 		ctrl_state.q[2] = q(2);
 		ctrl_state.q[3] = q(3);
 
+		att.q[0] = q(0);
+		att.q[1] = q(1);
+		att.q[2] = q(2);
+		att.q[3] = q(3);
+		att.q_valid = true;
+
+		att.rollspeed = sensors.gyro_rad_s[0];
+		att.pitchspeed = sensors.gyro_rad_s[1];
+		att.yawspeed = sensors.gyro_rad_s[2];
+
 		if (_control_state_pub == nullptr) {
 			_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
 		} else {
