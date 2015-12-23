@@ -89,7 +89,7 @@ int px4_simple_app_main(int argc, char *argv[])
 			if (error_counter < 10 || error_counter % 50 == 0) {
 				/* use a counter to prevent flooding (and slowing us down) */
 				PX4_ERR("[px4_simple_app] ERROR return value from poll(): %d"
-				       , poll_ret);
+					, poll_ret);
 			}
 
 			error_counter++;
@@ -102,9 +102,9 @@ int px4_simple_app_main(int argc, char *argv[])
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
 				PX4_WARN("[px4_simple_app] Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-				       (double)raw.accelerometer_m_s2[0],
-				       (double)raw.accelerometer_m_s2[1],
-				       (double)raw.accelerometer_m_s2[2]);
+					 (double)raw.accelerometer_m_s2[0],
+					 (double)raw.accelerometer_m_s2[1],
+					 (double)raw.accelerometer_m_s2[2]);
 
 				/* set att and publish this information for other apps */
 				att.roll = raw.accelerometer_m_s2[0];
@@ -118,6 +118,7 @@ int px4_simple_app_main(int argc, char *argv[])
 			 */
 		}
 	}
+
 	PX4_INFO("exiting");
 
 	return 0;
