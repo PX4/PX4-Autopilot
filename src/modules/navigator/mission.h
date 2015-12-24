@@ -133,7 +133,7 @@ private:
 	 */
 	void altitude_sp_foh_reset();
 
-	int get_absolute_altitude_for_item(struct mission_item_s &mission_item);
+	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
 
 	/**
 	 * Read current or next mission item from the dataman and watch out for DO_JUMPS

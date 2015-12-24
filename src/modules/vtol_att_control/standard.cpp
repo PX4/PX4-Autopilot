@@ -54,6 +54,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
+	_mc_throttle_weight = 1.0f;
 
 	_params_handles_standard.front_trans_dur = param_find("VT_F_TRANS_DUR");
 	_params_handles_standard.back_trans_dur = param_find("VT_B_TRANS_DUR");
@@ -113,6 +114,7 @@ void Standard::update_vtol_state()
 			_mc_roll_weight = 1.0f;
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
+			_mc_throttle_weight = 1.0f;
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// transition to mc mode
@@ -126,6 +128,7 @@ void Standard::update_vtol_state()
 			_mc_roll_weight = 1.0f;
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
+			_mc_throttle_weight = 1.0f;
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed
@@ -151,6 +154,7 @@ void Standard::update_vtol_state()
 			_mc_roll_weight = 0.0f;
 			_mc_pitch_weight = 0.0f;
 			_mc_yaw_weight = 0.0f;
+			_mc_throttle_weight = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
@@ -207,12 +211,14 @@ void Standard::update_transition_state()
 			_mc_roll_weight = weight;
 			_mc_pitch_weight = weight;
 			_mc_yaw_weight = weight;
+			_mc_throttle_weight = weight;
 
 		} else {
 			// at low speeds give full weight to mc
 			_mc_roll_weight = 1.0f;
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
+			_mc_throttle_weight = 1.0f;
 		}
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
@@ -223,11 +229,13 @@ void Standard::update_transition_state()
 			_mc_roll_weight = weight;
 			_mc_pitch_weight = weight;
 			_mc_yaw_weight = weight;
+			_mc_throttle_weight = weight;
 
 		} else {
 			_mc_roll_weight = 1.0f;
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
+			_mc_throttle_weight = 1.0f;
 		}
 
 		// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again
@@ -241,6 +249,7 @@ void Standard::update_transition_state()
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
 	_mc_pitch_weight = math::constrain(_mc_pitch_weight, 0.0f, 1.0f);
 	_mc_yaw_weight = math::constrain(_mc_yaw_weight, 0.0f, 1.0f);
+	_mc_throttle_weight = math::constrain(_mc_throttle_weight, 0.0f, 1.0f);
 }
 
 void Standard::update_mc_state()
@@ -280,7 +289,7 @@ void Standard::fill_actuator_outputs()
 	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
 			_mc_yaw_weight;	// yaw
 	_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];	// throttle
+		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;	// throttle
 
 	/* fixed wing controls */
 	_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]
