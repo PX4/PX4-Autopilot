@@ -59,6 +59,7 @@ set(config_module_list
 	lib/launchdetection
 	lib/terrain_estimation
 	lib/runway_takeoff
+	examples/px4_simple_app
 	)
 
 set(config_extra_builtin_cmds

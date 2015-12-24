@@ -44,6 +44,8 @@
 #include <sstream>
 #include <vector>
 #include <signal.h>
+#include <unistd.h>
+#include <stdio.h>
 #include "apps.h"
 #include "px4_middleware.h"
 #include "DriverFramework.hpp"
@@ -157,6 +159,7 @@ static void process_line(string &line, bool exit_on_fail)
 int main(int argc, char **argv)
 {
 	bool daemon_mode = false;
+	bool chroot_on = false;
 	signal(SIGINT, _SigIntHandler);
 	signal(SIGFPE, _SigFpeHandler);
 
@@ -173,6 +176,9 @@ int main(int argc, char **argv)
 			} else if (strcmp(argv[index], "-h") == 0) {
 				usage();
 				return 0;
+
+			} else if (strcmp(argv[index], "-c") == 0) {
+				chroot_on = true;
 
 			} else {
 				PX4_WARN("Unknown/unhandled parameter: %s", argv[index]);
@@ -203,7 +209,7 @@ int main(int argc, char **argv)
 
 		px4::init(argc, argv, "mainapp");
 
-		//if commandfile is present, process the commands from the file
+		// if commandfile is present, process the commands from the file
 		if (commands_file != nullptr) {
 			ifstream infile(commands_file);
 
@@ -214,6 +220,41 @@ int main(int argc, char **argv)
 
 			} else {
 				PX4_WARN("Error opening file: %s", commands_file);
+			}
+		}
+
+		if (chroot_on) {
+			// Lock this application in the current working dir
+			// this is not an attempt to secure the environment,
+			// rather, to replicate a deployed file system.
+
+#ifdef PATH_MAX
+			const unsigned path_max_len = PATH_MAX;
+#else
+			const unsigned path_max_len = 1024;
+#endif
+
+			char pwd_path[path_max_len];
+			const char *folderpath = "/rootfs/";
+
+			if (nullptr == getcwd(pwd_path, sizeof(pwd_path))) {
+				PX4_ERR("Failed aquiring working dir, abort.");
+				exit(1);
+			}
+
+			if (nullptr == strcat(pwd_path, folderpath)) {
+				PX4_ERR("Failed completing path, abort.");
+				exit(1);
+			}
+
+			if (chroot(pwd_path)) {
+				PX4_ERR("Failed chrooting application, path: %s, error: %s.", pwd_path, strerror(errno));
+				exit(1);
+			}
+
+			if (chdir("/")) {
+				PX4_ERR("Failed changing to root dir, path: %s, error: %s.", pwd_path, strerror(errno));
+				exit(1);
 			}
 		}
 
