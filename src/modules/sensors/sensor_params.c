@@ -110,6 +110,90 @@ PARAM_DEFINE_FLOAT(CAL_GYRO0_YSCALE, 1.0f);
 PARAM_DEFINE_FLOAT(CAL_GYRO0_ZSCALE, 1.0f);
 
 /**
+ * Gyroscope calibration temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TMPNOM, 0.0f);
+
+/**
+ * Gyroscope min fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TMPMIN, 0.0f);
+
+/**
+ * Gyroscope max fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TMPMAX, 0.0f);
+
+/**
+ * Gyroscope axis one X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TA0X0, 0.0f);
+
+/**
+ * Gyroscope axis one X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TA0X1, 0.0f);
+
+/**
+ * Gyroscope axis one X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TA0X2, 0.0f);
+
+/**
+ * Gyroscope axis two X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TA1X0, 0.0f);
+
+/**
+ * Gyroscope axis two X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TA1X1, 0.0f);
+
+/**
+ * Gyroscope axis two X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TA1X2, 0.0f);
+
+/**
+ * Gyroscope axis three X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TA2X0, 0.0f);
+
+/**
+ * Gyroscope axis three X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TA2X1, 0.0f);
+
+/**
+ * Gyroscope axis three X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO0_TA2X2, 0.0f);
+
+/**
  * ID of Magnetometer the calibration is for.
  *
  * @group Sensor Calibration
@@ -178,6 +262,90 @@ PARAM_DEFINE_FLOAT(CAL_MAG0_YSCALE, 1.0f);
 PARAM_DEFINE_FLOAT(CAL_MAG0_ZSCALE, 1.0f);
 
 /**
+ * Magnetometer calibration temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TMPNOM, 0.0f);
+
+/**
+ * Magnetometer min fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TMPMIN, 0.0f);
+
+/**
+ * Magnetometer max fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TMPMAX, 0.0f);
+
+/**
+ * Magnetometer axis one X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TA0X0, 0.0f);
+
+/**
+ * Magnetometer axis one X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TA0X1, 0.0f);
+
+/**
+ * Magnetometer axis one X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TA0X2, 0.0f);
+
+/**
+ * Magnetometer axis two X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TA1X0, 0.0f);
+
+/**
+ * Magnetometer axis two X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TA1X1, 0.0f);
+
+/**
+ * Magnetometer axis two X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TA1X2, 0.0f);
+
+/**
+ * Magnetometer axis three X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TA2X0, 0.0f);
+
+/**
+ * Magnetometer axis three X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TA2X1, 0.0f);
+
+/**
+ * Magnetometer axis three X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG0_TA2X2, 0.0f);
+
+/**
  * ID of the Accelerometer that the calibration is for.
  *
  * @group Sensor Calibration
@@ -225,6 +393,90 @@ PARAM_DEFINE_FLOAT(CAL_ACC0_YSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_ACC0_ZSCALE, 1.0f);
+
+/**
+ * Accelerometer calibration temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TMPNOM, 0.0f);
+
+/**
+ * Accelerometer min fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TMPMIN, 0.0f);
+
+/**
+ * Accelerometer max fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TMPMAX, 0.0f);
+
+/**
+ * Accelerometer axis one X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TA0X0, 0.0f);
+
+/**
+ * Accelerometer axis one X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TA0X1, 0.0f);
+
+/**
+ * Accelerometer axis one X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TA0X2, 0.0f);
+
+/**
+ * Accelerometer axis two X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TA1X0, 0.0f);
+
+/**
+ * Accelerometer axis two X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TA1X1, 0.0f);
+
+/**
+ * Accelerometer axis two X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TA1X2, 0.0f);
+
+/**
+ * Accelerometer axis three X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TA2X0, 0.0f);
+
+/**
+ * Accelerometer axis three X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TA2X1, 0.0f);
+
+/**
+ * Accelerometer axis three X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC0_TA2X2, 0.0f);
 
 /**
  * ID of the Gyro that the calibration is for.
@@ -286,6 +538,90 @@ PARAM_DEFINE_FLOAT(CAL_GYRO1_YSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO1_ZSCALE, 1.0f);
+
+/**
+ * Gyroscope calibration temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TMPNOM, 0.0f);
+
+/**
+ * Gyroscope min fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TMPMIN, 0.0f);
+
+/**
+ * Gyroscope max fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TMPMAX, 0.0f);
+
+/**
+ * Gyroscope axis one X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TA0X0, 0.0f);
+
+/**
+ * Gyroscope axis one X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TA0X1, 0.0f);
+
+/**
+ * Gyroscope axis one X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TA0X2, 0.0f);
+
+/**
+ * Gyroscope axis two X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TA1X0, 0.0f);
+
+/**
+ * Gyroscope axis two X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TA1X1, 0.0f);
+
+/**
+ * Gyroscope axis two X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TA1X2, 0.0f);
+
+/**
+ * Gyroscope axis three X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TA2X0, 0.0f);
+
+/**
+ * Gyroscope axis three X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TA2X1, 0.0f);
+
+/**
+ * Gyroscope axis three X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TA2X2, 0.0f);
 
 /**
  * ID of Magnetometer the calibration is for.
@@ -356,6 +692,90 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_YSCALE, 1.0f);
 PARAM_DEFINE_FLOAT(CAL_MAG1_ZSCALE, 1.0f);
 
 /**
+ * Magnetometer calibration temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TMPNOM, 0.0f);
+
+/**
+ * Magnetometer min fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TMPMIN, 0.0f);
+
+/**
+ * Magnetometer max fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TMPMAX, 0.0f);
+
+/**
+ * Magnetometer axis one X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TA0X0, 0.0f);
+
+/**
+ * Magnetometer axis one X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TA0X1, 0.0f);
+
+/**
+ * Magnetometer axis one X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TA0X2, 0.0f);
+
+/**
+ * Magnetometer axis two X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TA1X0, 0.0f);
+
+/**
+ * Magnetometer axis two X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TA1X1, 0.0f);
+
+/**
+ * Magnetometer axis two X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TA1X2, 0.0f);
+
+/**
+ * Magnetometer axis three X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TA2X0, 0.0f);
+
+/**
+ * Magnetometer axis three X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TA2X1, 0.0f);
+
+/**
+ * Magnetometer axis three X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TA2X2, 0.0f);
+
+/**
  * ID of the Accelerometer that the calibration is for.
  *
  * @group Sensor Calibration
@@ -403,6 +823,90 @@ PARAM_DEFINE_FLOAT(CAL_ACC1_YSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_ACC1_ZSCALE, 1.0f);
+
+/**
+ * Accelerometer calibration temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TMPNOM, 0.0f);
+
+/**
+ * Accelerometer min fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TMPMIN, 0.0f);
+
+/**
+ * Accelerometer max fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TMPMAX, 0.0f);
+
+/**
+ * Accelerometer axis one X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TA0X0, 0.0f);
+
+/**
+ * Accelerometer axis one X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TA0X1, 0.0f);
+
+/**
+ * Accelerometer axis one X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TA0X2, 0.0f);
+
+/**
+ * Accelerometer axis two X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TA1X0, 0.0f);
+
+/**
+ * Accelerometer axis two X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TA1X1, 0.0f);
+
+/**
+ * Accelerometer axis two X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TA1X2, 0.0f);
+
+/**
+ * Accelerometer axis three X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TA2X0, 0.0f);
+
+/**
+ * Accelerometer axis three X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TA2X1, 0.0f);
+
+/**
+ * Accelerometer axis three X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_TA2X2, 0.0f);
 
 /**
  * ID of the Gyro that the calibration is for.
@@ -464,6 +968,90 @@ PARAM_DEFINE_FLOAT(CAL_GYRO2_YSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO2_ZSCALE, 1.0f);
+
+/**
+ * Gyroscope calibration temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TMPNOM, 0.0f);
+
+/**
+ * Gyroscope min fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TMPMIN, 0.0f);
+
+/**
+ * Gyroscope max fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TMPMAX, 0.0f);
+
+/**
+ * Gyroscope axis one X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TA0X0, 0.0f);
+
+/**
+ * Gyroscope axis one X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TA0X1, 0.0f);
+
+/**
+ * Gyroscope axis one X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TA0X2, 0.0f);
+
+/**
+ * Gyroscope axis two X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TA1X0, 0.0f);
+
+/**
+ * Gyroscope axis two X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TA1X1, 0.0f);
+
+/**
+ * Gyroscope axis two X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TA1X2, 0.0f);
+
+/**
+ * Gyroscope axis three X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TA2X0, 0.0f);
+
+/**
+ * Gyroscope axis three X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TA2X1, 0.0f);
+
+/**
+ * Gyroscope axis three X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO2_TA2X2, 0.0f);
 
 /**
  * ID of Magnetometer the calibration is for.
@@ -534,6 +1122,90 @@ PARAM_DEFINE_FLOAT(CAL_MAG2_YSCALE, 1.0f);
 PARAM_DEFINE_FLOAT(CAL_MAG2_ZSCALE, 1.0f);
 
 /**
+ * Magnetometer calibration temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TMPNOM, 0.0f);
+
+/**
+ * Magnetometer min fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TMPMIN, 0.0f);
+
+/**
+ * Magnetometer max fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TMPMAX, 0.0f);
+
+/**
+ * Magnetometer axis one X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TA0X0, 0.0f);
+
+/**
+ * Magnetometer axis one X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TA0X1, 0.0f);
+
+/**
+ * Magnetometer axis one X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TA0X2, 0.0f);
+
+/**
+ * Magnetometer axis two X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TA1X0, 0.0f);
+
+/**
+ * Magnetometer axis two X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TA1X1, 0.0f);
+
+/**
+ * Magnetometer axis two X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TA1X2, 0.0f);
+
+/**
+ * Magnetometer axis three X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TA2X0, 0.0f);
+
+/**
+ * Magnetometer axis three X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TA2X1, 0.0f);
+
+/**
+ * Magnetometer axis three X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG2_TA2X2, 0.0f);
+
+/**
  * ID of the Accelerometer that the calibration is for.
  *
  * @group Sensor Calibration
@@ -581,6 +1253,90 @@ PARAM_DEFINE_FLOAT(CAL_ACC2_YSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_ACC2_ZSCALE, 1.0f);
+
+/**
+ * Accelerometer calibration temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TMPNOM, 0.0f);
+
+/**
+ * Accelerometer min fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TMPMIN, 0.0f);
+
+/**
+ * Accelerometer max fit temperature
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TMPMAX, 0.0f);
+
+/**
+ * Accelerometer axis one X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TA0X0, 0.0f);
+
+/**
+ * Accelerometer axis one X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TA0X1, 0.0f);
+
+/**
+ * Accelerometer axis one X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TA0X2, 0.0f);
+
+/**
+ * Accelerometer axis two X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TA1X0, 0.0f);
+
+/**
+ * Accelerometer axis two X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TA1X1, 0.0f);
+
+/**
+ * Accelerometer axis two X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TA1X2, 0.0f);
+
+/**
+ * Accelerometer axis three X0 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TA2X0, 0.0f);
+
+/**
+ * Accelerometer axis three X1 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TA2X1, 0.0f);
+
+/**
+ * Accelerometer axis three X2 temperature offset polynomial factor
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC2_TA2X2, 0.0f);
 
 /**
  * Primary accel ID

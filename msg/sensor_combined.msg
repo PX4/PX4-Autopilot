@@ -34,6 +34,7 @@ float32[9] gyro_integral_rad		# delta angle in radians
 uint64[3] gyro_integral_dt			# delta time for gyro integral in us
 uint32[3] gyro_errcount			# Error counter for gyro 0
 float32[3] gyro_temp			# Temperature of gyro 0
+float32[3] gyro_tc			# Temperature compensated sensor values
 
 int16[9] accelerometer_raw		# Raw acceleration in NED body frame
 float32[9] accelerometer_m_s2		# Acceleration in NED body frame, in m/s^2
@@ -45,6 +46,7 @@ uint64[3] accelerometer_timestamp	# Accelerometer timestamp
 uint32[3] accelerometer_priority	# Sensor priority
 uint32[3] accelerometer_errcount	# Error counter for accel 0
 float32[3] accelerometer_temp		# Temperature of accel 0
+float32[3] accelerometer_tc		# Temperature compensated sensor values
 
 int16[9] magnetometer_raw		# Raw magnetic field in NED body frame
 float32[9] magnetometer_ga		# Magnetic field in NED body frame, in Gauss
@@ -55,6 +57,7 @@ uint64[3] magnetometer_timestamp	# Magnetometer timestamp
 uint32[3] magnetometer_priority			# Sensor priority
 uint32[3] magnetometer_errcount		# Error counter for mag 0
 float32[3] magnetometer_temp		# Temperature of mag 0
+float32[3] magnetometer_tc		# Temperature compensated sensor values
 
 float32[3] baro_pres_mbar			# Barometric pressure, already temp. comp.
 float32[3] baro_alt_meter			# Altitude, already temp. comp.

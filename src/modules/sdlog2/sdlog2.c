@@ -1456,6 +1456,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp[i * 3 + 0];
 					log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp[i * 3 + 0];
 					LOGBUFFER_WRITE_AND_COUNT(IMU);
+
+					/* --- SENSOR TEMPERATURE COMPENSATED --- */
+					log_msg.msg_type = LOG_IMUT_MSG;
+					log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_tc[0];
+					log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_tc[1];
+					log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_tc[2];
+					log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_tc[0];
+					log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_tc[1];
+					log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_tc[2];
+					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_tc[0];
+					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_tc[1];
+					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_tc[2];
+					log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro_temp[i * 3 + 0];
+					log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp[i * 3 + 0];
+					log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp[i * 3 + 0];
+					LOGBUFFER_WRITE_AND_COUNT(IMU);
 				}
 
 				if (write_SENS) {
