@@ -101,14 +101,14 @@ script:
   - echo 'Running Tests..' && make posix_sitl_default test
   - echo 'Running Unittests..' && cd unittests && ./run_tests.sh
   - cd ..
-  - echo 'Building UAVCAN node firmware..' && git clone https://github.com/thiemar/vectorcontrol
-  - cd vectorcontrol
-  - BOARD=s2740vc_1_0 make && BOARD=px4esc_1_6 make
-  - cd ..
   - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
   - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
 # Only provide UAVCAN firmware binaries for Pixracer and Pixhawk 3
+  - echo 'Building UAVCAN node firmware..' && git clone https://github.com/thiemar/vectorcontrol
+  - cd vectorcontrol
+  - BOARD=s2740vc_1_0 make && BOARD=px4esc_1_6 make
   - ../Tools/uavcan_copy.sh
+  - cd ..
   - echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
   - echo 'Running Tests..' && make px4fmu-v2_default test
 
