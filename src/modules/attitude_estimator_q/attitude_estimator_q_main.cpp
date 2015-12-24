@@ -590,6 +590,8 @@ void AttitudeEstimatorQ::task_main()
 		/* copy rotation matrix */
 		memcpy(&att.R[0], R.data, sizeof(att.R));
 		att.R_valid = true;
+		memcpy(&att.q[0], _q.data, sizeof(att.q));
+		att.q_valid = true;
 
 		att.rate_vibration = _voter_gyro.get_vibration_factor(hrt_absolute_time());
 		att.accel_vibration = _voter_accel.get_vibration_factor(hrt_absolute_time());
