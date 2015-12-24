@@ -212,9 +212,10 @@ void BlockLocalPositionEstimator::update()
 	// auto-detect connected rangefinders while not armed
 	if (!_sub_armed.get().armed && (_sub_lidar == NULL || _sub_sonar == NULL)) {
 		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			if(_distance_subs[i]->get().timestamp == 0) {	
+			if (_distance_subs[i]->get().timestamp == 0) {
 				continue; // ignore sensors with no data coming in
 			}
+
 			if (_distance_subs[i]->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
 			    _sub_lidar == NULL) {
 				_sub_lidar = _distance_subs[i];
@@ -898,13 +899,13 @@ void BlockLocalPositionEstimator::correctFlow()
 		yaw_comp[1] =   _flow_board_x_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
 
 		// calculate velocity over ground
-		flow_speed[0] = ((_sub_flow.get().pixel_flow_x_integral - _sub_flow.get().gyro_x_rate_integral) /
-				 (_sub_flow.get().integration_timespan / 1e6f)
-				 + _flowGyroBias[0] - yaw_comp[0]) *
+		flow_speed[0] = - ((_sub_flow.get().pixel_flow_x_integral - _sub_flow.get().gyro_x_rate_integral) /
+				   (_sub_flow.get().integration_timespan / 1e6f)
+				   + _flowGyroBias[0] - yaw_comp[0]) *
 				-_x(X_z);		// TODO use terrain estimate here
-		flow_speed[1] = ((_sub_flow.get().pixel_flow_y_integral - _sub_flow.get().gyro_y_rate_integral) /
-				 (_sub_flow.get().integration_timespan / 1e6f) -
-				 + _flowGyroBias[1] - yaw_comp[1]) *
+		flow_speed[1] = - ((_sub_flow.get().pixel_flow_y_integral - _sub_flow.get().gyro_y_rate_integral) /
+				   (_sub_flow.get().integration_timespan / 1e6f) -
+				   + _flowGyroBias[1] - yaw_comp[1]) *
 				-_x(X_z);		// TODO use terrain estimate here
 
 	} else {
