@@ -39,10 +39,6 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <nuttx/config.h>
-
-#include <systemlib/param/param.h>
-
 /*
  * RTL parameters, accessible via MAVLink
  */

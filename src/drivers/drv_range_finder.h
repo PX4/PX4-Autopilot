@@ -46,16 +46,7 @@
 
 #define RANGE_FINDER_BASE_DEVICE_PATH	"/dev/range_finder"
 #define RANGE_FINDER0_DEVICE_PATH	"/dev/range_finder0"
-#define MB12XX_MAX_RANGEFINDERS	12	//Maximum number of RangeFinders that can be connected
-
-#define range_finder_report range_finder_s
-#define __orb_sensor_range_finder __orb_range_finder
-
-#include <uORB/topics/range_finder.h>
-
-#ifndef RANGE_FINDER_TYPE_LASER
-#define RANGE_FINDER_TYPE_LASER 0
-#endif
+#define MB12XX_MAX_RANGEFINDERS	12	// Maximum number of Maxbotix sensors on bus
 
 /*
  * ioctl() definitions

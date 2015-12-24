@@ -39,7 +39,7 @@
  * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -87,8 +87,8 @@ Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const cha
 	_measure_ticks(0),
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
-	_airspeed_pub(-1),
-	_subsys_pub(-1),
+	_airspeed_pub(nullptr),
+	_subsys_pub(nullptr),
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
 	_sample_perf(perf_alloc(PC_ELAPSED, "airspeed_read")),
@@ -132,7 +132,7 @@ Airspeed::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(differential_pressure_s));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(differential_pressure_s));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -152,7 +152,7 @@ Airspeed::init()
 		/* measurement will have generated a report, publish */
 		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
 
-		if (_airspeed_pub < 0) {
+		if (_airspeed_pub == nullptr) {
 			warnx("uORB started?");
 		}
 	}
@@ -382,7 +382,7 @@ Airspeed::update_status()
 			subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE
 		};
 
-		if (_subsys_pub > 0) {
+		if (_subsys_pub != nullptr) {
 			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
 
 		} else {

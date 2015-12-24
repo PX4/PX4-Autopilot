@@ -40,10 +40,6 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#include <nuttx/config.h>
-
-#include <systemlib/param/param.h>
-
 /**
  * Loiter radius (FW only)
  *

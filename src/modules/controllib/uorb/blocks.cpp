@@ -53,24 +53,25 @@ BlockWaypointGuidance::BlockWaypointGuidance(SuperBlock *parent, const char *nam
 
 BlockWaypointGuidance::~BlockWaypointGuidance() {};
 
-void BlockWaypointGuidance::update(vehicle_global_position_s &pos,
-				   vehicle_attitude_s &att,
-				   position_setpoint_s &missionCmd,
-				   position_setpoint_s &lastMissionCmd)
+void BlockWaypointGuidance::update(
+	const vehicle_global_position_s &pos,
+	const vehicle_attitude_s &att,
+	const position_setpoint_s &missionCmd,
+	const position_setpoint_s &lastMissionCmd)
 {
 
 	// heading to waypoint
 	float psiTrack = get_bearing_to_next_waypoint(
-				 (double)pos.lat / (double)1e7d,
-				 (double)pos.lon / (double)1e7d,
+				 (double)pos.lat / (double)1e7,
+				 (double)pos.lon / (double)1e7,
 				 missionCmd.lat,
 				 missionCmd.lon);
 
 	// cross track
 	struct crosstrack_error_s xtrackError;
 	get_distance_to_line(&xtrackError,
-			     (double)pos.lat / (double)1e7d,
-			     (double)pos.lon / (double)1e7d,
+			     (double)pos.lat / (double)1e7,
+			     (double)pos.lon / (double)1e7,
 			     lastMissionCmd.lat,
 			     lastMissionCmd.lon,
 			     missionCmd.lat,
@@ -83,16 +84,16 @@ void BlockWaypointGuidance::update(vehicle_global_position_s &pos,
 BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name) :
 	SuperBlock(parent, name),
 	// subscriptions
-	_att(ORB_ID(vehicle_attitude), 20, &getSubscriptions()),
-	_attCmd(ORB_ID(vehicle_attitude_setpoint), 20, &getSubscriptions()),
-	_ratesCmd(ORB_ID(vehicle_rates_setpoint), 20, &getSubscriptions()),
-	_pos(ORB_ID(vehicle_global_position), 20, &getSubscriptions()),
-	_missionCmd(ORB_ID(position_setpoint_triplet), 20, &getSubscriptions()),
-	_manual(ORB_ID(manual_control_setpoint), 20, &getSubscriptions()),
-	_status(ORB_ID(vehicle_status), 20, &getSubscriptions()),
-	_param_update(ORB_ID(parameter_update), 1000, &getSubscriptions()), // limit to 1 Hz
+	_att(ORB_ID(vehicle_attitude), 20, 0, &getSubscriptions()),
+	_attCmd(ORB_ID(vehicle_attitude_setpoint), 20, 0, &getSubscriptions()),
+	_ratesCmd(ORB_ID(vehicle_rates_setpoint), 20, 0, &getSubscriptions()),
+	_pos(ORB_ID(vehicle_global_position), 20, 0, &getSubscriptions()),
+	_missionCmd(ORB_ID(position_setpoint_triplet), 20, 0, &getSubscriptions()),
+	_manual(ORB_ID(manual_control_setpoint), 20, 0, &getSubscriptions()),
+	_status(ORB_ID(vehicle_status), 20, 0, &getSubscriptions()),
+	_param_update(ORB_ID(parameter_update), 1000, 0, &getSubscriptions()), // limit to 1 Hz
 	// publications
-	_actuators(ORB_ID(actuator_controls_0), &getPublications())
+	_actuators(ORB_ID(actuator_controls_0), -1, &getPublications())
 {
 }
 

@@ -1,0 +1,27 @@
+INFO  Shell id is 47996278451456
+WARN  1          starting task wkr_high (file /home/jgoppert/git/px4/cmake-Firmware/src/platforms/posix/px4_layer/px4_posix_tasks.cpp line 146)
+WARN  54         starting task wkr_low (file /home/jgoppert/git/px4/cmake-Firmware/src/platforms/posix/px4_layer/px4_posix_tasks.cpp line 146)
+WARN  100        starting task wkr_hrt (file /home/jgoppert/git/px4/cmake-Firmware/src/platforms/posix/px4_layer/px4_posix_tasks.cpp line 146)
+App name: mainapp
+Enter a command and its args:
+----------------------------------
+Running: uorb
+Returning: uorb
+Enter a command and its args:
+----------------------------------
+Running: accelsim
+Returning: accelsim
+Enter a command and its args:
+----------------------------------
+Running: px4_simple_app
+Hello Sky!
+[px4_simple_app] Got no data within a second
+[px4_simple_app] Got no data within a second
+[px4_simple_app] Got no data within a second
+[px4_simple_app] Got no data within a second
+[px4_simple_app] Got no data within a second
+Returning: px4_simple_app
+Enter a command and its args:
+----------------------------------
+Running: shutdown
+Shutting down

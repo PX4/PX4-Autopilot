@@ -267,7 +267,7 @@
 #define __CMSIS_GENERIC         /* disable NVIC and Systick functions */
 
 /* PX4 */
-#include <nuttx/config.h>
+#include <px4_config.h>
 #ifdef CONFIG_ARCH_CORTEXM4
 # define ARM_MATH_CM4 1
 #endif

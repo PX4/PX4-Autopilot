@@ -128,7 +128,7 @@
 #ifndef _SYSTEMLIB_MIXER_MIXER_H
 #define _SYSTEMLIB_MIXER_MIXER_H value
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include "drivers/drv_mixer.h"
 
 #include <uORB/topics/multirotor_motor_limits.h>
@@ -481,7 +481,7 @@ public:
 	 *				compared to thrust.
 	 * @param yaw_wcale		Scaling factor applied to yaw inputs compared
 	 *				to thrust.
-	 * @param deadband		Minumum rotor control output value; usually
+	 * @param idle_speed		Minumum rotor control output value; usually
 	 *				tuned to ensure that rotors never stall at the
 	 * 				low end of their control range.
 	 */
@@ -491,7 +491,7 @@ public:
 			float roll_scale,
 			float pitch_scale,
 			float yaw_scale,
-			float deadband);
+			float idle_speed);
 	~MultirotorMixer();
 
 	/**

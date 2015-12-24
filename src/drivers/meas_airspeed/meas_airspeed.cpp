@@ -51,7 +51,7 @@
  */
 
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -251,7 +251,7 @@ MEASAirspeed::collect()
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
-	if (_airspeed_pub > 0 && !(_pub_blocked)) {
+	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		/* publish it */
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
@@ -309,7 +309,7 @@ MEASAirspeed::cycle()
 	ret = measure();
 
 	if (OK != ret) {
-		debug("measure error");
+		DEVICE_DEBUG("measure error");
 	}
 
 	_sensor_ok = (ret == OK);
@@ -335,7 +335,7 @@ MEASAirspeed::cycle()
 void
 MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 
 	if (_t_system_power == -1) {
 		_t_system_power = orb_subscribe(ORB_ID(system_power));
@@ -389,7 +389,7 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	}
 
 	temperature -= voltage_diff * temp_slope;
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
+#endif // defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 }
 
 /**

@@ -51,6 +51,10 @@
 #define	HW_ARCH "PX4FMU_V2"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
+#define	HW_ARCH "PX4FMU_V4"
+#endif
+
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
 #define	HW_ARCH "AEROCORE"
 #endif
@@ -59,4 +63,10 @@
 #define HW_ARCH "PX4_STM32F4DISCOVERY"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_SITL
+#define	HW_ARCH "LINUXTEST"
+#endif
+#ifdef CONFIG_ARCH_BOARD_EAGLE
+#define	HW_ARCH "LINUXTEST"
+#endif
 #endif /* VERSION_H_ */

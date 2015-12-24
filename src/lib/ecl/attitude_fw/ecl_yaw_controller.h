@@ -76,13 +76,14 @@ public:
 		_coordinated_method = coordinated_method;
 	}
 
-protected:
-	float _coordinated_min_speed;
-
 	enum {
 		COORD_METHOD_OPEN = 0,
-		COORD_METHOD_CLOSEACC = 1,
+		COORD_METHOD_CLOSEACC = 1
 	};
+
+protected:
+	float _coordinated_min_speed;
+	float _max_rate;
 
 	int32_t _coordinated_method;
 

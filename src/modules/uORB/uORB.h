@@ -59,7 +59,7 @@ typedef const struct orb_metadata *orb_id_t;
 /**
  * Maximum number of multi topic instances
  */
-#define ORB_MULTI_MAX_INSTANCES	3
+#define ORB_MULTI_MAX_INSTANCES	4
 
 /**
  * Topic priority.
@@ -89,20 +89,14 @@ enum ORB_PRIO {
 /**
  * Declare (prototype) the uORB metadata for a topic.
  *
- * Note that optional topics are declared weak; this allows a potential
- * subscriber to attempt to subscribe to a topic that is not known to the
- * system at runtime.  The ORB_ID() macro will return NULL/nullptr for
- * such a topic, and attempts to advertise or subscribe to it will
- * return -1/ENOENT (see below).
- *
  * @param _name		The name of the topic.
  */
 #if defined(__cplusplus)
 # define ORB_DECLARE(_name)		extern "C" const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT
 #else
 # define ORB_DECLARE(_name)		extern const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT
 #endif
 
 /**
@@ -135,7 +129,7 @@ __BEGIN_DECLS
  * a file-descriptor-based handle would not otherwise be in scope for the
  * publisher.
  */
-typedef intptr_t	orb_advert_t;
+typedef void 	*orb_advert_t;
 
 /**
  * Advertise as the publisher of a topic.
@@ -173,8 +167,8 @@ extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *d
  * @param data		A pointer to the initial data to be published.
  *			For topics updated by interrupt handlers, the advertisement
  *			must be performed from non-interrupt context.
- * @param instance	Pointer to an integer which will yield the instance ID (0-based)
- *			of the publication.
+ * @param instance	Pointer to an integer which will yield the instance ID (0-based,
+ *			limited by ORB_MULTI_MAX_INSTANCES) of the publication.
  * @param priority	The priority of the instance. If a subscriber subscribes multiple
  *			instances, the priority allows the subscriber to prioritize the best
  *			data source as long as its available.
@@ -254,6 +248,7 @@ extern int	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
  * @param instance	The instance of the topic. Instance 0 matches the
  *			topic of the orb_subscribe() call, higher indices
  *			are for topics created with orb_publish_multi().
+ *			Instance is limited by ORB_MULTI_MAX_INSTANCES.
  * @return		ERROR on error, otherwise returns a handle
  *			that can be used to read and update the topic.
  *			If the topic in question is not known (due to an
@@ -328,6 +323,14 @@ extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
 
 /**
+ * Get the number of published instances of a topic group
+ *
+ * @param meta    ORB topic metadata.
+ * @return    The number of published instances of this topic
+ */
+extern int	orb_group_count(const struct orb_metadata *meta) __EXPORT;
+
+/**
  * Return the priority of the topic
  *
  * @param handle	A handle returned from orb_subscribe.
@@ -337,7 +340,7 @@ extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
  *			priority, independent of the startup order of the associated publishers.
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
-extern int	orb_priority(int handle, int *priority) __EXPORT;
+extern int	orb_priority(int handle, int32_t *priority) __EXPORT;
 
 /**
  * Set the minimum interval between which updates are seen for a subscription.
@@ -363,7 +366,6 @@ __END_DECLS
 
 /* Diverse uORB header defines */ //XXX: move to better location
 #define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
-typedef struct vehicle_attitude_setpoint_s fw_virtual_attitude_setpoint_s;
 typedef uint8_t arming_state_t;
 typedef uint8_t main_state_t;
 typedef uint8_t hil_state_t;

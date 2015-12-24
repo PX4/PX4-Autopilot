@@ -39,11 +39,13 @@
 
 #pragma once
 
+#include <px4_defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
 #include <math.h>
 #include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
@@ -163,6 +165,36 @@ protected:
 int __EXPORT blockHighPassTest();
 
 /**
+ * A 2nd order low pass filter block which uses the default px4 2nd order low pass filter
+ */
+class __EXPORT BlockLowPass2 : public Block
+{
+public:
+// methods
+	BlockLowPass2(SuperBlock *parent, const char *name, float sample_freq) :
+		Block(parent, name),
+		_state(0.0 / 0.0 /* initialize to invalid val, force into is_finite() check on first call */),
+		_fCut(this, ""), // only one parameter, no need to name
+		_fs(sample_freq),
+		_lp(_fs, _fCut.get())
+	{};
+	virtual ~BlockLowPass2() {};
+	float update(float input);
+// accessors
+	float getState() { return _state; }
+	float getFCutParam() { return _fCut.get(); }
+	void setState(float state) { _state = _lp.reset(state); }
+protected:
+// attributes
+	float _state;
+	control::BlockParamFloat _fCut;
+	float _fs;
+	math::LowPassFilter2p _lp;
+};
+
+int __EXPORT blockLowPass2Test();
+
+/**
  * A rectangular integrator.
  * A limiter is built into the class to bound the
  * integral's internal state. This is important
@@ -262,6 +294,7 @@ public:
 	void setU(float u) {_u = u;}
 	float getU() {return _u;}
 	float getLP() {return _lowPass.getFCut();}
+	float getO() { return _lowPass.getState(); }
 protected:
 // attributes
 	float _u; /**< previous input */
@@ -284,7 +317,8 @@ public:
 		_kP(this, "") // only one param, no need to name
 	{};
 	virtual ~BlockP() {};
-	float update(float input) {
+	float update(float input)
+	{
 		return getKP() * input;
 	}
 // accessors
@@ -310,7 +344,8 @@ public:
 		_kI(this, "I")
 	{};
 	virtual ~BlockPI() {};
-	float update(float input) {
+	float update(float input)
+	{
 		return getKP() * input +
 		       getKI() * getIntegral().update(input);
 	}
@@ -341,7 +376,8 @@ public:
 		_kD(this, "D")
 	{};
 	virtual ~BlockPD() {};
-	float update(float input) {
+	float update(float input)
+	{
 		return getKP() * input +
 		       getKD() * getDerivative().update(input);
 	}
@@ -374,7 +410,8 @@ public:
 		_kD(this, "D")
 	{};
 	virtual ~BlockPID() {};
-	float update(float input) {
+	float update(float input)
+	{
 		return getKP() * input +
 		       getKI() * getIntegral().update(input) +
 		       getKD() * getDerivative().update(input);
@@ -407,11 +444,13 @@ public:
 		SuperBlock(parent, name),
 		_trim(this, "TRIM"),
 		_limit(this, ""),
-		_val(0) {
+		_val(0)
+	{
 		update(0);
 	};
 	virtual ~BlockOutput() {};
-	void update(float input) {
+	void update(float input)
+	{
 		_val = _limit.update(input + getTrim());
 	}
 // accessors
@@ -439,13 +478,15 @@ public:
 			 const char *name) :
 		Block(parent, name),
 		_min(this, "MIN"),
-		_max(this, "MAX") {
+		_max(this, "MAX")
+	{
 		// seed should be initialized somewhere
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	};
 	virtual ~BlockRandUniform() {};
-	float update() {
+	float update()
+	{
 		static float rand_max = MAX_RAND;
 		float rand_val = rand();
 		float bounds = getMax() - getMin();
@@ -470,13 +511,15 @@ public:
 		       const char *name) :
 		Block(parent, name),
 		_mean(this, "MEAN"),
-		_stdDev(this, "DEV") {
+		_stdDev(this, "DEV")
+	{
 		// seed should be initialized somewhere
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	};
 	virtual ~BlockRandGauss() {};
-	float update() {
+	float update()
+	{
 		static float V1, V2, S;
 		static int phase = 0;
 		float X;

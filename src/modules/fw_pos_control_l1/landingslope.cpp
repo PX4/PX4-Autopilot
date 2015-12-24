@@ -39,7 +39,7 @@
 
 #include "landingslope.h"
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <math.h>

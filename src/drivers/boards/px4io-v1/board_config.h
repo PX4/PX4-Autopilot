@@ -30,10 +30,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
- 
+
 /**
  * @file board_config.h
- * 
+ *
  * PX4IO hardware definitions.
  */
 
@@ -43,7 +43,7 @@
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -59,11 +59,13 @@
 /* LEDs */
 
 #define GPIO_LED1       (GPIO_OUTPUT|GPIO_CNF_OUTOD|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN14)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN14)
 #define GPIO_LED2       (GPIO_OUTPUT|GPIO_CNF_OUTOD|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN15)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN15)
 #define GPIO_LED3       (GPIO_OUTPUT|GPIO_CNF_OUTOD|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+			 GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+
+#define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN10)
 
 /* Safety switch button *************************************************************/
 
@@ -86,7 +88,7 @@
 #define GPIO_ADC_VBATT	(GPIO_INPUT|GPIO_CNF_ANALOGIN|GPIO_MODE_INPUT|GPIO_PORTA|GPIO_PIN4)
 #define GPIO_ADC_IN5	(GPIO_INPUT|GPIO_CNF_ANALOGIN|GPIO_MODE_INPUT|GPIO_PORTA|GPIO_PIN5)
 
-/* 
+/*
  * High-resolution timer
  */
 #define HRT_TIMER		1	/* use timer1 for the HRT */

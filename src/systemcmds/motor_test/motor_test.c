@@ -38,7 +38,7 @@
  * Tool for drive testing
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,7 @@ __EXPORT int motor_test_main(int argc, char *argv[]);
 static void motor_test(unsigned channel, float value);
 static void usage(const char *reason);
 
-static orb_advert_t _test_motor_pub;
+static orb_advert_t _test_motor_pub = nullptr;
 
 void motor_test(unsigned channel, float value)
 {
@@ -69,13 +69,14 @@ void motor_test(unsigned channel, float value)
 	_test_motor.timestamp = hrt_absolute_time();
 	_test_motor.value = value;
 
-    if (_test_motor_pub > 0) {
-    /* publish test state */
-        orb_publish(ORB_ID(test_motor), _test_motor_pub, &_test_motor);
-    } else {
-        /* advertise and publish */
-        _test_motor_pub = orb_advertise(ORB_ID(test_motor), &_test_motor);
-    }
+	if (_test_motor_pub != nullptr) {
+		/* publish test state */
+		orb_publish(ORB_ID(test_motor), _test_motor_pub, &_test_motor);
+
+	} else {
+		/* advertise and publish */
+		_test_motor_pub = orb_advertise(ORB_ID(test_motor), &_test_motor);
+	}
 }
 
 static void usage(const char *reason)
@@ -85,10 +86,10 @@ static void usage(const char *reason)
 	}
 
 	errx(1,
-		"usage:\n"
-		"motor_test\n"
-		"    -m <channel>            Motor to test (0..7)\n"
-		"    -p <power>              Power (0..100)\n");
+	     "usage:\n"
+	     "motor_test\n"
+	     "    -m <channel>            Motor to test (0..7)\n"
+	     "    -p <power>              Power (0..100)\n");
 }
 
 int motor_test_main(int argc, char *argv[])
@@ -114,11 +115,13 @@ int motor_test_main(int argc, char *argv[])
 			/* Read in power value */
 			lval = strtoul(optarg, NULL, 0);
 
-			if (lval > 100)
+			if (lval > 100) {
 				usage("value invalid");
+			}
 
-			value = ((float)lval)/100.f;
+			value = ((float)lval) / 100.f;
 			break;
+
 		default:
 			usage(NULL);
 		}

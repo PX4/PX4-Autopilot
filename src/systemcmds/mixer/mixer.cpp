@@ -37,6 +37,8 @@
  * Mixer utility.
  */
 
+#include <px4_config.h>
+#include <px4_posix.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,7 +46,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
-#include <nuttx/compiler.h>
 
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
@@ -57,58 +58,82 @@
  */
 extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 
-static void	usage(const char *reason) noreturn_function;
-static void	load(const char *devname, const char *fname) noreturn_function;
+static void	usage(const char *reason);
+static int	load(const char *devname, const char *fname);
 
 int
 mixer_main(int argc, char *argv[])
 {
-	if (argc < 2)
+	if (argc < 2) {
 		usage("missing command");
-
-	if (!strcmp(argv[1], "load")) {
-		if (argc < 4)
-			usage("missing device or filename");
-
-		load(argv[2], argv[3]);
+		return 1;
 	}
 
-	usage("unrecognised command");
+	if (!strcmp(argv[1], "load")) {
+		if (argc < 4) {
+			usage("missing device or filename");
+			return 1;
+		}
+
+		int ret = load(argv[2], argv[3]);
+
+		if (ret != 0) {
+			warnx("failed to load mixer");
+			return 1;
+		}
+
+	} else {
+		usage("Unknown command");
+		return 1;
+	}
+
+	return 0;
 }
 
 static void
 usage(const char *reason)
 {
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
+	if (reason && *reason) {
+		PX4_INFO("%s", reason);
+	}
 
-	fprintf(stderr, "usage:\n");
-	fprintf(stderr, "  mixer load <device> <filename>\n");
-	/* XXX other useful commands? */
-	exit(1);
+	PX4_INFO("usage:");
+	PX4_INFO("  mixer load <device> <filename>");
 }
 
-static void
+static int
 load(const char *devname, const char *fname)
 {
+	// sleep a while to ensure device has been set up
+	usleep(20000);
+
 	int		dev;
 	char		buf[2048];
 
 	/* open the device */
-	if ((dev = open(devname, 0)) < 0)
-		err(1, "can't open %s\n", devname);
+	if ((dev = px4_open(devname, 0)) < 0) {
+		warnx("can't open %s\n", devname);
+		return 1;
+	}
 
 	/* reset mixers on the device */
-	if (ioctl(dev, MIXERIOCRESET, 0))
-		err(1, "can't reset mixers on %s", devname);
+	if (px4_ioctl(dev, MIXERIOCRESET, 0)) {
+		warnx("can't reset mixers on %s", devname);
+		return 1;
+	}
 
-	if (load_mixer_file(fname, &buf[0], sizeof(buf)) < 0)
-		err(1, "can't load mixer: %s", fname);
+	if (load_mixer_file(fname, &buf[0], sizeof(buf)) < 0) {
+		warnx("can't load mixer: %s", fname);
+		return 1;
+	}
 
 	/* XXX pass the buffer to the device */
-	int ret = ioctl(dev, MIXERIOCLOADBUF, (unsigned long)buf);
+	int ret = px4_ioctl(dev, MIXERIOCLOADBUF, (unsigned long)buf);
 
-	if (ret < 0)
-		err(1, "error loading mixers from %s", fname);
-	exit(0);
+	if (ret < 0) {
+		warnx("error loading mixers from %s", fname);
+		return 1;
+	}
+
+	return 0;
 }

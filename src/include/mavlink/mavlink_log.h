@@ -44,6 +44,7 @@
 /*
  * IOCTL interface for sending log messages.
  */
+#include <px4_defines.h>
 #include <sys/ioctl.h>
 
 /**
@@ -56,9 +57,9 @@
  */
 #define MAVLINK_LOG_MAXLEN			50
 
-#define MAVLINK_IOC_SEND_TEXT_INFO		_IOC(0x1100, 1)
-#define MAVLINK_IOC_SEND_TEXT_CRITICAL		_IOC(0x1100, 2)
-#define MAVLINK_IOC_SEND_TEXT_EMERGENCY		_IOC(0x1100, 3)
+#define MAVLINK_IOC_SEND_TEXT_INFO		_PX4_IOC(0x1100, 1)
+#define MAVLINK_IOC_SEND_TEXT_CRITICAL		_PX4_IOC(0x1100, 2)
+#define MAVLINK_IOC_SEND_TEXT_EMERGENCY		_PX4_IOC(0x1100, 3)
 
 #ifdef __cplusplus
 extern "C" {
@@ -105,10 +106,10 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
  * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
  * @param _text		The text to log;
  */
-#define mavlink_and_console_log_emergency(_fd, _text, ...)		mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_EMERGENCY, _text, ##__VA_ARGS__); \
-									fprintf(stderr, "telem> "); \
-									fprintf(stderr, _text, ##__VA_ARGS__); \
-									fprintf(stderr, "\n");
+#define mavlink_and_console_log_emergency(_fd, _text, ...)		do { mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_EMERGENCY, _text, ##__VA_ARGS__); \
+		fprintf(stderr, "telem> "); \
+		fprintf(stderr, _text, ##__VA_ARGS__); \
+		fprintf(stderr, "\n"); } while(0);
 
 /**
  * Send a mavlink critical message and print to console.
@@ -116,10 +117,10 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
  * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
  * @param _text		The text to log;
  */
-#define mavlink_and_console_log_critical(_fd, _text, ...)		mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_CRITICAL, _text, ##__VA_ARGS__); \
-									fprintf(stderr, "telem> "); \
-									fprintf(stderr, _text, ##__VA_ARGS__); \
-									fprintf(stderr, "\n");
+#define mavlink_and_console_log_critical(_fd, _text, ...)		do { mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_CRITICAL, _text, ##__VA_ARGS__); \
+		fprintf(stderr, "telem> "); \
+		fprintf(stderr, _text, ##__VA_ARGS__); \
+		fprintf(stderr, "\n");  } while(0);
 
 /**
  * Send a mavlink emergency message and print to console.
@@ -127,10 +128,10 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
  * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
  * @param _text		The text to log;
  */
-#define mavlink_and_console_log_info(_fd, _text, ...)			mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_INFO, _text, ##__VA_ARGS__); \
-									fprintf(stderr, "telem> "); \
-									fprintf(stderr, _text, ##__VA_ARGS__); \
-									fprintf(stderr, "\n");
+#define mavlink_and_console_log_info(_fd, _text, ...)			do { mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_INFO, _text, ##__VA_ARGS__); \
+		fprintf(stderr, "telem> "); \
+		fprintf(stderr, _text, ##__VA_ARGS__); \
+		fprintf(stderr, "\n"); } while(0);
 
 struct mavlink_logmessage {
 	char text[MAVLINK_LOG_MAXLEN + 1];

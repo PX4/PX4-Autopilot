@@ -39,10 +39,6 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
-
-#include <systemlib/param/param.h>
-
 /*
  * Catapult launch detection parameters, accessible via MAVLink
  *

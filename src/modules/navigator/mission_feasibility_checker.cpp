@@ -51,12 +51,6 @@
 #include <errno.h>
 #include <uORB/topics/fence.h>
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 MissionFeasibilityChecker::MissionFeasibilityChecker() :
 	_mavlink_fd(-1),
 	_capabilities_sub(-1),
@@ -96,10 +90,6 @@ bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRota
 		failed = failed || !checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence, home_alt, home_valid);
 	} else {
 		failed = failed || !checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence, home_alt, home_valid);
-	}
-
-	if (!failed) {
-		mavlink_log_info(_mavlink_fd, "Mission checked and ready.");
 	}
 
 	return !failed;
@@ -207,9 +197,9 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			missionitem.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
 			missionitem.nav_cmd != NAV_CMD_LAND &&
 			missionitem.nav_cmd != NAV_CMD_TAKEOFF &&
-			missionitem.nav_cmd != NAV_CMD_ROI &&
 			missionitem.nav_cmd != NAV_CMD_PATHPLANNING &&
-			missionitem.nav_cmd != NAV_CMD_DO_JUMP) {
+			missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
+			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO) {
 
 			mavlink_log_critical(_mavlink_fd, "Rejecting mission item %i: unsupported action.", (int)(i+1));
 			return false;
@@ -302,9 +292,24 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 		for (unsigned i = 0; i < nMissionItems; i++) {
 			if (dm_read(dm_current, i,
 					&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
+				/* Check non navigation item */
+				if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO){
 
+					/* check actuator number */
+					if (mission_item.actuator_num < 0 || mission_item.actuator_num > 5) {
+						mavlink_log_critical(_mavlink_fd, "Actuator number %d is out of bounds 0..5", (int)mission_item.actuator_num);
+						warning_issued = true;
+						return false;
+					}
+					/* check actuator value */
+					if (mission_item.actuator_value < -2000 || mission_item.actuator_value > 2000) {
+						mavlink_log_critical(_mavlink_fd, "Actuator value %d is out of bounds -2000..2000", (int)mission_item.actuator_value);
+						warning_issued = true;
+						return false;
+					}
+				}
 				/* check only items with valid lat/lon */
-				if ( mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
+				else if ( mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
 						mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 						mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
 						mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
@@ -326,7 +331,7 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 
 					} else {
 						/* item is too far from home */
-						mavlink_log_critical(_mavlink_fd, "Waypoint too far: %d m,[MIS_DIST_1WP=%d]", (int)dist_to_1wp, (int)dist_first_wp);
+						mavlink_log_critical(_mavlink_fd, "First waypoint too far: %d m,refusing mission", (int)dist_to_1wp, (int)dist_first_wp);
 						warning_issued = true;
 						return false;
 					}

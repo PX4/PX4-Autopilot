@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,9 +35,10 @@
  * @file mavlink_log.c
  * MAVLink text logging.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include <px4_posix.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -101,11 +101,15 @@ __EXPORT int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink
 
 __EXPORT void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int severity, const char *fmt, ...)
 {
+	if (!fmt) {
+		return;
+	}
+
 	va_list ap;
 	va_start(ap, fmt);
 	int end = (lb->start + lb->count) % lb->size;
 	lb->elems[end].severity = severity;
-	vsnprintf(lb->elems[end].text, sizeof(lb->elems[0].text), fmt, ap);
+	vsnprintf(lb->elems[end].text, sizeof(lb->elems[end].text), fmt, ap);
 	va_end(ap);
 
 	/* increase count */
@@ -119,10 +123,14 @@ __EXPORT void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int seve
 
 __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...)
 {
+	if (!fmt) {
+		return;
+	}
+
 	va_list ap;
 	va_start(ap, fmt);
 	char text[MAVLINK_LOG_MAXLEN + 1];
 	vsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
-	ioctl(_fd, severity, (unsigned long)&text[0]);
+	px4_ioctl(_fd, severity, (unsigned long)&text[0]);
 }

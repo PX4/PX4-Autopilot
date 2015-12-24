@@ -38,7 +38,7 @@
  * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -162,7 +162,7 @@ ETSAirspeed::collect()
 		// caller could end up using this value as part of an
 		// average
 		perf_count(_comms_errors);
-		log("zero value from sensor");
+		DEVICE_LOG("zero value from sensor");
 		return -1;
 	}
 
@@ -184,7 +184,7 @@ ETSAirspeed::collect()
 	report.temperature = -1000.0f;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
-	if (_airspeed_pub > 0 && !(_pub_blocked)) {
+	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		/* publish it */
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
@@ -243,7 +243,7 @@ ETSAirspeed::cycle()
 	ret = measure();
 
 	if (OK != ret) {
-		debug("measure error");
+		DEVICE_DEBUG("measure error");
 	}
 
 	_sensor_ok = (ret == OK);

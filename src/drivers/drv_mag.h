@@ -49,26 +49,8 @@
 #define MAG1_DEVICE_PATH	"/dev/mag1"
 #define MAG2_DEVICE_PATH	"/dev/mag2"
 
-/**
- * mag report structure.  Reads from the device must be in multiples of this
- * structure.
- *
- * Output values are in gauss.
- */
-struct mag_report {
-	uint64_t timestamp;
-	uint64_t error_count;
-	float x;
-	float y;
-	float z;
-	float range_ga;
-	float scaling;
-	float temperature;
-
-	int16_t x_raw;
-	int16_t y_raw;
-	int16_t z_raw;
-};
+#include <uORB/topics/sensor_mag.h>
+#define mag_report sensor_mag_s
 
 /** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
 struct mag_scale {
@@ -81,17 +63,11 @@ struct mag_scale {
 };
 
 /*
- * ObjDev tag for raw magnetometer data.
- */
-ORB_DECLARE(sensor_mag);
-
-
-/*
  * ioctl() definitions
  */
 
 #define _MAGIOCBASE		(0x2400)
-#define _MAGIOC(_n)		(_IOC(_MAGIOCBASE, _n))
+#define _MAGIOC(_n)		(_PX4_IOC(_MAGIOCBASE, _n))
 
 /** set the mag internal sample rate to at least (arg) Hz */
 #define MAGIOCSSAMPLERATE	_MAGIOC(0)

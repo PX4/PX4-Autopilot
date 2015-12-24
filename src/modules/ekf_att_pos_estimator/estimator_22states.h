@@ -380,6 +380,10 @@ public:
      */
     void ZeroVariables();
 
+    void get_covariance(float c[28]);
+
+    float getAccNavMagHorizontal() { return _accNavMagHorizontal; }
+
 protected:
 
     /**

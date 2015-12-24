@@ -39,6 +39,7 @@
 
 #include "sensor_bridge.hpp"
 #include <drivers/drv_baro.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
 #include <uavcan/equipment/air_data/StaticTemperature.hpp>
@@ -75,8 +76,10 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure, AirPressureCbBinder> _sub_air_pressure_data;
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, AirTemperatureCbBinder> _sub_air_temperature_data;
+
+	ringbuffer::RingBuffer _reports;
+
 	unsigned _msl_pressure = 101325;
-	RingBuffer  *_reports;
-	float last_temperature_kelvin = 0.0;
+	float last_temperature_kelvin = 0.0f;
 
 };

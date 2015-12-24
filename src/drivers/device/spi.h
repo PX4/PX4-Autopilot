@@ -42,7 +42,7 @@
 
 #include "device.h"
 
-#include <nuttx/spi.h>
+#include <px4_spi.h>
 
 namespace device __EXPORT
 {
@@ -50,7 +50,11 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on SPI
  */
+#ifdef __PX4_NUTTX
 class __EXPORT SPI : public CDev
+#else
+class __EXPORT SPI : public VDev
+#endif
 {
 protected:
 	/**
@@ -105,12 +109,12 @@ protected:
 	 * Set the SPI bus frequency
 	 * This is used to change frequency on the fly. Some sensors
 	 * (such as the MPU6000) need a lower frequency for setup
-	 * registers and can handle higher frequency for sensor 
+	 * registers and can handle higher frequency for sensor
 	 * value registers
 	 *
 	 * @param frequency	Frequency to set (Hz)
 	 */
-        void		set_frequency(uint32_t frequency);
+	void		set_frequency(uint32_t frequency);
 
 	/**
 	 * Locking modes supported by the driver.
@@ -130,8 +134,8 @@ private:
 	struct spi_dev_s	*_dev;
 
 	/* this class does not allow copying */
-	SPI(const SPI&);
-	SPI operator=(const SPI&);
+	SPI(const SPI &);
+	SPI operator=(const SPI &);
 
 protected:
 	int			_bus;

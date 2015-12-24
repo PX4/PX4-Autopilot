@@ -42,11 +42,20 @@
  * @author Ban Siesta <bansiesta@gmail.com>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_getopt.h>
+#include <px4_tasks.h>
+#include <px4_time.h>
+#include <px4_posix.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/prctl.h>
+#ifdef __PX4_DARWIN
+#include <sys/param.h>
+#include <sys/mount.h>
+#else
 #include <sys/statfs.h>
+#endif
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -60,12 +69,11 @@
 #include <math.h>
 #include <time.h>
 
-#include <drivers/drv_range_finder.h>
-
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -81,7 +89,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
-#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -91,6 +99,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/system_power.h>
@@ -114,50 +123,7 @@
 #include "sdlog2_format.h"
 #include "sdlog2_messages.h"
 
-#define PX4_EPOCH_SECS 1234567890ULL
-
-/**
- * Logging rate.
- *
- * A value of -1 indicates the commandline argument
- * should be obeyed. A value of 0 sets the minimum rate,
- * any other value is interpreted as rate in Hertz. This
- * parameter is only read out before logging starts (which
- * commonly is before arming).
- *
- * @min -1
- * @max  1
- * @group SD Logging
- */
-PARAM_DEFINE_INT32(SDLOG_RATE, -1);
-
-/**
- * Enable extended logging mode.
- *
- * A value of -1 indicates the commandline argument
- * should be obeyed. A value of 0 disables extended
- * logging mode, a value of 1 enables it. This
- * parameter is only read out before logging starts
- * (which commonly is before arming).
- *
- * @min -1
- * @max  1
- * @group SD Logging
- */
-PARAM_DEFINE_INT32(SDLOG_EXT, -1);
-
-/**
- * Use timestamps only if GPS 3D fix is available
- *
- * A value of 1 constrains the log folder creation
- * to only use the time stamp if a 3D GPS lock is
- * present.
- *
- * @min 0
- * @max  1
- * @group SD Logging
- */
-PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
+#define PX4_EPOCH_SECS 1234567890L
 
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \
@@ -165,7 +131,7 @@ PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
 		log_msgs_skipped++; \
 	}
 
-#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
+#define SDLOG_MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
 static bool main_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;			/**< Deamon status flag */
@@ -180,7 +146,7 @@ static const int MIN_BYTES_TO_WRITE = 512;
 static bool _extended_logging = false;
 static bool _gpstime_only = false;
 
-#define MOUNTPOINT "/fs/microsd"
+#define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd"
 static const char *mountpoint = MOUNTPOINT;
 static const char *log_root = MOUNTPOINT "/log";
 static int mavlink_fd = -1;
@@ -190,7 +156,9 @@ struct logbuffer_s lb;
 static pthread_mutex_t logbuffer_mutex;
 static pthread_cond_t logbuffer_cond;
 
-static char log_dir[32];
+#define LOG_BASE_PATH_LEN	64
+
+static char log_dir[LOG_BASE_PATH_LEN];
 
 /* statistics counters */
 static uint64_t start_time = 0;
@@ -230,6 +198,7 @@ static void *logwriter_thread(void *arg);
 __EXPORT int sdlog2_main(int argc, char *argv[]);
 
 static bool copy_if_updated(orb_id_t topic, int *handle, void *buffer);
+static bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer);
 
 /**
  * Mainloop of sd log deamon.
@@ -273,8 +242,6 @@ static int write_parameters(int fd);
 
 static bool file_exist(const char *filename);
 
-static int file_copy(const char *file_old, const char *file_new);
-
 /**
  * Check if there is still free space available
  */
@@ -308,7 +275,7 @@ sdlog2_usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	}
 
-	errx(1, "usage: sdlog2 {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
+	warnx("usage: sdlog2 {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 8\n"
 		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
@@ -329,6 +296,7 @@ int sdlog2_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		sdlog2_usage("missing command");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -336,14 +304,14 @@ int sdlog2_main(int argc, char *argv[])
 		if (thread_running) {
 			warnx("already running");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
 		main_thread_should_exit = false;
-		deamon_task = task_spawn_cmd("sdlog2",
+		deamon_task = px4_task_spawn_cmd("sdlog2",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_DEFAULT - 30,
-						 3000,
+						 3300,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
 
@@ -359,7 +327,7 @@ int sdlog2_main(int argc, char *argv[])
 			}
 		}
 
-		exit(!(i < max_wait_steps));
+		return !(i < max_wait_steps);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
@@ -368,7 +336,7 @@ int sdlog2_main(int argc, char *argv[])
 		}
 
 		main_thread_should_exit = true;
-		exit(0);
+		return 0;
 	}
 
 	if (!thread_running) {
@@ -387,8 +355,7 @@ int sdlog2_main(int argc, char *argv[])
 		cmd.param1 = -1;
 		cmd.param2 = -1;
 		cmd.param3 = 1;
-		int fd = orb_advertise(ORB_ID(vehicle_command), &cmd);
-		close(fd);
+		orb_advertise(ORB_ID(vehicle_command), &cmd);
 		return 0;
 	}
 
@@ -398,18 +365,17 @@ int sdlog2_main(int argc, char *argv[])
 		cmd.param1 = -1;
 		cmd.param2 = -1;
 		cmd.param3 = 2;
-		int fd = orb_advertise(ORB_ID(vehicle_command), &cmd);
-		close(fd);
+		orb_advertise(ORB_ID(vehicle_command), &cmd);
 		return 0;
 	}
 
 	sdlog2_usage("unrecognized command");
-	exit(1);
+	return 1;
 }
 
 bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
 	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
 	time_t utc_time_sec;
 
@@ -459,7 +425,6 @@ int create_log_dir()
 			mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {
-				warnx("log dir created: %s", log_dir);
 				break;
 
 			} else if (errno != EEXIST) {
@@ -480,15 +445,15 @@ int create_log_dir()
 	}
 
 	/* print logging path, important to find log file later */
-	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] log dir: %s", log_dir);
+	mavlink_and_console_log_info(mavlink_fd, "[log] log dir: %s", log_dir);
 	return 0;
 }
 
 int open_log_file()
 {
 	/* string to hold the path to the log */
-	char log_file_name[32] = "";
-	char log_file_path[64] = "";
+	char log_file_name[64] = "";
+	char log_file_path[sizeof(log_file_name) + LOG_BASE_PATH_LEN] = "";
 
 	struct tm tt;
 	bool time_ok = get_log_time_utc_tt(&tt, false);
@@ -516,18 +481,22 @@ int open_log_file()
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical(mavlink_fd, "[log] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
 
+#ifdef __PX4_NUTTX
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
+#else
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, PX4_O_MODE_666);
+#endif
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[log] failed: %s", log_file_name);
 
 	} else {
-		mavlink_and_console_log_info(mavlink_fd, "[sdlog2] starting: %s", log_file_name);
+		mavlink_and_console_log_info(mavlink_fd, "[log] start: %s", log_file_name);
 	}
 
 	return fd;
@@ -536,8 +505,8 @@ int open_log_file()
 int open_perf_file(const char* str)
 {
 	/* string to hold the path to the log */
-	char log_file_name[32] = "";
-	char log_file_path[64] = "";
+	char log_file_name[64] = "";
+	char log_file_path[sizeof(log_file_name) + LOG_BASE_PATH_LEN] = "";
 
 	struct tm tt;
 	bool time_ok = get_log_time_utc_tt(&tt, false);
@@ -564,15 +533,19 @@ int open_perf_file(const char* str)
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical(mavlink_fd, "[log] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
 
+#ifdef __PX4_NUTTX
 	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
+#else
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC, 0x0777);
+#endif
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[log] failed: %s", log_file_name);
 
 	}
 
@@ -582,7 +555,7 @@ int open_perf_file(const char* str)
 static void *logwriter_thread(void *arg)
 {
 	/* set name */
-	prctl(PR_SET_NAME, "sdlog2_writer", 0);
+	px4_prctl(PR_SET_NAME, "sdlog2_writer", 0);
 
 	int log_fd = open_log_file();
 
@@ -650,7 +623,8 @@ static void *logwriter_thread(void *arg)
 
 			if (n < 0) {
 				main_thread_should_exit = true;
-				err(1, "error writing log file");
+				warn("error writing log file");
+				break;
 			}
 
 			if (n > 0) {
@@ -698,8 +672,8 @@ void sdlog2_start_log()
 
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
-		exit(1);
+		mavlink_and_console_log_critical(mavlink_fd, "[log] error creating log dir");
+		return;
 	}
 
 	/* initialize statistics counter */
@@ -712,9 +686,12 @@ void sdlog2_start_log()
 	pthread_attr_init(&logwriter_attr);
 
 	struct sched_param param;
+	(void)pthread_attr_getschedparam(&logwriter_attr, &param);
 	/* low priority, as this is expensive disk I/O */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
-	(void)pthread_attr_setschedparam(&logwriter_attr, &param);
+	if (pthread_attr_setschedparam(&logwriter_attr, &param)) {
+		warnx("sdlog2: failed setting sched params");
+	}
 
 	pthread_attr_setstacksize(&logwriter_attr, 2048);
 
@@ -725,7 +702,7 @@ void sdlog2_start_log()
 
 	/* start log buffer emptying thread */
 	if (0 != pthread_create(&logwriter_pthread, &logwriter_attr, logwriter_thread, &lb)) {
-		errx(1, "error creating logwriter thread");
+		warnx("error creating logwriter thread");
 	}
 
 	/* write all performance counters */
@@ -788,7 +765,7 @@ void sdlog2_stop_log()
 	/* free log writer performance counter */
 	perf_free(perf_write);
 
-	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] logging stopped");
+	mavlink_and_console_log_info(mavlink_fd, "[log] logging stopped");
 
 	sdlog2_status();
 }
@@ -873,10 +850,15 @@ int write_parameters(int fd)
 
 bool copy_if_updated(orb_id_t topic, int *handle, void *buffer)
 {
+	return copy_if_updated_multi(topic, 0, handle, buffer);
+}
+
+bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void *buffer)
+{
 	bool updated = false;
 
 	if (*handle < 0) {
-		if (OK == orb_exists(topic, 0)) {
+		if (OK == orb_exists(topic, multi_instance)) {
 			*handle = orb_subscribe(topic);
 			/* copy first data */
 			if (*handle >= 0) {
@@ -897,7 +879,7 @@ bool copy_if_updated(orb_id_t topic, int *handle, void *buffer)
 
 int sdlog2_thread_main(int argc, char *argv[])
 {
-	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	if (mavlink_fd < 0) {
 		warnx("ERR: log stream, start mavlink app first");
@@ -924,10 +906,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "r:b:eatx")) != EOF) {
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+	while ((ch = px4_getopt(argc, argv, "r:b:eatx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
-				unsigned long r = strtoul(optarg, NULL, 10);
+				unsigned long r = strtoul(myoptarg, NULL, 10);
 
 				if (r == 0) {
 					r = 1;
@@ -938,7 +922,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			break;
 
 		case 'b': {
-				unsigned long s = strtoul(optarg, NULL, 10);
+				unsigned long s = strtoul(myoptarg, NULL, 10);
 
 				if (s < 1) {
 					s = 1;
@@ -1046,7 +1030,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 
 	if (check_free_space() != OK) {
-		errx(1, "ERR: MicroSD almost full");
+		warnx("ERR: MicroSD almost full");
+		return 1;
 	}
 
 
@@ -1054,25 +1039,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 	int mkdir_ret = mkdir(log_root, S_IRWXU | S_IRWXG | S_IRWXO);
 
 	if (mkdir_ret != 0 && errno != EEXIST) {
-		err(1, "ERR: failed creating log dir: %s", log_root);
+		warn("ERR: failed creating log dir: %s", log_root);
+		return 1;
 	}
-
-	/* copy conversion scripts */
-	const char *converter_in = "/etc/logging/conv.zip";
-	char *converter_out = malloc(64);
-	snprintf(converter_out, 64, "%s/conv.zip", log_root);
-
-	if (file_copy(converter_in, converter_out) != OK) {
-		warn("unable to copy conversion scripts");
-	}
-
-	free(converter_out);
 
 	/* initialize log buffer with specified size */
 	warnx("log buffer size: %i bytes", log_buffer_size);
 
 	if (OK != logbuffer_init(&lb, log_buffer_size)) {
-		errx(1, "can't allocate log buffer, exiting");
+		warnx("can't allocate log buffer, exiting");
+		return 1;
 	}
 
 	struct vehicle_status_s buf_status;
@@ -1097,7 +1073,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
-		struct vehicle_vicon_position_s vicon_pos;
+		struct att_pos_mocap_s att_pos_mocap;
 		struct vision_position_estimate_s vision_pos;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
@@ -1107,7 +1083,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 		struct battery_status_s battery;
 		struct telemetry_status_s telemetry;
-		struct range_finder_report range_finder;
+		struct distance_sensor_s distance_sensor;
 		struct estimator_status_s estimator_status;
 		struct tecs_status_s tecs_status;
 		struct system_power_s system_power;
@@ -1118,6 +1094,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vtol_vehicle_status_s vtol_status;
 		struct time_offset_s time_offset;
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
+		struct control_state_s ctrl_state;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1152,8 +1129,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TEL_s log_TEL;
 			struct log_EST0_s log_EST0;
 			struct log_EST1_s log_EST1;
+			struct log_EST2_s log_EST2;
+			struct log_EST3_s log_EST3;
 			struct log_PWR_s log_PWR;
-			struct log_VICN_s log_VICN;
+			struct log_MOCP_s log_MOCP;
 			struct log_VISN_s log_VISN;
 			struct log_GS0A_s log_GS0A;
 			struct log_GS0B_s log_GS0B;
@@ -1164,6 +1143,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ENCD_s log_ENCD;
 			struct log_TSYN_s log_TSYN;
 			struct log_MACS_s log_MACS;
+			struct log_CTS_s log_CTS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1188,7 +1168,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int triplet_sub;
 		int gps_pos_sub;
 		int sat_info_sub;
-		int vicon_pos_sub;
+		int att_pos_mocap_sub;
 		int vision_pos_sub;
 		int flow_sub;
 		int rc_sub;
@@ -1196,8 +1176,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int esc_sub;
 		int global_vel_sp_sub;
 		int battery_sub;
-		int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
-		int range_finder_sub;
+		int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
+		int distance_sensor_sub;
 		int estimator_status_sub;
 		int tecs_status_sub;
 		int system_power_sub;
@@ -1206,6 +1186,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int encoders_sub;
 		int tsync_sub;
 		int mc_att_ctrl_status_sub;
+		int ctrl_state_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1223,7 +1204,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.local_pos_sp_sub = -1;
 	subs.global_pos_sub = -1;
 	subs.triplet_sub = -1;
-	subs.vicon_pos_sub = -1;
+	subs.att_pos_mocap_sub = -1;
 	subs.vision_pos_sub = -1;
 	subs.flow_sub = -1;
 	subs.rc_sub = -1;
@@ -1231,7 +1212,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.esc_sub = -1;
 	subs.global_vel_sp_sub = -1;
 	subs.battery_sub = -1;
-	subs.range_finder_sub = -1;
+	subs.distance_sensor_sub = -1;
 	subs.estimator_status_sub = -1;
 	subs.tecs_status_sub = -1;
 	subs.system_power_sub = -1;
@@ -1239,41 +1220,38 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.wind_sub = -1;
 	subs.tsync_sub = -1;
 	subs.mc_att_ctrl_status_sub = -1;
+	subs.ctrl_state_sub = -1;
 	subs.encoders_sub = -1;
 
 	/* add new topics HERE */
 
 
-	for (unsigned i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
 	}
 	
 	subs.sat_info_sub = -1;
 
-	/* close non-needed fd's */
+#ifdef __PX4_NUTTX
+	/* close non-needed fd's. We cannot do this for posix since the file
+	   descriptors will also be closed for the parent process
+	*/
 
 	/* close stdin */
 	close(0);
 	/* close stdout */
 	close(1);
-
+#endif
 	/* initialize thread synchronization */
 	pthread_mutex_init(&logbuffer_mutex, NULL);
 	pthread_cond_init(&logbuffer_cond, NULL);
 
 	/* track changes in sensor_combined topic */
-	hrt_abstime gyro_timestamp = 0;
-	hrt_abstime accelerometer_timestamp = 0;
-	hrt_abstime magnetometer_timestamp = 0;
-	hrt_abstime barometer_timestamp = 0;
-	hrt_abstime differential_pressure_timestamp = 0;
-	hrt_abstime barometer1_timestamp = 0;
-	hrt_abstime gyro1_timestamp = 0;
-	hrt_abstime accelerometer1_timestamp = 0;
-	hrt_abstime magnetometer1_timestamp = 0;
-	hrt_abstime gyro2_timestamp = 0;
-	hrt_abstime accelerometer2_timestamp = 0;
-	hrt_abstime magnetometer2_timestamp = 0;
+	hrt_abstime gyro_timestamp[3] = {0, 0, 0};
+	hrt_abstime accelerometer_timestamp[3] = {0, 0, 0};
+	hrt_abstime magnetometer_timestamp[3] = {0, 0, 0};
+	hrt_abstime barometer_timestamp[3] = {0, 0, 0};
+	hrt_abstime differential_pressure_timestamp[3] = {0, 0, 0};
 
 	/* initialize calculated mean SNR */
 	float snr_mean = 0.0f;
@@ -1377,7 +1355,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (copy_if_updated(ORB_ID(satellite_info), &subs.sat_info_sub, &buf.sat_info)) {
 
 				/* log the SNR of each satellite for a detailed view of signal quality */
-				unsigned sat_info_count = MIN(buf.sat_info.count, sizeof(buf.sat_info.snr) / sizeof(buf.sat_info.snr[0]));
+				unsigned sat_info_count = SDLOG_MIN(buf.sat_info.count, sizeof(buf.sat_info.snr) / sizeof(buf.sat_info.snr[0]));
 				unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
 
 				log_msg.msg_type = LOG_GS0A_MSG;
@@ -1421,144 +1399,86 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- SENSOR COMBINED --- */
 		if (copy_if_updated(ORB_ID(sensor_combined), &subs.sensor_sub, &buf.sensor)) {
-			bool write_IMU = false;
-			bool write_IMU1 = false;
-			bool write_IMU2 = false;
-			bool write_SENS = false;
-			bool write_SENS1 = false;
+			
 
-			if (buf.sensor.timestamp != gyro_timestamp) {
-				gyro_timestamp = buf.sensor.timestamp;
-				write_IMU = true;
+			for (unsigned i = 0; i < 3; i++) {
+				bool write_IMU = false;
+				bool write_SENS = false;
+
+				if (buf.sensor.gyro_timestamp[i] != gyro_timestamp[i]) {
+					gyro_timestamp[i] = buf.sensor.gyro_timestamp[i];
+					write_IMU = true;
+				}
+
+				if (buf.sensor.accelerometer_timestamp[i] != accelerometer_timestamp[i]) {
+					accelerometer_timestamp[i] = buf.sensor.accelerometer_timestamp[i];
+					write_IMU = true;
+				}
+
+				if (buf.sensor.magnetometer_timestamp[i] != magnetometer_timestamp[i]) {
+					magnetometer_timestamp[i] = buf.sensor.magnetometer_timestamp[i];
+					write_IMU = true;
+				}
+
+				if (buf.sensor.baro_timestamp[i] != barometer_timestamp[i]) {
+					barometer_timestamp[i] = buf.sensor.baro_timestamp[i];
+					write_SENS = true;
+				}
+
+				if (buf.sensor.differential_pressure_timestamp[i] != differential_pressure_timestamp[i]) {
+					differential_pressure_timestamp[i] = buf.sensor.differential_pressure_timestamp[i];
+					write_SENS = true;
+				}
+
+				if (write_IMU) {
+					switch (i) {
+						case 0:
+							log_msg.msg_type = LOG_IMU_MSG;
+							break;
+						case 1:
+							log_msg.msg_type = LOG_IMU1_MSG;
+							break;
+						case 2:
+							log_msg.msg_type = LOG_IMU2_MSG;
+							break;
+					}
+
+					log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_rad_s[i * 3 + 0];
+					log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_rad_s[i * 3 + 1];
+					log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_rad_s[i * 3 + 2];
+					log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_m_s2[i * 3 + 0];
+					log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_m_s2[i * 3 + 1];
+					log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_m_s2[i * 3 + 2];
+					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[i * 3 + 0];
+					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[i * 3 + 1];
+					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[i * 3 + 2];
+					log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro_temp[i * 3 + 0];
+					log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp[i * 3 + 0];
+					log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp[i * 3 + 0];
+					LOGBUFFER_WRITE_AND_COUNT(IMU);
+				}
+
+				if (write_SENS) {
+					switch (i) {
+						case 0:
+							log_msg.msg_type = LOG_SENS_MSG;
+							break;
+						case 1:
+							log_msg.msg_type = LOG_AIR1_MSG;
+							break;
+						case 2:
+							continue;
+							break;
+					}
+
+					log_msg.body.log_SENS.baro_pres = buf.sensor.baro_pres_mbar[i];
+					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter[i];
+					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius[i];
+					log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure_pa[i];
+					log_msg.body.log_SENS.diff_pres_filtered = buf.sensor.differential_pressure_filtered_pa[i];
+					LOGBUFFER_WRITE_AND_COUNT(SENS);
+				}
 			}
-
-			if (buf.sensor.accelerometer_timestamp != accelerometer_timestamp) {
-				accelerometer_timestamp = buf.sensor.accelerometer_timestamp;
-				write_IMU = true;
-			}
-
-			if (buf.sensor.magnetometer_timestamp != magnetometer_timestamp) {
-				magnetometer_timestamp = buf.sensor.magnetometer_timestamp;
-				write_IMU = true;
-			}
-
-			if (buf.sensor.baro_timestamp != barometer_timestamp) {
-				barometer_timestamp = buf.sensor.baro_timestamp;
-				write_SENS = true;
-			}
-
-			if (buf.sensor.differential_pressure_timestamp != differential_pressure_timestamp) {
-				differential_pressure_timestamp = buf.sensor.differential_pressure_timestamp;
-				write_SENS = true;
-			}
-
-			if (write_IMU) {
-				log_msg.msg_type = LOG_IMU_MSG;
-				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_rad_s[0];
-				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_rad_s[1];
-				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_rad_s[2];
-				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_m_s2[0];
-				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_m_s2[1];
-				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_m_s2[2];
-				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
-				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
-				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
-				log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro_temp;
-				log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp;
-				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp;
-				LOGBUFFER_WRITE_AND_COUNT(IMU);
-			}
-
-			if (write_SENS) {
-				log_msg.msg_type = LOG_SENS_MSG;
-				log_msg.body.log_SENS.baro_pres = buf.sensor.baro_pres_mbar;
-				log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
-				log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
-				log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure_pa;
-				log_msg.body.log_SENS.diff_pres_filtered = buf.sensor.differential_pressure_filtered_pa;
-				LOGBUFFER_WRITE_AND_COUNT(SENS);
-			}
-
-			if (buf.sensor.baro1_timestamp != barometer1_timestamp) {
-				barometer1_timestamp = buf.sensor.baro1_timestamp;
-				write_SENS1 = true;
-			}
-
-			if (write_SENS1) {
-				log_msg.msg_type = LOG_AIR1_MSG;
-				log_msg.body.log_SENS.baro_pres = buf.sensor.baro1_pres_mbar;
-				log_msg.body.log_SENS.baro_alt = buf.sensor.baro1_alt_meter;
-				log_msg.body.log_SENS.baro_temp = buf.sensor.baro1_temp_celcius;
-				log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure1_pa;
-				log_msg.body.log_SENS.diff_pres_filtered = buf.sensor.differential_pressure1_filtered_pa;
-				// XXX moving to AIR0-AIR2 instead of SENS
-				LOGBUFFER_WRITE_AND_COUNT(SENS);
-			}
-
-			if (buf.sensor.accelerometer1_timestamp != accelerometer1_timestamp) {
-				accelerometer1_timestamp = buf.sensor.accelerometer1_timestamp;
-				write_IMU1 = true;
-			}
-
-			if (buf.sensor.gyro1_timestamp != gyro1_timestamp) {
-				gyro1_timestamp = buf.sensor.gyro1_timestamp;
-				write_IMU1 = true;
-			}
-
-			if (buf.sensor.magnetometer1_timestamp != magnetometer1_timestamp) {
-				magnetometer1_timestamp = buf.sensor.magnetometer1_timestamp;
-				write_IMU1 = true;
-			}
-
-			if (write_IMU1) {
-				log_msg.msg_type = LOG_IMU1_MSG;
-				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro1_rad_s[0];
-				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro1_rad_s[1];
-				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro1_rad_s[2];
-				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer1_m_s2[0];
-				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer1_m_s2[1];
-				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer1_m_s2[2];
-				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer1_ga[0];
-				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer1_ga[1];
-				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer1_ga[2];
-				log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro1_temp;
-				log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer1_temp;
-				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer1_temp;
-				LOGBUFFER_WRITE_AND_COUNT(IMU);
-			}
-
-			if (buf.sensor.accelerometer2_timestamp != accelerometer2_timestamp) {
-				accelerometer2_timestamp = buf.sensor.accelerometer2_timestamp;
-				write_IMU2 = true;
-			}
-
-			if (buf.sensor.gyro2_timestamp != gyro2_timestamp) {
-				gyro2_timestamp = buf.sensor.gyro2_timestamp;
-				write_IMU2 = true;
-			}
-
-			if (buf.sensor.magnetometer2_timestamp != magnetometer2_timestamp) {
-				magnetometer2_timestamp = buf.sensor.magnetometer2_timestamp;
-				write_IMU2 = true;
-			}
-
-			if (write_IMU2) {
-				log_msg.msg_type = LOG_IMU2_MSG;
-				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro2_rad_s[0];
-				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro2_rad_s[1];
-				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro2_rad_s[2];
-				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer2_m_s2[0];
-				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer2_m_s2[1];
-				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer2_m_s2[2];
-				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer2_ga[0];
-				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer2_ga[1];
-				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer2_ga[2];
-				log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro2_temp;
-				log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer2_temp;
-				log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer2_temp;
-				LOGBUFFER_WRITE_AND_COUNT(IMU);
-			}
-
 		}
 
 		/* --- ATTITUDE --- */
@@ -1697,8 +1617,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (buf.triplet.current.valid) {
 				log_msg.msg_type = LOG_GPSP_MSG;
 				log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
-				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
-				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
+				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * (double)1e7);
+				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * (double)1e7);
 				log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
 				log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
 				log_msg.body.log_GPSP.type = buf.triplet.current.type;
@@ -1709,16 +1629,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* --- VICON POSITION --- */
-		if (copy_if_updated(ORB_ID(vehicle_vicon_position), &subs.vicon_pos_sub, &buf.vicon_pos)) {
-			log_msg.msg_type = LOG_VICN_MSG;
-			log_msg.body.log_VICN.x = buf.vicon_pos.x;
-			log_msg.body.log_VICN.y = buf.vicon_pos.y;
-			log_msg.body.log_VICN.z = buf.vicon_pos.z;
-			log_msg.body.log_VICN.pitch = buf.vicon_pos.pitch;
-			log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
-			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
-			LOGBUFFER_WRITE_AND_COUNT(VICN);
+		/* --- MOCAP ATTITUDE AND POSITION --- */
+		if (copy_if_updated(ORB_ID(att_pos_mocap), &subs.att_pos_mocap_sub, &buf.att_pos_mocap)) {
+			log_msg.msg_type = LOG_MOCP_MSG;
+			log_msg.body.log_MOCP.qw = buf.att_pos_mocap.q[0];
+			log_msg.body.log_MOCP.qx = buf.att_pos_mocap.q[1];
+			log_msg.body.log_MOCP.qy = buf.att_pos_mocap.q[2];
+			log_msg.body.log_MOCP.qz = buf.att_pos_mocap.q[3];
+			log_msg.body.log_MOCP.x = buf.att_pos_mocap.x;
+			log_msg.body.log_MOCP.y = buf.att_pos_mocap.y;
+			log_msg.body.log_MOCP.z = buf.att_pos_mocap.z;
+			LOGBUFFER_WRITE_AND_COUNT(MOCP);
 		}
 
 		/* --- VISION POSITION --- */
@@ -1756,10 +1677,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- RC CHANNELS --- */
 		if (copy_if_updated(ORB_ID(rc_channels), &subs.rc_sub, &buf.rc)) {
 			log_msg.msg_type = LOG_RC_MSG;
-			/* Copy only the first 8 channels of 14 */
+			/* Copy only the first 12 channels of 18 */
 			memcpy(log_msg.body.log_RC.channel, buf.rc.channels, sizeof(log_msg.body.log_RC.channel));
+			log_msg.body.log_RC.rssi = buf.rc.rssi;
 			log_msg.body.log_RC.channel_count = buf.rc.channel_count;
 			log_msg.body.log_RC.signal_lost = buf.rc.signal_lost;
+			log_msg.body.log_RC.frame_drop = buf.rc.frame_drop_count;
 			LOGBUFFER_WRITE_AND_COUNT(RC);
 		}
 
@@ -1830,8 +1753,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- TELEMETRY --- */
-		for (unsigned i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
-			if (copy_if_updated(telemetry_status_orb_id[i], &subs.telemetry_subs[i], &buf.telemetry)) {
+		for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			if (copy_if_updated_multi(ORB_ID(telemetry_status), i, &subs.telemetry_subs[i], &buf.telemetry)) {
 				log_msg.msg_type = LOG_TEL0_MSG + i;
 				log_msg.body.log_TEL.rssi = buf.telemetry.rssi;
 				log_msg.body.log_TEL.remote_rssi = buf.telemetry.remote_rssi;
@@ -1845,12 +1768,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* --- BOTTOM DISTANCE --- */
-		if (copy_if_updated(ORB_ID(sensor_range_finder), &subs.range_finder_sub, &buf.range_finder)) {
+		/* --- DISTANCE SENSOR --- */
+		if (copy_if_updated(ORB_ID(distance_sensor), &subs.distance_sensor_sub, &buf.distance_sensor)) {
 			log_msg.msg_type = LOG_DIST_MSG;
-			log_msg.body.log_DIST.bottom = buf.range_finder.distance;
-			log_msg.body.log_DIST.bottom_rate = 0.0f;
-			log_msg.body.log_DIST.flags = (buf.range_finder.valid ? 1 : 0);
+			log_msg.body.log_DIST.id = buf.distance_sensor.id;
+			log_msg.body.log_DIST.type = buf.distance_sensor.type;
+			log_msg.body.log_DIST.orientation = buf.distance_sensor.orientation;
+			log_msg.body.log_DIST.current_distance = buf.distance_sensor.current_distance;
+			log_msg.body.log_DIST.covariance = buf.distance_sensor.covariance;
 			LOGBUFFER_WRITE_AND_COUNT(DIST);
 		}
 
@@ -1869,8 +1794,20 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_EST1_MSG;
 			unsigned maxcopy1 = ((sizeof(buf.estimator_status.states) - maxcopy0) < sizeof(log_msg.body.log_EST1.s)) ? (sizeof(buf.estimator_status.states) - maxcopy0) : sizeof(log_msg.body.log_EST1.s);
 			memset(&(log_msg.body.log_EST1.s), 0, sizeof(log_msg.body.log_EST1.s));
-			memcpy(&(log_msg.body.log_EST1.s), buf.estimator_status.states + maxcopy0, maxcopy1);
+			memcpy(&(log_msg.body.log_EST1.s), ((char*)buf.estimator_status.states) + maxcopy0, maxcopy1);
 			LOGBUFFER_WRITE_AND_COUNT(EST1);
+
+			log_msg.msg_type = LOG_EST2_MSG;
+			unsigned maxcopy2 = (sizeof(buf.estimator_status.covariances) < sizeof(log_msg.body.log_EST2.cov)) ? sizeof(buf.estimator_status.covariances) : sizeof(log_msg.body.log_EST2.cov);
+			memset(&(log_msg.body.log_EST2.cov), 0, sizeof(log_msg.body.log_EST2.cov));
+			memcpy(&(log_msg.body.log_EST2.cov), buf.estimator_status.covariances, maxcopy2);
+			LOGBUFFER_WRITE_AND_COUNT(EST2);
+
+			log_msg.msg_type = LOG_EST3_MSG;
+			unsigned maxcopy3 = ((sizeof(buf.estimator_status.covariances) - maxcopy2) < sizeof(log_msg.body.log_EST3.cov)) ? (sizeof(buf.estimator_status.covariances) - maxcopy2) : sizeof(log_msg.body.log_EST3.cov);
+			memset(&(log_msg.body.log_EST3.cov), 0, sizeof(log_msg.body.log_EST3.cov));
+			memcpy(&(log_msg.body.log_EST3.cov), ((char*)buf.estimator_status.covariances) + maxcopy2, maxcopy3);
+			LOGBUFFER_WRITE_AND_COUNT(EST3);
 		}
 
 		/* --- TECS STATUS --- */
@@ -1885,11 +1822,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
 			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
 			log_msg.body.log_TECS.totalEnergyError = buf.tecs_status.totalEnergyError;
-			log_msg.body.log_TECS.energyDistributionError = buf.tecs_status.energyDistributionError;
 			log_msg.body.log_TECS.totalEnergyRateError = buf.tecs_status.totalEnergyRateError;
+			log_msg.body.log_TECS.energyDistributionError = buf.tecs_status.energyDistributionError;
 			log_msg.body.log_TECS.energyDistributionRateError = buf.tecs_status.energyDistributionRateError;
-			log_msg.body.log_TECS.throttle_integ = buf.tecs_status.throttle_integ;
 			log_msg.body.log_TECS.pitch_integ = buf.tecs_status.pitch_integ;
+			log_msg.body.log_TECS.throttle_integ = buf.tecs_status.throttle_integ;
 			log_msg.body.log_TECS.mode = (uint8_t)buf.tecs_status.mode;
 			LOGBUFFER_WRITE_AND_COUNT(TECS);
 		}
@@ -1930,6 +1867,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(MACS);
 		}
 
+		/* --- CONTROL STATE --- */
+		if (copy_if_updated(ORB_ID(control_state), &subs.ctrl_state_sub, &buf.ctrl_state)) {
+			log_msg.msg_type = LOG_CTS_MSG;
+			log_msg.body.log_CTS.vx_body = buf.ctrl_state.x_vel;
+			log_msg.body.log_CTS.vy_body = buf.ctrl_state.y_vel;
+			log_msg.body.log_CTS.vz_body = buf.ctrl_state.z_vel;
+			log_msg.body.log_CTS.airspeed = buf.ctrl_state.airspeed;
+			log_msg.body.log_CTS.roll_rate = buf.ctrl_state.roll_rate;
+			log_msg.body.log_CTS.pitch_rate = buf.ctrl_state.pitch_rate;
+			log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
+			LOGBUFFER_WRITE_AND_COUNT(CTS);
+		}
+
 		/* signal the other thread new data, but not yet unlock */
 		if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {
 			/* only request write if several packets can be written at once */
@@ -1967,12 +1917,12 @@ void sdlog2_status()
 		float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
 		warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
-		mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+		mavlink_log_info(mavlink_fd, "[log] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
 	}
 }
 
 /**
- * @return 0 if file exists
+ * @return true if file exists
  */
 bool file_exist(const char *filename)
 {
@@ -1980,72 +1930,33 @@ bool file_exist(const char *filename)
 	return stat(filename, &buffer) == 0;
 }
 
-int file_copy(const char *file_old, const char *file_new)
-{
-	FILE *source, *target;
-	source = fopen(file_old, "r");
-	int ret = 0;
-
-	if (source == NULL) {
-		warnx("ERR: open in");
-		return 1;
-	}
-
-	target = fopen(file_new, "w");
-
-	if (target == NULL) {
-		fclose(source);
-		warnx("ERR: open out");
-		return 1;
-	}
-
-	char buf[128];
-	int nread;
-
-	while ((nread = fread(buf, 1, sizeof(buf), source)) > 0) {
-		ret = fwrite(buf, 1, nread, target);
-
-		if (ret <= 0) {
-			warnx("error writing file");
-			ret = 1;
-			break;
-		}
-	}
-
-	fsync(fileno(target));
-
-	fclose(source);
-	fclose(target);
-
-	return OK;
-}
-
 int check_free_space()
 {
 	/* use statfs to determine the number of blocks left */
 	FAR struct statfs statfs_buf;
 	if (statfs(mountpoint, &statfs_buf) != OK) {
-		errx(ERROR, "ERR: statfs");
+		warnx("ERR: statfs");
+		return PX4_ERROR;
 	}
 
 	/* use a threshold of 50 MiB */
-	if (statfs_buf.f_bavail < (int)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
+	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
-			"[sdlog2] no space on MicroSD: %u MiB",
+			"[log] no space on MicroSD: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
-		return ERROR;
+		return PX4_ERROR;
 
 	/* use a threshold of 100 MiB to send a warning */
-	} else if (!space_warning_sent && statfs_buf.f_bavail < (int)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
+	} else if (!space_warning_sent && statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
-			"[sdlog2] space on MicroSD low: %u MiB",
+			"[log] space on MicroSD low: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we don't want to flood the user with warnings */
 		space_warning_sent = true;
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 void handle_command(struct vehicle_command_s *cmd)

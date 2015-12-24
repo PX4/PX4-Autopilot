@@ -37,7 +37,7 @@
  * PX4FMU LED backend.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 
@@ -70,13 +70,12 @@ __EXPORT void led_init(void)
 
 __EXPORT void led_on(int led)
 {
-	if (led == 0)
-	{
+	if (led == 0) {
 		/* Pull down to switch on */
 		stm32_gpiowrite(GPIO_LED1, false);
 	}
-	if (led == 1)
-	{
+
+	if (led == 1) {
 		/* Pull down to switch on */
 		stm32_gpiowrite(GPIO_LED2, false);
 	}
@@ -84,13 +83,12 @@ __EXPORT void led_on(int led)
 
 __EXPORT void led_off(int led)
 {
-	if (led == 0)
-	{
+	if (led == 0) {
 		/* Pull up to switch off */
 		stm32_gpiowrite(GPIO_LED1, true);
 	}
-	if (led == 1)
-	{
+
+	if (led == 1) {
 		/* Pull up to switch off */
 		stm32_gpiowrite(GPIO_LED2, true);
 	}
@@ -98,18 +96,21 @@ __EXPORT void led_off(int led)
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 0)
-	{
-		if (stm32_gpioread(GPIO_LED1))
+	if (led == 0) {
+		if (stm32_gpioread(GPIO_LED1)) {
 			stm32_gpiowrite(GPIO_LED1, false);
-		else
+
+		} else {
 			stm32_gpiowrite(GPIO_LED1, true);
+		}
 	}
-	if (led == 1)
-	{
-		if (stm32_gpioread(GPIO_LED2))
+
+	if (led == 1) {
+		if (stm32_gpioread(GPIO_LED2)) {
 			stm32_gpiowrite(GPIO_LED2, false);
-		else
+
+		} else {
 			stm32_gpiowrite(GPIO_LED2, true);
+		}
 	}
 }

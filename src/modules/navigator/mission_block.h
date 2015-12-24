@@ -43,9 +43,12 @@
 
 #include <drivers/drv_hrt.h>
 
+#include <navigator/navigation.h>
+
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/actuator_controls.h>
 
 #include "navigator_mode.h"
 
@@ -93,10 +96,19 @@ protected:
 	 */
 	void set_loiter_item(struct mission_item_s *item, float min_clearance = -1.0f);
 
+	/**
+	 * Set a takeoff mission item
+	 */
+	void set_takeoff_item(struct mission_item_s *item, float min_clearance = -1.0f, float min_pitch = 0.0f);
+
 	mission_item_s _mission_item;
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;
 	hrt_abstime _time_first_inside_orbit;
+
+	actuator_controls_s _actuators;
+	orb_advert_t    _actuator_pub;
+
 };
 
 #endif

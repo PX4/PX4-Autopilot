@@ -43,7 +43,12 @@
 
 __BEGIN_DECLS
 
+#include <px4_config.h>
 #include <stdint.h>
+
+#ifndef CONFIG_MAX_TASKS
+#define CONFIG_MAX_TASKS 64
+#endif
 
 struct print_load_s {
 	uint64_t total_user_time;

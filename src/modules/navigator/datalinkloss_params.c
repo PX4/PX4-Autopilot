@@ -39,10 +39,6 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#include <nuttx/config.h>
-
-#include <systemlib/param/param.h>
-
 /*
  * Data Link Loss parameters, accessible via MAVLink
  */

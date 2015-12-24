@@ -36,8 +36,9 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_posix.h>
 #include <sys/types.h>
 
 #include <stdio.h>
@@ -45,7 +46,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 
@@ -104,7 +104,7 @@ cycletime(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: test_led
+ * Name: test_time
  ****************************************************************************/
 
 int test_time(int argc, char *argv[])
@@ -153,11 +153,11 @@ int test_time(int argc, char *argv[])
 		}
 
 		if (deltadelta > 1000) {
-			fprintf(stderr, "h %llu  c %llu  d %lld\n", h, c, delta - lowdelta);
+			fprintf(stderr, "h %" PRIu64 " c %" PRIu64 " d %" PRId64 "\n", h, c, delta - lowdelta);
 		}
 	}
 
-	printf("Maximum jitter %lldus\n", maxdelta);
+	printf("Maximum jitter %" PRId64 "us\n", maxdelta);
 
 	return 0;
 }

@@ -31,15 +31,15 @@
  *
  ****************************************************************************/
 
- /**
- * @file standard.h
- * VTOL with fixed multirotor motor configurations (such as quad) and a pusher
- * (or puller aka tractor) motor for forward flight.
- *
- * @author Simon Wilks 		<simon@uaventure.com>
- * @author Roman Bapst 		<bapstroman@gmail.com>
- *
- */
+/**
+* @file standard.h
+* VTOL with fixed multirotor motor configurations (such as quad) and a pusher
+* (or puller aka tractor) motor for forward flight.
+*
+* @author Simon Wilks 		<simon@uaventure.com>
+* @author Roman Bapst 		<bapstroman@gmail.com>
+*
+*/
 
 #ifndef STANDARD_H
 #define STANDARD_H
@@ -52,14 +52,12 @@ class Standard : public VtolType
 
 public:
 
-	Standard(VtolAttitudeControl * _att_controller);
+	Standard(VtolAttitudeControl *_att_controller);
 	~Standard();
 
 	void update_vtol_state();
 	void update_mc_state();
-	void process_mc_data();
 	void update_fw_state();
-	void process_fw_data();
 	void update_transition_state();
 	void update_external_state();
 
@@ -91,14 +89,13 @@ private:
 	struct {
 		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
-	}_vtol_schedule;
+	} _vtol_schedule;
 
 	bool _flag_enable_mc_motors;
 	float _pusher_throttle;
-	float _mc_att_ctl_weight;	// the amount of multicopter attitude control that should be applied in fixed wing mode while transitioning 
 	float _airspeed_trans_blend_margin;
 
-	void fill_att_control_output();
+	void fill_actuator_outputs();
 	void set_max_mc(unsigned pwm_value);
 
 	int parameters_update();

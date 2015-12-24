@@ -37,7 +37,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 
@@ -46,14 +46,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 #include <time.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
 
-#include <nuttx/spi.h>
+//#include <nuttx/spi.h>
 
 #include "tests.h"
 

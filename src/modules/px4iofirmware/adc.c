@@ -36,7 +36,7 @@
  *
  * Simple ADC support for PX4IO on STM32.
  */
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdint.h>
 
 #include <nuttx/arch.h>
@@ -96,19 +96,22 @@ adc_init(void)
 	rCR2 |= ADC_CR2_RSTCAL;
 	up_udelay(1);
 
-	if (rCR2 & ADC_CR2_RSTCAL)
+	if (rCR2 & ADC_CR2_RSTCAL) {
 		return -1;
+	}
 
 	rCR2 |= ADC_CR2_CAL;
 	up_udelay(100);
 
-	if (rCR2 & ADC_CR2_CAL)
+	if (rCR2 & ADC_CR2_CAL) {
 		return -1;
+	}
+
 #endif
 
 	/*
 	 * Configure sampling time.
-	 * 
+	 *
 	 * For electrical protection reasons, we want to be able to have
 	 * 10K in series with ADC inputs that leave the board. At 12MHz this
 	 * means we need 28.5 cycles of sampling time (per table 43 in the

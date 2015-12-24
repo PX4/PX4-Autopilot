@@ -58,7 +58,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -73,6 +73,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_force_setpoint.h>
 #include <uORB/topics/time_offset.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include "mavlink_ftp.h"
 
@@ -118,7 +119,7 @@ private:
 	void handle_message_optical_flow_rad(mavlink_message_t *msg);
 	void handle_message_hil_optical_flow(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
-	void handle_message_vicon_position_estimate(mavlink_message_t *msg);
+	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
@@ -135,6 +136,7 @@ private:
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
+	void handle_message_distance_sensor(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -176,7 +178,7 @@ private:
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
-	orb_advert_t _range_pub;
+	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _offboard_control_mode_pub;
 	orb_advert_t _actuator_controls_pub;
 	orb_advert_t _global_vel_sp_pub;
@@ -184,7 +186,7 @@ private:
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _force_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
-	orb_advert_t _vicon_position_pub;
+	orb_advert_t _att_pos_mocap_pub;
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
@@ -194,14 +196,18 @@ private:
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
+	uint64_t _hil_last_frame;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
+	float _hil_prev_gyro[3];
+	float _hil_prev_accel[3];
 	struct map_projection_reference_s _hil_local_proj_ref;
 	struct offboard_control_mode_s _offboard_control_mode;
 	struct vehicle_attitude_setpoint_s _att_sp;
 	struct vehicle_rates_setpoint_s _rates_sp;
 	double _time_offset_avg_alpha;
 	uint64_t _time_offset;
+	int	_orb_class_instance;
 
 	static constexpr unsigned MOM_SWITCH_COUNT = 8;
 

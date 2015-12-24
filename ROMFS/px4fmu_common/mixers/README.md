@@ -34,7 +34,7 @@ collection of mixers in order to achieve a specific pattern of actuator outputs.
 
 The null mixer definition has the form:
 
-  Z:
+	Z:
 
 #### Simple Mixer ####
 
@@ -44,8 +44,8 @@ applying an output scaler.
 
 A simple mixer definition begins with:
 
-  M: <control count>
-  O: <-ve scale> <+ve scale> <offset> <lower limit> <upper limit>
+	M: <control count>
+	O: <-ve scale> <+ve scale> <offset> <lower limit> <upper limit>
 
 If <control count> is zero, the sum is effectively zero and the mixer will
 output a fixed value that is <offset> constrained by <lower limit> and <upper
@@ -59,7 +59,7 @@ offset of -0.5 is encoded as -5000.
 The definition continues with <control count> entries describing the control
 inputs and their scaling, in the form:
 
-  S: <group> <index> <-ve scale> <+ve scale> <offset> <lower limit> <upper limit>
+	S: <group> <index> <-ve scale> <+ve scale> <offset> <lower limit> <upper limit>
 
 The <group> value identifies the control group from which the scaler will read,
 and the <index> value an offset within that group.  These values are specific to
@@ -81,16 +81,16 @@ into a set of actuator outputs intended to drive motor speed controllers.
 
 The mixer definition is a single line of the form:
 
-R: <geometry> <roll scale> <pitch scale> <yaw scale> <deadband>
+	R: <geometry> <roll scale> <pitch scale> <yaw scale> <deadband>
 
 The supported geometries include:
 
-  4x - quadrotor in X configuration
-  4+ - quadrotor in + configuration
-  6x - hexcopter in X configuration
-  6+ - hexcopter in + configuration
-  8x - octocopter in X configuration
-  8+ - octocopter in + configuration
+ * 4x - quadrotor in X configuration
+ * 4+ - quadrotor in + configuration
+ * 6x - hexcopter in X configuration
+ * 6+ - hexcopter in + configuration
+ * 8x - octocopter in X configuration
+ * 8+ - octocopter in + configuration
   
 Each of the roll, pitch and yaw scale values determine scaling of the roll,
 pitch and yaw controls relative to the thrust control.  Whilst the calculations

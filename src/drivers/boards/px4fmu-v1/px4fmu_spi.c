@@ -41,7 +41,7 @@
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -67,7 +67,7 @@
  *
  ************************************************************************************/
 
-__EXPORT void weak_function stm32_spiinitialize(void)
+__EXPORT void stm32_spiinitialize(void)
 {
 	stm32_configgpio(GPIO_SPI_CS_GYRO);
 	stm32_configgpio(GPIO_SPI_CS_ACCEL);
@@ -90,8 +90,8 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	switch (devid) {
 	case PX4_SPIDEV_GYRO:
-			/* Making sure the other peripherals are not selected */
-			stm32_gpiowrite(GPIO_SPI_CS_GYRO, !selected);
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_GYRO, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL, 1);
 		break;

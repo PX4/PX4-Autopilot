@@ -122,7 +122,7 @@ const rot_lookup_t rot_lookup[] = {
  * Get the rotation matrix
  */
 __EXPORT void
-get_rot_matrix(enum Rotation rot, math::Matrix<3,3> *rot_matrix);
+get_rot_matrix(enum Rotation rot, math::Matrix<3, 3> *rot_matrix);
 
 
 /**

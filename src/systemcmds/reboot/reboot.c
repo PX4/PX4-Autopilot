@@ -37,13 +37,11 @@
  * Tool similar to UNIX reboot command
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <getopt.h>
-
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_tasks.h>
+#include <px4_log.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/err.h>
 
 __EXPORT int reboot_main(int argc, char *argv[]);
 
@@ -52,20 +50,21 @@ int reboot_main(int argc, char *argv[])
 	int ch;
 	bool to_bootloader = false;
 
-	while ((ch = getopt(argc, argv, "b")) != -1) {
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+
+	while ((ch = px4_getopt(argc, argv, "b", &myoptind, &myoptarg)) != -1) {
 		switch (ch) {
 		case 'b':
 			to_bootloader = true;
 			break;
 
 		default:
-			errx(1, "usage: reboot [-b]\n"
-			     "   -b   reboot into the bootloader");
+			PX4_ERR("usage: reboot [-b]\n"
+				"   -b   reboot into the bootloader");
 
 		}
 	}
 
-	systemreset(to_bootloader);
+	px4_systemreset(to_bootloader);
 }
-
-

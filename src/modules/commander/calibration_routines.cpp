@@ -38,7 +38,11 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include <px4_defines.h>
+#include <px4_posix.h>
+#include <px4_time.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <math.h>
 #include <float.h>
 #include <poll.h>
@@ -53,9 +57,6 @@
 #include "calibration_routines.h"
 #include "calibration_messages.h"
 #include "commander_helper.h"
-
-// FIXME: Fix return codes
-static const int ERROR = -1;
 
 int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z,
@@ -245,7 +246,7 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int cancel_sub
 	float		accel_err_thr = 5.0f;			// set accel error threshold to 5m/s^2
 	hrt_abstime	still_time = lenient_still_position ? 500000 : 1300000;	// still time required in us
     
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 	fds[0].fd = accel_sub;
 	fds[0].events = POLLIN;
 	
@@ -261,7 +262,7 @@ enum detect_orientation_return detect_orientation(int mavlink_fd, int cancel_sub
 	
 	while (true) {
 		/* wait blocking for new data */
-		int poll_ret = poll(fds, 1, 1000);
+		int poll_ret = px4_poll(fds, 1, 1000);
 		
 		if (poll_ret) {
 			orb_copy(ORB_ID(sensor_combined), accel_sub, &sensor);
@@ -492,7 +493,7 @@ calibrate_return calibrate_from_orientation(int		mavlink_fd,
 	}
 	
 	if (sub_accel >= 0) {
-		close(sub_accel);
+		px4_close(sub_accel);
 	}
 	
 	return result;
@@ -527,11 +528,11 @@ static void calibrate_answer_command(int mavlink_fd, struct vehicle_command_s &c
 
 bool calibrate_cancel_check(int mavlink_fd, int cancel_sub)
 {
-	struct pollfd fds[1];
+	px4_pollfd_struct_t fds[1];
 	fds[0].fd = cancel_sub;
 	fds[0].events = POLLIN;
 
-	if (poll(&fds[0], 1, 0) > 0) {
+	if (px4_poll(&fds[0], 1, 0) > 0) {
 		struct vehicle_command_s cmd;
 		memset(&cmd, 0, sizeof(cmd));
 		

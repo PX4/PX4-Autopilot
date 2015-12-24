@@ -60,13 +60,13 @@ static const unsigned pollset_increment = 0;
  * The standard NuttX operation dispatch table can't call C++ member functions
  * directly, so we have to bounce them through this dispatch table.
  */
-static int	cdev_open(struct file *filp);
-static int	cdev_close(struct file *filp);
-static ssize_t	cdev_read(struct file *filp, char *buffer, size_t buflen);
-static ssize_t	cdev_write(struct file *filp, const char *buffer, size_t buflen);
-static off_t	cdev_seek(struct file *filp, off_t offset, int whence);
-static int	cdev_ioctl(struct file *filp, int cmd, unsigned long arg);
-static int	cdev_poll(struct file *filp, struct pollfd *fds, bool setup);
+static int	cdev_open(file_t *filp);
+static int	cdev_close(file_t *filp);
+static ssize_t	cdev_read(file_t *filp, char *buffer, size_t buflen);
+static ssize_t	cdev_write(file_t *filp, const char *buffer, size_t buflen);
+static off_t	cdev_seek(file_t *filp, off_t offset, int whence);
+static int	cdev_ioctl(file_t *filp, int cmd, unsigned long arg);
+static int	cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup);
 
 /**
  * Character device indirection table.
@@ -100,14 +100,16 @@ CDev::CDev(const char *name,
 	_registered(false),
 	_open_count(0)
 {
-	for (unsigned i = 0; i < _max_pollwaiters; i++)
+	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		_pollset[i] = nullptr;
+	}
 }
 
 CDev::~CDev()
 {
-	if (_registered)
+	if (_registered) {
 		unregister_driver(_devname);
+	}
 }
 
 int
@@ -124,13 +126,16 @@ CDev::register_class_devname(const char *class_devname)
 		char name[32];
 		snprintf(name, sizeof(name), "%s%d", class_devname, class_instance);
 		ret = register_driver(name, &fops, 0666, (void *)this);
-		if (ret == OK) break;
+
+		if (ret == OK) { break; }
+
 		class_instance++;
 	}
 
 	if (class_instance == 4) {
 		return ret;
 	}
+
 	return class_instance;
 }
 
@@ -148,15 +153,17 @@ CDev::init()
 	// base class init first
 	int ret = Device::init();
 
-	if (ret != OK)
+	if (ret != OK) {
 		goto out;
+	}
 
 	// now register the driver
 	if (_devname != nullptr) {
 		ret = register_driver(_devname, &fops, 0666, (void *)this);
 
-		if (ret != OK)
+		if (ret != OK) {
 			goto out;
+		}
 
 		_registered = true;
 	}
@@ -169,7 +176,7 @@ out:
  * Default implementations of the character device interface
  */
 int
-CDev::open(struct file *filp)
+CDev::open(file_t *filp)
 {
 	int ret = OK;
 
@@ -182,8 +189,9 @@ CDev::open(struct file *filp)
 		/* first-open callback may decline the open */
 		ret = open_first(filp);
 
-		if (ret != OK)
+		if (ret != OK) {
 			_open_count--;
+		}
 	}
 
 	unlock();
@@ -192,13 +200,13 @@ CDev::open(struct file *filp)
 }
 
 int
-CDev::open_first(struct file *filp)
+CDev::open_first(file_t *filp)
 {
 	return OK;
 }
 
 int
-CDev::close(struct file *filp)
+CDev::close(file_t *filp)
 {
 	int ret = OK;
 
@@ -209,8 +217,9 @@ CDev::close(struct file *filp)
 		_open_count--;
 
 		/* callback cannot decline the close */
-		if (_open_count == 0)
+		if (_open_count == 0) {
 			ret = close_last(filp);
+		}
 
 	} else {
 		ret = -EBADF;
@@ -222,60 +231,64 @@ CDev::close(struct file *filp)
 }
 
 int
-CDev::close_last(struct file *filp)
+CDev::close_last(file_t *filp)
 {
 	return OK;
 }
 
 ssize_t
-CDev::read(struct file *filp, char *buffer, size_t buflen)
+CDev::read(file_t *filp, char *buffer, size_t buflen)
 {
 	return -ENOSYS;
 }
 
 ssize_t
-CDev::write(struct file *filp, const char *buffer, size_t buflen)
+CDev::write(file_t *filp, const char *buffer, size_t buflen)
 {
 	return -ENOSYS;
 }
 
 off_t
-CDev::seek(struct file *filp, off_t offset, int whence)
+CDev::seek(file_t *filp, off_t offset, int whence)
 {
 	return -ENOSYS;
 }
 
 int
-CDev::ioctl(struct file *filp, int cmd, unsigned long arg)
+CDev::ioctl(file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-		/* fetch a pointer to the driver's private data */
+	/* fetch a pointer to the driver's private data */
 	case DIOC_GETPRIV:
 		*(void **)(uintptr_t)arg = (void *)this;
 		return OK;
 		break;
+
 	case DEVIOCSPUBBLOCK:
 		_pub_blocked = (arg != 0);
 		return OK;
 		break;
+
 	case DEVIOCGPUBBLOCK:
 		return _pub_blocked;
 		break;
 	}
 
 	/* try the superclass. The different ioctl() function form
-         * means we need to copy arg */
-        unsigned arg2 = arg;
+	 * means we need to copy arg */
+	unsigned arg2 = arg;
 	int ret = Device::ioctl(cmd, arg2);
-	if (ret != -ENODEV)
+
+	if (ret != -ENODEV) {
 		return ret;
+	}
 
 	return -ENOTTY;
 }
 
 int
-CDev::poll(struct file *filp, struct pollfd *fds, bool setup)
+CDev::poll(file_t *filp, struct pollfd *fds, bool setup)
 {
 	int ret = OK;
 
@@ -305,8 +318,9 @@ CDev::poll(struct file *filp, struct pollfd *fds, bool setup)
 			fds->revents |= fds->events & poll_state(filp);
 
 			/* yes? post the notification */
-			if (fds->revents != 0)
-				sem_post(fds->sem);
+			if (fds->revents != 0) {
+				px4_sem_post(fds->sem);
+			}
 		}
 
 	} else {
@@ -328,8 +342,9 @@ CDev::poll_notify(pollevent_t events)
 	irqstate_t state = irqsave();
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++)
-		if (nullptr != _pollset[i])
+		if (nullptr != _pollset[i]) {
 			poll_notify_one(_pollset[i], events);
+		}
 
 	irqrestore(state);
 }
@@ -342,12 +357,13 @@ CDev::poll_notify_one(struct pollfd *fds, pollevent_t events)
 
 	/* if the state is now interesting, wake the waiter if it's still asleep */
 	/* XXX semcount check here is a vile hack; counting semphores should not be abused as cvars */
-	if ((fds->revents != 0) && (fds->sem->semcount <= 0))
-		sem_post(fds->sem);
+	if ((fds->revents != 0) && (fds->sem->semcount <= 0)) {
+		px4_sem_post(fds->sem);
+	}
 }
 
 pollevent_t
-CDev::poll_state(struct file *filp)
+CDev::poll_state(file_t *filp)
 {
 	/* by default, no poll events to report */
 	return 0;
@@ -389,7 +405,7 @@ CDev::remove_poll_waiter(struct pollfd *fds)
 }
 
 static int
-cdev_open(struct file *filp)
+cdev_open(file_t *filp)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -397,7 +413,7 @@ cdev_open(struct file *filp)
 }
 
 static int
-cdev_close(struct file *filp)
+cdev_close(file_t *filp)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -405,7 +421,7 @@ cdev_close(struct file *filp)
 }
 
 static ssize_t
-cdev_read(struct file *filp, char *buffer, size_t buflen)
+cdev_read(file_t *filp, char *buffer, size_t buflen)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -413,7 +429,7 @@ cdev_read(struct file *filp, char *buffer, size_t buflen)
 }
 
 static ssize_t
-cdev_write(struct file *filp, const char *buffer, size_t buflen)
+cdev_write(file_t *filp, const char *buffer, size_t buflen)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -421,7 +437,7 @@ cdev_write(struct file *filp, const char *buffer, size_t buflen)
 }
 
 static off_t
-cdev_seek(struct file *filp, off_t offset, int whence)
+cdev_seek(file_t *filp, off_t offset, int whence)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -429,7 +445,7 @@ cdev_seek(struct file *filp, off_t offset, int whence)
 }
 
 static int
-cdev_ioctl(struct file *filp, int cmd, unsigned long arg)
+cdev_ioctl(file_t *filp, int cmd, unsigned long arg)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
@@ -437,7 +453,7 @@ cdev_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 static int
-cdev_poll(struct file *filp, struct pollfd *fds, bool setup)
+cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup)
 {
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 

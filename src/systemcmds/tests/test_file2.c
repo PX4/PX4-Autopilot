@@ -37,17 +37,17 @@
  * File write test.
  */
 
+#include <px4_defines.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <string.h>
 #include <stdlib.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include "tests.h"
 
@@ -73,7 +73,7 @@ static void test_corruption(const char *filename, uint32_t write_chunk, uint32_t
 	       filename, (unsigned)write_chunk, (unsigned)write_size);
 
 	uint32_t ofs = 0;
-	int fd = open(filename, O_CREAT | O_RDWR | O_TRUNC);
+	int fd = open(filename, O_CREAT | O_RDWR | O_TRUNC, PX4_O_MODE_666);
 
 	if (fd == -1) {
 		perror(filename);
@@ -133,13 +133,13 @@ static void test_corruption(const char *filename, uint32_t write_chunk, uint32_t
 
 		if (read(fd, buffer, sizeof(buffer)) != (int)sizeof(buffer)) {
 			printf("read failed at offset %u\n", ofs);
-			exit(1);
+			return;
 		}
 
 		for (uint16_t j = 0; j < write_chunk; j++) {
 			if (buffer[j] != get_value(ofs)) {
 				printf("corruption at ofs=%u got %u\n", ofs, buffer[j]);
-				exit(1);
+				return;
 			}
 
 			ofs++;
@@ -170,11 +170,14 @@ int test_file2(int argc, char *argv[])
 {
 	int opt;
 	uint16_t flags = 0;
-	const char *filename = "/fs/microsd/testfile2.dat";
+	const char *filename = PX4_ROOTFSDIR "/fs/microsd/testfile2.dat";
 	uint32_t write_chunk = 64;
 	uint32_t write_size = 5 * 1024;
 
-	while ((opt = getopt(argc, argv, "c:s:FLh")) != EOF) {
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+
+	while ((opt = px4_getopt(argc, argv, "c:s:FLh", &myoptind, &myoptarg)) != EOF) {
 		switch (opt) {
 		case 'F':
 			flags |= FLAG_FSYNC;
@@ -185,22 +188,22 @@ int test_file2(int argc, char *argv[])
 			break;
 
 		case 's':
-			write_size = strtoul(optarg, NULL, 0);
+			write_size = strtoul(myoptarg, NULL, 0);
 			break;
 
 		case 'c':
-			write_chunk = strtoul(optarg, NULL, 0);
+			write_chunk = strtoul(myoptarg, NULL, 0);
 			break;
 
 		case 'h':
 		default:
 			usage();
-			exit(1);
+			return 1;
 		}
 	}
 
-	argc -= optind;
-	argv += optind;
+	argc -= myoptind;
+	argv += myoptind;
 
 	if (argc > 0) {
 		filename = argv[0];
@@ -209,8 +212,8 @@ int test_file2(int argc, char *argv[])
 	/* check if microSD card is mounted */
 	struct stat buffer;
 
-	if (stat("/fs/microsd/", &buffer)) {
-		warnx("no microSD card mounted, aborting file test");
+	if (stat(PX4_ROOTFSDIR "/fs/microsd/", &buffer)) {
+		fprintf(stderr, "no microSD card mounted, aborting file test");
 		return 1;
 	}
 

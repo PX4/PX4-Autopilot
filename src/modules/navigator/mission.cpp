@@ -55,6 +55,7 @@
 #include <systemlib/err.h>
 #include <geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <navigator/navigation.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -264,7 +265,7 @@ Mission::update_offboard_mission()
 		_navigator->set_mission_result_updated();
 
 	} else {
-		warnx("offboard mission update failed");
+		PX4_WARN("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
 	}
 
 	if (failed) {
@@ -302,7 +303,7 @@ Mission::advance_mission()
 	}
 }
 
-int
+float
 Mission::get_absolute_altitude_for_item(struct mission_item_s &mission_item)
 {
 	if (_mission_item.altitude_is_relative) {
@@ -520,7 +521,7 @@ Mission::heading_sp_update()
 
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-			!isfinite(_on_arrival_yaw)) {
+			!PX4_ISFINITE(_on_arrival_yaw)) {
 		return;
 	}
 
@@ -568,7 +569,7 @@ Mission::altitude_sp_foh_update()
 
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-			!isfinite(_mission_item_previous_alt)) {
+			!PX4_ISFINITE(_mission_item_previous_alt)) {
 		return;
 	}
 
@@ -655,8 +656,10 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 	for (int i = 0; i < 10; i++) {
 
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
-			/* mission item index out of bounds */
-			mavlink_and_console_log_critical(_navigator->get_mavlink_fd(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
+			/* mission item index out of bounds - if they are equal, we just reached the end */
+			if (*mission_index_ptr != (int)mission->count) {
+				mavlink_and_console_log_critical(_navigator->get_mavlink_fd(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
+			}
 			return false;
 		}
 

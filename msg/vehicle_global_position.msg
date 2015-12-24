@@ -18,3 +18,4 @@ float32 epv			# Standard deviation of position vertically
 float32 terrain_alt		# Terrain altitude in m, WGS84
 bool terrain_alt_valid		# Terrain altitude estimate is valid
 bool dead_reckoning		# True if this position is estimated through dead-reckoning
+float32 pressure_alt		# Pressure altitude

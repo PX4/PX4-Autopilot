@@ -51,25 +51,8 @@
 #define ACCEL1_DEVICE_PATH	"/dev/accel1"
 #define ACCEL2_DEVICE_PATH	"/dev/accel2"
 
-/**
- * accel report structure.  Reads from the device must be in multiples of this
- * structure.
- */
-struct accel_report {
-	uint64_t timestamp;
-	uint64_t error_count;
-	float x;		/**< acceleration in the NED X board axis in m/s^2 */
-	float y;		/**< acceleration in the NED Y board axis in m/s^2 */
-	float z;		/**< acceleration in the NED Z board axis in m/s^2 */
-	float temperature;	/**< temperature in degrees celsius */
-	float range_m_s2;	/**< range in m/s^2 (+- this value) */
-	float scaling;
-
-	int16_t x_raw;
-	int16_t y_raw;
-	int16_t z_raw;
-	int16_t temperature_raw;
-};
+#include <uORB/topics/sensor_accel.h>
+#define accel_report sensor_accel_s
 
 /** accel scaling factors; Vout = Vscale * (Vin + Voffset) */
 struct accel_scale {
@@ -82,11 +65,6 @@ struct accel_scale {
 };
 
 /*
- * ObjDev tag for raw accelerometer data.
- */
-ORB_DECLARE(sensor_accel);
-
-/*
  * ioctl() definitions
  *
  * Accelerometer drivers also implement the generic sensor driver
@@ -94,7 +72,7 @@ ORB_DECLARE(sensor_accel);
  */
 
 #define _ACCELIOCBASE		(0x2100)
-#define _ACCELIOC(_n)		(_IOC(_ACCELIOCBASE, _n))
+#define _ACCELIOC(_n)		(_PX4_IOC(_ACCELIOCBASE, _n))
 
 
 /** set the accel internal sample rate to at least (arg) Hz */

@@ -42,7 +42,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -414,7 +414,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_spawn_cmd().
+ * to px4_task_spawn_cmd().
  */
 int ex_fixedwing_control_main(int argc, char *argv[])
 {
@@ -431,12 +431,12 @@ int ex_fixedwing_control_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn_cmd("ex_fixedwing_control",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_MAX - 20,
-					     2048,
-					     fixedwing_control_thread_main,
-					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+		deamon_task = px4_task_spawn_cmd("ex_fixedwing_control",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 20,
+						 2048,
+						 fixedwing_control_thread_main,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		thread_running = true;
 		exit(0);
 	}

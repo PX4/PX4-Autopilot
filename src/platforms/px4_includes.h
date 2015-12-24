@@ -58,6 +58,7 @@
 #include <px4_vehicle_rates_setpoint.h>
 #include <px4_mc_virtual_rates_setpoint.h>
 #include <px4_vehicle_attitude.h>
+#include <px4_control_state.h>
 #include <px4_vehicle_control_mode.h>
 #include <px4_actuator_armed.h>
 #include <px4_parameter_update.h>
@@ -70,7 +71,7 @@
 #include <px4_vehicle_force_setpoint.h>
 #endif
 
-#else
+#elif defined(__PX4_NUTTX)
 /*
  * Building for NuttX
  */
@@ -87,6 +88,7 @@
 #include <platforms/nuttx/px4_messages/px4_actuator_controls_3.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_rates_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_attitude.h>
+#include <platforms/nuttx/px4_messages/px4_control_state.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_control_mode.h>
 #include <platforms/nuttx/px4_messages/px4_actuator_armed.h>
 #include <platforms/nuttx/px4_messages/px4_parameter_update.h>
@@ -102,4 +104,68 @@
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 
+#elif defined(__PX4_POSIX) && !defined(__PX4_QURT)
+#include <string.h>
+#include <assert.h>
+#include <uORB/uORB.h>
+
+#define ASSERT(x) assert(x)
+
+#ifdef __cplusplus
+#include <platforms/posix/px4_messages/px4_rc_channels.h>
+#include <platforms/posix/px4_messages/px4_vehicle_attitude_setpoint.h>
+#include <platforms/posix/px4_messages/px4_manual_control_setpoint.h>
+#include <platforms/posix/px4_messages/px4_actuator_controls.h>
+#include <platforms/posix/px4_messages/px4_actuator_controls_0.h>
+#include <platforms/posix/px4_messages/px4_actuator_controls_1.h>
+#include <platforms/posix/px4_messages/px4_actuator_controls_2.h>
+#include <platforms/posix/px4_messages/px4_actuator_controls_3.h>
+#include <platforms/posix/px4_messages/px4_vehicle_rates_setpoint.h>
+#include <platforms/posix/px4_messages/px4_vehicle_attitude.h>
+#include <platforms/posix/px4_messages/px4_control_state.h>
+#include <platforms/posix/px4_messages/px4_vehicle_control_mode.h>
+#include <platforms/posix/px4_messages/px4_actuator_armed.h>
+#include <platforms/posix/px4_messages/px4_parameter_update.h>
+#include <platforms/posix/px4_messages/px4_vehicle_status.h>
+#include <platforms/posix/px4_messages/px4_vehicle_local_position_setpoint.h>
+#include <platforms/posix/px4_messages/px4_vehicle_global_velocity_setpoint.h>
+#include <platforms/posix/px4_messages/px4_vehicle_local_position.h>
+#include <platforms/posix/px4_messages/px4_position_setpoint_triplet.h>
+#endif
+#include <systemlib/err.h>
+#include <systemlib/param/param.h>
+#include <systemlib/systemlib.h>
+#elif defined(__PX4_QURT)
+#include <string.h>
+#include <assert.h>
+#include <uORB/uORB.h>
+
+#define ASSERT(x) assert(x)
+
+#ifdef __cplusplus
+#include <platforms/qurt/px4_messages/px4_rc_channels.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_attitude_setpoint.h>
+#include <platforms/qurt/px4_messages/px4_manual_control_setpoint.h>
+#include <platforms/qurt/px4_messages/px4_actuator_controls.h>
+#include <platforms/qurt/px4_messages/px4_actuator_controls_0.h>
+#include <platforms/qurt/px4_messages/px4_actuator_controls_1.h>
+#include <platforms/qurt/px4_messages/px4_actuator_controls_2.h>
+#include <platforms/qurt/px4_messages/px4_actuator_controls_3.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_rates_setpoint.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_attitude.h>
+#include <platforms/qurt/px4_messages/px4_control_state.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_control_mode.h>
+#include <platforms/qurt/px4_messages/px4_actuator_armed.h>
+#include <platforms/qurt/px4_messages/px4_parameter_update.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_status.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_local_position_setpoint.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_global_velocity_setpoint.h>
+#include <platforms/qurt/px4_messages/px4_vehicle_local_position.h>
+#include <platforms/qurt/px4_messages/px4_position_setpoint_triplet.h>
+#endif
+#include <systemlib/err.h>
+#include <systemlib/param/param.h>
+#include <systemlib/systemlib.h>
+#else
+#error "No target platform defined"
 #endif
