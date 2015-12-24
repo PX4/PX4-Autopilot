@@ -126,12 +126,12 @@ int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, cons
 	if (*handle == nullptr) {
 		*handle = orb_advertise_multi(meta, data, instance, priority);
 
-		if (handle != nullptr) {
+		if (*handle != nullptr) {
 			return 0;
 		}
 
 	} else {
-		return orb_publish(meta, handle, data);
+		return orb_publish(meta, *handle, data);
 	}
 
 	return -1;
