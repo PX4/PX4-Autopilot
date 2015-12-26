@@ -417,6 +417,12 @@ Matrix<Type, M, N> ones() {
     return m;
 }
 
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
+{
+    return other * scalar;
+}
+
 #if defined(SUPPORT_STDIOSTREAM)
 template<typename Type, size_t  M, size_t N>
 std::ostream& operator<<(std::ostream& os,
