@@ -58,6 +58,34 @@ struct gps_message {
 	bool vel_ned_valid;		// GPS ground speed is valid
 };
 
+struct parameters {
+	float mag_delay_ms = 0.0f;
+	float baro_delay_ms = 0.0f;
+	float gps_delay_ms = 200.0f;
+	float airspeed_delay_ms = 200.0f;
+	float requiredEph = 10.0f;
+	float requiredEpv = 20.0f;
+
+	// input noise
+	float gyro_noise = 0.001f;
+	float accel_noise = 0.1f;
+
+	// process noise
+	float gyro_bias_p_noise = 1e-5f;
+	float accel_bias_p_noise = 1e-3f;
+	float gyro_scale_p_noise = 1e-4f;
+	float mag_p_noise = 1e-2f;
+	float wind_vel_p_noise = 0.05f;
+
+	float gps_vel_noise = 0.05f;
+	float gps_pos_noise = 1.0f;
+	float baro_noise = 0.1f;
+
+	float mag_heading_noise = 3e-2f;	// measurement noise used for simple heading fusion
+	float mag_declination_deg = 0.0f;	// magnetic declination in degrees
+	float heading_innov_gate = 0.5f;	// innovation gate for heading innovation test
+};
+
 class EstimatorBase
 {
 public:
@@ -87,6 +115,9 @@ public:
 	// set optical flow data
 	void setOpticalFlowData(uint64_t time_usec, float *data);
 
+	// return a address to the parameters struct
+	// in order to give access to the application
+	parameters *getParamHandle() {return &_params;}
 protected:
 
 	typedef matrix::Vector<float, 2> Vector2f;
@@ -155,33 +186,7 @@ protected:
 		uint64_t    time_us;
 	};
 
-	struct {
-		uint32_t mag_delay_ms;
-		uint32_t baro_delay_ms;
-		uint32_t gps_delay_ms;
-		uint32_t airspeed_delay_ms;
-		float 	requiredEph;
-		float 	requiredEpv;
-
-		float gyro_noise;
-		float accel_noise;
-
-		// process noise
-		float gyro_bias_p_noise;
-		float accel_bias_p_noise;
-		float gyro_scale_p_noise;
-		float mag_p_noise;
-		float wind_vel_p_noise;
-
-		float gps_vel_noise;
-		float gps_pos_noise;
-		float baro_noise;
-
-		float mag_heading_noise;	// measurement noise used for simple heading fusion
-		float mag_declination_deg;	// magnetic declination in degrees
-		float heading_innov_gate;	// innovation gate for heading innovation test
-
-	} _params;
+	parameters _params;		// filter parameters
 
 	static const uint8_t OBS_BUFFER_LENGTH = 10;
 	static const uint8_t IMU_BUFFER_LENGTH = 30;

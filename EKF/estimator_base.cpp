@@ -144,7 +144,6 @@ void EstimatorBase::setMagData(uint64_t time_usec, float *data)
 		magSample mag_sample_new = {};
 		mag_sample_new.time_us = time_usec  - _params.mag_delay_ms * 1000;
 
-
 		mag_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2;
 		_time_last_mag = time_usec;
 
@@ -259,27 +258,6 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_state.wind_vel.setZero();
 	_state.quat_nominal.setZero();
 	_state.quat_nominal(0) = 1.0f;
-
-	_params.mag_delay_ms = 0;
-	_params.baro_delay_ms = 0;
-	_params.gps_delay_ms = 200;
-	_params.airspeed_delay_ms = 0;
-	_params.requiredEph = 500;
-	_params.requiredEpv = 800;
-	_params.gyro_noise = 1e-3f;
-	_params.accel_noise = 1e-1f;
-	_params.gyro_bias_p_noise = 1e-5f;
-	_params.accel_bias_p_noise = 1e-3f;
-	_params.gyro_scale_p_noise = 1e-4f;
-	_params.mag_p_noise = 1e-2f;
-	_params.wind_vel_p_noise = 0.05f;
-
-	_params.gps_vel_noise = 0.05f;
-	_params.gps_pos_noise = 1.0f;
-	_params.baro_noise = 0.1f;
-	_params.mag_heading_noise = 3e-2f;
-	_params.mag_declination_deg = 0.0f;
-	_params.heading_innov_gate = 0.5f;
 
 	_dt_imu_avg = 0.0f;
 	_imu_time_last = time_usec;
