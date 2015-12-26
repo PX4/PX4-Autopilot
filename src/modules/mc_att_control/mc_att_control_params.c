@@ -40,6 +40,28 @@
  */
 
 /**
+ * Roll time constant
+ *
+ * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
+ *
+ * @min 0.15
+ * @max 0.25
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLL_TC, 0.2f);
+
+/**
+ * Pitch time constant
+ *
+ * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
+ *
+ * @min 0.15
+ * @max 0.25
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCH_TC, 0.2f);
+
+/**
  * Roll P gain
  *
  * Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
