@@ -232,7 +232,7 @@ class SocketCanIface : public uavcan::ICanIface
          */
         loopback = (msg.msg_flags & static_cast<int>(MSG_CONFIRM)) != 0;
 
-        if (!checkHWFilters(sockcan_frame) && !loopback)
+        if (!loopback && !checkHWFilters(sockcan_frame))
         {
             return 0;
         }
@@ -326,7 +326,7 @@ class SocketCanIface : public uavcan::ICanIface
     /**
      * Returns true if a frame accepted by HW filters
      */
-    bool checkHWFilters(const ::can_frame frame) const
+    bool checkHWFilters(const ::can_frame& frame) const
     {
         if (!hw_filters_container_.empty())
         {
