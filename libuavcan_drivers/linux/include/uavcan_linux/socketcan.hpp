@@ -330,10 +330,9 @@ class SocketCanIface : public uavcan::ICanIface
     {
         if (!hw_filters_container_.empty())
         {
-            uint16_t container_size = hw_filters_container_.size();
-            for (uint16_t i = 0; i < container_size; i++)
+            for (auto& f : hw_filters_container_)
             {
-                if (((frame.can_id & hw_filters_container_[i].can_mask) ^ hw_filters_container_[i].can_id) == 0)
+                if (((frame.can_id & f.can_mask) ^ f.can_id) == 0)
                 {
                     return true;
                 }
