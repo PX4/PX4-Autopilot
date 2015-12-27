@@ -147,6 +147,7 @@ Mavlink::Mavlink() :
 	_mission_manager(nullptr),
 	_parameters_manager(nullptr),
 	_mavlink_ftp(nullptr),
+	_mavlink_log_handler(nullptr),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_radio_id(0),
@@ -1032,6 +1033,9 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	/* handle packet with ftp component */
 	_mavlink_ftp->handle_message(msg);
 
+	/* handle packet with log component */
+	_mavlink_log_handler->handle_message(msg);
+
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
 		Mavlink::forward_message(msg, this);
@@ -1668,6 +1672,11 @@ Mavlink::task_main(int argc, char *argv[])
 	_mavlink_ftp = (MavlinkFTP *) MavlinkFTP::new_instance(this);
 	_mavlink_ftp->set_interval(interval_from_rate(80.0f));
 	LL_APPEND(_streams, _mavlink_ftp);
+
+	/* MAVLINK_Log_Handler */
+	_mavlink_log_handler = (MavlinkLogHandler *) MavlinkLogHandler::new_instance(this);
+	_mavlink_log_handler->set_interval(interval_from_rate(80.0f));
+	LL_APPEND(_streams, _mavlink_log_handler);
 
 	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
 	 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
