@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014-2015 Pavel Kirienko <pavel.kirienko@gmail.com>
+ *                         Ilia Sheremet <illia.sheremet@gmail.com>
  */
 
 #pragma once
@@ -58,7 +59,7 @@ class SocketCanIface : public uavcan::ICanIface
 {
     static inline ::can_frame makeSocketCanFrame(const uavcan::CanFrame& uavcan_frame)
     {
-        ::can_frame sockcan_frame { uavcan_frame.id & uavcan::CanFrame::MaskExtID, uavcan_frame.dlc, { } };
+        ::can_frame sockcan_frame { uavcan_frame.id& uavcan::CanFrame::MaskExtID, uavcan_frame.dlc, { } };
         (void)std::copy(uavcan_frame.data, uavcan_frame.data + uavcan_frame.dlc, sockcan_frame.data);
         if (uavcan_frame.isExtended())
         {
@@ -148,6 +149,8 @@ class SocketCanIface : public uavcan::ICanIface
     std::queue<RxItem> rx_queue_;                                   // TODO: Use pool allocator
     std::unordered_multiset<std::uint32_t> pending_loopback_ids_;   // TODO: Use pool allocator
 
+    std::vector<::can_filter> hw_filters_container_;
+
     void registerError(SocketCanError e) { errors_[e]++; }
 
     void incrementNumFramesInSocketTxQueue()
@@ -225,6 +228,16 @@ class SocketCanIface : public uavcan::ICanIface
         {
             return (res < 0 && errno == EWOULDBLOCK) ? 0 : res;
         }
+        /*
+         * Flags
+         */
+        loopback = (msg.msg_flags & static_cast<int>(MSG_CONFIRM)) != 0;
+
+        if (!loopback && !checkHWFilters(sockcan_frame))
+        {
+            return 0;
+        }
+
         frame = makeUavcanFrame(sockcan_frame);
         /*
          * Timestamp
@@ -243,10 +256,6 @@ class SocketCanIface : public uavcan::ICanIface
             assert(0);
             return -1;
         }
-        /*
-         * Flags
-         */
-        loopback = (msg.msg_flags & static_cast<int>(MSG_CONFIRM)) != 0;
         return 1;
     }
 
@@ -312,6 +321,28 @@ class SocketCanIface : public uavcan::ICanIface
             {
                 registerError(SocketCanError::SocketReadFailure);
             }
+        }
+    }
+
+    /**
+     * Returns true if a frame accepted by HW filters
+     */
+    bool checkHWFilters(const ::can_frame& frame) const
+    {
+        if (!hw_filters_container_.empty())
+        {
+            for (auto& f : hw_filters_container_)
+            {
+                if (((frame.can_id & f.can_mask) ^ f.can_id) == 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        else
+        {
+            return true;
         }
     }
 
@@ -404,38 +435,42 @@ public:
             assert(0);
             return -1;
         }
-        std::vector< ::can_filter> filts(num_configs);
+        hw_filters_container_.clear();
+        hw_filters_container_.resize(num_configs);
+
         for (unsigned i = 0; i < num_configs; i++)
         {
             const uavcan::CanFilterConfig& fc = filter_configs[i];
-            filts[i].can_id   = fc.id   & uavcan::CanFrame::MaskExtID;
-            filts[i].can_mask = fc.mask & uavcan::CanFrame::MaskExtID;
+            hw_filters_container_[i].can_id   = fc.id   & uavcan::CanFrame::MaskExtID;
+            hw_filters_container_[i].can_mask = fc.mask & uavcan::CanFrame::MaskExtID;
             if (fc.id & uavcan::CanFrame::FlagEFF)
             {
-                filts[i].can_id |= CAN_EFF_FLAG;
+                hw_filters_container_[i].can_id |= CAN_EFF_FLAG;
             }
             if (fc.id & uavcan::CanFrame::FlagRTR)
             {
-                filts[i].can_id |= CAN_RTR_FLAG;
+                hw_filters_container_[i].can_id |= CAN_RTR_FLAG;
             }
             if (fc.mask & uavcan::CanFrame::FlagEFF)
             {
-                filts[i].can_mask |= CAN_EFF_FLAG;
+                hw_filters_container_[i].can_mask |= CAN_EFF_FLAG;
             }
             if (fc.mask & uavcan::CanFrame::FlagRTR)
             {
-                filts[i].can_mask |= CAN_RTR_FLAG;
+                hw_filters_container_[i].can_mask |= CAN_RTR_FLAG;
             }
         }
-        int ret = setsockopt(fd_, SOL_CAN_RAW, CAN_RAW_FILTER, filts.data(), sizeof(::can_filter) * num_configs);
-        return (ret < 0) ? -1 : 0;
+
+        return 0;
     }
 
     /**
      * SocketCAN emulates the CAN filters in software, so the number of filters is virtually unlimited.
      * This method returns a constant value.
      */
-    std::uint16_t getNumFilters() const override { return 255; }
+    static constexpr unsigned NumFilters = 8;
+    std::uint16_t getNumFilters() const override { return NumFilters; }
+
 
     /**
      * Returns total number of errors of each kind detected since the object was created.
@@ -450,7 +485,7 @@ public:
     /**
      * Returns number of errors of each kind in a map.
      */
-    const decltype(errors_)& getErrors() const { return errors_; }
+    const decltype(errors_) & getErrors() const { return errors_; }
 
     int getFileDescriptor() const { return fd_; }
 
@@ -501,7 +536,7 @@ public:
                 goto fail;
             }
             // Non-blocking
-            if (::fcntl(s, F_SETFL , O_NONBLOCK) < 0)
+            if (::fcntl(s, F_SETFL, O_NONBLOCK) < 0)
             {
                 goto fail;
             }

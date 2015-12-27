@@ -123,21 +123,41 @@ TEST(CanAcceptanceFilter, Basic_test)
     sub_6.start(listener_6.bindExtended());
     sub_6_1.start(listener_6.bindExtended());
     server.start(writeServiceServerCallback);
-    std::cout << "Subscribers are initialized ..." << std::endl;
+    std::cout << "Subscribers are initialized." << std::endl;
 
+    uavcan::CanAcceptanceFilterConfigurator anon_test_configuration(node, 10);
 
-    uavcan::CanAcceptanceFilterConfigurator anon_test_configuration(node);
-    int configure_filters_assert = anon_test_configuration.configureFilters();
-    if (configure_filters_assert == 0)
-    {
-        std::cout << "Filters are configured with anonymous configuration..." << std::endl;
-    }
+    int configure_filters_assert = anon_test_configuration.computeConfiguration();
+    ASSERT_EQ(configure_filters_assert, 0);
+    std::cout << "Filters are calculated with anonymous configuration." << std::endl;
 
     const auto& configure_array = anon_test_configuration.getConfiguration();
     uint32_t configure_array_size = configure_array.getSize();
+    std::cout << "Number of configurations after first time computeConfiguration() invoked: "
+            << configure_array_size << std::endl;
+    ASSERT_EQ(configure_array_size, 9);
 
+    std::cout << "Adding two additional configurations ...  " << std::endl;
+    uavcan::CanFilterConfig aux_config_1, aux_config_2;
+    aux_config_1.id = 911;
+    aux_config_1.mask = 1488;
+    aux_config_2.id = 999999;
+    aux_config_2.mask = 849128412;
+    configure_filters_assert = anon_test_configuration.addFilterConfig(aux_config_1);
     ASSERT_EQ(configure_filters_assert, 0);
-    ASSERT_EQ(configure_array_size, 4);
+    configure_filters_assert = anon_test_configuration.addFilterConfig(aux_config_2);
+    ASSERT_EQ(configure_filters_assert, 0);
+    configure_array_size = configure_array.getSize();
+    std::cout << "New configuration anon_container size: " << configure_array_size << std::endl;
+    ASSERT_EQ(configure_array_size, 11);
+
+    std::cout << "Applying configuration ...  " << std::endl;
+    configure_filters_assert = anon_test_configuration.applyConfiguration();
+    ASSERT_EQ(configure_filters_assert, 0);
+    std::cout << "Filters are configured." << std::endl;
+    configure_array_size = configure_array.getSize();
+    std::cout << "Final configuration anon_container size: " << configure_array_size << std::endl;
+    ASSERT_EQ(configure_array_size, 10);
 
     for (uint16_t i = 0; i<configure_array_size; i++)
     {
@@ -145,42 +165,55 @@ TEST(CanAcceptanceFilter, Basic_test)
         std::cout << "config.MK [" << i << "]= " << configure_array.getByIndex(i)->mask << std::endl;
     }
 
-    ASSERT_EQ(configure_array.getByIndex(0)->id, 256000);
-    ASSERT_EQ(configure_array.getByIndex(0)->mask, 16771968);
-    ASSERT_EQ(configure_array.getByIndex(1)->id, 0);
-    ASSERT_EQ(configure_array.getByIndex(1)->mask, 255);
-    ASSERT_EQ(configure_array.getByIndex(2)->id, 6272);
-    ASSERT_EQ(configure_array.getByIndex(2)->mask, 32640);
-    ASSERT_EQ(configure_array.getByIndex(3)->id, 262144);
-    ASSERT_EQ(configure_array.getByIndex(3)->mask, 16771200);
+    ASSERT_EQ(configure_array.getByIndex(0)->id, 911);
+    ASSERT_EQ(configure_array.getByIndex(0)->mask, 1488);
+    ASSERT_EQ(configure_array.getByIndex(1)->id, 999999);
+    ASSERT_EQ(configure_array.getByIndex(1)->mask, 849128412);
+    ASSERT_EQ(configure_array.getByIndex(2)->id, 2147746048);
+    ASSERT_EQ(configure_array.getByIndex(2)->mask, 3774873472);
+    ASSERT_EQ(configure_array.getByIndex(3)->id, 2147744768);
+    ASSERT_EQ(configure_array.getByIndex(3)->mask, 3774873472);
+    ASSERT_EQ(configure_array.getByIndex(4)->id, 2147739648);
+    ASSERT_EQ(configure_array.getByIndex(4)->mask, 3774873472);
+    ASSERT_EQ(configure_array.getByIndex(5)->id, 2147746816);
+    ASSERT_EQ(configure_array.getByIndex(5)->mask, 3774873472);
+    ASSERT_EQ(configure_array.getByIndex(6)->id, 2147746304);
+    ASSERT_EQ(configure_array.getByIndex(6)->mask, 3774873472);
+    ASSERT_EQ(configure_array.getByIndex(7)->id, 2147483648);
+    ASSERT_EQ(configure_array.getByIndex(7)->mask, 3758096639);
+    ASSERT_EQ(configure_array.getByIndex(8)->id, 2147489920);
+    ASSERT_EQ(configure_array.getByIndex(8)->mask, 3758129024);
+    ASSERT_EQ(configure_array.getByIndex(9)->id, 2147749888);
+    ASSERT_EQ(configure_array.getByIndex(9)->mask, 3774873472);
 
-
-    uavcan::CanAcceptanceFilterConfigurator no_anon_test_confiruration(node);
-    configure_filters_assert = no_anon_test_confiruration.configureFilters
+    uavcan::CanAcceptanceFilterConfigurator no_anon_test_confiruration(node, 4);
+    configure_filters_assert = no_anon_test_confiruration.computeConfiguration
                                    (uavcan::CanAcceptanceFilterConfigurator::IgnoreAnonymousMessages);
-    if (configure_filters_assert == 0)
-    {
-        std::cout << "Filters are configured without anonymous configuration..." << std::endl;
-    }
+    ASSERT_EQ(configure_filters_assert, 0);
+    std::cout << "Filters are configured without anonymous configuration." << std::endl;
+
+    configure_filters_assert = no_anon_test_confiruration.applyConfiguration();
+    ASSERT_EQ(configure_filters_assert, 0);
+    std::cout << "Filters are configured without anonymous configuration." << std::endl;
+
     const auto& configure_array_2 = no_anon_test_confiruration.getConfiguration();
     configure_array_size = configure_array_2.getSize();
-
     ASSERT_EQ(configure_filters_assert, 0);
     ASSERT_EQ(configure_array_size, 4);
 
     for (uint16_t i = 0; i<configure_array_size; i++)
     {
-        std::cout << "config.ID [" << i << "]= " << configure_array_2.getByIndex(i)->id << std::endl;
-        std::cout << "config.MK [" << i << "]= " << configure_array_2.getByIndex(i)->mask << std::endl;
+        std::cout << "config.ID [" << i << "] = " << configure_array_2.getByIndex(i)->id << std::endl;
+        std::cout << "config.MK [" << i << "] = " << configure_array_2.getByIndex(i)->mask << std::endl;
     }
 
-    ASSERT_EQ(configure_array_2.getByIndex(0)->id, 256000);
-    ASSERT_EQ(configure_array_2.getByIndex(0)->mask, 16771968);
-    ASSERT_EQ(configure_array_2.getByIndex(1)->id, 262144);
-    ASSERT_EQ(configure_array_2.getByIndex(1)->mask, 16776320);
-    ASSERT_EQ(configure_array_2.getByIndex(2)->id, 6272);
-    ASSERT_EQ(configure_array_2.getByIndex(2)->mask, 32640);
-    ASSERT_EQ(configure_array_2.getByIndex(3)->id, 262144);
-    ASSERT_EQ(configure_array_2.getByIndex(3)->mask, 16771968);
+    ASSERT_EQ(configure_array_2.getByIndex(0)->id, 2147739648);
+    ASSERT_EQ(configure_array_2.getByIndex(0)->mask, 3774868352);
+    ASSERT_EQ(configure_array_2.getByIndex(1)->id, 2147745792);
+    ASSERT_EQ(configure_array_2.getByIndex(1)->mask, 3774872704);
+    ASSERT_EQ(configure_array_2.getByIndex(2)->id, 2147489920);
+    ASSERT_EQ(configure_array_2.getByIndex(2)->mask, 3758129024);
+    ASSERT_EQ(configure_array_2.getByIndex(3)->id, 2147745792);
+    ASSERT_EQ(configure_array_2.getByIndex(3)->mask, 3774868352);
 }
 #endif
