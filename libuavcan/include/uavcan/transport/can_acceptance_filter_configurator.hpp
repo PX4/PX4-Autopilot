@@ -120,14 +120,16 @@ public:
     /**
      * Add an additional filter configuration.
      * This method must not be invoked after @ref computeConfiguration().
+     * @return 0 = success, negative for error.
      */
-    int16_t addFilterConfig(const CanFilterConfig& config);
+    int addFilterConfig(const CanFilterConfig& config);
 
     /**
      * This method loads the configuration computed with mergeConfigurations() or explicitly added by addFilterConfig()
      * to the CAN driver. Must be called after computeConfiguration() and addFilterConfig().
+     * @return 0 = success, negative for error.
      */
-    int16_t applyConfiguration();
+    int applyConfiguration();
 
     /**
      * Returns the configuration computed with mergeConfigurations() or added by addFilterConfig().

@@ -102,7 +102,7 @@ int16_t CanAcceptanceFilterConfigurator::mergeConfigurations()
     return 0;
 }
 
-int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
+int CanAcceptanceFilterConfigurator::applyConfiguration(void)
 {
     CanFilterConfig filter_conf_array[MaxCanAcceptanceFilters];
     unsigned int filter_array_size = multiset_configs_.getSize();
@@ -224,7 +224,7 @@ uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
     }
 }
 
-int16_t CanAcceptanceFilterConfigurator::addFilterConfig(const CanFilterConfig& config)
+int CanAcceptanceFilterConfigurator::addFilterConfig(const CanFilterConfig& config)
 {
     if (multiset_configs_.emplace<const CanFilterConfig&>(config) == NULL)
     {
