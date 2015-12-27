@@ -27,6 +27,9 @@ namespace uavcan
  * If the cumulative number of configurations obtained by computeConfiguration() and addFilterConfig() is higher than
  * the number of available HW filters, configurations will be merged automatically in the most efficient way.
  *
+ * Note that if the application adds additional server or subscriber objects after the filters have been configured,
+ * the configuration procedure will have to be performed again.
+ *
  * The maximum number of CAN acceptance filters is predefined in uavcan/build_config.hpp through a constant
  * @ref MaxCanAcceptanceFilters. The algorithm doesn't allow to have higher number of HW filters configurations than
  * defined by MaxCanAcceptanceFilters. You can change this value according to the number specified in your CAN driver
@@ -88,6 +91,13 @@ private:
     uint16_t filters_number_;
 
 public:
+    /**
+     * @param node              Libuavcan node whose subscribers/servers/etc will be used to configure the filters.
+     *
+     * @param filters_number    Allows to override the maximum number of hardware filters to use.
+     *                          If set to zero (which is default), the class will obtain the number of available
+     *                          filters from the CAN driver via @ref ICanIface::getNumFilters().
+     */
     explicit CanAcceptanceFilterConfigurator(INode& node, uint16_t filters_number = 0)
         : node_(node)
         , multiset_configs_(node.getAllocator())
@@ -95,8 +105,11 @@ public:
     { }
 
     /**
-     * This method invokes loadInputConfiguration() and mergeConfigurations() consequently, so
-     * that optimal acceptance filter configuration will be computed and loaded through CanDriver::configureFilters()
+     * This method invokes loadInputConfiguration() and mergeConfigurations() consequently
+     * in order to comute optimal filter configurations for the current hardware.
+     *
+     * It can only be invoked when all of the subscriber and server objects are initialized.
+     * If new subscriber or server objects are added later, the filters will have to be reconfigured again.
      *
      * @param mode Either: AcceptAnonymousMessages - the filters will accept all anonymous messages (this is default)
      *                     IgnoreAnonymousMessages - anonymous messages will be ignored
@@ -105,8 +118,8 @@ public:
     int computeConfiguration(AnonymousMessages mode = AcceptAnonymousMessages);
 
     /**
-     * Add the additional filter configuration to multiset_configs_. This method should be invoked only before
-     * computeConfiguration() member.
+     * Add an additional filter configuration.
+     * This method must not be invoked after @ref computeConfiguration().
      */
     int16_t addFilterConfig(const CanFilterConfig& config);
 
@@ -118,7 +131,7 @@ public:
 
     /**
      * Returns the configuration computed with mergeConfigurations() or added by addFilterConfig().
-     * If mergeConfigurations() or addFilterConfig() has not been called yet, an empty configuration will be returned.
+     * If mergeConfigurations() or addFilterConfig() have not been called yet, an empty configuration will be returned.
      */
     const MultisetConfigContainer& getConfiguration() const
     {
