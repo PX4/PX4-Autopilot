@@ -6,3 +6,6 @@ float32 sumy				# Integrated bodyframe y flow in meters
 
 float32 vx 				# Flow bodyframe x speed, m/s
 float32 vy				# Flow bodyframe y Speed, m/s
+
+float32[3] gyro_rad_s 			# Flow module rotational speed, rad/s (filtered)
+float32[3] gyro_bias			# Flow module estimated gyroscope bias

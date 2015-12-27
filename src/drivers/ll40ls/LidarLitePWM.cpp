@@ -45,6 +45,7 @@
 #include "LidarLitePWM.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_input.h>
 
@@ -63,6 +64,9 @@ LidarLitePWM::LidarLitePWM(const char *path) :
 	_pwm{},
 	_distance_sensor_topic(nullptr),
 	_range{},
+	_lastTimeStamp(0),
+	_pulseCount(0),
+	_lastDistance(0.0f),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_pwm_read")),
 	_read_errors(perf_alloc(PC_COUNT, "ll40ls_pwm_read_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_pwm_buffer_overflows")),
@@ -190,11 +194,49 @@ int LidarLitePWM::measure()
 	_range.id = 0;
 
 	/* Due to a bug in older versions of the LidarLite firmware, we have to reset sensor on (distance == 0) */
-	if (_range.current_distance <= 0.0f) {
-		perf_count(_sensor_zero_resets);
-		perf_end(_sample_perf);
-		return reset_sensor();
+//	if (_range.current_distance <= 0.0f) {
+//		perf_count(_sensor_zero_resets);
+//		perf_end(_sample_perf);
+//		return reset_sensor();
+//	}
+
+	uint32_t pulse_interval = _range.timestamp - _lastTimeStamp;
+	_lastTimeStamp = _range.timestamp;
+
+	// Normal reporting interval for LidarLite in PWM mode is 50msec
+	if (pulse_interval > 60 * 1000UL) {
+		// missed pulse, frequently associated with invalid pulsewidth measurements
+		printf("LL_pwm dropout length: %d\n", pulse_interval);
+		_pulseCount = 0;
+
+	} else {
+		// wait for 4 successive pulses at 50msec intervals before accepting pulsewidth
+		if (_pulseCount < 4) {
+			_pulseCount++;
+			// hold last valid range reported to avoid glitches
+			printf("_pulseCount: %d, distance: %6.3f, forcing to _lastDistance\n", _pulseCount, (double)_range.current_distance);
+			_range.current_distance = _lastDistance;
+
+			if (_pulseCount >= 4) {
+				// next pulse will be accepted as valid, if received within 60msec
+				printf("pulse train detected\n");
+			}
+
+		} else {
+			// valid pulse train, reset lastDistance
+			_lastDistance = _range.current_distance;
+		}
 	}
+
+	// check for range discontinuity
+	float deltaRange = _range.current_distance - _lastDistance;
+
+	if (fabsf(deltaRange) > 1.0f) {
+		printf("LL range discontinuity: %6.3f\n", (double)deltaRange);
+		printf("   holding last distance: %6.3f\n", (double)_lastDistance);
+		_range.current_distance = _lastDistance;
+	}
+
 
 	if (_distance_sensor_topic != nullptr) {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);

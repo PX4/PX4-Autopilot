@@ -3,8 +3,8 @@
 #include <fcntl.h>
 #include <systemlib/err.h>
 
-static const int 		MIN_FLOW_QUALITY = 100;
-static const int 		REQ_INIT_COUNT = 100;
+static const int 		MIN_FLOW_QUALITY = 50;
+static const int 		REQ_INIT_COUNT = 75;
 
 static const uint32_t 		VISION_POSITION_TIMEOUT = 500000;
 static const uint32_t 		MOCAP_TIMEOUT = 200000;
@@ -28,14 +28,15 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 		    0, 0, &getSubscriptions()),
 	_sub_flow(ORB_ID(optical_flow), 0, 0, &getSubscriptions()),
 	_sub_sensor(ORB_ID(sensor_combined), 0, 0, &getSubscriptions()),
-	_sub_distance(ORB_ID(distance_sensor),
-		      0, 0, &getSubscriptions()),
 	_sub_param_update(ORB_ID(parameter_update), 0, 0, &getSubscriptions()),
 	_sub_manual(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
 	_sub_home(ORB_ID(home_position), 0, 0, &getSubscriptions()),
 	_sub_gps(ORB_ID(vehicle_gps_position), 0, 0, &getSubscriptions()),
 	_sub_vision_pos(ORB_ID(vision_position_estimate), 0, 0, &getSubscriptions()),
 	_sub_mocap(ORB_ID(att_pos_mocap), 0, 0, &getSubscriptions()),
+	_distance_subs(),
+	_sub_lidar(NULL),
+	_sub_sonar(NULL),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
@@ -64,6 +65,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_no_vision(this, "NO_VISION"),
 	_beta_max(this, "BETA_MAX"),
 	_mocap_p_stddev(this, "VIC_P"),
+	_flow_board_x_offs(NULL, "SENS_FLOW_X_OFF"),
+	_flow_board_y_offs(NULL, "SENS_FLOW_Y_OFF"),
 	_pn_p_noise_power(this, "PN_P"),
 	_pn_v_noise_power(this, "PN_V"),
 	_pn_b_noise_power(this, "PN_B"),
@@ -114,6 +117,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// flow integration
 	_flowX(0),
 	_flowY(0),
+	_flowGyroBias(),
 	_flowMeanQual(0),
 
 	// reference lat/lon
@@ -155,6 +159,12 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	_polls[POLL_SENSORS].fd = _sub_sensor.getHandle();
 	_polls[POLL_SENSORS].events = POLLIN;
+
+	//subscribe to all distance sensors
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		_distance_subs[i] = new uORB::Subscription<distance_sensor_s>(
+			ORB_ID(distance_sensor), 0, i, &getSubscriptions());
+	}
 
 	// initialize P to identity*0.1
 	initP();
@@ -201,32 +211,36 @@ void BlockLocalPositionEstimator::update()
 	// set dt for all child blocks
 	setDt(dt);
 
+	// auto-detect connected rangefinders while not armed
+	if (!_sub_armed.get().armed && (_sub_lidar == NULL || _sub_sonar == NULL)) {
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			if (_distance_subs[i]->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
+			    _sub_lidar == NULL) {
+				_sub_lidar = _distance_subs[i];
+				warnx("[lpe] Lidar detected with ID %i", i);
+
+			} else if (_distance_subs[i]->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
+				   _sub_sonar == NULL) {
+				_sub_sonar = _distance_subs[i];
+				warnx("[lpe] Sonar detected with ID %i", i);
+			}
+		}
+	}
+
 	// see which updates are available
 	bool flowUpdated = _sub_flow.updated();
 	bool paramsUpdated = _sub_param_update.updated();
 	bool baroUpdated = _sub_sensor.updated();
-	bool lidarUpdated = false;
-	bool sonarUpdated = false;
-
-	if (_sub_distance.updated()) {
-		if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) {
-			lidarUpdated = true;
-		}
-
-		if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND) {
-			sonarUpdated = true;
-		}
-
-		if (_sub_distance.get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_INFRARED) {
-			mavlink_log_info(_mavlink_fd, "[lpe] no support to short-range infrared sensors ");
-			warnx("[lpe] short-range infrared detected. Ignored... ");
-		}
-	}
-
 	bool gpsUpdated = _sub_gps.updated();
 	bool homeUpdated = _sub_home.updated();
 	bool visionUpdated = _sub_vision_pos.updated();
 	bool mocapUpdated = _sub_mocap.updated();
+	bool lidarUpdated = false;
+	bool sonarUpdated = false;
+
+	if (_sub_lidar != NULL)	{ lidarUpdated = _sub_lidar->updated(); }
+
+	if (_sub_sonar != NULL)	{ sonarUpdated = _sub_sonar->updated(); }
 
 	// get new data
 	updateSubscriptions();
@@ -490,20 +504,18 @@ void BlockLocalPositionEstimator::initGps()
 void BlockLocalPositionEstimator::initLidar()
 {
 
-	if (_sub_distance.get().type != distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) { return; }
-
 	// collect lidar data
 	bool valid = false;
-	float d = _sub_distance.get().current_distance;
+	float d = _sub_lidar->get().current_distance;
 
-	if (d < _sub_distance.get().max_distance &&
-	    d > _sub_distance.get().min_distance) {
+	if (d < _sub_lidar->get().max_distance &&
+	    d > _sub_lidar->get().min_distance) {
 		valid = true;
 	}
 
 	if (!_lidarInitialized && valid) {
 		// increament sums for mean
-		_lidarAltHome += _sub_distance.get().current_distance;
+		_lidarAltHome += _sub_lidar->get().current_distance;
 
 		if (_lidarInitCount++ > REQ_INIT_COUNT) {
 			_lidarAltHome /= _lidarInitCount;
@@ -520,20 +532,18 @@ void BlockLocalPositionEstimator::initLidar()
 void BlockLocalPositionEstimator::initSonar()
 {
 
-	if (_sub_distance.get().type != distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND) { return; }
-
 	// collect sonar data
 	bool valid = false;
-	float d = _sub_distance.get().current_distance;
+	float d = _sub_sonar->get().current_distance;
 
-	if (d < _sub_distance.get().max_distance &&
-	    d > _sub_distance.get().min_distance) {
+	if (d < _sub_sonar->get().max_distance &&
+	    d > _sub_sonar->get().min_distance) {
 		valid = true;
 	}
 
 	if (!_sonarInitialized && valid) {
 		// increament sums for mean
-		_sonarAltHome += _sub_distance.get().current_distance;
+		_sonarAltHome += _sub_sonar->get().current_distance;
 
 		if (_sonarInitCount++ > REQ_INIT_COUNT) {
 			_sonarAltHome /= _sonarInitCount;
@@ -851,10 +861,11 @@ void BlockLocalPositionEstimator::correctFlow()
 		_flow_xy_stddev.get() * _flow_xy_stddev.get();
 
 	float flow_speed[3] = {0.0f, 0.0f, 0.0f};
+	float flow_gyrospeed[3] = {0.0f, 0.0f, 0.0f};
 	float global_speed[3] = {0.0f, 0.0f, 0.0f};
 
-	/* calc dt between flow timestamps */
-	/* ignore first flow msg */
+	// calc dt between flow timestamps
+	// ignore first flow msg
 	if (_time_last_flow == 0) {
 		_time_last_flow = _sub_flow.get().timestamp;
 		return;
@@ -863,31 +874,63 @@ void BlockLocalPositionEstimator::correctFlow()
 	float dt = (_sub_flow.get().timestamp - _time_last_flow) * 1.0e-6f ;
 	_time_last_flow = _sub_flow.get().timestamp;
 
-	// calculate velocity over ground
+	float alpha = 0.4; // The closer alpha is to 1.0, the faster the moving average updates
+	// TODO use the Dt to calculate alpha
+
 	if (_sub_flow.get().integration_timespan > 0) {
-		flow_speed[0] = (_sub_flow.get().pixel_flow_x_integral /
-				 (_sub_flow.get().integration_timespan / 1e6f) -
-				 _sub_att.get().pitchspeed) *		// Body rotation correction TODO check this
-				_x(X_z);
-		flow_speed[1] = (_sub_flow.get().pixel_flow_y_integral /
-				 (_sub_flow.get().integration_timespan / 1e6f) -
-				 _sub_att.get().rollspeed) *		// Body rotation correction
-				_x(X_z);
+
+		// estimate gyro bias for the flow board's gyro using flight controller's calibrated gyro
+		flow_gyrospeed[0] = _sub_flow.get().gyro_x_rate_integral / _sub_flow.get().integration_timespan * 1e6f;
+		flow_gyrospeed[1] = _sub_flow.get().gyro_y_rate_integral / _sub_flow.get().integration_timespan * 1e6f;
+		flow_gyrospeed[2] = _sub_flow.get().gyro_z_rate_integral / _sub_flow.get().integration_timespan * 1e6f;
+
+		// exponential moving average
+		_flowGyroBias[0] = alpha * (flow_gyrospeed[0] - _sub_att.get().pitchspeed) + (1.0f - alpha) * _flowGyroBias[0];
+		_flowGyroBias[1] = alpha * (flow_gyrospeed[1] - _sub_att.get().rollspeed) + (1.0f - alpha) * _flowGyroBias[1];
+		_flowGyroBias[2] = alpha * (flow_gyrospeed[2] - _sub_att.get().yawspeed) + (1.0f - alpha) * _flowGyroBias[2];
+
+		// yaw rotation compensation
+		float yaw_comp[2] = {0.0f, 0.0f};
+
+		yaw_comp[0] = _flow_board_x_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
+		yaw_comp[1] =  - _flow_board_y_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
+
+		// calculate velocity over ground
+		flow_speed[0] = ((_sub_flow.get().pixel_flow_x_integral - _sub_flow.get().gyro_x_rate_integral) /
+				 (_sub_flow.get().integration_timespan * 1e6f)
+				 + _flowGyroBias[0] - yaw_comp[0]) *
+				_x(X_z);		// TODO use terrain estimate here
+		flow_speed[1] = ((_sub_flow.get().pixel_flow_y_integral - _sub_flow.get().gyro_y_rate_integral) /
+				 (_sub_flow.get().integration_timespan * 1e6f) -
+				 + _flowGyroBias[1] - yaw_comp[1]) *
+				_x(X_z);		// TODO use terrain estimate here
 
 	} else {
 		flow_speed[0] = 0;
 		flow_speed[1] = 0;
+		flow_gyrospeed[0] = 0;
+		flow_gyrospeed[1] = 0;
+		flow_gyrospeed[2] = 0;
 	}
 
 	flow_speed[2] = 0.0f;
 
-	/* update filtered flow */
+	// filtered gyro readings for logging
+	flow_gyrospeed[0] -= _flowGyroBias[0];
+	flow_gyrospeed[1] -= _flowGyroBias[1];
+	flow_gyrospeed[2] -= _flowGyroBias[2];
+
+	// update filtered flow
 	_pub_filtered_flow.get().sumx += flow_speed[0] * dt;
 	_pub_filtered_flow.get().sumy += flow_speed[1] * dt;
 	_pub_filtered_flow.get().vx = flow_speed[0];
 	_pub_filtered_flow.get().vy = flow_speed[1];
-
-	// TODO add yaw rotation correction (with distance to vehicle zero)
+	_pub_filtered_flow.get().gyro_rad_s[0] = flow_gyrospeed[0];
+	_pub_filtered_flow.get().gyro_rad_s[1] = flow_gyrospeed[1];
+	_pub_filtered_flow.get().gyro_rad_s[2] = flow_gyrospeed[2];
+	_pub_filtered_flow.get().gyro_bias[0] = _flowGyroBias[0];
+	_pub_filtered_flow.get().gyro_bias[1] = _flowGyroBias[1];
+	_pub_filtered_flow.get().gyro_bias[2] = _flowGyroBias[2];
 
 	// convert to globalframe velocity
 	for (uint8_t i = 0; i < 3; i++) {
@@ -957,12 +1000,7 @@ void BlockLocalPositionEstimator::correctFlow()
 
 void BlockLocalPositionEstimator::correctSonar()
 {
-
-	if (_sub_distance.get().type != distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND) {
-		return;
-	}
-
-	float d = _sub_distance.get().current_distance;
+	float d = _sub_sonar->get().current_distance;
 
 	// sonar measurement matrix and noise matrix
 	Matrix<float, n_y_sonar, n_x> C;
@@ -972,7 +1010,7 @@ void BlockLocalPositionEstimator::correctSonar()
 	// use parameter covariance unless sensor provides reasonable value
 	Matrix<float, n_y_sonar, n_y_sonar> R;
 	R.setZero();
-	float cov = _sub_distance.get().covariance;
+	float cov = _sub_sonar->get().covariance;
 
 	if (cov < 1.0e-3f) {
 		R(0, 0) = _sonar_z_stddev.get() * _sonar_z_stddev.get();
@@ -997,8 +1035,8 @@ void BlockLocalPositionEstimator::correctSonar()
 	// fault detection
 	float beta = sqrtf((r.transpose()  * (S_I * r))(0, 0));
 
-	if (d < _sub_distance.get().min_distance ||
-	    d > _sub_distance.get().max_distance) {
+	if (d < _sub_sonar->get().min_distance ||
+	    d > _sub_sonar->get().max_distance) {
 		if (!_sonarFault) {
 			mavlink_log_info(_mavlink_fd, "[lpe] sonar out of range");
 			warnx("[lpe] sonar out of range");
@@ -1026,7 +1064,7 @@ void BlockLocalPositionEstimator::correctSonar()
 		_P -= K * C * _P;
 	}
 
-	_time_last_sonar = _sub_distance.get().timestamp;
+	_time_last_sonar = _sub_sonar->get().timestamp;
 
 }
 
@@ -1082,11 +1120,7 @@ void BlockLocalPositionEstimator::correctBaro()
 void BlockLocalPositionEstimator::correctLidar()
 {
 
-	if (_sub_distance.get().type != distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) {
-		return;
-	}
-
-	float d = _sub_distance.get().current_distance;
+	float d = _sub_lidar->get().current_distance;
 
 	Matrix<float, n_y_lidar, n_x> C;
 	C.setZero();
@@ -1096,7 +1130,7 @@ void BlockLocalPositionEstimator::correctLidar()
 	// use parameter covariance unless sensor provides reasonable value
 	Matrix<float, n_y_lidar, n_y_lidar> R;
 	R.setZero();
-	float cov = _sub_distance.get().covariance;
+	float cov = _sub_lidar->get().covariance;
 
 	if (cov < 1.0e-3f) {
 		R(0, 0) = _lidar_z_stddev.get() * _lidar_z_stddev.get();
@@ -1119,8 +1153,8 @@ void BlockLocalPositionEstimator::correctLidar()
 	float beta = sqrtf((r.transpose() * (S_I * r))(0, 0));
 
 	// zero is an error code for the lidar
-	if (d < _sub_distance.get().min_distance ||
-	    d > _sub_distance.get().max_distance) {
+	if (d < _sub_lidar->get().min_distance ||
+	    d > _sub_lidar->get().max_distance) {
 		if (!_lidarFault) {
 			mavlink_log_info(_mavlink_fd, "[lpe] lidar out of range");
 			warnx("[lpe] lidar out of range");
@@ -1147,7 +1181,7 @@ void BlockLocalPositionEstimator::correctLidar()
 		_P -= K * C * _P;
 	}
 
-	_time_last_lidar = _sub_distance.get().timestamp;
+	_time_last_lidar = _sub_lidar->get().timestamp;
 }
 
 void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other metric for glitch detection

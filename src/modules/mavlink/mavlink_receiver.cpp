@@ -445,6 +445,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	/* rotate measurements according to parameter */
 	float zeroval = 0.0f;
 	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zeroval);
+	rotate_3f(flow_rot, f.gyro_x_rate_integral, f.gyro_y_rate_integral, f.gyro_z_rate_integral);
 
 	if (_flow_pub == nullptr) {
 		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);

@@ -590,7 +590,8 @@ then
 		# clear pins 5 and 6
 		if param compare SENS_EN_LL40LS 1
 		then
-			set AUX_MODE pwm4
+		    # hack for AUAV-X2: change from pwm4 to pwm2 to allow use of AUX3,4 for GPIO
+			set AUX_MODE pwm3
 		fi
 		if param greater TRIG_MODE 0
 		then

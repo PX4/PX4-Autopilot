@@ -113,6 +113,9 @@ private:
 	struct pwm_input_s	_pwm;
 	orb_advert_t	        _distance_sensor_topic;
 	struct distance_sensor_s _range;
+	uint64_t	_lastTimeStamp;
+	int			_pulseCount;
+	float		_lastDistance;
 
 	perf_counter_t	        _sample_perf;
 	perf_counter_t	        _read_errors;
