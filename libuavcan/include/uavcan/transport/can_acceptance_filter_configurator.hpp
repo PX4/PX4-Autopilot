@@ -1,10 +1,10 @@
 /*
- * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>,
+ * Copyright (C) 2015 Pavel Kirienko <pavel.kirienko@gmail.com>,
  *                    Ilia  Sheremet <illia.sheremet@gmail.com>
  */
 
-#ifndef UAVCAN_ACCEPTANCE_FILTER_CONFIGURATOR_HPP_INCLUDED
-#define UAVCAN_ACCEPTANCE_FILTER_CONFIGURATOR_HPP_INCLUDED
+#ifndef UAVCAN_TRANSPORT_CAN_ACCEPTANCE_FILTER_CONFIGURATOR_HPP_INCLUDED
+#define UAVCAN_TRANSPORT_CAN_ACCEPTANCE_FILTER_CONFIGURATOR_HPP_INCLUDED
 
 #include <cassert>
 #include <uavcan/data_type.hpp>
@@ -127,4 +127,5 @@ public:
 };
 
 }
-#endif // UAVCAN_BUILD_CONFIG_HPP_INCLUDED
+
+#endif
