@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014-2015 Pavel Kirienko <pavel.kirienko@gmail.com>
+ *                         Ilia Sheremet <illia.sheremet@gmail.com>
  */
 
 #pragma once
