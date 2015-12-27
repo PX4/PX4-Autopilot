@@ -121,7 +121,8 @@ public:
 	int		start();
 
 private:
-	const float alt_ctl_dz = 0.1f;
+    const float alt_ctl_dz = 0.1f;
+    const float alt_ctl_dy = 0.05f;
 
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_control_task;			/**< task handle for task */
@@ -268,7 +269,7 @@ private:
 	 */
 	void		poll_subscriptions();
 
-	static float	scale_control(float ctl, float end, float dz);
+    static float	scale_control(float ctl, float end, float dz, float dy);
 
 	/**
 	 * Update reference for local position projection
@@ -635,16 +636,16 @@ MulticopterPositionControl::poll_subscriptions()
 }
 
 float
-MulticopterPositionControl::scale_control(float ctl, float end, float dz)
+MulticopterPositionControl::scale_control(float ctl, float end, float dz, float dy)
 {
 	if (ctl > dz) {
-		return (ctl - dz) / (end - dz);
+        return dy + (ctl - dz) * (1.0f - dy) / (end - dz);
 
 	} else if (ctl < -dz) {
-		return (ctl + dz) / (end - dz);
+        return -dy + (ctl + dz) * (1.0f - dy) / (end - dz);
 
 	} else {
-		return 0.0f;
+        return ctl * (dy / dz);
 	}
 }
 
@@ -737,8 +738,8 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, alt_ctl_dz); // D
-	}
+        req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, alt_ctl_dz, alt_ctl_dy); // D
+    }
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* set horizontal velocity setpoint with roll/pitch stick */
