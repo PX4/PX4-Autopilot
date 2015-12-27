@@ -141,6 +141,31 @@ public:
     }
 };
 
+/**
+ * This function is a shortcut for @ref CanAcceptanceFilterConfigurator.
+ * It allows to compute filter configuration and then apply it in just one step.
+ * It implements only the most common use case; if you have special requirements,
+ * use @ref CanAcceptanceFilterConfigurator directly.
+ *
+ * @param node  Refer to @ref CanAcceptanceFilterConfigurator constructor for explanation.
+ * @param mode  Refer to @ref CanAcceptanceFilterConfigurator::computeConfiguration() for explanation.
+ * @return non-negative on success, negative error code on error.
+ */
+static inline int configureCanAcceptanceFilters(INode& node,
+                                                CanAcceptanceFilterConfigurator::AnonymousMessages mode
+                                                    = CanAcceptanceFilterConfigurator::AcceptAnonymousMessages)
+{
+    CanAcceptanceFilterConfigurator cfger(node);
+
+    const int compute_res = cfger.computeConfiguration(mode);
+    if (compute_res < 0)
+    {
+        return compute_res;
+    }
+
+    return cfger.applyConfiguration();
+}
+
 }
 
 #endif
