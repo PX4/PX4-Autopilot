@@ -51,6 +51,17 @@
 PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
 
 /**
+ * Hover thrust
+ *
+ * Vertical thrust required to hover.
+ *
+ * @min 0.2
+ * @max 0.8
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
+
+/**
  * Maximum thrust in auto thrust control
  *
  * Limit max allowed thrust. Setting a value of one can put
