@@ -153,6 +153,12 @@ add_executable(sbus2_test sbus2_test.cpp hrt.cpp
 target_link_libraries( sbus2_test px4_platform )
 add_gtest(sbus2_test)
 
+# DSM test
+add_executable(dsm_test dsm_test.cpp hrt.cpp
+                          ${PX_SRC}/lib/rc/dsm.c)
+target_link_libraries( dsm_test px4_platform )
+add_gtest(dsm_test)
+
 # st24_test
 add_executable(rc_input_test st24_test.cpp hrt.cpp ${PX_SRC}/lib/rc/st24.c sumd_test.cpp ${PX_SRC}/lib/rc/sumd.c)
 target_link_libraries(rc_input_test px4_platform)

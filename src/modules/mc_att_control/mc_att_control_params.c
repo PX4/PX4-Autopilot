@@ -40,6 +40,28 @@
  */
 
 /**
+ * Roll time constant
+ *
+ * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
+ *
+ * @min 0.15
+ * @max 0.25
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLL_TC, 0.2f);
+
+/**
+ * Pitch time constant
+ *
+ * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
+ *
+ * @min 0.15
+ * @max 0.25
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCH_TC, 0.2f);
+
+/**
  * Roll P gain
  *
  * Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
@@ -271,13 +293,13 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 360.0f);
 
 /**
  * Threshold for Rattitude mode
- * 
+ *
  * Manual input needed in order to override attitude control rate setpoints
  * and instead pass manual stick inputs as rate setpoints
- * 
- * @unit 
+ *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group Multicopter Attitude Control
  */
- PARAM_DEFINE_FLOAT(MC_RATT_TH, 1.0f);
+PARAM_DEFINE_FLOAT(MC_RATT_TH, 1.0f);

@@ -68,6 +68,7 @@ __EXPORT int	sbus_init(const char *device, bool singlewire);
  * provides a degree of protection. Of course, it would be better
  * if we didn't drop bytes...
  */
+__EXPORT int	sbus_config(int sbus_fd, bool singlewire);
 __EXPORT bool	sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe,
 			   bool *sbus_frame_drop,
 			   uint16_t max_channels);

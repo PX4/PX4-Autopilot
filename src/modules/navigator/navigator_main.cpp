@@ -275,9 +275,8 @@ Navigator::task_main()
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 
 	} else {
-		mavlink_log_info(_mavlink_fd, "No geofence set");
 		if (_geofence.clearDm() != OK) {
-			warnx("Could not clear geofence");
+			mavlink_log_critical(_mavlink_fd, "failed clearing geofence");
 		}
 	}
 

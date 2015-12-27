@@ -31,16 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__fw_att_control
-	MAIN fw_att_control
-	STACK 1200
+	MODULE lib__tailsitter_recovery
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		fw_att_control_main.cpp
+		tailsitter_recovery.cpp
 	DEPENDS
 		platforms__common
-		git_ecl
-		lib__ecl
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
