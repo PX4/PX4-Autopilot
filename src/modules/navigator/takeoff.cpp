@@ -81,6 +81,8 @@ Takeoff::on_activation()
 	pos_sp_triplet->previous.valid = false;
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+	pos_sp_triplet->current.yaw = _navigator->get_home_position()->yaw;
+	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
