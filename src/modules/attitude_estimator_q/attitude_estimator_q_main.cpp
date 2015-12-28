@@ -607,11 +607,8 @@ void AttitudeEstimatorQ::task_main()
 
 		/* attitude quaternions for control state */
 		ctrl_state.q[0] = _q(0);
-
 		ctrl_state.q[1] = _q(1);
-
 		ctrl_state.q[2] = _q(2);
-
 		ctrl_state.q[3] = _q(3);
 
 		/* attitude rates for control state */
