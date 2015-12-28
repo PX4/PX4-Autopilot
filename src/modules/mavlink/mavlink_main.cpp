@@ -77,6 +77,7 @@
 #include <mavlink/mavlink_log.h>
 
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_main.h"
@@ -1639,9 +1640,13 @@ Mavlink::task_main(int argc, char *argv[])
 	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 	uint64_t status_time = 0;
+	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
+	uint64_t ack_time = 0;
 
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
+	struct vehicle_command_ack_s command_ack;
+	ack_sub->update(&ack_time, &command_ack);
 
 	/* add default streams depending on mode */
 
@@ -1854,6 +1859,15 @@ Mavlink::task_main(int argc, char *argv[])
 			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
 			set_manual_input_mode_generation(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
+		}
+
+		/* send command ACK */
+		if (ack_sub->update(&ack_time, &command_ack)) {
+			mavlink_command_ack_t msg;
+			msg.result = command_ack.result;
+			msg.command = command_ack.command;
+
+			send_message(MAVLINK_MSG_ID_COMMAND_ACK, &msg);
 		}
 
 		/* check for requested subscriptions */

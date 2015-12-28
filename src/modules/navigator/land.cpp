@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 /**
- * @file Takeoff.cpp
+ * @file land.cpp
  *
- * Helper class to Takeoff
+ * Helper class to land at the current position
  *
- * @author Lorenz Meier <lorenz@px4.io
+ * @author Andreas Antener <andreas@uaventure.com>
  */
 
 #include <string.h>
@@ -50,58 +50,56 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 
-#include "takeoff.h"
+#include "land.h"
 #include "navigator.h"
 
-Takeoff::Takeoff(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_min_alt(this, "MIS_TAKEOFF_ALT", false)
+Land::Land(Navigator *navigator, const char *name) :
+    MissionBlock(navigator, name)
 {
-	/* load initial params */
-	updateParams();
+    /* load initial params */
+    updateParams();
 }
 
-Takeoff::~Takeoff()
-{
-}
-
-void
-Takeoff::on_inactive()
+Land::~Land()
 {
 }
 
 void
-Takeoff::on_activation()
+Land::on_inactive()
 {
-	/* set current mission item to Takeoff */
-	set_takeoff_item(&_mission_item, _param_min_alt.get());
-	_navigator->get_mission_result()->reached = false;
-	_navigator->get_mission_result()->finished = false;
-	_navigator->set_mission_result_updated();
-	reset_mission_item_reached();
-
-	/* convert mission item to current setpoint */
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->previous.valid = false;
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	pos_sp_triplet->next.valid = false;
-
-	_navigator->set_can_loiter_at_sp(true);
-
-	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
-Takeoff::on_active()
+Land::on_activation()
 {
-	if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
-		_navigator->get_mission_result()->finished = true;
-		_navigator->set_mission_result_updated();
+    /* set current mission item to Land */
+    set_land_item(&_mission_item, true);
+    _navigator->get_mission_result()->reached = false;
+    _navigator->get_mission_result()->finished = false;
+    _navigator->set_mission_result_updated();
+    reset_mission_item_reached();
 
-		/* set loiter item so position controllers stop doing takeoff logic */
-		set_loiter_item(&_mission_item);
-		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-		_navigator->set_position_setpoint_triplet_updated();
-	}
+    /* convert mission item to current setpoint */
+    struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+    pos_sp_triplet->previous.valid = false;
+    mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+    pos_sp_triplet->next.valid = false;
+
+    _navigator->set_can_loiter_at_sp(false);
+
+    _navigator->set_position_setpoint_triplet_updated();
+}
+
+void
+Land::on_active()
+{
+    if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
+        _navigator->get_mission_result()->finished = true;
+        _navigator->set_mission_result_updated();
+        set_idle_item(&_mission_item);
+
+        struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+        mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+        _navigator->set_position_setpoint_triplet_updated();
+    }
 }
