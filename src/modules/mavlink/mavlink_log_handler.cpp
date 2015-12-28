@@ -455,7 +455,7 @@ LogListHelper::_scan_logs(FILE* f, const char* dir, time_t& date)
 				snprintf(log_file_path, sizeof(log_file_path), "%s/%s", dir, entry.d_name);
 				if(_get_log_time_size(log_file_path, entry.d_name, ldate, size)) {
 					//-- Write entry out to list file
-					fprintf(f, "%u %u %s\n", ldate, size, log_file_path);
+					fprintf(f, "%u %u %s\n", (unsigned)ldate, (unsigned)size, log_file_path);
 					log_count++;
 				}
 			}

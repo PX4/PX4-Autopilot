@@ -88,7 +88,6 @@ private:
 class MavlinkLogHandler : public MavlinkStream
 {
 public:
-	/// @brief Contructor is only public so unit test code can new objects.
 	MavlinkLogHandler(Mavlink *mavlink);
 
 	static MavlinkLogHandler *new_instance(Mavlink *mavlink);
