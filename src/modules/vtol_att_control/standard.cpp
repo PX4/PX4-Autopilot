@@ -302,7 +302,7 @@ void Standard::fill_actuator_outputs()
 			* (1 - _mc_yaw_weight);	// yaw
 
 	// set the fixed wing throttle control
-    if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {
+	if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {
 		// take the throttle value commanded by the fw controller
 		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
