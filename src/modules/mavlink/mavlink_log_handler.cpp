@@ -62,7 +62,7 @@ static const char *kTmpData    = MOUNTPOINT "/$log$.txt";
 
 //-------------------------------------------------------------------
 static bool
-stat_file(const char* file, uint32_t* date = 0, uint32_t* size = 0) {
+stat_file(const char* file, time_t* date = 0, uint32_t* size = 0) {
 	struct stat st;
 	if (stat(file, &st) == 0) {
 		if (date) *date = st.st_mtime;
