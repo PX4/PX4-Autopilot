@@ -446,6 +446,28 @@ int commander_main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[1], "land")) {
+		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
+
+		vehicle_command_s cmd = {};
+		cmd.target_system = status.system_id;
+		cmd.target_component = status.component_id;
+
+		cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+		// cmd.param1 = 0.25f; /* minimum pitch */
+		// /* param 2-3 unused */
+		// cmd.param4 = home_position.yaw;
+		// cmd.param5 = home_position.lat;
+		// cmd.param6 = home_position.lon;
+		// cmd.param7 = home_position.alt;
+
+		// XXX inspect use of publication handle
+		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+
+		px4_close(mavlink_fd_local);
+		return 0;
+	}
+
 	usage("unrecognized command");
 	return 1;
 }
@@ -885,6 +907,17 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				warnx("taking off!");
 			} else {
 				warnx("takeoff denied");
+			}
+
+		}
+		break;
+
+	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
+			/* ok, home set, use it to take off */
+			if (TRANSITION_CHANGED == main_state_transition(&status, vehicle_status_s::MAIN_STATE_AUTO_LAND)) {
+				warnx("landing!");
+			} else {
+				warnx("landing denied");
 			}
 
 		}
