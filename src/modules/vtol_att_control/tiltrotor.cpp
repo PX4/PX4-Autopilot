@@ -428,7 +428,7 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state)
 		break;
 
 	case DISABLED:
-		pwm_value = PWM_LOWEST_MAX;
+		pwm_value = PWM_MOTOR_OFF;
 		_rear_motors = DISABLED;
 		break;
 
@@ -446,21 +446,21 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state)
 	if (fd < 0) {PX4_WARN("can't open %s", dev);}
 
 	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_max_values;
+	memset(&pwm_max_values, 0, sizeof(pwm_max_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
 		if (is_motor_off_channel(i)) {
-			pwm_values.values[i] = pwm_value;
+			pwm_max_values.values[i] = pwm_value;
 
 		} else {
-			pwm_values.values[i] = PWM_DEFAULT_MAX;
+			pwm_max_values.values[i] = PWM_DEFAULT_MAX;
 		}
 
-		pwm_values.channel_count = _params->vtol_motor_count;
+		pwm_max_values.channel_count = _params->vtol_motor_count;
 	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
+	ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_max_values);
 
 	if (ret != OK) {PX4_WARN("failed setting max values");}
 
