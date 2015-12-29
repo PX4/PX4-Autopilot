@@ -145,7 +145,7 @@ int Tiltrotor::get_motor_off_channels(int channels)
 			break;
 		}
 
-		channel_bitmap |= 1 << channel;
+		channel_bitmap |= 1 << (channel - 1);
 		channels = channels / 10;
 	}
 
