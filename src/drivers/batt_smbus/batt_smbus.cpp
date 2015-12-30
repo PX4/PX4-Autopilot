@@ -77,25 +77,29 @@
 #include <drivers/drv_batt_smbus.h>
 #include <drivers/device/ringbuffer.h>
 
-#define BATT_SMBUS_ADDR_MIN			0x08	///< lowest possible address
-#define BATT_SMBUS_ADDR_MAX			0x7F	///< highest possible address
+#define BATT_SMBUS_ADDR_MIN             0x08	///< lowest possible address
+#define BATT_SMBUS_ADDR_MAX             0x7F	///< highest possible address
 
-#define BATT_SMBUS_I2C_BUS			PX4_I2C_BUS_EXPANSION
-#define BATT_SMBUS_ADDR				0x0B	///< I2C address
-#define BATT_SMBUS_TEMP				0x08	///< temperature register
-#define BATT_SMBUS_VOLTAGE			0x09	///< voltage register
+#define BATT_SMBUS_I2C_BUS              PX4_I2C_BUS_EXPANSION
+#define BATT_SMBUS_ADDR                 0x0B	///< I2C address
+#define BATT_SMBUS_TEMP                 0x08	///< temperature register
+#define BATT_SMBUS_VOLTAGE              0x09	///< voltage register
 #define BATT_SMBUS_REMAINING_CAPACITY	0x0f	///< predicted remaining battery capacity as a percentage
 #define BATT_SMBUS_FULL_CHARGE_CAPACITY 0x10    ///< capacity when fully charged
-#define BATT_SMBUS_DESIGN_CAPACITY		0x18	///< design capacity register
-#define BATT_SMBUS_DESIGN_VOLTAGE		0x19	///< design voltage register
-#define BATT_SMBUS_SERIALNUM			0x1c	///< serial number register
-#define BATT_SMBUS_MANUFACTURE_NAME		0x20	///< manufacturer name
-#define BATT_SMBUS_MANUFACTURE_INFO		0x25	///< cell voltage register
-#define BATT_SMBUS_CURRENT			0x2a	///< current register
-#define BATT_SMBUS_MEASUREMENT_INTERVAL_MS	(1000000 / 10)	///< time in microseconds, measure at 10hz
-#define BATT_SMBUS_TIMEOUT_MS		10000000	///< timeout looking for battery 10seconds after startup
+#define BATT_SMBUS_DESIGN_CAPACITY	0x18	///< design capacity register
+#define BATT_SMBUS_DESIGN_VOLTAGE	0x19	///< design voltage register
+#define BATT_SMBUS_SERIALNUM		0x1c	///< serial number register
+#define BATT_SMBUS_MANUFACTURE_NAME	0x20	///< manufacturer name
+#define BATT_SMBUS_MANUFACTURE_INFO	0x25	///< cell voltage register
+#define BATT_SMBUS_CURRENT              0x2a	///< current register
+#define BATT_SMBUS_MEASUREMENT_INTERVAL_MS	(1000000 / 10)	///< time in microseconds, measure at 10Hz
+#define BATT_SMBUS_TIMEOUT_MS           10000000	///< timeout looking for battery 10seconds after startup
 
-#define BATT_SMBUS_PEC_POLYNOMIAL		0x07	///< Polynomial for calculating PEC
+#define BATT_SMBUS_MANUFACTURER_ACCESS	0x00
+#define BATT_SMBUS_MANUFACTURER_DATA	0x23
+#define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS    0x44
+
+#define BATT_SMBUS_PEC_POLYNOMIAL	0x07	///< Polynomial for calculating PEC
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -167,16 +171,33 @@ private:
 	int			read_reg(uint8_t reg, uint16_t &val);
 
 	/**
+	 * Write a word to specified register
+	 */
+	int			write_reg(uint8_t reg, uint16_t val);
+
+	/**
 	 * Read block from bus
 	 * @return returns number of characters read if successful, zero if unsuccessful
 	 */
 	uint8_t			read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_zero);
 
 	/**
+	 * Write block to the bus
+	 * @return the number of characters sent if successful, zero if unsuccessful
+	 */
+	uint8_t			write_block(uint8_t reg, uint8_t *data, uint8_t len);
+
+	/**
 	 * Calculate PEC for a read or write from the battery
 	 * @param buff is the data that was read or will be written
 	 */
 	uint8_t			get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len) const;
+
+	/**
+	 * Write a word to Manufacturer Access register (0x00)
+	 * @param cmd the word to be written to Manufacturer Access
+	 */
+	uint8_t			ManufacturerAccess(uint16_t cmd);
 
 	// internal variables
 	bool			_enabled;	///< true if we have successfully connected to battery
@@ -480,6 +501,27 @@ BATT_SMBUS::read_reg(uint8_t reg, uint16_t &val)
 	return ret;
 }
 
+int
+BATT_SMBUS::write_reg(uint8_t reg, uint16_t val)
+{
+	uint8_t buff[4];  // reg + 2 bytes of data + PEC
+
+	buff[0] = reg;
+	buff[2] = uint8_t(val << 8) & 0xff;
+	buff[1] = (uint8_t)val;
+	buff[3] = get_PEC(reg, false, &buff[1],  2); // Append PEC
+
+	// write bytes to register
+	int ret = transfer(buff, 3, nullptr, 0);
+
+	if (ret != OK) {
+		debug("Register write error");
+	}
+
+	// return success or failure
+	return ret;
+}
+
 uint8_t
 BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_zero)
 {
@@ -521,6 +563,31 @@ BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_
 }
 
 uint8_t
+BATT_SMBUS::write_block(uint8_t reg, uint8_t *data, uint8_t len)
+{
+	uint8_t buff[len + 3];  // buffer to hold results
+
+	usleep(1);
+
+	buff[0] = reg;
+	buff[1] = len;
+	memcpy(&buff[2], data, len);
+	buff[len + 2] = get_PEC(reg, false, &buff[1],  len + 1); // Append PEC
+
+	// send bytes
+	int ret = transfer(buff, len + 3, nullptr, 0);
+
+	// return zero on failure
+	if (ret != OK) {
+		debug("Block write error\n");
+		return 0;
+	}
+
+	// return success
+	return len;
+}
+
+uint8_t
 BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len) const
 {
 	// exit immediately if no data
@@ -528,12 +595,32 @@ BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len
 		return 0;
 	}
 
-	// prepare temp buffer for calcing crc
-	uint8_t tmp_buff[len + 3];
+	/**
+	 *  Note: The PEC is calculated on all the message bytes. See http://cache.freescale.com/files/32bit/doc/app_note/AN4471.pdf
+	 *  and http://www.ti.com/lit/an/sloa132/sloa132.pdf for more details
+	 */
+
+	// prepare temp buffer for calculating crc
+	uint8_t tmp_buff_len;
+
+	if (reading) {
+		tmp_buff_len = len + 3;
+
+	} else {
+		tmp_buff_len = len + 2;
+	}
+
+	uint8_t tmp_buff[tmp_buff_len];
 	tmp_buff[0] = (uint8_t)get_address() << 1;
 	tmp_buff[1] = cmd;
-	tmp_buff[2] = tmp_buff[0] | (uint8_t)reading;
-	memcpy(&tmp_buff[3], buff, len);
+
+	if (reading) {
+		tmp_buff[2] = tmp_buff[0] | (uint8_t)reading;
+		memcpy(&tmp_buff[3], buff, len);
+
+	} else {
+		memcpy(&tmp_buff[2], buff, len);
+	}
 
 	// initialise crc to zero
 	uint8_t crc = 0;
@@ -559,6 +646,19 @@ BATT_SMBUS::get_PEC(uint8_t cmd, bool reading, const uint8_t buff[], uint8_t len
 
 	// return result
 	return crc;
+}
+
+uint8_t
+BATT_SMBUS::ManufacturerAccess(uint16_t cmd)
+{
+	// write bytes to Manufacturer Access
+	int ret = write_reg(BATT_SMBUS_MANUFACTURER_ACCESS, cmd);
+
+	if (ret != OK) {
+		debug("Manufacturer Access error");
+	}
+
+	return ret;
 }
 
 ///////////////////////// shell functions ///////////////////////
