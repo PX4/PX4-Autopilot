@@ -896,9 +896,10 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 		struct telemetry_status_s &tstatus = get_rx_status();
 
 		/* resend heartbeat via broadcast */
-		if (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
+		if ((_mode != MAVLINK_MODE_ONBOARD)
+			&& (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
 			(tstatus.heartbeat_time == 0)) &&
-			msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+			msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
 
 			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
