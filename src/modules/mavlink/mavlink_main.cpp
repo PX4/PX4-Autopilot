@@ -1570,14 +1570,20 @@ Mavlink::task_main(int argc, char *argv[])
 		_datarate = MAX_DATA_RATE;
 	}
 
-	if (Mavlink::instance_exists(_device_name, this)) {
-		warnx("%s already running", _device_name);
-		return ERROR;
-	}
-
 	if (get_protocol() == SERIAL) {
-	warnx("mode: %u, data rate: %d B/s on %s @ %dB", _mode, _datarate, _device_name, _baudrate);
+		if (Mavlink::instance_exists(_device_name, this)) {
+			warnx("%s already running", _device_name);
+			return ERROR;
+		}
+
+		warnx("mode: %u, data rate: %d B/s on %s @ %dB", _mode, _datarate, _device_name, _baudrate);
+
 	} else if (get_protocol() == UDP) {
+		if (Mavlink::get_instance_for_network_port(_network_port) != nullptr) {
+			warnx("port %d already occupied", _network_port);
+			return ERROR;
+		}
+
 		warnx("mode: %u, data rate: %d B/s on udp port %hu", _mode, _datarate, _network_port);
 	}
 	/* flush stdout in case MAVLink is about to take it over */

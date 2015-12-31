@@ -1817,6 +1817,7 @@ MavlinkReceiver::receive_thread(void *arg)
 			if (srcaddr_last->sin_addr.s_addr == htonl(localhost) && srcaddr.sin_addr.s_addr != htonl(localhost)) {
 				// if we were sending to localhost before but have a new host then accept him
 				memcpy(srcaddr_last, &srcaddr, sizeof(srcaddr));
+				PX4_WARN("UDP source addr changed: %s", inet_ntoa(srcaddr.sin_addr));
 			}
 #endif
 			/* if read failed, this loop won't execute */
