@@ -149,7 +149,6 @@ MS5611_SPI::init()
 
 	if (ret != OK) {
 		DEVICE_DEBUG("SPI init failed");
-		warnx("SPI::init failed");
 		goto out;
 	}
 
@@ -158,7 +157,6 @@ MS5611_SPI::init()
 
 	if (ret != OK) {
 		DEVICE_DEBUG("reset failed");
-		warnx("SPI::reset failed");
 		goto out;
 	}
 
@@ -167,7 +165,6 @@ MS5611_SPI::init()
 
 	if (ret != OK) {
 		DEVICE_DEBUG("prom readout failed");
-		warnx("SPI::prom readout failed");
 		goto out;
 	}
 
@@ -264,7 +261,6 @@ MS5611_SPI::_read_prom()
 		}
 
 		//DEVICE_DEBUG("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
-		warnx("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
 	}
 
 	/* calculate CRC and return success/failure accordingly */
@@ -272,12 +268,10 @@ MS5611_SPI::_read_prom()
 
 	if (ret != OK) {
 		DEVICE_DEBUG("crc failed");
-		warnx("crc failed");
 	}
 
 	if (all_zero) {
 		DEVICE_DEBUG("prom all zero");
-		warnx("prom all zero");
 		ret = -EIO;
 	}
 
