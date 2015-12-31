@@ -829,7 +829,7 @@ struct ms5611_bus_option {
 	{ MS5611_BUS_SPI_EXTERNAL, "/dev/ms5611_spi_ext", &MS5611_spi_interface, PX4_SPI_BUS_EXT, NULL },
 #endif
 #ifdef PX4_SPIDEV_BARO
-	{ MS5611_BUS_SPI_INTERNAL, "/dev/ms5611_spi_int", &MS5611_spi_interface, PX4_SPI_BUS_SENSORS, NULL },
+	{ MS5611_BUS_SPI_INTERNAL, "/dev/ms5611_spi_int", &MS5611_spi_interface, PX4_SPI_BUS_RAMTRON, NULL },
 #endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ MS5611_BUS_I2C_INTERNAL, "/dev/ms5611_int", &MS5611_i2c_interface, PX4_I2C_BUS_ONBOARD, NULL },
@@ -902,12 +902,16 @@ crc4(uint16_t *n_prom)
 bool
 start_bus(struct ms5611_bus_option &bus)
 {
+	warnx("start_bus id %u", (unsigned)bus.busid);
+
 	if (bus.dev != nullptr) {
 		errx(1, "bus option already started");
 	}
 
 	prom_u prom_buf;
 	device::Device *interface = bus.interface_constructor(prom_buf, bus.busnum);
+
+	warnx("init ms5611 on bus id %u", (unsigned)bus.busid);
 
 	if (interface->init() != OK) {
 		delete interface;
@@ -922,6 +926,8 @@ start_bus(struct ms5611_bus_option &bus)
 		bus.dev = NULL;
 		return false;
 	}
+
+	warnx("open ms5611 on bus %u", (unsigned)bus.busid);
 
 	int fd = open(bus.devpath, O_RDONLY);
 
