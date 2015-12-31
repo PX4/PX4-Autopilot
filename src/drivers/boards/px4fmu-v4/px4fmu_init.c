@@ -297,11 +297,12 @@ __EXPORT int nsh_archinitialize(void)
 		return -ENODEV;
 	}
 
-	/* Default SPI2 to 37.5 MHz (40 MHz rounded to nearest valid divider, F4 max)
-	 * and de-assert the known chip selects. */
+    /* Default SPI2 to 12MHz and de-assert the known chip selects.
+     * MS5611 has max SPI clock speed of 20MHz
+     */
 
-	// XXX start with 10.4 MHz in FRAM usage and go up to 37.5 once validated
-	SPI_SETFREQUENCY(spi2, 1 * 1000 * 1000);
+    // XXX start with 10.4 MHz and go up to 20 once validated
+    SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
