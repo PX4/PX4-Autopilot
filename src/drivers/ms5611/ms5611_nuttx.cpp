@@ -902,16 +902,12 @@ crc4(uint16_t *n_prom)
 bool
 start_bus(struct ms5611_bus_option &bus)
 {
-	warnx("start_bus id %u", (unsigned)bus.busid);
-
 	if (bus.dev != nullptr) {
 		errx(1, "bus option already started");
 	}
 
 	prom_u prom_buf;
 	device::Device *interface = bus.interface_constructor(prom_buf, bus.busnum);
-
-	warnx("init ms5611 on bus id %u", (unsigned)bus.busid);
 
 	if (interface->init() != OK) {
 		delete interface;
@@ -926,8 +922,6 @@ start_bus(struct ms5611_bus_option &bus)
 		bus.dev = NULL;
 		return false;
 	}
-
-	warnx("open ms5611 on bus %u", (unsigned)bus.busid);
 
 	int fd = open(bus.devpath, O_RDONLY);
 
