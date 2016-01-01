@@ -151,8 +151,24 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 #ifdef CONFIG_STM32_SPI2
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-	/* there can only be one device on this bus, so always select it */
-	stm32_gpiowrite(GPIO_SPI_CS_FRAM, !selected);
+	/* SPI select is active low, so write !selected to select the device */
+
+	switch (devid) {
+	case SPIDEV_FLASH:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_FRAM, !selected);
+		break;
+
+	case PX4_SPIDEV_BARO:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_FRAM, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
+		break;
+
+	default:
+		break;
+	}
 }
 
 __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
