@@ -190,6 +190,8 @@ protected:
 	float _dt_imu_avg;
 	uint64_t _imu_time_last;
 
+	uint64_t _last_valid_gps_time_us;
+
 	imuSample _imu_sample_delayed;
 	imuSample _imu_down_sampled;
 	Quaternion
@@ -205,9 +207,6 @@ protected:
 	outputSample _output_sample_delayed;
 	outputSample _output_new;
 	imuSample _imu_sample_new;
-
-	struct map_projection_reference_s _posRef;
-	float _gps_alt_ref;
 
 
 	uint64_t _imu_ticks;
@@ -266,6 +265,8 @@ public:
 	void printGps(struct gpsSample *data);
 	void printStoredGps();
 
+	bool position_is_valid();
+
 	void copy_quaternion(float *quat) {
 		for (unsigned i = 0; i < 4; i++) {
 			quat[i] = _output_new.quat_nominal(i);
@@ -284,4 +285,8 @@ public:
 	void copy_timestamp(uint64_t *time_us) {
 		*time_us = _imu_time_last;
 	}
+
+	uint64_t _last_gps_origin_time_us;
+	struct map_projection_reference_s _posRef;
+	float _gps_alt_ref;
 };
