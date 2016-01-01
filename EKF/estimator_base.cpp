@@ -69,7 +69,7 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 
 	_time_last_imu = time_usec;
 
-	if (_imu_time_last > 0) {
+	if (_time_last_imu > 0) {
 		_dt_imu_avg = 0.8f * _dt_imu_avg + 0.2f * dt;
 	}
 
@@ -170,6 +170,8 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		gps_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2;
 		_time_last_gps = gps_sample_new.time_us;
 
+		_last_valid_gps_time_us = hrt_absolute_time();
+
 		gps_sample_new.time_us = math::max(gps_sample_new.time_us, _imu_sample_delayed.time_us);
 
 
@@ -261,8 +263,8 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_params.baro_delay_ms = 0;
 	_params.gps_delay_ms = 200;
 	_params.airspeed_delay_ms = 0;
-	_params.requiredEph = 200;
-	_params.requiredEpv = 200;
+	_params.requiredEph = 500;
+	_params.requiredEpv = 800;
 	_params.gyro_noise = 1e-3f;
 	_params.accel_noise = 1e-1f;
 	_params.gyro_bias_p_noise = 1e-5f;
@@ -311,7 +313,7 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_gps_speed_valid = false;
 
 	_mag_healthy = false;
-	_in_air = true;			// XXX get this flag from the application
+	_in_air = false;			// XXX get this flag from the application
 
 	_time_last_imu = 0;
 	_time_last_gps = 0;
@@ -335,18 +337,36 @@ void EstimatorBase::initialiseGPS(struct gps_message *gps)
 		map_projection_init(&_posRef, lat, lon);
 		_gps_alt_ref = gps->alt / 1e3f;
 		_gps_initialised = true;
+		_last_gps_origin_time_us = hrt_absolute_time();
 	}
 }
 
 bool EstimatorBase::gps_is_good(struct gps_message *gps)
 {
 	// go through apm implementation of calcGpsGoodToAlign for fancier checks
-	if ((gps->fix_type >= 3) && (gps->eph < _params.requiredEph) && (gps->epv < _params.requiredEpv)) {
-		return true;
+	// Use a stricter check for initialisation than during flight to avoid complete loss of GPS
+	if (_gps_initialised) {
+		if ((gps->fix_type >= 3) && (gps->eph < _params.requiredEph * 2) && (gps->epv < _params.requiredEpv * 2)) {
+			return true;
 
+		} else {
+			return false;
+		}
 	} else {
-		return false;
+		if ((gps->fix_type >= 3) && (gps->eph < _params.requiredEph) && (gps->epv < _params.requiredEpv)) {
+			return true;
+
+		} else {
+			return false;
+		}
 	}
+}
+
+bool EstimatorBase::position_is_valid()
+{
+	// return true if the position estimate is valid
+	// TOTO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
+	return _gps_initialised &&  (hrt_absolute_time() - _last_valid_gps_time_us) < 5e6;
 }
 
 void EstimatorBase::printStoredIMU()
