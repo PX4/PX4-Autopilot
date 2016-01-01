@@ -1118,7 +1118,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_STAT_s log_STAT;
 			struct log_VTOL_s log_VTOL;
 			struct log_RC_s log_RC;
-			struct log_OUT0_s log_OUT0;
+			struct log_OUT_s log_OUT;
 			struct log_AIRS_s log_AIRS;
 			struct log_ARSP_s log_ARSP;
 			struct log_FLOW_s log_FLOW;
@@ -1164,6 +1164,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int att_sp_sub;
 		int rates_sp_sub;
 		int act_outputs_sub;
+		int act_outputs_1_sub;
 		int act_controls_sub;
 		int act_controls_1_sub;
 		int local_pos_sub;
@@ -1203,6 +1204,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.att_sp_sub = -1;
 	subs.rates_sp_sub = -1;
 	subs.act_outputs_sub = -1;
+	subs.act_outputs_1_sub = -1;
 	subs.act_controls_sub = -1;
 	subs.act_controls_1_sub = -1;
 	subs.local_pos_sub = -1;
@@ -1532,8 +1534,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- ACTUATOR OUTPUTS --- */
 		if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_sub, &buf.act_outputs)) {
 			log_msg.msg_type = LOG_OUT0_MSG;
-			memcpy(log_msg.body.log_OUT0.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT0.output));
-			LOGBUFFER_WRITE_AND_COUNT(OUT0);
+			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
+			LOGBUFFER_WRITE_AND_COUNT(OUT);
+		}
+
+		if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_1_sub, &buf.act_outputs)) {
+			log_msg.msg_type = LOG_OUT1_MSG;
+			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
+			LOGBUFFER_WRITE_AND_COUNT(OUT);
 		}
 
 		/* --- ACTUATOR CONTROL --- */
