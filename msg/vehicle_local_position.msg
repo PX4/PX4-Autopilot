@@ -17,7 +17,7 @@ float32 vy				# East velocity in NED earth-fixed frame, (metres/sec)
 float32 vz				# Down velocity in NED earth-fixed frame, (metres/sec)
 
 # Heading
-float32 yaw				# Euler yaw angle relative to NED earth-fixed frame, -PI..+PI,  (radians) 
+float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians) 
 
 # Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
 bool xy_global				# true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
