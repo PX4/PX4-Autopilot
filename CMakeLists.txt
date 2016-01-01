@@ -135,7 +135,7 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
 set(CONFIG "nuttx_px4fmu-v2_default" CACHE STRING "desired configuration")
 file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
 set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
-set(THREADS "8" CACHE STRING
+set(THREADS "4" CACHE STRING
 	"number of threads to use for external build processes")
 set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 
