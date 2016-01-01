@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
  *
  *
  * @min 0
- * @max 123456
+ * @max 12345678
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_MOT_OFF, 0);
+PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);
