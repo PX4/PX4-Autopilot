@@ -286,7 +286,7 @@ public:
 		*time_us = _imu_time_last;
 	}
 
-	uint64_t _last_gps_origin_time_us;
-	struct map_projection_reference_s _posRef;
-	float _gps_alt_ref;
+	uint64_t _last_gps_origin_time_us = 0;
+	struct map_projection_reference_s _posRef = {};
+	float _gps_alt_ref = 0.0f;
 };
