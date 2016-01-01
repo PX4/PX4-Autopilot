@@ -135,7 +135,7 @@ __BEGIN_DECLS
  */
 #define PX4_SPIDEV_BARO			3
 #if (PX4_SPIDEV_BARO == SPIDEV_FLASH)
- #error PX4_SPIDEV_BARO must not be equal to SPIDEV_FLASH as they share the same bus
+#error PX4_SPIDEV_BARO must not be equal to SPIDEV_FLASH as they share the same bus
 #endif
 
 /* I2C busses */
