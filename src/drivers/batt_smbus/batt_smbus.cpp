@@ -451,6 +451,7 @@ BATT_SMBUS::cycle()
 			}
 		}
 
+        /*
 		// read the button press indicator
         if (read_block(BATT_SMBUS_MANUFACTURER_DATA, buff, 6, false) == 6) {
 			bool pressed = (buff[1] >> 3) & 0x01;
@@ -471,6 +472,7 @@ BATT_SMBUS::cycle()
 				new_report.is_powering_off = false;
 			}
 		}
+        */
 
 		// publish to orb
 		if (_batt_topic != -1) {
