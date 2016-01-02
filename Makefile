@@ -166,6 +166,12 @@ qurt_eagle_release:
 posix_eagle_release:
 	$(call cmake-build,$@)
 
+qurt_eagle_default:
+	$(call cmake-build,$@)
+
+posix_eagle_default:
+	$(call cmake-build,$@)
+
 posix: posix_sitl_default
 
 sitl_deprecation:
