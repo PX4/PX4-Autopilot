@@ -1,14 +1,14 @@
 include(qurt/px4_impl_qurt)
 
-if ("${HEXAGON_DRIVERS_ROOT}" STREQUAL "")
-	message(FATAL_ERROR "HEXAGON_DRIVERS_ROOT is not set")
-endif()
+#if ("${HEXAGON_DRIVERS_ROOT}" #STREQUAL "")
+#	message(FATAL_ERROR "HEXAGON_DRIVERS_ROOT is not set")
+#endif()
 
-if ("${EAGLE_DRIVERS_SRC}" STREQUAL "")
-	message(FATAL_ERROR "EAGLE_DRIVERS_SRC is not set")
-endif()
+#if ("${EAGLE_DRIVERS_SRC}" STREQUAL "")
+#	message(FATAL_ERROR "EAGLE_DRIVERS_SRC is not set")
+#endif()
 
-include_directories(${HEXAGON_DRIVERS_ROOT}/inc)
+#include_directories(${HEXAGON_DRIVERS_ROOT}/inc)
 
 # For Actual flight we need to link against the driver dynamic libraries
 set(target_libraries
