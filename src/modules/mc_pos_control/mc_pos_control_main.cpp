@@ -122,7 +122,7 @@ public:
 
 private:
     const float alt_ctl_dz = 0.05f;
-    const float alt_ctl_dy = 0.025f;
+    const float alt_ctl_dy = 0.05f;
 
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_control_task;			/**< task handle for task */
