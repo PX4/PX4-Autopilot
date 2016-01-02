@@ -228,11 +228,11 @@ CameraTrigger::control(bool on)
 
 	if (on) {
 		// schedule trigger on and off calls
-		hrt_call_every(&_engagecall, 500, (_interval * 1000),
+		hrt_call_every(&_engagecall, 0, (_interval * 1000),
 			       (hrt_callout)&CameraTrigger::engage, this);
 
 		// schedule trigger on and off calls
-		hrt_call_every(&_disengagecall, 500 + (_activation_time * 1000), (_interval * 1000),
+		hrt_call_every(&_disengagecall, 0 + (_activation_time * 1000), (_interval * 1000),
 			       (hrt_callout)&CameraTrigger::disengage, this);
 
 	} else {
@@ -240,7 +240,7 @@ CameraTrigger::control(bool on)
 		hrt_cancel(&_engagecall);
 		hrt_cancel(&_disengagecall);
 		// ensure that the pin is off
-		hrt_call_after(&_disengagecall, 500,
+		hrt_call_after(&_disengagecall, 0,
 			       (hrt_callout)&CameraTrigger::disengage, this);
 	}
 
