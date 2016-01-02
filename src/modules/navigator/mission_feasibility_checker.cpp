@@ -50,6 +50,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <uORB/topics/fence.h>
+#include <uORB/topics/vehicle_command.h>
 
 MissionFeasibilityChecker::MissionFeasibilityChecker() :
 	_mavlink_fd(-1),
@@ -199,7 +200,9 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			missionitem.nav_cmd != NAV_CMD_TAKEOFF &&
 			missionitem.nav_cmd != NAV_CMD_PATHPLANNING &&
 			missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
-			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO) {
+			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
+			missionitem.nav_cmd != vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL &&
+			missionitem.nav_cmd != vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
 
 			mavlink_log_critical(_mavlink_fd, "Rejecting mission item %i: unsupported action.", (int)(i+1));
 			return false;
