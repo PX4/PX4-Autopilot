@@ -146,6 +146,8 @@ private:
 	 */
 	static void	disengage(void *arg);
 
+	static void trigger(CameraTrigger *trig, bool trigger);
+
 };
 
 struct work_s CameraTrigger::_work;
@@ -314,6 +316,12 @@ CameraTrigger::cycle_trampoline(void *arg)
 				// need to poll at a very high rate
 				poll_interval_usec = 100000;
 			}
+		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
+			if (cmd.param5 > 0) {
+				// One-shot trigger, default 1 ms interval
+				trig->_interval = 1000;
+				trig->control(true);
+			}
 		}
 	}
 
@@ -327,21 +335,16 @@ CameraTrigger::engage(void *arg)
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	struct camera_trigger_s	trigger;
+	struct camera_trigger_s	report = {};
 
 	/* set timestamp the instant before the trigger goes off */
-	trigger.timestamp = hrt_absolute_time();
+	report.timestamp = hrt_absolute_time();
 
-	for (unsigned i = 0; i < sizeof(trig->_pins) / sizeof(trig->_pins[0]); i++) {
-		if (trig->_pins[i] >= 0) {
-			// ACTIVE_LOW == 0
-			stm32_gpiowrite(trig->_gpios[trig->_pins[i]], trig->_polarity);
-		}
-	}
+	CameraTrigger::trigger(trig, trig->_polarity);
 
-	trigger.seq = trig->_trigger_seq++;
+	report.seq = trig->_trigger_seq++;
 
-	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
+	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &report);
 }
 
 void
@@ -350,10 +353,16 @@ CameraTrigger::disengage(void *arg)
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
+	CameraTrigger::trigger(trig, !(trig->_polarity));
+}
+
+void
+CameraTrigger::trigger(CameraTrigger *trig, bool trigger)
+{
 	for (unsigned i = 0; i < sizeof(trig->_pins) / sizeof(trig->_pins[0]); i++) {
 		if (trig->_pins[i] >= 0) {
 			// ACTIVE_LOW == 1
-			stm32_gpiowrite(trig->_gpios[trig->_pins[i]], !(trig->_polarity));
+			stm32_gpiowrite(trig->_gpios[trig->_pins[i]], trigger);
 		}
 	}
 }
