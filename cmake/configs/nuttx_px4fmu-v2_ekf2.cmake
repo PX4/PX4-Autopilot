@@ -2,6 +2,8 @@ include(nuttx/px4_impl_nuttx)
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
+set(config_uavcan_num_ifaces 1)
+
 set(config_module_list
 	#
 	# Board support modules
@@ -12,16 +14,14 @@ set(config_module_list
 	drivers/stm32/tone_alarm
 	drivers/led
 	drivers/px4fmu
-	drivers/px4io
-	drivers/boards/px4fmu-v2
+	drivers/boards/px4fmu-v4
 	drivers/rgbled
 	drivers/mpu6000
 	drivers/mpu9250
-	drivers/lsm303d
-	drivers/l3gd20
 	drivers/hmc5883
 	drivers/ms5611
 	drivers/mb12xx
+	drivers/srf02
 	drivers/sf0x
 	drivers/ll40ls
 	drivers/trone
@@ -42,6 +42,7 @@ set(config_module_list
 	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger
+	drivers/bst
 
 	#
 	# System commands
@@ -53,12 +54,40 @@ set(config_module_list
 	systemcmds/pwm
 	systemcmds/esc_calib
 	systemcmds/reboot
+	systemcmds/topic_listener
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/tests
+
+	#
+	# General system control
+	#
+	modules/commander
+	modules/navigator
+	modules/mavlink
+	modules/gpio_led
+	modules/uavcan
+	modules/land_detector
+
+	#
+	# Estimation modules (EKF/ SO3 / other filters)
+	#
+	modules/position_estimator_inav
+	modules/ekf2
+
+	#
+	# Vehicle Control
+	#
+	# modules/segway # XXX Needs GCC 4.7 fix
+	modules/fw_pos_control_l1
+	modules/fw_att_control
+	modules/mc_att_control
+	modules/mc_pos_control
+	modules/vtol_att_control
 
 	#
 	# Logging
@@ -81,17 +110,31 @@ set(config_module_list
 	#lib/mathlib/CMSIS
 	lib/mathlib
 	lib/mathlib/math/filter
+	lib/rc
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
+	lib/terrain_estimation
+	lib/runway_takeoff
+	lib/tailsitter_recovery
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
-	platforms/common 
+	platforms/common
 	platforms/nuttx/px4_layer
+
+	#
+	# OBC challenge
+	#
+	modules/bottle_drop
+
+	#
+	# Rover apps
+	#
+	examples/rover_steering_control
 
 	#
 	# Demo apps
@@ -103,18 +146,18 @@ set(config_module_list
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
-	examples/px4_daemon_app
+	#examples/px4_daemon_app
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values
-	examples/px4_mavlink_debug
+	#examples/px4_mavlink_debug
 
 	# Tutorial code from
 	# https://px4.io/dev/example_fixedwing_control
-	examples/fixedwing_control
+	#examples/fixedwing_control
 
 	# Hardware test
-	examples/hwtest
+	#examples/hwtest
 )
 
 set(config_extra_builtin_cmds
@@ -122,16 +165,14 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
-set(config_io_board
-	px4io-v2
-	)
-
 set(config_extra_libs
 	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM4lf_math.a
+	uavcan
+	uavcan_stm32_driver
 	)
 
 set(config_io_extra_libs
-	${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM3l_math.a
+	#${CMAKE_SOURCE_DIR}/src/lib/mathlib/CMSIS/libarm_cortexM3l_math.a
 	)
 
 add_custom_target(sercon)

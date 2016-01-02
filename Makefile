@@ -136,8 +136,8 @@ px4fmu-v4_default:
 px4-stm32f4discovery_default:
 	$(call cmake-build,nuttx_px4-stm32f4discovery_default)
 
-px4fmu-v2_simple:
-	$(call cmake-build,nuttx_px4fmu-v2_simple)
+px4fmu-v2_ekf2:
+	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
