@@ -142,9 +142,6 @@ px4fmu-v2_simple:
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
 
-nuttx_sim_simple:
-	$(call cmake-build,$@)
-
 posix_sitl_default:
 	$(call cmake-build,$@)
 
