@@ -51,6 +51,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include "navigator.h"
 #include "mission_block.h"
@@ -66,7 +67,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
 	_actuators{},
-	_actuator_pub(nullptr)
+	_actuator_pub(nullptr),
+	_cmd_pub(nullptr)
 {
 }
 
@@ -77,27 +79,48 @@ MissionBlock::~MissionBlock()
 bool
 MissionBlock::is_mission_item_reached()
 {
-	if (_mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
-		actuator_pub_fd = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
-		memset(&actuators, 0, sizeof(actuators));
-		actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
-		actuators.timestamp = hrt_absolute_time();
-		orb_publish(ORB_ID(actuator_controls_2), actuator_pub_fd, &actuators);
-		return true;
-	}
+	/* handle non-navigation or indefinite waypoints */
+	switch (_mission_item.nav_cmd) {
+		case NAV_CMD_DO_SET_SERVO: {
+			memset(&actuators, 0, sizeof(actuators));
+			actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
+			actuators.timestamp = hrt_absolute_time();
+			if (_actuator_pub != nullptr) {
+				orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
+			} else {
+				_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
+			}
+			return true;
+			}
 
-	if (_mission_item.nav_cmd == NAV_CMD_IDLE) {
-		return false;
-	}
+		case NAV_CMD_LAND:
+			return _navigator->get_vstatus()->condition_landed;
 
-	if (_mission_item.nav_cmd == NAV_CMD_LAND) {
-		return _navigator->get_vstatus()->condition_landed;
-	}
+		/* TODO: count turns */
+		/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
+		case NAV_CMD_IDLE: /* fall through */
+		case NAV_CMD_LOITER_UNLIMITED:
+			return false;
 
-	/* TODO: count turns */
-	if (/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
-		return false;
+		case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL: /* fallthrough */
+		case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
+			{
+			/* forward the command to other processes */
+			warnx("got instantaneous command, forwarding.\n");
+			struct vehicle_command_s cmd = {};
+			cmd.command = _mission_item.nav_cmd;
+			mission_item_to_vehicle_command(&_mission_item, &cmd);
+			if (_cmd_pub != nullptr) {
+				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+			} else {
+				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+			}
+			return true;
+			}
+
+		default:
+			/* do nothing, this is a 3D waypoint */
+			break;
 	}
 
 	hrt_abstime now = hrt_absolute_time();
@@ -208,6 +231,26 @@ MissionBlock::reset_mission_item_reached()
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
 	_time_first_inside_orbit = 0;
+}
+
+void
+MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item, struct vehicle_command_s *cmd)
+{
+	// Assignment based on MAVLink spec for param enumeration:
+	// http://mavlink.org/messages/common#MAV_CMD_NAV_WAYPOINT
+	cmd->param1 = item->time_inside;
+	cmd->param2 = item->acceptance_radius;
+	cmd->param3 = item->loiter_radius;
+	cmd->param4 = item->yaw;
+	cmd->param5 = item->lat;
+	cmd->param6 = item->lon;
+	cmd->param7 = item->altitude;
+
+	cmd->target_system = _navigator->get_vstatus()->system_id;
+	cmd->target_component = _navigator->get_vstatus()->component_id;
+	cmd->source_system = _navigator->get_vstatus()->system_id;
+	cmd->source_component = _navigator->get_vstatus()->component_id;
+	cmd->confirmation = false;
 }
 
 void
