@@ -316,6 +316,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 				// need to poll at a very high rate
 				poll_interval_usec = 100000;
 			}
+
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
 			if (cmd.param5 > 0) {
 				// One-shot trigger, default 1 ms interval
