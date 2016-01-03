@@ -133,7 +133,7 @@ bool Ekf::initialiseFilter(void)
 	_state.mag_B.setZero();
 	_state.wind_vel.setZero();
 
-	// get initial attitude estimate from accel vector, assuming vehicle is static
+    // get initial roll and pitch estimate from accel vector, assuming vehicle is static
 	Vector3f accel_init = _imu_down_sampled.delta_vel / _imu_down_sampled.delta_vel_dt;
 
 	float pitch = 0.0f;
@@ -146,22 +146,30 @@ bool Ekf::initialiseFilter(void)
 		roll = -asinf(accel_init(1) / cosf(pitch));
 	}
 
-	magSample mag_init = _mag_buffer.get_newest();
+    matrix::Euler<float> euler_init(roll, pitch, 0.0f);
+
+    // Get the latest magnetic field measurement.
+    // If we don't have a measurement then we cannot initialise the filter
+    magSample mag_init = _mag_buffer.get_newest();
 	if (mag_init.time_us == 0) {
 		return false;
 	}
 
-	float yaw_init = atan2f(mag_init.mag(1), mag_init.mag(0));
+    // rotate magnetic field into earth frame assuming zero yaw and estimate yaw angle assuming zero declination
+    // TODO use declination if available
+    matrix::Dcm<float> R_to_earth_zeroyaw(euler_init);
+    Vector3f mag_ef_zeroyaw = R_to_earth_zeroyaw * mag_init.mag;
+    float declination = 0.0f;
+    euler_init(2) = declination - atan2f(mag_ef_zeroyaw(1), mag_ef_zeroyaw(0));
 
-	matrix::Euler<float> euler_init(roll, pitch, yaw_init);
-	_state.quat_nominal = Quaternion(euler_init);
+    // calculate initial quaternion states
+    _state.quat_nominal = Quaternion(euler_init);
 
+    // calculate initial earth magnetic field states
+    matrix::Dcm<float> R_to_earth(euler_init);
+    _state.mag_I = R_to_earth * mag_init.mag;
 
-	matrix::Dcm<float> R_to_earth(euler_init);
-	_state.mag_I = R_to_earth * mag_init.mag;
-
-
-	resetVelocity();
+    resetVelocity();
 	resetPosition();
 
 	initialiseCovariance();
