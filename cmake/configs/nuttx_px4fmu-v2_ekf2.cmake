@@ -14,29 +14,32 @@ set(config_module_list
 	drivers/stm32/tone_alarm
 	drivers/led
 	drivers/px4fmu
-	drivers/boards/px4fmu-v4
+	drivers/px4io
+	drivers/boards/px4fmu-v2
 	drivers/rgbled
 	drivers/mpu6000
 	drivers/mpu9250
+	drivers/lsm303d
+	drivers/l3gd20
 	drivers/hmc5883
 	drivers/ms5611
-	drivers/mb12xx
+	#drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
-	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
+	#drivers/hott
+	#drivers/hott/hott_telemetry
+	#drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
-	drivers/mkblctrl
+	#drivers/mkblctrl
 	drivers/px4flow
 	drivers/oreoled
 	drivers/gimbal
@@ -54,14 +57,13 @@ set(config_module_list
 	systemcmds/pwm
 	systemcmds/esc_calib
 	systemcmds/reboot
-	systemcmds/topic_listener
+	#systemcmds/topic_listener
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
-	systemcmds/tests
 
 	#
 	# General system control
@@ -76,7 +78,7 @@ set(config_module_list
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
-	modules/position_estimator_inav
+	# Too high RAM usage due to static allocations
 	modules/ekf2
 
 	#
@@ -110,7 +112,6 @@ set(config_module_list
 	#lib/mathlib/CMSIS
 	lib/mathlib
 	lib/mathlib/math/filter
-	lib/rc
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
@@ -123,13 +124,13 @@ set(config_module_list
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
+	platforms/common 
 	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge
 	#
-	modules/bottle_drop
+	#modules/bottle_drop
 
 	#
 	# Rover apps
@@ -142,7 +143,7 @@ set(config_module_list
 	#examples/math_demo
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
-	examples/px4_simple_app
+	#examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
