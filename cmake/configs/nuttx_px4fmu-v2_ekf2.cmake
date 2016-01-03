@@ -2,7 +2,7 @@ include(nuttx/px4_impl_nuttx)
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
-set(config_uavcan_num_ifaces 1)
+set(config_uavcan_num_ifaces 2)
 
 set(config_module_list
 	#
@@ -79,7 +79,10 @@ set(config_module_list
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
 	# Too high RAM usage due to static allocations
+	# modules/attitude_estimator_ekf
+	modules/attitude_estimator_q
 	modules/ekf2
+	modules/position_estimator_inav
 
 	#
 	# Vehicle Control
@@ -164,6 +167,10 @@ set(config_module_list
 set(config_extra_builtin_cmds
 	serdis
 	sercon
+	)
+
+set(config_io_board
+	px4io-v2
 	)
 
 set(config_extra_libs
