@@ -102,8 +102,7 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_LOITER_UNLIMITED:
 			return false;
 
-		case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL: /* fallthrough */
-		case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
+        case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL:
 			{
 			/* forward the command to other processes */
 			warnx("got instantaneous command, forwarding.\n");
@@ -115,8 +114,11 @@ MissionBlock::is_mission_item_reached()
 			} else {
 				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
 			}
-			return true;
+            return true;
 			}
+
+        case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
+            return !_navigator->get_vtol_status()->vtol_in_trans_mode;
 
 		default:
 			/* do nothing, this is a 3D waypoint */
@@ -403,6 +405,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
 }
+
 
 void
 MissionBlock::set_idle_item(struct mission_item_s *item)

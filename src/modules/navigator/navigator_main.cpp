@@ -72,6 +72,7 @@
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <drivers/drv_baro.h>
 
 #include <systemlib/err.h>
@@ -108,7 +109,8 @@ Navigator::Navigator() :
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_capabilities_sub(-1),
-	_control_mode_sub(-1),
+    _vtol_vehicle_status_sub(-1),
+    _control_mode_sub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
 	_param_update_sub(-1),
@@ -126,7 +128,8 @@ Navigator::Navigator() :
 	_mission_item{},
 	_nav_caps{},
 	_pos_sp_triplet{},
-	_mission_result{},
+    _vtol_vehicle_status{},
+    _mission_result{},
 	_att_sp{},
 	_mission_item_valid(false),
 	_mission_instance_count(0),
@@ -143,6 +146,7 @@ Navigator::Navigator() :
 	_loiter(this, "LOI"),
 	_takeoff(this, "TKF"),
 	_land(this, "LND"),
+    _transition(this, "TRN"),
 	_rtl(this, "RTL"),
 	_rcLoss(this, "RCL"),
 	_dataLinkLoss(this, "DLL"),
@@ -163,6 +167,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[6] = &_rcLoss;
 	_navigation_mode_array[7] = &_takeoff;
 	_navigation_mode_array[8] = &_land;
+    _navigation_mode_array[9] = &_transition;
 
 	updateParams();
 }
@@ -228,6 +233,13 @@ Navigator::navigation_capabilities_update()
 }
 
 void
+Navigator::vtol_vehicle_status_update()
+{
+    orb_copy(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_sub, &_vtol_vehicle_status);
+}
+
+
+void
 Navigator::vehicle_status_update()
 {
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
@@ -239,7 +251,7 @@ Navigator::vehicle_status_update()
 void
 Navigator::vehicle_control_mode_update()
 {
-	if (orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode) != OK) {
+    if (orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode) != OK) {
 		/* in case the commander is not be running */
 		_control_mode.flag_control_auto_enabled = false;
 		_control_mode.flag_armed = false;
@@ -287,8 +299,9 @@ Navigator::task_main()
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
+    _vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+    _control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
@@ -386,6 +399,13 @@ Navigator::task_main()
 		if (updated) {
 			navigation_capabilities_update();
 		}
+
+        /* navigation capabilities updated */
+        orb_check(_vtol_vehicle_status_sub, &updated);
+        if (updated) {
+            vtol_vehicle_status_update();
+        }
+
 
 		/* home position updated */
 		orb_check(_home_pos_sub, &updated);

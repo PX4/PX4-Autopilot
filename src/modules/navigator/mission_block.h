@@ -50,6 +50,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/actuator_controls.h>
 
+
 #include "navigator_mode.h"
 
 class Navigator;

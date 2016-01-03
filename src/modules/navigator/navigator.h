@@ -57,12 +57,14 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 #include "navigator_mode.h"
 #include "mission.h"
 #include "loiter.h"
 #include "takeoff.h"
 #include "land.h"
+#include "transition.h"
 #include "rtl.h"
 #include "datalinkloss.h"
 #include "enginefailure.h"
@@ -73,7 +75,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 9
+#define NAVIGATOR_MODE_ARRAY_SIZE 10
 
 class Navigator : public control::SuperBlock
 {
@@ -132,7 +134,8 @@ public:
 	 * Getters
 	 */
 	struct vehicle_status_s*	    get_vstatus() { return &_vstatus; }
-	struct vehicle_control_mode_s*	    get_control_mode() { return &_control_mode; }
+    struct vtol_vehicle_status_s*	    get_vtol_status() { return &_vtol_vehicle_status; }
+    struct vehicle_control_mode_s*	    get_control_mode() { return &_control_mode; }
 	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
 	struct vehicle_gps_position_s*	    get_gps_position() { return &_gps_pos; }
 	struct sensor_combined_s*	    get_sensor_combined() { return &_sensor_combined; }
@@ -181,11 +184,13 @@ private:
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
-	int		_control_mode_sub;		/**< vehicle control mode subscription */
+    int     _vtol_vehicle_status_sub;    /**< notification of vtol status updates */
+    int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_onboard_mission_sub;		/**< onboard mission subscription */
 	int		_offboard_mission_sub;		/**< offboard mission subscription */
 	int		_param_update_sub;		/**< param update subscription */
 	int		_vehicle_command_sub;		/**< vehicle commands (onboard and offboard) */
+
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
 	orb_advert_t	_mission_result_pub;
@@ -202,7 +207,8 @@ private:
 	home_position_s					_home_pos;		/**< home position for RTL */
 	mission_item_s 					_mission_item;		/**< current mission item */
 	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
-	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
+    position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
+    vtol_vehicle_status_s			_vtol_vehicle_status;		/**< vtol status */
 
 	mission_result_s				_mission_result;
 	geofence_result_s				_geofence_result;
@@ -228,7 +234,8 @@ private:
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
 	Land		_land;			/**< class for handling land commands */
-	RTL 		_rtl;				/**< class that handles RTL */
+    Transition	_transition;		/**< class that handles vtol transitions */
+    RTL 		_rtl;				/**< class that handles RTL */
 	RCLoss 		_rcLoss;				/**< class that handles RTL according to
 							  OBC rules (rc loss mode) */
 	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */
@@ -267,7 +274,13 @@ private:
 	 */
 	void		navigation_capabilities_update();
 
-	/**
+    /**
+     * Retreive vtol values
+     */
+    void		vtol_vehicle_status_update();
+
+
+    /**
 	 * Retrieve vehicle status
 	 */
 	void		vehicle_status_update();
