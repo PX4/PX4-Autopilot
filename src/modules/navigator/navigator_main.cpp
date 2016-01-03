@@ -299,9 +299,9 @@ Navigator::task_main()
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
-    _vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
+	_vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
-    _control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));

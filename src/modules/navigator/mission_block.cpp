@@ -102,7 +102,7 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_LOITER_UNLIMITED:
 			return false;
 
-        case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL:
+		case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL:
 			{
 			/* forward the command to other processes */
 			warnx("got instantaneous command, forwarding.\n");
@@ -114,7 +114,7 @@ MissionBlock::is_mission_item_reached()
 			} else {
 				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
 			}
-            return true;
+			return true;
 			}
 
         case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
