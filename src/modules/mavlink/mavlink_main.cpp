@@ -661,8 +661,47 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		return -EINVAL;
 	}
 
+	/* back off 1800 ms to avoid running into the USB setup timing */
+	while (_mode == MAVLINK_MODE_CONFIG &&
+		hrt_absolute_time() < 1800U * 1000U) {
+		usleep(50000);
+	}
+
 	/* open uart */
 	_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
+
+	/* if this is a config link, stay here and wait for it to open */
+	if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
+
+		int armed_fd = orb_subscribe(ORB_ID(actuator_armed));
+		struct actuator_armed_s armed;
+
+		/* get the system arming state and abort on arming */
+		while (_uart_fd < 0) {
+
+			/* abort if an arming topic is published and system is armed */
+			bool updated = false;
+			orb_check(armed_fd, &updated);
+
+			if (updated) {
+				/* the system is now providing arming status feedback.
+				 * instead of timing out, we resort to abort bringing
+				 * up the terminal.
+				 */
+				orb_copy(ORB_ID(actuator_armed), armed_fd, &armed);
+
+				if (armed.armed) {
+					/* this is not an error, but we are done */
+					return -1;
+				}
+			}
+
+			usleep(100000);
+			_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
+		};
+
+		close(armed_fd);
+	}
 
 	if (_uart_fd < 0) {
 		return _uart_fd;
@@ -1595,9 +1634,12 @@ Mavlink::task_main(int argc, char *argv[])
 	/* default values for arguments */
 	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original);
 
-	if (_uart_fd < 0) {
+	if (_uart_fd < 0 && _mode != MAVLINK_MODE_CONFIG) {
 		warn("could not open %s", _device_name);
 		return ERROR;
+	} else if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
+		/* the config link is optional */
+		return OK;
 	}
 
 #endif

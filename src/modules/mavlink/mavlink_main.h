@@ -342,6 +342,8 @@ public:
 #endif
 	static bool		boot_complete() { return _boot_complete; }
 
+	bool			is_usb_uart() { return _is_usb_uart; }
+
 protected:
 	Mavlink			*next;
 
