@@ -55,7 +55,7 @@ __BEGIN_DECLS
 /*
  * time to slowly ramp up the ESCs
  */
-#define RAMP_TIME_US 2500000
+#define RAMP_TIME_US 250000
 
 enum pwm_limit_state {
 	PWM_LIMIT_STATE_OFF = 0,

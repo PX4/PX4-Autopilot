@@ -138,7 +138,7 @@ private:
 	int		_dsm_fd;
 
 	volatile bool	_initialized;
-	bool		_servo_armed;
+    bool		_throttle_armed;
 	bool		_pwm_on;
 
 	MixerGroup	*_mixers;
@@ -283,7 +283,7 @@ PX4FMU::PX4FMU() :
 	_sbus_fd(-1),
 	_dsm_fd(-1),
 	_initialized(false),
-	_servo_armed(false),
+    _throttle_armed(false),
 	_pwm_on(false),
 	_mixers(nullptr),
 	_groups_required(0),
@@ -769,7 +769,7 @@ PX4FMU::cycle()
 			uint16_t pwm_limited[_max_actuators];
 
 			/* the PWM limit call takes care of out of band errors, NaN and constrains */
-			pwm_limit_calc(_servo_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm,
+            pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm,
 				       outputs, pwm_limited, &_pwm_limit);
 
 			/* output to the servos */
@@ -789,14 +789,10 @@ PX4FMU::cycle()
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
 		/* update the armed status and check that we're not locked down */
-		bool set_armed = (_armed.armed || _armed.prearmed) && !_armed.lockdown;
-
-		if (_servo_armed != set_armed) {
-			_servo_armed = set_armed;
-		}
+        _throttle_armed = _armed.armed && !_armed.lockdown;
 
 		/* update PWM status if armed or if disarmed PWM values are set */
-		bool pwm_on = (set_armed || _num_disarmed_set > 0);
+        bool pwm_on = (_armed.armed || _num_disarmed_set > 0);
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
