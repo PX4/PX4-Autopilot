@@ -129,7 +129,7 @@ void Tailsitter::update_vtol_state()
 	 * For the backtransition the pitch is controlled in MC mode again and switches to full MC control reaching the sufficient pitch angle.
 	*/
 
-	if (_manual_control_sp->aux1 < 0.0f) {
+	if (!_attc->is_fixed_wing_requested()) {
 
 
 		switch (_vtol_schedule.flight_mode) { // user switchig to MC mode
