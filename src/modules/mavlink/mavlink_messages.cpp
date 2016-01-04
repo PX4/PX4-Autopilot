@@ -2170,6 +2170,22 @@ protected:
 			msg.rssi = rc.rssi;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS, &msg);
+
+			/* send override message - harmless if connected to GCS, allows to connect a board to a Linux system */
+			/* http://mavlink.org/messages/common#RC_CHANNELS_OVERRIDE */
+			mavlink_rc_channels_override_t over;
+			over.target_system = mavlink_system.sysid;
+			over.target_component = 0;
+			over.chan1_raw = msg.chan1_raw;
+			over.chan2_raw = msg.chan2_raw;
+			over.chan3_raw = msg.chan3_raw;
+			over.chan4_raw = msg.chan4_raw;
+			over.chan5_raw = msg.chan5_raw;
+			over.chan6_raw = msg.chan6_raw;
+			over.chan7_raw = msg.chan7_raw;
+			over.chan8_raw = msg.chan8_raw;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE, &over);
 		}
 	}
 };
