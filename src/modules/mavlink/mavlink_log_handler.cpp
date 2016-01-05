@@ -40,6 +40,7 @@
 #include <time.h>
 
 #define MOUNTPOINT PX4_ROOTFSDIR "/fs/microsd"
+ 
 static const char *kLogRoot    = MOUNTPOINT "/log";
 static const char *kLogData    = MOUNTPOINT "/logdata.txt";
 static const char *kTmpData    = MOUNTPOINT "/$log$.txt";
@@ -52,7 +53,7 @@ static const char *kTmpData    = MOUNTPOINT "/$log$.txt";
     #define PX4LOG_DIRECTORY 	DT_DIR
 #endif
 
-// #define MAVLINK_LOG_HANDLER_VERBOSE
+//#define MAVLINK_LOG_HANDLER_VERBOSE
 
 #ifdef MAVLINK_LOG_HANDLER_VERBOSE
 #define PX4LOG_WARN(fmt, ...) warnx(fmt, ##__VA_ARGS__)
@@ -158,20 +159,31 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 {
 	mavlink_log_request_list_t request;
 	mavlink_msg_log_request_list_decode(msg, &request);
-	//-- Clear any existing request
-	if(_pLogHandlerHelper)
-		delete _pLogHandlerHelper;
-	//-- Prepare new request
-	_pLogHandlerHelper = new LogListHelper;
+	//-- Check for re-requests (data loss) or new request
+	if(_pLogHandlerHelper) {
+		_pLogHandlerHelper->current_status = LogListHelper::LOG_HANDLER_IDLE;
+		//-- Is this a new request?
+		if((request.end - request.start) > _pLogHandlerHelper->log_count) {
+			delete _pLogHandlerHelper;
+			_pLogHandlerHelper = NULL;
+		}
+	}
+	if(!_pLogHandlerHelper) {
+		//-- Prepare new request
+		_pLogHandlerHelper = new LogListHelper;
+	}
         if (_pLogHandlerHelper->log_count)
         {
         	//-- Define (and clamp) range
 		_pLogHandlerHelper->next_entry = request.start < _pLogHandlerHelper->log_count ? request.start : _pLogHandlerHelper->log_count - 1;
 		_pLogHandlerHelper->last_entry = request.end   < _pLogHandlerHelper->log_count ? request.end   : _pLogHandlerHelper->log_count - 1;
         }
-        //-- Send first response (the rest, if any, is sent by the stream system)
-        if(_mavlink->get_free_tx_buf() > get_size())
-        	_log_send_listing();
+	PX4LOG_WARN("\nMavlinkLogHandler::_log_request_list: start: %u last: %u count: %u\n",
+		_pLogHandlerHelper->next_entry,
+		_pLogHandlerHelper->last_entry,
+		_pLogHandlerHelper->log_count);
+	//-- Enable streaming
+	_pLogHandlerHelper->current_status = LogListHelper::LOG_HANDLER_LISTING;
 }
 
 //-------------------------------------------------------------------
@@ -206,15 +218,13 @@ MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
         if (_pLogHandlerHelper->current_log_data_remaining > request.count) {
 		_pLogHandlerHelper->current_log_data_remaining = request.count;
         }
+	//-- Enable streaming
         _pLogHandlerHelper->current_status = LogListHelper::LOG_HANDLER_SENDING_DATA;
-        //-- Send first chunck. Rest is sent by stream system.
-        if(_mavlink->get_free_tx_buf() > get_size())
-        	_log_send_data();
 }
 
 //-------------------------------------------------------------------
 void
-MavlinkLogHandler::_log_request_erase(const mavlink_message_t *msg)
+MavlinkLogHandler::_log_request_erase(const mavlink_message_t* /*msg*/)
 {
 	/*
 	mavlink_log_erase_t request;
@@ -229,8 +239,9 @@ MavlinkLogHandler::_log_request_erase(const mavlink_message_t *msg)
 
 //-------------------------------------------------------------------
 void
-MavlinkLogHandler::_log_request_end(const mavlink_message_t *msg)
+MavlinkLogHandler::_log_request_end(const mavlink_message_t* /*msg*/)
 {
+	PX4LOG_WARN("MavlinkLogHandler::_log_request_end\n");
 	if (_pLogHandlerHelper) {
 		delete _pLogHandlerHelper;
 		_pLogHandlerHelper = 0;
@@ -253,6 +264,13 @@ MavlinkLogHandler::_log_send_listing()
         } else {
 		_pLogHandlerHelper->next_entry++;
         }
+	PX4LOG_WARN("MavlinkLogHandler::_log_send_listing id: %u count: %u last: %u size: %u date: %u status: %d\n",
+		response.id,
+		response.num_logs,
+		response.last_log_num,
+		response.size,
+		response.time_utc,
+		_pLogHandlerHelper->current_status);
 }
 
 //-------------------------------------------------------------------
@@ -284,7 +302,7 @@ LogListHelper::LogListHelper()
 	: next_entry(0)
 	, last_entry(0)
 	, log_count(0)
-	, current_status(LOG_HANDLER_LISTING)
+	, current_status(LOG_HANDLER_IDLE)
 	, current_log_index(0)
 	, current_log_size(0)
 	, current_log_data_offset(0)
