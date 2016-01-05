@@ -506,6 +506,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
     if (!waitMsrINakBitStateChange(true))
     {
         UAVCAN_STM32_LOG("MSR INAK not set");
+        can_->MCR = bxcan::MCR_RESET;
         return -ErrMsrInakNotSet;
     }
 
@@ -527,6 +528,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
     const int timings_res = computeTimings(bitrate, timings);
     if (timings_res < 0)
     {
+        can_->MCR = bxcan::MCR_RESET;
         return timings_res;
     }
     UAVCAN_STM32_LOG("Timings: presc=%u sjw=%u bs1=%u bs2=%u",
@@ -549,11 +551,12 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
                 bxcan::IER_ERRIE |   // General error IRQ
                 bxcan::IER_LECIE;    // Last error code change
 
-    can_->MCR &= ~bxcan::MCR_INRQ;  // Leave init mode
+    can_->MCR &= ~bxcan::MCR_INRQ;   // Leave init mode
 
     if (!waitMsrINakBitStateChange(false))
     {
         UAVCAN_STM32_LOG("MSR INAK not cleared");
+        can_->MCR = bxcan::MCR_RESET;
         return -ErrMsrInakNotCleared;
     }
 
@@ -971,26 +974,28 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
      * CAN1
      */
     UAVCAN_STM32_LOG("Initing iface 0...");
-    res = if0_.init(bitrate, mode);
-    if (res < 0)
+    ifaces[0] = &if0_;                          // This link must be initialized first,
+    res = if0_.init(bitrate, mode);             // otherwise an IRQ may fire while the interface is not linked yet;
+    if (res < 0)                                // a typical race condition.
     {
         UAVCAN_STM32_LOG("Iface 0 init failed %i", res);
+        ifaces[0] = NULL;
         goto fail;
     }
-    ifaces[0] = &if0_;
 
     /*
      * CAN2
      */
 #if UAVCAN_STM32_NUM_IFACES > 1
     UAVCAN_STM32_LOG("Initing iface 1...");
+    ifaces[1] = &if1_;                          // Same thing here.
     res = if1_.init(bitrate, mode);
     if (res < 0)
     {
         UAVCAN_STM32_LOG("Iface 1 init failed %i", res);
+        ifaces[1] = NULL;
         goto fail;
     }
-    ifaces[1] = &if1_;
 #endif
 
     UAVCAN_STM32_LOG("CAN drv init OK");
