@@ -124,7 +124,20 @@ extern "C" {
 				ret = dev->open(filemap[i]);
 
 			} else {
-				PX4_WARN("exceeded maximum number of file descriptors!");
+
+				const unsigned NAMELEN = 32;
+				char thread_name[NAMELEN] = {};
+
+#ifndef __PX4_QURT
+				int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+
+				if (nret || thread_name[0] == 0) {
+					PX4_WARN("failed getting thread name");
+				}
+
+#endif
+
+				PX4_WARN("%s: exceeded maximum number of file descriptors!", thread_name);
 				ret = -ENOENT;
 			}
 
