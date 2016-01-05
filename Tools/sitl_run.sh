@@ -92,6 +92,9 @@ touch rootfs/eeprom/parameters
 set +e
 
 # Start Java simulator
+if [ ! -f ../../../../${rc_script}_${program}_${model} ]; then
+    model="iris"
+fi
 if [ "$debugger" == "lldb" ]
 then
 	lldb -- mainapp ../../../../${rc_script}_${program}_${model}
