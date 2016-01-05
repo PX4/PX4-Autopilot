@@ -120,6 +120,7 @@ protected:
 	mission_item_s _mission_item;
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;
+    bool _transition_started;
 	hrt_abstime _time_first_inside_orbit;
 
 	actuator_controls_s _actuators;

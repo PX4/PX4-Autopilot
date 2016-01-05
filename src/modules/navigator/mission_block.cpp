@@ -65,6 +65,7 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_mission_item({0}),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
+    _transition_started(false),
 	_time_first_inside_orbit(0),
 	_actuators{},
 	_actuator_pub(nullptr),
@@ -118,7 +119,31 @@ MissionBlock::is_mission_item_reached()
 			}
 
         case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
-            return !_navigator->get_vtol_status()->vtol_in_trans_mode;
+            {
+            if(_navigator->get_vtol_status()->vtol_in_trans_mode){
+                _transition_started = true;
+                return false;
+            } else {
+                if(_transition_started){
+                    PX4_INFO("VTOL transition finished");
+                    _transition_started = false;
+                    return true;
+                } else {
+                    PX4_INFO("VTOL transition requested");
+                    /* forward the command to other processes */
+                    struct vehicle_command_s cmd = {};
+                    cmd.command = _mission_item.nav_cmd;
+                    mission_item_to_vehicle_command(&_mission_item, &cmd);
+                    if (_cmd_pub != nullptr) {
+                        orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+                    } else {
+                        _cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+                    }
+
+                    return false;
+                }
+            }
+            }
 
 		default:
 			/* do nothing, this is a 3D waypoint */
