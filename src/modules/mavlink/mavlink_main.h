@@ -340,8 +340,14 @@ public:
 	int 			get_socket_fd () { return _socket_fd; };
 #ifdef __PX4_POSIX
 	struct sockaddr_in * get_client_source_address() {return &_src_addr;};
+
+	void			set_client_source_initialized() { _src_addr_initialized = true; };
+
+	bool			get_client_source_initialized() { return _src_addr_initialized; };
 #endif
 	static bool		boot_complete() { return _boot_complete; }
+
+	bool			is_usb_uart() { return _is_usb_uart; }
 
 protected:
 	Mavlink			*next;
@@ -423,6 +429,7 @@ private:
 	struct sockaddr_in _myaddr;
 	struct sockaddr_in _src_addr;
 	struct sockaddr_in _bcast_addr;
+	bool _src_addr_initialized;
 
 #endif
 	int _socket_fd;

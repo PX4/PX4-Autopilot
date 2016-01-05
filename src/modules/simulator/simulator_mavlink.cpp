@@ -248,6 +248,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
 
 			perf_set(_perf_sim_delay, timestamp - sim_timestamp);
+			perf_count(_perf_sim_interval);
 
 			if (publish) {
 				publish_sensor_topics(&imu);
@@ -426,6 +427,13 @@ void Simulator::initializeSensorData()
 
 void Simulator::pollForMAVLinkMessages(bool publish)
 {
+	// set the threads name
+#ifdef __PX4_DARWIN
+	pthread_setname_np("sim_rcv");
+#else
+	pthread_setname_np(pthread_self(), "sim_rcv");
+#endif
+
 	// udp socket data
 	struct sockaddr_in _myaddr;
 	const int _port = UDP_PORT;
@@ -504,14 +512,13 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		pret = ::poll(&fds[0], fd_count, 100);
 	}
 
-	PX4_INFO("Found initial message, pret = %d", pret);
 	_initialized = true;
 	// reset system time
 	(void)hrt_reset();
 
 	if (fds[0].revents & POLLIN) {
 		len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-		PX4_INFO("Sending initial controls message to jMAVSim.");
+		PX4_INFO("Sending initial controls message to simulator");
 		send_controls();
 	}
 
@@ -522,14 +529,6 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
 	pthread_attr_destroy(&sender_thread_attr);
-
-
-	// set the threads name
-#ifdef __PX4_DARWIN
-	pthread_setname_np("sim_rcv");
-#else
-	pthread_setname_np(pthread_self(), "sim_rcv");
-#endif
 
 	// wait for new mavlink messages to arrive
 	while (true) {

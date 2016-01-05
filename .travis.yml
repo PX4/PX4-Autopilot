@@ -110,6 +110,7 @@ script:
   - ../Tools/uavcan_copy.sh
   - cd ..
   - echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
+  - echo 'Building NuttX px4-stm32f4discovery Firmware..' && make px4-stm32f4discovery_default
   - echo 'Running Tests..' && make px4fmu-v2_default test
 
 after_success:
@@ -117,8 +118,9 @@ after_success:
          cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
       && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
       && cp build_px4fmu-v4_default/src/firmware/nuttx/nuttx-px4fmu-v4-default.px4 px4fmu-v4_default.px4
-      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4
-      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+      && cp build_px4-stm32f4discovery_default/src/firmware/nuttx/nuttx-px4-stm32f4discovery-default.px4 px4-stm32f4discovery-default.px4
+      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4
+      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
       && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put CI-Tools/index.html index.html

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,67 +30,26 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file tiltrotor_params.c
- * Parameters for vtol attitude controller.
+ * @file commands_default.c
+ * Commands to run for the "qurt_eagle_default" config
  *
- * @author Roman Bapst <roman@px4.io>
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#include <systemlib/param/param.h>
+const char *get_commands()
+{
 
-/**
- * Position of tilt servo in mc mode
- *
- * Position of tilt servo in mc mode
- *
- * @min 0.0
- * @max 1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_TILT_MC, 0.0f);
+	static const char *commands =
+		"uorb start\n"
+		"param set CAL_GYRO0_ID 2293760\n"
+		"param set CAL_ACC0_ID 1310720\n"
+		"param set CAL_ACC1_ID 1376256\n"
+		"param set CAL_MAG0_ID 196608\n"
+		"commander start\n"
 
-/**
- * Position of tilt servo in transition mode
- *
- * Position of tilt servo in transition mode
- *
- * @min 0.0
- * @max 1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_TILT_TRANS, 0.3f);
+		;
 
-/**
- * Position of tilt servo in fw mode
- *
- * Position of tilt servo in fw mode
- *
- * @min 0.0
- * @max 1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
+	return commands;
 
-/**
- * Duration of front transition phase 2
- *
- * Time in seconds it should take for the rotors to rotate forward completely from the point
- * when the plane has picked up enough airspeed and is ready to go into fixed wind mode.
- *
- * @min 0.1
- * @max 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
-
-/**
- * The channel number of motors that must be turned off in fixed wing mode.
- *
- *
- * @min 0
- * @max 12345678
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);
+}

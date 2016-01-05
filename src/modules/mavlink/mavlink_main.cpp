@@ -662,8 +662,47 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		return -EINVAL;
 	}
 
+	/* back off 1800 ms to avoid running into the USB setup timing */
+	while (_mode == MAVLINK_MODE_CONFIG &&
+		hrt_absolute_time() < 1800U * 1000U) {
+		usleep(50000);
+	}
+
 	/* open uart */
 	_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
+
+	/* if this is a config link, stay here and wait for it to open */
+	if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
+
+		int armed_fd = orb_subscribe(ORB_ID(actuator_armed));
+		struct actuator_armed_s armed;
+
+		/* get the system arming state and abort on arming */
+		while (_uart_fd < 0) {
+
+			/* abort if an arming topic is published and system is armed */
+			bool updated = false;
+			orb_check(armed_fd, &updated);
+
+			if (updated) {
+				/* the system is now providing arming status feedback.
+				 * instead of timing out, we resort to abort bringing
+				 * up the terminal.
+				 */
+				orb_copy(ORB_ID(actuator_armed), armed_fd, &armed);
+
+				if (armed.armed) {
+					/* this is not an error, but we are done */
+					return -1;
+				}
+			}
+
+			usleep(100000);
+			_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
+		};
+
+		close(armed_fd);
+	}
 
 	if (_uart_fd < 0) {
 		return _uart_fd;
@@ -892,14 +931,17 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 	}
 #else
 	if (get_protocol() == UDP) {
-		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+		if (get_client_source_initialized()) {
+			ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+		}
 
 		struct telemetry_status_s &tstatus = get_rx_status();
 
 		/* resend heartbeat via broadcast */
-		if (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
+		if ((_mode != MAVLINK_MODE_ONBOARD)
+			&& (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
 			(tstatus.heartbeat_time == 0)) &&
-			msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+			msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
 
 			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
@@ -1006,11 +1048,14 @@ Mavlink::init_udp()
 		return;
 	}
 
-	/* set default target address */
+	/* set default target address, but not for onboard mode (will be set on first recieved packet) */
 	memset((char *)&_src_addr, 0, sizeof(_src_addr));
-	_src_addr.sin_family = AF_INET;
-	inet_aton("127.0.0.1", &_src_addr.sin_addr);
-	_src_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
+	if (_mode != MAVLINK_MODE_ONBOARD) {
+		set_client_source_initialized();
+		_src_addr.sin_family = AF_INET;
+		inet_aton("127.0.0.1", &_src_addr.sin_addr);
+		_src_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
+	}
 
 	/* default broadcast address */
 	memset((char *)&_bcast_addr, 0, sizeof(_bcast_addr));
@@ -1573,14 +1618,20 @@ Mavlink::task_main(int argc, char *argv[])
 		_datarate = MAX_DATA_RATE;
 	}
 
-	if (Mavlink::instance_exists(_device_name, this)) {
-		warnx("%s already running", _device_name);
-		return ERROR;
-	}
-
 	if (get_protocol() == SERIAL) {
-	warnx("mode: %u, data rate: %d B/s on %s @ %dB", _mode, _datarate, _device_name, _baudrate);
+		if (Mavlink::instance_exists(_device_name, this)) {
+			warnx("%s already running", _device_name);
+			return ERROR;
+		}
+
+		warnx("mode: %u, data rate: %d B/s on %s @ %dB", _mode, _datarate, _device_name, _baudrate);
+
 	} else if (get_protocol() == UDP) {
+		if (Mavlink::get_instance_for_network_port(_network_port) != nullptr) {
+			warnx("port %d already occupied", _network_port);
+			return ERROR;
+		}
+
 		warnx("mode: %u, data rate: %d B/s on udp port %hu", _mode, _datarate, _network_port);
 	}
 	/* flush stdout in case MAVLink is about to take it over */
@@ -1592,9 +1643,12 @@ Mavlink::task_main(int argc, char *argv[])
 	/* default values for arguments */
 	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original);
 
-	if (_uart_fd < 0) {
+	if (_uart_fd < 0 && _mode != MAVLINK_MODE_CONFIG) {
 		warn("could not open %s", _device_name);
 		return ERROR;
+	} else if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
+		/* the config link is optional */
+		return OK;
 	}
 
 #endif
