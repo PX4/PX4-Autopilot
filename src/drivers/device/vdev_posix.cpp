@@ -135,6 +135,7 @@ extern "C" {
 					PX4_WARN("failed getting thread name");
 				}
 
+				PX4_BACKTRACE();
 #endif
 
 				PX4_WARN("%s: exceeded maximum number of file descriptors!", thread_name);
