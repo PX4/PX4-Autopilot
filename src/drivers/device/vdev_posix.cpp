@@ -56,7 +56,7 @@ pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
 
 extern "C" {
 
-#define PX4_MAX_FD 200
+#define PX4_MAX_FD 300
 	static device::file_t *filemap[PX4_MAX_FD] = {};
 
 	int px4_errno;
@@ -138,7 +138,8 @@ extern "C" {
 				PX4_BACKTRACE();
 #endif
 
-				PX4_WARN("%s: exceeded maximum number of file descriptors!", thread_name);
+				PX4_WARN("%s: exceeded maximum number of file descriptors, accessing %s",
+					thread_name, path);
 				ret = -ENOENT;
 			}
 
