@@ -172,6 +172,14 @@ bool Ekf::initialiseFilter(void)
     resetVelocity();
 	resetPosition();
 
+    // initialize vertical position with newest baro measurement
+    baroSample baro_init = _baro_buffer.get_newest();
+    if (baro_init.time_us == 0) {
+		return false;
+    }
+
+	_state.pos(2) = -baro_init.hgt;
+
 	initialiseCovariance();
 
 	return true;
