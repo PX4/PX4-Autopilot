@@ -67,6 +67,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 #include "mavlink_ftp.h"
+#include "mavlink_log_handler.h"
 
 enum Protocol {
 	SERIAL = 0,
@@ -375,6 +376,7 @@ private:
 	MavlinkMissionManager		*_mission_manager;
 	MavlinkParametersManager	*_parameters_manager;
 	MavlinkFTP			*_mavlink_ftp;
+	MavlinkLogHandler		*_mavlink_log_handler;
 
 	MAVLINK_MODE 		_mode;
 
