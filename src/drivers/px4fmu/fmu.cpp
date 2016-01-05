@@ -631,18 +631,8 @@ PX4FMU::cycle()
 
 		update_pwm_rev_mask();
 
-#ifdef SBUS_SERIAL_PORT
-		_sbus_fd = sbus_init(SBUS_SERIAL_PORT, false);
-#endif
-
-#ifdef DSM_SERIAL_PORT
-		// XXX rather than opening it we need to cycle between protocols until one is locked in
-		//_dsm_fd = dsm_init(DSM_SERIAL_PORT);
-#endif
-
 		_initialized = true;
 	}
-
 
 	if (_groups_subscribed != _groups_required) {
 		subscribe();
@@ -811,15 +801,17 @@ PX4FMU::cycle()
 
 	bool rc_updated = false;
 
-#ifdef SBUS_SERIAL_PORT
+#ifdef RC_SERIAL_PORT
 	bool sbus_failsafe, sbus_frame_drop;
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
 	uint16_t raw_rc_count;
-	bool sbus_updated = sbus_input(_sbus_fd, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe, &sbus_frame_drop,
-				       input_rc_s::RC_INPUT_MAX_CHANNELS);
 
+	// read port
+	bool sbus_updated = sbus_input(_sbus_fd, &raw_rc_values[0], &raw_rc_count,
+			&sbus_failsafe, &sbus_frame_drop,
+			input_rc_s::RC_INPUT_MAX_CHANNELS);
 	if (sbus_updated) {
-		// we have a new PPM frame. Publish it.
+		// we have a new SBUS frame. Publish it.
 		_rc_in.channel_count = raw_rc_count;
 
 		if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
@@ -842,14 +834,12 @@ PX4FMU::cycle()
 
 		rc_updated = true;
 	}
-
 #endif
 
 #ifdef HRT_PPM_CHANNEL
-
 	// see if we have new PPM input data
-	if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) &&
-	    ppm_decoded_channels > 3) {
+	if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
+			&& ppm_decoded_channels > 3) {
 		// we have a new PPM frame. Publish it.
 		_rc_in.channel_count = ppm_decoded_channels;
 
@@ -873,7 +863,6 @@ PX4FMU::cycle()
 
 		rc_updated = true;
 	}
-
 #endif
 
 	if (rc_updated) {
@@ -887,7 +876,7 @@ PX4FMU::cycle()
 	}
 
 	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this,
-		   USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
+				USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
 }
 
 void PX4FMU::work_stop()
@@ -2224,7 +2213,7 @@ fmu_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "info")) {
-#ifdef SBUS_SERIAL_PORT
+#ifdef RC_SERIAL_PORT
 		warnx("frame drops: %u", sbus_dropped_frames());
 #endif
 		return 0;
