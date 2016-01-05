@@ -60,9 +60,6 @@ unset FRC
 
 if [ $MODE == autostart ]
 then
-	# Try to get an USB console
-	# REBOOTWORK this needs to start after the flight control loop
-	nshterm /dev/ttyACM0 &
 
 	#
 	# Start the ORB (first app to start)
@@ -842,6 +839,15 @@ if ver hwcmp PX4FMU_V2
 then
 	# Check for flow sensor - as it is a background task, launch it last
 	px4flow start &
+fi
+
+# Start USB shell if no microSD present, MAVLink else
+if [ $LOG_FILE == /dev/null ]
+then
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
+else
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 fi
 
 if [ $EXIT_ON_END == yes ]

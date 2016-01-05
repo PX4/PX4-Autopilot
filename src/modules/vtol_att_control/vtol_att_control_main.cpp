@@ -559,7 +559,7 @@ void VtolAttitudeControl::task_main()
 	_vtol_type->set_idle_mc();
 
 	/* wakeup source*/
-	px4_pollfd_struct_t fds[3];	/*input_mc, input_fw, parameters*/
+	px4_pollfd_struct_t fds[3] = {};	/*input_mc, input_fw, parameters*/
 
 	fds[0].fd     = _actuator_inputs_mc;
 	fds[0].events = POLLIN;
