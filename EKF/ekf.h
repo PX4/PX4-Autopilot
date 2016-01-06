@@ -60,9 +60,10 @@ private:
 	bool _filter_initialised;
 	bool _earth_rate_initialised;
 
-	bool _fuse_height;	// true if there is new baro data
-	bool _fuse_pos;		// true if there is new position data from gps
-	bool _fuse_vel;		// true if there is new velocity data from gps
+	bool _fuse_height;	// baro height data should be fused
+	bool _fuse_pos;		// gps position data should be fused
+	bool _fuse_hor_vel;		// gps horizontal velocity measurement should be fused
+	bool _fuse_vert_vel;	// gps vertical velocity measurement should be fused
 
 	uint8_t _mag_fuse_index;	// counter for sequential mag axis fusion
 

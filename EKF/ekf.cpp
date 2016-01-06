@@ -47,7 +47,8 @@ Ekf::Ekf():
 	_earth_rate_initialised(false),
 	_fuse_height(false),
 	_fuse_pos(false),
-	_fuse_vel(false),
+	_fuse_hor_vel(false),
+	_fuse_vert_vel(false),
 	_mag_fuse_index(0),
 	_time_last_fake_gps(0)
 {
@@ -67,12 +68,15 @@ Ekf::~Ekf()
 bool Ekf::update()
 {
 	bool ret = false;	// indicates if there has been an update
+
 	if (!_filter_initialised) {
 		_filter_initialised = initialiseFilter();
+
 		if (!_filter_initialised) {
 			return false;
 		}
 	}
+
 	//printStates();
 	//printStatesFast();
 	// prediction
@@ -96,16 +100,19 @@ bool Ekf::update()
 
 	if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed)) {
 		_fuse_pos = true;
-		_fuse_vel = true;
+		_fuse_vert_vel = true;
+		_fuse_hor_vel = true;
+
 	} else if (_time_last_imu - _time_last_gps > 2000000 && _time_last_imu - _time_last_fake_gps > 70000) {
-		_fuse_vel = true;
+		// if gps does not update then fake position and horizontal veloctiy measurements
+		_fuse_hor_vel = true;	// we only fake horizontal velocity because we still have baro
 		_gps_sample_delayed.vel.setZero();
 	}
 
 
-	if (_fuse_height || _fuse_pos || _fuse_vel) {
+	if (_fuse_height || _fuse_pos || _fuse_hor_vel || _fuse_vert_vel) {
 		fuseVelPosHeight();
-		_fuse_vel = _fuse_pos = _fuse_height = false;
+		_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;
 	}
 
 	if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)) {
@@ -133,7 +140,7 @@ bool Ekf::initialiseFilter(void)
 	_state.mag_B.setZero();
 	_state.wind_vel.setZero();
 
-    // get initial roll and pitch estimate from accel vector, assuming vehicle is static
+	// get initial roll and pitch estimate from accel vector, assuming vehicle is static
 	Vector3f accel_init = _imu_down_sampled.delta_vel / _imu_down_sampled.delta_vel_dt;
 
 	float pitch = 0.0f;
@@ -146,37 +153,40 @@ bool Ekf::initialiseFilter(void)
 		roll = -asinf(accel_init(1) / cosf(pitch));
 	}
 
-    matrix::Euler<float> euler_init(roll, pitch, 0.0f);
+	matrix::Euler<float> euler_init(roll, pitch, 0.0f);
 
-    // Get the latest magnetic field measurement.
-    // If we don't have a measurement then we cannot initialise the filter
-    magSample mag_init = _mag_buffer.get_newest();
+	// Get the latest magnetic field measurement.
+	// If we don't have a measurement then we cannot initialise the filter
+	magSample mag_init = _mag_buffer.get_newest();
+
 	if (mag_init.time_us == 0) {
 		return false;
 	}
 
-    // rotate magnetic field into earth frame assuming zero yaw and estimate yaw angle assuming zero declination
-    // TODO use declination if available
-    matrix::Dcm<float> R_to_earth_zeroyaw(euler_init);
-    Vector3f mag_ef_zeroyaw = R_to_earth_zeroyaw * mag_init.mag;
-    float declination = 0.0f;
-    euler_init(2) = declination - atan2f(mag_ef_zeroyaw(1), mag_ef_zeroyaw(0));
+	// rotate magnetic field into earth frame assuming zero yaw and estimate yaw angle assuming zero declination
+	// TODO use declination if available
+	matrix::Dcm<float> R_to_earth_zeroyaw(euler_init);
+	Vector3f mag_ef_zeroyaw = R_to_earth_zeroyaw * mag_init.mag;
+	float declination = 0.0f;
+	euler_init(2) = declination - atan2f(mag_ef_zeroyaw(1), mag_ef_zeroyaw(0));
 
-    // calculate initial quaternion states
-    _state.quat_nominal = Quaternion(euler_init);
+	// calculate initial quaternion states
+	_state.quat_nominal = Quaternion(euler_init);
+	_output_new.quat_nominal = _state.quat_nominal;
 
-    // calculate initial earth magnetic field states
-    matrix::Dcm<float> R_to_earth(euler_init);
-    _state.mag_I = R_to_earth * mag_init.mag;
+	// calculate initial earth magnetic field states
+	matrix::Dcm<float> R_to_earth(euler_init);
+	_state.mag_I = R_to_earth * mag_init.mag;
 
-    resetVelocity();
+	resetVelocity();
 	resetPosition();
 
-    // initialize vertical position with newest baro measurement
-    baroSample baro_init = _baro_buffer.get_newest();
-    if (baro_init.time_us == 0) {
+	// initialize vertical position with newest baro measurement
+	baroSample baro_init = _baro_buffer.get_newest();
+
+	if (baro_init.time_us == 0) {
 		return false;
-    }
+	}
 
 	_state.pos(2) = -baro_init.hgt;
 
@@ -189,14 +199,15 @@ void Ekf::predictState()
 {
 	if (!_earth_rate_initialised) {
 		if (_gps_initialised) {
-			calcEarthRateNED(_earth_rate_NED, _posRef.lat_rad );
+			calcEarthRateNED(_earth_rate_NED, _posRef.lat_rad);
 			_earth_rate_initialised = true;
 		}
 	}
 
 	// attitude error state prediciton
 	matrix::Dcm<float> R_to_earth(_state.quat_nominal);	// transformation matrix from body to world frame
-	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_prev * _earth_rate_NED * _imu_sample_delayed.delta_ang_dt;
+	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_prev * _earth_rate_NED *
+				       _imu_sample_delayed.delta_ang_dt;
 	Quaternion dq;	// delta quaternion since last update
 	dq.from_axis_angle(corrected_delta_ang);
 	_state.quat_nominal = dq * _state.quat_nominal;
@@ -253,8 +264,7 @@ void Ekf::calculateOutputStates()
 		_imu_updated = false;
 	}
 
-	if (!_output_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_output_sample_delayed))
-	{
+	if (!_output_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_output_sample_delayed)) {
 		return;
 	}
 
@@ -267,6 +277,7 @@ void Ekf::calculateOutputStates()
 
 	if (q_error(0) >= 0.0f) {
 		scalar = -2.0f;
+
 	} else {
 		scalar = 2.0f;
 	}
@@ -300,7 +311,8 @@ void Ekf::printStates()
 
 	if (counter % 50 == 0) {
 		printf("quaternion\n");
-		for(int i = 0; i < 4; i++) {
+
+		for (int i = 0; i < 4; i++) {
 			printf("quat %i %.5f\n", i, (double)_state.quat_nominal(i));
 		}
 
@@ -308,31 +320,38 @@ void Ekf::printStates()
 		printf("yaw pitch roll %.5f %.5f %.5f\n", (double)euler(2), (double)euler(1), (double)euler(0));
 
 		printf("vel\n");
-		for(int i = 0; i < 3; i++) {
+
+		for (int i = 0; i < 3; i++) {
 			printf("v %i %.5f\n", i, (double)_state.vel(i));
 		}
 
 		printf("pos\n");
-		for(int i = 0; i < 3; i++) {
+
+		for (int i = 0; i < 3; i++) {
 			printf("p %i %.5f\n", i, (double)_state.pos(i));
 		}
 
 		printf("gyro_scale\n");
-		for(int i = 0; i < 3; i++) {
+
+		for (int i = 0; i < 3; i++) {
 			printf("gs %i %.5f\n", i, (double)_state.gyro_scale(i));
 		}
 
 		printf("mag earth\n");
-		for(int i = 0; i < 3; i++) {
+
+		for (int i = 0; i < 3; i++) {
 			printf("mI %i %.5f\n", i, (double)_state.mag_I(i));
 		}
 
 		printf("mag bias\n");
-		for(int i = 0; i < 3; i++) {
+
+		for (int i = 0; i < 3; i++) {
 			printf("mB %i %.5f\n", i, (double)_state.mag_B(i));
 		}
+
 		counter = 0;
 	}
+
 	counter++;
 
 }
@@ -343,21 +362,25 @@ void Ekf::printStatesFast()
 
 	if (counter_fast % 50 == 0) {
 		printf("quaternion\n");
-		for(int i = 0; i < 4; i++) {
+
+		for (int i = 0; i < 4; i++) {
 			printf("quat %i %.5f\n", i, (double)_output_new.quat_nominal(i));
 		}
 
 		printf("vel\n");
-		for(int i = 0; i < 3; i++) {
+
+		for (int i = 0; i < 3; i++) {
 			printf("v %i %.5f\n", i, (double)_output_new.vel(i));
 		}
 
 		printf("pos\n");
-		for(int i = 0; i < 3; i++) {
+
+		for (int i = 0; i < 3; i++) {
 			printf("p %i %.5f\n", i, (double)_output_new.pos(i));
 		}
 
 		counter_fast = 0;
 	}
+
 	counter_fast++;
 }
