@@ -1765,8 +1765,8 @@ MulticopterPositionControl::task_main()
 				_att_sp.yaw_body = _yaw;
 			}
 
-			/* do not move yaw while arming */
-			else if (_manual.z > 0.1f) {
+			/* do not move yaw while sitting on the ground */
+			else if (!_vehicle_status.condition_landed) {
 				const float yaw_offset_max = _params.man_yaw_max / _params.mc_att_yaw_p;
 
 				_att_sp.yaw_sp_move_rate = _manual.r * _params.man_yaw_max;
