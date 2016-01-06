@@ -236,15 +236,15 @@ MissionBlock::reset_mission_item_reached()
 void
 MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item, struct vehicle_command_s *cmd)
 {
-	// Assignment based on MAVLink spec for param enumeration:
-	// http://mavlink.org/messages/common#MAV_CMD_NAV_WAYPOINT
-	cmd->param1 = item->time_inside;
-	cmd->param2 = item->acceptance_radius;
-	cmd->param3 = item->loiter_radius;
-	cmd->param4 = item->yaw;
-	cmd->param5 = item->lat;
-	cmd->param6 = item->lon;
-	cmd->param7 = item->altitude;
+	// we're expecting a mission command item here so assign the "raw" inputs to the command
+	// (MAV_FRAME_MISSION mission item)
+	cmd->param1 = item->params[0];
+	cmd->param2 = item->params[1];
+	cmd->param3 = item->params[2];
+	cmd->param4 = item->params[3];
+	cmd->param5 = item->params[4];
+	cmd->param6 = item->params[5];
+	cmd->param7 = item->params[6];
 
 	cmd->target_system = _navigator->get_vstatus()->system_id;
 	cmd->target_component = _navigator->get_vstatus()->component_id;
