@@ -1059,9 +1059,11 @@ Mavlink::init_udp()
 
 	/* default broadcast address */
 	memset((char *)&_bcast_addr, 0, sizeof(_bcast_addr));
-	_bcast_addr.sin_family = AF_INET;
-	inet_aton("255.255.255.255", &_bcast_addr.sin_addr);
-	_bcast_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
+	if (_mode != MAVLINK_MODE_ONBOARD) {
+		_bcast_addr.sin_family = AF_INET;
+		inet_aton("127.0.0.1", &_bcast_addr.sin_addr);
+		_bcast_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
+	}
 
 #endif
 }
