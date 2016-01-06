@@ -423,7 +423,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 {
 	bool to_fw = _manual_control_sp.aux1 > 0.0f;
 
-	if (_v_control_mode.flag_control_offboard_enabled) {
+	if (_v_control_mode.flag_control_offboard_enabled || _v_control_mode.flag_control_auto_enabled) {
 		to_fw = _transition_command == vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 	}
 
