@@ -81,7 +81,7 @@ void Ekf::resetPosition()
 	_state.pos(2) = baro_newest.hgt;
 }
 
-#ifdef __PX4_POSIX
+#if defined(__PX4_POSIX) && !defined(__PX4_QURT)
 void Ekf::printCovToFile(char const *filename)
 {
 	std::ofstream myfile;
