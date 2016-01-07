@@ -575,7 +575,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 				mavlink_status_t status;
 
 				for (int i = 0; i < len; ++i) {
-					if (mavlink_parse_char(MAVLINK_COMM_0, serial_buf[i], &msg, &status)) {
+					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &status)) {
 						// have a message, handle it
 						handle_message(&msg, true);
 					}
