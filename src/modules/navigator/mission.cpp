@@ -286,6 +286,7 @@ Mission::advance_mission()
 {
 	if (_takeoff) {
 		_takeoff = false;
+		_takeoff_finished = true;
 
 	} else {
 		switch (_mission_type) {
@@ -430,6 +431,8 @@ Mission::set_mission_items()
 		/* do takeoff before going to setpoint */
 		/* set mission item as next position setpoint */
 		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->next);
+		/* next SP is not takeoff anymore */
+		pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 		/* calculate takeoff altitude */
 		float takeoff_alt = get_absolute_altitude_for_item(_mission_item);
@@ -464,6 +467,13 @@ Mission::set_mission_items()
 			/* skip takeoff */
 			_takeoff = false;
 		}
+	}
+
+	if (_takeoff_finished) {
+		/* we just finished takeoff */
+		/* in case we still have to move to the takeoff waypoint we need a waypoint mission item */
+		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+		_takeoff_finished = false;
 	}
 
 	/* set current position setpoint from mission item */
