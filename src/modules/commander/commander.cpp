@@ -3209,7 +3209,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 void *commander_low_prio_loop(void *arg)
 {
 	/* Set thread name */
-	px4_prctl(PR_SET_NAME, "commander_low_prio", getpid());
+	px4_prctl(PR_SET_NAME, "commander_low_prio", px4_getpid());
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));

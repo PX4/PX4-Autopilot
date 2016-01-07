@@ -177,8 +177,7 @@ __END_DECLS
 #define MAX_RAND 32767
 
 #if defined(__PX4_QURT)
-#define M_PI			3.14159265358979323846
-#define M_PI_2			1.57079632679489661923
+#include "dspal_math.h"
 __BEGIN_DECLS
 #include <math.h>
 __END_DECLS
