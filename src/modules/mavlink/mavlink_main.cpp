@@ -843,27 +843,27 @@ Mavlink::get_free_tx_buf()
 	 */
 	int buf_free = 0;
 
-// No FIONWRITE on Linux
-#if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
-	(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
-#endif
-
-	if (get_flow_control_enabled() && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
-		/* Disable hardware flow control:
-		 * if no successful write since a defined time
-		 * and if the last try was not the last successful write
-		 */
-		if (_last_write_try_time != 0 &&
-		    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
-		    _last_write_success_time != _last_write_try_time) {
-			warnx("Disabling hardware flow control");
-			enable_flow_control(false);
-		}
-	}
-
 	// if we are using network sockets, return max lenght of one packet
 	if (get_protocol() == UDP || get_protocol() == TCP ) {
 		return  1500;
+	} else {
+		// No FIONWRITE on Linux
+#if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
+		(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
+#endif
+
+		if (get_flow_control_enabled() && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
+			/* Disable hardware flow control:
+			 * if no successful write since a defined time
+			 * and if the last try was not the last successful write
+			 */
+			if (_last_write_try_time != 0 &&
+			    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
+			    _last_write_success_time != _last_write_try_time) {
+				warnx("Disabling hardware flow control");
+				enable_flow_control(false);
+			}
+		}
 	}
 
 	return buf_free;
