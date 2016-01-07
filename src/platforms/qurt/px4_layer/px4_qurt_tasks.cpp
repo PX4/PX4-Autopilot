@@ -37,7 +37,10 @@
  * Implementation of existing task API for Linux
  */
 
-#include <px4_log.h>
+#include "px4_log.h"
+#include "px4_posix.h"
+#include "px4_workqueue.h"
+#include "hrt_work.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -318,7 +321,7 @@ void px4_show_tasks()
 
 __BEGIN_DECLS
 
-int px4_getpid()
+unsigned long px4_getpid()
 {
 	pthread_t pid = pthread_self();
 //
@@ -333,7 +336,7 @@ int px4_getpid()
 	}
 
 	PX4_ERR("px4_getpid() called from unknown thread context!");
-	return -EINVAL;
+	return ~0;
 }
 
 
@@ -350,5 +353,44 @@ const char *getprogname()
 
 	return "Unknown App";
 }
-__END_DECLS
 
+static void timer_cb(void *data)
+{
+	px4_sem_t *sem = reinterpret_cast<px4_sem_t *>(data);
+
+	sem_post(sem);
+}
+
+int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
+{
+	void *result;
+	work_s _hpwork = {};
+
+	// Create a timer to unblock
+	uint32_t timeout = ts->tv_sec*1000000+ (ts->tv_nsec/1000);
+	hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)sem, timeout);
+	sem_wait(sem);
+	hrt_work_cancel(&_hpwork);
+	return 0;
+}
+
+int px4_prctl(int option, const char *arg2, unsigned pid)
+{
+	int rv;
+
+	switch (option) {
+	case PR_SET_NAME:
+		// set the threads name - Not supported
+		// rv = pthread_setname_np(pthread_self(), arg2);
+		rv = -1;
+		break;
+
+	default:
+		rv = -1;
+		PX4_WARN("FAILED SETTING TASK NAME");
+		break;
+	}
+
+	return rv;
+}
+__END_DECLS
