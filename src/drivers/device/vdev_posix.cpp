@@ -139,7 +139,7 @@ extern "C" {
 #endif
 
 				PX4_WARN("%s: exceeded maximum number of file descriptors, accessing %s",
-					thread_name, path);
+					 thread_name, path);
 				ret = -ENOENT;
 			}
 
