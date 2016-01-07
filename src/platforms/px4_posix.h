@@ -77,10 +77,15 @@ typedef sem_t px4_sem_t;
 
 #define px4_sem_init	 sem_init
 #define px4_sem_wait	 sem_wait
-#define px4_sem_timedwait	 sem_timedwait
 #define px4_sem_post	 sem_post
 #define px4_sem_getvalue sem_getvalue
 #define px4_sem_destroy	 sem_destroy
+
+#ifdef __PX4_QURT
+__EXPORT int		px4_sem_timedwait(px4_sem_t *sem, const struct timespec *abstime);
+#else
+#define px4_sem_timedwait	 sem_timedwait
+#endif
 
 __END_DECLS
 
