@@ -632,7 +632,7 @@ PX4FMU::cycle()
 		update_pwm_rev_mask();
 
 #ifdef SBUS_SERIAL_PORT
-		_sbus_fd = sbus_init(SBUS_SERIAL_PORT, true);
+		_sbus_fd = sbus_init(SBUS_SERIAL_PORT, false);
 #endif
 
 #ifdef DSM_SERIAL_PORT
