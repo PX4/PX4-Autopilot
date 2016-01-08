@@ -27,8 +27,6 @@ addons:
     - ccache
     - clang-3.5
     - cmake
-    - g++-4.9
-    - gcc-4.9
     - genromfs
     - libc6-i386
     - libncurses5-dev
@@ -81,8 +79,6 @@ before_script:
   - ln -s /usr/bin/ccache ~/bin/clang
   - ln -s /usr/bin/ccache ~/bin/clang-3.4
   - ln -s /usr/bin/ccache ~/bin/clang-3.5
-  - ln -s /usr/bin/ccache ~/bin/g++-4.9
-  - ln -s /usr/bin/ccache ~/bin/gcc-4.9
   - export PATH=~/bin:$PATH
 
 env:
