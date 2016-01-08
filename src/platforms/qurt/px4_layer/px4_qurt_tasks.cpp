@@ -367,7 +367,7 @@ int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 	work_s _hpwork = {};
 
 	// Create a timer to unblock
-	uint32_t timeout = ts->tv_sec*1000000+ (ts->tv_nsec/1000);
+	uint32_t timeout = ts->tv_sec * 1000000 + (ts->tv_nsec / 1000);
 	hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)sem, timeout);
 	sem_wait(sem);
 	hrt_work_cancel(&_hpwork);
