@@ -825,6 +825,28 @@ PX4FMU::cycle()
 //		raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 //		raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 
+		// we have a new SBUS frame. Publish it.
+		_rc_in.channel_count = raw_rc_count;
+
+		if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+			_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+		}
+
+		for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
+			_rc_in.values[i] = raw_rc_values[i];
+		}
+
+		_rc_in.timestamp_publication = hrt_absolute_time();
+		_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
+
+		_rc_in.rc_ppm_frame_length = 0;
+//		_rc_in.rssi = (!sbus_frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
+//		_rc_in.rc_failsafe = sbus_failsafe;
+		_rc_in.rc_lost = false;
+//		_rc_in.rc_lost_frame_count = sbus_dropped_frames();
+		_rc_in.rc_total_frame_count = 0;
+
+		rc_updated = true;
 	}
 
 #endif
