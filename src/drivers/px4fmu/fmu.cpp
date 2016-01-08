@@ -134,8 +134,7 @@ private:
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	int		_class_instance;
-	int		_sbus_fd;
-	int		_dsm_fd;
+	int		_rcs_fd;
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -280,8 +279,7 @@ PX4FMU::PX4FMU() :
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_class_instance(0),
-	_sbus_fd(-1),
-	_dsm_fd(-1),
+	_rcs_fd(-1),
 	_initialized(false),
 	_throttle_armed(false),
 	_pwm_on(false),
@@ -801,13 +799,43 @@ PX4FMU::cycle()
 
 	bool rc_updated = false;
 
-#ifdef RC_SERIAL_PORT
+#ifdef DSM_SERIAL_PORT
+	uint8_t n_bytes = 0;
+	uint8_t *bytes;
+	bool dsm_11_bit;
+	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
+	uint16_t raw_rc_count;
+
+	bool dsm_updated = dsm_input(_rcs_fd, raw_rc_values, &raw_rc_count, &dsm_11_bit, &n_bytes, &bytes,
+			input_rc_s::RC_INPUT_MAX_CHANNELS);
+
+	if (dsm_updated) {
+
+		warnx("%llu, %u, %u, %u, %u, %u\n", hrt_absolute_time(), dsm_updated,
+				raw_rc_values[0], raw_rc_values[1], raw_rc_values[2],
+				raw_rc_values[3]);
+
+//		if (dsm_11_bit) {
+//			raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+//
+//		} else {
+//			raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+//		}
+//
+//		raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+//		raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+
+	}
+
+#endif
+
+#ifdef SBUS_SERIAL_PORT
 	bool sbus_failsafe, sbus_frame_drop;
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
 	uint16_t raw_rc_count;
 
 	// read port
-	bool sbus_updated = sbus_input(_sbus_fd, &raw_rc_values[0], &raw_rc_count,
+	bool sbus_updated = sbus_input(_rcs_fd, &raw_rc_values[0], &raw_rc_count,
 				       &sbus_failsafe, &sbus_frame_drop,
 				       input_rc_s::RC_INPUT_MAX_CHANNELS);
 
