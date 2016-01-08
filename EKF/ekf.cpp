@@ -189,6 +189,7 @@ bool Ekf::initialiseFilter(void)
 	}
 
 	_state.pos(2) = -baro_init.hgt;
+	_output_new.pos(2) = -baro_init.hgt;
 
 	initialiseCovariance();
 
