@@ -145,7 +145,7 @@ void EstimatorBase::setMagData(uint64_t time_usec, float *data)
 
 
 		mag_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2;
-		_time_last_mag = mag_sample_new.time_us;
+		_time_last_mag = time_usec;
 
 
 		memcpy(&mag_sample_new.mag._data[0], data, sizeof(mag_sample_new.mag._data));
@@ -168,7 +168,7 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 
 
 		gps_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2;
-		_time_last_gps = gps_sample_new.time_us;
+		_time_last_gps = time_usec;
 
 		_last_valid_gps_time_us = hrt_absolute_time();
 
@@ -200,7 +200,7 @@ void EstimatorBase::setBaroData(uint64_t time_usec, float *data)
 		baro_sample_new.time_us = time_usec - _params.baro_delay_ms * 1000;
 
 		baro_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2;
-		_time_last_baro = baro_sample_new.time_us;
+		_time_last_baro = time_usec;
 
 		baro_sample_new.time_us = math::max(baro_sample_new.time_us, _imu_sample_delayed.time_us);
 
@@ -216,7 +216,7 @@ void EstimatorBase::setAirspeedData(uint64_t time_usec, float *data)
 		airspeed_sample_new.time_us -= _params.airspeed_delay_ms * 1000;
 
 		airspeed_sample_new.time_us = time_usec -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2;
-		_time_last_airspeed = airspeed_sample_new.time_us;
+		_time_last_airspeed = time_usec;
 
 		_airspeed_buffer.push(airspeed_sample_new);
 	}

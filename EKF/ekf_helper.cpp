@@ -78,7 +78,7 @@ void Ekf::resetPosition()
 	}
 
 	baroSample baro_newest = _baro_buffer.get_newest();
-	_state.pos(2) = baro_newest.hgt;
+	_state.pos(2) = -baro_newest.hgt;
 }
 
 #if defined(__PX4_POSIX) && !defined(__PX4_QURT)
