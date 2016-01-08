@@ -47,6 +47,7 @@
 #include <map>
 #include <stdio.h>
 #include <apps.h>
+#include "get_commands.h"
 
 using namespace std;
 
