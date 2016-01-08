@@ -808,8 +808,9 @@ PX4FMU::cycle()
 
 	// read port
 	bool sbus_updated = sbus_input(_sbus_fd, &raw_rc_values[0], &raw_rc_count,
-			&sbus_failsafe, &sbus_frame_drop,
-			input_rc_s::RC_INPUT_MAX_CHANNELS);
+				       &sbus_failsafe, &sbus_frame_drop,
+				       input_rc_s::RC_INPUT_MAX_CHANNELS);
+
 	if (sbus_updated) {
 		// we have a new SBUS frame. Publish it.
 		_rc_in.channel_count = raw_rc_count;
@@ -834,12 +835,14 @@ PX4FMU::cycle()
 
 		rc_updated = true;
 	}
+
 #endif
 
 #ifdef HRT_PPM_CHANNEL
+
 	// see if we have new PPM input data
 	if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
-			&& ppm_decoded_channels > 3) {
+	    && ppm_decoded_channels > 3) {
 		// we have a new PPM frame. Publish it.
 		_rc_in.channel_count = ppm_decoded_channels;
 
@@ -863,6 +866,7 @@ PX4FMU::cycle()
 
 		rc_updated = true;
 	}
+
 #endif
 
 	if (rc_updated) {
@@ -876,7 +880,7 @@ PX4FMU::cycle()
 	}
 
 	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this,
-				USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
+		   USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
 }
 
 void PX4FMU::work_stop()
