@@ -1,6 +1,5 @@
 /****************************************************************************
- *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,27 +30,17 @@
  *
  ****************************************************************************/
 /**
- * @file commands_default.c
- * Commands to run for the "qurt_eagle_default" config
+ * @file get_commands.cpp
+ * functions to call to run the set of startup commands
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#include "get_commands.h"
+__BEGIN_DECLS
+// The commands to run are specified in a target file: commands_<target>.c
+extern const char *get_commands(void);
 
-const char *get_commands()
-{
+// Enable external library hook
+void qurt_external_hook(void) __attribute__((weak));
+__END_DECLS
 
-	static const char *commands =
-		"uorb start\n"
-		"param set CAL_GYRO0_ID 2293760\n"
-		"param set CAL_ACC0_ID 1310720\n"
-		"param set CAL_ACC1_ID 1376256\n"
-		"param set CAL_MAG0_ID 196608\n"
-		"commander start\n"
-
-		;
-
-	return commands;
-
-}
