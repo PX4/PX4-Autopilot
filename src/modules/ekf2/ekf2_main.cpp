@@ -71,6 +71,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -122,11 +123,39 @@ private:
 	int		_sensors_sub = -1;
 	int		_gps_sub = -1;
 	int		_airspeed_sub = -1;
+	int 	_params_sub = -1;
 
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
 	orb_advert_t _control_state_pub;
 	orb_advert_t _vehicle_global_position_pub;
+
+	struct {
+		param_t mag_delay_ms;
+		param_t baro_delay_ms;
+		param_t gps_delay_ms;
+		param_t airspeed_delay_ms;
+		param_t 	requiredEph;
+		param_t 	requiredEpv;
+
+		param_t gyro_noise;
+		param_t accel_noise;
+
+		// process noise
+		param_t gyro_bias_p_noise;
+		param_t accel_bias_p_noise;
+		param_t gyro_scale_p_noise;
+		param_t mag_p_noise;
+		param_t wind_vel_p_noise;
+
+		param_t gps_vel_noise;
+		param_t gps_pos_noise;
+		param_t baro_noise;
+
+		param_t mag_heading_noise;	// measurement noise used for simple heading fusion
+		param_t mag_declination_deg;	// magnetic declination in degrees
+		param_t heading_innov_gate;	// innovation gate for heading innovation test
+	} _param_handles;
 
 	/* Low pass filter for attitude rates */
 	math::LowPassFilter2p _lp_roll_rate;
@@ -140,6 +169,8 @@ private:
 
 	int update_subscriptions();
 
+	void update_parameters();
+
 };
 
 Ekf2::Ekf2():
@@ -151,6 +182,30 @@ _lp_yaw_rate(250.0f, 20.0f)
 	_att_pub = nullptr;
 	_lpos_pub = nullptr;
 	_control_state_pub = nullptr;
+
+	_param_handles.mag_delay_ms = param_find("EKF2_MAG_DELAY");
+	_param_handles.baro_delay_ms = param_find("EKF2_BARO_DELAY");
+	_param_handles.gps_delay_ms = param_find("EKF2_GPS_DELAY");
+	_param_handles.airspeed_delay_ms = param_find("EKF2_ASP_DELAY");
+	_param_handles.requiredEph = param_find("EKF2_REQ_EPH");
+	_param_handles.requiredEpv = param_find("EKF2_REQ_EPV");
+
+	_param_handles.gyro_noise = param_find("EKF2_G_NOISE");
+	_param_handles.accel_noise = param_find("EKF2_ACC_NOISE");
+
+	_param_handles.gyro_bias_p_noise = param_find("EKF2_GB_NOISE");
+	_param_handles.accel_bias_p_noise = param_find("EKF2_ACCB_NOISE");
+	_param_handles.gyro_scale_p_noise = param_find("EKF2_GS_NOISE");
+	_param_handles.mag_p_noise = param_find("EKF2_MAG_NOISE");
+	_param_handles.wind_vel_p_noise = param_find("EKF2_WIND_NOISE");
+
+	_param_handles.gps_vel_noise = param_find("EKF2_GPS_V_NOISE");
+	_param_handles.gps_pos_noise = param_find("EKF2_GPS_P_NOISE");
+	_param_handles.baro_noise = param_find("EKF2_BARO_NOISE");
+
+	_param_handles.mag_heading_noise = param_find("EKF2_HEAD_NOISE");
+	_param_handles.mag_declination_deg = param_find("EKF2_MAG_DECL");
+	_param_handles.heading_innov_gate = param_find("EKF2_H_INOV_GATE");
 }
 
 Ekf2::~Ekf2()
@@ -171,16 +226,44 @@ void Ekf2::print_status()
 	warnx("position OK %s", (_ekf->position_is_valid()) ? "[YES]" : "[NO]");
 }
 
+void Ekf2::update_parameters()
+{
+	parameters *params = _ekf->getParamHandle();
+	param_get(_param_handles.mag_delay_ms, &params->mag_delay_ms);
+	param_get(_param_handles.baro_delay_ms, &params->baro_delay_ms);
+	param_get(_param_handles.gps_delay_ms, &params->gps_delay_ms);
+	param_get(_param_handles.airspeed_delay_ms, &params->airspeed_delay_ms);
+	param_get(_param_handles.requiredEph, &params->requiredEph);
+	param_get(_param_handles.requiredEpv, &params->requiredEpv);
+	param_get(_param_handles.gyro_noise, &params->gyro_noise);
+	param_get(_param_handles.accel_noise, &params->accel_noise);
+	param_get(_param_handles.gyro_bias_p_noise, &params->gyro_bias_p_noise);
+	param_get(_param_handles.accel_bias_p_noise, &params->accel_bias_p_noise);
+	param_get(_param_handles.gyro_scale_p_noise, &params->gyro_scale_p_noise);
+	param_get(_param_handles.mag_p_noise, &params->mag_p_noise);
+	param_get(_param_handles.wind_vel_p_noise, &params->wind_vel_p_noise);
+	param_get(_param_handles.gps_vel_noise, &params->gps_vel_noise);
+	param_get(_param_handles.gps_pos_noise, &params->gps_pos_noise);
+	param_get(_param_handles.baro_noise, &params->baro_noise);
+	param_get(_param_handles.mag_heading_noise, &params->mag_heading_noise);
+	param_get(_param_handles.mag_declination_deg, &params->mag_declination_deg);
+	param_get(_param_handles.heading_innov_gate, &params->heading_innov_gate);
+}
+
 void Ekf2::task_main()
 {
 	// subscribe to relevant topics
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	px4_pollfd_struct_t fds[1];
 	fds[0].fd = _sensors_sub;
 	fds[0].events = POLLIN;
+
+	// initialise parameter cache
+	update_parameters();
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, 1, 1000);
@@ -197,6 +280,7 @@ void Ekf2::task_main()
 
 		bool gps_updated = false;
 		bool airspeed_updated = false;
+		bool params_updated = false;
 
 		sensor_combined_s sensors = {};
 		vehicle_gps_position_s gps = {};
@@ -215,6 +299,14 @@ void Ekf2::task_main()
 
 		if (airspeed_updated) {
 			orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed);
+		}
+
+		orb_check(_params_sub, &params_updated);
+
+		if (params_updated) {
+			struct parameter_update_s param_update;
+			orb_copy(ORB_ID(parameter_update), _params_sub, &param_update);
+			update_parameters();
 		}
 
 		hrt_abstime now = hrt_absolute_time();
