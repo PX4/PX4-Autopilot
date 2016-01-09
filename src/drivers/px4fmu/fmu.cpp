@@ -813,7 +813,7 @@ PX4FMU::cycle()
 	// This block scans for a supported serial RC input and locks onto the first one found
 	static hrt_abstime rc_scan_last_lock = 0;
 	static hrt_abstime rc_scan_begin = 0;
-//	static bool rc_scan_locked = false;
+	static bool rc_scan_locked = false;
 	static enum RC_SCAN _rc_scan_state = RC_SCAN_SBUS;
 
 	// Scan for one second, then switch protocol
@@ -864,12 +864,11 @@ PX4FMU::cycle()
 				_rc_in.rc_total_frame_count = 0;
 
 				rc_scan_last_lock = now;
-//				rc_scan_locked = true;
+				rc_scan_locked = true;
 			}
-		} else {
+		} else if (!rc_scan_locked) {
 			// This triggers the port re-configuration
 			rc_scan_begin = 0;
-//			rc_scan_locked = false;
 			// Scan the next protocol
 			_rc_scan_state = RC_SCAN_DSM;
 		}
@@ -898,19 +897,12 @@ PX4FMU::cycle()
 
 			if (rc_updated) {
 
-//				warnx("%llu, %u, %u, %u, %u, %u\n", hrt_absolute_time(), rc_updated,
-//						raw_rc_values[0], raw_rc_values[1], raw_rc_values[2],
-//						raw_rc_values[3]);
-//
 		//		if (dsm_11_bit) {
 		//			raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
 		//
 		//		} else {
 		//			raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
 		//		}
-		//
-		//		raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
-		//		raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 
 				// we have a new SBUS frame. Publish it.
 				_rc_in.channel_count = raw_rc_count;
@@ -927,19 +919,18 @@ PX4FMU::cycle()
 				_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
 
 				_rc_in.rc_ppm_frame_length = 0;
-		//		_rc_in.rssi = (!sbus_frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
-		//		_rc_in.rc_failsafe = sbus_failsafe;
+				_rc_in.rssi = (RC_INPUT_RSSI_MAX / 2);
+				_rc_in.rc_failsafe = false;
 				_rc_in.rc_lost = false;
-		//		_rc_in.rc_lost_frame_count = sbus_dropped_frames();
+				_rc_in.rc_lost_frame_count = 0;
 				_rc_in.rc_total_frame_count = 0;
 
 				rc_scan_last_lock = now;
-//				rc_scan_locked = true;
+				rc_scan_locked = true;
 			}
-		} else {
+		} else if (!rc_scan_locked) {
 			// This triggers the port re-configuration
 			rc_scan_begin = 0;
-//			rc_scan_locked = false;
 			// Scan the next protocol
 			_rc_scan_state = RC_SCAN_SBUS;
 		}
