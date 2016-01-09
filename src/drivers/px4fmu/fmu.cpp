@@ -142,7 +142,6 @@ private:
 	unsigned	_num_outputs;
 	int		_class_instance;
 	int		_rcs_fd;
-	int		_dsm_fd;
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -288,7 +287,6 @@ PX4FMU::PX4FMU() :
 	_num_outputs(0),
 	_class_instance(0),
 	_rcs_fd(-1),
-	_dsm_fd(-1),
 	_initialized(false),
 	_throttle_armed(false),
 	_pwm_on(false),
@@ -638,8 +636,9 @@ PX4FMU::cycle()
 
 		update_pwm_rev_mask();
 
+#ifdef RC_SERIAL_PORT
 		_rcs_fd = :: open(RC_SERIAL_PORT, O_RDWR | O_NONBLOCK);
-
+#endif
 		_initialized = true;
 	}
 
