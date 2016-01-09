@@ -88,7 +88,8 @@ public:
 		MISSION_YAWMODE_NONE = 0,
 		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
 		MISSION_YAWMODE_FRONT_TO_HOME = 2,
-		MISSION_YAWMODE_BACK_TO_HOME = 3
+		MISSION_YAWMODE_BACK_TO_HOME = 3,
+		MISSION_YAWMODE_MAX = 4
 	};
 
 private:
@@ -184,6 +185,7 @@ private:
 	int _current_offboard_mission_index;
 	bool _need_takeoff;					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 	bool _takeoff;						/**< takeoff state flag */
+	bool _takeoff_finished;					/**< set if takeoff was requested before and is now done */
 
 	enum {
 		MISSION_TYPE_NONE,

@@ -230,6 +230,7 @@ private:
 		_perf_gps(perf_alloc_once(PC_ELAPSED, "sim_gps_delay")),
 		_perf_airspeed(perf_alloc_once(PC_ELAPSED, "sim_airspeed_delay")),
 		_perf_sim_delay(perf_alloc_once(PC_ELAPSED, "sim_network_delay")),
+		_perf_sim_interval(perf_alloc(PC_INTERVAL, "sim_network_interval")),
 		_accel_pub(nullptr),
 		_baro_pub(nullptr),
 		_gyro_pub(nullptr),
@@ -270,6 +271,7 @@ private:
 	perf_counter_t _perf_gps;
 	perf_counter_t _perf_airspeed;
 	perf_counter_t _perf_sim_delay;
+	perf_counter_t _perf_sim_interval;
 
 	// uORB publisher handlers
 	orb_advert_t _accel_pub;

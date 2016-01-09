@@ -63,7 +63,6 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/home_position.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <mavlink/mavlink_log.h>
@@ -273,7 +272,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	const hrt_abstime ref_init_delay = 1000000;	// wait for 1s after 3D fix
 	struct map_projection_reference_s ref;
 	memset(&ref, 0, sizeof(ref));
-	hrt_abstime home_timestamp = 0;
 
 	uint16_t accel_updates = 0;
 	uint16_t baro_updates = 0;
@@ -346,8 +344,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&sensor, 0, sizeof(sensor));
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
-	struct home_position_s home;
-	memset(&home, 0, sizeof(home));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_local_position_s local_pos;
@@ -373,7 +369,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	int vision_position_estimate_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
-	int home_position_sub = orb_subscribe(ORB_ID(home_position));
 	int distance_sensor_sub = orb_subscribe(ORB_ID(distance_sensor));
 
 	/* advertise */
@@ -676,46 +671,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				flow_updates++;
 			}
-
-			/* home position */
-			orb_check(home_position_sub, &updated);
-
-			if (updated) {
-				orb_copy(ORB_ID(home_position), home_position_sub, &home);
-
-				if (home.timestamp != home_timestamp) {
-					home_timestamp = home.timestamp;
-
-					double est_lat, est_lon;
-					float est_alt;
-
-					if (ref_inited) {
-						/* calculate current estimated position in global frame */
-						est_alt = local_pos.ref_alt - local_pos.z;
-						map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
-					}
-
-					/* update reference */
-					map_projection_init(&ref, home.lat, home.lon);
-
-					/* update baro offset */
-					baro_offset += home.alt - local_pos.ref_alt;
-
-					local_pos.ref_lat = home.lat;
-					local_pos.ref_lon = home.lon;
-					local_pos.ref_alt = home.alt;
-					local_pos.ref_timestamp = home.timestamp;
-
-					if (ref_inited) {
-						/* reproject position estimate with new reference */
-						map_projection_project(&ref, est_lat, est_lon, &x_est[0], &y_est[0]);
-						z_est[0] = -(est_alt - local_pos.ref_alt);
-					}
-
-					ref_inited = true;
-				}
-			}
-
 
 			/* check no vision circuit breaker is set */
 			if (params.no_vision != CBRK_NO_VISION_KEY) {

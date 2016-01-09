@@ -65,7 +65,7 @@ __BEGIN_DECLS
 //{0,                      GPIO_PERIPH_3V3_EN,      0},	Owned by the 8266 driver
 //{0,                      GPIO_SBUS_INV,           0},	https://github.com/PX4/Firmware/blob/master/src/modules/px4iofirmware/sbus.c
 //{GPIO_8266_GPIO0,        0,                       0},   Owned by the 8266 driver
-//{0,                      GPIO_SPEKTRUM_POWER,     0},	Owned Spektum driver input to auto pilot
+//{0,                      GPIO_SPEKTRUM_PWR_EN,     0},	Owned Spektum driver input to auto pilot
 //{0,                      GPIO_8266_PD,            0},	Owned by the 8266 driver
 //{0,                      GPIO_8266_RST,           0},	Owned by the 8266 driver
 
@@ -200,6 +200,7 @@ __BEGIN_DECLS
 #define GPIO_TIM1_CH4OUT	GPIO_TIM1_CH4OUT_2
 #define GPIO_TIM4_CH2OUT	GPIO_TIM4_CH2OUT_2
 #define GPIO_TIM4_CH3OUT	GPIO_TIM4_CH3OUT_2
+#define DIRECT_PWM_OUTPUT_CHANNELS	6
 
 /* USB OTG FS
  *
@@ -223,14 +224,22 @@ __BEGIN_DECLS
 
 #define GPIO_RSSI_IN 			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN1)
 #define GPIO_LED_SAFETY			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN3)
-#define GPIO_SAFETY_SWITCH_IN	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN4)
+#define GPIO_BTN_SAFETY			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN4)
 #define GPIO_PERIPH_3V3_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
 #define GPIO_SBUS_INV			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
 #define GPIO_8266_GPIO0			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN2)
-#define GPIO_SPEKTRUM_POWER		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
+#define GPIO_SPEKTRUM_PWR_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
 #define GPIO_8266_PD			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
 #define GPIO_8266_RST			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
+
+/* Power switch controls ******************************************************/
+
+#define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
+#define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
+#define SPEKTRUM_RX_HIGH(_s)	stm32_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_s))
+#define SPEKTRUM_RX_AS_UART()		stm32_configgpio(GPIO_USART1_RX)
+#define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_USART1_RX_SPEKTRUM)
 
 /****************************************************************************************************
  * Public Types

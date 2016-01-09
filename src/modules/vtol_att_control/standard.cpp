@@ -282,6 +282,7 @@ void Standard::update_external_state()
 void Standard::fill_actuator_outputs()
 {
 	/* multirotor controls */
+	_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
 			* _mc_roll_weight;	// roll
 	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
@@ -292,6 +293,7 @@ void Standard::fill_actuator_outputs()
 		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;	// throttle
 
 	/* fixed wing controls */
+	_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
 	_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]
 			* (1 - _mc_roll_weight);	//roll
 	_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
@@ -300,7 +302,7 @@ void Standard::fill_actuator_outputs()
 			* (1 - _mc_yaw_weight);	// yaw
 
 	// set the fixed wing throttle control
-	if (_vtol_schedule.flight_mode == FW_MODE) {
+	if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {
 		// take the throttle value commanded by the fw controller
 		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];

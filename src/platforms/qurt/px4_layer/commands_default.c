@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -30,69 +30,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file ecl_yaw_controller.h
- * Definition of a simple orthogonal coordinated turn yaw PID controller.
+ * @file commands_default.c
+ * Commands to run for the "qurt_eagle_default" config
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@gmail.com>
- *
- * Acknowledgements:
- *
- *   The control design is based on a design
- *   by Paul Riseborough and Andrew Tridgell, 2013,
- *   which in turn is based on initial work of
- *   Jonathan Challinger, 2012.
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
-#ifndef ECL_YAW_CONTROLLER_H
-#define ECL_YAW_CONTROLLER_H
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "get_commands.h"
 
-#include "ecl_controller.h"
-
-class __EXPORT ECL_YawController :
-	public ECL_Controller
+const char *get_commands()
 {
-public:
-	ECL_YawController();
 
-	~ECL_YawController();
+	static const char *commands =
+		"uorb start\n"
+		"param set CAL_GYRO0_ID 2293760\n"
+		"param set CAL_ACC0_ID 1310720\n"
+		"param set CAL_ACC1_ID 1376256\n"
+		"param set CAL_MAG0_ID 196608\n"
+		"commander start\n"
 
-	float control_attitude(const struct ECL_ControlData &ctl_data);
+		;
 
-	float control_bodyrate(const struct ECL_ControlData &ctl_data);
+	return commands;
 
-	/* Additional setters */
-	void set_coordinated_min_speed(float coordinated_min_speed)
-	{
-		_coordinated_min_speed = coordinated_min_speed;
-	}
-
-	void set_coordinated_method(int32_t coordinated_method)
-	{
-		_coordinated_method = coordinated_method;
-	}
-
-	enum {
-		COORD_METHOD_OPEN = 0,
-		COORD_METHOD_CLOSEACC = 1
-	};
-
-protected:
-	float _coordinated_min_speed;
-	float _max_rate;
-
-	int32_t _coordinated_method;
-
-	float control_bodyrate_impl(const struct ECL_ControlData &ctl_data);
-
-	float control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data);
-
-	float control_attitude_impl_accclosedloop(const struct ECL_ControlData &ctl_data);
-
-};
-
-#endif // ECL_YAW_CONTROLLER_H
+}

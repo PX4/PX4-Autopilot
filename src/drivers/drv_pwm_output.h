@@ -81,7 +81,7 @@ __BEGIN_DECLS
 /**
  * Default value for a shutdown motor
  */
-#define PWM_MOTOR_OFF	800
+#define PWM_MOTOR_OFF	900
 
 /**
  * Default minimum PWM in us

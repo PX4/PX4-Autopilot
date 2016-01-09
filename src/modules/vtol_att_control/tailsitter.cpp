@@ -129,7 +129,7 @@ void Tailsitter::update_vtol_state()
 	 * For the backtransition the pitch is controlled in MC mode again and switches to full MC control reaching the sufficient pitch angle.
 	*/
 
-	if (_manual_control_sp->aux1 < 0.0f) {
+	if (!_attc->is_fixed_wing_requested()) {
 
 
 		switch (_vtol_schedule.flight_mode) { // user switchig to MC mode
@@ -446,12 +446,15 @@ void Tailsitter::fill_actuator_outputs()
 {
 	switch (_vtol_mode) {
 	case ROTARY_WING:
+		_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
 		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
 		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
 			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
 		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+
+		_actuators_out_1->timestamp = _actuators_mc_in->timestamp;
 
 		if (_params->elevons_mc_lock == 1) {
 			_actuators_out_1->control[0] = 0;
@@ -469,6 +472,7 @@ void Tailsitter::fill_actuator_outputs()
 
 	case FIXED_WING:
 		// in fixed wing mode we use engines only for providing thrust, no moments are generated
+		_actuators_out_0->timestamp = _actuators_fw_in->timestamp;
 		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = 0;
 		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = 0;
 		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = 0;
@@ -487,6 +491,8 @@ void Tailsitter::fill_actuator_outputs()
 
 	case TRANSITION:
 		// in transition engines are mixed by weight (BACK TRANSITION ONLY)
+		_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
+		_actuators_out_1->timestamp = _actuators_mc_in->timestamp;
 		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
 				* _mc_roll_weight;
 		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
