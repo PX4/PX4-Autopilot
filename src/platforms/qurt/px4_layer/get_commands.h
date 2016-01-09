@@ -1,6 +1,5 @@
 /****************************************************************************
- *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +11,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -30,40 +29,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file ecl_roll_controller.h
- * Definition of a simple orthogonal roll PID controller.
+ * @file get_commands.cpp
+ * functions to call to run the set of startup commands
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@gmail.com>
- *
- * Acknowledgements:
- *
- *   The control design is based on a design
- *   by Paul Riseborough and Andrew Tridgell, 2013,
- *   which in turn is based on initial work of
- *   Jonathan Challinger, 2012.
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#ifndef ECL_ROLL_CONTROLLER_H
-#define ECL_ROLL_CONTROLLER_H
+__BEGIN_DECLS
+// The commands to run are specified in a target file: commands_<target>.c
+extern const char *get_commands(void);
 
-#include <stdbool.h>
-#include <stdint.h>
+// Enable external library hook
+void qurt_external_hook(void) __attribute__((weak));
+__END_DECLS
 
-#include "ecl_controller.h"
-
-class __EXPORT ECL_RollController :
-	public ECL_Controller
-{
-public:
-	ECL_RollController();
-
-	~ECL_RollController();
-
-	float control_attitude(const struct ECL_ControlData &ctl_data);
-	float control_bodyrate(const struct ECL_ControlData &ctl_data);
-};
-
-#endif // ECL_ROLL_CONTROLLER_H

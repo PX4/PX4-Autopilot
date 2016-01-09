@@ -37,17 +37,42 @@ Vagrant.configure(2) do |config|
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
+  # NFS should be faster: https://stefanwrobel.com/how-to-make-vagrant-performance-not-suck
   config.vm.synced_folder ".", "/Firmware", type: "nfs"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
   # Example for VirtualBox:
   #
+
+  # This is to configure the machine to be as fast as possible
+  # Alternative: https://github.com/rdsubhas/vagrant-faster
   config.vm.provider "virtualbox" do |vb|
     # Display the VirtualBox GUI when booting the machine
     vb.gui = false
     vb.customize ["modifyvm", :id, "--ioapic", "on"]
-    vb.customize ["modifyvm", :id, "--cpus", "2"]
+    #vb.customize ["modifyvm", :id, "--cpus", "2"]
+
+    config.vm.provider "virtualbox" do |v|
+      host = RbConfig::CONFIG['host_os']
+
+      # Give VM 1/4 system memory & access to all cpu cores on the host
+      if host =~ /darwin/
+        cpus = `sysctl -n hw.ncpu`.to_i
+        # sysctl returns Bytes and we need to convert to MB
+        mem = `sysctl -n hw.memsize`.to_i / 1024 / 1024 / 4
+      elsif host =~ /linux/
+        cpus = `nproc`.to_i
+        # meminfo shows KB and we need to convert to MB
+        mem = `grep 'MemTotal' /proc/meminfo | sed -e 's/MemTotal://' -e 's/ kB//'`.to_i / 1024 / 4
+      else # sorry Windows folks, I can't help you
+        cpus = 2
+        mem = 1024
+      end
+
+      v.customize ["modifyvm", :id, "--memory", mem]
+      v.customize ["modifyvm", :id, "--cpus", cpus]
+    end
 
     # Since make and other tools freak out if they see timestamps
     # from the future and we share directories, tightly lock the host and guest clocks together (clock sync if more than 2 seconds off)
@@ -57,7 +82,7 @@ Vagrant.configure(2) do |config|
     vb.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-on-restore", "1"]
 
     # Customize the amount of memory on the VM:
-    vb.memory = "2048"
+    #vb.memory = "2048"
   end
   #
   # View the documentation for the provider you are using for more

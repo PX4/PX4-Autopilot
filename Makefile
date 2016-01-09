@@ -133,19 +133,22 @@ px4fmu-v2_default:
 px4fmu-v4_default:
 	$(call cmake-build,nuttx_px4fmu-v4_default)
 
-px4fmu-v2_simple:
-	$(call cmake-build,nuttx_px4fmu-v2_simple)
+px4-stm32f4discovery_default:
+	$(call cmake-build,nuttx_px4-stm32f4discovery_default)
+
+px4fmu-v2_ekf2:
+	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
-
-nuttx_sim_simple:
-	$(call cmake-build,$@)
 
 posix_sitl_default:
 	$(call cmake-build,$@)
 
 posix_sitl_lpe:
+	$(call cmake-build,$@)
+
+posix_sitl_ekf2:
 	$(call cmake-build,$@)
 
 ros_sitl_default:
@@ -158,6 +161,12 @@ qurt_eagle_release:
 	$(call cmake-build,$@)
 
 posix_eagle_release:
+	$(call cmake-build,$@)
+
+qurt_eagle_default:
+	$(call cmake-build,$@)
+
+posix_eagle_default:
 	$(call cmake-build,$@)
 
 posix: posix_sitl_default

@@ -23,16 +23,16 @@ set(config_module_list
 	drivers/l3gd20
 	drivers/hmc5883
 	drivers/ms5611
-	drivers/mb12xx
+	#drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
-	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
+	#drivers/hott
+	#drivers/hott/hott_telemetry
+	#drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
@@ -45,7 +45,7 @@ set(config_module_list
 	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger
-    drivers/bst
+	drivers/bst
 
 	#
 	# System commands
@@ -123,6 +123,7 @@ set(config_module_list
 	lib/launchdetection
 	lib/terrain_estimation
 	lib/runway_takeoff
+	lib/tailsitter_recovery
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
@@ -132,7 +133,7 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	modules/bottle_drop
+	#modules/bottle_drop
 
 	#
 	# Rover apps

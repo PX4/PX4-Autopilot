@@ -81,7 +81,7 @@ static void hrt_unlock(void)
 	px4_sem_post(&_hrt_lock);
 }
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if (defined(__APPLE__) && defined(__MACH__)) || defined(__PX4_QURT)
 #include <time.h>
 #include <sys/time.h>
 #define CLOCK_REALTIME 0

@@ -29,21 +29,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#############################################################################
+set(MODULE_CFLAGS)
+if (${OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=4000)
+endif()
 px4_add_module(
-	MODULE lib__ecl
-	COMPILE_FLAGS
-		-Os
+	MODULE modules__ekf2
+	MAIN ekf2
+	COMPILE_FLAGS ${MODULE_CFLAGS}
+	STACK 1000
 	SRCS
-		attitude_fw/ecl_controller.cpp
-		attitude_fw/ecl_pitch_controller.cpp
-		attitude_fw/ecl_roll_controller.cpp
-		attitude_fw/ecl_yaw_controller.cpp
-		attitude_fw/ecl_wheel_controller.cpp
-		l1/ecl_l1_pos_controller.cpp
-		validation/data_validator.cpp
-		validation/data_validator_group.cpp
+		ekf2_main.cpp
 	DEPENDS
 		platforms__common
+		git_ecl
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

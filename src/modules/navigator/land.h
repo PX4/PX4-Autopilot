@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name APL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -30,17 +30,36 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file ecl.h
- * Adapter / shim layer for system calls needed by ECL
+ * @file land.h
  *
+ * Helper class to land at the current position
+ *
+ * @author Andreas Antener <andreas@uaventure.com>
  */
 
-#include <drivers/drv_hrt.h>
-#include <px4_log.h>
+#ifndef NAVIGATOR_LAND_H
+#define NAVIGATOR_LAND_H
 
-#define ecl_absolute_time hrt_absolute_time
-#define ecl_elapsed_time hrt_elapsed_time
-#define ECL_WARN PX4_WARN
-#define ECL_INFO PX4_INFO
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
+#include "navigator_mode.h"
+#include "mission_block.h"
+
+class Land : public MissionBlock
+{
+public:
+    Land(Navigator *navigator, const char *name);
+
+    ~Land();
+
+    virtual void on_inactive();
+
+    virtual void on_activation();
+
+    virtual void on_active();
+
+};
+
+#endif

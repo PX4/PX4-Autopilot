@@ -233,5 +233,21 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			y = -y;
 			return;
 		}
+
+	case ROTATION_PITCH_90_ROLL_90: {
+			tmp = x; x = y;
+			y = -z; z = -tmp;
+			return;
+		}
+
+	case ROTATION_YAW_293_PITCH_68_ROLL_90: {
+			float tmpx = x;
+			float tmpy = y;
+			float tmpz = z;
+			x =  0.143039f * tmpx +  0.368776f * tmpy + -0.918446f * tmpz;
+			y = -0.332133f * tmpx + -0.856289f * tmpy + -0.395546f * tmpz;
+			z = -0.932324f * tmpx +  0.361625f * tmpy +  0.000000f * tmpz;
+			return;
+		}
 	}
 }

@@ -27,8 +27,8 @@ addons:
     - ccache
     - clang-3.5
     - cmake
-    - g++-4.8
-    - gcc-4.8
+    - g++-4.9
+    - gcc-4.9
     - genromfs
     - libc6-i386
     - libncurses5-dev
@@ -55,7 +55,7 @@ before_install:
       && mkdir -p ~/bin
       && wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
       && astyle --version
-      && if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+      && if [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
@@ -81,8 +81,6 @@ before_script:
   - ln -s /usr/bin/ccache ~/bin/clang
   - ln -s /usr/bin/ccache ~/bin/clang-3.4
   - ln -s /usr/bin/ccache ~/bin/clang-3.5
-  - ln -s /usr/bin/ccache ~/bin/g++-4.8
-  - ln -s /usr/bin/ccache ~/bin/gcc-4.8
   - export PATH=~/bin:$PATH
 
 env:
@@ -101,14 +99,16 @@ script:
   - echo 'Running Tests..' && make posix_sitl_default test
   - echo 'Running Unittests..' && cd unittests && ./run_tests.sh
   - cd ..
+  - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
+  - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
+# Only provide UAVCAN firmware binaries for Pixracer and Pixhawk 3
   - echo 'Building UAVCAN node firmware..' && git clone https://github.com/thiemar/vectorcontrol
   - cd vectorcontrol
   - BOARD=s2740vc_1_0 make && BOARD=px4esc_1_6 make
   - ../Tools/uavcan_copy.sh
   - cd ..
-  - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
-  - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
   - echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
+  - echo 'Building NuttX px4-stm32f4discovery Firmware..' && make px4-stm32f4discovery_default
   - echo 'Running Tests..' && make px4fmu-v2_default test
 
 after_success:
@@ -116,8 +116,9 @@ after_success:
          cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
       && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
       && cp build_px4fmu-v4_default/src/firmware/nuttx/nuttx-px4fmu-v4-default.px4 px4fmu-v4_default.px4
-      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4
-      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+      && cp build_px4-stm32f4discovery_default/src/firmware/nuttx/nuttx-px4-stm32f4discovery-default.px4 px4-stm32f4discovery-default.px4
+      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4
+      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
       && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put CI-Tools/index.html index.html

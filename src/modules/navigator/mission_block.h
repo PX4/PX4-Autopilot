@@ -101,6 +101,16 @@ protected:
 	 */
 	void set_takeoff_item(struct mission_item_s *item, float min_clearance = -1.0f, float min_pitch = 0.0f);
 
+	/**
+	 * Set a land mission item
+	 */
+	void set_land_item(struct mission_item_s *item, bool at_current_location);
+
+	/**
+	 * Set idle mission item
+	 */
+	void set_idle_item(struct mission_item_s *item);
+
 	mission_item_s _mission_item;
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;

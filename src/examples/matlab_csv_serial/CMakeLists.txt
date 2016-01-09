@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE examples__matlab_csv_serial
 	MAIN matlab_csv_serial
+	STACK 2000
 	SRCS
 		matlab_csv_serial.c
 	DEPENDS

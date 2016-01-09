@@ -63,8 +63,36 @@ static void		hrt_call_reschedule(void);
 static sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
 
-static void
-hrt_call_invoke(void);
+#include <time.h>
+#include <sys/time.h>
+#define CLOCK_REALTIME 0
+
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC 1
+#endif
+
+int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
+{
+	struct timeval now;
+	int rv = gettimeofday(&now, NULL);
+
+	if (rv) {
+		return rv;
+	}
+
+	tp->tv_sec = now.tv_sec;
+	tp->tv_nsec = now.tv_usec * 1000;
+
+	return 0;
+}
+
+int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
+{
+	/* do nothing right now */
+	return 0;
+}
+
+static void hrt_call_invoke(void);
 
 static void hrt_lock(void)
 {

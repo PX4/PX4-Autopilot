@@ -27,16 +27,16 @@ set(config_module_list
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
-	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
+	#drivers/hott
+	#drivers/hott/hott_telemetry
+	#drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
 	drivers/frsky_telemetry
 	modules/sensors
-	drivers/mkblctrl
+	#drivers/mkblctrl
 	drivers/px4flow
 
 	#
@@ -73,6 +73,7 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
+	modules/ekf2
 
 	#
 	# Vehicle Control
@@ -113,6 +114,7 @@ set(config_module_list
 	lib/launchdetection
 	lib/terrain_estimation
 	lib/runway_takeoff
+	lib/tailsitter_recovery
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config

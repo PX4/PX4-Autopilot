@@ -142,6 +142,7 @@ Navigator::Navigator() :
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
 	_takeoff(this, "TKF"),
+	_land(this, "LND"),
 	_rtl(this, "RTL"),
 	_rcLoss(this, "RCL"),
 	_dataLinkLoss(this, "DLL"),
@@ -161,6 +162,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[5] = &_gpsFailure;
 	_navigation_mode_array[6] = &_rcLoss;
 	_navigation_mode_array[7] = &_takeoff;
+	_navigation_mode_array[8] = &_land;
 
 	updateParams();
 }
@@ -275,9 +277,8 @@ Navigator::task_main()
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 
 	} else {
-		mavlink_log_info(_mavlink_fd, "No geofence set");
 		if (_geofence.clearDm() != OK) {
-			warnx("Could not clear geofence");
+			mavlink_log_critical(_mavlink_fd, "failed clearing geofence");
 		}
 	}
 
@@ -445,7 +446,6 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_ACRO:
 			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-			case vehicle_status_s::NAVIGATION_STATE_LAND:
 			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 				_navigation_mode = nullptr;
@@ -481,6 +481,10 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_takeoff;
+				break;
+			case vehicle_status_s::NAVIGATION_STATE_LAND:
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_land;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
