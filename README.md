@@ -17,7 +17,7 @@ This repository contains the [PX4 Flight Core](http://px4.io), with the main app
 
 ### Users ###
 
-Please refer to the [user documentation](https://px4.io) and [user forum](https://discuss.px4.io) for flying drones with the PX4 flight stack.
+Please refer to the [user documentation](http://px4.io) and [user forum](http://discuss.px4.io) for flying drones with the PX4 flight stack.
 
 ### Developers ###
 
