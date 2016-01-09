@@ -119,6 +119,13 @@ public:
 	int		set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 private:
+	enum RC_SCAN {
+		RC_SCAN_SBUS = 0,
+		RC_SCAN_DSM,
+		RC_SCAN_SUMD,
+		RC_SCAN_ST24
+	};
+
 	static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
 	Mode		_mode;
@@ -134,8 +141,7 @@ private:
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	int		_class_instance;
-	int		_sbus_fd;
-	int		_dsm_fd;
+	int		_rcs_fd;
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -280,8 +286,7 @@ PX4FMU::PX4FMU() :
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_class_instance(0),
-	_sbus_fd(-1),
-	_dsm_fd(-1),
+	_rcs_fd(-1),
 	_initialized(false),
 	_throttle_armed(false),
 	_pwm_on(false),
@@ -631,18 +636,11 @@ PX4FMU::cycle()
 
 		update_pwm_rev_mask();
 
-#ifdef SBUS_SERIAL_PORT
-		_sbus_fd = sbus_init(SBUS_SERIAL_PORT, false);
+#ifdef RC_SERIAL_PORT
+		_rcs_fd = :: open(RC_SERIAL_PORT, O_RDWR | O_NONBLOCK);
 #endif
-
-#ifdef DSM_SERIAL_PORT
-		// XXX rather than opening it we need to cycle between protocols until one is locked in
-		//_dsm_fd = dsm_init(DSM_SERIAL_PORT);
-#endif
-
 		_initialized = true;
 	}
-
 
 	if (_groups_subscribed != _groups_required) {
 		subscribe();
@@ -811,36 +809,143 @@ PX4FMU::cycle()
 
 	bool rc_updated = false;
 
-#ifdef SBUS_SERIAL_PORT
-	bool sbus_failsafe, sbus_frame_drop;
-	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
-	uint16_t raw_rc_count;
-	bool sbus_updated = sbus_input(_sbus_fd, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe, &sbus_frame_drop,
-				       input_rc_s::RC_INPUT_MAX_CHANNELS);
+#ifdef RC_SERIAL_PORT
+	// This block scans for a supported serial RC input and locks onto the first one found
+	static hrt_abstime rc_scan_last_lock = 0;
+	static hrt_abstime rc_scan_begin = 0;
+	static bool rc_scan_locked = false;
+	static enum RC_SCAN _rc_scan_state = RC_SCAN_SBUS;
 
-	if (sbus_updated) {
-		// we have a new PPM frame. Publish it.
-		_rc_in.channel_count = raw_rc_count;
+	// Scan for one second, then switch protocol
+	constexpr hrt_abstime rc_scan_max = 1000 * 1000;
+	hrt_abstime now = hrt_absolute_time();
 
-		if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
-			_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+	switch (_rc_scan_state) {
+	case RC_SCAN_SBUS:
+		if (rc_scan_begin == 0) {
+			warnx("fmu: RC_SCAN_SBUS: begin");
+			rc_scan_begin = now;
+//			// Configure serial port for SBUS
+			sbus_config(_rcs_fd, false);
+//			/* for PixRacer R07, this signal is active low */
+//			/* for PixRacer R12, this signal is active high */
+			stm32_gpiowrite(GPIO_SBUS_INV, 0);
+
+		} else if (hrt_absolute_time() - rc_scan_last_lock < rc_scan_max
+			   || hrt_absolute_time() - rc_scan_begin < rc_scan_max) {
+
+			bool sbus_failsafe, sbus_frame_drop;
+			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
+			uint16_t raw_rc_count;
+
+			// read port
+			rc_updated = sbus_input(_rcs_fd, &raw_rc_values[0], &raw_rc_count,
+						&sbus_failsafe, &sbus_frame_drop,
+						input_rc_s::RC_INPUT_MAX_CHANNELS);
+
+			if (rc_updated) {
+				// we have a new SBUS frame. Publish it.
+				_rc_in.channel_count = raw_rc_count;
+
+				if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+					_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+				}
+
+				for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
+					_rc_in.values[i] = raw_rc_values[i];
+				}
+
+				_rc_in.timestamp_publication = hrt_absolute_time();
+				_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
+
+				_rc_in.rc_ppm_frame_length = 0;
+				_rc_in.rssi = (!sbus_frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
+				_rc_in.rc_failsafe = sbus_failsafe;
+				_rc_in.rc_lost = false;
+				_rc_in.rc_lost_frame_count = sbus_dropped_frames();
+				_rc_in.rc_total_frame_count = 0;
+
+				rc_scan_last_lock = now;
+				rc_scan_locked = true;
+			}
+
+		} else if (!rc_scan_locked) {
+			// This triggers the port re-configuration
+			rc_scan_begin = 0;
+			// Scan the next protocol
+			_rc_scan_state = RC_SCAN_DSM;
 		}
 
-		for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
-			_rc_in.values[i] = raw_rc_values[i];
+		break;
+
+	case RC_SCAN_DSM:
+		if (rc_scan_begin == 0) {
+			warnx("fmu: RC_SCAN_DSM: begin");
+			rc_scan_begin = now;
+//			// Configure serial port for DSM
+			dsm_config(_rcs_fd);
+//			/* for PixRacer R07, this signal is active low */
+//			/* for PixRacer R12, this signal is active high */
+			stm32_gpiowrite(GPIO_SBUS_INV, 1);
+
+		} else if (hrt_absolute_time() - rc_scan_last_lock < rc_scan_max
+			   || hrt_absolute_time() - rc_scan_begin < rc_scan_max) {
+
+			uint8_t n_bytes = 0;
+			uint8_t *bytes;
+			bool dsm_11_bit;
+			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
+			uint16_t raw_rc_count;
+
+			rc_updated = dsm_input(_rcs_fd, raw_rc_values, &raw_rc_count, &dsm_11_bit, &n_bytes, &bytes,
+					       input_rc_s::RC_INPUT_MAX_CHANNELS);
+
+			if (rc_updated) {
+
+				//		if (dsm_11_bit) {
+				//			raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+				//
+				//		} else {
+				//			raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+				//		}
+
+				// we have a new SBUS frame. Publish it.
+				_rc_in.channel_count = raw_rc_count;
+
+				if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+					_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+				}
+
+				for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
+					_rc_in.values[i] = raw_rc_values[i];
+				}
+
+				_rc_in.timestamp_publication = hrt_absolute_time();
+				_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
+
+				_rc_in.rc_ppm_frame_length = 0;
+				_rc_in.rssi = (RC_INPUT_RSSI_MAX / 2);
+				_rc_in.rc_failsafe = false;
+				_rc_in.rc_lost = false;
+				_rc_in.rc_lost_frame_count = 0;
+				_rc_in.rc_total_frame_count = 0;
+
+				rc_scan_last_lock = now;
+				rc_scan_locked = true;
+			}
+
+		} else if (!rc_scan_locked) {
+			// This triggers the port re-configuration
+			rc_scan_begin = 0;
+			// Scan the next protocol
+			_rc_scan_state = RC_SCAN_SBUS;
 		}
 
-		_rc_in.timestamp_publication = hrt_absolute_time();
-		_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
+		break;
 
-		_rc_in.rc_ppm_frame_length = 0;
-		_rc_in.rssi = (!sbus_frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
-		_rc_in.rc_failsafe = sbus_failsafe;
-		_rc_in.rc_lost = false;
-		_rc_in.rc_lost_frame_count = sbus_dropped_frames();
-		_rc_in.rc_total_frame_count = 0;
-
-		rc_updated = true;
+	case RC_SCAN_ST24:
+	case RC_SCAN_SUMD:
+		break;
 	}
 
 #endif
@@ -848,8 +953,8 @@ PX4FMU::cycle()
 #ifdef HRT_PPM_CHANNEL
 
 	// see if we have new PPM input data
-	if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) &&
-	    ppm_decoded_channels > 3) {
+	if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
+	    && ppm_decoded_channels > 3) {
 		// we have a new PPM frame. Publish it.
 		_rc_in.channel_count = ppm_decoded_channels;
 
@@ -2224,7 +2329,7 @@ fmu_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "info")) {
-#ifdef SBUS_SERIAL_PORT
+#ifdef RC_SERIAL_PORT
 		warnx("frame drops: %u", sbus_dropped_frames());
 #endif
 		return 0;
