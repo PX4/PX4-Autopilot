@@ -830,8 +830,9 @@ PX4FMU::cycle()
 //			/* for PixRacer R07, this signal is active low */
 //			/* for PixRacer R12, this signal is active high */
 			stm32_gpiowrite(GPIO_SBUS_INV, 0);
+
 		} else if (hrt_absolute_time() - rc_scan_last_lock < rc_scan_max
-				|| hrt_absolute_time() - rc_scan_begin < rc_scan_max) {
+			   || hrt_absolute_time() - rc_scan_begin < rc_scan_max) {
 
 			bool sbus_failsafe, sbus_frame_drop;
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
@@ -839,8 +840,9 @@ PX4FMU::cycle()
 
 			// read port
 			rc_updated = sbus_input(_rcs_fd, &raw_rc_values[0], &raw_rc_count,
-						       &sbus_failsafe, &sbus_frame_drop,
-						       input_rc_s::RC_INPUT_MAX_CHANNELS);
+						&sbus_failsafe, &sbus_frame_drop,
+						input_rc_s::RC_INPUT_MAX_CHANNELS);
+
 			if (rc_updated) {
 				// we have a new SBUS frame. Publish it.
 				_rc_in.channel_count = raw_rc_count;
@@ -866,12 +868,14 @@ PX4FMU::cycle()
 				rc_scan_last_lock = now;
 				rc_scan_locked = true;
 			}
+
 		} else if (!rc_scan_locked) {
 			// This triggers the port re-configuration
 			rc_scan_begin = 0;
 			// Scan the next protocol
 			_rc_scan_state = RC_SCAN_DSM;
 		}
+
 		break;
 
 	case RC_SCAN_DSM:
@@ -883,8 +887,9 @@ PX4FMU::cycle()
 //			/* for PixRacer R07, this signal is active low */
 //			/* for PixRacer R12, this signal is active high */
 			stm32_gpiowrite(GPIO_SBUS_INV, 1);
+
 		} else if (hrt_absolute_time() - rc_scan_last_lock < rc_scan_max
-				|| hrt_absolute_time() - rc_scan_begin < rc_scan_max) {
+			   || hrt_absolute_time() - rc_scan_begin < rc_scan_max) {
 
 			uint8_t n_bytes = 0;
 			uint8_t *bytes;
@@ -893,16 +898,16 @@ PX4FMU::cycle()
 			uint16_t raw_rc_count;
 
 			rc_updated = dsm_input(_rcs_fd, raw_rc_values, &raw_rc_count, &dsm_11_bit, &n_bytes, &bytes,
-					input_rc_s::RC_INPUT_MAX_CHANNELS);
+					       input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 			if (rc_updated) {
 
-		//		if (dsm_11_bit) {
-		//			raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
-		//
-		//		} else {
-		//			raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
-		//		}
+				//		if (dsm_11_bit) {
+				//			raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+				//
+				//		} else {
+				//			raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+				//		}
 
 				// we have a new SBUS frame. Publish it.
 				_rc_in.channel_count = raw_rc_count;
@@ -928,17 +933,21 @@ PX4FMU::cycle()
 				rc_scan_last_lock = now;
 				rc_scan_locked = true;
 			}
+
 		} else if (!rc_scan_locked) {
 			// This triggers the port re-configuration
 			rc_scan_begin = 0;
 			// Scan the next protocol
 			_rc_scan_state = RC_SCAN_SBUS;
 		}
+
 		break;
+
 	case RC_SCAN_ST24:
 	case RC_SCAN_SUMD:
 		break;
 	}
+
 #endif
 
 #ifdef HRT_PPM_CHANNEL
