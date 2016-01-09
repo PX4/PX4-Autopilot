@@ -12,30 +12,19 @@ This repository contains the [PX4 Flight Core](http://px4.io), with the main app
   * [Multicopters](http://px4.io/platforms/multicopters/start)
   * [Fixed wing](http://px4.io/platforms/planes/start)
   * [VTOL](http://px4.io/platforms/vtol/start)
-*   Binaries (always up-to-date from master):
-  * [Downloads](http://px4.io/firmware/downloads)
 *   Releases
   * [Downloads](https://github.com/PX4/Firmware/releases)
-*   Forum / Mailing list: [Google Groups](http://groups.google.com/group/px4users)
 
 ### Users ###
 
-Please refer to the [user documentation](https://pixhawk.org/users/start) for flying drones with the PX4 flight stack.
+Please refer to the [user documentation](https://px4.io) and [user forum](https://discuss.px4.io) for flying drones with the PX4 flight stack.
 
 ### Developers ###
 
-Contributing guide:
-  * [CONTRIBUTING.md](https://github.com/PX4/Firmware/blob/master/CONTRIBUTING.md)
-  * [PX4 Contribution Guide](http://px4.io/dev/contributing)
+  * [Developer Forum / Mailing list](http://groups.google.com/group/px4users)
+  * [Guide for Contributions](https://github.com/PX4/Firmware/blob/master/CONTRIBUTING.md)
+  * [Developer guide](http://dev.px4.io)
 
-Software in the Loop guide:
-Use software in the loop [to get started with the codebase](https://pixhawk.org/dev/simulation/native_sitl).
-
-Developer guide:
-http://dev.px4.io
-
-Testing guide:
-http://px4.io/dev/unit_tests
 
 This repository contains code supporting these boards:
   * [Snapdragon Flight](http://dev.px4.io/hardware-snapdragon.html)
@@ -44,8 +33,3 @@ This repository contains code supporting these boards:
   * FMUv4.x (Pixhawk X and [Pixracer](http://dev.px4.io/hardware-pixracer.html))
   * AeroCore (v1 and v2)
   * STM32F4Discovery (basic support) [Tutorial](https://pixhawk.org/modules/stm32f4discovery)
-
-## NuttShell (NSH) ##
-
-NSH usage documentation:
-http://px4.io/users/serial_connection
