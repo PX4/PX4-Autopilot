@@ -27,6 +27,8 @@ addons:
     - ccache
     - clang-3.5
     - cmake
+    - g++-4.9
+    - gcc-4.9
     - genromfs
     - libc6-i386
     - libncurses5-dev
@@ -53,7 +55,7 @@ before_install:
       && mkdir -p ~/bin
       && wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
       && astyle --version
-      && if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+      && if [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
