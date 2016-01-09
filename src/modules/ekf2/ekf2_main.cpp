@@ -174,9 +174,9 @@ private:
 };
 
 Ekf2::Ekf2():
-_lp_roll_rate(250.0f, 30.0f),
-_lp_pitch_rate(250.0f, 30.0f),
-_lp_yaw_rate(250.0f, 20.0f)
+	_lp_roll_rate(250.0f, 30.0f),
+	_lp_pitch_rate(250.0f, 30.0f),
+	_lp_yaw_rate(250.0f, 20.0f)
 {
 	_ekf = new Ekf();
 	_att_pub = nullptr;
@@ -386,11 +386,13 @@ void Ekf2::task_main()
 
 		// Position of local NED origin in GPS / WGS84 frame
 		lpos.ref_timestamp = _ekf->_last_gps_origin_time_us; // Time when reference position was set
- 		lpos.xy_global = _ekf->position_is_valid();// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
- 		lpos.z_global = true;// true if z is valid and has valid global reference (ref_alt)
+		lpos.xy_global =
+			_ekf->position_is_valid();// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
+		lpos.z_global = true;// true if z is valid and has valid global reference (ref_alt)
 		lpos.ref_lat = _ekf->_posRef.lat_rad * (double)180.0 * M_PI; // Reference point latitude in degrees
 		lpos.ref_lon = _ekf->_posRef.lon_rad * (double)180.0 * M_PI; // Reference point longitude in degrees
-		lpos.ref_alt = _ekf->_gps_alt_ref; // Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level		
+		lpos.ref_alt =
+			_ekf->_gps_alt_ref; // Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level
 
 		// The rotation of the tangent plane vs. geographical north
 		lpos.yaw = 0.0f;
@@ -400,7 +402,7 @@ void Ekf2::task_main()
 		lpos.surface_bottom_timestamp	= 0; // Time when new bottom surface found
 		lpos.dist_bottom_valid = false; // true if distance to bottom surface is valid
 
- 		// TODO: uORB definition does not define what thes variables are. We have assumed them to be horizontal and vertical 1-std dev accuracy in metres 
+		// TODO: uORB definition does not define what thes variables are. We have assumed them to be horizontal and vertical 1-std dev accuracy in metres
 		// TODO: Should use sqrt of filter position variances
 		lpos.eph = gps.eph;
 		lpos.epv = gps.epv;
@@ -408,6 +410,7 @@ void Ekf2::task_main()
 		// publish vehicle local position data
 		if (_lpos_pub == nullptr) {
 			_lpos_pub = orb_advertise(ORB_ID(vehicle_local_position), &lpos);
+
 		} else {
 			orb_publish(ORB_ID(vehicle_local_position), _lpos_pub, &lpos);
 		}
@@ -427,6 +430,7 @@ void Ekf2::task_main()
 		// publish control state data
 		if (_control_state_pub == nullptr) {
 			_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
+
 		} else {
 			orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
 		}
@@ -445,12 +449,14 @@ void Ekf2::task_main()
 		// publish vehicle attitude data
 		if (_att_pub == nullptr) {
 			_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+
 		} else {
 			orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
 		}
 
 		// generate and publish global position data
 		struct vehicle_global_position_s global_pos;
+
 		if (_ekf->position_is_valid()) {
 			// TODO: local origin is currenlty at GPS height origin - this is different to ekf_att_pos_estimator
 
@@ -483,6 +489,7 @@ void Ekf2::task_main()
 
 			if (_vehicle_global_position_pub == nullptr) {
 				_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+
 			} else {
 				orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
 			}
@@ -559,7 +566,7 @@ int ekf2_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "print")) {
 		if (ekf2::instance != nullptr) {
-			
+
 			return 0;
 		}
 
