@@ -9,9 +9,9 @@ This repository contains the [PX4 Flight Core](http://px4.io), with the main app
 *   Official Website: http://px4.io
 *   License: BSD 3-clause (see [LICENSE.md](https://github.com/PX4/Firmware/blob/master/LICENSE.md))
 *   Supported airframes (more experimental are supported):
-  * [Multicopters](http://px4.io/platforms/multicopters/start)
-  * [Fixed wing](http://px4.io/platforms/planes/start)
-  * [VTOL](http://px4.io/platforms/vtol/start)
+  * [Multicopters](http://px4.io/portfolio_category/multicopter/)
+  * [Fixed wing](http://px4.io/portfolio_category/vtol/)
+  * [VTOL](http://px4.io/portfolio_category/plane/)
 *   Releases
   * [Downloads](https://github.com/PX4/Firmware/releases)
 
