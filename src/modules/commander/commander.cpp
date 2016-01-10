@@ -417,7 +417,7 @@ int commander_main(int argc, char *argv[])
 		/* see if we got a home position */
 		if (status.condition_home_position_valid) {
 
-			if (TRANSITION_CHANGED == arm_disarm(true, mavlink_fd_local, "command line")) {
+			if (TRANSITION_DENIED != arm_disarm(true, mavlink_fd_local, "command line")) {
 
 				vehicle_command_s cmd = {};
 				cmd.target_system = status.system_id;
