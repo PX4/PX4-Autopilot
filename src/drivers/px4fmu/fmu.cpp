@@ -673,6 +673,8 @@ PX4FMU::cycle()
 		_rcs_fd = :: open(RC_SERIAL_PORT, O_RDWR | O_NONBLOCK);
 		// assume SBUS input
 		sbus_config(_rcs_fd, false);
+		// disable CPPM input by mapping it away from the timer capture input
+		stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 #endif
 		_initialized = true;
 	}
@@ -866,12 +868,6 @@ PX4FMU::cycle()
 	if (report_lock && rc_scan_locked) {
 		report_lock = false;
 		warnx("fmu: RC input %u locked", rc_scan_state);
-
-		if (rc_scan_state != RC_SCAN_PPM) {
-			warnx("fmu: disabling PPM input");
-			// disable CPPM input by mapping it away from the timer capture input
-			stm32_configgpio(GPIO_PPM_IN & ~GPIO_AF_MASK);
-		}
 	}
 
 	// read all available data from the serial RC input UART
@@ -1018,6 +1014,8 @@ PX4FMU::cycle()
 		} else if (!rc_scan_locked) {
 			// This triggers the port re-configuration
 			rc_scan_begin = 0;
+			// disable CPPM input by mapping it away from the timer capture input
+			stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 			// Scan the next protocol
 			rc_scan_state = RC_SCAN_SBUS;
 		}
