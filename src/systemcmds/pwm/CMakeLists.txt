@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__pwm
 	MAIN pwm
-	STACK 1800
+	STACK 2400
 	COMPILE_FLAGS
 		-Os
 	SRCS
