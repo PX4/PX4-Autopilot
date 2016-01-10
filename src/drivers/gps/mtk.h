@@ -72,7 +72,7 @@ typedef struct {
 	uint32_t msl_altitude;  ///< MSL altitude in meters * 10^2
 	uint32_t ground_speed; ///< velocity in m/s
 	int32_t heading; ///< heading in degrees * 10^2
-	uint8_t satellites; ///< number of sattelites used
+	uint8_t satellites; ///< number of satellites used
 	uint8_t fix_type;  ///< fix type: XXX correct for that
 	uint32_t date;
 	uint32_t utc_time;
