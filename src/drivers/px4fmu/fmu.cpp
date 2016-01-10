@@ -862,8 +862,7 @@ PX4FMU::cycle()
 	bool sbus_failsafe, sbus_frame_drop;
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
 	uint16_t raw_rc_count;
-	unsigned sbus_frame_drops;
-	unsigned dsm_frame_drops;
+    unsigned frame_drops;
 	bool dsm_11_bit;
 
 
@@ -890,12 +889,12 @@ PX4FMU::cycle()
 			// parse new data
 			if (newBytes > 0) {
 				rc_updated = sbus_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
-							&sbus_frame_drop, &sbus_frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+                            &sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new SBUS frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
-                           sbus_frame_drop, sbus_failsafe, sbus_frame_drops);
+                           sbus_frame_drop, sbus_failsafe, frame_drops);
 					rc_scan_last_lock = now;
 					rc_scan_locked = true;
 				}
@@ -923,12 +922,12 @@ PX4FMU::cycle()
 			if (newBytes > 0) {
 				// parse new data
 				rc_updated = dsm_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
-						       &dsm_11_bit, &dsm_frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+                               &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new DSM frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
-						   false, false, dsm_frame_drops);
+                           false, false, frame_drops);
 					rc_scan_last_lock = now;
 					rc_scan_locked = true;
 				}
@@ -969,7 +968,7 @@ PX4FMU::cycle()
 				if (rc_updated) {
 					// we have a new ST24 frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
-                           false, false, dsm_frame_drops, st24_rssi);
+                           false, false, frame_drops, st24_rssi);
 					rc_scan_last_lock = now;
 					rc_scan_locked = true;
 				}
