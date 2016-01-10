@@ -625,22 +625,26 @@ PX4FMU::cycle_trampoline(void *arg)
 }
 
 void PX4FMU::fill_rc_in(uint16_t raw_rc_count,
-		uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
-		hrt_abstime now, bool sbus_frame_drop, bool sbus_failsafe,
-		unsigned sbus_frame_drops) {
+			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
+			hrt_abstime now, bool sbus_frame_drop, bool sbus_failsafe,
+			unsigned sbus_frame_drops)
+{
 	// fill rc_in struct for publishing
 	_rc_in.channel_count = raw_rc_count;
+
 	if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
 		_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
+
 	for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
 		_rc_in.values[i] = raw_rc_values[i];
 	}
+
 	_rc_in.timestamp_publication = now;
 	_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
 	_rc_in.rc_ppm_frame_length = 0;
 	_rc_in.rssi =
-			(!sbus_frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
+		(!sbus_frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
 	_rc_in.rc_failsafe = sbus_failsafe;
 	_rc_in.rc_lost = false;
 	_rc_in.rc_lost_frame_count = sbus_frame_drops;
@@ -862,6 +866,7 @@ PX4FMU::cycle()
 	if (report_lock && rc_scan_locked) {
 		report_lock = false;
 		warnx("fmu: RC input %u locked", rc_scan_state);
+
 		if (rc_scan_state != RC_SCAN_PPM) {
 			warnx("fmu: disabling PPM input");
 			// disable CPPM input by mapping it away from the timer capture input
@@ -889,12 +894,12 @@ PX4FMU::cycle()
 			// parse new data
 			if (newBytes > 0) {
 				rc_updated = sbus_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
-							   &sbus_frame_drop, &sbus_frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+							&sbus_frame_drop, &sbus_frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new SBUS frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
-							sbus_frame_drop, sbus_failsafe, sbus_frame_drops);
+						   sbus_frame_drop, sbus_failsafe, sbus_frame_drops);
 					rc_scan_last_lock = now;
 					rc_scan_locked = true;
 				}
@@ -924,12 +929,12 @@ PX4FMU::cycle()
 			if (newBytes > 0) {
 				// parse new data
 				rc_updated = dsm_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
-						&dsm_11_bit, &dsm_frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+						       &dsm_11_bit, &dsm_frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new DSM frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
-							false, false, dsm_frame_drops);
+						   false, false, dsm_frame_drops);
 					rc_scan_last_lock = now;
 					rc_scan_locked = true;
 				}
@@ -961,16 +966,18 @@ PX4FMU::cycle()
 				uint8_t st24_rssi, rx_count;
 
 				rc_updated = false;
+
 				for (unsigned i = 0; i < newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					st24_rssi = RC_INPUT_RSSI_MAX;
 					rc_updated |= (OK == st24_decode(_rcs_buf[i], &st24_rssi, &rx_count,
-									    &raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
+									 &raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
 				}
+
 				if (rc_updated) {
 					// we have a new ST24 frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
-							false, false, dsm_frame_drops);
+						   false, false, dsm_frame_drops);
 					rc_scan_last_lock = now;
 					rc_scan_locked = true;
 				}
@@ -995,15 +1002,15 @@ PX4FMU::cycle()
 			stm32_configgpio(GPIO_PPM_IN);
 
 		} else if (now - rc_scan_last_lock < rc_scan_max
-				|| now - rc_scan_begin < rc_scan_max) {
+			   || now - rc_scan_begin < rc_scan_max) {
 
 			// see if we have new PPM input data
 			if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
-					&& ppm_decoded_channels > 3) {
+			    && ppm_decoded_channels > 3) {
 				// we have a new PPM frame. Publish it.
 				rc_updated = true;
 				fill_rc_in(ppm_decoded_channels, ppm_buffer, now,
-						false, false, 0);
+					   false, false, 0);
 				rc_scan_last_lock = now;
 				rc_scan_locked = true;
 			}
