@@ -843,7 +843,7 @@ Mavlink::get_free_tx_buf()
 	 */
 	int buf_free = 0;
 
-	// if we are using network sockets, return max lenght of one packet
+	// if we are using network sockets, return max length of one packet
 	if (get_protocol() == UDP || get_protocol() == TCP ) {
 		return  1500;
 	} else {
@@ -1045,7 +1045,7 @@ Mavlink::init_udp()
 		return;
 	}
 
-	/* set default target address, but not for onboard mode (will be set on first recieved packet) */
+	/* set default target address, but not for onboard mode (will be set on first received packet) */
 	memset((char *)&_src_addr, 0, sizeof(_src_addr));
 	if (_mode != MAVLINK_MODE_ONBOARD) {
 		set_client_source_initialized();
