@@ -54,7 +54,7 @@
 PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
 
 /**
- * Catapult accelerometer theshold.
+ * Catapult accelerometer threshold.
  *
  * LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection.
  *
@@ -64,7 +64,7 @@ PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
 PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
 
 /**
- * Catapult time theshold.
+ * Catapult time threshold.
  *
  * LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection.
  *

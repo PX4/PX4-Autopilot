@@ -536,7 +536,7 @@ void PWMIN::print_info(void)
 
 
 /*
- * Handle the interupt, gathering pulse data
+ * Handle the interrupt, gathering pulse data
  */
 static int pwmin_tim_isr(int irq, void *context)
 {

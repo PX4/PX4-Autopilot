@@ -752,7 +752,7 @@ class MAVLink_gps_raw_int_message(MAVLink_message):
         '''
         The global position, as returned by the Global Positioning
         System (GPS). This is                 NOT the global position
-        estimate of the sytem, but rather a RAW sensor value. See
+        estimate of the system, but rather a RAW sensor value. See
         message GLOBAL_POSITION for the global position estimate.
         Coordinate frame is right-handed, Z-axis up (GPS frame).
         '''
@@ -2812,7 +2812,7 @@ class MAVLink(object):
                 '''
                 The global position, as returned by the Global Positioning System
                 (GPS). This is                 NOT the global position
-                estimate of the sytem, but rather a RAW sensor value.
+                estimate of the system, but rather a RAW sensor value.
                 See message GLOBAL_POSITION for the global position
                 estimate. Coordinate frame is right-handed, Z-axis up
                 (GPS frame).
@@ -2837,7 +2837,7 @@ class MAVLink(object):
                 '''
                 The global position, as returned by the Global Positioning System
                 (GPS). This is                 NOT the global position
-                estimate of the sytem, but rather a RAW sensor value.
+                estimate of the system, but rather a RAW sensor value.
                 See message GLOBAL_POSITION for the global position
                 estimate. Coordinate frame is right-handed, Z-axis up
                 (GPS frame).

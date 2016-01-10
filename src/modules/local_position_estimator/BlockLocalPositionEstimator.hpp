@@ -145,7 +145,7 @@ private:
 	// predict the next state
 	void predict();
 
-	// correct the state prediction wtih a measurement
+	// correct the state prediction with a measurement
 	void correctBaro();
 	void correctGps();
 	void correctLidar();

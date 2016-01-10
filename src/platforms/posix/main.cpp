@@ -35,7 +35,7 @@
  * Basic shell to execute builtin "apps"
  *
  * @author Mark Charlebois <charlebm@gmail.com>
- * @auther Roman Bapst <bapstroman@gmail.com>
+ * @author Roman Bapst <bapstroman@gmail.com>
  */
 
 #include <iostream>
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 			const char *folderpath = "/rootfs/";
 
 			if (nullptr == getcwd(pwd_path, sizeof(pwd_path))) {
-				PX4_ERR("Failed aquiring working dir, abort.");
+				PX4_ERR("Failed acquiring working dir, abort.");
 				exit(1);
 			}
 

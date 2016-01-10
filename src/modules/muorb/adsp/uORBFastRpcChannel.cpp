@@ -35,7 +35,7 @@
 #include <algorithm>
 #include <drivers/drv_hrt.h>
 
-// static intialization.
+// static initialization.
 uORB::FastRpcChannel uORB::FastRpcChannel::_Instance;
 
 static hrt_abstime _check_time;

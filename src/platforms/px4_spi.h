@@ -17,7 +17,7 @@ enum spi_dev_e {
 	SPIDEV_AUDIO_CTRL,  /* Select SPI audio codec device control port */
 };
 
-/* Certain SPI devices may required differnt clocking modes */
+/* Certain SPI devices may required different clocking modes */
 
 enum spi_mode_e {
 	SPIDEV_MODE0 = 0,   /* CPOL=0 CHPHA=0 */

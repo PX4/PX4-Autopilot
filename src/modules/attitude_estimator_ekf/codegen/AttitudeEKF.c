@@ -499,7 +499,7 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
 
   float b_z[6];
 
-  /* LQG Postion Estimator and Controller */
+  /* LQG Position Estimator and Controller */
   /*  Observer: */
   /*         x[n|n]   = x[n|n-1] + M(y[n] - Cx[n|n-1] - Du[n]) */
   /*         x[n+1|n] = Ax[n|n] + Bu[n] */
