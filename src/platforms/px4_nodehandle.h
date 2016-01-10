@@ -132,7 +132,7 @@ public:
 	void spinOnce() { ros::spinOnce(); }
 
 	/**
-	 * Keeps calling callbacks for incomming messages, returns when module is terminated
+	 * Keeps calling callbacks for incoming messages, returns when module is terminated
 	 */
 	void spin() { ros::spin(); }
 
@@ -266,7 +266,7 @@ public:
 	}
 
 	/**
-	 * Keeps calling callbacks for incomming messages, returns when module is terminated
+	 * Keeps calling callbacks for incoming messages, returns when module is terminated
 	 */
 	void spin()
 	{
@@ -292,7 +292,7 @@ protected:
 	static const uint16_t kMaxPublications = 100;
 	List<SubscriberNode *> _subs;		/**< Subcriptions of node */
 	List<PublisherNode *> _pubs;		/**< Publications of node */
-	SubscriberNode *_sub_min_interval;	/**< Points to the sub wtih the smallest interval
+	SubscriberNode *_sub_min_interval;	/**< Points to the sub with the smallest interval
 							  of all Subscriptions in _subs*/
 
 	AppState	&_appState;
