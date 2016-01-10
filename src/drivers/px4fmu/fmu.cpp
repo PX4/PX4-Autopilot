@@ -207,10 +207,10 @@ private:
 	/* do not allow to copy due to ptr data members */
 	PX4FMU(const PX4FMU &);
 	PX4FMU operator=(const PX4FMU &);
-    void fill_rc_in(uint16_t raw_rc_count,
-            uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
-            hrt_abstime now, bool frame_drop, bool failsafe,
-            unsigned frame_drops, int rssi);
+	void fill_rc_in(uint16_t raw_rc_count,
+			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
+			hrt_abstime now, bool frame_drop, bool failsafe,
+			unsigned frame_drops, int rssi);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
@@ -626,8 +626,8 @@ PX4FMU::cycle_trampoline(void *arg)
 
 void PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
-            hrt_abstime now, bool frame_drop, bool failsafe,
-            unsigned frame_drops, int rssi=-1)
+			hrt_abstime now, bool frame_drop, bool failsafe,
+			unsigned frame_drops, int rssi = -1)
 {
 	// fill rc_in struct for publishing
 	_rc_in.channel_count = raw_rc_count;
@@ -643,13 +643,15 @@ void PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 	_rc_in.timestamp_publication = now;
 	_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
 	_rc_in.rc_ppm_frame_length = 0;
-    if (rssi == -1) {
-        _rc_in.rssi =
-                (!frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
-    }
-    _rc_in.rc_failsafe = failsafe;
+
+	if (rssi == -1) {
+		_rc_in.rssi =
+			(!frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
+	}
+
+	_rc_in.rc_failsafe = failsafe;
 	_rc_in.rc_lost = false;
-    _rc_in.rc_lost_frame_count = frame_drops;
+	_rc_in.rc_lost_frame_count = frame_drops;
 	_rc_in.rc_total_frame_count = 0;
 }
 
@@ -862,7 +864,7 @@ PX4FMU::cycle()
 	bool sbus_failsafe, sbus_frame_drop;
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
 	uint16_t raw_rc_count;
-    unsigned frame_drops;
+	unsigned frame_drops;
 	bool dsm_11_bit;
 
 
@@ -879,9 +881,9 @@ PX4FMU::cycle()
 	case RC_SCAN_SBUS:
 		if (rc_scan_begin == 0) {
 			rc_scan_begin = now;
-            // Configure serial port for SBUS
+			// Configure serial port for SBUS
 			sbus_config(_rcs_fd, false);
-            INVERT_RC_INPUT(true);
+			INVERT_RC_INPUT(true);
 
 		} else if (now - rc_scan_last_lock < rc_scan_max
 			   || now - rc_scan_begin < rc_scan_max) {
@@ -889,12 +891,12 @@ PX4FMU::cycle()
 			// parse new data
 			if (newBytes > 0) {
 				rc_updated = sbus_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
-                            &sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+							&sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new SBUS frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
-                           sbus_frame_drop, sbus_failsafe, frame_drops);
+						   sbus_frame_drop, sbus_failsafe, frame_drops);
 					rc_scan_last_lock = now;
 					rc_scan_locked = true;
 				}
@@ -914,7 +916,7 @@ PX4FMU::cycle()
 			rc_scan_begin = now;
 //			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
-            INVERT_RC_INPUT(false);
+			INVERT_RC_INPUT(false);
 
 		} else if (now - rc_scan_last_lock < rc_scan_max
 			   || now - rc_scan_begin < rc_scan_max) {
@@ -922,12 +924,12 @@ PX4FMU::cycle()
 			if (newBytes > 0) {
 				// parse new data
 				rc_updated = dsm_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
-                               &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+						       &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new DSM frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
-                           false, false, frame_drops);
+						   false, false, frame_drops);
 					rc_scan_last_lock = now;
 					rc_scan_locked = true;
 				}
@@ -947,7 +949,7 @@ PX4FMU::cycle()
 			rc_scan_begin = now;
 //			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
-            INVERT_RC_INPUT(false);
+			INVERT_RC_INPUT(false);
 
 		} else if (now - rc_scan_last_lock < rc_scan_max
 			   || now - rc_scan_begin < rc_scan_max) {
@@ -968,7 +970,7 @@ PX4FMU::cycle()
 				if (rc_updated) {
 					// we have a new ST24 frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
-                           false, false, frame_drops, st24_rssi);
+						   false, false, frame_drops, st24_rssi);
 					rc_scan_last_lock = now;
 					rc_scan_locked = true;
 				}
