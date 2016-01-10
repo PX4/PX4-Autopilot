@@ -788,6 +788,7 @@ Mavlink::enable_flow_control(bool enabled)
 {
 	// We can't do this on USB - skip
 	if (_is_usb_uart) {
+		_flow_control_enabled = false;
 		return OK;
 	}
 
@@ -1459,7 +1460,7 @@ Mavlink::update_rate_mult()
 	/* scale down if we have a TX err rate suggesting link congestion */
 	if (_rate_txerr > 0.0f && !radio_critical) {
 		hardware_mult = (_rate_tx) / (_rate_tx + _rate_txerr);
-	} else if (radio_found && tstatus.timestamp != _last_hw_rate_timestamp) {
+	} else if (radio_found && tstatus.telem_time != _last_hw_rate_timestamp) {
 
 		if (tstatus.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
 			/* this indicates link congestion, reduce rate by 20% */
@@ -1473,12 +1474,13 @@ Mavlink::update_rate_mult()
 			/* limit to a max multiplier of 1 */
 			hardware_mult = fminf(1.0f, hardware_mult);
 		}
-	} else {
+
+	} else if (!radio_found) {
 		/* no limitation, set hardware to 1 */
 		hardware_mult = 1.0f;
 	}
 
-	_last_hw_rate_timestamp = tstatus.timestamp;
+	_last_hw_rate_timestamp = tstatus.telem_time;
 
 	/* pick the minimum from bandwidth mult and hardware mult as limit */
 	_rate_mult = fminf(bandwidth_mult, hardware_mult);
@@ -2201,6 +2203,7 @@ Mavlink::display_status()
 		printf("\tremote noise:\t%u\n", _rstatus.remote_noise);
 		printf("\trx errors:\t%u\n", _rstatus.rxerrors);
 		printf("\tfixed:\t\t%u\n", _rstatus.fixed);
+		printf("\tflow control:\t%s\n", (_flow_control_enabled) ? "ON" : "OFF");
 
 	} else {
 		printf("\tno telem status.\n");
