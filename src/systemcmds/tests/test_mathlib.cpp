@@ -100,7 +100,7 @@ int test_mathlib(int argc, char *argv[])
 		TEST_OP("Vector<3> length squared", v1.length_squared());
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
-		// Need pragma here intead of moving variable out of TEST_OP and just reference because
+		// Need pragma here instead of moving variable out of TEST_OP and just reference because
 		// TEST_OP measures performance of vector operations.
 		TEST_OP("Vector<3> element read", volatile float a = v1(0));
 		TEST_OP("Vector<3> element read direct", volatile float a = v1.data[0]);
