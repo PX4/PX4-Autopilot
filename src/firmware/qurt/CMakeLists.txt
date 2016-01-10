@@ -8,6 +8,7 @@ px4_qurt_generate_builtin_commands(
 
 # Enable build without HexagonSDK to check link dependencies
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
+	add_definitions(-DQURT_EXE_BUILD)
 	add_executable(mainapp 
 		${CMAKE_SOURCE_DIR}/src/platforms/qurt/dspal/dspal_stub.c
 		${CMAKE_BINARY_DIR}/apps.h)
