@@ -26,7 +26,7 @@ float32 z			 # throttle stick position 0..1
 				 # in general the value corresponds to the demanded throttle by the user,
 				 # if the input is used for setting the setpoint of a vertical position
 				 # controller any value > 0.5 means up and any value < 0.5 means down
-float32 r			 # yaw stick/twist positon, -1..1
+float32 r			 # yaw stick/twist position, -1..1
 				 # in general corresponds to the righthand rotation around the vertical
 				 # (downwards) axis of the vehicle
 float32 flaps			 # flap position
