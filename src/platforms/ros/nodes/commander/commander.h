@@ -72,7 +72,7 @@ protected:
 			  px4::vehicle_control_mode &msg_vehicle_control_mode);
 
 	/**
-	 * Sets offboard controll flags in msg_vehicle_control_mode
+	 * Sets offboard control flags in msg_vehicle_control_mode
 	 */
 	void SetOffboardControl(const px4::offboard_control_mode &msg_offboard_control_mode,
 				px4::vehicle_control_mode &msg_vehicle_control_mode);
