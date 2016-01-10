@@ -333,12 +333,6 @@ private:
 namespace pos_control
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 MulticopterPositionControl	*g_control;
 }
 
