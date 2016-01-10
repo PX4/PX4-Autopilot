@@ -120,7 +120,8 @@ public:
 
 private:
 	enum RC_SCAN {
-		RC_SCAN_SBUS = 0,
+		RC_SCAN_PPM,
+		RC_SCAN_SBUS,
 		RC_SCAN_DSM,
 		RC_SCAN_SUMD,
 		RC_SCAN_ST24
@@ -142,6 +143,7 @@ private:
 	unsigned	_num_outputs;
 	int		_class_instance;
 	int		_rcs_fd;
+	uint8_t _rcs_buf[SBUS_FRAME_SIZE];
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -638,6 +640,8 @@ PX4FMU::cycle()
 
 #ifdef RC_SERIAL_PORT
 		_rcs_fd = :: open(RC_SERIAL_PORT, O_RDWR | O_NONBLOCK);
+		// assume SBUS input
+		sbus_config(_rcs_fd, false);
 #endif
 		_initialized = true;
 	}
@@ -814,13 +818,27 @@ PX4FMU::cycle()
 	static hrt_abstime rc_scan_last_lock = 0;
 	static hrt_abstime rc_scan_begin = 0;
 	static bool rc_scan_locked = false;
-	static enum RC_SCAN _rc_scan_state = RC_SCAN_SBUS;
+	static bool report_lock = true;
+	static enum RC_SCAN rc_scan_state = RC_SCAN_SBUS;
 
 	// Scan for one second, then switch protocol
 	constexpr hrt_abstime rc_scan_max = 1000 * 1000;
-	hrt_abstime now = hrt_absolute_time();
 
-	switch (_rc_scan_state) {
+	if (report_lock && rc_scan_locked) {
+		report_lock = false;
+		warnx("fmu: RC input %u locked", rc_scan_state);
+		if (rc_scan_state != RC_SCAN_PPM) {
+			warnx("fmu: disabling PPM input");
+			// disable CPPM input by mapping it away from the timer capture input
+			stm32_configgpio(GPIO_PPM_IN & ~GPIO_AF_MASK);
+		}
+	}
+
+	// read all available data from the serial RC input UART
+	hrt_abstime now = hrt_absolute_time();
+	int newBytes = :: read(_rcs_fd, &_rcs_buf[0], SBUS_FRAME_SIZE);
+
+	switch (rc_scan_state) {
 	case RC_SCAN_SBUS:
 		if (rc_scan_begin == 0) {
 			warnx("fmu: RC_SCAN_SBUS: begin");
@@ -831,49 +849,51 @@ PX4FMU::cycle()
 //			/* for PixRacer R12, this signal is active high */
 			stm32_gpiowrite(GPIO_SBUS_INV, 0);
 
-		} else if (hrt_absolute_time() - rc_scan_last_lock < rc_scan_max
-			   || hrt_absolute_time() - rc_scan_begin < rc_scan_max) {
+		} else if (now - rc_scan_last_lock < rc_scan_max
+			   || now - rc_scan_begin < rc_scan_max) {
 
 			bool sbus_failsafe, sbus_frame_drop;
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
 			uint16_t raw_rc_count;
+			unsigned sbus_frame_drops;
 
-			// read port
-			rc_updated = sbus_input(_rcs_fd, &raw_rc_values[0], &raw_rc_count,
-						&sbus_failsafe, &sbus_frame_drop,
-						input_rc_s::RC_INPUT_MAX_CHANNELS);
+			// parse new data
+			if (newBytes > 0) {
+				rc_updated = sbus_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
+							   &sbus_frame_drop, &sbus_frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
-			if (rc_updated) {
-				// we have a new SBUS frame. Publish it.
-				_rc_in.channel_count = raw_rc_count;
+				if (rc_updated) {
+					// we have a new SBUS frame. Publish it.
+					_rc_in.channel_count = raw_rc_count;
 
-				if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
-					_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+					if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+						_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+					}
+
+					for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
+						_rc_in.values[i] = raw_rc_values[i];
+					}
+
+					_rc_in.timestamp_publication = now;
+					_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
+
+					_rc_in.rc_ppm_frame_length = 0;
+					_rc_in.rssi = (!sbus_frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
+					_rc_in.rc_failsafe = sbus_failsafe;
+					_rc_in.rc_lost = false;
+					_rc_in.rc_lost_frame_count = sbus_frame_drops;
+					_rc_in.rc_total_frame_count = 0;
+
+					rc_scan_last_lock = now;
+					rc_scan_locked = true;
 				}
-
-				for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
-					_rc_in.values[i] = raw_rc_values[i];
-				}
-
-				_rc_in.timestamp_publication = hrt_absolute_time();
-				_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
-
-				_rc_in.rc_ppm_frame_length = 0;
-				_rc_in.rssi = (!sbus_frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
-				_rc_in.rc_failsafe = sbus_failsafe;
-				_rc_in.rc_lost = false;
-				_rc_in.rc_lost_frame_count = sbus_dropped_frames();
-				_rc_in.rc_total_frame_count = 0;
-
-				rc_scan_last_lock = now;
-				rc_scan_locked = true;
 			}
 
 		} else if (!rc_scan_locked) {
 			// This triggers the port re-configuration
 			rc_scan_begin = 0;
 			// Scan the next protocol
-			_rc_scan_state = RC_SCAN_DSM;
+			rc_scan_state = RC_SCAN_DSM;
 		}
 
 		break;
@@ -888,43 +908,101 @@ PX4FMU::cycle()
 //			/* for PixRacer R12, this signal is active high */
 			stm32_gpiowrite(GPIO_SBUS_INV, 1);
 
-		} else if (hrt_absolute_time() - rc_scan_last_lock < rc_scan_max
-			   || hrt_absolute_time() - rc_scan_begin < rc_scan_max) {
+		} else if (now - rc_scan_last_lock < rc_scan_max
+			   || now - rc_scan_begin < rc_scan_max) {
 
-			uint8_t n_bytes = 0;
-			uint8_t *bytes;
 			bool dsm_11_bit;
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
 			uint16_t raw_rc_count;
 
-			rc_updated = dsm_input(_rcs_fd, raw_rc_values, &raw_rc_count, &dsm_11_bit, &n_bytes, &bytes,
-					       input_rc_s::RC_INPUT_MAX_CHANNELS);
+			if (newBytes > 0) {
 
-			if (rc_updated) {
+	//			uint8_t n_bytes = 0;
+	//			uint8_t *bytes;
+	//			rc_updated = dsm_input(_rcs_fd, raw_rc_values, &raw_rc_count, &dsm_11_bit, &n_bytes, &bytes,
+	//					       input_rc_s::RC_INPUT_MAX_CHANNELS);
+				// parse new data
+				unsigned dsm_frame_drops;
+				rc_updated = dsm_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &dsm_11_bit, &dsm_frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
-				//		if (dsm_11_bit) {
-				//			raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
-				//
-				//		} else {
-				//			raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
-				//		}
+				if (rc_updated) {
 
-				// we have a new SBUS frame. Publish it.
-				_rc_in.channel_count = raw_rc_count;
+					//		if (dsm_11_bit) {
+					//			raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+					//
+					//		} else {
+					//			raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
+					//		}
+
+					// we have a new DSM frame. Publish it.
+					_rc_in.channel_count = raw_rc_count;
+
+					if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+						_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+					}
+
+					for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
+						_rc_in.values[i] = raw_rc_values[i];
+					}
+
+					_rc_in.timestamp_publication = now;
+					_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
+
+					_rc_in.rc_ppm_frame_length = 0;
+					_rc_in.rssi = (RC_INPUT_RSSI_MAX);
+					_rc_in.rc_failsafe = false;
+					_rc_in.rc_lost = false;
+					_rc_in.rc_lost_frame_count = dsm_frame_drops;
+					_rc_in.rc_total_frame_count = 0;
+
+					rc_scan_last_lock = now;
+					rc_scan_locked = true;
+				}
+
+			}
+
+		} else if (!rc_scan_locked) {
+			// This triggers the port re-configuration
+			rc_scan_begin = 0;
+			// Scan the next protocol
+			rc_scan_state = RC_SCAN_PPM;
+		}
+
+		break;
+
+	case RC_SCAN_PPM:
+		if (rc_scan_begin == 0) {
+			warnx("fmu: RC_SCAN_PPM: begin");
+			rc_scan_begin = now;
+			// Configure timer input pin for CPPM
+			stm32_configgpio(GPIO_PPM_IN);
+//			/* for PixRacer R07, this signal is active low */
+//			/* for PixRacer R12, this signal is active high */
+			stm32_gpiowrite(GPIO_SBUS_INV, 1);
+
+		} else if (now - rc_scan_last_lock < rc_scan_max
+				|| now - rc_scan_begin < rc_scan_max) {
+
+			// see if we have new PPM input data
+			if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
+					&& ppm_decoded_channels > 3) {
+				// we have a new PPM frame. Publish it.
+				rc_updated = true;
+				_rc_in.channel_count = ppm_decoded_channels;
 
 				if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
 					_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
 				}
 
 				for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
-					_rc_in.values[i] = raw_rc_values[i];
+					_rc_in.values[i] = ppm_buffer[i];
 				}
 
-				_rc_in.timestamp_publication = hrt_absolute_time();
-				_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
+				_rc_in.timestamp_publication = ppm_last_valid_decode;
+				_rc_in.timestamp_last_signal = ppm_last_valid_decode;
 
-				_rc_in.rc_ppm_frame_length = 0;
-				_rc_in.rssi = (RC_INPUT_RSSI_MAX / 2);
+				_rc_in.rc_ppm_frame_length = ppm_frame_length;
+				_rc_in.rssi = RC_INPUT_RSSI_MAX;
 				_rc_in.rc_failsafe = false;
 				_rc_in.rc_lost = false;
 				_rc_in.rc_lost_frame_count = 0;
@@ -938,45 +1016,13 @@ PX4FMU::cycle()
 			// This triggers the port re-configuration
 			rc_scan_begin = 0;
 			// Scan the next protocol
-			_rc_scan_state = RC_SCAN_SBUS;
+			rc_scan_state = RC_SCAN_SBUS;
 		}
 
 		break;
-
 	case RC_SCAN_ST24:
 	case RC_SCAN_SUMD:
 		break;
-	}
-
-#endif
-
-#ifdef HRT_PPM_CHANNEL
-
-	// see if we have new PPM input data
-	if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
-	    && ppm_decoded_channels > 3) {
-		// we have a new PPM frame. Publish it.
-		_rc_in.channel_count = ppm_decoded_channels;
-
-		if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
-			_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
-		}
-
-		for (uint8_t i = 0; i < _rc_in.channel_count; i++) {
-			_rc_in.values[i] = ppm_buffer[i];
-		}
-
-		_rc_in.timestamp_publication = ppm_last_valid_decode;
-		_rc_in.timestamp_last_signal = ppm_last_valid_decode;
-
-		_rc_in.rc_ppm_frame_length = ppm_frame_length;
-		_rc_in.rssi = RC_INPUT_RSSI_MAX;
-		_rc_in.rc_failsafe = false;
-		_rc_in.rc_lost = false;
-		_rc_in.rc_lost_frame_count = 0;
-		_rc_in.rc_total_frame_count = 0;
-
-		rc_updated = true;
 	}
 
 #endif
