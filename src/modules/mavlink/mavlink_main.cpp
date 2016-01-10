@@ -1754,6 +1754,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1782,6 +1783,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
+		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1810,7 +1812,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("ATTITUDE_TARGET", 8.0f);
-		configure_stream("PARAM_VALUE", 300.0f);
+		//configure_stream("PARAM_VALUE", 300.0f);
 		configure_stream("MISSION_ITEM", 50.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
@@ -1830,7 +1832,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
-
+		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 	default:
 		break;
 	}
