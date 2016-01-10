@@ -182,7 +182,7 @@ hott_sensors_thread_main(int argc, char *argv[])
 
 		recv_data(uart, &buffer[0], &size, &id);
 
-		// Determine which moduel sent it and process accordingly.
+		// Determine which module sent it and process accordingly.
 		if (id == GAM_SENSOR_ID) {
 			publish_gam_message(buffer);
 
