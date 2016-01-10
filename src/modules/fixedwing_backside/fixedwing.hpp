@@ -133,20 +133,20 @@ public:
 	 * Block parameters are named constants, they are
 	 * constructed using:
 	 * BlockParam::BlockParam(Block * parent, const char * name)
-	 * This funciton takes both a parent block and a name.
+	 * This function takes both a parent block and a name.
 	 * The constructore then uses the parent name and the name of
-	 * the paramter to ask the px4 param library if it has any
+	 * the parameter to ask the px4 param library if it has any
 	 * parameters with this name. If it does, a handle to the
 	 * parameter is retrieved.
 	 *
 	 * Block/ BlockParam Naming
 	 *
-	 * When desigining new blocks, the naming of the parameters and
+	 * When designing new blocks, the naming of the parameters and
 	 * blocks determines the fully qualified name of the parameters
 	 * within the ground station, so it is important to choose
 	 * short, easily understandable names. Again, when a name of
 	 * "" is passed, the parent block name is used as the value to
-	 * prepend to paramters names.
+	 * prepend to parameters names.
 	 */
 	BlockYawDamper(SuperBlock *parent, const char *name);
 	/**
