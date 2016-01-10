@@ -77,7 +77,7 @@ class BlockParam : public BlockParamBase
 {
 public:
 	BlockParam(Block *block, const char *name,
-		   bool parent_prefix = true);
+		   bool parent_prefix = true, T *extern_address = NULL);
 	T get();
 	void commit();
 	void set(T val);
@@ -85,6 +85,7 @@ public:
 	virtual ~BlockParam();
 protected:
 	T _val;
+	T *_extern_address;
 };
 
 typedef BlockParam<float> BlockParamFloat;
