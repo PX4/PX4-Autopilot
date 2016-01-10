@@ -939,7 +939,7 @@ PX4FMU::cycle()
 			// This triggers the port re-configuration
 			rc_scan_begin = 0;
 			// Scan the next protocol
-			rc_scan_state = RC_SCAN_PPM;
+			rc_scan_state = RC_SCAN_ST24;
 		}
 
 		break;
@@ -980,15 +980,18 @@ PX4FMU::cycle()
 			// This triggers the port re-configuration
 			rc_scan_begin = 0;
 			// Scan the next protocol
-			rc_scan_state = RC_SCAN_PPM;
+			rc_scan_state = RC_SCAN_SUMD;
 		}
 
 		break;
 
 	case RC_SCAN_SUMD:
+		rc_scan_state = RC_SCAN_PPM;
 		break;
 
 	case RC_SCAN_PPM:
+		// skip PPM if it's not supported
+#ifdef HRT_PPM_CHANNEL
 		if (rc_scan_begin == 0) {
 			rc_scan_begin = now;
 			// Configure timer input pin for CPPM
@@ -1017,10 +1020,28 @@ PX4FMU::cycle()
 			rc_scan_state = RC_SCAN_SBUS;
 		}
 
+#else   // skip PPM if it's not supported
+		rc_scan_state = RC_SCAN_SBUS;
+
+#endif  // HRT_PPM_CHANNEL
+
 		break;
 	}
 
-#endif
+#else  // RC_SERIAL_PORT not defined
+#ifdef HRT_PPM_CHANNEL
+
+	// see if we have new PPM input data
+	if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
+	    && ppm_decoded_channels > 3) {
+		// we have a new PPM frame. Publish it.
+		rc_updated = true;
+		fill_rc_in(ppm_decoded_channels, ppm_buffer, hrt_absolute_time(),
+			   false, false, 0);
+	}
+
+#endif  // HRT_PPM_CHANNEL
+#endif  // RC_SERIAL_PORT
 
 	if (rc_updated) {
 		/* lazily advertise on first publication */
