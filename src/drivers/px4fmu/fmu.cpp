@@ -120,12 +120,19 @@ public:
 
 private:
 	enum RC_SCAN {
-		RC_SCAN_PPM,
+        RC_SCAN_PPM = 0,
 		RC_SCAN_SBUS,
 		RC_SCAN_DSM,
 		RC_SCAN_SUMD,
 		RC_SCAN_ST24
 	};
+    const char* RC_SCAN_STRING[5] = {
+        "PPM",
+        "SBUS",
+        "DSM",
+        "SUMD",
+        "ST24"
+    };
 
 	static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
@@ -682,7 +689,8 @@ PX4FMU::cycle()
 		// disable CPPM input by mapping it away from the timer capture input
 		stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 #endif
-		_initialized = true;
+
+        _initialized = true;
 	}
 
 	if (_groups_subscribed != _groups_required) {
@@ -884,7 +892,7 @@ PX4FMU::cycle()
 
 	if (report_lock && rc_scan_locked) {
 		report_lock = false;
-		warnx("fmu: RC input %u locked", rc_scan_state);
+        warnx("fmu: %s RC input locked", RC_SCAN_STRING[rc_scan_state]);
 	}
 
 	// read all available data from the serial RC input UART
