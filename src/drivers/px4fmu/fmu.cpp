@@ -211,6 +211,7 @@ private:
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			hrt_abstime now, bool frame_drop, bool failsafe,
 			unsigned frame_drops, int rssi);
+	void dsm_bind_ioctl(int dsmMode);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
@@ -674,7 +675,8 @@ PX4FMU::cycle()
 		update_pwm_rev_mask();
 
 #ifdef RC_SERIAL_PORT
-		_rcs_fd = :: open(RC_SERIAL_PORT, O_RDWR | O_NONBLOCK);
+		// dsm_init sets some file static variables and returns a file descriptor
+		_rcs_fd = dsm_init(RC_SERIAL_PORT);
 		// assume SBUS input
 		sbus_config(_rcs_fd, false);
 		// disable CPPM input by mapping it away from the timer capture input
@@ -846,6 +848,18 @@ PX4FMU::cycle()
 		orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
 
 		update_pwm_rev_mask();
+
+		int32_t dsm_bind_val;
+		param_t dsm_bind_param;
+
+		/* see if bind parameter has been set, and reset it to -1 */
+		param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
+
+		if (dsm_bind_val > -1) {
+			dsm_bind_ioctl(dsm_bind_val);
+			dsm_bind_val = -1;
+			param_set(dsm_bind_param, &dsm_bind_val);
+		}
 	}
 
 	bool rc_updated = false;
@@ -875,7 +889,7 @@ PX4FMU::cycle()
 
 	// read all available data from the serial RC input UART
 	hrt_abstime now = hrt_absolute_time();
-	int newBytes = :: read(_rcs_fd, &_rcs_buf[0], SBUS_FRAME_SIZE);
+	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_FRAME_SIZE);
 
 	switch (rc_scan_state) {
 	case RC_SCAN_SBUS:
@@ -1530,6 +1544,38 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#ifdef RC_SERIAL_PORT
+
+	case DSM_BIND_START:
+		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
+		warnx("fmu pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
+
+		if (arg == DSM2_BIND_PULSES ||
+		    arg == DSMX_BIND_PULSES ||
+		    arg == DSMX8_BIND_PULSES) {
+
+			dsm_bind(DSM_CMD_BIND_POWER_DOWN, 0);
+			usleep(500000);
+
+			dsm_bind(DSM_CMD_BIND_SET_RX_OUT, 0);
+
+			dsm_bind(DSM_CMD_BIND_POWER_UP, 0);
+			usleep(72000);
+
+			dsm_bind(DSM_CMD_BIND_SEND_PULSES, arg);
+			usleep(50000);
+
+			dsm_bind(DSM_CMD_BIND_REINIT_UART, 0);
+
+			ret = OK;
+
+		} else {
+			ret = -EINVAL;
+		}
+
+		break;
+#endif
+
 	case MIXERIOCRESET:
 		if (_mixers != nullptr) {
 			delete _mixers;
@@ -1996,6 +2042,26 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 	unlock();
 
 	return ret;
+}
+
+void
+PX4FMU::dsm_bind_ioctl(int dsmMode)
+{
+	if (!_armed.armed) {
+//      mavlink_log_info(_mavlink_fd, "[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
+		warnx("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
+		int ret = ioctl(nullptr, DSM_BIND_START,
+				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
+
+		if (ret) {
+//            mavlink_log_critical(_mavlink_fd, "binding failed.");
+			warnx("binding failed.");
+		}
+
+	} else {
+//        mavlink_log_info(_mavlink_fd, "[FMU] system armed, bind request rejected");
+		warnx("[FMU] system armed, bind request rejected");
+	}
 }
 
 namespace
