@@ -119,29 +119,29 @@ public:
 	int		set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 private:
-    enum RC_SCAN {
-        RC_SCAN_PPM = 0,
+	enum RC_SCAN {
+		RC_SCAN_PPM = 0,
 		RC_SCAN_SBUS,
 		RC_SCAN_DSM,
 		RC_SCAN_SUMD,
 		RC_SCAN_ST24
 	};
-    enum RC_SCAN _rc_scan_state = RC_SCAN_SBUS;
+	enum RC_SCAN _rc_scan_state = RC_SCAN_SBUS;
 
-    char const * RC_SCAN_STRING[5] = {
-        "PPM",
-        "SBUS",
-        "DSM",
-        "SUMD",
-        "ST24"
-    };
+	char const *RC_SCAN_STRING[5] = {
+		"PPM",
+		"SBUS",
+		"DSM",
+		"SUMD",
+		"ST24"
+	};
 
-    hrt_abstime _rc_scan_last_lock = 0;
-    hrt_abstime _rc_scan_begin = 0;
-    bool _rc_scan_locked = false;
-    bool _report_lock = true;
+	hrt_abstime _rc_scan_last_lock = 0;
+	hrt_abstime _rc_scan_begin = 0;
+	bool _rc_scan_locked = false;
+	bool _report_lock = true;
 
-    static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
+	static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
 	Mode		_mode;
 	unsigned	_pwm_default_rate;
@@ -226,7 +226,7 @@ private:
 			hrt_abstime now, bool frame_drop, bool failsafe,
 			unsigned frame_drops, int rssi);
 	void dsm_bind_ioctl(int dsmMode);
-    void set_rc_scan_state(RC_SCAN _rc_scan_state);
+	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
@@ -674,8 +674,8 @@ void PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 {
 //    warnx("RCscan: %s failed, trying %s", PX4FMU::RC_SCAN_STRING[_rc_scan_state], PX4FMU::RC_SCAN_STRING[newState]);
-    _rc_scan_begin = 0;
-    _rc_scan_state = newState;
+	_rc_scan_begin = 0;
+	_rc_scan_state = newState;
 }
 
 void
@@ -705,7 +705,7 @@ PX4FMU::cycle()
 		stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 #endif
 
-        _initialized = true;
+		_initialized = true;
 	}
 
 	if (_groups_subscribed != _groups_required) {
@@ -889,8 +889,8 @@ PX4FMU::cycle()
 
 #ifdef RC_SERIAL_PORT
 	// This block scans for a supported serial RC input and locks onto the first one found
-    // Scan for 100 msec, then switch protocol
-    constexpr hrt_abstime rc_scan_max = 100 * 1000;
+	// Scan for 100 msec, then switch protocol
+	constexpr hrt_abstime rc_scan_max = 100 * 1000;
 
 	bool sbus_failsafe, sbus_frame_drop;
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
@@ -899,25 +899,25 @@ PX4FMU::cycle()
 	bool dsm_11_bit;
 
 
-    if (_report_lock && _rc_scan_locked) {
-        _report_lock = false;
-        warnx("RCscan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
+	if (_report_lock && _rc_scan_locked) {
+		_report_lock = false;
+		warnx("RCscan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
 	}
 
 	// read all available data from the serial RC input UART
 	hrt_abstime now = hrt_absolute_time();
 	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_FRAME_SIZE);
 
-    switch (_rc_scan_state) {
+	switch (_rc_scan_state) {
 	case RC_SCAN_SBUS:
-        if (_rc_scan_begin == 0) {
-            _rc_scan_begin = now;
+		if (_rc_scan_begin == 0) {
+			_rc_scan_begin = now;
 			// Configure serial port for SBUS
 			sbus_config(_rcs_fd, false);
 			INVERT_RC_INPUT(true);
 
-        } else if (now - _rc_scan_last_lock < rc_scan_max
-               || now - _rc_scan_begin < rc_scan_max) {
+		} else if (now - _rc_scan_last_lock < rc_scan_max
+			   || now - _rc_scan_begin < rc_scan_max) {
 
 			// parse new data
 			if (newBytes > 0) {
@@ -928,27 +928,27 @@ PX4FMU::cycle()
 					// we have a new SBUS frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   sbus_frame_drop, sbus_failsafe, frame_drops);
-                    _rc_scan_last_lock = now;
-                    _rc_scan_locked = true;
+					_rc_scan_last_lock = now;
+					_rc_scan_locked = true;
 				}
 			}
 
-        } else if (!_rc_scan_locked) {
+		} else if (!_rc_scan_locked) {
 			// Scan the next protocol
-            set_rc_scan_state(RC_SCAN_DSM);
+			set_rc_scan_state(RC_SCAN_DSM);
 		}
 
 		break;
 
 	case RC_SCAN_DSM:
-        if (_rc_scan_begin == 0) {
-            _rc_scan_begin = now;
+		if (_rc_scan_begin == 0) {
+			_rc_scan_begin = now;
 //			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			INVERT_RC_INPUT(false);
 
-        } else if (now - _rc_scan_last_lock < rc_scan_max
-               || now - _rc_scan_begin < rc_scan_max) {
+		} else if (now - _rc_scan_last_lock < rc_scan_max
+			   || now - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
 				// parse new data
@@ -959,27 +959,27 @@ PX4FMU::cycle()
 					// we have a new DSM frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   false, false, frame_drops);
-                    _rc_scan_last_lock = now;
-                    _rc_scan_locked = true;
+					_rc_scan_last_lock = now;
+					_rc_scan_locked = true;
 				}
 			}
 
-        } else if (!_rc_scan_locked) {
+		} else if (!_rc_scan_locked) {
 			// Scan the next protocol
-            set_rc_scan_state(RC_SCAN_ST24);
+			set_rc_scan_state(RC_SCAN_ST24);
 		}
 
 		break;
 
 	case RC_SCAN_ST24:
-        if (_rc_scan_begin == 0) {
-            _rc_scan_begin = now;
+		if (_rc_scan_begin == 0) {
+			_rc_scan_begin = now;
 //			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			INVERT_RC_INPUT(false);
 
-        } else if (now - _rc_scan_last_lock < rc_scan_max
-               || now - _rc_scan_begin < rc_scan_max) {
+		} else if (now - _rc_scan_last_lock < rc_scan_max
+			   || now - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
 				// parse new data
@@ -990,40 +990,76 @@ PX4FMU::cycle()
 				for (unsigned i = 0; i < newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					st24_rssi = RC_INPUT_RSSI_MAX;
-					rc_updated |= (OK == st24_decode(_rcs_buf[i], &st24_rssi, &rx_count,
-									 &raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
+					rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &rx_count,
+									&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
 				}
 
 				if (rc_updated) {
 					// we have a new ST24 frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   false, false, frame_drops, st24_rssi);
-                    _rc_scan_last_lock = now;
-                    _rc_scan_locked = true;
+					_rc_scan_last_lock = now;
+					_rc_scan_locked = true;
 				}
 			}
 
-        } else if (!_rc_scan_locked) {
+		} else if (!_rc_scan_locked) {
 			// Scan the next protocol
-            set_rc_scan_state(RC_SCAN_SUMD);
+			set_rc_scan_state(RC_SCAN_SUMD);
 		}
 
 		break;
 
 	case RC_SCAN_SUMD:
-        set_rc_scan_state(RC_SCAN_PPM);
-        break;
+		if (_rc_scan_begin == 0) {
+			_rc_scan_begin = now;
+//			// Configure serial port for DSM
+			dsm_config(_rcs_fd);
+			INVERT_RC_INPUT(false);
+
+		} else if (now - _rc_scan_last_lock < rc_scan_max
+			   || now - _rc_scan_begin < rc_scan_max) {
+
+			if (newBytes > 0) {
+				// parse new data
+				uint8_t sumd_rssi, rx_count;
+
+				rc_updated = false;
+
+				for (unsigned i = 0; i < newBytes; i++) {
+					/* set updated flag if one complete packet was parsed */
+					sumd_rssi = RC_INPUT_RSSI_MAX;
+					rc_updated = (OK == sumd_decode(_rcs_buf[i], &sumd_rssi, &rx_count,
+									&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
+				}
+
+				if (rc_updated) {
+					// we have a new SUMD frame. Publish it.
+					fill_rc_in(raw_rc_count, raw_rc_values, now,
+						   false, false, frame_drops, sumd_rssi);
+					_rc_scan_last_lock = now;
+					_rc_scan_locked = true;
+				}
+			}
+
+		} else if (!_rc_scan_locked) {
+			// Scan the next protocol
+			set_rc_scan_state(RC_SCAN_SUMD);
+		}
+
+		set_rc_scan_state(RC_SCAN_PPM);
+		break;
 
 	case RC_SCAN_PPM:
 		// skip PPM if it's not supported
 #ifdef HRT_PPM_CHANNEL
-        if (_rc_scan_begin == 0) {
-            _rc_scan_begin = now;
+		if (_rc_scan_begin == 0) {
+			_rc_scan_begin = now;
 			// Configure timer input pin for CPPM
 			stm32_configgpio(GPIO_PPM_IN);
 
-        } else if (now - _rc_scan_last_lock < rc_scan_max
-               || now - _rc_scan_begin < rc_scan_max) {
+		} else if (now - _rc_scan_last_lock < rc_scan_max
+			   || now - _rc_scan_begin < rc_scan_max) {
 
 			// see if we have new PPM input data
 			if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
@@ -1032,19 +1068,19 @@ PX4FMU::cycle()
 				rc_updated = true;
 				fill_rc_in(ppm_decoded_channels, ppm_buffer, now,
 					   false, false, 0);
-                _rc_scan_last_lock = now;
-                _rc_scan_locked = true;
+				_rc_scan_last_lock = now;
+				_rc_scan_locked = true;
 			}
 
-        } else if (!_rc_scan_locked) {
+		} else if (!_rc_scan_locked) {
 			// disable CPPM input by mapping it away from the timer capture input
 			stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 			// Scan the next protocol
-            set_rc_scan_state(RC_SCAN_SBUS);
+			set_rc_scan_state(RC_SCAN_SBUS);
 		}
 
 #else   // skip PPM if it's not supported
-        set_rc_scan_state(RC_SCAN_SBUS);
+		set_rc_scan_state(RC_SCAN_SBUS);
 
 #endif  // HRT_PPM_CHANNEL
 
