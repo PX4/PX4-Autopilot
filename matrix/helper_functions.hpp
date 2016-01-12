@@ -1,8 +1,14 @@
 #pragma once
 
 #include "math.hpp"
-#include <math.h>
 
+// grody hack - this should go once C++11 is supported
+// on all platforms.
+#ifdef __PX4_NUTTX
+#include <math.h>
+#else
+#include <cmath>
+#endif
 
 namespace matrix
 {
@@ -10,7 +16,11 @@ namespace matrix
 template<typename Type>
 Type wrap_pi(Type x)
 {
-    if (!isfinite(Type(x))) {
+#ifdef __PX4_NUTTX
+    if (!isfinite(x)) {
+#else
+    if (!std::isfinite(x)) {
+#endif
         return x;
     }
 
