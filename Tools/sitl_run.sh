@@ -82,7 +82,22 @@ then
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
+elif [ "$program" == "jsbsim" ] && [ "$no_sim" == "" ]
+then
+	if [ -x "$(command -v JSBSim)" ]
+	then
+		cd /home/roman/HIL	# XXX Put correct path here
+		./scripts/fgStart.sh &
+		FG_PID=`echo $!`
+		python run_sitl_fw.py --fgout 127.0.0.1:5503 &
+		sleep 10  # JSBSim needs some time to get up and running
+	else
+		echo "You need to have jsbsim installed!"
+		exit 1
+	fi
+
 fi
+
 cd $build_path/src/firmware/posix
 mkdir -p rootfs/fs/microsd
 mkdir -p rootfs/eeprom
@@ -115,4 +130,8 @@ elif [ "$program" == "gazebo" ]
 then
 	kill -9 $SIM_PID
 	kill -9 $GUI_PID
+elif [ "$program" == "jsbsim" ]
+then
+	pkill -f run_sitl_fw.py
+	kill `pidof -x fgfs`
 fi
