@@ -70,7 +70,8 @@ static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
 static const char daemon_name[] = "hott_telemetry";
-static const char commandline_usage[] = "usage: hott_telemetry start|status|stop [-d <device>] [-t <timeout ms>] [-r <read delay us>] [-w <write delay us>]";
+static const char commandline_usage[] =
+	"usage: hott_telemetry start|status|stop [-d <device>] [-t <timeout ms>] [-r <read delay us>] [-w <write delay us>]";
 static int timeout_ms = POLL_TIMEOUT_IN_MSECS;
 static int read_delay_us = POST_READ_DELAY_IN_USECS;
 static int write_delay_us = POST_WRITE_DELAY_IN_USECS;
@@ -113,8 +114,10 @@ recv_req_id(int uart, uint8_t *id)
 		perf_count(reqs_count);
 
 		// Debug log
-		for(int x = 15; x > 0; x--)
-			read_log[x] = read_log[x-1];
+		for (int x = 15; x > 0; x--) {
+			read_log[x] = read_log[x - 1];
+		}
+
 		read_log[0] = mode;
 
 
@@ -188,13 +191,13 @@ hott_telemetry_thread_main(int argc, char *argv[])
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
 		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //device set
-					if (argc > i + 1) {
-						device = argv[i + 1];
+			if (argc > i + 1) {
+				device = argv[i + 1];
 
-					} else {
-						thread_running = false;
-						errx(1, "missing parameter to -d\n%s", commandline_usage);
-					}
+			} else {
+				thread_running = false;
+				errx(1, "missing parameter to -d\n%s", commandline_usage);
+			}
 		}
 	}
 
@@ -262,13 +265,14 @@ hott_telemetry_thread_main(int argc, char *argv[])
 			send_data(uart, buffer, size);
 
 		} else {
-			if(connected)
+			if (connected) {
 				connected = false;
-			else
-				recon++;
 
-			if(recon > 100)
-			{
+			} else {
+				recon++;
+			}
+
+			if (recon > 100) {
 				perf_count(recon_port);
 				close(uart);
 				uart = hott_open_uart(device);
@@ -311,28 +315,30 @@ hott_telemetry_main(int argc, char *argv[])
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
 		if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--timeout") == 0) { //device set
-					if (argc > i + 1) {
-						timeout_ms = atoi(argv[i + 1]);
+			if (argc > i + 1) {
+				timeout_ms = atoi(argv[i + 1]);
 
-					} else {
-						errx(1, "missing parameter to -t\n%s", commandline_usage);
-					}
+			} else {
+				errx(1, "missing parameter to -t\n%s", commandline_usage);
+			}
 		}
+
 		if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--read-delay") == 0) { //device set
-					if (argc > i + 1) {
-						read_delay_us = atoi(argv[i + 1]);
+			if (argc > i + 1) {
+				read_delay_us = atoi(argv[i + 1]);
 
-					} else {
-						errx(1, "missing parameter to -r\n%s", commandline_usage);
-					}
+			} else {
+				errx(1, "missing parameter to -r\n%s", commandline_usage);
+			}
 		}
-		if (strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--write-delay") == 0) { //device set
-					if (argc > i + 1) {
-						write_delay_us = atoi(argv[i + 1]);
 
-					} else {
-						errx(1, "missing parameter to -w\n%s", commandline_usage);
-					}
+		if (strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--write-delay") == 0) { //device set
+			if (argc > i + 1) {
+				write_delay_us = atoi(argv[i + 1]);
+
+			} else {
+				errx(1, "missing parameter to -w\n%s", commandline_usage);
+			}
 		}
 	}
 
@@ -362,8 +368,11 @@ hott_telemetry_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			warnx("is running");
-			for(int x = 15; x >= 0; x--)
+
+			for (int x = 15; x >= 0; x--) {
 				printf("%2x ", read_log[x]);
+			}
+
 			printf("\npoll timeout     : %i ms\n", timeout_ms);
 			printf("post write delay : %i us\n", write_delay_us);
 			printf("post read delay  : %i us\n", read_delay_us);
@@ -374,6 +383,7 @@ hott_telemetry_main(int argc, char *argv[])
 			perf_print_counter(txt_reply);
 			perf_print_counter(bad_reply);
 			perf_print_counter(dead_reply);
+
 		} else {
 			warnx("not started");
 		}

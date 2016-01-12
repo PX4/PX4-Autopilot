@@ -255,6 +255,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 
 		/* Set the N or S specifier */
 		msg.latitude_ns = 0;
+
 		if (lat < 0) {
 			msg.latitude_ns = 1;
 			lat = abs(lat);
@@ -277,6 +278,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 
 		/* Set the E or W specifier */
 		msg.longitude_ew = 0;
+
 		if (lon < 0) {
 			msg.longitude_ew = 1;
 			lon = abs(lon);
@@ -323,7 +325,9 @@ build_gps_response(uint8_t *buffer, size_t *size)
 			msg.distance_H = (uint8_t)(dist >> 8) & 0xff;
 
 			/* Direction back to home */
-			uint16_t bearing = 0; // North (uint16_t)(get_bearing_to_next_waypoint(_home_lat, _home_lon, lat, lon) * M_RAD_TO_DEG_F);
+			uint16_t bearing = 0;
+			// North (uint16_t)(get_bearing_to_next_waypoint(_home_lat, _home_lon, lat, lon) * M_RAD_TO_DEG_F);
+
 			msg.home_direction = (uint8_t)bearing >> 1;
 		}
 	}
@@ -346,27 +350,33 @@ build_alt_response(uint8_t *buffer, size_t *size)
 	//msg.alarm_invers1 = 0;								/**< Inverse display (alarm?) bitmask */
 
 	uint16_t alt = (uint16_t)(500);
-	msg.altitude_L = (uint8_t) alt & 0xff;					/**< Altitude low int8_t. In meters. A value of 500 means 0m */
+	msg.altitude_L = (uint8_t) alt & 0xff;					/**< Altitude low int8_t. In meters.
+																 A value of 500 means 0m */
 	msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;			/**< Altitude high int8_t */
 
 	uint16_t alt_max = (uint16_t)(500);
-	msg.altitude_max_L = (uint8_t) alt_max & 0xff;			/**< Max. measured altitude low int8_t. In meters. A value of 500 means 0m */
+	msg.altitude_max_L = (uint8_t) alt_max & 0xff;			/**< Max. measured altitude low int8_t. In meters.
+																 A value of 500 means 0m */
 	msg.altitude_max_H = (uint8_t)(alt_max >> 8) & 0xff;	/**< Max. measured altitude high int8_t */
 
 	uint16_t alt_min = (uint16_t)(500);
-	msg.altitude_min_L = (uint8_t) alt_min & 0xff;			/**< Min. measured altitude low int8_t. In meters. A value of 500 means 0m */
+	msg.altitude_min_L = (uint8_t) alt_min & 0xff;			/**< Min. measured altitude low int8_t. In meters.
+																 A value of 500 means 0m */
 	msg.altitude_min_H = (uint8_t)(alt_min >> 8) & 0xff;	/**< Min. measured altitude high int8_t */
 
 	uint16_t climb = (uint16_t)(30100);
-	msg.climbrate_L = (uint8_t) climb & 0xff;				/**< Climb rate in m/s. Steps of 0.01m/s. Value of 30000 = 0.00 m/s */
+	msg.climbrate_L = (uint8_t) climb & 0xff;				/**< Climb rate in m/s. Steps of 0.01m/s.
+																 Value of 30000 = 0.00 m/s */
 	msg.climbrate_H = (uint8_t)(climb >> 8) & 0xff;			/**< Climb rate in m/s */
 
 	uint16_t climb3 = (uint16_t)(30200);
-	msg.climbrate3s_L = (uint8_t) climb3 & 0xff;			/**< Climb rate in m/3s. Steps of 0.01m/3s. Value of 30000 = 0.00 m/3s */
+	msg.climbrate3s_L = (uint8_t) climb3 & 0xff;			/**< Climb rate in m/3s. Steps of 0.01m/3s.
+																 Value of 30000 = 0.00 m/3s */
 	msg.climbrate3s_H = (uint8_t)(climb3 >> 8) & 0xff;		/**< Climb rate m/3s low int8_t */
 
 	uint16_t climb10 = (uint16_t)(30300);
-	msg.climbrate10s_L = (uint8_t) climb10 & 0xff;			/**< Climb rate m/10s. Steps of 0.01m/10s. Value of 30000 = 0.00 m/10s */
+	msg.climbrate10s_L = (uint8_t) climb10 & 0xff;			/**< Climb rate m/10s. Steps of 0.01m/10s.
+																 Value of 30000 = 0.00 m/10s */
 	msg.climbrate10s_H = (uint8_t)(climb10 >> 8) & 0xff;	/**< Climb rate m/10s low int8_t */
 
 	const char buf[20] = "Testing 1 2 3\0";

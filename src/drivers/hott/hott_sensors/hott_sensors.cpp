@@ -159,7 +159,7 @@ hott_sensors_thread_main(int argc, char *argv[])
 	}
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
-	const int uart = open_uart(device);
+	const int uart = hott_open_uart(device);
 
 	if (uart < 0) {
 		errx(1, "Open fail, exiting.");
