@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/estimator_status.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -131,6 +132,8 @@ private:
 	orb_advert_t _lpos_pub;
 	orb_advert_t _control_state_pub;
 	orb_advert_t _vehicle_global_position_pub;
+	orb_advert_t _estimator_status_pub;
+
 
 	/* Low pass filter for attitude rates */
 	math::LowPassFilter2p _lp_roll_rate;
@@ -174,12 +177,12 @@ Ekf2::Ekf2():
 	_lpos_pub(nullptr),
 	_control_state_pub(nullptr),
 	_vehicle_global_position_pub(nullptr),
+	_estimator_status_pub(nullptr),
 	_lp_roll_rate(250.0f, 30.0f),
 	_lp_pitch_rate(250.0f, 30.0f),
 	_lp_yaw_rate(250.0f, 20.0f),
 	_ekf(new Ekf())
 {
-
 	parameters *params = _ekf->getParamHandle();
 	_mag_delay_ms = new control::BlockParamFloat(this, "EKF2_MAG_DELAY", false, &params->mag_delay_ms);
 	_baro_delay_ms = new control::BlockParamFloat(this, "EKF2_BARO_DELAY", false, &params->baro_delay_ms);
@@ -473,6 +476,19 @@ void Ekf2::task_main()
 			} else {
 				orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
 			}
+		}
+
+		// publish estimator status
+		struct estimator_status_s status = {};
+		status.timestamp = hrt_absolute_time();
+		_ekf->get_state_delayed(status.states);
+		_ekf->get_covariances(status.covariances);
+
+		if (_estimator_status_pub == nullptr) {
+			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+
+		} else {
+			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
 		}
 	}
 
