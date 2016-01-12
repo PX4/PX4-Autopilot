@@ -10,7 +10,7 @@ namespace matrix
 template<typename Type>
 Type wrap_pi(Type x)
 {
-    if (!isfinite(x)) {
+    if (!isfinite(float(x))) {
         return x;
     }
 
