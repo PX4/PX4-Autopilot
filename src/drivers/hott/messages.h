@@ -53,6 +53,7 @@ void build_esc_response(uint8_t *buffer, size_t *size);
 
 void convert_to_degrees_minutes_seconds(double val, int *deg, int *min, int *sec);
 void init_sub_messages(void);
+void init_pub_messages(void);
 void build_gam_request(uint8_t *buffer, size_t *size);
 void publish_gam_message(const uint8_t *buffer);
 

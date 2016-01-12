@@ -81,6 +81,9 @@ init_sub_messages(void)
 	_esc_sub = orb_subscribe(ORB_ID(esc_status));
 }
 
+void init_pub_messages(void)
+{
+}
 
 void
 build_gam_request(uint8_t *buffer, size_t *size)

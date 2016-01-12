@@ -168,7 +168,7 @@ hott_sensors_thread_main(int argc, char *argv[])
 
 	init_pub_messages();
 
-	uint8_t buffer[MAX_MESSAGE_BUFFER_SIZE];
+	uint8_t buffer[TEXT_MESSAGE_LEN];
 	size_t size = 0;
 	uint8_t id = 0;
 
