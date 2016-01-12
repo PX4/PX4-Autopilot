@@ -104,6 +104,18 @@ public:
         self = self * other;
     }
 
+    Quaternion operator*(Type scalar) const
+    {
+        const Quaternion &q = *this;
+        return scalar * q;
+    }
+
+    void operator*=(Type scalar)
+    {
+        Quaternion &q = *this;
+        q = q * scalar;
+    }
+
     Matrix41 derivative(const Matrix31 & w) const {
         const Quaternion &q = *this;
         Type dataQ[] = {
@@ -124,6 +136,6 @@ public:
 
 typedef Quaternion<float> Quatf;
 
-}; // namespace matrix
+} // namespace matrix
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

@@ -24,4 +24,4 @@ int integrate_rk4(
     return 0;
 }
 
-}; // namespace matrix
+} // namespace matrix

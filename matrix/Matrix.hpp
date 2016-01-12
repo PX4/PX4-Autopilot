@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#if defined(SUPPORT_STDIOSTREAM)
+#include <iostream>
+#include <iomanip>
+#endif // defined(SUPPORT_STDIOSTREAM)
 
 #include "math.hpp"
 
@@ -413,8 +417,31 @@ Matrix<Type, M, N> ones() {
     return m;
 }
 
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
+{
+    return other * scalar;
+}
+
+#if defined(SUPPORT_STDIOSTREAM)
+template<typename Type, size_t  M, size_t N>
+std::ostream& operator<<(std::ostream& os,
+        const matrix::Matrix<Type, M, N>& matrix)
+{
+        for (size_t i = 0; i < M; ++i) {
+            os << "[";
+            for (size_t j = 0; j < N; ++j) {
+                os << std::setw(10) << static_cast<double>(matrix(i, j));
+                os << "\t";
+            }
+            os << "]" << std::endl;
+        }
+    return os;
+}
+#endif // defined(SUPPORT_STDIOSTREAM)
+
 typedef Matrix<float, 3, 3> Matrix3f;
 
-}; // namespace matrix
+} // namespace matrix
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

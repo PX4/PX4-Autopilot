@@ -23,4 +23,4 @@ int kalman_correct(
     return 0;
 }
 
-}; // namespace matrix
+} // namespace matrix

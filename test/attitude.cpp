@@ -133,6 +133,19 @@ int main()
     q_check *= q_check;
     assert(q_prod_check == q_check);
 
+    // Quaternion scalar multiplication
+    float scalar = 0.5;
+    Quatf q_scalar_mul(1.0f, 2.0f, 3.0f, 4.0f);
+    Quatf q_scalar_mul_check(1.0f * scalar, 2.0f * scalar,
+            3.0f * scalar,  4.0f * scalar);
+    Quatf q_scalar_mul_res = scalar * q_scalar_mul;
+    assert(q_scalar_mul_check == q_scalar_mul_res);
+    Quatf q_scalar_mul_res2 = q_scalar_mul * scalar;
+    assert(q_scalar_mul_check == q_scalar_mul_res2);
+    Quatf q_scalar_mul_res3(q_scalar_mul);
+    q_scalar_mul_res3 *= scalar;
+    assert(q_scalar_mul_check == q_scalar_mul_res3);
+
 };
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
