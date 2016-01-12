@@ -233,6 +233,10 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 	stm32_configgpio(GPIO_8266_PD);
 	stm32_configgpio(GPIO_8266_RST);
+#ifdef GPIO_RC_OUT
+	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */
+	stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set it high to pull RC input up */
+#endif
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();

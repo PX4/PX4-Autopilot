@@ -244,10 +244,10 @@ __BEGIN_DECLS
 //#define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
 #define SPEKTRUM_RX_AS_UART()		stm32_configgpio(GPIO_USART1_RX)
 
-#define GPIO_RC_OUT					(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
-#define SPEKTRUM_RX_HIGH(_s)		stm32_gpiowrite(GPIO_RC_OUT, (_s))
 // FMUv4 has a separate GPIO for serial RC output
+#define GPIO_RC_OUT					(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
 #define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_RC_OUT)
+#define SPEKTRUM_RX_HIGH(_s)		stm32_gpiowrite(GPIO_RC_OUT, (_s))
 
 /****************************************************************************************************
  * Public Types
