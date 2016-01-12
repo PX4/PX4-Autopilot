@@ -227,6 +227,8 @@ private:
 			unsigned frame_drops, int rssi);
 	void dsm_bind_ioctl(int dsmMode);
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
+	void rc_io_invert();
+	void rc_io_invert(bool invert);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
@@ -678,6 +680,16 @@ void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 	_rc_scan_state = newState;
 }
 
+void PX4FMU::rc_io_invert(bool invert)
+{
+	INVERT_RC_INPUT(invert);
+
+	if (!invert) {
+		// set FMU_RC_OUTPUT high to pull RC_INPUT up
+		stm32_gpiowrite(GPIO_RC_OUT, 1);
+	}
+}
+
 void
 PX4FMU::cycle()
 {
@@ -914,7 +926,7 @@ PX4FMU::cycle()
 			_rc_scan_begin = now;
 			// Configure serial port for SBUS
 			sbus_config(_rcs_fd, false);
-			INVERT_RC_INPUT(true);
+			rc_io_invert(true);
 
 		} else if (now - _rc_scan_last_lock < rc_scan_max
 			   || now - _rc_scan_begin < rc_scan_max) {
@@ -945,7 +957,7 @@ PX4FMU::cycle()
 			_rc_scan_begin = now;
 //			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
-			INVERT_RC_INPUT(false);
+			rc_io_invert(false);
 
 		} else if (now - _rc_scan_last_lock < rc_scan_max
 			   || now - _rc_scan_begin < rc_scan_max) {
@@ -976,7 +988,7 @@ PX4FMU::cycle()
 			_rc_scan_begin = now;
 //			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
-			INVERT_RC_INPUT(false);
+			rc_io_invert(false);
 
 		} else if (now - _rc_scan_last_lock < rc_scan_max
 			   || now - _rc_scan_begin < rc_scan_max) {
@@ -1015,7 +1027,7 @@ PX4FMU::cycle()
 			_rc_scan_begin = now;
 //			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
-			INVERT_RC_INPUT(false);
+			rc_io_invert(false);
 
 		} else if (now - _rc_scan_last_lock < rc_scan_max
 			   || now - _rc_scan_begin < rc_scan_max) {
@@ -1057,6 +1069,7 @@ PX4FMU::cycle()
 			_rc_scan_begin = now;
 			// Configure timer input pin for CPPM
 			stm32_configgpio(GPIO_PPM_IN);
+			rc_io_invert(false);
 
 		} else if (now - _rc_scan_last_lock < rc_scan_max
 			   || now - _rc_scan_begin < rc_scan_max) {
