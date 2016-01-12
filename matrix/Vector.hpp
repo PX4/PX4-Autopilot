@@ -52,7 +52,7 @@ public:
     Type dot(const MatrixM1 & b) const {
         const Vector &a(*this);
         Type r = 0;
-        for (int i = 0; i<M; i++) {
+        for (size_t i = 0; i<M; i++) {
             r += a(i)*b(i,0);
         }
         return r;
