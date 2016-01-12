@@ -13,6 +13,7 @@ set(tests
 	filter
 	integration
 	squareMatrix
+	helper
 	)
 
 add_custom_target(test_build)

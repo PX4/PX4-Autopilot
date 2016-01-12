@@ -6,8 +6,9 @@
 
 namespace matrix
 {
+
 template<typename Type>
-float wrap_pi(Type x)
+Type wrap_pi(Type x)
 {
     if (!isfinite(x)) {
         return x;
