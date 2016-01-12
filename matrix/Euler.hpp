@@ -56,13 +56,13 @@ public:
         psi() = 0;
         theta() = 0;
         phi() = 0;
-        if (psi() >= -M_PI_2 && psi() <= M_PI_2) {
+        if (psi() >= -(Type)M_PI_2 && psi() <= (Type)M_PI_2) {
             psi() = psi_val;
         }
-        if (theta() >= -M_PI_2 && theta() <= M_PI_2) {
+        if (theta() >= -(Type)M_PI_2 && theta() <= (Type)M_PI_2) {
             theta() = theta_val;
         }
-        if (phi() >= -M_PI_2 && phi() <= M_PI_2) {
+        if (phi() >= -(Type)M_PI_2 && phi() <= (Type)M_PI_2) {
             phi() = phi_val;
         }
     }
