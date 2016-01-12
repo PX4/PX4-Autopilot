@@ -426,16 +426,16 @@ Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
 #if defined(SUPPORT_STDIOSTREAM)
 template<typename Type, size_t  M, size_t N>
 std::ostream& operator<<(std::ostream& os,
-        const matrix::Matrix<Type, M, N>& matrix)
+                         const matrix::Matrix<Type, M, N>& matrix)
 {
-        for (size_t i = 0; i < M; ++i) {
-            os << "[";
-            for (size_t j = 0; j < N; ++j) {
-                os << std::setw(10) << static_cast<double>(matrix(i, j));
-                os << "\t";
-            }
-            os << "]" << std::endl;
+    for (size_t i = 0; i < M; ++i) {
+        os << "[";
+        for (size_t j = 0; j < N; ++j) {
+            os << std::setw(10) << static_cast<double>(matrix(i, j));
+            os << "\t";
         }
+        os << "]" << std::endl;
+    }
     return os;
 }
 #endif // defined(SUPPORT_STDIOSTREAM)

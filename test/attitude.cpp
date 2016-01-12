@@ -137,7 +137,7 @@ int main()
     float scalar = 0.5;
     Quatf q_scalar_mul(1.0f, 2.0f, 3.0f, 4.0f);
     Quatf q_scalar_mul_check(1.0f * scalar, 2.0f * scalar,
-            3.0f * scalar,  4.0f * scalar);
+                             3.0f * scalar,  4.0f * scalar);
     Quatf q_scalar_mul_res = scalar * q_scalar_mul;
     assert(q_scalar_mul_check == q_scalar_mul_res);
     Quatf q_scalar_mul_res2 = q_scalar_mul * scalar;
