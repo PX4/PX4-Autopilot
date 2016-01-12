@@ -94,6 +94,30 @@ public:
 
 	virtual bool update() = 0;
 
+	// gets the innovations of velocity and position measurements
+	// 0-2 vel, 3-5 pos
+	virtual void get_vel_pos_innov(float vel_pos_innov[6]) = 0;
+
+	// gets the innovations of the earth magnetic field measurements
+	virtual void get_mag_innov(float mag_innov[3]) = 0;
+
+	// gets the innovations of the heading measurement
+	virtual void get_heading_innov(float *heading_innov) = 0;
+
+	// gets the innovation variances of velocity and position measurements
+	// 0-2 vel, 3-5 pos
+	virtual void get_vel_pos_innov_var(float vel_pos_innov_var[6]) = 0;
+
+	// gets the innovation variances of the earth magnetic field measurements
+	virtual void get_mag_innov_var(float mag_innov_var[3]) = 0;
+
+	// gets the innovation variance of the heading measurement
+	virtual void get_heading_innov_var(float *heading_innov_var) = 0;
+
+	virtual void get_state_delayed(float *state) = 0;
+
+	virtual void get_covariances(float *covariances) = 0;
+
 	// set delta angle imu data
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel);
 
@@ -244,13 +268,12 @@ protected:
 
 	// flags capturing information about severe nummerical problems for various fusions
 	struct {
-		bool bad_mag_x:1;
-		bool bad_mag_y:1;
-		bool bad_mag_z:1;
-		bool bad_airspeed:1;
-		bool bad_sideslip:1;
+		bool bad_mag_x: 1;
+		bool bad_mag_y: 1;
+		bool bad_mag_z: 1;
+		bool bad_airspeed: 1;
+		bool bad_sideslip: 1;
 	} _fault_status;
-
 
 	void initialiseVariables(uint64_t timestamp);
 
@@ -272,22 +295,26 @@ public:
 
 	bool position_is_valid();
 
-	void copy_quaternion(float *quat) {
+	void copy_quaternion(float *quat)
+	{
 		for (unsigned i = 0; i < 4; i++) {
 			quat[i] = _output_new.quat_nominal(i);
 		}
 	}
-	void copy_velocity(float *vel) {
+	void copy_velocity(float *vel)
+	{
 		for (unsigned i = 0; i < 3; i++) {
 			vel[i] = _output_new.vel(i);
 		}
 	}
-	void copy_position(float *pos) {
+	void copy_position(float *pos)
+	{
 		for (unsigned i = 0; i < 3; i++) {
 			pos[i] = _output_new.pos(i);
 		}
 	}
-	void copy_timestamp(uint64_t *time_us) {
+	void copy_timestamp(uint64_t *time_us)
+	{
 		*time_us = _imu_time_last;
 	}
 

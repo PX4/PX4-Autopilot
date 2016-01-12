@@ -50,7 +50,13 @@ Ekf::Ekf():
 	_fuse_hor_vel(false),
 	_fuse_vert_vel(false),
 	_mag_fuse_index(0),
-	_time_last_fake_gps(0)
+	_time_last_fake_gps(0),
+	_vel_pos_innov{},
+	_mag_innov{},
+	_heading_innov{},
+	_vel_pos_innov_var{},
+	_mag_innov_var{},
+	_heading_innov_var{}
 {
 	_earth_rate_NED.setZero();
 	_R_prev = matrix::Dcm<float>();

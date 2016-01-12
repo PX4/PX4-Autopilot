@@ -44,29 +44,28 @@
 void Ekf::fuseVelPosHeight()
 {
 	bool fuse_map[6] = {};
-	float innovations[6] = {};
 	float R[6] = {};
 	float Kfusion[24] = {};
 
 	// calculate innovations
 	if (_fuse_hor_vel) {
 		fuse_map[0] = fuse_map[1] = true;
-		innovations[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
-		innovations[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
+		_vel_pos_innov[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
+		_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
 		R[0] = _params.gps_vel_noise;
 		R[1] = _params.gps_vel_noise;
 	}
 
 	if (_fuse_vert_vel) {
 		fuse_map[2] = true;
-		innovations[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
+		_vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
 		R[2] = _params.gps_vel_noise;
 	}
 
 	if (_fuse_pos) {
 		fuse_map[3] = fuse_map[4] = true;
-		innovations[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
-		innovations[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
+		_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
+		_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
 		R[3] = _params.gps_pos_noise;
 		R[4] = _params.gps_pos_noise;
 
@@ -74,7 +73,7 @@ void Ekf::fuseVelPosHeight()
 
 	if (_fuse_height) {
 		fuse_map[5] = true;
-		innovations[5] = _state.pos(2) - (-_baro_sample_delayed.hgt);		// baro measurement has inversed z axis
+		_vel_pos_innov[5] = _state.pos(2) - (-_baro_sample_delayed.hgt);		// baro measurement has inversed z axis
 		R[5] = _params.baro_noise;
 	}
 
@@ -89,6 +88,7 @@ void Ekf::fuseVelPosHeight()
 
 		// compute the innovation variance SK = HPH + R
 		float S = P[state_index][state_index] + R[obs_index];
+		_vel_pos_innov_var[obs_index] = S;
 		S = 1.0f / S;
 
 		// calculate kalman gain K = PHS
@@ -100,7 +100,7 @@ void Ekf::fuseVelPosHeight()
 		_state.ang_error.setZero();
 
 		// fuse the observation
-		fuse(Kfusion, innovations[obs_index]);
+		fuse(Kfusion, _vel_pos_innov[obs_index]);
 
 		// correct the nominal quaternion
 		Quaternion dq;

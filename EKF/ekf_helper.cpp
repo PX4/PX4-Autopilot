@@ -128,33 +128,33 @@ void Ekf::makeSymmetrical()
 
 void Ekf::constrainStates()
 {
-	for (int i = 0; i < 3; i++) { 
+	for (int i = 0; i < 3; i++) {
 		_state.ang_error(i) = math::constrain(_state.ang_error(i), -1.0f, 1.0f);
 	}
 
-	for (int i = 0; i < 3; i++) { 
+	for (int i = 0; i < 3; i++) {
 		_state.vel(i) = math::constrain(_state.vel(i), -1000.0f, 1000.0f);
 	}
 
-	for (int i = 0; i < 3; i++) { 
+	for (int i = 0; i < 3; i++) {
 		_state.pos(i) = math::constrain(_state.pos(i), -1.e6f, 1.e6f);
 	}
 
-	for (int i = 0; i < 3; i++) { 
+	for (int i = 0; i < 3; i++) {
 		_state.gyro_bias(i) = math::constrain(_state.gyro_bias(i), -0.349066f * _dt_imu_avg, 0.349066f * _dt_imu_avg);
 	}
 
-	for (int i = 0; i < 3; i++) { 
+	for (int i = 0; i < 3; i++) {
 		_state.gyro_scale(i) = math::constrain(_state.gyro_scale(i), 0.95f, 1.05f);
 	}
 
 	_state.accel_z_bias = math::constrain(_state.accel_z_bias, -1.0f * _dt_imu_avg, 1.0f * _dt_imu_avg);
 
-	for (int i = 0; i < 3; i++) { 
+	for (int i = 0; i < 3; i++) {
 		_state.mag_I(i) = math::constrain(_state.mag_I(i), -1.0f, 1.0f);
 	}
 
-	for (int i = 0; i < 3; i++) { 
+	for (int i = 0; i < 3; i++) {
 		_state.mag_B(i) = math::constrain(_state.mag_B(i), -0.5f, 0.5f);
 	}
 
@@ -169,4 +169,88 @@ void Ekf::calcEarthRateNED(Vector3f &omega, double lat_rad) const
 	omega(0) = _k_earth_rate * cosf((float)lat_rad);
 	omega(1) = 0.0f;
 	omega(2) = -_k_earth_rate * sinf((float)lat_rad);
+}
+
+// gets the innovations of velocity and position measurements
+// 0-2 vel, 3-5 pos
+void Ekf::get_vel_pos_innov(float vel_pos_innov[6])
+{
+	memcpy(vel_pos_innov, _vel_pos_innov, sizeof(float) * 6);
+}
+
+// writes the innovations of the earth magnetic field measurements
+void Ekf::get_mag_innov(float mag_innov[3])
+{
+	memcpy(mag_innov, _mag_innov, 3 * sizeof(float));
+}
+
+// gets the innovations of the heading measurement
+void Ekf::get_heading_innov(float *heading_innov)
+{
+	memcpy(heading_innov, &_heading_innov, sizeof(float));
+}
+
+// gets the innovation variances of velocity and position measurements
+// 0-2 vel, 3-5 pos
+void Ekf::get_vel_pos_innov_var(float vel_pos_innov_var[6])
+{
+	memcpy(vel_pos_innov_var, _vel_pos_innov_var, sizeof(float) * 6);
+}
+
+// gets the innovation variances of the earth magnetic field measurements
+void Ekf::get_mag_innov_var(float mag_innov_var[3])
+{
+	memcpy(mag_innov_var, _mag_innov_var, sizeof(float) * 3);
+}
+
+// gets the innovation variance of the heading measurement
+void Ekf::get_heading_innov_var(float *heading_innov_var)
+{
+	memcpy(heading_innov_var, &_heading_innov_var, sizeof(float));
+}
+
+// get the state vector at the delayed time horizon
+void Ekf::get_state_delayed(float *state)
+{
+	for (int i = 0; i < 3; i++) {
+		state[i] = _state.ang_error(i);
+	}
+
+	for (int i = 0; i < 3; i++) {
+		state[i + 3] = _state.vel(i);
+	}
+
+	for (int i = 0; i < 3; i++) {
+		state[i + 6] = _state.pos(i);
+	}
+
+	for (int i = 0; i < 3; i++) {
+		state[i + 9] = _state.gyro_bias(i);
+	}
+
+	for (int i = 0; i < 3; i++) {
+		state[i + 12] = _state.gyro_scale(i);
+	}
+
+	state[15] = _state.accel_z_bias;
+
+	for (int i = 0; i < 3; i++) {
+		state[i + 16] = _state.mag_I(i);
+	}
+
+	for (int i = 0; i < 3; i++) {
+		state[i + 19] = _state.mag_B(i);
+	}
+
+	for (int i = 0; i < 2; i++) {
+		state[i + 22] = _state.wind_vel(i);
+	}
+}
+
+// get the diagonal elements of the covariance matrix
+void Ekf::get_covariances(float *covariances)
+{
+	for (unsigned i = 0; i < _k_num_states; i++) {
+		covariances[i] = P[i][i];
+	}
 }

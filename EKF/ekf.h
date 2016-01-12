@@ -52,6 +52,32 @@ public:
 
 	bool update();
 
+	// gets the innovations of velocity and position measurements
+	// 0-2 vel, 3-5 pos
+	void get_vel_pos_innov(float vel_pos_innov[6]);
+
+	// gets the innovations of the earth magnetic field measurements
+	void get_mag_innov(float mag_innov[3]);
+
+	// gets the innovations of the heading measurement
+	void get_heading_innov(float *heading_innov);
+
+	// gets the innovation variances of velocity and position measurements
+	// 0-2 vel, 3-5 pos
+	void get_vel_pos_innov_var(float vel_pos_innov_var[6]);
+
+	// gets the innovation variances of the earth magnetic field measurements
+	void get_mag_innov_var(float mag_innov_var[3]);
+
+	// gets the innovation variance of the heading measurement
+	void get_heading_innov_var(float *heading_innov_var);
+
+	// get the state vector at the delayed time horizon
+	void get_state_delayed(float *state);
+
+	// get the diagonal elements of the covariance matrix
+	void get_covariances(float *covariances);
+
 private:
 
 	static const uint8_t _k_num_states = 24;
@@ -74,6 +100,14 @@ private:
 	matrix::Dcm<float> _R_prev;
 
 	float P[_k_num_states][_k_num_states];	// state covariance matrix
+
+	float _vel_pos_innov[6];	// innovations: 0-2 vel,  3-5 pos
+	float _mag_innov[3];		// earth magnetic field innovations
+	float _heading_innov;		// heading measurement innovation
+
+	float _vel_pos_innov_var[6]; // innovation variances: 0-2 vel, 3-5 pos
+	float _mag_innov_var[3]; // earth magnetic field innovation variance
+	float _heading_innov_var; // heading measurement innovation variance
 
 	// complementary filter states
 	Vector3f _delta_angle_corr;
