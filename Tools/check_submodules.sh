@@ -6,6 +6,13 @@
     exit 0
 }
 
+if [ -f src/modules/uavcan/libuavcan/CMakeLists.txt ]
+then
+	echo "Git submodule config valid."
+else
+	git submodule update --init --recursive
+fi
+
 GITSTATUS=$(git status)
 
 function check_git_submodule {
