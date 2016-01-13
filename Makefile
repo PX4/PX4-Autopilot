@@ -195,7 +195,8 @@ clean:
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim \
-	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_tailsitter
+	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_tailsitter \
+	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean
