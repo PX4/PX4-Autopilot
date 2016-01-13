@@ -4,7 +4,7 @@
 #
 # @type Standard VTOL
 #
-# @maintainer Sander Smeets <simon@droneslab.com>
+# @maintainer Sander Smeets <sander@droneslab.com>
 #
 
 sh /etc/init.d/rc.vtol_defaults
