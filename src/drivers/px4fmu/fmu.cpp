@@ -673,6 +673,7 @@ void PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 	_rc_in.rc_total_frame_count = 0;
 }
 
+#ifdef RC_SERIAL_PORT
 void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 {
 //    warnx("RCscan: %s failed, trying %s", PX4FMU::RC_SCAN_STRING[_rc_scan_state], PX4FMU::RC_SCAN_STRING[newState]);
@@ -689,6 +690,7 @@ void PX4FMU::rc_io_invert(bool invert)
 		stm32_gpiowrite(GPIO_RC_OUT, 1);
 	}
 }
+#endif
 
 void
 PX4FMU::cycle()
