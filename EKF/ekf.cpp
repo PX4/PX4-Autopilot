@@ -232,14 +232,14 @@ void Ekf::calculateOutputStates()
 {
 	imuSample imu_new = _imu_sample_new;
 	Vector3f delta_angle;
-	delta_angle(0) = imu_new.delta_ang(0) * _state.gyro_scale(0);
-	delta_angle(1) = imu_new.delta_ang(1) * _state.gyro_scale(1);
-	delta_angle(2) = imu_new.delta_ang(2) * _state.gyro_scale(2);
 
-	delta_angle -= _state.gyro_bias;
+	// Note: We do no not need to consider any bias or scale correction here
+	// since the base class has already corrected the imu sample
+	delta_angle(0) = imu_new.delta_ang(0);
+	delta_angle(1) = imu_new.delta_ang(1);
+	delta_angle(2) = imu_new.delta_ang(2);
 
 	Vector3f delta_vel = imu_new.delta_vel;
-	delta_vel(2) -= _state.accel_z_bias;
 
 	delta_angle += _delta_angle_corr;
 	Quaternion dq;
@@ -265,9 +265,7 @@ void Ekf::calculateOutputStates()
 		_imu_updated = false;
 	}
 
-	if (!_output_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_output_sample_delayed)) {
-		return;
-	}
+	_output_sample_delayed = _output_buffer.get_oldest();
 
 	Quaternion quat_inv = _state.quat_nominal.inversed();
 	Quaternion q_error =  _output_sample_delayed.quat_nominal * quat_inv;

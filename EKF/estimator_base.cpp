@@ -83,14 +83,15 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 
 	imu_sample_new.time_us = time_usec;
 
-	_imu_sample_new = imu_sample_new;
-
 	imu_sample_new.delta_ang(0) = imu_sample_new.delta_ang(0) * _state.gyro_scale(0);
 	imu_sample_new.delta_ang(1) = imu_sample_new.delta_ang(1) * _state.gyro_scale(1);
 	imu_sample_new.delta_ang(2) = imu_sample_new.delta_ang(2) * _state.gyro_scale(2);
 
-	imu_sample_new.delta_ang -= _state.gyro_bias;
-	imu_sample_new.delta_vel(2) -= _state.accel_z_bias;
+	imu_sample_new.delta_ang -= _state.gyro_bias * imu_sample_new.delta_ang_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);
+	imu_sample_new.delta_vel(2) -= _state.accel_z_bias * imu_sample_new.delta_vel_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);;
+
+	// store the new sample for the complementary filter prediciton
+	_imu_sample_new = imu_sample_new;
 
 	_imu_down_sampled.delta_ang_dt += imu_sample_new.delta_ang_dt;
 	_imu_down_sampled.delta_vel_dt += imu_sample_new.delta_vel_dt;
