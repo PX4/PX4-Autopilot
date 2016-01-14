@@ -136,7 +136,6 @@ private:
 		"ST24"
 	};
 
-	hrt_abstime _rc_scan_last_lock = 0;
 	hrt_abstime _rc_scan_begin = 0;
 	bool _rc_scan_locked = false;
 	bool _report_lock = true;
@@ -930,7 +929,7 @@ PX4FMU::cycle()
 			sbus_config(_rcs_fd, false);
 			rc_io_invert(true);
 
-		} else if (now - _rc_scan_last_lock < rc_scan_max
+		} else if (_rc_scan_locked
 			   || now - _rc_scan_begin < rc_scan_max) {
 
 			// parse new data
@@ -942,12 +941,11 @@ PX4FMU::cycle()
 					// we have a new SBUS frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   sbus_frame_drop, sbus_failsafe, frame_drops);
-					_rc_scan_last_lock = now;
-					_rc_scan_locked = true;
+                    _rc_scan_locked = true;
 				}
 			}
 
-		} else if (!_rc_scan_locked) {
+		} else {
 			// Scan the next protocol
 			set_rc_scan_state(RC_SCAN_DSM);
 		}
@@ -961,7 +959,7 @@ PX4FMU::cycle()
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
-		} else if (now - _rc_scan_last_lock < rc_scan_max
+		} else if (_rc_scan_locked
 			   || now - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
@@ -973,12 +971,11 @@ PX4FMU::cycle()
 					// we have a new DSM frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   false, false, frame_drops);
-					_rc_scan_last_lock = now;
 					_rc_scan_locked = true;
 				}
 			}
 
-		} else if (!_rc_scan_locked) {
+		} else {
 			// Scan the next protocol
 			set_rc_scan_state(RC_SCAN_ST24);
 		}
@@ -992,7 +989,7 @@ PX4FMU::cycle()
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
-		} else if (now - _rc_scan_last_lock < rc_scan_max
+		} else if (_rc_scan_locked
 			   || now - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
@@ -1012,12 +1009,11 @@ PX4FMU::cycle()
 					// we have a new ST24 frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   false, false, frame_drops, st24_rssi);
-					_rc_scan_last_lock = now;
 					_rc_scan_locked = true;
 				}
 			}
 
-		} else if (!_rc_scan_locked) {
+		} else {
 			// Scan the next protocol
 			set_rc_scan_state(RC_SCAN_SUMD);
 		}
@@ -1031,7 +1027,7 @@ PX4FMU::cycle()
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
-		} else if (now - _rc_scan_last_lock < rc_scan_max
+		} else if (_rc_scan_locked
 			   || now - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
@@ -1051,12 +1047,11 @@ PX4FMU::cycle()
 					// we have a new SUMD frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   false, false, frame_drops, sumd_rssi);
-					_rc_scan_last_lock = now;
 					_rc_scan_locked = true;
 				}
 			}
 
-		} else if (!_rc_scan_locked) {
+		} else {
 			// Scan the next protocol
 			set_rc_scan_state(RC_SCAN_SUMD);
 		}
@@ -1073,7 +1068,7 @@ PX4FMU::cycle()
 			stm32_configgpio(GPIO_PPM_IN);
 			rc_io_invert(false);
 
-		} else if (now - _rc_scan_last_lock < rc_scan_max
+		} else if (_rc_scan_locked
 			   || now - _rc_scan_begin < rc_scan_max) {
 
 			// see if we have new PPM input data
@@ -1083,11 +1078,10 @@ PX4FMU::cycle()
 				rc_updated = true;
 				fill_rc_in(ppm_decoded_channels, ppm_buffer, now,
 					   false, false, 0);
-				_rc_scan_last_lock = now;
 				_rc_scan_locked = true;
 			}
 
-		} else if (!_rc_scan_locked) {
+        } else {
 			// disable CPPM input by mapping it away from the timer capture input
 			stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 			// Scan the next protocol
