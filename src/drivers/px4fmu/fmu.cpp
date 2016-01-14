@@ -939,6 +939,7 @@ PX4FMU::cycle()
 
 				if (rc_updated) {
 					// we have a new SBUS frame. Publish it.
+					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   sbus_frame_drop, sbus_failsafe, frame_drops);
 					_rc_scan_locked = true;
@@ -969,6 +970,7 @@ PX4FMU::cycle()
 
 				if (rc_updated) {
 					// we have a new DSM frame. Publish it.
+					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   false, false, frame_drops);
 					_rc_scan_locked = true;
@@ -1007,6 +1009,7 @@ PX4FMU::cycle()
 
 				if (rc_updated) {
 					// we have a new ST24 frame. Publish it.
+					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   false, false, frame_drops, st24_rssi);
 					_rc_scan_locked = true;
@@ -1045,6 +1048,7 @@ PX4FMU::cycle()
 
 				if (rc_updated) {
 					// we have a new SUMD frame. Publish it.
+					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SUMD;
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   false, false, frame_drops, sumd_rssi);
 					_rc_scan_locked = true;
@@ -1076,6 +1080,7 @@ PX4FMU::cycle()
 			    && ppm_decoded_channels > 3) {
 				// we have a new PPM frame. Publish it.
 				rc_updated = true;
+				_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
 				fill_rc_in(ppm_decoded_channels, ppm_buffer, now,
 					   false, false, 0);
 				_rc_scan_locked = true;
