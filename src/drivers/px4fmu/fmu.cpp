@@ -1073,7 +1073,7 @@ PX4FMU::cycle()
 			stm32_configgpio(GPIO_PPM_IN);
 			rc_io_invert(false);
 
-		} else if (now - _rc_scan_last_lock < rc_scan_max
+		} else if (_rc_scan_locked
 			   || now - _rc_scan_begin < rc_scan_max) {
 
 			// see if we have new PPM input data
@@ -1087,7 +1087,7 @@ PX4FMU::cycle()
 				_rc_scan_locked = true;
 			}
 
-		} else if (!_rc_scan_locked) {
+		} else {
 			// disable CPPM input by mapping it away from the timer capture input
 			stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 			// Scan the next protocol
