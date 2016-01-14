@@ -52,11 +52,11 @@ public:
 
         if (fabs(theta() - (Type)M_PI_2) < 1.0e-3) {
             phi() = (Type)0.0;
-            psi() = (Type)atan2(dcm(1,2) - dcm(0,1), dcm(0,2) + dcm(1,1)) + theta();
-
+            psi() = (Type)atan2(dcm(0,1), dcm(1,1));
+            psi() = (Type)atan2(dcm(1,2), dcm(0,2));
         } else if ((Type)fabs(theta() + (Type)M_PI_2) < (Type)1.0e-3) {
             phi() = (Type)0.0;
-            psi() = (Type)atan2(dcm(1,2) - dcm(0,1), dcm(0,2) + dcm(1,1)) - theta();
+            psi() = (Type)atan2(-dcm(1,2), -dcm(0,2));
 
         } else {
             phi() = (Type)atan2(dcm(2,1), dcm(2,2));
