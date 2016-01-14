@@ -73,6 +73,7 @@
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/ekf2_innovations.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -133,6 +134,7 @@ private:
 	orb_advert_t _control_state_pub;
 	orb_advert_t _vehicle_global_position_pub;
 	orb_advert_t _estimator_status_pub;
+	orb_advert_t _estimator_innovations_pub;
 
 
 	/* Low pass filter for attitude rates */
@@ -178,6 +180,7 @@ Ekf2::Ekf2():
 	_control_state_pub(nullptr),
 	_vehicle_global_position_pub(nullptr),
 	_estimator_status_pub(nullptr),
+	_estimator_innovations_pub(nullptr),
 	_lp_roll_rate(250.0f, 30.0f),
 	_lp_pitch_rate(250.0f, 30.0f),
 	_lp_yaw_rate(250.0f, 20.0f),
@@ -490,6 +493,25 @@ void Ekf2::task_main()
 		} else {
 			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
 		}
+
+		// publish estimator innovation data
+		struct ekf2_innovations_s innovations = {};
+		innovations.timestamp = hrt_absolute_time();
+		_ekf->get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+		_ekf->get_mag_innov(&innovations.mag_innov[0]);
+		_ekf->get_heading_innov(&innovations.heading_innov);
+
+		_ekf->get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
+		_ekf->get_mag_innov_var(&innovations.mag_innov_var[0]);
+		_ekf->get_heading_innov_var(&innovations.heading_innov_var);
+
+		if (_estimator_innovations_pub == nullptr) {
+			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
+
+		} else {
+			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
+		}
+
 	}
 
 	delete ekf2::instance;
