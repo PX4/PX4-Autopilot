@@ -941,7 +941,7 @@ PX4FMU::cycle()
 					// we have a new SBUS frame. Publish it.
 					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   sbus_frame_drop, sbus_failsafe, frame_drops);
-                    _rc_scan_locked = true;
+					_rc_scan_locked = true;
 				}
 			}
 
@@ -1081,7 +1081,7 @@ PX4FMU::cycle()
 				_rc_scan_locked = true;
 			}
 
-        } else {
+		} else {
 			// disable CPPM input by mapping it away from the timer capture input
 			stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 			// Scan the next protocol
