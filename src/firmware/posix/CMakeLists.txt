@@ -34,9 +34,9 @@ add_custom_target(run_config
 	)
 add_dependencies(run_config mainapp)
 
-foreach(viewer none jmavsim gazebo)
+foreach(viewer none jmavsim gazebo jsbsim)
 	foreach(debugger none gdb lldb ddd valgrind)
-		foreach(model none iris tailsitter)
+		foreach(model none iris tailsitter easy_star)
 			if (debugger STREQUAL "none")
 				if (model STREQUAL "none")
 					set(_targ_name "${viewer}")
