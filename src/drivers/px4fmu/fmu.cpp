@@ -226,7 +226,6 @@ private:
 			unsigned frame_drops, int rssi);
 	void dsm_bind_ioctl(int dsmMode);
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
-	void rc_io_invert();
 	void rc_io_invert(bool invert);
 };
 
@@ -683,10 +682,10 @@ void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 void PX4FMU::rc_io_invert(bool invert)
 {
 	INVERT_RC_INPUT(invert);
-
-	if (!invert) {
-		// set SPEKTRUM_RX_HIGH to pull RC_INPUT up
-		SPEKTRUM_RX_HIGH(true);
+	if (invert) {
+		stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set RC_OUTPUT to pull RC input down */
+	} else {
+		stm32_gpiowrite(GPIO_RC_OUT, 0);    /* set RC_OUTPUT to pull RC input down */
 	}
 }
 #endif
@@ -716,6 +715,8 @@ PX4FMU::cycle()
 		sbus_config(_rcs_fd, false);
 		// disable CPPM input by mapping it away from the timer capture input
 		stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
+		stm32_configgpio(GPIO_RC_OUT);
+		rc_io_invert(true);
 #endif
 
 		_initialized = true;
