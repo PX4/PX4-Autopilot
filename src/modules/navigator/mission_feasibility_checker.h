@@ -72,7 +72,7 @@ private:
 	void updateNavigationCapabilities();
 
 	/* Checks specific to rotarywing airframes */
-	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid);
+	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid, float default_acceptance_rad);
 public:
 
 	MissionFeasibilityChecker();
@@ -83,7 +83,7 @@ public:
 	 */
 	bool checkMissionFeasible(int mavlink_fd, bool isRotarywing, dm_item_t dm_current,
 		size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid,
-		double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued);
+		double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued, float default_acceptance_rad);
 
 };
 
