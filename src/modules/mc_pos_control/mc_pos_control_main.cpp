@@ -1494,15 +1494,6 @@ MulticopterPositionControl::task_main()
 							_landing_started = hrt_absolute_time();
 						}
 
-						/* don't let it throttle up again during landing */
-						if (thrust_sp(2) < 0.0f && thrust_abs < _landing_thrust
-								/* fix landing thrust after a certain time when velocity change is minimal */
-								&& (float)fabs(_acc_z_lp) < 0.1f
-								&& _vel_z_lp > 0.5f * _params.land_speed
-								&& hrt_elapsed_time(&_landing_started) > 15e5) {
-							_landing_thrust = thrust_abs;
-						}
-
 						/* assume ground, reduce thrust */
 						if (hrt_elapsed_time(&_landing_started) > 15e5
 								&& _landing_thrust > FLT_EPSILON
