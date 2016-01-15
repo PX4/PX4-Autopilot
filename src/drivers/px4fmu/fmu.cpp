@@ -685,8 +685,8 @@ void PX4FMU::rc_io_invert(bool invert)
 	INVERT_RC_INPUT(invert);
 
 	if (!invert) {
-		// set FMU_RC_OUTPUT high to pull RC_INPUT up
-		stm32_gpiowrite(GPIO_RC_OUT, 1);
+		// set SPEKTRUM_RX_HIGH to pull RC_INPUT up
+		SPEKTRUM_RX_HIGH(true);
 	}
 }
 #endif
