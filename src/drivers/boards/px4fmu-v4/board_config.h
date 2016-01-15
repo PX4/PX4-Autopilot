@@ -252,7 +252,7 @@ __BEGIN_DECLS
 // FMUv4 has a separate GPIO for serial RC output
 #define GPIO_RC_OUT			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
 #define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_RC_OUT)
-#define SPEKTRUM_RX_HIGH(_s)		stm32_gpiowrite(GPIO_RC_OUT, _s)
+#define SPEKTRUM_RX_HIGH(_s)		stm32_gpiowrite(GPIO_RC_OUT, (1-_s))
 
 /****************************************************************************************************
  * Public Types
