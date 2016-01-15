@@ -1615,7 +1615,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		    arg == DSMX8_BIND_PULSES) {
 
 			dsm_bind(DSM_CMD_BIND_POWER_DOWN, 0);
-			usleep(500000);
+			usleep(1000000);
 
 			dsm_bind(DSM_CMD_BIND_SET_RX_OUT, 0);
 
