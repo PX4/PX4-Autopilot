@@ -119,7 +119,7 @@ void Simulator::pack_actuator_message(mavlink_hil_controls_t &actuator_msg)
 	actuator_msg.throttle = out[3];
 	actuator_msg.aux1 = out[4];
 	actuator_msg.aux2 = out[5];
-	actuator_msg.aux3 = out[6];
+	actuator_msg.aux3 = _actuators.output[6] > PWM_DEFAULT_MIN / 2 ? out[6] : -1.0f;;
 	actuator_msg.aux4 = out[7];
 	actuator_msg.mode = 0; // need to put something here
 	actuator_msg.nav_mode = 0;
