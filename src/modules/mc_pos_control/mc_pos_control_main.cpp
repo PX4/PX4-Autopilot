@@ -121,15 +121,12 @@ public:
 	int		start();
 
 private:
-    const float alt_ctl_dz = 0.05f;
-    const float alt_ctl_dy = 0.05f;
-
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_control_task;			/**< task handle for task */
 	int		_mavlink_fd;			/**< mavlink fd */
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
-	int		_ctrl_state_sub;			/**< control state subscription */
+	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_params_sub;			/**< notification of parameter updates */
@@ -168,6 +165,8 @@ private:
 		param_t thr_min;
 		param_t thr_max;
 		param_t thr_hover;
+		param_t alt_ctl_dz;
+		param_t alt_ctl_dy;
 		param_t z_p;
 		param_t z_vel_p;
 		param_t z_vel_i;
@@ -200,6 +199,8 @@ private:
 		float thr_min;
 		float thr_max;
 		float thr_hover;
+		float alt_ctl_dz;
+		float alt_ctl_dy;
 		float tilt_max_air;
 		float land_speed;
 		float tko_speed;
@@ -420,7 +421,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
 	_params_handles.thr_hover	= param_find("MPC_THR_HOVER");
-	_params_handles.z_p			= param_find("MPC_Z_P");
+	_params_handles.alt_ctl_dz	= param_find("MPC_ALTCTL_DZ");
+	_params_handles.alt_ctl_dy	= param_find("MPC_ALTCTL_DY");
+	_params_handles.z_p		= param_find("MPC_Z_P");
 	_params_handles.z_vel_p		= param_find("MPC_Z_VEL_P");
 	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
 	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
@@ -496,6 +499,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.thr_hover, &_params.thr_hover);
+		param_get(_params_handles.alt_ctl_dz, &_params.alt_ctl_dz);
+		param_get(_params_handles.alt_ctl_dy, &_params.alt_ctl_dy);
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
 		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
@@ -754,7 +759,7 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, alt_ctl_dz, alt_ctl_dy); // D
+		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
 	}
 
 	if (_control_mode.flag_control_position_enabled) {
