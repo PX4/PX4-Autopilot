@@ -682,11 +682,7 @@ void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 void PX4FMU::rc_io_invert(bool invert)
 {
 	INVERT_RC_INPUT(invert);
-	if (invert) {
-		stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set RC_OUTPUT to pull RC input down */
-	} else {
-		stm32_gpiowrite(GPIO_RC_OUT, 0);    /* set RC_OUTPUT to pull RC input down */
-	}
+	stm32_gpiowrite(GPIO_RC_OUT, invert);    /* set RC_OUTPUT to pull RC input down */
 }
 #endif
 
@@ -1615,7 +1611,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		    arg == DSMX8_BIND_PULSES) {
 
 			dsm_bind(DSM_CMD_BIND_POWER_DOWN, 0);
-			usleep(1000000);
+			usleep(500000);
 
 			dsm_bind(DSM_CMD_BIND_SET_RX_OUT, 0);
 
@@ -2110,11 +2106,11 @@ PX4FMU::dsm_bind_ioctl(int dsmMode)
 	if (!_armed.armed) {
 //      mavlink_log_info(_mavlink_fd, "[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
 		warnx("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
-		rc_io_invert(true);
-		SPEKTRUM_RX_HIGH(false);
+//		rc_io_invert(true);
+		SPEKTRUM_RX_HIGH(true);
 		int ret = ioctl(nullptr, DSM_BIND_START,
 				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
-		SPEKTRUM_RX_HIGH(false);
+		SPEKTRUM_RX_HIGH(true);
 
 		if (ret) {
 //            mavlink_log_critical(_mavlink_fd, "binding failed.");
