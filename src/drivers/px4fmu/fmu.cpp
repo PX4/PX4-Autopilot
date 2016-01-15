@@ -2110,9 +2110,12 @@ PX4FMU::dsm_bind_ioctl(int dsmMode)
 	if (!_armed.armed) {
 //      mavlink_log_info(_mavlink_fd, "[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
 		warnx("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
+		rc_io_invert(false);
+		stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set RC_OUTPUT to pull RC input high */
 		int ret = ioctl(nullptr, DSM_BIND_START,
 				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
 
+		rc_io_invert(false);
 		if (ret) {
 //            mavlink_log_critical(_mavlink_fd, "binding failed.");
 			warnx("binding failed.");
