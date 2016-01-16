@@ -48,7 +48,7 @@ Download QGC from http://qgroundcontrol.org/downloads and install using the wind
 
 ## PX4
 
-### Platfrom Requirements
+### Platform Requirements
 Linux or Eagle with a working IP interface (?? does this need further instructions?)
 
 ### Build Host Requirements

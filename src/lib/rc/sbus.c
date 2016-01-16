@@ -615,7 +615,7 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 		 *
 		 * Attention! This flag indicates a skipped frame only, not a total link loss! Handling this
 		 * condition as fail-safe greatly reduces the reliability and range of the radio link,
-		 * e.g. by prematurely issueing return-to-launch!!! */
+		 * e.g. by prematurely issuing return-to-launch!!! */
 
 		*sbus_failsafe = false;
 		*sbus_frame_drop = true;

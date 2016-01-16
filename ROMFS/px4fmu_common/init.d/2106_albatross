@@ -2,7 +2,7 @@
 #
 # @name Applied Aeronautics Albatross
 #
-# @type Standard Plane
+# @type Plane A-Tail
 #
 # @output MAIN1 aileron right
 # @output MAIN2 aileron left

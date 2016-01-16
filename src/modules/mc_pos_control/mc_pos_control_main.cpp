@@ -333,12 +333,6 @@ private:
 namespace pos_control
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 MulticopterPositionControl	*g_control;
 }
 
@@ -1500,6 +1494,9 @@ MulticopterPositionControl::task_main()
 							_landing_started = hrt_absolute_time();
 						}
 
+						#if 0
+						// TODO quick fix: remove this since in combination with the non-working fall detection
+						// it can lead to the copter falling out of the sky
 						/* don't let it throttle up again during landing */
 						if (thrust_sp(2) < 0.0f && thrust_abs < _landing_thrust
 								/* fix landing thrust after a certain time when velocity change is minimal */
@@ -1508,6 +1505,7 @@ MulticopterPositionControl::task_main()
 								&& hrt_elapsed_time(&_landing_started) > 15e5) {
 							_landing_thrust = thrust_abs;
 						}
+						#endif
 
 						/* assume ground, reduce thrust */
 						if (hrt_elapsed_time(&_landing_started) > 15e5
@@ -1766,7 +1764,8 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* do not move yaw while sitting on the ground */
-			else if (!_vehicle_status.condition_landed) {
+			else if (!_vehicle_status.condition_landed &&
+				!(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
 				const float yaw_offset_max = _params.man_yaw_max / _params.mc_att_yaw_p;
 
 				_att_sp.yaw_sp_move_rate = _manual.r * _params.man_yaw_max;

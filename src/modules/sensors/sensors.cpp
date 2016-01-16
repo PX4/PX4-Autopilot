@@ -185,7 +185,7 @@ private:
 	switch_pos_t	get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv);
 
 	/**
-	 * Update paramters from RC channels if the functionality is activated and the
+	 * Update parameters from RC channels if the functionality is activated and the
 	 * input has changed since the last update
 	 *
 	 * @param
@@ -346,7 +346,7 @@ private:
 		param_t rc_map_aux5;
 
 		param_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
-		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the paramters which are bound
+		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the parameters which are bound
 							  to a RC channel, equivalent float values in the
 							  _parameters struct are not existing
 							  because these parameters are never read. */
@@ -1568,7 +1568,7 @@ Sensors::rc_parameter_map_poll(bool forced)
 	if (map_updated) {
 		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
 
-		/* update paramter handles to which the RC channels are mapped */
+		/* update parameter handles to which the RC channels are mapped */
 		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 			if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
 				/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)

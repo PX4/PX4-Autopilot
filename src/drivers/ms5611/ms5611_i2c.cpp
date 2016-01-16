@@ -265,7 +265,7 @@ MS5611_I2C::_read_prom()
 
 		/* check if all bytes are zero */
 		if (i == 0) {
-			/* initalize to first byte read */
+			/* initialize to first byte read */
 			last_val = prom_buf[0];
 		}
 

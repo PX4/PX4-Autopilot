@@ -129,7 +129,7 @@ typedef struct {
 	pollevent_t 	events;   /* The input event flags */
 	pollevent_t 	revents;  /* The output event flags */
 
-	/* Required for PX4 compatability */
+	/* Required for PX4 compatibility */
 	px4_sem_t   *sem;  	/* Pointer to semaphore used to post output event */
 	void   *priv;     	/* For use by drivers */
 } px4_pollfd_struct_t;

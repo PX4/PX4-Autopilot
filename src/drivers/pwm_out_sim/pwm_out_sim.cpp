@@ -502,8 +502,8 @@ PWMSim::task_main()
 				    PX4_ISFINITE(outputs.output[i]) &&
 				    outputs.output[i] >= -1.0f &&
 				    outputs.output[i] <= 1.0f) {
-					/* scale for PWM output 900 - 2100us */
-					outputs.output[i] = 1500 + (600 * outputs.output[i]);
+					/* scale for PWM output 1000 - 2000us */
+					outputs.output[i] = 1500 + (500 * outputs.output[i]);
 
 				} else {
 					/*

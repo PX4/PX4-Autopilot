@@ -34,7 +34,7 @@
 /**
  * @file camera_trigger.cpp
  *
- * External camera-IMU synchronisation and triggering via FMU auxillary pins.
+ * External camera-IMU synchronisation and triggering via FMU auxiliary pins.
  *
  * @author Mohammed Kabir <mhkabir98@gmail.com>
  */

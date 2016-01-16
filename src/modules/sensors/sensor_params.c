@@ -2300,6 +2300,8 @@ PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
  *
  * Set to 1000 for industry default or 900 to increase servo travel.
  *
+ * @reboot_required true
+ *
  * @min 800
  * @max 1400
  * @unit microseconds
@@ -2315,6 +2317,8 @@ PARAM_DEFINE_INT32(PWM_MIN, 1000);
  * THE SYSTEM TO PUT CHANGES INTO EFFECT.
  *
  * Set to 2000 for industry default or 2100 to increase servo travel.
+ *
+ * @reboot_required true
  *
  * @min 1600
  * @max 2200
@@ -2333,6 +2337,8 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
  * This is the PWM pulse the autopilot is outputting if not armed.
  * The main use of this parameter is to silence ESCs when they are disarmed.
  *
+ * @reboot_required true
+ *
  * @min 0
  * @max 2200
  * @unit microseconds
@@ -2348,6 +2354,8 @@ PARAM_DEFINE_INT32(PWM_DISARMED, 0);
  * THE SYSTEM TO PUT CHANGES INTO EFFECT.
  *
  * Set to 1000 for default or 900 to increase servo travel
+ *
+ * @reboot_required true
  *
  * @min 800
  * @max 1400
@@ -2365,6 +2373,8 @@ PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
  *
  * Set to 2000 for default or 2100 to increase servo travel
  *
+ * @reboot_required true
+ *
  * @min 1600
  * @max 2200
  * @unit microseconds
@@ -2381,6 +2391,8 @@ PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
  *
  * This is the PWM pulse the autopilot is outputting if not armed.
  * The main use of this parameter is to silence ESCs when they are disarmed.
+ *
+ * @reboot_required true
  *
  * @min 0
  * @max 2200

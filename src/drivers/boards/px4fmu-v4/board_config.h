@@ -73,7 +73,7 @@ __BEGIN_DECLS
 /* LEDs */
 
 #define GPIO_LED1		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN11)
-#define GPIO_LED2		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+#define GPIO_LED2		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
 #define GPIO_LED3		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN3)
 
 #define GPIO_LED_RED 	GPIO_LED1
@@ -120,14 +120,23 @@ __BEGIN_DECLS
 
 #define PX4_SPI_BUS_SENSORS	1
 #define PX4_SPI_BUS_RAMTRON	2
+#define PX4_SPI_BUS_BARO	PX4_SPI_BUS_RAMTRON
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO			1
 #define PX4_SPIDEV_ACCEL_MAG	2
-#define PX4_SPIDEV_BARO			3
 #define PX4_SPIDEV_MPU			4
 #define PX4_SPIDEV_HMC			5
 #define PX4_SPIDEV_ICM			6
+
+/* onboard MS5611 and FRAM are both on bus SPI2
+ * spi_dev_e:SPIDEV_FLASH has the value 2 and is used in the NuttX ramtron driver
+ * use 3 for the barometer to differentiate
+ */
+#define PX4_SPIDEV_BARO			3
+#if (PX4_SPIDEV_BARO == SPIDEV_FLASH)
+#error PX4_SPIDEV_BARO must not be equal to SPIDEV_FLASH as they share the same bus
+#endif
 
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
@@ -215,7 +224,7 @@ __BEGIN_DECLS
 #define HRT_PPM_CHANNEL		3	/* use capture/compare channel 2 */
 #define GPIO_PPM_IN			(GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
-#define SBUS_SERIAL_PORT	"/dev/ttyS4"
+#define RC_SERIAL_PORT		"/dev/ttyS4"
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER			4
@@ -226,7 +235,12 @@ __BEGIN_DECLS
 #define GPIO_LED_SAFETY			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN3)
 #define GPIO_BTN_SAFETY			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN4)
 #define GPIO_PERIPH_3V3_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
-#define GPIO_SBUS_INV			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
+/* for R07, this signal is active low */
+//#define GPIO_SBUS_INV			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
+//#define INVERT_RC_INPUT(_s)		stm32_gpiowrite(GPIO_SBUS_INV, 1-_s);
+/* for R12, this signal is active high */
+#define GPIO_SBUS_INV			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
+#define INVERT_RC_INPUT(_s)		stm32_gpiowrite(GPIO_SBUS_INV, _s);
 
 #define GPIO_8266_GPIO0			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN2)
 #define GPIO_SPEKTRUM_PWR_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
@@ -235,11 +249,14 @@ __BEGIN_DECLS
 
 /* Power switch controls ******************************************************/
 
-#define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
-#define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
-#define SPEKTRUM_RX_HIGH(_s)	stm32_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_s))
+#define POWER_SPEKTRUM(_s)			stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (1-_s))
+//#define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
 #define SPEKTRUM_RX_AS_UART()		stm32_configgpio(GPIO_USART1_RX)
-#define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_USART1_RX_SPEKTRUM)
+
+// FMUv4 has a separate GPIO for serial RC output
+#define GPIO_RC_OUT			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
+#define SPEKTRUM_RX_AS_GPIO()		stm32_configgpio(GPIO_RC_OUT)
+#define SPEKTRUM_RX_HIGH(_s)		stm32_gpiowrite(GPIO_RC_OUT, (_s))
 
 /****************************************************************************************************
  * Public Types

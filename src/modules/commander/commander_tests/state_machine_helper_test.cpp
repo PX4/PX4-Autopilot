@@ -75,11 +75,11 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
     } ArmingTransitionVolatileState_t;
 
     // This structure represents a test case for arming_state_transition. It contains the machine
-    // state prior to transtion, the requested state to transition to and finally the expected
+    // state prior to transition, the requested state to transition to and finally the expected
     // machine state after transition.
     typedef struct {
         const char*                     assertMsg;                              // Text to show when test case fails
-        ArmingTransitionVolatileState_t current_state;                          // Machine state prior to transtion
+        ArmingTransitionVolatileState_t current_state;                          // Machine state prior to transition
         hil_state_t                     hil_state;                              // Current vehicle_status_s.hil_state
         bool                            condition_system_sensors_initialized;   // Current vehicle_status_s.condition_system_sensors_initialized
         bool                            safety_switch_available;                // Current safety_s.safety_switch_available

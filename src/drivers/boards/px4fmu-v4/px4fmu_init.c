@@ -233,6 +233,10 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 	stm32_configgpio(GPIO_8266_PD);
 	stm32_configgpio(GPIO_8266_RST);
+#ifdef GPIO_RC_OUT
+	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */
+	stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set it high to pull RC input up */
+#endif
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -284,7 +288,6 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
 	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_HMC, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
@@ -298,14 +301,16 @@ __EXPORT int nsh_archinitialize(void)
 		return -ENODEV;
 	}
 
-	/* Default SPI2 to 37.5 MHz (40 MHz rounded to nearest valid divider, F4 max)
-	 * and de-assert the known chip selects. */
+	/* Default SPI2 to 12MHz and de-assert the known chip selects.
+	 * MS5611 has max SPI clock speed of 20MHz
+	 */
 
-	// XXX start with 10.4 MHz in FRAM usage and go up to 37.5 once validated
+	// XXX start with 10.4 MHz and go up to 20 once validated
 	SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
+	SPI_SELECT(spi2, PX4_SPIDEV_BARO, false);
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
