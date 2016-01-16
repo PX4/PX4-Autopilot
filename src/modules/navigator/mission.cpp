@@ -150,7 +150,6 @@ void
 Mission::on_active()
 {
 	check_mission_valid();
-
 	/* check if anything has changed */
 	bool onboard_updated = false;
 	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
@@ -181,6 +180,12 @@ Mission::on_active()
 
 	} else if (_mission_type != MISSION_TYPE_NONE &&_param_altmode.get() == MISSION_ALTMODE_FOH) {
 		altitude_sp_foh_update();
+	} else if (_mission_item.nav_cmd == NAV_CMD_LAND && _waypoint_position_reached && _navigator->get_vstatus()->is_rotary_wing) {
+		// the copter has reached the landing spot location
+		// set the same landing item again but this time the vehicle will actually
+		// descend and land
+		set_mission_item_reached();
+		set_mission_items();
 	} else {
 		/* if waypoint position reached allow loiter on the setpoint */
 		if (_waypoint_position_reached && _mission_item.nav_cmd != NAV_CMD_IDLE) {
