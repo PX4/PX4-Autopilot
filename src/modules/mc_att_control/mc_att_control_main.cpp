@@ -291,12 +291,6 @@ private:
 namespace mc_att_control
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 MulticopterAttitudeControl	*g_control;
 }
 

@@ -363,7 +363,6 @@ static void timer_cb(void *data)
 
 int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 {
-	void *result;
 	work_s _hpwork = {};
 
 	// Create a timer to unblock

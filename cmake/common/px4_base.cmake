@@ -266,6 +266,10 @@ function(px4_add_module)
 
 	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
 
+	if(${OS} STREQUAL "qurt" )
+		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+	endif()
+
 	if(MAIN)
 		set_target_properties(${MODULE} PROPERTIES
 			COMPILE_DEFINITIONS PX4_MAIN=${MAIN}_app_main)

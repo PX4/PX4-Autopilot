@@ -1,6 +1,5 @@
 /****************************************************************************
- *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +11,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name ATLFlight nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -30,53 +29,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <stdio.h>
-#include <dlfcn.h>
+#ifndef MAINAPP_IDL
+#define MAINAPP_IDL
 
-//#define STACK_SIZE 0x8000
-//static char __attribute__ ((aligned (16))) stack1[STACK_SIZE];
+#include "AEEStdDef.idl"
 
-static void do_dlopen()
-{
-#if 0
-	void *handle;
-	char *error;
-	void (*entry_function)() = NULL;
+interface mainapp{
+    uint32 test();
+};
 
-	handle = dlopen("libdspal_client.so", RTLD_LAZY);
-
-	if (!handle) {
-		printf("Error opening libdspal_client.so\n");
-		return 1;
-	}
-
-	entry_function = dlsym(handle, "dspal_entry");
-
-	if (((error = dlerror()) != NULL) || (entry_function == NULL)) {
-		printf("Error dlsym for dspal_entry");
-		ret = 2;
-	}
-
-	dlclose(handle);
-#endif
-}
-
-#ifdef QURT_EXE_BUILD
-int dlinit(int a, char **b)
-{
-	return 0;
-}
-#endif
-
-int main(int argc, char *argv[])
-{
-	int ret = 0;
-	char *builtin[] = {"libgcc.so", "libc.so"};
-
-	printf("In DSPAL main\n");
-	dlinit(2, builtin);
-
-	do_dlopen();
-	return ret;
-}
-
+#endif /*MAINAPP_IDL*/

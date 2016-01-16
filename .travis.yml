@@ -93,6 +93,7 @@ env:
     - PX4_AWS_BUCKET=px4-travis
 
 script:
+  - git submodule update --init --recursive
   - make check_format
   - arm-none-eabi-gcc --version
   - echo 'Building POSIX Firmware..' && make posix_sitl_default

@@ -417,7 +417,7 @@ int commander_main(int argc, char *argv[])
 		/* see if we got a home position */
 		if (status.condition_home_position_valid) {
 
-			if (TRANSITION_CHANGED == arm_disarm(true, mavlink_fd_local, "command line")) {
+			if (TRANSITION_DENIED != arm_disarm(true, mavlink_fd_local, "command line")) {
 
 				vehicle_command_s cmd = {};
 				cmd.target_system = status.system_id;
@@ -3018,8 +3018,8 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
-		control_mode.flag_control_position_enabled = true;
-		control_mode.flag_control_velocity_enabled = true;
+		control_mode.flag_control_position_enabled = !status.in_transition_mode;
+		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
 		control_mode.flag_control_termination_enabled = false;
 		break;
 

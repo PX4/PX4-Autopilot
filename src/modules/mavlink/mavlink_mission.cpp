@@ -780,6 +780,13 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 	case MAV_FRAME_MISSION:
 		// This is a mission item with no coordinate
+		mission_item->params[0] = mavlink_mission_item->param1;
+		mission_item->params[1] = mavlink_mission_item->param2;
+		mission_item->params[2] = mavlink_mission_item->param3;
+		mission_item->params[3] = mavlink_mission_item->param4;
+		mission_item->params[4] = mavlink_mission_item->x;
+		mission_item->params[5] = mavlink_mission_item->y;
+		mission_item->params[6] = mavlink_mission_item->z;
 		break;
 			
 	default:

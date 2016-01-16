@@ -599,7 +599,7 @@ error:
 #endif /* HRT_PPM_CHANNEL */
 
 /**
- * Handle the compare interupt by calling the callout dispatcher
+ * Handle the compare interrupt by calling the callout dispatcher
  * and then re-scheduling the next deadline.
  */
 static int
@@ -750,7 +750,7 @@ hrt_store_absolute_time(volatile hrt_abstime *now)
 }
 
 /**
- * Initalise the high-resolution timing module.
+ * Initialise the high-resolution timing module.
  */
 void
 hrt_init(void)
