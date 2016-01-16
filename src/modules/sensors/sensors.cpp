@@ -654,6 +654,7 @@ Sensors::Sensors() :
 	(void)param_find("PWM_AUX_MAX");
 	(void)param_find("PWM_AUX_DISARMED");
 	(void)param_find("TRIG_MODE");
+	(void)param_find("UAVCAN_ENABLE");
 
 	/* fetch initial parameter values */
 	parameters_update();
