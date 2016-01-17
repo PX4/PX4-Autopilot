@@ -39,13 +39,13 @@
  * FrSky SmartPort telemetry implementation.
  *
  */
-#ifndef _FRSKY_DATA_H
-#define _FRSKY_DATA_H
+#ifndef _SPORT_DATA_H
+#define _SPORT_DATA_H
+
+#include <sys/types.h>
 
 // Public functions
-void frsky_init(void);
-void frsky_send_frame1(int uart);
-void frsky_send_frame2(int uart);
-void frsky_send_frame3(int uart);
+void sPort_init(void);
+void sPort_send_data(int uart, uint16_t id, uint32_t data);
 
-#endif /* _FRSKY_TELEMETRY_H */
+#endif /* _SPORT_TELEMETRY_H */
