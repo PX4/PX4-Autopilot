@@ -1,6 +1,15 @@
 include(posix/px4_impl_posix)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
+if ("${RPI_TOOLCHAIN_DIR}" STREQUAL "")
+	set(RPI_TOOLCHAIN_DIR /opt/rpi_toolchain)
+endif()
+
+set(CMAKE_PROGRAM_PATH 
+	"${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin"
+	${CMAKE_PROGRAM_PATH}
+	)
+
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
 
 set(config_module_list
 	drivers/device
