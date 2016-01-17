@@ -625,13 +625,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					/* convert raw flow to angular flow (rad/s) */
 					float flow_ang[2];
 					//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
-					flow_ang[0] = (flow.pixel_flow_x_integral - flow.gyro_x_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[0];//flow.flow_raw_x * params.flow_k / 1000.0f / flow_dt;
-					flow_ang[1] = (flow.pixel_flow_y_integral - flow.gyro_y_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[1];//flow.flow_raw_y * params.flow_k / 1000.0f / flow_dt;
+					flow_ang[0] = ((flow.pixel_flow_x_integral - flow.gyro_x_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[0]) * params.flow_k;//for now the flow has to be scaled (to small)
+					flow_ang[1] = ((flow.pixel_flow_y_integral - flow.gyro_y_rate_integral)/(float)flow.integration_timespan*1000000.0f + gyro_offset_filtered[1]) * params.flow_k;//for now the flow has to be scaled (to small)
 					/* flow measurements vector */
 					
 					float flow_m[3];
-					flow_m[0] = -flow_ang[0] * flow_dist - yaw_comp[0];
-					flow_m[1] = -flow_ang[1] * flow_dist - yaw_comp[1];
+					flow_m[0] = -flow_ang[0] * flow_dist - yaw_comp[0] * params.flow_k;
+					flow_m[1] = -flow_ang[1] * flow_dist - yaw_comp[1] * params.flow_k;
 					flow_m[2] = z_est[1];
 					
 					/* velocity in NED */
@@ -830,12 +830,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						/* reset position estimate when GPS becomes good */
 						if (reset_est) {
-
 							x_est[0] = gps_proj[0];
 							x_est[1] = gps.vel_n_m_s;
 							y_est[0] = gps_proj[1];
 							y_est[1] = gps.vel_e_m_s;
-
 						}
 
 						/* calculate index of estimated values in buffer */
