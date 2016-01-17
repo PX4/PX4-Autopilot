@@ -2254,7 +2254,7 @@ PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
 
 
 /**
- * Threshold for selecting offboard mode
+ * Threshold for the kill switch
  *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
