@@ -2285,16 +2285,13 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* check throttle kill switch */
-			int prevLockdown = armed.lockdown;
 			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				/* set lockdown flag */
-				armed.lockdown = TRUE;
-			} else {
-				armed.lockdown = FALSE;
+				armed.lockdown = true;
+			} else if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+				armed.lockdown = false;
 			}
-			if (prevLockdown != armed.lockdown) {
-				warnx("armed.lockdown: %d\n", armed.lockdown);
-			}
+			/* no else case: do not change lockdown flag in unconfigured case */
 
 		} else {
 			if (!status.rc_input_blocked && !status.rc_signal_lost) {
