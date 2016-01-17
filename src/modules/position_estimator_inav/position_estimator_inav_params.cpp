@@ -161,7 +161,7 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_VIS_V, 0.0f);
  * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_XY_FLOW, 9.0f);
+PARAM_DEFINE_FLOAT(INAV_W_XY_FLOW, 0.8f);
 
 /**
  * XY axis weight for resetting velocity
@@ -199,14 +199,13 @@ PARAM_DEFINE_FLOAT(INAV_W_ACC_BIAS, 0.05f);
 /**
  * Optical flow scale factor
  *
- * Factor to convert raw optical flow (in pixels) to radians [rad/px].
+ * Factor to scale optical flow
  *
  * @min 0.0
- * @max 1.0
- * @unit rad/px
+ * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_FLOW_K, 0.15f);
+PARAM_DEFINE_FLOAT(INAV_FLOW_K, 1.35f);
 
 /**
  * Minimal acceptable optical flow quality
