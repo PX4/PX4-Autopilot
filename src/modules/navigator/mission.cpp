@@ -259,7 +259,7 @@ Mission::update_offboard_mission()
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
 				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
 				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-				_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning, _navigator->get_acceptance_radius());
 
 		_navigator->get_mission_result()->valid = !failed;
 		_navigator->increment_mission_instance_count();
@@ -843,7 +843,7 @@ Mission::check_mission_valid()
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
 				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
 				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-				_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning, _navigator->get_acceptance_radius());
 
 		_navigator->increment_mission_instance_count();
 		_navigator->set_mission_result_updated();
