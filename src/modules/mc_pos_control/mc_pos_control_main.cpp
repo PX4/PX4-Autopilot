@@ -250,6 +250,9 @@ private:
 	bool _takeoff_jumped;
 	float _vel_z_lp;
 	float _acc_z_lp;
+	float _takeoff_thrust_sp;
+	hrt_abstime _takeoff_start_time;
+	bool _started_takeoff;
 
 	/**
 	 * Update our local parameter cache.
@@ -378,7 +381,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_landing_started(0),
 	_takeoff_jumped(false),
 	_vel_z_lp(0),
-	_acc_z_lp(0)
+	_acc_z_lp(0),
+	_takeoff_thrust_sp(0.0f),
+	_takeoff_start_time(0),
+	_started_takeoff(false)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
@@ -1358,25 +1364,32 @@ MulticopterPositionControl::task_main()
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
-					if (!_takeoff_jumped) {
-						/* do a quick jump (ramp vel sp up in 1/2sec) until we shoot over takeoff speed */
-						float accel = _vel_sp_prev(2) - _params.tko_jmpspd;
-						float tmp = _vel_sp_prev(2) + accel * dt * 2.0f;
-						_vel_sp(2) = math::max(tmp, -_params.tko_jmpspd);
-
-						if (_vel(2) < -_params.tko_speed) {
+					if (!_started_takeoff) {
+						_started_takeoff = true;
+						_takeoff_start_time = hrt_absolute_time();
+					} else if (!_takeoff_jumped) {
+						// ramp thrust setpoint up
+						if (_vel(2) > -0.5f) {
+							_takeoff_thrust_sp = (float)hrt_elapsed_time(&_takeoff_start_time) / 1e6f * 0.5f;
+							_vel_sp.zero();
+							_vel_prev.zero();
+						} else {
+							// copter has reached our takeoff speed. split the thrust setpoint up
+							// into an integral part and into a P part
+							thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
+							thrust_int(2) = -math::constrain(thrust_int(2), _params.thr_min, _params.thr_max);
+							_vel_sp(2) = -1.0f;
+							_vel_sp_prev(2) = -1.0f;
 							_takeoff_jumped = true;
+							reset_int_z = false;
 						}
-
-					} else {
-						/* slowly reduce forced takeoff speed to set climb rate (in 3 sec) */
-						float decel = _params.tko_jmpspd - _params.tko_speed;
-						float tmp = decel / 3.0f * dt + _vel_sp_prev(2);
-						_vel_sp(2) = math::min(tmp, -_params.tko_speed);
 					}
 
 				} else {
 					_takeoff_jumped = false;
+					_started_takeoff = false;
+					_takeoff_start_time = 0;
+					_takeoff_thrust_sp = 0.0f;
 				}
 
 				// limit total horizontal acceleration
@@ -1391,6 +1404,14 @@ MulticopterPositionControl::task_main()
 					math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
 					_vel_sp(0) = vel_sp_hor(0);
 					_vel_sp(1) = vel_sp_hor(1);
+				}
+
+				// limit vertical acceleration
+				float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
+
+				if (fabsf(acc_v) > 2 * _params.acc_hor_max) {
+					acc_v /= fabsf(acc_v);
+					_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);
 				}
 
 				_vel_sp_prev = _vel_sp;
@@ -1449,6 +1470,13 @@ MulticopterPositionControl::task_main()
 					/* thrust vector in NED frame */
 					// TODO?: + _vel_sp.emult(_params.vel_ff)
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
+
+					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+							&& !_takeoff_jumped) {
+						// for jumped takeoffs use special thrust setpoint calculated above
+						thrust_sp.zero();
+						thrust_sp(2) = -_takeoff_thrust_sp;
+					}
 
 					if (!_control_mode.flag_control_velocity_enabled) {
 						thrust_sp(0) = 0.0f;
