@@ -112,14 +112,12 @@ void sPort_init()
 static void sPort_send_start(int uart)
 {
 	static const uint8_t c = 0x10;
-	write(uart, &c, sizeof(c));
+	write(uart, &c, 1);
 }
 
-static void update_crc(uint16_t *crc)
+static void update_crc(uint16_t *crc, uint8_t b)
 {
-	*crc += 0x10;
-	*crc += *crc >> 8;
-	*crc &= 0xFF;
+	*crc += b;
 	*crc += *crc >> 8;
 	*crc &= 0xFF;
 }
@@ -152,27 +150,30 @@ static void sPort_send_byte(int uart, uint8_t value)
  */
 void sPort_send_data(int uart, uint16_t id, uint32_t data)
 {
-    union {
-        uint16_t word;
-        uint8_t byte[2];
-    } wbuf;
-    
+	union {
+		uint32_t word;
+		uint8_t byte[4];
+	} buf;
+
 	uint16_t crc = 0;
 	sPort_send_start(uart);
+//	write(uart, 0x10, 1);
 
-	wbuf.word = id;
+	buf.word = id;
 
 	for (int i = 0; i < 2; i++) {
-		update_crc(&crc);
-		sPort_send_byte(uart, wbuf.byte[i]);      /* LSB first */
+		update_crc(&crc, buf.byte[i]);
+		sPort_send_byte(uart, buf.byte[i]);      /* LSB first */
 	}
 
-	uint8_t *bbuf = (uint8_t *)data;
+	buf.word = data;
 
 	for (int i = 0; i < 4; i++) {
-		update_crc(&crc);
-		sPort_send_byte(uart, bbuf[i]);      /* LSB first */
+		update_crc(&crc, buf.byte[i]);
+		sPort_send_byte(uart, buf.byte[i]);      /* LSB first */
 	}
+
+	sPort_send_byte(uart, crc); 
 }
 
 #ifdef xxxx

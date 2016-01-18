@@ -49,11 +49,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sys/types.h>
+#include <poll.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <termios.h>
+#include <drivers/drv_hrt.h>
 
 #include "sPort_data.h"
 
@@ -76,23 +78,13 @@ __EXPORT int sPort_telemetry_main(int argc, char *argv[]);
 static int sPort_open_uart(const char *uart_name, struct termios *uart_config_original)
 {
 	/* Open UART */
-	const int uart = open(uart_name, O_RDWR | O_NOCTTY);
+	const int uart = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
+//	const int uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	if (uart < 0) {
 		err(1, "Error opening port: %s", uart_name);
 	}
 
-	/* make sure uart FD is blocking */
-	int flags = fcntl(uart, F_GETFL);
-	if (flags < 0) {
-		err(1, "Error getting FD flags: %s", uart_name);
-	}
-	flags &= ~O_NONBLOCK;
-	flags = fcntl(uart, F_SETFL, flags);
-	if (flags < 0) {
-		err(1, "Error setting FD flags: %s", uart_name);
-	}
-	
 	/* Back up the original UART configuration to restore it after exit */
 	int termios_state;
 
@@ -175,33 +167,37 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 		err(1, "could not open %s", device_name);
 	}
 
+	/* poll descriptor */
+	struct pollfd fds[1];
+	fds[0].fd = uart;
+	fds[0].events = POLLIN;
+
 	/* Subscribe to topics */
 	sPort_init();
 
 	thread_running = true;
 
 	/* Main thread loop */
-	char sbuf[2];
-	uint8_t fiftyfive = 0x55;
+	char sbuf[20];
 
 	while (!thread_should_exit) {
 
 		/* wait for poll frame starting with value 0x7E */
-		int newBytes = read(uart, &sbuf[0], 1);
-//		warnx("%x, %x \n", sbuf[0], sbuf[1]);
+		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
+		if (status < 1) continue;
 		
+		// read 2 bytes
+		int newBytes = read(uart, &sbuf[0], 2);
 		if (newBytes < 1 || sbuf[0] != 0x7E) continue;
 		
-		/* read the ID byte */
-		sbuf[1] = read(uart, &sbuf[0], 1);
-		
-//		sPort_send_data(uart, id, 7);
-		
-		/*** test ***/
-		/* write single byte */
-		write(uart, &fiftyfive, 1);
-		/* read it back */
-		read(uart, &sbuf[0], 1);
+		/* device ID 4 */
+		static uint8_t counter = 0;
+		if (sbuf[1] == 0xe4) {		
+			/* send data for A2 */
+			sPort_send_data(uart, 0xf103, counter++);
+			/* read it back */
+			read(uart, &sbuf[0], sizeof(sbuf));
+		}
 	}
 
 	/* Reset the UART flags to original state */
@@ -233,7 +229,7 @@ int sPort_telemetry_main(int argc, char *argv[])
 		thread_should_exit = false;
 		sPort_task = px4_task_spawn_cmd("sPort_telemetry",
 						SCHED_DEFAULT,
-						SCHED_PRIORITY_DEFAULT,
+						200,
 						2000,
 						sPort_telemetry_thread_main,
 						(char *const *)argv);
