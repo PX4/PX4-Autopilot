@@ -4,7 +4,7 @@
 
 // grody hack - this should go once C++11 is supported
 // on all platforms.
-#ifdef __PX4_NUTTX
+#if defined (__PX4_NUTTX) || defined (__PX4_QURT)
 #include <math.h>
 #else
 #include <cmath>
@@ -16,7 +16,7 @@ namespace matrix
 template<typename Type>
 Type wrap_pi(Type x)
 {
-#ifdef __PX4_NUTTX
+#if defined (__PX4_NUTTX) || defined (__PX4_QURT)
     if (!isfinite(x)) {
 #else
     if (!std::isfinite(x)) {
