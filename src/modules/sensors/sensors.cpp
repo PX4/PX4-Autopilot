@@ -850,12 +850,13 @@ Sensors::parameters_update()
 
 	} else if (_parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
-
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+		_parameters.battery_voltage_scaling = 0.011f;
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2)
 		_parameters.battery_voltage_scaling = 0.0082f;
-#elif CONFIG_ARCH_BOARD_AEROCORE
+#elif defined (CONFIG_ARCH_BOARD_AEROCORE)
 		_parameters.battery_voltage_scaling = 0.0063f;
-#elif CONFIG_ARCH_BOARD_PX4FMU_V1
+#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		_parameters.battery_voltage_scaling = 0.00459340659f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
