@@ -212,19 +212,6 @@ static struct sdio_dev_s *sdio;
 
 #include <math.h>
 
-/* TODO XXX commented this out to get cmake build working */
-/*#ifdef __cplusplus*/
-/*__EXPORT int matherr(struct __exception *e)*/
-/*{*/
-/*return 1;*/
-/*}*/
-/*#else*/
-/*__EXPORT int matherr(struct exception *e)*/
-/*{*/
-/*return 1;*/
-/*}*/
-/*#endif*/
-
 __EXPORT int nsh_archinitialize(void)
 {
 
@@ -298,6 +285,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL_MAG, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_MAG, false);
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */

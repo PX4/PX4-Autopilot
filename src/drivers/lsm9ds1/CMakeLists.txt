@@ -31,17 +31,15 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__boards__px4fmu-v2
+	MODULE drivers__lsm9ds1
+	MAIN lsm9ds1
+	STACK 1200
 	COMPILE_FLAGS
+		-Weffc++
 		-Os
 	SRCS
-		px4fmu_can.c
-		px4fmu2_init.c
-		px4fmu_pwm_servo.c
-		px4fmu_spi.c
-		px4fmu_usb.c
-		px4fmu2_led.c
+		lsm9ds1.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
