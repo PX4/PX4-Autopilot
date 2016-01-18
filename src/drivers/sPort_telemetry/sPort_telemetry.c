@@ -233,7 +233,7 @@ int sPort_telemetry_main(int argc, char *argv[])
 		thread_should_exit = false;
 		sPort_task = px4_task_spawn_cmd("sPort_telemetry",
 						SCHED_DEFAULT,
-						SCHED_PRIORITY_DEFAULT,
+						200,
 						2000,
 						sPort_telemetry_thread_main,
 						(char *const *)argv);
