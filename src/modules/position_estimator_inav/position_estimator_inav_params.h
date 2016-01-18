@@ -111,4 +111,5 @@ int inav_parameters_init(struct position_estimator_inav_param_handles *h);
  * Update all parameters
  *
  */
-int inav_parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p);
+int inav_parameters_update(const struct position_estimator_inav_param_handles *h,
+			   struct position_estimator_inav_params *p);
