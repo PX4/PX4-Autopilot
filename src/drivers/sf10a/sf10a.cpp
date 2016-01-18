@@ -264,6 +264,7 @@ SF10A::init()
 
 
 	int ret2 = measure();
+
 	if (ret2 == 0) {
 		ret = OK;
 		_sensor_ok = true;
@@ -606,13 +607,14 @@ SF10A::cycle()
 {
 
 	set_address(SF10A_BASEADDR);
+
 	/* Collect results */
 	if (OK != collect()) {
-				DEVICE_DEBUG("collection error");
-				/* if error restart the measurement state machine */
-				start();
-				return;
-			}
+		DEVICE_DEBUG("collection error");
+		/* if error restart the measurement state machine */
+		start();
+		return;
+	}
 
 
 	/* Trigger measurement */
