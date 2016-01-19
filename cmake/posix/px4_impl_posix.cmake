@@ -206,7 +206,6 @@ if ("${BOARD}" STREQUAL "eagle")
 	endif()
 	
 	# Add the toolchain specific flags
-	set(HEXAGON_ARM_SYSROOT ${HEXAGON_SDK_ROOT}/sysroot)
         set(added_cflags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT})
         set(added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT})
 
