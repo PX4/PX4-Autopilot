@@ -155,6 +155,9 @@ posix_sitl_ekf2:
 ros_sitl_default:
 	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
 
+ros_sitl_default:
+	$(call cmake-build,$@)
+
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
@@ -163,7 +166,7 @@ qurt_eagle_release:
 
 posix_eagle_release:
 	$(call cmake-build,$@)
-
+	
 qurt_eagle_default:
 	$(call cmake-build,$@)
 
