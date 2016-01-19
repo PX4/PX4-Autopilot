@@ -61,10 +61,12 @@ static int writer_main(int argc, char *argv[])
 
 	int fd = px4_open(TESTDEV, PX4_F_WRONLY);
 
+	int fd = px4_open(TESTDEV, PX4_F_WRONLY);
 	if (fd < 0) {
 		PX4_INFO("Writer: Open failed %d %d", fd, px4_errno);
 		return -px4_errno;
 	}
+src/platforms/posix/tests/vcdev_test/vcdevtest_example.cpp
 
 	int ret;
 	int i = 0;
@@ -92,6 +94,12 @@ static int writer_main(int argc, char *argv[])
 
 class PrivData
 {
+	PrivData() : _read_offset(0) {}
+	~PrivData() {}
+
+	size_t _read_offset;
+};
+
 public:
 	PrivData() : _read_offset(0) {}
 	~PrivData() {}
@@ -321,11 +329,15 @@ int VCDevExample::main()
 				 (char *const *)NULL);
 
 	ret = 0;
-
 	PX4_INFO("TEST: BLOCKING POLL ---------------");
 
 	if (do_poll(fd, -1, 3, 0)) {
 		ret = 1;
+		goto fail2;
+	PX4_INFO("TEST: ZERO TIMEOUT POLL -----------");
+	if(do_poll(fd, 0, 3, 0)) {
+		ret = 1;
+		goto fail2;
 		goto fail2;
 	}
 

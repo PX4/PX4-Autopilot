@@ -37,6 +37,8 @@
  * System wide parameters
  */
 
+#ifdef __PX4_QURT
+
 /**
  * Auto-start script index.
  *
@@ -111,3 +113,5 @@ PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
 * @group System
 */
 PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
+
+#endif

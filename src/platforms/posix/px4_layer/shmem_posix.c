@@ -1,6 +1,7 @@
+
 /****************************************************************************
  *
- * Copyright (c) 2015 Vijay Venkatraman. All rights reserved.
+ * Copyright (c) 2015 Ramakrishna Kintada. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,6 +32,7 @@
  *
  ****************************************************************************/
 
+
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <string.h>
@@ -56,8 +58,8 @@
 
 int mem_fd;
 unsigned char *map_base, *virt_addr;
-struct shmem_info *shmem_info_p;
-static void *map_memory(off_t target);
+struct shmem_info* shmem_info_p;
+static void* map_memory(off_t target);
 
 int get_shmem_lock(void);
 void release_shmem_lock(void);
@@ -235,6 +237,7 @@ static void update_index_from_shmem(void)
 
 	release_shmem_lock();
 }
+
 
 static void update_value_from_shmem(param_t param, union param_value_u *value)
 {

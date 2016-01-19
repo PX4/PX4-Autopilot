@@ -406,7 +406,6 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	 * don't match then we might have a visible update.
 	 */
 	while (sd->generation != _generation) {
-
 		/*
 		 * Handle non-rate-limited subscribers.
 		 */
