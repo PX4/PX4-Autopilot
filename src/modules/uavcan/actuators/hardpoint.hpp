@@ -66,7 +66,7 @@ private:
 
 	bool _cmd_set = false;
 
-	void UavcanHardpointController::periodic_update();
+	void periodic_update(const uavcan::TimerEvent &);
 
 	typedef uavcan::MethodBinder<UavcanHardpointController *, void (UavcanHardpointController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
