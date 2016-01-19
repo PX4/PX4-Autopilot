@@ -84,7 +84,9 @@
 #define SF10A_MIN_DISTANCE 	(0.0f)
 #define SF10A_MAX_DISTANCE 	(25.0f)
 
-#define SF10A_CONVERSION_INTERVAL 		25000
+
+#define SF10A_CONVERSION_INTERVAL 		25000			// Overclocking SF10a to 40 Hz
+// #define SF10A_CONVERSION_INTERVAL 		31250		// Maximum rate according to datasheet is 32Hz
 
 
 /* oddly, ERROR is not defined for c++ */
