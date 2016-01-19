@@ -1,5 +1,11 @@
 include(qurt/px4_impl_qurt)
 
+if ("$ENV{EAGLE_ADDON_ROOT}" STREQUAL "")
+	message(FATAL_ERROR "Enviroment variable EAGLE_ADDON_ROOT must be set")
+else()
+	set(EAGLE_ADDON_ROOT $ENV{EAGLE_ADDON_ROOT})
+endif()
+
 if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
 	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
 else()
@@ -15,11 +21,22 @@ endif()
 STRING(REGEX REPLACE "//" "/" EAGLE_DRIVERS_SRC ${EAGLE_DRIVERS_SRC})
 STRING(REGEX REPLACE "/" "__" EAGLE_DRIVERS_MODULE_PREFIX ${EAGLE_DRIVERS_SRC})
 
-#include_directories(${EAGLE_ADDON_ROOT}/flight_controller/hexagon/inc)
-include_directories(
-	${HEXAGON_SDK_ROOT}/inc
-	${HEXAGON_SDK_ROOT}/inc/stddef
-	${HEXAGON_SDK_ROOT}/lib/common/qurt/ADSPv5MP/include
+include_directories(${EAGLE_ADDON_ROOT}/flight_controller/hexagon/inc)
+include_directories(${HEXAGON_SDK_ROOT}/lib/common/qurt/ADSPv5MP/include)
+
+message("hexagon_sdk_root is ${HEXAGON_SDK_ROOT}")
+
+set(QURT_ENABLE_STUBS "0")
+
+set(CONFIG_SHMEM "1")
+
+# For Actual flight we need to link against the driver dynamic libraries
+set(target_libraries
+	-L${EAGLE_ADDON_ROOT}/flight_controller/hexagon/libs
+	mpu9x50
+	uart_esc
+	csr_gps
+	rc_receiver
 	)
 
 message("hexagon_sdk_root is ${HEXAGON_SDK_ROOT}")

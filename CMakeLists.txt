@@ -85,7 +85,7 @@
 # * If a target from add_custom_* is set in a function, explicitly pass it
 #	as an output argument so that the target name is clear to the user.
 #
-# * Avoid use of global variables in functions. Functions in a nested 
+# * Avoid use of global variables in functions. Functions in a nested
 #	scope may use global variables, but this makes it difficult to
 #	resuse functions.
 #
@@ -335,7 +335,7 @@ foreach(module ${config_module_list})
 		STRING(REGEX REPLACE "//" "/" EXT_MODULE ${module})
 		STRING(REGEX REPLACE "/" "__" EXT_MODULE_PREFIX ${EXT_MODULE})
 		add_subdirectory(${module} ${CMAKE_BINARY_DIR}/${EXT_MODULE_PREFIX})
-	else() 
+	else()
 		add_subdirectory(src/${module})
 	endif()
 	px4_mangle_name(${module} mangled_name)

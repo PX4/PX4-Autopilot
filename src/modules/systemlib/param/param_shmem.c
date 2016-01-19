@@ -72,7 +72,11 @@
 
 #include "shmem.h"
 
-#define debug(fmt, args...)		do { } while(0)
+#if 0
+# define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
+#else
+# define debug(fmt, args...)		do { } while(0)
+#endif
 
 #define PARAM_OPEN	open
 #define PARAM_CLOSE	close
@@ -85,7 +89,7 @@ extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
 #else
-// TODO: start and end are reversed
+// FIXME - start and end are reversed
 static struct param_info_s *param_info_base = (struct param_info_s *) &px4_parameters;
 #endif
 
@@ -110,7 +114,7 @@ const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 extern int get_shmem_lock(void);
 extern void release_shmem_lock(void);
 
-struct param_wbuf_s *param_find_changed(param_t param);
+struct param_wbuf_s * param_find_changed(param_t param);
 
 void init_params(void);
 extern void init_shared_memory(void);
@@ -123,10 +127,9 @@ uint64_t sync_other_prev_time = 0, sync_other_current_time = 0;
 extern void update_to_shmem(param_t param, union param_value_u value);
 extern int update_from_shmem(param_t param, union param_value_u *value);
 static int param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes);
-unsigned char set_called_from_get = 0;
+unsigned char set_called_from_get=0;
 
-static int param_import_done =
-	0; /*at startup, params are loaded from file, if present. we dont want to send notifications that time since muorb is not ready*/
+static int param_import_done=0; /*at startup, params are loaded from file, if present. we dont want to send notifications that time since muorb is not ready*/
 
 static int param_load_default_no_notify(void);
 
@@ -236,6 +239,11 @@ param_find_changed(param_t param)
 	param_assert_locked();
 
 	if (param_values != NULL) {
+#if 0	/* utarray_find requires bsearch, not available */
+		struct param_wbuf_s key;
+		key.param = param;
+		s = utarray_find(param_values, &key, param_compare_values);
+#else
 		while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
 			if (s->param == param) {
 				break;
@@ -501,10 +509,11 @@ param_get(param_t param, void *val)
 
 	union param_value_u value;
 
-	if (update_from_shmem(param, &value)) {
-		set_called_from_get = 1;
+	if(update_from_shmem(param, &value))
+	{
+		set_called_from_get=1;
 		param_set_internal(param, &value, true, false);
-		set_called_from_get = 0;
+		set_called_from_get=0;
 	}
 
 

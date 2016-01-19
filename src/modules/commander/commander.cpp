@@ -1610,6 +1610,11 @@ int commander_thread_main(int argc, char *argv[])
 					_usb_telemetry_active = true;
 				}
 
+				/* set (and don't reset) telemetry via USB as active once a MAVLink connection is up */
+				if (telemetry.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB) {
+					_usb_telemetry_active = true;
+				}
+
 				if (telemetry.heartbeat_time > 0) {
 					telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
 				}
@@ -2977,7 +2982,7 @@ set_control_mode()
 	/* set vehicle_control_mode according to set_navigation_state */
 	control_mode.flag_armed = armed.armed;
 	control_mode.flag_external_manual_override_ok = (!status.is_rotary_wing && !status.is_vtol);
-	control_mode.flag_system_hil_enabled = status.hil_state == vehicle_status_s::HIL_STATE_ON;
+	//control_mode.flag_system_hil_enabled = status.hil_state == vehicle_status_s::HIL_STATE_ON;
 	control_mode.flag_control_offboard_enabled = false;
 
 	switch (status.nav_state) {

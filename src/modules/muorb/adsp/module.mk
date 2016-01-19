@@ -42,6 +42,10 @@ SRCS		= \
 		  px4muorb.cpp \
 		  uORBFastRpcChannel.cpp
 endif
+=======
+SRCS		=  param/param.c
+
+SRCS		+= perf_counter.c \
 
 INCLUDE_DIRS	+= \
 		  ${PX4_BASE}/src/modules/uORB
