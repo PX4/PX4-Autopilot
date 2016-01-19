@@ -188,8 +188,9 @@ void sPort_send_A2(int uart)
 	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 
 	/* send data for A2 */
-	uint32_t voltage = (int)(255 * battery.voltage_v / 18.4f);
-//	uint32_t voltage = (int)(255 * 5.5f / 18.4f);
+//	uint32_t voltage = (int)(255 * battery.voltage_v / 18.4f);
+	static uint8_t counter=0;
+	uint32_t voltage = counter++;
 	sPort_send_data(uart, 0xf103, voltage);
 }
 

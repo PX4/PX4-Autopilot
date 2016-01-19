@@ -186,9 +186,17 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
 		if (status < 1) continue;
 		
-		// read 2 bytes
-		int newBytes = read(uart, &sbuf[0], 2);
+		// read 1 byte
+		int newBytes = read(uart, &sbuf[0], 1);
 		if (newBytes < 1 || sbuf[0] != 0x7E) continue;
+		
+		/* wait for ID byte */
+		status = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
+		if (status < 1) continue;
+		newBytes = read(uart, &sbuf[1], 1);
+
+		// allow a minimum of 500usec before reply
+		usleep(500);
 		
 		/* device ID 4 */
 		if (sbuf[1] == 0x1B) {
