@@ -44,9 +44,44 @@
 
 #include <sys/types.h>
 
+/* FrSky SmartPort polling IDs captured from X4R */
+#define SMARTPORT_POLL_1    0x1B
+#define SMARTPORT_POLL_2    0x34
+#define SMARTPORT_POLL_3    0x95
+#define SMARTPORT_POLL_4    0x16
+#define SMARTPORT_POLL_5    0xB7
+
+/* FrSky SmartPort sensor IDs */
+#define SMARTPORT_ID_RSSI          0xf101
+#define SMARTPORT_ID_RXA1          0xf102	// supplied by RX
+#define SMARTPORT_ID_RXA2          0xf103	// supplied by RX
+#define SMARTPORT_ID_BATV          0xf104
+#define SMARTPORT_ID_SWR           0xf105
+#define SMARTPORT_ID_T1            0x0400
+#define SMARTPORT_ID_T2            0x0410
+#define SMARTPORT_ID_RPM           0x0500
+#define SMARTPORT_ID_FUEL          0x0600
+#define SMARTPORT_ID_ALT           0x0100
+#define SMARTPORT_ID_VARIO         0x0110
+#define SMARTPORT_ID_ACCX          0x0700
+#define SMARTPORT_ID_ACCY          0x0710
+#define SMARTPORT_ID_ACCZ          0x0720
+#define SMARTPORT_ID_CURR          0x0200
+#define SMARTPORT_ID_VFAS          0x0210
+#define SMARTPORT_ID_CELLS         0x0300
+#define SMARTPORT_ID_GPS_LON_LAT   0x0800
+#define SMARTPORT_ID_GPS_ALT       0x0820
+#define SMARTPORT_ID_GPS_SPD       0x0830
+#define SMARTPORT_ID_GPS_CRS       0x0840
+#define SMARTPORT_ID_GPS_TIME      0x0850
+
 // Public functions
 void sPort_init(void);
 void sPort_send_data(int uart, uint16_t id, uint32_t data);
-void sPort_send_A2(int uart);
+void sPort_send_BATV(int uart);
+void sPort_send_CUR(int uart);
+void sPort_send_ALT(int uart);
+void sPort_send_SPD(int uart);
+void sPort_send_FUEL(int uart);
 
 #endif /* _SPORT_TELEMETRY_H */
