@@ -182,21 +182,36 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit) {
 
-		/* wait for poll frame starting with value 0x7E */
+		/* wait for poll frame starting with value 0x7E
+		* note that only the bus master is supposed to put a 0x7E on the bus.
+		* slaves use byte stuffing to send 0x7E and 0x7D.
+		*/
 		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
-		if (status < 1) continue;
-		
-		// read 2 bytes
-		int newBytes = read(uart, &sbuf[0], 2);
-		if (newBytes < 1 || sbuf[0] != 0x7E) continue;
-		
+
+		if (status < 1) { continue; }
+
+		// read 1 byte
+		int newBytes = read(uart, &sbuf[0], 1);
+
+		if (newBytes < 1 || sbuf[0] != 0x7E) { continue; }
+
+		/* wait for ID byte */
+		status = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
+
+		if (status < 1) { continue; }
+
+		newBytes = read(uart, &sbuf[1], 1);
+
+		// allow a minimum of 500usec before reply
+		usleep(500);
+
 		/* device ID 4 */
 		if (sbuf[1] == 0x1B) {
 			/* send battery voltage */
 			sPort_send_A2(uart);
-			
+
 			/* read it back */
-			read(uart, &sbuf[0], sizeof(sbuf));		
+			read(uart, &sbuf[0], sizeof(sbuf));
 		}
 	}
 
