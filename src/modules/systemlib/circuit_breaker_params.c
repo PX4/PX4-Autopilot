@@ -42,8 +42,6 @@
  * parameter needs to set to the key (magic).
  */
 
-#ifdef __PX4_QURT
-
 /**
  * Circuit breaker for power supply check
  *
