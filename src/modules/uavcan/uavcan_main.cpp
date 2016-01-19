@@ -81,10 +81,12 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node(can_driver, system_clock, _pool_allocator),
 	_node_mutex(),
 	_esc_controller(_node),
+	_hardpoint_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_master_timer(_node),
 	_setget_response(0)
+
 {
 	_task_should_exit = false;
 	_fw_server_action = None;
@@ -1103,14 +1105,14 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 					_mixers->groups_required(_groups_required);
 				}
 			}
-
-			break;
 		}
+		break;
 
-	case UAVCANIOC_HARDPOINT_SET:
+
+	case UAVCANIOC_HARDPOINT_SET: {
 		const auto& cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command*>(arg);
 		_hardpoint_controller.set_command(cmd.hardpoint_id, cmd.command);
-
+		}
 		break;
 
 	default:
@@ -1369,6 +1371,15 @@ int uavcan_main(int argc, char *argv[])
 
 			return inst->set_param(nodeid, argv[4], argv[5]);
 		}
+	}
+	if (!std::strcmp(argv[1],"uavcan_hardpoint_set")) {
+		if (argc < 3) {
+			errx(1, "Hardpoint Id and value is requred");
+		}
+		//UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
+		//UavcanNode.ioctl(???)
+		//		_hardpoint_controller.set_command()
+
 	}
 
 	if (!std::strcmp(argv[1], "stop")) {
