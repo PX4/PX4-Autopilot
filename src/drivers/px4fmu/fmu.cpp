@@ -139,7 +139,7 @@ public:
 	int		set_pwm_alt_rate(unsigned rate);
 	int		set_pwm_alt_channels(uint32_t channels);
 
-	int		set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
+	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 	static void	capture_trampoline(void *context, uint32_t chan_index,
 					   hrt_abstime edge_time, uint32_t edge_state,
@@ -2665,7 +2665,7 @@ fmu_new_mode(PortMode new_mode)
 
 int fmu_new_i2c_speed(unsigned bus, unsigned clock_hz)
 {
-	return g_fmu->set_i2c_bus_clock(bus, clock_hz);
+	return PX4FMU::set_i2c_bus_clock(bus, clock_hz);
 }
 
 int
@@ -2968,6 +2968,24 @@ fmu_main(int argc, char *argv[])
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[1];
 
+	/* does not operate on a FMU instance */
+	if (!strcmp(verb, "i2c")) {
+		if (argc > 3) {
+			int bus = strtol(argv[2], 0, 0);
+			int clock_hz = strtol(argv[3], 0, 0);
+			int ret = fmu_new_i2c_speed(bus, clock_hz);
+
+			if (ret) {
+				errx(ret, "setting I2C clock failed");
+			}
+
+			exit(0);
+
+		} else {
+			warnx("i2c cmd args: <bus id> <clock Hz>");
+		}
+	}
+
 	if (!strcmp(verb, "stop")) {
 		fmu_stop();
 		errx(0, "FMU driver stopped");
@@ -3080,23 +3098,6 @@ fmu_main(int argc, char *argv[])
 		}
 
 		exit(0);
-	}
-
-	if (!strcmp(verb, "i2c")) {
-		if (argc > 3) {
-			int bus = strtol(argv[2], 0, 0);
-			int clock_hz = strtol(argv[3], 0, 0);
-			int ret = fmu_new_i2c_speed(bus, clock_hz);
-
-			if (ret) {
-				errx(ret, "setting I2C clock failed");
-			}
-
-			exit(0);
-
-		} else {
-			warnx("i2c cmd args: <bus id> <clock Hz>");
-		}
 	}
 
 	fprintf(stderr, "FMU: unrecognised command %s, try:\n", verb);
