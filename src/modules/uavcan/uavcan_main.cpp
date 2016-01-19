@@ -1106,6 +1106,12 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case UAVCANIOC_HARDPOINT_SET:
+		const auto& cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command*>(arg);
+		_hardpoint_controller.set_command(cmd.hardpoint_id, cmd.command);
+
+		break;
+
 	default:
 		ret = -ENOTTY;
 		break;
