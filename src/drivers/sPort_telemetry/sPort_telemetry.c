@@ -205,14 +205,35 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 		// allow a minimum of 500usec before reply
 		usleep(500);
 
-		/* device ID 4 */
-		if (sbuf[1] == 0x1B) {
+		switch (sbuf[1]) {
+		case SMARTPORT_POLL_1:
 			/* send battery voltage */
-			sPort_send_A2(uart);
+			sPort_send_BATV(uart);
+			break;
 
-			/* read it back */
-			read(uart, &sbuf[0], sizeof(sbuf));
+		case SMARTPORT_POLL_2:
+			/* send battery current */
+			sPort_send_CUR(uart);
+			break;
+
+		case SMARTPORT_POLL_3:
+			/* send altitude */
+			sPort_send_ALT(uart);
+			break;
+
+		case SMARTPORT_POLL_4:
+			/* send speed */
+			sPort_send_SPD(uart);
+			break;
+
+		case SMARTPORT_POLL_5:
+			/* send fuel */
+			sPort_send_FUEL(uart);
+			break;
+
 		}
+		/* TODO: flush the input buffer if in full duplex mode */
+		read(uart, &sbuf[0], sizeof(sbuf));	
 	}
 
 	/* Reset the UART flags to original state */

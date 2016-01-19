@@ -55,39 +55,6 @@
 
 #include <drivers/drv_hrt.h>
 
-/* FrSky SmartPort sensor IDs */
-#define FRSKY_ID_GPS_ALT_BP     0x01
-#define FRSKY_ID_TEMP1          0x02
-#define FRSKY_ID_RPM            0x03
-#define FRSKY_ID_FUEL           0x04
-#define FRSKY_ID_TEMP2          0x05
-#define FRSKY_ID_VOLTS          0x06
-#define FRSKY_ID_GPS_ALT_AP     0x09
-#define FRSKY_ID_BARO_ALT_BP    0x10
-#define FRSKY_ID_GPS_SPEED_BP   0x11
-#define FRSKY_ID_GPS_LONG_BP    0x12
-#define FRSKY_ID_GPS_LAT_BP     0x13
-#define FRSKY_ID_GPS_COURS_BP   0x14
-#define FRSKY_ID_GPS_DAY_MONTH  0x15
-#define FRSKY_ID_GPS_YEAR       0x16
-#define FRSKY_ID_GPS_HOUR_MIN   0x17
-#define FRSKY_ID_GPS_SEC        0x18
-#define FRSKY_ID_GPS_SPEED_AP   0x19
-#define FRSKY_ID_GPS_LONG_AP    0x1A
-#define FRSKY_ID_GPS_LAT_AP     0x1B
-#define FRSKY_ID_GPS_COURS_AP   0x1C
-#define FRSKY_ID_BARO_ALT_AP    0x21
-#define FRSKY_ID_GPS_LONG_EW    0x22
-#define FRSKY_ID_GPS_LAT_NS     0x23
-#define FRSKY_ID_ACCEL_X        0x24
-#define FRSKY_ID_ACCEL_Y        0x25
-#define FRSKY_ID_ACCEL_Z        0x26
-#define FRSKY_ID_CURRENT        0x28
-#define FRSKY_ID_VARIO          0x30
-#define FRSKY_ID_VFAS           0x39
-#define FRSKY_ID_VOLTS_BP       0x3A
-#define FRSKY_ID_VOLTS_AP       0x3B
-
 #define frac(f) (f - (int)f)
 
 static int battery_sub = -1;
@@ -180,156 +147,68 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 }
 
 
-void sPort_send_A2(int uart)
+// TODO: correct scaling
+void sPort_send_BATV(int uart)
 {
-	/* get a local copy of the battery data */
-	struct battery_status_s battery;
-	memset(&battery, 0, sizeof(battery));
-	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
-
 	/* get a local copy of the vehicle status data */
 	struct vehicle_status_s vehicle_status;
 	memset(&vehicle_status, 0, sizeof(vehicle_status));
 	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
 
-	/* send data for A2 */
+	/* send battery voltage as VFAS */
 	uint32_t voltage = (int)(255 * vehicle_status.battery_voltage / 16.8f);
-//	static uint8_t counter=0;
-//	uint32_t voltage = counter++;
-	sPort_send_data(uart, 0xf103, voltage);
+	sPort_send_data(uart, SMARTPORT_ID_VFAS, voltage);
 }
 
-#ifdef xxxx
-/**
- * Sends frame 1 (every 200ms):
- *   acceleration values, barometer altitude, temperature, battery voltage & current
- */
-void sPort_send_frame1(int uart)
+// TODO: correct scaling
+void sPort_send_CUR(int uart)
+{
+	/* get a local copy of the vehicle status data */
+	struct vehicle_status_s vehicle_status;
+	memset(&vehicle_status, 0, sizeof(vehicle_status));
+	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+
+	/* send data */
+	uint32_t current = (int)(255 * vehicle_status.battery_current / 50.0f);
+	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
+}
+
+// TODO: verify scaling
+void sPort_send_ALT(int uart)
 {
 	/* get a local copy of the current sensor values */
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
 	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
-	/* get a local copy of the battery data */
-	struct battery_status_s battery;
-	memset(&battery, 0, sizeof(battery));
-	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
-
-	/* send formatted frame */
-	sPort_send_data(uart, FRSKY_ID_ACCEL_X,
-			roundf(raw.accelerometer_m_s2[0] * 1000.0f));
-	sPort_send_data(uart, FRSKY_ID_ACCEL_Y,
-			roundf(raw.accelerometer_m_s2[1] * 1000.0f));
-	sPort_send_data(uart, FRSKY_ID_ACCEL_Z,
-			roundf(raw.accelerometer_m_s2[2] * 1000.0f));
-
-	sPort_send_data(uart, FRSKY_ID_BARO_ALT_BP,
-			raw.baro_alt_meter[0]);
-	sPort_send_data(uart, FRSKY_ID_BARO_ALT_AP,
-			roundf(frac(raw.baro_alt_meter[0]) * 100.0f));
-
-	sPort_send_data(uart, FRSKY_ID_TEMP1,
-			roundf(raw.baro_temp_celcius[0]));
-
-	sPort_send_data(uart, FRSKY_ID_VFAS,
-			roundf(battery.voltage_v * 10.0f));
-	sPort_send_data(uart, FRSKY_ID_CURRENT,
-			(battery.current_a < 0) ? 0 : roundf(battery.current_a * 10.0f));
-
-	sPort_send_start(uart);
+	/* send data */
+	uint32_t alt = (int)(raw.baro_alt_meter[0]);
+	sPort_send_data(uart, SMARTPORT_ID_ALT, alt);
 }
 
-/**
- * Formats the decimal latitude/longitude to the required degrees/minutes.
- */
-static float sPort_format_gps(float dec)
-{
-	float dm_deg = (int) dec;
-	return (dm_deg * 100.0f) + (dec - dm_deg) * 60;
-}
-
-/**
- * Sends frame 2 (every 1000ms):
- *   GPS course, latitude, longitude, ground speed, GPS altitude, remaining battery level
- */
-void sPort_send_frame2(int uart)
+// TODO: verify scaling
+void sPort_send_SPD(int uart)
 {
 	/* get a local copy of the global position data */
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
 	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
 
+	/* send data for A2 */
+	float speed  = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e);
+	uint32_t ispeed = (int)speed;
+	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
+}
+
+// TODO: verify scaling
+void sPort_send_FUEL(int uart)
+{
 	/* get a local copy of the vehicle status data */
 	struct vehicle_status_s vehicle_status;
 	memset(&vehicle_status, 0, sizeof(vehicle_status));
 	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
 
-	/* send formatted frame */
-	float course = 0, lat = 0, lon = 0, speed = 0, alt = 0;
-	char lat_ns = 0, lon_ew = 0;
-	int sec = 0;
-
-	if (global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
-		time_t time_gps = global_pos.time_utc_usec / 1000000ULL;
-		struct tm *tm_gps = gmtime(&time_gps);
-
-		course = (global_pos.yaw + M_PI_F) / M_PI_F * 180.0f;
-		lat    = sPort_format_gps(fabsf(global_pos.lat));
-		lat_ns = (global_pos.lat < 0) ? 'S' : 'N';
-		lon    = sPort_format_gps(fabsf(global_pos.lon));
-		lon_ew = (global_pos.lon < 0) ? 'W' : 'E';
-		speed  = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e)
-			 * 25.0f / 46.0f;
-		alt    = global_pos.alt;
-		sec    = tm_gps->tm_sec;
-	}
-
-	sPort_send_data(uart, FRSKY_ID_GPS_COURS_BP, course);
-	sPort_send_data(uart, FRSKY_ID_GPS_COURS_AP, frac(course) * 1000.0f);
-
-	sPort_send_data(uart, FRSKY_ID_GPS_LAT_BP, lat);
-	sPort_send_data(uart, FRSKY_ID_GPS_LAT_AP, frac(lat) * 10000.0f);
-	sPort_send_data(uart, FRSKY_ID_GPS_LAT_NS, lat_ns);
-
-	sPort_send_data(uart, FRSKY_ID_GPS_LONG_BP, lon);
-	sPort_send_data(uart, FRSKY_ID_GPS_LONG_AP, frac(lon) * 10000.0f);
-	sPort_send_data(uart, FRSKY_ID_GPS_LONG_EW, lon_ew);
-
-	sPort_send_data(uart, FRSKY_ID_GPS_SPEED_BP, speed);
-	sPort_send_data(uart, FRSKY_ID_GPS_SPEED_AP, frac(speed) * 100.0f);
-
-	sPort_send_data(uart, FRSKY_ID_GPS_ALT_BP, alt);
-	sPort_send_data(uart, FRSKY_ID_GPS_ALT_AP, frac(alt) * 100.0f);
-
-	sPort_send_data(uart, FRSKY_ID_FUEL,
-			roundf(vehicle_status.battery_remaining * 100.0f));
-
-	sPort_send_data(uart, FRSKY_ID_GPS_SEC, sec);
-
-	sPort_send_start(uart);
+	/* send data */
+	uint32_t fuel = (int)(100 * vehicle_status.battery_remaining);
+	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
-
-/**
- * Sends frame 3 (every 5000ms):
- *   GPS date & time
- */
-void sPort_send_frame3(int uart)
-{
-	/* get a local copy of the battery data */
-	struct vehicle_global_position_s global_pos;
-	memset(&global_pos, 0, sizeof(global_pos));
-	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
-
-	/* send formatted frame */
-	time_t time_gps = global_pos.time_utc_usec / 1000000ULL;
-	struct tm *tm_gps = gmtime(&time_gps);
-	uint16_t hour_min = (tm_gps->tm_min << 8) | (tm_gps->tm_hour & 0xff);
-	sPort_send_data(uart, FRSKY_ID_GPS_DAY_MONTH, tm_gps->tm_mday);
-	sPort_send_data(uart, FRSKY_ID_GPS_YEAR, tm_gps->tm_year);
-	sPort_send_data(uart, FRSKY_ID_GPS_HOUR_MIN, hour_min);
-	sPort_send_data(uart, FRSKY_ID_GPS_SEC, tm_gps->tm_sec);
-
-	sPort_send_start(uart);
-}
-#endif // xxxx
