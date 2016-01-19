@@ -131,11 +131,11 @@ static void sPort_send_byte(int uart, uint8_t value)
 	const uint8_t x7D[] = { 0x7D, 0x5D };
 
 	switch (value) {
-	case 0x5E:
+	case 0x7E:
 		write(uart, x7E, sizeof(x7E));
 		break;
 
-	case 0x5D:
+	case 0x7D:
 		write(uart, x7D, sizeof(x7D));
 		break;
 
@@ -187,9 +187,15 @@ void sPort_send_A2(int uart)
 	memset(&battery, 0, sizeof(battery));
 	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 
+	/* get a local copy of the vehicle status data */
+	struct vehicle_status_s vehicle_status;
+	memset(&vehicle_status, 0, sizeof(vehicle_status));
+	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+
 	/* send data for A2 */
-//	uint32_t voltage = (int)(255 * battery.voltage_v / 18.4f);
-	uint32_t voltage = (int)(255 * 5.5f / 18.4f);
+	uint32_t voltage = (int)(255 * vehicle_status.battery_voltage / 16.8f);
+//	static uint8_t counter=0;
+//	uint32_t voltage = counter++;
 	sPort_send_data(uart, 0xf103, voltage);
 }
 
