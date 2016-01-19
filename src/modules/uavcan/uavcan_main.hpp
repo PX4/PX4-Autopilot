@@ -53,6 +53,7 @@
 #include <uORB/topics/actuator_direct.h>
 
 #include "actuators/esc.hpp"
+#include "actuators/hardpoint.hpp"
 #include "sensors/sensor_bridge.hpp"
 
 #include "uavcan_servers.hpp"
@@ -71,9 +72,9 @@
 // we add two to allow for actuator_direct and busevent
 #define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
 
-// no idea something to do with hardpoint controller
+// IOCTL control codes
 static constexpr unsigned UAVCANIOCBASE = 0x7800;
-static constexpr unsigned UAVCANIOC_HARDPOINT_SET = PX4_IOC(UAVCANIOCBASE, 0x10);
+static constexpr unsigned UAVCANIOC_HARDPOINT_SET = _PX4_IOC(UAVCANIOCBASE, 0x10);
 
 /**
  * A UAVCAN node.
@@ -86,6 +87,7 @@ class UavcanNode : public device::CDev
 	static constexpr unsigned FramePerMSecond    = ((FramePerSecond / 1000) + 1);
 
 	static constexpr unsigned PollTimeoutMs      = 3;
+
 
 	/*
 	 * This memory is reserved for uavcan to use for queuing CAN frames.
@@ -180,6 +182,7 @@ private:
 	pthread_mutex_t		_node_mutex;
 	px4_sem_t                   _server_command_sem;
 	UavcanEscController	_esc_controller;
+	UavcanHardpointController _hardpoint_controller;
 	uavcan::GlobalTimeSyncMaster _time_sync_master;
 	uavcan::GlobalTimeSyncSlave _time_sync_slave;
 
