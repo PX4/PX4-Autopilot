@@ -1693,6 +1693,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					_battery_current_timestamp = t;
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
@@ -1721,6 +1722,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 							_diff_pres_pub = orb_advertise(ORB_ID(differential_pressure), &_diff_pres);
 						}
 					}
+
 #endif
 				}
 			}
