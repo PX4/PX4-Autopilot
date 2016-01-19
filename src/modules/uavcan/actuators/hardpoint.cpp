@@ -74,14 +74,17 @@ void UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t comma
      * Publish the command message to the bus
      */
 	(void)_uavcan_pub_raw_cmd.broadcast(_cmd);
-}
-void UavcanHardpointController::periodic_update()
-{
-	//lets not broadcast if command is not set
-	if(_cmd_set == false){
-		return;
-	}
 
+	/*
+	 * Start the periodic update timer after a command is set
+	 */
+	if (!_timer.isRunning())
+	{
+		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
+	}
+}
+void UavcanHardpointController::periodic_update(const uavcan::TimerEvent &)
+{
 	(void)_uavcan_pub_raw_cmd.broadcast(_cmd);
 	//do something
 }
