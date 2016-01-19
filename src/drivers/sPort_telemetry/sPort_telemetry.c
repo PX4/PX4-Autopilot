@@ -191,12 +191,12 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 		if (newBytes < 1 || sbuf[0] != 0x7E) continue;
 		
 		/* device ID 4 */
-		static uint8_t counter = 0;
-		if (sbuf[1] == 0xe4) {		
-			/* send data for A2 */
-			sPort_send_data(uart, 0xf103, counter++);
+		if (sbuf[1] == 0x1B) {
+			/* send battery voltage */
+			sPort_send_A2(uart);
+			
 			/* read it back */
-			read(uart, &sbuf[0], sizeof(sbuf));
+			read(uart, &sbuf[0], sizeof(sbuf));		
 		}
 	}
 
