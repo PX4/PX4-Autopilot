@@ -182,7 +182,6 @@ if(UNIX AND APPLE)
 
 else()
 
-
         set(added_definitions
 		-D__PX4_POSIX
 		-D__PX4_LINUX 
