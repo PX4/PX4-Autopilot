@@ -30,6 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+if("${CONFIG_SHMEM}" STREQUAL "1")
+	list(APPEND SHMEM_SRCS
+		shmem_posix.c
+	)
+endif()
+
 px4_add_module(
 	MODULE platforms__posix__px4_layer
 	COMPILE_FLAGS
@@ -41,6 +48,7 @@ px4_add_module(
 		lib_crc32.c
 		drv_hrt.c
 		px4_log.c
+		${SHMEM_SRCS}
 	DEPENDS
 		platforms__common
 	)

@@ -44,23 +44,8 @@ SRCS		 = 	\
 			px4_qurt_tasks.cpp  \
 			lib_crc32.c \
 			drv_hrt.c \
-                        qurt_stubs.c \
-                        main.cpp
-ifeq ($(CONFIG),qurt_hello)
-SRCS +=			commands_hello.c
-endif
-ifeq ($(CONFIG),qurt_default)
-SRCS +=			commands_default.c
-endif
-ifeq ($(CONFIG),qurt_muorb_test)
-SRCS +=			commands_muorb_test.c
-endif
-ifeq ($(CONFIG),qurt_hil)
-SRCS +=			commands_hil.c
-endif
-ifeq ($(CONFIG),qurt_adsp)
-SRCS +=			commands_adsp.c
-endif
-
+            		qurt_stubs.c \
+            		main.cpp \
+			shmem_qurt.c
 
 MAXOPTIMIZATION	 = -Os
