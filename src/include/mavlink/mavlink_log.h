@@ -110,7 +110,7 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
 		fprintf(stderr, "telem> "); \
 		fprintf(stderr, _text, ##__VA_ARGS__); \
 		fprintf(stderr, "\n"); } while(0);
-
+		
 /**
  * Send a mavlink critical message and print to console.
  *
@@ -121,7 +121,7 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
 		fprintf(stderr, "telem> "); \
 		fprintf(stderr, _text, ##__VA_ARGS__); \
 		fprintf(stderr, "\n");  } while(0);
-
+		
 /**
  * Send a mavlink emergency message and print to console.
  *

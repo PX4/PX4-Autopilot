@@ -36,7 +36,6 @@ include_directories(${CMAKE_BINARY_DIR}/src/modules/param)
 
 set(SRCS
 	perf_counter.c
-	param/param.c
 	conversions.c
 	cpuload.c
 	pid/pid.c
@@ -57,8 +56,14 @@ if(${OS} STREQUAL "nuttx")
 		printload.c
 		up_cxxinitialize.c 
 		)
+elseif ("${CONFIG_SHMEM}" STREQUAL "1")
+	list(APPEND SRCS
+		param/param_shmem.c
+		print_load_posix.c
+		)
 else()
 	list(APPEND SRCS
+		param/param.c
 		print_load_posix.c
 		)	
 endif()

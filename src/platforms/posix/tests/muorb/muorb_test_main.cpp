@@ -43,7 +43,7 @@
 #include "muorb_test_example.h"
 #include <stdio.h>
 #include "uORB/uORBManager.hpp"
-#include "uORBKraitFastRpcChannel.hpp"
+#include "../../../modules/muorb/krait/uORBKraitFastRpcChannel.hpp"
 
 int PX4_MAIN(int argc, char **argv)
 {

@@ -58,6 +58,16 @@ __BEGIN_DECLS
 
 long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
 
+#ifdef ENABLE_SHMEM
+ extern void init_params(void);
+#endif
+ 
+#ifdef ENABLE_SHMEM
+extern void init_own_params(void);
+extern unsigned int init_other_params(void);
+extern unsigned int param_sync_done;
+#endif
+
 __END_DECLS
 
 namespace px4
@@ -72,6 +82,12 @@ void init_once(void)
 	work_queues_init();
 	hrt_work_queue_init();
 	hrt_init();
+
+#ifdef ENABLE_SHMEM
+	PX4_INFO("Starting shared memory param sync\n");
+	init_own_params();
+	param_sync_done=init_other_params();
+#endif
 }
 
 void init(int argc, char *argv[], const char *app_name)
