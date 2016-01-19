@@ -109,13 +109,13 @@ void sPort_init()
 /**
  * Sends a 0x10 start byte.
  */
-static void sPort_send_start(int uart)
-{
-	static const uint8_t c = 0x10;
-	write(uart, &c, 1);
-}
+//static void sPort_send_start(int uart)
+//{
+//	static const uint8_t c = 0x10;
+//	write(uart, &c, 1);
+//}
 
-static void update_crc(uint16_t *crc, uint8_t b)
+static void update_crc(uint16_t *crc, unsigned char b)
 {
 	*crc += b;
 	*crc += *crc >> 8;
@@ -155,9 +155,12 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 		uint8_t byte[4];
 	} buf;
 
-	uint16_t crc = 0;
-	sPort_send_start(uart);
-//	write(uart, 0x10, 1);
+	/* send start byte */
+	static const uint8_t c = 0x10;
+	write(uart, &c, 1);
+
+	/* init crc */
+	uint16_t crc = c;
 
 	buf.word = id;
 
@@ -173,7 +176,21 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 		sPort_send_byte(uart, buf.byte[i]);      /* LSB first */
 	}
 
-	sPort_send_byte(uart, crc); 
+	sPort_send_byte(uart, 0xFF - crc);
+}
+
+
+void sPort_send_A2(int uart)
+{
+	/* get a local copy of the battery data */
+	struct battery_status_s battery;
+	memset(&battery, 0, sizeof(battery));
+	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+
+	/* send data for A2 */
+//	uint32_t voltage = (int)(255 * battery.voltage_v / 18.4f);
+	uint32_t voltage = (int)(255 * 5.5f / 18.4f);
+	sPort_send_data(uart, 0xf103, voltage);
 }
 
 #ifdef xxxx
