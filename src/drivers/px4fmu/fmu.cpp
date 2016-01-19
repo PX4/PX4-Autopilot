@@ -1717,7 +1717,7 @@ ssize_t
 PX4FMU::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	uint16_t values[6];
+	uint16_t values[8];
 
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
 
