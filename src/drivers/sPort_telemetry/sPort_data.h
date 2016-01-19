@@ -47,5 +47,6 @@
 // Public functions
 void sPort_init(void);
 void sPort_send_data(int uart, uint16_t id, uint32_t data);
+void sPort_send_A2(int uart);
 
 #endif /* _SPORT_TELEMETRY_H */
