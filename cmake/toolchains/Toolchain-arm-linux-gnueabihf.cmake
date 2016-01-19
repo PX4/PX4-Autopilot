@@ -75,11 +75,7 @@ foreach(tool echo patch grep rm mkdir nm genromfs cp touch make unzip)
 	endif()
 endforeach()
 
-<<<<<<< ce0aecb062077c0c99423a12eea9ccb36adbd065
 set(C_FLAGS "--sysroot=${HEXAGON_ARM_SYSROOT}")
-=======
-set(C_FLAGS "--sysroot=${HEXAGON_SDK_ROOT}/sysroot")
->>>>>>> Rebase changes on upstream master
 set(LINKER_FLAGS "-Wl,-gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS ${LINKER_FLAGS})
 set(CMAKE_C_FLAGS ${C_FLAGS})
