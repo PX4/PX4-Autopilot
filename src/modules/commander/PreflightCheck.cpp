@@ -539,6 +539,14 @@ bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc, bool checkGyro
 		}
 	}
 
+
+#ifdef __PX4_QURT
+	// WARNING: Preflight checks are important and should be added back when
+	// all the sensors are supported
+	PX4_WARN("WARNING: Preflight checks PASS always.");
+	failed = false;
+#endif
+
 	/* Report status */
 	return !failed;
 }

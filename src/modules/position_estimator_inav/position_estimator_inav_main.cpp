@@ -81,6 +81,7 @@
 #define MIN_VALID_W 0.00001f
 #define PUB_INTERVAL 10000	// limit publish rate to 100 Hz
 #define EST_BUF_SIZE 250000 / PUB_INTERVAL		// buffer size is 0.5s
+#define MAX_WAIT_FOR_BARO_SAMPLE 3000000 // wait 3 secs for the baro to respond
 
 static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
@@ -410,10 +411,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* wait for initial baro value */
 	bool wait_baro = true;
-
 	TerrainEstimator *terrain_estimator = new TerrainEstimator();
 
 	thread_running = true;
+	hrt_abstime baro_wait_for_sample_time = hrt_absolute_time();
 
 	while (wait_baro && !thread_should_exit) {
 		int ret = px4_poll(&fds_init[0], 1, 1000);
@@ -421,14 +422,17 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (ret < 0) {
 			/* poll error */
 			mavlink_log_info(mavlink_fd, "[inav] poll error on init");
-			PX4_WARN("INAV poll error");
-
-		} else if (ret > 0) {
+		} else if (hrt_absolute_time() - baro_wait_for_sample_time > MAX_WAIT_FOR_BARO_SAMPLE) {
+			wait_baro = false;
+			mavlink_log_info(mavlink_fd, "[inav] timed out waiting for a baro sample");
+		}
+		else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
 				if (wait_baro && sensor.baro_timestamp[0] != baro_timestamp) {
 					baro_timestamp = sensor.baro_timestamp[0];
+					baro_wait_for_sample_time = hrt_absolute_time();
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {

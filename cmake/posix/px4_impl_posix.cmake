@@ -182,6 +182,7 @@ if(UNIX AND APPLE)
 
 else()
 
+
         set(added_definitions
 		-D__PX4_POSIX
 		-D__PX4_LINUX 
@@ -196,11 +197,32 @@ else()
 		)
 
 endif()
+
+if ("${BOARD}" STREQUAL "eagle")
+
+	if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
+		message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
+	else()
+		set(HEXAGON_ARM_SYSROOT $ENV{HEXAGON_ARM_SYSROOT})
+	endif()
 	
+	# Add the toolchain specific flags
+	set(HEXAGON_ARM_SYSROOT ${HEXAGON_SDK_ROOT}/sysroot)
+        set(added_cflags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT})
+        set(added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT})
+
+        list(APPEND added_exe_linker_flags
+		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/usr/lib/arm-linux-gnueabihf
+		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib/arm-linux-gnueabihf
+		--sysroot=${HEXAGON_ARM_SYSROOT}
+		)
+else()
 
 	# Add the toolchain specific flags
         set(added_cflags ${POSIX_CMAKE_C_FLAGS})
         set(added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS})
+
+endif()
 
 	# output
 	foreach(var ${inout_vars})
