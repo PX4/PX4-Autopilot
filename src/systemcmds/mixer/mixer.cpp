@@ -108,7 +108,6 @@ load(const char *devname, const char *fname)
 	usleep(20000);
 
 	int		dev;
-	char		buf[2048];
 
 	/* open the device */
 	if ((dev = px4_open(devname, 0)) < 0) {
@@ -122,6 +121,9 @@ load(const char *devname, const char *fname)
 		return 1;
 	}
 
+#ifndef __PX4_QURT
+
+	char		buf[2048];
 	if (load_mixer_file(fname, &buf[0], sizeof(buf)) < 0) {
 		warnx("can't load mixer: %s", fname);
 		return 1;
@@ -129,6 +131,24 @@ load(const char *devname, const char *fname)
 
 	/* XXX pass the buffer to the device */
 	int ret = px4_ioctl(dev, MIXERIOCLOADBUF, (unsigned long)buf);
+#else
+        char newbuf[] =
+          "R: 4x 10000 10000 10000 0\n"
+          "M: 1\n"
+          "O: 10000 10000 0 -10000 10000\n"
+          "S: 0 4 10000 10000 0 -10000 10000\n"
+          "M: 1\n"
+          "O: 10000 10000 0 -10000 10000\n"
+          "S: 0 5 10000 10000 0 -10000 10000\n"
+          "M: 1\n"
+          "O: 10000 10000 0 -10000 10000\n"
+          "S: 0 6 10000 10000 0 -10000 10000\n"
+          "M: 1\n"
+          "O: 10000 10000 0 -10000 10000\n"
+          "S: 0 7 10000 10000 0 -10000 10000\n";
+	/* XXX pass the buffer to the device */
+	int ret = px4_ioctl(dev, MIXERIOCLOADBUF, (unsigned long)newbuf);
+#endif
 
 	if (ret < 0) {
 		warnx("error loading mixers from %s", fname);

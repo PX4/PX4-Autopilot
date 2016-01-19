@@ -46,7 +46,7 @@
 #include <string>
 #include <map>
 #include <stdio.h>
-#include <apps.h>
+#include <stdlib.h>
 #include "get_commands.h"
 
 using namespace std;
@@ -67,24 +67,28 @@ static void run_cmd(map<string, px4_main_t> &apps, const vector<string> &appargs
 	// command is appargs[0]
 	string command = appargs[0];
 
-	if (apps.find(command) != apps.end()) {
+	//replaces app.find with iterator code to avoid null pointer exception
+	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
+	if (it->first == command) {
 		const char *arg[2 + 1];
 
 		unsigned int i = 0;
 
 		while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 			arg[i] = (char *)appargs[i].c_str();
-			PX4_WARN("  arg = '%s'\n", arg[i]);
+			PX4_WARN("  arg%d = '%s'\n", i, arg[i]);
 			++i;
 		}
 
 		arg[i] = (char *)0;
 		//PX4_DEBUG_PRINTF(i);
-		apps[command](i, (char **)arg);
+		if(apps[command]==NULL)
+			PX4_ERR("Null function !!\n");
+		else {
+			apps[command](i, (char **)arg);
+			break;
+		}
 
-	} else {
-		PX4_WARN("NOT FOUND.");
-		list_builtins(apps);
 	}
 }
 
@@ -104,6 +108,7 @@ static void process_commands(map<string, px4_main_t> &apps, const char *cmds)
 	const char *b = cmds;
 	char arg[256];
 
+	
 	// Eat leading whitespace
 	eat_whitespace(b, i);
 
@@ -157,6 +162,42 @@ extern void init_once(void);
 __BEGIN_DECLS
 int dspal_main(int argc, char *argv[]);
 __END_DECLS
+
+
+#define COMMANDS_ADSP_FILE	"/dev/fs/px4.config"
+
+const char *get_commands()
+{
+	int fd = open(COMMANDS_ADSP_FILE, O_RDONLY);
+
+	if(fd>0)
+	{
+		static char *commands;
+		char buf[4096];
+		int bytes_read, total_bytes=0;
+		PX4_INFO("reading commands from %s\n", COMMANDS_ADSP_FILE);
+		do{
+			bytes_read = read(fd, (void*)buf, sizeof(buf));
+			if(bytes_read>0)
+			{
+				commands=(char*)realloc(commands, total_bytes+bytes_read);
+				memcpy(commands+total_bytes, buf, bytes_read);
+				total_bytes += bytes_read;
+			}
+		}while((unsigned int)bytes_read>0);
+		close(fd);
+
+		return (const char*)commands;
+	}
+	
+	PX4_ERR("Could not open %s\n", COMMANDS_ADSP_FILE);
+
+	static const char *commands =
+		"uorb start\n"
+		;
+
+	return commands;
+}
 
 
 int dspal_entry(int argc, char *argv[])

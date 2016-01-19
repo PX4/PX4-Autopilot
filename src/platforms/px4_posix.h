@@ -77,9 +77,19 @@ typedef sem_t px4_sem_t;
 
 #define px4_sem_init	 sem_init
 #define px4_sem_wait	 sem_wait
+
 #define px4_sem_post	 sem_post
 #define px4_sem_getvalue sem_getvalue
 #define px4_sem_destroy	 sem_destroy
+
+#if 0
+// TODO: Implement this function or remove it from the implementation.
+// #define px4_sem_timedwait sem_timedwait
+inline int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *abstime)
+{
+	return -1;
+}
+#endif
 
 #ifdef __PX4_QURT
 __EXPORT int		px4_sem_timedwait(px4_sem_t *sem, const struct timespec *abstime);
