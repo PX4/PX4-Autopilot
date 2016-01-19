@@ -530,8 +530,13 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
 	pthread_attr_destroy(&sender_thread_attr);
 
-	mavlink_status_t udp_status = {};
-	mavlink_status_t serial_status = {};
+
+	// set the threads name
+#ifdef __PX4_DARWIN
+	pthread_setname_np("sim_rcv");
+#else
+	pthread_setname_np(pthread_self(), "sim_rcv");
+#endif
 
 	// wait for new mavlink messages to arrive
 	while (true) {
@@ -558,9 +563,10 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 
 			if (len > 0) {
 				mavlink_message_t msg;
+				mavlink_status_t status;
 
 				for (int i = 0; i < len; i++) {
-					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
+					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &status)) {
 						// have a message, handle it
 						handle_message(&msg, publish);
 					}
@@ -574,9 +580,10 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 
 			if (len > 0) {
 				mavlink_message_t msg;
+				mavlink_status_t status;
 
 				for (int i = 0; i < len; ++i) {
-					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
+					if (mavlink_parse_char(MAVLINK_COMM_0, serial_buf[i], &msg, &status)) {
 						// have a message, handle it
 						handle_message(&msg, true);
 					}

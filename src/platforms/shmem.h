@@ -1,6 +1,7 @@
+
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (c) 2015 Ramakrishna Kintada. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,39 +31,30 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file commands_default.c
- * Commands to run for the "qurt_default" config
- *
- * @author Mark Charlebois <charlebm@gmail.com>
- */
 
-const char *get_commands()
+#define MAX_SHMEM_PARAMS 3850 //MAP_SIZE - (LOCK_SIZE - sizeof(struct shmem_info))
+
+struct shmem_info
 {
-	static const char *commands =
-		"hello start\n"
-		"uorb start\n"
-		"simulator start -s\n"
-		"barosim start\n"
-		"adcsim start\n"
-		"accelsim start\n"
-		"gyrosim start\n"
-		"list_devices\n"
-		"list_topics\n"
-		"list_tasks\n"
-		"param show *\n"
-		"rgbled start\n"
-#if 0
-		"sensors start\n"
-		"param set CAL_GYRO0_ID 2293760\n"
-		"param set CAL_ACC0_ID 1310720\n"
-		"hil mode_pwm"
-		"param set CAL_ACC1_ID 1376256\n"
-		"param set CAL_MAG0_ID 196608\n"
-		"mavlink start -d /tmp/ttyS0\n"
-		"commander start\n"
-#endif
-		;
+	union param_value_u params_val[MAX_SHMEM_PARAMS];
+	unsigned char krait_changed_index[MAX_SHMEM_PARAMS/8+1]; /*bit map of all params changed by krait*/
+	unsigned char adsp_changed_index[MAX_SHMEM_PARAMS/8+1]; /*bit map of all params changed by adsp*/
 
-	return commands;
-}
+#ifdef __PX4_NUTTX
+};
+#else
+}__attribute__((packed));
+#endif
+
+#define MAP_ADDRESS	0xfbfc000
+#define MAP_SIZE 	16384
+#define MAP_MASK 	(MAP_SIZE - 1)
+
+#define LOCK_OFFSET	0
+#define LOCK_SIZE	4
+#define LOCK_MEM        1
+#define UNLOCK_MEM      2
+
+#define TYPE_MASK 	0x1
+
+extern bool handle_in_range(param_t);
