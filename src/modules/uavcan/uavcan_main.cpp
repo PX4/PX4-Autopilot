@@ -1233,6 +1233,10 @@ static void print_usage()
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
 
+void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command){
+	_hardpoint_controller.set_command(hardpoint_id, command);
+}
+
 int uavcan_main(int argc, char *argv[])
 {
 	if (argc < 2) {
@@ -1382,9 +1386,7 @@ int uavcan_main(int argc, char *argv[])
 				hardpoint_id < 9 &&
 				command >= 0 &&
 				command < 11) {
-				// call something
-				// dosent work ??
-				// _hardpoint_controller.set_command((uint8_t) hardpoint_id, (uint16_t) command);
+				inst->hardpoint_controller_set((uint8_t) hardpoint_id, (uint16_t) command);
 			}
 			else {
 				errx(1, "Are you nuts?");

@@ -140,6 +140,8 @@ public:
 	int             get_param(int remote_node_id, const char *name);
 	int             reset_node(int remote_node_id);
 
+	void hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command);
+
 private:
 	void		fill_node_info();
 	int		init(uavcan::NodeID node_id);
