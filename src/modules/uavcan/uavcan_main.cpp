@@ -1382,14 +1382,17 @@ int uavcan_main(int argc, char *argv[])
 
 			// Sanity check - weed out negative values, check against maximums
 			if (hardpoint_id >= 0 &&
-				hardpoint_id < 9 &&
+				hardpoint_id < 256 &&
 				command >= 0 &&
-				command < 11) {
+				command < 65536) {
 				inst->hardpoint_controller_set((uint8_t) hardpoint_id, (uint16_t) command);
 			}
 			else {
 				errx(1, "Are you nuts?");
 			}
+		}
+		else {
+			errx(1, "Are you nuts?");
 		}
 	}
 	if (!std::strcmp(argv[1], "stop")) {

@@ -123,12 +123,14 @@ public:
 
 	void		subscribe();
 
-	int		teardown();
-	int		arm_actuators(bool arm);
+	int			teardown();
+	int			arm_actuators(bool arm);
 
 	void		print_info();
 
 	void		shrink();
+
+	void		hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command);
 
 	static UavcanNode *instance() { return _instance; }
 	static int         getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
@@ -140,7 +142,7 @@ public:
 	int             get_param(int remote_node_id, const char *name);
 	int             reset_node(int remote_node_id);
 
-	void hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command);
+
 
 private:
 	void		fill_node_info();
