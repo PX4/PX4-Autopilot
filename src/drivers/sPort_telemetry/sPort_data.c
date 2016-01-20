@@ -173,7 +173,9 @@ void sPort_send_CUR(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
 }
 
-// verified scaling for "calculated" altitude option
+// verified scaling for "custom" altitude option
+// OpenTX uses the initial reading as field elevation and displays
+// the difference (altitude - field)
 void sPort_send_ALT(int uart)
 {
 	/* get a local copy of the current sensor values */
@@ -182,7 +184,7 @@ void sPort_send_ALT(int uart)
 	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
 	/* send data */
-	uint32_t alt = (int)(10 * raw.baro_alt_meter[0]);
+	uint32_t alt = (int)(100 * raw.baro_alt_meter[0]);
 	sPort_send_data(uart, SMARTPORT_ID_ALT, alt);
 }
 
