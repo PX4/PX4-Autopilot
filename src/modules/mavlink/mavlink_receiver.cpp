@@ -1817,8 +1817,8 @@ MavlinkReceiver::receive_thread(void *arg)
 			if ((srcaddr_last->sin_addr.s_addr == htonl(localhost) && srcaddr.sin_addr.s_addr != htonl(localhost))
 					|| (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_ONBOARD && !_mavlink->get_client_source_initialized())) {
 				// if we were sending to localhost before but have a new host then accept him
-				//memcpy(srcaddr_last, &srcaddr, sizeof(*srcaddr_last));
-				//PX4_WARN("XXX: not really updating: UDP source addr changed: %s", inet_ntoa(srcaddr.sin_addr));
+				srcaddr_last->sin_addr.s_addr = srcaddr.sin_addr.s_addr;
+				srcaddr_last->sin_port = srcaddr.sin_port;
 				_mavlink->set_client_source_initialized();
 			}
 #endif
