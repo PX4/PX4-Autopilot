@@ -158,7 +158,7 @@ void Ekf::constrainStates()
 		_state.mag_B(i) = math::constrain(_state.mag_B(i), -0.5f, 0.5f);
 	}
 
-	for (int i = 0; i < 3; i++) { 
+	for (int i = 0; i < 2; i++) { 
 		_state.wind_vel(i) = math::constrain(_state.wind_vel(i), -100.0f, 100.0f);
 	}
 }
