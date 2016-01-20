@@ -16,8 +16,14 @@ set(CMAKE_PROGRAM_PATH
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
 
+set(CONFIG_SHMEM "1")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_SHMEM")
+
 set(config_module_list
 	drivers/device
+	drivers/boards/sitl
+	drivers/led
 
 	systemcmds/param
 	systemcmds/ver
@@ -28,6 +34,9 @@ set(config_module_list
 	modules/systemlib
 	modules/uORB
 	modules/dataman
+	modules/sdlog2
+	modules/simulator
+	modules/commander
 
 	lib/mathlib
 	lib/mathlib/math/filter
