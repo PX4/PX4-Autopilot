@@ -1,8 +1,13 @@
 #!nsh
 #
-# @name Duorotor Tailsitter
+# @name Caipirinha tailsitter
 #
-# @type VTOL Tailsitter
+# @type Duorotor tailsitter
+#
+# @output MAIN1 motor left
+# @output MAIN2 motor right
+# @output MAIN5 elevon left
+# @output MAIN6 elevon right
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #
@@ -11,7 +16,7 @@ sh /etc/init.d/rc.vtol_defaults
 
 set MIXER caipirinha_vtol
 
-set PWM_OUT 12
+set PWM_OUT 1234
 set PWM_MAX 2000
 set PWM_RATE 400
 param set VT_MOT_COUNT 2
