@@ -1372,16 +1372,25 @@ int uavcan_main(int argc, char *argv[])
 			return inst->set_param(nodeid, argv[4], argv[5]);
 		}
 	}
-	if (!std::strcmp(argv[1],"uavcan_hardpoint_set")) {
-		if (argc < 3) {
-			errx(1, "Hardpoint Id and value is requred");
+	if (!std::strcmp(argv[1], "hardpoint")) {
+		if (!std::strcmp(argv[2], "set") && argc > 4) {
+			const int hardpoint_id = atoi(argv[3]);
+			const int command = atoi(argv[4]);
+
+			// Sanity check - weed out negative values, check against maximums
+			if (hardpoint_id >= 0 &&
+				hardpoint_id < 9 &&
+				command >= 0 &&
+				command < 11) {
+				// call something
+				// dosent work ??
+				// _hardpoint_controller.set_command((uint8_t) hardpoint_id, (uint16_t) command);
+			}
+			else {
+				errx(1, "Are you nuts?");
+			}
 		}
-		//UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
-		//UavcanNode.ioctl(???)
-		//		_hardpoint_controller.set_command()
-
 	}
-
 	if (!std::strcmp(argv[1], "stop")) {
 		if (fw) {
 
