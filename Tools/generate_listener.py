@@ -154,7 +154,7 @@ for index,m in enumerate(messages[1:]):
 	print("\t\tstruct %s_s container;" % m)
 	print("\t\tmemset(&container, 0, sizeof(container));")
 	print("\t\tbool updated;")
-	print("\t\tint i = 0;")
+	print("\t\tunsigned i = 0;")
 	print("\t\twhile(i < num_msgs) {")
 	print("\t\t\torb_check(sub,&updated);")
 	print("\t\t\tif (i == 0) { updated = true; } else { usleep(500); }")
