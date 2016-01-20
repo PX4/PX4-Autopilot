@@ -157,8 +157,8 @@ __BEGIN_DECLS
 #define ADC_CHANNELS (1 << 2) | (1 << 3) | (1 << 4) | (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14)
 
 // ADC defines to be used in sensors.cpp to read from a particular channel
-#define ADC_BATTERY_VOLTAGE_CHANNEL		3
-#define ADC_BATTERY_CURRENT_CHANNEL		2
+#define ADC_BATTERY_VOLTAGE_CHANNEL		2
+#define ADC_BATTERY_CURRENT_CHANNEL		3
 #define ADC_5V_RAIL_SENSE				4
 
 /* User GPIOs
