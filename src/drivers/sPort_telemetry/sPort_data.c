@@ -147,7 +147,7 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 }
 
 
-// TODO: correct scaling
+// scaling correct with OpenTX 2.1.7
 void sPort_send_BATV(int uart)
 {
 	/* get a local copy of the vehicle status data */
@@ -160,7 +160,7 @@ void sPort_send_BATV(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_VFAS, voltage);
 }
 
-// TODO: correct scaling
+// TODO: verify scaling
 void sPort_send_CUR(int uart)
 {
 	/* get a local copy of the vehicle status data */
@@ -169,7 +169,7 @@ void sPort_send_CUR(int uart)
 	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
 
 	/* send data */
-	uint32_t current = (int)(255 * vehicle_status.battery_current / 50.0f);
+	uint32_t current = (int)(100 * vehicle_status.battery_current);
 	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
 }
 
