@@ -160,7 +160,7 @@ void sPort_send_BATV(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_VFAS, voltage);
 }
 
-// TODO: verify scaling
+// verified scaling
 void sPort_send_CUR(int uart)
 {
 	/* get a local copy of the vehicle status data */
@@ -169,11 +169,11 @@ void sPort_send_CUR(int uart)
 	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
 
 	/* send data */
-	uint32_t current = (int)(100 * vehicle_status.battery_current);
+	uint32_t current = (int)(10 * vehicle_status.battery_current);
 	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
 }
 
-// TODO: verify scaling
+// verified scaling for "calculated" altitude option
 void sPort_send_ALT(int uart)
 {
 	/* get a local copy of the current sensor values */
@@ -182,11 +182,11 @@ void sPort_send_ALT(int uart)
 	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
 	/* send data */
-	uint32_t alt = (int)(raw.baro_alt_meter[0]);
+	uint32_t alt = (int)(10 * raw.baro_alt_meter[0]);
 	sPort_send_data(uart, SMARTPORT_ID_ALT, alt);
 }
 
-// TODO: verify scaling
+// verified scaling for "calculated" option
 void sPort_send_SPD(int uart)
 {
 	/* get a local copy of the global position data */
@@ -196,11 +196,11 @@ void sPort_send_SPD(int uart)
 
 	/* send data for A2 */
 	float speed  = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e);
-	uint32_t ispeed = (int)speed;
+	uint32_t ispeed = (int)(10 * speed);
 	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
 }
 
-// TODO: verify scaling
+// verified scaling
 void sPort_send_FUEL(int uart)
 {
 	/* get a local copy of the vehicle status data */
