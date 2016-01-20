@@ -180,7 +180,6 @@ private:
 		param_t xy_ff;
 		param_t tilt_max_air;
 		param_t land_speed;
-		param_t tko_jmpspd;
 		param_t tko_speed;
 		param_t tilt_max_land;
 		param_t man_roll_max;
@@ -199,7 +198,6 @@ private:
 		float thr_max;
 		float tilt_max_air;
 		float land_speed;
-		float tko_jmpspd;
 		float tko_speed;
 		float tilt_max_land;
 		float man_roll_max;
@@ -251,8 +249,6 @@ private:
 	float _vel_z_lp;
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
-	hrt_abstime _takeoff_start_time;
-	bool _started_takeoff;
 
 	/**
 	 * Update our local parameter cache.
@@ -382,9 +378,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_takeoff_jumped(false),
 	_vel_z_lp(0),
 	_acc_z_lp(0),
-	_takeoff_thrust_sp(0.0f),
-	_takeoff_start_time(0),
-	_started_takeoff(false)
+	_takeoff_thrust_sp(0.0f)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
@@ -435,7 +429,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
-	_params_handles.tko_jmpspd	= param_find("MPC_TKO_JMPSPD");
 	_params_handles.tko_speed	= param_find("MPC_TKO_SPEED");
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
 	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
@@ -499,7 +492,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
 		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
-		param_get(_params_handles.tko_jmpspd, &_params.tko_jmpspd);
 		param_get(_params_handles.tko_speed, &_params.tko_speed);
 		param_get(_params_handles.tilt_max_land, &_params.tilt_max_land);
 		_params.tilt_max_land = math::radians(_params.tilt_max_land);
@@ -1364,13 +1356,10 @@ MulticopterPositionControl::task_main()
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
-					if (!_started_takeoff) {
-						_started_takeoff = true;
-						_takeoff_start_time = hrt_absolute_time();
-					} else if (!_takeoff_jumped) {
+					if (!_takeoff_jumped) {
 						// ramp thrust setpoint up
-						if (_vel(2) > -0.5f) {
-							_takeoff_thrust_sp = (float)hrt_elapsed_time(&_takeoff_start_time) / 1e6f * 0.5f;
+						if (_vel(2) > -(_params.tko_speed / 2.0f)) {
+							_takeoff_thrust_sp += 0.5f * dt;
 							_vel_sp.zero();
 							_vel_prev.zero();
 						} else {
@@ -1378,17 +1367,18 @@ MulticopterPositionControl::task_main()
 							// into an integral part and into a P part
 							thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
 							thrust_int(2) = -math::constrain(thrust_int(2), _params.thr_min, _params.thr_max);
-							_vel_sp(2) = -1.0f;
-							_vel_sp_prev(2) = -1.0f;
 							_takeoff_jumped = true;
 							reset_int_z = false;
 						}
 					}
 
+					if (_takeoff_jumped) {
+						_vel_sp(2) = -_params.tko_speed;
+						_vel_sp_prev(2) = -_params.tko_speed;
+					}
+
 				} else {
 					_takeoff_jumped = false;
-					_started_takeoff = false;
-					_takeoff_start_time = 0;
 					_takeoff_thrust_sp = 0.0f;
 				}
 
