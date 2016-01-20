@@ -156,7 +156,7 @@ void sPort_send_BATV(int uart)
 	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
 
 	/* send battery voltage as VFAS */
-	uint32_t voltage = (int)(255 * vehicle_status.battery_voltage / 16.8f);
+	uint32_t voltage = (int)(100 * vehicle_status.battery_voltage);
 	sPort_send_data(uart, SMARTPORT_ID_VFAS, voltage);
 }
 
