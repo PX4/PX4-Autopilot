@@ -156,6 +156,9 @@ posix_sitl_ekf2:
 ros_sitl_default:
 	$(call cmake-build,$@)
 
+ros_sitl_default:
+	$(call cmake-build,$@)
+
 qurt_eagle_travis:
 	$(call cmake-build,$@)
 
