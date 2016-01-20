@@ -243,8 +243,7 @@ private:
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
-	float _landing_thrust;
-	hrt_abstime _landing_started;
+	bool _in_landing;
 	bool _takeoff_jumped;
 	float _vel_z_lp;
 	float _acc_z_lp;
@@ -373,8 +372,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_run_pos_control(true),
 	_run_alt_control(true),
 	_yaw(0.0f),
-	_landing_thrust(1.0f),
-	_landing_started(0),
+	_in_landing(false),
 	_takeoff_jumped(false),
 	_vel_z_lp(0),
 	_acc_z_lp(0),
@@ -1508,45 +1506,32 @@ MulticopterPositionControl::task_main()
 							thr_min = 0.0f;
 						}
 
-						if (_landing_started == 0) {
-							_landing_started = hrt_absolute_time();
-						}
-
-						// TODO quick fix: remove this since in combination with the non-working fall detection
-						// it can lead to the copter falling out of the sky
-						/* don't let it throttle up again during landing */
-						if (thrust_sp(2) < 0.0f && thrust_abs < _landing_thrust
-								/* fix landing thrust after a certain time when velocity change is minimal */
+						/* descent stabilized, we're in landing */
+						if (!_in_landing
 								&& (float)fabs(_acc_z_lp) < 0.1f
-								&& _vel_z_lp > 0.5f * _params.land_speed
-								&& hrt_elapsed_time(&_landing_started) > 15e5) {
-							_landing_thrust = thrust_abs;
+								&& _vel_z_lp > 0.5f * _params.land_speed) {
+							_in_landing = true;
 						}
 
 						/* assume ground, reduce thrust */
-						if (hrt_elapsed_time(&_landing_started) > 15e5
-								&& _landing_thrust > FLT_EPSILON
+						if (_in_landing
 								&& _vel_z_lp < 0.1f
 								) {
-							_landing_thrust = 0.0f;
+							thr_max = 0.0f;
 						}
 
 						/* if we suddenly fall, reset landing logic and remove thrust limit */
-						if (hrt_elapsed_time(&_landing_started) > 15e5
+						if (_in_landing
 								/* XXX: magic value, assuming free fall above 4m/s2 acceleration */
 								&& (_acc_z_lp > 4.0f
-								|| _vel_z_lp > 2.0f * _params.land_speed)
+									|| _vel_z_lp > 2.0f * _params.land_speed)
 								) {
-							_landing_thrust = _params.thr_max;
-							_landing_started = 0;
+							thr_max = _params.thr_max;
+							_in_landing = false;
 						}
 
-						/* add 5% to give it some margin to compensate external influences */
-						thr_max = _landing_thrust + 0.05f * _landing_thrust;
-
 					} else {
-						_landing_started = 0;
-						_landing_thrust = _params.thr_max;
+						_in_landing = false;
 					}
 
 					/* limit min lift */
