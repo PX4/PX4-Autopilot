@@ -169,6 +169,7 @@ Mavlink::Mavlink() :
 	_flow_control_enabled(true),
 	_last_write_success_time(0),
 	_last_write_try_time(0),
+	_mavlink_start_time(0),
 	_bytes_tx(0),
 	_bytes_txerr(0),
 	_bytes_rx(0),
@@ -886,6 +887,10 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 
 	_last_write_try_time = hrt_absolute_time();
 
+	if (_mavlink_start_time == 0) {
+		_mavlink_start_time = _last_write_try_time;
+	}
+
 	if (get_protocol() == SERIAL) {
 		/* check if there is space in the buffer, let it overflow else */
 		unsigned buf_free = get_free_tx_buf();
@@ -938,6 +943,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 
 		/* resend heartbeat via broadcast */
 		if ((_mode != MAVLINK_MODE_ONBOARD)
+			&& (_mavlink_start_time > 0 && (hrt_elapsed_time(&_mavlink_start_time) > 4 * 1000 * 1000))
 			&& (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
 			(tstatus.heartbeat_time == 0)) &&
 			msgid == MAVLINK_MSG_ID_HEARTBEAT)) {

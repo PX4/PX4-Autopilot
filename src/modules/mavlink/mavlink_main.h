@@ -416,6 +416,7 @@ private:
 	bool			_flow_control_enabled;
 	uint64_t		_last_write_success_time;
 	uint64_t		_last_write_try_time;
+	uint64_t		_mavlink_start_time;
 
 	unsigned		_bytes_tx;
 	unsigned		_bytes_txerr;
