@@ -1221,6 +1221,9 @@ void UavcanNode::shrink()
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
+void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command){
+	_hardpoint_controller.set_command(hardpoint_id, command);
+}
 /*
  * App entry point
  */
@@ -1231,10 +1234,6 @@ static void print_usage()
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
-
-void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command){
-	_hardpoint_controller.set_command(hardpoint_id, command);
-}
 
 int uavcan_main(int argc, char *argv[])
 {
