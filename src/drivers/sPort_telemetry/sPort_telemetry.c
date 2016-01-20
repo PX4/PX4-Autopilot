@@ -232,8 +232,9 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 			break;
 
 		}
+
 		/* TODO: flush the input buffer if in full duplex mode */
-		read(uart, &sbuf[0], sizeof(sbuf));	
+		read(uart, &sbuf[0], sizeof(sbuf));
 	}
 
 	/* Reset the UART flags to original state */
