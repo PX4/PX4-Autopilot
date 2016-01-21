@@ -961,10 +961,6 @@ void MulticopterPositionControl::control_auto(float dt)
 	}
 
 	if (current_setpoint_valid) {
-		/* in case of interrupted mission don't go to waypoint but stay at current position */
-		_reset_pos_sp = true;
-		_reset_alt_sp = true;
-
 		/* scaled space: 1 == position error resulting max allowed speed */
 		math::Vector<3> scale = _params.pos_p.edivide(_params.vel_max);	// TODO add mult param here
 
@@ -1157,13 +1153,6 @@ MulticopterPositionControl::task_main()
 		}
 
 		poll_subscriptions();
-
-		/* get current rotation matrix and euler angles from control state quaternions */
-		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
-		_R = q_att.to_dcm();
-		math::Vector<3> euler_angles;
-		euler_angles = _R.to_euler();
-		_yaw     = euler_angles(2);
 
 		parameters_update(false);
 
