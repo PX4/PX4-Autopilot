@@ -58,8 +58,8 @@
 
 int mem_fd;
 unsigned char *map_base, *virt_addr;
-struct shmem_info* shmem_info_p;
-static void* map_memory(off_t target);
+struct shmem_info *shmem_info_p;
+static void *map_memory(off_t target);
 
 int get_shmem_lock(void);
 void release_shmem_lock(void);

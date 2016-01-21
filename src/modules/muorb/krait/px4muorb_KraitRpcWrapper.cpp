@@ -37,31 +37,22 @@
 
 using namespace px4muorb;
 
-/* Flags applied to the allocation of the shared memory for RPC */
-#define MUORB_KRAIT_FASTRPC_MEM_FLAGS         0
+/**
+ * Constructor
+ */
+KraitRpcWrapper::KraitRpcWrapper() {}
 
-/* The ID of the HEAP to be used when allocating shared memory */
-//TODO This heap id is used for test purposes. We need to find out the correct one.
-#define MUORB_KRAIT_FASTRPC_HEAP_ID           22
+/**
+ * destructor
+ */
+KraitRpcWrapper::~KraitRpcWrapper() {}
 
-static char *_TopicNameBuffer = 0;
-static const int32_t _MAX_TOPIC_NAME_BUFFER = 256;
-
-static uint8_t *_DataBuffer  = 0;
-static const uint32_t _MAX_DATA_BUFFER_SIZE = 2048;
-
-static bool _Initialized = false;
-
-// These numbers are based off the fact each fastrpc call for 64K packet is 94us.
-// hence we are trying to allocation 64K of byte buffers.
-static const uint32_t _MAX_TOPIC_DATA_BUFFER_SIZE = 1024;
-static const uint32_t _MAX_TOPICS = 64;
-static const uint32_t _MAX_BULK_TRANSFER_BUFFER_SIZE = _MAX_TOPIC_DATA_BUFFER_SIZE * _MAX_TOPICS;
-static uint8_t *_BulkTransferBuffer = 0;
-
-
-px4muorb::KraitRpcWrapper::KraitRpcWrapper()
+/**
+ * Initiatizes the rpc channel px4 muorb
+ */
+bool KraitRpcWrapper::Initialize()
 {
+	return (px4muorb_orb_initialize() == 0);
 }
 
 px4muorb::KraitRpcWrapper::~KraitRpcWrapper()

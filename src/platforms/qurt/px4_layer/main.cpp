@@ -73,30 +73,30 @@ static void run_cmd(map<string, px4_main_t> &apps, const vector<string> &appargs
 	string command = appargs[0];
 
 	//replaces app.find with iterator code to avoid null pointer exception
-	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
-	if (it->first == command) {
-		const char *arg[2 + 1];
+	for (map<string, px4_main_t>::iterator it = apps.begin(); it != apps.end(); ++it)
+		if (it->first == command) {
+			const char *arg[2 + 1];
 
-		unsigned int i = 0;
+			unsigned int i = 0;
 
-		while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
-			arg[i] = (char *)appargs[i].c_str();
-			PX4_WARN("  arg%d = '%s'\n", i, arg[i]);
-			++i;
+			while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
+				arg[i] = (char *)appargs[i].c_str();
+				PX4_WARN("  arg%d = '%s'\n", i, arg[i]);
+				++i;
+			}
+
+			arg[i] = (char *)0;
+
+			//PX4_DEBUG_PRINTF(i);
+			if (apps[command] == NULL) {
+				PX4_ERR("Null function !!\n");
+
+			} else {
+				apps[command](i, (char **)arg);
+				break;
+			}
+
 		}
-
-		arg[i] = (char *)0;
-
-		//PX4_DEBUG_PRINTF(i);
-		if (apps[command] == NULL) {
-			PX4_ERR("Null function !!\n");
-
-		} else {
-			apps[command](i, (char **)arg);
-			break;
-		}
-
-	}
 }
 
 void eat_whitespace(const char *&b, int &i)

@@ -114,7 +114,7 @@ void init_once(void)
 
 	/*Shared memory param sync*/
 	init_own_params();
-	param_sync_done=init_other_params();
+	param_sync_done = init_other_params();
 }
 
 void init(int argc, char *argv[], const char *app_name)

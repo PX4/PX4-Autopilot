@@ -331,7 +331,7 @@ int VCDevExample::main()
 
 	PX4_INFO("TEST: ZERO TIMEOUT POLL -----------");
 
-	if(do_poll(fd, 0, 3, 0)) {
+	if (do_poll(fd, 0, 3, 0)) {
 		ret = 1;
 		goto fail2;
 		goto fail2;
