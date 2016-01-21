@@ -539,7 +539,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
 			}
 
-			if (updated && lidar.current_distance > 0.2f && lidar.current_distance < 10.0f
+			if (updated && lidar.current_distance >= 0.0f && lidar.current_distance < 20.0f
 			    && (PX4_R(att.R, 2, 2) > 0.7f)) { //check if altitude estimation for lidar is enabled and new sensor data
 
 				if (!use_lidar_prev && use_lidar) {
