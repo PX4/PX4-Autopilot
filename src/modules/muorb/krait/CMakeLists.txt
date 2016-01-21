@@ -30,12 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+include_directories(${CMAKE_BINARY_DIR}/src/firmware/posix)
+include_directories(${HEXAGON_SDK_ROOT}/inc/stddef)
 
 px4_add_module(
 	MODULE modules__muorb__krait
 	MAIN muorb
 	SRCS
 		uORBKraitFastRpcChannel.cpp
+		px4muorb_KraitRpcWrapper.cpp
 		muorb_main.cpp
 	DEPENDS
 		platforms__common

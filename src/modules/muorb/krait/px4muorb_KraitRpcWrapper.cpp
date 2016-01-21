@@ -30,47 +30,77 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifndef _px4muorb_KraitRpcWrapper_hpp_
-#define _px4muorb_KraitRpcWrapper_hpp_
 #include <stdint.h>
+#include "px4muorb_KraitRpcWrapper.hpp"
+#include "px4muorb.h"
 
-namespace px4muorb
-{
-class KraitRpcWrapper;
+using namespace px4muorb;
+
+/**
+ * Constructor
+ */
+KraitRpcWrapper::KraitRpcWrapper() {}
+
+/**
+ * destructor
+ */
+KraitRpcWrapper::~KraitRpcWrapper() {}
+
+/**
+ * Initiatizes the rpc channel px4 muorb
+ */
+bool KraitRpcWrapper::Initialize()
+{ 
+	return (px4muorb_orb_initialize() == 0);
 }
 
-class px4muorb::KraitRpcWrapper
+/**
+ * Terminate to clean up the resources.  This should be called at program exit
+ */
+bool KraitRpcWrapper::Terminate()
 {
-public:
-	/**
-	 * Constructor
-	 */
-	KraitRpcWrapper() {}
+	// FIXME - TBD
+	return true;
+}
 
-	/**
-	 * destructor
-	 */
-	~KraitRpcWrapper() {}
+/**
+ * Muorb related functions to pub/sub of orb topic from krait to adsp
+ */
+int32_t KraitRpcWrapper::AddSubscriber(const char *topic)
+{
+	return px4muorb_add_subscriber(topic);
+}
 
-	/**
-	 * Initiatizes the rpc channel px4 muorb
-	 */
-	bool Initialize() { return true; }
+int32_t KraitRpcWrapper::RemoveSubscriber(const char *topic)
+{
+	return px4muorb_remove_subscriber(topic);
+}
 
-	/**
-	 * Terminate to clean up the resources.  This should be called at program exit
-	 */
-	bool Terminate() { return true; }
+int32_t KraitRpcWrapper::SendData(const char *topic, int32_t length_in_bytes, const uint8_t *data)
+{
+	return px4muorb_send_topic_data(topic, data, length_in_bytes);
+}
 
-	/**
-	 * Muorb related functions to pub/sub of orb topic from krait to adsp
-	 */
-	int32_t AddSubscriber(const char *topic) { return 1; }
-	int32_t RemoveSubscriber(const char *topic) { return 1; }
-	int32_t SendData(const char *topic, int32_t length_in_bytes, const uint8_t *data) { return 1; }
-	int32_t ReceiveData(int32_t *msg_type, char **topic, int32_t *length_in_bytes, uint8_t **data) { return 1; }
-	int32_t IsSubscriberPresent(const char *topic, int32_t *status) { return 1; }
-	int32_t ReceiveBulkData(uint8_t **bulk_data, int32_t *length_in_bytes, int32_t *topic_count) { return 1; }
-	int32_t UnblockReceiveData() { return 1; }
-};
-#endif // _px4muorb_KraitWrapper_hpp_
+int32_t KraitRpcWrapper::ReceiveData(int32_t *msg_type, char **topic, int32_t *length_in_bytes, uint8_t **data)
+{
+	// FIXME ??
+	int topic_nameLen = 0;
+	int rv = px4muorb_receive_msg(msg_type, *topic, topic_nameLen, *data, *length_in_bytes, length_in_bytes);
+	return rv;
+}
+
+int32_t KraitRpcWrapper::IsSubscriberPresent(const char *topic, int32_t *status)
+{
+	return px4muorb_is_subscriber_present(topic, status);
+}
+
+int32_t KraitRpcWrapper::ReceiveBulkData(uint8_t **bulk_data, int32_t *length_in_bytes, int32_t *topic_count)
+{
+	return px4muorb_receive_bulk_data(*bulk_data, *length_in_bytes, length_in_bytes, topic_count);
+}
+
+int32_t KraitRpcWrapper::UnblockReceiveData()
+{
+	return px4muorb_unblock_recieve_msg();
+}
+
