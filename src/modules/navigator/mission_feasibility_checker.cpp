@@ -64,7 +64,8 @@ MissionFeasibilityChecker::MissionFeasibilityChecker() :
 
 bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRotarywing,
 	dm_item_t dm_current, size_t nMissionItems, Geofence &geofence,
-	float home_alt, bool home_valid, double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued)
+	float home_alt, bool home_valid, double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued,
+	float default_acceptance_rad)
 {
 	bool failed = false;
 	bool warned = false;
@@ -88,7 +89,7 @@ bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRota
 	failed = failed || !checkHomePositionAltitude(dm_current, nMissionItems, home_alt, home_valid, warned);
 
 	if (isRotarywing) {
-		failed = failed || !checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence, home_alt, home_valid);
+		failed = failed || !checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence, home_alt, home_valid, default_acceptance_rad);
 	} else {
 		failed = failed || !checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence, home_alt, home_valid);
 	}
@@ -96,9 +97,41 @@ bool MissionFeasibilityChecker::checkMissionFeasible(int mavlink_fd, bool isRota
 	return !failed;
 }
 
-bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid)
+bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems,
+	Geofence &geofence, float home_alt, bool home_valid, float default_acceptance_rad)
 {
-	/* no custom rotary wing checks yet */
+	/* Check if all all waypoints are above the home altitude, only return false if bool throw_error = true */
+	for (size_t i = 0; i < nMissionItems; i++) {
+		struct mission_item_s missionitem;
+		const ssize_t len = sizeof(struct mission_item_s);
+
+		if (dm_read(dm_current, i, &missionitem, len) != len) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			return false;
+		}
+
+		// look for a takeoff waypoint
+		if (missionitem.nav_cmd == NAV_CMD_TAKEOFF) {
+			// make sure that the altitude of the waypoint is at least one meter larger than the acceptance radius
+			// this makes sure that the takeoff waypoint is not reached before we are at least one meter in the air
+			float takeoff_alt = missionitem.altitude_is_relative
+				      ? missionitem.altitude
+			              : missionitem.altitude - home_alt;
+			// check if we should use default acceptance radius
+			float acceptance_radius = default_acceptance_rad;
+
+			if (missionitem.acceptance_radius > NAV_EPSILON_POSITION) {
+				acceptance_radius = missionitem.acceptance_radius;
+			}
+
+			if (takeoff_alt - 1.0f < acceptance_radius) {
+				mavlink_log_critical(_mavlink_fd, "Mission rejected: Takeoff altitude too low!");
+				return false;
+			}
+		}
+	}
+
+	// all checks have passed
 	return true;
 }
 

@@ -2284,6 +2284,15 @@ int commander_thread_main(int argc, char *argv[])
 				mavlink_log_critical(mavlink_fd, "main state transition denied");
 			}
 
+			/* check throttle kill switch */
+			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				/* set lockdown flag */
+				armed.lockdown = true;
+			} else if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+				armed.lockdown = false;
+			}
+			/* no else case: do not change lockdown flag in unconfigured case */
+
 		} else {
 			if (!status.rc_input_blocked && !status.rc_signal_lost) {
 				mavlink_log_critical(mavlink_fd, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
@@ -2714,7 +2723,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		}
 	}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {

@@ -169,6 +169,7 @@ Mavlink::Mavlink() :
 	_flow_control_enabled(true),
 	_last_write_success_time(0),
 	_last_write_try_time(0),
+	_mavlink_start_time(0),
 	_bytes_tx(0),
 	_bytes_txerr(0),
 	_bytes_rx(0),
@@ -886,6 +887,10 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 
 	_last_write_try_time = hrt_absolute_time();
 
+	if (_mavlink_start_time == 0) {
+		_mavlink_start_time = _last_write_try_time;
+	}
+
 	if (get_protocol() == SERIAL) {
 		/* check if there is space in the buffer, let it overflow else */
 		unsigned buf_free = get_free_tx_buf();
@@ -938,6 +943,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 
 		/* resend heartbeat via broadcast */
 		if ((_mode != MAVLINK_MODE_ONBOARD)
+			&& (_mavlink_start_time > 0 && (hrt_elapsed_time(&_mavlink_start_time) > 4 * 1000 * 1000))
 			&& (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
 			(tstatus.heartbeat_time == 0)) &&
 			msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
@@ -1049,10 +1055,10 @@ Mavlink::init_udp()
 	/* set default target address, but not for onboard mode (will be set on first received packet) */
 	memset((char *)&_src_addr, 0, sizeof(_src_addr));
 	if (_mode != MAVLINK_MODE_ONBOARD) {
-		set_client_source_initialized();
 		_src_addr.sin_family = AF_INET;
 		inet_aton("127.0.0.1", &_src_addr.sin_addr);
 		_src_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
+		set_client_source_initialized();
 	}
 
 	/* default broadcast address */
@@ -2141,7 +2147,7 @@ Mavlink::start(int argc, char *argv[])
 	px4_task_spawn_cmd(buf,
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2400,
+			   2700,
 			   (px4_main_t)&Mavlink::start_helper,
 			   (char *const *)argv);
 

@@ -1771,7 +1771,7 @@ MavlinkReceiver::receive_thread(void *arg)
 		fds[0].events = POLLIN;
 	}
 #ifdef __PX4_POSIX
-	struct sockaddr_in srcaddr;
+	struct sockaddr_in srcaddr = {};
 	socklen_t addrlen = sizeof(srcaddr);
 
 	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
@@ -1817,8 +1817,8 @@ MavlinkReceiver::receive_thread(void *arg)
 			if ((srcaddr_last->sin_addr.s_addr == htonl(localhost) && srcaddr.sin_addr.s_addr != htonl(localhost))
 					|| (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_ONBOARD && !_mavlink->get_client_source_initialized())) {
 				// if we were sending to localhost before but have a new host then accept him
-				memcpy(srcaddr_last, &srcaddr, sizeof(srcaddr));
-				PX4_WARN("UDP source addr changed: %s", inet_ntoa(srcaddr.sin_addr));
+				srcaddr_last->sin_addr.s_addr = srcaddr.sin_addr.s_addr;
+				srcaddr_last->sin_port = srcaddr.sin_port;
 				_mavlink->set_client_source_initialized();
 			}
 #endif

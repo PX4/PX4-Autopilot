@@ -1494,6 +1494,9 @@ MulticopterPositionControl::task_main()
 							_landing_started = hrt_absolute_time();
 						}
 
+						#if 0
+						// TODO quick fix: remove this since in combination with the non-working fall detection
+						// it can lead to the copter falling out of the sky
 						/* don't let it throttle up again during landing */
 						if (thrust_sp(2) < 0.0f && thrust_abs < _landing_thrust
 								/* fix landing thrust after a certain time when velocity change is minimal */
@@ -1502,6 +1505,7 @@ MulticopterPositionControl::task_main()
 								&& hrt_elapsed_time(&_landing_started) > 15e5) {
 							_landing_thrust = thrust_abs;
 						}
+						#endif
 
 						/* assume ground, reduce thrust */
 						if (hrt_elapsed_time(&_landing_started) > 15e5
