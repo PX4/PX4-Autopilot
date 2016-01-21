@@ -31,7 +31,10 @@
 #
 ############################################################################
 include_directories(${CMAKE_BINARY_DIR}/src/firmware/posix)
-include_directories(${HEXAGON_SDK_ROOT}/inc/stddef)
+include_directories(
+	${HEXAGON_SDK_ROOT}/inc/stddef
+	${HEXAGON_SDK_ROOT}/lib/common/rpcmem
+	)
 
 px4_add_module(
 	MODULE modules__muorb__krait
