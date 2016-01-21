@@ -1214,6 +1214,16 @@ MulticopterPositionControl::task_main()
 			_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 		}
 
+		// reset the horizontal and vertical position hold flags for non-manual modes
+		// or if position / altitude is not controlled
+		if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
+			_pos_hold_engaged = false;
+		}
+
+		if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
+			_alt_hold_engaged = false;
+		}
+
 		if (_control_mode.flag_control_altitude_enabled ||
 		    _control_mode.flag_control_position_enabled ||
 		    _control_mode.flag_control_climb_rate_enabled ||
@@ -1225,16 +1235,6 @@ MulticopterPositionControl::task_main()
 			 * can disable this and run velocity controllers directly in this cycle */
 			_run_pos_control = true;
 			_run_alt_control = true;
-
-			// reset the horizontal and vertical position hold flags for non-manual modes
-			// or if position is not controlled
-			if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
-				_pos_hold_engaged = false;
-			}
-
-			if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
-				_alt_hold_engaged = false;
-			}
 
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
