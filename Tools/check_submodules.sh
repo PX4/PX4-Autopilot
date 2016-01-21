@@ -79,3 +79,4 @@ check_git_submodule src/modules/uavcan/libuavcan
 check_git_submodule unittests/googletest
 
 exit 0
+
