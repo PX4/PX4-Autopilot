@@ -60,6 +60,7 @@ static int writer_main(int argc, char *argv[])
 	char buf[1];
 
 	int fd = px4_open(TESTDEV, PX4_F_WRONLY);
+
 	if (fd < 0) {
 		PX4_INFO("Writer: Open failed %d %d", fd, px4_errno);
 		return -px4_errno;
@@ -94,7 +95,7 @@ class PrivData
 public:
 	PrivData() : _read_offset(0) {}
 	~PrivData() {}
-	
+
 	size_t _read_offset;
 };
 
