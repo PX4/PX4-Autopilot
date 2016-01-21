@@ -37,8 +37,6 @@ set(CMAKE_SYSTEM_VERSION 1)
 
 # specify the cross compiler
 find_program(C_COMPILER arm-linux-gnueabihf-gcc
-	PATHS ${HEXAGON_SDK_ROOT}/gcc-linaro-arm-linux-gnueabihf-4.8-2013.08_linux/bin
-	NO_DEFAULT_PATH
 	)
 if(NOT C_COMPILER)
 	message(FATAL_ERROR "could not find arm-linux-gnueabihf-gcc compiler")
@@ -46,8 +44,6 @@ endif()
 cmake_force_c_compiler(${C_COMPILER} GNU)
 
 find_program(CXX_COMPILER arm-linux-gnueabihf-g++
-	PATHS ${HEXAGON_SDK_ROOT}/gcc-linaro-arm-linux-gnueabihf-4.8-2013.08_linux/bin
-	NO_DEFAULT_PATH
 	)
 if(NOT CXX_COMPILER)
 	message(FATAL_ERROR "could not find arm-linux-gnueabihf-g++ compiler")
@@ -58,8 +54,6 @@ cmake_force_cxx_compiler(${CXX_COMPILER} GNU)
 foreach(tool objcopy nm ld)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} arm-linux-gnueabihf-${tool}
-		PATHS ${HEXAGON_SDK_ROOT}/gcc-linaro-arm-linux-gnueabihf-4.8-2013.08_linux/bin
-		NO_DEFAULT_PATH
 		)
 	if(NOT ${TOOL})
 		message(FATAL_ERROR "could not find arm-linux-gnueabihf-${tool}")
