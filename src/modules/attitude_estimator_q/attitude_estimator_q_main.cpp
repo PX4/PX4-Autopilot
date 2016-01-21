@@ -400,35 +400,6 @@ void AttitudeEstimatorQ::task_main()
 
 			if (!_failsafe) {
 				uint32_t flags = DataValidator::ERROR_FLAG_NO_ERROR;
-#ifdef __PX4_POSIX
-				perf_end(_perf_accel);
-				perf_end(_perf_mpu);
-				perf_end(_perf_mag);
-#endif
-
-				if (_voter_gyro.failover_count() > 0) {
-					_failsafe = true;
-					flags = _voter_gyro.failover_state();
-					mavlink_and_console_log_emergency(_mavlink_fd, "Gyro #%i failure :%s%s%s%s%s!",
-									  _voter_gyro.failover_index(),
-									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
-				}
-
-				if (_voter_accel.failover_count() > 0) {
-					_failsafe = true;
-					flags = _voter_accel.failover_state();
-					mavlink_and_console_log_emergency(_mavlink_fd, "Accel #%i failure :%s%s%s%s%s!",
-									  _voter_accel.failover_index(),
-									  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
-									  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
-				}
 
 #ifdef __PX4_POSIX
 				perf_end(_perf_accel);
@@ -636,11 +607,8 @@ void AttitudeEstimatorQ::task_main()
 
 		/* attitude quaternions for control state */
 		ctrl_state.q[0] = _q(0);
-
 		ctrl_state.q[1] = _q(1);
-
 		ctrl_state.q[2] = _q(2);
-
 		ctrl_state.q[3] = _q(3);
 
 		/* attitude rates for control state */
