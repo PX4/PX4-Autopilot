@@ -50,7 +50,7 @@ KraitRpcWrapper::~KraitRpcWrapper() {}
  * Initiatizes the rpc channel px4 muorb
  */
 bool KraitRpcWrapper::Initialize()
-{ 
+{
 	return (px4muorb_orb_initialize() == 0);
 }
 

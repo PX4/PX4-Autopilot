@@ -114,22 +114,23 @@ const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 extern int get_shmem_lock(void);
 extern void release_shmem_lock(void);
 
-struct param_wbuf_s * param_find_changed(param_t param);
+struct param_wbuf_s *param_find_changed(param_t param);
 
 void init_params(void);
 extern void init_shared_memory(void);
 
 extern void copy_params_to_shmem(struct param_info_s *param_info_base);
 
-extern struct shmem_info* shmem_info_p;
-uint64_t sync_other_prev_time=0, sync_other_current_time=0;
+extern struct shmem_info *shmem_info_p;
+uint64_t sync_other_prev_time = 0, sync_other_current_time = 0;
 
 extern void update_to_shmem(param_t param, union param_value_u value);
 extern int update_from_shmem(param_t param, union param_value_u *value);
 static int param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes);
-unsigned char set_called_from_get=0;
+unsigned char set_called_from_get = 0;
 
-static int param_import_done=0; /*at startup, params are loaded from file, if present. we dont want to send notifications that time since muorb is not ready*/
+static int param_import_done =
+	0; /*at startup, params are loaded from file, if present. we dont want to send notifications that time since muorb is not ready*/
 
 static int param_load_default_no_notify(void);
 
@@ -508,16 +509,16 @@ param_get(param_t param, void *val)
 
 	param_lock();
 
-	if(!handle_in_range(param))
+	if (!handle_in_range(param)) {
 		return result;
+	}
 
 	union param_value_u value;
 
-	if(update_from_shmem(param, &value))
-	{
-		set_called_from_get=1;
+	if (update_from_shmem(param, &value)) {
+		set_called_from_get = 1;
 		param_set_internal(param, &value, true, false);
-		set_called_from_get=0;
+		set_called_from_get = 0;
 	}
 
 
@@ -529,9 +530,13 @@ param_get(param_t param, void *val)
 	}
 
 #ifdef ENABLE_SHMEM_DEBUG
-	if(param_type(param)==PARAM_TYPE_INT32)	{ PX4_INFO("param_get for %s : %d\n", param_name(param), *(int*)val); }
-	else if(param_type(param)==PARAM_TYPE_FLOAT) { PX4_INFO("param_get for %s : %f\n", param_name(param), *(double*)val); }
+
+	if (param_type(param) == PARAM_TYPE_INT32)	{ PX4_INFO("param_get for %s : %d\n", param_name(param), *(int *)val); }
+
+	else if (param_type(param) == PARAM_TYPE_FLOAT) { PX4_INFO("param_get for %s : %f\n", param_name(param), *(double *)val); }
+
 	else { PX4_INFO("Unknown param type for %s\n", param_name(param)); }
+
 #endif
 
 	param_unlock();
@@ -547,8 +552,9 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 
 	param_lock();
 
-	if(!handle_in_range(param))
+	if (!handle_in_range(param)) {
 		return result;
+	}
 
 	mark_saved = true; //mark all params as saved
 
@@ -623,19 +629,24 @@ out:
 	 * a thing has been set.
 	 */
 
-	if(!param_import_done) notify_changes=0;
+	if (!param_import_done) { notify_changes = 0; }
 
 	if (params_changed && notify_changes) {
 		param_notify_changes();
 	}
 
-	if(result==0 && !set_called_from_get)
-		update_to_shmem(param, *(union param_value_u*)val);
+	if (result == 0 && !set_called_from_get) {
+		update_to_shmem(param, *(union param_value_u *)val);
+	}
 
 #ifdef ENABLE_SHMEM_DEBUG
-	if(param_type(param)==PARAM_TYPE_INT32) {PX4_INFO("param_set for %s : %d\n", param_name(param), *(int*)val);}
-	else if(param_type(param)==PARAM_TYPE_FLOAT) {PX4_INFO("param_set for %s : %f\n", param_name(param), *(double*)val);}
+
+	if (param_type(param) == PARAM_TYPE_INT32) {PX4_INFO("param_set for %s : %d\n", param_name(param), *(int *)val);}
+
+	else if (param_type(param) == PARAM_TYPE_FLOAT) {PX4_INFO("param_set for %s : %f\n", param_name(param), *(double *)val);}
+
 	else {PX4_INFO("Unknown param type for %s\n", param_name(param));}
+
 #endif
 
 	return result;
@@ -794,10 +805,10 @@ param_save_default(void)
 
 	const char *filename = param_get_default_file();
 
-	if(get_shmem_lock()!=0) {
+	if (get_shmem_lock() != 0) {
 		PX4_ERR("Could not get shmem lock\n");
 		return 0;
-	}			
+	}
 
 	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
@@ -858,15 +869,16 @@ param_load_default(void)
 static int
 param_load_default_no_notify(void)
 {
-	if(get_shmem_lock()!=0) {
+	if (get_shmem_lock() != 0) {
 		PX4_ERR("Could not get shmem lock\n");
 		return 0;
-	}			
+	}
 
 	int fd_load = open(param_get_default_file(), O_RDONLY);
 
 	if (fd_load < 0) {
 		release_shmem_lock();
+
 		/* no parameter file is OK, otherwise this is an error */
 		if (errno != ENOENT) {
 			debug("open '%s' for reading failed", param_get_default_file());
@@ -1185,14 +1197,17 @@ void init_params(void)
 #ifdef __PX4_POSIX
 	param_load_default_no_notify();
 #endif
-	param_import_done=1;
+	param_import_done = 1;
 
 	copy_params_to_shmem(param_info_base);
 
 
 #ifdef ENABLE_SHMEM_DEBUG
 	PX4_INFO("Offsets: \n");
-	PX4_INFO("params_val %lu, krait_changed %lu, adsp_changed %lu\n", (unsigned char*)shmem_info_p->params_val - (unsigned char*)shmem_info_p, (unsigned char*)&shmem_info_p->krait_changed_index - (unsigned char*)shmem_info_p, (unsigned char*)&shmem_info_p->adsp_changed_index - (unsigned char*)shmem_info_p);
+	PX4_INFO("params_val %lu, krait_changed %lu, adsp_changed %lu\n",
+		 (unsigned char *)shmem_info_p->params_val - (unsigned char *)shmem_info_p,
+		 (unsigned char *)&shmem_info_p->krait_changed_index - (unsigned char *)shmem_info_p,
+		 (unsigned char *)&shmem_info_p->adsp_changed_index - (unsigned char *)shmem_info_p);
 #endif
 
 }
