@@ -115,7 +115,6 @@ static void process_commands(map<string, px4_main_t> &apps, const char *cmds)
 	const char *b = cmds;
 	char arg[256];
 
-
 	// Eat leading whitespace
 	eat_whitespace(b, i);
 
