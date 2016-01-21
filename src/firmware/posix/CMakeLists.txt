@@ -7,11 +7,13 @@ px4_posix_generate_builtin_commands(
 if ("${BOARD}" STREQUAL "eagle")
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	QURT_APP(
 		APP_NAME mainapp
 		IDL_NAME px4muorb
 		APPS_DEST "/home/linaro"
 		SOURCES
+		px4muorb_stub.c
 		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		LINK_LIBS
@@ -19,6 +21,7 @@ if ("${BOARD}" STREQUAL "eagle")
 		${module_libraries}
 		df_driver_framework
 		${df_driver_libraries}
+		${FASTRPC_ARM_LIBS}
 		pthread m rt
 		-Wl,--end-group
 		)
