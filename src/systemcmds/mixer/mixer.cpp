@@ -108,6 +108,7 @@ load(const char *devname, const char *fname)
 	usleep(20000);
 
 	int		dev;
+	char		buf[2048];
 
 	/* open the device */
 	if ((dev = px4_open(devname, 0)) < 0) {
@@ -120,8 +121,6 @@ load(const char *devname, const char *fname)
 		warnx("can't reset mixers on %s", devname);
 		return 1;
 	}
-
-	char		buf[2048];
 
 	if (load_mixer_file(fname, &buf[0], sizeof(buf)) < 0) {
 		warnx("can't load mixer: %s", fname);
