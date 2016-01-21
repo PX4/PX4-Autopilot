@@ -315,7 +315,7 @@ void Ekf2::task_main()
 		_ekf->update();
 
 		// generate vehicle attitude data
-		struct vehicle_attitude_s att;
+		struct vehicle_attitude_s att = {};
 		att.timestamp = hrt_absolute_time();
 
 		_ekf->copy_quaternion(att.q);
@@ -326,7 +326,7 @@ void Ekf2::task_main()
 		att.yaw = euler(2);
 
 		// generate vehicle local position data
-		struct vehicle_local_position_s lpos;
+		struct vehicle_local_position_s lpos = {};
 		float pos[3] = {};
 		float vel[3] = {};
 
@@ -421,7 +421,7 @@ void Ekf2::task_main()
 		}
 
 		// generate and publish global position data
-		struct vehicle_global_position_s global_pos;
+		struct vehicle_global_position_s global_pos = {};
 
 		if (_ekf->position_is_valid()) {
 			// TODO: local origin is currenlty at GPS height origin - this is different to ekf_att_pos_estimator
