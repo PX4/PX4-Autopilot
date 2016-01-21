@@ -114,7 +114,7 @@ const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 extern int get_shmem_lock(void);
 extern void release_shmem_lock(void);
 
-struct param_wbuf_s * param_find_changed(param_t param);
+struct param_wbuf_s *param_find_changed(param_t param);
 
 void init_params(void);
 extern void init_shared_memory(void);
@@ -127,9 +127,10 @@ uint64_t sync_other_prev_time = 0, sync_other_current_time = 0;
 extern void update_to_shmem(param_t param, union param_value_u value);
 extern int update_from_shmem(param_t param, union param_value_u *value);
 static int param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes);
-unsigned char set_called_from_get=0;
+unsigned char set_called_from_get = 0;
 
-static int param_import_done=0; /*at startup, params are loaded from file, if present. we dont want to send notifications that time since muorb is not ready*/
+static int param_import_done =
+	0; /*at startup, params are loaded from file, if present. we dont want to send notifications that time since muorb is not ready*/
 
 static int param_load_default_no_notify(void);
 
@@ -509,11 +510,10 @@ param_get(param_t param, void *val)
 
 	union param_value_u value;
 
-	if(update_from_shmem(param, &value))
-	{
-		set_called_from_get=1;
+	if (update_from_shmem(param, &value)) {
+		set_called_from_get = 1;
 		param_set_internal(param, &value, true, false);
-		set_called_from_get=0;
+		set_called_from_get = 0;
 	}
 
 
