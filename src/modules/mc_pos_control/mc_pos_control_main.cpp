@@ -996,7 +996,20 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	if (current_setpoint_valid) {
 		/* scaled space: 1 == position error resulting max allowed speed */
-		math::Vector<3> scale = _params.pos_p.edivide(_params.vel_max);	// TODO add mult param here
+
+		math::Vector<3> cruising_speed = _params.vel_max;
+
+		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
+			_pos_sp_triplet.current.cruising_speed > 0.1f) {
+			cruising_speed(0) = _pos_sp_triplet.current.cruising_speed;
+			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
+		} else {
+			// XXX need to introduce cruising speed param
+			cruising_speed(0) =  _params.vel_max(0) * 0.6f;
+			cruising_speed(1) =  _params.vel_max(0) * 0.6f;
+		}
+
+		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
 
 		/* convert current setpoint to scaled space */
 		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
