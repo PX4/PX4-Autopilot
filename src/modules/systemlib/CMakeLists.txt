@@ -54,6 +54,7 @@ if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		err.c
 		printload.c
+		param/param.c
 		up_cxxinitialize.c 
 		)
 elseif ("${CONFIG_SHMEM}" STREQUAL "1")
