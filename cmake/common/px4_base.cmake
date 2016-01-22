@@ -536,13 +536,18 @@ function(px4_add_common_flags)
 
 	set(max_optimization -Os)
 
+	set(PIC_FLAG)
+	if ("${OS}" STREQUAL "qurt")
+		set(PIC_FLAG -fPIC)
+	endif()
+
 	set(optimization_flags
 		-fno-strict-aliasing
 		-fomit-frame-pointer
 		-funsafe-math-optimizations
 		-ffunction-sections
 		-fdata-sections
-		-fPIC
+		${PIC_FLAG}
 		)
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
