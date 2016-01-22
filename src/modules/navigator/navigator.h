@@ -157,6 +157,18 @@ public:
 	float		get_acceptance_radius();
 
 	/**
+	 * Get the cruising speed
+	 *
+	 * @return the desired cruising speed for this mission
+	 */
+	float		get_cruising_speed();
+
+	/**
+	 * Set the cruising speed
+	 */
+	void		set_cruising_speed(float speed) { _mission_cruising_speed = speed; }
+
+	/**
 	 * Get the acceptance radius given the mission item preset radius
 	 *
 	 * @param mission_item_radius the radius to use in case the controller-derived radius is smaller
@@ -244,6 +256,12 @@ private:
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	control::BlockParamInt _param_datalinkloss_obc;	/**< if true: obc mode on data link loss enabled */
 	control::BlockParamInt _param_rcloss_obc;	/**< if true: obc mode on rc loss enabled */
+	
+	control::BlockParamFloat _param_cruising_speed_hover;
+	control::BlockParamFloat _param_cruising_speed_plane;
+
+	float _mission_cruising_speed;
+
 	/**
 	 * Retrieve global position
 	 */
