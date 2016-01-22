@@ -185,8 +185,9 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 		/* wait for poll frame starting with value 0x7E
 		* note that only the bus master is supposed to put a 0x7E on the bus.
 		* slaves use byte stuffing to send 0x7E and 0x7D.
+		* we expect a poll frame every 12msec
 		*/
-		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
+		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 50);
 
 		if (status < 1) { continue; }
 
@@ -196,7 +197,7 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 		if (newBytes < 1 || sbuf[0] != 0x7E) { continue; }
 
 		/* wait for ID byte */
-		status = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
+		status = poll(fds, sizeof(fds) / sizeof(fds[0]), 50);
 
 		if (status < 1) { continue; }
 
