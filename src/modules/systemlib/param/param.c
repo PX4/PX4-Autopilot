@@ -497,7 +497,7 @@ param_get(param_t param, void *val)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool autosave)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool is_saved)
 {
 	int result = -1;
 	bool params_changed = false;
@@ -575,7 +575,7 @@ out:
 	 * a thing has been set.
 	 */
 	if (params_changed && notify_changes) {
-		param_notify_changes(autosave);
+		param_notify_changes(is_saved);
 	}
 
 	return result;
@@ -744,7 +744,13 @@ param_save_default(void)
 		return ERROR;
 	}
 
-	res = param_export(fd, false);
+	res = 1;
+	int attempts = 5;
+
+	while (res != OK && attempts > 0) {
+		res = param_export(fd, false);
+		attempts--;
+	}
 
 	if (res != OK) {
 		warnx("failed to write parameters to file: %s", filename);
