@@ -83,7 +83,7 @@ class Ekf2;
 
 namespace ekf2
 {
-Ekf2 *instance;
+Ekf2 *instance = nullptr;
 }
 
 
@@ -123,6 +123,7 @@ private:
 	int		_sensors_sub = -1;
 	int		_gps_sub = -1;
 	int		_airspeed_sub = -1;
+	int		_params_sub = -1;
 
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
@@ -167,14 +168,15 @@ private:
 
 Ekf2::Ekf2():
 	SuperBlock(NULL, "EKF"),
+	_att_pub(nullptr),
+	_lpos_pub(nullptr),
+	_control_state_pub(nullptr),
+	_vehicle_global_position_pub(nullptr),
 	_lp_roll_rate(250.0f, 30.0f),
 	_lp_pitch_rate(250.0f, 30.0f),
-	_lp_yaw_rate(250.0f, 20.0f)
+	_lp_yaw_rate(250.0f, 20.0f),
+	_ekf(new Ekf())
 {
-	_ekf = new Ekf();
-	_att_pub = nullptr;
-	_lpos_pub = nullptr;
-	_control_state_pub = nullptr;
 
 	parameters *params = _ekf->getParamHandle();
 	_mag_delay_ms = new control::BlockParamFloat(this, "EKF2_MAG_DELAY", false, &params->mag_delay_ms);
@@ -224,18 +226,22 @@ void Ekf2::task_main()
 {
 	// subscribe to relevant topics
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
+	_params_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[2] = {};
 	fds[0].fd = _sensors_sub;
 	fds[0].events = POLLIN;
+	fds[1].fd = _params_sub;
+	fds[1].events = POLLIN;
 
 	// initialise parameter cache
 	updateParams();
 
 	while (!_task_should_exit) {
-		int ret = px4_poll(fds, 1, 1000);
+		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 8);
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
@@ -247,7 +253,15 @@ void Ekf2::task_main()
 			continue;
 		}
 
-		updateParams();
+		if (fds[1].revents & POLLIN) {
+			// read from param to clear updated flag
+			struct parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			updateParams();
+
+			// fetch sensor data in next loop
+			continue;
+		}
 
 		bool gps_updated = false;
 		bool airspeed_updated = false;
