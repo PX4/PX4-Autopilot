@@ -145,7 +145,7 @@ MS5611_SPI::init()
 {
 	// Sharing a bus with NuttX drivers
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-	set_lockmode(SPI::LOCK_THREADS);
+	//set_lockmode(SPI::LOCK_THREADS);
 #endif
 
 	int ret;
