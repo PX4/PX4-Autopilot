@@ -72,7 +72,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/parameter_update.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -161,9 +160,6 @@ private:
 	control::BlockParamFloat *_heading_innov_gate;	// innovation gate for heading innovation test
 
 	EstimatorBase *_ekf;
-
-
-	void update_parameters(bool force);
 
 	int update_subscriptions();
 
