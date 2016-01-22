@@ -115,6 +115,8 @@ public:
 
 	void print_status();
 
+	void exit() { _task_should_exit = true; }
+
 private:
 	static constexpr float _dt_max = 0.02;
 	bool		_task_should_exit = false;		/**< if true, task should exit */
@@ -471,6 +473,9 @@ void Ekf2::task_main()
 			}
 		}
 	}
+
+	delete ekf2::instance;
+	ekf2::instance = nullptr;
 }
 
 void Ekf2::task_main_trampoline(int argc, char *argv[])
@@ -535,8 +540,13 @@ int ekf2_main(int argc, char *argv[])
 			return 1;
 		}
 
-		delete ekf2::instance;
-		ekf2::instance = nullptr;
+		ekf2::instance->exit();
+
+		// wait for the destruction of the instance
+		while (ekf2::instance != nullptr) {
+			usleep(50000);
+		}
+
 		return 0;
 	}
 
