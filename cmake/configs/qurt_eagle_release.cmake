@@ -1,11 +1,5 @@
 include(qurt/px4_impl_qurt)
 
-#if ("$ENV{EAGLE_ADDON_ROOT}" STREQUAL "")
-#	message(FATAL_ERROR "Enviroment variable EAGLE_ADDON_ROOT must be set")
-#else()
-#	set(EAGLE_ADDON_ROOT $ENV{EAGLE_ADDON_ROOT})
-#endif()
-
 if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
 	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
 else()
@@ -34,21 +28,6 @@ set(QURT_ENABLE_STUBS "0")
 
 set(CONFIG_SHMEM "1")
 
-#-L${EAGLE_ADDON_ROOT}/flight_controller/hexagon/libs
-# For Actual flight we need to link against the driver dynamic libraries
-set(target_libraries
-	mpu9x50
-	uart_esc
-	csr_gps
-	rc_receiver
-	)
-
-message("hexagon_sdk_root is ${HEXAGON_SDK_ROOT}")
-
-set(QURT_ENABLE_STUBS "0")
-
-set(CONFIG_SHMEM "1")
-
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/qurt_app.cmake)
 
@@ -58,10 +37,10 @@ set(config_module_list
 	#
 	drivers/device
 	modules/sensors
-	#${EAGLE_DRIVERS_SRC}/mpu9x50
+	${EAGLE_DRIVERS_SRC}/mpu9x50
 	${EAGLE_DRIVERS_SRC}/uart_esc
-	#${EAGLE_DRIVERS_SRC}/rc_receiver
-	#${EAGLE_DRIVERS_SRC}/csr_gps
+	${EAGLE_DRIVERS_SRC}/rc_receiver
+	${EAGLE_DRIVERS_SRC}/csr_gps
 
 	#
 	# System commands
