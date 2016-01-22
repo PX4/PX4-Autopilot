@@ -677,12 +677,8 @@ MulticopterPositionControl::reset_pos_sp()
 	if (_reset_pos_sp) {
 		_reset_pos_sp = false;
 		/* shift position setpoint to make attitude setpoint continuous */
-		_pos_sp(0) = _pos(0) + (_vel(0) - PX4_R(_att_sp.R_body, 0, 2) * _att_sp.thrust / _params.vel_p(0)
-					- _params.vel_ff(0) * _vel_sp(0)) / _params.pos_p(0);
-		_pos_sp(1) = _pos(1) + (_vel(1) - PX4_R(_att_sp.R_body, 1, 2) * _att_sp.thrust / _params.vel_p(1)
-					- _params.vel_ff(1) * _vel_sp(1)) / _params.pos_p(1);
-
-		//mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
+		_pos_sp(0) = _pos(0);
+		_pos_sp(1) = _pos(1);
 	}
 }
 
@@ -691,8 +687,7 @@ MulticopterPositionControl::reset_alt_sp()
 {
 	if (_reset_alt_sp) {
 		_reset_alt_sp = false;
-		_pos_sp(2) = _pos(2) + (_vel(2) - _params.vel_ff(2) * _vel_sp(2)) / _params.pos_p(2);
-		//mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
+		_pos_sp(2) = _pos(2);
 	}
 }
 
