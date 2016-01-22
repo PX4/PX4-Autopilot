@@ -143,6 +143,13 @@ uint16_t		r_page_rc_input[] = {
 uint16_t		r_page_scratch[32];
 
 /**
+ * PAGE 8
+ *
+ * RAW PWM values
+ */
+uint16_t		r_page_direct_pwm[PX4IO_SERVO_COUNT];
+
+/**
  * PAGE 100
  *
  * Setup registers
@@ -294,7 +301,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 			/* XXX range-check value? */
 			if (*values != PWM_IGNORE_THIS_CHANNEL) {
-				r_page_servos[offset] = *values;
+				r_page_direct_pwm[offset] = *values;
 			}
 
 			offset++;
@@ -974,7 +981,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 		break;
 
 	case PX4IO_PAGE_DIRECT_PWM:
-		SELECT_PAGE(r_page_servos);
+		SELECT_PAGE(r_page_direct_pwm);
 		break;
 
 	case PX4IO_PAGE_FAILSAFE_PWM:

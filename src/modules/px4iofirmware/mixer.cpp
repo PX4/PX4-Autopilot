@@ -130,8 +130,16 @@ mixer_tick(void)
 	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) &&
 	    (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
 
-		/* don't actually mix anything - we already have raw PWM values */
-		source = MIX_NONE;
+		if (override_enabled) {
+			/* a channel based override has been
+			 * triggered, with FMU active */
+			source = MIX_OVERRIDE_FMU_OK;
+
+		} else {
+			/* don't actually mix anything - copy values from r_page_direct_pwm */
+			source = MIX_NONE;
+			memcpy(r_page_servos, r_page_direct_pwm, sizeof(uint16_t)*PX4IO_SERVO_COUNT);
+		}
 
 	} else {
 
