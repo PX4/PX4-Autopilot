@@ -228,7 +228,6 @@ void Ekf2::task_main()
 {
 	// subscribe to relevant topics
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_params_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -243,14 +242,14 @@ void Ekf2::task_main()
 	updateParams();
 
 	while (!_task_should_exit) {
-		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 8);
+		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
 			usleep(10000);
 			continue;
 
-		} else if (ret == 0 || fds[0].revents != POLLIN) {
+		} else if (ret == 0) {
 			// Poll timeout or no new data, do nothing
 			continue;
 		}
@@ -262,6 +261,9 @@ void Ekf2::task_main()
 			updateParams();
 
 			// fetch sensor data in next loop
+			continue;
+		} else if (!(fds[0].revents & POLLIN)) {
+			// no new data
 			continue;
 		}
 
