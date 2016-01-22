@@ -235,9 +235,9 @@ param_find_changed(param_t param)
 }
 
 static void
-param_notify_changes(void)
+param_notify_changes(bool is_saved)
 {
-	struct parameter_update_s pup = { .timestamp = hrt_absolute_time() };
+	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .saved = is_saved};
 
 	/*
 	 * If we don't have a handle to our topic, create one now; otherwise
@@ -497,7 +497,7 @@ param_get(param_t param, void *val)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool autosave)
 {
 	int result = -1;
 	bool params_changed = false;
@@ -575,7 +575,7 @@ out:
 	 * a thing has been set.
 	 */
 	if (params_changed && notify_changes) {
-		param_notify_changes();
+		param_notify_changes(autosave);
 	}
 
 	return result;
@@ -584,13 +584,19 @@ out:
 int
 param_set(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false, true);
+	return param_set_internal(param, val, false, true, false);
+}
+
+int
+param_set_no_autosave(param_t param, const void *val)
+{
+	return param_set_internal(param, val, false, true, true);
 }
 
 int
 param_set_no_notification(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false, false);
+	return param_set_internal(param, val, false, false, false);
 }
 
 bool
@@ -643,7 +649,7 @@ param_reset(param_t param)
 	param_unlock();
 
 	if (s != NULL) {
-		param_notify_changes();
+		param_notify_changes(false);
 	}
 
 	return (!param_found);
@@ -663,7 +669,7 @@ param_reset_all(void)
 
 	param_unlock();
 
-	param_notify_changes();
+	param_notify_changes(false);
 }
 
 void
@@ -695,7 +701,7 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 
 	param_unlock();
 
-	param_notify_changes();
+	param_notify_changes(false);
 }
 
 static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
@@ -851,6 +857,9 @@ param_export(int fd, bool only_unsaved)
 			debug("unrecognized parameter type");
 			goto out;
 		}
+
+		/* allow this process to be interrupted by another process / thread */
+		usleep(5);
 	}
 
 	result = 0;
@@ -955,7 +964,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_internal(param, v, state->mark_saved, true)) {
+	if (param_set_internal(param, v, state->mark_saved, true, false)) {
 		debug("error setting value for '%s'", node->name);
 		goto out;
 	}
