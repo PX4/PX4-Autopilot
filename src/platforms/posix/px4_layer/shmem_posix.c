@@ -1,7 +1,6 @@
-
 /****************************************************************************
  *
- * Copyright (c) 2015 Ramakrishna Kintada. All rights reserved.
+ * Copyright (c) 2015 Vijay Venkatraman. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,7 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 
 #include <px4_defines.h>
 #include <px4_posix.h>
@@ -237,7 +235,6 @@ static void update_index_from_shmem(void)
 
 	release_shmem_lock();
 }
-
 
 static void update_value_from_shmem(param_t param, union param_value_u *value)
 {

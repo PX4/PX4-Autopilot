@@ -72,11 +72,7 @@
 
 #include "shmem.h"
 
-#if 0
-# define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
-#else
-# define debug(fmt, args...)		do { } while(0)
-#endif
+#define debug(fmt, args...)		do { } while(0)
 
 #define PARAM_OPEN	open
 #define PARAM_CLOSE	close
@@ -89,7 +85,7 @@ extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
 #else
-// FIXME - start and end are reversed
+// TODO: start and end are reversed
 static struct param_info_s *param_info_base = (struct param_info_s *) &px4_parameters;
 #endif
 
@@ -240,11 +236,6 @@ param_find_changed(param_t param)
 	param_assert_locked();
 
 	if (param_values != NULL) {
-#if 0	/* utarray_find requires bsearch, not available */
-		struct param_wbuf_s key;
-		key.param = param;
-		s = utarray_find(param_values, &key, param_compare_values);
-#else
 		while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
 			if (s->param == param) {
 				break;
