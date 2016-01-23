@@ -133,7 +133,7 @@ static void usage()
 static int frsky_telemetry_thread_main(int argc, char *argv[])
 {
 	/* Default values for arguments */
-	char *device_name = "/dev/ttyS1"; /* USART2 */
+	char *device_name = "/dev/ttyS6"; /* USART8 */
 
 	/* Work around some stupidity in task_create's argv handling */
 	argc -= 2;
