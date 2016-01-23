@@ -44,6 +44,8 @@
 //#include <debug.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
+#include <px4_config.h>
+#include <px4_spi.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -791,6 +793,36 @@ param_load_default(void)
 	return 0;
 }
 
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+//struct spi_dev_s *dev = nullptr;
+irqstate_t state;
+#endif
+
+static void
+param_bus_lock(bool lock)
+{
+
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+	// FMUv4 has baro and FRAM on the same bus,
+	// as this offers on average a 100% silent
+	// bus for the baro operation
+
+	// XXX this would be the preferred locking method
+	// if (dev == nullptr) {
+	// 	dev = up_spiinitialize(PX4_SPI_BUS_BARO);
+	// }
+
+	// SPI_LOCK(dev, lock);
+
+	// we lock like this for Pixracer for now
+	if (lock) {
+		state = irqsave();
+	} else {
+		irqrestore(state);
+	}
+#endif
+}
+
 int
 param_export(int fd, bool only_unsaved)
 {
@@ -800,7 +832,9 @@ param_export(int fd, bool only_unsaved)
 
 	param_lock();
 
+	param_bus_lock(true);
 	bson_encoder_init_file(&encoder, fd);
+	param_bus_lock(false);
 
 	/* no modified parameters -> we are done */
 	if (param_values == NULL) {
@@ -825,6 +859,9 @@ param_export(int fd, bool only_unsaved)
 
 		/* append the appropriate BSON type object */
 
+		/* lock as short as possible */
+		param_bus_lock(true);
+
 		switch (param_type(s->param)) {
 
 		case PARAM_TYPE_INT32:
@@ -832,6 +869,7 @@ param_export(int fd, bool only_unsaved)
 
 			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
+				param_bus_lock(false);
 				goto out;
 			}
 
@@ -842,6 +880,7 @@ param_export(int fd, bool only_unsaved)
 
 			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
+				param_bus_lock(false);
 				goto out;
 			}
 
@@ -854,6 +893,7 @@ param_export(int fd, bool only_unsaved)
 						       param_size(s->param),
 						       param_get_value_ptr(s->param))) {
 				debug("BSON append failed for '%s'", param_name(s->param));
+				param_bus_lock(false);
 				goto out;
 			}
 
@@ -861,8 +901,11 @@ param_export(int fd, bool only_unsaved)
 
 		default:
 			debug("unrecognized parameter type");
+			param_bus_lock(false);
 			goto out;
 		}
+
+		param_bus_lock(false);
 
 		/* allow this process to be interrupted by another process / thread */
 		usleep(5);
