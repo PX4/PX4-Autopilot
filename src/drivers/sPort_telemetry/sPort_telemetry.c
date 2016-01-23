@@ -252,35 +252,73 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 
 			if (status < 1) { continue; }
 
+			hrt_abstime now = hrt_absolute_time();
+
 			newBytes = read(uart, &sbuf[1], 1);
 
 			// allow a minimum of 500usec before reply
 			usleep(500);
 
+            static hrt_abstime lastBATV = 0;
+            static hrt_abstime lastCUR = 0;
+            static hrt_abstime lastALT = 0;
+            static hrt_abstime lastSPD = 0;
+            static hrt_abstime lastFUEL = 0;
+
 			switch (sbuf[1]) {
+
 			case SMARTPORT_POLL_1:
-				/* send battery voltage */
-				sPort_send_BATV(uart);
+
+				/* report BATV at 1Hz */
+				if (now - lastBATV > 1000 * 1000) {
+					lastBATV = now;
+					/* send battery voltage */
+					sPort_send_BATV(uart);
+				}
+
 				break;
+
 
 			case SMARTPORT_POLL_2:
-				/* send battery current */
-				sPort_send_CUR(uart);
+                /* report battery current at 5Hz */
+				if (now - lastCUR > 200 * 1000) {
+					lastCUR = now;
+					/* send battery current */
+					sPort_send_CUR(uart);
+				}
+
 				break;
+
 
 			case SMARTPORT_POLL_3:
-				/* send altitude */
-				sPort_send_ALT(uart);
+                /* report altitude at 5Hz */
+				if (now - lastALT > 200 * 1000) {
+					lastALT = now;
+					/* send altitude */
+					sPort_send_ALT(uart);
+				}
+
 				break;
 
+
 			case SMARTPORT_POLL_4:
-				/* send speed */
-				sPort_send_SPD(uart);
+                /* report speed at 5Hz */
+				if (now - lastSPD > 200 * 1000) {
+					lastSPD = now;
+					/* send speed */
+					sPort_send_SPD(uart);
+				}
+
 				break;
 
 			case SMARTPORT_POLL_5:
-				/* send fuel */
-				sPort_send_FUEL(uart);
+                /* report fuel at 1Hz */
+				if (now - lastFUEL > 1000 * 1000) {
+					lastFUEL = now;
+					/* send fuel */
+					sPort_send_FUEL(uart);
+				}
+
 				break;
 
 			}
