@@ -48,6 +48,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "get_commands.h"
+#include "apps.h"
 
 using namespace std;
 
