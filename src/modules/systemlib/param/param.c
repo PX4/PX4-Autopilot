@@ -817,9 +817,11 @@ param_bus_lock(bool lock)
 	// we lock like this for Pixracer for now
 	if (lock) {
 		state = irqsave();
+
 	} else {
 		irqrestore(state);
 	}
+
 #endif
 }
 
@@ -1043,11 +1045,13 @@ param_import_internal(int fd, bool mark_saved)
 	struct param_import_state state;
 
 	param_bus_lock(true);
+
 	if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state)) {
 		debug("decoder init failed");
 		param_bus_lock(false);
 		goto out;
 	}
+
 	param_bus_lock(false);
 
 	state.mark_saved = mark_saved;
