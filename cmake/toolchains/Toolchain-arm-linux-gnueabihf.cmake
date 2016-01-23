@@ -17,6 +17,18 @@
 
 include(CMakeForceCompiler)
 
+if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
+        message(FATAL_ERROR "HEXAGON_SDK_ROOT not set")
+else()
+        set(HEXAGON_TOOLS_ROOT $ENV{HEXAGON_SDK_ROOT})
+endif()
+
+if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
+        message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
+else()
+        set(HEXAGON_TOOLS_ROOT $ENV{HEXAGON_ARM_SYSROOT})
+endif()
+
 # this one is important
 set(CMAKE_SYSTEM_NAME Generic)
 
@@ -54,8 +66,11 @@ foreach(tool echo patch grep rm mkdir nm genromfs cp touch make unzip)
 	endif()
 endforeach()
 
+set(C_FLAGS "--sysroot=${HEXAGON_ARM_SYSROOT}")
 set(LINKER_FLAGS "-Wl,-gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS ${LINKER_FLAGS})
+set(CMAKE_C_FLAGS ${C_FLAGS})
+set(CMAKE_CXX_LINKER_FLAGS ${C_FLAGS})
 
 # where is the target environment 
 set(CMAKE_FIND_ROOT_PATH  get_file_component(${C_COMPILER} PATH))
