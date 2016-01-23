@@ -62,6 +62,10 @@ extern const char *get_commands(void);
 void qurt_external_hook(void) __attribute__((weak));
 __END_DECLS
 
+void qurt_external_hook(void)
+{
+}
+
 static void run_cmd(map<string, px4_main_t> &apps, const vector<string> &appargs)
 {
 	// command is appargs[0]
