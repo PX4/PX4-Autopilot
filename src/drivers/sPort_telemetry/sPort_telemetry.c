@@ -259,11 +259,11 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 			// allow a minimum of 500usec before reply
 			usleep(500);
 
-            static hrt_abstime lastBATV = 0;
-            static hrt_abstime lastCUR = 0;
-            static hrt_abstime lastALT = 0;
-            static hrt_abstime lastSPD = 0;
-            static hrt_abstime lastFUEL = 0;
+			static hrt_abstime lastBATV = 0;
+			static hrt_abstime lastCUR = 0;
+			static hrt_abstime lastALT = 0;
+			static hrt_abstime lastSPD = 0;
+			static hrt_abstime lastFUEL = 0;
 
 			switch (sbuf[1]) {
 
@@ -280,7 +280,8 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 
 
 			case SMARTPORT_POLL_2:
-                /* report battery current at 5Hz */
+
+				/* report battery current at 5Hz */
 				if (now - lastCUR > 200 * 1000) {
 					lastCUR = now;
 					/* send battery current */
@@ -291,7 +292,8 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 
 
 			case SMARTPORT_POLL_3:
-                /* report altitude at 5Hz */
+
+				/* report altitude at 5Hz */
 				if (now - lastALT > 200 * 1000) {
 					lastALT = now;
 					/* send altitude */
@@ -302,7 +304,8 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 
 
 			case SMARTPORT_POLL_4:
-                /* report speed at 5Hz */
+
+				/* report speed at 5Hz */
 				if (now - lastSPD > 200 * 1000) {
 					lastSPD = now;
 					/* send speed */
@@ -312,7 +315,8 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 				break;
 
 			case SMARTPORT_POLL_5:
-                /* report fuel at 1Hz */
+
+				/* report fuel at 1Hz */
 				if (now - lastFUEL > 1000 * 1000) {
 					lastFUEL = now;
 					/* send fuel */
