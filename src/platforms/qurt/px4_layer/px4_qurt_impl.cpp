@@ -176,3 +176,15 @@ int fputc(int c, FILE *stream)
 {
 	return c;
 }
+
+int fprintf(FILE *stream, const char *format, ...)
+{
+	return 0;
+}
+
+int fputc(int c, FILE *stream)
+{
+	return c;
+}
+
+FILE _Stderr;
