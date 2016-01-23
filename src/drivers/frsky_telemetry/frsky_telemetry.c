@@ -59,13 +59,13 @@
 #include <drivers/drv_hrt.h>
 
 #include "sPort_data.h"
-#include "../frsky_telemetry/frsky_data.h"
+#include "frsky_data.h"
 
 
 /* thread state */
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
-static int sPort_task;
+static int frsky_task;
 
 /* functions */
 static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original);
@@ -377,7 +377,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		sPort_task = px4_task_spawn_cmd("sPort_telemetry",
+		frsky_task = px4_task_spawn_cmd("frsky_telemetry",
 						SCHED_DEFAULT,
 						200,
 						2000,
