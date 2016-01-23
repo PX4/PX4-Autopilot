@@ -77,6 +77,7 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
+	lib/ecl
 	lib/geo_lookup
 	lib/conversion
 	lib/terrain_estimation
