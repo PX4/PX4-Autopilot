@@ -193,56 +193,13 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	/* Main thread loop */
 	char sbuf[20];
 
-	/* look for polling frames indicating SmartPort telemetry
+	/* look for polling bytes indicating SmartPort telemetry
 	 * if not found, send D type telemetry frames instead
 	 */
 	int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
 
-	if (status < 1) {
-		/* timed out: reconfigure UART and send D type telemetry */
-		warnx("SmartPort receiver not detected, sending FrSky D type telemetry");
-
-        status = set_uart_speed(uart, &uart_config, B9600);
-		if (status < 0) {
-			warnx("error setting speed for %s, quitting", device_name);
-            /* Reset the UART flags to original state */
-            tcsetattr(uart, TCSANOW, &uart_config_original);
-            close(uart);
-        
-            thread_running = false;
-            return 0;
-		}
-
-		int iteration = 0;
-
-		/* Subscribe to topics */
-		frsky_init();
-
-		while (!thread_should_exit) {
-
-			/* Sleep 200 ms */
-			usleep(200000);
-
-			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
-			frsky_send_frame1(uart);
-
-			/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
-			if (iteration % 5 == 0) {
-				frsky_send_frame2(uart);
-			}
-
-			/* Send frame 3 (every 5000ms): date, time */
-			if (iteration % 25 == 0) {
-				frsky_send_frame3(uart);
-
-				iteration = 0;
-			}
-
-			iteration++;
-		}
-
-	} else {
-
+	if (status > 0) {
+		/* traffic on the port, assume it's a SmartPort master */
 		/* Subscribe to topics */
 		sPort_init();
 
@@ -340,12 +297,57 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 				}
 
 				break;
+			}
+		}
 
+	} else {
+
+		/* timed out: reconfigure UART and send D type telemetry */
+		warnx("SmartPort receiver not detected, sending FrSky D type telemetry");
+
+		status = set_uart_speed(uart, &uart_config, B9600);
+
+		if (status < 0) {
+			warnx("error setting speed for %s, quitting", device_name);
+			/* Reset the UART flags to original state */
+			tcsetattr(uart, TCSANOW, &uart_config_original);
+			close(uart);
+
+			thread_running = false;
+			return 0;
+		}
+
+		int iteration = 0;
+
+		/* Subscribe to topics */
+		frsky_init();
+
+		/* send D8 mode telemetry */
+		while (!thread_should_exit) {
+
+			/* Sleep 200 ms */
+			usleep(200000);
+
+			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
+			frsky_send_frame1(uart);
+
+			/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
+			if (iteration % 5 == 0) {
+				frsky_send_frame2(uart);
 			}
 
-			/* TODO: flush the input buffer if in full duplex mode */
-			read(uart, &sbuf[0], sizeof(sbuf));
+			/* Send frame 3 (every 5000ms): date, time */
+			if (iteration % 25 == 0) {
+				frsky_send_frame3(uart);
+
+				iteration = 0;
+			}
+
+			iteration++;
 		}
+
+		/* TODO: flush the input buffer if in full duplex mode */
+		read(uart, &sbuf[0], sizeof(sbuf));
 	}
 
 	/* Reset the UART flags to original state */
