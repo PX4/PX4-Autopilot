@@ -1042,15 +1042,21 @@ param_import_internal(int fd, bool mark_saved)
 	int result = -1;
 	struct param_import_state state;
 
+	param_bus_lock(true);
 	if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state)) {
 		debug("decoder init failed");
+		param_bus_lock(false);
 		goto out;
 	}
+	param_bus_lock(false);
 
 	state.mark_saved = mark_saved;
 
 	do {
+		param_bus_lock(true);
 		result = bson_decoder_next(&decoder);
+		usleep(1);
+		param_bus_lock(false);
 
 	} while (result > 0);
 
