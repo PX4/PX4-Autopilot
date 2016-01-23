@@ -1817,8 +1817,12 @@ MavlinkReceiver::receive_thread(void *arg)
 			if ((srcaddr_last->sin_addr.s_addr == htonl(localhost) && srcaddr.sin_addr.s_addr != htonl(localhost))
 					|| (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_ONBOARD && !_mavlink->get_client_source_initialized())) {
 				// if we were sending to localhost before but have a new host then accept him
+// This is causing issues on Linux, so use default port for now
+// this will kill tablet testing on Linux and VMs
+#ifndef __PX4_LINUX
 				srcaddr_last->sin_addr.s_addr = srcaddr.sin_addr.s_addr;
 				srcaddr_last->sin_port = srcaddr.sin_port;
+#endif
 				_mavlink->set_client_source_initialized();
 			}
 #endif
