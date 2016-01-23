@@ -41,7 +41,7 @@ px4_add_module(
 		${MODULE_CFLAGS}
 		-Wno-attributes
 		-Wno-packed
-		-DMAVLINK_COMM_NUM_BUFFERS=3
+		-DMAVLINK_COMM_NUM_BUFFERS=4
 		-Wno-packed
 		-Wno-tautological-constant-out-of-range-compare
 		-Os
