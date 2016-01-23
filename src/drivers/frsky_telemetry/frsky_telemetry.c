@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file sPort_telemetry.c
+ * @file frsky_telemetry.c
  * @author Stefan Rado <px4@sradonia.net>
  * @author Mark Whitehorn <kd0aij@github.com>
  *
@@ -140,9 +140,9 @@ static int set_uart_speed(int uart, struct termios *uart_config, speed_t speed)
 static void usage()
 {
 	fprintf(stderr,
-		"usage: sPort_telemetry start [-d <devicename>]\n"
-		"       sPort_telemetry stop\n"
-		"       sPort_telemetry status\n");
+		"usage: frsky_telemetry start [-d <devicename>]\n"
+		"       frsky_telemetry stop\n"
+		"       frsky_telemetry status\n");
 	exit(1);
 }
 
@@ -373,7 +373,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 
 		/* this is not an error */
 		if (thread_running) {
-			errx(0, "sPort_telemetry already running");
+			errx(0, "frsky_telemetry already running");
 		}
 
 		thread_should_exit = false;
@@ -395,7 +395,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 
 		/* this is not an error */
 		if (!thread_running) {
-			errx(0, "sPort_telemetry already stopped");
+			errx(0, "frsky_telemetry already stopped");
 		}
 
 		thread_should_exit = true;
