@@ -843,7 +843,7 @@ fi
 
 if ver hwcmp PX4FMU_V4
 then
-	sPort_telemetry start -d /dev/ttyS6
+	frsky_telemetry start -d /dev/ttyS6
 fi
 
 if ver hwcmp PX4FMU_V2
