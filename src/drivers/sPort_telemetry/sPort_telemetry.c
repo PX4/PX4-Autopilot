@@ -58,6 +58,7 @@
 #include <drivers/drv_hrt.h>
 
 #include "sPort_data.h"
+#include "../frsky_telemetry/frsky_data.h"
 
 
 /* thread state */
@@ -66,7 +67,7 @@ static volatile bool thread_running = false;
 static int sPort_task;
 
 /* functions */
-static int sPort_open_uart(const char *uart_name, struct termios *uart_config_original);
+static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original);
 static void usage(void);
 static int sPort_telemetry_thread_main(int argc, char *argv[]);
 __EXPORT int sPort_telemetry_main(int argc, char *argv[]);
@@ -75,11 +76,10 @@ __EXPORT int sPort_telemetry_main(int argc, char *argv[]);
 /**
  * Opens the UART device and sets all required serial parameters.
  */
-static int sPort_open_uart(const char *uart_name, struct termios *uart_config_original)
+static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original)
 {
 	/* Open UART */
 	const int uart = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
-//	const int uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	if (uart < 0) {
 		err(1, "Error opening port: %s", uart_name);
@@ -95,22 +95,21 @@ static int sPort_open_uart(const char *uart_name, struct termios *uart_config_or
 	}
 
 	/* Fill the struct for the new configuration */
-	struct termios uart_config;
-	tcgetattr(uart, &uart_config);
+	tcgetattr(uart, uart_config);
 
 	/* Disable output post-processing */
-	uart_config.c_oflag &= ~OPOST;
+	uart_config->c_oflag &= ~OPOST;
 
 	/* Set baud rate */
 	static const speed_t speed = B57600;
 
-	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+	if (cfsetispeed(uart_config, speed) < 0 || cfsetospeed(uart_config, speed) < 0) {
 		warnx("ERR: %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
 
-	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+	if ((termios_state = tcsetattr(uart, TCSANOW, uart_config)) < 0) {
 		warnx("ERR: %s (tcsetattr)\n", uart_name);
 		close(uart);
 		return -1;
@@ -160,7 +159,8 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 	/* Open UART */
 	warnx("opening uart");
 	struct termios uart_config_original;
-	const int uart = sPort_open_uart(device_name, &uart_config_original);
+	struct termios uart_config;
+	const int uart = sPort_open_uart(device_name, &uart_config, &uart_config_original);
 
 	if (uart < 0) {
 		warnx("could not open %s", device_name);
@@ -172,70 +172,122 @@ static int sPort_telemetry_thread_main(int argc, char *argv[])
 	fds[0].fd = uart;
 	fds[0].events = POLLIN;
 
-	/* Subscribe to topics */
-	sPort_init();
-
 	thread_running = true;
 
 	/* Main thread loop */
 	char sbuf[20];
 
-	while (!thread_should_exit) {
+	/* look for polling frames indicating SmartPort telemetry
+	 * if not found, send D type telemetry frames instead
+	 */
+	int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
 
-		/* wait for poll frame starting with value 0x7E
-		* note that only the bus master is supposed to put a 0x7E on the bus.
-		* slaves use byte stuffing to send 0x7E and 0x7D.
-		* we expect a poll frame every 12msec
-		*/
-		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 50);
+	if (status < 1) {
+		/* timed out: reconfigure UART and send D type telemetry */
+		warnx("sending FrSky D type telemetry");
 
-		if (status < 1) { continue; }
-
-		// read 1 byte
-		int newBytes = read(uart, &sbuf[0], 1);
-
-		if (newBytes < 1 || sbuf[0] != 0x7E) { continue; }
-
-		/* wait for ID byte */
-		status = poll(fds, sizeof(fds) / sizeof(fds[0]), 50);
-
-		if (status < 1) { continue; }
-
-		newBytes = read(uart, &sbuf[1], 1);
-
-		// allow a minimum of 500usec before reply
-		usleep(500);
-
-		switch (sbuf[1]) {
-		case SMARTPORT_POLL_1:
-			/* send battery voltage */
-			sPort_send_BATV(uart);
-			break;
-
-		case SMARTPORT_POLL_2:
-			/* send battery current */
-			sPort_send_CUR(uart);
-			break;
-
-		case SMARTPORT_POLL_3:
-			/* send altitude */
-			sPort_send_ALT(uart);
-			break;
-
-		case SMARTPORT_POLL_4:
-			/* send speed */
-			sPort_send_SPD(uart);
-			break;
-
-		case SMARTPORT_POLL_5:
-			/* send fuel */
-			sPort_send_FUEL(uart);
-			break;
-
+		if (cfsetispeed(&uart_config, B9600) < 0 || cfsetospeed(&uart_config, B9600) < 0) {
+			warnx("ERR: %s:(cfsetispeed, cfsetospeed)\n", device_name);
+			close(uart);
+			return -1;
 		}
 
-		/* TODO: flush the input buffer if in full duplex mode */
-		read(uart, &sbuf[0], sizeof(sbuf));
+		if (tcsetattr(uart, TCSANOW, &uart_config) < 0) {
+			warnx("ERR: %s (tcsetattr)\n", device_name);
+			close(uart);
+			return -1;
+		}
+
+		int iteration = 0;
+
+		/* Subscribe to topics */
+		frsky_init();
+
+		while (!thread_should_exit) {
+
+			/* Sleep 200 ms */
+			usleep(200000);
+
+			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
+			frsky_send_frame1(uart);
+
+			/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
+			if (iteration % 5 == 0) {
+				frsky_send_frame2(uart);
+			}
+
+			/* Send frame 3 (every 5000ms): date, time */
+			if (iteration % 25 == 0) {
+				frsky_send_frame3(uart);
+
+				iteration = 0;
+			}
+
+			iteration++;
+		}
+
+	} else {
+		/* Subscribe to topics */
+		sPort_init();
+
+		/* send S.port telemetry */
+		while (!thread_should_exit) {
+
+			/* wait for poll frame starting with value 0x7E
+			* note that only the bus master is supposed to put a 0x7E on the bus.
+			* slaves use byte stuffing to send 0x7E and 0x7D.
+			* we expect a poll frame every 12msec
+			*/
+			int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 50);
+
+			if (status < 1) { continue; }
+
+			// read 1 byte
+			int newBytes = read(uart, &sbuf[0], 1);
+
+			if (newBytes < 1 || sbuf[0] != 0x7E) { continue; }
+
+			/* wait for ID byte */
+			status = poll(fds, sizeof(fds) / sizeof(fds[0]), 50);
+
+			if (status < 1) { continue; }
+
+			newBytes = read(uart, &sbuf[1], 1);
+
+			// allow a minimum of 500usec before reply
+			usleep(500);
+
+			switch (sbuf[1]) {
+			case SMARTPORT_POLL_1:
+				/* send battery voltage */
+				sPort_send_BATV(uart);
+				break;
+
+			case SMARTPORT_POLL_2:
+				/* send battery current */
+				sPort_send_CUR(uart);
+				break;
+
+			case SMARTPORT_POLL_3:
+				/* send altitude */
+				sPort_send_ALT(uart);
+				break;
+
+			case SMARTPORT_POLL_4:
+				/* send speed */
+				sPort_send_SPD(uart);
+				break;
+
+			case SMARTPORT_POLL_5:
+				/* send fuel */
+				sPort_send_FUEL(uart);
+				break;
+
+			}
+
+			/* TODO: flush the input buffer if in full duplex mode */
+			read(uart, &sbuf[0], sizeof(sbuf));
+		}
 	}
 
 	/* Reset the UART flags to original state */
