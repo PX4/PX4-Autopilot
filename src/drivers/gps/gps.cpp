@@ -363,36 +363,7 @@ GPS::task_main()
 				/* reset report */
 				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 
-				if (_mode == GPS_DRIVER_MODE_UBX) {
-					/* Publish initial report that we have access to a GPS,
-					 * but set all critical state fields to indicate we have
-					 * no valid position lock
-					 */
-
-					_report_gps_pos.timestamp_time = hrt_absolute_time();
-
-					/* reset the timestamps for data, because we have no data yet */
-					_report_gps_pos.timestamp_position = 0;
-					_report_gps_pos.timestamp_variance = 0;
-					_report_gps_pos.timestamp_velocity = 0;
-
-					/* set a massive variance */
-					_report_gps_pos.eph = 10000.0f;
-					_report_gps_pos.epv = 10000.0f;
-					_report_gps_pos.fix_type = 0;
-
-					if (!(_pub_blocked)) {
-						if (_report_gps_pos_pub != nullptr) {
-							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-						} else {
-							_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-						}
-					}
-
-					/* GPS is obviously detected successfully, reset statistics */
-					_Helper->reset_update_rates();
-				}
+				_Helper->reset_update_rates();
 
 				int helper_ret;
 
@@ -402,7 +373,12 @@ GPS::task_main()
 
 					if (!(_pub_blocked)) {
 						if (helper_ret & 1) {
-							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+							if (_report_gps_pos_pub != nullptr) {
+								orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
+							} else {
+								_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+							}
 						}
 
 						if (_p_report_sat_info && (helper_ret & 2)) {

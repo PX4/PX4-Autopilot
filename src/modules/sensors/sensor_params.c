@@ -1842,7 +1842,7 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
  *
  * @group Battery Calibration
  */
-PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.0124);	/* scaling for 3DR power brick */
+PARAM_DEFINE_FLOAT(BAT_C_SCALING, -1.0);
 
 
 /**
