@@ -13,8 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <cassert>
-#include <stdexcept>
 #if defined(SUPPORT_STDIOSTREAM)
 #include <iostream>
 #include <iomanip>
