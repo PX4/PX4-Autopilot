@@ -194,9 +194,10 @@ Mission::on_active()
 	}
 
 	/* see if we need to update the current yaw heading */
-	if (_param_yawmode.get() != MISSION_YAWMODE_NONE
+	if ((_param_yawmode.get() != MISSION_YAWMODE_NONE
 			&& _param_yawmode.get() < MISSION_YAWMODE_MAX
-			&& _mission_type != MISSION_TYPE_NONE) {
+			&& _mission_type != MISSION_TYPE_NONE)
+			|| _navigator->get_vstatus()->is_vtol) {
 		heading_sp_update();
 	}
 
@@ -566,7 +567,8 @@ Mission::heading_sp_update()
 		}
 
 		/* always keep the front of the rotary wing pointing to the next waypoint */
-		if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_WAYPOINT) {
+		if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_WAYPOINT
+			|| _navigator->get_vstatus()->is_vtol) {
 			_mission_item.yaw = get_bearing_to_next_waypoint(
 				point_from_latlon[0],
 				point_from_latlon[1],
