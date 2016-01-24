@@ -12,7 +12,6 @@ int main()
     Vector3f a(1, 0, 0);
     Vector3f b(0, 1, 0);
     Vector3f c = a.cross(b);
-    c.print();
     TEST (c == Vector3f(0,0,1));
     c = a % b;
     TEST (c == Vector3f(0,0,1));
