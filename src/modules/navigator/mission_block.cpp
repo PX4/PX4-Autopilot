@@ -66,6 +66,7 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
+	_action_start(0),
 	_actuators{},
 	_actuator_pub(nullptr),
 	_cmd_pub(nullptr)
@@ -114,16 +115,41 @@ MissionBlock::is_mission_item_reached()
 		case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
 			{
 			/* forward the command to other processes */
-			warnx("got instantaneous command, forwarding.\n");
 			struct vehicle_command_s cmd = {};
 			cmd.command = _mission_item.nav_cmd;
 			mission_item_to_vehicle_command(&_mission_item, &cmd);
 			if (_cmd_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+				if (_action_start == 0) {
+					_action_start = hrt_absolute_time();
+					orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+				}
 			} else {
+				_action_start = hrt_absolute_time();
 				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
 			}
-			return true;
+
+			if (vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+
+				/* we want to wait half a second so the system state can propagate */
+				// XXX this is acceptable to get started, but in general should be
+				// based on state switching, not on min holdoff times.
+				if (hrt_absolute_time() - _action_start > 500000 &&
+					!_navigator->get_vstatus()->in_transition_mode) {
+					/*
+					 * if half a second has passed and we're not in transition
+					 * return - we are now in the other flight mode.
+					 */
+					_action_start = 0;
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+
+				/* not an action one needs to wait for */
+				_action_start = 0;
+				return true;
+			}
 			}
 
 		default:
