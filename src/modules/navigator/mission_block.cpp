@@ -268,28 +268,19 @@ MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item,
 	cmd->confirmation = false;
 }
 
-void
+bool
 MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp)
 {
-	sp->valid = true;
-	sp->lat = item->lat;
-	sp->lon = item->lon;
-	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
-	sp->yaw = item->yaw;
-	sp->loiter_radius = (item->loiter_radius > NAV_EPSILON_POSITION) ? item->loiter_radius :
-				_navigator->get_loiter_radius();
-	sp->loiter_direction = item->loiter_direction;
-	sp->pitch_min = item->pitch_min;
-	sp->acceptance_radius = item->acceptance_radius;
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_DO_SET_SERVO:
-			/* Set current position for loitering set point*/
-			sp->lat = _navigator->get_global_position()->lat;
-			sp->lon = _navigator->get_global_position()->lon;
-			sp->alt = _navigator->get_global_position()->alt;
-			sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-			break;
+		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+		/* Set current position for loitering set point*/
+		sp->lat = _navigator->get_global_position()->lat;
+		sp->lon = _navigator->get_global_position()->lon;
+		sp->alt = _navigator->get_global_position()->alt;
+		break;
+
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;
@@ -318,10 +309,36 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 		break;
 
-	default:
+	case NAV_CMD_WAYPOINT:
+	case NAV_CMD_PATHPLANNING:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		break;
+
+	default:
+		/* we do not know this setpoint type, we need to abort */
+		return false;
 	}
+
+	/* if we get here this is a valid position setpoint, set the remaining fields */
+	sp->valid = true;
+
+	if (item->nav_cmd != NAV_CMD_DO_SET_SERVO) {
+		sp->lat = item->lat;
+		sp->lon = item->lon;
+
+		if (item->nav_cmd != NAV_CMD_LAND) {
+			sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
+		}
+	}
+
+	sp->yaw = item->yaw;
+	sp->loiter_radius = (item->loiter_radius > NAV_EPSILON_POSITION) ? item->loiter_radius :
+				_navigator->get_loiter_radius();
+	sp->loiter_direction = item->loiter_direction;
+	sp->pitch_min = item->pitch_min;
+	sp->acceptance_radius = item->acceptance_radius;
+
+	return true;
 }
 
 void

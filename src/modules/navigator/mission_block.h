@@ -83,8 +83,10 @@ protected:
 	 *
 	 * @param the mission item to convert
 	 * @param the position setpoint that needs to be set
+	 *
+	 * @return true on success, false on failure
 	 */
-	void mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
+	bool mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
 	/**
 	 * Set previous position setpoint to current setpoint
