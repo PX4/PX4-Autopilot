@@ -110,6 +110,15 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
+struct battery_type {
+	char *ManufacturerName;
+	char *DeviceName;
+	char *DeviceChemistry;
+};
+
+// Declaration of the solo battery data, as determined by reading out the data from multiple 3DR Solo batteries
+const struct battery_type solo_battery = {(char *)"BMTPOW", (char *)"MA03", (char *)"LIon"};
+
 class BATT_SMBUS : public device::I2C
 {
 public:
@@ -193,6 +202,11 @@ public:
 	 */
 	uint8_t     device_chemistry(uint8_t *dev_chem, uint8_t max_length);
 
+	/**
+	 * Checks whether the current SBS battery data corresponds to a 3DR Solo battery
+	 */
+	bool is_solo_battery();
+
 protected:
 	/**
 	 * Check if the device can be contacted
@@ -255,6 +269,12 @@ private:
 	 */
 	uint8_t			ManufacturerAccess(uint16_t cmd);
 
+	/**
+	 * Checks if the battery that has been detected is a 3DR Solo Battery. If it is, it sets
+	 * the private variable _is_solo_battery to be true
+	 */
+	void        check_if_solo_battery();
+
 	// internal variables
 	bool			_enabled;	///< true if we have successfully connected to battery
 	work_s			_work;		///< work queue for scheduling reads
@@ -264,7 +284,11 @@ private:
 	orb_id_t		_batt_orb_id;	///< uORB battery topic ID
 	uint64_t		_start_time;	///< system time we first attempt to communicate with battery
 	uint16_t		_batt_capacity;	///< battery's design capacity in mAh (0 means unknown)
-	uint8_t			_button_press_counts; ///< count of button presses detected
+	char           *_manufacturer_name;  ///< The name of the battery manufacturer
+	char           *_device_name;  ///< The name of the battery device
+	char           *_device_chemistry;  ///< The battery chemistry
+	bool            _is_solo_battery; ///< Boolean as to whether the battery detected is a 3DR Solo Battery or not
+	uint8_t			_button_press_counts; ///< count of button presses detected on 3DR Solo Battery
 };
 
 namespace
@@ -281,6 +305,7 @@ int manufacture_date();
 int device_name();
 int serial_number();
 int device_chemistry();
+int solo_battery_check();
 
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", BATT_SMBUS0_DEVICE_PATH, bus, batt_smbus_addr, 100000),
@@ -291,6 +316,10 @@ BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	_batt_orb_id(nullptr),
 	_start_time(0),
 	_batt_capacity(0),
+	_manufacturer_name(nullptr),
+	_device_name(nullptr),
+	_device_chemistry(nullptr),
+	_is_solo_battery(false),
 	_button_press_counts(0)
 {
 	// work_cancel in the dtor will explode if we don't do this...
@@ -307,6 +336,18 @@ BATT_SMBUS::~BATT_SMBUS()
 
 	if (_reports != nullptr) {
 		delete _reports;
+	}
+
+	if (_manufacturer_name != nullptr) {
+		delete _manufacturer_name;
+	}
+
+	if (_device_name != nullptr) {
+		delete _device_name;
+	}
+
+	if (_device_chemistry != nullptr) {
+		delete _device_chemistry;
 	}
 }
 
@@ -504,6 +545,13 @@ BATT_SMBUS::device_chemistry(uint8_t *dev_chem, uint8_t max_length)
 	return len;
 }
 
+bool
+BATT_SMBUS::is_solo_battery()
+{
+	check_if_solo_battery();
+	return _is_solo_battery;
+}
+
 int
 BATT_SMBUS::probe()
 {
@@ -547,6 +595,48 @@ BATT_SMBUS::cycle()
 		return;
 	}
 
+	bool perform_solo_battry_check = false; // Only check if it is a solo battery if changes have been made to the SBS data
+
+	// Try and get battery SBS info
+	if (_manufacturer_name == nullptr) {
+		char man_name[21];
+		uint8_t len = manufacturer_name((uint8_t *)man_name, sizeof(man_name));
+
+		if (len > 0) {
+			_manufacturer_name = new char[len];
+			strcpy(_manufacturer_name, man_name);
+			perform_solo_battry_check = true;
+		}
+	}
+
+	if (_device_name == nullptr) {
+		char dev_name[21];
+		uint8_t len = device_name((uint8_t *)dev_name, sizeof(dev_name));
+
+		if (len > 0) {
+			_device_name = new char[len];
+			strcpy(_device_name, dev_name);
+			perform_solo_battry_check = true;
+		}
+	}
+
+	if (_device_chemistry == nullptr) {
+		char dev_chem[21];
+		uint8_t len = device_chemistry((uint8_t *)dev_chem, sizeof(dev_chem));
+
+		if (len > 0) {
+			_device_chemistry = new char[len];
+			strcpy(_device_chemistry, dev_chem);
+			perform_solo_battry_check = true;
+		}
+	}
+
+	// If necessary, check if the battery is a 3DR Solo Battery
+	if (perform_solo_battry_check) {
+		warnx("Checking solo battery");
+		check_if_solo_battery();
+	}
+
 	// read data from sensor
 	struct battery_status_s new_report;
 
@@ -587,28 +677,33 @@ BATT_SMBUS::cycle()
 			}
 		}
 
-		/*
+		// if it is a solo battery, check for shutdown on button press
+		if (_is_solo_battery) {
 			// read the button press indicator
-		if (read_block(BATT_SMBUS_MANUFACTURER_DATA, buff, 6, false) == 6) {
+			if (read_block(BATT_SMBUS_MANUFACTURER_DATA, buff, 6, false) == 6) {
 				bool pressed = (buff[1] >> 3) & 0x01;
 
-				if(_button_press_counts >= ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
+				if (_button_press_counts >= ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
 					// battery will power off
 					new_report.is_powering_off = true;
+
 					// warn only once
-					if(_button_press_counts++ == ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
+					if (_button_press_counts++ == ((BATT_SMBUS_BUTTON_DEBOUNCE_MS * 1000) / BATT_SMBUS_MEASUREMENT_INTERVAL_US)) {
 						warnx("system is shutting down NOW...");
 					}
-				} else if(pressed) {
+
+				} else if (pressed) {
 					// battery will power off if the button is held
 					_button_press_counts++;
+
 				} else {
 					// button released early, reset counters
 					_button_press_counts = 0;
 					new_report.is_powering_off = false;
 				}
 			}
-		*/
+		}
+
 
 		// publish to orb
 		if (_batt_topic != -1) {
@@ -824,6 +919,16 @@ BATT_SMBUS::ManufacturerAccess(uint16_t cmd)
 	return ret;
 }
 
+void
+BATT_SMBUS::check_if_solo_battery()
+{
+	// Check if the SBS information corresponds to that of a 3DR Solo Battery. If, yes, set the solo_battery flag to true;
+	if (!strcmp(_manufacturer_name, solo_battery.ManufacturerName) && !strcmp(_device_name, solo_battery.DeviceName)
+	    && !strcmp(_device_chemistry, solo_battery.DeviceChemistry)) {
+		_is_solo_battery = true;
+	}
+}
+
 ///////////////////////// shell functions ///////////////////////
 
 void
@@ -913,6 +1018,19 @@ device_chemistry()
 	}
 
 	return -1;
+}
+
+int
+solo_battery_check()
+{
+	if (g_batt_smbus->is_solo_battery()) {
+		warnx("The battery corresponds to a 3DR Solo Battery");
+
+	} else {
+		warnx("The battery does not correspond to a 3DR Solo Battery");
+	}
+
+	return OK;
 }
 
 int
@@ -1023,6 +1141,7 @@ batt_smbus_main(int argc, char *argv[])
 		device_name();
 		serial_number();
 		device_chemistry();
+		solo_battery_check();
 		exit(0);
 	}
 
