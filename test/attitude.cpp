@@ -100,19 +100,19 @@ int main()
                 }
                 printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
                 Euler<double> euler(deg2rad*double(roll),
-                        deg2rad*double(pitch),
-                        deg2rad*double(yaw));
+                                    deg2rad*double(pitch),
+                                    deg2rad*double(yaw));
                 Dcm<double> dcm_from_euler(euler);
                 Euler<double> euler_out(dcm_from_euler);
                 TEST(isEqual(rad2deg*euler, rad2deg*euler_out));
 
                 Eulerf eulerf(float(deg2rad)*float(roll),
-                        float(deg2rad)*float(pitch),
-                        float(deg2rad)*float(yaw));
+                              float(deg2rad)*float(pitch),
+                              float(deg2rad)*float(yaw));
                 Dcm<float> dcm_from_eulerf(eulerf);
                 Euler<float> euler_outf(dcm_from_eulerf);
                 TEST(isEqual(float(rad2deg)*eulerf,
-                            float(rad2deg)*euler_outf));
+                             float(rad2deg)*euler_outf));
             }
         }
     }
