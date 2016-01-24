@@ -86,20 +86,36 @@ int main()
     Quatf q2(dcm_check);
     TEST(isEqual(q2, q_check));
 
+    // constants
+    double deg2rad = M_PI/180.0;
+    double rad2deg = 180.0/M_PI;
 
-    // euler gimbal lock check
-    // note if theta = pi/2, then roll is set to zero
-    float pi_2 = float(M_PI_2);
-    Eulerf euler_gimbal_lock(0.0f, pi_2, 0.2f);
-    Dcmf dcm_lock(euler_gimbal_lock);
-    Eulerf euler_gimbal_lock_out(dcm_lock);
-    TEST(isEqual(euler_gimbal_lock, euler_gimbal_lock_out));
+    // euler dcm round trip check
+    for (int roll=-90; roll<90; roll+=1) {
+        for (int pitch=-90; pitch<90; pitch+=1) {
+            for (int yaw=0; yaw<360; yaw+=1) {
+                // note if theta = pi/2, then roll is set to zero
+                if (pitch == 90 || pitch == -90) {
+                    roll = 0;
+                }
+                printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
+                Euler<double> euler(deg2rad*double(roll),
+                                    deg2rad*double(pitch),
+                                    deg2rad*double(yaw));
+                Dcm<double> dcm_from_euler(euler);
+                Euler<double> euler_out(dcm_from_euler);
+                TEST(isEqual(rad2deg*euler, rad2deg*euler_out));
 
-    // note if theta = pi/2, then roll is set to zero
-    Eulerf euler_gimbal_lock2(0.0f, -pi_2, 0.2f);
-    Dcmf dcm_lock2(euler_gimbal_lock2);
-    Eulerf euler_gimbal_lock_out2(dcm_lock2);
-    TEST(isEqual(euler_gimbal_lock2, euler_gimbal_lock_out2));
+                Eulerf eulerf(float(deg2rad)*float(roll),
+                              float(deg2rad)*float(pitch),
+                              float(deg2rad)*float(yaw));
+                Dcm<float> dcm_from_eulerf(eulerf);
+                Euler<float> euler_outf(dcm_from_eulerf);
+                TEST(isEqual(float(rad2deg)*eulerf,
+                             float(rad2deg)*euler_outf));
+            }
+        }
+    }
 
     // quaterion copy ctors
     float data_v4[] = {1, 2, 3, 4};

@@ -131,7 +131,7 @@ public:
     bool operator==(const Matrix<Type, M, N> &other) const
     {
         const Matrix<Type, M, N> &self = *this;
-        static const Type eps = Type(1e-6);
+        static const Type eps = Type(1e-4);
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
