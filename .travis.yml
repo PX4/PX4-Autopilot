@@ -6,7 +6,7 @@ script:
   - cmake -DCMAKE_BUILD_TYPE=Profile .
   - make
   - make check_format
-  - make test
+  - ctest -V
 after_success:
   - cpp-coveralls -i matrix
 env:
