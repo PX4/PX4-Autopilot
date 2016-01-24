@@ -616,7 +616,11 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 {
 	float radius = mission_item_radius;
 
-	if (hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
+	// XXX only use navigation capabilities for now
+	// when in fixed wing mode
+	// this might need locking against a commanded transition
+	// so that a stale _vstatus doesn't trigger an accepted mission item.
+	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode && hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
 		if (_nav_caps.turn_distance > radius) {
 			radius = _nav_caps.turn_distance;
 		}
