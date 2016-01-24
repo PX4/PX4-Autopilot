@@ -193,9 +193,8 @@ Mission::on_active()
 		}
 	}
 
-	/* see if we need to update the current yaw heading for rotary wing types */
-	if (_navigator->get_vstatus()->is_rotary_wing
-			&& _param_yawmode.get() != MISSION_YAWMODE_NONE
+	/* see if we need to update the current yaw heading */
+	if (_param_yawmode.get() != MISSION_YAWMODE_NONE
 			&& _param_yawmode.get() < MISSION_YAWMODE_MAX
 			&& _mission_type != MISSION_TYPE_NONE) {
 		heading_sp_update();
