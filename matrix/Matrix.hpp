@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <cassert>
+#include <stdexcept>
 #if defined(SUPPORT_STDIOSTREAM)
 #include <iostream>
 #include <iomanip>
@@ -264,20 +266,37 @@ public:
      * Misc. Functions
      */
 
-    void print() const
+    void write_string(char * buf, size_t n) const
     {
         const Matrix<Type, M, N> &self = *this;
-        printf("\n");
-
+        char data_buf[500] = {0};
         for (size_t i = 0; i < M; i++) {
-            printf("[");
-
+            char data_line[100] = {0};
+            char data_line_formatted[100] = {0};
             for (size_t j = 0; j < N; j++) {
-                printf("%10g\t", double(self(i, j)));
+                char val_buf[15];
+                if (j == N-1) {
+                    snprintf(val_buf, 15, "\t%10g", double(self(i, j)));
+                } else {
+                    snprintf(val_buf, 15, "\t%10g,", double(self(i, j)));
+                }
+                strncat(data_line, val_buf, 300);
             }
-
-            printf("]\n");
+            if (i == M-1) {
+                snprintf(data_line_formatted, n, "[%s]", data_line);
+            } else {
+                snprintf(data_line_formatted, n, "[%s],\n", data_line);
+            }
+            strncat(data_buf, data_line_formatted, n);
         }
+        snprintf(buf, n, "[%s]", data_buf);
+    }
+
+    void print() const
+    {
+        char buf[200];
+        write_string(buf, 200);
+        printf("%s\n", buf);
     }
 
     Matrix<Type, N, M> transpose() const
@@ -293,7 +312,6 @@ public:
 
         return res;
     }
-
 
     // tranpose alias
     inline Matrix<Type, N, M> T() const
@@ -421,6 +439,19 @@ template<typename Type, size_t  M, size_t N>
 Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
 {
     return other * scalar;
+}
+
+template<typename Type, size_t  M, size_t N>
+bool isEqual(const Matrix<Type, M, N> &x,
+        const Matrix<Type, M, N> & y) {
+    if (!(x == y)) {
+        char buf_x[100];
+        char buf_y[100];
+        x.write_string(buf_x, 100);
+        y.write_string(buf_y, 100);
+        printf("not equal\nx:\n%s\ny:\n%s\n", buf_x, buf_y);
+    }
+    return x == y;
 }
 
 #if defined(SUPPORT_STDIOSTREAM)

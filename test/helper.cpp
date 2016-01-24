@@ -1,16 +1,16 @@
-#include <assert.h>
 #include <stdio.h>
 
 #include <matrix/helper_functions.hpp>
+#include "test_macros.hpp"
 
 using namespace matrix;
 
 
 int main()
 {
-    assert(fabs(wrap_pi(4.0) - (4.0 - 2*M_PI)) < 1e-5);
-    assert(fabs(wrap_pi(-4.0) - (-4.0 + 2*M_PI)) < 1e-5);
-    assert(fabs(wrap_pi(3.0) - (3.0)) < 1e-3);
+    TEST(fabs(wrap_pi(4.0) - (4.0 - 2*M_PI)) < 1e-5);
+    TEST(fabs(wrap_pi(-4.0) - (-4.0 + 2*M_PI)) < 1e-5);
+    TEST(fabs(wrap_pi(3.0) - (3.0)) < 1e-3);
     wrap_pi(NAN);
     return 0;
 }

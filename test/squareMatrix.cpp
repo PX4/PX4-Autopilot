@@ -1,5 +1,5 @@
-#include <assert.h>
 #include <stdio.h>
+#include "test_macros.hpp"
 
 #include <matrix/math.hpp>
 
@@ -15,9 +15,8 @@ int main()
                     };
     SquareMatrix<float, 3> A(data);
     Vector3<float> diag_check(1, 5, 10);
-    A.diag().T().print();
 
-    assert(A.diag() == diag_check);
+    TEST(isEqual(A.diag(), diag_check));
 
     float data_check[9] = {
         1.01158503f,  0.02190432f,  0.03238144f,
@@ -25,11 +24,10 @@ int main()
         0.07576783f,  0.08708946f,  1.10894048f
     };
 
-    printf("expm(A*t)\n");
     float dt = 0.01f;
     SquareMatrix<float, 3> eA = expm(SquareMatrix<float, 3>(A*dt), 5);
     SquareMatrix<float, 3> eA_check(data_check);
-    assert((eA - eA_check).abs().max() < 1e-3);
+    TEST((eA - eA_check).abs().max() < 1e-3);
     return 0;
 }
 

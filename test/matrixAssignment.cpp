@@ -1,6 +1,5 @@
-#include <assert.h>
-
 #include <matrix/math.hpp>
+#include "test_macros.hpp"
 
 using namespace matrix;
 
@@ -20,36 +19,33 @@ int main()
     m(2, 1) = 8;
     m(2, 2) = 9;
 
-    m.print();
-
     float data[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     Matrix3f m2(data);
-    m2.print();
 
     for(int i=0; i<9; i++) {
-        assert(fabs(data[i] - m2.data()[i]) < 1e-6f);
+        TEST(fabs(data[i] - m2.data()[i]) < 1e-6f);
     }
 
     float data_times_2[9] = {2, 4, 6, 8, 10, 12, 14, 16, 18};
     Matrix3f m3(data_times_2);
 
-    assert(m == m2);
-    assert(!(m == m3));
+    TEST(isEqual(m, m2));
+    TEST(!(m == m3));
 
     m2 *= 2;
-    assert(m2 == m3);
+    TEST(m2 == m3);
 
     m2 /= 2;
     m2 -= 1;
     float data_minus_1[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-    assert(Matrix3f(data_minus_1) == m2);
+    TEST(Matrix3f(data_minus_1) == m2);
 
     m2 += 1;
-    assert(Matrix3f(data) == m2);
+    TEST(Matrix3f(data) == m2);
 
     m3 -= m2;
 
-    assert(m3 == m2);
+    TEST(m3 == m2);
 
     float data_row_02_swap[9] = {
         7, 8, 9,
@@ -65,18 +61,18 @@ int main()
 
     Matrix3f m4(data);
 
-    assert(-m4 == m4*(-1));
+    TEST(-m4 == m4*(-1));
 
     m4.swapCols(0, 2);
-    assert(m4 == Matrix3f(data_col_02_swap));
+    TEST(m4 == Matrix3f(data_col_02_swap));
     m4.swapCols(0, 2);
     m4.swapRows(0, 2);
-    assert(m4 == Matrix3f(data_row_02_swap));
-    assert(fabs(m4.min() - 1) < 1e-5);
+    TEST(m4 == Matrix3f(data_row_02_swap));
+    TEST(fabs(m4.min() - 1) < 1e-5);
 
     Scalar<float> s;
     s = 1;
-    assert(fabs(s - 1) < 1e-5);
+    TEST(fabs(s - 1) < 1e-5);
 
     return 0;
 }
