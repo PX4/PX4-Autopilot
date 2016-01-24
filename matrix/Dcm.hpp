@@ -64,12 +64,12 @@ public:
 
     Dcm(const Euler<Type> & euler) {
         Dcm &dcm = *this;
-        Type cosPhi = cosf(euler.phi());
-        Type sinPhi = sinf(euler.phi());
-        Type cosThe = cosf(euler.theta());
-        Type sinThe = sinf(euler.theta());
-        Type cosPsi = cosf(euler.psi());
-        Type sinPsi = sinf(euler.psi());
+        Type cosPhi = Type(cos(euler.phi()));
+        Type sinPhi = Type(sin(euler.phi()));
+        Type cosThe = Type(cos(euler.theta()));
+        Type sinThe = Type(sin(euler.theta()));
+        Type cosPsi = Type(cos(euler.psi()));
+        Type sinPsi = Type(sin(euler.psi()));
 
         dcm(0, 0) = cosThe * cosPsi;
         dcm(0, 1) = -cosPhi * sinPsi + sinPhi * sinThe * cosPsi;
