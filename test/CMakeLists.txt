@@ -34,5 +34,3 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Profile")
 		DEPENDS test_build
 		)
 endif()
-
-

@@ -91,27 +91,46 @@ int main()
     double rad2deg = 180.0/M_PI;
 
     // euler dcm round trip check
-    for (int roll=-90; roll<90; roll+=1) {
-        for (int pitch=-90; pitch<90; pitch+=1) {
-            for (int yaw=0; yaw<360; yaw+=1) {
+    for (int roll=-90; roll<=90; roll+=90) {
+        for (int pitch=-90; pitch<=90; pitch+=90) {
+            for (int yaw=1; yaw<=360; yaw+=90) {
                 // note if theta = pi/2, then roll is set to zero
-                if (pitch == 90 || pitch == -90) {
-                    roll = 0;
+                int roll_expected = roll;
+                int yaw_expected = yaw;
+                if (pitch == 90) {
+                    roll_expected = 0;
+                    yaw_expected = yaw - roll;
+                } else if (pitch == -90) {
+                    roll_expected = 0;
+                    yaw_expected = yaw + roll;
                 }
-                printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
-                Euler<double> euler(deg2rad*double(roll),
-                                    deg2rad*double(pitch),
-                                    deg2rad*double(yaw));
-                Dcm<double> dcm_from_euler(euler);
-                Euler<double> euler_out(dcm_from_euler);
-                TEST(isEqual(rad2deg*euler, rad2deg*euler_out));
+                if (yaw_expected < 0) yaw_expected += 360;
+                if (yaw_expected > 360) yaw_expected -= 360;
 
+                printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
+                Euler<double> euler_expected(
+                    deg2rad*double(roll_expected),
+                    deg2rad*double(pitch),
+                    deg2rad*double(yaw_expected));
+                Euler<double> euler(
+                    deg2rad*double(roll),
+                    deg2rad*double(pitch),
+                    deg2rad*double(yaw));
+                Dcm<double> dcm_from_euler(euler);
+                dcm_from_euler.print();
+                Euler<double> euler_out(dcm_from_euler);
+                TEST(isEqual(rad2deg*euler_expected, rad2deg*euler_out));
+
+                Eulerf eulerf_expected(
+                    float(deg2rad)*float(roll_expected),
+                    float(deg2rad)*float(pitch),
+                    float(deg2rad)*float(yaw_expected));
                 Eulerf eulerf(float(deg2rad)*float(roll),
                               float(deg2rad)*float(pitch),
                               float(deg2rad)*float(yaw));
                 Dcm<float> dcm_from_eulerf(eulerf);
                 Euler<float> euler_outf(dcm_from_eulerf);
-                TEST(isEqual(float(rad2deg)*eulerf,
+                TEST(isEqual(float(rad2deg)*eulerf_expected,
                              float(rad2deg)*euler_outf));
             }
         }
