@@ -36,6 +36,7 @@
  * Definition of base class for attitude estimators
  *
  * @author Roman Bast <bapstroman@gmail.com>
+ * @author Paul Riseborough <p_riseborough@live.com.au>
  *
  */
 
@@ -162,7 +163,7 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		return;
 	}
 
-	if (time_usec - _time_last_gps > 70000 && gps_is_good(gps)) {
+    if (time_usec - _time_last_gps > 70000) {
 		gpsSample gps_sample_new = {};
 		gps_sample_new.time_us = gps->time_usec - _params.gps_delay_ms * 1000;
 
@@ -317,27 +318,6 @@ void EstimatorBase::initialiseGPS(struct gps_message *gps)
 		_gps_alt_ref = gps->alt / 1e3f;
 		_gps_initialised = true;
 		_last_gps_origin_time_us = hrt_absolute_time();
-	}
-}
-
-bool EstimatorBase::gps_is_good(struct gps_message *gps)
-{
-	// go through apm implementation of calcGpsGoodToAlign for fancier checks
-	// Use a stricter check for initialisation than during flight to avoid complete loss of GPS
-	if (_gps_initialised) {
-		if ((gps->fix_type >= 3) && (gps->eph < _params.requiredEph * 2) && (gps->epv < _params.requiredEpv * 2)) {
-			return true;
-
-		} else {
-			return false;
-		}
-	} else {
-		if ((gps->fix_type >= 3) && (gps->eph < _params.requiredEph) && (gps->epv < _params.requiredEpv)) {
-			return true;
-
-		} else {
-			return false;
-		}
 	}
 }
 

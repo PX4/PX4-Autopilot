@@ -46,16 +46,19 @@
 
 struct gps_message {
 	uint64_t time_usec;
-	int32_t lat;			// Latitude in 1E-7 degrees
-	int32_t lon;			// Longitude in 1E-7 degrees
-	int32_t alt;			// Altitude in 1E-3 meters (millimeters) above MSL
-	uint8_t fix_type;		// 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time
-	float eph;			// GPS HDOP horizontal dilution of position in m
-	float epv;			// GPS VDOP horizontal dilution of position in m
-	uint64_t time_usec_vel;	// Timestamp for velocity informations
-	float vel_m_s;			// GPS ground speed (m/s)
-	float vel_ned[3];		// GPS ground speed NED
-	bool vel_ned_valid;		// GPS ground speed is valid
+    int32_t lat;                // Latitude in 1E-7 degrees
+    int32_t lon;                // Longitude in 1E-7 degrees
+    int32_t alt;                // Altitude in 1E-3 meters (millimeters) above MSL
+    uint8_t fix_type;           // 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time
+    float eph;                  // GPS horizontal position accuracy in m
+    float epv;                  // GPS vertical position accuracy in m
+    float sacc;                 // GPS speed accuracy in m/s
+    uint64_t time_usec_vel; 	// Timestamp for velocity informations
+    float vel_m_s;              // GPS ground speed (m/s)
+    float vel_ned[3];           // GPS ground speed NED
+    bool vel_ned_valid;         // GPS ground speed is valid
+    uint8_t nsats;              // number of satellites used
+    float gdop;                 // geometric dilution of precision
 };
 
 struct parameters {
@@ -63,8 +66,6 @@ struct parameters {
 	float baro_delay_ms = 0.0f;
 	float gps_delay_ms = 200.0f;
 	float airspeed_delay_ms = 200.0f;
-	float requiredEph = 10.0f;
-	float requiredEpv = 20.0f;
 
 	// input noise
 	float gyro_noise = 0.001f;
@@ -84,6 +85,17 @@ struct parameters {
 	float mag_heading_noise = 3e-2f;	// measurement noise used for simple heading fusion
 	float mag_declination_deg = 0.0f;	// magnetic declination in degrees
 	float heading_innov_gate = 0.5f;	// innovation gate for heading innovation test
+
+    // these parameters control the strictness of GPS quality checks used to determine uf the GPS is
+    // good enough to set a local origin and commence aiding
+    int gps_check_mask = 21;            // bitmask used to control which GPS quality checks are used
+    float requiredEph = 5.0f;           // maximum acceptable horizontal position error
+    float requiredEpv = 8.0f;           // maximum acceptable vertical position error
+    float requiredSacc = 1.0f;          // maximum acceptable speed error
+    int requiredNsats = 6;              // minimum acceptable satellite count
+    float requiredGDoP = 2.0f;          // maximum acceptable geometric dilution of precision
+    float requiredHdrift = 0.3f;        // maximum acceptable horizontal drift speed
+    float requiredVdrift = 0.5f;        // maximum acceptable vertical drift speed
 };
 
 class EstimatorBase
@@ -281,6 +293,15 @@ protected:
 
 	bool gps_is_good(struct gps_message *gps);
 
+    // variables used for the GPS quality checks
+    float _gpsDriftVelN = 0.0f;     // GPS north position derivative (m/s)
+    float _gpsDriftVelE = 0.0f;     // GPS east position derivative (m/s)
+    float _gpsDriftVelD = 0.0f;     // GPS down position derivative (m/s)
+    float _gpsVertVelFilt = 0.0f;   // GPS filtered Down velocity (m/s)
+    float _gpsVelNorthFilt = 0.0f;  // GPS filtered North velocity (m/s)
+    float _gpsVelEastFilt = 0.0f;   // GPS filtered East velocity (m/s)
+    uint64_t _lastGpsFail_us = 0;   // last system time in usec that the GPS failed it's checks
+
 public:
 	void printIMU(struct imuSample *data);
 	void printStoredIMU();
@@ -320,5 +341,25 @@ public:
 
 	uint64_t _last_gps_origin_time_us = 0;
 	struct map_projection_reference_s _posRef = {};
-	float _gps_alt_ref = 0.0f;
+    float _gps_alt_ref = 0.0f;
+
+    bool _vehicleArmed = false;     // vehicle arm status used to turn off funtionality used on the ground
+
+    // publish the status of various GPS quality checks
+    union gpsCheckFailStatus_u {
+        struct {
+            uint16_t nsats  : 1; // 0 - true if number of satellites used is insufficient
+            uint16_t gdop   : 1; // 1 - true if geometric dilution of precision is insufficient
+            uint16_t hacc   : 1; // 2 - true if reported horizontal accuracy is insufficient
+            uint16_t vacc   : 1; // 3 - true if reported vertical accuracy is insufficient
+            uint16_t sacc   : 1; // 4 - true if reported speed accuracy is insufficient
+            uint16_t hdrift : 1; // 5 - true if horizontal drift is excessive (can only be used when stationary on ground)
+            uint16_t vdrift : 1; // 6 - true if vertical drift is excessive (can only be used when stationary on ground)
+            uint16_t hspeed : 1; // 7 - true if horizontal speed is excessive (can only be used when stationary on ground)
+            uint16_t vspeed : 1; // 8 - true if vertical speed error is excessive
+        } flags;
+        uint16_t value;
+    };
+    gpsCheckFailStatus_u _gpsCheckFailStatus;
+
 };

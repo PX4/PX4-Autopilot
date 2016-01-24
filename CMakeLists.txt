@@ -54,6 +54,7 @@ px4_add_module(
 		EKF/covariance.cpp
 		EKF/vel_pos_fusion.cpp
 		EKF/mag_fusion.cpp
+                EKF/gps_checks.cpp
 	DEPENDS
 		platforms__common
 	)
