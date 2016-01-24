@@ -1,7 +1,7 @@
-#include <assert.h>
 #include <stdio.h>
 
 #include <matrix/math.hpp>
+#include "test_macros.hpp"
 
 using namespace matrix;
 
@@ -15,9 +15,7 @@ int main()
     Matrix<float, 3, 2> A_T = A.transpose();
     float data_check[6] = {1, 4, 2, 5, 3, 6};
     Matrix<float, 3, 2> A_T_check(data_check);
-    A_T.print();
-    A_T_check.print();
-    assert(A_T == A_T_check);
+    TEST(isEqual(A_T, A_T_check));
     return 0;
 }
 

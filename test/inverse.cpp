@@ -1,7 +1,7 @@
-#include <assert.h>
 #include <stdio.h>
 
 #include <matrix/math.hpp>
+#include "test_macros.hpp"
 
 using namespace matrix;
 
@@ -25,9 +25,7 @@ int main()
     SquareMatrix<float, 3> A(data);
     SquareMatrix<float, 3> A_I = inv(A);
     SquareMatrix<float, 3> A_I_check(data_check);
-    A_I.print();
-    A_I_check.print();
-    assert((A_I - A_I_check).abs().max() < 1e-5);
+    TEST((A_I - A_I_check).abs().max() < 1e-5);
 
     // stess test
     SquareMatrix<float, n_large> A_large;
@@ -37,7 +35,7 @@ int main()
 
     for (size_t i = 0; i < n_large; i++) {
         A_large_I = inv(A_large);
-        assert(A_large == A_large_I);
+        TEST(isEqual(A_large, A_large_I));
     }
 
     SquareMatrix<float, 3> zero_test = zeros<float, 3, 3>();

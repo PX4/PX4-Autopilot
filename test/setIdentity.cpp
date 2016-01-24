@@ -1,6 +1,5 @@
-#include <assert.h>
-
 #include <matrix/math.hpp>
+#include "test_macros.hpp"
 
 using namespace matrix;
 
@@ -14,10 +13,10 @@ int main()
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             if (i == j) {
-                assert( fabs(A(i, j) -  1) < 1e-7);
+                TEST( fabs(A(i, j) -  1) < 1e-7);
 
             } else {
-                assert( fabs(A(i, j) -  0) < 1e-7);
+                TEST( fabs(A(i, j) -  0) < 1e-7);
             }
         }
     }

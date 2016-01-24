@@ -1,5 +1,8 @@
 #pragma once
 
+#ifdef __PX4_QURT
+#include "dspal_math.h"
+#endif
 #include "Matrix.hpp"
 #include "SquareMatrix.hpp"
 #include "Vector.hpp"

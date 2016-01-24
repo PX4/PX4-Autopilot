@@ -1,7 +1,7 @@
-#include <assert.h>
 #include <stdio.h>
 
 #include <matrix/integration.hpp>
+#include "test_macros.hpp"
 
 using namespace matrix;
 
@@ -17,10 +17,8 @@ int main()
     Vector<float, 3> u = ones<float, 3, 1>();
     float t = 1;
     float h = 0.1f;
-    y.T().print();
     integrate_rk4(f, y, u, t, h, y);
-    y.T().print();
-    assert(y == (ones<float, 6, 1>()*1.1f));
+    TEST(isEqual(y, (ones<float, 6, 1>()*1.1f)));
     return 0;
 }
 
