@@ -92,9 +92,17 @@ MissionBlock::is_mission_item_reached()
 			}
 			return true;
 			}
-
 		case NAV_CMD_LAND:
-			return _navigator->get_vstatus()->condition_landed;
+			if (!_navigator->get_vstatus()->is_rotary_wing) {
+				return _navigator->get_vstatus()->condition_landed;
+			} else {
+				if (_waypoint_position_reached) {
+					// the copter has reached the position of the landing spot
+					// it can can start to descend
+					return _navigator->get_vstatus()->condition_landed;
+				}
+			}
+			break;
 
 		/* TODO: count turns */
 		/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
@@ -159,6 +167,12 @@ MissionBlock::is_mission_item_reached()
 			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
+		} else if (_mission_item.nav_cmd == NAV_CMD_LAND) {
+			// check if we have reached our landing spot
+			if (dist_xy >= 0.0f && dist_xy <= _navigator->get_acceptance_radius()) {
+				_waypoint_position_reached = true;
+				return false;
+			}
 		} else if (!_navigator->get_vstatus()->is_rotary_wing &&
 			(_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
 			_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
@@ -222,6 +236,7 @@ MissionBlock::is_mission_item_reached()
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -284,7 +299,17 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		break;
 
 	case NAV_CMD_LAND:
-		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
+
+		if (!_waypoint_position_reached) {
+			// we first need to move to the landing waypoint
+			// use the altitude specified in the mission item
+			sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
+			sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+		} else {
+			sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
+			sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
+		}
+
 		break;
 
 	case NAV_CMD_LOITER_TIME_LIMIT:

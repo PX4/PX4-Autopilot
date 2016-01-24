@@ -306,7 +306,7 @@ __EXPORT int nsh_archinitialize(void)
 	 */
 
 	// XXX start with 10.4 MHz and go up to 20 once validated
-	SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
+	SPI_SETFREQUENCY(spi2, 20 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);

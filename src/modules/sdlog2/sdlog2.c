@@ -109,6 +109,7 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
+#include <uORB/topics/ekf2_innovations.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1095,6 +1096,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct time_offset_s time_offset;
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
 		struct control_state_s ctrl_state;
+		struct ekf2_innovations_s innovations;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1116,7 +1118,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_STAT_s log_STAT;
 			struct log_VTOL_s log_VTOL;
 			struct log_RC_s log_RC;
-			struct log_OUT0_s log_OUT0;
+			struct log_OUT_s log_OUT;
 			struct log_AIRS_s log_AIRS;
 			struct log_ARSP_s log_ARSP;
 			struct log_FLOW_s log_FLOW;
@@ -1144,6 +1146,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TSYN_s log_TSYN;
 			struct log_MACS_s log_MACS;
 			struct log_CTS_s log_CTS;
+			struct log_EST4_s log_INO1;
+			struct log_EST5_s log_INO2;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1160,6 +1164,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int att_sp_sub;
 		int rates_sp_sub;
 		int act_outputs_sub;
+		int act_outputs_1_sub;
 		int act_controls_sub;
 		int act_controls_1_sub;
 		int local_pos_sub;
@@ -1187,6 +1192,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int tsync_sub;
 		int mc_att_ctrl_status_sub;
 		int ctrl_state_sub;
+		int innov_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1198,6 +1204,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.att_sp_sub = -1;
 	subs.rates_sp_sub = -1;
 	subs.act_outputs_sub = -1;
+	subs.act_outputs_1_sub = -1;
 	subs.act_controls_sub = -1;
 	subs.act_controls_1_sub = -1;
 	subs.local_pos_sub = -1;
@@ -1222,6 +1229,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.mc_att_ctrl_status_sub = -1;
 	subs.ctrl_state_sub = -1;
 	subs.encoders_sub = -1;
+	subs.innov_sub = -1;
 
 	/* add new topics HERE */
 
@@ -1526,8 +1534,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- ACTUATOR OUTPUTS --- */
 		if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_sub, &buf.act_outputs)) {
 			log_msg.msg_type = LOG_OUT0_MSG;
-			memcpy(log_msg.body.log_OUT0.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT0.output));
-			LOGBUFFER_WRITE_AND_COUNT(OUT0);
+			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
+			LOGBUFFER_WRITE_AND_COUNT(OUT);
+		}
+
+		if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_1_sub, &buf.act_outputs)) {
+			log_msg.msg_type = LOG_OUT1_MSG;
+			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
+			LOGBUFFER_WRITE_AND_COUNT(OUT);
 		}
 
 		/* --- ACTUATOR CONTROL --- */
@@ -1808,6 +1822,29 @@ int sdlog2_thread_main(int argc, char *argv[])
 			memset(&(log_msg.body.log_EST3.cov), 0, sizeof(log_msg.body.log_EST3.cov));
 			memcpy(&(log_msg.body.log_EST3.cov), ((char*)buf.estimator_status.covariances) + maxcopy2, maxcopy3);
 			LOGBUFFER_WRITE_AND_COUNT(EST3);
+		}
+
+		/* --- EKF2 INNOVATIONS --- */
+		if (copy_if_updated(ORB_ID(ekf2_innovations), &subs.innov_sub, &buf.innovations)) {
+			log_msg.msg_type = LOG_EST4_MSG;
+			memset(&(log_msg.body.log_INO1.s), 0, sizeof(log_msg.body.log_INO1.s));
+			for (unsigned i = 0; i < 6; i++) {
+				log_msg.body.log_INO1.s[i] = buf.innovations.vel_pos_innov[i];
+				log_msg.body.log_INO1.s[i + 6] = buf.innovations.vel_pos_innov_var[i];
+			}
+			LOGBUFFER_WRITE_AND_COUNT(EST4);
+
+			log_msg.msg_type = LOG_EST5_MSG;
+			memset(&(log_msg.body.log_INO2.s), 0, sizeof(log_msg.body.log_INO2.s));
+			for (unsigned i = 0; i < 3; i++) {
+				log_msg.body.log_INO2.s[i] = buf.innovations.mag_innov[i];
+				log_msg.body.log_INO2.s[i + 3] = buf.innovations.mag_innov_var[i];
+			}
+
+			log_msg.body.log_INO2.s[6] = buf.innovations.heading_innov;
+			log_msg.body.log_INO2.s[7] = buf.innovations.heading_innov_var;
+			LOGBUFFER_WRITE_AND_COUNT(EST5);
+
 		}
 
 		/* --- TECS STATUS --- */
