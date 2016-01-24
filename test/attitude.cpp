@@ -51,7 +51,7 @@ int main()
     // quat normalization
     q.normalize();
     TEST(isEqual(q, Quatf(0.18257419f,  0.36514837f,
-                      0.54772256f,  0.73029674f)));
+                          0.54772256f,  0.73029674f)));
 
     // quat default ctor
     q = Quatf();

@@ -443,7 +443,7 @@ Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
 
 template<typename Type, size_t  M, size_t N>
 bool isEqual(const Matrix<Type, M, N> &x,
-        const Matrix<Type, M, N> & y) {
+             const Matrix<Type, M, N> & y) {
     if (!(x == y)) {
         char buf_x[100];
         char buf_y[100];
