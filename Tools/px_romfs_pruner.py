@@ -64,24 +64,24 @@ def main():
                     or file.startswith("."):
                 continue
 
-                file_path = os.path.join(root, file)
+            file_path = os.path.join(root, file)
 
-                # read file line by line
-                pruned_content = ""
-                with open(file_path, "rU") as f:
-                    for line in f:
-                        # handle mixer files differently than startup files
-                        if file_path.endswith(".mix"):
-                            if line.startswith(("Z:", "M:", "R: ", "O:", "S:")):
-                                                pruned_content += line
-                        else:
-                            if not line.isspace() \
-                                    and not line.strip().startswith("#"):
-                                pruned_content += line
-                # overwrite old scratch file
-                with open(file_path, "wb") as f:
-                    pruned_content = re.sub("\r\n", "\n", pruned_content)
-                    f.write(pruned_content.encode("ascii", errors='strict'))
+            # read file line by line
+            pruned_content = ""
+            with open(file_path, "rU") as f:
+                for line in f:
+                    # handle mixer files differently than startup files
+                    if file_path.endswith(".mix"):
+                        if line.startswith(("Z:", "M:", "R: ", "O:", "S:")):
+                                            pruned_content += line
+                    else:
+                        if not line.isspace() \
+                                and not line.strip().startswith("#"):
+                            pruned_content += line
+            # overwrite old scratch file
+            with open(file_path, "wb") as f:
+                pruned_content = re.sub("\r\n", "\n", pruned_content)
+                f.write(pruned_content.encode("ascii", errors='strict'))
 
 
 if __name__ == '__main__':
