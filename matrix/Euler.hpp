@@ -48,20 +48,24 @@ public:
 
     Euler(const Dcm<Type> & dcm) : Vector<Type, 3>()
     {
-        theta() = (Type)asin(-dcm(2,0));
+        Type phi_val = Type(atan2(dcm(2,1), dcm(2,2)));
+        Type theta_val = Type(asin(-dcm(2,0)));
+        Type psi_val = Type(atan2(dcm(1,0), dcm(0,0)));
+        Type pi = Type(M_PI);
 
-        if (fabs(theta() - (Type)M_PI_2) < 1.0e-3) {
-            phi() = (Type)0.0;
-            psi() = (Type)atan2(dcm(0,1), dcm(1,1));
-            psi() = (Type)atan2(dcm(1,2), dcm(0,2));
-        } else if ((Type)fabs(theta() + (Type)M_PI_2) < (Type)1.0e-3) {
-            phi() = (Type)0.0;
-            psi() = (Type)atan2(-dcm(1,2), -dcm(0,2));
-
-        } else {
-            phi() = (Type)atan2(dcm(2,1), dcm(2,2));
-            psi() = (Type)atan2(dcm(1,0), dcm(0,0));
+        if (fabs(theta_val - pi/2) < 1.0e-3) {
+            phi_val = Type(0.0);
+            psi_val = Type(atan2(dcm(1,2), dcm(0,2)));
+        } else if (Type(fabs(theta_val + pi/2) < Type(1.0e-3))) {
+            phi_val = Type(0.0);
+            psi_val = Type(atan2(-dcm(1,2), -dcm(0,2)));
         }
+
+        if (psi_val < 0) psi_val += 2*pi;
+
+        phi() = phi_val;
+        theta() = theta_val;
+        psi() = psi_val;
     }
 
     Euler(const Quaternion<Type> & q) :
