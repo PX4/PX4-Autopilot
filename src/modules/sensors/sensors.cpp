@@ -883,6 +883,7 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery current */
 	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
 		warnx("%s", paramerr);
+
 	} else if (_parameters.battery_current_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
@@ -898,7 +899,7 @@ Sensors::parameters_update()
 #else
 		/* ensure a missing default leads to an unrealistic current value */
 		_parameters.battery_voltage_scaling = 0.00001f;
-#endif	
+#endif
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
