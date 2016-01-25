@@ -112,9 +112,15 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 
 		int retval = apps[command](i, (char **)arg);
 
-		if (exit_on_fail && retval) {
-			exit(retval);
+		if (retval) {
+			cout << "Command failed, returned " << retval << endl;
+
+			if (exit_on_fail && retval) {
+				exit(retval);
+			}
 		}
+
+
 
 	} else if (command.compare("help") == 0) {
 		list_builtins();
@@ -136,7 +142,7 @@ static void usage()
 {
 
 	cout << "./mainapp [-d] [startup_config] -h" << std::endl;
-	cout << "   -d            - Optional flag to run the app in daemon mode and does not take listen for user input." <<
+	cout << "   -d            - Optional flag to run the app in daemon mode and does not listen for user input." <<
 	     std::endl;
 	cout << "                   This is needed if mainapp is intended to be run as a upstart job on linux" << std::endl;
 	cout << "<startup_config> - config file for starting/stopping px4 modules" << std::endl;
@@ -215,6 +221,7 @@ int main(int argc, char **argv)
 
 			if (infile.is_open()) {
 				for (string line; getline(infile, line, '\n');) {
+					// TODO: this should be true but for that we have to check all startup files
 					process_line(line, false);
 				}
 
@@ -308,7 +315,7 @@ int main(int argc, char **argv)
 						}
 					}
 
-					process_line(mystr, !daemon_mode);
+					process_line(mystr, false);
 					mystr = "";
 					buf_ptr_read = buf_ptr_write;
 					break;
