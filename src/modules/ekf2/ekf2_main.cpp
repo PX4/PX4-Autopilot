@@ -247,6 +247,8 @@ void Ekf2::task_main()
 	// initialise parameter cache
 	updateParams();
 
+	vehicle_gps_position_s gps = {};
+
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
@@ -277,7 +279,6 @@ void Ekf2::task_main()
 		bool airspeed_updated = false;
 
 		sensor_combined_s sensors = {};
-		vehicle_gps_position_s gps = {};
 		airspeed_s airspeed = {};
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
