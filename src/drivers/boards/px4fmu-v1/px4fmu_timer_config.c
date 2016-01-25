@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *  Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,92 +32,68 @@
  ****************************************************************************/
 
 /*
- * @file px4fmu_pwm_servo.c
+ * @file px4fmu_timer_config.c
  *
- * Configuration data for the stm32 pwm_servo driver.
+ * Configuration data for the stm32 pwm_servo, input capture and pwm input driver.
  *
  * Note that these arrays must always be fully-sized.
  */
 
 #include <stdint.h>
 
-#include <drivers/stm32/drv_pwm_servo.h>
-
-#include <arch/board/board.h>
-#include <drivers/drv_pwm_output.h>
-
 #include <stm32.h>
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
-__EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
+#include <drivers/drv_pwm_output.h>
+#include <drivers/stm32/drv_io_timer.h>
+
+#include "board_config.h"
+
+__EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 	{
 		.base = STM32_TIM2_BASE,
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM2EN,
-		.clock_freq = STM32_APB1_TIM2_CLKIN
-	},
-	{
-		.base = STM32_TIM3_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN
-	},
-	{
-		.base = STM32_TIM4_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM4EN,
-		.clock_freq = STM32_APB1_TIM4_CLKIN
+		.clock_freq = STM32_APB1_TIM2_CLKIN,
+		.first_channel_index = 0,
+		.last_channel_index = 3,
+		.handler = io_timer_handler0,
+		.vectorno =  STM32_IRQ_TIM2,
 	}
 };
 
-__EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
+__EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	{
-		.gpio = GPIO_TIM2_CH1OUT,
+		.gpio_out = GPIO_TIM2_CH1OUT,
+		.gpio_in = GPIO_TIM2_CH1IN,
 		.timer_index = 0,
 		.timer_channel = 1,
-		.default_value = 0,
+		.ccr_offset = STM32_GTIM_CCR1_OFFSET,
+		.masks  = GTIM_SR_CC1IF | GTIM_SR_CC1OF
 	},
 	{
-		.gpio = GPIO_TIM2_CH2OUT,
+		.gpio_out = GPIO_TIM2_CH2OUT,
+		.gpio_in = GPIO_TIM2_CH2IN,
 		.timer_index = 0,
 		.timer_channel = 2,
-		.default_value = 0,
+		.ccr_offset = STM32_GTIM_CCR2_OFFSET,
+		.masks  = GTIM_SR_CC2IF | GTIM_SR_CC2OF
 	},
 	{
-		.gpio = GPIO_TIM4_CH3OUT,
-		.timer_index = 2,
+		.gpio_out = GPIO_TIM2_CH3OUT,
+		.gpio_in = GPIO_TIM2_CH3IN,
+		.timer_index = 0,
 		.timer_channel = 3,
-		.default_value = 0,
+		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
+		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
 	},
 	{
-		.gpio = GPIO_TIM4_CH4OUT,
-		.timer_index = 2,
+		.gpio_out = GPIO_TIM2_CH4OUT,
+		.gpio_in = GPIO_TIM2_CH4IN,
+		.timer_index = 0,
 		.timer_channel = 4,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM3_CH1OUT,
-		.timer_index = 1,
-		.timer_channel = 1,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM3_CH2OUT,
-		.timer_index = 1,
-		.timer_channel = 2,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM3_CH3OUT,
-		.timer_index = 1,
-		.timer_channel = 3,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM3_CH4OUT,
-		.timer_index = 1,
-		.timer_channel = 4,
-		.default_value = 0,
+		.ccr_offset = STM32_GTIM_CCR4_OFFSET,
+		.masks  = GTIM_SR_CC4IF | GTIM_SR_CC4OF
 	}
 };

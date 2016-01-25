@@ -58,7 +58,7 @@
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 
-#include "drv_pwm_servo.h"
+#include "drv_io_timer.h"
 
 #include <chip.h>
 #include <up_internal.h>
@@ -68,7 +68,7 @@
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
-#define REG(_tmr, _reg)	(*(volatile uint32_t *)(pwm_timers[_tmr].base + _reg))
+#define REG(_tmr, _reg)	(*(volatile uint32_t *)(io_timers[_tmr].base + _reg))
 
 #define rCR1(_tmr)    	REG(_tmr, STM32_GTIM_CR1_OFFSET)
 #define rCR2(_tmr)    	REG(_tmr, STM32_GTIM_CR2_OFFSET)
@@ -98,7 +98,7 @@ static void
 pwm_timer_init(unsigned timer)
 {
 	/* enable the timer clock before we try to talk to it */
-	modifyreg32(pwm_timers[timer].clock_register, 0, pwm_timers[timer].clock_bit);
+	modifyreg32(io_timers[timer].clock_register, 0, io_timers[timer].clock_bit);
 
 	/* disable and configure the timer */
 	rCR1(timer) = 0;
@@ -108,16 +108,20 @@ pwm_timer_init(unsigned timer)
 	rCCER(timer) = 0;
 	rCCMR1(timer) = 0;
 	rCCMR2(timer) = 0;
+	rCCR1(timer) = 0;
+	rCCR2(timer) = 0;
+	rCCR3(timer) = 0;
+	rCCR4(timer) = 0;
 	rCCER(timer) = 0;
 	rDCR(timer) = 0;
 
-	if ((pwm_timers[timer].base == STM32_TIM1_BASE) || (pwm_timers[timer].base == STM32_TIM8_BASE)) {
+	if ((io_timers[timer].base == STM32_TIM1_BASE) || (io_timers[timer].base == STM32_TIM8_BASE)) {
 		/* master output enable = on */
 		rBDTR(timer) = ATIM_BDTR_MOE;
 	}
 
 	/* configure the timer to free-run at 1MHz */
-	rPSC(timer) = (pwm_timers[timer].clock_freq / 1000000) - 1;
+	rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
 
 	/* default to updating at 50Hz */
 	pwm_timer_set_rate(timer, 50);
@@ -138,31 +142,27 @@ pwm_timer_set_rate(unsigned timer, unsigned rate)
 static void
 pwm_channel_init(unsigned channel)
 {
-	unsigned timer = pwm_channels[channel].timer_index;
+	unsigned timer = timer_io_channels[channel].timer_index;
 
 	/* configure the channel */
-	switch (pwm_channels[channel].timer_channel) {
+	switch (timer_io_channels[channel].timer_channel) {
 	case 1:
 		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
-		rCCR1(timer) = pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC1E;
 		break;
 
 	case 2:
 		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
-		rCCR2(timer) = pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC2E;
 		break;
 
 	case 3:
 		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
-		rCCR3(timer) = pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC3E;
 		break;
 
 	case 4:
 		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
-		rCCR4(timer) = pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC4E;
 		break;
 	}
@@ -171,15 +171,15 @@ pwm_channel_init(unsigned channel)
 int
 up_pwm_servo_set(unsigned channel, servo_position_t value)
 {
-	if (channel >= PWM_SERVO_MAX_CHANNELS) {
+	if (channel >= MAX_TIMER_IO_CHANNELS) {
 		return -1;
 	}
 
-	unsigned timer = pwm_channels[channel].timer_index;
+	unsigned timer = timer_io_channels[channel].timer_index;
 
 	/* test timer for validity */
-	if ((pwm_timers[timer].base == 0) ||
-	    (pwm_channels[channel].gpio == 0)) {
+	if ((io_timers[timer].base == 0) ||
+	    (timer_io_channels[channel].gpio_out == 0)) {
 		return -1;
 	}
 
@@ -188,7 +188,7 @@ up_pwm_servo_set(unsigned channel, servo_position_t value)
 		value--;
 	}
 
-	switch (pwm_channels[channel].timer_channel) {
+	switch (timer_io_channels[channel].timer_channel) {
 	case 1:
 		rCCR1(timer) = value;
 		break;
@@ -215,21 +215,21 @@ up_pwm_servo_set(unsigned channel, servo_position_t value)
 servo_position_t
 up_pwm_servo_get(unsigned channel)
 {
-	if (channel >= PWM_SERVO_MAX_CHANNELS) {
+	if (channel >= MAX_TIMER_IO_CHANNELS) {
 		return 0;
 	}
 
-	unsigned timer = pwm_channels[channel].timer_index;
+	unsigned timer = timer_io_channels[channel].timer_index;
 	servo_position_t value = 0;
 
 	/* test timer for validity */
-	if ((pwm_timers[timer].base == 0) ||
-	    (pwm_channels[channel].timer_channel == 0)) {
+	if ((io_timers[timer].base == 0) ||
+	    (timer_io_channels[channel].timer_channel == 0)) {
 		return 0;
 	}
 
 	/* configure the channel */
-	switch (pwm_channels[channel].timer_channel) {
+	switch (timer_io_channels[channel].timer_channel) {
 	case 1:
 		value = rCCR1(timer);
 		break;
@@ -254,16 +254,16 @@ int
 up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* do basic timer initialisation first */
-	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++) {
-		if (pwm_timers[i].base != 0) {
+	for (unsigned i = 0; i < MAX_IO_TIMERS; i++) {
+		if (io_timers[i].base != 0) {
 			pwm_timer_init(i);
 		}
 	}
 
 	/* now init channels */
-	for (unsigned i = 0; i < PWM_SERVO_MAX_CHANNELS; i++) {
+	for (unsigned i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
 		/* don't do init for disabled channels; this leaves the pin configs alone */
-		if (((1 << i) & channel_mask) && (pwm_channels[i].timer_channel != 0)) {
+		if (((1 << i) & channel_mask) && (timer_io_channels[i].timer_channel != 0)) {
 			pwm_channel_init(i);
 		}
 	}
@@ -290,7 +290,7 @@ up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 		return -ERANGE;
 	}
 
-	if ((group >= PWM_SERVO_MAX_TIMERS) || (pwm_timers[group].base == 0)) {
+	if ((group >= MAX_IO_TIMERS) || (io_timers[group].base == 0)) {
 		return ERROR;
 	}
 
@@ -302,7 +302,7 @@ up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 int
 up_pwm_servo_set_rate(unsigned rate)
 {
-	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++) {
+	for (unsigned i = 0; i < MAX_IO_TIMERS; i++) {
 		up_pwm_servo_set_rate_group_update(i, rate);
 	}
 
@@ -314,8 +314,8 @@ up_pwm_servo_get_rate_group(unsigned group)
 {
 	unsigned channels = 0;
 
-	for (unsigned i = 0; i < PWM_SERVO_MAX_CHANNELS; i++) {
-		if ((pwm_channels[i].gpio != 0) && (pwm_channels[i].timer_index == group)) {
+	for (unsigned i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
+		if ((timer_io_channels[i].gpio_out != 0) && (timer_io_channels[i].timer_index == group)) {
 			channels |= (1 << i);
 		}
 	}
@@ -327,16 +327,16 @@ void
 up_pwm_servo_arm(bool armed)
 {
 	/* iterate timers and arm/disarm appropriately */
-	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++) {
-		if (pwm_timers[i].base != 0) {
+	for (unsigned i = 0; i < MAX_IO_TIMERS; i++) {
+		if (io_timers[i].base != 0) {
 			if (armed) {
 
 				/* force an update to preload all registers */
 				rEGR(i) = GTIM_EGR_UG;
 
-				for (unsigned c = 0; c < PWM_SERVO_MAX_CHANNELS; c++) {
-					if (pwm_channels[c].gpio) {
-						stm32_configgpio(pwm_channels[c].gpio);
+				for (unsigned c = 0; c < MAX_TIMER_IO_CHANNELS; c++) {
+					if (timer_io_channels[c].gpio_out) {
+						stm32_configgpio(timer_io_channels[c].gpio_out);
 					}
 				}
 
