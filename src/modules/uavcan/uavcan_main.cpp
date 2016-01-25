@@ -7,14 +7,14 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -37,8 +37,8 @@
  * Implements basic functionality of UAVCAN node.
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- *         David Sidrane <david_s5@nscdg.com>
- *         Andreas Jochum <Andreas@NicaDrone.com>
+ *		 David Sidrane <david_s5@nscdg.com>
+ *		 Andreas Jochum <Andreas@NicaDrone.com>
  */
 
 #include <px4_config.h>
@@ -205,8 +205,8 @@ int UavcanNode::print_params(uavcan::protocol::param::GetSet::Response &resp)
 				   resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>());
 
 	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
-		return   std::printf("name: %s %.4f\n", resp.name.c_str(),
-				     static_cast<double>(resp.value.to<uavcan::protocol::param::Value::Tag::real_value>()));
+		return std::printf("name: %s %.4f\n", resp.name.c_str(),
+				   static_cast<double>(resp.value.to<uavcan::protocol::param::Value::Tag::real_value>()));
 
 	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::boolean_value)) {
 		return std::printf("name: %s %d\n", resp.name.c_str(),
@@ -703,9 +703,9 @@ int UavcanNode::add_poll_fd(int fd)
 		errx(1, "uavcan: too many poll fds, exiting");
 	}
 
-	_poll_fds[_poll_fds_num] = ::pollfd();
-	_poll_fds[_poll_fds_num].fd = fd;
-	_poll_fds[_poll_fds_num].events = POLLIN;
+	_poll_fds[_poll_fds_num]	= ::pollfd();
+	_poll_fds[_poll_fds_num].fd	= fd;
+	_poll_fds[_poll_fds_num].events	= POLLIN;
 	_poll_fds_num += 1;
 	return ret;
 }
@@ -797,7 +797,7 @@ int UavcanNode::run()
 
 	/*
 	 * XXX Mixing logic/subscriptions shall be moved into UavcanEscController::update();
-	 *     IO multiplexing shall be done here.
+	 *	 IO multiplexing shall be done here.
 	 */
 
 	_node.setModeOperational();
@@ -822,7 +822,7 @@ int UavcanNode::run()
 
 		switch (_fw_server_action) {
 		case Start:
-			_fw_server_status =  start_fw_server();
+			_fw_server_status = start_fw_server();
 			break;
 
 		case Stop:
@@ -1149,8 +1149,8 @@ UavcanNode::print_info()
 	printf("UAVCAN node status:\n");
 	printf("\tInternal failures: %llu\n", _node.getInternalFailureCount());
 	printf("\tTransfer errors:   %llu\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
-	printf("\tRX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
-	printf("\tTX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
+	printf("\tRX transfers:	  %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
+	printf("\tTX transfers:	  %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
 
 	// CAN driver status
 	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
@@ -1189,13 +1189,13 @@ UavcanNode::print_info()
 		printf("Addr\tV\tA\tTemp\tSetpt\tRPM\tErr\n");
 
 		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
-			printf("%d\t",    esc.esc[i].esc_address);
+			printf("%d\t",	esc.esc[i].esc_address);
 			printf("%3.2f\t", (double)esc.esc[i].esc_voltage);
 			printf("%3.2f\t", (double)esc.esc[i].esc_current);
 			printf("%3.2f\t", (double)esc.esc[i].esc_temperature);
 			printf("%3.2f\t", (double)esc.esc[i].esc_setpoint);
-			printf("%d\t",    esc.esc[i].esc_rpm);
-			printf("%d",      esc.esc[i].esc_errorcount);
+			printf("%d\t",	esc.esc[i].esc_rpm);
+			printf("%d",	  esc.esc[i].esc_errorcount);
 			printf("\n");
 		}
 
