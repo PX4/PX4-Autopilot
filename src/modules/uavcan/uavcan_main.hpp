@@ -31,6 +31,15 @@
  *
  ****************************************************************************/
 
+/**
+ * @file uavcan_main.hpp
+ *
+ * Defines basic functinality of UAVCAN node.
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ *         Andreas Jochum <Andreas@NicaDrone.com>
+ */
+
 #pragma once
 
 #include <px4_config.h>
@@ -58,14 +67,6 @@
 
 #include "uavcan_servers.hpp"
 #include "allocator.hpp"
-
-/**
- * @file uavcan_main.hpp
- *
- * Defines basic functinality of UAVCAN node.
- *
- * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- */
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 
@@ -124,6 +125,7 @@ public:
 	void		subscribe();
 
 	int			teardown();
+
 	int			arm_actuators(bool arm);
 
 	void		print_info();

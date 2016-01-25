@@ -56,6 +56,9 @@ UavcanHardpointController::~UavcanHardpointController()
 
 int UavcanHardpointController::init()
 {
+	/*
+	 * Setup timer and call back function for periodic updates
+	 */
 	_timer.setCallback(TimerCbBinder(this, &UavcanHardpointController::periodic_update));
 	_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	return 0;
@@ -67,32 +70,34 @@ void UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t comma
 	_cmd.command = command;
 	_cmd.hardpoint_id = hardpoint_id;
 	_cmd_set = true;
-    /*
-     * Rate limiting - we don't want to congest the bus
-     */
-    const auto timestamp = _node.getMonotonicTime();
 
-    if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
-        return;
-    }
+	/*
+	 * Rate limiting - we don't want to congest the bus
+	 */
+	const auto timestamp = _node.getMonotonicTime();
 
-    _prev_cmd_pub = timestamp;
+	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
+		return;
+	}
 
-    /*
-     * Publish the command message to the bus
-     */
+	_prev_cmd_pub = timestamp;
+
+	/*
+	 * Publish the command message to the bus
+	 */
 	(void)_uavcan_pub_raw_cmd.broadcast(_cmd);
 
 	/*
 	 * Start the periodic update timer after a command is set
 	 */
-	if (!_timer.isRunning())
-	{
+	if (!_timer.isRunning()) {
 		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	}
 }
 void UavcanHardpointController::periodic_update(const uavcan::TimerEvent &)
 {
+	/*
+	 * Broadcast command at MAX_RATE_HZ
+	 */
 	(void)_uavcan_pub_raw_cmd.broadcast(_cmd);
-	//do something
 }

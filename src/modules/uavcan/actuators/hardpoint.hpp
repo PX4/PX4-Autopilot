@@ -34,7 +34,6 @@
 /**
  * @file hardpoint.hpp
  *
- *
  * @author Andreas Jochum <Andreas@NicaDrone.com>
  */
 
@@ -44,8 +43,10 @@
 #include <uavcan/equipment/hardpoint/Command.hpp>
 #include <uavcan/equipment/hardpoint/Status.hpp>
 #include <systemlib/perf_counter.h>
-//#include <uORB/topics/esc_status.h>
 
+/**
+ * @brief The UavcanHardpointController class
+ */
 
 class UavcanHardpointController
 {
@@ -53,34 +54,38 @@ public:
 	UavcanHardpointController(uavcan::INode &node);
 	~UavcanHardpointController();
 
+	/*
+	* setup periodic updater
+	*/
 	int init();
 
+
+	/*
+	 * set command
+	 */
 	void set_command(uint8_t hardpoint_id, uint16_t command);
 
 private:
+	/*
+	 * Max update rate to avoid exessive bus traffic
+	 */
+	static constexpr unsigned					MAX_RATE_HZ = 1;	///< XXX make this configurable
 
-	static constexpr unsigned MAX_RATE_HZ = 1;			///< XXX make this configurable
+	uavcan::equipment::hardpoint::Command		_cmd;
 
-
-	uavcan::equipment::hardpoint::Command _cmd;
-
-	bool _cmd_set = false;
+	bool										_cmd_set = false;
 
 	void periodic_update(const uavcan::TimerEvent &);
 
 	typedef uavcan::MethodBinder<UavcanHardpointController *, void (UavcanHardpointController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
-	//    hardpoint_status_s	_hardpoint_status = {};
-	orb_advert_t	_hardpoint_status_pub = nullptr;
-
 	/*
 	 * libuavcan related things
 	 */
-	uavcan::MonotonicTime							_prev_cmd_pub;   ///< rate limiting
-	uavcan::INode								&_node;
-	uavcan::Publisher<uavcan::equipment::hardpoint::Command>			_uavcan_pub_raw_cmd;
-	//	uavcan::Subscriber<uavcan::equipment::hardpoint::Status, StatusCbBinder>	_uavcan_sub_status;
-	uavcan::TimerEventForwarder<TimerCbBinder>				_timer;
+	uavcan::MonotonicTime										_prev_cmd_pub;   ///< rate limiting
+	uavcan::INode												&_node;
+	uavcan::Publisher<uavcan::equipment::hardpoint::Command>	_uavcan_pub_raw_cmd;
+	uavcan::TimerEventForwarder<TimerCbBinder>					_timer;
 
 };
