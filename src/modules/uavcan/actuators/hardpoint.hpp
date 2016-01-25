@@ -69,11 +69,11 @@ private:
 	/*
 	 * Max update rate to avoid exessive bus traffic
 	 */
-	static constexpr unsigned					MAX_RATE_HZ = 1;	///< XXX make this configurable
+	static constexpr unsigned			MAX_RATE_HZ = 1;	///< XXX make this configurable
 
 	uavcan::equipment::hardpoint::Command		_cmd;
 
-	bool										_cmd_set = false;
+	bool						_cmd_set = false;
 
 	void periodic_update(const uavcan::TimerEvent &);
 
@@ -83,9 +83,9 @@ private:
 	/*
 	 * libuavcan related things
 	 */
-	uavcan::MonotonicTime										_prev_cmd_pub;   ///< rate limiting
-	uavcan::INode												&_node;
+	uavcan::MonotonicTime						_prev_cmd_pub;   ///< rate limiting
+	uavcan::INode							&_node;
 	uavcan::Publisher<uavcan::equipment::hardpoint::Command>	_uavcan_pub_raw_cmd;
-	uavcan::TimerEventForwarder<TimerCbBinder>					_timer;
+	uavcan::TimerEventForwarder<TimerCbBinder>			_timer;
 
 };
