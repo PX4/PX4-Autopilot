@@ -31,75 +31,56 @@
  *
  ****************************************************************************/
 
-/*
- * @file px4fmu_pwm_servo.c
+/**
+ * @file drv_io_timer.h
  *
- * Configuration data for the stm32 pwm_servo driver.
- *
- * Note that these arrays must always be fully-sized.
+ * stm32-specific PWM output data.
  */
+#include <px4_config.h>
+#include <nuttx/arch.h>
+#include <nuttx/irq.h>
 
-#include <stdint.h>
+#include <drivers/drv_hrt.h>
 
-#include <stm32.h>
-#include <stm32_gpio.h>
-#include <stm32_tim.h>
+#pragma once
 
-#include <drivers/stm32/drv_pwm_servo.h>
-#include <drivers/drv_pwm_output.h>
+/* configuration limits */
+#define MAX_IO_TIMERS			4
+#define MAX_TIMER_IO_CHANNELS	8
+#define IO_TIMER_ALL_MODES_CHANNELS 0
 
-#include "board_config.h"
+/* array of timers dedicated to PWM in and out and capture use */
+typedef struct io_timers_t {
+	uint32_t	base;
+	uint32_t	clock_register;
+	uint32_t	clock_bit;
+	uint32_t	clock_freq;
+	uint32_t	vectorno;
+	uint32_t    first_channel_index;
+	uint32_t    last_channel_index;
+	xcpt_t      handler;
+} io_timers_t;
 
-__EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
-	{
-		.base = STM32_TIM1_BASE,
-		.clock_register = STM32_RCC_APB2ENR,
-		.clock_bit = RCC_APB2ENR_TIM1EN,
-		.clock_freq = STM32_APB2_TIM1_CLKIN
-	},
-	{
-		.base = STM32_TIM4_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM4EN,
-		.clock_freq = STM32_APB1_TIM4_CLKIN
-	}
-};
+/* array of channels in logical order */
+typedef struct timer_io_channels_t {
+	uint32_t	gpio_out;
+	uint32_t	gpio_in;
+	uint8_t		timer_index;
+	uint8_t		timer_channel;
+	uint16_t	masks;
+	uint8_t		ccr_offset;
+} timer_io_channels_t;
 
-__EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
-	{
-		.gpio = GPIO_TIM1_CH4OUT,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM1_CH3OUT,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM1_CH2OUT,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM1_CH1OUT,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM4_CH2OUT,
-		.timer_index = 1,
-		.timer_channel = 2,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM4_CH3OUT,
-		.timer_index = 1,
-		.timer_channel = 3,
-		.default_value = 0,
-	}
-};
+
+typedef void (*channel_handler_t)(void *context, const io_timers_t *timer, uint32_t chan_index,
+				  const timer_io_channels_t *chan,
+				  hrt_abstime isrs_time , uint16_t isrs_rcnt);
+
+
+/* supplied by board-specific code */
+__EXPORT extern const io_timers_t io_timers[MAX_IO_TIMERS];
+__EXPORT extern const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS];
+__EXPORT int io_timer_handler0(int irq, void *context);
+__EXPORT int io_timer_handler1(int irq, void *context);
+__EXPORT int io_timer_handler2(int irq, void *context);
+__EXPORT int io_timer_handler3(int irq, void *context);
