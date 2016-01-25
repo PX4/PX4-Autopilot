@@ -140,9 +140,6 @@ pwm_channel_init(unsigned channel)
 {
 	unsigned timer = pwm_channels[channel].timer_index;
 
-	/* configure the GPIO first */
-	stm32_configgpio(pwm_channels[channel].gpio);
-
 	/* configure the channel */
 	switch (pwm_channels[channel].timer_channel) {
 	case 1:
@@ -333,8 +330,15 @@ up_pwm_servo_arm(bool armed)
 	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++) {
 		if (pwm_timers[i].base != 0) {
 			if (armed) {
+
 				/* force an update to preload all registers */
 				rEGR(i) = GTIM_EGR_UG;
+
+				for (unsigned c = 0; c < PWM_SERVO_MAX_CHANNELS; c++) {
+					if (pwm_channels[c].gpio) {
+						stm32_configgpio(pwm_channels[c].gpio);
+					}
+				}
 
 				/* arm requires the timer be enabled */
 				rCR1(i) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
