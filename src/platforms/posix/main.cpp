@@ -132,10 +132,6 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 		cout << endl << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 
 	}
-
-	if (exit_on_fail) {
-		print_prompt();
-	}
 }
 
 static void usage()
@@ -318,6 +314,8 @@ int main(int argc, char **argv)
 					process_line(mystr, false);
 					mystr = "";
 					buf_ptr_read = buf_ptr_write;
+
+					print_prompt();
 					break;
 
 				case '\033': {	// arrow keys
