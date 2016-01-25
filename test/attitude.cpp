@@ -93,7 +93,7 @@ int main()
     // euler dcm round trip check
     for (int roll=-90; roll<=90; roll+=90) {
         for (int pitch=-90; pitch<=90; pitch+=90) {
-            for (int yaw=1; yaw<=360; yaw+=90) {
+            for (int yaw=-179; yaw<=180; yaw+=90) {
                 // note if theta = pi/2, then roll is set to zero
                 int roll_expected = roll;
                 int yaw_expected = yaw;
