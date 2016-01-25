@@ -31,6 +31,16 @@
  *
  ****************************************************************************/
 
+/**
+ * @file uavcan_main.cpp
+ *
+ * Implements basic functionality of UAVCAN node.
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ *         David Sidrane <david_s5@nscdg.com>
+ *         Andreas Jochum <Andreas@NicaDrone.com>
+ */
+
 #include <px4_config.h>
 
 #include <cstdlib>
@@ -60,16 +70,6 @@
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
 # define OK 0
-
-
-/**
- * @file uavcan_main.cpp
- *
- * Implements basic functionality of UAVCAN node.
- *
- * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- *         David Sidrane <david_s5@nscdg.com>
- */
 
 /*
  * UavcanNode
@@ -1109,8 +1109,8 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 
 
 	case UAVCANIOC_HARDPOINT_SET: {
-		const auto& cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command*>(arg);
-		_hardpoint_controller.set_command(cmd.hardpoint_id, cmd.command);
+			const auto &cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command *>(arg);
+			_hardpoint_controller.set_command(cmd.hardpoint_id, cmd.command);
 		}
 		break;
 
@@ -1140,7 +1140,7 @@ UavcanNode::print_info()
 	// Memory status
 	printf("Pool allocator status:\n");
 	printf("\tCapacity hard/soft: %u/%u blocks\n",
-		_pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
+	       _pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
 	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
 	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
@@ -1221,7 +1221,8 @@ void UavcanNode::shrink()
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
-void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command){
+void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command)
+{
 	_hardpoint_controller.set_command(hardpoint_id, command);
 }
 /*
@@ -1374,6 +1375,7 @@ int uavcan_main(int argc, char *argv[])
 			return inst->set_param(nodeid, argv[4], argv[5]);
 		}
 	}
+
 	if (!std::strcmp(argv[1], "hardpoint")) {
 		if (!std::strcmp(argv[2], "set") && argc > 4) {
 			const int hardpoint_id = atoi(argv[3]);
@@ -1381,19 +1383,20 @@ int uavcan_main(int argc, char *argv[])
 
 			// Sanity check - weed out negative values, check against maximums
 			if (hardpoint_id >= 0 &&
-				hardpoint_id < 256 &&
-				command >= 0 &&
-				command < 65536) {
+			    hardpoint_id < 256 &&
+			    command >= 0 &&
+			    command < 65536) {
 				inst->hardpoint_controller_set((uint8_t) hardpoint_id, (uint16_t) command);
-			}
-			else {
+
+			} else {
 				errx(1, "Are you nuts?");
 			}
-		}
-		else {
+
+		} else {
 			errx(1, "Are you nuts?");
 		}
 	}
+
 	if (!std::strcmp(argv[1], "stop")) {
 		if (fw) {
 
