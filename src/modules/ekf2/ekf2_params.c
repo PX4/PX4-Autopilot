@@ -82,6 +82,25 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 200);
 PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 200);
 
 /**
+ * Integer bitmask controlling GPS checks. Set bits to 1 to enable checks. Checks enabled by the following bit positions
+ * 0 : Minimum required sat count set by EKF2_REQ_NSATS
+ * 1 : Minimum required GDoP set by EKF2_REQ_GDOP
+ * 2 : Maximum allowed horizontal position error set by EKF2_REQ_EPH
+ * 3 : Maximum allowed vertical position error set by EKF2_REQ_EPV
+ * 4 : Maximum allowed speed error set by EKF2_REQ_SACC
+ * 5 : Maximum allowed horizontal position rate set by EKF2_REQ_HDRIFT. This check can only be used if the vehciel is stationary during alignment.
+ * 6 : Maximum allowed vertical position rate set by EKF2_REQ_VDRIFT. This check can only be used if the vehciel is stationary during alignment.
+ * 7 : Maximum allowed horizontal speed set by EKF2_REQ_HDRIFT. This check can only be used if the vehciel is stationary during alignment.
+ * 8 : Maximum allowed vertical velocity discrepancy set by EKF2_REQ_VDRIFT
+ *
+ * @group EKF2
+ * @min 0
+ * @max 511
+ * @unit
+ */
+PARAM_DEFINE_INT32(EKF2_GPS_CHECK, 21);
+
+/**
  * Required EPH to use GPS.
  *
  * @group EKF2
@@ -89,7 +108,7 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 200);
  * @max 100
  * @unit m
  */
-PARAM_DEFINE_FLOAT(EKF2_REQ_EPH, 10);
+PARAM_DEFINE_FLOAT(EKF2_REQ_EPH, 5.0f);
 
 /**
  * Required EPV to use GPS.
@@ -99,7 +118,57 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_EPH, 10);
  * @max 100
  * @unit m
  */
-PARAM_DEFINE_FLOAT(EKF2_REQ_EPV, 20);
+PARAM_DEFINE_FLOAT(EKF2_REQ_EPV, 8.0f);
+
+/**
+ * Required speed accuracy to use GPS.
+ *
+ * @group EKF2
+ * @min 0.5
+ * @max 5.0
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(EKF2_REQ_SACC, 1.0f);
+
+/**
+ * Required satellite count to use GPS.
+ *
+ * @group EKF2
+ * @min 4
+ * @max 12
+ * @unit
+ */
+PARAM_DEFINE_INT32(EKF2_REQ_NSATS, 6);
+
+/**
+ * Required GDoP to use GPS.
+ *
+ * @group EKF2
+ * @min 1.5
+ * @max 5.0
+ * @unit
+ */
+PARAM_DEFINE_FLOAT(EKF2_REQ_GDOP, 2.5f);
+
+/**
+ * Maximum horizontal drift speed to use GPS.
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 1.0
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(EKF2_REQ_HDRIFT, 0.3f);
+
+/**
+ * Maximum vertical drift speed to use GPS.
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 1.5
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.5f);
 
 /**
  * Gyro noise.
