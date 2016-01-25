@@ -61,8 +61,6 @@ public:
             psi_val = Type(atan2(-dcm(1,2), -dcm(0,2)));
         }
 
-        if (psi_val < 0) psi_val += 2*pi;
-
         phi() = phi_val;
         theta() = theta_val;
         psi() = psi_val;

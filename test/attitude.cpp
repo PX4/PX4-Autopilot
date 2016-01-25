@@ -104,8 +104,8 @@ int main()
                     roll_expected = 0;
                     yaw_expected = yaw + roll;
                 }
-                if (yaw_expected < 0) yaw_expected += 360;
-                if (yaw_expected > 360) yaw_expected -= 360;
+                if (yaw_expected < -180) yaw_expected += 360;
+                if (yaw_expected > 180) yaw_expected -= 360;
 
                 printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
                 Euler<double> euler_expected(
