@@ -49,6 +49,16 @@
 #define MAX_TIMER_IO_CHANNELS	8
 #define IO_TIMER_ALL_MODES_CHANNELS 0
 
+typedef enum io_timer_channel_mode_t {
+	IOTimerChanMode_NotUsed = 0,
+	IOTimerChanMode_PWMOut  = 1,
+	IOTimerChanMode_PWMIn   = 2,
+	IOTimerChanMode_Capture = 3,
+	IOTimerChanModeSize
+} io_timer_channel_mode_t;
+
+typedef uint8_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_IO_CHANNELS */
+
 /* array of timers dedicated to PWM in and out and capture use */
 typedef struct io_timers_t {
 	uint32_t	base;
@@ -80,7 +90,25 @@ typedef void (*channel_handler_t)(void *context, const io_timers_t *timer, uint3
 /* supplied by board-specific code */
 __EXPORT extern const io_timers_t io_timers[MAX_IO_TIMERS];
 __EXPORT extern const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS];
+__EXPORT extern io_timer_channel_allocation_t allocations[IOTimerChanModeSize];
 __EXPORT int io_timer_handler0(int irq, void *context);
 __EXPORT int io_timer_handler1(int irq, void *context);
 __EXPORT int io_timer_handler2(int irq, void *context);
 __EXPORT int io_timer_handler3(int irq, void *context);
+
+__EXPORT int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
+				   channel_handler_t channel_handler, void *context);
+__EXPORT int io_timer_set_rate(unsigned timer, unsigned rate);
+__EXPORT int io_timer_set_enable(bool state, io_timer_channel_mode_t mode,
+				 io_timer_channel_allocation_t masks);
+__EXPORT int io_timer_set_rate(unsigned timer, unsigned rate);
+__EXPORT uint16_t io_channel_get_ccr(unsigned channel);
+__EXPORT int io_timer_set_ccr(unsigned channel, uint16_t value);
+__EXPORT uint32_t io_timer_get_group(unsigned timer);
+__EXPORT int io_timer_validate_channel_index(unsigned channel);
+__EXPORT int io_timer_is_channel_free(unsigned channel);
+__EXPORT int io_timer_free_channel(unsigned channel);
+__EXPORT int io_timer_get_channel_mode(unsigned channel);
+__EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
+
+__END_DECLS
