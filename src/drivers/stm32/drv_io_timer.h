@@ -43,7 +43,7 @@
 #include <drivers/drv_hrt.h>
 
 #pragma once
-
+__BEGIN_DECLS
 /* configuration limits */
 #define MAX_IO_TIMERS			4
 #define MAX_TIMER_IO_CHANNELS	8
@@ -110,5 +110,4 @@ __EXPORT int io_timer_is_channel_free(unsigned channel);
 __EXPORT int io_timer_free_channel(unsigned channel);
 __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
-
 __END_DECLS
