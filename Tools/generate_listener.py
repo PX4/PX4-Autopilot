@@ -192,9 +192,15 @@ for index,m in enumerate(messages[1:]):
 		elif item[0] == "int32":
 			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "uint32":
-			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint8":
 			print("\t\t\tprintf(\"%s: %%u\\n\",container.%s);" % (item[1], item[1]))
+		elif item[0] == "int16":
+			print("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
+		elif item[0] == "uint16":
+			print("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
+		elif item[0] == "int8":
+			print("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
+		elif item[0] == "uint8":
+			print("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
 		elif item[0] == "bool":
 			print("\t\t\tprintf(\"%s: %%s\\n\",container.%s ? \"True\" : \"False\");" % (item[1], item[1]))
 	print("\t\t\t}")

@@ -247,6 +247,8 @@ void Ekf2::task_main()
 	// initialise parameter cache
 	updateParams();
 
+	vehicle_gps_position_s gps = {};
+
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
@@ -277,7 +279,6 @@ void Ekf2::task_main()
 		bool airspeed_updated = false;
 
 		sensor_combined_s sensors = {};
-		vehicle_gps_position_s gps = {};
 		airspeed_s airspeed = {};
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
@@ -375,8 +376,8 @@ void Ekf2::task_main()
 		lpos.xy_global =
 			_ekf->position_is_valid();// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
 		lpos.z_global = true;// true if z is valid and has valid global reference (ref_alt)
-		lpos.ref_lat = _ekf->_posRef.lat_rad * (double)180.0 * M_PI; // Reference point latitude in degrees
-		lpos.ref_lon = _ekf->_posRef.lon_rad * (double)180.0 * M_PI; // Reference point longitude in degrees
+		lpos.ref_lat = _ekf->_posRef.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
+		lpos.ref_lon = _ekf->_posRef.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 		lpos.ref_alt =
 			_ekf->_gps_alt_ref; // Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level
 
