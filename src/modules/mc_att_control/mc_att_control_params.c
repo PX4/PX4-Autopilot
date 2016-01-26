@@ -261,7 +261,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
  * @max 360.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 30.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 45.0f);
 
 /**
  * Max acro roll rate
