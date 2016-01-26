@@ -73,13 +73,12 @@ private:
 
 	uavcan::equipment::hardpoint::Command		_cmd;
 
-	bool						_cmd_set = false;
-
 	void periodic_update(const uavcan::TimerEvent &);
 
 	typedef uavcan::MethodBinder<UavcanHardpointController *, void (UavcanHardpointController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
+	pthread_mutex_t					_node_mutex;
 	/*
 	 * libuavcan related things
 	 */
