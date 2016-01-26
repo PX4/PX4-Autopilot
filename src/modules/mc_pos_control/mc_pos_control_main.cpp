@@ -1360,6 +1360,12 @@ MulticopterPositionControl::task_main()
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
+					// check if we are not already in air.
+					// if yes then we don't need a jumped takeoff anymore
+					if (!_takeoff_jumped && !_vehicle_status.condition_landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON ) {
+						_takeoff_jumped = true;
+					}
+
 					if (!_takeoff_jumped) {
 						// ramp thrust setpoint up
 						if (_vel(2) > -(_params.tko_speed / 2.0f)) {
@@ -1371,6 +1377,7 @@ MulticopterPositionControl::task_main()
 							// into an integral part and into a P part
 							thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
 							thrust_int(2) = -math::constrain(thrust_int(2), _params.thr_min, _params.thr_max);
+							_vel_sp_prev(2) = _vel(2);
 							_takeoff_jumped = true;
 							reset_int_z = false;
 						}
@@ -1378,7 +1385,6 @@ MulticopterPositionControl::task_main()
 
 					if (_takeoff_jumped) {
 						_vel_sp(2) = -_params.tko_speed;
-						_vel_sp_prev(2) = -_params.tko_speed;
 					}
 
 				} else {
