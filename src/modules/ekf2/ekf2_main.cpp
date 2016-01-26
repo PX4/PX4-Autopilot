@@ -166,6 +166,7 @@ private:
 	control::BlockParamFloat *_mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamFloat *_mag_declination_deg;	// magnetic declination in degrees
 	control::BlockParamFloat *_heading_innov_gate;	// innovation gate for heading innovation test
+        control::BlockParamFloat *_mag_innov_gate;	// innovation gate for magnetometer innovation test
 
         control::BlockParamInt *_gps_check_mask;        // bitmasked integer used to activate the different GPS quality checks
         control::BlockParamFloat *_requiredEph;         // maximum acceptable horiz position error (m)
@@ -216,7 +217,8 @@ Ekf2::Ekf2():
 
 	_mag_heading_noise = new control::BlockParamFloat(this, "EKF2_HEAD_NOISE", false, &params->mag_heading_noise);
 	_mag_declination_deg = new control::BlockParamFloat(this, "EKF2_MAG_DECL", false, &params->mag_declination_deg);
-	_heading_innov_gate = new control::BlockParamFloat(this, "EKF2_H_INOV_GATE", false, &params->heading_innov_gate);
+        _heading_innov_gate = new control::BlockParamFloat(this, "EKF2_HDG_GATE", false, &params->heading_innov_gate);
+        _mag_innov_gate = new control::BlockParamFloat(this, "EKF2_MAG_GATE", false, &params->mag_innov_gate);
 
         _gps_check_mask = new control::BlockParamInt(this, "EKF2_GPS_CHECK", false, &params->gps_check_mask);
         _requiredEph = new control::BlockParamFloat(this, "EKF2_REQ_EPH", false, &params->req_hacc);
