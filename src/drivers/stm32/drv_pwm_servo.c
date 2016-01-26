@@ -107,6 +107,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 			channel_mask &= ~(1 << channel);
 		}
 	}
+
 	return OK;
 }
 
