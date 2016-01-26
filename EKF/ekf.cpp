@@ -49,7 +49,6 @@ Ekf::Ekf():
 	_fuse_pos(false),
 	_fuse_hor_vel(false),
 	_fuse_vert_vel(false),
-	_mag_fuse_index(0),
 	_time_last_fake_gps(0),
 	_vel_pos_innov{},
 	_mag_innov{},
@@ -96,8 +95,7 @@ bool Ekf::update()
 
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
 		//fuseHeading();
-		fuseMag(_mag_fuse_index);
-		_mag_fuse_index = (_mag_fuse_index + 1) % 3;
+                fuseMag();
 	}
 
 	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {

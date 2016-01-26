@@ -84,7 +84,8 @@ struct parameters {
 
 	float mag_heading_noise = 3e-2f;	// measurement noise used for simple heading fusion
 	float mag_declination_deg = 0.0f;	// magnetic declination in degrees
-	float heading_innov_gate = 0.5f;	// innovation gate for heading innovation test
+    float heading_innov_gate = 3.0f;	// heading fusion innovation consistency gate size in standard deviations
+    float mag_innov_gate = 3.0f;            // magnetometer fusion innovation consistency gate size in standard deviations
 
     // these parameters control the strictness of GPS quality checks used to determine uf the GPS is
     // good enough to set a local origin and commence aiding
@@ -257,6 +258,8 @@ protected:
 	bool _gps_speed_valid = false;
 
 	bool _mag_healthy = false;		// computed by mag innovation test
+    float _yaw_test_ratio;          // yaw innovation consistency check ratio
+    float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
 
 	bool _in_air = true;			// indicates if the vehicle is in the air
 

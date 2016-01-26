@@ -91,8 +91,6 @@ private:
 	bool _fuse_hor_vel;		// gps horizontal velocity measurement should be fused
 	bool _fuse_vert_vel;	// gps vertical velocity measurement should be fused
 
-	uint8_t _mag_fuse_index;	// counter for sequential mag axis fusion
-
 	uint64_t _time_last_fake_gps;
 
 	Vector3f _earth_rate_NED;
@@ -124,7 +122,7 @@ private:
 
 	void predictCovariance();
 
-	void fuseMag(uint8_t index);
+        void fuseMag();
 
 	void fuseHeading();
 
