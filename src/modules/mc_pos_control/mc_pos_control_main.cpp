@@ -185,6 +185,7 @@ private:
 		param_t man_roll_max;
 		param_t man_pitch_max;
 		param_t man_yaw_max;
+		param_t global_yaw_max;
 		param_t mc_att_yaw_p;
 		param_t hold_xy_dz;
 		param_t hold_z_dz;
@@ -203,6 +204,7 @@ private:
 		float man_roll_max;
 		float man_pitch_max;
 		float man_yaw_max;
+		float global_yaw_max;
 		float mc_att_yaw_p;
 		float hold_xy_dz;
 		float hold_z_dz;
@@ -432,6 +434,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
 	_params_handles.man_pitch_max = param_find("MPC_MAN_P_MAX");
 	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
+	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
 	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
 	_params_handles.hold_z_dz = param_find("MPC_HOLD_Z_DZ");
@@ -547,9 +550,12 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.man_roll_max, &_params.man_roll_max);
 		param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
 		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
+		param_get(_params_handles.global_yaw_max, &_params.global_yaw_max);
 		_params.man_roll_max = math::radians(_params.man_roll_max);
 		_params.man_pitch_max = math::radians(_params.man_pitch_max);
 		_params.man_yaw_max = math::radians(_params.man_yaw_max);
+		_params.global_yaw_max = math::radians(_params.global_yaw_max);
+
 		param_get(_params_handles.mc_att_yaw_p, &v);
 		_params.mc_att_yaw_p = v;
 	}
@@ -1766,14 +1772,19 @@ MulticopterPositionControl::task_main()
 			/* do not move yaw while sitting on the ground */
 			else if (!_vehicle_status.condition_landed &&
 				!(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
-				const float yaw_offset_max = _params.man_yaw_max / _params.mc_att_yaw_p;
 
-				_att_sp.yaw_sp_move_rate = _manual.r * _params.man_yaw_max;
+				/* we want to know the real constraint, and global overrides manual */
+				const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max : _params.global_yaw_max;
+				const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
+
+				_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
 				float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
 				float yaw_offs = _wrap_pi(yaw_target - _yaw);
 
 				// If the yaw offset became too big for the system to track stop
 				// shifting it
+
+				// XXX this needs inspection - probably requires a clamp, not an if
 				if (fabsf(yaw_offs) < yaw_offset_max) {
 					_att_sp.yaw_body = yaw_target;
 				}
