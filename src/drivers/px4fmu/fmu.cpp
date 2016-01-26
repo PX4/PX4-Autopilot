@@ -127,8 +127,8 @@ public:
 	int		set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 	static void	capture_trampoline(void *context, uint32_t chan_index,
-					       hrt_abstime edge_time, uint32_t edge_state,
-					       uint32_t overflow);
+					   hrt_abstime edge_time, uint32_t edge_state,
+					   uint32_t overflow);
 
 private:
 	enum RC_SCAN {
@@ -206,7 +206,7 @@ private:
 					 uint8_t control_index,
 					 float &input);
 	void	capture_callback(uint32_t chan_index,
-					       hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
+				 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 	void		subscribe();
 	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
@@ -429,8 +429,9 @@ PX4FMU::set_mode(Mode mode)
 	case MODE_2PWM2CAP:	// v1 multi-port with flow control lines as PWM
 		up_input_capture_set(2, Rising, 0, NULL, NULL);
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
-			DEVICE_DEBUG("MODE_2PWM2CAP");
-		// no break
+		DEVICE_DEBUG("MODE_2PWM2CAP");
+
+	// no break
 	case MODE_2PWM:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_2PWM");
 
@@ -448,7 +449,8 @@ PX4FMU::set_mode(Mode mode)
 	case MODE_3PWM1CAP:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_3PWM1CAP");
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
-		// no break
+
+	// no break
 	case MODE_3PWM:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_3PWM");
 
@@ -680,16 +682,16 @@ PX4FMU::cycle_trampoline(void *arg)
 
 void
 PX4FMU::capture_trampoline(void *context, uint32_t chan_index,
-	       hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
+			   hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
 	PX4FMU *dev = reinterpret_cast<PX4FMU *>(context);
 	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 
 void PX4FMU::capture_callback(uint32_t chan_index,
-	       hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
+			      hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	fprintf(stdout, "FMU: Capture chan:%d time:%lld state:%d overflow:%d\n", chan_index, edge_time, edge_state,overflow);
+	fprintf(stdout, "FMU: Capture chan:%d time:%lld state:%d overflow:%d\n", chan_index, edge_time, edge_state, overflow);
 }
 void PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
@@ -1583,6 +1585,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			ret = -EINVAL;
 			break;
 		}
+
 	/* FALLTHROUGH */
 	case PWM_SERVO_GET(2):
 		if (_mode < MODE_3PWM) {
@@ -2150,8 +2153,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	input_capture_stats_t *stats = (input_capture_stats_t *)arg;
 
-	if (_mode == MODE_3PWM1CAP || _mode == MODE_2PWM2CAP)
-	{
+	if (_mode == MODE_3PWM1CAP || _mode == MODE_2PWM2CAP) {
 
 		pconfig = (input_capture_config_t *)arg;
 	}
@@ -2159,100 +2161,112 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case INPUT_CAP_SET:
-		if (pconfig)
-		{
+		if (pconfig) {
 			ret =  up_input_capture_set(pconfig->channel, pconfig->edge, pconfig->filter,
-										pconfig->callback, pconfig->context);
+						    pconfig->callback, pconfig->context);
 		}
+
 		break;
 
 	case INPUT_CAP_SET_CALLBACK:
-		if (pconfig)
-		{
+		if (pconfig) {
 			ret =  up_input_capture_set_callback(pconfig->channel, pconfig->callback, pconfig->context);
 		}
+
 		break;
 
 	case INPUT_CAP_GET_CALLBACK:
-		if (pconfig)
-		{
+		if (pconfig) {
 			ret =  up_input_capture_get_callback(pconfig->channel, &pconfig->callback, &pconfig->context);
 		}
+
 		break;
 
 	case INPUT_CAP_GET_STATS:
-		if (arg)
-		{
+		if (arg) {
 			ret =  up_input_capture_get_stats(stats->chan_in_edges_out, stats, false);
 		}
+
 		break;
 
 	case INPUT_CAP_GET_CLR_STATS:
-		if (arg)
-		{
+		if (arg) {
 			ret =  up_input_capture_get_stats(stats->chan_in_edges_out, stats, true);
 		}
+
 		break;
 
 	case INPUT_CAP_SET_EDGE:
-		if (pconfig)
-		{
+		if (pconfig) {
 			ret =  up_input_capture_set_trigger(pconfig->channel, pconfig->edge);
 		}
+
 		break;
 
 	case INPUT_CAP_GET_EDGE:
-		if (pconfig)
-		{
+		if (pconfig) {
 			ret =  up_input_capture_get_trigger(pconfig->channel, &pconfig->edge);
 		}
+
 		break;
+
 	case INPUT_CAP_SET_FILTER:
-		if (pconfig)
-		{
+		if (pconfig) {
 			ret =  up_input_capture_set_filter(pconfig->channel, pconfig->filter);
 		}
+
 		break;
+
 	case INPUT_CAP_GET_FILTER:
-		if (pconfig)
-		{
+		if (pconfig) {
 			ret =  up_input_capture_get_filter(pconfig->channel, &pconfig->filter);
 		}
+
 		break;
 
 	case INPUT_CAP_GET_COUNT:
 		ret = OK;
-		switch(_mode) {
+
+		switch (_mode) {
 		case MODE_3PWM1CAP:
 			*(unsigned *)arg = 1;
-		break;
+			break;
+
 		case MODE_2PWM2CAP:
 			*(unsigned *)arg = 2;
-		break;
+			break;
+
 		default:
 			ret = -EINVAL;
 			break;
 		}
+
 		break;
 
 	case INPUT_CAP_SET_COUNT:
 		ret = OK;
-		switch(_mode) {
+
+		switch (_mode) {
 		case MODE_3PWM1CAP:
 			set_mode(MODE_3PWM1CAP);
-		break;
+			break;
+
 		case MODE_2PWM2CAP:
 			set_mode(MODE_2PWM2CAP);
-		break;
+			break;
+
 		default:
 			ret = -EINVAL;
 			break;
 		}
+
 		break;
+
 	default:
 		ret = -ENOTTY;
 		break;
-		}
+	}
+
 	unlock();
 	return ret;
 }
@@ -2557,24 +2571,29 @@ test(void)
 	}
 
 	if (ioctl(fd, INPUT_CAP_GET_COUNT, (unsigned long)&capture_count) != 0) {
-		fprintf(stdout,"Not in a capture mode\n");
+		fprintf(stdout, "Not in a capture mode\n");
 	}
 
 	warnx("Testing %u servos and %u input captures", (unsigned)servo_count, capture_count);
 	memset(capture_conf, 0, sizeof(capture_conf));
-	if (capture_count !=0 ) {
-		for(unsigned i = 0; i < capture_count; i++) {
+
+	if (capture_count != 0) {
+		for (unsigned i = 0; i < capture_count; i++) {
 			// Map to channel number
-			capture_conf[i].chan.channel = i+ servo_count;
+			capture_conf[i].chan.channel = i + servo_count;
+
 			/* Save handler */
 			if (ioctl(fd, INPUT_CAP_GET_CALLBACK, (unsigned long)&capture_conf[i].chan.channel) != 0) {
 				err(1, "Unable to get capture callback for chan %u\n", capture_conf[i].chan.channel);
+
 			} else {
 				input_capture_config_t conf = capture_conf[i].chan;
 				conf.callback = &PX4FMU::capture_trampoline;
 				conf.context = g_fmu;
+
 				if (ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&conf) == 0) {
 					capture_conf[i].valid = true;
+
 				} else {
 					err(1, "Unable to set capture callback for chan %u\n", capture_conf[i].chan.channel);
 				}
@@ -2584,7 +2603,9 @@ test(void)
 	}
 
 	struct pollfd fds;
+
 	fds.fd = 0; /* stdin */
+
 	fds.events = POLLIN;
 
 	warnx("Press CTRL-C or 'c' to abort.");
@@ -2643,26 +2664,30 @@ test(void)
 				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
 			}
 		}
-		if (capture_count !=0 && (++rate_limit % 500 == 0)) {
-			for(unsigned i = 0; i < capture_count; i++) {
+
+		if (capture_count != 0 && (++rate_limit % 500 == 0)) {
+			for (unsigned i = 0; i < capture_count; i++) {
 				if (capture_conf[i].valid) {
 					input_capture_stats_t stats;
 					stats.chan_in_edges_out = capture_conf[i].chan.channel;
+
 					if (ioctl(fd, INPUT_CAP_GET_STATS, (unsigned long)&stats) != 0) {
 						err(1, "Unable to get stats for chan %u\n", capture_conf[i].chan.channel);
+
 					} else {
 						fprintf(stdout, "FMU: Status chan:%u edges: %d last time:%lld last state:%d overflows:%d lantency:%u\n",
-								capture_conf[i].chan.channel,
-								stats.chan_in_edges_out,
-								stats.last_time,
-								stats.last_edge,
-								stats.overflows,
-								stats.latnecy);
+							capture_conf[i].chan.channel,
+							stats.chan_in_edges_out,
+							stats.last_time,
+							stats.last_edge,
+							stats.overflows,
+							stats.latnecy);
 					}
 				}
 			}
 
 		}
+
 		/* Check if user wants to quit */
 		char c;
 		ret = poll(&fds, 1, 0);
@@ -2678,11 +2703,11 @@ test(void)
 		}
 	}
 
-	if (capture_count !=0 ) {
-		for(unsigned i = 0; i < capture_count; i++) {
+	if (capture_count != 0) {
+		for (unsigned i = 0; i < capture_count; i++) {
 			// Map to channel number
 			if (capture_conf[i].valid) {
-			/* Save handler */
+				/* Save handler */
 				if (ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&capture_conf[i].chan) != 0) {
 					err(1, "Unable to set capture callback for chan %u\n", capture_conf[i].chan.channel);
 				}
@@ -2774,12 +2799,16 @@ fmu_main(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "mode_pwm4")) {
 		new_mode = PORT_PWM4;
+
 	} else if (!strcmp(verb, "mode_pwm2")) {
 		new_mode = PORT_PWM2;
+
 	} else if (!strcmp(verb, "mode_pwm3")) {
 		new_mode = PORT_PWM3;
+
 	} else if (!strcmp(verb, "mode_pwm3cap1")) {
 		new_mode = PORT_PWM3CAP1;
+
 	} else if (!strcmp(verb, "mode_pwm2cap2")) {
 		new_mode = PORT_PWM2CAP2;
 #endif

@@ -300,6 +300,7 @@ int io_timer_get_mode_channels(io_timer_channel_mode_t mode)
 	if (mode < IOTimerChanModeSize) {
 		return channel_allocations[mode];
 	}
+
 	return 0;
 }
 
@@ -671,7 +672,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 		} else 	{
 
-				rCR1(actions) = 0;
+			rCR1(actions) = 0;
 		}
 
 		irqrestore(flags);

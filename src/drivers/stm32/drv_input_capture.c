@@ -154,7 +154,9 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 	if (edge > Both) {
 		return -EINVAL;
 	}
+
 	int rv = io_timer_validate_channel_index(channel);
+
 	if (rv == 0) {
 		if (edge == Disabled) {
 
@@ -176,20 +178,24 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 			}
 
 			rv = up_input_capture_set_filter(channel, filter);
+
 			if (rv == 0) {
 				rv = up_input_capture_set_trigger(channel, edge);
+
 				if (rv == 0) {
 					rv = io_timer_set_enable(true, IOTimerChanMode_Capture, 1 << channel);
 				}
 			}
 		}
 	}
+
 	return rv;
 }
 
 int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter)
 {
 	int rv = io_timer_validate_channel_index(channel);
+
 	if (rv == 0) {
 
 		rv = -ENXIO;
@@ -201,6 +207,7 @@ int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter)
 			uint32_t timer = timer_io_channels[channel].timer_index;
 			uint16_t rvalue;
 			rv = OK;
+
 			switch (timer_io_channels[channel].timer_channel) {
 
 			case 1:
@@ -228,6 +235,7 @@ int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter)
 			}
 		}
 	}
+
 	return rv;
 }
 int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
@@ -237,6 +245,7 @@ int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
 	}
 
 	int rv = io_timer_validate_channel_index(channel);
+
 	if (rv == 0) {
 
 		rv = -ENXIO;
@@ -280,15 +289,18 @@ int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
 			default:
 				rv = -EIO;
 			}
+
 			irqrestore(flags);
 		}
 	}
+
 	return rv;
 }
 
 int up_input_capture_get_trigger(unsigned channel,  input_capture_edge *edge)
 {
 	int rv = io_timer_validate_channel_index(channel);
+
 	if (rv == 0) {
 
 		rv = -ENXIO;
@@ -301,6 +313,7 @@ int up_input_capture_get_trigger(unsigned channel,  input_capture_edge *edge)
 
 			uint32_t timer = timer_io_channels[channel].timer_index;
 			uint16_t rvalue;
+
 			switch (timer_io_channels[channel].timer_channel) {
 
 			case 1:
@@ -325,29 +338,35 @@ int up_input_capture_get_trigger(unsigned channel,  input_capture_edge *edge)
 			default:
 				rv = -EIO;
 			}
+
 			if (rv == 0) {
-				switch(rvalue) {
+				switch (rvalue) {
 
 				case 0:
 					*edge = Rising;
 					break;
+
 				case (GTIM_CCER_CC1P | GTIM_CCER_CC1NP):
 					*edge = Both;
 					break;
+
 				case (GTIM_CCER_CC1P):
 					*edge = Falling;
 					break;
+
 				default:
 					rv = -EIO;
 				}
 			}
 		}
 	}
+
 	return rv;
 }
 int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 {
 	int rv = io_timer_validate_channel_index(channel);
+
 	if (rv == 0) {
 
 		rv = -ENXIO;
@@ -417,15 +436,18 @@ int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 			default:
 				rv = -EIO;
 			}
+
 			irqrestore(flags);
 		}
 	}
+
 	return rv;
 }
 
 int up_input_capture_get_callback(unsigned channel, capture_callback_t *callback, void **context)
 {
 	int rv = io_timer_validate_channel_index(channel);
+
 	if (rv == 0) {
 
 		rv = -ENXIO;
@@ -441,6 +463,7 @@ int up_input_capture_get_callback(unsigned channel, capture_callback_t *callback
 			rv = OK;
 		}
 	}
+
 	return rv;
 
 }
@@ -448,6 +471,7 @@ int up_input_capture_get_callback(unsigned channel, capture_callback_t *callback
 int up_input_capture_set_callback(unsigned channel, capture_callback_t callback, void *context)
 {
 	int rv = io_timer_validate_channel_index(channel);
+
 	if (rv == 0) {
 
 		rv = -ENXIO;
@@ -459,19 +483,24 @@ int up_input_capture_set_callback(unsigned channel, capture_callback_t callback,
 			rv = 0;
 		}
 	}
+
 	return rv;
 }
 
 int up_input_capture_get_stats(unsigned channel, input_capture_stats_t *stats, bool clear)
 {
 	int rv = io_timer_validate_channel_index(channel);
+
 	if (rv == 0) {
 		irqstate_t flags = irqsave();
 		*stats =  channel_stats[channel];
+
 		if (clear) {
 			memset(&channel_stats[channel], 0, sizeof(*stats));
 		}
+
 		irqrestore(flags);
 	}
+
 	return rv;
 }
