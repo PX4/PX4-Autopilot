@@ -694,26 +694,22 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 	dm_item_t dm_item;
 
 	struct mission_s *mission = (onboard) ? &_onboard_mission : &_offboard_mission;
-	int index_to_read = (onboard) ? _current_onboard_mission_index : _current_offboard_mission_index;
+	int current_index = (onboard) ? _current_onboard_mission_index : _current_offboard_mission_index;
+	int index_to_read = current_index + offset;
 
 	/* do not work on empty missions */
 	if (mission->count == 0) {
 		return false;
 	}
 
-	/* move to next item if there is one */
-	if (index_to_read + offset < ((int)mission->count - 1)) {
-		index_to_read += offset;
-	}
-
-	mission_index_ptr = &index_to_read;
-
 	if (onboard) {
 		/* onboard mission */
+		mission_index_ptr = (offset == 0) ? &_current_onboard_mission_index : &index_to_read;
 		dm_item = DM_KEY_WAYPOINTS_ONBOARD;
 
 	} else {
 		/* offboard mission */
+		mission_index_ptr = (offset == 0) ? &_current_offboard_mission_index : &index_to_read;
 		dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 	}
 
@@ -749,7 +745,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 			if (mission_item_tmp.do_jump_current_count < mission_item_tmp.do_jump_repeat_count) {
 
 				/* only raise the repeat count if this is for the current mission item
-				* but not for the next mission item */
+				* but not for the read ahead mission item */
 				if (offset == 0) {
 					(mission_item_tmp.do_jump_current_count)++;
 					/* save repeat count */
