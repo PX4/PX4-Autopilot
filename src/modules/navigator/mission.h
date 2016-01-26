@@ -136,11 +136,14 @@ private:
 
 	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
 
+	bool prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
+		struct mission_item_s *next_mission_item, bool *has_next_item);
+
 	/**
 	 * Read current or next mission item from the dataman and watch out for DO_JUMPS
 	 * @return true if successful
 	 */
-	bool read_mission_item(bool onboard, bool is_current, struct mission_item_s *mission_item);
+	bool read_mission_item(bool onboard, int offset, struct mission_item_s *mission_item);
 
 	/**
 	 * Save current offboard mission state to dataman
@@ -204,6 +207,15 @@ private:
 	float _on_arrival_yaw; /**< holds the yaw value that should be applied when the current waypoint is reached */
 	float _distance_current_previous; /**< distance from previous to current sp in pos_sp_triplet,
 					    only use if current and previous are valid */
+
+	enum {
+		WORK_ITEM_TYPE_DEFAULT,
+		WORK_ITEM_TYPE_TAKEOFF,
+		WORK_ITEM_TYPE_LAND,
+		WORK_ITEM_TYPE_TRANSITION,
+		WORK_ITEM_TYPE_YAW
+	} _work_item_type;		/**< current type of work to do, intermediate to complete mission item */
+
 };
 
 #endif

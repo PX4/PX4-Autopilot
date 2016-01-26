@@ -40,6 +40,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Ban Siesta <bansiesta@gmail.com>
  * @author Simon Wilks <simon@uaventure.com>
+ * @author Andreas Antener <andreas@uaventure.com>
  */
 
 #include <sys/types.h>
@@ -84,7 +85,8 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_min_current_sp_distance_xy(FLT_MAX),
 	_mission_item_previous_alt(NAN),
   	_on_arrival_yaw(NAN),
-	_distance_current_previous(0.0f)
+	_distance_current_previous(0.0f),
+	_work_item_type(WORK_ITEM_TYPE_DEFAULT)
 {
 	/* load initial params */
 	updateParams();
@@ -338,8 +340,12 @@ Mission::set_mission_items()
 	/* the home dist check provides user feedback, so we initialize it to this */
 	bool user_feedback_done = false;
 
+	/* mission item that comes after current if available */
+	struct mission_item_s mission_item_next;
+	bool has_next_item = false;
+
 	/* try setting onboard mission item */
-	if (_param_onboard_enabled.get() && read_mission_item(true, true, &_mission_item)) {
+	if (_param_onboard_enabled.get() && prepare_mission_items(true, &_mission_item, &mission_item_next, &has_next_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "onboard mission now running");
@@ -348,7 +354,7 @@ Mission::set_mission_items()
 		_mission_type = MISSION_TYPE_ONBOARD;
 
 	/* try setting offboard mission item */
-	} else if (read_mission_item(false, true, &_mission_item)) {
+	} else if (prepare_mission_items(false, &_mission_item, &mission_item_next, &has_next_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "offboard mission now running");
@@ -401,6 +407,12 @@ Mission::set_mission_items()
 		}
 
 		_navigator->set_position_setpoint_triplet_updated();
+		return;
+	}
+
+	if (!item_contains_position(&_mission_item)) {
+		// XXX: before issuing command, check if we need to align for transition first
+		issue_command(&_mission_item);
 		return;
 	}
 
@@ -494,10 +506,9 @@ Mission::set_mission_items()
 	// TODO: report onboard mission item somehow
 
 	if (_mission_item.autocontinue && _mission_item.time_inside <= 0.001f) {
-		/* try to read next mission item */
-		struct mission_item_s mission_item_next;
+		/* try to process next mission item */
 
-		if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
+		if (has_next_item) {
 			/* got next mission item, update setpoint triplet */
 			mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
 		} else {
@@ -650,14 +661,40 @@ Mission::altitude_sp_foh_reset()
 }
 
 bool
-Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s *mission_item)
+Mission::prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
+	struct mission_item_s *next_mission_item, bool *has_next_item)
+{
+	bool first_res = false;
+	int offset = 1;
+
+	if (read_mission_item(onboard, 0, mission_item)) {
+		
+		first_res = true;
+
+		/* trying to find next position mission item */
+		while(read_mission_item(onboard, offset, next_mission_item)) {
+
+			if (item_contains_position(next_mission_item)) {
+				*has_next_item = true;
+				break;
+			}
+
+			offset++;
+		}
+	}
+
+	return first_res;
+}
+
+bool
+Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *mission_item)
 {
 	/* select onboard/offboard mission */
 	int *mission_index_ptr;
 	dm_item_t dm_item;
 
 	struct mission_s *mission = (onboard) ? &_onboard_mission : &_offboard_mission;
-	int mission_index_next = (onboard) ? _current_onboard_mission_index : _current_offboard_mission_index;
+	int index_to_read = (onboard) ? _current_onboard_mission_index : _current_offboard_mission_index;
 
 	/* do not work on empty missions */
 	if (mission->count == 0) {
@@ -665,18 +702,18 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 	}
 
 	/* move to next item if there is one */
-	if (mission_index_next < ((int)mission->count - 1)) {
-		mission_index_next++;
+	if (index_to_read + offset < ((int)mission->count - 1)) {
+		index_to_read += offset;
 	}
+
+	mission_index_ptr = &index_to_read;
 
 	if (onboard) {
 		/* onboard mission */
-		mission_index_ptr = is_current ? &_current_onboard_mission_index : &mission_index_next;
 		dm_item = DM_KEY_WAYPOINTS_ONBOARD;
 
 	} else {
 		/* offboard mission */
-		mission_index_ptr = is_current ? &_current_offboard_mission_index : &mission_index_next;
 		dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 	}
 
@@ -713,7 +750,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 
 				/* only raise the repeat count if this is for the current mission item
 				* but not for the next mission item */
-				if (is_current) {
+				if (offset == 0) {
 					(mission_item_tmp.do_jump_current_count)++;
 					/* save repeat count */
 					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_POWER_ON_RESET,
@@ -732,7 +769,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 				*mission_index_ptr = mission_item_tmp.do_jump_mission_index;
 
 			} else {
-				if (is_current) {
+				if (offset == 0) {
 					mavlink_log_critical(_navigator->get_mavlink_fd(),
 							     "DO JUMP repetitions completed");
 				}
