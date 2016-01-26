@@ -398,6 +398,7 @@ void Ekf2Replay::task_main()
 					publishSensorData();
 					_read_part1 = _read_part2 = false;
 					// TODO: Make this variable
+
 					usleep(2000);
 				}
 			}
