@@ -110,6 +110,7 @@
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
 #include <uORB/topics/ekf2_innovations.h>
+#include <uORB/topics/ekf2_replay.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1098,6 +1099,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
 		struct control_state_s ctrl_state;
 		struct ekf2_innovations_s innovations;
+		struct ekf2_replay_s replay;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1149,6 +1151,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_CTS_s log_CTS;
 			struct log_EST4_s log_INO1;
 			struct log_EST5_s log_INO2;
+			struct log_RPL1_s log_RPL1;
+			struct log_RPL2_s log_RPL2;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1194,6 +1198,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int mc_att_ctrl_status_sub;
 		int ctrl_state_sub;
 		int innov_sub;
+		int replay_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1231,6 +1236,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.ctrl_state_sub = -1;
 	subs.encoders_sub = -1;
 	subs.innov_sub = -1;
+	subs.replay_sub = -1;
 
 	/* add new topics HERE */
 
@@ -1328,6 +1334,42 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
+
+		/* --- EKF2 REPLAY --- */
+		if(copy_if_updated(ORB_ID(ekf2_replay), &subs.replay_sub, &buf.replay)) {
+			log_msg.msg_type = LOG_RPL1_MSG;
+			log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
+			log_msg.body.log_RPL1.gyro_integral_dt = buf.replay.gyro_integral_dt;
+			log_msg.body.log_RPL1.accelerometer_integral_dt = buf.replay.accelerometer_integral_dt;
+			log_msg.body.log_RPL1.magnetometer_timestamp = buf.replay.magnetometer_timestamp;
+			log_msg.body.log_RPL1.baro_timestamp = buf.replay.baro_timestamp;
+			log_msg.body.log_RPL1.gyro_integral_x_rad = buf.replay.gyro_integral_rad[0];
+			log_msg.body.log_RPL1.gyro_integral_y_rad = buf.replay.gyro_integral_rad[1];
+			log_msg.body.log_RPL1.gyro_integral_z_rad = buf.replay.gyro_integral_rad[2];
+			log_msg.body.log_RPL1.accelerometer_integral_x_m_s = buf.replay.accelerometer_integral_m_s[0];
+			log_msg.body.log_RPL1.accelerometer_integral_y_m_s = buf.replay.accelerometer_integral_m_s[0];
+			log_msg.body.log_RPL1.accelerometer_integral_z_m_s = buf.replay.accelerometer_integral_m_s[0];
+			log_msg.body.log_RPL1.magnetometer_x_ga = buf.replay.magnetometer_ga[0];
+			log_msg.body.log_RPL1.magnetometer_y_ga = buf.replay.magnetometer_ga[1];
+			log_msg.body.log_RPL1.magnetometer_z_ga = buf.replay.magnetometer_ga[2];
+			log_msg.body.log_RPL1.baro_alt_meter = buf.replay.baro_alt_meter;
+			LOGBUFFER_WRITE_AND_COUNT(RPL1);
+			log_msg.msg_type = LOG_RPL2_MSG;
+			log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
+			log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
+			log_msg.body.log_RPL2.lat = buf.replay.lat;
+			log_msg.body.log_RPL2.lon = buf.replay.lon;
+			log_msg.body.log_RPL2.alt = buf.replay.alt;
+			log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
+			log_msg.body.log_RPL2.eph = buf.replay.eph;
+			log_msg.body.log_RPL2.epv = buf.replay.epv;
+			log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
+			log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
+			log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
+			log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
+			log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
+			LOGBUFFER_WRITE_AND_COUNT(RPL2);
+		}	
 
 		/* --- VTOL VEHICLE STATUS --- */
 		if(copy_if_updated(ORB_ID(vtol_vehicle_status), &subs.vtol_status_sub, &buf.vtol_status)) {
