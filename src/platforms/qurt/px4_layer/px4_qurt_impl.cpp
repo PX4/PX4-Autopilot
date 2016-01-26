@@ -165,6 +165,7 @@ static void block_indefinite(void)
 	}
 }
 
+
 int fprintf(FILE *stream, const char *format, ...)
 {
 	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
@@ -177,14 +178,151 @@ int fputc(int c, FILE *stream)
 	return c;
 }
 
-int fprintf(FILE *stream, const char *format, ...)
-{
-	return 0;
-}
-
-int fputc(int c, FILE *stream)
-{
-	return c;
-}
-
+FILE _Stdin;
+FILE _Stdout;
 FILE _Stderr;
+
+static void block_indefinite(void)
+{
+	for (;;) {
+		volatile int x = 0;
+		++x;
+	}
+}
+
+int ungetc(int c, FILE *stream)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+
+int fgetc(FILE *stream)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+
+int fseek(FILE *stream, long offset, int whence)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+
+int fgetpos(FILE *stream, fpos_t *pos)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+int fsetpos(FILE *stream, const fpos_t *pos)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+
+int setvbuf(FILE *stream, char *buf, int mode, size_t size)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+
+#include <wchar.h>
+
+wint_t fputwc(wchar_t wc, FILE *stream)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+
+wint_t ungetwc(wint_t wc, FILE *stream)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+
+wint_t fgetwc(FILE *stream)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+
+#include <stdlib.h>
+
+size_t _Getmbcurmax()
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return 2;
+}
+
+#include <ctype.h>
+
+_Ctype_t _Getptolower(void)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return nullptr;
+}
+
+_Ctype_t _Getptoupper(void)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return nullptr;
+}
+
+#include <xwchar.h>
+
+_Statab *_Getpmbstate(void)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return nullptr;
+}
+
+_Statab *_Getpwcstate(void)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return nullptr;
+}
+
+int _Mbtowcx(wchar_t *, const char *, size_t, mbstate_t *, _Statab *)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return -1;
+}
+
+int _Wctombx(char *, wchar_t, mbstate_t *, _Statab *, _Statab *)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	return -1;
+}
+
+void _Locksyslock(int x)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+}
+
+void _Unlocksyslock(int x)
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+}
+
+void _Atexit(void (*)(void))
+{
+	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+}
+
