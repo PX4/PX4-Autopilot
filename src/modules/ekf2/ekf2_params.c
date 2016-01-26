@@ -288,8 +288,15 @@ PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 3e-2f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
 
 /**
- * Gate for maginetic heading fusion
+ * Gate size for magnetic heading fusion (standard deviations)
  *
  * @group EKF2
  */
-PARAM_DEFINE_FLOAT(EKF2_H_INOV_GATE, 0.5f);
+PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 3.0f);
+
+/**
+ * Gate size for magnetometer XYZ component fusion (standard deviations)
+ *
+ * @group EKF2
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
