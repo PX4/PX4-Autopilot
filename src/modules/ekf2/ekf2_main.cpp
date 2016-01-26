@@ -338,6 +338,7 @@ void Ekf2::task_main()
 
 		// Use the control model data to determine if the motors are armed as a surrogate for an on-ground vs in-air status
 		// TODO implement a global vehicle on-ground/in-air check
+		// XXX: Look at the land_detection module!
 		orb_check(_control_mode_sub, &control_mode_updated);
 
 		if (control_mode_updated) {
@@ -443,8 +444,8 @@ void Ekf2::task_main()
 		// Position of local NED origin in GPS / WGS84 frame
 		struct map_projection_reference_s ekf_origin = {};
 		_ekf->get_ekf_origin(&lpos.ref_timestamp, &ekf_origin, &lpos.ref_alt);
-		lpos.xy_global =
-			_ekf->position_is_valid();          // true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
+		// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
+		lpos.xy_global = _ekf->position_is_valid();
 		lpos.z_global = true;                                // true if z is valid and has valid global reference (ref_alt)
 		lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
 		lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
