@@ -339,7 +339,7 @@ public:
 
 	int 			get_socket_fd () { return _socket_fd; };
 #ifdef __PX4_POSIX
-	struct sockaddr_in * get_client_source_address() {return &_src_addr;};
+	struct sockaddr_in *	get_client_source_address() {return &_src_addr;};
 
 	void			set_client_source_initialized() { _src_addr_initialized = true; };
 
@@ -416,6 +416,7 @@ private:
 	bool			_flow_control_enabled;
 	uint64_t		_last_write_success_time;
 	uint64_t		_last_write_try_time;
+	uint64_t		_mavlink_start_time;
 
 	unsigned		_bytes_tx;
 	unsigned		_bytes_txerr;

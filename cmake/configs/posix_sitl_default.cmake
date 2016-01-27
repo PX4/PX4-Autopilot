@@ -34,6 +34,7 @@ set(config_module_list
 	modules/mavlink
 	modules/attitude_estimator_ekf
 	modules/attitude_estimator_q
+	modules/ekf2
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/navigator
