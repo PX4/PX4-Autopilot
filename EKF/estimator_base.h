@@ -231,8 +231,6 @@ protected:
 	float _dt_imu_avg;
 	uint64_t _imu_time_last;
 
-	uint64_t _last_valid_gps_time_us;
-
 	imuSample _imu_sample_delayed;
 	imuSample _imu_down_sampled;
 	Quaternion
