@@ -1377,7 +1377,7 @@ MulticopterPositionControl::task_main()
 							// into an integral part and into a P part
 							thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
 							thrust_int(2) = -math::constrain(thrust_int(2), _params.thr_min, _params.thr_max);
-							_vel_sp_prev(2) = _vel(2);
+							_vel_sp_prev(2) = -_params.tko_speed;
 							_takeoff_jumped = true;
 							reset_int_z = false;
 						}
@@ -1472,7 +1472,7 @@ MulticopterPositionControl::task_main()
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
 
 					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-							&& !_takeoff_jumped) {
+							&& !_takeoff_jumped && !_control_mode.flag_control_manual_enabled) {
 						// for jumped takeoffs use special thrust setpoint calculated above
 						thrust_sp.zero();
 						thrust_sp(2) = -_takeoff_thrust_sp;
