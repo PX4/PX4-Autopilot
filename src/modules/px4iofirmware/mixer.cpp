@@ -418,7 +418,7 @@ mixer_callback(uintptr_t handle,
  * not loaded faithfully.
  */
 
-static char mixer_text[256];		/* large enough for one mixer */
+static char mixer_text[200];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
 
 int
