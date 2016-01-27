@@ -51,7 +51,7 @@ static void testSocketRxTx(const std::string& iface_name)
     if1.poll(true, true);
     if1.poll(true, true);
     ENFORCE(0 == if1.getErrorCount());
-    ENFORCE(!if1.hasPendingTx());
+    ENFORCE(!if1.hasReadyTx());
     ENFORCE(if1.hasReadyRx());       // Second loopback
 
     /*
@@ -63,7 +63,7 @@ static void testSocketRxTx(const std::string& iface_name)
     if2.poll(true, true);
     if2.poll(true, true);
     ENFORCE(1 == if2.getErrorCount());  // One timed out
-    ENFORCE(!if2.hasPendingTx());
+    ENFORCE(!if2.hasReadyTx());
     ENFORCE(if2.hasReadyRx());
 
     /*
@@ -101,7 +101,7 @@ static void testSocketRxTx(const std::string& iface_name)
     ENFORCE((clock.getUtc() - ts_utc).getAbs().toMSec() < 10);
 
     ENFORCE(0 == if1.receive(frame, ts_mono, ts_utc, flags));
-    ENFORCE(!if1.hasPendingTx());
+    ENFORCE(!if1.hasReadyTx());
     ENFORCE(!if1.hasReadyRx());
 
     /*
@@ -126,7 +126,7 @@ static void testSocketRxTx(const std::string& iface_name)
     ENFORCE((clock.getUtc() - ts_utc).getAbs().toMSec() < 10);
 
     ENFORCE(0 == if2.receive(frame, ts_mono, ts_utc, flags));
-    ENFORCE(!if2.hasPendingTx());
+    ENFORCE(!if2.hasReadyTx());
     ENFORCE(!if2.hasReadyRx());
 }
 
@@ -182,7 +182,7 @@ static void testSocketFilters(const std::string& iface_name)
         if1.poll(true, true);
         if2.poll(true, false);
     }
-    ENFORCE(!if1.hasPendingTx());
+    ENFORCE(!if1.hasReadyTx());
     ENFORCE(!if1.hasReadyRx());
     ENFORCE(0 == if1.getErrorCount());
     ENFORCE(if2.hasReadyRx());
@@ -290,7 +290,7 @@ static void testDriver(const std::vector<std::string>& iface_names)
         ENFORCE((clock.getMonotonic() - ts_mono).getAbs().toMSec() < 10);
         ENFORCE((clock.getUtc() - ts_utc).getAbs().toMSec() < 10);
 
-        ENFORCE(!driver.getIface(i)->hasPendingTx());
+        ENFORCE(!driver.getIface(i)->hasReadyTx());
         ENFORCE(!driver.getIface(i)->hasReadyRx());
     }
 

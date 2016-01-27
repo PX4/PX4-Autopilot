@@ -268,7 +268,7 @@ class SocketCanIface : public uavcan::ICanIface
 
     void pollWrite()
     {
-        while (!tx_queue_.empty() && (frames_in_socket_tx_queue_ < max_frames_in_socket_tx_queue_))
+        while (hasReadyTx())
         {
             const TxItem tx = tx_queue_.top();
 
@@ -437,8 +437,11 @@ public:
         }
     }
 
-    bool hasPendingTx() const { return !tx_queue_.empty(); }
-    bool hasReadyRx()   const { return !rx_queue_.empty(); }
+    bool hasReadyRx() const { return !rx_queue_.empty(); }
+    bool hasReadyTx() const
+    {
+        return !tx_queue_.empty() && (frames_in_socket_tx_queue_ < max_frames_in_socket_tx_queue_);
+    }
 
     std::int16_t configureFilters(const uavcan::CanFilterConfig* const filter_configs,
                                   const std::uint16_t num_configs) override
@@ -618,7 +621,7 @@ public:
             for (unsigned i = 0; i < num_ifaces_; i++)
             {
                 pollfds_[i].events = POLLIN;
-                if (ifaces_[i]->hasPendingTx() || (inout_masks.write & (1 << i)))
+                if (ifaces_[i]->hasReadyTx() || (inout_masks.write & (1 << i)))
                 {
                     pollfds_[i].events |= POLLOUT;
                 }
