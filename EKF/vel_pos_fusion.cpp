@@ -44,7 +44,9 @@
 void Ekf::fuseVelPosHeight()
 {
 	bool fuse_map[6] = {};
-	float R[6] = {};
+    bool innov_check_pass_map[6] = {};
+    float R[6] = {};
+    float gate_size[6] = {};
 	float Kfusion[24] = {};
 
 	// calculate innovations
@@ -54,13 +56,16 @@ void Ekf::fuseVelPosHeight()
 		_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
 		R[0] = _params.gps_vel_noise;
 		R[1] = _params.gps_vel_noise;
-	}
+        gate_size[0] = fmaxf(_params.velNE_innov_gate, 1.0f);
+        gate_size[1] = gate_size[0];
+    }
 
 	if (_fuse_vert_vel) {
 		fuse_map[2] = true;
 		_vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
 		R[2] = _params.gps_vel_noise;
-	}
+        gate_size[2] = fmaxf(_params.velD_innov_gate, 1.0f);
+    }
 
 	if (_fuse_pos) {
 		fuse_map[3] = fuse_map[4] = true;
@@ -68,32 +73,45 @@ void Ekf::fuseVelPosHeight()
 		_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
 		R[3] = _params.gps_pos_noise;
 		R[4] = _params.gps_pos_noise;
-
+        gate_size[3] = fmaxf(_params.posNE_innov_gate, 1.0f);
+        gate_size[4] = gate_size[3];
 	}
 
 	if (_fuse_height) {
 		fuse_map[5] = true;
 		_vel_pos_innov[5] = _state.pos(2) - (-_baro_sample_delayed.hgt);		// baro measurement has inversed z axis
 		R[5] = _params.baro_noise;
-	}
+        gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
+    }
 
-	// XXX Do checks here
+    // calculate innovation test ratios
+    for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
+        if (fuse_map[obs_index]) {
+            // compute the innovation variance SK = HPH + R
+            unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
+            _vel_pos_innov_var[obs_index] = P[state_index][state_index] + R[obs_index];
+            // Compute the ratio of innovation to gate size
+            _vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) * _vel_pos_innov[obs_index]);
+        }
+    }
 
-	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
-		if (!fuse_map[obs_index]) {
+    // check position, velocity and height innovations
+    // treat 3D velocity, 2D position and height as separate sensors
+    innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f) && (_vel_pos_test_ratio[2] <= 1.0f);
+    innov_check_pass_map[4] = innov_check_pass_map[3] = (_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f);
+    innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f);
+
+    for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
+        // skip fusion if not requested or checks have failed
+        if (!fuse_map[obs_index] || !innov_check_pass_map[obs_index]) {
 			continue;
 		}
 
 		unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
 
-		// compute the innovation variance SK = HPH + R
-		float S = P[state_index][state_index] + R[obs_index];
-		_vel_pos_innov_var[obs_index] = S;
-		S = 1.0f / S;
-
-		// calculate kalman gain K = PHS
+        // calculate kalman gain K = PHS, where S = 1/innovation variance
 		for (int row = 0; row < 24; row++) {
-			Kfusion[row] = P[row][state_index] * S;
+            Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
 		}
 
 		// by definition the angle error state is zero at the fusion time

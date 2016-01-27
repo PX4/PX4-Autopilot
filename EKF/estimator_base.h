@@ -81,11 +81,15 @@ struct parameters {
 	float gps_vel_noise = 0.05f;
 	float gps_pos_noise = 1.0f;
 	float baro_noise = 0.1f;
+    float baro_innov_gate = 5.0f;       // barometer fusion innovation consistency gate size in standard deviations
+    float velD_innov_gate = 5.0f;       // Vertical velocity fusion innovation consistency gate size in standard deviations
+    float posNE_innov_gate = 5.0f;      // Horizontal position innovation consistency gate size in standard deviations
+    float velNE_innov_gate = 5.0f;      // Horizontal velocity fusion innovation consistency gate size in standard deviations
 
 	float mag_heading_noise = 3e-2f;	// measurement noise used for simple heading fusion
 	float mag_declination_deg = 0.0f;	// magnetic declination in degrees
     float heading_innov_gate = 3.0f;	// heading fusion innovation consistency gate size in standard deviations
-    float mag_innov_gate = 3.0f;            // magnetometer fusion innovation consistency gate size in standard deviations
+    float mag_innov_gate = 3.0f;        // magnetometer fusion innovation consistency gate size in standard deviations
 
     // these parameters control the strictness of GPS quality checks used to determine uf the GPS is
     // good enough to set a local origin and commence aiding
@@ -261,7 +265,9 @@ protected:
     float _yaw_test_ratio;          // yaw innovation consistency check ratio
     float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
 
-	bool _in_air = true;			// indicates if the vehicle is in the air
+    float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
+
+    bool _in_air = true;			// indicates if the vehicle is in the air
 
 	RingBuffer<imuSample> _imu_buffer;
 	RingBuffer<gpsSample> _gps_buffer;
