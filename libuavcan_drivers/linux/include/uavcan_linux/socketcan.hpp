@@ -607,6 +607,12 @@ public:
 /**
  * Multiplexing container for multiple SocketCAN sockets.
  * Uses ppoll() for multiplexing.
+ *
+ * When an interface becomes down/disconnected while the node is running,
+ * the driver will silently exclude it from the IO loop and continue to run on the remaining interfaces.
+ * When all interfaces become down/disconnected, the driver will throw @ref AllIfacesDownException
+ * from @ref SocketCanDriver::select().
+ * Whether a certain interface is down can be checked with @ref SocketCanDriver::isIfaceDown().
  */
 class SocketCanDriver : public uavcan::ICanDriver
 {
