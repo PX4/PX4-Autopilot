@@ -44,7 +44,7 @@ Options:
       want to affect all added interfaces, provide this option first (see
       examples below).
 
-  --baudrate <X> (where X is an integer, default: 3000000)
+  --baudrate <X> (where X is an integer, default: 921600)
   -S<X>
       Configure baud rate to use on the interface.
       This option is mostly irrelevant for USB to CAN adapters.
@@ -53,7 +53,7 @@ Example 1:
     `basename $0` --remove-all /dev/ttyUSB3 --basename can --baudrate 115200 \\
                      /dev/ttyUSB0 --speed-code 4 /dev/ttyACM0
 The example above initializes the interfaces as follows:
-    /dev/ttyUSB3  -->   slcan0     1 Mbps          baudrate 3000000
+    /dev/ttyUSB3  -->   slcan0     1 Mbps          baudrate 921600
     /dev/ttyUSB0  -->   can0       1 Mbps          baudrate 115200
     /dev/ttyACM0  -->   can1       125 kbps        baudrate 115200
 
@@ -125,7 +125,7 @@ function handle_tty() {
 
 IFACE_BASENAME='slcan'
 SPEED_CODE=8
-BAUDRATE=3000000
+BAUDRATE=921600
 
 next_option=''
 while [ -n "$1" ]; do
