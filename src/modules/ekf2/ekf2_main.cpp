@@ -72,7 +72,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/ekf2_innovations.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -84,7 +85,7 @@ class Ekf2;
 
 namespace ekf2
 {
-Ekf2 *instance;
+Ekf2 *instance = nullptr;
 }
 
 
@@ -116,6 +117,8 @@ public:
 
 	void print_status();
 
+	void exit() { _task_should_exit = true; }
+
 private:
 	static constexpr float _dt_max = 0.02;
 	bool		_task_should_exit = false;		/**< if true, task should exit */
@@ -124,11 +127,15 @@ private:
 	int		_sensors_sub = -1;
 	int		_gps_sub = -1;
 	int		_airspeed_sub = -1;
+	int		_params_sub = -1;
 
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
 	orb_advert_t _control_state_pub;
 	orb_advert_t _vehicle_global_position_pub;
+	orb_advert_t _estimator_status_pub;
+	orb_advert_t _estimator_innovations_pub;
+
 
 	/* Low pass filter for attitude rates */
 	math::LowPassFilter2p _lp_roll_rate;
@@ -162,24 +169,23 @@ private:
 
 	EstimatorBase *_ekf;
 
-
-	void update_parameters(bool force);
-
 	int update_subscriptions();
 
 };
 
 Ekf2::Ekf2():
 	SuperBlock(NULL, "EKF"),
+	_att_pub(nullptr),
+	_lpos_pub(nullptr),
+	_control_state_pub(nullptr),
+	_vehicle_global_position_pub(nullptr),
+	_estimator_status_pub(nullptr),
+	_estimator_innovations_pub(nullptr),
 	_lp_roll_rate(250.0f, 30.0f),
 	_lp_pitch_rate(250.0f, 30.0f),
-	_lp_yaw_rate(250.0f, 20.0f)
+	_lp_yaw_rate(250.0f, 20.0f),
+	_ekf(new Ekf())
 {
-	_ekf = new Ekf();
-	_att_pub = nullptr;
-	_lpos_pub = nullptr;
-	_control_state_pub = nullptr;
-
 	parameters *params = _ekf->getParamHandle();
 	_mag_delay_ms = new control::BlockParamFloat(this, "EKF2_MAG_DELAY", false, &params->mag_delay_ms);
 	_baro_delay_ms = new control::BlockParamFloat(this, "EKF2_BARO_DELAY", false, &params->baro_delay_ms);
@@ -230,34 +236,49 @@ void Ekf2::task_main()
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[2] = {};
 	fds[0].fd = _sensors_sub;
 	fds[0].events = POLLIN;
+	fds[1].fd = _params_sub;
+	fds[1].events = POLLIN;
 
 	// initialise parameter cache
 	updateParams();
 
+	vehicle_gps_position_s gps = {};
+
 	while (!_task_should_exit) {
-		int ret = px4_poll(fds, 1, 1000);
+		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
 			usleep(10000);
 			continue;
 
-		} else if (ret == 0 || fds[0].revents != POLLIN) {
+		} else if (ret == 0) {
 			// Poll timeout or no new data, do nothing
 			continue;
 		}
 
-		updateParams();
+		if (fds[1].revents & POLLIN) {
+			// read from param to clear updated flag
+			struct parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			updateParams();
+
+			// fetch sensor data in next loop
+			continue;
+		} else if (!(fds[0].revents & POLLIN)) {
+			// no new data
+			continue;
+		}
 
 		bool gps_updated = false;
 		bool airspeed_updated = false;
 
 		sensor_combined_s sensors = {};
-		vehicle_gps_position_s gps = {};
 		airspeed_s airspeed = {};
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
@@ -315,7 +336,7 @@ void Ekf2::task_main()
 		_ekf->update();
 
 		// generate vehicle attitude data
-		struct vehicle_attitude_s att;
+		struct vehicle_attitude_s att = {};
 		att.timestamp = hrt_absolute_time();
 
 		_ekf->copy_quaternion(att.q);
@@ -326,7 +347,7 @@ void Ekf2::task_main()
 		att.yaw = euler(2);
 
 		// generate vehicle local position data
-		struct vehicle_local_position_s lpos;
+		struct vehicle_local_position_s lpos = {};
 		float pos[3] = {};
 		float vel[3] = {};
 
@@ -355,8 +376,8 @@ void Ekf2::task_main()
 		lpos.xy_global =
 			_ekf->position_is_valid();// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
 		lpos.z_global = true;// true if z is valid and has valid global reference (ref_alt)
-		lpos.ref_lat = _ekf->_posRef.lat_rad * (double)180.0 * M_PI; // Reference point latitude in degrees
-		lpos.ref_lon = _ekf->_posRef.lon_rad * (double)180.0 * M_PI; // Reference point longitude in degrees
+		lpos.ref_lat = _ekf->_posRef.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
+		lpos.ref_lon = _ekf->_posRef.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 		lpos.ref_alt =
 			_ekf->_gps_alt_ref; // Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level
 
@@ -421,7 +442,7 @@ void Ekf2::task_main()
 		}
 
 		// generate and publish global position data
-		struct vehicle_global_position_s global_pos;
+		struct vehicle_global_position_s global_pos = {};
 
 		if (_ekf->position_is_valid()) {
 			// TODO: local origin is currenlty at GPS height origin - this is different to ekf_att_pos_estimator
@@ -460,7 +481,42 @@ void Ekf2::task_main()
 				orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
 			}
 		}
+
+		// publish estimator status
+		struct estimator_status_s status = {};
+		status.timestamp = hrt_absolute_time();
+		_ekf->get_state_delayed(status.states);
+		_ekf->get_covariances(status.covariances);
+
+		if (_estimator_status_pub == nullptr) {
+			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+
+		} else {
+			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+		}
+
+		// publish estimator innovation data
+		struct ekf2_innovations_s innovations = {};
+		innovations.timestamp = hrt_absolute_time();
+		_ekf->get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+		_ekf->get_mag_innov(&innovations.mag_innov[0]);
+		_ekf->get_heading_innov(&innovations.heading_innov);
+
+		_ekf->get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
+		_ekf->get_mag_innov_var(&innovations.mag_innov_var[0]);
+		_ekf->get_heading_innov_var(&innovations.heading_innov_var);
+
+		if (_estimator_innovations_pub == nullptr) {
+			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
+
+		} else {
+			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
+		}
+
 	}
+
+	delete ekf2::instance;
+	ekf2::instance = nullptr;
 }
 
 void Ekf2::task_main_trampoline(int argc, char *argv[])
@@ -525,8 +581,13 @@ int ekf2_main(int argc, char *argv[])
 			return 1;
 		}
 
-		delete ekf2::instance;
-		ekf2::instance = nullptr;
+		ekf2::instance->exit();
+
+		// wait for the destruction of the instance
+		while (ekf2::instance != nullptr) {
+			usleep(50000);
+		}
+
 		return 0;
 	}
 

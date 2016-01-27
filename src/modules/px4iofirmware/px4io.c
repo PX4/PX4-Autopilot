@@ -82,7 +82,7 @@ static volatile uint8_t msg_next_out, msg_next_in;
  * for mixer handling. Do not allocate more than 80 bytes for
  * output.
  */
-#define NUM_MSG 2
+#define NUM_MSG 1
 static char msg[NUM_MSG][40];
 
 static void heartbeat_blink(void);

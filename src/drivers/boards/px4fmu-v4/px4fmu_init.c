@@ -219,10 +219,6 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
 
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
-
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_PERIPH_3V3_EN);
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
@@ -306,7 +302,7 @@ __EXPORT int nsh_archinitialize(void)
 	 */
 
 	// XXX start with 10.4 MHz and go up to 20 once validated
-	SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
+	SPI_SETFREQUENCY(spi2, 20 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);

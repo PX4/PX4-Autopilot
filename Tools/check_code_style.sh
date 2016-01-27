@@ -25,7 +25,6 @@ for fn in $(find src/examples \
                  src/modules/uORB \
                  src/modules/bottle_drop \
                  src/modules/dataman \
-                 src/modules/fixedwing_backside \
                  src/modules/segway \
                  src/modules/local_position_estimator \
                  src/modules/unit_test \

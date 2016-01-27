@@ -254,13 +254,14 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
  * Limit for yaw rate, has effect for large rotations in autonomous mode,
  * to avoid large control output and mixer saturation. A value of significantly
  * over 60 degrees per second can already lead to mixer saturation.
+ * A value of 30 degrees / second is recommended to avoid very audible twitches.
  *
  * @unit deg/s
  * @min 0.0
  * @max 360.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 60.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 45.0f);
 
 /**
  * Max acro roll rate

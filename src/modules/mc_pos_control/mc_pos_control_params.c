@@ -235,15 +235,6 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.5f);
 
 /**
- * Takeoff initial speed to jump off the ground
- *
- * @unit m/s
- * @min 0.0
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_TKO_JMPSPD, 2.0f);
-
-/**
  * Takeoff climb rate
  *
  * @unit m/s

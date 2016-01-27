@@ -195,9 +195,9 @@ struct log_RC_s {
 	uint32_t frame_drop;
 };
 
-/* --- OUT0 - ACTUATOR_0 OUTPUT --- */
+/* --- OUT - ACTUATOR OUTPUT --- */
 #define LOG_OUT0_MSG 12
-struct log_OUT0_s {
+struct log_OUT_s {
 	float output[8];
 };
 
@@ -416,6 +416,18 @@ struct log_EST3_s {
     float cov[16];
 };
 
+/* --- EST4 - ESTIMATOR INNOVATIONS --- */
+#define LOG_EST4_MSG 48
+struct log_EST4_s {
+    float s[12];
+};
+
+/* --- EST4 - ESTIMATOR INNOVATIONS --- */
+#define LOG_EST5_MSG 49
+struct log_EST5_s {
+    float s[8];
+};
+
 /* --- TEL0..3 - TELEMETRY STATUS --- */
 #define LOG_TEL0_MSG 36
 #define LOG_TEL1_MSG 37
@@ -479,6 +491,8 @@ struct log_MACS_s {
 	float yaw_rate_integ;
 };
 
+/* WARNING: ID 46 is already in use for ATTC1 */
+
 /* --- CONTROL STATE --- */
 #define LOG_CTS_MSG 47
 struct log_CTS_s {
@@ -491,7 +505,7 @@ struct log_CTS_s {
 	float yaw_rate;
 };
 
-/* WARNING: ID 46 is already in use for ATTC1 */
+#define LOG_OUT1_MSG 50
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
@@ -535,7 +549,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(VTOL, "f",		"Arsp"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
-	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
+	LOG_FORMAT_S(OUT0, OUT, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
+	LOG_FORMAT_S(OUT1, OUT, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "fff",			"IndSpeed,TrueSpeed,AirTemp"),
 	LOG_FORMAT(ARSP, "fff",			"RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "BffffffLLHhB",	"ID,RawX,RawY,RX,RY,RZ,Dist,TSpan,DtSonar,FrmCnt,GT,Qlty"),
@@ -553,6 +568,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
 	LOG_FORMAT(EST2, "ffffffffffff",    "P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11"),
 	LOG_FORMAT(EST3, "ffffffffffffffff",    "P12,P13,P14,P15,P16,P17,P18,P19,P20,P21,P22,P23,P24,P25,P26,P27"),
+	LOG_FORMAT(EST4, "ffffffffffff", "VxI,VyI,VzI,PxI,PyI,PzI,VxIV,VyIV,VzIV,PxIV,PyIV,PzIV"),
+	LOG_FORMAT(EST5, "ffffffff", "MAGxI,MAGyI,MAGzI,MAGxIV,MAGyIV,MAGzIV,HeadI,HeadIV"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(MOCP, "fffffff",		"QuatW,QuatX,QuatY,QuatZ,X,Y,Z"),
 	LOG_FORMAT(VISN, "ffffffffff",		"X,Y,Z,VX,VY,VZ,QuatW,QuatX,QuatY,QuatZ"),

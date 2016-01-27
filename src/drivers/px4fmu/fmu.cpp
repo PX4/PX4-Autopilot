@@ -161,6 +161,8 @@ private:
 	volatile bool	_initialized;
 	bool		_throttle_armed;
 	bool		_pwm_on;
+	bool		_pwm_init;
+	uint8_t		_pwm_channel_mask;
 
 	MixerGroup	*_mixers;
 
@@ -313,6 +315,8 @@ PX4FMU::PX4FMU() :
 	_initialized(false),
 	_throttle_armed(false),
 	_pwm_on(false),
+	_pwm_init(false),
+	_pwm_channel_mask(0),
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
@@ -418,10 +422,7 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
 		_pwm_alt_rate_channels = 0;
-
-		/* XXX magic numbers */
-		up_pwm_servo_init(0x3);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_channel_mask = 0x3;
 
 		break;
 
@@ -432,10 +433,7 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
 		_pwm_alt_rate_channels = 0;
-
-		/* XXX magic numbers */
-		up_pwm_servo_init(0xf);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_channel_mask = 0xf;
 
 		break;
 
@@ -446,10 +444,7 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
 		_pwm_alt_rate_channels = 0;
-
-		/* XXX magic numbers */
-		up_pwm_servo_init(0x3f);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_channel_mask = 0x3f;
 
 		break;
 
@@ -461,10 +456,7 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
 		_pwm_alt_rate_channels = 0;
-
-		/* XXX magic numbers */
-		up_pwm_servo_init(0xff);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_channel_mask = 0xff;
 		break;
 #endif
 
@@ -477,6 +469,7 @@ PX4FMU::set_mode(Mode mode)
 
 		/* disable servo outputs - no need to set rates */
 		up_pwm_servo_deinit();
+		_pwm_init = false;
 
 		break;
 
@@ -873,6 +866,13 @@ PX4FMU::cycle()
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
+
+			if (!_pwm_init && _pwm_on) {
+				up_pwm_servo_init(_pwm_channel_mask);
+				set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+				_pwm_init = true;
+			}
+
 			up_pwm_servo_arm(pwm_on);
 		}
 	}
@@ -1717,7 +1717,7 @@ ssize_t
 PX4FMU::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	uint16_t values[6];
+	uint16_t values[8];
 
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
 

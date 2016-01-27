@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__param
 	MAIN param
-	STACK 1800
+	STACK 2500
 	COMPILE_FLAGS
 		-Os
 	SRCS

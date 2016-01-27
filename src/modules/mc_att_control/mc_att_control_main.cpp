@@ -199,6 +199,7 @@ private:
 		param_t vtol_type;
 		param_t roll_tc;
 		param_t pitch_tc;
+		param_t vtol_opt_recovery_enabled;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -218,6 +219,7 @@ private:
 		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
 		float rattitude_thres;
 		int vtol_type;						/**< 0 = Tailsitter, 1 = Tiltrotor, 2 = Standard airframe */
+		bool vtol_opt_recovery_enabled;
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
@@ -347,6 +349,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.mc_rate_max.zero();
 	_params.acro_rate_max.zero();
 	_params.rattitude_thres = 1.0f;
+	_params.vtol_opt_recovery_enabled = false;
 
 	_rates_prev.zero();
 	_rates_sp.zero();
@@ -383,11 +386,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.vtol_type 		= 	param_find("VT_TYPE");
 	_params_handles.roll_tc			= 	param_find("MC_ROLL_TC");
 	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
+	_params_handles.vtol_opt_recovery_enabled = param_find("VT_OPT_RECOV_EN");
 
 	/* fetch initial parameter values */
 	parameters_update();
 
-	if (_params.vtol_type == 0) {
+	if (_params.vtol_type == 0 && _params.vtol_opt_recovery_enabled) {
 		// the vehicle is a tailsitter, use optimal recovery control strategy
 		_ts_opt_recovery = new TailsitterRecovery();
 	}
@@ -415,8 +419,10 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 			}
 		} while (_control_task != -1);
 	}
+	if (_ts_opt_recovery != nullptr) {
+		delete _ts_opt_recovery;
+	}
 
-	delete _ts_opt_recovery;
 	mc_att_control::g_control = nullptr;
 }
 
@@ -488,6 +494,10 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.rattitude_thres, &_params.rattitude_thres);
 
 	param_get(_params_handles.vtol_type, &_params.vtol_type);
+
+	int tmp;
+	param_get(_params_handles.vtol_opt_recovery_enabled, &tmp);
+	_params.vtol_opt_recovery_enabled = (bool)tmp;
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
