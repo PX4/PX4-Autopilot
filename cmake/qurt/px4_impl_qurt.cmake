@@ -172,6 +172,7 @@ function(px4_os_add_flags)
         set(added_definitions
                 -D__PX4_QURT 
 		-D__PX4_POSIX
+		-D__QAIC_SKEL_EXPORT=__EXPORT
 		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
