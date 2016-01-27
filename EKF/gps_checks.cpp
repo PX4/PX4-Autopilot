@@ -90,7 +90,7 @@ bool EstimatorBase::gps_is_good(struct gps_message *gps)
 
     // Calculate time lapsesd since last update, limit to prevent numerical errors and calculate the lowpass filter coefficient
     const float filtTimeConst = 10.0f;
-    float dt = fminf(fmaxf(float(hrt_absolute_time() - _last_gps_origin_time_us)*1e-6f,0.001f),filtTimeConst);
+    float dt = fminf(fmaxf(float(_time_last_imu - _last_gps_origin_time_us)*1e-6f,0.001f),filtTimeConst);
     float filterCoef = dt/filtTimeConst;
 
     // Calculate the horizontal drift velocity components and limit to 10x the threshold
@@ -113,7 +113,7 @@ bool EstimatorBase::gps_is_good(struct gps_message *gps)
 
     // Save current position as the reference for next time
     map_projection_init(&_posRef, lat, lon);
-    _last_gps_origin_time_us = hrt_absolute_time();
+    _last_gps_origin_time_us = _time_last_imu;
 
     // Calculate the vertical drift velocity and limit to 10x the threshold
     velLimit = 10.0f * _params.requiredVdrift;
@@ -155,7 +155,7 @@ bool EstimatorBase::gps_is_good(struct gps_message *gps)
 
     // assume failed first time through
     if (_lastGpsFail_us == 0) {
-        _lastGpsFail_us = hrt_absolute_time();
+        _lastGpsFail_us = _time_last_imu;
     }
 
     // if any user selected checks have failed, record the fail time
@@ -170,11 +170,11 @@ bool EstimatorBase::gps_is_good(struct gps_message *gps)
     (_gpsCheckFailStatus.flags.hspeed  && (_params.gps_check_mask & MASK_GPS_HSPD)) ||
     (_gpsCheckFailStatus.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD))
     ) {
-        _lastGpsFail_us = hrt_absolute_time();
+        _lastGpsFail_us = _time_last_imu;
     }
 
     // continuous period without fail of 10 seconds required to return a healthy status
-    if (hrt_absolute_time() - _lastGpsFail_us > 1e7) {
+    if (_time_last_imu - _lastGpsFail_us > 1e7) {
         return true;
     }
     return false;

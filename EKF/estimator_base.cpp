@@ -171,7 +171,7 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		gps_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2;
 		_time_last_gps = time_usec;
 
-		_last_valid_gps_time_us = hrt_absolute_time();
+        _last_valid_gps_time_us = _time_last_imu;
 
 		gps_sample_new.time_us = math::max(gps_sample_new.time_us, _imu_sample_delayed.time_us);
 
@@ -317,7 +317,7 @@ void EstimatorBase::initialiseGPS(struct gps_message *gps)
 		map_projection_init(&_posRef, lat, lon);
 		_gps_alt_ref = gps->alt / 1e3f;
 		_gps_initialised = true;
-		_last_gps_origin_time_us = hrt_absolute_time();
+        _last_gps_origin_time_us = _time_last_imu;
 	}
 }
 
@@ -325,7 +325,7 @@ bool EstimatorBase::position_is_valid()
 {
 	// return true if the position estimate is valid
 	// TOTO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
-	return _gps_initialised &&  (hrt_absolute_time() - _last_valid_gps_time_us) < 5e6;
+    return _gps_initialised &&  (_time_last_imu - _last_valid_gps_time_us) < 5e6;
 }
 
 void EstimatorBase::printStoredIMU()
