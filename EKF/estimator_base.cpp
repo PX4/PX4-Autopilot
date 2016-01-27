@@ -181,7 +181,7 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 
 		float lpos_x = 0.0f;
 		float lpos_y = 0.0f;
-		map_projection_project(&_posRef, (gps->lat / 1.0e7), (gps->lon / 1.0e7), &lpos_x, &lpos_y);
+        map_projection_project(&_pos_ref, (gps->lat / 1.0e7), (gps->lon / 1.0e7), &lpos_x, &lpos_y);
 		gps_sample_new.pos(0) = lpos_x;
 		gps_sample_new.pos(1) = lpos_y;
 		gps_sample_new.hgt = gps->alt / 1e3f;
@@ -312,7 +312,7 @@ void EstimatorBase::initialiseGPS(struct gps_message *gps)
 		// Initialise projection
 		double lat = gps->lat / 1.0e7;
 		double lon = gps->lon / 1.0e7;
-		map_projection_init(&_posRef, lat, lon);
+        map_projection_init(&_pos_ref, lat, lon);
 		_gps_alt_ref = gps->alt / 1e3f;
 		_gps_initialised = true;
         _last_gps_origin_time_us = _time_last_imu;

@@ -88,14 +88,14 @@ struct parameters {
 
     // these parameters control the strictness of GPS quality checks used to determine uf the GPS is
     // good enough to set a local origin and commence aiding
-    int gps_check_mask = 21;            // bitmask used to control which GPS quality checks are used
-    float requiredEph = 5.0f;           // maximum acceptable horizontal position error
-    float requiredEpv = 8.0f;           // maximum acceptable vertical position error
-    float requiredSacc = 1.0f;          // maximum acceptable speed error
-    int requiredNsats = 6;              // minimum acceptable satellite count
-    float requiredGDoP = 2.0f;          // maximum acceptable geometric dilution of precision
-    float requiredHdrift = 0.3f;        // maximum acceptable horizontal drift speed
-    float requiredVdrift = 0.5f;        // maximum acceptable vertical drift speed
+    int gps_check_mask = 21;    // bitmask used to control which GPS quality checks are used
+    float req_hacc = 5.0f;      // maximum acceptable horizontal position error
+    float req_vacc = 8.0f;      // maximum acceptable vertical position error
+    float req_sacc = 1.0f;      // maximum acceptable speed error
+    int req_nsats = 6;          // minimum acceptable satellite count
+    float req_gdop = 2.0f;      // maximum acceptable geometric dilution of precision
+    float req_hdrift = 0.3f;    // maximum acceptable horizontal drift speed
+    float req_vdrift = 0.5f;    // maximum acceptable vertical drift speed
 };
 
 class EstimatorBase
@@ -294,11 +294,11 @@ protected:
     // variables used for the GPS quality checks
     float _gpsDriftVelN = 0.0f;     // GPS north position derivative (m/s)
     float _gpsDriftVelE = 0.0f;     // GPS east position derivative (m/s)
-    float _gpsDriftVelD = 0.0f;     // GPS down position derivative (m/s)
-    float _gpsVertVelFilt = 0.0f;   // GPS filtered Down velocity (m/s)
-    float _gpsVelNorthFilt = 0.0f;  // GPS filtered North velocity (m/s)
-    float _gpsVelEastFilt = 0.0f;   // GPS filtered East velocity (m/s)
-    uint64_t _lastGpsFail_us = 0;   // last system time in usec that the GPS failed it's checks
+    float _gps_drift_velD = 0.0f;     // GPS down position derivative (m/s)
+    float _gps_velD_diff_filt = 0.0f;   // GPS filtered Down velocity (m/s)
+    float _gps_velN_filt = 0.0f;  // GPS filtered North velocity (m/s)
+    float _gps_velE_filt = 0.0f;   // GPS filtered East velocity (m/s)
+    uint64_t _last_gps_fail_us = 0;   // last system time in usec that the GPS failed it's checks
 
 public:
 	void printIMU(struct imuSample *data);
@@ -339,13 +339,13 @@ public:
 
     // Variables used to publish the WGS-84 location of the EKF local NED origin
     uint64_t _last_gps_origin_time_us = 0;              // time the origin was last set (uSec)
-    struct map_projection_reference_s _posRef = {};     // Contains WGS-84 position latitude and longitude (radians)
+    struct map_projection_reference_s _pos_ref = {};     // Contains WGS-84 position latitude and longitude (radians)
     float _gps_alt_ref = 0.0f;                          // WGS-84 height (m)
 
-    bool _vehicleArmed = false;     // vehicle arm status used to turn off funtionality used on the ground
+    bool _vehicle_armed = false;     // vehicle arm status used to turn off funtionality used on the ground
 
     // publish the status of various GPS quality checks
-    union gpsCheckFailStatus_u {
+    union gps_check_fail_status_u {
         struct {
             uint16_t nsats  : 1; // 0 - true if number of satellites used is insufficient
             uint16_t gdop   : 1; // 1 - true if geometric dilution of precision is insufficient
@@ -359,6 +359,6 @@ public:
         } flags;
         uint16_t value;
     };
-    gpsCheckFailStatus_u _gpsCheckFailStatus;
+    gps_check_fail_status_u _gps_check_fail_status;
 
 };

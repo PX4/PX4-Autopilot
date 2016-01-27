@@ -62,119 +62,119 @@
 bool EstimatorBase::gps_is_good(struct gps_message *gps)
 {
     // Check the number of satellites
-    _gpsCheckFailStatus.flags.nsats = (gps->nsats < _params.requiredNsats);
+    _gps_check_fail_status.flags.nsats = (gps->nsats < _params.req_nsats);
 
     // Check the geometric dilution of precision
-    _gpsCheckFailStatus.flags.gdop = (gps->gdop > _params.requiredGDoP);
+    _gps_check_fail_status.flags.gdop = (gps->gdop > _params.req_gdop);
 
     // Check the reported horizontal position accuracy
-    _gpsCheckFailStatus.flags.hacc = (gps->eph > _params.requiredEph);
+    _gps_check_fail_status.flags.hacc = (gps->eph > _params.req_hacc);
 
     // Check the reported vertical position accuracy
-    _gpsCheckFailStatus.flags.vacc = (gps->epv > _params.requiredEpv);
+    _gps_check_fail_status.flags.vacc = (gps->epv > _params.req_vacc);
 
     // Check the reported speed accuracy
-    _gpsCheckFailStatus.flags.sacc = (gps->eph > _params.requiredEph);
+    _gps_check_fail_status.flags.sacc = (gps->sacc > _params.req_sacc);
 
     // Calculate position movement since last measurement
-    float deltaPosN = 0.0f;
-    float deltaPosE = 0.0f;
+    float delta_posN = 0.0f;
+    float delta_PosE = 0.0f;
     double lat = gps->lat * 1.0e-7;
     double lon = gps->lon * 1.0e-7;
-    if (_posRef.init_done) {
-        map_projection_project(&_posRef, lat, lon, &deltaPosN, &deltaPosE);
+    if (_pos_ref.init_done) {
+        map_projection_project(&_pos_ref, lat, lon, &delta_posN, &delta_PosE);
     } else {
-        map_projection_init(&_posRef, lat, lon);
+        map_projection_init(&_pos_ref, lat, lon);
         _gps_alt_ref = gps->alt * 1e-3f;
     }
 
     // Calculate time lapsed since last update, limit to prevent numerical errors and calculate the lowpass filter coefficient
-    const float filtTimeConst = 10.0f;
-    float dt = fminf(fmaxf(float(_time_last_imu - _last_gps_origin_time_us)*1e-6f,0.001f),filtTimeConst);
-    float filterCoef = dt/filtTimeConst;
+    const float filt_time_const = 10.0f;
+    float dt = fminf(fmaxf(float(_time_last_imu - _last_gps_origin_time_us)*1e-6f,0.001f),filt_time_const);
+    float filter_coef = dt/filt_time_const;
 
     // Calculate the horizontal drift velocity components and limit to 10x the threshold
-    float velLimit = 10.0f * _params.requiredHdrift;
-    float velN = fminf(fmaxf(deltaPosN / dt, -velLimit), velLimit);
-    float velE = fminf(fmaxf(deltaPosE / dt, -velLimit), velLimit);
+    float vel_limit = 10.0f * _params.req_hdrift;
+    float velN = fminf(fmaxf(delta_posN / dt, -vel_limit), vel_limit);
+    float velE = fminf(fmaxf(delta_PosE / dt, -vel_limit), vel_limit);
 
     // Apply a low pass filter
-    _gpsDriftVelN = velN * filterCoef + _gpsDriftVelN * (1.0f - filterCoef);
-    _gpsDriftVelE = velE * filterCoef + _gpsDriftVelE * (1.0f - filterCoef);
+    _gpsDriftVelN = velN * filter_coef + _gpsDriftVelN * (1.0f - filter_coef);
+    _gpsDriftVelE = velE * filter_coef + _gpsDriftVelE * (1.0f - filter_coef);
 
     // Calculate the horizontal drift speed and fail if too high
     // This check can only be used if the vehicle is stationary during alignment
-    if(_vehicleArmed) {
-        float driftSpeed = sqrtf(_gpsDriftVelN * _gpsDriftVelN + _gpsDriftVelE * _gpsDriftVelE);
-        _gpsCheckFailStatus.flags.hdrift = (driftSpeed > _params.requiredHdrift);
+    if(_vehicle_armed) {
+        float drift_speed = sqrtf(_gpsDriftVelN * _gpsDriftVelN + _gpsDriftVelE * _gpsDriftVelE);
+        _gps_check_fail_status.flags.hdrift = (drift_speed > _params.req_hdrift);
     } else {
-        _gpsCheckFailStatus.flags.hdrift = false;
+        _gps_check_fail_status.flags.hdrift = false;
     }
 
     // Save current position as the reference for next time
-    map_projection_init(&_posRef, lat, lon);
+    map_projection_init(&_pos_ref, lat, lon);
     _last_gps_origin_time_us = _time_last_imu;
 
     // Calculate the vertical drift velocity and limit to 10x the threshold
-    velLimit = 10.0f * _params.requiredVdrift;
-    float velD = fminf(fmaxf((_gps_alt_ref - gps->alt * 1e-3f) / dt, -velLimit), velLimit);
+    vel_limit = 10.0f * _params.req_vdrift;
+    float velD = fminf(fmaxf((_gps_alt_ref - gps->alt * 1e-3f) / dt, -vel_limit), vel_limit);
 
     // Save the current height as the reference for next time
     _gps_alt_ref = gps->alt * 1e-3f;
 
     // Apply a low pass filter to the vertical velocity
-    _gpsDriftVelD = velD * filterCoef + _gpsDriftVelD * (1.0f - filterCoef);
+    _gps_drift_velD = velD * filter_coef + _gps_drift_velD * (1.0f - filter_coef);
 
     // Fail if the vertical drift speed is too high
     // This check can only be used if the vehicle is stationary during alignment
-    if(_vehicleArmed) {
-        _gpsCheckFailStatus.flags.vdrift = (fabsf(_gpsDriftVelD) > _params.requiredVdrift);
+    if(_vehicle_armed) {
+        _gps_check_fail_status.flags.vdrift = (fabsf(_gps_drift_velD) > _params.req_vdrift);
     } else {
-        _gpsCheckFailStatus.flags.vdrift = false;
+        _gps_check_fail_status.flags.vdrift = false;
     }
 
     // Check the magnitude of the filtered horizontal GPS velocity
     // This check can only be used if the vehicle is stationary during alignment
-    if (_vehicleArmed) {
-        velLimit = 10.0f * _params.requiredHdrift;
-        float velN = fminf(fmaxf(gps->vel_ned[0],-velLimit),velLimit);
-        float velE = fminf(fmaxf(gps->vel_ned[1],-velLimit),velLimit);
-        _gpsVelNorthFilt = velN * filterCoef + _gpsVelNorthFilt * (1.0f - filterCoef);
-        _gpsVelEastFilt  = velE * filterCoef + _gpsVelEastFilt  * (1.0f - filterCoef);
-        float horizSpeed = sqrtf(_gpsVelNorthFilt * _gpsVelNorthFilt + _gpsVelEastFilt * _gpsVelEastFilt);
-        _gpsCheckFailStatus.flags.hspeed = (horizSpeed > _params.requiredHdrift);
+    if (_vehicle_armed) {
+        vel_limit = 10.0f * _params.req_hdrift;
+        float velN = fminf(fmaxf(gps->vel_ned[0],-vel_limit),vel_limit);
+        float velE = fminf(fmaxf(gps->vel_ned[1],-vel_limit),vel_limit);
+        _gps_velN_filt = velN * filter_coef + _gps_velN_filt * (1.0f - filter_coef);
+        _gps_velE_filt  = velE * filter_coef + _gps_velE_filt  * (1.0f - filter_coef);
+        float horiz_speed = sqrtf(_gps_velN_filt * _gps_velN_filt + _gps_velE_filt * _gps_velE_filt);
+        _gps_check_fail_status.flags.hspeed = (horiz_speed > _params.req_hdrift);
     } else {
-        _gpsCheckFailStatus.flags.hspeed = false;
+        _gps_check_fail_status.flags.hspeed = false;
     }
 
     // Check  the filtered difference between GPS and EKF vertical velocity
-    velLimit = 10.0f * _params.requiredVdrift;
-    float vertVel = fminf(fmaxf((gps->vel_ned[2] - _state.vel(2)), -velLimit), velLimit);
-    _gpsVertVelFilt = vertVel * filterCoef + _gpsVertVelFilt * (1.0f - filterCoef);
-    _gpsCheckFailStatus.flags.vspeed = (fabsf(_gpsVertVelFilt) > _params.requiredVdrift);
+    vel_limit = 10.0f * _params.req_vdrift;
+    float vertVel = fminf(fmaxf((gps->vel_ned[2] - _state.vel(2)), -vel_limit), vel_limit);
+    _gps_velD_diff_filt = vertVel * filter_coef + _gps_velD_diff_filt * (1.0f - filter_coef);
+    _gps_check_fail_status.flags.vspeed = (fabsf(_gps_velD_diff_filt) > _params.req_vdrift);
 
     // assume failed first time through
-    if (_lastGpsFail_us == 0) {
-        _lastGpsFail_us = _time_last_imu;
+    if (_last_gps_fail_us == 0) {
+        _last_gps_fail_us = _time_last_imu;
     }
 
     // if any user selected checks have failed, record the fail time
     if (
-    (_gpsCheckFailStatus.flags.nsats   && (_params.gps_check_mask & MASK_GPS_NSATS)) ||
-    (_gpsCheckFailStatus.flags.gdop    && (_params.gps_check_mask & MASK_GPS_GDOP)) ||
-    (_gpsCheckFailStatus.flags.hacc    && (_params.gps_check_mask & MASK_GPS_HACC)) ||
-    (_gpsCheckFailStatus.flags.vacc    && (_params.gps_check_mask & MASK_GPS_VACC)) ||
-    (_gpsCheckFailStatus.flags.sacc    && (_params.gps_check_mask & MASK_GPS_SACC)) ||
-    (_gpsCheckFailStatus.flags.hdrift  && (_params.gps_check_mask & MASK_GPS_HDRIFT)) ||
-    (_gpsCheckFailStatus.flags.vdrift  && (_params.gps_check_mask & MASK_GPS_VDRIFT)) ||
-    (_gpsCheckFailStatus.flags.hspeed  && (_params.gps_check_mask & MASK_GPS_HSPD)) ||
-    (_gpsCheckFailStatus.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD))
+    (_gps_check_fail_status.flags.nsats   && (_params.gps_check_mask & MASK_GPS_NSATS)) ||
+    (_gps_check_fail_status.flags.gdop    && (_params.gps_check_mask & MASK_GPS_GDOP)) ||
+    (_gps_check_fail_status.flags.hacc    && (_params.gps_check_mask & MASK_GPS_HACC)) ||
+    (_gps_check_fail_status.flags.vacc    && (_params.gps_check_mask & MASK_GPS_VACC)) ||
+    (_gps_check_fail_status.flags.sacc    && (_params.gps_check_mask & MASK_GPS_SACC)) ||
+    (_gps_check_fail_status.flags.hdrift  && (_params.gps_check_mask & MASK_GPS_HDRIFT)) ||
+    (_gps_check_fail_status.flags.vdrift  && (_params.gps_check_mask & MASK_GPS_VDRIFT)) ||
+    (_gps_check_fail_status.flags.hspeed  && (_params.gps_check_mask & MASK_GPS_HSPD)) ||
+    (_gps_check_fail_status.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD))
     ) {
-        _lastGpsFail_us = _time_last_imu;
+        _last_gps_fail_us = _time_last_imu;
     }
 
     // continuous period without fail of 10 seconds required to return a healthy status
-    if (_time_last_imu - _lastGpsFail_us > 1e7) {
+    if (_time_last_imu - _last_gps_fail_us > 1e7) {
         return true;
     }
     return false;
