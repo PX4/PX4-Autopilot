@@ -35,10 +35,13 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+__EXPORT extern uint64_t hrt_absolute_time(void);
 
 //void qurt_log(int level, const char *file, int line, const char *format, ...);
 

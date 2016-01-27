@@ -107,7 +107,7 @@ class SourceParser(object):
     re_remove_dots = re.compile(r'\.+$')
     re_remove_carriage_return = re.compile('\n+')
 
-    valid_tags = set(["group", "board", "min", "max", "unit", "decimal"])
+    valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "reboot_required"])
 
     # Order of parameter groups
     priority = {

@@ -243,39 +243,14 @@ RTL::set_rtl_item()
 	}
 
 	case RTL_STATE_LAND: {
-		_mission_item.lat = _navigator->get_home_position()->lat;
-		_mission_item.lon = _navigator->get_home_position()->lon;
-		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_home_position()->alt;
-		_mission_item.yaw = _navigator->get_home_position()->yaw;
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = NAV_CMD_LAND;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = true;
-		_mission_item.origin = ORIGIN_ONBOARD;
+		set_land_item(&_mission_item, false);
 
 		mavlink_log_critical(_navigator->get_mavlink_fd(), "RTL: land at home");
 		break;
 	}
 
 	case RTL_STATE_LANDED: {
-		_mission_item.lat = _navigator->get_home_position()->lat;
-		_mission_item.lon = _navigator->get_home_position()->lon;
-		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_home_position()->alt;
-		// Do not change / control yaw in landed
-		_mission_item.yaw = NAN;
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = NAV_CMD_IDLE;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = true;
-		_mission_item.origin = ORIGIN_ONBOARD;
+		set_idle_item(&_mission_item);
 
 		mavlink_log_critical(_navigator->get_mavlink_fd(), "RTL: completed, landed");
 		break;

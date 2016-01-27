@@ -47,6 +47,7 @@
 #include <map>
 #include <stdio.h>
 #include <apps.h>
+#include "get_commands.h"
 
 using namespace std;
 
@@ -101,7 +102,6 @@ static void process_commands(map<string, px4_main_t> &apps, const char *cmds)
 	vector<string> appargs;
 	int i = 0;
 	const char *b = cmds;
-	bool found_first_char = false;
 	char arg[256];
 
 	// Eat leading whitespace

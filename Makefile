@@ -109,7 +109,9 @@ endif
 # describe how to build a cmake config
 define cmake-build
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
-+@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then git submodule update --init --recursive --force && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
++git submodule init
++Tools/check_submodules.sh 
++@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then git submodule sync && git submodule init && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
 +$(PX4_MAKE) -C $(PWD)/build_$@ $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
@@ -133,14 +135,14 @@ px4fmu-v2_default:
 px4fmu-v4_default:
 	$(call cmake-build,nuttx_px4fmu-v4_default)
 
-px4fmu-v2_simple:
-	$(call cmake-build,nuttx_px4fmu-v2_simple)
+px4-stm32f4discovery_default:
+	$(call cmake-build,nuttx_px4-stm32f4discovery_default)
+
+px4fmu-v2_ekf2:
+	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
-
-nuttx_sim_simple:
-	$(call cmake-build,$@)
 
 posix_sitl_default:
 	$(call cmake-build,$@)
@@ -148,8 +150,12 @@ posix_sitl_default:
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
-ros_sitl_default:
+posix_sitl_ekf2:
 	$(call cmake-build,$@)
+
+ros_sitl_default:
+	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
+#	$(call cmake-build,$@)
 
 qurt_eagle_travis:
 	$(call cmake-build,$@)
@@ -158,6 +164,18 @@ qurt_eagle_release:
 	$(call cmake-build,$@)
 
 posix_eagle_release:
+	$(call cmake-build,$@)
+
+qurt_eagle_default:
+	$(call cmake-build,$@)
+
+posix_eagle_default:
+	$(call cmake-build,$@)
+	
+posix_rpi2_default:
+	$(call cmake-build,$@)
+
+posix_rpi2_release:
 	$(call cmake-build,$@)
 
 posix: posix_sitl_default
@@ -184,7 +202,8 @@ clean:
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim \
-	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_tailsitter
+	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_tailsitter \
+	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean

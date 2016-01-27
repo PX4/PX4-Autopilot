@@ -14,6 +14,15 @@ echo program: $program
 echo model: $model
 echo build_path: $build_path
 
+if [ "$chroot" == "1" ]
+then
+	chroot_enabled=-c
+	sudo_enabled=sudo
+else
+	chroot_enabled=""
+	sudo_enabled=""
+fi
+
 if [ "$model" == "" ] || [ "$model" == "none" ]
 then
 	echo "empty model, setting iris as default"
@@ -48,7 +57,7 @@ if [ "$program" == "jmavsim" ] && [ "$no_sim" == "" ]
 then
 	cd Tools/jMAVSim
 	ant
-	nice -n -10 java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
+	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
 elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
 then
@@ -65,7 +74,7 @@ then
 		cd Tools/sitl_gazebo/Build
 		cmake -Wno-dev ..
 		make -j4
-		nice -n -10 gzserver --verbose ../worlds/${model}.world &
+		gzserver --verbose ../worlds/${model}.world &
 		SIM_PID=`echo $!`
 		gzclient --verbose &
 		GUI_PID=`echo $!`
@@ -96,7 +105,7 @@ elif [ "$debugger" == "valgrind" ]
 then
 	valgrind ./mainapp ../../../../${rc_script}_${program}_${model}
 else
-	nice -n -10 ./mainapp ../../../../${rc_script}_${program}_${model}
+	$sudo_enabled ./mainapp $chroot_enabled ../../../../${rc_script}_${program}_${model}
 fi
 
 if [ "$program" == "jmavsim" ]

@@ -26,7 +26,7 @@ float32 z			 # throttle stick position 0..1
 				 # in general the value corresponds to the demanded throttle by the user,
 				 # if the input is used for setting the setpoint of a vertical position
 				 # controller any value > 0.5 means up and any value < 0.5 means down
-float32 r			 # yaw stick/twist positon, -1..1
+float32 r			 # yaw stick/twist position, -1..1
 				 # in general corresponds to the righthand rotation around the vertical
 				 # (downwards) axis of the vehicle
 float32 flaps			 # flap position
@@ -38,8 +38,9 @@ float32 aux5			 # default function: payload drop
 
 uint8 mode_switch		 # main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO
 uint8 return_switch		 # return to launch 2 position switch (mandatory): _NORMAL_, RTL
-uint8 rattitude_switch		 # rattitude control 2 position switch (optional): _MANUAL, RATTITUDE
+uint8 rattitude_switch	 # rattitude control 2 position switch (optional): _MANUAL, RATTITUDE
 uint8 posctl_switch		 # position control 2 position switch (optional): _ALTCTL_, POSCTL
 uint8 loiter_switch		 # loiter 2 position switch (optional): _MISSION_, LOITER
 uint8 acro_switch		 # acro 2 position switch (optional): _MANUAL_, ACRO
-uint8 offboard_switch		 # offboard 2 position switch (optional): _NORMAL_, OFFBOARD
+uint8 offboard_switch	 # offboard 2 position switch (optional): _NORMAL_, OFFBOARD
+uint8 kill_switch		 # throttle kill: _NORMAL_, KILL

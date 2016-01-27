@@ -63,8 +63,8 @@ enum NAV_CMD {
 	NAV_CMD_PATHPLANNING = 81,
 	NAV_CMD_DO_JUMP = 177,
 	NAV_CMD_DO_SET_SERVO=183,
-	NAV_CMD_DO_REPEAT_SERVO=184
-
+	NAV_CMD_DO_REPEAT_SERVO=184,
+	NAV_CMD_INVALID=UINT16_MAX /* ensure that casting a large number results in a specific error */
 };
 
 enum ORIGIN {
@@ -103,6 +103,7 @@ struct mission_item_s {
 	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
 	int actuator_num;               /**< actuator number to be set 0..5 ( corresponds to AUX outputs 1..6    */
 	int actuator_value;             /**< new value for selected actuator in ms 900...2000         */
+	float params[7];		/**< array to store mission command values for MAV_FRAME_MISSION ***/
 };
 #pragma pack(pop)
 #include <uORB/topics/mission.h>

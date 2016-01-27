@@ -150,6 +150,7 @@ __BEGIN_DECLS
 #define GPIO_TIM3_CH2OUT	GPIO_TIM3_CH2OUT_3
 #define GPIO_TIM3_CH3OUT	GPIO_TIM3_CH3OUT_2
 #define GPIO_TIM3_CH4OUT	GPIO_TIM3_CH4OUT_2
+#define DIRECT_PWM_OUTPUT_CHANNELS	8
 
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer 8 for the HRT */

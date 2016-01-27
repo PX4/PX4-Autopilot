@@ -423,7 +423,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 {
 	bool to_fw = _manual_control_sp.aux1 > 0.0f;
 
-	if (_v_control_mode.flag_control_offboard_enabled) {
+	if (_v_control_mode.flag_control_offboard_enabled || _v_control_mode.flag_control_auto_enabled) {
 		to_fw = _transition_command == vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 	}
 
@@ -559,7 +559,7 @@ void VtolAttitudeControl::task_main()
 	_vtol_type->set_idle_mc();
 
 	/* wakeup source*/
-	px4_pollfd_struct_t fds[3];	/*input_mc, input_fw, parameters*/
+	px4_pollfd_struct_t fds[3] = {};	/*input_mc, input_fw, parameters*/
 
 	fds[0].fd     = _actuator_inputs_mc;
 	fds[0].events = POLLIN;

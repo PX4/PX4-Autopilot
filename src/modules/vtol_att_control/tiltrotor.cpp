@@ -67,7 +67,7 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_params_handles_tiltrotor.airspeed_blend_start = param_find("VT_ARSP_BLEND");
 	_params_handles_tiltrotor.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
-	_params_handles_tiltrotor.fw_motors_off = param_find("VT_FW_MOT_OFF");
+	_params_handles_tiltrotor.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 }
 
 Tiltrotor::~Tiltrotor()
@@ -145,7 +145,7 @@ int Tiltrotor::get_motor_off_channels(int channels)
 			break;
 		}
 
-		channel_bitmap |= 1 << channel;
+		channel_bitmap |= 1 << (channel - 1);
 		channels = channels / 10;
 	}
 
@@ -384,6 +384,7 @@ void Tiltrotor::update_external_state()
 */
 void Tiltrotor::fill_actuator_outputs()
 {
+	_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
 			* _mc_roll_weight;
 	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
@@ -400,6 +401,7 @@ void Tiltrotor::fill_actuator_outputs()
 			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];;
 	}
 
+	_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
 	_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]
 			* (1 - _mc_roll_weight);
 	_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
@@ -426,7 +428,7 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state)
 		break;
 
 	case DISABLED:
-		pwm_value = PWM_LOWEST_MAX;
+		pwm_value = PWM_MOTOR_OFF;
 		_rear_motors = DISABLED;
 		break;
 
@@ -444,21 +446,21 @@ void Tiltrotor::set_rear_motor_state(rear_motor_state state)
 	if (fd < 0) {PX4_WARN("can't open %s", dev);}
 
 	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_max_values;
+	memset(&pwm_max_values, 0, sizeof(pwm_max_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
 		if (is_motor_off_channel(i)) {
-			pwm_values.values[i] = pwm_value;
+			pwm_max_values.values[i] = pwm_value;
 
 		} else {
-			pwm_values.values[i] = PWM_DEFAULT_MAX;
+			pwm_max_values.values[i] = PWM_DEFAULT_MAX;
 		}
 
-		pwm_values.channel_count = _params->vtol_motor_count;
+		pwm_max_values.channel_count = _params->vtol_motor_count;
 	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
+	ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_max_values);
 
 	if (ret != OK) {PX4_WARN("failed setting max values");}
 

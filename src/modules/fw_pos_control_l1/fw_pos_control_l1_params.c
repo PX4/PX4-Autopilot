@@ -51,8 +51,8 @@
  * A value of 25 meters works for most aircraft. Shorten
  * slowly during tuning until response is sharp without oscillation.
  *
- * @min 1.0
- * @max 100.0
+ * @min 12.0
+ * @max 50.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);

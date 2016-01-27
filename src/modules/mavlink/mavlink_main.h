@@ -67,6 +67,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 #include "mavlink_ftp.h"
+#include "mavlink_log_handler.h"
 
 enum Protocol {
 	SERIAL = 0,
@@ -338,9 +339,15 @@ public:
 
 	int 			get_socket_fd () { return _socket_fd; };
 #ifdef __PX4_POSIX
-	struct sockaddr_in * get_client_source_address() {return &_src_addr;};
+	struct sockaddr_in *	get_client_source_address() {return &_src_addr;};
+
+	void			set_client_source_initialized() { _src_addr_initialized = true; };
+
+	bool			get_client_source_initialized() { return _src_addr_initialized; };
 #endif
 	static bool		boot_complete() { return _boot_complete; }
+
+	bool			is_usb_uart() { return _is_usb_uart; }
 
 protected:
 	Mavlink			*next;
@@ -369,6 +376,7 @@ private:
 	MavlinkMissionManager		*_mission_manager;
 	MavlinkParametersManager	*_parameters_manager;
 	MavlinkFTP			*_mavlink_ftp;
+	MavlinkLogHandler		*_mavlink_log_handler;
 
 	MAVLINK_MODE 		_mode;
 
@@ -408,6 +416,7 @@ private:
 	bool			_flow_control_enabled;
 	uint64_t		_last_write_success_time;
 	uint64_t		_last_write_try_time;
+	uint64_t		_mavlink_start_time;
 
 	unsigned		_bytes_tx;
 	unsigned		_bytes_txerr;
@@ -421,6 +430,7 @@ private:
 	struct sockaddr_in _myaddr;
 	struct sockaddr_in _src_addr;
 	struct sockaddr_in _bcast_addr;
+	bool _src_addr_initialized;
 
 #endif
 	int _socket_fd;

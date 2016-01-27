@@ -315,13 +315,13 @@ void
 ADC::update_system_power(void)
 {
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-	system_power_s system_power;
+	system_power_s system_power = {};
 	system_power.timestamp = hrt_absolute_time();
 
 	system_power.voltage5V_v = 0;
 
 	for (unsigned i = 0; i < _channel_count; i++) {
-		if (_samples[i].am_channel == 4) {
+		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
 			// it is 2:1 scaled
 			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
 		}
@@ -349,13 +349,13 @@ ADC::update_system_power(void)
 
 #endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
-	system_power_s system_power;
+	system_power_s system_power = {};
 	system_power.timestamp = hrt_absolute_time();
 
 	system_power.voltage5V_v = 0;
 
 	for (unsigned i = 0; i < _channel_count; i++) {
-		if (_samples[i].am_channel == 4) {
+		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
 			// it is 2:1 scaled
 			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
 		}

@@ -34,6 +34,7 @@ set(config_module_list
 	modules/mavlink
 	modules/attitude_estimator_ekf
 	modules/attitude_estimator_q
+	modules/ekf2
 	modules/ekf_att_pos_estimator
 	modules/position_estimator_inav
 	modules/navigator
@@ -59,6 +60,8 @@ set(config_module_list
 	lib/launchdetection
 	lib/terrain_estimation
 	lib/runway_takeoff
+	lib/tailsitter_recovery
+	examples/px4_simple_app
 	)
 
 set(config_extra_builtin_cmds

@@ -973,24 +973,41 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 {
 	waypoint_prev.valid = true;
 	waypoint_prev.alt = _hold_alt;
+	position_setpoint_s temp_next {};
+	position_setpoint_s temp_prev {};
 
 	if (flag_init) {
-		// on init set first waypoint to momentary position
-		waypoint_prev.lat = _global_pos.lat - cos(heading) * (double)(HDG_HOLD_SET_BACK_DIST) / 1e6;
-		waypoint_prev.lon = _global_pos.lon - sin(heading) * (double)(HDG_HOLD_SET_BACK_DIST) / 1e6;
+		// on init set previous waypoint HDG_HOLD_SET_BACK_DIST meters behind us
+		waypoint_from_heading_and_distance(_global_pos.lat, _global_pos.lon, heading + 180.0f * M_DEG_TO_RAD_F ,
+						   HDG_HOLD_SET_BACK_DIST,
+						   &temp_prev.lat, &temp_prev.lon);
+
+		// set next waypoint HDG_HOLD_DIST_NEXT meters in front of us
+		waypoint_from_heading_and_distance(_global_pos.lat, _global_pos.lon, heading, HDG_HOLD_DIST_NEXT,
+						   &temp_next.lat, &temp_next.lon);
+		waypoint_prev = temp_prev;
+		waypoint_next = temp_next;
+		waypoint_next.valid = true;
+		waypoint_next.alt = _hold_alt;
+
+		return;
+
 
 	} else {
-		/*
-		for previous waypoint use the one still in front of us but shift it such that it is
-		located on the desired flight path but HDG_HOLD_SET_BACK_DIST behind us
-		*/
-		waypoint_prev.lat = waypoint_next.lat - cos(heading) * (double)(HDG_HOLD_REACHED_DIST + HDG_HOLD_SET_BACK_DIST) / 1e6;
-		waypoint_prev.lon = waypoint_next.lon - sin(heading) * (double)(HDG_HOLD_REACHED_DIST + HDG_HOLD_SET_BACK_DIST) / 1e6;
+		// for previous waypoint use the one still in front of us but shift it such that it is
+		// located on the desired flight path but HDG_HOLD_SET_BACK_DIST behind us
+		create_waypoint_from_line_and_dist(waypoint_next.lat, waypoint_next.lon, waypoint_prev.lat, waypoint_prev.lon,
+						   HDG_HOLD_REACHED_DIST + HDG_HOLD_SET_BACK_DIST,
+						   &temp_prev.lat, &temp_prev.lon);
 	}
 
 	waypoint_next.valid = true;
-	waypoint_next.lat = waypoint_prev.lat + cos(heading) * (double)(distance + HDG_HOLD_SET_BACK_DIST) / 1e6;
-	waypoint_next.lon = waypoint_prev.lon + sin(heading) * (double)(distance + HDG_HOLD_SET_BACK_DIST) / 1e6;
+
+	create_waypoint_from_line_and_dist(waypoint_next.lat, waypoint_next.lon, waypoint_prev.lat, waypoint_prev.lon,
+					   -(HDG_HOLD_DIST_NEXT + HDG_HOLD_REACHED_DIST),
+					   &temp_next.lat, &temp_next.lon);
+	waypoint_prev = temp_prev;
+	waypoint_next = temp_next;
 	waypoint_next.alt = _hold_alt;
 }
 

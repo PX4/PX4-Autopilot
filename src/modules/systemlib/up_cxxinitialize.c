@@ -118,7 +118,7 @@ extern uint32_t _etext;
  *   This function should then be called in the application-specific
  *   user_start logic in order to perform the C++ initialization.  NOTE
  *   that no component of the core NuttX RTOS logic is involved; This
- *   function defintion only provides the 'contract' between application
+ *   function definition only provides the 'contract' between application
  *   specific C++ code and platform-specific toolchain support
  *
  ***************************************************************************/

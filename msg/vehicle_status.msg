@@ -10,7 +10,8 @@ uint8 MAIN_STATE_OFFBOARD = 7
 uint8 MAIN_STATE_STAB = 8
 uint8 MAIN_STATE_RATTITUDE = 9
 uint8 MAIN_STATE_AUTO_TAKEOFF = 10
-uint8 MAIN_STATE_MAX = 11
+uint8 MAIN_STATE_AUTO_LAND = 11
+uint8 MAIN_STATE_MAX = 12
 
 # If you change the order, add or remove arming_state_t states make sure to update the arrays
 # in state_machine_helper.cpp as well.
@@ -104,6 +105,7 @@ uint16 counter   # incremented by the writing thread everytime new data is store
 uint64 timestamp # in microseconds since system start, is set whenever the writing thread stores new data
 
 uint8 main_state		    	# main state machine
+uint8 main_state_prev       # previous main state
 uint8 nav_state				# set navigation state machine to specified value
 uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state

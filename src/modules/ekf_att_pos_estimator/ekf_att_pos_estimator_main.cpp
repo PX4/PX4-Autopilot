@@ -74,12 +74,17 @@ static uint64_t IMUusec = 0;
 static constexpr float rc = 10.0f;	// RC time constant of 1st order LPF in seconds
 static constexpr uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000;	///< units: microseconds
 static constexpr float POS_RESET_THRESHOLD = 5.0f;				///< Seconds before we signal a total GPS failure
+
+// These are unused
+#if 0
 static constexpr unsigned MAG_SWITCH_HYSTERESIS =
 	10;	///< Ignore the first few mag failures (which amounts to a few milliseconds)
 static constexpr unsigned GYRO_SWITCH_HYSTERESIS =
 	5;	///< Ignore the first few gyro failures (which amounts to a few milliseconds)
 static constexpr unsigned ACCEL_SWITCH_HYSTERESIS =
 	5;	///< Ignore the first few accel failures (which amounts to a few milliseconds)
+#endif
+
 static constexpr float EPH_LARGE_VALUE = 1000.0f;
 static constexpr float EPV_LARGE_VALUE = 1000.0f;
 

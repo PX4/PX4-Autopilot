@@ -170,7 +170,6 @@ extern pwm_limit_t pwm_limit;
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 
 # define PX4IO_RELAY_CHANNELS		0
-# define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
 # define ENABLE_SBUS_OUT(_s)		stm32_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
 
 # define VDD_SERVO_FAULT		(!stm32_gpioread(GPIO_SERVO_FAULT_DETECT))

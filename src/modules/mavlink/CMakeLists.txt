@@ -41,7 +41,7 @@ px4_add_module(
 		${MODULE_CFLAGS}
 		-Wno-attributes
 		-Wno-packed
-		-DMAVLINK_COMM_NUM_BUFFERS=3
+		-DMAVLINK_COMM_NUM_BUFFERS=4
 		-Wno-packed
 		-Wno-tautological-constant-out-of-range-compare
 		-Os
@@ -56,6 +56,7 @@ px4_add_module(
 		mavlink_rate_limiter.cpp
 		mavlink_receiver.cpp
 		mavlink_ftp.cpp
+		mavlink_log_handler.cpp
 	DEPENDS
 		platforms__common
 	)

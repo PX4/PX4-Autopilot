@@ -35,11 +35,13 @@ set(config_module_list
 
 	lib/mathlib
 	lib/mathlib/math/filter
+	lib/conversion
+	lib/ecl
 	lib/geo
 	lib/geo_lookup
-	lib/conversion
 	lib/terrain_estimation
 	lib/runway_takeoff
+	lib/tailsitter_recovery
 
 	platforms/common
 	platforms/posix/px4_layer

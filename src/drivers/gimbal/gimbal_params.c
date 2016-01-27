@@ -55,11 +55,11 @@
 PARAM_DEFINE_INT32(GMB_USE_MNT, 0);
 
 /**
- * Auxilary switch to set mount operation mode.
+ * Auxiliary switch to set mount operation mode.
  *
  * Set to 0 to disable manual mode control.
  *
- * If set to an auxilary switch:
+ * If set to an auxiliary switch:
  * Switch off means the gimbal is put into safe/locked position.
  * Switch on means the gimbal can move freely, and landing gear
  * will be retracted if applicable.
