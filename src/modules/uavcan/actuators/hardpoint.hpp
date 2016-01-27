@@ -82,7 +82,6 @@ private:
 	/*
 	 * libuavcan related things
 	 */
-	uavcan::MonotonicTime						_prev_cmd_pub;   ///< rate limiting
 	uavcan::INode							&_node;
 	uavcan::Publisher<uavcan::equipment::hardpoint::Command>	_uavcan_pub_raw_cmd;
 	uavcan::TimerEventForwarder<TimerCbBinder>			_timer;
