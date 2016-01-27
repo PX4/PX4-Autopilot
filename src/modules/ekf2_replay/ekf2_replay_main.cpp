@@ -280,8 +280,8 @@ void Ekf2Replay::parseMessage(uint8_t *data, uint8_t type)
 		_sensors.gyro_integral_rad[1] = replay_part1.gyro_integral_y_rad;
 		_sensors.gyro_integral_rad[2] = replay_part1.gyro_integral_z_rad;
 		_sensors.accelerometer_integral_m_s[0] = replay_part1.accelerometer_integral_x_m_s;
-		_sensors.accelerometer_integral_m_s[1] = replay_part1.accelerometer_integral_x_m_s;
-		_sensors.accelerometer_integral_m_s[2] = replay_part1.accelerometer_integral_x_m_s;
+		_sensors.accelerometer_integral_m_s[1] = replay_part1.accelerometer_integral_y_m_s;
+		_sensors.accelerometer_integral_m_s[2] = replay_part1.accelerometer_integral_z_m_s;
 		_sensors.magnetometer_ga[0] = replay_part1.magnetometer_x_ga;
 		_sensors.magnetometer_ga[1] = replay_part1.magnetometer_y_ga;
 		_sensors.magnetometer_ga[2] = replay_part1.magnetometer_z_ga;

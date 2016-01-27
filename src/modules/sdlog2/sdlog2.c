@@ -1347,8 +1347,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_RPL1.gyro_integral_y_rad = buf.replay.gyro_integral_rad[1];
 			log_msg.body.log_RPL1.gyro_integral_z_rad = buf.replay.gyro_integral_rad[2];
 			log_msg.body.log_RPL1.accelerometer_integral_x_m_s = buf.replay.accelerometer_integral_m_s[0];
-			log_msg.body.log_RPL1.accelerometer_integral_y_m_s = buf.replay.accelerometer_integral_m_s[0];
-			log_msg.body.log_RPL1.accelerometer_integral_z_m_s = buf.replay.accelerometer_integral_m_s[0];
+			log_msg.body.log_RPL1.accelerometer_integral_y_m_s = buf.replay.accelerometer_integral_m_s[1];
+			log_msg.body.log_RPL1.accelerometer_integral_z_m_s = buf.replay.accelerometer_integral_m_s[2];
 			log_msg.body.log_RPL1.magnetometer_x_ga = buf.replay.magnetometer_ga[0];
 			log_msg.body.log_RPL1.magnetometer_y_ga = buf.replay.magnetometer_ga[1];
 			log_msg.body.log_RPL1.magnetometer_z_ga = buf.replay.magnetometer_ga[2];
