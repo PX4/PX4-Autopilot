@@ -45,6 +45,9 @@
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 
+namespace landdetection
+{
+
 MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
@@ -89,14 +92,28 @@ void MulticopterLandDetector::updateSubscriptions()
 	orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
 }
 
-bool MulticopterLandDetector::update()
+LandDetectionResult MulticopterLandDetector::update()
 {
 	// first poll for new data from our subscriptions
 	updateSubscriptions();
 
 	updateParameterCache(false);
 
-	return get_landed_state();
+	if (get_freefall_state()) {
+		_state = LANDDETECTION_RES_FREEFALL;
+	}else if(get_landed_state()){
+		_state = LANDDETECTION_RES_LANDED;
+	}else{
+		_state = LANDDETECTION_RES_FLYING;
+	}
+
+	return _state;
+}
+
+bool MulticopterLandDetector::get_freefall_state()
+{
+	//TODO
+	return false;
 }
 
 bool MulticopterLandDetector::get_landed_state()
@@ -182,4 +199,6 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
 	}
+}
+
 }

@@ -52,6 +52,9 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <systemlib/param/param.h>
 
+namespace landdetection
+{
+
 class MulticopterLandDetector : public LandDetector
 {
 public:
@@ -66,7 +69,7 @@ protected:
 	/**
 	* @brief Runs one iteration of the land detection algorithm
 	**/
-	virtual bool update() override;
+	virtual LandDetectionResult update() override;
 
 	/**
 	* @brief Initializes the land detection algorithm
@@ -82,6 +85,11 @@ protected:
 	* @brief get multicopter landed state
 	**/
 	bool get_landed_state();
+
+	/**
+	* @brief returns true if multicopter is in free-fall state
+	**/
+	bool get_freefall_state();
 
 private:
 
@@ -119,5 +127,7 @@ private:
 	/* timestamp in microseconds since a possible land was detected */
 	uint64_t _landTimer;
 };
+
+}
 
 #endif //__MULTICOPTER_LAND_DETECTOR_H__
