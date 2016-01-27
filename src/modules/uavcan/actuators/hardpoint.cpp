@@ -65,8 +65,6 @@ int UavcanHardpointController::init()
 
 void UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t command)
 {
-	(void)pthread_mutex_lock(&_node_mutex);
-
 	_cmd.command = command;
 	_cmd.hardpoint_id = hardpoint_id;
 
@@ -81,7 +79,7 @@ void UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t comma
 	if (!_timer.isRunning()) {
 		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	}
-	(void)pthread_mutex_lock(&_node_mutex);
+
 }
 void UavcanHardpointController::periodic_update(const uavcan::TimerEvent &)
 {
