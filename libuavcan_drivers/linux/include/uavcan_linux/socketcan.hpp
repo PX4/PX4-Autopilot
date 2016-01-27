@@ -183,10 +183,17 @@ class SocketCanIface : public uavcan::ICanIface
 
     int write(const uavcan::CanFrame& frame) const
     {
+        errno = 0;
+
         const ::can_frame sockcan_frame = makeSocketCanFrame(frame);
+
         const int res = ::write(fd_, &sockcan_frame, sizeof(sockcan_frame));
         if (res <= 0)
         {
+            if (errno == ENOBUFS || errno == EAGAIN)    // Writing is not possible atm, not an error
+            {
+                return 0;
+            }
             return res;
         }
         if (res != sizeof(sockcan_frame))
@@ -264,12 +271,11 @@ class SocketCanIface : public uavcan::ICanIface
         while (!tx_queue_.empty() && (frames_in_socket_tx_queue_ < max_frames_in_socket_tx_queue_))
         {
             const TxItem tx = tx_queue_.top();
-            tx_queue_.pop();
-            assert(tx_queue_.empty() ? true : !tx.frame.priorityLowerThan(tx_queue_.top().frame)); // Order check
+
             if (tx.deadline >= clock_.getMonotonic())
             {
                 const int res = write(tx.frame);
-                if (res == 1)
+                if (res == 1)                   // Transmitted successfully
                 {
                     incrementNumFramesInSocketTxQueue();
                     if (tx.flags & uavcan::CanIOFlagLoopback)
@@ -277,7 +283,11 @@ class SocketCanIface : public uavcan::ICanIface
                         (void)pending_loopback_ids_.insert(tx.frame.id);
                     }
                 }
-                else
+                else if (res == 0)              // Not transmitted, nor is it an error
+                {
+                    break;                      // Leaving the loop, the frame remains enqueued for the next retry
+                }
+                else                            // Transmission error
                 {
                     registerError(SocketCanError::SocketWriteFailure);
                 }
@@ -286,6 +296,9 @@ class SocketCanIface : public uavcan::ICanIface
             {
                 registerError(SocketCanError::TxTimeout);
             }
+
+            // Removing the frame from the queue even if transmission failed
+            tx_queue_.pop();
         }
     }
 
