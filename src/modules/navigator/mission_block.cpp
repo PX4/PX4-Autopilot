@@ -83,7 +83,7 @@ MissionBlock::is_mission_item_reached()
 {
 	/* handle non-navigation or indefinite waypoints */
 	switch (_mission_item.nav_cmd) {
-		// XXX: move handling to mission as well
+		// XXX: move handling to issue_command() as well
 		case NAV_CMD_DO_SET_SERVO: {
 			memset(&actuators, 0, sizeof(actuators));
 			actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
@@ -296,7 +296,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->acceptance_radius = item->acceptance_radius;
 
 	switch (item->nav_cmd) {
-	case NAV_CMD_DO_SET_SERVO: // XXX: should be also return in the beginning for this?
+	case NAV_CMD_DO_SET_SERVO: // XXX: actually also a non position item
 			/* Set current position for loitering set point*/
 			sp->lat = _navigator->get_global_position()->lat;
 			sp->lon = _navigator->get_global_position()->lon;

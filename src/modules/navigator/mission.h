@@ -120,6 +120,21 @@ private:
 	void set_mission_items();
 
 	/**
+	 * Returns true if we need to do a takeoff at the current state
+	 */
+	bool do_need_takeoff();
+
+	/**
+	 * Returns true if we need to move to waypoint location before starting descent
+	 */
+	bool do_need_move_to_land();
+
+	/**
+	 * Calculate takeoff height for mission item considering ground clearance
+	 */
+	float calculate_takeoff_altitude(struct mission_item_s *mission_item);
+
+	/**
 	 * Updates the heading of the vehicle. Rotary wings only.
 	 */
 	void heading_sp_update();
@@ -136,11 +151,19 @@ private:
 
 	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
 
+	/**
+	 * Read the current and the next mission item. The next mission item read is the
+	 * next mission item that contains a position.
+	 *
+	 * @return true if current mission item available
+	 */
 	bool prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
-		struct mission_item_s *next_mission_item, bool *has_next_item);
+		struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
 	/**
-	 * Read current or next mission item from the dataman and watch out for DO_JUMPS
+	 * Read current (offset == 0) or a specific (offset > 0) mission item
+	 * from the dataman and watch out for DO_JUMPS
+	 *
 	 * @return true if successful
 	 */
 	bool read_mission_item(bool onboard, int offset, struct mission_item_s *mission_item);
@@ -187,8 +210,6 @@ private:
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
 	bool _need_takeoff;					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
-	bool _takeoff;						/**< takeoff state flag */
-	bool _takeoff_finished;					/**< set if takeoff was requested before and is now done */
 
 	enum {
 		MISSION_TYPE_NONE,
@@ -208,13 +229,12 @@ private:
 	float _distance_current_previous; /**< distance from previous to current sp in pos_sp_triplet,
 					    only use if current and previous are valid */
 
-	enum {
-		WORK_ITEM_TYPE_DEFAULT,
-		WORK_ITEM_TYPE_TAKEOFF,
-		WORK_ITEM_TYPE_LAND,
-		WORK_ITEM_TYPE_TRANSITION,
-		WORK_ITEM_TYPE_YAW
-	} _work_item_type;		/**< current type of work to do, intermediate to complete mission item */
+	enum work_item_type {
+		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
+		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
+		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
+		WORK_ITEM_TYPE_ALIGN		/**< align for next waypoint */
+	} _work_item_type;	/**< current type of work to do (sub mission item) */
 
 };
 

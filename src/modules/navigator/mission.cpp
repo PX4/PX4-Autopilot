@@ -77,7 +77,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_current_onboard_mission_index(-1),
 	_current_offboard_mission_index(-1),
 	_need_takeoff(true),
-	_takeoff(false),
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
 	_home_inited(false),
@@ -287,24 +286,23 @@ Mission::update_offboard_mission()
 void
 Mission::advance_mission()
 {
-	if (_takeoff) {
-		_takeoff = false;
-		_takeoff_finished = true;
+	/* do not advance mission item if we're processing sub mission work items */
+	if (_work_item_type != WORK_ITEM_TYPE_DEFAULT) {
+		return;
+	}
 
-	} else {
-		switch (_mission_type) {
-		case MISSION_TYPE_ONBOARD:
-			_current_onboard_mission_index++;
-			break;
+	switch (_mission_type) {
+	case MISSION_TYPE_ONBOARD:
+		_current_onboard_mission_index++;
+		break;
 
-		case MISSION_TYPE_OFFBOARD:
-			_current_offboard_mission_index++;
-			break;
+	case MISSION_TYPE_OFFBOARD:
+		_current_offboard_mission_index++;
+		break;
 
-		case MISSION_TYPE_NONE:
-		default:
-			break;
-		}
+	case MISSION_TYPE_NONE:
+	default:
+		break;
 	}
 }
 
@@ -341,11 +339,13 @@ Mission::set_mission_items()
 	bool user_feedback_done = false;
 
 	/* mission item that comes after current if available */
-	struct mission_item_s mission_item_next;
-	bool has_next_item = false;
+	struct mission_item_s mission_item_next_position;
+	bool has_next_position_item = false;
+
+	work_item_type new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
 	/* try setting onboard mission item */
-	if (_param_onboard_enabled.get() && prepare_mission_items(true, &_mission_item, &mission_item_next, &has_next_item)) {
+	if (_param_onboard_enabled.get() && prepare_mission_items(true, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "onboard mission now running");
@@ -354,7 +354,7 @@ Mission::set_mission_items()
 		_mission_type = MISSION_TYPE_ONBOARD;
 
 	/* try setting offboard mission item */
-	} else if (prepare_mission_items(false, &_mission_item, &mission_item_next, &has_next_item)) {
+	} else if (prepare_mission_items(false, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "offboard mission now running");
@@ -410,56 +410,26 @@ Mission::set_mission_items()
 		return;
 	}
 
-	if (!item_contains_position(&_mission_item)) {
-		// XXX: before issuing command, check if we need to align for transition first
-		issue_command(&_mission_item);
-		return;
-	}
+	/*********************************** handle mission item *********************************************/
 
-	if (pos_sp_triplet->current.valid) {
-		_on_arrival_yaw = _mission_item.yaw;
-	}
+	/* handle position mission items */
+	if (item_contains_position(&_mission_item)) {
 
-	/* do takeoff on first waypoint for rotary wing vehicles */
-	if (_navigator->get_vstatus()->is_rotary_wing) {
-		/* force takeoff if landed (additional protection) */
-		if (!_takeoff && _navigator->get_vstatus()->condition_landed) {
-			_need_takeoff = true;
+		if (pos_sp_triplet->current.valid) {
+			_on_arrival_yaw = _mission_item.yaw;
 		}
 
-		/* new current mission item set, check if we need takeoff */
-		if (_need_takeoff && (
-				_mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
-				_mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
-				_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-				_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-				_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-				_mission_item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)) {
-			_takeoff = true;
-			_need_takeoff = false;
-		}
-	}
+		/* do takeoff before going to setpoint if needed and not already in takeoff */
+		if (do_need_takeoff() && _work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
+			new_work_item_type = WORK_ITEM_TYPE_TAKEOFF;
 
-	if (_takeoff) {
-		/* do takeoff before going to setpoint */
-		/* set mission item as next position setpoint */
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->next);
-		/* next SP is not takeoff anymore */
-		pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+			/* use current mission item as next position item */
+			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
+			mission_item_next_position.nav_cmd = NAV_CMD_WAYPOINT;
+			has_next_position_item = true;
 
-		/* calculate takeoff altitude */
-		float takeoff_alt = get_absolute_altitude_for_item(_mission_item);
+			float takeoff_alt = calculate_takeoff_altitude(&_mission_item);
 
-		/* takeoff to at least NAV_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
-		if (_navigator->get_vstatus()->condition_landed) {
-			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _param_takeoff_alt.get());
-
-		} else {
-			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _param_takeoff_alt.get());
-		}
-
-		/* check if we already above takeoff altitude */
-		if (_navigator->get_global_position()->alt < takeoff_alt) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
 			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
@@ -470,27 +440,47 @@ Mission::set_mission_items()
 			_mission_item.altitude_is_relative = false;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
-
-			mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-
-			_navigator->set_position_setpoint_triplet_updated();
-			return;
-
-		} else {
-			/* skip takeoff */
-			_takeoff = false;
 		}
+
+		/* if we just did a takeoff navigate to the actual waypoint now */
+		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
+			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+		}
+
+		/* move to landing wayponit before descent if necessary */
+		if (do_need_move_to_land() && _work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND) {
+			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
+
+			/* use current mission item as next position item */
+			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
+			has_next_position_item = true;
+
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.autocontinue = true;
+			_mission_item.time_inside = 0;
+		}
+
+		/* we just moved to the landing waypoint, now descend */
+		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND) {
+			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+		}
+
+		/* set current position setpoint from mission item */
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+
+	/* handle non-position mission items such as commands */
+	} else {
+
+		// XXX: before issuing command, check if we need to align for transition first
+		issue_command(&_mission_item);
+
 	}
 
-	if (_takeoff_finished) {
-		/* we just finished takeoff */
-		/* in case we still have to move to the takeoff waypoint we need a waypoint mission item */
-		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-		_takeoff_finished = false;
-	}
+	/*********************************** clean up and set next *********************************************/
 
-	/* set current position setpoint from mission item */
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	/* set current work item type */
+	_work_item_type = new_work_item_type;
 
 	/* require takeoff after landing or idle */
 	if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
@@ -508,9 +498,9 @@ Mission::set_mission_items()
 	if (_mission_item.autocontinue && _mission_item.time_inside <= 0.001f) {
 		/* try to process next mission item */
 
-		if (has_next_item) {
+		if (has_next_position_item) {
 			/* got next mission item, update setpoint triplet */
-			mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
+			mission_item_to_position_setpoint(&mission_item_next_position, &pos_sp_triplet->next);
 		} else {
 			/* next mission item is not available */
 			pos_sp_triplet->next.valid = false;
@@ -532,10 +522,73 @@ Mission::set_mission_items()
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
+bool
+Mission::do_need_takeoff()
+{
+	if (_navigator->get_vstatus()->is_rotary_wing) {
+		float takeoff_alt = calculate_takeoff_altitude(&_mission_item);
+
+		/* force takeoff if landed (additional protection) */
+		if (_navigator->get_vstatus()->condition_landed) {
+			_need_takeoff = true;
+
+		/* if in-air and already above takeoff height, don't do takeoff */
+		} else if (_navigator->get_global_position()->alt > takeoff_alt) {
+			_need_takeoff = false;
+		}
+
+		/* check if current mission item is one that requires takeoff before */
+		if (_need_takeoff && (
+				_mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
+				_mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
+				_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+				_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+				_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+				_mission_item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)) {
+
+			_need_takeoff = false;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool
+Mission::do_need_move_to_land()
+{
+	if (_navigator->get_vstatus()->is_rotary_wing && _mission_item.nav_cmd == NAV_CMD_LAND) {
+
+		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+			_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+
+		return d_current > _navigator->get_acceptance_radius();
+	}
+
+	return false;
+}
+
+float
+Mission::calculate_takeoff_altitude(struct mission_item_s *mission_item)
+{
+	/* calculate takeoff altitude */
+	float takeoff_alt = get_absolute_altitude_for_item(*mission_item);
+
+	/* takeoff to at least NAV_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
+	if (_navigator->get_vstatus()->condition_landed) {
+		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _param_takeoff_alt.get());
+
+	} else {
+		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _param_takeoff_alt.get());
+	}
+
+	return takeoff_alt;
+}
+
 void
 Mission::heading_sp_update()
 {
-	if (_takeoff) {
+	if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
 		/* we don't want to be yawing during takeoff */
 		return;
 	}
@@ -662,7 +715,7 @@ Mission::altitude_sp_foh_reset()
 
 bool
 Mission::prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
-	struct mission_item_s *next_mission_item, bool *has_next_item)
+	struct mission_item_s *next_position_mission_item, bool *has_next_position_item)
 {
 	bool first_res = false;
 	int offset = 1;
@@ -672,10 +725,10 @@ Mission::prepare_mission_items(bool onboard, struct mission_item_s *mission_item
 		first_res = true;
 
 		/* trying to find next position mission item */
-		while(read_mission_item(onboard, offset, next_mission_item)) {
+		while(read_mission_item(onboard, offset, next_position_mission_item)) {
 
-			if (item_contains_position(next_mission_item)) {
-				*has_next_item = true;
+			if (item_contains_position(next_position_mission_item)) {
+				*has_next_position_item = true;
 				break;
 			}
 
