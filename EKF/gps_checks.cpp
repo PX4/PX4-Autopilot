@@ -88,7 +88,7 @@ bool EstimatorBase::gps_is_good(struct gps_message *gps)
         _gps_alt_ref = gps->alt * 1e-3f;
     }
 
-    // Calculate time lapsesd since last update, limit to prevent numerical errors and calculate the lowpass filter coefficient
+    // Calculate time lapsed since last update, limit to prevent numerical errors and calculate the lowpass filter coefficient
     const float filtTimeConst = 10.0f;
     float dt = fminf(fmaxf(float(_time_last_imu - _last_gps_origin_time_us)*1e-6f,0.001f),filtTimeConst);
     float filterCoef = dt/filtTimeConst;

@@ -337,9 +337,10 @@ public:
 		*time_us = _imu_time_last;
 	}
 
-	uint64_t _last_gps_origin_time_us = 0;
-	struct map_projection_reference_s _posRef = {};
-    float _gps_alt_ref = 0.0f;
+    // Variables used to publish the WGS-84 location of the EKF local NED origin
+    uint64_t _last_gps_origin_time_us = 0;              // time the origin was last set (uSec)
+    struct map_projection_reference_s _posRef = {};     // Contains WGS-84 position latitude and longitude (radians)
+    float _gps_alt_ref = 0.0f;                          // WGS-84 height (m)
 
     bool _vehicleArmed = false;     // vehicle arm status used to turn off funtionality used on the ground
 
