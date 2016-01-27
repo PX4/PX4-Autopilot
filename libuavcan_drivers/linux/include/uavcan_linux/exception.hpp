@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cerrno>
+#include <cstring>
 #include <stdexcept>
 
 namespace uavcan_linux
@@ -16,9 +17,14 @@ class Exception : public std::runtime_error
 {
     const int errno_;
 
+    static std::string makeErrorString(const std::string& descr)
+    {
+        return descr + " [errno " + std::to_string(errno) + " \"" + std::strerror(errno) + "\"]";
+    }
+
 public:
     explicit Exception(const std::string& descr)
-        : std::runtime_error(descr)
+        : std::runtime_error(makeErrorString(descr))
         , errno_(errno)
     { }
 

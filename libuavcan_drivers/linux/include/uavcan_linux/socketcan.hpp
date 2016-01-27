@@ -381,6 +381,7 @@ public:
      */
     virtual ~SocketCanIface()
     {
+        UAVCAN_TRACE("SocketCAN", "SocketCanIface: Closing fd %d", fd_);
         (void)::close(fd_);
     }
 
@@ -515,68 +516,91 @@ public:
      */
     static int openSocket(const std::string& iface_name)
     {
+        errno = 0;
+
         const int s = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
         if (s < 0)
         {
             return s;
         }
+
+        class RaiiCloser
+        {
+            int fd_;
+        public:
+            RaiiCloser(int filedesc) : fd_(filedesc)
+            {
+                assert(fd_ >= 0);
+            }
+            ~RaiiCloser()
+            {
+                if (fd_ >= 0)
+                {
+                    UAVCAN_TRACE("SocketCAN", "RaiiCloser: Closing fd %d", fd_);
+                    (void)::close(fd_);
+                }
+            }
+            void disarm() { fd_ = -1; }
+        } raii_closer(s);
+
         // Detect the iface index
         auto ifr = ::ifreq();
         if (iface_name.length() >= IFNAMSIZ)
         {
-            goto fail;
+            errno = ENAMETOOLONG;
+            return -1;
         }
         (void)std::strncpy(ifr.ifr_name, iface_name.c_str(), iface_name.length());
         if (::ioctl(s, SIOCGIFINDEX, &ifr) < 0 || ifr.ifr_ifindex < 0)
         {
-            goto fail;
+            return -1;
         }
-        // Bind to a CAN iface
+
+        // Bind to the specified CAN iface
         {
             auto addr = ::sockaddr_can();
             addr.can_family = AF_CAN;
             addr.can_ifindex = ifr.ifr_ifindex;
             if (::bind(s, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0)
             {
-                goto fail;
+                return -1;
             }
         }
+
         // Configure
         {
             const int on = 1;
             // Timestamping
             if (::setsockopt(s, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0)
             {
-                goto fail;
+                return -1;
             }
             // Socket loopback
             if (::setsockopt(s, SOL_CAN_RAW, CAN_RAW_RECV_OWN_MSGS, &on, sizeof(on)) < 0)
             {
-                goto fail;
+                return -1;
             }
             // Non-blocking
             if (::fcntl(s, F_SETFL, O_NONBLOCK) < 0)
             {
-                goto fail;
+                return -1;
             }
         }
+
         // Validate the resulting socket
         {
-            int error = 0;
-            ::socklen_t errlen = sizeof(error);
-            (void)::getsockopt(s, SOL_SOCKET, SO_ERROR, reinterpret_cast<void*>(&error), &errlen);
-            if (error != 0)
+            int socket_error = 0;
+            ::socklen_t errlen = sizeof(socket_error);
+            (void)::getsockopt(s, SOL_SOCKET, SO_ERROR, reinterpret_cast<void*>(&socket_error), &errlen);
+            if (socket_error != 0)
             {
-                goto fail;
-                UAVCAN_TRACE("SocketCAN", "Socket error: iface='%s' errno=%d error=%d",
-                             iface_name.c_str(), errno, error);
+                errno = socket_error;
+                return -1;
             }
         }
-        return s;
 
-    fail:
-        (void)::close(s);
-        return -1;
+        raii_closer.disarm();
+        return s;
     }
 };
 
