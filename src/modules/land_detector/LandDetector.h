@@ -108,6 +108,8 @@ protected:
 
 	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold
                                                                           before triggering a land */
+	static constexpr uint64_t FREEFALL_DETECTOR_TRIGGER_TIME = 300000;  /**< usec that freefall conditions have to hold
+                                                                          before triggering a freefall */
 	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME =
 		2000000;	/**< time interval in which wider acceptance thresholds are used after arming */
 

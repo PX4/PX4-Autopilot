@@ -84,6 +84,18 @@ PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
 PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.15f);
 
 /**
+ * Multicopter specific force threshold
+ *
+ * Multicopter threshold on the specific force measured by accelerometers in m/s^2 for free-fall detection
+ *
+ * @min 0.1
+ * @max 10
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 1.0f);
+
+/**
  * Fixedwing max horizontal velocity
  *
  * Maximum horizontal velocity allowed in the landed state (m/s)
