@@ -34,7 +34,7 @@ then
 fi
 
 set MIXER firefly6
-set PWM_OUT 123456
+set PWM_OUT 12345678
 set PWM_RATE 400
 
 set MIXER_AUX firefly6
