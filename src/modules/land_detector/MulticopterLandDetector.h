@@ -50,6 +50,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/sensor_combined.h>
 #include <systemlib/param/param.h>
 
 namespace landdetection
@@ -101,6 +102,7 @@ private:
 		param_t maxVelocity;
 		param_t maxRotation;
 		param_t maxThrottle;
+		param_t acc_threshold_m_s2;
 	}		_paramHandle;
 
 	struct {
@@ -108,6 +110,7 @@ private:
 		float maxVelocity;
 		float maxRotation_rad_s;
 		float maxThrottle;
+		float acc_threshold_m_s2;
 	} _params;
 
 private:
@@ -117,15 +120,17 @@ private:
 	int _parameterSub;
 	int _attitudeSub;
 	int _manualSub;
+	int _sensorsSub;
 
 	struct vehicle_local_position_s		_vehicleLocalPosition;
 	struct actuator_controls_s		_actuators;
 	struct actuator_armed_s			_arming;
 	struct vehicle_attitude_s		_vehicleAttitude;
 	struct manual_control_setpoint_s	_manual;
+	struct sensor_combined_s 		_sensors;
 
-	/* timestamp in microseconds since a possible land was detected */
-	uint64_t _landTimer;
+	uint64_t _landTimer;							/**< timestamp in microseconds since a possible land was detected*/
+	uint64_t _freefallTimer;							/**< timestamp in microseconds since a possible freefall was detected*/
 };
 
 }

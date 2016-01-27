@@ -61,12 +61,15 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_actuators{},
 	_arming{},
 	_vehicleAttitude{},
-	_landTimer(0)
+	_sensors{},
+	_landTimer(0),
+	_freefallTimer(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
 	_paramHandle.maxThrottle = param_find("LNDMC_THR_MAX");
+	_paramHandle.acc_threshold_m_s2 = param_find("LNDMC_FFALL_THR");
 }
 
 void MulticopterLandDetector::initialize()
@@ -78,6 +81,7 @@ void MulticopterLandDetector::initialize()
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_manualSub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_sensorsSub = orb_subscribe(ORB_ID(sensor_combined));
 
 	// download parameters
 	updateParameterCache(true);
@@ -90,6 +94,7 @@ void MulticopterLandDetector::updateSubscriptions()
 	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
+	orb_update(ORB_ID(sensor_combined), _sensorsSub, &_sensors);
 }
 
 LandDetectionResult MulticopterLandDetector::update()
@@ -101,9 +106,9 @@ LandDetectionResult MulticopterLandDetector::update()
 
 	if (get_freefall_state()) {
 		_state = LANDDETECTION_RES_FREEFALL;
-	}else if(get_landed_state()){
+	} else if (get_landed_state()) {
 		_state = LANDDETECTION_RES_LANDED;
-	}else{
+	} else {
 		_state = LANDDETECTION_RES_FLYING;
 	}
 
@@ -112,8 +117,23 @@ LandDetectionResult MulticopterLandDetector::update()
 
 bool MulticopterLandDetector::get_freefall_state()
 {
-	//TODO
-	return false;
+	const uint64_t now = hrt_absolute_time();
+
+	float acc_norm = 0.0;
+	for (int i = 0; i < 3; i++) {
+		acc_norm += _sensors.accelerometer_m_s2[i] * _sensors.accelerometer_m_s2[i];
+	}
+	acc_norm = sqrtf(acc_norm);
+
+	bool freefall = (acc_norm < _params.acc_threshold_m_s2);
+	if(!freefall){
+		_freefallTimer = now;
+		return false;
+	}else{
+		PX4_WARN("[freefalldetector] FREE FALL !! \tacc_norm:\t%8.4f", (double)acc_norm);
+	}
+
+	return (now - _freefallTimer) > FREEFALL_DETECTOR_TRIGGER_TIME;
 }
 
 bool MulticopterLandDetector::get_landed_state()
@@ -168,8 +188,8 @@ bool MulticopterLandDetector::get_landed_state()
 	float maxRotationScaled = _params.maxRotation_rad_s * armThresholdFactor;
 
 	bool rotating = (fabsf(_vehicleAttitude.rollspeed)  > maxRotationScaled) ||
-			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
-			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
+	                (fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
+	                (fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
 
 	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
@@ -198,6 +218,7 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		param_get(_paramHandle.maxRotation, &_params.maxRotation_rad_s);
 		_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
+		param_get(_paramHandle.acc_threshold_m_s2, &_params.acc_threshold_m_s2);
 	}
 }
 
