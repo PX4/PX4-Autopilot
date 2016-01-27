@@ -29,4 +29,13 @@ public:
     int getErrno() const { return errno_; }
 };
 
+/**
+ * This exception is thrown when all available interfaces become down.
+ */
+class AllIfacesDownException : public Exception
+{
+public:
+    AllIfacesDownException() : Exception("All ifaces are down") { }
+};
+
 }

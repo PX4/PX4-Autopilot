@@ -11,6 +11,7 @@
 #include <vector>
 #include <map>
 #include <unordered_set>
+#include <memory>
 #include <algorithm>
 
 #include <fcntl.h>
@@ -24,6 +25,7 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan_linux/clock.hpp>
 #include <uavcan_linux/exception.hpp>
+
 
 namespace uavcan_linux
 {
@@ -333,6 +335,7 @@ class SocketCanIface : public uavcan::ICanIface
             else
             {
                 registerError(SocketCanError::SocketReadFailure);
+                break;
             }
         }
     }
@@ -557,6 +560,18 @@ public:
                 goto fail;
             }
         }
+        // Validate the resulting socket
+        {
+            int error = 0;
+            ::socklen_t errlen = sizeof(error);
+            (void)::getsockopt(s, SOL_SOCKET, SO_ERROR, reinterpret_cast<void*>(&error), &errlen);
+            if (error != 0)
+            {
+                goto fail;
+                UAVCAN_TRACE("SocketCAN", "Socket error: iface='%s' errno=%d error=%d",
+                             iface_name.c_str(), errno, error);
+            }
+        }
         return s;
 
     fail:
@@ -571,14 +586,33 @@ public:
  */
 class SocketCanDriver : public uavcan::ICanDriver
 {
-public:
-    static constexpr unsigned MaxIfaces = uavcan::MaxCanIfaces;
+    class IfaceWrapper : public SocketCanIface
+    {
+        bool down_ = false;
 
-private:
+    public:
+        IfaceWrapper(const SystemClock& clock, int fd) : SocketCanIface(clock, fd) { }
+
+        void updateDownStatusFromPollResult(const ::pollfd& pfd)
+        {
+            assert(pfd.fd == this->getFileDescriptor());
+            if (!down_ && (pfd.revents & POLLERR))
+            {
+                int error = 0;
+                ::socklen_t errlen = sizeof(error);
+                (void)::getsockopt(pfd.fd, SOL_SOCKET, SO_ERROR, reinterpret_cast<void*>(&error), &errlen);
+
+                down_ = error == ENETDOWN || error == ENODEV;
+
+                UAVCAN_TRACE("SocketCAN", "Iface %d is dead; error %d", this->getFileDescriptor(), error);
+            }
+        }
+
+        bool isDown() const { return down_; }
+    };
+
     const SystemClock& clock_;
-    uavcan::LazyConstructor<SocketCanIface> ifaces_[MaxIfaces];
-    ::pollfd pollfds_[MaxIfaces];
-    std::uint8_t num_ifaces_ = 0;
+    std::vector<std::unique_ptr<IfaceWrapper>> ifaces_;
 
 public:
     /**
@@ -587,11 +621,7 @@ public:
     explicit SocketCanDriver(const SystemClock& clock)
         : clock_(clock)
     {
-        for (auto& p : pollfds_)
-        {
-            p = ::pollfd();
-            p.fd = -1;
-        }
+        ifaces_.reserve(uavcan::MaxCanIfaces);
     }
 
     /**
@@ -606,7 +636,7 @@ public:
     {
         // Detecting whether we need to block at all
         bool need_block = (inout_masks.write == 0);    // Write queue is infinite
-        for (unsigned i = 0; need_block && (i < num_ifaces_); i++)
+        for (unsigned i = 0; need_block && (i < ifaces_.size()); i++)
         {
             const bool need_read = inout_masks.read  & (1 << i);
             if (need_read && ifaces_[i]->hasReadyRx())
@@ -618,13 +648,29 @@ public:
         if (need_block)
         {
             // Poll FD set setup
-            for (unsigned i = 0; i < num_ifaces_; i++)
+            ::pollfd pollfds[uavcan::MaxCanIfaces] = {};
+            unsigned num_pollfds = 0;
+            IfaceWrapper* pollfd_index_to_iface[uavcan::MaxCanIfaces] = { };
+
+            for (unsigned i = 0; i < ifaces_.size(); i++)
             {
-                pollfds_[i].events = POLLIN;
-                if (ifaces_[i]->hasReadyTx() || (inout_masks.write & (1 << i)))
+                if (!ifaces_[i]->isDown())
                 {
-                    pollfds_[i].events |= POLLOUT;
+                    pollfds[num_pollfds].fd = ifaces_[i]->getFileDescriptor();
+                    pollfds[num_pollfds].events = POLLIN;
+                    if (ifaces_[i]->hasReadyTx() || (inout_masks.write & (1U << i)))
+                    {
+                        pollfds[num_pollfds].events |= POLLOUT;
+                    }
+                    pollfd_index_to_iface[num_pollfds] = ifaces_[i].get();
+                    num_pollfds++;
                 }
+            }
+
+            // This is where we abort when the last iface goes down
+            if (num_pollfds == 0)
+            {
+                throw AllIfacesDownException();
             }
 
             // Timeout conversion
@@ -637,75 +683,90 @@ public:
             }
 
             // Blocking here
-            const int res = ::ppoll(pollfds_, num_ifaces_, &ts, nullptr);
+            const int res = ::ppoll(pollfds, num_pollfds, &ts, nullptr);
             if (res < 0)
             {
                 return res;
             }
 
             // Handling poll output
-            for (unsigned i = 0; i < num_ifaces_; i++)
+            for (unsigned i = 0; i < num_pollfds; i++)
             {
-                const bool poll_read  = pollfds_[i].revents & POLLIN;
-                const bool poll_write = pollfds_[i].revents & POLLOUT;
-                ifaces_[i]->poll(poll_read, poll_write);
+                pollfd_index_to_iface[i]->updateDownStatusFromPollResult(pollfds[i]);
+
+                const bool poll_read  = pollfds[i].revents & POLLIN;
+                const bool poll_write = pollfds[i].revents & POLLOUT;
+                pollfd_index_to_iface[i]->poll(poll_read, poll_write);
             }
         }
 
         // Writing the output masks
         inout_masks = uavcan::CanSelectMasks();
-        for (unsigned i = 0; i < num_ifaces_; i++)
+        for (unsigned i = 0; i < ifaces_.size(); i++)
         {
-            const std::uint8_t iface_mask = 1 << i;
-            inout_masks.write |= iface_mask;           // Always ready to write
+            if (!ifaces_[i]->isDown())
+            {
+                inout_masks.write |= std::uint8_t(1U << i);     // Always ready to write if not down
+            }
             if (ifaces_[i]->hasReadyRx())
             {
-                inout_masks.read |= iface_mask;
+                inout_masks.read |= std::uint8_t(1U << i);      // Readability depends only on RX buf, even if down
             }
         }
-        // Since all ifaces are always ready to write, return value is always the same
-        return num_ifaces_;
+
+        // Return value is irrelevant as long as it's non-negative
+        return ifaces_.size();
     }
 
     SocketCanIface* getIface(std::uint8_t iface_index) override
     {
-        return (iface_index >= num_ifaces_) ? nullptr : static_cast<SocketCanIface*>(ifaces_[iface_index]);
+        return (iface_index >= ifaces_.size()) ? nullptr : ifaces_[iface_index].get();
     }
 
-    std::uint8_t getNumIfaces() const override { return num_ifaces_; }
+    std::uint8_t getNumIfaces() const override { return ifaces_.size(); }
 
     /**
      * Adds one iface by name. Will fail if there are @ref MaxIfaces ifaces registered already.
      * @param iface_name E.g. "can0", "vcan1"
-     * @return Negative on error, zero on success.
+     * @return Negative on error, interface index on success.
      * @throws uavcan_linux::Exception.
      */
     int addIface(const std::string& iface_name)
     {
-        if (num_ifaces_ >= MaxIfaces)
+        if (ifaces_.size() >= uavcan::MaxCanIfaces)
         {
             return -1;
         }
+
         // Open the socket
         const int fd = SocketCanIface::openSocket(iface_name);
         if (fd < 0)
         {
             return fd;
         }
+
         // Construct the iface - upon successful construction the iface will take ownership of the fd.
         try
         {
-            ifaces_[num_ifaces_].construct<const SystemClock&, int>(clock_, fd);
+            ifaces_.emplace_back(new IfaceWrapper(clock_, fd));
         }
         catch (...)
         {
             (void)::close(fd);
             throw;
         }
-        // Init pollfd
-        pollfds_[num_ifaces_].fd = fd;
-        num_ifaces_++;
-        return 0;
+
+        UAVCAN_TRACE("SocketCAN", "New iface '%s' fd %d", iface_name.c_str(), fd);
+
+        return ifaces_.size() - 1;
+    }
+
+    /**
+     * Returns false if the specified interface is functioning, true if it became unavailable.
+     */
+    bool isIfaceDown(std::uint8_t iface_index) const
+    {
+        return ifaces_.at(iface_index)->isDown();
     }
 };
 
