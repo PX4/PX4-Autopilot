@@ -480,7 +480,7 @@ Mission::set_mission_items()
 
 			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
 
-			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.lat = _navigator->get_global_position()->lat;
 			_mission_item.lon = _navigator->get_global_position()->lon;
 			_mission_item.altitude = _navigator->get_global_position()->alt;
