@@ -198,11 +198,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	 */
 	int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
 
+//	warnx("poll status: %u", status);
 	if (status > 0) {
 		/* received some data; check size of packet */
 		usleep(5000);
 		status = read(uart, &sbuf[0], sizeof(sbuf));
-		warnx("received %u bytes", status);
+//		warnx("received %u bytes", status);
 	}
 
 	if (status > 0 && status < 3) {
