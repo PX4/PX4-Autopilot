@@ -172,7 +172,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		}
 	}
 
-	/* Open UART */
+	/* Open UART assuming SmartPort telemetry */
 	warnx("opening uart");
 	struct termios uart_config_original;
 	struct termios uart_config;
@@ -193,15 +193,24 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	/* Main thread loop */
 	char sbuf[20];
 
-	/* look for polling bytes indicating SmartPort telemetry
-	 * if not found, send D type telemetry frames instead
+	/* 2 byte polling frames indicate SmartPort telemetry
+	 * 11 byte packets, indicate D type telemetry
 	 */
 	int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
 
 	if (status > 0) {
-		/* traffic on the port, assume it's a SmartPort master */
+		/* received some data; check size of packet */
+		usleep(5000);
+		status = read(uart, &sbuf[0], sizeof(sbuf));
+		warnx("received %u bytes", status);
+	}
+
+	if (status > 0 && status < 3) {
+		/* traffic on the port, D type is 11 bytes per frame, SmartPort is only 2 */
 		/* Subscribe to topics */
 		sPort_init();
+
+		warnx("sending FrSky SmartPort telemetry");
 
 		/* send S.port telemetry */
 		while (!thread_should_exit) {
@@ -300,11 +309,10 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			}
 		}
 
-	} else {
+	} else if (status >= 0) {
+		/* either no traffic on the port (0=>timeout), or D type packet */
 
-		/* timed out: reconfigure UART and send D type telemetry */
-		warnx("SmartPort receiver not detected, sending FrSky D type telemetry");
-
+		/* detected D type telemetry: reconfigure UART */
 		status = set_uart_speed(uart, &uart_config, B9600);
 
 		if (status < 0) {
@@ -321,6 +329,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		/* Subscribe to topics */
 		frsky_init();
+
+		warnx("sending FrSky D type telemetry");
 
 		/* send D8 mode telemetry */
 		while (!thread_should_exit) {
