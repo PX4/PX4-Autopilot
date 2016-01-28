@@ -908,9 +908,13 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 
 void MulticopterPositionControl::control_auto(float dt)
 {
-	if (!_mode_auto) {
+	if (!_mode_auto || _vehicle_status.in_transition_mode || !_vehicle_status.is_rotary_wing) {
 		_mode_auto = true;
 		/* reset position setpoint on AUTO mode activation */
+		if (_vehicle_status.in_transition_mode || !_vehicle_status.is_rotary_wing) {
+			_reset_pos_sp = true;
+			_reset_alt_sp = true;
+		}
 		reset_pos_sp();
 		reset_alt_sp();
 		/* set current velocity as last target velocity to smooth out transition */
