@@ -82,11 +82,21 @@ then
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
+elif [ "$program" == "replay" ] && [ "$no_sim" == "" ]
+then
+	echo "Replaying logfile: $logfile"
+	# This is not a simulator, but a log file to replay
 fi
+
 cd $build_path/src/firmware/posix
 mkdir -p rootfs/fs/microsd
 mkdir -p rootfs/eeprom
 touch rootfs/eeprom/parameters
+
+if [ "$logfile" != "" ]
+then
+	cp ../../../../$logfile rootfs/replay.px4log
+fi
 
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
