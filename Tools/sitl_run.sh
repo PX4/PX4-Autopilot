@@ -95,7 +95,7 @@ touch rootfs/eeprom/parameters
 
 if [ "$logfile" != "" ]
 then
-	cp ../../../../$logfile rootfs/replay.px4log
+	cp $logfile rootfs/replay.px4log
 fi
 
 # Do not exit on failure now from here on because we want the complete cleanup

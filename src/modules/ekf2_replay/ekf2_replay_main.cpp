@@ -202,13 +202,18 @@ private:
 Ekf2Replay::Ekf2Replay(char *logfile) :
 _sensors_pub(nullptr),
 _gps_pub(nullptr),
-_file_name(logfile),
 _formats{},
 _sensors{},
 _gps{},
 _read_part1(false),
 _read_part2(false)
 {
+	// build the path to the log
+	char tmp[] = "./rootfs/";
+	char *path_to_log = (char *) malloc(1 + strlen(tmp)+ strlen(logfile) );
+	strcpy(path_to_log, tmp);
+	strcat(path_to_log, logfile);
+	_file_name = path_to_log;
 
 }
 
