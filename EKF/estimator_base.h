@@ -159,6 +159,13 @@ public:
 	// return a address to the parameters struct
 	// in order to give access to the application
 	parameters *getParamHandle() {return &_params;}
+
+    // get the ekf WGS-84 origin positoin and height and the system time it was last set
+    virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
+
+    // set vehicle arm status data
+    void set_arm_status(bool data);
+
 protected:
 
 	typedef matrix::Vector<float, 2> Vector2f;
@@ -267,8 +274,6 @@ protected:
 
     float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
 
-    bool _in_air = true;			// indicates if the vehicle is in the air
-
 	RingBuffer<imuSample> _imu_buffer;
 	RingBuffer<gpsSample> _gps_buffer;
 	RingBuffer<magSample> _mag_buffer;
@@ -295,19 +300,6 @@ protected:
 	} _fault_status;
 
 	void initialiseVariables(uint64_t timestamp);
-
-	void initialiseGPS(struct gps_message *gps);
-
-	bool gps_is_good(struct gps_message *gps);
-
-    // variables used for the GPS quality checks
-    float _gpsDriftVelN = 0.0f;     // GPS north position derivative (m/s)
-    float _gpsDriftVelE = 0.0f;     // GPS east position derivative (m/s)
-    float _gps_drift_velD = 0.0f;     // GPS down position derivative (m/s)
-    float _gps_velD_diff_filt = 0.0f;   // GPS filtered Down velocity (m/s)
-    float _gps_velN_filt = 0.0f;  // GPS filtered North velocity (m/s)
-    float _gps_velE_filt = 0.0f;   // GPS filtered East velocity (m/s)
-    uint64_t _last_gps_fail_us = 0;   // last system time in usec that the GPS failed it's checks
 
 public:
 	void printIMU(struct imuSample *data);
@@ -345,29 +337,6 @@ public:
 	{
 		*time_us = _imu_time_last;
 	}
-
-    // Variables used to publish the WGS-84 location of the EKF local NED origin
-    uint64_t _last_gps_origin_time_us = 0;              // time the origin was last set (uSec)
-    struct map_projection_reference_s _pos_ref = {};     // Contains WGS-84 position latitude and longitude (radians)
-    float _gps_alt_ref = 0.0f;                          // WGS-84 height (m)
-
     bool _vehicle_armed = false;     // vehicle arm status used to turn off funtionality used on the ground
-
-    // publish the status of various GPS quality checks
-    union gps_check_fail_status_u {
-        struct {
-            uint16_t nsats  : 1; // 0 - true if number of satellites used is insufficient
-            uint16_t gdop   : 1; // 1 - true if geometric dilution of precision is insufficient
-            uint16_t hacc   : 1; // 2 - true if reported horizontal accuracy is insufficient
-            uint16_t vacc   : 1; // 3 - true if reported vertical accuracy is insufficient
-            uint16_t sacc   : 1; // 4 - true if reported speed accuracy is insufficient
-            uint16_t hdrift : 1; // 5 - true if horizontal drift is excessive (can only be used when stationary on ground)
-            uint16_t vdrift : 1; // 6 - true if vertical drift is excessive (can only be used when stationary on ground)
-            uint16_t hspeed : 1; // 7 - true if horizontal speed is excessive (can only be used when stationary on ground)
-            uint16_t vspeed : 1; // 8 - true if vertical speed error is excessive
-        } flags;
-        uint16_t value;
-    };
-    gps_check_fail_status_u _gps_check_fail_status;
 
 };

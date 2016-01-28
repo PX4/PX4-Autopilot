@@ -165,21 +165,19 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		return;
 	}
 
-    if (time_usec - _time_last_gps > 70000) {
+    // Only use GPS data if we have a 3D fix and limit the GPS data rate to a maximum of 14Hz
+    if (time_usec - _time_last_gps > 70000 && gps->fix_type >= 3) {
 		gpsSample gps_sample_new = {};
 		gps_sample_new.time_us = gps->time_usec - _params.gps_delay_ms * 1000;
-
 
 		gps_sample_new.time_us -= FILTER_UPDATE_PERRIOD_MS * 1000 / 2;
 		_time_last_gps = time_usec;
 
 		gps_sample_new.time_us = math::max(gps_sample_new.time_us, _imu_sample_delayed.time_us);
 
-
 		memcpy(gps_sample_new.vel._data[0], gps->vel_ned, sizeof(gps_sample_new.vel._data));
 
 		_gps_speed_valid = gps->vel_ned_valid;
-
 
 		float lpos_x = 0.0f;
 		float lpos_y = 0.0f;
@@ -293,7 +291,6 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_gps_speed_valid = false;
 
 	_mag_healthy = false;
-	_in_air = false;			// XXX get this flag from the application
 
 	_time_last_imu = 0;
 	_time_last_gps = 0;
@@ -304,21 +301,6 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 
 	memset(&_fault_status, 0, sizeof(_fault_status));
 
-}
-
-void EstimatorBase::initialiseGPS(struct gps_message *gps)
-{
-	//Check if the GPS fix is good enough for us to use
-	if (gps_is_good(gps)) {
-		printf("gps is good\n");
-		// Initialise projection
-		double lat = gps->lat / 1.0e7;
-		double lon = gps->lon / 1.0e7;
-        map_projection_init(&_pos_ref, lat, lon);
-		_gps_alt_ref = gps->alt / 1e3f;
-		_gps_initialised = true;
-        _last_gps_origin_time_us = _time_last_imu;
-	}
 }
 
 bool EstimatorBase::position_is_valid()

@@ -43,25 +43,31 @@
 #include <drivers/drv_hrt.h>
 
 Ekf::Ekf():
-	_filter_initialised(false),
+    _control_status{},
+    _filter_initialised(false),
 	_earth_rate_initialised(false),
 	_fuse_height(false),
 	_fuse_pos(false),
 	_fuse_hor_vel(false),
 	_fuse_vert_vel(false),
-	_time_last_fake_gps(0),
-	_vel_pos_innov{},
+    _time_last_fake_gps(0),
+    _time_last_pos_fuse(0),
+    _time_last_vel_fuse(0),
+    _time_last_hgt_fuse(0),
+    _time_last_of_fuse(0),
+    _vel_pos_innov{},
 	_mag_innov{},
 	_heading_innov{},
 	_vel_pos_innov_var{},
 	_mag_innov_var{},
-	_heading_innov_var{}
+    _heading_innov_var{}
 {
 	_earth_rate_NED.setZero();
 	_R_prev = matrix::Dcm<float>();
 	_delta_angle_corr.setZero();
 	_delta_vel_corr.setZero();
 	_vel_corr.setZero();
+    _last_known_posNE.setZero();
 }
 
 
@@ -91,28 +97,41 @@ bool Ekf::update()
 		predictCovariance();
 	}
 
-	// measurement updates
+    // control logic
+    controlFusionModes();
 
+    // measurement updates
+
+    // Fuse magnetometer data using the selected fuson method and only if angular alignment is complete
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		//fuseHeading();
-                fuseMag();
+        if (_control_status.flags.mag_3D && _control_status.flags.angle_align) {
+            fuseMag();
+            if (_control_status.flags.mag_dec) {
+                // TODO need to fuse synthetic declination measurements if there is no GPS or equivalent aiding
+                // otherwise heading will slowly drift
+            }
+        } else if (_control_status.flags.mag_hdg && _control_status.flags.angle_align) {
+            fuseHeading();
+        }
 	}
 
 	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 		_fuse_height = true;
 	}
 
-	if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed)) {
+    // If we are using GPs aiding and data has fallen behind the fusion time horizon then fuse it
+    // if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
+    // Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
+    if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed) && _control_status.flags.gps) {
 		_fuse_pos = true;
 		_fuse_vert_vel = true;
 		_fuse_hor_vel = true;
-
-	} else if (_time_last_imu - _time_last_gps > 2000000 && _time_last_imu - _time_last_fake_gps > 70000) {
-		// if gps does not update then fake position and horizontal veloctiy measurements
-		_fuse_hor_vel = true;	// we only fake horizontal velocity because we still have baro
-		_gps_sample_delayed.vel.setZero();
-	}
-
+    } else if (!_control_status.flags.gps && !_control_status.flags.opt_flow && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
+        _fuse_pos = true;
+        _gps_sample_delayed.pos(0) = _last_known_posNE(0);
+        _gps_sample_delayed.pos(1) = _last_known_posNE(1);
+        _time_last_fake_gps = _time_last_imu;
+    }
 
 	if (_fuse_height || _fuse_pos || _fuse_hor_vel || _fuse_vert_vel) {
 		fuseVelPosHeight();
@@ -177,6 +196,9 @@ bool Ekf::initialiseFilter(void)
 	// calculate initial quaternion states
 	_state.quat_nominal = Quaternion(euler_init);
 	_output_new.quat_nominal = _state.quat_nominal;
+
+    // TODO replace this with a conditional test based on fitered angle error states.
+    _control_status.flags.angle_align = true;
 
 	// calculate initial earth magnetic field states
 	matrix::Dcm<float> R_to_earth(euler_init);

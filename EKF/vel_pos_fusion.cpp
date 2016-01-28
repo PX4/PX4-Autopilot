@@ -49,7 +49,7 @@ void Ekf::fuseVelPosHeight()
     float gate_size[6] = {};
 	float Kfusion[24] = {};
 
-	// calculate innovations
+    // calculate innovations and gate sizes
 	if (_fuse_hor_vel) {
 		fuse_map[0] = fuse_map[1] = true;
 		_vel_pos_innov[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
@@ -97,9 +97,28 @@ void Ekf::fuseVelPosHeight()
 
     // check position, velocity and height innovations
     // treat 3D velocity, 2D position and height as separate sensors
-    innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f) && (_vel_pos_test_ratio[2] <= 1.0f);
-    innov_check_pass_map[4] = innov_check_pass_map[3] = (_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f);
+    // always pass position checks if using synthetic position measurements
+    bool vel_check_pass = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f) && (_vel_pos_test_ratio[2] <= 1.0f);
+    innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = vel_check_pass;
+    bool using_synthetic_measurements = !_control_status.flags.gps && !_control_status.flags.opt_flow;
+    bool pos_check_pass = ((_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f)) || using_synthetic_measurements;
+    innov_check_pass_map[4] = innov_check_pass_map[3] = pos_check_pass;
     innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f);
+
+    // record the successful velocity fusion time
+    if (vel_check_pass && _fuse_hor_vel) {
+        _time_last_vel_fuse = _time_last_imu;
+    }
+
+    // record the successful position fusion time
+    if (pos_check_pass && _fuse_pos) {
+        _time_last_pos_fuse = _time_last_imu;
+    }
+
+    // record the successful height fusion time
+    if (innov_check_pass_map[5] && _fuse_height) {
+        _time_last_hgt_fuse = _time_last_imu;
+    }
 
     for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
         // skip fusion if not requested or checks have failed

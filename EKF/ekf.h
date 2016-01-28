@@ -36,6 +36,7 @@
  * Class for core functions for ekf attitude and position estimator.
  *
  * @author Roman Bast <bapstroman@gmail.com>
+ * @author Paul Riseborough <p_riseborough@live.com.au>
  *
  */
 
@@ -78,6 +79,28 @@ public:
 	// get the diagonal elements of the covariance matrix
 	void get_covariances(float *covariances);
 
+    // bitmask containing filter control status
+    union filter_control_status_u {
+        struct {
+            uint8_t angle_align : 1; // 0 - true if the filter angular alignment is complete
+            uint8_t gps         : 1; // 1 - true if GPS measurements are being fused
+            uint8_t opt_flow    : 1; // 2 - true if optical flow measurements are being fused
+            uint8_t mag_hdg     : 1; // 3 - true if a simple magnetic heading is being fused
+            uint8_t mag_3D      : 1; // 4 - true if 3-axis magnetometer measurement are being fused
+            uint8_t mag_dec     : 1; // 5 - true if synthetic magnetic declination measurements are being fused
+            uint8_t in_air      : 1; // 6 - true when the vehicle is airborne
+            uint8_t armed       : 1; // 7 - true when the vehicle motors are armed
+        } flags;
+        uint16_t value;
+    };
+    filter_control_status_u _control_status={};
+
+    // get the ekf WGS-84 origin positoin and height and the system time it was last set
+    void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt);
+
+    // set vehicle arm status data
+    void set_arm_status(bool data);
+
 private:
 
 	static const uint8_t _k_num_states = 24;
@@ -91,7 +114,14 @@ private:
 	bool _fuse_hor_vel;		// gps horizontal velocity measurement should be fused
 	bool _fuse_vert_vel;	// gps vertical velocity measurement should be fused
 
-	uint64_t _time_last_fake_gps;
+    uint64_t _time_last_fake_gps;
+
+    uint64_t _time_last_pos_fuse;   // time the last fusion of horizotal position measurements was performed (usec)
+    uint64_t _time_last_vel_fuse;   // time the last fusion of velocity measurements was performed (usec)
+    uint64_t _time_last_hgt_fuse;   // time the last fusion of height measurements was performed (usec)
+    uint64_t _time_last_of_fuse;    // time the last fusion of optical flow measurements were performed (usec)
+    Vector2f _last_known_posNE;     // last known local NE position vector (m)
+    float _last_disarmed_posD;      // vertical position recorded at arming (m)
 
 	Vector3f _earth_rate_NED;
 
@@ -112,7 +142,40 @@ private:
 	Vector3f _delta_vel_corr;
 	Vector3f _vel_corr;
 
-	void calculateOutputStates();
+    // variables used for the GPS quality checks
+    float _gpsDriftVelN = 0.0f;     // GPS north position derivative (m/s)
+    float _gpsDriftVelE = 0.0f;     // GPS east position derivative (m/s)
+    float _gps_drift_velD = 0.0f;     // GPS down position derivative (m/s)
+    float _gps_velD_diff_filt = 0.0f;   // GPS filtered Down velocity (m/s)
+    float _gps_velN_filt = 0.0f;  // GPS filtered North velocity (m/s)
+    float _gps_velE_filt = 0.0f;   // GPS filtered East velocity (m/s)
+    uint64_t _last_gps_fail_us = 0;   // last system time in usec that the GPS failed it's checks
+
+    // Variables used to publish the WGS-84 location of the EKF local NED origin
+    uint64_t _last_gps_origin_time_us = 0;              // time the origin was last set (uSec)
+    struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
+    float _gps_alt_ref = 0.0f;                          // WGS-84 height (m)
+
+    bool _vehicle_armed = false;     // vehicle arm status used to turn off funtionality used on the ground
+
+    // publish the status of various GPS quality checks
+    union gps_check_fail_status_u {
+        struct {
+            uint16_t nsats  : 1; // 0 - true if number of satellites used is insufficient
+            uint16_t gdop   : 1; // 1 - true if geometric dilution of precision is insufficient
+            uint16_t hacc   : 1; // 2 - true if reported horizontal accuracy is insufficient
+            uint16_t vacc   : 1; // 3 - true if reported vertical accuracy is insufficient
+            uint16_t sacc   : 1; // 4 - true if reported speed accuracy is insufficient
+            uint16_t hdrift : 1; // 5 - true if horizontal drift is excessive (can only be used when stationary on ground)
+            uint16_t vdrift : 1; // 6 - true if vertical drift is excessive (can only be used when stationary on ground)
+            uint16_t hspeed : 1; // 7 - true if horizontal speed is excessive (can only be used when stationary on ground)
+            uint16_t vspeed : 1; // 8 - true if vertical speed error is excessive
+        } flags;
+        uint16_t value;
+    };
+    gps_check_fail_status_u _gps_check_fail_status;
+
+    void calculateOutputStates();
 
 	bool initialiseFilter(void);
 
@@ -156,4 +219,14 @@ private:
 
 	void calcEarthRateNED(Vector3f &omega, double lat_rad) const;
 
+    void initialiseGPS(struct gps_message *gps);
+
+    // return true id the GPS quality is good enough to set an origin and start aiding
+    bool gps_is_good(struct gps_message *gps);
+
+    // Control the filter fusion modes
+    void controlFusionModes();
+
+    // Determine if we are airborne or motors are armed
+    void calculateVehicleStatus();
 };

@@ -561,7 +561,7 @@ void Ekf::fuseHeading()
 		// if we are in air we don't want to fuse the measurement
 		// we allow to use it when on the ground because the large innovation could be caused
 		// by interference or a large initial gyro bias
-		if (_in_air) {
+        if (_control_status.flags.in_air) {
 			return;
 		}
 

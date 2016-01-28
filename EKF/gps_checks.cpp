@@ -52,6 +52,21 @@
 #define MASK_GPS_HSPD   (1<<7)
 #define MASK_GPS_VSPD   (1<<8)
 
+void Ekf::initialiseGPS(struct gps_message *gps)
+{
+    //Check if the GPS fix is good enough for us to use
+    if (gps_is_good(gps)) {
+        printf("gps is good\n");
+        // Initialise projection
+        double lat = gps->lat / 1.0e7;
+        double lon = gps->lon / 1.0e7;
+        map_projection_init(&_pos_ref, lat, lon);
+        _gps_alt_ref = gps->alt / 1e3f;
+        _gps_initialised = true;
+        _last_gps_origin_time_us = _time_last_imu;
+    }
+}
+
 /*
  * Return true if the GPS solution quality is adequate to set an origin for the EKF
  * and start GPS aiding.
@@ -59,7 +74,7 @@
  * Checks are activated using the EKF2_GPS_CHECKS bitmask parameter
  * Checks are adjusted using the EKF2_REQ_* parameters
 */
-bool EstimatorBase::gps_is_good(struct gps_message *gps)
+bool Ekf::gps_is_good(struct gps_message *gps)
 {
     // Check the number of satellites
     _gps_check_fail_status.flags.nsats = (gps->nsats < _params.req_nsats);
@@ -104,7 +119,7 @@ bool EstimatorBase::gps_is_good(struct gps_message *gps)
 
     // Calculate the horizontal drift speed and fail if too high
     // This check can only be used if the vehicle is stationary during alignment
-    if(_vehicle_armed) {
+    if(!_control_status.flags.armed) {
         float drift_speed = sqrtf(_gpsDriftVelN * _gpsDriftVelN + _gpsDriftVelE * _gpsDriftVelE);
         _gps_check_fail_status.flags.hdrift = (drift_speed > _params.req_hdrift);
     } else {
@@ -127,7 +142,7 @@ bool EstimatorBase::gps_is_good(struct gps_message *gps)
 
     // Fail if the vertical drift speed is too high
     // This check can only be used if the vehicle is stationary during alignment
-    if(_vehicle_armed) {
+    if(!_control_status.flags.armed) {
         _gps_check_fail_status.flags.vdrift = (fabsf(_gps_drift_velD) > _params.req_vdrift);
     } else {
         _gps_check_fail_status.flags.vdrift = false;
@@ -135,7 +150,7 @@ bool EstimatorBase::gps_is_good(struct gps_message *gps)
 
     // Check the magnitude of the filtered horizontal GPS velocity
     // This check can only be used if the vehicle is stationary during alignment
-    if (_vehicle_armed) {
+    if (!_control_status.flags.armed) {
         vel_limit = 10.0f * _params.req_hdrift;
         float velN = fminf(fmaxf(gps->vel_ned[0],-vel_limit),vel_limit);
         float velE = fminf(fmaxf(gps->vel_ned[1],-vel_limit),vel_limit);
