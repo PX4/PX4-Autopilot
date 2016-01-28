@@ -93,7 +93,19 @@ PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.15f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 1.0f);
+PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 2.0f);
+
+/**
+ * Multicopter free-fall trigger time
+ *
+ * milliseconds that freefall conditions have to hold before triggering a freefall
+ *
+ * @min 20
+ * @max 5000
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_INT32(LNDMC_FFALL_TRIG, 200);	//minimal value is limited by LAND_DETECTOR_UPDATE_RATE=50Hz in landDetector.h
 
 /**
  * Fixedwing max horizontal velocity
