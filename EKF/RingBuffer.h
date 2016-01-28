@@ -37,6 +37,8 @@
  * Template RingBuffer.
  */
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <cstdio>
 #include <cstring>
 
@@ -76,7 +78,7 @@ public:
 	inline void push(data_type sample, bool debug = false)
 	{
 		if (debug) {
-			printf("elapsed %llu\n", sample.time_us - _time_last);
+			printf("elapsed %" PRIu64 "\n", sample.time_us - _time_last);
 			_time_last = sample.time_us;
 		}
 
