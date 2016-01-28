@@ -68,7 +68,6 @@ extern "C" __EXPORT int ekf2_replay_main(int argc, char *argv[]);
 #define LOG_PARM_MSG 	131
 #define LOG_TIME_MSG 	129
 
-
 class Ekf2Replay;
 
 #pragma pack(push, 1)
@@ -319,7 +318,7 @@ void Ekf2Replay::task_main()
 	const int _k_max_data_size = 1024;	// 16x16 bytes
 	uint8_t data[_k_max_data_size] = {};
 
-	printf("opening %s\n", _file_name);
+	printf("opening %s for ekf2 replay\n", _file_name);
 	// TODO Check if file exists
 	int fd = ::open(_file_name, O_RDONLY);
 	bool reached_end = false;
@@ -329,8 +328,10 @@ void Ekf2Replay::task_main()
 			uint8_t header[3];
 
 			if (::read(fd, header, 3) != 3) {
+				PX4_WARN("error reading log file, is the path printed above correct?");
 				reached_end = true;
 				_task_should_exit = true;
+				return;
 			}
 
 			if (header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2) {
@@ -341,25 +342,26 @@ void Ekf2Replay::task_main()
 			if (header[2] == LOG_FORMAT_MSG) {
 				struct log_format_s f;
 				if(::read(fd, &f.type, sizeof(f)) != sizeof(f)) {
-					PX4_WARN("error reading log file");
+					PX4_WARN("error reading from log file");
 					_task_should_exit = true;
 				}
 				memcpy(&_formats[f.type], &f, sizeof(f));
 			} else if (header[2] == LOG_PARM_MSG) {
 				if(::read(fd, &data[0], sizeof(log_PARM_s)) != sizeof(log_PARM_s)) {
-					PX4_WARN("error reading log file");
+					PX4_WARN("error reading from log file");
 				}
 			} else if (header[2] == LOG_VER_MSG) {
 				if(::read(fd, &data[0], sizeof(log_VER_s)) != sizeof(log_VER_s)) {
-					PX4_WARN("error reading log file");
+					PX4_WARN("error reading from log file");
 				}
 			} else if (header[2] == LOG_TIME_MSG) {
 				if(::read(fd, &data[0], sizeof(log_TIME_s)) != sizeof(log_TIME_s)) {
-					PX4_WARN("error reading log file");
+					PX4_WARN("error reading from log file");
 				}
 			} else {
 				if(::read(fd, &data[0], _formats[header[2]].length - 3) != _formats[header[2]].length - 3) {
-					PX4_WARN("error reading log file");
+					PX4_WARN("Done, check the posix log directory for the latest log!");
+					return;
 				}
 				
 				parseMessage(&data[0], header[2]);
@@ -368,10 +370,10 @@ void Ekf2Replay::task_main()
 					publishSensorData();
 					_read_part1 = _read_part2 = false;
 					// TODO: Make this variable
-					usleep(2500);
+					usleep(2000);
 				}
 			}
-		} while (!reached_end);
+		} while (!reached_end || _task_should_exit);
 	}
 }
 
