@@ -185,7 +185,6 @@ MissionBlock::is_mission_item_reached()
 
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);
-			PX4_WARN("yaw err: %.3f", (float)yaw_err);
 
 			if (fabsf(yaw_err) < 0.2f) { /* TODO: get rid of magic number */
 				_waypoint_yaw_reached = true;
