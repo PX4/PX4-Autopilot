@@ -558,6 +558,10 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		param_get(_params_handles.mc_att_yaw_p, &v);
 		_params.mc_att_yaw_p = v;
+
+		/* takeoff and land velocities should not exceed maximum */
+		_params.tko_speed = fminf(_params.tko_speed, _params.vel_max(2));
+		_params.land_speed = fminf(_params.land_speed, _params.vel_max(2));
 	}
 
 	return OK;
