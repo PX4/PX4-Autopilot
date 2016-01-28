@@ -126,7 +126,7 @@ bool MulticopterLandDetector::get_freefall_state()
 	}
 	acc_norm = sqrtf(acc_norm);	//norm of specific force
 
-	int32_t elapsed_time_ms = (now - _freefallTimer)/1000;
+	int32_t elapsed_time_ms = (now - _freefallTimer) / 1000;
 	bool freefall = (acc_norm < _params.acc_threshold_m_s2);
 	if (!freefall || _freefallTimer == 0) {	//reset timer if uav not falling
 		_freefallTimer = now;

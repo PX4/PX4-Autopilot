@@ -1119,6 +1119,7 @@ int commander_thread_main(int argc, char *argv[])
 	bool sensor_fail_tune_played = false;
 	bool arm_tune_played = false;
 	bool was_landed = true;
+	bool was_falling = false;
 	bool was_armed = false;
 
 	bool startup_in_hil = false;
@@ -1918,10 +1919,11 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		if ((updated && status_flags.condition_local_altitude_valid) || check_for_disarming) {
-			if (was_landed != land_detector.landed) {
-				if (land_detector.landed) {
+			if ((was_landed != land_detector.landed) || (was_falling != land_detector.freefall)) {
+				if (land_detector.freefall) {
+					mavlink_and_console_log_info(&mavlink_log_pub, "FREEFALL DETECTED");
+				} else if (land_detector.landed) {
 					mavlink_and_console_log_info(&mavlink_log_pub, "LANDING DETECTED");
-
 				} else {
 					mavlink_and_console_log_info(&mavlink_log_pub, "TAKEOFF DETECTED");
 				}
@@ -2624,6 +2626,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		was_landed = land_detector.landed;
+		was_falling = land_detector.freefall;
 		was_armed = armed.armed;
 
 		/* print new state */

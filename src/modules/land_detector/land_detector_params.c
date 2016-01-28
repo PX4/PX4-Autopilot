@@ -105,7 +105,7 @@ PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 2.0f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_INT32(LNDMC_FFALL_TRIG, 200);	//minimal value is limited by LAND_DETECTOR_UPDATE_RATE=50Hz in landDetector.h
+PARAM_DEFINE_INT32(LNDMC_FFALL_TRIG, 300);	//minimal value is limited by LAND_DETECTOR_UPDATE_RATE=50Hz in landDetector.h
 
 /**
  * Fixedwing max horizontal velocity
