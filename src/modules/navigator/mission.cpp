@@ -501,6 +501,31 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 		}
 
+		/* don't advance mission after FW to MC command */
+		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
+				&& _work_item_type != WORK_ITEM_TYPE_CMD_BEFORE_MOVE
+				&& !_navigator->get_vstatus()->is_rotary_wing
+				&& !_navigator->get_vstatus()->condition_landed
+				&& pos_sp_triplet->previous.valid) {
+
+			new_work_item_type = WORK_ITEM_TYPE_CMD_BEFORE_MOVE;
+		}
+
+		/* after FW to MC transition finish moving to the waypoint */
+		if (_work_item_type == WORK_ITEM_TYPE_CMD_BEFORE_MOVE
+				&& pos_sp_triplet->previous.valid) {
+
+			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.lat = pos_sp_triplet->previous.lat;
+			_mission_item.lon = pos_sp_triplet->previous.lon;
+			_mission_item.altitude = pos_sp_triplet->previous.alt;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.autocontinue = true;
+			_mission_item.time_inside = 0;
+		}
+
 	}
 
 	/*********************************** set setpoints and check next *********************************************/
