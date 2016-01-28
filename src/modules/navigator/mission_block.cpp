@@ -105,10 +105,10 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_LOITER_UNLIMITED:
 			return false;
 
-		case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL: /* fallthrough */
-		case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
+		case NAV_CMD_DO_DIGICAM_CONTROL: /* fallthrough */
+		case NAV_CMD_DO_VTOL_TRANSITION:
 			// XXX: we should wait on command ACK or status change instead
-			// currently we just wait so the command be processed
+			// currently we just wait so the command can be processed
 			if (hrt_absolute_time() - _action_start > 1000) {
 				return true;
 
@@ -185,6 +185,7 @@ MissionBlock::is_mission_item_reached()
 
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);
+			PX4_WARN("yaw err: %.3f", (float)yaw_err);
 
 			if (fabsf(yaw_err) < 0.2f) { /* TODO: get rid of magic number */
 				_waypoint_yaw_reached = true;
@@ -251,7 +252,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		return;
 	}
 
-	warnx("forwarding command.\n");
+	warnx("forwarding command %d\n", item->nav_cmd);
 	struct vehicle_command_s cmd = {};
 	mission_item_to_vehicle_command(item, &cmd);
 	_action_start = hrt_absolute_time();
@@ -268,8 +269,8 @@ bool
 MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
 	// XXX: maybe extend that check onto item properties
-	if (item->nav_cmd == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL ||
-			item->nav_cmd == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+	if (item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+			item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 		return false;
 	}
 

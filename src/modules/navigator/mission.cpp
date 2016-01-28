@@ -412,6 +412,8 @@ Mission::set_mission_items()
 
 	/*********************************** handle mission item *********************************************/
 
+	bool do_issue_command = true;
+
 	/* handle position mission items */
 	if (item_contains_position(&_mission_item)) {
 
@@ -466,18 +468,50 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 		}
 
-		/* set current position setpoint from mission item */
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-
 	/* handle non-position mission items such as commands */
 	} else {
 
-		// XXX: before issuing command, check if we need to align for transition first
-		issue_command(&_mission_item);
+		/* turn towards next waypoint before MC to FW transition */
+		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
+				&& _work_item_type != WORK_ITEM_TYPE_ALIGN
+				&& _navigator->get_vstatus()->is_rotary_wing
+				&& !_navigator->get_vstatus()->condition_landed
+				&& has_next_position_item) {
+
+			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
+
+			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+			_mission_item.lat = _navigator->get_global_position()->lat;
+			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.altitude = _navigator->get_global_position()->alt;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.autocontinue = true;
+			_mission_item.time_inside = 0;
+			_mission_item.yaw = get_bearing_to_next_waypoint(
+				_navigator->get_global_position()->lat,
+				_navigator->get_global_position()->lon,
+				mission_item_next_position.lat,
+				mission_item_next_position.lon);
+
+			do_issue_command = false;
+		}
+
+		/* yaw is aligned now */
+		if (_work_item_type == WORK_ITEM_TYPE_ALIGN) {
+			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+		}
 
 	}
 
-	/*********************************** clean up and set next *********************************************/
+	/*********************************** set setpoints and check next *********************************************/
+
+	/* set current position setpoint from mission item (is protected agains non-position items) */
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+
+	/* issue command if ready (will do nothing for position mission items) */
+	if (do_issue_command) {
+		issue_command(&_mission_item);
+	}
 
 	/* set current work item type */
 	_work_item_type = new_work_item_type;
@@ -513,7 +547,8 @@ Mission::set_mission_items()
 
 	/* Save the distance between the current sp and the previous one */
 	if (pos_sp_triplet->current.valid && pos_sp_triplet->previous.valid) {
-		_distance_current_previous = get_distance_to_next_waypoint(pos_sp_triplet->current.lat,
+		_distance_current_previous = get_distance_to_next_waypoint(
+				pos_sp_triplet->current.lat,
 				pos_sp_triplet->current.lon,
 				pos_sp_triplet->previous.lat,
 				pos_sp_triplet->previous.lon);
@@ -588,8 +623,9 @@ Mission::calculate_takeoff_altitude(struct mission_item_s *mission_item)
 void
 Mission::heading_sp_update()
 {
-	if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
-		/* we don't want to be yawing during takeoff */
+	/* we don't want to be yawing during takeoff or align */
+	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+			|| _work_item_type == WORK_ITEM_TYPE_ALIGN) {
 		return;
 	}
 
@@ -598,11 +634,6 @@ Mission::heading_sp_update()
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
 			!PX4_ISFINITE(_on_arrival_yaw)) {
-		return;
-	}
-
-	/* Don't change heading for takeoff waypoints, the ground may be near */
-	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
 		return;
 	}
 
