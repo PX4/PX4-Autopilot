@@ -167,9 +167,10 @@ mixer_tick(void)
 	 * FMU or from the mixer.
 	 *
 	 */
+	bool effective_safety_off = (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) != 0 || override_enabled;
 	should_arm = (
 			     /* IO initialised without error */ (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
-			     /* and IO is armed */ 		  && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+			     /* and IO is armed */ 		  && effective_safety_off
 			     /* and FMU is armed */ 		  && (
 				     ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)
 				      /* and there is valid input via or mixer */         && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))
