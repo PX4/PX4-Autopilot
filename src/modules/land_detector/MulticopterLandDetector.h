@@ -103,6 +103,7 @@ private:
 		param_t maxRotation;
 		param_t maxThrottle;
 		param_t acc_threshold_m_s2;
+		param_t ff_trigger_time_ms;
 	}		_paramHandle;
 
 	struct {
@@ -111,6 +112,7 @@ private:
 		float maxRotation_rad_s;
 		float maxThrottle;
 		float acc_threshold_m_s2;
+		uint32_t ff_trigger_time_ms;
 	} _params;
 
 private:

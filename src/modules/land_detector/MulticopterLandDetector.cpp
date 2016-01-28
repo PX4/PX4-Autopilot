@@ -70,6 +70,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
 	_paramHandle.maxThrottle = param_find("LNDMC_THR_MAX");
 	_paramHandle.acc_threshold_m_s2 = param_find("LNDMC_FFALL_THR");
+	_paramHandle.ff_trigger_time_ms = param_find("LNDMC_FFALL_TRIG");
 }
 
 void MulticopterLandDetector::initialize()
@@ -123,17 +124,21 @@ bool MulticopterLandDetector::get_freefall_state()
 	for (int i = 0; i < 3; i++) {
 		acc_norm += _sensors.accelerometer_m_s2[i] * _sensors.accelerometer_m_s2[i];
 	}
-	acc_norm = sqrtf(acc_norm);
+	acc_norm = sqrtf(acc_norm);	//norm of specific force
 
+	int32_t elapsed_time_ms = (now - _freefallTimer)/1000;
 	bool freefall = (acc_norm < _params.acc_threshold_m_s2);
-	if(!freefall){
+	if (!freefall || _freefallTimer == 0) {	//reset timer if uav not falling
 		_freefallTimer = now;
 		return false;
-	}else{
-		PX4_WARN("[freefalldetector] FREE FALL !! \tacc_norm:\t%8.4f", (double)acc_norm);
+	}/* else {	//DEBUG
+		PX4_WARN("[freefalldetector] FREE FALL !! \tacc_norm:\t%8.4f, \telapsed time:\t%8.4f ms", (double)acc_norm, (double)elapsed_time_ms);
 	}
-
-	return (now - _freefallTimer) > FREEFALL_DETECTOR_TRIGGER_TIME;
+	bool falling = elapsed_time_ms > _params.ff_trigger_time_ms;
+	if (falling) {
+		PX4_WARN("[freefalldetector] TRIGGERED");
+	}*/
+	return elapsed_time_ms > _params.ff_trigger_time_ms;
 }
 
 bool MulticopterLandDetector::get_landed_state()
@@ -219,6 +224,7 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 		_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
 		param_get(_paramHandle.acc_threshold_m_s2, &_params.acc_threshold_m_s2);
+		param_get(_paramHandle.ff_trigger_time_ms, &_params.ff_trigger_time_ms);
 	}
 }
 
