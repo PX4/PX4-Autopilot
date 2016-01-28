@@ -118,27 +118,25 @@ LandDetectionResult MulticopterLandDetector::update()
 
 bool MulticopterLandDetector::get_freefall_state()
 {
+	if(_params.acc_threshold_m_s2 < 0.1f || _params.acc_threshold_m_s2 > 10.0f){	//if parameter is set to zero or invalid, disable free-fall detection.
+		return false;
+	}
+
 	const uint64_t now = hrt_absolute_time();
 
 	float acc_norm = 0.0;
 	for (int i = 0; i < 3; i++) {
 		acc_norm += _sensors.accelerometer_m_s2[i] * _sensors.accelerometer_m_s2[i];
 	}
-	acc_norm = sqrtf(acc_norm);	//norm of specific force
+	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
 
-	int32_t elapsed_time_ms = (now - _freefallTimer) / 1000;
-	bool freefall = (acc_norm < _params.acc_threshold_m_s2);
+	bool freefall = (acc_norm < _params.acc_threshold_m_s2);	//true if we are currently falling
 	if (!freefall || _freefallTimer == 0) {	//reset timer if uav not falling
 		_freefallTimer = now;
 		return false;
-	}/* else {	//DEBUG
-		PX4_WARN("[freefalldetector] FREE FALL !! \tacc_norm:\t%8.4f, \telapsed time:\t%8.4f ms", (double)acc_norm, (double)elapsed_time_ms);
 	}
-	bool falling = elapsed_time_ms > _params.ff_trigger_time_ms;
-	if (falling) {
-		PX4_WARN("[freefalldetector] TRIGGERED");
-	}*/
-	return elapsed_time_ms > _params.ff_trigger_time_ms;
+
+	return (now - _freefallTimer) / 1000 > _params.ff_trigger_time_ms;
 }
 
 bool MulticopterLandDetector::get_landed_state()
