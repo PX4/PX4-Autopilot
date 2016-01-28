@@ -1719,6 +1719,8 @@ int commander_thread_main(int argc, char *argv[])
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
 				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
 			}
+
+			status_changed = true;
 		}
 
 		/* update global position estimate */
