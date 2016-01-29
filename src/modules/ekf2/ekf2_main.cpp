@@ -251,7 +251,6 @@ Ekf2::Ekf2():
 	_requiredHdrift(new control::BlockParamFloat(this, "EKF2_REQ_HDRIFT", false, &_params->req_hdrift)),
 	_requiredVdrift(new control::BlockParamFloat(this, "EKF2_REQ_VDRIFT", false, &_params->req_vdrift)),
 	_param_record_replay_msg(new control::BlockParamInt(this, "EKF2_REC_RPL", false, &_publish_replay_mode))
-
 {
 
 }
@@ -444,6 +443,7 @@ void Ekf2::task_main()
 		// Position of local NED origin in GPS / WGS84 frame
 		struct map_projection_reference_s ekf_origin = {};
 		_ekf->get_ekf_origin(&lpos.ref_timestamp, &ekf_origin, &lpos.ref_alt);
+		lpos.ref_timestamp = _ekf->_last_gps_origin_time_us; // Time when reference position was set
 		// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
 		lpos.xy_global = _ekf->position_is_valid();
 		lpos.z_global = true;                                // true if z is valid and has valid global reference (ref_alt)
