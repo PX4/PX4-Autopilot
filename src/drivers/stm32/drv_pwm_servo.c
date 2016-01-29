@@ -108,6 +108,10 @@ pwm_timer_init(unsigned timer)
 	rCCER(timer) = 0;
 	rCCMR1(timer) = 0;
 	rCCMR2(timer) = 0;
+	rCCR1(timer) = 0;
+	rCCR2(timer) = 0;
+	rCCR3(timer) = 0;
+	rCCR4(timer) = 0;
 	rCCER(timer) = 0;
 	rDCR(timer) = 0;
 
@@ -147,25 +151,21 @@ pwm_channel_init(unsigned channel)
 	switch (pwm_channels[channel].timer_channel) {
 	case 1:
 		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
-		rCCR1(timer) = pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC1E;
 		break;
 
 	case 2:
 		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
-		rCCR2(timer) = pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC2E;
 		break;
 
 	case 3:
 		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
-		rCCR3(timer) = pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC3E;
 		break;
 
 	case 4:
 		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
-		rCCR4(timer) = pwm_channels[channel].default_value;
 		rCCER(timer) |= GTIM_CCER_CC4E;
 		break;
 	}

@@ -58,7 +58,6 @@ struct pwm_servo_channel {
 	uint32_t	gpio;
 	uint8_t		timer_index;
 	uint8_t		timer_channel;
-	servo_position_t default_value;
 };
 
 /* supplied by board-specific code */
