@@ -323,7 +323,7 @@ void Ekf2::task_main()
                 orb_check(_control_mode_sub, &control_mode_updated);
                 if (control_mode_updated) {
                         orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &vehicle_control_mode);
-                        _ekf->_vehicle_armed = vehicle_control_mode.flag_armed;
+                        _ekf->set_arm_status(vehicle_control_mode.flag_armed);
                 }
 
                 hrt_abstime now = hrt_absolute_time();
@@ -406,14 +406,12 @@ void Ekf2::task_main()
 		lpos.v_z_valid = true;
 
 		// Position of local NED origin in GPS / WGS84 frame
-		lpos.ref_timestamp = _ekf->_last_gps_origin_time_us; // Time when reference position was set
-		lpos.xy_global =
-			_ekf->position_is_valid();// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
-		lpos.z_global = true;// true if z is valid and has valid global reference (ref_alt)
-                lpos.ref_lat = _ekf->_pos_ref.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
-                lpos.ref_lon = _ekf->_pos_ref.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
-		lpos.ref_alt =
-			_ekf->_gps_alt_ref; // Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level
+                struct map_projection_reference_s ekf_origin = {};
+                _ekf->get_ekf_origin(lpos.ref_timestamp,ekf_origin,lpos.ref_alt);
+                lpos.xy_global = _ekf->position_is_valid();          // true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
+                lpos.z_global = true;                                // true if z is valid and has valid global reference (ref_alt)
+                lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
+                lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 
 		// The rotation of the tangent plane vs. geographical north
 		lpos.yaw = 0.0f;
@@ -485,7 +483,7 @@ void Ekf2::task_main()
 			global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
 
 			double est_lat, est_lon;
-                        map_projection_reproject(&_ekf->_pos_ref, lpos.x, lpos.y, &est_lat, &est_lon);
+                        map_projection_reproject(ekf_origin, lpos.x, lpos.y, &est_lat, &est_lon);
 			global_pos.lat = est_lat; // Latitude in degrees
 			global_pos.lon = est_lon; // Longitude in degrees
 
@@ -521,7 +519,7 @@ void Ekf2::task_main()
 		status.timestamp = hrt_absolute_time();
 		_ekf->get_state_delayed(status.states);
 		_ekf->get_covariances(status.covariances);
-                status.gps_check_fail_flags = _ekf->_gps_check_fail_status.value;
+                //status.gps_check_fail_flags = _ekf->_gps_check_fail_status.value;
 
 		if (_estimator_status_pub == nullptr) {
 			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
