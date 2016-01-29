@@ -309,10 +309,32 @@ int sdlog2_main(int argc, char *argv[])
 			return 0;
 		}
 
+		// get sdlog priority boost parameter. This can be used to avoid message drops
+		// in the log file. However, it considered to be used only for developers.
+		param_t prio_boost_handle = param_find("SDLOG_PRIO_BOOST");
+		int prio_boost = 0;
+		param_get(prio_boost_handle, &prio_boost);
+		int task_priority = SCHED_PRIORITY_DEFAULT - 30;
+
+		switch(prio_boost) {
+			case 1:
+				task_priority = SCHED_PRIORITY_DEFAULT;
+				break;
+			case 2:
+				task_priority = SCHED_PRIORITY_DEFAULT + (SCHED_PRIORITY_MAX - SCHED_PRIORITY_DEFAULT) / 2;
+				break;
+			case 3:
+				task_priority = SCHED_PRIORITY_MAX;
+				break;
+			default:
+				// use default priority already set above
+				break;
+		}
+
 		main_thread_should_exit = false;
 		deamon_task = px4_task_spawn_cmd("sdlog2",
 						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_DEFAULT - 30,
+						 task_priority,
 						 3300,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
