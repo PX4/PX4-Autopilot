@@ -51,7 +51,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <uORB/topics/fence.h>
-#include <uORB/topics/vehicle_command.h>
 
 MissionFeasibilityChecker::MissionFeasibilityChecker() :
 	_mavlink_fd(-1),
