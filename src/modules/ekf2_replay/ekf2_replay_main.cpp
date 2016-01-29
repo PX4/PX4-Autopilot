@@ -33,7 +33,8 @@
 
 /**
  * @file ekf2_replay_main.cpp
- * Replay module for ekf2.
+ * Replay module for ekf2. This module reads ekf2 replay messages from a px4 logfile.
+ * It uses this data to create sensor data for the ekf2 module.
  *
  * @author Roman Bapst
 */
@@ -68,8 +69,13 @@ extern "C" __EXPORT int ekf2_replay_main(int argc, char *argv[]);
 #define LOG_PARM_MSG 	131
 #define LOG_TIME_MSG 	129
 
+#define PRINT_READ_ERROR 	PX4_WARN("error reading from log file");
+
 class Ekf2Replay;
 
+// TODO These struct are already defined in sdlog2_messages.h
+// However, the file cannot be included because of different use of struct
+// initialization (C99 not available for C++).
 #pragma pack(push, 1)
 struct log_format_s {
 	uint8_t type;
@@ -150,7 +156,8 @@ namespace ekf2_replay
 Ekf2Replay *instance = nullptr;
 }
 
-class Ekf2Replay {
+class Ekf2Replay
+{
 public:
 	/**
 	 * Constructor
@@ -191,25 +198,29 @@ private:
 	bool _read_part1;
 	bool _read_part2;
 
-	void parseMessage(uint8_t *data, uint8_t type);
+	// parse replay message from buffer
+	void parseMessage(uint8_t *source, uint8_t *destination, uint8_t type);
 
-	void readData(uint8_t * source, uint8_t *destination, uint8_t type);
+	// copy the replay data from the logs into the topic structs which
+	// will be pushlished after
+	void setSensorData(uint8_t *data, uint8_t type);
 
+	// sensor data for the estimator
 	void publishSensorData();
 };
 
 Ekf2Replay::Ekf2Replay(char *logfile) :
-_sensors_pub(nullptr),
-_gps_pub(nullptr),
-_formats{},
-_sensors{},
-_gps{},
-_read_part1(false),
-_read_part2(false)
+	_sensors_pub(nullptr),
+	_gps_pub(nullptr),
+	_formats{},
+	_sensors{},
+	_gps{},
+	_read_part1(false),
+	_read_part2(false)
 {
 	// build the path to the log
 	char tmp[] = "./rootfs/";
-	char *path_to_log = (char *) malloc(1 + strlen(tmp)+ strlen(logfile) );
+	char *path_to_log = (char *) malloc(1 + strlen(tmp) + strlen(logfile));
 	strcpy(path_to_log, tmp);
 	strcat(path_to_log, logfile);
 	_file_name = path_to_log;
@@ -225,56 +236,67 @@ void Ekf2Replay::publishSensorData()
 {
 	if (_sensors_pub == nullptr && _read_part1) {
 		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &_sensors);
+
 	} else if (_sensors_pub != nullptr && _read_part1) {
 		orb_publish(ORB_ID(sensor_combined), _sensors_pub, &_sensors);
 	}
 
 	if (_gps_pub == nullptr && _gps.timestamp_position > 0) {
 		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_gps);
+
 	} else if (_gps_pub != nullptr && _gps.timestamp_position > 0) {
 		orb_publish(ORB_ID(vehicle_gps_position), _gps_pub, &_gps);
 	}
 }
 
-void Ekf2Replay::readData(uint8_t * source, uint8_t *destination, uint8_t type) 
+void Ekf2Replay::parseMessage(uint8_t *source, uint8_t *destination, uint8_t type)
 {
 	int i = 0;
-	int write_ptr = 0;
+	int write_index = 0;
 
 	while (_formats[type].format[i] != '\0') {
 		char data_type = _formats[type].format[i];
-		switch(data_type) {
-			case 'f':
-				memcpy(&destination[write_ptr], &source[write_ptr], sizeof(float));
-				write_ptr += sizeof(float);
-				break;
-			case 'Q':
-				memcpy(&destination[write_ptr], &source[write_ptr], sizeof(uint64_t));
-				write_ptr += sizeof(uint64_t);
-				break;
-			case 'L':
-				memcpy(&destination[write_ptr], &source[write_ptr], sizeof(int32_t));
-				write_ptr += sizeof(int32_t);
-				break;
-			case 'M':
-				memcpy(&destination[write_ptr], &source[write_ptr], sizeof(uint8_t));
-				write_ptr += sizeof(uint8_t);
-				break;
+
+		switch (data_type) {
+		case 'f':
+			memcpy(&destination[write_index], &source[write_index], sizeof(float));
+			write_index += sizeof(float);
+			break;
+
+		case 'Q':
+			memcpy(&destination[write_index], &source[write_index], sizeof(uint64_t));
+			write_index += sizeof(uint64_t);
+			break;
+
+		case 'L':
+			memcpy(&destination[write_index], &source[write_index], sizeof(int32_t));
+			write_index += sizeof(int32_t);
+			break;
+
+		case 'M':
+			memcpy(&destination[write_index], &source[write_index], sizeof(uint8_t));
+			write_index += sizeof(uint8_t);
+			break;
+
+		default:
+			PX4_WARN("found unsupported data type in replay message, exiting!");
+			_task_should_exit = true;
+			break;
 		}
 
 		i++;
 	}
 }
 
-void Ekf2Replay::parseMessage(uint8_t *data, uint8_t type)
+void Ekf2Replay::setSensorData(uint8_t *data, uint8_t type)
 {
 	struct log_RPL1_s replay_part1 = {};
 	struct log_RPL2_s replay_part2 = {};
 
 	if (type == LOG_RPL1_MSG) {
-		
+
 		uint8_t *dest_ptr = (uint8_t *)&replay_part1.time_ref;
-		readData(data, dest_ptr, type);
+		parseMessage(data, dest_ptr, type);
 		_sensors.timestamp = replay_part1.time_ref;
 		_sensors.gyro_integral_dt[0] = replay_part1.gyro_integral_dt;
 		_sensors.accelerometer_integral_dt[0] = replay_part1.accelerometer_integral_dt;
@@ -295,7 +317,7 @@ void Ekf2Replay::parseMessage(uint8_t *data, uint8_t type)
 
 	} else if (type == LOG_RPL2_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&replay_part2.time_pos_usec;
-		readData(data, dest_ptr, type);
+		parseMessage(data, dest_ptr, type);
 		_gps.timestamp_position = replay_part2.time_pos_usec;
 		_gps.timestamp_velocity = replay_part2.time_vel_usec;
 		_gps.lat = replay_part2.lat;
@@ -323,7 +345,7 @@ void Ekf2Replay::task_main()
 	int fd = ::open(_file_name, O_RDONLY);
 	bool reached_end = false;
 
-	while(!_task_should_exit) {
+	while (!_task_should_exit) {
 		do {
 			uint8_t header[3];
 
@@ -341,30 +363,36 @@ void Ekf2Replay::task_main()
 
 			if (header[2] == LOG_FORMAT_MSG) {
 				struct log_format_s f;
-				if(::read(fd, &f.type, sizeof(f)) != sizeof(f)) {
-					PX4_WARN("error reading from log file");
+
+				if (::read(fd, &f.type, sizeof(f)) != sizeof(f)) {
+					PRINT_READ_ERROR;
 					_task_should_exit = true;
 				}
+
 				memcpy(&_formats[f.type], &f, sizeof(f));
+
 			} else if (header[2] == LOG_PARM_MSG) {
-				if(::read(fd, &data[0], sizeof(log_PARM_s)) != sizeof(log_PARM_s)) {
-					PX4_WARN("error reading from log file");
+				if (::read(fd, &data[0], sizeof(log_PARM_s)) != sizeof(log_PARM_s)) {
+					PRINT_READ_ERROR;
 				}
+
 			} else if (header[2] == LOG_VER_MSG) {
-				if(::read(fd, &data[0], sizeof(log_VER_s)) != sizeof(log_VER_s)) {
-					PX4_WARN("error reading from log file");
+				if (::read(fd, &data[0], sizeof(log_VER_s)) != sizeof(log_VER_s)) {
+					PRINT_READ_ERROR;
 				}
+
 			} else if (header[2] == LOG_TIME_MSG) {
-				if(::read(fd, &data[0], sizeof(log_TIME_s)) != sizeof(log_TIME_s)) {
-					PX4_WARN("error reading from log file");
+				if (::read(fd, &data[0], sizeof(log_TIME_s)) != sizeof(log_TIME_s)) {
+					PRINT_READ_ERROR;
 				}
+
 			} else {
-				if(::read(fd, &data[0], _formats[header[2]].length - 3) != _formats[header[2]].length - 3) {
+				if (::read(fd, &data[0], _formats[header[2]].length - 3) != _formats[header[2]].length - 3) {
 					PX4_WARN("Done, check the posix log directory for the latest log!");
 					return;
 				}
-				
-				parseMessage(&data[0], header[2]);
+
+				setSensorData(&data[0], header[2]);
 
 				if (_read_part1 || _read_part2) {
 					publishSensorData();
