@@ -345,8 +345,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			int nbytes = read(uart, &dbuf[0], sizeof(dbuf));
 			bool new_input = frsky_parse_host(&dbuf[0], nbytes, &host_frame);
 			if (new_input) {
-//				warnx("host frame: ad1:%u, ad2: %u, rssi: %u",
-//						host_frame.ad1, host_frame.ad2, host_frame.linkq);
+				warnx("host frame: ad1:%u, ad2: %u, rssi: %u",
+						host_frame.ad1, host_frame.ad2, host_frame.linkq);
 			}
 
 			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
