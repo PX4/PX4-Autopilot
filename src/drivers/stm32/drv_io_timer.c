@@ -413,6 +413,10 @@ static int io_timer_init_timer(unsigned timer)
 		rCCER(timer) = 0;
 		rCCMR1(timer) = 0;
 		rCCMR2(timer) = 0;
+		rCCR1(timer) = 0;
+		rCCR2(timer) = 0;
+		rCCR3(timer) = 0;
+		rCCR4(timer) = 0;
 		rCCER(timer) = 0;
 		rDCR(timer) = 0;
 
@@ -548,10 +552,11 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		 * The beauty here is that per DocID018909 Rev 8 18.3.5 Input capture mode
 		 * As soon as CCxS (in SSMRx becomes different from 00, the channel is configured
 		 * in input and the TIMx_CCR1 register becomes read-only.
-		 * so the next line does nothing
+		 * so the next line does nothing in capture mode and initializes an PWM out to
+		 * 0
 		 */
 
-		REG(timer, ccr_offset) = timer_io_channels[channel].default_value;
+		REG(timer, ccr_offset) = 0;
 
 		/* on PWM Out ccer_setbits is 0 */
 
