@@ -332,23 +332,35 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		frsky_init();
 
 		warnx("sending FrSky D type telemetry");
+		struct adc_linkquality host_frame;
+		uint8_t dbuf[45];
 
 		/* send D8 mode telemetry */
 		while (!thread_should_exit) {
 
-			/* Sleep 200 ms */
-			usleep(200000);
+			/* Sleep 100 ms */
+			usleep(100000);
+
+			/* parse incoming data */
+			int nbytes = read(uart, &dbuf[0], sizeof(dbuf));
+			bool new_input = frsky_parse_host(&dbuf[0], nbytes, &host_frame);
+			if (new_input) {
+//				warnx("host frame: ad1:%u, ad2: %u, rssi: %u",
+//						host_frame.ad1, host_frame.ad2, host_frame.linkq);
+			}
 
 			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
-			frsky_send_frame1(uart);
+			if (iteration % 2 == 0) {
+				frsky_send_frame1(uart);
+			}
 
 			/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
-			if (iteration % 5 == 0) {
+			if (iteration % 10 == 0) {
 				frsky_send_frame2(uart);
 			}
 
 			/* Send frame 3 (every 5000ms): date, time */
-			if (iteration % 25 == 0) {
+			if (iteration % 50 == 0) {
 				frsky_send_frame3(uart);
 
 				iteration = 0;

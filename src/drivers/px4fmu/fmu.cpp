@@ -654,9 +654,9 @@ void PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 	_rc_in.timestamp_last_signal = _rc_in.timestamp_publication;
 	_rc_in.rc_ppm_frame_length = 0;
 
-	if (rssi == -1) {
-		_rc_in.rssi =
-			(!frame_drop) ? RC_INPUT_RSSI_MAX : (RC_INPUT_RSSI_MAX / 2);
+	/* don't touch rssi if no value was provided */
+	if (rssi >= 0) {
+		_rc_in.rssi = rssi;
 	}
 
 	_rc_in.rc_failsafe = failsafe;
