@@ -136,34 +136,29 @@ public:
         (void)can_driver;
     }
 
-    bool wait(uavcan::MonotonicDuration duration)
+    bool wait(uavcan::MonotonicDuration)
     {
-      bool lready = ready;
-      return __atomic_exchange_n (&lready, false, __ATOMIC_SEQ_CST);
+        (void)duration;
+        bool lready = ready;
+        return __atomic_exchange_n (&lready, false, __ATOMIC_SEQ_CST);
     }
 
     void signal()
     {
-      __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
+        __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
     }
 
     void signalFromInterrupt()
     {
-      __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
+        __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
     }
 };
 
 class Mutex
 {
 public:
-    void lock()
-    {
-
-    };
-    void unlock()
-    {
-
-    };
+    void lock() { }
+    void unlock() { }
 };
 
 #endif
