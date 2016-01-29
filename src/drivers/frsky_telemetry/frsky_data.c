@@ -45,8 +45,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <arch/math.h>
 #include <geo/geo.h>
+#include <stdbool.h>
 
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
@@ -285,3 +287,61 @@ void frsky_send_frame3(int uart)
 
 	frsky_send_startstop(uart);
 }
+
+/* parse 11 byte frames */
+bool frsky_parse_host(uint8_t * sbuf, int nbytes, struct adc_linkquality * v)
+{
+	bool data_ready = false;
+	static int dcount = 0;
+	static uint8_t type = 0;
+	static uint8_t data[11];
+	static enum {
+		HEADER = 0,
+		TYPE,
+		DATA,
+		TRAILER
+	} state = HEADER;
+
+	for (int i=0; i<nbytes; i++) {
+		switch (state) {
+		case HEADER:
+			if (sbuf[i] == 0x7E) {
+				state = TYPE;
+			}
+			break;
+		case TYPE:
+			if (sbuf[i] != 0x7E) {
+				state = DATA;
+				type = sbuf[i];
+				dcount = 0;
+			}
+			break;
+		case DATA:
+			/* read 8 data bytes */
+			if (dcount < 7) {
+				data[dcount++] = sbuf[i];
+			}
+			else {
+				/* received all data bytes */
+				state = TRAILER;
+			}
+			break;
+		case TRAILER:
+			state = HEADER;
+			if (sbuf[i] != 0x7E) {
+				warnx("host packet error: %x", sbuf[i]);
+			} else {
+				data_ready = true;
+				if (type == 0xFE) {
+					/* this is an adc_linkquality packet */
+					v->ad1 = data[0];
+					v->ad2 = data[1];
+					v->linkq = data[2];
+				}
+			}
+			break;
+		}
+	}
+	return data_ready;
+}
+
