@@ -43,68 +43,124 @@
 #include <matrix/matrix/math.hpp>
 #include <lib/geo/geo.h>
 #include "RingBuffer.h"
+namespace estimator {
+	struct gps_message {
+		uint64_t time_usec;
+	    int32_t lat;                // Latitude in 1E-7 degrees
+	    int32_t lon;                // Longitude in 1E-7 degrees
+	    int32_t alt;                // Altitude in 1E-3 meters (millimeters) above MSL
+	    uint8_t fix_type;           // 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time
+	    float eph;                  // GPS horizontal position accuracy in m
+	    float epv;                  // GPS vertical position accuracy in m
+	    float sacc;                 // GPS speed accuracy in m/s
+	    uint64_t time_usec_vel; 	// Timestamp for velocity informations
+	    float vel_m_s;              // GPS ground speed (m/s)
+	    float vel_ned[3];           // GPS ground speed NED
+	    bool vel_ned_valid;         // GPS ground speed is valid
+	    uint8_t nsats;              // number of satellites used
+	    float gdop;                 // geometric dilution of precision
+	};
 
-struct gps_message {
-	uint64_t time_usec;
-    int32_t lat;                // Latitude in 1E-7 degrees
-    int32_t lon;                // Longitude in 1E-7 degrees
-    int32_t alt;                // Altitude in 1E-3 meters (millimeters) above MSL
-    uint8_t fix_type;           // 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time
-    float eph;                  // GPS horizontal position accuracy in m
-    float epv;                  // GPS vertical position accuracy in m
-    float sacc;                 // GPS speed accuracy in m/s
-    uint64_t time_usec_vel; 	// Timestamp for velocity informations
-    float vel_m_s;              // GPS ground speed (m/s)
-    float vel_ned[3];           // GPS ground speed NED
-    bool vel_ned_valid;         // GPS ground speed is valid
-    uint8_t nsats;              // number of satellites used
-    float gdop;                 // geometric dilution of precision
-};
+	typedef matrix::Vector<float, 2> Vector2f;
+	typedef matrix::Vector<float, 3> Vector3f;
+	typedef matrix::Quaternion<float> Quaternion;
+	typedef matrix::Matrix<float, 3, 3> Matrix3f;
 
-struct parameters {
-	float mag_delay_ms = 0.0f;
-	float baro_delay_ms = 0.0f;
-	float gps_delay_ms = 200.0f;
-	float airspeed_delay_ms = 200.0f;
+	struct outputSample {
+		Quaternion  quat_nominal;
+		Vector3f    vel;
+		Vector3f    pos;
+		uint64_t 	time_us;
+	};
 
-	// input noise
-	float gyro_noise = 0.001f;
-	float accel_noise = 0.1f;
+	struct imuSample {
+		Vector3f    delta_ang;
+		Vector3f    delta_vel;
+		float       delta_ang_dt;
+		float       delta_vel_dt;
+		uint64_t    time_us;
+	};
 
-	// process noise
-	float gyro_bias_p_noise = 1e-5f;
-	float accel_bias_p_noise = 1e-3f;
-	float gyro_scale_p_noise = 1e-4f;
-	float mag_p_noise = 1e-2f;
-	float wind_vel_p_noise = 0.05f;
+	struct gpsSample {
+		Vector2f    pos;
+		float       hgt;
+		Vector3f    vel;
+		uint64_t    time_us;
+	};
 
-	float gps_vel_noise = 0.05f;
-	float gps_pos_noise = 1.0f;
-	float baro_noise = 0.1f;
-    float baro_innov_gate = 5.0f;       // barometer fusion innovation consistency gate size in standard deviations
-    float velD_innov_gate = 5.0f;       // Vertical velocity fusion innovation consistency gate size in standard deviations
-    float posNE_innov_gate = 5.0f;      // Horizontal position innovation consistency gate size in standard deviations
-    float velNE_innov_gate = 5.0f;      // Horizontal velocity fusion innovation consistency gate size in standard deviations
+	struct magSample {
+		Vector3f    mag;
+		uint64_t    time_us;
+	};
 
-	float mag_heading_noise = 3e-2f;	// measurement noise used for simple heading fusion
-	float mag_declination_deg = 0.0f;	// magnetic declination in degrees
-    float heading_innov_gate = 3.0f;	// heading fusion innovation consistency gate size in standard deviations
-    float mag_innov_gate = 3.0f;        // magnetometer fusion innovation consistency gate size in standard deviations
+	struct baroSample {
+		float       hgt;
+		uint64_t    time_us;
+	};
 
-    // these parameters control the strictness of GPS quality checks used to determine uf the GPS is
-    // good enough to set a local origin and commence aiding
-    int gps_check_mask = 21;    // bitmask used to control which GPS quality checks are used
-    float req_hacc = 5.0f;      // maximum acceptable horizontal position error
-    float req_vacc = 8.0f;      // maximum acceptable vertical position error
-    float req_sacc = 1.0f;      // maximum acceptable speed error
-    int req_nsats = 6;          // minimum acceptable satellite count
-    float req_gdop = 2.0f;      // maximum acceptable geometric dilution of precision
-    float req_hdrift = 0.3f;    // maximum acceptable horizontal drift speed
-    float req_vdrift = 0.5f;    // maximum acceptable vertical drift speed
-};
+	struct rangeSample {
+		float       rng;
+		uint64_t    time_us;
+	};
 
+	struct airspeedSample {
+		float       airspeed;
+		uint64_t    time_us;
+	};
+
+	struct flowSample {
+		Vector2f    flowRadXY;
+		Vector2f    flowRadXYcomp;
+		uint64_t    time_us;
+	};
+
+	struct parameters {
+		float mag_delay_ms = 0.0f;
+		float baro_delay_ms = 0.0f;
+		float gps_delay_ms = 200.0f;
+		float airspeed_delay_ms = 200.0f;
+
+		// input noise
+		float gyro_noise = 0.001f;
+		float accel_noise = 0.1f;
+
+		// process noise
+		float gyro_bias_p_noise = 1e-5f;
+		float accel_bias_p_noise = 1e-3f;
+		float gyro_scale_p_noise = 1e-4f;
+		float mag_p_noise = 1e-2f;
+		float wind_vel_p_noise = 0.05f;
+
+		float gps_vel_noise = 0.05f;
+		float gps_pos_noise = 1.0f;
+		float baro_noise = 0.1f;
+	    float baro_innov_gate = 5.0f;       // barometer fusion innovation consistency gate size in standard deviations
+	    float velD_innov_gate = 5.0f;       // Vertical velocity fusion innovation consistency gate size in standard deviations
+	    float posNE_innov_gate = 5.0f;      // Horizontal position innovation consistency gate size in standard deviations
+	    float velNE_innov_gate = 5.0f;      // Horizontal velocity fusion innovation consistency gate size in standard deviations
+
+		float mag_heading_noise = 3e-2f;	// measurement noise used for simple heading fusion
+		float mag_declination_deg = 0.0f;	// magnetic declination in degrees
+	    float heading_innov_gate = 3.0f;	// heading fusion innovation consistency gate size in standard deviations
+	    float mag_innov_gate = 3.0f;        // magnetometer fusion innovation consistency gate size in standard deviations
+
+	    // these parameters control the strictness of GPS quality checks used to determine uf the GPS is
+	    // good enough to set a local origin and commence aiding
+	    int gps_check_mask = 21;    // bitmask used to control which GPS quality checks are used
+	    float req_hacc = 5.0f;      // maximum acceptable horizontal position error
+	    float req_vacc = 8.0f;      // maximum acceptable vertical position error
+	    float req_sacc = 1.0f;      // maximum acceptable speed error
+	    int req_nsats = 6;          // minimum acceptable satellite count
+	    float req_gdop = 2.0f;      // maximum acceptable geometric dilution of precision
+	    float req_hdrift = 0.3f;    // maximum acceptable horizontal drift speed
+	    float req_vdrift = 0.5f;    // maximum acceptable vertical drift speed
+	};
+}
+
+using namespace estimator;
 class EstimatorBase
 {
+
 public:
 	EstimatorBase();
 	~EstimatorBase();
@@ -181,13 +237,44 @@ public:
     // set vehicle arm status data
     void set_arm_status(bool data){ _vehicle_armed = data; }
 
+	void printIMU(struct imuSample *data);
+	void printStoredIMU();
+	void printQuaternion(Quaternion &q);
+	void print_imu_avg_time();
+	void printMag(struct magSample *data);
+	void printStoredMag();
+	void printBaro(struct baroSample *data);
+	void printStoredBaro();
+	void printGps(struct gpsSample *data);
+	void printStoredGps();
+
+	bool position_is_valid();
+
+
+	void copy_quaternion(float *quat)
+	{
+		for (unsigned i = 0; i < 4; i++) {
+			quat[i] = _output_new.quat_nominal(i);
+		}
+	}
+	void copy_velocity(float *vel)
+	{
+		for (unsigned i = 0; i < 3; i++) {
+			vel[i] = _output_new.vel(i);
+		}
+	}
+	void copy_position(float *pos)
+	{
+		for (unsigned i = 0; i < 3; i++) {
+			pos[i] = _output_new.pos(i);
+		}
+	}
+	void copy_timestamp(uint64_t *time_us)
+	{
+		*time_us = _imu_time_last;
+	}
 
 protected:
-
-	typedef matrix::Vector<float, 2> Vector2f;
-	typedef matrix::Vector<float, 3> Vector3f;
-	typedef matrix::Quaternion<float> Quaternion;
-	typedef matrix::Matrix<float, 3, 3> Matrix3f;
 
 	struct stateSample {
 		Vector3f    ang_error;
@@ -201,54 +288,6 @@ protected:
 		Vector2f    wind_vel;
 		Quaternion  quat_nominal;
 	} _state;
-
-	struct outputSample {
-		Quaternion  quat_nominal;
-		Vector3f    vel;
-		Vector3f    pos;
-		uint64_t 	time_us;
-	};
-
-	struct imuSample {
-		Vector3f    delta_ang;
-		Vector3f    delta_vel;
-		float       delta_ang_dt;
-		float       delta_vel_dt;
-		uint64_t    time_us;
-	};
-
-	struct gpsSample {
-		Vector2f    pos;
-		float       hgt;
-		Vector3f    vel;
-		uint64_t    time_us;
-	};
-
-	struct magSample {
-		Vector3f    mag;
-		uint64_t    time_us;
-	};
-
-	struct baroSample {
-		float       hgt;
-		uint64_t    time_us;
-	};
-
-	struct rangeSample {
-		float       rng;
-		uint64_t    time_us;
-	};
-
-	struct airspeedSample {
-		float       airspeed;
-		uint64_t    time_us;
-	};
-
-	struct flowSample {
-		Vector2f    flowRadXY;
-		Vector2f    flowRadXYcomp;
-		uint64_t    time_us;
-	};
 
 	parameters _params;		// filter parameters
 
@@ -317,43 +356,7 @@ protected:
 	} _fault_status;
 
 	void initialiseVariables(uint64_t timestamp);
-
-public:
-	void printIMU(struct imuSample *data);
-	void printStoredIMU();
-	void printQuaternion(Quaternion &q);
-	void print_imu_avg_time();
-	void printMag(struct magSample *data);
-	void printStoredMag();
-	void printBaro(struct baroSample *data);
-	void printStoredBaro();
-	void printGps(struct gpsSample *data);
-	void printStoredGps();
-
-	bool position_is_valid();
-
-	void copy_quaternion(float *quat)
-	{
-		for (unsigned i = 0; i < 4; i++) {
-			quat[i] = _output_new.quat_nominal(i);
-		}
-	}
-	void copy_velocity(float *vel)
-	{
-		for (unsigned i = 0; i < 3; i++) {
-			vel[i] = _output_new.vel(i);
-		}
-	}
-	void copy_position(float *pos)
-	{
-		for (unsigned i = 0; i < 3; i++) {
-			pos[i] = _output_new.pos(i);
-		}
-	}
-	void copy_timestamp(uint64_t *time_us)
-	{
-		*time_us = _imu_time_last;
-	}
     bool _vehicle_armed = false;     // vehicle arm status used to turn off funtionality used on the ground
+
 
 };
