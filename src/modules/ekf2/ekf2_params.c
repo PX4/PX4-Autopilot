@@ -300,3 +300,24 @@ PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 3.0f);
  * @group EKF2
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
+
+/**
+ * Gate size for barometric height fusion (standard deviations)
+ *
+ * @group EKF2
+ */
+PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
+
+/**
+ * Gate size for GPS horizontal position fusion (standard deviations)
+ *
+ * @group EKF2
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
+
+/**
+ * Gate size for GPS velocity fusion (standard deviations)
+ *
+ * @group EKF2
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
