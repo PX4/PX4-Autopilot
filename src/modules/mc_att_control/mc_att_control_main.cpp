@@ -717,7 +717,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* limit rates */
 	for (int i = 0; i < 3; i++) {
-		if (_v_control_mode.flag_control_velocity_enabled) {
+		if (_v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
 			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.auto_rate_max(i), _params.auto_rate_max(i));
 		} else {
 			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
