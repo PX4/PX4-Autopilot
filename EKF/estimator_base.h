@@ -134,10 +134,9 @@ namespace estimator {
 		float gps_vel_noise = 0.05f;
 		float gps_pos_noise = 1.0f;
 		float baro_noise = 0.1f;
-	    float baro_innov_gate = 5.0f;       // barometer fusion innovation consistency gate size in standard deviations
-	    float velD_innov_gate = 5.0f;       // Vertical velocity fusion innovation consistency gate size in standard deviations
-	    float posNE_innov_gate = 5.0f;      // Horizontal position innovation consistency gate size in standard deviations
-	    float velNE_innov_gate = 5.0f;      // Horizontal velocity fusion innovation consistency gate size in standard deviations
+        float baro_innov_gate = 5.0f;       // barometric height innovation consistency gate size in standard deviations
+        float posNE_innov_gate = 5.0f;      // GPS horizontal position innovation consistency gate size in standard deviations
+        float vel_innov_gate = 3.0f;        // GPS velocity innovation consistency gate size in standard deviations
 
 		float mag_heading_noise = 3e-2f;	// measurement noise used for simple heading fusion
 		float mag_declination_deg = 0.0f;	// magnetic declination in degrees

@@ -56,7 +56,7 @@ void Ekf::fuseVelPosHeight()
 		_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
 		R[0] = _params.gps_vel_noise;
 		R[1] = _params.gps_vel_noise;
-        gate_size[0] = fmaxf(_params.velNE_innov_gate, 1.0f);
+        gate_size[0] = fmaxf(_params.vel_innov_gate, 1.0f);
         gate_size[1] = gate_size[0];
     }
 
@@ -64,7 +64,7 @@ void Ekf::fuseVelPosHeight()
 		fuse_map[2] = true;
 		_vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
 		R[2] = _params.gps_vel_noise;
-        gate_size[2] = fmaxf(_params.velD_innov_gate, 1.0f);
+        gate_size[2] = fmaxf(_params.vel_innov_gate, 1.0f);
     }
 
 	if (_fuse_pos) {
