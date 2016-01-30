@@ -314,14 +314,14 @@ protected:
 	outputSample _output_new;
 	imuSample _imu_sample_new;
 
-
-	uint64_t _imu_ticks;
+    uint64_t _imu_ticks;
 
 	bool _imu_updated = false;
 	bool _start_predict_enabled = false;
 	bool _initialised = false;
+    bool _vehicle_armed = false;     // vehicle arm status used to turn off functionality used on the ground
 
-    bool _gps_initialised = false;
+    bool _NED_origin_initialised = false;
     bool _gps_speed_valid = false;
     struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
 
@@ -356,8 +356,7 @@ protected:
 		bool bad_sideslip: 1;
 	} _fault_status;
 
+    // initialise variables to default startup values and set time stamps to specified value
 	void initialiseVariables(uint64_t timestamp);
-    bool _vehicle_armed = false;     // vehicle arm status used to turn off funtionality used on the ground
-
 
 };

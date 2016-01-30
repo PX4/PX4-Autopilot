@@ -159,15 +159,16 @@ private:
     // publish the status of various GPS quality checks
     union gps_check_fail_status_u {
         struct {
-            uint16_t nsats  : 1; // 0 - true if number of satellites used is insufficient
-            uint16_t gdop   : 1; // 1 - true if geometric dilution of precision is insufficient
-            uint16_t hacc   : 1; // 2 - true if reported horizontal accuracy is insufficient
-            uint16_t vacc   : 1; // 3 - true if reported vertical accuracy is insufficient
-            uint16_t sacc   : 1; // 4 - true if reported speed accuracy is insufficient
-            uint16_t hdrift : 1; // 5 - true if horizontal drift is excessive (can only be used when stationary on ground)
-            uint16_t vdrift : 1; // 6 - true if vertical drift is excessive (can only be used when stationary on ground)
-            uint16_t hspeed : 1; // 7 - true if horizontal speed is excessive (can only be used when stationary on ground)
-            uint16_t vspeed : 1; // 8 - true if vertical speed error is excessive
+            uint16_t fix    : 1; // 0 - true if the fix type is insufficient (no 3D solution)
+            uint16_t nsats  : 1; // 1 - true if number of satellites used is insufficient
+            uint16_t gdop   : 1; // 2 - true if geometric dilution of precision is insufficient
+            uint16_t hacc   : 1; // 3 - true if reported horizontal accuracy is insufficient
+            uint16_t vacc   : 1; // 4 - true if reported vertical accuracy is insufficient
+            uint16_t sacc   : 1; // 5 - true if reported speed accuracy is insufficient
+            uint16_t hdrift : 1; // 6 - true if horizontal drift is excessive (can only be used when stationary on ground)
+            uint16_t vdrift : 1; // 7 - true if vertical drift is excessive (can only be used when stationary on ground)
+            uint16_t hspeed : 1; // 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
+            uint16_t vspeed : 1; // 9 - true if vertical speed error is excessive
         } flags;
         uint16_t value;
     }_gps_check_fail_status;
@@ -215,8 +216,6 @@ private:
 	void printStatesFast();
 
 	void calcEarthRateNED(Vector3f &omega, double lat_rad) const;
-
-    void initialiseGPS(struct gps_message *gps);
 
     // return true id the GPS quality is good enough to set an origin and start aiding
     bool gps_is_good(struct gps_message *gps);

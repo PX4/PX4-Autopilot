@@ -54,27 +54,28 @@
 
 bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 {
-    if(_gps_initialised) {
+    // run gps checks if we have not yet set the NED origin or have not started using GPS
+    if(!_NED_origin_initialised || !_control_status.flags.gps) {
+        // if we have good GPS data and the NED origin is not set, set to the last GPS fix
+        if (gps_is_good(gps) && !_NED_origin_initialised) {
+            printf("gps is good -  setting EKF origin\n");
+            // Initialise projection
+            double lat = gps->lat / 1.0e7;
+            double lon = gps->lon / 1.0e7;
+            map_projection_init(&_pos_ref, lat, lon);
+            _gps_alt_ref = gps->alt / 1e3f;
+            _NED_origin_initialised = true;
+            _last_gps_origin_time_us = _time_last_imu;
+        }
+    }
+
+    // start collecting GPS if there is a 3D fix and the NED origin has been set
+    if (_NED_origin_initialised && gps->fix_type >= 3) {
         return true;
     } else {
-        initialiseGPS(gps);
+        return false;
     }
     return false;
-}
-
-void Ekf::initialiseGPS(struct gps_message *gps)
-{
-    //Check if the GPS fix is good enough for us to use
-    if (gps_is_good(gps)) {
-        printf("gps is good\n");
-        // Initialise projection
-        double lat = gps->lat / 1.0e7;
-        double lon = gps->lon / 1.0e7;
-        map_projection_init(&_pos_ref, lat, lon);
-        _gps_alt_ref = gps->alt / 1e3f;
-        _gps_initialised = true;
-        _last_gps_origin_time_us = _time_last_imu;
-    }
 }
 
 /*
@@ -86,6 +87,9 @@ void Ekf::initialiseGPS(struct gps_message *gps)
 */
 bool Ekf::gps_is_good(struct gps_message *gps)
 {
+    // Check the fix type
+    _gps_check_fail_status.flags.fix = (gps->fix_type < 3);
+
     // Check the number of satellites
     _gps_check_fail_status.flags.nsats = (gps->nsats < _params.req_nsats);
 
@@ -185,6 +189,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
     // if any user selected checks have failed, record the fail time
     if (
+     _gps_check_fail_status.flags.fix ||
     (_gps_check_fail_status.flags.nsats   && (_params.gps_check_mask & MASK_GPS_NSATS)) ||
     (_gps_check_fail_status.flags.gdop    && (_params.gps_check_mask & MASK_GPS_GDOP)) ||
     (_gps_check_fail_status.flags.hacc    && (_params.gps_check_mask & MASK_GPS_HACC)) ||

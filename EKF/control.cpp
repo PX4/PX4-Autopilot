@@ -52,7 +52,7 @@ void Ekf::controlFusionModes()
     // GPS fusion mode selection logic
     // To start use GPS we need angular alignment completed, the local NED origin set and fresh GPS data
     if (!_control_status.flags.gps) {
-        if (_control_status.flags.angle_align && (_time_last_imu - _time_last_gps) < 5e5 && _gps_initialised) {
+        if (_control_status.flags.angle_align && (_time_last_imu - _time_last_gps) < 5e5 && _NED_origin_initialised && (_time_last_imu - _last_gps_fail_us > 5e6)) {
             _control_status.flags.gps = true;
             resetPosition();
             resetVelocity();

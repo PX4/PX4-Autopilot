@@ -247,7 +247,7 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_imu_updated = false;
 	_start_predict_enabled = false;
 	_initialised = false;
-	_gps_initialised = false;
+    _NED_origin_initialised = false;
 	_gps_speed_valid = false;
 
 	_mag_healthy = false;
@@ -266,8 +266,8 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 bool EstimatorBase::position_is_valid()
 {
 	// return true if the position estimate is valid
-	// TODO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
-    return _gps_initialised &&  (_time_last_imu - _time_last_gps) < 5e6;
+	// TOTO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
+    return _NED_origin_initialised &&  (_time_last_imu - _time_last_gps) < 5e6;
 }
 
 void EstimatorBase::printStoredIMU()
