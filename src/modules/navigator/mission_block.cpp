@@ -105,11 +105,18 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_LOITER_UNLIMITED:
 			return false;
 
-		case NAV_CMD_DO_DIGICAM_CONTROL: /* fallthrough */
+		case NAV_CMD_DO_DIGICAM_CONTROL:
+			return true;
+
 		case NAV_CMD_DO_VTOL_TRANSITION:
-			// XXX: we should wait on command ACK or status change instead
-			// currently we just wait so the command can be processed
-			if (hrt_absolute_time() - _action_start > 1000) {
+			/*
+			 * We wait half a second to give the transition command time to propagate.
+			 * As soon as the timeout is over or when we're in transition mode let the mission continue.
+			 */
+			if (hrt_absolute_time() - _action_start > 500000 ||
+					_navigator->get_vstatus()->in_transition_mode) {
+				_action_start = 0;
+
 				return true;
 
 			} else {
