@@ -84,20 +84,6 @@ public:
     bool collect_gps(uint64_t time_usec, struct gps_message *gps);
     bool collect_imu(imuSample &imu);
 
-    // bitmask containing filter control status
-    union filter_control_status_u {
-        struct {
-            uint8_t angle_align : 1; // 0 - true if the filter angular alignment is complete
-            uint8_t gps         : 1; // 1 - true if GPS measurements are being fused
-            uint8_t opt_flow    : 1; // 2 - true if optical flow measurements are being fused
-            uint8_t mag_hdg     : 1; // 3 - true if a simple magnetic heading is being fused
-            uint8_t mag_3D      : 1; // 4 - true if 3-axis magnetometer measurement are being fused
-            uint8_t mag_dec     : 1; // 5 - true if synthetic magnetic declination measurements are being fused
-            uint8_t in_air      : 1; // 6 - true when the vehicle is airborne
-            uint8_t armed       : 1; // 7 - true when the vehicle motors are armed
-        } flags;
-        uint16_t value;
-    };
     filter_control_status_u _control_status={};
 
     // get the ekf WGS-84 origin positoin and height and the system time it was last set
@@ -157,22 +143,8 @@ private:
     uint64_t _last_gps_origin_time_us = 0;              // time the origin was last set (uSec)
     float _gps_alt_ref = 0.0f;                          // WGS-84 height (m)
 
-    // publish the status of various GPS quality checks
-    union gps_check_fail_status_u {
-        struct {
-            uint16_t fix    : 1; // 0 - true if the fix type is insufficient (no 3D solution)
-            uint16_t nsats  : 1; // 1 - true if number of satellites used is insufficient
-            uint16_t gdop   : 1; // 2 - true if geometric dilution of precision is insufficient
-            uint16_t hacc   : 1; // 3 - true if reported horizontal accuracy is insufficient
-            uint16_t vacc   : 1; // 4 - true if reported vertical accuracy is insufficient
-            uint16_t sacc   : 1; // 5 - true if reported speed accuracy is insufficient
-            uint16_t hdrift : 1; // 6 - true if horizontal drift is excessive (can only be used when stationary on ground)
-            uint16_t vdrift : 1; // 7 - true if vertical drift is excessive (can only be used when stationary on ground)
-            uint16_t hspeed : 1; // 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
-            uint16_t vspeed : 1; // 9 - true if vertical speed error is excessive
-        } flags;
-        uint16_t value;
-    }_gps_check_fail_status;
+
+    gps_check_fail_status_u _gps_check_fail_status;
 
     void calculateOutputStates();
 
