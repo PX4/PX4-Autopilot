@@ -55,6 +55,6 @@ struct adc_linkquality {
 	uint8_t ad2;
 	uint8_t linkq;
 };
-bool frsky_parse_host(uint8_t * sbuf, int nbytes, struct adc_linkquality * v);
+bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v);
 
 #endif /* _FRSKY_TELEMETRY_H */
