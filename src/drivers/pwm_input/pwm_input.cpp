@@ -223,6 +223,7 @@
 #error PWMIN_TIMER_CHANNEL must be either 1 and 2.
 #endif
 
+// XXX refactor this out of this driver
 #define TIMEOUT_POLL 300000 /* reset after no response over this time in microseconds [0.3s] */
 #define TIMEOUT_READ 200000 /* don't reset if the last read is back more than this time in microseconds [0.2s] */
 
@@ -324,6 +325,8 @@ void PWMIN::_timer_init(void)
 
 	/* configure input pin */
 	stm32_configgpio(GPIO_PWM_IN);
+
+	// XXX refactor this out of this driver
 	/* configure reset pin */
 	stm32_configgpio(GPIO_VDD_RANGEFINDER_EN);
 
@@ -375,6 +378,7 @@ void PWMIN::_timer_init(void)
 	_timer_started = true;
 }
 
+// XXX refactor this out of this driver
 void
 PWMIN::_freeze_test()
 {
@@ -384,18 +388,21 @@ PWMIN::_freeze_test()
 	}
 }
 
+// XXX refactor this out of this driver
 void
 PWMIN::_turn_on()
 {
 	stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 1);
 }
 
+// XXX refactor this out of this driver
 void
 PWMIN::_turn_off()
 {
 	stm32_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 0);
 }
 
+// XXX refactor this out of this driver
 void
 PWMIN::hard_reset()
 {
