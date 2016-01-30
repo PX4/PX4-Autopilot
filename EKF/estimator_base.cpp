@@ -119,7 +119,7 @@ void EstimatorBase::setMagData(uint64_t time_usec, float *data)
 
 void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 {
-	if(!collect_gps(time_usec, gps)) {
+	if(!collect_gps(time_usec, gps) || !_initialised) {
 		return;
 	}
 
@@ -150,7 +150,9 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 
 void EstimatorBase::setBaroData(uint64_t time_usec, float *data)
 {
-
+	if(!collect_baro(time_usec, data) || !_initialised) {
+		return;
+	}
 	if (time_usec - _time_last_baro > 70000) {
 
 		baroSample baro_sample_new;
@@ -168,6 +170,9 @@ void EstimatorBase::setBaroData(uint64_t time_usec, float *data)
 
 void EstimatorBase::setAirspeedData(uint64_t time_usec, float *data)
 {
+	if(!collect_airspeed(time_usec, data) || !_initialised) {
+		return;
+	}
 	if (time_usec > _time_last_airspeed) {
 		airspeedSample airspeed_sample_new;
 		airspeed_sample_new.airspeed = *data;
@@ -183,13 +188,17 @@ void EstimatorBase::setAirspeedData(uint64_t time_usec, float *data)
 // set range data
 void EstimatorBase::setRangeData(uint64_t time_usec, float *data)
 {
-
+	if(!collect_range(time_usec, data) || !_initialised) {
+		return;
+	}
 }
 
 // set optical flow data
 void EstimatorBase::setOpticalFlowData(uint64_t time_usec, float *data)
 {
-
+	if(!collect_opticalflow(time_usec, data) || !_initialised) {
+		return;
+	}
 }
 
 bool EstimatorBase::initialise_interface(uint64_t timestamp)
