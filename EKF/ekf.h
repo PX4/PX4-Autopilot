@@ -79,8 +79,9 @@ public:
 	// get the diagonal elements of the covariance matrix
 	void get_covariances(float *covariances);
 
-    // ask estimator for sensor data collection decision, returns true if not defined
+    // ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
     bool collect_gps(uint64_t time_usec, struct gps_message *gps);
+    bool collect_imu(imuSample &imu);
 
     // bitmask containing filter control status
     union filter_control_status_u {

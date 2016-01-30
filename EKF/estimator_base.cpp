@@ -37,7 +37,7 @@
  *
  * @author Roman Bast <bapstroman@gmail.com>
  * @author Paul Riseborough <p_riseborough@live.com.au>
- *
+ * @author Siddharth B Purohit <siddharthbharatpurohit@gmail.com>
  */
 
 #define __STDC_FORMAT_MACROS
@@ -57,8 +57,7 @@ EstimatorBase::~EstimatorBase()
 }
 
 // Accumulate imu data and store to buffer at desired rate
-void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang,
-			       float *delta_vel)
+void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel)
 {
 	if (!_initialised) {
 		initialiseVariables(time_usec);
@@ -75,62 +74,26 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 	if (_time_last_imu > 0) {
 		_dt_imu_avg = 0.8f * _dt_imu_avg + 0.2f * dt;
 	}
+	delta_ang_dt = delta_ang_dt / 1e6f;
+	delta_vel_dt = delta_vel_dt / 1e6f;
 
 	// copy data
 	imuSample imu_sample_new = {};
 	memcpy(&imu_sample_new.delta_ang._data[0], delta_ang, sizeof(imu_sample_new.delta_ang._data));
 	memcpy(&imu_sample_new.delta_vel._data[0], delta_vel, sizeof(imu_sample_new.delta_vel._data));
 
+	//convert time from us to secs
 	imu_sample_new.delta_ang_dt = delta_ang_dt / 1e6f;
 	imu_sample_new.delta_vel_dt = delta_vel_dt / 1e6f;
-
 	imu_sample_new.time_us = time_usec;
-
-	imu_sample_new.delta_ang(0) = imu_sample_new.delta_ang(0) * _state.gyro_scale(0);
-	imu_sample_new.delta_ang(1) = imu_sample_new.delta_ang(1) * _state.gyro_scale(1);
-	imu_sample_new.delta_ang(2) = imu_sample_new.delta_ang(2) * _state.gyro_scale(2);
-
-	imu_sample_new.delta_ang -= _state.gyro_bias * imu_sample_new.delta_ang_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);
-	imu_sample_new.delta_vel(2) -= _state.accel_z_bias * imu_sample_new.delta_vel_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);;
-
-	// store the new sample for the complementary filter prediciton
-	_imu_sample_new = imu_sample_new;
-
-	_imu_down_sampled.delta_ang_dt += imu_sample_new.delta_ang_dt;
-	_imu_down_sampled.delta_vel_dt += imu_sample_new.delta_vel_dt;
-
-
-	Quaternion delta_q;
-	delta_q.rotate(imu_sample_new.delta_ang);
-	_q_down_sampled =  _q_down_sampled * delta_q;
-	_q_down_sampled.normalize();
-
-	matrix::Dcm<float> delta_R(delta_q.inversed());
-	_imu_down_sampled.delta_vel = delta_R * _imu_down_sampled.delta_vel;
-	_imu_down_sampled.delta_vel += imu_sample_new.delta_vel;
-
 	_imu_ticks++;
 
-	if ((_dt_imu_avg * _imu_ticks >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000 && _start_predict_enabled)
-	    || (_dt_imu_avg * _imu_ticks >= 0.02f)) {
-		_imu_down_sampled.delta_ang = _q_down_sampled.to_axis_angle();
-		_imu_down_sampled.time_us = time_usec;
-
-		_imu_buffer.push(_imu_down_sampled);
-
-		_imu_down_sampled.delta_ang.setZero();
-		_imu_down_sampled.delta_vel.setZero();
-		_imu_down_sampled.delta_ang_dt = 0.0f;
-		_imu_down_sampled.delta_vel_dt = 0.0f;
-		_q_down_sampled(0) = 1.0f;
-		_q_down_sampled(1) = _q_down_sampled(2) = _q_down_sampled(3) = 0.0f;
-
+	if (collect_imu(imu_sample_new)) {
+		_imu_buffer.push(imu_sample_new);
 		_imu_ticks = 0;
-
 		_imu_updated = true;
 
 	} else {
-
 		_imu_updated = false;
 	}
 
@@ -189,6 +152,7 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 
 void EstimatorBase::setBaroData(uint64_t time_usec, float *data)
 {
+
 	if (time_usec - _time_last_baro > 70000) {
 
 		baroSample baro_sample_new;
@@ -303,7 +267,7 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 bool EstimatorBase::position_is_valid()
 {
 	// return true if the position estimate is valid
-	// TOTO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
+	// TODO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
     return _gps_initialised &&  (_time_last_imu - _time_last_gps) < 5e6;
 }
 

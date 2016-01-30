@@ -254,6 +254,59 @@ void Ekf::predictState()
 	constrainStates();
 }
 
+
+bool Ekf::collect_imu(imuSample &imu)
+{
+
+	imu.delta_ang(0) = imu.delta_ang(0) * _state.gyro_scale(0);
+	imu.delta_ang(1) = imu.delta_ang(1) * _state.gyro_scale(1);
+	imu.delta_ang(2) = imu.delta_ang(2) * _state.gyro_scale(2);
+
+	imu.delta_ang -= _state.gyro_bias * imu.delta_ang_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);
+	imu.delta_vel(2) -= _state.accel_z_bias * imu.delta_vel_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);;
+
+	// store the new sample for the complementary filter prediciton
+	_imu_sample_new = {
+		delta_ang		: imu.delta_ang,
+		delta_vel		: imu.delta_vel,
+		delta_ang_dt	: imu.delta_ang_dt,
+		delta_vel_dt	: imu.delta_vel_dt,
+		time_us			: imu.time_us
+	};
+
+	_imu_down_sampled.delta_ang_dt += imu.delta_ang_dt;
+	_imu_down_sampled.delta_vel_dt += imu.delta_vel_dt;
+
+
+	Quaternion delta_q;
+	delta_q.rotate(imu.delta_ang);
+	_q_down_sampled =  _q_down_sampled * delta_q;
+	_q_down_sampled.normalize();
+
+	matrix::Dcm<float> delta_R(delta_q.inversed());
+	_imu_down_sampled.delta_vel = delta_R * _imu_down_sampled.delta_vel;
+	_imu_down_sampled.delta_vel += imu.delta_vel;
+
+	if ((_dt_imu_avg * _imu_ticks >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000 && _start_predict_enabled) || 
+		_dt_imu_avg * _imu_ticks >= 0.02f){
+		_imu_sample_new = {
+			delta_ang		: _q_down_sampled.to_axis_angle(),
+			delta_vel		: _imu_down_sampled.delta_vel,
+			delta_ang_dt	: _imu_down_sampled.delta_ang_dt,
+			delta_vel_dt	: _imu_down_sampled.delta_vel_dt,
+			time_us			: imu.time_us
+		};
+		_imu_down_sampled.delta_ang.setZero();
+		_imu_down_sampled.delta_vel.setZero();
+		_imu_down_sampled.delta_ang_dt = 0.0f;
+		_imu_down_sampled.delta_vel_dt = 0.0f;
+		_q_down_sampled(0) = 1.0f;
+		_q_down_sampled(1) = _q_down_sampled(2) = _q_down_sampled(3) = 0.0f;
+	   	return true;
+	}
+	return false;
+}
+
 void Ekf::calculateOutputStates()
 {
 	imuSample imu_new = _imu_sample_new;
