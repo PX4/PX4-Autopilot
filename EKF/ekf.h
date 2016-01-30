@@ -94,6 +94,8 @@ private:
 	static const uint8_t _k_num_states = 24;
 	static constexpr float _k_earth_rate = 0.000072921f;
 
+    stateSample _state;
+
 	bool _filter_initialised;
 	bool _earth_rate_initialised;
 
@@ -129,6 +131,8 @@ private:
 	Vector3f _delta_angle_corr;
 	Vector3f _delta_vel_corr;
 	Vector3f _vel_corr;
+    imuSample _imu_down_sampled;
+    Quaternion _q_down_sampled;
 
     // variables used for the GPS quality checks
     float _gpsDriftVelN = 0.0f;     // GPS north position derivative (m/s)

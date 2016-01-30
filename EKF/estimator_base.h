@@ -177,8 +177,6 @@ protected:
 	uint64_t _imu_time_last;
 
 	imuSample _imu_sample_delayed;
-	imuSample _imu_down_sampled;
-	Quaternion _q_down_sampled;
 
 	magSample _mag_sample_delayed;
 	baroSample _baro_sample_delayed;
