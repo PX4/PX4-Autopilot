@@ -262,10 +262,3 @@ void Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *orig
     memcpy(origin_pos, &_pos_ref, sizeof(map_projection_reference_s));
     memcpy(origin_alt, &_gps_alt_ref, sizeof(float));
 }
-
-// set the vehicle arm status
-void Ekf::set_arm_status(bool data)
-{
-    _vehicle_armed = data;
-
-}

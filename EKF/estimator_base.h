@@ -135,6 +135,24 @@ public:
 
 	virtual void get_covariances(float *covariances) = 0;
 
+    // get the ekf WGS-84 origin positoin and height and the system time it was last set
+    virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
+
+    // ask estimator for sensor data collection decision, returns true if not defined
+    virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; };
+
+    virtual bool collect_imu(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel) { return true; };
+
+    virtual bool collect_mag(uint64_t time_usec, float *data) { return true; };
+
+    virtual bool collect_baro(uint64_t time_usec, float *data) { return true; };
+
+    virtual bool collect_airspeed(uint64_t time_usec, float *data) { return true; };
+
+    virtual bool collect_range(uint64_t time_usec, float *data) { return true; };
+
+    virtual bool collect_opticalflow(uint64_t time_usec, float *data) { return true; };
+
 	// set delta angle imu data
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel);
 
@@ -160,11 +178,9 @@ public:
 	// in order to give access to the application
 	parameters *getParamHandle() {return &_params;}
 
-    // get the ekf WGS-84 origin positoin and height and the system time it was last set
-    virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
-
     // set vehicle arm status data
-    void set_arm_status(bool data);
+    void set_arm_status(bool data){ _vehicle_armed = data; }
+
 
 protected:
 
@@ -245,8 +261,7 @@ protected:
 
 	imuSample _imu_sample_delayed;
 	imuSample _imu_down_sampled;
-	Quaternion
-	_q_down_sampled;
+	Quaternion _q_down_sampled;
 
 	magSample _mag_sample_delayed;
 	baroSample _baro_sample_delayed;
@@ -265,8 +280,10 @@ protected:
 	bool _imu_updated = false;
 	bool _start_predict_enabled = false;
 	bool _initialised = false;
-	bool _gps_initialised = false;
-	bool _gps_speed_valid = false;
+
+    bool _gps_initialised = false;
+    bool _gps_speed_valid = false;
+    struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
 
 	bool _mag_healthy = false;		// computed by mag innovation test
     float _yaw_test_ratio;          // yaw innovation consistency check ratio

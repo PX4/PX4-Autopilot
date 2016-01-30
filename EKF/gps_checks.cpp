@@ -52,6 +52,16 @@
 #define MASK_GPS_HSPD   (1<<7)
 #define MASK_GPS_VSPD   (1<<8)
 
+bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
+{
+    if(_gps_initialised) {
+        return true;
+    } else {
+        initialiseGPS(gps);
+    }
+    return false;
+}
+
 void Ekf::initialiseGPS(struct gps_message *gps)
 {
     //Check if the GPS fix is good enough for us to use

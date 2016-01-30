@@ -141,7 +141,6 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 void EstimatorBase::setMagData(uint64_t time_usec, float *data)
 {
 
-
 	if (time_usec - _time_last_mag > 70000) {
 
 		magSample mag_sample_new = {};
@@ -159,9 +158,7 @@ void EstimatorBase::setMagData(uint64_t time_usec, float *data)
 
 void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 {
-
-	if (!_gps_initialised) {
-		initialiseGPS(gps);
+	if(!collect_gps(time_usec, gps)) {
 		return;
 	}
 

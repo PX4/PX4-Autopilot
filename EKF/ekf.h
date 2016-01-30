@@ -79,6 +79,9 @@ public:
 	// get the diagonal elements of the covariance matrix
 	void get_covariances(float *covariances);
 
+    // ask estimator for sensor data collection decision, returns true if not defined
+    bool collect_gps(uint64_t time_usec, struct gps_message *gps);
+
     // bitmask containing filter control status
     union filter_control_status_u {
         struct {
@@ -97,9 +100,6 @@ public:
 
     // get the ekf WGS-84 origin positoin and height and the system time it was last set
     void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt);
-
-    // set vehicle arm status data
-    void set_arm_status(bool data);
 
 private:
 
@@ -153,10 +153,7 @@ private:
 
     // Variables used to publish the WGS-84 location of the EKF local NED origin
     uint64_t _last_gps_origin_time_us = 0;              // time the origin was last set (uSec)
-    struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
     float _gps_alt_ref = 0.0f;                          // WGS-84 height (m)
-
-    bool _vehicle_armed = false;     // vehicle arm status used to turn off funtionality used on the ground
 
     // publish the status of various GPS quality checks
     union gps_check_fail_status_u {
@@ -172,8 +169,7 @@ private:
             uint16_t vspeed : 1; // 8 - true if vertical speed error is excessive
         } flags;
         uint16_t value;
-    };
-    gps_check_fail_status_u _gps_check_fail_status;
+    }_gps_check_fail_status;
 
     void calculateOutputStates();
 
