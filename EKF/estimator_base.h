@@ -164,6 +164,7 @@ public:
 	EstimatorBase();
 	~EstimatorBase();
 
+	virtual bool init(uint64_t timestamp) = 0;
 	virtual bool update() = 0;
 
 	// gets the innovations of velocity and position measurements
@@ -316,7 +317,6 @@ protected:
     uint64_t _imu_ticks;
 
 	bool _imu_updated = false;
-	bool _start_predict_enabled = false;
 	bool _initialised = false;
     bool _vehicle_armed = false;     // vehicle arm status used to turn off functionality used on the ground
 

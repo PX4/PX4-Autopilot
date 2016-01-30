@@ -51,6 +51,7 @@ public:
 	Ekf();
 	~Ekf();
 
+    bool init(uint64_t timestamp);
 	bool update();
 
 	// gets the innovations of velocity and position measurements

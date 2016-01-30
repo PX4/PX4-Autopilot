@@ -74,6 +74,46 @@ Ekf::Ekf():
 Ekf::~Ekf()
 {
 
+
+}
+bool Ekf::init(uint64_t timestamp)
+{
+	bool ret = initialise_interface(timestamp);
+	_state.ang_error.setZero();
+	_state.vel.setZero();
+	_state.pos.setZero();
+	_state.gyro_bias.setZero();
+	_state.gyro_scale(0) = 1.0f;
+	_state.gyro_scale(1) = 1.0f;
+	_state.gyro_scale(2) = 1.0f;
+	_state.accel_z_bias = 0.0f;
+	_state.mag_I.setZero();
+	_state.mag_B.setZero();
+	_state.wind_vel.setZero();
+	_state.quat_nominal.setZero();
+	_state.quat_nominal(0) = 1.0f;
+
+	_output_new.vel.setZero();
+	_output_new.pos.setZero();
+	_output_new.quat_nominal = matrix::Quaternion<float>();
+
+
+	_imu_down_sampled.delta_ang.setZero();
+	_imu_down_sampled.delta_vel.setZero();
+	_imu_down_sampled.delta_ang_dt = 0.0f;
+	_imu_down_sampled.delta_vel_dt = 0.0f;
+	_imu_down_sampled.time_us = timestamp;
+
+	_q_down_sampled(0) = 1.0f;
+	_q_down_sampled(1) = 0.0f;
+	_q_down_sampled(2) = 0.0f;
+	_q_down_sampled(3) = 0.0f;
+
+	_imu_updated = false;
+	_NED_origin_initialised = false;
+	_gps_speed_valid = false;
+	_mag_healthy = false;
+	return ret;
 }
 
 bool Ekf::update()
@@ -286,7 +326,7 @@ bool Ekf::collect_imu(imuSample &imu)
 	_imu_down_sampled.delta_vel = delta_R * _imu_down_sampled.delta_vel;
 	_imu_down_sampled.delta_vel += imu.delta_vel;
 
-	if ((_dt_imu_avg * _imu_ticks >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000 && _start_predict_enabled) || 
+	if ((_dt_imu_avg * _imu_ticks >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000) || 
 		_dt_imu_avg * _imu_ticks >= 0.02f){
 		imu = {
 			delta_ang		: _q_down_sampled.to_axis_angle(),

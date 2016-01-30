@@ -60,9 +60,8 @@ EstimatorBase::~EstimatorBase()
 void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel)
 {
 	if (!_initialised) {
-		initialiseVariables(time_usec);
+		init(time_usec);
 		_initialised = true;
-		_start_predict_enabled = true;
 	}
 
 	float dt = (float)(time_usec - _time_last_imu) / 1000 / 1000;
@@ -193,7 +192,7 @@ void EstimatorBase::setOpticalFlowData(uint64_t time_usec, float *data)
 
 }
 
-void EstimatorBase::initialiseVariables(uint64_t time_usec)
+bool EstimatorBase::initialise_interface(uint64_t timestamp)
 {
 	_imu_buffer.allocate(IMU_BUFFER_LENGTH);
 	_gps_buffer.allocate(OBS_BUFFER_LENGTH);
@@ -204,53 +203,19 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_flow_buffer.allocate(OBS_BUFFER_LENGTH);
 	_output_buffer.allocate(IMU_BUFFER_LENGTH);
 
-	_state.ang_error.setZero();
-	_state.vel.setZero();
-	_state.pos.setZero();
-	_state.gyro_bias.setZero();
-	_state.gyro_scale(0) = 1.0f;
-	_state.gyro_scale(1) = 1.0f;
-	_state.gyro_scale(2) = 1.0f;
-	_state.accel_z_bias = 0.0f;
-	_state.mag_I.setZero();
-	_state.mag_B.setZero();
-	_state.wind_vel.setZero();
-	_state.quat_nominal.setZero();
-	_state.quat_nominal(0) = 1.0f;
 
 	_dt_imu_avg = 0.0f;
-	_imu_time_last = time_usec;
+	_imu_time_last = timestamp;
 
 	_imu_sample_delayed.delta_ang.setZero();
 	_imu_sample_delayed.delta_vel.setZero();
 	_imu_sample_delayed.delta_ang_dt = 0.0f;
 	_imu_sample_delayed.delta_vel_dt = 0.0f;
-	_imu_sample_delayed.time_us = time_usec;
-
-	_output_new.vel.setZero();
-	_output_new.pos.setZero();
-	_output_new.quat_nominal = matrix::Quaternion<float>();
-
-	_imu_down_sampled.delta_ang.setZero();
-	_imu_down_sampled.delta_vel.setZero();
-	_imu_down_sampled.delta_ang_dt = 0.0f;
-	_imu_down_sampled.delta_vel_dt = 0.0f;
-	_imu_down_sampled.time_us = time_usec;
-
-	_q_down_sampled(0) = 1.0f;
-	_q_down_sampled(1) = 0.0f;
-	_q_down_sampled(2) = 0.0f;
-	_q_down_sampled(3) = 0.0f;
+	_imu_sample_delayed.time_us = timestamp;
 
 	_imu_ticks = 0;
 
-	_imu_updated = false;
-	_start_predict_enabled = false;
 	_initialised = false;
-    _NED_origin_initialised = false;
-	_gps_speed_valid = false;
-
-	_mag_healthy = false;
 
 	_time_last_imu = 0;
 	_time_last_gps = 0;
@@ -260,7 +225,7 @@ void EstimatorBase::initialiseVariables(uint64_t time_usec)
 	_time_last_airspeed = 0;
 
 	memset(&_fault_status, 0, sizeof(_fault_status));
-
+	return true;
 }
 
 bool EstimatorBase::position_is_valid()
