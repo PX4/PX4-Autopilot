@@ -251,6 +251,18 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
 /**
  * Max yaw rate
  *
+ * A value of significantly over 120 degrees per second can already lead to mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 120.0f);
+
+/**
+ * Max yaw rate in auto mode
+ *
  * Limit for yaw rate, has effect for large rotations in autonomous mode,
  * to avoid large control output and mixer saturation. A value of significantly
  * over 60 degrees per second can already lead to mixer saturation.
@@ -258,10 +270,10 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
  *
  * @unit deg/s
  * @min 0.0
- * @max 360.0
+ * @max 120.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRAUTO_MAX, 45.0f);
 
 /**
  * Max acro roll rate
