@@ -162,6 +162,9 @@ private:
 	control::BlockParamFloat *_gps_vel_noise;
 	control::BlockParamFloat *_gps_pos_noise;
 	control::BlockParamFloat *_baro_noise;
+        control::BlockParamFloat *_baro_innov_gate;     // innovation gate for barometric height innovation test (std dev)
+        control::BlockParamFloat *_posNE_innov_gate;    // innovation gate for GPS horizontal position innovation test (std dev)
+        control::BlockParamFloat *_vel_innov_gate;      // innovation gate for GPS velocity innovation test (std dev)
 
 	control::BlockParamFloat *_mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamFloat *_mag_declination_deg;	// magnetic declination in degrees
@@ -214,6 +217,9 @@ Ekf2::Ekf2():
 	_gps_vel_noise = new control::BlockParamFloat(this, "EKF2_GPS_V_NOISE", false, &params->gps_vel_noise);
 	_gps_pos_noise = new control::BlockParamFloat(this, "EKF2_GPS_P_NOISE", false, &params->gps_pos_noise);
 	_baro_noise = new control::BlockParamFloat(this, "EKF2_BARO_NOISE", false, &params->baro_noise);
+        _baro_innov_gate = new control::BlockParamFloat(this, "EKF2_BARO_GATE", false, &params->baro_innov_gate);
+        _posNE_innov_gate = new control::BlockParamFloat(this, "EKF2_GPS_P_GATE", false, &params->posNE_innov_gate);
+        _vel_innov_gate = new control::BlockParamFloat(this, "EKF2_GPS_V_GATE", false, &params->vel_innov_gate);
 
 	_mag_heading_noise = new control::BlockParamFloat(this, "EKF2_HEAD_NOISE", false, &params->mag_heading_noise);
 	_mag_declination_deg = new control::BlockParamFloat(this, "EKF2_MAG_DECL", false, &params->mag_declination_deg);
