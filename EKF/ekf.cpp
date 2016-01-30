@@ -87,7 +87,6 @@ bool Ekf::update()
 			return false;
 		}
 	}
-
 	//printStates();
 	//printStatesFast();
 	// prediction
@@ -289,7 +288,7 @@ bool Ekf::collect_imu(imuSample &imu)
 
 	if ((_dt_imu_avg * _imu_ticks >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000 && _start_predict_enabled) || 
 		_dt_imu_avg * _imu_ticks >= 0.02f){
-		_imu_sample_new = {
+		imu = {
 			delta_ang		: _q_down_sampled.to_axis_angle(),
 			delta_vel		: _imu_down_sampled.delta_vel,
 			delta_ang_dt	: _imu_down_sampled.delta_ang_dt,

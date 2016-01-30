@@ -74,8 +74,6 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 	if (_time_last_imu > 0) {
 		_dt_imu_avg = 0.8f * _dt_imu_avg + 0.2f * dt;
 	}
-	delta_ang_dt = delta_ang_dt / 1e6f;
-	delta_vel_dt = delta_vel_dt / 1e6f;
 
 	// copy data
 	imuSample imu_sample_new = {};
@@ -87,6 +85,7 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 	imu_sample_new.delta_vel_dt = delta_vel_dt / 1e6f;
 	imu_sample_new.time_us = time_usec;
 	_imu_ticks++;
+
 
 	if (collect_imu(imu_sample_new)) {
 		_imu_buffer.push(imu_sample_new);
