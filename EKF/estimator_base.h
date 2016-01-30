@@ -194,20 +194,21 @@ public:
     // get the ekf WGS-84 origin positoin and height and the system time it was last set
     virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
 
-    // ask estimator for sensor data collection decision, returns true if not defined
-    virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; };
 
-    virtual bool collect_imu(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel) { return true; };
+    // ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
+    virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }
 
-    virtual bool collect_mag(uint64_t time_usec, float *data) { return true; };
+    virtual bool collect_imu(imuSample &imu) { return true; }
 
-    virtual bool collect_baro(uint64_t time_usec, float *data) { return true; };
+    virtual bool collect_mag(uint64_t time_usec, float *data) { return true; }
 
-    virtual bool collect_airspeed(uint64_t time_usec, float *data) { return true; };
+    virtual bool collect_baro(uint64_t time_usec, float *data) { return true; }
 
-    virtual bool collect_range(uint64_t time_usec, float *data) { return true; };
+    virtual bool collect_airspeed(uint64_t time_usec, float *data) { return true; }
 
-    virtual bool collect_opticalflow(uint64_t time_usec, float *data) { return true; };
+    virtual bool collect_range(uint64_t time_usec, float *data) { return true; }
+
+    virtual bool collect_opticalflow(uint64_t time_usec, float *data) { return true; }
 
 	// set delta angle imu data
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel);
