@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file estimator_base.cpp
+ * @file estimator_interface.cpp
  * Definition of base class for attitude estimators
  *
  * @author Roman Bast <bapstroman@gmail.com>
@@ -43,21 +43,21 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <math.h>
-#include "estimator_base.h"
+#include "estimator_interface.h"
 #include <mathlib/mathlib.h>
 
 
-EstimatorBase::EstimatorBase()
+EstimatorInterface::EstimatorInterface()
 {
 }
 
-EstimatorBase::~EstimatorBase()
+EstimatorInterface::~EstimatorInterface()
 {
 
 }
 
 // Accumulate imu data and store to buffer at desired rate
-void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel)
+void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel)
 {
 	if (!_initialised) {
 		init(time_usec);
@@ -99,7 +99,7 @@ void EstimatorBase::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64
 	_imu_sample_delayed = _imu_buffer.get_oldest();
 }
 
-void EstimatorBase::setMagData(uint64_t time_usec, float *data)
+void EstimatorInterface::setMagData(uint64_t time_usec, float *data)
 {
 
 	if (time_usec - _time_last_mag > 70000) {
@@ -117,7 +117,7 @@ void EstimatorBase::setMagData(uint64_t time_usec, float *data)
 	}
 }
 
-void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
+void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 {
 	if(!collect_gps(time_usec, gps) || !_initialised) {
 		return;
@@ -148,7 +148,7 @@ void EstimatorBase::setGpsData(uint64_t time_usec, struct gps_message *gps)
 	}
 }
 
-void EstimatorBase::setBaroData(uint64_t time_usec, float *data)
+void EstimatorInterface::setBaroData(uint64_t time_usec, float *data)
 {
 	if(!collect_baro(time_usec, data) || !_initialised) {
 		return;
@@ -168,7 +168,7 @@ void EstimatorBase::setBaroData(uint64_t time_usec, float *data)
 	}
 }
 
-void EstimatorBase::setAirspeedData(uint64_t time_usec, float *data)
+void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *data)
 {
 	if(!collect_airspeed(time_usec, data) || !_initialised) {
 		return;
@@ -186,7 +186,7 @@ void EstimatorBase::setAirspeedData(uint64_t time_usec, float *data)
 }
 
 // set range data
-void EstimatorBase::setRangeData(uint64_t time_usec, float *data)
+void EstimatorInterface::setRangeData(uint64_t time_usec, float *data)
 {
 	if(!collect_range(time_usec, data) || !_initialised) {
 		return;
@@ -194,14 +194,14 @@ void EstimatorBase::setRangeData(uint64_t time_usec, float *data)
 }
 
 // set optical flow data
-void EstimatorBase::setOpticalFlowData(uint64_t time_usec, float *data)
+void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, float *data)
 {
 	if(!collect_opticalflow(time_usec, data) || !_initialised) {
 		return;
 	}
 }
 
-bool EstimatorBase::initialise_interface(uint64_t timestamp)
+bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
 	_imu_buffer.allocate(IMU_BUFFER_LENGTH);
 	_gps_buffer.allocate(OBS_BUFFER_LENGTH);
@@ -237,14 +237,14 @@ bool EstimatorBase::initialise_interface(uint64_t timestamp)
 	return true;
 }
 
-bool EstimatorBase::position_is_valid()
+bool EstimatorInterface::position_is_valid()
 {
 	// return true if the position estimate is valid
 	// TOTO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
     return _NED_origin_initialised &&  (_time_last_imu - _time_last_gps) < 5e6;
 }
 
-void EstimatorBase::printStoredIMU()
+void EstimatorInterface::printStoredIMU()
 {
 	printf("---------Printing IMU data buffer------------\n");
 
@@ -253,7 +253,7 @@ void EstimatorBase::printStoredIMU()
 	}
 }
 
-void EstimatorBase::printIMU(struct imuSample *data)
+void EstimatorInterface::printIMU(struct imuSample *data)
 {
 	printf("time %" PRIu64 "\n", data->time_us);
 	printf("delta_ang_dt %.5f\n", (double)data->delta_ang_dt);
@@ -262,17 +262,17 @@ void EstimatorBase::printIMU(struct imuSample *data)
 	printf("dV: %.5f %.5f %.5f \n\n", (double)data->delta_vel(0), (double)data->delta_vel(1), (double)data->delta_vel(2));
 }
 
-void EstimatorBase::printQuaternion(Quaternion &q)
+void EstimatorInterface::printQuaternion(Quaternion &q)
 {
 	printf("q1 %.5f q2 %.5f q3 %.5f q4 %.5f\n", (double)q(0), (double)q(1), (double)q(2), (double)q(3));
 }
 
-void EstimatorBase::print_imu_avg_time()
+void EstimatorInterface::print_imu_avg_time()
 {
 	printf("dt_avg: %.5f\n", (double)_dt_imu_avg);
 }
 
-void EstimatorBase::printStoredMag()
+void EstimatorInterface::printStoredMag()
 {
 	printf("---------Printing mag data buffer------------\n");
 
@@ -281,20 +281,20 @@ void EstimatorBase::printStoredMag()
 	}
 }
 
-void EstimatorBase::printMag(struct magSample *data)
+void EstimatorInterface::printMag(struct magSample *data)
 {
 	printf("time %" PRIu64 "\n", data->time_us);
 	printf("mag: %.5f %.5f %.5f \n\n", (double)data->mag(0), (double)data->mag(1), (double)data->mag(2));
 
 }
 
-void EstimatorBase::printBaro(struct baroSample *data)
+void EstimatorInterface::printBaro(struct baroSample *data)
 {
 	printf("time %" PRIu64 "\n", data->time_us);
 	printf("baro: %.5f\n\n", (double)data->hgt);
 }
 
-void EstimatorBase::printStoredBaro()
+void EstimatorInterface::printStoredBaro()
 {
 	printf("---------Printing baro data buffer------------\n");
 
@@ -303,14 +303,14 @@ void EstimatorBase::printStoredBaro()
 	}
 }
 
-void EstimatorBase::printGps(struct gpsSample *data)
+void EstimatorInterface::printGps(struct gpsSample *data)
 {
 	printf("time %" PRIu64 "\n", data->time_us);
 	printf("gps pos: %.5f %.5f %.5f\n", (double)data->pos(0), (double)data->pos(1), (double)data->hgt);
 	printf("gps vel %.5f %.5f %.5f\n\n", (double)data->vel(0), (double)data->vel(1), (double)data->vel(2));
 }
 
-void EstimatorBase::printStoredGps()
+void EstimatorInterface::printStoredGps()
 {
 	printf("---------Printing GPS data buffer------------\n");
 

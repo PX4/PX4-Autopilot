@@ -47,12 +47,12 @@
 #include "common.h"
 
 using namespace estimator;
-class EstimatorBase
+class EstimatorInterface
 {
 
 public:
-	EstimatorBase();
-	~EstimatorBase();
+	EstimatorInterface();
+	~EstimatorInterface();
 
 	virtual bool init(uint64_t timestamp) = 0;
 	virtual bool update() = 0;

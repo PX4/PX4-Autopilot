@@ -48,7 +48,7 @@ px4_add_module(
 		l1/ecl_l1_pos_controller.cpp
 		validation/data_validator.cpp
 		validation/data_validator_group.cpp
-		EKF/estimator_base.cpp
+		EKF/estimator_interface.cpp
 		EKF/ekf.cpp
 		EKF/ekf_helper.cpp
 		EKF/covariance.cpp

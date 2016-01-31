@@ -40,11 +40,11 @@
  *
  */
 
-#include "estimator_base.h"
+#include "estimator_interface.h"
 
 #define sq(_arg)	powf(_arg, 2.0f)
 
-class Ekf : public EstimatorBase
+class Ekf : public EstimatorInterface
 {
 public:
 
