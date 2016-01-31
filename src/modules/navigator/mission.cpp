@@ -374,7 +374,7 @@ Mission::set_mission_items()
 
 		/* update position setpoint triplet  */
 		pos_sp_triplet->previous.valid = false;
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+		(void)mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 		pos_sp_triplet->next.valid = false;
 
 		/* reuse setpoint for LOITER only if it's not IDLE */
@@ -431,7 +431,7 @@ Mission::set_mission_items()
 	if (_takeoff) {
 		/* do takeoff before going to setpoint */
 		/* set mission item as next position setpoint */
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->next);
+		(void)mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->next);
 		/* next SP is not takeoff anymore */
 		pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
@@ -459,7 +459,7 @@ Mission::set_mission_items()
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
 
-			mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+			(void)mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
 			_navigator->set_position_setpoint_triplet_updated();
 			return;
@@ -478,7 +478,7 @@ Mission::set_mission_items()
 	}
 
 	/* set current position setpoint from mission item */
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	(void)mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
 	/* require takeoff after landing or idle */
 	if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
@@ -499,7 +499,8 @@ Mission::set_mission_items()
 
 		if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
 			/* got next mission item, update setpoint triplet */
-			mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
+			// XXX the updated call below might need to check against the rvalue of this
+			(void)mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
 		} else {
 			/* next mission item is not available */
 			pos_sp_triplet->next.valid = false;
@@ -586,8 +587,10 @@ Mission::heading_sp_update()
 		}
 	}
 
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	_navigator->set_position_setpoint_triplet_updated();
+	bool updated = mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	if (updated) {
+		_navigator->set_position_setpoint_triplet_updated();
+	}
 }
 
 
