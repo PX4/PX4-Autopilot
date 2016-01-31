@@ -180,7 +180,7 @@ public:
      *
      * Should be called from RX ISR, TX ISR, and select(); interrupts must be enabled.
      */
-    void pollErrorFlags();
+    void pollErrorFlagsFromISR();
 
     void discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time);
 

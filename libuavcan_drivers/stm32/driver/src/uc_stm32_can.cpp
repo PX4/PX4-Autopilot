@@ -616,7 +616,7 @@ void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
     }
     update_event_.signalFromInterrupt();
 
-    pollErrorFlags();
+    pollErrorFlagsFromISR();
 }
 
 void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t utc_usec)
@@ -679,16 +679,14 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t ut
     had_activity_ = true;
     update_event_.signalFromInterrupt();
 
-    pollErrorFlags();
+    pollErrorFlagsFromISR();
 }
 
-void CanIface::pollErrorFlags()
+void CanIface::pollErrorFlagsFromISR()
 {
     const uavcan::uint8_t lec = uavcan::uint8_t((can_->ESR & bxcan::ESR_LEC_MASK) >> bxcan::ESR_LEC_SHIFT);
     if (lec != 0)
     {
-        CriticalSectionLocker cs_locker;
-
         can_->ESR = 0;
         error_cnt_++;
 
@@ -837,11 +835,17 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
     const uavcan::MonotonicTime time = clock::getMonotonic();
 
     if0_.discardTimedOutTxMailboxes(time);              // Check TX timeouts - this may release some TX slots
-    if0_.pollErrorFlags();
+    {
+        CriticalSectionLocker cs_locker;
+        if0_.pollErrorFlagsFromISR();
+    }
 
 #if UAVCAN_STM32_NUM_IFACES > 1
     if1_.discardTimedOutTxMailboxes(time);
-    if1_.pollErrorFlags();
+    {
+        CriticalSectionLocker cs_locker;
+        if1_.pollErrorFlagsFromISR();
+    }
 #endif
 
     inout_masks = makeSelectMasks(pending_tx);          // Check if we already have some of the requested events
