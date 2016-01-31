@@ -160,7 +160,7 @@ bool Ekf::update()
 		_fuse_height = true;
 	}
 
-	// If we are using GPs aiding and data has fallen behind the fusion time horizon then fuse it
+	// If we are using GPS aiding and data has fallen behind the fusion time horizon then fuse it
 	// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
 	// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
 	if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed) && _control_status.flags.gps) {

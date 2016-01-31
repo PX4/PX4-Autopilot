@@ -86,7 +86,7 @@ public:
 
 	filter_control_status_u _control_status = {};
 
-	// get the ekf WGS-84 origin positoin and height and the system time it was last set
+	// get the ekf WGS-84 origin position and height and the system time it was last set
 	void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt);
 
 private:
