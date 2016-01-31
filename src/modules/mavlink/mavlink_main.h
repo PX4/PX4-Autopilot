@@ -345,6 +345,9 @@ public:
 
 	bool			get_client_source_initialized() { return _src_addr_initialized; };
 #endif
+
+	uint64_t		get_start_time() { return _mavlink_start_time; }
+
 	static bool		boot_complete() { return _boot_complete; }
 
 	bool			is_usb_uart() { return _is_usb_uart; }
