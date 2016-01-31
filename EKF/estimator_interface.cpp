@@ -57,7 +57,8 @@ EstimatorInterface::~EstimatorInterface()
 }
 
 // Accumulate imu data and store to buffer at desired rate
-void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel)
+void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang,
+				    float *delta_vel)
 {
 	if (!_initialised) {
 		init(time_usec);
@@ -119,12 +120,12 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float *data)
 
 void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 {
-	if(!collect_gps(time_usec, gps) || !_initialised) {
+	if (!collect_gps(time_usec, gps) || !_initialised) {
 		return;
 	}
 
-    // Only use GPS data if we have a 3D fix and limit the GPS data rate to a maximum of 14Hz
-    if (time_usec - _time_last_gps > 70000 && gps->fix_type >= 3) {
+	// Only use GPS data if we have a 3D fix and limit the GPS data rate to a maximum of 14Hz
+	if (time_usec - _time_last_gps > 70000 && gps->fix_type >= 3) {
 		gpsSample gps_sample_new = {};
 		gps_sample_new.time_us = gps->time_usec - _params.gps_delay_ms * 1000;
 
@@ -139,7 +140,7 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 
 		float lpos_x = 0.0f;
 		float lpos_y = 0.0f;
-        map_projection_project(&_pos_ref, (gps->lat / 1.0e7), (gps->lon / 1.0e7), &lpos_x, &lpos_y);
+		map_projection_project(&_pos_ref, (gps->lat / 1.0e7), (gps->lon / 1.0e7), &lpos_x, &lpos_y);
 		gps_sample_new.pos(0) = lpos_x;
 		gps_sample_new.pos(1) = lpos_y;
 		gps_sample_new.hgt = gps->alt / 1e3f;
@@ -150,9 +151,10 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 
 void EstimatorInterface::setBaroData(uint64_t time_usec, float *data)
 {
-	if(!collect_baro(time_usec, data) || !_initialised) {
+	if (!collect_baro(time_usec, data) || !_initialised) {
 		return;
 	}
+
 	if (time_usec - _time_last_baro > 70000) {
 
 		baroSample baro_sample_new;
@@ -170,9 +172,10 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float *data)
 
 void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *data)
 {
-	if(!collect_airspeed(time_usec, data) || !_initialised) {
+	if (!collect_airspeed(time_usec, data) || !_initialised) {
 		return;
 	}
+
 	if (time_usec > _time_last_airspeed) {
 		airspeedSample airspeed_sample_new;
 		airspeed_sample_new.airspeed = *data;
@@ -188,7 +191,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *data)
 // set range data
 void EstimatorInterface::setRangeData(uint64_t time_usec, float *data)
 {
-	if(!collect_range(time_usec, data) || !_initialised) {
+	if (!collect_range(time_usec, data) || !_initialised) {
 		return;
 	}
 }
@@ -196,7 +199,7 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float *data)
 // set optical flow data
 void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, float *data)
 {
-	if(!collect_opticalflow(time_usec, data) || !_initialised) {
+	if (!collect_opticalflow(time_usec, data) || !_initialised) {
 		return;
 	}
 }
@@ -204,14 +207,14 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, float *data)
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
 
-	if(!(_imu_buffer.allocate(IMU_BUFFER_LENGTH) &&
-		_gps_buffer.allocate(OBS_BUFFER_LENGTH) &&
-		_mag_buffer.allocate(OBS_BUFFER_LENGTH) &&
-		_baro_buffer.allocate(OBS_BUFFER_LENGTH) &&
-		_range_buffer.allocate(OBS_BUFFER_LENGTH) &&
-		_airspeed_buffer.allocate(OBS_BUFFER_LENGTH) &&
-		_flow_buffer.allocate(OBS_BUFFER_LENGTH) &&
-		_output_buffer.allocate(IMU_BUFFER_LENGTH))) {
+	if (!(_imu_buffer.allocate(IMU_BUFFER_LENGTH) &&
+	      _gps_buffer.allocate(OBS_BUFFER_LENGTH) &&
+	      _mag_buffer.allocate(OBS_BUFFER_LENGTH) &&
+	      _baro_buffer.allocate(OBS_BUFFER_LENGTH) &&
+	      _range_buffer.allocate(OBS_BUFFER_LENGTH) &&
+	      _airspeed_buffer.allocate(OBS_BUFFER_LENGTH) &&
+	      _flow_buffer.allocate(OBS_BUFFER_LENGTH) &&
+	      _output_buffer.allocate(IMU_BUFFER_LENGTH))) {
 		PX4_WARN("Estimator Buffer Allocation failed!");
 		unallocate_buffers();
 		return false;
@@ -259,7 +262,7 @@ bool EstimatorInterface::position_is_valid()
 {
 	// return true if the position estimate is valid
 	// TOTO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
-    return _NED_origin_initialised &&  (_time_last_imu - _time_last_gps) < 5e6;
+	return _NED_origin_initialised && (_time_last_imu - _time_last_gps) < 5e6;
 }
 
 void EstimatorInterface::printStoredIMU()

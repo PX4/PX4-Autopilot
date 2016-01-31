@@ -158,7 +158,7 @@ void Ekf::constrainStates()
 		_state.mag_B(i) = math::constrain(_state.mag_B(i), -0.5f, 0.5f);
 	}
 
-	for (int i = 0; i < 2; i++) { 
+	for (int i = 0; i < 2; i++) {
 		_state.wind_vel(i) = math::constrain(_state.wind_vel(i), -100.0f, 100.0f);
 	}
 }
@@ -258,7 +258,7 @@ void Ekf::get_covariances(float *covariances)
 // get the position and height of the ekf origin in WGS-84 coordinates and time the origin was set
 void Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt)
 {
-    memcpy(origin_time, &_last_gps_origin_time_us, sizeof(uint64_t));
-    memcpy(origin_pos, &_pos_ref, sizeof(map_projection_reference_s));
-    memcpy(origin_alt, &_gps_alt_ref, sizeof(float));
+	memcpy(origin_time, &_last_gps_origin_time_us, sizeof(uint64_t));
+	memcpy(origin_pos, &_pos_ref, sizeof(map_projection_reference_s));
+	memcpy(origin_alt, &_gps_alt_ref, sizeof(float));
 }

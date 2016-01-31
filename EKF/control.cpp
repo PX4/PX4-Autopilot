@@ -43,87 +43,91 @@
 
 void Ekf::controlFusionModes()
 {
-    // Determine the vehicle status
-    calculateVehicleStatus();
+	// Determine the vehicle status
+	calculateVehicleStatus();
 
-    // optical flow fusion mode selection logic
-    _control_status.flags.opt_flow = false;
+	// optical flow fusion mode selection logic
+	_control_status.flags.opt_flow = false;
 
-    // GPS fusion mode selection logic
-    // To start use GPS we need angular alignment completed, the local NED origin set and fresh GPS data
-    if (!_control_status.flags.gps) {
-        if (_control_status.flags.angle_align && (_time_last_imu - _time_last_gps) < 5e5 && _NED_origin_initialised && (_time_last_imu - _last_gps_fail_us > 5e6)) {
-            _control_status.flags.gps = true;
-            resetPosition();
-            resetVelocity();
-        }
-    }
+	// GPS fusion mode selection logic
+	// To start use GPS we need angular alignment completed, the local NED origin set and fresh GPS data
+	if (!_control_status.flags.gps) {
+		if (_control_status.flags.angle_align && (_time_last_imu - _time_last_gps) < 5e5 && _NED_origin_initialised
+		    && (_time_last_imu - _last_gps_fail_us > 5e6)) {
+			_control_status.flags.gps = true;
+			resetPosition();
+			resetVelocity();
+		}
+	}
 
-    // decide when to start using optical flow data
-    if (!_control_status.flags.opt_flow) {
-        // TODO optical flow start logic
-    }
+	// decide when to start using optical flow data
+	if (!_control_status.flags.opt_flow) {
+		// TODO optical flow start logic
+	}
 
-    // handle the case when we are relying on GPS fusion and lose it
-    if (_control_status.flags.gps && !_control_status.flags.opt_flow) {
-        // We are relying on GPS aiding to constrain attitude drift so after 10 seconds without aiding we need to do something
-        if ((_time_last_imu - _time_last_pos_fuse > 10e6) && (_time_last_imu - _time_last_vel_fuse > 10e6)) {
-            if (_time_last_imu - _time_last_gps > 5e5) {
-                // if we don't have gps then we need to switch to the non-aiding mode, zero the veloity states
-                // and set the synthetic GPS position to the current estimate
-                _control_status.flags.gps = false;
-                _last_known_posNE(0) = _state.pos(0);
-                _last_known_posNE(1) = _state.pos(1);
-                _state.vel.setZero();
-            } else {
-                // Reset states to the last GPS measurement
-                resetPosition();
-                resetVelocity();
-            }
-        }
-    }
+	// handle the case when we are relying on GPS fusion and lose it
+	if (_control_status.flags.gps && !_control_status.flags.opt_flow) {
+		// We are relying on GPS aiding to constrain attitude drift so after 10 seconds without aiding we need to do something
+		if ((_time_last_imu - _time_last_pos_fuse > 10e6) && (_time_last_imu - _time_last_vel_fuse > 10e6)) {
+			if (_time_last_imu - _time_last_gps > 5e5) {
+				// if we don't have gps then we need to switch to the non-aiding mode, zero the veloity states
+				// and set the synthetic GPS position to the current estimate
+				_control_status.flags.gps = false;
+				_last_known_posNE(0) = _state.pos(0);
+				_last_known_posNE(1) = _state.pos(1);
+				_state.vel.setZero();
 
-    // handle the case when we are relying on optical flow fusion and lose it
-    if (_control_status.flags.opt_flow && !_control_status.flags.gps) {
-        // TODO
-    }
+			} else {
+				// Reset states to the last GPS measurement
+				resetPosition();
+				resetVelocity();
+			}
+		}
+	}
 
-    // Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
-    // or the more accurate 3-axis fusion
-    if (!_control_status.flags.armed) {
-        // always use simple mag fusion for initial startup
-        _control_status.flags.mag_hdg = true;
-        _control_status.flags.mag_3D = false;
-    } else {
-        if (_control_status.flags.in_air) {
-            // always use 3-axis mag fusion when airborne
-            _control_status.flags.mag_hdg = false;
-            _control_status.flags.mag_3D = true;
-        } else {
-            // always use simple heading fusion when on the ground
-            _control_status.flags.mag_hdg = true;
-            _control_status.flags.mag_3D = false;
-        }
-    }
+	// handle the case when we are relying on optical flow fusion and lose it
+	if (_control_status.flags.opt_flow && !_control_status.flags.gps) {
+		// TODO
+	}
+
+	// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
+	// or the more accurate 3-axis fusion
+	if (!_control_status.flags.armed) {
+		// always use simple mag fusion for initial startup
+		_control_status.flags.mag_hdg = true;
+		_control_status.flags.mag_3D = false;
+
+	} else {
+		if (_control_status.flags.in_air) {
+			// always use 3-axis mag fusion when airborne
+			_control_status.flags.mag_hdg = false;
+			_control_status.flags.mag_3D = true;
+
+		} else {
+			// always use simple heading fusion when on the ground
+			_control_status.flags.mag_hdg = true;
+			_control_status.flags.mag_3D = false;
+		}
+	}
 }
 
 void Ekf::calculateVehicleStatus()
 {
-    // determine if the vehicle is armed
-    _control_status.flags.armed = _vehicle_armed;
+	// determine if the vehicle is armed
+	_control_status.flags.armed = _vehicle_armed;
 
-    // record vertical position whilst disarmed to use as a height change reference
-    if (!_control_status.flags.armed) {
-        _last_disarmed_posD = _state.pos(2);
-    }
+	// record vertical position whilst disarmed to use as a height change reference
+	if (!_control_status.flags.armed) {
+		_last_disarmed_posD = _state.pos(2);
+	}
 
-    // Transition to in-air occurs when armed and when altitude has increased sufficiently from the altitude at arming
-    if (!_control_status.flags.in_air && _control_status.flags.armed && (_state.pos(2) - _last_disarmed_posD) < -1.0f) {
-        _control_status.flags.in_air = true;
-    }
+	// Transition to in-air occurs when armed and when altitude has increased sufficiently from the altitude at arming
+	if (!_control_status.flags.in_air && _control_status.flags.armed && (_state.pos(2) - _last_disarmed_posD) < -1.0f) {
+		_control_status.flags.in_air = true;
+	}
 
-    // Transition to on-ground occurs when disarmed.
-    if (_control_status.flags.in_air && !_control_status.flags.armed) {
-        _control_status.flags.in_air = false;
-    }
+	// Transition to on-ground occurs when disarmed.
+	if (_control_status.flags.in_air && !_control_status.flags.armed) {
+		_control_status.flags.in_air = false;
+	}
 }

@@ -42,7 +42,7 @@
 
 #include "ekf.h"
 #include <math.h>
- #include <mathlib/mathlib.h>
+#include <mathlib/mathlib.h>
 
 #define sq(_arg)	powf(_arg, 2.0f)
 
@@ -140,20 +140,25 @@ void Ekf::predictCovariance()
 	for (unsigned i = 0; i < 9; i++) {
 		process_noise[i] = 0.0f;
 	}
+
 	for (unsigned i = 9; i < 12; i++) {
 		process_noise[i] = sq(d_ang_bias_sig);
 	}
+
 	for (unsigned i = 12; i < 15; i++) {
 		process_noise[i] = sq(d_ang_scale_sig);
 	}
+
 	process_noise[15] = sq(d_vel_bias_sig);
 
 	for (unsigned i = 16; i < 19; i++) {
 		process_noise[i] = sq(mag_I_sig);
 	}
+
 	for (unsigned i = 19; i < 22; i++) {
 		process_noise[i] = sq(mag_B_sig);
 	}
+
 	for (unsigned i = 22; i < 24; i++) {
 		process_noise[i] = sq(wind_vel_sig);
 	}

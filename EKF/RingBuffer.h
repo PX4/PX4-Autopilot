@@ -130,7 +130,7 @@ public:
 			if (timestamp >= _buffer[index].time_us && timestamp - _buffer[index].time_us < 100000) {
 
 				// TODO Re-evaluate the static cast and usage patterns
-				memcpy(static_cast<void*>(sample), static_cast<void*>(&_buffer[index]), sizeof(*sample));
+				memcpy(static_cast<void *>(sample), static_cast<void *>(&_buffer[index]), sizeof(*sample));
 
 				// Now we can set the tail to the item which comes after the one we removed
 				// since we don't want to have any older data in the buffer

@@ -81,24 +81,24 @@ public:
 
 	virtual void get_covariances(float *covariances) = 0;
 
-    // get the ekf WGS-84 origin positoin and height and the system time it was last set
-    virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
+	// get the ekf WGS-84 origin positoin and height and the system time it was last set
+	virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
 
 
-    // ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
-    virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }
+	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
+	virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }
 
-    virtual bool collect_imu(imuSample &imu) { return true; }
+	virtual bool collect_imu(imuSample &imu) { return true; }
 
-    virtual bool collect_mag(uint64_t time_usec, float *data) { return true; }
+	virtual bool collect_mag(uint64_t time_usec, float *data) { return true; }
 
-    virtual bool collect_baro(uint64_t time_usec, float *data) { return true; }
+	virtual bool collect_baro(uint64_t time_usec, float *data) { return true; }
 
-    virtual bool collect_airspeed(uint64_t time_usec, float *data) { return true; }
+	virtual bool collect_airspeed(uint64_t time_usec, float *data) { return true; }
 
-    virtual bool collect_range(uint64_t time_usec, float *data) { return true; }
+	virtual bool collect_range(uint64_t time_usec, float *data) { return true; }
 
-    virtual bool collect_opticalflow(uint64_t time_usec, float *data) { return true; }
+	virtual bool collect_opticalflow(uint64_t time_usec, float *data) { return true; }
 
 	// set delta angle imu data
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel);
@@ -125,8 +125,8 @@ public:
 	// in order to give access to the application
 	parameters *getParamHandle() {return &_params;}
 
-    // set vehicle arm status data
-    void set_arm_status(bool data){ _vehicle_armed = data; }
+	// set vehicle arm status data
+	void set_arm_status(bool data) { _vehicle_armed = data; }
 
 	void printIMU(struct imuSample *data);
 	void printStoredIMU();
@@ -189,21 +189,21 @@ protected:
 	outputSample _output_new;
 	imuSample _imu_sample_new;
 
-    uint64_t _imu_ticks;
+	uint64_t _imu_ticks;
 
 	bool _imu_updated = false;
 	bool _initialised = false;
-    bool _vehicle_armed = false;     // vehicle arm status used to turn off functionality used on the ground
+	bool _vehicle_armed = false;     // vehicle arm status used to turn off functionality used on the ground
 
-    bool _NED_origin_initialised = false;
-    bool _gps_speed_valid = false;
-    struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
+	bool _NED_origin_initialised = false;
+	bool _gps_speed_valid = false;
+	struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
 
 	bool _mag_healthy = false;		// computed by mag innovation test
-    float _yaw_test_ratio;          // yaw innovation consistency check ratio
-    float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
+	float _yaw_test_ratio;          // yaw innovation consistency check ratio
+	float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
 
-    float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
+	float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
 
 	RingBuffer<imuSample> _imu_buffer;
 	RingBuffer<gpsSample> _gps_buffer;
