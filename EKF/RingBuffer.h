@@ -52,7 +52,7 @@ public:
 		_head = _tail = _size = 0;
 		_first_write = true;
 	}
-	~RingBuffer() {delete _buffer;}
+	~RingBuffer() { delete[] _buffer; }
 
 	bool allocate(int size)
 	{
@@ -61,7 +61,7 @@ public:
 		}
 
 		if (_buffer != NULL) {
-			delete _buffer;
+			delete[] _buffer;
 		}
 
 		_buffer = new data_type[size];
@@ -73,6 +73,13 @@ public:
 		_size = size;
 		_first_write = true;
 		return true;
+	}
+
+	void unallocate()
+	{
+		if (_buffer != NULL) {
+			delete[] _buffer;
+		}
 	}
 
 	inline void push(data_type sample, bool debug = false)

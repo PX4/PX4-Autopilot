@@ -224,4 +224,5 @@ protected:
 
 	fault_status_t _fault_status;
 	bool initialise_interface(uint64_t timestamp);
+	void unallocate_buffers();
 };

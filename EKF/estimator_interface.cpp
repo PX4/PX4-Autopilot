@@ -203,14 +203,19 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, float *data)
 
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
-	_imu_buffer.allocate(IMU_BUFFER_LENGTH);
-	_gps_buffer.allocate(OBS_BUFFER_LENGTH);
-	_mag_buffer.allocate(OBS_BUFFER_LENGTH);
-	_baro_buffer.allocate(OBS_BUFFER_LENGTH);
-	_range_buffer.allocate(OBS_BUFFER_LENGTH);
-	_airspeed_buffer.allocate(OBS_BUFFER_LENGTH);
-	_flow_buffer.allocate(OBS_BUFFER_LENGTH);
-	_output_buffer.allocate(IMU_BUFFER_LENGTH);
+
+	if(!(_imu_buffer.allocate(IMU_BUFFER_LENGTH) &&
+		_gps_buffer.allocate(OBS_BUFFER_LENGTH) &&
+		_mag_buffer.allocate(OBS_BUFFER_LENGTH) &&
+		_baro_buffer.allocate(OBS_BUFFER_LENGTH) &&
+		_range_buffer.allocate(OBS_BUFFER_LENGTH) &&
+		_airspeed_buffer.allocate(OBS_BUFFER_LENGTH) &&
+		_flow_buffer.allocate(OBS_BUFFER_LENGTH) &&
+		_output_buffer.allocate(IMU_BUFFER_LENGTH))) {
+		PX4_WARN("Estimator Buffer Allocation failed!");
+		unallocate_buffers();
+		return false;
+	}
 
 
 	_dt_imu_avg = 0.0f;
@@ -235,6 +240,19 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 
 	memset(&_fault_status, 0, sizeof(_fault_status));
 	return true;
+}
+
+void EstimatorInterface::unallocate_buffers()
+{
+	_imu_buffer.unallocate();
+	_gps_buffer.unallocate();
+	_mag_buffer.unallocate();
+	_baro_buffer.unallocate();
+	_range_buffer.unallocate();
+	_airspeed_buffer.unallocate();
+	_flow_buffer.unallocate();
+	_output_buffer.unallocate();
+
 }
 
 bool EstimatorInterface::position_is_valid()
