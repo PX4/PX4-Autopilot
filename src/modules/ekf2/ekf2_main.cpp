@@ -180,7 +180,7 @@ private:
         control::BlockParamFloat *_requiredHdrift;      // maximum acceptable horizontal drift speed (m/s)
         control::BlockParamFloat *_requiredVdrift;      // maximum acceptable vertical drift speed (m/s)
 
-	EstimatorBase *_ekf;
+	EstimatorInterface *_ekf;
 
 	int update_subscriptions();
 
