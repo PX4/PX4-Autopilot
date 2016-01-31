@@ -117,7 +117,6 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
     uavcan::uint32_t served_aborts_cnt_;
     BusEvent& update_event_;
     TxItem pending_tx_[NumTxMailboxes];
-    uavcan::uint8_t last_hw_error_code_;
     uavcan::uint8_t peak_tx_mailbox_index_;
     const uavcan::uint8_t self_index_;
     bool had_activity_;
@@ -155,7 +154,6 @@ public:
         , error_cnt_(0)
         , served_aborts_cnt_(0)
         , update_event_(update_event)
-        , last_hw_error_code_(0)
         , peak_tx_mailbox_index_(0)
         , self_index_(self_index)
         , had_activity_(false)
@@ -174,7 +172,15 @@ public:
 
     void handleTxInterrupt(uavcan::uint64_t utc_usec);
     void handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t utc_usec);
-    void handleStatusChangeInterrupt();
+
+    /**
+     * This method is used to count errors and abort transmission on error if necessary.
+     * This functionality used to be implemented in the SCE interrupt handler, but that approach was
+     * generating too much processing overhead, especially on disconnected interfaces.
+     *
+     * Should be called from RX ISR, TX ISR, and select(); interrupts must be enabled.
+     */
+    void pollErrorFlags();
 
     void discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time);
 
@@ -199,12 +205,6 @@ public:
      * This is intended for debug use only.
      */
     unsigned getRxQueueLength() const;
-
-    /**
-     * Returns last hardware error code (LEC field in the register ESR).
-     * The error code will be reset.
-     */
-    uavcan::uint8_t yieldLastHardwareErrorCode();
 
     /**
      * Whether this iface had at least one successful IO since previous call of this method.
