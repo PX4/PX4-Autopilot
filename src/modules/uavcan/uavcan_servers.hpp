@@ -127,7 +127,7 @@ private:
 	uavcan_posix::dynamic_node_id_server::FileStorageBackend _storage_backend;
 	uavcan_posix::FirmwareVersionChecker _fw_version_checker;
 	uavcan::dynamic_node_id_server::CentralizedServer _server_instance;  ///< server singleton pointer
-	uavcan_posix::BasicFileSeverBackend  _fileserver_backend;
+	uavcan_posix::BasicFileServerBackend  _fileserver_backend;
 	uavcan::NodeInfoRetriever   _node_info_retriever;
 	uavcan::FirmwareUpdateTrigger   _fw_upgrade_trigger;
 	uavcan::BasicFileServer         _fw_server;

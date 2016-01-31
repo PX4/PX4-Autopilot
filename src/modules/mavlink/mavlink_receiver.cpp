@@ -1814,32 +1814,38 @@ MavlinkReceiver::receive_thread(void *arg)
 
 			struct sockaddr_in * srcaddr_last = _mavlink->get_client_source_address();
 			int localhost = (127 << 24) + 1;
-			if ((srcaddr_last->sin_addr.s_addr == htonl(localhost) && srcaddr.sin_addr.s_addr != htonl(localhost))
-					|| (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_ONBOARD && !_mavlink->get_client_source_initialized())) {
-				// if we were sending to localhost before but have a new host then accept him
-// This is causing issues on Linux, so use default port for now
-// this will kill tablet testing on Linux and VMs
-#ifndef __PX4_LINUX
-				srcaddr_last->sin_addr.s_addr = srcaddr.sin_addr.s_addr;
-				srcaddr_last->sin_port = srcaddr.sin_port;
-#endif
-				_mavlink->set_client_source_initialized();
-			}
-#endif
-			/* if read failed, this loop won't execute */
-			for (ssize_t i = 0; i < nread; i++) {
-				if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
-					/* handle generic messages and commands */
-					handle_message(&msg);
-
-					/* handle packet with parent object */
-					_mavlink->handle_message(&msg);
+			if (!_mavlink->get_client_source_initialized()) {
+				
+				// set the address either if localhost or if 3 seconds have passed
+				// this ensures that a GCS running on localhost can get a hold of
+				// the system within the first N seconds
+				hrt_abstime stime = _mavlink->get_start_time();
+				if ((stime != 0 && (hrt_elapsed_time(&stime) > 3 * 1000 * 1000))
+					|| (srcaddr_last->sin_addr.s_addr == htonl(localhost))) {
+					srcaddr_last->sin_addr.s_addr = srcaddr.sin_addr.s_addr;
+					srcaddr_last->sin_port = srcaddr.sin_port;
+					_mavlink->set_client_source_initialized();
 				}
 			}
+#endif
+			// only start accepting messages once we're sure who we talk to
 
-			/* count received bytes (nread will be -1 on read error) */
-			if (nread > 0) {
-				_mavlink->count_rxbytes(nread);
+			if (_mavlink->get_client_source_initialized()) {
+				/* if read failed, this loop won't execute */
+				for (ssize_t i = 0; i < nread; i++) {
+					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
+						/* handle generic messages and commands */
+						handle_message(&msg);
+
+						/* handle packet with parent object */
+						_mavlink->handle_message(&msg);
+					}
+				}
+
+				/* count received bytes (nread will be -1 on read error) */
+				if (nread > 0) {
+					_mavlink->count_rxbytes(nread);
+				}
 			}
 		}
 	}
