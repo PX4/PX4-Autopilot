@@ -651,6 +651,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
+	ret = _hardpoint_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
 	// Sensor bridges
 	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
 	auto br = _sensor_bridges.getHead();
