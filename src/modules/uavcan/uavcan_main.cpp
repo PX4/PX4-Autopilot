@@ -1154,8 +1154,8 @@ UavcanNode::print_info()
 	printf("UAVCAN node status:\n");
 	printf("\tInternal failures: %llu\n", _node.getInternalFailureCount());
 	printf("\tTransfer errors:   %llu\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
-	printf("\tRX transfers:	  %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
-	printf("\tTX transfers:	  %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
+	printf("\tRX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
+	printf("\tTX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
 
 	// CAN driver status
 	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
@@ -1194,13 +1194,13 @@ UavcanNode::print_info()
 		printf("Addr\tV\tA\tTemp\tSetpt\tRPM\tErr\n");
 
 		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
-			printf("%d\t",	esc.esc[i].esc_address);
+			printf("%d\t",    esc.esc[i].esc_address);
 			printf("%3.2f\t", (double)esc.esc[i].esc_voltage);
 			printf("%3.2f\t", (double)esc.esc[i].esc_current);
 			printf("%3.2f\t", (double)esc.esc[i].esc_temperature);
 			printf("%3.2f\t", (double)esc.esc[i].esc_setpoint);
-			printf("%d\t",	esc.esc[i].esc_rpm);
-			printf("%d",	  esc.esc[i].esc_errorcount);
+			printf("%d\t",    esc.esc[i].esc_rpm);
+			printf("%d",      esc.esc[i].esc_errorcount);
 			printf("\n");
 		}
 
