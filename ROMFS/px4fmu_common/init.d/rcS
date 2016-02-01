@@ -550,7 +550,7 @@ then
 			# Avoid using ttyS1 for MAVLink on FMUv4
 			if ver hwcmp PX4FMU_V4
 			then
-				set MAVLINK_F "-r 1200 -d /dev/ttyS2"
+				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
 				# Start MAVLink on Wifi (ESP8266 port)
 				mavlink start -r 800000 -b 921600 -d /dev/ttyS0
 			fi
@@ -559,6 +559,12 @@ then
 
 	mavlink start $MAVLINK_F
 	unset MAVLINK_F
+
+	if ver hwcmp PX4FMU_V4
+	then
+		# Start MAVLink on OSD (TELEM2 port)
+		mavlink start -r 1200 -d /dev/ttyS2 -b 57600 -m osd
+	fi
 
 	#
 	# MAVLink onboard / TELEM2
@@ -833,6 +839,11 @@ then
 		then
 		fi
 	fi
+fi
+
+if ver hwcmp PX4FMU_V4
+then
+	frsky_telemetry start -d /dev/ttyS6
 fi
 
 if ver hwcmp PX4FMU_V2

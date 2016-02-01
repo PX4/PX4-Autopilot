@@ -199,7 +199,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 	if (ret != OK) {
 		if (report_fail) {
 			mavlink_and_console_log_critical(mavlink_fd,
-						 "PREFLIGHT FAIL: ACCEL #%u SELFTEST FAILED", instance);
+						 "PREFLIGHT FAIL: ACCEL #%u TEST FAILED: %d", instance, ret);
 		}
 		success = false;
 		goto out;

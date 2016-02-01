@@ -59,7 +59,7 @@ class XMLOutput():
                 xml_group.attrib["image"] = "VTOLPlane"
             elif (group.GetName() == "VTOL Quad Tailsitter"):
                 xml_group.attrib["image"] = "VTOLQuadRotorTailSitter"
-            elif (group.GetName() == "VTOLTiltRotor"):
+            elif (group.GetName() == "VTOL Tiltrotor"):
                 xml_group.attrib["image"] = "VTOLTiltRotor"
             elif (group.GetName() == "Coaxial Helicopter"):
                 xml_group.attrib["image"] = "HelicopterCoaxial"

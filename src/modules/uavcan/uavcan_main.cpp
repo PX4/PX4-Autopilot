@@ -1266,7 +1266,7 @@ int uavcan_main(int argc, char *argv[])
 		}
 
 		// Node ID
-		int32_t node_id = 0;
+		int32_t node_id = 1;
 		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
 
 		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
@@ -1275,7 +1275,7 @@ int uavcan_main(int argc, char *argv[])
 		}
 
 		// CAN bitrate
-		int32_t bitrate = 0;
+		int32_t bitrate = 1000000;
 		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
 
 		// Start

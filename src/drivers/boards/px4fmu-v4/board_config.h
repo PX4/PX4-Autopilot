@@ -120,6 +120,7 @@ __BEGIN_DECLS
 
 #define PX4_SPI_BUS_SENSORS	1
 #define PX4_SPI_BUS_RAMTRON	2
+#define PX4_SPI_BUS_BARO	PX4_SPI_BUS_RAMTRON
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO			1
@@ -133,6 +134,9 @@ __BEGIN_DECLS
  * use 3 for the barometer to differentiate
  */
 #define PX4_SPIDEV_BARO			3
+#if (PX4_SPIDEV_BARO == SPIDEV_FLASH)
+#error PX4_SPIDEV_BARO must not be equal to SPIDEV_FLASH as they share the same bus
+#endif
 
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
@@ -150,13 +154,12 @@ __BEGIN_DECLS
  *
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
  */
-#define ADC_CHANNELS (1 << 2) | (1 << 3) | (1 << 4) | (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15)
+#define ADC_CHANNELS (1 << 2) | (1 << 3) | (1 << 4) | (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14)
 
 // ADC defines to be used in sensors.cpp to read from a particular channel
 #define ADC_BATTERY_VOLTAGE_CHANNEL		2
 #define ADC_BATTERY_CURRENT_CHANNEL		3
 #define ADC_5V_RAIL_SENSE				4
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
 
 /* User GPIOs
  *
@@ -206,6 +209,14 @@ __BEGIN_DECLS
 #define GPIO_TIM4_CH2OUT	GPIO_TIM4_CH2OUT_2
 #define GPIO_TIM4_CH3OUT	GPIO_TIM4_CH3OUT_2
 #define DIRECT_PWM_OUTPUT_CHANNELS	6
+
+#define GPIO_TIM1_CH1IN		GPIO_TIM1_CH1IN_2
+#define GPIO_TIM1_CH2IN		GPIO_TIM1_CH2IN_2
+#define GPIO_TIM1_CH3IN		GPIO_TIM1_CH3IN_2
+#define GPIO_TIM1_CH4IN		GPIO_TIM1_CH4IN_2
+#define GPIO_TIM4_CH2IN		GPIO_TIM4_CH2IN_2
+#define GPIO_TIM4_CH3IN		GPIO_TIM4_CH3IN_2
+#define DIRECT_INPUT_TIMER_CHANNELS  6
 
 /* USB OTG FS
  *

@@ -188,11 +188,11 @@ Mission::on_active()
 		}
 	}
 
-	/* see if we need to update the current yaw heading for rotary wing types */
-	if (_navigator->get_vstatus()->is_rotary_wing
-			&& _param_yawmode.get() != MISSION_YAWMODE_NONE
+	/* see if we need to update the current yaw heading */
+	if ((_param_yawmode.get() != MISSION_YAWMODE_NONE
 			&& _param_yawmode.get() < MISSION_YAWMODE_MAX
-			&& _mission_type != MISSION_TYPE_NONE) {
+			&& _mission_type != MISSION_TYPE_NONE)
+			|| _navigator->get_vstatus()->is_vtol) {
 		heading_sp_update();
 	}
 
@@ -259,7 +259,8 @@ Mission::update_offboard_mission()
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
 				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
 				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-				_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning, _navigator->get_acceptance_radius(),
+				_navigator->get_vstatus()->condition_landed);
 
 		_navigator->get_mission_result()->valid = !failed;
 		_navigator->increment_mission_instance_count();
@@ -561,7 +562,8 @@ Mission::heading_sp_update()
 		}
 
 		/* always keep the front of the rotary wing pointing to the next waypoint */
-		if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_WAYPOINT) {
+		if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_WAYPOINT
+			|| _navigator->get_vstatus()->is_vtol) {
 			_mission_item.yaw = get_bearing_to_next_waypoint(
 				point_from_latlon[0],
 				point_from_latlon[1],
@@ -843,7 +845,8 @@ Mission::check_mission_valid()
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
 				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
 				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-				_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning, _navigator->get_acceptance_radius(),
+				_navigator->get_vstatus()->condition_landed);
 
 		_navigator->increment_mission_instance_count();
 		_navigator->set_mission_result_updated();

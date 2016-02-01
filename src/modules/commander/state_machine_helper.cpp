@@ -97,6 +97,9 @@ static const char * const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_IN_AIR_RESTORE",
 };
 
+static hrt_abstime last_preflight_check = 0;	///< initialize so it gets checked immediately
+static int last_prearm_ret = 1;			///< initialize to fail
+
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status,		///< current vehicle status
 			const struct safety_s   *safety,		///< current safety settings
@@ -132,12 +135,18 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		}
 		/* re-run the pre-flight check as long as sensors are failing */
 		if (!status->condition_system_sensors_initialized 
-				&& (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED ||
-				    new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-             			&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+				&& (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				|| new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+				&& status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
-            		prearm_ret = preflight_check(status, mavlink_fd, false /* pre-flight */);
-			status->condition_system_sensors_initialized = !prearm_ret;
+			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
+				prearm_ret = preflight_check(status, mavlink_fd, false /* pre-flight */);
+				status->condition_system_sensors_initialized = !prearm_ret;
+				last_preflight_check = hrt_absolute_time();
+				last_prearm_ret = prearm_ret;
+			} else {
+				prearm_ret = last_prearm_ret;
+			}
 		}
 
 		/*

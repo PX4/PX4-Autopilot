@@ -885,6 +885,9 @@ private:
 	MavlinkOrbSubscription *_airspeed_sub;
 	uint64_t _airspeed_time;
 
+	MavlinkOrbSubscription *_sensor_sub;
+	uint64_t _sensor_time;
+
 	/* do not allow top copying this class */
 	MavlinkStreamVFRHUD(MavlinkStreamVFRHUD &);
 	MavlinkStreamVFRHUD& operator = (const MavlinkStreamVFRHUD &);
@@ -900,16 +903,18 @@ protected:
 		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
 		_act_time(0),
 		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
-		_airspeed_time(0)
+		_airspeed_time(0),
+		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
+		_sensor_time(0)
 	{}
 
 	void send(const hrt_abstime t)
 	{
-		struct vehicle_attitude_s att;
-		struct vehicle_global_position_s pos;
-		struct actuator_armed_s armed;
-		struct actuator_controls_s act;
-		struct airspeed_s airspeed;
+		struct vehicle_attitude_s att = {};
+		struct vehicle_global_position_s pos = {};
+		struct actuator_armed_s armed = {};
+		struct actuator_controls_s act = {};
+		struct airspeed_s airspeed = {};
 
 		bool updated = _att_sub->update(&_att_time, &att);
 		updated |= _pos_sub->update(&_pos_time, &pos);
@@ -924,7 +929,15 @@ protected:
 			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
 			msg.heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
-			msg.alt = pos.alt;
+			if (_pos_time > 0) {
+				/* use global estimate */
+				msg.alt = pos.alt;
+			} else {
+				/* fall back to baro altitude */
+				sensor_combined_s sensor;
+				(void)_sensor_sub->update(&_sensor_time, &sensor);
+				msg.alt = sensor.baro_alt_meter[0];
+			}
 			msg.climb = -pos.vel_d;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_VFR_HUD, &msg);
@@ -2668,6 +2681,9 @@ private:
 	MavlinkOrbSubscription *_home_sub;
 	uint64_t _home_time;
 
+	MavlinkOrbSubscription *_sensor_sub;
+	uint64_t _sensor_time;
+
 	/* do not allow top copying this class */
 	MavlinkStreamAltitude(MavlinkStreamAltitude &);
 	MavlinkStreamAltitude& operator = (const MavlinkStreamAltitude &);
@@ -2679,7 +2695,9 @@ protected:
 		_local_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
 		_local_pos_time(0),
 		_home_sub(_mavlink->add_orb_subscription(ORB_ID(home_position))),
-		_home_time(0)
+		_home_time(0),
+		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
+		_sensor_time(0)
 	{}
 
 	void send(const hrt_abstime t)
@@ -2693,21 +2711,25 @@ protected:
 		updated |= _home_sub->update(&_home_time, &home);
 
 		if (updated) {
+
+			struct sensor_combined_s sensor;
+			(void)_sensor_sub->update(&_sensor_time, &sensor);
+
 			mavlink_altitude_t msg;
 
 			msg.time_usec = hrt_absolute_time();
 
-			msg.altitude_monotonic = global_pos.pressure_alt;
-			msg.altitude_amsl = global_pos.alt;
-			msg.altitude_local = -local_pos.z;
-			msg.altitude_relative = home.alt;
+			msg.altitude_monotonic = (_sensor_time > 0) ? sensor.baro_alt_meter[0] : 0.0f / 0.0f;
+			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : 0.0f / 0.0f;
+			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : 0.0f / 0.0f;
+			msg.altitude_relative = (_home_time > 0) ? home.alt : 0.0f / 0.0f;
 
 			if (global_pos.terrain_alt_valid) {
 				msg.altitude_terrain = global_pos.terrain_alt;
 				msg.bottom_clearance = global_pos.alt - global_pos.terrain_alt;
 			} else {
-				msg.altitude_terrain = -1001;
-				msg.bottom_clearance = -1;
+				msg.altitude_terrain = 0.0f / 0.0f;
+				msg.bottom_clearance = 0.0f / 0.0f;
 			}
 
 			_mavlink->send_message(MAVLINK_MSG_ID_ALTITUDE, &msg);

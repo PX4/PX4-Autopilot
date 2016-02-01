@@ -190,6 +190,7 @@ private:
 		param_t roll_rate_max;
 		param_t pitch_rate_max;
 		param_t yaw_rate_max;
+		param_t yaw_auto_max;
 
 		param_t acro_roll_max;
 		param_t acro_pitch_max;
@@ -199,6 +200,7 @@ private:
 		param_t vtol_type;
 		param_t roll_tc;
 		param_t pitch_tc;
+		param_t vtol_opt_recovery_enabled;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -213,11 +215,13 @@ private:
 		float roll_rate_max;
 		float pitch_rate_max;
 		float yaw_rate_max;
+		float yaw_auto_max;
 		math::Vector<3> mc_rate_max;		/**< attitude rate limits in stabilized modes */
-
+		math::Vector<3> auto_rate_max;		/**< attitude rate limits in auto modes */
 		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
 		float rattitude_thres;
 		int vtol_type;						/**< 0 = Tailsitter, 1 = Tiltrotor, 2 = Standard airframe */
+		bool vtol_opt_recovery_enabled;
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
@@ -345,8 +349,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.pitch_rate_max = 0.0f;
 	_params.yaw_rate_max = 0.0f;
 	_params.mc_rate_max.zero();
+	_params.auto_rate_max.zero();
 	_params.acro_rate_max.zero();
 	_params.rattitude_thres = 1.0f;
+	_params.vtol_opt_recovery_enabled = false;
 
 	_rates_prev.zero();
 	_rates_sp.zero();
@@ -376,6 +382,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.roll_rate_max	= 	param_find("MC_ROLLRATE_MAX");
 	_params_handles.pitch_rate_max	= 	param_find("MC_PITCHRATE_MAX");
 	_params_handles.yaw_rate_max	= 	param_find("MC_YAWRATE_MAX");
+	_params_handles.yaw_auto_max	= 	param_find("MC_YAWRAUTO_MAX");
 	_params_handles.acro_roll_max	= 	param_find("MC_ACRO_R_MAX");
 	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
 	_params_handles.acro_yaw_max	= 	param_find("MC_ACRO_Y_MAX");
@@ -383,11 +390,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.vtol_type 		= 	param_find("VT_TYPE");
 	_params_handles.roll_tc			= 	param_find("MC_ROLL_TC");
 	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
+	_params_handles.vtol_opt_recovery_enabled = param_find("VT_OPT_RECOV_EN");
 
 	/* fetch initial parameter values */
 	parameters_update();
 
-	if (_params.vtol_type == 0) {
+	if (_params.vtol_type == 0 && _params.vtol_opt_recovery_enabled) {
 		// the vehicle is a tailsitter, use optimal recovery control strategy
 		_ts_opt_recovery = new TailsitterRecovery();
 	}
@@ -415,8 +423,10 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 			}
 		} while (_control_task != -1);
 	}
+	if (_ts_opt_recovery != nullptr) {
+		delete _ts_opt_recovery;
+	}
 
-	delete _ts_opt_recovery;
 	mc_att_control::g_control = nullptr;
 }
 
@@ -476,6 +486,14 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.yaw_rate_max, &_params.yaw_rate_max);
 	_params.mc_rate_max(2) = math::radians(_params.yaw_rate_max);
 
+	/* auto angular rate limits */
+	param_get(_params_handles.roll_rate_max, &_params.roll_rate_max);
+	_params.auto_rate_max(0) = math::radians(_params.roll_rate_max);
+	param_get(_params_handles.pitch_rate_max, &_params.pitch_rate_max);
+	_params.auto_rate_max(1) = math::radians(_params.pitch_rate_max);
+	param_get(_params_handles.yaw_auto_max, &_params.yaw_auto_max);
+	_params.auto_rate_max(2) = math::radians(_params.yaw_auto_max);
+
 	/* manual rate control scale and auto mode roll/pitch rate limits */
 	param_get(_params_handles.acro_roll_max, &v);
 	_params.acro_rate_max(0) = math::radians(v);
@@ -488,6 +506,10 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.rattitude_thres, &_params.rattitude_thres);
 
 	param_get(_params_handles.vtol_type, &_params.vtol_type);
+
+	int tmp;
+	param_get(_params_handles.vtol_opt_recovery_enabled, &tmp);
+	_params.vtol_opt_recovery_enabled = (bool)tmp;
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
@@ -695,7 +717,11 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* limit rates */
 	for (int i = 0; i < 3; i++) {
-		_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
+		if (_v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
+			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.auto_rate_max(i), _params.auto_rate_max(i));
+		} else {
+			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
+		}
 	}
 
 	/* feed forward yaw setpoint rate */
