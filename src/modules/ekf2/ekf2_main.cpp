@@ -284,6 +284,14 @@ void Ekf2::task_main()
 	// initialise parameter cache
 	updateParams();
 
+	// initialize data structures outside of loop
+	// because they will else not always be
+	// properly populated
+	sensor_combined_s sensors = {};
+	vehicle_gps_position_s gps = {};
+	airspeed_s airspeed = {};
+	vehicle_control_mode_s vehicle_control_mode = {};
+
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
@@ -315,11 +323,6 @@ void Ekf2::task_main()
 		bool airspeed_updated = false;
 		bool control_mode_updated = false;
 		bool vehicle_status_updated = false;
-
-		sensor_combined_s sensors = {};
-		vehicle_gps_position_s gps = {};
-		airspeed_s airspeed = {};
-		vehicle_control_mode_s vehicle_control_mode = {};
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
 		// update all other topics if they have new data
