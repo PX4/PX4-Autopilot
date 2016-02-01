@@ -1225,7 +1225,7 @@ void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command
 {
 	(void)pthread_mutex_lock(&_node_mutex);
 	_hardpoint_controller.set_command(hardpoint_id, command);
-	(void)pthread_mutex_lock(&_node_mutex);
+	(void)pthread_mutex_unlock(&_node_mutex);
 }
 /*
  * App entry point
