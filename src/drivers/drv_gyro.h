@@ -62,6 +62,12 @@ struct gyro_scale {
 	float	y_scale;
 	float	z_offset;
 	float	z_scale;
+	float	x3_temp[3];
+	float	x2_temp[3];
+	float	x1_temp[3];
+	float	min_temp;
+	float	max_temp;
+	float	cal_temp;
 };
 
 /*

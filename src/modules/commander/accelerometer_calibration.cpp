@@ -263,7 +263,28 @@ int do_accel_calibration(int mavlink_fd)
 		accel_scale.y_scale = accel_T_rotated(1, 1);
 		accel_scale.z_offset = accel_offs_rotated(2);
 		accel_scale.z_scale = accel_T_rotated(2, 2);
-		
+
+		/* NOTE: hardcoded terms are only suitable for MPU6K (used in dataset)*/
+		if (device_id[i] == 1246218) {
+			/* since temperature calibration is not yet in place, load matlab estimations */
+
+			accel_scale.cal_temp = 25.00;
+			accel_scale.min_temp = -10.06;
+			accel_scale.max_temp = 38.49;
+
+			accel_scale.x3_temp[0] = 0.0000007289160635082225781;
+			accel_scale.x2_temp[0] = -0.0000366935673810075968504;
+			accel_scale.x1_temp[0] = -0.0005776923499070107936859;
+
+			accel_scale.x3_temp[1] = 0.0000002701432890717114788;
+			accel_scale.x2_temp[1] = 0.0000417568116972688585520;
+			accel_scale.x1_temp[1] = -0.0062677161768078804016113;
+
+			accel_scale.x3_temp[2] = -0.0000004760415777127491310;
+			accel_scale.x2_temp[2] = 0.0003384132287465035915375;
+			accel_scale.x1_temp[2] = -0.0273241568356752395629883;
+		}
+
 		bool failed = false;
 
 		failed = failed || (OK != param_set_no_notification(param_find("CAL_ACC_PRIME"), &(device_id_primary)));
@@ -281,6 +302,22 @@ int do_accel_calibration(int mavlink_fd)
 		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.y_scale)));
 		(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
 		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.z_scale)));
+
+		(void)sprintf(str, "CAL_ACC%u_TMPNOM", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.cal_temp)));
+		(void)sprintf(str, "CAL_ACC%u_TMPMIN", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.min_temp)));
+		(void)sprintf(str, "CAL_ACC%u_TMPMAX", i);
+		failed |= (OK != param_set(param_find(str), &(accel_scale.max_temp)));
+
+		for (unsigned j = 0; j < 3; j++) {
+			(void)sprintf(str, "CAL_ACC%u_TA%uX0", i, j);
+			failed |= (OK != param_set(param_find(str), &(accel_scale.x1_temp[j])));
+			(void)sprintf(str, "CAL_ACC%u_TA%uX1", i, j);
+			failed |= (OK != param_set(param_find(str), &(accel_scale.x2_temp[j])));
+			(void)sprintf(str, "CAL_ACC%u_TA%uX2", i, j);
+			failed |= (OK != param_set(param_find(str), &(accel_scale.x3_temp[j])));
+		}
 #ifndef __PX4_QURT
 		(void)sprintf(str, "CAL_ACC%u_ID", i);
 		failed |= (OK != param_set_no_notification(param_find(str), &(device_id[i])));

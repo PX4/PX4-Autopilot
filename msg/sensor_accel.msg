@@ -10,6 +10,9 @@ float32 z_integral	# velocity in the NED Z board axis in m/s over the integratio
 float32 temperature	# temperature in degrees celsius
 float32 range_m_s2	# range in m/s^2 (+- this value)
 float32 scaling
+float32 x_tc        # temperature compensated axis in m/s^2
+float32 y_tc        # temperature compensated axis in m/s^2
+float32 z_tc        # temperature compensated axis in m/s^2
 
 int16 x_raw
 int16 y_raw

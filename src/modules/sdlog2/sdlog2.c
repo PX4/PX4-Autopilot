@@ -1156,6 +1156,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ATT_s log_ATT;
 			struct log_ATSP_s log_ATSP;
 			struct log_IMU_s log_IMU;
+			struct log_IMUT_s log_IMUT;
 			struct log_SENS_s log_SENS;
 			struct log_LPOS_s log_LPOS;
 			struct log_LPSP_s log_LPSP;
@@ -1553,6 +1554,21 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp[i * 3 + 0];
 					log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp[i * 3 + 0];
 					LOGBUFFER_WRITE_AND_COUNT(IMU);
+
+                    if (i == 0) {
+						/* --- SENSOR TEMPERATURE COMPENSATED --- */
+						log_msg.msg_type = LOG_IMUT_MSG;
+						log_msg.body.log_IMUT.gyro_x_tc = buf.sensor.gyro_tc[0];
+						log_msg.body.log_IMUT.gyro_y_tc = buf.sensor.gyro_tc[1];
+						log_msg.body.log_IMUT.gyro_z_tc = buf.sensor.gyro_tc[2];
+						log_msg.body.log_IMUT.acc_x_tc = buf.sensor.accelerometer_tc[0];
+						log_msg.body.log_IMUT.acc_y_tc = buf.sensor.accelerometer_tc[1];
+						log_msg.body.log_IMUT.acc_z_tc = buf.sensor.accelerometer_tc[2];
+						log_msg.body.log_IMUT.mag_x_tc = buf.sensor.magnetometer_tc[0];
+						log_msg.body.log_IMUT.mag_y_tc = buf.sensor.magnetometer_tc[1];
+						log_msg.body.log_IMUT.mag_z_tc = buf.sensor.magnetometer_tc[2];
+						LOGBUFFER_WRITE_AND_COUNT(IMUT);
+					}
 				}
 
 				if (write_SENS) {
