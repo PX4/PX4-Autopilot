@@ -936,9 +936,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 
 #ifdef __PX4_POSIX
 	if (get_protocol() == UDP) {
-		if (get_client_source_initialized()) {
-			ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
-		}
+		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 
 		struct telemetry_status_s &tstatus = get_rx_status();
 
