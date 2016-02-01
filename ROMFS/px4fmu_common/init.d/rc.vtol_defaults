@@ -38,6 +38,8 @@ then
 	param set PE_POSNE_NOISE 0.5
 	param set PE_POSD_NOISE 1.25
 	param set PE_ABIAS_PNOISE 0.0001
+
+	param set NAV_ACC_RAD 3
 fi
 
 set PWM_DISARMED 900
