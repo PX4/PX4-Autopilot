@@ -228,7 +228,7 @@ PARAM_DEFINE_FLOAT(INAV_FLOW_Q_MIN, 0.3f);
  * @unit m
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_LIDAR_ERR, 0.5f);
+PARAM_DEFINE_FLOAT(INAV_LIDAR_ERR, 0.2f);
 
 /**
  * Land detector time
