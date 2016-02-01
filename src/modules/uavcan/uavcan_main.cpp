@@ -1233,7 +1233,9 @@ void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan {start [fw]|status|stop [all|fw]|shrink|arm|disarm|update fw|param [set|get|list|save] nodeid [name] [value]|reset nodeid}");
+	      "\tuavcan {start [fw]|status|stop [all|fw]|shrink|arm|disarm|update fw|\n"
+	      "\t        param [set|get|list|save] <node-id> <name> <value>|reset <node-id>|\n"
+	      "\t        hardpoint set <id> <command>}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
