@@ -1384,19 +1384,16 @@ int uavcan_main(int argc, char *argv[])
 			const int command = atoi(argv[4]);
 
 			// Sanity check - weed out negative values, check against maximums
-			if (hardpoint_id >= 0 &&
-			    hardpoint_id < 256 &&
-			    command >= 0 &&
-			    command < 65536) {
+			if (hardpoint_id >= 0 && hardpoint_id < 256 &&
+			    command >= 0 && command < 65536) {
 				inst->hardpoint_controller_set((uint8_t) hardpoint_id, (uint16_t) command);
-
 			} else {
-				errx(1, "Are you nuts?");
+				errx(1, "Invalid argument");
 			}
-
 		} else {
-			errx(1, "Are you nuts?");
+			errx(1, "Invalid hardpoint command");
 		}
+		::exit(0);
 	}
 
 	if (!std::strcmp(argv[1], "stop")) {
