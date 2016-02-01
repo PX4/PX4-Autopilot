@@ -319,6 +319,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float dist_ground = 0.0f;		//variables for lidar altitude estimation
 	float corr_lidar = 0.0f;
 	float lidar_offset = 0.0f;
+	float lidar_max_dist = 39.0f;
+	float lidar_min_dist = 0.1f;
 	int lidar_offset_count = 0;
 	bool lidar_first = true;
 	bool use_lidar = false;
@@ -538,10 +540,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
 			}
-
-			if (updated && lidar.current_distance > 0.2f && lidar.current_distance < 10.0f
+			
+			if (updated && lidar.current_distance > lidar_min_dist && lidar.current_distance < lidar_max_dist
 			    && (PX4_R(att.R, 2, 2) > 0.7f)) { //check if altitude estimation for lidar is enabled and new sensor data
-
+				
 				if (!use_lidar_prev && use_lidar) {
 					lidar_first = true;
 				}
@@ -588,7 +590,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float flow_q = flow.quality / 255.0f;
 				float dist_bottom = lidar.current_distance;
 
-				if (dist_bottom > 0.21f && flow_q > params.flow_q_min && PX4_R(att.R, 2, 2) > 0.7f) {
+				if (dist_bottom > lidar_min_dist && flow_q > params.flow_q_min && PX4_R(att.R, 2, 2) > 0.7f) {
 					/* distance to surface */
 					//float flow_dist = dist_bottom / PX4_R(att.R, 2, 2); //use this if using sonar
 					float flow_dist = dist_bottom; //use this if using lidar
