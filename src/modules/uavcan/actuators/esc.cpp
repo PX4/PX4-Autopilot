@@ -49,6 +49,8 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_sub_status(node),
 	_orb_timer(node)
 {
+	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
+
 	if (_perfcnt_invalid_input == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
 	}
