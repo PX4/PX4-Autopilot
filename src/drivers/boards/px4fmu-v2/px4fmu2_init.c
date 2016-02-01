@@ -233,7 +233,6 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_VDD_SERVO_VALID);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();

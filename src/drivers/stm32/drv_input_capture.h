@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,75 +31,12 @@
  *
  ****************************************************************************/
 
-/*
- * @file px4fmu_pwm_servo.c
+/**
+ * @file drv_input_capture.h
  *
- * Configuration data for the stm32 pwm_servo driver.
- *
- * Note that these arrays must always be fully-sized.
+ * stm32-specific input capture data.
  */
 
-#include <stdint.h>
+#pragma once
 
-#include <stm32.h>
-#include <stm32_gpio.h>
-#include <stm32_tim.h>
-
-#include <drivers/stm32/drv_pwm_servo.h>
-#include <drivers/drv_pwm_output.h>
-
-#include "board_config.h"
-
-__EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
-	{
-		.base = STM32_TIM1_BASE,
-		.clock_register = STM32_RCC_APB2ENR,
-		.clock_bit = RCC_APB2ENR_TIM1EN,
-		.clock_freq = STM32_APB2_TIM1_CLKIN
-	},
-	{
-		.base = STM32_TIM4_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM4EN,
-		.clock_freq = STM32_APB1_TIM4_CLKIN
-	}
-};
-
-__EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
-	{
-		.gpio = GPIO_TIM1_CH4OUT,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM1_CH3OUT,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM1_CH2OUT,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM1_CH1OUT,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM4_CH2OUT,
-		.timer_index = 1,
-		.timer_channel = 2,
-		.default_value = 0,
-	},
-	{
-		.gpio = GPIO_TIM4_CH3OUT,
-		.timer_index = 1,
-		.timer_channel = 3,
-		.default_value = 0,
-	}
-};
+#include <drivers/drv_input_capture.h>

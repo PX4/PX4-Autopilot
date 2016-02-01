@@ -337,6 +337,8 @@ public:
 
 	unsigned short		get_network_port() { return _network_port; }
 
+	unsigned short		get_remote_port() { return _remote_port; }
+
 	int 			get_socket_fd () { return _socket_fd; };
 #ifdef __PX4_POSIX
 	struct sockaddr_in *	get_client_source_address() { return &_src_addr; }
@@ -441,6 +443,7 @@ private:
 	int _socket_fd;
 	Protocol	_protocol;
 	unsigned short _network_port;
+	unsigned short _remote_port;
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 
