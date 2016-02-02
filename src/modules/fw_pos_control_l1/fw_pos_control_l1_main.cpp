@@ -237,6 +237,7 @@ private:
 	float _roll;
 	float _pitch;
 	float _yaw;
+	bool _reinitialize_tecs;			///< indicates if the TECS states should be reinitialized (used for VTOL)
 
 	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
@@ -565,6 +566,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_airspeed_last_received(0),
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
+	_reinitialize_tecs(true),
 	_l1_control(),
 	_mTecs(),
 	_control_mode_current(FW_POSCTRL_MODE_OTHER)
@@ -2154,9 +2156,25 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		const math::Vector<3> &ground_speed,
 		unsigned mode, bool pitch_max_special)
 {
-	/* do not run tecs if we are not in air */
-	if (_vehicle_status.condition_landed) {
+	bool run_tecs = true;
+
+	// do not run TECS if we are not in air
+	run_tecs &= !_vehicle_status.condition_landed;
+
+	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode
+	if (_vehicle_status.is_vtol) {
+		run_tecs &= !_vehicle_status.is_rotary_wing;
+	}
+
+	if (!run_tecs) {
+		// next time we run TECS we should reinitialize states
+		_reinitialize_tecs = true;
 		return;
+	}
+
+	if (_reinitialize_tecs) {
+		_tecs.reinitialize_states();
+		_reinitialize_tecs = false;
 	}
 
 	if (_mTecs.getEnabled()) {
