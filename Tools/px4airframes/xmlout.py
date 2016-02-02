@@ -45,6 +45,8 @@ class XMLOutput():
                 xml_group.attrib["image"] = "OctoRotorX"
             elif (group.GetName() == "Octorotor Coaxial"):
                 xml_group.attrib["image"] = "OctoRotorXCoaxial"
+            elif (group.GetName() == "Octo Coax Wide"):
+                xml_group.attrib["image"] = "OctoRotorXCoaxial"
             elif (group.GetName() == "Quadrotor Wide"):
                 xml_group.attrib["image"] = "QuadRotorWide"
             elif (group.GetName() == "Quadrotor H"):
