@@ -1,6 +1,6 @@
 	diff -ruN NuttX/apps/nshlib/nsh_parse.c NuttX/apps/nshlib/nsh_parse.c
 --- NuttX/apps/nshlib/nsh_parse.c	2016-02-02 15:13:19.241834143 +1100
-+++ NuttX/apps/nshlib/nsh_parse.c	2016-02-02 14:49:42.883267000 +1100
++++ NuttX/apps/nshlib/nsh_parse.c	2016-02-02 16:44:34.009245229 +1100
 @@ -156,9 +156,9 @@
  #endif
  
@@ -72,7 +72,21 @@
  {
    FAR char *pbegin     = *saveptr;
    FAR char *pend       = NULL;
-@@ -1368,11 +1375,11 @@
+@@ -1309,6 +1316,13 @@
+ 
+           pbegin++;
+           term = "\"";
++
++          /* If this is an environment variable in double quotes, we don't want it split into
++           * multiple argument should CONFIG_NSH_ENABLEPX4PARSING be defined
++           * So just invalidate the flag pointer which would otherwise communictate such 
++           * back up the call tree.
++           */
++          isenvvar = NULL;
+         }
+       else
+         {
+@@ -1368,11 +1382,11 @@
  
        /* Perform expansions as necessary for the argument */
  
@@ -86,7 +100,7 @@
     * processing.
     */
  
-@@ -1489,7 +1496,7 @@
+@@ -1489,7 +1503,7 @@
  
            /* Get the cmd following the "while" or "until" */
  
@@ -95,7 +109,7 @@
            if (!*ppcmd)
              {
                nsh_output(vtbl, g_fmtarginvalid, "if");
-@@ -1546,7 +1553,7 @@
+@@ -1546,7 +1560,7 @@
          {
            /* Get the cmd following the "do" -- there may or may not be one */
  
@@ -104,7 +118,7 @@
  
            /* Verify that "do" is valid in this context */
  
-@@ -1566,7 +1573,7 @@
+@@ -1566,7 +1580,7 @@
          {
            /* Get the cmd following the "done" -- there should be one */
  
@@ -113,7 +127,7 @@
            if (*ppcmd)
              {
                nsh_output(vtbl, g_fmtarginvalid, "done");
-@@ -1671,7 +1678,7 @@
+@@ -1671,7 +1685,7 @@
          {
            /* Get the cmd following the if */
  
@@ -122,7 +136,7 @@
            if (!*ppcmd)
              {
                nsh_output(vtbl, g_fmtarginvalid, "if");
-@@ -1709,7 +1716,7 @@
+@@ -1709,7 +1723,7 @@
          {
            /* Get the cmd following the "then" -- there may or may not be one */
  
@@ -131,7 +145,7 @@
  
            /* Verify that "then" is valid in this context */
  
-@@ -1728,7 +1735,7 @@
+@@ -1728,7 +1742,7 @@
          {
            /* Get the cmd following the "else" -- there may or may not be one */
  
@@ -140,7 +154,7 @@
  
            /* Verify that "else" is valid in this context */
  
-@@ -1747,7 +1754,7 @@
+@@ -1747,7 +1761,7 @@
          {
            /* Get the cmd following the fi -- there should be one */
  
@@ -149,7 +163,7 @@
            if (*ppcmd)
              {
                nsh_output(vtbl, g_fmtarginvalid, "fi");
-@@ -1819,10 +1826,10 @@
+@@ -1819,10 +1833,10 @@
  
            /* Get the cmd (or -d option of nice command) */
  
@@ -162,7 +176,7 @@
                if (val)
                  {
                    char *endptr;
-@@ -1833,7 +1840,7 @@
+@@ -1833,7 +1847,7 @@
                        nsh_output(vtbl, g_fmtarginvalid, "nice");
                        return ERROR;
                      }
@@ -171,7 +185,7 @@
                  }
              }
  
-@@ -1901,7 +1908,7 @@
+@@ -1901,7 +1915,7 @@
    /* Parse out the command at the beginning of the line */
  
    saveptr = cmdline;
@@ -180,7 +194,7 @@
  
    /* Check if any command was provided -OR- if command processing is
     * currently disabled.
-@@ -1935,7 +1942,7 @@
+@@ -1935,7 +1949,7 @@
    argv[0] = cmd;
    for (argc = 1; argc < MAX_ARGV_ENTRIES-1; argc++)
      {
@@ -189,7 +203,7 @@
        if (!argv[argc])
          {
            break;
-@@ -2002,7 +2009,7 @@
+@@ -2002,7 +2016,7 @@
    /* Parse out the command at the beginning of the line */
  
    saveptr = cmdline;
@@ -198,7 +212,7 @@
  
  #ifndef CONFIG_NSH_DISABLESCRIPT
  #ifndef CONFIG_NSH_DISABLE_LOOPS
-@@ -2070,15 +2077,54 @@
+@@ -2070,15 +2084,54 @@
     */
  
    argv[0] = cmd;
