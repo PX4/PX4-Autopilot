@@ -437,6 +437,7 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
 			_mission_item.lat = _navigator->get_global_position()->lat;
 			_mission_item.lon = _navigator->get_global_position()->lon;
+			/* ignore yaw for takeoff items */
 			_mission_item.yaw = NAN;
 			_mission_item.altitude = takeoff_alt;
 			_mission_item.altitude_is_relative = false;
@@ -477,6 +478,13 @@ Mission::set_mission_items()
 		/* we just moved to the landing waypoint, now descend */
 		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND) {
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+		}
+
+		/* ignore yaw for landing items */
+		/* XXX: if specified heading for landing is desired we could add another step before the descent
+		 * that aligns the vehicle first */
+		if (_mission_item.nav_cmd == NAV_CMD_LAND) {
+			_mission_item.yaw = NAN;
 		}
 
 	/* handle non-position mission items such as commands */
