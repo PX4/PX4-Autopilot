@@ -458,9 +458,20 @@ Mission::set_mission_items()
 			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
 			has_next_position_item = true;
 
+			/*
+			 * Ignoring waypoint altitude:
+			 * Set altitude to the same as we have now to prevent descending too fast into
+			 * the ground. Actual landing will descend anyway until it touches down.
+			 */
+			float altitude = _navigator->get_global_position()->alt;
+			if (pos_sp_triplet->current.valid) {
+				altitude = pos_sp_triplet->current.alt;
+			}
+
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
+			_mission_item.altitude = altitude;
 		}
 
 		/* we just moved to the landing waypoint, now descend */
