@@ -261,6 +261,16 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.5f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 1.0f);
 
 /**
+ * Measurement noise for non-aiding position hold.
+ *
+ * @group EKF2
+ * @min 0.5
+ * @max 50.0
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_NOAID_NOISE, 10.0f);
+
+/**
  * Measurement noise for barometric altitude.
  *
  * @group EKF2
