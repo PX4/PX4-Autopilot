@@ -42,7 +42,7 @@
 #include <systemlib/param/param.h>
 
 /**
-* Magnetometer measurement delay
+* Magnetometer measurement delay relative to IMU measurements
 *
 * @group EKF2
 * @min 0
@@ -52,7 +52,7 @@
 PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
 
 /**
- * Barometer measurement delay
+ * Barometer measurement delay relative to IMU measurements
  *
  * @group EKF2
  * @min 0
@@ -62,7 +62,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
 PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
 
 /**
- * GPS measurement delay
+ * GPS measurement delay relative to IMU measurements
  *
  * @group EKF2
  * @min 0
@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
 PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 200);
 
 /**
- * Airspeed measurement delay
+ * Airspeed measurement delay relative to IMU measurements
  *
  * @group EKF2
  * @min 0
@@ -171,113 +171,124 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_HDRIFT, 0.3f);
 PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.5f);
 
 /**
- * Gyro noise.
+ * Rate gyro noise for covariance prediction.
  *
  * @group EKF2
  * @min 0.0001
- * @max 0.05
+ * @max 0.01
+ * @unit rad/s
  */
-PARAM_DEFINE_FLOAT(EKF2_G_NOISE, 0.001f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 1.0e-3f);
 
 /**
- * Process noise for delta velocity prediction.
+ * Accelerometer noise for covariance prediction.
  *
  * @group EKF2
  * @min 0.01
- * @max 1
- * @unit
+ * @max 1.0
+ * @unit m/s/s
  */
-PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 0.1f);
+PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 0.25f);
 
 /**
  * Process noise for delta angle bias prediction.
  *
  * @group EKF2
- * @min 0
+ * @min 0.0
  * @max 0.0001
- * @unit
+ * @unit rad/s
  */
-PARAM_DEFINE_FLOAT(EKF2_GB_NOISE, 1e-5f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 7.0e-5f);
 
 /**
  * Process noise for delta velocity z bias prediction.
  *
  * @group EKF2
- * @min 0.000001
+ * @min 0.0
  * @max 0.01
- * @unit
+ * @unit m/s/s
  */
-PARAM_DEFINE_FLOAT(EKF2_ACCB_NOISE, 1e-3f);
+PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 1.0e-4f);
 
 /**
- * Process noise for delta angle scale prediction.
+ * Process noise for delta angle scale factor prediction.
  *
  * @group EKF2
- * @min 0.000001
+ * @min 0.0
  * @max 0.01
- * @unit
+ * @unit None
  */
-PARAM_DEFINE_FLOAT(EKF2_GS_NOISE, 1e-4f);
+PARAM_DEFINE_FLOAT(EKF2_GYR_S_NOISE, 3.0e-3f);
 
 /**
- * Process noise for earth magnetic field and bias prediction.
+ * Process noise for sensor bias and earth magnetic field prediction.
  *
  * @group EKF2
- * @min 0.0001
+ * @min 0.0
  * @max 0.1
- * @unit
+ * @unit Gauss/s
  */
-PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 1e-2f);
+PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 2.5e-2f);
 
 /**
  * Process noise for wind velocity prediction.
  *
  * @group EKF2
- * @min 0.01
- * @max 1
- * @unit
+ * @min 0.0
+ * @max 1.0
+ * @unit m/s/s
  */
-PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 0.05f);
+PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 1.0e-1f);
 
 /**
- * Measurement noise for gps velocity.
+ * Measurement noise for gps horizontal velocity.
  *
  * @group EKF2
- * @min 0.001
- * @max 0.5
- * @unit
+ * @min 0.01
+ * @max 5.0
+ * @unit m/s
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.05f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.5f);
 
 /**
  * Measurement noise for gps position.
  *
  * @group EKF2
  * @min 0.01
- * @max 5
- * @unit
+ * @max 10.0
+ * @unit m
  */
 PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 1.0f);
 
 /**
- * Measurement noise for barometer.
+ * Measurement noise for barometric altitude.
+ *
+ * @group EKF2
+ * @min 0.01
+ * @max 15.0
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 3.0f);
+
+/**
+ * Measurement noise for magnetic heading fusion.
+ *
+ * @group EKF2
+ * @min 0.01
+ * @max 1.0
+ * @unit rad
+ */
+PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 0.17f);
+
+/**
+ * Measurement noise for magnetometer 3-axis fusion.
  *
  * @group EKF2
  * @min 0.001
- * @max 1
- * @unit
+ * @max 1.0
+ * @unit Gauss
  */
-PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 0.1f);
-
-/**
- * Measurement noise for mag heading fusion.
- *
- * @group EKF2
- * @min 0.0001
- * @max 0.1
- * @unit
- */
-PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 3e-2f);
+PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
 
 /**
  * Magnetic declination
@@ -288,36 +299,46 @@ PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 3e-2f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
 
 /**
- * Gate size for magnetic heading fusion (standard deviations)
+ * Gate size for magnetic heading fusion
  *
  * @group EKF2
+ * @min 1.0
+ * @unit SD
  */
 PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 3.0f);
 
 /**
- * Gate size for magnetometer XYZ component fusion (standard deviations)
+ * Gate size for magnetometer XYZ component fusion
  *
  * @group EKF2
+ * @min 1.0
+ * @unit SD
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
 
 /**
- * Gate size for barometric height fusion (standard deviations)
+ * Gate size for barometric height fusion
  *
  * @group EKF2
+ * @min 1.0
+ * @unit SD
  */
-PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
+PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 3.0f);
 
 /**
- * Gate size for GPS horizontal position fusion (standard deviations)
+ * Gate size for GPS horizontal position fusion
  *
  * @group EKF2
+ * @min 1.0
+ * @unit SD
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 3.0f);
 
 /**
- * Gate size for GPS velocity fusion (standard deviations)
+ * Gate size for GPS velocity fusion
  *
  * @group EKF2
+ * @min 1.0
+ * @unit SD
  */
 PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
