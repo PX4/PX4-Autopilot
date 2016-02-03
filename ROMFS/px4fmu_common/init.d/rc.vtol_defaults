@@ -39,7 +39,14 @@ then
 	param set PE_POSD_NOISE 1.25
 	param set PE_ABIAS_PNOISE 0.0001
 
+	#
+	# Default parameters for mission and position handling
+	#
 	param set NAV_ACC_RAD 3
+	param set MPC_TKO_SPEED 1.0
+	param set MPC_LAND_SPEED 0.7
+	param set MPC_Z_VEL_MAX 1.5
+	param set MPC_XY_VEL_MAX 4.0
 fi
 
 set PWM_DISARMED 900
