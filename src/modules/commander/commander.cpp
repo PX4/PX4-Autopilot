@@ -556,7 +556,7 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 					     true /* fRunPreArmChecks */, mavlink_fd_local);
 
 	if (arming_res == TRANSITION_CHANGED && mavlink_fd) {
-		mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
+		/*mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);*/
 
 	} else if (arming_res == TRANSITION_DENIED) {
 		tune_negative(true);
@@ -986,7 +986,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 
 	home.yaw = attitude.yaw;
 
-	mavlink_and_console_log_info(mavlink_fd, "home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+	/* mavlink_and_console_log_info(mavlink_fd, "home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt); */
 
 	/* announce new home position */
 	if (homePub != nullptr) {
@@ -1815,12 +1815,14 @@ int commander_thread_main(int argc, char *argv[])
 				status.condition_landed = land_detector.landed;
 				status_changed = true;
 
+				/*
 				if (status.condition_landed) {
 					mavlink_and_console_log_info(mavlink_fd, "LANDING DETECTED");
 
 				} else {
 					mavlink_and_console_log_info(mavlink_fd, "TAKEOFF DETECTED");
 				}
+				*/
 			}
 
 			if (disarm_when_landed > 0) {

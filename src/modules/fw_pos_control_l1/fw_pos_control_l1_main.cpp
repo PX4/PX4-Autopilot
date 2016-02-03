@@ -1347,7 +1347,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						target_bearing = _yaw;
 					}
 
-					mavlink_log_info(_mavlink_fd, "#Landing, heading hold");
+					/*mavlink_log_info(_mavlink_fd, "#Landing, heading hold");*/
 				}
 
 //					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
@@ -1453,7 +1453,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 					if (!land_motor_lim) {
 						land_motor_lim  = true;
-						mavlink_log_info(_mavlink_fd, "#Landing, limiting throttle");
+						/*mavlink_log_info(_mavlink_fd, "#Landing, limiting throttle");*/
 					}
 
 				}
@@ -1481,7 +1481,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					// just started with the flaring phase
 					_att_sp.pitch_body = 0.0f;
 					height_flare = _global_pos.alt - terrain_alt;
-					mavlink_log_info(_mavlink_fd, "#Landing, flaring");
+					/*mavlink_log_info(_mavlink_fd, "#Landing, flaring");*/
 					land_noreturn_vertical = true;
 
 				} else {
