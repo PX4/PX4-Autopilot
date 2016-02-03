@@ -34,24 +34,13 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
-static void do_dlopen()
-{
-}
-
-int dlinit(int a, char **b)
-{
-	return 0;
-}
-
 int main(int argc, char *argv[])
 {
 	int ret = 0;
-	char *builtin[] = {"libgcc.so", "libc.so"};
 
-	printf("In DSPAL main\n");
-	dlinit(2, builtin);
+	// This code is never run. It is used solely to test linking in the
+	// TravisCI build test
 
-	do_dlopen();
 	return ret;
 }
 

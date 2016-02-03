@@ -112,6 +112,9 @@ px4_systemreset(bool to_bootloader)
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry,
 			      char *const argv[])
 {
+	struct sched_param param;
+	pthread_attr_t attr;
+	pthread_t task;
 	int rv;
 	int argc = 0;
 	int i;
@@ -121,9 +124,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	char *p = (char *)argv;
 
 	PX4_DEBUG("Creating %s\n", name);
-	pthread_t task;
-	pthread_attr_t attr;
-	struct sched_param param;
+	PX4_DEBUG("attr address: 0x%X, param address: 0x%X", &attr, &param);
 
 	// Calculate argc
 	while (p != (char *)0) {
@@ -138,7 +139,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	}
 
 	structsize = sizeof(pthdata_t) + (argc + 1) * sizeof(char *);
-	pthdata_t *taskdata;
+	pthdata_t *taskdata = nullptr;
 
 	// not safe to pass stack data to the thread creation
 	taskdata = (pthdata_t *)malloc(structsize + len);
@@ -164,7 +165,10 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
-	rv = pthread_attr_getschedparam(&attr, &param);
+	PX4_DEBUG("stack address after pthread_attr_init: 0x%X", attr.stackaddr);
+	PX4_DEBUG("attr address: 0x%X, param address: 0x%X", &attr, &param);
+ 	rv = pthread_attr_getschedparam(&attr, &param);
+	PX4_DEBUG("stack address after pthread_attr_getschedparam: 0x%X", attr.stackaddr);
 
 	if (rv != 0) {
 		PX4_WARN("px4_task_spawn_cmd: failed to get thread sched param");
@@ -189,28 +193,27 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 #endif
 	size_t fixed_stacksize = -1;
 	pthread_attr_getstacksize(&attr, &fixed_stacksize);
-	PX4_WARN("stack size: %d passed stacksize(%d)", fixed_stacksize, stack_size);
+	PX4_INFO("stack size: %d passed stacksize(%d)", fixed_stacksize, stack_size);
 	fixed_stacksize = 8 * 1024;
 	fixed_stacksize = (fixed_stacksize < (size_t)stack_size) ? (size_t)stack_size : fixed_stacksize;
 
-	PX4_WARN("setting the thread[%s] stack size to[%d]", name, fixed_stacksize);
+	PX4_INFO("setting the thread[%s] stack size to[%d]", name, fixed_stacksize);
 	pthread_attr_setstacksize(&attr, fixed_stacksize);
-	//pthread_attr_setstacksize(&attr, stack_size);
 
-
+	PX4_DEBUG("stack address after pthread_attr_setstacksize: 0x%X", attr.stackaddr);
 	param.sched_priority = priority;
 
 	rv = pthread_attr_setschedparam(&attr, &param);
 
 	if (rv != 0) {
-		PX4_WARN("px4_task_spawn_cmd: failed to set sched param");
+		PX4_ERR("px4_task_spawn_cmd: failed to set sched param");
 		return (rv < 0) ? rv : -rv;
 	}
 
 	rv = pthread_create(&task, &attr, &entry_adapter, (void *) taskdata);
 
 	if (rv != 0) {
-
+		PX4_ERR("px4_task_spawn_cmd: pthread_create failed, error: %d", rv);
 		return (rv < 0) ? rv : -rv;
 	}
 

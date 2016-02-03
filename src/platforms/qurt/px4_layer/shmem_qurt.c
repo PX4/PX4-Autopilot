@@ -47,8 +47,6 @@
 #include <shmem.h>
 #include <drivers/drv_hrt.h>
 
-#define SHMEM_DEBUG
-
 int mem_fd;
 unsigned char *map_base, *virt_addr;
 struct shmem_info *shmem_info_p;
@@ -180,11 +178,13 @@ void update_to_shmem(param_t param, union param_value_u value)
 
 #ifdef SHMEM_DEBUG
 
-	if (param_type(param) == PARAM_TYPE_INT32)
-	{PX4_INFO("Set value %d for param %s to shmem, set adsp index %d:%d\n", value.i, param_name(param), byte_changed, bit_changed);}
+	if (param_type(param) == PARAM_TYPE_INT32) {
+		PX4_INFO("Set value %d for param %s to shmem, set adsp index %d:%d\n", value.i, param_name(param), byte_changed, bit_changed);
+	}
 
-	else if (param_type(param) == PARAM_TYPE_FLOAT)
-	{PX4_INFO("Set value %f for param %s to shmem, set adsp index %d:%d\n", value.f, param_name(param), byte_changed, bit_changed);}
+	else if (param_type(param) == PARAM_TYPE_FLOAT) {
+		PX4_INFO("Set value %f for param %s to shmem, set adsp index %d:%d\n", value.f, param_name(param), byte_changed, bit_changed);
+	}
 
 #endif
 
@@ -231,11 +231,13 @@ static void update_value_from_shmem(param_t param, union param_value_u *value)
 
 #ifdef SHMEM_DEBUG
 
-	if (param_type(param) == PARAM_TYPE_INT32)
-	{PX4_INFO("Got value %d for param %s from shmem, cleared krait index %d:%d\n", value->i, param_name(param), byte_changed, bit_changed);}
+	if (param_type(param) == PARAM_TYPE_INT32) {
+		PX4_INFO("Got value %d for param %s from shmem, cleared krait index %d:%d\n", value->i, param_name(param), byte_changed, bit_changed);
+	}
 
-	else if (param_type(param) == PARAM_TYPE_FLOAT)
-	{PX4_INFO("Got value %f for param %s from shmem, cleared krait index %d:%d\n", value->f, param_name(param), byte_changed, bit_changed);}
+	else if (param_type(param) == PARAM_TYPE_FLOAT) {
+		PX4_INFO("Got value %f for param %s from shmem, cleared krait index %d:%d\n", value->f, param_name(param), byte_changed, bit_changed);
+	}
 
 #endif
 }

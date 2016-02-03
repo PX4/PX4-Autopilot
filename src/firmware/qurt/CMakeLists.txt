@@ -13,6 +13,7 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	add_definitions(-DQURT_EXE_BUILD)
 	add_executable(mainapp 
 		${CMAKE_SOURCE_DIR}/src/platforms/qurt/dspal/dspal_stub.c
+		${CMAKE_BINARY_DIR}/src/firmware/qurt/px4muorb_skel.c
 		${CMAKE_BINARY_DIR}/apps.h)
 else()
 
