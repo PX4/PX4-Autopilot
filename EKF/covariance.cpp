@@ -130,12 +130,12 @@ void Ekf::predictCovariance()
 	// compute process noise
 	float process_noise[_k_num_states] = {};
 
-	float d_ang_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1e-4f);
-	float d_vel_bias_sig = dt * math::constrain(_params.accel_bias_p_noise, 1e-6f, 1e-2f);
-	float d_ang_scale_sig = dt * math::constrain(_params.gyro_scale_p_noise, 1e-6f, 1e-2f);
-	float mag_I_sig = dt * math::constrain(_params.mag_p_noise, 1e-4f, 1e-1f);
-	float mag_B_sig = dt * math::constrain(_params.mag_p_noise, 1e-4f, 1e-1f);
-	float wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.01f, 1.0f);
+    float d_ang_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1e-4f);
+    float d_vel_bias_sig = dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1e-2f);
+    float d_ang_scale_sig = dt * math::constrain(_params.gyro_scale_p_noise, 0.0f, 1e-2f);
+    float mag_I_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
+    float mag_B_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
+    float wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f);
 
 	for (unsigned i = 0; i < 9; i++) {
 		process_noise[i] = 0.0f;

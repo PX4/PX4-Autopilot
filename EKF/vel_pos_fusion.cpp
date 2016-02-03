@@ -54,8 +54,8 @@ void Ekf::fuseVelPosHeight()
 		fuse_map[0] = fuse_map[1] = true;
 		_vel_pos_innov[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
 		_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
-		R[0] = _params.gps_vel_noise;
-		R[1] = _params.gps_vel_noise;
+        R[0] = fmaxf(_params.gps_vel_noise, 0.01f);
+        R[1] = R[0];
         gate_size[0] = fmaxf(_params.vel_innov_gate, 1.0f);
         gate_size[1] = gate_size[0];
     }
@@ -63,7 +63,7 @@ void Ekf::fuseVelPosHeight()
 	if (_fuse_vert_vel) {
 		fuse_map[2] = true;
 		_vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
-		R[2] = _params.gps_vel_noise;
+        R[2] = 1.5f * fmaxf(_params.gps_vel_noise, 0.01f);
         gate_size[2] = fmaxf(_params.vel_innov_gate, 1.0f);
     }
 
@@ -71,8 +71,8 @@ void Ekf::fuseVelPosHeight()
 		fuse_map[3] = fuse_map[4] = true;
 		_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
 		_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
-		R[3] = _params.gps_pos_noise;
-		R[4] = _params.gps_pos_noise;
+        R[3] = fmaxf(_params.gps_pos_noise, 0.01f);
+        R[4] = R[3];
         gate_size[3] = fmaxf(_params.posNE_innov_gate, 1.0f);
         gate_size[4] = gate_size[3];
 	}
@@ -80,7 +80,7 @@ void Ekf::fuseVelPosHeight()
 	if (_fuse_height) {
 		fuse_map[5] = true;
 		_vel_pos_innov[5] = _state.pos(2) - (-_baro_sample_delayed.hgt);		// baro measurement has inversed z axis
-		R[5] = _params.baro_noise;
+        R[5] = fmaxf(_params.baro_noise, 0.01f);
         gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
     }
 

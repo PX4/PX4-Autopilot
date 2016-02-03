@@ -84,7 +84,7 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
  * Return true if the GPS solution quality is adequate to set an origin for the EKF
  * and start GPS aiding.
  * All activated checks must pass for 10 seconds.
- * Checks are activated using the EKF2_GPS_CHECKS bitmask parameter
+ * Checks are activated using the EKF2_GPS_CHECK bitmask parameter
  * Checks are adjusted using the EKF2_REQ_* parameters
 */
 bool Ekf::gps_is_good(struct gps_message *gps)
