@@ -29,6 +29,7 @@ set(config_module_list
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
+	modules/muorb/krait
 	modules/sensors
 	modules/dataman
 	modules/sdlog2
