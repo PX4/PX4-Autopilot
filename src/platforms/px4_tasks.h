@@ -76,9 +76,9 @@ typedef int px4_task_t;
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
 #define SCHED_PRIORITY_DEFAULT (((sched_get_priority_max(SCHED_FIFO) - sched_get_priority_min(SCHED_FIFO)) / 2) + sched_get_priority_min(SCHED_FIFO))
 #elif defined(__PX4_QURT)
-#define SCHED_PRIORITY_MAX 0
+#define SCHED_PRIORITY_MAX 255
 #define SCHED_PRIORITY_MIN 0
-#define SCHED_PRIORITY_DEFAULT 0
+#define SCHED_PRIORITY_DEFAULT 20
 #else
 #error "No target OS defined"
 #endif

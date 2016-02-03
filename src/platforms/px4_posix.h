@@ -41,12 +41,16 @@
 
 #include <px4_defines.h>
 #include <stdint.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <semaphore.h>
 
+#if defined(__PX4_QURT)
+#include <dspal_types.h>
+#else
+#include <sys/types.h>
+#endif
 
 /* Semaphore handling */
 
