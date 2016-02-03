@@ -856,14 +856,22 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		break;
 
 	case NAV_CMD_DO_SET_SERVO:
+		mavlink_mission_item->frame = MAV_FRAME_MISSION;
 		mavlink_mission_item->param1 = mission_item->actuator_num;
 		mavlink_mission_item->param2 = mission_item->actuator_value;
 		break;
 
 	case NAV_CMD_DO_JUMP:
+		mavlink_mission_item->frame = MAV_FRAME_MISSION;
 		mavlink_mission_item->param1 = mission_item->do_jump_mission_index;
 		mavlink_mission_item->param2 = mission_item->do_jump_repeat_count - mission_item->do_jump_current_count;
 		break;
+
+	case NAV_CMD_DO_VTOL_TRANSITION:
+		mavlink_mission_item->frame = MAV_FRAME_MISSION;
+		mavlink_mission_item->param1 = mission_item->params[0];
+		break;
+
 
 	default:
 		mavlink_mission_item->param2 = mission_item->acceptance_radius;
