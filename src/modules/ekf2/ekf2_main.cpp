@@ -164,7 +164,8 @@ private:
 
 	control::BlockParamFloat *_gps_vel_noise;
 	control::BlockParamFloat *_gps_pos_noise;
-	control::BlockParamFloat *_baro_noise;
+        control::BlockParamFloat *_pos_noaid_noise;
+        control::BlockParamFloat *_baro_noise;
 	control::BlockParamFloat *_baro_innov_gate;     // innovation gate for barometric height innovation test (std dev)
 	control::BlockParamFloat *_posNE_innov_gate;    // innovation gate for GPS horizontal position innovation test (std dev)
 	control::BlockParamFloat *_vel_innov_gate;      // innovation gate for GPS velocity innovation test (std dev)
@@ -214,7 +215,8 @@ Ekf2::Ekf2():
 	_wind_vel_p_noise(new control::BlockParamFloat(this, "EKF2_WIND_NOISE", false, &_params->wind_vel_p_noise)),
 	_gps_vel_noise(new control::BlockParamFloat(this, "EKF2_GPS_V_NOISE", false, &_params->gps_vel_noise)),
 	_gps_pos_noise(new control::BlockParamFloat(this, "EKF2_GPS_P_NOISE", false, &_params->gps_pos_noise)),
-	_baro_noise(new control::BlockParamFloat(this, "EKF2_BARO_NOISE", false, &_params->baro_noise)),
+        _pos_noaid_noise(new control::BlockParamFloat(this, "EKF2_NOAID_NOISE", false, &_params->pos_noaid_noise)),
+        _baro_noise(new control::BlockParamFloat(this, "EKF2_BARO_NOISE", false, &_params->baro_noise)),
 	_baro_innov_gate(new control::BlockParamFloat(this, "EKF2_BARO_GATE", false, &_params->baro_innov_gate)),
 	_posNE_innov_gate(new control::BlockParamFloat(this, "EKF2_GPS_P_GATE", false, &_params->posNE_innov_gate)),
 	_vel_innov_gate(new control::BlockParamFloat(this, "EKF2_GPS_V_GATE", false, &_params->vel_innov_gate)),
