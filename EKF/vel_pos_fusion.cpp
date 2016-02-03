@@ -43,44 +43,63 @@
 
 void Ekf::fuseVelPosHeight()
 {
-	bool fuse_map[6] = {};
-    bool innov_check_pass_map[6] = {};
-    float R[6] = {};
-    float gate_size[6] = {};
-	float Kfusion[24] = {};
+    bool fuse_map[6] = {}; // map of booelans true when [VN,VE,VD,PN,PE,PD] observations are available
+    bool innov_check_pass_map[6] = {}; // true when innovations consistency checks pass for [VN,VE,VD,PN,PE,PD] observations
+    float R[6] = {}; // observation variances for [VN,VE,VD,PN,PE,PD]
+    float gate_size[6] = {}; // innovation consistency check gate sizes for [VN,VE,VD,PN,PE,PD] observations
+    float Kfusion[24] = {}; // Kalman gain vector for any single observation - sequential fusion is used
 
-    // calculate innovations and gate sizes
+    // calculate innovations, innovations gate sizes and observation variances
 	if (_fuse_hor_vel) {
 		fuse_map[0] = fuse_map[1] = true;
+        // horizontal velocity innovations
 		_vel_pos_innov[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
 		_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
+        // observation variance - use receiver reported accuracy with parameter setting the minimum value
         R[0] = fmaxf(_params.gps_vel_noise, 0.01f);
+        R[0] = fmaxf(R[0], _gps_speed_accuracy);
+        R[0] = R[0] * R[0];
         R[1] = R[0];
+        // innovation gate sizes
         gate_size[0] = fmaxf(_params.vel_innov_gate, 1.0f);
         gate_size[1] = gate_size[0];
     }
 
 	if (_fuse_vert_vel) {
 		fuse_map[2] = true;
-		_vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
-        R[2] = 1.5f * fmaxf(_params.gps_vel_noise, 0.01f);
+        // vertical velocity innovation
+        _vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
+        // observation variance - use receiver reported accuracy with parameter setting the minimum value
+        R[2] = fmaxf(_params.gps_vel_noise, 0.01f);
+        // use scaled horizontal speed accuracy assuming typical ratio of VDOP/HDOP
+        R[2] = 1.5f * fmaxf(R[2], _gps_speed_accuracy);
+        R[2] = R[2] * R[2];
+        // innovation gate size
         gate_size[2] = fmaxf(_params.vel_innov_gate, 1.0f);
     }
 
 	if (_fuse_pos) {
 		fuse_map[3] = fuse_map[4] = true;
+        // horizontal position innovations
 		_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
 		_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
+        // observation variance - user parameter defined
         R[3] = fmaxf(_params.gps_pos_noise, 0.01f);
+        R[3] = R[3] * R[3];
         R[4] = R[3];
+        // innovation gate sizes
         gate_size[3] = fmaxf(_params.posNE_innov_gate, 1.0f);
         gate_size[4] = gate_size[3];
 	}
 
 	if (_fuse_height) {
 		fuse_map[5] = true;
-		_vel_pos_innov[5] = _state.pos(2) - (-_baro_sample_delayed.hgt);		// baro measurement has inversed z axis
+        // vertical position innovation - baro measurement has opposite sign to earth z axis
+        _vel_pos_innov[5] = _state.pos(2) - (-_baro_sample_delayed.hgt);
+        // observation variance - user parameter defined
         R[5] = fmaxf(_params.baro_noise, 0.01f);
+        R[5] = R[5] * R[5];
+        // innovation gate size
         gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
     }
 
