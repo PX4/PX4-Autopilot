@@ -64,6 +64,7 @@ enum NAV_CMD {
 	NAV_CMD_DO_JUMP = 177,
 	NAV_CMD_DO_SET_SERVO=183,
 	NAV_CMD_DO_REPEAT_SERVO=184,
+	NAV_CMD_DO_VTOL_TRANSITION=3000,
 	NAV_CMD_INVALID=UINT16_MAX /* ensure that casting a large number results in a specific error */
 };
 
