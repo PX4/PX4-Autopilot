@@ -327,14 +327,6 @@ Mission::set_mission_items()
 
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	/* set previous position setpoint to current */
-	set_previous_pos_setpoint();
-
-	/* Copy previous mission item altitude (can be extended to a copy of the full mission item if needed) */
-	if (pos_sp_triplet->previous.valid) {
-		_mission_item_previous_alt = get_absolute_altitude_for_item(_mission_item);
-	}
-
 	/* the home dist check provides user feedback, so we initialize it to this */
 	bool user_feedback_done = false;
 
@@ -417,6 +409,14 @@ Mission::set_mission_items()
 	/* handle position mission items */
 	if (item_contains_position(&_mission_item)) {
 
+		/* we have a new position item so set previous position setpoint to current */
+		set_previous_pos_setpoint();
+
+		/* Copy previous mission item altitude (can be extended to a copy of the full mission item if needed) */
+		if (pos_sp_triplet->previous.valid) {
+			_mission_item_previous_alt = get_absolute_altitude_for_item(_mission_item);
+		}
+
 		if (pos_sp_triplet->current.valid) {
 			_on_arrival_yaw = _mission_item.yaw;
 		}
@@ -451,7 +451,7 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		}
 
-		/* move to landing wayponit before descent if necessary */
+		/* move to landing waypoint before descent if necessary */
 		if (do_need_move_to_land() && _work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND) {
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
 
@@ -525,21 +525,21 @@ Mission::set_mission_items()
 				&& _work_item_type != WORK_ITEM_TYPE_CMD_BEFORE_MOVE
 				&& !_navigator->get_vstatus()->is_rotary_wing
 				&& !_navigator->get_vstatus()->condition_landed
-				&& pos_sp_triplet->previous.valid) {
+				&& pos_sp_triplet->current.valid) {
 
 			new_work_item_type = WORK_ITEM_TYPE_CMD_BEFORE_MOVE;
 		}
 
 		/* after FW to MC transition finish moving to the waypoint */
 		if (_work_item_type == WORK_ITEM_TYPE_CMD_BEFORE_MOVE
-				&& pos_sp_triplet->previous.valid) {
+				&& pos_sp_triplet->current.valid) {
 
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = pos_sp_triplet->previous.lat;
-			_mission_item.lon = pos_sp_triplet->previous.lon;
-			_mission_item.altitude = pos_sp_triplet->previous.alt;
+			_mission_item.lat = pos_sp_triplet->current.lat;
+			_mission_item.lon = pos_sp_triplet->current.lon;
+			_mission_item.altitude = pos_sp_triplet->current.alt;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
@@ -682,7 +682,7 @@ Mission::heading_sp_update()
 		return;
 	}
 
-	/* set yaw angle for the waypoint iff a loiter time has been specified */
+	/* set yaw angle for the waypoint if a loiter time has been specified */
 	if (_waypoint_position_reached && _mission_item.time_inside > 0.0f) {
 		_mission_item.yaw = _on_arrival_yaw;
 
@@ -693,32 +693,44 @@ Mission::heading_sp_update()
 		 * To avoid excessive yawing when near the next waypoint we calculate heading between
 		 * previous and current waypoint instead of current location.
 		 */
+		double point_from_latlon[2];
+		double point_to_latlon[2];
 
-		/* always keep the front of the rotary wing pointing to the next waypoint */
-		if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_WAYPOINT
-			|| _navigator->get_vstatus()->is_vtol) {
-			_mission_item.yaw = get_bearing_to_next_waypoint(
-				pos_sp_triplet->previous.lat,
-				pos_sp_triplet->previous.lon,
-				pos_sp_triplet->current.lat,
-				pos_sp_triplet->current.lon);
+		point_from_latlon[0] = pos_sp_triplet->previous.lat;
+		point_from_latlon[1] = pos_sp_triplet->previous.lon;
 
-		/* always keep the back of the rotary wing pointing towards home */
-		} else if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME) {
-			_mission_item.yaw = get_bearing_to_next_waypoint(
-				pos_sp_triplet->previous.lat,
-				pos_sp_triplet->previous.lon,
-				_navigator->get_home_position()->lat,
-				_navigator->get_home_position()->lon);
+		/* default target location is next (current) waypoint */
+		point_to_latlon[0] = pos_sp_triplet->current.lat;
+		point_to_latlon[1] = pos_sp_triplet->current.lon;
 
-		/* always keep the back of the rotary wing pointing towards home */
-		} else if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
-			_mission_item.yaw = _wrap_pi(get_bearing_to_next_waypoint(
-				pos_sp_triplet->previous.lat,
-				pos_sp_triplet->previous.lon,
-				_navigator->get_home_position()->lat,
-				_navigator->get_home_position()->lon) + M_PI_F);
+		/* target location is home */
+		if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME
+				|| _param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
+			point_to_latlon[0] = _navigator->get_home_position()->lat;
+			point_to_latlon[1] = _navigator->get_home_position()->lon;
 		}
+
+		float d_current = get_distance_to_next_waypoint(
+			point_from_latlon[0], point_from_latlon[1],
+			point_to_latlon[0], point_to_latlon[1]);
+
+		/* don't yaw if positions are on top of each other */
+		if (d_current > _navigator->get_acceptance_radius()) {
+			float yaw = get_bearing_to_next_waypoint(
+				point_from_latlon[0],
+				point_from_latlon[1],
+				point_to_latlon[0],
+				point_to_latlon[1]);
+
+			/* always keep the back of the rotary wing pointing towards home */
+			if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
+				_mission_item.yaw = _wrap_pi(yaw + M_PI_F);
+
+			} else {
+				_mission_item.yaw = yaw;
+			}
+		}
+
 	}
 
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
