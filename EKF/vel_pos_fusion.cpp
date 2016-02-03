@@ -84,7 +84,12 @@ void Ekf::fuseVelPosHeight()
 		_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
 		_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
         // observation variance - user parameter defined
-        R[3] = fmaxf(_params.gps_pos_noise, 0.01f);
+        // if we are in flight and not using GPS, then use a specific parameter
+        if (!_control_status.flags.gps && _control_status.flags.in_air) {
+            R[3] = fmaxf(_params.pos_noaid_noise, 0.5f);
+        } else {
+            R[3] = fmaxf(_params.gps_pos_noise, 0.01f);
+        }
         R[3] = R[3] * R[3];
         R[4] = R[3];
         // innovation gate sizes

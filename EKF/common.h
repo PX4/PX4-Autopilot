@@ -130,6 +130,7 @@ struct parameters {
 
         float gps_vel_noise = 5.0e-1f;      // observation noise for gps velocity fusion
         float gps_pos_noise = 1.0f;         // observation noise for gps position fusion
+        float pos_noaid_noise = 10.0f;      // observation noise for non-aiding position fusion
         float baro_noise = 3.0f;            // observation noise for barometric height fusion
         float baro_innov_gate = 3.0f;       // barometric height innovation consistency gate size in standard deviations
         float posNE_innov_gate = 3.0f;      // GPS horizontal position innovation consistency gate size in standard deviations
