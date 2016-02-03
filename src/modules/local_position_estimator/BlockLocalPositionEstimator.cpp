@@ -418,6 +418,7 @@ void BlockLocalPositionEstimator::updateHome()
 	double lon = _sub_home.get().lon;
 	float alt = _sub_home.get().alt;
 
+	/*mavlink_log_info(_mavlink_fd, "[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));*/
 	warnx("[lpe] home: lat %5.0f, lon %5.0f, alt %5.0f", lat, lon, double(alt));
 	map_projection_init(&_map_ref, lat, lon);
 	float delta_alt = alt - _altHome;
