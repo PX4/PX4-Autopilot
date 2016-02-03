@@ -23,7 +23,6 @@ else()
 	QURT_LIB(APP_NAME mainapp
 		IDL_NAME px4muorb
 		SOURCES
-		${CMAKE_SOURCE_DIR}/src/platforms/qurt/dspal/dspal_stub.c
 		${CMAKE_BINARY_DIR}/apps.h
 		LINK_LIBS
 		${module_libraries}
