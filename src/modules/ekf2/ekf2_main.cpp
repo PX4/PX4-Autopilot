@@ -170,7 +170,8 @@ private:
 	control::BlockParamFloat *_vel_innov_gate;      // innovation gate for GPS velocity innovation test (std dev)
 
 	control::BlockParamFloat *_mag_heading_noise;	// measurement noise used for simple heading fusion
-	control::BlockParamFloat *_mag_declination_deg;	// magnetic declination in degrees
+        control::BlockParamFloat *_mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
+        control::BlockParamFloat *_mag_declination_deg;	// magnetic declination in degrees
 	control::BlockParamFloat *_heading_innov_gate;	// innovation gate for heading innovation test
 	control::BlockParamFloat *_mag_innov_gate;	// innovation gate for magnetometer innovation test
 
@@ -201,15 +202,15 @@ Ekf2::Ekf2():
 	_ekf(new Ekf()),
 	_params(_ekf->getParamHandle()),
 	_mag_delay_ms(new control::BlockParamFloat(this, "EKF2_MAG_DELAY", false, &_params->mag_delay_ms)),
-	_baro_delay_ms(new control::BlockParamFloat(this, "EKF2_BARO_DELAY", false, &_params->baro_delay_ms)),
+        _baro_delay_ms(new control::BlockParamFloat(this, "EKF2_BARO_DELAY", false, &_params->baro_delay_ms)),
 	_gps_delay_ms(new control::BlockParamFloat(this, "EKF2_GPS_DELAY", false, &_params->gps_delay_ms)),
 	_airspeed_delay_ms(new control::BlockParamFloat(this, "EKF2_ASP_DELAY", false, &_params->airspeed_delay_ms)),
-	_gyro_noise(new control::BlockParamFloat(this, "EKF2_G_NOISE", false, &_params->gyro_noise)),
-	_accel_noise(new control::BlockParamFloat(this, "EKF2_ACC_NOISE", false, &_params->accel_noise)),
-	_gyro_bias_p_noise(new control::BlockParamFloat(this, "EKF2_GB_NOISE", false, &_params->gyro_bias_p_noise)),
-	_accel_bias_p_noise(new control::BlockParamFloat(this, "EKF2_ACCB_NOISE", false, &_params->accel_bias_p_noise)),
-	_gyro_scale_p_noise(new control::BlockParamFloat(this, "EKF2_GS_NOISE", false, &_params->gyro_scale_p_noise)),
-	_mag_p_noise(new control::BlockParamFloat(this, "EKF2_MAG_NOISE", false, &_params->mag_p_noise)),
+        _gyro_noise(new control::BlockParamFloat(this, "EKF2_GYR_NOISE", false, &_params->gyro_noise)),
+        _accel_noise(new control::BlockParamFloat(this, "EKF2_ACC_NOISE", false, &_params->accel_noise)),
+        _gyro_bias_p_noise(new control::BlockParamFloat(this, "EKF2_GYR_B_NOISE", false, &_params->gyro_bias_p_noise)),
+        _accel_bias_p_noise(new control::BlockParamFloat(this, "EKF2_ACC_B_NOISE", false, &_params->accel_bias_p_noise)),
+        _gyro_scale_p_noise(new control::BlockParamFloat(this, "EKF2_GYR_S_NOISE", false, &_params->gyro_scale_p_noise)),
+        _mag_p_noise(new control::BlockParamFloat(this, "EKF2_MAG_B_NOISE", false, &_params->mag_p_noise)),
 	_wind_vel_p_noise(new control::BlockParamFloat(this, "EKF2_WIND_NOISE", false, &_params->wind_vel_p_noise)),
 	_gps_vel_noise(new control::BlockParamFloat(this, "EKF2_GPS_V_NOISE", false, &_params->gps_vel_noise)),
 	_gps_pos_noise(new control::BlockParamFloat(this, "EKF2_GPS_P_NOISE", false, &_params->gps_pos_noise)),
@@ -218,7 +219,8 @@ Ekf2::Ekf2():
 	_posNE_innov_gate(new control::BlockParamFloat(this, "EKF2_GPS_P_GATE", false, &_params->posNE_innov_gate)),
 	_vel_innov_gate(new control::BlockParamFloat(this, "EKF2_GPS_V_GATE", false, &_params->vel_innov_gate)),
 	_mag_heading_noise(new control::BlockParamFloat(this, "EKF2_HEAD_NOISE", false, &_params->mag_heading_noise)),
-	_mag_declination_deg(new control::BlockParamFloat(this, "EKF2_MAG_DECL", false, &_params->mag_declination_deg)),
+        _mag_noise(new control::BlockParamFloat(this, "EKF2_MAG_NOISE", false, &_params->mag_noise)),
+        _mag_declination_deg(new control::BlockParamFloat(this, "EKF2_MAG_DECL", false, &_params->mag_declination_deg)),
 	_heading_innov_gate(new control::BlockParamFloat(this, "EKF2_HDG_GATE", false, &_params->heading_innov_gate)),
 	_mag_innov_gate(new control::BlockParamFloat(this, "EKF2_MAG_GATE", false, &_params->mag_innov_gate)),
 	_gps_check_mask(new control::BlockParamInt(this, "EKF2_GPS_CHECK", false, &_params->gps_check_mask)),
@@ -228,8 +230,7 @@ Ekf2::Ekf2():
 	_requiredNsats(new control::BlockParamInt(this, "EKF2_REQ_NSATS", false, &_params->req_nsats)),
 	_requiredGDoP(new control::BlockParamFloat(this, "EKF2_REQ_GDOP", false, &_params->req_gdop)),
 	_requiredHdrift(new control::BlockParamFloat(this, "EKF2_REQ_HDRIFT", false, &_params->req_hdrift)),
-	_requiredVdrift(new control::BlockParamFloat(this, "EKF2_REQ_VDRIFT", false, &_params->req_vdrift))
-
+        _requiredVdrift(new control::BlockParamFloat(this, "EKF2_REQ_VDRIFT", false, &_params->req_vdrift))
 {
 
 }
