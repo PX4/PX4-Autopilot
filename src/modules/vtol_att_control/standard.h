@@ -38,6 +38,7 @@
 *
 * @author Simon Wilks 		<simon@uaventure.com>
 * @author Roman Bapst 		<bapstroman@gmail.com>
+* @author Sander Smeets 	<sander@droneslab.com>
 *
 */
 
@@ -69,6 +70,7 @@ private:
 		float pusher_trans;
 		float airspeed_blend;
 		float airspeed_trans;
+		float front_trans_timeout;
 	} _params_standard;
 
 	struct {
@@ -77,6 +79,7 @@ private:
 		param_t pusher_trans;
 		param_t airspeed_blend;
 		param_t airspeed_trans;
+		param_t front_trans_timeout;
 	} _params_handles_standard;
 
 	enum vtol_mode {
