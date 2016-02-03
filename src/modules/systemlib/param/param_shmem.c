@@ -74,7 +74,12 @@
 
 #define debug(fmt, args...)		do { } while(0)
 
+#ifdef __PX4_QURT
+//Mode not supported by qurt
+#define PARAM_OPEN(a, b, ...)	open(a, b)
+#else
 #define PARAM_OPEN	open
+#endif
 #define PARAM_CLOSE	close
 
 /**
@@ -85,7 +90,6 @@ extern struct param_info_s	param_array[];
 extern struct param_info_s	*param_info_base;
 extern struct param_info_s	*param_info_limit;
 #else
-// TODO: start and end are reversed
 static struct param_info_s *param_info_base = (struct param_info_s *) &px4_parameters;
 #endif
 
@@ -517,11 +521,17 @@ param_get(param_t param, void *val)
 
 #ifdef ENABLE_SHMEM_DEBUG
 
-	if (param_type(param) == PARAM_TYPE_INT32)	{ PX4_INFO("param_get for %s : %d\n", param_name(param), *(int *)val); }
+	if (param_type(param) == PARAM_TYPE_INT32) {
+		PX4_INFO("param_get for %s : %d\n", param_name(param), ((union param_value_u *)val)->i);
+	}
 
-	else if (param_type(param) == PARAM_TYPE_FLOAT) { PX4_INFO("param_get for %s : %f\n", param_name(param), *(double *)val); }
+	else if (param_type(param) == PARAM_TYPE_FLOAT) {
+		PX4_INFO("param_get for %s : %f\n", param_name(param), (double)((union param_value_u *)val)->f);
+	}
 
-	else { PX4_INFO("Unknown param type for %s\n", param_name(param)); }
+	else {
+		PX4_INFO("Unknown param type for %s\n", param_name(param));
+	}
 
 #endif
 
@@ -535,6 +545,9 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 {
 	int result = -1;
 	bool params_changed = false;
+
+	PX4_DEBUG("param_set_internal params: param = %d, val = 0x%X, mark_saved: %d, notify_changes: %d",
+			param, val, (int)mark_saved, (int)notify_changes);
 
 	param_lock();
 
@@ -627,11 +640,17 @@ out:
 
 #ifdef ENABLE_SHMEM_DEBUG
 
-	if (param_type(param) == PARAM_TYPE_INT32) {PX4_INFO("param_set for %s : %d\n", param_name(param), *(int *)val);}
+	if (param_type(param) == PARAM_TYPE_INT32) {
+		PX4_INFO("param_set for %s : %d\n", param_name(param), ((union param_value_u *)val)->i);
+	}
 
-	else if (param_type(param) == PARAM_TYPE_FLOAT) {PX4_INFO("param_set for %s : %f\n", param_name(param), *(double *)val);}
+	else if (param_type(param) == PARAM_TYPE_FLOAT) {
+		PX4_INFO("param_set for %s : %f\n", param_name(param), (double)((union param_value_u *)val)->f);
+	}
 
-	else {PX4_INFO("Unknown param type for %s\n", param_name(param));}
+	else {
+		PX4_INFO("Unknown param type for %s\n", param_name(param));
+	}
 
 #endif
 
@@ -786,34 +805,47 @@ param_get_default_file(void)
 int
 param_save_default(void)
 {
-	int res;
-	int fd;
+	int res = OK;
+	int fd = -1;
+	bool is_locked = false;
 
 	const char *filename = param_get_default_file();
 
 	if (get_shmem_lock() != 0) {
 		PX4_ERR("Could not get shmem lock\n");
-		return 0;
+		res = ERROR;
+		goto exit;
 	}
+	is_locked = true;
 
 	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
-		warn("failed to open param file: %s", filename);
+		PX4_ERR("failed to open param file: %s", filename);
 		return ERROR;
 	}
 
 	res = param_export(fd, false);
 
 	if (res != OK) {
-		warnx("failed to write parameters to file: %s", filename);
+		PX4_ERR("failed to write parameters to file: %s", filename);
+		goto exit;
 	}
 
 	PARAM_CLOSE(fd);
 
-	release_shmem_lock();
+exit:
+	if (is_locked) {
+		release_shmem_lock();
+	}
 
-	PX4_INFO("saving params done\n");
+	if (fd >= 0) {
+ 		close(fd);
+ 	}
+
+	if (res == OK) {
+		PX4_INFO("saving params completed successfully\n");
+ 	}
 
 	return res;
 }
@@ -855,11 +887,6 @@ param_load_default(void)
 static int
 param_load_default_no_notify(void)
 {
-	if (get_shmem_lock() != 0) {
-		PX4_ERR("Could not get shmem lock\n");
-		return 0;
-	}
-
 	int fd_load = open(param_get_default_file(), O_RDONLY);
 
 	if (fd_load < 0) {
@@ -879,8 +906,6 @@ param_load_default_no_notify(void)
 	close(fd_load);
 
 	PX4_INFO("param loading done\n");
-
-	release_shmem_lock();
 
 	if (result != 0) {
 		warn("error reading parameters from '%s'", param_get_default_file());
