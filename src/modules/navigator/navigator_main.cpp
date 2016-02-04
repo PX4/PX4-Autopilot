@@ -331,7 +331,7 @@ Navigator::task_main()
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			PX4_WARN("poll error %d, %d", pret, errno);
+			PX4_WARN("nav: poll error %d, %d", pret, errno);
 			continue;
 		}
 
