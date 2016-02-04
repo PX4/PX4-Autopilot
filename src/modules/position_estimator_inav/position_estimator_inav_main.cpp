@@ -339,6 +339,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float att_gyrospeed_filtered[] = { 0.0f, 0.0f, 0.0f };
 	float yaw_comp[] = { 0.0f, 0.0f };
 	hrt_abstime flow_time = 0;
+	float flow_min_dist = 0.2f;
 
 	bool gps_valid = false;			// GPS is valid
 	bool lidar_valid = false;		// lidar is valid
@@ -370,6 +371,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&global_pos, 0, sizeof(global_pos));
 	struct distance_sensor_s lidar;
 	memset(&lidar, 0, sizeof(lidar));
+	struct vehicle_rates_setpoint_s rates_setpoint;
+	memset(&rates_setpoint, 0, sizeof(rates_setpoint));
 
 	/* subscribe */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -382,6 +385,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vision_position_estimate_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 	int distance_sensor_sub = orb_subscribe(ORB_ID(distance_sensor));
+	int vehicle_rate_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
@@ -590,7 +594,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float flow_q = flow.quality / 255.0f;
 				float dist_bottom = lidar.current_distance;
 
-				if (dist_bottom > lidar_min_dist && flow_q > params.flow_q_min && PX4_R(att.R, 2, 2) > 0.7f) {
+				if (dist_bottom > flow_min_dist && flow_q > params.flow_q_min && PX4_R(att.R, 2, 2) > 0.7f) {
 					/* distance to surface */
 					//float flow_dist = dist_bottom / PX4_R(att.R, 2, 2); //use this if using sonar
 					float flow_dist = dist_bottom; //use this if using lidar
@@ -640,19 +644,45 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					yaw_comp[0] = - params.flow_module_offset_y * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
 					yaw_comp[1] = params.flow_module_offset_x * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
 
-
 					/* convert raw flow to angular flow (rad/s) */
 					float flow_ang[2];
-					//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
-					flow_ang[0] = ((flow.pixel_flow_x_integral - flow.gyro_x_rate_integral) / (float)flow.integration_timespan * 1000000.0f
-						       + gyro_offset_filtered[0]) * params.flow_k;//for now the flow has to be scaled (to small)
-					flow_ang[1] = ((flow.pixel_flow_y_integral - flow.gyro_y_rate_integral) / (float)flow.integration_timespan * 1000000.0f
-						       + gyro_offset_filtered[1]) * params.flow_k;//for now the flow has to be scaled (to small)
-					/* flow measurements vector */
 
+					/* check for vehicle rates setpoint - it below threshold -> dont subtract -> better hover */
+					orb_check(vehicle_rate_sp_sub, &updated);
+					if (updated)
+						orb_copy(ORB_ID(vehicle_rates_setpoint), vehicle_rate_sp_sub, &rates_setpoint);
+
+					float rate_threshold = 0.15f;
+
+					if (abs(rates_setpoint.pitch) < rate_threshold) {
+						//warnx("[inav] test ohne comp");
+						flow_ang[0] = (flow.pixel_flow_x_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
+					}
+					else {
+						//warnx("[inav] test mit comp");
+						//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
+						flow_ang[0] = ((flow.pixel_flow_x_integral - flow.gyro_x_rate_integral) / (float)flow.integration_timespan * 1000000.0f
+							       + gyro_offset_filtered[0]) * params.flow_k;//for now the flow has to be scaled (to small)
+					}
+
+					if (abs(rates_setpoint.roll) < rate_threshold) {
+						flow_ang[1] = (flow.pixel_flow_y_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
+					}
+					else {
+						//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
+						flow_ang[1] = ((flow.pixel_flow_y_integral - flow.gyro_y_rate_integral) / (float)flow.integration_timespan * 1000000.0f
+							       + gyro_offset_filtered[1]) * params.flow_k;//for now the flow has to be scaled (to small)
+					}
+
+					/* flow measurements vector */
 					float flow_m[3];
-					flow_m[0] = -flow_ang[0] * flow_dist - yaw_comp[0] * params.flow_k;
-					flow_m[1] = -flow_ang[1] * flow_dist - yaw_comp[1] * params.flow_k;
+					if (abs(rates_setpoint.yaw) < rate_threshold) {
+						flow_m[0] = -flow_ang[0] * flow_dist;
+						flow_m[1] = -flow_ang[1] * flow_dist;
+					} else {
+						flow_m[0] = -flow_ang[0] * flow_dist - yaw_comp[0] * params.flow_k;
+						flow_m[1] = -flow_ang[1] * flow_dist - yaw_comp[1] * params.flow_k;
+					}
 					flow_m[2] = z_est[1];
 
 					/* velocity in NED */
