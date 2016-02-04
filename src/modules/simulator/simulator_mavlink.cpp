@@ -533,20 +533,36 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	mavlink_status_t udp_status = {};
 	mavlink_status_t serial_status = {};
 
+	bool sim_delay = false;
+
+	const unsigned max_wait_ms = 6;
+
 	// wait for new mavlink messages to arrive
 	while (true) {
 
-		pret = ::poll(&fds[0], fd_count, 10);
+		pret = ::poll(&fds[0], fd_count, max_wait_ms);
 
 		//timed out
 		if (pret == 0) {
-			PX4_WARN("mavlink sim timeout for 10 ms");
+			if (!sim_delay) {
+				// we do not want to spam the console by default
+				// PX4_WARN("mavlink sim timeout for %d ms", max_wait_ms);
+				sim_delay = true;
+				hrt_start_delay();
+				px4_sim_start_delay();
+			}
 			continue;
+		}
+
+		if (sim_delay) {
+			sim_delay = false;
+			hrt_stop_delay();
+			px4_sim_stop_delay();
 		}
 
 		// this is undesirable but not much we can do
 		if (pret < 0) {
-			PX4_WARN("poll error %d, %d", pret, errno);
+			PX4_WARN("simulator mavlink: poll error %d, %d", pret, errno);
 			// sleep a bit before next try
 			usleep(100000);
 			continue;
