@@ -65,9 +65,15 @@ static void		hrt_call_reschedule(void);
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
 static hrt_abstime px4_timestart = 0;
+static hrt_abstime _start_delay_time = 0;
+static hrt_abstime _delay_interval = 0;
+pthread_mutex_t _hrt_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void
 hrt_call_invoke(void);
+
+static hrt_abstime
+_hrt_absolute_time_internal(void);
 
 __EXPORT hrt_abstime hrt_reset(void);
 
@@ -116,7 +122,7 @@ int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
 /*
  * Get absolute time.
  */
-hrt_abstime hrt_absolute_time(void)
+hrt_abstime _hrt_absolute_time_internal(void)
 {
 	struct timespec ts;
 
@@ -129,10 +135,39 @@ hrt_abstime hrt_absolute_time(void)
 	return ts_to_abstime(&ts) - px4_timestart;
 }
 
+/*
+ * Get absolute time.
+ */
+hrt_abstime hrt_absolute_time(void)
+{
+	pthread_mutex_lock(&_hrt_mutex);
+	static hrt_abstime max_time = 0;
+
+	hrt_abstime ret;
+
+	if (_start_delay_time > 0) {
+		ret = _start_delay_time;
+	} else {
+		ret = _hrt_absolute_time_internal();
+	}
+
+	ret -= _delay_interval;
+
+	if (ret < max_time) {
+		PX4_ERR("WARNING! TIME IS NEGATIVE! %d vs %d", (int)ret, (int)max_time);
+		ret = max_time;
+	}
+
+	max_time = ret;
+	pthread_mutex_unlock(&_hrt_mutex);
+
+	return ret;
+}
+
 __EXPORT hrt_abstime hrt_reset(void)
 {
 	px4_timestart = 0;
-	return hrt_absolute_time();
+	return _hrt_absolute_time_internal();
 }
 
 /*
@@ -157,7 +192,7 @@ hrt_abstime ts_to_abstime(struct timespec *ts)
  */
 hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then)
 {
-	hrt_abstime delta = hrt_absolute_time() - *then;
+	hrt_abstime delta = _hrt_absolute_time_internal() - *then;
 	return delta;
 }
 
@@ -168,7 +203,7 @@ hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then)
  */
 hrt_abstime hrt_store_absolute_time(volatile hrt_abstime *now)
 {
-	hrt_abstime ts = hrt_absolute_time();
+	hrt_abstime ts = _hrt_absolute_time_internal();
 	return ts;
 }
 
@@ -218,7 +253,7 @@ void	hrt_call_init(struct hrt_call *entry)
  */
 void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
 {
-	entry->deadline = hrt_absolute_time() + delay;
+	entry->deadline = _hrt_absolute_time_internal() + delay;
 }
 
 /*
@@ -235,6 +270,26 @@ void	hrt_init(void)
 	}
 
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
+}
+
+void	hrt_start_delay()
+{
+	pthread_mutex_lock(&_hrt_mutex);
+	_start_delay_time = _hrt_absolute_time_internal();
+	pthread_mutex_unlock(&_hrt_mutex);
+}
+
+void	hrt_stop_delay()
+{
+	pthread_mutex_lock(&_hrt_mutex);
+	int64_t delta = _hrt_absolute_time_internal() - _start_delay_time;
+	_delay_interval += delta;
+	_start_delay_time = 0;
+	if (delta > 10000) {
+		PX4_INFO("simulator is slow. Delay added: %llu us", delta);
+	}
+	pthread_mutex_unlock(&_hrt_mutex);
+
 }
 
 static void
@@ -295,7 +350,7 @@ hrt_tim_isr(void *p)
 static void
 hrt_call_reschedule()
 {
-	hrt_abstime	now = hrt_absolute_time();
+	hrt_abstime	now = _hrt_absolute_time_internal();
 	hrt_abstime	delay = HRT_INTERVAL_MAX;
 	struct hrt_call	*next = (struct hrt_call *)sq_peek(&callout_queue);
 	hrt_abstime	deadline = now + HRT_INTERVAL_MAX;
@@ -383,7 +438,7 @@ void	hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callo
 {
 	//printf("hrt_call_after\n");
 	hrt_call_internal(entry,
-			  hrt_absolute_time() + delay,
+			  _hrt_absolute_time_internal() + delay,
 			  0,
 			  callout,
 			  arg);
@@ -398,7 +453,7 @@ void	hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callo
 void	hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg)
 {
 	hrt_call_internal(entry,
-			  hrt_absolute_time() + delay,
+			  _hrt_absolute_time_internal() + delay,
 			  interval,
 			  callout,
 			  arg);
@@ -429,7 +484,7 @@ hrt_call_invoke(void)
 
 	while (true) {
 		/* get the current time */
-		hrt_abstime now = hrt_absolute_time();
+		hrt_abstime now = _hrt_absolute_time_internal();
 
 		call = (struct hrt_call *)sq_peek(&callout_queue);
 
