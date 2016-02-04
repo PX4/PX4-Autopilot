@@ -238,6 +238,9 @@ private:
 	float _pitch;
 	float _yaw;
 	bool _reinitialize_tecs;			///< indicates if the TECS states should be reinitialized (used for VTOL)
+	hrt_abstime _last_tecs_update;
+	float _asp_after_transition;
+	bool _was_in_transition;
 
 	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
@@ -567,6 +570,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
 	_reinitialize_tecs(true),
+	_last_tecs_update(0.0f),
+	_asp_after_transition(0.0f),
+	_was_in_transition(false),
 	_l1_control(),
 	_mTecs(),
 	_control_mode_current(FW_POSCTRL_MODE_OTHER)
@@ -1150,6 +1156,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	}
 
 	_control_position_last_called = hrt_absolute_time();
+
+	/* only run position controller in fixed-wing mode and during transitions for VTOL */
+	if (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+		_control_mode_current = FW_POSCTRL_MODE_OTHER;
+		return false;
+	}
 
 	bool setpoint = true;
 
@@ -2157,13 +2169,40 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		unsigned mode, bool pitch_max_special)
 {
 	bool run_tecs = true;
+	float dt = 0.01f; // prevent division with 0
+
+	if (_last_tecs_update > 0) {
+		dt = hrt_elapsed_time(&_last_tecs_update) * 1e-6;
+	}
+
+	_last_tecs_update = hrt_absolute_time();
 
 	// do not run TECS if we are not in air
 	run_tecs &= !_vehicle_status.condition_landed;
 
-	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode
+	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
+	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
-		run_tecs &= !_vehicle_status.is_rotary_wing;
+		run_tecs &= !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
+	}
+
+	// we're in transition
+	if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
+		_was_in_transition = true;
+		_asp_after_transition = _ctrl_state.airspeed;
+
+	// after transition we ramp up desired airspeed from the speed we had coming out of the transition
+	} else if (_was_in_transition) {
+		_asp_after_transition += dt * 2; // increase 2m/s
+
+		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {
+			v_sp = fmaxf(_asp_after_transition, _ctrl_state.airspeed);
+		}
+
+		else {
+			_was_in_transition = false;
+			_asp_after_transition = 0;
+		}
 	}
 
 	if (!run_tecs) {
@@ -2173,7 +2212,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	}
 
 	if (_reinitialize_tecs) {
-		_tecs.reinitialize_states();
+		_tecs.reset_state();
 		_reinitialize_tecs = false;
 	}
 

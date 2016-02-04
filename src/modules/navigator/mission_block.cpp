@@ -37,6 +37,7 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Sander Smeets <sander@droneslab.com>
+ * @author Andreas Antener <andreas@uaventure.com>
  */
 
 #include <sys/types.h>
