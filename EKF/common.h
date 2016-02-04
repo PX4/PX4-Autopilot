@@ -50,7 +50,7 @@ struct gps_message {
 	float eph;                  // GPS horizontal position accuracy in m
 	float epv;                  // GPS vertical position accuracy in m
 	float sacc;                 // GPS speed accuracy in m/s
-        uint64_t time_usec_vel;     // Timestamp for velocity informations
+	uint64_t time_usec_vel;     // Timestamp for velocity informations
 	float vel_m_s;              // GPS ground speed (m/s)
 	float vel_ned[3];           // GPS ground speed NED
 	bool vel_ned_valid;         // GPS ground speed is valid
@@ -112,35 +112,35 @@ struct flowSample {
 };
 
 struct parameters {
-        float mag_delay_ms = 0.0f;          // magnetometer measurement delay relative to the IMU
-        float baro_delay_ms = 0.0f;         // barometer height measurement delay relative to the IMU
-        float gps_delay_ms = 200.0f;        // GPS measurement delay relative to the IMU
-        float airspeed_delay_ms = 200.0f;   // airspeed measurement delay relative to the IMU
+	float mag_delay_ms = 0.0f;          // magnetometer measurement delay relative to the IMU
+	float baro_delay_ms = 0.0f;         // barometer height measurement delay relative to the IMU
+	float gps_delay_ms = 200.0f;        // GPS measurement delay relative to the IMU
+	float airspeed_delay_ms = 200.0f;   // airspeed measurement delay relative to the IMU
 
 	// input noise
-        float gyro_noise = 1.0e-3f;         // IMU angular rate noise used for covariance prediction
-        float accel_noise = 2.5e-1f;        // IMU acceleration noise use for covariance prediction
+	float gyro_noise = 1.0e-3f;         // IMU angular rate noise used for covariance prediction
+	float accel_noise = 2.5e-1f;        // IMU acceleration noise use for covariance prediction
 
 	// process noise
-        float gyro_bias_p_noise = 7.0e-5f;  // process noise for IMU delta angle bias prediction
-        float accel_bias_p_noise = 1.0e-4f; // process noise for IMU delta velocity bias prediction
-        float gyro_scale_p_noise = 3.0e-3f; // process noise for gyro scale factor prediction
-        float mag_p_noise = 2.5e-2f;        // process noise for magnetic field prediction
-        float wind_vel_p_noise = 1.0e-1f;   // process noise for wind velocity prediction
+	float gyro_bias_p_noise = 7.0e-5f;  // process noise for IMU delta angle bias prediction
+	float accel_bias_p_noise = 1.0e-4f; // process noise for IMU delta velocity bias prediction
+	float gyro_scale_p_noise = 3.0e-3f; // process noise for gyro scale factor prediction
+	float mag_p_noise = 2.5e-2f;        // process noise for magnetic field prediction
+	float wind_vel_p_noise = 1.0e-1f;   // process noise for wind velocity prediction
 
-        float gps_vel_noise = 5.0e-1f;      // observation noise for gps velocity fusion
-        float gps_pos_noise = 1.0f;         // observation noise for gps position fusion
-        float pos_noaid_noise = 10.0f;      // observation noise for non-aiding position fusion
-        float baro_noise = 3.0f;            // observation noise for barometric height fusion
-        float baro_innov_gate = 3.0f;       // barometric height innovation consistency gate size in standard deviations
-        float posNE_innov_gate = 3.0f;      // GPS horizontal position innovation consistency gate size in standard deviations
+	float gps_vel_noise = 5.0e-1f;      // observation noise for gps velocity fusion
+	float gps_pos_noise = 1.0f;         // observation noise for gps position fusion
+	float pos_noaid_noise = 10.0f;      // observation noise for non-aiding position fusion
+	float baro_noise = 3.0f;            // observation noise for barometric height fusion
+	float baro_innov_gate = 3.0f;       // barometric height innovation consistency gate size in standard deviations
+	float posNE_innov_gate = 3.0f;      // GPS horizontal position innovation consistency gate size in standard deviations
 	float vel_innov_gate = 3.0f;        // GPS velocity innovation consistency gate size in standard deviations
 
-        float mag_heading_noise = 1.7e-1f;  // measurement noise used for simple heading fusion
-        float mag_noise = 5.0e-2f;          // measurement noise used for 3-axis magnetoemeter fusion
-        float mag_declination_deg = 0.0f;   // magnetic declination in degrees
-        float heading_innov_gate = 3.0f;    // heading fusion innovation consistency gate size in standard deviations
-        float mag_innov_gate = 3.0f;        // magnetometer fusion innovation consistency gate size in standard deviations
+	float mag_heading_noise = 1.7e-1f;  // measurement noise used for simple heading fusion
+	float mag_noise = 5.0e-2f;          // measurement noise used for 3-axis magnetoemeter fusion
+	float mag_declination_deg = 0.0f;   // magnetic declination in degrees
+	float heading_innov_gate = 3.0f;    // heading fusion innovation consistency gate size in standard deviations
+	float mag_innov_gate = 3.0f;        // magnetometer fusion innovation consistency gate size in standard deviations
 
 	// these parameters control the strictness of GPS quality checks used to determine uf the GPS is
 	// good enough to set a local origin and commence aiding

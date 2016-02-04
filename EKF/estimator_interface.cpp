@@ -137,7 +137,7 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		memcpy(gps_sample_new.vel._data[0], gps->vel_ned, sizeof(gps_sample_new.vel._data));
 
 		_gps_speed_valid = gps->vel_ned_valid;
-                _gps_speed_accuracy = gps->sacc;
+		_gps_speed_accuracy = gps->sacc;
 
 		float lpos_x = 0.0f;
 		float lpos_y = 0.0f;

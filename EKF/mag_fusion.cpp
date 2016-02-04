@@ -55,8 +55,8 @@ void Ekf::fuseMag()
 	float magD = _state.mag_I(2);
 
 	// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
-    float R_MAG = fmaxf(_params.mag_noise, 1.0e-3f);
-    R_MAG = R_MAG*R_MAG;
+	float R_MAG = fmaxf(_params.mag_noise, 1.0e-3f);
+	R_MAG = R_MAG * R_MAG;
 
 	// intermediate variables from algebraic optimisation
 	float SH_MAG[9];
@@ -472,8 +472,8 @@ void Ekf::fuseHeading()
 	float magY = _mag_sample_delayed.mag(1);
 	float magZ = _mag_sample_delayed.mag(2);
 
-    float R_mag = fmaxf(_params.mag_heading_noise, 1.0e-2f);
-    R_mag = R_mag*R_mag;
+	float R_mag = fmaxf(_params.mag_heading_noise, 1.0e-2f);
+	R_mag = R_mag * R_mag;
 
 	float t2 = q0 * q0;
 	float t3 = q1 * q1;

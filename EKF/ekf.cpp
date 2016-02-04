@@ -330,8 +330,8 @@ bool Ekf::collect_imu(imuSample &imu)
 	_imu_down_sampled.delta_vel = delta_R * _imu_down_sampled.delta_vel;
 	_imu_down_sampled.delta_vel += imu.delta_vel;
 
-	if ((_dt_imu_avg * _imu_ticks >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000) || 
-		_dt_imu_avg * _imu_ticks >= 0.02f){
+	if ((_dt_imu_avg * _imu_ticks >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000) ||
+	    _dt_imu_avg * _imu_ticks >= 0.02f) {
 		imu = {
 			.delta_ang	= _q_down_sampled.to_axis_angle(),
 			.delta_vel	= _imu_down_sampled.delta_vel,
