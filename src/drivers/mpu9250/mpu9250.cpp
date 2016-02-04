@@ -913,27 +913,27 @@ MPU9250::accel_self_test()
 
 	/* inspect accel offsets */
 	if (fabsf(_accel_scale.x_offset) < 0.000001f) {
-		return 1;
+		return 2;
 	}
 
 	if (fabsf(_accel_scale.x_scale - 1.0f) > 0.4f || fabsf(_accel_scale.x_scale - 1.0f) < 0.000001f) {
-		return 1;
+		return 3;
 	}
 
 	if (fabsf(_accel_scale.y_offset) < 0.000001f) {
-		return 1;
+		return 4;
 	}
 
 	if (fabsf(_accel_scale.y_scale - 1.0f) > 0.4f || fabsf(_accel_scale.y_scale - 1.0f) < 0.000001f) {
-		return 1;
+		return 5;
 	}
 
 	if (fabsf(_accel_scale.z_offset) < 0.000001f) {
-		return 1;
+		return 6;
 	}
 
 	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f) {
-		return 1;
+		return 7;
 	}
 
 	return 0;

@@ -88,9 +88,10 @@ set(srcs
 	../../lib/rc/sbus.c
 	../../lib/rc/dsm.c
 	../../drivers/stm32/drv_hrt.c
+	../../drivers/stm32/drv_io_timer.c
 	../../drivers/stm32/drv_pwm_servo.c
 	../../drivers/boards/${config_io_board}/px4io_init.c
-	../../drivers/boards/${config_io_board}/px4io_pwm_servo.c
+	../../drivers/boards/${config_io_board}/px4io_timer_config.c
 	)
 
 if(${config_io_board} STREQUAL "px4io-v1")
