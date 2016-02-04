@@ -1,8 +1,4 @@
 uorb start
 ekf2 start --replay
-mavlink start -u 14556 -r 2000000
-mavlink boot_complete
-param set SDLOG_PRIO_BOOST 3
-sdlog2 start -r 500 -e -t
-sleep 2
+sleep 1
 ekf2_replay start replay.px4log

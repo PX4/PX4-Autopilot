@@ -57,99 +57,19 @@
 #include <uORB/topics/ekf2_replay.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/ekf2_innovations.h>
+#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/control_state.h>
+
+#include "ekf2_replay.h"
 
 extern "C" __EXPORT int ekf2_replay_main(int argc, char *argv[]);
-
-#define LOG_RPL1_MSG 51
-#define LOG_RPL2_MSG 52
-#define HEAD_BYTE1  0xA3    // Decimal 163
-#define HEAD_BYTE2  0x95    // Decimal 149
-#define LOG_FORMAT_MSG	0x80
-#define LOG_VER_MSG 	130
-#define LOG_PARM_MSG 	131
-#define LOG_TIME_MSG 	129
 
 #define PRINT_READ_ERROR 	PX4_WARN("error reading from log file");
 
 class Ekf2Replay;
 
-// TODO These struct are already defined in sdlog2_messages.h
-// However, the file cannot be included because of different use of struct
-// initialization (C99 not available for C++).
-#pragma pack(push, 1)
-struct log_format_s {
-	uint8_t type;
-	uint8_t length;		// full packet length including header
-	char name[4];
-	char format[16];
-	char labels[64];
-};
-
-struct log_VER_s {
-	char arch[16];
-	char fw_git[64];
-};
-
-struct log_PARM_s {
-	char name[16];
-	float value;
-};
-
-struct log_TIME_s {
-	uint64_t t;
-};
-
-struct log_RPL1_s {
-	uint64_t time_ref;
-	uint64_t gyro_integral_dt;
-	uint64_t accelerometer_integral_dt;
-	uint64_t magnetometer_timestamp;
-	uint64_t baro_timestamp;
-	float gyro_integral_x_rad;
-	float gyro_integral_y_rad;
-	float gyro_integral_z_rad;
-	float accelerometer_integral_x_m_s;
-	float accelerometer_integral_y_m_s;
-	float accelerometer_integral_z_m_s;
-	float magnetometer_x_ga;
-	float magnetometer_y_ga;
-	float magnetometer_z_ga;
-	float baro_alt_meter;
-};
-
-struct log_RPL2_s {
-	uint64_t time_pos_usec;
-	uint64_t time_vel_usec;
-	int32_t lat;
-	int32_t lon;
-	int32_t alt;
-	uint8_t fix_type;
-	float eph;
-	float epv;
-	float vel_m_s;
-	float vel_n_m_s;
-	float vel_e_m_s;
-	float vel_d_m_s;
-	bool vel_ned_valid;
-};
-
-struct log_ATT_s {
-	float q_w;
-	float q_x;
-	float q_y;
-	float q_z;
-	float roll;
-	float pitch;
-	float yaw;
-	float roll_rate;
-	float pitch_rate;
-	float yaw_rate;
-	float gx;
-	float gy;
-	float gz;
-};
-
-#pragma pack(pop)
 
 namespace ekf2_replay
 {
@@ -189,6 +109,12 @@ private:
 	orb_advert_t _sensors_pub;
 	orb_advert_t _gps_pub;
 
+	int _att_sub;
+	int _estimator_status_sub;
+	int _innov_sub;
+	int _lpos_sub;
+	int _control_state_sub;
+
 	char *_file_name;
 
 	struct log_format_s _formats[100];
@@ -197,6 +123,8 @@ private:
 
 	bool _read_part1;
 	bool _read_part2;
+
+	int _write_fd = -1;
 
 	// parse replay message from buffer
 	void parseMessage(uint8_t *source, uint8_t *destination, uint8_t type);
@@ -207,16 +135,28 @@ private:
 
 	// sensor data for the estimator
 	void publishSensorData();
+
+	void writeMessage(int &fd, void *data, size_t size);
+
+	bool needToSaveMessage(uint8_t type);
+
+	void logIfUpdated();
 };
 
 Ekf2Replay::Ekf2Replay(char *logfile) :
 	_sensors_pub(nullptr),
 	_gps_pub(nullptr),
+	_att_sub(-1),
+	_estimator_status_sub(-1),
+	_innov_sub(-1),
+	_lpos_sub(-1),
+	_control_state_sub(-1),
 	_formats{},
 	_sensors{},
 	_gps{},
 	_read_part1(false),
-	_read_part2(false)
+	_read_part2(false),
+	_write_fd(-1)
 {
 	// build the path to the log
 	char tmp[] = "./rootfs/";
@@ -334,76 +274,355 @@ void Ekf2Replay::setSensorData(uint8_t *data, uint8_t type)
 	}
 }
 
+void Ekf2Replay::writeMessage(int &fd, void *data, size_t size)
+{
+	if (size != ::write(fd, data, size)) {
+		PX4_WARN("error writing to file");
+	}
+}
+
+bool Ekf2Replay::needToSaveMessage(uint8_t type)
+{
+	if (type == LOG_ATT_MSG ||
+	    type == LOG_LPOS_MSG ||
+	    type == LOG_EST0_MSG ||
+	    type == LOG_EST1_MSG ||
+	    type == LOG_EST2_MSG ||
+	    type == LOG_EST3_MSG ||
+	    type == LOG_EST4_MSG ||
+	    type == LOG_EST5_MSG ||
+	    type == LOG_CTS_MSG) {
+		return false;
+	}
+
+	return true;
+}
+
+// update all estimator topics and write them to log file
+void Ekf2Replay::logIfUpdated()
+{
+	bool updated = false;
+
+	// update attitude
+	struct vehicle_attitude_s att = {};
+	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
+	memset(&log_message.body.att.q_w, 0, sizeof(log_ATT_s));
+
+	log_message.type = LOG_ATT_MSG;
+	log_message.head1 = HEAD_BYTE1;
+	log_message.head2 = HEAD_BYTE2;
+	log_message.body.att.q_w = att.q[0];
+	log_message.body.att.q_x = att.q[1];
+	log_message.body.att.q_y = att.q[2];
+	log_message.body.att.q_z = att.q[3];
+	log_message.body.att.roll = att.roll;
+	log_message.body.att.pitch = att.pitch;
+	log_message.body.att.yaw = att.yaw;
+	log_message.body.att.roll_rate = att.rollspeed;
+	log_message.body.att.pitch_rate = att.pitchspeed;
+	log_message.body.att.yaw_rate = att.yawspeed;
+	log_message.body.att.gx = att.g_comp[0];
+	log_message.body.att.gy = att.g_comp[1];
+	log_message.body.att.gz = att.g_comp[2];
+
+	writeMessage(_write_fd, (void *)&log_message.head1, sizeof(log_ATT_s) + 3);
+
+	// update local position
+	orb_check(_lpos_sub, &updated);
+
+	if (updated) {
+		struct vehicle_local_position_s lpos = {};
+		orb_copy(ORB_ID(vehicle_local_position), _lpos_sub, &lpos);
+
+		log_message.type = LOG_LPOS_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+		log_message.body.lpos.x = lpos.x;
+		log_message.body.lpos.y = lpos.y;
+		log_message.body.lpos.z = lpos.z;
+		log_message.body.lpos.ground_dist = lpos.dist_bottom;
+		log_message.body.lpos.ground_dist_rate = lpos.dist_bottom_rate;
+		log_message.body.lpos.vx = lpos.vx;
+		log_message.body.lpos.vy = lpos.vy;
+		log_message.body.lpos.vz = lpos.vz;
+		log_message.body.lpos.ref_lat = lpos.ref_lat * 1e7;
+		log_message.body.lpos.ref_lon = lpos.ref_lon * 1e7;
+		log_message.body.lpos.ref_alt = lpos.ref_alt;
+		log_message.body.lpos.pos_flags = (lpos.xy_valid ? 1 : 0) |
+						  (lpos.z_valid ? 2 : 0) |
+						  (lpos.v_xy_valid ? 4 : 0) |
+						  (lpos.v_z_valid ? 8 : 0) |
+						  (lpos.xy_global ? 16 : 0) |
+						  (lpos.z_global ? 32 : 0);
+		log_message.body.lpos.ground_dist_flags = (lpos.dist_bottom_valid ? 1 : 0);
+		log_message.body.lpos.eph = lpos.eph;
+		log_message.body.lpos.epv = lpos.epv;
+
+		writeMessage(_write_fd, (void *)&log_message.head1, sizeof(log_LPOS_s) + 3);
+	}
+
+	// update estimator status
+	orb_check(_estimator_status_sub, &updated);
+
+	if (updated) {
+		struct estimator_status_s est_status = {};
+		orb_copy(ORB_ID(estimator_status), _estimator_status_sub, &est_status);
+		unsigned maxcopy0 = (sizeof(est_status.states) < sizeof(log_message.body.est0.s)) ? sizeof(est_status.states) : sizeof(
+					    log_message.body.est0.s);
+		log_message.type = LOG_EST0_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+		memset(&(log_message.body.est0.s), 0, sizeof(log_message.body.est0));
+		memcpy(&(log_message.body.est0.s), est_status.states, maxcopy0);
+		log_message.body.est0.n_states = est_status.n_states;
+		log_message.body.est0.nan_flags = est_status.nan_flags;
+		log_message.body.est0.health_flags = est_status.health_flags;
+		log_message.body.est0.timeout_flags = est_status.timeout_flags;
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST0_MSG].length + 3);
+
+		log_message.type = LOG_EST1_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+		unsigned maxcopy1 = ((sizeof(est_status.states) - maxcopy0) < sizeof(log_message.body.est1.s)) ? (sizeof(
+					    est_status.states) - maxcopy0) : sizeof(log_message.body.est1.s);
+		memset(&(log_message.body.est1.s), 0, sizeof(log_message.body.est1.s));
+		memcpy(&(log_message.body.est1.s), ((char *)est_status.states) + maxcopy0, maxcopy1);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST1_MSG].length + 3);
+
+		log_message.type = LOG_EST2_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+		unsigned maxcopy2 = (sizeof(est_status.covariances) < sizeof(log_message.body.est2.cov)) ? sizeof(
+					    est_status.covariances) : sizeof(log_message.body.est2.cov);
+		memset(&(log_message.body.est2.cov), 0, sizeof(log_message.body.est2.cov));
+		memcpy(&(log_message.body.est2.cov), est_status.covariances, maxcopy2);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST2_MSG].length + 3);
+
+		log_message.type = LOG_EST3_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+		unsigned maxcopy3 = ((sizeof(est_status.covariances) - maxcopy2) < sizeof(log_message.body.est3.cov)) ? (sizeof(
+					    est_status.covariances) - maxcopy2) : sizeof(log_message.body.est3.cov);
+		memset(&(log_message.body.est3.cov), 0, sizeof(log_message.body.est3.cov));
+		memcpy(&(log_message.body.est3.cov), ((char *)est_status.covariances) + maxcopy2, maxcopy3);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST3_MSG].length + 3);
+
+	}
+
+	// update ekf2 innovations
+	orb_check(_innov_sub, &updated);
+
+	if (updated) {
+		struct ekf2_innovations_s innov = {};
+		orb_copy(ORB_ID(ekf2_innovations), _innov_sub, &innov);
+		memset(&log_message.body.innov.s, 0, sizeof(log_message.body.innov.s));
+
+		log_message.type = LOG_EST4_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+
+		for (unsigned i = 0; i < 6; i++) {
+			log_message.body.innov.s[i] = innov.vel_pos_innov[i];
+			log_message.body.innov.s[i + 6] = innov.vel_pos_innov_var[i];
+		}
+
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST4_MSG].length + 3);
+
+		log_message.type = LOG_EST5_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+		memset(&(log_message.body.innov2.s), 0, sizeof(log_message.body.innov2.s));
+
+		for (unsigned i = 0; i < 3; i++) {
+			log_message.body.innov2.s[i] = innov.mag_innov[i];
+			log_message.body.innov2.s[i + 3] = innov.mag_innov_var[i];
+		}
+
+		log_message.body.innov2.s[6] = innov.heading_innov;
+		log_message.body.innov2.s[7] = innov.heading_innov_var;
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length + 3);
+	}
+
+	// update control state
+	orb_check(_control_state_sub, &updated);
+
+	if (updated) {
+		struct control_state_s control_state = {};
+		orb_copy(ORB_ID(control_state), _control_state_sub, &control_state);
+		log_message.type = LOG_CTS_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+		log_message.body.control_state.vx_body = control_state.x_vel;
+		log_message.body.control_state.vy_body = control_state.y_vel;
+		log_message.body.control_state.vz_body = control_state.z_vel;
+		log_message.body.control_state.airspeed = control_state.airspeed;
+		log_message.body.control_state.roll_rate = control_state.roll_rate;
+		log_message.body.control_state.pitch_rate = control_state.pitch_rate;
+		log_message.body.control_state.yaw_rate = control_state.yaw_rate;
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_CTS_MSG].length + 3);
+	}
+}
+
 void Ekf2Replay::task_main()
 {
 	// formats
 	const int _k_max_data_size = 1024;	// 16x16 bytes
 	uint8_t data[_k_max_data_size] = {};
 
-	printf("opening %s for ekf2 replay\n", _file_name);
+	// Open log file from which we read data
 	// TODO Check if file exists
 	int fd = ::open(_file_name, O_RDONLY);
-	bool reached_end = false;
+
+	// replay log file
+	char *replay_log_name;
+	replay_log_name = strtok(_file_name, ".");
+
+	char tmp[] = "_replayed.px4log";
+
+	char *path_to_replay_log = (char *) malloc(1 + strlen(tmp) + strlen(replay_log_name));
+	strcpy(path_to_replay_log, ".");
+	strcat(path_to_replay_log, replay_log_name);
+	strcat(path_to_replay_log, tmp);
+
+	// open logfile to write
+	_write_fd = ::open(path_to_replay_log, O_WRONLY | O_CREAT, S_IRWXU);
+
+	// subscribe to estimator topics
+	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
+	_innov_sub = orb_subscribe(ORB_ID(ekf2_innovations));
+	_lpos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_control_state_sub = orb_subscribe(ORB_ID(control_state));
+
+	px4_pollfd_struct_t fds[1];
+
+	// we use attitude updates from the estimator for synchronisation
+	fds[0].fd = _att_sub;
+	fds[0].events = POLLIN;
+
+	bool read_first_header = false;
+
+	PX4_WARN("Replay in progress...");
+	PX4_WARN("Log data will be written to %s", path_to_replay_log);
 
 	while (!_task_should_exit) {
-		do {
-			uint8_t header[3];
+		uint8_t header[3] = {};
 
-			if (::read(fd, header, 3) != 3) {
+		if (::read(fd, header, 3) != 3) {
+			if (!read_first_header) {
 				PX4_WARN("error reading log file, is the path printed above correct?");
-				reached_end = true;
-				_task_should_exit = true;
-				return;
-			}
-
-			if (header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2) {
-				PX4_WARN("bad log header\n");
-				_task_should_exit = true;
-			}
-
-			if (header[2] == LOG_FORMAT_MSG) {
-				struct log_format_s f;
-
-				if (::read(fd, &f.type, sizeof(f)) != sizeof(f)) {
-					PRINT_READ_ERROR;
-					_task_should_exit = true;
-				}
-
-				memcpy(&_formats[f.type], &f, sizeof(f));
-
-			} else if (header[2] == LOG_PARM_MSG) {
-				if (::read(fd, &data[0], sizeof(log_PARM_s)) != sizeof(log_PARM_s)) {
-					PRINT_READ_ERROR;
-				}
-
-			} else if (header[2] == LOG_VER_MSG) {
-				if (::read(fd, &data[0], sizeof(log_VER_s)) != sizeof(log_VER_s)) {
-					PRINT_READ_ERROR;
-				}
-
-			} else if (header[2] == LOG_TIME_MSG) {
-				if (::read(fd, &data[0], sizeof(log_TIME_s)) != sizeof(log_TIME_s)) {
-					PRINT_READ_ERROR;
-				}
 
 			} else {
-				if (::read(fd, &data[0], _formats[header[2]].length - 3) != _formats[header[2]].length - 3) {
-					PX4_WARN("Done, check the posix log directory for the latest log!");
-					return;
+				PX4_WARN("Done!");
+			}
+
+			_task_should_exit = true;
+			continue;
+		}
+
+		read_first_header = true;
+
+		if (header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2) {
+			PX4_WARN("bad log header\n");
+			_task_should_exit = true;
+			continue;
+		}
+
+		// write header but only for messages which are not generated by the estimator
+		if (needToSaveMessage(header[2])) {
+			writeMessage(_write_fd, &header[0], 3);
+		}
+
+		if (header[2] == LOG_FORMAT_MSG) {
+			// format message
+			struct log_format_s f;
+
+			if (::read(fd, &f.type, sizeof(f)) != sizeof(f)) {
+				PRINT_READ_ERROR;
+				_task_should_exit = true;
+				continue;
+			}
+
+			writeMessage(_write_fd, &f.type, sizeof(log_format_s));
+
+			memcpy(&_formats[f.type], &f, sizeof(f));
+
+		} else if (header[2] == LOG_PARM_MSG) {
+			// parameter message
+			if (::read(fd, &data[0], sizeof(log_PARM_s)) != sizeof(log_PARM_s)) {
+				PRINT_READ_ERROR;
+				_task_should_exit = true;
+				continue;
+			}
+
+			writeMessage(_write_fd, &data[0], sizeof(log_PARM_s));
+
+		} else if (header[2] == LOG_VER_MSG) {
+			// version message
+			if (::read(fd, &data[0], sizeof(log_VER_s)) != sizeof(log_VER_s)) {
+				PRINT_READ_ERROR;
+				_task_should_exit = true;
+				continue;
+			}
+
+			writeMessage(_write_fd, &data[0], sizeof(log_VER_s));
+
+		} else if (header[2] == LOG_TIME_MSG) {
+			// time message
+			if (::read(fd, &data[0], sizeof(log_TIME_s)) != sizeof(log_TIME_s)) {
+				PRINT_READ_ERROR;
+				_task_should_exit = true;
+				continue;
+			}
+
+			writeMessage(_write_fd, &data[0], sizeof(log_TIME_s));
+
+		} else {
+			// data message
+			if (::read(fd, &data[0], _formats[header[2]].length - 3) != _formats[header[2]].length - 3) {
+				PX4_WARN("Done!");
+				_task_should_exit = true;
+				continue;
+			}
+
+			// all messages which we are not getting from the estimator are written
+			// back into the replay log file
+			if (needToSaveMessage(header[2])) {
+				writeMessage(_write_fd, &data[0], _formats[header[2]].length - 3);
+			}
+
+			// set estimator input data
+			setSensorData(&data[0], header[2]);
+
+			// we have read both messages, publish them
+			if (_read_part1 && _read_part2) {
+				publishSensorData();
+
+				// wait for estimator output to arrive
+				int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
+
+				if (pret == 0) {
+					PX4_WARN("timeout");
 				}
 
-				setSensorData(&data[0], header[2]);
+				if (pret < 0) {
+					PX4_WARN("poll error");
+				}
 
-				if (_read_part1 || _read_part2) {
-					publishSensorData();
+				if (fds[0].revents & POLLIN) {
+					// write all estimator messages to replay log file
+					logIfUpdated();
+
 					_read_part1 = _read_part2 = false;
-					// TODO: Make this variable
-
-					usleep(2000);
 				}
 			}
-		} while (!reached_end || _task_should_exit);
+		}
 	}
+
+	::close(_write_fd);
+	::close(fd);
+	delete ekf2_replay::instance;
+	ekf2_replay::instance = nullptr;
 }
 
 void Ekf2Replay::task_main_trampoline(int argc, char *argv[])
