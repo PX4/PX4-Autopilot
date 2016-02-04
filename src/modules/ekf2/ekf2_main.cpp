@@ -445,9 +445,7 @@ void Ekf2::task_main()
 
 		// Position of local NED origin in GPS / WGS84 frame
 		struct map_projection_reference_s ekf_origin = {};
-		_ekf->get_ekf_origin(&lpos.ref_timestamp, &ekf_origin, &lpos.ref_alt);
-		lpos.ref_timestamp = _ekf->_last_gps_origin_time_us; // Time when reference position was set
-		// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
+		_ekf->get_ekf_origin(&lpos.ref_timestamp, &ekf_origin, &lpos.ref_alt); 	// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
 		lpos.xy_global = _ekf->position_is_valid();
 		lpos.z_global = true;                                // true if z is valid and has valid global reference (ref_alt)
 		lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
