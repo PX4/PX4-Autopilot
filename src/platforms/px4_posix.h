@@ -146,6 +146,10 @@ __EXPORT int		px4_fsync(int fd);
 __EXPORT int		px4_access(const char *pathname, int mode);
 __EXPORT unsigned long	px4_getpid(void);
 
+__EXPORT void		px4_enable_sim_lockstep(void);
+__EXPORT void		px4_sim_start_delay(void);
+__EXPORT void		px4_sim_stop_delay(void);
+
 __END_DECLS
 #else
 #error "No TARGET OS Provided"

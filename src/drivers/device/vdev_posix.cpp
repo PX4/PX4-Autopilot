@@ -53,6 +53,9 @@
 using namespace device;
 
 pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
+px4_sem_t lockstep_sem;
+bool sim_lockstep = false;
+bool sim_delay = false;
 
 extern "C" {
 
@@ -270,6 +273,10 @@ extern "C" {
 
 #endif
 
+		while (sim_delay) {
+			usleep(100);
+		}
+
 		PX4_DEBUG("Called px4_poll timeout = %d", timeout);
 		px4_sem_init(&sem, 0, 0);
 
@@ -396,6 +403,23 @@ extern "C" {
 	void px4_show_files()
 	{
 		VDev::showFiles();
+	}
+
+	void px4_enable_sim_lockstep()
+	{
+		px4_sem_init(&lockstep_sem, 0, 0);
+		sim_lockstep = true;
+		sim_delay = false;
+	}
+
+	void px4_sim_start_delay()
+	{
+		sim_delay = true;
+	}
+
+	void px4_sim_stop_delay()
+	{
+		sim_delay = false;
 	}
 
 	const char *px4_get_device_names(unsigned int *handle)
