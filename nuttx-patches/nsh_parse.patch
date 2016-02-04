@@ -1,6 +1,6 @@
 	diff -ruN NuttX/apps/nshlib/nsh_parse.c NuttX/apps/nshlib/nsh_parse.c
 --- NuttX/apps/nshlib/nsh_parse.c	2016-02-02 15:13:19.241834143 +1100
-+++ NuttX/apps/nshlib/nsh_parse.c	2016-02-04 15:50:46.851397765 +1100
++++ NuttX/apps/nshlib/nsh_parse.c	2016-02-02 16:44:34.009245229 +1100
 @@ -156,9 +156,9 @@
  #endif
  
@@ -33,43 +33,18 @@
             * ('}').  Otherwise, the variable name goes to the end of the
             * argument.
             */
-@@ -1159,6 +1159,20 @@
+@@ -1159,6 +1159,10 @@
             * nsh_envexpand will return the NULL string.
             */
  
-+          if (isenvvar)
-+            {
++          if (isenvvar) {
 +              *isenvvar = 1;
-+            }
-+
-+          /* Look for extra characters appended to the environment variable via a 
-+           * period character. If found, terminate the variable before attempting expansion.
-+           */
-+          FAR char *p = strchr(ptr, '.');
-+          if (p)
-+            {
-+              *p = '\0';
-+            }
++          }
 +
            envstr = nsh_envexpand(vtbl, ptr);
  
            /* Concatenate the result of the operation with the accumulated
-@@ -1167,6 +1181,14 @@
-            */
- 
-           argument    = nsh_strcat(vtbl, argument, envstr);
-+          /* If we found addition characters appended to the environment variable as 
-+           * above, then put them back on the expanded argument string.
-+           */
-+          if (p)
-+            {
-+              *p = '.';
-+              argument    = nsh_strcat(vtbl, argument, p);
-+            }
-           *allocation = argument;
-         }
-       else
-@@ -1179,7 +1201,7 @@
+@@ -1179,7 +1183,7 @@
  
  #else
  static FAR char *nsh_argexpand(FAR struct nsh_vtbl_s *vtbl, FAR char *cmdline,
@@ -78,18 +53,17 @@
  {
    FAR char *argument = (FAR char *)g_nullstring;
  
-@@ -1215,6 +1237,10 @@
+@@ -1215,6 +1219,9 @@
  
    if (*cmdline == '$')
      {
-+      if (isenvvar)
-+        {
++      if (isenvvar) {
 +          *isenvvar = 1;
-+        }
++      }
        argument = nsh_envexpand(vtbl, cmdline + 1);
      }
    else
-@@ -1237,7 +1263,7 @@
+@@ -1237,7 +1244,7 @@
   ****************************************************************************/
  
  static FAR char *nsh_argument(FAR struct nsh_vtbl_s *vtbl, FAR char **saveptr,
@@ -98,7 +72,7 @@
  {
    FAR char *pbegin     = *saveptr;
    FAR char *pend       = NULL;
-@@ -1309,6 +1335,13 @@
+@@ -1309,6 +1316,13 @@
  
            pbegin++;
            term = "\"";
@@ -112,7 +86,7 @@
          }
        else
          {
-@@ -1368,11 +1401,11 @@
+@@ -1368,11 +1382,11 @@
  
        /* Perform expansions as necessary for the argument */
  
@@ -126,7 +100,7 @@
     * processing.
     */
  
-@@ -1489,7 +1522,7 @@
+@@ -1489,7 +1503,7 @@
  
            /* Get the cmd following the "while" or "until" */
  
@@ -135,7 +109,7 @@
            if (!*ppcmd)
              {
                nsh_output(vtbl, g_fmtarginvalid, "if");
-@@ -1546,7 +1579,7 @@
+@@ -1546,7 +1560,7 @@
          {
            /* Get the cmd following the "do" -- there may or may not be one */
  
@@ -144,7 +118,7 @@
  
            /* Verify that "do" is valid in this context */
  
-@@ -1566,7 +1599,7 @@
+@@ -1566,7 +1580,7 @@
          {
            /* Get the cmd following the "done" -- there should be one */
  
@@ -153,7 +127,7 @@
            if (*ppcmd)
              {
                nsh_output(vtbl, g_fmtarginvalid, "done");
-@@ -1671,7 +1704,7 @@
+@@ -1671,7 +1685,7 @@
          {
            /* Get the cmd following the if */
  
@@ -162,7 +136,7 @@
            if (!*ppcmd)
              {
                nsh_output(vtbl, g_fmtarginvalid, "if");
-@@ -1709,7 +1742,7 @@
+@@ -1709,7 +1723,7 @@
          {
            /* Get the cmd following the "then" -- there may or may not be one */
  
@@ -171,7 +145,7 @@
  
            /* Verify that "then" is valid in this context */
  
-@@ -1728,7 +1761,7 @@
+@@ -1728,7 +1742,7 @@
          {
            /* Get the cmd following the "else" -- there may or may not be one */
  
@@ -180,7 +154,7 @@
  
            /* Verify that "else" is valid in this context */
  
-@@ -1747,7 +1780,7 @@
+@@ -1747,7 +1761,7 @@
          {
            /* Get the cmd following the fi -- there should be one */
  
@@ -189,7 +163,7 @@
            if (*ppcmd)
              {
                nsh_output(vtbl, g_fmtarginvalid, "fi");
-@@ -1819,10 +1852,10 @@
+@@ -1819,10 +1833,10 @@
  
            /* Get the cmd (or -d option of nice command) */
  
@@ -202,7 +176,7 @@
                if (val)
                  {
                    char *endptr;
-@@ -1833,7 +1866,7 @@
+@@ -1833,7 +1847,7 @@
                        nsh_output(vtbl, g_fmtarginvalid, "nice");
                        return ERROR;
                      }
@@ -211,7 +185,7 @@
                  }
              }
  
-@@ -1901,7 +1934,7 @@
+@@ -1901,7 +1915,7 @@
    /* Parse out the command at the beginning of the line */
  
    saveptr = cmdline;
@@ -220,7 +194,7 @@
  
    /* Check if any command was provided -OR- if command processing is
     * currently disabled.
-@@ -1935,7 +1968,7 @@
+@@ -1935,7 +1949,7 @@
    argv[0] = cmd;
    for (argc = 1; argc < MAX_ARGV_ENTRIES-1; argc++)
      {
@@ -229,7 +203,7 @@
        if (!argv[argc])
          {
            break;
-@@ -2002,7 +2035,7 @@
+@@ -2002,7 +2016,7 @@
    /* Parse out the command at the beginning of the line */
  
    saveptr = cmdline;
@@ -238,7 +212,7 @@
  
  #ifndef CONFIG_NSH_DISABLESCRIPT
  #ifndef CONFIG_NSH_DISABLE_LOOPS
-@@ -2070,15 +2103,54 @@
+@@ -2070,15 +2084,54 @@
     */
  
    argv[0] = cmd;
