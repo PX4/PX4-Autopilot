@@ -536,11 +536,12 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	// wait for new mavlink messages to arrive
 	while (true) {
 
-		pret = ::poll(&fds[0], fd_count, 10);
+		// 20 ms so ubuntu can keep up
+		pret = ::poll(&fds[0], fd_count, 20);
 
 		//timed out
 		if (pret == 0) {
-			PX4_WARN("mavlink sim timeout for 10 ms");
+			PX4_WARN("mavlink sim timeout for 20 ms");
 			continue;
 		}
 
