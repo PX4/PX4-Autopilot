@@ -3266,7 +3266,7 @@ void *commander_low_prio_loop(void *arg)
 			}
 		} else if (pret < 0) {
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
-			warn("poll error %d, %d", pret, errno);
+			warn("commander: poll error %d, %d", pret, errno);
 			continue;
 		} else {
 
