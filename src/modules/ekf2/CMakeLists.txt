@@ -31,18 +31,19 @@
 #
 #############################################################################
 set(MODULE_CFLAGS)
-if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=4000)
-endif()
-px4_add_module(
-	MODULE modules__ekf2
-	MAIN ekf2
-	COMPILE_FLAGS ${MODULE_CFLAGS}
-	STACK 1000
-	SRCS
+
+if ($ {OS} STREQUAL "nuttx")
+	list(APPEND MODULE_CFLAGS - Wframe - larger - than = 4000)
+	endif()
+	px4_add_module(
+		MODULE modules__ekf2
+		MAIN ekf2
+		COMPILE_FLAGS $ {MODULE_CFLAGS}
+		STACK 1000
+		SRCS
 		ekf2_main.cpp
-	DEPENDS
+		DEPENDS
 		platforms__common
 		git_ecl
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
