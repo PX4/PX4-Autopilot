@@ -16,6 +16,7 @@ set(config_module_list
 	systemcmds/param
 	systemcmds/mixer
 	systemcmds/ver
+	systemcmds/topic_listener
 
 	modules/mavlink
 
