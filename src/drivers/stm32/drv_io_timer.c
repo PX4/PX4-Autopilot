@@ -679,9 +679,9 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 			rCR1(actions) = 0;
 		}
-
-		irqrestore(flags);
 	}
+
+	irqrestore(flags);
 
 	return 0;
 }
