@@ -247,6 +247,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastALT = 0;
 			static hrt_abstime lastSPD = 0;
 			static hrt_abstime lastFUEL = 0;
+			static hrt_abstime lastVSPD = 0;
 
 			switch (sbuf[1]) {
 
@@ -304,6 +305,17 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastFUEL = now;
 					/* send fuel */
 					sPort_send_FUEL(uart);
+				}
+
+				break;
+
+			case SMARTPORT_POLL_6:
+
+				/* report vertical speed at 5Hz */
+				if (now - lastVSPD > 200 * 1000) {
+					lastVSPD = now;
+					/* send fuel */
+					sPort_send_VSPD(uart);
 				}
 
 				break;

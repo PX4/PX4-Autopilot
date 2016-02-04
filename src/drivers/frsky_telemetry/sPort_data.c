@@ -203,6 +203,31 @@ void sPort_send_SPD(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
 }
 
+// TODO: verify scaling
+void sPort_send_VSPD(int uart)
+{
+	static uint64_t last_baro_time = 0;
+	static float last_baro_alt = 0;
+
+	/* get a local copy of the current sensor values */
+	struct sensor_combined_s raw;
+	memset(&raw, 0, sizeof(raw));
+	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+
+	/* estimate vertical speed using first difference and delta t */
+	uint64_t baro_time = raw.baro_timestamp[0];
+	uint64_t dt = baro_time - last_baro_time;
+	float speed  = (raw.baro_alt_meter[0] - last_baro_alt) / (1e-6f * (float)dt);
+
+	/* save current alt and timestamp */
+	last_baro_alt = raw.baro_alt_meter[0];
+	last_baro_time = baro_time;
+
+	/* send data for VARIO vertical speed: int16 cm/sec */
+	int32_t ispeed = (int)(100 * speed);
+	sPort_send_data(uart, SMARTPORT_ID_VARIO, ispeed);
+}
+
 // verified scaling
 void sPort_send_FUEL(int uart)
 {
