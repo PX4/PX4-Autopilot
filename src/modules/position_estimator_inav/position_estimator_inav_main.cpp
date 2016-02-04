@@ -652,9 +652,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (updated)
 						orb_copy(ORB_ID(vehicle_rates_setpoint), vehicle_rate_sp_sub, &rates_setpoint);
 
-					float rate_threshold = 0.15f;
+					double rate_threshold = 0.15f;
 
-					if (std::fabs(rates_setpoint.pitch) < rate_threshold) {
+					if (fabs(rates_setpoint.pitch) < rate_threshold) {
 						//warnx("[inav] test ohne comp");
 						flow_ang[0] = (flow.pixel_flow_x_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
@@ -665,7 +665,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							       + gyro_offset_filtered[0]) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
 
-					if (std::fabs(rates_setpoint.roll) < rate_threshold) {
+					if (fabs(rates_setpoint.roll) < rate_threshold) {
 						flow_ang[1] = (flow.pixel_flow_y_integral / (float)flow.integration_timespan * 1000000.0f) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
 					else {
@@ -676,7 +676,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* flow measurements vector */
 					float flow_m[3];
-					if (std::fabs(rates_setpoint.yaw) < rate_threshold) {
+					if (fabs(rates_setpoint.yaw) < rate_threshold) {
 						flow_m[0] = -flow_ang[0] * flow_dist;
 						flow_m[1] = -flow_ang[1] * flow_dist;
 					} else {
