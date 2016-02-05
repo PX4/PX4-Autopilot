@@ -38,6 +38,7 @@
 *
 * @author Simon Wilks 		<simon@uaventure.com>
 * @author Roman Bapst 		<bapstroman@gmail.com>
+* @author Andreas Antener	<andreas@uaventure.com>
 * @author Sander Smeets 	<sander@droneslab.com>
 *
 */
@@ -56,11 +57,10 @@ public:
 	Standard(VtolAttitudeControl *_att_controller);
 	~Standard();
 
-	void update_vtol_state();
-	void update_mc_state();
-	void update_fw_state();
-	void update_transition_state();
-	void update_external_state();
+	virtual void update_vtol_state();
+	virtual void update_transition_state();
+	virtual void update_fw_state();
+	virtual void fill_actuator_outputs();
 
 private:
 
@@ -98,7 +98,6 @@ private:
 	float _pusher_throttle;
 	float _airspeed_trans_blend_margin;
 
-	void fill_actuator_outputs();
 	void set_max_mc(unsigned pwm_value);
 
 	int parameters_update();

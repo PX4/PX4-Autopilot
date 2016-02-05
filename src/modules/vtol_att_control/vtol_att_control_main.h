@@ -83,6 +83,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_status.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
@@ -119,7 +120,7 @@ public:
 	struct fw_virtual_rates_setpoint_s 		*get_fw_virtual_rates_sp() {return &_fw_virtual_v_rates_sp;}
 	struct manual_control_setpoint_s 		*get_manual_control_sp() {return &_manual_control_sp;}
 	struct vehicle_control_mode_s 			*get_control_mode() {return &_v_control_mode;}
-	struct vtol_vehicle_status_s			*get_vehicle_status() {return &_vtol_vehicle_status;}
+	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
 	struct actuator_controls_s 			*get_actuators_out0() {return &_actuators_out_0;}
 	struct actuator_controls_s 			*get_actuators_out1() {return &_actuators_out_1;}
 	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
@@ -128,6 +129,7 @@ public:
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
 	struct airspeed_s 						*get_airspeed() {return &_airspeed;}
 	struct battery_status_s 				*get_batt_status() {return &_batt_status;}
+	struct vehicle_status_s 				*get_vehicle_status() {return &_vehicle_status;}
 
 	struct Params 						*get_params() {return &_params;}
 
@@ -153,6 +155,7 @@ private:
 	int 	_airspeed_sub;			// airspeed subscription
 	int 	_battery_status_sub;	// battery status subscription
 	int 	_vehicle_cmd_sub;
+	int 	_vehicle_status_sub;
 
 	int 	_actuator_inputs_mc;	//topic on which the mc_att_controller publishes actuator inputs
 	int 	_actuator_inputs_fw;	//topic on which the fw_att_controller publishes actuator inputs
@@ -164,25 +167,26 @@ private:
 	orb_advert_t	_v_rates_sp_pub;
 	orb_advert_t	_v_att_sp_pub;
 //*******************data containers***********************************************************
-	struct vehicle_attitude_s				_v_att;				//vehicle attitude
-	struct vehicle_attitude_setpoint_s		_v_att_sp;			//vehicle attitude setpoint
-	struct mc_virtual_attitude_setpoint_s	_mc_virtual_att_sp;	// virtual mc attitude setpoint
-	struct fw_virtual_attitude_setpoint_s	_fw_virtual_att_sp;	// virtual fw attitude setpoint
-	struct vehicle_rates_setpoint_s			_v_rates_sp;		//vehicle rates setpoint
-	struct mc_virtual_rates_setpoint_s		_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
-	struct fw_virtual_rates_setpoint_s		_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint
-	struct manual_control_setpoint_s		_manual_control_sp; //manual control setpoint
-	struct vehicle_control_mode_s			_v_control_mode;	//vehicle control mode
-	struct vtol_vehicle_status_s			_vtol_vehicle_status;
-	struct actuator_controls_s				_actuators_out_0;	//actuator controls going to the mc mixer
-	struct actuator_controls_s				_actuators_out_1;	//actuator controls going to the fw mixer (used for elevons)
-	struct actuator_controls_s				_actuators_mc_in;	//actuator controls from mc_att_control
-	struct actuator_controls_s				_actuators_fw_in;	//actuator controls from fw_att_control
-	struct actuator_armed_s					_armed;				//actuator arming status
-	struct vehicle_local_position_s			_local_pos;
-	struct airspeed_s						_airspeed;			// airspeed
-	struct battery_status_s					_batt_status; 		// battery status
-	struct vehicle_command_s				_vehicle_cmd;
+	struct vehicle_attitude_s			_v_att;				//vehicle attitude
+	struct vehicle_attitude_setpoint_s	_v_att_sp;			//vehicle attitude setpoint
+	struct mc_virtual_attitude_setpoint_s _mc_virtual_att_sp;	// virtual mc attitude setpoint
+	struct fw_virtual_attitude_setpoint_s _fw_virtual_att_sp;	// virtual fw attitude setpoint
+	struct vehicle_rates_setpoint_s 	_v_rates_sp;		//vehicle rates setpoint
+	struct mc_virtual_rates_setpoint_s 	_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
+	struct fw_virtual_rates_setpoint_s 	_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint
+	struct manual_control_setpoint_s	_manual_control_sp; //manual control setpoint
+	struct vehicle_control_mode_s		_v_control_mode;	//vehicle control mode
+	struct vtol_vehicle_status_s 		_vtol_vehicle_status;
+	struct actuator_controls_s			_actuators_out_0;	//actuator controls going to the mc mixer
+	struct actuator_controls_s			_actuators_out_1;	//actuator controls going to the fw mixer (used for elevons)
+	struct actuator_controls_s			_actuators_mc_in;	//actuator controls from mc_att_control
+	struct actuator_controls_s			_actuators_fw_in;	//actuator controls from fw_att_control
+	struct actuator_armed_s				_armed;				//actuator arming status
+	struct vehicle_local_position_s		_local_pos;
+	struct airspeed_s 					_airspeed;			// airspeed
+	struct battery_status_s 			_batt_status; 		// battery status
+	struct vehicle_command_s			_vehicle_cmd;
+	struct vehicle_status_s			_vehicle_status;
 
 	Params _params;	// struct holding the parameters
 
@@ -233,6 +237,7 @@ private:
 	void 		vehicle_battery_poll();			// Check for battery updates
 	void		vehicle_cmd_poll();
 	void 		parameters_update_poll();		//Check if parameters have changed
+	void 		vehicle_status_poll();
 	int 		parameters_update();			//Update local paraemter cache
 	void 		fill_mc_att_rates_sp();
 	void 		fill_fw_att_rates_sp();

@@ -227,39 +227,6 @@ void Tailsitter::update_vtol_state()
 	}
 }
 
-
-
-void Tailsitter::update_mc_state()
-{
-	// set idle speed for rotary wing mode
-	if (!flag_idle_mc) {
-		set_idle_mc();
-		flag_idle_mc = true;
-	}
-
-	_mc_roll_weight = 1.0f;
-	_mc_pitch_weight = 1.0f;
-	_mc_yaw_weight = 1.0f;
-
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-}
-
-void Tailsitter::update_fw_state()
-{
-	if (flag_idle_mc) {
-		set_idle_fw();
-		flag_idle_mc = false;
-	}
-
-	_mc_roll_weight = 0.0f;
-	_mc_pitch_weight = 0.0f;
-	_mc_yaw_weight = 0.0f;
-
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-}
-
 void Tailsitter::update_transition_state()
 {
 	if (!_flag_was_in_trans_mode) {
@@ -381,12 +348,6 @@ void Tailsitter::update_transition_state()
 	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
 }
 
-
-void Tailsitter::update_external_state()
-{
-
-}
-
 void Tailsitter::calc_tot_airspeed()
 {
 	float airspeed = math::max(1.0f, _airspeed->true_airspeed_m_s);	// prevent numerical drama
@@ -437,6 +398,27 @@ void Tailsitter::scale_mc_output()
 				 airspeed);
 	_actuators_mc_in->control[1] = math::constrain(_actuators_mc_in->control[1] * airspeed_scaling * airspeed_scaling,
 				       -1.0f, 1.0f);
+}
+
+void Tailsitter::update_mc_state()
+{
+	VtolType::update_mc_state();
+
+	// set idle speed for rotary wing mode
+	if (!flag_idle_mc) {
+		set_idle_mc();
+		flag_idle_mc = true;
+	}
+}
+
+void Tailsitter::update_fw_state()
+{
+	VtolType::update_fw_state();
+
+	if (flag_idle_mc) {
+		set_idle_fw();
+		flag_idle_mc = false;
+	}
 }
 
 /**
