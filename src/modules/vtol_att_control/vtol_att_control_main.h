@@ -41,7 +41,8 @@
  * @author Roman Bapst 		<bapstr@ethz.ch>
  * @author Lorenz Meier 	<lm@inf.ethz.ch>
  * @author Thomas Gubler	<thomasgubler@gmail.com>
- * @author David Vorsin     <davidvorsin@gmail.com>
+ * @author David Vorsin		<davidvorsin@gmail.com>
+ * @author Sander Smeets	<sander@droneslab.com>
  *
  */
 #ifndef VTOL_ATT_CONTROL_MAIN_H
@@ -106,6 +107,7 @@ public:
 
 	int start();	/* start the task and return OK on success */
 	bool is_fixed_wing_requested();
+	void abort_front_transition();
 
 	struct vehicle_attitude_s 				*get_att() {return &_v_att;}
 	struct vehicle_attitude_setpoint_s		*get_att_sp() {return &_v_att_sp;}
@@ -133,6 +135,7 @@ private:
 //******************flags & handlers******************************************************
 	bool _task_should_exit;
 	int _control_task;		//task handle for VTOL attitude controller
+	int _mavlink_fd;		// mavlink log device
 
 	/* handlers for subscriptions */
 	int		_v_att_sub;				//vehicle attitude subscription
@@ -201,6 +204,7 @@ private:
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
 	int _transition_command;
+	bool _abort_front_transition;
 
 	VtolType *_vtol_type;	// base class for different vtol types
 	Tiltrotor *_tiltrotor;	// tailsitter vtol type

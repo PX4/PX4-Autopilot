@@ -35,7 +35,8 @@
  * @file standard.cpp
  *
  * @author Simon Wilks		<simon@uaventure.com>
- * @author Roman Bapst 		<bapstroman@gmail.com>
+ * @author Roman Bapst		<bapstroman@gmail.com>
+ * @author Sander Smeets	<sander@droneslab.com>
  *
 */
 
@@ -61,6 +62,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.pusher_trans = param_find("VT_TRANS_THR");
 	_params_handles_standard.airspeed_blend = param_find("VT_ARSP_BLEND");
 	_params_handles_standard.airspeed_trans = param_find("VT_ARSP_TRANS");
+	_params_handles_standard.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 }
 
 Standard::~Standard()
@@ -84,7 +86,7 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.pusher_trans, &v);
 	_params_standard.pusher_trans = math::constrain(v, 0.0f, 5.0f);
 
-	/* airspeed at which it we should switch to fw mode */
+	/* airspeed at which we should switch to fw mode */
 	param_get(_params_handles_standard.airspeed_trans, &v);
 	_params_standard.airspeed_trans = math::constrain(v, 1.0f, 20.0f);
 
@@ -93,6 +95,9 @@ Standard::parameters_update()
 	_params_standard.airspeed_blend = math::constrain(v, 0.0f, 20.0f);
 
 	_airspeed_trans_blend_margin = _params_standard.airspeed_trans - _params_standard.airspeed_blend;
+
+	/* timeout for transition to fw mode */
+	param_get(_params_handles_standard.front_trans_timeout, &_params_standard.front_trans_timeout);
 
 	return OK;
 }
@@ -219,6 +224,14 @@ void Standard::update_transition_state()
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
 			_mc_throttle_weight = 1.0f;
+		}
+
+		// check front transition timeout
+		if (_params_standard.front_trans_timeout > FLT_EPSILON) {
+			if ( (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_timeout * 1000000.0f)) {
+				// transition timeout occured, abort transition
+				_attc->abort_front_transition();
+			}
 		}
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
