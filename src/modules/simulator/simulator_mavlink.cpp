@@ -551,6 +551,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 				hrt_start_delay();
 				px4_sim_start_delay();
 			}
+
 			continue;
 		}
 
