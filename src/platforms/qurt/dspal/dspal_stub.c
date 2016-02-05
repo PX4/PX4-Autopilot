@@ -30,53 +30,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#ifdef QURT_EXE_BUILD
 #include <stdio.h>
 #include <dlfcn.h>
-
-//#define STACK_SIZE 0x8000
-//static char __attribute__ ((aligned (16))) stack1[STACK_SIZE];
-
-static void do_dlopen()
-{
-#if 0
-	void *handle;
-	char *error;
-	void (*entry_function)() = NULL;
-
-	handle = dlopen("libdspal_client.so", RTLD_LAZY);
-
-	if (!handle) {
-		printf("Error opening libdspal_client.so\n");
-		return 1;
-	}
-
-	entry_function = dlsym(handle, "dspal_entry");
-
-	if (((error = dlerror()) != NULL) || (entry_function == NULL)) {
-		printf("Error dlsym for dspal_entry");
-		ret = 2;
-	}
-
-	dlclose(handle);
-#endif
-}
-
-#ifdef QURT_EXE_BUILD
-int dlinit(int a, char **b)
-{
-	return 0;
-}
-#endif
 
 int main(int argc, char *argv[])
 {
 	int ret = 0;
-	char *builtin[] = {"libgcc.so", "libc.so"};
 
-	printf("In DSPAL main\n");
-	dlinit(2, builtin);
+	// This code is never run. It is used solely to test linking in the
+	// TravisCI build test
 
-	do_dlopen();
 	return ret;
 }
 
+#endif

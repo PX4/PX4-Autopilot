@@ -10,6 +10,8 @@ include(qurt/px4_impl_qurt)
 
 #include_directories(${HEXAGON_DRIVERS_ROOT}/inc)
 
+set(CONFIG_SHMEM "1")
+
 # For Actual flight we need to link against the driver dynamic libraries
 #set(target_libraries
 #	-L${HEXAGON_DRIVERS_ROOT}/libs
@@ -71,6 +73,7 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
+	lib/ecl
 	lib/geo_lookup
 	lib/conversion
 	lib/terrain_estimation

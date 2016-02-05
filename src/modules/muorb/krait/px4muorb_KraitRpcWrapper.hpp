@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2016 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2016 Ramakrishna Kintada. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,13 +30,47 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#ifndef _px4muorb_KraitRpcWrapper_hpp_
+#define _px4muorb_KraitRpcWrapper_hpp_
+#include <stdint.h>
 
-/**
- * @file drv_input_capture.h
- *
- * stm32-specific input capture data.
- */
+namespace px4muorb
+{
+class KraitRpcWrapper;
+}
 
-#pragma once
+class px4muorb::KraitRpcWrapper
+{
+public:
+	/**
+	 * Constructor
+	 */
+	KraitRpcWrapper();
 
-#include <drivers/drv_input_capture.h>
+	/**
+	 * destructor
+	 */
+	~KraitRpcWrapper();
+
+	/**
+	 * Initiatizes the rpc channel px4 muorb
+	 */
+	bool Initialize();
+
+	/**
+	 * Terminate to clean up the resources.  This should be called at program exit
+	 */
+	bool Terminate();
+
+	/**
+	 * Muorb related functions to pub/sub of orb topic from krait to adsp
+	 */
+	int32_t AddSubscriber(const char *topic);
+	int32_t RemoveSubscriber(const char *topic);
+	int32_t SendData(const char *topic, int32_t length_in_bytes, const uint8_t *data);
+	int32_t ReceiveData(int32_t *msg_type, char **topic, int32_t *length_in_bytes, uint8_t **data);
+	int32_t IsSubscriberPresent(const char *topic, int32_t *status);
+	int32_t ReceiveBulkData(uint8_t **bulk_data, int32_t *length_in_bytes, int32_t *topic_count);
+	int32_t UnblockReceiveData();
+};
+#endif // _px4muorb_KraitWrapper_hpp_
