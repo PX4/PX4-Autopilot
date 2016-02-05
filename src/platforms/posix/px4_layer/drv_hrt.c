@@ -193,7 +193,7 @@ hrt_abstime ts_to_abstime(struct timespec *ts)
  */
 hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then)
 {
-	hrt_abstime delta = _hrt_absolute_time_internal() - *then;
+	hrt_abstime delta = hrt_absolute_time() - *then;
 	return delta;
 }
 
@@ -204,7 +204,7 @@ hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then)
  */
 hrt_abstime hrt_store_absolute_time(volatile hrt_abstime *now)
 {
-	hrt_abstime ts = _hrt_absolute_time_internal();
+	hrt_abstime ts = hrt_absolute_time();
 	return ts;
 }
 
@@ -254,7 +254,7 @@ void	hrt_call_init(struct hrt_call *entry)
  */
 void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
 {
-	entry->deadline = _hrt_absolute_time_internal() + delay;
+	entry->deadline = hrt_absolute_time() + delay;
 }
 
 /*
@@ -353,7 +353,7 @@ hrt_tim_isr(void *p)
 static void
 hrt_call_reschedule()
 {
-	hrt_abstime	now = _hrt_absolute_time_internal();
+	hrt_abstime	now = hrt_absolute_time();
 	hrt_abstime	delay = HRT_INTERVAL_MAX;
 	struct hrt_call	*next = (struct hrt_call *)sq_peek(&callout_queue);
 	hrt_abstime	deadline = now + HRT_INTERVAL_MAX;
@@ -441,7 +441,7 @@ void	hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callo
 {
 	//printf("hrt_call_after\n");
 	hrt_call_internal(entry,
-			  _hrt_absolute_time_internal() + delay,
+			  hrt_absolute_time() + delay,
 			  0,
 			  callout,
 			  arg);
@@ -456,7 +456,7 @@ void	hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callo
 void	hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg)
 {
 	hrt_call_internal(entry,
-			  _hrt_absolute_time_internal() + delay,
+			  hrt_absolute_time() + delay,
 			  interval,
 			  callout,
 			  arg);
@@ -487,7 +487,7 @@ hrt_call_invoke(void)
 
 	while (true) {
 		/* get the current time */
-		hrt_abstime now = _hrt_absolute_time_internal();
+		hrt_abstime now = hrt_absolute_time();
 
 		call = (struct hrt_call *)sq_peek(&callout_queue);
 
