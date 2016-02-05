@@ -147,6 +147,7 @@ hrt_abstime hrt_absolute_time(void)
 
 	if (_start_delay_time > 0) {
 		ret = _start_delay_time;
+
 	} else {
 		ret = _hrt_absolute_time_internal();
 	}
@@ -285,9 +286,11 @@ void	hrt_stop_delay()
 	int64_t delta = _hrt_absolute_time_internal() - _start_delay_time;
 	_delay_interval += delta;
 	_start_delay_time = 0;
+
 	if (delta > 10000) {
 		PX4_INFO("simulator is slow. Delay added: %llu us", delta);
 	}
+
 	pthread_mutex_unlock(&_hrt_mutex);
 
 }
