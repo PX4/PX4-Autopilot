@@ -347,14 +347,14 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 				if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO){
 
 					/* check actuator number */
-					if (mission_item.actuator_num < 0 || mission_item.actuator_num > 5) {
-						mavlink_log_critical(_mavlink_fd, "Actuator number %d is out of bounds 0..5", (int)mission_item.actuator_num);
+					if (mission_item.params[0] < 0 || mission_item.params[0] > 5) {
+						mavlink_log_critical(_mavlink_fd, "Actuator number %d is out of bounds 0..5", (int)mission_item.params[0]);
 						warning_issued = true;
 						return false;
 					}
 					/* check actuator value */
-					if (mission_item.actuator_value < -2000 || mission_item.actuator_value > 2000) {
-						mavlink_log_critical(_mavlink_fd, "Actuator value %d is out of bounds -2000..2000", (int)mission_item.actuator_value);
+					if (mission_item.params[1] < -2000 || mission_item.params[1] > 2000) {
+						mavlink_log_critical(_mavlink_fd, "Actuator value %d is out of bounds -2000..2000", (int)mission_item.params[1]);
 						warning_issued = true;
 						return false;
 					}

@@ -83,18 +83,8 @@ MissionBlock::is_mission_item_reached()
 {
 	/* handle non-navigation or indefinite waypoints */
 	switch (_mission_item.nav_cmd) {
-		// XXX: move handling to issue_command() as well
-		case NAV_CMD_DO_SET_SERVO: {
-			memset(&actuators, 0, sizeof(actuators));
-			actuators.control[_mission_item.actuator_num] = 1.0f / 2000 * -_mission_item.actuator_value;
-			actuators.timestamp = hrt_absolute_time();
-			if (_actuator_pub != nullptr) {
-				orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
-			} else {
-				_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
-			}
+		case NAV_CMD_DO_SET_SERVO:
 			return true;
-			}
 
 		case NAV_CMD_LAND:
 			return _navigator->get_vstatus()->condition_landed;
@@ -258,16 +248,34 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		return;
 	}
 
-	warnx("forwarding command %d\n", item->nav_cmd);
-	struct vehicle_command_s cmd = {};
-	mission_item_to_vehicle_command(item, &cmd);
-	_action_start = hrt_absolute_time();
+	if (item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
+		PX4_WARN("do_set_servo command");
+		// XXX: we should issue a vehicle command and handle this somewhere else
+		memset(&actuators, 0, sizeof(actuators));
+		// params[0] actuator number to be set 0..5 ( corresponds to AUX outputs 1..6
+		// params[1] new value for selected actuator in ms 900...2000
+		actuators.control[(int)item->params[0]] = 1.0f / 2000 * -item->params[1];
+		actuators.timestamp = hrt_absolute_time();
 
-	if (_cmd_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+		if (_actuator_pub != nullptr) {
+			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
+
+		} else {
+			_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
+		}
 
 	} else {
-		_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		PX4_WARN("forwarding command %d\n", item->nav_cmd);
+		struct vehicle_command_s cmd = {};
+		mission_item_to_vehicle_command(item, &cmd);
+		_action_start = hrt_absolute_time();
+
+		if (_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+
+		} else {
+			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		}
 	}
 }
 
@@ -276,7 +284,8 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
 	// XXX: maybe extend that check onto item properties
 	if (item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
-			item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+			item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION ||
+			item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
 		return false;
 	}
 
@@ -303,13 +312,6 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->acceptance_radius = item->acceptance_radius;
 
 	switch (item->nav_cmd) {
-	case NAV_CMD_DO_SET_SERVO: // XXX: actually also a non position item
-			/* Set current position for loitering set point*/
-			sp->lat = _navigator->get_global_position()->lat;
-			sp->lon = _navigator->get_global_position()->lon;
-			sp->alt = _navigator->get_global_position()->alt;
-			sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-			break;
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		break;

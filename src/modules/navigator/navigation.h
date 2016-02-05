@@ -103,9 +103,8 @@ struct mission_item_s {
 	int do_jump_mission_index;	/**< index where the do jump will go to                 */
 	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
 	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
-	int actuator_num;		/**< actuator number to be set 0..5 ( corresponds to AUX outputs 1..6    */
-	int actuator_value;		/**< new value for selected actuator in ms 900...2000         */
 	float params[7];		/**< array to store mission command values for MAV_FRAME_MISSION ***/
+	int8_t frame;			/**< mission frame ***/
 };
 #pragma pack(pop)
 #include <uORB/topics/mission.h>
