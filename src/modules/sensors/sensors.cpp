@@ -2216,6 +2216,7 @@ Sensors::task_main()
 		baro_poll(raw);
 
 #ifndef __PX4_POSIX
+
 		/* work out if main gyro timed out and fail over to alternate gyro */
 		if (raw.gyro_timestamp[0] > 0 && hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000) {
 
@@ -2229,6 +2230,7 @@ Sensors::task_main()
 				warnx("failing over to second gyro");
 			}
 		}
+
 #endif
 
 		/* check battery voltage */
