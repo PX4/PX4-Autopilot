@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
-* @file airframe.h
+* @file vtol_type.h
 *
 * @author Roman Bapst 		<bapstroman@gmail.com>
 *
