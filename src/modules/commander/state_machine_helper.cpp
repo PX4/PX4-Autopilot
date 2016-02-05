@@ -35,8 +35,9 @@
  * @file state_machine_helper.cpp
  * State machine helper functions implementations
  *
- * @author Thomas Gubler <thomas@px4.io>
- * @author Julian Oes <julian@oes.ch>
+ * @author Thomas Gubler	<thomas@px4.io>
+ * @author Julian Oes		<julian@oes.ch>
+ * @author Sander Smeets	<sander@droneslab.com>
  */
 
 #include <stdio.h>
@@ -636,6 +637,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		/* go into failsafe
 		 * - if commanded to do so
 		 * - if we have an engine failure
+		 * - if we have vtol transition failure
 		 * - depending on datalink, RC and if the mission is finished */
 
 		/* first look at the commands */
@@ -647,12 +649,16 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
 		} else if (status->rc_signal_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
+		} else if (status->vtol_transition_failure_cmd) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 		/* finished handling commands which have priority, now handle failures */
 		} else if (status->gps_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
 		} else if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+		} else if (status->vtol_transition_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 		/* datalink loss enabled:
 		 * check for datalink lost: this should always trigger RTGS */
