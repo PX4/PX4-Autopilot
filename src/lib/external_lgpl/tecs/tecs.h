@@ -136,6 +136,9 @@ public:
 		return _spdWeight;
 	}
 
+	// this will force TECS to reinitialize all states
+	void reinitialize_states() {_states_initalized = false;}
+
 	enum ECL_TECS_MODE {
 		ECL_TECS_MODE_NORMAL = 0,
 		ECL_TECS_MODE_UNDERSPEED,
