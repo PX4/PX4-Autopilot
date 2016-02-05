@@ -422,6 +422,11 @@ extern "C" {
 		sim_delay = false;
 	}
 
+	bool px4_sim_delay_enabled()
+	{
+		return sim_delay;
+	}
+
 	const char *px4_get_device_names(unsigned int *handle)
 	{
 		return VDev::devList(handle);
