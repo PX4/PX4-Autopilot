@@ -76,11 +76,34 @@ public:
 
 	virtual ~VtolType();
 
+	/**
+	 * Update vtol state.
+	 */
 	virtual void update_vtol_state() = 0;
-	virtual void update_mc_state() = 0;
-	virtual void update_fw_state() = 0;
+
+	/**
+	 * Update transition state.
+	 */
 	virtual void update_transition_state() = 0;
-	virtual void update_external_state() = 0;
+
+	/**
+	 * Update multicopter state.
+	 */
+	virtual void update_mc_state();
+
+	/**
+	 * Update fixed wing state.
+	 */
+	virtual void update_fw_state();
+
+	/**
+	 * Update external state.
+	 */
+	virtual void update_external_state() {};
+
+	/**
+	 * Write control values to actuator output topics.
+	 */
 	virtual void fill_actuator_outputs() = 0;
 
 	void set_idle_mc();
@@ -92,26 +115,27 @@ protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;
 
-	struct vehicle_attitude_s				*_v_att;				//vehicle attitude
-	struct vehicle_attitude_setpoint_s		*_v_att_sp;			//vehicle attitude setpoint
-	struct mc_virtual_attitude_setpoint_s	*_mc_virtual_att_sp;	// virtual mc attitude setpoint
-	struct fw_virtual_attitude_setpoint_s	*_fw_virtual_att_sp;	// virtual fw attitude setpoint
-	struct vehicle_rates_setpoint_s			*_v_rates_sp;		//vehicle rates setpoint
-	struct mc_virtual_rates_setpoint_s		*_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
-	struct fw_virtual_rates_setpoint_s		*_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint
-	struct manual_control_setpoint_s		*_manual_control_sp; //manual control setpoint
-	struct vehicle_control_mode_s			*_v_control_mode;	//vehicle control mode
-	struct vtol_vehicle_status_s			*_vtol_vehicle_status;
-	struct actuator_controls_s				*_actuators_out_0;			//actuator controls going to the mc mixer
-	struct actuator_controls_s				*_actuators_out_1;			//actuator controls going to the fw mixer (used for elevons)
-	struct actuator_controls_s				*_actuators_mc_in;			//actuator controls from mc_att_control
-	struct actuator_controls_s				*_actuators_fw_in;			//actuator controls from fw_att_control
-	struct actuator_armed_s					*_armed;					//actuator arming status
-	struct vehicle_local_position_s			*_local_pos;
-	struct airspeed_s						*_airspeed;					// airspeed
-	struct battery_status_s					*_batt_status; 				// battery status
+	struct vehicle_attitude_s		*_v_att;				//vehicle attitude
+	struct vehicle_attitude_setpoint_s	*_v_att_sp;			//vehicle attitude setpoint
+	struct mc_virtual_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
+	struct fw_virtual_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
+	struct vehicle_rates_setpoint_s 	*_v_rates_sp;		//vehicle rates setpoint
+	struct mc_virtual_rates_setpoint_s 	*_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
+	struct fw_virtual_rates_setpoint_s 	*_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint
+	struct manual_control_setpoint_s	*_manual_control_sp; //manual control setpoint
+	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
+	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
+	struct actuator_controls_s			*_actuators_out_0;			//actuator controls going to the mc mixer
+	struct actuator_controls_s			*_actuators_out_1;			//actuator controls going to the fw mixer (used for elevons)
+	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_att_control
+	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
+	struct actuator_armed_s				*_armed;					//actuator arming status
+	struct vehicle_local_position_s		*_local_pos;
+	struct airspeed_s 					*_airspeed;					// airspeed
+	struct battery_status_s 			*_batt_status; 				// battery status
+	struct vehicle_status_s 			*_vehicle_status;			// vehicle status from commander app
 
-	struct Params							*_params;
+	struct Params 						*_params;
 
 	bool flag_idle_mc;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 

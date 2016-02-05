@@ -252,8 +252,7 @@ void Tiltrotor::update_vtol_state()
 
 void Tiltrotor::update_mc_state()
 {
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+	VtolType::update_mc_state();
 
 	// make sure motors are not tilted
 	_tilt_control = _params_tiltrotor.tilt_mc;
@@ -268,16 +267,11 @@ void Tiltrotor::update_mc_state()
 		set_idle_mc();
 		flag_idle_mc = true;
 	}
-
-	_mc_roll_weight = 1.0f;
-	_mc_pitch_weight = 1.0f;
-	_mc_yaw_weight = 1.0f;
 }
 
 void Tiltrotor::update_fw_state()
 {
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+	VtolType::update_fw_state();
 
 	// make sure motors are tilted forward
 	_tilt_control = _params_tiltrotor.tilt_fw;
@@ -292,10 +286,6 @@ void Tiltrotor::update_fw_state()
 		set_idle_fw();
 		flag_idle_mc = false;
 	}
-
-	_mc_roll_weight = 0.0f;
-	_mc_pitch_weight = 0.0f;
-	_mc_yaw_weight = 0.0f;
 }
 
 void Tiltrotor::update_transition_state()
@@ -372,11 +362,6 @@ void Tiltrotor::update_transition_state()
 
 	// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-}
-
-void Tiltrotor::update_external_state()
-{
-
 }
 
 /**

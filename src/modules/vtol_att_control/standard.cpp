@@ -36,6 +36,7 @@
  *
  * @author Simon Wilks		<simon@uaventure.com>
  * @author Roman Bapst		<bapstroman@gmail.com>
+ * @author Andreas Antener	<andreas@uaventure.com>
  * @author Sander Smeets	<sander@droneslab.com>
  *
 */
@@ -265,16 +266,9 @@ void Standard::update_transition_state()
 	_mc_throttle_weight = math::constrain(_mc_throttle_weight, 0.0f, 1.0f);
 }
 
-void Standard::update_mc_state()
-{
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-}
-
 void Standard::update_fw_state()
 {
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+	VtolType::update_fw_state();
 
 	// in fw mode we need the multirotor motors to stop spinning, in backtransition mode we let them spin up again
 	if (!_flag_enable_mc_motors) {
@@ -282,10 +276,6 @@ void Standard::update_fw_state()
 		set_idle_fw();  // force them to stop, not just idle
 		_flag_enable_mc_motors = true;
 	}
-}
-
-void Standard::update_external_state()
-{
 }
 
 /**
