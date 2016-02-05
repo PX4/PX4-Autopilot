@@ -87,8 +87,8 @@
 
 /* conversion rates */
 
-#define SF10A_CONVERSION_INTERVAL 		25000			// Overclocking SF10a to 40 Hz
-// #define SF10A_CONVERSION_INTERVAL 		31250		// Maximum rate according to datasheet is 32Hz
+//#define SF10A_CONVERSION_INTERVAL 		25000			// Overclocking SF10a to 40 Hz
+#define SF10A_CONVERSION_INTERVAL 		31250		// Maximum rate according to datasheet is 32Hz
 
 
 /* oddly, ERROR is not defined for c++ */
