@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,10 +41,13 @@
  * well instead of relying on the sensor_combined topic.
  *
  * @author Lorenz Meier <lorenz@px4.io>
- * @author Julian Oes <julian@oes.ch>
+ * @author Julian Oes <julian@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
  * @author Anton Babushkin <anton@px4.io>
  */
+
+// TODO-JYW: TESTING-TESTING
+#define DEBUG_BUILD 1
 
 #include <board_config.h>
 
@@ -2152,15 +2155,26 @@ Sensors::task_main()
 
 	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
 					&raw.gyro_priority[0], &raw.gyro_errcount[0]);
+	warnx("gyro: sub: 0x%X, priority: 0x%X, error count: 0x%X",
+			_gyro_sub[0], raw.gyro_priority[0], raw.gyro_errcount[0]);
 
 	_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
 				       &raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
+	warnx("mag: sub: 0x%X, priority: 0x%X, error count: 0x%X",
+			_mag_sub[0], raw.magnetometer_priority[0], raw.magnetometer_errcount[0]);
 
 	_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
 					 &raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
+	warnx("gyro: sub: 0x%X, priority: 0x%X, error count: 0x%X",
+			_accel_sub[0], raw.accelerometer_priority[0], raw.accelerometer_errcount[0]);
 
 	_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
 					&raw.baro_priority[0], &raw.baro_errcount[0]);
+	warnx("gyro: sub: 0x%X, priority: 0x%X, error count: 0x%X",
+			_baro_sub[0], raw.baro_priority[0], raw.baro_errcount[0]);
+
+	warnx("subscription counts: gyro: %d, mag: %d, accel: %d, baro: %d", _gyro_count, _mag_count,
+			_accel_count, _baro_count);
 
 	if (gcount_prev != _gyro_count ||
 	    mcount_prev != _mag_count ||
@@ -2170,6 +2184,9 @@ Sensors::task_main()
 		/* reload calibration params */
 		parameter_update_poll(true);
 	}
+
+	warnx("counts: gyro: %d, mag: %d, accel: %d, baro: %d", _gyro_count, _mag_count,
+			_accel_count, _baro_count);
 
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
@@ -2228,7 +2245,7 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			PX4_WARN("poll error %d, %d", pret, errno);
+			warnx("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -2247,6 +2264,7 @@ Sensors::task_main()
 		/* Work out if main gyro timed out and fail over to alternate gyro.
 		 * However, don't do this if the secondary is not available. */
 		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
+			warnx("gyro has timed out");
 
 			/* If the secondary failed as well, go to the tertiary, also only if available. */
 			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
