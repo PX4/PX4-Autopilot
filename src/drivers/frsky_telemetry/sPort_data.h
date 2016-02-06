@@ -83,7 +83,8 @@ void sPort_send_BATV(int uart);
 void sPort_send_CUR(int uart);
 void sPort_send_ALT(int uart);
 void sPort_send_SPD(int uart);
-void sPort_send_VSPD(int uart);
+void sPort_send_VSPD(int uart, float speed);
+
 void sPort_send_FUEL(int uart);
 
 #endif /* _SPORT_TELEMETRY_H */
