@@ -1258,13 +1258,14 @@ MulticopterPositionControl::task_main()
 				control_auto(dt);
 			}
 
-			/* weather-vane mode: disable yaw control */
+			/* weather-vane mode: disable yaw control
 			if(_pos_sp_triplet.current.mc_control_yaw == false) {
 				_att_sp.mc_control_yaw = false;
 				warnx("posctl: disabling yaw control");
 			} else {
 				_att_sp.mc_control_yaw = true;
 			}
+			*/
 
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 			    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
