@@ -36,6 +36,7 @@
  * Helper class to use mission items
  *
  * @author Julian Oes <julian@oes.ch>
+ * @author Sander Smeets <sander@droneslab.com>
  */
 
 #include <sys/types.h>
@@ -374,6 +375,20 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance,
 void
 MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_location)
 {
+
+	/* VTOL transition to RW before landing */
+	if(_navigator->get_vstatus()->is_vtol){
+		struct vehicle_command_s cmd = {};
+		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+		cmd.param1 = 3;
+		if (_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+		} else {
+			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		}
+	}
+
+	/* set the land item */
 	item->nav_cmd = NAV_CMD_LAND;
 
 	/* use current position */
