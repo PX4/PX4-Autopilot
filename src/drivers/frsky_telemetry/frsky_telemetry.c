@@ -57,6 +57,7 @@
 #include <systemlib/systemlib.h>
 #include <termios.h>
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/sensor_combined.h>
 
 #include "sPort_data.h"
 #include "frsky_data.h"
@@ -213,6 +214,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		warnx("sending FrSky SmartPort telemetry");
 
+		int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+
 		/* send S.port telemetry */
 		while (!thread_should_exit) {
 
@@ -238,6 +241,21 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			hrt_abstime now = hrt_absolute_time();
 
 			newBytes = read(uart, &sbuf[1], 1);
+
+			/* get a local copy of the current sensor values
+			 * in order to apply a lowpass filter to baro pressure.
+			 */
+			static float last_baro_alt = 0;
+			struct sensor_combined_s raw;
+			memset(&raw, 0, sizeof(raw));
+			orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+
+			static float filtered_alt = NAN;
+			if (isnan(filtered_alt)) {
+				filtered_alt = raw.baro_alt_meter[0];
+			} else {
+				filtered_alt = .05f * raw.baro_alt_meter[0] + (1.0f -.05f) * filtered_alt;
+			}
 
 			// allow a minimum of 500usec before reply
 			usleep(500);
@@ -311,11 +329,17 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			case SMARTPORT_POLL_6:
 
-				/* report vertical speed at 5Hz */
-				if (now - lastVSPD > 200 * 1000) {
+				/* report vertical speed at 10Hz */
+				if (now - lastVSPD > 100 * 1000) {
+					/* estimate vertical speed using first difference and delta t */
+					uint64_t dt = now - lastVSPD;
+					float speed  = (filtered_alt - last_baro_alt) / (1e-6f * (float)dt);
+
+					/* save current alt and timestamp */
+					last_baro_alt = filtered_alt;
 					lastVSPD = now;
-					/* send fuel */
-					sPort_send_VSPD(uart);
+
+					sPort_send_VSPD(uart, speed);
 				}
 
 				break;
