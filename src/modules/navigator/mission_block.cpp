@@ -188,6 +188,7 @@ MissionBlock::is_mission_item_reached()
 	}
 
 	/* Check if the waypoint and the requested yaw setpoint. */
+
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		/* TODO: removed takeoff, why? */
@@ -260,12 +261,13 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->lat = item->lat;
 	sp->lon = item->lon;
 	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
-	sp->yaw = item->yaw;
+	sp->yaw = item->yaw;	
 	sp->loiter_radius = (item->loiter_radius > NAV_EPSILON_POSITION) ? item->loiter_radius :
 				_navigator->get_loiter_radius();
 	sp->loiter_direction = item->loiter_direction;
 	sp->pitch_min = item->pitch_min;
 	sp->acceptance_radius = item->acceptance_radius;
+	sp->mc_control_yaw = true;
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_DO_SET_SERVO:
@@ -285,6 +287,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 
 	case NAV_CMD_LAND:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
+		sp->mc_control_yaw = false;
 		break;
 
 	case NAV_CMD_LOITER_TIME_LIMIT:
