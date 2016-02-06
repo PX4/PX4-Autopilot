@@ -311,7 +311,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->loiter_direction = item->loiter_direction;
 	sp->pitch_min = item->pitch_min;
 	sp->acceptance_radius = item->acceptance_radius;
-	sp->mc_control_yaw = true;
+	//sp->mc_control_yaw = true;
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_IDLE:
@@ -324,7 +324,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 
 	case NAV_CMD_LAND:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
-		sp->mc_control_yaw = false;
+		//sp->mc_control_yaw = false;
 		break;
 
 	case NAV_CMD_LOITER_TIME_LIMIT:
