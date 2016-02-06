@@ -95,6 +95,7 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
 *
 * @min 0
 * @max 921600
+* @reboot_required true
 * @group System
 */
 PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
