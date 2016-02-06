@@ -141,17 +141,9 @@ MissionBlock::is_mission_item_reached()
 				&dist_xy, &dist_z);
 
 		if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF && _navigator->get_vstatus()->is_rotary_wing) {
-			/* require only altitude for takeoff for multicopter */
-
-			/* _mission_item.acceptance_radius is not always set */
-			float mission_acceptance_radius = _mission_item.acceptance_radius;
-			/* if set to zero use the default instead */
-			if (mission_acceptance_radius < NAV_EPSILON_POSITION) {
-				mission_acceptance_radius = _navigator->get_acceptance_radius();
-			}
-
+			/* require only altitude for takeoff for multicopter, do not use waypoint acceptance radius */
 			if (_navigator->get_global_position()->alt >
-				altitude_amsl - mission_acceptance_radius) {
+				altitude_amsl - _navigator->get_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
@@ -362,14 +354,17 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance,
 
 	if (min_clearance > 0.0f) {
 		item->altitude += min_clearance;
+
+		/* we must takeoff to a point further above ground than the acceptance radius */
+		if (_navigator->get_acceptance_radius() > min_clearance) {
+			item->altitude += _navigator->get_acceptance_radius();
+		}
 	}
 
 	item->altitude_is_relative = false;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->loiter_direction = 1;
-	item->acceptance_radius = (_navigator->get_acceptance_radius() > min_clearance / 2.0f) ?
-					(min_clearance / 2) : _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->pitch_min = min_pitch;
 	item->autocontinue = false;
