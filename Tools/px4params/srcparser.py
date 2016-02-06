@@ -313,6 +313,13 @@ class SourceParser(object):
                     if default != "" and float(default) > float(max):
                         sys.stderr.write("Default value is larger than max: {0} default:{1} max:{2}\n".format(name, default, max))
                         return False
+                for code in param.GetEnumCodes():
+                        if not self.IsNumber(code):
+                            sys.stderr.write("Min value not number: {0} {1}\n".format(name, code))
+                            return False
+                        if param.GetEnumValue(code) == "":
+                            sys.stderr.write("Description for enum value is empty: {0} {1}\n".format(name, code))
+                            return False
         return True
 
     def GetParamGroups(self):
