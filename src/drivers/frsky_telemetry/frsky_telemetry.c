@@ -251,10 +251,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
 			static float filtered_alt = NAN;
+
 			if (isnan(filtered_alt)) {
 				filtered_alt = raw.baro_alt_meter[0];
+
 			} else {
-				filtered_alt = .05f * raw.baro_alt_meter[0] + (1.0f -.05f) * filtered_alt;
+				filtered_alt = .05f * raw.baro_alt_meter[0] + (1.0f - .05f) * filtered_alt;
 			}
 
 			// allow a minimum of 500usec before reply
