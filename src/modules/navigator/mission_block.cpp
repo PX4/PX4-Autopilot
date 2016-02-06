@@ -385,7 +385,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if(_navigator->get_vstatus()->is_vtol){
 		struct vehicle_command_s cmd = {};
 		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		cmd.param1 = 3;
+		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		if (_cmd_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 		} else {
