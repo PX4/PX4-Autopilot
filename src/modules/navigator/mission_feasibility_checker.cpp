@@ -335,10 +335,6 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 bool
 MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionItems, double curr_lat, double curr_lon, float dist_first_wp, bool &warning_issued)
 {
-	if (_dist_1wp_ok) {
-		/* always return true after at least one successful check */
-		return true;
-	}
 
 	/* check if first waypoint is not too far from home */
 	if (dist_first_wp > 0.0f) {
