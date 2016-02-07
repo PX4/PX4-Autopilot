@@ -674,7 +674,7 @@ MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 			return;
 		}
 
-		struct mission_item_s mission_item;
+		struct mission_item_s mission_item = {};
 		int ret = parse_mavlink_mission_item(&wp, &mission_item);
 
 		if (ret != OK) {
