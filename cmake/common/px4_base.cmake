@@ -534,15 +534,28 @@ function(px4_add_common_flags)
 		)
 	endif()
 
-	set(max_optimization -Os)
+	if ($ENV{MEMORY_DEBUG} MATCHES "1")
+		set(max_optimization -O0)
 
-	set(optimization_flags
-		-fno-strict-aliasing
-		-fomit-frame-pointer
-		-funsafe-math-optimizations
-		-ffunction-sections
-		-fdata-sections
-		)
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fno-omit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			-g -fsanitize=address
+			)
+	else()
+		set(max_optimization -Os)
+
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fomit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			)
+	endif()
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		list(APPEND optimization_flags
