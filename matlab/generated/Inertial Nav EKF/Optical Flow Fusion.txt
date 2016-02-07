@@ -7,11 +7,11 @@
 float SH_LOS[7];
 SH_LOS[0] = sq(q0) - sq(q1) - sq(q2) + sq(q3);
 SH_LOS[1] = vn*(sq(q0) + sq(q1) - sq(q2) - sq(q3)) - vd*(2.0f*q0*q2 - 2.0f*q1*q3) + ve*(2.0f*q0*q3 + 2.0f*q1*q2);
-SH_LOS[2] = ve*(sq(q0) - sq(q1) + sq(q2) - sq(q3)) + vd*(2.0f*q0*q1 + 2.0f*q2.0f*q3) - vn*(2.0f*q0*q3 - 2.0f*q1*q2);
+SH_LOS[2] = ve*(sq(q0) - sq(q1) + sq(q2) - sq(q3)) + vd*(2.0f*q0*q1 + 2.0f*q2*q3) - vn*(2.0f*q0*q3 - 2.0f*q1*q2);
 SH_LOS[3] = 1.0f/(pd - ptd);
-SH_LOS[4] = vd*SH_LOS[0] - ve*(2.0f*q0*q1 - 2.0f*q2.0f*q3) + vn*(2.0f*q0*q2 + 2.0f*q1*q3);
+SH_LOS[4] = vd*SH_LOS[0] - ve*(2.0f*q0*q1 - 2.0f*q2*q3) + vn*(2.0f*q0*q2 + 2.0f*q1*q3);
 SH_LOS[5] = 2.0f*q0*q2 - 2.0f*q1*q3;
-SH_LOS[6] = 2.0f*q0*q1 + 2.0f*q2.0f*q3;
+SH_LOS[6] = 2.0f*q0*q1 + 2.0f*q2*q3;
 
 // Calculate the observation jacobians for the LOS rate about the X body axis
 float H_LOS[24];
