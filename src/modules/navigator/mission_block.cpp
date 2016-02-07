@@ -68,7 +68,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_time_first_inside_orbit(0),
 	_actuators{},
 	_actuator_pub(nullptr),
-	_cmd_pub(nullptr)
+	_cmd_pub(nullptr),
+	_param_vtol_wv_land(this, "VT_OPT_WV_LND", false)
 {
 }
 
@@ -261,7 +262,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->lat = item->lat;
 	sp->lon = item->lon;
 	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
-	sp->yaw = item->yaw;	
+	sp->yaw = item->yaw;
 	sp->loiter_radius = (item->loiter_radius > NAV_EPSILON_POSITION) ? item->loiter_radius :
 				_navigator->get_loiter_radius();
 	sp->loiter_direction = item->loiter_direction;
@@ -287,7 +288,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 
 	case NAV_CMD_LAND:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
-		if(_navigator->get_vstatus()->is_vtol){
+		if(_navigator->get_vstatus()->is_vtol && _param_vtol_wv_land.get()){
 			sp->disable_mc_yaw_control = true;
 		}
 		break;

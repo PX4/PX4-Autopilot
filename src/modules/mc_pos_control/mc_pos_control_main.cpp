@@ -192,6 +192,7 @@ private:
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
+
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -441,7 +442,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
-
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -1259,9 +1259,9 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* weather-vane mode: disable yaw control */
-			if(_pos_sp_triplet.current.disable_mc_yaw_control == true) {
+			if(_mode_auto && _pos_sp_triplet.current.disable_mc_yaw_control == true) {
 				_att_sp.disable_mc_yaw_control = true;
-				warnx("posctl: disabling yaw control");
+				warnx("yaw disabled");
 			}
 
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
