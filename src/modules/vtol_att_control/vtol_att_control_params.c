@@ -221,3 +221,12 @@ PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_OPT_WV_LND, 0);
+
+/**
+ * Weather-vane yaw rate dampener
+ *
+ * @min 0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_OPT_WV_RATE_D, 0.15f);
