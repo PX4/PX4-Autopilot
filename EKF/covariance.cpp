@@ -44,8 +44,6 @@
 #include <math.h>
 #include <mathlib/mathlib.h>
 
-#define sq(_arg)	powf(_arg, 2.0f)
-
 void Ekf::initialiseCovariance()
 {
 	for (unsigned i = 0; i < _k_num_states; i++) {
