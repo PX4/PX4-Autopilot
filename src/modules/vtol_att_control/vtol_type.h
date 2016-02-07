@@ -32,9 +32,10 @@
  ****************************************************************************/
 
 /**
-* @file airframe.h
+* @file vtol_type.h
 *
 * @author Roman Bapst 		<bapstroman@gmail.com>
+* @author Sander Smeets		<sander@droneslab.com>
 *
 */
 
@@ -91,10 +92,10 @@ protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;
 
-	struct vehicle_attitude_s		*_v_att;				//vehicle attitude
+	struct vehicle_attitude_s			*_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s	*_v_att_sp;			//vehicle attitude setpoint
-	struct mc_virtual_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
-	struct fw_virtual_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
+	struct vehicle_attitude_setpoint_s	*_mc_virtual_att_sp;	// virtual mc attitude setpoint
+	struct vehicle_attitude_setpoint_s	*_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_rates_setpoint_s		*_v_rates_sp;		//vehicle rates setpoint
 	struct vehicle_rates_setpoint_s		*_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
 	struct vehicle_rates_setpoint_s		*_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint

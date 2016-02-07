@@ -41,7 +41,8 @@
  * @author Roman Bapst 		<bapstr@ethz.ch>
  * @author Lorenz Meier 	<lm@inf.ethz.ch>
  * @author Thomas Gubler	<thomasgubler@gmail.com>
- * @author David Vorsin     <davidvorsin@gmail.com>
+ * @author David Vorsin		<davidvorsin@gmail.com>
+ * @author Sander Smeets	<sander@droneslab.com>
  *
  */
 #ifndef VTOL_ATT_CONTROL_MAIN_H
@@ -109,24 +110,24 @@ public:
 
 	struct vehicle_attitude_s 				*get_att() {return &_v_att;}
 	struct vehicle_attitude_setpoint_s		*get_att_sp() {return &_v_att_sp;}
-	struct mc_virtual_attitude_setpoint_s 	*get_mc_virtual_att_sp() {return &_mc_virtual_att_sp;}
-	struct fw_virtual_attitude_setpoint_s 	*get_fw_virtual_att_sp() {return &_fw_virtual_att_sp;}
+	struct vehicle_attitude_setpoint_s		*get_mc_virtual_att_sp() {return &_mc_virtual_att_sp;}
+	struct vehicle_attitude_setpoint_s		*get_fw_virtual_att_sp() {return &_fw_virtual_att_sp;}
 	struct vehicle_rates_setpoint_s 		*get_rates_sp() {return &_v_rates_sp;}
 	struct vehicle_rates_setpoint_s 		*get_mc_virtual_rates_sp() {return &_mc_virtual_v_rates_sp;}
 	struct vehicle_rates_setpoint_s 		*get_fw_virtual_rates_sp() {return &_fw_virtual_v_rates_sp;}
 	struct manual_control_setpoint_s 		*get_manual_control_sp() {return &_manual_control_sp;}
 	struct vehicle_control_mode_s 			*get_control_mode() {return &_v_control_mode;}
 	struct vtol_vehicle_status_s			*get_vehicle_status() {return &_vtol_vehicle_status;}
-	struct actuator_controls_s 			*get_actuators_out0() {return &_actuators_out_0;}
-	struct actuator_controls_s 			*get_actuators_out1() {return &_actuators_out_1;}
-	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
-	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
+	struct actuator_controls_s				*get_actuators_out0() {return &_actuators_out_0;}
+	struct actuator_controls_s				*get_actuators_out1() {return &_actuators_out_1;}
+	struct actuator_controls_s				*get_actuators_mc_in() {return &_actuators_mc_in;}
+	struct actuator_controls_s				*get_actuators_fw_in() {return &_actuators_fw_in;}
 	struct actuator_armed_s 				*get_armed() {return &_armed;}
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
 	struct airspeed_s 						*get_airspeed() {return &_airspeed;}
 	struct battery_status_s 				*get_batt_status() {return &_batt_status;}
 
-	struct Params 						*get_params() {return &_params;}
+	struct Params							*get_params() {return &_params;}
 
 
 private:
@@ -162,8 +163,8 @@ private:
 //*******************data containers***********************************************************
 	struct vehicle_attitude_s			_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			//vehicle attitude setpoint
-	struct mc_virtual_attitude_setpoint_s _mc_virtual_att_sp;	// virtual mc attitude setpoint
-	struct fw_virtual_attitude_setpoint_s _fw_virtual_att_sp;	// virtual fw attitude setpoint
+	struct vehicle_attitude_setpoint_s	_mc_virtual_att_sp;	// virtual mc attitude setpoint
+	struct vehicle_attitude_setpoint_s	_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		//vehicle rates setpoint
 	struct vehicle_rates_setpoint_s		_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
 	struct vehicle_rates_setpoint_s		_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint

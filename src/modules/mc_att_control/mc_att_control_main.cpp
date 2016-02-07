@@ -878,11 +878,8 @@ MulticopterAttitudeControl::task_main()
 				}
 
 				/* weather-vane mode: disable yaw control */
-				if(_v_att_sp.mc_control_yaw == false){
-					warnx("attctl: disabled yaw control");
+				if(_v_att_sp.disable_mc_yaw_control == true){
 					_rates_sp(2) = _ctrl_state.yaw_rate;
-				} else {
-					warnx("attctl: NOT disabled yaw control");
 				}
 
 				/* publish attitude rates setpoint */
