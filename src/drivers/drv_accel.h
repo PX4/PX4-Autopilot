@@ -46,8 +46,6 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-// TODO: LEFT-OFF: Define an Eagle Board specific device path.
-
 #define ACCEL_BASE_DEVICE_PATH	"/dev/accel"
 #define ACCEL0_DEVICE_PATH	"/dev/accel0"
 #define ACCEL1_DEVICE_PATH	"/dev/accel1"
