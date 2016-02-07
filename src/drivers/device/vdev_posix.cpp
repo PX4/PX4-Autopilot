@@ -230,19 +230,19 @@ extern "C" {
 
 	int px4_ioctl(int fd, int cmd, unsigned long arg)
 	{
+		PX4_DEBUG("px4_ioctl fd = %d", fd);
 		int ret = 0;
 
 		VDev *dev = get_vdev(fd);
 
 		if (dev) {
 			ret = dev->ioctl(filemap[fd], cmd, arg);
+
 		} else {
-			PX4_ERR("px4_ioctl: vdev handle not available, file handle: %d", fd);
 			ret = -EINVAL;
 		}
 
 		if (ret < 0) {
-			PX4_ERR("px4_ioctl: call failed: %d", ret);
 			px4_errno = -ret;
 		}
 
@@ -304,9 +304,6 @@ extern "C" {
 				if (ret >= 0) {
 					fd_pollable = true;
 				}
-			}
-			else {
-				PX4_DEBUG("vdev invalid, index: %d, name: %s, handle: 0x%X", i, thread_name, fds[i].fd);
 			}
 		}
 

@@ -2155,26 +2155,15 @@ Sensors::task_main()
 
 	_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
 					&raw.gyro_priority[0], &raw.gyro_errcount[0]);
-	warnx("gyro: sub: 0x%X, priority: 0x%X, error count: 0x%X",
-			_gyro_sub[0], raw.gyro_priority[0], raw.gyro_errcount[0]);
 
 	_mag_count = init_sensor_class(ORB_ID(sensor_mag), &_mag_sub[0],
 				       &raw.magnetometer_priority[0], &raw.magnetometer_errcount[0]);
-	warnx("mag: sub: 0x%X, priority: 0x%X, error count: 0x%X",
-			_mag_sub[0], raw.magnetometer_priority[0], raw.magnetometer_errcount[0]);
 
 	_accel_count = init_sensor_class(ORB_ID(sensor_accel), &_accel_sub[0],
 					 &raw.accelerometer_priority[0], &raw.accelerometer_errcount[0]);
-	warnx("gyro: sub: 0x%X, priority: 0x%X, error count: 0x%X",
-			_accel_sub[0], raw.accelerometer_priority[0], raw.accelerometer_errcount[0]);
 
 	_baro_count = init_sensor_class(ORB_ID(sensor_baro), &_baro_sub[0],
 					&raw.baro_priority[0], &raw.baro_errcount[0]);
-	warnx("gyro: sub: 0x%X, priority: 0x%X, error count: 0x%X",
-			_baro_sub[0], raw.baro_priority[0], raw.baro_errcount[0]);
-
-	warnx("subscription counts: gyro: %d, mag: %d, accel: %d, baro: %d", _gyro_count, _mag_count,
-			_accel_count, _baro_count);
 
 	if (gcount_prev != _gyro_count ||
 	    mcount_prev != _mag_count ||
@@ -2184,9 +2173,6 @@ Sensors::task_main()
 		/* reload calibration params */
 		parameter_update_poll(true);
 	}
-
-	warnx("counts: gyro: %d, mag: %d, accel: %d, baro: %d", _gyro_count, _mag_count,
-			_accel_count, _baro_count);
 
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
