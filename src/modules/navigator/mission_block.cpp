@@ -119,20 +119,6 @@ MissionBlock::is_mission_item_reached()
 			return true;
 			}
 
-		case vehicle_command_s::VEHICLE_CMD_NAV_VTOL_LAND:
-			{
-			struct vehicle_command_s cmd = {};
-			cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-			cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-			if (_cmd_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
-			} else {
-				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
-			}
-			return _navigator->get_vstatus()->condition_landed;
-			}
-
-
 		default:
 			/* do nothing, this is a 3D waypoint */
 			break;
@@ -193,6 +179,20 @@ MissionBlock::is_mission_item_reached()
 			}
 		}
 	}
+
+	/* handle VTOL_LAND command */
+	if(_waypoint_position_reached && _mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
+		struct vehicle_command_s cmd = {};
+		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		if (_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+		} else {
+			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		}
+		return _navigator->get_vstatus()->condition_landed;
+	}
+
 
 	/* Check if the waypoint and the requested yaw setpoint. */
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
