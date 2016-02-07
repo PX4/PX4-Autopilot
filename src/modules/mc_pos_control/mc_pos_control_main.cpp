@@ -1266,7 +1266,6 @@ MulticopterPositionControl::task_main()
 			/* weather-vane mode: disable yaw control */
 			if(_mode_auto && _pos_sp_triplet.current.disable_mc_yaw_control == true) {
 				_att_sp.disable_mc_yaw_control = true;
-				warnx("yaw disabled");
 			}
 
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
