@@ -244,7 +244,9 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
 			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 			missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
-			missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+			missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION &&
+			missionitem.nav_cmd != NAV_CMD_VTOL_TAKEOFF &&
+			missionitem.nav_cmd != NAV_CMD_VTOL_LAND) {
 
 			mavlink_log_critical(_mavlink_fd, "Rejecting mission item %i: unsupported action.", (int)(i+1));
 			return false;
@@ -407,7 +409,9 @@ MissionFeasibilityChecker::isPositionCommand(unsigned cmd){
 		cmd == NAV_CMD_LOITER_TURN_COUNT ||
 		cmd == NAV_CMD_LOITER_UNLIMITED ||
 		cmd == NAV_CMD_TAKEOFF ||
+		cmd == NAV_CMD_VTOL_TAKEOFF ||
 		cmd == NAV_CMD_LAND ||
+		cmd == NAV_CMD_VTOL_LAND ||
 		cmd == NAV_CMD_PATHPLANNING) {
 		return true;
 	} else {

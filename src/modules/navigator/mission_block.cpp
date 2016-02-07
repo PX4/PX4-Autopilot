@@ -119,6 +119,20 @@ MissionBlock::is_mission_item_reached()
 			return true;
 			}
 
+		case vehicle_command_s::VEHICLE_CMD_NAV_VTOL_LAND:
+			{
+			struct vehicle_command_s cmd = {};
+			cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+			cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			if (_cmd_pub != nullptr) {
+				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+			} else {
+				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+			}
+			return _navigator->get_vstatus()->condition_landed;
+			}
+
+
 		default:
 			/* do nothing, this is a 3D waypoint */
 			break;
@@ -273,10 +287,12 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		break;
 
 	case NAV_CMD_TAKEOFF:
+	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
 
 	case NAV_CMD_LAND:
+	case NAV_CMD_VTOL_LAND:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
 		break;
 
