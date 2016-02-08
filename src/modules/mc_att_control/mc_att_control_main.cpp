@@ -201,6 +201,7 @@ private:
 		param_t roll_tc;
 		param_t pitch_tc;
 		param_t vtol_opt_recovery_enabled;
+		param_t vtol_wv_yaw_rate_d;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -222,6 +223,7 @@ private:
 		float rattitude_thres;
 		int vtol_type;						/**< 0 = Tailsitter, 1 = Tiltrotor, 2 = Standard airframe */
 		bool vtol_opt_recovery_enabled;
+		float vtol_wv_yaw_rate_d;			/**< yaw rate dampener for weather-vane mode */
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
@@ -353,6 +355,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.acro_rate_max.zero();
 	_params.rattitude_thres = 1.0f;
 	_params.vtol_opt_recovery_enabled = false;
+	_params.vtol_wv_yaw_rate_d = 0.0f;
+
 
 	_rates_prev.zero();
 	_rates_sp.zero();
@@ -390,7 +394,11 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.vtol_type 		= 	param_find("VT_TYPE");
 	_params_handles.roll_tc			= 	param_find("MC_ROLL_TC");
 	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
-	_params_handles.vtol_opt_recovery_enabled = param_find("VT_OPT_RECOV_EN");
+	_params_handles.vtol_opt_recovery_enabled	= param_find("VT_OPT_RECOV_EN");
+	_params_handles.vtol_wv_yaw_rate_d			= param_find("VT_OPT_WV_RATE_D");
+
+
+
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -722,6 +730,12 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		} else {
 			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
 		}
+	}
+
+	/* weather-vane mode, dampen yaw rate */
+	if (_v_att_sp.disable_mc_yaw_control == true && _v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
+		float wv_max_yaw_rate = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_d;
+		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_max_yaw_rate, wv_max_yaw_rate);
 	}
 
 	/* feed forward yaw setpoint rate */
