@@ -86,6 +86,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/safety.h>
 
 
 #ifdef HRT_PPM_CHANNEL
@@ -94,6 +95,17 @@
 
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 #define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
+#define BUTTON_SAFETY	stm32_gpioread(GPIO_BTN_SAFETY)
+#define CYCLE_FREQUENCY 250			/* safety switch must be held for 1 second to activate */
+
+/*
+ * Define the various LED flash sequences for each system state.
+ */
+#define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
+#define LED_PATTERN_FMU_REFUSE_TO_ARM 	0x5555		/**< fast blinking			*/
+#define LED_PATTERN_IO_ARMED 			0x5050		/**< long off, then double blink 	*/
+#define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
+#define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
 
 class PX4FMU : public device::CDev
 {
@@ -193,6 +205,8 @@ private:
 	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
+	bool		_safety_off;
+	orb_advert_t		_to_safety;
 
 	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
 
@@ -243,6 +257,7 @@ private:
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 	void rc_io_invert();
 	void rc_io_invert(bool invert);
+	void safety_check_button(void);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
@@ -337,7 +352,9 @@ PX4FMU::PX4FMU() :
 	_disarmed_pwm{0},
 	_reverse_pwm_mask(0),
 	_num_failsafe_set(0),
-	_num_disarmed_set(0)
+	_num_disarmed_set(0),
+	_safety_off(false),
+	_to_safety(nullptr)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -413,6 +430,88 @@ PX4FMU::init()
 	work_start();
 
 	return OK;
+}
+
+void
+PX4FMU:: safety_check_button(void)
+{
+	static int counter = 0;
+	/*
+	 * Debounce the safety button, change state if it has been held for long enough.
+	 *
+	 */
+	bool safety_button_pressed = BUTTON_SAFETY;
+
+	/*
+	 * Keep pressed for a while to arm.
+	 *
+	 * Note that the counting sequence has to be same length
+	 * for arming / disarming in order to end up as proper
+	 * state machine, keep ARM_COUNTER_THRESHOLD the same
+	 * length in all cases of the if/else struct below.
+	 */
+//	warnx("b: %u, c: %u", safety_button_pressed, counter);
+	if (safety_button_pressed && !_safety_off
+//			&& (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)
+	) {
+
+		if (counter < CYCLE_FREQUENCY) {
+			counter++;
+
+		} else if (counter == CYCLE_FREQUENCY) {
+			/* switch to armed state */
+			warnx("safety off");
+			_safety_off = true;
+			counter++;
+		}
+
+	} else if (safety_button_pressed && _safety_off) {
+
+		if (counter < CYCLE_FREQUENCY) {
+			counter++;
+
+		} else if (counter == CYCLE_FREQUENCY) {
+			/* change to disarmed state and notify the FMU */
+			warnx("safety on");
+			_safety_off = false;
+			counter++;
+		}
+	} else {
+		counter = 0;
+	}
+
+	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
+	uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
+
+	/* cycle the blink state machine at 10Hz */
+	static int divider = 0;
+	static int blink_counter = 0;
+	if (divider++ >= (CYCLE_FREQUENCY/10)) {
+		divider = 0;
+
+		if (_safety_off) {
+			if (_armed.armed) {
+				pattern = LED_PATTERN_IO_FMU_ARMED;
+
+			} else {
+				pattern = LED_PATTERN_IO_ARMED;
+			}
+
+		} else if (_armed.armed) {
+			pattern = LED_PATTERN_FMU_ARMED;
+
+		} else {
+			pattern = LED_PATTERN_FMU_OK_TO_ARM;
+
+		}
+
+		/* Turn the LED on if we have a 1 at the current bit position */
+		stm32_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
+
+		if (blink_counter > 15) {
+			blink_counter = 0;
+		}
+	}
 }
 
 int
@@ -916,6 +1015,32 @@ PX4FMU::cycle()
 		}
 	}
 
+	/* check safety switch */
+	safety_check_button();
+
+	/**
+	 * Get and handle the safety status
+	 */
+	struct safety_s safety;
+	safety.timestamp = hrt_absolute_time();
+
+	if (_safety_off) {
+		safety.safety_off = true;
+		safety.safety_switch_available = true;
+
+	} else {
+		safety.safety_off = false;
+		safety.safety_switch_available = true;
+	}
+
+	/* lazily publish the safety status */
+	if (_to_safety != nullptr) {
+		orb_publish(ORB_ID(safety), _to_safety, &safety);
+
+	} else {
+		_to_safety = orb_advertise(ORB_ID(safety), &safety);
+	}
+
 	/* check arming state */
 	bool updated = false;
 	orb_check(_armed_sub, &updated);
@@ -924,10 +1049,10 @@ PX4FMU::cycle()
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
 		/* update the armed status and check that we're not locked down */
-		_throttle_armed = _armed.armed && !_armed.lockdown;
+		_throttle_armed = _safety_off && _armed.armed && !_armed.lockdown;
 
 		/* update PWM status if armed or if disarmed PWM values are set */
-		bool pwm_on = (_armed.armed || _num_disarmed_set > 0);
+		bool pwm_on = _safety_off && (_armed.armed || _num_disarmed_set > 0);
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
