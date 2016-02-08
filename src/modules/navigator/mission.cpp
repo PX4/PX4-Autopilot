@@ -409,8 +409,6 @@ Mission::set_mission_items()
 
 	/*********************************** handle mission item *********************************************/
 
-	bool do_issue_command = true;
-
 	/* handle position mission items */
 	if (item_contains_position(&_mission_item)) {
 
@@ -510,8 +508,6 @@ Mission::set_mission_items()
 				_navigator->get_global_position()->lon,
 				mission_item_next_position.lat,
 				mission_item_next_position.lon);
-
-			do_issue_command = false;
 		}
 
 		/* yaw is aligned now */
@@ -552,9 +548,7 @@ Mission::set_mission_items()
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
 	/* issue command if ready (will do nothing for position mission items) */
-	if (do_issue_command) {
-		issue_command(&_mission_item);
-	}
+	issue_command(&_mission_item);
 
 	/* set current work item type */
 	_work_item_type = new_work_item_type;
@@ -666,7 +660,7 @@ Mission::calculate_takeoff_altitude(struct mission_item_s *mission_item)
 void
 Mission::heading_sp_update()
 {
-	/* we don't want to be yawing during takeoff, landing or align */
+	/* we don't want to be yawing during takeoff, landing or aligning for a transition */
 	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			|| _mission_item.nav_cmd == NAV_CMD_LAND
 			|| _work_item_type == WORK_ITEM_TYPE_ALIGN) {
@@ -695,8 +689,10 @@ Mission::heading_sp_update()
 		point_from_latlon[1] = _navigator->get_global_position()->lon;
 
 		/* target location is home */
-		if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME
-				|| _param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
+		if ((_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME
+				|| _param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME)
+				// don't try this during a transition
+				&& !(_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION || _navigator->get_vstatus()->in_transition_mode)) {
 			point_to_latlon[0] = _navigator->get_home_position()->lat;
 			point_to_latlon[1] = _navigator->get_home_position()->lon;
 
