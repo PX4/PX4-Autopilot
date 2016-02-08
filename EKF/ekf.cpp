@@ -146,11 +146,9 @@ bool Ekf::update()
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
 		if (_control_status.flags.mag_3D && _control_status.flags.angle_align) {
 			fuseMag();
-
-			if (_control_status.flags.mag_dec) {
-				// TODO need to fuse synthetic declination measurements if there is no GPS or equivalent aiding
-				// otherwise heading will slowly drift
-			}
+                        if (_control_status.flags.mag_dec) {
+                                fuseDeclination();
+                        }
 		} else if (_control_status.flags.mag_hdg && _control_status.flags.angle_align) {
 			fuseHeading();
 		}

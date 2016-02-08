@@ -162,6 +162,8 @@ private:
 
 	void fuseHeading();
 
+        void fuseDeclination();
+
 	void fuseAirspeed();
 
 	void fuseRange();
