@@ -103,8 +103,8 @@ void LandDetector::cycle()
 	}
 
 	LandDetectionResult current_state = update();
-	bool landDetected = (current_state==LANDDETECTION_RES_LANDED);
-	bool freefallDetected = (current_state==LANDDETECTION_RES_FREEFALL);
+	bool landDetected = (current_state == LANDDETECTION_RES_LANDED);
+	bool freefallDetected = (current_state == LANDDETECTION_RES_FREEFALL);
 
 	// publish if land detection state has changed
 	if ((_landDetected.landed != landDetected) || (_landDetected.freefall != freefallDetected)) {
