@@ -93,6 +93,8 @@
 # include <systemlib/ppm_decode.h>
 #endif
 
+#include <systemlib/circuit_breaker.h>
+
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 #define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
 #define BUTTON_SAFETY	stm32_gpioread(GPIO_BTN_SAFETY)
@@ -938,7 +940,7 @@ PX4FMU::cycle()
 					/* main outputs */
 					if (i == 0) {
 //						main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
-						warnx("lat: %llu", hrt_absolute_time() - _controls[i].timestamp);
+//						warnx("lat: %llu", hrt_absolute_time() - _controls[i].timestamp);
 
 						/* do only correct within the current phase */
 						if (abs(main_out_latency) > SCHEDULE_INTERVAL) {
@@ -1014,7 +1016,6 @@ PX4FMU::cycle()
 		}
 	}
 
-	/* read safety switch input at 10Hz */
 	_cycle_timestamp = hrt_absolute_time();
 
 #ifdef GPIO_BTN_SAFETY
@@ -1022,30 +1023,36 @@ PX4FMU::cycle()
 	if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
 		_last_safety_check = _cycle_timestamp;
 
-		/* check safety switch */
-		safety_check_button();
-
-		/**
-		 * Get and handle the safety status
-		 */
-		struct safety_s safety;
-		safety.timestamp = hrt_absolute_time();
-
-		if (_safety_off) {
-			safety.safety_off = true;
-			safety.safety_switch_available = true;
+		if (circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY)) {
+			/* safety switch disabled, turn LED on solid */
+			stm32_gpiowrite(GPIO_LED_SAFETY, 0);
 
 		} else {
-			safety.safety_off = false;
-			safety.safety_switch_available = true;
-		}
+			/* read safety switch input at 10Hz */
+			safety_check_button();
 
-		/* lazily publish the safety status */
-		if (_to_safety != nullptr) {
-			orb_publish(ORB_ID(safety), _to_safety, &safety);
+			/**
+			 * Get and handle the safety status
+			 */
+			struct safety_s safety;
+			safety.timestamp = hrt_absolute_time();
 
-		} else {
-			_to_safety = orb_advertise(ORB_ID(safety), &safety);
+			if (_safety_off) {
+				safety.safety_off = true;
+				safety.safety_switch_available = true;
+
+			} else {
+				safety.safety_off = false;
+				safety.safety_switch_available = true;
+			}
+
+			/* lazily publish the safety status */
+			if (_to_safety != nullptr) {
+				orb_publish(ORB_ID(safety), _to_safety, &safety);
+
+			} else {
+				_to_safety = orb_advertise(ORB_ID(safety), &safety);
+			}
 		}
 	}
 
