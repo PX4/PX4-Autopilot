@@ -481,6 +481,7 @@ PX4FMU:: safety_check_button(void)
 			_safety_off = false;
 			counter++;
 		}
+
 	} else {
 		counter = 0;
 	}
@@ -963,7 +964,8 @@ PX4FMU::cycle()
 
 					/* main outputs */
 					if (i == 0) {
-						//main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
+//						main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
+						warnx("lat: %llu", hrt_absolute_time() - _controls[i].timestamp);
 
 						/* do only correct within the current phase */
 						if (abs(main_out_latency) > SCHEDULE_INTERVAL) {
