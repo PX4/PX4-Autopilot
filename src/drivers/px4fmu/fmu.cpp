@@ -438,6 +438,7 @@ PX4FMU::init()
 void
 PX4FMU:: safety_check_button(void)
 {
+#ifdef GPIO_BTN_SAFETY
 	static int counter = 0;
 	/*
 	 * Debounce the safety button, change state if it has been held for long enough.
@@ -507,6 +508,8 @@ PX4FMU:: safety_check_button(void)
 	if (blink_counter > 15) {
 		blink_counter = 0;
 	}
+
+#endif
 }
 
 int
@@ -1014,6 +1017,8 @@ PX4FMU::cycle()
 	/* read safety switch input at 10Hz */
 	_cycle_timestamp = hrt_absolute_time();
 
+#ifdef GPIO_BTN_SAFETY
+
 	if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
 		_last_safety_check = _cycle_timestamp;
 
@@ -1044,6 +1049,7 @@ PX4FMU::cycle()
 		}
 	}
 
+#endif
 	/* check arming state */
 	bool updated = false;
 	orb_check(_armed_sub, &updated);
