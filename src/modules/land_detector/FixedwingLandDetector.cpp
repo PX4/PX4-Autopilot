@@ -94,9 +94,11 @@ LandDetectionResult FixedwingLandDetector::update()
 
 	if (get_freefall_state()) {
 		_state = LANDDETECTION_RES_FREEFALL;
-	}else if(get_landed_state()){
+
+	} else if (get_landed_state()) {
 		_state = LANDDETECTION_RES_LANDED;
-	}else{
+
+	} else {
 		_state = LANDDETECTION_RES_FLYING;
 	}
 

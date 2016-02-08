@@ -107,8 +107,10 @@ LandDetectionResult MulticopterLandDetector::update()
 
 	if (get_freefall_state()) {
 		_state = LANDDETECTION_RES_FREEFALL;
+
 	} else if (get_landed_state()) {
 		_state = LANDDETECTION_RES_LANDED;
+
 	} else {
 		_state = LANDDETECTION_RES_FLYING;
 	}
@@ -118,19 +120,23 @@ LandDetectionResult MulticopterLandDetector::update()
 
 bool MulticopterLandDetector::get_freefall_state()
 {
-	if(_params.acc_threshold_m_s2 < 0.1f || _params.acc_threshold_m_s2 > 10.0f){	//if parameter is set to zero or invalid, disable free-fall detection.
+	if (_params.acc_threshold_m_s2 < 0.1f
+	    || _params.acc_threshold_m_s2 > 10.0f) {	//if parameter is set to zero or invalid, disable free-fall detection.
 		return false;
 	}
 
 	const uint64_t now = hrt_absolute_time();
 
 	float acc_norm = 0.0;
+
 	for (int i = 0; i < 3; i++) {
 		acc_norm += _sensors.accelerometer_m_s2[i] * _sensors.accelerometer_m_s2[i];
 	}
+
 	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
 
 	bool freefall = (acc_norm < _params.acc_threshold_m_s2);	//true if we are currently falling
+
 	if (!freefall || _freefallTimer == 0) {	//reset timer if uav not falling
 		_freefallTimer = now;
 		return false;
@@ -191,8 +197,8 @@ bool MulticopterLandDetector::get_landed_state()
 	float maxRotationScaled = _params.maxRotation_rad_s * armThresholdFactor;
 
 	bool rotating = (fabsf(_vehicleAttitude.rollspeed)  > maxRotationScaled) ||
-	                (fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
-	                (fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
+			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
+			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
 
 	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
