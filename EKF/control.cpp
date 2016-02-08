@@ -109,6 +109,13 @@ void Ekf::controlFusionModes()
 			_control_status.flags.mag_3D = false;
 		}
 	}
+
+        // if we are using 3-axis magnetometer fusion, but without external aiding, then the declination needs to be fused as an observation to prevent long term heading drift
+        if(_control_status.flags.mag_3D && _control_status.flags.gps) {
+            _control_status.flags.mag_dec = false;
+        } else {
+            _control_status.flags.mag_dec = true;
+        }
 }
 
 void Ekf::calculateVehicleStatus()
