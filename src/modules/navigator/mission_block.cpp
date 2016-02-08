@@ -69,7 +69,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_time_first_inside_orbit(0),
 	_actuators{},
 	_actuator_pub(nullptr),
-	_cmd_pub(nullptr)
+	_cmd_pub(nullptr),
+	_param_vtol_wv_land(this, "VT_OPT_WV_LND", false)
 {
 }
 
@@ -180,7 +181,22 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
+	/* handle VTOL_LAND command */
+	if(_waypoint_position_reached && _mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
+		struct vehicle_command_s cmd = {};
+		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		if (_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+		} else {
+			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		}
+		return _navigator->get_vstatus()->condition_landed;
+	}
+
+
 	/* Check if the waypoint and the requested yaw setpoint. */
+
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		/* TODO: removed takeoff, why? */
@@ -259,6 +275,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->loiter_direction = item->loiter_direction;
 	sp->pitch_min = item->pitch_min;
 	sp->acceptance_radius = item->acceptance_radius;
+	sp->disable_mc_yaw_control = false;
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_DO_SET_SERVO:
@@ -273,11 +290,16 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		break;
 
 	case NAV_CMD_TAKEOFF:
+	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
 
 	case NAV_CMD_LAND:
+	case NAV_CMD_VTOL_LAND:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
+		if(_navigator->get_vstatus()->is_vtol && _param_vtol_wv_land.get()){
+			sp->disable_mc_yaw_control = true;
+		}
 		break;
 
 	case NAV_CMD_LOITER_TIME_LIMIT:

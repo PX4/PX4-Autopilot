@@ -60,6 +60,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include "mission.h"
 #include "navigator.h"
@@ -418,6 +419,7 @@ Mission::set_mission_items()
 		/* new current mission item set, check if we need takeoff */
 		if (_need_takeoff && (
 				_mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
+				_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
 				_mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
 				_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 				_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
@@ -471,6 +473,20 @@ Mission::set_mission_items()
 	}
 
 	if (_takeoff_finished) {
+
+		/* handle VTOL TAKEOFF command */
+		if(_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF){
+			struct vehicle_command_s cmd = {};
+			cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+			cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			if (_cmd_pub != nullptr) {
+				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+			} else {
+				_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+			}
+		}
+
+
 		/* we just finished takeoff */
 		/* in case we still have to move to the takeoff waypoint we need a waypoint mission item */
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -553,7 +569,7 @@ Mission::heading_sp_update()
 		 * For landing the last waypoint (= constant) is used to avoid excessive yawing near the ground
 		 */
 		double point_from_latlon[2];
-		if (_mission_item.nav_cmd == NAV_CMD_LAND) {
+		if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
 			point_from_latlon[0] = pos_sp_triplet->previous.lat;
 			point_from_latlon[1] = pos_sp_triplet->previous.lon;
 		} else {
@@ -609,7 +625,10 @@ Mission::altitude_sp_foh_update()
 
 	/* Don't do FOH for landing and takeoff waypoints, the ground may be near
 	 * and the FW controller has a custom landing logic */
-	if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
+	if (_mission_item.nav_cmd == NAV_CMD_LAND ||
+		_mission_item.nav_cmd == NAV_CMD_VTOL_LAND ||
+		_mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
+		_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
 		return;
 	}
 
