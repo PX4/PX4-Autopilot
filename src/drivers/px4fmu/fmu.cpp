@@ -96,7 +96,7 @@
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 #define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
 #define BUTTON_SAFETY	stm32_gpioread(GPIO_BTN_SAFETY)
-#define CYCLE_FREQUENCY 250			/* safety switch must be held for 1 second to activate */
+#define CYCLE_COUNT 10			/* safety switch must be held for 1 second to activate */
 
 /*
  * Define the various LED flash sequences for each system state.
@@ -164,6 +164,9 @@ private:
 	hrt_abstime _rc_scan_begin = 0;
 	bool _rc_scan_locked = false;
 	bool _report_lock = true;
+
+	hrt_abstime _cycle_timestamp = 0;
+	hrt_abstime _last_safety_check = 0;
 
 	static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
@@ -457,29 +460,24 @@ PX4FMU:: safety_check_button(void)
 	 * state machine, keep ARM_COUNTER_THRESHOLD the same
 	 * length in all cases of the if/else struct below.
 	 */
-//	warnx("b: %u, c: %u", safety_button_pressed, counter);
-	if (safety_button_pressed && !_safety_off
-//			&& (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)
-	) {
+	if (safety_button_pressed && !_safety_off) {
 
-		if (counter < CYCLE_FREQUENCY) {
+		if (counter < CYCLE_COUNT) {
 			counter++;
 
-		} else if (counter == CYCLE_FREQUENCY) {
+		} else if (counter == CYCLE_COUNT) {
 			/* switch to armed state */
-			warnx("safety off");
 			_safety_off = true;
 			counter++;
 		}
 
 	} else if (safety_button_pressed && _safety_off) {
 
-		if (counter < CYCLE_FREQUENCY) {
+		if (counter < CYCLE_COUNT) {
 			counter++;
 
-		} else if (counter == CYCLE_FREQUENCY) {
+		} else if (counter == CYCLE_COUNT) {
 			/* change to disarmed state and notify the FMU */
-			warnx("safety on");
 			_safety_off = false;
 			counter++;
 		}
@@ -491,33 +489,29 @@ PX4FMU:: safety_check_button(void)
 	uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
 
 	/* cycle the blink state machine at 10Hz */
-	static int divider = 0;
 	static int blink_counter = 0;
-	if (divider++ >= (CYCLE_FREQUENCY/10)) {
-		divider = 0;
 
-		if (_safety_off) {
-			if (_armed.armed) {
-				pattern = LED_PATTERN_IO_FMU_ARMED;
-
-			} else {
-				pattern = LED_PATTERN_IO_ARMED;
-			}
-
-		} else if (_armed.armed) {
-			pattern = LED_PATTERN_FMU_ARMED;
+	if (_safety_off) {
+		if (_armed.armed) {
+			pattern = LED_PATTERN_IO_FMU_ARMED;
 
 		} else {
-			pattern = LED_PATTERN_FMU_OK_TO_ARM;
-
+			pattern = LED_PATTERN_IO_ARMED;
 		}
 
-		/* Turn the LED on if we have a 1 at the current bit position */
-		stm32_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
+	} else if (_armed.armed) {
+		pattern = LED_PATTERN_FMU_ARMED;
 
-		if (blink_counter > 15) {
-			blink_counter = 0;
-		}
+	} else {
+		pattern = LED_PATTERN_FMU_OK_TO_ARM;
+
+	}
+
+	/* Turn the LED on if we have a 1 at the current bit position */
+	stm32_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
+
+	if (blink_counter > 15) {
+		blink_counter = 0;
 	}
 }
 
@@ -1052,30 +1046,37 @@ PX4FMU::cycle()
 		}
 	}
 
-	/* check safety switch */
-	safety_check_button();
+	/* read safety switch input at 10Hz */
+	_cycle_timestamp = hrt_absolute_time();
 
-	/**
-	 * Get and handle the safety status
-	 */
-	struct safety_s safety;
-	safety.timestamp = hrt_absolute_time();
+	if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
+		_last_safety_check = _cycle_timestamp;
 
-	if (_safety_off) {
-		safety.safety_off = true;
-		safety.safety_switch_available = true;
+		/* check safety switch */
+		safety_check_button();
 
-	} else {
-		safety.safety_off = false;
-		safety.safety_switch_available = true;
-	}
+		/**
+		 * Get and handle the safety status
+		 */
+		struct safety_s safety;
+		safety.timestamp = hrt_absolute_time();
 
-	/* lazily publish the safety status */
-	if (_to_safety != nullptr) {
-		orb_publish(ORB_ID(safety), _to_safety, &safety);
+		if (_safety_off) {
+			safety.safety_off = true;
+			safety.safety_switch_available = true;
 
-	} else {
-		_to_safety = orb_advertise(ORB_ID(safety), &safety);
+		} else {
+			safety.safety_off = false;
+			safety.safety_switch_available = true;
+		}
+
+		/* lazily publish the safety status */
+		if (_to_safety != nullptr) {
+			orb_publish(ORB_ID(safety), _to_safety, &safety);
+
+		} else {
+			_to_safety = orb_advertise(ORB_ID(safety), &safety);
+		}
 	}
 
 	/* check arming state */
@@ -1139,29 +1140,28 @@ PX4FMU::cycle()
 	}
 
 	// read all available data from the serial RC input UART
-	hrt_abstime now = hrt_absolute_time();
 	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_FRAME_SIZE);
 
 	switch (_rc_scan_state) {
 	case RC_SCAN_SBUS:
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
+			_rc_scan_begin = _cycle_timestamp;
 			// Configure serial port for SBUS
 			sbus_config(_rcs_fd, false);
 			rc_io_invert(true);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			// parse new data
 			if (newBytes > 0) {
-				rc_updated = sbus_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
+				rc_updated = sbus_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
 							&sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new SBUS frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
-					fill_rc_in(raw_rc_count, raw_rc_values, now,
+					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   sbus_frame_drop, sbus_failsafe, frame_drops);
 					_rc_scan_locked = true;
 				}
@@ -1176,23 +1176,23 @@ PX4FMU::cycle()
 
 	case RC_SCAN_DSM:
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
-			// Configure serial port for DSM
+			_rc_scan_begin = _cycle_timestamp;
+//			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
 				// parse new data
-				rc_updated = dsm_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
+				rc_updated = dsm_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
 						       &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new DSM frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
-					fill_rc_in(raw_rc_count, raw_rc_values, now,
+					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   false, false, frame_drops);
 					_rc_scan_locked = true;
 				}
@@ -1207,13 +1207,13 @@ PX4FMU::cycle()
 
 	case RC_SCAN_ST24:
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
+			_rc_scan_begin = _cycle_timestamp;
 			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
 				// parse new data
@@ -1231,7 +1231,7 @@ PX4FMU::cycle()
 				if (rc_updated) {
 					// we have a new ST24 frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
-					fill_rc_in(raw_rc_count, raw_rc_values, now,
+					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   false, false, frame_drops, st24_rssi);
 					_rc_scan_locked = true;
 				}
@@ -1246,13 +1246,13 @@ PX4FMU::cycle()
 
 	case RC_SCAN_SUMD:
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
+			_rc_scan_begin = _cycle_timestamp;
 			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
 				// parse new data
@@ -1270,7 +1270,7 @@ PX4FMU::cycle()
 				if (rc_updated) {
 					// we have a new SUMD frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SUMD;
-					fill_rc_in(raw_rc_count, raw_rc_values, now,
+					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   false, false, frame_drops, sumd_rssi);
 					_rc_scan_locked = true;
 				}
@@ -1288,13 +1288,13 @@ PX4FMU::cycle()
 		// skip PPM if it's not supported
 #ifdef HRT_PPM_CHANNEL
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
+			_rc_scan_begin = _cycle_timestamp;
 			// Configure timer input pin for CPPM
 			stm32_configgpio(GPIO_PPM_IN);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			// see if we have new PPM input data
 			if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
@@ -1302,7 +1302,7 @@ PX4FMU::cycle()
 				// we have a new PPM frame. Publish it.
 				rc_updated = true;
 				_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-				fill_rc_in(ppm_decoded_channels, ppm_buffer, now,
+				fill_rc_in(ppm_decoded_channels, ppm_buffer, _cycle_timestamp,
 					   false, false, 0);
 				_rc_scan_locked = true;
 			}
