@@ -148,9 +148,9 @@ bool Ekf::update()
 			fuseMag();
 
 			if (_control_status.flags.mag_dec) {
-				// TODO need to fuse synthetic declination measurements if there is no GPS or equivalent aiding
-				// otherwise heading will slowly drift
+				fuseDeclination();
 			}
+
 		} else if (_control_status.flags.mag_hdg && _control_status.flags.angle_align) {
 			fuseHeading();
 		}

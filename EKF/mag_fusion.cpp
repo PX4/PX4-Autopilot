@@ -506,10 +506,10 @@ void Ekf::fuseHeading()
 	float t30 = t26 * t26;
 	float t31 = t30 + 1.0f;
 
-	float H_MAG[3] = {};
-	H_MAG[0] = -t31 * (t20 * (magZ * t16 + magY * t18) + t25 * t27 * (magY * t8 + magZ * t10));
-	H_MAG[1] = t31 * (t20 * (magX * t18 + magZ * t22) + t25 * t27 * (magX * t8 - magZ * t11));
-	H_MAG[2] = t31 * (t20 * (magX * t16 - magY * t22) + t25 * t27 * (magX * t10 + magY * t11));
+	float H_HDG[3] = {};
+	H_HDG[0] = -t31 * (t20 * (magZ * t16 + magY * t18) + t25 * t27 * (magY * t8 + magZ * t10));
+	H_HDG[1] = t31 * (t20 * (magX * t18 + magZ * t22) + t25 * t27 * (magX * t8 - magZ * t11));
+	H_HDG[2] = t31 * (t20 * (magX * t16 - magY * t22) + t25 * t27 * (magX * t10 + magY * t11));
 
 	// calculate innovation
 	matrix::Dcm<float> R_to_earth(_state.quat_nominal);
@@ -528,23 +528,19 @@ void Ekf::fuseHeading()
 
 	for (unsigned row = 0; row < 3; row++) {
 		for (unsigned column = 0; column < 3; column++) {
-			PH[row] += P[row][column] * H_MAG[column];
+			PH[row] += P[row][column] * H_HDG[column];
 		}
 
-		innovation_var += H_MAG[row] * PH[row];
+		innovation_var += H_HDG[row] * PH[row];
 	}
 
 	if (innovation_var >= R_mag) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
-		_fault_status.bad_mag_x = false;
-		_fault_status.bad_mag_y = false;
-		_fault_status.bad_mag_z = false;
+		_fault_status.bad_mag_hdg = false;
 
 	} else {
-		// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
-		_fault_status.bad_mag_x = true;
-		_fault_status.bad_mag_y = true;
-		_fault_status.bad_mag_z = true;
+		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
+		_fault_status.bad_mag_hdg = true;
 
 		// we reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
@@ -558,7 +554,7 @@ void Ekf::fuseHeading()
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < 3; column++) {
-			Kfusion[row] += P[row][column] * H_MAG[column];
+			Kfusion[row] += P[row][column] * H_HDG[column];
 		}
 
 		Kfusion[row] *= innovation_var_inv;
@@ -595,7 +591,7 @@ void Ekf::fuseHeading()
 
 	for (unsigned column = 0; column < _k_num_states; column++) {
 		for (unsigned row = 0; row < 3; row++) {
-			HP[column] += H_MAG[row] * P[row][column];
+			HP[column] += H_HDG[row] * P[row][column];
 		}
 	}
 
@@ -605,6 +601,142 @@ void Ekf::fuseHeading()
 		}
 	}
 
+	makeSymmetrical();
+	limitCov();
+}
+
+void Ekf::fuseDeclination()
+{
+	// assign intermediate state variables
+	float magN = _state.mag_I(0);
+	float magE = _state.mag_I(1);
+
+	float R_DECL = sq(0.5f);
+
+	// Calculate intermediate variables
+	// if the horizontal magnetic field is too small, this calculation will be badly conditioned
+	if (fabsf(magN) < 0.001f) {
+		return;
+	}
+
+	float t2 = 1.0f / magN;
+	float t4 = magE * t2;
+	float t3 = tanf(t4);
+	float t5 = t3 * t3;
+	float t6 = t5 + 1.0f;
+	float t25 = t2 * t6;
+	float t7 = 1.0f / (magN * magN);
+	float t26 = magE * t6 * t7;
+	float t8 = P[17][17] * t25;
+	float t15 = P[16][17] * t26;
+	float t9 = t8 - t15;
+	float t10 = t25 * t9;
+	float t11 = P[17][16] * t25;
+	float t16 = P[16][16] * t26;
+	float t12 = t11 - t16;
+	float t17 = t26 * t12;
+	float t13 = R_DECL + t10 - t17; // innovation variance
+
+	// check the innovation variance calculation for a badly conditioned covariance matrix
+	if (t13 >= R_DECL) {
+		// the innovation variance contribution from the state covariances is not negative, no fault
+		_fault_status.bad_mag_decl = false;
+
+	} else {
+		// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
+		_fault_status.bad_mag_decl = true;
+
+		// we reinitialise the covariance matrix and abort this fusion step
+		initialiseCovariance();
+		return;
+	}
+
+	float t14 = 1.0f / t13;
+	float t18 = magE;
+	float t19 = magN;
+	float t21 = 1.0f / t19;
+	float t22 = t18 * t21;
+	float t20 = tanf(t22);
+	float t23 = t20 * t20;
+	float t24 = t23 + 1.0f;
+
+	// Calculate the observation Jacobian
+	// Note only 2 terms are non-zero which can be used in matrix operations for calculation of Kalman gains and covariance update to significantly reduce cost
+	float H_DECL[24] = {};
+	H_DECL[16] = -t18 * 1.0f / (t19 * t19) * t24;
+	H_DECL[17] = t21 * t24;
+
+	// Calculate the Kalman gains
+	float Kfusion[_k_num_states] = {};
+	Kfusion[0] = t14 * (P[0][17] * t25 - P[0][16] * t26);
+	Kfusion[1] = t14 * (P[1][17] * t25 - P[1][16] * t26);
+	Kfusion[2] = t14 * (P[2][17] * t25 - P[2][16] * t26);
+	Kfusion[3] = t14 * (P[3][17] * t25 - P[3][16] * t26);
+	Kfusion[4] = t14 * (P[4][17] * t25 - P[4][16] * t26);
+	Kfusion[5] = t14 * (P[5][17] * t25 - P[5][16] * t26);
+	Kfusion[6] = t14 * (P[6][17] * t25 - P[6][16] * t26);
+	Kfusion[7] = t14 * (P[7][17] * t25 - P[7][16] * t26);
+	Kfusion[8] = t14 * (P[8][17] * t25 - P[8][16] * t26);
+	Kfusion[9] = t14 * (P[9][17] * t25 - P[9][16] * t26);
+	Kfusion[10] = t14 * (P[10][17] * t25 - P[10][16] * t26);
+	Kfusion[11] = t14 * (P[11][17] * t25 - P[11][16] * t26);
+	Kfusion[12] = t14 * (P[12][17] * t25 - P[12][16] * t26);
+	Kfusion[13] = t14 * (P[13][17] * t25 - P[13][16] * t26);
+	Kfusion[14] = t14 * (P[14][17] * t25 - P[14][16] * t26);
+	Kfusion[15] = t14 * (P[15][17] * t25 - P[15][16] * t26);
+	Kfusion[16] = -t14 * (t16 - P[16][17] * t25);
+	Kfusion[17] = t14 * (t8 - P[17][16] * t26);
+	Kfusion[18] = t14 * (P[18][17] * t25 - P[18][16] * t26);
+	Kfusion[19] = t14 * (P[19][17] * t25 - P[19][16] * t26);
+	Kfusion[20] = t14 * (P[20][17] * t25 - P[20][16] * t26);
+	Kfusion[21] = t14 * (P[21][17] * t25 - P[21][16] * t26);
+	Kfusion[22] = t14 * (P[22][17] * t25 - P[22][16] * t26);
+	Kfusion[23] = t14 * (P[23][17] * t25 - P[23][16] * t26);
+
+	// calculate innovation and constrain
+	float innovation = atanf(t4) - math::radians(_params.mag_declination_deg);
+	innovation = math::constrain(innovation, -0.5f, 0.5f);
+
+	// zero attitude error states and perform the state correction
+	_state.ang_error.setZero();
+	fuse(Kfusion, innovation);
+
+	// use the attitude error estimate to correct the quaternion
+	Quaternion dq;
+	dq.from_axis_angle(_state.ang_error);
+	_state.quat_nominal = dq * _state.quat_nominal;
+	_state.quat_nominal.normalize();
+
+	// apply covariance correction via P_new = (I -K*H)*P
+	// first calculate expression for KHP
+	// then calculate P - KHP
+	// take advantage of the empty columns in KH to reduce the number of operations
+	float KH[_k_num_states][_k_num_states] = {};
+
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		for (unsigned column = 16; column < 17; column++) {
+			KH[row][column] = Kfusion[row] * H_DECL[column];
+		}
+	}
+
+	float KHP[_k_num_states][_k_num_states] = {};
+
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		for (unsigned column = 0; column < _k_num_states; column++) {
+			float tmp = KH[row][0] * P[0][column];
+			tmp += KH[row][16] * P[16][column];
+			tmp += KH[row][17] * P[17][column];
+			KHP[row][column] = tmp;
+		}
+	}
+
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		for (unsigned column = 0; column < _k_num_states; column++) {
+			P[row][column] -= KHP[row][column];
+		}
+	}
+
+	// force the covariance matrix to be symmetrical and don't allow the variances to be negative.
 	makeSymmetrical();
 	limitCov();
 }
