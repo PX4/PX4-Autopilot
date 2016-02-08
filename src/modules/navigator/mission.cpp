@@ -178,7 +178,7 @@ Mission::on_active()
 			set_mission_items();
 		}
 
-	} else if (_mission_type != MISSION_TYPE_NONE &&_param_altmode.get() == MISSION_ALTMODE_FOH) {
+	} else if (_mission_type != MISSION_TYPE_NONE && _param_altmode.get() == MISSION_ALTMODE_FOH) {
 		altitude_sp_foh_update();
 
 	} else {
@@ -679,6 +679,7 @@ Mission::heading_sp_update()
 		// XXX: should actually be param4 from mission item
 		// at the moment it will just keep the heading it has
 		//_mission_item.yaw = _on_arrival_yaw;
+		//pos_sp_triplet->current.yaw = _mission_item.yaw;
 
 	} else {
 		/* Calculate direction the vehicle should point to. */
@@ -691,7 +692,10 @@ Mission::heading_sp_update()
 		/* target location is home */
 		if ((_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME
 				|| _param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME)
-				// don't try this during a transition
+				// need to be rotary wing for this but not in a transition
+				// in VTOL mode this will prevent updating yaw during FW flight
+				// (which would result in a wrong yaw setpoint spike during back transition)
+				&& _navigator->get_vstatus()->is_rotary_wing
 				&& !(_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION || _navigator->get_vstatus()->in_transition_mode)) {
 			point_to_latlon[0] = _navigator->get_home_position()->lat;
 			point_to_latlon[1] = _navigator->get_home_position()->lon;
@@ -717,15 +721,16 @@ Mission::heading_sp_update()
 			/* always keep the back of the rotary wing pointing towards home */
 			if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
 				_mission_item.yaw = _wrap_pi(yaw + M_PI_F);
+				pos_sp_triplet->current.yaw = _mission_item.yaw;
 
 			} else {
 				_mission_item.yaw = yaw;
+				pos_sp_triplet->current.yaw = _mission_item.yaw;
 			}
 		}
-
 	}
 
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	// we set yaw directly so we can run this in parallel to the FOH update
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -752,7 +757,6 @@ Mission::altitude_sp_foh_update()
 		return;
 	}
 
-
 	/* Calculate distance to current waypoint */
 	float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
 			_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
@@ -766,6 +770,7 @@ Mission::altitude_sp_foh_update()
 	 * navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude */
 	if (_min_current_sp_distance_xy < _navigator->get_acceptance_radius(_mission_item.acceptance_radius)) {
 		pos_sp_triplet->current.alt = get_absolute_altitude_for_item(_mission_item);
+
 	} else {
 		/* update the altitude sp of the 'current' item in the sp triplet, but do not update the altitude sp
 		* of the mission item as it is used to check if the mission item is reached
@@ -776,9 +781,9 @@ Mission::altitude_sp_foh_update()
 		float grad = -delta_alt/(_distance_current_previous - _navigator->get_acceptance_radius(_mission_item.acceptance_radius));
 		float a = _mission_item_previous_alt - grad * _distance_current_previous;
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
-
 	}
 
+	// we set altitude directly so we can run this in parallel to the heading update
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
