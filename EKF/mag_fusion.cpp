@@ -506,10 +506,10 @@ void Ekf::fuseHeading()
 	float t30 = t26 * t26;
 	float t31 = t30 + 1.0f;
 
-	float H_MAG[3] = {};
-	H_MAG[0] = -t31 * (t20 * (magZ * t16 + magY * t18) + t25 * t27 * (magY * t8 + magZ * t10));
-	H_MAG[1] = t31 * (t20 * (magX * t18 + magZ * t22) + t25 * t27 * (magX * t8 - magZ * t11));
-	H_MAG[2] = t31 * (t20 * (magX * t16 - magY * t22) + t25 * t27 * (magX * t10 + magY * t11));
+        float H_HDG[3] = {};
+        H_HDG[0] = -t31 * (t20 * (magZ * t16 + magY * t18) + t25 * t27 * (magY * t8 + magZ * t10));
+        H_HDG[1] = t31 * (t20 * (magX * t18 + magZ * t22) + t25 * t27 * (magX * t8 - magZ * t11));
+        H_HDG[2] = t31 * (t20 * (magX * t16 - magY * t22) + t25 * t27 * (magX * t10 + magY * t11));
 
 	// calculate innovation
 	matrix::Dcm<float> R_to_earth(_state.quat_nominal);
@@ -528,10 +528,10 @@ void Ekf::fuseHeading()
 
 	for (unsigned row = 0; row < 3; row++) {
 		for (unsigned column = 0; column < 3; column++) {
-			PH[row] += P[row][column] * H_MAG[column];
+                        PH[row] += P[row][column] * H_HDG[column];
 		}
 
-		innovation_var += H_MAG[row] * PH[row];
+                innovation_var += H_HDG[row] * PH[row];
 	}
 
 	if (innovation_var >= R_mag) {
@@ -558,7 +558,7 @@ void Ekf::fuseHeading()
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < 3; column++) {
-			Kfusion[row] += P[row][column] * H_MAG[column];
+                        Kfusion[row] += P[row][column] * H_HDG[column];
 		}
 
 		Kfusion[row] *= innovation_var_inv;
@@ -595,7 +595,7 @@ void Ekf::fuseHeading()
 
 	for (unsigned column = 0; column < _k_num_states; column++) {
 		for (unsigned row = 0; row < 3; row++) {
-			HP[column] += H_MAG[row] * P[row][column];
+                        HP[column] += H_HDG[row] * P[row][column];
 		}
 	}
 
