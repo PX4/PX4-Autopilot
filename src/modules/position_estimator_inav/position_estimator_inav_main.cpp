@@ -37,6 +37,7 @@
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Nuno Marques <n.marques21@hotmail.com>
+ * @author Christoph Tobler <toblech@student.ethz.ch>
  */
 #include <px4_posix.h>
 #include <unistd.h>
@@ -315,12 +316,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		{ 0.0f },		// E (pos)
 		{ 0.0f },		// D (pos)
 	};
+	const int mocap_heading = 2;
 
 	float dist_ground = 0.0f;		//variables for lidar altitude estimation
 	float corr_lidar = 0.0f;
 	float lidar_offset = 0.0f;
-	float lidar_max_dist = 39.0f;
-	float lidar_min_dist = 0.1f;
 	int lidar_offset_count = 0;
 	bool lidar_first = true;
 	bool use_lidar = false;
@@ -545,42 +545,47 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
 			}
 			
-			if (updated && lidar.current_distance > lidar_min_dist && lidar.current_distance < lidar_max_dist
-			    && (PX4_R(att.R, 2, 2) > 0.7f)) { //check if altitude estimation for lidar is enabled and new sensor data
+			if (updated) { //check if altitude estimation for lidar is enabled and new sensor data
 				
-				if (!use_lidar_prev && use_lidar) {
-					lidar_first = true;
-				}
+				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance && lidar.current_distance < lidar.max_distance
+			    		&& (PX4_R(att.R, 2, 2) > 0.7f)) {
 
-				use_lidar_prev = use_lidar;
-
-				lidar_time = t;
-				dist_ground = lidar.current_distance * PX4_R(att.R, 2, 2); //vertical distance
-
-				if (lidar_first) {
-					lidar_first = false;
-					lidar_offset = dist_ground + z_est[0];
-					mavlink_log_info(mavlink_fd, "[inav] LIDAR: new ground offset");
-					warnx("[inav] LIDAR: new ground offset");
-				}
-
-				corr_lidar = lidar_offset - dist_ground - z_est[0];
-
-				if (fabsf(corr_lidar) > params.lidar_err) { //check for spike
-					corr_lidar = 0;
-					lidar_valid = false;
-					lidar_offset_count++;
-
-					if (lidar_offset_count > 3) { //if consecutive bigger/smaller measurements -> new ground offset -> reinit
+					if (!use_lidar_prev && use_lidar) {
 						lidar_first = true;
-						lidar_offset_count = 0;
 					}
 
-				} else {
+					use_lidar_prev = use_lidar;
+
+					lidar_time = t;
+					dist_ground = lidar.current_distance * PX4_R(att.R, 2, 2); //vertical distance
+
+					if (lidar_first) {
+						lidar_first = false;
+						lidar_offset = dist_ground + z_est[0];
+						mavlink_log_info(mavlink_fd, "[inav] LIDAR: new ground offset");
+						warnx("[inav] LIDAR: new ground offset");
+					}
+
 					corr_lidar = lidar_offset - dist_ground - z_est[0];
-					lidar_valid = true;
-					lidar_offset_count = 0;
-					lidar_valid_time = t;
+
+					if (fabsf(corr_lidar) > params.lidar_err) { //check for spike
+						corr_lidar = 0;
+						lidar_valid = false;
+						lidar_offset_count++;
+
+						if (lidar_offset_count > 3) { //if consecutive bigger/smaller measurements -> new ground offset -> reinit
+							lidar_first = true;
+							lidar_offset_count = 0;
+						}
+
+					} else {
+						corr_lidar = lidar_offset - dist_ground - z_est[0];
+						lidar_valid = true;
+						lidar_offset_count = 0;
+						lidar_valid_time = t;
+					}
+				} else {
+					lidar_valid = false;
 				}
 			}
 
@@ -798,24 +803,26 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(att_pos_mocap), att_pos_mocap_sub, &mocap);
 
-				/* reset position estimate on first mocap update */
-				if (!mocap_valid) {
-					x_est[0] = mocap.x;
-					y_est[0] = mocap.y;
-					z_est[0] = mocap.z;
+				if (!params.disable_mocap) {
+					/* reset position estimate on first mocap update */
+					if (!mocap_valid) {
+						x_est[0] = mocap.x;
+						y_est[0] = mocap.y;
+						z_est[0] = mocap.z;
 
-					mocap_valid = true;
+						mocap_valid = true;
 
-					warnx("MOCAP data valid");
-					mavlink_log_info(mavlink_fd, "[inav] MOCAP data valid");
+						warnx("MOCAP data valid");
+						mavlink_log_info(mavlink_fd, "[inav] MOCAP data valid");
+					}
+
+					/* calculate correction for position */
+					corr_mocap[0][0] = mocap.x - x_est[0];
+					corr_mocap[1][0] = mocap.y - y_est[0];
+					corr_mocap[2][0] = mocap.z - z_est[0];
+
+					mocap_updates++;
 				}
-
-				/* calculate correction for position */
-				corr_mocap[0][0] = mocap.x - x_est[0];
-				corr_mocap[1][0] = mocap.y - y_est[0];
-				corr_mocap[2][0] = mocap.z - z_est[0];
-
-				mocap_updates++;
 			}
 
 			/* vehicle GPS position */
@@ -992,7 +999,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_vision_xy = vision_valid && params.w_xy_vision_p > MIN_VALID_W;
 		bool use_vision_z = vision_valid && params.w_z_vision_p > MIN_VALID_W;
 		/* use MOCAP if it's valid and has a valid weight parameter */
-		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W;
+		bool use_mocap = mocap_valid && params.w_mocap_p > MIN_VALID_W && params.att_ext_hdg_m == mocap_heading; //check if external heading is mocap
 
 		if (params.disable_mocap) { //disable mocap if fake gps is used
 			use_mocap = false;
@@ -1112,7 +1119,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_lidar) {
 			accel_bias_corr[2] -= corr_lidar * params.w_z_lidar * params.w_z_lidar;
-
 		} else {
 			accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
 		}
