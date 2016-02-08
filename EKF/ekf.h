@@ -162,7 +162,7 @@ private:
 
 	void fuseHeading();
 
-        void fuseDeclination();
+	void fuseDeclination();
 
 	void fuseAirspeed();
 

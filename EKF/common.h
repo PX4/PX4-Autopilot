@@ -168,15 +168,15 @@ struct stateSample {
 };
 
 struct fault_status_t {
-        bool bad_mag_x: 1; // true if the fusion of the magnetometer X-axis has encountered a numerical error
-        bool bad_mag_y: 1; // true if the fusion of the magnetometer Y-axis has encountered a numerical error
-        bool bad_mag_z: 1; // true if the fusion of the magnetometer Z-axis has encountered a numerical error
-        bool bad_mag_hdg: 1; // true if the fusion of the magnetic heading has encountered a numerical error
-        bool bad_mag_decl: 1; // true if the fusion of the magnetic declination has encountered a numerical error
-        bool bad_airspeed: 1; // true if fusion of the airspeed has encountered a numerical error
-        bool bad_sideslip: 1; // true if fusion of the synthetic sideslip constraint has encountered a numerical error
-        bool bad_optflow_X: 1; // true if fusion of the optical flow X axis has encountered a numerical error
-        bool bad_optflow_Y: 1; // true if fusion of the optical flow Y axis has encountered a numerical error
+	bool bad_mag_x: 1; // true if the fusion of the magnetometer X-axis has encountered a numerical error
+	bool bad_mag_y: 1; // true if the fusion of the magnetometer Y-axis has encountered a numerical error
+	bool bad_mag_z: 1; // true if the fusion of the magnetometer Z-axis has encountered a numerical error
+	bool bad_mag_hdg: 1; // true if the fusion of the magnetic heading has encountered a numerical error
+	bool bad_mag_decl: 1; // true if the fusion of the magnetic declination has encountered a numerical error
+	bool bad_airspeed: 1; // true if fusion of the airspeed has encountered a numerical error
+	bool bad_sideslip: 1; // true if fusion of the synthetic sideslip constraint has encountered a numerical error
+	bool bad_optflow_X: 1; // true if fusion of the optical flow X axis has encountered a numerical error
+	bool bad_optflow_Y: 1; // true if fusion of the optical flow Y axis has encountered a numerical error
 };
 
 // publish the status of various GPS quality checks
