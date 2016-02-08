@@ -83,7 +83,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_missionFeasibilityChecker(),
 	_min_current_sp_distance_xy(FLT_MAX),
 	_mission_item_previous_alt(NAN),
-  	_on_arrival_yaw(NAN),
 	_distance_current_previous(0.0f),
 	_work_item_type(WORK_ITEM_TYPE_DEFAULT)
 {
@@ -177,11 +176,11 @@ Mission::on_active()
 			/* switch to next waypoint if 'autocontinue' flag set */
 			advance_mission();
 			set_mission_items();
-
 		}
 
 	} else if (_mission_type != MISSION_TYPE_NONE &&_param_altmode.get() == MISSION_ALTMODE_FOH) {
 		altitude_sp_foh_update();
+
 	} else {
 		/* if waypoint position reached allow loiter on the setpoint */
 		if (_waypoint_position_reached && _mission_item.nav_cmd != NAV_CMD_IDLE) {
@@ -336,6 +335,12 @@ Mission::set_mission_items()
 
 	work_item_type new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
+	/* copy information about the previous mission item */
+	if (item_contains_position(&_mission_item) && pos_sp_triplet->current.valid) {
+		/* Copy previous mission item altitude */
+		_mission_item_previous_alt = get_absolute_altitude_for_item(_mission_item);
+	}
+
 	/* try setting onboard mission item */
 	if (_param_onboard_enabled.get() && prepare_mission_items(true, &_mission_item, &mission_item_next_position, &has_next_position_item)) {
 		/* if mission type changed, notify */
@@ -411,15 +416,6 @@ Mission::set_mission_items()
 
 		/* we have a new position item so set previous position setpoint to current */
 		set_previous_pos_setpoint();
-
-		/* Copy previous mission item altitude (can be extended to a copy of the full mission item if needed) */
-		if (pos_sp_triplet->previous.valid) {
-			_mission_item_previous_alt = get_absolute_altitude_for_item(_mission_item);
-		}
-
-		if (pos_sp_triplet->current.valid) {
-			_on_arrival_yaw = _mission_item.yaw;
-		}
 
 		/* do takeoff before going to setpoint if needed and not already in takeoff */
 		if (do_need_takeoff() && _work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
@@ -680,44 +676,41 @@ Mission::heading_sp_update()
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	/* Don't change setpoint if last and current waypoint are not valid */
-	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-			!PX4_ISFINITE(_on_arrival_yaw)) {
+	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid) {
 		return;
 	}
 
 	/* set yaw angle for the waypoint if a loiter time has been specified */
 	if (_waypoint_position_reached && _mission_item.time_inside > 0.0f) {
-		_mission_item.yaw = _on_arrival_yaw;
+		// XXX: should actually be param4 from mission item
+		// at the moment it will just keep the heading it has
+		//_mission_item.yaw = _on_arrival_yaw;
 
 	} else {
-
-		/**
-		 * Calculate direction the vehicle should point to.
-		 * To avoid excessive yawing when near the next waypoint we calculate heading between
-		 * previous and current waypoint instead of current location.
-		 */
+		/* Calculate direction the vehicle should point to. */
 		double point_from_latlon[2];
 		double point_to_latlon[2];
 
-		point_from_latlon[0] = pos_sp_triplet->previous.lat;
-		point_from_latlon[1] = pos_sp_triplet->previous.lon;
-
-		/* default target location is next (current) waypoint */
-		point_to_latlon[0] = pos_sp_triplet->current.lat;
-		point_to_latlon[1] = pos_sp_triplet->current.lon;
+		point_from_latlon[0] = _navigator->get_global_position()->lat;
+		point_from_latlon[1] = _navigator->get_global_position()->lon;
 
 		/* target location is home */
 		if (_param_yawmode.get() == MISSION_YAWMODE_FRONT_TO_HOME
 				|| _param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
 			point_to_latlon[0] = _navigator->get_home_position()->lat;
 			point_to_latlon[1] = _navigator->get_home_position()->lon;
+
+		/* target location is next (current) waypoint */
+		} else {
+			point_to_latlon[0] = pos_sp_triplet->current.lat;
+			point_to_latlon[1] = pos_sp_triplet->current.lon;
 		}
 
 		float d_current = get_distance_to_next_waypoint(
 			point_from_latlon[0], point_from_latlon[1],
 			point_to_latlon[0], point_to_latlon[1]);
 
-		/* don't yaw if positions are on top of each other */
+		/* stop if positions are close together to prevent excessive yawing */
 		if (d_current > _navigator->get_acceptance_radius()) {
 			float yaw = get_bearing_to_next_waypoint(
 				point_from_latlon[0],
