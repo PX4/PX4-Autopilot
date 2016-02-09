@@ -109,7 +109,7 @@ uint8_t  *param_changed_storage = 0;
 int size_param_changed_storage_bytes = 0;
 const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 
-#define ENABLE_SHMEM_DEBUG
+//#define ENABLE_SHMEM_DEBUG
 
 extern int get_shmem_lock(void);
 extern void release_shmem_lock(void);
