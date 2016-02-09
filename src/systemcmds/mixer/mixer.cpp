@@ -122,6 +122,7 @@ load(const char *devname, const char *fname)
 	}
 
 	char buf[2048];
+
 	if (load_mixer_file(fname, &buf[0], sizeof(buf)) < 0) {
 		warnx("can't load mixer: %s", fname);
 		return 1;

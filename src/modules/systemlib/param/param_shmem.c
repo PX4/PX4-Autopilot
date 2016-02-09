@@ -547,7 +547,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	bool params_changed = false;
 
 	PX4_DEBUG("param_set_internal params: param = %d, val = 0x%X, mark_saved: %d, notify_changes: %d",
-			param, val, (int)mark_saved, (int)notify_changes);
+		  param, val, (int)mark_saved, (int)notify_changes);
 
 	param_lock();
 
@@ -816,6 +816,7 @@ param_save_default(void)
 		res = ERROR;
 		goto exit;
 	}
+
 	is_locked = true;
 
 	fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
@@ -835,17 +836,18 @@ param_save_default(void)
 	PARAM_CLOSE(fd);
 
 exit:
+
 	if (is_locked) {
 		release_shmem_lock();
 	}
 
 	if (fd >= 0) {
- 		close(fd);
- 	}
+		close(fd);
+	}
 
 	if (res == OK) {
 		PX4_INFO("saving params completed successfully\n");
- 	}
+	}
 
 	return res;
 }
