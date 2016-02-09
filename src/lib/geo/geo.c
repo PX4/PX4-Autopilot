@@ -392,57 +392,74 @@ __EXPORT void add_vector_to_global_position(double lat_now, double lon_now, floa
 	*lon_res = (lon_now_rad + (double)v_e / (CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad))) * M_RAD_TO_DEG;
 }
 
-// Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
+// @author Doug Weibel <douglas.weibel@colorado.edu>
+//         Max Shvetsov <max@airdog.com>
+// @description: this function modifies crosstrack_error to show distance to the nearest point on the line segment.
+//               crosstrack_error.distance is positive if point is on the left from line (start->end direction), negative otherwise
+//               crosstrack_error.distance is equal to NOW-START distance if point NOW projects to line before START point
+//               crosstrack_error.distance is equal to NOW-END distance if point NOW projects to line after END point
+// @return value: OK on success, ERROR on failure
 
-__EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-				  double lat_start, double lon_start, double lat_end, double lon_end)
+__EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end)
 {
-// This function returns the distance to the nearest point on the track line.  Distance is positive if current
-// position is right of the track and negative if left of the track as seen from a point on the track line
-// headed towards the end point.
+    int return_value = OK;
+    float dist_to_end, dist_to_start;
+    float bearing_start, bearing_end;
+    float bearing_track;
+    float bearing_diff_start, bearing_diff_end;
 
-	float dist_to_end;
-	float bearing_end;
-	float bearing_track;
-	float bearing_diff;
+    if (crosstrack_error == NULL) {
+        return_value = ERROR;
+    }
 
-	int return_value = ERROR;	// Set error flag, cleared when valid result calculated.
-	crosstrack_error->past_end = false;
-	crosstrack_error->distance = 0.0f;
-	crosstrack_error->bearing = 0.0f;
+    if (return_value == OK) {
+        crosstrack_error->past_start = false;
+        crosstrack_error->past_end = false;
+        crosstrack_error->distance = 0.0f;
+        crosstrack_error->bearing = 0.0f;
 
-	dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+        dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
+        dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 
-	// Return error if arguments are bad
-	if (dist_to_end < 0.1f) {
-		return ERROR;
-	}
+        // Return error if arguments are bad
+        if (dist_to_end < 0.1f || dist_to_start < 0.1f) {
+            return_value = ERROR;
+        }
+    }
 
-	bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
-	bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
-	bearing_diff = bearing_track - bearing_end;
-	bearing_diff = _wrap_pi(bearing_diff);
+    if (return_value == OK) {
+        bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+        bearing_start = get_bearing_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
+        bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
 
-	// Return past_end = true if past end point of line
-	if (bearing_diff > M_PI_2_F || bearing_diff < -M_PI_2_F) {
-		crosstrack_error->past_end = true;
-		return_value = OK;
-		return return_value;
-	}
+        bearing_diff_end = _wrap_pi(bearing_track - bearing_end);
+        bearing_diff_start = _wrap_pi(bearing_track - bearing_start);
 
-	crosstrack_error->distance = (dist_to_end) * sinf(bearing_diff);
+        // past_end = true if projectio will be after end_point
+        if (bearing_diff_end > M_PI_2_F || bearing_diff_end < -M_PI_2_F) {
+            crosstrack_error->past_end = true;
+            crosstrack_error->distance = dist_to_end;
+            crosstrack_error->bearing = bearing_end;
+        }
+        // past_start = true if projection will be before start_point
+        else if (bearing_diff_start < M_PI_2_F && bearing_diff_start > -M_PI_2_F) {
+            crosstrack_error->past_start = true;
+            crosstrack_error->distance = dist_to_start;
+            crosstrack_error->bearing = bearing_start;
+        }
+        else {
+            crosstrack_error->distance = (dist_to_end) * sinf(bearing_diff_end);
 
-	if (sin(bearing_diff) >= 0) {
-		crosstrack_error->bearing = _wrap_pi(bearing_track - M_PI_2_F);
+            if (sin(bearing_diff_end) >= 0) {
+                crosstrack_error->bearing = _wrap_pi(bearing_track - M_PI_2_F);
 
-	} else {
-		crosstrack_error->bearing = _wrap_pi(bearing_track + M_PI_2_F);
-	}
+            } else {
+                crosstrack_error->bearing = _wrap_pi(bearing_track + M_PI_2_F);
+            }
+        }
+    }
 
-	return_value = OK;
-
-	return return_value;
-
+    return return_value;
 }
 
 
