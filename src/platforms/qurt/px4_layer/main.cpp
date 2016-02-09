@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include "get_commands.h"
 #include "apps.h"
+#include "DriverFramework.hpp"
 
 using namespace std;
 
@@ -213,6 +214,7 @@ int dspal_entry(int argc, char *argv[])
 	PX4_INFO("In main\n");
 	map<string, px4_main_t> apps;
 	init_app_map(apps);
+	DriverFramework::Framework::initialize();
 	px4::init_once();
 	px4::init(argc, (char **)argv, "mainapp");
 	process_commands(apps, get_commands());
