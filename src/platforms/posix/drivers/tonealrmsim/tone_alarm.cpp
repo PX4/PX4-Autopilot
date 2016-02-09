@@ -349,7 +349,7 @@ ToneAlarm::start_note(unsigned note)
 
 	// Silence warning of unused var
 	do_something(period);
-	PX4_INFO("ToneAlarm::start_note %u", period);
+	PX4_DEBUG("ToneAlarm::start_note %u", period);
 }
 
 void
@@ -360,7 +360,7 @@ ToneAlarm::stop_note()
 void
 ToneAlarm::start_tune(const char *tune)
 {
-	PX4_INFO("ToneAlarm::start_tune");
+	PX4_DEBUG("ToneAlarm::start_tune");
 	// kill any current playback
 	hrt_cancel(&_note_call);
 
