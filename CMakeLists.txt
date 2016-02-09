@@ -363,10 +363,10 @@ endif()
 #=============================================================================
 # DriverFramework Drivers
 #
-set(df_libraries)
+set(df_driver_libs)
 foreach(driver ${config_df_driver_list})
 	add_subdirectory(src/lib/DriverFramework/drivers/${driver})
-	list(APPEND df_libraries ${driver})
+	list(APPEND df_driver_libs df_${driver})
 	#message(STATUS "adding driver: ${driver}")
 endforeach()
 

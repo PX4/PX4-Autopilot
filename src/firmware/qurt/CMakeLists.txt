@@ -29,6 +29,7 @@ else()
 		${module_libraries}
 		${target_libraries}
 		df_driver_framework
+		${df_driver_libs}
 		m
 		)
 		
