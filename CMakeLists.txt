@@ -331,6 +331,17 @@ execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/lib)
 execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
 
 #=============================================================================
+# DriverFramework Drivers
+#
+message("ADDING DRIVERS")
+set(df_driver_libs)
+foreach(driver ${config_df_driver_list})
+	add_subdirectory(src/lib/DriverFramework/drivers/${driver})
+	list(APPEND df_driver_libs df_${driver})
+	message("adding driver: ${driver}")
+endforeach()
+
+#=============================================================================
 # subdirectories
 #
 set(module_libraries)
@@ -359,16 +370,6 @@ endif()
 if (config_io_board)
 	add_subdirectory(src/modules/px4iofirmware)
 endif()
-
-#=============================================================================
-# DriverFramework Drivers
-#
-set(df_driver_libs)
-foreach(driver ${config_df_driver_list})
-	add_subdirectory(src/lib/DriverFramework/drivers/${driver})
-	list(APPEND df_driver_libs df_${driver})
-	#message(STATUS "adding driver: ${driver}")
-endforeach()
 
 #=============================================================================
 # generate git version
