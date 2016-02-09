@@ -519,6 +519,8 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.vtol_opt_recovery_enabled, &tmp);
 	_params.vtol_opt_recovery_enabled = (bool)tmp;
 
+	param_get(_params_handles.vtol_wv_yaw_rate_d, &_params.vtol_wv_yaw_rate_d);
+
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
 	return OK;

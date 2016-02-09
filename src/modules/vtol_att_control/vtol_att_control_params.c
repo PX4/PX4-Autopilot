@@ -230,3 +230,13 @@ PARAM_DEFINE_INT32(VT_OPT_WV_LND, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_OPT_WV_RATE_D, 0.15f);
+
+/**
+ * Enable weather-vane mode for loiter
+ *
+ * @min 0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_OPT_WV_LTR, 0);
+

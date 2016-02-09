@@ -71,7 +71,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_actuators{},
 	_actuator_pub(nullptr),
 	_cmd_pub(nullptr),
-	_param_vtol_wv_land(this, "VT_OPT_WV_LND", false)
+	_param_vtol_wv_land(this, "VT_OPT_WV_LND", false),
+	_param_vtol_wv_loiter(this, "VT_OPT_WV_LTR", false)
 {
 }
 
@@ -334,6 +335,9 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	case NAV_CMD_LOITER_TURN_COUNT:
 	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+		if(_navigator->get_vstatus()->is_vtol && _param_vtol_wv_loiter.get()){
+			sp->disable_mc_yaw_control = true;
+		}
 		break;
 
 	default:

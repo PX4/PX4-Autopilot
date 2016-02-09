@@ -133,6 +133,7 @@ protected:
 	orb_advert_t    _actuator_pub;
 	orb_advert_t	_cmd_pub;
 	control::BlockParamInt _param_vtol_wv_land;
+	control::BlockParamInt _param_vtol_wv_loiter;
 };
 
 #endif
