@@ -272,10 +272,9 @@ bool Ekf::initialiseFilter(void)
 		// calculate the averaged barometer reading
 		_baro_at_alignment = _baro_sum / (float)_baro_counter;
 
-		// set the velocity to the GPS measurement (by definition, the initial position and height is at the origin)
 		resetVelocity();
+		resetPosition();
 
-		// initialise the state covariance matrix
 		initialiseCovariance();
 
 		return true;

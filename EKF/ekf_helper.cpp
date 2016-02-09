@@ -85,13 +85,7 @@ void Ekf::resetHeight()
 {
 	// if we have a valid height measurement, use it to initialise the vertical position state
 	baroSample baro_newest = _baro_buffer.get_newest();
-
-	if (_time_last_imu - baro_newest.time_us < 200000) {
-		_state.pos(2) = _baro_at_alignment - baro_newest.hgt;
-
-	} else {
-		// XXX use the value of the last known position
-	}
+	_state.pos(2) = _baro_at_alignment - baro_newest.hgt;
 }
 
 #if defined(__PX4_POSIX) && !defined(__PX4_QURT)
