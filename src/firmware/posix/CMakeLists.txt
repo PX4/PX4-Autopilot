@@ -20,7 +20,7 @@ if ("${BOARD}" STREQUAL "eagle")
 		-Wl,--start-group
 		${module_libraries}
 		df_driver_framework
-		${df_driver_libraries}
+		${df_driver_libs}
 		${FASTRPC_ARM_LIBS}
 		pthread m rt
 		-Wl,--end-group
@@ -35,7 +35,7 @@ else()
 			-Wl,--start-group
 			${module_libraries}
 			df_driver_framework
-			${df_driver_libraries}
+			${df_driver_libs}
 			pthread m rt
 			-Wl,--end-group
 			)
@@ -43,7 +43,7 @@ else()
 		target_link_libraries(mainapp
 			${module_libraries}
 			df_driver_framework
-			${df_driver_libraries}
+			${df_driver_libs}
 			pthread m
 			)
 	endif()
