@@ -18,6 +18,7 @@ set(config_module_list
 	platforms/posix/drivers/gyrosim
 	platforms/posix/drivers/rgbledsim
 	platforms/posix/drivers/ledsim
+	platforms/posix/drivers/df_imu
 	systemcmds/param
 	systemcmds/mixer
 	systemcmds/ver
