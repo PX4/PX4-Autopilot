@@ -35,6 +35,7 @@
 * @file vtol_type.cpp
 *
 * @author Roman Bapst 		<bapstroman@gmail.com>
+* @author Andreas Antener	<andreas@uaventure.com>
 *
 */
 
@@ -66,6 +67,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_airspeed = _attc->get_airspeed();
 	_batt_status = _attc->get_batt_status();
 	_vehicle_status = _attc->get_vehicle_status();
+	_tecs_status = _attc->get_tecs_status();
 	_params = _attc->get_params();
 
 	flag_idle_mc = true;
@@ -152,4 +154,18 @@ void VtolType::update_fw_state()
 	_mc_roll_weight = 0.0f;
 	_mc_pitch_weight = 0.0f;
 	_mc_yaw_weight = 0.0f;
+
+	// tecs didn't publish an update yet after the transition
+	if (_tecs_status->timestamp < _trans_finished_ts) {
+		_tecs_running = false;
+
+	} else if (!_tecs_running) {
+		_tecs_running = true;
+		_tecs_running_ts = hrt_absolute_time();
+	}
+
+	// tecs didn't publish yet and the position controller didn't publish yet AFTER tecs
+	if (!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts)) {
+		waiting_on_fw_ctl();
+	}
 }

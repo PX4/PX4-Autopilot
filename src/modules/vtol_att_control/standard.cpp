@@ -169,6 +169,7 @@ void Standard::update_vtol_state()
 				// we can turn off the multirotor motors now
 				_flag_enable_mc_motors = false;
 				// don't set pusher throttle here as it's being ramped up elsewhere
+				_trans_finished_ts = hrt_absolute_time();
 			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
@@ -315,6 +316,12 @@ void Standard::fill_actuator_outputs()
 		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
 	}
 }
+
+void
+Standard::waiting_on_fw_ctl()
+{
+	_v_att_sp->thrust = _pusher_throttle;
+};
 
 /**
 * Disable all multirotor motors when in fw mode.
