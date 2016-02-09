@@ -60,8 +60,12 @@
 //#include <mathlib/math/filter/LowPassFilter2p.hpp>
 //#include <lib/conversion/rotation.h>
 //
-#include "mpu9250/MPU9250.hpp"
-#include "DevMgr.hpp"
+#include <mpu9250/MPU9250.hpp>
+#include <DevMgr.hpp>
+#include <VirtDevObj.hpp>
+
+
+#define ACCELSIM_DEVICE_PATH_ACCEL	"/dev/df_accel"
 
 
 extern "C" { __EXPORT int df_imu_main(int argc, char *argv[]); }
@@ -69,7 +73,7 @@ extern "C" { __EXPORT int df_imu_main(int argc, char *argv[]); }
 using namespace DriverFramework;
 
 
-class DfImu : MPU9250
+class DfImu : public MPU9250
 {
 public:
 	DfImu(/*enum Rotation rotation*/);
@@ -94,12 +98,22 @@ public:
 private:
 	virtual int _publish_callback(struct imu_sensor_data &data);
 
+	orb_advert_t		_accel_topic;
+	int			_accel_orb_class_instance;
+
+	perf_counter_t		_accel_sample_perf;
+
 };
 
 DfImu::DfImu(/*enum Rotation rotation*/) :
-	MPU9250(IMU_DEVICE_PATH)
+	MPU9250(IMU_DEVICE_PATH),
+	_accel_topic(nullptr),
+	_accel_orb_class_instance(-1),
+	_accel_sample_perf(perf_alloc(PC_ELAPSED, "df_accel_read"))
 	/*_rotation(rotation)*/
 {
+	m_id.dev_id_s.bus = 1;
+	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
 }
 
 DfImu::~DfImu()
@@ -108,22 +122,33 @@ DfImu::~DfImu()
 
 int DfImu::start()
 {
-	/* start sensor */
-	PX4_WARN("DF IMU STARTED==================================================");
-	int ret = MPU9250::init();
+	struct accel_report arp = {};
+
+	arp.timestamp = 1234;
+
+	/* measurement will have generated a report, publish */
+	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
+					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
+
+	if (_accel_topic == nullptr) {
+		PX4_WARN("ADVERT ERR");
+		return -1;
+	}
+
+	/* init device and start sensor */
+	int ret = init();
 
 	if (ret != 0) {
 		PX4_ERR("MPU9250 init fail: %d", ret);
-		return -1;
+		return ret;
 	}
 
 	ret = MPU9250::start();
 
 	if (ret != 0) {
 		PX4_ERR("MPU9250 start fail: %d", ret);
-		return -1;
+		return ret;
 	}
-
 
 	return 0;
 }
@@ -131,13 +156,39 @@ int DfImu::start()
 int DfImu::stop()
 {
 	/* stop sensor */
-	PX4_WARN("DF IMU STOPPED==================================================");
 	return 0;
 }
 
 int DfImu::_publish_callback(struct imu_sensor_data &data)
 {
-	PX4_WARN("publish");
+	accel_report accel_report = {};
+
+	accel_report.timestamp = data.last_read_time_usec;
+
+	// TODO: remove these (or get the values)
+	accel_report.x_raw = NAN;
+	accel_report.y_raw = NAN;
+	accel_report.z_raw = NAN;
+
+	accel_report.x = data.accel_m_s2_x;
+	accel_report.y = data.accel_m_s2_y;
+	accel_report.z = data.accel_m_s2_z;
+
+	// TODO: get these right
+	accel_report.scaling = -1.0f;
+	accel_report.range_m_s2 = -1.0f;
+
+	if (!(m_pub_blocked)) {
+		/* publish it */
+
+		if (_accel_topic != nullptr) {
+			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		}
+	}
+
+	/* notify anyone waiting for data */
+	DevMgr::updateNotify(*this);
+
 	return 0;
 };
 
@@ -155,7 +206,31 @@ void usage();
 int start(/*enum Rotation rotation*/)
 {
 	g_dev = new DfImu(/*rotation*/);
-	return g_dev->start();
+
+	if (g_dev == nullptr) {
+		PX4_ERR("failed instantiating DfImu object");
+		return -1;
+	}
+
+	int ret = g_dev->start();
+	if (ret != 0) {
+		PX4_ERR("DfImu start failed");
+		return ret;
+	}
+
+	// Open the IMU sensor
+	DevHandle h;
+	DevMgr::getHandle(IMU_DEVICE_PATH, h);
+	if (!h.isValid())
+	{
+		DF_LOG_INFO("Error: unable to obtain a valid handle for the receiver at: %s (%d)",
+			IMU_DEVICE_PATH, h.getError());
+		return -1;
+	}
+
+	DevMgr::releaseHandle(h);
+
+	return 0;
 }
 
 int stop()
