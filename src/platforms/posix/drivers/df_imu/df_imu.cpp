@@ -135,13 +135,15 @@ int DfImu::stop()
 	return 0;
 }
 
-int DfImu::_publish_callback(struct imu_sensor_data &data) {
+int DfImu::_publish_callback(struct imu_sensor_data &data)
+{
 	PX4_WARN("publish");
 	return 0;
 };
 
 
-namespace df_imu {
+namespace df_imu
+{
 
 DfImu *g_dev = nullptr;
 
@@ -164,6 +166,7 @@ int stop()
 	}
 
 	int ret = g_dev->stop();
+
 	if (ret != 0) {
 		PX4_ERR("driver could not be stopped");
 		return ret;
