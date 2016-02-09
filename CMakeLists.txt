@@ -193,6 +193,11 @@ foreach(conf ${px4_required_config})
 	endif()
 endforeach()
 
+# List the DriverFramework drivers
+if(DEFINED config_df_driver_list)
+	message("DF Drivers: ${config_df_driver_list}")
+endif()
+
 #=============================================================================
 # project definition
 #
@@ -346,7 +351,7 @@ endforeach()
 add_subdirectory(src/firmware/${OS})
 
 add_subdirectory(src/lib/DriverFramework/framework/src)
-add_subdirectory(src/lib/DriverFramework/drivers/)
+
 #add_dependencies(df_driver_framework nuttx_export_${CONFIG}.stamp)
 if (NOT "${OS}" STREQUAL "nuttx")
 endif()
@@ -354,6 +359,16 @@ endif()
 if (config_io_board)
 	add_subdirectory(src/modules/px4iofirmware)
 endif()
+
+#=============================================================================
+# DriverFramework Drivers
+#
+set(df_libraries)
+foreach(driver ${config_df_driver_list})
+	add_subdirectory(src/lib/DriverFramework/drivers/${driver})
+	list(APPEND df_libraries ${driver})
+	#message(STATUS "adding driver: ${driver}")
+endforeach()
 
 #=============================================================================
 # generate git version

@@ -30,6 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+include_directories(../../../../lib/DriverFramework/drivers)
+
 px4_add_module(
 	MODULE platforms__posix__drivers__df_imu
 	MAIN df_imu
@@ -38,5 +41,6 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 		df_driver_framework
+		df_mpu9250
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

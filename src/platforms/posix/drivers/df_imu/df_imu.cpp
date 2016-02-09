@@ -60,8 +60,7 @@
 //#include <mathlib/math/filter/LowPassFilter2p.hpp>
 //#include <lib/conversion/rotation.h>
 //
-//#include "DriverFramework.hpp"
-#include "lib/DriverFramework/drivers/imu/mpu9250/MPU9250.hpp"
+#include "mpu9250/MPU9250.hpp"
 #include "DevMgr.hpp"
 
 

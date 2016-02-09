@@ -93,3 +93,8 @@ set(config_module_list
 	#
 	modules/muorb/adsp
 	)
+
+set(config_df_driver_list
+	mpu9250
+	bmp280
+	)
