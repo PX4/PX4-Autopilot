@@ -167,7 +167,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	PX4_DEBUG("stack address after pthread_attr_init: 0x%X", attr.stackaddr);
 	PX4_DEBUG("attr address: 0x%X, param address: 0x%X", &attr, &param);
- 	rv = pthread_attr_getschedparam(&attr, &param);
+	rv = pthread_attr_getschedparam(&attr, &param);
 	PX4_DEBUG("stack address after pthread_attr_getschedparam: 0x%X", attr.stackaddr);
 
 	if (rv != 0) {

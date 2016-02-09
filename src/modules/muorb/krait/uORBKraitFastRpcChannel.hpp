@@ -55,12 +55,12 @@ public:
 	 */
 	static uORB::KraitFastRpcChannel *GetInstance()
 	{
-		if (_InstancePtr == nullptr)
-		{
+		if (_InstancePtr == nullptr) {
 			_InstancePtr = new uORB::KraitFastRpcChannel();
 		}
+
 		return _InstancePtr;
- 	}
+	}
 
 	/**
 	 * @brief Interface to notify the remote entity of interest of a
