@@ -19,6 +19,7 @@ else()
 
 	message("module_libraries = ${module_libraries}")
 	message("target_libraries = ${target_libraries}")
+	message("df_driver_libs = ${df_driver_libs}")
 	# Generate the DSP lib and stubs but not the apps side executable
 	# The Apps side executable is generated via the posix_eagle_xxxx target
 	QURT_LIB(APP_NAME mainapp
