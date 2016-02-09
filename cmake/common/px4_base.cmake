@@ -643,7 +643,6 @@ function(px4_add_common_flags)
 		${CMAKE_BINARY_DIR}/src/modules
 		${CMAKE_SOURCE_DIR}/mavlink/include/mavlink
 		${CMAKE_SOURCE_DIR}/src/lib/DriverFramework/framework/include
-		${CMAKE_SOURCE_DIR}/src/lib/DriverFramework/drivers/imu
 		)
 
 	list(APPEND added_include_dirs
