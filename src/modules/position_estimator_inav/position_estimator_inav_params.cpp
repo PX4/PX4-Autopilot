@@ -324,6 +324,18 @@ PARAM_DEFINE_FLOAT(INAV_DISAB_MOCAP, 0);
 PARAM_DEFINE_FLOAT(INAV_LIDAR_EST, 0);
 
 /**
+ * LIDAR calibration offset
+ *
+ * LIDAR calibration offset. Value will be added to the measured distance
+ *
+ * @min -20
+ * @max 20
+ * @unit m
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(INAV_LIDAR_OFF, 0.0f);
+
+/**
  * Disable vision input
  *
  * Set to the appropriate key (328754) to disable vision input.
@@ -375,6 +387,7 @@ int inav_parameters_init(struct position_estimator_inav_param_handles *h)
 	h->flow_module_offset_y = param_find("INAV_FLOW_DIST_Y");
 	h->disable_mocap = param_find("INAV_DISAB_MOCAP");
 	h->enable_lidar_alt_est = param_find("INAV_LIDAR_EST");
+	h->lidar_calibration_offset = param_find("INAV_LIDAR_OFF");
 	h->att_ext_hdg_m = param_find("ATT_EXT_HDG_M");
 
 	return 0;
@@ -409,6 +422,7 @@ int inav_parameters_update(const struct position_estimator_inav_param_handles *h
 	param_get(h->flow_module_offset_y, &(p->flow_module_offset_y));
 	param_get(h->disable_mocap, &(p->disable_mocap));
 	param_get(h->enable_lidar_alt_est, &(p->enable_lidar_alt_est));
+	param_get(h->lidar_calibration_offset, &(p->lidar_calibration_offset));
 	param_get(h->att_ext_hdg_m, &(p->att_ext_hdg_m));
 
 	return 0;
