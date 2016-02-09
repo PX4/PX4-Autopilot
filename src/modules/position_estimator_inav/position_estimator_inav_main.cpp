@@ -543,6 +543,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* update lidar separately, needed by terrain estimator */
 			if (updated) {
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
+				lidar.current_distance += params.lidar_calibration_offset;
 			}
 			
 			if (updated) { //check if altitude estimation for lidar is enabled and new sensor data
