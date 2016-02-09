@@ -35,7 +35,8 @@
 * @file tailsitter.cpp
 *
 * @author Roman Bapst 		<bapstroman@gmail.com>
-* @author David Vorsin     <davidvorsin@gmail.com>
+* @author David Vorsin		<davidvorsin@gmail.com>
+* @author Sander Smeets		<sander@droneslab.com>
 *
 */
 
@@ -71,6 +72,7 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	_params_handles_tailsitter.airspeed_trans = param_find("VT_ARSP_TRANS");
 	_params_handles_tailsitter.airspeed_blend_start = param_find("VT_ARSP_BLEND");
 	_params_handles_tailsitter.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
+	_params_handles_tailsitter.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 
 }
 
@@ -116,6 +118,9 @@ Tailsitter::parameters_update()
 		_params_tailsitter.airspeed_trans = _params_tailsitter.airspeed_blend_start + 1.0f;
 	}
 
+	/* timeout for transition to fw mode */
+	param_get(_params_handles_tailsitter.front_trans_timeout, &_params_tailsitter.front_trans_timeout);
+
 	return OK;
 }
 
@@ -137,13 +142,9 @@ void Tailsitter::update_vtol_state()
 			break;
 
 		case FW_MODE:
-			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
-			_vtol_schedule.transition_start = hrt_absolute_time();
-			break;
-
 		case TRANSITION_FRONT_P1:
-			// failsafe into multicopter mode
-			_vtol_schedule.flight_mode = MC_MODE;
+			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
+			_vtol_schedule.transition_start = hrt_absolute_time();			
 			break;
 
 		case TRANSITION_FRONT_P2:
@@ -181,6 +182,14 @@ void Tailsitter::update_vtol_state()
 			     && _v_att->pitch <= PITCH_TRANSITION_FRONT_P1) || !_armed->armed) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				//_vtol_schedule.transition_start = hrt_absolute_time();
+			}
+
+			// check front transition timeout
+			if (_params_tailsitter.front_trans_timeout > FLT_EPSILON) {
+				if ( (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_tailsitter.front_trans_timeout * 1000000.0f)) {
+					// transition timeout occured, abort transition
+					_attc->abort_front_transition();
+				}
 			}
 
 			break;
