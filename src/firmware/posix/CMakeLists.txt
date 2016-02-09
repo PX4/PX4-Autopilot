@@ -30,7 +30,7 @@ else()
 		${CMAKE_SOURCE_DIR}/src/platforms/posix/main.cpp
 		apps.h
 		)
-	if (${CMAKE_C_COMPILER_ID} STREQUAL "Clang" AND NOT APPLE)
+	if (NOT APPLE)
 		target_link_libraries(mainapp
 			-Wl,--start-group
 			${module_libraries}
