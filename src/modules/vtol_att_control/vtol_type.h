@@ -36,6 +36,7 @@
 *
 * @author Roman Bapst 		<bapstroman@gmail.com>
 * @author Sander Smeets		<sander@droneslab.com>
+* @author Andreas Antener	<andreas@uaventure.com>
 *
 */
 
@@ -43,6 +44,7 @@
 #define VTOL_TYPE_H
 
 #include <lib/mathlib/mathlib.h>
+#include <drivers/drv_hrt.h>
 
 struct Params {
 	int idle_pwm_mc;			// pwm value for idle in mc mode
@@ -106,6 +108,8 @@ public:
 	 */
 	virtual void fill_actuator_outputs() = 0;
 
+	virtual void waiting_on_fw_ctl() {};
+
 	void set_idle_mc();
 	void set_idle_fw();
 
@@ -130,12 +134,13 @@ protected:
 	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_att_control
 	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
 	struct actuator_armed_s				*_armed;					//actuator arming status
-	struct vehicle_local_position_s		*_local_pos;
-	struct airspeed_s 					*_airspeed;					// airspeed
+	struct vehicle_local_position_s			*_local_pos;
+	struct airspeed_s 				*_airspeed;					// airspeed
 	struct battery_status_s 			*_batt_status; 				// battery status
 	struct vehicle_status_s 			*_vehicle_status;			// vehicle status from commander app
+	struct tecs_status_s				*_tecs_status;
 
-	struct Params 						*_params;
+	struct Params 					*_params;
 
 	bool flag_idle_mc;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 
@@ -149,6 +154,9 @@ protected:
 	float _pitch_transition_start;  // pitch angle at the start of transition (tailsitter)
 	float _throttle_transition; // throttle value used for the transition phase
 	bool _flag_was_in_trans_mode;	// true if mode has just switched to transition
+	hrt_abstime _trans_finished_ts;
+	bool _tecs_running;
+	hrt_abstime _tecs_running_ts;
 
 };
 
