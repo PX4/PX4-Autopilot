@@ -196,73 +196,89 @@ bool Ekf::update()
 
 bool Ekf::initialiseFilter(void)
 {
-	_state.ang_error.setZero();
-	_state.vel.setZero();
-	_state.pos.setZero();
-	_state.gyro_bias.setZero();
-	_state.gyro_scale(0) = _state.gyro_scale(1) = _state.gyro_scale(2) = 1.0f;
-	_state.accel_z_bias = 0.0f;
-	_state.mag_I.setZero();
-	_state.mag_B.setZero();
-	_state.wind_vel.setZero();
+	// Keep accumulating measurements until we have a minimum of 10 samples for the baro and magnetoemter
 
-	// get initial roll and pitch estimate from accel vector, assuming vehicle is static
-	Vector3f accel_init = _imu_down_sampled.delta_vel / _imu_down_sampled.delta_vel_dt;
+	// Sum the IMU delta angle measurements
+	_delVel_sum += _imu_down_sampled.delta_vel;
 
-	float pitch = 0.0f;
-	float roll = 0.0f;
-
-	if (accel_init.norm() > 0.001f) {
-		accel_init.normalize();
-
-		pitch = asinf(accel_init(0));
-		roll = -asinf(accel_init(1) / cosf(pitch));
-	}
-
-	matrix::Euler<float> euler_init(roll, pitch, 0.0f);
-
-	// Get the latest magnetic field measurement.
-	// If we don't have a measurement then we cannot initialise the filter
+	// Sum the magnetometer measurements
 	magSample mag_init = _mag_buffer.get_newest();
 
-	if (mag_init.time_us == 0) {
-		return false;
+	if (mag_init.time_us != 0) {
+		_mag_counter ++;
+		_mag_sum += mag_init.mag;
 	}
 
-	// rotate magnetic field into earth frame assuming zero yaw and estimate yaw angle assuming zero declination
-	// TODO use declination if available
-	matrix::Dcm<float> R_to_earth_zeroyaw(euler_init);
-	Vector3f mag_ef_zeroyaw = R_to_earth_zeroyaw * mag_init.mag;
-	float declination = 0.0f;
-	euler_init(2) = declination - atan2f(mag_ef_zeroyaw(1), mag_ef_zeroyaw(0));
-
-	// calculate initial quaternion states
-	_state.quat_nominal = Quaternion(euler_init);
-	_output_new.quat_nominal = _state.quat_nominal;
-
-	// TODO replace this with a conditional test based on fitered angle error states.
-	_control_status.flags.angle_align = true;
-
-	// calculate initial earth magnetic field states
-	matrix::Dcm<float> R_to_earth(euler_init);
-	_state.mag_I = R_to_earth * mag_init.mag;
-
-	resetVelocity();
-	resetPosition();
-
+	// Sum the barometer measurements
 	// initialize vertical position with newest baro measurement
 	baroSample baro_init = _baro_buffer.get_newest();
 
-	if (baro_init.time_us == 0) {
-		return false;
+	if (baro_init.time_us != 0) {
+		_baro_counter ++;
+		_baro_sum += baro_init.hgt;
 	}
 
-	_state.pos(2) = -baro_init.hgt;
-	_output_new.pos(2) = -baro_init.hgt;
+	// check to see if we have enough measruements and return false if not
+	if (_baro_counter < 10 || _mag_counter < 10) {
+		return false;
 
-	initialiseCovariance();
+	} else {
+		// Zero all of the states
+		_state.ang_error.setZero();
+		_state.vel.setZero();
+		_state.pos.setZero();
+		_state.gyro_bias.setZero();
+		_state.gyro_scale(0) = _state.gyro_scale(1) = _state.gyro_scale(2) = 1.0f;
+		_state.accel_z_bias = 0.0f;
+		_state.mag_I.setZero();
+		_state.mag_B.setZero();
+		_state.wind_vel.setZero();
 
-	return true;
+		// get initial roll and pitch estimate from delta velocity vector, assuming vehicle is static
+		float pitch = 0.0f;
+		float roll = 0.0f;
+
+		if (_delVel_sum.norm() > 0.001f) {
+			_delVel_sum.normalize();
+			pitch = asinf(_delVel_sum(0));
+			roll = -asinf(_delVel_sum(1) / cosf(pitch));
+
+		} else {
+			return false;
+		}
+
+		// calculate the averaged magnetometer reading
+		Vector3f mag_init = _mag_sum * (1.0f / (float(_mag_counter)));
+
+		// rotate magnetic field into earth frame assuming zero yaw and estimate yaw angle assuming zero declination
+		// TODO use declination if available
+		matrix::Euler<float> euler_init(roll, pitch, 0.0f);
+		matrix::Dcm<float> R_to_earth_zeroyaw(euler_init);
+		Vector3f mag_ef_zeroyaw = R_to_earth_zeroyaw * mag_init;
+		float declination = 0.0f;
+		euler_init(2) = declination - atan2f(mag_ef_zeroyaw(1), mag_ef_zeroyaw(0));
+
+		// calculate initial quaternion states
+		_state.quat_nominal = Quaternion(euler_init);
+		_output_new.quat_nominal = _state.quat_nominal;
+
+		// TODO replace this with a conditional test based on fitered angle error states.
+		_control_status.flags.angle_align = true;
+
+		// calculate initial earth magnetic field states
+		matrix::Dcm<float> R_to_earth(euler_init);
+		_state.mag_I = R_to_earth * mag_init;
+
+		// calculate the averaged barometer reading
+		_baro_at_alignment = _baro_sum / (float)_baro_counter;
+
+		resetVelocity();
+		resetPosition();
+
+		initialiseCovariance();
+
+		return true;
+	}
 }
 
 void Ekf::predictState()
