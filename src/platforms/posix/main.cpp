@@ -288,8 +288,6 @@ int main(int argc, char **argv)
 
 		while (!_ExitFlag) {
 
-			cout << "still here" << endl;
-
 			char c = getchar();
 
 			switch (c) {
@@ -369,12 +367,9 @@ int main(int argc, char **argv)
 
 	} else {
 		while (!_ExitFlag) {
-			PX4_INFO("sleeping here");
 			usleep(100000);
 		}
 	}
-
-	PX4_INFO("leaving........");
 
 	// TODO: Always try to stop muorb for QURT because px4_task_is_running doesn't seem to work.
 	if (true) {
