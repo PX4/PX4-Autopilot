@@ -145,6 +145,13 @@ private:
 	uint64_t _last_gps_origin_time_us = 0;              // time the origin was last set (uSec)
 	float _gps_alt_ref = 0.0f;                          // WGS-84 height (m)
 
+	// Variables used to initialise the filter states
+	uint8_t _baro_counter = 0;      // number of baro samples averaged
+	float _baro_sum = 0.0f;         // summed baro measurement
+	uint8_t _mag_counter = 0;       // number of magnetometer samples averaged
+	Vector3f _mag_sum = {};         // summed magnetometer measurement
+	Vector3f _delVel_sum = {};      // summed delta velocity
+	float _baro_at_alignment;       // baro offset relative to alignment position
 
 	gps_check_fail_status_u _gps_check_fail_status;
 
@@ -173,6 +180,8 @@ private:
 	void resetVelocity();
 
 	void resetPosition();
+
+	void resetHeight();
 
 	void makeCovSymetrical();
 

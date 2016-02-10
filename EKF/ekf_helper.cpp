@@ -54,7 +54,7 @@ void Ekf::resetVelocity()
 	// if we have a valid GPS measurement use it to initialise velocity states
 	gpsSample gps_newest = _gps_buffer.get_newest();
 
-	if (_time_last_imu - gps_newest.time_us < 100000) {
+	if (_time_last_imu - gps_newest.time_us < 400000) {
 		_state.vel = gps_newest.vel;
 
 	} else {
@@ -66,19 +66,32 @@ void Ekf::resetVelocity()
 // gps measurement then use for position initialisation
 void Ekf::resetPosition()
 {
-	// if we have a valid GPS measurement use it to initialise position states
+	// if we have a fresh GPS measurement, use it to initialise position states and correct the position for the measurement delay
 	gpsSample gps_newest = _gps_buffer.get_newest();
 
-	if (_time_last_imu - gps_newest.time_us < 100000) {
-		_state.pos(0) = gps_newest.pos(0);
-		_state.pos(1) = gps_newest.pos(1);
+	float time_delay = 1e-6f * (float)(_time_last_imu - gps_newest.time_us);
+
+	if (time_delay < 0.4f) {
+		_state.pos(0) = gps_newest.pos(0) + gps_newest.vel(0) * time_delay;
+		_state.pos(1) = gps_newest.pos(1) + gps_newest.vel(1) * time_delay;
 
 	} else {
 		// XXX use the value of the last known position
 	}
+}
 
+// Reset height state using the last baro measurement
+void Ekf::resetHeight()
+{
+	// if we have a valid height measurement, use it to initialise the vertical position state
 	baroSample baro_newest = _baro_buffer.get_newest();
-	_state.pos(2) = -baro_newest.hgt;
+
+	if (_time_last_imu - baro_newest.time_us < 200000) {
+		_state.pos(2) = _baro_at_alignment - baro_newest.hgt;
+
+	} else {
+		// XXX use the value of the last known position
+	}
 }
 
 #if defined(__PX4_POSIX) && !defined(__PX4_QURT)

@@ -100,7 +100,7 @@ void Ekf::fuseVelPosHeight()
 	if (_fuse_height) {
 		fuse_map[5] = true;
         // vertical position innovation - baro measurement has opposite sign to earth z axis
-        _vel_pos_innov[5] = _state.pos(2) - (-_baro_sample_delayed.hgt);
+        _vel_pos_innov[5] = _state.pos(2) - (_baro_at_alignment -_baro_sample_delayed.hgt);
         // observation variance - user parameter defined
         R[5] = fmaxf(_params.baro_noise, 0.01f);
         R[5] = R[5] * R[5];

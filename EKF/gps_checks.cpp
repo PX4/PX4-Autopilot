@@ -63,7 +63,8 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 			double lat = gps->lat / 1.0e7;
 			double lon = gps->lon / 1.0e7;
 			map_projection_init(&_pos_ref, lat, lon);
-			_gps_alt_ref = gps->alt / 1e3f;
+			// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
+			_gps_alt_ref = 1e-3f * (float)gps->alt + _state.pos(2);
 			_NED_origin_initialised = true;
 			_last_gps_origin_time_us = _time_last_imu;
 		}
