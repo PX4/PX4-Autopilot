@@ -70,7 +70,7 @@ set(config_module_list
 	modules/uORB
 	modules/commander
 	modules/controllib
-	
+
 	#
 	# Libraries
 	#
