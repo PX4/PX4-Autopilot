@@ -460,6 +460,7 @@ Mission::set_mission_items()
 				} else {
 					_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
 				}
+				_takeoff_vtol_transition = false;
 			}
 
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
