@@ -61,6 +61,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include "mission.h"
 #include "navigator.h"
@@ -77,6 +78,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_current_onboard_mission_index(-1),
 	_current_offboard_mission_index(-1),
 	_need_takeoff(true),
+	_takeoff_vtol_transition(false),
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
 	_home_inited(false),
@@ -446,7 +448,20 @@ Mission::set_mission_items()
 		}
 
 		/* if we just did a takeoff navigate to the actual waypoint now */
-		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
+		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {			
+
+			/* handle VTOL TAKEOFF command */
+			if(_takeoff_vtol_transition){
+				struct vehicle_command_s cmd = {};
+				cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+				cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				if (_cmd_pub != nullptr) {
+					orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+				} else {
+					_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+				}
+			}
+
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
@@ -633,10 +648,15 @@ Mission::do_need_takeoff()
 		if (_need_takeoff && (
 				_mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
 				_mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
+				_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
 				_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 				_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
 				_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
 				_mission_item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)) {
+
+			if(_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF){
+				_takeoff_vtol_transition = true;
+			}
 
 			_need_takeoff = false;
 			return true;
@@ -649,6 +669,18 @@ Mission::do_need_takeoff()
 bool
 Mission::do_need_move_to_land()
 {
+	if(_mission_item.nav_cmd == NAV_CMD_VTOL_LAND){
+		struct vehicle_command_s cmd = {};
+		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		if (_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+		} else {
+			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		}
+		_mission_item.nav_cmd = NAV_CMD_LAND;
+	}
+
 	if (_navigator->get_vstatus()->is_rotary_wing && _mission_item.nav_cmd == NAV_CMD_LAND) {
 
 		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
