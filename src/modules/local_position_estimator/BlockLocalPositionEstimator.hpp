@@ -179,6 +179,7 @@ private:
 	uORB::Subscription<vehicle_control_mode_s> _sub_control_mode;
 	uORB::Subscription<vehicle_attitude_s> _sub_att;
 	uORB::Subscription<vehicle_attitude_setpoint_s> _sub_att_sp;
+	uORB::Subscription<vehicle_rates_setpoint_s> _sub_rates_sp;
 	uORB::Subscription<optical_flow_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
@@ -230,6 +231,10 @@ private:
 
 	BlockParamFloat  _flow_board_x_offs;
 	BlockParamFloat  _flow_board_y_offs;
+	
+	BlockParamFloat  _flow_x_scaler;
+	BlockParamFloat  _flow_y_scaler;
+	BlockParamInt    _flow_min_q;
 
 	// process noise
 	BlockParamFloat  _pn_p_noise_power;

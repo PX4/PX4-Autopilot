@@ -3,7 +3,6 @@
 #include <fcntl.h>
 #include <systemlib/err.h>
 
-static const int 		MIN_FLOW_QUALITY = 50;
 static const int 		REQ_INIT_COUNT = 75;
 
 static const uint32_t 		VISION_POSITION_TIMEOUT = 500000;
@@ -25,6 +24,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 			  0, 0, &getSubscriptions()),
 	_sub_att(ORB_ID(vehicle_attitude), 0, 0, &getSubscriptions()),
 	_sub_att_sp(ORB_ID(vehicle_attitude_setpoint),
+		    0, 0, &getSubscriptions()),
+	_sub_rates_sp(ORB_ID(vehicle_rates_setpoint),
 		    0, 0, &getSubscriptions()),
 	_sub_flow(ORB_ID(optical_flow), 0, 0, &getSubscriptions()),
 	_sub_sensor(ORB_ID(sensor_combined), 0, 0, &getSubscriptions()),
@@ -65,8 +66,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_no_vision(this, "NO_VISION"),
 	_beta_max(this, "BETA_MAX"),
 	_mocap_p_stddev(this, "VIC_P"),
-	_flow_board_x_offs(NULL, "SENS_FLOW_X_OFF"),
-	_flow_board_y_offs(NULL, "SENS_FLOW_Y_OFF"),
+	_flow_board_x_offs(NULL, "SENS_FLW_XOFF"),
+	_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
+	_flow_x_scaler(this, "FLW_XSCLR"),
+	_flow_y_scaler(this, "FLW_YSCLR"),
+	_flow_min_q(this, "FLW_QMIN"),
 	_pn_p_noise_power(this, "PN_P"),
 	_pn_v_noise_power(this, "PN_V"),
 	_pn_b_noise_power(this, "PN_B"),
@@ -572,7 +576,7 @@ void BlockLocalPositionEstimator::initFlow()
 		if (_flowInitCount++ > REQ_INIT_COUNT) {
 			_flowMeanQual /= _flowInitCount;
 
-			if (_flowMeanQual < MIN_FLOW_QUALITY) {
+			if (_flowMeanQual < _flow_min_q) {
 				// retry initialisation till we have better flow data
 				warnx("[lpe] flow quality bad, retrying init : %d",
 				      int(_flowMeanQual));
@@ -897,7 +901,10 @@ void BlockLocalPositionEstimator::correctFlow()
 
 		yaw_comp[0] = - _flow_board_y_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
 		yaw_comp[1] =   _flow_board_x_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
-
+		
+		//if() TODO rates sp check
+		// TODO estimate flow gyro bias as state, estimate scaling factor online, estimate 
+		
 		// calculate velocity over ground
 		flow_speed[0] = - ((_sub_flow.get().pixel_flow_x_integral - _sub_flow.get().gyro_x_rate_integral) /
 				   (_sub_flow.get().integration_timespan / 1e6f)
@@ -907,6 +914,11 @@ void BlockLocalPositionEstimator::correctFlow()
 				   (_sub_flow.get().integration_timespan / 1e6f) -
 				   + _flowGyroBias[1] - yaw_comp[1]) *
 				-_x(X_z);		// TODO use terrain estimate here
+				
+		// filtered gyro readings for logging
+		flow_gyrospeed[0] -= _flowGyroBias[0];
+		flow_gyrospeed[1] -= _flowGyroBias[1];
+		flow_gyrospeed[2] -= _flowGyroBias[2];
 
 	} else {
 		flow_speed[0] = 0;
@@ -917,11 +929,6 @@ void BlockLocalPositionEstimator::correctFlow()
 	}
 
 	flow_speed[2] = 0.0f;
-
-	// filtered gyro readings for logging
-	flow_gyrospeed[0] -= _flowGyroBias[0];
-	flow_gyrospeed[1] -= _flowGyroBias[1];
-	flow_gyrospeed[2] -= _flowGyroBias[2];
 
 	// update filtered flow
 	_pub_filtered_flow.get().sumx += flow_speed[0] * dt;
@@ -965,7 +972,7 @@ void BlockLocalPositionEstimator::correctFlow()
 	// fault detection
 	float beta = sqrtf((r.transpose() * (S_I * r))(0, 0));
 
-	if (_sub_flow.get().quality < MIN_FLOW_QUALITY) {
+	if (_sub_flow.get().quality < _flow_min_q) {
 		if (!_flowFault) {
 			mavlink_log_info(_mavlink_fd, "[lpe] bad flow data ");
 			warnx("[lpe] bad flow data ");
