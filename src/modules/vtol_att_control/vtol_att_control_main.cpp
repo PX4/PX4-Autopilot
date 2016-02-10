@@ -41,10 +41,12 @@
  * @author Roman Bapst 		<bapstr@ethz.ch>
  * @author Lorenz Meier 	<lm@inf.ethz.ch>
  * @author Thomas Gubler	<thomasgubler@gmail.com>
- * @author David Vorsin     <davidvorsin@gmail.com>
+ * @author David Vorsin		<davidvorsin@gmail.com>
+ * @author Sander Smeets	<sander@droneslab.com>
  *
  */
 #include "vtol_att_control_main.h"
+#include <mavlink/mavlink_log.h>
 
 namespace VTOL_att_control
 {
@@ -57,6 +59,9 @@ VtolAttitudeControl *g_control;
 VtolAttitudeControl::VtolAttitudeControl() :
 	_task_should_exit(false),
 	_control_task(-1),
+
+	// mavlink log
+	_mavlink_fd(-1),
 
 	//init subscription handlers
 	_v_att_sub(-1),
@@ -427,7 +432,30 @@ VtolAttitudeControl::is_fixed_wing_requested()
 		to_fw = _transition_command == vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 	}
 
+	// handle abort request
+	if(_abort_front_transition) {
+		if(to_fw) {
+			to_fw = false;
+		} else {
+			// the state changed to mc mode, reset the abort request
+			_abort_front_transition = false;
+		}
+	}
+
 	return to_fw;
+}
+
+/*
+ * Abort front transition
+ */
+void
+VtolAttitudeControl::abort_front_transition()
+{
+	if(!_abort_front_transition) {
+		mavlink_log_critical(_mavlink_fd, "Front transition timeout occured, aborting");
+		_abort_front_transition = true;
+		_vtol_vehicle_status.vtol_transition_failsafe = true;
+	}
 }
 
 /**
@@ -530,6 +558,8 @@ void VtolAttitudeControl::task_main()
 	PX4_WARN("started");
 	fflush(stdout);
 
+	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
+
 	/* do subscriptions */
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
@@ -557,6 +587,9 @@ void VtolAttitudeControl::task_main()
 
 	// make sure we start with idle in mc mode
 	_vtol_type->set_idle_mc();
+
+	hrt_abstime mavlink_open_time = 0;
+	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source*/
 	px4_pollfd_struct_t fds[3] = {};	/*input_mc, input_fw, parameters*/
@@ -594,6 +627,13 @@ void VtolAttitudeControl::task_main()
 			usleep(100000);
 			continue;
 		}
+
+		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
+			/* try to reopen the mavlink log device with specified interval */
+			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
+			_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
+		}
+
 
 		if (fds[2].revents & POLLIN) {	//parameters were updated, read them now
 			/* read from param to clear updated flag */
@@ -700,8 +740,8 @@ void VtolAttitudeControl::task_main()
 
 		/* Only publish if the proper mode(s) are enabled */
 		if (_v_control_mode.flag_control_attitude_enabled ||
-		    _v_control_mode.flag_control_rates_enabled ||
-		    _v_control_mode.flag_control_manual_enabled) {
+			_v_control_mode.flag_control_rates_enabled ||
+			_v_control_mode.flag_control_manual_enabled) {
 			if (_actuators_0_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 

@@ -35,11 +35,12 @@
  * @file commander.cpp
  * Main fail-safe handling.
  *
- * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- * @author Lorenz Meier <lorenz@px4.io>
- * @author Thomas Gubler <thomas@px4.io>
- * @author Julian Oes <julian@px4.io>
- * @author Anton Babushkin <anton@px4.io>
+ * @author Petri Tanskanen	<petri.tanskanen@inf.ethz.ch>
+ * @author Lorenz Meier		<lorenz@px4.io>
+ * @author Thomas Gubler	<thomas@px4.io>
+ * @author Julian Oes		<julian@px4.io>
+ * @author Anton Babushkin	<anton@px4.io>
+ * @author Sander Smeets	<sander@droneslab.com>
  */
 
 #include <px4_config.h>
@@ -796,6 +797,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			status_local->data_link_lost_cmd = false;
 			status_local->gps_failure_cmd = false;
 			status_local->rc_signal_lost_cmd = false;
+			status_local->vtol_transition_failure_cmd = false;
 
 			if ((int)cmd->param2 <= 0) {
 				/* reset all commanded failure modes */
@@ -820,7 +822,14 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				/* trigger rc loss mode */
 				status_local->rc_signal_lost_cmd = true;
 				warnx("rc loss mode commanded");
+
+			} else if ((int)cmd->param2 == 5) {
+				/* trigger vtol transition failure mode */
+				status_local->vtol_transition_failure_cmd = true;
+				warnx("vtol transition failure mode commanded");
 			}
+
+
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 		}
@@ -1718,6 +1727,8 @@ int commander_thread_main(int argc, char *argv[])
 			if (is_vtol(&status)) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
 				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
+				status.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
+				status.vtol_transition_failure_cmd = vtol_status.vtol_transition_failsafe;
 			}
 
 			status_changed = true;

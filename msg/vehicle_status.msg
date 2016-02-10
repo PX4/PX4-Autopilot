@@ -150,6 +150,8 @@ bool data_link_lost_cmd				# datalink to GCS lost mode commanded
 uint8 data_link_lost_counter			# counts unique data link lost events
 bool engine_failure				# Set to true if an engine failure is detected
 bool engine_failure_cmd				# Set to true if an engine failure mode is commanded
+bool vtol_transition_failure		# Set to true if vtol transition failed
+bool vtol_transition_failure_cmd	# Set to true if vtol transition failure mode is commanded
 bool gps_failure				# Set to true if a gps failure is detected
 bool gps_failure_cmd				# Set to true if a gps failure mode is commanded
 

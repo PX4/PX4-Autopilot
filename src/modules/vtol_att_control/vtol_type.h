@@ -35,6 +35,7 @@
 * @file airframe.h
 *
 * @author Roman Bapst 		<bapstroman@gmail.com>
+* @author Sander Smeets		<sander@droneslab.com>
 *
 */
 
