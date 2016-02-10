@@ -441,6 +441,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 		} else {
 			// the state changed to mc mode, reset the abort request
 			_abort_front_transition = false;
+			_vtol_vehicle_status.vtol_transition_failsafe = false;
 		}
 	}
 
