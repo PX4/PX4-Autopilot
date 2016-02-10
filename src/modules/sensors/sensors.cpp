@@ -2232,6 +2232,7 @@ Sensors::task_main()
 		mag_poll(raw);
 		baro_poll(raw);
 
+		// FIXME TODO: this needs more thinking, otherwise we spam the console and keep switching.
 		/* Work out if main gyro timed out and fail over to alternate gyro.
 		 * However, don't do this if the secondary is not available. */
 		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
