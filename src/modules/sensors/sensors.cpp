@@ -2199,7 +2199,7 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warnx("poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -2215,11 +2215,12 @@ Sensors::task_main()
 		mag_poll(raw);
 		baro_poll(raw);
 
-		/* work out if main gyro timed out and fail over to alternate gyro */
-		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000) {
+		/* Work out if main gyro timed out and fail over to alternate gyro.
+		 * However, don't do this if the secondary is not available. */
+		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
 
-			/* if the secondary failed as well, go to the tertiary */
-			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000) {
+			/* If the secondary failed as well, go to the tertiary, also only if available. */
+			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
 				fds[0].fd = _gyro_sub[2];
 
 			} else {
