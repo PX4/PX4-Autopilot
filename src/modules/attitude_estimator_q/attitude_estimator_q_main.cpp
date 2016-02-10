@@ -391,8 +391,12 @@ void AttitudeEstimatorQ::task_main()
 			_accel.set(_voter_accel.get_best(curr_time, &best_accel));
 			_mag.set(_voter_mag.get_best(curr_time, &best_mag));
 
-			if (_accel.length() < 0.01f || _mag.length() < 0.01f) {
-				warnx("WARNING: degenerate accel / mag!");
+			if (_accel.length() < 0.01f) {
+				warnx("WARNING: degenerate accel!");
+				continue;
+			}
+			if (_mag.length() < 0.01f) {
+				warnx("WARNING: degenerate mag!");
 				continue;
 			}
 
