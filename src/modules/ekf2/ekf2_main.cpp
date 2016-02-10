@@ -496,7 +496,7 @@ void Ekf2::task_main()
 			global_pos.lat = est_lat; // Latitude in degrees
 			global_pos.lon = est_lon; // Longitude in degrees
 
-			global_pos.alt = -pos[2]; // Altitude AMSL in meters
+			global_pos.alt = -pos[2] + lpos.ref_alt; // Altitude AMSL in meters
 
 			global_pos.vel_n = vel[0]; // Ground north velocity, m/s
 			global_pos.vel_e = vel[1]; // Ground east velocity, m/s
