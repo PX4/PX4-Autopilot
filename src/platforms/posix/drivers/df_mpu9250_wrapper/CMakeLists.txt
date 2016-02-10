@@ -34,10 +34,10 @@
 include_directories(../../../../lib/DriverFramework/drivers)
 
 px4_add_module(
-	MODULE platforms__posix__drivers__df_imu
-	MAIN df_imu
+	MODULE platforms__posix__drivers__df_mpu9250_wrapper
+	MAIN df_mpu9250_wrapper
 	SRCS
-		df_imu.cpp
+		df_mpu9250_wrapper.cpp
 	DEPENDS
 		platforms__common
 		df_driver_framework
