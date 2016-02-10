@@ -43,6 +43,7 @@
  * @author Thomas Gubler	<thomasgubler@gmail.com>
  * @author David Vorsin		<davidvorsin@gmail.com>
  * @author Sander Smeets	<sander@droneslab.com>
+ * @author Andreas Antener 	<andreas@uaventure.com>
  *
  */
 #ifndef VTOL_ATT_CONTROL_MAIN_H

@@ -43,6 +43,7 @@
  * @author Thomas Gubler	<thomasgubler@gmail.com>
  * @author David Vorsin		<davidvorsin@gmail.com>
  * @author Sander Smeets	<sander@droneslab.com>
+ * @author Andreas Antener 	<andreas@uaventure.com>
  *
  */
 #include "vtol_att_control_main.h"
@@ -428,13 +429,14 @@ VtolAttitudeControl::is_fixed_wing_requested()
 {
 	bool to_fw = _manual_control_sp.aux1 > 0.0f;
 
-	if (_v_control_mode.flag_control_offboard_enabled || _v_control_mode.flag_control_auto_enabled) {
+	// listen to transition commands if not in manual
+	if (!_v_control_mode.flag_control_manual_enabled) {
 		to_fw = _transition_command == vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 	}
 
 	// handle abort request
-	if(_abort_front_transition) {
-		if(to_fw) {
+	if (_abort_front_transition) {
+		if (to_fw) {
 			to_fw = false;
 		} else {
 			// the state changed to mc mode, reset the abort request
@@ -666,8 +668,8 @@ void VtolAttitudeControl::task_main()
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
 
-		// reset transition command if not in offboard control
-		if (!_v_control_mode.flag_control_offboard_enabled) {
+		// reset transition command if not auto control
+		if (_v_control_mode.flag_control_manual_enabled) {
 			if (_vtol_type->get_mode() == ROTARY_WING) {
 				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
