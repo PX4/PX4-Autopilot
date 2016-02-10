@@ -63,6 +63,15 @@ public:
 	}
 
 	/**
+	 * Static method to check if there is an instance.
+	 */
+	static bool isInstance()
+	{
+		return (_InstancePtr != nullptr);
+	}
+
+
+	/**
 	 * @brief Interface to notify the remote entity of interest of a
 	 * subscription for a message.
 	 *
