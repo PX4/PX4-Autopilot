@@ -37,7 +37,7 @@ set(config_module_list
 #	$(EAGLE_DRIVERS_SRC)/uart_esc
 #	$(EAGLE_DRIVERS_SRC)/rc_receiver
 #	$(EAGLE_DRIVERS_SRC)/csr_gps
-	platforms/posix/drivers/df_imu
+	platforms/posix/drivers/df_mpu9250_wrapper
 
 	#
 	# System commands
