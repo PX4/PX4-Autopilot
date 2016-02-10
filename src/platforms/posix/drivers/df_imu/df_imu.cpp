@@ -124,8 +124,6 @@ int DfImu::start()
 {
 	struct accel_report arp = {};
 
-	arp.timestamp = 1234;
-
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
 					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
