@@ -2204,7 +2204,7 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warnx("sens: poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -2220,13 +2220,12 @@ Sensors::task_main()
 		mag_poll(raw);
 		baro_poll(raw);
 
-#ifndef __PX4_POSIX
+		/* Work out if main gyro timed out and fail over to alternate gyro.
+		 * However, don't do this if the secondary is not available. */
+		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
 
-		/* work out if main gyro timed out and fail over to alternate gyro */
-		if (raw.gyro_timestamp[0] > 0 && hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000) {
-
-			/* if the secondary failed as well, go to the tertiary */
-			if (_gyro_sub[2] >= 0 && (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000)) {
+			/* If the secondary failed as well, go to the tertiary, also only if available. */
+			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
 				fds[0].fd = _gyro_sub[2];
 				warnx("failing over to third gyro");
 
