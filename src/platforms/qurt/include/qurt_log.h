@@ -30,8 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifndef QURT_LOG_H
-#define QURT_LOG_H
+#pragma once
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -65,6 +64,3 @@ static __inline void qurt_log(int level, const char *file, int line,
 #ifdef __cplusplus
 }
 #endif
-
-#endif // QURT_LOG_H
-
