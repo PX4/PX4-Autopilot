@@ -10,13 +10,24 @@ FASTRPC_STUB_GEN(px4muorb.idl)
 
 # Enable build without HexagonSDK to check link dependencies
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
-	add_definitions(-DQURT_EXE_BUILD)
+	add_definitions(-D QURT_EXE_BUILD=1)
+	include_directories(
+                ${CMAKE_CURRENT_BINARY_DIR}
+                ${FASTRPC_DSP_INCLUDES}
+                )
 	add_executable(mainapp 
-		${CMAKE_SOURCE_DIR}/src/platforms/qurt/dspal/dspal_stub.c
 		${CMAKE_BINARY_DIR}/src/firmware/qurt/px4muorb_skel.c
 		${CMAKE_BINARY_DIR}/apps.h)
-else()
 
+	target_link_libraries(mainapp
+		-Wl,--start-group
+		${module_libraries}
+                ${target_libraries}
+                df_driver_framework
+                ${df_driver_libs}
+		-Wl,--end-group
+		)
+else()
 	message("module_libraries = ${module_libraries}")
 	message("target_libraries = ${target_libraries}")
 	message("df_driver_libs = ${df_driver_libs}")
@@ -33,7 +44,6 @@ else()
 		${df_driver_libs}
 		m
 		)
-		
 endif()
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
