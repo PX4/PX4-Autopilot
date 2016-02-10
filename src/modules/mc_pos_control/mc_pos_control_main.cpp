@@ -246,7 +246,8 @@ private:
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
-	bool _in_landing;
+	bool _in_landing;	/**< the vehicle is in the landing descent */
+	bool _lnd_reached_ground; /**< controller assumes the vehicle has reached the ground after landing */
 	bool _takeoff_jumped;
 	float _vel_z_lp;
 	float _acc_z_lp;
@@ -376,6 +377,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_run_alt_control(true),
 	_yaw(0.0f),
 	_in_landing(false),
+	_lnd_reached_ground(false),
 	_takeoff_jumped(false),
 	_vel_z_lp(0),
 	_acc_z_lp(0),
@@ -1536,32 +1538,43 @@ MulticopterPositionControl::task_main()
 							thr_min = 0.0f;
 						}
 
-						/* descent stabilized, we're in landing */
-						if (!_in_landing
-								&& (float)fabs(_acc_z_lp) < 0.1f
-								&& _vel_z_lp > 0.5f * _params.land_speed) {
+						/* descend stabilized, we're landing */
+						if (!_in_landing && !_lnd_reached_ground
+						    && (float)fabs(_acc_z_lp) < 0.1f
+						    && _vel_z_lp > 0.5f * _params.land_speed) {
 							_in_landing = true;
 						}
 
-						/* assume ground, reduce thrust */
+						/* assume ground, cut thrust */
 						if (_in_landing
 								&& _vel_z_lp < 0.1f
 								) {
 							thr_max = 0.0f;
+							_in_landing = false;
+							_lnd_reached_ground = true;
+						}
+
+						/* once we assumed to have reached the ground always cut the thrust.
+							Only free fall detection below can revoke this
+						*/
+						if (!_in_landing && _lnd_reached_ground) {
+							thr_max = 0.0f;
 						}
 
 						/* if we suddenly fall, reset landing logic and remove thrust limit */
-						if (_in_landing
+						if (_lnd_reached_ground
 								/* XXX: magic value, assuming free fall above 4m/s2 acceleration */
 								&& (_acc_z_lp > 4.0f
 									|| _vel_z_lp > 2.0f * _params.land_speed)
 								) {
 							thr_max = _params.thr_max;
 							_in_landing = false;
+							_lnd_reached_ground = false;
 						}
 
 					} else {
 						_in_landing = false;
+						_lnd_reached_ground = false;
 					}
 
 					/* limit min lift */
