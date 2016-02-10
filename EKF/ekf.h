@@ -181,6 +181,8 @@ private:
 
 	void resetPosition();
 
+	void resetHeight();
+
 	void makeCovSymetrical();
 
 	void limitCov();
