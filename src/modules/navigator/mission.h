@@ -215,6 +215,7 @@ private:
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
 	bool _need_takeoff;					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+	bool _takeoff_vtol_transition;		/**< if true, a vtol transition will be performed after takeoff */
 
 	enum {
 		MISSION_TYPE_NONE,
