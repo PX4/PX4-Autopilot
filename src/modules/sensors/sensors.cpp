@@ -2230,11 +2230,15 @@ Sensors::task_main()
 				if (_gyro_sub[2] != -1) {
 					warnx("using tertiary gyro");
 					fds[0].fd = _gyro_sub[2];
+				} else {
+					warnx("no tertiary gyro available");
 				}
 			} else {
 				if (_gyro_sub[1] != -1) {
 					warnx("using secondary gyro");
 					fds[0].fd = _gyro_sub[1];
+				} else {
+					warnx("no secondary gyro available");
 				}
 			}
 		}
