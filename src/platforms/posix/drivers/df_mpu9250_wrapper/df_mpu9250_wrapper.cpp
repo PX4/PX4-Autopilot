@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file df_imu.cpp
- * Lightweight driver to access an IMU driver of the DriverFramework.
+ * @file DfMpu9250Wrapper.cpp
+ * Lightweight driver to access the MPU9250 of the DriverFramework.
  *
  * @author Julian Oes <julian@oes.ch>
  */
@@ -65,16 +65,16 @@
 #include <DevMgr.hpp>
 
 
-extern "C" { __EXPORT int df_imu_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int df_mpu9250_wrapper_main(int argc, char *argv[]); }
 
 using namespace DriverFramework;
 
 
-class DfImu : public MPU9250
+class DfMpu9250Wrapper : public MPU9250
 {
 public:
-	DfImu(/*enum Rotation rotation*/);
-	~DfImu();
+	DfMpu9250Wrapper(/*enum Rotation rotation*/);
+	~DfMpu9250Wrapper();
 
 
 	/**
@@ -107,7 +107,7 @@ private:
 
 };
 
-DfImu::DfImu(/*enum Rotation rotation*/) :
+DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	MPU9250(IMU_DEVICE_PATH),
 	_accel_topic(nullptr),
 	_gyro_topic(nullptr),
@@ -119,13 +119,13 @@ DfImu::DfImu(/*enum Rotation rotation*/) :
 {
 }
 
-DfImu::~DfImu()
+DfMpu9250Wrapper::~DfMpu9250Wrapper()
 {
 	perf_free(_accel_sample_perf);
 	perf_free(_gyro_sample_perf);
 }
 
-int DfImu::start()
+int DfMpu9250Wrapper::start()
 {
 	// TODO: don't publish garbage here
 	accel_report accel_report = {};
@@ -163,7 +163,7 @@ int DfImu::start()
 	return 0;
 }
 
-int DfImu::stop()
+int DfMpu9250Wrapper::stop()
 {
 	/* Stop sensor. */
 	int ret = MPU9250::stop();
@@ -176,7 +176,7 @@ int DfImu::stop()
 	return 0;
 }
 
-int DfImu::_publish(struct imu_sensor_data &data)
+int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 {
 	/* Publish accel first. */
 	perf_begin(_accel_sample_perf);
@@ -239,10 +239,10 @@ int DfImu::_publish(struct imu_sensor_data &data)
 };
 
 
-namespace df_imu
+namespace df_mpu9250_wrapper
 {
 
-DfImu *g_dev = nullptr;
+DfMpu9250Wrapper *g_dev = nullptr;
 
 int start(/* enum Rotation rotation */);
 int stop();
@@ -251,16 +251,16 @@ void usage();
 
 int start(/*enum Rotation rotation*/)
 {
-	g_dev = new DfImu(/*rotation*/);
+	g_dev = new DfMpu9250Wrapper(/*rotation*/);
 
 	if (g_dev == nullptr) {
-		PX4_ERR("failed instantiating DfImu object");
+		PX4_ERR("failed instantiating DfMpu9250Wrapper object");
 		return -1;
 	}
 
 	int ret = g_dev->start();
 	if (ret != 0) {
-		PX4_ERR("DfImu start failed");
+		PX4_ERR("DfMpu9250Wrapper start failed");
 		return ret;
 	}
 
@@ -317,16 +317,16 @@ info()
 void
 usage()
 {
-	PX4_WARN("Usage: df_imu 'start', 'info', 'stop'");
+	PX4_WARN("Usage: df_mpu9250_wrapper 'start', 'info', 'stop'");
 	PX4_WARN("options:");
 	//PX4_WARN("    -R rotation");
 }
 
-} // namespace df_imu
+} // namespace df_mpu9250_wrapper
 
 
 int
-df_imu_main(int argc, char *argv[])
+df_mpu9250_wrapper_main(int argc, char *argv[])
 {
 	int ch;
 	// enum Rotation rotation = ROTATION_NONE;
@@ -342,13 +342,13 @@ df_imu_main(int argc, char *argv[])
 		//	break;
 
 		default:
-			df_imu::usage();
+			df_mpu9250_wrapper::usage();
 			return 0;
 		}
 	}
 
 	if (argc <= 1) {
-		df_imu::usage();
+		df_mpu9250_wrapper::usage();
 		return 1;
 	}
 
@@ -356,19 +356,19 @@ df_imu_main(int argc, char *argv[])
 
 
 	if (!strcmp(verb, "start")) {
-		ret = df_imu::start(/*rotation*/);
+		ret = df_mpu9250_wrapper::start(/*rotation*/);
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		ret = df_imu::stop();
+		ret = df_mpu9250_wrapper::stop();
 	}
 
 	else if (!strcmp(verb, "info")) {
-		ret = df_imu::info();
+		ret = df_mpu9250_wrapper::info();
 	}
 
 	else {
-		df_imu::usage();
+		df_mpu9250_wrapper::usage();
 		return 1;
 	}
 
