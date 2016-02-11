@@ -48,7 +48,7 @@
  *
  * This is the L1 distance and defines the tracking
  * point ahead of the aircraft its following.
- * A value of 25 meters works for most aircraft. Shorten
+ * A value of 18-25 meters works for most aircraft. Shorten
  * slowly during tuning until response is sharp without oscillation.
  *
  * @min 12.0
