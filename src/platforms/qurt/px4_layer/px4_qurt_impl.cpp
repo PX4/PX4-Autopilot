@@ -157,18 +157,9 @@ size_t strnlen(const char *s, size_t maxlen)
 	return i;
 }
 
-static void block_indefinite(void)
-{
-	for (;;) {
-		volatile int x = 0;
-		++x;
-	}
-}
-
 int fprintf(FILE *stream, const char *format, ...)
 {
-	PX4_ERR("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
-	block_indefinite();
+	PX4_ERR("Error: Calling unresolved symbol stub:[%s(%s,...)]", __FUNCTION__, format);
 	return 0;
 }
 
