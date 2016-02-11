@@ -105,7 +105,6 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 #define HDG_HOLD_SET_BACK_DIST 		100.0f 		// distance by which previous waypoint is set behind the plane
 #define HDG_HOLD_YAWRATE_THRESH 	0.15f 		// max yawrate at which plane locks yaw for heading hold mode
 #define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll input from user which does not change the locked heading
-#define TAKEOFF_IDLE				0.2f 		// idle speed for POSCTRL/ATTCTRL (when landed and throttle stick > 0)
 #define T_ALT_TIMEOUT 				1 			// time after which we abort landing if terrain estimate is not valid
 
 static constexpr float THROTTLE_THRESH =
@@ -280,6 +279,7 @@ private:
 		float roll_limit;
 		float throttle_min;
 		float throttle_max;
+		float throttle_idle;
 		float throttle_cruise;
 		float throttle_slew_max;
 
@@ -329,6 +329,7 @@ private:
 		param_t roll_limit;
 		param_t throttle_min;
 		param_t throttle_max;
+		param_t throttle_idle;
 		param_t throttle_cruise;
 		param_t throttle_slew_max;
 
@@ -582,6 +583,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.roll_limit = param_find("FW_R_LIM");
 	_parameter_handles.throttle_min = param_find("FW_THR_MIN");
 	_parameter_handles.throttle_max = param_find("FW_THR_MAX");
+	_parameter_handles.throttle_idle = param_find("FW_THR_IDLE");
 	_parameter_handles.throttle_slew_max = param_find("FW_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
@@ -660,6 +662,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.roll_limit, &(_parameters.roll_limit));
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
+	param_get(_parameter_handles.throttle_idle, &(_parameters.throttle_idle));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
 	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 
@@ -1930,8 +1933,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		   launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
 		   !_runway_takeoff.runwayTakeoffEnabled()) {
 		/* making sure again that the correct thrust is used,
-		* without depending on library calls for safety reasons */
-		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
+		 * without depending on library calls for safety reasons.
+		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
+		_att_sp.thrust = (launchDetectionEnabled()) ? launchDetector.getThrottlePreTakeoff() : _parameters.throttle_idle;
 
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
@@ -1946,10 +1950,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	} else {
 		/* Copy thrust and pitch values from tecs */
-		if (_vehicle_status.condition_landed &&
-		    (_control_mode_current == FW_POSCTRL_MODE_POSITION || _control_mode_current == FW_POSCTRL_MODE_ALTITUDE)) {
-			// when we are landed in these modes we want the motor to spin
-			_att_sp.thrust = math::min(TAKEOFF_IDLE, throttle_max);
+		if (_vehicle_status.condition_landed) {
+			// when we are landed state we want the motor to spin at idle speed
+			_att_sp.thrust = math::min(_parameters.throttle_idle, throttle_max);
 
 		} else {
 			_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() :
