@@ -10,6 +10,8 @@ static const uint32_t 		MOCAP_TIMEOUT = 200000;
 
 static const uint32_t 		XY_SRC_TIMEOUT = 2000000;
 
+static const float		FLOW_GYROCOMP_THRESHOLD = 0.15f;
+
 using namespace std;
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
@@ -576,7 +578,7 @@ void BlockLocalPositionEstimator::initFlow()
 		if (_flowInitCount++ > REQ_INIT_COUNT) {
 			_flowMeanQual /= _flowInitCount;
 
-			if (_flowMeanQual < _flow_min_q) {
+			if (_flowMeanQual < _flow_min_q.get()) {
 				// retry initialisation till we have better flow data
 				warnx("[lpe] flow quality bad, retrying init : %d",
 				      int(_flowMeanQual));
@@ -885,6 +887,8 @@ void BlockLocalPositionEstimator::correctFlow()
 	float alpha = 0.2; // lowpass gyro bias
 
 	if (_sub_flow.get().integration_timespan > 0) {
+	
+		// TODO : estimate bias as a filter state
 
 		// estimate gyro bias for the flow board's gyro using flight controller's calibrated gyro
 		flow_gyrospeed[0] = _sub_flow.get().gyro_x_rate_integral / (_sub_flow.get().integration_timespan / 1e6f);
@@ -895,31 +899,35 @@ void BlockLocalPositionEstimator::correctFlow()
 		_flowGyroBias[0] = alpha * (flow_gyrospeed[0] - _sub_att.get().pitchspeed) + (1.0f - alpha) * _flowGyroBias[0];
 		_flowGyroBias[1] = alpha * (flow_gyrospeed[1] - _sub_att.get().rollspeed) + (1.0f - alpha) * _flowGyroBias[1];
 		_flowGyroBias[2] = alpha * (flow_gyrospeed[2] - _sub_att.get().yawspeed) + (1.0f - alpha) * _flowGyroBias[2];
-
-		// yaw rotation compensation
-		float yaw_comp[2] = {0.0f, 0.0f};
-
-		yaw_comp[0] = - _flow_board_y_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
-		yaw_comp[1] =   _flow_board_x_offs.get() * (flow_gyrospeed[2] - _flowGyroBias[2]);
 		
-		//if() TODO rates sp check
-		// TODO estimate flow gyro bias as state, estimate scaling factor online, estimate 
-		
-		// calculate velocity over ground
-		flow_speed[0] = - ((_sub_flow.get().pixel_flow_x_integral - _sub_flow.get().gyro_x_rate_integral) /
-				   (_sub_flow.get().integration_timespan / 1e6f)
-				   + _flowGyroBias[0] - yaw_comp[0]) *
-				-_x(X_z);		// TODO use terrain estimate here
-		flow_speed[1] = - ((_sub_flow.get().pixel_flow_y_integral - _sub_flow.get().gyro_y_rate_integral) /
-				   (_sub_flow.get().integration_timespan / 1e6f) -
-				   + _flowGyroBias[1] - yaw_comp[1]) *
-				-_x(X_z);		// TODO use terrain estimate here
-				
-		// filtered gyro readings for logging
+		// filtered gyro readings
 		flow_gyrospeed[0] -= _flowGyroBias[0];
 		flow_gyrospeed[1] -= _flowGyroBias[1];
 		flow_gyrospeed[2] -= _flowGyroBias[2];
 
+		// yaw rotation compensation
+		float yaw_comp[2] = {0.0f, 0.0f};
+
+		yaw_comp[0] = - _flow_board_y_offs.get() * flow_gyrospeed[2];
+		yaw_comp[1] =   _flow_board_x_offs.get() * flow_gyrospeed[2];
+		
+		// Perform gyro-compensation only for large body rates
+		bool gyro_compX = (float)fabs(_sub_rates_sp.get().pitch) > FLOW_GYROCOMP_THRESHOLD;
+		bool gyro_compY = (float)fabs(_sub_rates_sp.get().roll) > FLOW_GYROCOMP_THRESHOLD;
+		bool gyro_compZ = (float)fabs(_sub_rates_sp.get().yaw) > FLOW_GYROCOMP_THRESHOLD;
+		
+		// calculate velocity over ground
+		flow_speed[0] = - ((_sub_flow.get().pixel_flow_x_integral - (gyro_compX ? flow_gyrospeed[0] : 0.0f) ) /
+				   (_sub_flow.get().integration_timespan / 1e6f) -
+				   (gyro_compZ ? yaw_comp[0] : 0.0f) ) *
+				-_x(X_z) *			// TODO use terrain estimate here
+				_flow_x_scaler.get();
+		flow_speed[1] = - ((_sub_flow.get().pixel_flow_y_integral - (gyro_compY ? flow_gyrospeed[1] : 0.0f) ) /
+				   (_sub_flow.get().integration_timespan / 1e6f) -
+				   (gyro_compZ ? yaw_comp[1] : 0.0f) ) *
+				-_x(X_z) *			// TODO use terrain estimate here
+				_flow_y_scaler.get();
+				
 	} else {
 		flow_speed[0] = 0;
 		flow_speed[1] = 0;
@@ -972,7 +980,7 @@ void BlockLocalPositionEstimator::correctFlow()
 	// fault detection
 	float beta = sqrtf((r.transpose() * (S_I * r))(0, 0));
 
-	if (_sub_flow.get().quality < _flow_min_q) {
+	if (_sub_flow.get().quality < _flow_min_q.get()) {
 		if (!_flowFault) {
 			mavlink_log_info(_mavlink_fd, "[lpe] bad flow data ");
 			warnx("[lpe] bad flow data ");
