@@ -739,7 +739,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(SENS_FLOW_X_OFF, 0.0f);
+PARAM_DEFINE_FLOAT(SENS_FLW_XOFF, 0.0f);
 
 /**
  * PX4Flow module offset (from center of rotation) in Y direction
@@ -748,7 +748,7 @@ PARAM_DEFINE_FLOAT(SENS_FLOW_X_OFF, 0.0f);
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(SENS_FLOW_Y_OFF, 0.0f);
+PARAM_DEFINE_FLOAT(SENS_FLW_YOFF, 0.0f);
 
 /**
  * External magnetometer rotation
