@@ -307,7 +307,7 @@ extern "C" {
 
 				// Get the current time
 				struct timespec ts;
-				px4_clock_gettime(CLOCK_REALTIME, &ts);
+				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 
 				// Calculate an absolute time in the future
 				const unsigned billion = (1000 * 1000 * 1000);
