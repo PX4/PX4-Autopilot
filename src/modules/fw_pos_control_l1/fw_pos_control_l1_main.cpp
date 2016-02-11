@@ -1935,7 +1935,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons.
 		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust = (launchDetectionEnabled()) ? launchDetector.getThrottlePreTakeoff() : _parameters.throttle_idle;
+		_att_sp.thrust = (launchDetector.launchDetectionEnabled()) ? launchDetector.getThrottlePreTakeoff() : _parameters.throttle_idle;
 
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
