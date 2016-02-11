@@ -44,6 +44,9 @@
  * @author Sander Smeets	<sander@droneslab.com>
  */
 
+// TODO-JYW: TESTING-TESTING:
+#define DEBUG_BUILD 1
+
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_time.h>
@@ -1445,6 +1448,9 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_attr_destroy(&commander_low_prio_attr);
 
 	while (!thread_should_exit) {
+		// TODO-JYW: TESTING-TESTING
+		warnx("running iteration of the commander state machine");
+		// TODO-JYW: TESTING-TESTING
 
 		if (mavlink_fd < 0 && counter % (1000000 / MAVLINK_OPEN_INTERVAL) == 0) {
 			/* try to open the mavlink log device every once in a while */
@@ -2216,6 +2222,13 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* check if left stick is in lower left position and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed) -> disarm
 			 * do it only for rotary wings */
+			// TODO-JYW: TESTING-TESTING
+			warnx("lower left stick: status.is_rotary_wing: %d, status.rc_input_mode: %d, status.arming_state: %d",
+					status.is_rotary_wing, status.rc_input_mode, status.arming_state, status.main_state, status.condition_landed, (double)sp_man.r, (double)sp_man.z);
+			warnx("lower left stick: status.main_state: %d, status.condition_landed: %d, sp_man.r: %f, sp_man.z: %f",
+					status.main_state, status.condition_landed, (double)sp_man.r, (double)sp_man.z);
+			// TODO-JYW: TESTING-TESTING
+
 			if (status.is_rotary_wing && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 			    (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) &&
 			    (status.main_state == vehicle_status_s::MAIN_STATE_MANUAL ||
@@ -2245,6 +2258,13 @@ int commander_thread_main(int argc, char *argv[])
 			} else {
 				stick_off_counter = 0;
 			}
+
+			// TODO-JYW: TESTING-TESTING
+			warnx("lower right stick: ON_OFF_LIMIT: %d, stick_off_counter: %d, stick_on_counter: %d",
+					(int)STICK_ON_OFF_LIMIT, stick_off_counter, stick_on_counter);
+			warnx("lower right stick: sp_man.r: %.6f, sp_man.z: %.6f, status.rc_input_mode: %d",
+					(double)sp_man.r, (double)sp_man.z, status.rc_input_mode);
+			// TODO-JYW: TESTING-TESTING
 
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
 			if (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF ) {
