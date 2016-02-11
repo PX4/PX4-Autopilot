@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
- *   Author: @author Mark Charlebois <charlebm#gmail.com>
+ *   Copyright (C) 2015-2016 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file px4_posix_tasks.c
- * Implementation of existing task API for Linux
+ * @file px4_qurt_tasks.c
+ * Implementation of existing task API for QURT.
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
 
 #include "px4_log.h"
