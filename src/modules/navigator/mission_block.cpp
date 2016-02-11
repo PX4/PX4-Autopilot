@@ -421,7 +421,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 {
 
 	/* VTOL transition to RW before landing */
-	if(_navigator->get_vstatus()->is_vtol){
+	if(_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing){
 		struct vehicle_command_s cmd = {};
 		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
