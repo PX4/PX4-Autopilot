@@ -38,6 +38,8 @@
  */
 
 #include <px4_time.h>
+#include <px4_posix.h>
+#include <px4_defines.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>

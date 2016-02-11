@@ -33,11 +33,11 @@
 
 include_directories(${HEXAGON_SDK_ROOT}/lib/common/qurt/ADSPv5MP/include)
 
-set(QURT_LAYER_SRCS 
+set(QURT_LAYER_SRCS
 	px4_qurt_impl.cpp
 	px4_qurt_tasks.cpp
 	lib_crc32.c
-	drv_hrt.c
+	../../posix/px4_layer/drv_hrt.c
 	qurt_stubs.c
 	main.cpp
 	params.c
@@ -61,4 +61,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
