@@ -371,8 +371,12 @@ int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 {
 	work_s _hpwork = {};
 
+	// Get the current time.
+	struct timespec ts_now;
+	px4_clock_gettime(CLOCK_MONOTONIC, &ts_now);
+
 	// We get an absolute time but want to calculate a timeout in us.
-	hrt_abstime timeout_us = ts_to_abstime((struct timespec *)ts) - hrt_absolute_time();
+	hrt_abstime timeout_us = ts_to_abstime((struct timespec *)ts) - ts_to_abstime(&ts_now);
 
 	// Create a timer to unblock.
 	hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)sem, timeout_us);
