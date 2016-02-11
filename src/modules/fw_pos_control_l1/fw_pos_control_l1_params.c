@@ -156,6 +156,20 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
 PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 
 /**
+ * Idle throttle
+ *
+ * This is the minimum throttle while on the ground
+ *
+ * For aircraft with internal combustion engine this parameter should be set
+ * above desired idle rpm.
+ *
+ * @min 0.0
+ * @max 0.4
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
+
+/**
  * Throttle limit value before flare
  *
  * This throttle value will be set as throttle limit at FW_LND_TLALT,
