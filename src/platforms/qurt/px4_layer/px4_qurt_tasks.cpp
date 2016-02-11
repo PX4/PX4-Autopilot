@@ -41,6 +41,7 @@
 #include "px4_log.h"
 #include "px4_posix.h"
 #include "px4_workqueue.h"
+#include "px4_time.h"
 #include "hrt_work.h"
 #include <unistd.h>
 #include <stdio.h>
@@ -369,9 +370,14 @@ int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 {
 	work_s _hpwork = {};
 
-	// Create a timer to unblock
-	uint32_t timeout = ts->tv_sec * 1000000 + (ts->tv_nsec / 1000);
-	hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)sem, timeout);
+	// We get an absolute time but want to calculate a timeout in us.
+	struct timespec ts_now;
+	px4_clock_gettime(CLOCK_REALTIME, &ts_now);
+	uint32_t timeout_us = ((ts->tv_sec - ts_now.tv_sec) * 1000000)
+			    + ((ts->tv_nsec - ts_now.tv_nsec) / 1000);
+
+	// Create a timer to unblock.
+	hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)sem, timeout_us);
 	sem_wait(sem);
 	hrt_work_cancel(&_hpwork);
 	return 0;
