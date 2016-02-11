@@ -38,6 +38,7 @@ set(config_module_list
 #	$(EAGLE_DRIVERS_SRC)/rc_receiver
 #	$(EAGLE_DRIVERS_SRC)/csr_gps
 	platforms/posix/drivers/df_mpu9250_wrapper
+	platforms/posix/drivers/df_bmp280_wrapper
 
 	#
 	# System commands
