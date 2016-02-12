@@ -46,6 +46,9 @@ void Ekf::controlFusionModes()
 	// Determine the vehicle status
 	calculateVehicleStatus();
 
+	// Get the magnetic declination
+	calcMagDeclination();
+
 	// optical flow fusion mode selection logic
 	_control_status.flags.opt_flow = false;
 
