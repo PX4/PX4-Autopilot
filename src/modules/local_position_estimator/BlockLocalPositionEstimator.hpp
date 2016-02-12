@@ -153,6 +153,9 @@ private:
 	void correctSonar();
 	void correctVision();
 	void correctMocap();
+	
+	// sensor timeout checks
+	void checkTimeouts();
 
 	// sensor initialization
 	void updateHome();
@@ -308,7 +311,12 @@ private:
 	fault_t _sonarFault;
 	fault_t _visionFault;
 	fault_t _mocapFault;
-
+	
+	bool _baroTimeout;
+	bool _gpsTimeout;
+	bool _flowTimeout;
+	bool _lidarTimeout;
+	bool _sonarTimeout;
 	bool _visionTimeout;
 	bool _mocapTimeout;
 

@@ -5,8 +5,12 @@
 
 static const int 		REQ_INIT_COUNT = 75;
 
-static const uint32_t 		VISION_POSITION_TIMEOUT = 500000;
-static const uint32_t 		MOCAP_TIMEOUT = 200000;
+static const uint32_t 		BARO_TIMEOUT = 100000;		// 0.1 s
+static const uint32_t 		FLOW_TIMEOUT = 500000;		// 0.5 s
+static const uint32_t 		GPS_TIMEOUT = 1000000; 		// 1.0 s
+static const uint32_t 		RANGER_TIMEOUT = 500000; 	// 0.5 s
+static const uint32_t 		VISION_TIMEOUT = 500000;	// 0.5 s
+static const uint32_t 		MOCAP_TIMEOUT = 200000;		// 0.2 s
 
 static const uint32_t 		EST_SRC_TIMEOUT = 1000000;
 
@@ -146,6 +150,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_mocapFault(FAULT_NONE),
 
 	// timeouts
+	_baroTimeout(true),
+	_gpsTimeout(true),
+	_flowTimeout(true),
+	_lidarTimeout(true),
+	_sonarTimeout(true),
 	_visionTimeout(true),
 	_mocapTimeout(true),
 
@@ -263,29 +272,8 @@ void BlockLocalPositionEstimator::update()
 	if (homeUpdated) {
 		updateHome();
 	}
-
-	// check for timeouts on external sources
-	if ((hrt_absolute_time() - _time_last_vision_p > VISION_POSITION_TIMEOUT) && _visionInitialized) {
-		if (!_visionTimeout) {
-			_visionTimeout = true;
-			mavlink_log_info(_mavlink_fd, "[lpe] vision position timeout ");
-			warnx("[lpe] vision position timeout ");
-		}
-
-	} else {
-		_visionTimeout = false;
-	}
-
-	if ((hrt_absolute_time() - _time_last_mocap > MOCAP_TIMEOUT) && _mocapInitialized) {
-		if (!_mocapTimeout) {
-			_mocapTimeout = true;
-			mavlink_log_info(_mavlink_fd, "[lpe] mocap timeout ");
-			warnx("[lpe] mocap timeout ");
-		}
-
-	} else {
-		_mocapTimeout = false;
-	}
+	
+	checkTimeouts();
 
 	// determine if we should start estimating
 	_canEstimateZ = 
@@ -439,6 +427,87 @@ void BlockLocalPositionEstimator::update()
 		publishEstimatorStatus();
 	}
 
+}
+
+void BlockLocalPositionEstimator::checkTimeouts()
+{
+
+	if ((hrt_absolute_time() - _time_last_baro > BARO_TIMEOUT) && _baroInitialized) {
+		if (!_baroTimeout) {
+			_baroTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] baro timeout ");
+			warnx("[lpe] baro timeout ");
+		}
+
+	} else {
+		_baroTimeout = false;
+	}
+	
+	if ((hrt_absolute_time() - _time_last_gps > GPS_TIMEOUT) && _gpsInitialized) {
+		if (!_gpsTimeout) {
+			_gpsTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] GPS timeout ");
+			warnx("[lpe] GPS timeout ");
+		}
+
+	} else {
+		_gpsTimeout = false;
+	}
+	
+	if ((hrt_absolute_time() - _time_last_gps > FLOW_TIMEOUT) && _flowInitialized) {
+		if (!_flowTimeout) {
+			_flowTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] flow timeout ");
+			warnx("[lpe] flow timeout ");
+		}
+
+	} else {
+		_flowTimeout = false;
+	}
+	
+	if ((hrt_absolute_time() - _time_last_sonar > RANGER_TIMEOUT) && _sonarInitialized) {
+		if (!_sonarTimeout) {
+			_sonarTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] sonar timeout ");
+			warnx("[lpe] sonar timeout ");
+		}
+
+	} else {
+		_sonarTimeout = false;
+	}
+	
+	if ((hrt_absolute_time() - _time_last_lidar > RANGER_TIMEOUT) && _lidarInitialized) {
+		if (!_lidarTimeout) {
+			_lidarTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] lidar timeout ");
+			warnx("[lpe] lidar timeout ");
+		}
+
+	} else {
+		_lidarTimeout = false;
+	}
+	
+	if ((hrt_absolute_time() - _time_last_vision_p > VISION_TIMEOUT) && _visionInitialized) {
+		if (!_visionTimeout) {
+			_visionTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] vision position timeout ");
+			warnx("[lpe] vision position timeout ");
+		}
+
+	} else {
+		_visionTimeout = false;
+	}
+
+	if ((hrt_absolute_time() - _time_last_mocap > MOCAP_TIMEOUT) && _mocapInitialized) {
+		if (!_mocapTimeout) {
+			_mocapTimeout = true;
+			mavlink_log_info(_mavlink_fd, "[lpe] mocap timeout ");
+			warnx("[lpe] mocap timeout ");
+		}
+
+	} else {
+		_mocapTimeout = false;
+	}
 }
 
 void BlockLocalPositionEstimator::updateHome()
