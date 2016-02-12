@@ -735,6 +735,14 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		}
 	}
 
+	/* weather-vane mode, dampen yaw rate */
+	if (_v_att_sp.disable_mc_yaw_control == true && _v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
+		float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
+		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
+		// prevent integrator winding up in weathervane mode
+		_rates_int(2) = 0.0f;
+	}
+
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
 
