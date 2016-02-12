@@ -121,6 +121,14 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	matrix::Dcm<float> R_to_earth(euler_init);
 	_state.mag_I = R_to_earth * mag_init;
 
+	// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
+	zeroRows(P, 16, 21);
+	zeroCols(P, 16, 21);
+
+	for (uint8_t index = 16; index <= 21; index ++) {
+		P[index][index] = sq(_params.mag_noise);
+	}
+
 	return true;
 }
 
@@ -330,5 +338,25 @@ void Ekf::fuse(float *K, float innovation)
 
 	for (unsigned i = 0; i < 2; i++) {
 		_state.wind_vel(i) = _state.wind_vel(i) - K[i + 22] * innovation;
+	}
+}
+
+// zero specified range of rows in the state covariance matrix
+void Ekf::zeroRows(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+{
+	uint8_t row;
+
+	for (row = first; row <= last; row++) {
+		memset(&cov_mat[row][0], 0, sizeof(cov_mat[0][0]) * 24);
+	}
+}
+
+// zero specified range of columns in the state covariance matrix
+void Ekf::zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last)
+{
+	uint8_t row;
+
+	for (row = 0; row <= 23; row++) {
+		memset(&cov_mat[row][first], 0, sizeof(cov_mat[0][0]) * (1 + last - first));
 	}
 }

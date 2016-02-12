@@ -242,4 +242,10 @@ private:
 	{
 		return var * var;
 	}
+
+	// zero the specified range of rows in the state covariance matricx
+	void zeroRows(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
+
+	// zero the specified range of columns in the state covariance matricx
+	void zeroCols(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 };
