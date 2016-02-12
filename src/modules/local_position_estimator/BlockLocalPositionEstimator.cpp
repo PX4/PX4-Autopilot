@@ -315,9 +315,6 @@ void BlockLocalPositionEstimator::update()
 		for (int i = 0; i < n_x; i++) {
 			_x(i) = 0;
 		}
-
-		mavlink_log_info(_mavlink_fd, "[lpe] reinit x");
-		warnx("[lpe] reinit x");
 	}
 
 	// reinitialize P if necessary
@@ -335,8 +332,6 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	if (reinit_P) {
-		mavlink_log_info(_mavlink_fd, "[lpe] reinit P");
-		warnx("[lpe] reinit P");
 		initP();
 	}
 
@@ -538,9 +533,6 @@ void BlockLocalPositionEstimator::initBaro()
 
 		if (_baroInitCount++ > REQ_INIT_COUNT) {
 			_baroAltHome /= _baroInitCount;
-			mavlink_log_info(_mavlink_fd,
-					 "[lpe] baro offs: %d m", (int)_baroAltHome);
-			warnx("[lpe] baro offs: %d m", (int)_baroAltHome);
 			_baroInitialized = true;
 
 			if (!_altHomeInitialized) {
@@ -570,11 +562,6 @@ void BlockLocalPositionEstimator::initGps()
 			_gpsLonHome /= _gpsInitCount;
 			_gpsAltHome /= _gpsInitCount;
 			map_projection_init(&_map_ref, lat, lon);
-			mavlink_log_info(_mavlink_fd, "[lpe] gps init: "
-					 "lat %d, lon %d, alt %d m",
-					 int(_gpsLatHome), int(_gpsLonHome), int(_gpsAltHome));
-			warnx("[lpe] gps init: lat %d, lon %d, alt %d m",
-			      int(_gpsLatHome), int(_gpsLonHome), int(_gpsAltHome));
 			_gpsInitialized = true;
 
 			if (!_altHomeInitialized) {
@@ -603,12 +590,6 @@ void BlockLocalPositionEstimator::initLidar()
 		_lidarAltHome += _sub_lidar->get().current_distance;
 
 		if (_lidarInitCount++ > REQ_INIT_COUNT) {
-			_lidarAltHome /= _lidarInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] lidar init: "
-					 "alt %d cm",
-					 int(100 * _lidarAltHome));
-			warnx("[lpe] lidar init: alt %d cm",
-			      int(100 * _lidarAltHome));
 			_lidarInitialized = true;
 		}
 	}
@@ -633,11 +614,6 @@ void BlockLocalPositionEstimator::initSonar()
 
 		if (_sonarInitCount++ > REQ_INIT_COUNT) {
 			_sonarAltHome /= _sonarInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar init: "
-					 "alt %d cm",
-					 int(100 * _sonarAltHome));
-			warnx("[lpe] sonar init: alt %d cm",
-			      int(100 * _sonarAltHome));
 			_sonarInitialized = true;
 		}
 	}
@@ -660,18 +636,10 @@ void BlockLocalPositionEstimator::initFlow()
 
 			if (_flowMeanQual < _flow_min_q.get()) {
 				// retry initialisation till we have better flow data
-				warnx("[lpe] flow quality bad, retrying init : %d",
-				      int(_flowMeanQual));
 				_flowMeanQual = 0;
 				_flowInitCount = 0;
 				return;
 			}
-
-			mavlink_log_info(_mavlink_fd, "[lpe] flow init: "
-					 "quality %d",
-					 int(_flowMeanQual));
-			warnx("[lpe] flow init: quality %d",
-			      int(_flowMeanQual));
 			_flowInitialized = true;
 		}
 	}
@@ -690,10 +658,6 @@ void BlockLocalPositionEstimator::initVision()
 
 		if (_visionInitCount++ > REQ_INIT_COUNT) {
 			_visionHome /= _visionInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] vision position init: "
-					 "%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
-			warnx("[lpe] vision position init: "
-			      "%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
 			_visionInitialized = true;
 		}
 	}
@@ -712,10 +676,6 @@ void BlockLocalPositionEstimator::initMocap()
 
 		if (_mocapInitCount++ > REQ_INIT_COUNT) {
 			_mocapHome /= _mocapInitCount;
-			mavlink_log_info(_mavlink_fd, "[lpe] mocap init: "
-					 "%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
-			warnx("[lpe] mocap init: "
-			      "%f, %f, %f m", double(pos(0)), double(pos(1)), double(pos(2)));
 			_mocapInitialized = true;
 		}
 	}
@@ -1065,22 +1025,16 @@ void BlockLocalPositionEstimator::correctFlow()
 
 	if (_sub_flow.get().quality < _flow_min_q.get()) {
 		if (!_flowFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] bad flow data ");
-			warnx("[lpe] bad flow data ");
 			_flowFault = FAULT_SEVERE;
 		}
 
 	} else if (beta > _beta_max.get()) {
 		if (!_flowFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] flow fault,  beta %5.2f", double(beta));
-			warnx("[lpe] flow fault,  beta %5.2f", double(beta));
 			_flowFault = FAULT_MINOR;
 		}
 
 	} else if (_flowFault) {
 		_flowFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] flow OK");
-		warnx("[lpe] flow OK");
 	}
 
 	// kalman filter correction if no fault
@@ -1142,22 +1096,16 @@ void BlockLocalPositionEstimator::correctSonar()
 	if (d < _sub_sonar->get().min_distance ||
 	    d > _sub_sonar->get().max_distance) {
 		if (!_sonarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar out of range");
-			warnx("[lpe] sonar out of range");
 			_sonarFault = FAULT_SEVERE;
 		}
 
 	} else if (beta > _beta_max.get()) {
 		if (!_sonarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] sonar fault,  beta %5.2f", double(beta));
-			warnx("[lpe] sonar fault,  beta %5.2f", double(beta));
 			_sonarFault = FAULT_MINOR;
 		}
 
 	} else if (_sonarFault) {
 		_sonarFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] sonar OK");
-		warnx("[lpe] sonar OK");
 	}
 
 	// kalman filter correction if no fault
@@ -1197,8 +1145,6 @@ void BlockLocalPositionEstimator::correctBaro()
 
 	if (beta > _beta_max.get()) {
 		if (!_baroFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] baro fault, beta %5.2f", double(beta));
-			warnx("[lpe] baro fault, beta %5.2f", double(beta));
 			_baroFault = FAULT_MINOR;
 		}
 
@@ -1207,8 +1153,6 @@ void BlockLocalPositionEstimator::correctBaro()
 
 	} else if (_baroFault) {
 		_baroFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] baro OK");
-		warnx("[lpe] baro OK");
 	}
 
 	// kalman filter correction if no fault
@@ -1262,22 +1206,16 @@ void BlockLocalPositionEstimator::correctLidar()
 	if (d < _sub_lidar->get().min_distance ||
 	    d > _sub_lidar->get().max_distance) {
 		if (!_lidarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] lidar out of range");
-			warnx("[lpe] lidar out of range");
 			_lidarFault = FAULT_SEVERE;
 		}
 
 	} else if (beta > _beta_max.get()) {
 		if (!_lidarFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] lidar fault, beta %5.2f", double(beta));
-			warnx("[lpe] lidar fault, beta %5.2f", double(beta));
 			_lidarFault = FAULT_MINOR;
 		}
 
 	} else if (_lidarFault) { // disable fault if ok
 		_lidarFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] lidar OK");
-		warnx("[lpe] lidar OK");
 	}
 
 	// kalman filter correction if no fault
@@ -1364,24 +1302,11 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 
 	if (nSat < 6 || eph > _gps_eph_max.get()) {
 		if (!_gpsFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] gps fault nSat: %d eph: %5.2f", nSat, double(eph));
-			warnx("[lpe] gps fault nSat: %d eph: %5.2f", nSat, double(eph));
 			_gpsFault = FAULT_SEVERE;
 		}
 
 	} else if (beta > _beta_max.get()) {
 		if (!_gpsFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] gps fault, beta: %5.2f", double(beta));
-			warnx("[lpe] gps fault, beta: %5.2f", double(beta));
-			mavlink_log_info(_mavlink_fd, "[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
-					 double(r(0)),  double(r(1)), double(r(2)),
-					 double(r(3)), double(r(4)), double(r(5)));
-			mavlink_log_info(_mavlink_fd, "[lpe] S_I: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
-					 double(S_I(0, 0)),  double(S_I(1, 1)), double(S_I(2, 2)),
-					 double(S_I(3, 3)),  double(S_I(4, 4)), double(S_I(5, 5)));
-			mavlink_log_info(_mavlink_fd, "[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
-					 double(r(0)),  double(r(1)), double(r(2)),
-					 double(r(3)), double(r(4)), double(r(5)));
 			_gpsFault = FAULT_MINOR;
 		}
 
@@ -1390,8 +1315,6 @@ void BlockLocalPositionEstimator::correctGps()  	// TODO : use another other met
 
 	} else if (_gpsFault) {
 		_gpsFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] GPS OK");
-		warnx("[lpe] GPS OK");
 	}
 
 	// kalman filter correction if no hard fault
@@ -1436,8 +1359,6 @@ void BlockLocalPositionEstimator::correctVision()
 
 	if (beta > _beta_max.get()) {
 		if (!_visionFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] vision position fault, beta %5.2f", double(beta));
-			warnx("[lpe] vision position fault, beta %5.2f", double(beta));
 			_visionFault = FAULT_MINOR;
 		}
 
@@ -1446,8 +1367,6 @@ void BlockLocalPositionEstimator::correctVision()
 
 	} else if (_visionFault) {
 		_visionFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] vision position OK");
-		warnx("[lpe] vision position OK");
 	}
 
 	// kalman filter correction if no fault
@@ -1494,8 +1413,6 @@ void BlockLocalPositionEstimator::correctMocap()
 
 	if (beta > _beta_max.get()) {
 		if (!_mocapFault) {
-			mavlink_log_info(_mavlink_fd, "[lpe] mocap fault, beta %5.2f", double(beta));
-			warnx("[lpe] mocap fault, beta %5.2f", double(beta));
 			_mocapFault = FAULT_MINOR;
 		}
 
@@ -1504,8 +1421,6 @@ void BlockLocalPositionEstimator::correctMocap()
 
 	} else if (_mocapFault) {
 		_mocapFault = FAULT_NONE;
-		mavlink_log_info(_mavlink_fd, "[lpe] mocap OK");
-		warnx("[lpe] mocap OK");
 	}
 
 	// kalman filter correction if no fault
