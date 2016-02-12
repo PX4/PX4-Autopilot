@@ -1164,8 +1164,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int att_sub;
 		int att_sp_sub;
 		int rates_sp_sub;
-		int act_outputs_sub;
-		int act_outputs_1_sub;
 		int act_controls_sub;
 		int act_controls_1_sub;
 		int local_pos_sub;
@@ -1194,6 +1192,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int mc_att_ctrl_status_sub;
 		int ctrl_state_sub;
 		int innov_sub;
+		int act_outputs_subs[NUM_ACTUATOR_OUTPUT_GROUPS];
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1204,8 +1203,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.att_sub = -1;
 	subs.att_sp_sub = -1;
 	subs.rates_sp_sub = -1;
-	subs.act_outputs_sub = -1;
-	subs.act_outputs_1_sub = -1;
 	subs.act_controls_sub = -1;
 	subs.act_controls_1_sub = -1;
 	subs.local_pos_sub = -1;
@@ -1237,6 +1234,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
+	}
+
+	for (unsigned i = 0; i < NUM_ACTUATOR_OUTPUT_GROUPS; i++) {
+		subs.act_outputs_subs[i] = -1;
 	}
 	
 	subs.sat_info_sub = -1;
@@ -1533,16 +1534,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- ACTUATOR OUTPUTS --- */
-		if (copy_if_updated_multi(ORB_ID(actuator_outputs), 0, &subs.act_outputs_sub, &buf.act_outputs)) {
-			log_msg.msg_type = LOG_OUT0_MSG;
-			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
-			LOGBUFFER_WRITE_AND_COUNT(OUT);
-		}
+		for (unsigned i = 0; i < NUM_ACTUATOR_OUTPUT_GROUPS; i++) {
+			if (copy_if_updated_multi(ORB_ID(actuator_outputs), i, &subs.act_outputs_subs[i], &buf.act_outputs)) {
+				if (i == 0) {
+					log_msg.msg_type = LOG_OUT0_MSG;
 
-		if (copy_if_updated_multi(ORB_ID(actuator_outputs), 1, &subs.act_outputs_1_sub, &buf.act_outputs)) {
-			log_msg.msg_type = LOG_OUT1_MSG;
-			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
-			LOGBUFFER_WRITE_AND_COUNT(OUT);
+				} else {
+					// those were added later so numbering it's not continuous
+					log_msg.msg_type = LOG_OUT1_MSG + i - 1;
+				}
+				memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
+				LOGBUFFER_WRITE_AND_COUNT(OUT);
+			}
 		}
 
 		/* --- ACTUATOR CONTROL --- */
