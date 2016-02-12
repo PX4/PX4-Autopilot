@@ -20,13 +20,13 @@ function check_git_submodule {
 if [ -d $1 ];
 	then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
-	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1" | grep "<")
+	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
 	if [ -z "$STATUSRETVAL" ]; then
 		echo "Checked $1 submodule, correct version found"
 	else
 		echo -e "\033[31mChecked $1 submodule, ACTION REQUIRED:\033[0m"
 		echo ""
-		echo -e "New commits required:"
+		echo -e "Different commits:"
 		echo -e "$SUBMODULE_STATUS"
 		echo ""
 		echo ""
