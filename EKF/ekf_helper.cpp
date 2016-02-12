@@ -124,6 +124,28 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	return true;
 }
 
+// Calculate the magnetic declination to be used by the alignment and fusion processing
+void Ekf::calcMagDeclination()
+{
+	// set source of magnetic declination for internal use
+	if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
+		// use parameter value until GPS is available, then use value returned by geo library
+		if (_NED_origin_initialised) {
+			_mag_declination = _mag_declination_gps;
+			_mag_declination_to_save_deg = math::degrees(_mag_declination);
+
+		} else {
+			_mag_declination = math::radians(_params.mag_declination_deg);
+			_mag_declination_to_save_deg = _params.mag_declination_deg;
+		}
+
+	} else {
+		// always use the parameter value
+		_mag_declination = math::radians(_params.mag_declination_deg);
+		_mag_declination_to_save_deg = _params.mag_declination_deg;
+	}
+}
+
 // This function forces the covariance matrix to be symmetric
 void Ekf::makeSymmetrical()
 {

@@ -201,6 +201,9 @@ private:
 	// return true if successful
 	bool resetMagHeading(Vector3f &mag_init);
 
+	// calculate the magnetic declination to be used by the alignment and fusion processing
+	void calcMagDeclination();
+
 	// reset position states of the ekf (only vertical position)
 	void resetPosition();
 
