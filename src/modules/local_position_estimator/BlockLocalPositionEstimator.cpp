@@ -8,7 +8,7 @@ static const int 		REQ_INIT_COUNT = 75;
 static const uint32_t 		VISION_POSITION_TIMEOUT = 500000;
 static const uint32_t 		MOCAP_TIMEOUT = 200000;
 
-static const uint32_t 		XY_SRC_TIMEOUT = 2000000;
+static const uint32_t 		EST_SRC_TIMEOUT = 1000000;
 
 static const float		FLOW_GYROCOMP_THRESHOLD = 0.15f;
 
@@ -133,7 +133,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// status
 	_canEstimateXY(false),
 	_canEstimateZ(false),
-	_xyTimeout(false),
+	_xyTimeout(true),
+	_zTimeout(true),
 
 	// faults
 	_baroFault(FAULT_NONE),
@@ -144,7 +145,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_visionFault(FAULT_NONE),
 	_mocapFault(FAULT_NONE),
 
-	//timeouts
+	// timeouts
 	_visionTimeout(true),
 	_mocapTimeout(true),
 
@@ -287,7 +288,10 @@ void BlockLocalPositionEstimator::update()
 	}
 
 	// determine if we should start estimating
-	_canEstimateZ = _baroInitialized && !_baroFault;
+	_canEstimateZ = 
+		(_baroInitialized && !_baroFault) ||
+		(_lidarInitialized && !_lidarFault) ||
+		(_sonarInitialized && !_sonarFault);
 	_canEstimateXY =
 		(_gpsInitialized && !_gpsFault) ||
 		(_flowInitialized && !_flowFault) ||
@@ -296,6 +300,9 @@ void BlockLocalPositionEstimator::update()
 
 	if (_canEstimateXY) {
 		_time_last_xy = hrt_absolute_time();
+	}
+	if (_canEstimateZ) {
+		_time_last_z = hrt_absolute_time();
 	}
 
 	// if we have no lat, lon initialized projection at 0,0
@@ -417,14 +424,14 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	_xyTimeout = (hrt_absolute_time() - _time_last_xy > XY_SRC_TIMEOUT);
+	_xyTimeout = (hrt_absolute_time() - _time_last_xy > EST_SRC_TIMEOUT);
+	_zTimeout = (hrt_absolute_time() - _time_last_z > EST_SRC_TIMEOUT);
 
 	if (!_xyTimeout && _altHomeInitialized) {
 		// update all publications if possible
 		publishLocalPos();
 		publishEstimatorStatus();
 		publishGlobalPos();
-		publishFilteredFlow();
 
 	} else if (_altHomeInitialized) {
 		// publish only Z estimate
@@ -704,8 +711,9 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 			+ ((_mocapFault > 0) << SENSOR_MOCAP);
 		_pub_est_status.get().timeout_flags =
 			(_xyTimeout << 0)
-			+ (_visionTimeout << 1)
-			+ (_mocapTimeout << 2);
+			+ (_zTimeout << 1)
+			+ (_visionTimeout << 2)
+			+ (_mocapTimeout << 3);
 		_pub_est_status.update();
 	}
 }
@@ -840,14 +848,14 @@ void BlockLocalPositionEstimator::predict()
 
 	// only predict for components we have
 	// valid measurements for
-	if (!_canEstimateXY) {
+	if (_xyTimeout) {
 		dx(X_x) = 0;
 		dx(X_y) = 0;
 		dx(X_vx) = 0;
 		dx(X_vy) = 0;
 	}
 
-	if (!_canEstimateZ) {
+	if (_zTimeout) {
 		dx(X_z) = 0;
 		dx(X_vz) = 0;
 	}
@@ -953,6 +961,8 @@ void BlockLocalPositionEstimator::correctFlow()
 	_pub_filtered_flow.get().gyro_bias[0] = _flowGyroBias[0];
 	_pub_filtered_flow.get().gyro_bias[1] = _flowGyroBias[1];
 	_pub_filtered_flow.get().gyro_bias[2] = _flowGyroBias[2];
+	
+	publishFilteredFlow();
 
 	// convert to globalframe velocity
 	for (uint8_t i = 0; i < 3; i++) {

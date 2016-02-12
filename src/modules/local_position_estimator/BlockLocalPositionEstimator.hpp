@@ -245,6 +245,7 @@ private:
 	struct pollfd _polls[3];
 	uint64_t _timeStamp;
 	uint64_t _time_last_xy;
+	uint64_t _time_last_z;
 	uint64_t _time_last_flow;
 	uint64_t _time_last_baro;
 	uint64_t _time_last_gps;
@@ -297,6 +298,7 @@ private:
 	bool _canEstimateXY;
 	bool _canEstimateZ;
 	bool _xyTimeout;
+	bool _zTimeout;
 
 	// sensor faults
 	fault_t _baroFault;
