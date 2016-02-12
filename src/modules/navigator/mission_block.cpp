@@ -49,6 +49,7 @@
 #include <systemlib/err.h>
 #include <geo/geo.h>
 #include <mavlink/mavlink_log.h>
+#include <mathlib/mathlib.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
@@ -68,9 +69,12 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
 	_action_start(0),
+	_time_wp_reached(0),
 	_actuators{},
 	_actuator_pub(nullptr),
 	_cmd_pub(nullptr),
+	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
+	_param_yaw_err(this, "MIS_YAW_ERR", false),
 	_param_vtol_wv_land(this, "VT_WV_LND_EN", false),
 	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false)
 {
@@ -174,6 +178,11 @@ MissionBlock::is_mission_item_reached()
 				_waypoint_position_reached = true;
 			}
 		}
+
+		if (_waypoint_position_reached) {
+			// reached just now
+			_time_wp_reached = now;
+		}
 	}
 
 	/* Check if the waypoint and the requested yaw setpoint. */
@@ -186,7 +195,9 @@ MissionBlock::is_mission_item_reached()
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);
 
-			if (fabsf(yaw_err) < 0.2f) { /* TODO: get rid of magic number */
+			if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
+					|| (_param_yaw_timeout.get() >= -FLT_EPSILON &&
+						now - _time_wp_reached >= (hrt_abstime)_param_yaw_timeout.get() * 1e6f)) {
 				_waypoint_yaw_reached = true;
 			}
 
@@ -221,6 +232,7 @@ MissionBlock::reset_mission_item_reached()
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
 	_time_first_inside_orbit = 0;
+	_time_wp_reached = 0;
 }
 
 void

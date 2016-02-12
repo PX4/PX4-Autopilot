@@ -107,3 +107,25 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
+
+/**
+ * Time in seconds we wait on reaching target heading at a waypoint.
+ *
+ * Prevents missions getting blocked at waypoints because it cannot reach target yaw.
+ * Mainly useful for VTOLs that have less yaw authority and might not reach target
+ * yaw in wind. Disabled by default. Can be set to 0 if it should not care for yaw on waypoints.
+ *
+ * @min -1
+ * @max 20
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
+
+/**
+ * Max yaw error in degree needed for waypoint heading acceptance.
+ *
+ * @min 0
+ * @max 90
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
