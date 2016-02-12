@@ -861,7 +861,7 @@ bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void
 
 	if (*handle < 0) {
 		if (OK == orb_exists(topic, multi_instance)) {
-			*handle = orb_subscribe(topic);
+			*handle = orb_subscribe_multi(topic, multi_instance);
 			/* copy first data */
 			if (*handle >= 0) {
 				orb_copy(topic, *handle, buffer);
