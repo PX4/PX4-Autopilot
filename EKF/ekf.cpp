@@ -143,15 +143,18 @@ bool Ekf::update()
 
 	// Fuse magnetometer data using the selected fuson method and only if angular alignment is complete
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		if (_control_status.flags.mag_3D && _control_status.flags.angle_align) {
+		if (_control_status.flags.mag_3D && _control_status.flags.yaw_align) {
 			fuseMag();
 
 			if (_control_status.flags.mag_dec) {
 				fuseDeclination();
 			}
 
-		} else if (_control_status.flags.mag_hdg && _control_status.flags.angle_align) {
+		} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {
 			fuseHeading();
+
+		} else {
+			// do no fusion at all
 		}
 	}
 
