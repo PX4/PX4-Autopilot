@@ -141,6 +141,8 @@ struct parameters {
 	float mag_declination_deg = 0.0f;   // magnetic declination in degrees
 	float heading_innov_gate = 3.0f;    // heading fusion innovation consistency gate size in standard deviations
 	float mag_innov_gate = 3.0f;        // magnetometer fusion innovation consistency gate size in standard deviations
+	int mag_declination_source = 7;     // bitmask used to control the handling of declination data
+	int mag_fusion_type = 0;            // integer used to specify the type of magnetometer fusion used
 
 	// these parameters control the strictness of GPS quality checks used to determine uf the GPS is
 	// good enough to set a local origin and commence aiding
@@ -153,6 +155,16 @@ struct parameters {
 	float req_hdrift = 0.3f;    // maximum acceptable horizontal drift speed
 	float req_vdrift = 0.5f;    // maximum acceptable vertical drift speed
 };
+
+// Bit locations for mag_declination_source
+#define MASK_USE_GEO_DECL   (1<<0)  // set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
+#define MASK_SAVE_GEO_DECL  (1<<1)  // set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
+#define MASK_FUSE_DECL      (1<<2)  // set to true if the declination is always fused as an observation to contrain drift when 3-axis fusion is performed
+
+// Integer definitions for mag_fusion_type
+#define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic
+#define MAG_FUSE_TYPE_HEADING   1   // Magnetic heading fusion will alays be used. This is less accurate, but less affected by earth field distortions
+#define MAG_FUSE_TYPE_3D        2   // Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
 
 struct stateSample {
 	Vector3f    ang_error;	// attitude axis angle error (error state formulation)
