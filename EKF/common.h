@@ -211,14 +211,15 @@ union gps_check_fail_status_u {
 // bitmask containing filter control status
 union filter_control_status_u {
 	struct {
-		uint8_t angle_align : 1; // 0 - true if the filter angular alignment is complete
-		uint8_t gps         : 1; // 1 - true if GPS measurements are being fused
-		uint8_t opt_flow    : 1; // 2 - true if optical flow measurements are being fused
-		uint8_t mag_hdg     : 1; // 3 - true if a simple magnetic heading is being fused
-		uint8_t mag_3D      : 1; // 4 - true if 3-axis magnetometer measurement are being fused
-		uint8_t mag_dec     : 1; // 5 - true if synthetic magnetic declination measurements are being fused
-		uint8_t in_air      : 1; // 6 - true when the vehicle is airborne
-		uint8_t armed       : 1; // 7 - true when the vehicle motors are armed
+		uint8_t tilt_align  : 1; // 0 - true if the filter tilt alignment is complete
+		uint8_t yaw_align   : 1; // 1 - true if the filter yaw alignment is complete
+		uint8_t gps         : 1; // 2 - true if GPS measurements are being fused
+		uint8_t opt_flow    : 1; // 3 - true if optical flow measurements are being fused
+		uint8_t mag_hdg     : 1; // 4 - true if a simple magnetic heading is being fused
+		uint8_t mag_3D      : 1; // 5 - true if 3-axis magnetometer measurement are being fused
+		uint8_t mag_dec     : 1; // 6 - true if synthetic magnetic declination measurements are being fused
+		uint8_t in_air      : 1; // 7 - true when the vehicle is airborne
+		uint8_t armed       : 1; // 8 - true when the vehicle motors are armed
 	} flags;
 	uint16_t value;
 };
