@@ -515,7 +515,7 @@ void Ekf::fuseHeading()
 	matrix::Dcm<float> R_to_earth(_state.quat_nominal);
 	matrix::Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
 
-	float innovation = atan2f(mag_earth_pred(1), mag_earth_pred(0)) - math::radians(_params.mag_declination_deg);
+	float innovation = atan2f(mag_earth_pred(1), mag_earth_pred(0)) - _mag_declination;
 
 	innovation = math::constrain(innovation, -0.5f, 0.5f);
 	_heading_innov = innovation;
@@ -694,7 +694,7 @@ void Ekf::fuseDeclination()
 	Kfusion[23] = t14 * (P[23][17] * t25 - P[23][16] * t26);
 
 	// calculate innovation and constrain
-	float innovation = atanf(t4) - math::radians(_params.mag_declination_deg);
+	float innovation = atanf(t4) - _mag_declination;
 	innovation = math::constrain(innovation, -0.5f, 0.5f);
 
 	// zero attitude error states and perform the state correction
