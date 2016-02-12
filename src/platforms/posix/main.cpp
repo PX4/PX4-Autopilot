@@ -64,6 +64,8 @@ typedef int (*px4_main_t)(int argc, char *argv[]);
 
 static bool _ExitFlag = false;
 
+static struct termios orig_term;
+
 extern "C" {
 	void _SigIntHandler(int sig_num);
 	void _SigIntHandler(int sig_num)
@@ -157,10 +159,19 @@ static void process_line(string &line, bool exit_on_fail)
 	run_cmd(appargs, exit_on_fail);
 }
 
+static void restore_term(void)
+{
+	cout << "Restoring terminal\n";
+	tcsetattr (0, TCSANOW, &orig_term);
+}
+
 int main(int argc, char **argv)
 {
 	bool daemon_mode = false;
 	bool chroot_on = false;
+
+	tcgetattr(0, &orig_term);
+	atexit(restore_term);
 
 	struct sigaction sig_int;
 	memset(&sig_int, 0, sizeof(struct sigaction));
