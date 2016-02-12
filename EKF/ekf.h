@@ -128,6 +128,8 @@ private:
 	float _mag_innov_var[3]; // earth magnetic field innovation variance
 	float _heading_innov_var; // heading measurement innovation variance
 
+	float _mag_declination = 0.0f; // magnetic declination used by reset and fusion functions (rad)
+
 	// complementary filter states
 	Vector3f _delta_angle_corr;	// delta angle correction vector
 	Vector3f _delta_vel_corr;	// delta velocity correction vector
@@ -194,6 +196,10 @@ private:
 
 	// reset velocity states of the ekf
 	void resetVelocity();
+
+	// reset the heading and magnetic field states using the declination and magnetometer measurements
+	// return true if successful
+	bool resetMagHeading(Vector3f &mag_init);
 
 	// reset position states of the ekf (only vertical position)
 	void resetPosition();

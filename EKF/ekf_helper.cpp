@@ -94,6 +94,36 @@ void Ekf::resetHeight()
 	}
 }
 
+// Reset heading and magnetic field states
+bool Ekf::resetMagHeading(Vector3f &mag_init)
+{
+	// If we don't a tilt estimate then we cannot initialise the yaw
+	if (!_control_status.flags.tilt_align) {
+		return false;
+	}
+
+	// get the roll, pitch, yaw estimates and set the yaw to zero
+	matrix::Quaternion<float> q(_state.quat_nominal(0), _state.quat_nominal(1), _state.quat_nominal(2),
+				    _state.quat_nominal(3));
+	matrix::Euler<float> euler_init(q);
+	euler_init(2) = 0.0f;
+
+	// rotate the magnetometer measurements into earth axes
+	matrix::Dcm<float> R_to_earth_zeroyaw(euler_init);
+	Vector3f mag_ef_zeroyaw = R_to_earth_zeroyaw * mag_init;
+	euler_init(2) = _mag_declination - atan2f(mag_ef_zeroyaw(1), mag_ef_zeroyaw(0));
+
+	// calculate initial quaternion states
+	_state.quat_nominal = Quaternion(euler_init);
+	_output_new.quat_nominal = _state.quat_nominal;
+
+	// calculate initial earth magnetic field states
+	matrix::Dcm<float> R_to_earth(euler_init);
+	_state.mag_I = R_to_earth * mag_init;
+
+	return true;
+}
+
 // This function forces the covariance matrix to be symmetric
 void Ekf::makeSymmetrical()
 {
