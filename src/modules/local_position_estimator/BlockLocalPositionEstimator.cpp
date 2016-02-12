@@ -569,9 +569,13 @@ void BlockLocalPositionEstimator::initSonar()
 
 void BlockLocalPositionEstimator::initFlow()
 {
-
+	bool rangefinder_available = false;
+	
+	rangefinder_available = (_sonarInitialized && !_sonarFault) ||
+				(_lidarInitialized && !_lidarFault);
+	
 	// collect pixel flow data
-	if (!_flowInitialized) {
+	if (!_flowInitialized && rangefinder_available) {
 		// increament sums for mean
 		_flowMeanQual += _sub_flow.get().quality;
 
