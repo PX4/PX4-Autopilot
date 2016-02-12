@@ -1533,13 +1533,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- ACTUATOR OUTPUTS --- */
-		if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_sub, &buf.act_outputs)) {
+		if (copy_if_updated_multi(ORB_ID(actuator_outputs), 0, &subs.act_outputs_sub, &buf.act_outputs)) {
 			log_msg.msg_type = LOG_OUT0_MSG;
 			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
 			LOGBUFFER_WRITE_AND_COUNT(OUT);
 		}
 
-		if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_1_sub, &buf.act_outputs)) {
+		if (copy_if_updated_multi(ORB_ID(actuator_outputs), 1, &subs.act_outputs_1_sub, &buf.act_outputs)) {
 			log_msg.msg_type = LOG_OUT1_MSG;
 			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
 			LOGBUFFER_WRITE_AND_COUNT(OUT);
