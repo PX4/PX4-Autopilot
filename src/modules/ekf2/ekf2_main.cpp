@@ -75,6 +75,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -128,6 +129,7 @@ private:
 	int		_airspeed_sub = -1;
 	int		_params_sub = -1;
 	int		_control_mode_sub = -1;
+	int 	_vehicle_status_sub = -1;
 
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
@@ -253,6 +255,7 @@ void Ekf2::task_main()
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	px4_pollfd_struct_t fds[2] = {};
 	fds[0].fd = _sensors_sub;
@@ -295,6 +298,7 @@ void Ekf2::task_main()
 		bool gps_updated = false;
 		bool airspeed_updated = false;
 		bool control_mode_updated = false;
+		bool vehicle_status_updated = false;
 
 		sensor_combined_s sensors = {};
 		airspeed_s airspeed = {};
@@ -362,6 +366,15 @@ void Ekf2::task_main()
 		// read airspeed data if available
 		if (airspeed_updated) {
 			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.indicated_airspeed_m_s);
+		}
+
+		// read vehicle status if available for 'landed' information
+		orb_check(_vehicle_status_sub, &vehicle_status_updated);
+
+		if (vehicle_status_updated) {
+			struct vehicle_status_s status = {};
+			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &status);
+			_ekf->set_in_air_status(!status.condition_landed);
 		}
 
 		// run the EKF update
