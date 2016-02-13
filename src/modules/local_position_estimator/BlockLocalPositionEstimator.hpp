@@ -153,7 +153,7 @@ private:
 	void correctSonar();
 	void correctVision();
 	void correctMocap();
-	
+
 	// sensor timeout checks
 	void checkTimeouts();
 
@@ -234,7 +234,7 @@ private:
 
 	BlockParamFloat  _flow_board_x_offs;
 	BlockParamFloat  _flow_board_y_offs;
-	
+
 	BlockParamFloat  _flow_x_scaler;
 	BlockParamFloat  _flow_y_scaler;
 	BlockParamInt    _flow_min_q;
@@ -311,7 +311,7 @@ private:
 	fault_t _sonarFault;
 	fault_t _visionFault;
 	fault_t _mocapFault;
-	
+
 	bool _baroTimeout;
 	bool _gpsTimeout;
 	bool _flowTimeout;

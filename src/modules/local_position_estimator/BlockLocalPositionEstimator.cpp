@@ -32,7 +32,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_att_sp(ORB_ID(vehicle_attitude_setpoint),
 		    0, 0, &getSubscriptions()),
 	_sub_rates_sp(ORB_ID(vehicle_rates_setpoint),
-		    0, 0, &getSubscriptions()),
+		      0, 0, &getSubscriptions()),
 	_sub_flow(ORB_ID(optical_flow), 0, 0, &getSubscriptions()),
 	_sub_sensor(ORB_ID(sensor_combined), 0, 0, &getSubscriptions()),
 	_sub_param_update(ORB_ID(parameter_update), 0, 0, &getSubscriptions()),
@@ -272,11 +272,11 @@ void BlockLocalPositionEstimator::update()
 	if (homeUpdated) {
 		updateHome();
 	}
-	
+
 	checkTimeouts();
 
 	// determine if we should start estimating
-	_canEstimateZ = 
+	_canEstimateZ =
 		(_baroInitialized && !_baroFault) ||
 		(_lidarInitialized && !_lidarFault) ||
 		(_sonarInitialized && !_sonarFault);
@@ -289,6 +289,7 @@ void BlockLocalPositionEstimator::update()
 	if (_canEstimateXY) {
 		_time_last_xy = hrt_absolute_time();
 	}
+
 	if (_canEstimateZ) {
 		_time_last_z = hrt_absolute_time();
 	}
@@ -437,7 +438,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	} else {
 		_baroTimeout = false;
 	}
-	
+
 	if ((hrt_absolute_time() - _time_last_gps > GPS_TIMEOUT) && _gpsInitialized) {
 		if (!_gpsTimeout) {
 			_gpsTimeout = true;
@@ -448,7 +449,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	} else {
 		_gpsTimeout = false;
 	}
-	
+
 	if ((hrt_absolute_time() - _time_last_gps > FLOW_TIMEOUT) && _flowInitialized) {
 		if (!_flowTimeout) {
 			_flowTimeout = true;
@@ -459,7 +460,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	} else {
 		_flowTimeout = false;
 	}
-	
+
 	if ((hrt_absolute_time() - _time_last_sonar > RANGER_TIMEOUT) && _sonarInitialized) {
 		if (!_sonarTimeout) {
 			_sonarTimeout = true;
@@ -470,7 +471,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	} else {
 		_sonarTimeout = false;
 	}
-	
+
 	if ((hrt_absolute_time() - _time_last_lidar > RANGER_TIMEOUT) && _lidarInitialized) {
 		if (!_lidarTimeout) {
 			_lidarTimeout = true;
@@ -481,7 +482,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	} else {
 		_lidarTimeout = false;
 	}
-	
+
 	if ((hrt_absolute_time() - _time_last_vision_p > VISION_TIMEOUT) && _visionInitialized) {
 		if (!_visionTimeout) {
 			_visionTimeout = true;
@@ -594,10 +595,10 @@ void BlockLocalPositionEstimator::initLidar()
 		if (_lidarInitCount++ > REQ_INIT_COUNT) {
 			_lidarInitialized = true;
 		}
-		
+
 		if (!_altHomeInitialized) {
-				_altHomeInitialized = true;
-				_altHome = _lidarAltHome;
+			_altHomeInitialized = true;
+			_altHome = _lidarAltHome;
 		}
 	}
 }
@@ -623,10 +624,10 @@ void BlockLocalPositionEstimator::initSonar()
 			_sonarAltHome /= _sonarInitCount;
 			_sonarInitialized = true;
 		}
-		
+
 		if (!_altHomeInitialized) {
-				_altHomeInitialized = true;
-				_altHome = _sonarAltHome;
+			_altHomeInitialized = true;
+			_altHome = _sonarAltHome;
 		}
 	}
 }
@@ -634,10 +635,10 @@ void BlockLocalPositionEstimator::initSonar()
 void BlockLocalPositionEstimator::initFlow()
 {
 	bool rangefinder_available = false;
-	
+
 	rangefinder_available = (_sonarInitialized && !_sonarFault) ||
 				(_lidarInitialized && !_lidarFault);
-	
+
 	// collect pixel flow data
 	if (!_flowInitialized && rangefinder_available) {
 		// increament sums for mean
@@ -652,6 +653,7 @@ void BlockLocalPositionEstimator::initFlow()
 				_flowInitCount = 0;
 				return;
 			}
+
 			_flowInitialized = true;
 		}
 	}
@@ -672,10 +674,10 @@ void BlockLocalPositionEstimator::initVision()
 			_visionHome /= _visionInitCount;
 			_visionInitialized = true;
 		}
-		
+
 		if (!_altHomeInitialized) {
-				_altHomeInitialized = true;
-				_altHome = _visionHome(2);
+			_altHomeInitialized = true;
+			_altHome = _visionHome(2);
 		}
 	}
 }
@@ -695,10 +697,10 @@ void BlockLocalPositionEstimator::initMocap()
 			_mocapHome /= _mocapInitCount;
 			_mocapInitialized = true;
 		}
-		
+
 		if (!_altHomeInitialized) {
-				_altHomeInitialized = true;
-				_altHome = _mocapHome(2);
+			_altHomeInitialized = true;
+			_altHome = _mocapHome(2);
 		}
 	}
 }
@@ -953,7 +955,7 @@ void BlockLocalPositionEstimator::correctFlow()
 	float alpha = 0.2; // lowpass gyro bias
 
 	if (_sub_flow.get().integration_timespan > 0) {
-	
+
 		// TODO : estimate bias as a filter state
 
 		// estimate gyro bias for the flow board's gyro using flight controller's calibrated gyro
@@ -965,7 +967,7 @@ void BlockLocalPositionEstimator::correctFlow()
 		_flowGyroBias[0] = alpha * (flow_gyrospeed[0] - _sub_att.get().pitchspeed) + (1.0f - alpha) * _flowGyroBias[0];
 		_flowGyroBias[1] = alpha * (flow_gyrospeed[1] - _sub_att.get().rollspeed) + (1.0f - alpha) * _flowGyroBias[1];
 		_flowGyroBias[2] = alpha * (flow_gyrospeed[2] - _sub_att.get().yawspeed) + (1.0f - alpha) * _flowGyroBias[2];
-		
+
 		// filtered gyro readings
 		flow_gyrospeed[0] -= _flowGyroBias[0];
 		flow_gyrospeed[1] -= _flowGyroBias[1];
@@ -976,29 +978,29 @@ void BlockLocalPositionEstimator::correctFlow()
 
 		yaw_comp[0] = - _flow_board_y_offs.get() * flow_gyrospeed[2];
 		yaw_comp[1] =   _flow_board_x_offs.get() * flow_gyrospeed[2];
-		
+
 		// Perform gyro-compensation only for large body rates
 		bool gyro_compX = (float)fabs(_sub_rates_sp.get().pitch) > FLOW_GYROCOMP_THRESHOLD;
 		bool gyro_compY = (float)fabs(_sub_rates_sp.get().roll) > FLOW_GYROCOMP_THRESHOLD;
 		bool gyro_compZ = (float)fabs(_sub_rates_sp.get().yaw) > FLOW_GYROCOMP_THRESHOLD;
-		
+
 		// actual distance to ground
 		float ground_distance = -_x(X_z) / 			// TODO use terrain estimate here
-	       				cosf(_sub_att.get().roll) /
-	      				cosf(_sub_att.get().pitch);
-		
+					cosf(_sub_att.get().roll) /
+					cosf(_sub_att.get().pitch);
+
 		// calculate velocity over ground
-		flow_speed[0] = - ((_sub_flow.get().pixel_flow_x_integral - (gyro_compX ? flow_gyrospeed[0] : 0.0f) ) /
+		flow_speed[0] = - ((_sub_flow.get().pixel_flow_x_integral - (gyro_compX ? flow_gyrospeed[0] : 0.0f)) /
 				   (_sub_flow.get().integration_timespan / 1e6f) -
-				   (gyro_compZ ? yaw_comp[0] : 0.0f) ) *
+				   (gyro_compZ ? yaw_comp[0] : 0.0f)) *
 				ground_distance *
 				_flow_x_scaler.get();
-		flow_speed[1] = - ((_sub_flow.get().pixel_flow_y_integral - (gyro_compY ? flow_gyrospeed[1] : 0.0f) ) /
+		flow_speed[1] = - ((_sub_flow.get().pixel_flow_y_integral - (gyro_compY ? flow_gyrospeed[1] : 0.0f)) /
 				   (_sub_flow.get().integration_timespan / 1e6f) -
-				   (gyro_compZ ? yaw_comp[1] : 0.0f) ) *
+				   (gyro_compZ ? yaw_comp[1] : 0.0f)) *
 				ground_distance *
 				_flow_y_scaler.get();
-				
+
 	} else {
 		flow_speed[0] = 0;
 		flow_speed[1] = 0;
@@ -1020,7 +1022,7 @@ void BlockLocalPositionEstimator::correctFlow()
 	_pub_filtered_flow.get().gyro_bias[0] = _flowGyroBias[0];
 	_pub_filtered_flow.get().gyro_bias[1] = _flowGyroBias[1];
 	_pub_filtered_flow.get().gyro_bias[2] = _flowGyroBias[2];
-	
+
 	publishFilteredFlow();
 
 	// convert to globalframe velocity
@@ -1087,7 +1089,7 @@ void BlockLocalPositionEstimator::correctSonar()
 {
 
 	if (_sub_sonar->get().timestamp == 0) { return; }
-	
+
 	// do not use sonar if lidar is active
 	if (_lidarInitialized && !_lidarFault) { return; }
 
