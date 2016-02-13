@@ -114,8 +114,6 @@ public:
 
 	void		task_main();
 
-	void print();
-
 	void print_status();
 
 	void exit() { _task_should_exit = true; }
@@ -240,14 +238,6 @@ Ekf2::Ekf2():
 Ekf2::~Ekf2()
 {
 
-}
-
-void Ekf2::print()
-{
-	_ekf->printStoredGps();
-	_ekf->printStoredBaro();
-	_ekf->printStoredMag();
-	_ekf->printStoredIMU();
 }
 
 void Ekf2::print_status()
