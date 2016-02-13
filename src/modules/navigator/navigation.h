@@ -105,6 +105,7 @@ struct mission_item_s {
 	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
 	float params[7];		/**< array to store mission command values for MAV_FRAME_MISSION ***/
 	int8_t frame;			/**< mission frame ***/
+	bool force_heading;		/**< heading needs to be reached ***/
 };
 #pragma pack(pop)
 #include <uORB/topics/mission.h>

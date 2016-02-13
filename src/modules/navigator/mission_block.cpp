@@ -196,9 +196,17 @@ MissionBlock::is_mission_item_reached()
 			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);
 
 			if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
+					/* check if we should accept heading after a timeout, 0 means accept instantly */
 					|| (_param_yaw_timeout.get() >= -FLT_EPSILON &&
 						now - _time_wp_reached >= (hrt_abstime)_param_yaw_timeout.get() * 1e6f)) {
-				_waypoint_yaw_reached = true;
+
+				/* if heading needs to be reached but we got here because of the timeout, abort mission */
+				if (_mission_item.force_heading && !(fabsf(yaw_err) < math::radians(_param_yaw_err.get()))) {
+					_navigator->set_mission_failure("unable to reach heading within timeout");
+
+				} else {
+					_waypoint_yaw_reached = true;
+				}
 			}
 
 		} else {

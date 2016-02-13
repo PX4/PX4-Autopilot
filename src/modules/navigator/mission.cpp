@@ -219,6 +219,8 @@ Mission::update_onboard_mission()
 
 		// XXX check validity here as well
 		_navigator->get_mission_result()->valid = true;
+		/* reset mission failure if we have an updated valid mission */
+		_navigator->get_mission_result()->mission_failure = false;
 		_navigator->increment_mission_instance_count();
 		_navigator->set_mission_result_updated();
 
@@ -263,6 +265,10 @@ Mission::update_offboard_mission()
 				_navigator->get_vstatus()->condition_landed);
 
 		_navigator->get_mission_result()->valid = !failed;
+		if (!failed) {
+			/* reset mission failure if we have an updated valid mission */
+			_navigator->get_mission_result()->mission_failure = false;
+		}
 		_navigator->increment_mission_instance_count();
 		_navigator->set_mission_result_updated();
 
@@ -510,6 +516,7 @@ Mission::set_mission_items()
 				_navigator->get_global_position()->lon,
 				mission_item_next_position.lat,
 				mission_item_next_position.lon);
+			_mission_item.force_heading = true;
 		}
 
 		/* yaw is aligned now */

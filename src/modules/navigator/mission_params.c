@@ -113,7 +113,8 @@ PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
  *
  * Prevents missions getting blocked at waypoints because it cannot reach target yaw.
  * Mainly useful for VTOLs that have less yaw authority and might not reach target
- * yaw in wind. Disabled by default. Can be set to 0 if it should not care for yaw on waypoints.
+ * yaw in wind. Disabled by default. If set to 0 it will not wait for yaw to align,
+ * however VTOL transitions will abort if heading is not reached.
  *
  * @min -1
  * @max 20
