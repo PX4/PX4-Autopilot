@@ -223,7 +223,6 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 
 
 	_dt_imu_avg = 0.0f;
-	_imu_time_last = timestamp;
 
 	_imu_sample_delayed.delta_ang.setZero();
 	_imu_sample_delayed.delta_vel.setZero();
@@ -264,79 +263,4 @@ bool EstimatorInterface::position_is_valid()
 	// return true if the position estimate is valid
 	// TOTO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
 	return _NED_origin_initialised && (_time_last_imu - _time_last_gps) < 5e6;
-}
-
-void EstimatorInterface::printStoredIMU()
-{
-	printf("---------Printing IMU data buffer------------\n");
-
-	for (int i = 0; i < IMU_BUFFER_LENGTH; i++) {
-		printIMU(&_imu_buffer[i]);
-	}
-}
-
-void EstimatorInterface::printIMU(struct imuSample *data)
-{
-	printf("time %" PRIu64 "\n", data->time_us);
-	printf("delta_ang_dt %.5f\n", (double)data->delta_ang_dt);
-	printf("delta_vel_dt %.5f\n", (double)data->delta_vel_dt);
-	printf("dA: %.5f %.5f %.5f \n", (double)data->delta_ang(0), (double)data->delta_ang(1), (double)data->delta_ang(2));
-	printf("dV: %.5f %.5f %.5f \n\n", (double)data->delta_vel(0), (double)data->delta_vel(1), (double)data->delta_vel(2));
-}
-
-void EstimatorInterface::printQuaternion(Quaternion &q)
-{
-	printf("q1 %.5f q2 %.5f q3 %.5f q4 %.5f\n", (double)q(0), (double)q(1), (double)q(2), (double)q(3));
-}
-
-void EstimatorInterface::print_imu_avg_time()
-{
-	printf("dt_avg: %.5f\n", (double)_dt_imu_avg);
-}
-
-void EstimatorInterface::printStoredMag()
-{
-	printf("---------Printing mag data buffer------------\n");
-
-	for (int i = 0; i < OBS_BUFFER_LENGTH; i++) {
-		printMag(&_mag_buffer[i]);
-	}
-}
-
-void EstimatorInterface::printMag(struct magSample *data)
-{
-	printf("time %" PRIu64 "\n", data->time_us);
-	printf("mag: %.5f %.5f %.5f \n\n", (double)data->mag(0), (double)data->mag(1), (double)data->mag(2));
-
-}
-
-void EstimatorInterface::printBaro(struct baroSample *data)
-{
-	printf("time %" PRIu64 "\n", data->time_us);
-	printf("baro: %.5f\n\n", (double)data->hgt);
-}
-
-void EstimatorInterface::printStoredBaro()
-{
-	printf("---------Printing baro data buffer------------\n");
-
-	for (int i = 0; i < OBS_BUFFER_LENGTH; i++) {
-		printBaro(&_baro_buffer[i]);
-	}
-}
-
-void EstimatorInterface::printGps(struct gpsSample *data)
-{
-	printf("time %" PRIu64 "\n", data->time_us);
-	printf("gps pos: %.5f %.5f %.5f\n", (double)data->pos(0), (double)data->pos(1), (double)data->hgt);
-	printf("gps vel %.5f %.5f %.5f\n\n", (double)data->vel(0), (double)data->vel(1), (double)data->vel(2));
-}
-
-void EstimatorInterface::printStoredGps()
-{
-	printf("---------Printing GPS data buffer------------\n");
-
-	for (int i = 0; i < OBS_BUFFER_LENGTH; i++) {
-		printGps(&_gps_buffer[i]);
-	}
 }

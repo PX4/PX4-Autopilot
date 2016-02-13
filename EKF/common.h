@@ -64,45 +64,45 @@ typedef matrix::Quaternion<float> Quaternion;
 typedef matrix::Matrix<float, 3, 3> Matrix3f;
 
 struct outputSample {
-	Quaternion  quat_nominal;
-	Vector3f    vel;
-	Vector3f    pos;
-	uint64_t 	time_us;
+	Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
+	Vector3f    vel;	// NED velocity estimate in earth frame in m/s
+	Vector3f    pos;	// NED position estimate in earth frame in m/s
+	uint64_t 	time_us;	// timestamp in microseconds
 };
 
 struct imuSample {
-	Vector3f    delta_ang;
-	Vector3f    delta_vel;
-	float       delta_ang_dt;
-	float       delta_vel_dt;
-	uint64_t    time_us;
+	Vector3f    delta_ang;	// delta angle in body frame (integrated gyro measurements)
+	Vector3f    delta_vel;	// delta velocity in body frame (integrated accelerometer measurements)
+	float       delta_ang_dt;	// delta angle integration period in seconds
+	float       delta_vel_dt;	// delta velocity integration period in seconds
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct gpsSample {
-	Vector2f    pos;
-	float       hgt;
-	Vector3f    vel;
-	uint64_t    time_us;
+	Vector2f    pos;	// NE earth frame gps horizontal position measurement in m
+	float       hgt;	// gps height measurement in m
+	Vector3f    vel;	// NED earth frame gps velocity measurement in m/s
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct magSample {
-	Vector3f    mag;
-	uint64_t    time_us;
+	Vector3f    mag;	// NED magnetometer body frame measurements
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct baroSample {
-	float       hgt;
-	uint64_t    time_us;
+	float       hgt;	// barometer height above sea level measurement in m
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct rangeSample {
-	float       rng;
-	uint64_t    time_us;
+	float       rng;	// range (distance to ground) measurement in m
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct airspeedSample {
-	float       airspeed;
-	uint64_t    time_us;
+	float       airspeed;	// airspeed measurement in m/s
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct flowSample {
@@ -155,16 +155,16 @@ struct parameters {
 };
 
 struct stateSample {
-	Vector3f    ang_error;
-	Vector3f    vel;
-	Vector3f    pos;
-	Vector3f    gyro_bias;
-	Vector3f    gyro_scale;
-	float       accel_z_bias;
-	Vector3f    mag_I;
-	Vector3f    mag_B;
-	Vector2f    wind_vel;
-	Quaternion  quat_nominal;
+	Vector3f    ang_error;	// attitude axis angle error (error state formulation)
+	Vector3f    vel;	// NED velocity in earth frame in m/s
+	Vector3f    pos;	// NED position in earth frame in m
+	Vector3f    gyro_bias;	// gyro bias estimate in rad/s
+	Vector3f    gyro_scale;	// gyro scale estimate
+	float       accel_z_bias;	// accelerometer z axis bias estimate
+	Vector3f    mag_I;	// NED earth magnetic field in gauss
+	Vector3f    mag_B;	// magnetometer bias estimate in body frame in gauss
+	Vector2f    wind_vel;	// wind velocity in m/s
+	Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
 };
 
 struct fault_status_t {

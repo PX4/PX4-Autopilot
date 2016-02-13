@@ -128,17 +128,6 @@ public:
 	// set vehicle arm status data
 	void set_arm_status(bool data) { _vehicle_armed = data; }
 
-	void printIMU(struct imuSample *data);
-	void printStoredIMU();
-	void printQuaternion(Quaternion &q);
-	void print_imu_avg_time();
-	void printMag(struct magSample *data);
-	void printStoredMag();
-	void printBaro(struct baroSample *data);
-	void printStoredBaro();
-	void printGps(struct gpsSample *data);
-	void printStoredGps();
-
 	bool position_is_valid();
 
 
@@ -162,22 +151,22 @@ public:
 	}
 	void copy_timestamp(uint64_t *time_us)
 	{
-		*time_us = _imu_time_last;
+		*time_us = _time_last_imu;
 	}
 
 protected:
 
 	parameters _params;		// filter parameters
 
-	static const uint8_t OBS_BUFFER_LENGTH = 10;
-	static const uint8_t IMU_BUFFER_LENGTH = 30;
-	static const unsigned FILTER_UPDATE_PERRIOD_MS = 10;
+	static const uint8_t OBS_BUFFER_LENGTH = 10;	// defines how many measurement samples we can buffer
+	static const uint8_t IMU_BUFFER_LENGTH = 30;	// defines how many imu samples we can buffer
+	static const unsigned FILTER_UPDATE_PERRIOD_MS = 10;	// ekf prediction period in milliseconds
 
-	float _dt_imu_avg;
-	uint64_t _imu_time_last;
+	float _dt_imu_avg;	// average imu update period in s
 
-	imuSample _imu_sample_delayed;
+	imuSample _imu_sample_delayed;	// captures the imu sample on the delayed time horizon
 
+	// measurement samples capturing measurements on the delayed time horizon
 	magSample _mag_sample_delayed;
 	baroSample _baro_sample_delayed;
 	gpsSample _gps_sample_delayed;
@@ -185,14 +174,14 @@ protected:
 	airspeedSample _airspeed_sample_delayed;
 	flowSample _flow_sample_delayed;
 
-	outputSample _output_sample_delayed;
-	outputSample _output_new;
-	imuSample _imu_sample_new;
+	outputSample _output_sample_delayed;	// filter output on the delayed time horizon
+	outputSample _output_new;	// filter output on the non-delayed time horizon
+	imuSample _imu_sample_new;	// imu sample capturing the newest imu data
 
-	uint64_t _imu_ticks;
+	uint64_t _imu_ticks;	// counter for imu updates
 
-	bool _imu_updated = false;
-	bool _initialised = false;
+	bool _imu_updated = false;	// true if the ekf should update (completed downsampling process)
+	bool _initialised = false;	// true if ekf interface instance (data buffering) is initialised
 	bool _vehicle_armed = false;     // vehicle arm status used to turn off functionality used on the ground
 
 	bool _NED_origin_initialised = false;
@@ -206,6 +195,7 @@ protected:
 
 	float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
 
+	// data buffer instances
 	RingBuffer<imuSample> _imu_buffer;
 	RingBuffer<gpsSample> _gps_buffer;
 	RingBuffer<magSample> _mag_buffer;
@@ -215,15 +205,19 @@ protected:
 	RingBuffer<flowSample> 	_flow_buffer;
 	RingBuffer<outputSample> _output_buffer;
 
-	uint64_t _time_last_imu;
-	uint64_t _time_last_gps;
-	uint64_t _time_last_mag;
-	uint64_t _time_last_baro;
-	uint64_t _time_last_range;
-	uint64_t _time_last_airspeed;
+	uint64_t _time_last_imu;	// timestamp of last imu sample in microseconds
+	uint64_t _time_last_gps;	// timestamp of last gps measurement in microseconds
+	uint64_t _time_last_mag;	// timestamp of last magnetometer measurement in microseconds
+	uint64_t _time_last_baro;	// timestamp of last barometer measurement in microseconds
+	uint64_t _time_last_range;	// timestamp of last range measurement in microseconds
+	uint64_t _time_last_airspeed;	// timestamp of last airspeed measurement in microseconds
 
 
 	fault_status_t _fault_status;
+
+	// allocate data buffers and intialise interface variables
 	bool initialise_interface(uint64_t timestamp);
+
+	// free buffer memory
 	void unallocate_buffers();
 };

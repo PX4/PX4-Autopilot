@@ -94,39 +94,6 @@ void Ekf::resetHeight()
 	}
 }
 
-#if defined(__PX4_POSIX) && !defined(__PX4_QURT)
-void Ekf::printCovToFile(char const *filename)
-{
-	std::ofstream myfile;
-	myfile.open(filename);
-	myfile << "Covariance matrix\n";
-	myfile << std::setprecision(1);
-
-	for (int i = 0; i < _k_num_states; i++) {
-		for (int j = 0; j < _k_num_states; j++) {
-			myfile << std::to_string(P[i][j]) << std::setprecision(1) << "          ";
-		}
-
-		myfile << "\n\n\n\n\n\n\n\n\n\n";
-	}
-}
-#endif
-
-// This checks if the diagonal of the covariance matrix is non-negative
-// and that the matrix is symmetric
-void Ekf::assertCovNiceness()
-{
-	for (int row = 0; row < _k_num_states; row++) {
-		for (int column = 0; column < row; column++) {
-			assert(fabsf(P[row][column] - P[column][row]) < 0.00001f);
-		}
-	}
-
-	for (int i = 0; i < _k_num_states; i++) {
-		assert(P[i][i] > -0.000001f);
-	}
-}
-
 // This function forces the covariance matrix to be symmetric
 void Ekf::makeSymmetrical()
 {

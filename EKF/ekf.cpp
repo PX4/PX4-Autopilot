@@ -40,7 +40,6 @@
  */
 
 #include "ekf.h"
-#include <drivers/drv_hrt.h>
 
 Ekf::Ekf():
 	_control_status{},
@@ -442,84 +441,4 @@ void Ekf::fuseAirspeed()
 void Ekf::fuseRange()
 {
 
-}
-
-void Ekf::printStates()
-{
-	static int counter = 0;
-
-	if (counter % 50 == 0) {
-		printf("quaternion\n");
-
-		for (int i = 0; i < 4; i++) {
-			printf("quat %i %.5f\n", i, (double)_state.quat_nominal(i));
-		}
-
-		matrix::Euler<float> euler(_state.quat_nominal);
-		printf("yaw pitch roll %.5f %.5f %.5f\n", (double)euler(2), (double)euler(1), (double)euler(0));
-
-		printf("vel\n");
-
-		for (int i = 0; i < 3; i++) {
-			printf("v %i %.5f\n", i, (double)_state.vel(i));
-		}
-
-		printf("pos\n");
-
-		for (int i = 0; i < 3; i++) {
-			printf("p %i %.5f\n", i, (double)_state.pos(i));
-		}
-
-		printf("gyro_scale\n");
-
-		for (int i = 0; i < 3; i++) {
-			printf("gs %i %.5f\n", i, (double)_state.gyro_scale(i));
-		}
-
-		printf("mag earth\n");
-
-		for (int i = 0; i < 3; i++) {
-			printf("mI %i %.5f\n", i, (double)_state.mag_I(i));
-		}
-
-		printf("mag bias\n");
-
-		for (int i = 0; i < 3; i++) {
-			printf("mB %i %.5f\n", i, (double)_state.mag_B(i));
-		}
-
-		counter = 0;
-	}
-
-	counter++;
-
-}
-
-void Ekf::printStatesFast()
-{
-	static int counter_fast = 0;
-
-	if (counter_fast % 50 == 0) {
-		printf("quaternion\n");
-
-		for (int i = 0; i < 4; i++) {
-			printf("quat %i %.5f\n", i, (double)_output_new.quat_nominal(i));
-		}
-
-		printf("vel\n");
-
-		for (int i = 0; i < 3; i++) {
-			printf("v %i %.5f\n", i, (double)_output_new.vel(i));
-		}
-
-		printf("pos\n");
-
-		for (int i = 0; i < 3; i++) {
-			printf("p %i %.5f\n", i, (double)_output_new.pos(i));
-		}
-
-		counter_fast = 0;
-	}
-
-	counter_fast++;
 }

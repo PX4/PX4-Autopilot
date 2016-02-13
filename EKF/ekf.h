@@ -49,7 +49,10 @@ public:
 	Ekf();
 	~Ekf();
 
+	// initialise variables to sane values (also interface class)
 	bool init(uint64_t timestamp);
+
+	// should be called every time new data is pushed into the filter
 	bool update();
 
 	// gets the innovations of velocity and position measurements
@@ -92,7 +95,7 @@ private:
 	static const uint8_t _k_num_states = 24;
 	static constexpr float _k_earth_rate = 0.000072921f;
 
-	stateSample _state;
+	stateSample _state;		// state struct of the ekf running at the delayed time horizon
 
 	bool _filter_initialised;
 	bool _earth_rate_initialised;
@@ -102,7 +105,7 @@ private:
 	bool _fuse_hor_vel;		// gps horizontal velocity measurement should be fused
 	bool _fuse_vert_vel;	// gps vertical velocity measurement should be fused
 
-	uint64_t _time_last_fake_gps;
+	uint64_t _time_last_fake_gps;	// last time in us at which we have faked gps measurement for static mode
 
 	uint64_t _time_last_pos_fuse;   // time the last fusion of horizotal position measurements was performed (usec)
 	uint64_t _time_last_vel_fuse;   // time the last fusion of velocity measurements was performed (usec)
@@ -111,9 +114,9 @@ private:
 	Vector2f _last_known_posNE;     // last known local NE position vector (m)
 	float _last_disarmed_posD;      // vertical position recorded at arming (m)
 
-	Vector3f _earth_rate_NED;
+	Vector3f _earth_rate_NED;	// earth rotation vector (NED) in rad/s
 
-	matrix::Dcm<float> _R_prev;
+	matrix::Dcm<float> _R_prev;	// transformation matrix from earth frame to body frame of previous ekf step
 
 	float P[_k_num_states][_k_num_states];	// state covariance matrix
 
@@ -126,11 +129,11 @@ private:
 	float _heading_innov_var; // heading measurement innovation variance
 
 	// complementary filter states
-	Vector3f _delta_angle_corr;
-	Vector3f _delta_vel_corr;
-	Vector3f _vel_corr;
-	imuSample _imu_down_sampled;
-	Quaternion _q_down_sampled;
+	Vector3f _delta_angle_corr;	// delta angle correction vector
+	Vector3f _delta_vel_corr;	// delta velocity correction vector
+	Vector3f _vel_corr;			// velocity correction vector
+	imuSample _imu_down_sampled;	// down sampled imu data (sensor rate -> filter update rate)
+	Quaternion _q_down_sampled;		// down sampled quaternion (tracking delta angles between ekf update steps)
 
 	// variables used for the GPS quality checks
 	float _gpsDriftVelN = 0.0f;     // GPS north position derivative (m/s)
@@ -155,52 +158,65 @@ private:
 
 	gps_check_fail_status_u _gps_check_fail_status;
 
+	// update the real time complementary filter states. This includes the prediction
+	// and the correction step
 	void calculateOutputStates();
 
+	// initialise filter states of both the delayed ekf and the real time complementary filter
 	bool initialiseFilter(void);
 
+	// initialise ekf covariance matrix
 	void initialiseCovariance();
 
+	// predict ekf state
 	void predictState();
 
+	// predict ekf covariance
 	void predictCovariance();
 
+	// ekf sequential fusion of magnetometer measurements
 	void fuseMag();
 
+	// fuse magnetometer heading measurement
 	void fuseHeading();
 
+	// fuse magnetometer declination measurement
 	void fuseDeclination();
 
+	// fuse airspeed measurement
 	void fuseAirspeed();
 
+	// fuse range measurements
 	void fuseRange();
 
+	// fuse velocity and position measurements (also barometer height)
 	void fuseVelPosHeight();
 
+	// reset velocity states of the ekf
 	void resetVelocity();
 
+	// reset position states of the ekf (only vertical position)
 	void resetPosition();
 
+	// reset height state of the ekf
 	void resetHeight();
 
 	void makeCovSymetrical();
 
+	// limit the diagonal of the covariance matrix
 	void limitCov();
 
-	void printCovToFile(char const *filename);
-
-	void assertCovNiceness();
-
+	// make ekf covariance matrix symmetric
 	void makeSymmetrical();
 
+	// constrain the ekf states
 	void constrainStates();
 
+	// generic function which will perform a fusion step given a kalman gain K
+	// and a scalar innovation value
 	void fuse(float *K, float innovation);
 
-	void printStates();
-
-	void printStatesFast();
-
+	// calculate the earth rotation vector from a given latitude
 	void calcEarthRateNED(Vector3f &omega, double lat_rad) const;
 
 	// return true id the GPS quality is good enough to set an origin and start aiding
