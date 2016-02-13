@@ -128,6 +128,9 @@ public:
 	// set vehicle arm status data
 	void set_arm_status(bool data) { _vehicle_armed = data; }
 
+	// set vehicle landed status data
+	void set_in_air_status(bool in_air) {_in_air = in_air;}
+
 	bool position_is_valid();
 
 
@@ -183,6 +186,7 @@ protected:
 	bool _imu_updated = false;	// true if the ekf should update (completed downsampling process)
 	bool _initialised = false;	// true if ekf interface instance (data buffering) is initialised
 	bool _vehicle_armed = false;     // vehicle arm status used to turn off functionality used on the ground
+	bool _in_air = false;	// we assume vehicle is in the air, set by the given landing detector
 
 	bool _NED_origin_initialised = false;
 	bool _gps_speed_valid = false;
