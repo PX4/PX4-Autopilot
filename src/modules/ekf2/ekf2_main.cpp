@@ -131,6 +131,8 @@ private:
 	int		_control_mode_sub = -1;
 	int 	_vehicle_status_sub = -1;
 
+	bool            _prev_motors_armed = false; // motors armed status from the previous frame
+
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
 	orb_advert_t _control_state_pub;
@@ -562,6 +564,15 @@ void Ekf2::task_main()
 		} else {
 			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
 		}
+
+		// save the declination to the EKF2_MAG_DECL parameter when a dis-arm event is detected
+		if ((_params->mag_declination_source & (1 << 1)) && _prev_motors_armed && !vehicle_control_mode.flag_armed) {
+			float decl_deg;
+			_ekf->copy_mag_decl_deg(&decl_deg);
+			param_set(param_find("EKF2_MAG_DECL"), &decl_deg);
+		}
+
+		_prev_motors_armed = vehicle_control_mode.flag_armed;
 
 	}
 
