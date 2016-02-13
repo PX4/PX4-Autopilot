@@ -59,7 +59,6 @@ if [ -d $1 ];
 	fi
 else
 	git submodule update --init --recursive;
-	git submodule update;
 fi
 
 }
