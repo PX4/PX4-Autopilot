@@ -741,10 +741,13 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 			+ ((_visionFault > 0) << SENSOR_VISION)
 			+ ((_mocapFault > 0) << SENSOR_MOCAP);
 		_pub_est_status.get().timeout_flags =
-			(_xyTimeout << 0)
-			+ (_zTimeout << 1)
-			+ (_visionTimeout << 2)
-			+ (_mocapTimeout << 3);
+			(_baroTimeout << SENSOR_BARO)
+			+ (_gpsTimeout << SENSOR_GPS)
+			+ (_flowTimeout << SENSOR_FLOW)
+			+ (_lidarTimeout << SENSOR_LIDAR)
+			+ (_sonarTimeout << SENSOR_SONAR)
+			+ (_visionTimeout << SENSOR_VISION)
+			+ (_mocapTimeout << SENSOR_MOCAP);
 		_pub_est_status.update();
 	}
 }
