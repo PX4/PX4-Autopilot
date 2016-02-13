@@ -594,6 +594,11 @@ void BlockLocalPositionEstimator::initLidar()
 		if (_lidarInitCount++ > REQ_INIT_COUNT) {
 			_lidarInitialized = true;
 		}
+		
+		if (!_altHomeInitialized) {
+				_altHomeInitialized = true;
+				_altHome = _lidarAltHome;
+		}
 	}
 }
 
@@ -617,6 +622,11 @@ void BlockLocalPositionEstimator::initSonar()
 		if (_sonarInitCount++ > REQ_INIT_COUNT) {
 			_sonarAltHome /= _sonarInitCount;
 			_sonarInitialized = true;
+		}
+		
+		if (!_altHomeInitialized) {
+				_altHomeInitialized = true;
+				_altHome = _sonarAltHome;
 		}
 	}
 }
@@ -662,6 +672,11 @@ void BlockLocalPositionEstimator::initVision()
 			_visionHome /= _visionInitCount;
 			_visionInitialized = true;
 		}
+		
+		if (!_altHomeInitialized) {
+				_altHomeInitialized = true;
+				_altHome = _visionHome(2);
+		}
 	}
 }
 
@@ -679,6 +694,11 @@ void BlockLocalPositionEstimator::initMocap()
 		if (_mocapInitCount++ > REQ_INIT_COUNT) {
 			_mocapHome /= _mocapInitCount;
 			_mocapInitialized = true;
+		}
+		
+		if (!_altHomeInitialized) {
+				_altHomeInitialized = true;
+				_altHome = _mocapHome(2);
 		}
 	}
 }
@@ -961,6 +981,8 @@ void BlockLocalPositionEstimator::correctFlow()
 		bool gyro_compX = (float)fabs(_sub_rates_sp.get().pitch) > FLOW_GYROCOMP_THRESHOLD;
 		bool gyro_compY = (float)fabs(_sub_rates_sp.get().roll) > FLOW_GYROCOMP_THRESHOLD;
 		bool gyro_compZ = (float)fabs(_sub_rates_sp.get().yaw) > FLOW_GYROCOMP_THRESHOLD;
+		
+		float ground_distance = -_x(X_z) * 
 		
 		// calculate velocity over ground
 		flow_speed[0] = - ((_sub_flow.get().pixel_flow_x_integral - (gyro_compX ? flow_gyrospeed[0] : 0.0f) ) /
