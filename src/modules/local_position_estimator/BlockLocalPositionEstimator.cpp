@@ -982,18 +982,21 @@ void BlockLocalPositionEstimator::correctFlow()
 		bool gyro_compY = (float)fabs(_sub_rates_sp.get().roll) > FLOW_GYROCOMP_THRESHOLD;
 		bool gyro_compZ = (float)fabs(_sub_rates_sp.get().yaw) > FLOW_GYROCOMP_THRESHOLD;
 		
-		float ground_distance = -_x(X_z) * 
+		// actual distance to ground
+		float ground_distance = -_x(X_z) / 			// TODO use terrain estimate here
+	       				cosf(_sub_att.get().roll) /
+	      				cosf(_sub_att.get().pitch);
 		
 		// calculate velocity over ground
 		flow_speed[0] = - ((_sub_flow.get().pixel_flow_x_integral - (gyro_compX ? flow_gyrospeed[0] : 0.0f) ) /
 				   (_sub_flow.get().integration_timespan / 1e6f) -
 				   (gyro_compZ ? yaw_comp[0] : 0.0f) ) *
-				-_x(X_z) *			// TODO use terrain estimate here
+				ground_distance *
 				_flow_x_scaler.get();
 		flow_speed[1] = - ((_sub_flow.get().pixel_flow_y_integral - (gyro_compY ? flow_gyrospeed[1] : 0.0f) ) /
 				   (_sub_flow.get().integration_timespan / 1e6f) -
 				   (gyro_compZ ? yaw_comp[1] : 0.0f) ) *
-				-_x(X_z) *			// TODO use terrain estimate here
+				ground_distance *
 				_flow_y_scaler.get();
 				
 	} else {
