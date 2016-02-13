@@ -190,39 +190,3 @@ void Ekf::fuseVelPosHeight()
 
 }
 
-void Ekf::fuse(float *K, float innovation)
-{
-	for (unsigned i = 0; i < 3; i++) {
-		_state.ang_error(i) = _state.ang_error(i) - K[i] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.vel(i) = _state.vel(i) - K[i + 3] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.pos(i) = _state.pos(i) - K[i + 6] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.gyro_bias(i) = _state.gyro_bias(i) - K[i + 9] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.gyro_scale(i) = _state.gyro_scale(i) - K[i + 12] * innovation;
-	}
-
-	_state.accel_z_bias -= K[15] * innovation;
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.mag_I(i) = _state.mag_I(i) - K[i + 16] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.mag_B(i) = _state.mag_B(i) - K[i + 19] * innovation;
-	}
-
-	for (unsigned i = 0; i < 2; i++) {
-		_state.wind_vel(i) = _state.wind_vel(i) - K[i + 22] * innovation;
-	}
-}
