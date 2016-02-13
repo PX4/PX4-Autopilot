@@ -1062,6 +1062,9 @@ void BlockLocalPositionEstimator::correctSonar()
 {
 
 	if (_sub_sonar->get().timestamp == 0) { return; }
+	
+	// do not use sonar if lidar is active
+	if (_lidarInitialized && !_lidarFault) { return; }
 
 	float d = _sub_sonar->get().current_distance;
 
