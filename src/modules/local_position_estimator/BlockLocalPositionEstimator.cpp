@@ -416,7 +416,7 @@ void BlockLocalPositionEstimator::update()
 		publishEstimatorStatus();
 		publishGlobalPos();
 
-	} else if (_altHomeInitialized) {
+	} else if (!_zTimeout && _altHomeInitialized) {
 		// publish only Z estimate
 		publishLocalPos();
 		publishEstimatorStatus();
@@ -521,6 +521,8 @@ void BlockLocalPositionEstimator::updateHome()
 	_baroAltHome +=  delta_alt;
 	_lidarAltHome +=  delta_alt;
 	_sonarAltHome +=  delta_alt;
+	_visionHome(2) += delta_alt;
+	_mocapHome(2) += delta_alt;
 }
 
 void BlockLocalPositionEstimator::initBaro()
