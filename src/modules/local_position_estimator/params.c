@@ -34,7 +34,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_XY, 0.01f);
  * @min 0.0
  * @max 2.0
  */
-PARAM_DEFINE_FLOAT(LPE_FLW_XSCLR, 1.35f);
+PARAM_DEFINE_FLOAT(LPE_FLW_XSCLR, 1.0f);
 
 /**
  * Optical flow Y scaling factor
@@ -43,7 +43,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_XSCLR, 1.35f);
  * @min 0.0
  * @max 2.0
  */
-PARAM_DEFINE_FLOAT(LPE_FLW_YSCLR, 1.35f);
+PARAM_DEFINE_FLOAT(LPE_FLW_YSCLR, 1.0f);
 
 /**
  * Optical flow minimum quality threshold
