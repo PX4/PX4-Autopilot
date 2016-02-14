@@ -39,8 +39,9 @@
  * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
  * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011.
  *
- * @author Lorenz Meier <lorenz@px4.io>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier		<lorenz@px4.io>
+ * @author Anton Babushkin	<anton.babushkin@me.com>
+ * @author Sander Smeets	<sander@droneslab.com>
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
  * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
@@ -734,7 +735,10 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		}
 	}
 
-	/* weather-vane mode, dampen yaw rate */
+	/* feed forward yaw setpoint rate */
+	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
+
+	/* weather-vane mode, scale down yaw rate */
 	if (_v_att_sp.disable_mc_yaw_control == true && _v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
 		float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
 		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
@@ -742,8 +746,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		_rates_int(2) = 0.0f;
 	}
 
-	/* feed forward yaw setpoint rate */
-	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
 }
 
 /*
