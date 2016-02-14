@@ -109,12 +109,12 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
 
 /**
- * Time in seconds we wait on reaching target heading at a waypoint.
+ * Time in seconds we wait on reaching target heading at a waypoint if it is forced.
  *
- * Prevents missions getting blocked at waypoints because it cannot reach target yaw.
+ * If set > 0 it will ignore the target heading for normal waypoint acceptance. If the
+ * waypoint forces the heading the timeout will matter. For example on VTOL forwards transiton.
  * Mainly useful for VTOLs that have less yaw authority and might not reach target
- * yaw in wind. Disabled by default. If set to 0 it will not wait for yaw to align,
- * however VTOL transitions will abort if heading is not reached.
+ * yaw in wind. Disabled by default.
  *
  * @min -1
  * @max 20

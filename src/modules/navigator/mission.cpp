@@ -505,10 +505,7 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
 
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = _navigator->get_global_position()->lat;
-			_mission_item.lon = _navigator->get_global_position()->lon;
-			_mission_item.altitude = _navigator->get_global_position()->alt;
-			_mission_item.altitude_is_relative = false;
+			copy_positon_if_valid(_mission_item, pos_sp_triplet->current);
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
 			_mission_item.yaw = get_bearing_to_next_waypoint(
@@ -541,10 +538,7 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = pos_sp_triplet->current.lat;
-			_mission_item.lon = pos_sp_triplet->current.lon;
-			_mission_item.altitude = pos_sp_triplet->current.alt;
-			_mission_item.altitude_is_relative = false;
+			copy_positon_if_valid(_mission_item, pos_sp_triplet->current);
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
 		}
@@ -601,6 +595,23 @@ Mission::set_mission_items()
 	}
 
 	_navigator->set_position_setpoint_triplet_updated();
+}
+
+void
+Mission::copy_positon_if_valid(struct mission_item_s &mission_item, struct position_setpoint_s &setpoint)
+{
+	if (setpoint.valid) {
+		_mission_item.lat = setpoint.lat;
+		_mission_item.lon = setpoint.lon;
+		_mission_item.altitude = setpoint.alt;
+
+	} else {
+		_mission_item.lat = _navigator->get_global_position()->lat;
+		_mission_item.lon = _navigator->get_global_position()->lon;
+		_mission_item.altitude = _navigator->get_global_position()->alt;
+	}
+
+	_mission_item.altitude_is_relative = false;
 }
 
 bool
