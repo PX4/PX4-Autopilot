@@ -445,10 +445,10 @@ PARAM_DEFINE_FLOAT(FW_FLARE_PMIN, 2.5f);
 PARAM_DEFINE_FLOAT(FW_FLARE_PMAX, 15.0f);
 
 /**
- * Takeoff and landing airspeed scale factor
+ * Landing airspeed scale factor
  *
  * Multiplying this factor with the minimum airspeed of the plane
- * gives the target airspeed for takeoff and landing approach.
+ * gives the target airspeed the landing approach.
  *
  * @min 1.0
  * @max 1.5
