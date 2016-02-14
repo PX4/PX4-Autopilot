@@ -266,9 +266,9 @@ mixer_tick(void)
 	/* set arming */
 	bool needs_to_arm = (should_arm || should_arm_nothrottle || should_always_enable_pwm);
 
-	/* check any conditions that prevent arming */
+	/* lockdown means to send a valid pulse which disables the outputs */
 	if (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN) {
-		needs_to_arm = false;
+		needs_to_arm = true;
 	}
 
 	if (needs_to_arm && !mixer_servos_armed) {
@@ -301,7 +301,8 @@ mixer_tick(void)
 			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 
-	} else if (mixer_servos_armed && should_always_enable_pwm) {
+	} else if (mixer_servos_armed && (should_always_enable_pwm
+					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
