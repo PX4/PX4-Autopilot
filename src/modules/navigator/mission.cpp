@@ -41,6 +41,7 @@
  * @author Ban Siesta <bansiesta@gmail.com>
  * @author Simon Wilks <simon@uaventure.com>
  * @author Andreas Antener <andreas@uaventure.com>
+ * @author Sander Smeets <sander@droneslab.com>
  */
 
 #include <sys/types.h>
@@ -73,6 +74,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_dist_1wp(this, "MIS_DIST_1WP", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
+	_param_force_vtol(this, "VT_FORCE_VTOL", false),
 	_onboard_mission{},
 	_offboard_mission{},
 	_current_onboard_mission_index(-1),
@@ -670,7 +672,7 @@ Mission::do_need_takeoff()
 bool
 Mission::do_need_move_to_land()
 {
-	if(_mission_item.nav_cmd == NAV_CMD_VTOL_LAND){
+	if(_mission_item.nav_cmd == NAV_CMD_VTOL_LAND || (_mission_item.nav_cmd == NAV_CMD_LAND && _param_force_vtol.get())){
 		struct vehicle_command_s cmd = {};
 		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;

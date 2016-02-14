@@ -208,6 +208,7 @@ private:
 	control::BlockParamFloat _param_dist_1wp;
 	control::BlockParamInt _param_altmode;
 	control::BlockParamInt _param_yawmode;
+	control::BlockParamInt _param_force_vtol;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;
