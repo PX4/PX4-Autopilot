@@ -569,7 +569,7 @@ void Ekf2::task_main()
 		if ((_params->mag_declination_source & (1 << 1)) && _prev_motors_armed && !vehicle_control_mode.flag_armed) {
 			float decl_deg;
 			_ekf->copy_mag_decl_deg(&decl_deg);
-			param_set(param_find("EKF2_MAG_DECL"), &decl_deg);
+			_mag_declination_deg->set(decl_deg);
 		}
 
 		_prev_motors_armed = vehicle_control_mode.flag_armed;
