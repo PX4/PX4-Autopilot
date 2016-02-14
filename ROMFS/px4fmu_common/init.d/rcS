@@ -15,9 +15,6 @@ sercon
 #
 set MODE autostart
 
-set FRC /fs/microsd/etc/rc.txt
-set FCONFIG /fs/microsd/etc/config.txt
-set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 set LOG_FILE /fs/microsd/bootlog.txt
 
 #
@@ -50,6 +47,7 @@ fi
 # Look for an init script on the microSD card.
 # Disable autostart if the script found.
 #
+set FRC /fs/microsd/etc/rc.txt
 if [ -f $FRC ]
 then
 	echo "[i] Executing script: $FRC"
@@ -186,16 +184,13 @@ then
 	set PWM_AUX_MIN none
 	set PWM_AUX_MAX none
 	set FAILSAFE_AUX none
-	set MK_MODE none
 	set FMU_MODE pwm
 	set AUX_MODE pwm
 	set MAVLINK_F default
 	set EXIT_ON_END no
 	set MAV_TYPE none
-	set LOAD_DAPPS yes
-	set GPS yes
-	set GPS_FAKE no
 	set FAILSAFE none
+	set MK_MODE none
 
 	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts
@@ -245,6 +240,7 @@ then
 	#
 	# Override parameters from user configuration file
 	#
+	set FCONFIG /fs/microsd/etc/config.txt
 	if [ -f $FCONFIG ]
 	then
 		echo "[i] Custom config: $FCONFIG"
@@ -309,11 +305,11 @@ then
 					set IO_PRESENT yes
 				else
 					echo "ERROR: PX4IO update failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tone_alarm ML<<CP4CP4CP4CP4CP4
 				fi
 			else
 				echo "ERROR: PX4IO update failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 		fi
 		unset IO_FILE
@@ -322,7 +318,7 @@ then
 		then
 			echo "[i] ERROR: PX4IO not found"
 			echo "ERROR: PX4IO not found" >> $LOG_FILE
-			tone_alarm $TUNE_ERR
+			tone_alarm ML<<CP4CP4CP4CP4CP4
 		fi
 	fi
 
@@ -360,13 +356,15 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
-		set GPS no
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
 		fi
+		unset HIL
+	else
+		unset HIL
+		gps start
 	fi
-	unset HIL
 
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
@@ -378,19 +376,6 @@ then
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	#
 	sh /etc/init.d/rc.sensors
-	
-	if [ $GPS == yes ]
-	then
-		if [ $GPS_FAKE == yes ]
-		then
-			echo "[i] Faking GPS"
-			gps start -f
-		else
-			gps start
-		fi
-	fi
-	unset GPS
-	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
 	commander start
@@ -427,7 +412,7 @@ then
 				sh /etc/init.d/rc.io
 			else
 				echo "ERROR: PX4IO start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 		fi
 
@@ -439,7 +424,7 @@ then
 			else
 				echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
 				echo "ERROR: FMU start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 
 			if ver hwcmp PX4FMU_V1
@@ -458,11 +443,11 @@ then
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			set MKBLCTRL_ARG ""
-			if [ $MKBLCTRL_MODE == x ]
+			if [ $MK_MODE == x ]
 			then
 				set MKBLCTRL_ARG "-mkmode x"
 			fi
-			if [ $MKBLCTRL_MODE == + ]
+			if [ $MK_MODE == + ]
 			then
 				set MKBLCTRL_ARG "-mkmode +"
 			fi
@@ -473,7 +458,7 @@ then
 			else
 				echo "[i] ERROR: MK start failed"
 				echo "ERROR: MK start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 			unset MKBLCTRL_ARG
 		fi
@@ -487,7 +472,7 @@ then
 			else
 				echo "[i] ERROR: PWM SIM output start failed"
 				echo "ERROR: PWM SIM output start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tone_alarm ML<<CP4CP4CP4CP4CP4
 			fi
 		fi
 
@@ -503,9 +488,8 @@ then
 					echo "[i] PX4IO started"
 					sh /etc/init.d/rc.io
 				else
-					echo "[i] ERROR: PX4IO start failed"
 					echo "ERROR: PX4IO start failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tone_alarm ML<<CP4CP4CP4CP4CP4
 				fi
 			fi
 		else
@@ -513,11 +497,9 @@ then
 			then
 				if fmu mode_$FMU_MODE
 				then
-					echo "[i] FMU mode_$FMU_MODE started"
 				else
-					echo "[i] ERROR: FMU mode_$FMU_MODE start failed"
 					echo "ERROR: FMU mode_$FMU_MODE start failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tone_alarm ML<<CP4CP4CP4CP4CP4
 				fi
 
 				if ver hwcmp PX4FMU_V1
@@ -607,12 +589,24 @@ then
 	#
 	# UAVCAN
 	#
-	sh /etc/init.d/rc.uavcan
 
-	#
-	# Logging
-	#
-	sh /etc/init.d/rc.logging
+	if param greater UAVCAN_ENABLE 0
+	then
+		if uavcan start
+		then
+		else
+			tone_alarm ML<<CP4CP4CP4CP4CP4
+		fi
+	fi
+
+	if param greater UAVCAN_ENABLE 1
+	then
+		if uavcan start fw
+		then
+		else
+			tone_alarm ML<<CP4CP4CP4CP4CP4
+		fi
+	fi
 
 	#
 	# Start up ARDrone Motor interface
@@ -647,10 +641,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard fixedwing apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.fw_apps
-		fi
+		sh /etc/init.d/rc.fw_apps
 	fi
 
 	#
@@ -711,10 +702,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard multicopter apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.mc_apps
-		fi
+		sh /etc/init.d/rc.mc_apps
 	fi
 
 	#
@@ -759,10 +747,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard vtol apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.vtol_apps
-		fi
+		sh /etc/init.d/rc.vtol_apps
 	fi
 
 	#
@@ -777,22 +762,10 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard rover apps
-		if [ $LOAD_DAPPS == yes ]
-		then
-			sh /etc/init.d/rc.axialracing_ax10_apps
-		fi
+		sh /etc/init.d/rc.axialracing_ax10_apps
 
 		param set MAV_TYPE 10
 	fi
-
-	unset MIXER
-	unset MAV_TYPE
-	unset OUTPUT_MODE
-
-	#
-	# Start the navigator
-	#
-	navigator start
 
 	#
 	# Generic setup (autostart ID not found)
@@ -801,6 +774,42 @@ then
 	then
 		echo "[i] No autostart ID found"
 
+	fi
+
+	unset MIXER
+	unset MAV_TYPE
+	unset OUTPUT_MODE
+	unset VEHICLE_TYPE
+
+	# Run no SD alarm
+	if [ $LOG_FILE == /dev/null ]
+	then
+		echo "[i] No microSD card found"
+		# Play SOS
+		tone_alarm error
+	fi
+	unset LOG_FILE
+
+	#
+	# Start the navigator
+	#
+	navigator start
+
+	#
+	# Logging
+	#
+	if [ -d /fs/microsd ]
+	then
+		if ver hwcmp PX4FMU_V1
+		then
+			if sdlog2 start -r 40 -a -b 3 -t
+			then
+			fi
+		else
+			if sdlog2 start -r 100 -a -b 12 -t
+			then
+			fi
+		fi
 	fi
 
 	# Start any custom addons
@@ -812,20 +821,11 @@ then
 	fi
 	unset FEXTRAS
 
-	# Run no SD alarm
-	if [ $LOG_FILE == /dev/null ]
-	then
-		echo "[i] No microSD card found"
-		# Play SOS
-		tone_alarm error
-	fi
-
 # End of autostart
 fi
 
 # There is no further script processing, so we can free some RAM
 # XXX potentially unset all script variables.
-unset TUNE_ERR
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
