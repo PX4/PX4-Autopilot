@@ -182,6 +182,7 @@ then
 	set PWM_MAX none
 	set PWM_AUX_OUT none
 	set PWM_AUX_RATE none
+	set PWM_ACHDIS none
 	set PWM_AUX_DISARMED none
 	set PWM_AUX_MIN none
 	set PWM_AUX_MAX none
