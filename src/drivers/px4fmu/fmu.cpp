@@ -937,6 +937,13 @@ PX4FMU::cycle()
 			pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm,
 				       outputs, pwm_limited, &_pwm_limit);
 
+			/* overwrite outputs in case of lockdown with disarmed PWM values */
+			if (_armed.lockdown) {
+				for (size_t i = 0; i < num_outputs; i++) {
+					pwm_limited[i] = _disarmed_pwm[i];
+				}
+			}
+
 			/* output to the servos */
 			for (size_t i = 0; i < num_outputs; i++) {
 				pwm_output_set(i, pwm_limited[i]);
@@ -953,8 +960,8 @@ PX4FMU::cycle()
 	if (updated) {
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
-		/* update the armed status and check that we're not locked down */
-		_throttle_armed = _armed.armed && !_armed.lockdown;
+		/* update the armed status */
+		_throttle_armed = _armed.armed;
 
 		/* update PWM status if armed or if disarmed PWM values are set */
 		bool pwm_on = (_armed.armed || _num_disarmed_set > 0);
