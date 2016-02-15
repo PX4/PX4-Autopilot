@@ -1,5 +1,5 @@
 indent=force-tab=8
-style=linux
+style=kr
 indent-preprocessor
 indent-cases
 break-blocks=all
