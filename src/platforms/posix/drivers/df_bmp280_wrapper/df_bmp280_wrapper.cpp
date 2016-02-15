@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file DfBmp280Wrapper.cpp
+ * @file df_bmp280_wrapper.cpp
  * Lightweight driver to access the BMP280 of the DriverFramework.
  *
  * @author Julian Oes <julian@oes.ch>
