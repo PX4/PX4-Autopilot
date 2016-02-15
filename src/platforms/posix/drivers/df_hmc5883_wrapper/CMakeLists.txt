@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,19 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+include_directories(../../../../lib/DriverFramework/drivers)
+
 px4_add_module(
-	MODULE drivers__gps
-	MAIN gps
-	STACK 1200
-	COMPILE_FLAGS
-		-Os
+	MODULE platforms__posix__drivers__df_hmc5883_wrapper
+	MAIN df_hmc5883_wrapper
 	SRCS
-		gps.cpp
-		gps_helper.cpp
-		mtk.cpp
-		ashtech.cpp
-		ubx.cpp
+		df_hmc5883_wrapper.cpp
 	DEPENDS
 		platforms__common
+		df_driver_framework
+		df_hmc5883
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
