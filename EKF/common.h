@@ -220,6 +220,7 @@ union filter_control_status_u {
 		uint8_t mag_dec     : 1; // 6 - true if synthetic magnetic declination measurements are being fused
 		uint8_t in_air      : 1; // 7 - true when the vehicle is airborne
 		uint8_t armed       : 1; // 8 - true when the vehicle motors are armed
+		uint8_t wind        : 1; // 9 - true when wind velocity is being estimated
 	} flags;
 	uint16_t value;
 };
