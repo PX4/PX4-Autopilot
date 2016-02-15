@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file DfMpu9250Wrapper.cpp
+ * @file df_mpu9250_wrapper.cpp
  * Lightweight driver to access the MPU9250 of the DriverFramework.
  *
  * @author Julian Oes <julian@oes.ch>
