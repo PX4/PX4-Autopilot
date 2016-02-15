@@ -81,19 +81,22 @@ void Ekf::initialiseCovariance()
 	// accel z bias
 	P[15][15] = 0.0001f;
 
+	// variances for optional states
+	// these state variances are set to zero until the states are required, then they must be initialised
+
 	// earth magnetic field
-	P[16][16] = 0.0001f;
-	P[17][17] = 0.0001f;
-	P[18][18] = 0.0001f;
+	P[16][16] = 0.0f;
+	P[17][17] = 0.0f;
+	P[18][18] = 0.0f;
 
 	// body magnetic field
-	P[19][19] = 0.0001f;
-	P[20][20] = 0.0001f;
-	P[21][21] = 0.0001f;
+	P[19][19] = 0.0f;
+	P[20][20] = 0.0f;
+	P[21][21] = 0.0f;
 
 	// wind
-	P[22][22] = 0.01f;
-	P[23][23] = 0.01f;
+	P[22][22] = 0.0f;
+	P[23][23] = 0.0f;
 
 }
 
