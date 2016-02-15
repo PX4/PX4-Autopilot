@@ -327,6 +327,32 @@ PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 3.0f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
 
 /**
+ * Integer bitmask controlling handling of magnetic declination. Set bits to in the following positions to enable functions.
+ * 0 : Set to true to use the declination from the geo_lookup library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value.
+ * 1 : Set to true to save the EKF2_MAG_DECL parameter to the value returned by the EKF when the vehicle disarms.
+ * 2 : Set to true to always use the declination as an observaton when 3-axis magnetometer fusion is being used.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 7
+ * @unit
+ */
+PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
+
+/**
+ * Integer controlling the type of magnetometer fusion used - magnetic heading or 3-axis magnetometer.
+ * 0 : determine the best fusion method to use automatically - heading fusion on-ground and 3-axis fusion in-flight
+ * 1 : always use magnetic heading fusion
+ * 2 : always use 3-axis fusion
+ * Other values  will disable magnetometer fusion completely
+ * @group EKF2
+ * @min 0
+ * @max 2
+ * @unit None
+ */
+PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
+
+/**
  * Gate size for barometric height fusion
  *
  * @group EKF2

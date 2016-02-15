@@ -132,8 +132,17 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
  *
  * @group Battery Calibration
  * @unit S
- * @min 1
+ * @min 2
  * @max 10
+ * @value 2 2S Battery
+ * @value 3 3S Battery
+ * @value 4 4S Battery
+ * @value 5 5S Battery
+ * @value 6 6S Battery
+ * @value 7 7S Battery
+ * @value 8 8S Battery
+ * @value 9 9S Battery
+ * @value 10 10S Battery
  */
 PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
 
@@ -156,6 +165,8 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  * @group Commander
  * @min 0
  * @max 1
+ * @value 0 OFF: No Datalink failsafe
+ * @value 1 ON: Datalink failse
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
 
@@ -286,6 +297,9 @@ PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
  * @group Commander
  * @min 0
  * @max 2
+ * @value 0 RC Transmitter
+ * @value 1 Disable RC Input Checks
+ * @value 2 Virtual RC by Joystick
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
 

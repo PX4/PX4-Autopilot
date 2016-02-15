@@ -33,7 +33,8 @@
 
 /**
  * @file commander.cpp
- * Main fail-safe handling.
+ *
+ * Main state machine / business logic
  *
  * @author Petri Tanskanen	<petri.tanskanen@inf.ethz.ch>
  * @author Lorenz Meier		<lorenz@px4.io>

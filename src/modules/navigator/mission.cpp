@@ -443,6 +443,8 @@ Mission::set_mission_items()
 		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
+			_mission_item.yaw = NAN;
 		}
 
 		/* move to landing waypoint before descent if necessary */

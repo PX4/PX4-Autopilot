@@ -192,6 +192,7 @@ private:
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
+
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -441,7 +442,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
-
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -1263,6 +1263,14 @@ MulticopterPositionControl::task_main()
 				control_auto(dt);
 			}
 
+			/* weather-vane mode for vtol: disable yaw control */
+			if(!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.disable_mc_yaw_control == true) {
+				_att_sp.disable_mc_yaw_control = true;
+			} else {
+				/* reset in case of setpoint updates */
+				_att_sp.disable_mc_yaw_control = false;
+			}
+
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 			    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
@@ -1365,9 +1373,10 @@ MulticopterPositionControl::task_main()
 					_vel_sp(2) = _params.land_speed;
 				}
 
-				/* velocity handling during takeoff */
+				/* special thrust setpoint generation for takeoff from ground */
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
-				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+				    && _control_mode.flag_armed) {
 
 					// check if we are not already in air.
 					// if yes then we don't need a jumped takeoff anymore
@@ -1885,7 +1894,7 @@ MulticopterPositionControl::start()
 	_control_task = px4_task_spawn_cmd("mc_pos_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   1500,
+					   1900,
 					   (px4_main_t)&MulticopterPositionControl::task_main_trampoline,
 					   nullptr);
 

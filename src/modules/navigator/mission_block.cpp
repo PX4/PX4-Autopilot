@@ -70,7 +70,9 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_action_start(0),
 	_actuators{},
 	_actuator_pub(nullptr),
-	_cmd_pub(nullptr)
+	_cmd_pub(nullptr),
+	_param_vtol_wv_land(this, "VT_WV_LND_EN", false),
+	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false)
 {
 }
 
@@ -175,6 +177,7 @@ MissionBlock::is_mission_item_reached()
 	}
 
 	/* Check if the waypoint and the requested yaw setpoint. */
+
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		/* TODO: removed takeoff, why? */
@@ -310,6 +313,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->loiter_direction = item->loiter_direction;
 	sp->pitch_min = item->pitch_min;
 	sp->acceptance_radius = item->acceptance_radius;
+	sp->disable_mc_yaw_control = false;
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_IDLE:
@@ -322,12 +326,18 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 
 	case NAV_CMD_LAND:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
+		if(_navigator->get_vstatus()->is_vtol && _param_vtol_wv_land.get()){
+			sp->disable_mc_yaw_control = true;
+		}
 		break;
 
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_TURN_COUNT:
 	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+		if(_navigator->get_vstatus()->is_vtol && _param_vtol_wv_loiter.get()){
+			sp->disable_mc_yaw_control = true;
+		}
 		break;
 
 	default:
@@ -421,7 +431,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 {
 
 	/* VTOL transition to RW before landing */
-	if(_navigator->get_vstatus()->is_vtol){
+	if(_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing){
 		struct vehicle_command_s cmd = {};
 		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
