@@ -1505,6 +1505,7 @@ Sensors::parameter_update_poll(bool forced)
 						/* reset param to -1 to indicate internal mag */
 						int32_t minus_one;
 						param_get(param_find(str), &minus_one);
+
 						if (minus_one != MAG_ROT_VAL_INTERNAL) {
 							minus_one = MAG_ROT_VAL_INTERNAL;
 							param_set_no_notification(param_find(str), &minus_one);
