@@ -911,7 +911,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	/* delay = 1 / rate (rate defined by -r option), default log rate: 50 Hz */
-	useconds_t sleep_delay = 20000;
+	int32_t param_log_rate;
 	int log_buffer_size = LOG_BUFFER_SIZE_DEFAULT;
 	logging_enabled = false;
 	/* enable logging on start (-e option) */
@@ -942,7 +942,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					r = 1;
 				}
 
-				sleep_delay = 1000000 / r;
+				param_log_rate = r;
 			}
 			break;
 
@@ -1004,20 +1004,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 	param_t log_rate_ph = param_find("SDLOG_RATE");
 
 	if (log_rate_ph != PARAM_INVALID) {
-		int32_t param_log_rate;
 		param_get(log_rate_ph, &param_log_rate);
 
 		if (param_log_rate > 0) {
 
 			/* we can't do more than ~ 500 Hz, even with a massive buffer */
-			if (param_log_rate > 500) {
-				param_log_rate = 500;
+			if (param_log_rate > 250) {
+				param_log_rate = 250;
 			}
 
-			sleep_delay = 1000000 / param_log_rate;
 		} else if (param_log_rate == 0) {
 			/* we need at minimum 10 Hz to be able to see anything */
-			sleep_delay = 1000000 / 10;
+			param_log_rate = 10;
 		}
 	}
 
@@ -1315,8 +1313,67 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* running, report */
 	thread_running = true;
 
+	// wakeup source
+	px4_pollfd_struct_t fds[1];
+
+	int poll_counter = 0;
+
+	int poll_to_logging_factor = 1;
+
+	if (record_replay_log) {
+		subs.replay_sub = orb_subscribe(ORB_ID(ekf2_replay));
+		fds[0].fd = subs.replay_sub;
+		fds[0].events = POLLIN;
+		poll_to_logging_factor = 1;
+	} else {
+		subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+		fds[0].fd = subs.sensor_sub;
+		fds[0].events = POLLIN;
+		// TODO Remove hardcoded rate!
+		poll_to_logging_factor = 250 / (param_log_rate < 1 ? 1 : param_log_rate);
+	}
+
+	if (poll_to_logging_factor < 1) {
+		poll_to_logging_factor = 1;
+	}
+
+
 	while (!main_thread_should_exit) {
-		usleep(sleep_delay);
+
+		// wait for up to 100ms for data
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+
+		// timed out - periodic check for _task_should_exit
+		if (pret == 0) {
+			continue;
+		}
+
+		// this is undesirable but not much we can do - might want to flag unhappy status
+		if (pret < 0) {
+			PX4_WARN("poll error %d, %d", pret, errno);
+			// sleep a bit before next try
+			usleep(100000);
+			continue;
+		}
+
+		if (!fds[0].revents & POLLIN) {
+			continue;
+		}
+
+		if (poll_counter + 1 % poll_to_logging_factor == 0) {
+			poll_counter = 0;
+		} else {
+			// copy topic
+			if (record_replay_log) {
+				struct ekf2_replay_s replay;
+				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &replay);
+			} else {
+				struct sensor_combined_s sensors;
+				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &sensors);
+			}
+			poll_counter++;
+			continue;
+		}
 
 		/* --- VEHICLE COMMAND - LOG MANAGEMENT --- */
 		if (copy_if_updated(ORB_ID(vehicle_command), &subs.cmd_sub, &buf.cmd)) {
