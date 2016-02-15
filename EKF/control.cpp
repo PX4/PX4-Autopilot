@@ -151,6 +151,8 @@ void Ekf::controlFusionModes()
 		_control_status.flags.wind = false;
 	}
 
+	// Store the status to enable change detection
+	_control_status_prev.value = _control_status.value;
 }
 
 void Ekf::calculateVehicleStatus()
