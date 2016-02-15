@@ -238,6 +238,7 @@ private:
 	float _pitch;
 	float _yaw;
 	bool _reinitialize_tecs;			///< indicates if the TECS states should be reinitialized (used for VTOL)
+	bool _is_tecs_running;
 	hrt_abstime _last_tecs_update;
 	float _asp_after_transition;
 	bool _was_in_transition;
@@ -445,6 +446,9 @@ private:
 	bool		control_position(const math::Vector<2> &global_pos, const math::Vector<3> &ground_speed,
 					 const struct position_setpoint_triplet_s &_pos_sp_triplet);
 
+	float		get_tecs_pitch();
+	float		get_tecs_thrust();
+
 	float		calculate_target_airspeed(float airspeed_demand);
 	void		calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed_2d,
 			const struct position_setpoint_triplet_s &pos_sp_triplet);
@@ -570,6 +574,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
 	_reinitialize_tecs(true),
+	_is_tecs_running(false),
 	_last_tecs_update(0.0f),
 	_asp_after_transition(0.0f),
 	_was_in_transition(false),
@@ -1612,7 +1617,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.nav_roll());
 				_att_sp.yaw_body = _runway_takeoff.getYaw(_l1_control.nav_bearing());
 				_att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
-				_att_sp.pitch_body = _runway_takeoff.getPitch(_tecs.get_pitch_demand());
+				_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
 
 				// reset integrals except yaw (which also counts for the wheel controller)
 				_att_sp.roll_reset_integral = _runway_takeoff.resetIntegrators();
@@ -1954,9 +1959,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _runway_takeoff.runwayTakeoffEnabled()) {
-		_att_sp.thrust = _runway_takeoff.getThrottle(
-					 math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() :
-						   _tecs.get_throttle_demand(), throttle_max));
+		_att_sp.thrust = _runway_takeoff.getThrottle(math::min(get_tecs_thrust(), throttle_max));
 
 	} else if (_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
@@ -1969,8 +1972,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.thrust = math::min(_parameters.throttle_idle, throttle_max);
 
 		} else {
-			_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() :
-						   _tecs.get_throttle_demand(), throttle_max);
+			_att_sp.thrust = math::min(get_tecs_thrust(), throttle_max);
 		}
 
 
@@ -1985,7 +1987,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		      (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND &&
 		       land_noreturn_vertical))
 	     )) {
-		_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
+		_att_sp.pitch_body = get_tecs_pitch();
 	}
 
 	if (_control_mode.flag_control_position_enabled) {
@@ -1997,6 +1999,28 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 
 	return setpoint;
+}
+
+float
+FixedwingPositionControl::get_tecs_pitch() {
+	if (_is_tecs_running) {
+		return _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
+
+	} else {
+		// return 0 to prevent stale tecs state when it's not running
+		return 0.0f;
+	}
+}
+
+float
+FixedwingPositionControl::get_tecs_thrust() {
+	if (_is_tecs_running) {
+		return _mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() : _tecs.get_throttle_demand();
+
+	} else {
+		// return 0 to prevent stale tecs state when it's not running
+		return 0.0f;
+	}
 }
 
 void
@@ -2205,6 +2229,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		}
 	}
 
+	_is_tecs_running = run_tecs;
 	if (!run_tecs) {
 		// next time we run TECS we should reinitialize states
 		_reinitialize_tecs = true;

@@ -61,7 +61,7 @@ public:
 	virtual void update_transition_state();
 	virtual void update_fw_state();
 	virtual void fill_actuator_outputs();
-	virtual void waiting_on_fw_ctl();
+	virtual void waiting_on_tecs();
 
 private:
 

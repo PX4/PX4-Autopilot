@@ -318,8 +318,9 @@ void Standard::fill_actuator_outputs()
 }
 
 void
-Standard::waiting_on_fw_ctl()
+Standard::waiting_on_tecs()
 {
+	// keep thrust from transition
 	_v_att_sp->thrust = _pusher_throttle;
 };
 

@@ -164,8 +164,8 @@ void VtolType::update_fw_state()
 		_tecs_running_ts = hrt_absolute_time();
 	}
 
-	// tecs didn't publish yet and the position controller didn't publish yet AFTER tecs
+	// tecs didn't publish yet or the position controller didn't publish yet AFTER tecs
 	if (!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts)) {
-		waiting_on_fw_ctl();
+		waiting_on_tecs();
 	}
 }
