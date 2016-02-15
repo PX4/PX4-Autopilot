@@ -15,7 +15,10 @@
 # include <nuttx/irq.h>
 # include <arch/board/board.h>
 #elif UAVCAN_STM32_BAREMETAL
-#include <chip.h>
+#include <stm32f4xx.h>
+#elif UAVCAN_STM32_FREERTOS
+#include <stm32f4xx.h>
+#include <cmsis_os.h>
 #else
 # error "Unknown OS"
 #endif
@@ -200,11 +203,13 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
      * Hardware configuration
      */
 #if UAVCAN_STM32_BAREMETAL
-    const uavcan::uint32_t pclk = STM32_PCLK1_FREQUENCY;
+    const uavcan::uint32_t pclk = STM32_PCLK1;
 #elif UAVCAN_STM32_CHIBIOS
     const uavcan::uint32_t pclk = STM32_PCLK1;
 #elif UAVCAN_STM32_NUTTX
     const uavcan::uint32_t pclk = STM32_PCLK1_FREQUENCY;
+#elif UAVCAN_STM32_FREERTOS
+    const uavcan::uint32_t pclk = HAL_RCC_GetPCLK1Freq();
 #else
 # error "Unknown OS"
 #endif
@@ -454,7 +459,7 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig* filter
 
 bool CanIface::waitMsrINakBitStateChange(bool target_state)
 {
-#if UAVCAN_STM32_NUTTX || UAVCAN_STM32_CHIBIOS
+#if UAVCAN_STM32_NUTTX || UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_FREERTOS
     const unsigned Timeout = 1000;
 #else
     const unsigned Timeout = 2000000;
@@ -471,6 +476,9 @@ bool CanIface::waitMsrINakBitStateChange(bool target_state)
 #endif
 #if UAVCAN_STM32_CHIBIOS
         ::chThdSleep(MS2ST(1));
+#endif
+#if UAVCAN_STM32_FREERTOS
+        //::osDelay(1);
 #endif
     }
     return false;
@@ -861,16 +869,18 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks,
 }
 
 
-#if UAVCAN_STM32_BAREMETAL
+#if UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
 
-static void nvicEnableVector(int irq,  uint8_t prio)
+static void nvicEnableVector(IRQn_Type irq,  uint8_t prio)
 {
-      NVIC_InitTypeDef NVIC_InitStructure;
+      /*NVIC_InitTypeDef NVIC_InitStructure;
       NVIC_InitStructure.NVIC_IRQChannel = irq;
       NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = prio;
       NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
       NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-      NVIC_Init(&NVIC_InitStructure);
+      NVIC_Init(&NVIC_InitStructure);*/
+      HAL_NVIC_SetPriority(irq, prio, 0);
+      HAL_NVIC_EnableIRQ(irq);
 }
 
 #endif
@@ -923,7 +933,7 @@ void CanDriver::initOnce()
     IRQ_ATTACH(STM32_IRQ_CAN2RX1, can2_irq);
 # endif
 # undef IRQ_ATTACH
-#elif UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL
+#elif UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
     {
         CriticalSectionLocker lock;
         nvicEnableVector(CAN1_TX_IRQn,  UAVCAN_STM32_IRQ_PRIORITY_MASK);

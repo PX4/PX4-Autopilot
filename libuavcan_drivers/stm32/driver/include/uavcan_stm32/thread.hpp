@@ -17,6 +17,12 @@
 # include <ctime>
 # include <cstring>
 #elif UAVCAN_STM32_BAREMETAL
+#elif UAVCAN_STM32_FREERTOS
+# include <stm32f4xx.h>
+# include <cmsis_os.h>
+  #ifndef MAX_SEMAPHORE_COUNT
+    #define MAX_SEMAPHORE_COUNT      50
+  #endif
 #else
 # error "Unknown OS"
 #endif
@@ -136,7 +142,7 @@ public:
         (void)can_driver;
     }
 
-    bool wait(uavcan::MonotonicDuration)
+    bool wait(uavcan::MonotonicDuration duration)
     {
         (void)duration;
         bool lready = ready;
@@ -159,6 +165,40 @@ class Mutex
 public:
     void lock() { }
     void unlock() { }
+};
+
+#elif UAVCAN_STM32_FREERTOS
+
+class BusEvent
+{
+    SemaphoreHandle_t sem_;
+    BaseType_t xHigherPriorityTaskWoken;
+
+public:
+    BusEvent(CanDriver& can_driver)
+    {
+        (void)can_driver;
+        sem_ = xSemaphoreCreateCounting( MAX_SEMAPHORE_COUNT, 0 );
+    }
+
+    bool wait(uavcan::MonotonicDuration duration);
+
+    void signal();
+
+    void signalFromInterrupt();
+};
+
+class Mutex
+{
+    SemaphoreHandle_t mtx_;
+    BaseType_t xHigherPriorityTaskWoken;
+public:
+    Mutex(void)
+    {
+        mtx_ = xSemaphoreCreateMutex();
+    }
+    void lock();
+    void unlock();
 };
 
 #endif

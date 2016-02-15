@@ -19,6 +19,10 @@
 # define UAVCAN_STM32_BAREMETAL 0
 #endif
 
+#ifndef UAVCAN_STM32_FREERTOS
+# define UAVCAN_STM32_FREERTOS 0
+#endif
+
 /**
  * Number of interfaces must be enabled explicitly
  */
