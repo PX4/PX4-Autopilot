@@ -51,6 +51,7 @@
 #define SMARTPORT_POLL_4    0x16
 #define SMARTPORT_POLL_5    0xB7
 #define SMARTPORT_POLL_6    0x00
+#define SMARTPORT_POLL_7    0xBA
 
 /* FrSky SmartPort sensor IDs */
 #define SMARTPORT_ID_RSSI          0xf101
@@ -86,5 +87,7 @@ void sPort_send_SPD(int uart);
 void sPort_send_VSPD(int uart, float speed);
 
 void sPort_send_FUEL(int uart);
+void sPort_send_T1(int uart);
+void sPort_send_T2(int uart);
 
 #endif /* _SPORT_TELEMETRY_H */
