@@ -209,6 +209,14 @@ void Standard::update_transition_state()
 					   (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_dur * 1000000.0f);
 		}
 
+		// check airspeed sanity
+		if (_airspeed->true_airspeed_m_s >= _params_standard.airspeed_trans &&
+			(float)hrt_elapsed_time(&_vtol_schedule.transition_start) < 500000.0f
+		) {
+				// we transitioned in less then 0.5sec, abort transition
+				_attc->abort_front_transition();
+		}
+
 		// do blending of mc and fw controls if a blending airspeed has been provided
 		if (_airspeed_trans_blend_margin > 0.0f && _airspeed->true_airspeed_m_s >= _params_standard.airspeed_blend) {
 			float weight = 1.0f - fabsf(_airspeed->true_airspeed_m_s - _params_standard.airspeed_blend) /
