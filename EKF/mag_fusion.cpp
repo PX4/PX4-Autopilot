@@ -468,73 +468,71 @@ void Ekf::fuseHeading()
 	float q2 = _state.quat_nominal(2);
 	float q3 = _state.quat_nominal(3);
 
-	float magX = _mag_sample_delayed.mag(0);
-	float magY = _mag_sample_delayed.mag(1);
-	float magZ = _mag_sample_delayed.mag(2);
+	float R_YAW = fmaxf(_params.mag_heading_noise, 1.0e-2f);
+	R_YAW = R_YAW * R_YAW;
 
-	float R_mag = fmaxf(_params.mag_heading_noise, 1.0e-2f);
-	R_mag = R_mag * R_mag;
-
+	// calculate intermediate variables for observation jacobian
 	float t2 = q0 * q0;
 	float t3 = q1 * q1;
 	float t4 = q2 * q2;
 	float t5 = q3 * q3;
-	float t6 = q0 * q2 * 2.0f;
-	float t7 = q1 * q3 * 2.0f;
-	float t8 = t6 + t7;
-	float t9 = q0 * q3 * 2.0f;
-	float t13 = q1 * q2 * 2.0f;
-	float t10 = t9 - t13;
-	float t11 = t2 + t3 - t4 - t5;
-	float t12 = magX * t11;
-	float t14 = magZ * t8;
-	float t19 = magY * t10;
-	float t15 = t12 + t14 - t19;
-	float t16 = t2 - t3 + t4 - t5;
-	float t17 = q0 * q1 * 2.0f;
-	float t24 = q2 * q3 * 2.0f;
-	float t18 = t17 - t24;
-	float t20 = 1.0f / t15;
-	float t21 = magY * t16;
-	float t22 = t9 + t13;
-	float t23 = magX * t22;
-	float t28 = magZ * t18;
-	float t25 = t21 + t23 - t28;
-	float t29 = t20 * t25;
-	float t26 = tan(t29);
-	float t27 = 1.0f / (t15 * t15);
-	float t30 = t26 * t26;
-	float t31 = t30 + 1.0f;
+	float t6 = t2 + t3 - t4 - t5;
+	float t7 = q0 * q3 * 2.0f;
+	float t8 = q1 * q2 * 2.0f;
+	float t9 = t7 + t8;
+	float t10;
 
-	float H_HDG[3] = {};
-	H_HDG[0] = -t31 * (t20 * (magZ * t16 + magY * t18) + t25 * t27 * (magY * t8 + magZ * t10));
-	H_HDG[1] = t31 * (t20 * (magX * t18 + magZ * t22) + t25 * t27 * (magX * t8 - magZ * t11));
-	H_HDG[2] = t31 * (t20 * (magX * t16 - magY * t22) + t25 * t27 * (magX * t10 + magY * t11));
+	if (fabsf(t6) > 1e-6f) {
+		t10 = 1.0f / (t6 * t6);
+
+	} else  {
+		return;
+	}
+
+	float t11 = t9 * t9;
+	float t12 = t10 * t11;
+	float t13 = t12 + 1.0f;
+	float t14;
+
+	if (fabsf(t13) > 1e-6f) {
+		t14 = 1.0f / t13;
+
+	} else  {
+		return;
+	}
+
+	float t15 = 1.0f / t6;
+
+	// calculate observation jacobian
+	float H_YAW[3] = {};
+	H_YAW[1] = t14 * (t15 * (q0 * q1 * 2.0f - q2 * q3 * 2.0f) + t9 * t10 * (q0 * q2 * 2.0f + q1 * q3 * 2.0f));
+	H_YAW[2] = t14 * (t15 * (t2 - t3 + t4 - t5) + t9 * t10 * (t7 - t8));
 
 	// calculate innovation
+	// rotate body field magnetic field measurement into earth frame and compare to published declination to get heading measurement
+	// TODO - enable use of an off-board heading measurement
 	matrix::Dcm<float> R_to_earth(_state.quat_nominal);
 	matrix::Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
-
 	float innovation = atan2f(mag_earth_pred(1), mag_earth_pred(0)) - _mag_declination;
 
-	innovation = math::constrain(innovation, -0.5f, 0.5f);
+	// wrap the innovation to the interval between +-pi
+	innovation = matrix::wrap_pi(innovation);
 	_heading_innov = innovation;
 
-	float innovation_var = R_mag;
-	_heading_innov_var = innovation_var;
-
 	// calculate innovation variance
+	float innovation_var = R_YAW;
+	_heading_innov_var = innovation_var;
 	float PH[3] = {};
 
 	for (unsigned row = 0; row < 3; row++) {
 		for (unsigned column = 0; column < 3; column++) {
-			PH[row] += P[row][column] * H_HDG[column];
+			PH[row] += P[row][column] * H_YAW[column];
 		}
 
-		innovation_var += H_HDG[row] * PH[row];
+		innovation_var += H_YAW[row] * PH[row];
 	}
 
-	if (innovation_var >= R_mag) {
+	if (innovation_var >= R_YAW) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
 		_fault_status.bad_mag_hdg = false;
 
@@ -547,14 +545,14 @@ void Ekf::fuseHeading()
 		return;
 	}
 
-	float innovation_var_inv = 1 / innovation_var;
+	float innovation_var_inv = 1.0f / innovation_var;
 
-	// calculate kalman gain
+	// calculate the kalman gains taking dvantage of the reduce size of H_YAW
 	float Kfusion[_k_num_states] = {};
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < 3; column++) {
-			Kfusion[row] += P[row][column] * H_HDG[column];
+			Kfusion[row] += P[row][column] * H_YAW[column];
 		}
 
 		Kfusion[row] *= innovation_var_inv;
@@ -572,12 +570,18 @@ void Ekf::fuseHeading()
 		// by interference or a large initial gyro bias
 		if (_control_status.flags.in_air) {
 			return;
+
+		} else {
+			// constrain the innovation to the maximum set by the gate
+			float gate_limit = sqrtf((sq(math::max(_params.heading_innov_gate, 1.0f)) * innovation_var));
+			innovation = math::constrain(innovation, -gate_limit, gate_limit);
 		}
 
 	} else {
 		_mag_healthy = true;
 	}
 
+	// zero the attitude error states and use the kalman gain vector and innovation to update the states
 	_state.ang_error.setZero();
 	fuse(Kfusion, innovation);
 
@@ -587,11 +591,12 @@ void Ekf::fuseHeading()
 	_state.quat_nominal = dq * _state.quat_nominal;
 	_state.quat_nominal.normalize();
 
+	// update the covariance matrix taking advantage of the reduced size of H_YAW
 	float HP[_k_num_states] = {};
 
 	for (unsigned column = 0; column < _k_num_states; column++) {
 		for (unsigned row = 0; row < 3; row++) {
-			HP[column] += H_HDG[row] * P[row][column];
+			HP[column] += H_YAW[row] * P[row][column];
 		}
 	}
 
@@ -615,30 +620,28 @@ void Ekf::fuseDeclination()
 
 	// Calculate intermediate variables
 	// if the horizontal magnetic field is too small, this calculation will be badly conditioned
-	if (fabsf(magN) < 0.001f) {
+	if (magN < 0.001f) {
 		return;
 	}
 
-	float t2 = 1.0f / magN;
-	float t4 = magE * t2;
-	float t3 = tanf(t4);
-	float t5 = t3 * t3;
-	float t6 = t5 + 1.0f;
-	float t25 = t2 * t6;
-	float t7 = 1.0f / (magN * magN);
-	float t26 = magE * t6 * t7;
-	float t8 = P[17][17] * t25;
-	float t15 = P[16][17] * t26;
-	float t9 = t8 - t15;
-	float t10 = t25 * t9;
-	float t11 = P[17][16] * t25;
-	float t16 = P[16][16] * t26;
-	float t12 = t11 - t16;
-	float t17 = t26 * t12;
-	float t13 = R_DECL + t10 - t17; // innovation variance
+	float t2 = magE * magE;
+	float t3 = magN * magN;
+	float t4 = t2 + t3;
+	float t5 = 1.0f / t4;
+	float t22 = magE * t5;
+	float t23 = magN * t5;
+	float t6 = P[16][16] * t22;
+	float t13 = P[17][16] * t23;
+	float t7 = t6 - t13;
+	float t8 = t22 * t7;
+	float t9 = P[16][17] * t22;
+	float t14 = P[17][17] * t23;
+	float t10 = t9 - t14;
+	float t15 = t23 * t10;
+	float t11 = R_DECL + t8 - t15; // innovation variance
 
 	// check the innovation variance calculation for a badly conditioned covariance matrix
-	if (t13 >= R_DECL) {
+	if (t11 >= R_DECL) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
 		_fault_status.bad_mag_decl = false;
 
@@ -651,50 +654,51 @@ void Ekf::fuseDeclination()
 		return;
 	}
 
-	float t14 = 1.0f / t13;
-	float t18 = magE;
-	float t19 = magN;
-	float t21 = 1.0f / t19;
-	float t22 = t18 * t21;
-	float t20 = tanf(t22);
-	float t23 = t20 * t20;
-	float t24 = t23 + 1.0f;
+	float t12 = 1.0f / t11;
 
 	// Calculate the observation Jacobian
 	// Note only 2 terms are non-zero which can be used in matrix operations for calculation of Kalman gains and covariance update to significantly reduce cost
 	float H_DECL[24] = {};
-	H_DECL[16] = -t18 * 1.0f / (t19 * t19) * t24;
-	H_DECL[17] = t21 * t24;
+	H_DECL[16] = -magE * t5;
+	H_DECL[17] = magN * t5;
 
 	// Calculate the Kalman gains
 	float Kfusion[_k_num_states] = {};
-	Kfusion[0] = t14 * (P[0][17] * t25 - P[0][16] * t26);
-	Kfusion[1] = t14 * (P[1][17] * t25 - P[1][16] * t26);
-	Kfusion[2] = t14 * (P[2][17] * t25 - P[2][16] * t26);
-	Kfusion[3] = t14 * (P[3][17] * t25 - P[3][16] * t26);
-	Kfusion[4] = t14 * (P[4][17] * t25 - P[4][16] * t26);
-	Kfusion[5] = t14 * (P[5][17] * t25 - P[5][16] * t26);
-	Kfusion[6] = t14 * (P[6][17] * t25 - P[6][16] * t26);
-	Kfusion[7] = t14 * (P[7][17] * t25 - P[7][16] * t26);
-	Kfusion[8] = t14 * (P[8][17] * t25 - P[8][16] * t26);
-	Kfusion[9] = t14 * (P[9][17] * t25 - P[9][16] * t26);
-	Kfusion[10] = t14 * (P[10][17] * t25 - P[10][16] * t26);
-	Kfusion[11] = t14 * (P[11][17] * t25 - P[11][16] * t26);
-	Kfusion[12] = t14 * (P[12][17] * t25 - P[12][16] * t26);
-	Kfusion[13] = t14 * (P[13][17] * t25 - P[13][16] * t26);
-	Kfusion[14] = t14 * (P[14][17] * t25 - P[14][16] * t26);
-	Kfusion[15] = t14 * (P[15][17] * t25 - P[15][16] * t26);
-	Kfusion[16] = -t14 * (t16 - P[16][17] * t25);
-	Kfusion[17] = t14 * (t8 - P[17][16] * t26);
-	Kfusion[18] = t14 * (P[18][17] * t25 - P[18][16] * t26);
-	Kfusion[19] = t14 * (P[19][17] * t25 - P[19][16] * t26);
-	Kfusion[20] = t14 * (P[20][17] * t25 - P[20][16] * t26);
-	Kfusion[21] = t14 * (P[21][17] * t25 - P[21][16] * t26);
-	Kfusion[22] = t14 * (P[22][17] * t25 - P[22][16] * t26);
-	Kfusion[23] = t14 * (P[23][17] * t25 - P[23][16] * t26);
+	Kfusion[0] = -t12 * (P[0][16] * t22 - P[0][17] * t23);
+	Kfusion[1] = -t12 * (P[1][16] * t22 - P[1][17] * t23);
+	Kfusion[2] = -t12 * (P[2][16] * t22 - P[2][17] * t23);
+	Kfusion[3] = -t12 * (P[3][16] * t22 - P[3][17] * t23);
+	Kfusion[4] = -t12 * (P[4][16] * t22 - P[4][17] * t23);
+	Kfusion[5] = -t12 * (P[5][16] * t22 - P[5][17] * t23);
+	Kfusion[6] = -t12 * (P[6][16] * t22 - P[6][17] * t23);
+	Kfusion[7] = -t12 * (P[7][16] * t22 - P[7][17] * t23);
+	Kfusion[8] = -t12 * (P[8][16] * t22 - P[8][17] * t23);
+	Kfusion[9] = -t12 * (P[9][16] * t22 - P[9][17] * t23);
+	Kfusion[10] = -t12 * (P[10][16] * t22 - P[10][17] * t23);
+	Kfusion[11] = -t12 * (P[11][16] * t22 - P[11][17] * t23);
+	Kfusion[12] = -t12 * (P[12][16] * t22 - P[12][17] * t23);
+	Kfusion[13] = -t12 * (P[13][16] * t22 - P[13][17] * t23);
+	Kfusion[14] = -t12 * (P[14][16] * t22 - P[14][17] * t23);
+	Kfusion[15] = -t12 * (P[15][16] * t22 - P[15][17] * t23);
+	Kfusion[16] = -t12 * (t6 - P[16][17] * t23);
+	Kfusion[17] = t12 * (t14 - P[17][16] * t22);
+	Kfusion[18] = -t12 * (P[18][16] * t22 - P[18][17] * t23);
+	Kfusion[19] = -t12 * (P[19][16] * t22 - P[19][17] * t23);
+	Kfusion[20] = -t12 * (P[20][16] * t22 - P[20][17] * t23);
+	Kfusion[21] = -t12 * (P[21][16] * t22 - P[21][17] * t23);
+
+	// Don't update wind states unless we are doing wind estimation
+	if (_control_status.flags.wind) {
+		Kfusion[22] = -t12 * (P[22][16] * t22 - P[22][17] * t23);
+		Kfusion[23] = -t12 * (P[23][16] * t22 - P[23][17] * t23);
+
+	} else {
+		Kfusion[22] = 0.0f;
+		Kfusion[23] = 0.0f;
+	}
 
 	// calculate innovation and constrain
-	float innovation = atanf(t4) - _mag_declination;
+	float innovation = atanf(magE / magN) - _mag_declination;
 	innovation = math::constrain(innovation, -0.5f, 0.5f);
 
 	// zero attitude error states and perform the state correction
