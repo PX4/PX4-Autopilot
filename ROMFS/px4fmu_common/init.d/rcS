@@ -613,6 +613,10 @@ then
 			then
 				set MAV_TYPE 2
 			fi
+			if [ $MIXER == quad_h ]
+			then
+				set MAV_TYPE 2
+			fi
 			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
 			then
 				set MAV_TYPE 15
