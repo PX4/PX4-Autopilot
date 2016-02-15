@@ -626,7 +626,7 @@ PX4IO::init()
 {
 	int ret;
 	param_t sys_restart_param;
-	int sys_restart_val = DM_INIT_REASON_VOLATILE;
+	int32_t sys_restart_val = DM_INIT_REASON_VOLATILE;
 
 	ASSERT(_task == -1);
 
@@ -634,7 +634,11 @@ PX4IO::init()
 
 	if (sys_restart_param != PARAM_INVALID) {
 		/* Indicate restart type is unknown */
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
+		if (prev_val != DM_INIT_REASON_POWER_ON) {
+			param_set_no_notification(sys_restart_param, &sys_restart_val);
+		}
 	}
 
 	/* do regular cdev init */
@@ -815,8 +819,11 @@ PX4IO::init()
 
 		/* Indicate restart type is in-flight */
 		sys_restart_val = DM_INIT_REASON_IN_FLIGHT;
-		param_set(sys_restart_param, &sys_restart_val);
-
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
+		if (prev_val != sys_restart_val) {
+			param_set(sys_restart_param, &sys_restart_val);
+		}
 
 		/* regular boot, no in-air restart, init IO */
 
@@ -849,7 +856,11 @@ PX4IO::init()
 
 		/* Indicate restart type is power on */
 		sys_restart_val = DM_INIT_REASON_POWER_ON;
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
+		if (prev_val != sys_restart_val) {
+			param_set(sys_restart_param, &sys_restart_val);
+		}
 
 	}
 
