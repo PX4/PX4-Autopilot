@@ -2250,8 +2250,6 @@ Sensors::task_main()
 			}
 		}
 
-#endif
-
 		/* check battery voltage */
 		adc_poll(raw);
 
