@@ -817,7 +817,7 @@ start()
 	}
 
 	DevMgr::releaseHandle(h);
-	return true;
+	return 0;
 }
 
 
