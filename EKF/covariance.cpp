@@ -134,9 +134,33 @@ void Ekf::predictCovariance()
 	float d_ang_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1e-4f);
 	float d_vel_bias_sig = dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1e-2f);
 	float d_ang_scale_sig = dt * math::constrain(_params.gyro_scale_p_noise, 0.0f, 1e-2f);
-	float mag_I_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
-	float mag_B_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
-	float wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f);
+	float mag_I_sig, mag_B_sig;
+
+	// Don't continue to grow the body field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+	if (_control_status.flags.mag_3D && (P[16][16] + P[17][17] + P[18][8]) < 0.1f) {
+		mag_I_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
+
+	} else {
+		mag_I_sig = 0.0f;
+	}
+
+	// Don't continue to grow the earth field variances if they is becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+	if (_control_status.flags.mag_3D && (P[19][19] + P[20][20] + P[21][21]) < 0.1f) {
+		mag_B_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
+
+	} else {
+		mag_B_sig = 0.0f;
+	}
+
+	float wind_vel_sig;
+
+	// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
+	if (_control_status.flags.wind && (P[22][22] + P[22][22]) < 1000.0f) {
+		wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f);
+
+	} else {
+		wind_vel_sig = 0.0f;
+	}
 
 	for (unsigned i = 0; i < 9; i++) {
 		process_noise[i] = 0.0f;
@@ -709,8 +733,8 @@ void Ekf::limitCov()
 	P_lim[3] = 0.001f;		// gyro bias max var
 	P_lim[4] = 0.01f;		// gyro scale max var
 	P_lim[5] = 0.1f;		// delta velocity z bias max var
-	P_lim[6] = 0.01f;		// earth mag field max var
-	P_lim[7] = 0.01f;		// body mag field max var
+	P_lim[6] = 0.1f;		// earth mag field max var
+	P_lim[7] = 0.1f;		// body mag field max var
 	P_lim[8] = 1000.0f;		// wind max var
 
 	for (int i = 0; i < 3; i++) {
