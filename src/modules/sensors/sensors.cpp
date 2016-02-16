@@ -945,18 +945,21 @@ Sensors::parameters_update()
 	DevHandle h_baro;
 	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
-	//if (!h_baro.isValid()) {
-	//	warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-	//	return ERROR;
+#ifndef __PX4_QURT
+	// TODO: this needs fixing for QURT
+	if (!h_baro.isValid()) {
+		warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
+		return ERROR;
 
-	//} else {
-	//	int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
+	} else {
+		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
 
-	//	if (baroret) {
-	//		warnx("qnh could not be set");
-	//		return ERROR;
-	//	}
-	//}
+		if (baroret) {
+			warnx("qnh could not be set");
+			return ERROR;
+		}
+	}
+#endif
 
 	return OK;
 }
@@ -2091,25 +2094,28 @@ Sensors::task_main()
 	int ret = 0;
 
 	do { /* create a scope to handle exit with break */
-		//ret = accel_init();
+#ifndef __PX4_QURT
+// TODO: needs fixes for QURT.
+		ret = accel_init();
 
-		//if (ret) { break; }
+		if (ret) { break; }
 
-		//ret = gyro_init();
+		ret = gyro_init();
 
-		//if (ret) { break; }
+		if (ret) { break; }
 
-		//ret = mag_init();
+		ret = mag_init();
 
-		//if (ret) { break; }
+		if (ret) { break; }
 
-		//ret = baro_init();
+		ret = baro_init();
 
-		//if (ret) { break; }
+		if (ret) { break; }
 
-		//ret = adc_init();
+		ret = adc_init();
 
-		//if (ret) { break; }
+		if (ret) { break; }
+#endif
 
 		break;
 	} while (0);
