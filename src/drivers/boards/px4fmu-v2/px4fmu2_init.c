@@ -233,6 +233,11 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_VDD_SERVO_VALID);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+
+	/* EXTRA PINS */
+	stm32_configgpio(GPIO_SYNC_ODROID);
+
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -284,6 +289,9 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL_MAG, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_MAG, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL_GYRO, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_BMI, false);
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */
