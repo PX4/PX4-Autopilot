@@ -1,6 +1,7 @@
 set(tests
 	setIdentity
 	inverse
+	slice
 	matrixMult
 	vectorAssignment
 	matrixAssignment

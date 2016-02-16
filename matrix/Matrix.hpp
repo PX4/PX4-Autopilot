@@ -317,6 +317,13 @@ public:
         return transpose();
     }
 
+    template<size_t P, size_t Q>
+    Matrix<Type, P, Q> slice(size_t x0, size_t y0) const
+    {
+        Matrix<Type, P, Q> res(&(_data[x0][y0]));
+        return res;
+    }
+
     void setZero()
     {
         memset(_data, 0, sizeof(_data));

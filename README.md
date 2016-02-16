@@ -32,6 +32,8 @@ A simple and efficient template based matrix library.
 
 ## Example
 
+See the test directory for detailed examples. Some simple examples are included below:
+
 ```c++
 	// define an euler angle (Body 3(yaw)-2(pitch)-1(roll) rotation)
 	float roll = 0.1f;
@@ -91,4 +93,18 @@ A simple and efficient template based matrix library.
 	// correction
 	x += K*r;
 
+	// slicing
+    float data[9] = {0, 2, 3,
+                     4, 5, 6,
+                     7, 8, 10
+                    };
+    SquareMatrix<float, 3> A(data);
+
+	// Slice a 3,3 matrix starting at row 1, col 0,
+	// with size 2 x 3, warning, no size checking
+    Matrix<float, 2, 3> B(A.slice<2, 3>(1, 0));
+
+	// this results in:
+	// 4, 5, 6
+	// 7, 8, 10
 ```
