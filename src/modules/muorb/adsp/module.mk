@@ -42,7 +42,6 @@ SRCS		= \
 		  px4muorb.cpp \
 		  uORBFastRpcChannel.cpp
 endif
-SRCS		=  param/param.c
 
 
 INCLUDE_DIRS	+= \
