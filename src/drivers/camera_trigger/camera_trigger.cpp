@@ -44,6 +44,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <mathlib/mathlib.h>
 #include <nuttx/clock.h>
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -54,6 +55,7 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
@@ -81,6 +83,11 @@ public:
 	 * Set the trigger on / off
 	 */
 	void		control(bool on);
+
+	/**
+	 * Trigger just once
+	 */
+	void		shootOnce();
 
 	/**
 	 * Start the task.
@@ -111,10 +118,15 @@ private:
 	int			_mode;
 	float 			_activation_time;
 	float  			_interval;
+	float  			_distance;
 	uint32_t 		_trigger_seq;
 	bool	 		_trigger_enabled;
+	math::Vector<2>	_last_shoot_position;
+	float			_last_shoot_time;
+	bool			_valid_position;
 
 	int			_vcommand_sub;
+	int			_vlposition_sub;
 
 	orb_advert_t		_trigger_pub;
 
@@ -122,6 +134,7 @@ private:
 	param_t _p_mode;
 	param_t _p_activation_time;
 	param_t _p_interval;
+	param_t _p_distance;
 	param_t _p_pin;
 
 	static constexpr uint32_t _gpios[6] = {
@@ -137,6 +150,10 @@ private:
 	 * Vehicle command handler
 	 */
 	static void	cycle_trampoline(void *arg);
+	/**
+	 * Distance monitor
+	 */
+	static void	distance_trampoline(void *arg);
 	/**
 	 * Fires trigger
 	 */
@@ -168,9 +185,14 @@ CameraTrigger::CameraTrigger() :
 	_mode(0),
 	_activation_time(0.5f /* ms */),
 	_interval(100.0f /* ms */),
+	_distance(25.0f /* m */),
 	_trigger_seq(0),
 	_trigger_enabled(false),
+	_last_shoot_position(0.0f, 0.0f),
+	_last_shoot_time(0.0f),
+	_valid_position(false),
 	_vcommand_sub(-1),
+	_vlposition_sub(-1),
 	_trigger_pub(nullptr)
 {
 	memset(&_work, 0, sizeof(_work));
@@ -178,6 +200,7 @@ CameraTrigger::CameraTrigger() :
 	// Parameters
 	_p_polarity = param_find("TRIG_POLARITY");
 	_p_interval = param_find("TRIG_INTERVAL");
+	_p_distance = param_find("TRIG_DISTANCE");
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
 	_p_pin = param_find("TRIG_PINS");
@@ -185,6 +208,7 @@ CameraTrigger::CameraTrigger() :
 	param_get(_p_polarity, &_polarity);
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
+	param_get(_p_distance, &_distance);
 	param_get(_p_mode, &_mode);
 	int pin_list;
 	param_get(_p_pin, &pin_list);
@@ -248,6 +272,18 @@ CameraTrigger::control(bool on)
 }
 
 void
+CameraTrigger::shootOnce()
+{
+	// schedule trigger on and off calls
+	hrt_call_after(&_engagecall, 0,
+		       (hrt_callout)&CameraTrigger::engage, this);
+
+	// schedule trigger on and off calls
+	hrt_call_after(&_disengagecall, 0 + (_activation_time * 1000),
+		       (hrt_callout)&CameraTrigger::disengage, this);
+}
+
+void
 CameraTrigger::start()
 {
 
@@ -257,12 +293,18 @@ CameraTrigger::start()
 	}
 
 	// enable immediate if configured that way
-	if (_mode > 1) {
+	if (_mode == 2) {
 		control(true);
 	}
 
-	// start to monitor at high rate for trigger enable command
-	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline, this, USEC2TICK(1));
+	// if in distance mode, start monitoring the position
+	if (_mode == 3) {
+		work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::distance_trampoline, this, USEC2TICK(1));
+
+	} else {
+		// start to monitor at high rate for trigger enable command
+		work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline, this, USEC2TICK(1));
+	}
 }
 
 void
@@ -331,6 +373,51 @@ CameraTrigger::cycle_trampoline(void *arg)
 }
 
 void
+CameraTrigger::distance_trampoline(void *arg)
+{
+
+	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+
+	int poll_interval_usec = 10000;
+
+	// Set trigger based on covered distance
+	if (trig->_vlposition_sub < 0) {
+		trig->_vlposition_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	}
+
+	struct vehicle_local_position_s pos;
+
+	orb_copy(ORB_ID(vehicle_local_position), trig->_vlposition_sub, &pos);
+
+	if (pos.xy_valid) {
+
+		// Initialize position if not done yet
+		math::Vector<2> current_position(pos.x, pos.y);
+
+		if (!trig->_valid_position) {
+			trig->_last_shoot_position = current_position;
+			trig->_valid_position = pos.xy_valid;
+		}
+
+		float time_now = static_cast<float>(hrt_absolute_time()) / 1.0e6f;
+
+		// Check that distance threshold is exceeded and the time between last shot is large enough
+		if ((trig->_last_shoot_position - current_position).length() >= trig->_distance &&
+		    time_now > trig->_last_shoot_time + trig->_interval / 1000.0f) {
+			trig->shootOnce();
+			trig->_last_shoot_position = current_position;
+			trig->_last_shoot_time = time_now;
+		}
+
+	} else {
+		poll_interval_usec = 100000;
+	}
+
+	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::distance_trampoline,
+		   camera_trigger::g_camera_trigger, USEC2TICK(poll_interval_usec));
+}
+
+void
 CameraTrigger::engage(void *arg)
 {
 
@@ -374,7 +461,9 @@ CameraTrigger::info()
 	warnx("state : %s", _trigger_enabled ? "enabled" : "disabled");
 	warnx("pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
 	      _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
+	warnx("mode : %i", _mode);
 	warnx("interval : %.2f", (double)_interval);
+	warnx("distance : %.2f", (double)_distance);
 }
 
 static void usage()

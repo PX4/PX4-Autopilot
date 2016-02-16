@@ -82,7 +82,7 @@ PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
  * @reboot_required true
  *
  * @min 0
- * @max 2
+ * @max 3
  * @group Camera trigger
  */
 PARAM_DEFINE_INT32(TRIG_MODE, 0);
@@ -97,3 +97,14 @@ PARAM_DEFINE_INT32(TRIG_MODE, 0);
  * @group Camera trigger
  */
 PARAM_DEFINE_INT32(TRIG_PINS, 12);
+
+/**
+ * Camera trigger distance
+ *
+ * Sets the distance at which to trigger the camera. TRIG_INTERVAL sets an upper bound on the triggering frequency.
+ *
+ * @unit meters
+ * @min 0
+ * @group Camera trigger
+ */
+PARAM_DEFINE_FLOAT(TRIG_DISTANCE, 25.0f);
