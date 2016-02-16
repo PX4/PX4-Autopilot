@@ -314,7 +314,8 @@ extern "C" {
 
 				// Get the current time
 				struct timespec ts;
-				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+				// FIXME: check if QURT should probably be using CLOCK_MONOTONIC
+				px4_clock_gettime(CLOCK_REALTIME, &ts);
 
 				// Calculate an absolute time in the future
 				const unsigned billion = (1000 * 1000 * 1000);
