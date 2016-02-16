@@ -39,8 +39,9 @@
  * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
  * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011.
  *
- * @author Lorenz Meier <lorenz@px4.io>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier		<lorenz@px4.io>
+ * @author Anton Babushkin	<anton.babushkin@me.com>
+ * @author Sander Smeets	<sander@droneslab.com>
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
  * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
@@ -201,6 +202,7 @@ private:
 		param_t roll_tc;
 		param_t pitch_tc;
 		param_t vtol_opt_recovery_enabled;
+		param_t vtol_wv_yaw_rate_scale;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -222,6 +224,7 @@ private:
 		float rattitude_thres;
 		int vtol_type;						/**< 0 = Tailsitter, 1 = Tiltrotor, 2 = Standard airframe */
 		bool vtol_opt_recovery_enabled;
+		float vtol_wv_yaw_rate_scale;			/**< Scale value [0, 1] for yaw rate setpoint  */
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
@@ -353,6 +356,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.acro_rate_max.zero();
 	_params.rattitude_thres = 1.0f;
 	_params.vtol_opt_recovery_enabled = false;
+	_params.vtol_wv_yaw_rate_scale = 1.0f;
+
 
 	_rates_prev.zero();
 	_rates_sp.zero();
@@ -390,7 +395,11 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.vtol_type 		= 	param_find("VT_TYPE");
 	_params_handles.roll_tc			= 	param_find("MC_ROLL_TC");
 	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
-	_params_handles.vtol_opt_recovery_enabled = param_find("VT_OPT_RECOV_EN");
+	_params_handles.vtol_opt_recovery_enabled	= param_find("VT_OPT_RECOV_EN");
+	_params_handles.vtol_wv_yaw_rate_scale		= param_find("VT_WV_YAWR_SCL");
+
+
+
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -510,6 +519,8 @@ MulticopterAttitudeControl::parameters_update()
 	int tmp;
 	param_get(_params_handles.vtol_opt_recovery_enabled, &tmp);
 	_params.vtol_opt_recovery_enabled = (bool)tmp;
+
+	param_get(_params_handles.vtol_wv_yaw_rate_scale, &_params.vtol_wv_yaw_rate_scale);
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
@@ -724,8 +735,25 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		}
 	}
 
+	/* weather-vane mode, dampen yaw rate */
+	if (_v_att_sp.disable_mc_yaw_control == true && _v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
+		float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
+		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
+		// prevent integrator winding up in weathervane mode
+		_rates_int(2) = 0.0f;
+	}
+
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
+
+	/* weather-vane mode, scale down yaw rate */
+	if (_v_att_sp.disable_mc_yaw_control == true && _v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_manual_enabled) {
+		float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
+		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
+		// prevent integrator winding up in weathervane mode
+		_rates_int(2) = 0.0f;
+	}
+
 }
 
 /*

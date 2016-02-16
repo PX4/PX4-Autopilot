@@ -131,6 +131,8 @@ private:
 	int		_control_mode_sub = -1;
 	int 	_vehicle_status_sub = -1;
 
+	bool            _prev_motors_armed = false; // motors armed status from the previous frame
+
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
 	orb_advert_t _control_state_pub;
@@ -175,6 +177,9 @@ private:
 	control::BlockParamFloat *_mag_declination_deg;	// magnetic declination in degrees
 	control::BlockParamFloat *_heading_innov_gate;	// innovation gate for heading innovation test
 	control::BlockParamFloat *_mag_innov_gate;	// innovation gate for magnetometer innovation test
+	control::BlockParamInt
+	*_mag_decl_source;       // bitmasked integer used to control the handling of magnetic declination
+	control::BlockParamInt *_mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
 
 	control::BlockParamInt *_gps_check_mask;        // bitmasked integer used to activate the different GPS quality checks
 	control::BlockParamFloat *_requiredEph;         // maximum acceptable horiz position error (m)
@@ -225,6 +230,8 @@ Ekf2::Ekf2():
 	_mag_declination_deg(new control::BlockParamFloat(this, "EKF2_MAG_DECL", false, &_params->mag_declination_deg)),
 	_heading_innov_gate(new control::BlockParamFloat(this, "EKF2_HDG_GATE", false, &_params->heading_innov_gate)),
 	_mag_innov_gate(new control::BlockParamFloat(this, "EKF2_MAG_GATE", false, &_params->mag_innov_gate)),
+	_mag_decl_source(new control::BlockParamInt(this, "EKF2_DECL_TYPE", false, &_params->mag_declination_source)),
+	_mag_fuse_type(new control::BlockParamInt(this, "EKF2_MAG_TYPE", false, &_params->mag_fusion_type)),
 	_gps_check_mask(new control::BlockParamInt(this, "EKF2_GPS_CHECK", false, &_params->gps_check_mask)),
 	_requiredEph(new control::BlockParamFloat(this, "EKF2_REQ_EPH", false, &_params->req_hacc)),
 	_requiredEpv(new control::BlockParamFloat(this, "EKF2_REQ_EPV", false, &_params->req_vacc)),
@@ -557,6 +564,15 @@ void Ekf2::task_main()
 		} else {
 			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
 		}
+
+		// save the declination to the EKF2_MAG_DECL parameter when a dis-arm event is detected
+		if ((_params->mag_declination_source & (1 << 1)) && _prev_motors_armed && !vehicle_control_mode.flag_armed) {
+			float decl_deg;
+			_ekf->copy_mag_decl_deg(&decl_deg);
+			_mag_declination_deg->set(decl_deg);
+		}
+
+		_prev_motors_armed = vehicle_control_mode.flag_armed;
 
 	}
 

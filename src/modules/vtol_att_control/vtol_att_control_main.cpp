@@ -558,7 +558,6 @@ VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 
 void VtolAttitudeControl::task_main()
 {
-	PX4_WARN("started");
 	fflush(stdout);
 
 	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);

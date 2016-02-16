@@ -45,6 +45,9 @@
 
 #include <navigator/navigation.h>
 
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -129,6 +132,8 @@ protected:
 	actuator_controls_s _actuators;
 	orb_advert_t    _actuator_pub;
 	orb_advert_t	_cmd_pub;
+	control::BlockParamInt _param_vtol_wv_land;
+	control::BlockParamInt _param_vtol_wv_loiter;
 };
 
 #endif
