@@ -284,10 +284,18 @@ void Ekf::fuseMag()
 						  SK_MX[1] + P[20][18] * SK_MX[3]);
 			Kfusion[21] = SK_MX[0] * (P[21][19] + P[21][16] * SH_MAG[1] + P[21][17] * SH_MAG[4] - P[21][1] * SK_MX[2] + P[21][2] *
 						  SK_MX[1] + P[21][18] * SK_MX[3]);
-			Kfusion[22] = SK_MX[0] * (P[22][19] + P[22][16] * SH_MAG[1] + P[22][17] * SH_MAG[4] - P[22][1] * SK_MX[2] + P[22][2] *
-						  SK_MX[1] + P[22][18] * SK_MX[3]);
-			Kfusion[23] = SK_MX[0] * (P[23][19] + P[23][16] * SH_MAG[1] + P[23][17] * SH_MAG[4] - P[23][1] * SK_MX[2] + P[23][2] *
-						  SK_MX[1] + P[23][18] * SK_MX[3]);
+
+			// Don't update wind states unless we are doing wind estimation
+			if (_control_status.flags.wind) {
+				Kfusion[22] = SK_MX[0] * (P[22][19] + P[22][16] * SH_MAG[1] + P[22][17] * SH_MAG[4] - P[22][1] * SK_MX[2] + P[22][2] *
+							  SK_MX[1] + P[22][18] * SK_MX[3]);
+				Kfusion[23] = SK_MX[0] * (P[23][19] + P[23][16] * SH_MAG[1] + P[23][17] * SH_MAG[4] - P[23][1] * SK_MX[2] + P[23][2] *
+							  SK_MX[1] + P[23][18] * SK_MX[3]);
+
+			} else {
+				Kfusion[22] = 0.0f;
+				Kfusion[23] = 0.0f;
+			}
 
 		} else if (index == 1) {
 			// Calculate Y axis Kalman gains
@@ -340,10 +348,18 @@ void Ekf::fuseMag()
 						  SK_MY[1] - P[20][16] * SK_MY[3]);
 			Kfusion[21] = SK_MY[0] * (P[21][20] + P[21][17] * SH_MAG[0] + P[21][18] * SH_MAG[3] + P[21][0] * SK_MY[2] - P[21][2] *
 						  SK_MY[1] - P[21][16] * SK_MY[3]);
-			Kfusion[22] = SK_MY[0] * (P[22][20] + P[22][17] * SH_MAG[0] + P[22][18] * SH_MAG[3] + P[22][0] * SK_MY[2] - P[22][2] *
-						  SK_MY[1] - P[22][16] * SK_MY[3]);
-			Kfusion[23] = SK_MY[0] * (P[23][20] + P[23][17] * SH_MAG[0] + P[23][18] * SH_MAG[3] + P[23][0] * SK_MY[2] - P[23][2] *
-						  SK_MY[1] - P[23][16] * SK_MY[3]);
+
+			// Don't update wind states unless we are doing wind estimation
+			if (_control_status.flags.wind) {
+				Kfusion[22] = SK_MY[0] * (P[22][20] + P[22][17] * SH_MAG[0] + P[22][18] * SH_MAG[3] + P[22][0] * SK_MY[2] - P[22][2] *
+							  SK_MY[1] - P[22][16] * SK_MY[3]);
+				Kfusion[23] = SK_MY[0] * (P[23][20] + P[23][17] * SH_MAG[0] + P[23][18] * SH_MAG[3] + P[23][0] * SK_MY[2] - P[23][2] *
+							  SK_MY[1] - P[23][16] * SK_MY[3]);
+
+			} else {
+				Kfusion[22] = 0.0f;
+				Kfusion[23] = 0.0f;
+			}
 
 		} else if (index == 2) {
 			// Calculate Z axis Kalman gains
@@ -396,10 +412,18 @@ void Ekf::fuseMag()
 						  SK_MZ[2] - P[20][17] * SK_MZ[3]);
 			Kfusion[21] = SK_MZ[0] * (P[21][21] + P[21][18] * SH_MAG[2] + P[21][16] * SH_MAG[5] - P[21][0] * SK_MZ[1] + P[21][1] *
 						  SK_MZ[2] - P[21][17] * SK_MZ[3]);
-			Kfusion[22] = SK_MZ[0] * (P[22][21] + P[22][18] * SH_MAG[2] + P[22][16] * SH_MAG[5] - P[22][0] * SK_MZ[1] + P[22][1] *
-						  SK_MZ[2] - P[22][17] * SK_MZ[3]);
-			Kfusion[23] = SK_MZ[0] * (P[23][21] + P[23][18] * SH_MAG[2] + P[23][16] * SH_MAG[5] - P[23][0] * SK_MZ[1] + P[23][1] *
-						  SK_MZ[2] - P[23][17] * SK_MZ[3]);
+
+			// Don't update wind states unless we are doing wind estimation
+			if (_control_status.flags.wind) {
+				Kfusion[22] = SK_MZ[0] * (P[22][21] + P[22][18] * SH_MAG[2] + P[22][16] * SH_MAG[5] - P[22][0] * SK_MZ[1] + P[22][1] *
+							  SK_MZ[2] - P[22][17] * SK_MZ[3]);
+				Kfusion[23] = SK_MZ[0] * (P[23][21] + P[23][18] * SH_MAG[2] + P[23][16] * SH_MAG[5] - P[23][0] * SK_MZ[1] + P[23][1] *
+							  SK_MZ[2] - P[23][17] * SK_MZ[3]);
+
+			} else {
+				Kfusion[22] = 0.0f;
+				Kfusion[23] = 0.0f;
+			}
 
 		} else {
 			return;
@@ -550,12 +574,35 @@ void Ekf::fuseHeading()
 	// calculate the kalman gains taking dvantage of the reduce size of H_YAW
 	float Kfusion[_k_num_states] = {};
 
-	for (unsigned row = 0; row < _k_num_states; row++) {
+	// gains for states that are always used
+	for (unsigned row = 0; row <= 15; row++) {
 		for (unsigned column = 0; column < 3; column++) {
 			Kfusion[row] += P[row][column] * H_YAW[column];
 		}
 
 		Kfusion[row] *= innovation_var_inv;
+	}
+
+	// only calculate gains for magnetic field states if they are being used
+	if (_control_status.flags.mag_3D) {
+		for (unsigned row = 16; row <= 21; row++) {
+			for (unsigned column = 0; column < 3; column++) {
+				Kfusion[row] += P[row][column] * H_YAW[column];
+			}
+
+			Kfusion[row] *= innovation_var_inv;
+		}
+	}
+
+	// only calculate gains for wind states if they are being used
+	if (_control_status.flags.wind) {
+		for (unsigned row = 22; row <= 23; row++) {
+			for (unsigned column = 0; column < 3; column++) {
+				Kfusion[row] += P[row][column] * H_YAW[column];
+			}
+
+			Kfusion[row] *= innovation_var_inv;
+		}
 	}
 
 	// innovation test ratio
@@ -680,6 +727,8 @@ void Ekf::fuseDeclination()
 	Kfusion[13] = -t12 * (P[13][16] * t22 - P[13][17] * t23);
 	Kfusion[14] = -t12 * (P[14][16] * t22 - P[14][17] * t23);
 	Kfusion[15] = -t12 * (P[15][16] * t22 - P[15][17] * t23);
+
+	// We only do declination fusion when we are using all the field states, so no logic required here
 	Kfusion[16] = -t12 * (t6 - P[16][17] * t23);
 	Kfusion[17] = t12 * (t14 - P[17][16] * t22);
 	Kfusion[18] = -t12 * (P[18][16] * t22 - P[18][17] * t23);

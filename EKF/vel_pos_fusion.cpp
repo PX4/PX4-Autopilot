@@ -153,9 +153,29 @@ void Ekf::fuseVelPosHeight()
 		unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
 
         // calculate kalman gain K = PHS, where S = 1/innovation variance
-		for (int row = 0; row < 24; row++) {
-            Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
+                for (int row = 0; row <= 15; row++) {
+                    Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
 		}
+                // only update magnetic field states if we are fusing 3-axis observations
+                if (_control_status.flags.mag_3D) {
+                    for (int row = 16; row <= 21; row++) {
+                        Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
+                    }
+                } else {
+                    for (int row = 16; row <= 21; row++) {
+                        Kfusion[row] = 0.0f;
+                    }
+                }
+                // only update wind states if we are doing wind estimation
+                if (_control_status.flags.wind) {
+                    for (int row = 22; row <= 23; row++) {
+                        Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
+                    }
+                } else {
+                    for (int row = 22; row <= 23; row++) {
+                        Kfusion[row] = 0.0f;
+                    }
+                }
 
 		// by definition the angle error state is zero at the fusion time
 		_state.ang_error.setZero();
