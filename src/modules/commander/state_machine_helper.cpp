@@ -659,6 +659,8 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if (status->vtol_transition_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		} else if (status->mission_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 		/* datalink loss enabled:
 		 * check for datalink lost: this should always trigger RTGS */
