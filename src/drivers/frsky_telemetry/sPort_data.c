@@ -74,7 +74,7 @@ void sPort_init()
 	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-    gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 }
 
 /**
@@ -229,56 +229,63 @@ void sPort_send_FUEL(int uart)
 
 void sPort_send_T1(int uart)
 {
-    /* get a local copy of the vehicle status data */
-    struct vehicle_status_s vehicle_status;
-    memset(&vehicle_status, 0, sizeof(vehicle_status));
-    orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+	/* get a local copy of the vehicle status data */
+	struct vehicle_status_s vehicle_status;
+	memset(&vehicle_status, 0, sizeof(vehicle_status));
+	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
 
-    /* map flightmode from PX4 to APM */
-    uint32_t flightmodePX4 = (int)(vehicle_status.main_state);
-    uint32_t flightmodeAPM = 0;
-    switch (flightmodePX4)
-    {
-    case MAIN_STATE_ACRO:
-        flightmodeAPM = 1;
-        break;
-    case MAIN_STATE_ALTCTL:
-        flightmodeAPM = 2;
-        break;
-    case MAIN_STATE_AUTO_LAND:
-        flightmodeAPM = 9;
-        break;
-    case MAIN_STATE_AUTO_LOITER:
-        flightmodeAPM = 5;
-        break;
-    case MAIN_STATE_AUTO_MISSION:
-        flightmodeAPM = 3;
-        break;
-    case MAIN_STATE_AUTO_RTL:
-        flightmodeAPM = 6;
-        break;
-    case MAIN_STATE_MANUAL:
-        flightmodeAPM = 0;
-        break;
-    default:
-        flightmodeAPM = 0;
-    }
+	/* map flightmode from PX4 to APM */
+	uint32_t flightmodePX4 = (int)(vehicle_status.main_state);
+	uint32_t flightmodeAPM = 0;
 
-    /* send data */
-    sPort_send_data(uart, SMARTPORT_ID_T1, flightmodeAPM);
+	switch (flightmodePX4) {
+	case MAIN_STATE_ACRO:
+		flightmodeAPM = 1;
+		break;
+
+	case MAIN_STATE_ALTCTL:
+		flightmodeAPM = 2;
+		break;
+
+	case MAIN_STATE_AUTO_LAND:
+		flightmodeAPM = 9;
+		break;
+
+	case MAIN_STATE_AUTO_LOITER:
+		flightmodeAPM = 5;
+		break;
+
+	case MAIN_STATE_AUTO_MISSION:
+		flightmodeAPM = 3;
+		break;
+
+	case MAIN_STATE_AUTO_RTL:
+		flightmodeAPM = 6;
+		break;
+
+	case MAIN_STATE_MANUAL:
+		flightmodeAPM = 0;
+		break;
+
+	default:
+		flightmodeAPM = 0;
+	}
+
+	/* send data */
+	sPort_send_data(uart, SMARTPORT_ID_T1, flightmodeAPM);
 }
 
 // verified scaling
 void sPort_send_T2(int uart)
 {
-    /* get a local copy of the global position data */
-    struct vehicle_gps_position_s gps_pos;
-    memset(&gps_pos, 0, sizeof(gps_pos));
-    orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
+	/* get a local copy of the global position data */
+	struct vehicle_gps_position_s gps_pos;
+	memset(&gps_pos, 0, sizeof(gps_pos));
+	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
 
-    /* send data */
-    uint32_t satcount = (int)(gps_pos.satellites_used);
-    uint32_t fixtype = (int)(gps_pos.fix_type);
-    uint32_t t2 = satcount * 10 + fixtype;
-    sPort_send_data(uart, SMARTPORT_ID_T2, t2);
+	/* send data */
+	uint32_t satcount = (int)(gps_pos.satellites_used);
+	uint32_t fixtype = (int)(gps_pos.fix_type);
+	uint32_t t2 = satcount * 10 + fixtype;
+	sPort_send_data(uart, SMARTPORT_ID_T2, t2);
 }
