@@ -73,6 +73,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -108,6 +109,7 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
+#include <uORB/topics/ekf2_innovations.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -155,7 +157,9 @@ struct logbuffer_s lb;
 static pthread_mutex_t logbuffer_mutex;
 static pthread_cond_t logbuffer_cond;
 
-static char log_dir[32];
+#define LOG_BASE_PATH_LEN	64
+
+static char log_dir[LOG_BASE_PATH_LEN];
 
 /* statistics counters */
 static uint64_t start_time = 0;
@@ -308,7 +312,7 @@ int sdlog2_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("sdlog2",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_DEFAULT - 30,
-						 3000,
+						 3300,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
 
@@ -422,7 +426,6 @@ int create_log_dir()
 			mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {
-				warnx("log dir created: %s", log_dir);
 				break;
 
 			} else if (errno != EEXIST) {
@@ -443,15 +446,16 @@ int create_log_dir()
 	}
 
 	/* print logging path, important to find log file later */
-	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] log dir: %s", log_dir);
+	mavlink_and_console_log_info(mavlink_fd, "[blackbox] %s", log_dir);
+
 	return 0;
 }
 
 int open_log_file()
 {
 	/* string to hold the path to the log */
-	char log_file_name[32] = "";
-	char log_file_path[64] = "";
+	char log_file_name[64] = "";
+	char log_file_path[sizeof(log_file_name) + LOG_BASE_PATH_LEN] = "";
 
 	struct tm tt;
 	bool time_ok = get_log_time_utc_tt(&tt, false);
@@ -479,7 +483,7 @@ int open_log_file()
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical(mavlink_fd, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -491,10 +495,10 @@ int open_log_file()
 #endif
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[blackbox] failed: %s", log_file_name);
 
 	} else {
-		mavlink_and_console_log_info(mavlink_fd, "[sdlog2] starting: %s", log_file_name);
+		mavlink_and_console_log_info(mavlink_fd, "[blackbox] recording: %s", log_file_name);
 	}
 
 	return fd;
@@ -503,8 +507,8 @@ int open_log_file()
 int open_perf_file(const char* str)
 {
 	/* string to hold the path to the log */
-	char log_file_name[32] = "";
-	char log_file_path[64] = "";
+	char log_file_name[64] = "";
+	char log_file_path[sizeof(log_file_name) + LOG_BASE_PATH_LEN] = "";
 
 	struct tm tt;
 	bool time_ok = get_log_time_utc_tt(&tt, false);
@@ -531,7 +535,7 @@ int open_perf_file(const char* str)
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical(mavlink_fd, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -543,7 +547,7 @@ int open_perf_file(const char* str)
 #endif
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] failed opening: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[blackbox] failed: %s", log_file_name);
 
 	}
 
@@ -553,7 +557,7 @@ int open_perf_file(const char* str)
 static void *logwriter_thread(void *arg)
 {
 	/* set name */
-	prctl(PR_SET_NAME, "sdlog2_writer", 0);
+	px4_prctl(PR_SET_NAME, "sdlog2_writer", 0);
 
 	int log_fd = open_log_file();
 
@@ -670,7 +674,7 @@ void sdlog2_start_log()
 
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
+		mavlink_and_console_log_critical(mavlink_fd, "[blackbox] error creating log dir");
 		return;
 	}
 
@@ -684,9 +688,12 @@ void sdlog2_start_log()
 	pthread_attr_init(&logwriter_attr);
 
 	struct sched_param param;
+	(void)pthread_attr_getschedparam(&logwriter_attr, &param);
 	/* low priority, as this is expensive disk I/O */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
-	(void)pthread_attr_setschedparam(&logwriter_attr, &param);
+	if (pthread_attr_setschedparam(&logwriter_attr, &param)) {
+		warnx("sdlog2: failed setting sched params");
+	}
 
 	pthread_attr_setstacksize(&logwriter_attr, 2048);
 
@@ -760,7 +767,7 @@ void sdlog2_stop_log()
 	/* free log writer performance counter */
 	perf_free(perf_write);
 
-	mavlink_and_console_log_info(mavlink_fd, "[sdlog2] logging stopped");
+	mavlink_and_console_log_info(mavlink_fd, "[blackbox] recording stopped");
 
 	sdlog2_status();
 }
@@ -854,7 +861,7 @@ bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void
 
 	if (*handle < 0) {
 		if (OK == orb_exists(topic, multi_instance)) {
-			*handle = orb_subscribe(topic);
+			*handle = orb_subscribe_multi(topic, multi_instance);
 			/* copy first data */
 			if (*handle >= 0) {
 				orb_copy(topic, *handle, buffer);
@@ -1089,6 +1096,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vtol_vehicle_status_s vtol_status;
 		struct time_offset_s time_offset;
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
+		struct control_state_s ctrl_state;
+		struct ekf2_innovations_s innovations;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1110,7 +1119,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_STAT_s log_STAT;
 			struct log_VTOL_s log_VTOL;
 			struct log_RC_s log_RC;
-			struct log_OUT0_s log_OUT0;
+			struct log_OUT_s log_OUT;
 			struct log_AIRS_s log_AIRS;
 			struct log_ARSP_s log_ARSP;
 			struct log_FLOW_s log_FLOW;
@@ -1137,6 +1146,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ENCD_s log_ENCD;
 			struct log_TSYN_s log_TSYN;
 			struct log_MACS_s log_MACS;
+			struct log_CTS_s log_CTS;
+			struct log_EST4_s log_INO1;
+			struct log_EST5_s log_INO2;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1153,6 +1165,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int att_sp_sub;
 		int rates_sp_sub;
 		int act_outputs_sub;
+		int act_outputs_1_sub;
 		int act_controls_sub;
 		int act_controls_1_sub;
 		int local_pos_sub;
@@ -1179,6 +1192,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int encoders_sub;
 		int tsync_sub;
 		int mc_att_ctrl_status_sub;
+		int ctrl_state_sub;
+		int innov_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1190,6 +1205,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.att_sp_sub = -1;
 	subs.rates_sp_sub = -1;
 	subs.act_outputs_sub = -1;
+	subs.act_outputs_1_sub = -1;
 	subs.act_controls_sub = -1;
 	subs.act_controls_1_sub = -1;
 	subs.local_pos_sub = -1;
@@ -1212,7 +1228,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.wind_sub = -1;
 	subs.tsync_sub = -1;
 	subs.mc_att_ctrl_status_sub = -1;
+	subs.ctrl_state_sub = -1;
 	subs.encoders_sub = -1;
+	subs.innov_sub = -1;
 
 	/* add new topics HERE */
 
@@ -1515,10 +1533,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- ACTUATOR OUTPUTS --- */
-		if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_sub, &buf.act_outputs)) {
+		if (copy_if_updated_multi(ORB_ID(actuator_outputs), 0, &subs.act_outputs_sub, &buf.act_outputs)) {
 			log_msg.msg_type = LOG_OUT0_MSG;
-			memcpy(log_msg.body.log_OUT0.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT0.output));
-			LOGBUFFER_WRITE_AND_COUNT(OUT0);
+			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
+			LOGBUFFER_WRITE_AND_COUNT(OUT);
+		}
+
+		if (copy_if_updated_multi(ORB_ID(actuator_outputs), 1, &subs.act_outputs_1_sub, &buf.act_outputs)) {
+			log_msg.msg_type = LOG_OUT1_MSG;
+			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
+			LOGBUFFER_WRITE_AND_COUNT(OUT);
 		}
 
 		/* --- ACTUATOR CONTROL --- */
@@ -1668,10 +1692,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- RC CHANNELS --- */
 		if (copy_if_updated(ORB_ID(rc_channels), &subs.rc_sub, &buf.rc)) {
 			log_msg.msg_type = LOG_RC_MSG;
-			/* Copy only the first 8 channels of 14 */
+			/* Copy only the first 12 channels of 18 */
 			memcpy(log_msg.body.log_RC.channel, buf.rc.channels, sizeof(log_msg.body.log_RC.channel));
+			log_msg.body.log_RC.rssi = buf.rc.rssi;
 			log_msg.body.log_RC.channel_count = buf.rc.channel_count;
 			log_msg.body.log_RC.signal_lost = buf.rc.signal_lost;
+			log_msg.body.log_RC.frame_drop = buf.rc.frame_drop_count;
 			LOGBUFFER_WRITE_AND_COUNT(RC);
 		}
 
@@ -1783,7 +1809,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_EST1_MSG;
 			unsigned maxcopy1 = ((sizeof(buf.estimator_status.states) - maxcopy0) < sizeof(log_msg.body.log_EST1.s)) ? (sizeof(buf.estimator_status.states) - maxcopy0) : sizeof(log_msg.body.log_EST1.s);
 			memset(&(log_msg.body.log_EST1.s), 0, sizeof(log_msg.body.log_EST1.s));
-			memcpy(&(log_msg.body.log_EST1.s), buf.estimator_status.states + maxcopy0, maxcopy1);
+			memcpy(&(log_msg.body.log_EST1.s), ((char*)buf.estimator_status.states) + maxcopy0, maxcopy1);
 			LOGBUFFER_WRITE_AND_COUNT(EST1);
 
 			log_msg.msg_type = LOG_EST2_MSG;
@@ -1795,8 +1821,31 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_EST3_MSG;
 			unsigned maxcopy3 = ((sizeof(buf.estimator_status.covariances) - maxcopy2) < sizeof(log_msg.body.log_EST3.cov)) ? (sizeof(buf.estimator_status.covariances) - maxcopy2) : sizeof(log_msg.body.log_EST3.cov);
 			memset(&(log_msg.body.log_EST3.cov), 0, sizeof(log_msg.body.log_EST3.cov));
-			memcpy(&(log_msg.body.log_EST3.cov), buf.estimator_status.covariances + maxcopy2, maxcopy3);
+			memcpy(&(log_msg.body.log_EST3.cov), ((char*)buf.estimator_status.covariances) + maxcopy2, maxcopy3);
 			LOGBUFFER_WRITE_AND_COUNT(EST3);
+		}
+
+		/* --- EKF2 INNOVATIONS --- */
+		if (copy_if_updated(ORB_ID(ekf2_innovations), &subs.innov_sub, &buf.innovations)) {
+			log_msg.msg_type = LOG_EST4_MSG;
+			memset(&(log_msg.body.log_INO1.s), 0, sizeof(log_msg.body.log_INO1.s));
+			for (unsigned i = 0; i < 6; i++) {
+				log_msg.body.log_INO1.s[i] = buf.innovations.vel_pos_innov[i];
+				log_msg.body.log_INO1.s[i + 6] = buf.innovations.vel_pos_innov_var[i];
+			}
+			LOGBUFFER_WRITE_AND_COUNT(EST4);
+
+			log_msg.msg_type = LOG_EST5_MSG;
+			memset(&(log_msg.body.log_INO2.s), 0, sizeof(log_msg.body.log_INO2.s));
+			for (unsigned i = 0; i < 3; i++) {
+				log_msg.body.log_INO2.s[i] = buf.innovations.mag_innov[i];
+				log_msg.body.log_INO2.s[i + 3] = buf.innovations.mag_innov_var[i];
+			}
+
+			log_msg.body.log_INO2.s[6] = buf.innovations.heading_innov;
+			log_msg.body.log_INO2.s[7] = buf.innovations.heading_innov_var;
+			LOGBUFFER_WRITE_AND_COUNT(EST5);
+
 		}
 
 		/* --- TECS STATUS --- */
@@ -1856,6 +1905,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(MACS);
 		}
 
+		/* --- CONTROL STATE --- */
+		if (copy_if_updated(ORB_ID(control_state), &subs.ctrl_state_sub, &buf.ctrl_state)) {
+			log_msg.msg_type = LOG_CTS_MSG;
+			log_msg.body.log_CTS.vx_body = buf.ctrl_state.x_vel;
+			log_msg.body.log_CTS.vy_body = buf.ctrl_state.y_vel;
+			log_msg.body.log_CTS.vz_body = buf.ctrl_state.z_vel;
+			log_msg.body.log_CTS.airspeed = buf.ctrl_state.airspeed;
+			log_msg.body.log_CTS.roll_rate = buf.ctrl_state.roll_rate;
+			log_msg.body.log_CTS.pitch_rate = buf.ctrl_state.pitch_rate;
+			log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
+			LOGBUFFER_WRITE_AND_COUNT(CTS);
+		}
+
 		/* signal the other thread new data, but not yet unlock */
 		if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {
 			/* only request write if several packets can be written at once */
@@ -1893,12 +1955,12 @@ void sdlog2_status()
 		float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
 		warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
-		mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+		mavlink_log_info(mavlink_fd, "[blackbox] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
 	}
 }
 
 /**
- * @return 0 if file exists
+ * @return true if file exists
  */
 bool file_exist(const char *filename)
 {
@@ -1918,7 +1980,7 @@ int check_free_space()
 	/* use a threshold of 50 MiB */
 	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
-			"[sdlog2] no space on MicroSD: %u MiB",
+			"[blackbox] no space on MicroSD: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
 		return PX4_ERROR;
@@ -1926,7 +1988,7 @@ int check_free_space()
 	/* use a threshold of 100 MiB to send a warning */
 	} else if (!space_warning_sent && statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
-			"[sdlog2] space on MicroSD low: %u MiB",
+			"[blackbox] space on MicroSD low: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we don't want to flood the user with warnings */
 		space_warning_sent = true;

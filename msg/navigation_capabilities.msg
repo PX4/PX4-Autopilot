@@ -3,3 +3,4 @@ float32 turn_distance		# the optimal distance to a waypoint to switch to the nex
 float32 landing_horizontal_slope_displacement
 float32 landing_slope_angle_rad
 float32 landing_flare_length
+bool abort_landing

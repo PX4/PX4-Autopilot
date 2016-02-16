@@ -84,7 +84,9 @@ SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta,
 
 	if (_handle < 0) { warnx("sub failed"); }
 
-	orb_set_interval(getHandle(), interval);
+	if (interval > 0) {
+		orb_set_interval(getHandle(), interval);
+	}
 }
 
 bool SubscriptionBase::updated()

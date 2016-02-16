@@ -36,10 +36,8 @@
  * Parameters for the standard VTOL controller.
  *
  * @author Simon Wilks	<simon@uaventure.com>
- * @author Roman Bapst	<bapstroman@gmail.com>
+ * @author Roman Bapst	<roman@px4.io>
  */
-
-#include <systemlib/param/param.h>
 
 /**
  * Target throttle value for pusher/puller motor during the transition to fw mode

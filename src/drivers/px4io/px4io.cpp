@@ -273,6 +273,7 @@ private:
 	/* cached IO state */
 	uint16_t		_status;		///< Various IO status flags
 	uint16_t		_alarms;		///< Various IO alarms
+	uint16_t		_last_written_arming;	///< the last written arming state reg
 
 	/* subscribed topics */
 	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
@@ -509,6 +510,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io latency")),
 	_status(0),
 	_alarms(0),
+	_last_written_arming(0),
 	_t_actuator_controls_0(-1),
 	_t_actuator_controls_1(-1),
 	_t_actuator_controls_2(-1),
@@ -624,7 +626,7 @@ PX4IO::init()
 {
 	int ret;
 	param_t sys_restart_param;
-	int sys_restart_val = DM_INIT_REASON_VOLATILE;
+	int32_t sys_restart_val = DM_INIT_REASON_VOLATILE;
 
 	ASSERT(_task == -1);
 
@@ -632,7 +634,12 @@ PX4IO::init()
 
 	if (sys_restart_param != PARAM_INVALID) {
 		/* Indicate restart type is unknown */
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
+
+		if (prev_val != DM_INIT_REASON_POWER_ON) {
+			param_set_no_notification(sys_restart_param, &sys_restart_val);
+		}
 	}
 
 	/* do regular cdev init */
@@ -813,8 +820,12 @@ PX4IO::init()
 
 		/* Indicate restart type is in-flight */
 		sys_restart_val = DM_INIT_REASON_IN_FLIGHT;
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
 
+		if (prev_val != sys_restart_val) {
+			param_set(sys_restart_param, &sys_restart_val);
+		}
 
 		/* regular boot, no in-air restart, init IO */
 
@@ -847,7 +858,12 @@ PX4IO::init()
 
 		/* Indicate restart type is power on */
 		sys_restart_val = DM_INIT_REASON_POWER_ON;
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
+
+		if (prev_val != sys_restart_val) {
+			param_set(sys_restart_param, &sys_restart_val);
+		}
 
 	}
 
@@ -977,7 +993,7 @@ PX4IO::task_main()
 		}
 
 		if (now >= poll_last + IO_POLL_INTERVAL) {
-			/* run at 50Hz */
+			/* run at 50-250Hz */
 			poll_last = now;
 
 			/* pull status and alarms from IO */
@@ -988,16 +1004,6 @@ PX4IO::task_main()
 
 			/* fetch PWM outputs from IO */
 			io_publish_pwm_outputs();
-		}
-
-		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
-			/* run at 5Hz */
-			orb_check_last = now;
-
-			/* try to claim the MAVLink log FD */
-			if (_mavlink_fd < 0) {
-				_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
-			}
 
 			/* check updates on uORB topics and handle it */
 			bool updated = false;
@@ -1012,6 +1018,19 @@ PX4IO::task_main()
 			if (updated) {
 				io_set_arming_state();
 			}
+		}
+
+		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
+			/* run at 5Hz */
+			orb_check_last = now;
+
+			/* try to claim the MAVLink log FD */
+			if (_mavlink_fd < 0) {
+				_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
+			}
+
+			/* check updates on uORB topics and handle it */
+			bool updated = false;
 
 			/* vehicle command */
 			orb_check(_t_vehicle_command, &updated);
@@ -1350,7 +1369,15 @@ PX4IO::io_set_arming_state()
 		}
 	}
 
-	return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
+	uint16_t new_arming_state = set;
+	new_arming_state &= ~(clear);
+
+	if (_last_written_arming != new_arming_state) {
+		_last_written_arming = new_arming_state;
+		return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
+	}
+
+	return 0;
 }
 
 int
@@ -1780,8 +1807,8 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 
 	/* get RSSI from input channel */
 	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
-		int rssi = (input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) /
-			   ((_rssi_pwm_max - _rssi_pwm_min) / 100);
+		int rssi = ((input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) * 100) /
+			   (_rssi_pwm_max - _rssi_pwm_min);
 		rssi = rssi > 100 ? 100 : rssi;
 		rssi = rssi < 0 ? 0 : rssi;
 		input_rc.rssi = rssi;
@@ -1844,7 +1871,7 @@ int
 PX4IO::io_publish_pwm_outputs()
 {
 	/* data we are going to fetch */
-	actuator_outputs_s outputs;
+	actuator_outputs_s outputs = {};
 	multirotor_motor_limits_s motor_limits;
 
 	outputs.timestamp = hrt_absolute_time();
@@ -2090,11 +2117,11 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 
 		} while (buflen > 0);
 
-		/* ensure a closing newline */
+		int ret;
+
+		/* send the closing newline */
 		msg->text[0] = '\n';
 		msg->text[1] = '\0';
-
-		int ret;
 
 		for (int i = 0; i < 30; i++) {
 			/* failed, but give it a 2nd shot */
@@ -2108,27 +2135,24 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			}
 		}
 
-		if (ret) {
-			return ret;
+		if (ret == 0) {
+			/* success, exit */
+			break;
 		}
 
 		retries--;
 
-		DEVICE_LOG("mixer sent");
+	} while (retries > 0);
 
-	} while (retries > 0 && (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK)));
+	if (retries == 0) {
+		mavlink_and_console_log_info(_mavlink_fd, "[IO] mixer upload fail");
+		/* load must have failed for some reason */
+		return -EINVAL;
 
-	/* check for the mixer-OK flag */
-	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK) {
-		mavlink_log_info(_mavlink_fd, "[IO] mixer upload ok");
-		return 0;
+	} else {
+		/* all went well, set the mixer ok flag */
+		return io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_MIXER_OK);
 	}
-
-	DEVICE_LOG("mixer rejected by IO");
-	mavlink_log_info(_mavlink_fd, "[IO] mixer upload fail");
-
-	/* load must have failed for some reason */
-	return -EINVAL;
 }
 
 void

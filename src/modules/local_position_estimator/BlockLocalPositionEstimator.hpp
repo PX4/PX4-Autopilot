@@ -6,7 +6,7 @@
 #include <lib/geo/geo.h>
 
 #ifdef USE_MATRIX_LIB
-#include "matrix/src/Matrix.hpp"
+#include "matrix/Matrix.hpp"
 using namespace matrix;
 #else
 #include <Eigen/Eigen>
@@ -145,7 +145,7 @@ private:
 	// predict the next state
 	void predict();
 
-	// correct the state prediction wtih a measurement
+	// correct the state prediction with a measurement
 	void correctBaro();
 	void correctGps();
 	void correctLidar();
@@ -304,7 +304,7 @@ private:
 	perf_counter_t _err_perf;
 
 	// state space
-	Matrix<float, n_x, 1>  _x; // state vector
-	Matrix<float, n_u, 1>  _u; // input vector
+	Vector<float, n_x>  _x; // state vector
+	Vector<float, n_u>  _u; // input vector
 	Matrix<float, n_x, n_x>  _P; // state covariance matrix
 };

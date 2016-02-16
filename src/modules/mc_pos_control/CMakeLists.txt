@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 1200
 	SRCS
 		mc_pos_control_main.cpp
-		mc_pos_control_params.c
 	DEPENDS
 		platforms__common
 	)

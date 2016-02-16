@@ -37,7 +37,6 @@ px4_add_module(
 		-Os
 	SRCS
 		baro.cpp
-		baro_sim.cpp
 	DEPENDS
 		platforms__common
 	)

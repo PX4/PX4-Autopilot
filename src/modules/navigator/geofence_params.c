@@ -95,6 +95,8 @@ PARAM_DEFINE_INT32(GF_COUNT, -1);
  *
  * Set to > 0 to activate a geofence action if horizontal distance to home exceeds this value.
  *
+ * @unit meters
+ * @min -1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
@@ -104,6 +106,8 @@ PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
  *
  * Set to > 0 to activate a geofence action if vertical distance to home exceeds this value.
  *
+ * @unit meters
+ * @min -1
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_MAX_VER_DIST, -1);

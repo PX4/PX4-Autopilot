@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 
-#include <systemlib/param/param.h>
-
 /**
  * MAVLink system ID
  * @group MAVLink

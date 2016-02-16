@@ -402,7 +402,12 @@ GPS::task_main()
 
 					if (!(_pub_blocked)) {
 						if (helper_ret & 1) {
-							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+							if (_report_gps_pos_pub != nullptr) {
+								orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
+							} else {
+								_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
+							}
 						}
 
 						if (_p_report_sat_info && (helper_ret & 2)) {

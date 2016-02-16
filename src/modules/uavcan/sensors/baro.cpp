@@ -44,7 +44,7 @@ UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node) :
 	UavcanCDevSensorBridgeBase("uavcan_baro", "/dev/uavcan/baro", BARO_BASE_DEVICE_PATH, ORB_ID(sensor_baro)),
 	_sub_air_pressure_data(node),
 	_sub_air_temperature_data(node),
-	_reports(nullptr)
+	_reports(2, sizeof(baro_report))
 { }
 
 int UavcanBarometerBridge::init()
@@ -53,13 +53,6 @@ int UavcanBarometerBridge::init()
 
 	if (res < 0) {
 		return res;
-	}
-
-	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
-
-	if (_reports == nullptr) {
-		return -1;
 	}
 
 	res = _sub_air_pressure_data.start(AirPressureCbBinder(this, &UavcanBarometerBridge::air_pressure_sub_cb));
@@ -91,7 +84,7 @@ ssize_t UavcanBarometerBridge::read(struct file *filp, char *buffer, size_t bufl
 	}
 
 	while (count--) {
-		if (_reports->get(baro_buf)) {
+		if (_reports.get(baro_buf)) {
 			ret += sizeof(*baro_buf);
 			baro_buf++;
 		}
@@ -132,7 +125,7 @@ int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			irqstate_t flags = irqsave();
 
-			if (!_reports->resize(arg)) {
+			if (!_reports.resize(arg)) {
 				irqrestore(flags);
 				return -ENOMEM;
 			}
@@ -186,7 +179,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 	report.altitude = (((std::pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 	// add to the ring buffer
-	_reports->force(&report);
+	_reports.force(&report);
 
 	publish(msg.getSrcNodeID().get(), &report);
 }

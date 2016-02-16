@@ -384,6 +384,11 @@ uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 bool
 uORB::DeviceNode::appears_updated(SubscriberData *sd)
 {
+	/* block if in simulation mode */
+	while (px4_sim_delay_enabled()) {
+		usleep(100);
+	}
+
 	//warnx("uORB::DeviceNode::appears_updated sd = %p", sd);
 	/* assume it doesn't look updated */
 	bool ret = false;

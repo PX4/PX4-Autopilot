@@ -48,6 +48,8 @@
 #define M_PI_F static_cast<float>(M_PI)
 #endif
 
+#define MIN_AIRSPEED_MEAS 5.0f
+
 constexpr float EKF_COVARIANCE_DIVERGED = 1.0e8f;
 
 AttPosEKF::AttPosEKF() :
@@ -1686,7 +1688,7 @@ void AttPosEKF::FuseAirspeed()
     // Calculate the predicted airspeed
     VtasPred = sqrtf((ve - vwe)*(ve - vwe) + (vn - vwn)*(vn - vwn) + vd*vd);
     // Perform fusion of True Airspeed measurement
-    if (useAirspeed && fuseVtasData && (VtasPred > 1.0f) && (VtasMeas > 8.0f))
+    if (useAirspeed && fuseVtasData && (VtasPred > 1.0f) && (VtasMeas > MIN_AIRSPEED_MEAS))
     {
         // Calculate observation jacobians
         SH_TAS[0] = 1/(sqrtf(sq(ve - vwe) + sq(vn - vwn) + sq(vd)));
@@ -2594,7 +2596,7 @@ void AttPosEKF::CovarianceInit()
     P[13][13] = sq(0.2f*dtIMU);
 
     //Wind velocities
-    P[14][14] = 0.0f;
+    P[14][14] = 0.01f;
     P[15][15]  = P[14][14];
 
     //Earth magnetic field
@@ -2825,7 +2827,7 @@ bool AttPosEKF::VelNEDDiverged()
     Vector3f delta = current_vel - gps_vel;
     float delta_len = delta.length();
 
-    bool excessive = (delta_len > 20.0f);
+    bool excessive = (delta_len > 30.0f);
 
     current_ekf_state.error |= excessive;
     current_ekf_state.velOffsetExcessive = excessive;

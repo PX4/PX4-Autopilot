@@ -1,8 +1,13 @@
 #!nsh
 #
-# @name Duorotor Tailsitter
+# @name Caipiroshka Duo Tailsitter
 #
-# @type VTOL Tailsitter
+# @type VTOL Duo Tailsitter
+#
+# @output MAIN1 motor left
+# @output MAIN2 motor right
+# @output MAIN5 elevon left
+# @output MAIN6 elevon right
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #

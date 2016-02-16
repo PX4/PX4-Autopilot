@@ -79,6 +79,8 @@ PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
  *
  * 0 disables the trigger, 1 sets it to enabled on command, 2 always on
  *
+ * @reboot_required true
+ *
  * @min 0
  * @max 2
  * @group Camera trigger

@@ -101,8 +101,8 @@ uint8_t sumd_crc8(uint8_t crc, uint8_t value);
 __EXPORT int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count,
 				 uint16_t *channels, uint16_t max_chan_count);
 */
-int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count,
-		uint16_t *channels, uint16_t max_chan_count);
+__EXPORT int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count,
+			 uint16_t *channels, uint16_t max_chan_count);
 
 
 __END_DECLS

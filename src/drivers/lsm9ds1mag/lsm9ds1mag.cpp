@@ -595,7 +595,7 @@ const uint8_t LSM9DS1_mag::_checked_registers[LSM9DS1_NUM_CHECKED_REGISTERS] = {
 
 LSM9DS1_mag::LSM9DS1_mag(int bus, const char *path, spi_dev_e device, enum Rotation rotation) :
     SPI("LSM9DS1_mag", path, bus, device, SPIDEV_MODE3,
-        11 * 1000 /* will be rounded to 10.4 MHz, within margins for LSM9DS1 */),
+        LSM9DS1_LOW_BUS_SPEED/* will be rounded to 10.4 MHz, within margins for LSM9DS1 */),
     _call{},
     _call_interval(0),
     _reports(nullptr),
@@ -1070,6 +1070,7 @@ LSM9DS1_mag::start()
 {
     /* make sure we are stopped first */
     stop();
+    reset();
 
     /* reset the report ring */
     _reports->flush();

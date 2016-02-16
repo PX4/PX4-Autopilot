@@ -12,7 +12,7 @@ TEST(SUMDTest, SUMD)
 {
 	const char *filepath = "testdata/sumd_data.txt";
 
-	warnx("loading data from: %s", filepath);
+	//warnx("loading data from: %s", filepath);
 
 	FILE *fp;
 

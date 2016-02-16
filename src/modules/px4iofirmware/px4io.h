@@ -170,7 +170,6 @@ extern pwm_limit_t pwm_limit;
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 
 # define PX4IO_RELAY_CHANNELS		0
-# define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
 # define ENABLE_SBUS_OUT(_s)		stm32_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
 
 # define VDD_SERVO_FAULT		(!stm32_gpioread(GPIO_SERVO_FAULT_DETECT))
@@ -190,6 +189,8 @@ extern pwm_limit_t pwm_limit;
  */
 extern void	mixer_tick(void);
 extern int	mixer_handle_text(const void *buffer, size_t length);
+/* Set the failsafe values of all mixed channels (based on zero throttle, controls centered) */
+extern void	mixer_set_failsafe(void);
 
 /**
  * Safety switch/LED.
@@ -222,14 +223,6 @@ extern uint16_t	adc_measure(unsigned channel);
  */
 extern void	controls_init(void);
 extern void	controls_tick(void);
-extern int	dsm_init(const char *device);
-extern bool	dsm_input(uint16_t *values, uint16_t *num_values, uint8_t *n_bytes, uint8_t **bytes);
-extern void	dsm_bind(uint16_t cmd, int pulses);
-extern int	sbus_init(const char *device);
-extern bool	sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
-			   uint16_t max_channels);
-extern void	sbus1_output(uint16_t *values, uint16_t num_values);
-extern void	sbus2_output(uint16_t *values, uint16_t num_values);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;

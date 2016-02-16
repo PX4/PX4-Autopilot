@@ -31,9 +31,7 @@
 #
 ############################################################################
 set(MIXER_CFLAGS -Os)
-if(${OS} STREQUAL "qurt")
-	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2176)
-else()
+if(${OS} STREQUAL "nuttx")
 	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2100)
 endif()
 

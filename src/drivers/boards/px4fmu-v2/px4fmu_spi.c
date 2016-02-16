@@ -79,6 +79,7 @@ __EXPORT void stm32_spiinitialize(void)
 	stm32_configgpio(GPIO_SPI_CS_MAG);
 	stm32_configgpio(GPIO_SPI_CS_ACCEL_GYRO);
 	stm32_configgpio(GPIO_SPI_CS_BMI);
+	stm32_configgpio(GPIO_SPI_CS_LSM9DS1_AG);
 
 	/* De-activate all peripherals,
 	 * required for some peripheral
@@ -93,6 +94,7 @@ __EXPORT void stm32_spiinitialize(void)
 	stm32_gpiowrite(GPIO_SPI_CS_MAG, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_GYRO, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_BMI, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_LSM9DS1_AG, 1);
 
 	stm32_configgpio(GPIO_EXTI_GYRO_DRDY);
 	stm32_configgpio(GPIO_EXTI_MAG_DRDY);
@@ -189,6 +191,14 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_GYRO, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_HMC, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+		break;
+	case PX4_SPIDEV_LSM9DS1_AG:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_HMC, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);

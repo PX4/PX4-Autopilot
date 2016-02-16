@@ -133,27 +133,27 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_configgpio(GPIO_PPM); /* xxx alternate function */
 
-	stm32_gpiowrite(GPIO_PWM1, false);
+	stm32_gpiowrite(GPIO_PWM1, true);
 	stm32_configgpio(GPIO_PWM1);
 
-	stm32_gpiowrite(GPIO_PWM2, false);
+	stm32_gpiowrite(GPIO_PWM2, true);
 	stm32_configgpio(GPIO_PWM2);
 
-	stm32_gpiowrite(GPIO_PWM3, false);
+	stm32_gpiowrite(GPIO_PWM3, true);
 	stm32_configgpio(GPIO_PWM3);
 
-	stm32_gpiowrite(GPIO_PWM4, false);
+	stm32_gpiowrite(GPIO_PWM4, true);
 	stm32_configgpio(GPIO_PWM4);
 
-	stm32_gpiowrite(GPIO_PWM5, false);
+	stm32_gpiowrite(GPIO_PWM5, true);
 	stm32_configgpio(GPIO_PWM5);
 
-	stm32_gpiowrite(GPIO_PWM6, false);
+	stm32_gpiowrite(GPIO_PWM6, true);
 	stm32_configgpio(GPIO_PWM6);
 
-	stm32_gpiowrite(GPIO_PWM7, false);
+	stm32_gpiowrite(GPIO_PWM7, true);
 	stm32_configgpio(GPIO_PWM7);
 
-	stm32_gpiowrite(GPIO_PWM8, false);
+	stm32_gpiowrite(GPIO_PWM8, true);
 	stm32_configgpio(GPIO_PWM8);
 }

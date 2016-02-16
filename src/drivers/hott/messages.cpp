@@ -291,7 +291,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		msg.altitude_L = (uint8_t)alt & 0xff;
 		msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
 
-		/* Get any (and probably only ever one) _home_sub postion report */
+		/* Get any (and probably only ever one) _home_sub position report */
 		bool updated;
 		orb_check(_home_sub, &updated);
 

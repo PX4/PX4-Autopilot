@@ -81,6 +81,7 @@ add_message_files(
   offboard_control_mode.msg
   vehicle_force_setpoint.msg
   distance_sensor.msg
+  control_state.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -135,6 +136,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}/src/modules
   src/
   src/lib
+  src/lib/matrix
   ${EIGEN_INCLUDE_DIRS}
   integrationtests
 )

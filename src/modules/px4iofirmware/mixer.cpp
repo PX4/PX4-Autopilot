@@ -48,6 +48,7 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+#include <rc/sbus.h>
 
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/mixer/mixer.h>
@@ -71,6 +72,8 @@ static bool should_arm_nothrottle = false;
 static bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
 
+extern int _sbus_fd;
+
 /* selected control values and count for mixing */
 enum mixer_source {
 	MIX_NONE,
@@ -87,9 +90,6 @@ static int	mixer_callback(uintptr_t handle,
 			       float &control);
 
 static MixerGroup mixer_group(mixer_callback, 0);
-
-/* Set the failsafe values of all mixed channels (based on zero throttle, controls centered) */
-static void mixer_set_failsafe();
 
 void
 mixer_tick(void)
@@ -295,10 +295,10 @@ mixer_tick(void)
 		/* set S.BUS1 or S.BUS2 outputs */
 
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
+			sbus2_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 
 		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
+			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
@@ -309,11 +309,11 @@ mixer_tick(void)
 
 		/* set S.BUS1 or S.BUS2 outputs */
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus1_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
 		}
 
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
 		}
 	}
 }
@@ -418,7 +418,7 @@ mixer_callback(uintptr_t handle,
  * not loaded faithfully.
  */
 
-static char mixer_text[256];		/* large enough for one mixer */
+static char mixer_text[200];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
 
 int
@@ -479,15 +479,6 @@ mixer_handle_text(const void *buffer, size_t length)
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
 
-			/* only set mixer ok if no residual is left over */
-			if (resid == 0) {
-				r_status_flags |= PX4IO_P_STATUS_FLAGS_MIXER_OK;
-
-			} else {
-				/* not yet reached the end of the mixer, set as not ok */
-				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
-			}
-
 			isr_debug(2, "used %u", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
@@ -496,9 +487,6 @@ mixer_handle_text(const void *buffer, size_t length)
 			}
 
 			mixer_text_length = resid;
-
-			/* update failsafe values */
-			mixer_set_failsafe();
 		}
 
 		break;
@@ -507,7 +495,7 @@ mixer_handle_text(const void *buffer, size_t length)
 	return 0;
 }
 
-static void
+void
 mixer_set_failsafe()
 {
 	/*

@@ -3,18 +3,36 @@
 rc_script=$1
 debugger=$2
 program=$3
-build_path=$4
+model=$4
+build_path=$5
 curr_dir=`pwd`
 
 echo SITL ARGS
 echo rc_script: $rc_script
 echo debugger: $debugger
 echo program: $program
+echo model: $model
 echo build_path: $build_path
 
-if [ "$#" != 4 ]
+if [ "$chroot" == "1" ]
 then
-	echo usage: sitl_run.sh rc_script debugger program build_path
+	chroot_enabled=-c
+	sudo_enabled=sudo
+else
+	chroot_enabled=""
+	sudo_enabled=""
+fi
+
+if [ "$model" == "" ] || [ "$model" == "none" ]
+then
+	echo "empty model, setting iris as default"
+	model="iris"
+fi
+
+if [ "$#" != 5 ]
+then
+	echo usage: sitl_run.sh rc_script debugger program model build_path
+	echo ""
 	exit 1
 fi
 
@@ -28,35 +46,37 @@ then
 	kill $jmavsim_pid
 fi
 
+set -e
+
 cp Tools/posix_lldbinit $build_path/src/firmware/posix/.lldbinit
 cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
 
 SIM_PID=0
 
-if [ "$program" == "jmavsim" ]
+if [ "$program" == "jmavsim" ] && [ "$no_sim" == "" ]
 then
 	cd Tools/jMAVSim
 	ant
 	java -Djava.ext.dirs= -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator -udp 127.0.0.1:14560 &
 	SIM_PID=`echo $!`
-elif [ "$3" == "gazebo" ]
+elif [ "$program" == "gazebo" ] && [ "$no_sim" == "" ]
 then
 	if [ -x "$(command -v gazebo)" ]
 	then
 		# Set the plugin path so Gazebo finds our model and sim
-		export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:$curr_dir/Tools/sitl_gazebo/Build
+		export GAZEBO_PLUGIN_PATH=$curr_dir/Tools/sitl_gazebo/Build:${GAZEBO_PLUGIN_PATH}
 		# Set the model path so Gazebo finds the airframes
 		export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$curr_dir/Tools/sitl_gazebo/models
-		# Disable online model lookup since this is quite experimental and unstable
-		export GAZEBO_MODEL_DATABASE_URI=""
+		# The next line would disable online model lookup, can be commented in, in case of unstable behaviour.
+		# export GAZEBO_MODEL_DATABASE_URI=""
 		export SITL_GAZEBO_PATH=$curr_dir/Tools/sitl_gazebo
 		mkdir -p Tools/sitl_gazebo/Build
 		cd Tools/sitl_gazebo/Build
-		cmake ..
+		cmake -Wno-dev ..
 		make -j4
-		gzserver ../worlds/iris.world &
+		gzserver --verbose ../worlds/${model}.world &
 		SIM_PID=`echo $!`
-		gzclient&
+		gzclient --verbose &
 		GUI_PID=`echo $!`
 	else
 		echo "You need to have gazebo simulator installed!"
@@ -67,21 +87,31 @@ cd $build_path/src/firmware/posix
 mkdir -p rootfs/fs/microsd
 mkdir -p rootfs/eeprom
 touch rootfs/eeprom/parameters
+
+# Do not exit on failure now from here on because we want the complete cleanup
+set +e
+
 # Start Java simulator
 if [ "$debugger" == "lldb" ]
 then
-	lldb -- mainapp ../../../../${rc_script}_${program}
+	lldb -- mainapp ../../../../${rc_script}_${program}_${model}
 elif [ "$debugger" == "gdb" ]
 then
-	gdb --args mainapp ../../../../${rc_script}_${program}
+	gdb --args mainapp ../../../../${rc_script}_${program}_${model}
+elif [ "$debugger" == "ddd" ]
+then
+	ddd --debugger gdb --args mainapp ../../../../${rc_script}_${program}_${model}
+elif [ "$debugger" == "valgrind" ]
+then
+	valgrind ./mainapp ../../../../${rc_script}_${program}_${model}
 else
-	./mainapp ../../../../${rc_script}_${program}
+	$sudo_enabled ./mainapp $chroot_enabled ../../../../${rc_script}_${program}_${model}
 fi
 
-if [ "$3" == "jmavsim" ]
+if [ "$program" == "jmavsim" ]
 then
 	kill -9 $SIM_PID
-elif [ "$3" == "gazebo" ]
+elif [ "$program" == "gazebo" ]
 then
 	kill -9 $SIM_PID
 	kill -9 $GUI_PID

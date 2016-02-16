@@ -52,7 +52,7 @@
 
 #define RC_INPUT_MAP_UNMAPPED 0
 
-int rc_calibration_check(int mavlink_fd)
+int rc_calibration_check(int mavlink_fd, bool report_fail)
 {
 
 	char nbuf[20];
@@ -74,7 +74,8 @@ int rc_calibration_check(int mavlink_fd)
 		param_t map_parm = param_find(rc_map_mandatory[j]);
 
 		if (map_parm == PARAM_INVALID) {
-			mavlink_log_critical(mavlink_fd, "RC ERR: PARAM %s MISSING", rc_map_mandatory[j]);
+			if (report_fail) { mavlink_and_console_log_critical(mavlink_fd, "RC ERR: PARAM %s MISSING", rc_map_mandatory[j]); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			map_fail_count++;
@@ -86,14 +87,16 @@ int rc_calibration_check(int mavlink_fd)
 		param_get(map_parm, &mapping);
 
 		if (mapping > RC_INPUT_MAX_CHANNELS) {
-			mavlink_log_critical(mavlink_fd, "RC ERR: %s >= # CHANS", rc_map_mandatory[j]);
+			if (report_fail) { mavlink_and_console_log_critical(mavlink_fd, "RC ERR: %s >= # CHANS", rc_map_mandatory[j]); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			map_fail_count++;
 		}
 
 		if (mapping == 0) {
-			mavlink_log_critical(mavlink_fd, "RC ERR: Mandatory %s is unmapped", rc_map_mandatory[j]);
+			if (report_fail) { mavlink_and_console_log_critical(mavlink_fd, "RC ERR: Mandatory %s is unmapped", rc_map_mandatory[j]); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			map_fail_count++;
@@ -144,35 +147,44 @@ int rc_calibration_check(int mavlink_fd)
 		/* assert min..center..max ordering */
 		if (param_min < RC_INPUT_LOWEST_MIN_US) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_MIN < %u", i + 1, RC_INPUT_LOWEST_MIN_US);
+
+			if (report_fail) { mavlink_and_console_log_critical(mavlink_fd, "RC ERR: RC_%d_MIN < %u", i + 1, RC_INPUT_LOWEST_MIN_US); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		if (param_max > RC_INPUT_HIGHEST_MAX_US) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_MAX > %u", i + 1, RC_INPUT_HIGHEST_MAX_US);
+
+			if (report_fail) { mavlink_and_console_log_critical(mavlink_fd, "RC ERR: RC_%d_MAX > %u", i + 1, RC_INPUT_HIGHEST_MAX_US); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		if (param_trim < param_min) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_TRIM < MIN (%d/%d)", i + 1, (int)param_trim, (int)param_min);
+
+			if (report_fail) { mavlink_and_console_log_critical(mavlink_fd, "RC ERR: RC_%d_TRIM < MIN (%d/%d)", i + 1, (int)param_trim, (int)param_min); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		if (param_trim > param_max) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_TRIM > MAX (%d/%d)", i + 1, (int)param_trim, (int)param_max);
+
+			if (report_fail) { mavlink_and_console_log_critical(mavlink_fd, "RC ERR: RC_%d_TRIM > MAX (%d/%d)", i + 1, (int)param_trim, (int)param_max); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		/* assert deadzone is sane */
 		if (param_dz > RC_INPUT_MAX_DEADZONE_US) {
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_DZ > %u", i + 1, RC_INPUT_MAX_DEADZONE_US);
+			if (report_fail) { mavlink_and_console_log_critical(mavlink_fd, "RC ERR: RC_%d_DZ > %u", i + 1, RC_INPUT_MAX_DEADZONE_US); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			count++;
@@ -187,8 +199,13 @@ int rc_calibration_check(int mavlink_fd)
 
 	if (channels_failed) {
 		sleep(2);
-		mavlink_and_console_log_critical(mavlink_fd, "%d config error%s for %d RC channel%s.", total_fail_count,
-						 (total_fail_count > 1) ? "s" : "", channels_failed, (channels_failed > 1) ? "s" : "");
+
+		if (report_fail) {
+			mavlink_and_console_log_critical(mavlink_fd, "%d config error%s for %d RC channel%s.",
+							 total_fail_count,
+							 (total_fail_count > 1) ? "s" : "", channels_failed, (channels_failed > 1) ? "s" : "");
+		}
+
 		usleep(100000);
 	}
 

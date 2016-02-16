@@ -65,9 +65,15 @@ static void		hrt_call_reschedule(void);
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
 static hrt_abstime px4_timestart = 0;
+static hrt_abstime _start_delay_time = 0;
+static hrt_abstime _delay_interval = 0;
+pthread_mutex_t _hrt_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void
 hrt_call_invoke(void);
+
+static hrt_abstime
+_hrt_absolute_time_internal(void);
 
 __EXPORT hrt_abstime hrt_reset(void);
 
@@ -81,35 +87,27 @@ static void hrt_unlock(void)
 	px4_sem_post(&_hrt_lock);
 }
 
-#ifdef __PX4_DARWIN
+#if (defined(__APPLE__) && defined(__MACH__)) || defined(__PX4_QURT)
+#include <time.h>
+#include <sys/time.h>
+#define CLOCK_REALTIME 0
 
-#include <mach/mach_time.h>
-#define MAC_NANO (+1.0E-9)
-#define MAC_GIGA UINT64_C(1000000000)
+#ifndef CLOCK_MONOTONIC
 #define CLOCK_MONOTONIC 1
-#define HRT_LOCK_NAME "/hrt_lock"
-
-static double px4_timebase = 0.0;
+#endif
 
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
-	if (clk_id != CLOCK_MONOTONIC) {
-		return 1;
+	struct timeval now;
+	int rv = gettimeofday(&now, NULL);
+
+	if (rv) {
+		return rv;
 	}
 
-	if (!px4_timestart) {
-		mach_timebase_info_data_t tb = {};
-		mach_timebase_info(&tb);
-		px4_timebase = tb.numer;
-		px4_timebase /= tb.denom;
-		// px4_timestart = mach_absolute_time();
-	}
+	tp->tv_sec = now.tv_sec;
+	tp->tv_nsec = now.tv_usec * 1000;
 
-	memset(tp, 0, sizeof(*tp));
-
-	double diff = mach_absolute_time() * px4_timebase;
-	tp->tv_sec = diff * MAC_NANO;
-	tp->tv_nsec = diff - (tp->tv_sec * MAC_GIGA);
 	return 0;
 }
 
@@ -124,7 +122,7 @@ int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
 /*
  * Get absolute time.
  */
-hrt_abstime hrt_absolute_time(void)
+hrt_abstime _hrt_absolute_time_internal(void)
 {
 	struct timespec ts;
 
@@ -137,10 +135,40 @@ hrt_abstime hrt_absolute_time(void)
 	return ts_to_abstime(&ts) - px4_timestart;
 }
 
+/*
+ * Get absolute time.
+ */
+hrt_abstime hrt_absolute_time(void)
+{
+	pthread_mutex_lock(&_hrt_mutex);
+	static hrt_abstime max_time = 0;
+
+	hrt_abstime ret;
+
+	if (_start_delay_time > 0) {
+		ret = _start_delay_time;
+
+	} else {
+		ret = _hrt_absolute_time_internal();
+	}
+
+	ret -= _delay_interval;
+
+	if (ret < max_time) {
+		PX4_ERR("WARNING! TIME IS NEGATIVE! %d vs %d", (int)ret, (int)max_time);
+		ret = max_time;
+	}
+
+	max_time = ret;
+	pthread_mutex_unlock(&_hrt_mutex);
+
+	return ret;
+}
+
 __EXPORT hrt_abstime hrt_reset(void)
 {
 	px4_timestart = 0;
-	return hrt_absolute_time();
+	return _hrt_absolute_time_internal();
 }
 
 /*
@@ -243,6 +271,28 @@ void	hrt_init(void)
 	}
 
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
+}
+
+void	hrt_start_delay()
+{
+	pthread_mutex_lock(&_hrt_mutex);
+	_start_delay_time = _hrt_absolute_time_internal();
+	pthread_mutex_unlock(&_hrt_mutex);
+}
+
+void	hrt_stop_delay()
+{
+	pthread_mutex_lock(&_hrt_mutex);
+	int64_t delta = _hrt_absolute_time_internal() - _start_delay_time;
+	_delay_interval += delta;
+	_start_delay_time = 0;
+
+	if (delta > 10000) {
+		PX4_INFO("simulator is slow. Delay added: %llu us", delta);
+	}
+
+	pthread_mutex_unlock(&_hrt_mutex);
+
 }
 
 static void

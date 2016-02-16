@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE examples__hwtest
 	MAIN ex_hwtest
+	STACK 2000
 	SRCS
 		hwtest.c
 	DEPENDS

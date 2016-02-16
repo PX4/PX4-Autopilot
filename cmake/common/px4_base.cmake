@@ -138,13 +138,15 @@ function(px4_add_git_submodule)
 	string(REPLACE "/" "_" NAME ${PATH})
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule init ${PATH}
+		COMMAND git submodule update --init --recursive ${PATH}
 		COMMAND touch ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		DEPENDS ${CMAKE_SOURCE_DIR}/.gitmodules
 		)
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule update --recursive ${PATH}
+# This is NOT a good approach as it overwrites checked out branches
+# behind the back of a developer
+		#COMMAND git submodule update --recursive ${PATH}
 		DEPENDS ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		)
 endfunction()
@@ -265,6 +267,10 @@ function(px4_add_module)
 		ARGN ${ARGN})
 
 	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
+
+	if(${OS} STREQUAL "qurt" )
+		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+	endif()
 
 	if(MAIN)
 		set_target_properties(${MODULE} PROPERTIES
@@ -530,15 +536,28 @@ function(px4_add_common_flags)
 		)
 	endif()
 
-	set(max_optimization -Os)
+	if ($ENV{MEMORY_DEBUG} MATCHES "1")
+		set(max_optimization -O0)
 
-	set(optimization_flags
-		-fno-strict-aliasing
-		-fomit-frame-pointer
-		-funsafe-math-optimizations
-		-ffunction-sections
-		-fdata-sections
-		)
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fno-omit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			-g -fsanitize=address
+			)
+	else()
+		set(max_optimization -Os)
+
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fomit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			)
+	endif()
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		list(APPEND optimization_flags
@@ -619,10 +638,11 @@ function(px4_add_common_flags)
 		${CMAKE_BINARY_DIR}/src/modules/px4_messages
 		${CMAKE_BINARY_DIR}/src/modules
 		${CMAKE_SOURCE_DIR}/mavlink/include/mavlink
+		${CMAKE_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		)
 
 	list(APPEND added_include_dirs
-		src/lib/eigen
+		src/lib/matrix
 		)
 
 	set(added_link_dirs) # none used currently
@@ -700,7 +720,7 @@ function(px4_create_git_hash_header)
 		REQUIRED HEADER 
 		ARGN ${ARGN})
 	execute_process(
-		COMMAND git log -n 1 --pretty=format:"%H"
+		COMMAND git rev-parse HEAD
 		OUTPUT_VARIABLE git_desc
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -741,7 +761,7 @@ function(px4_generate_parameters_xml)
 		)
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${path} --board CONFIG_ARCH_${BOARD} --xml
+			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
 		DEPENDS ${param_src_files}
 		)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)

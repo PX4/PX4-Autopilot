@@ -118,6 +118,9 @@ public:
 		return get_throttle_demand();
 	}
 
+	void reset_state() {
+		_states_initalized = false;
+	}
 
 	float get_pitch_demand() { return _pitch_dem; }
 

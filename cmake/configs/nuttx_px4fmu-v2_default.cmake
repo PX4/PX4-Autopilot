@@ -18,10 +18,11 @@ set(config_module_list
 	drivers/boards/px4fmu-v2
 	drivers/rgbled
 	drivers/mpu6000
-	drivers/mpu9250
 	drivers/lsm9ds1
 	drivers/lsm9ds1mag
 	drivers/bmi160
+	drivers/lis2hh12
+	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/hmc5883

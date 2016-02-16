@@ -33,7 +33,9 @@
 px4_add_module(
 	MODULE drivers__bmi160
 	MAIN bmi160
+	STACK 1200
 	COMPILE_FLAGS
+		-Weffc++
 		-Os
 	SRCS
 		bmi160.cpp

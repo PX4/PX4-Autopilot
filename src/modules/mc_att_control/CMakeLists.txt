@@ -40,7 +40,6 @@ px4_add_module(
 	COMPILE_FLAGS ${MODULE_CFLAGS}
 	SRCS
 		mc_att_control_main.cpp
-		mc_att_control_params.c
 	DEPENDS
 		platforms__common
 	)

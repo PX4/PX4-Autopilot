@@ -41,9 +41,6 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#include <px4_config.h>
-#include <systemlib/param/param.h>
-
 /**
  * ID of the board this parameter set was calibrated on.
  *
@@ -1805,7 +1802,6 @@ PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
  */
 PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 /**
  * Enable relay control of relay 1 mapped to the Spektrum receiver power supply
  *
@@ -1814,7 +1810,6 @@ PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
-#endif
 
 /**
  * DSM binding trigger.
@@ -1847,7 +1842,7 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
  *
  * @group Battery Calibration
  */
-PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.0124);	/* scaling for 3DR power brick */
+PARAM_DEFINE_FLOAT(BAT_C_SCALING, -1.0);
 
 
 /**
@@ -1970,6 +1965,15 @@ PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 
 /**
+ * Rattitude switch channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ */
+PARAM_DEFINE_INT32(RC_MAP_RATT_SW, 0);
+
+/**
  * Posctl switch channel mapping.
  *
  * @min 0
@@ -2004,6 +2008,15 @@ PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
  * @group Radio Switches
  */
 PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
+
+/**
+ * Kill switch channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ */
+PARAM_DEFINE_INT32(RC_MAP_KILL_SW, 0);
 
 /**
  * Flaps channel mapping.
@@ -2133,6 +2146,23 @@ PARAM_DEFINE_FLOAT(RC_ASSIST_TH, 0.25f);
 PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
 
 /**
+ * Threshold for selecting rattitude mode
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_RATT_TH, 0.5f);
+
+/**
  * Threshold for selecting posctl mode
  *
  * 0-1 indicate where in the full channel range the threshold sits
@@ -2222,6 +2252,25 @@ PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
  */
 PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
 
+
+/**
+ * Threshold for the kill switch
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.25f);
+
 /**
  * PWM input channel that provides RSSI.
  *
@@ -2279,6 +2328,8 @@ PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
  *
  * Set to 1000 for industry default or 900 to increase servo travel.
  *
+ * @reboot_required true
+ *
  * @min 800
  * @max 1400
  * @unit microseconds
@@ -2294,6 +2345,8 @@ PARAM_DEFINE_INT32(PWM_MIN, 1000);
  * THE SYSTEM TO PUT CHANGES INTO EFFECT.
  *
  * Set to 2000 for industry default or 2100 to increase servo travel.
+ *
+ * @reboot_required true
  *
  * @min 1600
  * @max 2200
@@ -2312,6 +2365,8 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
  * This is the PWM pulse the autopilot is outputting if not armed.
  * The main use of this parameter is to silence ESCs when they are disarmed.
  *
+ * @reboot_required true
+ *
  * @min 0
  * @max 2200
  * @unit microseconds
@@ -2327,6 +2382,8 @@ PARAM_DEFINE_INT32(PWM_DISARMED, 0);
  * THE SYSTEM TO PUT CHANGES INTO EFFECT.
  *
  * Set to 1000 for default or 900 to increase servo travel
+ *
+ * @reboot_required true
  *
  * @min 800
  * @max 1400
@@ -2344,6 +2401,8 @@ PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
  *
  * Set to 2000 for default or 2100 to increase servo travel
  *
+ * @reboot_required true
+ *
  * @min 1600
  * @max 2200
  * @unit microseconds
@@ -2360,6 +2419,8 @@ PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
  *
  * This is the PWM pulse the autopilot is outputting if not armed.
  * The main use of this parameter is to silence ESCs when they are disarmed.
+ *
+ * @reboot_required true
  *
  * @min 0
  * @max 2200

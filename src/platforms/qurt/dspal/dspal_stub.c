@@ -61,14 +61,20 @@ static void do_dlopen()
 #endif
 }
 
+#ifdef QURT_EXE_BUILD
+int dlinit(int a, char **b)
+{
+	return 0;
+}
+#endif
 
 int main(int argc, char *argv[])
 {
 	int ret = 0;
-	char *builtin[] = {"libgcc.so", "libc.so", "libstdc++.so"};
+	char *builtin[] = {"libgcc.so", "libc.so"};
 
 	printf("In DSPAL main\n");
-	dlinit(3, builtin);
+	dlinit(2, builtin);
 
 	do_dlopen();
 	return ret;

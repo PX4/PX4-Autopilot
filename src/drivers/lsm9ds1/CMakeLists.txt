@@ -32,13 +32,14 @@
 ############################################################################
 px4_add_module(
 	MODULE drivers__lsm9ds1
+	#MAIN lsm9ds1_ag
 	MAIN lsm9ds1
 	STACK 1200
 	COMPILE_FLAGS
 		-Weffc++
 		-Os
 	SRCS
-		lsm9ds1.cpp
+		lsm9ds1v3.cpp
 	DEPENDS
 		platforms__common
 	)

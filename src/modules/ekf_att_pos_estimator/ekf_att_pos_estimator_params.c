@@ -202,7 +202,7 @@ PARAM_DEFINE_FLOAT(PE_GYRO_PNOISE, 0.015f);
  * @max 1.0
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_ACC_PNOISE, 0.25f);
+PARAM_DEFINE_FLOAT(PE_ACC_PNOISE, 0.125f);
 
 /**
  * Gyro bias estimate process noise

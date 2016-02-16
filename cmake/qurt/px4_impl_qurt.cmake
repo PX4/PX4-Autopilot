@@ -176,14 +176,14 @@ function(px4_os_add_flags)
                 )
 
 	# Add the toolchain specific flags
-        set(added_cflags ${QURT_CMAKE_C_FLAGS})
-        set(added_cxx_flags ${QURT_CMAKE_CXX_FLAGS})
+        set(added_cflags -O0)
+        set(added_cxx_flags -O0)
 
-	# FIXME @jgoppert - how to work around issues like this?
-	# Without changing global variables?
 	# Clear -rdynamic flag which fails for hexagon
 	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+	set(DF_TARGET "qurt" PARENT_SCOPE)
 
 	# output
 	foreach(var ${inout_vars})

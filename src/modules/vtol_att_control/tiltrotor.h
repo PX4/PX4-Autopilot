@@ -31,12 +31,12 @@
  *
  ****************************************************************************/
 
- /**
- * @file tiltrotor.h
- *
- * @author Roman Bapst 		<bapstroman@gmail.com>
- *
- */
+/**
+* @file tiltrotor.h
+*
+* @author Roman Bapst 		<bapstroman@gmail.com>
+*
+*/
 
 #ifndef TILTROTOR_H
 #define TILTROTOR_H
@@ -49,7 +49,7 @@ class Tiltrotor : public VtolType
 
 public:
 
-	Tiltrotor(VtolAttitudeControl * _att_controller);
+	Tiltrotor(VtolAttitudeControl *_att_controller);
 	~Tiltrotor();
 
 	/**
@@ -127,11 +127,9 @@ private:
 	struct {
 		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
 		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
-	}_vtol_schedule;
+	} _vtol_schedule;
 
 	float _tilt_control;		/**< actuator value for the tilt servo */
-	float _roll_weight_mc;		/**< multicopter desired roll moment weight */
-	float _yaw_weight_mc;		/**< multicopter desired yaw moment weight */
 
 	const float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
 

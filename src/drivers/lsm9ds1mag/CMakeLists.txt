@@ -38,7 +38,8 @@ px4_add_module(
 		-Weffc++
 		-Os
 	SRCS
-		lsm9ds1mag.cpp
+		#lsm9ds1mag.cpp
+		lsm9ds1magv2.cpp
 	DEPENDS
 		platforms__common
 	)
