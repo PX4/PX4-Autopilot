@@ -114,7 +114,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 		int retval = apps[command](i, (char **)arg);
 
 		if (retval) {
-			cout << "Command failed, returned " << retval << endl;
+			cout << "Command '" << command << "' failed, returned " << retval << endl;
 
 			if (exit_on_fail && retval) {
 				exit(retval);
