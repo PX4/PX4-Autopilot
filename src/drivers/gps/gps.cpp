@@ -122,7 +122,7 @@ private:
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
-
+	bool				_use_hil_gps;					///< Accept GPS HIL messages (for example from an external motion capturing system to fake indoor gps)
 
 	/**
 	 * Try to configure the GPS, handle outgoing communication to the GPS
@@ -149,6 +149,11 @@ private:
 	 * Send a reset command to the GPS
 	 */
 	void				cmd_reset();
+
+	/**
+	 * Update MAV_USE_HIL_GPS parameters
+	 */
+	void				update_param_hil_gps();
 
 };
 
@@ -178,7 +183,8 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_p_report_sat_info(nullptr),
 	_report_sat_info_pub(nullptr),
 	_rate(0.0f),
-	_fake_gps(fake_gps)
+	_fake_gps(fake_gps),
+	_use_hil_gps(false)
 {
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
@@ -243,6 +249,19 @@ out:
 	return ret;
 }
 
+void
+GPS::update_param_hil_gps()
+{
+	param_t param_use_hil_gps = param_find("MAV_USEHILGPS");
+
+	/* update parameter for MAVLINK USEHILGPS */
+	if (param_use_hil_gps != PARAM_INVALID) {
+		int32_t param_value = 0;
+		param_get(param_use_hil_gps, &param_value);
+		_use_hil_gps = (bool)param_value;
+	}
+}
+
 int
 GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
@@ -275,7 +294,6 @@ GPS::task_main_trampoline(void *arg)
 void
 GPS::task_main()
 {
-
 	/* open the serial port */
 	_serial_fd = ::open(_port, O_RDWR);
 
@@ -285,7 +303,7 @@ GPS::task_main()
 		_task = -1;
 		_exit(1);
 	}
-
+	
 	uint64_t last_rate_measurement = hrt_absolute_time();
 	unsigned last_rate_count = 0;
 
@@ -314,8 +332,10 @@ GPS::task_main()
 
 			/* no time and satellite information simulated */
 
+			/* update mavlink hil gps parameter */
+			update_param_hil_gps();
 
-			if (!(_pub_blocked)) {
+			if (!(_pub_blocked) && !(_use_hil_gps) ) {
 				if (_report_gps_pos_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
@@ -327,6 +347,9 @@ GPS::task_main()
 			usleep(2e5);
 
 		} else {
+
+			/* update mavlink hil gps parameter */
+			update_param_hil_gps();
 
 			if (_Helper != nullptr) {
 				delete(_Helper);
@@ -381,7 +404,10 @@ GPS::task_main()
 					_report_gps_pos.epv = 10000.0f;
 					_report_gps_pos.fix_type = 0;
 
-					if (!(_pub_blocked)) {
+					/* update mavlink hil gps parameter */
+					update_param_hil_gps();
+
+					if (!(_pub_blocked)  && !(_use_hil_gps) ) {
 						if (_report_gps_pos_pub != nullptr) {
 							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
@@ -398,9 +424,13 @@ GPS::task_main()
 
 				while ((helper_ret = _Helper->receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
 					//				lock();
+
+					/* update mavlink hil gps parameter */
+					update_param_hil_gps();
+
 					/* opportunistic publishing - else invalid data would end up on the bus */
 
-					if (!(_pub_blocked)) {
+					if (!(_pub_blocked)  && !(_use_hil_gps) ) {
 						if (helper_ret & 1) {
 							if (_report_gps_pos_pub != nullptr) {
 								orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
@@ -518,10 +548,12 @@ void
 GPS::print_info()
 {
 	//GPS Mode
-	if (_fake_gps) {
+	if ( _use_hil_gps ) {
+		warnx("protocol: HIL GPS");
+	}
+	else if (_fake_gps) {
 		warnx("protocol: SIMULATED");
 	}
-
 	else {
 		switch (_mode) {
 		case GPS_DRIVER_MODE_UBX:
