@@ -72,6 +72,13 @@ public:
         return _data[i][j];
     }
 
+    void operator=(const Matrix<Type, M, N> &other)
+    {
+        if (this != &other) {
+            memcpy(_data, other._data, sizeof(_data));
+        }
+    }
+
     /**
      * Matrix Operations
      */
@@ -322,6 +329,17 @@ public:
     {
         Matrix<Type, P, Q> res(&(_data[x0][y0]));
         return res;
+    }
+
+    template<size_t P, size_t Q>
+    void set(const Matrix<Type, P, Q> &m, size_t x0, size_t y0)
+    {
+        Matrix<Type, M, N> &self = *this;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                self(i + x0, j + y0) = m(i, j);
+            }
+        }
     }
 
     void setZero()

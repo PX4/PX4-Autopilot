@@ -107,7 +107,7 @@ int main()
                 if (yaw_expected < -180) yaw_expected += 360;
                 if (yaw_expected > 180) yaw_expected -= 360;
 
-                printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
+                //printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
                 Euler<double> euler_expected(
                     deg2rad*double(roll_expected),
                     deg2rad*double(pitch),
@@ -117,7 +117,7 @@ int main()
                     deg2rad*double(pitch),
                     deg2rad*double(yaw));
                 Dcm<double> dcm_from_euler(euler);
-                dcm_from_euler.print();
+                //dcm_from_euler.print();
                 Euler<double> euler_out(dcm_from_euler);
                 TEST(isEqual(rad2deg*euler_expected, rad2deg*euler_out));
 
