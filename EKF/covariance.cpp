@@ -721,7 +721,7 @@ void Ekf::predictCovariance()
 	}
 
 	// stop position covariance growth if our total position variance reaches 100m
-	// this can happen if we loose gps for some time
+	// this can happen if we lose gps for some time
 	if ((P[6][6] + P[7][7]) > 1e4f) {
 		for (uint8_t i = 6; i < 8; i++) {
 			for (uint8_t j = 0; j < _k_num_states; j++) {
@@ -738,10 +738,12 @@ void Ekf::predictCovariance()
 		}
 	}
 
+	// copy variances (diagonals)
 	for (unsigned i = 0; i < _k_num_states; i++) {
 		P[i][i] = nextP[i][i];
 	}
 
+	// force symmetry
 	for (unsigned row = 1; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < row; column++) {
 			P[row][column] = 0.5f * (nextP[row][column] + nextP[column][row]);
@@ -799,20 +801,14 @@ void Ekf::limitCov()
 	math::constrain(P[15][15], 0.0f, P_lim[5]);
 
 	for (int i = 16; i < 19; i++) {
-
 		math::constrain(P[i][i], 0.0f, P_lim[6]);
 	}
 
 	for (int i = 19; i < 22; i++) {
-
-
 		math::constrain(P[i][i], 0.0f, P_lim[7]);
 	}
 
 	for (int i = 22; i < 24; i++) {
-
 		math::constrain(P[i][i], 0.0f, P_lim[8]);
 	}
 }
-
-
