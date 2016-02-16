@@ -114,9 +114,6 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 				/* Whatever the value is, we're being told to stop sending */
 				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0) {
-					char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-					sprintf(buf, "[pm] hash load stopped param listing");
-					_mavlink->send_statustext_info(buf);
 					_send_all_index = -1;
 					/* No other action taken, return */
 					return;
