@@ -91,3 +91,15 @@ PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
  */
 PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
 
+/**
+ * Give logging app higher thread priority to avoid data loss.
+ * This is used for gathering replay logs for the ekf2 module.
+ *
+ * A value of 0 indicates that the default priority is used.
+ * Increasing the parameter in steps of one increases the priority.
+ *
+ * @min 0
+ * @max  3
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_PRIO_BOOST, 0);
