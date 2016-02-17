@@ -750,3 +750,13 @@ Navigator::publish_att_sp()
 		_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 	}
 }
+
+void
+Navigator::set_mission_failure(const char* reason)
+{
+	if (!_mission_result.mission_failure) {
+		_mission_result.mission_failure = true;
+		set_mission_result_updated();
+		mavlink_log_critical(_mavlink_fd, "%s", reason);
+	}
+}

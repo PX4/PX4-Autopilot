@@ -636,6 +636,7 @@ PX4IO::init()
 		/* Indicate restart type is unknown */
 		int32_t prev_val;
 		param_get(sys_restart_param, &prev_val);
+
 		if (prev_val != DM_INIT_REASON_POWER_ON) {
 			param_set_no_notification(sys_restart_param, &sys_restart_val);
 		}
@@ -821,6 +822,7 @@ PX4IO::init()
 		sys_restart_val = DM_INIT_REASON_IN_FLIGHT;
 		int32_t prev_val;
 		param_get(sys_restart_param, &prev_val);
+
 		if (prev_val != sys_restart_val) {
 			param_set(sys_restart_param, &sys_restart_val);
 		}
@@ -858,6 +860,7 @@ PX4IO::init()
 		sys_restart_val = DM_INIT_REASON_POWER_ON;
 		int32_t prev_val;
 		param_get(sys_restart_param, &prev_val);
+
 		if (prev_val != sys_restart_val) {
 			param_set(sys_restart_param, &sys_restart_val);
 		}

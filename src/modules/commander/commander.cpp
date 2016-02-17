@@ -2043,6 +2043,15 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
+
+			if (status.mission_failure != mission_result.mission_failure) {
+				status.mission_failure = mission_result.mission_failure;
+				status_changed = true;
+
+				if (status.mission_failure) {
+					mavlink_log_critical(mavlink_fd, "mission cannot be completed");
+				}
+			}
 		}
 
 		/* start geofence result check */

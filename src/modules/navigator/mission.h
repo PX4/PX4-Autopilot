@@ -120,6 +120,11 @@ private:
 	void set_mission_items();
 
 	/**
+	 * Copies position from setpoint if valid, otherwise copies current position
+	 */
+	void copy_positon_if_valid(struct mission_item_s &mission_item, struct position_setpoint_s &setpoint);
+
+	/**
 	 * Returns true if we need to do a takeoff at the current state
 	 */
 	bool do_need_takeoff();
