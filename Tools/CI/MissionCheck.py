@@ -33,7 +33,7 @@ MAV_MODE_AUTO = 4
 start_time = time.time()
 elapsed_time = time.time() - start_time
 
-# Connect to the Vehicle, wait_ready will not work on PX4
+# Connect to the Vehicle
 print "Connecting"
 vehicle = connect(connection_string, wait_ready=True)
 vehicle.armed = False
