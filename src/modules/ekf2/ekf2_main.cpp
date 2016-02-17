@@ -497,8 +497,12 @@ void Ekf2::task_main()
 
 		// TODO: uORB definition does not define what thes variables are. We have assumed them to be horizontal and vertical 1-std dev accuracy in metres
 		// TODO: Should use sqrt of filter position variances
-		lpos.eph = gps.eph;
-		lpos.epv = gps.epv;
+		// get pos vel state variance
+		Vector3f pos_var, vel_var;
+		_ekf->get_pos_var(pos_var);
+		_ekf->get_vel_var(vel_var);
+		lpos.eph = sqrt(pos_var(0)+pos_var(1));
+		lpos.epv = sqrt(pos_var(2));
 
 		// publish vehicle local position data
 		if (_lpos_pub == nullptr) {
@@ -569,8 +573,8 @@ void Ekf2::task_main()
 
 			global_pos.yaw = euler(2); // Yaw in radians -PI..+PI.
 
-			global_pos.eph = gps.eph; // Standard deviation of position estimate horizontally
-			global_pos.epv = gps.epv; // Standard deviation of position vertically
+			global_pos.eph = sqrt(pos_var(0)+pos_var(1));; // Standard deviation of position estimate horizontally
+			global_pos.epv = sqrt(pos_var(2)); // Standard deviation of position vertically
 
 			// TODO: implement terrain estimator
 			global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
