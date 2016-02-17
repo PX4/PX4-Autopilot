@@ -131,6 +131,7 @@ int DfMpu9250Wrapper::start()
 	accel_report accel_report = {};
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &accel_report,
 					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
+
 	if (_accel_topic == nullptr) {
 		PX4_ERR("sensor_accel advert fail");
 		return -1;
@@ -140,6 +141,7 @@ int DfMpu9250Wrapper::start()
 	gyro_report gyro_report = {};
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &gyro_report,
 					  &_gyro_orb_class_instance, ORB_PRIO_DEFAULT);
+
 	if (_gyro_topic == nullptr) {
 		PX4_ERR("sensor_gyro advert fail");
 		return -1;
@@ -203,6 +205,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 		}
 	}
+
 	perf_end(_accel_sample_perf);
 
 	/* Then publish gyro. */
@@ -230,6 +233,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
 		}
 	}
+
 	perf_end(_gyro_sample_perf);
 
 	/* Notify anyone waiting for data. */
@@ -259,6 +263,7 @@ int start(/*enum Rotation rotation*/)
 	}
 
 	int ret = g_dev->start();
+
 	if (ret != 0) {
 		PX4_ERR("DfMpu9250Wrapper start failed");
 		return ret;
@@ -267,10 +272,10 @@ int start(/*enum Rotation rotation*/)
 	// Open the IMU sensor
 	DevHandle h;
 	DevMgr::getHandle(IMU_DEVICE_PATH, h);
-	if (!h.isValid())
-	{
+
+	if (!h.isValid()) {
 		DF_LOG_INFO("Error: unable to obtain a valid handle for the receiver at: %s (%d)",
-			IMU_DEVICE_PATH, h.getError());
+			    IMU_DEVICE_PATH, h.getError());
 		return -1;
 	}
 
