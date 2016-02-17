@@ -138,7 +138,7 @@ struct CriticalSectionLocker
 
 struct CriticalSectionLocker
 {
-    //TODO napisati funkcije
+
     CriticalSectionLocker()
     {
       taskENTER_CRITICAL();
