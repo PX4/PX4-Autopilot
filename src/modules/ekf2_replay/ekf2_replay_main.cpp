@@ -325,7 +325,7 @@ void Ekf2Replay::logIfUpdated()
 	log_message.body.att.gy = att.g_comp[1];
 	log_message.body.att.gz = att.g_comp[2];
 
-	writeMessage(_write_fd, (void *)&log_message.head1, sizeof(log_ATT_s) + 3);
+	writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_ATT_MSG].length);
 
 	// update local position
 	orb_check(_lpos_sub, &updated);
@@ -358,7 +358,7 @@ void Ekf2Replay::logIfUpdated()
 		log_message.body.lpos.eph = lpos.eph;
 		log_message.body.lpos.epv = lpos.epv;
 
-		writeMessage(_write_fd, (void *)&log_message.head1, sizeof(log_LPOS_s) + 3);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_LPOS_MSG].length);
 	}
 
 	// update estimator status
@@ -378,7 +378,7 @@ void Ekf2Replay::logIfUpdated()
 		log_message.body.est0.nan_flags = est_status.nan_flags;
 		log_message.body.est0.health_flags = est_status.health_flags;
 		log_message.body.est0.timeout_flags = est_status.timeout_flags;
-		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST0_MSG].length + 3);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST0_MSG].length);
 
 		log_message.type = LOG_EST1_MSG;
 		log_message.head1 = HEAD_BYTE1;
@@ -387,7 +387,7 @@ void Ekf2Replay::logIfUpdated()
 					    est_status.states) - maxcopy0) : sizeof(log_message.body.est1.s);
 		memset(&(log_message.body.est1.s), 0, sizeof(log_message.body.est1.s));
 		memcpy(&(log_message.body.est1.s), ((char *)est_status.states) + maxcopy0, maxcopy1);
-		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST1_MSG].length + 3);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST1_MSG].length);
 
 		log_message.type = LOG_EST2_MSG;
 		log_message.head1 = HEAD_BYTE1;
@@ -396,7 +396,7 @@ void Ekf2Replay::logIfUpdated()
 					    est_status.covariances) : sizeof(log_message.body.est2.cov);
 		memset(&(log_message.body.est2.cov), 0, sizeof(log_message.body.est2.cov));
 		memcpy(&(log_message.body.est2.cov), est_status.covariances, maxcopy2);
-		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST2_MSG].length + 3);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST2_MSG].length);
 
 		log_message.type = LOG_EST3_MSG;
 		log_message.head1 = HEAD_BYTE1;
@@ -405,7 +405,7 @@ void Ekf2Replay::logIfUpdated()
 					    est_status.covariances) - maxcopy2) : sizeof(log_message.body.est3.cov);
 		memset(&(log_message.body.est3.cov), 0, sizeof(log_message.body.est3.cov));
 		memcpy(&(log_message.body.est3.cov), ((char *)est_status.covariances) + maxcopy2, maxcopy3);
-		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST3_MSG].length + 3);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST3_MSG].length);
 
 	}
 
@@ -426,7 +426,7 @@ void Ekf2Replay::logIfUpdated()
 			log_message.body.innov.s[i + 6] = innov.vel_pos_innov_var[i];
 		}
 
-		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST4_MSG].length + 3);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST4_MSG].length);
 
 		log_message.type = LOG_EST5_MSG;
 		log_message.head1 = HEAD_BYTE1;
@@ -440,7 +440,7 @@ void Ekf2Replay::logIfUpdated()
 
 		log_message.body.innov2.s[6] = innov.heading_innov;
 		log_message.body.innov2.s[7] = innov.heading_innov_var;
-		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length + 3);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length);
 	}
 
 	// update control state
@@ -459,7 +459,7 @@ void Ekf2Replay::logIfUpdated()
 		log_message.body.control_state.roll_rate = control_state.roll_rate;
 		log_message.body.control_state.pitch_rate = control_state.pitch_rate;
 		log_message.body.control_state.yaw_rate = control_state.yaw_rate;
-		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_CTS_MSG].length + 3);
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_CTS_MSG].length);
 	}
 }
 
