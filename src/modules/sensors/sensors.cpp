@@ -2205,9 +2205,6 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warnx("poll error: pret: %d, errno: %d, gyro_sub: %d", pret, errno, fds[0].fd);
-
-			// TODO-JYW: TESTING-TESTING
 			/* if the polling operation failed because no gyro sensor is available yet,
 			 * then attempt to subscribe once again
 			 */
@@ -2215,7 +2212,6 @@ Sensors::task_main()
 				_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
 						&raw.gyro_priority[0], &raw.gyro_errcount[0]);
 				fds[0].fd = _gyro_sub[0];
-				warnx("poll error: gyro count: %d, gyro sub: %d", _gyro_count, fds[0].fd);
 			}
 			continue;
 		}

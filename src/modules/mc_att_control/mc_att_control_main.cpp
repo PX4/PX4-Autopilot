@@ -811,9 +811,6 @@ MulticopterAttitudeControl::task_main()
 			continue;
 		}
 
-		// TODO-JYW: TESTING-TESTING:
-		warnx("_ctrl_state_sub is producing data");
-
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
 			warn("poll error %d, %d", pret, errno);
@@ -858,9 +855,6 @@ MulticopterAttitudeControl::task_main()
 					_v_control_mode.flag_control_attitude_enabled = false;
 				}
 			}
-
-			// TODO-JYW: TESTING-TESTING:
-			warnx("_v_control_mode.flag_control_attitude_enabled: %d", _v_control_mode.flag_control_attitude_enabled);
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 
@@ -931,9 +925,6 @@ MulticopterAttitudeControl::task_main()
 				}
 			}
 
-			// TODO-JYW: TESTING-TESTING:
-			warnx("_v_control_mode.flag_control_rates_enabled: %d", _v_control_mode.flag_control_rates_enabled);
-
 			if (_v_control_mode.flag_control_rates_enabled) {
 				control_attitude_rates(dt);
 
@@ -950,14 +941,8 @@ MulticopterAttitudeControl::task_main()
 				_controller_status.yaw_rate_integ = _rates_int(2);
 				_controller_status.timestamp = hrt_absolute_time();
 
-				// TODO-JYW: TESTING-TESTING:
-				warnx("_actuators_0_circuit_breaker_enabled: %d", _actuators_0_circuit_breaker_enabled);
-
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub != nullptr) {
-
-						// TODO-JYW: TESTING-TESTING:
-						warnx("publishing actuator controls");
 
 						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 						perf_end(_controller_latency_perf);

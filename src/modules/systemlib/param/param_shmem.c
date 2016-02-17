@@ -33,6 +33,8 @@
  *
  ****************************************************************************/
 
+// TODO-JYW: TESTING-TESTING
+#define DEBUG_BUILD 1
 
 /**
  * @file param.c
@@ -126,7 +128,7 @@ uint64_t sync_other_prev_time = 0, sync_other_current_time = 0;
 
 extern void update_to_shmem(param_t param, union param_value_u value);
 extern int update_from_shmem(param_t param, union param_value_u *value);
-static int param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes);
+static int param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool is_saved);
 unsigned char set_called_from_get = 0;
 
 static int param_import_done =
@@ -251,9 +253,12 @@ param_find_changed(param_t param)
 }
 
 static void
-param_notify_changes(void)
+param_notify_changes(bool is_saved)
 {
-	struct parameter_update_s pup = { .timestamp = hrt_absolute_time() };
+	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .saved = is_saved };
+
+	// TODO-JYW: TESTING-TESTING:
+	warnx("param_notify_changes: notifying of changes, timestamp: %lld, is_saved: %d", pup.timestamp, pup.saved);
 
 	/*
 	 * If we don't have a handle to our topic, create one now; otherwise
@@ -507,7 +512,7 @@ param_get(param_t param, void *val)
 
 	if (update_from_shmem(param, &value)) {
 		set_called_from_get = 1;
-		param_set_internal(param, &value, true, false);
+		param_set_internal(param, &value, true, false, false);
 		set_called_from_get = 0;
 	}
 
@@ -541,7 +546,7 @@ param_get(param_t param, void *val)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool is_saved)
 {
 	int result = -1;
 	bool params_changed = false;
@@ -631,7 +636,7 @@ out:
 	if (!param_import_done) { notify_changes = 0; }
 
 	if (params_changed && notify_changes) {
-		param_notify_changes();
+		param_notify_changes(is_saved);
 	}
 
 	if (result == 0 && !set_called_from_get) {
@@ -660,13 +665,19 @@ out:
 int
 param_set(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false, true);
+	return param_set_internal(param, val, false, true, false);
+}
+
+int
+param_set_no_autosave(param_t param, const void *val)
+{
+	return param_set_internal(param, val, false, true, true);
 }
 
 int
 param_set_no_notification(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false, false);
+	return param_set_internal(param, val, false, false, false);
 }
 
 bool
@@ -719,7 +730,7 @@ param_reset(param_t param)
 	param_unlock();
 
 	if (s != NULL) {
-		param_notify_changes();
+		param_notify_changes(false);
 	}
 
 	return (!param_found);
@@ -739,7 +750,7 @@ param_reset_all(void)
 
 	param_unlock();
 
-	param_notify_changes();
+	param_notify_changes(false);
 }
 
 void
@@ -771,7 +782,7 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 
 	param_unlock();
 
-	param_notify_changes();
+	param_notify_changes(false);
 }
 
 #ifdef __PX4_QURT
@@ -823,7 +834,7 @@ param_save_default(void)
 
 	if (fd < 0) {
 		PX4_ERR("failed to open param file: %s", filename);
-		return ERROR;
+		goto exit;
 	}
 
 	res = param_export(fd, false);
@@ -834,6 +845,7 @@ param_save_default(void)
 	}
 
 	PARAM_CLOSE(fd);
+	fd = -1;
 
 exit:
 
@@ -1095,7 +1107,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_internal(param, v, state->mark_saved, true)) {
+	if (param_set_internal(param, v, state->mark_saved, true, false)) {
 		debug("error setting value for '%s'", node->name);
 		goto out;
 	}
