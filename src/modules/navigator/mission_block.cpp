@@ -125,6 +125,8 @@ MissionBlock::is_mission_item_reached()
 			// XXX not differentiating ground and airspeed yet
 			if (_mission_item.params[1] > 0.0f) {
 				_navigator->set_cruising_speed(_mission_item.params[1]);
+			} else {
+				_navigator->set_cruising_speed();
 			}
 			return true;
 
@@ -319,7 +321,8 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	if (item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 			item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
 			item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION ||
-			item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
+			item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+			item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED) {
 		return false;
 	}
 

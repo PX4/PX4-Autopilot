@@ -166,7 +166,7 @@ public:
 	/**
 	 * Set the cruising speed
 	 */
-	void		set_cruising_speed(float speed) { _mission_cruising_speed = speed; }
+	void		set_cruising_speed(float speed=-1.0f) { _mission_cruising_speed = speed; }
 
 	/**
 	 * Get the acceptance radius given the mission item preset radius

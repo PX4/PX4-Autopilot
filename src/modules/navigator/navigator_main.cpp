@@ -154,7 +154,7 @@ Navigator::Navigator() :
 	_param_rcloss_obc(this, "RCL_OBC"),
 	_param_cruising_speed_hover(this, "MPC_XY_VEL_MAX", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
-	_mission_cruising_speed(0.0f)
+	_mission_cruising_speed(-1.0f)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -622,7 +622,7 @@ float
 Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
-	if (_mission_cruising_speed > 0.001f) {
+	if (_mission_cruising_speed > 0.0f) {
 		return _mission_cruising_speed;
 	} else if (_vstatus.is_rotary_wing) {
 		return _param_cruising_speed_hover.get();
