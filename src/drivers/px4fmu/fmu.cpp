@@ -120,6 +120,7 @@ public:
 	virtual int	init();
 
 	int		set_mode(Mode mode);
+	Mode		get_mode() { return _mode; }
 
 	int		set_pwm_alt_rate(unsigned rate);
 	int		set_pwm_alt_channels(uint32_t channels);
@@ -173,6 +174,8 @@ private:
 	volatile bool	_initialized;
 	bool		_throttle_armed;
 	bool		_pwm_on;
+	uint32_t	_pwm_mask;
+	bool		_pwm_initialized;
 
 	MixerGroup	*_mixers;
 
@@ -205,13 +208,15 @@ private:
 					 uint8_t control_group,
 					 uint8_t control_index,
 					 float &input);
-	void	capture_callback(uint32_t chan_index,
-				 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
+	void		capture_callback(uint32_t chan_index,
+					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 	void		subscribe();
 	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 	void		update_pwm_rev_mask();
 	void		publish_pwm_outputs(uint16_t *values, size_t numvalues);
+	void		update_pwm_out_state(bool on);
+	void		pwm_output_set(unsigned i, unsigned value);
 
 	struct GPIOConfig {
 		uint32_t	input;
@@ -328,6 +333,8 @@ PX4FMU::PX4FMU() :
 	_initialized(false),
 	_throttle_armed(false),
 	_pwm_on(false),
+	_pwm_mask(0),
+	_pwm_initialized(false),
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
@@ -418,6 +425,8 @@ PX4FMU::init()
 int
 PX4FMU::set_mode(Mode mode)
 {
+	unsigned old_mask = _pwm_mask;
+
 	/*
 	 * Configure for PWM output.
 	 *
@@ -439,10 +448,8 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
 		_pwm_alt_rate_channels = 0;
-
-		/* XXX magic numbers */
-		up_pwm_servo_init(0x3);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_mask = 0x3;
+		_pwm_initialized = false;
 
 		break;
 
@@ -458,10 +465,8 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
 		_pwm_alt_rate_channels = 0;
-
-		/* XXX magic numbers */
-		up_pwm_servo_init(0x7);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_mask = 0x7;
+		_pwm_initialized = false;
 		break;
 
 	case MODE_4PWM: // v1 or v2 multi-port as 4 PWM outs
@@ -471,10 +476,8 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
 		_pwm_alt_rate_channels = 0;
-
-		/* XXX magic numbers */
-		up_pwm_servo_init(0xf);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_mask = 0xf;
+		_pwm_initialized = false;
 
 		break;
 
@@ -485,10 +488,8 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
 		_pwm_alt_rate_channels = 0;
-
-		/* XXX magic numbers */
-		up_pwm_servo_init(0x3f);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_mask = 0x3f;
+		_pwm_initialized = false;
 
 		break;
 
@@ -500,10 +501,8 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
 		_pwm_alt_rate_channels = 0;
-
-		/* XXX magic numbers */
-		up_pwm_servo_init(0xff);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_mask = 0xff;
+		_pwm_initialized = false;
 		break;
 #endif
 
@@ -513,9 +512,13 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_default_rate = 10;	/* artificially reduced output rate */
 		_pwm_alt_rate = 10;
 		_pwm_alt_rate_channels = 0;
+		_pwm_mask = 0x0;
+		_pwm_initialized = false;
 
-		/* disable servo outputs - no need to set rates */
-		up_pwm_servo_deinit();
+		if (old_mask != _pwm_mask) {
+			/* disable servo outputs - no need to set rates */
+			up_pwm_servo_deinit();
+		}
 
 		break;
 
@@ -688,15 +691,18 @@ PX4FMU::capture_trampoline(void *context, uint32_t chan_index,
 	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 
-void PX4FMU::capture_callback(uint32_t chan_index,
-			      hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
+void
+PX4FMU::capture_callback(uint32_t chan_index,
+			 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
 	fprintf(stdout, "FMU: Capture chan:%d time:%lld state:%d overflow:%d\n", chan_index, edge_time, edge_state, overflow);
 }
-void PX4FMU::fill_rc_in(uint16_t raw_rc_count,
-			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
-			hrt_abstime now, bool frame_drop, bool failsafe,
-			unsigned frame_drops, int rssi = -1)
+
+void
+PX4FMU::fill_rc_in(uint16_t raw_rc_count,
+		   uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
+		   hrt_abstime now, bool frame_drop, bool failsafe,
+		   unsigned frame_drops, int rssi = -1)
 {
 	// fill rc_in struct for publishing
 	_rc_in.channel_count = raw_rc_count;
@@ -748,12 +754,32 @@ void PX4FMU::rc_io_invert(bool invert)
 #endif
 
 void
+PX4FMU::pwm_output_set(unsigned i, unsigned value)
+{
+	if (_pwm_initialized) {
+		up_pwm_servo_set(i, value);
+	}
+}
+
+void
+PX4FMU::update_pwm_out_state(bool on)
+{
+	if (on && !_pwm_initialized && _pwm_mask != 0) {
+		up_pwm_servo_init(_pwm_mask);
+		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		_pwm_initialized = true;
+
+	} else {
+		_pwm_initialized = false;
+	}
+
+	up_pwm_servo_arm(on);
+}
+
+void
 PX4FMU::cycle()
 {
 	if (!_initialized) {
-		/* reset GPIOs */
-		gpio_reset();
-
 		/* force a reset of the update rate */
 		_current_update_rate = 0;
 
@@ -913,7 +939,7 @@ PX4FMU::cycle()
 
 			/* output to the servos */
 			for (size_t i = 0; i < num_outputs; i++) {
-				up_pwm_servo_set(i, pwm_limited[i]);
+				pwm_output_set(i, pwm_limited[i]);
 			}
 
 			publish_pwm_outputs(pwm_limited, num_outputs);
@@ -935,7 +961,8 @@ PX4FMU::cycle()
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
-			up_pwm_servo_arm(pwm_on);
+
+			update_pwm_out_state(pwm_on);
 		}
 	}
 
@@ -1018,7 +1045,7 @@ PX4FMU::cycle()
 	case RC_SCAN_DSM:
 		if (_rc_scan_begin == 0) {
 			_rc_scan_begin = now;
-//			// Configure serial port for DSM
+			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
@@ -1049,7 +1076,7 @@ PX4FMU::cycle()
 	case RC_SCAN_ST24:
 		if (_rc_scan_begin == 0) {
 			_rc_scan_begin = now;
-//			// Configure serial port for DSM
+			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
@@ -1088,7 +1115,7 @@ PX4FMU::cycle()
 	case RC_SCAN_SUMD:
 		if (_rc_scan_begin == 0) {
 			_rc_scan_begin = now;
-//			// Configure serial port for DSM
+			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
@@ -1313,7 +1340,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case PWM_SERVO_ARM:
-		up_pwm_servo_arm(true);
+		update_pwm_out_state(true);
 		break;
 
 	case PWM_SERVO_SET_ARM_OK:
@@ -1324,7 +1351,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_DISARM:
-		up_pwm_servo_arm(false);
+		update_pwm_out_state(false);
 		break;
 
 	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
@@ -2372,9 +2399,7 @@ fmu_new_mode(PortMode new_mode)
 {
 	uint32_t gpio_bits;
 	PX4FMU::Mode servo_mode;
-
-	/* reset to all-inputs */
-	g_fmu->ioctl(0, GPIO_RESET, 0);
+	bool mode_with_input = false;
 
 	gpio_bits = 0;
 	servo_mode = PX4FMU::MODE_NONE;
@@ -2382,7 +2407,6 @@ fmu_new_mode(PortMode new_mode)
 	switch (new_mode) {
 	case PORT_FULL_GPIO:
 	case PORT_MODE_UNSET:
-		/* nothing more to do here */
 		break;
 
 	case PORT_FULL_PWM:
@@ -2413,6 +2437,7 @@ fmu_new_mode(PortMode new_mode)
 	case PORT_PWM3CAP1:
 		/* select 3-pin PWM mode 1 capture */
 		servo_mode = PX4FMU::MODE_3PWM1CAP;
+		mode_with_input = true;
 		break;
 
 	case PORT_PWM2:
@@ -2423,6 +2448,7 @@ fmu_new_mode(PortMode new_mode)
 	case PORT_PWM2CAP2:
 		/* select 2-pin PWM mode 2 capture */
 		servo_mode = PX4FMU::MODE_2PWM2CAP;
+		mode_with_input = true;
 		break;
 #endif
 
@@ -2432,11 +2458,13 @@ fmu_new_mode(PortMode new_mode)
 	case PORT_FULL_SERIAL:
 		/* set all multi-GPIOs to serial mode */
 		gpio_bits = GPIO_MULTI_1 | GPIO_MULTI_2 | GPIO_MULTI_3 | GPIO_MULTI_4;
+		mode_with_input = true;
 		break;
 
 	case PORT_GPIO_AND_SERIAL:
 		/* set RX/TX multi-GPIOs to serial mode */
 		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
+		mode_with_input = true;
 		break;
 
 	case PORT_PWM_AND_SERIAL:
@@ -2444,11 +2472,13 @@ fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_2PWM;
 		/* set RX/TX multi-GPIOs to serial mode */
 		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
+		mode_with_input = true;
 		break;
 
 	case PORT_PWM_AND_GPIO:
 		/* select 2-pin PWM mode */
 		servo_mode = PX4FMU::MODE_2PWM;
+		mode_with_input = true;
 		break;
 #endif
 
@@ -2456,13 +2486,21 @@ fmu_new_mode(PortMode new_mode)
 		return -1;
 	}
 
-	/* adjust GPIO config for serial mode(s) */
-	if (gpio_bits != 0) {
-		g_fmu->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
-	}
+	if (servo_mode != g_fmu->get_mode()) {
 
-	/* (re)set the PWM output mode */
-	g_fmu->set_mode(servo_mode);
+		/* reset to all-inputs */
+		if (mode_with_input) {
+			g_fmu->ioctl(0, GPIO_RESET, 0);
+
+			/* adjust GPIO config for serial mode(s) */
+			if (gpio_bits != 0) {
+				g_fmu->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
+			}
+		}
+
+		/* (re)set the PWM output mode */
+		g_fmu->set_mode(servo_mode);
+	}
 
 	return OK;
 }
