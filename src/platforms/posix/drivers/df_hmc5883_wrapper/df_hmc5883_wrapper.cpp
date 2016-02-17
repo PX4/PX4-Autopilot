@@ -122,7 +122,8 @@ int DfHmc9250Wrapper::start()
 	// TODO: don't publish garbage here
 	mag_report mag_report = {};
 	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
-					   &_mag_orb_class_instance, ORB_PRIO_DEFAULT);
+					 &_mag_orb_class_instance, ORB_PRIO_DEFAULT);
+
 	if (_mag_topic == nullptr) {
 		PX4_ERR("sensor_mag advert fail");
 		return -1;
@@ -187,6 +188,7 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 		}
 
 	}
+
 	perf_end(_mag_sample_perf);
 
 	/* Notify anyone waiting for data. */
@@ -216,6 +218,7 @@ int start(/*enum Rotation rotation*/)
 	}
 
 	int ret = g_dev->start();
+
 	if (ret != 0) {
 		PX4_ERR("DfHmc9250Wrapper start failed");
 		return ret;
@@ -224,10 +227,10 @@ int start(/*enum Rotation rotation*/)
 	// Open the MAG sensor
 	DevHandle h;
 	DevMgr::getHandle(MAG_DEVICE_PATH, h);
-	if (!h.isValid())
-	{
+
+	if (!h.isValid()) {
 		DF_LOG_INFO("Error: unable to obtain a valid handle for the receiver at: %s (%d)",
-			MAG_DEVICE_PATH, h.getError());
+			    MAG_DEVICE_PATH, h.getError());
 		return -1;
 	}
 
