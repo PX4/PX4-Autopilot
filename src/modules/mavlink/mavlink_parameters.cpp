@@ -77,8 +77,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 			if (req_list.target_system == mavlink_system.sysid &&
 			    (req_list.target_component == mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
-
-				_send_all_index = PARAM_HASH;
+				if (_send_all_index < 0) {
+					_send_all_index = PARAM_HASH;
+				} else {
+					/* a restart should skip the hash check on the ground */
+					_send_all_index = 0;
+				}
 			}
 
 			if (req_list.target_system == mavlink_system.sysid && req_list.target_component < 127 &&
