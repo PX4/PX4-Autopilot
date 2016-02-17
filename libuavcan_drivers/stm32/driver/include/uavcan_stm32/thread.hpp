@@ -20,9 +20,9 @@
 #elif UAVCAN_STM32_FREERTOS
 # include <stm32f4xx.h>
 # include <cmsis_os.h>
-  #ifndef MAX_SEMAPHORE_COUNT
-    #define MAX_SEMAPHORE_COUNT      50
-  #endif
+#   ifndef MAX_SEMAPHORE_COUNT
+#   define MAX_SEMAPHORE_COUNT      50
+#endif
 #else
 # error "Unknown OS"
 #endif
@@ -186,12 +186,14 @@ public:
     void signal();
 
     void signalFromInterrupt();
+
+    void yieldFromISR();
 };
 
 class Mutex
 {
     SemaphoreHandle_t mtx_;
-    BaseType_t xHigherPriorityTaskWoken;
+
 public:
     Mutex(void)
     {

@@ -116,6 +116,11 @@ void BusEvent::signalFromInterrupt()
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
+void BusEvent::yieldFromISR()
+{
+    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+}
+
 /*
  * Mutex
  */
