@@ -118,7 +118,8 @@ int DfBmp280Wrapper::start()
 	// TODO: don't publish garbage here
 	baro_report baro_report = {};
 	_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &baro_report,
-					   &_baro_orb_class_instance, ORB_PRIO_DEFAULT);
+					  &_baro_orb_class_instance, ORB_PRIO_DEFAULT);
+
 	if (_baro_topic == nullptr) {
 		PX4_ERR("sensor_baro advert fail");
 		return -1;
@@ -207,6 +208,7 @@ int start(/*enum Rotation rotation*/)
 	}
 
 	int ret = g_dev->start();
+
 	if (ret != 0) {
 		PX4_ERR("DfBmp280Wrapper start failed");
 		return ret;
@@ -215,8 +217,8 @@ int start(/*enum Rotation rotation*/)
 	// Open the IMU sensor
 	DevHandle h;
 	DevMgr::getHandle(BARO_DEVICE_PATH, h);
-	if (!h.isValid())
-	{
+
+	if (!h.isValid()) {
 		DF_LOG_INFO("Error: unable to obtain a valid handle for the receiver at: %s (%d)",
 			    BARO_DEVICE_PATH, h.getError());
 		return -1;
