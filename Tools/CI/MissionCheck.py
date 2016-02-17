@@ -1,8 +1,20 @@
 ################################################################################################
+# @File MissionCheck.py
+# Automated mission loading, execution and monitoring
+# for Continuous Integration
+#
+# @author Sander Smeets <sander@droneslab.com>
+#
+################################################################################################
+
+
+################################################################################################
 # Settings
 ################################################################################################
 
-import_mission_filename = "VTOLmission.txt"
+connection_string       = '127.0.0.1:14540'
+
+import_mission_filename = 'VTOLmission.txt'
 max_execution_time      = 250
 
 
@@ -11,8 +23,11 @@ max_execution_time      = 250
 ################################################################################################
 
 # Import DroneKit-Python
-from dronekit import connect, VehicleMode, Command
+from dronekit import connect, Command
+from pymavlink import mavutil
 import time, sys
+
+MAV_MODE_AUTO = 4
 
 # start time counter
 start_time = time.time()
@@ -20,7 +35,7 @@ elapsed_time = time.time() - start_time
 
 # Connect to the Vehicle, wait_ready will not work on PX4
 print "Connecting"
-vehicle = connect('127.0.0.1:14550', wait_ready=True)
+vehicle = connect(connection_string, wait_ready=True)
 vehicle.armed = False
 
 while not vehicle.system_status.state == "STANDBY":
@@ -165,8 +180,8 @@ time.sleep(2)
 
 # set mission mode the hard way
 vehicle._master.mav.command_long_send(vehicle._master.target_system, vehicle._master.target_component,
-                                           176, 0,
-                                           4,
+                                           mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
+                                           MAV_MODE_AUTO,
                                            0, 0, 0, 0, 0, 0)
 time.sleep(1)
 
