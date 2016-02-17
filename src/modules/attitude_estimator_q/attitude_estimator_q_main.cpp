@@ -325,10 +325,12 @@ void AttitudeEstimatorQ::task_main()
 		int ret = px4_poll(fds, 1, 1000);
 
 #ifndef __PX4_QURT
+
 		if (_mavlink_fd < 0) {
 			/* TODO: This call currently stalls the thread on QURT */
 			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 		}
+
 #endif
 
 		if (ret < 0) {
@@ -398,6 +400,7 @@ void AttitudeEstimatorQ::task_main()
 				warnx("WARNING: degenerate accel!");
 				continue;
 			}
+
 			if (_mag.length() < 0.01f) {
 				warnx("WARNING: degenerate mag!");
 				continue;
