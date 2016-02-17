@@ -123,6 +123,7 @@ private:
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
 	bool				_use_hil_gps;					///< Accept GPS HIL messages (for example from an external motion capturing system to fake indoor gps)
+	param_t				_param_use_hil_gps;				///< parameter pointer for MAV_USEHILGPS
 
 	/**
 	 * Try to configure the GPS, handle outgoing communication to the GPS
@@ -184,7 +185,8 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_report_sat_info_pub(nullptr),
 	_rate(0.0f),
 	_fake_gps(fake_gps),
-	_use_hil_gps(false)
+	_use_hil_gps(false),
+	_param_use_hil_gps(PARAM_INVALID)
 {
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
@@ -252,14 +254,14 @@ out:
 void
 GPS::update_param_hil_gps()
 {
-	param_t param_use_hil_gps = param_find("MAV_USEHILGPS");
+	if (_param_use_hil_gps == PARAM_INVALID) {
+		_param_use_hil_gps = param_find("MAV_USEHILGPS");
+	}
 
 	/* update parameter for MAVLINK USEHILGPS */
-	if (param_use_hil_gps != PARAM_INVALID) {
-		int32_t param_value = 0;
-		param_get(param_use_hil_gps, &param_value);
-		_use_hil_gps = (bool)param_value;
-	}
+	int32_t param_value = 0;
+	param_get(_param_use_hil_gps, &param_value);
+	_use_hil_gps = (bool)param_value;
 }
 
 int
