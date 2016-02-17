@@ -946,6 +946,7 @@ Sensors::parameters_update()
 	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
 #ifndef __PX4_QURT
+
 	// TODO: this needs fixing for QURT
 	if (!h_baro.isValid()) {
 		warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
@@ -959,6 +960,7 @@ Sensors::parameters_update()
 			return ERROR;
 		}
 	}
+
 #endif
 
 	return OK;
@@ -2115,6 +2117,7 @@ Sensors::task_main()
 		ret = adc_init();
 
 		if (ret) { break; }
+
 #endif
 
 		break;
