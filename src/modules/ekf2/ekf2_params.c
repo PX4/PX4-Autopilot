@@ -378,3 +378,13 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 3.0f);
  * @unit SD
  */
 PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
+
+/**
+ * A value of 1 indicates that the ekf2 module will publish
+ * replay messages for logging.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
