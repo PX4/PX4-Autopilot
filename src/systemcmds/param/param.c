@@ -448,12 +448,10 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 				       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 				       param_name(param));
 				printf("curr: %ld", (long)i);
-// FIXME: the call paramset_no_autosave doesn't exist on Eagle yet.
-#ifndef CONFIG_ARCH_BOARD_EAGLE
 				param_set_no_autosave(param, &newval);
-#else
-				param_set(param, &newval);
-#endif
+				// TODO-JYW: TESTING-TESTING: Reenabling param_set functionality.
+				param_set_no_autosave(param, &newval);
+>>>>>>> bce2306... Resolved shared memory parameter problems and removed additional debug code.
 				printf(" -> new: %ld\n", (long)newval);
 			}
 		}
@@ -475,12 +473,8 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 				       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 				       param_name(param));
 				printf("curr: %4.4f", (double)f);
-// FIXME: the call paramset_no_autosave doesn't exist on Eagle yet.
-#ifndef CONFIG_ARCH_BOARD_EAGLE
+				// TODO-JYW: TESTING-TESTING: Reenabling param_set functionality.
 				param_set_no_autosave(param, &newval);
-#else
-				param_set(param, &newval);
-#endif
 				printf(" -> new: %4.4f\n", (double)newval);
 			}
 
