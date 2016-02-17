@@ -570,7 +570,8 @@ void Ekf2Replay::task_main()
 		} else if (header[2] == LOG_TIME_MSG) {
 			// time message
 			if (::read(fd, &data[0], sizeof(log_TIME_s)) != sizeof(log_TIME_s)) {
-				PRINT_READ_ERROR;
+				// assume that this is because we have reached the end of the file
+				PX4_WARN("Done!");
 				_task_should_exit = true;
 				continue;
 			}
