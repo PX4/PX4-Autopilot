@@ -1638,24 +1638,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(ATT);
 			}
 
-			if (copy_if_updated_multi(ORB_ID(actuator_outputs), 1, &subs.act_outputs_1_sub, &buf.act_outputs)) {
-				log_msg.msg_type = LOG_OUT1_MSG;
-				memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
-				LOGBUFFER_WRITE_AND_COUNT(OUT);
-			}
 			/* --- ATTITUDE SETPOINT --- */
-				if (copy_if_updated(ORB_ID(vehicle_attitude_setpoint), &subs.att_sp_sub, &buf.att_sp)) {
-					log_msg.msg_type = LOG_ATSP_MSG;
-					log_msg.body.log_ATSP.roll_sp = buf.att_sp.roll_body;
-					log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
-					log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
-					log_msg.body.log_ATSP.thrust_sp = buf.att_sp.thrust;
-					log_msg.body.log_ATSP.q_w = buf.att_sp.q_d[0];
-					log_msg.body.log_ATSP.q_x = buf.att_sp.q_d[1];
-					log_msg.body.log_ATSP.q_y = buf.att_sp.q_d[2];
-					log_msg.body.log_ATSP.q_z = buf.att_sp.q_d[3];
-					LOGBUFFER_WRITE_AND_COUNT(ATSP);
-				}
+			if (copy_if_updated(ORB_ID(vehicle_attitude_setpoint), &subs.att_sp_sub, &buf.att_sp)) {
+				log_msg.msg_type = LOG_ATSP_MSG;
+				log_msg.body.log_ATSP.roll_sp = buf.att_sp.roll_body;
+				log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
+				log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
+				log_msg.body.log_ATSP.thrust_sp = buf.att_sp.thrust;
+				log_msg.body.log_ATSP.q_w = buf.att_sp.q_d[0];
+				log_msg.body.log_ATSP.q_x = buf.att_sp.q_d[1];
+				log_msg.body.log_ATSP.q_y = buf.att_sp.q_d[2];
+				log_msg.body.log_ATSP.q_z = buf.att_sp.q_d[3];
+				LOGBUFFER_WRITE_AND_COUNT(ATSP);
+			}
 
 			/* --- RATES SETPOINT --- */
 			if (copy_if_updated(ORB_ID(vehicle_rates_setpoint), &subs.rates_sp_sub, &buf.rates_sp)) {
@@ -1981,76 +1976,76 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(EST5);
 
 			}
-		}
 
-		/* --- TECS STATUS --- */
-		if (copy_if_updated(ORB_ID(tecs_status), &subs.tecs_status_sub, &buf.tecs_status)) {
-			log_msg.msg_type = LOG_TECS_MSG;
-			log_msg.body.log_TECS.altitudeSp = buf.tecs_status.altitudeSp;
-			log_msg.body.log_TECS.altitudeFiltered = buf.tecs_status.altitude_filtered;
-			log_msg.body.log_TECS.flightPathAngleSp = buf.tecs_status.flightPathAngleSp;
-			log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
-			log_msg.body.log_TECS.airspeedSp = buf.tecs_status.airspeedSp;
-			log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeed_filtered;
-			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
-			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
-			log_msg.body.log_TECS.totalEnergyError = buf.tecs_status.totalEnergyError;
-			log_msg.body.log_TECS.totalEnergyRateError = buf.tecs_status.totalEnergyRateError;
-			log_msg.body.log_TECS.energyDistributionError = buf.tecs_status.energyDistributionError;
-			log_msg.body.log_TECS.energyDistributionRateError = buf.tecs_status.energyDistributionRateError;
-			log_msg.body.log_TECS.pitch_integ = buf.tecs_status.pitch_integ;
-			log_msg.body.log_TECS.throttle_integ = buf.tecs_status.throttle_integ;
-			log_msg.body.log_TECS.mode = (uint8_t)buf.tecs_status.mode;
-			LOGBUFFER_WRITE_AND_COUNT(TECS);
-		}
+			/* --- TECS STATUS --- */
+			if (copy_if_updated(ORB_ID(tecs_status), &subs.tecs_status_sub, &buf.tecs_status)) {
+				log_msg.msg_type = LOG_TECS_MSG;
+				log_msg.body.log_TECS.altitudeSp = buf.tecs_status.altitudeSp;
+				log_msg.body.log_TECS.altitudeFiltered = buf.tecs_status.altitude_filtered;
+				log_msg.body.log_TECS.flightPathAngleSp = buf.tecs_status.flightPathAngleSp;
+				log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
+				log_msg.body.log_TECS.airspeedSp = buf.tecs_status.airspeedSp;
+				log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeed_filtered;
+				log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
+				log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
+				log_msg.body.log_TECS.totalEnergyError = buf.tecs_status.totalEnergyError;
+				log_msg.body.log_TECS.totalEnergyRateError = buf.tecs_status.totalEnergyRateError;
+				log_msg.body.log_TECS.energyDistributionError = buf.tecs_status.energyDistributionError;
+				log_msg.body.log_TECS.energyDistributionRateError = buf.tecs_status.energyDistributionRateError;
+				log_msg.body.log_TECS.pitch_integ = buf.tecs_status.pitch_integ;
+				log_msg.body.log_TECS.throttle_integ = buf.tecs_status.throttle_integ;
+				log_msg.body.log_TECS.mode = (uint8_t)buf.tecs_status.mode;
+				LOGBUFFER_WRITE_AND_COUNT(TECS);
+			}
 
-		/* --- WIND ESTIMATE --- */
-		if (copy_if_updated(ORB_ID(wind_estimate), &subs.wind_sub, &buf.wind_estimate)) {
-			log_msg.msg_type = LOG_WIND_MSG;
-			log_msg.body.log_WIND.x = buf.wind_estimate.windspeed_north;
-			log_msg.body.log_WIND.y = buf.wind_estimate.windspeed_east;
-			log_msg.body.log_WIND.cov_x = buf.wind_estimate.covariance_north;
-			log_msg.body.log_WIND.cov_y = buf.wind_estimate.covariance_east;
-			LOGBUFFER_WRITE_AND_COUNT(WIND);
-		}
+			/* --- WIND ESTIMATE --- */
+			if (copy_if_updated(ORB_ID(wind_estimate), &subs.wind_sub, &buf.wind_estimate)) {
+				log_msg.msg_type = LOG_WIND_MSG;
+				log_msg.body.log_WIND.x = buf.wind_estimate.windspeed_north;
+				log_msg.body.log_WIND.y = buf.wind_estimate.windspeed_east;
+				log_msg.body.log_WIND.cov_x = buf.wind_estimate.covariance_north;
+				log_msg.body.log_WIND.cov_y = buf.wind_estimate.covariance_east;
+				LOGBUFFER_WRITE_AND_COUNT(WIND);
+			}
 
-		/* --- ENCODERS --- */
-		if (copy_if_updated(ORB_ID(encoders), &subs.encoders_sub, &buf.encoders)) {
-			log_msg.msg_type = LOG_ENCD_MSG;
-			log_msg.body.log_ENCD.cnt0 = buf.encoders.counts[0];
-			log_msg.body.log_ENCD.vel0 = buf.encoders.velocity[0];
-			log_msg.body.log_ENCD.cnt1 = buf.encoders.counts[1];
-			log_msg.body.log_ENCD.vel1 = buf.encoders.velocity[1];
-			LOGBUFFER_WRITE_AND_COUNT(ENCD);
-		}
+			/* --- ENCODERS --- */
+			if (copy_if_updated(ORB_ID(encoders), &subs.encoders_sub, &buf.encoders)) {
+				log_msg.msg_type = LOG_ENCD_MSG;
+				log_msg.body.log_ENCD.cnt0 = buf.encoders.counts[0];
+				log_msg.body.log_ENCD.vel0 = buf.encoders.velocity[0];
+				log_msg.body.log_ENCD.cnt1 = buf.encoders.counts[1];
+				log_msg.body.log_ENCD.vel1 = buf.encoders.velocity[1];
+				LOGBUFFER_WRITE_AND_COUNT(ENCD);
+			}
 
-		/* --- TIMESYNC OFFSET --- */
-		if (copy_if_updated(ORB_ID(time_offset), &subs.tsync_sub, &buf.time_offset)) {
-			log_msg.msg_type = LOG_TSYN_MSG;
-			log_msg.body.log_TSYN.time_offset = buf.time_offset.offset_ns;
-			LOGBUFFER_WRITE_AND_COUNT(TSYN);
-		}
+			/* --- TIMESYNC OFFSET --- */
+			if (copy_if_updated(ORB_ID(time_offset), &subs.tsync_sub, &buf.time_offset)) {
+				log_msg.msg_type = LOG_TSYN_MSG;
+				log_msg.body.log_TSYN.time_offset = buf.time_offset.offset_ns;
+				LOGBUFFER_WRITE_AND_COUNT(TSYN);
+			}
 
-		/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */
-		if (copy_if_updated(ORB_ID(mc_att_ctrl_status), &subs.mc_att_ctrl_status_sub, &buf.mc_att_ctrl_status)) {
-			log_msg.msg_type = LOG_MACS_MSG;
-			log_msg.body.log_MACS.roll_rate_integ = buf.mc_att_ctrl_status.roll_rate_integ;
-			log_msg.body.log_MACS.pitch_rate_integ = buf.mc_att_ctrl_status.pitch_rate_integ;
-			log_msg.body.log_MACS.yaw_rate_integ = buf.mc_att_ctrl_status.yaw_rate_integ;
-			LOGBUFFER_WRITE_AND_COUNT(MACS);
-		}
+			/* --- MULTIROTOR ATTITUDE CONTROLLER STATUS --- */
+			if (copy_if_updated(ORB_ID(mc_att_ctrl_status), &subs.mc_att_ctrl_status_sub, &buf.mc_att_ctrl_status)) {
+				log_msg.msg_type = LOG_MACS_MSG;
+				log_msg.body.log_MACS.roll_rate_integ = buf.mc_att_ctrl_status.roll_rate_integ;
+				log_msg.body.log_MACS.pitch_rate_integ = buf.mc_att_ctrl_status.pitch_rate_integ;
+				log_msg.body.log_MACS.yaw_rate_integ = buf.mc_att_ctrl_status.yaw_rate_integ;
+				LOGBUFFER_WRITE_AND_COUNT(MACS);
+			}
 
-		/* --- CONTROL STATE --- */
-		if (copy_if_updated(ORB_ID(control_state), &subs.ctrl_state_sub, &buf.ctrl_state)) {
-			log_msg.msg_type = LOG_CTS_MSG;
-			log_msg.body.log_CTS.vx_body = buf.ctrl_state.x_vel;
-			log_msg.body.log_CTS.vy_body = buf.ctrl_state.y_vel;
-			log_msg.body.log_CTS.vz_body = buf.ctrl_state.z_vel;
-			log_msg.body.log_CTS.airspeed = buf.ctrl_state.airspeed;
-			log_msg.body.log_CTS.roll_rate = buf.ctrl_state.roll_rate;
-			log_msg.body.log_CTS.pitch_rate = buf.ctrl_state.pitch_rate;
-			log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
-			LOGBUFFER_WRITE_AND_COUNT(CTS);
+			/* --- CONTROL STATE --- */
+			if (copy_if_updated(ORB_ID(control_state), &subs.ctrl_state_sub, &buf.ctrl_state)) {
+				log_msg.msg_type = LOG_CTS_MSG;
+				log_msg.body.log_CTS.vx_body = buf.ctrl_state.x_vel;
+				log_msg.body.log_CTS.vy_body = buf.ctrl_state.y_vel;
+				log_msg.body.log_CTS.vz_body = buf.ctrl_state.z_vel;
+				log_msg.body.log_CTS.airspeed = buf.ctrl_state.airspeed;
+				log_msg.body.log_CTS.roll_rate = buf.ctrl_state.roll_rate;
+				log_msg.body.log_CTS.pitch_rate = buf.ctrl_state.pitch_rate;
+				log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
+				LOGBUFFER_WRITE_AND_COUNT(CTS);
+			}
 		}
 
 		/* signal the other thread new data, but not yet unlock */
