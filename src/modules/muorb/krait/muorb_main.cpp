@@ -59,6 +59,7 @@ muorb_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 		if (uORB::KraitFastRpcChannel::isInstance()) {
 			PX4_WARN("muorb already running");
+
 		} else {
 			// register the fast rpc channel with UORB.
 			uORB::Manager::get_instance()->set_uorb_communicator(uORB::KraitFastRpcChannel::GetInstance());
@@ -66,6 +67,7 @@ muorb_main(int argc, char *argv[])
 			// start the KaitFastRPC channel thread.
 			uORB::KraitFastRpcChannel::GetInstance()->Start();
 		}
+
 		return OK;
 
 	}
@@ -74,9 +76,11 @@ muorb_main(int argc, char *argv[])
 
 		if (uORB::KraitFastRpcChannel::isInstance()) {
 			uORB::KraitFastRpcChannel::GetInstance()->Stop();
+
 		} else {
 			PX4_WARN("muorb not running");
 		}
+
 		return OK;
 	}
 
@@ -86,9 +90,11 @@ muorb_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (uORB::KraitFastRpcChannel::isInstance()) {
 			PX4_WARN("muorb running");
+
 		} else {
 			PX4_WARN("muorb not running");
 		}
+
 		return OK;
 	}
 
