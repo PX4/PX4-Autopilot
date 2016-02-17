@@ -176,6 +176,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	if (stack_size < PTHREAD_STACK_MIN) {
 		stack_size = PTHREAD_STACK_MIN;
 	}
+
 	rv = pthread_attr_setstacksize(&attr, stack_size);
 
 	if (rv != 0) {
