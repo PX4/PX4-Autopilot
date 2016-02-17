@@ -141,7 +141,7 @@ struct parameters {
 	float mag_declination_deg = 0.0f;   // magnetic declination in degrees
 	float heading_innov_gate = 3.0f;    // heading fusion innovation consistency gate size in standard deviations
 	float mag_innov_gate = 3.0f;        // magnetometer fusion innovation consistency gate size in standard deviations
-	int mag_declination_source = 7;     // bitmask used to control the handling of declination data
+	int mag_declination_source = 3;     // bitmask used to control the handling of declination data
 	int mag_fusion_type = 0;            // integer used to specify the type of magnetometer fusion used
 
 	// these parameters control the strictness of GPS quality checks used to determine uf the GPS is
@@ -220,6 +220,7 @@ union filter_control_status_u {
 		uint8_t mag_dec     : 1; // 6 - true if synthetic magnetic declination measurements are being fused
 		uint8_t in_air      : 1; // 7 - true when the vehicle is airborne
 		uint8_t armed       : 1; // 8 - true when the vehicle motors are armed
+		uint8_t wind        : 1; // 9 - true when wind velocity is being estimated
 	} flags;
 	uint16_t value;
 };

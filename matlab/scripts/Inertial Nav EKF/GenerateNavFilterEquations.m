@@ -68,7 +68,7 @@ syms R_LOS real % variance of LOS angular rate mesurements (rad/sec)^2
 syms ptd real % location of terrain in D axis
 syms rotErrX rotErrY rotErrZ real; % error rotation vector in body frame
 syms decl real; % earth magnetic field declination from true north
-syms R_MAGS real; % variance for magnetic deviation measurement
+syms R_YAW real; % variance for magnetic deviation measurement
 syms R_DECL real; % variance of supplied declination
 syms BCXinv BCYinv real % inverse of ballistic coefficient for wind relative movement along the x and y  body axes
 syms rho real % air density (kg/m^3)
@@ -269,19 +269,22 @@ ccode(H_LOS,'file','H_LOS.txt');
 ccode(K_LOSX,'file','K_LOSX.txt');
 ccode(K_LOSY,'file','K_LOSY.txt');
 
-%% derive equations for fusion of magnetic heading measurement
+%% derive equations for fusion of direct yaw measurement
 
-% rotate magnetic field into earth axes
-magMeasNED = Tbn*[magX;magY;magZ];
-% the predicted measurement is the angle wrt magnetic north of the horizontal
-% component of the measured field
-angMeas = tan(magMeasNED(2)/magMeasNED(1)) - decl;
-H_MAGS = jacobian(angMeas,errRotVec); % measurement Jacobian
+% rotate X body axis into earth axes
+yawVec = Tbn*[1;0;0];
+% Calculate the yaw angle of the projection
+angMeas = atan(yawVec(2)/yawVec(1));
+H_YAW = jacobian(angMeas,stateVector); % measurement Jacobian
 %H_MAGS = H_MAGS(1:3);
-H_MAGS = subs(H_MAGS, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
-H_MAGS = simplify(H_MAGS);
+H_YAW = subs(H_YAW, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
+H_YAW = simplify(H_YAW);
 %[H_MAGS,SH_MAGS]=OptimiseAlgebra(H_MAGS,'SH_MAGS');
-ccode(H_MAGS,'file','calcH_MAGS.c');
+ccode(H_YAW,'file','calcH_YAW.c');
+% Calculate Kalman gain vector
+K_YAW = (P*transpose(H_YAW))/(H_YAW*P*transpose(H_YAW) + R_YAW);
+%K_MAGS = simplify(K_MAGS);
+ccode(K_YAW,'file','calcK_YAW.c');
 
 %% derive equations for fusion of synthetic deviation measurement
 % used to keep correct heading when operating without absolute position or
@@ -290,7 +293,7 @@ ccode(H_MAGS,'file','calcH_MAGS.c');
 magMeasNED = [magN;magE;magD];
 % the predicted measurement is the angle wrt magnetic north of the horizontal
 % component of the measured field
-angMeas = tan(magMeasNED(2)/magMeasNED(1));
+angMeas = atan(magMeasNED(2)/magMeasNED(1));
 H_MAGD = jacobian(angMeas,stateVector); % measurement Jacobian
 H_MAGD = subs(H_MAGD, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 H_MAGD = simplify(H_MAGD);

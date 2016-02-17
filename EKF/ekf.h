@@ -85,7 +85,11 @@ public:
 	bool collect_gps(uint64_t time_usec, struct gps_message *gps);
 	bool collect_imu(imuSample &imu);
 
+	// this is the current status of the filter control modes
 	filter_control_status_u _control_status = {};
+
+	// this is the previous status of the filter control modes - used to detect mode transitions
+	filter_control_status_u _control_status_prev = {};
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt);

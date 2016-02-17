@@ -81,19 +81,22 @@ void Ekf::initialiseCovariance()
 	// accel z bias
 	P[15][15] = 0.0001f;
 
+	// variances for optional states
+	// these state variances are set to zero until the states are required, then they must be initialised
+
 	// earth magnetic field
-	P[16][16] = 0.0001f;
-	P[17][17] = 0.0001f;
-	P[18][18] = 0.0001f;
+	P[16][16] = 0.0f;
+	P[17][17] = 0.0f;
+	P[18][18] = 0.0f;
 
 	// body magnetic field
-	P[19][19] = 0.0001f;
-	P[20][20] = 0.0001f;
-	P[21][21] = 0.0001f;
+	P[19][19] = 0.0f;
+	P[20][20] = 0.0f;
+	P[21][21] = 0.0f;
 
 	// wind
-	P[22][22] = 0.01f;
-	P[23][23] = 0.01f;
+	P[22][22] = 0.0f;
+	P[23][23] = 0.0f;
 
 }
 
@@ -131,9 +134,33 @@ void Ekf::predictCovariance()
 	float d_ang_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1e-4f);
 	float d_vel_bias_sig = dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1e-2f);
 	float d_ang_scale_sig = dt * math::constrain(_params.gyro_scale_p_noise, 0.0f, 1e-2f);
-	float mag_I_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
-	float mag_B_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
-	float wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f);
+	float mag_I_sig, mag_B_sig;
+
+	// Don't continue to grow the body field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+	if (_control_status.flags.mag_3D && (P[16][16] + P[17][17] + P[18][8]) < 0.1f) {
+		mag_I_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
+
+	} else {
+		mag_I_sig = 0.0f;
+	}
+
+	// Don't continue to grow the earth field variances if they is becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+	if (_control_status.flags.mag_3D && (P[19][19] + P[20][20] + P[21][21]) < 0.1f) {
+		mag_B_sig = dt * math::constrain(_params.mag_p_noise, 0.0f, 1e-1f);
+
+	} else {
+		mag_B_sig = 0.0f;
+	}
+
+	float wind_vel_sig;
+
+	// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
+	if (_control_status.flags.wind && (P[22][22] + P[22][22]) < 1000.0f) {
+		wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f);
+
+	} else {
+		wind_vel_sig = 0.0f;
+	}
 
 	for (unsigned i = 0; i < 9; i++) {
 		process_noise[i] = 0.0f;
@@ -493,170 +520,200 @@ void Ekf::predictCovariance()
 	nextP[13][15] = P[13][15];
 	nextP[14][15] = P[14][15];
 	nextP[15][15] = P[15][15];
-	nextP[0][16] = P[0][16] * SPP[5] - P[1][16] * SPP[4] + P[2][16] * SPP[7] + P[9][16] * SPP[22] + P[12][16] * SPP[18];
-	nextP[1][16] = P[1][16] * SPP[6] - P[0][16] * SPP[2] - P[2][16] * SPP[8] + P[10][16] * SPP[22] + P[13][16] * SPP[17];
-	nextP[2][16] = P[0][16] * SPP[14] - P[1][16] * SPP[3] + P[2][16] * SPP[13] + P[11][16] * SPP[22] + P[14][16] * SPP[16];
-	nextP[3][16] = P[3][16] + P[0][16] * SPP[1] + P[1][16] * SPP[19] + P[2][16] * SPP[15] - P[15][16] * SPP[21];
-	nextP[4][16] = P[4][16] + P[15][16] * SF[22] + P[0][16] * SPP[20] + P[1][16] * SPP[12] + P[2][16] * SPP[11];
-	nextP[5][16] = P[5][16] + P[15][16] * SF[20] - P[0][16] * SPP[9] + P[1][16] * SPP[10] + P[2][16] * SPP[0];
-	nextP[6][16] = P[6][16] + P[3][16] * dt;
-	nextP[7][16] = P[7][16] + P[4][16] * dt;
-	nextP[8][16] = P[8][16] + P[5][16] * dt;
-	nextP[9][16] = P[9][16];
-	nextP[10][16] = P[10][16];
-	nextP[11][16] = P[11][16];
-	nextP[12][16] = P[12][16];
-	nextP[13][16] = P[13][16];
-	nextP[14][16] = P[14][16];
-	nextP[15][16] = P[15][16];
-	nextP[16][16] = P[16][16];
-	nextP[0][17] = P[0][17] * SPP[5] - P[1][17] * SPP[4] + P[2][17] * SPP[7] + P[9][17] * SPP[22] + P[12][17] * SPP[18];
-	nextP[1][17] = P[1][17] * SPP[6] - P[0][17] * SPP[2] - P[2][17] * SPP[8] + P[10][17] * SPP[22] + P[13][17] * SPP[17];
-	nextP[2][17] = P[0][17] * SPP[14] - P[1][17] * SPP[3] + P[2][17] * SPP[13] + P[11][17] * SPP[22] + P[14][17] * SPP[16];
-	nextP[3][17] = P[3][17] + P[0][17] * SPP[1] + P[1][17] * SPP[19] + P[2][17] * SPP[15] - P[15][17] * SPP[21];
-	nextP[4][17] = P[4][17] + P[15][17] * SF[22] + P[0][17] * SPP[20] + P[1][17] * SPP[12] + P[2][17] * SPP[11];
-	nextP[5][17] = P[5][17] + P[15][17] * SF[20] - P[0][17] * SPP[9] + P[1][17] * SPP[10] + P[2][17] * SPP[0];
-	nextP[6][17] = P[6][17] + P[3][17] * dt;
-	nextP[7][17] = P[7][17] + P[4][17] * dt;
-	nextP[8][17] = P[8][17] + P[5][17] * dt;
-	nextP[9][17] = P[9][17];
-	nextP[10][17] = P[10][17];
-	nextP[11][17] = P[11][17];
-	nextP[12][17] = P[12][17];
-	nextP[13][17] = P[13][17];
-	nextP[14][17] = P[14][17];
-	nextP[15][17] = P[15][17];
-	nextP[16][17] = P[16][17];
-	nextP[17][17] = P[17][17];
-	nextP[0][18] = P[0][18] * SPP[5] - P[1][18] * SPP[4] + P[2][18] * SPP[7] + P[9][18] * SPP[22] + P[12][18] * SPP[18];
-	nextP[1][18] = P[1][18] * SPP[6] - P[0][18] * SPP[2] - P[2][18] * SPP[8] + P[10][18] * SPP[22] + P[13][18] * SPP[17];
-	nextP[2][18] = P[0][18] * SPP[14] - P[1][18] * SPP[3] + P[2][18] * SPP[13] + P[11][18] * SPP[22] + P[14][18] * SPP[16];
-	nextP[3][18] = P[3][18] + P[0][18] * SPP[1] + P[1][18] * SPP[19] + P[2][18] * SPP[15] - P[15][18] * SPP[21];
-	nextP[4][18] = P[4][18] + P[15][18] * SF[22] + P[0][18] * SPP[20] + P[1][18] * SPP[12] + P[2][18] * SPP[11];
-	nextP[5][18] = P[5][18] + P[15][18] * SF[20] - P[0][18] * SPP[9] + P[1][18] * SPP[10] + P[2][18] * SPP[0];
-	nextP[6][18] = P[6][18] + P[3][18] * dt;
-	nextP[7][18] = P[7][18] + P[4][18] * dt;
-	nextP[8][18] = P[8][18] + P[5][18] * dt;
-	nextP[9][18] = P[9][18];
-	nextP[10][18] = P[10][18];
-	nextP[11][18] = P[11][18];
-	nextP[12][18] = P[12][18];
-	nextP[13][18] = P[13][18];
-	nextP[14][18] = P[14][18];
-	nextP[15][18] = P[15][18];
-	nextP[16][18] = P[16][18];
-	nextP[17][18] = P[17][18];
-	nextP[18][18] = P[18][18];
-	nextP[0][19] = P[0][19] * SPP[5] - P[1][19] * SPP[4] + P[2][19] * SPP[7] + P[9][19] * SPP[22] + P[12][19] * SPP[18];
-	nextP[1][19] = P[1][19] * SPP[6] - P[0][19] * SPP[2] - P[2][19] * SPP[8] + P[10][19] * SPP[22] + P[13][19] * SPP[17];
-	nextP[2][19] = P[0][19] * SPP[14] - P[1][19] * SPP[3] + P[2][19] * SPP[13] + P[11][19] * SPP[22] + P[14][19] * SPP[16];
-	nextP[3][19] = P[3][19] + P[0][19] * SPP[1] + P[1][19] * SPP[19] + P[2][19] * SPP[15] - P[15][19] * SPP[21];
-	nextP[4][19] = P[4][19] + P[15][19] * SF[22] + P[0][19] * SPP[20] + P[1][19] * SPP[12] + P[2][19] * SPP[11];
-	nextP[5][19] = P[5][19] + P[15][19] * SF[20] - P[0][19] * SPP[9] + P[1][19] * SPP[10] + P[2][19] * SPP[0];
-	nextP[6][19] = P[6][19] + P[3][19] * dt;
-	nextP[7][19] = P[7][19] + P[4][19] * dt;
-	nextP[8][19] = P[8][19] + P[5][19] * dt;
-	nextP[9][19] = P[9][19];
-	nextP[10][19] = P[10][19];
-	nextP[11][19] = P[11][19];
-	nextP[12][19] = P[12][19];
-	nextP[13][19] = P[13][19];
-	nextP[14][19] = P[14][19];
-	nextP[15][19] = P[15][19];
-	nextP[16][19] = P[16][19];
-	nextP[17][19] = P[17][19];
-	nextP[18][19] = P[18][19];
-	nextP[19][19] = P[19][19];
-	nextP[0][20] = P[0][20] * SPP[5] - P[1][20] * SPP[4] + P[2][20] * SPP[7] + P[9][20] * SPP[22] + P[12][20] * SPP[18];
-	nextP[1][20] = P[1][20] * SPP[6] - P[0][20] * SPP[2] - P[2][20] * SPP[8] + P[10][20] * SPP[22] + P[13][20] * SPP[17];
-	nextP[2][20] = P[0][20] * SPP[14] - P[1][20] * SPP[3] + P[2][20] * SPP[13] + P[11][20] * SPP[22] + P[14][20] * SPP[16];
-	nextP[3][20] = P[3][20] + P[0][20] * SPP[1] + P[1][20] * SPP[19] + P[2][20] * SPP[15] - P[15][20] * SPP[21];
-	nextP[4][20] = P[4][20] + P[15][20] * SF[22] + P[0][20] * SPP[20] + P[1][20] * SPP[12] + P[2][20] * SPP[11];
-	nextP[5][20] = P[5][20] + P[15][20] * SF[20] - P[0][20] * SPP[9] + P[1][20] * SPP[10] + P[2][20] * SPP[0];
-	nextP[6][20] = P[6][20] + P[3][20] * dt;
-	nextP[7][20] = P[7][20] + P[4][20] * dt;
-	nextP[8][20] = P[8][20] + P[5][20] * dt;
-	nextP[9][20] = P[9][20];
-	nextP[10][20] = P[10][20];
-	nextP[11][20] = P[11][20];
-	nextP[12][20] = P[12][20];
-	nextP[13][20] = P[13][20];
-	nextP[14][20] = P[14][20];
-	nextP[15][20] = P[15][20];
-	nextP[16][20] = P[16][20];
-	nextP[17][20] = P[17][20];
-	nextP[18][20] = P[18][20];
-	nextP[19][20] = P[19][20];
-	nextP[20][20] = P[20][20];
-	nextP[0][21] = P[0][21] * SPP[5] - P[1][21] * SPP[4] + P[2][21] * SPP[7] + P[9][21] * SPP[22] + P[12][21] * SPP[18];
-	nextP[1][21] = P[1][21] * SPP[6] - P[0][21] * SPP[2] - P[2][21] * SPP[8] + P[10][21] * SPP[22] + P[13][21] * SPP[17];
-	nextP[2][21] = P[0][21] * SPP[14] - P[1][21] * SPP[3] + P[2][21] * SPP[13] + P[11][21] * SPP[22] + P[14][21] * SPP[16];
-	nextP[3][21] = P[3][21] + P[0][21] * SPP[1] + P[1][21] * SPP[19] + P[2][21] * SPP[15] - P[15][21] * SPP[21];
-	nextP[4][21] = P[4][21] + P[15][21] * SF[22] + P[0][21] * SPP[20] + P[1][21] * SPP[12] + P[2][21] * SPP[11];
-	nextP[5][21] = P[5][21] + P[15][21] * SF[20] - P[0][21] * SPP[9] + P[1][21] * SPP[10] + P[2][21] * SPP[0];
-	nextP[6][21] = P[6][21] + P[3][21] * dt;
-	nextP[7][21] = P[7][21] + P[4][21] * dt;
-	nextP[8][21] = P[8][21] + P[5][21] * dt;
-	nextP[9][21] = P[9][21];
-	nextP[10][21] = P[10][21];
-	nextP[11][21] = P[11][21];
-	nextP[12][21] = P[12][21];
-	nextP[13][21] = P[13][21];
-	nextP[14][21] = P[14][21];
-	nextP[15][21] = P[15][21];
-	nextP[16][21] = P[16][21];
-	nextP[17][21] = P[17][21];
-	nextP[18][21] = P[18][21];
-	nextP[19][21] = P[19][21];
-	nextP[20][21] = P[20][21];
-	nextP[21][21] = P[21][21];
-	nextP[0][22] = P[0][22] * SPP[5] - P[1][22] * SPP[4] + P[2][22] * SPP[7] + P[9][22] * SPP[22] + P[12][22] * SPP[18];
-	nextP[1][22] = P[1][22] * SPP[6] - P[0][22] * SPP[2] - P[2][22] * SPP[8] + P[10][22] * SPP[22] + P[13][22] * SPP[17];
-	nextP[2][22] = P[0][22] * SPP[14] - P[1][22] * SPP[3] + P[2][22] * SPP[13] + P[11][22] * SPP[22] + P[14][22] * SPP[16];
-	nextP[3][22] = P[3][22] + P[0][22] * SPP[1] + P[1][22] * SPP[19] + P[2][22] * SPP[15] - P[15][22] * SPP[21];
-	nextP[4][22] = P[4][22] + P[15][22] * SF[22] + P[0][22] * SPP[20] + P[1][22] * SPP[12] + P[2][22] * SPP[11];
-	nextP[5][22] = P[5][22] + P[15][22] * SF[20] - P[0][22] * SPP[9] + P[1][22] * SPP[10] + P[2][22] * SPP[0];
-	nextP[6][22] = P[6][22] + P[3][22] * dt;
-	nextP[7][22] = P[7][22] + P[4][22] * dt;
-	nextP[8][22] = P[8][22] + P[5][22] * dt;
-	nextP[9][22] = P[9][22];
-	nextP[10][22] = P[10][22];
-	nextP[11][22] = P[11][22];
-	nextP[12][22] = P[12][22];
-	nextP[13][22] = P[13][22];
-	nextP[14][22] = P[14][22];
-	nextP[15][22] = P[15][22];
-	nextP[16][22] = P[16][22];
-	nextP[17][22] = P[17][22];
-	nextP[18][22] = P[18][22];
-	nextP[19][22] = P[19][22];
-	nextP[20][22] = P[20][22];
-	nextP[21][22] = P[21][22];
-	nextP[22][22] = P[22][22];
-	nextP[0][23] = P[0][23] * SPP[5] - P[1][23] * SPP[4] + P[2][23] * SPP[7] + P[9][23] * SPP[22] + P[12][23] * SPP[18];
-	nextP[1][23] = P[1][23] * SPP[6] - P[0][23] * SPP[2] - P[2][23] * SPP[8] + P[10][23] * SPP[22] + P[13][23] * SPP[17];
-	nextP[2][23] = P[0][23] * SPP[14] - P[1][23] * SPP[3] + P[2][23] * SPP[13] + P[11][23] * SPP[22] + P[14][23] * SPP[16];
-	nextP[3][23] = P[3][23] + P[0][23] * SPP[1] + P[1][23] * SPP[19] + P[2][23] * SPP[15] - P[15][23] * SPP[21];
-	nextP[4][23] = P[4][23] + P[15][23] * SF[22] + P[0][23] * SPP[20] + P[1][23] * SPP[12] + P[2][23] * SPP[11];
-	nextP[5][23] = P[5][23] + P[15][23] * SF[20] - P[0][23] * SPP[9] + P[1][23] * SPP[10] + P[2][23] * SPP[0];
-	nextP[6][23] = P[6][23] + P[3][23] * dt;
-	nextP[7][23] = P[7][23] + P[4][23] * dt;
-	nextP[8][23] = P[8][23] + P[5][23] * dt;
-	nextP[9][23] = P[9][23];
-	nextP[10][23] = P[10][23];
-	nextP[11][23] = P[11][23];
-	nextP[12][23] = P[12][23];
-	nextP[13][23] = P[13][23];
-	nextP[14][23] = P[14][23];
-	nextP[15][23] = P[15][23];
-	nextP[16][23] = P[16][23];
-	nextP[17][23] = P[17][23];
-	nextP[18][23] = P[18][23];
-	nextP[19][23] = P[19][23];
-	nextP[20][23] = P[20][23];
-	nextP[21][23] = P[21][23];
-	nextP[22][23] = P[22][23];
-	nextP[23][23] = P[23][23];
+
+	// Don't do covariance prediction on magnetic field states unless we are using 3-axis fusion
+	if (_control_status.flags.mag_3D) {
+		// Check if we have just transitioned into 3-axis fusion and set the state variances
+		if (!_control_status_prev.flags.mag_3D) {
+			for (uint8_t index = 16; index <= 21; index++) {
+				P[index][index] = sq(fmaxf(_params.mag_noise, 0.001f));
+			}
+		}
+
+		nextP[0][16] = P[0][16] * SPP[5] - P[1][16] * SPP[4] + P[2][16] * SPP[7] + P[9][16] * SPP[22] + P[12][16] * SPP[18];
+		nextP[1][16] = P[1][16] * SPP[6] - P[0][16] * SPP[2] - P[2][16] * SPP[8] + P[10][16] * SPP[22] + P[13][16] * SPP[17];
+		nextP[2][16] = P[0][16] * SPP[14] - P[1][16] * SPP[3] + P[2][16] * SPP[13] + P[11][16] * SPP[22] + P[14][16] * SPP[16];
+		nextP[3][16] = P[3][16] + P[0][16] * SPP[1] + P[1][16] * SPP[19] + P[2][16] * SPP[15] - P[15][16] * SPP[21];
+		nextP[4][16] = P[4][16] + P[15][16] * SF[22] + P[0][16] * SPP[20] + P[1][16] * SPP[12] + P[2][16] * SPP[11];
+		nextP[5][16] = P[5][16] + P[15][16] * SF[20] - P[0][16] * SPP[9] + P[1][16] * SPP[10] + P[2][16] * SPP[0];
+		nextP[6][16] = P[6][16] + P[3][16] * dt;
+		nextP[7][16] = P[7][16] + P[4][16] * dt;
+		nextP[8][16] = P[8][16] + P[5][16] * dt;
+		nextP[9][16] = P[9][16];
+		nextP[10][16] = P[10][16];
+		nextP[11][16] = P[11][16];
+		nextP[12][16] = P[12][16];
+		nextP[13][16] = P[13][16];
+		nextP[14][16] = P[14][16];
+		nextP[15][16] = P[15][16];
+		nextP[16][16] = P[16][16];
+
+		nextP[0][17] = P[0][17] * SPP[5] - P[1][17] * SPP[4] + P[2][17] * SPP[7] + P[9][17] * SPP[22] + P[12][17] * SPP[18];
+		nextP[1][17] = P[1][17] * SPP[6] - P[0][17] * SPP[2] - P[2][17] * SPP[8] + P[10][17] * SPP[22] + P[13][17] * SPP[17];
+		nextP[2][17] = P[0][17] * SPP[14] - P[1][17] * SPP[3] + P[2][17] * SPP[13] + P[11][17] * SPP[22] + P[14][17] * SPP[16];
+		nextP[3][17] = P[3][17] + P[0][17] * SPP[1] + P[1][17] * SPP[19] + P[2][17] * SPP[15] - P[15][17] * SPP[21];
+		nextP[4][17] = P[4][17] + P[15][17] * SF[22] + P[0][17] * SPP[20] + P[1][17] * SPP[12] + P[2][17] * SPP[11];
+		nextP[5][17] = P[5][17] + P[15][17] * SF[20] - P[0][17] * SPP[9] + P[1][17] * SPP[10] + P[2][17] * SPP[0];
+		nextP[6][17] = P[6][17] + P[3][17] * dt;
+		nextP[7][17] = P[7][17] + P[4][17] * dt;
+		nextP[8][17] = P[8][17] + P[5][17] * dt;
+		nextP[9][17] = P[9][17];
+		nextP[10][17] = P[10][17];
+		nextP[11][17] = P[11][17];
+		nextP[12][17] = P[12][17];
+		nextP[13][17] = P[13][17];
+		nextP[14][17] = P[14][17];
+		nextP[15][17] = P[15][17];
+		nextP[16][17] = P[16][17];
+		nextP[17][17] = P[17][17];
+
+		nextP[0][18] = P[0][18] * SPP[5] - P[1][18] * SPP[4] + P[2][18] * SPP[7] + P[9][18] * SPP[22] + P[12][18] * SPP[18];
+		nextP[1][18] = P[1][18] * SPP[6] - P[0][18] * SPP[2] - P[2][18] * SPP[8] + P[10][18] * SPP[22] + P[13][18] * SPP[17];
+		nextP[2][18] = P[0][18] * SPP[14] - P[1][18] * SPP[3] + P[2][18] * SPP[13] + P[11][18] * SPP[22] + P[14][18] * SPP[16];
+		nextP[3][18] = P[3][18] + P[0][18] * SPP[1] + P[1][18] * SPP[19] + P[2][18] * SPP[15] - P[15][18] * SPP[21];
+		nextP[4][18] = P[4][18] + P[15][18] * SF[22] + P[0][18] * SPP[20] + P[1][18] * SPP[12] + P[2][18] * SPP[11];
+		nextP[5][18] = P[5][18] + P[15][18] * SF[20] - P[0][18] * SPP[9] + P[1][18] * SPP[10] + P[2][18] * SPP[0];
+		nextP[6][18] = P[6][18] + P[3][18] * dt;
+		nextP[7][18] = P[7][18] + P[4][18] * dt;
+		nextP[8][18] = P[8][18] + P[5][18] * dt;
+		nextP[9][18] = P[9][18];
+		nextP[10][18] = P[10][18];
+		nextP[11][18] = P[11][18];
+		nextP[12][18] = P[12][18];
+		nextP[13][18] = P[13][18];
+		nextP[14][18] = P[14][18];
+		nextP[15][18] = P[15][18];
+		nextP[16][18] = P[16][18];
+		nextP[17][18] = P[17][18];
+		nextP[18][18] = P[18][18];
+
+		nextP[0][19] = P[0][19] * SPP[5] - P[1][19] * SPP[4] + P[2][19] * SPP[7] + P[9][19] * SPP[22] + P[12][19] * SPP[18];
+		nextP[1][19] = P[1][19] * SPP[6] - P[0][19] * SPP[2] - P[2][19] * SPP[8] + P[10][19] * SPP[22] + P[13][19] * SPP[17];
+		nextP[2][19] = P[0][19] * SPP[14] - P[1][19] * SPP[3] + P[2][19] * SPP[13] + P[11][19] * SPP[22] + P[14][19] * SPP[16];
+		nextP[3][19] = P[3][19] + P[0][19] * SPP[1] + P[1][19] * SPP[19] + P[2][19] * SPP[15] - P[15][19] * SPP[21];
+		nextP[4][19] = P[4][19] + P[15][19] * SF[22] + P[0][19] * SPP[20] + P[1][19] * SPP[12] + P[2][19] * SPP[11];
+		nextP[5][19] = P[5][19] + P[15][19] * SF[20] - P[0][19] * SPP[9] + P[1][19] * SPP[10] + P[2][19] * SPP[0];
+		nextP[6][19] = P[6][19] + P[3][19] * dt;
+		nextP[7][19] = P[7][19] + P[4][19] * dt;
+		nextP[8][19] = P[8][19] + P[5][19] * dt;
+		nextP[9][19] = P[9][19];
+		nextP[10][19] = P[10][19];
+		nextP[11][19] = P[11][19];
+		nextP[12][19] = P[12][19];
+		nextP[13][19] = P[13][19];
+		nextP[14][19] = P[14][19];
+		nextP[15][19] = P[15][19];
+		nextP[16][19] = P[16][19];
+		nextP[17][19] = P[17][19];
+		nextP[18][19] = P[18][19];
+		nextP[19][19] = P[19][19];
+
+		nextP[0][20] = P[0][20] * SPP[5] - P[1][20] * SPP[4] + P[2][20] * SPP[7] + P[9][20] * SPP[22] + P[12][20] * SPP[18];
+		nextP[1][20] = P[1][20] * SPP[6] - P[0][20] * SPP[2] - P[2][20] * SPP[8] + P[10][20] * SPP[22] + P[13][20] * SPP[17];
+		nextP[2][20] = P[0][20] * SPP[14] - P[1][20] * SPP[3] + P[2][20] * SPP[13] + P[11][20] * SPP[22] + P[14][20] * SPP[16];
+		nextP[3][20] = P[3][20] + P[0][20] * SPP[1] + P[1][20] * SPP[19] + P[2][20] * SPP[15] - P[15][20] * SPP[21];
+		nextP[4][20] = P[4][20] + P[15][20] * SF[22] + P[0][20] * SPP[20] + P[1][20] * SPP[12] + P[2][20] * SPP[11];
+		nextP[5][20] = P[5][20] + P[15][20] * SF[20] - P[0][20] * SPP[9] + P[1][20] * SPP[10] + P[2][20] * SPP[0];
+		nextP[6][20] = P[6][20] + P[3][20] * dt;
+		nextP[7][20] = P[7][20] + P[4][20] * dt;
+		nextP[8][20] = P[8][20] + P[5][20] * dt;
+		nextP[9][20] = P[9][20];
+		nextP[10][20] = P[10][20];
+		nextP[11][20] = P[11][20];
+		nextP[12][20] = P[12][20];
+		nextP[13][20] = P[13][20];
+		nextP[14][20] = P[14][20];
+		nextP[15][20] = P[15][20];
+		nextP[16][20] = P[16][20];
+		nextP[17][20] = P[17][20];
+		nextP[18][20] = P[18][20];
+		nextP[19][20] = P[19][20];
+		nextP[20][20] = P[20][20];
+
+		nextP[0][21] = P[0][21] * SPP[5] - P[1][21] * SPP[4] + P[2][21] * SPP[7] + P[9][21] * SPP[22] + P[12][21] * SPP[18];
+		nextP[1][21] = P[1][21] * SPP[6] - P[0][21] * SPP[2] - P[2][21] * SPP[8] + P[10][21] * SPP[22] + P[13][21] * SPP[17];
+		nextP[2][21] = P[0][21] * SPP[14] - P[1][21] * SPP[3] + P[2][21] * SPP[13] + P[11][21] * SPP[22] + P[14][21] * SPP[16];
+		nextP[3][21] = P[3][21] + P[0][21] * SPP[1] + P[1][21] * SPP[19] + P[2][21] * SPP[15] - P[15][21] * SPP[21];
+		nextP[4][21] = P[4][21] + P[15][21] * SF[22] + P[0][21] * SPP[20] + P[1][21] * SPP[12] + P[2][21] * SPP[11];
+		nextP[5][21] = P[5][21] + P[15][21] * SF[20] - P[0][21] * SPP[9] + P[1][21] * SPP[10] + P[2][21] * SPP[0];
+		nextP[6][21] = P[6][21] + P[3][21] * dt;
+		nextP[7][21] = P[7][21] + P[4][21] * dt;
+		nextP[8][21] = P[8][21] + P[5][21] * dt;
+		nextP[9][21] = P[9][21];
+		nextP[10][21] = P[10][21];
+		nextP[11][21] = P[11][21];
+		nextP[12][21] = P[12][21];
+		nextP[13][21] = P[13][21];
+		nextP[14][21] = P[14][21];
+		nextP[15][21] = P[15][21];
+		nextP[16][21] = P[16][21];
+		nextP[17][21] = P[17][21];
+		nextP[18][21] = P[18][21];
+		nextP[19][21] = P[19][21];
+		nextP[20][21] = P[20][21];
+		nextP[21][21] = P[21][21];
+	}
+
+	// Don't do covariance prediction on wind states unless we are using them
+	if (_control_status.flags.wind) {
+		// Check if we have jsut transitioned to using wind states and set the variances accordingly
+		if (!_control_status_prev.flags.mag_3D) {
+			for (uint8_t index = 22; index <= 23; index++) {
+				// TODO initialise wind states using ground speed and airspeed and set initial variance using sum of ground speed and airspeed variances
+				P[index][index] = sq(5.0f);
+			}
+		}
+
+		nextP[0][22] = P[0][22] * SPP[5] - P[1][22] * SPP[4] + P[2][22] * SPP[7] + P[9][22] * SPP[22] + P[12][22] * SPP[18];
+		nextP[1][22] = P[1][22] * SPP[6] - P[0][22] * SPP[2] - P[2][22] * SPP[8] + P[10][22] * SPP[22] + P[13][22] * SPP[17];
+		nextP[2][22] = P[0][22] * SPP[14] - P[1][22] * SPP[3] + P[2][22] * SPP[13] + P[11][22] * SPP[22] + P[14][22] * SPP[16];
+		nextP[3][22] = P[3][22] + P[0][22] * SPP[1] + P[1][22] * SPP[19] + P[2][22] * SPP[15] - P[15][22] * SPP[21];
+		nextP[4][22] = P[4][22] + P[15][22] * SF[22] + P[0][22] * SPP[20] + P[1][22] * SPP[12] + P[2][22] * SPP[11];
+		nextP[5][22] = P[5][22] + P[15][22] * SF[20] - P[0][22] * SPP[9] + P[1][22] * SPP[10] + P[2][22] * SPP[0];
+		nextP[6][22] = P[6][22] + P[3][22] * dt;
+		nextP[7][22] = P[7][22] + P[4][22] * dt;
+		nextP[8][22] = P[8][22] + P[5][22] * dt;
+		nextP[9][22] = P[9][22];
+		nextP[10][22] = P[10][22];
+		nextP[11][22] = P[11][22];
+		nextP[12][22] = P[12][22];
+		nextP[13][22] = P[13][22];
+		nextP[14][22] = P[14][22];
+		nextP[15][22] = P[15][22];
+		nextP[16][22] = P[16][22];
+		nextP[17][22] = P[17][22];
+		nextP[18][22] = P[18][22];
+		nextP[19][22] = P[19][22];
+		nextP[20][22] = P[20][22];
+		nextP[21][22] = P[21][22];
+		nextP[22][22] = P[22][22];
+
+		nextP[0][23] = P[0][23] * SPP[5] - P[1][23] * SPP[4] + P[2][23] * SPP[7] + P[9][23] * SPP[22] + P[12][23] * SPP[18];
+		nextP[1][23] = P[1][23] * SPP[6] - P[0][23] * SPP[2] - P[2][23] * SPP[8] + P[10][23] * SPP[22] + P[13][23] * SPP[17];
+		nextP[2][23] = P[0][23] * SPP[14] - P[1][23] * SPP[3] + P[2][23] * SPP[13] + P[11][23] * SPP[22] + P[14][23] * SPP[16];
+		nextP[3][23] = P[3][23] + P[0][23] * SPP[1] + P[1][23] * SPP[19] + P[2][23] * SPP[15] - P[15][23] * SPP[21];
+		nextP[4][23] = P[4][23] + P[15][23] * SF[22] + P[0][23] * SPP[20] + P[1][23] * SPP[12] + P[2][23] * SPP[11];
+		nextP[5][23] = P[5][23] + P[15][23] * SF[20] - P[0][23] * SPP[9] + P[1][23] * SPP[10] + P[2][23] * SPP[0];
+		nextP[6][23] = P[6][23] + P[3][23] * dt;
+		nextP[7][23] = P[7][23] + P[4][23] * dt;
+		nextP[8][23] = P[8][23] + P[5][23] * dt;
+		nextP[9][23] = P[9][23];
+		nextP[10][23] = P[10][23];
+		nextP[11][23] = P[11][23];
+		nextP[12][23] = P[12][23];
+		nextP[13][23] = P[13][23];
+		nextP[14][23] = P[14][23];
+		nextP[15][23] = P[15][23];
+		nextP[16][23] = P[16][23];
+		nextP[17][23] = P[17][23];
+		nextP[18][23] = P[18][23];
+		nextP[19][23] = P[19][23];
+		nextP[20][23] = P[20][23];
+		nextP[21][23] = P[21][23];
+		nextP[22][23] = P[22][23];
+		nextP[23][23] = P[23][23];
+
+	}
 
 	// add process noise
 	for (unsigned i = 0; i < _k_num_states; i++) {
@@ -664,7 +721,7 @@ void Ekf::predictCovariance()
 	}
 
 	// stop position covariance growth if our total position variance reaches 100m
-	// this can happen if we loose gps for some time
+	// this can happen if we lose gps for some time
 	if ((P[6][6] + P[7][7]) > 1e4f) {
 		for (uint8_t i = 6; i < 8; i++) {
 			for (uint8_t j = 0; j < _k_num_states; j++) {
@@ -681,10 +738,12 @@ void Ekf::predictCovariance()
 		}
 	}
 
+	// copy variances (diagonals)
 	for (unsigned i = 0; i < _k_num_states; i++) {
 		P[i][i] = nextP[i][i];
 	}
 
+	// force symmetry
 	for (unsigned row = 1; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < row; column++) {
 			P[row][column] = 0.5f * (nextP[row][column] + nextP[column][row]);
@@ -706,8 +765,8 @@ void Ekf::limitCov()
 	P_lim[3] = 0.001f;		// gyro bias max var
 	P_lim[4] = 0.01f;		// gyro scale max var
 	P_lim[5] = 0.1f;		// delta velocity z bias max var
-	P_lim[6] = 0.01f;		// earth mag field max var
-	P_lim[7] = 0.01f;		// body mag field max var
+	P_lim[6] = 0.1f;		// earth mag field max var
+	P_lim[7] = 0.1f;		// body mag field max var
 	P_lim[8] = 1000.0f;		// wind max var
 
 	for (int i = 0; i < 3; i++) {
@@ -742,20 +801,14 @@ void Ekf::limitCov()
 	math::constrain(P[15][15], 0.0f, P_lim[5]);
 
 	for (int i = 16; i < 19; i++) {
-
 		math::constrain(P[i][i], 0.0f, P_lim[6]);
 	}
 
 	for (int i = 19; i < 22; i++) {
-
-
 		math::constrain(P[i][i], 0.0f, P_lim[7]);
 	}
 
 	for (int i = 22; i < 24; i++) {
-
 		math::constrain(P[i][i], 0.0f, P_lim[8]);
 	}
 }
-
-

@@ -145,6 +145,14 @@ void Ekf::controlFusionModes()
 		_control_status.flags.mag_dec = false;
 	}
 
+	// Placeholder for control of wind velocity states estimation
+	// TODO add methods for true airspeed and/or sidelsip fusion or some type of drag force measurement
+	if (false) {
+		_control_status.flags.wind = false;
+	}
+
+	// Store the status to enable change detection
+	_control_status_prev.value = _control_status.value;
 }
 
 void Ekf::calculateVehicleStatus()
