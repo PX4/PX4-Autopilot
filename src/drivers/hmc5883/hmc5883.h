@@ -48,6 +48,6 @@
 #define ID_C_WHO_AM_I			'3'
 
 /* interface factories */
-extern device::Device *HMC5883_SPI_interface(int bus) weak_function;
-extern device::Device *HMC5883_I2C_interface(int bus) weak_function;
+extern device::Device *HMC5883_SPI_interface(int bus);
+extern device::Device *HMC5883_I2C_interface(int bus);
 typedef device::Device *(*HMC5883_constructor)(int);

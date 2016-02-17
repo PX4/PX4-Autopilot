@@ -118,4 +118,7 @@ protected:
 
 	orb_advert_t _rc_param_map_pub;
 	struct rc_parameter_map_s _rc_param_map;
+
+	orb_advert_t _uavcan_parameter_request_pub;
+	int _uavcan_parameter_value_sub;
 };

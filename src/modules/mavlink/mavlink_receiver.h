@@ -161,6 +161,8 @@ private:
 	 */
 	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
 
+	bool	evaluate_target_ok(int command, int target_system, int target_component);
+
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
 	struct vehicle_land_detected_s hil_land_detector;
@@ -178,6 +180,8 @@ private:
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
+	orb_advert_t _hil_distance_sensor_pub;
+	orb_advert_t _flow_distance_sensor_pub;
 	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _offboard_control_mode_pub;
 	orb_advert_t _actuator_controls_pub;
@@ -196,8 +200,11 @@ private:
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
+	uint64_t _hil_last_frame;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
+	float _hil_prev_gyro[3];
+	float _hil_prev_accel[3];
 	struct map_projection_reference_s _hil_local_proj_ref;
 	struct offboard_control_mode_s _offboard_control_mode;
 	struct vehicle_attitude_setpoint_s _att_sp;

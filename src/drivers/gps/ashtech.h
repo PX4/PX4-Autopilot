@@ -42,9 +42,9 @@
 
 #ifndef RECV_BUFFER_SIZE
 #define RECV_BUFFER_SIZE 512
-
-#define SAT_INFO_MAX_SATELLITES  20
 #endif
+
+#include <uORB/topics/satellite_info.h>
 
 
 class ASHTECH : public GPS_Helper
@@ -70,11 +70,11 @@ class ASHTECH : public GPS_Helper
 	bool	_gsv_in_progress;			/**< Indicates that gsv data parsing is in progress */
 	/* int     _satellites_count; 			**< Number of satellites info parsed. */
 	uint8_t count;					/**< Number of satellites in satellite info */
-	uint8_t svid[SAT_INFO_MAX_SATELLITES]; 		/**< Space vehicle ID [1..255], see scheme below  */
-	uint8_t used[SAT_INFO_MAX_SATELLITES];		/**< 0: Satellite not used, 1: used for navigation */
-	uint8_t elevation[SAT_INFO_MAX_SATELLITES];	/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite */
-	uint8_t azimuth[SAT_INFO_MAX_SATELLITES];	/**< Direction of satellite, 0: 0 deg, 255: 360 deg. */
-	uint8_t snr[SAT_INFO_MAX_SATELLITES];		/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99, zero when not tracking this satellite. */
+	uint8_t svid[satellite_info_s::SAT_INFO_MAX_SATELLITES]; 		/**< Space vehicle ID [1..255], see scheme below  */
+	uint8_t used[satellite_info_s::SAT_INFO_MAX_SATELLITES];		/**< 0: Satellite not used, 1: used for navigation */
+	uint8_t elevation[satellite_info_s::SAT_INFO_MAX_SATELLITES];	/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite */
+	uint8_t azimuth[satellite_info_s::SAT_INFO_MAX_SATELLITES];	/**< Direction of satellite, 0: 0 deg, 255: 360 deg. */
+	uint8_t snr[satellite_info_s::SAT_INFO_MAX_SATELLITES];		/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99, zero when not tracking this satellite. */
 
 public:
 	ASHTECH(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info);

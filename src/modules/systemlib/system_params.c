@@ -37,13 +37,10 @@
  * System wide parameters
  */
 
-#include <px4_config.h>
-#include <systemlib/param/param.h>
-
 /**
  * Auto-start script index.
  *
- * Defines the auto-start script used to bootstrap the system.
+ * CHANGING THIS VALUE REQUIRES A RESTART. Defines the auto-start script used to bootstrap the system.
  *
  * @group System
  */
@@ -87,16 +84,21 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
 /**
 * Companion computer interface
 *
-* Configures the baud rate of the companion computer interface.
+* CHANGING THIS VALUE REQUIRES A RESTART. Configures the baud rate of the companion computer interface.
 * Set to zero to disable, set to these values to enable (NO OTHER VALUES SUPPORTED!)
 * 921600: enables onboard mode at 921600 baud, 8N1. 57600: enables onboard mode at 57600 baud, 8N1.
 * 157600: enables OSD mode at 57600 baud, 8N1.
 *
+* @value 921600 Companion Link (921600 baud, 8N1)
+* @value 57600 Companion Link (57600 baud, 8N1)
+* @value 157600 OSD (57600 baud, 8N1)
+*
 * @min 0
 * @max 921600
+* @reboot_required true
 * @group System
 */
-PARAM_DEFINE_INT32(SYS_COMPANION, 0);
+PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
 
 /**
 * Parameter version

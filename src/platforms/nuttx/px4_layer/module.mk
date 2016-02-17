@@ -35,6 +35,7 @@
 # NuttX porting layer
 #
 
-SRCS		 = 	px4_nuttx_tasks.c
+SRCS		 = 	px4_nuttx_tasks.c \
+			../../posix/px4_layer/px4_log.c
 
 MAXOPTIMIZATION	 = -Os

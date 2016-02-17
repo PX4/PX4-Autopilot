@@ -164,6 +164,8 @@ int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *b
 
 int uORB::Manager::orb_check(int handle, bool *updated)
 {
+	/* Set to false here so that if `px4_ioctl` fails to false. */
+	*updated = false;
 	return px4_ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
 }
 
@@ -172,7 +174,7 @@ int uORB::Manager::orb_stat(int handle, uint64_t *time)
 	return px4_ioctl(handle, ORBIOCLASTUPDATE, (unsigned long)(uintptr_t)time);
 }
 
-int uORB::Manager::orb_priority(int handle, int *priority)
+int uORB::Manager::orb_priority(int handle, int32_t *priority)
 {
 	return px4_ioctl(handle, ORBIOCGPRIORITY, (unsigned long)(uintptr_t)priority);
 }

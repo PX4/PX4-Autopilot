@@ -49,8 +49,9 @@ int HelloExample::main()
 {
 	appState.setRunning(true);
 
-	int i=0;
-	while (!appState.exitRequested() && i<5) {
+	int i = 0;
+
+	while (!appState.exitRequested() && i < 5) {
 		sleep(2);
 
 		printf("  Doing work...\n");

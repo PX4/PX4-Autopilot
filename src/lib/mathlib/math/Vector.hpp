@@ -353,7 +353,7 @@ public:
 		printf("[ ");
 
 		for (unsigned int i = 0; i < N; i++)
-			printf("%.3f\t", data[i]);
+			printf("%.3f\t", (double)data[i]);
 
 		printf("]\n");
 	}

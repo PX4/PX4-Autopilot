@@ -43,14 +43,14 @@
 #include "muorb_test_example.h"
 #include <stdio.h>
 #include "uORB/uORBManager.hpp"
-#include "uORBKraitFastRpcChannel.hpp" 
+#include "uORBKraitFastRpcChannel.hpp"
 
 int PX4_MAIN(int argc, char **argv)
 {
 	px4::init(argc, argv, "muorb_test");
 
 	PX4_DEBUG("muorb_test");
-       
+
 	MuorbTestExample hello;
 	hello.main();
 

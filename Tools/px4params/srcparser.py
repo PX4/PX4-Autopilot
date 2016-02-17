@@ -1,5 +1,7 @@
 import sys
 import re
+global default_var
+default_var = {}
 
 class ParameterGroup(object):
     """
@@ -43,11 +45,13 @@ class Parameter(object):
         "min": 5,
         "max": 4,
         "unit": 3,
+        "decimal": 2,
         # all others == 0 (sorted alphabetically)
     }
 
     def __init__(self, name, type, default = ""):
         self.fields = {}
+        self.values = {}
         self.name = name
         self.type = type
         self.default = default
@@ -67,6 +71,12 @@ class Parameter(object):
         """
         self.fields[code] = value
 
+    def SetEnumValue(self, code, value):
+        """
+        Set named enum value
+        """
+        self.values[code] = value
+
     def GetFieldCodes(self):
         """
         Return list of existing field codes in convenient order
@@ -84,7 +94,26 @@ class Parameter(object):
         if not fv:
                 # required because python 3 sorted does not accept None
                 return ""
-        return self.fields.get(code)
+        return fv
+
+    def GetEnumCodes(self):
+        """
+        Return list of existing value codes in convenient order
+        """
+        keys = self.values.keys()
+        #keys = sorted(keys)
+        #keys = sorted(keys, key=lambda x: self.priority.get(x, 0), reverse=True)
+        return keys
+
+    def GetEnumValue(self, code):
+        """
+        Return value of the given enum code or None if not found.
+        """
+        fv =  self.values.get(code)
+        if not fv:
+                # required because python 3 sorted does not accept None
+                return ""
+        return fv
 
 class SourceParser(object):
     """
@@ -98,12 +127,13 @@ class SourceParser(object):
     re_comment_end = re.compile(r'(.*?)\s*\*\/')
     re_parameter_definition = re.compile(r'PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*,\s*([^ ,\)]+)\s*\)\s*;')
     re_px4_parameter_definition = re.compile(r'PX4_PARAM_DEFINE_([A-Z_][A-Z0-9_]*)\s*\(([A-Z_][A-Z0-9_]*)\s*\)\s*;')
+    re_px4_param_default_definition = re.compile(r'#define\s*PARAM_([A-Z_][A-Z0-9_]*)\s*([^ ,\)]+)\s*')
     re_cut_type_specifier = re.compile(r'[a-z]+$')
     re_is_a_number = re.compile(r'^-?[0-9\.]')
     re_remove_dots = re.compile(r'\.+$')
     re_remove_carriage_return = re.compile('\n+')
 
-    valid_tags = set(["group", "board", "min", "max", "unit"])
+    valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "reboot_required", "value"])
 
     # Order of parameter groups
     priority = {
@@ -113,13 +143,6 @@ class SourceParser(object):
 
     def __init__(self):
         self.param_groups = {}
-
-    def GetSupportedExtensions(self):
-        """
-        Returns list of supported file extensions that can be parsed by this
-        parser.
-        """
-        return [".cpp", ".c"]
 
     def Parse(self, contents):
         """
@@ -140,6 +163,7 @@ class SourceParser(object):
                 short_desc = None
                 long_desc = None
                 tags = {}
+                def_values = {}
             elif state is not None and state != "comment-processed":
                 m = self.re_comment_end.search(line)
                 if m:
@@ -159,7 +183,12 @@ class SourceParser(object):
                         m = self.re_comment_tag.match(comment_content)
                         if m:
                             tag, desc = m.group(1, 2)
-                            tags[tag] = desc
+                            if (tag == "value"):
+                                # Take the meta info string and split the code and description
+                                metainfo = desc.split(" ",  1)
+                                def_values[metainfo[0]] = metainfo[1]
+                            else:
+                                tags[tag] = desc
                             current_tag = tag
                             state = "wait-tag-end"
                         elif state == "wait-short":
@@ -193,6 +222,11 @@ class SourceParser(object):
                 name = None
                 defval = ""
                 # Non-empty line outside the comment
+                m = self.re_px4_param_default_definition.match(line)
+                # Default value handling
+                if m:
+                    name_m, defval_m = m.group(1,2)
+                    default_var[name_m] = defval_m
                 m = self.re_parameter_definition.match(line)
                 if m:
                     tp, name, defval = m.group(1, 2, 3)
@@ -200,6 +234,8 @@ class SourceParser(object):
                     m = self.re_px4_parameter_definition.match(line)
                     if m:
                         tp, name = m.group(1, 2)
+                        if (name+'_DEFAULT') in default_var:
+                            defval = default_var[name+'_DEFAULT']
                 if tp is not None:
                     # Remove trailing type specifier from numbers: 0.1f => 0.1
                     if defval != "" and self.re_is_a_number.match(defval):
@@ -223,6 +259,8 @@ class SourceParser(object):
                                 return False
                             else:
                                 param.SetField(tag, tags[tag])
+                        for def_value in def_values:
+                            param.SetEnumValue(def_value, def_values[def_value])
                     # Store the parameter
                     if group not in self.param_groups:
                         self.param_groups[group] = ParameterGroup(group)
@@ -275,6 +313,13 @@ class SourceParser(object):
                     if default != "" and float(default) > float(max):
                         sys.stderr.write("Default value is larger than max: {0} default:{1} max:{2}\n".format(name, default, max))
                         return False
+                for code in param.GetEnumCodes():
+                        if not self.IsNumber(code):
+                            sys.stderr.write("Min value not number: {0} {1}\n".format(name, code))
+                            return False
+                        if param.GetEnumValue(code) == "":
+                            sys.stderr.write("Description for enum value is empty: {0} {1}\n".format(name, code))
+                            return False
         return True
 
     def GetParamGroups(self):

@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <drivers/drv_led.h>
 
 #include "simulator.h"
@@ -86,45 +86,66 @@ bool Simulator::getGPSSample(uint8_t *buf, int len)
 	return _gps.copyData(buf, len);
 }
 
-void Simulator::write_MPU_data(void *buf) {
+bool Simulator::getAirspeedSample(uint8_t *buf, int len)
+{
+	return _airspeed.copyData(buf, len);
+}
+
+void Simulator::write_MPU_data(void *buf)
+{
 	_mpu.writeData(buf);
 }
 
-void Simulator::write_accel_data(void *buf) {
+void Simulator::write_accel_data(void *buf)
+{
 	_accel.writeData(buf);
 }
 
-void Simulator::write_mag_data(void *buf) {
+void Simulator::write_mag_data(void *buf)
+{
 	_mag.writeData(buf);
 }
 
-void Simulator::write_baro_data(void *buf) {
+void Simulator::write_baro_data(void *buf)
+{
 	_baro.writeData(buf);
 }
 
-void Simulator::write_gps_data(void *buf) {
+void Simulator::write_gps_data(void *buf)
+{
 	_gps.writeData(buf);
+}
+
+void Simulator::write_airspeed_data(void *buf)
+{
+	_airspeed.writeData(buf);
 }
 
 int Simulator::start(int argc, char *argv[])
 {
 	int ret = 0;
 	_instance = new Simulator();
+
 	if (_instance) {
-		PX4_INFO("Simulator started");
 		drv_led_start();
+
 		if (argv[2][1] == 's') {
 			_instance->initializeSensorData();
 #ifndef __PX4_QURT
 			// Update sensor data
 			_instance->pollForMAVLinkMessages(false);
 #endif
-		} else {
+
+		} else if (argv[2][1] == 'p') {
 			// Update sensor data
 			_instance->pollForMAVLinkMessages(true);
+
+		} else {
+			_instance->initializeSensorData();
+			_instance->_initialized = true;
 		}
-	}
-	else {
+
+	} else {
 		PX4_WARN("Simulator creation failed");
 		ret = 1;
 	}
@@ -134,103 +155,72 @@ int Simulator::start(int argc, char *argv[])
 
 static void usage()
 {
-	PX4_WARN("Usage: simulator {start -[sc] |stop}");
+	PX4_WARN("Usage: simulator {start -[spt] |stop}");
 	PX4_WARN("Simulate raw sensors:     simulator start -s");
 	PX4_WARN("Publish sensors combined: simulator start -p");
+	PX4_WARN("Dummy unit test data:     simulator start -t");
 }
 
 __BEGIN_DECLS
 extern int simulator_main(int argc, char *argv[]);
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
 __END_DECLS
 
 extern "C" {
 
-int simulator_main(int argc, char *argv[])
-{
-	int ret = 0;
-	if (argc == 3 && strcmp(argv[1], "start") == 0) {
-		if (strcmp(argv[2], "-s") == 0 || strcmp(argv[2], "-p") == 0) {
-			if (g_sim_task >= 0) {
-				warnx("Simulator already started");
-				return 0;
-			}
-			g_sim_task = px4_task_spawn_cmd("Simulator",
-				SCHED_DEFAULT,
-				SCHED_PRIORITY_MAX - 5,
-				1500,
-				Simulator::start,
-				argv);
+	int simulator_main(int argc, char *argv[])
+	{
+		int ret = 0;
 
-			// now wait for the command to complete
-			while(true) {
-				if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
-					break;
-				} else {
-					usleep(100000);
+		if (argc == 3 && strcmp(argv[1], "start") == 0) {
+			if (strcmp(argv[2], "-s") == 0 ||
+			    strcmp(argv[2], "-p") == 0 ||
+			    strcmp(argv[2], "-t") == 0) {
+
+				if (g_sim_task >= 0) {
+					warnx("Simulator already started");
+					return 0;
 				}
+
+				// enable lockstep support
+				px4_enable_sim_lockstep();
+
+				g_sim_task = px4_task_spawn_cmd("simulator",
+								SCHED_DEFAULT,
+								SCHED_PRIORITY_MAX,
+								1500,
+								Simulator::start,
+								argv);
+
+				// now wait for the command to complete
+				while (true) {
+					if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
+						break;
+
+					} else {
+						usleep(100000);
+					}
+				}
+
+			} else {
+				usage();
+				ret = -EINVAL;
 			}
-		}
-		else
-		{
+
+		} else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
+			if (g_sim_task < 0) {
+				PX4_WARN("Simulator not running");
+
+			} else {
+				px4_task_delete(g_sim_task);
+				g_sim_task = -1;
+			}
+
+		} else {
 			usage();
 			ret = -EINVAL;
 		}
-	}
-	else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
-		if (g_sim_task < 0) {
-			PX4_WARN("Simulator not running");
-		}
-		else {
-			px4_task_delete(g_sim_task);
-			g_sim_task = -1;
-		}
-	}
-	else {
-		usage();
-		ret = -EINVAL;
+
+		return ret;
 	}
 
-	return ret;
 }
-
-}
-
-bool static _led_state[2] = { false , false };
-
-__EXPORT void led_init()
-{
-	PX4_DEBUG("LED_INIT");
-}
-
-__EXPORT void led_on(int led)
-{
-	if (led == 1 || led == 0)
-	{
-		PX4_DEBUG("LED%d_ON", led);
-		_led_state[led] = true;
-	}
-}
-
-__EXPORT void led_off(int led)
-{
-	if (led == 1 || led == 0)
-	{
-		PX4_DEBUG("LED%d_OFF", led);
-		_led_state[led] = false;
-	}
-}
-
-__EXPORT void led_toggle(int led)
-{
-	if (led == 1 || led == 0)
-	{
-		_led_state[led] = !_led_state[led];
-		PX4_DEBUG("LED%d_TOGGLE: %s", led, _led_state[led] ? "ON" : "OFF");
-
-	}
-}
-

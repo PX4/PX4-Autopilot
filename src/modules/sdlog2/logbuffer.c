@@ -50,8 +50,8 @@ int logbuffer_init(struct logbuffer_s *lb, int size)
 	lb->size  = size;
 	lb->write_ptr = 0;
 	lb->read_ptr = 0;
-	lb->data = malloc(lb->size);
-	return (lb->data == 0) ? PX4_ERROR : PX4_OK;
+	lb->data = NULL;
+	return PX4_OK;
 }
 
 int logbuffer_count(struct logbuffer_s *lb)
@@ -72,6 +72,16 @@ int logbuffer_is_empty(struct logbuffer_s *lb)
 
 bool logbuffer_write(struct logbuffer_s *lb, void *ptr, int size)
 {
+	// allocate buffer if not yet present
+	if (lb->data == NULL) {
+		lb->data = malloc(lb->size);
+	}
+
+	// allocation failed, bail out
+	if (lb->data == NULL) {
+		return false;
+	}
+
 	// bytes available to write
 	int available = lb->read_ptr - lb->write_ptr - 1;
 

@@ -122,7 +122,7 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 				}
 				
 				if (s == 0 && calibration_counter[0] % (calibration_count / 20) == 0) {
-					mavlink_log_info(worker_data->mavlink_fd, CAL_QGC_PROGRESS_MSG, (calibration_counter[0] * 100) / calibration_count);
+					mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_QGC_PROGRESS_MSG, (calibration_counter[0] * 100) / calibration_count);
 				}
 			}
 			
@@ -131,14 +131,14 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 		}
 		
 		if (poll_errcount > 1000) {
-			mavlink_log_critical(worker_data->mavlink_fd, CAL_ERROR_SENSOR_MSG);
+			mavlink_and_console_log_critical(worker_data->mavlink_fd, CAL_ERROR_SENSOR_MSG);
 			return calibrate_return_error;
 		}
 	}
 	
 	for (unsigned s = 0; s < max_gyros; s++) {
 		if (worker_data->device_id[s] != 0 && calibration_counter[s] < calibration_count / 2) {
-			mavlink_log_critical(worker_data->mavlink_fd, "[cal] ERROR: missing data, sensor %d", s)
+			mavlink_and_console_log_critical(worker_data->mavlink_fd, "[cal] ERROR: missing data, sensor %d", s)
 			return calibrate_return_error;
 		}
 
@@ -155,7 +155,7 @@ int do_gyro_calibration(int mavlink_fd)
 	int			res = OK;
 	gyro_worker_data_t	worker_data = {};
 
-	mavlink_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
+	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
 	worker_data.mavlink_fd = mavlink_fd;
 	
@@ -168,6 +168,9 @@ int do_gyro_calibration(int mavlink_fd)
 		1.0f,	// z scale
 	};
 	
+	int device_prio_max = 0;
+	int32_t device_id_primary = 0;
+
 	for (unsigned s = 0; s < max_gyros; s++) {
 		char str[30];
 		
@@ -176,7 +179,7 @@ int do_gyro_calibration(int mavlink_fd)
 		(void)sprintf(str, "CAL_GYRO%u_ID", s);
 		res = param_set_no_notification(param_find(str), &(worker_data.device_id[s]));
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, "[cal] Unable to reset CAL_GYRO%u_ID", s);
+			mavlink_and_console_log_critical(mavlink_fd, "[cal] Unable to reset CAL_GYRO%u_ID", s);
 			return ERROR;
 		}
 		
@@ -190,7 +193,7 @@ int do_gyro_calibration(int mavlink_fd)
 			px4_close(fd);
 
 			if (res != OK) {
-				mavlink_log_critical(mavlink_fd, CAL_ERROR_RESET_CAL_MSG, s);
+				mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_RESET_CAL_MSG, s);
 				return ERROR;
 			}
 		}
@@ -199,6 +202,15 @@ int do_gyro_calibration(int mavlink_fd)
 	
 	for (unsigned s = 0; s < max_gyros; s++) {
 		worker_data.gyro_sensor_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
+
+		// Get priority
+		int32_t prio;
+		orb_priority(worker_data.gyro_sensor_sub[s], &prio);
+
+		if (prio > device_prio_max) {
+			device_prio_max = prio;
+			device_id_primary = worker_data.device_id[s];
+		}
 	}
 
 	int cancel_sub  = calibrate_cancel_subscribe();
@@ -226,7 +238,7 @@ int do_gyro_calibration(int mavlink_fd)
 			float zdiff = worker_data.gyro_report_0.z - worker_data.gyro_scale[0].z_offset;
 
 			/* maximum allowable calibration error in radians */
-			const float maxoff = 0.0055f;
+			const float maxoff = 0.01f;
 
 			if (!PX4_ISFINITE(worker_data.gyro_scale[0].x_offset) ||
 			    !PX4_ISFINITE(worker_data.gyro_scale[0].y_offset) ||
@@ -258,8 +270,11 @@ int do_gyro_calibration(int mavlink_fd)
 	}
 
 	if (res == OK) {
+
 		/* set offset parameters to new values */
 		bool failed = false;
+
+		failed = failed || (OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
 
 		for (unsigned s = 0; s < max_gyros; s++) {
 			if (worker_data.device_id[s] != 0) {
@@ -287,7 +302,7 @@ int do_gyro_calibration(int mavlink_fd)
 				px4_close(fd);
 
 				if (res != OK) {
-					mavlink_log_critical(mavlink_fd, CAL_ERROR_APPLY_CAL_MSG);
+					mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_APPLY_CAL_MSG, 1);
 				}
 			}
 		}
@@ -310,7 +325,7 @@ int do_gyro_calibration(int mavlink_fd)
 		res = param_save_default();
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, CAL_ERROR_SAVE_PARAMS_MSG);
+			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SAVE_PARAMS_MSG);
 		}
 	}
 
@@ -318,9 +333,9 @@ int do_gyro_calibration(int mavlink_fd)
 	usleep(200000);
 
 	if (res == OK) {
-		mavlink_log_info(mavlink_fd, CAL_QGC_DONE_MSG, sensor_name);
+		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, sensor_name);
 	} else {
-		mavlink_log_info(mavlink_fd, CAL_QGC_FAILED_MSG, sensor_name);
+		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_FAILED_MSG, sensor_name);
 	}
 
 	/* give this message enough time to propagate */

@@ -36,8 +36,5 @@ fi
 
 set HIL yes
 
-# Enable gamepad / joystick support
-param set COM_RC_IN_MODE 2
-
 # Set the AERT mixer for HIL (even if the malolo is a flying wing)
 set MIXER AERT

@@ -36,6 +36,7 @@
 #include "px4_tasks.h"
 #include <drivers/drv_hrt.h>
 #include <cstdio>
+#include <pthread.h>
 
 #define LOG_TAG "uORBKraitFastRpcChannel.cpp"
 
@@ -43,7 +44,7 @@ uORB::KraitFastRpcChannel uORB::KraitFastRpcChannel::_Instance;
 
 static void DumpData(uint8_t *buffer, int32_t length, int32_t num_topics);
 
-// static intialization.
+// static initialization.
 static std::string _log_file_name = "./hex_dump.txt";
 
 static unsigned long _snd_msg_min = 0xFFFFFF;
@@ -139,11 +140,11 @@ int16_t uORB::KraitFastRpcChannel::send_message(const char *messageName, int32_t
 		if ((t3 - t2) > _snd_msg_max) { _snd_msg_max = (t3 - t2); }
 
 		_snd_msg_avg = ((double)((_snd_msg_avg * (_snd_msg_count - 1)) +
-				(unsigned long)(t3 - t2))) / (double)(_snd_msg_count);
+					 (unsigned long)(t3 - t2))) / (double)(_snd_msg_count);
 	}
 
 	_overall_snd_avg = ((double)((_overall_snd_avg * (_overall_snd_count - 1)) +
-				(unsigned long)(t4 - t1))) / (double)(_overall_snd_count);
+				     (unsigned long)(t4 - t1))) / (double)(_overall_snd_count);
 
 	if ((t4 - _log_check_time) > _log_check_interval) {
 		/*

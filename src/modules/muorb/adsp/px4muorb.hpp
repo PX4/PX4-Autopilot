@@ -37,22 +37,22 @@
 
 extern "C" {
 
-int px4muorb_orb_initialize() __EXPORT;
+	int px4muorb_orb_initialize() __EXPORT;
 
-int px4muorb_add_subscriber(const char *name) __EXPORT;
+	int px4muorb_add_subscriber(const char *name) __EXPORT;
 
-int px4muorb_remove_subscriber(const char *name) __EXPORT;
+	int px4muorb_remove_subscriber(const char *name) __EXPORT;
 
-int px4muorb_send_topic_data(const char *name, const uint8_t *data, int data_len_in_bytes) __EXPORT;
+	int px4muorb_send_topic_data(const char *name, const uint8_t *data, int data_len_in_bytes) __EXPORT;
 
-int px4muorb_is_subscriber_present(const char *topic_name, int *status) __EXPORT;
+	int px4muorb_is_subscriber_present(const char *topic_name, int *status) __EXPORT;
 
-int px4muorb_receive_msg(int *msg_type, char *topic_name, int topic_name_len, uint8_t *data, int data_len_in_bytes,
-			 int *bytes_returned) __EXPORT;
+	int px4muorb_receive_msg(int *msg_type, char *topic_name, int topic_name_len, uint8_t *data, int data_len_in_bytes,
+				 int *bytes_returned) __EXPORT;
 
-int px4muorb_receive_bulk_data(uint8_t *_BulkTransferBuffer, int max_size_in_bytes,
-			       int *length_in_bytes, int *topic_count) __EXPORT;
+	int px4muorb_receive_bulk_data(uint8_t *_BulkTransferBuffer, int max_size_in_bytes,
+				       int *length_in_bytes, int *topic_count) __EXPORT;
 
-int px4muorb_unblock_recieve_msg(void) __EXPORT;
+	int px4muorb_unblock_recieve_msg(void) __EXPORT;
 
 }

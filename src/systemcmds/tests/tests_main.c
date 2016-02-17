@@ -50,10 +50,10 @@
 #include <errno.h>
 
 #include <arch/board/board.h>
-
-//#include <nuttx/spi.h>
-
 #include <systemlib/perf_counter.h>
+
+// Not using Eigen at the moment
+#define TESTS_EIGEN_DISABLE
 
 #include "tests.h"
 
@@ -113,7 +113,9 @@ const struct {
 #ifndef TESTS_MATHLIB_DISABLE
 	{"mathlib",		test_mathlib,	0},
 #endif
+#ifndef TESTS_EIGEN_DISABLE
 	{"eigen",		test_eigen,	OPT_NOJIGTEST},
+#endif
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
 	{NULL,			NULL, 		0}
 };

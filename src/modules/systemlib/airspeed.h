@@ -46,51 +46,52 @@
 #include "math.h"
 #include "conversions.h"
 
- __BEGIN_DECLS
- 
- /**
-  * Calculate indicated airspeed.
-  *
-  * Note that the indicated airspeed is not the true airspeed because it
-  * lacks the air density compensation. Use the calc_true_airspeed functions to get
-  * the true airspeed.
-  *
-  * @param total_pressure pressure inside the pitot/prandtl tube
-  * @param static_pressure pressure at the side of the tube/airplane
-  * @return indicated airspeed in m/s
-  */
- __EXPORT float calc_indicated_airspeed(float differential_pressure);
- 
- /**
-  * Calculate true airspeed from indicated airspeed.
-  *
-  * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
-  *
-  * @param speed_indicated current indicated airspeed
-  * @param pressure_ambient pressure at the side of the tube/airplane
-  * @param temperature_celsius air temperature in degrees celcius
-  * @return true airspeed in m/s
-  */
- __EXPORT float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_ambient, float temperature_celsius);
- 
- /**
-  * Directly calculate true airspeed
-  *
-  * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
-  *
-  * @param total_pressure pressure inside the pitot/prandtl tube
-  * @param static_pressure pressure at the side of the tube/airplane
-  * @param temperature_celsius air temperature in degrees celcius
-  * @return true airspeed in m/s
-  */
- __EXPORT float calc_true_airspeed(float total_pressure, float static_pressure, float temperature_celsius);
+__BEGIN_DECLS
 
- /**
- * Calculates air density.
+/**
+ * Calculate indicated airspeed.
  *
- * @param static_pressure ambient pressure in millibar
- * @param temperature_celcius air / ambient temperature in celcius
+ * Note that the indicated airspeed is not the true airspeed because it
+ * lacks the air density compensation. Use the calc_true_airspeed functions to get
+ * the true airspeed.
+ *
+ * @param total_pressure pressure inside the pitot/prandtl tube
+ * @param static_pressure pressure at the side of the tube/airplane
+ * @return indicated airspeed in m/s
  */
+__EXPORT float calc_indicated_airspeed(float differential_pressure);
+
+/**
+ * Calculate true airspeed from indicated airspeed.
+ *
+ * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
+ *
+ * @param speed_indicated current indicated airspeed
+ * @param pressure_ambient pressure at the side of the tube/airplane
+ * @param temperature_celsius air temperature in degrees celcius
+ * @return true airspeed in m/s
+ */
+__EXPORT float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_ambient,
+		float temperature_celsius);
+
+/**
+ * Directly calculate true airspeed
+ *
+ * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
+ *
+ * @param total_pressure pressure inside the pitot/prandtl tube
+ * @param static_pressure pressure at the side of the tube/airplane
+ * @param temperature_celsius air temperature in degrees celcius
+ * @return true airspeed in m/s
+ */
+__EXPORT float calc_true_airspeed(float total_pressure, float static_pressure, float temperature_celsius);
+
+/**
+* Calculates air density.
+*
+* @param static_pressure ambient pressure in millibar
+* @param temperature_celcius air / ambient temperature in celcius
+*/
 __EXPORT float get_air_density(float static_pressure, float temperature_celsius);
 
 __END_DECLS

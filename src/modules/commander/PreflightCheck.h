@@ -67,7 +67,7 @@ namespace Commander
 *   true if the GNSS receiver should be checked
 **/
 bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc,
-    bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic = false);
+    bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic, bool reportFailures = false);
 
 const unsigned max_mandatory_gyro_count = 1;
 const unsigned max_optional_gyro_count = 3;

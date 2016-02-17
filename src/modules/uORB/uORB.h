@@ -89,20 +89,14 @@ enum ORB_PRIO {
 /**
  * Declare (prototype) the uORB metadata for a topic.
  *
- * Note that optional topics are declared weak; this allows a potential
- * subscriber to attempt to subscribe to a topic that is not known to the
- * system at runtime.  The ORB_ID() macro will return NULL/nullptr for
- * such a topic, and attempts to advertise or subscribe to it will
- * return -1/ENOENT (see below).
- *
  * @param _name		The name of the topic.
  */
 #if defined(__cplusplus)
 # define ORB_DECLARE(_name)		extern "C" const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT
 #else
 # define ORB_DECLARE(_name)		extern const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
+# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT
 #endif
 
 /**
@@ -187,6 +181,29 @@ extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *d
 extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
 					int priority) __EXPORT;
 
+/**
+ * Advertise and publish as the publisher of a topic.
+ *
+ * This performs the initial advertisement of a topic; it creates the topic
+ * node in /obj if required and publishes the initial data.
+ *
+ * Any number of advertisers may publish to a topic; publications are atomic
+ * but co-ordination between publishers is not provided by the ORB.
+ *
+ * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+ *			for the topic.
+ * @param data		A pointer to the initial data to be published.
+ *			For topics updated by interrupt handlers, the advertisement
+ *			must be performed from non-interrupt context.
+ * @param instance	Pointer to an integer which will yield the instance ID (0-based,
+ *			limited by ORB_MULTI_MAX_INSTANCES) of the publication.
+ * @param priority	The priority of the instance. If a subscriber subscribes multiple
+ *			instances, the priority allows the subscriber to prioritize the best
+ *			data source as long as its available.
+ * @return	zero on success, error number on failure
+ */
+extern int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data, int *instance,
+			    int priority);
 
 /**
  * Publish new data to a topic.
@@ -329,6 +346,14 @@ extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
 
 /**
+ * Get the number of published instances of a topic group
+ *
+ * @param meta    ORB topic metadata.
+ * @return    The number of published instances of this topic
+ */
+extern int	orb_group_count(const struct orb_metadata *meta) __EXPORT;
+
+/**
  * Return the priority of the topic
  *
  * @param handle	A handle returned from orb_subscribe.
@@ -338,7 +363,7 @@ extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
  *			priority, independent of the startup order of the associated publishers.
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
-extern int	orb_priority(int handle, int *priority) __EXPORT;
+extern int	orb_priority(int handle, int32_t *priority) __EXPORT;
 
 /**
  * Set the minimum interval between which updates are seen for a subscription.
@@ -364,7 +389,6 @@ __END_DECLS
 
 /* Diverse uORB header defines */ //XXX: move to better location
 #define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
-typedef struct vehicle_attitude_setpoint_s fw_virtual_attitude_setpoint_s;
 typedef uint8_t arming_state_t;
 typedef uint8_t main_state_t;
 typedef uint8_t hil_state_t;

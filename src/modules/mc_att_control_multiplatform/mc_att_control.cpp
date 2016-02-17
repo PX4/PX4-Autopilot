@@ -64,11 +64,9 @@ static const int ERROR = -1;
 
 MulticopterAttitudeControlMultiplatform::MulticopterAttitudeControlMultiplatform() :
 	MulticopterAttitudeControlBase(),
-	_task_should_exit(false),
 	_actuators_0_circuit_breaker_enabled(false),
 
 	/* publications */
-	_att_sp_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
 	_actuators_0_pub(nullptr),
 	_n(_appState),

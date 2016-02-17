@@ -47,16 +47,19 @@
 #include <queue.h>
 #include <px4_platform_types.h>
 
+#ifdef __PX4_QURT
+#include <dspal_types.h>
+#endif
+
 __BEGIN_DECLS
 
 #define HPWORK 0
 #define LPWORK 1
 #define NWORKERS 2
 
-struct wqueue_s
-{
-  pid_t             pid; /* The task ID of the worker thread */
-  struct dq_queue_s q;   /* The queue of pending work */
+struct wqueue_s {
+	pid_t             pid; /* The task ID of the worker thread */
+	struct dq_queue_s q;   /* The queue of pending work */
 };
 
 extern struct wqueue_s g_work[NWORKERS];
@@ -65,13 +68,12 @@ extern struct wqueue_s g_work[NWORKERS];
 
 typedef void (*worker_t)(void *arg);
 
-struct work_s
-{
-  struct dq_entry_s dq;  /* Implements a doubly linked list */
-  worker_t  worker;      /* Work callback */
-  void *arg;             /* Callback argument */
-  uint64_t  qtime;       /* Time work queued */
-  uint32_t  delay;       /* Delay until work performed */
+struct work_s {
+	struct dq_entry_s dq;  /* Implements a doubly linked list */
+	worker_t  worker;      /* Work callback */
+	void *arg;             /* Callback argument */
+	uint64_t  qtime;       /* Time work queued */
+	uint32_t  delay;       /* Delay until work performed */
 };
 
 /****************************************************************************
@@ -140,6 +142,6 @@ int work_lpthread(int argc, char *argv[]);
 
 __END_DECLS
 
-#else 
+#else
 #error "Unknown target OS"
 #endif

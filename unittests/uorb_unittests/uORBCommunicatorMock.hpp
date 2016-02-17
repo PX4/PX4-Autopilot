@@ -126,8 +126,8 @@ class uORB_test::uORBCommunicatorMock : public uORBCommunicator::IChannel
 
  private:
   uORBCommunicator::IChannelRxHandler* _rx_handler;
-  int _sub_topicA_copy_fd;
-  int _sub_topicB_copy_fd;
+  //int _sub_topicA_copy_fd;
+  //int _sub_topicB_copy_fd;
 
   std::map<std::string, std::string> _topic_translation_map;
 

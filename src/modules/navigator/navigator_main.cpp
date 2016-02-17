@@ -71,6 +71,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/vehicle_command.h>
 #include <drivers/drv_baro.h>
 
 #include <systemlib/err.h>
@@ -111,6 +112,7 @@ Navigator::Navigator() :
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
 	_param_update_sub(-1),
+	_vehicle_command_sub(-1),
 	_pos_sp_triplet_pub(nullptr),
 	_mission_result_pub(nullptr),
 	_geofence_result_pub(nullptr),
@@ -126,25 +128,26 @@ Navigator::Navigator() :
 	_pos_sp_triplet{},
 	_mission_result{},
 	_att_sp{},
-	_home_position_set(false),
 	_mission_item_valid(false),
 	_mission_instance_count(0),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence{},
 	_geofence_violation_warning_sent(false),
 	_inside_fence(true),
+	_can_loiter_at_sp(false),
+	_pos_sp_triplet_updated(false),
+	_pos_sp_triplet_published_invalid_once(false),
+	_mission_result_updated(false),
 	_navigation_mode(nullptr),
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
+	_takeoff(this, "TKF"),
+	_land(this, "LND"),
 	_rtl(this, "RTL"),
 	_rcLoss(this, "RCL"),
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
 	_gpsFailure(this, "GPSF"),
-	_can_loiter_at_sp(false),
-	_pos_sp_triplet_updated(false),
-	_pos_sp_triplet_published_invalid_once(false),
-	_mission_result_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
@@ -158,6 +161,8 @@ Navigator::Navigator() :
 	_navigation_mode_array[4] = &_engineFailure;
 	_navigation_mode_array[5] = &_gpsFailure;
 	_navigation_mode_array[6] = &_rcLoss;
+	_navigation_mode_array[7] = &_takeoff;
+	_navigation_mode_array[8] = &_land;
 
 	updateParams();
 }
@@ -206,17 +211,13 @@ Navigator::sensor_combined_update()
 }
 
 void
-Navigator::home_position_update()
+Navigator::home_position_update(bool force)
 {
 	bool updated = false;
 	orb_check(_home_pos_sub, &updated);
 
-	if (updated) {
+	if (updated || force) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-
-		if (_home_pos.timestamp > 0) {
-			_home_position_set = true;
-		}
 	}
 }
 
@@ -264,6 +265,8 @@ Navigator::task_main()
 	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 	_geofence.setMavlinkFd(_mavlink_fd);
 
+	bool have_geofence_position_data = false;
+
 	/* Try to load the geofence:
 	 * if /fs/microsd/etc/geofence.txt load from this file
 	 * else clear geofence data in datamanager */
@@ -274,9 +277,8 @@ Navigator::task_main()
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 
 	} else {
-		mavlink_log_info(_mavlink_fd, "No geofence set");
 		if (_geofence.clearDm() != OK) {
-			warnx("Could not clear geofence");
+			mavlink_log_critical(_mavlink_fd, "failed clearing geofence");
 		}
 	}
 
@@ -291,6 +293,7 @@ Navigator::task_main()
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -298,53 +301,41 @@ Navigator::task_main()
 	global_position_update();
 	gps_position_update();
 	sensor_combined_update();
-	home_position_update();
+	home_position_update(true);
 	navigation_capabilities_update();
 	params_update();
-
-	/* rate limit position and sensor updates to 50 Hz */
-	orb_set_interval(_global_pos_sub, 20);
-	orb_set_interval(_sensor_combined_sub, 20);
 
 	hrt_abstime mavlink_open_time = 0;
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[8];
+	px4_pollfd_struct_t fds[1] = {};
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _home_pos_sub;
-	fds[1].events = POLLIN;
-	fds[2].fd = _capabilities_sub;
-	fds[2].events = POLLIN;
-	fds[3].fd = _vstatus_sub;
-	fds[3].events = POLLIN;
-	fds[4].fd = _control_mode_sub;
-	fds[4].events = POLLIN;
-	fds[5].fd = _param_update_sub;
-	fds[5].events = POLLIN;
-	fds[6].fd = _sensor_combined_sub;
-	fds[6].events = POLLIN;
-	fds[7].fd = _gps_pos_sub;
-	fds[7].events = POLLIN;
+
+	bool global_pos_available_once = false;
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 100ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		/* wait for up to 200ms for data */
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
 
 		if (pret == 0) {
 			/* timed out - periodic check for _task_should_exit, etc. */
-			PX4_WARN("timed out");
+			if (global_pos_available_once) {
+				PX4_WARN("navigator timed out");
+			}
 			continue;
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			PX4_WARN("poll error %d, %d", pret, errno);
+			PX4_WARN("nav: poll error %d, %d", pret, errno);
 			continue;
 		}
+
+		global_pos_available_once = true;
 
 		perf_begin(_loop_perf);
 
@@ -354,10 +345,11 @@ Navigator::task_main()
 			_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 		}
 
-		static bool have_geofence_position_data = false;
+		bool updated;
 
 		/* gps updated */
-		if (fds[7].revents & POLLIN) {
+		orb_check(_gps_pos_sub, &updated);
+		if (updated) {
 			gps_position_update();
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
 				have_geofence_position_data = true;
@@ -365,34 +357,50 @@ Navigator::task_main()
 		}
 
 		/* sensors combined updated */
-		if (fds[6].revents & POLLIN) {
+		orb_check(_sensor_combined_sub, &updated);
+		if (updated) {
 			sensor_combined_update();
 		}
 
 		/* parameters updated */
-		if (fds[5].revents & POLLIN) {
+		orb_check(_param_update_sub, &updated);
+		if (updated) {
 			params_update();
 			updateParams();
 		}
 
 		/* vehicle control mode updated */
-		if (fds[4].revents & POLLIN) {
+		orb_check(_control_mode_sub, &updated);
+		if (updated) {
 			vehicle_control_mode_update();
 		}
 
 		/* vehicle status updated */
-		if (fds[3].revents & POLLIN) {
+		orb_check(_vstatus_sub, &updated);
+		if (updated) {
 			vehicle_status_update();
 		}
 
 		/* navigation capabilities updated */
-		if (fds[2].revents & POLLIN) {
+		orb_check(_capabilities_sub, &updated);
+		if (updated) {
 			navigation_capabilities_update();
 		}
 
 		/* home position updated */
-		if (fds[1].revents & POLLIN) {
+		orb_check(_home_pos_sub, &updated);
+		if (updated) {
 			home_position_update();
+		}
+
+		orb_check(_vehicle_command_sub, &updated);
+		if (updated) {
+			vehicle_command_s cmd;
+			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
+
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
+				warnx("navigator: got takeoff coordinates");
+			}
 		}
 
 		/* global position updated */
@@ -405,10 +413,14 @@ Navigator::task_main()
 
 		/* Check geofence violation */
 		static hrt_abstime last_geofence_check = 0;
-		if (have_geofence_position_data && hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL) {
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos, _home_position_set);
+		if (have_geofence_position_data &&
+			(_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+			(hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter[0], _home_pos, home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
+
+			_geofence_result.geofence_action = _geofence.getGeofenceAction();
 			if (!inside) {
 				/* inform other apps via the mission result */
 				_geofence_result.geofence_violated = true;
@@ -434,15 +446,21 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_ACRO:
 			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-			case vehicle_status_s::NAVIGATION_STATE_LAND:
 			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-				_pos_sp_triplet_published_invalid_once = false;
-				_navigation_mode = &_mission;
+				if (_nav_caps.abort_landing) {
+					// pos controller aborted landing, requests loiter
+					// above landing waypoint
+					_navigation_mode = &_loiter;
+					_pos_sp_triplet_published_invalid_once = false;
+				} else {
+					_pos_sp_triplet_published_invalid_once = false;
+					_navigation_mode = &_mission;
+				}
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 				_pos_sp_triplet_published_invalid_once = false;
@@ -459,6 +477,14 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_rtl;
+				break;
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_takeoff;
+				break;
+			case vehicle_status_s::NAVIGATION_STATE_LAND:
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_land;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 				/* Use complex data link loss mode only when enabled via param
@@ -485,7 +511,7 @@ Navigator::task_main()
 		}
 
 		/* iterate through navigation modes and set active/inactive for each */
-		for(unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
+		for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
 			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 
@@ -524,7 +550,7 @@ Navigator::start()
 	/* start the task */
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX -5,
+					 SCHED_PRIORITY_DEFAULT + 5,
 					 1500,
 					 (px4_main_t)&Navigator::task_main_trampoline,
 					 nullptr);
@@ -590,7 +616,11 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 {
 	float radius = mission_item_radius;
 
-	if (hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
+	// XXX only use navigation capabilities for now
+	// when in fixed wing mode
+	// this might need locking against a commanded transition
+	// so that a stale _vstatus doesn't trigger an accepted mission item.
+	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode && hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
 		if (_nav_caps.turn_distance > radius) {
 			radius = _nav_caps.turn_distance;
 		}
@@ -672,7 +702,7 @@ void
 Navigator::publish_mission_result()
 {
 	_mission_result.instance_count = _mission_instance_count;
-	
+
 	/* lazily publish the mission result only once available */
 	if (_mission_result_pub != nullptr) {
 		/* publish mission result */
@@ -718,5 +748,15 @@ Navigator::publish_att_sp()
 	} else {
 		/* advertise and publish */
 		_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+	}
+}
+
+void
+Navigator::set_mission_failure(const char* reason)
+{
+	if (!_mission_result.mission_failure) {
+		_mission_result.mission_failure = true;
+		set_mission_result_updated();
+		mavlink_log_critical(_mavlink_fd, "%s", reason);
 	}
 }

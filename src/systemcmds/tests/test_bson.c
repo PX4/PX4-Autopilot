@@ -39,7 +39,7 @@
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
- 
+
 #include <px4_defines.h>
 #include <stdio.h>
 #include <string.h>
@@ -111,8 +111,8 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 
 		if (node->b != sample_bool) {
 			PX4_ERR("FAIL: decoder: bool1 value %s, expected %s",
-			      (node->b ? "true" : "false"),
-			      (sample_bool ? "true" : "false"));
+				(node->b ? "true" : "false"),
+				(sample_bool ? "true" : "false"));
 			return 1;
 		}
 

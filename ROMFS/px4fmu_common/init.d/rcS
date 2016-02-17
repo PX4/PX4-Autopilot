@@ -60,9 +60,6 @@ unset FRC
 
 if [ $MODE == autostart ]
 then
-	# Try to get an USB console
-	# REBOOTWORK this needs to start after the flight control loop
-	nshterm /dev/ttyACM0 &
 
 	#
 	# Start the ORB (first app to start)
@@ -121,12 +118,14 @@ then
 	set PWM_MAX none
 	set PWM_AUX_OUT none
 	set PWM_AUX_RATE none
+	set PWM_ACHDIS none
 	set PWM_AUX_DISARMED none
 	set PWM_AUX_MIN none
 	set PWM_AUX_MAX none
 	set FAILSAFE_AUX none
 	set MK_MODE none
 	set FMU_MODE pwm
+	set AUX_MODE pwm
 	set MAVLINK_F default
 	set EXIT_ON_END no
 	set MAV_TYPE none
@@ -152,7 +151,12 @@ then
 	#
 	if param compare SYS_USE_IO 1
 	then
-		set USE_IO yes
+		if ver hwcmp PX4FMU_V4
+		then
+			set USE_IO no
+		else
+			set USE_IO yes
+		fi
 	else
 		set USE_IO no
 	fi
@@ -167,6 +171,13 @@ then
 		sh /etc/init.d/rc.autostart
 	fi
 	unset MODE
+
+	#
+	# Wipe incompatible settings for boards not having two outputs
+	if ver hwcmp PX4FMU_V4
+	then
+		set MIXER_AUX none
+	fi
 
 	#
 	# Override parameters from user configuration file
@@ -195,11 +206,11 @@ then
 		#
 		# Check if PX4IO present and update firmware if needed
 		#
-		if [ -f /etc/extras/px4io-v2_default.bin ]
+		if [ -f /etc/extras/px4io-v2.bin ]
 		then
-			set IO_FILE /etc/extras/px4io-v2_default.bin
+			set IO_FILE /etc/extras/px4io-v2.bin
 		else
-			set IO_FILE /etc/extras/px4io-v1_default.bin
+			set IO_FILE /etc/extras/px4io-v1.bin
 		fi
 
 		if px4io checkcrc ${IO_FILE}
@@ -286,6 +297,7 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
+		set GPS no
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
@@ -314,6 +326,7 @@ then
 			gps start
 		fi
 	fi
+	unset GPS
 	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
@@ -323,6 +336,14 @@ then
 	# Start primary output
 	#
 	set TTYS1_BUSY no
+
+	#
+	# Check if UAVCAN is enabled, default to it for ESCs
+	#
+	if param greater UAVCAN_ENABLE 2
+	then
+		set OUTPUT_MODE uavcan_esc
+	fi
 
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
 	if [ $OUTPUT_MODE != none ]
@@ -397,12 +418,12 @@ then
 
 		if [ $OUTPUT_MODE == hil ]
 		then
-			if hil mode_port2_pwm8
+			if pwm_out_sim mode_port2_pwm8
 			then
-				echo "[i] HIL output started"
+				echo "[i] PWM SIM output started"
 			else
-				echo "[i] ERROR: HIL output start failed"
-				echo "ERROR: HIL output start failed" >> $LOG_FILE
+				echo "[i] ERROR: PWM SIM output start failed"
+				echo "ERROR: PWM SIM output start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -451,17 +472,6 @@ then
 		fi
 	fi
 
-	# Start sensors depending on the interface being up
-	if param compare SENS_EN_LL40LS 1
-	then
-		if pwm_input start
-		then
-			if ll40ls start pwm
-			then
-			fi
-		fi
-	fi
-
 	if [ $MAVLINK_F == default ]
 	then
 		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
@@ -473,13 +483,25 @@ then
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
-			# Start MAVLink on default port: ttyS1
 			set MAVLINK_F "-r 1200"
+			# Avoid using ttyS1 for MAVLink on FMUv4
+			if ver hwcmp PX4FMU_V4
+			then
+				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
+				# Start MAVLink on Wifi (ESP8266 port)
+				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
+			fi
 		fi
 	fi
 
 	mavlink start $MAVLINK_F
 	unset MAVLINK_F
+
+	if ver hwcmp PX4FMU_V4
+	then
+		# Start MAVLink on OSD (TELEM2 port)
+		mavlink start -r 1200 -d /dev/ttyS2 -b 57600 -m osd
+	fi
 
 	#
 	# MAVLink onboard / TELEM2
@@ -500,8 +522,26 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
 		fi
+		if param compare SYS_COMPANION 257600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
+		fi
+		# Sensors on the PWM interface bank
+		# clear pins 5 and 6
+		if param compare SENS_EN_LL40LS 1
+		then
+			set AUX_MODE pwm4
+		fi
+		if param greater TRIG_MODE 0
+		then
+			# Get FMU driver out of the way
+			set MIXER_AUX none
+			set AUX_MODE none
+			camera_trigger start
+		fi
 	fi
 
+	#
 	# UAVCAN
 	#
 	sh /etc/init.d/rc.uavcan
@@ -573,6 +613,10 @@ then
 			then
 				set MAV_TYPE 2
 			fi
+			if [ $MIXER == quad_h ]
+			then
+				set MAV_TYPE 2
+			fi
 			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
 			then
 				set MAV_TYPE 15
@@ -589,7 +633,7 @@ then
 			then
 				set MAV_TYPE 14
 			fi
-			if [ $MIXER == octo_cox ]
+			if [ $MIXER == octo_cox -o $MIXER == octo_cox_w ]
 			then
 				set MAV_TYPE 14
 			fi
@@ -720,8 +764,43 @@ then
 # End of autostart
 fi
 
+# There is no further script processing, so we can free some RAM
+# XXX potentially unset all script variables.
+unset TUNE_ERR
+
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
+
+# Sensors on the PWM interface bank
+if param compare SENS_EN_LL40LS 1
+then
+	if pwm_input start
+	then
+		if ll40ls start pwm
+		then
+		fi
+	fi
+fi
+
+if ver hwcmp PX4FMU_V4
+then
+	frsky_telemetry start -d /dev/ttyS6
+fi
+
+if ver hwcmp PX4FMU_V2
+then
+	# Check for flow sensor - as it is a background task, launch it last
+	px4flow start &
+fi
+
+# Start USB shell if no microSD present, MAVLink else
+if [ $LOG_FILE == /dev/null ]
+then
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
+else
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+fi
 
 if [ $EXIT_ON_END == yes ]
 then
@@ -729,7 +808,3 @@ then
 	exit
 fi
 unset EXIT_ON_END
-
-# There is no further processing, so we can free some RAM
-# XXX potentially unset all script variables.
-unset TUNE_ERR

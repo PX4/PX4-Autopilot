@@ -124,11 +124,9 @@ ARCHWARNINGS		 = -Wall \
 			   -Wextra \
 			   -Wdouble-promotion \
 			   -Wshadow \
-			   -Wfloat-equal \
 			   -Wframe-larger-than=1024 \
 			   -Wpointer-arith \
 			   -Wlogical-op \
-			   -Wmissing-declarations \
 			   -Wpacked \
 			   -Wno-unused-parameter
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
@@ -140,7 +138,6 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wstrict-prototypes \
 			   -Wold-style-declaration \
 			   -Wmissing-parameter-type \
-			   -Wmissing-prototypes \
 			   -Wnested-externs
 ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 			   -Wno-psabi

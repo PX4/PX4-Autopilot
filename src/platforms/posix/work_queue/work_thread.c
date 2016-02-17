@@ -39,11 +39,13 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_posix.h>
 #include <px4_time.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
+#include <pthread.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include "work_lock.h"
@@ -68,7 +70,7 @@ struct wqueue_s g_work[NWORKERS];
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
-sem_t _work_lock[NWORKERS];
+px4_sem_t _work_lock[NWORKERS];
 
 /****************************************************************************
  * Private Functions
@@ -187,14 +189,14 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
  ****************************************************************************/
 void work_queues_init(void)
 {
-	sem_init(&_work_lock[HPWORK], 0, 1);
-	sem_init(&_work_lock[LPWORK], 0, 1);
+	px4_sem_init(&_work_lock[HPWORK], 0, 1);
+	px4_sem_init(&_work_lock[LPWORK], 0, 1);
 #ifdef CONFIG_SCHED_USRWORK
-	sem_init(&_work_lock[USRWORK], 0, 1);
+	px4_sem_init(&_work_lock[USRWORK], 0, 1);
 #endif
 
 	// Create high priority worker thread
-	g_work[HPWORK].pid = px4_task_spawn_cmd("wkr_high",
+	g_work[HPWORK].pid = px4_task_spawn_cmd("hpwork",
 						SCHED_DEFAULT,
 						SCHED_PRIORITY_MAX - 1,
 						2000,
@@ -202,7 +204,7 @@ void work_queues_init(void)
 						(char *const *)NULL);
 
 	// Create low priority worker thread
-	g_work[LPWORK].pid = px4_task_spawn_cmd("wkr_low",
+	g_work[LPWORK].pid = px4_task_spawn_cmd("lpwork",
 						SCHED_DEFAULT,
 						SCHED_PRIORITY_MIN,
 						2000,
@@ -304,6 +306,14 @@ int work_lpthread(int argc, char *argv[])
 int work_usrthread(int argc, char *argv[])
 {
 	/* Loop forever */
+
+	int rv;
+	// set the threads name
+#ifdef __PX4_DARWIN
+	rv = pthread_setname_np("USR");
+#else
+	rv = pthread_setname_np(pthread_self(), "USR");
+#endif
 
 	for (;;) {
 		/* Then process queued work.  We need to keep interrupts disabled while

@@ -156,6 +156,10 @@ static const int ERROR = -1;
 
 static const char *sensor_name = "accel";
 
+static int32_t device_id[max_accel_sens];
+static int device_prio_max = 0;
+static int32_t device_id_primary = 0;
+
 calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors);
 calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num);
 int mat_invert3(float src[3][3], float dst[3][3]);
@@ -172,7 +176,6 @@ typedef struct  {
 int do_accel_calibration(int mavlink_fd)
 {
 	int fd;
-	int32_t device_id[max_accel_sens];
 
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
@@ -259,6 +262,8 @@ int do_accel_calibration(int mavlink_fd)
 		
 		bool failed = false;
 
+		failed = failed || (OK != param_set_no_notification(param_find("CAL_ACC_PRIME"), &(device_id_primary)));
+
 		/* set parameters */
 		(void)sprintf(str, "CAL_ACC%u_XOFF", i);
 		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.x_offset)));
@@ -321,7 +326,7 @@ int do_accel_calibration(int mavlink_fd)
 
 static calibrate_return accel_calibration_worker(detect_orientation_return orientation, int cancel_sub, void* data)
 {
-	const unsigned samples_num = 3000;
+	const unsigned samples_num = 750;
 	accel_worker_data_t* worker_data = (accel_worker_data_t*)(data);
 	
 	mavlink_and_console_log_info(worker_data->mavlink_fd, "[cal] Hold still, measuring %s side", detect_orientation_str(orientation));
@@ -370,6 +375,15 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 		struct accel_report arp = {};
 		(void)orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &arp);
 		timestamps[i] = arp.timestamp;
+
+		// Get priority
+		int32_t prio;
+		orb_priority(worker_data.subs[i], &prio);
+
+		if (prio > device_prio_max) {
+			device_prio_max = prio;
+			device_id_primary = device_id[i];
+		}
 	}
 
 	if (result == calibrate_return_ok) {
@@ -560,7 +574,8 @@ calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref
 int do_level_calibration(int mavlink_fd) {
 	const unsigned cal_time = 5;
 	const unsigned cal_hz = 100;
-	const unsigned settle_time = 30;
+	unsigned settle_time = 30;
+
 	bool success = false;
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	struct vehicle_attitude_s att;
@@ -568,18 +583,26 @@ int do_level_calibration(int mavlink_fd) {
 
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, "level");
 
-	param_t roll_offset_handler = param_find("SENS_BOARD_X_OFF");
-	param_t pitch_offset_handler = param_find("SENS_BOARD_Y_OFF");
+	param_t roll_offset_handle = param_find("SENS_BOARD_X_OFF");
+	param_t pitch_offset_handle = param_find("SENS_BOARD_Y_OFF");
+	param_t board_rot_handle = param_find("SENS_BOARD_ROT");
 
 	// save old values if calibration fails
 	float roll_offset_current;
 	float pitch_offset_current;
-	param_get(roll_offset_handler, &roll_offset_current);
-	param_get(pitch_offset_handler, &pitch_offset_current);
+	int32_t board_rot_current = 0;
+	param_get(roll_offset_handle, &roll_offset_current);
+	param_get(pitch_offset_handle, &pitch_offset_current);
+	param_get(board_rot_handle, &board_rot_current);
+
+	// give attitude some time to settle if there have been changes to the board rotation parameters
+	if (board_rot_current == 0 && fabsf(roll_offset_current) < FLT_EPSILON && fabsf(pitch_offset_current) < FLT_EPSILON ) {
+		settle_time = 0;
+	}
 
 	float zero = 0.0f;
-	param_set(roll_offset_handler, &zero);
-	param_set(pitch_offset_handler, &zero);
+	param_set(roll_offset_handle, &zero);
+	param_set(pitch_offset_handle, &zero);
 
 	px4_pollfd_struct_t fds[1];
 
@@ -633,8 +656,8 @@ int do_level_calibration(int mavlink_fd) {
 	} else {
 		roll_mean *= (float)M_RAD_TO_DEG;
 		pitch_mean *= (float)M_RAD_TO_DEG;
-		param_set(roll_offset_handler, &roll_mean);
-		param_set(pitch_offset_handler, &pitch_mean);
+		param_set(roll_offset_handle, &roll_mean);
+		param_set(pitch_offset_handle, &pitch_mean);
 		success = true;
 	}
 
@@ -644,8 +667,8 @@ out:
 		return 0;
 	} else {
 		// set old parameters
-		param_set(roll_offset_handler, &roll_offset_current);
-		param_set(pitch_offset_handler, &pitch_offset_current);
+		param_set(roll_offset_handle, &roll_offset_current);
+		param_set(pitch_offset_handle, &pitch_offset_current);
 		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "level");
 		return 1;
 	}

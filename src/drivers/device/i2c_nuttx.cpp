@@ -69,7 +69,7 @@ I2C::I2C(const char *name,
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
 	// devtype needs to be filled in by the driver
-	_device_id.devid_s.devtype = 0;     
+	_device_id.devid_s.devtype = 0;
 }
 
 I2C::~I2C()
@@ -90,8 +90,9 @@ I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
 	}
 
 	if (_bus_clocks[index] > 0) {
-		// debug("overriding clock of %u with %u Hz\n", _bus_clocks[index], clock_hz);
+		// DEVICE_DEBUG("overriding clock of %u with %u Hz\n", _bus_clocks[index], clock_hz);
 	}
+
 	_bus_clocks[index] = clock_hz;
 
 	return OK;
@@ -107,7 +108,7 @@ I2C::init()
 	_dev = up_i2cinitialize(_bus);
 
 	if (_dev == nullptr) {
-		debug("failed to init I2C");
+		DEVICE_DEBUG("failed to init I2C");
 		ret = -ENOENT;
 		goto out;
 	}
@@ -121,8 +122,8 @@ I2C::init()
 	if (_bus_clocks[bus_index] > _frequency) {
 		(void)up_i2cuninitialize(_dev);
 		_dev = nullptr;
-		log("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
-			_bus, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
+			   _bus, _bus_clocks[bus_index] / 1000, _frequency / 1000);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -148,7 +149,7 @@ I2C::init()
 	ret = probe();
 
 	if (ret != OK) {
-		debug("probe failed");
+		DEVICE_DEBUG("probe failed");
 		goto out;
 	}
 
@@ -156,19 +157,21 @@ I2C::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		debug("cdev init failed");
+		DEVICE_DEBUG("cdev init failed");
 		goto out;
 	}
 
 	// tell the world where we are
-	log("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
-		_bus, _address, _bus_clocks[bus_index] / 1000, _frequency / 1000);
+	DEVICE_LOG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
+		   _bus, _address, _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
+
 	if ((ret != OK) && (_dev != nullptr)) {
 		up_i2cuninitialize(_dev);
 		_dev = nullptr;
 	}
+
 	return ret;
 }
 
@@ -188,7 +191,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	unsigned retry_count = 0;
 
 	do {
-		//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+		//	DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 
 		msgs = 0;
 
@@ -208,18 +211,21 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 			msgs++;
 		}
 
-		if (msgs == 0)
+		if (msgs == 0) {
 			return -EINVAL;
+		}
 
 		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
 		/* success */
-		if (ret == OK)
+		if (ret == OK) {
 			break;
+		}
 
 		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries))
+		if ((retry_count >= 1) || (retry_count >= _retries)) {
 			up_i2creset(_dev);
+		}
 
 	} while (retry_count++ < _retries);
 
@@ -234,20 +240,23 @@ I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
 	unsigned retry_count = 0;
 
 	/* force the device address into the message vector */
-	for (unsigned i = 0; i < msgs; i++)
+	for (unsigned i = 0; i < msgs; i++) {
 		msgv[i].addr = _address;
+	}
 
 
 	do {
 		ret = I2C_TRANSFER(_dev, msgv, msgs);
 
 		/* success */
-		if (ret == OK)
+		if (ret == OK) {
 			break;
+		}
 
 		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries))
+		if ((retry_count >= 1) || (retry_count >= _retries)) {
 			up_i2creset(_dev);
+		}
 
 	} while (retry_count++ < _retries);
 

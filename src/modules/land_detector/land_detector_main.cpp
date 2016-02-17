@@ -53,6 +53,7 @@
 
 #include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"
+#include "VtolLandDetector.h"
 
 //Function prototypes
 static int land_detector_start(const char *mode);
@@ -67,47 +68,32 @@ extern "C" __EXPORT int land_detector_main(int argc, char *argv[]);
 
 //Private variables
 static LandDetector *land_detector_task = nullptr;
-static int _landDetectorTaskID = -1;
 static char _currentMode[12];
-
-/**
-* Deamon thread function
-**/
-static void land_detector_deamon_thread(int argc, char *argv[])
-{
-	land_detector_task->start();
-}
 
 /**
 * Stop the task, force killing it if it doesn't stop by itself
 **/
 static void land_detector_stop()
 {
-	if (land_detector_task == nullptr || _landDetectorTaskID == -1) {
+	if (land_detector_task == nullptr) {
 		warnx("not running");
 		return;
 	}
 
 	land_detector_task->shutdown();
 
-	//Wait for task to die
+	// Wait for task to die
 	int i = 0;
 
 	do {
 		/* wait 20ms */
 		usleep(20000);
 
-		/* if we have given up, kill it */
-		if (++i > 50) {
-			px4_task_delete(_landDetectorTaskID);
-			break;
-		}
-	} while (land_detector_task->isRunning());
+	} while (land_detector_task->isRunning() && ++i < 50);
 
 
 	delete land_detector_task;
 	land_detector_task = nullptr;
-	_landDetectorTaskID = -1;
 	warnx("land_detector has been stopped");
 }
 
@@ -116,7 +102,7 @@ static void land_detector_stop()
 **/
 static int land_detector_start(const char *mode)
 {
-	if (land_detector_task != nullptr || _landDetectorTaskID != -1) {
+	if (land_detector_task != nullptr) {
 		warnx("already running");
 		return -1;
 	}
@@ -127,6 +113,9 @@ static int land_detector_start(const char *mode)
 
 	} else if (!strcmp(mode, "multicopter")) {
 		land_detector_task = new MulticopterLandDetector();
+
+	} else if (!strcmp(mode, "vtol")) {
+		land_detector_task = new VtolLandDetector();
 
 	} else {
 		warnx("[mode] must be either 'fixedwing' or 'multicopter'");
@@ -140,14 +129,9 @@ static int land_detector_start(const char *mode)
 	}
 
 	//Start new thread task
-	_landDetectorTaskID = px4_task_spawn_cmd("land_detector",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_DEFAULT,
-					     1000,
-					     (px4_main_t)&land_detector_deamon_thread,
-					     nullptr);
+	int ret = land_detector_task->start();
 
-	if (_landDetectorTaskID < 0) {
+	if (ret) {
 		warnx("task start failed: %d", -errno);
 		return -1;
 	}
@@ -172,6 +156,7 @@ static int land_detector_start(const char *mode)
 				return 1;
 			}
 		}
+
 		printf("\n");
 	}
 
@@ -196,6 +181,7 @@ int land_detector_main(int argc, char *argv[])
 			warnx("land_detector start failed");
 			return 1;
 		}
+
 		return 0;
 	}
 

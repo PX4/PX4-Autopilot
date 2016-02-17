@@ -49,10 +49,10 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
@@ -69,12 +69,18 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #include <geo/geo.h>
+#include <terrain_estimation/terrain_estimator.h>
 #include <systemlib/perf_counter.h>
+#include <lib/ecl/validation/data_validator_group.h>
+#include "estimator_22states.h"
+
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
 //Forward declaration
 class AttPosEKF;
 
-class AttitudePositionEstimatorEKF
+class AttitudePositionEstimatorEKF : public control::SuperBlock
 {
 public:
     /**
@@ -129,6 +135,8 @@ public:
      */
     int set_debuglevel(unsigned debug) { _debug = debug; return 0; }
 
+    static constexpr unsigned MAX_PREDICITION_STEPS = 3; /**< maximum number of prediction steps between updates */
+
 private:
     bool        _task_should_exit;      /**< if true, sensor task should exit */
     bool        _task_running;          /**< if true, task is running in its mainloop */
@@ -148,12 +156,14 @@ private:
     int     _armedSub;
 
     orb_advert_t    _att_pub;           /**< vehicle attitude */
+    orb_advert_t    _ctrl_state_pub;        /**< control state */
     orb_advert_t    _global_pos_pub;        /**< global position */
     orb_advert_t    _local_pos_pub;         /**< position in local frame */
     orb_advert_t    _estimator_status_pub;      /**< status of the estimator */
     orb_advert_t    _wind_pub;          /**< wind estimate */
 
     struct vehicle_attitude_s           _att;           /**< vehicle attitude */
+    struct control_state_s              _ctrl_state;    /**< control state */
     struct gyro_report                  _gyro;
     struct accel_report                 _accel;
     struct mag_report                   _mag;
@@ -168,9 +178,10 @@ private:
     struct vehicle_land_detected_s      _landDetector;
     struct actuator_armed_s             _armed;
 
-    struct gyro_scale               _gyro_offsets[3];
-    struct accel_scale              _accel_offsets[3];
-    struct mag_scale                _mag_offsets[3];
+    hrt_abstime _last_accel;
+    hrt_abstime _last_mag;
+    unsigned _prediction_steps;
+    uint64_t _prediction_last;
 
     struct sensor_combined_s            _sensor_combined;
 
@@ -179,6 +190,8 @@ private:
     float                       _filter_ref_offset;   /**< offset between initial baro reference and GPS init baro altitude */
     float                       _baro_gps_offset;   /**< offset between baro altitude (at GPS init time) and GPS altitude */
     hrt_abstime                 _last_debug_print = 0;
+    float       _vibration_warning_threshold = 1.0f;
+    hrt_abstime _vibration_warning_timestamp = 0;
 
     perf_counter_t  _loop_perf;         ///< loop performance counter
     perf_counter_t  _loop_intvl;        ///< loop rate counter
@@ -198,14 +211,16 @@ private:
     bool            _gps_initialized;
     hrt_abstime     _filter_start_time;
     hrt_abstime     _last_sensor_timestamp;
-    hrt_abstime     _last_run;
     hrt_abstime     _distance_last_valid;
-    bool            _gyro_valid;
-    bool            _accel_valid;
-    bool            _mag_valid;
+    DataValidatorGroup _voter_gyro;
+    DataValidatorGroup _voter_accel;
+    DataValidatorGroup _voter_mag;
     int             _gyro_main;         ///< index of the main gyroscope
     int             _accel_main;        ///< index of the main accelerometer
     int             _mag_main;          ///< index of the main magnetometer
+    bool            _data_good;         ///< all required filter data is ok
+    bool            _failsafe;          ///< failsafe on one of the sensors
+    bool            _vibration_warning; ///< high vibration levels detected
     bool            _ekf_logging;       ///< log EKF state
     unsigned        _debug;             ///< debug level - default 0
 
@@ -215,6 +230,10 @@ private:
     bool            _newRangeData;
 
     int             _mavlink_fd;
+
+    control::BlockParamFloat _mag_offset_x;
+    control::BlockParamFloat _mag_offset_y;
+    control::BlockParamFloat _mag_offset_z;
 
     struct {
         int32_t vel_delay_ms;
@@ -259,6 +278,8 @@ private:
     }       _parameter_handles;     /**< handles for interesting parameters */
 
     AttPosEKF                   *_ekf;
+
+    TerrainEstimator            *_terrain_estimator;
 
     /* Low pass filter for attitude rates */
     math::LowPassFilter2p _LP_att_P;
@@ -307,6 +328,12 @@ private:
 
     /**
     * @brief
+    *   Publish the system state for control modules
+    **/
+    void publishControlState();
+
+    /**
+    * @brief
     *   Publish local position relative to reference point where filter was initialized
     **/
     void publishLocalPosition();
@@ -342,7 +369,7 @@ private:
     /**
      * Initialize the reference position for the local coordinate frame
      */
-    void initReferencePosition(hrt_abstime timestamp,
+    void initReferencePosition(hrt_abstime timestamp, bool gps_valid,
             double lat, double lon, float gps_alt, float baro_alt);
 
     /**

@@ -31,21 +31,19 @@
  *
  ****************************************************************************/
 #include <px4_log.h>
-#include <semaphore.h>
+#include <px4_posix.h>
 #include <stdio.h>
 #include "work_lock.h"
 
 
-extern sem_t _work_lock[];
+extern px4_sem_t _work_lock[];
 
 void work_lock(int id)
 {
-	//PX4_INFO("work_lock %d", id);
-	sem_wait(&_work_lock[id]);
+	px4_sem_wait(&_work_lock[id]);
 }
 
 void work_unlock(int id)
 {
-	//PX4_INFO("work_unlock %d", id);
-	sem_post(&_work_lock[id]);
+	px4_sem_post(&_work_lock[id]);
 }

@@ -244,7 +244,7 @@ private:
 /* for now, we only support one BlinkM */
 namespace
 {
-	BlinkM *g_blinkm;
+BlinkM *g_blinkm;
 }
 
 /* list of script names, must match script ID numbers */
@@ -277,9 +277,9 @@ extern "C" __EXPORT int blinkm_main(int argc, char *argv[]);
 BlinkM::BlinkM(int bus, int blinkm) :
 	I2C("blinkm", BLINKM0_DEVICE_PATH, bus, blinkm
 #ifdef __PX4_NUTTX
-		, 100000
+	    , 100000
 #endif
-		),
+	   ),
 	led_color_1(LED_OFF),
 	led_color_2(LED_OFF),
 	led_color_3(LED_OFF),
@@ -325,7 +325,7 @@ BlinkM::init()
 	}
 
 	stop_script();
-	set_rgb(0,0,0);
+	set_rgb(0, 0, 0);
 
 	return OK;
 }
@@ -333,13 +333,14 @@ BlinkM::init()
 int
 BlinkM::setMode(int mode)
 {
-	if(mode == 1) {
-		if(systemstate_run == false) {
+	if (mode == 1) {
+		if (systemstate_run == false) {
 			stop_script();
-			set_rgb(0,0,0);
+			set_rgb(0, 0, 0);
 			systemstate_run = true;
 			work_queue(LPWORK, &_work, (worker_t)&BlinkM::led_trampoline, this, 1);
 		}
+
 	} else {
 		systemstate_run = false;
 	}
@@ -355,8 +356,9 @@ BlinkM::probe()
 
 	ret = get_firmware_version(version);
 
-	if (ret == OK)
-		log("found BlinkM firmware version %c%c", version[1], version[0]);
+	if (ret == OK) {
+		DEVICE_DEBUG("found BlinkM firmware version %c%c", version[1], version[0]);
+	}
 
 	return ret;
 }
@@ -372,6 +374,7 @@ BlinkM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			ret = EINVAL;
 			break;
 		}
+
 		ret = play_script((const char *)arg);
 		break;
 
@@ -380,24 +383,30 @@ BlinkM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		break;
 
 	case BLINKM_SET_USER_SCRIPT: {
-		if (arg == 0) {
-			ret = EINVAL;
+			if (arg == 0) {
+				ret = EINVAL;
+				break;
+			}
+
+			unsigned lines = 0;
+			const uint8_t *script = (const uint8_t *)arg;
+
+			while ((lines < 50) && (script[1] != 0)) {
+				ret = write_script_line(lines, script[0], script[1], script[2], script[3], script[4]);
+
+				if (ret != OK) {
+					break;
+				}
+
+				script += 5;
+			}
+
+			if (ret == OK) {
+				ret = set_script(lines, 0);
+			}
+
 			break;
 		}
-
-		unsigned lines = 0;
-		const uint8_t *script = (const uint8_t *)arg;
-
-		while ((lines < 50) && (script[1] != 0)) {
-			ret = write_script_line(lines, script[0], script[1], script[2], script[3], script[4]);
-			if (ret != OK)
-				break;
-			script += 5;
-		}
-		if (ret == OK)
-			ret = set_script(lines, 0);
-		break;
-	}
 
 	default:
 		break;
@@ -421,7 +430,7 @@ void
 BlinkM::led()
 {
 
-	if(!topic_initialized) {
+	if (!topic_initialized) {
 		vehicle_status_sub_fd = orb_subscribe(ORB_ID(vehicle_status));
 		orb_set_interval(vehicle_status_sub_fd, 250);
 
@@ -441,29 +450,36 @@ BlinkM::led()
 		topic_initialized = true;
 	}
 
-	if(led_thread_ready == true) {
-		if(!detected_cells_blinked) {
-			if(num_of_cells > 0) {
+	if (led_thread_ready == true) {
+		if (!detected_cells_blinked) {
+			if (num_of_cells > 0) {
 				t_led_color[0] = LED_PURPLE;
 			}
-			if(num_of_cells > 1) {
+
+			if (num_of_cells > 1) {
 				t_led_color[1] = LED_PURPLE;
 			}
-			if(num_of_cells > 2) {
+
+			if (num_of_cells > 2) {
 				t_led_color[2] = LED_PURPLE;
 			}
-			if(num_of_cells > 3) {
+
+			if (num_of_cells > 3) {
 				t_led_color[3] = LED_PURPLE;
 			}
-			if(num_of_cells > 4) {
+
+			if (num_of_cells > 4) {
 				t_led_color[4] = LED_PURPLE;
 			}
-			if(num_of_cells > 5) {
+
+			if (num_of_cells > 5) {
 				t_led_color[5] = LED_PURPLE;
 			}
+
 			t_led_color[6] = LED_OFF;
 			t_led_color[7] = LED_OFF;
 			t_led_blink = LED_BLINK;
+
 		} else {
 			t_led_color[0] = led_color_1;
 			t_led_color[1] = led_color_2;
@@ -475,13 +491,17 @@ BlinkM::led()
 			t_led_color[7] = led_color_8;
 			t_led_blink = led_blink;
 		}
+
 		led_thread_ready = false;
 	}
 
 	if (led_thread_runcount & 1) {
-		if (t_led_blink)
+		if (t_led_blink) {
 			setLEDColor(LED_OFF);
+		}
+
 		led_interval = LED_OFFTIME;
+
 	} else {
 		setLEDColor(t_led_color[(led_thread_runcount / 2) % 8]);
 		//led_interval = (led_thread_runcount & 1) : LED_ONTIME;
@@ -516,10 +536,13 @@ BlinkM::led()
 		if (new_data_vehicle_status) {
 			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub_fd, &vehicle_status_raw);
 			no_data_vehicle_status = 0;
+
 		} else {
 			no_data_vehicle_status++;
-			if(no_data_vehicle_status >= 3)
+
+			if (no_data_vehicle_status >= 3) {
 				no_data_vehicle_status = 3;
+			}
 		}
 
 		orb_check(vehicle_control_mode_sub_fd, &new_data_vehicle_control_mode);
@@ -527,10 +550,13 @@ BlinkM::led()
 		if (new_data_vehicle_control_mode) {
 			orb_copy(ORB_ID(vehicle_control_mode), vehicle_control_mode_sub_fd, &vehicle_control_mode);
 			no_data_vehicle_control_mode = 0;
+
 		} else {
 			no_data_vehicle_control_mode++;
-			if(no_data_vehicle_control_mode >= 3)
+
+			if (no_data_vehicle_control_mode >= 3) {
 				no_data_vehicle_control_mode = 3;
+			}
 		}
 
 		orb_check(actuator_armed_sub_fd, &new_data_actuator_armed);
@@ -538,10 +564,13 @@ BlinkM::led()
 		if (new_data_actuator_armed) {
 			orb_copy(ORB_ID(actuator_armed), actuator_armed_sub_fd, &actuator_armed);
 			no_data_actuator_armed = 0;
+
 		} else {
 			no_data_actuator_armed++;
-			if(no_data_actuator_armed >= 3)
+
+			if (no_data_actuator_armed >= 3) {
 				no_data_actuator_armed = 3;
+			}
 		}
 
 		orb_check(vehicle_gps_position_sub_fd, &new_data_vehicle_gps_position);
@@ -549,10 +578,13 @@ BlinkM::led()
 		if (new_data_vehicle_gps_position) {
 			orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub_fd, &vehicle_gps_position_raw);
 			no_data_vehicle_gps_position = 0;
+
 		} else {
 			no_data_vehicle_gps_position++;
-			if(no_data_vehicle_gps_position >= 3)
+
+			if (no_data_vehicle_gps_position >= 3) {
 				no_data_vehicle_gps_position = 3;
+			}
 		}
 
 		/* update safety topic */
@@ -569,13 +601,15 @@ BlinkM::led()
 			if (num_of_cells == 0) {
 				/* looking for lipo cells that are connected */
 				printf("<blinkm> checking cells\n");
-				for(num_of_cells = 2; num_of_cells < 7; num_of_cells++) {
-					if(vehicle_status_raw.battery_voltage < num_of_cells * MAX_CELL_VOLTAGE) break;
+
+				for (num_of_cells = 2; num_of_cells < 7; num_of_cells++) {
+					if (vehicle_status_raw.battery_voltage < num_of_cells * MAX_CELL_VOLTAGE) { break; }
 				}
+
 				printf("<blinkm> cells found:%d\n", num_of_cells);
 
 			} else {
-				if(vehicle_status_raw.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
+				if (vehicle_status_raw.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
 					/* LED Pattern for battery critical alerting */
 					led_color_1 = LED_RED;
 					led_color_2 = LED_RED;
@@ -587,7 +621,7 @@ BlinkM::led()
 					led_color_8 = LED_RED;
 					led_blink = LED_BLINK;
 
-				} else if(vehicle_status_raw.rc_signal_lost) {
+				} else if (vehicle_status_raw.rc_signal_lost) {
 					/* LED Pattern for FAILSAFE */
 					led_color_1 = LED_BLUE;
 					led_color_2 = LED_BLUE;
@@ -599,7 +633,7 @@ BlinkM::led()
 					led_color_8 = LED_BLUE;
 					led_blink = LED_BLINK;
 
-				} else if(vehicle_status_raw.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW) {
+				} else if (vehicle_status_raw.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW) {
 					/* LED Pattern for battery low warning */
 					led_color_1 = LED_YELLOW;
 					led_color_2 = LED_YELLOW;
@@ -614,9 +648,9 @@ BlinkM::led()
 				} else {
 					/* no battery warnings here */
 
-					if(actuator_armed.armed == false) {
+					if (actuator_armed.armed == false) {
 						/* system not armed */
-						if(safety.safety_off){
+						if (safety.safety_off) {
 							led_color_1 = LED_ORANGE;
 							led_color_2 = LED_ORANGE;
 							led_color_3 = LED_ORANGE;
@@ -626,7 +660,8 @@ BlinkM::led()
 							led_color_7 = LED_ORANGE;
 							led_color_8 = LED_ORANGE;
 							led_blink = LED_BLINK;
-						}else{
+
+						} else {
 							led_color_1 = LED_CYAN;
 							led_color_2 = LED_CYAN;
 							led_color_3 = LED_CYAN;
@@ -637,6 +672,7 @@ BlinkM::led()
 							led_color_8 = LED_CYAN;
 							led_blink = LED_NOBLINK;
 						}
+
 					} else {
 						/* armed system - initial led pattern */
 						led_color_1 = LED_RED;
@@ -649,32 +685,41 @@ BlinkM::led()
 						led_color_8 = LED_OFF;
 						led_blink = LED_BLINK;
 
-						if(new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
+						if (new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
 							/* indicate main control state */
-							if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_POSCTL)
+							if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_POSCTL) {
 								led_color_4 = LED_GREEN;
+							}
+
 							/* TODO: add other Auto modes */
-							else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_AUTO_MISSION)
+							else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_AUTO_MISSION) {
 								led_color_4 = LED_BLUE;
-							else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_ALTCTL)
+
+							} else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_ALTCTL) {
 								led_color_4 = LED_YELLOW;
-							else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_MANUAL)
+
+							} else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
 								led_color_4 = LED_WHITE;
-							else
+
+							} else {
 								led_color_4 = LED_OFF;
+							}
+
 							led_color_5 = led_color_4;
 						}
 
-						if(new_data_vehicle_gps_position || no_data_vehicle_gps_position < 3) {
+						if (new_data_vehicle_gps_position || no_data_vehicle_gps_position < 3) {
 							/* handling used satus */
-							if(num_of_used_sats >= 7) {
+							if (num_of_used_sats >= 7) {
 								led_color_1 = LED_OFF;
 								led_color_2 = LED_OFF;
 								led_color_3 = LED_OFF;
-							} else if(num_of_used_sats == 6) {
+
+							} else if (num_of_used_sats == 6) {
 								led_color_2 = LED_OFF;
 								led_color_3 = LED_OFF;
-							} else if(num_of_used_sats == 5) {
+
+							} else if (num_of_used_sats == 5) {
 								led_color_3 = LED_OFF;
 							}
 
@@ -689,6 +734,7 @@ BlinkM::led()
 					}
 				}
 			}
+
 		} else {
 			/* LED Pattern for general Error - no vehicle_status can retrieved */
 			led_color_1 = LED_WHITE;
@@ -716,12 +762,13 @@ BlinkM::led()
 		vehicle_gps_position_raw.satellites_visible);
 		*/
 
-		led_thread_runcount=0;
+		led_thread_runcount = 0;
 		led_thread_ready = true;
 		led_interval = LED_OFFTIME;
 
-		if(detected_cells_runcount < 4){
+		if (detected_cells_runcount < 4) {
 			detected_cells_runcount++;
+
 		} else {
 			detected_cells_blinked = true;
 		}
@@ -730,47 +777,58 @@ BlinkM::led()
 		led_thread_runcount++;
 	}
 
-	if(systemstate_run == true) {
+	if (systemstate_run == true) {
 		/* re-queue ourselves to run again later */
 		work_queue(LPWORK, &_work, (worker_t)&BlinkM::led_trampoline, this, led_interval);
+
 	} else {
 		stop_script();
-		set_rgb(0,0,0);
+		set_rgb(0, 0, 0);
 	}
 }
 
-void BlinkM::setLEDColor(int ledcolor) {
+void BlinkM::setLEDColor(int ledcolor)
+{
 	switch (ledcolor) {
-		case LED_OFF:	// off
-			set_rgb(0,0,0);
-			break;
-		case LED_RED:	// red
-			set_rgb(255,0,0);
-			break;
-		case LED_ORANGE:	// orange
-			set_rgb(255,150,0);
-			break;
-		case LED_YELLOW:	// yellow
-			set_rgb(200,200,0);
-			break;
-		case LED_PURPLE:	// purple
-			set_rgb(255,0,255);
-			break;
-		case LED_GREEN:	// green
-			set_rgb(0,255,0);
-			break;
-		case LED_BLUE:	// blue
-			set_rgb(0,0,255);
-			break;
-		case LED_CYAN:	// cyan
-			set_rgb(0,128,128);
-			break;
-		case LED_WHITE:	// white
-			set_rgb(255,255,255);
-			break;
-		case LED_AMBER:	// amber
-			set_rgb(255,65,0);
-			break;
+	case LED_OFF:	// off
+		set_rgb(0, 0, 0);
+		break;
+
+	case LED_RED:	// red
+		set_rgb(255, 0, 0);
+		break;
+
+	case LED_ORANGE:	// orange
+		set_rgb(255, 150, 0);
+		break;
+
+	case LED_YELLOW:	// yellow
+		set_rgb(200, 200, 0);
+		break;
+
+	case LED_PURPLE:	// purple
+		set_rgb(255, 0, 255);
+		break;
+
+	case LED_GREEN:	// green
+		set_rgb(0, 255, 0);
+		break;
+
+	case LED_BLUE:	// blue
+		set_rgb(0, 0, 255);
+		break;
+
+	case LED_CYAN:	// cyan
+		set_rgb(0, 128, 128);
+		break;
+
+	case LED_WHITE:	// white
+		set_rgb(255, 255, 255);
+		break;
+
+	case LED_AMBER:	// amber
+		set_rgb(255, 65, 0);
+		break;
 	}
 }
 
@@ -855,8 +913,9 @@ BlinkM::play_script(const char *script_name)
 	}
 
 	for (unsigned i = 0; script_names[i] != nullptr; i++)
-		if (!strcasecmp(script_name, script_names[i]))
+		if (!strcasecmp(script_name, script_names[i])) {
 			return play_script(i);
+		}
 
 	return -1;
 }
@@ -931,7 +990,8 @@ BlinkM::get_firmware_version(uint8_t version[2])
 
 void blinkm_usage();
 
-void blinkm_usage() {
+void blinkm_usage()
+{
 	warnx("missing command: try 'start', 'systemstate', 'ledoff', 'list' or a script name {options}");
 	warnx("options:");
 	warnx("\t-b --bus i2cbus (3)");
@@ -951,6 +1011,7 @@ blinkm_main(int argc, char *argv[])
 		blinkm_usage();
 		return 1;
 	}
+
 	for (x = 1; x < argc; x++) {
 		if (strcmp(argv[x], "-b") == 0 || strcmp(argv[x], "--bus") == 0) {
 			if (argc > x + 1) {
@@ -1008,22 +1069,27 @@ blinkm_main(int argc, char *argv[])
 
 
 	if (!strcmp(argv[1], "list")) {
-		for (unsigned i = 0; BlinkM::script_names[i] != nullptr; i++)
+		for (unsigned i = 0; BlinkM::script_names[i] != nullptr; i++) {
 			fprintf(stderr, "    %s\n", BlinkM::script_names[i]);
+		}
+
 		fprintf(stderr, "    <html color number>\n");
 		return 0;
 	}
 
 	/* things that require access to the device */
 	int fd = px4_open(BLINKM0_DEVICE_PATH, 0);
+
 	if (fd < 0) {
 		warn("can't open BlinkM device");
 		return 1;
 	}
 
 	g_blinkm->setMode(0);
-	if (px4_ioctl(fd, BLINKM_PLAY_SCRIPT_NAMED, (unsigned long)argv[1]) == OK)
+
+	if (px4_ioctl(fd, BLINKM_PLAY_SCRIPT_NAMED, (unsigned long)argv[1]) == OK) {
 		return 0;
+	}
 
 	px4_close(fd);
 

@@ -61,15 +61,27 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_BASE_DEVICE_PATH "/dev/pwm_output"
 #define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
+#include <uORB/topics/output_pwm.h>
+#define pwm_output_values output_pwm_s
+
+#ifndef PWM_OUTPUT_MAX_CHANNELS
+#define PWM_OUTPUT_MAX_CHANNELS output_pwm_s::PWM_OUTPUT_MAX_CHANNELS
+#endif
+
 /**
  * Maximum number of PWM output channels supported by the device.
  */
-#define PWM_OUTPUT_MAX_CHANNELS	16
+//#define PWM_OUTPUT_MAX_CHANNELS	16
 
 /**
  * Lowest minimum PWM in us
  */
-#define PWM_LOWEST_MIN 900
+#define PWM_LOWEST_MIN 90
+
+/**
+ * Default value for a shutdown motor
+ */
+#define PWM_MOTOR_OFF	900
 
 /**
  * Default minimum PWM in us
@@ -94,7 +106,7 @@ __BEGIN_DECLS
 /**
  * Lowest PWM allowed as the maximum PWM
  */
-#define PWM_LOWEST_MAX 950
+#define PWM_LOWEST_MAX 200
 
 /**
  * Do not output a channel with this value
@@ -106,19 +118,6 @@ __BEGIN_DECLS
  * width in microseconds.
  */
 typedef uint16_t	servo_position_t;
-
-/**
- * Servo output status structure.
- *
- * May be published to output_pwm, or written to a PWM output
- * device.
- */
-struct pwm_output_values {
-	/** desired pulse widths for each of the supported channels */
-	servo_position_t	values[PWM_OUTPUT_MAX_CHANNELS];
-	unsigned			channel_count;
-};
-
 
 /**
  * RC config values for a channel
@@ -135,11 +134,6 @@ struct pwm_output_rc_config {
 	uint16_t rc_assignment;
 	bool     rc_reverse;
 };
-
-/*
- * ORB tag for PWM outputs.
- */
-ORB_DECLARE(output_pwm);
 
 /*
  * ioctl() definitions

@@ -61,6 +61,7 @@ do {                                                                            
 typedef unsigned int uint32_t;
 typedef unsigned char uint8_t;
 #else
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>   /* uint32_t */
 #endif
 

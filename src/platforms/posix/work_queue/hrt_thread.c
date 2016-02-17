@@ -40,7 +40,9 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_posix.h>
 #include <stdint.h>
+#include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
@@ -66,12 +68,32 @@ struct wqueue_s g_hrt_work;
 /****************************************************************************
  * Private Variables
  ****************************************************************************/
-sem_t _hrt_work_lock;
+px4_sem_t _hrt_work_lock;
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 static void hrt_work_process(void);
+
+static void _sighandler(int sig_num);
+
+/****************************************************************************
+ * Name: _sighandler
+ *
+ * Description:
+ *   This is the handler for the signal to wake the queue processing thread
+ *
+ * Input parameters:
+ *   sig_num - the received signal
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+static void _sighandler(int sig_num)
+{
+	PX4_DEBUG("RECEIVED SIGNAL %d", sig_num);
+}
 
 /****************************************************************************
  * Name: work_process
@@ -97,6 +119,14 @@ static void hrt_work_process()
 	uint32_t remaining;
 	uint32_t next;
 
+	// set the threads name
+#ifdef __PX4_DARWIN
+	pthread_setname_np("HRT");
+#else
+	// The Linux headers do not actually contain this
+	//rv = pthread_setname_np(pthread_self(), "HRT");
+#endif
+
 	/* Then process queued work.  We need to keep interrupts disabled while
 	 * we process items in the work list.
 	 */
@@ -121,7 +151,7 @@ static void hrt_work_process()
 		if (elapsed >= work->delay) {
 			/* Remove the ready-to-execute work from the list */
 
-			(void)dq_rem((struct dq_entry_s *)work, &wqueue->q);
+			(void)dq_rem((struct dq_entry_s *) & (work->dq), &(wqueue->q));
 			//PX4_INFO("Dequeued work=%p", work);
 
 			/* Extract the work description from the entry (in case the work
@@ -143,6 +173,7 @@ static void hrt_work_process()
 
 			if (!worker) {
 				PX4_ERR("MESSED UP: worker = 0");
+				PX4_BACKTRACE();
 
 			} else {
 				worker(arg);
@@ -241,7 +272,8 @@ static int work_hrtthread(int argc, char *argv[])
 
 void hrt_work_queue_init(void)
 {
-	sem_init(&_hrt_work_lock, 0, 1);
+	px4_sem_init(&_hrt_work_lock, 0, 1);
+	memset(&g_hrt_work, 0, sizeof(g_hrt_work));
 
 	// Create high priority worker thread
 	g_hrt_work.pid = px4_task_spawn_cmd("wkr_hrt",
@@ -251,5 +283,11 @@ void hrt_work_queue_init(void)
 					    work_hrtthread,
 					    (char *const *)NULL);
 
+
+#ifdef __PX4_QURT
+	signal(SIGALRM, _sighandler);
+#else
+	signal(SIGCONT, _sighandler);
+#endif
 }
 

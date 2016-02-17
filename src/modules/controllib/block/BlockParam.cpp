@@ -65,6 +65,7 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 
 		} else if (parent_prefix) {
 			snprintf(fullname, blockNameLengthMax, "%s_%s", parentName, name);
+
 		} else {
 			strncpy(fullname, name, blockNameLengthMax);
 		}
@@ -74,15 +75,18 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 
 	_handle = param_find(fullname);
 
-	if (_handle == PARAM_INVALID)
+	if (_handle == PARAM_INVALID) {
 		printf("error finding param: %s\n", fullname);
+	}
 };
 
 template <class T>
 BlockParam<T>::BlockParam(Block *block, const char *name,
-		bool parent_prefix) :
+			  bool parent_prefix, T *extern_address) :
 	BlockParamBase(block, name, parent_prefix),
-	_val() {
+	_val(),
+	_extern_address(extern_address)
+{
 	update();
 }
 
@@ -90,11 +94,31 @@ template <class T>
 T BlockParam<T>::get() { return _val; }
 
 template <class T>
-void BlockParam<T>::set(T val) { _val = val; }
+void BlockParam<T>::set(T val)
+{
+	_val = val;
+
+	if (_extern_address != NULL) {
+		*_extern_address = val;
+	}
+}
 
 template <class T>
-void BlockParam<T>::update() {
-	if (_handle != PARAM_INVALID) param_get(_handle, &_val);
+void BlockParam<T>::update()
+{
+	if (_handle != PARAM_INVALID) {
+		param_get(_handle, &_val);
+
+		if (_extern_address != NULL) {
+			*_extern_address = _val;
+		}
+	}
+}
+
+template <class T>
+void BlockParam<T>::commit()
+{
+	if (_handle != PARAM_INVALID) { param_set(_handle, &_val); }
 }
 
 template <class T>

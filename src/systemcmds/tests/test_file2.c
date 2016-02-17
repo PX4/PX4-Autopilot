@@ -176,6 +176,7 @@ int test_file2(int argc, char *argv[])
 
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+
 	while ((opt = px4_getopt(argc, argv, "c:s:FLh", &myoptind, &myoptarg)) != EOF) {
 		switch (opt) {
 		case 'F':
