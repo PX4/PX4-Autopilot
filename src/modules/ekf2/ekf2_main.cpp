@@ -490,10 +490,10 @@ void Ekf2::task_main()
 		// The rotation of the tangent plane vs. geographical north
 		lpos.yaw = 0.0f;
 
-		lpos.dist_bottom = 0.0f; // Distance to bottom surface (ground) in meters
-		lpos.dist_bottom_rate = 0.0f; // Distance to bottom surface (ground) change rate
-		lpos.surface_bottom_timestamp	= 0; // Time when new bottom surface found
-		lpos.dist_bottom_valid = false; // true if distance to bottom surface is valid
+		lpos.dist_bottom = -pos[2] + lpos.ref_alt; // Distance to bottom surface (ground) in meters
+		lpos.dist_bottom_rate = -vel[2]; // Distance to bottom surface (ground) change rate
+		lpos.surface_bottom_timestamp	= hrt_absolute_time(); // Time when new bottom surface found
+		lpos.dist_bottom_valid = true; // true if distance to bottom surface is valid
 
 		// TODO: uORB definition does not define what thes variables are. We have assumed them to be horizontal and vertical 1-std dev accuracy in metres
 		// TODO: Should use sqrt of filter position variances
