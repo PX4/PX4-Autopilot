@@ -303,7 +303,7 @@ GPS::task_main()
 		_task = -1;
 		_exit(1);
 	}
-	
+
 	uint64_t last_rate_measurement = hrt_absolute_time();
 	unsigned last_rate_count = 0;
 
@@ -335,7 +335,7 @@ GPS::task_main()
 			/* update mavlink hil gps parameter */
 			update_param_hil_gps();
 
-			if (!(_pub_blocked) && !(_use_hil_gps) ) {
+			if (!(_pub_blocked) && !(_use_hil_gps)) {
 				if (_report_gps_pos_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
@@ -407,7 +407,7 @@ GPS::task_main()
 					/* update mavlink hil gps parameter */
 					update_param_hil_gps();
 
-					if (!(_pub_blocked)  && !(_use_hil_gps) ) {
+					if (!(_pub_blocked)  && !(_use_hil_gps)) {
 						if (_report_gps_pos_pub != nullptr) {
 							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
@@ -430,7 +430,7 @@ GPS::task_main()
 
 					/* opportunistic publishing - else invalid data would end up on the bus */
 
-					if (!(_pub_blocked)  && !(_use_hil_gps) ) {
+					if (!(_pub_blocked)  && !(_use_hil_gps)) {
 						if (helper_ret & 1) {
 							if (_report_gps_pos_pub != nullptr) {
 								orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
@@ -548,13 +548,13 @@ void
 GPS::print_info()
 {
 	//GPS Mode
-	if ( _use_hil_gps ) {
+	if (_use_hil_gps) {
 		warnx("protocol: HIL GPS");
-	}
-	else if (_fake_gps) {
+
+	} else if (_fake_gps) {
 		warnx("protocol: SIMULATED");
-	}
-	else {
+
+	} else {
 		switch (_mode) {
 		case GPS_DRIVER_MODE_UBX:
 			warnx("protocol: UBX");
