@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +37,8 @@
  * Log messages and structures definition.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Roman Bapst <roman@px4.io>
  */
 
 #ifndef SDLOG2_MESSAGES_H_
@@ -517,6 +518,42 @@ struct log_CAMT_s {
 
 #define LOG_OUT1_MSG 50
 
+/* --- EKF2 REPLAY Part 1 --- */
+#define LOG_RPL1_MSG 51
+struct log_RPL1_s {
+	uint64_t time_ref;
+	uint64_t gyro_integral_dt;
+	uint64_t accelerometer_integral_dt;
+	uint64_t magnetometer_timestamp;
+	uint64_t baro_timestamp;
+	float gyro_integral_x_rad;
+	float gyro_integral_y_rad;
+	float gyro_integral_z_rad;
+	float accelerometer_integral_x_m_s;
+	float accelerometer_integral_y_m_s;
+	float accelerometer_integral_z_m_s;
+	float magnetometer_x_ga;
+	float magnetometer_y_ga;
+	float magnetometer_z_ga;
+	float baro_alt_meter;
+};
+/* --- EKF2 REPLAY Part 2 --- */
+#define LOG_RPL2_MSG 52
+struct log_RPL2_s {
+	uint64_t time_pos_usec;
+	uint64_t time_vel_usec;
+	int32_t lat;
+	int32_t lon;
+	int32_t alt;
+	uint8_t fix_type;
+	float eph;
+	float epv;
+	float vel_m_s;
+	float vel_n_m_s;
+	float vel_e_m_s;
+	float vel_d_m_s;
+	bool vel_ned_valid;
+};
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -538,6 +575,9 @@ struct log_PARM_s {
 	char name[16];
 	float value;
 };
+
+// the lower type of initialisation is not supported in C++
+#ifndef __cplusplus
 
 #pragma pack(pop)
 /* construct list of all message formats */
@@ -593,7 +633,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 	LOG_FORMAT(CAMT, "QI", "timestamp,seq"),
-
+	LOG_FORMAT(RPL1, "QQQQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gIx,gIy,gIz,aIx,aIy,aIz,magX,magY,magZ,b_alt"),
+	LOG_FORMAT(RPL2, "QQLLLMffffffM", "Tpos,Tvel,lat,lon,alt,fix_type,eph,epv,v,vN,vE,vD,v_val"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
@@ -602,5 +643,7 @@ static const struct log_format_s log_formats[] = {
 };
 
 static const unsigned log_formats_num = sizeof(log_formats) / sizeof(log_formats[0]);
+
+#endif
 
 #endif /* SDLOG2_MESSAGES_H_ */
