@@ -162,7 +162,7 @@ static void process_line(string &line, bool exit_on_fail)
 static void restore_term(void)
 {
 	cout << "Restoring terminal\n";
-	tcsetattr (0, TCSANOW, &orig_term);
+	tcsetattr(0, TCSANOW, &orig_term);
 }
 
 int main(int argc, char **argv)
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
 
 	// TODO: Always try to stop muorb for QURT because px4_task_is_running doesn't seem to work.
 	if (true) {
-	//if (px4_task_is_running("muorb")) {
+		//if (px4_task_is_running("muorb")) {
 		// sending muorb stop is needed if it is running to exit cleanly
 		vector<string> muorb_stop_cmd = { "muorb", "stop" };
 		run_cmd(muorb_stop_cmd, !daemon_mode);
