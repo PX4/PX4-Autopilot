@@ -645,7 +645,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	irqstate_t flags = irqsave();
 
-	for (int actions = 0; action_cache[actions].base != 0 && actions < arraySize(action_cache); actions++) {
+	for (int actions = 0; actions < arraySize(action_cache) && action_cache[actions].base != 0 ; actions++) {
 		uint32_t rvalue = _REG32(action_cache[actions].base, STM32_GTIM_CCER_OFFSET);
 		rvalue &= ~action_cache[actions].ccer_clearbits;
 		rvalue |= action_cache[actions].ccer_setbits;
