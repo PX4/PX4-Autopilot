@@ -478,7 +478,7 @@ bool CanIface::waitMsrINakBitStateChange(bool target_state)
         ::chThdSleep(MS2ST(1));
 #endif
 #if UAVCAN_STM32_FREERTOS
-        //::osDelay(1);
+        ::osDelay(1);
 #endif
     }
     return false;
@@ -625,6 +625,10 @@ void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
     update_event_.signalFromInterrupt();
 
     pollErrorFlagsFromISR();
+
+    #if UAVCAN_STM32_FREERTOS
+    update_event_.yieldFromISR();
+    #endif
 }
 
 void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t utc_usec)
@@ -688,6 +692,10 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t ut
     update_event_.signalFromInterrupt();
 
     pollErrorFlagsFromISR();
+
+    #if UAVCAN_STM32_FREERTOS
+    update_event_.yieldFromISR();
+    #endif
 }
 
 void CanIface::pollErrorFlagsFromISR()
