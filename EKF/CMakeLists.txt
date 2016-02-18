@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project (ECL CXX)
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CURRENT_SOURCE_DIR EKF)
+set(CMAKE_CURRENT_SOURCE_DIR ./)
 set(CMAKE_CXX_FLAGS "-DPOSIX_SHARED")
 set (EIGEN3_INCLUDE_DIR "/usr/local/include/eigen3/")
 
@@ -10,6 +10,12 @@ IF( NOT EIGEN3_INCLUDE_DIR )
     MESSAGE( FATAL_ERROR "Please point the environment variable EIGEN3_INCLUDE_DIR to the include directory of your Eigen3 installation.")
 ENDIF()
 INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
+
+if( NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../matrix/.git" )
+message( SEND_ERROR "The git submodules are not available. Please run
+git submodule update --init --recursive"
+)
+endif()
 
 include_directories(
 	./
