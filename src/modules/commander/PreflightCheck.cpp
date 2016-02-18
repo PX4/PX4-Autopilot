@@ -341,6 +341,14 @@ static bool airspeedCheck(int mavlink_fd, bool optional, bool report_fail)
 		goto out;
 	}
 
+	if (fabsf(airspeed.confidence) < 0.99f) {
+		if (report_fail) {
+			mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: AIRSPEED SENSOR COMM ERROR");
+		}
+		success = false;
+		goto out;
+	}
+
 	if (fabsf(airspeed.indicated_airspeed_m_s) > 6.0f) {
 		if (report_fail) {
 			mavlink_and_console_log_critical(mavlink_fd, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
