@@ -101,12 +101,11 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_parameter_map.h>
 
-#include "DevMgr.hpp"
+#include <DevMgr.hpp>
+
+#include "sensors_init.h"
 
 using namespace DriverFramework;
-
-/* Platform specific sensor initialization function. */
-extern int sensors_init(void);
 
 /**
  * Analog layout:
@@ -396,26 +395,6 @@ private:
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
-
-	/**
-	 * Do accel-related initialisation.
-	 */
-	int		accel_init();
-
-	/**
-	 * Do gyro-related initialisation.
-	 */
-	int		gyro_init();
-
-	/**
-	 * Do mag-related initialisation.
-	 */
-	int		mag_init();
-
-	/**
-	 * Do baro-related initialisation.
-	 */
-	int		baro_init();
 
 	/**
 	 * Do adc-related initialisation.
@@ -972,104 +951,6 @@ Sensors::parameters_update()
 	return OK;
 }
 
-int
-Sensors::accel_init()
-{
-	DevHandle h_accel;
-	DevMgr::getHandle(ACCEL0_DEVICE_PATH, h_accel);
-
-	if (!h_accel.isValid()) {
-		warnx("FATAL: no accelerometer found: %s (%d)", ACCEL0_DEVICE_PATH, h_accel.getError());
-		return ERROR;
-
-	} else {
-
-		/* set the accel internal sampling rate to default rate */
-		h_accel.ioctl(ACCELIOCSSAMPLERATE, ACCEL_SAMPLERATE_DEFAULT);
-
-		/* set the driver to poll at default rate */
-		h_accel.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-	}
-
-	return OK;
-}
-
-int
-Sensors::gyro_init()
-{
-	DevHandle h_gyro;
-	DevMgr::getHandle(GYRO0_DEVICE_PATH, h_gyro);
-
-	if (!h_gyro.isValid()) {
-		warnx("FATAL: no gyro found: %s (%d)", GYRO0_DEVICE_PATH, h_gyro.getError());
-		return ERROR;
-
-	}
-
-	/* set the gyro internal sampling rate to default rate */
-	h_gyro.ioctl(GYROIOCSSAMPLERATE, GYRO_SAMPLERATE_DEFAULT);
-
-	/* set the driver to poll at default rate */
-	h_gyro.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-
-	return OK;
-}
-
-int
-Sensors::mag_init()
-{
-	int	ret;
-
-	DevHandle h_mag;
-	DevMgr::getHandle(MAG0_DEVICE_PATH, h_mag);
-
-	if (!h_mag.isValid()) {
-		warnx("FATAL: no magnetometer found: %s (%d)", MAG0_DEVICE_PATH, h_mag.getError());
-		return ERROR;
-	}
-
-	/* try different mag sampling rates */
-
-
-	ret = h_mag.ioctl(MAGIOCSSAMPLERATE, 150);
-
-	if (ret == OK) {
-		/* set the pollrate accordingly */
-		h_mag.ioctl(SENSORIOCSPOLLRATE, 150);
-
-	} else {
-		ret = h_mag.ioctl(MAGIOCSSAMPLERATE, 100);
-
-		/* if the slower sampling rate still fails, something is wrong */
-		if (ret == OK) {
-			/* set the driver to poll also at the slower rate */
-			h_mag.ioctl(SENSORIOCSPOLLRATE, 100);
-
-		} else {
-			warnx("FATAL: mag sampling rate could not be set");
-			return ERROR;
-		}
-	}
-
-	return OK;
-}
-
-int
-Sensors::baro_init()
-{
-	DevHandle h_baro;
-	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
-
-	if (!h_baro.isValid()) {
-		warnx("FATAL: No barometer found: %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-		return ERROR;
-	}
-
-	/* set the driver to poll at 150Hz */
-	h_baro.ioctl(SENSORIOCSPOLLRATE, 150);
-
-	return OK;
-}
 
 int
 Sensors::adc_init()
@@ -2101,39 +1982,13 @@ Sensors::task_main()
 	/* start individual sensors */
 	int ret = 0;
 
-
-// TODO-JYW: TESTING-TESTING:
+	/* This calls a sensors_init which can have different implementations on NuttX, POSIX, QURT. */
 	ret = sensors_init();
 
-///*
-// * QURT devices do not yet use DriverFramework based drivers, which is required for
-// * the following initialization sequence to work correctly.
-// */
-//#ifndef __PX4_QURT
-//	do { /* create a scope to handle exit with break */
-//		ret = accel_init();
-//
-//		if (ret) { break; }
-//
-//		ret = gyro_init();
-//
-//		if (ret) { break; }
-//
-//		ret = mag_init();
-//
-//		if (ret) { break; }
-//
-//		ret = baro_init();
-//
-//		if (ret) { break; }
-//
-//		ret = adc_init();
-//
-//		if (ret) { break; }
-//
-//		break;
-//	} while (0);
-//#endif
+#ifndef __PX4_QURT
+	// TODO: move adc_init into the sensors_init call.
+	ret = ret || adc_init();
+#endif
 
 	if (ret) {
 		warnx("sensor initialization failed");
