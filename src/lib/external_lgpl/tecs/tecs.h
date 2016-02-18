@@ -72,6 +72,7 @@ public:
 		_detect_underspeed_enabled(true),
 		_badDescent(false),
 		_climbOutDem(false),
+		_pitch_dem_unc(0.0f),
 		_SPE_dem(0.0f),
 		_SKE_dem(0.0f),
 		_SPEdot_dem(0.0f),
