@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 James Wilson. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,41 +31,15 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 /**
- * @file sensors_init_nuttx.cpp
+ * @file sensors_init.h
  *
- *	Sensor initialization code, used only in Nuttx platform builds.
+ * Sensor initialization code declaration, the specific implementations are
+ * in the respective cpp files..
  *
- * @author James Wilson <jywilson99@hotmail.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-int
-sensors_init(void)
-{
-	int ret;
-
-	ret = accel_init();
-
-	if (ret) { return ret; }
-
-	ret = gyro_init();
-
-	if (ret) { return ret; }
-
-	ret = mag_init();
-
-	if (ret) { return ret; }
-
-	ret = baro_init();
-
-	if (ret) { return ret; }
-
-	ret = adc_init();
-
-	if (ret) { return ret; }
-
-	return 0;
-}
-
-
-
+int sensors_init(void);
