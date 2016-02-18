@@ -701,6 +701,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 						case PX4_CUSTOM_SUB_MODE_AUTO_LAND:
 							main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_LAND);
 							break;
+						case PX4_CUSTOM_SUB_MODE_FOLLOW_TARGET:
+							main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_FOLLOW_TARGET);
+							break;
 
 						default:
 							main_ret = TRANSITION_DENIED;
@@ -3214,6 +3217,7 @@ set_control_mode()
 		/* override is not ok for the RTL and recovery mode */
 		control_mode.flag_external_manual_override_ok = false;
 		/* fallthrough */
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:

@@ -148,6 +148,7 @@ Navigator::Navigator() :
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
 	_gpsFailure(this, "GPSF"),
+	_follow_target(this, "TAR"),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
@@ -166,6 +167,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[6] = &_rcLoss;
 	_navigation_mode_array[7] = &_takeoff;
 	_navigation_mode_array[8] = &_land;
+	_navigation_mode_array[9] = &_follow_target;
 
 	updateParams();
 }
@@ -498,6 +500,10 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_gpsFailure;
+				break;
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+				_pos_sp_triplet_published_invalid_once = false;
+				_navigation_mode = &_follow_target;
 				break;
 			default:
 				_navigation_mode = nullptr;
