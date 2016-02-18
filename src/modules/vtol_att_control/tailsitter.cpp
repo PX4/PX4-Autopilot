@@ -52,7 +52,9 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_airspeed_tot(0.0f),
 	_min_front_trans_dur(0.5f),
-
+	_thrust_transition_start(0.0f),
+	_yaw_transition(0.0f),
+	_pitch_transition_start(0.0f),
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control-tailsitter")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "vtol att control-tailsitter nonfinite input"))
 {
@@ -233,7 +235,7 @@ void Tailsitter::update_transition_state()
 		// save desired heading for transition and last thrust value
 		_yaw_transition = _v_att_sp->yaw_body;
 		_pitch_transition_start = _v_att_sp->pitch_body;
-		_throttle_transition = _v_att_sp->thrust;
+		_thrust_transition_start = _v_att_sp->thrust;
 		_flag_was_in_trans_mode = true;
 	}
 
@@ -247,10 +249,11 @@ void Tailsitter::update_transition_state()
 
 		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
 		if (_airspeed->true_airspeed_m_s <= _params_tailsitter.airspeed_trans) {
-			_v_att_sp->thrust = _throttle_transition + (fabsf(THROTTLE_TRANSITION_MAX * _throttle_transition) *
+			_thrust_transition = _thrust_transition_start + (fabsf(THROTTLE_TRANSITION_MAX * _thrust_transition_start) *
 					    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur * 1000000.0f));
-			_v_att_sp->thrust = math::constrain(_v_att_sp->thrust , _throttle_transition ,
-							    (1.0f + THROTTLE_TRANSITION_MAX) * _throttle_transition);
+			_thrust_transition = math::constrain(_thrust_transition , _thrust_transition_start ,
+							    (1.0f + THROTTLE_TRANSITION_MAX) * _thrust_transition_start);
+			_v_att_sp->thrust = _thrust_transition;
 		}
 
 		// disable mc yaw control once the plane has picked up speed
@@ -286,6 +289,8 @@ void Tailsitter::update_transition_state()
 
 		}
 
+		_v_att_sp->thrust = _thrust_transition;
+
 		/** start blending MC and FW controls from pitch -45 to pitch -70 for smooth control takeover*/
 
 		//_mc_roll_weight = 1.0f - 1.0f * ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur_p2 * 1000000.0f));
@@ -312,7 +317,7 @@ void Tailsitter::update_transition_state()
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body , -2.0f , PITCH_TRANSITION_BACK + 0.2f);
 
 		//  throttle value is decreesed
-		_v_att_sp->thrust = _throttle_transition * 0.9f;
+		_v_att_sp->thrust = _thrust_transition_start * 0.9f;
 
 		/** keep yaw disabled */
 		_mc_yaw_weight = 0.0f;
@@ -346,6 +351,12 @@ void Tailsitter::update_transition_state()
 	math::Quaternion q_sp;
 	q_sp.from_dcm(R_sp);
 	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
+}
+
+void Tailsitter::waiting_on_tecs()
+{
+	// copy the last trust value from the front transition
+	_v_att_sp->thrust = _thrust_transition;
 }
 
 void Tailsitter::calc_tot_airspeed()
