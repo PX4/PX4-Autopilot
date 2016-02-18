@@ -54,6 +54,13 @@ public:
 	 *
 	 * @param val		Item to put
 	 */
+	void			put(uint64_t timestamp, float val, uint64_t error_count, int priority);
+
+	/**
+	 * Put a 3D item into the validator.
+	 *
+	 * @param val		Item to put
+	 */
 	void			put(uint64_t timestamp, float val[3], uint64_t error_count, int priority);
 
 	/**

@@ -67,6 +67,18 @@ DataValidator::~DataValidator()
 }
 
 void
+DataValidator::put(uint64_t timestamp, float val, uint64_t error_count_in, int priority_in)
+{
+	float data[3];
+
+	data[0] = val;
+	data[1] = 0.0f;
+	data[2] = 0.0f;
+
+	put(timestamp, data, error_count_in, priority_in);
+}
+
+void
 DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in, int priority_in)
 {
 	_event_count++;
