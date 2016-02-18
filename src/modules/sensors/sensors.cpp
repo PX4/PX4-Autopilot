@@ -2100,9 +2100,10 @@ Sensors::task_main()
 			 */
 			if (_gyro_count == 0) {
 				_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
-						&raw.gyro_priority[0], &raw.gyro_errcount[0]);
+								&raw.gyro_priority[0], &raw.gyro_errcount[0]);
 				fds[0].fd = _gyro_sub[0];
 			}
+
 			continue;
 		}
 
