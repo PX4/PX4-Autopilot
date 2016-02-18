@@ -216,5 +216,5 @@ if elapsed_time < max_execution_time:
     print "Mission succesful time elapsed %s" % elapsed_time
     sys.exit(0)
 
-print "Mission FAILED to execute within %s seconds time elapsed %s" % max_execution_time % elapsed_time
+print "Mission FAILED to execute within %s seconds" % max_execution_time
 sys.exit(99)
