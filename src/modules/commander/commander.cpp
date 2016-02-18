@@ -2172,10 +2172,6 @@ int commander_thread_main(int argc, char *argv[])
 		if (!status.rc_input_blocked && sp_man.timestamp != 0 &&
 		    (hrt_absolute_time() < sp_man.timestamp + (uint64_t)(rc_loss_timeout * 1e6f))) {
 #else
-		// TODO-JYW: TESTING-TESTING
-		warnx("status.rc_input_blocked: %d, sp_man.timestamp: %d", status.rc_input_blocked, sp_man.timestamp);
-		// TODO-JYW: TESTING-TESTING
-
 		// HACK: remove old data check due to timestamp issue in QURT
 		if (!status.rc_input_blocked && sp_man.timestamp != 0) {
 #endif
@@ -2193,14 +2189,6 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			status.rc_signal_lost = false;
-
-			// TODO-JYW: TESTING-TESTING
-			warnx("lower left stick: status.is_rotary_wing: %d, status.rc_input_mode: %d, status.arming_state: %d",
-					status.is_rotary_wing, status.rc_input_mode, status.arming_state, status.main_state, status.condition_landed, (double)sp_man.r, (double)sp_man.z);
-			warnx("lower left stick: status.is_rotary_wing: %d, status.rc_input_mode: %d, status.arming_state: %d, status.main_state: %d, status.condition_landed: %d, sp_man.r: %f, sp_man.z: %f",
-					status.is_rotary_wing, status.rc_input_mode, status.arming_state, status.main_state, status.condition_landed, (double)sp_man.r, (double)sp_man.z);
-			// TODO-JYW: TESTING-TESTING
-
 
 			/* check if left stick is in lower left position and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed) -> disarm
 			 * do it only for rotary wings */
@@ -2234,13 +2222,6 @@ int commander_thread_main(int argc, char *argv[])
 				stick_off_counter = 0;
 			}
 
-			// TODO-JYW: TESTING-TESTING
-			warnx("lower right position: ON_OFF_LIMIT: %f, stick_off_counter: %d, stick_on_counter: %d",
-					(double)STICK_ON_OFF_LIMIT, stick_off_counter, stick_on_counter);
-			warnx("lower right position: sp_man.r: %.6f, sp_man.z: %.6f, status.rc_input_mode: %d",
-					(double)sp_man.r, (double)sp_man.z, status.rc_input_mode);
-			// TODO-JYW: TESTING-TESTING
-
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
 			if (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF ) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
@@ -2252,32 +2233,22 @@ int commander_thread_main(int argc, char *argv[])
 
 					if ((status.main_state != vehicle_status_s::MAIN_STATE_MANUAL) &&
 						(status.main_state != vehicle_status_s::MAIN_STATE_STAB)) {
-						// TOOD-JYW: TESTING-TESTING:
-						warnx("NOT ARMING: Switch to MANUAL mode first.");
 						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
 
 					} else if (!status.condition_home_position_valid &&
 								geofence_action == geofence_result_s::GF_ACTION_RTL) {
-						// TOOD-JYW: TESTING-TESTING:
-						warnx("NOT ARMING: Geofence RTL requires valid home");
 						print_reject_arm("NOT ARMING: Geofence RTL requires valid home");
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-						// TODO-JYW: TESTING-TESTING
-						warnx("attempting arming_state_transition");
 						arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_ARMED, &armed, true /* fRunPreArmChecks */,
 										     mavlink_fd);
 
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
 						} else {
-							// TOOD-JYW: TESTING-TESTING:
-							warnx("NOT ARMING: Configuration error");
 							print_reject_arm("NOT ARMING: Configuration error");
 						}
 					}
-					// TOOD-JYW: TESTING-TESTING:
-					warnx("on counter set to zero");
 					stick_on_counter = 0;
 
 				} else {
@@ -2285,13 +2256,8 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 			} else {
-				// TOOD-JYW: TESTING-TESTING:
-				warnx("on counter set to zero");
 				stick_on_counter = 0;
 			}
-
-			// TOOD-JYW: TESTING-TESTING:
-			warnx("arming_ret: %d, arming_state_changed: %d, status.main_state: %d, status.arming_state: %d", arming_ret, arming_state_changed, status.main_state, status.arming_state);
 
 			if (arming_ret == TRANSITION_CHANGED) {
 				if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
@@ -2588,8 +2554,6 @@ int commander_thread_main(int argc, char *argv[])
 				 */
 				armed.prearmed = (hrt_elapsed_time(&commander_boot_timestamp) > 5 * 1000 * 1000);
 			}
-			// TODO-JYW: TESTING-TESTING:
-			warnx("publishing arming status, armed.armed: %d", armed.armed);
 			orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		}
 
@@ -3176,12 +3140,6 @@ set_control_mode()
 	default:
 		break;
 	}
-
-	// TODO-JYW: TESTING-TESTING:
-	warnx("status.nav_state: %d", status.nav_state);
-	warnx("status.is_rotary_wing: %d", status.is_rotary_wing);
-	warnx("control_mode.flag_control_rates_enabled: %d", control_mode.flag_control_rates_enabled);
-	warnx("control_mode.flag_control_attitude_enabled: %d", control_mode.flag_control_attitude_enabled);
 }
 
 bool

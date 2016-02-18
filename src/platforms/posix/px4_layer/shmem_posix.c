@@ -59,7 +59,7 @@ unsigned char *map_base, *virt_addr;
 struct shmem_info *shmem_info_p;
 static void *map_memory(off_t target);
 
-int get_shmem_lock(void);
+int get_shmem_lock(const char *caller_file_name, int caller_line_number);
 void release_shmem_lock(void);
 void init_shared_memory(void);
 void copy_params_to_shmem(struct param_info_s *);
@@ -94,17 +94,19 @@ static void *map_memory(off_t target)
 		exit(1);
 	}
 
+	PX4_DEBUG("Initializing map memory: mem_fd: %d, 0x%X", mem_fd, map_base + (target & MAP_MASK) + LOCK_SIZE);
+
 	return (map_base + (target & MAP_MASK) + LOCK_SIZE);
 
 }
 
-int get_shmem_lock(void)
+int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 {
 	int i = 0;
 
 	/*ioctl calls cmpxchg*/
 	while (ioctl(mem_fd, LOCK_MEM) != 0) {
-		PX4_INFO("Could not get lock, spinning\n");
+		PX4_INFO("Could not get lock, file name: %s, line number: %d\n", caller_file_name, caller_line_number);
 		usleep(100000); //sleep for 100 msec
 		i++;
 
@@ -122,7 +124,7 @@ int get_shmem_lock(void)
 
 void release_shmem_lock(void)
 {
-	*(virt_addr - LOCK_SIZE) = 1;
+	ioctl(mem_fd, UNLOCK_MEM);
 }
 
 void init_shared_memory(void)
@@ -139,7 +141,7 @@ void copy_params_to_shmem(struct param_info_s *param_info_base)
 	param_t param;
 	unsigned int i;
 
-	if (get_shmem_lock() != 0) {
+	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
 		PX4_ERR("Could not get shmem lock\n");
 		return;
 	}
@@ -188,7 +190,7 @@ void update_to_shmem(param_t param, union param_value_u value)
 {
 	unsigned int byte_changed, bit_changed;
 
-	if (get_shmem_lock() != 0) {
+	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
 		fprintf(stderr, "Could not get shmem lock\n");
 		return;
 	}
@@ -222,7 +224,7 @@ static void update_index_from_shmem(void)
 {
 	unsigned int i;
 
-	if (get_shmem_lock() != 0) {
+	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
 		fprintf(stderr, "Could not get shmem lock\n");
 		return;
 	}
@@ -240,7 +242,7 @@ static void update_value_from_shmem(param_t param, union param_value_u *value)
 {
 	unsigned int byte_changed, bit_changed;
 
-	if (get_shmem_lock() != 0) {
+	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
 		fprintf(stderr, "Could not get shmem lock\n");
 		return;
 	}

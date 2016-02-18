@@ -33,9 +33,6 @@
  *
  ****************************************************************************/
 
-// TODO-JYW: TESTING-TESTING
-#define DEBUG_BUILD 1
-
 /**
  * @file param.c
  *
@@ -113,7 +110,7 @@ const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 
 //#define ENABLE_SHMEM_DEBUG
 
-extern int get_shmem_lock(void);
+extern int get_shmem_lock(const char *caller_file_name, int caller_line_number);
 extern void release_shmem_lock(void);
 
 struct param_wbuf_s *param_find_changed(param_t param);
@@ -256,9 +253,6 @@ static void
 param_notify_changes(bool is_saved)
 {
 	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .saved = is_saved };
-
-	// TODO-JYW: TESTING-TESTING:
-	warnx("param_notify_changes: notifying of changes, timestamp: %lld, is_saved: %d", pup.timestamp, pup.saved);
 
 	/*
 	 * If we don't have a handle to our topic, create one now; otherwise
@@ -822,7 +816,7 @@ param_save_default(void)
 
 	const char *filename = param_get_default_file();
 
-	if (get_shmem_lock() != 0) {
+	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
 		PX4_ERR("Could not get shmem lock\n");
 		res = ERROR;
 		goto exit;
