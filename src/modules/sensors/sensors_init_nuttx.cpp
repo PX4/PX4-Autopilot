@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2015 James Wilson. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,34 +31,41 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file sensors_init_nuttx.cpp
+ *
+ *	Sensor initialization code, used only in Nuttx platform builds.
+ *
+ * @author James Wilson <jywilson99@hotmail.com>
+ */
 
-#include <sys/cdefs.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdint.h>
-
-__BEGIN_DECLS
-
-__EXPORT extern uint64_t hrt_absolute_time(void);
-
-//void qurt_log(int level, const char *file, int line, const char *format, ...);
-
-// declaration to make the compiler happy.  This symbol is part of the adsp static image.
-void HAP_debug(const char *msg, int level, const char *filename, int line);
-
-#ifndef qurt_log_defined
-#define qurt_log_defined
-static __inline void qurt_log(int level, const char *file, int line,
-			      const char *format, ...)
+int
+sensors_init(void)
 {
-	char buf[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buf, sizeof(buf), format, args);
-	va_end(args);
-	HAP_debug(buf, level, file, line);
-}
-#endif
+	int ret;
 
-__END_DECLS
+	ret = accel_init();
+
+	if (ret) { return ret; }
+
+	ret = gyro_init();
+
+	if (ret) { return ret; }
+
+	ret = mag_init();
+
+	if (ret) { return ret; }
+
+	ret = baro_init();
+
+	if (ret) { return ret; }
+
+	ret = adc_init();
+
+	if (ret) { return ret; }
+
+	return 0;
+}
+
+
+

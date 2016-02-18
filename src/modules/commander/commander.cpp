@@ -2249,7 +2249,6 @@ int commander_thread_main(int argc, char *argv[])
 							print_reject_arm("NOT ARMING: Configuration error");
 						}
 					}
-
 					stick_on_counter = 0;
 
 				} else {

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +41,7 @@
  * well instead of relying on the sensor_combined topic.
  *
  * @author Lorenz Meier <lorenz@px4.io>
- * @author Julian Oes <julian@oes.ch>
+ * @author Julian Oes <julian@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
  * @author Anton Babushkin <anton@px4.io>
  */
@@ -99,6 +99,9 @@
 #include "DevMgr.hpp"
 
 using namespace DriverFramework;
+
+/* Platform specific sensor initialization function. */
+extern int sensors_init(void);
 
 /**
  * Analog layout:
@@ -940,18 +943,18 @@ Sensors::parameters_update()
 	DevHandle h_baro;
 	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
-	//if (!h_baro.isValid()) {
-	//	warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-	//	return ERROR;
+	if (!h_baro.isValid()) {
+		warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
+		return ERROR;
 
-	//} else {
-	//	int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
+	} else {
+		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
 
-	//	if (baroret) {
-	//		warnx("qnh could not be set");
-	//		return ERROR;
-	//	}
-	//}
+		if (baroret) {
+			warnx("qnh could not be set");
+			return ERROR;
+		}
+	}
 
 	return OK;
 }
@@ -2070,29 +2073,39 @@ Sensors::task_main()
 	/* start individual sensors */
 	int ret = 0;
 
-	do { /* create a scope to handle exit with break */
-		//ret = accel_init();
 
-		//if (ret) { break; }
+// TODO-JYW: TESTING-TESTING:
+	ret = sensors_init();
 
-		//ret = gyro_init();
-
-		//if (ret) { break; }
-
-		//ret = mag_init();
-
-		//if (ret) { break; }
-
-		//ret = baro_init();
-
-		//if (ret) { break; }
-
-		//ret = adc_init();
-
-		//if (ret) { break; }
-
-		break;
-	} while (0);
+///*
+// * QURT devices do not yet use DriverFramework based drivers, which is required for
+// * the following initialization sequence to work correctly.
+// */
+//#ifndef __PX4_QURT
+//	do { /* create a scope to handle exit with break */
+//		ret = accel_init();
+//
+//		if (ret) { break; }
+//
+//		ret = gyro_init();
+//
+//		if (ret) { break; }
+//
+//		ret = mag_init();
+//
+//		if (ret) { break; }
+//
+//		ret = baro_init();
+//
+//		if (ret) { break; }
+//
+//		ret = adc_init();
+//
+//		if (ret) { break; }
+//
+//		break;
+//	} while (0);
+//#endif
 
 	if (ret) {
 		warnx("sensor initialization failed");
@@ -2199,7 +2212,14 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			PX4_WARN("poll error %d, %d", pret, errno);
+			/* if the polling operation failed because no gyro sensor is available yet,
+			 * then attempt to subscribe once again
+			 */
+			if (_gyro_count == 0) {
+				_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
+						&raw.gyro_priority[0], &raw.gyro_errcount[0]);
+				fds[0].fd = _gyro_sub[0];
+			}
 			continue;
 		}
 
@@ -2215,16 +2235,25 @@ Sensors::task_main()
 		mag_poll(raw);
 		baro_poll(raw);
 
-		/* Work out if main gyro timed out and fail over to alternate gyro.
-		 * However, don't do this if the secondary is not available. */
-		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
+		/* work out if main gyro timed out and fail over to alternate gyro, if available */
+		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000) {
+			warnx("gyro has timed out");
 
-			/* If the secondary failed as well, go to the tertiary, also only if available. */
-			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
-				fds[0].fd = _gyro_sub[2];
-
+			/* if the secondary failed as well, go to the tertiary, if available */
+			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000) {
+				if (_gyro_sub[2] != -1) {
+					warnx("using tertiary gyro");
+					fds[0].fd = _gyro_sub[2];
+				} else {
+					warnx("no tertiary gyro available");
+				}
 			} else {
-				fds[0].fd = _gyro_sub[1];
+				if (_gyro_sub[1] != -1) {
+					warnx("using secondary gyro");
+					fds[0].fd = _gyro_sub[1];
+				} else {
+					warnx("no secondary gyro available");
+				}
 			}
 		}
 
