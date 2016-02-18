@@ -68,6 +68,12 @@ enum mode {
 	EXTERNAL
 };
 
+enum vtol_type {
+	TAILSITTER = 0,
+	TILTROTOR,
+	STANDARD
+};
+
 class VtolAttitudeControl;
 
 class VtolType
