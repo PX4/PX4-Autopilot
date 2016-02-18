@@ -134,15 +134,15 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	/* fetch initial parameter values */
 	parameters_update();
 
-	if (_params.vtol_type == 0) {
+	if (_params.vtol_type == vtol_type::TAILSITTER) {
 		_tailsitter = new Tailsitter(this);
 		_vtol_type = _tailsitter;
 
-	} else if (_params.vtol_type == 1) {
+	} else if (_params.vtol_type == vtol_type::TILTROTOR) {
 		_tiltrotor = new Tiltrotor(this);
 		_vtol_type = _tiltrotor;
 
-	} else if (_params.vtol_type == 2) {
+	} else if (_params.vtol_type == vtol_type::STANDARD) {
 		_standard = new Standard(this);
 		_vtol_type = _standard;
 

@@ -98,6 +98,7 @@
 #include "mtecs/mTecs.h"
 #include <platforms/px4_defines.h>
 #include <runway_takeoff/RunwayTakeoff.h>
+#include <vtol_att_control/vtol_type.h>
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 #define HDG_HOLD_DIST_NEXT 			3000.0f 	// initial distance of waypoint in front of plane in heading hold mode
@@ -299,6 +300,7 @@ private:
 		float land_flare_pitch_max_deg;
 		int land_use_terrain_estimate;
 		float land_airspeed_scale;
+		int vtol_type;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -349,6 +351,7 @@ private:
 		param_t land_flare_pitch_max_deg;
 		param_t land_use_terrain_estimate;
 		param_t land_airspeed_scale;
+		param_t vtol_type;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -628,6 +631,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
 	_parameter_handles.heightrate_ff =			param_find("FW_T_HRATE_FF");
 	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
+	_parameter_handles.vtol_type = 				param_find("VT_TYPE");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -716,6 +720,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
 	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
+	param_get(_parameter_handles.vtol_type, &(_parameters.vtol_type));
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -2288,7 +2293,19 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 						      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
 
 		/* Using tecs library */
-		_tecs.update_pitch_throttle(_R_nb, _pitch, altitude, alt_sp, v_sp,
+		float pitch_for_tecs = _pitch;
+
+		// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
+		// between multirotor and fixed wing flight
+		if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+			math::Matrix<3,3> R_offset;
+			R_offset.from_euler(0, M_PI_2_F, 0);
+			math::Matrix<3,3> R_fixed_wing = _R_nb * R_offset;
+			math::Vector<3> euler = R_fixed_wing.to_euler();
+			pitch_for_tecs = euler(1);
+		}
+
+		_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs, altitude, alt_sp, v_sp,
 					    _ctrl_state.airspeed, eas2tas,
 					    climbout_mode, climbout_pitch_min_rad,
 					    throttle_min, throttle_max, throttle_cruise,
