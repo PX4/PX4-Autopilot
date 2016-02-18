@@ -42,7 +42,7 @@
 
 #include "ekf.h"
 #include <math.h>
-#include <mathlib/mathlib.h>
+#include "mathlib.h"
 
 void Ekf::initialiseCovariance()
 {

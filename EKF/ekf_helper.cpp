@@ -45,7 +45,7 @@
 #include <fstream>
 #endif
 #include <iomanip>
-#include <mathlib/mathlib.h>
+#include "mathlib.h"
 
 // Reset the velocity states. If we have a recent and valid
 // gps measurement then use for velocity initialisation

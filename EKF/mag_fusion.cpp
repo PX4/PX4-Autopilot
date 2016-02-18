@@ -40,7 +40,7 @@
  *
  */
 #include "ekf.h"
-#include <mathlib/mathlib.h>
+#include "mathlib.h"
 
 void Ekf::fuseMag()
 {

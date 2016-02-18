@@ -40,8 +40,8 @@
  */
 
 #include "ekf.h"
-#include <mathlib/mathlib.h>
-
+#include "mathlib.h"
+#include "geo.h"
 // GPS pre-flight check bit locations
 #define MASK_GPS_NSATS  (1<<0)
 #define MASK_GPS_GDOP   (1<<1)
@@ -63,7 +63,7 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 			// Initialise projection
 			double lat = gps->lat / 1.0e7;
 			double lon = gps->lon / 1.0e7;
-			map_projection_init(&_pos_ref, lat, lon);
+			map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 			// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
 			_gps_alt_ref = 1e-3f * (float)gps->alt + _state.pos(2);
 			_NED_origin_initialised = true;
@@ -121,7 +121,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 		map_projection_project(&_pos_ref, lat, lon, &delta_posN, &delta_PosE);
 
 	} else {
-		map_projection_init(&_pos_ref, lat, lon);
+		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 		_gps_alt_ref = gps->alt * 1e-3f;
 	}
 
@@ -150,7 +150,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 	}
 
 	// Save current position as the reference for next time
-	map_projection_init(&_pos_ref, lat, lon);
+	map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 	_last_gps_origin_time_us = _time_last_imu;
 
 	// Calculate the vertical drift velocity and limit to 10x the threshold
