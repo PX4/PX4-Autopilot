@@ -1,10 +1,27 @@
-#!nsh
-# Caipirinha vtol mixer for PX4FMU
-#
-#===========================
+Caipirinha tailsitter mixer
+============================
+
+This file defines a mixer for the TBS Caipirinha tailsitter edition. This vehicle
+has two motors in total, one attached to each wing. It also has two elevons which
+are located in the slipstream of the propellers.
+
+Motor mixer
+------------
+When standing in front of the vehicle the first motor should be on the left side
+while the second motor should be on the right side.
+
 R: 2- 10000 10000 10000 0
 
-#mixer for the elevons
+Zero mixer (2x)
+---------------
+
+Z:
+
+Z:
+
+Elevons mixer
+--------------
+
 M: 2
 O:      10000  10000      0 -10000  10000
 S: 1 0  10000  10000      0 -10000  10000

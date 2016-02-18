@@ -52,6 +52,13 @@ class XMLOutput():
                             xml_field.text = value
                 if last_param_name != param.GetName():
                     board_specific_param_set = False
+                
+                if len(param.GetEnumCodes()) > 0:
+                    xml_values = ET.SubElement(xml_param, "values")
+                    for code in param.GetEnumCodes():
+                        xml_value = ET.SubElement(xml_values, "value")
+                        xml_value.attrib["code"] = code;
+                        xml_value.text = param.GetEnumValue(code)
         indent(xml_parameters)
         self.xml_document = ET.ElementTree(xml_parameters)
 

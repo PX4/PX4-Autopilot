@@ -147,6 +147,7 @@ then
 			set FAILSAFE_AUX none
 		fi
 
+		# Set min / max for aux out and rates
 		if [ $PWM_AUX_OUT != none ]
 		then
 			#
@@ -157,13 +158,6 @@ then
 				pwm rate -c $PWM_AUX_OUT -r $PWM_AUX_RATE -d $OUTPUT_AUX_DEV
 			fi
 
-			#
-			# Set disarmed, min and max PWM_AUX values
-			#
-			if [ $PWM_AUX_DISARMED != none ]
-			then
-				pwm disarmed -c $PWM_AUX_OUT -p $PWM_AUX_DISARMED -d $OUTPUT_AUX_DEV
-			fi
 			if [ $PWM_AUX_MIN != none ]
 			then
 				pwm min -c $PWM_AUX_OUT -p $PWM_AUX_MIN -d $OUTPUT_AUX_DEV
@@ -172,6 +166,23 @@ then
 			then
 				pwm max -c $PWM_AUX_OUT -p $PWM_AUX_MAX -d $OUTPUT_AUX_DEV
 			fi
+		fi
+
+		# Set disarmed values for aux out
+
+		# Transitional support until all configs
+		# are updated
+		if [ $PWM_ACHDIS == none ]
+		then
+			set PWM_ACHDIS ${PWM_AUX_OUT}
+		fi
+
+		#
+		# Set disarmed, min and max PWM_AUX values
+		#
+		if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
+		then
+			pwm disarmed -c $PWM_ACHDIS -p $PWM_AUX_DISARMED -d $OUTPUT_AUX_DEV
 		fi
 
 		if [ $FAILSAFE_AUX != none ]

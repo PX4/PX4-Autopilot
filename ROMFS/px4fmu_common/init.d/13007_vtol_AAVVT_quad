@@ -31,18 +31,15 @@ then
 	param set MC_YAWRATE_I 0.02
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_FF 0.0
-	
 fi
 
 set MIXER vtol_quad_x
-set PWM_OUT 12345678
+set PWM_OUT 1234
+set PWM_RATE 400
 
 set MIXER_AUX vtol_AAVVT
-set PWM_AUX_RATE 50
-set PWM_AUX_OUT 1234
-set PWM_AUX_DISARMED 1000
-set PWM_AUX_MIN 1000
-set PWM_AUX_MAX 2000
+set PWM_ACHDIS 5
+set PWM_AUX_DISARMED 950
 
 set MAV_TYPE 22
 

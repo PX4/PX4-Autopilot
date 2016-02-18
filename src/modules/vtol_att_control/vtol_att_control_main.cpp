@@ -41,10 +41,13 @@
  * @author Roman Bapst 		<bapstr@ethz.ch>
  * @author Lorenz Meier 	<lm@inf.ethz.ch>
  * @author Thomas Gubler	<thomasgubler@gmail.com>
- * @author David Vorsin     <davidvorsin@gmail.com>
+ * @author David Vorsin		<davidvorsin@gmail.com>
+ * @author Sander Smeets	<sander@droneslab.com>
+ * @author Andreas Antener 	<andreas@uaventure.com>
  *
  */
 #include "vtol_att_control_main.h"
+#include <mavlink/mavlink_log.h>
 
 namespace VTOL_att_control
 {
@@ -57,6 +60,9 @@ VtolAttitudeControl *g_control;
 VtolAttitudeControl::VtolAttitudeControl() :
 	_task_should_exit(false),
 	_control_task(-1),
+
+	// mavlink log
+	_mavlink_fd(-1),
 
 	//init subscription handlers
 	_v_att_sub(-1),
@@ -73,6 +79,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_airspeed_sub(-1),
 	_battery_status_sub(-1),
 	_vehicle_cmd_sub(-1),
+	_vehicle_status_sub(-1),
+	_tecs_status_sub(-1),
 
 	//init publication handlers
 	_actuators_0_pub(nullptr),
@@ -103,6 +111,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	memset(&_airspeed, 0, sizeof(_airspeed));
 	memset(&_batt_status, 0, sizeof(_batt_status));
 	memset(&_vehicle_cmd, 0, sizeof(_vehicle_cmd));
+	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
+	memset(&_tecs_status, 0, sizeof(_tecs_status));
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_count = 0;
@@ -124,15 +134,15 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	/* fetch initial parameter values */
 	parameters_update();
 
-	if (_params.vtol_type == 0) {
+	if (_params.vtol_type == vtol_type::TAILSITTER) {
 		_tailsitter = new Tailsitter(this);
 		_vtol_type = _tailsitter;
 
-	} else if (_params.vtol_type == 1) {
+	} else if (_params.vtol_type == vtol_type::TILTROTOR) {
 		_tiltrotor = new Tiltrotor(this);
 		_vtol_type = _tiltrotor;
 
-	} else if (_params.vtol_type == 2) {
+	} else if (_params.vtol_type == vtol_type::STANDARD) {
 		_standard = new Standard(this);
 		_vtol_type = _standard;
 
@@ -403,6 +413,36 @@ VtolAttitudeControl::vehicle_cmd_poll()
 }
 
 /**
+* Check for vehicle status updates.
+*/
+void
+VtolAttitudeControl::vehicle_status_poll()
+{
+	bool updated;
+
+	orb_check(_vehicle_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub , &_vehicle_status);
+	}
+}
+
+/**
+* Check for TECS status updates.
+*/
+void
+VtolAttitudeControl::tecs_status_poll()
+{
+	bool updated;
+
+	orb_check(_tecs_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(tecs_status), _tecs_status_sub , &_tecs_status);
+	}
+}
+
+/**
 * Check received command
 */
 void
@@ -423,11 +463,36 @@ VtolAttitudeControl::is_fixed_wing_requested()
 {
 	bool to_fw = _manual_control_sp.aux1 > 0.0f;
 
-	if (_v_control_mode.flag_control_offboard_enabled || _v_control_mode.flag_control_auto_enabled) {
+	// listen to transition commands if not in manual
+	if (!_v_control_mode.flag_control_manual_enabled) {
 		to_fw = _transition_command == vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 	}
 
+	// handle abort request
+	if (_abort_front_transition) {
+		if (to_fw) {
+			to_fw = false;
+		} else {
+			// the state changed to mc mode, reset the abort request
+			_abort_front_transition = false;
+			_vtol_vehicle_status.vtol_transition_failsafe = false;
+		}
+	}
+
 	return to_fw;
+}
+
+/*
+ * Abort front transition
+ */
+void
+VtolAttitudeControl::abort_front_transition()
+{
+	if(!_abort_front_transition) {
+		mavlink_log_critical(_mavlink_fd, "Front transition timeout occured, aborting");
+		_abort_front_transition = true;
+		_vtol_vehicle_status.vtol_transition_failsafe = true;
+	}
 }
 
 /**
@@ -527,8 +592,9 @@ VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 
 void VtolAttitudeControl::task_main()
 {
-	PX4_WARN("started");
 	fflush(stdout);
+
+	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/* do subscriptions */
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
@@ -546,6 +612,8 @@ void VtolAttitudeControl::task_main()
 	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
 	_battery_status_sub	   = orb_subscribe(ORB_ID(battery_status));
 	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
+	_vehicle_status_sub    = orb_subscribe(ORB_ID(vehicle_status));
+	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
 
 	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
 	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
@@ -557,6 +625,9 @@ void VtolAttitudeControl::task_main()
 
 	// make sure we start with idle in mc mode
 	_vtol_type->set_idle_mc();
+
+	hrt_abstime mavlink_open_time = 0;
+	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source*/
 	px4_pollfd_struct_t fds[3] = {};	/*input_mc, input_fw, parameters*/
@@ -595,6 +666,13 @@ void VtolAttitudeControl::task_main()
 			continue;
 		}
 
+		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
+			/* try to reopen the mavlink log device with specified interval */
+			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
+			_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
+		}
+
+
 		if (fds[2].revents & POLLIN) {	//parameters were updated, read them now
 			/* read from param to clear updated flag */
 			struct parameter_update_s update;
@@ -622,12 +700,14 @@ void VtolAttitudeControl::task_main()
 		vehicle_airspeed_poll();
 		vehicle_battery_poll();
 		vehicle_cmd_poll();
+		vehicle_status_poll();
+		tecs_status_poll();
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
 
-		// reset transition command if not in offboard control
-		if (!_v_control_mode.flag_control_offboard_enabled) {
+		// reset transition command if not auto control
+		if (_v_control_mode.flag_control_manual_enabled) {
 			if (_vtol_type->get_mode() == ROTARY_WING) {
 				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
@@ -700,8 +780,8 @@ void VtolAttitudeControl::task_main()
 
 		/* Only publish if the proper mode(s) are enabled */
 		if (_v_control_mode.flag_control_attitude_enabled ||
-		    _v_control_mode.flag_control_rates_enabled ||
-		    _v_control_mode.flag_control_manual_enabled) {
+			_v_control_mode.flag_control_rates_enabled ||
+			_v_control_mode.flag_control_manual_enabled) {
 			if (_actuators_0_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 

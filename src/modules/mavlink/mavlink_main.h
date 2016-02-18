@@ -333,18 +333,25 @@ public:
 
 	unsigned		get_system_type() { return _system_type; }
 
-	Protocol 		get_protocol() { return _protocol; };
+	Protocol 		get_protocol() { return _protocol; }
 
 	unsigned short		get_network_port() { return _network_port; }
 
+	unsigned short		get_remote_port() { return _remote_port; }
+
 	int 			get_socket_fd () { return _socket_fd; };
 #ifdef __PX4_POSIX
-	struct sockaddr_in *	get_client_source_address() {return &_src_addr;};
+	struct sockaddr_in *	get_client_source_address() { return &_src_addr; }
 
-	void			set_client_source_initialized() { _src_addr_initialized = true; };
+	void			set_client_source_initialized() { _src_addr_initialized = true; }
 
-	bool			get_client_source_initialized() { return _src_addr_initialized; };
+	bool			get_client_source_initialized() { return _src_addr_initialized; }
+#else
+	bool			get_client_source_initialized() { return true; }
 #endif
+
+	uint64_t		get_start_time() { return _mavlink_start_time; }
+
 	static bool		boot_complete() { return _boot_complete; }
 
 	bool			is_usb_uart() { return _is_usb_uart; }
@@ -436,6 +443,7 @@ private:
 	int _socket_fd;
 	Protocol	_protocol;
 	unsigned short _network_port;
+	unsigned short _remote_port;
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 

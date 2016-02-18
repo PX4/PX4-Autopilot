@@ -84,6 +84,8 @@
 
 #include <systemlib/airspeed.h>
 
+#include <lib/ecl/validation/data_validator.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
@@ -233,6 +235,8 @@ private:
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+
+	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
 	struct battery_status_s _battery_status;	/**< battery status */
@@ -528,6 +532,7 @@ Sensors::Sensors() :
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
+	_airspeed_validator(),
 
 	_param_rc_values{},
 	_board_rotation{},
@@ -1221,9 +1226,14 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 
 		_airspeed.timestamp = _diff_pres.timestamp;
 
+		/* push data into validator */
+		_airspeed_validator.put(_airspeed.timestamp, _diff_pres.differential_pressure_raw_pa, _diff_pres.error_count, 100);
+		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
+
 		/* don't risk to feed negative airspeed into the system */
 		_airspeed.indicated_airspeed_m_s = math::max(0.0f,
 						   calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
+
 		_airspeed.true_airspeed_m_s = math::max(0.0f,
 							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar[0] * 1e2f,
 									raw.baro_pres_mbar[0] * 1e2f, air_temperature_celsius));
@@ -1503,8 +1513,13 @@ Sensors::parameter_update_poll(bool forced)
 						/* mag is internal */
 						_mag_rotation[s] = _board_rotation;
 						/* reset param to -1 to indicate internal mag */
-						int32_t minus_one = MAG_ROT_VAL_INTERNAL;
-						param_set_no_notification(param_find(str), &minus_one);
+						int32_t minus_one;
+						param_get(param_find(str), &minus_one);
+
+						if (minus_one != MAG_ROT_VAL_INTERNAL) {
+							minus_one = MAG_ROT_VAL_INTERNAL;
+							param_set_no_notification(param_find(str), &minus_one);
+						}
 
 					} else {
 
@@ -2199,7 +2214,7 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warnx("poll error %d, %d", pret, errno);
+			warnx("sens: poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -2215,17 +2230,23 @@ Sensors::task_main()
 		mag_poll(raw);
 		baro_poll(raw);
 
+#ifndef __PX4_POSIX
+
 		/* work out if main gyro timed out and fail over to alternate gyro */
-		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000) {
+		if (raw.gyro_timestamp[0] > 0 && hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000) {
 
 			/* if the secondary failed as well, go to the tertiary */
-			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000) {
+			if (_gyro_sub[2] >= 0 && (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000)) {
 				fds[0].fd = _gyro_sub[2];
+				warnx("failing over to third gyro");
 
-			} else {
+			} else if (_gyro_sub[1] >= 0) {
 				fds[0].fd = _gyro_sub[1];
+				warnx("failing over to second gyro");
 			}
 		}
+
+#endif
 
 		/* check battery voltage */
 		adc_poll(raw);

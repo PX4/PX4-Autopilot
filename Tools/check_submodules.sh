@@ -20,13 +20,13 @@ function check_git_submodule {
 if [ -d $1 ];
 	then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
-	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1" | grep "<")
+	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
 	if [ -z "$STATUSRETVAL" ]; then
 		echo "Checked $1 submodule, correct version found"
 	else
 		echo -e "\033[31mChecked $1 submodule, ACTION REQUIRED:\033[0m"
 		echo ""
-		echo -e "New commits required:"
+		echo -e "Different commits:"
 		echo -e "$SUBMODULE_STATUS"
 		echo ""
 		echo ""
@@ -59,7 +59,6 @@ if [ -d $1 ];
 	fi
 else
 	git submodule update --init --recursive;
-	git submodule update;
 fi
 
 }
@@ -71,7 +70,8 @@ check_git_submodule Tools/jMAVSim
 check_git_submodule Tools/sitl_gazebo
 check_git_submodule cmake/cmake_hexagon
 check_git_submodule mavlink/include/mavlink/v1.0
-check_git_submodule src/lib/DriverFramework
+check_git_submodule src/lib/DriverFramework/cmake_hexagon
+check_git_submodule src/lib/DriverFramework/dspal
 check_git_submodule src/lib/dspal
 check_git_submodule src/lib/ecl
 check_git_submodule src/lib/matrix

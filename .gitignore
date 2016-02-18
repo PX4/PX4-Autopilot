@@ -22,6 +22,8 @@ build/*
 build_*/
 core
 cscope.out
+cscope.in.out
+cscope.po.out
 Firmware.sublime-workspace
 user.sublime*
 Images/*.bin

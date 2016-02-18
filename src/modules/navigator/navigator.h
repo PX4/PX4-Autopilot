@@ -168,6 +168,8 @@ public:
 
 	void		increment_mission_instance_count() { _mission_instance_count++; }
 
+	void 		set_mission_failure(const char *reason);
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
