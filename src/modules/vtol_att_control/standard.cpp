@@ -164,7 +164,7 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if (_airspeed->true_airspeed_m_s >= _params_standard.airspeed_trans || !_armed->armed) {
+			if (_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans || !_armed->armed) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				// we can turn off the multirotor motors now
 				_flag_enable_mc_motors = false;
@@ -212,8 +212,8 @@ void Standard::update_transition_state()
 		}
 
 		// do blending of mc and fw controls if a blending airspeed has been provided
-		if (_airspeed_trans_blend_margin > 0.0f && _airspeed->true_airspeed_m_s >= _params_standard.airspeed_blend) {
-			float weight = 1.0f - fabsf(_airspeed->true_airspeed_m_s - _params_standard.airspeed_blend) /
+		if (_airspeed_trans_blend_margin > 0.0f && _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_blend) {
+			float weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params_standard.airspeed_blend) /
 				       _airspeed_trans_blend_margin;
 			_mc_roll_weight = weight;
 			_mc_pitch_weight = weight;

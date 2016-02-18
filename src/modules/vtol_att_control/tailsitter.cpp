@@ -179,7 +179,7 @@ void Tailsitter::update_vtol_state()
 		case TRANSITION_FRONT_P1:
 
 			// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
-			if ((_airspeed->true_airspeed_m_s >= _params_tailsitter.airspeed_trans
+			if ((_airspeed->indicated_airspeed_m_s >= _params_tailsitter.airspeed_trans
 			     && _v_att->pitch <= PITCH_TRANSITION_FRONT_P1) || !_armed->armed) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				//_vtol_schedule.transition_start = hrt_absolute_time();
@@ -248,7 +248,7 @@ void Tailsitter::update_transition_state()
 							_pitch_transition_start);
 
 		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
-		if (_airspeed->true_airspeed_m_s <= _params_tailsitter.airspeed_trans) {
+		if (_airspeed->indicated_airspeed_m_s <= _params_tailsitter.airspeed_trans) {
 			_thrust_transition = _thrust_transition_start + (fabsf(THROTTLE_TRANSITION_MAX * _thrust_transition_start) *
 					    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur * 1000000.0f));
 			_thrust_transition = math::constrain(_thrust_transition , _thrust_transition_start ,
@@ -257,7 +257,7 @@ void Tailsitter::update_transition_state()
 		}
 
 		// disable mc yaw control once the plane has picked up speed
-		if (_airspeed->true_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
+		if (_airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
 			_mc_yaw_weight = 0.0f;
 
 		} else {
@@ -361,7 +361,7 @@ void Tailsitter::waiting_on_tecs()
 
 void Tailsitter::calc_tot_airspeed()
 {
-	float airspeed = math::max(1.0f, _airspeed->true_airspeed_m_s);	// prevent numerical drama
+	float airspeed = math::max(1.0f, _airspeed->indicated_airspeed_m_s);	// prevent numerical drama
 	// calculate momentary power of one engine
 	float P = _batt_status->voltage_filtered_v * _batt_status->current_a / _params->vtol_motor_count;
 	P = math::constrain(P, 1.0f, _params->power_max);
@@ -384,7 +384,7 @@ void Tailsitter::scale_mc_output()
 	calc_tot_airspeed();	// estimate air velocity seen by elevons
 
 	// if airspeed is not updating, we assume the normal average speed
-	if (bool nonfinite = !PX4_ISFINITE(_airspeed->true_airspeed_m_s) ||
+	if (bool nonfinite = !PX4_ISFINITE(_airspeed->indicated_airspeed_m_s) ||
 			     hrt_elapsed_time(&_airspeed->timestamp) > 1e6) {
 		airspeed = _params->mc_airspeed_trim;
 
