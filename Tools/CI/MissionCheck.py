@@ -5,6 +5,7 @@
 #
 # @author Sander Smeets <sander@droneslab.com>
 #
+# Code partly based on DroneKit (c) Copyright 2015-2016, 3D Robotics.
 ################################################################################################
 
 
@@ -25,7 +26,23 @@ max_execution_time      = 250
 # Import DroneKit-Python
 from dronekit import connect, Command
 from pymavlink import mavutil
-import time, sys
+import time, sys, argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--connect", help="connection string")
+parser.add_argument("-f", "--filename", help="mission filename")
+parser.add_argument("-t", "--timeout", help="execution timeout")
+args = parser.parse_args()
+
+if args.connect:
+    connection_string = args.connect
+if args.filename:
+    import_mission_filename = args.filename
+if args.timeout:
+    max_execution_time = args.timeout
+
+
+
 
 MAV_MODE_AUTO = 4
 
@@ -33,10 +50,21 @@ MAV_MODE_AUTO = 4
 start_time = time.time()
 elapsed_time = time.time() - start_time
 
+
+
 # Connect to the Vehicle
 print "Connecting"
-vehicle = connect(connection_string, wait_ready=True)
+vehicle = connect(connection_string, wait_ready=False)
 vehicle.armed = False
+
+# Display basic vehicle state
+print " Type: %s" % vehicle._vehicle_type
+print " Armed?: %s" % vehicle.armed
+print " System status: %s" % vehicle.system_status.state
+print " GPS: %s" % vehicle.gps_0
+print " Alt: %s" % vehicle.location.global_relative_frame.alt
+
+
 
 while not vehicle.system_status.state == "STANDBY":
     print " Waiting for vehicle to initialise... %s " % vehicle.system_status.state
