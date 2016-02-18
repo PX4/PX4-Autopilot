@@ -507,6 +507,42 @@ struct log_CTS_s {
 
 #define LOG_OUT1_MSG 50
 
+/* --- EKF2 REPLAY Part 1 --- */
+#define LOG_RPL1_MSG 51
+struct log_RPL1_s {
+	uint64_t time_ref;
+	uint64_t gyro_integral_dt;
+	uint64_t accelerometer_integral_dt;
+	uint64_t magnetometer_timestamp;
+	uint64_t baro_timestamp;
+	float gyro_integral_x_rad;
+	float gyro_integral_y_rad;
+	float gyro_integral_z_rad;
+	float accelerometer_integral_x_m_s;
+	float accelerometer_integral_y_m_s;
+	float accelerometer_integral_z_m_s;
+	float magnetometer_x_ga;
+	float magnetometer_y_ga;
+	float magnetometer_z_ga;
+	float baro_alt_meter;
+};
+/* --- EKF2 REPLAY Part 2 --- */
+#define LOG_RPL2_MSG 52
+struct log_RPL2_s {
+	uint64_t time_pos_usec;
+	uint64_t time_vel_usec;
+	int32_t lat;
+	int32_t lon;
+	int32_t alt;
+	uint8_t fix_type;
+	float eph;
+	float epv;
+	float vel_m_s;
+	float vel_n_m_s;
+	float vel_e_m_s;
+	float vel_d_m_s;
+	bool vel_ned_valid;
+};
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -582,7 +618,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
-
+	LOG_FORMAT(RPL1, "QQQQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gIx,gIy,gIz,aIx,aIy,aIz,magX,magY,magZ,b_alt"),
+	LOG_FORMAT(RPL2, "QQLLLMffffffM", "Tpos,Tvel,lat,lon,alt,fix_type,eph,epv,v,vN,vE,vD,v_val"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
