@@ -220,12 +220,6 @@ int dspal_entry(int argc, char *argv[])
 	process_commands(apps, get_commands());
 	sleep(1); // give time for all commands to execute before starting external function
 
-	// TODO-JYW: TESTING-TESTING:
-	int default_mav_type = vehicle_status_s::VEHICLE_TYPE_QUADROTOR;
-	param_set(param_find("MAV_TYPE"), &default_mav_type);
-	PX4_INFO("setting default mav_type: %d", default_mav_type);
-	// TODO-JYW: TESTING-TESTING:
-
 	if (qurt_external_hook) {
 		qurt_external_hook();
 	}
