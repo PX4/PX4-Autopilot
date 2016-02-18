@@ -59,6 +59,7 @@ public:
 	virtual void update_mc_state();
 	virtual void update_fw_state();
 	virtual void fill_actuator_outputs();
+	virtual void waiting_on_tecs();
 
 private:
 
@@ -99,6 +100,10 @@ private:
 
 	/** not sure about it yet ?! **/
 	float _min_front_trans_dur;	/**< min possible time in which rotors are rotated into the first position */
+
+	float _thrust_transition_start; // throttle value when we start the front transition
+	float _yaw_transition;	// yaw angle in which transition will take place
+	float _pitch_transition_start;  // pitch angle at the start of transition (tailsitter)
 
 
 	/** should this anouncement stay? **/
