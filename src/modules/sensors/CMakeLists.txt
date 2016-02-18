@@ -30,6 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(SENSORS_SRCS sensors.cpp)
+if (${OS} STREQUAL "qurt")
+   list(APPEND SENSORS_SRCS
+      sensors_init_qurt.cpp)
+elseif(${OS} STREQUAL "nuttx")
+   list(APPEND SENSORS_SRCS
+      sensors_init_nuttx.cpp)
+endif()
+
 px4_add_module(
 	MODULE modules__sensors
 	MAIN sensors
@@ -39,7 +48,7 @@ px4_add_module(
 		-Wno-type-limits
 		-O3
 	SRCS
-		sensors.cpp
+		${SENSORS_SRCS}
 	DEPENDS
 		platforms__common
 	)
