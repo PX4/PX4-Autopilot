@@ -208,7 +208,7 @@ void Tiltrotor::update_vtol_state()
 
 			// check if we have reached airspeed to switch to fw mode
 			// also allow switch if we are not armed for the sake of bench testing
-			if (_airspeed->true_airspeed_m_s >= _params_tiltrotor.airspeed_trans || !_armed->armed) {
+			if (_airspeed->indicated_airspeed_m_s >= _params_tiltrotor.airspeed_trans || !_armed->armed) {
 				_vtol_schedule.flight_mode = TRANSITION_FRONT_P2;
 				_vtol_schedule.transition_start = hrt_absolute_time();
 			}
@@ -309,7 +309,7 @@ void Tiltrotor::update_transition_state()
 		}
 
 		// do blending of mc and fw controls
-		if (_airspeed->true_airspeed_m_s >= _params_tiltrotor.airspeed_blend_start) {
+		if (_airspeed->indicated_airspeed_m_s >= _params_tiltrotor.airspeed_blend_start) {
 			_mc_roll_weight = 0.0f;
 
 		} else {
@@ -320,7 +320,7 @@ void Tiltrotor::update_transition_state()
 		// disable mc yaw control once the plane has picked up speed
 		_mc_yaw_weight = 1.0f;
 
-		if (_airspeed->true_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
+		if (_airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
 			_mc_yaw_weight = 0.0f;
 		}
 
