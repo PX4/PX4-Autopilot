@@ -192,7 +192,7 @@ protected:
 	bool _imu_updated;      // true if the ekf should update (completed downsampling process)
 	bool _initialised;      // true if the ekf interface instance (data buffering) is initialized
 	bool _vehicle_armed;    // vehicle arm status used to turn off functionality used on the ground
-    bool _in_air;           // we assume vehicle is in the air, set by the given landing detector
+	bool _in_air;           // we assume vehicle is in the air, set by the given landing detector
 
 	bool _NED_origin_initialised;
 	bool _gps_speed_valid;

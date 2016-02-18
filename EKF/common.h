@@ -144,8 +144,8 @@ struct parameters {
 	float mag_declination_deg;  // magnetic declination in degrees
 	float heading_innov_gate;   // heading fusion innovation consistency gate size in standard deviations
 	float mag_innov_gate;       // magnetometer fusion innovation consistency gate size in standard deviations
-    int mag_declination_source; // bitmask used to control the handling of declination data
-    int mag_fusion_type;        // integer used to specify the type of magnetometer fusion used
+	int mag_declination_source; // bitmask used to control the handling of declination data
+	int mag_fusion_type;        // integer used to specify the type of magnetometer fusion used
 
 	// these parameters control the strictness of GPS quality checks used to determine uf the GPS is
 	// good enough to set a local origin and commence aiding
