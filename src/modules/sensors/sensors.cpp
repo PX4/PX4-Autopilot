@@ -103,6 +103,9 @@
 
 using namespace DriverFramework;
 
+/* Platform specific sensor initialization function. */
+extern int sensors_init(void);
+
 /**
  * Analog layout:
  * FMU:
@@ -2083,33 +2086,39 @@ Sensors::task_main()
 	/* start individual sensors */
 	int ret = 0;
 
-	do { /* create a scope to handle exit with break */
-#ifndef __PX4_QURT
-// TODO: needs fixes for QURT.
-		ret = accel_init();
 
-		if (ret) { break; }
+// TODO-JYW: TESTING-TESTING:
+	ret = sensors_init();
 
-		ret = gyro_init();
-
-		if (ret) { break; }
-
-		ret = mag_init();
-
-		if (ret) { break; }
-
-		ret = baro_init();
-
-		if (ret) { break; }
-
-		ret = adc_init();
-
-		if (ret) { break; }
-
-#endif
-
-		break;
-	} while (0);
+///*
+// * QURT devices do not yet use DriverFramework based drivers, which is required for
+// * the following initialization sequence to work correctly.
+// */
+//#ifndef __PX4_QURT
+//	do { /* create a scope to handle exit with break */
+//		ret = accel_init();
+//
+//		if (ret) { break; }
+//
+//		ret = gyro_init();
+//
+//		if (ret) { break; }
+//
+//		ret = mag_init();
+//
+//		if (ret) { break; }
+//
+//		ret = baro_init();
+//
+//		if (ret) { break; }
+//
+//		ret = adc_init();
+//
+//		if (ret) { break; }
+//
+//		break;
+//	} while (0);
+//#endif
 
 	if (ret) {
 		warnx("sensor initialization failed");
