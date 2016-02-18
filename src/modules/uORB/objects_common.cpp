@@ -282,3 +282,7 @@ ORB_DEFINE(ekf2_replay, struct ekf2_replay_s);
 
 #include "topics/qshell_req.h"
 ORB_DEFINE(qshell_req, struct qshell_req_s);
+
+#include "topics/follow_target.h"
+ORB_DEFINE(follow_target, struct follow_target_s);
+
