@@ -42,39 +42,58 @@
 #include "ekf.h"
 
 Ekf::Ekf():
-	_control_status{},
-	_filter_initialised(false),
-	_earth_rate_initialised(false),
-	_fuse_height(false),
-	_fuse_pos(false),
-	_fuse_hor_vel(false),
-	_fuse_vert_vel(false),
-	_time_last_fake_gps(0),
-	_time_last_pos_fuse(0),
-	_time_last_vel_fuse(0),
-	_time_last_hgt_fuse(0),
-	_time_last_of_fuse(0),
-	_vel_pos_innov{},
-	_mag_innov{},
-	_heading_innov{},
-	_vel_pos_innov_var{},
-	_mag_innov_var{},
-	_heading_innov_var{}
+    _filter_initialised(false),
+    _earth_rate_initialised(false),
+    _fuse_height(false),
+    _fuse_pos(false),
+    _fuse_hor_vel(false),
+    _fuse_vert_vel(false),
+    _time_last_fake_gps(0),
+    _time_last_pos_fuse(0),
+    _time_last_vel_fuse(0),
+    _time_last_hgt_fuse(0),
+    _time_last_of_fuse(0),
+    _last_disarmed_posD(0.0f),
+	_heading_innov(0.0f),
+	_heading_innov_var(0.0f),
+    _mag_declination(0.0f),
+	_gpsDriftVelN(0.0f),
+	_gpsDriftVelE(0.0f),
+	_gps_drift_velD(0.0f),
+	_gps_velD_diff_filt(0.0f),
+	_gps_velN_filt(0.0f),
+	_gps_velE_filt(0.0f),
+	_last_gps_fail_us(0),
+	_last_gps_origin_time_us(0),
+	_gps_alt_ref(0.0f),
+	_baro_counter(0),
+	_baro_sum(0.0f),
+	_mag_counter(0),
+    _baro_at_alignment(0.0f)
 {
-	_earth_rate_NED.setZero();
-	_R_prev = matrix::Dcm<float>();
+    _control_status = {};
+    _control_status_prev = {};
+    _state = {};
+    _last_known_posNE.setZero();
+    _earth_rate_NED.setZero();
+    _R_prev = matrix::Dcm<float>();
+    _vel_pos_innov = {};
+    _mag_innov = {};
+    _vel_pos_innov_var = {};
+    _mag_innov_var = {};
 	_delta_angle_corr.setZero();
 	_delta_vel_corr.setZero();
 	_vel_corr.setZero();
-	_last_known_posNE.setZero();
+    _imu_down_sampled = {};
+    _q_down_sampled.setZero();
+    _mag_sum = {};
+    _delVel_sum = {};
 }
-
 
 Ekf::~Ekf()
 {
-
-
 }
+
 bool Ekf::init(uint64_t timestamp)
 {
 	bool ret = initialise_interface(timestamp);
@@ -95,7 +114,6 @@ bool Ekf::init(uint64_t timestamp)
 	_output_new.vel.setZero();
 	_output_new.pos.setZero();
 	_output_new.quat_nominal = matrix::Quaternion<float>();
-
 
 	_imu_down_sampled.delta_ang.setZero();
 	_imu_down_sampled.delta_vel.setZero();
@@ -141,7 +159,7 @@ bool Ekf::update()
 
 	// measurement updates
 
-	// Fuse magnetometer data using the selected fuson method and only if angular alignment is complete
+	// Fuse magnetometer data using the selected fusion method and only if angular alignment is complete
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
 		if (_control_status.flags.mag_3D && _control_status.flags.yaw_align) {
 			fuseMag();
@@ -220,7 +238,7 @@ bool Ekf::initialiseFilter(void)
 		_baro_sum += baro_init.hgt;
 	}
 
-	// check to see if we have enough measruements and return false if not
+	// check to see if we have enough measurements and return false if not
 	if (_baro_counter < 10 || _mag_counter < 10) {
 		return false;
 
@@ -283,7 +301,7 @@ void Ekf::predictState()
 		}
 	}
 
-	// attitude error state prediciton
+	// attitude error state prediction
 	matrix::Dcm<float> R_to_earth(_state.quat_nominal);	// transformation matrix from body to world frame
 	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _R_prev * _earth_rate_NED *
 				       _imu_sample_delayed.delta_ang_dt;
@@ -306,10 +324,8 @@ void Ekf::predictState()
 	constrainStates();
 }
 
-
 bool Ekf::collect_imu(imuSample &imu)
 {
-
 	imu.delta_ang(0) = imu.delta_ang(0) * _state.gyro_scale(0);
 	imu.delta_ang(1) = imu.delta_ang(1) * _state.gyro_scale(1);
 	imu.delta_ang(2) = imu.delta_ang(2) * _state.gyro_scale(2);
@@ -317,14 +333,11 @@ bool Ekf::collect_imu(imuSample &imu)
 	imu.delta_ang -= _state.gyro_bias * imu.delta_ang_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);
 	imu.delta_vel(2) -= _state.accel_z_bias * imu.delta_vel_dt / (_dt_imu_avg > 0 ? _dt_imu_avg : 0.01f);;
 
-	// store the new sample for the complementary filter prediciton
-	_imu_sample_new = {
-		.delta_ang	= imu.delta_ang,
-		.delta_vel	= imu.delta_vel,
-		.delta_ang_dt	= imu.delta_ang_dt,
-		.delta_vel_dt	= imu.delta_vel_dt,
-		.time_us	= imu.time_us
-	};
+	_imu_sample_new.delta_ang	= imu.delta_ang;
+	_imu_sample_new.delta_vel	= imu.delta_vel;
+	_imu_sample_new.delta_ang_dt	= imu.delta_ang_dt;
+	_imu_sample_new.delta_vel_dt	= imu.delta_vel_dt;
+	_imu_sample_new.time_us	= imu.time_us;
 
 	_imu_down_sampled.delta_ang_dt += imu.delta_ang_dt;
 	_imu_down_sampled.delta_vel_dt += imu.delta_vel_dt;
@@ -341,13 +354,13 @@ bool Ekf::collect_imu(imuSample &imu)
 
 	if ((_dt_imu_avg * _imu_ticks >= (float)(FILTER_UPDATE_PERRIOD_MS) / 1000) ||
 	    _dt_imu_avg * _imu_ticks >= 0.02f) {
-		imu = {
-			.delta_ang	= _q_down_sampled.to_axis_angle(),
-			.delta_vel	= _imu_down_sampled.delta_vel,
-			.delta_ang_dt	= _imu_down_sampled.delta_ang_dt,
-			.delta_vel_dt	= _imu_down_sampled.delta_vel_dt,
-			.time_us	= imu.time_us
-		};
+
+		imu.delta_ang     = _q_down_sampled.to_axis_angle();
+		imu.delta_vel     = _imu_down_sampled.delta_vel;
+		imu.delta_ang_dt  = _imu_down_sampled.delta_ang_dt;
+		imu.delta_vel_dt  = _imu_down_sampled.delta_vel_dt;
+		imu.time_us       = imu.time_us;
+
 		_imu_down_sampled.delta_ang.setZero();
 		_imu_down_sampled.delta_vel.setZero();
 		_imu_down_sampled.delta_ang_dt = 0.0f;
@@ -422,9 +435,7 @@ void Ekf::calculateOutputStates()
 	_delta_vel_corr = (_state.vel - _output_sample_delayed.vel) * imu_new.delta_vel_dt;
 
 	_vel_corr = (_state.pos - _output_sample_delayed.pos);
-
 }
-
 
 void Ekf::fuseAirspeed()
 {
