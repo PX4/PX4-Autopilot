@@ -81,7 +81,7 @@ int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 
 	while (!atomic_compare_and_set(lock, 1, 0)) {
 		PX4_INFO("Could not get lock, file name: %s, line number: %d.\n",
-				caller_file_name, caller_line_number);
+			 caller_file_name, caller_line_number);
 		i++;
 		usleep(1000);
 
@@ -90,6 +90,7 @@ int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 
 	if (i > 100) {
 		return -1;
+
 	} else {
 		PX4_DEBUG("Lock acquired, file name: %s, line number: %d\n", caller_file_name, caller_line_number);
 	}
