@@ -84,6 +84,8 @@
 
 #include <systemlib/airspeed.h>
 
+#include <lib/ecl/validation/data_validator.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
@@ -233,6 +235,8 @@ private:
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+
+	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
 	struct battery_status_s _battery_status;	/**< battery status */
@@ -528,6 +532,7 @@ Sensors::Sensors() :
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
+	_airspeed_validator(),
 
 	_param_rc_values{},
 	_board_rotation{},
@@ -1221,9 +1226,14 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 
 		_airspeed.timestamp = _diff_pres.timestamp;
 
+		/* push data into validator */
+		_airspeed_validator.put(_airspeed.timestamp, _diff_pres.differential_pressure_raw_pa, _diff_pres.error_count, 100);
+		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
+
 		/* don't risk to feed negative airspeed into the system */
 		_airspeed.indicated_airspeed_m_s = math::max(0.0f,
 						   calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
+
 		_airspeed.true_airspeed_m_s = math::max(0.0f,
 							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar[0] * 1e2f,
 									raw.baro_pres_mbar[0] * 1e2f, air_temperature_celsius));
