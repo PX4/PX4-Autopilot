@@ -92,6 +92,8 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
 * @value 921600 Companion Link (921600 baud, 8N1)
 * @value 57600 Companion Link (57600 baud, 8N1)
 * @value 157600 OSD (57600 baud, 8N1)
+* @value 257600 Command Receiver (57600 baud, 8N1)
+* @value 357600 Telemetry (57600 baud, 8N1)
 *
 * @min 0
 * @max 921600
