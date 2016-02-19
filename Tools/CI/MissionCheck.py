@@ -31,8 +31,8 @@ import time, sys, argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--connect", help="connection string")
 parser.add_argument("-f", "--filename", help="mission filename")
-parser.add_argument("-t", "--timeout", help="execution timeout")
-parser.add_argument("-a", "--altrad", help="altitude acceptance radius")
+parser.add_argument("-t", "--timeout", help="execution timeout", type=float)
+parser.add_argument("-a", "--altrad", help="altitude acceptance radius", type=float)
 args = parser.parse_args()
 
 if args.connect:
@@ -247,7 +247,7 @@ while not vehicle.system_status.state == "ACTIVE":
 
 # Wait for completion of mission items
 while (current_sequence < len(missionlist)-1 and elapsed_time < max_execution_time):
-    time.sleep(1)
+    time.sleep(.2)
     if current_sequence > 0 and current_sequence_changed:
 
         if missionlist[current_sequence-1].z - alt_acceptance_radius > vehicle.location.global_relative_frame.alt or missionlist[current_sequence-1].z + alt_acceptance_radius < vehicle.location.global_relative_frame.alt:
