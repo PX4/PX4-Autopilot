@@ -508,6 +508,13 @@ struct log_CTS_s {
 	float yaw_rate;
 };
 
+/* --- CAMERA TRIGGER --- */
+#define LOG_CAMT_MSG 48
+struct log_CAMT_s {
+	uint64_t timestamp;
+	uint32_t seq;
+};
+
 #define LOG_OUT1_MSG 50
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
@@ -585,6 +592,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
+	LOG_FORMAT(CAMT, "if", "timestamp,seq"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
