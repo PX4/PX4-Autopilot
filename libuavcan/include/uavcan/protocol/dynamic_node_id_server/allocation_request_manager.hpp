@@ -51,6 +51,7 @@ class AllocationRequestManager
     const MonotonicDuration stage_timeout_;
 
     MonotonicTime last_message_timestamp_;
+    MonotonicTime last_activity_timestamp_;
     Allocation::FieldTypes::unique_id current_unique_id_;
 
     IAllocationRequestHandler& handler_;
@@ -127,6 +128,7 @@ class AllocationRequestManager
     void handleAllocation(const ReceivedDataStructure<Allocation>& msg)
     {
         trace(TraceAllocationActivity, msg.getSrcNodeID().get());
+        last_activity_timestamp_ = msg.getMonotonicTimestamp();
 
         if (!msg.isAnonymousTransfer())
         {
@@ -269,6 +271,12 @@ public:
 
         return allocation_pub_.broadcast(msg);
     }
+
+    /**
+     * When the last allocation activity was registered.
+     * This value can be used to heuristically determine whether there are any unallocated nodes left in the network.
+     */
+    MonotonicTime getTimeOfLastAllocationActivity() const { return last_activity_timestamp_; }
 };
 
 }
