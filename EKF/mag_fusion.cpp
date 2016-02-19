@@ -613,6 +613,9 @@ void Ekf::fuseHeading()
 	matrix::Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
 	float measured_yaw = atan2f(mag_earth_pred(1), mag_earth_pred(0)) - _mag_declination;
 
+	// wrap the yaw to the interval between +-pi
+	measured_yaw = matrix::wrap_pi(measured_yaw);
+
 	// calculate the innovation
 	matrix::Euler<float> euler(_state.quat_nominal);
 	float innovation = euler(2) - measured_yaw;
