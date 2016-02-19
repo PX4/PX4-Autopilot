@@ -532,12 +532,15 @@ void Ekf::fuseHeading()
 	H_YAW[1] = t14 * (t15 * (q0 * q1 * 2.0f - q2 * q3 * 2.0f) + t9 * t10 * (q0 * q2 * 2.0f + q1 * q3 * 2.0f));
 	H_YAW[2] = t14 * (t15 * (t2 - t3 + t4 - t5) + t9 * t10 * (t7 - t8));
 
-	// calculate innovation
-	// rotate body field magnetic field measurement into earth frame and compare to published declination to get heading measurement
-	// TODO - enable use of an off-board heading measurement
+	// rotate body field magnetic field measurement into earth frame and compare horizontal vector with published declination to get yaw measurement
+	// TODO - enable use of an off-board yaw measurement
 	matrix::Dcm<float> R_to_earth(_state.quat_nominal);
 	matrix::Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
-	float innovation = atan2f(mag_earth_pred(1), mag_earth_pred(0)) - _mag_declination;
+	float measured_yaw = atan2f(mag_earth_pred(1), mag_earth_pred(0)) - _mag_declination;
+
+	// calculate the innovation
+	matrix::Euler<float> euler(_state.quat_nominal);
+	float innovation = euler(2) - measured_yaw;
 
 	// wrap the innovation to the interval between +-pi
 	innovation = matrix::wrap_pi(innovation);
