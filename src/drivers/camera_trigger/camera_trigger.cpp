@@ -122,7 +122,6 @@ private:
 	uint32_t 		_trigger_seq;
 	bool	 		_trigger_enabled;
 	math::Vector<2>	_last_shoot_position;
-	float			_last_shoot_time;
 	bool			_valid_position;
 
 	int			_vcommand_sub;
@@ -150,10 +149,6 @@ private:
 	 * Vehicle command handler
 	 */
 	static void	cycle_trampoline(void *arg);
-	/**
-	 * Distance monitor
-	 */
-	static void	distance_trampoline(void *arg);
 	/**
 	 * Fires trigger
 	 */
@@ -189,7 +184,6 @@ CameraTrigger::CameraTrigger() :
 	_trigger_seq(0),
 	_trigger_enabled(false),
 	_last_shoot_position(0.0f, 0.0f),
-	_last_shoot_time(0.0f),
 	_valid_position(false),
 	_vcommand_sub(-1),
 	_vlposition_sub(-1),
@@ -297,14 +291,9 @@ CameraTrigger::start()
 		control(true);
 	}
 
-	// if in distance mode, start monitoring the position
-	if (_mode == 3) {
-		work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::distance_trampoline, this, USEC2TICK(1));
+	// start to monitor at high rate for trigger enable command
+	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline, this, USEC2TICK(1));
 
-	} else {
-		// start to monitor at high rate for trigger enable command
-		work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline, this, USEC2TICK(1));
-	}
 }
 
 void
@@ -336,84 +325,73 @@ CameraTrigger::cycle_trampoline(void *arg)
 	// to become active instantaneously
 	int poll_interval_usec = 5000;
 
-	if (updated) {
+	if (trig->_mode < 3) {
 
-		struct vehicle_command_s cmd;
+		if (updated) {
 
-		orb_copy(ORB_ID(vehicle_command), trig->_vcommand_sub, &cmd);
+			struct vehicle_command_s cmd;
 
-		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
-			// Set trigger rate from command
-			if (cmd.param2 > 0) {
-				trig->_interval = cmd.param2;
-				param_set(trig->_p_interval, &(trig->_interval));
+			orb_copy(ORB_ID(vehicle_command), trig->_vcommand_sub, &cmd);
+
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
+				// Set trigger rate from command
+				if (cmd.param2 > 0) {
+					trig->_interval = cmd.param2;
+					param_set(trig->_p_interval, &(trig->_interval));
+				}
+
+				if (cmd.param1 < 1.0f) {
+					trig->control(false);
+
+				} else if (cmd.param1 >= 1.0f) {
+					trig->control(true);
+					// while the trigger is active there is no
+					// need to poll at a very high rate
+					poll_interval_usec = 100000;
+				}
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
+				if (cmd.param5 > 0) {
+					// One-shot trigger, default 1 ms interval
+					trig->_interval = 1000;
+					trig->control(true);
+				}
+			}
+		}
+
+	} else {
+
+		// Set trigger based on covered distance
+		if (trig->_vlposition_sub < 0) {
+			trig->_vlposition_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+		}
+
+		struct vehicle_local_position_s pos;
+
+		orb_copy(ORB_ID(vehicle_local_position), trig->_vlposition_sub, &pos);
+
+		if (pos.xy_valid) {
+
+			// Initialize position if not done yet
+			math::Vector<2> current_position(pos.x, pos.y);
+
+			if (!trig->_valid_position) {
+				trig->_last_shoot_position = current_position;
+				trig->_valid_position = pos.xy_valid;
 			}
 
-			if (cmd.param1 < 1.0f) {
-				trig->control(false);
-
-			} else if (cmd.param1 >= 1.0f) {
-				trig->control(true);
-				// while the trigger is active there is no
-				// need to poll at a very high rate
-				poll_interval_usec = 100000;
+			// Check that distance threshold is exceeded and the time between last shot is large enough
+			if ((trig->_last_shoot_position - current_position).length() >= trig->_distance) {
+				trig->shootOnce();
+				trig->_last_shoot_position = current_position;
 			}
 
-		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
-			if (cmd.param5 > 0) {
-				// One-shot trigger, default 1 ms interval
-				trig->_interval = 1000;
-				trig->control(true);
-			}
+		} else {
+			poll_interval_usec = 100000;
 		}
 	}
 
 	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline,
-		   camera_trigger::g_camera_trigger, USEC2TICK(poll_interval_usec));
-}
-
-void
-CameraTrigger::distance_trampoline(void *arg)
-{
-
-	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
-
-	int poll_interval_usec = 10000;
-
-	// Set trigger based on covered distance
-	if (trig->_vlposition_sub < 0) {
-		trig->_vlposition_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	}
-
-	struct vehicle_local_position_s pos;
-
-	orb_copy(ORB_ID(vehicle_local_position), trig->_vlposition_sub, &pos);
-
-	if (pos.xy_valid) {
-
-		// Initialize position if not done yet
-		math::Vector<2> current_position(pos.x, pos.y);
-
-		if (!trig->_valid_position) {
-			trig->_last_shoot_position = current_position;
-			trig->_valid_position = pos.xy_valid;
-		}
-
-		float time_now = static_cast<float>(hrt_absolute_time()) / 1.0e6f;
-
-		// Check that distance threshold is exceeded and the time between last shot is large enough
-		if ((trig->_last_shoot_position - current_position).length() >= trig->_distance &&
-		    time_now > trig->_last_shoot_time + trig->_interval / 1000.0f) {
-			trig->shootOnce();
-			trig->_last_shoot_position = current_position;
-			trig->_last_shoot_time = time_now;
-		}
-
-	} else {
-		poll_interval_usec = 100000;
-	}
-
-	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::distance_trampoline,
 		   camera_trigger::g_camera_trigger, USEC2TICK(poll_interval_usec));
 }
 

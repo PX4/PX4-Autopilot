@@ -77,9 +77,8 @@ PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
 /**
  * Camera trigger mode
  *
- * 0 disables the trigger, 1 sets it to enabled on command, 2 always on
+ * 0 disables the trigger, 1 sets it to enabled on command, 2 always on, 3 distance based
  *
- * @reboot_required true
  *
  * @min 0
  * @max 3
@@ -101,7 +100,7 @@ PARAM_DEFINE_INT32(TRIG_PINS, 12);
 /**
  * Camera trigger distance
  *
- * Sets the distance at which to trigger the camera. TRIG_INTERVAL sets an upper bound on the triggering frequency.
+ * Sets the distance at which to trigger the camera.
  *
  * @unit meters
  * @min 0
