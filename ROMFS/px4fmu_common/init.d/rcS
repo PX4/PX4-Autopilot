@@ -497,17 +497,12 @@ then
 	mavlink start $MAVLINK_F
 	unset MAVLINK_F
 
-	if ver hwcmp PX4FMU_V4
-	then
-		# Start MAVLink on OSD (TELEM2 port)
-		mavlink start -r 1200 -d /dev/ttyS2 -b 57600 -m osd
-	fi
-
 	#
 	# MAVLink onboard / TELEM2
 	#
-	if ver hwcmp PX4FMU_V2
+	if ver hwcmp PX4FMU_V1
 	then
+	else
 		# XXX We need a better way for runtime eval of shell variables,
 		# but this works for now
 		if param compare SYS_COMPANION 921600
