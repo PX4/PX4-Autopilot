@@ -20,6 +20,7 @@ class AbstractServer : protected IAllocationRequestHandler
                      , protected INodeDiscoveryHandler
 {
     UniqueID own_unique_id_;
+    MonotonicTime started_at_;
 
 protected:
     INode& node_;
@@ -55,10 +56,54 @@ protected:
             return res;
         }
 
+        started_at_ = node_.getMonotonicTime();
+
         return 0;
     }
 
 public:
+    /**
+     * This can be used to guess if there are any un-allocated dynamic nodes left in the network.
+     */
+    bool guessIfAllDynamicNodesAreAllocated(
+        const MonotonicDuration& allocation_activity_timeout =
+            MonotonicDuration::fromMSec(protocol::NodeStatus::OFFLINE_TIMEOUT_MS)) const
+    {
+        const MonotonicTime ts = node_.getMonotonicTime();
+
+        /*
+         * If uptime is not large enough, the allocator may be unaware about some nodes yet.
+         */
+        const MonotonicDuration uptime = ts - started_at_;
+        if (uptime < allocation_activity_timeout)
+        {
+            return false;
+        }
+
+        /*
+         * If there are any undiscovered nodes, assume that allocation is still happening.
+         */
+        if (node_discoverer_.hasUnknownNodes())
+        {
+            return false;
+        }
+
+        /*
+         * Lastly, check if there wasn't any allocation messages detected on the bus in the specified amount of time.
+         */
+        const MonotonicDuration since_allocation_activity =
+            ts - allocation_request_manager_.getTimeOfLastAllocationActivity();
+        if (since_allocation_activity < allocation_activity_timeout)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * This is useful for debugging/testing/monitoring.
+     */
     const NodeDiscoverer& getNodeDiscoverer() const { return node_discoverer_; }
 };
 
