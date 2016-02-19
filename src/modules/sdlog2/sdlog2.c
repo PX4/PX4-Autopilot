@@ -110,6 +110,7 @@
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
 #include <uORB/topics/ekf2_innovations.h>
+#include <uORB/topics/camera_trigger.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1112,6 +1113,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
 		struct control_state_s ctrl_state;
 		struct ekf2_innovations_s innovations;
+		struct camera_trigger_s camera_trigger;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1163,6 +1165,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_CTS_s log_CTS;
 			struct log_EST4_s log_INO1;
 			struct log_EST5_s log_INO2;
+			struct log_CAMT_s log_CAMT;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1208,6 +1211,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int mc_att_ctrl_status_sub;
 		int ctrl_state_sub;
 		int innov_sub;
+		int cam_trig_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1245,6 +1249,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.ctrl_state_sub = -1;
 	subs.encoders_sub = -1;
 	subs.innov_sub = -1;
+	subs.cam_trig_sub = -1;
 
 	/* add new topics HERE */
 
@@ -1930,6 +1935,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_CTS.pitch_rate = buf.ctrl_state.pitch_rate;
 			log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
 			LOGBUFFER_WRITE_AND_COUNT(CTS);
+		}
+
+		/* --- CAMERA TRIGGER --- */
+		if (copy_if_updated(ORB_ID(camera_trigger), &subs.cam_trig_sub, &buf.camera_trigger)) {
+			log_msg.msg_type = LOG_CAMT_MSG;
+			log_msg.body.log_CAMT.timestamp = buf.camera_trigger.timestamp;
+			log_msg.body.log_CAMT.seq = buf.camera_trigger.seq;
+			LOGBUFFER_WRITE_AND_COUNT(CAMT);
 		}
 
 		/* signal the other thread new data, but not yet unlock */
