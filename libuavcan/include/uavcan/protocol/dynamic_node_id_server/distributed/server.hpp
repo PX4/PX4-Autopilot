@@ -9,9 +9,8 @@
 #include <uavcan/debug.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/types.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/distributed/raft_core.hpp>
-#include <uavcan/protocol/dynamic_node_id_server/allocation_request_manager.hpp>
+#include <uavcan/protocol/dynamic_node_id_server/abstract_server.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/node_id_selector.hpp>
-#include <uavcan/protocol/dynamic_node_id_server/node_discoverer.hpp>
 #include <uavcan/protocol/dynamic_node_id_server/event.hpp>
 
 namespace uavcan
@@ -23,8 +22,7 @@ namespace distributed
 /**
  * This class implements the top-level allocation logic and server API.
  */
-class UAVCAN_EXPORT Server : IAllocationRequestHandler
-                           , INodeDiscoveryHandler
+class UAVCAN_EXPORT Server : public AbstractServer
                            , IRaftLeaderMonitor
 {
     struct UniqueIDLogPredicate
@@ -56,18 +54,9 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
     };
 
     /*
-     * Constants
-     */
-    UniqueID own_unique_id_;
-
-    /*
      * States
      */
-    INode& node_;
-    IEventTracer& tracer_;
     RaftCore raft_core_;
-    AllocationRequestManager allocation_request_manager_;
-    NodeDiscoverer node_discoverer_;
 
     /*
      * Methods of IAllocationRequestHandler
@@ -196,7 +185,7 @@ class UAVCAN_EXPORT Server : IAllocationRequestHandler
 
         if (!result.isConstructed())
         {
-            raft_core_.appendLog(own_unique_id_, node_.getNodeID());
+            raft_core_.appendLog(getOwnUniqueID(), node_.getNodeID());
         }
     }
 
@@ -239,11 +228,8 @@ public:
     Server(INode& node,
            IStorageBackend& storage,
            IEventTracer& tracer)
-        : node_(node)
-        , tracer_(tracer)
+        : AbstractServer(node, tracer)
         , raft_core_(node, storage, tracer, *this)
-        , allocation_request_manager_(node, tracer, *this)
-        , node_discoverer_(node, tracer, *this)
     { }
 
     int init(const UniqueID& own_unique_id,
@@ -260,34 +246,26 @@ public:
         }
 
         /*
+         * Common logic
+         */
+        res = AbstractServer::init(own_unique_id, priority);
+        if (res < 0)
+        {
+            return res;
+        }
+
+        /*
          * Making sure that the server is started with the same node ID
          */
-        own_unique_id_ = own_unique_id;
-
         const LazyConstructor<RaftCore::LogEntryInfo> own_log_entry =
             raft_core_.traverseLogFromEndUntil(NodeIDLogPredicate(node_.getNodeID()));
 
         if (own_log_entry.isConstructed())
         {
-            if (own_log_entry->entry.unique_id != own_unique_id_)
+            if (own_log_entry->entry.unique_id != getOwnUniqueID())
             {
                 return -ErrInvalidConfiguration;
             }
-        }
-
-        /*
-         * Misc
-         */
-        res = allocation_request_manager_.init(priority);
-        if (res < 0)
-        {
-            return res;
-        }
-
-        res = node_discoverer_.init(priority);
-        if (res < 0)
-        {
-            return res;
         }
 
         return 0;
@@ -299,7 +277,6 @@ public:
      * These accessors are needed for debugging, visualization and testing.
      */
     const RaftCore& getRaftCore() const { return raft_core_; }
-    const NodeDiscoverer& getNodeDiscoverer() const { return node_discoverer_; }
 };
 
 /**
