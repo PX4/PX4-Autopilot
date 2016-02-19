@@ -1,7 +1,6 @@
 #!nsh
 #
 # @name generic_250
-# tuned for acro mode on Spedix S250AQ (3S, stock ESCs and 2300KV motors, 5x4.5 bullnose props)
 #
 # @type Quadrotor x
 #
@@ -34,6 +33,5 @@ then
 	param set MC_ROLLRATE_MAX 360.0
 	param set MC_PITCHRATE_MAX 360.0
 	param set MC_YAWRATE_MAX 200.0
-	# att_estimator_q gyro bias estimates cause problems with acro mode
 	param set ATT_BIAS_MAX 0.0
 fi
