@@ -268,6 +268,7 @@ public:
         msg.node_id = allocated_node_id.get();
 
         trace(TraceAllocationResponse, msg.node_id);
+        last_activity_timestamp_ = allocation_pub_.getNode().getMonotonicTime();
 
         return allocation_pub_.broadcast(msg);
     }
