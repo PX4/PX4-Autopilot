@@ -67,7 +67,8 @@ public:
      */
     bool guessIfAllDynamicNodesAreAllocated(
         const MonotonicDuration& allocation_activity_timeout =
-            MonotonicDuration::fromMSec(protocol::NodeStatus::OFFLINE_TIMEOUT_MS)) const
+            MonotonicDuration::fromMSec(Allocation::MAX_REQUEST_PERIOD_MS * 2),
+        const MonotonicDuration& min_uptime = MonotonicDuration::fromMSec(6000)) const
     {
         const MonotonicTime ts = node_.getMonotonicTime();
 
@@ -75,7 +76,7 @@ public:
          * If uptime is not large enough, the allocator may be unaware about some nodes yet.
          */
         const MonotonicDuration uptime = ts - started_at_;
-        if (uptime < allocation_activity_timeout)
+        if (uptime < max(allocation_activity_timeout, min_uptime))
         {
             return false;
         }
