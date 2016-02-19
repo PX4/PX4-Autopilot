@@ -452,6 +452,7 @@ private:
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
 
+	float		get_demanded_airspeed();
 	float		calculate_target_airspeed(float airspeed_demand);
 	void		calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed_2d,
 			const struct position_setpoint_triplet_s &pos_sp_triplet);
@@ -898,6 +899,25 @@ FixedwingPositionControl::task_main_trampoline(int argc, char *argv[])
 	l1_control::g_control->task_main();
 	delete l1_control::g_control;
 	l1_control::g_control = nullptr;
+}
+
+float
+FixedwingPositionControl::get_demanded_airspeed()
+{
+	float altctrl_airspeed = 0;
+	// neutral throttle corresponds to trim airspeed
+	if (_manual.z < 0.5f) {
+		// lower half of throttle is min to trim airspeed
+		altctrl_airspeed = _parameters.airspeed_min +
+							(_parameters.airspeed_trim - _parameters.airspeed_min) *
+							_manual.z * 2;
+	} else {
+		// upper half of throttle is trim to max airspeed
+		altctrl_airspeed = _parameters.airspeed_trim +
+							(_parameters.airspeed_max - _parameters.airspeed_trim) *
+							(_manual.z * 2 - 1);
+	}
+	return altctrl_airspeed;
 }
 
 float
@@ -1769,10 +1789,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
 
-		/* Get demanded airspeed */
-		float altctrl_airspeed = _parameters.airspeed_min +
-					 (_parameters.airspeed_max - _parameters.airspeed_min) *
-					 _manual.z;
+		float altctrl_airspeed = get_demanded_airspeed();
 
 		/* update desired altitude based on user pitch stick input */
 		bool climbout_requested = update_desired_altitude(dt);
@@ -1888,9 +1905,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
 
 		/* Get demanded airspeed */
-		float altctrl_airspeed = _parameters.airspeed_min +
-					 (_parameters.airspeed_max - _parameters.airspeed_min) *
-					 _manual.z;
+		float altctrl_airspeed = get_demanded_airspeed();
 
 		/* update desired altitude based on user pitch stick input */
 		bool climbout_requested = update_desired_altitude(dt);
