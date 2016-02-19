@@ -1228,7 +1228,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 
 		/* push data into validator */
 		_airspeed_validator.put(_airspeed.timestamp, _diff_pres.differential_pressure_raw_pa, _diff_pres.error_count, 100);
-		
+
 #ifdef __PX4_POSIX
 		_airspeed.confidence = 1.0f;
 #else
