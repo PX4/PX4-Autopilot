@@ -607,25 +607,29 @@ void Ekf::fuseHeading()
 		Kfusion[23] = t39 * (P[23][1] * t40 + P[23][2] * t41);
 	}
 
-	// rotate body field magnetic field measurement into earth frame and compare horizontal vector with published declination to get yaw measurement
-	// TODO - enable use of an off-board yaw measurement
-	matrix::Dcm<float> R_to_earth(_state.quat_nominal);
-	matrix::Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
-	float measured_yaw = atan2f(mag_earth_pred(1), mag_earth_pred(0)) - _mag_declination;
+	// TODO - enable use of an off-board heading measurement
 
-	// wrap the yaw to the interval between +-pi
-	measured_yaw = matrix::wrap_pi(measured_yaw);
+	// rotate the magnetometer measurement into earth frame using an assumed zero yaw angle
+	matrix::Euler<float> euler(_state.quat_nominal);
+	float predicted_hdg = euler(2); // we will need the predicted heading to calculate the innovation
+	euler(2) = 0.0f;
+	matrix::Dcm<float> R_to_earth(euler);
+	matrix::Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+
+	// Use the difference between the horizontal projection and declination to give the measured heading
+	float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
+
+	// wrap the heading to the interval between +-pi
+	measured_hdg = matrix::wrap_pi(measured_hdg);
 
 	// calculate the innovation
-	matrix::Euler<float> euler(_state.quat_nominal);
-	float innovation = euler(2) - measured_yaw;
+	_heading_innov = predicted_hdg - measured_hdg;
 
 	// wrap the innovation to the interval between +-pi
-	innovation = matrix::wrap_pi(innovation);
-	_heading_innov = innovation;
+	_heading_innov = matrix::wrap_pi(_heading_innov);
 
 	// innovation test ratio
-	_yaw_test_ratio = sq(innovation) / (sq(math::max(_params.heading_innov_gate, 1.0f)) * _heading_innov_var);
+	_yaw_test_ratio = sq(_heading_innov) / (sq(math::max(_params.heading_innov_gate, 1.0f)) * _heading_innov_var);
 
 	// set the magnetometer unhealthy if the test fails
 	if (_yaw_test_ratio > 1.0f) {
@@ -640,7 +644,7 @@ void Ekf::fuseHeading()
 		} else {
 			// constrain the innovation to the maximum set by the gate
 			float gate_limit = sqrtf((sq(math::max(_params.heading_innov_gate, 1.0f)) * _heading_innov_var));
-			innovation = math::constrain(innovation, -gate_limit, gate_limit);
+			_heading_innov = math::constrain(_heading_innov, -gate_limit, gate_limit);
 		}
 
 	} else {
@@ -649,7 +653,7 @@ void Ekf::fuseHeading()
 
 	// zero the attitude error states and use the kalman gain vector and innovation to update the states
 	_state.ang_error.setZero();
-	fuse(Kfusion, innovation);
+	fuse(Kfusion, _heading_innov);
 
 	// correct the nominal quaternion
 	Quaternion dq;
