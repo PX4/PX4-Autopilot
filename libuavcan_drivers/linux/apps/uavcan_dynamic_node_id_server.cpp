@@ -256,7 +256,7 @@ void redraw(const uavcan_linux::NodePtr& node,
     /*
      * Constants that are permanent for the designed UI layout
      */
-    constexpr unsigned NumRelevantEvents = 16;
+    constexpr unsigned NumRelevantEvents = 17;
     constexpr unsigned NumRowsWithoutEvents = 3;
 
     /*
@@ -389,6 +389,11 @@ void redraw(const uavcan_linux::NodePtr& node,
     render_top_int("Node failures",
                    node->getInternalFailureCount(),
                    colorize_if(node->getInternalFailureCount() != 0, CLIColor::Magenta));
+
+    const bool all_allocated = server.guessIfAllDynamicNodesAreAllocated();
+    render_top_str("All allocated",
+                   all_allocated ? "Yes": "No",
+                   colorize_if(!all_allocated, CLIColor::Magenta));
 
     // Empty line before the next block
     std::printf("                                     ");
