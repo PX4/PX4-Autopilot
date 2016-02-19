@@ -1121,6 +1121,24 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		}
 		break;
 
+	case UAVCAN_IOCG_NODEID_INPROGRESS: {
+		UavcanServers   *_servers = UavcanServers::instance();
+
+		if (_servers == nullptr) {
+			// status unavailable
+			ret = -EINVAL;
+			break;
+		} else if (_servers->guessIfAllDynamicNodesAreAllocated()) {
+			// node discovery complete
+			ret = -ETIME;
+			break;
+		} else {
+			// node discovery in progress
+			ret = OK;
+			break;
+		}
+	}
+
 	default:
 		ret = -ENOTTY;
 		break;
