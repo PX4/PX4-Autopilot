@@ -183,8 +183,11 @@ private:
 	// ekf sequential fusion of magnetometer measurements
 	void fuseMag();
 
-	// fuse magnetometer heading measurement
+	// fuse heading measurement (currently uses estimate from magnetometer)
 	void fuseHeading();
+
+	// fuse projecton of magnetometer onto horizontal plane
+	void fuseMag2D();
 
 	// fuse magnetometer declination measurement
 	void fuseDeclination();

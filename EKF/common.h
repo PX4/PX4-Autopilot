@@ -163,8 +163,9 @@ struct parameters {
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic
-#define MAG_FUSE_TYPE_HEADING   1   // Magnetic heading fusion will alays be used. This is less accurate, but less affected by earth field distortions
+#define MAG_FUSE_TYPE_HEADING   1   // Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
 #define MAG_FUSE_TYPE_3D        2   // Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
+#define MAG_FUSE_TYPE_2D        3   // A 2D fusion that uses the horizontal projection of the magnetic fields measurement will alays be used. This is less accurate, but less affected by earth field distortions.
 
 struct stateSample {
 	Vector3f    ang_error;	// attitude axis angle error (error state formulation)
@@ -215,12 +216,13 @@ union filter_control_status_u {
 		uint8_t yaw_align   : 1; // 1 - true if the filter yaw alignment is complete
 		uint8_t gps         : 1; // 2 - true if GPS measurements are being fused
 		uint8_t opt_flow    : 1; // 3 - true if optical flow measurements are being fused
-		uint8_t mag_hdg     : 1; // 4 - true if a simple magnetic heading is being fused
-		uint8_t mag_3D      : 1; // 5 - true if 3-axis magnetometer measurement are being fused
-		uint8_t mag_dec     : 1; // 6 - true if synthetic magnetic declination measurements are being fused
-		uint8_t in_air      : 1; // 7 - true when the vehicle is airborne
-		uint8_t armed       : 1; // 8 - true when the vehicle motors are armed
-		uint8_t wind        : 1; // 9 - true when wind velocity is being estimated
+		uint8_t mag_hdg     : 1; // 4 - true if a simple magnetic yaw heading is being fused
+		uint8_t mag_2D      : 1; // 5 - true if the horizontal projection of magnetometer data is being fused
+		uint8_t mag_3D      : 1; // 6 - true if 3-axis magnetometer measurement are being fused
+		uint8_t mag_dec     : 1; // 7 - true if synthetic magnetic declination measurements are being fused
+		uint8_t in_air      : 1; // 8 - true when the vehicle is airborne
+		uint8_t armed       : 1; // 9 - true when the vehicle motors are armed
+		uint8_t wind        : 1; // 10 - true when wind velocity is being estimated
 	} flags;
 	uint16_t value;
 };
