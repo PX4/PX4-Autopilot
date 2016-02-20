@@ -88,6 +88,8 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
+#include "mc_sequencer.h"
+
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
@@ -197,6 +199,9 @@ private:
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
+		param_t acro_rollRate_max;
+		param_t acro_pitchRate_max;
+		param_t acro_yawRate_max;
 		param_t alt_mode;
 		param_t opt_recover;
 
@@ -221,6 +226,9 @@ private:
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
+		float acro_rollRate_max;
+		float acro_pitchRate_max;
+		float acro_yawRate_max;
 		float vel_max_up;
 		float vel_max_down;
 		uint32_t alt_mode;
@@ -476,7 +484,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
-	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
+	_params_handles.acro_rollRate_max	= 	param_find("MC_ACRO_R_MAX");
+	_params_handles.acro_pitchRate_max	= 	param_find("MC_ACRO_P_MAX");
+	_params_handles.acro_yawRate_max	= 	param_find("MC_ACRO_Y_MAX");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
 	/* fetch initial parameter values */
@@ -608,10 +618,16 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
 		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
 		param_get(_params_handles.global_yaw_max, &_params.global_yaw_max);
+		param_get(_params_handles.acro_rollRate_max, &_params.acro_rollRate_max);
+		param_get(_params_handles.acro_pitchRate_max, &_params.acro_pitchRate_max);
+		param_get(_params_handles.acro_yawRate_max, &_params.acro_yawRate_max);
 		_params.man_roll_max = math::radians(_params.man_roll_max);
 		_params.man_pitch_max = math::radians(_params.man_pitch_max);
 		_params.man_yaw_max = math::radians(_params.man_yaw_max);
 		_params.global_yaw_max = math::radians(_params.global_yaw_max);
+		_params.acro_rollRate_max = math::radians(_params.acro_rollRate_max);
+		_params.acro_pitchRate_max = math::radians(_params.acro_pitchRate_max);
+		_params.acro_yawRate_max = math::radians(_params.acro_yawRate_max);
 
 		param_get(_params_handles.mc_att_yaw_p, &v);
 		_params.mc_att_yaw_p = v;
@@ -2008,59 +2024,139 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* control throttle directly if no climb rate controller is active */
-			if (!_control_mode.flag_control_climb_rate_enabled) {
-				float thr_val = throttle_curve(_manual.z, _params.thr_hover);
-				_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());
+			/* control roll and pitch directly if no aiding velocity controller is active */
+			if (!_control_mode.flag_control_velocity_enabled) {
 
-				/* enforce minimum throttle if not landed */
-				if (!_vehicle_land_detected.landed) {
-					_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
+				/* control throttle directly if no climb rate controller is active */
+				if (!_control_mode.flag_control_climb_rate_enabled) {
+					float thr_val = throttle_curve(_manual.z, _params.thr_hover);
+					_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());
+
+					/* enforce minimum throttle if not landed */
+					if (!_vehicle_land_detected.landed) {
+						_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
+					}
 				}
-			}
 
-			/* control roll and pitch directly if no aiding velocity controller is active
-			 * and only if optimal recovery is not used */
-			if (!_control_mode.flag_control_velocity_enabled
-			    && _params.opt_recover <= 0) {
+				// attitude setpoint rotation matrix
 				math::Matrix<3, 3> R_sp;
-				_att_sp.roll_body = _manual.y * _params.man_roll_max;
-				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 
-				// construct attitude setpoint rotation matrix. modify the setpoints for roll
-				// and pitch such that they reflect the user's intention even if a yaw error
-				// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
-				// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
-				// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
-				// heading of the vehicle.
+				/* If ACRO attitude control mode */
+				if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO) {
 
-				// calculate our current yaw error
-				float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
+					float rollRate = _manual.y * _params.acro_rollRate_max;
+					float pitchRate = -_manual.x * _params.acro_pitchRate_max;
+					float yawRate = _manual.r * _params.acro_yawRate_max;
 
-				// compute the vector obtained by rotating a z unit vector by the rotation
-				// given by the roll and pitch commands of the user
-				math::Vector<3> zB = {0, 0, 1};
-				math::Matrix<3, 3> R_sp_roll_pitch;
-				R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
-				math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
+					if (!_att_sp.R_valid) {
+						/* initialize to current orientation */
+						math::Quaternion q_sp(_ctrl_state.q);
+						R_sp = q_sp.to_dcm();
+						memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+						_att_sp.R_valid = true;
+
+					} else {
+						/* copy current setpoint */
+						R_sp.set(_att_sp.R_body);
+					}
+
+					/* the control sequencer overrides manual inputs
+					 * by setting values for roll/pitch/yawRate and modifying R_sp as needed
+					 */
+					prog_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
+
+					/* limit setpoint lead angle */
+					float tilt_error = 0.0f;
+					float yaw_error = 0.0f;
+//					math::Quaternion q_cur(_ctrl_state.q);
+//					math::Matrix<3, 3> R_cur = q_cur.to_dcm();
+//					math::Vector<3> zb(R_cur.data[2]);
+//					math::Vector<3> zsp(R_sp.data[2]);
+//					tilt_error = acosf(zb * zsp);
+//					math::Vector<3> xb(R_cur.data[0]);
+//					math::Vector<3> xsp(R_sp.data[0]);
+//					yaw_error = acosf(xb * xsp);
+
+					/* update attitude setpoint rotation matrix */
+					/* interpret roll/pitch/yaw inputs as rate demands */
+					float dRoll = 0.0f;
+					float dPitch = 0.0f;
+					float dYaw = 0.0f;
+
+					if (tilt_error < M_PI_4_F) {
+						dRoll = rollRate * dt;
+						dPitch = pitchRate * dt;
+					}
+
+					if (yaw_error < M_PI_4_F) {
+						dYaw = yawRate * dt;
+					}
+
+					math::Matrix<3, 3> R_xy;
+					R_xy.from_euler(dRoll, dPitch, 0.0f);
+
+					math::Matrix<3, 3> R_z;
+					R_z.from_euler(0.0f, 0.0f, dYaw);
+
+					R_sp = R_z * R_sp;
+
+					R_sp = R_sp * R_xy;
+
+					/* renormalize rows */
+					for (int row = 0; row < 3; row++) {
+						math::Vector<3> rvec(R_sp.data[row]);
+						R_sp.set_row(row, rvec.normalized());
+					}
+
+					// this block is not necessary for attitude control
+					{
+						memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+						math::Vector<3> eulerAngles = R_sp.to_euler();
+						_att_sp.roll_body = eulerAngles.data[0];
+						_att_sp.pitch_body = eulerAngles.data[1];
+						_att_sp.yaw_body = eulerAngles.data[2];
+					}
+
+				} else if (_params.opt_recover <= 0) {
+					/* not in ACRO mode and optimal recovery is not in use */
+					_att_sp.roll_body = _manual.y * _params.man_roll_max;
+					_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+
+					// construct attitude setpoint rotation matrix. modify the setpoints for roll
+					// and pitch such that they reflect the user's intention even if a yaw error
+					// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
+					// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
+					// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
+					// heading of the vehicle.
+
+					// calculate our current yaw error
+					float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
+
+					// compute the vector obtained by rotating a z unit vector by the rotation
+					// given by the roll and pitch commands of the user
+					math::Vector<3> zB = {0, 0, 1};
+					math::Matrix<3, 3> R_sp_roll_pitch;
+					R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
+					math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
 
 
-				// transform the vector into a new frame which is rotated around the z axis
-				// by the current yaw error. this vector defines the desired tilt when we look
-				// into the direction of the desired heading
-				math::Matrix<3, 3> R_yaw_correction;
-				R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
-				z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
+					// transform the vector into a new frame which is rotated around the z axis
+					// by the current yaw error. this vector defines the desired tilt when we look
+					// into the direction of the desired heading
+					math::Matrix<3, 3> R_yaw_correction;
+					R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
+					z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
 
-				// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
-				// to calculate the new desired roll and pitch angles
-				// R_tilt can be written as a function of the new desired roll and pitch
-				// angles. we get three equations and have to solve for 2 unknowns
-				float pitch_new = asinf(z_roll_pitch_sp(0));
-				float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
+					// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
+					// to calculate the new desired roll and pitch angles
+					// R_tilt can be written as a function of the new desired roll and pitch
+					// angles. we get three equations and have to solve for 2 unknowns
+					float pitch_new = asinf(z_roll_pitch_sp(0));
+					float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
 
-				R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
-				memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+					R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
+					memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+				}
 
 				/* copy quaternion setpoint to attitude setpoint topic */
 				math::Quaternion q_sp;

@@ -303,6 +303,7 @@ private:
 		int rc_map_posctl_sw;
 		int rc_map_loiter_sw;
 		int rc_map_acro_sw;
+		int rc_map_seq_sw;
 		int rc_map_offboard_sw;
 		int rc_map_kill_sw;
 		int rc_map_trans_sw;
@@ -327,6 +328,7 @@ private:
 		float rc_return_th;
 		float rc_loiter_th;
 		float rc_acro_th;
+		float rc_seq_th;
 		float rc_offboard_th;
 		float rc_killswitch_th;
 		float rc_trans_th;
@@ -376,6 +378,7 @@ private:
 		param_t rc_map_posctl_sw;
 		param_t rc_map_loiter_sw;
 		param_t rc_map_acro_sw;
+		param_t rc_map_seq_sw;
 		param_t rc_map_offboard_sw;
 		param_t rc_map_kill_sw;
 		param_t rc_map_trans_sw;
@@ -404,6 +407,7 @@ private:
 		param_t rc_return_th;
 		param_t rc_loiter_th;
 		param_t rc_acro_th;
+		param_t rc_seq_th;
 		param_t rc_offboard_th;
 		param_t rc_killswitch_th;
 		param_t rc_trans_th;
@@ -653,6 +657,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");
 	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
 	_parameter_handles.rc_map_acro_sw = param_find("RC_MAP_ACRO_SW");
+	_parameter_handles.rc_map_seq_sw = param_find("RC_MAP_SEQ_SW");
 	_parameter_handles.rc_map_offboard_sw = param_find("RC_MAP_OFFB_SW");
 	_parameter_handles.rc_map_kill_sw = param_find("RC_MAP_KILL_SW");
 	_parameter_handles.rc_map_trans_sw = param_find("RC_MAP_TRANS_SW");
@@ -682,6 +687,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_return_th = param_find("RC_RETURN_TH");
 	_parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
 	_parameter_handles.rc_acro_th = param_find("RC_ACRO_TH");
+	_parameter_handles.rc_seq_th = param_find("RC_SEQ_TH");
 	_parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
 	_parameter_handles.rc_killswitch_th = param_find("RC_KILLSWITCH_TH");
 	_parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
@@ -850,6 +856,10 @@ Sensors::parameters_update()
 		PX4_WARN("%s", paramerr);
 	}
 
+	if (param_get(_parameter_handles.rc_map_seq_sw, &(_parameters.rc_map_seq_sw)) != OK) {
+		PX4_WARN("%s", paramerr);
+	}
+
 	if (param_get(_parameter_handles.rc_map_offboard_sw, &(_parameters.rc_map_offboard_sw)) != OK) {
 		PX4_WARN("%s", paramerr);
 	}
@@ -900,6 +910,8 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_acro_th, &(_parameters.rc_acro_th));
 	_parameters.rc_acro_inv = (_parameters.rc_acro_th < 0);
 	_parameters.rc_acro_th = fabs(_parameters.rc_acro_th);
+	param_get(_parameter_handles.rc_seq_th, &(_parameters.rc_seq_th));
+	_parameters.rc_seq_th = fabs(_parameters.rc_seq_th);
 	param_get(_parameter_handles.rc_offboard_th, &(_parameters.rc_offboard_th));
 	_parameters.rc_offboard_inv = (_parameters.rc_offboard_th < 0);
 	_parameters.rc_offboard_th = fabs(_parameters.rc_offboard_th);
@@ -922,6 +934,7 @@ Sensors::parameters_update()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL] = _parameters.rc_map_posctl_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_LOITER] = _parameters.rc_map_loiter_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ACRO] = _parameters.rc_map_acro_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_SEQ] = _parameters.rc_map_seq_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH] = _parameters.rc_map_kill_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION] = _parameters.rc_map_trans_sw - 1;
@@ -2125,6 +2138,7 @@ Sensors::rc_poll()
 					       _parameters.rc_loiter_inv);
 			manual.acro_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th,
 					     _parameters.rc_acro_inv);
+			manual.seq_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_SEQ, _parameters.rc_seq_th, false);
 			manual.offboard_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD,
 						 _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
 			manual.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
