@@ -1284,7 +1284,7 @@ int uavcan_main(int argc, char *argv[])
 					::exit(rv);
 				}
 
-				::exit(0);
+				return 0;
 			}
 
 			// Already running, no error
