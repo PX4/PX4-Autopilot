@@ -435,6 +435,39 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 }
 
 void
+MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target)
+{
+    if (_navigator->get_vstatus()->condition_landed) {
+        /* landed, don't takeoff, but switch to IDLE mode */
+        item->nav_cmd = NAV_CMD_IDLE;
+
+    } else {
+        item->nav_cmd = NAV_CMD_FOLLOW_TARGET;
+
+        /* use current target position */
+
+        item->lat = target.lat;
+        item->lon = target.lon;
+        item->altitude = target.alt;
+
+        if (min_clearance > 0.0f && item->altitude < _navigator->get_home_position()->alt + min_clearance) {
+            item->altitude = _navigator->get_home_position()->alt + min_clearance;
+        }
+    }
+
+    item->altitude_is_relative = false;
+    item->yaw = NAN;
+    item->loiter_radius = _navigator->get_loiter_radius();
+    item->loiter_direction = 1;
+    item->acceptance_radius = _navigator->get_acceptance_radius();
+    item->time_inside = 0.0f;
+    item->pitch_min = 0.0f;
+    item->autocontinue = false;
+    item->origin = ORIGIN_ONBOARD;
+}
+
+
+void
 MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance, float min_pitch)
 {
 	item->nav_cmd = NAV_CMD_TAKEOFF;
