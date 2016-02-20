@@ -531,7 +531,7 @@ void Ekf::fuseHeading()
 	H_YAW[1] = t14 * (t15 * (q0 * q1 * 2.0f - q2 * q3 * 2.0f) + t9 * t10 * (q0 * q2 * 2.0f + q1 * q3 * 2.0f));
 	H_YAW[2] = t14 * (t15 * (t2 - t3 + t4 - t5) + t9 * t10 * (t7 - t8));	// calculate observation jacobian
 
-	// calculate Kalman gains
+	// calculate intermediate expressions for Kalman gains
 	float t16 = q0 * q1 * 2.0f;
 	float t29 = q2 * q3 * 2.0f;
 	float t17 = t16 - t29;
@@ -557,13 +557,11 @@ void Ekf::fuseHeading()
 	float t36 = t30 + t35;
 	float t37 = t40 * t36;
 	float t38 = R_YAW + t34 + t37; // Innovation variance
-	float t39;
+	_heading_innov_var = t38;
 
 	if (t38 >= R_YAW) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
 		_fault_status.bad_mag_hdg = false;
-		t39 = 1.0f / t38;
-		_heading_innov_var = t38;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
@@ -574,6 +572,9 @@ void Ekf::fuseHeading()
 		return;
 	}
 
+	float t39 = 1.0f / t38;
+
+	// calculate Kalman gains
 	float Kfusion[24] = {};
 	Kfusion[0] = t39 * (P[0][1] * t40 + P[0][2] * t41);
 	Kfusion[1] = t39 * (t30 + P[1][2] * t41);
@@ -799,8 +800,7 @@ void Ekf::fuseDeclination()
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < _k_num_states; column++) {
-			float tmp = KH[row][0] * P[0][column];
-			tmp += KH[row][16] * P[16][column];
+			float tmp = KH[row][16] * P[16][column];
 			tmp += KH[row][17] * P[17][column];
 			KHP[row][column] = tmp;
 		}
@@ -813,6 +813,197 @@ void Ekf::fuseDeclination()
 	}
 
 	// force the covariance matrix to be symmetrical and don't allow the variances to be negative.
+	makeSymmetrical();
+	limitCov();
+}
+
+void Ekf::fuseMag2D()
+{
+	// assign intermediate state variables
+	float q0 = _state.quat_nominal(0);
+	float q1 = _state.quat_nominal(1);
+	float q2 = _state.quat_nominal(2);
+	float q3 = _state.quat_nominal(3);
+
+	float magX = _mag_sample_delayed.mag(0);
+	float magY = _mag_sample_delayed.mag(1);
+	float magZ = _mag_sample_delayed.mag(2);
+
+	float R_DECL = fmaxf(_params.mag_heading_noise, 1.0e-2f);
+	R_DECL = R_DECL * R_DECL;
+
+	// calculate intermediate variables for observation jacobian
+	float t2 = q0 * q0;
+	float t3 = q1 * q1;
+	float t4 = q2 * q2;
+	float t5 = q3 * q3;
+	float t6 = q0 * q3 * 2.0f;
+	float t8 = t2 - t3 + t4 - t5;
+	float t9 = q0 * q1 * 2.0f;
+	float t10 = q2 * q3 * 2.0f;
+	float t11 = t9 - t10;
+	float t14 = q1 * q2 * 2.0f;
+	float t21 = magY * t8;
+	float t22 = t6 + t14;
+	float t23 = magX * t22;
+	float t24 = magZ * t11;
+	float t7 = t21 + t23 - t24;
+	float t12 = t2 + t3 - t4 - t5;
+	float t13 = magX * t12;
+	float t15 = q0 * q2 * 2.0f;
+	float t16 = q1 * q3 * 2.0f;
+	float t17 = t15 + t16;
+	float t18 = magZ * t17;
+	float t19 = t6 - t14;
+	float t25 = magY * t19;
+	float t20 = t13 + t18 - t25;
+
+	if (fabsf(t20) < 1e-6f) {
+		return;
+	}
+
+	float t26 = 1.0f / (t20 * t20);
+	float t27 = t7 * t7;
+	float t28 = t26 * t27;
+	float t29 = t28 + 1.0f;
+
+	if (fabsf(t29) < 1e-12f) {
+		return;
+	}
+
+	float t30 = 1.0f / t29;
+
+	if (fabsf(t20) < 1e-12f) {
+		return;
+	}
+
+	float t31 = 1.0f / t20;
+
+	// calculate observation jacobian
+	float H_DECL[3] = {};
+	H_DECL[0] = -t30 * (t31 * (magZ * t8 + magY * t11) + t7 * t26 * (magY * t17 + magZ * t19));
+	H_DECL[1] = t30 * (t31 * (magX * t11 + magZ * t22) - t7 * t26 * (magZ * t12 - magX * t17));
+	H_DECL[2] = t30 * (t31 * (magX * t8 - magY * t22) + t7 * t26 * (magY * t12 + magX * t19));
+
+	// rotate the magnetometer measurement into earth frame
+	matrix::Dcm<float> R_to_earth(_state.quat_nominal);
+	matrix::Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+
+	// check if there is enough magnetic field length to use and exit if too small
+	float magLength2 = sq(mag_earth_pred(0) + mag_earth_pred(1));
+
+	if (magLength2 < sq(_params.mag_noise)) {
+		return;
+	}
+
+	// Adjust the measurement variance upwards if thehorizontal strength to magnetometer noise ratio make the value unrealistic
+	R_DECL = fmaxf(R_DECL, sq(_params.mag_noise) / magLength2);
+
+	// Calculate the innovation, using the declination angle of the projection onto the horizontal as the measurement
+	_heading_innov = atan2f(mag_earth_pred(1), mag_earth_pred(0)) - _mag_declination;
+
+	// wrap the innovation to the interval between +-pi
+	_heading_innov = matrix::wrap_pi(_heading_innov);
+
+	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 3 elements in H are non zero
+	float PH[3];
+	_heading_innov_var = R_DECL;
+
+	for (unsigned row = 0; row <= 2; row++) {
+		PH[row] = 0.0f;
+
+		for (unsigned col = 0; col <= 2; col++) {
+			PH[row] += P[row][col] * H_DECL[col];
+		}
+
+		_heading_innov_var += H_DECL[row] * PH[row];
+	}
+
+	float varInnovInv;
+
+	if (_heading_innov_var >= R_DECL) {
+		// the innovation variance contribution from the state covariances is not negative, no fault
+		_fault_status.bad_mag_hdg = false;
+
+	} else {
+		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
+		_fault_status.bad_mag_hdg = true;
+
+		// we reinitialise the covariance matrix and abort this fusion step
+		initialiseCovariance();
+		return;
+	}
+
+	// innovation test ratio
+	_yaw_test_ratio = sq(_heading_innov) / (sq(math::max(_params.heading_innov_gate, 1.0f)) * _heading_innov_var);
+
+	// set the magnetometer unhealthy if the test fails
+	if (_yaw_test_ratio > 1.0f) {
+		_mag_healthy = false;
+
+		// if we are in air we don't want to fuse the measurement
+		// we allow to use it when on the ground because the large innovation could be caused
+		// by interference or a large initial gyro bias
+		if (_control_status.flags.in_air) {
+			printf("return 5\n");
+			return;
+
+		} else {
+			// constrain the innovation to the maximum set by the gate
+			float gate_limit = sqrtf((sq(math::max(_params.heading_innov_gate, 1.0f)) * _heading_innov_var));
+			_heading_innov = math::constrain(_heading_innov, -gate_limit, gate_limit);
+		}
+
+	} else {
+		_mag_healthy = true;
+	}
+
+	varInnovInv = 1.0f / _heading_innov_var;
+
+	// calculate the Kalman gains
+	float Kfusion[24] = {};
+
+	for (unsigned row = 0; row < 16; row++) {
+		Kfusion[row] = 0.0f;
+
+		for (unsigned col = 0; col <= 2; col++) {
+			Kfusion[row] += P[row][col] * H_DECL[col];
+		}
+
+		Kfusion[row] *= varInnovInv;
+	}
+
+	// by definition our error state is zero at the time of fusion
+	_state.ang_error.setZero();
+
+	// correct the states
+	fuse(Kfusion, _heading_innov);
+
+	// correct the quaternon using the attitude error estimate
+	Quaternion q_correction;
+	q_correction.from_axis_angle(_state.ang_error);
+	_state.quat_nominal = q_correction * _state.quat_nominal;
+	_state.quat_nominal.normalize();
+	_state.ang_error.setZero();
+
+	// correct the covariance using P = P - K*H*P taking advantage of the fact that only the first 3 elements in H are non zero
+	// and we only need the first 16 states
+	float HP[16];
+
+	for (uint8_t col = 0; col < 16; col++) {
+		HP[col] = 0.0f;
+
+		for (uint8_t row = 0; row <= 2; row++) {
+			HP[col] += H_DECL[row] * P[row][col];
+		}
+	}
+
+	for (uint8_t row = 0; row < 16; row++) {
+		for (uint8_t col = 0; col < 16; col++) {
+			P[row][col] -= Kfusion[row] * HP[col];
+		}
+	}
+
 	makeSymmetrical();
 	limitCov();
 }

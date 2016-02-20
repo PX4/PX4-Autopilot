@@ -150,6 +150,9 @@ bool Ekf::update()
 				fuseDeclination();
 			}
 
+		} else if (_control_status.flags.mag_2D && _control_status.flags.yaw_align) {
+			fuseMag2D();
+
 		} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {
 			fuseHeading();
 

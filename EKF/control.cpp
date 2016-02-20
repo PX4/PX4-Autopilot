@@ -103,36 +103,55 @@ void Ekf::controlFusionModes()
 	// or the more accurate 3-axis fusion
 	if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO) {
 		if (!_control_status.flags.armed) {
-			// always use simple mag fusion for initial startup
-			_control_status.flags.mag_hdg = true;
+			// always use 2D mag fusion for initial startup
+			_control_status.flags.mag_hdg = false;
+			_control_status.flags.mag_2D = true;
 			_control_status.flags.mag_3D = false;
 
 		} else {
 			if (_control_status.flags.in_air) {
-				// always use 3-axis mag fusion when airborne
+				// always use 3D mag fusion when airborne
 				_control_status.flags.mag_hdg = false;
+				_control_status.flags.mag_2D = false;
 				_control_status.flags.mag_3D = true;
 
 			} else {
-				// always use simple heading fusion when on the ground
-				_control_status.flags.mag_hdg = true;
+				// always use 2D mag fusion when on the ground
+				_control_status.flags.mag_hdg = false;
+				_control_status.flags.mag_2D = true;
 				_control_status.flags.mag_3D = false;
 			}
 		}
 
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
-		// always use simple heading fusion
-		_control_status.flags.mag_hdg = true;
+		// always use yaw fusion unless tilt is over 45 deg, otherwise use 2D fusion
+		if (_R_prev(2, 2) > 0.7071f) {
+			_control_status.flags.mag_hdg = true;
+			_control_status.flags.mag_2D = false;
+
+		} else {
+			_control_status.flags.mag_hdg = false;
+			_control_status.flags.mag_2D = true;
+		}
+
+		_control_status.flags.mag_3D = false;
+
+	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_2D) {
+		// always use 2D mag fusion
+		_control_status.flags.mag_hdg = false;
+		_control_status.flags.mag_2D = true;
 		_control_status.flags.mag_3D = false;
 
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
 		// always use 3-axis mag fusion
 		_control_status.flags.mag_hdg = false;
+		_control_status.flags.mag_2D = false;
 		_control_status.flags.mag_3D = true;
 
 	} else {
 		// do no magnetometer fusion at all
 		_control_status.flags.mag_hdg = false;
+		_control_status.flags.mag_2D = false;
 		_control_status.flags.mag_3D = false;
 	}
 
