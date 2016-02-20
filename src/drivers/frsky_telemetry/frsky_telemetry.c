@@ -57,6 +57,7 @@
 #include <systemlib/systemlib.h>
 #include <termios.h>
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/sensor_combined.h>
 
 #include "sPort_data.h"
 #include "frsky_data.h"
@@ -213,6 +214,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		warnx("sending FrSky SmartPort telemetry");
 
+		int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+
 		/* send S.port telemetry */
 		while (!thread_should_exit) {
 
@@ -239,6 +242,23 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			newBytes = read(uart, &sbuf[1], 1);
 
+			/* get a local copy of the current sensor values
+			 * in order to apply a lowpass filter to baro pressure.
+			 */
+			static float last_baro_alt = 0;
+			struct sensor_combined_s raw;
+			memset(&raw, 0, sizeof(raw));
+			orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+
+			static float filtered_alt = NAN;
+
+			if (isnan(filtered_alt)) {
+				filtered_alt = raw.baro_alt_meter[0];
+
+			} else {
+				filtered_alt = .05f * raw.baro_alt_meter[0] + (1.0f - .05f) * filtered_alt;
+			}
+
 			// allow a minimum of 500usec before reply
 			usleep(500);
 
@@ -247,6 +267,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastALT = 0;
 			static hrt_abstime lastSPD = 0;
 			static hrt_abstime lastFUEL = 0;
+			static hrt_abstime lastVSPD = 0;
 
 			switch (sbuf[1]) {
 
@@ -307,6 +328,23 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 				}
 
 				break;
+
+			case SMARTPORT_POLL_6:
+
+				/* report vertical speed at 10Hz */
+				if (now - lastVSPD > 100 * 1000) {
+					/* estimate vertical speed using first difference and delta t */
+					uint64_t dt = now - lastVSPD;
+					float speed  = (filtered_alt - last_baro_alt) / (1e-6f * (float)dt);
+
+					/* save current alt and timestamp */
+					last_baro_alt = filtered_alt;
+					lastVSPD = now;
+
+					sPort_send_VSPD(uart, speed);
+				}
+
+				break;
 			}
 		}
 
@@ -332,23 +370,37 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		frsky_init();
 
 		warnx("sending FrSky D type telemetry");
+		struct adc_linkquality host_frame;
+		uint8_t dbuf[45];
 
 		/* send D8 mode telemetry */
 		while (!thread_should_exit) {
 
-			/* Sleep 200 ms */
-			usleep(200000);
+			/* Sleep 100 ms */
+			usleep(100000);
+
+			/* parse incoming data */
+			int nbytes = read(uart, &dbuf[0], sizeof(dbuf));
+			bool new_input = frsky_parse_host(&dbuf[0], nbytes, &host_frame);
+
+			/* the RSSI value could be useful */
+			if (false && new_input) {
+				warnx("host frame: ad1:%u, ad2: %u, rssi: %u",
+				      host_frame.ad1, host_frame.ad2, host_frame.linkq);
+			}
 
 			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
-			frsky_send_frame1(uart);
+			if (iteration % 2 == 0) {
+				frsky_send_frame1(uart);
+			}
 
 			/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
-			if (iteration % 5 == 0) {
+			if (iteration % 10 == 0) {
 				frsky_send_frame2(uart);
 			}
 
 			/* Send frame 3 (every 5000ms): date, time */
-			if (iteration % 25 == 0) {
+			if (iteration % 50 == 0) {
 				frsky_send_frame3(uart);
 
 				iteration = 0;
@@ -391,7 +443,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 		frsky_task = px4_task_spawn_cmd("frsky_telemetry",
 						SCHED_DEFAULT,
 						200,
-						2000,
+						2200,
 						frsky_telemetry_thread_main,
 						(char *const *)argv);
 

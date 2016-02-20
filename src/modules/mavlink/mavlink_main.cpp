@@ -1052,12 +1052,9 @@ Mavlink::init_udp()
 
 	/* set default target address, but not for onboard mode (will be set on first received packet) */
 	memset((char *)&_src_addr, 0, sizeof(_src_addr));
-	if (_mode != MAVLINK_MODE_ONBOARD) {
-		_src_addr.sin_family = AF_INET;
-		inet_aton("127.0.0.1", &_src_addr.sin_addr);
-		_src_addr.sin_port = htons(_remote_port);
-		set_client_source_initialized();
-	}
+	_src_addr.sin_family = AF_INET;
+	inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	_src_addr.sin_port = htons(_remote_port);
 
 	/* default broadcast address */
 	memset((char *)&_bcast_addr, 0, sizeof(_bcast_addr));

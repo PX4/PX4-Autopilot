@@ -146,6 +146,7 @@ static const int MIN_BYTES_TO_WRITE = 512;
 
 static bool _extended_logging = false;
 static bool _gpstime_only = false;
+static int32_t _utc_offset = 0;
 
 #define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd"
 static const char *mountpoint = MOUNTPOINT;
@@ -260,7 +261,7 @@ static int create_log_dir(void);
 /**
  * Get the time struct from the currently preferred time source
  */
-static bool get_log_time_utc_tt(struct tm *tt, bool boot_time);
+static bool get_log_time_tt(struct tm *tt, bool boot_time);
 
 /**
  * Select first free log file name and open it.
@@ -374,7 +375,7 @@ int sdlog2_main(int argc, char *argv[])
 	return 1;
 }
 
-bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
+bool get_log_time_tt(struct tm *tt, bool boot_time) {
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
@@ -392,6 +393,9 @@ bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
 			utc_time_sec -= hrt_absolute_time() / 1e6;
 		}
 
+		/* apply utc offset (min, not hour) */
+		utc_time_sec += _utc_offset*60;
+
 		struct tm *ttp = gmtime_r(&utc_time_sec, tt);
 		return (ttp != NULL);
 	} else {
@@ -406,7 +410,7 @@ int create_log_dir()
 	int mkdir_ret;
 
 	struct tm tt;
-	bool time_ok = get_log_time_utc_tt(&tt, true);
+	bool time_ok = get_log_time_tt(&tt, true);
 
 	if (log_name_timestamp && time_ok) {
 		int n = snprintf(log_dir, sizeof(log_dir), "%s/", log_root);
@@ -446,7 +450,8 @@ int create_log_dir()
 	}
 
 	/* print logging path, important to find log file later */
-	mavlink_and_console_log_info(mavlink_fd, "[log] log dir: %s", log_dir);
+	mavlink_and_console_log_info(mavlink_fd, "[blackbox] %s", log_dir);
+
 	return 0;
 }
 
@@ -457,7 +462,7 @@ int open_log_file()
 	char log_file_path[sizeof(log_file_name) + LOG_BASE_PATH_LEN] = "";
 
 	struct tm tt;
-	bool time_ok = get_log_time_utc_tt(&tt, false);
+	bool time_ok = get_log_time_tt(&tt, false);
 
 	/* start logging if we have a valid time and the time is not in the past */
 	if (log_name_timestamp && time_ok) {
@@ -482,7 +487,7 @@ int open_log_file()
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_and_console_log_critical(mavlink_fd, "[log] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical(mavlink_fd, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -494,10 +499,10 @@ int open_log_file()
 #endif
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[log] failed: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[blackbox] failed: %s", log_file_name);
 
 	} else {
-		mavlink_and_console_log_info(mavlink_fd, "[log] start: %s", log_file_name);
+		mavlink_and_console_log_info(mavlink_fd, "[blackbox] recording: %s", log_file_name);
 	}
 
 	return fd;
@@ -510,7 +515,7 @@ int open_perf_file(const char* str)
 	char log_file_path[sizeof(log_file_name) + LOG_BASE_PATH_LEN] = "";
 
 	struct tm tt;
-	bool time_ok = get_log_time_utc_tt(&tt, false);
+	bool time_ok = get_log_time_tt(&tt, false);
 
 	if (log_name_timestamp && time_ok) {
 		strftime(log_file_name, sizeof(log_file_name), "perf%H_%M_%S.txt", &tt);
@@ -534,7 +539,7 @@ int open_perf_file(const char* str)
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_and_console_log_critical(mavlink_fd, "[log] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical(mavlink_fd, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -546,7 +551,7 @@ int open_perf_file(const char* str)
 #endif
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[log] failed: %s", log_file_name);
+		mavlink_and_console_log_critical(mavlink_fd, "[blackbox] failed: %s", log_file_name);
 
 	}
 
@@ -673,7 +678,7 @@ void sdlog2_start_log()
 
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[log] error creating log dir");
+		mavlink_and_console_log_critical(mavlink_fd, "[blackbox] error creating log dir");
 		return;
 	}
 
@@ -766,7 +771,7 @@ void sdlog2_stop_log()
 	/* free log writer performance counter */
 	perf_free(perf_write);
 
-	mavlink_and_console_log_info(mavlink_fd, "[log] logging stopped");
+	mavlink_and_console_log_info(mavlink_fd, "[blackbox] recording stopped");
 
 	sdlog2_status();
 }
@@ -860,7 +865,7 @@ bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void
 
 	if (*handle < 0) {
 		if (OK == orb_exists(topic, multi_instance)) {
-			*handle = orb_subscribe(topic);
+			*handle = orb_subscribe_multi(topic, multi_instance);
 			/* copy first data */
 			if (*handle >= 0) {
 				orb_copy(topic, *handle, buffer);
@@ -1028,7 +1033,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* any other value means to ignore the parameter, so no else case */
 
 	}
+	
+	param_t log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 
+	if ( log_utc_offset != PARAM_INVALID ) {
+	    int32_t param_utc_offset;
+	    param_get(log_utc_offset, &param_utc_offset);
+	    _utc_offset = param_utc_offset;
+	}
 
 	if (check_free_space() != OK) {
 		warnx("ERR: MicroSD almost full");
@@ -1532,13 +1544,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- ACTUATOR OUTPUTS --- */
-		if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_sub, &buf.act_outputs)) {
+		if (copy_if_updated_multi(ORB_ID(actuator_outputs), 0, &subs.act_outputs_sub, &buf.act_outputs)) {
 			log_msg.msg_type = LOG_OUT0_MSG;
 			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
 			LOGBUFFER_WRITE_AND_COUNT(OUT);
 		}
 
-		if (copy_if_updated(ORB_ID(actuator_outputs), &subs.act_outputs_1_sub, &buf.act_outputs)) {
+		if (copy_if_updated_multi(ORB_ID(actuator_outputs), 1, &subs.act_outputs_1_sub, &buf.act_outputs)) {
 			log_msg.msg_type = LOG_OUT1_MSG;
 			memcpy(log_msg.body.log_OUT.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT.output));
 			LOGBUFFER_WRITE_AND_COUNT(OUT);
@@ -1954,7 +1966,7 @@ void sdlog2_status()
 		float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
 		warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
-		mavlink_log_info(mavlink_fd, "[log] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+		mavlink_log_info(mavlink_fd, "[blackbox] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
 	}
 }
 
@@ -1979,7 +1991,7 @@ int check_free_space()
 	/* use a threshold of 50 MiB */
 	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
-			"[log] no space on MicroSD: %u MiB",
+			"[blackbox] no space on MicroSD: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
 		return PX4_ERROR;
@@ -1987,7 +1999,7 @@ int check_free_space()
 	/* use a threshold of 100 MiB to send a warning */
 	} else if (!space_warning_sent && statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_and_console_log_critical(mavlink_fd,
-			"[log] space on MicroSD low: %u MiB",
+			"[blackbox] space on MicroSD low: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we don't want to flood the user with warnings */
 		space_warning_sent = true;

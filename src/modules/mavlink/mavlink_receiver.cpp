@@ -110,6 +110,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_battery_pub(nullptr),
 	_cmd_pub(nullptr),
 	_flow_pub(nullptr),
+	_hil_distance_sensor_pub(nullptr),
+	_flow_distance_sensor_pub(nullptr),
 	_distance_sensor_pub(nullptr),
 	_offboard_control_mode_pub(nullptr),
 	_actuator_controls_pub(nullptr),
@@ -277,6 +279,27 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	_mavlink->set_has_received_messages(true);
 }
 
+bool
+MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_component)
+{
+	/* evaluate if this system should accept this command */
+	bool target_ok = false;
+	switch (command) {
+
+		case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
+			/* broadcast and ignore component */
+			target_ok = (target_system == 0) || (target_system == mavlink_system.sysid);
+			break;
+
+		default:
+			target_ok = (target_system == mavlink_system.sysid) && ((target_component == mavlink_system.compid)
+			|| (target_component == MAV_COMP_ID_ALL));
+			break;
+	}
+
+	return target_ok;
+}
+
 void
 MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 {
@@ -284,22 +307,9 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	mavlink_command_long_t cmd_mavlink;
 	mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
-	/* evaluate if this system should accept this command */
-	bool target_ok;
-	switch (cmd_mavlink.command) {
+	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-		case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
-			/* broadcast */
-			target_ok = (cmd_mavlink.target_system == 0);
-			break;
-
-		default:
-			target_ok = (cmd_mavlink.target_system == mavlink_system.sysid);
-			break;
-	}
-
-	if (target_ok && ((cmd_mavlink.target_component == mavlink_system.compid)
-			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+	if (target_ok) {
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
@@ -360,8 +370,9 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	mavlink_command_int_t cmd_mavlink;
 	mavlink_msg_command_int_decode(msg, &cmd_mavlink);
 
-	if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid)
-			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
+
+	if (target_ok) {
 		//check for MAVLINK terminate command
 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 			/* This is the link shutdown command, terminate mavlink */
@@ -462,15 +473,15 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	d.max_distance = 5.0f;
 	d.current_distance = flow.distance; /* both are in m */
 	d.type = 1;
-	d.id = 0;
+	d.id = MAV_DISTANCE_SENSOR_ULTRASOUND;
 	d.orientation = 8;
 	d.covariance = 0.0;
 
-	if (_distance_sensor_pub == nullptr) {
-		_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
+	if (_flow_distance_sensor_pub == nullptr) {
+		_flow_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
 								     &_orb_class_instance, ORB_PRIO_HIGH);
 	} else {
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
+		orb_publish(ORB_ID(distance_sensor), _flow_distance_sensor_pub, &d);
 	}
 }
 
@@ -517,11 +528,11 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	d.orientation = 8;
 	d.covariance = 0.0;
 
-	if (_distance_sensor_pub == nullptr) {
-		_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
+	if (_hil_distance_sensor_pub == nullptr) {
+		_hil_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
 								     &_orb_class_instance, ORB_PRIO_HIGH);
 	} else {
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_pub, &d);
+		orb_publish(ORB_ID(distance_sensor), _hil_distance_sensor_pub, &d);
 	}
 }
 
@@ -574,7 +585,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	d.max_distance = float(dist_sensor.max_distance) * 1e-2f; /* cm to m */
 	d.current_distance = float(dist_sensor.current_distance) * 1e-2f; /* cm to m */
 	d.type = dist_sensor.type;
-	d.id = dist_sensor.id;
+	d.id = 	MAV_DISTANCE_SENSOR_LASER;
 	d.orientation = dist_sensor.orientation;
 	d.covariance = dist_sensor.covariance;
 
@@ -1825,6 +1836,7 @@ MavlinkReceiver::receive_thread(void *arg)
 					srcaddr_last->sin_addr.s_addr = srcaddr.sin_addr.s_addr;
 					srcaddr_last->sin_port = srcaddr.sin_port;
 					_mavlink->set_client_source_initialized();
+					warnx("changing partner IP to: %s", inet_ntoa(srcaddr.sin_addr));
 				}
 			}
 #endif

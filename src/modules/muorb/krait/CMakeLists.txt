@@ -30,17 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if("${DSPAL_STUBS_ENABLE}" STREQUAL "1")
-	include_directories(../krait-stubs)
-endif()
+include_directories(${CMAKE_BINARY_DIR}/src/firmware/posix)
+include_directories(
+	${HEXAGON_SDK_ROOT}/inc/stddef
+	${HEXAGON_SDK_ROOT}/lib/common/rpcmem
+	)
 
 px4_add_module(
 	MODULE modules__muorb__krait
 	MAIN muorb
 	SRCS
 		uORBKraitFastRpcChannel.cpp
+		px4muorb_KraitRpcWrapper.cpp
 		muorb_main.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

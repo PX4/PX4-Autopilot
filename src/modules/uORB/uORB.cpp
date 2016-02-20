@@ -308,11 +308,13 @@ int  orb_exists(const struct orb_metadata *meta, int instance)
  */
 int  orb_group_count(const struct orb_metadata *meta)
 {
-	unsigned group_count = 0;
+	unsigned instance = 0;
 
-	while (!uORB::Manager::get_instance()->orb_exists(meta, group_count++)) {};
+	while (uORB::Manager::get_instance()->orb_exists(meta, instance) == OK) {
+		++instance;
+	};
 
-	return group_count;
+	return instance;
 }
 
 /**

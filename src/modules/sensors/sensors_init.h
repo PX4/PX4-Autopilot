@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,39 +30,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+#pragma once
+
 /**
- * @file commands_default.c
- * Commands to run for the "qurt_default" config
+ * @file sensors_init.h
  *
- * @author Mark Charlebois <charlebm@gmail.com>
+ * Sensor initialization code declaration, the specific implementations are
+ * in the respective cpp files..
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
-const char *get_commands()
-{
-	static const char *commands =
-		"hello start\n"
-		"uorb start\n"
-		"simulator start -s\n"
-		"barosim start\n"
-		"adcsim start\n"
-		"accelsim start\n"
-		"gyrosim start\n"
-		"list_devices\n"
-		"list_topics\n"
-		"list_tasks\n"
-		"param show *\n"
-		"rgbled start\n"
-#if 0
-		"sensors start\n"
-		"param set CAL_GYRO0_ID 2293760\n"
-		"param set CAL_ACC0_ID 1310720\n"
-		"hil mode_pwm"
-		"param set CAL_ACC1_ID 1376256\n"
-		"param set CAL_MAG0_ID 196608\n"
-		"mavlink start -d /tmp/ttyS0\n"
-		"commander start\n"
-#endif
-		;
-
-	return commands;
-}
+int sensors_init(void);
