@@ -57,7 +57,8 @@
 FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
     MissionBlock(navigator, name),
 	_navigator(navigator),
-	_tracker_motion_position_sub(-1)
+	_tracker_motion_position_sub(-1),
+	_param_min_alt(this, "MIS_TAKEOFF_ALT", false)
 {
     /* load initial params */
     updateParams();
@@ -90,17 +91,15 @@ FollowTarget::on_active() {
   if (updated) {
     if (orb_copy(ORB_ID(follow_target), _tracker_motion_position_sub, &target) == OK) {
 
-      /* predict  target location*/
+          set_follow_target_item(&_mission_item, _param_min_alt.get(), target);
 
-      if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
-        _navigator->get_mission_result()->finished = true;
-        _navigator->set_mission_result_updated();
-        set_idle_item(&_mission_item);
+          /* convert mission item to current setpoint */
+          struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+          pos_sp_triplet->previous.valid = false;
+          mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+          pos_sp_triplet->next.valid = false;
 
-        struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-        mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-        _navigator->set_position_setpoint_triplet_updated();
-      }
+          _navigator->set_position_setpoint_triplet_updated();
     }
   }
 }

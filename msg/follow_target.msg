@@ -1,7 +1,7 @@
 uint64 timestamp		# timestamp, UNIX epoch (GPS synced)
 uint8 est_capabilities		# Flags to indicate which quantities the tracker knows about: (POS, VEL, ACCEL, ATT + RATES)
-uint32 lat			# target position (deg * 1e7)
-uint32 lon			# target position (deg * 1e7) 
+float64 lat			# target position (deg * 1e7)
+float64 lon			# target position (deg * 1e7) 
 float32 alt			# target position 
 float32[3] velocity		# target velocity (AMSL, meters) # target position (0 0 0 for unknown)
 float32[3] accel		# target acceleration (linear) in earth frame. 

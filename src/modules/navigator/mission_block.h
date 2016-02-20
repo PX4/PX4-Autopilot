@@ -49,6 +49,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/follow_target.h>
 
 #include "navigator_mode.h"
 
@@ -116,10 +117,15 @@ protected:
 	 */
 	void set_idle_item(struct mission_item_s *item);
 
-	/**
-	 * Convert a mission item to a command
-	 */
-	void mission_item_to_vehicle_command(const struct mission_item_s *item, struct vehicle_command_s *cmd);
+    /**
+     * Convert a mission item to a command
+     */
+    void mission_item_to_vehicle_command(const struct mission_item_s *item, struct vehicle_command_s *cmd);
+
+    /**
+     * set follow_target item
+     */
+    void set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target);
 
 	void issue_command(const struct mission_item_s *item);
 
