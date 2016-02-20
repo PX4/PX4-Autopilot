@@ -39,6 +39,9 @@ px4_add_module(
 		-Os
 	SRCS
 		mpu9250.cpp
+		main.cpp
+		gyro.cpp
+		mag.cpp
 	DEPENDS
 		platforms__common
 	)
