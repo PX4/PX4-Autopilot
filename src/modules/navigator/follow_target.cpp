@@ -79,27 +79,41 @@ FollowTarget::on_activation()
 	if(_tracker_motion_position_sub < 0) {
 		_tracker_motion_position_sub = orb_subscribe(ORB_ID(follow_target));
 	}
+
+	// inital set point is same as loiter sp
+
+    set_loiter_item(&_mission_item, _param_min_alt.get());
+
+    convert_mission_item_to_sp();
 }
 
 void
 FollowTarget::on_active() {
-  follow_target_s target;
-  bool updated;
+    follow_target_s target;
+    bool updated;
 
-  orb_check(_tracker_motion_position_sub, &updated);
+    orb_check(_tracker_motion_position_sub, &updated);
 
-  if (updated) {
-    if (orb_copy(ORB_ID(follow_target), _tracker_motion_position_sub, &target) == OK) {
-
-          set_follow_target_item(&_mission_item, _param_min_alt.get(), target);
-
-          /* convert mission item to current setpoint */
-          struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-          pos_sp_triplet->previous.valid = false;
-          mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-          pos_sp_triplet->next.valid = false;
-
-          _navigator->set_position_setpoint_triplet_updated();
+    if (updated) {
+        if (orb_copy(ORB_ID(follow_target), _tracker_motion_position_sub, &target) == OK) {
+            set_follow_target_item(&_mission_item, _param_min_alt.get(), target);
+            convert_mission_item_to_sp();
+        }
     }
-  }
+}
+
+void
+FollowTarget::convert_mission_item_to_sp() {
+
+    /* convert mission item to current setpoint */
+    struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+    // activate line following in pos control
+
+    pos_sp_triplet->previous.valid = true;
+    pos_sp_triplet->previous = pos_sp_triplet->current;
+    mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+    pos_sp_triplet->next.valid = false;
+
+    _navigator->set_position_setpoint_triplet_updated();
 }
