@@ -173,6 +173,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
+#ifndef __PX4_DARWIN
 	if (stack_size < PTHREAD_STACK_MIN) {
 		stack_size = PTHREAD_STACK_MIN;
 	}
@@ -183,6 +184,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		PX4_ERR("pthread_attr_setstacksize to %d returned error (%d)", stack_size, rv);
 		return (rv < 0) ? rv : -rv;
 	}
+#endif
 
 	rv = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
