@@ -64,4 +64,5 @@ public:
 
 private:
     control::BlockParamFloat _param_min_alt;
+    void convert_mission_item_to_sp();
 };
