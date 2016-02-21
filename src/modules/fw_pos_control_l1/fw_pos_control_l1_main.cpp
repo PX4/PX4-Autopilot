@@ -254,6 +254,7 @@ private:
 		FW_POSCTRL_MODE_AUTO,
 		FW_POSCTRL_MODE_POSITION,
 		FW_POSCTRL_MODE_ALTITUDE,
+		FW_POSCTRL_MODE_AIRSPEED,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current;			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
@@ -460,7 +461,7 @@ private:
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
 
-	float		get_demanded_airspeed();
+	float		get_demanded_airspeed(float percent_requested);
 	float		calculate_target_airspeed(float airspeed_demand);
 	void		calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed_2d,
 			const struct position_setpoint_triplet_s &pos_sp_triplet);
@@ -745,7 +746,12 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_height_comp_filter_omega(_parameters.height_comp_filter_omega);
 	_tecs.set_speed_comp_filter_omega(_parameters.speed_comp_filter_omega);
 	_tecs.set_roll_throttle_compensation(_parameters.roll_throttle_compensation);
-	_tecs.set_speed_weight(_parameters.speed_weight);
+
+	// don't update tecs speed weight in airspeed mode
+	if (_control_mode_current != FW_POSCTRL_MODE_AIRSPEED) {
+		_tecs.set_speed_weight(_parameters.speed_weight);
+	}
+
 	_tecs.set_pitch_damping(_parameters.pitch_damping);
 	_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
 	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
@@ -918,22 +924,23 @@ FixedwingPositionControl::task_main_trampoline(int argc, char *argv[])
 }
 
 float
-FixedwingPositionControl::get_demanded_airspeed()
+FixedwingPositionControl::get_demanded_airspeed(float percent_requested)
 {
 	float altctrl_airspeed = 0;
 
 	// neutral throttle corresponds to trim airspeed
-	if (_manual.z < 0.5f) {
-		// lower half of throttle is min to trim airspeed
+	if (percent_requested < 0.5f) {
+		// [0, 0.5) -> [FW_AIRSPEED_MIN, FW_AIRSPEED_TRIM]
 		altctrl_airspeed = _parameters.airspeed_min +
 				   (_parameters.airspeed_trim - _parameters.airspeed_min) *
-				   _manual.z * 2;
+				   percent_requested * 2;
 
 	} else {
+		// [0.5, 1.0] -> [FW_AIRSPEED_TRIM, FW_AIRSPEED_MAX]
 		// upper half of throttle is trim to max airspeed
 		altctrl_airspeed = _parameters.airspeed_trim +
 				   (_parameters.airspeed_max - _parameters.airspeed_trim) *
-				   (_manual.z * 2 - 1);
+				   (percent_requested * 2 - 1);
 	}
 
 	return altctrl_airspeed;
@@ -1226,7 +1233,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	bool in_air_alt_control = (!_vehicle_land_detected.landed &&
 				   (_control_mode.flag_control_auto_enabled ||
 				    _control_mode.flag_control_velocity_enabled ||
-				    _control_mode.flag_control_altitude_enabled));
+				    _control_mode.flag_control_altitude_enabled ||
+				    _control_mode.flag_control_airspeed_enabled));
 
 	/* update TECS filters */
 	_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
@@ -1258,7 +1266,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* AUTONOMOUS FLIGHT */
 
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
+		if ((_control_mode_current == FW_POSCTRL_MODE_OTHER)
+		    || (_control_mode_current == FW_POSCTRL_MODE_AIRSPEED)) {
 			/* reset integrators */
 			_tecs.reset_state();
 		}
@@ -1792,14 +1801,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
+		if ((_control_mode_current == FW_POSCTRL_MODE_OTHER)
+		    || (_control_mode_current == FW_POSCTRL_MODE_AIRSPEED)) {
 			/* reset integrators */
 			_tecs.reset_state();
 		}
 
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
 
-		float altctrl_airspeed = get_demanded_airspeed();
+		float airspeed_sp = get_demanded_airspeed(_manual.z);
 
 		/* update desired altitude based on user pitch stick input */
 		bool climbout_requested = update_desired_altitude(dt);
@@ -1819,7 +1829,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		tecs_update_pitch_throttle(_hold_alt,
-					   altctrl_airspeed,
+					   airspeed_sp,
 					   eas2tas,
 					   math::radians(_parameters.pitch_limit_min),
 					   math::radians(_parameters.pitch_limit_max),
@@ -1901,7 +1911,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
+		if ((_control_mode_current == FW_POSCTRL_MODE_OTHER)
+		    || (_control_mode_current == FW_POSCTRL_MODE_AIRSPEED)) {
 			/* reset integrators */
 			_tecs.reset_state();
 		}
@@ -1909,7 +1920,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
 
 		/* Get demanded airspeed */
-		float altctrl_airspeed = get_demanded_airspeed();
+		float airspeed_sp = get_demanded_airspeed(_manual.z);
 
 		/* update desired altitude based on user pitch stick input */
 		bool climbout_requested = update_desired_altitude(dt);
@@ -1928,7 +1939,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		tecs_update_pitch_throttle(_hold_alt,
-					   altctrl_airspeed,
+					   airspeed_sp,
 					   eas2tas,
 					   math::radians(_parameters.pitch_limit_min),
 					   math::radians(_parameters.pitch_limit_max),
@@ -1937,6 +1948,38 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   _parameters.throttle_cruise,
 					   climbout_requested,
 					   ((climbout_requested) ? math::radians(10.0f) : pitch_limit_min),
+					   _global_pos.alt,
+					   ground_speed,
+					   tecs_status_s::TECS_MODE_NORMAL);
+
+	} else if (_control_mode.flag_control_airspeed_enabled) {
+		/* AIRSPEED CONTROL: pitch stick moves airspeed setpoint, throttle stick is manual */
+
+		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
+		if (_control_mode_current != FW_POSCTRL_MODE_AIRSPEED) {
+			/* reset integrators */
+			_tecs.set_speed_weight(2.0);
+			_tecs.reset_state();
+		}
+
+		_control_mode_current = FW_POSCTRL_MODE_AIRSPEED;
+
+		/* Get airspeed from pitch stick */
+		float airspeed_sp = get_demanded_airspeed((_manual.x + 1) / 2);
+
+		/* Throttle should still respect FW_THR_MIN and FW_THR_MAX */
+		float throttle = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * _manual.z;
+
+		tecs_update_pitch_throttle(_global_pos.alt,
+					   airspeed_sp,
+					   eas2tas,
+					   math::radians(_parameters.pitch_limit_min),
+					   math::radians(_parameters.pitch_limit_max),
+					   throttle,
+					   throttle,
+					   throttle,
+					   false,
+					   math::radians(_parameters.pitch_limit_min),
 					   _global_pos.alt,
 					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
@@ -2284,9 +2327,10 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		pitch_max_rad = M_DEG_TO_RAD_F * 5.0f;
 	}
 
-	/* No underspeed protection in landing mode */
+	/* No underspeed protection in landing mode or airspeed control mode */
 	_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND
-					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
+					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM
+					      || _control_mode_current == FW_POSCTRL_MODE_AIRSPEED));
 
 	/* Using tecs library */
 	float pitch_for_tecs = _pitch;

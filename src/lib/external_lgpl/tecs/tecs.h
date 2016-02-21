@@ -45,7 +45,7 @@ public:
 		_integGain(0.0f),
 		_vertAccLim(0.0f),
 		_rollComp(0.0f),
-		_spdWeight(0.5f),
+		_spdWeight(1.0f),
 		_heightrate_p(0.0f),
 		_heightrate_ff(0.0f),
 		_speedrate_p(0.0f),

@@ -724,6 +724,10 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					/* ALTCTL */
 					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_ALTCTL, main_state_prev, &status_flags, &internal_state);
 
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AIRSPD) {
+					/* AIRSPD */
+					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AIRSPD, main_state_prev, &status_flags, &internal_state);
+
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTL) {
 					/* POSCTL */
 					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
@@ -1202,6 +1206,7 @@ int commander_thread_main(int argc, char *argv[])
 	// const char *main_states_str[commander_state_s::MAIN_STATE_MAX];
 	// main_states_str[commander_state_s::MAIN_STATE_MANUAL]			= "MANUAL";
 	// main_states_str[commander_state_s::MAIN_STATE_ALTCTL]			= "ALTCTL";
+	// main_states_str[commander_state_s::MAIN_STATE_AIRSPD]			= "AIRSPD";
 	// main_states_str[commander_state_s::MAIN_STATE_POSCTL]			= "POSCTL";
 	// main_states_str[commander_state_s::MAIN_STATE_AUTO_MISSION]		= "AUTO_MISSION";
 	// main_states_str[commander_state_s::MAIN_STATE_AUTO_LOITER]			= "AUTO_LOITER";
@@ -1224,6 +1229,7 @@ int commander_thread_main(int argc, char *argv[])
 	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_STAB]				= "STAB";
 	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_RATTITUDE]		= "RATTITUDE";
 	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
+	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AIRSPD]			= "AIRSPD";
 	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_POSCTL]			= "POSCTL";
 	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
 	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER]		= "AUTO_LOITER";
@@ -2257,6 +2263,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (rtl_on &&
 		   (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_AIRSPD ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB)) {
@@ -2384,6 +2391,7 @@ int commander_thread_main(int argc, char *argv[])
 					if ((internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_ACRO)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_STAB)
+						&& (internal_state.main_state != commander_state_s::MAIN_STATE_AIRSPD)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL)
 						) {
@@ -2614,6 +2622,7 @@ int commander_thread_main(int argc, char *argv[])
 			    internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE &&
 			    internal_state.main_state != commander_state_s::MAIN_STATE_STAB &&
 			    internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL &&
+			    internal_state.main_state != commander_state_s::MAIN_STATE_AIRSPD &&
 			    internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL &&
 			    ((status.data_link_lost && status_flags.gps_failure) ||
 			     (status_flags.data_link_lost_cmd && status_flags.gps_failure_cmd))) {
@@ -2639,6 +2648,7 @@ int commander_thread_main(int argc, char *argv[])
 			     internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL ||
 			     internal_state.main_state == commander_state_s::MAIN_STATE_STAB ||
 			     internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL ||
+			     internal_state.main_state == commander_state_s::MAIN_STATE_AIRSPD ||
 			     internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL) &&
 			    ((status.rc_signal_lost && status_flags.gps_failure) ||
 			     (status_flags.rc_signal_lost_cmd && status_flags.gps_failure_cmd))) {
@@ -3147,6 +3157,18 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 					}
 				}
 
+				if (new_mode == commander_state_s::MAIN_STATE_AIRSPD) {
+
+					/* fall back to stabilized */
+					new_mode = commander_state_s::MAIN_STATE_STAB;
+					print_reject_mode(status_local, "AIRSPEED");
+					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
+
+					if (res != TRANSITION_DENIED) {
+						break;
+					}
+				}
+
 				if (new_mode == commander_state_s::MAIN_STATE_STAB) {
 
 					/* fall back to manual */
@@ -3298,6 +3320,7 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = stabilization_required();
 		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_airspeed_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
@@ -3312,6 +3335,7 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_rattitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_airspeed_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
@@ -3328,6 +3352,7 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_rattitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_airspeed_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
@@ -3342,10 +3367,25 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = true;
+		control_mode.flag_control_airspeed_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
+		control_mode.flag_control_termination_enabled = false;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_AIRSPD:
+		control_mode.flag_control_manual_enabled = true;
+		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_rates_enabled = true;
+		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
+		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_airspeed_enabled = true;
+		control_mode.flag_control_climb_rate_enabled = false;
+		control_mode.flag_control_position_enabled = false;
+		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
 		break;
 
@@ -3356,6 +3396,7 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = true;
+		control_mode.flag_control_airspeed_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = !status.in_transition_mode;
 		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
@@ -3381,6 +3422,7 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = true;
+		control_mode.flag_control_airspeed_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = !status.in_transition_mode;
 		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
@@ -3395,6 +3437,7 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_airspeed_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
@@ -3409,6 +3452,7 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled = false;
 		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_airspeed_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
@@ -3427,6 +3471,7 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_airspeed_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_termination_enabled = false;
 		break;
@@ -3442,6 +3487,7 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_airspeed_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_termination_enabled = true;
 		break;

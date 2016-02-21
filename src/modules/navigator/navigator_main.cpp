@@ -518,6 +518,7 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 			case vehicle_status_s::NAVIGATION_STATE_ACRO:
 			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+			case vehicle_status_s::NAVIGATION_STATE_AIRSPD:
 			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:

@@ -383,6 +383,18 @@ bool StateMachineHelperTest::mainStateTransitionTest(void)
 			MTT_LOC_ALT_VALID,
 			commander_state_s::MAIN_STATE_ALTCTL, commander_state_s::MAIN_STATE_MANUAL, TRANSITION_CHANGED },
 
+		{ "transition: MANUAL to AIRSPD - not rotary",
+			MTT_ALL_NOT_VALID,
+			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_AIRSPD, TRANSITION_CHANGED },
+
+		{ "transition: MANUAL to AIRSPD - rotary",
+			MTT_ROTARY_WING,
+			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_ALTCTL, TRANSITION_DENIED },
+
+		{ "transition: AIRSPD to MANUAL - local altitude valid",
+			MTT_LOC_ALT_VALID,
+			commander_state_s::MAIN_STATE_AIRSPD, commander_state_s::MAIN_STATE_MANUAL, TRANSITION_CHANGED },
+
 		{ "transition: MANUAL to POSCTL - local position not valid, global position valid",
 			MTT_GLOBAL_POS_VALID,
 			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_POSCTL, TRANSITION_CHANGED },
