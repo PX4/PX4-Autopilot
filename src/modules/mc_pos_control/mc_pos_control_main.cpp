@@ -1869,7 +1869,10 @@ MulticopterPositionControl::task_main()
 				if (_vehicle_status.main_state == vehicle_status_s::MAIN_STATE_ACRO) {
 					/* rate mode - interpret roll/pitch inputs as rate demands */
 					_att_sp.roll_body += _manual.y * _params.acro_rollRate_max * dt;
+					if (_att_sp.roll_body < -M_PI_F) _att_sp.roll_body += M_TWOPI_F;
+					if (_att_sp.roll_body >  M_PI_F) _att_sp.roll_body -= M_TWOPI_F;
 					_att_sp.pitch_body -= _manual.x * _params.acro_pitchRate_max * dt;
+					math::constrain(_att_sp.pitch_body, math::radians(-85.0f), math::radians(85.0f));
 				} else {
 					/* angle mode - interpret roll/pitch inputs as angles */
 					_att_sp.roll_body = _manual.y * _params.man_roll_max;
