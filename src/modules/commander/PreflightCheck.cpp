@@ -199,7 +199,7 @@ static bool accelerometerCheck(int mavlink_fd, unsigned instance, bool optional,
 	if (ret != OK) {
 		if (report_fail) {
 			mavlink_and_console_log_critical(mavlink_fd,
-						 "PREFLIGHT FAIL: ACCEL #%u SELFTEST FAILED", instance);
+						 "PREFLIGHT FAIL: ACCEL #%u TEST FAILED: %d", instance, ret);
 		}
 		success = false;
 		goto out;
@@ -336,6 +336,14 @@ static bool airspeedCheck(int mavlink_fd, bool optional, bool report_fail)
 	    (hrt_elapsed_time(&airspeed.timestamp) > (500 * 1000))) {
 		if (report_fail) {
 			mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
+		}
+		success = false;
+		goto out;
+	}
+
+	if (fabsf(airspeed.confidence) < 0.99f) {
+		if (report_fail) {
+			mavlink_and_console_log_critical(mavlink_fd, "PREFLIGHT FAIL: AIRSPEED SENSOR COMM ERROR");
 		}
 		success = false;
 		goto out;

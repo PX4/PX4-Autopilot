@@ -83,6 +83,11 @@ typedef uintptr_t	param_t;
 #define PARAM_INVALID	((uintptr_t)0xffffffff)
 
 /**
+ * Magic handle for hash check param
+ */
+#define PARAM_HASH      ((uintptr_t)INT32_MAX)
+
+/**
  * Look up a parameter by name.
  *
  * @param name		The canonical name of the parameter being looked up.

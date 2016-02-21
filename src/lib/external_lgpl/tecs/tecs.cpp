@@ -512,6 +512,7 @@ void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_alt
 		_hgt_dem_in_old = _hgt_dem_adj_last;
 		_TAS_dem_last = _TAS_dem;
 		_TAS_dem_adj = _TAS_dem;
+		_pitch_dem_unc = pitch;
 		_underspeed = false;
 		_badDescent = false;
 
@@ -621,7 +622,7 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	_tecs_state.total_energy_error = _STE_error;
 	_tecs_state.energy_distribution_error = _SEB_error;
 	_tecs_state.total_energy_rate_error = _STEdot_error;
-	_tecs_state.energy_distribution_error = _SEBdot_error;
+	_tecs_state.energy_distribution_rate_error = _SEBdot_error;
 
 	_tecs_state.energy_error_integ = _integ6_state;
 	_tecs_state.energy_distribution_error_integ = _integ7_state;

@@ -33,13 +33,15 @@
 
 /**
  * @file commander.cpp
- * Main fail-safe handling.
  *
- * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- * @author Lorenz Meier <lorenz@px4.io>
- * @author Thomas Gubler <thomas@px4.io>
- * @author Julian Oes <julian@px4.io>
- * @author Anton Babushkin <anton@px4.io>
+ * Main state machine / business logic
+ *
+ * @author Petri Tanskanen	<petri.tanskanen@inf.ethz.ch>
+ * @author Lorenz Meier		<lorenz@px4.io>
+ * @author Thomas Gubler	<thomas@px4.io>
+ * @author Julian Oes		<julian@px4.io>
+ * @author Anton Babushkin	<anton@px4.io>
+ * @author Sander Smeets	<sander@droneslab.com>
  */
 
 #include <px4_config.h>
@@ -796,6 +798,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			status_local->data_link_lost_cmd = false;
 			status_local->gps_failure_cmd = false;
 			status_local->rc_signal_lost_cmd = false;
+			status_local->vtol_transition_failure_cmd = false;
 
 			if ((int)cmd->param2 <= 0) {
 				/* reset all commanded failure modes */
@@ -820,7 +823,14 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				/* trigger rc loss mode */
 				status_local->rc_signal_lost_cmd = true;
 				warnx("rc loss mode commanded");
+
+			} else if ((int)cmd->param2 == 5) {
+				/* trigger vtol transition failure mode */
+				status_local->vtol_transition_failure_cmd = true;
+				warnx("vtol transition failure mode commanded");
 			}
+
+
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 		}
@@ -986,7 +996,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 
 	home.yaw = attitude.yaw;
 
-	mavlink_and_console_log_info(mavlink_fd, "home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+	PX4_INFO("home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
 	/* announce new home position */
 	if (homePub != nullptr) {
@@ -1718,7 +1728,11 @@ int commander_thread_main(int argc, char *argv[])
 			if (is_vtol(&status)) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
 				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
+				status.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
+				status.vtol_transition_failure_cmd = vtol_status.vtol_transition_failsafe;
 			}
+
+			status_changed = true;
 		}
 
 		/* update global position estimate */
@@ -2029,6 +2043,15 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
+
+			if (status.mission_failure != mission_result.mission_failure) {
+				status.mission_failure = mission_result.mission_failure;
+				status_changed = true;
+
+				if (status.mission_failure) {
+					mavlink_log_critical(mavlink_fd, "mission cannot be completed");
+				}
+			}
 		}
 
 		/* start geofence result check */
@@ -3266,7 +3289,7 @@ void *commander_low_prio_loop(void *arg)
 			}
 		} else if (pret < 0) {
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
-			warn("poll error %d, %d", pret, errno);
+			warn("commander: poll error %d, %d", pret, errno);
 			continue;
 		} else {
 

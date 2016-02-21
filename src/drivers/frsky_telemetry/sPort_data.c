@@ -203,6 +203,14 @@ void sPort_send_SPD(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_GPS_SPD, ispeed);
 }
 
+// TODO: verify scaling
+void sPort_send_VSPD(int uart, float speed)
+{
+	/* send data for VARIO vertical speed: int16 cm/sec */
+	int32_t ispeed = (int)(100 * speed);
+	sPort_send_data(uart, SMARTPORT_ID_VARIO, ispeed);
+}
+
 // verified scaling
 void sPort_send_FUEL(int uart)
 {

@@ -48,7 +48,7 @@
  *
  * This is the L1 distance and defines the tracking
  * point ahead of the aircraft its following.
- * A value of 25 meters works for most aircraft. Shorten
+ * A value of 18-25 meters works for most aircraft. Shorten
  * slowly during tuning until response is sharp without oscillation.
  *
  * @min 12.0
@@ -154,6 +154,20 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
+
+/**
+ * Idle throttle
+ *
+ * This is the minimum throttle while on the ground
+ *
+ * For aircraft with internal combustion engine this parameter should be set
+ * above desired idle rpm.
+ *
+ * @min 0.0
+ * @max 0.4
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
 
 /**
  * Throttle limit value before flare
@@ -445,10 +459,10 @@ PARAM_DEFINE_FLOAT(FW_FLARE_PMIN, 2.5f);
 PARAM_DEFINE_FLOAT(FW_FLARE_PMAX, 15.0f);
 
 /**
- * Takeoff and landing airspeed scale factor
+ * Landing airspeed scale factor
  *
  * Multiplying this factor with the minimum airspeed of the plane
- * gives the target airspeed for takeoff and landing approach.
+ * gives the target airspeed the landing approach.
  *
  * @min 1.0
  * @max 1.5

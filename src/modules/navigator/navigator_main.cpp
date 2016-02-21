@@ -331,7 +331,7 @@ Navigator::task_main()
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			PX4_WARN("poll error %d, %d", pret, errno);
+			PX4_WARN("nav: poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -748,5 +748,15 @@ Navigator::publish_att_sp()
 	} else {
 		/* advertise and publish */
 		_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+	}
+}
+
+void
+Navigator::set_mission_failure(const char* reason)
+{
+	if (!_mission_result.mission_failure) {
+		_mission_result.mission_failure = true;
+		set_mission_result_updated();
+		mavlink_log_critical(_mavlink_fd, "%s", reason);
 	}
 }

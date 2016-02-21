@@ -138,13 +138,15 @@ function(px4_add_git_submodule)
 	string(REPLACE "/" "_" NAME ${PATH})
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule init ${PATH}
+		COMMAND git submodule update --init --recursive ${PATH}
 		COMMAND touch ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		DEPENDS ${CMAKE_SOURCE_DIR}/.gitmodules
 		)
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule update --recursive ${PATH}
+# This is NOT a good approach as it overwrites checked out branches
+# behind the back of a developer
+		#COMMAND git submodule update --recursive ${PATH}
 		DEPENDS ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		)
 endfunction()
@@ -534,15 +536,28 @@ function(px4_add_common_flags)
 		)
 	endif()
 
-	set(max_optimization -Os)
+	if ($ENV{MEMORY_DEBUG} MATCHES "1")
+		set(max_optimization -O0)
 
-	set(optimization_flags
-		-fno-strict-aliasing
-		-fomit-frame-pointer
-		-funsafe-math-optimizations
-		-ffunction-sections
-		-fdata-sections
-		)
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fno-omit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			-g -fsanitize=address
+			)
+	else()
+		set(max_optimization -Os)
+
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fomit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			)
+	endif()
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		list(APPEND optimization_flags
