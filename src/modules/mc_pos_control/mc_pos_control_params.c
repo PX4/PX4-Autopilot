@@ -51,6 +51,48 @@
 PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
 
 /**
+ * Hover thrust
+ *
+ * Vertical thrust required to hover.
+ * This value is mapped to center stick for manual throttle control.
+ * With this value set to the thrust required to hover, transition
+ * from manual to ALTCTL mode while hovering will occur with the
+ * throttle stick near center, which is then interpreted as (near)
+ * zero demand for vertical speed.
+ *
+ * @min 0.2
+ * @max 0.8
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
+
+/**
+ * ALTCTL throttle curve breakpoint
+ *
+ * Halfwidth of deadband or reduced sensitivity center portion of curve.
+ * This is the halfwidth of the center region of the ALTCTL throttle
+ * curve. It extends from center-dz to center+dz.
+ *
+ * @min 0.0
+ * @max 0.2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ALTCTL_DZ, 0.1f);
+
+/**
+ * ALTCTL throttle curve breakpoint height
+ *
+ * Controls the slope of the reduced sensitivity region.
+ * This is the height of the ALTCTL throttle
+ * curve at center-dz and center+dz.
+ *
+ * @min 0.0
+ * @max 0.2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ALTCTL_DY, 0.0f);
+
+/**
  * Maximum thrust in auto thrust control
  *
  * Limit max allowed thrust. Setting a value of one can put
@@ -305,17 +347,6 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 120.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_HOLD_XY_DZ, 0.1f);
-
-/**
- * Deadzone of Z stick where altitude hold is enabled
- *
- * @unit %
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_HOLD_Z_DZ, 0.1f);
 
 /**
  * Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)

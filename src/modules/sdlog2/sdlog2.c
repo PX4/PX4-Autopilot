@@ -146,6 +146,7 @@ static const int MIN_BYTES_TO_WRITE = 512;
 
 static bool _extended_logging = false;
 static bool _gpstime_only = false;
+static int32_t _utc_offset = 0;
 
 #define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd"
 static const char *mountpoint = MOUNTPOINT;
@@ -260,7 +261,7 @@ static int create_log_dir(void);
 /**
  * Get the time struct from the currently preferred time source
  */
-static bool get_log_time_utc_tt(struct tm *tt, bool boot_time);
+static bool get_log_time_tt(struct tm *tt, bool boot_time);
 
 /**
  * Select first free log file name and open it.
@@ -374,7 +375,7 @@ int sdlog2_main(int argc, char *argv[])
 	return 1;
 }
 
-bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
+bool get_log_time_tt(struct tm *tt, bool boot_time) {
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_REALTIME, &ts);
 	/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.px4log */
@@ -392,6 +393,9 @@ bool get_log_time_utc_tt(struct tm *tt, bool boot_time) {
 			utc_time_sec -= hrt_absolute_time() / 1e6;
 		}
 
+		/* apply utc offset (min, not hour) */
+		utc_time_sec += _utc_offset*60;
+
 		struct tm *ttp = gmtime_r(&utc_time_sec, tt);
 		return (ttp != NULL);
 	} else {
@@ -406,7 +410,7 @@ int create_log_dir()
 	int mkdir_ret;
 
 	struct tm tt;
-	bool time_ok = get_log_time_utc_tt(&tt, true);
+	bool time_ok = get_log_time_tt(&tt, true);
 
 	if (log_name_timestamp && time_ok) {
 		int n = snprintf(log_dir, sizeof(log_dir), "%s/", log_root);
@@ -458,7 +462,7 @@ int open_log_file()
 	char log_file_path[sizeof(log_file_name) + LOG_BASE_PATH_LEN] = "";
 
 	struct tm tt;
-	bool time_ok = get_log_time_utc_tt(&tt, false);
+	bool time_ok = get_log_time_tt(&tt, false);
 
 	/* start logging if we have a valid time and the time is not in the past */
 	if (log_name_timestamp && time_ok) {
@@ -511,7 +515,7 @@ int open_perf_file(const char* str)
 	char log_file_path[sizeof(log_file_name) + LOG_BASE_PATH_LEN] = "";
 
 	struct tm tt;
-	bool time_ok = get_log_time_utc_tt(&tt, false);
+	bool time_ok = get_log_time_tt(&tt, false);
 
 	if (log_name_timestamp && time_ok) {
 		strftime(log_file_name, sizeof(log_file_name), "perf%H_%M_%S.txt", &tt);
@@ -1029,7 +1033,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* any other value means to ignore the parameter, so no else case */
 
 	}
+	
+	param_t log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 
+	if ( log_utc_offset != PARAM_INVALID ) {
+	    int32_t param_utc_offset;
+	    param_get(log_utc_offset, &param_utc_offset);
+	    _utc_offset = param_utc_offset;
+	}
 
 	if (check_free_space() != OK) {
 		warnx("ERR: MicroSD almost full");

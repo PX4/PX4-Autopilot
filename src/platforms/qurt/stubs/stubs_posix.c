@@ -135,3 +135,16 @@ int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
 	return 1;
 }
+int pthread_mutexattr_init(pthread_mutexattr_t *attr)
+{
+	return -1;
+}
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+{
+	return -1;
+}
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
+{
+	return -1;
+}
+

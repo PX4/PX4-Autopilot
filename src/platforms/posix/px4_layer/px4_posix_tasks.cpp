@@ -50,6 +50,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
+#include <limits.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -169,6 +170,17 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	if (rv != 0) {
 		PX4_WARN("px4_task_spawn_cmd: failed to init thread attrs");
+		return (rv < 0) ? rv : -rv;
+	}
+
+	if (stack_size < PTHREAD_STACK_MIN) {
+		stack_size = PTHREAD_STACK_MIN;
+	}
+
+	rv = pthread_attr_setstacksize(&attr, stack_size);
+
+	if (rv != 0) {
+		PX4_ERR("pthread_attr_setstacksize to %d returned error (%d)", stack_size, rv);
 		return (rv < 0) ? rv : -rv;
 	}
 
