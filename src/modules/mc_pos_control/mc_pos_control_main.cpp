@@ -1864,12 +1864,32 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
+			math::Matrix<3, 3> R_sp;
+
 			/* control roll and pitch directly if no aiding velocity controller is active */
 			if (!_control_mode.flag_control_velocity_enabled) {
 				if (_vehicle_status.main_state == vehicle_status_s::MAIN_STATE_ACRO) {
 					/* rate mode - interpret roll/pitch inputs as rate demands */
-					_att_sp.roll_body += _manual.y * _params.acro_rollRate_max * dt;
-					_att_sp.pitch_body -= _manual.x * _params.acro_pitchRate_max * dt;
+//					_att_sp.roll_body += _manual.y * _params.acro_rollRate_max * dt;
+//					_att_sp.pitch_body -= _manual.x * _params.acro_pitchRate_max * dt;
+					float roll_body = _manual.y * _params.acro_rollRate_max * dt;
+					float pitch_body = -_manual.x * _params.acro_pitchRate_max * dt;
+
+					/* update attitude setpoint rotation matrix (avoiding singularities) */
+					/* no yaw setpoint yet */
+					math::Matrix<3, 3> R_xy;
+//					math::Matrix<3, 3> R_y;
+					math::Matrix<3, 3> R_z;
+					R_xy.from_euler(roll_body, pitch_body, 0.0f);
+					R_z.from_euler(0, 0, _att_sp.yaw_body);
+					math::Matrix<3, 3> R_delta(R_xy);
+//					R_delta = R_delta * R_z;
+
+					R_sp.set(_att_sp.R_body);
+					R_sp = R_delta * R_sp;
+					memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+					warnx("R_sp");
+					R_sp.print();
 				} else {
 					/* angle mode - interpret roll/pitch inputs as angles */
 					_att_sp.roll_body = _manual.y * _params.man_roll_max;
@@ -1888,11 +1908,11 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			math::Matrix<3, 3> R_sp;
-
-			/* construct attitude setpoint rotation matrix */
-			R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
-			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+			if (_vehicle_status.main_state != vehicle_status_s::MAIN_STATE_ACRO) {
+				/* construct attitude setpoint rotation matrix */
+				R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
+				memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
+			}
 
 			/* reset the acceleration set point for all non-attitude flight modes */
 			if (!(_control_mode.flag_control_offboard_enabled &&
