@@ -470,6 +470,23 @@ int commander_main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[1], "lockdown")) {
+		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
+
+		vehicle_command_s cmd = {};
+		cmd.target_system = status.system_id;
+		cmd.target_component = status.component_id;
+
+		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
+		cmd.param1 = 2.0f; /* lockdown */
+
+		// XXX inspect use of publication handle
+		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+
+		px4_close(mavlink_fd_local);
+		return 0;
+	}
+
 	usage("unrecognized command");
 	return 1;
 }
@@ -783,13 +800,18 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 		/* Flight termination */
 	case vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION: {
-			if (cmd->param1 > 0.5f) {
+			if (cmd->param1 > 1.5f) {
+				armed_local->lockdown = true;
+				warnx("forcing lockdown (motors off)");
+
+			} else if (cmd->param1 > 0.5f) {
 				//XXX update state machine?
 				armed_local->force_failsafe = true;
 				warnx("forcing failsafe (termination)");
 
 			} else {
 				armed_local->force_failsafe = false;
+				armed_local->lockdown = false;
 				warnx("disabling failsafe (termination)");
 			}
 
