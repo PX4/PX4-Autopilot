@@ -516,14 +516,12 @@ void Ekf2::task_main()
 
 			global_pos.yaw = euler(2); // Yaw in radians -PI..+PI.
 
-			global_pos.eph = gps.eph; // Standard deviation of position estimate horizontally
-			global_pos.epv = gps.epv; // Standard deviation of position vertically
+			// get the estimator horizntal and vertical position uncertainty
+			_ekf->get_ekf_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
 
 			// TODO: implement terrain estimator
 			global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
 			global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
-			// TODO use innovatun consistency check timouts to set this
-			global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
 
 			global_pos.pressure_alt = sensors.baro_alt_meter[0]; // Pressure altitude AMSL (m)
 
