@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.50f);
 /**
  * Multicopter max rotation
  *
- * Maximum allowed around each axis allowed in the landed state (degrees per second)
+ * Maximum allowed angular velocity around each axis allowed in the landed state.
  *
  * @unit deg/s
  *
