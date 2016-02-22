@@ -83,6 +83,9 @@ public:
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
 
+	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
+	virtual void get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning) = 0;
+
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }
 
@@ -198,6 +201,8 @@ protected:
 	float _gps_speed_accuracy;                  // GPS receiver reported speed accuracy (m/s)
 	struct map_projection_reference_s _pos_ref; // Contains WGS-84 position latitude and longitude (radians)
 	float _gps_hpos_accuracy = 0.0f; // GPS receiver reported 1-sigma horizontal accuracy (m)
+	float _gps_origin_eph = 0.0f; // horizontal position uncertainty of the GPS origin
+	float _gps_origin_epv = 0.0f; // vertical position uncertainty of the GPS origin
 
 	bool _mag_healthy;              // computed by mag innovation test
 	float _yaw_test_ratio;          // yaw innovation consistency check ratio

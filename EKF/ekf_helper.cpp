@@ -309,6 +309,21 @@ void Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *orig
 	memcpy(origin_alt, &_gps_alt_ref, sizeof(float));
 }
 
+// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
+void Ekf::get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
+{
+	// report absolute accuracy taking into account the uncertainty in location of the origin
+	// TODO we a need a way to allow for baro drift error
+	float temp1 = sqrtf(P[6][6] + P[7][7] + sq(_gps_origin_eph));
+	float temp2 = sqrtf(P[8][8] + sq(_gps_origin_epv));
+	memcpy(ekf_eph, &temp1, sizeof(float));
+	memcpy(ekf_epv, &temp2, sizeof(float));
+
+	// report dead reckoning if it is more than a second since we fused in GPS
+	bool temp3 = (_time_last_imu - _time_last_pos_fuse > 1e6);
+	memcpy(dead_reckoning, &temp3, sizeof(bool));
+}
+
 // fuse measurement
 void Ekf::fuse(float *K, float innovation)
 {

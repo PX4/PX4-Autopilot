@@ -95,6 +95,9 @@ public:
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt);
 
+	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
+	void get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning);
+
 private:
 
 	static const uint8_t _k_num_states = 24;
