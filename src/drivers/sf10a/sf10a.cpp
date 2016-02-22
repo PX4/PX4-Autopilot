@@ -548,9 +548,7 @@ SF10A::collect()
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
 
-	if (_reports->force(&report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->put(&report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
