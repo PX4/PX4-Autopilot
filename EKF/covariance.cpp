@@ -52,34 +52,37 @@ void Ekf::initialiseCovariance()
 		}
 	}
 
+	// calculate average prediction time step in sec
+	float dt = 0.001f * (float)FILTER_UPDATE_PERRIOD_MS;
+
 	// XXX use initial guess for the diagonal elements for the covariance matrix
 	// angle error
-	P[0][0] = 0.001f;
-	P[1][1] = 0.001f;
-	P[2][2] = 0.001f;
+	P[0][0] = 0.1f;
+	P[1][1] = 0.1f;
+	P[2][2] = 0.1f;
 
 	// velocity
-	P[3][3] = 0.1f;
-	P[4][4] = 0.1f;
-	P[5][5] = 0.1f;
+	P[3][3] = sq(fmaxf(_params.gps_vel_noise, 0.01f));
+	P[4][4] = P[3][3];
+	P[5][5] = sq(1.5f) * P[3][3];
 
 	// position
-	P[6][6] = 0.1f;
-	P[7][7] = 0.1f;
-	P[8][8] = 0.1f;
+	P[6][6] = sq(fmaxf(_params.gps_pos_noise, 0.01f));
+	P[7][7] = P[6][6];
+	P[8][8] = sq(fmaxf(_params.baro_noise, 0.01f));
 
 	// gyro bias
-	P[9][9] = 0.00001f;
-	P[10][10] = 0.00001f;
-	P[11][11] = 0.00001f;
+	P[9][9] = sq(0.035f * dt);
+	P[10][10] = P[9][9];
+	P[11][11] = P[9][9];
 
 	// gyro scale
-	P[12][12] = 0.0001f;
-	P[13][13] = 0.0001f;
-	P[14][14] = 0.0001f;
+	P[12][12] = sq(0.001f);
+	P[13][13] = P[12][12];
+	P[14][14] = P[12][12];
 
 	// accel z bias
-	P[15][15] = 0.0001f;
+	P[15][15] = sq(0.2f * dt);
 
 	// variances for optional states
 	// these state variances are set to zero until the states are required, then they must be initialised
