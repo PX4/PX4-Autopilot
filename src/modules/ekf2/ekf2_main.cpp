@@ -387,12 +387,27 @@ void Ekf2::task_main()
 		// run the EKF update
 		_ekf->update();
 
+		// generate control state data
+		control_state_s ctrl_state = {};
+		ctrl_state.timestamp = hrt_absolute_time();
+		ctrl_state.roll_rate = _lp_roll_rate.apply(sensors.gyro_rad_s[0]);
+		ctrl_state.pitch_rate = _lp_pitch_rate.apply(sensors.gyro_rad_s[1]);
+		ctrl_state.yaw_rate = _lp_yaw_rate.apply(sensors.gyro_rad_s[2]);
+		_ekf->copy_quaternion(ctrl_state.q);
+
+		// publish control state data
+		if (_control_state_pub == nullptr) {
+			_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
+
+		} else {
+			orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
+		}
+
 		// generate vehicle attitude data
 		struct vehicle_attitude_s att = {};
 		att.timestamp = hrt_absolute_time();
 
-		_ekf->copy_quaternion(att.q);
-		matrix::Quaternion<float> q(att.q[0], att.q[1], att.q[2], att.q[3]);
+		matrix::Quaternion<float> q(ctrl_state.q[0], ctrl_state.q[1], ctrl_state.q[2], ctrl_state.q[3]);
 		matrix::Euler<float> euler(q);
 		att.roll = euler(0);
 		att.pitch = euler(1);
@@ -453,26 +468,6 @@ void Ekf2::task_main()
 			orb_publish(ORB_ID(vehicle_local_position), _lpos_pub, &lpos);
 		}
 
-		// generate control state data
-		control_state_s ctrl_state = {};
-		ctrl_state.timestamp = hrt_absolute_time();
-		ctrl_state.roll_rate = _lp_roll_rate.apply(sensors.gyro_rad_s[0]);
-		ctrl_state.pitch_rate = _lp_pitch_rate.apply(sensors.gyro_rad_s[1]);
-		ctrl_state.yaw_rate = _lp_yaw_rate.apply(sensors.gyro_rad_s[2]);
-
-		ctrl_state.q[0] = q(0);
-		ctrl_state.q[1] = q(1);
-		ctrl_state.q[2] = q(2);
-		ctrl_state.q[3] = q(3);
-
-		// publish control state data
-		if (_control_state_pub == nullptr) {
-			_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-		} else {
-			orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
-		}
-
 		// generate vehicle attitude data
 		att.q[0] = q(0);
 		att.q[1] = q(1);
@@ -491,6 +486,13 @@ void Ekf2::task_main()
 		} else {
 			orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
 		}
+
+		// get estimator status
+		struct estimator_status_s status = {};
+		status.timestamp = hrt_absolute_time();
+		_ekf->get_state_delayed(status.states);
+		_ekf->get_covariances(status.covariances);
+		//status.gps_check_fail_flags = _ekf->_gps_check_fail_status.value;
 
 		// generate and publish global position data
 		struct vehicle_global_position_s global_pos = {};
@@ -534,12 +536,6 @@ void Ekf2::task_main()
 		}
 
 		// publish estimator status
-		struct estimator_status_s status = {};
-		status.timestamp = hrt_absolute_time();
-		_ekf->get_state_delayed(status.states);
-		_ekf->get_covariances(status.covariances);
-		//status.gps_check_fail_flags = _ekf->_gps_check_fail_status.value;
-
 		if (_estimator_status_pub == nullptr) {
 			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
 
