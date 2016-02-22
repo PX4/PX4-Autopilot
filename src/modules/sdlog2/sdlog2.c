@@ -1940,7 +1940,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- CAMERA TRIGGER --- */
 		if (copy_if_updated(ORB_ID(camera_trigger), &subs.cam_trig_sub, &buf.camera_trigger)) {
 			log_msg.msg_type = LOG_CAMT_MSG;
-			log_msg.body.log_CAMT.timestamp = buf.camera_trigger.timestamp;
 			log_msg.body.log_CAMT.seq = buf.camera_trigger.seq;
 			LOGBUFFER_WRITE_AND_COUNT(CAMT);
 		}
