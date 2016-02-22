@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,14 +48,12 @@
 MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
-	_vehicleGlobalPositionSub(-1),
-	_vehicleStatusSub(-1),
+	_vehicleLocalPositionSub(-1),
 	_actuatorsSub(-1),
 	_armingSub(-1),
 	_parameterSub(-1),
 	_attitudeSub(-1),
-	_vehicleGlobalPosition{},
-	_vehicleStatus{},
+	_vehicleLocalPosition{},
 	_actuators{},
 	_arming{},
 	_vehicleAttitude{},
@@ -70,9 +68,8 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 void MulticopterLandDetector::initialize()
 {
 	// subscribe to position, attitude, arming and velocity changes
-	_vehicleGlobalPositionSub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_vehicleStatusSub = orb_subscribe(ORB_ID(vehicle_status));
 	_actuatorsSub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
@@ -83,9 +80,8 @@ void MulticopterLandDetector::initialize()
 
 void MulticopterLandDetector::updateSubscriptions()
 {
-	orb_update(ORB_ID(vehicle_global_position), _vehicleGlobalPositionSub, &_vehicleGlobalPosition);
+	orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
 	orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
-	orb_update(ORB_ID(vehicle_status), _vehicleStatusSub, &_vehicleStatus);
 	orb_update(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuatorsSub, &_actuators);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 }
@@ -111,12 +107,17 @@ bool MulticopterLandDetector::get_landed_state()
 		_arming_time = hrt_absolute_time();
 	}
 
-	// return status based on armed state if no position lock is available
-	if (_vehicleGlobalPosition.timestamp == 0 ||
-	    hrt_elapsed_time(&_vehicleGlobalPosition.timestamp) > 500000) {
+	// Check if thrust output is less than max throttle param.
+	bool minimalThrust = _actuators.control[3] <= _params.maxThrottle;
 
-		// no position lock - not landed if armed
-		return !_arming.armed;
+	// Return status based on armed state and throttle if no position lock is available.
+	if (_vehicleLocalPosition.timestamp == 0 ||
+	    hrt_elapsed_time(&_vehicleLocalPosition.timestamp) > 500000 ||
+	    !_vehicleLocalPosition.xy_valid ||
+	    !_vehicleLocalPosition.z_valid) {
+
+		// Minimal thrust means landed.
+		return minimalThrust;
 	}
 
 	const uint64_t now = hrt_absolute_time();
@@ -124,38 +125,35 @@ bool MulticopterLandDetector::get_landed_state()
 	float armThresholdFactor = 1.0f;
 
 	// Widen acceptance thresholds for landed state right after arming
-	// so that motor spool-up and other effects do not trigger false negatives
+	// so that motor spool-up and other effects do not trigger false negatives.
 	if (hrt_elapsed_time(&_arming_time) < LAND_DETECTOR_ARM_PHASE_TIME) {
 		armThresholdFactor = 2.5f;
 	}
 
-	// check if we are moving vertically - this might see a spike after arming due to
+	// Check if we are moving vertically - this might see a spike after arming due to
 	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
-	// an accurate in-air indication
-	bool verticalMovement = fabsf(_vehicleGlobalPosition.vel_d) > _params.maxClimbRate * armThresholdFactor;
+	// an accurate in-air indication.
+	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * armThresholdFactor;
 
-	// check if we are moving horizontally
-	bool horizontalMovement = sqrtf(_vehicleGlobalPosition.vel_n * _vehicleGlobalPosition.vel_n
-					+ _vehicleGlobalPosition.vel_e * _vehicleGlobalPosition.vel_e) > _params.maxVelocity
-				  && _vehicleStatus.condition_global_position_valid;
+	// Check if we are moving horizontally.
+	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
+					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
 
-	// next look if all rotation angles are not moving
-	float maxRotationScaled = _params.maxRotation * armThresholdFactor;
+	// Next look if all rotation angles are not moving.
+	float maxRotationScaled = _params.maxRotation_rad_s * armThresholdFactor;
 
 	bool rotating = (fabsf(_vehicleAttitude.rollspeed)  > maxRotationScaled) ||
 			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
 			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
-	// check if thrust output is minimal (about half of default)
-	bool minimalThrust = _actuators.control[3] <= _params.maxThrottle;
 
 	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
-		// sensed movement, so reset the land detector
+		// Sensed movement or thottle high, so reset the land detector.
 		_landTimer = now;
 		return false;
 	}
 
-	return now - _landTimer > LAND_DETECTOR_TRIGGER_TIME;
+	return (now - _landTimer > LAND_DETECTOR_TRIGGER_TIME);
 }
 
 void MulticopterLandDetector::updateParameterCache(const bool force)
@@ -172,8 +170,8 @@ void MulticopterLandDetector::updateParameterCache(const bool force)
 	if (updated || force) {
 		param_get(_paramHandle.maxClimbRate, &_params.maxClimbRate);
 		param_get(_paramHandle.maxVelocity, &_params.maxVelocity);
-		param_get(_paramHandle.maxRotation, &_params.maxRotation);
-		_params.maxRotation = math::radians(_params.maxRotation);
+		param_get(_paramHandle.maxRotation, &_params.maxRotation_rad_s);
+		_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 		param_get(_paramHandle.maxThrottle, &_params.maxThrottle);
 	}
 }
