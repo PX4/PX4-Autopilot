@@ -1870,26 +1870,32 @@ MulticopterPositionControl::task_main()
 			if (!_control_mode.flag_control_velocity_enabled) {
 				if (_vehicle_status.main_state == vehicle_status_s::MAIN_STATE_ACRO) {
 					/* rate mode - interpret roll/pitch inputs as rate demands */
-//					_att_sp.roll_body += _manual.y * _params.acro_rollRate_max * dt;
-//					_att_sp.pitch_body -= _manual.x * _params.acro_pitchRate_max * dt;
 					float roll_body = _manual.y * _params.acro_rollRate_max * dt;
 					float pitch_body = -_manual.x * _params.acro_pitchRate_max * dt;
 
 					/* update attitude setpoint rotation matrix (avoiding singularities) */
-					/* no yaw setpoint yet */
 					math::Matrix<3, 3> R_xy;
-//					math::Matrix<3, 3> R_y;
-					math::Matrix<3, 3> R_z;
 					R_xy.from_euler(roll_body, pitch_body, 0.0f);
-					R_z.from_euler(0, 0, _att_sp.yaw_body);
+
 					math::Matrix<3, 3> R_delta(R_xy);
+					/* no yaw setpoint yet */
+//					math::Matrix<3, 3> R_z;
+//					R_z.from_euler(0, 0, _att_sp.yaw_body);
 //					R_delta = R_delta * R_z;
 
 					R_sp.set(_att_sp.R_body);
 					R_sp = R_delta * R_sp;
 					memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
-					warnx("R_sp");
-					R_sp.print();
+
+					math::Vector<3> eulerAngles = R_sp.to_euler();
+					_att_sp.roll_body = eulerAngles.data[0];
+					_att_sp.pitch_body = eulerAngles.data[1];
+//					_att_sp.yaw_body = eulerAngles.data[2];
+					static int decimate = 0;
+					if (decimate++ > 50) {
+						decimate = 0;
+						warnx("rollsp: %6.4f, pitchsp: %6.4f", (double)_att_sp.roll_body, (double)_att_sp.pitch_body);
+					}
 				} else {
 					/* angle mode - interpret roll/pitch inputs as angles */
 					_att_sp.roll_body = _manual.y * _params.man_roll_max;
