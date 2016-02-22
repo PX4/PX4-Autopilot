@@ -160,6 +160,7 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 
 		_gps_speed_valid = gps->vel_ned_valid;
 		_gps_speed_accuracy = gps->sacc;
+		_gps_hpos_accuracy = gps->eph;
 
 		float lpos_x = 0.0f;
 		float lpos_y = 0.0f;

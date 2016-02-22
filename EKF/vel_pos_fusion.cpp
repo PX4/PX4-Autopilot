@@ -40,6 +40,7 @@
  */
 
 #include "ekf.h"
+#include "mathlib.h"
 
 void Ekf::fuseVelPosHeight()
 {
@@ -90,7 +91,10 @@ void Ekf::fuseVelPosHeight()
 			R[3] = fmaxf(_params.pos_noaid_noise, 0.5f);
 
 		} else {
-			R[3] = fmaxf(_params.gps_pos_noise, 0.01f);
+			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
+			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
+			R[3] = math::constrain(_gps_hpos_accuracy, lower_limit, upper_limit);
+
 		}
 
 		R[3] = R[3] * R[3];
