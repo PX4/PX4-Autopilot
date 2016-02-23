@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 
-#include "Matrix.hpp"
-
 /**
  * @file common.h
  * Definition of base class for attitude estimators
