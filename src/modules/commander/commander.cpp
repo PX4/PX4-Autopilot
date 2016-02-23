@@ -948,6 +948,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE:
 	case vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL:
 	case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
+	case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL:
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST:
 		/* ignore commands that handled in low prio loop */
 		break;
 
