@@ -236,7 +236,7 @@ mixer_tick(void)
 
 
 	} else if (source != MIX_NONE && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)
-			&& !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
+		   && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 
 		float	outputs[PX4IO_SERVO_COUNT];
 		unsigned mixed;
@@ -288,7 +288,7 @@ mixer_tick(void)
 	}
 
 	if (mixer_servos_armed && (should_arm || should_arm_nothrottle)
-		&& !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
+	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
