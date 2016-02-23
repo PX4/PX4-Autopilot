@@ -1200,6 +1200,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_CAMT_s log_CAMT;
 			struct log_RPL1_s log_RPL1;
 			struct log_RPL2_s log_RPL2;
+			struct log_EST6_s log_INO3;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1858,6 +1859,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_AIRS.air_temperature_celsius = buf.airspeed.air_temperature_celsius;
 				LOGBUFFER_WRITE_AND_COUNT(AIRS);
 			}
+<<<<<<< HEAD
 
 			/* --- ESCs --- */
 			if (copy_if_updated(ORB_ID(esc_status), &subs.esc_sub, &buf.esc)) {
@@ -1995,6 +1997,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_INO2.s[7] = buf.innovations.heading_innov_var;
 				LOGBUFFER_WRITE_AND_COUNT(EST5);
 
+				log_msg.msg_type = LOG_EST6_MSG;
+				memset(&(log_msg.body.log_INO3.s), 0, sizeof(log_msg.body.log_INO3.s));
+				for(unsigned i = 0; i < 2; i++) {
+					log_msg.body.log_INO3.s[i] = buf.innovations.flow_innov[i];
+					log_msg.body.log_INO3.s[i + 2] = buf.innovations.flow_innov_var[i];
+				}
+				LOGBUFFER_WRITE_AND_COUNT(EST6);
 			}
 
 			/* --- TECS STATUS --- */
