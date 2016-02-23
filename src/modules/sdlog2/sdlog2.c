@@ -337,7 +337,7 @@ int sdlog2_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("sdlog2",
 						 SCHED_DEFAULT,
 						 task_priority,
-						 3300,
+						 4200,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
 
@@ -1474,90 +1474,87 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
 			log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
 			LOGBUFFER_WRITE_AND_COUNT(RPL2);
-		}	
-
-		/* --- VTOL VEHICLE STATUS --- */
-		if(copy_if_updated(ORB_ID(vtol_vehicle_status), &subs.vtol_status_sub, &buf.vtol_status)) {
-			log_msg.msg_type = LOG_VTOL_MSG;
-			log_msg.body.log_VTOL.airspeed_tot = buf.vtol_status.airspeed_tot;
-			log_msg.body.log_VTOL.rw_mode = (uint8_t) buf.vtol_status.vtol_in_rw_mode;
-			log_msg.body.log_VTOL.trans_mode = (uint8_t) buf.vtol_status.vtol_in_trans_mode;
-			log_msg.body.log_VTOL.failsafe_mode = (uint8_t) buf.vtol_status.vtol_transition_failsafe;
-			LOGBUFFER_WRITE_AND_COUNT(VTOL);
 		}
 
-		/* --- GPS POSITION - UNIT #1 --- */
-		if (gps_pos_updated) {
-
-			log_msg.msg_type = LOG_GPS_MSG;
-			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_utc_usec;
-			log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
-			log_msg.body.log_GPS.eph = buf_gps_pos.eph;
-			log_msg.body.log_GPS.epv = buf_gps_pos.epv;
-			log_msg.body.log_GPS.lat = buf_gps_pos.lat;
-			log_msg.body.log_GPS.lon = buf_gps_pos.lon;
-			log_msg.body.log_GPS.alt = buf_gps_pos.alt * 0.001f;
-			log_msg.body.log_GPS.vel_n = buf_gps_pos.vel_n_m_s;
-			log_msg.body.log_GPS.vel_e = buf_gps_pos.vel_e_m_s;
-			log_msg.body.log_GPS.vel_d = buf_gps_pos.vel_d_m_s;
-			log_msg.body.log_GPS.cog = buf_gps_pos.cog_rad;
-			log_msg.body.log_GPS.sats = buf_gps_pos.satellites_used;
-			log_msg.body.log_GPS.snr_mean = snr_mean;
-			log_msg.body.log_GPS.noise_per_ms = buf_gps_pos.noise_per_ms;
-			log_msg.body.log_GPS.jamming_indicator = buf_gps_pos.jamming_indicator;
-			LOGBUFFER_WRITE_AND_COUNT(GPS);
-		}
-
-		/* --- SATELLITE INFO - UNIT #1 --- */
-		if (_extended_logging) {
-
-			if (copy_if_updated(ORB_ID(satellite_info), &subs.sat_info_sub, &buf.sat_info)) {
-
-				/* log the SNR of each satellite for a detailed view of signal quality */
-				unsigned sat_info_count = SDLOG_MIN(buf.sat_info.count, sizeof(buf.sat_info.snr) / sizeof(buf.sat_info.snr[0]));
-				unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
-
-				log_msg.msg_type = LOG_GS0A_MSG;
-				memset(&log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
-				snr_mean = 0.0f;
-
-				/* fill set A and calculate mean SNR */
-				for (unsigned i = 0; i < sat_info_count; i++) {
-
-					snr_mean += buf.sat_info.snr[i];
-
-					int satindex = buf.sat_info.svid[i] - 1;
-
-					/* handles index exceeding and wraps to to arithmetic errors */
-					if ((satindex >= 0) && (satindex < (int)log_max_snr)) {
-						/* map satellites by their ID so that logs from two receivers can be compared */
-						log_msg.body.log_GS0A.satellite_snr[satindex] = buf.sat_info.snr[i];
-					}
-				}
-				LOGBUFFER_WRITE_AND_COUNT(GS0A);
-				snr_mean /= sat_info_count;
-
-				log_msg.msg_type = LOG_GS0B_MSG;
-				memset(&log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
-
-				/* fill set B */
-				for (unsigned i = 0; i < sat_info_count; i++) {
-
-					/* get second bank of satellites, thus deduct bank size from index */
-					int satindex = buf.sat_info.svid[i] - 1 - log_max_snr;
-
-					/* handles index exceeding and wraps to to arithmetic errors */
-					if ((satindex >= 0) && (satindex < (int)log_max_snr)) {
-						/* map satellites by their ID so that logs from two receivers can be compared */
-						log_msg.body.log_GS0B.satellite_snr[satindex] = buf.sat_info.snr[i];
-					}
-				}
-				LOGBUFFER_WRITE_AND_COUNT(GS0B);
-			}
-		}
-
-		/* --- SENSOR COMBINED --- */
 		if (!record_replay_log) {
+			/* --- VTOL VEHICLE STATUS --- */
+			if(copy_if_updated(ORB_ID(vtol_vehicle_status), &subs.vtol_status_sub, &buf.vtol_status)) {
+				log_msg.msg_type = LOG_VTOL_MSG;
+				log_msg.body.log_VTOL.airspeed_tot = buf.vtol_status.airspeed_tot;
+				LOGBUFFER_WRITE_AND_COUNT(VTOL);
+			}
+
+			/* --- GPS POSITION - UNIT #1 --- */
+			if (gps_pos_updated) {
+
+				log_msg.msg_type = LOG_GPS_MSG;
+				log_msg.body.log_GPS.gps_time = buf_gps_pos.time_utc_usec;
+				log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
+				log_msg.body.log_GPS.eph = buf_gps_pos.eph;
+				log_msg.body.log_GPS.epv = buf_gps_pos.epv;
+				log_msg.body.log_GPS.lat = buf_gps_pos.lat;
+				log_msg.body.log_GPS.lon = buf_gps_pos.lon;
+				log_msg.body.log_GPS.alt = buf_gps_pos.alt * 0.001f;
+				log_msg.body.log_GPS.vel_n = buf_gps_pos.vel_n_m_s;
+				log_msg.body.log_GPS.vel_e = buf_gps_pos.vel_e_m_s;
+				log_msg.body.log_GPS.vel_d = buf_gps_pos.vel_d_m_s;
+				log_msg.body.log_GPS.cog = buf_gps_pos.cog_rad;
+				log_msg.body.log_GPS.sats = buf_gps_pos.satellites_used;
+				log_msg.body.log_GPS.snr_mean = snr_mean;
+				log_msg.body.log_GPS.noise_per_ms = buf_gps_pos.noise_per_ms;
+				log_msg.body.log_GPS.jamming_indicator = buf_gps_pos.jamming_indicator;
+				LOGBUFFER_WRITE_AND_COUNT(GPS);
+			}
+
+			/* --- SATELLITE INFO - UNIT #1 --- */
+			if (_extended_logging) {
+
+				if (copy_if_updated(ORB_ID(satellite_info), &subs.sat_info_sub, &buf.sat_info)) {
+
+					/* log the SNR of each satellite for a detailed view of signal quality */
+					unsigned sat_info_count = SDLOG_MIN(buf.sat_info.count, sizeof(buf.sat_info.snr) / sizeof(buf.sat_info.snr[0]));
+					unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
+
+					log_msg.msg_type = LOG_GS0A_MSG;
+					memset(&log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
+					snr_mean = 0.0f;
+
+					/* fill set A and calculate mean SNR */
+					for (unsigned i = 0; i < sat_info_count; i++) {
+
+						snr_mean += buf.sat_info.snr[i];
+
+						int satindex = buf.sat_info.svid[i] - 1;
+
+						/* handles index exceeding and wraps to to arithmetic errors */
+						if ((satindex >= 0) && (satindex < (int)log_max_snr)) {
+							/* map satellites by their ID so that logs from two receivers can be compared */
+							log_msg.body.log_GS0A.satellite_snr[satindex] = buf.sat_info.snr[i];
+						}
+					}
+					LOGBUFFER_WRITE_AND_COUNT(GS0A);
+					snr_mean /= sat_info_count;
+
+					log_msg.msg_type = LOG_GS0B_MSG;
+					memset(&log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
+
+					/* fill set B */
+					for (unsigned i = 0; i < sat_info_count; i++) {
+
+						/* get second bank of satellites, thus deduct bank size from index */
+						int satindex = buf.sat_info.svid[i] - 1 - log_max_snr;
+
+						/* handles index exceeding and wraps to to arithmetic errors */
+						if ((satindex >= 0) && (satindex < (int)log_max_snr)) {
+							/* map satellites by their ID so that logs from two receivers can be compared */
+							log_msg.body.log_GS0B.satellite_snr[satindex] = buf.sat_info.snr[i];
+						}
+					}
+					LOGBUFFER_WRITE_AND_COUNT(GS0B);
+				}
+			}
+
+			/* --- SENSOR COMBINED --- */
 			if (copy_if_updated(ORB_ID(sensor_combined), &subs.sensor_sub, &buf.sensor)) {
 				
 
