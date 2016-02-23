@@ -192,6 +192,10 @@ function(px4_nuttx_add_export)
 		ARGN ${ARGN})
 
 	set(nuttx_src ${CMAKE_BINARY_DIR}/${CONFIG}/NuttX)
+	set(nuttx_original_src ${CMAKE_SOURCE_DIR}/NuttX)
+	if(NUTTX_SRC)
+		set(nuttx_original_src ${NUTTX_SRC})
+	endif()
 
 	# patch
 	add_custom_target(__nuttx_patch_${CONFIG})
@@ -214,7 +218,7 @@ function(px4_nuttx_add_export)
 	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
 		COMMAND ${MKDIR} -p ${CMAKE_BINARY_DIR}/${CONFIG}
 		COMMAND ${MKDIR} -p ${nuttx_src}
-		COMMAND ${CP} -a ${CMAKE_SOURCE_DIR}/NuttX/. ${nuttx_src}/
+		COMMAND ${CP} -a ${nuttx_original_src}/. ${nuttx_src}/
 		COMMAND ${RM} -rf ${nuttx_src}/.git
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS})
@@ -546,10 +550,14 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
+	set(export_depends git_nuttx)
+	if(NUTTX_SRC)
+		set(export_depends)
+	endif()
 	px4_nuttx_add_export(OUT nuttx_export_${BOARD}
 		CONFIG ${BOARD}
 		THREADS ${THREADS}
-		DEPENDS git_nuttx)
+		DEPENDS ${export_depends})
 	add_custom_target(${OUT} DEPENDS nuttx_export_${BOARD})
 endfunction()
 
