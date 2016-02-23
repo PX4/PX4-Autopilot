@@ -1,6 +1,8 @@
 # ECL
 
-Very lightweight Estimation & Control Library.
+#### Very lightweight Estimation & Control Library.
+
+[![Build Status](https://travis-ci.org/PX4/ecl.svg?branch=master)](https://travis-ci.org/PX4/ecl)
 
 This library solves the estimation & control problems of a number of robots and drones. It accepts GPS, vision and inertial sensor inputs. It is extremely lightweight and efficient and yet has the rugged field-proven performance.
 
