@@ -612,11 +612,12 @@ void Ekf2::task_main()
 		_ekf->get_vel_pos_innov(&innovations.vel_pos_innov[0]);
 		_ekf->get_mag_innov(&innovations.mag_innov[0]);
 		_ekf->get_heading_innov(&innovations.heading_innov);
+		_ekf->get_flow_innov(&innovations.flow_innov[0]);
 
 		_ekf->get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
 		_ekf->get_mag_innov_var(&innovations.mag_innov_var[0]);
 		_ekf->get_heading_innov_var(&innovations.heading_innov_var);
-
+		_ekf->get_flow_innov_var(&innovations.flow_innov_var[0]);
 		if (_estimator_innovations_pub == nullptr) {
 			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
 
