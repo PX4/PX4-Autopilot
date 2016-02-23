@@ -41,9 +41,8 @@
 
 #include <stdint.h>
 #include <matrix/matrix/math.hpp>
-#include <lib/geo/geo.h>
 #include "RingBuffer.h"
-
+#include "geo.h"
 #include "common.h"
 
 using namespace estimator;

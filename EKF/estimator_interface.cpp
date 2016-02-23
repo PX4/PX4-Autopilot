@@ -44,7 +44,7 @@
 #include <inttypes.h>
 #include <math.h>
 #include "estimator_interface.h"
-#include <mathlib/mathlib.h>
+#include "mathlib.h"
 
 
 EstimatorInterface::EstimatorInterface()
@@ -215,7 +215,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	      _airspeed_buffer.allocate(OBS_BUFFER_LENGTH) &&
 	      _flow_buffer.allocate(OBS_BUFFER_LENGTH) &&
 	      _output_buffer.allocate(IMU_BUFFER_LENGTH))) {
-		PX4_WARN("Estimator Buffer Allocation failed!");
+		printf("Estimator Buffer Allocation failed!");
 		unallocate_buffers();
 		return false;
 	}
