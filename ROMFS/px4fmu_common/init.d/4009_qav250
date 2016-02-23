@@ -33,4 +33,5 @@ then
 	param set MC_ROLLRATE_MAX 360.0
 	param set MC_PITCHRATE_MAX 360.0
 	param set MC_YAWRATE_MAX 200.0
+	param set CBRK_IO_SAFETY 22027
 fi
