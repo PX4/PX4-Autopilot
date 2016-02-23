@@ -6,18 +6,13 @@
     exit 0
 }
 
-if [ -f src/modules/uavcan/libuavcan/CMakeLists.txt ]
-then
-	echo "Git submodule config valid."
-else
-	git submodule update --init --recursive
-fi
 
 GITSTATUS=$(git status)
 
 function check_git_submodule {
 
-if [ -d $1 ];
+# The .git exists in a submodule if init and update have been done.
+if [ -f $1"/.git" ];
 	then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
 	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
@@ -58,7 +53,7 @@ if [ -d $1 ];
 		fi
 	fi
 else
-	git submodule update --init --recursive;
+	git submodule update --init --recursive $1;
 fi
 
 }
