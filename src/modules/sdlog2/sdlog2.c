@@ -771,6 +771,9 @@ void sdlog2_stop_log()
 	/* free log writer performance counter */
 	perf_free(perf_write);
 
+	/* free log buffer */
+	logbuffer_free(&lb);
+
 	mavlink_and_console_log_info(mavlink_fd, "[blackbox] recording stopped");
 
 	sdlog2_status();
