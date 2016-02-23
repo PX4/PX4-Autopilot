@@ -372,7 +372,7 @@ void Ekf2::task_main()
 
 		// read airspeed data if available
 		if (airspeed_updated) {
-			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.indicated_airspeed_m_s);
+			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.indicated_airspeed_m_s); // This should probably be changed to EAS!
 		}
 
 		// read vehicle status if available for 'landed' information
@@ -520,7 +520,7 @@ void Ekf2::task_main()
 			// TODO: implement terrain estimator
 			global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
 			global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
-			// TODO use innovatun consistency check timouts to set this
+			// TODO use innovation consistency check timouts to set this
 			global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
 
 			global_pos.pressure_alt = sensors.baro_alt_meter[0]; // Pressure altitude AMSL (m)
@@ -553,10 +553,13 @@ void Ekf2::task_main()
 		_ekf->get_vel_pos_innov(&innovations.vel_pos_innov[0]);
 		_ekf->get_mag_innov(&innovations.mag_innov[0]);
 		_ekf->get_heading_innov(&innovations.heading_innov);
+		_ekf->get_airspeed_innov(&innovations.airspeed_innov);
 
 		_ekf->get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
 		_ekf->get_mag_innov_var(&innovations.mag_innov_var[0]);
 		_ekf->get_heading_innov_var(&innovations.heading_innov_var);
+		_ekf->get_airspeed_innov_var(&innovations.airspeed_innov_var);
+
 
 		if (_estimator_innovations_pub == nullptr) {
 			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
