@@ -32,13 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file estimator_base.h
+ * @file common.h
  * Definition of base class for attitude estimators
  *
  * @author Roman Bast <bapstroman@gmail.com>
  * @author Siddharth Bharat Purohit <siddharthbharatpurohit@gmail.com>
  *
  */
+
 namespace estimator
 {
 struct gps_message {
@@ -112,54 +113,100 @@ struct flowSample {
 };
 
 struct parameters {
-	float mag_delay_ms = 0.0f;          // magnetometer measurement delay relative to the IMU
-	float baro_delay_ms = 0.0f;         // barometer height measurement delay relative to the IMU
-	float gps_delay_ms = 200.0f;        // GPS measurement delay relative to the IMU
-	float airspeed_delay_ms = 200.0f;   // airspeed measurement delay relative to the IMU
+	float mag_delay_ms;         // magnetometer measurement delay relative to the IMU
+	float baro_delay_ms;        // barometer height measurement delay relative to the IMU
+	float gps_delay_ms;         // GPS measurement delay relative to the IMU
+	float airspeed_delay_ms;    // airspeed measurement delay relative to the IMU
 
 	// input noise
-	float gyro_noise = 1.0e-3f;         // IMU angular rate noise used for covariance prediction
-	float accel_noise = 2.5e-1f;        // IMU acceleration noise use for covariance prediction
+	float gyro_noise;           // IMU angular rate noise used for covariance prediction
+	float accel_noise;          // IMU acceleration noise use for covariance prediction
 
 	// process noise
-	float gyro_bias_p_noise = 7.0e-5f;  // process noise for IMU delta angle bias prediction
-	float accel_bias_p_noise = 1.0e-4f; // process noise for IMU delta velocity bias prediction
-	float gyro_scale_p_noise = 3.0e-3f; // process noise for gyro scale factor prediction
-	float mag_p_noise = 2.5e-2f;        // process noise for magnetic field prediction
-	float wind_vel_p_noise = 1.0e-1f;   // process noise for wind velocity prediction
+	float gyro_bias_p_noise;    // process noise for IMU delta angle bias prediction
+	float accel_bias_p_noise;   // process noise for IMU delta velocity bias prediction
+	float gyro_scale_p_noise;   // process noise for gyro scale factor prediction
+	float mag_p_noise;          // process noise for magnetic field prediction
+	float wind_vel_p_noise;     // process noise for wind velocity prediction
 
-	float gps_vel_noise = 5.0e-1f;      // observation noise for gps velocity fusion
-	float gps_pos_noise = 1.0f;         // observation noise for gps position fusion
-	float pos_noaid_noise = 10.0f;      // observation noise for non-aiding position fusion
-	float baro_noise = 3.0f;            // observation noise for barometric height fusion
-	float baro_innov_gate = 3.0f;       // barometric height innovation consistency gate size in standard deviations
-	float posNE_innov_gate = 3.0f;      // GPS horizontal position innovation consistency gate size in standard deviations
-	float vel_innov_gate = 3.0f;        // GPS velocity innovation consistency gate size in standard deviations
+	float gps_vel_noise;        // observation noise for gps velocity fusion
+	float gps_pos_noise;        // observation noise for gps position fusion
+	float pos_noaid_noise;      // observation noise for non-aiding position fusion
+	float baro_noise;           // observation noise for barometric height fusion
+	float baro_innov_gate;      // barometric height innovation consistency gate size in standard deviations
+	float posNE_innov_gate;     // GPS horizontal position innovation consistency gate size in standard deviations
+	float vel_innov_gate;       // GPS velocity innovation consistency gate size in standard deviations
 
-	float mag_heading_noise = 1.7e-1f;  // measurement noise used for simple heading fusion
-	float mag_noise = 5.0e-2f;          // measurement noise used for 3-axis magnetoemeter fusion
-	float mag_declination_deg = 0.0f;   // magnetic declination in degrees
-	float heading_innov_gate = 3.0f;    // heading fusion innovation consistency gate size in standard deviations
-	float mag_innov_gate = 3.0f;        // magnetometer fusion innovation consistency gate size in standard deviations
-	int mag_declination_source = 3;     // bitmask used to control the handling of declination data
-	int mag_fusion_type = 0;            // integer used to specify the type of magnetometer fusion used
+	float mag_heading_noise;    // measurement noise used for simple heading fusion
+	float mag_noise;            // measurement noise used for 3-axis magnetoemeter fusion
+	float mag_declination_deg;  // magnetic declination in degrees
+	float heading_innov_gate;   // heading fusion innovation consistency gate size in standard deviations
+	float mag_innov_gate;       // magnetometer fusion innovation consistency gate size in standard deviations
+	int mag_declination_source; // bitmask used to control the handling of declination data
+	int mag_fusion_type;        // integer used to specify the type of magnetometer fusion used
 
 	// these parameters control the strictness of GPS quality checks used to determine uf the GPS is
 	// good enough to set a local origin and commence aiding
-	int gps_check_mask = 21;    // bitmask used to control which GPS quality checks are used
-	float req_hacc = 5.0f;      // maximum acceptable horizontal position error
-	float req_vacc = 8.0f;      // maximum acceptable vertical position error
-	float req_sacc = 1.0f;      // maximum acceptable speed error
-	int req_nsats = 6;          // minimum acceptable satellite count
-	float req_gdop = 2.0f;      // maximum acceptable geometric dilution of precision
-	float req_hdrift = 0.3f;    // maximum acceptable horizontal drift speed
-	float req_vdrift = 0.5f;    // maximum acceptable vertical drift speed
+	int gps_check_mask;     // bitmask used to control which GPS quality checks are used
+	float req_hacc;         // maximum acceptable horizontal position error
+	float req_vacc;         // maximum acceptable vertical position error
+	float req_sacc;         // maximum acceptable speed error
+	int req_nsats;          // minimum acceptable satellite count
+	float req_gdop;         // maximum acceptable geometric dilution of precision
+	float req_hdrift;       // maximum acceptable horizontal drift speed
+	float req_vdrift;       // maximum acceptable vertical drift speed
+	
+    // Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
+	parameters()
+	{
+		mag_delay_ms = 0.0f;
+		baro_delay_ms = 0.0f;
+		gps_delay_ms = 200.0f;
+		airspeed_delay_ms = 200.0f;
+
+		// input noise
+		gyro_noise = 1.0e-3f;
+		accel_noise = 2.5e-1f;
+
+		// process noise
+		gyro_bias_p_noise = 7.0e-5f;
+		accel_bias_p_noise = 1.0e-4f;
+		gyro_scale_p_noise = 3.0e-3f;
+		mag_p_noise = 2.5e-2f;
+		wind_vel_p_noise = 1.0e-1f;
+
+		gps_vel_noise = 5.0e-1f;
+		gps_pos_noise = 1.0f;
+		pos_noaid_noise = 10.0f;
+		baro_noise = 3.0f;
+		baro_innov_gate = 3.0f;
+		posNE_innov_gate = 3.0f;
+		vel_innov_gate = 3.0f;
+
+		mag_heading_noise = 1.7e-1f;
+		mag_noise = 5.0e-2f;
+		mag_declination_deg = 0.0f;
+		heading_innov_gate = 3.0f;
+		mag_innov_gate = 3.0f;
+
+		mag_declination_source = 7;
+		mag_fusion_type = 0;
+
+		gps_check_mask = 21;
+		req_hacc = 5.0f;
+		req_vacc = 8.0f;
+		req_sacc = 1.0f;
+		req_nsats = 6;
+		req_gdop = 2.0f;
+		req_hdrift = 0.3f;
+		req_vdrift = 0.5f;
+	}
 };
 
 // Bit locations for mag_declination_source
 #define MASK_USE_GEO_DECL   (1<<0)  // set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
 #define MASK_SAVE_GEO_DECL  (1<<1)  // set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
-#define MASK_FUSE_DECL      (1<<2)  // set to true if the declination is always fused as an observation to contrain drift when 3-axis fusion is performed
+#define MASK_FUSE_DECL      (1<<2)  // set to true if the declination is always fused as an observation to constrain drift when 3-axis fusion is performed
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic

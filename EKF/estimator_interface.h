@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file estimator_base.h
+ * @file estimator_interface.h
  * Definition of base class for attitude estimators
  *
  * @author Roman Bast <bapstroman@gmail.com>
@@ -80,9 +80,8 @@ public:
 
 	virtual void get_covariances(float *covariances) = 0;
 
-	// get the ekf WGS-84 origin positoin and height and the system time it was last set
+	// get the ekf WGS-84 origin position and height and the system time it was last set
 	virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
-
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }
@@ -104,6 +103,7 @@ public:
 
 	// set magnetometer data
 	void setMagData(uint64_t time_usec, float *data);
+	//void setMagData(uint64_t time_usec, struct magSample *mag);
 
 	// set gps data
 	void setGpsData(uint64_t time_usec, struct gps_message *gps);
@@ -188,17 +188,17 @@ protected:
 
 	uint64_t _imu_ticks;	// counter for imu updates
 
-	bool _imu_updated = false;	// true if the ekf should update (completed downsampling process)
-	bool _initialised = false;	// true if ekf interface instance (data buffering) is initialised
-	bool _vehicle_armed = false;     // vehicle arm status used to turn off functionality used on the ground
-	bool _in_air = false;	// we assume vehicle is in the air, set by the given landing detector
+	bool _imu_updated;      // true if the ekf should update (completed downsampling process)
+	bool _initialised;      // true if the ekf interface instance (data buffering) is initialized
+	bool _vehicle_armed;    // vehicle arm status used to turn off functionality used on the ground
+	bool _in_air;           // we assume vehicle is in the air, set by the given landing detector
 
-	bool _NED_origin_initialised = false;
-	bool _gps_speed_valid = false;
-	float _gps_speed_accuracy = 0.0f; // GPS receiver reported speed accuracy (m/s)
-	struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
+	bool _NED_origin_initialised;
+	bool _gps_speed_valid;
+	float _gps_speed_accuracy;                  // GPS receiver reported speed accuracy (m/s)
+	struct map_projection_reference_s _pos_ref; // Contains WGS-84 position latitude and longitude (radians)
 
-	bool _mag_healthy = false;		// computed by mag innovation test
+	bool _mag_healthy;              // computed by mag innovation test
 	float _yaw_test_ratio;          // yaw innovation consistency check ratio
 	float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
 
@@ -221,7 +221,6 @@ protected:
 	uint64_t _time_last_range;	// timestamp of last range measurement in microseconds
 	uint64_t _time_last_airspeed;	// timestamp of last airspeed measurement in microseconds
 
-
 	fault_status_t _fault_status;
 
 	// allocate data buffers and intialise interface variables
@@ -230,8 +229,6 @@ protected:
 	// free buffer memory
 	void unallocate_buffers();
 
-	float _mag_declination_gps =
-		0.0f; // magnetic declination returned by the geo library using the last valid GPS position (rad)
-
-	float _mag_declination_to_save_deg = 0.0f; // magnetic declination to save to EKF2_MAG_DECL (deg)
+	float _mag_declination_gps;         // magnetic declination returned by the geo library using the last valid GPS position (rad)
+	float _mag_declination_to_save_deg; // magnetic declination to save to EKF2_MAG_DECL (deg)
 };
