@@ -471,6 +471,12 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "lockdown")) {
+
+		if (argc < 3) {
+			usage("not enough arguments, missing [on, off]");
+			return 1;
+		}
+
 		int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 		vehicle_command_s cmd = {};
@@ -478,7 +484,8 @@ int commander_main(int argc, char *argv[])
 		cmd.target_component = status.component_id;
 
 		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
-		cmd.param1 = 2.0f; /* lockdown */
+		/* if the comparison matches for off (== 0) set 0.0f, 2.0f (on) else */
+		cmd.param1 = strcmp(argv[2], "off") ? 2.0f : 0.0f; /* lockdown */
 
 		// XXX inspect use of publication handle
 		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
@@ -809,50 +816,48 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				armed_local->force_failsafe = true;
 				warnx("forcing failsafe (termination)");
 
+				/* param2 is currently used for other failsafe modes */
+				status_local->engine_failure_cmd = false;
+				status_local->data_link_lost_cmd = false;
+				status_local->gps_failure_cmd = false;
+				status_local->rc_signal_lost_cmd = false;
+				status_local->vtol_transition_failure_cmd = false;
+
+				if ((int)cmd->param2 <= 0) {
+					/* reset all commanded failure modes */
+					warnx("reset all non-flighttermination failsafe commands");
+
+				} else if ((int)cmd->param2 == 1) {
+					/* trigger engine failure mode */
+					status_local->engine_failure_cmd = true;
+					warnx("engine failure mode commanded");
+
+				} else if ((int)cmd->param2 == 2) {
+					/* trigger data link loss mode */
+					status_local->data_link_lost_cmd = true;
+					warnx("data link loss mode commanded");
+
+				} else if ((int)cmd->param2 == 3) {
+					/* trigger gps loss mode */
+					status_local->gps_failure_cmd = true;
+					warnx("gps loss mode commanded");
+
+				} else if ((int)cmd->param2 == 4) {
+					/* trigger rc loss mode */
+					status_local->rc_signal_lost_cmd = true;
+					warnx("rc loss mode commanded");
+
+				} else if ((int)cmd->param2 == 5) {
+					/* trigger vtol transition failure mode */
+					status_local->vtol_transition_failure_cmd = true;
+					warnx("vtol transition failure mode commanded");
+				}
+
 			} else {
 				armed_local->force_failsafe = false;
 				armed_local->lockdown = false;
-				warnx("disabling failsafe (termination)");
+				warnx("disabling failsafe and lockdown");
 			}
-
-			/* param2 is currently used for other failsafe modes */
-			status_local->engine_failure_cmd = false;
-			status_local->data_link_lost_cmd = false;
-			status_local->gps_failure_cmd = false;
-			status_local->rc_signal_lost_cmd = false;
-			status_local->vtol_transition_failure_cmd = false;
-
-			if ((int)cmd->param2 <= 0) {
-				/* reset all commanded failure modes */
-				warnx("reset all non-flighttermination failsafe commands");
-
-			} else if ((int)cmd->param2 == 1) {
-				/* trigger engine failure mode */
-				status_local->engine_failure_cmd = true;
-				warnx("engine failure mode commanded");
-
-			} else if ((int)cmd->param2 == 2) {
-				/* trigger data link loss mode */
-				status_local->data_link_lost_cmd = true;
-				warnx("data link loss mode commanded");
-
-			} else if ((int)cmd->param2 == 3) {
-				/* trigger gps loss mode */
-				status_local->gps_failure_cmd = true;
-				warnx("gps loss mode commanded");
-
-			} else if ((int)cmd->param2 == 4) {
-				/* trigger rc loss mode */
-				status_local->rc_signal_lost_cmd = true;
-				warnx("rc loss mode commanded");
-
-			} else if ((int)cmd->param2 == 5) {
-				/* trigger vtol transition failure mode */
-				status_local->vtol_transition_failure_cmd = true;
-				warnx("vtol transition failure mode commanded");
-			}
-
-
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 		}
