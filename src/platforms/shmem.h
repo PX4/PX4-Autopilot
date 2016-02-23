@@ -1,5 +1,6 @@
 /****************************************************************************
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *
+ * Copyright (c) 2015 Ramakrishna Kintada. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ATLFlight nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -29,13 +30,29 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifndef MAINAPP_IDL
-#define MAINAPP_IDL
 
-#include "AEEStdDef.idl"
+#define MAX_SHMEM_PARAMS 3850 //MAP_SIZE - (LOCK_SIZE - sizeof(struct shmem_info))
 
-interface mainapp{
-    uint32 test();
+struct shmem_info {
+	union param_value_u params_val[MAX_SHMEM_PARAMS];
+	unsigned char krait_changed_index[MAX_SHMEM_PARAMS / 8 + 1]; /*bit map of all params changed by krait*/
+	unsigned char adsp_changed_index[MAX_SHMEM_PARAMS / 8 + 1]; /*bit map of all params changed by adsp*/
+
+#ifdef __PX4_NUTTX
 };
+#else
+} __attribute__((packed));
+#endif
 
-#endif /*MAINAPP_IDL*/
+#define MAP_ADDRESS	0xfbfc000
+#define MAP_SIZE 	16384
+#define MAP_MASK 	(MAP_SIZE - 1)
+
+#define LOCK_OFFSET	0
+#define LOCK_SIZE	4
+#define LOCK_MEM        1
+#define UNLOCK_MEM      2
+
+#define TYPE_MASK 	0x1
+
+extern bool handle_in_range(param_t);

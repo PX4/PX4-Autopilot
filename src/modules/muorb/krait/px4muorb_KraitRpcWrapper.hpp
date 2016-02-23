@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (c) 2016 Ramakrishna Kintada. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,53 +30,47 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <stdio.h>
-#include <dlfcn.h>
+#ifndef _px4muorb_KraitRpcWrapper_hpp_
+#define _px4muorb_KraitRpcWrapper_hpp_
+#include <stdint.h>
 
-//#define STACK_SIZE 0x8000
-//static char __attribute__ ((aligned (16))) stack1[STACK_SIZE];
-
-static void do_dlopen()
+namespace px4muorb
 {
-#if 0
-	void *handle;
-	char *error;
-	void (*entry_function)() = NULL;
-
-	handle = dlopen("libdspal_client.so", RTLD_LAZY);
-
-	if (!handle) {
-		printf("Error opening libdspal_client.so\n");
-		return 1;
-	}
-
-	entry_function = dlsym(handle, "dspal_entry");
-
-	if (((error = dlerror()) != NULL) || (entry_function == NULL)) {
-		printf("Error dlsym for dspal_entry");
-		ret = 2;
-	}
-
-	dlclose(handle);
-#endif
+class KraitRpcWrapper;
 }
 
-#ifdef QURT_EXE_BUILD
-int dlinit(int a, char **b)
+class px4muorb::KraitRpcWrapper
 {
-	return 0;
-}
-#endif
+public:
+	/**
+	 * Constructor
+	 */
+	KraitRpcWrapper();
 
-int main(int argc, char *argv[])
-{
-	int ret = 0;
-	char *builtin[] = {"libgcc.so", "libc.so"};
+	/**
+	 * destructor
+	 */
+	~KraitRpcWrapper();
 
-	printf("In DSPAL main\n");
-	dlinit(2, builtin);
+	/**
+	 * Initiatizes the rpc channel px4 muorb
+	 */
+	bool Initialize();
 
-	do_dlopen();
-	return ret;
-}
+	/**
+	 * Terminate to clean up the resources.  This should be called at program exit
+	 */
+	bool Terminate();
 
+	/**
+	 * Muorb related functions to pub/sub of orb topic from krait to adsp
+	 */
+	int32_t AddSubscriber(const char *topic);
+	int32_t RemoveSubscriber(const char *topic);
+	int32_t SendData(const char *topic, int32_t length_in_bytes, const uint8_t *data);
+	int32_t ReceiveData(int32_t *msg_type, char **topic, int32_t *length_in_bytes, uint8_t **data);
+	int32_t IsSubscriberPresent(const char *topic, int32_t *status);
+	int32_t ReceiveBulkData(uint8_t **bulk_data, int32_t *length_in_bytes, int32_t *topic_count);
+	int32_t UnblockReceiveData();
+};
+#endif // _px4muorb_KraitWrapper_hpp_

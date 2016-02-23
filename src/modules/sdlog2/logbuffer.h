@@ -65,4 +65,6 @@ int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part);
 
 void logbuffer_mark_read(struct logbuffer_s *lb, int n);
 
+void logbuffer_free(struct logbuffer_s *lb);
+
 #endif

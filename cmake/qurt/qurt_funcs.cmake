@@ -45,4 +45,3 @@
 #
 # The macros are called from the top level CMakeLists.txt
 #
-px4_add_git_submodule(TARGET git_dspal PATH "src/lib/dspal")
