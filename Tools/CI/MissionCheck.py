@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ################################################################################################
 # @File MissionCheck.py
 # Automated mission loading, execution and monitoring
