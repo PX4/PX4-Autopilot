@@ -228,9 +228,7 @@ static void
 at24xxx_attach(void)
 {
 	/* find the right I2C */
-	struct i2c_dev_s *i2c = up_i2cinitialize(PX4_I2C_BUS_ONBOARD);
-	/* this resets the I2C bus, set correct bus speed again */
-	I2C_SETFREQUENCY(i2c, 400000);
+	struct i2c_master_s *i2c = stm32_i2cbus_initialize(PX4_I2C_BUS_ONBOARD);
 
 	if (i2c == NULL) {
 		errx(1, "failed to locate I2C bus");
