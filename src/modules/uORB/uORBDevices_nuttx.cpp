@@ -182,7 +182,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 	/*
 	 * Perform an atomic copy & state update
 	 */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = enter_critical_section();
 
 	/* if the caller doesn't want the data, don't give it to them */
 	if (nullptr != buffer) {
@@ -201,7 +201,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 	 */
 	sd->update_reported = false;
 
-	irqrestore(flags);
+	leave_critical_section(flags);
 
 	return _meta->o_size;
 }
@@ -243,9 +243,9 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 	}
 
 	/* Perform an atomic copy. */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = enter_critical_section();
 	memcpy(_data, buffer, _meta->o_size);
-	irqrestore(flags);
+	leave_critical_section(flags);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
@@ -371,7 +371,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	bool ret = false;
 
 	/* avoid racing between interrupt and non-interrupt context calls */
-	irqstate_t state = irqsave();
+	irqstate_t state = enter_critical_section();
 
 	/* check if this topic has been published yet, if not bail out */
 	if (_data == nullptr) {
@@ -437,7 +437,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	}
 
 out:
-	irqrestore(state);
+	leave_critical_section(state);
 
 	/* consider it updated */
 	return ret;

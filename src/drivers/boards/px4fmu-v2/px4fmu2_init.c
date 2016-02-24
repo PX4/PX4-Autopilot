@@ -523,7 +523,7 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 
 	fullcontext_s *pdump = (fullcontext_s *)&_sdata;
 
-	(void)irqsave();
+	(void)enter_critical_section();
 
 	struct tcb_s *rtcb = (struct tcb_s *)tcb;
 

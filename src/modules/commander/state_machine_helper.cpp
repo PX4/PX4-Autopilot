@@ -132,7 +132,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 		 * Perform an atomic state update
 		 */
 		#ifdef __PX4_NUTTX
-		irqstate_t flags = irqsave();
+		irqstate_t flags = enter_critical_section();
 		#endif
 
 		/* enforce lockdown in HIL */
@@ -267,7 +267,7 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 
 		/* end of atomic state update */
 		#ifdef __PX4_NUTTX
-		irqrestore(flags);
+		leave_critical_section(flags);
 		#endif
 	}
 
