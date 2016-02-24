@@ -174,6 +174,7 @@ private:
 
 	control::BlockParamFloat *_mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamFloat *_mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
+	control::BlockParamFloat *_eas_noise;			// measurement noise used for airspeed fusion (std m/s)
 	control::BlockParamFloat *_mag_declination_deg;	// magnetic declination in degrees
 	control::BlockParamFloat *_heading_innov_gate;	// innovation gate for heading innovation test
 	control::BlockParamFloat *_mag_innov_gate;	// innovation gate for magnetometer innovation test
@@ -227,7 +228,7 @@ Ekf2::Ekf2():
 	_vel_innov_gate(new control::BlockParamFloat(this, "EKF2_GPS_V_GATE", false, &_params->vel_innov_gate)),
 	_mag_heading_noise(new control::BlockParamFloat(this, "EKF2_HEAD_NOISE", false, &_params->mag_heading_noise)),
 	_mag_noise(new control::BlockParamFloat(this, "EKF2_MAG_NOISE", false, &_params->mag_noise)),
-	_eas_noise(new control::BlockParamFloat(thus, "EKF2_EAS_NOISE", fasle, &_params->eas_noise)),
+	_eas_noise(new control::BlockParamFloat(this, "EKF2_EAS_NOISE", false, &_params->eas_noise)),
 	_mag_declination_deg(new control::BlockParamFloat(this, "EKF2_MAG_DECL", false, &_params->mag_declination_deg)),
 	_heading_innov_gate(new control::BlockParamFloat(this, "EKF2_HDG_GATE", false, &_params->heading_innov_gate)),
 	_mag_innov_gate(new control::BlockParamFloat(this, "EKF2_MAG_GATE", false, &_params->mag_innov_gate)),
