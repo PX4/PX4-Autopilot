@@ -174,6 +174,7 @@ private:
 
 	control::BlockParamFloat *_mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamFloat *_mag_noise;           // measurement noise used for 3-axis magnetoemter fusion (Gauss)
+	control::BlockParamFloat *_eas_noise;			// measurement noise used for airspeed fusion (std m/s)
 	control::BlockParamFloat *_mag_declination_deg;	// magnetic declination in degrees
 	control::BlockParamFloat *_heading_innov_gate;	// innovation gate for heading innovation test
 	control::BlockParamFloat *_mag_innov_gate;	// innovation gate for magnetometer innovation test
@@ -227,6 +228,7 @@ Ekf2::Ekf2():
 	_vel_innov_gate(new control::BlockParamFloat(this, "EKF2_GPS_V_GATE", false, &_params->vel_innov_gate)),
 	_mag_heading_noise(new control::BlockParamFloat(this, "EKF2_HEAD_NOISE", false, &_params->mag_heading_noise)),
 	_mag_noise(new control::BlockParamFloat(this, "EKF2_MAG_NOISE", false, &_params->mag_noise)),
+	_eas_noise(new control::BlockParamFloat(this, "EKF2_EAS_NOISE", false, &_params->eas_noise)),
 	_mag_declination_deg(new control::BlockParamFloat(this, "EKF2_MAG_DECL", false, &_params->mag_declination_deg)),
 	_heading_innov_gate(new control::BlockParamFloat(this, "EKF2_HDG_GATE", false, &_params->heading_innov_gate)),
 	_mag_innov_gate(new control::BlockParamFloat(this, "EKF2_MAG_GATE", false, &_params->mag_innov_gate)),
@@ -372,7 +374,7 @@ void Ekf2::task_main()
 
 		// read airspeed data if available
 		if (airspeed_updated) {
-			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.indicated_airspeed_m_s);
+			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s); // Only TAS is now fed into the estimator
 		}
 
 		// read vehicle status if available for 'landed' information
@@ -520,7 +522,7 @@ void Ekf2::task_main()
 			// TODO: implement terrain estimator
 			global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
 			global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
-			// TODO use innovatun consistency check timouts to set this
+			// TODO use innovation consistency check timouts to set this
 			global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
 
 			global_pos.pressure_alt = sensors.baro_alt_meter[0]; // Pressure altitude AMSL (m)
@@ -553,10 +555,13 @@ void Ekf2::task_main()
 		_ekf->get_vel_pos_innov(&innovations.vel_pos_innov[0]);
 		_ekf->get_mag_innov(&innovations.mag_innov[0]);
 		_ekf->get_heading_innov(&innovations.heading_innov);
+		_ekf->get_airspeed_innov(&innovations.airspeed_innov);
 
 		_ekf->get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
 		_ekf->get_mag_innov_var(&innovations.mag_innov_var[0]);
 		_ekf->get_heading_innov_var(&innovations.heading_innov_var);
+		_ekf->get_airspeed_innov_var(&innovations.airspeed_innov_var);
+
 
 		if (_estimator_innovations_pub == nullptr) {
 			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
