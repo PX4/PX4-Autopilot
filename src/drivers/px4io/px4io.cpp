@@ -1202,6 +1202,7 @@ PX4IO::task_main()
 								    (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
 					}
 				}
+
 				// Also trigger param update in Battery instance.
 				_battery.updateParams();
 			}
