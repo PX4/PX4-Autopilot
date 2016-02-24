@@ -270,7 +270,7 @@ int ASHTECH::handle_message(int len)
 		int num_of_sv __attribute__((unused)) = 0, fix_quality = 0;
 		double track_true = 0.0, ground_speed = 0.0 , age_of_corr __attribute__((unused)) = 0.0;
 		double hdop = 99.9, vdop = 99.9,  pdop __attribute__((unused)) = 99.9,
-		tdop __attribute__((unused)) = 99.9, vertic_vel = 0.0;
+		       tdop __attribute__((unused)) = 99.9, vertic_vel = 0.0;
 		char ns = '?', ew = '?';
 
 		if (bufptr && *(++bufptr) != ',') { fix_quality = strtol(bufptr, &endp, 10); bufptr = endp; }
