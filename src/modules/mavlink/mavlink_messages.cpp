@@ -562,14 +562,15 @@ protected:
 			msg.load = status.load * 1000.0f;
 			msg.voltage_battery = status.battery_voltage * 1000.0f;
 			msg.current_battery = status.battery_current * 100.0f;
-			msg.drop_rate_comm = status.drop_rate_comm;
-			msg.errors_comm = status.errors_comm;
-			msg.errors_count1 = status.errors_count1;
-			msg.errors_count2 = status.errors_count2;
-			msg.errors_count3 = status.errors_count3;
-			msg.errors_count4 = status.errors_count4;
 			msg.battery_remaining = (status.condition_battery_voltage_valid) ?
 							status.battery_remaining * 100.0f : -1;
+			// TODO: fill in something useful in the fields below
+			msg.drop_rate_comm = 0;
+			msg.errors_comm = 0;
+			msg.errors_count1 = 0;
+			msg.errors_count2 = 0;
+			msg.errors_count3 = 0;
+			msg.errors_count4 = 0;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_SYS_STATUS, &msg);
 
@@ -2694,7 +2695,7 @@ protected:
 
 			if (land_detected.landed) {
 				_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
-			
+
 			} else {
 				_msg.landed_state = MAV_LANDED_STATE_IN_AIR;
 			}

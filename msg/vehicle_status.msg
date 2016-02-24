@@ -48,42 +48,6 @@ uint8 NAVIGATION_STATE_RATTITUDE = 16		# Rattitude (aka "flip") mode
 uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17	# Takeoff
 uint8 NAVIGATION_STATE_MAX = 18
 
-# VEHICLE_MODE_FLAG, same as MAV_MODE_FLAG of MAVLink 1.0 protocol
-uint8 VEHICLE_MODE_FLAG_SAFETY_ARMED = 128
-uint8 VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED = 64
-uint8 VEHICLE_MODE_FLAG_HIL_ENABLED = 32
-uint8 VEHICLE_MODE_FLAG_STABILIZED_ENABLED = 16
-uint8 VEHICLE_MODE_FLAG_GUIDED_ENABLED = 8
-uint8 VEHICLE_MODE_FLAG_AUTO_ENABLED = 4
-uint8 VEHICLE_MODE_FLAG_TEST_ENABLED = 2
-uint8 VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1
-
-# VEHICLE_TYPE, should match 1:1 MAVLink's MAV_TYPE ENUM
-uint8 VEHICLE_TYPE_GENERIC = 0		    # Generic micro air vehicle.
-uint8 VEHICLE_TYPE_FIXED_WING = 1	    # Fixed wing aircraft.
-uint8 VEHICLE_TYPE_QUADROTOR = 2	    # Quadrotor
-uint8 VEHICLE_TYPE_COAXIAL = 3		    # Coaxial helicopter
-uint8 VEHICLE_TYPE_HELICOPTER = 4	    # Normal helicopter with tail rotor.
-uint8 VEHICLE_TYPE_ANTENNA_TRACKER = 5	    # Ground installation
-uint8 VEHICLE_TYPE_GCS = 6		    # Operator control unit / ground control station
-uint8 VEHICLE_TYPE_AIRSHIP = 7		    # Airship, controlled
-uint8 VEHICLE_TYPE_FREE_BALLOON = 8	    # Free balloon, uncontrolled
-uint8 VEHICLE_TYPE_ROCKET = 9		    # Rocket
-uint8 VEHICLE_TYPE_GROUND_ROVER = 10	    # Ground rover
-uint8 VEHICLE_TYPE_SURFACE_BOAT = 11	    # Surface vessel, boat, ship
-uint8 VEHICLE_TYPE_SUBMARINE = 12	    # Submarine
-uint8 VEHICLE_TYPE_HEXAROTOR = 13	    # Hexarotor
-uint8 VEHICLE_TYPE_OCTOROTOR = 14	    # Octorotor
-uint8 VEHICLE_TYPE_TRICOPTER = 15	    # Octorotor
-uint8 VEHICLE_TYPE_FLAPPING_WING = 16	    # Flapping wing
-uint8 VEHICLE_TYPE_KITE = 17		    # Kite
-uint8 VEHICLE_TYPE_ONBOARD_CONTROLLER=18    # Onboard companion controller
-uint8 VEHICLE_TYPE_VTOL_DUOROTOR = 19	    # Vtol with two engines
-uint8 VEHICLE_TYPE_VTOL_QUADROTOR = 20	    # Vtol with four engines
-uint8 VEHICLE_TYPE_VTOL_HEXAROTOR = 21 		# Vtol with six engines
-uint8 VEHICLE_TYPE_VTOL_OCTOROTOR = 22		# Vtol with eight engines
-uint8 VEHICLE_TYPE_ENUM_END = 23
-
 # VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE
 uint8 VEHICLE_VTOL_STATE_UNDEFINED = 0
 uint8 VEHICLE_VTOL_STATE_TRANSITION_TO_FW = 1
@@ -112,9 +76,9 @@ uint8 hil_state				# current hil state
 bool failsafe				# true if system is in failsafe state
 bool calibration_enabled		# true if current calibrating parts of the system. Also sets the system to ARMING_STATE_INIT.
 
-int32 system_type			# system type, inspired by MAVLink's VEHICLE_TYPE enum
-uint32 system_id			# system id, inspired by MAVLink's system ID field
-uint32 component_id			# subsystem / component id, inspired by MAVLink's component ID field
+uint8 system_type			# system type, contains mavlink MAV_TYPE
+uint32 system_id			# system id, contains MAVLink's system ID field
+uint32 component_id			# subsystem / component id, contains MAVLink's component ID field
 
 bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
 bool is_vtol				# True if the system is VTOL capable
@@ -176,10 +140,4 @@ float32 battery_discharged_mah
 uint32 battery_cell_count
 
 uint8 battery_warning    # current battery warning mode, as defined by VEHICLE_BATTERY_WARNING enum
-uint16 drop_rate_comm
-uint16 errors_comm
-uint16 errors_count1
-uint16 errors_count2
-uint16 errors_count3
-uint16 errors_count4
 
