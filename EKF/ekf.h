@@ -100,17 +100,17 @@ private:
 	static const uint8_t _k_num_states = 24;
 	static const float _k_earth_rate = 0.000072921f;
 
-	stateSample _state;            // state struct of the ekf running at the delayed time horizon
+	stateSample _state;		// state struct of the ekf running at the delayed time horizon
 
 	bool _filter_initialised;
 	bool _earth_rate_initialised;
 
-	bool _fuse_height;             // baro height data should be fused
-	bool _fuse_pos;                // gps position data should be fused
-	bool _fuse_hor_vel;            // gps horizontal velocity measurement should be fused
-	bool _fuse_vert_vel;           // gps vertical velocity measurement should be fused
+	bool _fuse_height;	// baro height data should be fused
+	bool _fuse_pos;		// gps position data should be fused
+	bool _fuse_hor_vel;		// gps horizontal velocity measurement should be fused
+	bool _fuse_vert_vel;	// gps vertical velocity measurement should be fused
 
-	uint64_t _time_last_fake_gps;  // last time in us at which we have faked gps measurement for static mode
+	uint64_t _time_last_fake_gps;	// last time in us at which we have faked gps measurement for static mode
 
 	uint64_t _time_last_pos_fuse;   // time the last fusion of horizontal position measurements was performed (usec)
 	uint64_t _time_last_vel_fuse;   // time the last fusion of velocity measurements was performed (usec)
@@ -119,28 +119,28 @@ private:
 	Vector2f _last_known_posNE;     // last known local NE position vector (m)
 	float _last_disarmed_posD;      // vertical position recorded at arming (m)
 
-	Vector3f _earth_rate_NED;      // earth rotation vector (NED) in rad/s
+	Vector3f _earth_rate_NED;	// earth rotation vector (NED) in rad/s
 
-	matrix::Dcm<float> _R_prev;    // transformation matrix from earth frame to body frame of previous ekf step
+	matrix::Dcm<float> _R_prev;	// transformation matrix from earth frame to body frame of previous ekf step
 
 	float P[_k_num_states][_k_num_states];	// state covariance matrix
 
-	float _vel_pos_innov[6];       // innovations: 0-2 vel,  3-5 pos
-	float _mag_innov[3];           // earth magnetic field innovations
-	float _heading_innov;          // heading measurement innovation
+	float _vel_pos_innov[6];	// innovations: 0-2 vel,  3-5 pos
+	float _mag_innov[3];		// earth magnetic field innovations
+	float _heading_innov;		// heading measurement innovation
 
-	float _vel_pos_innov_var[6];   // innovation variances: 0-2 vel, 3-5 pos
-	float _mag_innov_var[3];       // earth magnetic field innovation variance
-	float _heading_innov_var;      // heading measurement innovation variance
+	float _vel_pos_innov_var[6]; // innovation variances: 0-2 vel, 3-5 pos
+	float _mag_innov_var[3]; // earth magnetic field innovation variance
+	float _heading_innov_var; // heading measurement innovation variance
 
 	float _mag_declination;        // magnetic declination used by reset and fusion functions (rad)
 
 	// complementary filter states
-	Vector3f _delta_angle_corr;     // delta angle correction vector
-	Vector3f _delta_vel_corr;       // delta velocity correction vector
-	Vector3f _vel_corr;             // velocity correction vector
-	imuSample _imu_down_sampled;    // down sampled imu data (sensor rate -> filter update rate)
-	Quaternion _q_down_sampled;     // down sampled quaternion (tracking delta angles between ekf update steps)
+	Vector3f _delta_angle_corr;	// delta angle correction vector
+	Vector3f _delta_vel_corr;	// delta velocity correction vector
+	Vector3f _vel_corr;			// velocity correction vector
+	imuSample _imu_down_sampled;	// down sampled imu data (sensor rate -> filter update rate)
+	Quaternion _q_down_sampled;		// down sampled quaternion (tracking delta angles between ekf update steps)
 
 	// variables used for the GPS quality checks
 	float _gpsDriftVelN;        // GPS north position derivative (m/s)
@@ -169,10 +169,10 @@ private:
 	// and the correction step
 	void calculateOutputStates();
 
-	// initialize filter states of both the delayed ekf and the real time complementary filter
+	// initialise filter states of both the delayed ekf and the real time complementary filter
 	bool initialiseFilter(void);
 
-	// initialize ekf covariance matrix
+	// initialise ekf covariance matrix
 	void initialiseCovariance();
 
 	// predict ekf state

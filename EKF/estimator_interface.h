@@ -164,15 +164,15 @@ public:
 
 protected:
 
-	parameters _params;    // filter parameters
+	parameters _params;		// filter parameters
 
-	static const uint8_t OBS_BUFFER_LENGTH = 10;            // defines how many measurement samples we can buffer
-	static const uint8_t IMU_BUFFER_LENGTH = 30;            // defines how many imu samples we can buffer
-	static const unsigned FILTER_UPDATE_PERRIOD_MS = 10;    // ekf prediction period in milliseconds
+	static const uint8_t OBS_BUFFER_LENGTH = 10;	// defines how many measurement samples we can buffer
+	static const uint8_t IMU_BUFFER_LENGTH = 30;	// defines how many imu samples we can buffer
+	static const unsigned FILTER_UPDATE_PERRIOD_MS = 10;	// ekf prediction period in milliseconds
 
-	float _dt_imu_avg;  // average imu update period in s
+	float _dt_imu_avg;	// average imu update period in s
 
-	imuSample _imu_sample_delayed;  // captures the imu sample on the delayed time horizon
+	imuSample _imu_sample_delayed;	// captures the imu sample on the delayed time horizon
 
 	// measurement samples capturing measurements on the delayed time horizon
 	magSample _mag_sample_delayed;
@@ -182,11 +182,11 @@ protected:
 	airspeedSample _airspeed_sample_delayed;
 	flowSample _flow_sample_delayed;
 
-	outputSample _output_sample_delayed;    // filter output on the delayed time horizon
-	outputSample _output_new;	            // filter output on the non-delayed time horizon
-	imuSample _imu_sample_new;	            // imu sample capturing the newest imu data
+	outputSample _output_sample_delayed;	// filter output on the delayed time horizon
+	outputSample _output_new;	// filter output on the non-delayed time horizon
+	imuSample _imu_sample_new;	// imu sample capturing the newest imu data
 
-	uint64_t _imu_ticks;    // counter for imu updates
+	uint64_t _imu_ticks;	// counter for imu updates
 
 	bool _imu_updated;      // true if the ekf should update (completed downsampling process)
 	bool _initialised;      // true if the ekf interface instance (data buffering) is initialized
@@ -201,6 +201,7 @@ protected:
 	bool _mag_healthy;              // computed by mag innovation test
 	float _yaw_test_ratio;          // yaw innovation consistency check ratio
 	float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
+
 	float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
 
 	// data buffer instances
@@ -213,11 +214,11 @@ protected:
 	RingBuffer<flowSample> 	_flow_buffer;
 	RingBuffer<outputSample> _output_buffer;
 
-	uint64_t _time_last_imu;        // timestamp of last imu sample in microseconds
-	uint64_t _time_last_gps;        // timestamp of last gps measurement in microseconds
-	uint64_t _time_last_mag;        // timestamp of last magnetometer measurement in microseconds
-	uint64_t _time_last_baro;       // timestamp of last barometer measurement in microseconds
-	uint64_t _time_last_range;      // timestamp of last range measurement in microseconds
+	uint64_t _time_last_imu;	// timestamp of last imu sample in microseconds
+	uint64_t _time_last_gps;	// timestamp of last gps measurement in microseconds
+	uint64_t _time_last_mag;	// timestamp of last magnetometer measurement in microseconds
+	uint64_t _time_last_baro;	// timestamp of last barometer measurement in microseconds
+	uint64_t _time_last_range;	// timestamp of last range measurement in microseconds
 	uint64_t _time_last_airspeed;	// timestamp of last airspeed measurement in microseconds
 
 	fault_status_t _fault_status;

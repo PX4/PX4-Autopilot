@@ -67,45 +67,45 @@ typedef matrix::Quaternion<float> Quaternion;
 typedef matrix::Matrix<float, 3, 3> Matrix3f;
 
 struct outputSample {
-	Quaternion  quat_nominal;   // nominal quaternion describing vehicle attitude
-	Vector3f    vel;            // NED velocity estimate in earth frame in m/s
-	Vector3f    pos;            // NED position estimate in earth frame in m/s
-	uint64_t 	time_us;        // timestamp in microseconds
+    Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
+    Vector3f    vel;	// NED velocity estimate in earth frame in m/s
+    Vector3f    pos;	// NED position estimate in earth frame in m/s
+    uint64_t 	time_us;	// timestamp in microseconds
 };
 
 struct imuSample {
-	Vector3f    delta_ang;      // delta angle in body frame (integrated gyro measurements)
-	Vector3f    delta_vel;      // delta velocity in body frame (integrated accelerometer measurements)
-	float       delta_ang_dt;   // delta angle integration period in seconds
-	float       delta_vel_dt;   // delta velocity integration period in seconds
-	uint64_t    time_us;        // timestamp in microseconds
+	Vector3f    delta_ang;	// delta angle in body frame (integrated gyro measurements)
+	Vector3f    delta_vel;	// delta velocity in body frame (integrated accelerometer measurements)
+	float       delta_ang_dt;	// delta angle integration period in seconds
+	float       delta_vel_dt;	// delta velocity integration period in seconds
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct gpsSample {
-	Vector2f    pos;        // NE earth frame gps horizontal position measurement in m
-	float       hgt;        // gps height measurement in m
-	Vector3f    vel;        // NED earth frame gps velocity measurement in m/s
-	uint64_t    time_us;    // timestamp in microseconds
+	Vector2f    pos;	// NE earth frame gps horizontal position measurement in m
+	float       hgt;	// gps height measurement in m
+	Vector3f    vel;	// NED earth frame gps velocity measurement in m/s
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct magSample {
-	Vector3f    mag;        // NED magnetometer body frame measurements
-	uint64_t    time_us;    // timestamp in microseconds
+	Vector3f    mag;	// NED magnetometer body frame measurements
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct baroSample {
-	float       hgt;        // barometer height above sea level measurement in m
-	uint64_t    time_us;    // timestamp in microseconds
+	float       hgt;	// barometer height above sea level measurement in m
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct rangeSample {
-	float       rng;        // range (distance to ground) measurement in m
-	uint64_t    time_us;    // timestamp in microseconds
+	float       rng;	// range (distance to ground) measurement in m
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct airspeedSample {
-	float       airspeed;   // airspeed measurement in m/s
-	uint64_t    time_us;    // timestamp in microseconds
+	float       airspeed;	// airspeed measurement in m/s
+	uint64_t    time_us;	// timestamp in microseconds
 };
 
 struct flowSample {
@@ -217,28 +217,28 @@ struct parameters {
 #define MAG_FUSE_TYPE_2D        3   // A 2D fusion that uses the horizontal projection of the magnetic fields measurement will alays be used. This is less accurate, but less affected by earth field distortions.
 
 struct stateSample {
-	Vector3f    ang_error;      // attitude axis angle error (error state formulation)
-	Vector3f    vel;            // NED velocity in earth frame in m/s
-	Vector3f    pos;            // NED position in earth frame in m
-	Vector3f    gyro_bias;      // gyro bias estimate in rad/s
-	Vector3f    gyro_scale;     // gyro scale estimate
-	float       accel_z_bias;   // accelerometer z axis bias estimate
-	Vector3f    mag_I;	        // NED earth magnetic field in gauss
-	Vector3f    mag_B;	        // magnetometer bias estimate in body frame in gauss
-	Vector2f    wind_vel;	    // wind velocity in m/s
-	Quaternion  quat_nominal;   // nominal quaternion describing vehicle attitude
+	Vector3f    ang_error;	// attitude axis angle error (error state formulation)
+	Vector3f    vel;	// NED velocity in earth frame in m/s
+	Vector3f    pos;	// NED position in earth frame in m
+	Vector3f    gyro_bias;	// gyro bias estimate in rad/s
+	Vector3f    gyro_scale;	// gyro scale estimate
+	float       accel_z_bias;	// accelerometer z axis bias estimate
+	Vector3f    mag_I;	// NED earth magnetic field in gauss
+	Vector3f    mag_B;	// magnetometer bias estimate in body frame in gauss
+	Vector2f    wind_vel;	// wind velocity in m/s
+	Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
 };
 
 struct fault_status_t {
-	bool bad_mag_x: 1;      // true if the fusion of the magnetometer X-axis has encountered a numerical error
-	bool bad_mag_y: 1;      // true if the fusion of the magnetometer Y-axis has encountered a numerical error
-	bool bad_mag_z: 1;      // true if the fusion of the magnetometer Z-axis has encountered a numerical error
-	bool bad_mag_hdg: 1;    // true if the fusion of the magnetic heading has encountered a numerical error
-	bool bad_mag_decl: 1;   // true if the fusion of the magnetic declination has encountered a numerical error
-	bool bad_airspeed: 1;   // true if fusion of the airspeed has encountered a numerical error
-	bool bad_sideslip: 1;   // true if fusion of the synthetic sideslip constraint has encountered a numerical error
-	bool bad_optflow_X: 1;  // true if fusion of the optical flow X axis has encountered a numerical error
-	bool bad_optflow_Y: 1;  // true if fusion of the optical flow Y axis has encountered a numerical error
+	bool bad_mag_x: 1; // true if the fusion of the magnetometer X-axis has encountered a numerical error
+	bool bad_mag_y: 1; // true if the fusion of the magnetometer Y-axis has encountered a numerical error
+	bool bad_mag_z: 1; // true if the fusion of the magnetometer Z-axis has encountered a numerical error
+	bool bad_mag_hdg: 1; // true if the fusion of the magnetic heading has encountered a numerical error
+	bool bad_mag_decl: 1; // true if the fusion of the magnetic declination has encountered a numerical error
+	bool bad_airspeed: 1; // true if fusion of the airspeed has encountered a numerical error
+	bool bad_sideslip: 1; // true if fusion of the synthetic sideslip constraint has encountered a numerical error
+	bool bad_optflow_X: 1; // true if fusion of the optical flow X axis has encountered a numerical error
+	bool bad_optflow_Y: 1; // true if fusion of the optical flow Y axis has encountered a numerical error
 };
 
 // publish the status of various GPS quality checks
