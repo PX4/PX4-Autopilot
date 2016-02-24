@@ -47,7 +47,7 @@
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_flag_enable_mc_motors(true),
-	_pusher_throttle(0.0f),	
+	_pusher_throttle(0.0f),
 	_airspeed_trans_blend_margin(0.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
@@ -146,7 +146,7 @@ void Standard::update_vtol_state()
 			// transition to MC mode if transition time has passed
 			// XXX: base this on XY hold velocity of MC
 			if (hrt_elapsed_time(&_vtol_schedule.transition_start) >
-			    (_params_standard.back_trans_dur * 1000000.0f)) {
+				(_params_standard.back_trans_dur * 1000000.0f)) {
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
 		}
@@ -227,7 +227,7 @@ void Standard::update_transition_state()
 		    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_time_min * 1000000.0f)
 		   ) {
 			float weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params_standard.airspeed_blend) /
-				       _airspeed_trans_blend_margin;
+					   _airspeed_trans_blend_margin;
 			_mc_roll_weight = weight;
 			_mc_pitch_weight = weight;
 			_mc_yaw_weight = weight;
@@ -284,12 +284,6 @@ void Standard::update_mc_state()
 {
 	VtolType::update_mc_state();
 
-	// get desired rotation matrix
-	math::Matrix<3,3> R_sp(&_v_att_sp->R_body[0]);
-
-	// get rotation matrix
-	math::Matrix<3,3> R(&_v_att->R[0]);
-
 	// get projection of thrust vector on body x axis. This is used to
 	// determine the desired forward acceleration which we want to achieve with the pusher
 	math::Matrix<3,3> R(&_v_att->R[0]);
@@ -342,23 +336,8 @@ void Standard::fill_actuator_outputs()
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
 			* _mc_roll_weight;	// roll
 
-	if(_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] < -0.05f){
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = -0.02f;
-		_pusher_throttle = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * -0.15f;
-		if(!_pusher_active){
-			_pusher_active = true;
-			warnx("Activating pusher");
-		}
-	} else {
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;	// pitch
-			if(_pusher_active){
-				_pusher_active = false;
-				warnx("Deactivating pusher");
-			}
-
-	}
-
+	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
+		_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;	// pitch
 
 
 	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
@@ -374,6 +353,8 @@ void Standard::fill_actuator_outputs()
 		(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) * (1 - _mc_pitch_weight);	//pitch
 	_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW]
 			* (1 - _mc_yaw_weight);	// yaw
+
+	_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
 
 	// set the fixed wing throttle control
 	if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {
