@@ -60,6 +60,7 @@ public:
 	virtual void update_vtol_state();
 	virtual void update_transition_state();
 	virtual void update_fw_state();
+	virtual void update_mc_state();
 	virtual void fill_actuator_outputs();
 	virtual void waiting_on_tecs();
 
