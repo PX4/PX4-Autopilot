@@ -83,6 +83,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/battery.h>
 #include <conversion/rotation.h>
 
 #include <systemlib/airspeed.h>
@@ -127,9 +128,6 @@ using namespace DriverFramework;
  * The channel definitions (e.g., ADC_BATTERY_VOLTAGE_CHANNEL, ADC_BATTERY_CURRENT_CHANNEL, and ADC_AIRSPEED_VOLTAGE_CHANNEL) are defined in board_config.h
  */
 
-
-#define BATT_V_LOWPASS			0.001f
-#define BATT_V_IGNORE_THRESHOLD		2.1f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
@@ -256,6 +254,8 @@ private:
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
+
+	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -1503,6 +1503,7 @@ Sensors::parameter_update_poll(bool forced)
 
 		/* do not output this for now, as its covered in preflight checks */
 		// warnx("valid configs: %u gyros, %u mags, %u accels", gyro_count, mag_count, accel_count);
+		_battery.updateParams();
 	}
 }
 
@@ -1566,6 +1567,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* read all channels available */
 		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
+		float bat_voltage_v = 0.0f;
+		float bat_current_a = 0.0f;
+		bool updated_battery = false;
+
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
 			/* Read add channels we got */
@@ -1579,48 +1584,12 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				/* look for specific channels and process the raw voltage to measurement data */
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 					/* Voltage in volts */
-					float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
-
-					if (voltage > BATT_V_IGNORE_THRESHOLD) {
-						_battery_status.voltage_v = voltage;
-
-						/* one-time initialization of low-pass value to avoid long init delays */
-						if (_battery_status.voltage_filtered_v < BATT_V_IGNORE_THRESHOLD) {
-							_battery_status.voltage_filtered_v = voltage;
-						}
-
-						_battery_status.timestamp = t;
-						_battery_status.voltage_filtered_v += (voltage - _battery_status.voltage_filtered_v) * BATT_V_LOWPASS;
-
-					} else {
-						/* mark status as invalid */
-						_battery_status.voltage_v = -1.0f;
-						_battery_status.voltage_filtered_v = -1.0f;
-					}
+					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
+					updated_battery = true;
 
 				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
-					/* handle current only if voltage is valid */
-					if (_battery_status.voltage_v > 0.0f) {
-						float current = (buf_adc[i].am_data * _parameters.battery_current_scaling);
-
-						/* check measured current value */
-						if (current >= 0.0f) {
-							_battery_status.timestamp = t;
-							_battery_status.current_a = current;
-
-							if (_battery_current_timestamp != 0) {
-								/* initialize discharged value */
-								if (_battery_status.discharged_mah < 0.0f) {
-									_battery_status.discharged_mah = 0.0f;
-								}
-
-								_battery_discharged += current * (t - _battery_current_timestamp);
-								_battery_status.discharged_mah = ((float) _battery_discharged) / 3600000.0f;
-							}
-						}
-					}
-
-					_battery_current_timestamp = t;
+					bat_current_a = (buf_adc[i].am_data * _parameters.battery_current_scaling);
+					updated_battery = true;
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
@@ -1657,16 +1626,21 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 
+			if (updated_battery) {
+				// XXX TODO: throttle is hardcoded here. The dependency to throttle would need to be
+				// removed, or it needs to be subscribed to actuator controls.
+				const float throttle = 0.0f;
+				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, throttle, &_battery_status);
+			}
+
 			_last_adc = t;
 
-			if (_battery_status.voltage_filtered_v > BATT_V_IGNORE_THRESHOLD) {
-				/* announce the battery status if needed, just publish else */
-				if (_battery_pub != nullptr) {
-					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+			/* announce the battery status if needed, just publish else */
+			if (_battery_pub != nullptr) {
+				orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
 
-				} else {
-					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
-				}
+			} else {
+				_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
 			}
 		}
 	}
@@ -2054,11 +2028,7 @@ Sensors::task_main()
 	raw.adc_voltage_v[2] = 0.0f;
 	raw.adc_voltage_v[3] = 0.0f;
 
-	memset(&_battery_status, 0, sizeof(_battery_status));
-	_battery_status.voltage_v = -1.0f;
-	_battery_status.voltage_filtered_v = -1.0f;
-	_battery_status.current_a = -1.0f;
-	_battery_status.discharged_mah = -1.0f;
+	_battery.reset(&_battery_status);
 
 	/* get a set of initial values */
 	accel_poll(raw);

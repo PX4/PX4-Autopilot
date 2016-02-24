@@ -173,15 +173,6 @@ enum MAV_MODE_FLAG {
 	MAV_MODE_FLAG_ENUM_END = 129, /*  | */
 };
 
-
-enum class vehicle_battery_warning {
-	NONE = 0,       // no battery low voltage warning active
-	LOW = 1,        // warning of low voltage
-	CRITICAL = 2,	// alerting of critical voltage
-};
-
-static vehicle_battery_warning battery_warning = vehicle_battery_warning::NONE;
-
 /* Mavlink file descriptors */
 static int mavlink_fd = 0;
 
@@ -253,7 +244,8 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
  */
 int commander_thread_main(int argc, char *argv[]);
 
-void control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_armed, bool changed);
+void control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
+			 battery_status_s *battery);
 
 void get_circuit_breaker_params();
 
@@ -1174,9 +1166,6 @@ int commander_thread_main(int argc, char *argv[])
 		mavlink_and_console_log_critical(mavlink_fd, "ERROR: BUZZER INIT FAIL");
 	}
 
-	if (battery_init() != OK) {
-		mavlink_and_console_log_critical(mavlink_fd, "ERROR: BATTERY INIT FAIL");
-	}
 	mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/* vehicle status topic */
@@ -1205,10 +1194,6 @@ int commander_thread_main(int argc, char *argv[])
 	status.rc_signal_lost = true;
 	status.offboard_control_signal_lost = true;
 	status.data_link_lost = true;
-
-	/* set battery warning flag */
-	battery_warning = vehicle_battery_warning::NONE;
-	status.condition_battery_voltage_valid = false;
 
 	// XXX for now just set sensors as initialized
 	status.condition_system_sensors_initialized = true;
@@ -1422,7 +1407,7 @@ int commander_thread_main(int argc, char *argv[])
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
 
-	control_status_leds(&status, &armed, true);
+	control_status_leds(&status, &armed, true, &battery);
 
 	/* now initialized */
 	commander_initialized = true;
@@ -1930,20 +1915,51 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
-			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
 
 			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
-			if (hrt_absolute_time() > commander_boot_timestamp + 2000000 && battery.voltage_filtered_v > 0.0f) {
-				status.battery_voltage = battery.voltage_filtered_v;
-				status.battery_current = battery.current_a;
-				status.battery_discharged_mah = battery.discharged_mah;
-				status.condition_battery_voltage_valid = true;
-				status.battery_cell_count = battery_get_n_cells();
+			if (hrt_absolute_time() > commander_boot_timestamp + 2000000
+			    && battery.voltage_filtered_v > FLT_EPSILON) {
 
-				/* get throttle (if armed), as we only care about energy negative throttle also counts */
-				float throttle = (armed.armed) ? fabsf(actuator_controls.control[3]) : 0.0f;
-				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_filtered_v, battery.discharged_mah,
-							   throttle);
+				/* if battery voltage is getting lower, warn using buzzer, etc. */
+				if (battery.warning == battery_status_s::BATTERY_WARNING_LOW && !low_battery_voltage_actions_done) {
+					low_battery_voltage_actions_done = true;
+
+					if (armed.armed) {
+						mavlink_log_critical(mavlink_fd, "LOW BATTERY, RETURN TO LAND ADVISED");
+					} else {
+						mavlink_log_critical(mavlink_fd, "LOW BATTERY, TAKEOFF DISCOURAGED");
+					}
+
+					status_changed = true;
+
+				} else if (!status.usb_connected && battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL
+					   && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
+					/* critical battery voltage, this is rather an emergency, change state machine */
+					critical_battery_voltage_actions_done = true;
+
+					if (!armed.armed) {
+						arming_ret = arming_state_transition(&status,
+										     &safety,
+										     vehicle_status_s::ARMING_STATE_STANDBY_ERROR,
+										     &armed,
+										     true /* fRunPreArmChecks */,
+										     mavlink_fd,
+										     circuit_breaker_engaged_airspd_check,
+										     circuit_breaker_engaged_gpsfailure_check,
+										     circuit_breaker_engaged_power_check,
+										     cb_usb);
+
+						if (arming_ret == TRANSITION_CHANGED) {
+							arming_state_changed = true;
+							mavlink_and_console_log_critical(mavlink_fd, "LOW BATTERY, LOCKING ARMING DOWN");
+						}
+
+					} else {
+						mavlink_and_console_log_emergency(mavlink_fd, "CRITICAL BATTERY, LAND IMMEDIATELY");
+					}
+
+					status_changed = true;
+				}
 			}
 		}
 
@@ -2000,48 +2016,6 @@ int commander_thread_main(int argc, char *argv[])
 			last_idle_time = system_load.tasks[0].total_runtime;
 		}
 
-		/* if battery voltage is getting lower, warn using buzzer, etc. */
-		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.18f && !low_battery_voltage_actions_done) {
-			low_battery_voltage_actions_done = true;
-			if (armed.armed) {
-				mavlink_log_critical(mavlink_fd, "LOW BATTERY, RETURN TO LAND ADVISED");
-			} else {
-				mavlink_log_critical(mavlink_fd, "LOW BATTERY, TAKEOFF DISCOURAGED");
-			}
-			battery_warning = vehicle_battery_warning::LOW;
-			status_changed = true;
-
-		} else if (!status.usb_connected && status.condition_battery_voltage_valid && status.battery_remaining < 0.09f
-			   && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
-			/* critical battery voltage, this is rather an emergency, change state machine */
-			critical_battery_voltage_actions_done = true;
-			battery_warning = vehicle_battery_warning::CRITICAL;
-
-			if (!armed.armed) {
-				arming_ret = arming_state_transition(&status,
-								     &safety,
-								     vehicle_status_s::ARMING_STATE_STANDBY_ERROR,
-								     &armed,
-								     true /* fRunPreArmChecks */,
-								     mavlink_fd,
-								     circuit_breaker_engaged_airspd_check,
-								     circuit_breaker_engaged_gpsfailure_check,
-								     circuit_breaker_engaged_power_check,
-								     cb_usb);
-
-				if (arming_ret == TRANSITION_CHANGED) {
-					arming_state_changed = true;
-					mavlink_and_console_log_critical(mavlink_fd, "LOW BATTERY, LOCKING ARMING DOWN");
-				}
-
-			} else {
-				mavlink_and_console_log_emergency(mavlink_fd, "CRITICAL BATTERY, LAND IMMEDIATELY");
-			}
-
-			status_changed = true;
-		}
-
-		/* End battery voltage check */
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status.calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
@@ -2493,33 +2467,41 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* Check engine failure
-		 * only for fixed wing for now
-		 */
-		if (!circuit_breaker_engaged_enginefailure_check &&
-		    status.is_rotary_wing == false &&
-		    armed.armed &&
-		    ((actuator_controls.control[3] > ef_throttle_thres &&
-		      battery.current_a / actuator_controls.control[3] <
-		      ef_current2throttle_thres) ||
-		     (status.engine_failure))) {
-			/* potential failure, measure time */
-			if (timestamp_engine_healthy > 0 &&
-			    hrt_elapsed_time(&timestamp_engine_healthy) >
-			    ef_time_thres * 1e6 &&
-			    !status.engine_failure) {
-				status.engine_failure = true;
-				status_changed = true;
-				mavlink_log_critical(mavlink_fd, "Engine Failure");
-			}
+		/* handle commands last, as the system needs to be updated to handle them */
+		orb_check(actuator_controls_sub, &updated);
 
-		} else {
-			/* no failure reset flag */
-			timestamp_engine_healthy = hrt_absolute_time();
+		if (updated) {
+			/* got command */
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
 
-			if (status.engine_failure) {
-				status.engine_failure = false;
-				status_changed = true;
+			/* Check engine failure
+			 * only for fixed wing for now
+			 */
+			if (!circuit_breaker_engaged_enginefailure_check &&
+			    status.is_rotary_wing == false &&
+			    armed.armed &&
+			    ((actuator_controls.control[3] > ef_throttle_thres &&
+			      battery.current_a / actuator_controls.control[3] <
+			      ef_current2throttle_thres) ||
+			     (status.engine_failure))) {
+				/* potential failure, measure time */
+				if (timestamp_engine_healthy > 0 &&
+				    hrt_elapsed_time(&timestamp_engine_healthy) >
+				    ef_time_thres * 1e6 &&
+				    !status.engine_failure) {
+					status.engine_failure = true;
+					status_changed = true;
+					mavlink_log_critical(mavlink_fd, "Engine Failure");
+				}
+
+			} else {
+				/* no failure reset flag */
+				timestamp_engine_healthy = hrt_absolute_time();
+
+				if (status.engine_failure) {
+					status.engine_failure = false;
+					status_changed = true;
+				}
 			}
 		}
 
@@ -2686,12 +2668,12 @@ int commander_thread_main(int argc, char *argv[])
 			arm_tune_played = true;
 
 		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-				battery_warning == vehicle_battery_warning::CRITICAL) {
+			   (battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			/* play tune on battery critical */
 			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
 
 		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-				(battery_warning == vehicle_battery_warning::LOW || status.failsafe)) {
+			   (battery.warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			/* play tune on battery warning or failsafe */
 			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
 
@@ -2733,12 +2715,12 @@ int commander_thread_main(int argc, char *argv[])
 			/* blinking LED message, don't touch LEDs */
 			if (blink_state == 2) {
 				/* blinking LED message completed, restore normal state */
-				control_status_leds(&status, &armed, true);
+				control_status_leds(&status, &armed, true, &battery);
 			}
 
 		} else {
 			/* normal state */
-			control_status_leds(&status, &armed, status_changed);
+			control_status_leds(&status, &armed, status_changed, &battery);
 		}
 
 		status_changed = false;
@@ -2804,7 +2786,7 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 }
 
 void
-control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed)
+control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed, battery_status_s *battery)
 {
 	/* driving rgbled */
 	if (changed) {
@@ -2837,9 +2819,9 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			/* set color */
 			if (status_local->failsafe) {
 				rgbled_set_color(RGBLED_COLOR_PURPLE);
-			} else if (battery_warning == vehicle_battery_warning::LOW) {
+			} else if (battery->warning == battery_status_s::BATTERY_WARNING_LOW) {
 				rgbled_set_color(RGBLED_COLOR_AMBER);
-			} else if (battery_warning == vehicle_battery_warning::CRITICAL) {
+			} else if (battery->warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
 				rgbled_set_color(RGBLED_COLOR_RED);
 			} else {
 				if (status_local->condition_home_position_valid && status_local->condition_global_position_valid) {

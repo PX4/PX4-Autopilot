@@ -1036,7 +1036,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* any other value means to ignore the parameter, so no else case */
 
 	}
-	
+
 	param_t log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 
 	if ( log_utc_offset != PARAM_INVALID ) {
@@ -1252,7 +1252,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
 	}
-	
+
 	subs.sat_info_sub = -1;
 
 #ifdef __PX4_NUTTX
@@ -1336,8 +1336,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_STAT.main_state = buf_status.main_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
-			log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
-			log_msg.body.log_STAT.battery_warning = buf_status.battery_warning;
 			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
 			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
@@ -1422,7 +1420,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- SENSOR COMBINED --- */
 		if (copy_if_updated(ORB_ID(sensor_combined), &subs.sensor_sub, &buf.sensor)) {
-			
+
 
 			for (unsigned i = 0; i < 3; i++) {
 				bool write_IMU = false;
@@ -1760,6 +1758,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
 			log_msg.body.log_BATT.current = buf.battery.current_a;
 			log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
+			log_msg.body.log_BATT.remaining = buf.battery.remaining;
+			log_msg.body.log_BATT.warning = buf.battery.warning;
 			LOGBUFFER_WRITE_AND_COUNT(BATT);
 		}
 

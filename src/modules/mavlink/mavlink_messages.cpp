@@ -539,6 +539,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *_status_sub;
+	MavlinkOrbSubscription *_battery_status_sub;
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &);
@@ -546,24 +547,28 @@ private:
 
 protected:
 	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_battery_status_sub(_mavlink->add_orb_subscription(ORB_ID(battery_status)))
 	{}
 
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_status_s status;
+		struct battery_status_s battery_status;
 
-		if (_status_sub->update(&status)) {
+		bool updated = _status_sub->update(&status);
+		updated = (updated || _battery_status_sub->update(&battery_status));
+
+		if (updated) {
 			mavlink_sys_status_t msg;
 
 			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
 			msg.onboard_control_sensors_enabled = status.onboard_control_sensors_enabled;
 			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
 			msg.load = status.load * 1000.0f;
-			msg.voltage_battery = status.battery_voltage * 1000.0f;
-			msg.current_battery = status.battery_current * 100.0f;
-			msg.battery_remaining = (status.condition_battery_voltage_valid) ?
-							status.battery_remaining * 100.0f : -1;
+			msg.voltage_battery = battery_status.voltage_v * 1000.0f;
+			msg.current_battery = battery_status.current_a * 100.0f;
+			msg.battery_remaining = battery_status.remaining >= 0 ? battery_status.remaining * 100.0f : -1;
 			// TODO: fill in something useful in the fields below
 			msg.drop_rate_comm = 0;
 			msg.errors_comm = 0;
@@ -577,28 +582,19 @@ protected:
 			/* battery status message with higher resolution */
 			mavlink_battery_status_t bat_msg;
 			bat_msg.id = 0;
+			bat_msg.id = 0;
 			bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
 			bat_msg.type = MAV_BATTERY_TYPE_LIPO;
 			bat_msg.temperature = INT16_MAX;
 			for (unsigned i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
-				if (i < status.battery_cell_count) {
-					bat_msg.voltages[i] = (status.battery_voltage / status.battery_cell_count) * 1000.0f;
+				if (i < battery_status.cell_count) {
+					bat_msg.voltages[i] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
 				} else {
 					bat_msg.voltages[i] = UINT16_MAX;
 				}
 			}
 
-			if (status.condition_battery_voltage_valid) {
-				bat_msg.current_battery = (bat_msg.current_battery >= 0.0f) ?
-								status.battery_current * 100.0f : -1;
-				bat_msg.current_consumed = (bat_msg.current_consumed >= 0.0f) ?
-								status.battery_discharged_mah : -1;
-				bat_msg.battery_remaining = status.battery_remaining * 100.0f;
-			} else {
-				bat_msg.current_battery = -1.0f;
-				bat_msg.current_consumed = -1.0f;
-				bat_msg.battery_remaining = -1.0f;
-			}
+			// TODO: calculate this
 			bat_msg.energy_consumed = -1.0f;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_BATTERY_STATUS, &bat_msg);

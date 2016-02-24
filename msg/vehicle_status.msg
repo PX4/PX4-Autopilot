@@ -74,7 +74,6 @@ bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if vtol should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
 
-bool condition_battery_voltage_valid
 bool condition_system_in_air_restore		# true if we can restore in mid air
 bool condition_system_sensors_initialized
 bool condition_system_prearm_error_reported	# true if errors have already been reported
@@ -122,11 +121,4 @@ uint32 onboard_control_sensors_enabled
 uint32 onboard_control_sensors_health
 
 float32 load					# processor load from 0 to 1
-float32 battery_voltage
-float32 battery_current
-float32 battery_remaining
-float32 battery_discharged_mah
-uint32 battery_cell_count
-
-uint8 battery_warning    # current battery warning mode, as defined by VEHICLE_BATTERY_WARNING enum
 

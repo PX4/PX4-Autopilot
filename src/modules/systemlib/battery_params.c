@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
- *   Author: Stefan Rado <px4@sradonia.net>
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,29 +32,80 @@
  ****************************************************************************/
 
 /**
- * @file frsky_data.h
- * @author Stefan Rado <px4@sradonia.net>
+ * @file battery_params.c
  *
- * FrSky telemetry implementation.
+ * Parameters defined by the battery lib.
  *
+ * @author Julian Oes <julian@oes.ch>
  */
-#ifndef _FRSKY_DATA_H
-#define _FRSKY_DATA_H
 
-#include <stdbool.h>
+#include <px4_config.h>
+#include <systemlib/param/param.h>
 
-// Public functions
-void frsky_init(void);
-void frsky_update_topics(void);
-void frsky_send_frame1(int uart);
-void frsky_send_frame2(int uart);
-void frsky_send_frame3(int uart);
+/**
+ * Empty cell voltage.
+ *
+ * Defines the voltage where a single cell of the battery is considered empty.
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
 
-struct adc_linkquality {
-	uint8_t ad1;
-	uint8_t ad2;
-	uint8_t linkq;
-};
-bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v);
+/**
+ * Full cell voltage.
+ *
+ * Defines the voltage where a single cell of the battery is considered full.
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
 
-#endif /* _FRSKY_TELEMETRY_H */
+/**
+ * Voltage drop per cell on 100% load
+ *
+ * This implicitely defines the internal resistance
+ * to maximum current ratio and assumes linearity.
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @min 0.0
+ * @max 1.5
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
+
+/**
+ * Number of cells.
+ *
+ * Defines the number of cells the attached battery consists of.
+ *
+ * @group Battery Calibration
+ * @unit S
+ * @min 2
+ * @max 10
+ * @value 2 2S Battery
+ * @value 3 3S Battery
+ * @value 4 4S Battery
+ * @value 5 5S Battery
+ * @value 6 6S Battery
+ * @value 7 7S Battery
+ * @value 8 8S Battery
+ * @value 9 9S Battery
+ * @value 10 10S Battery
+ */
+PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
+
+/**
+ * Battery capacity.
+ *
+ * Defines the capacity of the attached battery.
+ *
+ * @group Battery Calibration
+ * @unit mA
+ * @decimal 0
+ */
+PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);

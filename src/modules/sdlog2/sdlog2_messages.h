@@ -179,8 +179,6 @@ struct log_STAT_s {
 	uint8_t main_state;
 	uint8_t arming_state;
 	uint8_t failsafe;
-	float battery_remaining;
-	uint8_t battery_warning;
 	uint8_t landed;
 	float load;
 };
@@ -294,6 +292,8 @@ struct log_BATT_s {
 	float voltage_filtered;
 	float current;
 	float discharged;
+	float remaining;
+	uint8_t warning;
 };
 
 /* --- DIST - RANGE SENSOR DISTANCE --- */
@@ -545,7 +545,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBfBBf",		"MainState,ArmS,Failsafe,BatRem,BatWarn,Landed,Load"),
+	LOG_FORMAT(STAT, "BBBBf",		"MainState,ArmS,Failsafe,Landed,Load"),
 	LOG_FORMAT(VTOL, "f",		"Arsp"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
@@ -558,7 +558,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLffBfbf",		"NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHffiffH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
-	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
+	LOG_FORMAT(BATT, "fffffB",		"V,VFilt,C,Discharged,Remaining,Warning"),
 	LOG_FORMAT(DIST, "BBBff",			"Id,Type,Orientation,Distance,Covariance"),
 	LOG_FORMAT_S(TEL0, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),

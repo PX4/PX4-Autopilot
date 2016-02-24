@@ -73,6 +73,7 @@
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/param/param.h>
 #include <systemlib/circuit_breaker.h>
+#include <systemlib/battery.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_0.h>
@@ -308,9 +309,13 @@ private:
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
 
+	Battery			_battery;
+
 	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
 	int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
+
+	float			_last_throttle; ///< last throttle value for battery calculation
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
@@ -538,9 +543,11 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_last_timestamp(0),
 	_cb_flighttermination(true),
 	_in_esc_calibration_mode(false),
+	_battery{},
 	_rssi_pwm_chan(0),
 	_rssi_pwm_max(0),
-	_rssi_pwm_min(0)
+	_rssi_pwm_min(0),
+	_last_throttle(0.0f)
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
@@ -1195,6 +1202,8 @@ PX4IO::task_main()
 								    (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
 					}
 				}
+				// Also trigger param update in Battery instance.
+				_battery.updateParams();
 			}
 
 		}
@@ -1302,6 +1311,11 @@ PX4IO::io_set_control_state(unsigned group)
 		}
 
 		regs[i] = FLOAT_TO_REG(ctrl);
+	}
+
+	// save last throttle for battery calculation
+	if (group == 0) {
+		_last_throttle = controls.control[3];
 	}
 
 	/* copy values to registers in IO */
@@ -1655,29 +1669,19 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	}
 
 	battery_status_s	battery_status;
-	battery_status.timestamp = hrt_absolute_time();
 
+	const hrt_abstime timestamp = hrt_absolute_time();
 	/* voltage is scaled to mV */
-	battery_status.voltage_v = vbatt / 1000.0f;
-	battery_status.voltage_filtered_v = vbatt / 1000.0f;
+	const float voltage_v = vbatt / 1000.0f;
 
 	/*
 	  ibatt contains the raw ADC count, as 12 bit ADC
 	  value, with full range being 3.3v
 	*/
-	battery_status.current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
-	battery_status.current_a += _battery_amp_bias;
+	float current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
+	current_a += _battery_amp_bias;
 
-	/*
-	  integrate battery over time to get total mAh used
-	*/
-	if (_battery_last_timestamp != 0) {
-		_battery_mamphour_total += battery_status.current_a *
-					   (battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
-	}
-
-	battery_status.discharged_mah = _battery_mamphour_total;
-	_battery_last_timestamp = battery_status.timestamp;
+	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, _last_throttle, &battery_status);
 
 	/* the announced battery status would conflict with the simulated battery status in HIL */
 	if (!(_pub_blocked)) {
