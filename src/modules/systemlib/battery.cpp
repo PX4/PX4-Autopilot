@@ -91,6 +91,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->discharged_mah = _discharged_mah;
 		battery_status->cell_count = _param_n_cells.get();
 		battery_status->warning = _warning;
+
 	} else {
 		reset(battery_status);
 	}
@@ -101,6 +102,7 @@ Battery::filterVoltage(float voltage_v)
 {
 	// TODO: inspect that filter performance
 	const float filtered_next = _voltage_filtered_v * 0.999f + voltage_v * 0.001f;
+
 	if (PX4_ISFINITE(filtered_next)) {
 		_voltage_filtered_v = filtered_next;
 	}
@@ -113,6 +115,7 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 	if (_last_timestamp != 0) {
 		_discharged_mah = current_a * (timestamp - _last_timestamp) * 1.0e-3f / 3600.0f;
 	}
+
 	_last_timestamp = timestamp;
 }
 
@@ -133,7 +136,7 @@ Battery::estimateRemaining(float voltage_v, float throttle_normalized)
 	 */
 	const float voltage_range = (_param_v_full.get() - _param_v_empty.get());
 	const float remaining_voltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic))
-		/ (_param_n_cells.get() * voltage_range);
+					/ (_param_n_cells.get() * voltage_range);
 
 	if (_param_capacity.get() > 0.0f) {
 		/* if battery capacity is known, use discharged current for estimate, but don't show more than voltage estimate */
