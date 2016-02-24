@@ -124,7 +124,7 @@ bool in_transition_mode			# True if VTOL is doing a transition
 bool condition_battery_voltage_valid
 bool condition_system_in_air_restore		# true if we can restore in mid air
 bool condition_system_sensors_initialized
-bool condition_system_prearm_error_reported	# true if errors have already been reported 
+bool condition_system_prearm_error_reported	# true if errors have already been reported
 bool condition_system_hotplug_timeout		# true if the hotplug sensor search is over
 bool condition_system_returned_to_home
 bool condition_auto_mission_available
@@ -183,8 +183,3 @@ uint16 errors_count2
 uint16 errors_count3
 uint16 errors_count4
 
-bool circuit_breaker_engaged_power_check
-bool circuit_breaker_engaged_airspd_check
-bool circuit_breaker_engaged_enginefailure_check
-bool circuit_breaker_engaged_gpsfailure_check
-bool cb_usb

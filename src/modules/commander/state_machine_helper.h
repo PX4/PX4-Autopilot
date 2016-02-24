@@ -56,8 +56,16 @@ typedef enum {
 
 bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
 
-transition_result_t arming_state_transition(struct vehicle_status_s *current_state, const struct safety_s *safety,
-		arming_state_t new_arming_state, struct actuator_armed_s *armed, bool fRunPreArmChecks, const int mavlink_fd);
+transition_result_t arming_state_transition(struct vehicle_status_s *current_state,
+					    const struct safety_s *safety,
+					    arming_state_t new_arming_state,
+					    struct actuator_armed_s *armed,
+					    bool fRunPreArmChecks,
+					    const int mavlink_fd,
+					    bool circuit_breaker_engaged_airspd_check,
+					    bool circuit_breaker_engaged_gpsfailure_check,
+					    bool circuit_breaker_engaged_power_check,
+					    bool cb_usb);
 
 transition_result_t main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state);
 
@@ -65,6 +73,9 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 
 bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished, const bool stay_in_failsafe);
 
-int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report=false);
+int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report,
+		    bool circuit_breaker_engaged_airspd_check,
+		    bool circuit_breaker_engaged_gpsfailure_check,
+		    bool cb_usb);
 
 #endif /* STATE_MACHINE_HELPER_H_ */
