@@ -112,6 +112,11 @@ void Ekf::controlFusionModes()
 
 		} else {
 			if (_control_status.flags.in_air) {
+				// if transitioning from a non-3D fusion mode, we need to initialise the yaw angle and field states
+				if (!_control_status.flags.mag_3D) {
+					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+				}
+
 				// always use 3D mag fusion when airborne
 				_control_status.flags.mag_hdg = false;
 				_control_status.flags.mag_2D = false;
@@ -145,6 +150,11 @@ void Ekf::controlFusionModes()
 		_control_status.flags.mag_3D = false;
 
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
+		// if transitioning from a non-3D fusion mode, we need to initialise the yaw angle and field states
+		if (!_control_status.flags.mag_3D) {
+			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+		}
+
 		// always use 3-axis mag fusion
 		_control_status.flags.mag_hdg = false;
 		_control_status.flags.mag_2D = false;
