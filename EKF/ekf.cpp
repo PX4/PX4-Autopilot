@@ -265,7 +265,7 @@ bool Ekf::initialiseFilter(void)
 		if (_delVel_sum.norm() > 0.001f) {
 			_delVel_sum.normalize();
 			pitch = asinf(_delVel_sum(0));
-			roll = -asinf(_delVel_sum(1) / cosf(pitch));
+			roll = atan2f(-_delVel_sum(1), -_delVel_sum(2));
 
 		} else {
 			return false;
