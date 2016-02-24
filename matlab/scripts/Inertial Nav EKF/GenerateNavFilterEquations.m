@@ -1,6 +1,6 @@
 % IMPORTANT - This script requires the Matlab symbolic toolbox and takes ~3 hours to run
 
-% Derivation of Navigation EKF using a local NED earth Tangent Frame and 
+% Derivation of Navigation EKF using a local NED earth Tangent Frame and
 % XYZ body fixed frame
 % Sequential fusion of velocity and position measurements
 % Fusion of true airspeed
@@ -15,8 +15,8 @@
 % Based on use of a rotation vector for attitude estimation as described
 % here:
 
-% Mark E. Pittelkau.  "Rotation Vector in Attitude Estimation", 
-% Journal of Guidance, Control, and Dynamics, Vol. 26, No. 6 (2003), 
+% Mark E. Pittelkau.  "Rotation Vector in Attitude Estimation",
+% Journal of Guidance, Control, and Dynamics, Vol. 26, No. 6 (2003),
 % pp. 855-860.
 
 % State vector:
@@ -68,8 +68,7 @@ syms R_LOS real % variance of LOS angular rate mesurements (rad/sec)^2
 syms ptd real % location of terrain in D axis
 syms rotErrX rotErrY rotErrZ real; % error rotation vector in body frame
 syms decl real; % earth magnetic field declination from true north
-syms R_YAW real; % variance for magnetic deviation measurement
-syms R_DECL real; % variance of supplied declination
+syms R_DECL R_YAW real; % variance of declination or yaw angle observation
 syms BCXinv BCYinv real % inverse of ballistic coefficient for wind relative movement along the x and y  body axes
 syms rho real % air density (kg/m^3)
 syms R_ACC real % variance of accelerometer measurements (m/s^2)^2
@@ -102,7 +101,7 @@ truthQuat = QuatMult(estQuat, errQuat);
 Tbn = Quat2Tbn(truthQuat);
 
 % define the truth delta angle
-% ignore coning compensation as these effects are negligible in terms of 
+% ignore coning compensation as these effects are negligible in terms of
 % covariance growth for our application and grade of sensor
 dAngTruth = dAngMeas.*dAngScale - dAngBias - [daxNoise;dayNoise;dazNoise];
 
@@ -189,10 +188,10 @@ F = jacobian(newStateVector, stateVector);
 F = subs(F, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 [F,SF]=OptimiseAlgebra(F,'SF');
 
-% define a symbolic covariance matrix using strings to represent 
+% define a symbolic covariance matrix using strings to represent
 % '_l_' to represent '( '
 % '_c_' to represent ,
-% '_r_' to represent ')' 
+% '_r_' to represent ')'
 % these can be substituted later to create executable code
 for rowIndex = 1:nStates
     for colIndex = 1:nStates
@@ -264,12 +263,33 @@ K_LOS = [K_LOSX,K_LOSY];
 simplify(K_LOS);
 [K_LOS,SK_LOS]=OptimiseAlgebra(K_LOS,'SK_LOS');
 
-% Use matlab c code converter for an alternate method of 
+% Use matlab c code converter for an alternate method of
 ccode(H_LOS,'file','H_LOS.txt');
 ccode(K_LOSX,'file','K_LOSX.txt');
 ccode(K_LOSY,'file','K_LOSY.txt');
 
-%% derive equations for fusion of direct yaw measurement
+%% derive equations for simple fusion of 2-D magnetic heading measurements
+
+% rotate magnetic field into earth axes
+magMeasNED = Tbn*[magX;magY;magZ];
+% the predicted measurement is the angle wrt true north of the horizontal
+% component of the measured field
+angMeas = atan(magMeasNED(2)/magMeasNED(1));
+simpleStateVector = [errRotVec;vn;ve;vd;pn;pe;pd;dax_b;day_b;daz_b;dax_s;day_s;daz_s;dvz_b];
+Psimple = P(1:16,1:16);
+H_MAGS = jacobian(angMeas,simpleStateVector); % measurement Jacobian
+%H_MAGS = H_MAGS(1:3);
+H_MAGS = subs(H_MAGS, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
+%H_MAGS = simplify(H_MAGS);
+%[H_MAGS,SH_MAGS]=OptimiseAlgebra(H_MAGS,'SH_MAGS');
+ccode(H_MAGS,'file','calcH_MAGS.c');
+% Calculate Kalman gain vector
+K_MAGS = (Psimple*transpose(H_MAGS))/(H_MAGS*Psimple*transpose(H_MAGS) + R_DECL);
+%K_MAGS = simplify(K_MAGS);
+%[K_MAGS,SK_MAGS]=OptimiseAlgebra(K_MAGS,'SK_MAGS');
+ccode(K_MAGS,'file','calcK_MAGS.c');
+
+%% derive equations for fusion of yaw measurements
 
 % rotate X body axis into earth axes
 yawVec = Tbn*[1;0;0];
@@ -298,7 +318,7 @@ H_MAGD = jacobian(angMeas,stateVector); % measurement Jacobian
 H_MAGD = subs(H_MAGD, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 H_MAGD = simplify(H_MAGD);
 %[H_MAGD,SH_MAGD]=OptimiseAlgebra(H_MAGD,'SH_MAGD');
-%ccode(H_MAGD,'file','calcH_MAGD.c');
+ccode(H_MAGD,'file','calcH_MAGD.c');
 % Calculate Kalman gain vector
 K_MAGD = (P*transpose(H_MAGD))/(H_MAGD*P*transpose(H_MAGD) + R_DECL);
 ccode([H_MAGD',K_MAGD],'file','calcMAGD.c');
@@ -319,7 +339,7 @@ vrel = transpose(Tbn)*[(vn-vwn);(ve-vwe);vd]; % predicted wind relative velocity
 % accYpred = -0.5*rho*vrel(2)*vrel(2)*BCYinv; % predicted acceleration measured along Y body axis
 
 % Use a simple viscous drag model for the linear estimator equations
-% Use the the derivative from speed to acceleration averaged across the 
+% Use the the derivative from speed to acceleration averaged across the
 % speed range
 % The nonlinear equation will be used to calculate the predicted
 % measurement in implementation
@@ -339,10 +359,8 @@ H_ACCY = jacobian(accYpred,stateVector); % measurement Jacobian
 H_ACCY = subs(H_ACCY, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
 [H_ACCY,SH_ACCY]=OptimiseAlgebra(H_ACCY,'SH_ACCY'); % optimise processing
 K_ACCY = (P*transpose(H_ACCY))/(H_ACCY*P*transpose(H_ACCY) + R_ACC);
+ccode([H_ACCY',K_ACCY],'file','calcACCY.c');
 [K_ACCY,SK_ACCY]=OptimiseAlgebra(K_ACCY,'SK_ACCY'); % Kalman gain vector
-
-% generate c code for jacobians using the matlab code generator
-ccode([H_ACCX;H_ACCY],'file','calcH_ACCXY.c');
 
 %% Save output and convert to m and c code fragments
 fileName = strcat('SymbolicOutput',int2str(nStates),'.mat');
