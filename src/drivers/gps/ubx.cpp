@@ -808,6 +808,9 @@ UBX::payload_rx_done(void)
 		_gps_position->epv		= (float)_buf.payload_rx_nav_pvt.vAcc * 1e-3f;
 		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_pvt.sAcc * 1e-3f;
 
+		_gps_position->hdop		= (float)_buf.payload_rx_nav_pvt.pDOP * 0.01f;
+		_gps_position->vdop		= _gps_position->hdop;
+
 		_gps_position->vel_m_s		= (float)_buf.payload_rx_nav_pvt.gSpeed * 1e-3f;
 
 		_gps_position->vel_n_m_s	= (float)_buf.payload_rx_nav_pvt.velN * 1e-3f;
@@ -890,6 +893,9 @@ UBX::payload_rx_done(void)
 		_gps_position->fix_type		= _buf.payload_rx_nav_sol.gpsFix;
 		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_sol.sAcc * 1e-2f;	// from cm to m
 		_gps_position->satellites_used	= _buf.payload_rx_nav_sol.numSV;
+
+		_gps_position->hdop		= (float)_buf.payload_rx_nav_sol.pDOP * 0.01f;
+		_gps_position->vdop		= _gps_position->hdop;
 
 		_gps_position->timestamp_variance = hrt_absolute_time();
 
