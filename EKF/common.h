@@ -67,10 +67,10 @@ typedef matrix::Quaternion<float> Quaternion;
 typedef matrix::Matrix<float, 3, 3> Matrix3f;
 
 struct outputSample {
-    Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
-    Vector3f    vel;	// NED velocity estimate in earth frame in m/s
-    Vector3f    pos;	// NED position estimate in earth frame in m/s
-    uint64_t 	time_us;	// timestamp in microseconds
+	Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
+	Vector3f    vel;	// NED velocity estimate in earth frame in m/s
+	Vector3f    pos;	// NED position estimate in earth frame in m/s
+	uint64_t 	time_us;	// timestamp in microseconds
 };
 
 struct imuSample {
