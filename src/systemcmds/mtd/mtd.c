@@ -178,9 +178,9 @@ ramtron_attach(void)
 {
 	/* find the right spi */
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
-	struct spi_dev_s *spi = up_spiinitialize(4);
+	struct spi_dev_s *spi = stm32_spibus_initialize(4);
 #else
-	struct spi_dev_s *spi = up_spiinitialize(2);
+	struct spi_dev_s *spi = stm32_spibus_initialize(2);
 #endif
 	/* this resets the spi bus, set correct bus speed again */
 	SPI_SETFREQUENCY(spi, 10 * 1000 * 1000);

@@ -117,8 +117,8 @@ void weak_function board_spiinitialize(void)
  *   must be provided by board-specific logic.  They are implementations of
  *   the select and status methods of the SPI interface defined by struct
  *   spi_ops_s (see include/nuttx/spi/spi.h). All other methods (including
- *   up_spiinitialize()) are provided by common STM32 logic.  To use this
- *   common SPI logic on your board:
+ *   stm32_spibus_initialize()) are provided by common STM32 logic.  To use
+ *   this common SPI logic on your board:
  *
  *   1. Provide logic in stm32_boardinitialize() to configure SPI chip
  *      select pins.
@@ -126,10 +126,10 @@ void weak_function board_spiinitialize(void)
  *      in your board-specific logic.  These functions will perform chip
  *      selection and status operations using GPIOs in the way your board
  *      is configured.
- *   3. Add a calls to up_spiinitialize() in your low level application
+ *   3. Add a calls to stm32_spibus_initialize() in your low level application
  *      initialization logic
- *   4. The handle returned by up_spiinitialize() may then be used to bind
- *      the SPI driver to higher level logic (e.g., calling
+ *   4. The handle returned by stm32_spibus_initialize() may then be used to
+ *      bind the SPI driver to higher level logic (e.g., calling
  *      mmcsd_spislotinitialize(), for example, will bind the SPI driver to
  *      the SPI MMC/SD driver).
  *

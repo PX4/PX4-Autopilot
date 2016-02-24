@@ -216,7 +216,7 @@ __EXPORT int board_app_initialize(void)
 
 	/* Configure SPI-based devices */
 
-	spi1 = up_spiinitialize(1);
+	spi1 = stm32_spibus_initialize(1);
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\r\n");
@@ -239,7 +239,7 @@ __EXPORT int board_app_initialize(void)
 	 */
 
 #ifdef CONFIG_STM32_SPI2
-	spi2 = up_spiinitialize(2);
+	spi2 = stm32_spibus_initialize(2);
 	/* Default SPI2 to 1MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi2, 10000000);
 	SPI_SETBITS(spi2, 8);
@@ -258,7 +258,7 @@ __EXPORT int board_app_initialize(void)
 
 	/* Get the SPI port for the microSD slot */
 
-	spi3 = up_spiinitialize(3);
+	spi3 = stm32_spibus_initialize(3);
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
