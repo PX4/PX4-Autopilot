@@ -43,139 +43,148 @@
 
 void Ekf::fuseVelPosHeight()
 {
-    bool fuse_map[6] = {}; // map of booelans true when [VN,VE,VD,PN,PE,PD] observations are available
-    bool innov_check_pass_map[6] = {}; // true when innovations consistency checks pass for [VN,VE,VD,PN,PE,PD] observations
-    float R[6] = {}; // observation variances for [VN,VE,VD,PN,PE,PD]
-    float gate_size[6] = {}; // innovation consistency check gate sizes for [VN,VE,VD,PN,PE,PD] observations
-    float Kfusion[24] = {}; // Kalman gain vector for any single observation - sequential fusion is used
+	bool fuse_map[6] = {}; // map of booelans true when [VN,VE,VD,PN,PE,PD] observations are available
+	bool innov_check_pass_map[6] = {}; // true when innovations consistency checks pass for [VN,VE,VD,PN,PE,PD] observations
+	float R[6] = {}; // observation variances for [VN,VE,VD,PN,PE,PD]
+	float gate_size[6] = {}; // innovation consistency check gate sizes for [VN,VE,VD,PN,PE,PD] observations
+	float Kfusion[24] = {}; // Kalman gain vector for any single observation - sequential fusion is used
 
-    // calculate innovations, innovations gate sizes and observation variances
+	// calculate innovations, innovations gate sizes and observation variances
 	if (_fuse_hor_vel) {
 		fuse_map[0] = fuse_map[1] = true;
-        // horizontal velocity innovations
+		// horizontal velocity innovations
 		_vel_pos_innov[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
 		_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
-        // observation variance - use receiver reported accuracy with parameter setting the minimum value
-        R[0] = fmaxf(_params.gps_vel_noise, 0.01f);
-        R[0] = fmaxf(R[0], _gps_speed_accuracy);
-        R[0] = R[0] * R[0];
-        R[1] = R[0];
-        // innovation gate sizes
-        gate_size[0] = fmaxf(_params.vel_innov_gate, 1.0f);
-        gate_size[1] = gate_size[0];
-    }
+		// observation variance - use receiver reported accuracy with parameter setting the minimum value
+		R[0] = fmaxf(_params.gps_vel_noise, 0.01f);
+		R[0] = fmaxf(R[0], _gps_speed_accuracy);
+		R[0] = R[0] * R[0];
+		R[1] = R[0];
+		// innovation gate sizes
+		gate_size[0] = fmaxf(_params.vel_innov_gate, 1.0f);
+		gate_size[1] = gate_size[0];
+	}
 
 	if (_fuse_vert_vel) {
 		fuse_map[2] = true;
-        // vertical velocity innovation
-        _vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
-        // observation variance - use receiver reported accuracy with parameter setting the minimum value
-        R[2] = fmaxf(_params.gps_vel_noise, 0.01f);
-        // use scaled horizontal speed accuracy assuming typical ratio of VDOP/HDOP
-        R[2] = 1.5f * fmaxf(R[2], _gps_speed_accuracy);
-        R[2] = R[2] * R[2];
-        // innovation gate size
-        gate_size[2] = fmaxf(_params.vel_innov_gate, 1.0f);
-    }
+		// vertical velocity innovation
+		_vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
+		// observation variance - use receiver reported accuracy with parameter setting the minimum value
+		R[2] = fmaxf(_params.gps_vel_noise, 0.01f);
+		// use scaled horizontal speed accuracy assuming typical ratio of VDOP/HDOP
+		R[2] = 1.5f * fmaxf(R[2], _gps_speed_accuracy);
+		R[2] = R[2] * R[2];
+		// innovation gate size
+		gate_size[2] = fmaxf(_params.vel_innov_gate, 1.0f);
+	}
 
 	if (_fuse_pos) {
 		fuse_map[3] = fuse_map[4] = true;
-        // horizontal position innovations
+		// horizontal position innovations
 		_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
 		_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
-        // observation variance - user parameter defined
-        // if we are in flight and not using GPS, then use a specific parameter
-        if (!_control_status.flags.gps && _control_status.flags.in_air) {
-            R[3] = fmaxf(_params.pos_noaid_noise, 0.5f);
-        } else {
-            R[3] = fmaxf(_params.gps_pos_noise, 0.01f);
-        }
-        R[3] = R[3] * R[3];
-        R[4] = R[3];
-        // innovation gate sizes
-        gate_size[3] = fmaxf(_params.posNE_innov_gate, 1.0f);
-        gate_size[4] = gate_size[3];
+
+		// observation variance - user parameter defined
+		// if we are in flight and not using GPS, then use a specific parameter
+		if (!_control_status.flags.gps && _control_status.flags.in_air) {
+			R[3] = fmaxf(_params.pos_noaid_noise, 0.5f);
+
+		} else {
+			R[3] = fmaxf(_params.gps_pos_noise, 0.01f);
+		}
+
+		R[3] = R[3] * R[3];
+		R[4] = R[3];
+		// innovation gate sizes
+		gate_size[3] = fmaxf(_params.posNE_innov_gate, 1.0f);
+		gate_size[4] = gate_size[3];
 	}
 
 	if (_fuse_height) {
 		fuse_map[5] = true;
-        // vertical position innovation - baro measurement has opposite sign to earth z axis
-        _vel_pos_innov[5] = _state.pos(2) - (_baro_at_alignment -_baro_sample_delayed.hgt);
-        // observation variance - user parameter defined
-        R[5] = fmaxf(_params.baro_noise, 0.01f);
-        R[5] = R[5] * R[5];
-        // innovation gate size
-        gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
-    }
+		// vertical position innovation - baro measurement has opposite sign to earth z axis
+		_vel_pos_innov[5] = _state.pos(2) - (_baro_at_alignment - _baro_sample_delayed.hgt);
+		// observation variance - user parameter defined
+		R[5] = fmaxf(_params.baro_noise, 0.01f);
+		R[5] = R[5] * R[5];
+		// innovation gate size
+		gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
+	}
 
-    // calculate innovation test ratios
-    for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
-        if (fuse_map[obs_index]) {
-            // compute the innovation variance SK = HPH + R
-            unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
-            _vel_pos_innov_var[obs_index] = P[state_index][state_index] + R[obs_index];
-            // Compute the ratio of innovation to gate size
-            _vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) * _vel_pos_innov[obs_index]);
-        }
-    }
+	// calculate innovation test ratios
+	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
+		if (fuse_map[obs_index]) {
+			// compute the innovation variance SK = HPH + R
+			unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
+			_vel_pos_innov_var[obs_index] = P[state_index][state_index] + R[obs_index];
+			// Compute the ratio of innovation to gate size
+			_vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) * _vel_pos_innov[obs_index]);
+		}
+	}
 
-    // check position, velocity and height innovations
-    // treat 3D velocity, 2D position and height as separate sensors
-    // always pass position checks if using synthetic position measurements
-    bool vel_check_pass = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f) && (_vel_pos_test_ratio[2] <= 1.0f);
-    innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = vel_check_pass;
-    bool using_synthetic_measurements = !_control_status.flags.gps && !_control_status.flags.opt_flow;
-    bool pos_check_pass = ((_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f)) || using_synthetic_measurements;
-    innov_check_pass_map[4] = innov_check_pass_map[3] = pos_check_pass;
-    innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f);
+	// check position, velocity and height innovations
+	// treat 3D velocity, 2D position and height as separate sensors
+	// always pass position checks if using synthetic position measurements
+	bool vel_check_pass = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f)
+			      && (_vel_pos_test_ratio[2] <= 1.0f);
+	innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = vel_check_pass;
+	bool using_synthetic_measurements = !_control_status.flags.gps && !_control_status.flags.opt_flow;
+	bool pos_check_pass = ((_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f))
+			      || using_synthetic_measurements;
+	innov_check_pass_map[4] = innov_check_pass_map[3] = pos_check_pass;
+	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f);
 
-    // record the successful velocity fusion time
-    if (vel_check_pass && _fuse_hor_vel) {
-        _time_last_vel_fuse = _time_last_imu;
-    }
+	// record the successful velocity fusion time
+	if (vel_check_pass && _fuse_hor_vel) {
+		_time_last_vel_fuse = _time_last_imu;
+	}
 
-    // record the successful position fusion time
-    if (pos_check_pass && _fuse_pos) {
-        _time_last_pos_fuse = _time_last_imu;
-    }
+	// record the successful position fusion time
+	if (pos_check_pass && _fuse_pos) {
+		_time_last_pos_fuse = _time_last_imu;
+	}
 
-    // record the successful height fusion time
-    if (innov_check_pass_map[5] && _fuse_height) {
-        _time_last_hgt_fuse = _time_last_imu;
-    }
+	// record the successful height fusion time
+	if (innov_check_pass_map[5] && _fuse_height) {
+		_time_last_hgt_fuse = _time_last_imu;
+	}
 
-    for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
-        // skip fusion if not requested or checks have failed
-        if (!fuse_map[obs_index] || !innov_check_pass_map[obs_index]) {
+	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
+		// skip fusion if not requested or checks have failed
+		if (!fuse_map[obs_index] || !innov_check_pass_map[obs_index]) {
 			continue;
 		}
 
 		unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
 
-        // calculate kalman gain K = PHS, where S = 1/innovation variance
-                for (int row = 0; row <= 15; row++) {
-                    Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
+		// calculate kalman gain K = PHS, where S = 1/innovation variance
+		for (int row = 0; row <= 15; row++) {
+			Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
 		}
-                // only update magnetic field states if we are fusing 3-axis observations
-                if (_control_status.flags.mag_3D) {
-                    for (int row = 16; row <= 21; row++) {
-                        Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
-                    }
-                } else {
-                    for (int row = 16; row <= 21; row++) {
-                        Kfusion[row] = 0.0f;
-                    }
-                }
-                // only update wind states if we are doing wind estimation
-                if (_control_status.flags.wind) {
-                    for (int row = 22; row <= 23; row++) {
-                        Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
-                    }
-                } else {
-                    for (int row = 22; row <= 23; row++) {
-                        Kfusion[row] = 0.0f;
-                    }
-                }
+
+		// only update magnetic field states if we are fusing 3-axis observations
+		if (_control_status.flags.mag_3D) {
+			for (int row = 16; row <= 21; row++) {
+				Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
+			}
+
+		} else {
+			for (int row = 16; row <= 21; row++) {
+				Kfusion[row] = 0.0f;
+			}
+		}
+
+		// only update wind states if we are doing wind estimation
+		if (_control_status.flags.wind) {
+			for (int row = 22; row <= 23; row++) {
+				Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
+			}
+
+		} else {
+			for (int row = 22; row <= 23; row++) {
+				Kfusion[row] = 0.0f;
+			}
+		}
 
 		// by definition the angle error state is zero at the fusion time
 		_state.ang_error.setZero();

@@ -45,13 +45,14 @@
 #include <algorithm>
 #define M_PI_F 3.14159265358979323846f
 
-namespace math {
-	using namespace Eigen;
-	using namespace std;
+namespace math
+{
+using namespace Eigen;
+using namespace std;
 
-	float constrain(float &val, float min, float max);
-	float radians(float degrees);
-	float degrees(float radians);
+float constrain(float &val, float min, float max);
+float radians(float degrees);
+float degrees(float radians);
 }
 #else
 #include <mathlib/mathlib.h>
