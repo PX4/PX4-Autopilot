@@ -372,7 +372,7 @@ void Ekf2::task_main()
 
 		// read airspeed data if available
 		if (airspeed_updated) {
-			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.indicated_airspeed_m_s); // This should probably be changed to EAS!
+			_ekf->setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s); // Only TAS is now fed into the estimator
 		}
 
 		// read vehicle status if available for 'landed' information
