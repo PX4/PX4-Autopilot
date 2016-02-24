@@ -155,8 +155,8 @@ struct parameters {
 	float req_gdop;         // maximum acceptable geometric dilution of precision
 	float req_hdrift;       // maximum acceptable horizontal drift speed
 	float req_vdrift;       // maximum acceptable vertical drift speed
-	
-    // Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
+
+	// Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
 	parameters()
 	{
 		mag_delay_ms = 0.0f;
