@@ -47,11 +47,12 @@
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_flag_enable_mc_motors(true),
-	_pusher_throttle(0.0f),
+	_pusher_throttle(0.0f),	
 	_airspeed_trans_blend_margin(0.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
+	_pusher_active = false;
 
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
@@ -267,6 +268,38 @@ void Standard::update_transition_state()
 	_mc_throttle_weight = math::constrain(_mc_throttle_weight, 0.0f, 1.0f);
 }
 
+void Standard::update_mc_state()
+{
+	VtolType::update_mc_state();
+
+	// get desired rotation matrix
+	math::Matrix<3,3> R_sp(&_v_att_sp->R_body[0]);
+
+	// get rotation matrix
+	math::Matrix<3,3> R(&_v_att->R[0]);
+
+	// get projection of thrust vector on body x axis. This is used to
+	// determine the desired forward acceleration which we want to achieve with the pusher
+	math::Vector<3> body_z_sp(R_sp(0,2), R_sp(1,2), R_sp(2,2));
+	math::Vector<3> body_x(R(0,0), R(1,0), R(2,0));
+
+	_pusher_throttle = body_x * body_z_sp * _v_att_sp->thrust;	// XXX check if sign is correct
+
+	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle; 
+
+	float pitch_sp_corrected = _v_att_sp->pitch_body < -0.1f ? -0.1f : _v_att_sp->pitch_body;
+
+	// compute new desired rotation matrix with corrected pitch angle
+	// and copy data to attitude setpoint topic
+	math::Vector<3> euler = R_sp.to_euler();
+	euler(1) = pitch_sp_corrected;
+	R_sp.from_euler(euler(0), euler(1), euler(2));
+	memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
+	math::Quaternion q_sp;
+	q_sp.from_dcm(R_sp);
+	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
+}
+
 void Standard::update_fw_state()
 {
 	VtolType::update_fw_state();
@@ -289,8 +322,26 @@ void Standard::fill_actuator_outputs()
 	_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
 			* _mc_roll_weight;	// roll
-	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;	// pitch
+
+	if(_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] < -0.05f){
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = -0.02f;
+		_pusher_throttle = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * -0.15f;
+		if(!_pusher_active){
+			_pusher_active = true;
+			warnx("Activating pusher");
+		}
+	} else {
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
+			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;	// pitch
+			if(_pusher_active){
+				_pusher_active = false;
+				warnx("Deactivating pusher");
+			}
+
+	}
+
+
+
 	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
 			_mc_yaw_weight;	// yaw
 	_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =

@@ -60,6 +60,7 @@ public:
 	virtual void update_vtol_state();
 	virtual void update_transition_state();
 	virtual void update_fw_state();
+	virtual void update_mc_state();
 	virtual void fill_actuator_outputs();
 	virtual void waiting_on_tecs();
 
@@ -96,7 +97,7 @@ private:
 	} _vtol_schedule;
 
 	bool _flag_enable_mc_motors;
-	float _pusher_throttle;
+	float _pusher_throttle;	
 	float _airspeed_trans_blend_margin;
 
 	void set_max_mc(unsigned pwm_value);
