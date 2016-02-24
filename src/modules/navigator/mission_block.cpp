@@ -228,7 +228,7 @@ MissionBlock::is_mission_item_reached()
 
 	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
 	if (_waypoint_position_reached && _waypoint_yaw_reached) {
-
+	    return true;
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
 
@@ -239,7 +239,7 @@ MissionBlock::is_mission_item_reached()
 		}
 
 		/* check if the MAV was long enough inside the waypoint orbit */
-		if (now - _time_first_inside_orbit >= (hrt_abstime)_mission_item.time_inside * 1e6f) {
+		if ((now - _time_first_inside_orbit >= (hrt_abstime)_mission_item.time_inside * 1e6f)) {
 			return true;
 		}
 	}
@@ -376,6 +376,9 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 			sp->disable_mc_yaw_control = true;
 		}
 		break;
+	case NAV_CMD_FOLLOW_TARGET:
+	    sp->type = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
+	    break;
 
 	default:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
