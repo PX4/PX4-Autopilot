@@ -210,6 +210,12 @@ static manual_control_setpoint_s _last_sp_man = {};
 
 static struct vtol_vehicle_status_s vtol_status = {};
 
+static bool circuit_breaker_engaged_power_check;
+static bool circuit_breaker_engaged_airspd_check;
+static bool circuit_breaker_engaged_enginefailure_check;
+static bool circuit_breaker_engaged_gpsfailure_check;
+static bool cb_usb;
+
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -388,9 +394,15 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "check")) {
 		int checkres = 0;
-		checkres = preflight_check(&status, &mavlink_log_pub, false, true);
+		checkres = preflight_check(&status, &mavlink_log_pub, false, true,
+					   circuit_breaker_engaged_airspd_check,
+					   circuit_breaker_engaged_gpsfailure_check,
+					   cb_usb);
 		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
-		checkres = preflight_check(&status, &mavlink_log_pub, true, true);
+		checkres = preflight_check(&status, &mavlink_log_pub, true, true,
+					   circuit_breaker_engaged_airspd_check,
+					   circuit_breaker_engaged_gpsfailure_check,
+					   cb_usb);
 		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 		return 0;
 	}
@@ -612,9 +624,17 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 		return TRANSITION_DENIED;
 	}
 
-	// Transition the armed state.
-	arming_res = arming_state_transition(&status, &safety, arm ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_STANDBY, &armed,
-					     true /* fRunPreArmChecks */, mavlink_log_pub_local);
+	// Transition the armed state. By passing mavlink_fd to arming_state_transition it will
+	// output appropriate error messages if the state cannot transition.
+	arming_res = arming_state_transition(&status, &safety,
+					     arm ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_STANDBY,
+					     &armed,
+					     true /* fRunPreArmChecks */,
+					     mavlink_log_pub_local,
+					     circuit_breaker_engaged_airspd_check,
+					     circuit_breaker_engaged_gpsfailure_check,
+					     circuit_breaker_engaged_power_check,
+					     cb_usb);
 
 	if (arming_res == TRANSITION_CHANGED) {
 		mavlink_log_info(mavlink_log_pub_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
@@ -1244,10 +1264,10 @@ int commander_thread_main(int argc, char *argv[])
 	status.usb_connected = false;
 
 	// CIRCUIT BREAKERS
-	status.circuit_breaker_engaged_power_check = false;
-	status.circuit_breaker_engaged_airspd_check = false;
-	status.circuit_breaker_engaged_enginefailure_check = false;
-	status.circuit_breaker_engaged_gpsfailure_check = false;
+	circuit_breaker_engaged_power_check = false;
+	circuit_breaker_engaged_airspd_check = false;
+	circuit_breaker_engaged_enginefailure_check = false;
+	circuit_breaker_engaged_gpsfailure_check = false;
 	get_circuit_breaker_params();
 
 	/* publish initial state */
@@ -1455,7 +1475,7 @@ int commander_thread_main(int argc, char *argv[])
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
-	if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+	if (!circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
 		checkAirspeed = true;
 	}
 
@@ -1472,7 +1492,7 @@ int commander_thread_main(int argc, char *argv[])
 	} else {
 			// sensor diagnostics done continiously, not just at boot so don't warn about any issues just yet
 			status.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, true, true, true,
-			checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status.circuit_breaker_engaged_gpsfailure_check, false);
+			checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !circuit_breaker_engaged_gpsfailure_check, false);
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 
@@ -1655,7 +1675,7 @@ int commander_thread_main(int argc, char *argv[])
 					/* Perform airspeed check only if circuit breaker is not
 					 * engaged and it's not a rotary wing
 					 */
-					if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+					if (!circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
 						chAirspeed = true;
 					}
 
@@ -1667,7 +1687,7 @@ int commander_thread_main(int argc, char *argv[])
 					} else {
 						/* check sensors also */
 						(void)Commander::preflightCheck(&mavlink_log_pub, true, true, true, true, chAirspeed,
-								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status.circuit_breaker_engaged_gpsfailure_check, hotplug_timeout);
+								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !circuit_breaker_engaged_gpsfailure_check, hotplug_timeout);
 					}
 				}
 
@@ -1764,9 +1784,17 @@ int commander_thread_main(int argc, char *argv[])
 				arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
 								   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
 
-				if (TRANSITION_CHANGED == arming_state_transition(&status, &safety, new_arming_state, &armed,
-						true /* fRunPreArmChecks */, &mavlink_log_pub)) {
-					mavlink_log_info(&mavlink_log_pub, "DISARMED by safety switch");
+				if (TRANSITION_CHANGED == arming_state_transition(&status,
+										  &safety,
+										  new_arming_state,
+										  &armed,
+										  true /* fRunPreArmChecks */,
+										  &mavlink_log_pub,
+										  circuit_breaker_engaged_airspd_check,
+										  circuit_breaker_engaged_gpsfailure_check,
+										  circuit_breaker_engaged_power_check,
+										  cb_usb)) {
+					mavlink_log_info(mavlink_fd, "DISARMED by safety switch");
 					arming_state_changed = true;
 				}
 			}
@@ -2030,8 +2058,16 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status.calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
-			arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */,
-							     &mavlink_log_pub);
+			arming_ret = arming_state_transition(&status,
+							     &safety,
+							     vehicle_status_s::ARMING_STATE_STANDBY,
+							     &armed,
+							     true /* fRunPreArmChecks */,
+							     &mavlink_log_pub,
+							     circuit_breaker_engaged_airspd_check,
+							     circuit_breaker_engaged_gpsfailure_check,
+							     circuit_breaker_engaged_power_check,
+							     cb_usb);
 
 			if (arming_ret == TRANSITION_CHANGED) {
 				arming_state_changed = true;
@@ -2069,7 +2105,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* check if GPS is ok */
-		if (!status.circuit_breaker_engaged_gpsfailure_check) {
+		if (!circuit_breaker_engaged_gpsfailure_check) {
 			bool gpsIsNoisy = gps_position.noise_per_ms > 0 && gps_position.noise_per_ms < COMMANDER_MAX_GPS_NOISE;
 
 			//Check if GPS receiver is too noisy while we are disarmed
@@ -2281,8 +2317,15 @@ int commander_thread_main(int argc, char *argv[])
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
 									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
-					arming_ret = arming_state_transition(&status, &safety, new_arming_state, &armed, true /* fRunPreArmChecks */,
-									     &mavlink_log_pub);
+					arming_ret = arming_state_transition(&status, &safety,
+									     new_arming_state,
+									     &armed,
+									     true /* fRunPreArmChecks */,
+									     &mavlink_log_pub,
+									     circuit_breaker_engaged_airspd_check,
+									     circuit_breaker_engaged_gpsfailure_check,
+									     circuit_breaker_engaged_power_check,
+									     cb_usb);
 
 					if (arming_ret == TRANSITION_CHANGED) {
 						arming_state_changed = true;
@@ -2318,8 +2361,16 @@ int commander_thread_main(int argc, char *argv[])
 						print_reject_arm("NOT ARMING: Geofence RTL requires valid home");
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-						arming_ret = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_ARMED, &armed, true /* fRunPreArmChecks */,
-										     &mavlink_log_pub);
+						arming_ret = arming_state_transition(&status,
+										     &safety,
+										     vehicle_status_s::ARMING_STATE_ARMED,
+										     &armed,
+										     true /* fRunPreArmChecks */,
+										     &mavlink_log_pub,
+										     circuit_breaker_engaged_airspd_check,
+										     circuit_breaker_engaged_gpsfailure_check,
+										     circuit_breaker_engaged_power_check,
+										     cb_usb);
 
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
@@ -2461,7 +2512,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* Check engine failure
 		 * only for fixed wing for now
 		 */
-		if (!status.circuit_breaker_engaged_enginefailure_check &&
+		if (!circuit_breaker_engaged_enginefailure_check &&
 		    status.is_rotary_wing == false &&
 		    armed.armed &&
 		    ((actuator_controls.control[3] > ef_throttle_thres &&
@@ -2744,15 +2795,15 @@ int commander_thread_main(int argc, char *argv[])
 void
 get_circuit_breaker_params()
 {
-	status.circuit_breaker_engaged_power_check =
+	circuit_breaker_engaged_power_check =
 		circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
-	status.cb_usb =
+	cb_usb =
 		circuit_breaker_enabled("CBRK_USB_CHK", CBRK_USB_CHK_KEY);
-	status.circuit_breaker_engaged_airspd_check =
+	circuit_breaker_engaged_airspd_check =
 		circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
-	status.circuit_breaker_engaged_enginefailure_check =
+	circuit_breaker_engaged_enginefailure_check =
 		circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY);
-	status.circuit_breaker_engaged_gpsfailure_check =
+	circuit_breaker_engaged_gpsfailure_check =
 		circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY);
 }
 
@@ -3486,8 +3537,16 @@ void *commander_low_prio_loop(void *arg)
 					int calib_ret = ERROR;
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (TRANSITION_DENIED == arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_INIT, &armed,
-							false /* fRunPreArmChecks */, &mavlink_log_pub)) {
+					if (TRANSITION_DENIED == arming_state_transition(&status,
+											 &safety,
+											 vehicle_status_s::ARMING_STATE_INIT,
+											 &armed,
+											 false /* fRunPreArmChecks */,
+											 &mavlink_log_pub,
+										         circuit_breaker_engaged_airspd_check,
+										         circuit_breaker_engaged_gpsfailure_check,
+										         circuit_breaker_engaged_power_check,
+											 cb_usb)) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub, command_ack);
 						break;
 					} else {
@@ -3566,14 +3625,23 @@ void *commander_low_prio_loop(void *arg)
 						bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 						/* Perform airspeed check only if circuit breaker is not
 						 * engaged and it's not a rotary wing */
-						if (!status.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+						if (!circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
 							checkAirspeed = true;
 						}
 
 						status.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
-							!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), !status.circuit_breaker_engaged_gpsfailure_check, hotplug_timeout);
+							!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), !circuit_breaker_engaged_gpsfailure_check, hotplug_timeout);
 
-						arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, false /* fRunPreArmChecks */, &mavlink_log_pub);
+						arming_state_transition(&status,
+									&safety,
+									vehicle_status_s::ARMING_STATE_STANDBY,
+									&armed,
+									false /* fRunPreArmChecks */,
+									&mavlink_log_pub,
+									circuit_breaker_engaged_airspd_check,
+									circuit_breaker_engaged_gpsfailure_check,
+									circuit_breaker_engaged_power_check,
+									cb_usb);
 
 					} else {
 						tune_negative(true);
