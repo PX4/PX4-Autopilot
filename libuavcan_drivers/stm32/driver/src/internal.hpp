@@ -97,12 +97,12 @@ struct CriticalSectionLocker
     const irqstate_t flags_;
 
     CriticalSectionLocker()
-        : flags_(irqsave())
+        : flags_(enter_critical_section())
     { }
 
     ~CriticalSectionLocker()
     {
-        irqrestore(flags_);
+        leave_critical_section(flags_);
     }
 };
 
