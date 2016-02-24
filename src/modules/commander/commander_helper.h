@@ -77,21 +77,4 @@ void rgbled_set_color(rgbled_color_t color);
 void rgbled_set_mode(rgbled_mode_t mode);
 void rgbled_set_pattern(rgbled_pattern_t *pattern);
 
-int battery_init();
-
-/**
- * Estimate remaining battery charge.
- *
- * Use integral of current if battery capacity known (BAT_CAPACITY parameter set),
- * else use simple estimate based on voltage.
- *
- * @param voltage the current battery voltage
- * @param discharged the discharged capacity
- * @param throttle_normalized the normalized throttle magnitude from 0 to 1. Negative throttle should be converted to this range as well, as it consumes energy.
- * @return the estimated remaining capacity in 0..1
- */
-float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized);
-
-unsigned battery_get_n_cells();
-
 #endif /* COMMANDER_HELPER_H_ */

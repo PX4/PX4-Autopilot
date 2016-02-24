@@ -456,6 +456,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 				      host_frame.ad1, host_frame.ad2, host_frame.linkq);
 			}
 
+			frsky_update_topics();
+
 			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
 			if (iteration % 2 == 0) {
 				frsky_send_frame1(uart);
