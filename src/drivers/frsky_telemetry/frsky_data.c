@@ -183,18 +183,21 @@ void frsky_update_topics()
 
 	/* get a local copy of the current sensor values */
 	orb_check(sensor_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(sensor_combined), sensor_sub, raw);
 	}
 
 	/* get a local copy of the battery data */
 	orb_check(battery_status_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
 	}
 
 	/* get a local copy of the global position data */
 	orb_check(global_position_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_global_position), global_position_sub, global_pos);
 	}
