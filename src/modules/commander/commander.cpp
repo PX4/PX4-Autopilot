@@ -173,6 +173,15 @@ enum MAV_MODE_FLAG {
 	MAV_MODE_FLAG_ENUM_END = 129, /*  | */
 };
 
+
+enum class vehicle_battery_warning {
+	NONE = 0,       // no battery low voltage warning active
+	LOW = 1,        // warning of low voltage
+	CRITICAL = 2,	// alerting of critical voltage
+};
+
+static vehicle_battery_warning battery_warning = vehicle_battery_warning::NONE;
+
 /* Mavlink file descriptors */
 static int mavlink_fd = 0;
 
@@ -1198,7 +1207,7 @@ int commander_thread_main(int argc, char *argv[])
 	status.data_link_lost = true;
 
 	/* set battery warning flag */
-	status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_NONE;
+	battery_warning = vehicle_battery_warning::NONE;
 	status.condition_battery_voltage_valid = false;
 
 	// XXX for now just set sensors as initialized
@@ -1999,14 +2008,14 @@ int commander_thread_main(int argc, char *argv[])
 			} else {
 				mavlink_log_critical(mavlink_fd, "LOW BATTERY, TAKEOFF DISCOURAGED");
 			}
-			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW;
+			battery_warning = vehicle_battery_warning::LOW;
 			status_changed = true;
 
 		} else if (!status.usb_connected && status.condition_battery_voltage_valid && status.battery_remaining < 0.09f
 			   && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
 			critical_battery_voltage_actions_done = true;
-			status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL;
+			battery_warning = vehicle_battery_warning::CRITICAL;
 
 			if (!armed.armed) {
 				arming_ret = arming_state_transition(&status,
@@ -2677,12 +2686,12 @@ int commander_thread_main(int argc, char *argv[])
 			arm_tune_played = true;
 
 		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-				status.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
+				battery_warning == vehicle_battery_warning::CRITICAL) {
 			/* play tune on battery critical */
 			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
 
 		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-				(status.battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW || status.failsafe)) {
+				(battery_warning == vehicle_battery_warning::LOW || status.failsafe)) {
 			/* play tune on battery warning or failsafe */
 			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
 
@@ -2828,9 +2837,9 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			/* set color */
 			if (status_local->failsafe) {
 				rgbled_set_color(RGBLED_COLOR_PURPLE);
-			} else if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_LOW) {
+			} else if (battery_warning == vehicle_battery_warning::LOW) {
 				rgbled_set_color(RGBLED_COLOR_AMBER);
-			} else if (status_local->battery_warning == vehicle_status_s::VEHICLE_BATTERY_WARNING_CRITICAL) {
+			} else if (battery_warning == vehicle_battery_warning::CRITICAL) {
 				rgbled_set_color(RGBLED_COLOR_RED);
 			} else {
 				if (status_local->condition_home_position_valid && status_local->condition_global_position_valid) {
