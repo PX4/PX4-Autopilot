@@ -720,6 +720,7 @@ MulticopterPositionControl::reset_pos_sp()
 		// we have logic in the main function which chooses the velocity setpoint such that the attitude setpoint is
 		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
 		// position in a special way. In position control mode the position will be reset anyway until the vehicle has reduced speed.
+
 		_pos_sp(0) = _pos(0);
 		_pos_sp(1) = _pos(1);
 	}
@@ -1023,7 +1024,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		/* by default use current setpoint as is */
 		math::Vector<3> pos_sp_s = curr_sp_s;
 
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION && previous_setpoint_valid) {
+		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) && previous_setpoint_valid) {
 			/* follow "previous - current" line */
 
 			if ((curr_sp - prev_sp).length() > MIN_DIST) {
@@ -1380,11 +1381,17 @@ MulticopterPositionControl::task_main()
 				float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
 							  _vel_sp(1) * _vel_sp(1));
 
-				if (vel_norm_xy > _params.vel_max(0)) {
-					/* note assumes vel_max(0) == vel_max(1) */
-					_vel_sp(0) = _vel_sp(0) * _params.vel_max(0) / vel_norm_xy;
-					_vel_sp(1) = _vel_sp(1) * _params.vel_max(1) / vel_norm_xy;
-				}
+//				float sp_vel = sqrtf(_pos_sp_triplet.current.vx*_pos_sp_triplet.current.vx +
+//				                     _pos_sp_triplet.current.vy*_pos_sp_triplet.current.vy);
+
+                if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
+                    _vel_sp(0) = _pos_sp_triplet.current.vx;
+                    _vel_sp(1) = _pos_sp_triplet.current.vy;
+                } else if (vel_norm_xy > _params.vel_max(0)) {
+                    /* note assumes vel_max(0) == vel_max(1) */
+                    _vel_sp(0) = _vel_sp(0) * _params.vel_max(0) / vel_norm_xy;
+                    _vel_sp(1) = _vel_sp(1) * _params.vel_max(1) / vel_norm_xy;
+                }
 
 				/* make sure velocity setpoint is saturated in z*/
 				float vel_norm_z = sqrtf(_vel_sp(2) * _vel_sp(2));
