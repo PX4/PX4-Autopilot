@@ -280,6 +280,45 @@ void Standard::update_transition_state()
 	_mc_throttle_weight = math::constrain(_mc_throttle_weight, 0.0f, 1.0f);
 }
 
+void Standard::update_mc_state()
+{
+	VtolType::update_mc_state();
+
+	// get desired rotation matrix
+	math::Matrix<3,3> R_sp(&_v_att_sp->R_body[0]);
+
+	// get rotation matrix
+	math::Matrix<3,3> R(&_v_att->R[0]);
+
+	// get projection of thrust vector on body x axis. This is used to
+	// determine the desired forward acceleration which we want to achieve with the pusher
+	math::Matrix<3,3> R(&_v_att->R[0]);
+	math::Matrix<3,3> R_sp(&_v_att_sp->R_body[0]);
+	math::Vector<3> thrust_sp_axis(-R_sp(0,2), -R_sp(1,2), -R_sp(2,2));
+	math::Vector<3> euler = R.to_euler();
+	R.from_euler(0, 0, euler(2));
+	math::Vector<3> body_x_zero_tilt(R(0,0), R(1,0), R(2,0));
+
+	_pusher_throttle = body_x_zero_tilt * thrust_sp_axis * _v_att_sp->thrust;
+	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle;
+
+	_pusher_throttle = body_x_zero_tilt * body_z_sp * _v_att_sp->thrust;	// XXX check if sign is correct
+
+	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle; 
+
+	float pitch_sp_corrected = _v_att_sp->pitch_body < -0.1f ? -0.1f : _v_att_sp->pitch_body;
+
+	// compute new desired rotation matrix with corrected pitch angle
+	// and copy data to attitude setpoint topic
+	euler = R_sp.to_euler();
+	euler(1) = pitch_sp_corrected;
+	R_sp.from_euler(euler(0), euler(1), euler(2));
+	memcpy(&_v_att_sp->R_body[0], R_sp.data, sizeof(_v_att_sp->R_body));
+	math::Quaternion q_sp;
+	q_sp.from_dcm(R_sp);
+	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
+}
+
 void Standard::update_fw_state()
 {
 	VtolType::update_fw_state();
