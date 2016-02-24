@@ -45,11 +45,10 @@
 
 #include "navigator_mode.h"
 #include "mission_block.h"
+#include <lib/matrix/matrix/Vector2.hpp>
 
 class FollowTarget : public MissionBlock
 {
-	Navigator *_navigator;
-	int		_tracker_motion_position_sub;	/**< tracker motion subscription */
 
 public:
     FollowTarget(Navigator *navigator, const char *name);
@@ -63,6 +62,26 @@ public:
     virtual void on_active();
 
 private:
+    Navigator *_navigator;
+    int     _tracker_motion_position_sub;   /**< tracker motion subscription */
     control::BlockParamFloat _param_min_alt;
-    void convert_mission_item_to_sp();
+    matrix::Vector2f pos_pair[2];
+    matrix::Vector2f gps_pair;
+    bool gps_valid;
+    uint64_t _last_message_time;
+    uint64_t _last_publish_time;
+    float _steps;
+    bool follow_target_reached;
+    int _index;
+
+    struct pos_history_s{
+       struct position_setpoint_triplet_s pos_history[6];
+       uint64_t wp_time;
+    };
+
+    pos_history_s wp_history[6];
+    int wp_cnt;
+    matrix::Vector2f _current_vel;
+    matrix::Vector2f target_vel;
+    void convert_mission_item_to_sp(matrix::Vector2f & vel);
 };
