@@ -301,8 +301,17 @@ void Standard::fill_actuator_outputs()
 	_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
 			* _mc_roll_weight;	// roll
-	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;	// pitch
+
+	if(_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] < -0.01f){
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = -0.01f;
+		_pusher_throttle = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * -1;
+	} else {
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
+			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;	// pitch
+	}
+
+
+
 	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
 			_mc_yaw_weight;	// yaw
 	_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
