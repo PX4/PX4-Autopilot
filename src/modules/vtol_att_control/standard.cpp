@@ -47,11 +47,12 @@
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_flag_enable_mc_motors(true),
-	_pusher_throttle(0.0f),
+	_pusher_throttle(0.0f),	
 	_airspeed_trans_blend_margin(0.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
 	_vtol_schedule.transition_start = 0;
+	_pusher_active = false;
 
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
@@ -302,12 +303,21 @@ void Standard::fill_actuator_outputs()
 	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
 			* _mc_roll_weight;	// roll
 
-	if(_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] < -0.01f){
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = -0.01f;
-		_pusher_throttle = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * -1;
+	if(_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] < -0.05f){
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = -0.02f;
+		_pusher_throttle = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * -0.15f;
+		if(!_pusher_active){
+			_pusher_active = true;
+			warnx("Activating pusher");
+		}
 	} else {
 		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
 			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;	// pitch
+			if(_pusher_active){
+				_pusher_active = false;
+				warnx("Deactivating pusher");
+			}
+
 	}
 
 
