@@ -57,8 +57,10 @@ void Ekf::controlFusionModes()
 	if (!_control_status.flags.gps) {
 		if (_control_status.flags.tilt_align && (_time_last_imu - _time_last_gps) < 5e5 && _NED_origin_initialised
 		    && (_time_last_imu - _last_gps_fail_us > 5e6)) {
-			// Reset the yaw and magnetic field states
-			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+			// If the heading is not aligned, reset the yaw and magnetic field states
+			if (!_control_status.flags.yaw_align) {
+				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+			}
 
 			// If the heading is valid, reset the positon and velocity and start using gps aiding
 			if (_control_status.flags.yaw_align) {
