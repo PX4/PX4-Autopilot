@@ -48,13 +48,6 @@ uint8 NAVIGATION_STATE_RATTITUDE = 16		# Rattitude (aka "flip") mode
 uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17	# Takeoff
 uint8 NAVIGATION_STATE_MAX = 18
 
-# VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE
-uint8 VEHICLE_VTOL_STATE_UNDEFINED = 0
-uint8 VEHICLE_VTOL_STATE_TRANSITION_TO_FW = 1
-uint8 VEHICLE_VTOL_STATE_TRANSITION_TO_MC = 2
-uint8 VEHICLE_VTOL_STATE_MC = 3
-uint8 VEHICLE_VTOL_STATE_FW = 4
-
 uint8 VEHICLE_BATTERY_WARNING_NONE = 0	    # no battery low voltage warning active
 uint8 VEHICLE_BATTERY_WARNING_LOW = 1	    # warning of low voltage
 uint8 VEHICLE_BATTERY_WARNING_CRITICAL = 2  # alerting of critical voltage

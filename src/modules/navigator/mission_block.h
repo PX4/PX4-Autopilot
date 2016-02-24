@@ -48,6 +48,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 
 #include "navigator_mode.h"

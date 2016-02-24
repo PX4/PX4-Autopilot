@@ -465,7 +465,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 
 	// listen to transition commands if not in manual
 	if (!_v_control_mode.flag_control_manual_enabled) {
-		to_fw = _transition_command == vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		to_fw = _transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 	}
 
 	// handle abort request
@@ -709,10 +709,10 @@ void VtolAttitudeControl::task_main()
 		// reset transition command if not auto control
 		if (_v_control_mode.flag_control_manual_enabled) {
 			if (_vtol_type->get_mode() == ROTARY_WING) {
-				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
 			} else if (_vtol_type->get_mode() == FIXED_WING) {
-				_transition_command = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 			}
 		}
 

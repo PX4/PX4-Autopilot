@@ -456,7 +456,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if(_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing){
 		struct vehicle_command_s cmd = {};
 		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		cmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		if (_cmd_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 		} else {
@@ -471,7 +471,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if (at_current_location) {
 		item->lat = _navigator->get_global_position()->lat;
 		item->lon = _navigator->get_global_position()->lon;
-	
+
 	/* use home position */
 	} else {
 		item->lat = _navigator->get_home_position()->lat;
