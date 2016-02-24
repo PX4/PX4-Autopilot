@@ -155,7 +155,7 @@ private:
 	uint64_t _last_gps_origin_time_us;  // time the origin was last set (uSec)
 	float _gps_alt_ref;                 // WGS-84 height (m)
 
-	// Variables used to initialize the filter states
+	// Variables used to initialise the filter states
 	uint8_t _baro_counter;         // number of baro samples averaged
 	float _baro_sum;               // summed baro measurement
 	uint8_t _mag_counter;          // number of magnetometer samples averaged

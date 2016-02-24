@@ -83,8 +83,8 @@ Ekf::Ekf():
 	_mag_innov_var = {};
 	_delta_angle_corr.setZero();
 	_delta_vel_corr.setZero();
+    _vel_corr.setZero();
 	_last_known_posNE.setZero();
-	_vel_corr.setZero();
 	_imu_down_sampled = {};
 	_q_down_sampled.setZero();
 	_mag_sum = {};
