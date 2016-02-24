@@ -1447,8 +1447,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_STAT.main_state = buf_status.main_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
-			log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
-			log_msg.body.log_STAT.battery_warning = buf_status.battery_warning;
 			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
 			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
@@ -1792,6 +1790,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_GPOS.terrain_alt = -1.0f;
 				}
 				LOGBUFFER_WRITE_AND_COUNT(GPOS);
+			}
+
+			/* --- BATTERY --- */
+			if (copy_if_updated(ORB_ID(battery_status), &subs.battery_sub, &buf.battery)) {
+				log_msg.msg_type = LOG_BATT_MSG;
+				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
+				log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
+				log_msg.body.log_BATT.current = buf.battery.current_a;
+				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
+				log_msg.body.log_BATT.remaining = buf.battery.remaining;
+				log_msg.body.log_BATT.warning = buf.battery.warning;
+				LOGBUFFER_WRITE_AND_COUNT(BATT);
 			}
 
 			/* --- GLOBAL POSITION SETPOINT --- */

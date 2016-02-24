@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
- *   Author: Stefan Rado <px4@sradonia.net>
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,30 +32,66 @@
  ****************************************************************************/
 
 /**
- * @file frsky_data.h
- * @author Stefan Rado <px4@sradonia.net>
+ * @file battery.h
  *
- * FrSky telemetry implementation.
+ * Library calls for battery functionality.
  *
+ * @author Julian Oes <julian@oes.ch>
  */
-#ifndef _FRSKY_DATA_H
-#define _FRSKY_DATA_H
 
-#include <stdbool.h>
+#pragma once
 
-// Public functions
-bool frsky_init(void);
-void frsky_deinit(void);
-void frsky_update_topics(void);
-void frsky_send_frame1(int uart);
-void frsky_send_frame2(int uart);
-void frsky_send_frame3(int uart);
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+#include <uORB/topics/battery_status.h>
+#include <drivers/drv_hrt.h>
 
-struct adc_linkquality {
-	uint8_t ad1;
-	uint8_t ad2;
-	uint8_t linkq;
+
+class Battery : public control::SuperBlock
+{
+public:
+	/**
+	 * Constructor
+	 */
+	Battery();
+
+	/**
+	 * Destructor
+	 */
+	~Battery();
+
+	/**
+	 * Reset all battery stats and report invalid/nothing.
+	 */
+	void reset(battery_status_s *battery_status);
+
+	/**
+	 * Update current battery status message.
+	 *
+	 * @param voltage_v: current voltage in V
+	 * @param current_a: current current in A
+	 * @param throttle_normalized: throttle from 0 to 1
+	 */
+	void updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
+				 battery_status_s *status);
+
+private:
+	void filterVoltage(float voltage_v);
+	void sumDischarged(hrt_abstime timestamp, float current_a);
+	void estimateRemaining(float voltage_v, float throttle_normalized);
+	void determineWarning();
+
+	control::BlockParamFloat _param_v_empty;
+	control::BlockParamFloat _param_v_full;
+	control::BlockParamFloat _param_n_cells;
+	control::BlockParamFloat _param_capacity;
+	control::BlockParamFloat _param_v_load_drop;
+
+	float _voltage_filtered_v;
+	float _throttle_filtered;
+	float _discharged_mah;
+	float _remaining;
+	uint8_t _warning;
+	hrt_abstime _last_timestamp;
 };
-bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v);
 
-#endif /* _FRSKY_TELEMETRY_H */

@@ -105,30 +105,6 @@ static DevHandle h_leds;
 static DevHandle h_rgbleds;
 static DevHandle h_buzzer;
 
-static param_t bat_v_empty_h;
-static param_t bat_v_full_h;
-static param_t bat_n_cells_h;
-static param_t bat_capacity_h;
-static param_t bat_v_load_drop_h;
-static float bat_v_empty = 3.4f;
-static float bat_v_full = 4.2f;
-static float bat_v_load_drop = 0.06f;
-static int bat_n_cells = 3;
-static float bat_capacity = -1.0f;
-static unsigned int counter = 0;
-static float throttle_lowpassed = 0.0f;
-
-int battery_init()
-{
-	bat_v_empty_h = param_find("BAT_V_EMPTY");
-	bat_v_full_h = param_find("BAT_V_CHARGED");
-	bat_n_cells_h = param_find("BAT_N_CELLS");
-	bat_capacity_h = param_find("BAT_CAPACITY");
-	bat_v_load_drop_h = param_find("BAT_V_LOAD_DROP");
-
-	return PX4_OK;
-}
-
 int buzzer_init()
 {
 	tune_end = 0;
@@ -345,52 +321,4 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern)
 {
 
 	h_rgbleds.ioctl(RGBLED_SET_PATTERN, (unsigned long)pattern);
-}
-
-unsigned battery_get_n_cells() {
-	return bat_n_cells;
-}
-
-float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized)
-{
-	float ret = 0;
-
-	if (counter % 100 == 0) {
-		param_get(bat_v_empty_h, &bat_v_empty);
-		param_get(bat_v_full_h, &bat_v_full);
-		param_get(bat_v_load_drop_h, &bat_v_load_drop);
-		param_get(bat_n_cells_h, &bat_n_cells);
-		param_get(bat_capacity_h, &bat_capacity);
-	}
-
-	counter++;
-
-	// XXX this time constant needs to become tunable
-	// but really, the right fix are smart batteries.
-	float val = throttle_lowpassed * 0.97f + throttle_normalized * 0.03f;
-	if (PX4_ISFINITE(val)) {
-		throttle_lowpassed = val;
-	}
-
-	/* remaining charge estimate based on voltage and internal resistance (drop under load) */
-	float bat_v_empty_dynamic = bat_v_empty - (bat_v_load_drop * throttle_lowpassed);
-	/* the range from full to empty is the same for batteries under load and without load,
-	 * since the voltage drop applies to both the full and empty state
-	 */
-	float voltage_range = (bat_v_full - bat_v_empty);
-	float remaining_voltage = (voltage - (bat_n_cells * bat_v_empty_dynamic)) / (bat_n_cells * voltage_range);
-
-	if (bat_capacity > 0.0f) {
-		/* if battery capacity is known, use discharged current for estimate, but don't show more than voltage estimate */
-		ret = fminf(remaining_voltage, 1.0f - discharged / bat_capacity);
-
-	} else {
-		/* else use voltage */
-		ret = remaining_voltage;
-	}
-
-	/* limit to sane values */
-	ret = (ret < 0.0f) ? 0.0f : ret;
-	ret = (ret > 1.0f) ? 1.0f : ret;
-	return ret;
 }

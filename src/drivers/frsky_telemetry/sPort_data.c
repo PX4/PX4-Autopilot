@@ -51,7 +51,7 @@
 
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/battery_status.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -59,35 +59,35 @@
 
 static int sensor_sub = -1;
 static int global_position_sub = -1;
-static int vehicle_status_sub = -1;
-static struct vehicle_status_s *vehicle_status;
+static int battery_status_sub = -1;
 static struct sensor_combined_s *sensor_data;
 static struct vehicle_global_position_s *global_pos;
+static struct battery_status_s *battery_status;
 
 /**
  * Initializes the uORB subscriptions.
  */
 bool sPort_init()
 {
-	vehicle_status = malloc(sizeof(struct vehicle_status_s));
 	sensor_data = malloc(sizeof(struct sensor_combined_s));
 	global_pos = malloc(sizeof(struct vehicle_global_position_s));
+	battery_status = malloc(sizeof(struct battery_status_s));
 
-	if (vehicle_status == NULL || sensor_data == NULL || global_pos == NULL) {
+	if (sensor_data == NULL || global_pos == NULL || battery_status == NULL) {
 		return false;
 	}
 
-	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 	return true;
 }
 
 void sPort_deinit()
 {
-	free(vehicle_status);
 	free(sensor_data);
 	free(global_pos);
+	free(battery_status);
 }
 
 static void update_crc(uint16_t *crc, unsigned char b)
@@ -158,19 +158,24 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 // scaling correct with OpenTX 2.1.7
 void sPort_send_BATV(int uart)
 {
-	/* get a local copy of the vehicle status data */
-	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, vehicle_status);
+	/* get a local copy of the battery data */
+	orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
 
 	/* send battery voltage as VFAS */
-	uint32_t voltage = (int)(100 * vehicle_status->battery_voltage);
+	uint32_t voltage = (int)(100 * battery_status->voltage_v);
+
 	sPort_send_data(uart, SMARTPORT_ID_VFAS, voltage);
 }
 
 // verified scaling
 void sPort_send_CUR(int uart)
 {
+	/* get a local copy of the battery data */
+	orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
+
 	/* send data */
-	uint32_t current = (int)(10 * vehicle_status->battery_current);
+	uint32_t current = (int)(10 * battery_status->current_a);
+
 	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
 }
 
@@ -207,8 +212,12 @@ void sPort_send_VSPD(int uart, float speed)
 // verified scaling
 void sPort_send_FUEL(int uart)
 {
+	/* get a local copy of the battery data */
+	orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
+
 	/* send data */
-	uint32_t fuel = (int)(100 * vehicle_status->battery_remaining);
+	uint32_t fuel = (int)(100 * vehicle_status->remaining_mah);
+
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
 
