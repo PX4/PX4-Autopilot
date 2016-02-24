@@ -73,3 +73,21 @@ PARAM_DEFINE_INT32(SDLOG_EXT, -1);
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
+
+/**
+ * UTC offset (unit: min)
+ *
+ * the difference in hours and minutes from Coordinated 
+ * Universal Time (UTC) for a your place and date.
+ *
+ * for example, In case of South Korea(UTC+09:00), 
+ * UTC offset is 540 min (9*60)
+ *
+ * refer to https://en.wikipedia.org/wiki/List_of_UTC_time_offsets
+ *
+ * @min -1000
+ * @max  1000
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
+

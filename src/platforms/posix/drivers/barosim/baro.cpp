@@ -36,6 +36,8 @@
  * Driver for the simulated barometric pressure sensor
  */
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_time.h>
@@ -389,7 +391,7 @@ BAROSIM::devRead(void *buffer, size_t buflen)
 int
 BAROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
-	PX4_WARN("baro IOCTL %llu", hrt_absolute_time());
+	PX4_WARN("baro IOCTL %" PRIu64 , hrt_absolute_time());
 
 	switch (cmd) {
 
@@ -815,7 +817,7 @@ start()
 	}
 
 	DevMgr::releaseHandle(h);
-	return true;
+	return 0;
 }
 
 

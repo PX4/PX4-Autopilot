@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2016 James Wilson. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,16 +30,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file commands_hello.c
- * Commands to run for the "qurt_hello" config
+ * @file sensors_init_qurt.cpp
  *
- * @author Mark Charlebois <charlebm@gmail.com>
+ *	Sensor initialization code, used only in QuRT platform builds.
+ *
+ * @author James Wilson <jywilson99@hotmail.com>
  */
 
-const char *get_commands()
-{
-	static const char *commands = "hello start";
+#include "sensors_init.h"
 
-	return commands;
+int
+sensors_init(void)
+{
+	// Sensor initialization is performed automatically when the QuRT sensor drivers
+	// are loaded.
+	return 0;
 }

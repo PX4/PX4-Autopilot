@@ -6,18 +6,13 @@
     exit 0
 }
 
-if [ -f src/modules/uavcan/libuavcan/CMakeLists.txt ]
-then
-	echo "Git submodule config valid."
-else
-	git submodule update --init --recursive
-fi
 
 GITSTATUS=$(git status)
 
 function check_git_submodule {
 
-if [ -d $1 ];
+# The .git exists in a submodule if init and update have been done.
+if [ -f $1"/.git" ];
 	then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
 	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
@@ -58,7 +53,7 @@ if [ -d $1 ];
 		fi
 	fi
 else
-	git submodule update --init --recursive;
+	git submodule update --init --recursive $1;
 fi
 
 }
@@ -70,12 +65,13 @@ check_git_submodule Tools/jMAVSim
 check_git_submodule Tools/sitl_gazebo
 check_git_submodule cmake/cmake_hexagon
 check_git_submodule mavlink/include/mavlink/v1.0
+check_git_submodule src/lib/DriverFramework
 check_git_submodule src/lib/DriverFramework/cmake_hexagon
 check_git_submodule src/lib/DriverFramework/dspal
-check_git_submodule src/lib/dspal
 check_git_submodule src/lib/ecl
 check_git_submodule src/lib/matrix
 check_git_submodule src/modules/uavcan/libuavcan
 check_git_submodule unittests/googletest
 
 exit 0
+

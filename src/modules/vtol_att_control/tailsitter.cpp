@@ -52,7 +52,9 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_airspeed_tot(0.0f),
 	_min_front_trans_dur(0.5f),
-
+	_thrust_transition_start(0.0f),
+	_yaw_transition(0.0f),
+	_pitch_transition_start(0.0f),
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control-tailsitter")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "vtol att control-tailsitter nonfinite input"))
 {
@@ -177,7 +179,7 @@ void Tailsitter::update_vtol_state()
 		case TRANSITION_FRONT_P1:
 
 			// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
-			if ((_airspeed->true_airspeed_m_s >= _params_tailsitter.airspeed_trans
+			if ((_airspeed->indicated_airspeed_m_s >= _params_tailsitter.airspeed_trans
 			     && _v_att->pitch <= PITCH_TRANSITION_FRONT_P1) || !_armed->armed) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				//_vtol_schedule.transition_start = hrt_absolute_time();
@@ -227,46 +229,13 @@ void Tailsitter::update_vtol_state()
 	}
 }
 
-
-
-void Tailsitter::update_mc_state()
-{
-	// set idle speed for rotary wing mode
-	if (!flag_idle_mc) {
-		set_idle_mc();
-		flag_idle_mc = true;
-	}
-
-	_mc_roll_weight = 1.0f;
-	_mc_pitch_weight = 1.0f;
-	_mc_yaw_weight = 1.0f;
-
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-}
-
-void Tailsitter::update_fw_state()
-{
-	if (flag_idle_mc) {
-		set_idle_fw();
-		flag_idle_mc = false;
-	}
-
-	_mc_roll_weight = 0.0f;
-	_mc_pitch_weight = 0.0f;
-	_mc_yaw_weight = 0.0f;
-
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-}
-
 void Tailsitter::update_transition_state()
 {
 	if (!_flag_was_in_trans_mode) {
 		// save desired heading for transition and last thrust value
 		_yaw_transition = _v_att_sp->yaw_body;
 		_pitch_transition_start = _v_att_sp->pitch_body;
-		_throttle_transition = _v_att_sp->thrust;
+		_thrust_transition_start = _v_att_sp->thrust;
 		_flag_was_in_trans_mode = true;
 	}
 
@@ -279,15 +248,16 @@ void Tailsitter::update_transition_state()
 							_pitch_transition_start);
 
 		/** create time dependant throttle signal higher than  in MC and growing untill  P2 switch speed reached */
-		if (_airspeed->true_airspeed_m_s <= _params_tailsitter.airspeed_trans) {
-			_v_att_sp->thrust = _throttle_transition + (fabsf(THROTTLE_TRANSITION_MAX * _throttle_transition) *
+		if (_airspeed->indicated_airspeed_m_s <= _params_tailsitter.airspeed_trans) {
+			_thrust_transition = _thrust_transition_start + (fabsf(THROTTLE_TRANSITION_MAX * _thrust_transition_start) *
 					    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur * 1000000.0f));
-			_v_att_sp->thrust = math::constrain(_v_att_sp->thrust , _throttle_transition ,
-							    (1.0f + THROTTLE_TRANSITION_MAX) * _throttle_transition);
+			_thrust_transition = math::constrain(_thrust_transition , _thrust_transition_start ,
+							    (1.0f + THROTTLE_TRANSITION_MAX) * _thrust_transition_start);
+			_v_att_sp->thrust = _thrust_transition;
 		}
 
 		// disable mc yaw control once the plane has picked up speed
-		if (_airspeed->true_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
+		if (_airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
 			_mc_yaw_weight = 0.0f;
 
 		} else {
@@ -319,6 +289,8 @@ void Tailsitter::update_transition_state()
 
 		}
 
+		_v_att_sp->thrust = _thrust_transition;
+
 		/** start blending MC and FW controls from pitch -45 to pitch -70 for smooth control takeover*/
 
 		//_mc_roll_weight = 1.0f - 1.0f * ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_tailsitter.front_trans_dur_p2 * 1000000.0f));
@@ -345,7 +317,7 @@ void Tailsitter::update_transition_state()
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body , -2.0f , PITCH_TRANSITION_BACK + 0.2f);
 
 		//  throttle value is decreesed
-		_v_att_sp->thrust = _throttle_transition * 0.9f;
+		_v_att_sp->thrust = _thrust_transition_start * 0.9f;
 
 		/** keep yaw disabled */
 		_mc_yaw_weight = 0.0f;
@@ -381,15 +353,15 @@ void Tailsitter::update_transition_state()
 	memcpy(&_v_att_sp->q_d[0], &q_sp.data[0], sizeof(_v_att_sp->q_d));
 }
 
-
-void Tailsitter::update_external_state()
+void Tailsitter::waiting_on_tecs()
 {
-
+	// copy the last trust value from the front transition
+	_v_att_sp->thrust = _thrust_transition;
 }
 
 void Tailsitter::calc_tot_airspeed()
 {
-	float airspeed = math::max(1.0f, _airspeed->true_airspeed_m_s);	// prevent numerical drama
+	float airspeed = math::max(1.0f, _airspeed->indicated_airspeed_m_s);	// prevent numerical drama
 	// calculate momentary power of one engine
 	float P = _batt_status->voltage_filtered_v * _batt_status->current_a / _params->vtol_motor_count;
 	P = math::constrain(P, 1.0f, _params->power_max);
@@ -412,7 +384,7 @@ void Tailsitter::scale_mc_output()
 	calc_tot_airspeed();	// estimate air velocity seen by elevons
 
 	// if airspeed is not updating, we assume the normal average speed
-	if (bool nonfinite = !PX4_ISFINITE(_airspeed->true_airspeed_m_s) ||
+	if (bool nonfinite = !PX4_ISFINITE(_airspeed->indicated_airspeed_m_s) ||
 			     hrt_elapsed_time(&_airspeed->timestamp) > 1e6) {
 		airspeed = _params->mc_airspeed_trim;
 
@@ -437,6 +409,27 @@ void Tailsitter::scale_mc_output()
 				 airspeed);
 	_actuators_mc_in->control[1] = math::constrain(_actuators_mc_in->control[1] * airspeed_scaling * airspeed_scaling,
 				       -1.0f, 1.0f);
+}
+
+void Tailsitter::update_mc_state()
+{
+	VtolType::update_mc_state();
+
+	// set idle speed for rotary wing mode
+	if (!flag_idle_mc) {
+		set_idle_mc();
+		flag_idle_mc = true;
+	}
+}
+
+void Tailsitter::update_fw_state()
+{
+	VtolType::update_fw_state();
+
+	if (flag_idle_mc) {
+		set_idle_fw();
+		flag_idle_mc = false;
+	}
 }
 
 /**

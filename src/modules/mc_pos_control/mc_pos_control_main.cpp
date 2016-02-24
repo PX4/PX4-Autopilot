@@ -121,14 +121,12 @@ public:
 	int		start();
 
 private:
-	const float alt_ctl_dz = 0.1f;
-
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_control_task;			/**< task handle for task */
 	int		_mavlink_fd;			/**< mavlink fd */
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
-	int		_ctrl_state_sub;			/**< control state subscription */
+	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_params_sub;			/**< notification of parameter updates */
@@ -166,6 +164,9 @@ private:
 	struct {
 		param_t thr_min;
 		param_t thr_max;
+		param_t thr_hover;
+		param_t alt_ctl_dz;
+		param_t alt_ctl_dy;
 		param_t z_p;
 		param_t z_vel_p;
 		param_t z_vel_i;
@@ -188,7 +189,6 @@ private:
 		param_t global_yaw_max;
 		param_t mc_att_yaw_p;
 		param_t hold_xy_dz;
-		param_t hold_z_dz;
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
@@ -198,6 +198,9 @@ private:
 	struct {
 		float thr_min;
 		float thr_max;
+		float thr_hover;
+		float alt_ctl_dz;
+		float alt_ctl_dy;
 		float tilt_max_air;
 		float land_speed;
 		float tko_speed;
@@ -208,7 +211,6 @@ private:
 		float global_yaw_max;
 		float mc_att_yaw_p;
 		float hold_xy_dz;
-		float hold_z_dz;
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
@@ -268,7 +270,8 @@ private:
 	 */
 	void		poll_subscriptions();
 
-	static float	scale_control(float ctl, float end, float dz);
+	static float	scale_control(float ctl, float end, float dz, float dy);
+	static float    throttle_curve(float ctl, float ctr);
 
 	/**
 	 * Update reference for local position projection
@@ -418,7 +421,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
-	_params_handles.z_p			= param_find("MPC_Z_P");
+	_params_handles.thr_hover	= param_find("MPC_THR_HOVER");
+	_params_handles.alt_ctl_dz	= param_find("MPC_ALTCTL_DZ");
+	_params_handles.alt_ctl_dy	= param_find("MPC_ALTCTL_DY");
+	_params_handles.z_p		= param_find("MPC_Z_P");
 	_params_handles.z_vel_p		= param_find("MPC_Z_VEL_P");
 	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
 	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
@@ -440,7 +446,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
 	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
-	_params_handles.hold_z_dz = param_find("MPC_HOLD_Z_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
@@ -492,6 +497,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		/* update legacy C interface params */
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
+		param_get(_params_handles.thr_hover, &_params.thr_hover);
+		param_get(_params_handles.alt_ctl_dz, &_params.alt_ctl_dz);
+		param_get(_params_handles.alt_ctl_dy, &_params.alt_ctl_dy);
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
 		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
@@ -535,9 +543,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.hold_xy_dz, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.hold_xy_dz = v;
-		param_get(_params_handles.hold_z_dz, &v);
-		v = math::constrain(v, 0.0f, 1.0f);
-		_params.hold_z_dz = v;
 		param_get(_params_handles.hold_max_xy, &v);
 		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
@@ -635,16 +640,29 @@ MulticopterPositionControl::poll_subscriptions()
 }
 
 float
-MulticopterPositionControl::scale_control(float ctl, float end, float dz)
+MulticopterPositionControl::scale_control(float ctl, float end, float dz, float dy)
 {
 	if (ctl > dz) {
-		return (ctl - dz) / (end - dz);
+		return dy + (ctl - dz) * (1.0f - dy) / (end - dz);
 
 	} else if (ctl < -dz) {
-		return (ctl + dz) / (end - dz);
+		return -dy + (ctl + dz) * (1.0f - dy) / (end - dz);
 
 	} else {
-		return 0.0f;
+		return ctl * (dy / dz);
+	}
+}
+
+float
+MulticopterPositionControl::throttle_curve(float ctl, float ctr)
+{
+	/* piecewise linear mapping: 0:ctr -> 0:0.5
+	 * and ctr:1 -> 0.5:1 */
+	if (ctl < 0.5f) {
+		return 2 * ctl * ctr;
+
+	} else {
+		return ctr + 2 * (ctl - 0.5f) * (1.0f - ctr);
 	}
 }
 
@@ -737,7 +755,7 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, alt_ctl_dz); // D
+		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
 	}
 
 	if (_control_mode.flag_control_position_enabled) {
@@ -805,7 +823,7 @@ MulticopterPositionControl::control_manual(float dt)
 	/* vertical axis */
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* check for pos. hold */
-		if (fabsf(req_vel_sp(2)) < _params.hold_z_dz) {
+		if (fabsf(req_vel_sp(2)) < FLT_EPSILON) {
 			if (!_alt_hold_engaged) {
 				if (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z) {
 					_alt_hold_engaged = true;
@@ -1461,7 +1479,7 @@ MulticopterPositionControl::task_main()
 							float i = _params.thr_min;
 
 							if (reset_int_z_manual) {
-								i = _manual.z;
+								i = _params.thr_hover;
 
 								if (i < _params.thr_min) {
 									i = _params.thr_min;
@@ -1839,7 +1857,8 @@ MulticopterPositionControl::task_main()
 
 			/* control throttle directly if no climb rate controller is active */
 			if (!_control_mode.flag_control_climb_rate_enabled) {
-				_att_sp.thrust = math::min(_manual.z, _manual_thr_max.get());
+				float thr_val = throttle_curve(_manual.z, _params.thr_hover);
+				_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());
 
 				/* enforce minimum throttle if not landed */
 				if (!_vehicle_status.condition_landed) {
