@@ -152,7 +152,10 @@ private:
 	void correctFlow();
 	void correctSonar();
 	void correctVision();
-	void correctmocap();
+	void correctMocap();
+
+	// sensor timeout checks
+	void checkTimeouts();
 
 	// sensor initialization
 	void updateHome();
@@ -162,7 +165,7 @@ private:
 	void initSonar();
 	void initFlow();
 	void initVision();
-	void initmocap();
+	void initMocap();
 
 	// publications
 	void publishLocalPos();
@@ -179,15 +182,18 @@ private:
 	uORB::Subscription<vehicle_control_mode_s> _sub_control_mode;
 	uORB::Subscription<vehicle_attitude_s> _sub_att;
 	uORB::Subscription<vehicle_attitude_setpoint_s> _sub_att_sp;
+	uORB::Subscription<vehicle_rates_setpoint_s> _sub_rates_sp;
 	uORB::Subscription<optical_flow_s> _sub_flow;
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
-	uORB::Subscription<distance_sensor_s> _sub_distance;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
 	uORB::Subscription<home_position_s> _sub_home;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
+	uORB::Subscription<distance_sensor_s> *_distance_subs[ORB_MULTI_MAX_INSTANCES];
+	uORB::Subscription<distance_sensor_s> *_sub_lidar;
+	uORB::Subscription<distance_sensor_s> *_sub_sonar;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
@@ -226,6 +232,13 @@ private:
 
 	BlockParamFloat  _mocap_p_stddev;
 
+	BlockParamFloat  _flow_board_x_offs;
+	BlockParamFloat  _flow_board_y_offs;
+
+	BlockParamFloat  _flow_x_scaler;
+	BlockParamFloat  _flow_y_scaler;
+	BlockParamInt    _flow_min_q;
+
 	// process noise
 	BlockParamFloat  _pn_p_noise_power;
 	BlockParamFloat  _pn_v_noise_power;
@@ -235,6 +248,7 @@ private:
 	struct pollfd _polls[3];
 	uint64_t _timeStamp;
 	uint64_t _time_last_xy;
+	uint64_t _time_last_z;
 	uint64_t _time_last_flow;
 	uint64_t _time_last_baro;
 	uint64_t _time_last_gps;
@@ -276,6 +290,7 @@ private:
 	// flow integration
 	float _flowX;
 	float _flowY;
+	float _flowGyroBias[3];
 	float _flowMeanQual;
 
 	// referene lat/lon
@@ -286,6 +301,7 @@ private:
 	bool _canEstimateXY;
 	bool _canEstimateZ;
 	bool _xyTimeout;
+	bool _zTimeout;
 
 	// sensor faults
 	fault_t _baroFault;
@@ -296,6 +312,11 @@ private:
 	fault_t _visionFault;
 	fault_t _mocapFault;
 
+	bool _baroTimeout;
+	bool _gpsTimeout;
+	bool _flowTimeout;
+	bool _lidarTimeout;
+	bool _sonarTimeout;
 	bool _visionTimeout;
 	bool _mocapTimeout;
 

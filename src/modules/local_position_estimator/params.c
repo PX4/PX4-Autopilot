@@ -28,6 +28,33 @@ PARAM_DEFINE_INT32(LPE_INTEGRATE, 1);
 PARAM_DEFINE_FLOAT(LPE_FLW_XY, 0.01f);
 
 /**
+ * Optical flow X scaling factor
+ *
+ * @group Local Position Estimator
+ * @min 0.0
+ * @max 2.0
+ */
+PARAM_DEFINE_FLOAT(LPE_FLW_XSCLR, 1.0f);
+
+/**
+ * Optical flow Y scaling factor
+ *
+ * @group Local Position Estimator
+ * @min 0.0
+ * @max 2.0
+ */
+PARAM_DEFINE_FLOAT(LPE_FLW_YSCLR, 1.0f);
+
+/**
+ * Optical flow minimum quality threshold
+ *
+ * @group Local Position Estimator
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(LPE_FLW_QMIN, 75);
+
+/**
  * Sonar z standard deviation.
  *
  * @group Local Position Estimator

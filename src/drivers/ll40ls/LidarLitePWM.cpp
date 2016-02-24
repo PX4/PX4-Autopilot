@@ -45,6 +45,7 @@
 #include "LidarLitePWM.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_input.h>
 
@@ -63,6 +64,9 @@ LidarLitePWM::LidarLitePWM(const char *path) :
 	_pwm{},
 	_distance_sensor_topic(nullptr),
 	_range{},
+	_lastTimeStamp(0),
+	_pulseCount(0),
+	_lastDistance(0.0f),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_pwm_read")),
 	_read_errors(perf_alloc(PC_COUNT, "ll40ls_pwm_read_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_pwm_buffer_overflows")),
@@ -194,6 +198,27 @@ int LidarLitePWM::measure()
 		perf_count(_sensor_zero_resets);
 		perf_end(_sample_perf);
 		return reset_sensor();
+	}
+
+	uint32_t pulse_interval = _range.timestamp - _lastTimeStamp;
+	_lastTimeStamp = _range.timestamp;
+
+	// Normal reporting interval for LidarLite in PWM mode is 50msec
+	if (pulse_interval > 60 * 1000UL) { // TODO : Should we increase this to *not* miss longer range meas?
+		// missed pulse, frequently associated with invalid pulsewidth measurements
+		_pulseCount = 0;
+
+	} else {
+		// wait for 4 successive pulses at 50msec intervals before accepting pulsewidth
+		if (_pulseCount < 4) {
+			_pulseCount++;
+			// hold last valid range reported to avoid glitches
+			_range.current_distance = _lastDistance;
+
+		} else {
+			// valid pulse train, reset lastDistance
+			_lastDistance = _range.current_distance;
+		}
 	}
 
 	if (_distance_sensor_topic != nullptr) {
