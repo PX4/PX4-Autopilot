@@ -385,161 +385,168 @@ void Ekf2::task_main()
 		}
 
 		// run the EKF update
-		_ekf->update();
+		bool ekf_output_valid = _ekf->update();
 
-		// generate vehicle attitude data
-		struct vehicle_attitude_s att = {};
-		att.timestamp = hrt_absolute_time();
-
-		_ekf->copy_quaternion(att.q);
-		matrix::Quaternion<float> q(att.q[0], att.q[1], att.q[2], att.q[3]);
-		matrix::Euler<float> euler(q);
-		att.roll = euler(0);
-		att.pitch = euler(1);
-		att.yaw = euler(2);
-
-		// generate vehicle local position data
-		struct vehicle_local_position_s lpos = {};
-		float pos[3] = {};
-		float vel[3] = {};
-
-		lpos.timestamp = hrt_absolute_time();
-
-		// Position in local NED frame
-		_ekf->copy_position(pos);
-		lpos.x = pos[0];
-		lpos.y = pos[1];
-		lpos.z = pos[2];
-
-		// Velocity in NED frame (m/s)
-		_ekf->copy_velocity(vel);
-		lpos.vx = vel[0];
-		lpos.vy = vel[1];
-		lpos.vz = vel[2];
-
-		// TODO: better status reporting
-		lpos.xy_valid = _ekf->position_is_valid();
-		lpos.z_valid = true;
-		lpos.v_xy_valid = _ekf->position_is_valid();
-		lpos.v_z_valid = true;
-
-		// Position of local NED origin in GPS / WGS84 frame
-		struct map_projection_reference_s ekf_origin = {};
-		_ekf->get_ekf_origin(&lpos.ref_timestamp, &ekf_origin, &lpos.ref_alt);
-		lpos.xy_global =
-			_ekf->position_is_valid();          // true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
-		lpos.z_global = true;                                // true if z is valid and has valid global reference (ref_alt)
-		lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
-		lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
-
-		// The rotation of the tangent plane vs. geographical north
-		lpos.yaw = 0.0f;
-
-		lpos.dist_bottom = 0.0f; // Distance to bottom surface (ground) in meters
-		lpos.dist_bottom_rate = 0.0f; // Distance to bottom surface (ground) change rate
-		lpos.surface_bottom_timestamp	= 0; // Time when new bottom surface found
-		lpos.dist_bottom_valid = false; // true if distance to bottom surface is valid
-
-		// TODO: uORB definition does not define what thes variables are. We have assumed them to be horizontal and vertical 1-std dev accuracy in metres
-		// TODO: Should use sqrt of filter position variances
-		lpos.eph = gps.eph;
-		lpos.epv = gps.epv;
-
-		// publish vehicle local position data
-		if (_lpos_pub == nullptr) {
-			_lpos_pub = orb_advertise(ORB_ID(vehicle_local_position), &lpos);
-
-		} else {
-			orb_publish(ORB_ID(vehicle_local_position), _lpos_pub, &lpos);
-		}
-
-		// generate control state data
-		control_state_s ctrl_state = {};
-		ctrl_state.timestamp = hrt_absolute_time();
-		ctrl_state.roll_rate = _lp_roll_rate.apply(sensors.gyro_rad_s[0]);
-		ctrl_state.pitch_rate = _lp_pitch_rate.apply(sensors.gyro_rad_s[1]);
-		ctrl_state.yaw_rate = _lp_yaw_rate.apply(sensors.gyro_rad_s[2]);
-
-		ctrl_state.q[0] = q(0);
-		ctrl_state.q[1] = q(1);
-		ctrl_state.q[2] = q(2);
-		ctrl_state.q[3] = q(3);
-
-		// publish control state data
-		if (_control_state_pub == nullptr) {
-			_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-		} else {
-			orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
-		}
-
-		// generate vehicle attitude data
-		att.q[0] = q(0);
-		att.q[1] = q(1);
-		att.q[2] = q(2);
-		att.q[3] = q(3);
-		att.q_valid = true;
-
-		att.rollspeed = sensors.gyro_rad_s[0];
-		att.pitchspeed = sensors.gyro_rad_s[1];
-		att.yawspeed = sensors.gyro_rad_s[2];
-
-		// publish vehicle attitude data
-		if (_att_pub == nullptr) {
-			_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
-
-		} else {
-			orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
-		}
-
-		// generate and publish global position data
-		struct vehicle_global_position_s global_pos = {};
-
-		if (_ekf->position_is_valid()) {
-			// TODO: local origin is currenlty at GPS height origin - this is different to ekf_att_pos_estimator
-
-			global_pos.timestamp = hrt_absolute_time(); // Time of this estimate, in microseconds since system start
-			global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
-
-			double est_lat, est_lon;
-			map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &est_lat, &est_lon);
-			global_pos.lat = est_lat; // Latitude in degrees
-			global_pos.lon = est_lon; // Longitude in degrees
-
-			global_pos.alt = -pos[2] + lpos.ref_alt; // Altitude AMSL in meters
-
-			global_pos.vel_n = vel[0]; // Ground north velocity, m/s
-			global_pos.vel_e = vel[1]; // Ground east velocity, m/s
-			global_pos.vel_d = vel[2]; // Ground downside velocity, m/s
-
-			global_pos.yaw = euler(2); // Yaw in radians -PI..+PI.
-
-			global_pos.eph = gps.eph; // Standard deviation of position estimate horizontally
-			global_pos.epv = gps.epv; // Standard deviation of position vertically
-
-			// TODO: implement terrain estimator
-			global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
-			global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
-			// TODO use innovatun consistency check timouts to set this
-			global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
-
-			global_pos.pressure_alt = sensors.baro_alt_meter[0]; // Pressure altitude AMSL (m)
-
-			if (_vehicle_global_position_pub == nullptr) {
-				_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
-			}
-		}
-
-		// publish estimator status
+		// get estimator status
 		struct estimator_status_s status = {};
 		status.timestamp = hrt_absolute_time();
 		_ekf->get_state_delayed(status.states);
 		_ekf->get_covariances(status.covariances);
 		//status.gps_check_fail_flags = _ekf->_gps_check_fail_status.value;
 
+		// only publish filter output used for navigation and control if the filter output is valid
+		if (ekf_output_valid) {
+
+			// generate control state data
+			control_state_s ctrl_state = {};
+			ctrl_state.timestamp = hrt_absolute_time();
+			ctrl_state.roll_rate = _lp_roll_rate.apply(sensors.gyro_rad_s[0]);
+			ctrl_state.pitch_rate = _lp_pitch_rate.apply(sensors.gyro_rad_s[1]);
+			ctrl_state.yaw_rate = _lp_yaw_rate.apply(sensors.gyro_rad_s[2]);
+			_ekf->copy_quaternion(ctrl_state.q);
+
+			// publish control state data
+			if (_control_state_pub == nullptr) {
+				_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
+
+			} else {
+				orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
+			}
+
+			// generate vehicle attitude data
+			struct vehicle_attitude_s att = {};
+			att.timestamp = hrt_absolute_time();
+
+			matrix::Quaternion<float> q(ctrl_state.q[0], ctrl_state.q[1], ctrl_state.q[2], ctrl_state.q[3]);
+			matrix::Euler<float> euler(q);
+			att.roll = euler(0);
+			att.pitch = euler(1);
+			att.yaw = euler(2);
+
+			// generate vehicle local position data
+			struct vehicle_local_position_s lpos = {};
+			float pos[3] = {};
+			float vel[3] = {};
+
+			lpos.timestamp = hrt_absolute_time();
+
+			// Position in local NED frame
+			_ekf->copy_position(pos);
+			lpos.x = pos[0];
+			lpos.y = pos[1];
+			lpos.z = pos[2];
+
+			// Velocity in NED frame (m/s)
+			_ekf->copy_velocity(vel);
+			lpos.vx = vel[0];
+			lpos.vy = vel[1];
+			lpos.vz = vel[2];
+
+			// TODO: better status reporting
+			lpos.xy_valid = _ekf->position_is_valid();
+			lpos.z_valid = true;
+			lpos.v_xy_valid = _ekf->position_is_valid();
+			lpos.v_z_valid = true;
+
+			// Position of local NED origin in GPS / WGS84 frame
+			struct map_projection_reference_s ekf_origin = {};
+			_ekf->get_ekf_origin(&lpos.ref_timestamp, &ekf_origin, &lpos.ref_alt);
+			lpos.xy_global =
+				_ekf->position_is_valid();          // true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
+			lpos.z_global = true;                                // true if z is valid and has valid global reference (ref_alt)
+			lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
+			lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
+
+			// The rotation of the tangent plane vs. geographical north
+			lpos.yaw = 0.0f;
+
+			lpos.dist_bottom = 0.0f; // Distance to bottom surface (ground) in meters
+			lpos.dist_bottom_rate = 0.0f; // Distance to bottom surface (ground) change rate
+			lpos.surface_bottom_timestamp	= 0; // Time when new bottom surface found
+			lpos.dist_bottom_valid = false; // true if distance to bottom surface is valid
+
+			// TODO: uORB definition does not define what thes variables are. We have assumed them to be horizontal and vertical 1-std dev accuracy in metres
+			// TODO: Should use sqrt of filter position variances
+			lpos.eph = gps.eph;
+			lpos.epv = gps.epv;
+
+			// publish vehicle local position data
+			if (_lpos_pub == nullptr) {
+				_lpos_pub = orb_advertise(ORB_ID(vehicle_local_position), &lpos);
+
+			} else {
+				orb_publish(ORB_ID(vehicle_local_position), _lpos_pub, &lpos);
+			}
+
+			// generate vehicle attitude data
+			att.q[0] = q(0);
+			att.q[1] = q(1);
+			att.q[2] = q(2);
+			att.q[3] = q(3);
+			att.q_valid = true;
+
+			att.rollspeed = sensors.gyro_rad_s[0];
+			att.pitchspeed = sensors.gyro_rad_s[1];
+			att.yawspeed = sensors.gyro_rad_s[2];
+
+			// publish vehicle attitude data
+			if (_att_pub == nullptr) {
+				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+
+			} else {
+				orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
+			}
+
+			// generate and publish global position data
+			struct vehicle_global_position_s global_pos = {};
+
+			// only publish a global position if data is valid
+			if (_ekf->position_is_valid()) {
+				// TODO: local origin is currenlty at GPS height origin - this is different to ekf_att_pos_estimator
+
+				global_pos.timestamp = hrt_absolute_time(); // Time of this estimate, in microseconds since system start
+				global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
+
+				double est_lat, est_lon;
+				map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &est_lat, &est_lon);
+				global_pos.lat = est_lat; // Latitude in degrees
+				global_pos.lon = est_lon; // Longitude in degrees
+
+				global_pos.alt = -pos[2] + lpos.ref_alt; // Altitude AMSL in meters
+
+				global_pos.vel_n = vel[0]; // Ground north velocity, m/s
+				global_pos.vel_e = vel[1]; // Ground east velocity, m/s
+				global_pos.vel_d = vel[2]; // Ground downside velocity, m/s
+
+				global_pos.yaw = euler(2); // Yaw in radians -PI..+PI.
+
+				// get the estimator horizntal and vertical position uncertainty
+				_ekf->get_ekf_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
+
+				// TODO: implement terrain estimator
+				global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
+				global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
+
+				global_pos.pressure_alt = sensors.baro_alt_meter[0]; // Pressure altitude AMSL (m)
+
+				if (_vehicle_global_position_pub == nullptr) {
+					_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+
+				} else {
+					orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
+				}
+			}
+
+			// save the declination to the EKF2_MAG_DECL parameter when a dis-arm event is detected
+			if ((_params->mag_declination_source & (1 << 1)) && _prev_motors_armed && !vehicle_control_mode.flag_armed) {
+				float decl_deg;
+				_ekf->copy_mag_decl_deg(&decl_deg);
+				_mag_declination_deg->set(decl_deg);
+			}
+		}
+
+		// This data is used for filter diagnostics and logging - publish regardless of validity
+		// publish estimator status
 		if (_estimator_status_pub == nullptr) {
 			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
 
@@ -565,15 +572,8 @@ void Ekf2::task_main()
 			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
 		}
 
-		// save the declination to the EKF2_MAG_DECL parameter when a dis-arm event is detected
-		if ((_params->mag_declination_source & (1 << 1)) && _prev_motors_armed && !vehicle_control_mode.flag_armed) {
-			float decl_deg;
-			_ekf->copy_mag_decl_deg(&decl_deg);
-			_mag_declination_deg->set(decl_deg);
-		}
-
+		// save the motor arm status - used to detect arm transitions
 		_prev_motors_armed = vehicle_control_mode.flag_armed;
-
 	}
 
 	delete ekf2::instance;
