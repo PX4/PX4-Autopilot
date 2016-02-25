@@ -67,7 +67,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *current_sta
 					    bool circuit_breaker_engaged_power_check,
 					    bool cb_usb);
 
-transition_result_t main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state);
+transition_result_t main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev);
 
 transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_state, const int mavlink_fd);
 

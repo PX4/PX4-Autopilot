@@ -331,7 +331,7 @@ bool is_safe(const struct vehicle_status_s *status, const struct safety_s *safet
 }
 
 transition_result_t
-main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state)
+main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
@@ -394,7 +394,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	}
 	if (ret == TRANSITION_CHANGED) {
 		if (status->main_state != new_main_state) {
-			status->main_state_prev = status->main_state;
+			main_state_prev = status->main_state;
 			status->main_state = new_main_state;
 		} else {
 			ret = TRANSITION_NOT_CHANGED;
