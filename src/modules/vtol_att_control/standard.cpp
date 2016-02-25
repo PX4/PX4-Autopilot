@@ -66,6 +66,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.airspeed_trans = param_find("VT_ARSP_TRANS");
 	_params_handles_standard.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
+	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 }
 
 Standard::~Standard()
@@ -105,6 +106,9 @@ Standard::parameters_update()
 	/* minimum time for transition to fw mode */
 	param_get(_params_handles_standard.front_trans_time_min, &_params_standard.front_trans_time_min);
 
+	/* maximum down pitch allowed */
+	param_get(_params_handles_standard.down_pitch_max, &v);
+	_params_standard.down_pitch_max = math::radians(v);
 
 	return OK;
 }
@@ -296,11 +300,7 @@ void Standard::update_mc_state()
 	_pusher_throttle = body_x_zero_tilt * thrust_sp_axis * _v_att_sp->thrust;
 	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle;
 
-	_pusher_throttle = body_x_zero_tilt * body_z_sp * _v_att_sp->thrust;	// XXX check if sign is correct
-
-	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle; 
-
-	float pitch_sp_corrected = _v_att_sp->pitch_body < -0.1f ? -0.1f : _v_att_sp->pitch_body;
+	float pitch_sp_corrected = _v_att_sp->pitch_body < -_params_standard.down_pitch_max ? -_params_standard.down_pitch_max : _v_att_sp->pitch_body;
 
 	// compute new desired rotation matrix with corrected pitch angle
 	// and copy data to attitude setpoint topic

@@ -49,3 +49,14 @@
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_THR, 0.6f);
+
+/**
+ * Maximum allowed down-pitch the controller is able to demand. This prevents large, negative
+ * lift values being created when facing strong winds. The vehicle will use the pusher motor
+ * to accelerate forward if necessary.
+ *
+ * @min 0.0
+ * @max 45.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 5.0f);
