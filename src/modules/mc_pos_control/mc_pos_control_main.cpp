@@ -77,6 +77,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
@@ -126,6 +127,7 @@ private:
 	int		_mavlink_fd;			/**< mavlink fd */
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
+	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
 	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
@@ -144,7 +146,8 @@ private:
 	orb_id_t _attitude_setpoint_id;
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
-	struct control_state_s				_ctrl_state;			/**< vehicle attitude */
+	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
+	struct control_state_s				_ctrl_state;		/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;		/**< vehicle control mode */
@@ -593,6 +596,12 @@ MulticopterPositionControl::poll_subscriptions()
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
 			}
 		}
+	}
+
+	orb_check(_vehicle_land_detected_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 	}
 
 	orb_check(_ctrl_state_sub, &updated);
@@ -1131,6 +1140,7 @@ MulticopterPositionControl::task_main()
 	 * do subscriptions
 	 */
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -1317,7 +1327,7 @@ MulticopterPositionControl::task_main()
 				}
 
 			} else if (_control_mode.flag_control_manual_enabled
-					&& _vehicle_status.condition_landed) {
+					&& _vehicle_land_detected.landed) {
 				/* don't run controller when landed */
 				_reset_pos_sp = true;
 				_reset_alt_sp = true;
@@ -1404,7 +1414,7 @@ MulticopterPositionControl::task_main()
 
 					// check if we are not already in air.
 					// if yes then we don't need a jumped takeoff anymore
-					if (!_takeoff_jumped && !_vehicle_status.condition_landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
+					if (!_takeoff_jumped && !_vehicle_land_detected.landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
 						_takeoff_jumped = true;
 					}
 
@@ -1828,7 +1838,7 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* do not move yaw while sitting on the ground */
-			else if (!_vehicle_status.condition_landed &&
+			else if (!_vehicle_land_detected.landed &&
 					!(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
 
 				/* we want to know the real constraint, and global overrides manual */
@@ -1861,7 +1871,7 @@ MulticopterPositionControl::task_main()
 				_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());
 
 				/* enforce minimum throttle if not landed */
-				if (!_vehicle_status.condition_landed) {
+				if (!_vehicle_land_detected.landed) {
 					_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
 				}
 			}

@@ -94,7 +94,7 @@ MissionBlock::is_mission_item_reached()
 			return true;
 
 		case NAV_CMD_LAND:
-			return _navigator->get_vstatus()->condition_landed;
+			return _navigator->get_land_detected()->landed;
 
 		/* TODO: count turns */
 		/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
@@ -381,7 +381,7 @@ MissionBlock::set_previous_pos_setpoint()
 void
 MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 {
-	if (_navigator->get_vstatus()->condition_landed) {
+	if (_navigator->get_land_detected()->landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
 		item->nav_cmd = NAV_CMD_IDLE;
 

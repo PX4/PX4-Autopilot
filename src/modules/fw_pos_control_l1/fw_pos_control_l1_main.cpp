@@ -82,6 +82,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/tecs_status.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -161,6 +162,7 @@ private:
 	int		_ctrl_state_sub;			/**< control state subscription */
 	int		_control_mode_sub;		/**< control mode subscription */
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
+	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
 	int		_sensor_combined_sub;		/**< for body frame accelerations */
@@ -177,6 +179,7 @@ private:
 	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;			/**< control mode */
 	struct vehicle_status_s				_vehicle_status;		/**< vehicle status */
+	struct vehicle_land_detected_s			_vehicle_land_detected;		/**< vehicle land detected */
 	struct vehicle_global_position_s		_global_pos;			/**< global vehicle position */
 	struct position_setpoint_triplet_s		_pos_sp_triplet;		/**< triplet of mission items */
 	struct sensor_combined_s			_sensor_combined;		/**< for body frame accelerations */
@@ -378,6 +381,11 @@ private:
 	void		vehicle_status_poll();
 
 	/**
+	 * Check for changes in vehicle land detected.
+	 */
+	void		vehicle_land_detected_poll();
+
+	/**
 	 * Check for manual setpoint updates.
 	 */
 	bool		vehicle_manual_control_setpoint_poll();
@@ -516,6 +524,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_ctrl_state_sub(-1),
 	_control_mode_sub(-1),
 	_vehicle_status_sub(-1),
+	_vehicle_land_detected_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
 	_sensor_combined_sub(-1),
@@ -535,6 +544,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_manual(),
 	_control_mode(),
 	_vehicle_status(),
+	_vehicle_land_detected(),
 	_global_pos(),
 	_pos_sp_triplet(),
 	_sensor_combined(),
@@ -809,6 +819,18 @@ FixedwingPositionControl::vehicle_status_poll()
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
 			}
 		}
+	}
+}
+
+void
+FixedwingPositionControl::vehicle_land_detected_poll()
+{
+	bool updated;
+
+	orb_check(_vehicle_land_detected_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 	}
 }
 
@@ -1204,7 +1226,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
-	bool in_air_alt_control = (!_vehicle_status.condition_landed &&
+	bool in_air_alt_control = (!_vehicle_land_detected.landed &&
 				   (_control_mode.flag_control_auto_enabled ||
 				    _control_mode.flag_control_velocity_enabled ||
 				    _control_mode.flag_control_altitude_enabled));
@@ -1225,14 +1247,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	float throttle_max = 1.0f;
 
 	/* save time when airplane is in air */
-	if (!_was_in_air && !_vehicle_status.condition_landed) {
+	if (!_was_in_air && !_vehicle_land_detected.landed) {
 		_was_in_air = true;
 		_time_went_in_air = hrt_absolute_time();
 		_takeoff_ground_alt = _global_pos.alt;
 	}
 
 	/* reset flag when airplane landed */
-	if (_vehicle_status.condition_landed) {
+	if (_vehicle_land_detected.landed) {
 		_was_in_air = false;
 	}
 
@@ -1987,7 +2009,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	} else {
 		/* Copy thrust and pitch values from tecs */
-		if (_vehicle_status.condition_landed) {
+		if (_vehicle_land_detected.landed) {
 			// when we are landed state we want the motor to spin at idle speed
 			_att_sp.thrust = math::min(_parameters.throttle_idle, throttle_max);
 
@@ -2056,6 +2078,7 @@ FixedwingPositionControl::task_main()
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
@@ -2063,6 +2086,8 @@ FixedwingPositionControl::task_main()
 	orb_set_interval(_control_mode_sub, 200);
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vehicle_status_sub, 200);
+	/* rate limit vehicle land detected updates to 5Hz */
+	orb_set_interval(_vehicle_land_detected_sub, 200);
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
 
@@ -2105,6 +2130,9 @@ FixedwingPositionControl::task_main()
 
 		/* check vehicle status for changes to publication state */
 		vehicle_status_poll();
+
+		/* check vehicle land detected for changes to publication state */
+		vehicle_land_detected_poll();
 
 		/* only update parameters if they changed */
 		if (fds[0].revents & POLLIN) {
@@ -2222,7 +2250,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	_last_tecs_update = hrt_absolute_time();
 
 	// do not run TECS if we are not in air
-	run_tecs &= !_vehicle_status.condition_landed;
+	run_tecs &= !_vehicle_land_detected.landed;
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)

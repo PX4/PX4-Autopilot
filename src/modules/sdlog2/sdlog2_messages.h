@@ -179,7 +179,6 @@ struct log_STAT_s {
 	uint8_t main_state;
 	uint8_t arming_state;
 	uint8_t failsafe;
-	uint8_t landed;
 	float load;
 };
 
@@ -507,6 +506,11 @@ struct log_CTS_s {
 
 #define LOG_OUT1_MSG 50
 
+#define LOG_LAND_MSG 51
+struct log_LAND_s {
+	uint8_t landed;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -545,7 +549,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBBf",		"MainState,ArmS,Failsafe,Landed,Load"),
+	LOG_FORMAT(STAT, "BBBf",		"MainState,ArmS,Failsafe,Load"),
 	LOG_FORMAT(VTOL, "f",		"Arsp"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
@@ -582,6 +586,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ENCD, "qfqf",	"cnt0,vel0,cnt1,vel1"),
 	LOG_FORMAT(TSYN, "Q", 		"TimeOffset"),
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
+	LOG_FORMAT(LAND, "B", "Landed"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

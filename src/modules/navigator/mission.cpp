@@ -135,7 +135,7 @@ Mission::on_inactive()
 	check_mission_valid();
 
 	/* require takeoff after non-loiter or landing */
-	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_vstatus()->condition_landed) {
+	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_land_detected()->landed) {
 		_need_takeoff = true;
 	}
 }
@@ -262,7 +262,7 @@ Mission::update_offboard_mission()
 				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
 				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
 				_param_dist_1wp.get(), _navigator->get_mission_result()->warning, _navigator->get_acceptance_radius(),
-				_navigator->get_vstatus()->condition_landed);
+				_navigator->get_land_detected()->landed);
 
 		_navigator->get_mission_result()->valid = !failed;
 		if (!failed) {
@@ -397,7 +397,7 @@ Mission::set_mission_items()
 			 * https://en.wikipedia.org/wiki/Loiter_(aeronautics)
 			 */
 
-			if (_navigator->get_vstatus()->condition_landed) {
+			if (_navigator->get_land_detected()->landed) {
 				/* landed, refusing to take off without a mission */
 
 				mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available, refusing takeoff");
@@ -499,7 +499,7 @@ Mission::set_mission_items()
 		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 				&& _work_item_type != WORK_ITEM_TYPE_ALIGN
 				&& _navigator->get_vstatus()->is_rotary_wing
-				&& !_navigator->get_vstatus()->condition_landed
+				&& !_navigator->get_land_detected()->landed
 				&& has_next_position_item) {
 
 			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
@@ -525,7 +525,7 @@ Mission::set_mission_items()
 		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 				&& _work_item_type != WORK_ITEM_TYPE_CMD_BEFORE_MOVE
 				&& !_navigator->get_vstatus()->is_rotary_wing
-				&& !_navigator->get_vstatus()->condition_landed
+				&& !_navigator->get_land_detected()->landed
 				&& pos_sp_triplet->current.valid) {
 
 			new_work_item_type = WORK_ITEM_TYPE_CMD_BEFORE_MOVE;
@@ -621,7 +621,7 @@ Mission::do_need_takeoff()
 		float takeoff_alt = calculate_takeoff_altitude(&_mission_item);
 
 		/* force takeoff if landed (additional protection) */
-		if (_navigator->get_vstatus()->condition_landed) {
+		if (_navigator->get_land_detected()->landed) {
 			_need_takeoff = true;
 
 		/* if in-air and already above takeoff height, don't do takeoff */
@@ -667,7 +667,7 @@ Mission::calculate_takeoff_altitude(struct mission_item_s *mission_item)
 	float takeoff_alt = get_absolute_altitude_for_item(*mission_item);
 
 	/* takeoff to at least NAV_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
-	if (_navigator->get_vstatus()->condition_landed) {
+	if (_navigator->get_land_detected()->landed) {
 		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _param_takeoff_alt.get());
 
 	} else {
@@ -821,7 +821,7 @@ Mission::prepare_mission_items(bool onboard, struct mission_item_s *mission_item
 	int offset = 1;
 
 	if (read_mission_item(onboard, 0, mission_item)) {
-		
+
 		first_res = true;
 
 		/* trying to find next position mission item */
@@ -1032,7 +1032,7 @@ Mission::check_mission_valid()
 				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
 				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
 				_param_dist_1wp.get(), _navigator->get_mission_result()->warning, _navigator->get_acceptance_radius(),
-				_navigator->get_vstatus()->condition_landed);
+				_navigator->get_land_detected()->landed);
 
 		_navigator->increment_mission_instance_count();
 		_navigator->set_mission_result_updated();

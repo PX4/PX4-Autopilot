@@ -54,6 +54,29 @@ typedef enum {
 
 } transition_result_t;
 
+
+// This is a struct used by the commander internally.
+struct status_flags_s {
+	bool condition_calibration_enabled;
+	bool condition_system_sensors_initialized;
+	bool condition_system_prearm_error_reported;	// true if errors have already been reported
+	bool condition_system_hotplug_timeout;		// true if the hotplug sensor search is over
+	bool condition_system_returned_to_home;
+	bool condition_auto_mission_available;
+	bool condition_global_position_valid;		// set to true by the commander app if the quality of the position estimate is good enough to use it for navigation
+	bool condition_home_position_valid;		// indicates a valid home position (a valid home position is not always a valid launch)
+	bool condition_local_position_valid;
+	bool condition_local_altitude_valid;
+	bool condition_airspeed_valid;			// set to true by the commander app if there is a valid airspeed measurement available
+	bool condition_power_input_valid;		// set if input power is valid
+	bool usb_connected;				// status of the USB power supply
+	bool circuit_breaker_engaged_power_check;
+	bool circuit_breaker_engaged_airspd_check;
+	bool circuit_breaker_engaged_enginefailure_check;
+	bool circuit_breaker_engaged_gpsfailure_check;
+	bool cb_usb;
+};
+
 bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
 
 transition_result_t arming_state_transition(struct vehicle_status_s *current_state,
@@ -62,20 +85,17 @@ transition_result_t arming_state_transition(struct vehicle_status_s *current_sta
 					    struct actuator_armed_s *armed,
 					    bool fRunPreArmChecks,
 					    const int mavlink_fd,
-					    bool circuit_breaker_engaged_airspd_check,
-					    bool circuit_breaker_engaged_gpsfailure_check,
-					    bool circuit_breaker_engaged_power_check,
-					    bool cb_usb);
+					    status_flags_s *status_flags);
 
-transition_result_t main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev);
+transition_result_t
+main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev,
+		      status_flags_s *status_flags);
 
 transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_state, const int mavlink_fd);
 
-bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished, const bool stay_in_failsafe);
+bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished,
+		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed);
 
-int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report,
-		    bool circuit_breaker_engaged_airspd_check,
-		    bool circuit_breaker_engaged_gpsfailure_check,
-		    bool cb_usb);
+int preflight_check(struct vehicle_status_s *status, const int mavlink_fd, bool prearm, bool force_report, status_flags_s *status_flags);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

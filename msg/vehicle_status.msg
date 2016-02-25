@@ -71,21 +71,7 @@ bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if vtol should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
 
-bool condition_system_in_air_restore		# true if we can restore in mid air
-bool condition_system_sensors_initialized
-bool condition_system_prearm_error_reported	# true if errors have already been reported
-bool condition_system_hotplug_timeout		# true if the hotplug sensor search is over
-bool condition_system_returned_to_home
-bool condition_auto_mission_available
-bool condition_global_position_valid		# set to true by the commander app if the quality of the position estimate is good enough to use it for navigation
-bool condition_home_position_valid		# indicates a valid home position (a valid home position is not always a valid launch)
-bool condition_local_position_valid
-bool condition_local_altitude_valid
-bool condition_airspeed_valid			# set to true by the commander app if there is a valid airspeed measurement available
-bool condition_landed				# true if vehicle is landed, always true if disarmed
-bool condition_power_input_valid		# set if input power is valid
-float32 avionics_power_rail_voltage		# voltage of the avionics power rail
-bool usb_connected				# status of the USB power supply
+float32 avionics_power_rail_voltage	# voltage of the avionics power rail
 
 bool rc_signal_found_once
 bool rc_signal_lost				# true if RC reception lost

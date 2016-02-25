@@ -556,11 +556,12 @@ protected:
 		struct vehicle_status_s status;
 		struct battery_status_s battery_status;
 
-		bool updated = _status_sub->update(&status);
-		updated = (updated || _battery_status_sub->update(&battery_status));
+		const bool updated_status = _status_sub->update(&status);
+		const bool updated_battery = _battery_status_sub->update(&battery_status);
 
-		if (updated) {
+		if (updated_status || updated_battery) {
 			mavlink_sys_status_t msg;
+
 
 			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
 			msg.onboard_control_sensors_enabled = status.onboard_control_sensors_enabled;
@@ -576,6 +577,8 @@ protected:
 			msg.errors_count2 = 0;
 			msg.errors_count3 = 0;
 			msg.errors_count4 = 0;
+
+			PX4_INFO("send sys status: voltage: %d", msg.voltage_battery);
 
 			_mavlink->send_message(MAVLINK_MSG_ID_SYS_STATUS, &msg);
 

@@ -107,6 +107,7 @@ Navigator::Navigator() :
 	_gps_pos_sub(-1),
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
+	_land_detected_sub(-1),
 	_capabilities_sub(-1),
 	_control_mode_sub(-1),
 	_onboard_mission_sub(-1),
@@ -118,6 +119,7 @@ Navigator::Navigator() :
 	_geofence_result_pub(nullptr),
 	_att_sp_pub(nullptr),
 	_vstatus{},
+	_land_detected{},
 	_control_mode{},
 	_global_pos{},
 	_gps_pos{},
@@ -237,6 +239,12 @@ Navigator::vehicle_status_update()
 }
 
 void
+Navigator::vehicle_land_detected_update()
+{
+	orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub, &_land_detected);
+}
+
+void
 Navigator::vehicle_control_mode_update()
 {
 	if (orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode) != OK) {
@@ -288,6 +296,7 @@ Navigator::task_main()
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
@@ -297,6 +306,7 @@ Navigator::task_main()
 
 	/* copy all topics first time */
 	vehicle_status_update();
+	vehicle_land_detected_update();
 	vehicle_control_mode_update();
 	global_position_update();
 	gps_position_update();
@@ -379,6 +389,12 @@ Navigator::task_main()
 		orb_check(_vstatus_sub, &updated);
 		if (updated) {
 			vehicle_status_update();
+		}
+
+		/* vehicle land detected updated */
+		orb_check(_land_detected_sub, &updated);
+		if (updated) {
+			vehicle_land_detected_update();
 		}
 
 		/* navigation capabilities updated */

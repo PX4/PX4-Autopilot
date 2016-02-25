@@ -88,7 +88,7 @@ RTL::on_activation()
 	/* decide where to enter the RTL procedure when we switch into it */
 	if (_rtl_state == RTL_STATE_NONE) {
 		/* for safety reasons don't go into RTL if landed */
-		if (_navigator->get_vstatus()->condition_landed) {
+		if (_navigator->get_land_detected()->landed) {
 			_rtl_state = RTL_STATE_LANDED;
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "no RTL when landed");
 
