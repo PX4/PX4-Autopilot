@@ -72,6 +72,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -135,6 +136,7 @@ private:
 	int 		_manual_sub;			/**< notification of manual control updates */
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
+	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
@@ -155,6 +157,7 @@ private:
 	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
 	struct vehicle_global_position_s		_global_pos;		/**< global position */
 	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
+	struct vehicle_land_detected_s			_vehicle_land_detected;	/**< vehicle land detected */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -318,6 +321,11 @@ private:
 	void		vehicle_status_poll();
 
 	/**
+	 * Check for vehicle land detected updates.
+	 */
+	void		vehicle_land_detected_poll();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -355,6 +363,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_manual_sub(-1),
 	_global_pos_sub(-1),
 	_vehicle_status_sub(-1),
+	_vehicle_land_detected_sub(-1),
 
 	/* publications */
 	_rate_sp_pub(nullptr),
@@ -387,6 +396,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_actuators_airframe = {};
 	_global_pos = {};
 	_vehicle_status = {};
+	_vehicle_land_detected = {};
 
 
 	_parameter_handles.p_tc = param_find("FW_P_TC");
@@ -653,6 +663,18 @@ FixedwingAttitudeControl::vehicle_status_poll()
 }
 
 void
+FixedwingAttitudeControl::vehicle_land_detected_poll()
+{
+	/* check if there is new status information */
+	bool vehicle_land_detected_updated;
+	orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
+
+	if (vehicle_land_detected_updated) {
+		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
+	}
+}
+
+void
 FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
 	att_control::g_control->task_main();
@@ -672,6 +694,7 @@ FixedwingAttitudeControl::task_main()
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	parameters_update();
 
@@ -681,6 +704,7 @@ FixedwingAttitudeControl::task_main()
 	vehicle_control_mode_poll();
 	vehicle_manual_poll();
 	vehicle_status_poll();
+	vehicle_land_detected_poll();
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[2];
@@ -805,6 +829,8 @@ FixedwingAttitudeControl::task_main()
 			global_pos_poll();
 
 			vehicle_status_poll();
+
+			vehicle_land_detected_poll();
 
 			// the position controller will not emit attitude setpoints in some modes
 			// we need to make sure that this flag is reset
@@ -1056,7 +1082,7 @@ FixedwingAttitudeControl::task_main()
 				}
 
 				/* If the aircraft is on ground reset the integrators */
-				if (_vehicle_status.condition_landed || _vehicle_status.is_rotary_wing) {
+				if (_vehicle_land_detected.landed || _vehicle_status.is_rotary_wing) {
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
 					_yaw_ctrl.reset_integrator();
