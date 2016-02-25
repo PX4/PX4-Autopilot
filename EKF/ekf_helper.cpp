@@ -113,9 +113,9 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	Vector3f mag_ef_zeroyaw = R_to_earth_zeroyaw * mag_init;
 	euler_init(2) = _mag_declination - atan2f(mag_ef_zeroyaw(1), mag_ef_zeroyaw(0));
 
-	// calculate initial quaternion states
+	// calculate initial quaternion states for the ekf
+	// we don't change the output attitude to avoid jumps
 	_state.quat_nominal = Quaternion(euler_init);
-	_output_new.quat_nominal = _state.quat_nominal;
 
 	// reset the angle error variances because the yaw angle could have changed by a significant amount
 	// by setting them to zero we avoid 'kicks' in angle when 3-D fusion starts and the imu process noise
