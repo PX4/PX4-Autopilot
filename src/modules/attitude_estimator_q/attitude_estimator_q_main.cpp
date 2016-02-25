@@ -61,6 +61,7 @@
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/estimator_status.h>
 #include <drivers/drv_hrt.h>
 
 #include <mathlib/mathlib.h>
@@ -127,6 +128,7 @@ private:
 	int		_global_pos_sub = -1;
 	orb_advert_t	_att_pub = nullptr;
 	orb_advert_t	_ctrl_state_pub = nullptr;
+	orb_advert_t	_est_state_pub = nullptr;
 
 	struct {
 		param_t	w_acc;
@@ -267,7 +269,7 @@ int AttitudeEstimatorQ::start()
 	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   2400,
+					   2500,
 					   (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
 					   nullptr);
 
@@ -611,37 +613,53 @@ void AttitudeEstimatorQ::task_main()
 		int att_inst;
 		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
 
-		struct control_state_s ctrl_state = {};
+		{
+			struct control_state_s ctrl_state = {};
 
-		ctrl_state.timestamp = sensors.timestamp;
+			ctrl_state.timestamp = sensors.timestamp;
 
-		/* attitude quaternions for control state */
-		ctrl_state.q[0] = _q(0);
-		ctrl_state.q[1] = _q(1);
-		ctrl_state.q[2] = _q(2);
-		ctrl_state.q[3] = _q(3);
+			/* attitude quaternions for control state */
+			ctrl_state.q[0] = _q(0);
+			ctrl_state.q[1] = _q(1);
+			ctrl_state.q[2] = _q(2);
+			ctrl_state.q[3] = _q(3);
 
-		/* attitude rates for control state */
-		ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
+			/* attitude rates for control state */
+			ctrl_state.roll_rate = _lp_roll_rate.apply(_rates(0));
 
-		ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
+			ctrl_state.pitch_rate = _lp_pitch_rate.apply(_rates(1));
 
-		ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
+			ctrl_state.yaw_rate = _lp_yaw_rate.apply(_rates(2));
 
-		/* Airspeed - take airspeed measurement directly here as no wind is estimated */
-		if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
-		    && _airspeed.timestamp > 0) {
-			ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
-			ctrl_state.airspeed_valid = true;
+			/* Airspeed - take airspeed measurement directly here as no wind is estimated */
+			if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
+			    && _airspeed.timestamp > 0) {
+				ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
+				ctrl_state.airspeed_valid = true;
 
-		} else {
-			ctrl_state.airspeed_valid = false;
+			} else {
+				ctrl_state.airspeed_valid = false;
+			}
+
+			/* the instance count is not used here */
+			int ctrl_inst;
+			/* publish to control state topic */
+			orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH);
 		}
 
-		/* the instance count is not used here */
-		int ctrl_inst;
-		/* publish to control state topic */
-		orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH);
+		{
+			struct estimator_status_s est = {};
+
+			est.timestamp = sensors.timestamp;
+			est.vibe[0] = _voter_accel.get_vibration_offset(est.timestamp, 0);
+			est.vibe[1] = _voter_accel.get_vibration_offset(est.timestamp, 1);
+			est.vibe[2] = _voter_accel.get_vibration_offset(est.timestamp, 2);
+
+			/* the instance count is not used here */
+			int est_inst;
+			/* publish to control state topic */
+			orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH);
+		}
 	}
 }
 
