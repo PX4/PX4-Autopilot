@@ -225,7 +225,9 @@ void sPort_send_GPS_LON(int uart)
 	/* precision is approximately 0.1m */
 	uint32_t iLon = 6E5 * fabs(global_pos.lon);
 	iLon |= (1 << 31);
+
 	if (global_pos.lon < 0) { iLon |= (1 << 30); }
+
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLon);
 }
 
@@ -238,7 +240,9 @@ void sPort_send_GPS_LAT(int uart)
 
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 0 and bit 30=sign */
 	uint32_t iLat = 6E5 * fabs(global_pos.lat);
+
 	if (global_pos.lat < 0) { iLat |= (1 << 30); }
+
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLat);
 }
 
