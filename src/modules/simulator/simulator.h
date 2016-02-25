@@ -52,6 +52,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/battery.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/optical_flow.h>
 #include <v1.0/mavlink_types.h>
@@ -250,9 +251,7 @@ private:
 		_actuators{},
 		_attitude{},
 		_manual{},
-		_vehicle_status{},
-		_battery_last_timestamp(0),
-		_battery_mamphour_total(0.0f)
+		_vehicle_status{}
 #endif
 	{}
 	~Simulator() { _instance = NULL; }
@@ -288,6 +287,9 @@ private:
 
 	bool _initialized;
 
+	// Lib used to do the battery calculations.
+	Battery _battery;
+
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
@@ -308,8 +310,6 @@ private:
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
-	uint64_t _battery_last_timestamp;
-	float _battery_mamphour_total;
 
 	void poll_topics();
 	void handle_message(mavlink_message_t *msg, bool publish);
