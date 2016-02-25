@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
  * @author Petri Tanskanen	<petri.tanskanen@inf.ethz.ch>
  * @author Lorenz Meier		<lorenz@px4.io>
  * @author Thomas Gubler	<thomas@px4.io>
- * @author Julian Oes		<julian@px4.io>
+ * @author Julian Oes		<julian@oes.ch>
  * @author Anton Babushkin	<anton@px4.io>
  * @author Sander Smeets	<sander@droneslab.com>
  */
@@ -1201,7 +1201,6 @@ int commander_thread_main(int argc, char *argv[])
 	status.condition_system_prearm_error_reported = false;
 	status.condition_system_hotplug_timeout = false;
 
-	status.counter++;
 	status.timestamp = hrt_absolute_time();
 
 	status.condition_power_input_valid = true;

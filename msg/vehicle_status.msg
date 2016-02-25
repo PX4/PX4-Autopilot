@@ -54,7 +54,6 @@ uint8 RC_IN_MODE_GENERATED = 2
 
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
-uint16 counter   # incremented by the writing thread everytime new data is stored
 uint64 timestamp # in microseconds since system start, is set whenever the writing thread stores new data
 
 uint8 main_state		    	# main state machine
