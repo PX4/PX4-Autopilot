@@ -83,15 +83,31 @@ void Ekf::resetPosition()
 // Reset height state using the last baro measurement
 void Ekf::resetHeight()
 {
+	// if we have a valid GPS measurement use it to initialise the vertical velocity state
+	gpsSample gps_newest = _gps_buffer.get_newest();
+
+	if (_time_last_imu - gps_newest.time_us < 400000) {
+		_state.vel(2) = gps_newest.vel(2);
+
+	} else {
+		_state.vel(2) = 0.0f;
+	}
+
 	// if we have a valid height measurement, use it to initialise the vertical position state
 	baroSample baro_newest = _baro_buffer.get_newest();
 
 	if (_time_last_imu - baro_newest.time_us < 200000) {
+		// use baro as the default
 		_state.pos(2) = _baro_at_alignment - baro_newest.hgt;
 
+	} else if (_time_last_imu - gps_newest.time_us < 400000) {
+		// use GPS as a backup
+		_state.pos(2) = _gps_alt_ref - gps_newest.hgt;
+
 	} else {
-		// XXX use the value of the last known position
+		// Do not modify the state as there are no measurements to use
 	}
+
 }
 
 // Reset heading and magnetic field states
