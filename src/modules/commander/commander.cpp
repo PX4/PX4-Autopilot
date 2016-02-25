@@ -2284,9 +2284,11 @@ int commander_thread_main(int argc, char *argv[])
 					 * the system can be armed in auto if armed via the GCS.
 					 */
 
-					if ((status.main_state != vehicle_status_s::MAIN_STATE_MANUAL) &&
-						(status.main_state != vehicle_status_s::MAIN_STATE_STAB)) {
-						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
+					if ((status.main_state != vehicle_status_s::MAIN_STATE_MANUAL)
+						&& (status.main_state != vehicle_status_s::MAIN_STATE_ACRO)
+						&& (status.main_state != vehicle_status_s::MAIN_STATE_STAB)
+						&& (status.main_state != vehicle_status_s::MAIN_STATE_ALTCTL)) {
+						print_reject_arm("NOT ARMING: Switch to a manual mode first.");
 
 					} else if (!status.condition_home_position_valid &&
 								geofence_action == geofence_result_s::GF_ACTION_RTL) {
