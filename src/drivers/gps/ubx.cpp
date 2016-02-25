@@ -548,6 +548,17 @@ UBX::payload_rx_init()
 
 		break;
 
+	case UBX_MSG_NAV_DOP:
+		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_dop_t)) {
+			_rx_state = UBX_RXMSG_ERROR_LENGTH;
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+
+		}
+
+		break;
+
 	case UBX_MSG_NAV_TIMEUTC:
 		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_timeutc_t)) {
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
@@ -909,7 +920,6 @@ UBX::payload_rx_done(void)
 		_gps_position->vdop		= _buf.payload_rx_nav_dop.vDOP * 0.01f;	// from cm to m
 
 		_gps_position->timestamp_variance = hrt_absolute_time();
-		warnx("DOOOP!");
 
 		ret = 1;
 		break;
