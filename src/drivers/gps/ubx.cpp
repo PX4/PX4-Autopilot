@@ -237,6 +237,12 @@ UBX::configure(unsigned &baudrate)
 			return 1;
 		}
 
+		configure_message_rate(UBX_MSG_NAV_DOP, 1);
+
+		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
+			return 1;
+		}
+
 		configure_message_rate(UBX_MSG_NAV_VELNED, 1);
 
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
@@ -808,9 +814,6 @@ UBX::payload_rx_done(void)
 		_gps_position->epv		= (float)_buf.payload_rx_nav_pvt.vAcc * 1e-3f;
 		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_pvt.sAcc * 1e-3f;
 
-		_gps_position->hdop		= (float)_buf.payload_rx_nav_pvt.pDOP * 0.01f;
-		_gps_position->vdop		= _gps_position->hdop;
-
 		_gps_position->vel_m_s		= (float)_buf.payload_rx_nav_pvt.gSpeed * 1e-3f;
 
 		_gps_position->vel_n_m_s	= (float)_buf.payload_rx_nav_pvt.velN * 1e-3f;
@@ -894,10 +897,19 @@ UBX::payload_rx_done(void)
 		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_sol.sAcc * 1e-2f;	// from cm to m
 		_gps_position->satellites_used	= _buf.payload_rx_nav_sol.numSV;
 
-		_gps_position->hdop		= (float)_buf.payload_rx_nav_sol.pDOP * 0.01f;
-		_gps_position->vdop		= _gps_position->hdop;
+		_gps_position->timestamp_variance = hrt_absolute_time();
+
+		ret = 1;
+		break;
+
+	case UBX_MSG_NAV_DOP:
+		UBX_TRACE_RXMSG("Rx NAV-DOP\n");
+
+		_gps_position->hdop		= _buf.payload_rx_nav_dop.hDOP * 0.01f;	// from cm to m
+		_gps_position->vdop		= _buf.payload_rx_nav_dop.vDOP * 0.01f;	// from cm to m
 
 		_gps_position->timestamp_variance = hrt_absolute_time();
+		warnx("DOOOP!");
 
 		ret = 1;
 		break;
