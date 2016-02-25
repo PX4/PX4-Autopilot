@@ -96,6 +96,14 @@ void Ekf::controlFusionModes()
 		}
 	}
 
+	// Handle the case where we have rejected height measurements for an extended period
+	// This excessive vibration levels can cause this so a reset gives the filter a chance to recover
+	// After 10 seconds without aiding we reset to the height measurement provided the data is fresh
+	if ((_time_last_imu - _time_last_hgt_fuse > 10e6) && (_time_last_imu - _time_last_baro < 5e5)) {
+		// Reset vertical position and velocity states to the last measurement
+		resetHeight();
+	}
+
 	// handle the case when we are relying on optical flow fusion and lose it
 	if (_control_status.flags.opt_flow && !_control_status.flags.gps) {
 		// TODO
