@@ -553,6 +553,7 @@ GPS::print_info()
 		warnx("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
 		warnx("vel: %.2fm/s, %.2fm/s, %.2fm/s", (double)_report_gps_pos.vel_n_m_s,
 		      (double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
+		warnx("hdop: %.2f, vdop: %.2f", (double)_report_gps_pos.hdop, (double)_report_gps_pos.vdop);
 		warnx("eph: %.2fm, epv: %.2fm", (double)_report_gps_pos.eph, (double)_report_gps_pos.epv);
 		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
 		warnx("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
