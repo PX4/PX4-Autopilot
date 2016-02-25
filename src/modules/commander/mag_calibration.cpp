@@ -528,8 +528,8 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 					sphere_y[cur_mag] * sphere_y[cur_mag] + sphere_z[cur_mag] * sphere_z[cur_mag])
 					> MAG_MAX_OFFSET_LEN) {
 					mavlink_and_console_log_emergency(mavlink_fd, "ERROR: Replace board, fault in mag #%u", cur_mag);
-					mavlink_and_console_log_emergency(mavlink_fd, "Offsets: %8.4f, %8.4f, %8.4f", sphere_x[cur_mag],
-						sphere_y[cur_mag], sphere_z[cur_mag]);
+					mavlink_and_console_log_emergency(mavlink_fd, "Offsets: %8.4f, %8.4f, %8.4f", (double)sphere_x[cur_mag],
+						(double)sphere_y[cur_mag], (double)sphere_z[cur_mag]);
 					result = calibrate_return_error;
 				}
 			}
