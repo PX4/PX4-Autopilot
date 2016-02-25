@@ -1631,17 +1631,18 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				// removed, or it needs to be subscribed to actuator controls.
 				const float throttle = 0.0f;
 				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, throttle, &_battery_status);
+
+				/* announce the battery status if needed, just publish else */
+				if (_battery_pub != nullptr) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+
+				} else {
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				}
 			}
 
 			_last_adc = t;
 
-			/* announce the battery status if needed, just publish else */
-			if (_battery_pub != nullptr) {
-				orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
-
-			} else {
-				_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
-			}
 		}
 	}
 }
