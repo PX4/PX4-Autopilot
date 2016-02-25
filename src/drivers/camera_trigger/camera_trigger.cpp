@@ -372,18 +372,37 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 		if (pos.xy_valid) {
 
-			// Initialize position if not done yet
-			math::Vector<2> current_position(pos.x, pos.y);
+			if (updated && trig->_mode == 4) {
 
-			if (!trig->_valid_position) {
-				trig->_last_shoot_position = current_position;
-				trig->_valid_position = pos.xy_valid;
+				// Check update from command
+				struct vehicle_command_s cmd;
+				orb_copy(ORB_ID(vehicle_command), trig->_vcommand_sub, &cmd);
+
+				if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST) {
+
+					// Set trigger to false if the set distance is not positive
+					trig->_trigger_enabled = cmd.param1 > 0.0f;
+					trig->_distance = cmd.param1;
+				}
 			}
 
-			// Check that distance threshold is exceeded and the time between last shot is large enough
-			if ((trig->_last_shoot_position - current_position).length() >= trig->_distance) {
-				trig->shootOnce();
-				trig->_last_shoot_position = current_position;
+			if (trig->_trigger_enabled || trig->_mode < 4) {
+
+				// Initialize position if not done yet
+				math::Vector<2> current_position(pos.x, pos.y);
+
+				if (!trig->_valid_position) {
+					// First time valid position, take first shot
+					trig->_last_shoot_position = current_position;
+					trig->_valid_position = pos.xy_valid;
+					trig->shootOnce();
+				}
+
+				// Check that distance threshold is exceeded and the time between last shot is large enough
+				if ((trig->_last_shoot_position - current_position).length() >= trig->_distance) {
+					trig->shootOnce();
+					trig->_last_shoot_position = current_position;
+				}
 			}
 
 		} else {
