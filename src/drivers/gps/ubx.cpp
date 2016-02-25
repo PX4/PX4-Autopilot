@@ -237,17 +237,17 @@ UBX::configure(unsigned &baudrate)
 			return 1;
 		}
 
-		configure_message_rate(UBX_MSG_NAV_DOP, 1);
-
-		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
-			return 1;
-		}
-
 		configure_message_rate(UBX_MSG_NAV_VELNED, 1);
 
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
+	}
+
+	configure_message_rate(UBX_MSG_NAV_DOP, 1);
+
+	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
+		return 1;
 	}
 
 	configure_message_rate(UBX_MSG_NAV_SVINFO, (_satellite_info != nullptr) ? 5 : 0);
