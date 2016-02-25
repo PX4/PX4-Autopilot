@@ -1804,7 +1804,7 @@ Mavlink::task_main(int argc, char *argv[])
 	case MAVLINK_MODE_OSD:
 		configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("ATTITUDE", 25.0f);
-		configure_stream("VFR_HUD", 5.0f);
+		configure_stream("VFR_HUD", 25.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("HOME_POSITION", 0.5f);
