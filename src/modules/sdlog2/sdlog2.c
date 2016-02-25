@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Ban Siesta <bansiesta@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #include <px4_config.h>
@@ -112,6 +113,7 @@
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/ekf2_replay.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1156,6 +1158,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct ekf2_innovations_s innovations;
 		struct camera_trigger_s camera_trigger;
 		struct ekf2_replay_s replay;
+		struct vehicle_land_detected_s land_detected;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1213,6 +1216,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST6_s log_INO3;
 			struct log_RPL3_s log_RPL3;
 			struct log_RPL4_s log_RPL4;
+			struct log_LAND_s log_LAND;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1260,6 +1264,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int innov_sub;
 		int cam_trig_sub;
 		int replay_sub;
+		int land_detected_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1299,6 +1304,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.innov_sub = -1;
 	subs.cam_trig_sub = -1;
 	subs.replay_sub = -1;
+	subs.land_detected_sub = -1;
 
 	/* add new topics HERE */
 
@@ -1447,7 +1453,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_STAT.main_state = buf_status.main_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
-			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
 			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
@@ -2133,6 +2138,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_CAMT.timestamp = buf.camera_trigger.timestamp;
 			log_msg.body.log_CAMT.seq = buf.camera_trigger.seq;
 			LOGBUFFER_WRITE_AND_COUNT(CAMT);
+		}
+
+		/* --- LAND DETECTED --- */
+		if (copy_if_updated(ORB_ID(vehicle_land_detected), &subs.land_detected_sub, &buf.land_detected)) {
+			log_msg.msg_type = LOG_LAND_MSG;
+			log_msg.body.log_LAND.landed = buf.land_detected.landed;
+			LOGBUFFER_WRITE_AND_COUNT(CTS);
 		}
 
 		pthread_mutex_lock(&logbuffer_mutex);
