@@ -30,8 +30,8 @@ then
 	param set PWM_MIN 980
 	param set MPC_THR_MIN 0.06
 	param set MPC_MANTHR_MIN 0.06
-	param set MC_ROLLRATE_MAX 360.0
-	param set MC_PITCHRATE_MAX 360.0
-	param set MC_YAWRATE_MAX 200.0
+	param set MC_ROLLRATE_MAX 1000.0
+	param set MC_PITCHRATE_MAX 1000.0
+	param set MC_YAWRATE_MAX 400.0
 	param set ATT_BIAS_MAX 0.0
 fi
