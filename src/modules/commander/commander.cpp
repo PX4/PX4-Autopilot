@@ -214,6 +214,8 @@ static bool circuit_breaker_engaged_enginefailure_check;
 static bool circuit_breaker_engaged_gpsfailure_check;
 static bool cb_usb;
 
+static bool calibration_enabled = false;
+
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -2017,7 +2019,7 @@ int commander_thread_main(int argc, char *argv[])
 
 
 		/* If in INIT state, try to proceed to STANDBY state */
-		if (!status.calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
+		if (!calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			arming_ret = arming_state_transition(&status,
 							     &safety,
 							     vehicle_status_s::ARMING_STATE_STANDBY,
@@ -3436,7 +3438,7 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub, command_ack);
 						break;
 					} else {
-						status.calibration_enabled = true;
+						calibration_enabled = true;
 					}
 
 					if ((int)(cmd.param1) == 1) {
@@ -3497,7 +3499,7 @@ void *commander_low_prio_loop(void *arg)
 						calib_ret = OK;
 					}
 
-					status.calibration_enabled = false;
+					calibration_enabled = false;
 
 					if (calib_ret == OK) {
 						tune_positive(true);
