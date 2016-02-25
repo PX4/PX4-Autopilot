@@ -268,6 +268,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			static hrt_abstime lastSPD = 0;
 			static hrt_abstime lastFUEL = 0;
 			static hrt_abstime lastVSPD = 0;
+			static hrt_abstime lastGPS = 0;
 
 			switch (sbuf[1]) {
 
@@ -342,6 +343,44 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastVSPD = now;
 
 					sPort_send_VSPD(uart, speed);
+				}
+
+				break;
+
+			case SMARTPORT_POLL_7:
+
+				/* report GPS data elements at 2*5Hz */
+				if (now - lastGPS > 100 * 1000) {
+					static int elementCount = 0;
+
+					switch (elementCount) {
+
+					case 0:
+						sPort_send_GPS_LON(uart);
+						elementCount++;
+						break;
+
+					case 1:
+						sPort_send_GPS_LAT(uart);
+						elementCount++;
+						break;
+
+					case 2:
+						sPort_send_GPS_COG(uart);
+						elementCount++;
+						break;
+
+					case 3:
+						sPort_send_GPS_ALT(uart);
+						elementCount++;
+						break;
+
+					case 4:
+						sPort_send_GPS_SPD(uart);
+						elementCount = 0;
+						break;
+					}
+
 				}
 
 				break;
