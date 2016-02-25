@@ -197,6 +197,30 @@ DataValidatorGroup::get_vibration_factor(uint64_t timestamp)
 	return vibe;
 }
 
+float
+DataValidatorGroup::get_vibration_offset(uint64_t timestamp, int axis)
+{
+	DataValidator *next = _first;
+
+	float vibe = -1.0f;
+
+	/* find the best vibration value of a non-timed out sensor */
+	while (next != nullptr) {
+
+		if (next->confidence(timestamp) > 0.5f) {
+			float* vibration_offset = next->vibration_offset();
+
+			if (vibe < 0.0f || vibration_offset[axis] < vibe) {
+				vibe = vibration_offset[axis];
+			}
+		}
+
+		next = next->sibling();
+	}
+
+	return vibe;
+}
+
 void
 DataValidatorGroup::print()
 {

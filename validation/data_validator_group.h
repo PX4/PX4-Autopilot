@@ -75,6 +75,13 @@ public:
 	float			get_vibration_factor(uint64_t timestamp);
 
 	/**
+	 * Get the vibration offset in the sensor unit
+	 *
+	 * @return		float value representing the vibration offset
+	 */
+	float			get_vibration_offset(uint64_t timestamp, int axis);
+
+	/**
 	 * Get the number of failover events
 	 *
 	 * @return		the number of failovers
