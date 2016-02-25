@@ -578,8 +578,6 @@ protected:
 			msg.errors_count3 = 0;
 			msg.errors_count4 = 0;
 
-			PX4_INFO("send sys status: voltage: %d", msg.voltage_battery);
-
 			_mavlink->send_message(MAVLINK_MSG_ID_SYS_STATUS, &msg);
 
 			/* battery status message with higher resolution */
