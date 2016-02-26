@@ -158,7 +158,6 @@ void Standard::update_vtol_state()
 			// start transition to fw mode
 			_vtol_schedule.flight_mode = TRANSITION_TO_FW;
 			_vtol_schedule.transition_start = hrt_absolute_time();
-			warnx("Front transition started");
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// in fw mode
@@ -174,13 +173,11 @@ void Standard::update_vtol_state()
 			     (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
 			     > (_params_standard.front_trans_time_min * 1000000.0f)) ||
 			    !_armed->armed) {
-				warnx("Front transition complete");
 				_vtol_schedule.flight_mode = FW_MODE;
 				// we can turn off the multirotor motors now
 				_flag_enable_mc_motors = false;
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
-				warnx("Front transition complete");
 			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
