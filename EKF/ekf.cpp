@@ -115,7 +115,11 @@ bool Ekf::init(uint64_t timestamp)
 	_output_new.vel.setZero();
 	_output_new.pos.setZero();
 	_output_new.quat_nominal = matrix::Quaternion<float>();
-
+    
+	_delta_angle_corr.setZero();
+	_delta_vel_corr.setZero();
+	_vel_corr.setZero();
+    
 	_imu_down_sampled.delta_ang.setZero();
 	_imu_down_sampled.delta_vel.setZero();
 	_imu_down_sampled.delta_ang_dt = 0.0f;
@@ -131,6 +135,9 @@ bool Ekf::init(uint64_t timestamp)
 	_NED_origin_initialised = false;
 	_gps_speed_valid = false;
 	_mag_healthy = false;
+
+	_filter_initialised = false;
+
 	return ret;
 }
 
