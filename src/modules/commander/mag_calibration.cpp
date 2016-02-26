@@ -76,6 +76,7 @@ static constexpr unsigned int calibraton_duration_seconds = 42; 	///< The total 
 static constexpr float MAG_MAX_OFFSET_LEN = 0.6f;	///< The maximum measurement range is ~1.4 Ga, the earth field is ~0.6 Ga, so an offset larger than ~0.8-0.6 Ga means the mag will saturate in some directions.
 
 int32_t	device_ids[max_mags];
+bool internal[max_mags];
 int device_prio_max = 0;
 int32_t device_id_primary = 0;
 
@@ -151,6 +152,7 @@ int do_mag_calibration(int mavlink_fd)
 
 		// Get device id for this mag
 		device_ids[cur_mag] = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+		internal[cur_mag] = (px4_ioctl(fd, MAGIOCGEXTERNAL, 0) <= 0);
 
 		// Reset mag scale
 		result = px4_ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null);
@@ -520,6 +522,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 							 &sphere_radius[cur_mag]);
 				
 				if (!PX4_ISFINITE(sphere_x[cur_mag]) || !PX4_ISFINITE(sphere_y[cur_mag]) || !PX4_ISFINITE(sphere_z[cur_mag])) {
+					mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: Please retry");
 					mavlink_and_console_log_emergency(mavlink_fd, "ERROR: Retry calibration (sphere NaN, #%u)", cur_mag);
 					result = calibrate_return_error;
 				}
@@ -527,8 +530,9 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 				if (sqrtf(sphere_x[cur_mag] * sphere_x[cur_mag] +
 					sphere_y[cur_mag] * sphere_y[cur_mag] + sphere_z[cur_mag] * sphere_z[cur_mag])
 					> MAG_MAX_OFFSET_LEN) {
-					mavlink_and_console_log_emergency(mavlink_fd, "ERROR: Replace board, fault in mag #%u", cur_mag);
-					mavlink_and_console_log_emergency(mavlink_fd, "Offsets: %8.4f, %8.4f, %8.4f", (double)sphere_x[cur_mag],
+					mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: Replace %s", (internal[cur_mag]) ? "board" : "GPS unit");
+					mavlink_and_console_log_emergency(mavlink_fd, "ERROR: Replace %s, fault in mag #%u", (internal[cur_mag]) ? "board" : "GPS unit", cur_mag);
+					mavlink_and_console_log_emergency(mavlink_fd, "Excessive offsets: %8.4f, %8.4f, %8.4f", (double)sphere_x[cur_mag],
 						(double)sphere_y[cur_mag], (double)sphere_z[cur_mag]);
 					result = calibrate_return_error;
 				}
