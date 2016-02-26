@@ -3176,6 +3176,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = stabilization_required();
 		control_mode.flag_control_attitude_enabled = stabilization_required();
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
@@ -3188,6 +3189,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
@@ -3202,6 +3204,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
@@ -3214,6 +3217,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = false;
@@ -3226,6 +3230,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = !status.in_transition_mode;
@@ -3249,6 +3254,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = !status.in_transition_mode;
@@ -3261,6 +3267,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = false;
@@ -3273,6 +3280,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = false;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
@@ -3286,6 +3294,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
 		/* in failsafe LAND mode position may be not available */
 		control_mode.flag_control_position_enabled = status_flags.condition_local_position_valid;
 		control_mode.flag_control_velocity_enabled = status_flags.condition_local_position_valid;
@@ -3300,6 +3309,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
@@ -3313,6 +3323,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = false;
 		control_mode.flag_control_attitude_enabled = false;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
@@ -3339,6 +3350,8 @@ set_control_mode()
 			!offboard_control_mode.ignore_position ||
 			!offboard_control_mode.ignore_velocity ||
 			!offboard_control_mode.ignore_acceleration_force;
+
+		control_mode.flag_control_rattitude_enabled = false;
 
 		control_mode.flag_control_velocity_enabled = (!offboard_control_mode.ignore_velocity ||
 			!offboard_control_mode.ignore_position) && !status.in_transition_mode;
