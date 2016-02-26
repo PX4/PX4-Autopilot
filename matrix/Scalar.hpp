@@ -55,6 +55,12 @@ public:
         return m;
     }
 
+    operator Vector<Type, 1>() const {
+        Vector<Type, 1> m;
+        m(0) = _value;
+        return m;
+    }
+
 private:
     Type _value;
 
