@@ -79,17 +79,27 @@ struct status_flags_s {
 	bool offboard_control_signal_lost;
 	bool offboard_control_signal_weak;
 	bool offboard_control_set_by_command;		// true if the offboard mode was set by a mavlink command and should not be overridden by RC
+	bool rc_signal_found_once;
+	bool rc_signal_lost_cmd;			// true if RC lost mode is commanded
+	bool rc_input_blocked;				// set if RC input should be ignored temporarily
+	bool data_link_lost_cmd;			// datalink to GCS lost mode commanded
+	bool vtol_transition_failure;			// Set to true if vtol transition failed
+	bool vtol_transition_failure_cmd;		// Set to true if vtol transition failure mode is commanded
+	bool gps_failure;				// Set to true if a gps failure is detected
+	bool gps_failure_cmd;				// Set to true if a gps failure mode is commanded
+	bool barometer_failure;				// Set to true if a barometer failure is detected
 };
 
 bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
 
-transition_result_t arming_state_transition(struct vehicle_status_s *current_state,
+transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					    const struct safety_s *safety,
 					    arming_state_t new_arming_state,
 					    struct actuator_armed_s *armed,
 					    bool fRunPreArmChecks,
 					    const int mavlink_fd,
-					    status_flags_s *status_flags);
+					    status_flags_s *status_flags,
+					    float avionics_power_rail_voltage);
 
 transition_result_t
 main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev,

@@ -213,6 +213,11 @@ static uint8_t main_state_prev = 0;
 
 static struct status_flags_s status_flags = {};
 
+static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was lost
+
+static float avionics_power_rail_voltage;		// voltage of the avionics power rail
+
+
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -518,7 +523,7 @@ void print_status()
 	warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
 	warnx("power: USB: %s, BRICK: %s", (status_flags.usb_connected) ? "[OK]" : "[NO]",
 		(status_flags.condition_power_input_valid) ? " [OK]" : "[NO]");
-	warnx("avionics rail: %6.2f V", (double)status.avionics_power_rail_voltage);
+	warnx("avionics rail: %6.2f V", (double)avionics_power_rail_voltage);
 	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f, yaw: %.2f", _home.lat, _home.lon, (double)_home.alt, (double)_home.yaw);
 	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
 
@@ -589,7 +594,8 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 					     &armed,
 					     true /* fRunPreArmChecks */,
 					     mavlink_fd_local,
-					     &status_flags);
+					     &status_flags,
+					     avionics_power_rail_voltage);
 
 	if (arming_res == TRANSITION_CHANGED && mavlink_fd) {
 		mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
@@ -828,10 +834,10 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 				/* param2 is currently used for other failsafe modes */
 				status_local->engine_failure_cmd = false;
-				status_local->data_link_lost_cmd = false;
-				status_local->gps_failure_cmd = false;
-				status_local->rc_signal_lost_cmd = false;
-				status_local->vtol_transition_failure_cmd = false;
+				status_flags.data_link_lost_cmd = false;
+				status_flags.gps_failure_cmd = false;
+				status_flags.rc_signal_lost_cmd = false;
+				status_flags.vtol_transition_failure_cmd = false;
 
 				if ((int)cmd->param2 <= 0) {
 					/* reset all commanded failure modes */
@@ -844,22 +850,22 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 				} else if ((int)cmd->param2 == 2) {
 					/* trigger data link loss mode */
-					status_local->data_link_lost_cmd = true;
+					status_flags.data_link_lost_cmd = true;
 					warnx("data link loss mode commanded");
 
 				} else if ((int)cmd->param2 == 3) {
 					/* trigger gps loss mode */
-					status_local->gps_failure_cmd = true;
+					status_flags.gps_failure_cmd = true;
 					warnx("gps loss mode commanded");
 
 				} else if ((int)cmd->param2 == 4) {
 					/* trigger rc loss mode */
-					status_local->rc_signal_lost_cmd = true;
+					status_flags.rc_signal_lost_cmd = true;
 					warnx("rc loss mode commanded");
 
 				} else if ((int)cmd->param2 == 5) {
 					/* trigger vtol transition failure mode */
-					status_local->vtol_transition_failure_cmd = true;
+					status_flags.vtol_transition_failure_cmd = true;
 					warnx("vtol transition failure mode commanded");
 				}
 
@@ -1165,7 +1171,7 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&status, 0, sizeof(status));
 
 	// We want to accept RC inputs as default
-	status.rc_input_blocked = false;
+	status_flags.rc_input_blocked = false;
 	status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
 	status.main_state =vehicle_status_s::MAIN_STATE_MANUAL;
 	main_state_prev = vehicle_status_s::MAIN_STATE_MAX;
@@ -1181,7 +1187,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* neither manual nor offboard control commands have been received */
 	status_flags.offboard_control_signal_found_once = false;
-	status.rc_signal_found_once = false;
+	status_flags.rc_signal_found_once = false;
 
 	/* mark all signals lost as long as they haven't been found */
 	status.rc_signal_lost = true;
@@ -1194,7 +1200,7 @@ int commander_thread_main(int argc, char *argv[])
 	status.timestamp = hrt_absolute_time();
 
 	status_flags.condition_power_input_valid = true;
-	status.avionics_power_rail_voltage = -1.0f;
+	avionics_power_rail_voltage = -1.0f;
 	status_flags.usb_connected = false;
 
 	// CIRCUIT BREAKERS
@@ -1661,15 +1667,15 @@ int commander_thread_main(int argc, char *argv[])
 			 * */
 			if (hrt_elapsed_time(&sensors.baro_timestamp[0]) < FAILSAFE_DEFAULT_TIMEOUT) {
 				/* handle the case where baro was regained */
-				if (status.barometer_failure) {
-					status.barometer_failure = false;
+				if (status_flags.barometer_failure) {
+					status_flags.barometer_failure = false;
 					status_changed = true;
 					mavlink_log_critical(mavlink_fd, "baro healthy");
 				}
 
 			} else {
-				if (!status.barometer_failure) {
-					status.barometer_failure = true;
+				if (!status_flags.barometer_failure) {
+					status_flags.barometer_failure = true;
 					status_changed = true;
 					mavlink_log_critical(mavlink_fd, "baro failed");
 				}
@@ -1699,7 +1705,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* copy avionics voltage */
-				status.avionics_power_rail_voltage = system_power.voltage5V_v;
+				avionics_power_rail_voltage = system_power.voltage5V_v;
 
 				/* if the USB hardware connection went away, reboot */
 				if (status_flags.usb_connected && !system_power.usb_connected) {
@@ -1737,7 +1743,8 @@ int commander_thread_main(int argc, char *argv[])
 										  &armed,
 										  true /* fRunPreArmChecks */,
 										  mavlink_fd,
-										  &status_flags)) {
+										  &status_flags,
+										  avionics_power_rail_voltage)) {
 					mavlink_log_info(mavlink_fd, "DISARMED by safety switch");
 					arming_state_changed = true;
 				}
@@ -1769,8 +1776,8 @@ int commander_thread_main(int argc, char *argv[])
 			if (is_vtol(&status)) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
 				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
-				status.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
-				status.vtol_transition_failure_cmd = vtol_status.vtol_transition_failsafe;
+				status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
+				status_flags.vtol_transition_failure_cmd = vtol_status.vtol_transition_failsafe;
 			}
 
 			status_changed = true;
@@ -1928,7 +1935,8 @@ int commander_thread_main(int argc, char *argv[])
 										     &armed,
 										     true /* fRunPreArmChecks */,
 										     mavlink_fd,
-										     &status_flags);
+										     &status_flags,
+										     avionics_power_rail_voltage);
 
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
@@ -2006,7 +2014,8 @@ int commander_thread_main(int argc, char *argv[])
 							     &armed,
 							     true /* fRunPreArmChecks */,
 							     mavlink_fd,
-							     &status_flags);
+							     &status_flags,
+							     avionics_power_rail_voltage);
 
 			if (arming_ret == TRANSITION_CHANGED) {
 				arming_state_changed = true;
@@ -2049,26 +2058,26 @@ int commander_thread_main(int argc, char *argv[])
 
 			//Check if GPS receiver is too noisy while we are disarmed
 			if (!armed.armed && gpsIsNoisy) {
-				if (!status.gps_failure) {
+				if (!status_flags.gps_failure) {
 					mavlink_log_critical(mavlink_fd, "GPS signal noisy");
 					set_tune_override(TONE_GPS_WARNING_TUNE);
 
 					//GPS suffers from signal jamming or excessive noise, disable GPS-aided flight
-					status.gps_failure = true;
+					status_flags.gps_failure = true;
 					status_changed = true;
 				}
 			}
 
 			if (gps_position.fix_type >= 3 && hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
 				/* handle the case where gps was regained */
-				if (status.gps_failure && !gpsIsNoisy) {
-					status.gps_failure = false;
+				if (status_flags.gps_failure && !gpsIsNoisy) {
+					status_flags.gps_failure = false;
 					status_changed = true;
 					mavlink_log_critical(mavlink_fd, "gps fix regained");
 				}
 
-			} else if (!status.gps_failure) {
-				status.gps_failure = true;
+			} else if (!status_flags.gps_failure) {
+				status_flags.gps_failure = true;
 				status_changed = true;
 				mavlink_log_critical(mavlink_fd, "gps fix lost");
 			}
@@ -2225,21 +2234,21 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* RC input check */
 #ifndef __PX4_QURT
-		if (!status.rc_input_blocked && sp_man.timestamp != 0 &&
+		if (!status_flags.rc_input_blocked && sp_man.timestamp != 0 &&
 		    (hrt_absolute_time() < sp_man.timestamp + (uint64_t)(rc_loss_timeout * 1e6f))) {
 #else
 		// HACK: remove old data check due to timestamp issue in QURT
-		if (!status.rc_input_blocked && sp_man.timestamp != 0) {
+		if (!status_flags.rc_input_blocked && sp_man.timestamp != 0) {
 #endif
 			/* handle the case where RC signal was regained */
-			if (!status.rc_signal_found_once) {
-				status.rc_signal_found_once = true;
+			if (!status_flags.rc_signal_found_once) {
+				status_flags.rc_signal_found_once = true;
 				status_changed = true;
 
 			} else {
 				if (status.rc_signal_lost) {
 					mavlink_log_info(mavlink_fd, "MANUAL CONTROL REGAINED after %llums",
-							     (hrt_absolute_time() - status.rc_signal_lost_timestamp) / 1000);
+							     (hrt_absolute_time() - rc_signal_lost_timestamp) / 1000);
 					status_changed = true;
 				}
 			}
@@ -2266,7 +2275,8 @@ int commander_thread_main(int argc, char *argv[])
 									     &armed,
 									     true /* fRunPreArmChecks */,
 									     mavlink_fd,
-									     &status_flags);
+									     &status_flags,
+									     avionics_power_rail_voltage);
 
 					if (arming_ret == TRANSITION_CHANGED) {
 						arming_state_changed = true;
@@ -2308,7 +2318,8 @@ int commander_thread_main(int argc, char *argv[])
 										     &armed,
 										     true /* fRunPreArmChecks */,
 										     mavlink_fd,
-										     &status_flags);
+										     &status_flags,
+										     avionics_power_rail_voltage);
 
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
@@ -2369,10 +2380,10 @@ int commander_thread_main(int argc, char *argv[])
 			/* no else case: do not change lockdown flag in unconfigured case */
 
 		} else {
-			if (!status.rc_input_blocked && !status.rc_signal_lost) {
+			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
 				mavlink_log_critical(mavlink_fd, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
-				status.rc_signal_lost_timestamp = sp_man.timestamp;
+				rc_signal_lost_timestamp = sp_man.timestamp;
 				status_changed = true;
 			}
 		}
@@ -2516,8 +2527,8 @@ int commander_thread_main(int argc, char *argv[])
 			    status.main_state !=vehicle_status_s::MAIN_STATE_STAB &&
 			    status.main_state !=vehicle_status_s::MAIN_STATE_ALTCTL &&
 			    status.main_state !=vehicle_status_s::MAIN_STATE_POSCTL &&
-			    ((status.data_link_lost && status.gps_failure) ||
-			     (status.data_link_lost_cmd && status.gps_failure_cmd))) {
+			    ((status.data_link_lost && status_flags.gps_failure) ||
+			     (status_flags.data_link_lost_cmd && status_flags.gps_failure_cmd))) {
 				armed.force_failsafe = true;
 				status_changed = true;
 				static bool flight_termination_printed = false;
@@ -2542,8 +2553,8 @@ int commander_thread_main(int argc, char *argv[])
 			     status.main_state ==vehicle_status_s::MAIN_STATE_STAB ||
 			     status.main_state ==vehicle_status_s::MAIN_STATE_ALTCTL ||
 			     status.main_state ==vehicle_status_s::MAIN_STATE_POSCTL) &&
-			    ((status.rc_signal_lost && status.gps_failure) ||
-			     (status.rc_signal_lost_cmd && status.gps_failure_cmd))) {
+			    ((status.rc_signal_lost && status_flags.gps_failure) ||
+			     (status_flags.rc_signal_lost_cmd && status_flags.gps_failure_cmd))) {
 				armed.force_failsafe = true;
 				status_changed = true;
 				static bool flight_termination_printed = false;
@@ -3400,7 +3411,8 @@ void *commander_low_prio_loop(void *arg)
 											 &armed,
 											 false /* fRunPreArmChecks */,
 											 mavlink_fd,
-											 &status_flags)) {
+											 &status_flags,
+											 avionics_power_rail_voltage)) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub, command_ack);
 						break;
 					} else {
@@ -3425,7 +3437,7 @@ void *commander_low_prio_loop(void *arg)
 						/* RC calibration */
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						/* disable RC control input completely */
-						status.rc_input_blocked = true;
+						status_flags.rc_input_blocked = true;
 						calib_ret = OK;
 						mavlink_log_info(mavlink_fd, "CAL: Disabling RC IN");
 
@@ -3454,10 +3466,10 @@ void *commander_low_prio_loop(void *arg)
 
 					} else if ((int)(cmd.param4) == 0) {
 						/* RC calibration ended - have we been in one worth confirming? */
-						if (status.rc_input_blocked) {
+						if (status_flags.rc_input_blocked) {
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 							/* enable RC control input */
-							status.rc_input_blocked = false;
+							status_flags.rc_input_blocked = false;
 							mavlink_log_info(mavlink_fd, "CAL: Re-enabling RC IN");
 							calib_ret = OK;
 						}
@@ -3492,7 +3504,8 @@ void *commander_low_prio_loop(void *arg)
 									&armed,
 									false /* fRunPreArmChecks */,
 									mavlink_fd,
-									&status_flags);
+									&status_flags,
+								        avionics_power_rail_voltage);
 
 					} else {
 						tune_negative(true);

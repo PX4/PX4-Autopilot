@@ -71,26 +71,14 @@ bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if vtol should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
 
-float32 avionics_power_rail_voltage	# voltage of the avionics power rail
-
-bool rc_signal_found_once
 bool rc_signal_lost				# true if RC reception lost
-uint64 rc_signal_lost_timestamp			# Time at which the RC reception was lost
-bool rc_signal_lost_cmd				# true if RC lost mode is commanded
-bool rc_input_blocked				# set if RC input should be ignored temporarily
 uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual control to RC in mapping.
 
 bool data_link_lost				# datalink to GCS lost
-bool data_link_lost_cmd				# datalink to GCS lost mode commanded
 uint8 data_link_lost_counter			# counts unique data link lost events
 bool engine_failure				# Set to true if an engine failure is detected
 bool engine_failure_cmd				# Set to true if an engine failure mode is commanded
-bool vtol_transition_failure		# Set to true if vtol transition failed
-bool vtol_transition_failure_cmd	# Set to true if vtol transition failure mode is commanded
-bool gps_failure				# Set to true if a gps failure is detected
-bool gps_failure_cmd				# Set to true if a gps failure mode is commanded
 bool mission_failure				# Set to true if mission could not continue/finish
-bool barometer_failure				# Set to true if a barometer failure is detected
 
 # see SYS_STATUS mavlink message for the following
 uint32 onboard_control_sensors_present

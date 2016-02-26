@@ -107,7 +107,8 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					    struct actuator_armed_s *armed,
 					    bool fRunPreArmChecks,
 					    const int mavlink_fd,
-					    status_flags_s *status_flags)
+					    status_flags_s *status_flags,
+					    float avionics_power_rail_voltage)
 {
 	// Double check that our static arrays are still valid
 	ASSERT(vehicle_status_s::ARMING_STATE_INIT == 0);
@@ -213,17 +214,17 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 						// Fail transition if power levels on the avionics rail
 						// are measured but are insufficient
-						if (status_flags->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f)) {
+						if (status_flags->condition_power_input_valid && (avionics_power_rail_voltage > 0.0f)) {
 							// Check avionics rail voltages
-							if (status->avionics_power_rail_voltage < 4.5f) {
-								mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+							if (avionics_power_rail_voltage < 4.5f) {
+								mavlink_and_console_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
-							} else if (status->avionics_power_rail_voltage < 4.9f) {
-								mavlink_and_console_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+							} else if (avionics_power_rail_voltage < 4.9f) {
+								mavlink_and_console_log_critical(mavlink_fd, "CAUTION: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
 								feedback_provided = true;
-							} else if (status->avionics_power_rail_voltage > 5.4f) {
-								mavlink_and_console_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt", (double)status->avionics_power_rail_voltage);
+							} else if (avionics_power_rail_voltage > 5.4f) {
+								mavlink_and_console_log_critical(mavlink_fd, "CAUTION: Avionics power high: %6.2f Volt", (double)avionics_power_rail_voltage);
 								feedback_provided = true;
 							}
 						}
@@ -589,7 +590,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 	case vehicle_status_s::MAIN_STATE_ALTCTL:
 	case vehicle_status_s::MAIN_STATE_POSCTL:
 		/* require RC for all manual modes */
-		if ((status->rc_signal_lost || status->rc_signal_lost_cmd) && armed && !landed) {
+		if ((status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed && !landed) {
 			status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
@@ -646,21 +647,21 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		/* first look at the commands */
 		if (status->engine_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
-		} else if (status->data_link_lost_cmd) {
+		} else if (status_flags->data_link_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
-		} else if (status->gps_failure_cmd) {
+		} else if (status_flags->gps_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
-		} else if (status->rc_signal_lost_cmd) {
+		} else if (status_flags->rc_signal_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
-		} else if (status->vtol_transition_failure_cmd) {
+		} else if (status_flags->vtol_transition_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 		/* finished handling commands which have priority, now handle failures */
-		} else if (status->gps_failure) {
+		} else if (status_flags->gps_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
 		} else if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
-		} else if (status->vtol_transition_failure) {
+		} else if (status_flags->vtol_transition_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 		} else if (status->mission_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
