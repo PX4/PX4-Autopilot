@@ -62,9 +62,10 @@
 #include <drivers/drv_led.h>
 #include <drivers/drv_rgbled.h>
 
+#include <mavlink/v1.0/common/mavlink.h> // For MAV_TYPE
+
 #include "commander_helper.h"
 #include "DevMgr.hpp"
-#include "mavlink/v1.0/common/mavlink.h" // For MAV_TYPE
 
 using namespace DriverFramework;
 
