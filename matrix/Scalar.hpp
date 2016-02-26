@@ -39,10 +39,16 @@ public:
         _value = other;
     }
 
-    operator Type()
+    operator Type &()
     {
         return _value;
     }
+
+    operator Type const &() const
+    {
+        return _value;
+    }
+
 private:
     Type _value;
 
