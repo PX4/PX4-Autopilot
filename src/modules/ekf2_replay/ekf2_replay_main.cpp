@@ -61,6 +61,7 @@
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/control_state.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <sdlog2/sdlog2_messages.h>
 
@@ -128,6 +129,7 @@ private:
 
 	orb_advert_t _sensors_pub;
 	orb_advert_t _gps_pub;
+	orb_advert_t _status_pub;
 
 	int _att_sub;
 	int _estimator_status_sub;
@@ -140,6 +142,7 @@ private:
 	struct log_format_s _formats[100];
 	struct sensor_combined_s _sensors;
 	struct vehicle_gps_position_s _gps;
+	struct vehicle_status_s _status;
 
 	bool _read_part1;
 	bool _read_part2;
@@ -166,6 +169,7 @@ private:
 Ekf2Replay::Ekf2Replay(char *logfile) :
 	_sensors_pub(nullptr),
 	_gps_pub(nullptr),
+	_status_pub(nullptr),
 	_att_sub(-1),
 	_estimator_status_sub(-1),
 	_innov_sub(-1),
@@ -174,6 +178,7 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_formats{},
 	_sensors{},
 	_gps{},
+	_status{},
 	_read_part1(false),
 	_read_part2(false),
 	_write_fd(-1)
@@ -184,6 +189,9 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	strcpy(path_to_log, tmp);
 	strcat(path_to_log, logfile);
 	_file_name = path_to_log;
+
+	// we always start landed
+	_status.condition_landed = true;
 
 }
 
@@ -238,6 +246,11 @@ void Ekf2Replay::parseMessage(uint8_t *source, uint8_t *destination, uint8_t typ
 			write_index += sizeof(uint8_t);
 			break;
 
+		case 'B':
+			memcpy(&destination[write_index], &source[write_index], sizeof(uint8_t));
+			write_index += sizeof(uint8_t);
+			break;
+
 		default:
 			PX4_WARN("found unsupported data type in replay message, exiting!");
 			_task_should_exit = true;
@@ -252,6 +265,7 @@ void Ekf2Replay::setSensorData(uint8_t *data, uint8_t type)
 {
 	struct log_RPL1_s replay_part1 = {};
 	struct log_RPL2_s replay_part2 = {};
+	struct log_STAT_s vehicle_status = {};
 
 	if (type == LOG_RPL1_MSG) {
 
@@ -274,7 +288,6 @@ void Ekf2Replay::setSensorData(uint8_t *data, uint8_t type)
 		_sensors.baro_alt_meter[0] = replay_part1.baro_alt_meter;
 		_read_part1 = true;
 
-
 	} else if (type == LOG_RPL2_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&replay_part2.time_pos_usec;
 		parseMessage(data, dest_ptr, type);
@@ -291,6 +304,19 @@ void Ekf2Replay::setSensorData(uint8_t *data, uint8_t type)
 		_gps.vel_d_m_s = replay_part2.vel_d_m_s;
 		_gps.vel_ned_valid = replay_part2.vel_ned_valid;
 		_read_part2 = true;
+
+	} else if (type == LOG_STAT_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&vehicle_status.main_state;
+		parseMessage(data, dest_ptr, type);
+		_status.arming_state = vehicle_status.arming_state;
+		_status.condition_landed = (bool)vehicle_status.landed;
+
+		if (_status_pub == nullptr) {
+			_status_pub = orb_advertise(ORB_ID(vehicle_status), &_status);
+
+		} else if (_status_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_status), _status_pub, &_status);
+		}
 	}
 }
 
