@@ -147,7 +147,6 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 void sPort_send_BATV(int uart)
 {
 	/* get a local copy of the vehicle status data */
-	memset(&vehicle_status, 0, sizeof(vehicle_status));
 	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
 
 	/* send battery voltage as VFAS */
@@ -158,10 +157,6 @@ void sPort_send_BATV(int uart)
 // verified scaling
 void sPort_send_CUR(int uart)
 {
-	/* get a local copy of the vehicle status data */
-	memset(&vehicle_status, 0, sizeof(vehicle_status));
-	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-
 	/* send data */
 	uint32_t current = (int)(10 * vehicle_status.battery_current);
 	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
@@ -173,7 +168,6 @@ void sPort_send_CUR(int uart)
 void sPort_send_ALT(int uart)
 {
 	/* get a local copy of the current sensor values */
-	memset(&sensor_data, 0, sizeof(sensor_data));
 	orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensor_data);
 
 	/* send data */
@@ -184,10 +178,6 @@ void sPort_send_ALT(int uart)
 // verified scaling for "calculated" option
 void sPort_send_SPD(int uart)
 {
-	/* get a local copy of the global position data */
-	memset(&global_pos, 0, sizeof(global_pos));
-	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
-
 	/* send data */
 	float speed  = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e);
 	uint32_t ispeed = (int)(10 * speed);
@@ -205,10 +195,6 @@ void sPort_send_VSPD(int uart, float speed)
 // verified scaling
 void sPort_send_FUEL(int uart)
 {
-	/* get a local copy of the vehicle status data */
-	memset(&vehicle_status, 0, sizeof(vehicle_status));
-	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-
 	/* send data */
 	uint32_t fuel = (int)(100 * vehicle_status.battery_remaining);
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
@@ -218,7 +204,6 @@ void sPort_send_GPS_LON(int uart)
 {
 	/* send longitude */
 	/* get a local copy of the global position data */
-	memset(&global_pos, 0, sizeof(global_pos));
 	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
 
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
@@ -234,9 +219,6 @@ void sPort_send_GPS_LON(int uart)
 void sPort_send_GPS_LAT(int uart)
 {
 	/* send latitude */
-	/* get a local copy of the global position data */
-	memset(&global_pos, 0, sizeof(global_pos));
-	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
 
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 0 and bit 30=sign */
 	uint32_t iLat = 6E5 * fabs(global_pos.lat);
@@ -249,9 +231,6 @@ void sPort_send_GPS_LAT(int uart)
 void sPort_send_GPS_ALT(int uart)
 {
 	/* send altitude */
-	/* get a local copy of the global position data */
-	memset(&global_pos, 0, sizeof(global_pos));
-	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
 
 	/* convert to 100 * m/sec */
 	uint32_t iAlt = 100 * global_pos.alt;
@@ -261,9 +240,6 @@ void sPort_send_GPS_ALT(int uart)
 void sPort_send_GPS_COG(int uart)
 {
 	/* send course */
-	/* get a local copy of the global position data */
-	memset(&global_pos, 0, sizeof(global_pos));
-	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
 
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
 	uint32_t iYaw = 100 * global_pos.yaw;
@@ -272,10 +248,6 @@ void sPort_send_GPS_COG(int uart)
 
 void sPort_send_GPS_SPD(int uart)
 {
-	/* get a local copy of the global position data */
-	memset(&global_pos, 0, sizeof(global_pos));
-	orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_pos);
-
 	/* send 100 * knots */
 	float speed  = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e);
 	uint32_t ispeed = (int)(1944 * speed);
