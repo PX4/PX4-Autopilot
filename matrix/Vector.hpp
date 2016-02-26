@@ -7,6 +7,9 @@
  */
 
 #pragma once
+
+#include <cmath>
+
 #include "math.hpp"
 
 namespace matrix
@@ -67,6 +70,14 @@ public:
         (*this) /= norm();
     }
 
+    Vector pow(Type v) const {
+        const Vector &a(*this);
+        Vector r;
+        for (size_t i = 0; i<M; i++) {
+            r(i) = Type(::pow(a(i), v));
+        }
+        return r;
+    }
 };
 
 } // namespace matrix
