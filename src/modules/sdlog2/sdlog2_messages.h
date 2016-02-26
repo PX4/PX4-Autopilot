@@ -475,6 +475,9 @@ struct log_ENCD_s {
 #define LOG_VTOL_MSG 43
 struct log_VTOL_s {
 	float airspeed_tot;
+	uint8_t rw_mode;
+	uint8_t trans_mode;
+	uint8_t failsafe_mode;
 };
 
 /* --- TIMESYNC - TIME SYNCHRONISATION OFFSET */
@@ -546,7 +549,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(ATTC, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT_S(ATC1, ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT(STAT, "BBBfBBf",		"MainState,ArmS,Failsafe,BatRem,BatWarn,Landed,Load"),
-	LOG_FORMAT(VTOL, "f",		"Arsp"),
+	LOG_FORMAT(VTOL, "fBBB",		"Arsp,RwMode,TransMode,Failsafe"),
 	LOG_FORMAT(CTS, "fffffff", "Vx_b,Vy_b,Vz_b,Vinf,P,Q,R"),
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
 	LOG_FORMAT_S(OUT0, OUT, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
