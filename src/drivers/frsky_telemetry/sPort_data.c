@@ -49,7 +49,6 @@
 #include <arch/math.h>
 #include <geo/geo.h>
 
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -72,7 +71,6 @@ static struct vehicle_global_position_s global_pos;
  */
 void sPort_init()
 {
-//	battery_sub = orb_subscribe(ORB_ID(battery_status));
 	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));

@@ -57,7 +57,7 @@
 #include <systemlib/systemlib.h>
 #include <termios.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_baro.h>
 
 #include "sPort_data.h"
 #include "frsky_data.h"
@@ -67,7 +67,7 @@
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 static int frsky_task;
-static struct sensor_combined_s sensor_raw;
+static struct sensor_baro_s sensor_baro;
 static float filtered_alt = NAN;
 
 /* functions */
@@ -197,7 +197,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	char sbuf[20];
 
 	/* 2 byte polling frames indicate SmartPort telemetry
-	 * 11 byte packets, indicate D type telemetry
+	 * 11 byte packets indicate D type telemetry
 	 */
 	int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
 
@@ -216,7 +216,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		warnx("sending FrSky SmartPort telemetry");
 
-		int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+		int sensor_sub = orb_subscribe(ORB_ID(sensor_baro));
 
 		/* send S.port telemetry */
 		while (!thread_should_exit) {
@@ -252,13 +252,13 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			orb_check(sensor_sub, &sensor_updated);
 
 			if (sensor_updated) {
-				orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensor_raw);
+				orb_copy(ORB_ID(sensor_baro), sensor_sub, &sensor_baro);
 
 				if (isnan(filtered_alt)) {
-					filtered_alt = sensor_raw.baro_alt_meter[0];
+					filtered_alt = sensor_baro.altitude;
 
 				} else {
-					filtered_alt = .05f * sensor_raw.baro_alt_meter[0] + .95f * filtered_alt;
+					filtered_alt = .05f * sensor_baro.altitude + .95f * filtered_alt;
 				}
 			}
 
