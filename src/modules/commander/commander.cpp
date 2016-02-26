@@ -2726,6 +2726,7 @@ int commander_thread_main(int argc, char *argv[])
 	px4_close(diff_pres_sub);
 	px4_close(param_changed_sub);
 	px4_close(battery_sub);
+	px4_close(land_detector_sub);
 
 	thread_running = false;
 
