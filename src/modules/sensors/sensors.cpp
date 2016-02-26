@@ -252,8 +252,6 @@ private:
 	math::Matrix<3, 3>	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_mag_rotation[3];	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
-	hrt_abstime _battery_current_timestamp;		/**< timestamp of last battery current reading */
-
 	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
 
 	struct {
@@ -520,9 +518,7 @@ Sensors::Sensors() :
 
 	_param_rc_values{},
 	_board_rotation{},
-	_mag_rotation{},
-
-	_battery_current_timestamp(0)
+	_mag_rotation{}
 {
 	/* initialize subscriptions */
 	for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
