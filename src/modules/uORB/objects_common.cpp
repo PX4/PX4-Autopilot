@@ -276,3 +276,6 @@ ORB_DEFINE(vehicle_command_ack, struct vehicle_command_ack_s);
 
 #include "topics/ekf2_innovations.h"
 ORB_DEFINE(ekf2_innovations, struct ekf2_innovations_s);
+
+#include "topics/commander_state.h"
+ORB_DEFINE(commander_state, struct commander_state_s);

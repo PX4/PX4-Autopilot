@@ -325,20 +325,20 @@ bool is_safe(const struct vehicle_status_s *status, const struct safety_s *safet
 
 transition_result_t
 main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev,
-		      status_flags_s *status_flags)
+		      status_flags_s *status_flags, struct commander_state_s *internal_state)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
 	/* transition may be denied even if the same state is requested because conditions may have changed */
 	switch (new_main_state) {
-	case vehicle_status_s::MAIN_STATE_MANUAL:
-	case vehicle_status_s::MAIN_STATE_ACRO:
-	case vehicle_status_s::MAIN_STATE_RATTITUDE:
-	case vehicle_status_s::MAIN_STATE_STAB:
+	case commander_state_s::MAIN_STATE_MANUAL:
+	case commander_state_s::MAIN_STATE_ACRO:
+	case commander_state_s::MAIN_STATE_RATTITUDE:
+	case commander_state_s::MAIN_STATE_STAB:
 		ret = TRANSITION_CHANGED;
 		break;
 
-	case vehicle_status_s::MAIN_STATE_ALTCTL:
+	case commander_state_s::MAIN_STATE_ALTCTL:
 		/* need at minimum altitude estimate */
 		/* TODO: add this for fixedwing as well */
 		if (!status->is_rotary_wing ||
@@ -348,7 +348,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_POSCTL:
+	case commander_state_s::MAIN_STATE_POSCTL:
 		/* need at minimum local position estimate */
 		if (status_flags->condition_local_position_valid ||
 		    status_flags->condition_global_position_valid) {
@@ -356,24 +356,24 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_AUTO_LOITER:
+	case commander_state_s::MAIN_STATE_AUTO_LOITER:
 		/* need global position estimate */
 		if (status_flags->condition_global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_AUTO_MISSION:
-	case vehicle_status_s::MAIN_STATE_AUTO_RTL:
-	case vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF:
-	case vehicle_status_s::MAIN_STATE_AUTO_LAND:
+	case commander_state_s::MAIN_STATE_AUTO_MISSION:
+	case commander_state_s::MAIN_STATE_AUTO_RTL:
+	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
+	case commander_state_s::MAIN_STATE_AUTO_LAND:
 		/* need global position and home position */
 		if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_OFFBOARD:
+	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		/* need offboard signal */
 		if (!status_flags->offboard_control_signal_lost) {
@@ -382,14 +382,14 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 		break;
 
-	case vehicle_status_s::MAIN_STATE_MAX:
+	case commander_state_s::MAIN_STATE_MAX:
 	default:
 		break;
 	}
 	if (ret == TRANSITION_CHANGED) {
-		if (status->main_state != new_main_state) {
-			main_state_prev = status->main_state;
-			status->main_state = new_main_state;
+		if (internal_state->main_state != new_main_state) {
+			main_state_prev = internal_state->main_state;
+			internal_state->main_state = new_main_state;
 		} else {
 			ret = TRANSITION_NOT_CHANGED;
 		}
@@ -573,25 +573,26 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 /**
  * Check failsafe and main status and set navigation status for navigator accordingly
  */
-bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished,
+bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *internal_state,
+		   const bool data_link_loss_enabled, const bool mission_finished,
 		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed)
 {
 	navigation_state_t nav_state_old = status->nav_state;
 
 	bool armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED || status->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
-	status->failsafe = false;
+	//status->failsafe = false;
 
 	/* evaluate main state to decide in normal (non-failsafe) mode */
-	switch (status->main_state) {
-	case vehicle_status_s::MAIN_STATE_ACRO:
-	case vehicle_status_s::MAIN_STATE_MANUAL:
-	case vehicle_status_s::MAIN_STATE_RATTITUDE:
-	case vehicle_status_s::MAIN_STATE_STAB:
-	case vehicle_status_s::MAIN_STATE_ALTCTL:
-	case vehicle_status_s::MAIN_STATE_POSCTL:
+	switch (internal_state->main_state) {
+	case commander_state_s::MAIN_STATE_ACRO:
+	case commander_state_s::MAIN_STATE_MANUAL:
+	case commander_state_s::MAIN_STATE_RATTITUDE:
+	case commander_state_s::MAIN_STATE_STAB:
+	case commander_state_s::MAIN_STATE_ALTCTL:
+	case commander_state_s::MAIN_STATE_POSCTL:
 		/* require RC for all manual modes */
 		if ((status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed && !landed) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
@@ -604,28 +605,28 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 			}
 
 		} else {
-			switch (status->main_state) {
-			case vehicle_status_s::MAIN_STATE_ACRO:
+			switch (internal_state->main_state) {
+			case commander_state_s::MAIN_STATE_ACRO:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ACRO;
 				break;
 
-			case vehicle_status_s::MAIN_STATE_MANUAL:
+			case commander_state_s::MAIN_STATE_MANUAL:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 				break;
 
-			case vehicle_status_s::MAIN_STATE_RATTITUDE:
+			case commander_state_s::MAIN_STATE_RATTITUDE:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
 				break;
 
-			case vehicle_status_s::MAIN_STATE_STAB:
+			case commander_state_s::MAIN_STATE_STAB:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_STAB;
 				break;
 
-			case vehicle_status_s::MAIN_STATE_ALTCTL:
+			case commander_state_s::MAIN_STATE_ALTCTL:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 				break;
 
-			case vehicle_status_s::MAIN_STATE_POSCTL:
+			case commander_state_s::MAIN_STATE_POSCTL:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 				break;
 
@@ -636,7 +637,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_AUTO_MISSION:
+	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
 		/* go into failsafe
 		 * - if commanded to do so
@@ -669,7 +670,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		/* datalink loss enabled:
 		 * check for datalink lost: this should always trigger RTGS */
 		} else if (data_link_loss_enabled && status->data_link_lost) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
@@ -686,7 +687,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		 * or RC is lost after the mission is finished: this should always trigger RCRECOVER */
 		} else if (!data_link_loss_enabled && ((status->rc_signal_lost && status->data_link_lost) ||
 						       (status->rc_signal_lost && mission_finished))) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
@@ -704,13 +705,13 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_AUTO_LOITER:
+	case commander_state_s::MAIN_STATE_AUTO_LOITER:
 		/* go into failsafe on a engine failure */
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		/* also go into failsafe if just datalink is lost */
 		} else if (status->data_link_lost && data_link_loss_enabled) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
@@ -724,7 +725,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 
 		/* go into failsafe if RC is lost and datalink loss is not set up */
 		} else if (status->rc_signal_lost && !data_link_loss_enabled) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
@@ -747,14 +748,14 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_AUTO_RTL:
+	case commander_state_s::MAIN_STATE_AUTO_RTL:
 		/* require global position and home, also go into failsafe on an engine failure */
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if ((!status_flags->condition_global_position_valid ||
 					!status_flags->condition_home_position_valid)) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			if (status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
@@ -768,14 +769,14 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF:
+	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
 		/* require global position and home */
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if ((!status_flags->condition_global_position_valid ||
 					!status_flags->condition_home_position_valid)) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			if (status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
@@ -789,14 +790,14 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_AUTO_LAND:
+	case commander_state_s::MAIN_STATE_AUTO_LAND:
 		/* require global position and home */
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if ((!status_flags->condition_global_position_valid ||
 					!status_flags->condition_home_position_valid)) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			if (status_flags->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
@@ -808,14 +809,14 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		}
 		break;
 
-	case vehicle_status_s::MAIN_STATE_OFFBOARD:
+	case commander_state_s::MAIN_STATE_OFFBOARD:
 		/* require offboard control, otherwise stay where you are */
 		if (status_flags->offboard_control_signal_lost && !status->rc_signal_lost) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 		} else if (status_flags->offboard_control_signal_lost && status->rc_signal_lost) {
-			status->failsafe = true;
+			//status->failsafe = true;
 
 			if (status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;

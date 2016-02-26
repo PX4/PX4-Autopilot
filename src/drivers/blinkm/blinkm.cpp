@@ -701,19 +701,18 @@ BlinkM::led()
 						led_blink = LED_BLINK;
 
 						if (new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
-							/* indicate main control state */
-							if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_POSCTL) {
-								led_color_4 = LED_GREEN;
-							}
 
-							/* TODO: add other Auto modes */
-							else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_AUTO_MISSION) {
+							/* indicate main control state */
+							if (vehicle_control_mode.flag_control_auto_enabled) {
 								led_color_4 = LED_BLUE;
 
-							} else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_ALTCTL) {
+							} else if (vehicle_control_mode.flag_control_position_enabled) {
+								led_color_4 = LED_GREEN;
+
+							} else if (vehicle_control_mode.flag_control_altitude_enabled) {
 								led_color_4 = LED_YELLOW;
 
-							} else if (vehicle_status_raw.main_state == vehicle_status_s::MAIN_STATE_MANUAL) {
+							} else if (vehicle_control_mode.flag_control_manual_enabled) {
 								led_color_4 = LED_WHITE;
 
 							} else {
