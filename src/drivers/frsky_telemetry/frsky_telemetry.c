@@ -67,6 +67,8 @@
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 static int frsky_task;
+static struct sensor_combined_s sensor_raw;
+static float filtered_alt = NAN;
 
 /* functions */
 static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original);
@@ -246,17 +248,18 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			 * in order to apply a lowpass filter to baro pressure.
 			 */
 			static float last_baro_alt = 0;
-			struct sensor_combined_s raw;
-			memset(&raw, 0, sizeof(raw));
-			orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+			bool sensor_updated;
+			orb_check(sensor_sub, &sensor_updated);
 
-			static float filtered_alt = NAN;
+			if (sensor_updated) {
+				orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensor_raw);
 
-			if (isnan(filtered_alt)) {
-				filtered_alt = raw.baro_alt_meter[0];
+				if (isnan(filtered_alt)) {
+					filtered_alt = sensor_raw.baro_alt_meter[0];
 
-			} else {
-				filtered_alt = .05f * raw.baro_alt_meter[0] + (1.0f - .05f) * filtered_alt;
+				} else {
+					filtered_alt = .05f * sensor_raw.baro_alt_meter[0] + .95f * filtered_alt;
+				}
 			}
 
 			// allow a minimum of 500usec before reply
