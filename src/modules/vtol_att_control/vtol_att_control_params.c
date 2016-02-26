@@ -253,3 +253,14 @@ PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
+
+/**
+ * Front transition minimum time
+ *
+ * Minimum time in seconds for front transition.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
