@@ -336,7 +336,7 @@ int sdlog2_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("sdlog2",
 						 SCHED_DEFAULT,
 						 task_priority,
-						 4200,
+						 3400,
 						 sdlog2_thread_main,
 						 (char * const *)argv);
 
@@ -1379,11 +1379,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		} else {
 			// copy topic
 			if (record_replay_log) {
-				struct ekf2_replay_s replay;
-				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &replay);
+				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
 			} else {
-				struct sensor_combined_s sensors;
-				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &sensors);
+				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
 			}
 			poll_counter++;
 			continue;
