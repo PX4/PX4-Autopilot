@@ -70,6 +70,9 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 			_last_gps_origin_time_us = _time_last_imu;
 			// set the magnetic declination returned by the geo library using the current GPS position
 			_mag_declination_gps = math::radians(get_mag_declination(lat, lon));
+			// save the horizontal and vertical position uncertainty of the origin
+			_gps_origin_eph = gps->eph;
+			_gps_origin_epv = gps->epv;
 		}
 	}
 
