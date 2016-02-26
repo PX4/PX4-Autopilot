@@ -74,6 +74,9 @@ int main()
     s = 1;
     TEST(fabs(s - 1) < 1e-5);
 
+    Matrix<float, 1, 1> m5 = s;
+    TEST(fabs(m5(0,0) - s) < 1e-5);
+
     return 0;
 }
 
