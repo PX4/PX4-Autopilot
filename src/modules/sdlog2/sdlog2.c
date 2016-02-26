@@ -1476,6 +1476,25 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(RPL2);
 		}
 
+		/* --- ATTITUDE --- */
+		if (copy_if_updated(ORB_ID(vehicle_attitude), &subs.att_sub, &buf.att)) {
+			log_msg.msg_type = LOG_ATT_MSG;
+			log_msg.body.log_ATT.q_w = buf.att.q[0];
+			log_msg.body.log_ATT.q_x = buf.att.q[1];
+			log_msg.body.log_ATT.q_y = buf.att.q[2];
+			log_msg.body.log_ATT.q_z = buf.att.q[3];
+			log_msg.body.log_ATT.roll = buf.att.roll;
+			log_msg.body.log_ATT.pitch = buf.att.pitch;
+			log_msg.body.log_ATT.yaw = buf.att.yaw;
+			log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
+			log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
+			log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
+			log_msg.body.log_ATT.gx = buf.att.g_comp[0];
+			log_msg.body.log_ATT.gy = buf.att.g_comp[1];
+			log_msg.body.log_ATT.gz = buf.att.g_comp[2];
+			LOGBUFFER_WRITE_AND_COUNT(ATT);
+		}
+
 		if (!record_replay_log) {
 			/* --- VTOL VEHICLE STATUS --- */
 			if(copy_if_updated(ORB_ID(vtol_vehicle_status), &subs.vtol_status_sub, &buf.vtol_status)) {
@@ -1556,7 +1575,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- SENSOR COMBINED --- */
 			if (copy_if_updated(ORB_ID(sensor_combined), &subs.sensor_sub, &buf.sensor)) {
-				
 
 				for (unsigned i = 0; i < 3; i++) {
 					bool write_IMU = false;
@@ -1636,25 +1654,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 						LOGBUFFER_WRITE_AND_COUNT(SENS);
 					}
 				}
-			}
-
-			/* --- ATTITUDE --- */
-			if (copy_if_updated(ORB_ID(vehicle_attitude), &subs.att_sub, &buf.att)) {
-				log_msg.msg_type = LOG_ATT_MSG;
-				log_msg.body.log_ATT.q_w = buf.att.q[0];
-				log_msg.body.log_ATT.q_x = buf.att.q[1];
-				log_msg.body.log_ATT.q_y = buf.att.q[2];
-				log_msg.body.log_ATT.q_z = buf.att.q[3];
-				log_msg.body.log_ATT.roll = buf.att.roll;
-				log_msg.body.log_ATT.pitch = buf.att.pitch;
-				log_msg.body.log_ATT.yaw = buf.att.yaw;
-				log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
-				log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
-				log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
-				log_msg.body.log_ATT.gx = buf.att.g_comp[0];
-				log_msg.body.log_ATT.gy = buf.att.g_comp[1];
-				log_msg.body.log_ATT.gz = buf.att.g_comp[2];
-				LOGBUFFER_WRITE_AND_COUNT(ATT);
 			}
 
 			/* --- ATTITUDE SETPOINT --- */
