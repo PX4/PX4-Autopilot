@@ -13,17 +13,6 @@ uint8 MAIN_STATE_AUTO_TAKEOFF = 10
 uint8 MAIN_STATE_AUTO_LAND = 11
 uint8 MAIN_STATE_MAX = 12
 
-# If you change the order, add or remove arming_state_t states make sure to update the arrays
-# in state_machine_helper.cpp as well.
-uint8 ARMING_STATE_INIT = 0
-uint8 ARMING_STATE_STANDBY = 1
-uint8 ARMING_STATE_ARMED = 2
-uint8 ARMING_STATE_ARMED_ERROR = 3
-uint8 ARMING_STATE_STANDBY_ERROR = 4
-uint8 ARMING_STATE_REBOOT = 5
-uint8 ARMING_STATE_IN_AIR_RESTORE = 6
-uint8 ARMING_STATE_MAX = 7
-
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
 uint64 timestamp # in microseconds since system start, is set whenever the writing thread stores new data
