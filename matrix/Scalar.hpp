@@ -34,7 +34,7 @@ public:
         _value = other(0,0);
     }
 
-    Scalar(float other)
+    Scalar(Type other)
     {
         _value = other;
     }
