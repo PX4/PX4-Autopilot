@@ -118,6 +118,12 @@ public:
 	float*			rms() { return _rms; }
 
 	/**
+	 * Get the vibration offset
+	 * @return		the stored vibration offset
+	 */
+	float*			vibration_offset() { return _vibe; }
+
+	/**
 	 * Print the validator value
 	 *
 	 */
@@ -154,6 +160,7 @@ private:
 	float _M2[3];				/**< RMS component value */
 	float _rms[3];				/**< root mean square error */
 	float _value[3];			/**< last value */
+	float _vibe[3];				/**< vibration level, in sensor unit */
 	float _value_equal_count;		/**< equal values in a row */
 	DataValidator *_sibling;		/**< sibling in the group */
 	const unsigned NORETURN_ERRCOUNT = 10000;	/**< if the error count reaches this value, return sensor as invalid */

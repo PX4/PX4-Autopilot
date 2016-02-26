@@ -211,13 +211,13 @@ uint64_t map_projection_timestamp(const struct map_projection_reference_s *ref)
 }
 
 int map_projection_global_init(double lat_0, double lon_0,
-					uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+			       uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 	return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
 }
 
 int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
-		uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+				    uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 
 	ref->lat_rad = lat_0 * M_DEG_TO_RAD;
@@ -237,7 +237,7 @@ int map_projection_global_reference(double *ref_lat_rad, double *ref_lon_rad)
 }
 
 int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad,
-				      double *ref_lon_rad)
+			     double *ref_lon_rad)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -256,7 +256,7 @@ int map_projection_global_project(double lat, double lon, float *x, float *y)
 }
 
 int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x,
-				    float *y)
+			   float *y)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -293,7 +293,7 @@ int map_projection_global_reproject(float x, float y, double *lat, double *lon)
 }
 
 int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat,
-				      double *lon)
+			     double *lon)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -419,7 +419,7 @@ float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_n
 }
 
 void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist,
-		double *lat_target, double *lon_target)
+					double *lat_target, double *lon_target)
 {
 	if (fabsf(dist) < FLT_EPSILON) {
 		*lat_target = lat_A;
@@ -437,7 +437,7 @@ void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B
 }
 
 void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
-		double *lat_target, double *lon_target)
+					double *lat_target, double *lon_target)
 {
 	bearing = _wrap_2pi(bearing);
 	double radius_ratio = (double)(fabs(dist) / CONSTANTS_RADIUS_OF_EARTH);
@@ -472,7 +472,7 @@ float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_ne
 }
 
 void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n,
-		float *v_e)
+				 float *v_e)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -488,7 +488,7 @@ void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next
 }
 
 void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next,
-		float *v_n, float *v_e)
+				      float *v_n, float *v_e)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -504,7 +504,7 @@ void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat
 }
 
 void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
-		double *lon_res)
+				   double *lon_res)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -516,7 +516,7 @@ void add_vector_to_global_position(double lat_now, double lon_now, float v_n, fl
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
 
 int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-				  double lat_start, double lon_start, double lat_end, double lon_end)
+			 double lat_start, double lon_start, double lat_end, double lon_end)
 {
 // This function returns the distance to the nearest point on the track line.  Distance is positive if current
 // position is right of the track and negative if left of the track as seen from a point on the track line
@@ -568,8 +568,8 @@ int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat
 
 
 int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-				 double lat_center, double lon_center,
-				 float radius, float arc_start_bearing, float arc_sweep)
+			double lat_center, double lon_center,
+			float radius, float arc_start_bearing, float arc_sweep)
 {
 	// This function returns the distance to the nearest point on the track arc.  Distance is positive if current
 	// position is right of the arc and negative if left of the arc as seen from the closest point on the arc and

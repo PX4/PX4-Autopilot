@@ -117,6 +117,12 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	_state.quat_nominal = Quaternion(euler_init);
 	_output_new.quat_nominal = _state.quat_nominal;
 
+	// reset the angle error variances because the yaw angle could have changed by a significant amount
+	// by setting them to zero we avoid 'kicks' in angle when 3-D fusion starts and the imu process noise
+	// will grow them again.
+	zeroRows(P, 0, 2);
+	zeroCols(P, 0, 2);
+
 	// calculate initial earth magnetic field states
 	matrix::Dcm<float> R_to_earth(euler_init);
 	_state.mag_I = R_to_earth * mag_init;

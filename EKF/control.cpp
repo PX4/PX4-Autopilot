@@ -57,8 +57,10 @@ void Ekf::controlFusionModes()
 	if (!_control_status.flags.gps) {
 		if (_control_status.flags.tilt_align && (_time_last_imu - _time_last_gps) < 5e5 && _NED_origin_initialised
 		    && (_time_last_imu - _last_gps_fail_us > 5e6)) {
-			// Reset the yaw and magnetic field states
-			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+			// If the heading is not aligned, reset the yaw and magnetic field states
+			if (!_control_status.flags.yaw_align) {
+				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+			}
 
 			// If the heading is valid, reset the positon and velocity and start using gps aiding
 			if (_control_status.flags.yaw_align) {
@@ -110,6 +112,11 @@ void Ekf::controlFusionModes()
 
 		} else {
 			if (_control_status.flags.in_air) {
+				// if transitioning from a non-3D fusion mode, we need to initialise the yaw angle and field states
+				if (!_control_status.flags.mag_3D) {
+					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+				}
+
 				// always use 3D mag fusion when airborne
 				_control_status.flags.mag_hdg = false;
 				_control_status.flags.mag_2D = false;
@@ -143,6 +150,11 @@ void Ekf::controlFusionModes()
 		_control_status.flags.mag_3D = false;
 
 	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
+		// if transitioning from a non-3D fusion mode, we need to initialise the yaw angle and field states
+		if (!_control_status.flags.mag_3D) {
+			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+		}
+
 		// always use 3-axis mag fusion
 		_control_status.flags.mag_hdg = false;
 		_control_status.flags.mag_2D = false;

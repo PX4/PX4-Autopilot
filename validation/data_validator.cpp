@@ -55,6 +55,7 @@ DataValidator::DataValidator(DataValidator *prev_sibling) :
 	_M2{0.0f},
 	_rms{0.0f},
 	_value{0.0f},
+	_vibe{0.0f},
 	_value_equal_count(0),
 	_sibling(prev_sibling)
 {
@@ -112,8 +113,10 @@ DataValidator::put(uint64_t timestamp, float val[3], uint64_t error_count_in, in
 			}
 		}
 
+		_vibe[i] = _vibe[i] * 0.99f + 0.01f * fabsf(val[i] - _lp[i]);
+
 		// XXX replace with better filter, make it auto-tune to update rate
-		_lp[i] = _lp[i] * 0.5f + val[i] * 0.5f;
+		_lp[i] = _lp[i] * 0.99f + 0.01f * val[i];
 
 		_value[i] = val[i];
 	}
