@@ -932,18 +932,18 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 				if (res == TRANSITION_DENIED) {
 					print_reject_mode(status_local, "OFFBOARD");
-					status_local->offboard_control_set_by_command = false;
+					status_flags.offboard_control_set_by_command = false;
 
 				} else {
 					/* Set flag that offboard was set via command, main state is not overridden by rc */
-					status_local->offboard_control_set_by_command = true;
+					status_flags.offboard_control_set_by_command = true;
 				}
 
 			} else {
 				/* If the mavlink command is used to enable or disable offboard control:
 				 * switch back to previous mode when disabling */
 				res = main_state_transition(status_local, main_state_pre_offboard, main_state_prev, &status_flags);
-				status_local->offboard_control_set_by_command = false;
+				status_flags.offboard_control_set_by_command = false;
 			}
 		}
 		break;
@@ -1180,12 +1180,12 @@ int commander_thread_main(int argc, char *argv[])
 	status.failsafe = false;
 
 	/* neither manual nor offboard control commands have been received */
-	status.offboard_control_signal_found_once = false;
+	status_flags.offboard_control_signal_found_once = false;
 	status.rc_signal_found_once = false;
 
 	/* mark all signals lost as long as they haven't been found */
 	status.rc_signal_lost = true;
-	status.offboard_control_signal_lost = true;
+	status_flags.offboard_control_signal_lost = true;
 	status.data_link_lost = true;
 
 	status_flags.condition_system_prearm_error_reported = false;
@@ -1577,14 +1577,14 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (offboard_control_mode.timestamp != 0 &&
 		    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
-			if (status.offboard_control_signal_lost) {
-				status.offboard_control_signal_lost = false;
+			if (status_flags.offboard_control_signal_lost) {
+				status_flags.offboard_control_signal_lost = false;
 				status_changed = true;
 			}
 
 		} else {
-			if (!status.offboard_control_signal_lost) {
-				status.offboard_control_signal_lost = true;
+			if (!status_flags.offboard_control_signal_lost) {
+				status_flags.offboard_control_signal_lost = true;
 				status_changed = true;
 			}
 		}
@@ -2845,7 +2845,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	transition_result_t res = TRANSITION_DENIED;
 
 	/* if offboard is set already by a mavlink command, abort */
-	if (status.offboard_control_set_by_command) {
+	if (status_flags.offboard_control_set_by_command) {
 		return main_state_transition(status_local,vehicle_status_s::MAIN_STATE_OFFBOARD, main_state_prev, &status_flags);
 	}
 

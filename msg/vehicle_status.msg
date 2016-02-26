@@ -92,12 +92,6 @@ bool gps_failure_cmd				# Set to true if a gps failure mode is commanded
 bool mission_failure				# Set to true if mission could not continue/finish
 bool barometer_failure				# Set to true if a barometer failure is detected
 
-bool offboard_control_signal_found_once
-bool offboard_control_signal_lost
-bool offboard_control_signal_weak
-uint64 offboard_control_signal_lost_interval	# interval in microseconds without an offboard control message
-bool offboard_control_set_by_command		# true if the offboard mode was set by a mavlink command and should not be overridden by RC
-
 # see SYS_STATUS mavlink message for the following
 uint32 onboard_control_sensors_present
 uint32 onboard_control_sensors_enabled
