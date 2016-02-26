@@ -75,6 +75,10 @@ struct status_flags_s {
 	bool circuit_breaker_engaged_enginefailure_check;
 	bool circuit_breaker_engaged_gpsfailure_check;
 	bool cb_usb;
+	bool offboard_control_signal_found_once;
+	bool offboard_control_signal_lost;
+	bool offboard_control_signal_weak;
+	bool offboard_control_set_by_command;		// true if the offboard mode was set by a mavlink command and should not be overridden by RC
 };
 
 bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
