@@ -133,7 +133,6 @@ private:
 	int		_gps_sub = -1;
 	int		_airspeed_sub = -1;
 	int		_params_sub = -1;
-	int		_control_mode_sub = -1;
 	int 	_vehicle_status_sub = -1;
 
 	bool            _prev_motors_armed = false; // motors armed status from the previous frame
@@ -272,7 +271,6 @@ void Ekf2::task_main()
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	px4_pollfd_struct_t fds[2] = {};
@@ -321,7 +319,6 @@ void Ekf2::task_main()
 
 		bool gps_updated = false;
 		bool airspeed_updated = false;
-		bool control_mode_updated = false;
 		bool vehicle_status_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
@@ -336,16 +333,6 @@ void Ekf2::task_main()
 
 		if (airspeed_updated) {
 			orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed);
-		}
-
-		// Use the control model data to determine if the motors are armed as a surrogate for an on-ground vs in-air status
-		// TODO implement a global vehicle on-ground/in-air check
-		// XXX: Look at the land_detection module!
-		orb_check(_control_mode_sub, &control_mode_updated);
-
-		if (control_mode_updated) {
-			orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &vehicle_control_mode);
-			_ekf->set_arm_status(vehicle_control_mode.flag_armed);
 		}
 
 		// in replay mode we are getting the actual timestamp from the sensor topic
@@ -402,6 +389,7 @@ void Ekf2::task_main()
 			struct vehicle_status_s status = {};
 			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &status);
 			_ekf->set_in_air_status(!status.condition_landed);
+			_ekf->set_arm_status(status.arming_state & vehicle_status_s::ARMING_STATE_ARMED);
 		}
 
 		// run the EKF update
