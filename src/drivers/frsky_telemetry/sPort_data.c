@@ -72,9 +72,11 @@ bool sPort_init()
 	vehicle_status = malloc(sizeof(struct vehicle_status_s));
 	sensor_data = malloc(sizeof(struct sensor_combined_s));
 	global_pos = malloc(sizeof(struct vehicle_global_position_s));
+
 	if (vehicle_status == NULL || sensor_data == NULL || global_pos == NULL) {
 		return false;
 	}
+
 	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
