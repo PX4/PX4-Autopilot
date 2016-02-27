@@ -1379,15 +1379,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 			continue;
 		}
 
+		// copy topic always
+		if (record_replay_log) {
+			orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
+		} else {
+			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+		}
+
 		if (poll_counter + 1 % poll_to_logging_factor == 0) {
 			poll_counter = 0;
 		} else {
 			// copy topic
-			if (record_replay_log) {
-				orb_copy(ORB_ID(ekf2_replay), subs.replay_sub, &buf.replay);
-			} else {
-				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
-			}
 			poll_counter++;
 			continue;
 		}
