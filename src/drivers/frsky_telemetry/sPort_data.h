@@ -43,6 +43,7 @@
 #define _SPORT_DATA_H
 
 #include <sys/types.h>
+#include <stdbool.h>
 
 /* FrSky SmartPort polling IDs captured from X4R */
 #define SMARTPORT_POLL_1    0x1B
@@ -78,7 +79,8 @@
 #define SMARTPORT_ID_GPS_TIME      0x0850
 
 // Public functions
-void sPort_init(void);
+bool sPort_init(void);
+void sPort_deinit(void);
 void sPort_send_data(int uart, uint16_t id, uint32_t data);
 void sPort_send_BATV(int uart);
 void sPort_send_CUR(int uart);

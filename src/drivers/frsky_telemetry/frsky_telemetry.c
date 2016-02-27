@@ -67,8 +67,6 @@
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 static int frsky_task;
-static struct sensor_baro_s sensor_baro;
-static float filtered_alt = NAN;
 
 /* functions */
 static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original);
@@ -176,7 +174,6 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	}
 
 	/* Open UART assuming SmartPort telemetry */
-	warnx("opening uart");
 	struct termios uart_config_original;
 	struct termios uart_config;
 	const int uart = sPort_open_uart(device_name, &uart_config, &uart_config_original);
@@ -201,21 +198,28 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	 */
 	int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
 
-//	warnx("poll status: %u", status);
 	if (status > 0) {
 		/* received some data; check size of packet */
 		usleep(5000);
 		status = read(uart, &sbuf[0], sizeof(sbuf));
-//		warnx("received %u bytes", status);
 	}
 
 	if (status > 0 && status < 3) {
 		/* traffic on the port, D type is 11 bytes per frame, SmartPort is only 2 */
 		/* Subscribe to topics */
-		sPort_init();
+		if (!sPort_init()) {
+			err(1, "could not allocate memory");
+		}
 
 		warnx("sending FrSky SmartPort telemetry");
 
+		struct sensor_baro_s *sensor_baro = malloc(sizeof(struct sensor_baro_s));
+
+		if (sensor_baro == NULL) {
+			err(1, "could not allocate memory");
+		}
+
+		static float filtered_alt = NAN;
 		int sensor_sub = orb_subscribe(ORB_ID(sensor_baro));
 
 		/* send S.port telemetry */
@@ -252,13 +256,13 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			orb_check(sensor_sub, &sensor_updated);
 
 			if (sensor_updated) {
-				orb_copy(ORB_ID(sensor_baro), sensor_sub, &sensor_baro);
+				orb_copy(ORB_ID(sensor_baro), sensor_sub, sensor_baro);
 
 				if (isnan(filtered_alt)) {
-					filtered_alt = sensor_baro.altitude;
+					filtered_alt = sensor_baro->altitude;
 
 				} else {
-					filtered_alt = .05f * sensor_baro.altitude + .95f * filtered_alt;
+					filtered_alt = .05f * sensor_baro->altitude + .95f * filtered_alt;
 				}
 			}
 
@@ -390,9 +394,14 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			}
 		}
 
-	} else if (status >= 0) {
+		warnx("freeing sPort memory");
+		sPort_deinit();
+		free(sensor_baro);
+
 		/* either no traffic on the port (0=>timeout), or D type packet */
 
+	} else if (status > 0) {
+		warnx("sending FrSky D-type telemetry");
 		/* detected D type telemetry: reconfigure UART */
 		status = set_uart_speed(uart, &uart_config, B9600);
 
@@ -453,6 +462,9 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		/* TODO: flush the input buffer if in full duplex mode */
 		read(uart, &sbuf[0], sizeof(sbuf));
+	} else {
+		warnx("FrSky receiver not detected, exiting");
+
 	}
 
 	/* Reset the UART flags to original state */
