@@ -278,7 +278,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
  * @decimal 1
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 120.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
 
 /**
  * Max yaw rate in auto mode
