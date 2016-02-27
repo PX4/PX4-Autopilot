@@ -29,22 +29,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#############################################################################
+set(MODULE_CFLAGS)
 if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1600)
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=4000)
 endif()
 px4_add_module(
-	MODULE modules__sdlog2
-	MAIN sdlog2
-	PRIORITY "SCHED_PRIORITY_MAX-30"
-	STACK 1200
-	COMPILE_FLAGS
-		${MODULE_CFLAGS}
-		-Os
+	MODULE modules__ekf2_replay
+	MAIN ekf2_replay
+	COMPILE_FLAGS ${MODULE_CFLAGS}
+	STACK 1000
 	SRCS
-		sdlog2.c
-		logbuffer.c
+		ekf2_replay_main.cpp
 	DEPENDS
 		platforms__common
+		git_ecl
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
