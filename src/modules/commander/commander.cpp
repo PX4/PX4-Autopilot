@@ -97,6 +97,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/cpuload.h>
 
 #include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
@@ -106,7 +107,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include <systemlib/cpuload.h>
 #include <systemlib/rc_check.h>
 #include <geo/geo.h>
 #include <systemlib/state_table.h>
@@ -131,8 +131,6 @@
 # undef ERROR
 #endif
 static const int ERROR = -1;
-
-extern struct system_load_s system_load;
 
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE =
 	60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
@@ -210,6 +208,7 @@ static unsigned _last_mission_instance = 0;
 static manual_control_setpoint_s _last_sp_man;
 
 static struct vtol_vehicle_status_s vtol_status;
+static struct cpuload_s cpuload;
 
 
 static uint8_t main_state_prev = 0;
@@ -252,7 +251,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 int commander_thread_main(int argc, char *argv[]);
 
 void control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
-			 battery_status_s *battery);
+			 battery_status_s *battery, const cpuload_s *cpuload_local);
 
 void get_circuit_breaker_params();
 
@@ -1324,8 +1323,6 @@ int commander_thread_main(int argc, char *argv[])
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
 
-	hrt_abstime last_idle_time = 0;
-
 	bool status_changed = true;
 	bool param_init_forced = true;
 
@@ -1451,8 +1448,10 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&vtol_status, 0, sizeof(vtol_status));
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
+	int cpuload_sub = orb_subscribe(ORB_ID(cpuload));
+	memset(&cpuload, 0, sizeof(cpuload));
 
-	control_status_leds(&status, &armed, true, &battery);
+	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
 	/* now initialized */
 	commander_initialized = true;
@@ -1966,6 +1965,12 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+		orb_check(cpuload_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(cpuload), cpuload_sub, &cpuload);
+		}
+
 		/* update battery status */
 		orb_check(battery_sub, &updated);
 
@@ -2059,18 +2064,6 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(position_setpoint_triplet), pos_sp_triplet_sub, &pos_sp_triplet);
 		}
-
-		if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-			/* compute system load */
-			uint64_t interval_runtime = system_load.tasks[0].total_runtime - last_idle_time;
-
-			if (last_idle_time > 0) {
-				status.load = 1.0f - ((float)interval_runtime / 1e6f);        //system load is time spent in non-idle
-			}
-
-			last_idle_time = system_load.tasks[0].total_runtime;
-		}
-
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
@@ -2794,12 +2787,12 @@ int commander_thread_main(int argc, char *argv[])
 			/* blinking LED message, don't touch LEDs */
 			if (blink_state == 2) {
 				/* blinking LED message completed, restore normal state */
-				control_status_leds(&status, &armed, true, &battery);
+				control_status_leds(&status, &armed, true, &battery, &cpuload);
 			}
 
 		} else {
 			/* normal state */
-			control_status_leds(&status, &armed, status_changed, &battery);
+			control_status_leds(&status, &armed, status_changed, &battery, &cpuload);
 		}
 
 		status_changed = false;
@@ -2863,7 +2856,7 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 
 void
 control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
-		    battery_status_s *battery)
+		    battery_status_s *battery, const cpuload_s *cpuload_local)
 {
 	/* driving rgbled */
 	if (changed) {
@@ -2938,7 +2931,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 #endif
 
 	/* give system warnings on error LED, XXX maybe add memory usage warning too */
-	if (status_local->load > 0.95f) {
+	if (cpuload_local->load > 0.95f) {
 		if (leds_counter % 2 == 0) {
 			led_toggle(LED_AMBER);
 		}
