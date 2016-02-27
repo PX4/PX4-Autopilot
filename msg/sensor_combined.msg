@@ -57,7 +57,6 @@ uint64[3] magnetometer_timestamp	# Magnetometer timestamp
 uint32[3] magnetometer_priority			# Sensor priority
 uint32[3] magnetometer_errcount		# Error counter for mag 0
 float32[3] magnetometer_temp		# Temperature of mag 0
-float32[3] magnetometer_tc		# Temperature compensated sensor values
 
 float32[3] baro_pres_mbar			# Barometric pressure, already temp. comp.
 float32[3] baro_alt_meter			# Altitude, already temp. comp.

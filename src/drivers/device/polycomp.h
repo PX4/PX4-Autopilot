@@ -43,7 +43,6 @@
 
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
 
 class PolyComp
 {
@@ -63,7 +62,6 @@ public:
 
 	void			set_coeffs(struct accel_scale &_scale);
 	void			set_coeffs(struct gyro_scale &_scale);
-	void			set_coeffs(struct mag_scale &_scale);
 
 private:
 	static const unsigned n_axes = 3;
@@ -120,28 +118,6 @@ PolyComp::set_coeffs(struct accel_scale &_scale)
 
 void
 PolyComp::set_coeffs(struct gyro_scale &_scale)
-{
-	for (unsigned i = 0; i < n_axes; i++) {
-		_x3[i] = _scale.x3_temp[i];
-		_x2[i] = _scale.x2_temp[i];
-		_x1[i] = _scale.x1_temp[i];
-	}
-
-	_offsets[0] = _scale.x_offset;
-	_offsets[1] = _scale.y_offset;
-	_offsets[2] = _scale.z_offset;
-
-	_scales[0] = _scale.x_scale;
-	_scales[1] = _scale.y_scale;
-	_scales[2] = _scale.z_scale;
-
-	_min_temp = _scale.min_temp;
-	_max_temp = _scale.max_temp;
-	_cal_temp = _scale.cal_temp;
-}
-
-void
-PolyComp::set_coeffs(struct mag_scale &_scale)
 {
 	for (unsigned i = 0; i < n_axes; i++) {
 		_x3[i] = _scale.x3_temp[i];

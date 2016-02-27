@@ -1564,9 +1564,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 						log_msg.body.log_IMUT.acc_x_tc = buf.sensor.accelerometer_tc[0];
 						log_msg.body.log_IMUT.acc_y_tc = buf.sensor.accelerometer_tc[1];
 						log_msg.body.log_IMUT.acc_z_tc = buf.sensor.accelerometer_tc[2];
-						log_msg.body.log_IMUT.mag_x_tc = buf.sensor.magnetometer_tc[0];
-						log_msg.body.log_IMUT.mag_y_tc = buf.sensor.magnetometer_tc[1];
-						log_msg.body.log_IMUT.mag_z_tc = buf.sensor.magnetometer_tc[2];
 						LOGBUFFER_WRITE_AND_COUNT(IMUT);
 					}
 				}

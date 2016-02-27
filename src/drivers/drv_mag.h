@@ -52,11 +52,7 @@
 #include <uORB/topics/sensor_mag.h>
 #define mag_report sensor_mag_s
 
-/**
- * mag scaling factors;
- *  Temperature dependent.
- * 	Vout(temperature) = ( Vin(temperature) * Vscale ) + Voffset
- */
+/** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
 struct mag_scale {
 	float	x_offset;
 	float	x_scale;
@@ -64,12 +60,6 @@ struct mag_scale {
 	float	y_scale;
 	float	z_offset;
 	float	z_scale;
-	float	x3_temp[3];
-	float	x2_temp[3];
-	float	x1_temp[3];
-	float	min_temp;
-	float	max_temp;
-	float	cal_temp;
 };
 
 /*

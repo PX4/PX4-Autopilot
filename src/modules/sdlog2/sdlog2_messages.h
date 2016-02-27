@@ -107,9 +107,6 @@ struct log_IMUT_s {
 	float gyro_x_tc;
 	float gyro_y_tc;
 	float gyro_z_tc;
-	float mag_x_tc;
-	float mag_y_tc;
-	float mag_z_tc;
 };
 
 

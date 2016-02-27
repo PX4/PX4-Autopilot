@@ -632,28 +632,6 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 				}
 
 				if (result == calibrate_return_ok) {
-
-					/* NOTE: hardcoded terms are only suitable for LSM303D (used in dataset) */
-					if (device_ids[cur_mag] == 131594) {
-						/* since temperature calibration is not yet in place, load matlab estimations */
-
-						mscale.cal_temp = 25.00;
-						mscale.min_temp = -10.06;
-						mscale.max_temp = 38.49;
-
-						mscale.x3_temp[0] = 0.0000007289160635082225781;
-						mscale.x2_temp[0] = -0.0000366935673810075968504;
-						mscale.x1_temp[0] = -0.0005776923499070107936859;
-
-						mscale.x3_temp[1] = 0.0000002701432890717114788;
-						mscale.x2_temp[1] = 0.0000417568116972688585520;
-						mscale.x1_temp[1] = -0.0062677161768078804016113;
-
-						mscale.x3_temp[2] = -0.0000004760415777127491310;
-						mscale.x2_temp[2] = 0.0003384132287465035915375;
-						mscale.x1_temp[2] = -0.0273241568356752395629883;
-					}
-
 					bool failed = false;
 					
 					/* set parameters */
@@ -674,21 +652,6 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
 					(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_scale)));
-
-					(void)sprintf(str, "CAL_MAG%u_TMPNOM", cur_mag);
-					failed |= (OK != param_set(param_find(str), &(mscale.cal_temp)));
-					(void)sprintf(str, "CAL_MAG%u_TMPMIN", cur_mag);
-					failed |= (OK != param_set(param_find(str), &(mscale.min_temp)));
-					(void)sprintf(str, "CAL_MAG%u_TMPMAX", cur_mag);
-					failed |= (OK != param_set(param_find(str), &(mscale.max_temp)));
-					for (unsigned j = 0; j < 3; j++) {
-						(void)sprintf(str, "CAL_MAG%u_TA%uX0", cur_mag, j);
-						failed |= (OK != param_set(param_find(str), &(mscale.x1_temp[j])));
-						(void)sprintf(str, "CAL_MAG%u_TA%uX1", cur_mag, j);
-						failed |= (OK != param_set(param_find(str), &(mscale.x2_temp[j])));
-						(void)sprintf(str, "CAL_MAG%u_TA%uX2", cur_mag, j);
-						failed |= (OK != param_set(param_find(str), &(mscale.x3_temp[j])));
-					}
 
 					if (failed) {
 						mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SET_PARAMS_MSG, cur_mag);
