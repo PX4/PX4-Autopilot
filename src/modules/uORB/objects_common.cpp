@@ -279,3 +279,6 @@ ORB_DEFINE(ekf2_innovations, struct ekf2_innovations_s);
 
 #include "topics/commander_state.h"
 ORB_DEFINE(commander_state, struct commander_state_s);
+
+#include "topics/cpuload.h"
+ORB_DEFINE(cpuload, struct cpuload_s);
