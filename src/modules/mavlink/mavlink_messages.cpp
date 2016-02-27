@@ -77,6 +77,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/cpuload.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
@@ -574,6 +575,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *_status_sub;
+    MavlinkOrbSubscription *_cpuload_sub;
 	MavlinkOrbSubscription *_battery_status_sub;
 
 	/* do not allow top copying this class */
@@ -583,15 +585,18 @@ private:
 protected:
 	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_cpuload_sub(_mavlink->add_orb_subscription(ORB_ID(cpuload))),
 		_battery_status_sub(_mavlink->add_orb_subscription(ORB_ID(battery_status)))
 	{}
 
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_status_s status;
+		struct cpuload_s cpuload;
 		struct battery_status_s battery_status;
 
 		const bool updated_status = _status_sub->update(&status);
+		const bool updated_cpuload = _cpuload_sub->update(&cpuload);
 		const bool updated_battery = _battery_status_sub->update(&battery_status);
 
 		if (updated_status) {
@@ -602,14 +607,14 @@ protected:
 			}
 		}
 
-		if (updated_status || updated_battery) {
+		if (updated_status || updated_battery || updated_cpuload) {
 			mavlink_sys_status_t msg;
 
 
 			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
 			msg.onboard_control_sensors_enabled = status.onboard_control_sensors_enabled;
 			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
-			msg.load = status.load * 1000.0f;
+			msg.load = cpuload.load * 1000.0f;
 			msg.voltage_battery = battery_status.voltage_filtered_v * 1000.0f;
 			msg.current_battery = battery_status.current_filtered_a * 100.0f;
 			msg.battery_remaining = battery_status.remaining >= 0 ? battery_status.remaining * 100.0f : -1;
