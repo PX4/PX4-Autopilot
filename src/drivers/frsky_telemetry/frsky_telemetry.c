@@ -401,8 +401,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		/* either no traffic on the port (0=>timeout), or D type packet */
 
 	} else if (status > 0) {
-		warnx("sending FrSky D-type telemetry");
 		/* detected D type telemetry: reconfigure UART */
+		warnx("sending FrSky D type telemetry");
 		status = set_uart_speed(uart, &uart_config, B9600);
 
 		if (status < 0) {
@@ -418,11 +418,13 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		int iteration = 0;
 
 		/* Subscribe to topics */
-		frsky_init();
+		if (!frsky_init()) {
+			err(1, "could not allocate memory");
+		}
 
-		warnx("sending FrSky D type telemetry");
 		struct adc_linkquality host_frame;
-		uint8_t dbuf[45];
+
+//		uint8_t dbuf[45];
 
 		/* send D8 mode telemetry */
 		while (!thread_should_exit) {
@@ -431,8 +433,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			usleep(100000);
 
 			/* parse incoming data */
-			int nbytes = read(uart, &dbuf[0], sizeof(dbuf));
-			bool new_input = frsky_parse_host(&dbuf[0], nbytes, &host_frame);
+			int nbytes = read(uart, &sbuf[0], sizeof(sbuf));
+			bool new_input = frsky_parse_host((uint8_t *)&sbuf[0], nbytes, &host_frame);
 
 			/* the RSSI value could be useful */
 			if (false && new_input) {
@@ -460,8 +462,11 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			iteration++;
 		}
 
-		/* TODO: flush the input buffer if in full duplex mode */
-		read(uart, &sbuf[0], sizeof(sbuf));
+//		/* TODO: flush the input buffer if in full duplex mode */
+//		read(uart, &sbuf[0], sizeof(sbuf));
+		warnx("freeing frsky memory");
+		frsky_deinit();
+
 	} else {
 		warnx("FrSky receiver not detected, exiting");
 
