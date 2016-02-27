@@ -401,6 +401,10 @@ Navigator::task_main()
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 				warnx("navigator: got reposition command");
 			}
+
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
+				warnx("navigator: got pause/continue command");
+			}
 		}
 
 		/* global position updated */
