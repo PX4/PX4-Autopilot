@@ -115,6 +115,7 @@
 #include <uORB/topics/ekf2_replay.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/commander_state.h>
+#include <uORB/topics/cpuload.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1190,6 +1191,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct camera_trigger_s camera_trigger;
 		struct ekf2_replay_s replay;
 		struct vehicle_land_detected_s land_detected;
+		struct cpuload_s cpuload;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1298,6 +1300,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int replay_sub;
 		int land_detected_sub;
 		int commander_state_sub;
+		int cpuload_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1339,6 +1342,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.replay_sub = -1;
 	subs.land_detected_sub = -1;
 	subs.commander_state_sub = -1;
+	subs.cpuload_sub = -1;
 
 	/* add new topics HERE */
 
@@ -1508,7 +1512,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_STAT.nav_state = buf_status.nav_state;
 			log_msg.body.log_STAT.arming_state = buf_status.arming_state;
 			log_msg.body.log_STAT.failsafe = (uint8_t) buf_status.failsafe;
-			log_msg.body.log_STAT.load = buf_status.load;
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
 
@@ -2235,6 +2238,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_LAND_MSG;
 			log_msg.body.log_LAND.landed = buf.land_detected.landed;
 			LOGBUFFER_WRITE_AND_COUNT(LAND);
+		}
+
+		/* --- LOAD --- */
+		if (copy_if_updated(ORB_ID(cpuload), &subs.cpuload_sub, &buf.cpuload)) {
+			log_msg.msg_type = LOG_LOAD_MSG;
+			log_msg.body.log_LOAD.cpu = buf.load.cpu;
+			LOGBUFFER_WRITE_AND_COUNT(LOAD);
+
 		}
 
 		pthread_mutex_lock(&logbuffer_mutex);
