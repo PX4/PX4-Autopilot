@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,9 +50,23 @@
  * MIS_TAKEOFF_ALT on takeoff, then go to waypoint.
  *
  * @unit meters
+ * @min 0
+ * @max 80
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
+PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 1.2f);
+
+/**
+ * Minimum Loiter altitude
+ *
+ * This is the minimum altitude the system will always obey. The intent is to stay out of ground effect.
+ *
+ * @unit meters
+ * @min 0
+ * @max 80
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, 1.2f);
 
 /**
  * Enable persistent onboard mission storage
@@ -62,6 +76,8 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
  *
  * @min 0
  * @max 1
+ * @value 0 Disabled
+ * @value 1 Enabled
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
@@ -88,6 +104,8 @@ PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
  *
  * @min 0
  * @max 1
+ * @value 0 Zero Order Hold
+ * @value 1 First Order Hold
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
@@ -95,15 +113,14 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
 /**
  * Multirotor only. Yaw setpoint mode.
  *
- * 0: Set the yaw heading to the yaw value specified for the destination waypoint.
- * 1: Maintain a yaw heading pointing towards the next waypoint.
- * 2: Maintain a yaw heading that always points to the home location.
- * 3: Maintain a yaw heading that always points away from the home location (ie: back always faces home).
- *
  * The values are defined in the enum mission_altitude_mode
  *
  * @min 0
  * @max 3
+ * @value 0 Heading as set by waypoint
+ * @value 1 Heading towards waypoint
+ * @value 2 Heading towards home
+ * @value 3 Heading away from home
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
@@ -118,6 +135,8 @@ PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
  *
  * @min -1
  * @max 20
+ * @unit second
+ * @increment 1
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
@@ -127,6 +146,8 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
  *
  * @min 0
  * @max 90
+ * @unit degree
+ * @increment 1
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
