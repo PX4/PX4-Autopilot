@@ -583,7 +583,6 @@ protected:
 			/* battery status message with higher resolution */
 			mavlink_battery_status_t bat_msg;
 			bat_msg.id = 0;
-			bat_msg.id = 0;
 			bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
 			bat_msg.type = MAV_BATTERY_TYPE_LIPO;
 			bat_msg.temperature = INT16_MAX;
