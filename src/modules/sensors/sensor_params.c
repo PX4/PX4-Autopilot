@@ -1192,6 +1192,15 @@ PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
 */
 PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
 
+/**
+ * Use temperature compensated accel/gyro values
+ *
+ * @min 0
+ * @max 1
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(SENS_TEMP_COMP, 0);
+
 
 /**
  * RC Channel 1 Minimum

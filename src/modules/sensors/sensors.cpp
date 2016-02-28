@@ -323,6 +323,8 @@ private:
 
 		float baro_qnh;
 
+		int temp_comp_enable;
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -384,6 +386,8 @@ private:
 		param_t board_offset[3];
 
 		param_t baro_qnh;
+
+		param_t temp_comp_enable;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -630,6 +634,9 @@ Sensors::Sensors() :
 
 	/* Barometer QNH */
 	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
+
+	/* Temperature Compensation */
+	_parameter_handles.temp_comp_enable = param_find("SENS_TEMP_COMP");
 
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
@@ -948,6 +955,8 @@ Sensors::parameters_update()
 
 #endif
 
+	param_get(_parameter_handles.temp_comp_enable, &(_parameters.temp_comp_enable));
+
 	return OK;
 }
 
@@ -978,7 +987,16 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 			orb_copy(ORB_ID(sensor_accel), _accel_sub[i], &accel_report);
 
-			math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
+			math::Vector<3> vect;
+
+			// TODO: dagar how to choose the proper accel? device_id?
+			if (_parameters.temp_comp_enable && (i == 0)) {
+				vect = math::Vector<3>(accel_report.x_tc, accel_report.y_tc, accel_report.z_tc);
+
+			} else {
+				vect = math::Vector<3>(accel_report.x, accel_report.y, accel_report.z);
+			}
+
 			vect = _board_rotation * vect;
 
 			raw.accelerometer_m_s2[i * 3 + 0] = vect(0);
@@ -1023,7 +1041,16 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub[i], &gyro_report);
 
-			math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
+			math::Vector<3> vect;
+
+			// TODO: dagar how to choose the proper gyro?
+			if (_parameters.temp_comp_enable && (i == 0)) {
+				vect = math::Vector<3>(gyro_report.x_tc, gyro_report.y_tc, gyro_report.z_tc);
+
+			} else {
+				vect = math::Vector<3>(gyro_report.x, gyro_report.y, gyro_report.z);
+			}
+
 			vect = _board_rotation * vect;
 
 			raw.gyro_rad_s[i * 3 + 0] = vect(0);
