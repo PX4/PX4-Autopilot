@@ -270,8 +270,8 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 				vbatt -= (0.5f * cellcount) * ((now - batt_sim_start) / discharge_interval_us);
 
-				if (vbatt < (cellcount * 1.5f)) {
-					vbatt = cellcount * 1.5f;
+				if (vbatt < (cellcount * 3.7f)) {
+					vbatt = cellcount * 3.7f;
 				}
 
 				battery_status_s	battery_status;
