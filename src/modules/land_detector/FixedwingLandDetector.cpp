@@ -50,11 +50,9 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_paramHandle(),
 	_params(),
 	_controlStateSub(-1),
-	_vehicleStatusSub(-1),
 	_armingSub(-1),
 	_airspeedSub(-1),
 	_controlState{},
-	_vehicleStatus{},
 	_arming{},
 	_airspeed{},
 	_parameterSub(-1),
@@ -73,7 +71,6 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 void FixedwingLandDetector::initialize()
 {
 	_controlStateSub = orb_subscribe(ORB_ID(control_state));
-	_vehicleStatusSub = orb_subscribe(ORB_ID(vehicle_status));
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
 
@@ -83,7 +80,6 @@ void FixedwingLandDetector::initialize()
 void FixedwingLandDetector::updateSubscriptions()
 {
 	orb_update(ORB_ID(control_state), _controlStateSub, &_controlState);
-	orb_update(ORB_ID(vehicle_status), _vehicleStatusSub, &_vehicleStatus);
 	orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 }
