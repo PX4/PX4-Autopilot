@@ -346,3 +346,137 @@ PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
  */
 PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
 
+
+PARAM_DEFINE_INT32(COM_FLTMODE_CH, 0);
+
+/**
+ * First flightmode slot (1000-1160)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE1, 0);
+
+/**
+ * Second flightmode slot (1160-1320)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE2, 0);
+
+/**
+ * Third flightmode slot (1320-1480)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE3, 0);
+
+/**
+ * Fourth flightmode slot (1480-1640)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE4, 0);
+
+/**
+ * Fift flightmode slot (1640-1800)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE5, 0);
+
+/**
+ * Sixt flightmode slot (1800-2000)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE6, 0);
