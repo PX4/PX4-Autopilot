@@ -509,13 +509,6 @@ struct log_CTS_s {
 	float yaw_rate;
 };
 
-/* --- CAMERA TRIGGER --- */
-#define LOG_CAMT_MSG 48
-struct log_CAMT_s {
-	uint64_t timestamp;
-	uint32_t seq;
-};
-
 #define LOG_OUT1_MSG 50
 
 /* --- EKF2 REPLAY Part 1 --- */
@@ -554,6 +547,14 @@ struct log_RPL2_s {
 	float vel_d_m_s;
 	bool vel_ned_valid;
 };
+
+/* --- CAMERA TRIGGER --- */
+#define LOG_CAMT_MSG 55
+struct log_CAMT_s {
+	uint64_t timestamp;
+	uint32_t seq;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
