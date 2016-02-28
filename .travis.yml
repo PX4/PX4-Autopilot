@@ -8,6 +8,10 @@ matrix:
   include:
     - os: linux
       sudo: false
+      env: GCC_VER=4.8
+    - os: linux
+      sudo: false
+      env: GCC_VER=4.9
     - os: osx
       osx_image: xcode7
       sudo: true
@@ -43,10 +47,12 @@ addons:
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          pushd .
-      && cd ~
-      && wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-      && tar -jxf gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-      && exportline="export PATH=$HOME/gcc-arm-none-eabi-4_8-2014q3/bin:\$PATH"
+      && cd ~ && mkdir gcc && cd gcc
+      && if [ "$GCC_VER" = "4.8" ]; then GCC_URL="https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2" ; fi
+      && if [ "$GCC_VER" = "4.9" ]; then GCC_URL="https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-linux.tar.bz2" ; fi
+      && wget -O gcc.tar.bz2 ${GCC_URL}
+      && tar -jxf gcc.tar.bz2 --strip 1
+      && exportline="export PATH=$HOME/gcc/bin:\$PATH"
       && if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
       && . ~/.profile
       && popd
@@ -110,7 +116,7 @@ script:
     fi
 
 after_success:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${GCC_VER}" = "4.8" ]]; then
          cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
       && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
       && cp build_px4fmu-v4_default/src/firmware/nuttx/nuttx-px4fmu-v4-default.px4 px4fmu-v4_default.px4
@@ -137,6 +143,7 @@ deploy:
     tags: true
     all_branches: true
     repo: PX4/Firmware
+    condition: $GCC_VER = 4.8
 
 notifications:
   webhooks:
