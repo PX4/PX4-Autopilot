@@ -1,5 +1,6 @@
 ./obj/*
 gtest_main.a
+dsm_test
 mixer_test
 sf0x_test
 sbus2_test
