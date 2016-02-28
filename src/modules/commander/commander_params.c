@@ -257,6 +257,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * @min 2
  * @max 15
  * @decimal 2
+ * @increment 0.5
  */
 PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
 
@@ -270,6 +271,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
  * @min 5
  * @max 25
  * @decimal 2
+ * @increment 0.5
  */
 PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
 
@@ -283,6 +285,8 @@ PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
  * @group Commander
  * @min 0
  * @max 1
+ * @value 0 Disabled
+ * @value 1 Enabled
  */
 PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
 
@@ -312,6 +316,10 @@ PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
  *
  * @group Commander
  * @min 0
+ * @max 20
+ * @unit seconds
+ * @decimal 0
+ * @increment 1
  */
 PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
 
