@@ -95,11 +95,9 @@ private:
 
 private:
 	int					_controlStateSub;	/**< notification of local position */
-	int					_vehicleStatusSub;
 	int					_armingSub;
 	int					_airspeedSub;
 	struct control_state_s			_controlState;		/**< the result from local position subscription */
-	struct vehicle_status_s 		_vehicleStatus;
 	struct actuator_armed_s			_arming;
 	struct airspeed_s			_airspeed;
 	int 					_parameterSub;
