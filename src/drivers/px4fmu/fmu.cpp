@@ -390,6 +390,11 @@ PX4FMU::PX4FMU() :
 	stm32_configgpio(GPIO_SBUS_INV);
 #endif
 
+	// If there is no safety button, disable it on boot.
+#ifndef GPIO_BTN_SAFETY
+	_safety_off = true;
+#endif
+
 	/* only enable this during development */
 	_debug_enabled = false;
 }
