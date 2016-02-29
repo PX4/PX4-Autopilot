@@ -4,7 +4,7 @@ if ("${RPI_TOOLCHAIN_DIR}" STREQUAL "")
 	set(RPI_TOOLCHAIN_DIR /opt/rpi_toolchain)
 endif()
 
-set(CMAKE_PROGRAM_PATH 
+set(CMAKE_PROGRAM_PATH
 	"${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin"
 	${CMAKE_PROGRAM_PATH}
 	)
@@ -41,6 +41,7 @@ set(config_module_list
 	modules/dataman
 	modules/sdlog2
 	modules/commander
+	modules/load_mon
 	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter

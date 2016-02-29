@@ -55,6 +55,7 @@ set(config_module_list
 	modules/uORB
 	modules/commander
 	modules/land_detector
+	modules/load_mon
 
 	#
 	# PX4 drivers
