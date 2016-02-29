@@ -492,8 +492,8 @@ function(px4_add_common_flags)
 	set(warnings
 		-Wall
 		-Werror
-		-Wno-sign-compare
 		-Wextra
+		-Wno-sign-compare
 		#-Wshadow # very verbose due to eigen
 		-Wfloat-equal
 		-Wpointer-arith
