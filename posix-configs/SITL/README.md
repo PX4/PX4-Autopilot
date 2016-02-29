@@ -75,6 +75,7 @@ gyrosim start
 accelsim start
 barosim start
 adcsim start
+load_mon start
 commander start
 sensors start
 ekf_att_pos_estimator start
