@@ -36,6 +36,7 @@ set(config_module_list
 	modules/sdlog2
 	modules/simulator
 	modules/commander
+	modules/load_mon
 	modules/controllib
 
 	lib/mathlib
