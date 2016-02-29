@@ -330,6 +330,7 @@ then
 	unset GPS_FAKE
 
 	# Needs to be this early for in-air-restarts
+	load_mon start
 	commander start
 
 	#

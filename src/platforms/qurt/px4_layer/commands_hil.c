@@ -49,6 +49,7 @@ const char *get_commands()
 		"param set CAL_MAG0_ID 196608\n"
 //		"rgbled start\n"
 //		"tone_alarm start\n"
+		"load_mon start\n"
 		"commander start -hil\n"
 		"sensors start\n"
 		//"ekf_att_pos_estimator start\n"

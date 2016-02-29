@@ -49,6 +49,7 @@ set(config_module_list
 	modules/dataman
 	modules/sdlog2
 	modules/commander
+	modules/load_mon
 	modules/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
