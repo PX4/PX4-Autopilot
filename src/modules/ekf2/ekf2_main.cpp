@@ -476,7 +476,7 @@ void Ekf2::task_main()
 
 		if (actuator_armed_updated) {
 			orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &actuator_armed);
-			_ekf->set_arm_status(&actuator_armed.armed);
+			_ekf->set_arm_status(actuator_armed.armed);
 		}
 
 		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
