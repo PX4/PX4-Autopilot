@@ -1386,7 +1386,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
 		}
 
-		if (poll_counter + 1 % poll_to_logging_factor == 0) {
+		if ((poll_counter + 1) % poll_to_logging_factor == 0) {
 			poll_counter = 0;
 		} else {
 			// copy topic
