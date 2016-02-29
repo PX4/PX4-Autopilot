@@ -1242,6 +1242,8 @@ int commander_thread_main(int argc, char *argv[])
 	orb_advert_t mission_pub = nullptr;
 	mission_s mission;
 
+	orb_advert_t commander_state_pub = nullptr;
+
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
 			if (mission.count > 0) {
@@ -2712,6 +2714,15 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		status_changed = false;
+
+
+		/* publish internal state for logging purposes */
+		if (commander_state_pub != nullptr) {
+			orb_publish(ORB_ID(commander_state), commander_state_pub, &internal_state);
+
+		} else {
+			commander_state_pub = orb_advertise(ORB_ID(commander_state), &internal_state);
+		}
 
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}
