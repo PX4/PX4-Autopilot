@@ -53,6 +53,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -62,6 +63,7 @@ static int battery_sub = -1;
 static int sensor_sub = -1;
 static int global_position_sub = -1;
 static int vehicle_status_sub = -1;
+static int gps_position_sub = -1;
 
 /**
  * Initializes the uORB subscriptions.
@@ -72,6 +74,7 @@ void sPort_init()
 	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 }
 
 /**
@@ -222,4 +225,67 @@ void sPort_send_FUEL(int uart)
 	/* send data */
 	uint32_t fuel = (int)(100 * vehicle_status.battery_remaining);
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
+}
+
+void sPort_send_T1(int uart)
+{
+	/* get a local copy of the vehicle status data */
+	struct vehicle_status_s vehicle_status;
+	memset(&vehicle_status, 0, sizeof(vehicle_status));
+	orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+
+	/* map flightmode from PX4 to APM */
+	uint32_t flightmodePX4 = (int)(vehicle_status.main_state);
+	uint32_t flightmodeAPM = 0;
+
+	switch (flightmodePX4) {
+	case MAIN_STATE_ACRO:
+		flightmodeAPM = 1;
+		break;
+
+	case MAIN_STATE_ALTCTL:
+		flightmodeAPM = 2;
+		break;
+
+	case MAIN_STATE_AUTO_LAND:
+		flightmodeAPM = 9;
+		break;
+
+	case MAIN_STATE_AUTO_LOITER:
+		flightmodeAPM = 5;
+		break;
+
+	case MAIN_STATE_AUTO_MISSION:
+		flightmodeAPM = 3;
+		break;
+
+	case MAIN_STATE_AUTO_RTL:
+		flightmodeAPM = 6;
+		break;
+
+	case MAIN_STATE_MANUAL:
+		flightmodeAPM = 0;
+		break;
+
+	default:
+		flightmodeAPM = 0;
+	}
+
+	/* send data */
+	sPort_send_data(uart, SMARTPORT_ID_T1, flightmodeAPM);
+}
+
+// verified scaling
+void sPort_send_T2(int uart)
+{
+	/* get a local copy of the global position data */
+	struct vehicle_gps_position_s gps_pos;
+	memset(&gps_pos, 0, sizeof(gps_pos));
+	orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, &gps_pos);
+
+	/* send data */
+	uint32_t satcount = (int)(gps_pos.satellites_used);
+	uint32_t fixtype = (int)(gps_pos.fix_type);
+	uint32_t t2 = satcount * 10 + fixtype;
+	sPort_send_data(uart, SMARTPORT_ID_T2, t2);
 }
