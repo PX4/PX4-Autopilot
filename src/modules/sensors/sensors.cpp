@@ -323,6 +323,8 @@ private:
 
 		float baro_qnh;
 
+		int temp_comp_enable;
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -384,6 +386,8 @@ private:
 		param_t board_offset[3];
 
 		param_t baro_qnh;
+
+		param_t temp_comp_enable;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -630,6 +634,9 @@ Sensors::Sensors() :
 
 	/* Barometer QNH */
 	_parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
+
+	/* Temperature Compensation */
+	_parameter_handles.temp_comp_enable = param_find("SENS_TEMP_COMP");
 
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
@@ -948,6 +955,8 @@ Sensors::parameters_update()
 
 #endif
 
+	param_get(_parameter_handles.temp_comp_enable, &(_parameters.temp_comp_enable));
+
 	return OK;
 }
 
@@ -978,7 +987,16 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 			orb_copy(ORB_ID(sensor_accel), _accel_sub[i], &accel_report);
 
-			math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
+			math::Vector<3> vect;
+
+			// TODO: dagar how to choose the proper accel? device_id?
+			if (_parameters.temp_comp_enable && (i == 0)) {
+				vect = math::Vector<3>(accel_report.x_tc, accel_report.y_tc, accel_report.z_tc);
+
+			} else {
+				vect = math::Vector<3>(accel_report.x, accel_report.y, accel_report.z);
+			}
+
 			vect = _board_rotation * vect;
 
 			raw.accelerometer_m_s2[i * 3 + 0] = vect(0);
@@ -1001,6 +1019,12 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 			raw.accelerometer_timestamp[i] = accel_report.timestamp;
 			raw.accelerometer_errcount[i] = accel_report.error_count;
 			raw.accelerometer_temp[i] = accel_report.temperature;
+
+			if (i == 0) {
+				raw.accelerometer_tc[0] = accel_report.x_tc;
+				raw.accelerometer_tc[1] = accel_report.y_tc;
+				raw.accelerometer_tc[2] = accel_report.z_tc;
+			}
 		}
 	}
 }
@@ -1017,7 +1041,16 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub[i], &gyro_report);
 
-			math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
+			math::Vector<3> vect;
+
+			// TODO: dagar how to choose the proper gyro?
+			if (_parameters.temp_comp_enable && (i == 0)) {
+				vect = math::Vector<3>(gyro_report.x_tc, gyro_report.y_tc, gyro_report.z_tc);
+
+			} else {
+				vect = math::Vector<3>(gyro_report.x, gyro_report.y, gyro_report.z);
+			}
+
 			vect = _board_rotation * vect;
 
 			raw.gyro_rad_s[i * 3 + 0] = vect(0);
@@ -1045,6 +1078,12 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 			raw.gyro_errcount[i] = gyro_report.error_count;
 			raw.gyro_temp[i] = gyro_report.temperature;
+
+			if (i == 0) {
+				raw.gyro_tc[0] = gyro_report.x_tc;
+				raw.gyro_tc[1] = gyro_report.y_tc;
+				raw.gyro_tc[2] = gyro_report.z_tc;
+			}
 		}
 	}
 }
@@ -1250,6 +1289,21 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
 					(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
+					(void)sprintf(str, "CAL_GYRO%u_TMPNOM", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.cal_temp));
+					(void)sprintf(str, "CAL_GYRO%u_TMPMIN", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.min_temp));
+					(void)sprintf(str, "CAL_GYRO%u_TMPMAX", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.max_temp));
+
+					for (unsigned j = 0; j < 3; j++) {
+						(void)sprintf(str, "CAL_GYRO%u_TA%uX0", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x1_temp[j]));
+						(void)sprintf(str, "CAL_GYRO%u_TA%uX1", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x2_temp[j]));
+						(void)sprintf(str, "CAL_GYRO%u_TA%uX2", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x3_temp[j]));
+					}
 
 					if (failed) {
 						warnx(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
@@ -1322,6 +1376,21 @@ Sensors::parameter_update_poll(bool forced)
 					failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
 					(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
+					(void)sprintf(str, "CAL_ACC%u_TMPNOM", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.cal_temp));
+					(void)sprintf(str, "CAL_ACC%u_TMPMIN", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.min_temp));
+					(void)sprintf(str, "CAL_ACC%u_TMPMAX", i);
+					failed = failed || (OK != param_get(param_find(str), &gscale.max_temp));
+
+					for (unsigned j = 0; j < 3; j++) {
+						(void)sprintf(str, "CAL_ACC%u_TA%uX0", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x1_temp[j]));
+						(void)sprintf(str, "CAL_ACC%u_TA%uX1", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x2_temp[j]));
+						(void)sprintf(str, "CAL_ACC%u_TA%uX2", i, j);
+						failed = failed || (OK != param_get(param_find(str), &gscale.x3_temp[j]));
+					}
 
 					if (failed) {
 						warnx(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
