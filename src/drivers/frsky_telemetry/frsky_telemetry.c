@@ -67,6 +67,8 @@
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 static int frsky_task;
+typedef enum { IDLE, SPORT, DTYPE } frsky_state_t;
+static frsky_state_t frsky_state = IDLE;
 
 /* functions */
 static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original);
@@ -193,19 +195,29 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	/* Main thread loop */
 	char sbuf[20];
 
-	/* 2 byte polling frames indicate SmartPort telemetry
-	 * 11 byte packets indicate D type telemetry
-	 */
-	int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
+	while (frsky_state == IDLE) {
+		/* 2 byte polling frames indicate SmartPort telemetry
+		 * 11 byte packets indicate D type telemetry
+		 */
+		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
 
-	if (status > 0) {
+		if (status > 0) {
+			/* traffic on the port, D type is 11 bytes per frame, SmartPort is only 2
+			 * allow a little time to receive the entire packet
+			 */
+			usleep(5000);
+			status = read(uart, &sbuf[0], sizeof(sbuf));
+		}
+
 		/* received some data; check size of packet */
-		usleep(5000);
-		status = read(uart, &sbuf[0], sizeof(sbuf));
+		if (status > 0 && status < 3) {
+			frsky_state = SPORT;
+		} else if (status > 0) {
+			frsky_state = DTYPE;
+		}
 	}
 
-	if (status > 0 && status < 3) {
-		/* traffic on the port, D type is 11 bytes per frame, SmartPort is only 2 */
+	if (frsky_state == SPORT) {
 		/* Subscribe to topics */
 		if (!sPort_init()) {
 			err(1, "could not allocate memory");
@@ -400,10 +412,10 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		/* either no traffic on the port (0=>timeout), or D type packet */
 
-	} else if (status > 0) {
+	} else if (frsky_state == DTYPE) {
 		/* detected D type telemetry: reconfigure UART */
 		warnx("sending FrSky D type telemetry");
-		status = set_uart_speed(uart, &uart_config, B9600);
+		int status = set_uart_speed(uart, &uart_config, B9600);
 
 		if (status < 0) {
 			warnx("error setting speed for %s, quitting", device_name);
@@ -466,9 +478,6 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 //		read(uart, &sbuf[0], sizeof(sbuf));
 		warnx("freeing frsky memory");
 		frsky_deinit();
-
-	} else {
-		warnx("FrSky receiver not detected, exiting");
 
 	}
 
@@ -533,7 +542,20 @@ int frsky_telemetry_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			errx(0, "running");
+			switch (frsky_state) {
+			case IDLE:
+				errx(0, "running: IDLE");
+				break;
+
+			case SPORT:
+				errx(0, "running: SPORT");
+				break;
+
+			case DTYPE:
+				errx(0, "running: DTYPE");
+				break;
+
+			}
 
 		} else {
 			errx(1, "not running");
