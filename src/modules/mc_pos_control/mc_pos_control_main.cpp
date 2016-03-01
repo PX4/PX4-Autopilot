@@ -47,6 +47,7 @@
  * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Sander Smeets <sander@droneslab.com>
  */
 
 #include <px4_config.h>
@@ -181,6 +182,8 @@ private:
 		param_t xy_ff;
 		param_t tilt_max_air;
 		param_t land_speed;
+		param_t land_final_approach_alt;
+		param_t land_final_approach_speed;
 		param_t tko_speed;
 		param_t tilt_max_land;
 		param_t man_roll_max;
@@ -203,6 +206,8 @@ private:
 		float alt_ctl_dy;
 		float tilt_max_air;
 		float land_speed;
+		float land_final_approach_alt;
+		float land_final_approach_speed;
 		float tko_speed;
 		float tilt_max_land;
 		float man_roll_max;
@@ -438,6 +443,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
+	_params_handles.land_final_approach_alt	= param_find("MPC_FNA_ALT");
+	_params_handles.land_final_approach_speed	= param_find("MPC_FNA_SPD");
 	_params_handles.tko_speed	= param_find("MPC_TKO_SPEED");
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
 	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
@@ -503,6 +510,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
 		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
+		param_get(_params_handles.land_final_approach_alt, &_params.land_final_approach_alt);
+		param_get(_params_handles.land_final_approach_speed, &_params.land_final_approach_speed);
 		param_get(_params_handles.tko_speed, &_params.tko_speed);
 		param_get(_params_handles.tilt_max_land, &_params.tilt_max_land);
 		_params.tilt_max_land = math::radians(_params.tilt_max_land);
@@ -569,6 +578,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		/* takeoff and land velocities should not exceed maximum */
 		_params.tko_speed = fminf(_params.tko_speed, _params.vel_max(2));
 		_params.land_speed = fminf(_params.land_speed, _params.vel_max(2));
+		_params.land_final_approach_speed = fminf(_params.land_final_approach_speed, _params.vel_max(2));
 	}
 
 	return OK;
@@ -1395,6 +1405,11 @@ MulticopterPositionControl::task_main()
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 						&& _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 					_vel_sp(2) = _params.land_speed;
+
+					/* final approach, decrease descent speed */
+					if(_params.land_final_approach_alt > 0.0f && _local_pos.z_valid && -_local_pos.z <= _params.land_final_approach_alt){
+						_vel_sp(2) = _params.land_final_approach_speed;
+					}
 				}
 
 				/* special thrust setpoint generation for takeoff from ground */
