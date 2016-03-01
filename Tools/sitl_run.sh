@@ -33,7 +33,7 @@ then
 	model="iris"
 fi
 
-if [ "$#" != 5 ]
+if [ "$#" -lt 5 ]
 then
 	echo usage: sitl_run.sh rc_script debugger program model build_path
 	echo ""
@@ -52,6 +52,7 @@ fi
 
 set -e
 
+cd $build_path/..
 cp Tools/posix_lldbinit $build_path/src/firmware/posix/.lldbinit
 cp Tools/posix.gdbinit $build_path/src/firmware/posix/.gdbinit
 
