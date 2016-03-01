@@ -510,7 +510,15 @@ void Ekf::fuseHeading()
 		float t7 = q0 * q3 * 2.0f;
 		float t8 = q1 * q2 * 2.0f;
 		float t9 = t7 + t8;
-		float t10 = 1.0f / (t6 * t6);
+		float t10 = sq(t6);
+
+		if (t10 > 1e-6f) {
+			t10 = 1.0f / t10;
+
+		} else {
+			return;
+		}
+
 		float t11 = t9 * t9;
 		float t12 = t10 * t11;
 		float t13 = t12 + 1.0f;
@@ -523,14 +531,7 @@ void Ekf::fuseHeading()
 			return;
 		}
 
-		float t15;
-
-		if (fabsf(t6) > 1e-6f) {
-			t15 = 1.0f / t6;
-
-		} else {
-			return;
-		}
+		float t15 = 1.0f / t6;
 
 		H_YAW[0] = 0.0f;
 		H_YAW[1] = t14 * (t15 * (q0 * q1 * 2.0f - q2 * q3 * 2.0f) + t9 * t10 * (q0 * q2 * 2.0f + q1 * q3 * 2.0f));
@@ -557,7 +558,15 @@ void Ekf::fuseHeading()
 		float t7 = q0 * q3 * 2.0f;
 		float t10 = q1 * q2 * 2.0f;
 		float t8 = t7 - t10;
-		float t9 = 1.0f / (t6 * t6);
+		float t9 = sq(t6);
+
+		if (t9 > 1e-6f) {
+			t9 = 1.0f / t9;
+
+		} else {
+			return;
+		}
+
 		float t11 = t8 * t8;
 		float t12 = t9 * t11;
 		float t13 = t12 + 1.0f;
@@ -570,14 +579,7 @@ void Ekf::fuseHeading()
 			return;
 		}
 
-		float t15;
-
-		if (fabsf(t6) > 1e-6f) {
-			t15 = 1.0f / t6;
-
-		} else {
-			return;
-		}
+		float t15 = 1.0f / t6;
 
 		H_YAW[0] = -t14 * (t15 * (q0 * q2 * 2.0f + q1 * q3 * 2.0f) - t8 * t9 * (q0 * q1 * 2.0f - q2 * q3 * 2.0f));
 		H_YAW[1] = 0.0f;
