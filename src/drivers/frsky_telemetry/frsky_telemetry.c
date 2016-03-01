@@ -194,6 +194,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 	/* Main thread loop */
 	char sbuf[20];
+	frsky_state = IDLE;
 
 	while (frsky_state == IDLE) {
 		/* 2 byte polling frames indicate SmartPort telemetry
