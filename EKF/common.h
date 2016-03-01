@@ -183,7 +183,7 @@ struct parameters {
 		posNE_innov_gate = 3.0f;
 		vel_innov_gate = 3.0f;
 
-		mag_heading_noise = 1.7e-1f;
+		mag_heading_noise = 5.0e-1f;
 		mag_noise = 5.0e-2f;
 		mag_declination_deg = 0.0f;
 		heading_innov_gate = 3.0f;
