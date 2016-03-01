@@ -495,73 +495,151 @@ void Ekf::fuseHeading()
 	float R_YAW = fmaxf(_params.mag_heading_noise, 1.0e-2f);
 	R_YAW = R_YAW * R_YAW;
 
-	// calculate intermediate variables for observation jacobians
-	float t2 = q0 * q0;
-	float t3 = q1 * q1;
-	float t4 = q2 * q2;
-	float t5 = q3 * q3;
-	float t6 = t2 + t3 - t4 - t5;
-	float t7 = q0 * q3 * 2.0f;
-	float t8 = q1 * q2 * 2.0f;
-	float t9 = t7 + t8;
-	float t10;
+	float predicted_hdg;
+	float H_YAW[3];
+	matrix::Vector3f mag_earth_pred;
 
-	if (fabsf(t6) > 1e-6f) {
-		t10 = 1.0f / (t6 * t6);
+	// determine if a 321 or 312 Euler sequence is best
+	if (fabsf(_R_prev(0, 2)) < fabsf(_R_prev(1, 2))) {
+		// calculate observation jacobian when we are observing the first rotation in a 321 sequence
+		float t2 = q0 * q0;
+		float t3 = q1 * q1;
+		float t4 = q2 * q2;
+		float t5 = q3 * q3;
+		float t6 = t2 + t3 - t4 - t5;
+		float t7 = q0 * q3 * 2.0f;
+		float t8 = q1 * q2 * 2.0f;
+		float t9 = t7 + t8;
+		float t10 = 1.0f / (t6 * t6);
+		float t11 = t9 * t9;
+		float t12 = t10 * t11;
+		float t13 = t12 + 1.0f;
+		float t14;
+
+		if (fabsf(t13) > 1e-3f) {
+			t14 = 1.0f / t13;
+
+		} else {
+			return;
+		}
+
+		float t15;
+
+		if (fabsf(t6) > 1e-6f) {
+			t15 = 1.0f / t6;
+
+		} else {
+			return;
+		}
+
+		H_YAW[0] = 0.0f;
+		H_YAW[1] = t14 * (t15 * (q0 * q1 * 2.0f - q2 * q3 * 2.0f) + t9 * t10 * (q0 * q2 * 2.0f + q1 * q3 * 2.0f));
+		H_YAW[2] = t14 * (t15 * (t2 - t3 + t4 - t5) + t9 * t10 * (t7 - t8));
+
+		// rotate the magnetometer measurement into earth frame
+		matrix::Euler<float> euler321(_state.quat_nominal);
+		predicted_hdg = euler321(2); // we will need the predicted heading to calculate the innovation
+
+		// Set the yaw angle to zero and rotate the measurements into earth frame using the zero yaw angle
+		euler321(2) = 0.0f;
+		matrix::Dcm<float> R_to_earth(euler321);
+
+		// rotate the magnetometer measurements into earth frame using a zero yaw angle
+		mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
 
 	} else {
-		return;
+		// calculate observaton jacobian when we are observing a rotation in a 312 sequence
+		float t2 = q0 * q0;
+		float t3 = q1 * q1;
+		float t4 = q2 * q2;
+		float t5 = q3 * q3;
+		float t6 = t2 - t3 + t4 - t5;
+		float t7 = q0 * q3 * 2.0f;
+		float t10 = q1 * q2 * 2.0f;
+		float t8 = t7 - t10;
+		float t9 = 1.0f / (t6 * t6);
+		float t11 = t8 * t8;
+		float t12 = t9 * t11;
+		float t13 = t12 + 1.0f;
+		float t14;
+
+		if (fabsf(t13) > 1e-3f) {
+			t14 = 1.0f / t13;
+
+		} else {
+			return;
+		}
+
+		float t15;
+
+		if (fabsf(t6) > 1e-6f) {
+			t15 = 1.0f / t6;
+
+		} else {
+			return;
+		}
+
+		H_YAW[0] = -t14 * (t15 * (q0 * q2 * 2.0f + q1 * q3 * 2.0f) - t8 * t9 * (q0 * q1 * 2.0f - q2 * q3 * 2.0f));
+		H_YAW[1] = 0.0f;
+		H_YAW[2] = t14 * (t15 * (t2 + t3 - t4 - t5) + t8 * t9 * (t7 + t10));
+
+		// Calculate the 312 sequence euler angles that rotate from earth to body frame
+		// See http://www.atacolorado.com/eulersequences.doc
+		Vector3f euler312;
+		euler312(0) = atan2f(-_R_prev(1, 0) , _R_prev(1, 1)); // first rotation (yaw)
+		euler312(1) = asinf(_R_prev(1, 2)); // second rotation (roll)
+		euler312(2) = atan2f(-_R_prev(0, 2) , _R_prev(2, 2)); // third rotation (pitch)
+
+		predicted_hdg = euler312(0); // we will need the predicted heading to calculate the innovation
+
+		// Set the first rotation (yaw) to zero and rotate the measurements into earth frame
+		euler312(0) = 0.0f;
+
+		// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
+		float c2 = cosf(euler312(2));
+		float s2 = sinf(euler312(2));
+		float s1 = sinf(euler312(1));
+		float c1 = cosf(euler312(1));
+		float s0 = sinf(euler312(0));
+		float c0 = cosf(euler312(0));
+
+		matrix::Dcm<float> R_to_earth;
+		R_to_earth(0, 0) = c0 * c2 - s0 * s1 * s2;
+		R_to_earth(1, 1) = c0 * c1;
+		R_to_earth(2, 2) = c2 * c1;
+		R_to_earth(0, 1) = -c1 * s0;
+		R_to_earth(0, 2) = s2 * c0 + c2 * s1 * s0;
+		R_to_earth(1, 0) = c2 * s0 + s2 * s1 * c0;
+		R_to_earth(1, 2) = s0 * s2 - s1 * c0 * c2;
+		R_to_earth(2, 0) = -s2 * c1;
+		R_to_earth(2, 1) = s1;
+
+		// rotate the magnetometer measurements into earth frame using a zero yaw angle
+		mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
 	}
 
-	float t11 = t9 * t9;
-	float t12 = t10 * t11;
-	float t13 = t12 + 1.0f;
-	float t14;
+	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 3 elements in H are non zero
+	// calculate the innovaton variance
+	float PH[3];
+	_heading_innov_var = R_YAW;
 
-	if (fabsf(t13) > 1e-6f) {
-		t14 = 1.0f / t13;
+	for (unsigned row = 0; row <= 2; row++) {
+		PH[row] = 0.0f;
 
-	} else  {
-		return;
+		for (uint8_t col = 0; col <= 2; col++) {
+			PH[row] += P[row][col] * H_YAW[col];
+		}
+
+		_heading_innov_var += H_YAW[row] * PH[row];
 	}
 
-	float t15 = 1.0f / t6;
+	float heading_innov_var_inv;
 
-	float H_YAW[3] = {};
-	H_YAW[1] = t14 * (t15 * (q0 * q1 * 2.0f - q2 * q3 * 2.0f) + t9 * t10 * (q0 * q2 * 2.0f + q1 * q3 * 2.0f));
-	H_YAW[2] = t14 * (t15 * (t2 - t3 + t4 - t5) + t9 * t10 * (t7 - t8));	// calculate observation jacobian
-
-	// calculate intermediate expressions for Kalman gains
-	float t16 = q0 * q1 * 2.0f;
-	float t29 = q2 * q3 * 2.0f;
-	float t17 = t16 - t29;
-	float t18 = t15 * t17;
-	float t19 = q0 * q2 * 2.0f;
-	float t20 = q1 * q3 * 2.0f;
-	float t21 = t19 + t20;
-	float t22 = t9 * t10 * t21;
-	float t23 = t18 + t22;
-	float t40 = t14 * t23;
-	float t24 = t2 - t3 + t4 - t5;
-	float t25 = t15 * t24;
-	float t26 = t7 - t8;
-	float t27 = t9 * t10 * t26;
-	float t28 = t25 + t27;
-	float t41 = t14 * t28;
-	float t30 = P[1][1] * t40;
-	float t31 = P[1][2] * t40;
-	float t32 = P[2][2] * t41;
-	float t33 = t31 + t32;
-	float t34 = t41 * t33;
-	float t35 = P[2][1] * t41;
-	float t36 = t30 + t35;
-	float t37 = t40 * t36;
-	float t38 = R_YAW + t34 + t37; // Innovation variance
-	_heading_innov_var = t38;
-
-	if (t38 >= R_YAW) {
+	// check if the innovation variance calculation is badly conditioned
+	if (_heading_innov_var >= R_YAW) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
 		_fault_status.bad_mag_hdg = false;
+		heading_innov_var_inv = 1.0f / _heading_innov_var;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
@@ -572,54 +650,33 @@ void Ekf::fuseHeading()
 		return;
 	}
 
-	float t39 = 1.0f / t38;
+	// calculate the Kalman gains
+	// only calculate gains for states we are using
+	float Kfusion[_k_num_states] = {};
 
-	// calculate Kalman gains
-	float Kfusion[24] = {};
-	Kfusion[0] = t39 * (P[0][1] * t40 + P[0][2] * t41);
-	Kfusion[1] = t39 * (t30 + P[1][2] * t41);
-	Kfusion[2] = t39 * (t32 + P[2][1] * t40);
-	Kfusion[3] = t39 * (P[3][1] * t40 + P[3][2] * t41);
-	Kfusion[4] = t39 * (P[4][1] * t40 + P[4][2] * t41);
-	Kfusion[5] = t39 * (P[5][1] * t40 + P[5][2] * t41);
-	Kfusion[6] = t39 * (P[6][1] * t40 + P[6][2] * t41);
-	Kfusion[7] = t39 * (P[7][1] * t40 + P[7][2] * t41);
-	Kfusion[8] = t39 * (P[8][1] * t40 + P[8][2] * t41);
-	Kfusion[9] = t39 * (P[9][1] * t40 + P[9][2] * t41);
-	Kfusion[10] = t39 * (P[10][1] * t40 + P[10][2] * t41);
-	Kfusion[11] = t39 * (P[11][1] * t40 + P[11][2] * t41);
-	Kfusion[12] = t39 * (P[12][1] * t40 + P[12][2] * t41);
-	Kfusion[13] = t39 * (P[13][1] * t40 + P[13][2] * t41);
-	Kfusion[14] = t39 * (P[14][1] * t40 + P[14][2] * t41);
-	Kfusion[15] = t39 * (P[15][1] * t40 + P[15][2] * t41);
+	for (uint8_t row = 0; row <= 15; row++) {
+		Kfusion[row] = 0.0f;
 
-	/* we won't be using these states because we are doing heading fusion
-	Kfusion[16] = t39*(P[16][1]*t40+P[16][2]*t41);
-	Kfusion[17] = t39*(P[17][1]*t40+P[17][2]*t41);
-	Kfusion[18] = t39*(P[18][1]*t40+P[18][2]*t41);
-	Kfusion[19] = t39*(P[19][1]*t40+P[19][2]*t41);
-	Kfusion[20] = t39*(P[20][1]*t40+P[20][2]*t41);
-	Kfusion[21] = t39*(P[21][1]*t40+P[21][2]*t41);
-	*/
+		for (uint8_t col = 0; col <= 2; col++) {
+			Kfusion[row] += P[row][col] * H_YAW[col];
+		}
 
-	// don't adjust these states if we are not using them
-	if (_control_status.flags.wind) {
-		Kfusion[22] = t39 * (P[22][1] * t40 + P[22][2] * t41);
-		Kfusion[23] = t39 * (P[23][1] * t40 + P[23][2] * t41);
+		Kfusion[row] *= heading_innov_var_inv;
 	}
 
-	// TODO - enable use of an off-board heading measurement
+	if (_control_status.flags.wind) {
+		for (uint8_t row = 22; row <= 23; row++) {
+			Kfusion[row] = 0.0f;
 
-	// rotate the magnetometer measurement into earth frame
-	matrix::Euler<float> euler(_state.quat_nominal);
-	float predicted_hdg = euler(2); // we will need the predicted heading to calculate the innovation
+			for (uint8_t col = 0; col <= 2; col++) {
+				Kfusion[row] += P[row][col] * H_YAW[col];
+			}
 
-	// Set the yaw angle to zero and rotate the measurements into earth frame using the zero yaw angle
-	euler(2) = 0.0f;
-	matrix::Dcm<float> R_to_earth(euler);
-	matrix::Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+			Kfusion[row] *= heading_innov_var_inv;
+		}
+	}
 
-	// Use the difference between the horizontal projection and declination to give the measured heading
+	// Use the difference between the horizontal projection of the mag field and declination to give the measured heading
 	float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 
 	// wrap the heading to the interval between +-pi
