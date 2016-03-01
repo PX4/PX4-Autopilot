@@ -289,22 +289,27 @@ K_MAGS = (Psimple*transpose(H_MAGS))/(H_MAGS*Psimple*transpose(H_MAGS) + R_DECL)
 %[K_MAGS,SK_MAGS]=OptimiseAlgebra(K_MAGS,'SK_MAGS');
 ccode(K_MAGS,'file','calcK_MAGS.c');
 
-%% derive equations for fusion of yaw measurements
+%% derive equations for fusion of 321 sequence yaw measurement
 
-% rotate X body axis into earth axes
-yawVec = Tbn*[1;0;0];
-% Calculate the yaw angle of the projection
-angMeas = atan(yawVec(2)/yawVec(1));
+% Calculate the yaw (first rotation) angle from the 321 rotation sequence
+angMeas = atan(Tbn(2,1)/Tbn(1,1));
 H_YAW = jacobian(angMeas,stateVector); % measurement Jacobian
-%H_MAGS = H_MAGS(1:3);
 H_YAW = subs(H_YAW, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
-H_YAW = simplify(H_YAW);
-%[H_MAGS,SH_MAGS]=OptimiseAlgebra(H_MAGS,'SH_MAGS');
-ccode(H_YAW,'file','calcH_YAW.c');
+ccode(H_YAW,'file','calcH_YAW321.c');
 % Calculate Kalman gain vector
 K_YAW = (P*transpose(H_YAW))/(H_YAW*P*transpose(H_YAW) + R_YAW);
-%K_MAGS = simplify(K_MAGS);
-ccode(K_YAW,'file','calcK_YAW.c');
+ccode([K_YAW;H_YAW'],'file','calcYAW321.c');
+
+%% derive equations for fusion of 312 sequence yaw measurement
+
+% Calculate the yaw (first rotation) angle from an Euler 312 sequence
+angMeas = atan(-Tbn(1,2)/Tbn(2,2));
+H_YAW2 = jacobian(angMeas,stateVector); % measurement Jacobianclea
+H_YAW2 = subs(H_YAW2, {'rotErrX', 'rotErrY', 'rotErrZ'}, {0,0,0});
+ccode(H_YAW2,'file','calcH_YAW312.c');
+% Calculate Kalman gain vector
+K_YAW2 = (P*transpose(H_YAW2))/(H_YAW2*P*transpose(H_YAW2) + R_YAW);
+ccode([K_YAW2;H_YAW2'],'file','calcYAW312.c');
 
 %% derive equations for fusion of synthetic deviation measurement
 % used to keep correct heading when operating without absolute position or
