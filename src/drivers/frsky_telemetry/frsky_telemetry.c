@@ -213,6 +213,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		/* received some data; check size of packet */
 		if (status > 0 && status < 3) {
 			frsky_state = SPORT;
+
 		} else if (status > 0) {
 			frsky_state = DTYPE;
 		}
