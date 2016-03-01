@@ -58,7 +58,7 @@ PARAM_DEFINE_INT32(VT_MOT_COUNT, 0);
  * @min 900
  * @max 2000
  * @increment 1
- * @deciml 0
+ * @decimal 0
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_IDLE_PWM_MC, 900);
