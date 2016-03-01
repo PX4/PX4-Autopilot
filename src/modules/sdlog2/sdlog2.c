@@ -918,8 +918,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		warnx("ERR: log stream, start mavlink app first");
 	}
 
-	/* delay = 1 / rate (rate defined by -r option), default log rate: 50 Hz */
-	int32_t param_log_rate;
+	/* default log rate: 50 Hz */
+	int32_t log_rate = 50;
 	int log_buffer_size = LOG_BUFFER_SIZE_DEFAULT;
 	logging_enabled = false;
 	/* enable logging on start (-e option) */
@@ -946,11 +946,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 		case 'r': {
 				unsigned long r = strtoul(myoptarg, NULL, 10);
 
-				if (r == 0) {
+				if (r <= 0) {
 					r = 1;
 				}
 
-				param_log_rate = r;
+				log_rate = r;
 			}
 			break;
 
@@ -1008,7 +1008,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	gps_time_sec = 0;
 
 	/* interpret logging params */
-
+	int32_t param_log_rate = -1;
 	param_t log_rate_ph = param_find("SDLOG_RATE");
 
 	if (log_rate_ph != PARAM_INVALID) {
@@ -1026,6 +1026,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			param_log_rate = 10;
 		}
 	}
+
+	// if parameter was provided use it, if not use command line argument
+	log_rate = param_log_rate > -1 ? param_log_rate : log_rate;
 
 	param_t log_ext_ph = param_find("SDLOG_EXT");
 
@@ -1349,7 +1352,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		fds[0].fd = subs.sensor_sub;
 		fds[0].events = POLLIN;
 		// TODO Remove hardcoded rate!
-		poll_to_logging_factor = 250 / (param_log_rate < 1 ? 1 : param_log_rate);
+		poll_to_logging_factor = 250 / (log_rate < 1 ? 1 : log_rate);
 	}
 
 	if (poll_to_logging_factor < 1) {
