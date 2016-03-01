@@ -1407,7 +1407,8 @@ MulticopterPositionControl::task_main()
 					_vel_sp(2) = _params.land_speed;
 
 					/* final approach, decrease descent speed */
-					if(_params.land_final_approach_alt > 0.0f && _local_pos.z_valid && -_local_pos.z <= _params.land_final_approach_alt){
+					if(_params.land_final_approach_alt > 0.0f && _local_pos.z_valid
+							&& -_local_pos.z <= _params.land_final_approach_alt){
 						_vel_sp(2) = _params.land_final_approach_speed;
 					}
 				}
