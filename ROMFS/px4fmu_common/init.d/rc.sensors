@@ -9,9 +9,9 @@ then
 	then
 	fi
 else
-	if ms5611 -s start
-	then
-	fi
+	#if ms5611 -s start
+	#then
+	#fi
 
 	# Blacksheep telemetry
 	if bst start
@@ -19,65 +19,103 @@ else
 	fi
 fi
 
+		
+
 if adc start
 then
 fi
 
 if ver hwcmp PX4FMU_V2
 then
-	# External I2C bus
-	if hmc5883 -C -T -X start
+
+	if ms5611 -I start
 	then
 	fi
+
+	#if bmi160 start
+	#then
+	#fi
+
+	if lsm9ds1mag start
+	then
+	fi
+
+	if lsm9ds1 start
+	then
+	fi
+
+	#if lsm9ds1_ag start
+	#then
+	#fi
+
+	if mpu9250 -R 2 start
+	then
+	fi
+
+	if lis2hh12 start
+	then
+	fi
+	
+	#if hmc5883 -C -T -X start
+	#then
+	#fi
+
+
+
+	# External I2C bus
+	#if hmc5883 -C -T -X start
+	#then
+	#fi
 
 	# Internal I2C bus
-	if hmc5883 -C -T -I -R 4 start
-	then
-	fi
+	#if hmc5883 -C -T -I -R 4 start
+	#then
+	#fi
 
 	# external MPU6K is rotated 180 degrees yaw
-	if mpu6000 -X -R 4 start
-	then
-		set BOARD_FMUV3 true
-	else
-		set BOARD_FMUV3 false
-	fi
+	#if mpu6000 -X -R 4 start
+	#then
+	#	set BOARD_FMUV3 true
+	#else
+	#	set BOARD_FMUV3 false
+	#fi
 
-	if [ $BOARD_FMUV3 == true ]
-	then
+	#if [ $BOARD_FMUV3 == true ]
+	#then
 		# external L3GD20H is rotated 180 degrees yaw
-		if l3gd20 -X -R 4 start
-		then
-		fi
+	#	if l3gd20 -X -R 4 start
+	#	then
+	#	fi
 
 		# external LSM303D is rotated 270 degrees yaw
-		if lsm303d -X -R 6 start
-		then
-		fi
+	#	if lsm303d -X -R 6 start
+	#	then
+	#	fi
 
 		# internal MPU6000 is rotated 180 deg roll, 270 deg yaw
-		if mpu6000 -R 14 start
-		then
-		fi
+	#	if mpu6000 -R 14 start
+	#	then
+	#	fi
 
-		if hmc5883 -C -T -S -R 8 start
-		then
-		fi
+	#	if hmc5883 -C -T -S -R 8 start
+	#	then
+	#	fi
 
-	else
+	#else
 		# FMUv2
-		if mpu6000 start
-		then
-		fi
+	#	if mpu6000 start
+	#	then
+	#	fi
 
-		if l3gd20 start
-		then
-		fi
+	#	if l3gd20 start
+	#	then
+	#	fi
 
-		if lsm303d start
-		then
-		fi
-	fi
+	#	if lsm303d start
+	#	then
+	#	fi
+	#fi
+	
 else
 	if ver hwcmp PX4FMU_V4
 	then
@@ -143,10 +181,6 @@ else
 		then
 		fi
 	fi
-fi
-
-if sf10a start
-then
 fi
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
