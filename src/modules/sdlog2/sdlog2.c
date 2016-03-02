@@ -1859,7 +1859,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_AIRS.air_temperature_celsius = buf.airspeed.air_temperature_celsius;
 				LOGBUFFER_WRITE_AND_COUNT(AIRS);
 			}
-<<<<<<< HEAD
 
 			/* --- ESCs --- */
 			if (copy_if_updated(ORB_ID(esc_status), &subs.esc_sub, &buf.esc)) {
