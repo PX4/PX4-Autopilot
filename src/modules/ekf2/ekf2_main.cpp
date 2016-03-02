@@ -357,14 +357,6 @@ void Ekf2::task_main()
 		if(range_finder_updated) {
 			orb_copy(ORB_ID(distance_sensor), _range_finder_sub, &range_finder);
 		}
-		// Use the control model data to determine if the motors are armed as a surrogate for an on-ground vs in-air status
-		// TODO implement a global vehicle on-ground/in-air check
-		orb_check(_control_mode_sub, &control_mode_updated);
-
-		if (control_mode_updated) {
-			orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &vehicle_control_mode);
-			_ekf->set_arm_status(vehicle_control_mode.flag_armed);
-		}
 
 		// in replay mode we are getting the actual timestamp from the sensor topic
 		hrt_abstime now = 0;
