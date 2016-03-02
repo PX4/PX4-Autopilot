@@ -464,7 +464,7 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 0);
  * @group L1 Control
  *
  */
-PARAM_DEFINE_FLOAT(FW_FLARE_PMIN, 2.5f);
+PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
 
 /**
  * Flare, maximum pitch
@@ -478,7 +478,7 @@ PARAM_DEFINE_FLOAT(FW_FLARE_PMIN, 2.5f);
  * @group L1 Control
  *
  */
-PARAM_DEFINE_FLOAT(FW_FLARE_PMAX, 15.0f);
+PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
 
 /**
  * Landing airspeed scale factor
@@ -490,4 +490,4 @@ PARAM_DEFINE_FLOAT(FW_FLARE_PMAX, 15.0f);
  * @max 1.5
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_SCALE, 1.3f);
+PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
