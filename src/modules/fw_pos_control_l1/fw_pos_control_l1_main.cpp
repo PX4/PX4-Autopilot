@@ -586,7 +586,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_mTecs(),
 	_control_mode_current(FW_POSCTRL_MODE_OTHER)
 {
-	_nav_capabilities.turn_distance = 0.0f;
+	_nav_capabilities = {};
 
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
 	_parameter_handles.l1_damping = param_find("FW_L1_DAMPING");
@@ -1219,7 +1219,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
 
 	/* define altitude error */
-	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
+	float altitude_error = pos_sp_triplet.current.alt - _global_pos.alt;
 
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
@@ -1304,7 +1304,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
-			tecs_update_pitch_throttle(_pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
+			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
 						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
 						   _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 						   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
@@ -1322,15 +1322,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (_nav_capabilities.abort_landing == true) {
 				// if we entered loiter due to an aborted landing, demand
 				// altitude setpoint well above landing waypoint
-				alt_sp = _pos_sp_triplet.current.alt + 2.0f * _parameters.climbout_diff;
+				alt_sp = pos_sp_triplet.current.alt + 2.0f * _parameters.climbout_diff;
 
 			} else {
 				// use altitude given by wapoint
-				alt_sp = _pos_sp_triplet.current.alt;
+				alt_sp = pos_sp_triplet.current.alt;
 			}
 
 			if (in_takeoff_situation() ||
-			    ((_global_pos.alt < _pos_sp_triplet.current.alt + _parameters.climbout_diff)
+			    ((_global_pos.alt < pos_sp_triplet.current.alt + _parameters.climbout_diff)
 			     && _nav_capabilities.abort_landing == true)) {
 				/* limit roll motion to ensure enough lift */
 				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
@@ -1442,11 +1442,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					// wait for some time, maybe we will soon get a valid estimate
 					// until then just use the altitude of the landing waypoint
 					if (hrt_elapsed_time(&_time_started_landing) < 10 * 1000 * 1000) {
-						terrain_alt = _pos_sp_triplet.current.alt;
+						terrain_alt = pos_sp_triplet.current.alt;
 
 					} else {
 						// still no valid terrain, abort landing
-						terrain_alt = _pos_sp_triplet.current.alt;
+						terrain_alt = pos_sp_triplet.current.alt;
 						_nav_capabilities.abort_landing = true;
 					}
 
@@ -1465,13 +1465,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			} else {
 				// no terrain estimation, just use landing waypoint altitude
-				terrain_alt = _pos_sp_triplet.current.alt;
+				terrain_alt = pos_sp_triplet.current.alt;
 			}
 
 
 			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
-			float L_altitude_rel = _pos_sp_triplet.previous.valid ?
-					       _pos_sp_triplet.previous.alt - terrain_alt : 0.0f;
+			float L_altitude_rel = pos_sp_triplet.previous.valid ?
+					       pos_sp_triplet.previous.alt - terrain_alt : 0.0f;
 
 			float landing_slope_alt_rel_desired = landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance,
 							      bearing_lastwp_currwp, bearing_airplane_currwp);
@@ -1567,7 +1567,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				} else {
 					/* continue horizontally */
-					altitude_desired_rel =  _pos_sp_triplet.previous.valid ? L_altitude_rel :
+					altitude_desired_rel =  pos_sp_triplet.previous.valid ? L_altitude_rel :
 								_global_pos.alt - terrain_alt;
 				}
 
@@ -1619,7 +1619,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_parameters.pitch_limit_max);
 				float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
 
-				tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
+				tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
 							   calculate_target_airspeed(
 								   _runway_takeoff.getMinAirspeedScaling() * _parameters.airspeed_min),
 							   eas2tas,
@@ -1630,7 +1630,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							   _parameters.throttle_cruise,
 							   _runway_takeoff.climbout(),
 							   math::radians(_runway_takeoff.getMinPitch(
-									   _pos_sp_triplet.current.pitch_min,
+									   pos_sp_triplet.current.pitch_min,
 									   10.0f,
 									   _parameters.pitch_limit_min)),
 							   _global_pos.alt,
@@ -1697,7 +1697,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					 * meters */
 					if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
 						/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
-						tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
+						tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
 									   calculate_target_airspeed(1.3f * _parameters.airspeed_min),
 									   eas2tas,
 									   math::radians(_parameters.pitch_limit_min),
@@ -1705,7 +1705,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 									   _parameters.throttle_min, takeoff_throttle,
 									   _parameters.throttle_cruise,
 									   true,
-									   math::max(math::radians(_pos_sp_triplet.current.pitch_min),
+									   math::max(math::radians(pos_sp_triplet.current.pitch_min),
 										     math::radians(10.0f)),
 									   _global_pos.alt,
 									   ground_speed,
@@ -1717,7 +1717,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 										    math::radians(15.0f));
 
 					} else {
-						tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
+						tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
 									   calculate_target_airspeed(_parameters.airspeed_trim),
 									   eas2tas,
 									   math::radians(_parameters.pitch_limit_min),
