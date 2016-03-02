@@ -522,15 +522,13 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 							 &sphere_radius[cur_mag]);
 				
 				if (!PX4_ISFINITE(sphere_x[cur_mag]) || !PX4_ISFINITE(sphere_y[cur_mag]) || !PX4_ISFINITE(sphere_z[cur_mag])) {
-					mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: Please retry");
 					mavlink_and_console_log_emergency(mavlink_fd, "ERROR: Retry calibration (sphere NaN, #%u)", cur_mag);
 					result = calibrate_return_error;
 				}
 
-				if (sqrtf(sphere_x[cur_mag] * sphere_x[cur_mag] +
-					sphere_y[cur_mag] * sphere_y[cur_mag] + sphere_z[cur_mag] * sphere_z[cur_mag])
-					> MAG_MAX_OFFSET_LEN) {
-					mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: Replace %s", (internal[cur_mag]) ? "board" : "GPS unit");
+				if (fabsf(sphere_x[cur_mag]) > MAG_MAX_OFFSET_LEN ||
+					fabsf(sphere_y[cur_mag]) > MAG_MAX_OFFSET_LEN ||
+					fabsf(sphere_z[cur_mag]) > MAG_MAX_OFFSET_LEN) {
 					mavlink_and_console_log_emergency(mavlink_fd, "ERROR: Replace %s, fault in mag #%u", (internal[cur_mag]) ? "board" : "GPS unit", cur_mag);
 					mavlink_and_console_log_emergency(mavlink_fd, "Excessive offsets: %8.4f, %8.4f, %8.4f", (double)sphere_x[cur_mag],
 						(double)sphere_y[cur_mag], (double)sphere_z[cur_mag]);
