@@ -706,14 +706,12 @@ MulticopterPositionControl::reset_pos_sp()
 {
 	if (_reset_pos_sp) {
 		_reset_pos_sp = false;
-		if (_mode_auto) {
-			// in auto mode we are controlling position directly and we need to reset it such that the attitude setpoint is continuous
-			_pos_sp(0) = _pos(0) + (_vel(0) - PX4_R(_att_sp.R_body, 0, 2) * _att_sp.thrust / _params.vel_p(0)) / _params.pos_p(0);
-			_pos_sp(1) = _pos(1) + (_vel(1) - PX4_R(_att_sp.R_body, 1, 2) * _att_sp.thrust / _params.vel_p(1)) / _params.pos_p(1);
-		} else {
-			_pos_sp(0) = _pos(0);
-			_pos_sp(1) = _pos(1);
-		}
+
+		// we have logic in the main function which chooses the velocity setpoint such that the attitude setpoint is
+		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
+		// position in a special way. In position control mode the position will be reset anyway until the vehicle has reduced speed.
+		_pos_sp(0) = _pos(0);
+		_pos_sp(1) = _pos(1);
 	}
 }
 
@@ -721,13 +719,12 @@ void
 MulticopterPositionControl::reset_alt_sp()
 {
 	if (_reset_alt_sp) {
-		if (_mode_auto) {
-			// in auto mode we are controlling altitude directly and we need to reset it such that the attitude setpoint is continuous
-			_pos_sp(2) = _pos(2) + (_vel(2)) / _params.pos_p(2);
-		} else {
-			_pos_sp(2) = _pos(2);
-		}
 		_reset_alt_sp = false;
+
+		// we have logic in the main function which choosed the velocity setpoint such that the attitude setpoint is
+		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
+		// altitude in a special way
+		_pos_sp(2) = _pos(2);
 	}
 }
 
