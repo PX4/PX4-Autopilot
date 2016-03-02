@@ -1804,7 +1804,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* throttle limiting */
 		throttle_max = _parameters.throttle_max;
 
-		if (fabsf(_manual.z) < THROTTLE_THRESH) {
+		if (_vehicle_status.condition_landed && (fabsf(_manual.z) < THROTTLE_THRESH)) {
 			throttle_max = 0.0f;
 		}
 
@@ -1919,7 +1919,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* throttle limiting */
 		throttle_max = _parameters.throttle_max;
 
-		if (fabsf(_manual.z) < THROTTLE_THRESH) {
+		if (_vehicle_status.condition_landed && (fabsf(_manual.z) < THROTTLE_THRESH)) {
 			throttle_max = 0.0f;
 		}
 
