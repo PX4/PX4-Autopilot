@@ -768,9 +768,12 @@ void sdlog2_stop_log()
 		return;
 	}
 
-	logging_enabled = false;
-
+	/* disabling the logging will trigger the skipped count to increase,
+	 * so we take a local copy before interrupting the disk I/O.
+	 */
 	unsigned long skipped_count = log_msgs_skipped;
+
+	logging_enabled = false;
 
 	/* wake up write thread one last time */
 	pthread_mutex_lock(&logbuffer_mutex);
