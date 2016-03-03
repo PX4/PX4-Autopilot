@@ -198,12 +198,13 @@ void Ekf::calculateVehicleStatus()
 	}
 
 	// Transition to in-air occurs when armed and when altitude has increased sufficiently from the altitude at arming
-	if (!_control_status.flags.in_air && _control_status.flags.armed && (_state.pos(2) - _last_disarmed_posD) < -1.0f) {
+	bool in_air = _control_status.flags.armed && (_state.pos(2) - _last_disarmed_posD) < -1.0f;
+	if (!_control_status.flags.in_air && in_air) {
 		_control_status.flags.in_air = true;
 	}
 
-	// Transition to on-ground occurs when disarmed.
-	if (_control_status.flags.in_air && !_control_status.flags.armed) {
+	// Transition to on-ground occurs when disarmed or if the land detector indicated landed state
+	if (_control_status.flags.in_air && (!_control_status.flags.armed || !_in_air)) {
 		_control_status.flags.in_air = false;
 	}
 }
