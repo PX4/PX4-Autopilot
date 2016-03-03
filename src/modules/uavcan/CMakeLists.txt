@@ -33,6 +33,7 @@
 
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
 set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
+set(UAVCAN_LIBUAVCAN_PATH libuavcan CACHE PATH "path to libuavcan")
 
 string(TOUPPER "${OS}" OS_UPPER)
 add_definitions(
@@ -45,13 +46,13 @@ add_definitions(
 		-DUAVCAN_STM32_TIMER_NUMBER=5
 		)
 
-add_subdirectory(libuavcan EXCLUDE_FROM_ALL)
+add_subdirectory(${UAVCAN_LIBUAVCAN_PATH} libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan platforms__nuttx)
 
-include_directories(libuavcan/libuavcan/include)
-include_directories(libuavcan/libuavcan/include/dsdlc_generated)
-include_directories(libuavcan/libuavcan_drivers/posix/include)
-include_directories(libuavcan/libuavcan_drivers/stm32/driver/include)
+include_directories(${UAVCAN_LIBUAVCAN_PATH}/libuavcan/include)
+include_directories(${UAVCAN_LIBUAVCAN_PATH}/libuavcan/include/dsdlc_generated)
+include_directories(${UAVCAN_LIBUAVCAN_PATH}/libuavcan_drivers/posix/include)
+include_directories(${UAVCAN_LIBUAVCAN_PATH}/libuavcan_drivers/stm32/driver/include)
 
 px4_add_module(
 	MODULE modules__uavcan
