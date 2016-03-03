@@ -128,11 +128,13 @@
 
 #define PX4_EPOCH_SECS 1234567890L
 
-#define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
+#define LOGBUFFER_WRITE_AND_COUNT(_msg) pthread_mutex_lock(&logbuffer_mutex); \
+	if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \
 	} else { \
 		log_msgs_skipped++; \
-	}
+	} \
+	pthread_mutex_unlock(&logbuffer_mutex);
 
 #define SDLOG_MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
@@ -633,6 +635,8 @@ static void *logwriter_thread(void *arg)
 			pthread_cond_wait(&logbuffer_cond, &logbuffer_mutex);
 		}
 
+		pthread_mutex_lock(&logbuffer_mutex);
+
 		/* only get pointer to thread-safe data, do heavy I/O a few lines down */
 		int available = logbuffer_get_ptr(logbuf, &read_ptr, &is_part);
 
@@ -721,8 +725,8 @@ void sdlog2_start_log()
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&logwriter_attr, &param);
-	/* low priority, as this is expensive disk I/O */
-	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
+	/* low priority, as this is expensive disk I/O. */
+	param.sched_priority = SCHED_PRIORITY_DEFAULT - 5;
 	if (pthread_attr_setschedparam(&logwriter_attr, &param)) {
 		warnx("sdlog2: failed setting sched params");
 	}
@@ -766,6 +770,8 @@ void sdlog2_stop_log()
 
 	logging_enabled = false;
 
+	unsigned long skipped_count = log_msgs_skipped;
+
 	/* wake up write thread one last time */
 	pthread_mutex_lock(&logbuffer_mutex);
 	logwriter_should_exit = true;
@@ -802,7 +808,7 @@ void sdlog2_stop_log()
 	/* free log buffer */
 	logbuffer_free(&lb);
 
-	mavlink_and_console_log_info(mavlink_fd, "[blackbox] recording stopped");
+	mavlink_and_console_log_info(mavlink_fd, "[blackbox] stopped (%lu drops)", skipped_count);
 
 	sdlog2_status();
 }
@@ -1430,8 +1436,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		if (!logging_enabled) {
 			continue;
 		}
-
-		pthread_mutex_lock(&logbuffer_mutex);
 
 		/* write time stamp message */
 		log_msg.msg_type = LOG_TIME_MSG;
@@ -2116,6 +2120,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_CAMT.seq = buf.camera_trigger.seq;
 			LOGBUFFER_WRITE_AND_COUNT(CAMT);
 		}
+
+		pthread_mutex_lock(&logbuffer_mutex);
 
 		/* signal the other thread new data, but not yet unlock */
 		if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {
