@@ -74,7 +74,7 @@ set(config_module_list
 	# PX4 drivers
 	#
 	# TODO: make the GPS driver compile
-	#drivers/gps
+	drivers/gps
 
 	#
 	# Libraries
