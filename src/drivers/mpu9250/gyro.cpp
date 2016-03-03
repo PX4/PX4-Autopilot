@@ -65,6 +65,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
+#include "mag.h"
 #include "gyro.h"
 #include "mpu9250.h"
 

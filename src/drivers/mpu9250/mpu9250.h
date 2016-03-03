@@ -20,8 +20,8 @@ class MPU9250_gyro;
 class MPU9250 : public device::SPI
 {
 public:
-    MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device, enum Rotation rotation);
-    virtual ~MPU9250();
+	MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device, enum Rotation rotation);
+	virtual ~MPU9250();
 
 	virtual int		init();
 
@@ -36,35 +36,21 @@ public:
 	void			print_registers();
 
 	// deliberately cause a sensor error
-    void 			test_error();
-
-    // begin experimenting with the internal magnetometer
-    void set_passthrough(uint8_t reg, uint8_t size, uint8_t *out = NULL);
-    void passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size);
-    void passthrough_write(uint8_t reg, uint8_t val);
-    void read_block(uint8_t reg, uint8_t *val, uint8_t count);
-
-    void ak8963_read(void);
-    void ak8963_reset(void);
-    bool ak8963_setup(void);
-    bool ak8963_check_id(void);
+	void 			test_error();
 
 protected:
 	virtual int		probe();
 
-    friend class MPU9250_mag;
-    friend class MPU9250_gyro;
+	friend class MPU9250_mag;
+	friend class MPU9250_gyro;
 
-    virtual ssize_t		gyro_read(struct file *filp, char *buffer, size_t buflen);
-    virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
-
-    virtual ssize_t		mag_read(struct file *filp, char *buffer, size_t buflen);
-    virtual int		mag_ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		gyro_read(struct file *filp, char *buffer, size_t buflen);
+	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
 
 private:
-    MPU9250_gyro	*_gyro;
-    MPU9250_mag     *_mag;
-    uint8_t			_whoami;	/** whoami result */
+	MPU9250_gyro	*_gyro;
+	MPU9250_mag     *_mag;
+	uint8_t			_whoami;	/** whoami result */
 
 	struct hrt_call		_call;
 	unsigned		_call_interval;
@@ -78,25 +64,18 @@ private:
 	int			_accel_orb_class_instance;
 	int			_accel_class_instance;
 
-    ringbuffer::RingBuffer	*_gyro_reports;
+	ringbuffer::RingBuffer	*_gyro_reports;
 
-    struct gyro_scale	_gyro_scale;
-    float			_gyro_range_scale;
-    float			_gyro_range_rad_s;
+	struct gyro_scale	_gyro_scale;
+	float			_gyro_range_scale;
+	float			_gyro_range_rad_s;
 
-    ringbuffer::RingBuffer	*_mag_reports;
-
-    struct mag_scale	_mag_scale;
-    float			_mag_range_scale;
-    float			_mag_range_rad_s;
-
-    unsigned		_dlpf_freq;
+	unsigned		_dlpf_freq;
 
 	unsigned		_sample_rate;
 	perf_counter_t		_accel_reads;
-    perf_counter_t		_gyro_reads;
-    perf_counter_t		_mag_reads;
-    perf_counter_t		_sample_perf;
+	perf_counter_t		_gyro_reads;
+	perf_counter_t		_sample_perf;
 	perf_counter_t		_bad_transfers;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
@@ -110,16 +89,12 @@ private:
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
 	math::LowPassFilter2p	_accel_filter_z;
-    math::LowPassFilter2p	_gyro_filter_x;
-    math::LowPassFilter2p	_gyro_filter_y;
-    math::LowPassFilter2p	_gyro_filter_z;
-//    math::LowPassFilter2p	_mag_filter_x;
-//    math::LowPassFilter2p	_mag_filter_y;
-//    math::LowPassFilter2p	_mag_filter_z;
+	math::LowPassFilter2p	_gyro_filter_x;
+	math::LowPassFilter2p	_gyro_filter_y;
+	math::LowPassFilter2p	_gyro_filter_z;
 
 	Integrator		_accel_int;
-    Integrator		_gyro_int;
-//    Integrator		_mag_int;
+	Integrator		_gyro_int;
 
 	enum Rotation		_rotation;
 
@@ -135,13 +110,12 @@ private:
 	// last temperature reading for print_info()
 	float			_last_temperature;
 
+	bool check_null_data(uint32_t* data, uint8_t size);
+	bool check_duplicate(uint8_t* accel_data);
 	// keep last accel reading for duplicate detection
-	uint16_t		_last_accel[3];
-    bool			_got_duplicate;
-
-    // keep last magetometer reading for duplicate detection
-    uint16_t		_last_mag[3];
-    bool			_got_duplicate_mag;
+	uint8_t			_last_accel_data[6];
+//	uint16_t		_last_accel[3];
+	bool			_got_duplicate;
 
 	/**
 	 * Start automatic measurement.
@@ -177,7 +151,7 @@ private:
 	void			measure();
 
 	/**
-     * Read a register from the mpu
+	 * Read a register from the mpu
 	 *
 	 * @param		The register to read.
 	 * @return		The value that was read.
@@ -186,7 +160,7 @@ private:
 	uint16_t		read_reg16(unsigned reg);
 
 	/**
-     * Write a register in the mpu
+	 * Write a register in the mpu
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
@@ -194,7 +168,7 @@ private:
 	void			write_reg(unsigned reg, uint8_t value);
 
 	/**
-     * Modify a register in the mpu
+	 * Modify a register in the mpu
 	 *
 	 * Bits are cleared before bits are set.
 	 *
@@ -205,7 +179,7 @@ private:
 	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
 
 	/**
-     * Write a register in the mpu, updating _checked_values
+	 * Write a register in the mpu, updating _checked_values
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
@@ -213,7 +187,7 @@ private:
 	void			write_checked_reg(unsigned reg, uint8_t value);
 
 	/**
-     * Set the mpu measurement range.
+	 * Set the mpu measurement range.
 	 *
 	 * @param max_g		The maximum G value the range must support.
 	 * @return		OK if the value can be supported, -ERANGE otherwise.
@@ -221,7 +195,7 @@ private:
 	int			set_accel_range(unsigned max_g);
 
 	/**
-     * Swap a 16-bit value read from the mpu to native byte order.
+	 * Swap a 16-bit value read from the mpu to native byte order.
 	 */
 	uint16_t		swap16(uint16_t val) { return (val >> 8) | (val << 8);	}
 
@@ -246,21 +220,14 @@ private:
 	 */
 	int 			accel_self_test();
 
-    /**
-     * Gyro self test
-     *
-     * @return 0 on success, 1 on failure
-     */
-    int 			gyro_self_test();
+	/**
+	 * Gyro self test
+	 *
+	 * @return 0 on success, 1 on failure
+	 */
+	int 			gyro_self_test();
 
-    /**
-     * Magnetometer self test
-     *
-     * @return 0 on success, 1 on failure
-     */
-    int 			mag_self_test();
-
-    /*
+	/*
 	  set low pass filter frequency
 	 */
 	void _set_dlpf_filter(uint16_t frequency_hz);
@@ -276,22 +243,12 @@ private:
 	void check_registers(void);
 
 	/* do not allow to copy this class due to pointer data members */
-    MPU9250(const MPU9250 &);
-    MPU9250 operator=(const MPU9250 &);
+	MPU9250(const MPU9250 &);
+	MPU9250 operator=(const MPU9250 &);
 
 #pragma pack(push, 1)
-    struct ak8963_regs {
-        uint8_t id;
-        uint8_t info;
-        uint8_t st1;
-        int16_t x;
-        int16_t y;
-        int16_t z;
-        uint8_t st2;
-    };
-
 	/**
-     * Report conversation within the mpu, including command byte and
+	 * Report conversation within the mpu, including command byte and
 	 * interrupt status.
 	 */
 	struct MPUReport {
@@ -301,14 +258,10 @@ private:
 		uint8_t		accel_y[2];
 		uint8_t		accel_z[2];
 		uint8_t		temp[2];
-        uint8_t		gyro_x[2];
-        uint8_t		gyro_y[2];
-        uint8_t		gyro_z[2];
-//        uint8_t		mag_x[2];
-//        uint8_t		mag_y[2];
-//        uint8_t		mag_z[2];
-        struct ak8963_regs mag;
-    };
+		uint8_t		gyro_x[2];
+		uint8_t		gyro_y[2];
+		uint8_t		gyro_z[2];
+		struct ak8963_regs mag;
+	};
 #pragma pack(pop)
 };
-

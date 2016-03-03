@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,8 @@
  *
  * Driver for the Invensense mpu9250 connected via SPI.
  *
- * @author Andrew Tridgell
+ * @authors Andrew Tridgell
+ *          Robert Dickenson
  *
  * based on the mpu6000 driver
  */
@@ -77,6 +78,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
+#include "mag.h"
 #include "gyro.h"
 #include "mpu9250.h"
 
@@ -120,13 +122,13 @@ void
 start(bool external_bus, enum Rotation rotation)
 {
 	int fd;
-    MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 	const char *path_accel = external_bus ? MPU_DEVICE_PATH_ACCEL_EXT : MPU_DEVICE_PATH_ACCEL;
-    const char *path_gyro  = external_bus ? MPU_DEVICE_PATH_GYRO_EXT : MPU_DEVICE_PATH_GYRO;
-    const char *path_mag   = external_bus ? MPU_DEVICE_PATH_MAG_EXT : MPU_DEVICE_PATH_MAG;
+	const char *path_gyro  = external_bus ? MPU_DEVICE_PATH_GYRO_EXT : MPU_DEVICE_PATH_GYRO;
+	const char *path_mag   = external_bus ? MPU_DEVICE_PATH_MAG_EXT : MPU_DEVICE_PATH_MAG;
 
 	if (*g_dev_ptr != nullptr)
-		/* if already started, the still command succeeded */
+	/* if already started, the still command succeeded */
 	{
 		errx(0, "already started");
 	}
@@ -134,13 +136,13 @@ start(bool external_bus, enum Rotation rotation)
 	/* create the driver */
 	if (external_bus) {
 #ifdef PX4_SPI_BUS_EXT
-        *g_dev_ptr = new MPU9250(PX4_SPI_BUS_EXT, path_accel, path_gyro, path_mag, (spi_dev_e)PX4_SPIDEV_EXT_MPU, rotation);
+		*g_dev_ptr = new MPU9250(PX4_SPI_BUS_EXT, path_accel, path_gyro, path_mag, (spi_dev_e)PX4_SPIDEV_EXT_MPU, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif
 
 	} else {
-        *g_dev_ptr = new MPU9250(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, path_mag, (spi_dev_e)PX4_SPIDEV_MPU, rotation);
+		*g_dev_ptr = new MPU9250(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, path_mag, (spi_dev_e)PX4_SPIDEV_MPU, rotation);
 	}
 
 	if (*g_dev_ptr == nullptr) {
@@ -178,7 +180,7 @@ fail:
 void
 stop(bool external_bus)
 {
-    MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
 	if (*g_dev_ptr != nullptr) {
 		delete *g_dev_ptr;
@@ -201,35 +203,34 @@ void
 test(bool external_bus)
 {
 	const char *path_accel = external_bus ? MPU_DEVICE_PATH_ACCEL_EXT : MPU_DEVICE_PATH_ACCEL;
-    const char *path_gyro  = external_bus ? MPU_DEVICE_PATH_GYRO_EXT : MPU_DEVICE_PATH_GYRO;
-    const char *path_mag   = external_bus ? MPU_DEVICE_PATH_MAG_EXT : MPU_DEVICE_PATH_MAG;
-    accel_report a_report;
-    gyro_report g_report;
-    mag_report m_report;
-    ssize_t sz;
+	const char *path_gyro  = external_bus ? MPU_DEVICE_PATH_GYRO_EXT : MPU_DEVICE_PATH_GYRO;
+	const char *path_mag   = external_bus ? MPU_DEVICE_PATH_MAG_EXT : MPU_DEVICE_PATH_MAG;
+	accel_report a_report;
+	gyro_report g_report;
+	mag_report m_report;
+	ssize_t sz;
 
 	/* get the driver */
 	int fd = open(path_accel, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'm start')",
-		    path_accel);
+		err(1, "%s open failed (try 'm start')", path_accel);
 
-    /* get the driver */
-    int fd_gyro = open(path_gyro, O_RDONLY);
+	/* get the driver */
+	int fd_gyro = open(path_gyro, O_RDONLY);
 
-    if (fd_gyro < 0) {
-        err(1, "%s open failed", path_gyro);
-    }
+	if (fd_gyro < 0) {
+		err(1, "%s open failed", path_gyro);
+	}
 
-    /* get the driver */
-    int fd_mag = open(path_mag, O_RDONLY);
+	/* get the driver */
+	int fd_mag = open(path_mag, O_RDONLY);
 
-    if (fd_mag < 0) {
-        err(1, "%s open failed", path_mag);
-    }
+	if (fd_mag < 0) {
+		err(1, "%s open failed", path_mag);
+	}
 
-    /* reset to manual polling */
+	/* reset to manual polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
 		err(1, "reset to manual polling");
 	}
@@ -273,31 +274,31 @@ test(bool external_bus)
 	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
 	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
-    /* do a simple demand read */
-    sz = read(fd_mag, &m_report, sizeof(m_report));
+	/* do a simple demand read */
+	sz = read(fd_mag, &m_report, sizeof(m_report));
 
-    if (sz != sizeof(m_report)) {
-        warnx("ret: %d, expected: %d", sz, sizeof(m_report));
-        err(1, "immediate mag read failed");
-    }
+	if (sz != sizeof(m_report)) {
+		warnx("ret: %d, expected: %d", sz, sizeof(m_report));
+		err(1, "immediate mag read failed");
+	}
 
-    warnx("mag x: \t% 9.5f\trad/s", (double)m_report.x);
-    warnx("mag y: \t% 9.5f\trad/s", (double)m_report.y);
-    warnx("mag z: \t% 9.5f\trad/s", (double)m_report.z);
-    warnx("mag x: \t%d\traw", (int)m_report.x_raw);
-    warnx("mag y: \t%d\traw", (int)m_report.y_raw);
-    warnx("mag z: \t%d\traw", (int)m_report.z_raw);
-//    warnx("mag range: %8.4f rad/s (%d deg/s)", (double)m_report.range_rad_s,
-//          (int)((m_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
+	warnx("mag x: \t% 9.5f\trad/s", (double)m_report.x);
+	warnx("mag y: \t% 9.5f\trad/s", (double)m_report.y);
+	warnx("mag z: \t% 9.5f\trad/s", (double)m_report.z);
+	warnx("mag x: \t%d\traw", (int)m_report.x_raw);
+	warnx("mag y: \t%d\traw", (int)m_report.y_raw);
+	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
+//	warnx("mag range: %8.4f rad/s (%d deg/s)", (double)m_report.range_rad_s,
+//		(int)((m_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
-    /* reset to default polling */
+	/* reset to default polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		err(1, "reset to default polling");
 	}
 
 	close(fd);
-    close(fd_gyro);
-    close(fd_mag);
+	close(fd_gyro);
+	close(fd_mag);
 
 	/* XXX add poll-rate tests here too */
 
@@ -343,7 +344,6 @@ info(bool external_bus)
 		errx(1, "driver not running");
 	}
 
-	printf("state @ %p\n", *g_dev_ptr);
 	(*g_dev_ptr)->print_info();
 
 	exit(0);
@@ -361,7 +361,6 @@ regdump(bool external_bus)
 		errx(1, "driver not running");
 	}
 
-	printf("regdump @ %p\n", *g_dev_ptr);
 	(*g_dev_ptr)->print_registers();
 
 	exit(0);
@@ -385,18 +384,6 @@ testerror(bool external_bus)
 }
 
 void
-w(bool external_bus)
-{
-    MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
-
-    if (*g_dev_ptr == nullptr) {
-        errx(1, "driver not running");
-    }
-    (*g_dev_ptr)->ak8963_read();
-    exit(0);
-}
-
-void
 usage()
 {
     warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror', 'mag'");
@@ -406,9 +393,6 @@ usage()
 }
 
 } // namespace
-
-extern int mpu_report_valid_mag;
-extern int mpu_report_invalid_mag;
 
 int
 mpu9250_main(int argc, char *argv[])
@@ -440,54 +424,45 @@ mpu9250_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-        mpu9250::start(external_bus, rotation);
+		mpu9250::start(external_bus, rotation);
 	}
 
 	if (!strcmp(verb, "stop")) {
-        mpu9250::stop(external_bus);
+		mpu9250::stop(external_bus);
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(verb, "test")) {
-        mpu9250::test(external_bus);
+		mpu9250::test(external_bus);
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset")) {
-        mpu9250::reset(external_bus);
+		mpu9250::reset(external_bus);
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info")) {
-        mpu9250::info(external_bus);
+		mpu9250::info(external_bus);
 	}
 
 	/*
 	 * Print register information.
 	 */
 	if (!strcmp(verb, "regdump")) {
-        mpu9250::regdump(external_bus);
+		mpu9250::regdump(external_bus);
 	}
 
-    if (!strcmp(verb, "testerror")) {
-        mpu9250::testerror(external_bus);
-    }
+	if (!strcmp(verb, "testerror")) {
+		mpu9250::testerror(external_bus);
+	}
 
-    if (!strcmp(verb, "w")) {
-        mpu9250::w(external_bus);
-    }
-
-    if (!strcmp(verb, "g")) {
-        printf("valid %u invalid %u\n", mpu_report_valid_mag, mpu_report_invalid_mag);
-        exit(0);
-    }
-
-    mpu9250::usage();
+	mpu9250::usage();
 	exit(1);
 }

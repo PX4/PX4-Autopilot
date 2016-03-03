@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Andrew Tridgell
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Author: Robert Dickenson
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,12 @@
 
 /**
  * @file mag.c
+ *
+ * Utility for viewing magnetometer ORB publications, specifically for
+ * development work on the Invensense mpu9250 connected via SPI.
+ *
+ * @author Robert Dickenson
+ *
  */
 
 #include <px4_config.h>
@@ -68,23 +74,17 @@ struct sensor_mag_s {
 };
  */
 
-__EXPORT int mag_main(int argc, char *argv[]);
+int mag1(void);
+int mag2(void);
 
 int
-mag_main(int argc, char *argv[])
+mag1(void)
 {
-	if (argc < 2) {
-		printf("Usage: mag [update rate 1 - 10 hertz]\n");
-		exit(1);
-	}
-	int rate = atoi(argv[1]);
-	printf("mag %u\n", rate);
-	if (rate > 10 || rate < 1) {
-		rate = 1;
-	}
-
+	int16_t x_raw = 0;
+	int16_t y_raw = 0;
+	int16_t z_raw = 0;
+	struct mag_report mrb;
 	int mag_fd = orb_subscribe(ORB_ID(sensor_mag));
-	struct mag_report mrp;
 
 	while (true) {
 
@@ -92,35 +92,154 @@ mag_main(int argc, char *argv[])
 		orb_check(mag_fd, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(sensor_mag), mag_fd, &mrp);
+			orb_copy(ORB_ID(sensor_mag), mag_fd, &mrb);
 
-			printf("magxyz %d %d %d\n", mrp.x_raw, mrp.y_raw, mrp.z_raw);
-		}
-//		usleep(100000);
+//			printf("magxyz %d %d %d ", mrb.x_raw, mrb.y_raw, mrb.z_raw);
+			printf("magxyz %8.4f %8.4f %8.4f ", (double)mrb.x, (double)mrb.y, (double)mrb.z);
 
-		/* Sleep 100 ms waiting for user input five times ~ 1s */
-		for (int k = 0; k < (11 - rate); k++) {
-			struct pollfd fds;
-			int ret;
-			fds.fd = 0; /* stdin */
-			fds.events = POLLIN;
-			ret = poll(&fds, 1, 0);
-			if (ret > 0) {
-				char c;
+			uint8_t cnt0 = (mrb.error_count & 0x000000FF00000000) >> 32;
+			uint8_t cnt1 = (mrb.error_count & 0x00000000FF000000) >> 24;
+			uint8_t cnt2 = (mrb.error_count & 0x0000000000FF0000) >> 16;
+			uint8_t cnt3 = (mrb.error_count & 0x000000000000FF00) >> 8;
+			uint8_t cnt4 = (mrb.error_count & 0x00000000000000FF);
+			printf("[%x %x %x %x %x] ", cnt0, cnt1, cnt2, cnt3, cnt4);
 
-				read(0, &c, 1);
-				switch (c) {
-				case 0x03: // ctrl-c
-				case 0x1b: // esc
-				case 'c':
-				case 'q':
-					return OK;
-					/* not reached */
-				}
+			uint32_t mag_interval = (mrb.error_count & 0xFFFFFF0000000000) >> 40;
+			printf("%u  ", mag_interval);
+			if ((mag_interval) < 5000) {
+				printf("* ");
 			}
-			usleep(100000);
+			if ((mag_interval) > 15000) {
+				printf("! ");
+			}
+
+			if (mrb.x_raw == x_raw && mrb.y_raw == y_raw && mrb.z_raw == z_raw ) {
+				printf("dup "); // duplicate magnetometer xyz data
+			}
+			x_raw = mrb.x_raw;
+			y_raw = mrb.y_raw;
+			z_raw = mrb.z_raw;
+			printf("\n");
 		}
 
+		struct pollfd fds;
+		int ret;
+		fds.fd = 0; /* stdin */
+		fds.events = POLLIN;
+		ret = poll(&fds, 1, 0);
+		if (ret > 0) {
+			char c;
+
+			read(0, &c, 1);
+			switch (c) {
+			case 0x03: // ctrl-c
+			case 0x1b: // esc
+			case 'c':
+			case 'q':
+				return OK;
+			}
+		}
+	}
+	return OK;
+}
+
+#define MAX_SAMPLES 100
+static struct mag_report mrb[MAX_SAMPLES];
+static uint64_t last_timestamp;
+
+int
+mag2(void)
+{
+	int i = 0;
+
+	int mag_fd = orb_subscribe(ORB_ID(sensor_mag));
+
+	while (i < MAX_SAMPLES) {
+
+		bool updated = false;
+		orb_check(mag_fd, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(sensor_mag), mag_fd, &mrb[i++]);
+		}
+/*
+		struct pollfd fds;
+		int ret;
+		fds.fd = 0; // stdin
+		fds.events = POLLIN;
+		ret = poll(&fds, 1, 0);
+		if (ret > 0) {
+			char c;
+			read(0, &c, 1);
+			switch (c) {
+			case 0x03: // ctrl-c
+			case 0x1b: // esc
+			case 'c':
+			case 'q':
+				return OK;
+			}
+		}
+ */
+	}
+
+	uint32_t total_time = 0;
+	last_timestamp = mrb[0].timestamp;
+
+	for (i = 0; i < MAX_SAMPLES; i++) {
+
+//			printf("magxyz %d %d %d ", mrb[i].x_raw, mrb[i].y_raw, mrb[i].z_raw);
+			printf("magxyz %8.4f %8.4f %8.4f ", (double)mrb[i].x, (double)mrb[i].y, (double)mrb[i].z);
+
+			uint8_t cnt0 = (mrb[i].error_count & 0x000000FF00000000) >> 32;
+			uint8_t cnt1 = (mrb[i].error_count & 0x00000000FF000000) >> 24;
+			uint8_t cnt2 = (mrb[i].error_count & 0x0000000000FF0000) >> 16;
+			uint8_t cnt3 = (mrb[i].error_count & 0x000000000000FF00) >> 8;
+			uint8_t cnt4 = (mrb[i].error_count & 0x00000000000000FF);
+			printf("[%x %x %x %x %x] ", cnt0, cnt1, cnt2, cnt3, cnt4);
+
+			uint32_t mag_interval = (mrb[i].error_count & 0xFFFFFF0000000000) >> 40;
+			printf("%u  ", mag_interval);
+			if ((mag_interval) < 5000) {
+				printf("* ");
+			}
+			if ((mag_interval) > 15000) {
+				printf("! ");
+			}
+
+			uint32_t orb_interval = mrb[i].timestamp - last_timestamp;
+			if (orb_interval != mag_interval) {
+				printf("orb ", orb_interval); // missed some orb publications
+			}
+			last_timestamp = mrb[i].timestamp;
+			total_time += orb_interval;
+
+			if (mrb[i].x_raw == mrb[i-1].x_raw && mrb[i].y_raw == mrb[i-1].y_raw && mrb[i].z_raw == mrb[i-1].z_raw ) {
+				printf("dup "); // duplicate magnetometer xyz data
+			}
+
+			printf("\n");
+	}
+	double t = (double)total_time / 1000000.0;
+	printf("total_time: %.3f s\n", t);
+	return OK;
+}
+
+
+__EXPORT int mag_main(int argc, char *argv[]);
+
+int
+mag_main(int argc, char *argv[])
+{
+	if (argc < 2) {
+		mag1();
+	} else {
+		int reps = atoi(argv[1]);
+		if (reps > 20 || reps < 1) {
+			reps = 1;
+		}
+		while (reps--) {
+			mag2();
+		}
 	}
 	return OK;
 }

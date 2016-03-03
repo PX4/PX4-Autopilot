@@ -84,8 +84,6 @@
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
-
-
 // MPU 9250 registers
 #define MPUREG_WHOAMI			0x75
 #define MPUREG_SMPLRT_DIV		0x19
@@ -201,11 +199,6 @@
 #define MPU9250_TIMER_REDUCTION				200
 
 
-int mpu_report_valid_mag = 0;
-int mpu_report_invalid_mag = 0;
-
-
-
 /*
   list of registers that will be checked in check_registers(). Note
   that MPUREG_PRODUCT_ID must be first in the list.
@@ -242,15 +235,10 @@ MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, const c
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
-	_mag_reports(nullptr),
-	_mag_scale{},
-	_mag_range_scale(0.0f),
-	_mag_range_rad_s(0.0f),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_sample_rate(1000),
 	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_accel_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
-	_mag_reads(perf_alloc(PC_COUNT, "mpu9250_mag_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu9250_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "mpu9250_bad_registers")),
@@ -266,18 +254,14 @@ MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, const c
 	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-//	_mag_filter_x(MPU9250_MAG_DEFAULT_RATE, MPU9250_MAG_DEFAULT_DRIVER_FILTER_FREQ),
-//	_mag_filter_y(MPU9250_MAG_DEFAULT_RATE, MPU9250_MAG_DEFAULT_DRIVER_FILTER_FREQ),
-//	_mag_filter_z(MPU9250_MAG_DEFAULT_RATE, MPU9250_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_int(1000000 / MPU9250_ACCEL_MAX_OUTPUT_RATE),
 	_gyro_int(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE, true),
-//	_mag_int(1000000 / MPU9250_MAG_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_checked_next(0),
 	_last_temperature(0),
-	_last_accel{},
-	_got_duplicate(false),
-	_got_duplicate_mag(false)
+//	_last_accel{},
+	_last_accel_data{},
+	_got_duplicate(false)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -308,14 +292,6 @@ MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, const c
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
 
-	// default mag scale factors
-	_mag_scale.x_offset = 0;
-	_mag_scale.x_scale  = 1.0f;
-	_mag_scale.y_offset = 0;
-	_mag_scale.y_scale  = 1.0f;
-	_mag_scale.z_offset = 0;
-	_mag_scale.z_scale  = 1.0f;
-
 	memset(&_call, 0, sizeof(_call));
 }
 
@@ -339,10 +315,6 @@ MPU9250::~MPU9250()
 		delete _gyro_reports;
 	}
 
-	if (_mag_reports != nullptr) {
-		delete _mag_reports;
-	}
-
 	if (_accel_class_instance != -1) {
 		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
 	}
@@ -351,7 +323,6 @@ MPU9250::~MPU9250()
 	perf_free(_sample_perf);
 	perf_free(_accel_reads);
 	perf_free(_gyro_reads);
-	perf_free(_mag_reads);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
 	perf_free(_good_transfers);
@@ -392,12 +363,6 @@ MPU9250::init()
 		goto out;
 	}
 
-	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
-
-	if (_mag_reports == nullptr) {
-		goto out;
-	}
-
 	if (reset() != OK) {
 		goto out;
 	}
@@ -417,23 +382,21 @@ MPU9250::init()
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
 
-	_mag_scale.x_offset = 0;
-	_mag_scale.x_scale  = 1.0f;
-	_mag_scale.y_offset = 0;
-	_mag_scale.y_scale  = 1.0f;
-	_mag_scale.z_offset = 0;
-	_mag_scale.z_scale  = 1.0f;
-
-
-	ak8963_setup();
-
-
 	/* do CDev init for the gyro device node, keep it optional */
 	ret = _gyro->init();
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
 		DEVICE_DEBUG("gyro init failed");
+		return ret;
+	}
+
+	/* do CDev init for the gyro device node, keep it optional */
+	ret = _mag->init();
+
+	/* if probe/setup failed, bail now */
+	if (ret != OK) {
+		DEVICE_DEBUG("mag init failed");
 		return ret;
 	}
 
@@ -453,7 +416,6 @@ MPU9250::init()
 		warnx("ADVERT FAIL");
 	}
 
-
 	/* advertise sensor topic, measure manually to initialize valid report */
 	struct gyro_report grp;
 	_gyro_reports->get(&grp);
@@ -465,21 +427,7 @@ MPU9250::init()
 		warnx("ADVERT FAIL");
 	}
 
-	/* advertise sensor topic, measure manually to initialize valid report */
-	struct mag_report mrp;
-	_mag_reports->get(&mrp);
-
-	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-			   &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
-
-//			   &_mag->_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
-
-	if (_mag->_mag_topic == nullptr) {
-		warnx("ADVERT FAIL");
-	}
-
 out:
-	printf("MPU9250::init() completed\n");
 	return ret;
 }
 
@@ -782,15 +730,6 @@ MPU9250::gyro_self_test()
 	return 0;
 }
 
-int
-MPU9250::mag_self_test()
-{
-	if (self_test()) {
-		return 1;
-	}
-	return 0;
-}
-
 /*
   deliberately trigger an error in the sensor to trigger recovery
  */
@@ -908,7 +847,7 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 					_call_interval = ticks;
 
 					/*
-					  set call interval faster then the sample time. We
+					  set call interval faster than the sample time. We
 					  then detect when we have duplicate samples and reject
 					  them. This prevents aliasing due to a beat between the
 					  stm32 clock and the mpu9250 clock
@@ -999,18 +938,15 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return accel_self_test();
 
 #ifdef ACCELIOCSHWLOWPASS
-
 	case ACCELIOCSHWLOWPASS:
 		_set_dlpf_filter(arg);
 		return OK;
 #endif
 
 #ifdef ACCELIOCGHWLOWPASS
-
 	case ACCELIOCGHWLOWPASS:
 		return _dlpf_freq;
 #endif
-
 
 	default:
 		/* give it to the superclass */
@@ -1091,14 +1027,12 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return gyro_self_test();
 
 #ifdef GYROIOCSHWLOWPASS
-
 	case GYROIOCSHWLOWPASS:
 		_set_dlpf_filter(arg);
 		return OK;
 #endif
 
 #ifdef GYROIOCGHWLOWPASS
-
 	case GYROIOCGHWLOWPASS:
 		return _dlpf_freq;
 #endif
@@ -1107,139 +1041,6 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	/* give it to the superclass */
 	return SPI::ioctl(filp, cmd, arg);
 	}
-}
-
-ssize_t
-MPU9250::mag_read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(mag_report);
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
-	if (_call_interval == 0) {
-		_mag_reports->flush();
-		measure();
-	}
-
-	/* if no data, error (we could block here) */
-	if (_mag_reports->empty()) {
-		return -EAGAIN;
-	}
-
-	perf_count(_mag_reads);
-
-	/* copy reports out of our buffer to the caller */
-	mag_report *mrp = reinterpret_cast<mag_report *>(buffer);
-	int transferred = 0;
-
-	while (count--) {
-		if (!_mag_reports->get(mrp)) {
-			break;
-		}
-		transferred++;
-		mrp++;
-	}
-
-	/* return the number of bytes transferred */
-	return (transferred * sizeof(mag_report));
-}
-
-int
-MPU9250::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-    switch (cmd) {
-
-    /* these are shared with the accel side */
-    case SENSORIOCSPOLLRATE:
-    case SENSORIOCGPOLLRATE:
-    case SENSORIOCRESET:
-        return ioctl(filp, cmd, arg);
-
-    case SENSORIOCSQUEUEDEPTH: {
-            /* lower bound is mandatory, upper bound is a sanity check */
-            if ((arg < 1) || (arg > 100)) {
-                return -EINVAL;
-            }
-
-            irqstate_t flags = irqsave();
-
-            if (!_mag_reports->resize(arg)) {
-                irqrestore(flags);
-                return -ENOMEM;
-            }
-
-            irqrestore(flags);
-
-            return OK;
-        }
-
-    case SENSORIOCGQUEUEDEPTH:
-        return _mag_reports->size();
-
-    case MAGIOCGSAMPLERATE:
-		printf("MAGIOCGSAMPLERATE\n");
-		return _sample_rate;
-
-    case MAGIOCSSAMPLERATE:
-		printf("MAGIOCSSAMPLERATE\n");
-//        _set_sample_rate(arg); // todo: RobD
-        return OK;
-/*
-    case MAGIOCGLOWPASS:
-        return _mag_filter_x.get_cutoff_freq();
-
-    case MAGIOCSLOWPASS:
-        // set software filtering
-        _mag_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-        _mag_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-        _mag_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-        return OK;
- */
-    case MAGIOCSSCALE:
-        /* copy scale in */
-        memcpy(&_mag_scale, (struct mag_scale *) arg, sizeof(_mag_scale));
-        return OK;
-
-    case MAGIOCGSCALE:
-        /* copy scale out */
-        memcpy((struct mag_scale *) arg, &_mag_scale, sizeof(_mag_scale));
-        return OK;
-
-    case MAGIOCSRANGE:
-        /* XXX not implemented */
-        // XXX change these two values on set:
-        // _mag_range_scale = xx
-        // _mag_range_rad_s = xx
-        return -EINVAL;
-
-    case MAGIOCGRANGE:
-        return (unsigned long)(_mag_range_rad_s * 180.0f / M_PI_F + 0.5f);
-
-    case MAGIOCSELFTEST:
-		printf("MAGIOCSELFTEST\n");
-        return mag_self_test();
-
-#ifdef MAGIOCSHWLOWPASS
-
-    case MAGIOCSHWLOWPASS:
-//        _set_dlpf_filter(arg);
-        return OK;
-#endif
-
-#ifdef MAGIOCGHWLOWPASS
-
-    case MAGIOCGHWLOWPASS:
-        return _dlpf_freq;
-#endif
-
-    default:
-        /* give it to the superclass */
-        return SPI::ioctl(filp, cmd, arg);
-    }
 }
 
 uint8_t
@@ -1350,6 +1151,11 @@ MPU9250::start()
 	/* discard any stale data in the buffers */
 	_accel_reports->flush();
 	_gyro_reports->flush();
+	_mag->_mag_reports->flush();
+
+// void hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg);
+
+	printf("MPU9250::start() - polling at %u\n", _call_interval - MPU9250_TIMER_REDUCTION);
 
 	/* start polling at the specified rate */
 	hrt_call_every(&_call,
@@ -1432,6 +1238,46 @@ MPU9250::check_registers(void)
 	_checked_next = (_checked_next + 1) % MPU9250_NUM_CHECKED_REGISTERS;
 }
 
+bool MPU9250::check_null_data(uint32_t* data, uint8_t size)
+{
+	while (size--) {
+		if (*data++) {
+			perf_count(_good_transfers);
+			return false;
+		}
+	}
+	// all zero data - probably a SPI bus error
+	perf_count(_bad_transfers);
+	perf_end(_sample_perf);
+	// note that we don't call reset() here as a reset()
+	// costs 20ms with interrupts disabled. That means if
+	// the mpu6k does go bad it would cause a FMU failure,
+	// regardless of whether another sensor is available,
+	return true;
+}
+
+bool MPU9250::check_duplicate(uint8_t* accel_data)
+{
+	/*
+	   see if this is duplicate accelerometer data. Note that we
+	   can't use the data ready interrupt status bit in the status
+	   register as that also goes high on new gyro data, and when
+	   we run with BITS_DLPF_CFG_256HZ_NOLPF2 the gyro is being
+	   sampled at 8kHz, so we would incorrectly think we have new
+	   data when we are in fact getting duplicate accelerometer data.
+	*/
+	if (!_got_duplicate && memcmp(accel_data, &_last_accel_data, sizeof(_last_accel_data)) == 0) {
+		// it isn't new data - wait for next timer
+		perf_end(_sample_perf);
+		perf_count(_duplicates);
+		_got_duplicate = true;
+	} else {
+		memcpy(&_last_accel_data, accel_data, sizeof(_last_accel_data));
+		_got_duplicate = false;
+	}
+	return _got_duplicate;
+}
+
 void
 MPU9250::measure()
 {
@@ -1450,9 +1296,6 @@ MPU9250::measure()
 		int16_t		gyro_x;
 		int16_t		gyro_y;
 		int16_t		gyro_z;
-		int16_t		mag_x;
-		int16_t		mag_y;
-		int16_t		mag_z;
 	} report;
 
 	/* start measuring */
@@ -1472,62 +1315,32 @@ MPU9250::measure()
 
 	check_registers();
 
-	/*
-	   see if this is duplicate accelerometer data. Note that we
-	   can't use the data ready interrupt status bit in the status
-	   register as that also goes high on new gyro data, and when
-	   we run with BITS_DLPF_CFG_256HZ_NOLPF2 the gyro is being
-	   sampled at 8kHz, so we would incorrectly think we have new
-	   data when we are in fact getting duplicate accelerometer data.
-	*/
-	if (!_got_duplicate && memcmp(&mpu_report.accel_x[0], &_last_accel[0], 6) == 0) {
-		// it isn't new data - wait for next timer
-		perf_end(_sample_perf);
-		perf_count(_duplicates);
-		_got_duplicate = true;
+	if (check_duplicate(&mpu_report.accel_x[0])) {
+extern uint8_t cnt0;
+cnt0++;
 		return;
 	}
 
-	memcpy(&_last_accel[0], &mpu_report.accel_x[0], 6);
-	_got_duplicate = false;
+	_mag->measure(mpu_report.mag);
 
 	/*
 	 * Convert from big to little endian
 	 */
-
 	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
 	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
 	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+	report.temp    = int16_t_from_bytes(mpu_report.temp);
+	report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
+	report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
+	report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
 
-	report.temp = int16_t_from_bytes(mpu_report.temp);
-
-	report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
-	report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
-	report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);
-
-	if (report.accel_x == 0 &&
-	    report.accel_y == 0 &&
-	    report.accel_z == 0 &&
-	    report.temp == 0 &&
-	    report.gyro_x == 0 &&
-	    report.gyro_y == 0 &&
-	    report.gyro_z == 0) {
-		// all zero data - probably a SPI bus error
-		perf_count(_bad_transfers);
-		perf_end(_sample_perf);
-		// note that we don't call reset() here as a reset()
-		// costs 20ms with interrupts disabled. That means if
-		// the mpu6k does go bad it would cause a FMU failure,
-		// regardless of whether another sensor is available,
+	if (check_null_data((uint32_t*)&report, sizeof(report) / 4)) {
 		return;
 	}
 
-	perf_count(_good_transfers);
-
 	if (_register_wait != 0) {
-		// we are waiting for some good transfers before using
-		// the sensor again. We still increment
-		// _good_transfers, but don't return any data yet
+		// we are waiting for some good transfers before using the sensor again
+		// We still increment _good_transfers, but don't return any data yet
 		_register_wait--;
 		return;
 	}
@@ -1554,12 +1367,11 @@ MPU9250::measure()
 	 */
 	accel_report	arb;
 	gyro_report		grb;
-	mag_report		mrb;
 
 	/*
 	 * Adjust and scale results to m/s^2.
 	 */
-	mrb.timestamp = grb.timestamp = arb.timestamp = hrt_absolute_time();
+	grb.timestamp = arb.timestamp = hrt_absolute_time();
 
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
@@ -1581,7 +1393,6 @@ MPU9250::measure()
 	 *	 	  the offset is 74 from the origin and subtracting
 	 *		  74 from all measurements centers them around zero.
 	 */
-
 
 	/* NOTE: Axes have been swapped to match the board a few lines above. */
 
@@ -1612,15 +1423,13 @@ MPU9250::measure()
 	arb.y_integral = aval_integrated(1);
 	arb.z_integral = aval_integrated(2);
 
-	arb.scaling = _accel_range_scale;
+	arb.scaling    = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
 	_last_temperature = (report.temp) / 361.0f + 35.0f;
 
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
-
-////////////////////////////////////////////////////////////////////////////////
 
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
@@ -1655,85 +1464,8 @@ MPU9250::measure()
 	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-	bool mag_notify = false;
-
-	if (mpu_report.mag.id == 0x48) {
-
-		if (!_got_duplicate_mag && memcmp(&mpu_report.mag.x, &_last_mag[0], 6) == 0) {
-			// it isn't new data - wait for next timer
-//      	perf_end(_sample_perf);
-//      	perf_count(_duplicates);
-			_got_duplicate_mag = true;
-//          return;
-		} else {
-			memcpy(&_last_mag[0], &mpu_report.mag.x, 6);
-			_got_duplicate_mag = false;
-			mag_notify = true;
-		}
-		mpu_report_valid_mag++;
-	} else {
-		mpu_report_invalid_mag++;
-	}
-	static int mag_period = 0;
-	if (mag_period++ > 10) {
-		set_passthrough(0, sizeof(struct ak8963_regs));
-		mag_period = 0;
-	}
-//	static int mag_period_show = 0;
-//	if (mag_period_show++ > 1000) {
-//		mag_period_show = 0;
-//		printf("magxyz %d %d %d\n", mpu_report.mag.x, mpu_report.mag.y, mpu_report.mag.z);
-//	}
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-	report.mag_x = mpu_report.mag.x;
-	report.mag_y = mpu_report.mag.y;
-	report.mag_z = mpu_report.mag.z;
-
-	mrb.x_raw = report.mag_x;
-	mrb.y_raw = report.mag_y;
-	mrb.z_raw = report.mag_z;
-
-	xraw_f = report.mag_x;
-	yraw_f = report.mag_y;
-	zraw_f = report.mag_z;
-
-////////////////////////////
-	/* apply user specified rotation */
-//	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-/*
-struct sensor_mag_s {
-		uint64_t timestamp;
-		uint64_t error_count;
-		float x;
-		float y;
-		float z;
-		float range_ga;
-		float scaling;
-		float temperature;
-		int16_t x_raw;
-		int16_t y_raw;
-		int16_t z_raw;
-};
- */
-	mrb.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	mrb.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	mrb.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
-	mrb.range_ga = (float)8.0;
-//	mrb.range_ga = (float)_mag_range_ga;
-	mrb.scaling = _mag_range_scale;
-	mrb.temperature = _last_temperature;
-//	mrb.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
-	mrb.error_count = mpu_report_invalid_mag;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
-	_mag_reports->force(&mrb);
 
 	/* notify anyone waiting for data */
 	if (accel_notify) {
@@ -1742,10 +1474,6 @@ struct sensor_mag_s {
 
 	if (gyro_notify) {
 		_gyro->parent_poll_notify();
-	}
-
-	if (mag_notify) {
-		_mag->parent_poll_notify();
 	}
 
 	if (accel_notify && !(_pub_blocked)) {
@@ -1758,11 +1486,6 @@ struct sensor_mag_s {
 	if (gyro_notify && !(_pub_blocked)) {
 		/* publish it */
 		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
-	}
-
-	if (mag_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mrb);
 	}
 
 	/* stop measuring */
@@ -1782,7 +1505,7 @@ MPU9250::print_info()
 	perf_print_counter(_duplicates);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
-	_mag_reports->print_info("mag queue");
+	_mag->_mag_reports->print_info("mag queue");
 	::printf("checked_next: %u\n", _checked_next);
 
 	for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
@@ -1821,153 +1544,4 @@ MPU9250::print_registers()
 	}
 
 	printf("\n");
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-#define BIT_I2C_SLVO_EN   0x80
-#define BIT_I2C_READ_FLAG 0x80
-
-#define AK8963_I2C_ADDR   0x0C
-
-#define AK8963_WIA 0x00
-#define AK8963_DEVICE_ID 0x48
-
-#define AK8963_CNTL1 0x0A
-#define AK8963_CONTINUOUS_MODE1  0x02
-#define AK8963_CONTINUOUS_MODE2  0x06
-#define AK8963_SELFTEST_MODE     0x08
-#define AK8963_POWERDOWN_MODE    0x00
-#define AK8963_FUZE_MODE         0x0F
-#define AK8963_16BIT_ADC         0x10
-#define AK8963_14BIT_ADC         0x00
-
-#define AK8963_CNTL2 0x0B
-#define AK8963_RESET             0x01
-
-#define AK8963_ASAX              0x10
-#define AK8963_HXL               0x03
-
-#define BIT_I2C_MST_P_NSR        0x10
-#define BIT_I2C_MST_EN           0x20
-#define BITS_I2C_MST_CLOCK_400HZ 0x0D
-#define BITS_I2C_MST_DLY_1KHZ    0x09
-
-#define BIT_I2C_SLV0_DLY_EN 0x01
-#define BIT_I2C_SLV1_DLY_EN 0x02
-#define BIT_I2C_SLV2_DLY_EN 0x04
-#define BIT_I2C_SLV3_DLY_EN 0x08
-
-float ak8963_ASA[3] = { 0, 0, 0 };
-
-void
-MPU9250::set_passthrough(uint8_t reg, uint8_t size, uint8_t *out)
-{
-	uint8_t addr;
-
-	write_reg(MPUREG_I2C_SLV0_CTRL, 0); // ensure slave r/w is disabled before changing the registers
-	if (out) {
-		write_reg(MPUREG_I2C_SLV0_D0, *out);
-		addr = AK8963_I2C_ADDR;
-	} else {
-		addr = AK8963_I2C_ADDR | BIT_I2C_READ_FLAG;
-	}
-	write_reg(MPUREG_I2C_SLV0_ADDR, addr);
-	write_reg(MPUREG_I2C_SLV0_REG,  reg);
-	write_reg(MPUREG_I2C_SLV0_CTRL, size | BIT_I2C_SLVO_EN);
-}
-
-void
-MPU9250::read_block(uint8_t reg, uint8_t *val, uint8_t count)
-{
- 	uint8_t addr = reg | 0x80;
-	uint8_t tx[32] = { addr, };
-	uint8_t rx[32];
-
-	transfer(tx, rx, count + 1);
-	memcpy(val, rx + 1, count);
-}
-
-void
-MPU9250::passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size)
-{
-	set_passthrough(reg, size);
-//	usleep(20000); // wait for the value to be read from slave
-	usleep(50000); // wait for the value to be read from slave
-	read_block(MPUREG_EXT_SENS_DATA_00, buf, size);
-	write_reg(MPUREG_I2C_SLV0_CTRL, 0); // disable new reads
-}
-
-bool
-MPU9250::ak8963_check_id(void)
-{
-	for (int i = 0; i < 5; i++) {
-		uint8_t deviceid = 0;
-		passthrough_read(AK8963_WIA, &deviceid, 0x01);
-		if (deviceid == AK8963_DEVICE_ID) {
-			printf("ak8963_check_id: %02x\n", deviceid);
-			return true;
-		}
-	}
-	return false;
-}
-
-void
-MPU9250::passthrough_write(uint8_t reg, uint8_t val)
-{
-	set_passthrough(reg, 1, &val);
-//	usleep(10000); // wait for the value to be written to slave
-	usleep(100000); // wait for the value to be written to slave
-	write_reg(MPUREG_I2C_SLV0_CTRL, 0); // disable new writes
-}
-
-void
-MPU9250::ak8963_read(void)
-{
-	struct ak8963_regs data;
-
-	memset(&data, 0, sizeof(struct ak8963_regs));
-	passthrough_read(AK8963_WIA, (uint8_t*)&data, sizeof(struct ak8963_regs));
-	if (data.id == 0x48) {
-		printf("magxyz [%02x]:", data.st2);
-		printf(" %d %d %d\n", data.x, data.y, data.z);
-	} else {
-		printf("invalid ak8963 read\n");
-	}
-}
-
-void
-MPU9250::ak8963_reset(void)
-{
-	passthrough_write(AK8963_CNTL2, AK8963_RESET);
-}
-
-bool
-MPU9250::ak8963_setup(void)
-{
-	// enable the I2C master to slaves on the aux bus
-	uint8_t user_ctrl = read_reg(MPUREG_USER_CTRL);
-	write_checked_reg(MPUREG_USER_CTRL, user_ctrl | BIT_I2C_MST_EN);
-	write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BITS_I2C_MST_CLOCK_400HZ);
-	 write_reg(MPUREG_I2C_SLV0_CTRL, BITS_I2C_MST_DLY_1KHZ);
-	write_reg(MPUREG_I2C_MST_DELAY_CTRL, BIT_I2C_SLV0_DLY_EN);
-
-	if (!ak8963_check_id()) {
-		printf("AK8963: wrong id\n");
-	}
-
-	uint8_t response[3];
-	passthrough_write(AK8963_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
-	passthrough_read(AK8963_ASAX, response, 3);
-	for (int i = 0; i < 3; i++) {
-		float data = response[i];
-		ak8963_ASA[i] = ((data - 128) / 256 + 1);
-		printf("ak8963_calibrate %d: %i, %f\n", i, response[i], (double)ak8963_ASA[i]);
-	}
-
-	passthrough_write(AK8963_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
-
-	return true;
 }
