@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -100,6 +100,10 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  *
  * @min 0
  * @max  3
+ * @value 0 Low priority
+ * @value 1 Default priority
+ * @value 2 Medium priority
+ * @value 3 Max priority
  * @group SD Logging
  */
-PARAM_DEFINE_INT32(SDLOG_PRIO_BOOST, 0);
+PARAM_DEFINE_INT32(SDLOG_PRIO_BOOST, 2);
