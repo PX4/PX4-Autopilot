@@ -38,6 +38,7 @@
  * @author Julian Oes <joes@student.ethz.ch>
  */
 
+#include <px4_defines.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
@@ -111,11 +112,6 @@ errout:
 int
 MTK::receive(unsigned timeout)
 {
-	/* poll descriptor */
-	pollfd fds[1];
-	fds[0].fd = _fd;
-	fds[0].events = POLLIN;
-
 	uint8_t buf[32];
 	gps_mtk_packet_t packet;
 
@@ -123,52 +119,36 @@ MTK::receive(unsigned timeout)
 	uint64_t time_started = hrt_absolute_time();
 
 	int j = 0;
-	ssize_t count = 0;
 
 	while (true) {
 
-		/* first read whatever is left */
-		if (j < count) {
-			/* pass received bytes to the packet decoder */
-			while (j < count) {
-				if (parse_char(buf[j], packet) > 0) {
-					handle_message(packet);
-					return 1;
+		int ret = poll_or_read(_fd, buf, sizeof(buf), timeout);
+
+		if (ret > 0) {
+			/* first read whatever is left */
+			if (j < ret) {
+				/* pass received bytes to the packet decoder */
+				while (j < ret) {
+					if (parse_char(buf[j], packet) > 0) {
+						handle_message(packet);
+						return 1;
+					}
+
+					j++;
 				}
 
-				/* in case we keep trying but only get crap from GPS */
-				if (time_started + timeout * 1000 < hrt_absolute_time()) {
-					return -1;
-				}
-
-				j++;
+				/* everything is read */
+				j = 0;
 			}
 
-			/* everything is read */
-			j = count = 0;
+		} else {
+			PX4_INFO("waiting");
+			usleep(20000);
 		}
 
-		/* then poll for new data */
-		int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), timeout);
-
-		if (ret < 0) {
-			/* something went wrong when polling */
+		/* in case we keep trying but only get crap from GPS */
+		if (time_started + timeout * 1000 < hrt_absolute_time()) {
 			return -1;
-
-		} else if (ret == 0) {
-			/* Timeout */
-			return -1;
-
-		} else if (ret > 0) {
-			/* if we have new data from GPS, go handle it */
-			if (fds[0].revents & POLLIN) {
-				/*
-				 * We are here because poll says there is some data, so this
-				 * won't block even on a blocking device.  If more bytes are
-				 * available, we'll go back to poll() again...
-				 */
-				count = ::read(_fd, buf, sizeof(buf));
-			}
 		}
 	}
 }
@@ -282,6 +262,10 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	timeinfo_conversion_temp -= timeinfo.tm_min * 100000;
 	timeinfo.tm_sec = timeinfo_conversion_temp / 1000;
 	timeinfo_conversion_temp -= timeinfo.tm_sec * 1000;
+
+	// TODO: this functionality is not available on the Snapdragon yet
+#ifndef __PX4_QURT
+
 	time_t epoch = mktime(&timeinfo);
 
 	if (epoch > GPS_EPOCH_SECS) {
@@ -303,6 +287,10 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	} else {
 		_gps_position->time_utc_usec = 0;
 	}
+
+#else
+	_gps_position->time_utc_usec = 0;
+#endif
 
 	_gps_position->timestamp_position = _gps_position->timestamp_time = hrt_absolute_time();
 
