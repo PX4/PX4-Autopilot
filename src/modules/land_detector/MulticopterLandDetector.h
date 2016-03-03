@@ -103,14 +103,12 @@ private:
 
 private:
 	int _vehicleLocalPositionSub;
-	int _vehicleStatusSub;
 	int _actuatorsSub;
 	int _armingSub;
 	int _parameterSub;
 	int _attitudeSub;
 
 	struct vehicle_local_position_s		_vehicleLocalPosition;
-	struct vehicle_status_s 		_vehicleStatus;
 	struct actuator_controls_s		_actuators;
 	struct actuator_armed_s			_arming;
 	struct vehicle_attitude_s		_vehicleAttitude;
