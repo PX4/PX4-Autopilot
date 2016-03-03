@@ -93,16 +93,11 @@
 
 static struct battery_status_s *battery_status;
 static struct vehicle_global_position_s *global_pos;
-static struct sensor_combined_s *sensor_data;
+static struct sensor_combined_s *sensor_combined;
 
 static int battery_status_sub = -1;
 static int global_position_sub = -1;
 static int sensor_sub = -1;
-
-static struct battery_status_s battery_status;
-static struct sensor_combined_s raw;
-static struct vehicle_global_position_s global_pos;
-
 
 /**
  * Initializes the uORB subscriptions.
@@ -111,9 +106,9 @@ bool frsky_init()
 {
 	battery_status = malloc(sizeof(struct battery_status_s));
 	global_pos = malloc(sizeof(struct vehicle_global_position_s));
-	sensor_data = malloc(sizeof(struct sensor_combined_s));
+	sensor_combined = malloc(sizeof(struct sensor_combined_s));
 
-	if (battery_status == NULL || global_pos == NULL || sensor_data == NULL) {
+	if (battery_status == NULL || global_pos == NULL || sensor_combined == NULL) {
 		return false;
 	}
 
@@ -127,7 +122,7 @@ void frsky_deinit()
 {
 	free(battery_status);
 	free(global_pos);
-	free(sensor_data);
+	free(sensor_combined);
 }
 
 /**
@@ -185,7 +180,7 @@ void frsky_update_topics()
 	orb_check(sensor_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(sensor_combined), sensor_sub, raw);
+		orb_copy(ORB_ID(sensor_combined), sensor_sub, sensor_combined);
 	}
 
 	/* get a local copy of the battery data */
@@ -211,19 +206,19 @@ void frsky_send_frame1(int uart)
 {
 	/* send formatted frame */
 	frsky_send_data(uart, FRSKY_ID_ACCEL_X,
-			roundf(sensor_data->accelerometer_m_s2[0] * 1000.0f));
+			roundf(sensor_combined->accelerometer_m_s2[0] * 1000.0f));
 	frsky_send_data(uart, FRSKY_ID_ACCEL_Y,
-			roundf(sensor_data->accelerometer_m_s2[1] * 1000.0f));
+			roundf(sensor_combined->accelerometer_m_s2[1] * 1000.0f));
 	frsky_send_data(uart, FRSKY_ID_ACCEL_Z,
-			roundf(sensor_data->accelerometer_m_s2[2] * 1000.0f));
+			roundf(sensor_combined->accelerometer_m_s2[2] * 1000.0f));
 
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_BP,
-			sensor_data->baro_alt_meter[0]);
+			sensor_combined->baro_alt_meter[0]);
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_AP,
-			roundf(frac(sensor_data->baro_alt_meter[0]) * 100.0f));
+			roundf(frac(sensor_combined->baro_alt_meter[0]) * 100.0f));
 
 	frsky_send_data(uart, FRSKY_ID_TEMP1,
-			roundf(sensor_data->baro_temp_celcius[0]));
+			roundf(sensor_combined->baro_temp_celcius[0]));
 
 	frsky_send_data(uart, FRSKY_ID_VFAS,
 			roundf(battery_status->voltage_v * 10.0f));
