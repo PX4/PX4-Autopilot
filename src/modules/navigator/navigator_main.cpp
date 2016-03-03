@@ -148,7 +148,7 @@ Navigator::Navigator() :
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
 	_gpsFailure(this, "GPSF"),
-	_follow_target(this, "TAR"),
+//	_follow_target(this, "TAR"),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
@@ -157,6 +157,7 @@ Navigator::Navigator() :
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
 	_mission_cruising_speed(-1.0f)
 {
+	_tracker_motion_position_sub = -1;
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;
@@ -167,7 +168,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[6] = &_rcLoss;
 	_navigation_mode_array[7] = &_takeoff;
 	_navigation_mode_array[8] = &_land;
-	_navigation_mode_array[9] = &_follow_target;
+	//_navigation_mode_array[9] = nullptr;//&_follow_target;
 
 	updateParams();
 }
@@ -212,7 +213,13 @@ Navigator::gps_position_update()
 void
 Navigator::sensor_combined_update()
 {
-	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
+    orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
+}
+
+void
+Navigator::follow_target_update()
+{
+    orb_copy(ORB_ID(follow_target), _tracker_motion_position_sub, &_follow_target_pk);
 }
 
 void
@@ -296,6 +303,7 @@ Navigator::task_main()
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	_tracker_motion_position_sub = orb_subscribe(ORB_ID(follow_target));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -384,6 +392,12 @@ Navigator::task_main()
 		orb_check(_home_pos_sub, &updated);
 		if (updated) {
 			home_position_update();
+		}
+
+		orb_check(_tracker_motion_position_sub, &updated);
+		if(updated) {
+		    follow_target_update();
+		    warnx("updated in nav");
 		}
 
 		orb_check(_vehicle_command_sub, &updated);
@@ -503,7 +517,7 @@ Navigator::task_main()
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 				_pos_sp_triplet_published_invalid_once = false;
-				_navigation_mode = &_follow_target;
+//				_navigation_mode = &_follow_target;
 				break;
 			default:
 				_navigation_mode = nullptr;
