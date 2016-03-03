@@ -63,7 +63,6 @@ public:
 
 private:
     Navigator *_navigator;
-    int     _tracker_motion_position_sub;   /**< tracker motion subscription */
     control::BlockParamFloat _param_min_alt;
     matrix::Vector2f pos_pair[2];
     matrix::Vector2f gps_pair;
@@ -83,5 +82,9 @@ private:
     int wp_cnt;
     matrix::Vector2f _current_vel;
     matrix::Vector2f target_vel;
-    void convert_mission_item_to_sp(matrix::Vector2f & vel);
+    void update_position_sp(matrix::Vector2f & vel);
+    void loiter();
+    float target_dist_x;
+    float target_dist_y;
+    follow_target_s target;
 };
