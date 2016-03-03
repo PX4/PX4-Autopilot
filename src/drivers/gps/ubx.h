@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@
  * including Prototol Specification.
  *
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  *
  * @author Hannes Delago
@@ -446,7 +446,12 @@ typedef union {
 	ubx_payload_tx_cfg_nav5_t		payload_tx_cfg_nav5;
 	ubx_payload_tx_cfg_sbas_t		payload_tx_cfg_sbas;
 	ubx_payload_tx_cfg_msg_t		payload_tx_cfg_msg;
+#ifdef __PX4_QURT
+	// TODO: determine length needed here
+	uint8_t					raw[256];
+#else
 	uint8_t					raw[];
+#endif
 } ubx_buf_t;
 
 #pragma pack(pop)
@@ -552,7 +557,6 @@ private:
 	int			_fd;
 	struct vehicle_gps_position_s *_gps_position;
 	struct satellite_info_s *_satellite_info;
-	bool			_enable_sat_info;
 	bool			_configured;
 	ubx_ack_state_t		_ack_state;
 	bool			_got_posllh;
