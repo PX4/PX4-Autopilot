@@ -28,7 +28,8 @@ if [ -f $1"/.git" ];
 		echo -e " *******************************************************************************"
 		echo -e " *   \033[31mIF YOU DID NOT CHANGE THIS FILE (OR YOU DON'T KNOW WHAT A SUBMODULE IS):\033[0m  *"
 		echo -e " *   \033[31mHit 'u' and <ENTER> to update ALL submodules and resolve this.\033[0m            *"
-		echo -e " *   (performs \033[94mgit submodule update --init --recursive\033[0m)                        *"
+		echo -e " *   (performs \033[94mgit submodule sync --recursive\033[0m                                  *"
+		echo -e " *    and \033[94mgit submodule update --init --recursive\033[0m )                            *"
 		echo -e " *******************************************************************************"
 		echo ""
 		echo ""
@@ -44,6 +45,7 @@ if [ -f $1"/.git" ];
 		else
 			if [ "$user_cmd" == "u" ]
 			then
+				git submodule sync --recursive
 				git submodule update --init --recursive
 				echo "Submodule fixed, continuing build.."
 			else
