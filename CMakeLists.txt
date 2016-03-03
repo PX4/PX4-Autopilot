@@ -305,6 +305,11 @@ message("INCLUDE_DIRS=${include_dirs}")
 link_directories(${link_dirs})
 add_definitions(${definitions})
 
+file(WRITE ${CMAKE_BINARY_DIR}/c_flags "${c_flags}")
+file(WRITE ${CMAKE_BINARY_DIR}/cxx_flags "${cxx_flags}")
+file(WRITE ${CMAKE_BINARY_DIR}/include_dirs "${include_dirs}")
+file(WRITE ${CMAKE_BINARY_DIR}/definitions "${definitions}")
+
 #=============================================================================
 # source code generation
 #
