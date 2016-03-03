@@ -216,7 +216,7 @@ void sPort_send_FUEL(int uart)
 	orb_copy(ORB_ID(battery_status), battery_status_sub, battery_status);
 
 	/* send data */
-	uint32_t fuel = (int)(100 * vehicle_status->remaining_mah);
+	uint32_t fuel = (int)(100 * battery_status->remaining);
 
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
