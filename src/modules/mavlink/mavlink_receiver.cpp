@@ -1627,27 +1627,27 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 void MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 {
-    mavlink_follow_target_t follow_target_msg;
-    follow_target_s follow_target_topic = { };
+//    mavlink_follow_target_t follow_target_msg;
+    follow_target_s follow_target = {};
 
-    mavlink_msg_follow_target_decode(msg, &follow_target_msg);
+    //mavlink_msg_follow_target_decode(msg, &follow_target_msg);
 
-    follow_target_topic.timestamp = hrt_absolute_time();
+    follow_target.timestamp = hrt_absolute_time();
 
-    memcpy(follow_target_topic.accel, follow_target_msg.acc, sizeof(follow_target_topic.accel));
-    memcpy(follow_target_topic.velocity, follow_target_msg.vel, sizeof(follow_target_topic.velocity));
+   // memcpy(follow_target_topic.accel, follow_target_msg.acc, sizeof(follow_target_topic.accel));
+    //memcpy(follow_target_topic.velocity, follow_target_msg.vel, sizeof(follow_target_topic.velocity));
 
-    follow_target_topic.lat = follow_target_msg.lat*1e-7;
-    follow_target_topic.lon = follow_target_msg.lon*1e-7;
-    follow_target_topic.alt = follow_target_msg.alt;
+//    follow_target.lat = follow_target_msg.lat*1e-7;
+//    follow_target.lon = follow_target_msg.lon*1e-7;
+//    follow_target.alt = follow_target_msg.alt;
 
     if (_follow_me_pub == nullptr) {
-        _follow_me_pub = orb_advertise(ORB_ID(follow_target), &follow_target_topic);
+        _follow_me_pub = orb_advertise(ORB_ID(follow_target), &follow_target);
     } else {
-      warnx("publishing follow lat = %f lon = %f alt = %f", (double) follow_target_topic.lat,
-              (double) follow_target_topic.lon,
-              (double) follow_target_topic.alt);
-        orb_publish(ORB_ID(follow_target), _follow_me_pub, &follow_target_topic);
+      warnx("publishing follow lat = %f lon = %f alt = %f", (double) follow_target.lat,
+              (double) follow_target.lon,
+              (double) follow_target.alt);
+        orb_publish(ORB_ID(follow_target), _follow_me_pub, &follow_target);
     }
 }
 
