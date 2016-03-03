@@ -122,7 +122,7 @@ void Ekf::fuseVelPosHeight()
 			unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
 			_vel_pos_innov_var[obs_index] = P[state_index][state_index] + R[obs_index];
 			// Compute the ratio of innovation to gate size
-			_vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) * _vel_pos_innov[obs_index]);
+			_vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) * _vel_pos_innov_var[obs_index]);
 		}
 	}
 
