@@ -297,6 +297,9 @@ px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${exe_linker_flags}" GLUE " ")
 px4_join(OUT CMAKE_C_FLAGS LIST "${c_flags}" GLUE " ")
 px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags}" GLUE " ")
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EXTRA_CXX_FLAGS}")
+
 include_directories(${include_dirs})
 message("INCLUDE_DIRS=${include_dirs}")
 link_directories(${link_dirs})
