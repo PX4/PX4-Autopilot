@@ -136,7 +136,7 @@ MissionBlock::is_mission_item_reached()
 
 	hrt_abstime now = hrt_absolute_time();
 
-	if ((_navigator->get_vstatus()->condition_landed == false)
+	if ((_navigator->get_land_detected()->landed == false)
 		&& !_waypoint_position_reached) {
 
 		float dist = -1.0f;
