@@ -32,7 +32,7 @@
 ############################################################################
 
 #
-# Build nshterm utility
+# Build mag utility
 #
 
 MODULE_COMMAND	 = mag
