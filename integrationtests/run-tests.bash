@@ -7,7 +7,8 @@ set -e
 
 SRC_DIR=/root/Firmware
 # TODO
-# TEST_RESULTS=/root/.ros/px4/test_results
+TEST_RESULT_DIR=/root/.ros/test_results/px4
+TEST_RESULT_TARGET_DIR=/job/test_results
 # BAGS=/root/.ros
 # CHARTS=/root/.ros/charts
 # EXPORT_CHARTS=/sitl/testing/export_charts.py
@@ -20,8 +21,8 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SRC_DIR}/Tools/sitl_gazebo/Build/msg
 export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:${SRC_DIR}
 
 echo "deleting previous test results"
-if [ -d /job/test_results ]; then
-	rm -r /job/test_results
+if [ -d ${TEST_RESULT_TARGET_DIR} ]; then
+	rm -r ${TEST_RESULT_TARGET_DIR}
 fi
 
 echo "linking source to test"
@@ -47,7 +48,7 @@ TEST_RESULT=$?
 echo "<====="
 
 # TODO
-# echo "=====> process test results"
+echo "=====> process test results"
 # cd $BAGS
 # for bag in `ls *.bag`
 # do
@@ -55,11 +56,12 @@ echo "<====="
 # 	python $EXPORT_CHARTS $CHARTS $bag
 # done
 
-# echo "copy build test results to job directory"
-# cp -r $TEST_RESULTS /job/
-# cp $BAGS/*.bag /job/test_results/
-# cp -r $CHARTS /job/test_results/
-# echo "<====="
+echo "copy build test results to job directory"
+mkdir -p ${TEST_RESULT_TARGET_DIR}
+cp -r $TEST_RESULT_DIR/* ${TEST_RESULT_TARGET_DIR}
+# cp $BAGS/*.bag ${TEST_RESULT_TARGET_DIR}/
+# cp -r $CHARTS ${TEST_RESULT_TARGET_DIR}/
+echo "<====="
 
 # need to return error if tests failed, else Jenkins won't notice the failure
 exit $TEST_RESULT
