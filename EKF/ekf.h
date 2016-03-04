@@ -127,6 +127,8 @@ private:
 	matrix::Dcm<float> _R_prev;	// transformation matrix from earth frame to body frame of previous ekf step
 
 	float P[_k_num_states][_k_num_states];	// state covariance matrix
+	float KH[_k_num_states][_k_num_states]; // intermediate variable for the covariance update
+	float KHP[_k_num_states][_k_num_states]; // intermediate variable for the covariance update
 
 	float _vel_pos_innov[6];	// innovations: 0-2 vel,  3-5 pos
 	float _mag_innov[3];		// earth magnetic field innovations
