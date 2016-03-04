@@ -852,7 +852,7 @@ void Ekf::fuseDeclination()
 	float KH[_k_num_states][_k_num_states] = {};
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
-		for (unsigned column = 16; column < 17; column++) {
+		for (unsigned column = 16; column <= 17; column++) {
 			KH[row][column] = Kfusion[row] * H_DECL[column];
 		}
 	}
