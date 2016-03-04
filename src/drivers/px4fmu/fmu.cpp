@@ -2164,10 +2164,10 @@ PX4FMU::sensor_reset(int ms)
 	 * required for some peripheral
 	 * state machines
 	 */
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 
 	stm32_configgpio(GPIO_SPI1_SCK);
 	stm32_configgpio(GPIO_SPI1_MISO);
