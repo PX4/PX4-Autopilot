@@ -1942,6 +1942,37 @@ PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
 PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
 
 /**
+ * Single channel flight mode selection
+ *
+ * If this parameter is non-zero, flight modes are only selected
+ * by this channel and are assigned to six slots.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 RC Channel 1
+ * @value 2 RC Channel 2
+ * @value 3 RC Channel 3
+ * @value 4 RC Channel 4
+ * @value 5 RC Channel 5
+ * @value 6 RC Channel 6
+ * @value 7 RC Channel 7
+ * @value 8 RC Channel 8
+ * @value 9 RC Channel 9
+ * @value 10 RC Channel 10
+ * @value 11 RC Channel 11
+ * @value 12 RC Channel 12
+ * @value 13 RC Channel 13
+ * @value 14 RC Channel 14
+ * @value 15 RC Channel 15
+ * @value 16 RC Channel 16
+ * @value 17 RC Channel 17
+ * @value 18 RC Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_FLTMODE, 0);
+
+/**
  * Mode switch channel mapping.
  *
  * This is the main flight mode selector.
