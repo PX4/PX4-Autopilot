@@ -202,6 +202,7 @@ static struct safety_s safety;
 static struct vehicle_control_mode_s control_mode;
 static struct offboard_control_mode_s offboard_control_mode;
 static struct home_position_s _home;
+static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX - 1];
 
 static unsigned _last_mission_instance = 0;
 static manual_control_setpoint_s _last_sp_man;
@@ -1091,6 +1092,13 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 	param_t _param_map_mode_sw = param_find("RC_MAP_MODE_SW");
 
+	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
+	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
+	param_t _param_fmode_3 = param_find("COM_FLTMODE3");
+	param_t _param_fmode_4 = param_find("COM_FLTMODE4");
+	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
+	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
+
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
 
@@ -1552,6 +1560,14 @@ int commander_thread_main(int argc, char *argv[])
 			/* EPH / EPV */
 			param_get(_param_eph, &eph_threshold);
 			param_get(_param_epv, &epv_threshold);
+
+			/* flight mode slots */
+			param_get(_param_fmode_1, &_flight_mode_slots[0]);
+			param_get(_param_fmode_2, &_flight_mode_slots[1]);
+			param_get(_param_fmode_3, &_flight_mode_slots[2]);
+			param_get(_param_fmode_4, &_flight_mode_slots[3]);
+			param_get(_param_fmode_5, &_flight_mode_slots[4]);
+			param_get(_param_fmode_6, &_flight_mode_slots[5]);
 
 			/* Set flag to autosave parameters if necessary */
 			if (updated && autosave_params != 0 && param_changed.saved == false) {
@@ -2840,7 +2856,8 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 		 (_last_sp_man.acro_switch == sp_man->acro_switch) &&
 		 (_last_sp_man.rattitude_switch == sp_man->rattitude_switch) &&
 		 (_last_sp_man.posctl_switch == sp_man->posctl_switch) &&
-		 (_last_sp_man.loiter_switch == sp_man->loiter_switch))) {
+		 (_last_sp_man.loiter_switch == sp_man->loiter_switch) &&
+		 (_last_sp_man.mode_slot == sp_man->mode_slot))) {
 
 		// update these fields for the geofence system
 		_last_sp_man.timestamp = sp_man->timestamp;
@@ -2886,6 +2903,25 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 		}
 
 		/* if we get here mode was rejected, continue to evaluate the main system mode */
+	}
+
+	/* we know something has changed - check if we are in mode slot operation */
+	if (_last_sp_man.mode_slot > 0) {
+
+		if (_last_sp_man.mode_slot >= sizeof(_flight_mode_slots) / sizeof(_flight_mode_slots[0])) {
+			return TRANSITION_DENIED;
+		}
+
+		int new_mode = _flight_mode_slots[_last_sp_man.mode_slot];
+
+		if (new_mode < 0) {
+			/* slot is unused */
+			res = TRANSITION_NOT_CHANGED;
+		} else {
+			res = main_state_transition(status_local, new_mode);
+		}
+		
+		return res;
 	}
 
 	/* offboard and RTL switches off or denied, check main mode switch */
