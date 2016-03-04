@@ -1090,7 +1090,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_geofence_action = param_find("GF_ACTION");
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 	param_t _param_map_mode_sw = param_find("RC_MAP_MODE_SW");
-	param_t _param_of_rtl = param_find("COM_OF_RTL");
+	param_t _param_offb_rtl = param_find("COM_OFFB_RTL");
 
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
@@ -1545,7 +1545,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
 			param_get(_param_map_mode_sw, &map_mode_sw);
-			param_get(_param_of_rtl, &offboard_rtl_timeout);
+			param_get(_param_offb_rtl, &offboard_rtl_timeout);
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
@@ -1591,7 +1591,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				} else {
 					status.offboard_control_lost_rtl_timestamp = hrt_absolute_time() +
-						(float)1e6 * offboard_rtl_timeout;
+						1e6f * offboard_rtl_timeout;
 				}
 				status_changed = true;
 			}
