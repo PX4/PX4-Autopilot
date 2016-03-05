@@ -443,20 +443,16 @@ void Ekf::fuseMag()
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
-		float KH[_k_num_states][_k_num_states] = {};
-
 		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < 3; column++) {
+			for (unsigned column = 0; column <= 2; column++) {
 				KH[row][column] = Kfusion[row] * H_MAG[index][column];
 			}
 
-			for (unsigned column = 16; column < 22; column++) {
+			for (unsigned column = 16; column <= 21; column++) {
 				KH[row][column] = Kfusion[row] * H_MAG[index][column];
 			}
 
 		}
-
-		float KHP[_k_num_states][_k_num_states] = {};
 
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) {
@@ -723,18 +719,27 @@ void Ekf::fuseHeading()
 	_state.quat_nominal = dq * _state.quat_nominal;
 	_state.quat_nominal.normalize();
 
-	// update the covariance matrix taking advantage of the reduced size of H_YAW
-	float HP[_k_num_states] = {};
-
-	for (unsigned column = 0; column < _k_num_states; column++) {
-		for (unsigned row = 1; row <= 2; row++) {
-			HP[column] += H_YAW[row] * P[row][column];
+	// apply covariance correction via P_new = (I -K*H)*P
+	// first calculate expression for KHP
+	// then calculate P - KHP
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		for (unsigned column = 0; column <= 2; column++) {
+			KH[row][column] = Kfusion[row] * H_YAW[column];
 		}
 	}
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < _k_num_states; column++) {
-			P[row][column] -= Kfusion[row] * HP[column];
+			float tmp = KH[row][0] * P[0][column];
+			tmp += KH[row][1] * P[1][column];
+			tmp += KH[row][2] * P[2][column];
+			KHP[row][column] = tmp;
+		}
+	}
+
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		for (unsigned column = 0; column < _k_num_states; column++) {
+			P[row][column] -= KHP[row][column];
 		}
 	}
 
@@ -849,15 +854,11 @@ void Ekf::fuseDeclination()
 	// first calculate expression for KHP
 	// then calculate P - KHP
 	// take advantage of the empty columns in KH to reduce the number of operations
-	float KH[_k_num_states][_k_num_states] = {};
-
 	for (unsigned row = 0; row < _k_num_states; row++) {
-		for (unsigned column = 16; column < 17; column++) {
+		for (unsigned column = 16; column <= 17; column++) {
 			KH[row][column] = Kfusion[row] * H_DECL[column];
 		}
 	}
-
-	float KHP[_k_num_states][_k_num_states] = {};
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < _k_num_states; column++) {
@@ -1047,21 +1048,27 @@ void Ekf::fuseMag2D()
 	_state.quat_nominal.normalize();
 	_state.ang_error.setZero();
 
-	// correct the covariance using P = P - K*H*P taking advantage of the fact that only the first 3 elements in H are non zero
-	// and we only need the first 16 states
-	float HP[16];
-
-	for (uint8_t col = 0; col < 16; col++) {
-		HP[col] = 0.0f;
-
-		for (uint8_t row = 0; row <= 2; row++) {
-			HP[col] += H_DECL[row] * P[row][col];
+	// apply covariance correction via P_new = (I -K*H)*P
+	// first calculate expression for KHP
+	// then calculate P - KHP
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		for (unsigned column = 0; column <= 2; column++) {
+			KH[row][column] = Kfusion[row] * H_DECL[column];
 		}
 	}
 
-	for (uint8_t row = 0; row < 16; row++) {
-		for (uint8_t col = 0; col < 16; col++) {
-			P[row][col] -= Kfusion[row] * HP[col];
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		for (unsigned column = 0; column < _k_num_states; column++) {
+			float tmp = KH[row][0] * P[0][column];
+			tmp += KH[row][1] * P[1][column];
+			tmp += KH[row][2] * P[2][column];
+			KHP[row][column] = tmp;
+		}
+	}
+
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		for (unsigned column = 0; column < _k_num_states; column++) {
+			P[row][column] -= KHP[row][column];
 		}
 	}
 
