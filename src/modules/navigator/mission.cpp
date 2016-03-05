@@ -62,7 +62,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
-#include <uORB/topics/vehicle_command.h>
 
 #include "mission.h"
 #include "navigator.h"
@@ -80,7 +79,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_current_onboard_mission_index(-1),
 	_current_offboard_mission_index(-1),
 	_need_takeoff(true),
-	_takeoff_vtol_transition(false),
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
 	_home_inited(false),
@@ -450,25 +448,44 @@ Mission::set_mission_items()
 		}
 
 		/* if we just did a takeoff navigate to the actual waypoint now */
-		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {			
+		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
 
-			/* handle VTOL TAKEOFF command */
-			if(_takeoff_vtol_transition){
-				struct vehicle_command_s cmd = {};
-				cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-				cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-				if (_cmd_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
-				} else {
-					_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
-				}
-				_takeoff_vtol_transition = false;
+			if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+				new_work_item_type = WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF;
+
+			} else {
+				new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 			}
-
-			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+			
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
 			_mission_item.yaw = NAN;
+		}
+
+		if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
+				&& _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF
+				&& _navigator->get_vstatus()->is_rotary_wing
+				&& !_navigator->get_vstatus()->condition_landed
+				&& has_next_position_item) {
+
+			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
+			set_align_mission_item(&_mission_item, &mission_item_next_position);
+		}
+
+		if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
+				&& _work_item_type == WORK_ITEM_TYPE_ALIGN) {
+
+			_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+			_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+		}
+
+		if(_mission_item.nav_cmd == NAV_CMD_VTOL_LAND ||
+				(_mission_item.nav_cmd == NAV_CMD_LAND && _param_force_vtol.get())){
+
+			_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+			_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			new_work_item_type = WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND;
 		}
 
 		/* move to landing waypoint before descent if necessary */
@@ -521,17 +538,7 @@ Mission::set_mission_items()
 				&& has_next_position_item) {
 
 			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
-
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			copy_positon_if_valid(_mission_item, pos_sp_triplet->current);
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0;
-			_mission_item.yaw = get_bearing_to_next_waypoint(
-				_navigator->get_global_position()->lat,
-				_navigator->get_global_position()->lon,
-				mission_item_next_position.lat,
-				mission_item_next_position.lon);
-			_mission_item.force_heading = true;
+			set_align_mission_item(&_mission_item, &mission_item_next_position);
 		}
 
 		/* yaw is aligned now */
@@ -556,7 +563,7 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			copy_positon_if_valid(_mission_item, pos_sp_triplet->current);
+			copy_positon_if_valid(&_mission_item, &(pos_sp_triplet->current));
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
 		}
@@ -615,23 +622,6 @@ Mission::set_mission_items()
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
-void
-Mission::copy_positon_if_valid(struct mission_item_s &mission_item, struct position_setpoint_s &setpoint)
-{
-	if (setpoint.valid) {
-		_mission_item.lat = setpoint.lat;
-		_mission_item.lon = setpoint.lon;
-		_mission_item.altitude = setpoint.alt;
-
-	} else {
-		_mission_item.lat = _navigator->get_global_position()->lat;
-		_mission_item.lon = _navigator->get_global_position()->lon;
-		_mission_item.altitude = _navigator->get_global_position()->alt;
-	}
-
-	_mission_item.altitude_is_relative = false;
-}
-
 bool
 Mission::do_need_takeoff()
 {
@@ -657,10 +647,6 @@ Mission::do_need_takeoff()
 				_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
 				_mission_item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)) {
 
-			if(_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF){
-				_takeoff_vtol_transition = true;
-			}
-
 			_need_takeoff = false;
 			return true;
 		}
@@ -672,18 +658,6 @@ Mission::do_need_takeoff()
 bool
 Mission::do_need_move_to_land()
 {
-	if(_mission_item.nav_cmd == NAV_CMD_VTOL_LAND || (_mission_item.nav_cmd == NAV_CMD_LAND && _param_force_vtol.get())){
-		struct vehicle_command_s cmd = {};
-		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		if (_cmd_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
-		} else {
-			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
-		}
-		_mission_item.nav_cmd = NAV_CMD_LAND;
-	}
-
 	if (_navigator->get_vstatus()->is_rotary_wing && _mission_item.nav_cmd == NAV_CMD_LAND) {
 
 		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
@@ -693,6 +667,39 @@ Mission::do_need_move_to_land()
 	}
 
 	return false;
+}
+
+void
+Mission::copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint)
+{
+	if (setpoint->valid) {
+		mission_item->lat = setpoint->lat;
+		mission_item->lon = setpoint->lon;
+		mission_item->altitude = setpoint->alt;
+
+	} else {
+		mission_item->lat = _navigator->get_global_position()->lat;
+		mission_item->lon = _navigator->get_global_position()->lon;
+		mission_item->altitude = _navigator->get_global_position()->alt;
+	}
+
+	mission_item->altitude_is_relative = false;
+}
+
+void
+Mission::set_align_mission_item(struct mission_item_s *mission_item, struct mission_item_s *mission_item_next)
+{
+	mission_item->nav_cmd = NAV_CMD_WAYPOINT;
+	copy_positon_if_valid(mission_item, &(_navigator->get_position_setpoint_triplet()->current));
+	mission_item->altitude_is_relative = false;
+	mission_item->autocontinue = true;
+	mission_item->time_inside = 0;
+	mission_item->yaw = get_bearing_to_next_waypoint(
+		_navigator->get_global_position()->lat,
+		_navigator->get_global_position()->lon,
+		mission_item_next->lat,
+		mission_item_next->lon);
+	mission_item->force_heading = true;
 }
 
 float

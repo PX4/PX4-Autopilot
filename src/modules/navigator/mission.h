@@ -120,11 +120,6 @@ private:
 	void set_mission_items();
 
 	/**
-	 * Copies position from setpoint if valid, otherwise copies current position
-	 */
-	void copy_positon_if_valid(struct mission_item_s &mission_item, struct position_setpoint_s &setpoint);
-
-	/**
 	 * Returns true if we need to do a takeoff at the current state
 	 */
 	bool do_need_takeoff();
@@ -133,6 +128,16 @@ private:
 	 * Returns true if we need to move to waypoint location before starting descent
 	 */
 	bool do_need_move_to_land();
+
+	/**
+	 * Copies position from setpoint if valid, otherwise copies current position
+	 */
+	void copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
+
+	/**
+	 * Create mission item to align towards next waypoint
+	 */
+	void set_align_mission_item(struct mission_item_s *mission_item, struct mission_item_s *mission_item_next);
 
 	/**
 	 * Calculate takeoff height for mission item considering ground clearance
@@ -216,7 +221,6 @@ private:
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
 	bool _need_takeoff;					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
-	bool _takeoff_vtol_transition;		/**< if true, a vtol transition will be performed after takeoff */
 
 	enum {
 		MISSION_TYPE_NONE,
@@ -241,7 +245,9 @@ private:
 		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
-		WORK_ITEM_TYPE_CMD_BEFORE_MOVE	/**<  */
+		WORK_ITEM_TYPE_CMD_BEFORE_MOVE,	/**<  */
+		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,	/**<  */
+		WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND	/**<  */
 	} _work_item_type;	/**< current type of work to do (sub mission item) */
 
 };
