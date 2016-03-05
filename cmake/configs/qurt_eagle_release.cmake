@@ -1,24 +1,32 @@
 include(qurt/px4_impl_qurt)
 
-if ("${HEXAGON_DRIVERS_ROOT}" STREQUAL "")
-	message(FATAL_ERROR "HEXAGON_DRIVERS_ROOT is not set")
+if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
+	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
+else()
+	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
 endif()
 
-if ("${EAGLE_DRIVERS_SRC}" STREQUAL "")
-	message(FATAL_ERROR "EAGLE_DRIVERS_SRC is not set")
+if ("$ENV{EAGLE_DRIVERS_SRC}" STREQUAL "")
+	message(FATAL_ERROR "Environment variable EAGLE_DRIVERS_SRC must be set")
+else()
+	set(EAGLE_DRIVERS_SRC $ENV{EAGLE_DRIVERS_SRC})
 endif()
 
-include_directories(${HEXAGON_DRIVERS_ROOT}/inc)
+STRING(REGEX REPLACE "//" "/" EAGLE_DRIVERS_SRC ${EAGLE_DRIVERS_SRC})
+STRING(REGEX REPLACE "/" "__" EAGLE_DRIVERS_MODULE_PREFIX ${EAGLE_DRIVERS_SRC})
 
-# For Actual flight we need to link against the driver dynamic libraries
-set(target_libraries
-	-L${HEXAGON_DRIVERS_ROOT}/libs 
-	mpu9x50
-	uart_esc
-	csr_gps
-	rc_receiver
+#include_directories(${EAGLE_ADDON_ROOT}/flight_controller/hexagon/inc)
+include_directories(
+	${HEXAGON_SDK_ROOT}/inc
+	${HEXAGON_SDK_ROOT}/inc/stddef
+	${HEXAGON_SDK_ROOT}/lib/common/qurt/ADSPv5MP/include
 	)
 
+message("hexagon_sdk_root is ${HEXAGON_SDK_ROOT}")
+
+set(QURT_ENABLE_STUBS "0")
+
+set(CONFIG_SHMEM "1")
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/qurt_app.cmake)
@@ -29,10 +37,10 @@ set(config_module_list
 	#
 	drivers/device
 	modules/sensors
-	$(EAGLE_DRIVERS_SRC)/mpu9x50
-	$(EAGLE_DRIVERS_SRC)/uart_esc
-	$(EAGLE_DRIVERS_SRC)/rc_receiver
-	$(EAGLE_DRIVERS_SRC)/csr_gps
+	${EAGLE_DRIVERS_SRC}/mpu9x50
+	${EAGLE_DRIVERS_SRC}/uart_esc
+	${EAGLE_DRIVERS_SRC}/rc_receiver
+	${EAGLE_DRIVERS_SRC}/csr_gps
 
 	#
 	# System commands
@@ -69,6 +77,7 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
+	lib/ecl
 	lib/geo_lookup
 	lib/conversion
 	lib/terrain_estimation

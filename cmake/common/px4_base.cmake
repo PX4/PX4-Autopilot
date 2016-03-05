@@ -90,7 +90,7 @@ include(CMakeParseArguments)
 #		endfunction()
 #
 #		test(NAME "hello" LIST a b c)
-#		
+#
 #		OUTPUT:
 #			name: hello
 #			list: a b c
@@ -138,13 +138,15 @@ function(px4_add_git_submodule)
 	string(REPLACE "/" "_" NAME ${PATH})
 	add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule init ${PATH}
+		COMMAND git submodule update --init --recursive ${PATH}
 		COMMAND touch ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		DEPENDS ${CMAKE_SOURCE_DIR}/.gitmodules
 		)
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		COMMAND git submodule update --recursive ${PATH}
+# This is NOT a good approach as it overwrites checked out branches
+# behind the back of a developer
+		#COMMAND git submodule update --recursive ${PATH}
 		DEPENDS ${CMAKE_BINARY_DIR}/git_init_${NAME}.stamp
 		)
 endfunction()
@@ -347,11 +349,11 @@ function(px4_generate_messages)
 		list(APPEND msg_files_out ${msg_out_path}/${msg}.h)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_files_out}
-		COMMAND ${PYTHON_EXECUTABLE} 
+		COMMAND ${PYTHON_EXECUTABLE}
 			Tools/px_generate_uorb_topic_headers.py
 			${QUIET}
 			-d msg
-			-o ${msg_out_path} 
+			-o ${msg_out_path}
 			-e msg/templates/uorb
 			-t ${CMAKE_BINARY_DIR}/topics_temporary
 		DEPENDS ${DEPENDS} ${MSG_FILES}
@@ -368,11 +370,11 @@ function(px4_generate_messages)
 		list(APPEND msg_multi_files_out ${msg_multi_out_path}/px4_${msg}.h)
 	endforeach()
 	add_custom_command(OUTPUT ${msg_multi_files_out}
-		COMMAND ${PYTHON_EXECUTABLE} 
+		COMMAND ${PYTHON_EXECUTABLE}
 			Tools/px_generate_uorb_topic_headers.py
 			${QUIET}
 			-d msg
-			-o ${msg_multi_out_path} 
+			-o ${msg_multi_out_path}
 			-e msg/templates/px4/uorb
 			-t ${CMAKE_BINARY_DIR}/multi_topics_temporary/${OS}
 			-p "px4_"
@@ -490,8 +492,8 @@ function(px4_add_common_flags)
 	set(warnings
 		-Wall
 		-Werror
-		-Wno-sign-compare
 		-Wextra
+		-Wno-sign-compare
 		#-Wshadow # very verbose due to eigen
 		-Wfloat-equal
 		-Wpointer-arith
@@ -534,15 +536,32 @@ function(px4_add_common_flags)
 		)
 	endif()
 
-	set(max_optimization -Os)
+	if ($ENV{MEMORY_DEBUG} MATCHES "1")
+		set(max_optimization -O0)
 
-	set(optimization_flags
-		-fno-strict-aliasing
-		-fomit-frame-pointer
-		-funsafe-math-optimizations
-		-ffunction-sections
-		-fdata-sections
-		)
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fno-omit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			-g -fsanitize=address
+			)
+	else()
+		set(max_optimization -Os)
+
+		if ("${OS}" STREQUAL "qurt")
+			set(PIC_FLAG -fPIC)
+		endif()
+		set(optimization_flags
+			-fno-strict-aliasing
+			-fomit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			${PIC_FLAG}
+			)
+	endif()
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		list(APPEND optimization_flags
@@ -670,7 +689,7 @@ endfunction()
 #	Input:
 #		dirname					: path to module dir
 #
-#	Output: 
+#	Output:
 #		newname					: module name
 #
 #	Example:
@@ -701,8 +720,8 @@ endfunction()
 function(px4_create_git_hash_header)
 	px4_parse_function_args(
 		NAME px4_create_git_hash_header
-		ONE_VALUE HEADER 
-		REQUIRED HEADER 
+		ONE_VALUE HEADER
+		REQUIRED HEADER
 		ARGN ${ARGN})
 	execute_process(
 		COMMAND git rev-parse HEAD

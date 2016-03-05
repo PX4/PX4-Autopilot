@@ -269,8 +269,8 @@ int ASHTECH::handle_message(int len)
 		double ashtech_time __attribute__((unused)) = 0.0, lat = 0.0, lon = 0.0, alt = 0.0;
 		int num_of_sv __attribute__((unused)) = 0, fix_quality = 0;
 		double track_true = 0.0, ground_speed = 0.0 , age_of_corr __attribute__((unused)) = 0.0;
-		double hdop __attribute__((unused)) = 99.9, vdop __attribute__((unused)) = 99.9,  pdop __attribute__((unused)) = 99.9,
-		tdop __attribute__((unused)) = 99.9, vertic_vel = 0.0;
+		double hdop = 99.9, vdop = 99.9,  pdop __attribute__((unused)) = 99.9,
+		       tdop __attribute__((unused)) = 99.9, vertic_vel = 0.0;
 		char ns = '?', ew = '?';
 
 		if (bufptr && *(++bufptr) != ',') { fix_quality = strtol(bufptr, &endp, 10); bufptr = endp; }
@@ -338,6 +338,8 @@ int ASHTECH::handle_message(int len)
 		_gps_position->lat = static_cast<int>((int(lat * 0.01) + (lat * 0.01 - int(lat * 0.01)) * 100.0 / 60.0) * 10000000);
 		_gps_position->lon = static_cast<int>((int(lon * 0.01) + (lon * 0.01 - int(lon * 0.01)) * 100.0 / 60.0) * 10000000);
 		_gps_position->alt = static_cast<int>(alt * 1000);
+		_gps_position->hdop = (float)hdop / 100.0f;
+		_gps_position->vdop = (float)vdop / 100.0f;
 		_rate_count_lat_lon++;
 
 		if (coordinatesFound < 3) {

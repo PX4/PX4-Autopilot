@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,18 +57,30 @@ muorb_main(int argc, char *argv[])
 	 * XXX it would be nice to have a wrapper for this...
 	 */
 	if (!strcmp(argv[1], "start")) {
-		// register the fast rpc channel with UORB.
-		uORB::Manager::get_instance()->set_uorb_communicator(uORB::KraitFastRpcChannel::GetInstance());
+		if (uORB::KraitFastRpcChannel::isInstance()) {
+			PX4_WARN("muorb already running");
 
-		// start the KaitFastRPC channel thread.
-		uORB::KraitFastRpcChannel::GetInstance()->Start();
+		} else {
+			// register the fast rpc channel with UORB.
+			uORB::Manager::get_instance()->set_uorb_communicator(uORB::KraitFastRpcChannel::GetInstance());
+
+			// start the KaitFastRPC channel thread.
+			uORB::KraitFastRpcChannel::GetInstance()->Start();
+		}
+
 		return OK;
 
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 
-		uORB::KraitFastRpcChannel::GetInstance()->Stop();
+		if (uORB::KraitFastRpcChannel::isInstance()) {
+			uORB::KraitFastRpcChannel::GetInstance()->Stop();
+
+		} else {
+			PX4_WARN("muorb not running");
+		}
+
 		return OK;
 	}
 
@@ -76,6 +88,13 @@ muorb_main(int argc, char *argv[])
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "status")) {
+		if (uORB::KraitFastRpcChannel::isInstance()) {
+			PX4_WARN("muorb running");
+
+		} else {
+			PX4_WARN("muorb not running");
+		}
+
 		return OK;
 	}
 

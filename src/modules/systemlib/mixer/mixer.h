@@ -235,7 +235,7 @@ protected:
 
 private:
 
-	/* do not allow to copy due to prt data members */
+	/* do not allow to copy due to pointer data members */
 	Mixer(const Mixer &);
 	Mixer &operator=(const Mixer &);
 };

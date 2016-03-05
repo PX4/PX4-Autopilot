@@ -86,7 +86,7 @@ function(add_gtest)
 endfunction()
 
 add_library( px4_platform 
-#                           ${PX_SRC}/platforms/common/px4_getopt.c
+#                          ${PX_SRC}/platforms/common/px4_getopt.c
                            ${PX_SRC}/platforms/posix/px4_layer/px4_log.c
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
@@ -170,15 +170,15 @@ target_link_libraries( sf0x_test px4_platform )
 add_gtest(sf0x_test)
 
 # param_test
-add_executable(param_test param_test.cpp
-                          hrt.cpp
-                          uorb_stub.cpp
-                          ${PX_SRC}/modules/systemlib/param/param.c
-                          ${PX_SRC}/modules/systemlib/bson/tinybson.c
-                          )
-target_link_libraries( param_test px4_platform )                          
+#add_executable(param_test param_test.cpp
+#                          hrt.cpp
+#                          uorb_stub.cpp
+#                          ${PX_SRC}/modules/systemlib/param/param.c
+#                          ${PX_SRC}/modules/systemlib/bson/tinybson.c
+#                          )
+#target_link_libraries( param_test px4_platform )                          
                           
-add_gtest(param_test)
+#add_gtest(param_test)
 
 # uorb test
 #add_executable(uorb_tests uorb_unittests/uORBCommunicator_gtests.cpp

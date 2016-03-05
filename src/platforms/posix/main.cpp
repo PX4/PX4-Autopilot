@@ -63,14 +63,17 @@ typedef int (*px4_main_t)(int argc, char *argv[]);
 #define CMD_BUFF_SIZE	100
 
 static bool _ExitFlag = false;
+
+static struct termios orig_term;
+
 extern "C" {
 	void _SigIntHandler(int sig_num);
 	void _SigIntHandler(int sig_num)
 	{
 		cout.flush();
-		cout << endl << "Exiting.." << endl;
+		cout << endl << "Exiting..." << endl;
 		cout.flush();
-		_exit(0);
+		_ExitFlag = true;
 	}
 	void _SigFpeHandler(int sig_num);
 	void _SigFpeHandler(int sig_num)
@@ -106,14 +109,12 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail)
 
 		arg[i] = (char *)0;
 
-		if (exit_on_fail) {
-			cout << endl;
-		}
+		cout << endl;
 
 		int retval = apps[command](i, (char **)arg);
 
 		if (retval) {
-			cout << "Command failed, returned " << retval << endl;
+			cout << "Command '" << command << "' failed, returned " << retval << endl;
 
 			if (exit_on_fail && retval) {
 				exit(retval);
@@ -158,15 +159,35 @@ static void process_line(string &line, bool exit_on_fail)
 	run_cmd(appargs, exit_on_fail);
 }
 
+static void restore_term(void)
+{
+	cout << "Restoring terminal\n";
+	tcsetattr(0, TCSANOW, &orig_term);
+}
+
 int main(int argc, char **argv)
 {
 	bool daemon_mode = false;
 	bool chroot_on = false;
-	signal(SIGINT, _SigIntHandler);
-	signal(SIGFPE, _SigFpeHandler);
+
+	tcgetattr(0, &orig_term);
+	atexit(restore_term);
+
+	struct sigaction sig_int;
+	memset(&sig_int, 0, sizeof(struct sigaction));
+	sig_int.sa_handler = _SigIntHandler;
+	sig_int.sa_flags = 0;// not SA_RESTART!;
+
+	struct sigaction sig_fpe;
+	memset(&sig_fpe, 0, sizeof(struct sigaction));
+	sig_fpe.sa_handler = _SigFpeHandler;
+	sig_fpe.sa_flags = 0;// not SA_RESTART!;
+
+	sigaction(SIGINT, &sig_int, NULL);
+	//sigaction(SIGTERM, &sig_int, NULL);
+	sigaction(SIGFPE, &sig_fpe, NULL);
 
 	int index = 1;
-	bool error_detected = false;
 	char *commands_file = nullptr;
 
 	while (index < argc) {
@@ -197,179 +218,181 @@ int main(int argc, char **argv)
 
 			} else {
 				PX4_WARN("Error opening file: %s", argv[index]);
-				error_detected = true;
-				break;
+				return -1;
 			}
 		}
 
 		++index;
 	}
 
-	if (!error_detected) {
-		DriverFramework::Framework::initialize();
-		px4::init_once();
 
-		px4::init(argc, argv, "mainapp");
+	DriverFramework::Framework::initialize();
+	px4::init_once();
 
-		// if commandfile is present, process the commands from the file
-		if (commands_file != nullptr) {
-			ifstream infile(commands_file);
+	px4::init(argc, argv, "mainapp");
 
-			if (infile.is_open()) {
-				for (string line; getline(infile, line, '\n');) {
-					// TODO: this should be true but for that we have to check all startup files
-					process_line(line, false);
-				}
+	// if commandfile is present, process the commands from the file
+	if (commands_file != nullptr) {
+		ifstream infile(commands_file);
 
-			} else {
-				PX4_WARN("Error opening file: %s", commands_file);
-			}
-		}
-
-		if (chroot_on) {
-			// Lock this application in the current working dir
-			// this is not an attempt to secure the environment,
-			// rather, to replicate a deployed file system.
-
-#ifdef PATH_MAX
-			const unsigned path_max_len = PATH_MAX;
-#else
-			const unsigned path_max_len = 1024;
-#endif
-
-			char pwd_path[path_max_len];
-			const char *folderpath = "/rootfs/";
-
-			if (nullptr == getcwd(pwd_path, sizeof(pwd_path))) {
-				PX4_ERR("Failed acquiring working dir, abort.");
-				exit(1);
-			}
-
-			if (nullptr == strcat(pwd_path, folderpath)) {
-				PX4_ERR("Failed completing path, abort.");
-				exit(1);
-			}
-
-			if (chroot(pwd_path)) {
-				PX4_ERR("Failed chrooting application, path: %s, error: %s.", pwd_path, strerror(errno));
-				exit(1);
-			}
-
-			if (chdir("/")) {
-				PX4_ERR("Failed changing to root dir, path: %s, error: %s.", pwd_path, strerror(errno));
-				exit(1);
-			}
-		}
-
-		if (!daemon_mode) {
-			string mystr = "";
-			string string_buffer[CMD_BUFF_SIZE];
-			int buf_ptr_write = 0;
-			int buf_ptr_read = 0;
-
-			print_prompt();
-
-			// change input mode so that we can manage shell
-			struct termios term;
-			tcgetattr(0, &term);
-			term.c_lflag &= ~ICANON;
-			term.c_lflag &= ~ECHO;
-			tcsetattr(0, TCSANOW, &term);
-			setbuf(stdin, NULL);
-
-			while (!_ExitFlag) {
-
-				char c = getchar();
-
-				switch (c) {
-				case 127:	// backslash
-					if (mystr.length() > 0) {
-						mystr.pop_back();
-						printf("%c[2K", 27);	// clear line
-						cout << (char)13;
-						print_prompt();
-						cout << mystr;
-					}
-
-					break;
-
-				case'\n':	// user hit enter
-					if (buf_ptr_write == CMD_BUFF_SIZE) {
-						buf_ptr_write = 0;
-					}
-
-					if (buf_ptr_write > 0) {
-						if (mystr != string_buffer[buf_ptr_write - 1]) {
-							string_buffer[buf_ptr_write] = mystr;
-							buf_ptr_write++;
-						}
-
-					} else {
-						if (mystr != string_buffer[CMD_BUFF_SIZE - 1]) {
-							string_buffer[buf_ptr_write] = mystr;
-							buf_ptr_write++;
-						}
-					}
-
-					process_line(mystr, false);
-					mystr = "";
-					buf_ptr_read = buf_ptr_write;
-
-					print_prompt();
-					break;
-
-				case '\033': {	// arrow keys
-						c = getchar();	// skip first one, does not have the info
-						c = getchar();
-
-						// arrow up
-						if (c == 'A') {
-							buf_ptr_read--;
-							// arrow down
-
-						} else if (c == 'B') {
-							if (buf_ptr_read < buf_ptr_write) {
-								buf_ptr_read++;
-							}
-
-						} else {
-							// TODO: Support editing current line
-						}
-
-						if (buf_ptr_read < 0) {
-							buf_ptr_read = 0;
-						}
-
-						string saved_cmd = string_buffer[buf_ptr_read];
-						printf("%c[2K", 27);
-						cout << (char)13;
-						mystr = saved_cmd;
-						print_prompt();
-						cout << mystr;
-						break;
-					}
-
-				default:	// any other input
-					cout << c;
-					mystr += c;
-					break;
-				}
+		if (infile.is_open()) {
+			for (string line; getline(infile, line, '\n');) {
+				// TODO: this should be true but for that we have to check all startup files
+				process_line(line, false);
 			}
 
 		} else {
-			while (!_ExitFlag) {
-				usleep(100000);
+			PX4_WARN("Error opening file: %s", commands_file);
+		}
+	}
+
+	if (chroot_on) {
+		// Lock this application in the current working dir
+		// this is not an attempt to secure the environment,
+		// rather, to replicate a deployed file system.
+
+#ifdef PATH_MAX
+		const unsigned path_max_len = PATH_MAX;
+#else
+		const unsigned path_max_len = 1024;
+#endif
+
+		char pwd_path[path_max_len];
+		const char *folderpath = "/rootfs/";
+
+		if (nullptr == getcwd(pwd_path, sizeof(pwd_path))) {
+			PX4_ERR("Failed acquiring working dir, abort.");
+			exit(1);
+		}
+
+		if (nullptr == strcat(pwd_path, folderpath)) {
+			PX4_ERR("Failed completing path, abort.");
+			exit(1);
+		}
+
+		if (chroot(pwd_path)) {
+			PX4_ERR("Failed chrooting application, path: %s, error: %s.", pwd_path, strerror(errno));
+			exit(1);
+		}
+
+		if (chdir("/")) {
+			PX4_ERR("Failed changing to root dir, path: %s, error: %s.", pwd_path, strerror(errno));
+			exit(1);
+		}
+	}
+
+	if (!daemon_mode) {
+		string mystr = "";
+		string string_buffer[CMD_BUFF_SIZE];
+		int buf_ptr_write = 0;
+		int buf_ptr_read = 0;
+
+		print_prompt();
+
+		// change input mode so that we can manage shell
+		struct termios term;
+		tcgetattr(0, &term);
+		term.c_lflag &= ~ICANON;
+		term.c_lflag &= ~ECHO;
+		tcsetattr(0, TCSANOW, &term);
+		setbuf(stdin, NULL);
+
+		while (!_ExitFlag) {
+
+			char c = getchar();
+
+			switch (c) {
+			case 127:	// backslash
+				if (mystr.length() > 0) {
+					mystr.pop_back();
+					printf("%c[2K", 27);	// clear line
+					cout << (char)13;
+					print_prompt();
+					cout << mystr;
+				}
+
+				break;
+
+			case'\n':	// user hit enter
+				if (buf_ptr_write == CMD_BUFF_SIZE) {
+					buf_ptr_write = 0;
+				}
+
+				if (buf_ptr_write > 0) {
+					if (mystr != string_buffer[buf_ptr_write - 1]) {
+						string_buffer[buf_ptr_write] = mystr;
+						buf_ptr_write++;
+					}
+
+				} else {
+					if (mystr != string_buffer[CMD_BUFF_SIZE - 1]) {
+						string_buffer[buf_ptr_write] = mystr;
+						buf_ptr_write++;
+					}
+				}
+
+				process_line(mystr, false);
+				mystr = "";
+				buf_ptr_read = buf_ptr_write;
+
+				print_prompt();
+				break;
+
+			case '\033': {	// arrow keys
+					c = getchar();	// skip first one, does not have the info
+					c = getchar();
+
+					// arrow up
+					if (c == 'A') {
+						buf_ptr_read--;
+						// arrow down
+
+					} else if (c == 'B') {
+						if (buf_ptr_read < buf_ptr_write) {
+							buf_ptr_read++;
+						}
+
+					} else {
+						// TODO: Support editing current line
+					}
+
+					if (buf_ptr_read < 0) {
+						buf_ptr_read = 0;
+					}
+
+					string saved_cmd = string_buffer[buf_ptr_read];
+					printf("%c[2K", 27);
+					cout << (char)13;
+					mystr = saved_cmd;
+					print_prompt();
+					cout << mystr;
+					break;
+				}
+
+			default:	// any other input
+				cout << c;
+				mystr += c;
+				break;
 			}
 		}
 
-		if (px4_task_is_running("muorb")) {
-			// sending muorb stop is needed if it is running to exit cleanly
-			vector<string> muorb_stop_cmd = { "muorb", "stop" };
-			run_cmd(muorb_stop_cmd, !daemon_mode);
+	} else {
+		while (!_ExitFlag) {
+			usleep(100000);
 		}
-
-		vector<string> shutdown_cmd = { "shutdown" };
-		run_cmd(shutdown_cmd, true);
-		DriverFramework::Framework::shutdown();
 	}
+
+	// TODO: Always try to stop muorb for QURT because px4_task_is_running doesn't seem to work.
+	if (true) {
+		//if (px4_task_is_running("muorb")) {
+		// sending muorb stop is needed if it is running to exit cleanly
+		vector<string> muorb_stop_cmd = { "muorb", "stop" };
+		run_cmd(muorb_stop_cmd, !daemon_mode);
+	}
+
+	vector<string> shutdown_cmd = { "shutdown" };
+	run_cmd(shutdown_cmd, true);
+	DriverFramework::Framework::shutdown();
+
+	return OK;
 }

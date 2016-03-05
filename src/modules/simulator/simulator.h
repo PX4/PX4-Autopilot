@@ -44,6 +44,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/battery_status.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_baro.h>
@@ -235,6 +236,8 @@ private:
 		_baro_pub(nullptr),
 		_gyro_pub(nullptr),
 		_mag_pub(nullptr),
+		_flow_pub(nullptr),
+		_battery_pub(nullptr),
 		_initialized(false)
 #ifndef __PX4_QURT
 		,
@@ -247,7 +250,9 @@ private:
 		_actuators{},
 		_attitude{},
 		_manual{},
-		_vehicle_status{}
+		_vehicle_status{},
+		_battery_last_timestamp(0),
+		_battery_mamphour_total(0.0f)
 #endif
 	{}
 	~Simulator() { _instance = NULL; }
@@ -279,6 +284,7 @@ private:
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
 	orb_advert_t _flow_pub;
+	orb_advert_t _battery_pub;
 
 	bool _initialized;
 
@@ -302,6 +308,8 @@ private:
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
+	uint64_t _battery_last_timestamp;
+	float _battery_mamphour_total;
 
 	void poll_topics();
 	void handle_message(mavlink_message_t *msg, bool publish);

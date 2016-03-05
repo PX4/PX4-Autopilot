@@ -331,7 +331,7 @@ Navigator::task_main()
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			PX4_WARN("poll error %d, %d", pret, errno);
+			PX4_WARN("nav: poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -398,8 +398,12 @@ Navigator::task_main()
 			vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
-			if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
-				warnx("navigator: got takeoff coordinates");
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
+				warnx("navigator: got reposition command");
+			}
+
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
+				warnx("navigator: got pause/continue command");
 			}
 		}
 
@@ -748,5 +752,15 @@ Navigator::publish_att_sp()
 	} else {
 		/* advertise and publish */
 		_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+	}
+}
+
+void
+Navigator::set_mission_failure(const char* reason)
+{
+	if (!_mission_result.mission_failure) {
+		_mission_result.mission_failure = true;
+		set_mission_result_updated();
+		mavlink_log_critical(_mavlink_fd, "%s", reason);
 	}
 }

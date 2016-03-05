@@ -45,9 +45,52 @@
  *
  * @min 0.05
  * @max 1.0
+ * @decimal 3
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
+
+/**
+ * Hover thrust
+ *
+ * Vertical thrust required to hover.
+ * This value is mapped to center stick for manual throttle control.
+ * With this value set to the thrust required to hover, transition
+ * from manual to ALTCTL mode while hovering will occur with the
+ * throttle stick near center, which is then interpreted as (near)
+ * zero demand for vertical speed.
+ *
+ * @min 0.2
+ * @max 0.8
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
+
+/**
+ * ALTCTL throttle curve breakpoint
+ *
+ * Halfwidth of deadband or reduced sensitivity center portion of curve.
+ * This is the halfwidth of the center region of the ALTCTL throttle
+ * curve. It extends from center-dz to center+dz.
+ *
+ * @min 0.0
+ * @max 0.2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ALTCTL_DZ, 0.1f);
+
+/**
+ * ALTCTL throttle curve breakpoint height
+ *
+ * Controls the slope of the reduced sensitivity region.
+ * This is the height of the ALTCTL throttle
+ * curve at center-dz and center+dz.
+ *
+ * @min 0.0
+ * @max 0.2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ALTCTL_DY, 0.0f);
 
 /**
  * Maximum thrust in auto thrust control
@@ -59,6 +102,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  *
  * @min 0.0
  * @max 0.95
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
@@ -70,6 +114,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
  *
  * @min 0.0
  * @max 1.0
+ * @decimal 3
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
@@ -84,6 +129,7 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
  *
  * @min 0.0
  * @max 1.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_MANTHR_MAX, 0.9f);
@@ -92,6 +138,7 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MAX, 0.9f);
  * Proportional gain for vertical position error
  *
  * @min 0.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_P, 1.0f);
@@ -100,6 +147,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_P, 1.0f);
  * Proportional gain for vertical velocity error
  *
  * @min 0.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.2f);
@@ -110,6 +158,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.2f);
  * Non zero value allows hovering thrust estimation on stabilized or autonomous takeoff.
  *
  * @min 0.0
+ * @decimal 3
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.02f);
@@ -118,6 +167,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.02f);
  * Differential gain for vertical velocity error
  *
  * @min 0.0
+ * @decimal 3
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
@@ -130,6 +180,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
  * @unit m/s
  * @min 0.0
  * @max 8.0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 3.0f);
@@ -141,6 +192,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 3.0f);
  *
  * @min 0.0
  * @max 1.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
@@ -149,14 +201,16 @@ PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
  * Proportional gain for horizontal position error
  *
  * @min 0.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_P, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_P, 1.25f);
 
 /**
  * Proportional gain for horizontal velocity error
  *
  * @min 0.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.1f);
@@ -167,6 +221,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.1f);
  * Non-zero value allows to resist wind.
  *
  * @min 0.0
+ * @decimal 3
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
@@ -175,6 +230,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
  * Differential gain for horizontal velocity error. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
  * @min 0.0
+ * @decimal 3
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
@@ -186,9 +242,12 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
  *
  * @unit m/s
  * @min 0.0
+ * @max 20.0
+ * @increment 1
+ * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 8.0f);
 
 /**
  * Horizontal velocity feed forward
@@ -197,6 +256,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
  *
  * @min 0.0
  * @max 1.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
@@ -209,6 +269,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
  * @unit degree
  * @min 0.0
  * @max 90.0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
@@ -221,6 +282,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  * @unit degree
  * @min 0.0
  * @max 90.0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
@@ -230,6 +292,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
  *
  * @unit m/s
  * @min 0.0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.5f);
@@ -239,6 +302,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.5f);
  *
  * @unit m/s
  * @min 0.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TKO_SPEED, 1.5f);
@@ -249,6 +313,7 @@ PARAM_DEFINE_FLOAT(MPC_TKO_SPEED, 1.5f);
  * @unit degree
  * @min 0.0
  * @max 90.0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX, 35.0f);
@@ -259,6 +324,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX, 35.0f);
  * @unit degree
  * @min 0.0
  * @max 90.0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
@@ -268,9 +334,10 @@ PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
  *
  * @unit degree / s
  * @min 0.0
+ * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 120.0f);
+PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 200.0f);
 
 /**
  * Deadzone of X,Y sticks where position hold is enabled
@@ -278,43 +345,37 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 120.0f);
  * @unit %
  * @min 0.0
  * @max 1.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_HOLD_XY_DZ, 0.1f);
-
-/**
- * Deadzone of Z stick where altitude hold is enabled
- *
- * @unit %
- * @min 0.0
- * @max 1.0
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_HOLD_Z_DZ, 0.1f);
 
 /**
  * Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
  *
  * @unit m/s
  * @min 0.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.8f);
 
 /**
  * Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
  *
  * @unit m/s
  * @min 0.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.6f);
 
 /**
  * Low pass filter cut freq. for numerical velocity derivative
  *
  * @unit Hz
  * @min 0.0
+ * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
@@ -324,7 +385,9 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  *
  * @unit m/s/s
  * @min 2.0
- * @max 10.0
+ * @max 15.0
+ * @increment 1
+ * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 4.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);

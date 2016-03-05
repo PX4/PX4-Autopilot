@@ -6,34 +6,30 @@
     exit 0
 }
 
-if [ -f src/modules/uavcan/libuavcan/CMakeLists.txt ]
-then
-	echo "Git submodule config valid."
-else
-	git submodule update --init --recursive
-fi
 
 GITSTATUS=$(git status)
 
 function check_git_submodule {
 
-if [ -d $1 ];
+# The .git exists in a submodule if init and update have been done.
+if [ -f $1"/.git" ];
 	then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
-	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1" | grep "<")
+	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
 	if [ -z "$STATUSRETVAL" ]; then
 		echo "Checked $1 submodule, correct version found"
 	else
 		echo -e "\033[31mChecked $1 submodule, ACTION REQUIRED:\033[0m"
 		echo ""
-		echo -e "New commits required:"
+		echo -e "Different commits:"
 		echo -e "$SUBMODULE_STATUS"
 		echo ""
 		echo ""
 		echo -e " *******************************************************************************"
 		echo -e " *   \033[31mIF YOU DID NOT CHANGE THIS FILE (OR YOU DON'T KNOW WHAT A SUBMODULE IS):\033[0m  *"
 		echo -e " *   \033[31mHit 'u' and <ENTER> to update ALL submodules and resolve this.\033[0m            *"
-		echo -e " *   (performs \033[94mgit submodule update --init --recursive\033[0m)                        *"
+		echo -e " *   (performs \033[94mgit submodule sync --recursive\033[0m                                  *"
+		echo -e " *    and \033[94mgit submodule update --init --recursive\033[0m )                            *"
 		echo -e " *******************************************************************************"
 		echo ""
 		echo ""
@@ -49,6 +45,7 @@ if [ -d $1 ];
 		else
 			if [ "$user_cmd" == "u" ]
 			then
+				git submodule sync --recursive
 				git submodule update --init --recursive
 				echo "Submodule fixed, continuing build.."
 			else
@@ -58,8 +55,7 @@ if [ -d $1 ];
 		fi
 	fi
 else
-	git submodule update --init --recursive;
-	git submodule update;
+	git submodule update --init --recursive $1;
 fi
 
 }
@@ -72,10 +68,12 @@ check_git_submodule Tools/sitl_gazebo
 check_git_submodule cmake/cmake_hexagon
 check_git_submodule mavlink/include/mavlink/v1.0
 check_git_submodule src/lib/DriverFramework
-check_git_submodule src/lib/dspal
+check_git_submodule src/lib/DriverFramework/cmake_hexagon
+check_git_submodule src/lib/DriverFramework/dspal
 check_git_submodule src/lib/ecl
 check_git_submodule src/lib/matrix
 check_git_submodule src/modules/uavcan/libuavcan
 check_git_submodule unittests/googletest
 
 exit 0
+

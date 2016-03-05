@@ -10,6 +10,8 @@ include(qurt/px4_impl_qurt)
 
 #include_directories(${HEXAGON_DRIVERS_ROOT}/inc)
 
+set(CONFIG_SHMEM "1")
+
 # For Actual flight we need to link against the driver dynamic libraries
 #set(target_libraries
 #	-L${HEXAGON_DRIVERS_ROOT}/libs
@@ -35,6 +37,9 @@ set(config_module_list
 #	$(EAGLE_DRIVERS_SRC)/uart_esc
 #	$(EAGLE_DRIVERS_SRC)/rc_receiver
 #	$(EAGLE_DRIVERS_SRC)/csr_gps
+	platforms/posix/drivers/df_mpu9250_wrapper
+	platforms/posix/drivers/df_bmp280_wrapper
+	platforms/posix/drivers/df_hmc5883_wrapper
 
 	#
 	# System commands
@@ -66,11 +71,18 @@ set(config_module_list
 	modules/controllib
 
 	#
+	# PX4 drivers
+	#
+	# TODO: make the GPS driver compile
+	#drivers/gps
+
+	#
 	# Libraries
 	#
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
+	lib/ecl
 	lib/geo_lookup
 	lib/conversion
 	lib/terrain_estimation
@@ -88,4 +100,10 @@ set(config_module_list
 	# sources for muorb over fastrpc
 	#
 	modules/muorb/adsp
+	)
+
+set(config_df_driver_list
+	mpu9250
+	bmp280
+	hmc5883
 	)

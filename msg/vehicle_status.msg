@@ -117,10 +117,9 @@ uint32 system_id			# system id, inspired by MAVLink's system ID field
 uint32 component_id			# subsystem / component id, inspired by MAVLink's component ID field
 
 bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
-bool vtol_in_transition		# True if VTOL is doing a transition
 bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if vtol should stabilize attitude for fw in manual mode
-bool in_transition_mode
+bool in_transition_mode			# True if VTOL is doing a transition
 
 bool condition_battery_voltage_valid
 bool condition_system_in_air_restore		# true if we can restore in mid air
@@ -151,9 +150,11 @@ bool data_link_lost_cmd				# datalink to GCS lost mode commanded
 uint8 data_link_lost_counter			# counts unique data link lost events
 bool engine_failure				# Set to true if an engine failure is detected
 bool engine_failure_cmd				# Set to true if an engine failure mode is commanded
+bool vtol_transition_failure		# Set to true if vtol transition failed
+bool vtol_transition_failure_cmd	# Set to true if vtol transition failure mode is commanded
 bool gps_failure				# Set to true if a gps failure is detected
 bool gps_failure_cmd				# Set to true if a gps failure mode is commanded
-
+bool mission_failure				# Set to true if mission could not continue/finish
 bool barometer_failure				# Set to true if a barometer failure is detected
 
 bool offboard_control_signal_found_once

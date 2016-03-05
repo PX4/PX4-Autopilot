@@ -175,10 +175,14 @@ extern "C" {
 			if (strcmp(argv[2], "-s") == 0 ||
 			    strcmp(argv[2], "-p") == 0 ||
 			    strcmp(argv[2], "-t") == 0) {
+
 				if (g_sim_task >= 0) {
 					warnx("Simulator already started");
 					return 0;
 				}
+
+				// enable lockstep support
+				px4_enable_sim_lockstep();
 
 				g_sim_task = px4_task_spawn_cmd("simulator",
 								SCHED_DEFAULT,

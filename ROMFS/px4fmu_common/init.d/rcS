@@ -86,70 +86,6 @@ then
 		fi
 	fi
 
-	# Compare existing params and save defaults
-	# this only needs to be in for 1-2 releases
-	if param compare RC_MAP_THROTTLE 0
-	then
-		# So this is a default setup,
-		# now lets find out if channel 3
-		# is calibrated
-		if param compare RC3_MIN 1000
-		then
-			# This is default, do nothing
-		else
-			# Set old default
-			param set RC_MAP_THROTTLE 3
-		fi
-	fi
-
-	# Compare existing params and save defaults
-	# this only needs to be in for 1-2 releases
-	if param compare RC_MAP_ROLL 0
-	then
-		# So this is a default setup,
-		# now lets find out if channel 1
-		# is calibrated
-		if param compare RC1_MIN 1000
-		then
-			# This is default, do nothing
-		else
-			# Set old default
-			param set RC_MAP_ROLL 1
-		fi
-	fi
-
-	# Compare existing params and save defaults
-	# this only needs to be in for 1-2 releases
-	if param compare RC_MAP_PITCH 0
-	then
-		# So this is a default setup,
-		# now lets find out if channel 2
-		# is calibrated
-		if param compare RC2_MIN 1000
-		then
-			# This is default, do nothing
-		else
-			# Set old default
-			param set RC_MAP_PITCH 2
-		fi
-	fi
-
-	# Compare existing params and save defaults
-	# this only needs to be in for 1-2 releases
-	if param compare RC_MAP_YAW 0
-	then
-		# So this is a default setup,
-		# now lets find out if channel 4
-		# is calibrated
-		if param compare RC4_MIN 1000
-		then
-			# This is default, do nothing
-		else
-			# Set old default
-			param set RC_MAP_YAW 4
-		fi
-	fi
-
 	#
 	# Start system state indicator
 	#
@@ -182,6 +118,7 @@ then
 	set PWM_MAX none
 	set PWM_AUX_OUT none
 	set PWM_AUX_RATE none
+	set PWM_ACHDIS none
 	set PWM_AUX_DISARMED none
 	set PWM_AUX_MIN none
 	set PWM_AUX_MAX none
@@ -552,7 +489,7 @@ then
 			then
 				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
 				# Start MAVLink on Wifi (ESP8266 port)
-				mavlink start -r 800000 -b 921600 -d /dev/ttyS0
+				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
 			fi
 		fi
 	fi
@@ -560,17 +497,12 @@ then
 	mavlink start $MAVLINK_F
 	unset MAVLINK_F
 
-	if ver hwcmp PX4FMU_V4
-	then
-		# Start MAVLink on OSD (TELEM2 port)
-		mavlink start -r 1200 -d /dev/ttyS2 -b 57600 -m osd
-	fi
-
 	#
 	# MAVLink onboard / TELEM2
 	#
-	if ver hwcmp PX4FMU_V2
+	if ver hwcmp PX4FMU_V1
 	then
+	else
 		# XXX We need a better way for runtime eval of shell variables,
 		# but this works for now
 		if param compare SYS_COMPANION 921600
@@ -589,6 +521,10 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
 		fi
+		if param compare SYS_COMPANION 357600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -r 1000
+		fi
 		# Sensors on the PWM interface bank
 		# clear pins 5 and 6
 		if param compare SENS_EN_LL40LS 1
@@ -602,6 +538,12 @@ then
 			set AUX_MODE none
 			camera_trigger start
 		fi
+	fi
+
+	# Transitional support: Disable safety on all Pixracer boards
+	if ver hwcmp PX4FMU_V4
+	then
+		param set CBRK_IO_SAFETY 22027
 	fi
 
 	#
@@ -676,6 +618,10 @@ then
 			then
 				set MAV_TYPE 2
 			fi
+			if [ $MIXER == quad_h ]
+			then
+				set MAV_TYPE 2
+			fi
 			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
 			then
 				set MAV_TYPE 15
@@ -692,7 +638,7 @@ then
 			then
 				set MAV_TYPE 14
 			fi
-			if [ $MIXER == octo_cox ]
+			if [ $MIXER == octo_cox -o $MIXER == octo_cox_w ]
 			then
 				set MAV_TYPE 14
 			fi

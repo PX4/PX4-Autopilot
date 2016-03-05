@@ -185,6 +185,7 @@ Mavlink::Mavlink() :
 	_socket_fd(-1),
 	_protocol(SERIAL),
 	_network_port(14556),
+	_remote_port(DEFAULT_REMOTE_PORT_UDP),
 	_rstatus {},
 	_message_buffer {},
 	_message_buffer_mutex {},
@@ -935,18 +936,15 @@ Mavlink::send_message(const uint8_t msgid, const void *msg, uint8_t component_ID
 
 #ifdef __PX4_POSIX
 	if (get_protocol() == UDP) {
-		if (get_client_source_initialized()) {
-			ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
-		}
+		ret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 
 		struct telemetry_status_s &tstatus = get_rx_status();
 
 		/* resend heartbeat via broadcast */
-		if ((_mode != MAVLINK_MODE_ONBOARD)
-			&& (_mavlink_start_time > 0 && (hrt_elapsed_time(&_mavlink_start_time) > 4 * 1000 * 1000))
-			&& (((hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000) ||
-			(tstatus.heartbeat_time == 0)) &&
-			msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
+		if ((_mode != MAVLINK_MODE_ONBOARD) &&
+			(!get_client_source_initialized()
+			|| (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))
+			&& (msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
 
 			int bret = sendto(_socket_fd, buf, packet_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
@@ -1054,18 +1052,15 @@ Mavlink::init_udp()
 
 	/* set default target address, but not for onboard mode (will be set on first received packet) */
 	memset((char *)&_src_addr, 0, sizeof(_src_addr));
-	if (_mode != MAVLINK_MODE_ONBOARD) {
-		_src_addr.sin_family = AF_INET;
-		inet_aton("127.0.0.1", &_src_addr.sin_addr);
-		_src_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
-		set_client_source_initialized();
-	}
+	_src_addr.sin_family = AF_INET;
+	inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	_src_addr.sin_port = htons(_remote_port);
 
 	/* default broadcast address */
 	memset((char *)&_bcast_addr, 0, sizeof(_bcast_addr));
 	_bcast_addr.sin_family = AF_INET;
 	inet_aton("255.255.255.255", &_bcast_addr.sin_addr);
-	_bcast_addr.sin_port = htons(DEFAULT_REMOTE_PORT_UDP);
+	_bcast_addr.sin_port = htons(_remote_port);
 
 #endif
 }
@@ -1522,7 +1517,7 @@ Mavlink::task_main(int argc, char *argv[])
 	char* eptr;
 	int temp_int_arg;
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:u:m:fpvwx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:fpvwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, NULL, 10);
@@ -1548,7 +1543,7 @@ Mavlink::task_main(int argc, char *argv[])
 			_device_name = myoptarg;
 			set_protocol(SERIAL);
 			break;
-			
+
 		case 'u':
 			temp_int_arg = strtoul(myoptarg, &eptr, 10);
 			if ( *eptr == '\0' ) {
@@ -1556,6 +1551,18 @@ Mavlink::task_main(int argc, char *argv[])
 				set_protocol(UDP);
 			} else {
 				warnx("invalid data udp_port '%s'", myoptarg);
+				err_flag = true;
+			}
+			break;
+
+		case 'o':
+			temp_int_arg = strtoul(myoptarg, &eptr, 10);
+			if ( *eptr == '\0' ) {
+				warnx("set remote port %d", temp_int_arg);
+				_remote_port = temp_int_arg;
+				set_protocol(UDP);
+			} else {
+				warnx("invalid remote udp_port '%s'", myoptarg);
 				err_flag = true;
 			}
 			break;
@@ -1763,6 +1770,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream("ESTIMATOR_STATUS", 0.5f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1792,12 +1800,13 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
+		configure_stream("ESTIMATOR_STATUS", 1.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
 		configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("ATTITUDE", 25.0f);
-		configure_stream("VFR_HUD", 5.0f);
+		configure_stream("VFR_HUD", 25.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("HOME_POSITION", 0.5f);
@@ -1807,6 +1816,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
+		configure_stream("ESTIMATOR_STATUS", 1.0f);
 		break;
 
 	case MAVLINK_MODE_MAGIC:
@@ -1840,6 +1850,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
+		configure_stream("ESTIMATOR_STATUS", 5.0f);
 	default:
 		break;
 	}
@@ -1869,7 +1880,7 @@ Mavlink::task_main(int argc, char *argv[])
 		hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
-		
+
 		_mission_manager->check_active_mission();
 
 		if (param_sub->update(&param_time, nullptr)) {
@@ -1881,7 +1892,7 @@ Mavlink::task_main(int argc, char *argv[])
 		if (_uart_fd >= 0 && _radio_id != 0 && _rstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
 			/* request to configure radio and radio is present */
 			FILE *fs = fdopen(_uart_fd, "w");
-			
+
 			if (fs) {
 				/* switch to AT command mode */
 				usleep(1200000);
@@ -2321,7 +2332,7 @@ Mavlink::stream_command(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u udp_port] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u network_port] [-o remote_port] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])

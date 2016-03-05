@@ -56,6 +56,7 @@
  * @min -0.25
  * @max 0.25
  * @decimal 2
+ * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
 
@@ -71,6 +72,7 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
  * @min -0.25
  * @max 0.25
  * @decimal 2
+ * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 
@@ -86,6 +88,7 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
  * @min -0.25
  * @max 0.25
  * @decimal 2
+ * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
@@ -97,6 +100,7 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  * @group Battery Calibration
  * @unit V
  * @decimal 2
+ * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
 
@@ -108,6 +112,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
  * @group Battery Calibration
  * @unit V
  * @decimal 2
+ * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
 
@@ -122,6 +127,7 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
  * @min 0.0
  * @max 1.5
  * @decimal 2
+ * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
 
@@ -132,8 +138,23 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
  *
  * @group Battery Calibration
  * @unit S
- * @min 1
+ * @min 2
  * @max 10
+ * @value 2 2S Battery
+ * @value 3 3S Battery
+ * @value 4 4S Battery
+ * @value 5 5S Battery
+ * @value 6 6S Battery
+ * @value 7 7S Battery
+ * @value 8 8S Battery
+ * @value 9 9S Battery
+ * @value 10 10S Battery
+ * @value 11 11S Battery
+ * @value 12 12S Battery
+ * @value 13 13S Battery
+ * @value 14 14S Battery
+ * @value 15 15S Battery
+ * @value 16 16S Battery
  */
 PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
 
@@ -145,6 +166,9 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
  * @group Battery Calibration
  * @unit mA
  * @decimal 0
+ * @min -1.0
+ * @max 100000
+ * @increment 50
  */
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
 
@@ -156,6 +180,8 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  * @group Commander
  * @min 0
  * @max 1
+ * @value 0 OFF: No Datalink failsafe
+ * @value 1 ON: Datalink failse
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
 
@@ -168,6 +194,8 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
  * @unit second
  * @min 0
  * @max 30
+ * @decimal 1
+ * @increment 0.5
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 
@@ -181,6 +209,8 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
  * @unit second
  * @min 0
  * @max 30
+ * @decimal 1
+ * @increment 0.5
  */
 PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
 
@@ -193,6 +223,7 @@ PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
  * @min 0.0
  * @max 1.0
  * @decimal 1
+ * @increment 0.05
  */
 PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 
@@ -203,9 +234,10 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
  *
  * @group Commander
  * @min 0.0
- * @max 30.0
+ * @max 50.0
  * @unit ampere
  * @decimal 2
+ * @increment 1
  */
 PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
 
@@ -220,6 +252,7 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  * @min 0.0
  * @max 60.0
  * @decimal 1
+ * @increment 1
  */
 PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 
@@ -233,6 +266,7 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
  * @min 0
  * @max 35
  * @decimal 1
+ * @increment 0.1
  */
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
 
@@ -246,6 +280,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * @min 2
  * @max 15
  * @decimal 2
+ * @increment 0.5
  */
 PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
 
@@ -259,6 +294,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
  * @min 5
  * @max 25
  * @decimal 2
+ * @increment 0.5
  */
 PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
 
@@ -272,6 +308,8 @@ PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
  * @group Commander
  * @min 0
  * @max 1
+ * @value 0 Disabled
+ * @value 1 Enabled
  */
 PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
 
@@ -286,6 +324,9 @@ PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
  * @group Commander
  * @min 0
  * @max 2
+ * @value 0 RC Transmitter
+ * @value 1 Disable RC Input Checks
+ * @value 2 Virtual RC by Joystick
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
 
@@ -298,6 +339,144 @@ PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
  *
  * @group Commander
  * @min 0
+ * @max 20
+ * @unit second
+ * @decimal 0
+ * @increment 1
  */
 PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
 
+
+PARAM_DEFINE_INT32(COM_FLTMODE_CH, 0);
+
+/**
+ * First flightmode slot (1000-1160)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE1, 0);
+
+/**
+ * Second flightmode slot (1160-1320)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE2, 0);
+
+/**
+ * Third flightmode slot (1320-1480)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE3, 0);
+
+/**
+ * Fourth flightmode slot (1480-1640)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE4, 0);
+
+/**
+ * Fift flightmode slot (1640-1800)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE5, 0);
+
+/**
+ * Sixt flightmode slot (1800-2000)
+ *
+ * If the main switch channel is in this range the
+ * selected flight mode will be applied.
+ *
+ * @value 0 Unassigned
+ * @value 1 MANUAL
+ * @value 2 ALTITUDE CONTROL
+ * @value 3 POSITION CONTROL
+ * @value 4 AUTO / MISSION
+ * @value 5 AUTO / PAUSE
+ * @value 11 AUTO / TAKEOFF
+ * @value 12 AUTO / LAND
+ * @value 6 RETURN TO LAUNCH
+ * @value 7 ACRO
+ * @value 8 OFFBOARD
+ * @value 9 STABILIZED
+ * @value 10 RATTITUDE
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE6, 0);

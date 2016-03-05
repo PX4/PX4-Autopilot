@@ -273,7 +273,8 @@ private:
 	/* cached IO state */
 	uint16_t		_status;		///< Various IO status flags
 	uint16_t		_alarms;		///< Various IO alarms
-	uint16_t		_last_written_arming;	///< the last written arming state reg
+	uint16_t		_last_written_arming_s;	///< the last written arming state reg
+	uint16_t		_last_written_arming_c;	///< the last written arming state reg
 
 	/* subscribed topics */
 	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
@@ -510,7 +511,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io latency")),
 	_status(0),
 	_alarms(0),
-	_last_written_arming(0),
+	_last_written_arming_s(0),
+	_last_written_arming_c(0),
 	_t_actuator_controls_0(-1),
 	_t_actuator_controls_1(-1),
 	_t_actuator_controls_2(-1),
@@ -626,7 +628,7 @@ PX4IO::init()
 {
 	int ret;
 	param_t sys_restart_param;
-	int sys_restart_val = DM_INIT_REASON_VOLATILE;
+	int32_t sys_restart_val = DM_INIT_REASON_VOLATILE;
 
 	ASSERT(_task == -1);
 
@@ -634,7 +636,12 @@ PX4IO::init()
 
 	if (sys_restart_param != PARAM_INVALID) {
 		/* Indicate restart type is unknown */
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
+
+		if (prev_val != DM_INIT_REASON_POWER_ON) {
+			param_set_no_notification(sys_restart_param, &sys_restart_val);
+		}
 	}
 
 	/* do regular cdev init */
@@ -815,8 +822,12 @@ PX4IO::init()
 
 		/* Indicate restart type is in-flight */
 		sys_restart_val = DM_INIT_REASON_IN_FLIGHT;
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
 
+		if (prev_val != sys_restart_val) {
+			param_set(sys_restart_param, &sys_restart_val);
+		}
 
 		/* regular boot, no in-air restart, init IO */
 
@@ -827,7 +838,8 @@ PX4IO::init()
 			      PX4IO_P_SETUP_ARMING_FMU_ARMED |
 			      PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK |
 			      PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK |
-			      PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE, 0);
+			      PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE |
+			      PX4IO_P_SETUP_ARMING_LOCKDOWN, 0);
 
 		if (_rc_handling_disabled) {
 			ret = io_disable_rc_handling();
@@ -849,7 +861,12 @@ PX4IO::init()
 
 		/* Indicate restart type is power on */
 		sys_restart_val = DM_INIT_REASON_POWER_ON;
-		param_set(sys_restart_param, &sys_restart_val);
+		int32_t prev_val;
+		param_get(sys_restart_param, &prev_val);
+
+		if (prev_val != sys_restart_val) {
+			param_set(sys_restart_param, &sys_restart_val);
+		}
 
 	}
 
@@ -1317,9 +1334,11 @@ PX4IO::io_set_arming_state()
 
 		if (armed.lockdown && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
+			_lockdown_override = true;
 
-		} else {
+		} else if (!armed.lockdown && _lockdown_override) {
 			clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
+			_lockdown_override = false;
 		}
 
 		/* Do not set failsafe if circuit breaker is enabled */
@@ -1355,11 +1374,9 @@ PX4IO::io_set_arming_state()
 		}
 	}
 
-	uint16_t new_arming_state = set;
-	new_arming_state &= ~(clear);
-
-	if (_last_written_arming != new_arming_state) {
-		_last_written_arming = new_arming_state;
+	if (_last_written_arming_s != set || _last_written_arming_c != clear) {
+		_last_written_arming_s = set;
+		_last_written_arming_c = clear;
 		return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
 	}
 

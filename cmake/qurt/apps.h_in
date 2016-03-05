@@ -36,9 +36,9 @@ ${builtin_apps_string}
 
 void list_builtins(map<string,px4_main_t> &apps)
 {
-	printf("Builtin Commands:\\n");
+	PX4_INFO("Builtin Commands:\\n");
 	for (map<string,px4_main_t>::iterator it=apps.begin(); it!=apps.end(); ++it)
-		printf("\\t%s\\n", (it->first).c_str());
+		PX4_INFO("%s : 0x%x\n", (it->first).c_str(), it->second);
 }
 
 static int shutdown_main(int argc, char *argv[])
