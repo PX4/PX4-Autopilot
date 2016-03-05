@@ -58,7 +58,8 @@ ifneq ($(CMAKE_VER),0)
     $(warning )
     $(error Fatal)
 endif
-
+# For Call graph generation
+include Makefile.callgraph
 # Help
 # --------------------------------------------------------------------
 # Don't be afraid of this makefile, it is just passing
