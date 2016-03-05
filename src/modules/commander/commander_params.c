@@ -480,3 +480,17 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, 0);
  * @value 10 RATTITUDE
  */
 PARAM_DEFINE_INT32(COM_FLTMODE6, 0);
+
+/**
+ * Time-out to wait when offboard connection is lost to trigger RTL
+ *
+ * A negative value will trigger a landing where it is instead of RTL. A value greater than 0 is the time
+ * it will wait in LOITER before entering RTL. A value of 0 will make it go straight to RTL.
+ *
+ * @group Commander
+ * @unit second
+ * @min -1
+ * @max 60
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(COM_OFFB_RTL, -1.0f);

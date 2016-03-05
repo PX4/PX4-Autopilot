@@ -1090,6 +1090,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_geofence_action = param_find("GF_ACTION");
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 	param_t _param_map_mode_sw = param_find("RC_MAP_MODE_SW");
+	param_t _param_offb_rtl = param_find("COM_OFFB_RTL");
 
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
@@ -1177,6 +1178,7 @@ int commander_thread_main(int argc, char *argv[])
 	status.rc_signal_lost = true;
 	status.offboard_control_signal_lost = true;
 	status.data_link_lost = true;
+	status.offboard_control_lost_rtl_timestamp = 0;
 
 	/* set battery warning flag */
 	status.battery_warning = vehicle_status_s::VEHICLE_BATTERY_WARNING_NONE;
@@ -1436,6 +1438,7 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t datalink_loss_timeout = 10;
 	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
+	float offboard_rtl_timeout = -1.0f;
 
 	int32_t geofence_action = 0;
 
@@ -1542,6 +1545,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
 			param_get(_param_map_mode_sw, &map_mode_sw);
+			param_get(_param_offb_rtl, &offboard_rtl_timeout);
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
@@ -1582,6 +1586,13 @@ int commander_thread_main(int argc, char *argv[])
 		} else {
 			if (!status.offboard_control_signal_lost) {
 				status.offboard_control_signal_lost = true;
+				if (offboard_rtl_timeout < 0) {
+					status.offboard_control_lost_rtl_timestamp = 0;
+
+				} else {
+					status.offboard_control_lost_rtl_timestamp = hrt_absolute_time() +
+						1e6f * offboard_rtl_timeout;
+				}
 				status_changed = true;
 			}
 		}
