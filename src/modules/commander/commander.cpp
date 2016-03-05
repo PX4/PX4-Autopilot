@@ -1680,6 +1680,10 @@ int commander_thread_main(int argc, char *argv[])
 			bool previous_safety_off = safety.safety_off;
 			orb_copy(ORB_ID(safety), safety_sub, &safety);
 
+#ifdef MMC
+			safety.safety_off = false ;
+			safety.safety_switch_available = true ;
+#endif
 			/* disarm if safety is now on and still armed */
 			if (status.hil_state == vehicle_status_s::HIL_STATE_OFF && safety.safety_switch_available && !safety.safety_off && armed.armed) {
 				arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
