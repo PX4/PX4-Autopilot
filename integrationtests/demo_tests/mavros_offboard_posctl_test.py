@@ -48,16 +48,17 @@ import numpy as np
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import quaternion_from_euler
+from mavros_msgs.srv import CommandLong
 #from px4_test_helper import PX4TestHelper
 
-#
-# Tests flying a path in offboard control by sending position setpoints
-# over MAVROS.
-#
-# For the test to be successful it needs to reach all setpoints in a certain time.
-# FIXME: add flight path assertion (needs transformation from ROS frame to NED)
-#
 class MavrosOffboardPosctlTest(unittest.TestCase):
+    """
+    Tests flying a path in offboard control by sending position setpoints
+    via MAVROS.
+
+    For the test to be successful it needs to reach all setpoints in a certain time.
+    FIXME: add flight path assertion (needs transformation from ROS frame to NED)
+    """
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
@@ -66,9 +67,12 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
 
         rospy.Subscriber("mavros/local_position/pose", PoseStamped, self.position_callback)
         self.pub_spt = rospy.Publisher('mavros/setpoint_position/local', PoseStamped, queue_size=10)
+        rospy.wait_for_service('mavros/cmd/command', 30)
+        self._srv_cmd_long = rospy.ServiceProxy('mavros/cmd/command', CommandLong, persistent=True)
         self.rate = rospy.Rate(10) # 10hz
         self.has_pos = False
         self.local_position = PoseStamped()
+        self.armed = False
 
     def tearDown(self):
         #self.helper.tearDown()
@@ -90,9 +94,9 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             return False
 
         rospy.logdebug("current position %f, %f, %f" %
-                        (self.local_position.pose.position.x,
-                        self.local_position.pose.position.y,
-                        self.local_position.pose.position.z))
+                       (self.local_position.pose.position.x,
+                       self.local_position.pose.position.y,
+                       self.local_position.pose.position.z))
 
         desired = np.array((x, y, z))
         pos = np.array((self.local_position.pose.position.x,
@@ -123,6 +127,13 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             self.pub_spt.publish(pos)
             #self.helper.bag_write('mavros/setpoint_position/local', pos)
 
+            # arm and switch to offboard
+            # (need to wait the first few rounds until PX4 has the offboard stream)
+            if not self.armed and count > 5:
+                self._srv_cmd_long(False, 176, False,
+                                   128 | 1, 6, 0, 0, 0, 0, 0)
+                self.armed = True
+
             if self.is_at_position(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z, 0.5):
                 break
             count = count + 1
@@ -130,11 +141,9 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
 
         self.assertTrue(count < timeout, "took too long to get to position")
 
-    #
-    # Test offboard position control
-    #
     def test_posctl(self):
-        # prepare flight path
+        """Test offboard position control"""
+
         positions = (
             (0, 0, 0),
             (2, 2, 2),
@@ -143,7 +152,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             (2, 2, 2))
 
         for i in range(0, len(positions)):
-            self.reach_position(positions[i][0], positions[i][1], positions[i][2], 120)
+            self.reach_position(positions[i][0], positions[i][1], positions[i][2], 180)
 
         count = 0
         timeout = 50

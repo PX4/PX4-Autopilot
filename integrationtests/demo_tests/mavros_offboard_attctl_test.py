@@ -48,13 +48,13 @@ from tf.transformations import quaternion_from_euler
 from mavros_msgs.srv import CommandLong
 #from px4_test_helper import PX4TestHelper
 
-#
-# Tests flying a path in offboard control by sending attitude and thrust setpoints
-# over MAVROS.
-#
-# For the test to be successful it needs to cross a certain boundary in time.
-#
 class MavrosOffboardAttctlTest(unittest.TestCase):
+    """
+    Tests flying in offboard control by sending attitude and thrust setpoints
+    via MAVROS.
+
+    For the test to be successful it needs to cross a certain boundary in time.
+    """
 
     def setUp(self):
         rospy.init_node('test_node', anonymous=True)
@@ -82,10 +82,9 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         self.has_pos = True
         self.local_position = data
 
-    #
-    # Test offboard position control
-    #
     def test_attctl(self):
+        """Test offboard attitude control"""
+
         # set some attitude and thrust
         att = PoseStamped()
         att.header = Header()
@@ -95,7 +94,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         att.pose.orientation = Quaternion(*quaternion)
 
         throttle = Float64()
-        throttle.data = 0.6
+        throttle.data = 0.8
         armed = False
 
         # does it cross expected boundaries in X seconds?
@@ -112,7 +111,8 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
             self.rate.sleep()
 
             # arm and switch to offboard
-            if not armed:
+            # (need to wait the first few rounds until PX4 has the offboard stream)
+            if not armed and count > 5:
                 self._srv_cmd_long(False, 176, False,
                                    128 | 1, 6, 0, 0, 0, 0, 0)
                 armed = True

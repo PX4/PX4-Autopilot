@@ -6,8 +6,11 @@
 set -e
 
 SRC_DIR=/root/Firmware
+BUILD=posix_sitl_default
 # TODO
-TEST_RESULT_DIR=/root/.ros/test_results/px4
+ROS_TEST_RESULT_DIR=/root/.ros/test_results/px4
+ROS_LOG_DIR=/root/.ros/log
+PX4_LOG_DIR=${SRC_DIR}/build_${BUILD}/src/firmware/posix/rootfs/fs/microsd/log
 TEST_RESULT_TARGET_DIR=/job/test_results
 # BAGS=/root/.ros
 # CHARTS=/root/.ros/charts
@@ -33,7 +36,7 @@ ln -s /job/Firmware ${SRC_DIR}
 
 echo "=====> compile"
 cd $SRC_DIR
-make posix_sitl_default
+make ${BUILD}
 mkdir -p Tools/sitl_gazebo/Build
 cd Tools/sitl_gazebo/Build
 cmake -Wno-dev ..
@@ -58,7 +61,9 @@ echo "=====> process test results"
 
 echo "copy build test results to job directory"
 mkdir -p ${TEST_RESULT_TARGET_DIR}
-cp -r $TEST_RESULT_DIR/* ${TEST_RESULT_TARGET_DIR}
+cp -r $ROS_TEST_RESULT_DIR/* ${TEST_RESULT_TARGET_DIR}
+cp -r $ROS_LOG_DIR/* ${TEST_RESULT_TARGET_DIR}
+cp -r $PX4_LOG_DIR/* ${TEST_RESULT_TARGET_DIR}
 # cp $BAGS/*.bag ${TEST_RESULT_TARGET_DIR}/
 # cp -r $CHARTS ${TEST_RESULT_TARGET_DIR}/
 echo "<====="
