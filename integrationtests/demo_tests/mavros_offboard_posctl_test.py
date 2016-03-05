@@ -134,7 +134,7 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
                                    128 | 1, 6, 0, 0, 0, 0, 0)
                 self.armed = True
 
-            if self.is_at_position(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z, 0.5):
+            if self.is_at_position(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z, 1):
                 break
             count = count + 1
             self.rate.sleep()
@@ -153,16 +153,6 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
 
         for i in range(0, len(positions)):
             self.reach_position(positions[i][0], positions[i][1], positions[i][2], 180)
-
-        count = 0
-        timeout = 50
-        while count < timeout:
-            if not self.is_at_position(2, 2, 2, 0.5):
-                break
-            count = count + 1
-            self.rate.sleep()
-
-        self.assertTrue(count == timeout, "position could not be held")
 
 
 if __name__ == '__main__':
