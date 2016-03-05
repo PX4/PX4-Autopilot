@@ -43,7 +43,6 @@
 #ifdef POSIX_SHARED
 #include <Eigen/Dense>
 #include <algorithm>
-#include "Limits.hpp"
 #define M_PI_F 3.14159265358979323846f
 #define constexpr
 
