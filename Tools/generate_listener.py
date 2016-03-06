@@ -136,12 +136,12 @@ extern "C" __EXPORT int listener_main(int argc, char *argv[]);
 int listener_main(int argc, char *argv[]) {
 	int sub = -1;
 	orb_id_t ID;
-	if(argc < 3) {
-		printf("need at least two arguments: topic name, number of messages to print\\n");
+	if(argc < 2) {
+		printf("need at least two arguments: topic name. [optional number of messages to print]\\n");
 		return 1;
 	}
 """)
-print("\tunsigned num_msgs = atoi(argv[2]);")
+print("\tunsigned num_msgs = (argc > 2) ? atoi(argv[2]) : 1;")
 print("\tif (strncmp(argv[1],\"%s\",50) == 0) {" % messages[0])
 print("\t\tsub = orb_subscribe(ORB_ID(%s));" % messages[0])
 print("\t\tID = ORB_ID(%s);" % messages[0])
@@ -154,9 +154,11 @@ for index,m in enumerate(messages[1:]):
 	print("\t\tstruct %s_s container;" % m)
 	print("\t\tmemset(&container, 0, sizeof(container));")
 	print("\t\tbool updated;")
-	print("\t\tfor (unsigned i = 0; i < num_msgs; i++) {")
+	print("\t\tunsigned i = 0;")
+	print("\t\twhile(i < num_msgs) {")
 	print("\t\t\torb_check(sub,&updated);")
-	print("\t\t\tupdated = true;")
+	print("\t\t\tif (i == 0) { updated = true; } else { usleep(500); }")
+	print("\t\t\ti++;")
 	print("\t\t\tif (updated) {")
 	print("\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);" % m)
 	print("\t\t\torb_copy(ID,sub,&container);")
@@ -190,9 +192,15 @@ for index,m in enumerate(messages[1:]):
 		elif item[0] == "int32":
 			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "uint32":
-			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint8":
 			print("\t\t\tprintf(\"%s: %%u\\n\",container.%s);" % (item[1], item[1]))
+		elif item[0] == "int16":
+			print("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
+		elif item[0] == "uint16":
+			print("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
+		elif item[0] == "int8":
+			print("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
+		elif item[0] == "uint8":
+			print("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
 		elif item[0] == "bool":
 			print("\t\t\tprintf(\"%s: %%s\\n\",container.%s ? \"True\" : \"False\");" % (item[1], item[1]))
 	print("\t\t\t}")

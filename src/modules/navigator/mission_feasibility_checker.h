@@ -36,6 +36,7 @@
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Sander Smeets <sander@droneslab.com>
  */
 
 #ifndef MISSION_FEASIBILITY_CHECKER_H_
@@ -63,8 +64,9 @@ private:
 	/* Checks for all airframes */
 	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
 	bool checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_valid, bool &warning_issued, bool throw_error = false);
-	bool checkMissionItemValidity(dm_item_t dm_current, size_t nMissionItems);
+	bool checkMissionItemValidity(dm_item_t dm_current, size_t nMissionItems, bool condition_landed);
 	bool check_dist_1wp(dm_item_t dm_current, size_t nMissionItems, double curr_lat, double curr_lon, float dist_first_wp, bool &warning_issued);
+	bool isPositionCommand(unsigned cmd);
 
 	/* Checks specific to fixedwing airframes */
 	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid);
@@ -72,7 +74,7 @@ private:
 	void updateNavigationCapabilities();
 
 	/* Checks specific to rotarywing airframes */
-	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid);
+	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid, float default_acceptance_rad);
 public:
 
 	MissionFeasibilityChecker();
@@ -83,7 +85,8 @@ public:
 	 */
 	bool checkMissionFeasible(int mavlink_fd, bool isRotarywing, dm_item_t dm_current,
 		size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid,
-		double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued);
+		double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued, float default_acceptance_rad,
+		bool condition_landed);
 
 };
 

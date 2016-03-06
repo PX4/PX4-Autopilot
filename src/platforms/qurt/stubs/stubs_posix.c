@@ -97,3 +97,54 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	return 1;
 }
+
+int pthread_mutex_lock(pthread_mutex_t *mutex)
+{
+	return 1;
+}
+
+int pthread_mutex_unlock(pthread_mutex_t *mutex)
+{
+	return 1;
+}
+
+int pthread_cond_signal(pthread_cond_t *cond)
+{
+	return 1;
+}
+int pthread_mutex_destroy(pthread_mutex_t *mutex)
+{
+	return 1;
+}
+int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
+{
+	return 1;
+}
+
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+{
+	return 1;
+}
+
+int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime)
+{
+	return 1;
+}
+
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
+{
+	return 1;
+}
+int pthread_mutexattr_init(pthread_mutexattr_t *attr)
+{
+	return -1;
+}
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+{
+	return -1;
+}
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
+{
+	return -1;
+}
+

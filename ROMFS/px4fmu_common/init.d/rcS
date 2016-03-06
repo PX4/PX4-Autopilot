@@ -60,9 +60,6 @@ unset FRC
 
 if [ $MODE == autostart ]
 then
-	# Try to get an USB console
-	# REBOOTWORK this needs to start after the flight control loop
-	nshterm /dev/ttyACM0 &
 
 	#
 	# Start the ORB (first app to start)
@@ -86,70 +83,6 @@ then
 		echo "[param] FAILED loading $PARAM_FILE"
 		if param reset
 		then
-		fi
-	fi
-
-	# Compare existing params and save defaults
-	# this only needs to be in for 1-2 releases
-	if param compare RC_MAP_THROTTLE 0
-	then
-		# So this is a default setup,
-		# now lets find out if channel 3
-		# is calibrated
-		if param compare RC3_MIN 1000
-		then
-			# This is default, do nothing
-		else
-			# Set old default
-			param set RC_MAP_THROTTLE 3
-		fi
-	fi
-
-	# Compare existing params and save defaults
-	# this only needs to be in for 1-2 releases
-	if param compare RC_MAP_ROLL 0
-	then
-		# So this is a default setup,
-		# now lets find out if channel 1
-		# is calibrated
-		if param compare RC1_MIN 1000
-		then
-			# This is default, do nothing
-		else
-			# Set old default
-			param set RC_MAP_ROLL 1
-		fi
-	fi
-
-	# Compare existing params and save defaults
-	# this only needs to be in for 1-2 releases
-	if param compare RC_MAP_PITCH 0
-	then
-		# So this is a default setup,
-		# now lets find out if channel 2
-		# is calibrated
-		if param compare RC2_MIN 1000
-		then
-			# This is default, do nothing
-		else
-			# Set old default
-			param set RC_MAP_PITCH 2
-		fi
-	fi
-
-	# Compare existing params and save defaults
-	# this only needs to be in for 1-2 releases
-	if param compare RC_MAP_YAW 0
-	then
-		# So this is a default setup,
-		# now lets find out if channel 4
-		# is calibrated
-		if param compare RC4_MIN 1000
-		then
-			# This is default, do nothing
-		else
-			# Set old default
-			param set RC_MAP_YAW 4
 		fi
 	fi
 
@@ -185,6 +118,7 @@ then
 	set PWM_MAX none
 	set PWM_AUX_OUT none
 	set PWM_AUX_RATE none
+	set PWM_ACHDIS none
 	set PWM_AUX_DISARMED none
 	set PWM_AUX_MIN none
 	set PWM_AUX_MAX none
@@ -217,7 +151,12 @@ then
 	#
 	if param compare SYS_USE_IO 1
 	then
-		set USE_IO yes
+		if ver hwcmp PX4FMU_V4
+		then
+			set USE_IO no
+		else
+			set USE_IO yes
+		fi
 	else
 		set USE_IO no
 	fi
@@ -232,6 +171,13 @@ then
 		sh /etc/init.d/rc.autostart
 	fi
 	unset MODE
+
+	#
+	# Wipe incompatible settings for boards not having two outputs
+	if ver hwcmp PX4FMU_V4
+	then
+		set MIXER_AUX none
+	fi
 
 	#
 	# Override parameters from user configuration file
@@ -537,8 +483,14 @@ then
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
-			# Start MAVLink on default port: ttyS1
 			set MAVLINK_F "-r 1200"
+			# Avoid using ttyS1 for MAVLink on FMUv4
+			if ver hwcmp PX4FMU_V4
+			then
+				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
+				# Start MAVLink on Wifi (ESP8266 port)
+				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
+			fi
 		fi
 	fi
 
@@ -548,8 +500,9 @@ then
 	#
 	# MAVLink onboard / TELEM2
 	#
-	if ver hwcmp PX4FMU_V2
+	if ver hwcmp PX4FMU_V1
 	then
+	else
 		# XXX We need a better way for runtime eval of shell variables,
 		# but this works for now
 		if param compare SYS_COMPANION 921600
@@ -568,6 +521,10 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
 		fi
+		if param compare SYS_COMPANION 357600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -r 1000
+		fi
 		# Sensors on the PWM interface bank
 		# clear pins 5 and 6
 		if param compare SENS_EN_LL40LS 1
@@ -581,6 +538,12 @@ then
 			set AUX_MODE none
 			camera_trigger start
 		fi
+	fi
+
+	# Transitional support: Disable safety on all Pixracer boards
+	if ver hwcmp PX4FMU_V4
+	then
+		param set CBRK_IO_SAFETY 22027
 	fi
 
 	#
@@ -655,6 +618,10 @@ then
 			then
 				set MAV_TYPE 2
 			fi
+			if [ $MIXER == quad_h ]
+			then
+				set MAV_TYPE 2
+			fi
 			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
 			then
 				set MAV_TYPE 15
@@ -671,7 +638,7 @@ then
 			then
 				set MAV_TYPE 14
 			fi
-			if [ $MIXER == octo_cox ]
+			if [ $MIXER == octo_cox -o $MIXER == octo_cox_w ]
 			then
 				set MAV_TYPE 14
 			fi
@@ -820,10 +787,24 @@ then
 	fi
 fi
 
+if ver hwcmp PX4FMU_V4
+then
+	frsky_telemetry start -d /dev/ttyS6
+fi
+
 if ver hwcmp PX4FMU_V2
 then
 	# Check for flow sensor - as it is a background task, launch it last
 	px4flow start &
+fi
+
+# Start USB shell if no microSD present, MAVLink else
+if [ $LOG_FILE == /dev/null ]
+then
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
+else
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 fi
 
 if [ $EXIT_ON_END == yes ]

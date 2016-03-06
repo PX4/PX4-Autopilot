@@ -110,6 +110,19 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
 PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.0f);
 
 /**
+ * Fixedwing max short-term velocity
+ *
+ * Maximum velocity integral in flight direction allowed in the landed state (m/s)
+ *
+ * @min 2
+ * @max 10
+ * @unit m/s
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 4.0f);
+
+/**
  * Airspeed max
  *
  * Maximum airspeed allowed in the landed state (m/s)

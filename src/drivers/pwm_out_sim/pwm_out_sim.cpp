@@ -187,6 +187,7 @@ PWMSim::PWMSim() :
 	_update_rate(50),
 	_current_update_rate(0),
 	_control_subs { -1},
+	_poll_fds{},
 	_poll_fds_num(0),
 	_armed_sub(-1),
 	_outputs_pub(0),
@@ -366,7 +367,6 @@ PWMSim::subscribe()
 		}
 
 		if (_control_subs[i] > 0) {
-			printf("valid\n");
 			_poll_fds[_poll_fds_num].fd = _control_subs[i];
 			_poll_fds[_poll_fds_num].events = POLLIN;
 			_poll_fds_num++;
@@ -381,7 +381,6 @@ PWMSim::task_main()
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_armed_sub, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -390,8 +389,6 @@ PWMSim::task_main()
 	/* advertise the mixed control outputs, insist on the first group output */
 	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
 
-
-	DEVICE_LOG("starting");
 
 	/* loop until killed */
 	while (!_task_should_exit) {
@@ -420,7 +417,19 @@ PWMSim::task_main()
 		}
 
 		/* sleep waiting for data, but no more than a second */
-		int ret = px4_poll(&_poll_fds[0], _poll_fds_num, 1000);
+		int ret = 0;
+
+		if (_poll_fds_num == 0) {
+			usleep(1000 * 1000);
+
+			/* this can happen during boot, but after the sleep its likely resolved */
+			if (_poll_fds_num == 0) {
+				PX4_WARN("pwm_out_sim: No valid fds");
+			}
+
+		} else {
+			ret = px4_poll(&_poll_fds[0], _poll_fds_num, 1000);
+		}
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -474,8 +483,9 @@ PWMSim::task_main()
 			}
 
 			/* do mixing */
-			actuator_outputs_s outputs;
+			actuator_outputs_s outputs = {};
 			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
+			outputs.noutputs = num_outputs;
 			outputs.timestamp = hrt_absolute_time();
 
 			/* disable unused ports by setting their output to NaN */
@@ -492,8 +502,8 @@ PWMSim::task_main()
 				    PX4_ISFINITE(outputs.output[i]) &&
 				    outputs.output[i] >= -1.0f &&
 				    outputs.output[i] <= 1.0f) {
-					/* scale for PWM output 900 - 2100us */
-					outputs.output[i] = 1500 + (600 * outputs.output[i]);
+					/* scale for PWM output 1000 - 2000us */
+					outputs.output[i] = 1500 + (500 * outputs.output[i]);
 
 				} else {
 					/*

@@ -31,14 +31,17 @@
 #
 ############################################################################
 
-set(QURT_LAYER_SRCS 
+include_directories(${HEXAGON_SDK_ROOT}/lib/common/qurt/ADSPv5MP/include)
+
+set(QURT_LAYER_SRCS
 	px4_qurt_impl.cpp
 	px4_qurt_tasks.cpp
 	lib_crc32.c
-	drv_hrt.c
+	../../posix/px4_layer/drv_hrt.c
 	qurt_stubs.c
 	main.cpp
 	params.c
+	shmem_qurt.c
 	)
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	list(APPEND QURT_LAYER_SRCS
@@ -47,18 +50,6 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 		)
 endif()
 
-# For Eagle, the commands are specific to the build config label
-# e.g. config_qurt_eagle_hil uses commands_hil.c
-if ("${BOARD}" STREQUAL "eagle")
-
-	# The CI test target can use the hil commands
-	if ("${LABEL}" STREQUAL "travis")
-		set(CONFIG_SRC commands_hil.c)
-	else()
-		set(CONFIG_SRC commands_${LABEL}.c)
-	endif()
-
-endif()
 
 px4_add_module(
 	MODULE platforms__qurt__px4_layer
@@ -70,4 +61,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

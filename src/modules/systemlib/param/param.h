@@ -83,6 +83,11 @@ typedef uintptr_t	param_t;
 #define PARAM_INVALID	((uintptr_t)0xffffffff)
 
 /**
+ * Magic handle for hash check param
+ */
+#define PARAM_HASH      ((uintptr_t)INT32_MAX)
+
+/**
  * Look up a parameter by name.
  *
  * @param name		The canonical name of the parameter being looked up.
@@ -210,6 +215,16 @@ __EXPORT int		param_get(param_t param, void *val);
  * @return		Zero if the parameter's value could be set from a scalar, nonzero otherwise.
  */
 __EXPORT int		param_set(param_t param, const void *val);
+
+/**
+ * Set the value of a parameter, but do not trigger an auto-save
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @param val		The value to set; assumed to point to a variable of the parameter type.
+ *			For structures, the pointer is assumed to point to a structure to be copied.
+ * @return		Zero if the parameter's value could be set from a scalar, nonzero otherwise.
+ */
+__EXPORT int		param_set_no_autosave(param_t param, const void *val);
 
 /**
  * Set the value of a parameter, but do not notify the system about the change.

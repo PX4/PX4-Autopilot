@@ -119,7 +119,7 @@ private:
 	float _altitude_min;
 	float _altitude_max;
 
-	uint8_t _vertices_count;
+	unsigned _vertices_count;
 
 	/* Params */
 	control::BlockParamInt _param_action;
@@ -129,7 +129,7 @@ private:
 	control::BlockParamInt _param_max_hor_distance;
 	control::BlockParamInt _param_max_ver_distance;
 
-	uint8_t	_outside_counter;
+	unsigned _outside_counter;
 
 	int _mavlinkFd;
 

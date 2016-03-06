@@ -27,7 +27,8 @@ then
 	param set MC_YAWRATE_P 0.2
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
-	param set PWM_MIN 980
+	param set PWM_MIN 1075
 	param set MPC_THR_MIN 0.06
 	param set MPC_MANTHR_MIN 0.06
+	param set CBRK_IO_SAFETY 22027
 fi

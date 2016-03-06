@@ -109,17 +109,18 @@
 
 #include <systemlib/err.h>
 
+#include "VirtDevObj.hpp"
 
-class ToneAlarm : public device::VDev
+using namespace DriverFramework;
+
+class ToneAlarm : public VirtDevObj
 {
 public:
 	ToneAlarm();
 	~ToneAlarm();
 
-	virtual int		init();
-
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
-	virtual ssize_t		write(device::file_t *filp, const char *buffer, size_t len);
+	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
+	virtual ssize_t		devWrite(const void *buffer, size_t len);
 	inline const char	*name(int tune)
 	{
 		return _tune_names[tune];
@@ -196,6 +197,8 @@ private:
 	//
 	static void		next_trampoline(void *arg);
 
+	// Unused
+	virtual void _measure() {}
 };
 
 // semitone offsets from C for the characters 'A'-'G'
@@ -208,11 +211,12 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 
 ToneAlarm::ToneAlarm() :
-	VDev("tone_alarm", TONEALARM0_DEVICE_PATH),
+	VirtDevObj("tone_alarm", TONEALARM0_DEVICE_PATH, nullptr, 0),
 	_default_tune_number(0),
 	_user_tune(nullptr),
 	_tune(nullptr),
-	_next(nullptr)
+	_next(nullptr),
+	_note_call{}
 {
 	// enable debug() calls
 	//_debug_enabled = true;
@@ -249,21 +253,6 @@ ToneAlarm::ToneAlarm() :
 
 ToneAlarm::~ToneAlarm()
 {
-}
-
-int
-ToneAlarm::init()
-{
-	int ret;
-
-	ret = VDev::init();
-
-	if (ret != OK) {
-		return ret;
-	}
-
-	DEVICE_DEBUG("ready");
-	return OK;
 }
 
 unsigned
@@ -360,7 +349,7 @@ ToneAlarm::start_note(unsigned note)
 
 	// Silence warning of unused var
 	do_something(period);
-	PX4_INFO("ToneAlarm::start_note %u", period);
+	PX4_DEBUG("ToneAlarm::start_note %u", period);
 }
 
 void
@@ -371,7 +360,7 @@ ToneAlarm::stop_note()
 void
 ToneAlarm::start_tune(const char *tune)
 {
-	PX4_INFO("ToneAlarm::start_tune");
+	PX4_DEBUG("ToneAlarm::start_tune");
 	// kill any current playback
 	hrt_cancel(&_note_call);
 
@@ -388,6 +377,7 @@ ToneAlarm::start_tune(const char *tune)
 	_repeat = false;		// otherwise command-line tunes repeat forever...
 
 	// schedule a callback to start playing
+	_note_call = {};
 	hrt_call_after(&_note_call, 0, (hrt_callout)next_trampoline, this);
 }
 
@@ -397,6 +387,7 @@ ToneAlarm::next_note()
 	// do we have an inter-note gap to wait for?
 	if (_silence_length > 0) {
 		stop_note();
+		_note_call = {};
 		hrt_call_after(&_note_call, (hrt_abstime)_silence_length, (hrt_callout)next_trampoline, this);
 		_silence_length = 0;
 		return;
@@ -494,6 +485,7 @@ ToneAlarm::next_note()
 
 		case 'P':	// pause for a note length
 			stop_note();
+			_note_call = {};
 			hrt_call_after(&_note_call,
 				       (hrt_abstime)rest_duration(next_number(), next_dots()),
 				       (hrt_callout)next_trampoline,
@@ -522,6 +514,7 @@ ToneAlarm::next_note()
 
 			if (note == 0) {
 				// this is a rest - pause for the current note length
+				_note_call = {};
 				hrt_call_after(&_note_call,
 					       (hrt_abstime)rest_duration(_note_length, next_dots()),
 					       (hrt_callout)next_trampoline,
@@ -579,6 +572,7 @@ ToneAlarm::next_note()
 	start_note(note);
 
 	// and arrange a callback when the note should stop
+	_note_call = {};
 	hrt_call_after(&_note_call, (hrt_abstime)duration, (hrt_callout)next_trampoline, this);
 	return;
 
@@ -653,13 +647,11 @@ ToneAlarm::next_trampoline(void *arg)
 
 
 int
-ToneAlarm::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+ToneAlarm::devIOCTL(unsigned long cmd, unsigned long arg)
 {
 	int result = OK;
 
-	DEVICE_DEBUG("ioctl %i %lu", cmd, arg);
-
-//	irqstate_t flags = irqsave();
+	PX4_DEBUG("ToneAlarm::devIOCTL %i %lu", cmd, arg);
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
@@ -694,18 +686,16 @@ ToneAlarm::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		break;
 	}
 
-//	irqrestore(flags);
-
 	/* give it to the superclass if we didn't like it */
 	if (result == -ENOTTY) {
-		result = VDev::ioctl(filp, cmd, arg);
+		result = VirtDevObj::devIOCTL(cmd, arg);
 	}
 
 	return result;
 }
 
 ssize_t
-ToneAlarm::write(device::file_t *filp, const char *buffer, size_t len)
+ToneAlarm::devWrite(const void *buffer, size_t len)
 {
 	// sanity-check the buffer for length and nul-termination
 	if (len > _tune_max) {
@@ -726,13 +716,15 @@ ToneAlarm::write(device::file_t *filp, const char *buffer, size_t len)
 		_user_tune = nullptr;
 	}
 
+	const char *buf = reinterpret_cast<const char *>(buffer);
+
 	// if the new tune is empty, we're done
-	if (buffer[0] == '\0') {
+	if (buf[0] == '\0') {
 		return OK;
 	}
 
 	// allocate a copy of the new tune
-	_user_tune = strndup(buffer, len);
+	_user_tune = strndup(buf, len);
 
 	if (_user_tune == nullptr) {
 		return -ENOMEM;
@@ -755,17 +747,17 @@ ToneAlarm	*g_dev;
 int
 play_tune(unsigned tune)
 {
-	int	fd, ret;
+	int ret;
 
-	fd = px4_open(TONEALARM0_DEVICE_PATH, 0);
+	DevHandle h;
+	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h);
 
-	if (fd < 0) {
-		PX4_WARN("Error: failed to open %s", TONEALARM0_DEVICE_PATH);
+	if (!h.isValid()) {
+		PX4_WARN("Error: failed to open %s (%d)", TONEALARM0_DEVICE_PATH, h.getError());
 		return 1;
 	}
 
-	ret = px4_ioctl(fd, TONE_SET_ALARM, tune);
-	px4_close(fd);
+	ret = h.ioctl(TONE_SET_ALARM, tune);
 
 	if (ret != 0) {
 		PX4_WARN("TONE_SET_ALARM");
@@ -778,17 +770,18 @@ play_tune(unsigned tune)
 int
 play_string(const char *str, bool free_buffer)
 {
-	int	fd, ret;
+	int ret;
 
-	fd = px4_open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	DevHandle h;
+	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h);
 
-	if (fd < 0) {
-		PX4_WARN("Error: failed to open %s", TONEALARM0_DEVICE_PATH);
+	if (!h.isValid()) {
+		PX4_WARN("Error: failed to get handle to %s", TONEALARM0_DEVICE_PATH);
 		return 1;
 	}
 
-	ret = px4_write(fd, str, strlen(str) + 1);
-	px4_close(fd);
+	ret = h.write(str, strlen(str) + 1);
+	DevMgr::releaseHandle(h);
 
 	if (free_buffer) {
 		free((void *)str);
@@ -871,18 +864,19 @@ tone_alarm_main(int argc, char *argv[])
 		}
 
 		/* if it looks like a PLAY string... */
-		else if (strlen(argv1) > 2) {
+		else if (argv1 && (strlen(argv1) > 2)) {
 			if (*argv1 == 'M') {
 				ret = play_string(argv1, false);
 			}
 
 		} else {
 			/* It might be a tune name */
-			for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++)
+			for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++) {
 				if (!strcmp(g_dev->name(tune), argv1)) {
 					ret = play_tune(tune);
 					return ret;
 				}
+			}
 
 			PX4_WARN("unrecognized command, try 'start', 'stop', an alarm number or name, or a file name starting with a '/'");
 			ret = 1;

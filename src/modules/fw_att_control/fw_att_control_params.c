@@ -46,9 +46,9 @@
  */
 
 /**
- * Attitude Time Constant
+ * Attitude Roll Time Constant
  *
- * This defines the latency between a step input and the achieved setpoint
+ * This defines the latency between a roll step input and the achieved setpoint
  * (inverse to a P gain). Half a second is a good start value and fits for
  * most average systems. Smaller systems may require smaller values, but as
  * this will wear out servos faster, the value should only be decreased as
@@ -59,7 +59,23 @@
  * @max 1.0
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.4f);
+PARAM_DEFINE_FLOAT(FW_R_TC, 0.4f);
+
+/**
+ * Attitude Pitch Time Constant
+ *
+ * This defines the latency between a pitch step input and the achieved setpoint
+ * (inverse to a P gain). Half a second is a good start value and fits for
+ * most average systems. Smaller systems may require smaller values, but as
+ * this will wear out servos faster, the value should only be decreased as
+ * needed.
+ *
+ * @unit seconds
+ * @min 0.2
+ * @max 1.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 
 /**
  * Pitch rate proportional gain.

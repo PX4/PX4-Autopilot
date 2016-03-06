@@ -86,12 +86,7 @@ __EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference
 __EXPORT int map_projection_global_init(double lat_0, double lon_0,
 					uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
-	if (strcmp("commander", getprogname()) == 0) {
-		return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
-
-	} else {
-		return -1;
-	}
+	return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
 }
 
 __EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
@@ -153,7 +148,16 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 	double cos_lat = cos(lat_rad);
 	double cos_d_lon = cos(lon_rad - ref->lon_rad);
 
-	double c = acos(ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon);
+	double arg = ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon;
+
+	if (arg > 1.0) {
+		arg = 1.0;
+
+	} else if (arg < -1.0) {
+		arg = -1.0;
+	}
+
+	double c = acos(arg);
 	double k = (fabs(c) < DBL_EPSILON) ? 1.0 : (c / sin(c));
 
 	*x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
@@ -217,19 +221,14 @@ __EXPORT int map_projection_global_getref(double *lat_0, double *lon_0)
 }
 __EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t timestamp)
 {
-	if (strcmp("commander", getprogname()) == 0) {
-		gl_ref.alt = alt_0;
+	gl_ref.alt = alt_0;
 
-		if (!map_projection_global_init(lat_0, lon_0, timestamp)) {
-			gl_ref.init_done = true;
-			return 0;
-
-		} else {
-			gl_ref.init_done = false;
-			return -1;
-		}
+	if (!map_projection_global_init(lat_0, lon_0, timestamp)) {
+		gl_ref.init_done = true;
+		return 0;
 
 	} else {
+		gl_ref.init_done = false;
 		return -1;
 	}
 }

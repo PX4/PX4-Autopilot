@@ -41,12 +41,16 @@
 
 #include <px4_defines.h>
 #include <stdint.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <semaphore.h>
 
+#if defined(__PX4_QURT)
+#include <dspal_types.h>
+#else
+#include <sys/types.h>
+#endif
 
 /* Semaphore handling */
 
@@ -62,6 +66,7 @@ typedef struct {
 
 __EXPORT int		px4_sem_init(px4_sem_t *s, int pshared, unsigned value);
 __EXPORT int		px4_sem_wait(px4_sem_t *s);
+__EXPORT int		px4_sem_timedwait(px4_sem_t *sem, const struct timespec *abstime);
 __EXPORT int		px4_sem_post(px4_sem_t *s);
 __EXPORT int		px4_sem_getvalue(px4_sem_t *s, int *sval);
 __EXPORT int		px4_sem_destroy(px4_sem_t *s);
@@ -79,6 +84,12 @@ typedef sem_t px4_sem_t;
 #define px4_sem_post	 sem_post
 #define px4_sem_getvalue sem_getvalue
 #define px4_sem_destroy	 sem_destroy
+
+#ifdef __PX4_QURT
+__EXPORT int		px4_sem_timedwait(px4_sem_t *sem, const struct timespec *abstime);
+#else
+#define px4_sem_timedwait	 sem_timedwait
+#endif
 
 __END_DECLS
 
@@ -122,7 +133,7 @@ typedef struct {
 	pollevent_t 	events;   /* The input event flags */
 	pollevent_t 	revents;  /* The output event flags */
 
-	/* Required for PX4 compatability */
+	/* Required for PX4 compatibility */
 	px4_sem_t   *sem;  	/* Pointer to semaphore used to post output event */
 	void   *priv;     	/* For use by drivers */
 } px4_pollfd_struct_t;
@@ -138,6 +149,11 @@ __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
 __EXPORT int		px4_fsync(int fd);
 __EXPORT int		px4_access(const char *pathname, int mode);
 __EXPORT unsigned long	px4_getpid(void);
+
+__EXPORT void		px4_enable_sim_lockstep(void);
+__EXPORT void		px4_sim_start_delay(void);
+__EXPORT void		px4_sim_stop_delay(void);
+__EXPORT bool		px4_sim_delay_enabled(void);
 
 __END_DECLS
 #else

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,7 @@
  * @file gimbal.cpp
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Matosov <anton.matosov@gmail.com>
+ * @author Andreas Antener <andreas@uaventure.com>
  *
  * Driver to control a gimbal - relies on input via telemetry or RC
  * and output via the standardized control group #2 and a mixer.
@@ -72,6 +73,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <board_config.h>
 #include <mathlib/math/test/test.hpp>
@@ -120,6 +123,9 @@ private:
 	work_s				_work;
 	int				_vehicle_command_sub;
 	int				_att_sub;
+	int				_vehicle_control_mode_sub;
+	int				_manual_control_sub;
+	int				_params_sub;
 
 	bool				_attitude_compensation_roll;
 	bool				_attitude_compensation_pitch;
@@ -127,6 +133,7 @@ private:
 	bool				_initialized;
 	bool				_control_cmd_set;
 	bool				_config_cmd_set;
+	int					_mount_mode; // see MAV_MOUNT_MODE
 
 	orb_advert_t			_actuator_controls_2_topic;
 
@@ -136,6 +143,18 @@ private:
 
 	struct vehicle_command_s _control_cmd;
 	struct vehicle_command_s _config_cmd;
+	struct manual_control_setpoint_s _manual_control;
+	struct vehicle_control_mode_s _control_mode;
+
+	struct {
+		int aux_mnt_chn;
+		int use_mnt;
+	} _parameters;
+
+	struct {
+		param_t aux_mnt_chn;
+		param_t use_mnt;
+	} _params_handles;
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -149,6 +168,11 @@ private:
 	* Stop the automatic measurement state machine.
 	*/
 	void				stop();
+
+	/**
+	* Update parameters
+	*/
+	void				update_params();
 
 	/**
 	* Perform a poll cycle; collect from the previous measurement
@@ -176,6 +200,9 @@ Gimbal::Gimbal() :
 	CDev("Gimbal", GIMBAL_DEVICE_PATH),
 	_vehicle_command_sub(-1),
 	_att_sub(-1),
+	_vehicle_control_mode_sub(-1),
+	_manual_control_sub(-1),
+	_params_sub(-1),
 	_attitude_compensation_roll(true),
 	_attitude_compensation_pitch(true),
 	_attitude_compensation_yaw(true),
@@ -187,6 +214,10 @@ Gimbal::Gimbal() :
 {
 	// disable debug() calls
 	_debug_enabled = false;
+
+	_params_handles.aux_mnt_chn = param_find("GMB_AUX_MNT_CHN");
+	_params_handles.use_mnt = param_find("GMB_USE_MNT");
+	update_params();
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -268,11 +299,22 @@ Gimbal::cycle_trampoline(void *arg)
 }
 
 void
+Gimbal::update_params()
+{
+	param_get(_params_handles.aux_mnt_chn, &_parameters.aux_mnt_chn);
+	param_get(_params_handles.use_mnt, &_parameters.use_mnt);
+}
+
+void
 Gimbal::cycle()
 {
 	if (!_initialized) {
-		/* get a subscription handle on the vehicle command topic */
+		/* get subscription handles */
 		_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+		_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+		_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+		_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+		_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 		/* get a publication handle on actuator output topic */
 		struct actuator_controls_s zero_report;
@@ -284,6 +326,8 @@ Gimbal::cycle()
 			warnx("advert err");
 		}
 
+		_mount_mode = vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT;
+
 		_initialized = true;
 	}
 
@@ -294,13 +338,31 @@ Gimbal::cycle()
 	float roll = 0.0f;
 	float pitch = 0.0f;
 	float yaw = 0.0f;
+	float out_mount_mode = 0.0f;
 
+	/* Parameter update */
+	bool params_updated;
 
-	if (_att_sub < 0) {
-		_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	orb_check(_params_sub, &params_updated);
+
+	if (params_updated) {
+		struct parameter_update_s param_update;
+		orb_copy(ORB_ID(parameter_update), _params_sub, &param_update); // XXX: is this actually necessary?
+
+		update_params();
 	}
 
-	vehicle_attitude_s att;
+	/* Control mode update */
+	bool vehicle_control_mode_updated;
+
+	orb_check(_vehicle_control_mode_sub, &vehicle_control_mode_updated);
+
+	if (vehicle_control_mode_updated) {
+		orb_copy(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
+	}
+
+	/* Check attitude */
+	struct vehicle_attitude_s att;
 
 	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
 
@@ -319,7 +381,45 @@ Gimbal::cycle()
 		updated = true;
 	}
 
+	/* Check manual input */
+	bool manual_updated;
 
+	orb_check(_manual_control_sub, &manual_updated);
+
+	if (manual_updated) {
+		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sub, &_manual_control);
+
+		/* only check manual input for mount mode when not in offboard and aux chan is configured */
+		if (!_control_mode.flag_control_offboard_enabled && _parameters.aux_mnt_chn > 0) {
+			float aux = 0.0f;
+
+			switch (_parameters.aux_mnt_chn) {
+			case 1:
+				aux = _manual_control.aux1;
+				break;
+
+			case 2:
+				aux = _manual_control.aux2;
+				break;
+
+			case 3:
+				aux = _manual_control.aux3;
+				break;
+			}
+
+			if (aux < 0.0f && _mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT) {
+				_mount_mode = vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT;
+				updated = true;
+			}
+
+			if (aux > 0.0f && _mount_mode != vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL) {
+				_mount_mode = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
+				updated = true;
+			}
+		}
+	}
+
+	/* Check command input */
 	struct vehicle_command_s cmd;
 
 	bool cmd_updated;
@@ -353,6 +453,13 @@ Gimbal::cycle()
 		_attitude_compensation_pitch = (int)_config_cmd.param3 == 1;
 		_attitude_compensation_yaw = (int)_config_cmd.param4 == 1;
 
+		/* only check commanded mount mode when in offboard */
+		if (_control_mode.flag_control_offboard_enabled &&
+		    fabsf(_config_cmd.param1 - _mount_mode) > FLT_EPSILON) {
+			_mount_mode = int(_config_cmd.param1 + 0.5f);
+			updated = true;
+		}
+
 	}
 
 	if (_control_cmd_set) {
@@ -385,6 +492,28 @@ Gimbal::cycle()
 
 	}
 
+	/* consider mount mode if parameter is set */
+	if (_parameters.use_mnt > 0) {
+		switch (_mount_mode) {
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
+			out_mount_mode = -1.0f;
+			roll = 0.0f;
+			pitch = 0.0f;
+			yaw = 0.0f;
+			break;
+
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
+		case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
+			out_mount_mode = 1.0f;
+			break;
+
+		default:
+			out_mount_mode = -1.0f;
+		}
+	}
+
 	if (updated) {
 
 		struct actuator_controls_s controls;
@@ -396,6 +525,8 @@ Gimbal::cycle()
 		controls.control[0] = roll;
 		controls.control[1] = pitch;
 		controls.control[2] = yaw;
+		//controls.control[3] = ; // camera shutter
+		controls.control[4] = out_mount_mode;
 
 		/* publish it */
 		orb_publish(ORB_ID(actuator_controls_2), _actuator_controls_2_topic, &controls);

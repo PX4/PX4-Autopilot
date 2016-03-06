@@ -212,19 +212,6 @@ static struct sdio_dev_s *sdio;
 
 #include <math.h>
 
-/* TODO XXX commented this out to get cmake build working */
-/*#ifdef __cplusplus*/
-/*__EXPORT int matherr(struct __exception *e)*/
-/*{*/
-/*return 1;*/
-/*}*/
-/*#else*/
-/*__EXPORT int matherr(struct exception *e)*/
-/*{*/
-/*return 1;*/
-/*}*/
-/*#endif*/
-
 __EXPORT int nsh_archinitialize(void)
 {
 
@@ -246,6 +233,13 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_VDD_SERVO_VALID);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+
+	/* configure the GPIO pins to outputs and keep them low */
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
 	stm32_configgpio(GPIO_GPIO5_OUTPUT);
 
 	/* configure the high-resolution time/callout interface */

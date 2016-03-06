@@ -1,19 +1,44 @@
 #!nsh
 #
-# @name Duorotor Tailsitter
+# @name Caipiroshka Duo Tailsitter
 #
-# @type VTOL Tailsitter
+# @type VTOL Duo Tailsitter
+#
+# @output MAIN1 motor left
+# @output MAIN2 motor right
+# @output MAIN5 elevon left
+# @output MAIN6 elevon right
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #
 
 sh /etc/init.d/rc.vtol_defaults
 
+if [ $AUTOCNF == yes ]
+then
+	param set MC_ROLL_P 6.0
+	param set MC_ROLLRATE_P 0.12
+	param set MC_ROLLRATE_I 0.002
+	param set MC_ROLLRATE_D 0.003
+	param set MC_ROLLRATE_FF 0.0
+	param set MC_PITCH_P 4.5
+	param set MC_PITCHRATE_P 0.3
+	param set MC_PITCHRATE_I 0.002
+	param set MC_PITCHRATE_D 0.003
+	param set MC_PITCHRATE_FF 0.0
+	param set MC_YAW_P 3.8
+	param set MC_YAW_FF 0.5
+	param set MC_YAWRATE_P 0.22
+	param set MC_YAWRATE_I 0.02
+	param set MC_YAWRATE_D 0.0
+	param set MC_YAWRATE_FF 0.0
+
+fi
+
 set MIXER caipirinha_vtol
 
-set PWM_OUT 12
-set PWM_MAX 2000
-set PWM_RATE 400
+set PWM_OUT 1234
 param set VT_MOT_COUNT 2
 param set VT_IDLE_PWM_MC  1080
 param set VT_TYPE 0
+param set MAV_TYPE 19

@@ -57,14 +57,14 @@ _work{} {
 
 LandDetector::~LandDetector()
 {
-	work_cancel(LPWORK, &_work);
+	work_cancel(HPWORK, &_work);
 	_taskShouldExit = true;
 }
 
 int LandDetector::start()
 {
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this, 0);
+	work_queue(HPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this, 0);
 
 	return 0;
 }
@@ -107,10 +107,11 @@ void LandDetector::cycle()
 
 		// publish the land detected broadcast
 		orb_publish(ORB_ID(vehicle_land_detected), (orb_advert_t)_landDetectedPub, &_landDetected);
+		//warnx("in air status changed: %s", (_landDetected.landed) ? "LANDED" : "TAKEOFF");
 	}
 
 	if (!_taskShouldExit) {
-		work_queue(LPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this,
+		work_queue(HPWORK, &_work, (worker_t)&LandDetector::cycle_trampoline, this,
 			   USEC2TICK(1000000 / LAND_DETECTOR_UPDATE_RATE));
 	}
 }

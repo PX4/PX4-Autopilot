@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Generic AAERT tailplane airframe with Quad VTOL.
+# @name Fun Cub Quad VTOL.
 #
 # @type Standard VTOL
 #
@@ -14,16 +14,18 @@ then
 	param set VT_TYPE 2
 	param set VT_MOT_COUNT 4
 	param set VT_TRANS_THR 0.75
+	param set VT_ARSP_TRANS 12
+	param set VT_ARSP_BLEND 6
 
-	param set MC_ROLL_P 7.0
-	param set MC_ROLLRATE_P 0.15
+	param set MC_ROLL_P 6.0
+	param set MC_ROLLRATE_P 0.17
 	param set MC_ROLLRATE_I 0.002
-	param set MC_ROLLRATE_D 0.003
+	param set MC_ROLLRATE_D 0.004
 	param set MC_ROLLRATE_FF 0.0
-	param set MC_PITCH_P 7.0
-	param set MC_PITCHRATE_P 0.12
+	param set MC_PITCH_P 6.0
+	param set MC_PITCHRATE_P 0.19
 	param set MC_PITCHRATE_I 0.002
-	param set MC_PITCHRATE_D 0.003
+	param set MC_PITCHRATE_D 0.004
 	param set MC_PITCHRATE_FF 0.0
 	param set MC_YAW_P 2.8
 	param set MC_YAW_FF 0.5
@@ -31,17 +33,25 @@ then
 	param set MC_YAWRATE_I 0.02
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_FF 0.0
+
+	param set FW_PR_FF 0.5
+	param set FW_PR_I 0.02
+	param set FW_PR_IMAX 0.4
+	param set FW_PR_P 0.08
+	param set FW_RR_FF 0.6
+	param set FW_RR_I 0.01
+	param set FW_RR_IMAX 0.2
+	param set FW_RR_P 0.05
+	param set FW_THR_CRUISE 0.75
 fi
 
 set MIXER vtol_quad_x
-set PWM_OUT 12345678
+set PWM_OUT 1234
+set PWM_RATE 400
 
 set MIXER_AUX vtol_AAERT
-set PWM_AUX_RATE 50
-set PWM_AUX_OUT 1234
-set PWM_AUX_DISARMED 1000
-set PWM_AUX_MIN 1000
-set PWM_AUX_MAX 2000
+set PWM_ACHDIS 5
+set PWM_AUX_DISARMED 950
 
 set MAV_TYPE 22
 

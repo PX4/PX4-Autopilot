@@ -44,8 +44,8 @@
  * @author Hannes Delago
  *   (rework, add ubx7+ compatibility)
  *
- * @see http://www.u-blox.com/images/downloads/Product_Docs/u-blox6_ReceiverDescriptionProtocolSpec_%28GPS.G6-SW-10018%29.pdf
- * @see http://www.u-blox.com/images/downloads/Product_Docs/u-bloxM8_ReceiverDescriptionProtocolSpec_%28UBX-13003221%29_Public.pdf
+ * @see https://www2.u-blox.com/images/downloads/Product_Docs/u-blox6-GPS-GLONASS-QZSS-V14_ReceiverDescriptionProtocolSpec_Public_(GPS.G6-SW-12013).pdf
+ * @see https://www.u-blox.com/sites/default/files/products/documents/u-bloxM8_ReceiverDescrProtSpec_%28UBX-13003221%29_Public.pdf
  */
 
 #include <assert.h>
@@ -242,6 +242,12 @@ UBX::configure(unsigned &baudrate)
 		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 			return 1;
 		}
+	}
+
+	configure_message_rate(UBX_MSG_NAV_DOP, 1);
+
+	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
+		return 1;
 	}
 
 	configure_message_rate(UBX_MSG_NAV_SVINFO, (_satellite_info != nullptr) ? 5 : 0);
@@ -538,6 +544,17 @@ UBX::payload_rx_init()
 
 		} else if (_use_nav_pvt) {
 			_rx_state = UBX_RXMSG_DISABLE;        // disable if using NAV-PVT instead
+		}
+
+		break;
+
+	case UBX_MSG_NAV_DOP:
+		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_dop_t)) {
+			_rx_state = UBX_RXMSG_ERROR_LENGTH;
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+
 		}
 
 		break;
@@ -874,6 +891,7 @@ UBX::payload_rx_done(void)
 		_gps_position->alt	= _buf.payload_rx_nav_posllh.hMSL;
 		_gps_position->eph	= (float)_buf.payload_rx_nav_posllh.hAcc * 1e-3f; // from mm to m
 		_gps_position->epv	= (float)_buf.payload_rx_nav_posllh.vAcc * 1e-3f; // from mm to m
+		_gps_position->alt_ellipsoid = _buf.payload_rx_nav_posllh.height;
 
 		_gps_position->timestamp_position = hrt_absolute_time();
 
@@ -889,6 +907,17 @@ UBX::payload_rx_done(void)
 		_gps_position->fix_type		= _buf.payload_rx_nav_sol.gpsFix;
 		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_sol.sAcc * 1e-2f;	// from cm to m
 		_gps_position->satellites_used	= _buf.payload_rx_nav_sol.numSV;
+
+		_gps_position->timestamp_variance = hrt_absolute_time();
+
+		ret = 1;
+		break;
+
+	case UBX_MSG_NAV_DOP:
+		UBX_TRACE_RXMSG("Rx NAV-DOP\n");
+
+		_gps_position->hdop		= _buf.payload_rx_nav_dop.hDOP * 0.01f;	// from cm to m
+		_gps_position->vdop		= _buf.payload_rx_nav_dop.vDOP * 0.01f;	// from cm to m
 
 		_gps_position->timestamp_variance = hrt_absolute_time();
 

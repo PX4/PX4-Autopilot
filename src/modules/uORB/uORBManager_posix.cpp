@@ -164,6 +164,8 @@ int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *b
 
 int uORB::Manager::orb_check(int handle, bool *updated)
 {
+	/* Set to false here so that if `px4_ioctl` fails to false. */
+	*updated = false;
 	return px4_ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
 }
 

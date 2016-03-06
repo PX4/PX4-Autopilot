@@ -38,6 +38,7 @@ px4_add_module(
 		-Os
 	SRCS
 		frsky_data.c
+		sPort_data.c
 		frsky_telemetry.c
 	DEPENDS
 		platforms__common

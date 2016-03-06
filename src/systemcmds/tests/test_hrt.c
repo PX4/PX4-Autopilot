@@ -37,7 +37,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
-
+#include <px4_posix.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -88,8 +88,8 @@
 
 extern uint16_t ppm_buffer[];
 extern unsigned ppm_decoded_channels;
-extern uint16_t ppm_edge_history[];
-extern uint16_t ppm_pulse_history[];
+// extern uint16_t ppm_edge_history[];
+// extern uint16_t ppm_pulse_history[];
 
 int test_ppm(int argc, char *argv[])
 {
@@ -102,17 +102,17 @@ int test_ppm(int argc, char *argv[])
 		printf("  %u\n", ppm_buffer[i]);
 	}
 
-	printf("edges\n");
+	// printf("edges\n");
 
-	for (i = 0; i < 32; i++) {
-		printf("  %u\n", ppm_edge_history[i]);
-	}
+	// for (i = 0; i < 32; i++) {
+	// 	printf("  %u\n", ppm_edge_history[i]);
+	// }
 
-	printf("pulses\n");
+	// printf("pulses\n");
 
-	for (i = 0; i < 32; i++) {
-		printf("  %u\n", ppm_pulse_history[i]);
-	}
+	// for (i = 0; i < 32; i++) {
+	// 	printf("  %u\n", ppm_pulse_history[i]);
+	// }
 
 	fflush(stdout);
 #else

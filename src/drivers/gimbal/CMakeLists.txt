@@ -37,6 +37,7 @@ px4_add_module(
 		-Os
 	SRCS
 		gimbal.cpp
+		gimbal_params.c
 	DEPENDS
 		platforms__common
 	)

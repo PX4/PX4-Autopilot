@@ -12,12 +12,12 @@ TEST(ST24Test, ST24)
 {
 	const char *filepath = "testdata/st24_data.txt";
 
-	warnx("loading data from: %s", filepath);
+	//warnx("loading data from: %s", filepath);
 
 	FILE *fp;
 
 	fp = fopen(filepath, "rt");
-	//ASSERT_TRUE(fp);
+	ASSERT_TRUE(fp);
 
 	float f;
 	unsigned x;

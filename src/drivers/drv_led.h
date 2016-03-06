@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#define LED_BASE_DEVICE_PATH		"/dev/led"
 #define LED0_DEVICE_PATH		"/dev/led0"
 
 #define _LED_BASE		0x2800
@@ -52,6 +53,8 @@
 #define LED_RED			1	/* some boards have red rather than amber */
 #define LED_BLUE		0
 #define LED_SAFETY		2
+#define LED_GREEN		3
+
 
 #define LED_ON			_PX4_IOC(_LED_BASE, 0)
 #define LED_OFF			_PX4_IOC(_LED_BASE, 1)

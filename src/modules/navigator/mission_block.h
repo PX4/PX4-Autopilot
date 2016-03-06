@@ -78,6 +78,8 @@ protected:
 	 */
 	void reset_mission_item_reached();
 
+	bool item_contains_position(const struct mission_item_s *item);
+
 	/**
 	 * Convert a mission item to a position setpoint
 	 *
@@ -96,14 +98,43 @@ protected:
 	 */
 	void set_loiter_item(struct mission_item_s *item, float min_clearance = -1.0f);
 
+	/**
+	 * Set a takeoff mission item
+	 */
+	void set_takeoff_item(struct mission_item_s *item, float min_clearance = -1.0f, float min_pitch = 0.0f);
+
+	/**
+	 * Set a land mission item
+	 */
+	void set_land_item(struct mission_item_s *item, bool at_current_location);
+
+	/**
+	 * Set idle mission item
+	 */
+	void set_idle_item(struct mission_item_s *item);
+
+	/**
+	 * Convert a mission item to a command
+	 */
+	void mission_item_to_vehicle_command(const struct mission_item_s *item, struct vehicle_command_s *cmd);
+
+	void issue_command(const struct mission_item_s *item);
+
 	mission_item_s _mission_item;
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;
 	hrt_abstime _time_first_inside_orbit;
+	hrt_abstime _action_start;
+	hrt_abstime _time_wp_reached;
 
 	actuator_controls_s _actuators;
 	orb_advert_t    _actuator_pub;
+	orb_advert_t	_cmd_pub;
 
+	control::BlockParamFloat _param_yaw_timeout;
+	control::BlockParamFloat _param_yaw_err;
+	control::BlockParamInt _param_vtol_wv_land;
+	control::BlockParamInt _param_vtol_wv_loiter;
 };
 
 #endif

@@ -119,6 +119,14 @@ static void hrt_work_process()
 	uint32_t remaining;
 	uint32_t next;
 
+	// set the threads name
+#ifdef __PX4_DARWIN
+	pthread_setname_np("HRT");
+#else
+	// The Linux headers do not actually contain this
+	//rv = pthread_setname_np(pthread_self(), "HRT");
+#endif
+
 	/* Then process queued work.  We need to keep interrupts disabled while
 	 * we process items in the work list.
 	 */
@@ -143,7 +151,7 @@ static void hrt_work_process()
 		if (elapsed >= work->delay) {
 			/* Remove the ready-to-execute work from the list */
 
-			(void)dq_rem((struct dq_entry_s *)work, &wqueue->q);
+			(void)dq_rem((struct dq_entry_s *) & (work->dq), &(wqueue->q));
 			//PX4_INFO("Dequeued work=%p", work);
 
 			/* Extract the work description from the entry (in case the work
@@ -265,6 +273,7 @@ static int work_hrtthread(int argc, char *argv[])
 void hrt_work_queue_init(void)
 {
 	px4_sem_init(&_hrt_work_lock, 0, 1);
+	memset(&g_hrt_work, 0, sizeof(g_hrt_work));
 
 	// Create high priority worker thread
 	g_hrt_work.pid = px4_task_spawn_cmd("wkr_hrt",

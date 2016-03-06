@@ -96,6 +96,46 @@ orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *da
 	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, priority);
 }
 
+/**
+ * Advertise as the publisher of a topic.
+ *
+ * This performs the initial advertisement of a topic; it creates the topic
+ * node in /obj if required and publishes the initial data.
+ *
+ * Any number of advertisers may publish to a topic; publications are atomic
+ * but co-ordination between publishers is not provided by the ORB.
+ *
+ * @param meta    The uORB metadata (usually from the ORB_ID() macro)
+ *      for the topic.
+ * @param data    A pointer to the initial data to be published.
+ *      For topics updated by interrupt handlers, the advertisement
+ *      must be performed from non-interrupt context.
+ * @param instance  Pointer to an integer which will yield the instance ID (0-based)
+ *      of the publication.
+ * @param priority  The priority of the instance. If a subscriber subscribes multiple
+ *      instances, the priority allows the subscriber to prioritize the best
+ *      data source as long as its available.
+ * @return   ERROR on error, zero on success.
+ *      If the topic in question is not known (due to an
+ *      ORB_DEFINE with no corresponding ORB_DECLARE)
+ *      this function will return -1 and set errno to ENOENT.
+ */
+int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data, int *instance,
+		     int priority)
+{
+	if (*handle == nullptr) {
+		*handle = orb_advertise_multi(meta, data, instance, priority);
+
+		if (*handle != nullptr) {
+			return 0;
+		}
+
+	} else {
+		return orb_publish(meta, *handle, data);
+	}
+
+	return -1;
+}
 
 /**
  * Publish new data to a topic.
@@ -268,11 +308,13 @@ int  orb_exists(const struct orb_metadata *meta, int instance)
  */
 int  orb_group_count(const struct orb_metadata *meta)
 {
-	unsigned group_count = 0;
+	unsigned instance = 0;
 
-	while (!uORB::Manager::get_instance()->orb_exists(meta, group_count++)) {};
+	while (uORB::Manager::get_instance()->orb_exists(meta, instance) == OK) {
+		++instance;
+	};
 
-	return group_count;
+	return instance;
 }
 
 /**

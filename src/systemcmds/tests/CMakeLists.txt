@@ -58,7 +58,6 @@ set(srcs
 	test_rc.c
 	test_conv.cpp
 	test_mount.c
-	test_eigen.cpp
 	)
 
 if(${OS} STREQUAL "nuttx")
@@ -70,9 +69,10 @@ endif()
 px4_add_module(
 	MODULE systemcmds__tests
 	MAIN tests
-	STACK 60000
+	STACK 8000
 	COMPILE_FLAGS
 		-Wframe-larger-than=6000
+		-Wno-float-equal
 		-O0
 	SRCS ${srcs}
 	DEPENDS

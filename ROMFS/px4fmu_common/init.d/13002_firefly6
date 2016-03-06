@@ -14,12 +14,12 @@ then
 	param set MC_ROLL_P 7.0
 	param set MC_ROLLRATE_P 0.17
 	param set MC_ROLLRATE_I 0.002
-	param set MC_ROLLRATE_D 0.004
+	param set MC_ROLLRATE_D 0.003
 	param set MC_ROLLRATE_FF 0.0
 	param set MC_PITCH_P 7.0
 	param set MC_PITCHRATE_P 0.14
 	param set MC_PITCHRATE_I 0.002
-	param set MC_PITCHRATE_D 0.004
+	param set MC_PITCHRATE_D 0.003
 	param set MC_PITCHRATE_FF 0.0
 	param set MC_YAW_P 3.8
 	param set MC_YAW_FF 0.5
@@ -35,17 +35,13 @@ fi
 
 set MIXER firefly6
 set PWM_OUT 12345678
+set PWM_RATE 400
 
 set MIXER_AUX firefly6
-set PWM_AUX_RATE 50
-set PWM_AUX_OUT 1234
-set PWM_AUX_DISARMED 1000
-set PWM_AUX_MIN 1000
-set PWM_AUX_MAX 2000
 
 set MAV_TYPE 21
 
 param set VT_MOT_COUNT 6
-param set VT_FW_MOT_OFF 23
+param set VT_FW_MOT_OFFID 34
 param set VT_IDLE_PWM_MC 1080
 param set VT_TYPE 1

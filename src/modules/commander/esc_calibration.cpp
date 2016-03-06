@@ -76,8 +76,8 @@ int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
 	bool	batt_updated = false;
 	bool	batt_connected = false;
 	
-	hrt_abstime battery_connect_wait_timeout = 20000000;
-	hrt_abstime pwm_high_timeout = 5000000;
+	hrt_abstime battery_connect_wait_timeout = 30000000;
+	hrt_abstime pwm_high_timeout = 10000000;
 	hrt_abstime timeout_start;
 	
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, "esc");

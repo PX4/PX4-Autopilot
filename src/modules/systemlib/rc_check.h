@@ -36,6 +36,7 @@
  *
  * RC calibration check
  */
+#include <stdbool.h>
 
 #pragma once
 

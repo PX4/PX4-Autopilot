@@ -60,24 +60,29 @@ protected:
 	/**
 	* @brief  polls all subscriptions and pulls any data that has changed
 	**/
-	void updateSubscriptions();
+	virtual void updateSubscriptions();
 
 	/**
 	* @brief Runs one iteration of the land detection algorithm
 	**/
-	bool update() override;
+	virtual bool update() override;
 
 	/**
 	* @brief Initializes the land detection algorithm
 	**/
-	void initialize() override;
+	virtual void initialize() override;
 
-
-private:
 	/**
 	* @brief download and update local parameter cache
 	**/
-	void updateParameterCache(const bool force);
+	virtual void updateParameterCache(const bool force);
+
+	/**
+	* @brief get multicopter landed state
+	**/
+	bool get_landed_state();
+
+private:
 
 	/**
 	* @brief Handles for interesting parameters

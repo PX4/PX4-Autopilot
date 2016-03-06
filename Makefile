@@ -109,7 +109,8 @@ endif
 # describe how to build a cmake config
 define cmake-build
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
-+@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then git submodule update --init --recursive --force && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
++@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
++Tools/check_submodules.sh
 +$(PX4_MAKE) -C $(PWD)/build_$@ $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
@@ -130,23 +131,32 @@ px4fmu-v1_default:
 px4fmu-v2_default:
 	$(call cmake-build,nuttx_px4fmu-v2_default)
 
-px4fmu-v2_simple:
-	$(call cmake-build,nuttx_px4fmu-v2_simple)
+px4fmu-v4_default:
+	$(call cmake-build,nuttx_px4fmu-v4_default)
+
+px4-stm32f4discovery_default:
+	$(call cmake-build,nuttx_px4-stm32f4discovery_default)
+
+px4fmu-v2_ekf2:
+	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
 
-nuttx_sim_simple:
-	$(call cmake-build,$@)
-
-posix_sitl_simple:
+posix_sitl_default:
 	$(call cmake-build,$@)
 
 posix_sitl_lpe:
 	$(call cmake-build,$@)
 
-ros_sitl_simple:
+posix_sitl_ekf2:
 	$(call cmake-build,$@)
+
+posix_sitl_replay:
+	$(call cmake-build,$@)
+
+ros_sitl_default:
+	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
 
 qurt_eagle_travis:
 	$(call cmake-build,$@)
@@ -157,19 +167,27 @@ qurt_eagle_release:
 posix_eagle_release:
 	$(call cmake-build,$@)
 
-posix: posix_sitl_simple
+qurt_eagle_default:
+	$(call cmake-build,$@)
 
-posix_sitl_default: posix_sitl_simple
+posix_eagle_default:
+	$(call cmake-build,$@)
 
-ros: ros_sitl_simple
+posix_rpi2_default:
+	$(call cmake-build,$@)
+
+posix_rpi2_release:
+	$(call cmake-build,$@)
+
+posix: posix_sitl_default
 
 sitl_deprecation:
 	@echo "Deprecated. Use 'make posix_sitl_default jmavsim' or"
 	@echo "'make posix_sitl_default gazebo' if Gazebo is preferred."
 
-sitl_quad: sitl_deprecation
-sitl_plane: sitl_deprecation
-sitl_ros: sitl_deprecation
+run_sitl_quad: sitl_deprecation
+run_sitl_plane: sitl_deprecation
+run_sitl_ros: sitl_deprecation
 
 # Other targets
 # --------------------------------------------------------------------
@@ -180,11 +198,13 @@ clean:
 	@rm -rf build_*/
 	@(cd NuttX && git clean -d -f -x)
 	@(cd src/modules/uavcan/libuavcan && git clean -d -f -x)
+	@(git submodule sync --recursive)
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
-	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim \
-	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_tailsitter
+	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim replay \
+	jmavsim_gdb jmavsim_lldb gazebo_gdb_iris gazebo_lldb_tailsitter gazebo_iris gazebo_iris_opt_flow gazebo_tailsitter \
+	gazebo_gdb_standard_vtol gazebo_lldb_standard_vtol gazebo_standard_vtol
 $(foreach targ,$(cmake_targets),$(eval $(call cmake-targ,$(targ))))
 
 .PHONY: clean

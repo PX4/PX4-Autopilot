@@ -1,6 +1,14 @@
 #!/bin/sh
 
+cmake .
 make clean
-make all
-./mixer_test
-./sbus2_test ../../../../data/sbus2/sbus2_r7008SB_gps_baro_tx_off.txt
+make all -j4
+
+set -e
+
+#./param_test
+./conversion_test
+./autodeclination_test
+./mixer_test > /dev/null
+./sbus2_test
+./rc_input_test

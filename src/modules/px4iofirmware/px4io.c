@@ -82,7 +82,7 @@ static volatile uint8_t msg_next_out, msg_next_in;
  * for mixer handling. Do not allocate more than 80 bytes for
  * output.
  */
-#define NUM_MSG 2
+#define NUM_MSG 1
 static char msg[NUM_MSG][40];
 
 static void heartbeat_blink(void);
@@ -232,6 +232,9 @@ calculate_fw_crc(void)
 int
 user_start(int argc, char *argv[])
 {
+	/* configure the first 8 PWM outputs (i.e. all of them) */
+	up_pwm_servo_init(0xff);
+
 	/* run C++ ctors before we go any further */
 	up_cxxinitialize();
 
@@ -275,9 +278,6 @@ user_start(int argc, char *argv[])
 
 	/* start the safety switch handler */
 	safety_init();
-
-	/* configure the first 8 PWM outputs (i.e. all of them) */
-	up_pwm_servo_init(0xff);
 
 	/* initialise the control inputs */
 	controls_init();

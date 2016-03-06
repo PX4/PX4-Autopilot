@@ -694,7 +694,9 @@ start()
 #ifdef PX4_I2C_BUS_ESC
 			PX4_I2C_BUS_ESC,
 #endif
+#ifdef PX4_I2C_BUS_ONBOARD
 			PX4_I2C_BUS_ONBOARD,
+#endif
 			-1
 		};
 

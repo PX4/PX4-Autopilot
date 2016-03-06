@@ -533,12 +533,17 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
 	 * fail during initialization.
 	 */
-	#ifdef GPIO_CAN1_RX
+#if defined(GPIO_CAN1_RX)
 	stm32_configgpio(GPIO_CAN1_RX);
 	stm32_configgpio(GPIO_CAN1_TX);
-	#endif
+#endif
+#if defined(GPIO_CAN2_RX)
 	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
 	stm32_configgpio(GPIO_CAN2_TX);
+#endif
+#if !defined(GPIO_CAN1_RX) &&  !defined(GPIO_CAN2_RX)
+# error  "Need to define GPIO_CAN1_RX and/or GPIO_CAN2_RX"
+#endif
 
 	/*
 	 * CAN driver init
@@ -1247,7 +1252,7 @@ int uavcan_main(int argc, char *argv[])
 		}
 
 		// Node ID
-		int32_t node_id = 0;
+		int32_t node_id = 1;
 		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
 
 		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
@@ -1256,7 +1261,7 @@ int uavcan_main(int argc, char *argv[])
 		}
 
 		// CAN bitrate
-		int32_t bitrate = 0;
+		int32_t bitrate = 1000000;
 		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
 
 		// Start

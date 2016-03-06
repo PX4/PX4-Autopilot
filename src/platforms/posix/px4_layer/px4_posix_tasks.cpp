@@ -38,6 +38,7 @@
  */
 
 #include <px4_log.h>
+#include <px4_defines.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +49,8 @@
 #include <sched.h>
 #include <unistd.h>
 #include <string.h>
+#include <pthread.h>
+#include <limits.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -62,6 +65,7 @@
 #define SHELL_TASK_ID (PX4_MAX_TASKS+1)
 
 pthread_t _shell_task_id = 0;
+pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct task_entry {
 	pthread_t pid;
@@ -70,10 +74,11 @@ struct task_entry {
 	task_entry() : isused(false) {}
 };
 
-static task_entry taskmap[PX4_MAX_TASKS];
+static task_entry taskmap[PX4_MAX_TASKS] = {};
 
 typedef struct {
 	px4_main_t entry;
+	const char *name;
 	int argc;
 	char *argv[];
 	// strings are allocated after the
@@ -82,6 +87,19 @@ typedef struct {
 static void *entry_adapter(void *ptr)
 {
 	pthdata_t *data = (pthdata_t *) ptr;
+
+	int rv;
+	// set the threads name
+#ifdef __PX4_DARWIN
+	rv = pthread_setname_np(data->name);
+#else
+	rv = pthread_setname_np(pthread_self(), data->name);
+#endif
+
+	if (rv) {
+		PX4_ERR("px4_task_spawn_cmd: failed to set name of thread %d %d\n", rv, errno);
+	}
+
 	data->entry(data->argc, data->argv);
 	free(ptr);
 	PX4_DEBUG("Before px4_task_exit");
@@ -101,6 +119,7 @@ px4_systemreset(bool to_bootloader)
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry,
 			      char *const argv[])
 {
+
 	int rv;
 	int argc = 0;
 	int i;
@@ -109,9 +128,8 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	unsigned long structsize;
 	char *p = (char *)argv;
 
-	pthread_t task;
 	pthread_attr_t attr;
-	struct sched_param param;
+	struct sched_param param = {};
 
 	// Calculate argc
 	while (p != (char *)0) {
@@ -126,12 +144,13 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	}
 
 	structsize = sizeof(pthdata_t) + (argc + 1) * sizeof(char *);
-	pthdata_t *taskdata;
 
 	// not safe to pass stack data to the thread creation
-	taskdata = (pthdata_t *)malloc(structsize + len);
+	pthdata_t *taskdata = (pthdata_t *)malloc(structsize + len);
+	memset(taskdata, 0, structsize + len);
 	offset = ((unsigned long)taskdata) + structsize;
 
+	taskdata->name = name;
 	taskdata->entry = entry;
 	taskdata->argc = argc;
 
@@ -153,6 +172,21 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		PX4_WARN("px4_task_spawn_cmd: failed to init thread attrs");
 		return (rv < 0) ? rv : -rv;
 	}
+
+#ifndef __PX4_DARWIN
+
+	if (stack_size < PTHREAD_STACK_MIN) {
+		stack_size = PTHREAD_STACK_MIN;
+	}
+
+	rv = pthread_attr_setstacksize(&attr, stack_size);
+
+	if (rv != 0) {
+		PX4_ERR("pthread_attr_setstacksize to %d returned error (%d)", stack_size, rv);
+		return (rv < 0) ? rv : -rv;
+	}
+
+#endif
 
 	rv = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
@@ -177,16 +211,30 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
-	rv = pthread_create(&task, &attr, &entry_adapter, (void *) taskdata);
+	pthread_mutex_lock(&task_mutex);
+
+	int taskid = 0;
+
+	for (i = 0; i < PX4_MAX_TASKS; ++i) {
+		if (taskmap[i].isused == false) {
+			taskmap[i].name = name;
+			taskmap[i].isused = true;
+			taskid = i;
+			break;
+		}
+	}
+
+	rv = pthread_create(&taskmap[taskid].pid, &attr, &entry_adapter, (void *) taskdata);
 
 	if (rv != 0) {
 
 		if (rv == EPERM) {
 			//printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
-			rv = pthread_create(&task, NULL, &entry_adapter, (void *) taskdata);
+			rv = pthread_create(&taskmap[taskid].pid, NULL, &entry_adapter, (void *) taskdata);
 
 			if (rv != 0) {
 				PX4_ERR("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
+				taskmap[taskid].isused = false;
 				return (rv < 0) ? rv : -rv;
 			}
 
@@ -195,14 +243,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		}
 	}
 
-	for (i = 0; i < PX4_MAX_TASKS; ++i) {
-		if (taskmap[i].isused == false) {
-			taskmap[i].pid = task;
-			taskmap[i].name = name;
-			taskmap[i].isused = true;
-			break;
-		}
-	}
+	pthread_mutex_unlock(&task_mutex);
 
 	if (i >= PX4_MAX_TASKS) {
 		return -ENOSPC;
@@ -224,9 +265,12 @@ int px4_task_delete(px4_task_t id)
 		return -EINVAL;
 	}
 
+	pthread_mutex_lock(&task_mutex);
+
 	// If current thread then exit, otherwise cancel
 	if (pthread_self() == pid) {
 		taskmap[id].isused = false;
+		pthread_mutex_unlock(&task_mutex);
 		pthread_exit(0);
 
 	} else {
@@ -234,6 +278,7 @@ int px4_task_delete(px4_task_t id)
 	}
 
 	taskmap[id].isused = false;
+	pthread_mutex_unlock(&task_mutex);
 
 	return rv;
 }
@@ -246,6 +291,7 @@ void px4_task_exit(int ret)
 	// Get pthread ID from the opaque ID
 	for (i = 0; i < PX4_MAX_TASKS; ++i) {
 		if (taskmap[i].pid == pid) {
+			pthread_mutex_lock(&task_mutex);
 			taskmap[i].isused = false;
 			break;
 		}
@@ -258,6 +304,8 @@ void px4_task_exit(int ret)
 		PX4_DEBUG("px4_task_exit: %s", taskmap[i].name.c_str());
 	}
 
+	pthread_mutex_unlock(&task_mutex);
+
 	pthread_exit((void *)(unsigned long)ret);
 }
 
@@ -268,7 +316,9 @@ int px4_task_kill(px4_task_t id, int sig)
 	PX4_DEBUG("Called px4_task_kill %d", sig);
 
 	if (id < PX4_MAX_TASKS && taskmap[id].isused && taskmap[id].pid != 0) {
+		pthread_mutex_lock(&task_mutex);
 		pid = taskmap[id].pid;
+		pthread_mutex_unlock(&task_mutex);
 
 	} else {
 		return -EINVAL;
@@ -326,10 +376,36 @@ const char *getprogname()
 
 	for (int i = 0; i < PX4_MAX_TASKS; i++) {
 		if (taskmap[i].isused && taskmap[i].pid == pid) {
+			pthread_mutex_lock(&task_mutex);
 			return taskmap[i].name.c_str();
+			pthread_mutex_unlock(&task_mutex);
 		}
 	}
 
 	return "Unknown App";
 }
+
+int px4_prctl(int option, const char *arg2, unsigned pid)
+{
+	int rv;
+
+	switch (option) {
+	case PR_SET_NAME:
+		// set the threads name
+#ifdef __PX4_DARWIN
+		rv = pthread_setname_np(arg2);
+#else
+		rv = pthread_setname_np(pthread_self(), arg2);
+#endif
+		break;
+
+	default:
+		rv = -1;
+		PX4_WARN("FAILED SETTING TASK NAME");
+		break;
+	}
+
+	return rv;
+}
+
 __END_DECLS

@@ -8,6 +8,10 @@ matrix:
   include:
     - os: linux
       sudo: false
+      env: GCC_VER=4.8
+    - os: linux
+      sudo: false
+      env: GCC_VER=4.9
     - os: osx
       osx_image: xcode7
       sudo: true
@@ -27,8 +31,8 @@ addons:
     - ccache
     - clang-3.5
     - cmake
-    - g++-4.8
-    - gcc-4.8
+    - g++-4.9
+    - gcc-4.9
     - genromfs
     - libc6-i386
     - libncurses5-dev
@@ -43,10 +47,12 @@ addons:
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          pushd .
-      && cd ~
-      && wget https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-      && tar -jxf gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2
-      && exportline="export PATH=$HOME/gcc-arm-none-eabi-4_8-2014q3/bin:\$PATH"
+      && cd ~ && mkdir gcc && cd gcc
+      && if [ "$GCC_VER" = "4.8" ]; then GCC_URL="https://launchpadlibrarian.net/186124160/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2" ; fi
+      && if [ "$GCC_VER" = "4.9" ]; then GCC_URL="https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-linux.tar.bz2" ; fi
+      && wget -O gcc.tar.bz2 ${GCC_URL}
+      && tar -jxf gcc.tar.bz2 --strip 1
+      && exportline="export PATH=$HOME/gcc/bin:\$PATH"
       && if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
       && . ~/.profile
       && popd
@@ -55,14 +61,13 @@ before_install:
       && mkdir -p ~/bin
       && wget -O ~/bin/astyle https://github.com/PX4/astyle/releases/download/2.05.1/astyle-linux && chmod +x ~/bin/astyle
       && astyle --version
-      && if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+      && if [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          brew tap PX4/homebrew-px4
-      && brew update
-      && brew install cmake ninja astyle gcc-arm-none-eabi
+      && brew update; brew update
+      && brew install cmake ninja
       && brew install genromfs
-      && brew install kconfig-frontends
       && sudo easy_install pip
       && sudo pip install pyserial empy
       ;
@@ -81,8 +86,6 @@ before_script:
   - ln -s /usr/bin/ccache ~/bin/clang
   - ln -s /usr/bin/ccache ~/bin/clang-3.4
   - ln -s /usr/bin/ccache ~/bin/clang-3.5
-  - ln -s /usr/bin/ccache ~/bin/g++-4.8
-  - ln -s /usr/bin/ccache ~/bin/gcc-4.8
   - export PATH=~/bin:$PATH
 
 env:
@@ -95,28 +98,31 @@ env:
     - PX4_AWS_BUCKET=px4-travis
 
 script:
-  - make check_format
-  - arm-none-eabi-gcc --version
-  - echo 'Building POSIX Firmware..' && make posix_sitl_simple
-  - echo 'Running Tests..' && make posix_sitl_simple test
-  - echo 'Building UAVCAN node firmware..' && git clone https://github.com/thiemar/vectorcontrol
-  - cd vectorcontrol
-  - BOARD=s2740vc_1_0 make && BOARD=px4esc_1_6 make
-  - cd ..
-  - mkdir -p ROMFS/px4fmu_common/uavcan/fw/com.thiemar.s2740vc-v1/1.0/
-  - mkdir -p ROMFS/px4fmu_common/uavcan/fw/org.pixhawk.px4esc-v1/1.0/
-  - cp vectorcontrol/firmware/com.thiemar.s2740vc-v1-1.0.*.bin ROMFS/px4fmu_common/uavcan/fw/com.thiemar.s2740vc-v1/1.0/.
-  - cp vectorcontrol/firmware/org.pixhawk.px4esc-v1-1.0.*.bin ROMFS/px4fmu_common/uavcan/fw/org.pixhawk.px4esc-v1/1.0/.
-  - echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
-  - echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
-  - echo 'Running Tests..' && make px4fmu-v2_default test
+  - git submodule update --quiet --init --recursive
+  - echo 'Building POSIX Firmware..' && make posix_sitl_default
+  - echo 'Running Tests..' && make posix_sitl_default test
+  - echo 'Running Unittests..' && cd unittests && ./run_tests.sh
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+         cd ${TRAVIS_BUILD_DIR}
+      && make check_format
+      && arm-none-eabi-gcc --version
+      && echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
+      && echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
+      && echo 'Building UAVCAN node firmware..' && (git clone https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make -s && BOARD=px4esc_1_6 make -s && ../Tools/uavcan_copy.sh)
+      && echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
+      && echo 'Building NuttX px4-stm32f4discovery Firmware..' && make px4-stm32f4discovery_default
+      && echo 'Running Tests..' && make px4fmu-v2_default test
+      ;
+    fi
 
 after_success:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${GCC_VER}" = "4.8" ]]; then
          cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
       && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
-      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4
-      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
+      && cp build_px4fmu-v4_default/src/firmware/nuttx/nuttx-px4fmu-v4-default.px4 px4fmu-v4_default.px4
+      && cp build_px4-stm32f4discovery_default/src/firmware/nuttx/nuttx-px4-stm32f4discovery-default.px4 px4-stm32f4discovery-default.px4
+      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4
+      && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
       && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put CI-Tools/index.html index.html
@@ -137,6 +143,7 @@ deploy:
     tags: true
     all_branches: true
     repo: PX4/Firmware
+    condition: $GCC_VER = 4.8
 
 notifications:
   webhooks:
