@@ -62,9 +62,9 @@ int rc_calibration_check(int mavlink_fd, bool report_fail)
 	unsigned map_fail_count = 0;
 
 	const char *rc_map_mandatory[] = {	/*"RC_MAP_MODE_SW",*/
-						/* needs discussion if this should be mandatory "RC_MAP_POSCTL_SW"*/
-						0 /* end marker */
-					 };
+		/* needs discussion if this should be mandatory "RC_MAP_POSCTL_SW"*/
+		0 /* end marker */
+	};
 
 	unsigned j = 0;
 
