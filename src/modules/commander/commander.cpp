@@ -154,7 +154,7 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define HOTPLUG_SENS_TIMEOUT		(8 * 1000 * 1000)	/**< wait for hotplug sensors to come online for upto 8 seconds */
 
 #define PRINT_INTERVAL	5000000
-#define PRINT_MODE_REJECT_INTERVAL	10000000
+#define PRINT_MODE_REJECT_INTERVAL	500000
 
 #define INAIR_RESTART_HOLDOFF_INTERVAL	500000
 
@@ -2891,7 +2891,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 		res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_RTL);
 
 		if (res == TRANSITION_DENIED) {
-			print_reject_mode(status_local, "AUTO_RTL");
+			print_reject_mode(status_local, "AUTO RTL");
 
 			/* fallback to LOITER if home position not set */
 			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
@@ -2917,8 +2917,76 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 		if (new_mode < 0) {
 			/* slot is unused */
 			res = TRANSITION_NOT_CHANGED;
+
 		} else {
 			res = main_state_transition(status_local, new_mode);
+
+			/* enable the use of break */
+			do {
+				/* fallback strategies, give the user the closest mode to what he wanted */
+				if (res == TRANSITION_DENIED) {
+
+					if (new_mode == vehicle_status_s::MAIN_STATE_AUTO_MISSION) {
+						res = main_state_transition(status_local, new_mode);
+
+						if (res != TRANSITION_DENIED) {
+							break;
+						} else {
+							/* fall back to loiter */
+							new_mode = vehicle_status_s::MAIN_STATE_AUTO_LOITER;
+							print_reject_mode(status_local, "AUTO MISSION");
+						}
+					}
+
+					if (new_mode == vehicle_status_s::MAIN_STATE_AUTO_LOITER) {
+						res = main_state_transition(status_local, new_mode);
+
+						if (res != TRANSITION_DENIED) {
+							break;
+						} else {
+							/* fall back to position control */
+							new_mode = vehicle_status_s::MAIN_STATE_POSCTL;
+							print_reject_mode(status_local, "AUTO PAUSE");
+						}
+					}
+
+					if (new_mode == vehicle_status_s::MAIN_STATE_POSCTL) {
+						res = main_state_transition(status_local, new_mode);
+
+						if (res != TRANSITION_DENIED) {
+							break;
+						} else {
+							/* fall back to altitude control */
+							new_mode = vehicle_status_s::MAIN_STATE_ALTCTL;
+							print_reject_mode(status_local, "POSITION CONTROL");
+						}
+					}
+
+					if (new_mode == vehicle_status_s::MAIN_STATE_ALTCTL) {
+						res = main_state_transition(status_local, new_mode);
+
+						if (res != TRANSITION_DENIED) {
+							break;
+						} else {
+							/* fall back to stabilized */
+							new_mode = vehicle_status_s::MAIN_STATE_STAB;
+							print_reject_mode(status_local, "ALTITUDE CONTROL");
+						}
+					}
+
+					if (new_mode == vehicle_status_s::MAIN_STATE_STAB) {
+						res = main_state_transition(status_local, new_mode);
+
+						if (res != TRANSITION_DENIED) {
+							break;
+						} else {
+							/* there is no decent fallback any more, stay in mode and emit a warning */
+							print_reject_mode(status_local, "STABILIZED");
+						}
+					}
+				}
+			} while (0);
+
 		}
 		
 		return res;
@@ -2966,7 +3034,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 				break;	// changed successfully or already in this state
 			}
 
-			print_reject_mode(status_local, "POSCTL");
+			print_reject_mode(status_local, "POSITION CONTROL");
 		}
 
 		// fallback to ALTCTL
@@ -2977,7 +3045,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 		}
 
 		if (sp_man->posctl_switch != manual_control_setpoint_s::SWITCH_POS_ON) {
-			print_reject_mode(status_local, "ALTCTL");
+			print_reject_mode(status_local, "ALTITUDE CONTROL");
 		}
 
 		// fallback to MANUAL
@@ -2993,7 +3061,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 				break;	// changed successfully or already in this state
 			}
 
-			print_reject_mode(status_local, "AUTO_LOITER");
+			print_reject_mode(status_local, "AUTO PAUSE");
 
 		} else {
 			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_MISSION);
@@ -3002,7 +3070,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 				break;	// changed successfully or already in this state
 			}
 
-			print_reject_mode(status_local, "AUTO_MISSION");
+			print_reject_mode(status_local, "AUTO MISSION");
 
 			// fallback to LOITER if home position not set
 			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
