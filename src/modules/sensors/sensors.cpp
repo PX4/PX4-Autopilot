@@ -1897,11 +1897,14 @@ Sensors::rc_poll()
 
 			if (_parameters.rc_map_flightmode > 0) {
 
-				const unsigned slot_min = 1000;
-				const unsigned slot_max = 2000;
-				const unsigned num_slots = 6;
+				const float slot_min = -1.0f;
+				const float slot_max = 1.0f;
+				/* the number of valid slots is one less than the max marker */
+				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX - 1;
+				/* we need the maximum index below, not the number of slots, so slots - 1 */
+				const unsigned max_index = num_slots - 1;
 
-				manual.mode_slot = ((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) / (slot_max - slot_min);
+				manual.mode_slot = ((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * max_index) / (slot_max - slot_min);
 
 			} else {
 				/* mode switches */
