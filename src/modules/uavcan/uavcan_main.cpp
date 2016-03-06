@@ -52,6 +52,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 
+#include "uavcan_module.hpp"
 #include "uavcan_main.hpp"
 #include <uavcan/util/templates.hpp>
 
