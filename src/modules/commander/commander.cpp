@@ -205,9 +205,9 @@ static struct home_position_s _home;
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX - 1];
 
 static unsigned _last_mission_instance = 0;
-static manual_control_setpoint_s _last_sp_man;
+static manual_control_setpoint_s _last_sp_man = {};
 
-static struct vtol_vehicle_status_s vtol_status;
+static struct vtol_vehicle_status_s vtol_status = {};
 
 /**
  * The daemon app only briefly exists to start
@@ -2351,10 +2351,11 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* evaluate the main state machine according to mode switches */
+			bool first_rc_eval = (_last_sp_man.timestamp == 0) && (sp_man.timestamp > 0);
 			transition_result_t main_res = set_main_state_rc(&status, &sp_man);
 
 			/* play tune on mode change only if armed, blink LED always */
-			if (main_res == TRANSITION_CHANGED) {
+			if (main_res == TRANSITION_CHANGED || first_rc_eval) {
 				tune_positive(armed.armed);
 				main_state_changed = true;
 
@@ -2849,13 +2850,15 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
+	// XXX this should not be necessary any more, we should be able to
+	// just delete this and respond to mode switches
 	/* if offboard is set already by a mavlink command, abort */
 	if (status.offboard_control_set_by_command) {
 		return main_state_transition(status_local,vehicle_status_s::MAIN_STATE_OFFBOARD);
 	}
 
 	/* manual setpoint has not updated, do not re-evaluate it */
-	if ((_last_sp_man.timestamp == sp_man->timestamp) ||
+	if (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man->timestamp)) ||
 		((_last_sp_man.offboard_switch == sp_man->offboard_switch) &&
 		 (_last_sp_man.return_switch == sp_man->return_switch) &&
 		 (_last_sp_man.mode_switch == sp_man->mode_switch) &&
