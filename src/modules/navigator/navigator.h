@@ -164,6 +164,14 @@ public:
 	 * @return the distance at which the next waypoint should be used
 	 */
 	float		get_acceptance_radius(float mission_item_radius);
+
+	/**
+	 * Get the acceptance height
+	 *
+	 * @return the vertical distance at which the next waypoint should be used
+	 */
+	float		get_acceptance_height();
+
 	int		get_mavlink_fd() { return _mavlink_fd; }
 
 	void		increment_mission_instance_count() { _mission_instance_count++; }

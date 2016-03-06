@@ -633,6 +633,12 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	return radius;
 }
 
+float
+Navigator::get_acceptance_height()
+{
+	return _param_acceptance_radius.get();
+}
+
 void Navigator::add_fence_point(int argc, char *argv[])
 {
 	_geofence.addPoint(argc, argv);
