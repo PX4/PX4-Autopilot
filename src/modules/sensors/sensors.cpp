@@ -1907,7 +1907,7 @@ Sensors::rc_poll()
 				manual.mode_slot = ((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * max_index) / (slot_max - slot_min);
 
 			}
- 
+
 			/* mode switches */
 			manual.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th,
 					     _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
