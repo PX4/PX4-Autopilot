@@ -2366,8 +2366,14 @@ int commander_thread_main(int argc, char *argv[])
 			/* check throttle kill switch */
 			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				/* set lockdown flag */
+				if (!armed.lockdown) {
+					mavlink_log_emergency(mavlink_fd, "MANUAL KILL SWITCH ENGAGED");
+				}
 				armed.lockdown = true;
 			} else if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+				if (armed.lockdown) {
+					mavlink_log_emergency(mavlink_fd, "MANUAL KILL SWITCH OFF");
+				}
 				armed.lockdown = false;
 			}
 			/* no else case: do not change lockdown flag in unconfigured case */
@@ -2888,6 +2894,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 
 	/* RTL switch overrides main switch */
 	if (sp_man->return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		warnx("RTL switch changed and ON!");
 		res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_RTL);
 
 		if (res == TRANSITION_DENIED) {
