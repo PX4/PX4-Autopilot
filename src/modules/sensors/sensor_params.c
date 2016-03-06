@@ -123,6 +123,34 @@ PARAM_DEFINE_INT32(CAL_MAG0_ID, 0);
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
+ * @value -1 Internal mag
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
+ *
  * @min -1
  * @max 30
  * @group Sensor Calibration
@@ -301,6 +329,34 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
+ * @value -1 Internal mag
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
+ *
  * @min -1
  * @max 30
  * @group Sensor Calibration
@@ -478,6 +534,34 @@ PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
  * An internal magnetometer will force a value of -1, so a GCS
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
+ *
+ * @value -1 Internal mag
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
  *
  * @min -1
  * @max 30
@@ -734,9 +818,32 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 /**
  * External magnetometer rotation
  *
- * This parameter defines the rotation of the external magnetometer relative
- * to the platform (not relative to the FMU).
- * See SENS_BOARD_ROT for possible values.
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
  *
  * @group Sensor Calibration
  */
@@ -1805,6 +1912,8 @@ PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
  *
  * @min 0
  * @max 1
+ * @value 0 Disabled
+ * @value 1 Relay controls DSM power
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
@@ -1812,8 +1921,9 @@ PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
 /**
  * DSM binding trigger.
  *
- * -1 = Idle, 0 = Start DSM2 bind, 1 = Start DSMX bind
- *
+ * @value -1 Inactive
+ * @value 0 Start DSM2 bind
+ * @value 1 Start DSMX bind
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_DSM_BIND, -1);
@@ -1832,6 +1942,7 @@ PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
  * Scaling factor for battery voltage sensor on FMU v2.
  *
  * @group Battery Calibration
+ * @decimal 8
  */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
 
@@ -1839,6 +1950,7 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
  * Scaling factor for battery current sensor.
  *
  * @group Battery Calibration
+ * @decimal 8
  */
 PARAM_DEFINE_FLOAT(BAT_C_SCALING, -1.0);
 
