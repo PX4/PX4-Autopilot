@@ -78,7 +78,7 @@
 #define MPU_DEVICE_PATH_MAG		"/dev/mpu9250_mag"
 #define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu9250_accel_ext"
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu9250_gyro_ext"
-#define MPU_DEVICE_PATH_MAG_EXT		"/dev/mpu9250_mag_ext"
+#define MPU_DEVICE_PATH_MAG_EXT 	"/dev/mpu9250_mag_ext"
 
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu9250_main(int argc, char *argv[]); }
@@ -100,8 +100,6 @@ void	info(bool);
 void	regdump(bool);
 void	testerror(bool);
 void	usage();
-void	w(bool);
-void	g(bool, char *);
 
 /**
  * Start the driver.
