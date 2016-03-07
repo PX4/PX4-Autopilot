@@ -103,14 +103,13 @@ int do_mag_calibration(int mavlink_fd)
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
 #ifndef __PX4_QURT
-	struct mag_scale mscale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
+	struct mag_calibration_s mscale_null;
+	mscale_null.x_offset = 0.0f;
+	mscale_null.x_scale = 1.0f;
+	mscale_null.y_offset = 0.0f;
+	mscale_null.y_scale = 1.0f;
+	mscale_null.z_offset = 0.0f;
+	mscale_null.z_scale = 1.0f;
 #endif
 
 	int result = OK;
@@ -595,7 +594,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 		for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
 			if (device_ids[cur_mag] != 0) {
 				int fd_mag = -1;
-				struct mag_scale mscale;
+				struct mag_calibration_s mscale;
 
 				// Set new scale
 

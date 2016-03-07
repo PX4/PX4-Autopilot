@@ -181,14 +181,13 @@ int do_accel_calibration(int mavlink_fd)
 
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
-	struct accel_scale accel_scale = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
+	struct accel_calibration_s accel_scale;
+	accel_scale.x_offset = 0.0f;
+	accel_scale.x_scale = 1.0f;
+	accel_scale.y_offset = 0.0f;
+	accel_scale.y_scale = 1.0f;
+	accel_scale.z_offset = 0.0f;
+	accel_scale.z_scale = 1.0f;
 
 	int res = OK;
 
