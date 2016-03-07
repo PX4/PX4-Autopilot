@@ -263,7 +263,7 @@ int do_accel_calibration(int mavlink_fd)
 		accel_scale.y_scale = accel_T_rotated(1, 1);
 		accel_scale.z_offset = accel_offs_rotated(2);
 		accel_scale.z_scale = accel_T_rotated(2, 2);
-		
+
 		bool failed = false;
 
 		failed = failed || (OK != param_set_no_notification(param_find("CAL_ACC_PRIME"), &(device_id_primary)));
@@ -285,7 +285,7 @@ int do_accel_calibration(int mavlink_fd)
 		(void)sprintf(str, "CAL_ACC%u_ID", i);
 		failed |= (OK != param_set_no_notification(param_find(str), &(device_id[i])));
 #endif
-		
+
 		if (failed) {
 			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SET_PARAMS_MSG, i);
 			return ERROR;
@@ -325,7 +325,7 @@ int do_accel_calibration(int mavlink_fd)
 	} else {
 		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, sensor_name);
 	}
-	
+
 	/* give this message enough time to propagate */
 	usleep(600000);
 
@@ -336,30 +336,30 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 {
 	const unsigned samples_num = 750;
 	accel_worker_data_t* worker_data = (accel_worker_data_t*)(data);
-	
+
 	mavlink_and_console_log_info(worker_data->mavlink_fd, "[cal] Hold still, measuring %s side", detect_orientation_str(orientation));
-	
+
 	read_accelerometer_avg(worker_data->subs, worker_data->accel_ref, orientation, samples_num);
-	
+
 	mavlink_and_console_log_info(worker_data->mavlink_fd, "[cal] %s side result: [%8.4f %8.4f %8.4f]", detect_orientation_str(orientation),
 				     (double)worker_data->accel_ref[0][orientation][0],
 				     (double)worker_data->accel_ref[0][orientation][1],
 				     (double)worker_data->accel_ref[0][orientation][2]);
-	
+
 	worker_data->done_count++;
 	mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_QGC_PROGRESS_MSG, 17 * worker_data->done_count);
-	
+
 	return calibrate_return_ok;
 }
 
 calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors)
 {
 	calibrate_return result = calibrate_return_ok;
-	
+
 	*active_sensors = 0;
-	
+
 	accel_worker_data_t worker_data;
-	
+
 	worker_data.mavlink_fd = mavlink_fd;
 	worker_data.done_count = 0;
 
@@ -378,7 +378,7 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 			result = calibrate_return_error;
 			break;
 		}
-		
+
 		/* store initial timestamp - used to infer which sensors are active */
 		struct accel_report arp = {};
 		(void)orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &arp);
