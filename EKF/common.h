@@ -64,6 +64,13 @@ typedef matrix::Vector<float, 3> Vector3f;
 typedef matrix::Quaternion<float> Quaternion;
 typedef matrix::Matrix<float, 3, 3> Matrix3f;
 
+struct flow_message {
+	uint8_t quality;			// Quality of Flow data
+	Vector2f flowdata;			// Flow data received
+	Vector2f gyrodata;			// Gyro data from flow sensor
+	uint32_t dt;				// integration time of flow samples
+};
+
 struct outputSample {
 	Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
 	Vector3f    vel;	// NED velocity estimate in earth frame in m/s
@@ -107,43 +114,90 @@ struct airspeedSample {
 };
 
 struct flowSample {
-	Vector2f    flowRadXY;
-	Vector2f    flowRadXYcomp;
-	uint64_t    time_us;
+	uint8_t  quality; // quality indicator between 0 and 255
+	Vector2f flowRadXY; // measured delta angle of the image about the X and Y body axes (rad), RH rotaton is positive
+	Vector2f flowRadXYcomp;	// measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
+	Vector2f gyroXY; // measured delta angle of the inertial frame about the X and Y body axes obtained from rate gyro measurements (rad), RH rotation is positive
+	float    dt; // amount of integration time (sec)
+	uint64_t time_us; // timestamp in microseconds of the integration period mid-point
 };
 
+enum vdist_sensor_type_t {
+	VDIST_SENSOR_RANGE,
+	VDIST_SENSOR_BARO,
+	VDIST_SENSOR_GPS,
+	VDIST_SENSOR_NONE
+};
+
+// Bit locations for mag_declination_source
+#define MASK_USE_GEO_DECL   (1<<0)  // set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
+#define MASK_SAVE_GEO_DECL  (1<<1)  // set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
+#define MASK_FUSE_DECL      (1<<2)  // set to true if the declination is always fused as an observation to constrain drift when 3-axis fusion is performed
+
+// Bit locations for fusion_mode
+#define MASK_USE_GPS    (1<<0)  // set to true to use GPS data
+#define MASK_USE_OF     (1<<1)  // set to true to use optical flow data
+
+// Integer definitions for mag_fusion_type
+#define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic
+#define MAG_FUSE_TYPE_HEADING   1   // Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
+#define MAG_FUSE_TYPE_3D        2   // Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
+#define MAG_FUSE_TYPE_2D        3   // A 2D fusion that uses the horizontal projection of the magnetic fields measurement will alays be used. This is less accurate, but less affected by earth field distortions.
+
 struct parameters {
-	float mag_delay_ms;         // magnetometer measurement delay relative to the IMU
-	float baro_delay_ms;        // barometer height measurement delay relative to the IMU
-	float gps_delay_ms;         // GPS measurement delay relative to the IMU
-	float airspeed_delay_ms;    // airspeed measurement delay relative to the IMU
+	// measurement source control
+	int fusion_mode;
+	int vdist_sensor_type;
+
+	// measurement time delays
+	float mag_delay_ms;		// magnetometer measurement delay relative to the IMU (msec)
+	float baro_delay_ms;		// barometer height measurement delay relative to the IMU (msec)
+	float gps_delay_ms;		// GPS measurement delay relative to the IMU (msec)
+	float airspeed_delay_ms;	// airspeed measurement delay relative to the IMU (msec)
+	float flow_delay_ms;		// optical flow measurement delay relative to the IMU (msec) - this is to the middle of the optical flow integration interval
+	float range_delay_ms;		// range finder measurement delay relative to the IMU (msec)
 
 	// input noise
-	float gyro_noise;           // IMU angular rate noise used for covariance prediction
-	float accel_noise;          // IMU acceleration noise use for covariance prediction
+	float gyro_noise;		// IMU angular rate noise used for covariance prediction (rad/sec)
+	float accel_noise;		// IMU acceleration noise use for covariance prediction (m/sec/sec)
 
 	// process noise
-	float gyro_bias_p_noise;    // process noise for IMU delta angle bias prediction
-	float accel_bias_p_noise;   // process noise for IMU delta velocity bias prediction
-	float gyro_scale_p_noise;   // process noise for gyro scale factor prediction
-	float mag_p_noise;          // process noise for magnetic field prediction
-	float wind_vel_p_noise;     // process noise for wind velocity prediction
+	float gyro_bias_p_noise;	// process noise for IMU delta angle bias prediction (rad/sec)
+	float accel_bias_p_noise;	// process noise for IMU delta velocity bias prediction (m/sec/sec)
+	float gyro_scale_p_noise;	// process noise for gyro scale factor prediction (N/A)
+	float mag_p_noise;		// process noise for magnetic field prediction (Guass/sec)
+	float wind_vel_p_noise;		// process noise for wind velocity prediction (m/sec/sec)
+	float terrain_p_noise;		// process noise for terrain offset (m/sec)
 
-	float gps_vel_noise;        // observation noise for gps velocity fusion
-	float gps_pos_noise;        // observation noise for gps position fusion
-	float pos_noaid_noise;      // observation noise for non-aiding position fusion
-	float baro_noise;           // observation noise for barometric height fusion
-	float baro_innov_gate;      // barometric height innovation consistency gate size in standard deviations
-	float posNE_innov_gate;     // GPS horizontal position innovation consistency gate size in standard deviations
-	float vel_innov_gate;       // GPS velocity innovation consistency gate size in standard deviations
+	// position and velocity fusion
+	float gps_vel_noise;		// observation noise for gps velocity fusion (m/sec)
+	float gps_pos_noise;		// observation noise for gps position fusion (m)
+	float pos_noaid_noise;		// observation noise for non-aiding position fusion (m)
+	float baro_noise;		// observation noise for barometric height fusion (m)
+	float baro_innov_gate;		// barometric height innovation consistency gate size (STD)
+	float posNE_innov_gate;		// GPS horizontal position innovation consistency gate size (STD)
+	float vel_innov_gate;		// GPS velocity innovation consistency gate size (STD)
 
-	float mag_heading_noise;    // measurement noise used for simple heading fusion
-	float mag_noise;            // measurement noise used for 3-axis magnetoemeter fusion
-	float mag_declination_deg;  // magnetic declination in degrees
-	float heading_innov_gate;   // heading fusion innovation consistency gate size in standard deviations
-	float mag_innov_gate;       // magnetometer fusion innovation consistency gate size in standard deviations
-	int mag_declination_source; // bitmask used to control the handling of declination data
-	int mag_fusion_type;        // integer used to specify the type of magnetometer fusion used
+	// magnetometer fusion
+	float mag_heading_noise;	// measurement noise used for simple heading fusion (rad)
+	float mag_noise;		// measurement noise used for 3-axis magnetoemeter fusion (Gauss)
+	float mag_declination_deg;	// magnetic declination (degrees)
+	float heading_innov_gate;	// heading fusion innovation consistency gate size (STD)
+	float mag_innov_gate;		// magnetometer fusion innovation consistency gate size (STD)
+	int mag_declination_source;	// bitmask used to control the handling of declination data
+	int mag_fusion_type;		// integer used to specify the type of magnetometer fusion used
+
+	// range finder fusion
+	float range_noise;		// observation noise for range finder measurements (m)
+	float range_innov_gate;		// range finder fusion innovation consistency gate size (STD)
+	float rng_gnd_clearance;	// minimum valid value for range when on ground (m)
+
+	// optical flow fusion
+	float flow_noise;		// observation noise for optical flow LOS rate measurements (rad/sec)
+	float flow_noise_qual_min;	// observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
+	int flow_qual_min;		// minimum acceptable quality integer from  the flow sensor
+	float flow_innov_gate;		// optical flow fusion innovation consistency gate size (STD)
+	float flow_rate_max;		// maximum valid optical flow rate (rad/sec)
 
 	// these parameters control the strictness of GPS quality checks used to determine uf the GPS is
 	// good enough to set a local origin and commence aiding
@@ -159,10 +213,17 @@ struct parameters {
 	// Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
 	parameters()
 	{
+		// measurement source control
+		fusion_mode = MASK_USE_OF;
+		vdist_sensor_type = VDIST_SENSOR_BARO;
+
+		// measurement time delays
 		mag_delay_ms = 0.0f;
 		baro_delay_ms = 0.0f;
 		gps_delay_ms = 200.0f;
 		airspeed_delay_ms = 200.0f;
+		flow_delay_ms = 60.0f;
+		range_delay_ms = 200.0f;
 
 		// input noise
 		gyro_noise = 1.0e-3f;
@@ -174,7 +235,9 @@ struct parameters {
 		gyro_scale_p_noise = 3.0e-3f;
 		mag_p_noise = 2.5e-2f;
 		wind_vel_p_noise = 1.0e-1f;
+		terrain_p_noise = 0.5f;
 
+		// position and velocity fusion
 		gps_vel_noise = 5.0e-1f;
 		gps_pos_noise = 1.0f;
 		pos_noaid_noise = 10.0f;
@@ -183,15 +246,28 @@ struct parameters {
 		posNE_innov_gate = 3.0f;
 		vel_innov_gate = 3.0f;
 
-		mag_heading_noise = 5.0e-1f;
+		// magnetometer fusion
+		mag_heading_noise = 1.7e-1f;
 		mag_noise = 5.0e-2f;
 		mag_declination_deg = 0.0f;
 		heading_innov_gate = 3.0f;
 		mag_innov_gate = 3.0f;
-
-		mag_declination_source = 7;
+		mag_declination_source = 3;
 		mag_fusion_type = 0;
 
+		// range finder fusion
+		range_noise = 0.1f;
+		range_innov_gate = 5.0f;
+		rng_gnd_clearance = 0.1f;
+
+		// optical flow fusion
+		flow_noise = 0.15f;
+		flow_noise_qual_min = 0.5f;
+		flow_qual_min = 1;
+		flow_innov_gate = 3.0f;
+		flow_rate_max = 2.5f;
+
+		// GPS quality checks
 		gps_check_mask = 21;
 		req_hacc = 5.0f;
 		req_vacc = 8.0f;
@@ -202,17 +278,6 @@ struct parameters {
 		req_vdrift = 0.5f;
 	}
 };
-
-// Bit locations for mag_declination_source
-#define MASK_USE_GEO_DECL   (1<<0)  // set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
-#define MASK_SAVE_GEO_DECL  (1<<1)  // set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
-#define MASK_FUSE_DECL      (1<<2)  // set to true if the declination is always fused as an observation to constrain drift when 3-axis fusion is performed
-
-// Integer definitions for mag_fusion_type
-#define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic
-#define MAG_FUSE_TYPE_HEADING   1   // Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
-#define MAG_FUSE_TYPE_3D        2   // Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
-#define MAG_FUSE_TYPE_2D        3   // A 2D fusion that uses the horizontal projection of the magnetic fields measurement will alays be used. This is less accurate, but less affected by earth field distortions.
 
 struct stateSample {
 	Vector3f    ang_error;	// attitude axis angle error (error state formulation)
@@ -259,17 +324,20 @@ union gps_check_fail_status_u {
 // bitmask containing filter control status
 union filter_control_status_u {
 	struct {
-		uint8_t tilt_align  : 1; // 0 - true if the filter tilt alignment is complete
-		uint8_t yaw_align   : 1; // 1 - true if the filter yaw alignment is complete
-		uint8_t gps         : 1; // 2 - true if GPS measurements are being fused
-		uint8_t opt_flow    : 1; // 3 - true if optical flow measurements are being fused
-		uint8_t mag_hdg     : 1; // 4 - true if a simple magnetic yaw heading is being fused
-		uint8_t mag_2D      : 1; // 5 - true if the horizontal projection of magnetometer data is being fused
-		uint8_t mag_3D      : 1; // 6 - true if 3-axis magnetometer measurement are being fused
-		uint8_t mag_dec     : 1; // 7 - true if synthetic magnetic declination measurements are being fused
-		uint8_t in_air      : 1; // 8 - true when the vehicle is airborne
-		uint8_t armed       : 1; // 9 - true when the vehicle motors are armed
-		uint8_t wind        : 1; // 10 - true when wind velocity is being estimated
+		uint16_t tilt_align  : 1; // 0 - true if the filter tilt alignment is complete
+		uint16_t yaw_align   : 1; // 1 - true if the filter yaw alignment is complete
+		uint16_t gps         : 1; // 2 - true if GPS measurements are being fused
+		uint16_t opt_flow    : 1; // 3 - true if optical flow measurements are being fused
+		uint16_t mag_hdg     : 1; // 4 - true if a simple magnetic yaw heading is being fused
+		uint16_t mag_2D      : 1; // 5 - true if the horizontal projection of magnetometer data is being fused
+		uint16_t mag_3D      : 1; // 6 - true if 3-axis magnetometer measurement are being fused
+		uint16_t mag_dec     : 1; // 7 - true if synthetic magnetic declination measurements are being fused
+		uint16_t in_air      : 1; // 8 - true when the vehicle is airborne
+		uint16_t armed       : 1; // 9 - true when the vehicle motors are armed
+		uint16_t wind        : 1; // 10 - true when wind velocity is being estimated
+		uint16_t baro_hgt    : 1; // 11 - true when baro height is being fused as a primary height reference
+		uint16_t rng_hgt     : 1; // 12 - true when range finder height is being fused as a primary height reference
+		uint16_t gps_hgt     : 1; // 15 - true when range finder height is being fused as a primary height reference
 	} flags;
 	uint16_t value;
 };

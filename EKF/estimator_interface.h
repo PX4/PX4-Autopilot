@@ -81,6 +81,22 @@ public:
 	virtual void get_covariances(float *covariances) = 0;
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
+	virtual void get_vel_var(Vector3f &vel_var) = 0;
+	virtual void get_pos_var(Vector3f &pos_var) = 0;
+
+	// gets the innovation variance of the flow measurement
+	virtual void get_flow_innov_var(float flow_innov_var[2]) = 0;
+
+	// gets the innovation of the flow measurement
+	virtual void get_flow_innov(float flow_innov[2]) = 0;
+
+	// gets the innovation variance of the HAGL measurement
+	virtual void get_hagl_innov_var(float *flow_innov_var) = 0;
+
+	// gets the innovation of the HAGL measurement
+	virtual void get_hagl_innov(float *flow_innov_var) = 0;
+
+	// get the ekf WGS-84 origin positoin and height and the system time it was last set
 	virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
@@ -99,7 +115,7 @@ public:
 
 	virtual bool collect_range(uint64_t time_usec, float *data) { return true; }
 
-	virtual bool collect_opticalflow(uint64_t time_usec, float *data) { return true; }
+	virtual bool collect_opticalflow(uint64_t time_usec, flow_message *flow) { return true; }
 
 	// set delta angle imu data
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel);
@@ -121,7 +137,7 @@ public:
 	void setRangeData(uint64_t time_usec, float *data);
 
 	// set optical flow data
-	void setOpticalFlowData(uint64_t time_usec, float *data);
+	void setOpticalFlowData(uint64_t time_usec, flow_message *flow);
 
 	// return a address to the parameters struct
 	// in order to give access to the application
@@ -133,7 +149,15 @@ public:
 	// set vehicle landed status data
 	void set_in_air_status(bool in_air) {_in_air = in_air;}
 
-	bool position_is_valid();
+	// return true if the global position estimate is valid
+	virtual bool global_position_is_valid() = 0;
+
+	// return true if the estimate is valid
+	// return the estimated terrain vertical position relative to the NED origin
+	virtual bool get_terrain_vert_pos(float *ret) = 0;
+
+	// return true if the local position estimate is valid
+	bool local_position_is_valid();
 
 
 	void copy_quaternion(float *quat)
@@ -196,13 +220,13 @@ protected:
 	bool _vehicle_armed;    // vehicle arm status used to turn off functionality used on the ground
 	bool _in_air;           // we assume vehicle is in the air, set by the given landing detector
 
-	bool _NED_origin_initialised;
-	bool _gps_speed_valid;
-	float _gps_speed_accuracy;                  // GPS receiver reported speed accuracy (m/s)
-	struct map_projection_reference_s _pos_ref; // Contains WGS-84 position latitude and longitude (radians)
-	float _gps_hpos_accuracy; // GPS receiver reported 1-sigma horizontal accuracy (m)
-	float _gps_origin_eph; // horizontal position uncertainty of the GPS origin
-	float _gps_origin_epv; // vertical position uncertainty of the GPS origin
+	bool _NED_origin_initialised = false;
+	bool _gps_speed_valid = false;
+	float _gps_speed_accuracy = 0.0f; // GPS receiver reported 1-sigma speed accuracy (m/s)
+	float _gps_hpos_accuracy = 0.0f; // GPS receiver reported 1-sigma horizontal accuracy (m)
+	float _gps_origin_eph = 0.0f; // horizontal position uncertainty of the GPS origin
+	float _gps_origin_epv = 0.0f; // vertical position uncertainty of the GPS origin
+	struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
 
 	bool _mag_healthy;              // computed by mag innovation test
 	float _yaw_test_ratio;          // yaw innovation consistency check ratio
@@ -226,6 +250,7 @@ protected:
 	uint64_t _time_last_baro;	// timestamp of last barometer measurement in microseconds
 	uint64_t _time_last_range;	// timestamp of last range measurement in microseconds
 	uint64_t _time_last_airspeed;	// timestamp of last airspeed measurement in microseconds
+	uint64_t _time_last_optflow;
 
 	fault_status_t _fault_status;
 
