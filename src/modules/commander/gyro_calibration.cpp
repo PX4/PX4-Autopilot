@@ -73,7 +73,7 @@ typedef struct  {
 	int			mavlink_fd;
 	int32_t			device_id[max_gyros];
 	int			gyro_sensor_sub[max_gyros];
-	struct gyro_scale	gyro_scale[max_gyros];
+	struct gyro_calibration_s	gyro_scale[max_gyros];
 	struct gyro_report	gyro_report_0;
 } gyro_worker_data_t;
 
@@ -159,14 +159,13 @@ int do_gyro_calibration(int mavlink_fd)
 
 	worker_data.mavlink_fd = mavlink_fd;
 
-	struct gyro_scale gyro_scale_zero = {
-		0.0f,	// x offset
-		1.0f,	// x scale
-		0.0f,	// y offset
-		1.0f,	// y scale
-		0.0f,	// z offset
-		1.0f,	// z scale
-	};
+	struct gyro_calibration_s gyro_scale_zero;
+	gyro_scale_zero.x_offset = 0.0f;
+	gyro_scale_zero.x_scale = 1.0f;
+	gyro_scale_zero.y_offset = 0.0f;
+	gyro_scale_zero.y_scale = 1.0f;
+	gyro_scale_zero.z_offset = 0.0f;
+	gyro_scale_zero.z_scale = 1.0f;
 
 	int device_prio_max = 0;
 	int32_t device_id_primary = 0;
@@ -192,7 +191,7 @@ int do_gyro_calibration(int mavlink_fd)
 #endif
 
 		// Reset all offsets to 0 and scales to 1
-		(void)memcpy(&worker_data.gyro_scale[s], &gyro_scale_zero, sizeof(gyro_scale));
+		(void)memcpy(&worker_data.gyro_scale[s], &gyro_scale_zero, sizeof(gyro_scale_zero));
 #ifndef __PX4_QURT
 		sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
 		int fd = px4_open(str, 0);

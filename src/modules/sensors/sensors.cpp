@@ -464,7 +464,7 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool	apply_gyro_calibration(DevHandle &h, const struct gyro_scale *gscale, const int device_id);
+	bool	apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id);
 
 	/**
 	 * Apply a accel calibration.
@@ -474,7 +474,7 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool	apply_accel_calibration(DevHandle &h, const struct accel_scale *ascale, const int device_id);
+	bool	apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id);
 
 	/**
 	 * Apply a mag calibration.
@@ -484,7 +484,7 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool	apply_mag_calibration(DevHandle &h, const struct mag_scale *mscale, const int device_id);
+	bool	apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id);
 
 	/**
 	 * Check for changes in rc_parameter_map
@@ -1255,7 +1255,7 @@ Sensors::parameter_update_poll(bool forced)
 
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
-					struct gyro_scale gscale = {};
+					struct gyro_calibration_s gscale = {};
 					(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
 					failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
 					(void)sprintf(str, "CAL_GYRO%u_YOFF", i);
@@ -1323,7 +1323,7 @@ Sensors::parameter_update_poll(bool forced)
 
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
-					struct accel_scale ascale = {};
+					struct accel_calibration_s ascale = {};
 					(void)sprintf(str, "CAL_ACC%u_XOFF", i);
 					failed = failed || (OK != param_get(param_find(str), &ascale.x_offset));
 					(void)sprintf(str, "CAL_ACC%u_YOFF", i);
@@ -1400,7 +1400,7 @@ Sensors::parameter_update_poll(bool forced)
 
 				/* if the calibration is for this device, apply it */
 				if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
-					struct mag_scale mscale = {};
+					struct mag_calibration_s mscale = {};
 					(void)sprintf(str, "CAL_MAG%u_XOFF", i);
 					failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
 					(void)sprintf(str, "CAL_MAG%u_YOFF", i);
@@ -1515,12 +1515,12 @@ Sensors::parameter_update_poll(bool forced)
 }
 
 bool
-Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_scale *gscale, const int device_id)
+Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
 {
 #ifndef __PX4_QURT
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	const int res = h.ioctl(GYROIOCSSCALE, (long unsigned int)gscale);
+	const int res = h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
 
 	if (res) {
 		return false;
@@ -1535,10 +1535,10 @@ Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_scale *gscale, c
 	static orb_advert_t gyro_calibration_pub = nullptr;
 
 	if (gyro_calibration_pub != nullptr) {
-		orb_publish(ORB_ID(gyro_calibration), gyro_calibration_pub, gscale);
+		orb_publish(ORB_ID(gyro_calibration), gyro_calibration_pub, gcal);
 
 	} else {
-		gyro_calibration_pub = orb_advertise(ORB_ID(gyro_calibration), gscale);
+		gyro_calibration_pub = orb_advertise(ORB_ID(gyro_calibration), gcal);
 	}
 
 	return true;
@@ -1546,12 +1546,12 @@ Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_scale *gscale, c
 }
 
 bool
-Sensors::apply_accel_calibration(DevHandle &h, const struct accel_scale *ascale, const int device_id)
+Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
 {
 #ifndef __PX4_QURT
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	const int res = h.ioctl(ACCELIOCSSCALE, (long unsigned int)ascale);
+	const int res = h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
 
 	if (res) {
 		return false;
@@ -1566,10 +1566,10 @@ Sensors::apply_accel_calibration(DevHandle &h, const struct accel_scale *ascale,
 	static orb_advert_t accel_calibration_pub = nullptr;
 
 	if (accel_calibration_pub != nullptr) {
-		orb_publish(ORB_ID(accel_calibration), accel_calibration_pub, ascale);
+		orb_publish(ORB_ID(accel_calibration), accel_calibration_pub, acal);
 
 	} else {
-		accel_calibration_pub = orb_advertise(ORB_ID(accel_calibration), ascale);
+		accel_calibration_pub = orb_advertise(ORB_ID(accel_calibration), acal);
 	}
 
 	return true;
@@ -1577,12 +1577,12 @@ Sensors::apply_accel_calibration(DevHandle &h, const struct accel_scale *ascale,
 }
 
 bool
-Sensors::apply_mag_calibration(DevHandle &h, const struct mag_scale *mscale, const int device_id)
+Sensors::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
 {
 #ifndef __PX4_QURT
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	const int res = h.ioctl(MAGIOCSSCALE, (long unsigned int)mscale);
+	const int res = h.ioctl(MAGIOCSSCALE, (long unsigned int)mcal);
 
 	if (res) {
 		return false;
@@ -1597,10 +1597,10 @@ Sensors::apply_mag_calibration(DevHandle &h, const struct mag_scale *mscale, con
 	static orb_advert_t mag_calibration_pub = nullptr;
 
 	if (mag_calibration_pub != nullptr) {
-		orb_publish(ORB_ID(mag_calibration), mag_calibration_pub, mscale);
+		orb_publish(ORB_ID(mag_calibration), mag_calibration_pub, mcal);
 
 	} else {
-		mag_calibration_pub = orb_advertise(ORB_ID(mag_calibration), mscale);
+		mag_calibration_pub = orb_advertise(ORB_ID(mag_calibration), mcal);
 	}
 
 	return true;

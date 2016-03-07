@@ -180,7 +180,7 @@ do_gyro(int argc, char *argv[])
 
 			if (ret) {
 				warnx("gyro self test FAILED! Check calibration:");
-				struct gyro_scale scale;
+				struct gyro_calibration_s scale;
 				ret = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&scale);
 
 				if (ret) {
@@ -262,7 +262,7 @@ do_mag(int argc, char *argv[])
 
 			if (ret) {
 				warnx("mag self test FAILED! Check calibration:");
-				struct mag_scale scale;
+				struct mag_calibration_s scale;
 				ret = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&scale);
 
 				if (ret) {
@@ -344,7 +344,7 @@ do_accel(int argc, char *argv[])
 
 			if (ret) {
 				warnx("accel self test FAILED! Check calibration:");
-				struct accel_scale scale;
+				struct accel_calibration_s scale;
 				ret = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&scale);
 
 				if (ret) {
