@@ -277,8 +277,8 @@ test(bool external_bus)
 	warnx("mag x: \t%d\traw", (int)m_report.x_raw);
 	warnx("mag y: \t%d\traw", (int)m_report.y_raw);
 	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
-//	warnx("mag range: %8.4f rad/s (%d deg/s)", (double)m_report.range_rad_s,
-//		(int)((m_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
+	warnx("mag range: %8.4f Ga", (double)m_report.range_ga);
+	warnx("mag temp:  %8.4f\tdeg celsius", (double)m_report.temperature);
 
 	/* reset to default polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
