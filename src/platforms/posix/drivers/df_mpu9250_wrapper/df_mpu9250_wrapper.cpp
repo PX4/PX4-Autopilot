@@ -57,9 +57,8 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 
-#include <board_config.h>
-//#include <mathlib/math/filter/LowPassFilter2p.hpp>
-//#include <lib/conversion/rotation.h>
+#include <uORB/topics/gyro_calibration.h>
+#include <uORB/topics/accel_calibration.h>
 
 #include <mpu9250/MPU9250.hpp>
 #include <DevMgr.hpp>
@@ -94,16 +93,28 @@ public:
 private:
 	int _publish(struct imu_sensor_data &data);
 
+	void _update_accel_calibration();
+	void _update_gyro_calibration();
+
 	//enum Rotation		_rotation;
 
-	orb_advert_t		_accel_topic;
-	orb_advert_t		_gyro_topic;
+	orb_advert_t		    _accel_topic;
+	orb_advert_t		    _gyro_topic;
 
-	int			_accel_orb_class_instance;
-	int			_gyro_orb_class_instance;
+	int			    _accel_calibration_sub;
+	int			    _gyro_calibration_sub;
 
-	perf_counter_t		_accel_sample_perf;
-	perf_counter_t		_gyro_sample_perf;
+	struct accel_calibration_s  _accel_calibration;
+	struct gyro_calibration_s   _gyro_calibration;
+
+	bool			    _accel_calibration_set;
+	bool			    _gyro_calibration_set;
+
+	int			    _accel_orb_class_instance;
+	int			    _gyro_orb_class_instance;
+
+	perf_counter_t		    _accel_sample_perf;
+	perf_counter_t		    _gyro_sample_perf;
 
 };
 
@@ -111,6 +122,12 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	MPU9250(IMU_DEVICE_PATH),
 	_accel_topic(nullptr),
 	_gyro_topic(nullptr),
+	_accel_calibration_sub(-1),
+	_gyro_calibration_sub(-1),
+	_accel_calibration{},
+	_gyro_calibration{},
+	_accel_calibration_set(false),
+	_gyro_calibration_set(false),
 	_accel_orb_class_instance(-1),
 	_gyro_orb_class_instance(-1),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "df_accel_read")),
@@ -147,6 +164,14 @@ int DfMpu9250Wrapper::start()
 		return -1;
 	}
 
+	if (_accel_calibration_sub < 0) {
+		_accel_calibration_sub = orb_subscribe(ORB_ID(accel_calibration));
+	}
+
+	if (_gyro_calibration_sub < 0) {
+		_gyro_calibration_sub = orb_subscribe(ORB_ID(gyro_calibration));
+	}
+
 	/* Init device and start sensor. */
 	int ret = init();
 
@@ -178,66 +203,114 @@ int DfMpu9250Wrapper::stop()
 	return 0;
 }
 
+void DfMpu9250Wrapper::_update_gyro_calibration()
+{
+	bool updated;
+	orb_check(_gyro_calibration_sub, &updated);
+
+	if (updated) {
+		gyro_calibration_s new_calibration;
+		orb_copy(ORB_ID(gyro_calibration), _gyro_calibration_sub, &new_calibration);
+
+		/* Only accept calibration for this device. */
+		if (m_id.dev_id == new_calibration.device_id) {
+			_gyro_calibration = new_calibration;
+			_gyro_calibration_set = true;
+		}
+	}
+}
+
+void DfMpu9250Wrapper::_update_accel_calibration()
+{
+	bool updated;
+	orb_check(_accel_calibration_sub, &updated);
+
+	if (updated) {
+		accel_calibration_s new_calibration;
+		orb_copy(ORB_ID(accel_calibration), _accel_calibration_sub, &new_calibration);
+
+		/* Only accept calibration for this device. */
+		if (m_id.dev_id == new_calibration.device_id) {
+			_accel_calibration = new_calibration;
+			_accel_calibration_set = true;
+		}
+	}
+}
+
 int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 {
-	/* Publish accel first. */
-	perf_begin(_accel_sample_perf);
+	/* Check if calibration values are still up-to-date */
+	_update_accel_calibration();
+	_update_gyro_calibration();
 
-	accel_report accel_report = {};
-	accel_report.timestamp = data.last_read_time_usec;
+	/* Don't publish if we have not received calibration data. */
+	if (_accel_calibration_set) {
 
-	// TODO: remove these (or get the values)
-	accel_report.x_raw = NAN;
-	accel_report.y_raw = NAN;
-	accel_report.z_raw = NAN;
-	accel_report.x = data.accel_m_s2_x;
-	accel_report.y = data.accel_m_s2_y;
-	accel_report.z = data.accel_m_s2_z;
+		/* Publish accel first. */
+		perf_begin(_accel_sample_perf);
 
-	// TODO: get these right
-	accel_report.scaling = -1.0f;
-	accel_report.range_m_s2 = -1.0f;
+		accel_report accel_report = {};
+		accel_report.timestamp = data.last_read_time_usec;
 
-	// TODO: when is this ever blocked?
-	if (!(m_pub_blocked)) {
+		// TODO: remove these (or get the values)
+		accel_report.x_raw = NAN;
+		accel_report.y_raw = NAN;
+		accel_report.z_raw = NAN;
+		accel_report.x = (data.accel_m_s2_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
+		accel_report.y = (data.accel_m_s2_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
+		accel_report.z = (data.accel_m_s2_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
 
-		if (_accel_topic != nullptr) {
-			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		// TODO: get these right
+		accel_report.scaling = -1.0f;
+		accel_report.range_m_s2 = -1.0f;
+
+		// TODO: when is this ever blocked?
+		if (!(m_pub_blocked)) {
+
+			if (_accel_topic != nullptr) {
+				orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+			}
 		}
+
+		perf_end(_accel_sample_perf);
 	}
 
-	perf_end(_accel_sample_perf);
+	/* Don't publish if we have not received calibration data. */
+	if (_gyro_calibration_set) {
 
-	/* Then publish gyro. */
-	perf_begin(_gyro_sample_perf);
+		/* Then publish gyro. */
+		perf_begin(_gyro_sample_perf);
 
-	gyro_report gyro_report = {};
-	gyro_report.timestamp = data.last_read_time_usec;
+		gyro_report gyro_report = {};
+		gyro_report.timestamp = data.last_read_time_usec;
 
-	// TODO: remove these (or get the values)
-	gyro_report.x_raw = NAN;
-	gyro_report.y_raw = NAN;
-	gyro_report.z_raw = NAN;
-	gyro_report.x = data.gyro_rad_s_x;
-	gyro_report.y = data.gyro_rad_s_y;
-	gyro_report.z = data.gyro_rad_s_z;
+		// TODO: remove these (or get the values)
+		gyro_report.x_raw = NAN;
+		gyro_report.y_raw = NAN;
+		gyro_report.z_raw = NAN;
+		gyro_report.x = data.gyro_rad_s_x;
+		gyro_report.y = data.gyro_rad_s_y;
+		gyro_report.z = data.gyro_rad_s_z;
 
-	// TODO: get these right
-	gyro_report.scaling = -1.0f;
-	gyro_report.range_rad_s = -1.0f;
+		// TODO: get these right
+		gyro_report.scaling = -1.0f;
+		gyro_report.range_rad_s = -1.0f;
 
-	// TODO: when is this ever blocked?
-	if (!(m_pub_blocked)) {
+		// TODO: when is this ever blocked?
+		if (!(m_pub_blocked)) {
 
-		if (_gyro_topic != nullptr) {
-			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
+			if (_gyro_topic != nullptr) {
+				orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
+			}
 		}
+
+		perf_end(_gyro_sample_perf);
 	}
 
-	perf_end(_gyro_sample_perf);
-
-	/* Notify anyone waiting for data. */
-	DevMgr::updateNotify(*this);
+	if (_accel_calibration_set || _gyro_calibration_set) {
+		/* Notify anyone waiting for data. */
+		DevMgr::updateNotify(*this);
+	}
 
 	return 0;
 };

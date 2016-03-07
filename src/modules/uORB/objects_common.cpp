@@ -282,3 +282,12 @@ ORB_DEFINE(ekf2_replay, struct ekf2_replay_s);
 
 #include "topics/qshell_req.h"
 ORB_DEFINE(qshell_req, struct qshell_req_s);
+
+#include "topics/gyro_calibration.h"
+ORB_DEFINE(gyro_calibration, struct gyro_calibration_s);
+
+#include "topics/accel_calibration.h"
+ORB_DEFINE(accel_calibration, struct accel_calibration_s);
+
+#include "topics/mag_calibration.h"
+ORB_DEFINE(mag_calibration, struct mag_calibration_s);
