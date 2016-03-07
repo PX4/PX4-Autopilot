@@ -122,12 +122,10 @@ struct flowSample {
 	uint64_t time_us; // timestamp in microseconds of the integration period mid-point
 };
 
-enum vdist_sensor_type_t {
-	VDIST_SENSOR_RANGE,
-	VDIST_SENSOR_BARO,
-	VDIST_SENSOR_GPS,
-	VDIST_SENSOR_NONE
-};
+// Integer definitions for vdist_sensor_type
+#define VDIST_SENSOR_BARO  0	// Use baro height
+#define VDIST_SENSOR_GPS   1	// Use GPS height
+#define VDIST_SENSOR_RANGE 2	// Use range finder height
 
 // Bit locations for mag_declination_source
 #define MASK_USE_GEO_DECL   (1<<0)  // set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
@@ -146,8 +144,8 @@ enum vdist_sensor_type_t {
 
 struct parameters {
 	// measurement source control
-	int fusion_mode;
-	int vdist_sensor_type;
+	int fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
+	int vdist_sensor_type;		// selects the primary source for height data
 
 	// measurement time delays
 	float mag_delay_ms;		// magnetometer measurement delay relative to the IMU (msec)
