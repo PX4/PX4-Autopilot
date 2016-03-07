@@ -327,7 +327,7 @@ PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 3.0f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
 
 /**
- * Integer bitmask controlling handling of magnetic declination. Set bits to in the following positions to enable functions.
+ * Integer bitmask controlling handling of magnetic declination. Set bits in the following positions to enable functions.
  * 0 : Set to true to use the declination from the geo_lookup library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value.
  * 1 : Set to true to save the EKF2_MAG_DECL parameter to the value returned by the EKF when the vehicle disarms.
  * 2 : Set to true to always use the declination as an observaton when 3-axis magnetometer fusion is being used.
@@ -388,3 +388,99 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
  * @max 1
  */
 PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
+
+/**
+ * Integer bitmask controlling which external aiding sources will be used. Set bits in the following positions to enable:
+ * 0 : Set to true to use GPS data if available
+ * 1 : Set to true to use optical flow data if available
+ *
+ * @group EKF2
+ * @min 0
+ * @max 3
+ */
+PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
+
+/**
+ * Determines the primary source of height data used by the EKF.
+ * 0 : Barometric pressure
+ * 1 : GPS
+ * 2 : Range to ground
+ *
+ * @group EKF2
+ * @min 0
+ * @max 2
+ */
+PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
+
+/**
+ * Measurement noise for range finder fusion
+ *
+ * @group EKF2
+ * @min 0.01
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_NOISE, 0.1f);
+
+/**
+ * Gate size for range finder fusion
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_GATE, 5.0f);
+
+/**
+ * Minimum valid range for the range finder
+ *
+ * @group EKF2
+ * @min 0.01
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
+
+/**
+ * Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
+ *
+ * @group EKF2
+ * @min 0.05
+ * @unit rad/sec
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
+
+/**
+ * Measurement noise for the optical flow sensor when it's reported quality metric is at the minimum set by EKF2_OF_QMIN
+ * The following condition must be met: EKF2_OF_N_MAXN >= EKF2_OF_N_MIN
+ *
+ * @group EKF2
+ * @min 0.05
+ * @unit rad/sec
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_N_MAX, 0.5f);
+
+/**
+ * Optical Flow data will only be used if the sensor reports a quality metric >= EKF2_OF_QMIN.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
+
+/**
+ * Gate size for optical flow fusion
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_GATE, 3.0f);
+
+/**
+ * Optical Flow data will not fused if the magnitude of the flow rate > EKF2_OF_RMAX
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit rad/sec
+ */
+PARAM_DEFINE_FLOAT(EKF2_OF_RMAX, 2.5f);
