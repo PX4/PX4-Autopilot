@@ -932,8 +932,8 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 
 void MulticopterPositionControl::control_auto(float dt)
 {
-	/* reset position setpoint on AUTO mode activation or when reentering MC mode */
-	if (!_mode_auto || _vehicle_status.in_transition_mode || !_vehicle_status.is_rotary_wing) {
+	/* reset position setpoint on AUTO mode activation or if we are not in MC mode */
+	if (!_mode_auto || !_vehicle_status.is_rotary_wing) {
 		if (!_mode_auto) {
 			_mode_auto = true;
 		}
