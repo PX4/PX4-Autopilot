@@ -186,8 +186,7 @@ private:
 	control::BlockParamFloat *_mag_declination_deg;	// magnetic declination in degrees
 	control::BlockParamFloat *_heading_innov_gate;	// innovation gate for heading innovation test
 	control::BlockParamFloat *_mag_innov_gate;	// innovation gate for magnetometer innovation test
-	control::BlockParamInt
-	*_mag_decl_source;       // bitmasked integer used to control the handling of magnetic declination
+	control::BlockParamInt *_mag_decl_source;       // bitmasked integer used to control the handling of magnetic declination
 	control::BlockParamInt *_mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
 
 	control::BlockParamInt *_gps_check_mask;        // bitmasked integer used to activate the different GPS quality checks
@@ -199,6 +198,22 @@ private:
 	control::BlockParamFloat *_requiredHdrift;      // maximum acceptable horizontal drift speed (m/s)
 	control::BlockParamFloat *_requiredVdrift;      // maximum acceptable vertical drift speed (m/s)
 	control::BlockParamInt *_param_record_replay_msg; // indicates if we want to record ekf2 replay messages
+
+	// measurement source control
+	control::BlockParamInt *_fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
+	control::BlockParamInt *_vdist_sensor_type;	// selects the primary source for height data
+
+	// range finder fusion
+	control::BlockParamFloat *_range_noise;		// observation noise for range finder measurements (m)
+	control::BlockParamFloat *_range_innov_gate;	// range finder fusion innovation consistency gate size (STD)
+	control::BlockParamFloat *_rng_gnd_clearance;	// minimum valid value for range when on ground (m)
+
+	// optical flow fusion
+	control::BlockParamFloat *_flow_noise;		// best quality observation noise for optical flow LOS rate measurements (rad/sec)
+	control::BlockParamFloat *_flow_noise_qual_min;	// worst quality observation noise for optical flow LOS rate measurements (rad/sec)
+	control::BlockParamInt *_flow_qual_min;		// minimum acceptable quality integer from  the flow sensor
+	control::BlockParamFloat *_flow_innov_gate;	// optical flow fusion innovation consistency gate size (STD)
+	control::BlockParamFloat *_flow_rate_max;	// maximum valid optical flow rate (rad/sec)
 
 	int update_subscriptions();
 
@@ -253,7 +268,17 @@ Ekf2::Ekf2():
 	_requiredGDoP(new control::BlockParamFloat(this, "EKF2_REQ_GDOP", false, &_params->req_gdop)),
 	_requiredHdrift(new control::BlockParamFloat(this, "EKF2_REQ_HDRIFT", false, &_params->req_hdrift)),
 	_requiredVdrift(new control::BlockParamFloat(this, "EKF2_REQ_VDRIFT", false, &_params->req_vdrift)),
-	_param_record_replay_msg(new control::BlockParamInt(this, "EKF2_REC_RPL", false, &_publish_replay_mode))
+	_param_record_replay_msg(new control::BlockParamInt(this, "EKF2_REC_RPL", false, &_publish_replay_mode)),
+	_fusion_mode(new control::BlockParamInt(this, "EKF2_AID_MASK", false, &_params->fusion_mode)),
+	_vdist_sensor_type(new control::BlockParamInt(this, "EKF2_HGT_MODE", false, &_params->vdist_sensor_type)),
+	_range_noise(new control::BlockParamFloat(this, "EKF2_RNG_NOISE", false, &_params->range_noise)),
+	_range_innov_gate(new control::BlockParamFloat(this, "EKF2_RNG_GATE", false, &_params->range_innov_gate)),
+	_rng_gnd_clearance(new control::BlockParamFloat(this, "EKF2_MIN_RNG", false, &_params->rng_gnd_clearance)),
+	_flow_noise(new control::BlockParamFloat(this, "EKF2_OF_N_MIN", false, &_params->flow_noise)),
+	_flow_noise_qual_min(new control::BlockParamFloat(this, "EKF2_OF_N_MAX", false, &_params->flow_noise_qual_min)),
+	_flow_qual_min(new control::BlockParamInt(this, "EKF2_OF_QMIN", false, &_params->flow_qual_min)),
+	_flow_innov_gate(new control::BlockParamFloat(this, "EKF2_OF_GATE", false, &_params->flow_innov_gate)),
+	_flow_rate_max(new control::BlockParamFloat(this, "EKF2_OF_RMAX", false, &_params->flow_rate_max))
 {
 
 }
