@@ -114,7 +114,6 @@ private:
 	bool check_duplicate(uint8_t* accel_data);
 	// keep last accel reading for duplicate detection
 	uint8_t			_last_accel_data[6];
-//	uint16_t		_last_accel[3];
 	bool			_got_duplicate;
 
 	/**
