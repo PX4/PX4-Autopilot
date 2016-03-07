@@ -78,11 +78,9 @@ private:
 	int _mag_orb_class_instance;
 	int _mag_class_instance;
 	bool _mag_reading_data;
-	unsigned _mag_call_interval;
 	ringbuffer::RingBuffer *_mag_reports;
 	struct mag_scale _mag_scale;
 	float _mag_range_scale;
-	unsigned _mag_sample_rate;
 	perf_counter_t _mag_reads;
 	float _mag_asa_x;
 	float _mag_asa_y;

@@ -182,10 +182,6 @@
 #define MPU9250_GYRO_MAX_OUTPUT_RATE			MPU9250_ACCEL_MAX_OUTPUT_RATE
 #define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
 
-#define MPU9250_MAG_DEFAULT_RATE	1000
-#define MPU9250_MAG_MAX_OUTPUT_RATE			MPU9250_GYRO_MAX_OUTPUT_RATE
-#define MPU9250_MAG_DEFAULT_DRIVER_FILTER_FREQ 30
-
 #define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	41
 
 #define MPU9250_ONE_G					9.80665f
@@ -259,7 +255,6 @@ MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, const c
 	_rotation(rotation),
 	_checked_next(0),
 	_last_temperature(0),
-//	_last_accel{},
 	_last_accel_data{},
 	_got_duplicate(false)
 {
@@ -391,7 +386,7 @@ MPU9250::init()
 		return ret;
 	}
 
-	/* do CDev init for the gyro device node, keep it optional */
+	/* do CDev init for the mag device node, keep it optional */
 	ret = _mag->init();
 
 	/* if probe/setup failed, bail now */
@@ -736,19 +731,20 @@ MPU9250::gyro_self_test()
 void
 MPU9250::test_error()
 {
-    // deliberately trigger an error. This was noticed during
-    // development as a handy way to test the reset logic
-    uint8_t data[16];
-    memset(data, 0, sizeof(data));
-    transfer(data, data, sizeof(data));
-    ::printf("error triggered\n");
-    print_registers();
+	// deliberately trigger an error. This was noticed during
+	// development as a handy way to test the reset logic
+	uint8_t data[16];
+	memset(data, 0, sizeof(data));
+	transfer(data, data, sizeof(data));
+	::printf("error triggered\n");
+	print_registers();
 }
 
 ssize_t
 MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(gyro_report);
+
 	/* buffer must be large enough */
 	if (count < 1) {
 		return -ENOSPC;
@@ -775,6 +771,7 @@ MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 		if (!_gyro_reports->get(grp)) {
 			break;
 		}
+
 		transferred++;
 		grp++;
 	}
@@ -938,12 +935,14 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return accel_self_test();
 
 #ifdef ACCELIOCSHWLOWPASS
+
 	case ACCELIOCSHWLOWPASS:
 		_set_dlpf_filter(arg);
 		return OK;
 #endif
 
 #ifdef ACCELIOCGHWLOWPASS
+
 	case ACCELIOCGHWLOWPASS:
 		return _dlpf_freq;
 #endif
@@ -1027,19 +1026,21 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return gyro_self_test();
 
 #ifdef GYROIOCSHWLOWPASS
+
 	case GYROIOCSHWLOWPASS:
 		_set_dlpf_filter(arg);
 		return OK;
 #endif
 
 #ifdef GYROIOCGHWLOWPASS
+
 	case GYROIOCGHWLOWPASS:
 		return _dlpf_freq;
 #endif
 
 	default:
-	/* give it to the superclass */
-	return SPI::ioctl(filp, cmd, arg);
+		/* give it to the superclass */
+		return SPI::ioctl(filp, cmd, arg);
 	}
 }
 
@@ -1312,8 +1313,6 @@ MPU9250::measure()
 	check_registers();
 
 	if (check_duplicate(&mpu_report.accel_x[0])) {
-extern uint8_t cnt0;
-cnt0++;
 		return;
 	}
 
@@ -1361,7 +1360,7 @@ cnt0++;
 	/*
 	 * Report buffers.
 	 */
-	accel_report	arb;
+	accel_report		arb;
 	gyro_report		grb;
 
 	/*
@@ -1419,7 +1418,7 @@ cnt0++;
 	arb.y_integral = aval_integrated(1);
 	arb.z_integral = aval_integrated(2);
 
-	arb.scaling    = _accel_range_scale;
+	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
 	_last_temperature = (report.temp) / 361.0f + 35.0f;

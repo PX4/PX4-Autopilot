@@ -34,7 +34,7 @@
 /**
  * @file mag.cpp
  *
- * Driver for the ak8963 magnetometer within the Invensense mpu9250.
+ * Driver for the ak8963 magnetometer within the Invensense mpu9250
  *
  * @author Robert Dickenson
  *
@@ -71,6 +71,10 @@
 /* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
 
 #define MPU9250_MAG_RANGE_GA        1.5e-3f;
+
+/* we are using the continuous fixed sampling rate of 100Hz */
+
+#define MPU9250_AK8963_SAMPLE_RATE 100
 
 
 /* mpu9250 master i2c bus specific register address and bit definitions */
@@ -126,11 +130,9 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, const char *path) :
 	_mag_orb_class_instance(-1),
 	_mag_class_instance(-1),
 	_mag_reading_data(false),
-	_mag_call_interval(0),
 	_mag_reports(nullptr),
 	_mag_scale{},
 	_mag_range_scale(),
-	_mag_sample_rate(100),
 	_mag_reads(perf_alloc(PC_COUNT, "mpu9250_mag_read")),
 	_mag_asa_x(1.0),
 	_mag_asa_y(1.0),
@@ -180,8 +182,6 @@ MPU9250_mag::init()
 
 	ak8963_setup();
 
-//	measure(0);
-
 	/* advertise sensor topic, measure manually to initialize valid report */
 	struct mag_report mrp;
 	_mag_reports->get(&mrp);
@@ -198,13 +198,6 @@ out:
 	return ret;
 }
 
-uint8_t cnt0 = 0;
-uint8_t cnt1 = 0;
-uint8_t cnt2 = 0;
-uint8_t cnt3 = 0;
-uint8_t cnt4 = 0;
-
-
 void
 MPU9250_mag::measure(struct ak8963_regs data)
 {
@@ -212,38 +205,33 @@ MPU9250_mag::measure(struct ak8963_regs data)
 
 	if (data.st1 & 0x01) {
 		if (false == _mag_reading_data) {
-			cnt1++;
 			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLVO_EN | sizeof(struct ak8963_regs));
 			_mag_reading_data = true;
 			return;
 		} else {
-			cnt2++;
 			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLVO_EN | 1);
 			_mag_reading_data = false;
 		}
 	} else {
 		if (true == _mag_reading_data) {
-			cnt4++;
 			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLVO_EN | 1);
 			_mag_reading_data = false;
-		} else {
-			cnt3++;
 		}
 		return;
 	}
 
-	mag_report		mrb;
+	mag_report	mrb;
 	mrb.timestamp = hrt_absolute_time();
 
 	/*
 	 * Align axes - note the accel & gryo are also re-aligned so this
 	 *              doesn't look obvious with the datasheet
 	 */
-	mrb.x_raw = data.x;
+	mrb.x_raw =  data.x;
 	mrb.y_raw = -data.y;
 	mrb.z_raw = -data.z;
 
-	float xraw_f = data.x;
+	float xraw_f =  data.x;
 	float yraw_f = -data.y;
 	float zraw_f = -data.z;
 
@@ -257,13 +245,7 @@ MPU9250_mag::measure(struct ak8963_regs data)
 	mrb.scaling = _mag_range_scale;
 	mrb.temperature = _parent->_last_temperature;
 
-		static uint64_t prev_mag_timestamp = 0;
-		mrb.error_count = ((uint64_t)(mrb.timestamp - prev_mag_timestamp) << 40)
-						+ ((uint64_t)cnt0 << 32)
-						+ ((uint32_t)cnt1 << 24) + ((uint32_t)cnt2 << 16)
-						+ ((uint32_t)cnt3 << 8) + cnt4;
-		cnt0 = cnt1 = cnt2 = cnt3 = cnt4 = 0;
-		prev_mag_timestamp = mrb.timestamp;
+	mrb.error_count = 0;
 
 	_mag_reports->force(&mrb);
 
@@ -289,8 +271,11 @@ MPU9250_mag::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
-	if (_mag_call_interval == 0) {
+	if (_parent->_call_interval == 0) {
 		_mag_reports->flush();
+		/* TODO: this won't work as getting valid magnetometer
+		 *       data requires more than one measure cycle
+		 */
 		_parent->measure();
 	}
 
@@ -323,8 +308,10 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case SENSORIOCRESET:
-// TODO: we could implement a reset of the AK8963 registers
-//		return reset();
+		/*
+		 * TODO: we could implement a reset of the AK8963 registers
+		 */
+		//return reset();
 		return _parent->ioctl(filp, cmd, arg);
 
 	case SENSORIOCSPOLLRATE: {
@@ -332,8 +319,11 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
-//				stop();
-				_mag_call_interval = 0;
+				/*
+				 * TODO: investigate being able to stop
+				 *       the continuous sampling
+				 */
+				//stop();
 				return OK;
 
 			/* external signalling not supported */
@@ -347,15 +337,12 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 			case SENSOR_POLLRATE_MAX:
 				return ioctl(filp, SENSORIOCSPOLLRATE, 100);
 
-#define MPU9250_AK8963_DEFAULT_RATE 100
-#define MPU9250_AK8963_TIMER_REDUCTION 0
-
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_AK8963_DEFAULT_RATE);
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_AK8963_SAMPLE_RATE);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
-					if (MPU9250_AK8963_DEFAULT_RATE != arg) {
+					if (MPU9250_AK8963_SAMPLE_RATE != arg) {
 						return -EINVAL;
 					}
 					return OK;
@@ -364,7 +351,7 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		return MPU9250_AK8963_DEFAULT_RATE;
+		return MPU9250_AK8963_SAMPLE_RATE;
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
@@ -388,13 +375,14 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _mag_reports->size();
 
 	case MAGIOCGSAMPLERATE:
-		return _mag_sample_rate;
+		return MPU9250_AK8963_SAMPLE_RATE;
 
 	case MAGIOCSSAMPLERATE:
-/*
- * We don't currently support any means of changing the sampling rate of the mag
- */
-		if (MPU9250_AK8963_DEFAULT_RATE != arg) {
+		/*
+		 * We don't currently support any means of changing
+		 * the sampling rate of the mag
+		 */
+		if (MPU9250_AK8963_SAMPLE_RATE != arg) {
 			return -EINVAL;
 		}
 		return OK;
@@ -482,7 +470,7 @@ MPU9250_mag::ak8963_check_id(void)
 	for (int i = 0; i < 5; i++) {
 		uint8_t deviceid = 0;
 		passthrough_read(AK8963REG_WIA, &deviceid, 0x01);
-		if (deviceid == AK8963_DEVICE_ID) {
+		if (AK8963_DEVICE_ID == deviceid) {
 			return true;
 		}
 	}
