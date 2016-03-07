@@ -1077,21 +1077,21 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 
 	struct mag_calibration_s mscale_previous;
 	mscale_previous.x_offset = 0.0f,
-	mscale_previous.x_scale = 1.0f,
-	mscale_previous.y_offset = 0.0f,
-	mscale_previous.y_scale = 1.0f,
-	mscale_previous.z_offset = 0.0f,
-	mscale_previous.z_scale = 1.0f,
+			mscale_previous.x_scale = 1.0f,
+					mscale_previous.y_offset = 0.0f,
+							mscale_previous.y_scale = 1.0f,
+									mscale_previous.z_offset = 0.0f,
+											mscale_previous.z_scale = 1.0f,
 
-	struct mag_calibration_s mscale_null;
+													struct mag_calibration_s mscale_null;
 	mscale_null.x_offset = 0.0f,
-	mscale_null.x_scale = 1.0f,
-	mscale_null.y_offset = 0.0f,
-	mscale_null.y_scale = 1.0f,
-	mscale_null.z_offset = 0.0f,
-	mscale_null.z_scale = 1.0f,
+		    mscale_null.x_scale = 1.0f,
+				mscale_null.y_offset = 0.0f,
+					    mscale_null.y_scale = 1.0f,
+							mscale_null.z_offset = 0.0f,
+								    mscale_null.z_scale = 1.0f,
 
-	float sum_excited[3] = {0.0f, 0.0f, 0.0f};
+										float sum_excited[3] = {0.0f, 0.0f, 0.0f};
 
 	/* expected axis scaling. The datasheet says that 766 will
 	 * be places in the X and Y axes and 713 in the Z
