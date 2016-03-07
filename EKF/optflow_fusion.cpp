@@ -456,8 +456,6 @@ void Ekf::fuseOptFlow()
 			for (unsigned column = 0; column <= 5; column++) {
 				KH[row][column] = gain[row] * H_LOS[obs_index][column];
 			}
-
-			KH[row][8] = gain[row] * H_LOS[obs_index][8];
 		}
 
 		for (unsigned row = 0; row < _k_num_states; row++) {
@@ -468,7 +466,6 @@ void Ekf::fuseOptFlow()
 				tmp += KH[row][3] * P[3][column];
 				tmp += KH[row][4] * P[4][column];
 				tmp += KH[row][5] * P[5][column];
-				tmp += KH[row][8] * P[8][column];
 				KHP[row][column] = tmp;
 			}
 		}
