@@ -47,24 +47,15 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
 #include <fcntl.h>
-#include <poll.h>
 #include <errno.h>
 #include <stdio.h>
-#include <math.h>
-#include <unistd.h>
 #include <getopt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/conversions.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
 
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
@@ -84,10 +75,10 @@
 
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu9250_accel"
 #define MPU_DEVICE_PATH_GYRO		"/dev/mpu9250_gyro"
-#define MPU_DEVICE_PATH_MAG 		"/dev/mpu9250_mag"
+#define MPU_DEVICE_PATH_MAG		"/dev/mpu9250_mag"
 #define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu9250_accel_ext"
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu9250_gyro_ext"
-#define MPU_DEVICE_PATH_MAG_EXT 	"/dev/mpu9250_mag_ext"
+#define MPU_DEVICE_PATH_MAG_EXT		"/dev/mpu9250_mag_ext"
 
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu9250_main(int argc, char *argv[]); }
@@ -338,7 +329,7 @@ reset(bool external_bus)
 void
 info(bool external_bus)
 {
-    MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
 	if (*g_dev_ptr == nullptr) {
 		errx(1, "driver not running");
@@ -372,21 +363,21 @@ regdump(bool external_bus)
 void
 testerror(bool external_bus)
 {
-    MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
-    if (*g_dev_ptr == nullptr) {
-        errx(1, "driver not running");
-    }
+	if (*g_dev_ptr == nullptr) {
+		errx(1, "driver not running");
+	}
 
-    (*g_dev_ptr)->test_error();
+	(*g_dev_ptr)->test_error();
 
-    exit(0);
+	exit(0);
 }
 
 void
 usage()
 {
-    warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror', 'mag'");
+	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -413,7 +404,7 @@ mpu9250_main(int argc, char *argv[])
 			break;
 
 		default:
-            mpu9250::usage();
+			mpu9250::usage();
 			exit(0);
 		}
 	}
