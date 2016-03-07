@@ -430,7 +430,7 @@ struct log_EST5_s {
 };
 
 /* --- EST6 - ESTIMATOR INNOVATIONS --- */
-#define LOG_EST6_MSG 51
+#define LOG_EST6_MSG 53
 struct log_EST6_s {
     float s[4];
 };
