@@ -2002,6 +2002,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_INO3.s[i] = buf.innovations.flow_innov[i];
 					log_msg.body.log_INO3.s[i + 2] = buf.innovations.flow_innov_var[i];
 				}
+				log_msg.body.log_INO3.s[4] = buf.innovations.hagl_innov;
+				log_msg.body.log_INO3.s[5] = buf.innovations.hagl_innov_var;
 				LOGBUFFER_WRITE_AND_COUNT(EST6);
 			}
 
