@@ -61,10 +61,10 @@ public:
 	void passthrough_write(uint8_t reg, uint8_t val);
 	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
 
-	void ak8963_read(void);
 	void ak8963_reset(void);
 	bool ak8963_setup(void);
 	bool ak8963_check_id(void);
+	bool ak8963_read_adjustments(void);
 
 protected:
 	friend class MPU9250;
@@ -84,6 +84,9 @@ private:
 	float _mag_range_scale;
 	unsigned _mag_sample_rate;
 	perf_counter_t _mag_reads;
+	float _mag_asa_x;
+	float _mag_asa_y;
+	float _mag_asa_z;
 
 	/* do not allow to copy this class due to pointer data members */
 	MPU9250_mag(const MPU9250_mag &);

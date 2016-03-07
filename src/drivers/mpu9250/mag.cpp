@@ -67,7 +67,13 @@
 #include "mag.h"
 #include "mpu9250.h"
 
-////////////////////////////////////////////////////////////////////////////////
+
+/* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
+
+#define MPU9250_MAG_RANGE_GA        1.5e-3f;
+
+
+/* mpu9250 master i2c bus specific register address and bit definitions */
 
 #define DIR_READ                    0x80
 #define DIR_WRITE                   0x00
@@ -85,44 +91,32 @@
 #define BIT_I2C_MST_P_NSR           0x10
 #define BIT_I2C_MST_EN              0x20
 #define BITS_I2C_MST_CLOCK_400HZ    0x0D
-//#define BITS_I2C_MST_DLY_1KHZ       0x09
 
-#define BIT_I2C_SLV0_DLY_EN         0x01
-#define BIT_I2C_SLV1_DLY_EN         0x02
-#define BIT_I2C_SLV2_DLY_EN         0x04
-#define BIT_I2C_SLV3_DLY_EN         0x08
 
-////////////////////////////////////////////////////////////////////////////////
+/* ak8963 register address and bit definitions */
 
 #define BIT_I2C_SLVO_EN   0x80
 #define BIT_I2C_READ_FLAG 0x80
 
-#define AK8963_I2C_ADDR   0x0C
+#define AK8963_I2C_ADDR         0x0C
+#define AK8963_DEVICE_ID        0x48
 
-#define AK8963_WIA 0x00
-#define AK8963_ST1 0x02
-#define AK8963_HXL 0x03
-#define AK8963_DEVICE_ID 0x48
+#define AK8963REG_WIA           0x00
+#define AK8963REG_ST1           0x02
+#define AK8963REG_HXL           0x03
+#define AK8963REG_ASAX          0x10
+#define AK8963REG_CNTL1         0x0A
+#define AK8963REG_CNTL2         0x0B
 
-#define AK8963_CNTL1 0x0A
-#define AK8963_SINGLE_MEAS_MODE  0x01
-#define AK8963_CONTINUOUS_MODE1  0x02
-#define AK8963_CONTINUOUS_MODE2  0x06
-#define AK8963_SELFTEST_MODE     0x08
-#define AK8963_POWERDOWN_MODE    0x00
-#define AK8963_FUZE_MODE         0x0F
-#define AK8963_16BIT_ADC         0x10
-#define AK8963_14BIT_ADC         0x00
-
-#define AK8963_CNTL2 0x0B
-#define AK8963_RESET             0x01
-
-#define AK8963_ASAX              0x10
-#define AK8963_HXL               0x03
-
-////////////////////////////////////////////////////////////////////////////////
-
-float ak8963_ASA[3] = { 0, 0, 0 }; // TODO, make member variable
+#define AK8963_SINGLE_MEAS_MODE 0x01
+#define AK8963_CONTINUOUS_MODE1 0x02
+#define AK8963_CONTINUOUS_MODE2 0x06
+#define AK8963_POWERDOWN_MODE   0x00
+#define AK8963_SELFTEST_MODE    0x08
+#define AK8963_FUZE_MODE        0x0F
+#define AK8963_16BIT_ADC        0x10
+#define AK8963_14BIT_ADC        0x00
+#define AK8963_RESET            0x01
 
 
 MPU9250_mag::MPU9250_mag(MPU9250 *parent, const char *path) :
@@ -135,9 +129,12 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, const char *path) :
 	_mag_call_interval(0),
 	_mag_reports(nullptr),
 	_mag_scale{},
-	_mag_range_scale(0.0f),
-	_mag_sample_rate(1000),
-	_mag_reads(perf_alloc(PC_COUNT, "mpu9250_mag_read"))
+	_mag_range_scale(),
+	_mag_sample_rate(100),
+	_mag_reads(perf_alloc(PC_COUNT, "mpu9250_mag_read")),
+	_mag_asa_x(1.0),
+	_mag_asa_y(1.0),
+	_mag_asa_z(1.0)
 {
 	// default mag scale factors
 	_mag_scale.x_offset = 0;
@@ -147,6 +144,7 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, const char *path) :
 	_mag_scale.z_offset = 0;
 	_mag_scale.z_scale  = 1.0f;
 
+	_mag_range_scale = MPU9250_MAG_RANGE_GA;
 }
 
 MPU9250_mag::~MPU9250_mag()
@@ -167,9 +165,9 @@ MPU9250_mag::init()
 
 	ret = CDev::init();
 
-	/* if probe/setup failed, bail now */
+	/* if setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("mag init failed");
+		DEVICE_DEBUG("MPU9250 mag init failed");
 		return ret;
 	}
 
@@ -179,14 +177,6 @@ MPU9250_mag::init()
 	}
 
 	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
-
-	/* Initialize offsets and scales */
-	_mag_scale.x_offset = 0;
-	_mag_scale.x_scale  = 1.0f;
-	_mag_scale.y_offset = 0;
-	_mag_scale.y_scale  = 1.0f;
-	_mag_scale.z_offset = 0;
-	_mag_scale.z_scale  = 1.0f;
 
 	ak8963_setup();
 
@@ -205,7 +195,6 @@ MPU9250_mag::init()
 	}
 
 out:
-	printf("MPU9250_mag::init() completed\n");
 	return ret;
 }
 
@@ -214,17 +203,7 @@ uint8_t cnt1 = 0;
 uint8_t cnt2 = 0;
 uint8_t cnt3 = 0;
 uint8_t cnt4 = 0;
-/*
-	struct ak8963_regs {
-		uint8_t id;
-		uint8_t info;
-		uint8_t st1;
-		int16_t x;
-		int16_t y;
-		int16_t z;
-		uint8_t st2;
-	};
- */
+
 
 void
 MPU9250_mag::measure(struct ak8963_regs data)
@@ -255,45 +234,25 @@ MPU9250_mag::measure(struct ak8963_regs data)
 
 	mag_report		mrb;
 	mrb.timestamp = hrt_absolute_time();
-#if 0
-	mrb.x_raw = data.x;
-	mrb.y_raw = data.y;
-	mrb.z_raw = data.z;
 
-	float xraw_f = data.x;
-	float yraw_f = data.y;
-	float zraw_f = data.z;
-#endif
-	mrb.x_raw = data.y;
-	mrb.y_raw = data.x;
+	/*
+	 * Align axes - note the accel & gryo are also re-aligned so this
+	 *              doesn't look obvious with the datasheet
+	 */
+	mrb.x_raw = data.x;
+	mrb.y_raw = -data.y;
 	mrb.z_raw = -data.z;
 
-	float xraw_f = data.y;
-	float yraw_f = data.x;
+	float xraw_f = data.x;
+	float yraw_f = -data.y;
 	float zraw_f = -data.z;
 
 	/* apply user specified rotation */
 	rotate_3f(_parent->_rotation, xraw_f, yraw_f, zraw_f);
-/*
-struct sensor_mag_s {
-		uint64_t timestamp;
-		uint64_t error_count;
-		float x;
-		float y;
-		float z;
-		float range_ga;
-		float scaling;
-		float temperature;
-		int16_t x_raw;
-		int16_t y_raw;
-		int16_t z_raw;
-};
- */
-	_mag_range_scale = 0.15e-3f;
 
-	mrb.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	mrb.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	mrb.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+	mrb.x = ((xraw_f * _mag_range_scale * _mag_asa_x) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	mrb.y = ((yraw_f * _mag_range_scale * _mag_asa_y) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	mrb.z = ((zraw_f * _mag_range_scale * _mag_asa_z) - _mag_scale.z_offset) * _mag_scale.z_scale;
 	mrb.range_ga = (float)48.0;
 	mrb.scaling = _mag_range_scale;
 	mrb.temperature = _parent->_last_temperature;
@@ -322,8 +281,6 @@ struct sensor_mag_s {
 ssize_t
 MPU9250_mag::read(struct file *filp, char *buffer, size_t buflen)
 {
-	printf("MPU9250_mag::read(..)\n");
-
 	unsigned count = buflen / sizeof(mag_report);
 
 	/* buffer must be large enough */
@@ -366,6 +323,7 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case SENSORIOCRESET:
+// TODO: we could implement a reset of the AK8963 registers
 //		return reset();
 		return _parent->ioctl(filp, cmd, arg);
 
@@ -397,34 +355,18 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
-					/* do we need to start internal polling? */
-//					bool want_start = (_mag_call_interval == 0);
-
-					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
-
-					/* check against maximum sane rate */
-					if (ticks < 1000) {
+					if (MPU9250_AK8963_DEFAULT_RATE != arg) {
 						return -EINVAL;
 					}
-
-					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_mag_call_interval = ticks;
-
 					return OK;
 				}
 			}
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_mag_call_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-		return 1000000 / _mag_call_interval;
+		return MPU9250_AK8963_DEFAULT_RATE;
 
 	case SENSORIOCSQUEUEDEPTH: {
-			printf("MPU9250_mag::ioctl(.. %l) SENSORIOCSQUEUEDEPTH\n", arg);
 			/* lower bound is mandatory, upper bound is a sanity check */
 			if ((arg < 1) || (arg > 100)) {
 				return -EINVAL;
@@ -446,40 +388,17 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _mag_reports->size();
 
 	case MAGIOCGSAMPLERATE:
-		printf("MPU9250_mag::ioctl() MAGIOCGSAMPLERATE\n");
 		return _mag_sample_rate;
 
 	case MAGIOCSSAMPLERATE:
-		{
-		/* convert hz to hrt interval via microseconds */
-//		unsigned ticks = 1000000 / arg;
-
-		/* check against maximum sane rate */
-//		if (ticks < 1000) {
-//			return -EINVAL;
-//		}
-
-		uint8_t div = 1000 / arg;
-		if (div > 200) { div = 200; }
-		if (div < 1) { div = 1; }
-
-//		write_checked_reg(MPUREG_SMPLRT_DIV, div - 1);
-		_mag_sample_rate = 1000 / div;
-
-		printf("MPU9250_mag::ioctl MAGIOCSSAMPLERATE %u\n", _mag_sample_rate);
+/*
+ * We don't currently support any means of changing the sampling rate of the mag
+ */
+		if (MPU9250_AK8963_DEFAULT_RATE != arg) {
+			return -EINVAL;
 		}
 		return OK;
-/*
-	case MAGIOCGLOWPASS:
-		return _mag_filter_x.get_cutoff_freq();
 
-	case MAGIOCSLOWPASS:
-		// set software filtering
-		_mag_filter_x.set_cutoff_frequency(1.0e6f / _mag_call_interval, arg);
-		_mag_filter_y.set_cutoff_frequency(1.0e6f / _mag_call_interval, arg);
-		_mag_filter_z.set_cutoff_frequency(1.0e6f / _mag_call_interval, arg);
-		return OK;
- */
 	case MAGIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_mag_scale, (struct mag_scale *) arg, sizeof(_mag_scale));
@@ -497,7 +416,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return 48; // fixed full scale measurement range of +/- 4800 uT == 48 Gauss
 
 	case MAGIOCSELFTEST:
-//		printf("MPU9250_mag::ioctl() MAGIOCSELFTEST\n");
 		return self_test();
 
 #ifdef MAGIOCSHWLOWPASS
@@ -509,10 +427,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCGHWLOWPASS:
 		return -EINVAL;
 #endif
-
-//	case DEVIOCGDEVICEID:
-//		return (int)CDev::ioctl(filp, cmd, arg);
-//		break;
 
 	default:
 		return (int)CDev::ioctl(filp, cmd, arg);
@@ -567,9 +481,8 @@ MPU9250_mag::ak8963_check_id(void)
 {
 	for (int i = 0; i < 5; i++) {
 		uint8_t deviceid = 0;
-		passthrough_read(AK8963_WIA, &deviceid, 0x01);
+		passthrough_read(AK8963REG_WIA, &deviceid, 0x01);
 		if (deviceid == AK8963_DEVICE_ID) {
-//			printf("ak8963_check_id: %02x\n", deviceid);
 			return true;
 		}
 	}
@@ -587,53 +500,58 @@ MPU9250_mag::passthrough_write(uint8_t reg, uint8_t val)
 }
 
 void
-MPU9250_mag::ak8963_read(void)
-{
-/*	struct ak8963_regs data;
-
-	memset(&data, 0, sizeof(struct ak8963_regs));
-	passthrough_read(AK8963_WIA, (uint8_t*)&data, sizeof(struct ak8963_regs));
-	if (data.id == 0x48) {
-		printf("magxyz [%02x]:", data.st2);
-		printf(" %d %d %d\n", data.x, data.y, data.z);
-	} else {
-		printf("invalid ak8963 read\n");
-	}
- */
-}
-
-void
 MPU9250_mag::ak8963_reset(void)
 {
-	passthrough_write(AK8963_CNTL2, AK8963_RESET);
+	passthrough_write(AK8963REG_CNTL2, AK8963_RESET);
+}
+
+bool
+MPU9250_mag::ak8963_read_adjustments(void)
+{
+	uint8_t response[3];
+	float ak8963_ASA[3];
+
+	passthrough_write(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
+	usleep(50);
+	passthrough_read(AK8963REG_ASAX, response, 3);
+	passthrough_write(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
+	for (int i = 0; i < 3; i++) {
+		if (0 != response[i] && 0xff != response[i]) {
+			ak8963_ASA[i] = ((float)(response[i] - 128) / 256.0f) + 1.0f;
+		} else {
+			return false;
+		}
+	}
+	_mag_asa_x = ak8963_ASA[0];
+	_mag_asa_y = ak8963_ASA[1];
+	_mag_asa_z = ak8963_ASA[2];
+
+	return true;
 }
 
 bool
 MPU9250_mag::ak8963_setup(void)
 {
+	int retries = 10;
+
 	// enable the I2C master to slaves on the aux bus
 	uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
 	_parent->write_checked_reg(MPUREG_USER_CTRL, user_ctrl | BIT_I2C_MST_EN);
 	_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BITS_I2C_MST_CLOCK_400HZ);
-//	_parent->write_reg(MPUREG_I2C_MST_DELAY_CTRL, BIT_I2C_SLV0_DLY_EN);
 
 	if (!ak8963_check_id()) {
-		printf("AK8963: bad id\n");
+		::printf("AK8963: bad id\n");
 	}
 
-	uint8_t response[3];
-	passthrough_write(AK8963_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
-	passthrough_read(AK8963_ASAX, response, 3);
-	for (int i = 0; i < 3; i++) {
-		float data = response[i];
-		ak8963_ASA[i] = ((data - 128) / 256 + 1);
-		printf("AK8963_calibrate %d: %i, %f\n", i, response[i], (double)ak8963_ASA[i]);
+	while (!ak8963_read_adjustments()) {
+		if (!retries--) {
+			::printf("AK8963: failed to read adjustment data\n");
+			break;
+		}
 	}
 
-//	passthrough_write(AK8963_CNTL1, AK8963_CONTINUOUS_MODE1 | AK8963_16BIT_ADC);
-	passthrough_write(AK8963_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
-//	passthrough_write(AK8963_CNTL1, AK8963_SINGLE_MEAS_MODE | AK8963_16BIT_ADC);
+	passthrough_write(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 
-	set_passthrough(AK8963_ST1, 1);
+	set_passthrough(AK8963REG_ST1, 1);
 	return true;
 }

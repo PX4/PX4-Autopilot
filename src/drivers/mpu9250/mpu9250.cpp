@@ -1153,10 +1153,6 @@ MPU9250::start()
 	_gyro_reports->flush();
 	_mag->_mag_reports->flush();
 
-// void hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg);
-
-	printf("MPU9250::start() - polling at %u\n", _call_interval - MPU9250_TIMER_REDUCTION);
-
 	/* start polling at the specified rate */
 	hrt_call_every(&_call,
 		       1000,
