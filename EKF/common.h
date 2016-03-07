@@ -214,7 +214,7 @@ struct parameters {
 	parameters()
 	{
 		// measurement source control
-		fusion_mode = MASK_USE_OF;
+		fusion_mode = MASK_USE_GPS;
 		vdist_sensor_type = VDIST_SENSOR_BARO;
 
 		// measurement time delays
