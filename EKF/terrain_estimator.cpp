@@ -73,7 +73,12 @@ void Ekf::predictHagl()
 {
 	// predict the state variance growth
 	// the state is the vertical position of the terrain underneath the vehicle
+
+	// process noise due to errors in vehicle height estimate
 	_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_p_noise);
+
+	// process noise due to terrain gradient
+	_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(1)));
 
 	// limit the variance to prevent it becoming badly conditioned
 	_terrain_var = math::constrain(_terrain_var, 0.0f, 1e4f);

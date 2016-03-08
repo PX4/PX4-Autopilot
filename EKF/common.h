@@ -166,6 +166,7 @@ struct parameters {
 	float mag_p_noise;		// process noise for magnetic field prediction (Guass/sec)
 	float wind_vel_p_noise;		// process noise for wind velocity prediction (m/sec/sec)
 	float terrain_p_noise;		// process noise for terrain offset (m/sec)
+	float terrain_gradient;		// gradient of terrain used to estimate process noise due to changing position (m/m)
 
 	// position and velocity fusion
 	float gps_vel_noise;		// observation noise for gps velocity fusion (m/sec)
@@ -234,6 +235,7 @@ struct parameters {
 		mag_p_noise = 2.5e-2f;
 		wind_vel_p_noise = 1.0e-1f;
 		terrain_p_noise = 0.5f;
+		terrain_gradient = 0.5f;
 
 		// position and velocity fusion
 		gps_vel_noise = 5.0e-1f;
