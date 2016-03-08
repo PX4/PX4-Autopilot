@@ -105,14 +105,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gpsStats(this, ""),
 
 	// stats
-	_xDelay(this, ""),
-	_PDelay(this, ""),
-	_tDelay(this, ""),
+	//_xDelay(this, ""),
+	//_PDelay(this, ""),
+	//_tDelay(this, ""),
 
 	// misc
 	_polls(),
 	_timeStamp(hrt_absolute_time()),
-	_time_last_hist(0),
+	//_time_last_hist(0),
 	_time_last_xy(0),
 	_time_last_z(0),
 	_time_last_tz(0),
@@ -1034,11 +1034,11 @@ void BlockLocalPositionEstimator::predict()
 	       B * R * B.transpose() + Q) * getDt();
 
 	// propagate delayed state
-	if (_time_last_hist == 0 || _time_last_hist - _timeStamp > 1000) {
-		_xDelay.update(_x);
-		_PDelay.update(_P);
-		_tDelay.update(Scalar<uint64_t>(_timeStamp));
-	}
+	//if (_time_last_hist == 0 || _time_last_hist - _timeStamp > 1000) {
+	//_xDelay.update(_x);
+	//_PDelay.update(_P);
+	//_tDelay.update(Scalar<uint64_t>(_timeStamp));
+	//}
 }
 
 void BlockLocalPositionEstimator::correctFlow()
@@ -1488,23 +1488,23 @@ void BlockLocalPositionEstimator::correctGps()
 	R(5, 5) = var_vz;
 
 	// get delayed x and P
-	uint64_t t_delay = 0;
-	int i = 0;
+	//uint64_t t_delay = 0;
+	//int i = 0;
 
-	for (i = 0; i < HIST_LEN; i++) {
-		t_delay += _tDelay.get(i)(0, 0);
+	//for (i = 0; i < HIST_LEN; i++) {
+	//t_delay += _tDelay.get(i)(0, 0);
 
-		if (t_delay > 2000) {
-			break;
-		}
-	}
+	//if (t_delay > 2000) {
+	//break;
+	//}
+	//}
 
-	Vector<float, n_x> x0 = _xDelay.get(i);
-	Matrix<float, n_x, n_x> P0 = _PDelay.get(i);
+	//Vector<float, n_x> x0 = _xDelay.get(i);
+	//Matrix<float, n_x, n_x> P0 = _PDelay.get(i);
 
 	// residual
-	Vector<float, n_y_gps> r = y - C * x0;
-	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, 6>(C * P0 * C.transpose() + R);
+	Vector<float, n_y_gps> r = y - C * _x;
+	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, 6>(C * _P * C.transpose() + R);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
@@ -1536,9 +1536,9 @@ void BlockLocalPositionEstimator::correctGps()
 
 	// kalman filter correction if no hard fault
 	if (_gpsFault < FAULT_SEVERE) {
-		Matrix<float, n_x, n_y_gps> K = P0 * C.transpose() * S_I;
+		Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
 		_x += K * r;
-		_P -= K * C * P0;
+		_P -= K * C * _P;
 	}
 }
 

@@ -152,10 +152,9 @@ int local_position_estimator_thread_main(int argc, char *argv[])
 
 	using namespace control;
 
+	BlockLocalPositionEstimator est;
 
 	thread_running = true;
-
-	BlockLocalPositionEstimator est;
 
 	while (!thread_should_exit) {
 		est.update();
