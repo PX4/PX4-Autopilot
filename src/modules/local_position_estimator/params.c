@@ -171,7 +171,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_Z, 10.0f);
  * @max 2
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_VXY, 0.275f);
+PARAM_DEFINE_FLOAT(LPE_GPS_VXY, 1.0f);
 
 /**
  * GPS z velocity standard deviation.
@@ -182,7 +182,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_VXY, 0.275f);
  * @max 2
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 0.237f);
+PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 1.0f);
 
 /**
  * GPS max eph

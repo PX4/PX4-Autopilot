@@ -95,7 +95,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_flow_gyro_x_high_pass(this, "FGYRO_HP"),
 	_flow_gyro_y_high_pass(this, "FGYRO_HP"),
 
-	// sats
+	// stats
 	_baroStats(this, ""),
 	_sonarStats(this, ""),
 	_lidarStats(this, ""),
@@ -103,6 +103,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_visionStats(this, ""),
 	_mocapStats(this, ""),
 	_gpsStats(this, ""),
+
+	// stats
+	_gpsDelay(this, ""),
 
 	// misc
 	_polls(),
@@ -586,11 +589,22 @@ void BlockLocalPositionEstimator::initGps()
 		return;
 	}
 
+	// gps measurement
+	Vector<double, 6> h;
+	h.setZero();
+	h(0) = _sub_gps.get().lat;
+	h(1) = _sub_gps.get().lon;
+	h(2) = _sub_gps.get().alt;
+	h(3) = _sub_gps.get().vel_n_m_s;
+	h(4) = _sub_gps.get().vel_e_m_s;
+	h(5) = _sub_gps.get().vel_d_m_s;
+	_gpsDelay.update(h);
+
 	// collect gps data
 	Vector3<double> p(
 		_sub_gps.get().lat * 1e-7,
 		_sub_gps.get().lon * 1e-7,
-		_sub_gps.get().alt * 1e-3f);
+		_sub_gps.get().alt * 1e-3);
 
 	// increament sums for mean
 	_gpsStats.update(p);
@@ -1420,30 +1434,34 @@ void BlockLocalPositionEstimator::correctGps()
 		return;
 	}
 
-	// gps measurement in local frame
-	double  lat = _sub_gps.get().lat * 1.0e-7;
-	double  lon = _sub_gps.get().lon * 1.0e-7;
-	float  alt = _sub_gps.get().alt * 1.0e-3f;
-	_time_last_gps = _timeStamp;
+	// gps measurement
+	Vector<double, 6> h0;
+	h0.setZero();
+	h0(0) = _sub_gps.get().lat;
+	h0(1) = _sub_gps.get().lon;
+	h0(2) = _sub_gps.get().alt;
+	h0(3) = _sub_gps.get().vel_n_m_s;
+	h0(4) = _sub_gps.get().vel_e_m_s;
+	h0(5) = _sub_gps.get().vel_d_m_s;
+	Vector<double, 6> h = _gpsDelay.update(h0);
 
-	// local coordinates
+	// gps measurement in local frame
+	_time_last_gps = _timeStamp;
+	double  lat = h(0) * 1.0e-7;
+	double  lon = h(1) * 1.0e-7;
+	float  alt = h(2) * 1.0e-3;
 	float px = 0;
 	float py = 0;
 	float pz = -(alt - _gpsAltHome);
 	map_projection_project(&_map_ref, lat, lon, &px, &py);
-
-	//printf("gps: lat %10g, lon, %10g alt %10g\n", lat, lon, double(alt));
-	//printf("home: lat %10g, lon, %10g alt %10g\n", _sub_home.lat, _sub_home.lon, double(_sub_home.alt));
-	//printf("local: x %10g y %10g z %10g\n", double(px), double(py), double(pz));
-
 	Vector<float, 6> y;
 	y.setZero();
 	y(0) = px;
 	y(1) = py;
 	y(2) = pz;
-	y(3) = _sub_gps.get().vel_n_m_s;
-	y(4) = _sub_gps.get().vel_e_m_s;
-	y(5) = _sub_gps.get().vel_d_m_s;
+	y(3) = h(3);
+	y(4) = h(4);
+	y(5) = h(5);
 
 	// gps measurement matrix, measures position and velocity
 	Matrix<float, n_y_gps, n_x> C;

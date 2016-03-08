@@ -41,6 +41,8 @@ using namespace Eigen;
 
 using namespace control;
 
+static const size_t GPS_HIST_LEN = 2; // delay, at 10 hz, (200 ms)
+
 enum fault_t {
 	FAULT_NONE = 0,
 	FAULT_MINOR,
@@ -253,6 +255,9 @@ private:
 	BlockStats<float, 3> _visionStats;
 	BlockStats<float, 3> _mocapStats;
 	BlockStats<double, 3> _gpsStats;
+
+	// delay blocks
+	BlockDelay<double, n_y_gps, GPS_HIST_LEN> _gpsDelay;
 
 	// misc
 	struct pollfd _polls[3];
