@@ -154,9 +154,11 @@ MPU9250_mag::~MPU9250_mag()
 	if (_mag_class_instance != -1) {
 		unregister_class_devname(MAG_BASE_DEVICE_PATH, _mag_class_instance);
 	}
+
 	if (_mag_reports != nullptr) {
 		delete _mag_reports;
 	}
+
 	perf_free(_mag_reads);
 }
 
@@ -174,6 +176,7 @@ MPU9250_mag::init()
 	}
 
 	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+
 	if (_mag_reports == nullptr) {
 		goto out;
 	}
@@ -187,7 +190,7 @@ MPU9250_mag::init()
 	_mag_reports->get(&mrp);
 
 	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-			   &_mag_orb_class_instance, ORB_PRIO_LOW);
+					 &_mag_orb_class_instance, ORB_PRIO_LOW);
 //			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_mag_topic == nullptr) {
@@ -208,15 +211,18 @@ MPU9250_mag::measure(struct ak8963_regs data)
 			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLVO_EN | sizeof(struct ak8963_regs));
 			_mag_reading_data = true;
 			return;
+
 		} else {
 			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLVO_EN | 1);
 			_mag_reading_data = false;
 		}
+
 	} else {
 		if (true == _mag_reading_data) {
 			_parent->write_reg(MPUREG_I2C_SLV0_CTRL, BIT_I2C_SLVO_EN | 1);
 			_mag_reading_data = false;
 		}
+
 		return;
 	}
 
@@ -294,6 +300,7 @@ MPU9250_mag::read(struct file *filp, char *buffer, size_t buflen)
 		if (!_mag_reports->get(mrp)) {
 			break;
 		}
+
 		transferred++;
 		mrp++;
 	}
@@ -345,6 +352,7 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 					if (MPU9250_AK8963_SAMPLE_RATE != arg) {
 						return -EINVAL;
 					}
+
 					return OK;
 				}
 			}
@@ -378,6 +386,7 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return MPU9250_AK8963_SAMPLE_RATE;
 
 	case MAGIOCSSAMPLERATE:
+
 		/*
 		 * We don't currently support any means of changing
 		 * the sampling rate of the mag
@@ -385,6 +394,7 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 		if (MPU9250_AK8963_SAMPLE_RATE != arg) {
 			return -EINVAL;
 		}
+
 		return OK;
 
 	case MAGIOCSSCALE:
@@ -407,11 +417,13 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return self_test();
 
 #ifdef MAGIOCSHWLOWPASS
+
 	case MAGIOCSHWLOWPASS:
 		return -EINVAL;
 #endif
 
 #ifdef MAGIOCGHWLOWPASS
+
 	case MAGIOCGHWLOWPASS:
 		return -EINVAL;
 #endif
@@ -433,12 +445,15 @@ MPU9250_mag::set_passthrough(uint8_t reg, uint8_t size, uint8_t *out)
 	uint8_t addr;
 
 	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, 0); // ensure slave r/w is disabled before changing the registers
+
 	if (out) {
 		_parent->write_reg(MPUREG_I2C_SLV0_D0, *out);
 		addr = AK8963_I2C_ADDR;
+
 	} else {
 		addr = AK8963_I2C_ADDR | BIT_I2C_READ_FLAG;
 	}
+
 	_parent->write_reg(MPUREG_I2C_SLV0_ADDR, addr);
 	_parent->write_reg(MPUREG_I2C_SLV0_REG,  reg);
 	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, size | BIT_I2C_SLVO_EN);
@@ -470,10 +485,12 @@ MPU9250_mag::ak8963_check_id(void)
 	for (int i = 0; i < 5; i++) {
 		uint8_t deviceid = 0;
 		passthrough_read(AK8963REG_WIA, &deviceid, 0x01);
+
 		if (AK8963_DEVICE_ID == deviceid) {
 			return true;
 		}
 	}
+
 	return false;
 }
 /*
@@ -503,13 +520,16 @@ MPU9250_mag::ak8963_read_adjustments(void)
 	usleep(50);
 	passthrough_read(AK8963REG_ASAX, response, 3);
 	passthrough_write(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
+
 	for (int i = 0; i < 3; i++) {
 		if (0 != response[i] && 0xff != response[i]) {
 			ak8963_ASA[i] = ((float)(response[i] - 128) / 256.0f) + 1.0f;
+
 		} else {
 			return false;
 		}
 	}
+
 	_mag_asa_x = ak8963_ASA[0];
 	_mag_asa_y = ak8963_ASA[1];
 	_mag_asa_z = ak8963_ASA[2];

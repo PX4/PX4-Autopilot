@@ -20,7 +20,8 @@ class MPU9250_gyro;
 class MPU9250 : public device::SPI
 {
 public:
-	MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device, enum Rotation rotation);
+	MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device,
+		enum Rotation rotation);
 	virtual ~MPU9250();
 
 	virtual int		init();
@@ -110,8 +111,8 @@ private:
 	// last temperature reading for print_info()
 	float			_last_temperature;
 
-	bool check_null_data(uint32_t* data, uint8_t size);
-	bool check_duplicate(uint8_t* accel_data);
+	bool check_null_data(uint32_t *data, uint8_t size);
+	bool check_duplicate(uint8_t *accel_data);
 	// keep last accel reading for duplicate detection
 	uint8_t			_last_accel_data[6];
 	bool			_got_duplicate;
