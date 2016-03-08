@@ -558,4 +558,24 @@ int blockRandGaussTest()
 	return 0;
 }
 
+int blockStatsTest()
+{
+	BlockStats<float, 1> stats(NULL, "TEST");
+	ASSERT_CL(equal(0.0f, stats.getMean()(0)));
+	ASSERT_CL(equal(0.0f, stats.getStdDev()(0)));
+
+
+	stats.update(matrix::Scalar<float>(1.0f));
+	ASSERT_CL(equal(1.0f, stats.getMean()(0)));
+	ASSERT_CL(equal(0.5f, stats.getStdDev()(0)));
+	stats.update(matrix::Scalar<float>(2));
+	stats.reset();
+	ASSERT_CL(equal(0.0f, stats.getMean()(0)));
+	ASSERT_CL(equal(0.0f, stats.getStdDev()(0)));
+	printf("PASS\n");
+	return 0;
+}
+
+
+
 } // namespace control
