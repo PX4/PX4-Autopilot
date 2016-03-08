@@ -204,40 +204,43 @@ bool Ekf::update()
 			}
 		}
 
-		// determine if we have height data that can be fused
+		// determine if range finder data has fallen behind the fusin time horizon fuse it if we are
+		// not tilted too much to use it
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
-		    && (_R_prev(2, 2) > 0.7071f)) {
-			// if we have range data we always try to estimate terrain nheight
+			   && (_R_prev(2, 2) > 0.7071f)) {
+			// if we have range data we always try to estimate terrain height
 			_fuse_hagl_data = true;
 
-			// only use if for height in the main filter if specifically enabled
+			// only use range finder as a height observation in the main filter if specifically enabled
 			if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
 				_fuse_height = true;
 			}
 
-		} else if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)
+		}
+
+		// determine if baro data has fallen behind the fuson time horizon and fuse it in the main filter if enabled
+		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)
 			   && _params.vdist_sensor_type == VDIST_SENSOR_BARO) {
 			_fuse_height = true;
 		}
 
 		// If we are using GPS aiding and data has fallen behind the fusion time horizon then fuse it
-		// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
-		// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
 		if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed) && _control_status.flags.gps) {
 			_fuse_pos = true;
 			_fuse_vert_vel = true;
 			_fuse_hor_vel = true;
-			_fuse_flow = false;
+		}
 
-		} else if (_flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
+		// If we are using optical flow aiding and data has fallen behind the fusion time horizon, then fuse it
+		if (_flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
 			   && _control_status.flags.opt_flow && (_time_last_imu - _time_last_optflow) < 2e5
 			   && (_R_prev(2, 2) > 0.7071f)) {
-			_fuse_pos = false;
-			_fuse_vert_vel = false;
-			_fuse_hor_vel = false;
 			_fuse_flow = true;
+		}
 
-		} else if (!_control_status.flags.gps && !_control_status.flags.opt_flow
+		// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
+		// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
+		if (!_control_status.flags.gps && !_control_status.flags.opt_flow
 			   && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
 			_fuse_pos = true;
 			_gps_sample_delayed.pos(0) = _last_known_posNE(0);
