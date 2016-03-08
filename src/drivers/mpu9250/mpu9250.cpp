@@ -213,7 +213,8 @@ const uint8_t MPU9250::_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPU
 									   };
 
 
-MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device, enum Rotation rotation) :
+MPU9250::MPU9250(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, spi_dev_e device,
+		 enum Rotation rotation) :
 	SPI("MPU9250", path_accel, bus, device, SPIDEV_MODE3, MPU9250_LOW_BUS_SPEED),
 	_gyro(new MPU9250_gyro(this, path_gyro)),
 	_mag(new MPU9250_mag(this, path_mag)),
@@ -340,6 +341,7 @@ MPU9250::init()
 	}
 
 	ret = probe();
+
 	if (ret != OK) {
 		DEVICE_DEBUG("MPU9250 probe failed");
 		return ret;
@@ -1235,7 +1237,7 @@ MPU9250::check_registers(void)
 	_checked_next = (_checked_next + 1) % MPU9250_NUM_CHECKED_REGISTERS;
 }
 
-bool MPU9250::check_null_data(uint32_t* data, uint8_t size)
+bool MPU9250::check_null_data(uint32_t *data, uint8_t size)
 {
 	while (size--) {
 		if (*data++) {
@@ -1243,6 +1245,7 @@ bool MPU9250::check_null_data(uint32_t* data, uint8_t size)
 			return false;
 		}
 	}
+
 	// all zero data - probably a SPI bus error
 	perf_count(_bad_transfers);
 	perf_end(_sample_perf);
@@ -1253,7 +1256,7 @@ bool MPU9250::check_null_data(uint32_t* data, uint8_t size)
 	return true;
 }
 
-bool MPU9250::check_duplicate(uint8_t* accel_data)
+bool MPU9250::check_duplicate(uint8_t *accel_data)
 {
 	/*
 	   see if this is duplicate accelerometer data. Note that we
@@ -1268,10 +1271,12 @@ bool MPU9250::check_duplicate(uint8_t* accel_data)
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
 		_got_duplicate = true;
+
 	} else {
 		memcpy(&_last_accel_data, accel_data, sizeof(_last_accel_data));
 		_got_duplicate = false;
 	}
+
 	return _got_duplicate;
 }
 
@@ -1329,7 +1334,7 @@ MPU9250::measure()
 	report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
 	report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
 
-	if (check_null_data((uint32_t*)&report, sizeof(report) / 4)) {
+	if (check_null_data((uint32_t *)&report, sizeof(report) / 4)) {
 		return;
 	}
 

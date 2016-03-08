@@ -117,7 +117,7 @@ start(bool external_bus, enum Rotation rotation)
 	const char *path_mag   = external_bus ? MPU_DEVICE_PATH_MAG_EXT : MPU_DEVICE_PATH_MAG;
 
 	if (*g_dev_ptr != nullptr)
-	/* if already started, the still command succeeded */
+		/* if already started, the still command succeeded */
 	{
 		errx(0, "already started");
 	}
@@ -202,8 +202,9 @@ test(bool external_bus)
 	/* get the driver */
 	int fd = open(path_accel, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "%s open failed (try 'm start')", path_accel);
+	}
 
 	/* get the driver */
 	int fd_gyro = open(path_gyro, O_RDONLY);
@@ -344,7 +345,7 @@ info(bool external_bus)
 void
 regdump(bool external_bus)
 {
-    MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
+	MPU9250 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
 	if (*g_dev_ptr == nullptr) {
 		errx(1, "driver not running");
