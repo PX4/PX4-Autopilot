@@ -164,6 +164,7 @@ int DfMpu9250Wrapper::start()
 		return -1;
 	}
 
+	/* Subscribe to calibration topics. */
 	if (_accel_calibration_sub < 0) {
 		_accel_calibration_sub = orb_subscribe(ORB_ID(accel_calibration));
 	}
@@ -239,7 +240,7 @@ void DfMpu9250Wrapper::_update_accel_calibration()
 
 int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 {
-	/* Check if calibration values are still up-to-date */
+	/* Check if calibration values are still up-to-date. */
 	_update_accel_calibration();
 	_update_gyro_calibration();
 
@@ -312,6 +313,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 		DevMgr::updateNotify(*this);
 	}
 
+	// TODO: check the return codes of this function
 	return 0;
 };
 
