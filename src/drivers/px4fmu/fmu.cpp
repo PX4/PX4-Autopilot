@@ -86,14 +86,28 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/safety.h>
 
 
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
 #endif
 
+#include <systemlib/circuit_breaker.h>
+
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 #define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
+#define BUTTON_SAFETY	stm32_gpioread(GPIO_BTN_SAFETY)
+#define CYCLE_COUNT 10			/* safety switch must be held for 1 second to activate */
+
+/*
+ * Define the various LED flash sequences for each system state.
+ */
+#define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
+#define LED_PATTERN_FMU_REFUSE_TO_ARM 	0x5555		/**< fast blinking			*/
+#define LED_PATTERN_IO_ARMED 			0x5050		/**< long off, then double blink 	*/
+#define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
+#define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
 
 class PX4FMU : public device::CDev
 {
@@ -153,6 +167,9 @@ private:
 	bool _rc_scan_locked = false;
 	bool _report_lock = true;
 
+	hrt_abstime _cycle_timestamp = 0;
+	hrt_abstime _last_safety_check = 0;
+
 	static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
 	Mode		_mode;
@@ -196,6 +213,8 @@ private:
 	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
+	bool		_safety_off;
+	orb_advert_t		_to_safety;
 
 	static bool	arm_nothrottle() { return (_armed.prearmed && !_armed.armed); }
 
@@ -248,6 +267,7 @@ private:
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 	void rc_io_invert();
 	void rc_io_invert(bool invert);
+	void safety_check_button(void);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
@@ -344,7 +364,9 @@ PX4FMU::PX4FMU() :
 	_disarmed_pwm{0},
 	_reverse_pwm_mask(0),
 	_num_failsafe_set(0),
-	_num_disarmed_set(0)
+	_num_disarmed_set(0),
+	_safety_off(false),
+	_to_safety(nullptr)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -366,6 +388,11 @@ PX4FMU::PX4FMU() :
 #ifdef GPIO_SBUS_INV
 	// this board has a GPIO to control SBUS inversion
 	stm32_configgpio(GPIO_SBUS_INV);
+#endif
+
+	// If there is no safety button, disable it on boot.
+#ifndef GPIO_BTN_SAFETY
+	_safety_off = true;
 #endif
 
 	/* only enable this during development */
@@ -420,6 +447,83 @@ PX4FMU::init()
 	work_start();
 
 	return OK;
+}
+
+void
+PX4FMU:: safety_check_button(void)
+{
+#ifdef GPIO_BTN_SAFETY
+	static int counter = 0;
+	/*
+	 * Debounce the safety button, change state if it has been held for long enough.
+	 *
+	 */
+	bool safety_button_pressed = BUTTON_SAFETY;
+
+	/*
+	 * Keep pressed for a while to arm.
+	 *
+	 * Note that the counting sequence has to be same length
+	 * for arming / disarming in order to end up as proper
+	 * state machine, keep ARM_COUNTER_THRESHOLD the same
+	 * length in all cases of the if/else struct below.
+	 */
+	if (safety_button_pressed && !_safety_off) {
+
+		if (counter < CYCLE_COUNT) {
+			counter++;
+
+		} else if (counter == CYCLE_COUNT) {
+			/* switch to armed state */
+			_safety_off = true;
+			counter++;
+		}
+
+	} else if (safety_button_pressed && _safety_off) {
+
+		if (counter < CYCLE_COUNT) {
+			counter++;
+
+		} else if (counter == CYCLE_COUNT) {
+			/* change to disarmed state and notify the FMU */
+			_safety_off = false;
+			counter++;
+		}
+
+	} else {
+		counter = 0;
+	}
+
+	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
+	uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
+
+	/* cycle the blink state machine at 10Hz */
+	static int blink_counter = 0;
+
+	if (_safety_off) {
+		if (_armed.armed) {
+			pattern = LED_PATTERN_IO_FMU_ARMED;
+
+		} else {
+			pattern = LED_PATTERN_IO_ARMED;
+		}
+
+	} else if (_armed.armed) {
+		pattern = LED_PATTERN_FMU_ARMED;
+
+	} else {
+		pattern = LED_PATTERN_FMU_OK_TO_ARM;
+
+	}
+
+	/* Turn the LED on if we have a 1 at the current bit position */
+	stm32_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
+
+	if (blink_counter > 15) {
+		blink_counter = 0;
+	}
+
+#endif
 }
 
 int
@@ -870,7 +974,8 @@ PX4FMU::cycle()
 
 					/* main outputs */
 					if (i == 0) {
-						//main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
+//						main_out_latency = hrt_absolute_time() - _controls[i].timestamp - 250;
+//						warnx("lat: %llu", hrt_absolute_time() - _controls[i].timestamp);
 
 						/* do only correct within the current phase */
 						if (abs(main_out_latency) > SCHEDULE_INTERVAL) {
@@ -937,6 +1042,13 @@ PX4FMU::cycle()
 			pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask, _disarmed_pwm, _min_pwm, _max_pwm,
 				       outputs, pwm_limited, &_pwm_limit);
 
+			/* overwrite outputs in case of lockdown with disarmed PWM values */
+			if (_armed.lockdown) {
+				for (size_t i = 0; i < num_outputs; i++) {
+					pwm_limited[i] = _disarmed_pwm[i];
+				}
+			}
+
 			/* output to the servos */
 			for (size_t i = 0; i < num_outputs; i++) {
 				pwm_output_set(i, pwm_limited[i]);
@@ -946,6 +1058,49 @@ PX4FMU::cycle()
 		}
 	}
 
+	_cycle_timestamp = hrt_absolute_time();
+
+#ifdef GPIO_BTN_SAFETY
+
+	if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
+		_last_safety_check = _cycle_timestamp;
+
+		/**
+		 * Get and handle the safety status at 10Hz
+		 */
+		struct safety_s safety = {};
+
+		if (circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY)) {
+			/* safety switch disabled, turn LED on solid */
+			stm32_gpiowrite(GPIO_LED_SAFETY, 0);
+			_safety_off = true;
+
+		} else {
+			/* read safety switch input and control safety switch LED at 10Hz */
+			safety_check_button();
+		}
+
+		safety.timestamp = hrt_absolute_time();
+
+		if (_safety_off) {
+			safety.safety_off = true;
+			safety.safety_switch_available = true;
+
+		} else {
+			safety.safety_off = false;
+			safety.safety_switch_available = true;
+		}
+
+		/* lazily publish the safety status */
+		if (_to_safety != nullptr) {
+			orb_publish(ORB_ID(safety), _to_safety, &safety);
+
+		} else {
+			_to_safety = orb_advertise(ORB_ID(safety), &safety);
+		}
+	}
+
+#endif
 	/* check arming state */
 	bool updated = false;
 	orb_check(_armed_sub, &updated);
@@ -954,10 +1109,10 @@ PX4FMU::cycle()
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
 		/* update the armed status and check that we're not locked down */
-		_throttle_armed = _armed.armed && !_armed.lockdown;
+		_throttle_armed = _safety_off && _armed.armed && !_armed.lockdown;
 
 		/* update PWM status if armed or if disarmed PWM values are set */
-		bool pwm_on = (_armed.armed || _num_disarmed_set > 0);
+		bool pwm_on = _armed.armed || _num_disarmed_set > 0;
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
@@ -1007,29 +1162,28 @@ PX4FMU::cycle()
 	}
 
 	// read all available data from the serial RC input UART
-	hrt_abstime now = hrt_absolute_time();
 	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_FRAME_SIZE);
 
 	switch (_rc_scan_state) {
 	case RC_SCAN_SBUS:
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
+			_rc_scan_begin = _cycle_timestamp;
 			// Configure serial port for SBUS
 			sbus_config(_rcs_fd, false);
 			rc_io_invert(true);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			// parse new data
 			if (newBytes > 0) {
-				rc_updated = sbus_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
+				rc_updated = sbus_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
 							&sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new SBUS frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
-					fill_rc_in(raw_rc_count, raw_rc_values, now,
+					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   sbus_frame_drop, sbus_failsafe, frame_drops);
 					_rc_scan_locked = true;
 				}
@@ -1044,23 +1198,23 @@ PX4FMU::cycle()
 
 	case RC_SCAN_DSM:
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
-			// Configure serial port for DSM
+			_rc_scan_begin = _cycle_timestamp;
+//			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
 				// parse new data
-				rc_updated = dsm_parse(now, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
+				rc_updated = dsm_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
 						       &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 					// we have a new DSM frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
-					fill_rc_in(raw_rc_count, raw_rc_values, now,
+					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   false, false, frame_drops);
 					_rc_scan_locked = true;
 				}
@@ -1075,13 +1229,13 @@ PX4FMU::cycle()
 
 	case RC_SCAN_ST24:
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
+			_rc_scan_begin = _cycle_timestamp;
 			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
 				// parse new data
@@ -1099,7 +1253,7 @@ PX4FMU::cycle()
 				if (rc_updated) {
 					// we have a new ST24 frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
-					fill_rc_in(raw_rc_count, raw_rc_values, now,
+					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   false, false, frame_drops, st24_rssi);
 					_rc_scan_locked = true;
 				}
@@ -1114,13 +1268,13 @@ PX4FMU::cycle()
 
 	case RC_SCAN_SUMD:
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
+			_rc_scan_begin = _cycle_timestamp;
 			// Configure serial port for DSM
 			dsm_config(_rcs_fd);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			if (newBytes > 0) {
 				// parse new data
@@ -1138,7 +1292,7 @@ PX4FMU::cycle()
 				if (rc_updated) {
 					// we have a new SUMD frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SUMD;
-					fill_rc_in(raw_rc_count, raw_rc_values, now,
+					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
 						   false, false, frame_drops, sumd_rssi);
 					_rc_scan_locked = true;
 				}
@@ -1156,13 +1310,13 @@ PX4FMU::cycle()
 		// skip PPM if it's not supported
 #ifdef HRT_PPM_CHANNEL
 		if (_rc_scan_begin == 0) {
-			_rc_scan_begin = now;
+			_rc_scan_begin = _cycle_timestamp;
 			// Configure timer input pin for CPPM
 			stm32_configgpio(GPIO_PPM_IN);
 			rc_io_invert(false);
 
 		} else if (_rc_scan_locked
-			   || now - _rc_scan_begin < rc_scan_max) {
+			   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 			// see if we have new PPM input data
 			if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal)
@@ -1170,7 +1324,7 @@ PX4FMU::cycle()
 				// we have a new PPM frame. Publish it.
 				rc_updated = true;
 				_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-				fill_rc_in(ppm_decoded_channels, ppm_buffer, now,
+				fill_rc_in(ppm_decoded_channels, ppm_buffer, _cycle_timestamp,
 					   false, false, 0);
 				_rc_scan_locked = true;
 			}
@@ -2010,10 +2164,14 @@ PX4FMU::sensor_reset(int ms)
 	 * required for some peripheral
 	 * state machines
 	 */
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+
+	stm32_configgpio(GPIO_SPI1_SCK);
+	stm32_configgpio(GPIO_SPI1_MISO);
+	stm32_configgpio(GPIO_SPI1_MOSI);
 
 	// // XXX bring up the EXTI pins again
 	// stm32_configgpio(GPIO_GYRO_DRDY);

@@ -17,20 +17,6 @@ then
 	param set PWM_MAX 1950
 fi
 
-# Transitional support: ensure suitable PWM min/max param values
-if param compare PWM_MIN 1000
-then
-	param set PWM_MIN 1075
-fi
-if param compare PWM_MAX 2000
-then
-	param set PWM_MAX 1950
-fi
-if param compare PWM_DISARMED 0
-then
-	param set PWM_DISARMED 900
-fi
-
 # set environment variables (!= parameters)
 set PWM_RATE 400
 # tell the mixer to use parameters for these instead
@@ -45,3 +31,17 @@ set PWM_AUX_OUT 1234
 set PWM_AUX_DISARMED 1500
 set PWM_AUX_MIN 1000
 set PWM_AUX_MAX 2000
+
+# Transitional support: ensure suitable PWM min/max param values
+if param compare PWM_MIN 1000
+then
+	param set PWM_MIN 1075
+fi
+if param compare PWM_MAX 2000
+then
+	param set PWM_MAX 1950
+fi
+if param compare PWM_DISARMED 0
+then
+	param set PWM_DISARMED 900
+fi

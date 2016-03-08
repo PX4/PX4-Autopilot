@@ -398,8 +398,12 @@ Navigator::task_main()
 			vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
-			if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
-				warnx("navigator: got takeoff coordinates");
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
+				warnx("navigator: got reposition command");
+			}
+
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_PAUSE_CONTINUE) {
+				warnx("navigator: got pause/continue command");
 			}
 		}
 

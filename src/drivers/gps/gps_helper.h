@@ -43,6 +43,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
+// TODO: this number seems wrong
 #define GPS_EPOCH_SECS 1234567890ULL
 
 class GPS_Helper
@@ -59,6 +60,20 @@ public:
 	float				get_velocity_update_rate();
 	void				reset_update_rates();
 	void				store_update_rates();
+
+	/* This is an abstraction for the poll on serial used. The
+	 * implementation is different for QURT than for POSIX and
+	 * NuttX.
+	 *
+	 * @param fd: serial file descriptor
+	 * @param buf: pointer to read buffer
+	 * @param buf_length: size of read buffer
+	 * @param timeout: timeout time in us
+	 * @return: 0 for nothing read, or poll timed out
+	 *	    < 0 for error
+	 *	    > 0 number of bytes read
+	 */
+	int poll_or_read(int fd, uint8_t *buf, size_t buf_length, uint64_t timeout);
 
 protected:
 	uint8_t _rate_count_lat_lon;

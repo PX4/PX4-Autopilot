@@ -254,6 +254,7 @@ private:
 	float _vel_z_lp;
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
+	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
 
 	/**
 	 * Update our local parameter cache.
@@ -384,7 +385,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_takeoff_jumped(false),
 	_vel_z_lp(0),
 	_acc_z_lp(0),
-	_takeoff_thrust_sp(0.0f)
+	_takeoff_thrust_sp(0.0f),
+	control_vel_enabled_prev(false)
 {
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
@@ -704,13 +706,12 @@ MulticopterPositionControl::reset_pos_sp()
 {
 	if (_reset_pos_sp) {
 		_reset_pos_sp = false;
-		/* shift position setpoint to make attitude setpoint continuous */
-		_pos_sp(0) = _pos(0) + (_vel(0) - PX4_R(_att_sp.R_body, 0, 2) * _att_sp.thrust / _params.vel_p(0)
-					- _params.vel_ff(0) * _vel_sp(0)) / _params.pos_p(0);
-		_pos_sp(1) = _pos(1) + (_vel(1) - PX4_R(_att_sp.R_body, 1, 2) * _att_sp.thrust / _params.vel_p(1)
-					- _params.vel_ff(1) * _vel_sp(1)) / _params.pos_p(1);
 
-		//mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %d, %d", (int)_pos_sp(0), (int)_pos_sp(1));
+		// we have logic in the main function which chooses the velocity setpoint such that the attitude setpoint is
+		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
+		// position in a special way. In position control mode the position will be reset anyway until the vehicle has reduced speed.
+		_pos_sp(0) = _pos(0);
+		_pos_sp(1) = _pos(1);
 	}
 }
 
@@ -719,8 +720,11 @@ MulticopterPositionControl::reset_alt_sp()
 {
 	if (_reset_alt_sp) {
 		_reset_alt_sp = false;
-		_pos_sp(2) = _pos(2) + (_vel(2) - _params.vel_ff(2) * _vel_sp(2)) / _params.pos_p(2);
-		//mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %d", -(int)_pos_sp(2));
+
+		// we have logic in the main function which choosed the velocity setpoint such that the attitude setpoint is
+		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
+		// altitude in a special way
+		_pos_sp(2) = _pos(2);
 	}
 }
 
@@ -928,19 +932,17 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 
 void MulticopterPositionControl::control_auto(float dt)
 {
-	/* reset position setpoint on AUTO mode activation or when reentering MC mode */
-	if (!_mode_auto || _vehicle_status.in_transition_mode || !_vehicle_status.is_rotary_wing) {
-		_mode_auto = true;
-
-		if (_vehicle_status.in_transition_mode || !_vehicle_status.is_rotary_wing) {
-			_reset_pos_sp = true;
-			_reset_alt_sp = true;
+	/* reset position setpoint on AUTO mode activation or if we are not in MC mode */
+	if (!_mode_auto || !_vehicle_status.is_rotary_wing) {
+		if (!_mode_auto) {
+			_mode_auto = true;
 		}
+
+		_reset_pos_sp = true;
+		_reset_alt_sp = true;
 
 		reset_pos_sp();
 		reset_alt_sp();
-		/* set current velocity as last target velocity to smooth out transition */
-		_vel_sp_prev = _vel;
 	}
 
 	//Poll position setpoint
@@ -1161,6 +1163,8 @@ MulticopterPositionControl::task_main()
 
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
+
+
 	math::Matrix<3, 3> R;
 	R.identity();
 
@@ -1247,6 +1251,16 @@ MulticopterPositionControl::task_main()
 			_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 		}
 
+		// reset the horizontal and vertical position hold flags for non-manual modes
+		// or if position / altitude is not controlled
+		if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
+			_pos_hold_engaged = false;
+		}
+
+		if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
+			_alt_hold_engaged = false;
+		}
+
 		if (_control_mode.flag_control_altitude_enabled ||
 				_control_mode.flag_control_position_enabled ||
 				_control_mode.flag_control_climb_rate_enabled ||
@@ -1258,16 +1272,6 @@ MulticopterPositionControl::task_main()
 			 * can disable this and run velocity controllers directly in this cycle */
 			_run_pos_control = true;
 			_run_alt_control = true;
-
-			// reset the horizontal and vertical position hold flags for non-manual modes
-			// or if position is not controlled
-			if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
-				_pos_hold_engaged = false;
-			}
-
-			if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
-				_alt_hold_engaged = false;
-			}
 
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
@@ -1385,6 +1389,7 @@ MulticopterPositionControl::task_main()
 					_vel_sp_prev(1) = _vel(1);
 					_vel_sp(0) = 0.0f;
 					_vel_sp(1) = 0.0f;
+					control_vel_enabled_prev = false;
 				}
 
 				if (!_control_mode.flag_control_climb_rate_enabled) {
@@ -1434,6 +1439,8 @@ MulticopterPositionControl::task_main()
 					_takeoff_jumped = false;
 					_takeoff_thrust_sp = 0.0f;
 				}
+
+
 
 				// limit total horizontal acceleration
 				math::Vector<2> acc_hor;
@@ -1510,8 +1517,25 @@ MulticopterPositionControl::task_main()
 					/* velocity error */
 					math::Vector<3> vel_err = _vel_sp - _vel;
 
+					// check if we have switched from a non-velocity controlled mode into a velocity controlled mode
+					// if yes, then correct xy velocity setpoint such that the attitude setpoint is continuous
+					if (!control_vel_enabled_prev && _control_mode.flag_control_velocity_enabled) {
+
+						// choose velocity xyz setpoint such that the resulting thrust setpoint has the direction
+						// given by the last attitude setpoint
+						_vel_sp(0) = _vel(0) + (-PX4_R(_att_sp.R_body, 0, 2) * _att_sp.thrust - thrust_int(0) - _vel_err_d(0) * _params.vel_d(0)) / _params.vel_p(0);
+						_vel_sp(1) = _vel(1) + (-PX4_R(_att_sp.R_body, 1, 2) * _att_sp.thrust - thrust_int(1) - _vel_err_d(1) * _params.vel_d(1)) / _params.vel_p(1);
+						_vel_sp(2) = _vel(2) + (-PX4_R(_att_sp.R_body, 2, 2) * _att_sp.thrust - thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
+						_vel_sp_prev(0) = _vel_sp(0);
+						_vel_sp_prev(1) = _vel_sp(1);
+						_vel_sp_prev(2) = _vel_sp(2);
+						control_vel_enabled_prev = true;
+
+						// compute updated velocity error
+						vel_err = _vel_sp - _vel;
+					}
+
 					/* thrust vector in NED frame */
-					// TODO?: + _vel_sp.emult(_params.vel_ff)
 					math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
 
 					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
@@ -1813,6 +1837,7 @@ MulticopterPositionControl::task_main()
 			_mode_auto = false;
 			reset_int_z = true;
 			reset_int_xy = true;
+			control_vel_enabled_prev = false;
 
 			/* store last velocity in case a mode switch to position control occurs */
 			_vel_sp_prev = _vel;

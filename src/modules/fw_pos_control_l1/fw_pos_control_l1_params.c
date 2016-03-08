@@ -133,6 +133,8 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
  * For overpowered aircraft, this should be reduced to a value that
  * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
  *
+ * @min 0.0
+ * @max 1.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
@@ -394,6 +396,9 @@ PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.02f);
 /**
  * Landing slope angle
  *
+ * @unit degrees
+ * @min 1.0
+ * @max 15.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
@@ -408,7 +413,9 @@ PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
 /**
  * Landing flare altitude (relative to landing altitude)
  *
- * @unit meter
+ * @unit meters
+ * @min 0.0
+ * @max 25.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_FLALT, 8.0f);
@@ -419,7 +426,9 @@ PARAM_DEFINE_FLOAT(FW_LND_FLALT, 8.0f);
  * Default of -1.0f lets the system default to applying throttle
  * limiting at 2/3 of the flare altitude.
  *
- * @unit meter
+ * @unit meters
+ * @min -1.0
+ * @max 30.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
@@ -427,6 +436,9 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
 /**
  * Landing heading hold horizontal distance
  *
+ * @unit meters
+ * @min 0
+ * @max 30.0
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
@@ -446,8 +458,13 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 0);
  * Minimum pitch during flare, a positive sign means nose up
  * Applied once FW_LND_TLALT is reached
  *
+ * @unit degrees
+ * @min 0
+ * @max 15.0
+ * @group L1 Control
+ *
  */
-PARAM_DEFINE_FLOAT(FW_FLARE_PMIN, 2.5f);
+PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
 
 /**
  * Flare, maximum pitch
@@ -455,8 +472,13 @@ PARAM_DEFINE_FLOAT(FW_FLARE_PMIN, 2.5f);
  * Maximum pitch during flare, a positive sign means nose up
  * Applied once FW_LND_TLALT is reached
  *
+ * @unit degrees
+ * @min 0
+ * @max 45.0
+ * @group L1 Control
+ *
  */
-PARAM_DEFINE_FLOAT(FW_FLARE_PMAX, 15.0f);
+PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
 
 /**
  * Landing airspeed scale factor
@@ -468,4 +490,4 @@ PARAM_DEFINE_FLOAT(FW_FLARE_PMAX, 15.0f);
  * @max 1.5
  * @group L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_SCALE, 1.3f);
+PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);

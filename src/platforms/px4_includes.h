@@ -99,6 +99,7 @@
 #include <platforms/nuttx/px4_messages/px4_position_setpoint_triplet.h>
 #include <platforms/nuttx/px4_messages/px4_offboard_control_mode.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_force_setpoint.h>
+#include <platforms/nuttx/px4_messages/px4_camera_trigger.h>
 #endif
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>

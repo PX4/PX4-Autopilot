@@ -6,18 +6,13 @@
     exit 0
 }
 
-if [ -f src/modules/uavcan/libuavcan/CMakeLists.txt ]
-then
-	echo "Git submodule config valid."
-else
-	git submodule update --init --recursive
-fi
 
 GITSTATUS=$(git status)
 
 function check_git_submodule {
 
-if [ -d $1 ];
+# The .git exists in a submodule if init and update have been done.
+if [ -f $1"/.git" ];
 	then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
 	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
@@ -33,7 +28,8 @@ if [ -d $1 ];
 		echo -e " *******************************************************************************"
 		echo -e " *   \033[31mIF YOU DID NOT CHANGE THIS FILE (OR YOU DON'T KNOW WHAT A SUBMODULE IS):\033[0m  *"
 		echo -e " *   \033[31mHit 'u' and <ENTER> to update ALL submodules and resolve this.\033[0m            *"
-		echo -e " *   (performs \033[94mgit submodule update --init --recursive\033[0m)                        *"
+		echo -e " *   (performs \033[94mgit submodule sync --recursive\033[0m                                  *"
+		echo -e " *    and \033[94mgit submodule update --init --recursive\033[0m )                            *"
 		echo -e " *******************************************************************************"
 		echo ""
 		echo ""
@@ -49,6 +45,7 @@ if [ -d $1 ];
 		else
 			if [ "$user_cmd" == "u" ]
 			then
+				git submodule sync --recursive
 				git submodule update --init --recursive
 				echo "Submodule fixed, continuing build.."
 			else
@@ -58,7 +55,7 @@ if [ -d $1 ];
 		fi
 	fi
 else
-	git submodule update --init --recursive;
+	git submodule update --init --recursive $1;
 fi
 
 }
