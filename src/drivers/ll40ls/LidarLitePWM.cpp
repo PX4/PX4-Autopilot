@@ -184,6 +184,7 @@ int LidarLitePWM::measure()
 	 * Require a minimum number of pulses with less than max interval before accepting data.
 	 */
 	_range.current_distance = 0.0f;
+
 	if (_pwm.period > LIDAR_LITE_MAX_PWM_PERIOD) {
 		_valid_count = 0;
 		warnx("break in sequence: reported range %u, period: %u", _pwm.pulse_width, _pwm.period);
@@ -191,6 +192,7 @@ int LidarLitePWM::measure()
 	} else {
 		if (_valid_count < 5) {
 			_valid_count++;
+
 		} else {
 			_range.current_distance = float(_pwm.pulse_width) * 1e-3f;   /* .001 m/usec for LIDAR-Lite */
 		}
