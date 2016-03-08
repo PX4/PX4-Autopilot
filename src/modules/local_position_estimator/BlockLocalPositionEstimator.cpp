@@ -279,15 +279,15 @@ void BlockLocalPositionEstimator::update()
 
 	// determine if we should start estimating
 	_canEstimateZ =
-		(_baroInitialized && !_baroFault);
+		(_baroInitialized && _baroFault < FAULT_SEVERE);
 	_canEstimateXY =
-		(_gpsInitialized && !_gpsFault) ||
-		(_flowInitialized && !_flowFault) ||
-		(_visionInitialized && !_visionFault) ||
-		(_mocapInitialized && !_mocapFault);
+		(_gpsInitialized && _gpsFault < FAULT_SEVERE) ||
+		(_flowInitialized && _flowFault < FAULT_SEVERE) ||
+		(_visionInitialized && _visionFault < FAULT_SEVERE) ||
+		(_mocapInitialized && _mocapFault < FAULT_SEVERE);
 	_canEstimateT =
-		(_lidarInitialized && !_lidarFault) ||
-		(_sonarInitialized && !_sonarFault);
+		(_lidarInitialized && _lidarFault < FAULT_SEVERE) ||
+		(_sonarInitialized && _sonarFault < FAULT_SEVERE);
 
 	if (_canEstimateXY) {
 		_time_last_xy = _timeStamp;
@@ -1164,7 +1164,7 @@ void BlockLocalPositionEstimator::correctFlow()
 	}
 
 	// kalman filter correction if no fault
-	if (_flowFault == FAULT_NONE) {
+	if (_flowFault < FAULT_SEVERE) {
 		Matrix<float, n_x, n_y_flow> K =
 			_P * C.transpose() * S_I;
 		_x += K * r;
@@ -1260,7 +1260,7 @@ void BlockLocalPositionEstimator::correctSonar()
 	}
 
 	// kalman filter correction if no fault
-	if (_sonarFault == FAULT_NONE) {
+	if (_sonarFault < FAULT_SEVERE) {
 		Matrix<float, n_x, n_y_sonar> K =
 			_P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
@@ -1319,7 +1319,7 @@ void BlockLocalPositionEstimator::correctBaro()
 	}
 
 	// kalman filter correction if no fault
-	if (_baroFault == FAULT_NONE) {
+	if (_baroFault < FAULT_SEVERE) {
 		Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
 
@@ -1402,7 +1402,7 @@ void BlockLocalPositionEstimator::correctLidar()
 	}
 
 	// kalman filter correction if no fault
-	if (_lidarFault == FAULT_NONE) {
+	if (_lidarFault < FAULT_SEVERE) {
 		Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
 
@@ -1525,9 +1525,6 @@ void BlockLocalPositionEstimator::correctGps()
 			_gpsFault = FAULT_MINOR;
 		}
 
-		// trust GPS less
-		S_I = inv<float, 6>((C * _P * C.transpose()) + R * 10);
-
 	} else if (_gpsFault) {
 		_gpsFault = FAULT_NONE;
 		mavlink_log_info(_mavlink_fd, "[lpe] GPS OK");
@@ -1535,7 +1532,7 @@ void BlockLocalPositionEstimator::correctGps()
 	}
 
 	// kalman filter correction if no hard fault
-	if (_gpsFault == FAULT_NONE) {
+	if (_gpsFault < FAULT_SEVERE) {
 		Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
@@ -1590,7 +1587,7 @@ void BlockLocalPositionEstimator::correctVision()
 	}
 
 	// kalman filter correction if no fault
-	if (_visionFault == FAULT_NONE) {
+	if (_visionFault <  FAULT_SEVERE) {
 		Matrix<float, n_x, n_y_vision> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
@@ -1647,7 +1644,7 @@ void BlockLocalPositionEstimator::correctMocap()
 	}
 
 	// kalman filter correction if no fault
-	if (_mocapFault == FAULT_NONE) {
+	if (_mocapFault <  FAULT_SEVERE) {
 		Matrix<float, n_x, n_y_mocap> K = _P * C.transpose() * S_I;
 		_x += K * r;
 		_P -= K * C * _P;
