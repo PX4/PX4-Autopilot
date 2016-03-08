@@ -601,5 +601,35 @@ private:
 
 int __EXPORT blockStatsTest();
 
+template<class Type, size_t M, size_t LEN>
+class __EXPORT BlockDelay: public Block
+{
+public:
+// methods
+	BlockDelay(SuperBlock *parent,
+		   const char *name) :
+		Block(parent, name),
+		_h(),
+		_index(0)
+	{
+	};
+	virtual ~BlockDelay() {};
+	matrix::Vector<Type, M> update(const matrix::Vector<Type, M> &u)
+	{
+		matrix::Vector<Type, M> val = _h[_index];
+		_h[_index] = u;
+		_index += 1;
+
+		if (_index >= LEN) { _index = 0; }
+
+		return val;
+	}
+private:
+// attributes
+	matrix::Vector<Type, M> _h[LEN];
+	size_t _index;
+};
+
+int __EXPORT blockDelayTest();
 
 } // namespace control
