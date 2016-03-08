@@ -234,7 +234,7 @@ struct parameters {
 		gyro_scale_p_noise = 3.0e-3f;
 		mag_p_noise = 2.5e-2f;
 		wind_vel_p_noise = 1.0e-1f;
-		terrain_p_noise = 0.5f;
+		terrain_p_noise = 5.0f;
 		terrain_gradient = 0.5f;
 
 		// position and velocity fusion
