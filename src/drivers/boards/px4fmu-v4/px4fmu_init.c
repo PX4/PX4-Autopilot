@@ -182,7 +182,7 @@ fat_dma_free(FAR void *memory, size_t size)
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
@@ -228,6 +228,8 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 	stm32_configgpio(GPIO_8266_PD);
 	stm32_configgpio(GPIO_8266_RST);
+	stm32_configgpio(GPIO_BTN_SAFETY);
+
 #ifdef GPIO_RC_OUT
 	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */
 	stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set it high to pull RC input up */

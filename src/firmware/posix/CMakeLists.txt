@@ -57,7 +57,7 @@ add_custom_target(run_config
 	)
 add_dependencies(run_config mainapp)
 
-foreach(viewer none jmavsim gazebo)
+foreach(viewer none jmavsim gazebo replay)
 	foreach(debugger none gdb lldb ddd valgrind)
 		foreach(model none iris iris_opt_flow tailsitter standard_vtol)
 			if (debugger STREQUAL "none")

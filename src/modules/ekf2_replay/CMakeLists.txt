@@ -32,16 +32,17 @@
 #############################################################################
 set(MODULE_CFLAGS)
 if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1600)
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=4000)
 endif()
 px4_add_module(
-	MODULE modules__attitude_estimator_q
-	MAIN attitude_estimator_q
+	MODULE modules__ekf2_replay
+	MAIN ekf2_replay
 	COMPILE_FLAGS ${MODULE_CFLAGS}
-	STACK 1200
+	STACK 1000
 	SRCS
-		attitude_estimator_q_main.cpp
+		ekf2_replay_main.cpp
 	DEPENDS
 		platforms__common
+		git_ecl
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

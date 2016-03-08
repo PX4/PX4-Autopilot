@@ -255,6 +255,57 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			}
 
 			update_sensors(&imu);
+
+			/* battery */
+			{
+				hrt_abstime now = hrt_absolute_time();
+				const float discharge_interval_us = 60 * 1000 * 1000;
+
+				static hrt_abstime batt_sim_start = now;
+
+				float cellcount = 3.0f;
+
+				float vbatt = 4.2f * cellcount;
+				float ibatt = 20.0f;
+
+				vbatt -= (0.5f * cellcount) * ((now - batt_sim_start) / discharge_interval_us);
+
+				if (vbatt < (cellcount * 3.7f)) {
+					vbatt = cellcount * 3.7f;
+				}
+
+				battery_status_s	battery_status;
+				battery_status.timestamp = hrt_absolute_time();
+
+				/* voltage is scaled to mV */
+				battery_status.voltage_v = vbatt;
+				battery_status.voltage_filtered_v = vbatt;
+
+				/*
+				  ibatt contains the raw ADC count, as 12 bit ADC
+				  value, with full range being 3.3v
+				*/
+				battery_status.current_a = ibatt;
+
+				/*
+				  integrate battery over time to get total mAh used
+				*/
+				if (_battery_last_timestamp != 0) {
+					_battery_mamphour_total += battery_status.current_a *
+								   (battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
+				}
+
+				battery_status.discharged_mah = _battery_mamphour_total;
+
+				/* lazily publish the battery voltage */
+				if (_battery_pub != nullptr) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &battery_status);
+					_battery_last_timestamp = battery_status.timestamp;
+
+				} else {
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &battery_status);
+				}
+			}
 		}
 		break;
 

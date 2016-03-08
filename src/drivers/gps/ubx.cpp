@@ -50,7 +50,6 @@
 
 #include <assert.h>
 #include <math.h>
-#include <poll.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -61,12 +60,12 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <drivers/drv_hrt.h>
+#include <px4_defines.h>
 
 #include "ubx.h"
 
 #define UBX_CONFIG_TIMEOUT	200		// ms, timeout for waiting ACK
 #define UBX_PACKET_TIMEOUT	2		// ms, if now data during this delay assume that full update received
-#define UBX_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
 #define DISABLE_MSG_INTERVAL	1000000		// us, try to disable message with this interval
 
 #define MIN(X,Y)	((X) < (Y) ? (X) : (Y))
@@ -77,13 +76,13 @@
 
 
 /**** Trace macros, disable for production builds */
-#define UBX_TRACE_PARSER(s, ...)	{/*printf(s, ## __VA_ARGS__);*/}	/* decoding progress in parse_char() */
-#define UBX_TRACE_RXMSG(s, ...)		{/*printf(s, ## __VA_ARGS__);*/}	/* Rx msgs in payload_rx_done() */
-#define UBX_TRACE_SVINFO(s, ...)	{/*printf(s, ## __VA_ARGS__);*/}	/* NAV-SVINFO processing (debug use only, will cause rx buffer overflows) */
+#define UBX_TRACE_PARSER(s, ...)	{/*PX4_INFO(s, ## __VA_ARGS__);*/}	/* decoding progress in parse_char() */
+#define UBX_TRACE_RXMSG(s, ...)		{/*PX4_INFO(s, ## __VA_ARGS__);*/}	/* Rx msgs in payload_rx_done() */
+#define UBX_TRACE_SVINFO(s, ...)	{/*PX4_INFO(s, ## __VA_ARGS__);*/}	/* NAV-SVINFO processing (debug use only, will cause rx buffer overflows) */
 
 /**** Warning macros, disable to save memory */
-#define UBX_WARN(s, ...)		{warnx(s, ## __VA_ARGS__);}
-#define UBX_DEBUG(s, ...)		{/*warnx(s, ## __VA_ARGS__);*/}
+#define UBX_WARN(s, ...)		{PX4_WARN(s, ## __VA_ARGS__);}
+#define UBX_DEBUG(s, ...)		{/*PX4_WARN(s, ## __VA_ARGS__);*/}
 
 UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info) :
 	_fd(fd),
@@ -244,6 +243,12 @@ UBX::configure(unsigned &baudrate)
 		}
 	}
 
+	configure_message_rate(UBX_MSG_NAV_DOP, 1);
+
+	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
+		return 1;
+	}
+
 	configure_message_rate(UBX_MSG_NAV_SVINFO, (_satellite_info != nullptr) ? 5 : 0);
 
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
@@ -296,63 +301,45 @@ UBX::wait_for_ack(const uint16_t msg, const unsigned timeout, const bool report)
 int	// -1 = error, 0 = no message handled, 1 = message handled, 2 = sat info message handled
 UBX::receive(const unsigned timeout)
 {
-	/* poll descriptor */
-	pollfd fds[1];
-	fds[0].fd = _fd;
-	fds[0].events = POLLIN;
-
 	uint8_t buf[128];
 
 	/* timeout additional to poll */
 	uint64_t time_started = hrt_absolute_time();
-
-	ssize_t count = 0;
 
 	int handled = 0;
 
 	while (true) {
 		bool ready_to_return = _configured ? (_got_posllh && _got_velned) : handled;
 
-		/* poll for new data, wait for only UBX_PACKET_TIMEOUT (2ms) if something already received */
-		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), ready_to_return ? UBX_PACKET_TIMEOUT : timeout);
+		/* Wait for only UBX_PACKET_TIMEOUT if something already received. */
+		int ret = poll_or_read(_fd, buf, sizeof(buf), ready_to_return ? UBX_PACKET_TIMEOUT : timeout);
 
 		if (ret < 0) {
-			/* something went wrong when polling */
-			UBX_WARN("ubx poll() err");
+			/* something went wrong when polling or reading */
+			UBX_WARN("ubx poll_or_read err");
 			return -1;
 
 		} else if (ret == 0) {
-			/* return success after short delay after receiving a packet or timeout after long delay */
+			/* return success if ready */
 			if (ready_to_return) {
 				_got_posllh = false;
 				_got_velned = false;
 				return handled;
-
-			} else {
-				return -1;
 			}
 
-		} else if (ret > 0) {
-			/* if we have new data from GPS, go handle it */
-			if (fds[0].revents & POLLIN) {
-				/*
-				 * We are here because poll says there is some data, so this
-				 * won't block even on a blocking device. But don't read immediately
-				 * by 1-2 bytes, wait for some more data to save expensive read() calls.
-				 * If more bytes are available, we'll go back to poll() again.
-				 */
-				usleep(UBX_WAIT_BEFORE_READ * 1000);
-				count = read(_fd, buf, sizeof(buf));
+		} else {
+			UBX_DEBUG("read %d bytes", ret);
 
-				/* pass received bytes to the packet decoder */
-				for (int i = 0; i < count; i++) {
-					handled |= parse_char(buf[i]);
-				}
+			/* pass received bytes to the packet decoder */
+			for (int i = 0; i < ret; i++) {
+				handled |= parse_char(buf[i]);
+				UBX_DEBUG("parsed %d: 0x%x", i, buf[i]);
 			}
 		}
 
 		/* abort after timeout if no useful packets received */
 		if (time_started + timeout * 1000 < hrt_absolute_time()) {
+			UBX_DEBUG("timed out, returning");
 			return -1;
 		}
 	}
@@ -368,7 +355,7 @@ UBX::parse_char(const uint8_t b)
 	/* Expecting Sync1 */
 	case UBX_DECODE_SYNC1:
 		if (b == UBX_SYNC1) {	// Sync1 found --> expecting Sync2
-			UBX_TRACE_PARSER("\nA");
+			UBX_TRACE_PARSER("A");
 			_decode_state = UBX_DECODE_SYNC2;
 		}
 
@@ -542,6 +529,17 @@ UBX::payload_rx_init()
 
 		break;
 
+	case UBX_MSG_NAV_DOP:
+		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_dop_t)) {
+			_rx_state = UBX_RXMSG_ERROR_LENGTH;
+
+		} else if (!_configured) {
+			_rx_state = UBX_RXMSG_IGNORE;        // ignore if not _configured
+
+		}
+
+		break;
+
 	case UBX_MSG_NAV_TIMEUTC:
 		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_timeutc_t)) {
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
@@ -690,7 +688,7 @@ UBX::payload_rx_add_nav_svinfo(const uint8_t b)
 		if (_rx_payload_index == sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
 			// Part 1 complete: decode Part 1 buffer
 			_satellite_info->count = MIN(_buf.payload_rx_nav_svinfo_part1.numCh, satellite_info_s::SAT_INFO_MAX_SATELLITES);
-			UBX_TRACE_SVINFO("SVINFO len %u  numCh %u\n", (unsigned)_rx_payload_length,
+			UBX_TRACE_SVINFO("SVINFO len %u  numCh %u", (unsigned)_rx_payload_length,
 					 (unsigned)_buf.payload_rx_nav_svinfo_part1.numCh);
 		}
 
@@ -710,7 +708,7 @@ UBX::payload_rx_add_nav_svinfo(const uint8_t b)
 				_satellite_info->elevation[sat_index]	= (uint8_t)(_buf.payload_rx_nav_svinfo_part2.elev);
 				_satellite_info->azimuth[sat_index]	= (uint8_t)((float)_buf.payload_rx_nav_svinfo_part2.azim * 255.0f / 360.0f);
 				_satellite_info->svid[sat_index]	= (uint8_t)(_buf.payload_rx_nav_svinfo_part2.svid);
-				UBX_TRACE_SVINFO("SVINFO #%02u  used %u  snr %3u  elevation %3u  azimuth %3u  svid %3u\n",
+				UBX_TRACE_SVINFO("SVINFO #%02u  used %u  snr %3u  elevation %3u  azimuth %3u  svid %3u",
 						 (unsigned)sat_index + 1,
 						 (unsigned)_satellite_info->used[sat_index],
 						 (unsigned)_satellite_info->snr[sat_index],
@@ -786,7 +784,7 @@ UBX::payload_rx_done(void)
 	switch (_rx_msg) {
 
 	case UBX_MSG_NAV_PVT:
-		UBX_TRACE_RXMSG("Rx NAV-PVT\n");
+		UBX_TRACE_RXMSG("Rx NAV-PVT");
 
 		//Check if position fix flag is good
 		if ((_buf.payload_rx_nav_pvt.flags & UBX_RX_NAV_PVT_FLAGS_GNSSFIXOK) == 1) {
@@ -829,6 +827,9 @@ UBX::payload_rx_done(void)
 			timeinfo.tm_hour	= _buf.payload_rx_nav_pvt.hour;
 			timeinfo.tm_min		= _buf.payload_rx_nav_pvt.min;
 			timeinfo.tm_sec		= _buf.payload_rx_nav_pvt.sec;
+
+			// TODO: this functionality is not available on the Snapdragon yet
+#ifndef __PX4_QURT
 			time_t epoch = mktime(&timeinfo);
 
 			if (epoch > GPS_EPOCH_SECS) {
@@ -850,6 +851,10 @@ UBX::payload_rx_done(void)
 			} else {
 				_gps_position->time_utc_usec = 0;
 			}
+
+#else
+			_gps_position->time_utc_usec = 0;
+#endif
 		}
 
 		_gps_position->timestamp_time		= hrt_absolute_time();
@@ -867,7 +872,7 @@ UBX::payload_rx_done(void)
 		break;
 
 	case UBX_MSG_NAV_POSLLH:
-		UBX_TRACE_RXMSG("Rx NAV-POSLLH\n");
+		UBX_TRACE_RXMSG("Rx NAV-POSLLH");
 
 		_gps_position->lat	= _buf.payload_rx_nav_posllh.lat;
 		_gps_position->lon	= _buf.payload_rx_nav_posllh.lon;
@@ -885,7 +890,7 @@ UBX::payload_rx_done(void)
 		break;
 
 	case UBX_MSG_NAV_SOL:
-		UBX_TRACE_RXMSG("Rx NAV-SOL\n");
+		UBX_TRACE_RXMSG("Rx NAV-SOL");
 
 		_gps_position->fix_type		= _buf.payload_rx_nav_sol.gpsFix;
 		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_sol.sAcc * 1e-2f;	// from cm to m
@@ -896,8 +901,19 @@ UBX::payload_rx_done(void)
 		ret = 1;
 		break;
 
+	case UBX_MSG_NAV_DOP:
+		UBX_TRACE_RXMSG("Rx NAV-DOP");
+
+		_gps_position->hdop		= _buf.payload_rx_nav_dop.hDOP * 0.01f;	// from cm to m
+		_gps_position->vdop		= _buf.payload_rx_nav_dop.vDOP * 0.01f;	// from cm to m
+
+		_gps_position->timestamp_variance = hrt_absolute_time();
+
+		ret = 1;
+		break;
+
 	case UBX_MSG_NAV_TIMEUTC:
-		UBX_TRACE_RXMSG("Rx NAV-TIMEUTC\n");
+		UBX_TRACE_RXMSG("Rx NAV-TIMEUTC");
 
 		if (_buf.payload_rx_nav_timeutc.valid & UBX_RX_NAV_TIMEUTC_VALID_VALIDUTC) {
 			// convert to unix timestamp
@@ -908,6 +924,8 @@ UBX::payload_rx_done(void)
 			timeinfo.tm_hour	= _buf.payload_rx_nav_timeutc.hour;
 			timeinfo.tm_min		= _buf.payload_rx_nav_timeutc.min;
 			timeinfo.tm_sec		= _buf.payload_rx_nav_timeutc.sec;
+			// TODO: this functionality is not available on the Snapdragon yet
+#ifndef __PX4_QURT
 			time_t epoch = mktime(&timeinfo);
 
 			// only set the time if it makes sense
@@ -931,6 +949,10 @@ UBX::payload_rx_done(void)
 			} else {
 				_gps_position->time_utc_usec = 0;
 			}
+
+#else
+			_gps_position->time_utc_usec = 0;
+#endif
 		}
 
 		_gps_position->timestamp_time = hrt_absolute_time();
@@ -939,7 +961,7 @@ UBX::payload_rx_done(void)
 		break;
 
 	case UBX_MSG_NAV_SVINFO:
-		UBX_TRACE_RXMSG("Rx NAV-SVINFO\n");
+		UBX_TRACE_RXMSG("Rx NAV-SVINFO");
 
 		// _satellite_info already populated by payload_rx_add_svinfo(), just add a timestamp
 		_satellite_info->timestamp = hrt_absolute_time();
@@ -948,7 +970,7 @@ UBX::payload_rx_done(void)
 		break;
 
 	case UBX_MSG_NAV_VELNED:
-		UBX_TRACE_RXMSG("Rx NAV-VELNED\n");
+		UBX_TRACE_RXMSG("Rx NAV-VELNED");
 
 		_gps_position->vel_m_s		= (float)_buf.payload_rx_nav_velned.speed * 1e-2f;
 		_gps_position->vel_n_m_s	= (float)_buf.payload_rx_nav_velned.velN * 1e-2f; /* NED NORTH velocity */
@@ -967,13 +989,13 @@ UBX::payload_rx_done(void)
 		break;
 
 	case UBX_MSG_MON_VER:
-		UBX_TRACE_RXMSG("Rx MON-VER\n");
+		UBX_TRACE_RXMSG("Rx MON-VER");
 
 		ret = 1;
 		break;
 
 	case UBX_MSG_MON_HW:
-		UBX_TRACE_RXMSG("Rx MON-HW\n");
+		UBX_TRACE_RXMSG("Rx MON-HW");
 
 		switch (_rx_payload_length) {
 
@@ -999,7 +1021,7 @@ UBX::payload_rx_done(void)
 		break;
 
 	case UBX_MSG_ACK_ACK:
-		UBX_TRACE_RXMSG("Rx ACK-ACK\n");
+		UBX_TRACE_RXMSG("Rx ACK-ACK");
 
 		if ((_ack_state == UBX_ACK_WAITING) && (_buf.payload_rx_ack_ack.msg == _ack_waiting_msg)) {
 			_ack_state = UBX_ACK_GOT_ACK;
@@ -1009,7 +1031,7 @@ UBX::payload_rx_done(void)
 		break;
 
 	case UBX_MSG_ACK_NAK:
-		UBX_TRACE_RXMSG("Rx ACK-NAK\n");
+		UBX_TRACE_RXMSG("Rx ACK-NAK");
 
 		if ((_ack_state == UBX_ACK_WAITING) && (_buf.payload_rx_ack_ack.msg == _ack_waiting_msg)) {
 			_ack_state = UBX_ACK_GOT_NAK;

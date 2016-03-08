@@ -298,6 +298,8 @@ private:
 
 		int rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 
+		int rc_map_flightmode;
+
 		int32_t rc_fails_thr;
 		float rc_assist_th;
 		float rc_auto_th;
@@ -363,6 +365,8 @@ private:
 							  to a RC channel, equivalent float values in the
 							  _parameters struct are not existing
 							  because these parameters are never read. */
+
+		param_t rc_map_flightmode;
 
 		param_t rc_fails_thr;
 		param_t rc_assist_th;
@@ -600,6 +604,8 @@ Sensors::Sensors() :
 		_parameter_handles.rc_map_param[i] = param_find(name);
 	}
 
+	_parameter_handles.rc_map_flightmode = param_find("RC_MAP_FLTMODE");
+
 	/* RC thresholds */
 	_parameter_handles.rc_fails_thr = param_find("RC_FAILS_THR");
 	_parameter_handles.rc_assist_th = param_find("RC_ASSIST_TH");
@@ -789,6 +795,8 @@ Sensors::parameters_update()
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
 	}
+
+	param_get(_parameter_handles.rc_map_flightmode, &(_parameters.rc_map_flightmode));
 
 	param_get(_parameter_handles.rc_fails_thr, &(_parameters.rc_fails_thr));
 	param_get(_parameter_handles.rc_assist_th, &(_parameters.rc_assist_th));
@@ -1870,8 +1878,7 @@ Sensors::rc_poll()
 		}
 
 		if (!signal_lost) {
-			struct manual_control_setpoint_s manual;
-			memset(&manual, 0 , sizeof(manual));
+			struct manual_control_setpoint_s manual = {};
 
 			/* fill values in manual_control_setpoint topic only if signal is valid */
 			manual.timestamp = rc_input.timestamp_last_signal;
@@ -1887,6 +1894,19 @@ Sensors::rc_poll()
 			manual.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
 			manual.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
 			manual.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
+
+			if (_parameters.rc_map_flightmode > 0) {
+
+				const float slot_min = -1.0f;
+				const float slot_max = 1.0f;
+				/* the number of valid slots is one less than the max marker */
+				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX - 1;
+				/* we need the maximum index below, not the number of slots, so slots - 1 */
+				const unsigned max_index = num_slots - 1;
+
+				manual.mode_slot = ((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * max_index) / (slot_max - slot_min);
+
+			}
 
 			/* mode switches */
 			manual.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th,

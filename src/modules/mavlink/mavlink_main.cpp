@@ -1770,6 +1770,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream("ESTIMATOR_STATUS", 0.5f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1799,12 +1800,13 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
+		configure_stream("ESTIMATOR_STATUS", 1.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
 		configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("ATTITUDE", 25.0f);
-		configure_stream("VFR_HUD", 5.0f);
+		configure_stream("VFR_HUD", 25.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("HOME_POSITION", 0.5f);
@@ -1814,6 +1816,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
+		configure_stream("ESTIMATOR_STATUS", 1.0f);
 		break;
 
 	case MAVLINK_MODE_MAGIC:
@@ -1847,6 +1850,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
+		configure_stream("ESTIMATOR_STATUS", 5.0f);
 	default:
 		break;
 	}

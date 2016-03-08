@@ -143,3 +143,13 @@ void logbuffer_mark_read(struct logbuffer_s *lb, int n)
 {
 	lb->read_ptr = (lb->read_ptr + n) % lb->size;
 }
+
+void logbuffer_free(struct logbuffer_s *lb)
+{
+	if (lb->data) {
+		free(lb->data);
+		lb->write_ptr = 0;
+		lb->read_ptr = 0;
+		lb->data = NULL;
+	}
+}
