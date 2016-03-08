@@ -105,11 +105,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_gpsStats(this, ""),
 
 	// stats
-	_gpsDelay(this, ""),
+	_xDelay(this, ""),
+	_PDelay(this, ""),
+	_tDelay(this, ""),
 
 	// misc
 	_polls(),
 	_timeStamp(hrt_absolute_time()),
+	_time_last_hist(0),
 	_time_last_xy(0),
 	_time_last_z(0),
 	_time_last_tz(0),
@@ -589,17 +592,6 @@ void BlockLocalPositionEstimator::initGps()
 		return;
 	}
 
-	// gps measurement
-	Vector<double, 6> h;
-	h.setZero();
-	h(0) = _sub_gps.get().lat;
-	h(1) = _sub_gps.get().lon;
-	h(2) = _sub_gps.get().alt;
-	h(3) = _sub_gps.get().vel_n_m_s;
-	h(4) = _sub_gps.get().vel_e_m_s;
-	h(5) = _sub_gps.get().vel_d_m_s;
-	_gpsDelay.update(h);
-
 	// collect gps data
 	Vector3<double> p(
 		_sub_gps.get().lat * 1e-7,
@@ -1040,6 +1032,13 @@ void BlockLocalPositionEstimator::predict()
 	_x += dx;
 	_P += (A * _P + _P * A.transpose() +
 	       B * R * B.transpose() + Q) * getDt();
+
+	// propagate delayed state
+	if (_time_last_hist == 0 || _time_last_hist - _timeStamp > 1000) {
+		_xDelay.update(_x);
+		_PDelay.update(_P);
+		_tDelay.update(Scalar<uint64_t>(_timeStamp));
+	}
 }
 
 void BlockLocalPositionEstimator::correctFlow()
@@ -1048,7 +1047,7 @@ void BlockLocalPositionEstimator::correctFlow()
 	float qual = _sub_flow.get().quality;
 
 	if (qual < _flow_min_q.get()) {
-		if (!_flowFault) {
+		if (_flowFault < FAULT_SEVERE) {
 			mavlink_log_info(_mavlink_fd, "[lpe] low flow quality %d", int(qual));
 			warnx("[lpe] low flow quality %d", int(qual));
 			_flowFault = FAULT_SEVERE;
@@ -1063,11 +1062,11 @@ void BlockLocalPositionEstimator::correctFlow()
 	// calculate range to center of image for flow
 	float d = 0;
 
-	if (_lidarInitialized && !_lidarFault) {
+	if (_lidarInitialized && _lidarFault < FAULT_SEVERE) {
 		d = _sub_lidar->get().current_distance
 		    + (_lidar_z_offset.get() - _flow_z_offset.get());
 
-	} else if (_sonarInitialized && !_sonarFault) {
+	} else if (_sonarInitialized && _sonarFault < FAULT_SEVERE) {
 		d = _sub_sonar->get().current_distance
 		    + (_sonar_z_offset.get() - _flow_z_offset.get());
 
@@ -1151,7 +1150,7 @@ void BlockLocalPositionEstimator::correctFlow()
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_flow]) {
-		if (!_flowFault) {
+		if (_flowFault < FAULT_MINOR) {
 			mavlink_log_info(_mavlink_fd, "[lpe] flow fault,  beta %5.2f", double(beta));
 			warnx("[lpe] flow fault,  beta %5.2f", double(beta));
 			_flowFault = FAULT_MINOR;
@@ -1207,7 +1206,7 @@ void BlockLocalPositionEstimator::correctSonar()
 	_time_last_sonar = _timeStamp;
 
 	// do not use sonar if lidar is active
-	if (_lidarInitialized && !_lidarFault) { return; }
+	if (_lidarInitialized && _lidarFault < FAULT_SEVERE) { return; }
 
 	// calculate covariance
 	float cov = _sub_sonar->get().covariance;
@@ -1303,7 +1302,7 @@ void BlockLocalPositionEstimator::correctBaro()
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_baro]) {
-		if (!_baroFault) {
+		if (_baroFault < FAULT_MINOR) {
 			mavlink_log_info(_mavlink_fd, "[lpe] baro fault, beta %5.2f", double(beta));
 			warnx("[lpe] baro fault, beta %5.2f", double(beta));
 			_baroFault = FAULT_MINOR;
@@ -1345,7 +1344,7 @@ void BlockLocalPositionEstimator::correctLidar()
 
 	// if out of range, this is an error
 	if (d < min_dist || d > max_dist) {
-		if (!_lidarFault) {
+		if (_lidarFault < FAULT_SEVERE) {
 			mavlink_log_info(_mavlink_fd, "[lpe] lidar out of range");
 			warnx("[lpe] lidar out of range");
 			_lidarFault = FAULT_SEVERE;
@@ -1389,7 +1388,7 @@ void BlockLocalPositionEstimator::correctLidar()
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_lidar]) {
-		if (!_lidarFault) {
+		if (_lidarFault < FAULT_MINOR) {
 			mavlink_log_info(_mavlink_fd, "[lpe] lidar fault, beta %5.2f", double(beta));
 			warnx("[lpe] lidar fault, beta %5.2f", double(beta));
 			_lidarFault = FAULT_MINOR;
@@ -1434,22 +1433,11 @@ void BlockLocalPositionEstimator::correctGps()
 		return;
 	}
 
-	// gps measurement
-	Vector<double, 6> h0;
-	h0.setZero();
-	h0(0) = _sub_gps.get().lat;
-	h0(1) = _sub_gps.get().lon;
-	h0(2) = _sub_gps.get().alt;
-	h0(3) = _sub_gps.get().vel_n_m_s;
-	h0(4) = _sub_gps.get().vel_e_m_s;
-	h0(5) = _sub_gps.get().vel_d_m_s;
-	Vector<double, 6> h = _gpsDelay.update(h0);
-
 	// gps measurement in local frame
 	_time_last_gps = _timeStamp;
-	double  lat = h(0) * 1.0e-7;
-	double  lon = h(1) * 1.0e-7;
-	float  alt = h(2) * 1.0e-3;
+	double  lat = _sub_gps.get().lat * 1.0e-7;
+	double  lon = _sub_gps.get().lon * 1.0e-7;
+	float  alt = _sub_gps.get().alt * 1.0e-3;
 	float px = 0;
 	float py = 0;
 	float pz = -(alt - _gpsAltHome);
@@ -1459,9 +1447,9 @@ void BlockLocalPositionEstimator::correctGps()
 	y(0) = px;
 	y(1) = py;
 	y(2) = pz;
-	y(3) = h(3);
-	y(4) = h(4);
-	y(5) = h(5);
+	y(3) = _sub_gps.get().vel_n_m_s;
+	y(4) = _sub_gps.get().vel_e_m_s;
+	y(5) = _sub_gps.get().vel_d_m_s;
 
 	// gps measurement matrix, measures position and velocity
 	Matrix<float, n_y_gps, n_x> C;
@@ -1499,9 +1487,24 @@ void BlockLocalPositionEstimator::correctGps()
 	R(4, 4) = var_vxy;
 	R(5, 5) = var_vz;
 
+	// get delayed x and P
+	uint64_t t_delay = 0;
+	int i = 0;
+
+	for (i = 0; i < HIST_LEN; i++) {
+		t_delay += _tDelay.get(i)(0, 0);
+
+		if (t_delay > 2000) {
+			break;
+		}
+	}
+
+	Vector<float, n_x> x0 = _xDelay.get(i);
+	Matrix<float, n_x, n_x> P0 = _PDelay.get(i);
+
 	// residual
-	Vector<float, 6> r = y - C * _x;
-	Matrix<float, 6, 6> S_I = inv<float, 6>(C * _P * C.transpose() + R);
+	Vector<float, n_y_gps> r = y - C * x0;
+	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, 6>(C * P0 * C.transpose() + R);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
@@ -1533,9 +1536,9 @@ void BlockLocalPositionEstimator::correctGps()
 
 	// kalman filter correction if no hard fault
 	if (_gpsFault < FAULT_SEVERE) {
-		Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
+		Matrix<float, n_x, n_y_gps> K = P0 * C.transpose() * S_I;
 		_x += K * r;
-		_P -= K * C * _P;
+		_P -= K * C * P0;
 	}
 }
 

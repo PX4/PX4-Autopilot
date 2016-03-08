@@ -601,7 +601,7 @@ private:
 
 int __EXPORT blockStatsTest();
 
-template<class Type, size_t M, size_t LEN>
+template<class Type, size_t M, size_t N, size_t LEN>
 class __EXPORT BlockDelay: public Block
 {
 public:
@@ -615,7 +615,7 @@ public:
 	{
 	};
 	virtual ~BlockDelay() {};
-	matrix::Vector<Type, M> update(const matrix::Vector<Type, M> &u)
+	matrix::Matrix<Type, M, N> update(const matrix::Matrix<Type, M, N> &u)
 	{
 		// store current value
 		_h[_index] = u;
@@ -644,9 +644,9 @@ public:
 		// get delayed value
 		return _h[j];
 	}
-	matrix::Vector<Type, M> get()
+	matrix::Matrix<Type, M, N> get(size_t delay)
 	{
-		int j = _index - _delay;
+		int j = _index - delay;
 
 		if (j < 0) { j += LEN; }
 
@@ -654,7 +654,7 @@ public:
 	}
 private:
 // attributes
-	matrix::Vector<Type, M> _h[LEN];
+	matrix::Matrix<Type, M, N> _h[LEN];
 	size_t _index;
 	int _delay;
 };

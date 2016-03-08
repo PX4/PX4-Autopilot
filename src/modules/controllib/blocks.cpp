@@ -581,7 +581,7 @@ int blockDelayTest()
 {
 	printf("Test BlockDelay\t\t\t: ");
 	using namespace matrix;
-	BlockDelay<float, 2, 3> delay(NULL, "TEST");
+	BlockDelay<float, 2, 1, 3> delay(NULL, "TEST");
 	Vector2f u1(1, 2);
 	Vector2f y1 = delay.update(u1);
 	ASSERT_CL(equal(y1(0), u1(0)));
