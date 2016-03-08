@@ -562,7 +562,7 @@ int blockRandGaussTest()
 
 int blockStatsTest()
 {
-	printf("Test BlockStats\t\t: ");
+	printf("Test BlockStats\t\t\t: ");
 	BlockStats<float, 1> stats(NULL, "TEST");
 	ASSERT_CL(equal(0.0f, stats.getMean()(0)));
 	ASSERT_CL(equal(0.0f, stats.getStdDev()(0)));
@@ -579,19 +579,28 @@ int blockStatsTest()
 
 int blockDelayTest()
 {
-	printf("Test BlockDelay\t\t: ");
+	printf("Test BlockDelay\t\t\t: ");
 	using namespace matrix;
 	BlockDelay<float, 2, 3> delay(NULL, "TEST");
 	Vector2f u1(1, 2);
 	Vector2f y1 = delay.update(u1);
+	ASSERT_CL(equal(y1(0), u1(0)));
+	ASSERT_CL(equal(y1(1), u1(1)));
+
 	Vector2f u2(4, 5);
 	Vector2f y2 = delay.update(u2);
+	ASSERT_CL(equal(y2(0), u1(0)));
+	ASSERT_CL(equal(y2(1), u1(1)));
+
 	Vector2f u3(7, 8);
 	Vector2f y3 = delay.update(u3);
+	ASSERT_CL(equal(y3(0), u1(0)));
+	ASSERT_CL(equal(y3(1), u1(1)));
+
 	Vector2f u4(9, 10);
 	Vector2f y4 = delay.update(u4);
-	ASSERT_CL(equal(u1(0), y4(0)));
-	ASSERT_CL(equal(u1(1), y4(1)));
+	ASSERT_CL(equal(y4(0), u2(0)));
+	ASSERT_CL(equal(y4(1), u2(1)));
 	printf("PASS\n");
 	return 0;
 }

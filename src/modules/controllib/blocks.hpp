@@ -610,24 +610,53 @@ public:
 		   const char *name) :
 		Block(parent, name),
 		_h(),
-		_index(0)
+		_index(0),
+		_delay(-1)
 	{
 	};
 	virtual ~BlockDelay() {};
 	matrix::Vector<Type, M> update(const matrix::Vector<Type, M> &u)
 	{
-		matrix::Vector<Type, M> val = _h[_index];
+		// store current value
 		_h[_index] = u;
+
+		// delay starts at zero, then increases to LEN
+		_delay += 1;
+
+		if (_delay > (LEN - 1)) {
+			_delay = LEN - 1;
+		}
+
+		// compute position of delayed value
+		int j = _index - _delay;
+
+		if (j < 0) {
+			j += LEN;
+		}
+
+		// increment storage position
 		_index += 1;
 
-		if (_index >= LEN) { _index = 0; }
+		if (_index > (LEN - 1)) {
+			_index  = 0;
+		}
 
-		return val;
+		// get delayed value
+		return _h[j];
+	}
+	matrix::Vector<Type, M> get()
+	{
+		int j = _index - _delay;
+
+		if (j < 0) { j += LEN; }
+
+		return _h[j];
 	}
 private:
 // attributes
 	matrix::Vector<Type, M> _h[LEN];
 	size_t _index;
+	int _delay;
 };
 
 int __EXPORT blockDelayTest();
