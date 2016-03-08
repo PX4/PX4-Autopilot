@@ -79,7 +79,7 @@ private:
 	int _mag_class_instance;
 	bool _mag_reading_data;
 	ringbuffer::RingBuffer *_mag_reports;
-	struct mag_scale _mag_scale;
+	struct mag_calibration_s _mag_scale;
 	float _mag_range_scale;
 	perf_counter_t _mag_reads;
 	float _mag_asa_x;
