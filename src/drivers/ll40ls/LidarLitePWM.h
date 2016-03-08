@@ -107,6 +107,8 @@ protected:
 private:
 	/* expect maximum PWM period of max distance * 1000 usec + 5000 usec */
 	static const int	LIDAR_LITE_MAX_PWM_PERIOD = (int)(LL40LS_MAX_DISTANCE * 1000 + 5000);
+	/* minimum number of continuous PWM pulses to accept measurement */
+	static const int	MIN_STREAM_LEN = 5;
 	work_s			_work;
 	ringbuffer::RingBuffer	*_reports;
 	int			_class_instance;

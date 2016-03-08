@@ -180,7 +180,7 @@ int LidarLitePWM::measure()
 		return ERROR;
 	}
 
-	/* for distances near zero and > 40m, no PWM pulse is generated:
+	/* for distances near zero and exceeding max range no PWM pulse is generated:
 	 * Require a minimum number of pulses with less than max interval before accepting data.
 	 */
 	_range.current_distance = 0.0f;
@@ -190,7 +190,7 @@ int LidarLitePWM::measure()
 		warnx("break in sequence: reported range %u, period: %u", _pwm.pulse_width, _pwm.period);
 
 	} else {
-		if (_valid_count < 5) {
+		if (_valid_count < MIN_STREAM_LEN) {
 			_valid_count++;
 
 		} else {
