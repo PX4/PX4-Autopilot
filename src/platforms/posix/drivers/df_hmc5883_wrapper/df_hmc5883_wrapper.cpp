@@ -56,6 +56,8 @@
 
 #include <drivers/drv_mag.h>
 
+#include <uORB/topics/mag_calibration.h>
+
 #include <board_config.h>
 //#include <mathlib/math/filter/LowPassFilter2p.hpp>
 //#include <lib/conversion/rotation.h>
@@ -93,9 +95,17 @@ public:
 private:
 	int _publish(struct mag_sensor_data &data);
 
+	void _update_mag_calibration();
+
 	//enum Rotation		_rotation;
 
 	orb_advert_t		_mag_topic;
+
+	int			_mag_calibration_sub;
+
+	struct mag_calibration_s  _mag_calibration;
+
+	bool			_mag_calibration_set;
 
 	int			_mag_orb_class_instance;
 
@@ -129,6 +139,11 @@ int DfHmc9250Wrapper::start()
 		return -1;
 	}
 
+	/* Subscribe to calibration topic. */
+	if (_mag_calibration_sub < 0) {
+		_mag_calibration_sub = orb_subscribe(ORB_ID(mag_calibration));
+	}
+
 	/* Init device and start sensor. */
 	int ret = init();
 
@@ -160,8 +175,34 @@ int DfHmc9250Wrapper::stop()
 	return 0;
 }
 
+void DfHmc9250Wrapper::_update_mag_calibration()
+{
+	bool updated;
+	orb_check(_mag_calibration_sub, &updated);
+
+	if (updated) {
+		mag_calibration_s new_calibration;
+		orb_copy(ORB_ID(mag_calibration), _mag_calibration_sub, &new_calibration);
+
+		/* Only accept calibration for this device. */
+		if (m_id.dev_id == new_calibration.device_id) {
+			_mag_calibration = new_calibration;
+			_mag_calibration_set = true;
+		}
+	}
+}
+
+
 int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 {
+	/* Check if calibration values are still up-to-date. */
+	_update_mag_calibration();
+
+	if (!_mag_calibration_set) {
+		// TODO: check the return codes of this function
+		return 0;
+	}
+
 	/* Publish mag first. */
 	perf_begin(_mag_sample_perf);
 
