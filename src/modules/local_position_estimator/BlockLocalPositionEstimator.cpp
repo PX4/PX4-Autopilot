@@ -1498,9 +1498,12 @@ void BlockLocalPositionEstimator::correctGps()
 			mavlink_log_info(_mavlink_fd, "[lpe] S_I: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
 					 double(S_I(0, 0)),  double(S_I(1, 1)), double(S_I(2, 2)),
 					 double(S_I(3, 3)),  double(S_I(4, 4)), double(S_I(5, 5)));
-			mavlink_log_info(_mavlink_fd, "[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
-					 double(r(0)),  double(r(1)), double(r(2)),
-					 double(r(3)), double(r(4)), double(r(5)));
+			warnx("[lpe] r: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
+			      double(r(0)),  double(r(1)), double(r(2)),
+			      double(r(3)), double(r(4)), double(r(5)));
+			warnx("[lpe] S_I: %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f",
+			      double(S_I(0, 0)),  double(S_I(1, 1)), double(S_I(2, 2)),
+			      double(S_I(3, 3)),  double(S_I(4, 4)), double(S_I(5, 5)));
 			_gpsFault = FAULT_MINOR;
 		}
 
