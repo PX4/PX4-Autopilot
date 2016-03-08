@@ -157,7 +157,7 @@ private:
 	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
-	mag_scale		_scale;
+	struct mag_calibration_s	_scale;
 	float 			_range_scale;
 	float 			_range_ga;
 	bool			_collect_phase;
@@ -737,14 +737,14 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */
-		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
+		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
 		/* check calibration, but not actually return an error */
 		(void)check_calibration();
 		return 0;
 
 	case MAGIOCGSCALE:
 		/* copy out scale factors */
-		memcpy((mag_scale *)arg, &_scale, sizeof(_scale));
+		memcpy((struct mag_calibration_s *)arg, &_scale, sizeof(_scale));
 		return 0;
 
 	case MAGIOCCALIBRATE:
