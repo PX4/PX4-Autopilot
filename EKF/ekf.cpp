@@ -86,8 +86,10 @@ Ekf::Ekf():
 	_R_prev = matrix::Dcm<float>();
 	memset(_vel_pos_innov, 0, sizeof(_vel_pos_innov));
 	memset(_mag_innov, 0, sizeof(_mag_innov));
+	memset(_flow_innov, 0, sizeof(_flow_innov));
 	memset(_vel_pos_innov_var, 0, sizeof(_vel_pos_innov_var));
 	memset(_mag_innov_var, 0, sizeof(_mag_innov_var));
+	memset(_flow_innov_var, 0, sizeof(_flow_innov_var));
 	_delta_angle_corr.setZero();
 	_delta_vel_corr.setZero();
 	_vel_corr.setZero();
@@ -97,7 +99,7 @@ Ekf::Ekf():
 	_mag_sum = {};
 	_delVel_sum = {};
 	_flow_gyro_bias = {};
-	_imu_del_ang_of = {};
+	_imu_del_ang_of = {};	
 }
 
 Ekf::~Ekf()
