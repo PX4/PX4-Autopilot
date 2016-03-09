@@ -682,6 +682,10 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					/* ACRO */
 					main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_ACRO);
 
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_RATTITUDE) {
+					/* RATTITUDE */
+					main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_RATTITUDE);
+
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_STABILIZED) {
 					/* STABILIZED */
 					main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_STAB);
