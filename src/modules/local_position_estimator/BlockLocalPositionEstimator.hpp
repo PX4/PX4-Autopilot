@@ -1,5 +1,6 @@
 #pragma once
 
+#include <px4_posix.h>
 #include <controllib/uorb/blocks.hpp>
 #include <mathlib/mathlib.h>
 #include <systemlib/perf_counter.h>
@@ -262,7 +263,7 @@ private:
 	//BlockDelay<uint64_t, 1, 1, HIST_LEN> _tDelay;
 
 	// misc
-	struct pollfd _polls[3];
+	px4_pollfd_struct_t _polls[3];
 	uint64_t _timeStamp;
 	//uint64_t _time_last_hist;
 	uint64_t _time_last_xy;

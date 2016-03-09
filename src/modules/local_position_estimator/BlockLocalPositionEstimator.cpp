@@ -221,7 +221,7 @@ void BlockLocalPositionEstimator::update()
 {
 
 	// wait for a sensor update, check for exit condition every 100 ms
-	int ret = poll(_polls, 3, 100);
+	int ret = px4_poll(_polls, 3, 100);
 
 	if (ret < 0) {
 		/* poll error, count it in perf */
