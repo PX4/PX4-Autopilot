@@ -146,6 +146,7 @@ void copy_params_to_shmem(struct param_info_s *param_info_base)
 	}
 
 	PX4_DEBUG("%d krait params allocated", param_count());
+
 	for (param = 0; param < param_count(); param++) {
 		struct param_wbuf_s *s = param_find_changed(param);
 
@@ -200,7 +201,8 @@ void update_to_shmem(param_t param, union param_value_u value)
 	bit_changed = 1 << param % 8;
 	shmem_info_p->krait_changed_index[byte_changed] |= bit_changed;
 
-	PX4_DEBUG("set %d bit on krait changed index[%d] to %d", bit_changed, byte_changed, shmem_info_p->krait_changed_index[byte_changed]);
+	PX4_DEBUG("set %d bit on krait changed index[%d] to %d", bit_changed, byte_changed,
+		  shmem_info_p->krait_changed_index[byte_changed]);
 
 #ifdef SHMEM_DEBUG
 
@@ -295,7 +297,7 @@ int update_from_shmem(param_t param, union param_value_u *value)
 
 	//else {PX4_INFO("no change to param %s", param_name(param));}
 
-	PX4_DEBUG("%s %d bit on adsp index[%d]", (retval)?"cleared":"unchanged", bit_changed, byte_changed);
+	PX4_DEBUG("%s %d bit on adsp index[%d]", (retval) ? "cleared" : "unchanged", bit_changed, byte_changed);
 
 	return retval;
 }
