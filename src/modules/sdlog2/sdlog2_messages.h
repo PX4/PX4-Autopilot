@@ -553,6 +553,19 @@ struct log_RPL2_s {
 	float vel_d_m_s;
 	bool vel_ned_valid;
 };
+/* --- EKF2 REPLAY Part 3 --- */
+#define LOG_RPL3_MSG 54
+struct log_RPL3_s {
+	uint64_t time_rng_usec;
+	uint64_t time_flow_usec;
+	float range_to_ground;
+	float flow_integral_x;
+	float flow_integral_y;
+	float gyro_integral_x;
+	float gyro_integral_y;
+	uint32_t flow_time_integral;
+	uint8_t flow_quality;
+};
 
 /* --- CAMERA TRIGGER --- */
 #define LOG_CAMT_MSG 55
@@ -643,6 +656,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(CAMT, "QI", "timestamp,seq"),
 	LOG_FORMAT(RPL1, "QQQQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gIx,gIy,gIz,aIx,aIy,aIz,magX,magY,magZ,b_alt"),
 	LOG_FORMAT(RPL2, "QQLLLMffffffM", "Tpos,Tvel,lat,lon,alt,fix_type,eph,epv,v,vN,vE,vD,v_val"),
+	LOG_FORMAT(RPL3, "QQfffffIB", "Trng,Tflow,rng,fx,fy,gx,gy,delT,qual"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
