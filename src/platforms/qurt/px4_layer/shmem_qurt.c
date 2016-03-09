@@ -105,7 +105,6 @@ int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 void release_shmem_lock(void)
 {
 	// TODO: don't do this either
-	PX4_INFO("unlocking");
 	return;
 
 	unsigned char *lock = (unsigned char *)(MAP_ADDRESS + LOCK_OFFSET);
