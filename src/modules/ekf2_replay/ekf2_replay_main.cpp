@@ -137,10 +137,12 @@ private:
 	struct vehicle_gps_position_s _gps;
 	struct vehicle_status_s _status;
 
-	bool _read_part1;
-	bool _read_part2;
+	unsigned _message_counter; // counter which will increase with every message read from the log
+	unsigned _part1_counter_ref;		// this is the value of _message_counter when the part1 of the replay message is read (imu data)
+	bool _read_part2;				// indicates if part 2 of replay message has been read
 
 	int _write_fd = -1;
+	px4_pollfd_struct_t _fds[1];
 
 	// parse replay message from buffer
 	// @source 			pointer to log message data (excluding header)
@@ -170,6 +172,11 @@ private:
 
 	// get estimator output messages and write them to replay log
 	void logIfUpdated();
+
+	// this will call the method to publish the input data for the estimator
+	// it will then wait for the output data from the estimator and call the propoper
+	// functions to handle it
+	void publishAndWaitForEstimator();
 };
 
 Ekf2Replay::Ekf2Replay(char *logfile) :
@@ -185,7 +192,8 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_sensors{},
 	_gps{},
 	_status{},
-	_read_part1(false),
+	_message_counter(0),
+	_part1_counter_ref(0),
 	_read_part2(false),
 	_write_fd(-1)
 {
@@ -207,17 +215,19 @@ Ekf2Replay::~Ekf2Replay()
 
 void Ekf2Replay::publishEstimatorInput()
 {
-	if (_gps_pub == nullptr && _gps.timestamp_position > 0) {
+	if (_gps_pub == nullptr && _read_part2) {
 		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_gps);
 
-	} else if (_gps_pub != nullptr && _gps.timestamp_position > 0) {
+	} else if (_gps_pub != nullptr && _read_part2) {
 		orb_publish(ORB_ID(vehicle_gps_position), _gps_pub, &_gps);
 	}
 
-	if (_sensors_pub == nullptr && _read_part1) {
+	_read_part2 = false;
+
+	if (_sensors_pub == nullptr) {
 		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &_sensors);
 
-	} else if (_sensors_pub != nullptr && _read_part1) {
+	} else if (_sensors_pub != nullptr) {
 		orb_publish(ORB_ID(sensor_combined), _sensors_pub, &_sensors);
 	}
 }
@@ -291,7 +301,7 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_sensors.magnetometer_ga[1] = replay_part1.magnetometer_y_ga;
 		_sensors.magnetometer_ga[2] = replay_part1.magnetometer_z_ga;
 		_sensors.baro_alt_meter[0] = replay_part1.baro_alt_meter;
-		_read_part1 = true;
+		_part1_counter_ref = _message_counter;
 
 	} else if (type == LOG_RPL2_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&replay_part2.time_pos_usec;
@@ -514,6 +524,29 @@ void Ekf2Replay::logIfUpdated()
 	}
 }
 
+void Ekf2Replay::publishAndWaitForEstimator()
+{
+	// reset the counter reference for the imu replay topic
+	_part1_counter_ref = 0;
+
+	publishEstimatorInput();
+
+	// wait for estimator output to arrive
+	int pret = px4_poll(&_fds[0], (sizeof(_fds) / sizeof(_fds[0])), 1000);
+
+	if (pret == 0) {
+		PX4_WARN("timeout");
+	}
+	if (pret < 0) {
+		PX4_WARN("poll error");
+	}
+
+	if (_fds[0].revents & POLLIN) {
+		// write all estimator messages to replay log file
+		logIfUpdated();
+	}
+}
+
 void Ekf2Replay::task_main()
 {
 	// formats
@@ -550,11 +583,9 @@ void Ekf2Replay::task_main()
 	_lpos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_control_state_sub = orb_subscribe(ORB_ID(control_state));
 
-	px4_pollfd_struct_t fds[1];
-
 	// we use attitude updates from the estimator for synchronisation
-	fds[0].fd = _att_sub;
-	fds[0].events = POLLIN;
+	_fds[0].fd = _att_sub;
+	_fds[0].events = POLLIN;
 
 	bool read_first_header = false;
 
@@ -562,6 +593,7 @@ void Ekf2Replay::task_main()
 	PX4_INFO("Log data will be written to %s\n", replay_file_location);
 
 	while (!_task_should_exit) {
+		_message_counter++;
 		uint8_t header[3] = {};
 
 		if (::read(fd, header, 3) != 3) {
@@ -648,30 +680,20 @@ void Ekf2Replay::task_main()
 				writeMessage(_write_fd, &data[0], _formats[header[2]].length - 3);
 			}
 
+			if (header[2] == LOG_RPL1_MSG && _part1_counter_ref > 0) {
+				// we have found two consecutive imu replay messages but haven't published the first one
+				// so do that now
+				publishAndWaitForEstimator();
+			}
+
 			// set estimator input data
 			setEstimatorInput(&data[0], header[2]);
 
-			// we have read both messages, publish them
-			if (_read_part1 && _read_part2) {
-				publishEstimatorInput();
-
-				// wait for estimator output to arrive
-				int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
-
-				if (pret == 0) {
-					PX4_WARN("timeout");
-				}
-
-				if (pret < 0) {
-					PX4_WARN("poll error");
-				}
-
-				if (fds[0].revents & POLLIN) {
-					// write all estimator messages to replay log file
-					logIfUpdated();
-
-					_read_part1 = _read_part2 = false;
-				}
+			// we have read the imu replay message (part 1) and have waited one more cycle for a potential
+			// gps replay message (part 2) which is always written direcly after part 1 in the log file
+			// therefore, we can kick the estimator now
+			if (_part1_counter_ref > 0 && _part1_counter_ref < _message_counter) {
+				publishAndWaitForEstimator();
 			}
 		}
 	}
