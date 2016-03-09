@@ -484,3 +484,21 @@ PARAM_DEFINE_FLOAT(EKF2_OF_GATE, 3.0f);
  * @unit rad/sec
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_RMAX, 2.5f);
+
+/**
+ * Terrain altitude process noise - accounts for instability in vehicle height estimate
+ *
+ * @group EKF2
+ * @min 0.5
+ * @unit m/sec
+ */
+PARAM_DEFINE_FLOAT(EKF2_TERR_NOISE, 5.0f);
+
+/**
+ * Magnitude of terrain gradient
+ *
+ * @group EKF2
+ * @min 0.0
+ * @unit m/m
+ */
+PARAM_DEFINE_FLOAT(EKF2_TERR_GRAD, 0.5f);
