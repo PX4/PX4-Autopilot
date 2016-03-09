@@ -1202,6 +1202,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_RPL2_s log_RPL2;
 			struct log_EST6_s log_INO3;
 			struct log_RPL3_s log_RPL3;
+			struct log_RPL4_s log_RPL4;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1485,17 +1486,24 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(RPL2);
 			}
 
-			log_msg.msg_type = LOG_RPL3_MSG;
-			log_msg.body.log_RPL3.time_rng_usec = buf.replay.rng_timestamp;
-			log_msg.body.log_RPL3.time_flow_usec = buf.replay.flow_timestamp;
-			log_msg.body.log_RPL3.range_to_ground = buf.replay.range_to_ground;
-			log_msg.body.log_RPL3.flow_integral_x = buf.replay.flow_pixel_integral[0];
-			log_msg.body.log_RPL3.flow_integral_y = buf.replay.flow_pixel_integral[1];
-			log_msg.body.log_RPL3.gyro_integral_x = buf.replay.flow_gyro_integral[0];
-			log_msg.body.log_RPL3.gyro_integral_y = buf.replay.flow_gyro_integral[1];
-			log_msg.body.log_RPL3.flow_time_integral = buf.replay.flow_time_integral;
-			log_msg.body.log_RPL3.flow_quality = buf.replay.flow_quality;
-			LOGBUFFER_WRITE_AND_COUNT(RPL3);
+			if (buf.replay.flow_timestamp > 0) {
+				log_msg.msg_type = LOG_RPL3_MSG;
+				log_msg.body.log_RPL3.time_flow_usec = buf.replay.flow_timestamp;
+				log_msg.body.log_RPL3.flow_integral_x = buf.replay.flow_pixel_integral[0];
+				log_msg.body.log_RPL3.flow_integral_y = buf.replay.flow_pixel_integral[1];
+				log_msg.body.log_RPL3.gyro_integral_x = buf.replay.flow_gyro_integral[0];
+				log_msg.body.log_RPL3.gyro_integral_y = buf.replay.flow_gyro_integral[1];
+				log_msg.body.log_RPL3.flow_time_integral = buf.replay.flow_time_integral;
+				log_msg.body.log_RPL3.flow_quality = buf.replay.flow_quality;
+				LOGBUFFER_WRITE_AND_COUNT(RPL3);
+			}
+
+			if (buf.replay.rng_timestamp > 0) {
+				log_msg.msg_type = LOG_RPL4_MSG;
+				log_msg.body.log_RPL4.time_rng_usec = buf.replay.rng_timestamp;
+				log_msg.body.log_RPL4.range_to_ground = buf.replay.range_to_ground;
+				LOGBUFFER_WRITE_AND_COUNT(RPL4);
+			}
 		}
 
 		/* --- ATTITUDE --- */
