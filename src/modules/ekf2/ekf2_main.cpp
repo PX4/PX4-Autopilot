@@ -172,6 +172,8 @@ private:
 	control::BlockParamFloat *_gyro_scale_p_noise;
 	control::BlockParamFloat *_mag_p_noise;
 	control::BlockParamFloat *_wind_vel_p_noise;
+	control::BlockParamFloat *_terrain_p_noise;	// terrain offset state random walk (m/s)
+	control::BlockParamFloat *_terrain_gradient;	// magnitude of terrain gradient (m/m)
 
 	control::BlockParamFloat *_gps_vel_noise;
 	control::BlockParamFloat *_gps_pos_noise;
@@ -246,6 +248,8 @@ Ekf2::Ekf2():
 	_gyro_scale_p_noise(new control::BlockParamFloat(this, "EKF2_GYR_S_NOISE", false, &_params->gyro_scale_p_noise)),
 	_mag_p_noise(new control::BlockParamFloat(this, "EKF2_MAG_B_NOISE", false, &_params->mag_p_noise)),
 	_wind_vel_p_noise(new control::BlockParamFloat(this, "EKF2_WIND_NOISE", false, &_params->wind_vel_p_noise)),
+	_terrain_p_noise(new control::BlockParamFloat(this, "EKF2_TERR_NOISE", false, &_params->terrain_p_noise)),
+	_terrain_gradient(new control::BlockParamFloat(this, "EKF2_TERR_GRAD", false, &_params->terrain_gradient)),
 	_gps_vel_noise(new control::BlockParamFloat(this, "EKF2_GPS_V_NOISE", false, &_params->gps_vel_noise)),
 	_gps_pos_noise(new control::BlockParamFloat(this, "EKF2_GPS_P_NOISE", false, &_params->gps_pos_noise)),
 	_pos_noaid_noise(new control::BlockParamFloat(this, "EKF2_NOAID_NOISE", false, &_params->pos_noaid_noise)),
