@@ -669,19 +669,26 @@ void Ekf2::task_main()
 			memcpy(&replay.accelerometer_integral_m_s[0], &sensors.accelerometer_integral_m_s[0], sizeof(replay.accelerometer_integral_m_s));
 			memcpy(&replay.magnetometer_ga[0], &sensors.magnetometer_ga[0], sizeof(replay.magnetometer_ga));
 			replay.baro_alt_meter = sensors.baro_alt_meter[0];
-			replay.time_usec = gps.timestamp_position;
-			replay.time_usec_vel = gps.timestamp_velocity;
-			replay.lat = gps.lat;
-			replay.lon = gps.lon;
-			replay.alt = gps.alt;
-			replay.fix_type = gps.fix_type;
-			replay.eph = gps.eph;
-			replay.epv = gps.epv;
-			replay.vel_m_s = gps.vel_m_s;
-			replay.vel_n_m_s = gps.vel_n_m_s;
-			replay.vel_e_m_s = gps.vel_e_m_s;
-			replay.vel_d_m_s = gps.vel_d_m_s;
-			replay.vel_ned_valid = gps.vel_ned_valid;
+
+			// only write gps data if we had a gps update.
+			if (gps_updated) {
+				replay.time_usec = gps.timestamp_position;
+				replay.time_usec_vel = gps.timestamp_velocity;
+				replay.lat = gps.lat;
+				replay.lon = gps.lon;
+				replay.alt = gps.alt;
+				replay.fix_type = gps.fix_type;
+				replay.eph = gps.eph;
+				replay.epv = gps.epv;
+				replay.vel_m_s = gps.vel_m_s;
+				replay.vel_n_m_s = gps.vel_n_m_s;
+				replay.vel_e_m_s = gps.vel_e_m_s;
+				replay.vel_d_m_s = gps.vel_d_m_s;
+				replay.vel_ned_valid = gps.vel_ned_valid;
+			} else {
+				// this will tell the logging app not to bother logging any gps replay data
+				replay.time_usec = 0;
+			}
 
 			replay.flow_timestamp = optical_flow.timestamp;
 			replay.range_to_ground = range_finder.current_distance;
