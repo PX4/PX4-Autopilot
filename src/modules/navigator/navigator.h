@@ -57,7 +57,6 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/follow_target.h>
 
 #include "navigator_mode.h"
 #include "mission.h"
@@ -75,7 +74,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 9
+#define NAVIGATOR_MODE_ARRAY_SIZE 10
 
 class Navigator : public control::SuperBlock
 {
@@ -183,7 +182,7 @@ public:
 	void		increment_mission_instance_count() { _mission_instance_count++; }
 
 	void 		set_mission_failure(const char *reason);
-	int     _tracker_motion_position_sub;   /**< tracker motion subscription */
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
@@ -203,7 +202,6 @@ private:
 	int		_param_update_sub;		/**< param update subscription */
 	int		_vehicle_command_sub;		/**< vehicle commands (onboard and offboard) */
 
-
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
 	orb_advert_t	_mission_result_pub;
 	orb_advert_t	_geofence_result_pub;
@@ -220,7 +218,7 @@ private:
 	mission_item_s 					_mission_item;		/**< current mission item */
 	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
-	follow_target_s                     _follow_target_pk;
+
 	mission_result_s				_mission_result;
 	geofence_result_s				_geofence_result;
 	vehicle_attitude_setpoint_s			_att_sp;
@@ -253,7 +251,7 @@ private:
 							  (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 
-//	FollowTarget _follow_target;
+	FollowTarget _follow_target;
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
@@ -301,7 +299,7 @@ private:
 	 * Retrieve vehicle control mode
 	 */
 	void		vehicle_control_mode_update();
-	void follow_target_update();
+
 	/**
 	 * Update parameters
 	 */
