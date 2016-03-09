@@ -77,8 +77,8 @@ void Ekf::fuseOptFlow()
 	// take the weighted average of the observation noie for the best and wort flow quality
 	float R_LOS = sq(R_LOS_best * weighting + R_LOS_worst * (1.0f - weighting));
 
-	float H_LOS[2][24] = {0}; // Optical flow observation Jacobians
-	float Kfusion[24][2] = {0}; // Optical flow Kalman gains
+	float H_LOS[2][24] = {}; // Optical flow observation Jacobians
+	float Kfusion[24][2] = {}; // Optical flow Kalman gains
 
 	// constrain height above ground to be above minimum height when sitting on ground
 	float heightAboveGndEst = math::max((_terrain_vpos - _state.pos(2)), gndclearance);
