@@ -1465,21 +1465,26 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_RPL1.magnetometer_z_ga = buf.replay.magnetometer_ga[2];
 			log_msg.body.log_RPL1.baro_alt_meter = buf.replay.baro_alt_meter;
 			LOGBUFFER_WRITE_AND_COUNT(RPL1);
-			log_msg.msg_type = LOG_RPL2_MSG;
-			log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
-			log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
-			log_msg.body.log_RPL2.lat = buf.replay.lat;
-			log_msg.body.log_RPL2.lon = buf.replay.lon;
-			log_msg.body.log_RPL2.alt = buf.replay.alt;
-			log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
-			log_msg.body.log_RPL2.eph = buf.replay.eph;
-			log_msg.body.log_RPL2.epv = buf.replay.epv;
-			log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
-			log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
-			log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
-			log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
-			log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
-			LOGBUFFER_WRITE_AND_COUNT(RPL2);
+
+			// only log the gps replay data if it actually updated
+			if (buf.replay.time_usec > 0) {
+				log_msg.msg_type = LOG_RPL2_MSG;
+				log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
+				log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
+				log_msg.body.log_RPL2.lat = buf.replay.lat;
+				log_msg.body.log_RPL2.lon = buf.replay.lon;
+				log_msg.body.log_RPL2.alt = buf.replay.alt;
+				log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
+				log_msg.body.log_RPL2.eph = buf.replay.eph;
+				log_msg.body.log_RPL2.epv = buf.replay.epv;
+				log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
+				log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
+				log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
+				log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
+				log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
+				LOGBUFFER_WRITE_AND_COUNT(RPL2);
+			}
+
 			log_msg.msg_type = LOG_RPL3_MSG;
 			log_msg.body.log_RPL3.time_rng_usec = buf.replay.rng_timestamp;
 			log_msg.body.log_RPL3.time_flow_usec = buf.replay.flow_timestamp;
