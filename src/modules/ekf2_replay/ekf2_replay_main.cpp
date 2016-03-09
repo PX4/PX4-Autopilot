@@ -62,6 +62,8 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <sdlog2/sdlog2_messages.h>
 
@@ -123,6 +125,8 @@ private:
 	orb_advert_t _sensors_pub;
 	orb_advert_t _gps_pub;
 	orb_advert_t _status_pub;
+	orb_advert_t _flow_pub;
+	orb_advert_t _range_pub;
 
 	int _att_sub;
 	int _estimator_status_sub;
@@ -136,10 +140,14 @@ private:
 	struct sensor_combined_s _sensors;
 	struct vehicle_gps_position_s _gps;
 	struct vehicle_status_s _status;
+	struct optical_flow_s _flow;
+	struct distance_sensor_s _range;
 
 	unsigned _message_counter; // counter which will increase with every message read from the log
 	unsigned _part1_counter_ref;		// this is the value of _message_counter when the part1 of the replay message is read (imu data)
 	bool _read_part2;				// indicates if part 2 of replay message has been read
+	bool _read_part3;
+	bool _read_part4;
 
 	int _write_fd = -1;
 	px4_pollfd_struct_t _fds[1];
@@ -183,6 +191,8 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_sensors_pub(nullptr),
 	_gps_pub(nullptr),
 	_status_pub(nullptr),
+	_flow_pub(nullptr),
+	_range_pub(nullptr),
 	_att_sub(-1),
 	_estimator_status_sub(-1),
 	_innov_sub(-1),
@@ -192,9 +202,13 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_sensors{},
 	_gps{},
 	_status{},
+	_flow{},
+	_range{},
 	_message_counter(0),
 	_part1_counter_ref(0),
 	_read_part2(false),
+	_read_part3(false),
+	_read_part4(false),
 	_write_fd(-1)
 {
 	// build the path to the log
@@ -223,6 +237,22 @@ void Ekf2Replay::publishEstimatorInput()
 	}
 
 	_read_part2 = false;
+
+	if (_flow_pub == nullptr && _read_part3) {
+		_flow_pub = orb_advertise(ORB_ID(optical_flow), &_flow);
+	} else if (_flow_pub != nullptr && _read_part3) {
+		orb_publish(ORB_ID(optical_flow), _flow_pub, &_flow);
+	}
+
+	_read_part3 = false;
+
+	if (_range_pub == nullptr && _read_part4) {
+		_range_pub = orb_advertise(ORB_ID(distance_sensor), &_range);
+	} else if (_range_pub != nullptr && _read_part4) {
+		orb_publish(ORB_ID(distance_sensor), _range_pub, &_range);
+	}
+
+	_read_part4 = false;
 
 	if (_sensors_pub == nullptr) {
 		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &_sensors);
@@ -280,6 +310,8 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 {
 	struct log_RPL1_s replay_part1 = {};
 	struct log_RPL2_s replay_part2 = {};
+	struct log_RPL3_s replay_part3 = {};
+	struct log_RPL4_s replay_part4 = {};
 	struct log_STAT_s vehicle_status = {};
 
 	if (type == LOG_RPL1_MSG) {
@@ -319,6 +351,25 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_gps.vel_d_m_s = replay_part2.vel_d_m_s;
 		_gps.vel_ned_valid = replay_part2.vel_ned_valid;
 		_read_part2 = true;
+
+	} else if (type == LOG_RPL3_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&replay_part3.time_flow_usec;
+		parseMessage(data, dest_ptr, type);
+		_flow.timestamp = replay_part3.time_flow_usec;
+		_flow.pixel_flow_x_integral = replay_part3.flow_integral_x;
+		_flow.pixel_flow_y_integral = replay_part3.flow_integral_y;
+		_flow.gyro_x_rate_integral = replay_part3.gyro_integral_x;
+		_flow.gyro_y_rate_integral = replay_part3.gyro_integral_y;
+		_flow.integration_timespan = replay_part3.flow_time_integral;
+		_flow.quality = replay_part3.flow_quality;
+		_read_part3 = true;
+
+	} else if (type == LOG_RPL4_MSG) {
+		uint8_t *dest_ptr = (uint8_t *)&replay_part4.time_rng_usec;
+		parseMessage(data, dest_ptr, type);
+		_range.timestamp = replay_part4.time_rng_usec;
+		_range.current_distance = replay_part4.range_to_ground;
+		_read_part4 = true;
 
 	} else if (type == LOG_STAT_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&vehicle_status.main_state;
@@ -681,18 +732,18 @@ void Ekf2Replay::task_main()
 			}
 
 			if (header[2] == LOG_RPL1_MSG && _part1_counter_ref > 0) {
-				// we have found two consecutive imu replay messages but haven't published the first one
-				// so do that now
+				// we have found another imu replay message while we still have one waiting to be published.
+				// so publish that now
 				publishAndWaitForEstimator();
 			}
 
 			// set estimator input data
 			setEstimatorInput(&data[0], header[2]);
 
-			// we have read the imu replay message (part 1) and have waited one more cycle for a potential
-			// gps replay message (part 2) which is always written direcly after part 1 in the log file
-			// therefore, we can kick the estimator now
-			if (_part1_counter_ref > 0 && _part1_counter_ref < _message_counter) {
+			// we have read the imu replay message (part 1) and have waited 3 more cycles for other replay message parts
+			// e.g. flow, gps or range. we know that in case they were written to the log file they should come right after
+			// the first replay message, therefore, we can kick the estimator now
+			if (_part1_counter_ref > 0 && _part1_counter_ref < _message_counter - 3) {
 				publishAndWaitForEstimator();
 			}
 		}
