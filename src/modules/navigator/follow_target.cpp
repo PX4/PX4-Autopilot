@@ -51,6 +51,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/follow_target.h>
 #include <lib/geo/geo.h>
 #include "navigator.h"
 
@@ -59,7 +60,7 @@ using namespace matrix;
 FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
     MissionBlock(navigator, name),
 	_navigator(navigator),
-	//_tracker_motion_position_sub(-1),
+	_tracker_motion_position_sub(-1),
 	_param_min_alt(this, "MIS_TAKEOFF_ALT", false),
 	gps_valid(false),
 	_last_message_time(0),
@@ -92,6 +93,10 @@ FollowTarget::on_activation()
     Vector2f vel;
     vel.setZero();
 
+	if(_tracker_motion_position_sub < 0) {
+		_tracker_motion_position_sub = orb_subscribe(ORB_ID(follow_target));
+	}
+
 	// inital set point is same as loiter sp
 
     set_loiter_item(&_mission_item, _param_min_alt.get());
@@ -121,11 +126,10 @@ FollowTarget::on_active() {
         _current_vel(1) = _navigator->get_global_position()->vel_e;
     }
 
-    orb_check(_navigator->_tracker_motion_position_sub, &updated);
+    orb_check(_tracker_motion_position_sub, &updated);
 
     if (updated) {
-        warnx("UPDASTD ");
-        if (orb_copy(ORB_ID(follow_target), _navigator->_tracker_motion_position_sub, &target) == OK) {
+        if (orb_copy(ORB_ID(follow_target), _tracker_motion_position_sub, &target) == OK) {
 
             float dt = ((double)(current_time - _last_message_time) * 1e-6);
 
@@ -173,14 +177,8 @@ FollowTarget::on_active() {
                       sqrtf(target_vel(0)*target_vel(0) + target_vel(1)*target_vel(1))))) / (double) (dt*10);
 
         }
-    }
-
-    if ((current_time - _last_message_time) / (1000*1000) > 5) {
-    //    on_activation();
-        static int gg = 0;
-        if(!(gg++%100)) {
-            warnx("timed out loitering %llu %d", (current_time - _last_message_time) / (1000*1000), _navigator->_tracker_motion_position_sub);
-        }
+    } else if (((double)(current_time - _last_message_time) * 1e-6) > 10) {
+        on_activation();
     }
 
     if ((((double) (current_time - _last_publish_time) * 1e-3) >= 100) && (follow_target_reached == true)) {
