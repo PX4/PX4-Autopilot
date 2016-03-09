@@ -690,16 +690,24 @@ void Ekf2::task_main()
 				replay.time_usec = 0;
 			}
 
-			replay.flow_timestamp = optical_flow.timestamp;
-			replay.range_to_ground = range_finder.current_distance;
+			if (optical_flow_updated) {
+				replay.flow_timestamp = optical_flow.timestamp;
+				replay.flow_pixel_integral[0] = optical_flow.pixel_flow_x_integral;
+				replay.flow_pixel_integral[1] = optical_flow.pixel_flow_y_integral;
+				replay.flow_gyro_integral[0] = optical_flow.gyro_x_rate_integral;
+				replay.flow_gyro_integral[1] = optical_flow.gyro_y_rate_integral;
+				replay.flow_time_integral = optical_flow.integration_timespan;
+				replay.flow_quality = optical_flow.quality;
+			} else {
+				replay.flow_timestamp = 0;
+			}
 
-			replay.rng_timestamp = range_finder.timestamp;
-			replay.flow_pixel_integral[0] = optical_flow.pixel_flow_x_integral;
-			replay.flow_pixel_integral[1] = optical_flow.pixel_flow_y_integral;
-			replay.flow_gyro_integral[0] = optical_flow.gyro_x_rate_integral;
-			replay.flow_gyro_integral[1] = optical_flow.gyro_y_rate_integral;
-			replay.flow_time_integral = optical_flow.integration_timespan;
-			replay.flow_quality = optical_flow.quality;
+			if (range_finder_updated) {
+				replay.rng_timestamp = range_finder.timestamp;
+				replay.range_to_ground = range_finder.current_distance;
+			} else {
+				replay.rng_timestamp = 0;
+			}
 
 			if (_replay_pub == nullptr) {
 				_replay_pub = orb_advertise(ORB_ID(ekf2_replay), &replay);
