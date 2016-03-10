@@ -296,6 +296,11 @@ void Ekf2Replay::parseMessage(uint8_t *source, uint8_t *destination, uint8_t typ
 			write_index += sizeof(uint8_t);
 			break;
 
+		case 'I':
+			memcpy(&destination[write_index], &source[write_index], sizeof(int32_t));
+			write_index += sizeof(int32_t);
+			break;
+
 		default:
 			PX4_WARN("found unsupported data type in replay message, exiting!");
 			_task_should_exit = true;
