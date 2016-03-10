@@ -12,17 +12,6 @@ include(qurt/px4_impl_qurt)
 
 set(CONFIG_SHMEM "1")
 
-# For Actual flight we need to link against the driver dynamic libraries
-#set(target_libraries
-#	-L${HEXAGON_DRIVERS_ROOT}/libs
-# The plan is to replace these with our drivers
-#	mpu9x50
-#	uart_esc
-#	csr_gps
-#	rc_receiver
-#	)
-
-
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-qurt.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/cmake_hexagon/qurt_app.cmake)
 
@@ -32,11 +21,6 @@ set(config_module_list
 	#
 	drivers/device
 	modules/sensors
-# The plan is to replace these with our drivers
-#	$(EAGLE_DRIVERS_SRC)/mpu9x50
-#	$(EAGLE_DRIVERS_SRC)/uart_esc
-#	$(EAGLE_DRIVERS_SRC)/rc_receiver
-#	$(EAGLE_DRIVERS_SRC)/csr_gps
 	platforms/posix/drivers/df_mpu9250_wrapper
 	platforms/posix/drivers/df_bmp280_wrapper
 	platforms/posix/drivers/df_hmc5883_wrapper
@@ -73,8 +57,8 @@ set(config_module_list
 	#
 	# PX4 drivers
 	#
-	# TODO: make the GPS driver compile
 	drivers/gps
+	drivers/uart_esc
 
 	#
 	# Libraries
