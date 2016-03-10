@@ -3001,10 +3001,13 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 			/* manual mode is stabilized already for multirotors, so switch to acro
 			 * for any non-manual mode
 			 */
-			if (status.is_rotary_wing) {
+			// XXX: put ACRO and STAB on separate switches
+			if (status.is_rotary_wing && !status.is_vtol) {
 				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_ACRO);
-			} else {
+			} else if (!status.is_rotary_wing) {
 				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_STAB);
+			} else {
+				res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_MANUAL);
 			}
 
 		}
