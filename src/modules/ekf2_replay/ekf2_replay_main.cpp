@@ -34,10 +34,12 @@
 /**
  * @file ekf2_replay_main.cpp
  * Replay module for ekf2. This module reads ekf2 replay messages from a px4 logfile.
- * It uses this data to create sensor data for the ekf2 module.
+ * It uses this data to create sensor data for the ekf2 module. It also subscribes to the
+ * output data of the estimator and writes it to a replay log file.
  *
  * @author Roman Bapst
 */
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
@@ -86,6 +88,7 @@ struct {
 		struct log_EST3_s est3;
 		struct log_EST4_s innov;
 		struct log_EST5_s innov2;
+		struct log_EST6_s innov3;
 	} body;
 } log_message;
 
@@ -240,6 +243,7 @@ void Ekf2Replay::publishEstimatorInput()
 
 	if (_flow_pub == nullptr && _read_part3) {
 		_flow_pub = orb_advertise(ORB_ID(optical_flow), &_flow);
+
 	} else if (_flow_pub != nullptr && _read_part3) {
 		orb_publish(ORB_ID(optical_flow), _flow_pub, &_flow);
 	}
@@ -248,6 +252,7 @@ void Ekf2Replay::publishEstimatorInput()
 
 	if (_range_pub == nullptr && _read_part4) {
 		_range_pub = orb_advertise(ORB_ID(distance_sensor), &_range);
+
 	} else if (_range_pub != nullptr && _read_part4) {
 		orb_publish(ORB_ID(distance_sensor), _range_pub, &_range);
 	}
@@ -408,6 +413,7 @@ bool Ekf2Replay::needToSaveMessage(uint8_t type)
 	    type == LOG_EST3_MSG ||
 	    type == LOG_EST4_MSG ||
 	    type == LOG_EST5_MSG ||
+	    type == LOG_EST6_MSG ||
 	    type == LOG_CTS_MSG) {
 		return false;
 	}
@@ -558,6 +564,21 @@ void Ekf2Replay::logIfUpdated()
 		log_message.body.innov2.s[6] = innov.heading_innov;
 		log_message.body.innov2.s[7] = innov.heading_innov_var;
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length);
+
+		// optical flow innovations and innovation variances
+		log_message.type = LOG_EST6_MSG;
+		log_message.head1 = HEAD_BYTE1;
+		log_message.head2 = HEAD_BYTE2;
+		memset(&(log_message.body.innov3.s), 0, sizeof(log_message.body.innov3.s));
+
+		for (unsigned i = 0; i < 2; i++) {
+			log_message.body.innov3.s[i] = innov.flow_innov[i];
+			log_message.body.innov3.s[i + 2] = innov.flow_innov_var[i];
+		}
+
+		log_message.body.innov3.s[4] = innov.hagl_innov;
+		log_message.body.innov3.s[5] = innov.hagl_innov_var;
+		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST6_MSG].length);
 	}
 
 	// update control state
@@ -593,6 +614,7 @@ void Ekf2Replay::publishAndWaitForEstimator()
 	if (pret == 0) {
 		PX4_WARN("timeout");
 	}
+
 	if (pret < 0) {
 		PX4_WARN("poll error");
 	}
