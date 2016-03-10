@@ -121,12 +121,15 @@ void Ekf::controlFusionModes()
 				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 			}
 
-			// If the heading is valid, reset the positon and velocity and start using gps aiding
+			// If the heading is valid start using gps aiding
 			if (_control_status.flags.yaw_align) {
-				resetPosition();
-				resetVelocity();
 				_control_status.flags.gps = true;
 				_time_last_gps = _time_last_imu;
+				// if we are not already aiding with optical flow, then we need to reset the position and velocity
+				if (!_control_status.flags.opt_flow) {
+					_control_status.flags.gps = resetPosition();
+					_control_status.flags.gps = resetVelocity();
+				}
 			}
 		}
 
