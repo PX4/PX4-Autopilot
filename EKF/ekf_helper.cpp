@@ -49,22 +49,24 @@
 
 // Reset the velocity states. If we have a recent and valid
 // gps measurement then use for velocity initialisation
-void Ekf::resetVelocity()
+bool Ekf::resetVelocity()
 {
 	// if we have a valid GPS measurement use it to initialise velocity states
 	gpsSample gps_newest = _gps_buffer.get_newest();
 
 	if (_time_last_imu - gps_newest.time_us < 400000) {
 		_state.vel = gps_newest.vel;
+		return true;
 
 	} else {
-		_state.vel.setZero();
+		// XXX use the value of the last known velocity
+		return false;
 	}
 }
 
 // Reset position states. If we have a recent and valid
 // gps measurement then use for position initialisation
-void Ekf::resetPosition()
+bool Ekf::resetPosition()
 {
 	// if we have a fresh GPS measurement, use it to initialise position states and correct the position for the measurement delay
 	gpsSample gps_newest = _gps_buffer.get_newest();
@@ -74,9 +76,11 @@ void Ekf::resetPosition()
 	if (time_delay < 0.4f) {
 		_state.pos(0) = gps_newest.pos(0) + gps_newest.vel(0) * time_delay;
 		_state.pos(1) = gps_newest.pos(1) + gps_newest.vel(1) * time_delay;
+		return true;
 
 	} else {
 		// XXX use the value of the last known position
+		return false;
 	}
 }
 

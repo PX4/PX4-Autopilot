@@ -249,7 +249,7 @@ private:
 	void fuseVelPosHeight();
 
 	// reset velocity states of the ekf
-	void resetVelocity();
+	bool resetVelocity();
 
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
@@ -275,7 +275,7 @@ private:
 	void calcMagDeclination();
 
 	// reset position states of the ekf (only vertical position)
-	void resetPosition();
+	bool resetPosition();
 
 	// reset height state of the ekf
 	void resetHeight();
