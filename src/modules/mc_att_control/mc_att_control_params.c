@@ -97,6 +97,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
  * Roll rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
  * @min 0.0
+ * @decimal 3
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
@@ -159,7 +160,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
  * Pitch rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
  * @min 0.0
- * @decimal 2
+ * @decimal 3
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
