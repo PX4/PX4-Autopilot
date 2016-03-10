@@ -429,7 +429,6 @@ void task_main(int argc, char *argv[])
 				memcpy(&data[1], (uint8_t *)frame.period, sizeof(frame.period));
 				memcpy(&data[9], (uint8_t *)&frame.crc, sizeof(frame.crc));
 
-				handleRC(_fd, &_rc);
 				::write(_fd, data, sizeof(data));
 
 				/*
