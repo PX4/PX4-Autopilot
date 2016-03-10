@@ -55,15 +55,21 @@
 
 bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 {
-	// run gps checks if we have not yet set the NED origin or have not started using GPS
-	if (!_NED_origin_initialised || !_control_status.flags.gps) {
-		// if we have good GPS data and the NED origin is not set, set to the last GPS fix
+	// If we have defined the WGS-84 position of the NED origin, run gps quality checks until they pass, then define the origins WGS-84 position using the last GPS fix
+	if (!_NED_origin_initialised ) {
+		// we have good GPS data so can now set the origin's WGS-84 position
 		if (gps_is_good(gps) && !_NED_origin_initialised) {
 			printf("gps is good -  setting EKF origin\n");
-			// Initialise projection
+			// Set the origin's WGS-84 position to the last gps fix
 			double lat = gps->lat / 1.0e7;
 			double lon = gps->lon / 1.0e7;
 			map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
+			// if we are already doing aiding, corect for the change in posiiton since the EKF started navigating
+			if (_control_status.flags.opt_flow || _control_status.flags.gps) {
+				double est_lat, est_lon;
+				map_projection_reproject(&_pos_ref, -_state.pos(0), -_state.pos(1), &est_lat, &est_lon);
+				map_projection_init_timestamped(&_pos_ref, est_lat, est_lon, _time_last_imu);
+			}
 			// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
 			_gps_alt_ref = 1e-3f * (float)gps->alt + _state.pos(2);
 			_NED_origin_initialised = true;
