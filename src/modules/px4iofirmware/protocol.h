@@ -239,6 +239,8 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_TRIM_PITCH		17	/**< Pitch trim, in actuator units */
 #define PX4IO_P_SETUP_TRIM_YAW			18	/**< Yaw trim, in actuator units */
 
+#define PX4IO_P_SETUP_SBUS_RATE			19	/* frame rate of SBUS1 output in Hz */
+
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */
 #define PX4IO_P_CONTROLS_GROUP_0		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 0)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
