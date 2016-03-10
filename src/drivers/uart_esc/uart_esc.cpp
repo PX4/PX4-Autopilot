@@ -491,7 +491,7 @@ void usage()
 {
 	PX4_WARN("missing command: try 'start', 'stop', 'status'");
 	PX4_WARN("options:");
-	PX4_WARN("    -D device");
+	PX4_WARN("    -d device");
 }
 
 } // namespace uart_esc
@@ -506,9 +506,9 @@ int uart_esc_main(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = NULL;
 
-	while ((ch = px4_getopt(argc, argv, "D:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'D':
+		case 'd':
 			device = myoptarg;
 			break;
 
