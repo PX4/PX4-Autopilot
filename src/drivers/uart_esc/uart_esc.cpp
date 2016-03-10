@@ -43,6 +43,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/input_rc.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
@@ -53,6 +54,7 @@
 #include <v1.0/checksum.h>
 
 #define MAX_LEN_DEV_PATH 32
+#define RC_MAGIC 	0xf6
 
 namespace uart_esc
 {
@@ -71,17 +73,19 @@ int		_param_sub;
 int 	_fd;
 // filenames
 // /dev/fs/ is mapped to /usr/share/data/adsp/
-static const char *MIXER_FILENAME = "/dev/fs/mixer_config.mix";
+static const char *MIXER_FILENAME = "/dev/fs/quad_x.main.mix";
 
 
 // publications
 orb_advert_t        	_outputs_pub;
+orb_advert_t 			_rc_pub;
 
 // topic structures
 actuator_controls_s     _controls;
 actuator_armed_s        _armed;
 parameter_update_s      _param_update;
 actuator_outputs_s      _outputs;
+input_rc_s 				_rc;
 
 /** Print out the usage information */
 void usage();
@@ -193,7 +197,7 @@ int initialize_mixer(const char *mixer_filename)
 
 	PX4_INFO("Initializing mixer from config file in %s", mixer_filename);
 
-	int fd_load = open(mixer_filename, O_RDONLY);
+	int fd_load = ::open(mixer_filename, O_RDONLY);
 
 	if (fd_load != -1) {
 		int nRead = read(fd_load, buf, buflen);
@@ -268,6 +272,7 @@ int uart_initialize(const char *device, int baud)
 	int fd = ::open(device, O_RDWR | O_NONBLOCK);
 
 	if (fd == -1) {
+		PX4_ERR("failed in open");
 		return -1;
 	}
 
@@ -293,6 +298,19 @@ int uart_initialize(const char *device, int baud)
 
 	_fd = fd;
 	return 0;
+}
+
+void handleRC(int uart_fd, struct input_rc_s *rc)
+{
+	// read uart until we get the magic number
+	char buf[10];
+	while(true) {
+		int ret = ::read(uart_fd, &buf, sizeof(buf));
+		PX4_ERR("got %d", ret);
+		if (ret < 1) {
+			break;
+		}
+	}
 }
 
 void task_main(int argc, char *argv[])
@@ -410,7 +428,10 @@ void task_main(int argc, char *argv[])
 				data[0] = frame.magic;
 				memcpy(&data[1], (uint8_t *)frame.period, sizeof(frame.period));
 				memcpy(&data[9], (uint8_t *)&frame.crc, sizeof(frame.crc));
-				uint8_t num_sent = ::write(_fd, data, sizeof(data));
+
+				handleRC(_fd, &_rc);
+				::write(_fd, data, sizeof(data));
+
 				/*
 				static int count=0;
 				count++;
