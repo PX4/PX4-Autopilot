@@ -304,9 +304,11 @@ void handleRC(int uart_fd, struct input_rc_s *rc)
 {
 	// read uart until we get the magic number
 	char buf[10];
-	while(true) {
+
+	while (true) {
 		int ret = ::read(uart_fd, &buf, sizeof(buf));
 		PX4_ERR("got %d", ret);
+
 		if (ret < 1) {
 			break;
 		}
