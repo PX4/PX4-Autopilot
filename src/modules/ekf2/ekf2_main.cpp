@@ -646,7 +646,7 @@ int Ekf2::start()
 
 int ekf2_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		PX4_WARN("usage: ekf2 {start|stop|status}");
 		return 1;
 	}
