@@ -39,7 +39,6 @@ addons:
     - ninja-build
     - python-argparse
     - python-empy
-    - python-serial
     - s3cmd
     - texinfo
     - zlib1g-dev
@@ -69,7 +68,7 @@ before_install:
       && brew install cmake ninja
       && brew install genromfs
       && sudo easy_install pip
-      && sudo pip install pyserial empy
+      && sudo pip install empy
       ;
     fi
 
