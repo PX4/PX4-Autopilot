@@ -678,8 +678,10 @@ void Ekf2::task_main()
 				replay.lon = gps.lon;
 				replay.alt = gps.alt;
 				replay.fix_type = gps.fix_type;
+				replay.nsats = gps.satellites_used;
 				replay.eph = gps.eph;
 				replay.epv = gps.epv;
+				replay.sacc = gps.s_variance_m_s;
 				replay.vel_m_s = gps.vel_m_s;
 				replay.vel_n_m_s = gps.vel_n_m_s;
 				replay.vel_e_m_s = gps.vel_e_m_s;

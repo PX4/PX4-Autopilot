@@ -353,8 +353,10 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_gps.lat = replay_part2.lat;
 		_gps.lon = replay_part2.lon;
 		_gps.fix_type = replay_part2.fix_type;
+		_gps.satellites_used = replay_part2.nsats;
 		_gps.eph = replay_part2.eph;
 		_gps.epv = replay_part2.epv;
+		_gps.s_variance_m_s = replay_part2.sacc;
 		_gps.vel_m_s = replay_part2.vel_m_s;
 		_gps.vel_n_m_s = replay_part2.vel_n_m_s;
 		_gps.vel_e_m_s = replay_part2.vel_e_m_s;
