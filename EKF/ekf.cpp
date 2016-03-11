@@ -93,8 +93,8 @@ Ekf::Ekf():
 	memset(_flow_innov, 0, sizeof(_flow_innov));
 	memset(_vel_pos_innov_var, 0, sizeof(_vel_pos_innov_var));
 	memset(_mag_innov_var, 0, sizeof(_mag_innov_var));
-	memset(_airspeed_innov, 0 sizeof(_airspeed_innov));
-	memset(_airspeed_innov_var, 0 sizeof(_airspeed_innov_var));
+	memset(_airspeed_innov, 0, sizeof(_airspeed_innov));
+	memset(_airspeed_innov_var, 0, sizeof(_airspeed_innov_var));
 	memset(_flow_innov_var, 0, sizeof(_flow_innov_var));
 	_delta_angle_corr.setZero();
 	_delta_vel_corr.setZero();
