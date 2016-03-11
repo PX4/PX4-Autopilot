@@ -68,10 +68,11 @@ then
 	# Load parameters
 	#
 	set PARAM_FILE /fs/microsd/params
-	if mtd start
-	then
-		set PARAM_FILE /fs/mtd_params
-	fi
+	# mtd is broken on PixRacer R7
+	#if mtd start
+	#then
+	#	set PARAM_FILE /fs/mtd_params
+	#fi
 
 	param select $PARAM_FILE
 	if param load
@@ -506,14 +507,15 @@ then
 			# Avoid using ttyS1 for MAVLink on FMUv4
 			if ver hwcmp PX4FMU_V4
 			then
-				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
+				#set MAVLINK_F "-r 1200 -d /dev/ttyS1"
 				# Start MAVLink on Wifi (ESP8266 port)
 				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
 			fi
 		fi
 	fi
 
-	mavlink start $MAVLINK_F
+	# for pixracer R7, don't run mavlink on S1; this is the Sport
+	#mavlink start $MAVLINK_F
 	unset MAVLINK_F
 
 	#
@@ -611,7 +613,10 @@ then
 
 	if ver hwcmp PX4FMU_V4
 	then
-		frsky_telemetry start -d /dev/ttyS6
+		# on pixracer R7, sport is on USART2
+		frsky_telemetry start -d /dev/ttyS1
+		# but on R12/14 it is on USART8
+		#frsky_telemetry start -d /dev/ttyS6
 	fi
 
 	if ver hwcmp PX4FMU_V2
@@ -920,6 +925,7 @@ unset TUNE_ERR
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
+
 
 if [ $EXIT_ON_END == yes ]
 then
