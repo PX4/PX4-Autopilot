@@ -145,7 +145,7 @@
 #include <conversion/rotation.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_attitude.h>
 
 /* oddly, ERROR is not defined for c++ */
@@ -159,26 +159,25 @@ static const char *sensor_name = "accel";
 static int32_t device_id[max_accel_sens];
 static int32_t device_id_primary = 0;
 
-calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors);
+calibrate_return do_accel_calibration_measurements(float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors);
 calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num);
 int mat_invert3(float src[3][3], float dst[3][3]);
 calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref)[max_accel_sens][detect_orientation_side_count][3], float (&accel_T)[max_accel_sens][3][3], float (&accel_offs)[max_accel_sens][3], float g);
 
 /// Data passed to calibration worker routine
 typedef struct  {
-	int		mavlink_fd;
 	unsigned	done_count;
 	int		subs[max_accel_sens];
 	float		accel_ref[max_accel_sens][detect_orientation_side_count][3];
 } accel_worker_data_t;
 
-int do_accel_calibration(int mavlink_fd)
+int do_accel_calibration()
 {
 #ifndef __PX4_QURT
 	int fd;
 #endif
 
-	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
+	mavlink_and_console_log_info(CAL_QGC_STARTED_MSG, sensor_name);
 
 	struct accel_calibration_s accel_scale;
 	accel_scale.x_offset = 0.0f;
@@ -209,7 +208,7 @@ int do_accel_calibration(int mavlink_fd)
 		px4_close(fd);
 
 		if (res != OK) {
-			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_RESET_CAL_MSG, s);
+			mavlink_and_console_log_critical(CAL_ERROR_RESET_CAL_MSG, s);
 		}
 #else
 		(void)sprintf(str, "CAL_ACC%u_XOFF", s);
@@ -251,7 +250,7 @@ int do_accel_calibration(int mavlink_fd)
 
 	/* measure and calculate offsets & scales */
 	if (res == OK) {
-		calibrate_return cal_return = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_T, &active_sensors);
+		calibrate_return cal_return = do_accel_calibration_measurements(accel_offs, accel_T, &active_sensors);
 		if (cal_return == calibrate_return_cancelled) {
 			// Cancel message already displayed, nothing left to do
 			return ERROR;
@@ -264,7 +263,7 @@ int do_accel_calibration(int mavlink_fd)
 
 	if (res != OK) {
 		if (active_sensors == 0) {
-			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SENSOR_MSG);
+			mavlink_and_console_log_critical(CAL_ERROR_SENSOR_MSG);
 		}
 		return ERROR;
 	}
@@ -324,7 +323,7 @@ int do_accel_calibration(int mavlink_fd)
 		failed |= (OK != param_set_no_notification(param_find(str), &(device_id[i])));
 
 		if (failed) {
-			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SET_PARAMS_MSG, i);
+			mavlink_and_console_log_critical(CAL_ERROR_SET_PARAMS_MSG, i);
 			return ERROR;
 		}
 
@@ -333,7 +332,7 @@ int do_accel_calibration(int mavlink_fd)
 		fd = px4_open(str, 0);
 
 		if (fd < 0) {
-			mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "sensor does not exist");
+			mavlink_and_console_log_critical(CAL_QGC_FAILED_MSG, "sensor does not exist");
 			res = ERROR;
 		} else {
 			res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
@@ -341,7 +340,7 @@ int do_accel_calibration(int mavlink_fd)
 		}
 
 		if (res != OK) {
-			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_APPLY_CAL_MSG, i);
+			mavlink_and_console_log_critical(CAL_ERROR_APPLY_CAL_MSG, i);
 		}
 #endif
 	}
@@ -351,16 +350,16 @@ int do_accel_calibration(int mavlink_fd)
 		res = param_save_default();
 
 		if (res != OK) {
-			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SAVE_PARAMS_MSG);
+			mavlink_and_console_log_critical(CAL_ERROR_SAVE_PARAMS_MSG);
 		}
 
 		/* if there is a any preflight-check system response, let the barrage of messages through */
 		usleep(200000);
 
-		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, sensor_name);
+		mavlink_and_console_log_info(CAL_QGC_DONE_MSG, sensor_name);
 
 	} else {
-		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, sensor_name);
+		mavlink_and_console_log_critical(CAL_QGC_FAILED_MSG, sensor_name);
 	}
 
 	/* give this message enough time to propagate */
@@ -374,22 +373,22 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 	const unsigned samples_num = 750;
 	accel_worker_data_t* worker_data = (accel_worker_data_t*)(data);
 
-	mavlink_and_console_log_info(worker_data->mavlink_fd, "[cal] Hold still, measuring %s side", detect_orientation_str(orientation));
+	mavlink_and_console_log_info("[cal] Hold still, measuring %s side", detect_orientation_str(orientation));
 
 	read_accelerometer_avg(worker_data->subs, worker_data->accel_ref, orientation, samples_num);
 
-	mavlink_and_console_log_info(worker_data->mavlink_fd, "[cal] %s side result: [%8.4f %8.4f %8.4f]", detect_orientation_str(orientation),
+	mavlink_and_console_log_info("[cal] %s side result: [%8.4f %8.4f %8.4f]", detect_orientation_str(orientation),
 				     (double)worker_data->accel_ref[0][orientation][0],
 				     (double)worker_data->accel_ref[0][orientation][1],
 				     (double)worker_data->accel_ref[0][orientation][2]);
 
 	worker_data->done_count++;
-	mavlink_and_console_log_info(worker_data->mavlink_fd, CAL_QGC_PROGRESS_MSG, 17 * worker_data->done_count);
+	mavlink_and_console_log_info(CAL_QGC_PROGRESS_MSG, 17 * worker_data->done_count);
 
 	return calibrate_return_ok;
 }
 
-calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors)
+calibrate_return do_accel_calibration_measurements(float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors)
 {
 	calibrate_return result = calibrate_return_ok;
 
@@ -397,7 +396,6 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 
 	accel_worker_data_t worker_data;
 
-	worker_data.mavlink_fd = mavlink_fd;
 	worker_data.done_count = 0;
 
 	bool data_collected[detect_orientation_side_count] = { false, false, false, false, false, false };
@@ -441,7 +439,7 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 
 	if (result == calibrate_return_ok) {
 		int cancel_sub = calibrate_cancel_subscribe();
-		result = calibrate_from_orientation(mavlink_fd, cancel_sub, data_collected, accel_calibration_worker, &worker_data, false /* normal still */);
+		result = calibrate_from_orientation(cancel_sub, data_collected, accel_calibration_worker, &worker_data, false /* normal still */);
 		calibrate_cancel_unsubscribe(cancel_sub);
 	}
 
@@ -464,7 +462,7 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 			result = calculate_calibration_values(i, worker_data.accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
 
 			if (result != calibrate_return_ok) {
-				mavlink_and_console_log_critical(mavlink_fd, "[cal] ERROR: calibration calculation error");
+				mavlink_and_console_log_critical("[cal] ERROR: calibration calculation error");
 				break;
 			}
 		}
@@ -624,7 +622,7 @@ calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref
 	return calibrate_return_ok;
 }
 
-int do_level_calibration(int mavlink_fd) {
+int do_level_calibration() {
 	const unsigned cal_time = 5;
 	const unsigned cal_hz = 100;
 	unsigned settle_time = 30;
@@ -634,7 +632,7 @@ int do_level_calibration(int mavlink_fd) {
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 
-	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, "level");
+	mavlink_and_console_log_info(CAL_QGC_STARTED_MSG, "level");
 
 	param_t roll_offset_handle = param_find("SENS_BOARD_X_OFF");
 	param_t pitch_offset_handle = param_find("SENS_BOARD_Y_OFF");
@@ -669,7 +667,7 @@ int do_level_calibration(int mavlink_fd) {
 	// sleep for some time
 	hrt_abstime start = hrt_absolute_time();
 	while(hrt_elapsed_time(&start) < settle_time * 1000000) {
-		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_PROGRESS_MSG, (int)(90*hrt_elapsed_time(&start)/1e6f/(float)settle_time));
+		mavlink_and_console_log_info(CAL_QGC_PROGRESS_MSG, (int)(90*hrt_elapsed_time(&start)/1e6f/(float)settle_time));
 		sleep(settle_time / 10);
 	}
 
@@ -680,8 +678,8 @@ int do_level_calibration(int mavlink_fd) {
 
 		if (pollret <= 0) {
 			// attitude estimator is not running
-			mavlink_and_console_log_critical(mavlink_fd, "attitude estimator not running - check system boot");
-			mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "level");
+			mavlink_and_console_log_critical("attitude estimator not running - check system boot");
+			mavlink_and_console_log_critical(CAL_QGC_FAILED_MSG, "level");
 			goto out;
 		}
 
@@ -691,21 +689,21 @@ int do_level_calibration(int mavlink_fd) {
 		counter++;
 	}
 
-	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_PROGRESS_MSG, 100);
+	mavlink_and_console_log_info(CAL_QGC_PROGRESS_MSG, 100);
 
 	if (counter > (cal_time * cal_hz / 2 )) {
 		roll_mean /= counter;
 		pitch_mean /= counter;
 	} else {
-		mavlink_and_console_log_info(mavlink_fd, "not enough measurements taken");
+		mavlink_and_console_log_info("not enough measurements taken");
 		success = false;
 		goto out;
 	}
 
 	if (fabsf(roll_mean) > 0.8f ) {
-		mavlink_and_console_log_critical(mavlink_fd, "excess roll angle");
+		mavlink_and_console_log_critical("excess roll angle");
 	} else if (fabsf(pitch_mean) > 0.8f ) {
-		mavlink_and_console_log_critical(mavlink_fd, "excess pitch angle");
+		mavlink_and_console_log_critical("excess pitch angle");
 	} else {
 		roll_mean *= (float)M_RAD_TO_DEG;
 		pitch_mean *= (float)M_RAD_TO_DEG;
@@ -716,13 +714,13 @@ int do_level_calibration(int mavlink_fd) {
 
 out:
 	if (success) {
-		mavlink_and_console_log_info(mavlink_fd, CAL_QGC_DONE_MSG, "level");
+		mavlink_and_console_log_info(CAL_QGC_DONE_MSG, "level");
 		return 0;
 	} else {
 		// set old parameters
 		param_set(roll_offset_handle, &roll_offset_current);
 		param_set(pitch_offset_handle, &pitch_offset_current);
-		mavlink_and_console_log_critical(mavlink_fd, CAL_QGC_FAILED_MSG, "level");
+		mavlink_and_console_log_critical(CAL_QGC_FAILED_MSG, "level");
 		return 1;
 	}
 }

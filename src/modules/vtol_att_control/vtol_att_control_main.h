@@ -140,7 +140,6 @@ private:
 //******************flags & handlers******************************************************
 	bool _task_should_exit;
 	int _control_task;		//task handle for VTOL attitude controller
-	int _mavlink_fd;		// mavlink log device
 
 	/* handlers for subscriptions */
 	int	_v_att_sub;				//vehicle attitude subscription
