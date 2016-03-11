@@ -19,8 +19,10 @@ int32 lat				# Latitude in 1E-7 degrees
 int32 lon				# Longitude in 1E-7 degrees
 int32 alt				# Altitude in 1E-3 meters above MSL, (millimetres)
 uint8 fix_type
+uint8 nsats				# number of GPS satellites used by the receiver
 float32 eph				# GPS horizontal position accuracy (metres)
 float32 epv				# GPS vertical position accuracy (metres)
+float32 sacc				# GPS speed accuracy (metres/sec)
 float32 vel_m_s				# GPS ground speed, (metres/sec)
 float32 vel_n_m_s			# GPS North velocity, (metres/sec)
 float32 vel_e_m_s			# GPS East velocity, (metres/sec)
