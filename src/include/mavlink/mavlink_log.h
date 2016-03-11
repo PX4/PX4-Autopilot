@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -107,9 +107,9 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
  * @param _text		The text to log;
  */
 #define mavlink_and_console_log_emergency(_fd, _text, ...)		do { mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_EMERGENCY, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "telem> "); \
-		fprintf(stderr, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "\n"); } while(0);
+		PX4_ERR("telem> "); \
+		PX4_ERR(_text, ##__VA_ARGS__); \
+		PX4_ERR("\n"); } while(0);
 
 /**
  * Send a mavlink critical message and print to console.
@@ -118,9 +118,9 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
  * @param _text		The text to log;
  */
 #define mavlink_and_console_log_critical(_fd, _text, ...)		do { mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_CRITICAL, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "telem> "); \
-		fprintf(stderr, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "\n");  } while(0);
+		PX4_WARN("telem> "); \
+		PX4_WARN(_text, ##__VA_ARGS__); \
+		PX4_WARN("\n");  } while(0);
 
 /**
  * Send a mavlink emergency message and print to console.
@@ -129,9 +129,9 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
  * @param _text		The text to log;
  */
 #define mavlink_and_console_log_info(_fd, _text, ...)			do { mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_INFO, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "telem> "); \
-		fprintf(stderr, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "\n"); } while(0);
+		PX4_INFO("telem> "); \
+		PX4_INFO(_text, ##__VA_ARGS__); \
+		PX4_INFO("\n"); } while(0);
 
 struct mavlink_logmessage {
 	char text[MAVLINK_LOG_MAXLEN + 1];
