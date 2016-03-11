@@ -289,7 +289,17 @@ void DfMpu9250Wrapper::_update_gyro_calibration()
 		if (res != OK) {
 			PX4_ERR("Could not access param %s", str);
 		}
+
+		// We got calibration values, let's exit.
+		return;
 	}
+
+	_gyro_calibration.x_scale = 1.0f;
+	_gyro_calibration.y_scale = 1.0f;
+	_gyro_calibration.z_scale = 1.0f;
+	_gyro_calibration.x_offset = 0.0f;
+	_gyro_calibration.y_offset = 0.0f;
+	_gyro_calibration.z_offset = 0.0f;
 }
 
 void DfMpu9250Wrapper::_update_accel_calibration()
@@ -354,7 +364,18 @@ void DfMpu9250Wrapper::_update_accel_calibration()
 		if (res != OK) {
 			PX4_ERR("Could not access param %s", str);
 		}
+
+		// We got calibration values, let's exit.
+		return;
 	}
+
+	// Set sane default calibration values
+	_accel_calibration.x_scale = 1.0f;
+	_accel_calibration.y_scale = 1.0f;
+	_accel_calibration.z_scale = 1.0f;
+	_accel_calibration.x_offset = 0.0f;
+	_accel_calibration.y_offset = 0.0f;
+	_accel_calibration.z_offset = 0.0f;
 }
 
 int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
