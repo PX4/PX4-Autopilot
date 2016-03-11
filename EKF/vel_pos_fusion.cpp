@@ -36,6 +36,8 @@
  * Function for fusing gps and baro measurements/
  *
  * @author Roman Bast <bapstroman@gmail.com>
+ * @author Siddharth Bharat Purohit <siddharthbharatpurohit@gmail.com>
+ * @author Paul Riseborough <p_riseborough@live.com.au>
  *
  */
 
@@ -105,14 +107,27 @@ void Ekf::fuseVelPosHeight()
 	}
 
 	if (_fuse_height) {
-		fuse_map[5] = true;
-		// vertical position innovation - baro measurement has opposite sign to earth z axis
-		_vel_pos_innov[5] = _state.pos(2) - (_baro_at_alignment - _baro_sample_delayed.hgt);
-		// observation variance - user parameter defined
-		R[5] = fmaxf(_params.baro_noise, 0.01f);
-		R[5] = R[5] * R[5];
-		// innovation gate size
-		gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
+		if (_control_status.flags.baro_hgt) {
+			fuse_map[5] = true;
+			// vertical position innovation - baro measurement has opposite sign to earth z axis
+			_vel_pos_innov[5] = _state.pos(2) - (_hgt_at_alignment - _baro_sample_delayed.hgt);
+			// observation variance - user parameter defined
+			R[5] = fmaxf(_params.baro_noise, 0.01f);
+			R[5] = R[5] * R[5];
+			// innovation gate size
+			gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
+
+		} else if (_control_status.flags.rng_hgt && (_R_prev(2, 2) > 0.7071f)) {
+			fuse_map[5] = true;
+			// use range finder with tilt correction
+			_vel_pos_innov[5] = _state.pos(2) - (-math::max(_range_sample_delayed.rng *_R_prev(2, 2),
+							     _params.rng_gnd_clearance));
+			// observation variance - user parameter defined
+			R[5] = fmaxf(_params.range_noise, 0.01f);
+			R[5] = R[5] * R[5];
+			// innovation gate size
+			gate_size[5] = fmaxf(_params.range_innov_gate, 1.0f);
+		}
 	}
 
 	// calculate innovation test ratios
@@ -122,7 +137,8 @@ void Ekf::fuseVelPosHeight()
 			unsigned state_index = obs_index + 3;	// we start with vx and this is the 4. state
 			_vel_pos_innov_var[obs_index] = P[state_index][state_index] + R[obs_index];
 			// Compute the ratio of innovation to gate size
-			_vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) * _vel_pos_innov_var[obs_index]);
+			_vel_pos_test_ratio[obs_index] = sq(_vel_pos_innov[obs_index]) / (sq(gate_size[obs_index]) *
+							 _vel_pos_innov_var[obs_index]);
 		}
 	}
 
@@ -141,11 +157,13 @@ void Ekf::fuseVelPosHeight()
 	// record the successful velocity fusion time
 	if (vel_check_pass && _fuse_hor_vel) {
 		_time_last_vel_fuse = _time_last_imu;
+		_tilt_err_vec.setZero();
 	}
 
 	// record the successful position fusion time
 	if (pos_check_pass && _fuse_pos) {
 		_time_last_pos_fuse = _time_last_imu;
+		_tilt_err_vec.setZero();
 	}
 
 	// record the successful height fusion time
@@ -190,6 +208,12 @@ void Ekf::fuseVelPosHeight()
 			}
 		}
 
+		// sum the attitude error from velocity and position fusion only
+		// used as a metric for convergence monitoring
+		if (obs_index != 5) {
+			_tilt_err_vec += _state.ang_error;
+		}
+
 		// by definition the angle error state is zero at the fusion time
 		_state.ang_error.setZero();
 
@@ -222,4 +246,3 @@ void Ekf::fuseVelPosHeight()
 	}
 
 }
-

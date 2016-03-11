@@ -49,12 +49,71 @@ void Ekf::controlFusionModes()
 	// Get the magnetic declination
 	calcMagDeclination();
 
+	// Check for tilt convergence during initial alignment
+	// filter the tilt error vector using a 1 sec time constant LPF
+	float filt_coef = 1.0f * _imu_sample_delayed.delta_ang_dt;
+	_tilt_err_length_filt = filt_coef * _tilt_err_vec.norm() + (1.0f - filt_coef) * _tilt_err_length_filt;
+
+	// Once the tilt error has reduced sufficiently, initialise the yaw and magnetic field states
+	if (_tilt_err_length_filt < 0.005f && !_control_status.flags.tilt_align) {
+		_control_status.flags.tilt_align = true;
+		_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+	}
+
 	// optical flow fusion mode selection logic
-	_control_status.flags.opt_flow = false;
+	// to start using optical flow data we need angular alignment complete, and fresh optical flow and height above terrain data
+	if ((_params.fusion_mode & MASK_USE_OF) && !_control_status.flags.opt_flow && _control_status.flags.tilt_align
+	    && (_time_last_imu - _time_last_optflow) < 5e5 && (_time_last_imu - _time_last_hagl_fuse) < 5e5) {
+		// If the heading is not aligned, reset the yaw and magnetic field states
+		if (!_control_status.flags.yaw_align) {
+			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+		}
+
+		// If the heading is valid, start using optical flow aiding
+		if (_control_status.flags.yaw_align) {
+			// set the flag and reset the fusion timeout
+			_control_status.flags.opt_flow = true;
+			_time_last_of_fuse = _time_last_imu;
+
+			// if we are not using GPS and are in air, then we need to reset the velocity to be consistent with the optical flow reading
+			if (!_control_status.flags.gps) {
+				// calculate the rotation matrix from body to earth frame
+				matrix::Dcm<float> body_to_earth(_state.quat_nominal);
+
+				// constrain height above ground to be above minimum possible
+				float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
+
+				// calculate absolute distance from focal point to centre of frame assuming a flat earth
+				float range = heightAboveGndEst / body_to_earth(2, 2);
+
+				if (_in_air && (range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
+					// calculate X and Y body relative velocities from OF measurements
+					Vector3f vel_optflow_body;
+					vel_optflow_body(0) = - range * _flow_sample_delayed.flowRadXYcomp(1) / _flow_sample_delayed.dt;
+					vel_optflow_body(1) =   range * _flow_sample_delayed.flowRadXYcomp(0) / _flow_sample_delayed.dt;
+					vel_optflow_body(2) = 0.0f;
+
+					// rotate from body to earth frame
+					Vector3f vel_optflow_earth;
+					vel_optflow_earth = body_to_earth * vel_optflow_body;
+
+					// take x and Y components
+					_state.vel(0) = vel_optflow_earth(0);
+					_state.vel(1) = vel_optflow_earth(1);
+
+				} else {
+					_state.vel.setZero();
+				}
+			}
+		}
+
+	} else if (!(_params.fusion_mode & MASK_USE_OF)) {
+		_control_status.flags.opt_flow = false;
+	}
 
 	// GPS fusion mode selection logic
-	// To start using GPS we need tilt and yaw alignment completed, the local NED origin set and fresh GPS data
-	if (!_control_status.flags.gps) {
+	// To start use GPS we need angular alignment completed, the local NED origin set and fresh GPS data
+	if ((_params.fusion_mode & MASK_USE_GPS) && !_control_status.flags.gps) {
 		if (_control_status.flags.tilt_align && (_time_last_imu - _time_last_gps) < 5e5 && _NED_origin_initialised
 		    && (_time_last_imu - _last_gps_fail_us > 5e6)) {
 			// If the heading is not aligned, reset the yaw and magnetic field states
@@ -62,18 +121,20 @@ void Ekf::controlFusionModes()
 				_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 			}
 
-			// If the heading is valid, reset the positon and velocity and start using gps aiding
+			// If the heading is valid start using gps aiding
 			if (_control_status.flags.yaw_align) {
-				resetPosition();
-				resetVelocity();
 				_control_status.flags.gps = true;
+				_time_last_gps = _time_last_imu;
+				// if we are not already aiding with optical flow, then we need to reset the position and velocity
+				if (!_control_status.flags.opt_flow) {
+					_control_status.flags.gps = resetPosition();
+					_control_status.flags.gps = resetVelocity();
+				}
 			}
 		}
-	}
 
-	// decide when to start using optical flow data
-	if (!_control_status.flags.opt_flow) {
-		// TODO optical flow start logic
+	}  else if (!(_params.fusion_mode & MASK_USE_GPS)) {
+		_control_status.flags.gps = false;
 	}
 
 	// handle the case when we are relying on GPS fusion and lose it
@@ -106,7 +167,15 @@ void Ekf::controlFusionModes()
 
 	// handle the case when we are relying on optical flow fusion and lose it
 	if (_control_status.flags.opt_flow && !_control_status.flags.gps) {
-		// TODO
+		// We are relying on flow aiding to constrain attitude drift so after 5s without aiding we need to do something
+		if ((_time_last_imu - _time_last_of_fuse > 5e6)) {
+			// Switch to the non-aiding mode, zero the veloity states
+			// and set the synthetic position to the current estimate
+			_control_status.flags.opt_flow = false;
+			_last_known_posNE(0) = _state.pos(0);
+			_last_known_posNE(1) = _state.pos(1);
+			_state.vel.setZero();
+		}
 	}
 
 	// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
@@ -177,6 +246,12 @@ void Ekf::controlFusionModes()
 		_control_status.flags.mag_dec = false;
 	}
 
+	// Control the soure of height measurements for the main filter
+	_control_status.flags.baro_hgt = true;
+	_control_status.flags.rng_hgt = false;
+	_control_status.flags.gps_hgt = false;
+
+
 	// Placeholder for control of wind velocity states estimation
 	// TODO add methods for true airspeed and/or sidelsip fusion or some type of drag force measurement
 	if (false) {
@@ -199,6 +274,7 @@ void Ekf::calculateVehicleStatus()
 
 	// Transition to in-air occurs when armed and when altitude has increased sufficiently from the altitude at arming
 	bool in_air = _control_status.flags.armed && (_state.pos(2) - _last_disarmed_posD) < -1.0f;
+
 	if (!_control_status.flags.in_air && in_air) {
 		_control_status.flags.in_air = true;
 	}

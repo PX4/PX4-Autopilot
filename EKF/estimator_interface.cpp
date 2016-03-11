@@ -213,20 +213,70 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *data)
 		_airspeed_buffer.push(airspeed_sample_new);
 	}
 }
-
+static float rng;
 // set range data
 void EstimatorInterface::setRangeData(uint64_t time_usec, float *data)
 {
 	if (!collect_range(time_usec, data) || !_initialised) {
 		return;
 	}
+
+	if (time_usec > _time_last_range) {
+		rangeSample range_sample_new;
+		range_sample_new.rng = *data;
+		rng = *data;
+		range_sample_new.time_us -= _params.range_delay_ms * 1000;
+
+		range_sample_new.time_us = time_usec;
+		_time_last_range = time_usec;
+
+		_range_buffer.push(range_sample_new);
+	}
 }
 
 // set optical flow data
-void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, float *data)
+void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *flow)
 {
-	if (!collect_opticalflow(time_usec, data) || !_initialised) {
+	if (!collect_opticalflow(time_usec, flow) || !_initialised) {
 		return;
+	}
+
+	// if data passes checks, push to buffer
+	if (time_usec > _time_last_optflow) {
+		// check if enough integration time
+		float delta_time = 1e-6f * (float)flow->dt;
+		bool delta_time_good = (delta_time >= 0.05f);
+
+		// check magnitude is within sensor limits
+		float flow_rate_magnitude;
+		bool flow_magnitude_good = false;
+
+		if (delta_time_good) {
+			flow_rate_magnitude = flow->flowdata.norm() / delta_time;
+			flow_magnitude_good = (flow_rate_magnitude <= _params.flow_rate_max);
+		}
+
+		// check quality metric
+		bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
+
+		if (delta_time_good && flow_magnitude_good && flow_quality_good) {
+			flowSample optflow_sample_new;
+			// calculate the system time-stamp for the mid point of the integration period
+			optflow_sample_new.time_us = time_usec - _params.flow_delay_ms * 1000 - flow->dt / 2;
+			// copy the quality metric returned by the PX4Flow sensor
+			optflow_sample_new.quality = flow->quality;
+			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate is produced by a RH rotation of the image about the sensor axis.
+			// copy the optical and gyro measured delta angles
+			optflow_sample_new.flowRadXY = - flow->flowdata;
+			optflow_sample_new.gyroXY = - flow->gyrodata;
+			// compensate for body motion to give a LOS rate
+			optflow_sample_new.flowRadXYcomp = optflow_sample_new.flowRadXY - optflow_sample_new.gyroXY;
+			// convert integraton interval to seconds
+			optflow_sample_new.dt = 1e-6f * (float)flow->dt;
+			_time_last_optflow = time_usec;
+			// push to buffer
+			_flow_buffer.push(optflow_sample_new);
+		}
 	}
 }
 
@@ -265,6 +315,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	_time_last_baro = 0;
 	_time_last_range = 0;
 	_time_last_airspeed = 0;
+	_time_last_optflow = 0;
 
 	memset(&_fault_status, 0, sizeof(_fault_status));
 	return true;
@@ -283,9 +334,8 @@ void EstimatorInterface::unallocate_buffers()
 
 }
 
-bool EstimatorInterface::position_is_valid()
+bool EstimatorInterface::local_position_is_valid()
 {
 	// return true if the position estimate is valid
-	// TOTO implement proper check based on published GPS accuracy, innovaton consistency checks and timeout status
-	return _NED_origin_initialised && (_time_last_imu - _time_last_gps) < 5e6;
+	return ((_time_last_imu - _time_last_optflow) < 5e6) || global_position_is_valid();
 }

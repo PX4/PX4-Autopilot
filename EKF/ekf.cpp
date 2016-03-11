@@ -36,7 +36,7 @@
  * Core functions for ekf attitude and position estimator.
  *
  * @author Roman Bast <bapstroman@gmail.com>
- *
+ * @author Paul Riseborough <p_riseborough@live.com.au>
  */
 
 #include "ekf.h"
@@ -48,6 +48,8 @@ Ekf::Ekf():
 	_fuse_pos(false),
 	_fuse_hor_vel(false),
 	_fuse_vert_vel(false),
+	_fuse_flow(false),
+	_fuse_hagl_data(false),
 	_time_last_fake_gps(0),
 	_time_last_pos_fuse(0),
 	_time_last_vel_fuse(0),
@@ -56,6 +58,7 @@ Ekf::Ekf():
 	_last_disarmed_posD(0.0f),
 	_heading_innov(0.0f),
 	_heading_innov_var(0.0f),
+	_delta_time_of(0.0f),
 	_mag_declination(0.0f),
 	_gpsDriftVelN(0.0f),
 	_gpsDriftVelE(0.0f),
@@ -66,10 +69,14 @@ Ekf::Ekf():
 	_last_gps_fail_us(0),
 	_last_gps_origin_time_us(0),
 	_gps_alt_ref(0.0f),
-	_baro_counter(0),
-	_baro_sum(0.0f),
+	_hgt_counter(0),
+	_hgt_sum(0.0f),
 	_mag_counter(0),
-	_baro_at_alignment(0.0f)
+	_hgt_at_alignment(0.0f),
+	_terrain_vpos(0.0f),
+	_hagl_innov(0.0f),
+	_hagl_innov_var(0.0f),
+	_time_last_hagl_fuse(0)
 {
 	_control_status = {};
 	_control_status_prev = {};
@@ -79,8 +86,10 @@ Ekf::Ekf():
 	_R_prev = matrix::Dcm<float>();
 	memset(_vel_pos_innov, 0, sizeof(_vel_pos_innov));
 	memset(_mag_innov, 0, sizeof(_mag_innov));
+	memset(_flow_innov, 0, sizeof(_flow_innov));
 	memset(_vel_pos_innov_var, 0, sizeof(_vel_pos_innov_var));
 	memset(_mag_innov_var, 0, sizeof(_mag_innov_var));
+	memset(_flow_innov_var, 0, sizeof(_flow_innov_var));
 	_delta_angle_corr.setZero();
 	_delta_vel_corr.setZero();
 	_vel_corr.setZero();
@@ -89,6 +98,8 @@ Ekf::Ekf():
 	_q_down_sampled.setZero();
 	_mag_sum = {};
 	_delVel_sum = {};
+	_flow_gyro_bias = {};
+	_imu_del_ang_of = {};	
 }
 
 Ekf::~Ekf()
@@ -137,93 +148,140 @@ bool Ekf::init(uint64_t timestamp)
 	_mag_healthy = false;
 
 	_filter_initialised = false;
+	_terrain_initialised = false;
 
 	return ret;
 }
 
 bool Ekf::update()
 {
-	bool ret = false;	// indicates if there has been an update
 
-	if (!_filter_initialised) {
-		_filter_initialised = initialiseFilter();
-
-		if (!_filter_initialised) {
-			return false;
-		}
-	}
-
-	//printStates();
-	//printStatesFast();
-	// prediction
+	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
-		ret = true;
+		if (!_filter_initialised) {
+			_filter_initialised = initialiseFilter();
+
+			if (!_filter_initialised) {
+				return false;
+			}
+		}
+
+		// perform state and covariance prediction for the main filter
 		predictState();
 		predictCovariance();
-	}
 
-	// control logic
-	controlFusionModes();
-
-	// measurement updates
-
-	// Fuse magnetometer data using the selected fusion method and only if angular alignment is complete
-	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		if (_control_status.flags.mag_3D && _control_status.flags.yaw_align) {
-			fuseMag();
-
-			if (_control_status.flags.mag_dec) {
-				fuseDeclination();
-			}
-
-		} else if (_control_status.flags.mag_2D && _control_status.flags.yaw_align) {
-			fuseMag2D();
-
-		} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {
-			// fusion of a Euler yaw angle from either a 321 or 312 rotation sequence
-			fuseHeading();
+		// perform state and variance prediction for the terrain estimator
+		if (!_terrain_initialised) {
+			_terrain_initialised = initHagl();
 
 		} else {
-			// do no fusion at all
+			predictHagl();
+		}
+
+		// control logic
+		controlFusionModes();
+
+		// measurement updates
+
+		// Fuse magnetometer data using the selected fuson method and only if angular alignment is complete
+		if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
+			if (_control_status.flags.mag_3D && _control_status.flags.yaw_align) {
+				fuseMag();
+
+				if (_control_status.flags.mag_dec) {
+					fuseDeclination();
+				}
+
+			} else if (_control_status.flags.mag_2D && _control_status.flags.yaw_align) {
+				fuseMag2D();
+
+			} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {
+				// fusion of a Euler yaw angle from either a 321 or 312 rotation sequence
+				fuseHeading();
+
+			} else {
+				// do no fusion at all
+			}
+		}
+
+		// determine if range finder data has fallen behind the fusin time horizon fuse it if we are
+		// not tilted too much to use it
+		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
+			   && (_R_prev(2, 2) > 0.7071f)) {
+			// if we have range data we always try to estimate terrain height
+			_fuse_hagl_data = true;
+
+			// only use range finder as a height observation in the main filter if specifically enabled
+			if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
+				_fuse_height = true;
+			}
+
+		}
+
+		// determine if baro data has fallen behind the fuson time horizon and fuse it in the main filter if enabled
+		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)
+			   && _params.vdist_sensor_type == VDIST_SENSOR_BARO) {
+			_fuse_height = true;
+		}
+
+		// If we are using GPS aiding and data has fallen behind the fusion time horizon then fuse it
+		if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed) && _control_status.flags.gps) {
+			_fuse_pos = true;
+			_fuse_vert_vel = true;
+			_fuse_hor_vel = true;
+		}
+
+		// If we are using optical flow aiding and data has fallen behind the fusion time horizon, then fuse it
+		if (_flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
+			   && _control_status.flags.opt_flow && (_time_last_imu - _time_last_optflow) < 2e5
+			   && (_R_prev(2, 2) > 0.7071f)) {
+			_fuse_flow = true;
+		}
+
+		// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
+		// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
+		if (!_control_status.flags.gps && !_control_status.flags.opt_flow
+			   && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
+			_fuse_pos = true;
+			_gps_sample_delayed.pos(0) = _last_known_posNE(0);
+			_gps_sample_delayed.pos(1) = _last_known_posNE(1);
+			_time_last_fake_gps = _time_last_imu;
+		}
+
+		// fuse available range finder data into a terrain height estimator if it has been initialised
+		if (_fuse_hagl_data && _terrain_initialised) {
+			fuseHagl();
+			_fuse_hagl_data = false;
+		}
+
+		// Fuse available NED velocity and position data into the main filter
+		if (_fuse_height || _fuse_pos || _fuse_hor_vel || _fuse_vert_vel) {
+			fuseVelPosHeight();
+			_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;
+		}
+
+		// Update optical flow bias estimates
+		calcOptFlowBias();
+
+		// Fuse optical flow LOS rate observations into the main filter
+		if (_fuse_flow) {
+			fuseOptFlow();
+			_last_known_posNE(0) = _state.pos(0);
+			_last_known_posNE(1) = _state.pos(1);
+			_fuse_flow = false;
 		}
 	}
 
-	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
-		_fuse_height = true;
-	}
-
-	// If we are using GPS aiding and data has fallen behind the fusion time horizon then fuse it
-	// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
-	// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
-	if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed) && _control_status.flags.gps) {
-		_fuse_pos = true;
-		_fuse_vert_vel = true;
-		_fuse_hor_vel = true;
-
-	} else if (!_control_status.flags.gps && !_control_status.flags.opt_flow
-		   && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
-		_fuse_pos = true;
-		_gps_sample_delayed.pos(0) = _last_known_posNE(0);
-		_gps_sample_delayed.pos(1) = _last_known_posNE(1);
-		_time_last_fake_gps = _time_last_imu;
-	}
-
-	if (_fuse_height || _fuse_pos || _fuse_hor_vel || _fuse_vert_vel) {
-		fuseVelPosHeight();
-		_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;
-	}
-
-	if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)) {
-		fuseRange();
-	}
-
-	if (_airspeed_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed)) {
-		fuseAirspeed();
-	}
-
+	// the output observer always runs
 	calculateOutputStates();
 
-	return ret;
+	// We don't have valid data to output until tilt and yaw alignment is complete
+	if (_control_status.flags.tilt_align && _control_status.flags.yaw_align) {
+		return true;
+
+	} else {
+		return false;
+	}
 }
 
 bool Ekf::initialiseFilter(void)
@@ -231,7 +289,8 @@ bool Ekf::initialiseFilter(void)
 	// Keep accumulating measurements until we have a minimum of 10 samples for the baro and magnetoemter
 
 	// Sum the IMU delta angle measurements
-	_delVel_sum += _imu_down_sampled.delta_vel;
+	imuSample imu_init = _imu_buffer.get_newest();
+	_delVel_sum += imu_init.delta_vel;
 
 	// Sum the magnetometer measurements
 	magSample mag_init = _mag_buffer.get_newest();
@@ -241,17 +300,26 @@ bool Ekf::initialiseFilter(void)
 		_mag_sum += mag_init.mag;
 	}
 
-	// Sum the barometer measurements
-	// initialize vertical position with newest baro measurement
-	baroSample baro_init = _baro_buffer.get_newest();
+	if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
+		rangeSample range_init = _range_buffer.get_newest();
 
-	if (baro_init.time_us != 0) {
-		_baro_counter ++;
-		_baro_sum += baro_init.hgt;
+		if (range_init.time_us != 0) {
+			_hgt_counter ++;
+			_hgt_sum += range_init.rng;
+		}
+
+	} else {
+		// initialize vertical position with newest baro measurement
+		baroSample baro_init = _baro_buffer.get_newest();
+
+		if (baro_init.time_us != 0) {
+			_hgt_counter ++;
+			_hgt_sum += baro_init.hgt;
+		}
 	}
 
-	// check to see if we have enough measurements and return false if not
-	if (_baro_counter < 10 || _mag_counter < 10) {
+	// check to see if we have enough measruements and return false if not
+	if (_hgt_counter < 10 || _mag_counter < 10) {
 		return false;
 
 	} else {
@@ -283,22 +351,27 @@ bool Ekf::initialiseFilter(void)
 		matrix::Euler<float> euler_init(roll, pitch, 0.0f);
 		_state.quat_nominal = Quaternion(euler_init);
 		_output_new.quat_nominal = _state.quat_nominal;
-		_control_status.flags.tilt_align = true;
+
+		// initialise the filtered alignment error estimate to a larger starting value
+		_tilt_err_length_filt = 1.0f;
 
 		// calculate the averaged magnetometer reading
 		Vector3f mag_init = _mag_sum * (1.0f / (float(_mag_counter)));
 
 		// calculate the initial magnetic field and yaw alignment
-		_control_status.flags.yaw_align = resetMagHeading(mag_init);
+		resetMagHeading(mag_init);
 
 		// calculate the averaged barometer reading
-		_baro_at_alignment = _baro_sum / (float)_baro_counter;
+		_hgt_at_alignment = _hgt_sum / (float)_hgt_counter;
 
 		// set the velocity to the GPS measurement (by definition, the initial position and height is at the origin)
 		resetVelocity();
 
 		// initialise the state covariance matrix
 		initialiseCovariance();
+
+		// initialise the terrain estimator
+		initHagl();
 
 		return true;
 	}
@@ -353,7 +426,6 @@ bool Ekf::collect_imu(imuSample &imu)
 
 	_imu_down_sampled.delta_ang_dt += imu.delta_ang_dt;
 	_imu_down_sampled.delta_vel_dt += imu.delta_vel_dt;
-
 
 	Quaternion delta_q;
 	delta_q.rotate(imu.delta_ang);
@@ -450,11 +522,6 @@ void Ekf::calculateOutputStates()
 }
 
 void Ekf::fuseAirspeed()
-{
-
-}
-
-void Ekf::fuseRange()
 {
 
 }

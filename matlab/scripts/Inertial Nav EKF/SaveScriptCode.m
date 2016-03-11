@@ -409,7 +409,7 @@ if exist('SH_LOS','var')
     fprintf(fid,'\n');
     fprintf(fid,'Kfusion = zeros(%d,1);\n',nRow,nCol);
     for rowIndex = 1:nRow
-        string = char(K_LOS(rowIndex,1));
+        string = char(K_LOSX(rowIndex));
         % don't write out a zero-assignment
         if ~strcmpi(string,'0')
             fprintf(fid,'Kfusion(%d) = %s;\n',rowIndex,string);
@@ -421,7 +421,7 @@ if exist('SH_LOS','var')
     fprintf(fid,'\n');
     fprintf(fid,'Kfusion = zeros(%d,1);\n',nRow,nCol);
     for rowIndex = 1:nRow
-        string = char(K_LOS(rowIndex,2));
+        string = char(K_LOSY(rowIndex));
         % don't write out a zero-assignment
         if ~strcmpi(string,'0')
             fprintf(fid,'Kfusion(%d) = %s;\n',rowIndex,string);
@@ -547,6 +547,25 @@ if exist('SH_MAGS','var')
     end
     fprintf(fid,'\n');
         
+    fprintf(fid,'\n');
+    fprintf(fid,'SK_MAGS = zeros(%d,1);\n',numel(SK_MAGS));
+    for rowIndex = 1:numel(SK_MAGS)
+        string = char(SK_MAGS(rowIndex,1));
+        fprintf(fid,'SK_MAGS(%d) = %s;\n',rowIndex,string);
+    end
+    fprintf(fid,'\n');
+    
+    [nRow,nCol] = size(K_MAGS);
+    fprintf(fid,'\n');
+    fprintf(fid,'Kfusion = zeros(%d,1);\n',nRow,nCol);
+    for rowIndex = 1:nRow
+        string = char(K_MAGS(rowIndex,1));
+        % don't write out a zero-assignment
+        if ~strcmpi(string,'0')
+            fprintf(fid,'Kfusion(%d) = %s;\n',rowIndex,string);
+        end
+    end
+    fprintf(fid,'\n');
 end
 
 %% Write equations for X accel fusion
