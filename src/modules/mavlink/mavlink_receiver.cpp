@@ -75,9 +75,9 @@
 
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 #include <systemlib/airspeed.h>
-#include <mavlink/mavlink_log.h>
 #include <commander/px4_custom_mode.h>
 #include <geo/geo.h>
 
@@ -1827,7 +1827,7 @@ MavlinkReceiver::receive_thread(void *arg)
 			struct sockaddr_in * srcaddr_last = _mavlink->get_client_source_address();
 			int localhost = (127 << 24) + 1;
 			if (!_mavlink->get_client_source_initialized()) {
-				
+
 				// set the address either if localhost or if 3 seconds have passed
 				// this ensures that a GCS running on localhost can get a hold of
 				// the system within the first N seconds
