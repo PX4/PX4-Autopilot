@@ -270,8 +270,8 @@ struct parameters {
 		mag_fusion_type = 0;
 
 		// airspeed fusion
-		float tas_innov_gate = 3.0f; // [CHECK THIS VALUE]		
-  		float eas_noise = 1.4f;			
+		tas_innov_gate = 3.0f; // [CHECK THIS VALUE]		
+  		eas_noise = 1.4f;			
 
 		// range finder fusion
 		range_noise = 0.1f;
