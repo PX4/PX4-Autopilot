@@ -686,12 +686,15 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 					(void)sprintf(str, "CAL_MAG%u_ZOFF", cur_mag);
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_offset)));
 					(void)sprintf(str, "CAL_MAG%u_XSCALE", cur_mag);
-					// FIXME: scaling is not used right now
-					//failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_scale)));
-					//(void)sprintf(str, "CAL_MAG%u_YSCALE", cur_mag);
-					//failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
-					//(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
-					//failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_scale)));
+
+					// FIXME: scaling is not used right now on QURT
+#ifndef __PX4_QURT
+					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_scale)));
+					(void)sprintf(str, "CAL_MAG%u_YSCALE", cur_mag);
+					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
+					(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
+					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_scale)));
+#endif
 
 					if (failed) {
 						mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SET_PARAMS_MSG, cur_mag);
