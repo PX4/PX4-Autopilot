@@ -111,7 +111,9 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM, 10.0f);
  * If set to one this parameter will cause permanent attitude stabilization in fw mode.
  * This parameter has been introduced for pure convenience sake.
  *
- * @unit bool
+ * @unit enum
+ * @value 0 Disabled
+ * @value 1 Enabled
  * @min 0
  * @max 1
  * @increment 1
@@ -181,7 +183,9 @@ PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN, 0.3f);
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
  *
  * @unit enum
- * @value 0 Tailsitter 1 Tiltrotor 2 Standard
+ * @value 0 Tailsitter
+ * @value 1 Tiltrotor
+ * @value 2 Standard
  * @min 0
  * @max 2
  * @increment 1
@@ -195,7 +199,9 @@ PARAM_DEFINE_INT32(VT_TYPE, 0);
  *
  * If set to 1 the elevons are locked in multicopter mode
  *
- * @unit bool
+ * @unit enum
+ * @value 0 Disabled
+ * @value 1 Enabled
  * @min 0
  * @max 1
  * @increment 1
@@ -263,7 +269,9 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 /**
  * Enable optimal recovery strategy for pitch-weak tailsitters
  *
- * @unit bool
+ * @unit enum
+ * @value 0 Disabled
+ * @value 1 Enabled
  * @min 0
  * @max 1
  * @increment 1
@@ -275,7 +283,9 @@ PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
 /**
  * Enable weather-vane mode landings for missions
  *
- * @unit bool
+ * @unit enum
+ * @value 0 Disabled
+ * @value 1 Enabled
  * @min 0
  * @max 1
  * @increment 1
@@ -302,7 +312,9 @@ PARAM_DEFINE_FLOAT(VT_WV_YAWR_SCL, 0.15f);
 /**
  * Enable weather-vane mode for loiter
  *
- * @unit bool
+ * @unit enum
+ * @value 0 Disabled
+ * @value 1 Enabled
  * @min 0
  * @max 1
  * @increment 1
