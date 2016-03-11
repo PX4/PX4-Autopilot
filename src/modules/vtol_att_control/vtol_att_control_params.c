@@ -116,7 +116,6 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM, 10.0f);
  * @value 1 Enabled
  * @min 0
  * @max 1
- * @increment 1
  * @decimal 0
  * @group VTOL Attitude Control
  */
@@ -188,7 +187,6 @@ PARAM_DEFINE_FLOAT(VT_ARSP_LP_GAIN, 0.3f);
  * @value 2 Standard
  * @min 0
  * @max 2
- * @increment 1
  * @decimal 0
  * @group VTOL Attitude Control
  */
@@ -204,7 +202,6 @@ PARAM_DEFINE_INT32(VT_TYPE, 0);
  * @value 1 Enabled
  * @min 0
  * @max 1
- * @increment 1
  * @decimal 0
  * @group VTOL Attitude Control
  */
@@ -274,7 +271,6 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
  * @value 1 Enabled
  * @min 0
  * @max 1
- * @increment 1
  * @decimal 0
  * @group VTOL Attitude Control
  */
@@ -288,7 +284,6 @@ PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
  * @value 1 Enabled
  * @min 0
  * @max 1
- * @increment 1
  * @decimal 0
  * @group VTOL Attitude Control
  */
@@ -317,7 +312,6 @@ PARAM_DEFINE_FLOAT(VT_WV_YAWR_SCL, 0.15f);
  * @value 1 Enabled
  * @min 0
  * @max 1
- * @increment 1
  * @decimal 0
  * @group VTOL Attitude Control
  */
