@@ -53,7 +53,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <pthread.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -251,8 +251,6 @@ public:
 
 	bool			_task_should_exit;	/**< if true, mavlink task should exit */
 
-	int			get_mavlink_fd() { return _mavlink_fd; }
-
 	/**
 	 * Send a status text with loglevel INFO
 	 *
@@ -362,7 +360,6 @@ protected:
 private:
 	int			_instance_id;
 
-	int			_mavlink_fd;
 	bool			_task_running;
 	static bool		_boot_complete;
 
@@ -513,12 +510,6 @@ private:
 	void update_rate_mult();
 
 	void init_udp();
-
-#ifdef __PX4_NUTTX
-	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
-#else
-	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
-#endif
 
 	/**
 	 * Main mavlink task.

@@ -118,9 +118,8 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/git_version.h>
 #include <systemlib/printload.h>
+#include <systemlib/mavlink_log.h>
 #include <version/version.h>
-
-#include <mavlink/mavlink_log.h>
 
 #include "logbuffer.h"
 #include "sdlog2_format.h"
@@ -153,7 +152,6 @@ static int32_t _utc_offset = 0;
 #define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd"
 static const char *mountpoint = MOUNTPOINT;
 static const char *log_root = MOUNTPOINT "/log";
-static int mavlink_fd = -1;
 struct logbuffer_s lb;
 
 /* mutex / condition to synchronize threads */
@@ -474,7 +472,7 @@ int create_log_dir()
 	}
 
 	/* print logging path, important to find log file later */
-	mavlink_and_console_log_info(mavlink_fd, "[blackbox] %s", log_dir);
+	mavlink_and_console_log_info("[blackbox] %s", log_dir);
 
 	return 0;
 }
@@ -511,7 +509,7 @@ int open_log_file()
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_and_console_log_critical(mavlink_fd, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical("[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -523,10 +521,10 @@ int open_log_file()
 #endif
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[blackbox] failed: %s", log_file_name);
+		mavlink_and_console_log_critical("[blackbox] failed: %s", log_file_name);
 
 	} else {
-		mavlink_and_console_log_info(mavlink_fd, "[blackbox] recording: %s", log_file_name);
+		mavlink_and_console_log_info("[blackbox] recording: %s", log_file_name);
 	}
 
 	return fd;
@@ -563,7 +561,7 @@ int open_perf_file(const char* str)
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_and_console_log_critical(mavlink_fd, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_and_console_log_critical("[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -575,7 +573,7 @@ int open_perf_file(const char* str)
 #endif
 
 	if (fd < 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[blackbox] failed: %s", log_file_name);
+		mavlink_and_console_log_critical("[blackbox] failed: %s", log_file_name);
 
 	}
 
@@ -702,7 +700,7 @@ void sdlog2_start_log()
 
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
-		mavlink_and_console_log_critical(mavlink_fd, "[blackbox] error creating log dir");
+		mavlink_and_console_log_critical("[blackbox] error creating log dir");
 		return;
 	}
 
@@ -798,7 +796,7 @@ void sdlog2_stop_log()
 	/* free log buffer */
 	logbuffer_free(&lb);
 
-	mavlink_and_console_log_info(mavlink_fd, "[blackbox] recording stopped");
+	mavlink_and_console_log_info("[blackbox] recording stopped");
 
 	sdlog2_status();
 }
@@ -912,12 +910,6 @@ bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void
 
 int sdlog2_thread_main(int argc, char *argv[])
 {
-	mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
-
-	if (mavlink_fd < 0) {
-		warnx("ERR: log stream, start mavlink app first");
-	}
-
 	/* default log rate: 50 Hz */
 	int32_t log_rate = 50;
 	int log_buffer_size = LOG_BUFFER_SIZE_DEFAULT;
@@ -1061,7 +1053,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* any other value means to ignore the parameter, so no else case */
 
 	}
-	
+
 	param_t log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 
 	if ( log_utc_offset != PARAM_INVALID ) {
@@ -1293,7 +1285,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
 	}
-	
+
 	subs.sat_info_sub = -1;
 
 #ifdef __PX4_NUTTX
@@ -2113,7 +2105,7 @@ void sdlog2_status()
 		float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
 		warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
-		mavlink_log_info(mavlink_fd, "[blackbox] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
+		mavlink_log_info("[blackbox] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
 	}
 }
 
@@ -2137,16 +2129,14 @@ int check_free_space()
 
 	/* use a threshold of 50 MiB */
 	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
-		mavlink_and_console_log_critical(mavlink_fd,
-			"[blackbox] no space on MicroSD: %u MiB",
+		mavlink_and_console_log_critical("[blackbox] no space on MicroSD: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
 		return PX4_ERROR;
 
 	/* use a threshold of 100 MiB to send a warning */
 	} else if (!space_warning_sent && statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
-		mavlink_and_console_log_critical(mavlink_fd,
-			"[blackbox] space on MicroSD low: %u MiB",
+		mavlink_and_console_log_critical("[blackbox] space on MicroSD low: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we don't want to flood the user with warnings */
 		space_warning_sent = true;

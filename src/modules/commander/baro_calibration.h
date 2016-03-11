@@ -41,6 +41,6 @@
 
 #include <stdint.h>
 
-int do_baro_calibration(int mavlink_fd);
+int do_baro_calibration();
 
 #endif /* BARO_CALIBRATION_H_ */

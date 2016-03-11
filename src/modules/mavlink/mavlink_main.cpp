@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * MAVLink 1.0 protocol implementation.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
@@ -69,10 +69,10 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/mcu_version.h>
 #include <systemlib/git_version.h>
+#include <systemlib/mavlink_log.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
 //#include <mathlib/mathlib.h>
-#include <mavlink/mavlink_log.h>
 
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -130,7 +130,6 @@ Mavlink::Mavlink() :
 	_task_should_exit(false),
 	next(nullptr),
 	_instance_id(0),
-	_mavlink_fd(-1),
 	_task_running(false),
 	_hil_enabled(false),
 	_generate_rc(false),
@@ -203,10 +202,6 @@ Mavlink::Mavlink() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
 	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
 {
-#ifdef __PX4_NUTTX
-	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
-#endif
-
 	_instance_id = Mavlink::instance_count();
 
 	/* set channel according to instance id */
@@ -473,60 +468,6 @@ mavlink_channel_t
 Mavlink::get_channel()
 {
 	return _channel;
-}
-
-/****************************************************************************
- * MAVLink text message logger
- ****************************************************************************/
-
-int
-#ifdef __PX4_NUTTX
-Mavlink::mavlink_dev_ioctl(struct file *filp, int cmd, unsigned long arg)
-#else
-Mavlink::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-#endif
-{
-	switch (cmd) {
-	case (int)MAVLINK_IOC_SEND_TEXT_INFO:
-	case (int)MAVLINK_IOC_SEND_TEXT_CRITICAL:
-	case (int)MAVLINK_IOC_SEND_TEXT_EMERGENCY: {
-
-			const char *txt = (const char *)arg;
-			struct mavlink_logmessage msg;
-			strncpy(msg.text, txt, sizeof(msg.text));
-
-			switch (cmd) {
-			case MAVLINK_IOC_SEND_TEXT_INFO:
-				msg.severity = MAV_SEVERITY_INFO;
-				break;
-
-			case MAVLINK_IOC_SEND_TEXT_CRITICAL:
-				msg.severity = MAV_SEVERITY_CRITICAL;
-				break;
-
-			case MAVLINK_IOC_SEND_TEXT_EMERGENCY:
-				msg.severity = MAV_SEVERITY_EMERGENCY;
-				break;
-
-			default:
-				msg.severity = MAV_SEVERITY_INFO;
-				break;
-			}
-
-			Mavlink *inst;
-			LL_FOREACH(_mavlink_instances, inst) {
-				if (!inst->_task_should_exit) {
-					mavlink_logbuffer_write(&inst->_logbuffer, &msg);
-					inst->_total_counter++;
-				}
-			}
-
-			return OK;
-		}
-
-	default:
-		return ENOTTY;
-	}
 }
 
 void Mavlink::mavlink_update_system(void)
@@ -1089,29 +1030,19 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 void
 Mavlink::send_statustext_info(const char *string)
 {
-	send_statustext(MAV_SEVERITY_INFO, string);
+	mavlink_log_info(string);
 }
 
 void
 Mavlink::send_statustext_critical(const char *string)
 {
-	send_statustext(MAV_SEVERITY_CRITICAL, string);
+	mavlink_log_critical(string);
 }
 
 void
 Mavlink::send_statustext_emergency(const char *string)
 {
-	send_statustext(MAV_SEVERITY_EMERGENCY, string);
-}
-
-void
-Mavlink::send_statustext(unsigned char severity, const char *string)
-{
-	struct mavlink_logmessage logmsg;
-	strncpy(logmsg.text, string, sizeof(logmsg.text));
-	logmsg.severity = severity;
-
-	mavlink_logbuffer_write(&_logbuffer, &logmsg);
+	mavlink_log_emergency(string);
 }
 
 void Mavlink::send_autopilot_capabilites()
@@ -1666,9 +1597,6 @@ Mavlink::task_main(int argc, char *argv[])
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, NULL);
 
-	/* initialize mavlink text message buffering */
-	mavlink_logbuffer_init(&_logbuffer, 5);
-
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_forwarding_on || _ftp_on) {
 		/* initialize message buffer if multiplexing is on or its needed for FTP.
@@ -1694,9 +1622,6 @@ Mavlink::task_main(int argc, char *argv[])
 		PX4_WARN("VDev setup for mavlink log device failed!\n");
 	}
 #endif
-
-	/* initialize logging device */
-	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/* Initialize system properties */
 	mavlink_update_system();
@@ -2092,16 +2017,10 @@ Mavlink::task_main(int argc, char *argv[])
 		::close(_uart_fd);
 	}
 
-	/* close mavlink logging device */
-	px4_close(_mavlink_fd);
-
 	if (_forwarding_on || _ftp_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}
-
-	/* destroy log buffer */
-	mavlink_logbuffer_destroy(&_logbuffer);
 
 	warnx("exiting");
 	_task_running = false;
