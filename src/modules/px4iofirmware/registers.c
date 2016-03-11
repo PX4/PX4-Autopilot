@@ -686,6 +686,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_SBUS_RATE:
+			r_page_setup[offset] = value;
 			sbus1_set_output_rate_hz(value);
 			break;
 
