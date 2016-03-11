@@ -588,8 +588,3 @@ void Ekf::calculateOutputStates()
 
 	_vel_corr = (_state.pos - _output_sample_delayed.pos);
 }
-
-void Ekf::fuseAirspeed()
-{
-
-}
