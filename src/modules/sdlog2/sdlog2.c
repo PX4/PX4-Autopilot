@@ -1476,8 +1476,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_RPL2.lon = buf.replay.lon;
 				log_msg.body.log_RPL2.alt = buf.replay.alt;
 				log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
+				log_msg.body.log_RPL2.nsats = buf.replay.nsats;
 				log_msg.body.log_RPL2.eph = buf.replay.eph;
 				log_msg.body.log_RPL2.epv = buf.replay.epv;
+				log_msg.body.log_RPL2.sacc = buf.replay.sacc;
 				log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
 				log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
 				log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
