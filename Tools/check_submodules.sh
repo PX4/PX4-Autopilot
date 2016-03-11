@@ -55,6 +55,7 @@ if [ -f $1"/.git" ];
 		fi
 	fi
 else
+	git submodule sync --recursive;
 	git submodule update --init --recursive $1;
 fi
 
@@ -68,7 +69,7 @@ check_git_submodule Tools/sitl_gazebo
 check_git_submodule cmake/cmake_hexagon
 check_git_submodule mavlink/include/mavlink/v1.0
 check_git_submodule src/lib/DriverFramework
-check_git_submodule src/lib/DriverFramework/cmake_hexagon
+check_git_submodule src/lib/DriverFramework/cmake/cmake_hexagon
 check_git_submodule src/lib/DriverFramework/dspal
 check_git_submodule src/lib/ecl
 check_git_submodule src/lib/matrix
