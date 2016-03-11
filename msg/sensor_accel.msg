@@ -15,3 +15,5 @@ int16 x_raw
 int16 y_raw
 int16 z_raw
 int16 temperature_raw
+
+uint32 device_id

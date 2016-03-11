@@ -100,9 +100,6 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_parameter_map.h>
-#include <uORB/topics/gyro_calibration.h>
-#include <uORB/topics/accel_calibration.h>
-#include <uORB/topics/mag_calibration.h>
 
 #include <DevMgr.hpp>
 
@@ -1530,17 +1527,7 @@ Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *g
 	}
 
 #else
-	/* On QURT, we can't use the ioctl calls, therefore we publish the calibration over uORB. */
-
-	static orb_advert_t gyro_calibration_pub = nullptr;
-
-	if (gyro_calibration_pub != nullptr) {
-		orb_publish(ORB_ID(gyro_calibration), gyro_calibration_pub, gcal);
-
-	} else {
-		gyro_calibration_pub = orb_advertise(ORB_ID(gyro_calibration), gcal);
-	}
-
+	/* On QURT, the params are read directly in the respective wrappers. */
 	return true;
 #endif
 }
@@ -1561,17 +1548,7 @@ Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s 
 	}
 
 #else
-	/* On QURT, we can't use the ioctl calls, therefore we publish the calibration over uORB. */
-
-	static orb_advert_t accel_calibration_pub = nullptr;
-
-	if (accel_calibration_pub != nullptr) {
-		orb_publish(ORB_ID(accel_calibration), accel_calibration_pub, acal);
-
-	} else {
-		accel_calibration_pub = orb_advertise(ORB_ID(accel_calibration), acal);
-	}
-
+	/* On QURT, the params are read directly in the respective wrappers. */
 	return true;
 #endif
 }
@@ -1592,17 +1569,7 @@ Sensors::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mca
 	}
 
 #else
-	/* On QURT, we can't use the ioctl calls, therefore we publish the calibration over uORB. */
-
-	static orb_advert_t mag_calibration_pub = nullptr;
-
-	if (mag_calibration_pub != nullptr) {
-		orb_publish(ORB_ID(mag_calibration), mag_calibration_pub, mcal);
-
-	} else {
-		mag_calibration_pub = orb_advertise(ORB_ID(mag_calibration), mcal);
-	}
-
+	/* On QURT, the params are read directly in the respective wrappers. */
 	return true;
 #endif
 }

@@ -102,7 +102,6 @@ int do_mag_calibration(int mavlink_fd)
 {
 	mavlink_and_console_log_info(mavlink_fd, CAL_QGC_STARTED_MSG, sensor_name);
 
-#ifndef __PX4_QURT
 	struct mag_calibration_s mscale_null;
 	mscale_null.x_offset = 0.0f;
 	mscale_null.x_scale = 1.0f;
@@ -110,7 +109,6 @@ int do_mag_calibration(int mavlink_fd)
 	mscale_null.y_scale = 1.0f;
 	mscale_null.z_offset = 0.0f;
 	mscale_null.z_scale = 1.0f;
-#endif
 
 	int result = OK;
 
@@ -132,11 +130,35 @@ int do_mag_calibration(int mavlink_fd)
 			break;
 		}
 #else
-		(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
-		result = param_get(param_find(str), &(device_ids[cur_mag]));
+		(void)sprintf(str, "CAL_MAG%u_XOFF", cur_mag);
+		result = param_set(param_find(str), &mscale_null.x_offset);
 		if (result != OK) {
-			mavlink_and_console_log_info(mavlink_fd, "[cal] Unable to reset CAL_MAG%u_ID", cur_mag);
-			break;
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_MAG%u_YOFF", cur_mag);
+		result = param_set(param_find(str), &mscale_null.y_offset);
+		if (result != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_MAG%u_ZOFF", cur_mag);
+		result = param_set(param_find(str), &mscale_null.z_offset);
+		if (result != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_MAG%u_XSCALE", cur_mag);
+		result = param_set(param_find(str), &mscale_null.x_scale);
+		if (result != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_MAG%u_YSCALE", cur_mag);
+		result = param_set(param_find(str), &mscale_null.y_scale);
+		if (result != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
+		result = param_set(param_find(str), &mscale_null.z_scale);
+		if (result != OK) {
+			PX4_ERR("unable to reset %s", str);
 		}
 #endif
 
@@ -326,12 +348,13 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		px4_pollfd_struct_t fds[max_mags];
 		size_t fd_count = 0;
 		for (size_t cur_mag=0; cur_mag<max_mags; cur_mag++) {
-			if (worker_data->sub_mag[cur_mag] >= 0) {
+			if (worker_data->sub_mag[cur_mag] >= 0 && device_ids[cur_mag] > 0) {
 				fds[fd_count].fd = worker_data->sub_mag[cur_mag];
 				fds[fd_count].events = POLLIN;
 				fd_count++;
 			}
 		}
+
 		int poll_ret = px4_poll(fds, fd_count, 1000);
 
 		if (poll_ret > 0) {
@@ -446,24 +469,31 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 	// Setup subscriptions to mag sensors
 	if (result == calibrate_return_ok) {
 		for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
-			if (device_ids[cur_mag] != 0) {
-				// Mag in this slot is available
-				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
-				if (worker_data.sub_mag[cur_mag] < 0) {
-					mavlink_and_console_log_critical(mavlink_fd, "[cal] Mag #%u not found, abort", cur_mag);
-					result = calibrate_return_error;
-					break;
-				}
-
-				// Get priority
-				int32_t prio;
-				orb_priority(worker_data.sub_mag[cur_mag], &prio);
-
-				if (prio > device_prio_max) {
-					device_prio_max = prio;
-					device_id_primary = device_ids[cur_mag];
-				}
+			// Mag in this slot is available
+			worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
+			if (worker_data.sub_mag[cur_mag] < 0) {
+				mavlink_and_console_log_critical(mavlink_fd, "[cal] Mag #%u not found, abort", cur_mag);
+				result = calibrate_return_error;
+				break;
 			}
+
+			// Get priority
+			int32_t prio;
+			orb_priority(worker_data.sub_mag[cur_mag], &prio);
+
+#ifndef __PX4_QURT
+			if (prio > device_prio_max) {
+				device_prio_max = prio;
+				device_id_primary = device_ids[cur_mag];
+			}
+#else
+			mag_report report = {};
+			orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &report);
+
+			// TODO FIXME: this is hacky but should get the device ID for now
+			device_ids[cur_mag] = report.device_id;
+			PX4_INFO("found device id: %d", report.device_id);
+#endif
 		}
 	}
 
@@ -593,11 +623,11 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 
 		for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
 			if (device_ids[cur_mag] != 0) {
-				int fd_mag = -1;
 				struct mag_calibration_s mscale;
+#ifndef __PX4_QURT
+				int fd_mag = -1;
 
 				// Set new scale
-
 				(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, cur_mag);
 				fd_mag = px4_open(str, 0);
 				if (fd_mag < 0) {
@@ -611,32 +641,44 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 						result = calibrate_return_error;
 					}
 				}
+#endif
 
 				if (result == calibrate_return_ok) {
 					mscale.x_offset = sphere_x[cur_mag];
 					mscale.y_offset = sphere_y[cur_mag];
 					mscale.z_offset = sphere_z[cur_mag];
 
+#ifndef __PX4_QURT
 					if (px4_ioctl(fd_mag, MAGIOCSSCALE, (long unsigned int)&mscale) != OK) {
 						mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_APPLY_CAL_MSG, cur_mag);
 						result = calibrate_return_error;
 					}
+#endif
 				}
 
+#ifndef __PX4_QURT
 				// Mag device no longer needed
 				if (fd_mag >= 0) {
 					px4_close(fd_mag);
 				}
+#endif
 
 				if (result == calibrate_return_ok) {
 					bool failed = false;
 
+					PX4_DEBUG("found offset %d: x: %.6f, y: %.6f, z: %.6f", cur_mag,
+							(double)mscale.x_offset,
+							(double)mscale.y_offset,
+							(double)mscale.z_offset);
+					PX4_DEBUG("found scale %d: x: %.6f, y: %.6f, z: %.6f", cur_mag,
+							(double)mscale.x_scale,
+							(double)mscale.y_scale,
+							(double)mscale.z_scale);
+
 					/* set parameters */
 
-#ifndef __PX4_QURT
 					(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
 					failed |= (OK != param_set_no_notification(param_find(str), &(device_ids[cur_mag])));
-#endif
 					(void)sprintf(str, "CAL_MAG%u_XOFF", cur_mag);
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_offset)));
 					(void)sprintf(str, "CAL_MAG%u_YOFF", cur_mag);
@@ -644,11 +686,12 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 					(void)sprintf(str, "CAL_MAG%u_ZOFF", cur_mag);
 					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_offset)));
 					(void)sprintf(str, "CAL_MAG%u_XSCALE", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_scale)));
-					(void)sprintf(str, "CAL_MAG%u_YSCALE", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
-					(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
-					failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_scale)));
+					// FIXME: scaling is not used right now
+					//failed |= (OK != param_set_no_notification(param_find(str), &(mscale.x_scale)));
+					//(void)sprintf(str, "CAL_MAG%u_YSCALE", cur_mag);
+					//failed |= (OK != param_set_no_notification(param_find(str), &(mscale.y_scale)));
+					//(void)sprintf(str, "CAL_MAG%u_ZSCALE", cur_mag);
+					//failed |= (OK != param_set_no_notification(param_find(str), &(mscale.z_scale)));
 
 					if (failed) {
 						mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SET_PARAMS_MSG, cur_mag);

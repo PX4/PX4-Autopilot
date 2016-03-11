@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -157,7 +157,6 @@ static const int ERROR = -1;
 static const char *sensor_name = "accel";
 
 static int32_t device_id[max_accel_sens];
-static int device_prio_max = 0;
 static int32_t device_id_primary = 0;
 
 calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors);
@@ -193,9 +192,9 @@ int do_accel_calibration(int mavlink_fd)
 
 	char str[30];
 
-#ifndef __PX4_QURT
 	/* reset all sensors */
 	for (unsigned s = 0; s < max_accel_sens; s++) {
+#ifndef __PX4_QURT
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 		/* reset all offsets to zero and all scales to one */
 		fd = px4_open(str, 0);
@@ -212,8 +211,39 @@ int do_accel_calibration(int mavlink_fd)
 		if (res != OK) {
 			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_RESET_CAL_MSG, s);
 		}
-	}
+#else
+		(void)sprintf(str, "CAL_ACC%u_XOFF", s);
+		res = param_set(param_find(str), &accel_scale.x_offset);
+		if (res != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_ACC%u_YOFF", s);
+		res = param_set(param_find(str), &accel_scale.y_offset);
+		if (res != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_ACC%u_ZOFF", s);
+		res = param_set(param_find(str), &accel_scale.z_offset);
+		if (res != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_ACC%u_XSCALE", s);
+		res = param_set(param_find(str), &accel_scale.x_scale);
+		if (res != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_ACC%u_YSCALE", s);
+		res = param_set(param_find(str), &accel_scale.y_scale);
+		if (res != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_ACC%u_ZSCALE", s);
+		res = param_set(param_find(str), &accel_scale.z_scale);
+		if (res != OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
 #endif
+	}
 
 	float accel_offs[max_accel_sens][3];
 	float accel_T[max_accel_sens][3][3];
@@ -267,6 +297,16 @@ int do_accel_calibration(int mavlink_fd)
 
 		failed = failed || (OK != param_set_no_notification(param_find("CAL_ACC_PRIME"), &(device_id_primary)));
 
+
+		PX4_DEBUG("found offset %d: x: %.6f, y: %.6f, z: %.6f", i,
+				(double)accel_scale.x_offset,
+				(double)accel_scale.y_offset,
+				(double)accel_scale.z_offset);
+		PX4_DEBUG("found scale %d: x: %.6f, y: %.6f, z: %.6f", i,
+				(double)accel_scale.x_scale,
+				(double)accel_scale.y_scale,
+				(double)accel_scale.z_scale);
+
 		/* set parameters */
 		(void)sprintf(str, "CAL_ACC%u_XOFF", i);
 		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.x_offset)));
@@ -280,10 +320,8 @@ int do_accel_calibration(int mavlink_fd)
 		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.y_scale)));
 		(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
 		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.z_scale)));
-#ifndef __PX4_QURT
 		(void)sprintf(str, "CAL_ACC%u_ID", i);
 		failed |= (OK != param_set_no_notification(param_find(str), &(device_id[i])));
-#endif
 
 		if (failed) {
 			mavlink_and_console_log_critical(mavlink_fd, CAL_ERROR_SET_PARAMS_MSG, i);
@@ -387,10 +425,18 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 		int32_t prio;
 		orb_priority(worker_data.subs[i], &prio);
 
+#ifndef __PX4_QURT
+		int device_prio_max = 0;
 		if (prio > device_prio_max) {
 			device_prio_max = prio;
 			device_id_primary = device_id[i];
 		}
+#else
+		PX4_INFO("found device id: %d", arp.device_id);
+
+		// TODO FIXME: this is hacky but should get the device ID for now
+		device_id[i] = arp.device_id;
+#endif
 	}
 
 	if (result == calibrate_return_ok) {
