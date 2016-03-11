@@ -109,7 +109,7 @@ endif
 # describe how to build a cmake config
 define cmake-build
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
-+@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
++@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then Tools/check_submodules.sh && mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(PWD)/build_$@); fi
 +Tools/check_submodules.sh
 +$(PX4_MAKE) -C $(PWD)/build_$@ $(PX4_MAKE_ARGS) $(ARGS)
 endef
@@ -196,9 +196,7 @@ check_format:
 
 clean:
 	@rm -rf build_*/
-	@(cd NuttX && git clean -d -f -x)
-	@(cd src/modules/uavcan/libuavcan && git clean -d -f -x)
-	@(git submodule sync --recursive)
+	@(cd NuttX/nuttx && make clean)
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
