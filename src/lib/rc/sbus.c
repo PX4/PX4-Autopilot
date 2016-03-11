@@ -117,7 +117,7 @@ static enum SBUS2_DECODE_STATE {
 static uint8_t	sbus_frame[SBUS_FRAME_SIZE + (SBUS_FRAME_SIZE / 2)];
 
 static unsigned partial_frame_count;
-static unsigned sbus1_frame_delay = (1000U*1000U)/SBUS1_DEFAULT_RATE_HZ;
+static unsigned sbus1_frame_delay = (1000U * 1000U) / SBUS1_DEFAULT_RATE_HZ;
 
 static unsigned sbus_frame_drops;
 
@@ -646,8 +646,10 @@ void sbus1_set_output_rate_hz(uint16_t rate_hz)
 	if (rate_hz > SBUS1_MAX_RATE_HZ) {
 		rate_hz = SBUS1_MAX_RATE_HZ;
 	}
+
 	if (rate_hz < SBUS1_MIN_RATE_HZ) {
 		rate_hz = SBUS1_MIN_RATE_HZ;
 	}
-	sbus1_frame_delay = (1000U*1000U) / rate_hz;
+
+	sbus1_frame_delay = (1000U * 1000U) / rate_hz;
 }
