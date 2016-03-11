@@ -57,8 +57,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 
-#include <uORB/topics/gyro_calibration.h>
-#include <uORB/topics/accel_calibration.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <mpu9250/MPU9250.hpp>
 #include <DevMgr.hpp>
@@ -101,14 +100,25 @@ private:
 	orb_advert_t		    _accel_topic;
 	orb_advert_t		    _gyro_topic;
 
-	int			    _accel_calibration_sub;
-	int			    _gyro_calibration_sub;
+	int			    _param_update_sub;
 
-	struct accel_calibration_s  _accel_calibration;
-	struct gyro_calibration_s   _gyro_calibration;
+	struct accel_calibration_s {
+		float x_offset;
+		float x_scale;
+		float y_offset;
+		float y_scale;
+		float z_offset;
+		float z_scale;
+	} _accel_calibration;
 
-	bool			    _accel_calibration_set;
-	bool			    _gyro_calibration_set;
+	struct gyro_calibration_s {
+		float x_offset;
+		float x_scale;
+		float y_offset;
+		float y_scale;
+		float z_offset;
+		float z_scale;
+	} _gyro_calibration;
 
 	int			    _accel_orb_class_instance;
 	int			    _gyro_orb_class_instance;
@@ -122,18 +132,29 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	MPU9250(IMU_DEVICE_PATH),
 	_accel_topic(nullptr),
 	_gyro_topic(nullptr),
-	_accel_calibration_sub(-1),
-	_gyro_calibration_sub(-1),
+	_param_update_sub(-1),
 	_accel_calibration{},
 	_gyro_calibration{},
-	_accel_calibration_set(false),
-	_gyro_calibration_set(false),
 	_accel_orb_class_instance(-1),
 	_gyro_orb_class_instance(-1),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "df_accel_read")),
 	_gyro_sample_perf(perf_alloc(PC_ELAPSED, "df_gyro_read"))
 	/*_rotation(rotation)*/
 {
+	// Set sane default calibration values
+	_accel_calibration.x_scale = 1.0f;
+	_accel_calibration.y_scale = 1.0f;
+	_accel_calibration.z_scale = 1.0f;
+	_accel_calibration.x_offset = 0.0f;
+	_accel_calibration.y_offset = 0.0f;
+	_accel_calibration.z_offset = 0.0f;
+
+	_gyro_calibration.x_scale = 1.0f;
+	_gyro_calibration.y_scale = 1.0f;
+	_gyro_calibration.z_scale = 1.0f;
+	_gyro_calibration.x_offset = 0.0f;
+	_gyro_calibration.y_offset = 0.0f;
+	_gyro_calibration.z_offset = 0.0f;
 }
 
 DfMpu9250Wrapper::~DfMpu9250Wrapper()
@@ -164,13 +185,9 @@ int DfMpu9250Wrapper::start()
 		return -1;
 	}
 
-	/* Subscribe to calibration topics. */
-	if (_accel_calibration_sub < 0) {
-		_accel_calibration_sub = orb_subscribe(ORB_ID(accel_calibration));
-	}
-
-	if (_gyro_calibration_sub < 0) {
-		_gyro_calibration_sub = orb_subscribe(ORB_ID(gyro_calibration));
+	/* Subscribe to param update topic. */
+	if (_param_update_sub < 0) {
+		_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	}
 
 	/* Init device and start sensor. */
@@ -187,6 +204,12 @@ int DfMpu9250Wrapper::start()
 		PX4_ERR("MPU9250 start fail: %d", ret);
 		return ret;
 	}
+
+	PX4_INFO("MPU9250 device id is: %d", m_id.dev_id);
+
+	/* Force getting the calibration values. */
+	_update_accel_calibration();
+	_update_gyro_calibration();
 
 	return 0;
 }
@@ -206,34 +229,130 @@ int DfMpu9250Wrapper::stop()
 
 void DfMpu9250Wrapper::_update_gyro_calibration()
 {
-	bool updated;
-	orb_check(_gyro_calibration_sub, &updated);
+	// TODO: replace magic number
+	for (unsigned i = 0; i < 3; ++i) {
 
-	if (updated) {
-		gyro_calibration_s new_calibration;
-		orb_copy(ORB_ID(gyro_calibration), _gyro_calibration_sub, &new_calibration);
+		// TODO: remove printfs and add error counter
 
-		/* Only accept calibration for this device. */
-		if (m_id.dev_id == new_calibration.device_id) {
-			_gyro_calibration = new_calibration;
-			_gyro_calibration_set = true;
+		char str[30];
+		(void)sprintf(str, "CAL_GYRO%u_ID", i);
+		int32_t device_id;
+		int res = param_get(param_find(str), &device_id);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+			continue;
+		}
+
+		if ((uint32_t)device_id != m_id.dev_id) {
+			continue;
+		}
+
+		(void)sprintf(str, "CAL_GYRO%u_XSCALE", i);
+		res = param_get(param_find(str), &_gyro_calibration.x_scale);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_GYRO%u_YSCALE", i);
+		res = param_get(param_find(str), &_gyro_calibration.y_scale);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
+		res = param_get(param_find(str), &_gyro_calibration.z_scale);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
+		res = param_get(param_find(str), &_gyro_calibration.x_offset);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_GYRO%u_YOFF", i);
+		res = param_get(param_find(str), &_gyro_calibration.y_offset);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_GYRO%u_ZOFF", i);
+		res = param_get(param_find(str), &_gyro_calibration.z_offset);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
 		}
 	}
 }
 
 void DfMpu9250Wrapper::_update_accel_calibration()
 {
-	bool updated;
-	orb_check(_accel_calibration_sub, &updated);
+	// TODO: replace magic number
+	for (unsigned i = 0; i < 3; ++i) {
 
-	if (updated) {
-		accel_calibration_s new_calibration;
-		orb_copy(ORB_ID(accel_calibration), _accel_calibration_sub, &new_calibration);
+		// TODO: remove printfs and add error counter
 
-		/* Only accept calibration for this device. */
-		if (m_id.dev_id == new_calibration.device_id) {
-			_accel_calibration = new_calibration;
-			_accel_calibration_set = true;
+		char str[30];
+		(void)sprintf(str, "CAL_ACC%u_ID", i);
+		int32_t device_id;
+		int res = param_get(param_find(str), &device_id);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+			continue;
+		}
+
+		if ((uint32_t)device_id != m_id.dev_id) {
+			continue;
+		}
+
+		(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
+		res = param_get(param_find(str), &_accel_calibration.x_scale);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
+		res = param_get(param_find(str), &_accel_calibration.y_scale);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
+		res = param_get(param_find(str), &_accel_calibration.z_scale);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_ACC%u_XOFF", i);
+		res = param_get(param_find(str), &_accel_calibration.x_offset);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_ACC%u_YOFF", i);
+		res = param_get(param_find(str), &_accel_calibration.y_offset);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
+		}
+
+		(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
+		res = param_get(param_find(str), &_accel_calibration.z_offset);
+
+		if (res != OK) {
+			PX4_ERR("Could not access param %s", str);
 		}
 	}
 }
@@ -241,77 +360,80 @@ void DfMpu9250Wrapper::_update_accel_calibration()
 int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 {
 	/* Check if calibration values are still up-to-date. */
-	_update_accel_calibration();
-	_update_gyro_calibration();
+	bool updated;
+	orb_check(_param_update_sub, &updated);
 
-	/* Don't publish if we have not received calibration data. */
-	if (_accel_calibration_set) {
+	if (updated) {
+		parameter_update_s parameter_update;
+		orb_copy(ORB_ID(parameter_update), _param_update_sub, &parameter_update);
 
-		/* Publish accel first. */
-		perf_begin(_accel_sample_perf);
+		_update_accel_calibration();
+		_update_gyro_calibration();
+	}
 
-		accel_report accel_report = {};
-		accel_report.timestamp = data.last_read_time_usec;
+	/* Publish accel first. */
+	perf_begin(_accel_sample_perf);
 
-		// TODO: remove these (or get the values)
-		accel_report.x_raw = NAN;
-		accel_report.y_raw = NAN;
-		accel_report.z_raw = NAN;
-		accel_report.x = (data.accel_m_s2_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
-		accel_report.y = (data.accel_m_s2_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
-		accel_report.z = (data.accel_m_s2_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
+	accel_report accel_report = {};
+	accel_report.timestamp = data.last_read_time_usec;
 
-		// TODO: get these right
-		accel_report.scaling = -1.0f;
-		accel_report.range_m_s2 = -1.0f;
+	// TODO: remove these (or get the values)
+	accel_report.x_raw = NAN;
+	accel_report.y_raw = NAN;
+	accel_report.z_raw = NAN;
+	accel_report.x = (data.accel_m_s2_x - _accel_calibration.x_offset) * _accel_calibration.x_scale;
+	accel_report.y = (data.accel_m_s2_y - _accel_calibration.y_offset) * _accel_calibration.y_scale;
+	accel_report.z = (data.accel_m_s2_z - _accel_calibration.z_offset) * _accel_calibration.z_scale;
 
-		// TODO: when is this ever blocked?
-		if (!(m_pub_blocked)) {
+	// TODO: get these right
+	accel_report.scaling = -1.0f;
+	accel_report.range_m_s2 = -1.0f;
 
-			if (_accel_topic != nullptr) {
-				orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
-			}
+	accel_report.device_id = m_id.dev_id;
+
+	// TODO: when is this ever blocked?
+	if (!(m_pub_blocked)) {
+
+		if (_accel_topic != nullptr) {
+			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 		}
-
-		perf_end(_accel_sample_perf);
 	}
 
-	/* Don't publish if we have not received calibration data. */
-	if (_gyro_calibration_set) {
+	perf_end(_accel_sample_perf);
 
-		/* Then publish gyro. */
-		perf_begin(_gyro_sample_perf);
 
-		gyro_report gyro_report = {};
-		gyro_report.timestamp = data.last_read_time_usec;
+	/* Then publish gyro. */
+	perf_begin(_gyro_sample_perf);
 
-		// TODO: remove these (or get the values)
-		gyro_report.x_raw = NAN;
-		gyro_report.y_raw = NAN;
-		gyro_report.z_raw = NAN;
-		gyro_report.x = data.gyro_rad_s_x;
-		gyro_report.y = data.gyro_rad_s_y;
-		gyro_report.z = data.gyro_rad_s_z;
+	gyro_report gyro_report = {};
+	gyro_report.timestamp = data.last_read_time_usec;
 
-		// TODO: get these right
-		gyro_report.scaling = -1.0f;
-		gyro_report.range_rad_s = -1.0f;
+	// TODO: remove these (or get the values)
+	gyro_report.x_raw = NAN;
+	gyro_report.y_raw = NAN;
+	gyro_report.z_raw = NAN;
+	gyro_report.x = (data.gyro_rad_s_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
+	gyro_report.y = (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
+	gyro_report.z = (data.gyro_rad_s_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
 
-		// TODO: when is this ever blocked?
-		if (!(m_pub_blocked)) {
+	// TODO: get these right
+	gyro_report.scaling = -1.0f;
+	gyro_report.range_rad_s = -1.0f;
 
-			if (_gyro_topic != nullptr) {
-				orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
-			}
+	gyro_report.device_id = m_id.dev_id;
+
+	// TODO: when is this ever blocked?
+	if (!(m_pub_blocked)) {
+
+		if (_gyro_topic != nullptr) {
+			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
 		}
-
-		perf_end(_gyro_sample_perf);
 	}
 
-	if (_accel_calibration_set || _gyro_calibration_set) {
-		/* Notify anyone waiting for data. */
-		DevMgr::updateNotify(*this);
-	}
+	perf_end(_gyro_sample_perf);
+
+	/* Notify anyone waiting for data. */
+	DevMgr::updateNotify(*this);
 
 	// TODO: check the return codes of this function
 	return 0;
