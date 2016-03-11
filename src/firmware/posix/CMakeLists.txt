@@ -59,7 +59,7 @@ add_dependencies(run_config mainapp)
 
 foreach(viewer none jmavsim gazebo replay)
 	foreach(debugger none gdb lldb ddd valgrind)
-		foreach(model none iris iris_opt_flow tailsitter standard_vtol)
+		foreach(model none iris iris_opt_flow tailsitter standard_vtol plane)
 			if (debugger STREQUAL "none")
 				if (model STREQUAL "none")
 					set(_targ_name "${viewer}")
