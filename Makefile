@@ -200,8 +200,12 @@ check_format:
 
 check: px4fmu-v1_default px4fmu-v2_default px4fmu-v4_default px4-stm32f4discovery_default check_format tests
 
-tests: posix_sitl_default
-	@(cd unittests && ./run_tests.sh)
+unittest: posix_sitl_default
+	@(cd unittests && cmake -G$(PX4_CMAKE_GENERATOR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest)
+
+tests: unittest
+	@make --no-print-directory px4fmu-v2_default test
+	@make --no-print-directory posix_sitl_default test
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find . -name \*.px4`
