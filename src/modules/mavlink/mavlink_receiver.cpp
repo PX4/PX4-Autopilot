@@ -1645,9 +1645,6 @@ void MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
     if (_follow_me_pub == nullptr) {
         _follow_me_pub = orb_advertise(ORB_ID(follow_target), &follow_target_topic);
     } else {
-      warnx("publishing follow lat = %f lon = %f alt = %f", (double) follow_target_topic.lat,
-              (double) follow_target_topic.lon,
-              (double) follow_target_topic.alt);
         orb_publish(ORB_ID(follow_target), _follow_me_pub, &follow_target_topic);
     }
 }

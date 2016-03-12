@@ -438,7 +438,7 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 }
 
 void
-MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target)
+MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target, float yaw)
 {
     if (_navigator->get_vstatus()->condition_landed) {
         /* landed, don't takeoff, but switch to IDLE mode */
@@ -459,7 +459,7 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clea
     }
 
     item->altitude_is_relative = false;
-    item->yaw = NAN;
+    item->yaw = yaw;
     item->loiter_radius = _navigator->get_loiter_radius();
     item->loiter_direction = 1;
     item->acceptance_radius = _navigator->get_acceptance_radius();
