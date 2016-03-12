@@ -194,6 +194,13 @@ run_sitl_ros: sitl_deprecation
 check_format:
 	@./Tools/check_code_style.sh
 
+check:
+	check_format
+	tests
+
+tests: posix_sitl_default
+	@(cd unittests && ./run_tests.sh)
+
 clean:
 	@rm -rf build_*/
 	@(cd NuttX/nuttx && make clean)

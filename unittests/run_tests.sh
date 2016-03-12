@@ -1,8 +1,8 @@
 #!/bin/sh
 
 cmake .
-make clean
-make all -j4
+make --no-print-directory clean
+make --no-print-directory all -j4
 
 set -e
 
