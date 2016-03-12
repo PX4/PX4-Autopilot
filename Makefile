@@ -205,6 +205,14 @@ clean:
 	@rm -rf build_*/
 	@(cd NuttX/nuttx && make clean)
 
+submodulesclean:
+	@git submodule sync
+	@git submodule update --init --recursive --force
+	@git submodule foreach --recursive 'git reset --hard'
+
+distclean: submodulesclean
+	@git clean -ff -x -d
+
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \
 	run_cmake_config config gazebo gazebo_gdb gazebo_lldb jmavsim replay \
