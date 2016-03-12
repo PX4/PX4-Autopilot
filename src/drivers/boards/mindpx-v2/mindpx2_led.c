@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2015, 2016 Airmind Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -13,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name Airmind nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -33,49 +32,65 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * @file mindpx2_led.c
  *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * PX4FMU LED backend.
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <nuttx/config.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+#include <stdbool.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
+#include "stm32.h"
+#include "board_config.h"
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
-#define	HW_ARCH "PX4FMU_V4"
-#endif
+#include <arch/board/board.h>
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
 
-#ifdef CONFIG_ARCH_BOARD_MINDPX_V2
-#define HW_ARCH "MINDPX_V2"
-#endif
+__EXPORT void led_init()
+{
+	/* Configure LED1 GPIO for output */
 
-#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
-#define HW_ARCH "PX4_STM32F4DISCOVERY"
-#endif
+	stm32_configgpio(GPIO_LED1);
+}
 
-#ifdef CONFIG_ARCH_BOARD_SITL
-#define	HW_ARCH "LINUXTEST"
-#endif
+__EXPORT void led_on(int led)
+{
+	if (led == 1) {
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_LED1, false);
+	}
+}
 
-#ifdef CONFIG_ARCH_BOARD_EAGLE
-#define	HW_ARCH "LINUXTEST"
-#endif
+__EXPORT void led_off(int led)
+{
+	if (led == 1) {
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_LED1, true);
+	}
+}
 
-#ifdef CONFIG_ARCH_BOARD_RPI2
-#define	HW_ARCH "LINUXTEST"
-#endif
-#endif /* VERSION_H_ */
+__EXPORT void led_toggle(int led)
+{
+	if (led == 1) {
+		if (stm32_gpioread(GPIO_LED1)) {
+			stm32_gpiowrite(GPIO_LED1, false);
+
+		} else {
+			stm32_gpiowrite(GPIO_LED1, true);
+		}
+	}
+}

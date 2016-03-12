@@ -71,6 +71,14 @@
 using namespace DriverFramework;
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_MINDPX_V2
+#define AVIONICS_ERROR_VOLTAGE	3.75f
+#define AVIONICS_WARN_VOLTAGE	3.9f
+#else
+#define AVIONICS_ERROR_VOLTAGE	4.5f
+#define AVIONICS_WARN_VOLTAGE	4.9f
+#endif
+
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current  state you can index into the array which
 // will be true for a valid transition or false for a invalid transition. In some cases even
@@ -213,11 +221,11 @@ arming_state_transition(struct vehicle_status_s *status,		///< current vehicle s
 						// are measured but are insufficient
 						if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f)) {
 							// Check avionics rail voltages
-							if (status->avionics_power_rail_voltage < 4.5f) {
+							if (status->avionics_power_rail_voltage < AVIONICS_ERROR_VOLTAGE) {
 								mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
-							} else if (status->avionics_power_rail_voltage < 4.9f) {
+							} else if (status->avionics_power_rail_voltage < AVIONICS_WARN_VOLTAGE) {
 								mavlink_and_console_log_critical(mavlink_log_pub, "CAUTION: Avionics power low: %6.2f Volt", (double)status->avionics_power_rail_voltage);
 								feedback_provided = true;
 							} else if (status->avionics_power_rail_voltage > 5.4f) {

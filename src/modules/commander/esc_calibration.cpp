@@ -36,7 +36,7 @@
  *
  * Definition of esc calibration
  *
- * @author Roman Bapst <bapstr@ethz.ch>
+ * @author Roman Bapst <roman@px4.io>
  */
 
 #include "esc_calibration.h"
@@ -64,6 +64,19 @@
 # undef ERROR
 #endif
 static const int ERROR = -1;
+
+int check_if_batt_disconnected(orb_advert_t *mavlink_log_pub) {
+	struct battery_status_s battery;
+	memset(&battery,0,sizeof(battery));
+	int batt_sub = orb_subscribe(ORB_ID(battery_status));
+	orb_copy(ORB_ID(battery_status), batt_sub, &battery);
+
+	if (battery.voltage_filtered_v > 3.0f && !(hrt_absolute_time() - battery.timestamp > 500000)) {
+		mavlink_log_info(mavlink_log_pub, "Please disconnect battery and try again!");
+		return ERROR;
+	}
+	return OK;
+}
 
 int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* armed)
 {
