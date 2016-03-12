@@ -44,6 +44,7 @@
 
 #include <uORB/topics/actuator_armed.h>
 
+int check_if_batt_disconnected(int mavlink_fd);
 int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed);
 
 #endif

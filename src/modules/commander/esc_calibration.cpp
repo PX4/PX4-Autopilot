@@ -65,6 +65,19 @@
 #endif
 static const int ERROR = -1;
 
+int check_if_batt_disconnected(int mavlink_fd) {
+	struct battery_status_s battery;
+	memset(&battery,0,sizeof(battery));
+	int batt_sub = orb_subscribe(ORB_ID(battery_status));
+	orb_copy(ORB_ID(battery_status), batt_sub, &battery);
+
+	if (battery.voltage_filtered_v > 3.0f && !(hrt_absolute_time() - battery.timestamp > 500000)) {
+		mavlink_log_info(mavlink_fd, "Please disconnect battery and try again!");
+		return ERROR;
+	}
+	return OK;
+}
+
 int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed)
 {
 	int	return_code = OK;
