@@ -106,7 +106,7 @@ script:
       && arm-none-eabi-gcc --version
       && echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
       && echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
-      && echo 'Building UAVCAN node firmware..' && (git clone https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make -s && BOARD=px4esc_1_6 make -s && ../Tools/uavcan_copy.sh)
+      && echo 'Building UAVCAN node firmware..' && make uavcan_firmware
       && echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
       && echo 'Building NuttX px4-stm32f4discovery Firmware..' && make px4-stm32f4discovery_default
       && echo 'Running Tests..' && make tests

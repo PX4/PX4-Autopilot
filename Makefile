@@ -191,6 +191,10 @@ run_sitl_ros: sitl_deprecation
 
 # Other targets
 # --------------------------------------------------------------------
+
+uavcan_firmware:
+	@(rm -rf vectorcontrol && git clone https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make --no-print-directory -s && BOARD=px4esc_1_6 make --no-print-directory -s && ../Tools/uavcan_copy.sh)
+
 check_format:
 	@./Tools/check_code_style.sh
 
