@@ -403,12 +403,12 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 /**
  * Determines the primary source of height data used by the EKF.
  * 0 : Barometric pressure
- * 1 : GPS
- * 2 : Range to ground
+ * 1 : Reserved (placeholder for GPS)
+ * 2 : Reserved (placeholder for range finder)
  *
  * @group EKF2
  * @min 0
- * @max 2
+ * @max 0
  */
 PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
 
