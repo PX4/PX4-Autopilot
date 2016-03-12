@@ -203,6 +203,9 @@ check: px4fmu-v1_default px4fmu-v2_default px4fmu-v4_default px4-stm32f4discover
 tests: posix_sitl_default
 	@(cd unittests && ./run_tests.sh)
 
+package_firmware:
+	@zip --junk-paths Firmware.zip `find . -name \*.px4`
+
 clean:
 	@rm -rf build_*/
 	@(cd NuttX/nuttx && make clean)
