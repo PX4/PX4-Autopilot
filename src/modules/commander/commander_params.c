@@ -353,18 +353,18 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  * selected flight mode will be applied.
  *
  * @value -1 Unassigned
- * @value 0 MANUAL
- * @value 1 ALTITUDE CONTROL
- * @value 2 POSITION CONTROL
- * @value 3 AUTO / MISSION
- * @value 4 AUTO / PAUSE
- * @value 10 AUTO / TAKEOFF
- * @value 11 AUTO / LAND
- * @value 5 RETURN TO LAUNCH
- * @value 6 ACRO
- * @value 7 OFFBOARD
- * @value 8 STABILIZED
- * @value 9 RATTITUDE
+ * @value 0 Manual
+ * @value 1 Altitude
+ * @value 2 Position
+ * @value 3 Mission
+ * @value 4 Pause
+ * @value 10 Takeoff
+ * @value 11 Land
+ * @value 5 Return
+ * @value 6 Acro
+ * @value 7 Offboard
+ * @value 8 Stabilized
+ * @value 9 Rattitude
  */
 PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
 
@@ -375,18 +375,18 @@ PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
  * selected flight mode will be applied.
  *
  * @value -1 Unassigned
- * @value 0 MANUAL
- * @value 1 ALTITUDE CONTROL
- * @value 2 POSITION CONTROL
- * @value 3 AUTO / MISSION
- * @value 4 AUTO / PAUSE
- * @value 10 AUTO / TAKEOFF
- * @value 11 AUTO / LAND
- * @value 5 RETURN TO LAUNCH
- * @value 6 ACRO
- * @value 7 OFFBOARD
- * @value 8 STABILIZED
- * @value 9 RATTITUDE
+ * @value 0 Manual
+ * @value 1 Altitude
+ * @value 2 Position
+ * @value 3 Mission
+ * @value 4 Pause
+ * @value 10 Takeoff
+ * @value 11 Land
+ * @value 5 Return
+ * @value 6 Acro
+ * @value 7 Offboard
+ * @value 8 Stabilized
+ * @value 9 Rattitude
  */
 PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
 
@@ -397,18 +397,18 @@ PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
  * selected flight mode will be applied.
  *
  * @value -1 Unassigned
- * @value 0 MANUAL
- * @value 1 ALTITUDE CONTROL
- * @value 2 POSITION CONTROL
- * @value 3 AUTO / MISSION
- * @value 4 AUTO / PAUSE
- * @value 10 AUTO / TAKEOFF
- * @value 11 AUTO / LAND
- * @value 5 RETURN TO LAUNCH
- * @value 6 ACRO
- * @value 7 OFFBOARD
- * @value 8 STABILIZED
- * @value 9 RATTITUDE
+ * @value 0 Manual
+ * @value 1 Altitude
+ * @value 2 Position
+ * @value 3 Mission
+ * @value 4 Pause
+ * @value 10 Takeoff
+ * @value 11 Land
+ * @value 5 Return
+ * @value 6 Acro
+ * @value 7 Offboard
+ * @value 8 Stabilized
+ * @value 9 Rattitude
  */
 PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
 
@@ -419,18 +419,18 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
  * selected flight mode will be applied.
  *
  * @value -1 Unassigned
- * @value 0 MANUAL
- * @value 1 ALTITUDE CONTROL
- * @value 2 POSITION CONTROL
- * @value 3 AUTO / MISSION
- * @value 4 AUTO / PAUSE
- * @value 10 AUTO / TAKEOFF
- * @value 11 AUTO / LAND
- * @value 5 RETURN TO LAUNCH
- * @value 6 ACRO
- * @value 7 OFFBOARD
- * @value 8 STABILIZED
- * @value 9 RATTITUDE
+ * @value 0 Manual
+ * @value 1 Altitude
+ * @value 2 Position
+ * @value 3 Mission
+ * @value 4 Pause
+ * @value 10 Takeoff
+ * @value 11 Land
+ * @value 5 Return
+ * @value 6 Acro
+ * @value 7 Offboard
+ * @value 8 Stabilized
+ * @value 9 Rattitude
  */
 PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
 
@@ -441,18 +441,18 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
  * selected flight mode will be applied.
  *
  * @value -1 Unassigned
- * @value 0 MANUAL
- * @value 1 ALTITUDE CONTROL
- * @value 2 POSITION CONTROL
- * @value 3 AUTO / MISSION
- * @value 4 AUTO / PAUSE
- * @value 10 AUTO / TAKEOFF
- * @value 11 AUTO / LAND
- * @value 5 RETURN TO LAUNCH
- * @value 6 ACRO
- * @value 7 OFFBOARD
- * @value 8 STABILIZED
- * @value 9 RATTITUDE
+ * @value 0 Manual
+ * @value 1 Altitude
+ * @value 2 Position
+ * @value 3 Mission
+ * @value 4 Pause
+ * @value 10 Takeoff
+ * @value 11 Land
+ * @value 5 Return
+ * @value 6 Acro
+ * @value 7 Offboard
+ * @value 8 Stabilized
+ * @value 9 Rattitude
  */
 PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
 
@@ -463,17 +463,17 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
  * selected flight mode will be applied.
  *
  * @value -1 Unassigned
- * @value 0 MANUAL
- * @value 1 ALTITUDE CONTROL
- * @value 2 POSITION CONTROL
- * @value 3 AUTO / MISSION
- * @value 4 AUTO / PAUSE
- * @value 10 AUTO / TAKEOFF
- * @value 11 AUTO / LAND
- * @value 5 RETURN TO LAUNCH
- * @value 6 ACRO
- * @value 7 OFFBOARD
- * @value 8 STABILIZED
- * @value 9 RATTITUDE
+ * @value 0 Manual
+ * @value 1 Altitude
+ * @value 2 Position
+ * @value 3 Mission
+ * @value 4 Pause
+ * @value 10 Takeoff
+ * @value 11 Land
+ * @value 5 Return
+ * @value 6 Acro
+ * @value 7 Offboard
+ * @value 8 Stabilized
+ * @value 9 Rattitude
  */
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
