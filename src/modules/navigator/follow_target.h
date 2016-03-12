@@ -42,47 +42,47 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
+#include <lib/mathlib/math/Vector.hpp>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
-#include <lib/mathlib/math/Vector.hpp>
-#include <lib/matrix/matrix/Matrix.hpp>
 
 class FollowTarget : public MissionBlock
 {
 
 public:
     FollowTarget(Navigator *navigator, const char *name);
-
     ~FollowTarget();
 
-    virtual void on_inactive();
+    void on_inactive() override;
+    void on_activation() override;
+    void on_active() override;
 
-    virtual void on_activation();
+private:
 
-    virtual void on_active();
+    static constexpr int TARGET_TIMEOUT_S = 10;
+    static constexpr int TARGET_ACCEPTANCE_RADIUS_M = 10;
+    static constexpr int INTERPOLATION_PNTS = 20;
+    static constexpr float FF_K = .15f;
 
-    enum {
+    enum FollowTargetState {
         ACSEND,
         TRACK_POSITION,
         TRACK_VELOCITY,
         TARGET_TIMEOUT
     };
 
-private:
-    static constexpr int TARGET_TIMEOUT_INT_S = 10;
-    static constexpr int TARGET_ACCEPTANCE_RADIUS_M = 10;
-
     Navigator *_navigator;
     control::BlockParamFloat _param_min_alt;
-    int _current_target_state;
-    int _target_motion_position_sub;
+    FollowTargetState _follow_target_state;
+    int _follow_target_sub;
+    float _step_time_in_ms;
 
     bool _previous_target_gps_pos_valid;
     bool _radius_entered;
     bool _radius_exited;
 
-    uint64_t _last_publish_time;
+    uint64_t _last_update_time;
 
     math::Vector<3> _current_vel;
     math::Vector<3> _step_vel;
@@ -91,11 +91,10 @@ private:
 
     follow_target_s _current_target_motion;
     follow_target_s _previous_target_motion;
-    float _dt;
 
-    void track_position();
-    void track_velocity();
-    void loiter();
+    void track_target_position();
+    void track_target_velocity();
+    void pause();
     void update_position_sp(math::Vector<3> & vel);
     void update_target_motion();
     void update_target_velocity();
