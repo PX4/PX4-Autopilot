@@ -9,6 +9,6 @@ set -e
 #./param_test
 ./conversion_test
 ./autodeclination_test
-./mixer_test > /dev/null
+./mixer_test 2> /dev/null
 ./sbus2_test
 ./rc_input_test
