@@ -125,7 +125,6 @@ float ECL_WheelController::control_attitude(const struct ECL_ControlData &ctl_da
     if (!(PX4_ISFINITE(ctl_data.yaw_setpoint) &&
           PX4_ISFINITE(ctl_data.yaw))) {
         perf_count(_nonfinite_input_perf);
-        warnx("not controlling wheel");
         return _rate_setpoint;
     }
 
