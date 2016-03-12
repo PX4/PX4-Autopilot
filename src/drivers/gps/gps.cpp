@@ -402,31 +402,30 @@ GPS::task_main()
 					}
 
 					if (!_healthy) {
-						const char *mode_str = "unknown";
-
-						switch (_mode) {
-						case GPS_DRIVER_MODE_UBX:
-							mode_str = "UBX";
-							break;
-
-						case GPS_DRIVER_MODE_MTK:
-							mode_str = "MTK";
-							break;
-
-						case GPS_DRIVER_MODE_ASHTECH:
-							mode_str = "ASHTECH";
-							break;
-
-						default:
-							break;
-						}
-
-						PX4_WARN("module found: %s", mode_str);
+                        // Helpful for debugging, but too verbose for normal ops
+//						const char *mode_str = "unknown";
+//
+//						switch (_mode) {
+//						case GPS_DRIVER_MODE_UBX:
+//							mode_str = "UBX";
+//							break;
+//
+//						case GPS_DRIVER_MODE_MTK:
+//							mode_str = "MTK";
+//							break;
+//
+//						case GPS_DRIVER_MODE_ASHTECH:
+//							mode_str = "ASHTECH";
+//							break;
+//
+//						default:
+//							break;
+//						}
+//
+//						PX4_WARN("module found: %s", mode_str);
 						_healthy = true;
 					}
 				}
-
-				PX4_INFO("returned after no success");
 
 				if (_healthy) {
 					PX4_WARN("module lost");
