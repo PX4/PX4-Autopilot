@@ -182,7 +182,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 	mpu.gyro_y = imu->ygyro;
 	mpu.gyro_z = imu->zgyro;
 
-	write_MPU_data((void *)&mpu);
+	write_MPU_data(&mpu);
 	perf_begin(_perf_mpu);
 
 	RawAccelData accel = {};
@@ -190,7 +190,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 	accel.y = imu->yacc;
 	accel.z = imu->zacc;
 
-	write_accel_data((void *)&accel);
+	write_accel_data(&accel);
 	perf_begin(_perf_accel);
 
 	RawMagData mag = {};
@@ -198,7 +198,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 	mag.y = imu->ymag;
 	mag.z = imu->zmag;
 
-	write_mag_data((void *)&mag);
+	write_mag_data(&mag);
 	perf_begin(_perf_mag);
 
 	RawBaroData baro = {};
@@ -207,13 +207,13 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 	baro.altitude = imu->pressure_alt;
 	baro.temperature = imu->temperature;
 
-	write_baro_data((void *)&baro);
+	write_baro_data(&baro);
 
 	RawAirspeedData airspeed = {};
 	airspeed.temperature = imu->temperature;
 	airspeed.diff_pressure = imu->diff_pressure;
 
-	write_airspeed_data((void *)&airspeed);
+	write_airspeed_data(&airspeed);
 }
 
 void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
@@ -241,6 +241,9 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 	case MAVLINK_MSG_ID_HIL_SENSOR: {
 			mavlink_hil_sensor_t imu;
 			mavlink_msg_hil_sensor_decode(msg, &imu);
+
+			// set temperature to a decent value
+			imu.temperature = 32.0f;
 
 			uint64_t sim_timestamp = imu.time_usec;
 			struct timespec ts;
@@ -781,8 +784,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 	*/
 	/* gyro */
 	{
-		struct gyro_report gyro;
-		memset(&gyro, 0, sizeof(gyro));
+		struct gyro_report gyro = {};
 
 		gyro.timestamp = timestamp;
 		gyro.x_raw = imu->xgyro * 1000.0f;
@@ -791,6 +793,8 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		gyro.x = imu->xgyro;
 		gyro.y = imu->ygyro;
 		gyro.z = imu->zgyro;
+
+		gyro.temperature = imu->temperature;
 
 		if (_gyro_pub == nullptr) {
 			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
@@ -802,8 +806,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 
 	/* accelerometer */
 	{
-		struct accel_report accel;
-		memset(&accel, 0, sizeof(accel));
+		struct accel_report accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = imu->xacc / mg2ms2;
@@ -812,6 +815,8 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		accel.x = imu->xacc;
 		accel.y = imu->yacc;
 		accel.z = imu->zacc;
+
+		accel.temperature = imu->temperature;
 
 		if (_accel_pub == nullptr) {
 			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
@@ -823,8 +828,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 
 	/* magnetometer */
 	{
-		struct mag_report mag;
-		memset(&mag, 0, sizeof(mag));
+		struct mag_report mag = {};
 
 		mag.timestamp = timestamp;
 		mag.x_raw = imu->xmag * 1000.0f;
@@ -833,6 +837,8 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		mag.x = imu->xmag;
 		mag.y = imu->ymag;
 		mag.z = imu->zmag;
+
+		mag.temperature = imu->temperature;
 
 		if (_mag_pub == nullptr) {
 			/* publish to the first mag topic */
@@ -845,8 +851,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 
 	/* baro */
 	{
-		struct baro_report baro;
-		memset(&baro, 0, sizeof(baro));
+		struct baro_report baro = {};
 
 		baro.timestamp = timestamp;
 		baro.pressure = imu->abs_pressure;
