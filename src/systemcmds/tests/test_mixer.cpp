@@ -100,7 +100,7 @@ int test_mixer(int argc, char *argv[])
 	load_mixer_file(filename, &buf[0], sizeof(buf));
 	unsigned loaded = strlen(buf);
 
-	PX4_INFO("loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
+	fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
 
 	/* load the mixer in chunks, like
 	 * in the case of a remote load,
@@ -155,7 +155,7 @@ int test_mixer(int argc, char *argv[])
 		memcpy(&mixer_text[mixer_text_length], &buf[transmitted], text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
-		PX4_INFO("buflen %u, text:\n\"%s\"", mixer_text_length, &mixer_text[0]);
+		fprintf(stderr, "buflen %u, text:\n\"%s\"", mixer_text_length, &mixer_text[0]);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
 		unsigned resid = mixer_text_length;
@@ -163,7 +163,7 @@ int test_mixer(int argc, char *argv[])
 
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
-			PX4_INFO("used %u", mixer_text_length - resid);
+			fprintf(stderr, "used %u", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
@@ -292,13 +292,14 @@ int test_mixer(int argc, char *argv[])
 			       r_page_servo_control_max, outputs,
 			       r_page_servos, &pwm_limit);
 
-		PX4_INFO("mixed %d outputs (max %d)", mixed, output_max);
+		fprintf(stderr, "mixed %d outputs (max %d)", mixed, output_max);
 
 		for (unsigned i = 0; i < mixed; i++) {
 			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
 
 			if (abs(servo_predicted[i] - r_page_servos[i]) > 2) {
-				fprintf(stderr, "\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i], (int)r_page_servos[i]);
+				fprintf(stderr, "\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i],
+					(int)r_page_servos[i]);
 				PX4_ERR("mixer violated predicted value");
 				return 1;
 			}
@@ -407,13 +408,13 @@ int test_mixer(int argc, char *argv[])
 	load_mixer_file(filename, &buf[0], sizeof(buf));
 	loaded = strlen(buf);
 
-	PX4_INFO("loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
+	fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
 
 	unsigned mc_loaded = loaded;
 	mixer_group.load_from_buf(&buf[0], mc_loaded);
 	PX4_INFO("complete buffer load: loaded %u mixers", mixer_group.count());
 
-	if (mixer_group.count() != 5) {
+	if (mixer_group.count() != 4) {
 		PX4_ERR("FAIL: Quad W mixer load failed");
 		return 1;
 	}
