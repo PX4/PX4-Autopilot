@@ -1371,20 +1371,23 @@ MulticopterPositionControl::task_main()
 			} else {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
-					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0) + _pos_sp_triplet.current.vx;
-					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1) + _pos_sp_triplet.current.vy;
+					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
+					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
 				}
+
+				// if there is a velocity sp available, use it
+
+                if(_pos_sp_triplet.current.velocity_valid) {
+                    _vel_sp(0) += _pos_sp_triplet.current.vx;
+                    _vel_sp(1) += _pos_sp_triplet.current.vy;
+                }
 
 				if (_run_alt_control) {
 					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
 				}
 
 				/* make sure velocity setpoint is saturated in xy*/
-				float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
-							  _vel_sp(1) * _vel_sp(1));
-
-//				float sp_vel = sqrtf(_pos_sp_triplet.current.vx*_pos_sp_triplet.current.vx +
-//				                     _pos_sp_triplet.current.vy*_pos_sp_triplet.current.vy);
+				float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +  _vel_sp(1) * _vel_sp(1));
 
                 if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
                     _vel_sp(0) = _pos_sp_triplet.current.vx;
