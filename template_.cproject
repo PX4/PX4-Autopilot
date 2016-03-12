@@ -20,33 +20,35 @@
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.target.gnu.platform.base.328447809" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
 							<builder id="cdt.managedbuild.target.gnu.builder.base.977864740" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.base">
 								<outputEntries>
-									<entry flags="VALUE_WORKSPACE_PATH" kind="outputPath" name="Build"/>
+									<entry excluding="build_*" flags="VALUE_WORKSPACE_PATH" kind="outputPath" name=""/>
 								</outputEntries>
 							</builder>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1653222719" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.331692139" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
 								<option id="gnu.cpp.compiler.option.include.paths.1654158476" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platforms}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/uORB/topics}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/uORB}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/systemlib}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/PX4-Firmware/src/platforms}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/PX4-Firmware/src/modules/systemlib}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1050909243" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__PX4_POSIX=1"/>
 									<listOptionValue builtIn="false" value="__PX4_LINUX=1"/>
+									<listOptionValue builtIn="false" value="__cplusplus=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.322788461" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.1055476396" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
 								<option id="gnu.c.compiler.option.include.paths.1309473256" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platforms}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/uORB/topics}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/uORB}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/systemlib}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/PX4-Firmware/src/platforms}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/PX4-Firmware/src/modules/systemlib}&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.734675451" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__PX4_POSIX=1"/>
 									<listOptionValue builtIn="false" value="__PX4_LINUX=1"/>
+									<listOptionValue builtIn="false" value="__cplusplus=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1650107366" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -59,10 +61,10 @@
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.base.900091175" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base">
 								<option id="gnu.both.asm.option.include.paths.2025449581" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platforms}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/systemlib}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/uORB/topics}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/uORB}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/PX4-Firmware/src/platforms}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/PX4-Firmware/src/modules/systemlib}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.674673703" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -103,63 +105,45 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
 		<buildTargets>
-			<target name="archives" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-				<buildCommand>make</buildCommand>
-				<buildTarget>archives</buildTarget>
-				<stopOnError>true</stopOnError>
-				<useDefaultCommand>true</useDefaultCommand>
-				<runAllBuilders>true</runAllBuilders>
-			</target>
 			<target name="px4fmu-v2_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments/>
 				<buildTarget>px4fmu-v2_default</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
-			<target name="upload px4fmu-v2_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+			<target name="px4fmu-v2_default upload" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildTarget>upload px4fmu-v2_default</buildTarget>
+				<buildArguments/>
+				<buildTarget>px4fmu-v2_default upload</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
 			<target name="all" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments/>
 				<buildTarget>all</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
-			<target name="posix" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+			<target name="posix_sitl_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
 				<buildArguments/>
-				<buildTarget>posix</buildTarget>
+				<buildTarget>posix_sitl_default</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
 			<target name="px4fmu-v1_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments/>
 				<buildTarget>px4fmu-v1_default</buildTarget>
-				<stopOnError>true</stopOnError>
-				<useDefaultCommand>true</useDefaultCommand>
-				<runAllBuilders>true</runAllBuilders>
-			</target>
-			<target name="upload px4fmu-v1_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-				<buildCommand>make</buildCommand>
-				<buildArguments/>
-				<buildTarget>upload px4fmu-v1_default</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
 			<target name="clean" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments/>
 				<buildTarget>clean</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
@@ -167,8 +151,31 @@
 			</target>
 			<target name="distclean" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments/>
 				<buildTarget>distclean</buildTarget>
+				<stopOnError>true</stopOnError>
+				<useDefaultCommand>true</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
+			<target name="px4fmu-v4_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments/>
+				<buildTarget>px4fmu-v4_default</buildTarget>
+				<stopOnError>true</stopOnError>
+				<useDefaultCommand>true</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
+			<target name="tests" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments/>
+				<buildTarget>tests</buildTarget>
+				<stopOnError>true</stopOnError>
+				<useDefaultCommand>true</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
+			<target name="check" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments/>
+				<buildTarget>check</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
