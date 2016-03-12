@@ -132,7 +132,7 @@ mixer_tick(void)
 		} else {
 			/* don't actually mix anything - copy values from r_page_direct_pwm */
 			source = MIX_NONE;
-			memcpy(r_page_servos, r_page_direct_pwm, sizeof(uint16_t)*PX4IO_SERVO_COUNT);
+			memcpy(r_page_servos, r_page_direct_pwm, sizeof(uint16_t)*PX4IO_ACTUATOR_COUNT);
 		}
 	} else {
 
@@ -234,7 +234,7 @@ mixer_tick(void)
 	if (source == MIX_FAILSAFE) {
 
 		/* copy failsafe values to the servo outputs */
-		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+		for (unsigned i = 0; i < PX4IO_ACTUATOR_COUNT; i++) {
 			r_page_servos[i] = r_page_servo_failsafe[i];
 
 			/* safe actuators for FMU feedback */
@@ -245,14 +245,14 @@ mixer_tick(void)
 	} else if (source != MIX_NONE && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)
 		   && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 
-		float	outputs[PX4IO_SERVO_COUNT];
+		float	outputs[PX4IO_ACTUATOR_COUNT];
 		unsigned mixed;
 
 		/* mix */
 
 		/* poor mans mutex */
 		in_mixer = true;
-		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
+		mixed = mixer_group.mix(&outputs[0], PX4IO_ACTUATOR_COUNT, &r_mixer_limits);
 		in_mixer = false;
 
 		/* the pwm limit call takes care of out of band errors */
@@ -260,13 +260,13 @@ mixer_tick(void)
 			       r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		/* clamp unused outputs to zero */
-		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
+		for (unsigned i = mixed; i < PX4IO_ACTUATOR_COUNT; i++) {
 			r_page_servos[i] = 0;
 			outputs[i] = 0.0f;
 		}
 
 		/* store normalized outputs */
-		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+		for (unsigned i = 0; i < PX4IO_ACTUATOR_COUNT; i++) {
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
 	}
@@ -304,10 +304,10 @@ mixer_tick(void)
 		/* set S.BUS1 or S.BUS2 outputs */
 
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
+			sbus2_output(_sbus_fd, r_page_servos, PX4IO_ACTUATOR_COUNT);
 
 		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
+			sbus1_output(_sbus_fd, r_page_servos, PX4IO_ACTUATOR_COUNT);
 		}
 
 	} else if (mixer_servos_armed && (should_always_enable_pwm
@@ -321,11 +321,11 @@ mixer_tick(void)
 
 		/* set S.BUS1 or S.BUS2 outputs */
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus1_output(_sbus_fd, r_page_servo_disarmed, PX4IO_ACTUATOR_COUNT);
 		}
 
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_ACTUATOR_COUNT);
 		}
 	}
 }
@@ -523,11 +523,11 @@ mixer_set_failsafe()
 	}
 
 	/* set failsafe defaults to the values for all inputs = 0 */
-	float	outputs[PX4IO_SERVO_COUNT];
+	float	outputs[PX4IO_ACTUATOR_COUNT];
 	unsigned mixed;
 
 	/* mix */
-	mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
+	mixed = mixer_group.mix(&outputs[0], PX4IO_ACTUATOR_COUNT, &r_mixer_limits);
 
 	/* scale to PWM and update the servo outputs as required */
 	for (unsigned i = 0; i < mixed; i++) {
@@ -538,7 +538,7 @@ mixer_set_failsafe()
 	}
 
 	/* disable the rest of the outputs */
-	for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
+	for (unsigned i = mixed; i < PX4IO_ACTUATOR_COUNT; i++) {
 		r_page_servo_failsafe[i] = 0;
 	}
 

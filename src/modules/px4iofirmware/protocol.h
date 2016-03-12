@@ -93,6 +93,7 @@
 #define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
 #define PX4IO_P_CONFIG_ADC_INPUT_COUNT		7	/* hardcoded max ADC inputs */
 #define PX4IO_P_CONFIG_RELAY_COUNT		8	/* hardcoded # of relay outputs */
+#define PX4IO_P_CONFIG_SERVO_COUNT		9	/* number of directly connected servos */
 
 /* dynamic status page */
 #define PX4IO_PAGE_STATUS		1
