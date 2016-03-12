@@ -109,7 +109,7 @@ script:
       && echo 'Building UAVCAN node firmware..' && (git clone https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make -s && BOARD=px4esc_1_6 make -s && ../Tools/uavcan_copy.sh)
       && echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
       && echo 'Building NuttX px4-stm32f4discovery Firmware..' && make px4-stm32f4discovery_default
-      && echo 'Running Tests..' && cd unittests && ./run_tests.sh; cd ..
+      && echo 'Running Tests..' && make tests
       ;
     fi
 
