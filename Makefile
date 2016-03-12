@@ -198,9 +198,7 @@ uavcan_firmware:
 check_format:
 	@./Tools/check_code_style.sh
 
-check:
-	check_format
-	tests
+check: px4fmu-v1_default px4fmu-v2_default px4fmu-v4_default px4-stm32f4discovery_default check_format tests
 
 tests: posix_sitl_default
 	@(cd unittests && ./run_tests.sh)
