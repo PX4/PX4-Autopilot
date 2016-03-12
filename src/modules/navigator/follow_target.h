@@ -66,7 +66,7 @@ private:
     static constexpr float FF_K = .15f;
 
     enum FollowTargetState {
-        ACSEND,
+        ASCEND,
         TRACK_POSITION,
         TRACK_VELOCITY,
         TARGET_TIMEOUT

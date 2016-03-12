@@ -60,7 +60,7 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
     MissionBlock(navigator, name),
 	_navigator(navigator),
 	_param_min_alt(this, "MIS_TAKEOFF_ALT", false),
-	_follow_target_state(ACSEND),
+	_follow_target_state(ASCEND),
 	_follow_target_sub(-1),
 	_step_time_in_ms(0.0f),
 	_previous_target_gps_pos_valid(false),
@@ -85,7 +85,7 @@ void
 FollowTarget::on_inactive()
 {
     _previous_target_gps_pos_valid = false;
-    _follow_target_state = ACSEND;
+    _follow_target_state = ASCEND;
 }
 
 void
@@ -151,7 +151,7 @@ FollowTarget::on_active() {
             }
             break;
         }
-        case ACSEND:
+        case ASCEND:
         {
             // ascend to the minimum altitude
 

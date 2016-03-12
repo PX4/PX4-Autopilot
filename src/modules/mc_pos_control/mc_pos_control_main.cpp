@@ -720,7 +720,6 @@ MulticopterPositionControl::reset_pos_sp()
 		// we have logic in the main function which chooses the velocity setpoint such that the attitude setpoint is
 		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
 		// position in a special way. In position control mode the position will be reset anyway until the vehicle has reduced speed.
-
 		_pos_sp(0) = _pos(0);
 		_pos_sp(1) = _pos(1);
 	}
@@ -1387,7 +1386,8 @@ MulticopterPositionControl::task_main()
 				/* make sure velocity setpoint is saturated in xy*/
 				float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +  _vel_sp(1) * _vel_sp(1));
 
-                if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
+                if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
+                    _pos_sp_triplet.current.velocity_valid) {
                     _vel_sp(0) = _pos_sp_triplet.current.vx;
                     _vel_sp(1) = _pos_sp_triplet.current.vy;
                 } else if (vel_norm_xy > _params.vel_max(0)) {

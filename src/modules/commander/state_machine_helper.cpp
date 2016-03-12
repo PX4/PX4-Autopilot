@@ -770,8 +770,7 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
-		} else if ((!status->condition_global_position_valid ||
-					!status->condition_home_position_valid)) {
+		} else if (!status->condition_global_position_valid) {
 			status->failsafe = true;
 
 			if (status->condition_local_position_valid) {
