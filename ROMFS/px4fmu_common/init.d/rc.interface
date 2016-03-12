@@ -103,6 +103,12 @@ then
 	set MIXER_AUX none
 fi
 
+#MindPX has not aux mixer
+if ver hwcmp MINDPX_V2
+then
+        set MIXER_AUX none
+fi
+
 if [ $MIXER_AUX != none -a $AUX_MODE != none ]
 then
 	#

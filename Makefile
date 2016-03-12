@@ -143,6 +143,9 @@ px4fmu-v2_ekf2:
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
 
+mindpx-v2_default:
+	$(call cmake-build,nuttx_mindpx-v2_default)
+
 posix_sitl_default:
 	$(call cmake-build,$@)
 

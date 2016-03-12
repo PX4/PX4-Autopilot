@@ -115,21 +115,6 @@ then
 	fi
 
 	#
-	# Set USE_IO flag
-	#
-	if param compare SYS_USE_IO 1
-	then
-		if ver hwcmp PX4FMU_V4
-		then
-			set USE_IO no
-		else
-			set USE_IO yes
-		fi
-	else
-		set USE_IO no
-	fi
-
-	#
 	# Set default values
 	#
 	set HIL no
@@ -156,6 +141,35 @@ then
 	set EXIT_ON_END no
 	set MAV_TYPE none
 	set FAILSAFE none
+	set USE_IO yes
+
+	#
+	# Set USE_IO flag
+	#
+	if param compare SYS_USE_IO 1
+	then
+		if ver hwcmp PX4FMU_V4
+		then
+			set USE_IO no
+		fi
+
+		if ver hwcmp MINDPX_V2
+		then
+			set USE_IO no
+		fi
+	else
+		set USE_IO no
+	fi
+
+	# should set to 0.8 for mindpx-v2 borad.
+	if param compare INAV_LIDAR_ERR 0.5
+	then
+		if ver hwcmp MINDPX_V2
+		then
+			param set INAV_LIDAR_ERR 0.8
+			param save
+		fi
+	fi
 
 	#
 	# Set parameters and env variables for selected AUTOSTART
@@ -526,6 +540,49 @@ then
 		fi
 	fi
 
+	#
+	# MAVLink onboard / TELEM2
+	#
+	if ver hwcmp MINDPX_V2
+	then
+	else
+		# XXX We need a better way for runtime eval of shell variables,
+		# but this works for now
+		if param compare SYS_COMPANION 921600
+		then
+			mavlink start -d /dev/ttyS2 -b 921600 -m onboard -r 80000 -x
+		fi
+		if param compare SYS_COMPANION 57600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -m onboard -r 5000 -x
+		fi
+		if param compare SYS_COMPANION 157600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -m osd -r 1000
+		fi
+		if param compare SYS_COMPANION 257600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
+		fi
+		if param compare SYS_COMPANION 357600
+		then
+			mavlink start -d /dev/ttyS2 -b 57600 -r 1000
+		fi
+		# Sensors on the PWM interface bank
+		# clear pins 5 and 6
+		if param compare SENS_EN_LL40LS 1
+		then
+			set AUX_MODE pwm4
+		fi
+		if param greater TRIG_MODE 0
+		then
+			# Get FMU driver out of the way
+			set MIXER_AUX none
+			set AUX_MODE none
+			camera_trigger start
+		fi
+	fi
+
 	# Transitional support: Disable safety on all Pixracer boards
 	if ver hwcmp PX4FMU_V4
 	then
@@ -801,6 +858,12 @@ fi
 # XXX potentially unset all script variables.
 unset TUNE_ERR
 
+#if ver hwcmp MINDPX_V2
+#then
+#	start sonnar
+#	hc_sr04 start
+#fi
+
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
 
@@ -823,6 +886,12 @@ fi
 if ver hwcmp PX4FMU_V2
 then
 	# Check for flow sensor - as it is a background task, launch it last
+	px4flow start &
+fi
+
+if ver hwcmp MINDPX_V2
+then
+	#mindxp also need flow
 	px4flow start &
 fi
 
