@@ -371,7 +371,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 200.0f);
 /**
  * Deadzone of X,Y sticks where position hold is enabled
  *
- * @unit %
+ * @unit
  * @min 0.0
  * @max 1.0
  * @decimal 2
