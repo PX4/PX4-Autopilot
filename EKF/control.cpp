@@ -125,6 +125,7 @@ void Ekf::controlFusionModes()
 			if (_control_status.flags.yaw_align) {
 				_control_status.flags.gps = true;
 				_time_last_gps = _time_last_imu;
+
 				// if we are not already aiding with optical flow, then we need to reset the position and velocity
 				if (!_control_status.flags.opt_flow) {
 					_control_status.flags.gps = resetPosition();
@@ -248,9 +249,9 @@ void Ekf::controlFusionModes()
 
 	// Control the soure of height measurements for the main filter
 	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
-	_control_status.flags.baro_hgt = true;
-	_control_status.flags.rng_hgt = false;
-	_control_status.flags.gps_hgt = false;
+		_control_status.flags.baro_hgt = true;
+		_control_status.flags.rng_hgt = false;
+		_control_status.flags.gps_hgt = false;
 
 	} else if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
 		_control_status.flags.baro_hgt = false;
