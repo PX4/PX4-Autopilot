@@ -552,11 +552,17 @@ void usage(const char *reason)
 void print_status()
 {
 	warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
-	warnx("power: USB: %s, BRICK: %s", (status.usb_connected) ? "[OK]" : "[NO]",
-		(status.condition_power_input_valid) ? " [OK]" : "[NO]");
+	warnx("power: USB: %s, BRICK: %s", (status.usb_connected) ? "OK" : "NO",
+		(status.condition_power_input_valid) ? " OK" : "NO");
 	warnx("avionics rail: %6.2f V", (double)status.avionics_power_rail_voltage);
 	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f, yaw: %.2f", _home.lat, _home.lon, (double)_home.alt, (double)_home.yaw);
 	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
+	warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
+
+#ifdef __PX4_POSIX
+	warnx("main state: %d", status.main_state);
+	warnx("nav state: %d", status.nav_state);
+#endif
 
 	/* read all relevant states */
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
