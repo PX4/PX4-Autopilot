@@ -32,7 +32,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file mTecs_params.c
  *
@@ -121,7 +120,6 @@ PARAM_DEFINE_FLOAT(MT_PIT_P, 0.03f);
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_PIT_I, 0.03f);
-
 
 /**
  * Total Energy Distribution Offset (Cruise pitch sp)
@@ -213,7 +211,6 @@ PARAM_DEFINE_FLOAT(MT_FPA_D, 0.0f);
  */
 PARAM_DEFINE_FLOAT(MT_FPA_D_LP, 1.0f);
 
-
 /**
  * Minimal flight path angle setpoint
  *
@@ -286,7 +283,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
 /**
  * Maximal acceleration (air)
  *
-* @unit m/s/s
+ * @unit m/s/s
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_MAX, 40.0f);
