@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(RWTO_NAV_ALT, 5.0);
  * Max throttle during runway takeoff.
  * (Can be used to test taxi on runway)
  *
- * @unit %
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group Runway Takeoff
