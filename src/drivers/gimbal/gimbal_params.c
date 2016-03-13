@@ -48,6 +48,9 @@
  *
  * If set to 1, mount mode will be enforced.
  *
+ * @unit enum
+ * @value 0 Disabled
+ * @value 1 Enforced
  * @min 0
  * @max 1
  * @group Gimbal
@@ -64,6 +67,7 @@ PARAM_DEFINE_INT32(GMB_USE_MNT, 0);
  * Switch on means the gimbal can move freely, and landing gear
  * will be retracted if applicable.
  *
+ * @unit None
  * @min 0
  * @max 3
  * @group Gimbal
