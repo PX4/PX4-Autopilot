@@ -49,6 +49,9 @@
  *
  * @reboot_required true
  *
+ * @unit enum
+ * @value 0 default
+ * @value 1 invert
  * @min 0
  * @max 1
  * @group PWM Outputs
@@ -62,6 +65,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV1, 0);
  *
  * @reboot_required true
  *
+ * @unit enum
+ * @value 0 default
+ * @value 1 invert
  * @min 0
  * @max 1
  * @group PWM Outputs
@@ -75,6 +81,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV2, 0);
  *
  * @reboot_required true
  *
+ * @unit enum
+ * @value 0 default
+ * @value 1 invert
  * @min 0
  * @max 1
  * @group PWM Outputs
@@ -88,6 +97,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV3, 0);
  *
  * @reboot_required true
  *
+ * @unit enum
+ * @value 0 default
+ * @value 1 invert
  * @min 0
  * @max 1
  * @group PWM Outputs
@@ -101,6 +113,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV4, 0);
  *
  * @reboot_required true
  *
+ * @unit enum
+ * @value 0 default
+ * @value 1 invert
  * @min 0
  * @max 1
  * @group PWM Outputs
@@ -114,6 +129,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV5, 0);
  *
  * @reboot_required true
  *
+ * @unit enum
+ * @value 0 default
+ * @value 1 invert
  * @min 0
  * @max 1
  * @group PWM Outputs
@@ -127,6 +145,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV6, 0);
  *
  * @reboot_required true
  *
+ * @unit enum
+ * @value 0 default
+ * @value 1 invert
  * @min 0
  * @max 1
  * @group PWM Outputs
@@ -140,6 +161,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV7, 0);
  *
  * @reboot_required true
  *
+ * @unit enum
+ * @value 0 default
+ * @value 1 invert
  * @min 0
  * @max 1
  * @group PWM Outputs
@@ -151,6 +175,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV8, 0);
  *
  * Set to 1 to enable S.BUS version 1 output instead of RSSI.
  *
+ * @unit enum
+ * @value 0 default
+ * @value 1 S.BUS version 1
  * @min 0
  * @max 1
  * @group PWM Outputs
