@@ -1920,13 +1920,6 @@ Sensors::rc_poll()
 				 */
 				manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
 						     (slot_max - slot_min)) + (1.0f / num_slots));
-
-				static hrt_abstime last_print = 0;
-
-				if (hrt_absolute_time() - last_print > 500000) {
-					last_print = hrt_absolute_time();
-					warnx("rc: %8.4f -> %d", (double)_rc.channels[_parameters.rc_map_flightmode - 1], manual.mode_slot);
-				}
 			}
 
 			/* mode switches */
