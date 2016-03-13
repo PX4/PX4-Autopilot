@@ -34,6 +34,7 @@
 /**
  * MAVLink system ID
  * @group MAVLink
+ * @unit
  * @min 1
  * @max 250
  */
@@ -42,6 +43,7 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 /**
  * MAVLink component ID
  * @group MAVLink
+ * @unit
  * @min 1
  * @max 250
  */
@@ -56,6 +58,7 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
  * factory defaults.
  *
  * @group MAVLink
+ * @unit
  * @min -1
  * @max 240
  */
@@ -64,6 +67,7 @@ PARAM_DEFINE_INT32(MAV_RADIO_ID, 0);
 /**
  * MAVLink airframe type
  *
+ * @unit
  * @min 1
  * @group MAVLink
  */
@@ -74,6 +78,7 @@ PARAM_DEFINE_INT32(MAV_TYPE, 1);
  *
  * If set to 1 incoming HIL GPS messages are parsed.
  *
+ * @unit boolean
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
@@ -84,6 +89,7 @@ PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
  * If set to 1 incoming external setpoint messages will be directly forwarded
  * to the controllers if in offboard control mode
  *
+ * @unit boolean
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
@@ -95,8 +101,8 @@ PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
  * testing the parameter interface on the communication level.
  *
  * @group MAVLink
+ * @unit
  * @min -1000
  * @max 1000
  */
 PARAM_DEFINE_INT32(MAV_TEST_PAR, 1);
-
