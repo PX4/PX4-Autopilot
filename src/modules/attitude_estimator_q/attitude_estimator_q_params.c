@@ -45,6 +45,7 @@
  * Complimentary filter accelerometer weight
  *
  * @group Attitude Q estimator
+ * @unit
  * @min 0
  * @max 1
  * @decimal 2
@@ -55,6 +56,7 @@ PARAM_DEFINE_FLOAT(ATT_W_ACC, 0.2f);
  * Complimentary filter magnetometer weight
  *
  * @group Attitude Q estimator
+ * @unit
  * @min 0
  * @max 1
  * @decimal 2
@@ -65,6 +67,7 @@ PARAM_DEFINE_FLOAT(ATT_W_MAG, 0.1f);
  * Complimentary filter external heading weight
  *
  * @group Attitude Q estimator
+ * @unit
  * @min 0
  * @max 1
  */
@@ -74,6 +77,7 @@ PARAM_DEFINE_FLOAT(ATT_W_EXT_HDG, 0.1f);
  * Complimentary filter gyroscope bias weight
  *
  * @group Attitude Q estimator
+ * @unit
  * @min 0
  * @max 1
  * @decimal 2
@@ -88,7 +92,7 @@ PARAM_DEFINE_FLOAT(ATT_W_GYRO_BIAS, 0.1f);
  * GPS coordinates of the vehicle.
  *
  * @group Attitude Q estimator
- * @unit degrees
+ * @unit deg
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
@@ -97,8 +101,7 @@ PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
  * Enable automatic GPS based declination compensation
  *
  * @group Attitude Q estimator
- * @min 0
- * @max 1
+ * @unit boolean
  */
 PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
 
@@ -108,6 +111,10 @@ PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
  * Set to 2 to use heading from motion capture.
  *
  * @group Attitude Q estimator
+ * @unit enum
+ * @value 0 none
+ * @value 1 vision
+ * @value 2 motion capture
  * @min 0
  * @max 2
  */
@@ -118,18 +125,17 @@ PARAM_DEFINE_INT32(ATT_EXT_HDG_M, 0);
  * velocity.
  *
  * @group Attitude Q estimator
- * @min 1
- * @max 2
+ * @unit boolean
  */
-PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
+PARAM_DEFINE_INT32(ATT_ACC_COMP, 1);
 
 /**
  * Gyro bias limit
  *
  * @group Attitude Q estimator
+ * @unit rad/s
  * @min 0
  * @max 2
- * @unit rad/s
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);
@@ -138,6 +144,7 @@ PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);
  * Threshold (of RMS) to warn about high vibration levels
  *
  * @group Attitude Q estimator
+ * @unit
  * @min 0.01
  * @max 10
  * @decimal 2
