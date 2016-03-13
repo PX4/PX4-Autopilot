@@ -42,13 +42,13 @@
 #include <systemlib/param/param.h>
 
 /**
-* Magnetometer measurement delay relative to IMU measurements
-*
-* @group EKF2
-* @min 0
-* @max 300
-* @unit ms
-*/
+ * Magnetometer measurement delay relative to IMU measurements
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ */
 PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
 
 /**
