@@ -57,18 +57,18 @@
 #include "navigator.h"
 
 FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
-    MissionBlock(navigator, name),
-	_navigator(navigator),
-	_param_min_alt(this, "MIS_TAKEOFF_ALT", false),
-	_follow_target_state(ASCEND),
-	_follow_target_sub(-1),
-	_step_time_in_ms(0.0f),
-	_previous_target_gps_pos_valid(false),
-	_radius_entered(false),
-    _radius_exited(false),
-    _last_update_time(0),
-    _current_target_motion({0}),
-    _previous_target_motion({0})
+        MissionBlock(navigator, name),
+        _navigator(navigator),
+        _param_min_alt(this, "MIS_TAKEOFF_ALT", false),
+        _follow_target_state(ASCEND),
+        _follow_target_sub(-1),
+        _step_time_in_ms(0.0f),
+        _previous_target_gps_pos_valid(false),
+        _radius_entered(false),
+        _radius_exited(false),
+        _last_update_time(0),
+        _current_target_motion({0}),
+        _previous_target_motion({0})
 {
     updateParams();
     _current_vel.zero();
@@ -81,27 +81,25 @@ FollowTarget::~FollowTarget()
 {
 }
 
-void
-FollowTarget::on_inactive()
+void FollowTarget::on_inactive()
 {
     _previous_target_gps_pos_valid = false;
     _follow_target_state = ASCEND;
 }
 
-void
-FollowTarget::on_activation()
+void FollowTarget::on_activation()
 {
-	if(_follow_target_sub < 0) {
-		_follow_target_sub = orb_subscribe(ORB_ID(follow_target));
-	}
+    if (_follow_target_sub < 0) {
+        _follow_target_sub = orb_subscribe(ORB_ID(follow_target));
+    }
 
-	update_target_motion();
-	reset_mission_item_reached();
+    update_target_motion();
+    reset_mission_item_reached();
 }
 
-void
-FollowTarget::pause() {
-    math::Vector<3> vel(0,0,0);
+void FollowTarget::pause()
+{
+    math::Vector<3> vel(0, 0, 0);
 
     _current_vel(0) = 0;
     _current_vel(1) = 0;
@@ -114,8 +112,8 @@ FollowTarget::pause() {
     _current_target_motion.lon = _navigator->get_global_position()->lon;
 }
 
-void
-FollowTarget::on_active() {
+void FollowTarget::on_active()
+{
     struct map_projection_reference_s target_ref;
 
     update_target_motion();
@@ -126,58 +124,54 @@ FollowTarget::on_active() {
     map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &_target_distance(0), &_target_distance(1));
 
     // are we within the target acceptance radius?
-    // give a buffer to exit/enter the radius to give the controller
+    // give a buffer to exit/enter the radius to give the velocity controller
     // a chance to catch up
 
-    _radius_entered = (_target_distance.length() < (float) TARGET_ACCEPTANCE_RADIUS_M * 1.5f);
-    _radius_exited = (_target_distance.length() > (float) TARGET_ACCEPTANCE_RADIUS_M);
+    _radius_exited = (_target_distance.length() > (float) TARGET_ACCEPTANCE_RADIUS_M * 1.5f);
+    _radius_entered = (_target_distance.length() < (float) TARGET_ACCEPTANCE_RADIUS_M);
 
     switch (_follow_target_state) {
-        case TRACK_POSITION:
-        {
-            if (_radius_entered == true) {
-                _follow_target_state = TRACK_VELOCITY;
-            } else {
-                track_target_position();
-            }
-            break;
+    case TRACK_POSITION: {
+        if (_radius_entered == true) {
+            _follow_target_state = TRACK_VELOCITY;
+        } else {
+            track_target_position();
         }
-        case TRACK_VELOCITY:
-        {
-            if (_radius_exited == true) {
-                _follow_target_state = TRACK_POSITION;
-            } else {
-                track_target_velocity();
-            }
-            break;
+        break;
+    }
+    case TRACK_VELOCITY: {
+        if (_radius_exited == true) {
+            _follow_target_state = TRACK_POSITION;
+        } else {
+            track_target_velocity();
         }
-        case ASCEND:
-        {
-            // ascend to the minimum altitude
+        break;
+    }
+    case ASCEND: {
+        // ascend to the minimum altitude
 
-            pause();
+        pause();
 
-            _mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+        _mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 
-            if(is_mission_item_reached()) {
-                _follow_target_state = TRACK_POSITION;
-            }
-            break;
+        if (is_mission_item_reached()) {
+            _follow_target_state = TRACK_POSITION;
         }
-        case TARGET_TIMEOUT:
-        {
-            // Loiter until signal is regained
+        break;
+    }
+    case TARGET_TIMEOUT: {
+        // Loiter until signal is regained
 
-            pause();
-            break;
-        }
+        pause();
+        break;
+    }
     }
 
     update_position_sp(_current_vel);
 }
 
-void
-FollowTarget::track_target_position() {
+void FollowTarget::track_target_position()
+{
 
     set_follow_target_item(&_mission_item, _param_min_alt.get(), _current_target_motion, NAN);
     _mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -188,8 +182,8 @@ FollowTarget::track_target_position() {
     _current_vel(1) = _navigator->get_global_position()->vel_e;
 }
 
-void
-FollowTarget::track_target_velocity() {
+void FollowTarget::track_target_velocity()
+{
 
     uint64_t current_time = hrt_absolute_time();
 
@@ -199,14 +193,14 @@ FollowTarget::track_target_velocity() {
 
     set_follow_target_item(&_mission_item, _param_min_alt.get(), _current_target_motion, NAN);
 
-    if ((current_time - _last_update_time)/1000 >= _step_time_in_ms) {
+    if ((current_time - _last_update_time) / 1000 >= _step_time_in_ms) {
         _current_vel += _step_vel;
         _last_update_time = current_time;
     }
 }
 
-void
-FollowTarget::update_target_motion() {
+void FollowTarget::update_target_motion()
+{
     bool updated;
 
     orb_check(_follow_target_sub, &updated);
@@ -226,28 +220,28 @@ FollowTarget::update_target_motion() {
             _previous_target_gps_pos_valid = true;
         }
 
-//            warnx(" lat %f (%f) lon %f (%f), dist = %f",
-//                    _current_target_motion.lat,
-//                    (double)_navigator->get_global_position()->lat,
-//                    _current_target_motion.lon,
-//                    (double)_navigator->get_global_position()->lon,
-//                    (double) _target_distance.length());
+        warnx(" lat %f (%f) lon %f (%f), dist = %f mode = %d",
+                _current_target_motion.lat,
+                (double)_navigator->get_global_position()->lat,
+                _current_target_motion.lon,
+                (double)_navigator->get_global_position()->lon,
+                (double) _target_distance.length(), _follow_target_state);
     }
 
-    if ((float) ((hrt_absolute_time() - _previous_target_motion.timestamp)/1000/1000) > TARGET_TIMEOUT_S) {
+    if ((float) ((hrt_absolute_time() - _previous_target_motion.timestamp) / 1000 / 1000) > TARGET_TIMEOUT_S) {
         _follow_target_state = TARGET_TIMEOUT;
-    } else if(_follow_target_state == TARGET_TIMEOUT) {
+    } else if (_follow_target_state == TARGET_TIMEOUT) {
         _follow_target_state = TRACK_POSITION;
     }
 }
 
-void
-FollowTarget::update_target_velocity() {
+void FollowTarget::update_target_velocity()
+{
     float dt_ms;
-    math::Vector<3> target_position(0,0,0);
+    math::Vector<3> target_position(0, 0, 0);
     struct map_projection_reference_s target_ref;
 
-    dt_ms = ((_current_target_motion.timestamp - _previous_target_motion.timestamp)/1000);
+    dt_ms = ((_current_target_motion.timestamp - _previous_target_motion.timestamp) / 1000);
 
     // get last gps known reference for target
 
@@ -255,11 +249,12 @@ FollowTarget::update_target_velocity() {
 
     // calculate distance the target has moved
 
-    map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(target_position(0)), &(target_position(1)));
+    map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(target_position(0)),
+            &(target_position(1)));
 
     // update the average velocity of the target based on the position
 
-    _target_vel = target_position / (dt_ms/1000.0f);
+    _target_vel = target_position / (dt_ms / 1000.0f);
 
     // to keep the velocity increase/decrease smooth
     // calculate how many velocity increments/decrements
@@ -270,12 +265,12 @@ FollowTarget::update_target_velocity() {
     // get any closer to the target
 
     _step_vel = (_target_vel - _current_vel) + _target_distance * FF_K;
-    _step_vel /= (dt_ms/1000.0f * (float) INTERPOLATION_PNTS);
+    _step_vel /= (dt_ms / 1000.0f * (float) INTERPOLATION_PNTS);
     _step_time_in_ms = dt_ms / (float) INTERPOLATION_PNTS;
 }
 
-void
-FollowTarget::update_position_sp(math::Vector<3> & vel) {
+void FollowTarget::update_position_sp(math::Vector<3> & vel)
+{
 
     /* convert mission item to current setpoint */
     struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

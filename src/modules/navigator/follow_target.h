@@ -61,7 +61,7 @@ public:
 private:
 
     static constexpr int TARGET_TIMEOUT_S = 10;
-    static constexpr int TARGET_ACCEPTANCE_RADIUS_M = 10;
+    static constexpr int TARGET_ACCEPTANCE_RADIUS_M = 5;
     static constexpr int INTERPOLATION_PNTS = 20;
     static constexpr float FF_K = .15f;
 
