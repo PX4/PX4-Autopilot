@@ -96,6 +96,11 @@ void Ekf::resetHeight()
 		} else {
 			// TODO: reset to last known range based estimate
 		}
+
+		// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
+		baroSample baro_newest = _baro_buffer.get_newest();
+		_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
+
 	} else if (_control_status.flags.baro_hgt) {
 		// initialize vertical position with newest baro measurement
 		baroSample baro_newest = _baro_buffer.get_newest();
@@ -106,6 +111,10 @@ void Ekf::resetHeight()
 		} else {
 			// TODO: reset to last known baro based estimate
 		}
+
+		// the baro height offset should be zero if baro is our primary height source
+		_baro_hgt_offset = 0.0f;
+
 	} else {
 		// TODO: reset to GPS height
 	}

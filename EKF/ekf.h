@@ -216,6 +216,8 @@ private:
 	uint64_t _time_last_hagl_fuse;	// last system time in usec that the hagl measurement failed it's checks
 	bool _terrain_initialised;	// true when the terrain estimator has been intialised
 
+	float _baro_hgt_offset;		// number of metres the baro height origin is above the local NED origin (m)
+
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
 	void calculateOutputStates();
