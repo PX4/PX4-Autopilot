@@ -1919,7 +1919,7 @@ Sensors::rc_poll()
 				 * will take us to the correct final index.
 				 */
 				manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
-						    (slot_max - slot_min)) + (1.0f / num_slots));
+						     (slot_max - slot_min)) + (1.0f / num_slots));
 
 				static hrt_abstime last_print = 0;
 
