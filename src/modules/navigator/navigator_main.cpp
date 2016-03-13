@@ -486,7 +486,7 @@ Navigator::task_main()
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_takeoff;
 				break;
-			case vehicle_status_s::NAVIGATION_STATE_LAND:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_land;
 				break;
