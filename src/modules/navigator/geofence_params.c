@@ -48,8 +48,14 @@
  *
  * 0 = none, 1 = warning (default), 2 = loiter, 3 = return to launch, 4 = fight termination
  *
+ * @unit enum
  * @min 0
  * @max 4
+ * @value 0 none
+ * @value 1 warning
+ * @value 2 loiter
+ * @value 3 return
+ * @value 4 terminate
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ACTION, 1);
@@ -60,8 +66,11 @@ PARAM_DEFINE_INT32(GF_ACTION, 1);
  * Select which altitude reference should be used
  * 0 = WGS84, 1 = AMSL
  *
+ * @unit enum
  * @min 0
  * @max 1
+ * @value 0 WGS84
+ * @value 1 AMSL
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ALTMODE, 0);
@@ -73,8 +82,11 @@ PARAM_DEFINE_INT32(GF_ALTMODE, 0);
  * no dependence on the position estimator
  * 0 = global position, 1 = GPS
  *
+ * @unit enum
  * @min 0
  * @max 1
+ * @value 0 GPOS
+ * @value 1 GPS
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_SOURCE, 0);
@@ -95,7 +107,7 @@ PARAM_DEFINE_INT32(GF_COUNT, -1);
  *
  * Set to > 0 to activate a geofence action if horizontal distance to home exceeds this value.
  *
- * @unit meters
+ * @unit m
  * @min -1
  * @group Geofence
  */
@@ -106,7 +118,7 @@ PARAM_DEFINE_INT32(GF_MAX_HOR_DIST, -1);
  *
  * Set to > 0 to activate a geofence action if vertical distance to home exceeds this value.
  *
- * @unit meters
+ * @unit m
  * @min -1
  * @group Geofence
  */

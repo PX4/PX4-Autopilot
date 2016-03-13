@@ -42,13 +42,13 @@
 #include <systemlib/param/param.h>
 
 /**
-* Magnetometer measurement delay relative to IMU measurements
-*
-* @group EKF2
-* @min 0
-* @max 300
-* @unit ms
-*/
+ * Magnetometer measurement delay relative to IMU measurements
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ */
 PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
 
 /**
@@ -96,7 +96,6 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 200);
  * @group EKF2
  * @min 0
  * @max 511
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_GPS_CHECK, 21);
 
@@ -136,7 +135,6 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_SACC, 1.0f);
  * @group EKF2
  * @min 4
  * @max 12
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_REQ_NSATS, 6);
 
@@ -146,7 +144,6 @@ PARAM_DEFINE_INT32(EKF2_REQ_NSATS, 6);
  * @group EKF2
  * @min 1.5
  * @max 5.0
- * @unit
  */
 PARAM_DEFINE_FLOAT(EKF2_REQ_GDOP, 2.5f);
 
@@ -216,7 +213,6 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 1.0e-4f);
  * @group EKF2
  * @min 0.0
  * @max 0.01
- * @unit None
  */
 PARAM_DEFINE_FLOAT(EKF2_GYR_S_NOISE, 3.0e-3f);
 
@@ -304,7 +300,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
  * Magnetic declination
  *
  * @group EKF2
- * @unit degrees
+ * @unit deg
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
 
@@ -335,7 +331,6 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
  * @group EKF2
  * @min 0
  * @max 7
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
 
@@ -348,7 +343,6 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @group EKF2
  * @min 0
  * @max 2
- * @unit None
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
 
@@ -384,8 +378,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
  * replay messages for logging.
  *
  * @group EKF2
- * @min 0
- * @max 1
+ * @unit boolean
  */
 PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
 
@@ -444,7 +437,7 @@ PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
  *
  * @group EKF2
  * @min 0.05
- * @unit rad/sec
+ * @unit rad/s
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
 
@@ -454,7 +447,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
  *
  * @group EKF2
  * @min 0.05
- * @unit rad/sec
+ * @unit rad/s
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_N_MAX, 0.5f);
 
@@ -481,7 +474,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_GATE, 3.0f);
  *
  * @group EKF2
  * @min 1.0
- * @unit rad/sec
+ * @unit rad/s
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_RMAX, 2.5f);
 
@@ -490,7 +483,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_RMAX, 2.5f);
  *
  * @group EKF2
  * @min 0.5
- * @unit m/sec
+ * @unit m/s
  */
 PARAM_DEFINE_FLOAT(EKF2_TERR_NOISE, 5.0f);
 

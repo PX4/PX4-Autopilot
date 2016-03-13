@@ -82,7 +82,11 @@ PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
  *
  * 0 disables the trigger, 1 sets it to enabled on command, 2 always on, 3 distance based, 4 distance based enabled on command
  *
- * @unit None
+ * @unit enum
+ * @value 0 disable
+ * @value 1 cmd
+ * @value 2 always
+ * @value 3 distance
  * @min 0
  * @max 4
  * @group Camera trigger
@@ -94,7 +98,6 @@ PARAM_DEFINE_INT32(TRIG_MODE, 0);
  *
  * Selects which pin is used, ranges from 1 to 6 (AUX1-AUX6)
  *
- * @unit None
  * @min 1
  * @max 123456
  * @group Camera trigger

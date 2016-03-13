@@ -278,7 +278,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
  *
  * Limits maximum tilt in AUTO and POSCTRL modes during flight.
  *
- * @unit degree
+ * @unit deg
  * @min 0.0
  * @max 90.0
  * @decimal 1
@@ -291,7 +291,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  *
  * Limits maximum tilt angle on landing.
  *
- * @unit degree
+ * @unit deg
  * @min 0.0
  * @max 90.0
  * @decimal 1
@@ -322,7 +322,7 @@ PARAM_DEFINE_FLOAT(MPC_TKO_SPEED, 1.5f);
 /**
  * Max manual roll
  *
- * @unit degree
+ * @unit deg
  * @min 0.0
  * @max 90.0
  * @decimal 1
@@ -333,7 +333,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX, 35.0f);
 /**
  * Max manual pitch
  *
- * @unit degree
+ * @unit deg
  * @min 0.0
  * @max 90.0
  * @decimal 1
@@ -344,7 +344,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
 /**
  * Max manual yaw rate
  *
- * @unit degree / s
+ * @unit deg/s
  * @min 0.0
  * @decimal 1
  * @group Multicopter Position Control
@@ -354,7 +354,6 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 200.0f);
 /**
  * Deadzone of X,Y sticks where position hold is enabled
  *
- * @unit %
  * @min 0.0
  * @max 1.0
  * @decimal 2

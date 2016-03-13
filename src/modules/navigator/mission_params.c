@@ -49,7 +49,9 @@
  * Even if first waypoint has altitude less then MIS_TAKEOFF_ALT above home position, system will climb to
  * MIS_TAKEOFF_ALT on takeoff, then go to waypoint.
  *
- * @unit meters
+ * @unit m
+ * @min 0
+ * @max 1000
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
@@ -60,8 +62,7 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
  * When enabled, missions that have been uploaded by the GCS are stored
  * and reloaded after reboot persistently.
  *
- * @min 0
- * @max 1
+ * @unit boolean
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
@@ -73,6 +74,7 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
  * Set a value of zero or less to disable. The mission will not be started if the current
  * waypoint is more distant than MIS_DIS_1WP from the current position.
  *
+ * @unit m
  * @min 0
  * @max 1000
  * @group Mission
@@ -86,8 +88,11 @@ PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
  * 1: the system will follow a first order hold altitude setpoint
  * values follow the definition in enum mission_altitude_mode
  *
+ * @unit enum
  * @min 0
  * @max 1
+ * @value 0 zero order
+ * @value 1 first order
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
@@ -102,8 +107,13 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
  *
  * The values are defined in the enum mission_altitude_mode
  *
+ * @unit enum
  * @min 0
  * @max 3
+ * @value 0 destination
+ * @value 1 next
+ * @value 2 home
+ * @value 3 home back
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
@@ -125,6 +135,7 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
 /**
  * Max yaw error in degree needed for waypoint heading acceptance.
  *
+ * @unit deg
  * @min 0
  * @max 90
  * @group Mission

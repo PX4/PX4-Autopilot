@@ -137,7 +137,7 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
  * Defines the number of cells the attached battery consists of.
  *
  * @group Battery Calibration
- * @unit S
+ * @unit enum
  * @min 2
  * @max 10
  * @value 2 2S Battery
@@ -173,15 +173,12 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
 
 /**
- * Datalink loss mode enabled.
+ * Datalink loss failsafe.
  *
  * Set to 1 to enable actions triggered when the datalink is lost.
  *
  * @group Commander
- * @min 0
- * @max 1
- * @value 0 OFF: No Datalink failsafe
- * @value 1 ON: Datalink failse
+ * @unit boolean
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
 
@@ -191,9 +188,9 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
  * After this amount of seconds without datalink the data link lost mode triggers
  *
  * @group Commander
- * @unit second
+ * @unit s
  * @min 0
- * @max 30
+ * @max 300
  * @decimal 1
  * @increment 0.5
  */
@@ -206,7 +203,7 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
  * flag is set back to false
  *
  * @group Commander
- * @unit second
+ * @unit s
  * @min 0
  * @max 30
  * @decimal 1
@@ -235,7 +232,7 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
  * @group Commander
  * @min 0.0
  * @max 50.0
- * @unit ampere
+ * @unit A
  * @decimal 2
  * @increment 1
  */
@@ -248,7 +245,7 @@ PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
  * current to throttle threshold are violated for this time
  *
  * @group Commander
- * @unit second
+ * @unit s
  * @min 0.0
  * @max 60.0
  * @decimal 1
@@ -262,7 +259,7 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
  * After this amount of seconds without RC connection the rc lost flag is set to true
  *
  * @group Commander
- * @unit second
+ * @unit s
  * @min 0
  * @max 35
  * @decimal 1
@@ -276,7 +273,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * The home position will be set if the estimated positioning accuracy is below the threshold.
  *
  * @group Commander
- * @unit meter
+ * @unit m
  * @min 2
  * @max 15
  * @decimal 2
@@ -290,7 +287,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
  * The home position will be set if the estimated positioning accuracy is below the threshold.
  *
  * @group Commander
- * @unit meter
+ * @unit m
  * @min 5
  * @max 25
  * @decimal 2
@@ -306,10 +303,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
  * being sticky. Developers can default it to off.
  *
  * @group Commander
- * @min 0
- * @max 1
- * @value 0 Disabled
- * @value 1 Enabled
+ * @unit boolean
  */
 PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
 
@@ -317,15 +311,16 @@ PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
  * RC control input mode
  *
  * The default value of 0 requires a valid RC transmitter setup.
- * Setting this to 1 disables RC input handling and the associated checks. A value of
+ * Setting this to 1 allows joystick control and disables RC input handling and the associated checks. A value of
  * 2 will generate RC control data from manual input received via MAVLink instead
  * of directly forwarding the manual input data.
  *
  * @group Commander
+ * @unit enum
  * @min 0
  * @max 2
  * @value 0 RC Transmitter
- * @value 1 Disable RC Input Checks
+ * @value 1 Joystick/No RC Checks
  * @value 2 Virtual RC by Joystick
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
@@ -340,7 +335,7 @@ PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
  * @group Commander
  * @min 0
  * @max 20
- * @unit second
+ * @unit s
  * @decimal 0
  * @increment 1
  */
@@ -352,6 +347,7 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
+ * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -374,6 +370,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
+ * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -396,6 +393,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
+ * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -418,6 +416,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
+ * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -440,6 +439,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
+ * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude
@@ -462,6 +462,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
  *
+ * @unit enum
  * @value -1 Unassigned
  * @value 0 Manual
  * @value 1 Altitude

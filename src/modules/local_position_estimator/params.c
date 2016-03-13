@@ -6,20 +6,16 @@
 /**
  * Enable local position estimator.
  *
+ * @unit boolean
  * @group Local Position Estimator
- * @min 0
- * @max 1
- * @decimal 0
  */
 PARAM_DEFINE_INT32(LPE_ENABLED, 1);
 
 /**
  * Enable accelerometer integration for prediction.
  *
+ * @unit boolean
  * @group Local Position Estimator
- * @min 0
- * @max 1
- * @decimal 0
  */
 PARAM_DEFINE_INT32(LPE_INTEGRATE, 1);
 
@@ -109,7 +105,7 @@ PARAM_DEFINE_FLOAT(LPE_LDR_OFF_Z, 0.00f);
  * should be 0.0464
  *
  * @group Local Position Estimator
- * @unit m/s^2
+ * @unit m/s/s
  * @min 0.00001
  * @max 2
  * @decimal 4
@@ -122,7 +118,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.0454f);
  * (see Accel x comments)
  *
  * @group Local Position Estimator
- * @unit m/s^2
+ * @unit m/s/s
  * @min 0.00001
  * @max 2
  * @decimal 4
@@ -195,8 +191,6 @@ PARAM_DEFINE_FLOAT(LPE_GPS_VZ, 0.25f);
  */
 PARAM_DEFINE_FLOAT(LPE_EPH_MAX, 3.0f);
 
-
-
 /**
  * Vision xy standard deviation.
  *
@@ -246,7 +240,7 @@ PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.05f);
  * Position propagation process noise power (variance*sampling rate).
  *
  * @group Local Position Estimator
- * @unit (m/s^2)-s
+ * @unit (m/s/s)-s
  * @min 0
  * @max 1
  * @decimal 8
