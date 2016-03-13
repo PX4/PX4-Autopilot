@@ -48,8 +48,7 @@
  *
  * Set to 1 to enable mTECS
  *
- * @min 0
- * @max 1
+ * @unit boolean
  * @group mTECS
  */
 PARAM_DEFINE_INT32(MT_ENABLED, 0);
@@ -58,6 +57,7 @@ PARAM_DEFINE_INT32(MT_ENABLED, 0);
  * Total Energy Rate Control Feedforward
  * Maps the total energy rate setpoint to the throttle setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -68,6 +68,7 @@ PARAM_DEFINE_FLOAT(MT_THR_FF, 0.7f);
  * Total Energy Rate Control P
  * Maps the total energy rate error to the throttle setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -78,6 +79,7 @@ PARAM_DEFINE_FLOAT(MT_THR_P, 0.1f);
  * Total Energy Rate Control I
  * Maps the integrated total energy rate to the throttle setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -87,6 +89,7 @@ PARAM_DEFINE_FLOAT(MT_THR_I, 0.25f);
 /**
  * Total Energy Rate Control Offset (Cruise throttle sp)
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -97,6 +100,7 @@ PARAM_DEFINE_FLOAT(MT_THR_OFF, 0.7f);
  * Energy Distribution Rate Control Feedforward
  * Maps the energy distribution rate setpoint to the pitch setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -107,6 +111,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_FF, 0.4f);
  * Energy Distribution Rate Control P
  * Maps the energy distribution rate error to the pitch setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -117,6 +122,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_P, 0.03f);
  * Energy Distribution Rate Control I
  * Maps the integrated energy distribution rate error to the pitch setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -127,6 +133,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_I, 0.03f);
 /**
  * Total Energy Distribution Offset (Cruise pitch sp)
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -136,6 +143,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_OFF, 0.0f);
 /**
  * Minimal Throttle Setpoint
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group mTECS
@@ -145,6 +153,7 @@ PARAM_DEFINE_FLOAT(MT_THR_MIN, 0.0f);
 /**
  * Maximal Throttle Setpoint
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group mTECS
@@ -174,6 +183,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_MAX, 20.0f);
 /**
  * Lowpass (cutoff freq.) for altitude
  *
+ * @unit Hz
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ALT_LP, 1.0f);
@@ -181,6 +191,7 @@ PARAM_DEFINE_FLOAT(MT_ALT_LP, 1.0f);
 /**
  * Lowpass (cutoff freq.) for the flight path angle
  *
+ * @unit Hz
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_FPA_LP, 1.0f);
@@ -189,6 +200,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_LP, 1.0f);
  * P gain for the altitude control
  * Maps the altitude error to the flight path angle setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -199,6 +211,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_P, 0.3f);
  * D gain for the altitude control
  * Maps the change of altitude error to the flight path angle setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -208,6 +221,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_D, 0.0f);
 /**
  * Lowpass for FPA error derivative calculation (see MT_FPA_D)
  *
+ * @unit
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_FPA_D_LP, 1.0f);
@@ -236,6 +250,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_MAX, 30.0f);
 /**
  * Lowpass (cutoff freq.) for airspeed
  *
+ * @unit
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_A_LP, 0.5f);
@@ -243,6 +258,7 @@ PARAM_DEFINE_FLOAT(MT_A_LP, 0.5f);
 /**
  * Airspeed derivative calculation lowpass
  *
+ * @unit
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_AD_LP, 0.5f);
@@ -251,6 +267,7 @@ PARAM_DEFINE_FLOAT(MT_AD_LP, 0.5f);
  * P gain for the airspeed control
  * Maps the airspeed error to the acceleration setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -261,6 +278,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_P, 0.3f);
  * D gain for the airspeed control
  * Maps the change of airspeed error to the acceleration setpoint
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -270,6 +288,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_D, 0.0f);
 /**
  * Lowpass for ACC error derivative calculation (see MT_ACC_D)
  *
+ * @unit
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_D_LP, 0.5f);
@@ -277,7 +296,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_D_LP, 0.5f);
 /**
  * Minimal acceleration (air)
  *
- * @unit m/s^2
+ * @unit m/s/s
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
@@ -285,7 +304,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
 /**
  * Maximal acceleration (air)
  *
-* @unit m/s^2
+* @unit m/s/s
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_MAX, 40.0f);
@@ -293,6 +312,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_MAX, 40.0f);
 /**
  * Minimal throttle during takeoff
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group mTECS
@@ -302,6 +322,7 @@ PARAM_DEFINE_FLOAT(MT_TKF_THR_MIN, 1.0f);
 /**
  * Maximal throttle during takeoff
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group mTECS
@@ -331,6 +352,7 @@ PARAM_DEFINE_FLOAT(MT_TKF_PIT_MAX, 45.0f);
 /**
  * Minimal throttle in underspeed mode
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group mTECS
@@ -340,6 +362,7 @@ PARAM_DEFINE_FLOAT(MT_USP_THR_MIN, 1.0f);
 /**
  * Maximal throttle in underspeed mode
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group mTECS
@@ -369,6 +392,7 @@ PARAM_DEFINE_FLOAT(MT_USP_PIT_MAX, 0.0f);
 /**
  * Minimal throttle in landing mode (only last phase of landing)
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group mTECS
@@ -378,6 +402,7 @@ PARAM_DEFINE_FLOAT(MT_LND_THR_MIN, 0.0f);
 /**
  * Maximal throttle in landing mode (only last phase of landing)
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group mTECS
@@ -407,6 +432,7 @@ PARAM_DEFINE_FLOAT(MT_LND_PIT_MAX, 15.0f);
 /**
  * Integrator Limit for Total Energy Rate Control
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
@@ -416,6 +442,7 @@ PARAM_DEFINE_FLOAT(MT_THR_I_MAX, 10.0f);
 /**
  * Integrator Limit for Energy Distribution Rate Control
  *
+ * @unit
  * @min 0.0
  * @max 10.0
  * @group mTECS
