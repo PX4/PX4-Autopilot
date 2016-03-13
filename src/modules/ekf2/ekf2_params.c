@@ -304,7 +304,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
  * Magnetic declination
  *
  * @group EKF2
- * @unit degrees
+ * @unit deg
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
 
@@ -348,7 +348,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @group EKF2
  * @min 0
  * @max 2
- * @unit None
+ * @unit
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
 
@@ -384,8 +384,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
  * replay messages for logging.
  *
  * @group EKF2
- * @min 0
- * @max 1
+ * @unit boolean
  */
 PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
 
@@ -397,6 +396,7 @@ PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
  * @group EKF2
  * @min 0
  * @max 3
+ * @unit
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 
@@ -444,7 +444,7 @@ PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
  *
  * @group EKF2
  * @min 0.05
- * @unit rad/sec
+ * @unit rad/s
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
 
@@ -454,7 +454,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
  *
  * @group EKF2
  * @min 0.05
- * @unit rad/sec
+ * @unit rad/s
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_N_MAX, 0.5f);
 
@@ -464,6 +464,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_N_MAX, 0.5f);
  * @group EKF2
  * @min 0
  * @max 255
+ * @unit
  */
 PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
 
@@ -481,7 +482,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_GATE, 3.0f);
  *
  * @group EKF2
  * @min 1.0
- * @unit rad/sec
+ * @unit rad/s
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_RMAX, 2.5f);
 
@@ -490,7 +491,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_RMAX, 2.5f);
  *
  * @group EKF2
  * @min 0.5
- * @unit m/sec
+ * @unit m/s
  */
 PARAM_DEFINE_FLOAT(EKF2_TERR_NOISE, 5.0f);
 
