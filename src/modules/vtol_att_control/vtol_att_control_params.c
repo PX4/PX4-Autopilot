@@ -42,7 +42,7 @@
 /**
  * VTOL number of engines
  *
- * @unit amount
+ * @unit
  * @min 0
  * @max 8
  * @increment 1
@@ -54,7 +54,7 @@ PARAM_DEFINE_INT32(VT_MOT_COUNT, 0);
 /**
  * Idle speed of VTOL when in multicopter mode
  *
- * @unit pulse-width
+ * @unit us
  * @min 900
  * @max 2000
  * @increment 1
@@ -111,12 +111,7 @@ PARAM_DEFINE_FLOAT(VT_MC_ARSPD_TRIM, 10.0f);
  * If set to one this parameter will cause permanent attitude stabilization in fw mode.
  * This parameter has been introduced for pure convenience sake.
  *
- * @unit enum
- * @value 0 Disabled
- * @value 1 Enabled
- * @min 0
- * @max 1
- * @decimal 0
+ * @unit boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
@@ -126,7 +121,7 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
  *
  * This parameter allows to adjust the neutral elevon position in fixed wing mode.
  *
- * @unit percentage
+ * @unit
  * @min -1.0
  * @max 1.0
  * @increment 0.01
@@ -141,7 +136,7 @@ PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
  * Indicates the maximum power the motor is able to produce. Used to calculate
  * propeller efficiency map.
  *
- * @unit watt
+ * @unit W
  * @min 1
  * @max 10000
  * @increment 1
@@ -155,7 +150,7 @@ PARAM_DEFINE_FLOAT(VT_POWER_MAX, 120.0f);
  *
  * Influences propeller efficiency at different power settings. Should be tuned beforehand.
  *
- * @unit percentage
+ * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -169,7 +164,7 @@ PARAM_DEFINE_FLOAT(VT_PROP_EFF, 0.0f);
  *
  * Gain for tuning the low-pass filter for the total airspeed estimate
  *
- * @unit percentage
+ * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -197,12 +192,7 @@ PARAM_DEFINE_INT32(VT_TYPE, 0);
  *
  * If set to 1 the elevons are locked in multicopter mode
  *
- * @unit enum
- * @value 0 Disabled
- * @value 1 Enabled
- * @min 0
- * @max 1
- * @decimal 0
+ * @unit boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 0);
@@ -212,7 +202,7 @@ PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 0);
  *
  * Time in seconds used for a transition
  *
- * @unit seconds
+ * @unit s
  * @min 0.00
  * @max 10.00
  * @increment 1
@@ -226,7 +216,7 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 3.0f);
  *
  * Time in seconds used for a back transition
  *
- * @unit seconds
+ * @unit s
  * @min 0.00
  * @max 10.00
  * @increment 1
@@ -266,12 +256,7 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 /**
  * Enable optimal recovery strategy for pitch-weak tailsitters
  *
- * @unit enum
- * @value 0 Disabled
- * @value 1 Enabled
- * @min 0
- * @max 1
- * @decimal 0
+ * @unit boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
@@ -279,12 +264,7 @@ PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
 /**
  * Enable weather-vane mode landings for missions
  *
- * @unit enum
- * @value 0 Disabled
- * @value 1 Enabled
- * @min 0
- * @max 1
- * @decimal 0
+ * @unit boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
@@ -295,7 +275,7 @@ PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
  * The desired yawrate from the controller will be scaled in order to avoid
  * yaw fighting against the wind.
  *
- * @unit percentage
+ * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -307,12 +287,7 @@ PARAM_DEFINE_FLOAT(VT_WV_YAWR_SCL, 0.15f);
 /**
  * Enable weather-vane mode for loiter
  *
- * @unit enum
- * @value 0 Disabled
- * @value 1 Enabled
- * @min 0
- * @max 1
- * @decimal 0
+ * @unit boolean
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
@@ -322,7 +297,7 @@ PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
  *
  * Time in seconds after which transition will be cancelled. Disabled if set to 0.
  *
- * @unit seconds
+ * @unit s
  * @min 0.00
  * @max 30.00
  * @increment 1
@@ -336,6 +311,7 @@ PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
  *
  * Minimum time in seconds for front transition.
  *
+ * @unit s
  * @min 0.0
  * @max 10.0
  * @group VTOL Attitude Control

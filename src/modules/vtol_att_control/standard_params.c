@@ -42,7 +42,7 @@
 /**
  * Target throttle value for pusher/puller motor during the transition to fw mode
  *
- * @unit percentage
+ * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01
