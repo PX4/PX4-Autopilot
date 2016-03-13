@@ -40,6 +40,7 @@
  */
 
 #include "ekf.h"
+#include "mathlib.h"
 
 Ekf::Ekf():
 	_filter_initialised(false),
@@ -70,13 +71,16 @@ Ekf::Ekf():
 	_last_gps_origin_time_us(0),
 	_gps_alt_ref(0.0f),
 	_hgt_counter(0),
+	_time_last_hgt(0),
 	_hgt_sum(0.0f),
 	_mag_counter(0),
+	_time_last_mag(0),
 	_hgt_at_alignment(0.0f),
 	_terrain_vpos(0.0f),
 	_hagl_innov(0.0f),
 	_hagl_innov_var(0.0f),
-	_time_last_hagl_fuse(0)
+	_time_last_hagl_fuse(0),
+	_baro_hgt_offset(0.0f)
 {
 	_control_status = {};
 	_control_status_prev = {};
@@ -99,7 +103,7 @@ Ekf::Ekf():
 	_mag_sum = {};
 	_delVel_sum = {};
 	_flow_gyro_bias = {};
-	_imu_del_ang_of = {};	
+	_imu_del_ang_of = {};
 }
 
 Ekf::~Ekf()
@@ -156,8 +160,6 @@ bool Ekf::init(uint64_t timestamp)
 bool Ekf::update()
 {
 
-	// Only run the filter if IMU data in the buffer has been updated
-	if (_imu_updated) {
 		if (!_filter_initialised) {
 			_filter_initialised = initialiseFilter();
 
@@ -165,6 +167,9 @@ bool Ekf::update()
 				return false;
 			}
 		}
+
+	// Only run the filter if IMU data in the buffer has been updated
+	if (_imu_updated) {
 
 		// perform state and covariance prediction for the main filter
 		predictState();
@@ -207,21 +212,43 @@ bool Ekf::update()
 		// determine if range finder data has fallen behind the fusin time horizon fuse it if we are
 		// not tilted too much to use it
 		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
-			   && (_R_prev(2, 2) > 0.7071f)) {
+		    && (_R_prev(2, 2) > 0.7071f)) {
 			// if we have range data we always try to estimate terrain height
 			_fuse_hagl_data = true;
 
 			// only use range finder as a height observation in the main filter if specifically enabled
-			if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
+			if (_control_status.flags.rng_hgt) {
 				_fuse_height = true;
 			}
+
+		} else if ((_time_last_imu - _time_last_hgt_fuse) > 5e5 && _control_status.flags.rng_hgt) {
+			// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
+			// and are on the ground, then synthesise a measurement at the expected on ground value
+			if (!_in_air) {
+				_range_sample_delayed.rng = _params.rng_gnd_clearance;
+				_range_sample_delayed.time_us = _imu_sample_delayed.time_us;
+
+			} else {
+				// if this happens in the air, fuse the baro measurement to constrain drift
+				// use the baro for this update only
+				_control_status.flags.baro_hgt = true;
+				_control_status.flags.rng_hgt = false;
+			}
+
+			_fuse_height = true;
 
 		}
 
 		// determine if baro data has fallen behind the fuson time horizon and fuse it in the main filter if enabled
-		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)
-			   && _params.vdist_sensor_type == VDIST_SENSOR_BARO) {
-			_fuse_height = true;
+		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
+			if (_control_status.flags.baro_hgt) {
+				_fuse_height = true;
+
+			} else {
+				// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro  as a height reference
+				float offset_error = _baro_sample_delayed.hgt + _state.pos(2) - _baro_hgt_offset;
+				_baro_hgt_offset += 0.02f * math::constrain(offset_error, -5.0f, 5.0f);
+			}
 		}
 
 		// If we are using GPS aiding and data has fallen behind the fusion time horizon then fuse it
@@ -233,15 +260,15 @@ bool Ekf::update()
 
 		// If we are using optical flow aiding and data has fallen behind the fusion time horizon, then fuse it
 		if (_flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
-			   && _control_status.flags.opt_flow && (_time_last_imu - _time_last_optflow) < 2e5
-			   && (_R_prev(2, 2) > 0.7071f)) {
+		    && _control_status.flags.opt_flow && (_time_last_imu - _time_last_optflow) < 2e5
+		    && (_R_prev(2, 2) > 0.7071f)) {
 			_fuse_flow = true;
 		}
 
 		// if we aren't doing any aiding, fake GPS measurements at the last known position to constrain drift
 		// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
 		if (!_control_status.flags.gps && !_control_status.flags.opt_flow
-			   && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
+		    && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
 			_fuse_pos = true;
 			_gps_sample_delayed.pos(0) = _last_known_posNE(0);
 			_gps_sample_delayed.pos(1) = _last_known_posNE(1);
@@ -303,22 +330,27 @@ bool Ekf::initialiseFilter(void)
 	if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
 		rangeSample range_init = _range_buffer.get_newest();
 
-		if (range_init.time_us != 0) {
+		if (range_init.time_us != _time_last_hgt) {
 			_hgt_counter ++;
 			_hgt_sum += range_init.rng;
+			_time_last_hgt = range_init.time_us;
 		}
 
-	} else {
+	} else if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
 		// initialize vertical position with newest baro measurement
 		baroSample baro_init = _baro_buffer.get_newest();
 
-		if (baro_init.time_us != 0) {
+		if (baro_init.time_us != _time_last_hgt) {
 			_hgt_counter ++;
 			_hgt_sum += baro_init.hgt;
+			_time_last_hgt = baro_init.time_us;
 		}
+
+	} else {
+		return false;
 	}
 
-	// check to see if we have enough measruements and return false if not
+	// check to see if we have enough measurements and return false if not
 	if (_hgt_counter < 10 || _mag_counter < 10) {
 		return false;
 
@@ -361,8 +393,13 @@ bool Ekf::initialiseFilter(void)
 		// calculate the initial magnetic field and yaw alignment
 		resetMagHeading(mag_init);
 
-		// calculate the averaged barometer reading
+		// calculate the averaged height reading to calulate the height of the origin
 		_hgt_at_alignment = _hgt_sum / (float)_hgt_counter;
+
+		// if we are not using the baro height as the primary source, then calculate an offset relative to the origin
+		// so it can be used as a backup
+		baroSample baro_newest = _baro_buffer.get_newest();
+		_baro_hgt_offset = baro_newest.hgt;
 
 		// set the velocity to the GPS measurement (by definition, the initial position and height is at the origin)
 		resetVelocity();

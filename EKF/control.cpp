@@ -125,6 +125,7 @@ void Ekf::controlFusionModes()
 			if (_control_status.flags.yaw_align) {
 				_control_status.flags.gps = true;
 				_time_last_gps = _time_last_imu;
+
 				// if we are not already aiding with optical flow, then we need to reset the position and velocity
 				if (!_control_status.flags.opt_flow) {
 					_control_status.flags.gps = resetPosition();
@@ -159,8 +160,8 @@ void Ekf::controlFusionModes()
 
 	// Handle the case where we have rejected height measurements for an extended period
 	// This excessive vibration levels can cause this so a reset gives the filter a chance to recover
-	// After 10 seconds without aiding we reset to the height measurement provided the data is fresh
-	if ((_time_last_imu - _time_last_hgt_fuse > 10e6) && (_time_last_imu - _time_last_baro < 5e5)) {
+	// After 10 seconds without aiding we reset to the height measurement
+	if (_time_last_imu - _time_last_hgt_fuse > 10e6) {
 		// Reset vertical position and velocity states to the last measurement
 		resetHeight();
 	}
@@ -247,10 +248,22 @@ void Ekf::controlFusionModes()
 	}
 
 	// Control the soure of height measurements for the main filter
-	_control_status.flags.baro_hgt = true;
-	_control_status.flags.rng_hgt = false;
-	_control_status.flags.gps_hgt = false;
+	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
+		_control_status.flags.baro_hgt = true;
+		_control_status.flags.rng_hgt = false;
+		_control_status.flags.gps_hgt = false;
 
+	} else if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
+		_control_status.flags.baro_hgt = false;
+		_control_status.flags.rng_hgt = true;
+		_control_status.flags.gps_hgt = false;
+
+	} else {
+		// TODO functionality to fuse GPS height
+		_control_status.flags.baro_hgt = false;
+		_control_status.flags.rng_hgt = false;
+		_control_status.flags.gps_hgt = false;
+	}
 
 	// Placeholder for control of wind velocity states estimation
 	// TODO add methods for true airspeed and/or sidelsip fusion or some type of drag force measurement

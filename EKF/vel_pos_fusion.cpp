@@ -110,7 +110,7 @@ void Ekf::fuseVelPosHeight()
 		if (_control_status.flags.baro_hgt) {
 			fuse_map[5] = true;
 			// vertical position innovation - baro measurement has opposite sign to earth z axis
-			_vel_pos_innov[5] = _state.pos(2) - (_hgt_at_alignment - _baro_sample_delayed.hgt);
+			_vel_pos_innov[5] = _state.pos(2) - (_hgt_at_alignment - _baro_sample_delayed.hgt + _baro_hgt_offset);
 			// observation variance - user parameter defined
 			R[5] = fmaxf(_params.baro_noise, 0.01f);
 			R[5] = R[5] * R[5];
@@ -120,7 +120,7 @@ void Ekf::fuseVelPosHeight()
 		} else if (_control_status.flags.rng_hgt && (_R_prev(2, 2) > 0.7071f)) {
 			fuse_map[5] = true;
 			// use range finder with tilt correction
-			_vel_pos_innov[5] = _state.pos(2) - (-math::max(_range_sample_delayed.rng *_R_prev(2, 2),
+			_vel_pos_innov[5] = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_prev(2, 2),
 							     _params.rng_gnd_clearance));
 			// observation variance - user parameter defined
 			R[5] = fmaxf(_params.range_noise, 0.01f);
