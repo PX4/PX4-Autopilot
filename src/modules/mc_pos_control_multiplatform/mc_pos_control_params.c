@@ -48,6 +48,7 @@
  *
  * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group Multicopter Position Control
@@ -59,6 +60,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_THR_MIN);
  *
  * Limit max allowed thrust.
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group Multicopter Position Control
@@ -68,6 +70,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_THR_MAX);
 /**
  * Proportional gain for vertical position error
  *
+ * @unit
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -76,6 +79,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_Z_P);
 /**
  * Proportional gain for vertical velocity error
  *
+ * @unit
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -86,6 +90,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_Z_VEL_P);
  *
  * Non zero value allows hovering thrust estimation on stabilized or autonomous takeoff.
  *
+ * @unit
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -94,6 +99,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_Z_VEL_I);
 /**
  * Differential gain for vertical velocity error
  *
+ * @unit
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -115,6 +121,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_Z_VEL_MAX);
  *
  * Feed forward weight for altitude control in stabilized modes (ALTCTRL). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group Multicopter Position Control
@@ -124,6 +131,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_Z_FF);
 /**
  * Proportional gain for horizontal position error
  *
+ * @unit
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -132,6 +140,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_XY_P);
 /**
  * Proportional gain for horizontal velocity error
  *
+ * @unit
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -142,6 +151,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_XY_VEL_P);
  *
  * Non-zero value allows to resist wind.
  *
+ * @unit
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -150,6 +160,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_XY_VEL_I);
 /**
  * Differential gain for horizontal velocity error. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
+ * @unit
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -171,6 +182,7 @@ PX4_PARAM_DEFINE_FLOAT(MPP_XY_VEL_MAX);
  *
  * Feed forward weight for position control in position control mode (POSCTRL). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
  *
+ * @unit
  * @min 0.0
  * @max 1.0
  * @group Multicopter Position Control
@@ -238,4 +250,3 @@ PX4_PARAM_DEFINE_FLOAT(MPP_MAN_P_MAX);
  * @group Multicopter Attitude Control
  */
 PX4_PARAM_DEFINE_FLOAT(MPP_MAN_Y_MAX);
-
