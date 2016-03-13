@@ -57,6 +57,8 @@ Ekf::Ekf():
 	_time_last_hgt_fuse(0),
 	_time_last_of_fuse(0),
 	_last_disarmed_posD(0.0f),
+	_airspeed_innov(0.0f),
+	_airspeed_innov_var(0.0f),
 	_heading_innov(0.0f),
 	_heading_innov_var(0.0f),
 	_delta_time_of(0.0f),
@@ -93,8 +95,6 @@ Ekf::Ekf():
 	memset(_flow_innov, 0, sizeof(_flow_innov));
 	memset(_vel_pos_innov_var, 0, sizeof(_vel_pos_innov_var));
 	memset(_mag_innov_var, 0, sizeof(_mag_innov_var));
-	memset(_airspeed_innov, 0, sizeof(_airspeed_innov));
-	memset(_airspeed_innov_var, 0, sizeof(_airspeed_innov_var));
 	memset(_flow_innov_var, 0, sizeof(_flow_innov_var));
 	_delta_angle_corr.setZero();
 	_delta_vel_corr.setZero();
