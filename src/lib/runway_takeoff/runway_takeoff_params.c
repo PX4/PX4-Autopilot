@@ -44,8 +44,7 @@
  *
  * 0: disabled, 1: enabled
  *
- * @min 0
- * @max 1
+ * @unit boolean
  * @group Runway Takeoff
  */
 PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
@@ -55,6 +54,9 @@ PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
  *
  * 0: airframe heading, 1: heading towards takeoff waypoint
  *
+ * @unit enum
+ * @value 0 airframe
+ * @value 1 waypoint
  * @min 0
  * @max 1
  * @group Runway Takeoff
@@ -78,6 +80,7 @@ PARAM_DEFINE_FLOAT(RWTO_NAV_ALT, 5.0);
  * Max throttle during runway takeoff.
  * (Can be used to test taxi on runway)
  *
+ * @unit %
  * @min 0.0
  * @max 1.0
  * @group Runway Takeoff
@@ -126,6 +129,7 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_ROLL, 25.0);
  * Pitch up will be commanded when the following airspeed is reached:
  * FW_AIRSPD_MIN * RWTO_AIRSPD_SCL
  *
+ * @unit
  * @min 0.0
  * @max 2.0
  * @group Runway Takeoff
