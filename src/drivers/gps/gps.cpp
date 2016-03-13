@@ -402,7 +402,7 @@ GPS::task_main()
 					}
 
 					if (!_healthy) {
-                        // Helpful for debugging, but too verbose for normal ops
+						// Helpful for debugging, but too verbose for normal ops
 //						const char *mode_str = "unknown";
 //
 //						switch (_mode) {
