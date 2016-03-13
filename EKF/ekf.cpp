@@ -246,7 +246,8 @@ bool Ekf::update()
 
 			} else {
 				// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro  as a height reference
-				_baro_hgt_offset += 0.02f * math::constrain((_baro_sample_delayed.hgt + _state.pos(2) - _baro_hgt_offset), -5.0f, 5.0f);
+				float offset_error = _baro_sample_delayed.hgt + _state.pos(2) - _baro_hgt_offset;
+				_baro_hgt_offset += 0.02f * math::constrain(offset_error, -5.0f, 5.0f);
 			}
 		}
 
