@@ -45,7 +45,6 @@
  *
  * Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -56,7 +55,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_ROLL_P);
  *
  * Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -67,7 +65,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_ROLLRATE_P);
  *
  * Roll rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -78,7 +75,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_ROLLRATE_I);
  *
  * Roll rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -100,7 +96,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_PITCH_P);
  *
  * Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -111,7 +106,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_PITCHRATE_P);
  *
  * Pitch rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -122,7 +116,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_PITCHRATE_I);
  *
  * Pitch rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -144,7 +137,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_YAW_P);
  *
  * Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -155,7 +147,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_YAWRATE_P);
  *
  * Yaw rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -166,7 +157,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_YAWRATE_I);
  *
  * Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
- * @unit
  * @min 0.0
  * @group Multicopter Attitude Control
  */
@@ -177,7 +167,6 @@ PX4_PARAM_DEFINE_FLOAT(MP_YAWRATE_D);
  *
  * Feed forward weight for manual yaw control. 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @group Multicopter Attitude Control

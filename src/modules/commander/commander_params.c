@@ -53,7 +53,6 @@
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @unit
  * @min -0.25
  * @max 0.25
  * @decimal 2
@@ -70,7 +69,6 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @unit
  * @min -0.25
  * @max 0.25
  * @decimal 2
@@ -87,7 +85,6 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @unit
  * @min -0.25
  * @max 0.25
  * @decimal 2
@@ -220,7 +217,6 @@ PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
  * Engine failure triggers only above this throttle value
  *
  * @group Commander
- * @unit
  * @min 0.0
  * @max 1.0
  * @decimal 1

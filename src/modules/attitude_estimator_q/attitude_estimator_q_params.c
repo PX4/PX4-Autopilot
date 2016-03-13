@@ -45,7 +45,6 @@
  * Complimentary filter accelerometer weight
  *
  * @group Attitude Q estimator
- * @unit
  * @min 0
  * @max 1
  * @decimal 2
@@ -56,7 +55,6 @@ PARAM_DEFINE_FLOAT(ATT_W_ACC, 0.2f);
  * Complimentary filter magnetometer weight
  *
  * @group Attitude Q estimator
- * @unit
  * @min 0
  * @max 1
  * @decimal 2
@@ -67,7 +65,6 @@ PARAM_DEFINE_FLOAT(ATT_W_MAG, 0.1f);
  * Complimentary filter external heading weight
  *
  * @group Attitude Q estimator
- * @unit
  * @min 0
  * @max 1
  */
@@ -77,7 +74,6 @@ PARAM_DEFINE_FLOAT(ATT_W_EXT_HDG, 0.1f);
  * Complimentary filter gyroscope bias weight
  *
  * @group Attitude Q estimator
- * @unit
  * @min 0
  * @max 1
  * @decimal 2
@@ -144,7 +140,6 @@ PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);
  * Threshold (of RMS) to warn about high vibration levels
  *
  * @group Attitude Q estimator
- * @unit
  * @min 0.01
  * @max 10
  * @decimal 2

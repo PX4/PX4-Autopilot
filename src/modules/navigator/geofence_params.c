@@ -96,7 +96,6 @@ PARAM_DEFINE_INT32(GF_SOURCE, 0);
  *
  * Set how many subsequent position measurements outside of the fence are needed before geofence violation is triggered
  *
- * @unit
  * @min -1
  * @max 10
  * @group Geofence

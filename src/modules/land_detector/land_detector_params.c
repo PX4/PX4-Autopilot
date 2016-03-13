@@ -76,7 +76,6 @@ PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
  *
  * Maximum actuator output on throttle allowed in the landed state
  *
- * @unit
  * @min 0.1
  * @max 0.5
  *

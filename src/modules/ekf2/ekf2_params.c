@@ -96,7 +96,6 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 200);
  * @group EKF2
  * @min 0
  * @max 511
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_GPS_CHECK, 21);
 
@@ -136,7 +135,6 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_SACC, 1.0f);
  * @group EKF2
  * @min 4
  * @max 12
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_REQ_NSATS, 6);
 
@@ -146,7 +144,6 @@ PARAM_DEFINE_INT32(EKF2_REQ_NSATS, 6);
  * @group EKF2
  * @min 1.5
  * @max 5.0
- * @unit
  */
 PARAM_DEFINE_FLOAT(EKF2_REQ_GDOP, 2.5f);
 
@@ -335,7 +332,6 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
  * @group EKF2
  * @min 0
  * @max 7
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
 
@@ -348,7 +344,6 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @group EKF2
  * @min 0
  * @max 2
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
 
@@ -396,7 +391,6 @@ PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
  * @group EKF2
  * @min 0
  * @max 3
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 
@@ -464,7 +458,6 @@ PARAM_DEFINE_FLOAT(EKF2_OF_N_MAX, 0.5f);
  * @group EKF2
  * @min 0
  * @max 255
- * @unit
  */
 PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
 

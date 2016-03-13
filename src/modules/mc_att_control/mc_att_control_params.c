@@ -72,7 +72,6 @@ PARAM_DEFINE_FLOAT(MC_PITCH_TC, 0.2f);
  *
  * Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
  *
- * @unit
  * @min 0.0
  * @max 8
  * @decimal 2
@@ -86,7 +85,6 @@ PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.5f);
  *
  * Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @unit
  * @min 0.0
  * @max 0.5
  * @decimal 3
@@ -100,7 +98,6 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
  *
  * Roll rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
- * @unit
  * @min 0.0
  * @decimal 3
  * @increment 0.01
@@ -113,7 +110,6 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.05f);
  *
  * Roll rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
- * @unit
  * @min 0.0
  * @max 0.01
  * @decimal 4
@@ -127,7 +123,6 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.003f);
  *
  * Improves tracking performance.
  *
- * @unit
  * @min 0.0
  * @decimal 4
  * @group Multicopter Attitude Control
@@ -153,7 +148,6 @@ PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.5f);
  *
  * Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @unit
  * @min 0.0
  * @max 0.6
  * @decimal 3
@@ -167,7 +161,6 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
  *
  * Pitch rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
- * @unit
  * @min 0.0
  * @decimal 3
  * @increment 0.01
@@ -180,7 +173,6 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.05f);
  *
  * Pitch rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
- * @unit
  * @min 0.0
  * @decimal 4
  * @increment 0.0005
@@ -193,7 +185,6 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.003f);
  *
  * Improves tracking performance.
  *
- * @unit
  * @min 0.0
  * @decimal 4
  * @group Multicopter Attitude Control
@@ -219,7 +210,6 @@ PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
  *
  * Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @unit
  * @min 0.0
  * @max 0.6
  * @decimal 2
@@ -233,7 +223,6 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.2f);
  *
  * Yaw rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
- * @unit
  * @min 0.0
  * @decimal 2
  * @increment 0.01
@@ -246,7 +235,6 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.1f);
  *
  * Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
- * @unit
  * @min 0.0
  * @decimal 2
  * @increment 0.01
@@ -259,7 +247,6 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
  *
  * Improves tracking performance.
  *
- * @unit
  * @min 0.0
  * @decimal 4
  * @increment 0.01
@@ -272,7 +259,6 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
  *
  * Feed forward weight for manual yaw control. 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -382,7 +368,6 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 360.0f);
  * Manual input needed in order to override attitude control rate setpoints
  * and instead pass manual stick inputs as rate setpoints
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @decimal 2

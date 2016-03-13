@@ -47,7 +47,6 @@
  * This parameter encodes the ground drag coefficient and the corresponding
  * decrease in wind speed from the plane altitude to ground altitude.
  *
- * @unit
  * @min 0.001
  * @max 0.1
  * @group Payload drop
@@ -91,7 +90,6 @@ PARAM_DEFINE_FLOAT(BD_PRECISION, 30.0f);
  * should give good results:
  * http://en.wikipedia.org/wiki/Drag_coefficient
  *
- * @unit
  * @min 0.08
  * @max 1.5
  * @group Payload drop

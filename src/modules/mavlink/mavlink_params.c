@@ -34,7 +34,6 @@
 /**
  * MAVLink system ID
  * @group MAVLink
- * @unit
  * @min 1
  * @max 250
  */
@@ -43,7 +42,6 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 /**
  * MAVLink component ID
  * @group MAVLink
- * @unit
  * @min 1
  * @max 250
  */
@@ -58,7 +56,6 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
  * factory defaults.
  *
  * @group MAVLink
- * @unit
  * @min -1
  * @max 240
  */
@@ -67,7 +64,6 @@ PARAM_DEFINE_INT32(MAV_RADIO_ID, 0);
 /**
  * MAVLink airframe type
  *
- * @unit
  * @min 1
  * @group MAVLink
  */
@@ -101,7 +97,6 @@ PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
  * testing the parameter interface on the communication level.
  *
  * @group MAVLink
- * @unit
  * @min -1000
  * @max 1000
  */

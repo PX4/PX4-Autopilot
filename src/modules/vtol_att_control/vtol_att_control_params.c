@@ -42,7 +42,6 @@
 /**
  * VTOL number of engines
  *
- * @unit
  * @min 0
  * @max 8
  * @increment 1
@@ -121,7 +120,6 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
  *
  * This parameter allows to adjust the neutral elevon position in fixed wing mode.
  *
- * @unit
  * @min -1.0
  * @max 1.0
  * @increment 0.01
@@ -150,7 +148,6 @@ PARAM_DEFINE_FLOAT(VT_POWER_MAX, 120.0f);
  *
  * Influences propeller efficiency at different power settings. Should be tuned beforehand.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -164,7 +161,6 @@ PARAM_DEFINE_FLOAT(VT_PROP_EFF, 0.0f);
  *
  * Gain for tuning the low-pass filter for the total airspeed estimate
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -275,7 +271,6 @@ PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
  * The desired yawrate from the controller will be scaled in order to avoid
  * yaw fighting against the wind.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01

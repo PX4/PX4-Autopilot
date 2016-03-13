@@ -46,7 +46,6 @@
  *
  * Weight (cutoff frequency) for barometer altitude measurements.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -58,7 +57,6 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_BARO, 0.5f);
  *
  * Weight (cutoff frequency) for GPS altitude measurements. GPS altitude data is very noisy and should be used only as slow correction for baro offset.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -70,7 +68,6 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_P, 0.005f);
  *
  * Weight (cutoff frequency) for GPS altitude velocity measurements.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -82,7 +79,6 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_V, 0.0f);
  *
  * Weight (cutoff frequency) for vision altitude measurements. vision altitude data is very noisy and should be used only as slow correction for baro offset.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -94,7 +90,6 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_VIS_P, 5.0f);
  *
  * Weight (cutoff frequency) for lidar measurements.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -106,7 +101,6 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_LIDAR, 3.0f);
  *
  * Weight (cutoff frequency) for GPS position measurements.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -118,7 +112,6 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_GPS_P, 1.0f);
  *
  * Weight (cutoff frequency) for GPS velocity measurements.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -130,7 +123,6 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_GPS_V, 2.0f);
  *
  * Weight (cutoff frequency) for vision position measurements.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -142,7 +134,6 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_VIS_P, 7.0f);
  *
  * Weight (cutoff frequency) for vision velocity measurements.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -154,7 +145,6 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_VIS_V, 0.0f);
  *
  * Weight (cutoff frequency) for mocap position measurements.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -167,7 +157,6 @@ PARAM_DEFINE_FLOAT(INAV_W_MOC_P, 10.0f);
  *
  * Weight (cutoff frequency) for optical flow (velocity) measurements.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -179,7 +168,6 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_FLOW, 0.8f);
  *
  * When velocity sources lost slowly decrease estimated horizontal velocity with this weight.
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -191,7 +179,6 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_RES_V, 0.5f);
  *
  * When optical flow data available, multiply GPS weights (for position and velocity) by this factor.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @group Position Estimator INAV
@@ -203,7 +190,6 @@ PARAM_DEFINE_FLOAT(INAV_W_GPS_FLOW, 0.1f);
  *
  * Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
  *
- * @unit
  * @min 0.0
  * @max 0.1
  * @group Position Estimator INAV
@@ -215,7 +201,6 @@ PARAM_DEFINE_FLOAT(INAV_W_ACC_BIAS, 0.05f);
  *
  * Factor to scale optical flow
  *
- * @unit
  * @min 0.0
  * @max 10.0
  * @group Position Estimator INAV
@@ -227,7 +212,6 @@ PARAM_DEFINE_FLOAT(INAV_FLOW_K, 1.35f);
  *
  * 0 - lowest quality, 1 - best quality.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @group Position Estimator INAV
@@ -275,7 +259,6 @@ PARAM_DEFINE_FLOAT(INAV_LAND_DISP, 0.7f);
  *
  * Value should be lower than minimal hovering thrust. Half of it is good choice.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @group Position Estimator INAV
