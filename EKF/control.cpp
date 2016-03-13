@@ -247,10 +247,22 @@ void Ekf::controlFusionModes()
 	}
 
 	// Control the soure of height measurements for the main filter
+	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
 	_control_status.flags.baro_hgt = true;
 	_control_status.flags.rng_hgt = false;
 	_control_status.flags.gps_hgt = false;
 
+	} else if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
+		_control_status.flags.baro_hgt = false;
+		_control_status.flags.rng_hgt = true;
+		_control_status.flags.gps_hgt = false;
+
+	} else {
+		// TODO functionality to fuse GPS height
+		_control_status.flags.baro_hgt = false;
+		_control_status.flags.rng_hgt = false;
+		_control_status.flags.gps_hgt = false;
+	}
 
 	// Placeholder for control of wind velocity states estimation
 	// TODO add methods for true airspeed and/or sidelsip fusion or some type of drag force measurement

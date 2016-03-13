@@ -197,9 +197,11 @@ private:
 	float _gps_alt_ref;		// WGS-84 height (m)
 
 	// Variables used to initialise the filter states
-	uint8_t _hgt_counter;		// number of baro samples averaged
-	float _hgt_sum;			// summed baro measurement
+	uint8_t _hgt_counter;		// number of height samples averaged
+	uint64_t _time_last_hgt;	// measurement time of last height sample
+	float _hgt_sum;			// summed height measurement
 	uint8_t _mag_counter;		// number of magnetometer samples averaged
+	uint64_t _time_last_mag;	// measurement time of last magnetomter sample
 	Vector3f _mag_sum;		// summed magnetometer measurement
 	Vector3f _delVel_sum;		// summed delta velocity
 	float _hgt_at_alignment;	// baro offset relative to alignment position

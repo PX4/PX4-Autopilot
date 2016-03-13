@@ -70,8 +70,10 @@ Ekf::Ekf():
 	_last_gps_origin_time_us(0),
 	_gps_alt_ref(0.0f),
 	_hgt_counter(0),
+	_time_last_hgt(0),
 	_hgt_sum(0.0f),
 	_mag_counter(0),
+	_time_last_mag(0),
 	_hgt_at_alignment(0.0f),
 	_terrain_vpos(0.0f),
 	_hagl_innov(0.0f),
@@ -212,15 +214,22 @@ bool Ekf::update()
 			_fuse_hagl_data = true;
 
 			// only use range finder as a height observation in the main filter if specifically enabled
-			if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
+			if (_control_status.flags.rng_hgt) {
 				_fuse_height = true;
 			}
+		}
 
+		// If we are supposed to be using range finder data as the primary height sensor and haven't received it for a while
+		// and are on the ground, then set the measurement to the expected on ground value
+		if ((_time_last_imu - _time_last_hgt_fuse) > 5e5 && _control_status.flags.rng_hgt && !_in_air) {
+			_range_sample_delayed.rng = _params.rng_gnd_clearance;
+			_range_sample_delayed.time_us = _imu_sample_delayed.time_us;
+			_fuse_height = true;
 		}
 
 		// determine if baro data has fallen behind the fuson time horizon and fuse it in the main filter if enabled
 		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)
-			   && _params.vdist_sensor_type == VDIST_SENSOR_BARO) {
+		    && _control_status.flags.baro_hgt) {
 			_fuse_height = true;
 		}
 
@@ -303,22 +312,27 @@ bool Ekf::initialiseFilter(void)
 	if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
 		rangeSample range_init = _range_buffer.get_newest();
 
-		if (range_init.time_us != 0) {
+		if (range_init.time_us != _time_last_hgt) {
 			_hgt_counter ++;
 			_hgt_sum += range_init.rng;
+			_time_last_hgt = range_init.time_us;
 		}
 
-	} else {
+	} else if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
 		// initialize vertical position with newest baro measurement
 		baroSample baro_init = _baro_buffer.get_newest();
 
-		if (baro_init.time_us != 0) {
+		if (baro_init.time_us != _time_last_hgt) {
 			_hgt_counter ++;
 			_hgt_sum += baro_init.hgt;
+			_time_last_hgt = baro_init.time_us;
 		}
+
+	} else {
+		return false;
 	}
 
-	// check to see if we have enough measruements and return false if not
+	// check to see if we have enough measurements and return false if not
 	if (_hgt_counter < 10 || _mag_counter < 10) {
 		return false;
 
@@ -361,7 +375,7 @@ bool Ekf::initialiseFilter(void)
 		// calculate the initial magnetic field and yaw alignment
 		resetMagHeading(mag_init);
 
-		// calculate the averaged barometer reading
+		// calculate the averaged height reading
 		_hgt_at_alignment = _hgt_sum / (float)_hgt_counter;
 
 		// set the velocity to the GPS measurement (by definition, the initial position and height is at the origin)
