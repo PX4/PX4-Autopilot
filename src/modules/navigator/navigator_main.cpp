@@ -152,7 +152,7 @@ Navigator::Navigator() :
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
 	_param_rcloss_obc(this, "RCL_OBC"),
-	_param_cruising_speed_hover(this, "MPC_XY_VEL_MAX", false),
+	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
 	_mission_cruising_speed(-1.0f)
 {
