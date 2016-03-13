@@ -1877,10 +1877,14 @@ Sensors::rc_poll()
 			_rc_pub = orb_advertise(ORB_ID(rc_channels), &_rc);
 		}
 
+		/* only publish manual control if the signal is still present */
 		if (!signal_lost) {
-			struct manual_control_setpoint_s manual = {};
 
-			/* fill values in manual_control_setpoint topic only if signal is valid */
+			/* initialize manual setpoint */
+			struct manual_control_setpoint_s manual = {};
+			/* set mode slot to unassigned */
+			manual.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
+			/* set the timestamp to the last signal time */
 			manual.timestamp = rc_input.timestamp_last_signal;
 
 			/* limit controls */
@@ -1897,8 +1901,8 @@ Sensors::rc_poll()
 
 			if (_parameters.rc_map_flightmode > 0) {
 
-				/* the number of valid slots is one less than the max marker */
-				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX - 1;
+				/* the number of valid slots equals the index of the max marker minus one */
+				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
 
 				/* the half width of the range of a slot is the total range
 				 * divided by the number of slots, again divided by two
@@ -1914,8 +1918,15 @@ Sensors::rc_poll()
 				 * slots. And finally we add half a slot width to ensure that integer rounding
 				 * will take us to the correct final index.
 				 */
-				manual.mode_slot = ((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
-						    (slot_max - slot_min)) + 1 / num_slots;
+				manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
+						    (slot_max - slot_min)) + (1.0f / num_slots));
+
+				static hrt_abstime last_print = 0;
+
+				if (hrt_absolute_time() - last_print > 500000) {
+					last_print = hrt_absolute_time();
+					warnx("rc: %8.4f -> %d", (double)_rc.channels[_parameters.rc_map_flightmode - 1], manual.mode_slot);
+				}
 			}
 
 			/* mode switches */
