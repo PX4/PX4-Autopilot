@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
  *
  * Parameters for mission.
  *
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 /*
@@ -46,22 +46,21 @@
 /**
  * Take-off altitude
  *
- * Even if first waypoint has altitude less then MIS_TAKEOFF_ALT above home position, system will climb to
- * MIS_TAKEOFF_ALT on takeoff, then go to waypoint.
+ * This is the minimum altitude the system will take off to.
  *
- * @unit meters
+ * @unit m
  * @min 0
  * @max 80
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 1.2f);
+PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 1.8f);
 
 /**
  * Minimum Loiter altitude
  *
  * This is the minimum altitude the system will always obey. The intent is to stay out of ground effect.
  *
- * @unit meters
+ * @unit m
  * @min 0
  * @max 80
  * @group Mission
@@ -74,10 +73,7 @@ PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, 1.2f);
  * When enabled, missions that have been uploaded by the GCS are stored
  * and reloaded after reboot persistently.
  *
- * @min 0
- * @max 1
- * @value 0 Disabled
- * @value 1 Enabled
+ * @unit boolean
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
@@ -89,6 +85,7 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
  * Set a value of zero or less to disable. The mission will not be started if the current
  * waypoint is more distant than MIS_DIS_1WP from the current position.
  *
+ * @unit m
  * @min 0
  * @max 1000
  * @group Mission
@@ -102,10 +99,16 @@ PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
  * 1: the system will follow a first order hold altitude setpoint
  * values follow the definition in enum mission_altitude_mode
  *
+ * @unit enum
  * @min 0
  * @max 1
+<<<<<<< e22e0b28b61a7b4f7d10756678b8f4b533b3622e
  * @value 0 Zero Order Hold
  * @value 1 First Order Hold
+=======
+ * @value 0 zero order
+ * @value 1 first order
+>>>>>>> mission param @unit
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
@@ -115,12 +118,20 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
  *
  * The values are defined in the enum mission_altitude_mode
  *
+ * @unit enum
  * @min 0
  * @max 3
+<<<<<<< e22e0b28b61a7b4f7d10756678b8f4b533b3622e
  * @value 0 Heading as set by waypoint
  * @value 1 Heading towards waypoint
  * @value 2 Heading towards home
  * @value 3 Heading away from home
+=======
+ * @value 0 destination
+ * @value 1 next
+ * @value 2 home
+ * @value 3 home back
+>>>>>>> mission param @unit
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
@@ -133,6 +144,7 @@ PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
  * Mainly useful for VTOLs that have less yaw authority and might not reach target
  * yaw in wind. Disabled by default.
  *
+ * @unit
  * @min -1
  * @max 20
  * @unit second
@@ -144,6 +156,7 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
 /**
  * Max yaw error in degree needed for waypoint heading acceptance.
  *
+ * @unit deg
  * @min 0
  * @max 90
  * @unit degree
