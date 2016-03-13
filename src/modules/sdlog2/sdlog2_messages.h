@@ -575,6 +575,21 @@ struct log_RPL4_s {
 };
 
 
+/* --- FFLW - FILTERED OPTICAL FLOW STATUS */
+#define LOG_FFLW_MSG 53
+struct log_FFLW_s {
+	float x_vel_integ;
+	float y_vel_integ;
+	float x_vel;
+	float y_vel;
+	float gyro_x_rate;
+	float gyro_y_rate;
+	float gyro_z_rate;
+	float gyro_x_bias;
+	float gyro_y_bias;
+	float gyro_z_bias;
+};
+
 /* --- CAMERA TRIGGER --- */
 #define LOG_CAMT_MSG 55
 struct log_CAMT_s {
