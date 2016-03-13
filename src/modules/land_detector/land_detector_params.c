@@ -76,6 +76,7 @@ PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
  *
  * Maximum actuator output on throttle allowed in the landed state
  *
+ * @unit
  * @min 0.1
  * @max 0.5
  *
@@ -88,9 +89,9 @@ PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.15f);
  *
  * Maximum horizontal velocity allowed in the landed state (m/s)
  *
+ * @unit m/s
  * @min 0.5
  * @max 10
- * @unit m/s
  *
  * @group Land Detector
  */
@@ -101,9 +102,9 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
  *
  * Maximum vertical velocity allowed in the landed state (m/s up and down)
  *
+ * @unit m/s
  * @min 5
  * @max 20
- * @unit m/s
  *
  * @group Land Detector
  */
@@ -114,9 +115,9 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.0f);
  *
  * Maximum velocity integral in flight direction allowed in the landed state (m/s)
  *
+ * @unit m/s
  * @min 2
  * @max 10
- * @unit m/s
  *
  * @group Land Detector
  */
@@ -127,9 +128,9 @@ PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 4.0f);
  *
  * Maximum airspeed allowed in the landed state (m/s)
  *
+ * @unit m/s
  * @min 4
  * @max 20
- * @unit m/s
  *
  * @group Land Detector
  */
