@@ -160,8 +160,6 @@ bool Ekf::init(uint64_t timestamp)
 bool Ekf::update()
 {
 
-	// Only run the filter if IMU data in the buffer has been updated
-	if (_imu_updated) {
 		if (!_filter_initialised) {
 			_filter_initialised = initialiseFilter();
 
@@ -169,6 +167,9 @@ bool Ekf::update()
 				return false;
 			}
 		}
+
+	// Only run the filter if IMU data in the buffer has been updated
+	if (_imu_updated) {
 
 		// perform state and covariance prediction for the main filter
 		predictState();
