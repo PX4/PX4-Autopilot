@@ -63,7 +63,6 @@ PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
  *
  * Damping factor for L1 control.
  *
- * @unit
  * @min 0.6
  * @max 0.9
  * @group L1 Control
@@ -75,7 +74,6 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @group L1 Control
@@ -87,7 +85,6 @@ PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
  *
  * Maximum slew rate for the commanded throttle
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @group L1 Control
@@ -137,7 +134,6 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
  * For overpowered aircraft, this should be reduced to a value that
  * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @group L1 Control
@@ -156,7 +152,6 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  * For aircraft with internal combustion engine this parameter should be set
  * for desired idle rpm.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @group L1 Control
@@ -171,7 +166,6 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * For aircraft with internal combustion engine this parameter should be set
  * above desired idle rpm.
  *
- * @unit
  * @min 0.0
  * @max 0.4
  * @group L1 Control
@@ -184,7 +178,6 @@ PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
  * This throttle value will be set as throttle limit at FW_LND_TLALT,
  * before arcraft will flare.
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @group L1 Control
@@ -285,7 +278,6 @@ PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
  * This is the damping gain for the throttle demand loop.
  * Increase to add damping to correct for oscillations in speed and height.
  *
- * @unit
  * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
@@ -298,7 +290,6 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
  * and height offsets are trimmed out, but reduces damping and
  * increases overshoot.
  *
- * @unit
  * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
@@ -357,7 +348,6 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
  * aircraft (eg powered sailplanes) can use a lower value, whereas
  * inefficient low aspect-ratio models (eg delta wings) can use a higher value.
  *
- * @unit
  * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
@@ -376,7 +366,6 @@ PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
  * Note to Glider Pilots - set this parameter to 2.0 (The glider will
  * adjust its pitch angle to maintain airspeed, ignoring changes in height).
  *
- * @unit
  * @min 0.0
  * @max 2.0
  * @group Fixed Wing TECS
@@ -391,7 +380,6 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
  * will work well provided the pitch to servo controller has been tuned
  * properly.
  *
- * @unit
  * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
@@ -399,7 +387,6 @@ PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 /**
  * Height rate P factor
  *
- * @unit
  * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
@@ -407,7 +394,6 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
 /**
  * Height rate FF factor
  *
- * @unit
  * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f);
@@ -415,7 +401,6 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f);
 /**
  * Speed rate P factor
  *
- * @unit
  * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.02f);
@@ -515,7 +500,6 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
  * Multiplying this factor with the minimum airspeed of the plane
  * gives the target airspeed the landing approach.
  *
- * @unit
  * @min 1.0
  * @max 1.5
  * @group L1 Control

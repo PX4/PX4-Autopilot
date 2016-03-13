@@ -103,7 +103,6 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * A value of 0 indicates that the default priority is used.
  * Increasing the parameter in steps of one increases the priority.
  *
- * @unit
  * @min 0
  * @max 3
  * @group SD Logging

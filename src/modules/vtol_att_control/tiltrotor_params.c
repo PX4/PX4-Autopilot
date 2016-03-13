@@ -43,7 +43,6 @@
 /**
  * Position of tilt servo in mc mode
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -55,7 +54,6 @@ PARAM_DEFINE_FLOAT(VT_TILT_MC, 0.0f);
 /**
  * Position of tilt servo in transition mode
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -67,7 +65,6 @@ PARAM_DEFINE_FLOAT(VT_TILT_TRANS, 0.3f);
 /**
  * Position of tilt servo in fw mode
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -94,7 +91,6 @@ PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
 /**
  * The channel number of motors that must be turned off in fixed wing mode.
  *
- * @unit
  * @min 0
  * @max 12345678
  * @increment 1

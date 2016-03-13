@@ -126,7 +126,6 @@ PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
  * Mainly useful for VTOLs that have less yaw authority and might not reach target
  * yaw in wind. Disabled by default.
  *
- * @unit
  * @min -1
  * @max 20
  * @group Mission

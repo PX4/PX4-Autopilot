@@ -45,7 +45,6 @@ PARAM_DEFINE_FLOAT(LPE_FLW_XY, 0.01f);
  * Optical flow minimum quality threshold
  *
  * @group Local Position Estimator
- * @unit
  * @min 0
  * @max 255
  * @decimal 0
@@ -220,7 +219,6 @@ PARAM_DEFINE_FLOAT(LPE_VIS_Z, 0.5f);
  * Set to the appropriate key (328754) to disable vision input.
  *
  * @group Local Position Estimator
- * @unit
  * @min 0
  * @max 1
  * @decimal 0

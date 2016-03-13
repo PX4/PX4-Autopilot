@@ -48,7 +48,6 @@
  *
  * Set to 0 to disable, 1 for minimum brightness up to 15 (max)
  *
- * @unit
  * @min 0
  * @max 15
  * @group System

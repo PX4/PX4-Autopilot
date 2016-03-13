@@ -107,7 +107,6 @@ PARAM_DEFINE_FLOAT(NAV_DLL_AH_T, 120.0f);
  * After more than this number of data link timeouts the aircraft returns home directly
  *
  * @group Data Link Loss
- * @unit
  * @min 0
  * @max 1000
  */
