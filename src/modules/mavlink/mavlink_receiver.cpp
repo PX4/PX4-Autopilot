@@ -127,7 +127,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_manual_pub(nullptr),
 	_land_detector_pub(nullptr),
 	_time_offset_pub(nullptr),
-	_follow_me_pub(nullptr),
+	_follow_target_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -1642,11 +1642,13 @@ void MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
     follow_target_topic.lon = follow_target_msg.lon*1e-7;
     follow_target_topic.alt = follow_target_msg.alt;
 
-    if (_follow_me_pub == nullptr) {
-        _follow_me_pub = orb_advertise(ORB_ID(follow_target), &follow_target_topic);
+    if (_follow_target_pub == nullptr) {
+        _follow_target_pub = orb_advertise(ORB_ID(follow_target), &follow_target_topic);
     } else {
-        orb_publish(ORB_ID(follow_target), _follow_me_pub, &follow_target_topic);
+        orb_publish(ORB_ID(follow_target), _follow_target_pub, &follow_target_topic);
     }
+
+    warnx("new msg recieved");
 }
 
 void
