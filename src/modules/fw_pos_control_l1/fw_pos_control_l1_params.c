@@ -439,7 +439,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FLALT, 8.0f);
  * Default of -1.0 lets the system default to applying throttle
  * limiting at 2/3 of the flare altitude.
  *
- * @unit meters
+ * @unit m
  * @min -1.0
  * @max 30.0
  * @group L1 Control
