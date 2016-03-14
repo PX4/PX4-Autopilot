@@ -398,8 +398,12 @@ bool Ekf::initialiseFilter(void)
 
 		// if we are not using the baro height as the primary source, then calculate an offset relative to the origin
 		// so it can be used as a backup
-		baroSample baro_newest = _baro_buffer.get_newest();
-		_baro_hgt_offset = baro_newest.hgt;
+		if (_params.vdist_sensor_type != VDIST_SENSOR_BARO) {
+			baroSample baro_newest = _baro_buffer.get_newest();
+			_baro_hgt_offset = baro_newest.hgt - _hgt_at_alignment;
+		} else {
+			_baro_hgt_offset = 0.0f;
+		}
 
 		// set the velocity to the GPS measurement (by definition, the initial position and height is at the origin)
 		resetVelocity();
