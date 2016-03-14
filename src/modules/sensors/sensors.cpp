@@ -269,7 +269,6 @@ private:
 		float diff_pres_analog_scale;
 
 		int board_rotation;
-		int flow_rotation;
 
 		float board_offset[3];
 
@@ -383,7 +382,6 @@ private:
 		param_t battery_current_scaling;
 
 		param_t board_rotation;
-		param_t flow_rotation;
 
 		param_t board_offset[3];
 
@@ -627,7 +625,6 @@ Sensors::Sensors() :
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
-	_parameter_handles.flow_rotation = param_find("SENS_FLOW_ROT");
 
 	/* rotation offsets */
 	_parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
@@ -901,24 +898,6 @@ Sensors::parameters_update()
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
-	param_get(_parameter_handles.flow_rotation, &(_parameters.flow_rotation));
-
-	/* set px4flow rotation */
-	int	flowfd;
-	flowfd = px4_open(PX4FLOW0_DEVICE_PATH, 0);
-
-	if (flowfd >= 0) {
-		int flowret = px4_ioctl(flowfd, SENSORIOCSROTATION, _parameters.flow_rotation);
-
-		if (flowret) {
-			warnx("flow rotation could not be set");
-			px4_close(flowfd);
-			return ERROR;
-		}
-
-		px4_close(flowfd);
-	}
-
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
 
 	param_get(_parameter_handles.board_offset[0], &(_parameters.board_offset[0]));
