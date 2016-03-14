@@ -426,7 +426,7 @@ struct log_EST4_s {
 /* --- EST5 - ESTIMATOR INNOVATIONS --- */
 #define LOG_EST5_MSG 49
 struct log_EST5_s {
-    float s[8];
+    float s[10];
 };
 
 /* --- EST6 - ESTIMATOR INNOVATIONS --- */
@@ -647,7 +647,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(EST2, "ffffffffffff",    "P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11"),
 	LOG_FORMAT(EST3, "ffffffffffffffff",    "P12,P13,P14,P15,P16,P17,P18,P19,P20,P21,P22,P23,P24,P25,P26,P27"),
 	LOG_FORMAT(EST4, "ffffffffffff", "VxI,VyI,VzI,PxI,PyI,PzI,VxIV,VyIV,VzIV,PxIV,PyIV,PzIV"),
-	LOG_FORMAT(EST5, "ffffffff", "MAGxI,MAGyI,MAGzI,MAGxIV,MAGyIV,MAGzIV,HeadI,HeadIV"),
+	LOG_FORMAT(EST5, "ffffffffff", "MAGxI,MAGyI,MAGzI,MAGxIV,MAGyIV,MAGzIV,HeadI,HeadIV,AirI,AirIV"),
 	LOG_FORMAT(EST6, "ffffff", "FxI,FyI,FxIV,FyIV,HAGLI,HAGLIV"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(MOCP, "fffffff",		"QuatW,QuatX,QuatY,QuatZ,X,Y,Z"),
