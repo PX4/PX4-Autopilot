@@ -105,7 +105,7 @@ PARAM_DEFINE_FLOAT(LPE_LDR_OFF_Z, 0.00f);
  * should be 0.0464
  *
  * @group Local Position Estimator
- * @unit m/s/s
+ * @unit m/s^2
  * @min 0.00001
  * @max 2
  * @decimal 4
@@ -118,7 +118,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.0454f);
  * (see Accel x comments)
  *
  * @group Local Position Estimator
- * @unit m/s/s
+ * @unit m/s^2
  * @min 0.00001
  * @max 2
  * @decimal 4
@@ -135,6 +135,19 @@ PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.0454f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(LPE_BAR_Z, 1.0f);
+
+
+/**
+ * GPS delay compensaton
+ *
+ * @group Local Position Estimator
+ * @unit sec
+ * @min 0
+ * @max 0.4
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(LPE_GPS_DELAY, 0.25f);
+
 
 /**
  * GPS xy standard deviation.
@@ -153,10 +166,10 @@ PARAM_DEFINE_FLOAT(LPE_GPS_XY, 2.0f);
  * @group Local Position Estimator
  * @unit m
  * @min 0.01
- * @max 20
+ * @max 200
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(LPE_GPS_Z, 10.0f);
+PARAM_DEFINE_FLOAT(LPE_GPS_Z, 100.0f);
 
 /**
  * GPS xy velocity standard deviation.
@@ -237,43 +250,43 @@ PARAM_DEFINE_INT32(LPE_NO_VISION, 0);
 PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.05f);
 
 /**
- * Position propagation process noise power (variance*sampling rate).
+ * Position propagation noise density
  *
  * @group Local Position Estimator
- * @unit (m/s/s)-s
+ * @unit m/s/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(LPE_PN_P, 0.0f);
+PARAM_DEFINE_FLOAT(LPE_PN_P, 0.1f);
 
 /**
- * Velocity propagation process noise power (variance*sampling rate).
+ * Velocity propagation noise density
  *
  * @group Local Position Estimator
- * @unit (m/s)-s
- * @min 0
- * @max 5
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(LPE_PN_V, 0.0f);
-
-/**
- * Accel bias propagation process noise power (variance*sampling rate).
- *
- * @group Local Position Estimator
- * @unit (m/s)-s
+ * @unit (m/s)/s/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-8f);
+PARAM_DEFINE_FLOAT(LPE_PN_V, 0.1f);
 
 /**
- * Terrain random walk noise power (variance*sampling rate).
+ * Accel bias propagation noise density
  *
  * @group Local Position Estimator
- * @unit m-s
+ * @unit (m/s^2)/s/sqrt(Hz)
+ * @min 0
+ * @max 1
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-3f);
+
+/**
+ * Terrain random walk noise density
+ *
+ * @group Local Position Estimator
+ * @unit m/s/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 3
