@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2016 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -82,7 +82,9 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 200);
 PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 200);
 
 /**
- * Integer bitmask controlling GPS checks. Set bits to 1 to enable checks. Checks enabled by the following bit positions
+ * Integer bitmask controlling GPS checks.
+ * 
+ * Set bits to 1 to enable checks. Checks enabled by the following bit positions
  * 0 : Minimum required sat count set by EKF2_REQ_NSATS
  * 1 : Minimum required GDoP set by EKF2_REQ_GDOP
  * 2 : Maximum allowed horizontal position error set by EKF2_REQ_EPH
@@ -323,7 +325,9 @@ PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 3.0f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
 
 /**
- * Integer bitmask controlling handling of magnetic declination. Set bits in the following positions to enable functions.
+ * Integer bitmask controlling handling of magnetic declination.
+ *
+ * Set bits in the following positions to enable functions.
  * 0 : Set to true to use the declination from the geo_lookup library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value.
  * 1 : Set to true to save the EKF2_MAG_DECL parameter to the value returned by the EKF when the vehicle disarms.
  * 2 : Set to true to always use the declination as an observaton when 3-axis magnetometer fusion is being used.
@@ -335,14 +339,17 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
 PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
 
 /**
+ * Type of magnetometer fusion
+ *
  * Integer controlling the type of magnetometer fusion used - magnetic heading or 3-axis magnetometer.
- * 0 : determine the best fusion method to use automatically - heading fusion on-ground and 3-axis fusion in-flight
- * 1 : always use magnetic heading fusion
- * 2 : always use 3-axis fusion
- * Other values  will disable magnetometer fusion completely
+ * If set to automatic: heading fusion on-ground and 3-axis fusion in-flight
+ * 
  * @group EKF2
- * @min 0
- * @max 2
+ * @unit enum
+ * @value 0 Automatic
+ * @value 1 Magnetic heading
+ * @value 2 3-axis fusion
+ * @value 3 Mag fusion off
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
 
@@ -374,6 +381,8 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 3.0f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
 
 /**
+ * Replay mode
+ *
  * A value of 1 indicates that the ekf2 module will publish
  * replay messages for logging.
  *
@@ -383,7 +392,9 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 3.0f);
 PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
 
 /**
- * Integer bitmask controlling which external aiding sources will be used. Set bits in the following positions to enable:
+ * Integer bitmask controlling which external aiding sources will be used.
+ *
+ * Set bits in the following positions to enable:
  * 0 : Set to true to use GPS data if available
  * 1 : Set to true to use optical flow data if available
  *
@@ -395,14 +406,13 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 
 /**
  * Determines the primary source of height data used by the EKF.
+ *
  * The range sensor option should only be used when for operation over a flat surface as the local NED origin will move up and down with ground level.
- * 0 : Barometric pressure
- * 1 : Reserved (placeholder for GPS)
- * 2 : Range sensor
  *
  * @group EKF2
- * @min 0
- * @max 2
+ * @value 0 Barometric pressure
+ * @value 1 Reserved (GPS)
+ * @value 2 Range sensor
  */
 PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
 
@@ -443,7 +453,9 @@ PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
 PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
 
 /**
- * Measurement noise for the optical flow sensor when it's reported quality metric is at the minimum set by EKF2_OF_QMIN
+ * Measurement noise for the optical flow sensor.
+ *
+ * (when it's reported quality metric is at the minimum set by EKF2_OF_QMIN).
  * The following condition must be met: EKF2_OF_N_MAXN >= EKF2_OF_N_MIN
  *
  * @group EKF2
