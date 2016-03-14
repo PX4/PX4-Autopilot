@@ -395,13 +395,14 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 
 /**
  * Determines the primary source of height data used by the EKF.
+ * The range sensor option should only be used when for operation over a flat surface as the local NED origin will move up and down with ground level.
  * 0 : Barometric pressure
  * 1 : Reserved (placeholder for GPS)
- * 2 : Reserved (placeholder for range finder)
+ * 2 : Range sensor
  *
  * @group EKF2
  * @min 0
- * @max 0
+ * @max 2
  */
 PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
 
