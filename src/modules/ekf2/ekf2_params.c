@@ -299,6 +299,16 @@ PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 0.17f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
 
 /**
+ * Measurement noise for airspeed fusion.
+ *
+ * @group EKF2
+ * @min 0.5
+ * @max 5.0
+ * @unit m/s
+ */
+ PARAM_DEFINE_FLOAT(EKF2_EAS_NOISE, 1.4f);
+
+/**
  * Magnetic declination
  *
  * @group EKF2
