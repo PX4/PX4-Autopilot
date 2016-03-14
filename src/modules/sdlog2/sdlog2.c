@@ -2021,6 +2021,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 				log_msg.body.log_INO2.s[6] = buf.innovations.heading_innov;
 				log_msg.body.log_INO2.s[7] = buf.innovations.heading_innov_var;
+				log_msg.body.log_INO2.s[8] = buf.innovations.airspeed_innov;
+				log_msg.body.log_INO2.s[9] = buf.innovations.airspeed_innov_var;
 				LOGBUFFER_WRITE_AND_COUNT(EST5);
 
 				log_msg.msg_type = LOG_EST6_MSG;
