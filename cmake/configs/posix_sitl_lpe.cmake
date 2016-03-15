@@ -5,5 +5,5 @@ list(APPEND config_module_list
 	)
 
 set(config_sitl_rcS
-	posix-configs/SITL/init/rcS_lpe
+	posix-configs/SITL/init
 	)
