@@ -53,7 +53,8 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <pthread.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -75,11 +76,7 @@ enum Protocol {
 	TCP,
 };
 
-#ifdef __PX4_NUTTX
 class Mavlink
-#else
-class Mavlink : public device::VDev
-#endif
 {
 
 public:
@@ -251,7 +248,7 @@ public:
 
 	bool			_task_should_exit;	/**< if true, mavlink task should exit */
 
-	int			get_mavlink_fd() { return _mavlink_fd; }
+	orb_advert_t		*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	/**
 	 * Send a status text with loglevel INFO
@@ -329,7 +326,7 @@ public:
 	 */
 	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
 
-	struct mavlink_logbuffer	*get_logbuffer() { return &_logbuffer; }
+	ringbuffer::RingBuffer	*get_logbuffer() { return &_logbuffer; }
 
 	unsigned		get_system_type() { return _system_type; }
 
@@ -362,7 +359,7 @@ protected:
 private:
 	int			_instance_id;
 
-	int			_mavlink_fd;
+	orb_advert_t		_mavlink_log_pub;
 	bool			_task_running;
 	static bool		_boot_complete;
 
@@ -390,7 +387,7 @@ private:
 	mavlink_channel_t	_channel;
 	int32_t			_radio_id;
 
-	struct mavlink_logbuffer _logbuffer;
+	ringbuffer::RingBuffer		_logbuffer;
 	unsigned int		_total_counter;
 
 	pthread_t		_receive_thread;
@@ -513,12 +510,6 @@ private:
 	void update_rate_mult();
 
 	void init_udp();
-
-#ifdef __PX4_NUTTX
-	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
-#else
-	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
-#endif
 
 	/**
 	 * Main mavlink task.
