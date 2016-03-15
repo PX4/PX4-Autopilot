@@ -42,16 +42,18 @@ int main()
     TEST(isEqual(euler_copy, euler_check));
 
     // quaternion ctor
-    Quatf q(1, 2, 3, 4);
+    Quatf q0(1, 2, 3, 4);
+    Quatf q(q0);
     TEST(fabs(q(0) - 1) < eps);
     TEST(fabs(q(1) - 2) < eps);
     TEST(fabs(q(2) - 3) < eps);
     TEST(fabs(q(3) - 4) < eps);
 
     // quat normalization
-    q = q.normalize();
+    q.normalize();
     TEST(isEqual(q, Quatf(0.18257419f,  0.36514837f,
                           0.54772256f,  0.73029674f)));
+    TEST(isEqual(q0.unit(), q));
 
     // quat default ctor
     q = Quatf();
