@@ -48,7 +48,7 @@
 #include <drivers/drv_hrt.h>
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 
 namespace runwaytakeoff
@@ -69,7 +69,7 @@ public:
 	~RunwayTakeoff();
 
 	void init(float yaw, double current_lat, double current_lon);
-	void update(float airspeed, float alt_agl, double current_lat, double current_lon, int mavlink_fd);
+	void update(float airspeed, float alt_agl, double current_lat, double current_lon, orb_advert_t *mavlink_log_pub);
 
 	RunwayTakeoffState getState() { return _state; };
 	bool isInitialized() { return _initialized; };
