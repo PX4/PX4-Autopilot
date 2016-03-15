@@ -553,7 +553,7 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 	 * fault.
 	 */
 
-	pdump->info.current_regs = (uintptr_t) current_regs;
+	pdump->info.current_regs = (uintptr_t) CURRENT_REGS;
 
 	/* Save Context */
 
@@ -570,11 +570,11 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 	 * the users context
 	 */
 
-	if (current_regs) {
+	if (CURRENT_REGS) {
 		pdump->info.stacks.interrupt.sp = currentsp;
 
 		pdump->info.flags |= (eRegsPresent | eUserStackPresent | eIntStackPresent);
-		memcpy(pdump->info.regs, (void *)current_regs, sizeof(pdump->info.regs));
+		memcpy(pdump->info.regs, (void *)CURRENT_REGS, sizeof(pdump->info.regs));
 		pdump->info.stacks.user.sp = pdump->info.regs[REG_R13];
 
 	} else {
