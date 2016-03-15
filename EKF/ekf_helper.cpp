@@ -90,8 +90,8 @@ void Ekf::resetHeight()
 	if (_control_status.flags.rng_hgt) {
 		rangeSample range_newest = _range_buffer.get_newest();
 
-		if (_time_last_imu - range_newest.time_us < 200000) {
-			_state.pos(2) = _hgt_at_alignment - range_newest.rng;
+		if (_time_last_imu - range_newest.time_us < 2 * RNG_MAX_INTERVAL) {
+			_state.pos(2) = _hgt_sensor_offset - range_newest.rng;
 
 		} else {
 			// TODO: reset to last known range based estimate
@@ -105,18 +105,28 @@ void Ekf::resetHeight()
 		// initialize vertical position with newest baro measurement
 		baroSample baro_newest = _baro_buffer.get_newest();
 
-		if (_time_last_imu - baro_newest.time_us < 200000) {
-			_state.pos(2) = _hgt_at_alignment - baro_newest.hgt;
+		if (_time_last_imu - baro_newest.time_us < 2 * BARO_MAX_INTERVAL) {
+			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
 
 		} else {
 			// TODO: reset to last known baro based estimate
 		}
 
-		// the baro height offset should be zero if baro is our primary height source
-		_baro_hgt_offset = 0.0f;
+	} else if (_control_status.flags.gps_hgt) {
+		// initialize vertical position and velocity with newest gps measurement
+		gpsSample gps_newest = _gps_buffer.get_newest();
 
-	} else {
-		// TODO: reset to GPS height
+		if (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL) {
+			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
+			_state.vel(2) = gps_newest.vel(2);
+
+		} else {
+			// TODO: reset to last known gps based estimate
+		}
+
+		// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
+		baroSample baro_newest = _baro_buffer.get_newest();
+		_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
 	}
 
 }

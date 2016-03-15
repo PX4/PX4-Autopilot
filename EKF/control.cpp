@@ -158,10 +158,85 @@ void Ekf::controlFusionModes()
 		}
 	}
 
-	// Handle the case where we have rejected height measurements for an extended period
-	// This excessive vibration levels can cause this so a reset gives the filter a chance to recover
-	// After 10 seconds without aiding we reset to the height measurement
-	if (_time_last_imu - _time_last_hgt_fuse > 10e6) {
+	/*
+	 * Handle the case where we have not fused height measurements recently and
+	 * uncertainty exceeds the max allowable. Reset using the best available height
+	 * measurement source, continue using it after the reset and declare the current
+	 * source failed if we have switched.
+	*/
+	if ((P[8][8] > sq(_params.hgt_reset_lim)) && ((_time_last_imu - _time_last_hgt_fuse) > 5e6)) {
+		// handle the case where we are using baro for height
+		if (_control_status.flags.baro_hgt) {
+			// check if GPS height is available
+			gpsSample gps_init = _gps_buffer.get_newest();
+			bool gps_hgt_available = ((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
+			bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
+			baroSample baro_init = _baro_buffer.get_newest();
+			bool baro_hgt_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
+
+			// use the gps if it is accurate or there is no baro data available
+			if (gps_hgt_available && (gps_hgt_accurate || !baro_hgt_available)) {
+				// declare the baro as unhealthy
+				_baro_hgt_faulty = true;
+				// set the height mode to the GPS
+				_control_status.flags.baro_hgt = false;
+				_control_status.flags.gps_hgt = true;
+				_control_status.flags.rng_hgt = false;
+				// adjust the height offset so we can use the GPS
+				_hgt_sensor_offset = _state.pos(2) + gps_init.hgt - _gps_alt_ref;
+				printf("EKF baro hgt timeout - switching to gps\n");
+			}
+		}
+
+		// handle the case we are using GPS for height
+		if (_control_status.flags.gps_hgt) {
+			// check if GPS height is available
+			gpsSample gps_init = _gps_buffer.get_newest();
+			bool gps_hgt_available = ((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
+			bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
+			// check the baro height source for consistency and freshness
+			baroSample baro_init = _baro_buffer.get_newest();
+			bool baro_data_fresh = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
+			float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
+			bool baro_data_consistent = fabsf(baro_innov) < (sq(_params.baro_noise) + P[8][8]) * sq(_params.baro_innov_gate);
+
+			// if baro data is consistent and fresh or GPS height is unavailable or inaccurate, we switch to baro for height
+			if ((baro_data_consistent && baro_data_fresh) || !gps_hgt_available || !gps_hgt_accurate) {
+				// declare the GPS height unhealthy
+				_gps_hgt_faulty = true;
+				// set the height mode to the baro
+				_control_status.flags.baro_hgt = true;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = false;
+				printf("EKF gps hgt timeout - switching to baro\n");
+			}
+		}
+
+		// handle the case we are using range finder for height
+		if (_control_status.flags.rng_hgt) {
+			// check if range finder data is available
+			rangeSample rng_init = _range_buffer.get_newest();
+			bool rng_data_available = ((_time_last_imu - rng_init.time_us) < 2 * RNG_MAX_INTERVAL);
+			// check if baro data is available
+			baroSample baro_init = _baro_buffer.get_newest();
+			bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
+			// check if baro data is consistent
+			float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
+			bool baro_data_consistent = sq(baro_innov) < (sq(_params.baro_noise) + P[8][8]) * sq(_params.baro_innov_gate);
+			// switch to baro if necessary or preferable
+			bool switch_to_baro = (!rng_data_available && baro_data_available) || (baro_data_consistent && baro_data_available);
+
+			if (switch_to_baro) {
+				// declare the range finder height unhealthy
+				_rng_hgt_faulty = true;
+				// set the height mode to the baro
+				_control_status.flags.baro_hgt = true;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = false;
+				printf("EKF rng hgt timeout - switching to baro\n");
+			}
+		}
+
 		// Reset vertical position and velocity states to the last measurement
 		resetHeight();
 	}
@@ -248,21 +323,20 @@ void Ekf::controlFusionModes()
 	}
 
 	// Control the soure of height measurements for the main filter
-	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
+	if ((_params.vdist_sensor_type == VDIST_SENSOR_BARO && !_baro_hgt_faulty) || _control_status.flags.baro_hgt) {
 		_control_status.flags.baro_hgt = true;
-		_control_status.flags.rng_hgt = false;
 		_control_status.flags.gps_hgt = false;
+		_control_status.flags.rng_hgt = false;
 
-	} else if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
+	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_GPS && !_gps_hgt_faulty) || _control_status.flags.gps_hgt) {
 		_control_status.flags.baro_hgt = false;
+		_control_status.flags.gps_hgt = true;
+		_control_status.flags.rng_hgt = false;
+
+	} else if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE && !_rng_hgt_faulty) {
+		_control_status.flags.baro_hgt = false;
+		_control_status.flags.gps_hgt = false;
 		_control_status.flags.rng_hgt = true;
-		_control_status.flags.gps_hgt = false;
-
-	} else {
-		// TODO functionality to fuse GPS height
-		_control_status.flags.baro_hgt = false;
-		_control_status.flags.rng_hgt = false;
-		_control_status.flags.gps_hgt = false;
 	}
 
 	// Placeholder for control of wind velocity states estimation
