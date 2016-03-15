@@ -1647,8 +1647,6 @@ void MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
     } else {
         orb_publish(ORB_ID(follow_target), _follow_target_pub, &follow_target_topic);
     }
-
-    warnx("new msg recieved");
 }
 
 void
