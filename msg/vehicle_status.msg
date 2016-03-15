@@ -39,14 +39,15 @@ uint8 NAVIGATION_STATE_AUTO_RTGS = 7		# Auto return to groundstation on data lin
 uint8 NAVIGATION_STATE_AUTO_LANDENGFAIL = 8 	# Auto land on engine failure
 uint8 NAVIGATION_STATE_AUTO_LANDGPSFAIL = 9	# Auto land on gps failure (e.g. open loop loiter down)
 uint8 NAVIGATION_STATE_ACRO = 10		# Acro mode
-uint8 NAVIGATION_STATE_LAND = 11		# Land mode
+uint8 NAVIGATION_STATE_UNUSED = 11		# Free slot
 uint8 NAVIGATION_STATE_DESCEND = 12		# Descend mode (no position control)
 uint8 NAVIGATION_STATE_TERMINATION = 13		# Termination mode
 uint8 NAVIGATION_STATE_OFFBOARD = 14
 uint8 NAVIGATION_STATE_STAB = 15		# Stabilized mode
 uint8 NAVIGATION_STATE_RATTITUDE = 16		# Rattitude (aka "flip") mode
 uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17	# Takeoff
-uint8 NAVIGATION_STATE_MAX = 18
+uint8 NAVIGATION_STATE_AUTO_LAND = 18		# Land
+uint8 NAVIGATION_STATE_MAX = 19
 
 # VEHICLE_MODE_FLAG, same as MAV_MODE_FLAG of MAVLink 1.0 protocol
 uint8 VEHICLE_MODE_FLAG_SAFETY_ARMED = 128

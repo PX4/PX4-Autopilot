@@ -269,7 +269,6 @@ private:
 		float diff_pres_analog_scale;
 
 		int board_rotation;
-		int flow_rotation;
 
 		float board_offset[3];
 
@@ -383,7 +382,6 @@ private:
 		param_t battery_current_scaling;
 
 		param_t board_rotation;
-		param_t flow_rotation;
 
 		param_t board_offset[3];
 
@@ -627,7 +625,6 @@ Sensors::Sensors() :
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
-	_parameter_handles.flow_rotation = param_find("SENS_FLOW_ROT");
 
 	/* rotation offsets */
 	_parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
@@ -901,24 +898,6 @@ Sensors::parameters_update()
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
-	param_get(_parameter_handles.flow_rotation, &(_parameters.flow_rotation));
-
-	/* set px4flow rotation */
-	int	flowfd;
-	flowfd = px4_open(PX4FLOW0_DEVICE_PATH, 0);
-
-	if (flowfd >= 0) {
-		int flowret = px4_ioctl(flowfd, SENSORIOCSROTATION, _parameters.flow_rotation);
-
-		if (flowret) {
-			warnx("flow rotation could not be set");
-			px4_close(flowfd);
-			return ERROR;
-		}
-
-		px4_close(flowfd);
-	}
-
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
 
 	param_get(_parameter_handles.board_offset[0], &(_parameters.board_offset[0]));
@@ -1877,10 +1856,14 @@ Sensors::rc_poll()
 			_rc_pub = orb_advertise(ORB_ID(rc_channels), &_rc);
 		}
 
+		/* only publish manual control if the signal is still present */
 		if (!signal_lost) {
-			struct manual_control_setpoint_s manual = {};
 
-			/* fill values in manual_control_setpoint topic only if signal is valid */
+			/* initialize manual setpoint */
+			struct manual_control_setpoint_s manual = {};
+			/* set mode slot to unassigned */
+			manual.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
+			/* set the timestamp to the last signal time */
 			manual.timestamp = rc_input.timestamp_last_signal;
 
 			/* limit controls */
@@ -1897,15 +1880,25 @@ Sensors::rc_poll()
 
 			if (_parameters.rc_map_flightmode > 0) {
 
-				const float slot_min = -1.0f;
-				const float slot_max = 1.0f;
-				/* the number of valid slots is one less than the max marker */
-				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX - 1;
-				/* we need the maximum index below, not the number of slots, so slots - 1 */
-				const unsigned max_index = num_slots - 1;
+				/* the number of valid slots equals the index of the max marker minus one */
+				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
 
-				manual.mode_slot = ((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * max_index) / (slot_max - slot_min);
+				/* the half width of the range of a slot is the total range
+				 * divided by the number of slots, again divided by two
+				 */
+				const float slot_width_half = 2.0f / num_slots / 2.0f;
 
+				/* min is -1, max is +1, range is 2. We offset below min and max */
+				const float slot_min = -1.0f - slot_width_half;
+				const float slot_max = 1.0f + slot_width_half;
+
+				/* the slot gets mapped by first normalizing into a 0..1 interval using min
+				 * and max. Then the right slot is obtained by multiplying with the number of
+				 * slots. And finally we add half a slot width to ensure that integer rounding
+				 * will take us to the correct final index.
+				 */
+				manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
+						     (slot_max - slot_min)) + (1.0f / num_slots));
 			}
 
 			/* mode switches */

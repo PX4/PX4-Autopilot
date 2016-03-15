@@ -121,6 +121,15 @@ MissionBlock::is_mission_item_reached()
 				return false;
 			}
 
+		case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED:
+			// XXX not differentiating ground and airspeed yet
+			if (_mission_item.params[1] > 0.0f) {
+				_navigator->set_cruising_speed(_mission_item.params[1]);
+			} else {
+				_navigator->set_cruising_speed();
+			}
+			return true;
+
 		default:
 			/* do nothing, this is a 3D waypoint */
 			break;
@@ -312,7 +321,8 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	if (item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 			item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
 			item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION ||
-			item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
+			item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+			item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED) {
 		return false;
 	}
 
@@ -338,6 +348,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->pitch_min = item->pitch_min;
 	sp->acceptance_radius = item->acceptance_radius;
 	sp->disable_mc_yaw_control = false;
+	sp->cruising_speed = _navigator->get_cruising_speed();
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_IDLE:

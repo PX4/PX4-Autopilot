@@ -194,12 +194,36 @@ run_sitl_ros: sitl_deprecation
 
 # Other targets
 # --------------------------------------------------------------------
+
+uavcan_firmware:
+	@(rm -rf vectorcontrol && git clone https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make --no-print-directory -s && BOARD=px4esc_1_6 make --no-print-directory -s && ../Tools/uavcan_copy.sh)
+
 check_format:
 	@./Tools/check_code_style.sh
+
+check: px4fmu-v1_default px4fmu-v2_default px4fmu-v4_default px4-stm32f4discovery_default check_format tests
+
+unittest: posix_sitl_default
+	@(cd unittests && cmake -G$(PX4_CMAKE_GENERATOR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest)
+
+tests: unittest
+	@make --no-print-directory px4fmu-v2_default test
+	@make --no-print-directory posix_sitl_default test
+
+package_firmware:
+	@zip --junk-paths Firmware.zip `find . -name \*.px4`
 
 clean:
 	@rm -rf build_*/
 	@(cd NuttX/nuttx && make clean)
+
+submodulesclean:
+	@git submodule sync
+	@git submodule update --init --recursive --force
+	@git submodule foreach --recursive 'git reset --hard; git clean -ff -x -d'
+
+distclean: submodulesclean
+	@git clean -ff -x -d
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \

@@ -842,7 +842,7 @@ void AttitudeEstimatorQ::update_mag_declination(float new_declination)
 
 int attitude_estimator_q_main(int argc, char *argv[])
 {
-	if (argc < 1) {
+	if (argc < 2) {
 		warnx("usage: attitude_estimator_q {start|stop|status}");
 		return 1;
 	}

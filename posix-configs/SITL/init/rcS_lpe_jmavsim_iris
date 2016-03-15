@@ -36,6 +36,7 @@ param set RTL_DESCEND_ALT 10.0
 
 # changes for LPE
 param set COM_RC_IN_MODE 1
+param set COM_DL_LOSS_EN 1
 
 rgbledsim start
 tone_alarm start

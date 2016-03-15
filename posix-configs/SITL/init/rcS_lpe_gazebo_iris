@@ -31,6 +31,7 @@ param set SENS_BOARD_X_OFF 0.000001
 
 # changes for LPE
 param set COM_RC_IN_MODE 1
+param set COM_DL_LOSS_EN 1
 param set LPE_BETA_MAX 10000
 
 rgbled start

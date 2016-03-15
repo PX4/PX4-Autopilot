@@ -329,6 +329,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
+ * @unit enum
  * @value -1 Internal mag
  * @value 0 No rotation
  * @value 1 Yaw 45°
@@ -535,6 +536,7 @@ PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
+ * @unit enum
  * @value -1 Internal mag
  * @value 0 No rotation
  * @value 1 Yaw 45°
@@ -732,6 +734,8 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * Board rotation
  *
  * This parameter defines the rotation of the FMU board relative to the platform.
+ *
+ * @unit enum
  * @value 0 No rotation
  * @value 1 Yaw 45°
  * @value 2 Yaw 90°
@@ -769,6 +773,7 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  * This parameter defines the rotation of the PX4FLOW board relative to the platform.
  * Zero rotation is defined as Y on flow board pointing towards front of vehicle
  *
+ * @unit enum
  * @value 0 No rotation
  * @value 1 Yaw 45°
  * @value 2 Yaw 90°
@@ -777,6 +782,8 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  * @value 5 Yaw 225°
  * @value 6 Yaw 270°
  * @value 7 Yaw 315°
+ *
+ * @reboot_required true
  *
  * @group Sensor Calibration
  */
@@ -788,7 +795,7 @@ PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
- * @unit degrees
+ * @unit deg
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
@@ -799,7 +806,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
  * This parameter defines a rotational offset in degrees around the X (Roll) axis It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
- * @unit degrees
+ * @unit deg
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
@@ -810,7 +817,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
  * This parameter defines a rotational offset in degrees around the Z (Yaw) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
- * @unit degrees
+ * @unit deg
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
@@ -818,6 +825,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 /**
  * External magnetometer rotation
  *
+ * @unit enum
  * @value 0 No rotation
  * @value 1 Yaw 45°
  * @value 2 Yaw 90°
@@ -852,6 +860,7 @@ PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
 /**
  * Select primary magnetometer
  *
+ * @unit enum
  * @min 0
  * @max 2
  * @value 0 Auto-select Mag
@@ -1160,6 +1169,7 @@ PARAM_DEFINE_FLOAT(RC5_DZ,  10.0f);
  *
  * Minimum value for this channel.
  *
+ * @unit us
  * @min 800.0
  * @max 1500.0
  * @group Radio Calibration
@@ -1217,6 +1227,7 @@ PARAM_DEFINE_FLOAT(RC6_DZ, 10.0f);
  *
  * Minimum value for this channel.
  *
+ * @unit us
  * @min 800.0
  * @max 1500.0
  * @group Radio Calibration
@@ -1910,6 +1921,7 @@ PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 /**
  * Enable relay control of relay 1 mapped to the Spektrum receiver power supply
  *
+ * @unit enum
  * @min 0
  * @max 1
  * @value 0 Disabled
@@ -1921,13 +1933,15 @@ PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
 /**
  * DSM binding trigger.
  *
+ * @unit enum
  * @value -1 Inactive
  * @value 0 Start DSM2 bind
  * @value 1 Start DSMX bind
+ * @min -1
+ * @max 1
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_DSM_BIND, -1);
-
 
 /**
  * Scaling factor for battery voltage sensor on PX4IO.
@@ -1970,7 +1984,7 @@ PARAM_DEFINE_FLOAT(BAT_C_SCALING, -1.0);
 PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
 
 /**
- * RC mode switch threshold automaic distribution
+ * RC mode switch threshold automatic distribution
  *
  * This parameter is used by Ground Station software to specify whether
  * the threshold values for flight mode switches were automatically calculated.
@@ -1978,8 +1992,7 @@ PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
  * indicates that the threshold value where automatically set by the ground
  * station software. It is only meant for ground station use.
  *
- * @min 0
- * @max 1
+ * @unit boolean
  * @group Radio Calibration
  */
 
@@ -1992,8 +2005,28 @@ PARAM_DEFINE_INT32(RC_TH_USER, 1);
  * which channel should be used for reading roll inputs from.
  * A value of zero indicates the switch is not assigned.
  *
+ * @unit enum
  * @min 0
  * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_ROLL, 0);
@@ -2005,8 +2038,28 @@ PARAM_DEFINE_INT32(RC_MAP_ROLL, 0);
  * which channel should be used for reading pitch inputs from.
  * A value of zero indicates the switch is not assigned.
  *
+ * @unit enum
  * @min 0
  * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
@@ -2018,10 +2071,28 @@ PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
  * If 0, whichever channel is mapped to throttle is used
  * otherwise the value indicates the specific rc channel to use
  *
+ * @unit enum
  * @min 0
  * @max 18
- *
- *
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
 
@@ -2032,8 +2103,28 @@ PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
  * which channel should be used for reading throttle inputs from.
  * A value of zero indicates the switch is not assigned.
  *
+ * @unit enum
  * @min 0
  * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
@@ -2045,8 +2136,28 @@ PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
  * which channel should be used for reading yaw inputs from.
  * A value of zero indicates the switch is not assigned.
  *
+ * @unit enum
  * @min 0
  * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
@@ -2057,28 +2168,29 @@ PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
  * If this parameter is non-zero, flight modes are only selected
  * by this channel and are assigned to six slots.
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_FLTMODE, 0);
 
@@ -2090,252 +2202,261 @@ PARAM_DEFINE_INT32(RC_MAP_FLTMODE, 0);
  * which channel should be used for deciding about the main mode.
  * A value of zero indicates the switch is not assigned.
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
 
 /**
  * Return switch channel
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 
 /**
  * Rattitude switch channel
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_RATT_SW, 0);
 
 /**
  * Position Control switch channel
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
 
 /**
  * Loiter switch channel
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 
 /**
  * Acro switch channel
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
 
 /**
  * Offboard switch channel
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 
 /**
  * Kill switch channel
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_KILL_SW, 0);
 
 /**
  * Flaps channel
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Switches
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
@@ -2344,28 +2465,29 @@ PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
  *
  * Default function: Camera pitch
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 
@@ -2374,28 +2496,29 @@ PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
  *
  * Default function: Camera roll
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
 
@@ -2404,28 +2527,29 @@ PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
  *
  * Default function: Camera azimuth / yaw
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 
@@ -2435,28 +2559,29 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
  * Can be used for parameter tuning with the RC. This one is further referenced as the 1st parameter channel.
  * Set to 0 to deactivate *
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_PARAM1, 0);
 
@@ -2466,28 +2591,29 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM1, 0);
  * Can be used for parameter tuning with the RC. This one is further referenced as the 2nd parameter channel.
  * Set to 0 to deactivate *
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_PARAM2, 0);
 
@@ -2497,28 +2623,29 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM2, 0);
  * Can be used for parameter tuning with the RC. This one is further referenced as the 3th parameter channel.
  * Set to 0 to deactivate *
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @group Radio Calibration
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
 
@@ -2705,27 +2832,28 @@ PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.25f);
  *
  * Specify the range for RSSI input with RC_RSSI_PWM_MIN and RC_RSSI_PWM_MAX parameters.
  *
+ * @unit enum
  * @min 0
  * @max 18
  * @value 0 Unassigned
- * @value 1 RC Channel 01
- * @value 2 RC Channel 02
- * @value 3 RC Channel 03
- * @value 4 RC Channel 04
- * @value 5 RC Channel 05
- * @value 6 RC Channel 06
- * @value 7 RC Channel 07
- * @value 8 RC Channel 08
- * @value 9 RC Channel 09
- * @value 10 RC Channel 10
- * @value 11 RC Channel 11
- * @value 12 RC Channel 12
- * @value 13 RC Channel 13
- * @value 14 RC Channel 14
- * @value 15 RC Channel 15
- * @value 16 RC Channel 16
- * @value 17 RC Channel 17
- * @value 18 RC Channel 18
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
  *
  */
@@ -2760,10 +2888,7 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
  *
  * @reboot_required true
  *
- * @min 0
- * @max 1
- * @value 0 Disabled
- * @value 1 Enabled
+ * @unit boolean
  * @group Sensor Enable
  */
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
@@ -2781,7 +2906,7 @@ PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
  *
  * @min 800
  * @max 1400
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_MIN, 1000);
@@ -2799,7 +2924,7 @@ PARAM_DEFINE_INT32(PWM_MIN, 1000);
  *
  * @min 1600
  * @max 2200
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_MAX, 2000);
@@ -2818,7 +2943,7 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
  *
  * @min 0
  * @max 2200
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_DISARMED, 0);
@@ -2836,7 +2961,7 @@ PARAM_DEFINE_INT32(PWM_DISARMED, 0);
  *
  * @min 800
  * @max 1400
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
@@ -2854,7 +2979,7 @@ PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
  *
  * @min 1600
  * @max 2200
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
@@ -2873,7 +2998,7 @@ PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
  *
  * @min 0
  * @max 2200
- * @unit microseconds
+ * @unit us
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1000);

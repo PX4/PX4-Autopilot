@@ -1200,6 +1200,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_CAMT_s log_CAMT;
 			struct log_RPL1_s log_RPL1;
 			struct log_RPL2_s log_RPL2;
+			struct log_EST6_s log_INO3;
+			struct log_RPL3_s log_RPL3;
+			struct log_RPL4_s log_RPL4;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1463,21 +1466,46 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_RPL1.magnetometer_z_ga = buf.replay.magnetometer_ga[2];
 			log_msg.body.log_RPL1.baro_alt_meter = buf.replay.baro_alt_meter;
 			LOGBUFFER_WRITE_AND_COUNT(RPL1);
-			log_msg.msg_type = LOG_RPL2_MSG;
-			log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
-			log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
-			log_msg.body.log_RPL2.lat = buf.replay.lat;
-			log_msg.body.log_RPL2.lon = buf.replay.lon;
-			log_msg.body.log_RPL2.alt = buf.replay.alt;
-			log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
-			log_msg.body.log_RPL2.eph = buf.replay.eph;
-			log_msg.body.log_RPL2.epv = buf.replay.epv;
-			log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
-			log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
-			log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
-			log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
-			log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
-			LOGBUFFER_WRITE_AND_COUNT(RPL2);
+
+			// only log the gps replay data if it actually updated
+			if (buf.replay.time_usec > 0) {
+				log_msg.msg_type = LOG_RPL2_MSG;
+				log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
+				log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
+				log_msg.body.log_RPL2.lat = buf.replay.lat;
+				log_msg.body.log_RPL2.lon = buf.replay.lon;
+				log_msg.body.log_RPL2.alt = buf.replay.alt;
+				log_msg.body.log_RPL2.fix_type = buf.replay.fix_type;
+				log_msg.body.log_RPL2.nsats = buf.replay.nsats;
+				log_msg.body.log_RPL2.eph = buf.replay.eph;
+				log_msg.body.log_RPL2.epv = buf.replay.epv;
+				log_msg.body.log_RPL2.sacc = buf.replay.sacc;
+				log_msg.body.log_RPL2.vel_m_s = buf.replay.vel_m_s;
+				log_msg.body.log_RPL2.vel_n_m_s = buf.replay.vel_n_m_s;
+				log_msg.body.log_RPL2.vel_e_m_s = buf.replay.vel_e_m_s;
+				log_msg.body.log_RPL2.vel_d_m_s = buf.replay.vel_d_m_s;
+				log_msg.body.log_RPL2.vel_ned_valid = buf.replay.vel_ned_valid;
+				LOGBUFFER_WRITE_AND_COUNT(RPL2);
+			}
+
+			if (buf.replay.flow_timestamp > 0) {
+				log_msg.msg_type = LOG_RPL3_MSG;
+				log_msg.body.log_RPL3.time_flow_usec = buf.replay.flow_timestamp;
+				log_msg.body.log_RPL3.flow_integral_x = buf.replay.flow_pixel_integral[0];
+				log_msg.body.log_RPL3.flow_integral_y = buf.replay.flow_pixel_integral[1];
+				log_msg.body.log_RPL3.gyro_integral_x = buf.replay.flow_gyro_integral[0];
+				log_msg.body.log_RPL3.gyro_integral_y = buf.replay.flow_gyro_integral[1];
+				log_msg.body.log_RPL3.flow_time_integral = buf.replay.flow_time_integral;
+				log_msg.body.log_RPL3.flow_quality = buf.replay.flow_quality;
+				LOGBUFFER_WRITE_AND_COUNT(RPL3);
+			}
+
+			if (buf.replay.rng_timestamp > 0) {
+				log_msg.msg_type = LOG_RPL4_MSG;
+				log_msg.body.log_RPL4.time_rng_usec = buf.replay.rng_timestamp;
+				log_msg.body.log_RPL4.range_to_ground = buf.replay.range_to_ground;
+				LOGBUFFER_WRITE_AND_COUNT(RPL4);
+			}
 		}
 
 		/* --- ATTITUDE --- */
@@ -1995,6 +2023,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_INO2.s[7] = buf.innovations.heading_innov_var;
 				LOGBUFFER_WRITE_AND_COUNT(EST5);
 
+				log_msg.msg_type = LOG_EST6_MSG;
+				memset(&(log_msg.body.log_INO3.s), 0, sizeof(log_msg.body.log_INO3.s));
+				for(unsigned i = 0; i < 2; i++) {
+					log_msg.body.log_INO3.s[i] = buf.innovations.flow_innov[i];
+					log_msg.body.log_INO3.s[i + 2] = buf.innovations.flow_innov_var[i];
+				}
+				log_msg.body.log_INO3.s[4] = buf.innovations.hagl_innov;
+				log_msg.body.log_INO3.s[5] = buf.innovations.hagl_innov_var;
+				LOGBUFFER_WRITE_AND_COUNT(EST6);
 			}
 
 			/* --- TECS STATUS --- */

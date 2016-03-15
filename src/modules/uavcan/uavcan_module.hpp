@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,79 +31,41 @@
  *
  ****************************************************************************/
 
-/**
- * @file px4fmu_params.c
- *
- * Parameters defined by the PX4FMU driver
- *
- * @author Lorenz Meier <lorenz@px4.io>
- */
+#pragma once
 
-#include <nuttx/config.h>
-#include <systemlib/param/param.h>
+#include <px4_config.h>
+
+#include <drivers/device/device.h>
 
 /**
- * Invert direction of aux output channel 1
+ * @file uavcan.hpp
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Public header for the UAVCAN module
  *
- * @reboot_required true
- * @unit boolean
- * @group PWM Outputs
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * @author David Sidrane <david_s5@nscdg.com>
+ * @author Holger Steinhaus <holger@steinhaus-home.de>
  */
-PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
 
-/**
- * Invert direction of aux output channel 2
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @unit boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
+// firmware paths
+#define UAVCAN_MAX_PATH_LENGTH (128 + 40)
+#define UAVCAN_FIRMWARE_PATH   "/fs/microsd/fw"
+#define UAVCAN_ROMFS_FW_PATH   "/etc/firmware/uavcan"
+#define UAVCAN_ROMFS_FW_PREFIX "_"
 
-/**
- * Invert direction of aux output channel 3
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @unit boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
+// logging
+#define UAVCAN_NODE_DB_PATH "/fs/microsd/uavcan.db"
+#define UAVCAN_LOG_FILE     UAVCAN_NODE_DB_PATH"/trace.log"
 
-/**
- * Invert direction of aux output channel 4
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @unit boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
+// device files
+// TODO: split IOCTL interface in ESC and node related functionality, then change UAVCAN_DEVICE_PATH to "/dev/uavcan/node"
+#define UAVCAN_DEVICE_PATH     "/dev/uavcan/esc"
+#define UAVCAN_ESC_DEVICE_PATH "/dev/uavcan/esc"
 
-/**
- * Invert direction of aux output channel 5
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @unit boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
+// ioctl interface
+#define _UAVCAN_IOC(_n)               (_IOC(_UAVCAN_IOCBASE, _n))
+#define _UAVCAN_IOCBASE               (0x4000)                        // IOCTL base for module UAVCAN
+#define UAVCAN_IOCG_NODEID_INPROGRESS _UAVCAN_IOC(1)                  // query if node identification is in progress
 
-/**
- * Invert direction of aux output channel 6
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @unit boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
+// public prototypes
+extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);

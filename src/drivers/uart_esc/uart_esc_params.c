@@ -55,7 +55,7 @@ PARAM_DEFINE_INT32(UART_ESC_MODEL, 2);
 /**
  * ESC UART baud rate
  *
- * Default rate is 250Kbps, whic is used in off-the-shelf QRP ESC products.
+ * Default rate is 250Kbps, which is used in off-the-shelf QRP ESC products.
  */
 PARAM_DEFINE_INT32(UART_ESC_BAUDRATE, 250000);
 

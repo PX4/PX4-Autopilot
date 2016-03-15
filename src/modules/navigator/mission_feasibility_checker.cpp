@@ -242,11 +242,12 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			missionitem.nav_cmd != NAV_CMD_PATHPLANNING &&
 			missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
 			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
+			missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 			missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
 			missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
 			missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
 
-			mavlink_log_critical(_mavlink_fd, "Rejecting mission item %i: unsupported action.", (int)(i+1));
+			mavlink_log_critical(_mavlink_fd, "Rejecting mission item %i: unsupported cmd: %d", (int)(i+1), (int)missionitem.nav_cmd);
 			return false;
 		}
 

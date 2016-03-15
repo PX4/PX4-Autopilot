@@ -299,7 +299,7 @@ void	hrt_stop_delay()
 	_start_delay_time = 0;
 
 	if (delta > 10000) {
-		PX4_INFO("simulator is slow. Delay added: %llu us", delta);
+		PX4_INFO("simulator is slow. Delay added: %" PRIi64 " us", delta);
 	}
 
 	pthread_mutex_unlock(&_hrt_mutex);

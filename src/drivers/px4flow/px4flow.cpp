@@ -62,6 +62,7 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
+#include <systemlib/param/param.h>
 
 #include <conversion/rotation.h>
 
@@ -239,21 +240,32 @@ PX4FLOW::init()
 		return ret;
 	}
 
-	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+	//_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
 	/* get a publish handle on the range finder topic */
-	struct distance_sensor_s ds_report = {};
+	//struct distance_sensor_s ds_report = {};
 
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_HIGH);
+	//_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+	//			 &_orb_class_instance, ORB_PRIO_HIGH);
 
-	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
-	}
+	//if (_distance_sensor_topic == nullptr) {
+	//	DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+	//}
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
+
+	/* get rotation */
+	param_t rot = param_find("SENS_FLOW_ROT");
+
+	/* only set it if the parameter exists */
+	if (rot != PARAM_INVALID) {
+		int32_t val = 0;
+		param_get(rot, &val);
+
+		_sensor_rotation = (enum Rotation)val;
+	}
 
 	return ret;
 }
@@ -542,18 +554,18 @@ PX4FLOW::collect()
 	}
 
 	/* publish to the distance_sensor topic as well */
-	struct distance_sensor_s distance_report;
+	/*struct distance_sensor_s distance_report;
 	distance_report.timestamp = report.timestamp;
 	distance_report.min_distance = PX4FLOW_MIN_DISTANCE;
 	distance_report.max_distance = PX4FLOW_MAX_DISTANCE;
 	distance_report.current_distance = report.ground_distance_m;
 	distance_report.covariance = 0.0f;
 	distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-	/* TODO: the ID needs to be properly set */
-	distance_report.id = 0;
-	distance_report.orientation = 8;
+	*//* TODO: the ID needs to be properly set */
+	//distance_report.id = 0;
+	//distance_report.orientation = 8;
 
-	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
+	//orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
 
 	/* post a report to the ring */
 	if (_reports->force(&report)) {

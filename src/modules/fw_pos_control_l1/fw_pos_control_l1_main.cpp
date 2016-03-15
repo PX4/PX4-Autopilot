@@ -1293,6 +1293,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		}
 
+		float mission_airspeed = _parameters.airspeed_trim;
+		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
+			_pos_sp_triplet.current.cruising_speed > 0.1f) {
+			mission_airspeed = _pos_sp_triplet.current.cruising_speed;
+		}
+
 		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 			_att_sp.thrust = 0.0f;
 			_att_sp.roll_body = 0.0f;
@@ -1304,7 +1310,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
-			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
+			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_airspeed), eas2tas,
 						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
 						   _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 						   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
@@ -1337,7 +1343,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 								    math::radians(15.0f));
 			}
 
-			tecs_update_pitch_throttle(alt_sp, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
+			tecs_update_pitch_throttle(alt_sp, calculate_target_airspeed(mission_airspeed), eas2tas,
 						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
 						   _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 						   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
@@ -1718,7 +1724,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 					} else {
 						tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
-									   calculate_target_airspeed(_parameters.airspeed_trim),
+									   calculate_target_airspeed(mission_airspeed),
 									   eas2tas,
 									   math::radians(_parameters.pitch_limit_min),
 									   math::radians(_parameters.pitch_limit_max),

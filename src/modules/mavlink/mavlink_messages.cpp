@@ -139,6 +139,11 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
 			break;
 
+		case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_RATTITUDE;
+			break;
+
 		case vehicle_status_s::NAVIGATION_STATE_STAB:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
 								  | MAV_MODE_FLAG_STABILIZE_ENABLED;
@@ -192,7 +197,7 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
 			break;
 
-		case vehicle_status_s::NAVIGATION_STATE_LAND:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 			/* fallthrough */

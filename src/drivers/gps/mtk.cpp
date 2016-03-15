@@ -142,7 +142,6 @@ MTK::receive(unsigned timeout)
 			}
 
 		} else {
-			PX4_INFO("waiting");
 			usleep(20000);
 		}
 

@@ -44,6 +44,7 @@
  *
  * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
  *
+ * @unit s
  * @min 0.15
  * @max 0.25
  * @decimal 2
@@ -57,6 +58,7 @@ PARAM_DEFINE_FLOAT(MC_ROLL_TC, 0.2f);
  *
  * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
  *
+ * @unit s
  * @min 0.15
  * @max 0.25
  * @decimal 2
@@ -366,7 +368,6 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 360.0f);
  * Manual input needed in order to override attitude control rate setpoints
  * and instead pass manual stick inputs as rate setpoints
  *
- * @unit
  * @min 0.0
  * @max 1.0
  * @decimal 2

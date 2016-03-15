@@ -178,6 +178,7 @@ private:
 		param_t xy_vel_i;
 		param_t xy_vel_d;
 		param_t xy_vel_max;
+		param_t xy_vel_cruise;
 		param_t xy_ff;
 		param_t tilt_max_air;
 		param_t land_speed;
@@ -221,6 +222,7 @@ private:
 		math::Vector<3> vel_d;
 		math::Vector<3> vel_ff;
 		math::Vector<3> vel_max;
+		math::Vector<3> vel_cruise;
 		math::Vector<3> sp_offs_max;
 	}		_params;
 
@@ -407,6 +409,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params.vel_i.zero();
 	_params.vel_d.zero();
 	_params.vel_max.zero();
+	_params.vel_cruise.zero();
 	_params.vel_ff.zero();
 	_params.sp_offs_max.zero();
 
@@ -437,6 +440,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_vel_i	= param_find("MPC_XY_VEL_I");
 	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
 	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
+	_params_handles.xy_vel_cruise	= param_find("MPC_XY_CRUISE");
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
@@ -535,6 +539,12 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_max(1) = v;
 		param_get(_params_handles.z_vel_max, &v);
 		_params.vel_max(2) = v;
+		param_get(_params_handles.xy_vel_cruise, &v);
+		_params.vel_cruise(0) = v;
+		_params.vel_cruise(1) = v;
+		/* using Z max for now */
+		param_get(_params_handles.z_vel_max, &v);
+		_params.vel_cruise(2) = v;
 		param_get(_params_handles.xy_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(0) = v;
@@ -552,7 +562,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.acc_hor_max, &v);
 		_params.acc_hor_max = v;
 
-		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
+		_params.sp_offs_max = _params.vel_cruise.edivide(_params.pos_p) * 2.0f;
 
 		/* mc attitude control parameters*/
 		/* manual control scale */
@@ -789,7 +799,7 @@ MulticopterPositionControl::control_manual(float dt)
 	math::Matrix<3, 3> R_yaw_sp;
 	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
 	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
-			_params.vel_max); // in NED and scaled to actual velocity
+			_params.vel_cruise); // in NED and scaled to actual velocity
 
 	/*
 	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
@@ -996,7 +1006,16 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	if (current_setpoint_valid) {
 		/* scaled space: 1 == position error resulting max allowed speed */
-		math::Vector<3> scale = _params.pos_p.edivide(_params.vel_max);	// TODO add mult param here
+
+		math::Vector<3> cruising_speed = _params.vel_cruise;
+
+		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
+			_pos_sp_triplet.current.cruising_speed > 0.1f) {
+			cruising_speed(0) = _pos_sp_triplet.current.cruising_speed;
+			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
+		}
+
+		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
 
 		/* convert current setpoint to scaled space */
 		math::Vector<3> curr_sp_s = curr_sp.emult(scale);

@@ -32,6 +32,7 @@ param set SENS_BOARD_ROT 8
 param set SENS_DPRES_OFF 0.001
 param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1
+param set COM_DL_LOSS_EN 1
 rgbledsim start
 tone_alarm start
 gyrosim start
