@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,52 +32,41 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_log.c
- * MAVLink text logging.
+ * @file mavlink_rate_limiter.cpp
+ * Message rate limiter implementation.
  *
- * @author Lorenz Meier <lorenz@px4.io>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_posix.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
+#include "mavlink_rate_limiter.h"
 
-#include <uORB/topics/mavlink_log.h>
-#include "mavlink_log.h"
-
-
-
-__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...)
+MavlinkRateLimiter::MavlinkRateLimiter() : _last_sent(0), _interval(1000000)
 {
-	// TODO: add compile check for maxlen
-
-	if (!fmt) {
-		return;
-	}
-
-	if (mavlink_log_pub == NULL) {
-		return;
-	}
-
-	struct mavlink_log_s log_msg;
-
-	log_msg.severity = severity;
-
-	va_list ap;
-
-	va_start(ap, fmt);
-
-	vsnprintf((char *)log_msg.text, sizeof(log_msg.text), fmt, ap);
-
-	va_end(ap);
-
-	if (*mavlink_log_pub != NULL) {
-		orb_publish(ORB_ID(mavlink_log), *mavlink_log_pub, &log_msg);
-
-	} else {
-		*mavlink_log_pub = orb_advertise(ORB_ID(mavlink_log), &log_msg);
-	}
 }
 
+MavlinkRateLimiter::MavlinkRateLimiter(unsigned int interval) : _last_sent(0), _interval(interval)
+{
+}
+
+MavlinkRateLimiter::~MavlinkRateLimiter()
+{
+}
+
+void
+MavlinkRateLimiter::set_interval(unsigned int interval)
+{
+	_interval = interval;
+}
+
+bool
+MavlinkRateLimiter::check(hrt_abstime t)
+{
+	uint64_t dt = t - _last_sent;
+
+	if (dt > 0 && dt >= _interval) {
+		_last_sent = t;
+		return true;
+	}
+
+	return false;
+}

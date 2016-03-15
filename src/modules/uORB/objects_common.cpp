@@ -282,3 +282,6 @@ ORB_DEFINE(ekf2_replay, struct ekf2_replay_s);
 
 #include "topics/qshell_req.h"
 ORB_DEFINE(qshell_req, struct qshell_req_s);
+
+#include "topics/mavlink_log.h"
+ORB_DEFINE(mavlink_log, struct mavlink_log_s);

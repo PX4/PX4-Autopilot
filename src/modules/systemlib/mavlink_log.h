@@ -36,35 +36,22 @@
  * MAVLink text logging.
  *
  * @author Lorenz Meier <lorenz@px4.io>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef MAVLINK_LOG
-#define MAVLINK_LOG
+#pragma once
 
-/*
- * IOCTL interface for sending log messages.
- */
-#include <px4_defines.h>
-#include <sys/ioctl.h>
+#include <uORB/uORB.h>
 
-/**
- * The mavlink log device node; must be opened before messages
- * can be logged.
- */
-#define MAVLINK_LOG_DEVICE			"/dev/mavlink"
 /**
  * The maximum string length supported.
  */
 #define MAVLINK_LOG_MAXLEN			50
 
-#define MAVLINK_IOC_SEND_TEXT_INFO		_PX4_IOC(0x1100, 1)
-#define MAVLINK_IOC_SEND_TEXT_CRITICAL		_PX4_IOC(0x1100, 2)
-#define MAVLINK_IOC_SEND_TEXT_EMERGENCY		_PX4_IOC(0x1100, 3)
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-__EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
+__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...);
 #ifdef __cplusplus
 }
 #endif
@@ -79,59 +66,65 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
 /**
  * Send a mavlink emergency message.
  *
- * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
+ * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_log_emergency(_fd, _text, ...)		mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_EMERGENCY, _text, ##__VA_ARGS__);
+#define mavlink_log_emergency(_pub, _text, ...)	mavlink_vasprintf(3, _pub, _text, ##__VA_ARGS__);
 
 /**
  * Send a mavlink critical message.
  *
- * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
+ * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_log_critical(_fd, _text, ...)		mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_CRITICAL, _text, ##__VA_ARGS__);
+#define mavlink_log_critical(_pub, _text, ...)	mavlink_vasprintf(2, _pub, _text, ##__VA_ARGS__);
 
 /**
  * Send a mavlink info message.
  *
- * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
+ * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_log_info(_fd, _text, ...)		mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_INFO, _text, ##__VA_ARGS__);
+#define mavlink_log_info(_pub, _text, ...)	mavlink_vasprintf(1, _pub, _text, ##__VA_ARGS__);
 
 /**
  * Send a mavlink emergency message and print to console.
  *
- * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
+ * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_and_console_log_emergency(_fd, _text, ...)		do { mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_EMERGENCY, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "telem> "); \
-		fprintf(stderr, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "\n"); } while(0);
+#define mavlink_and_console_log_emergency(_pub, _text, ...) \
+	do { \
+		mavlink_log_emergency(_pub, _text, ##__VA_ARGS__); \
+		PX4_ERR("telem> "); \
+		PX4_ERR(_text, ##__VA_ARGS__); \
+	} while(0);
 
 /**
  * Send a mavlink critical message and print to console.
  *
- * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
+ * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_and_console_log_critical(_fd, _text, ...)		do { mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_CRITICAL, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "telem> "); \
-		fprintf(stderr, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "\n");  } while(0);
+#define mavlink_and_console_log_critical(_pub, _text, ...) \
+	do { \
+		mavlink_log_critical(_pub, _text, ##__VA_ARGS__); \
+		PX4_WARN("telem> "); \
+		PX4_WARN(_text, ##__VA_ARGS__); \
+	} while(0);
 
 /**
  * Send a mavlink emergency message and print to console.
  *
- * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
+ * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_and_console_log_info(_fd, _text, ...)			do { mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_INFO, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "telem> "); \
-		fprintf(stderr, _text, ##__VA_ARGS__); \
-		fprintf(stderr, "\n"); } while(0);
+#define mavlink_and_console_log_info(_pub, _text, ...)			\
+	do { \
+		mavlink_log_info(_pub, _text, ##__VA_ARGS__); \
+		PX4_INFO("telem> "); \
+		PX4_INFO(_text, ##__VA_ARGS__); \
+	} while(0);
 
 struct mavlink_logmessage {
 	char text[MAVLINK_LOG_MAXLEN + 1];
@@ -144,22 +137,4 @@ struct mavlink_logbuffer {
 	int count;
 	struct mavlink_logmessage *elems;
 };
-
-__BEGIN_DECLS
-void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size);
-
-void mavlink_logbuffer_destroy(struct mavlink_logbuffer *lb);
-
-int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb);
-
-int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb);
-
-void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem);
-
-int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem);
-
-void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int severity, const char *fmt, ...);
-__END_DECLS
-
-#endif
 

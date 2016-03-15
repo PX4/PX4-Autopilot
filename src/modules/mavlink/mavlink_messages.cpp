@@ -75,10 +75,11 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/mavlink_log.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 
 #include <mathlib/mathlib.h>
 
@@ -360,90 +361,87 @@ public:
 	}
 
 	unsigned get_size() {
-		return mavlink_logbuffer_is_empty(_mavlink->get_logbuffer()) ? 0 : (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
+		return _mavlink->get_logbuffer()->empty() ? 0 : (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
 private:
+	MavlinkOrbSubscription *_mavlink_log_sub;
+	uint64_t _mavlink_log_time;
+
 	/* do not allow top copying this class */
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
 	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
-	FILE *fp = nullptr;
+
 	unsigned write_err_count = 0;
 	static const unsigned write_err_threshold = 5;
 
 protected:
-	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
+	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_mavlink_log_sub(_mavlink->add_orb_subscription(ORB_ID(mavlink_log)))
 	{}
 
-	~MavlinkStreamStatustext() {
-		if (fp) {
-			fclose(fp);
-		}
-	}
-
-#ifndef __PX4_QURT
 	void send(const hrt_abstime t)
 	{
-		if (!mavlink_logbuffer_is_empty(_mavlink->get_logbuffer())) {
-			struct mavlink_logmessage logmsg;
-			int lb_ret = mavlink_logbuffer_read(_mavlink->get_logbuffer(), &logmsg);
+		struct mavlink_log_s mavlink_log;
 
-			if (lb_ret == OK) {
-				mavlink_statustext_t msg;
+		if (_mavlink_log_sub->update(&_mavlink_log_time, &mavlink_log)) {
 
-				msg.severity = logmsg.severity;
-				strncpy(msg.text, logmsg.text, sizeof(msg.text));
+			mavlink_statustext_t msg;
+			msg.severity = mavlink_log.severity;
 
-				_mavlink->send_message(MAVLINK_MSG_ID_STATUSTEXT, &msg);
+			strncpy(msg.text, (const char*)mavlink_log.text, sizeof(msg.text));
 
-				/* write log messages in first instance to disk */
-				if (_mavlink->get_instance_id() == 0) {
-					if (fp) {
-						if (EOF == fputs(msg.text, fp)) {
-							write_err_count++;
-						} else {
-							write_err_count = 0;
-						}
+			_mavlink->send_message(MAVLINK_MSG_ID_STATUSTEXT, &msg);
+		}
 
-						if (write_err_count >= write_err_threshold) {
-							(void)fclose(fp);
-							fp = nullptr;
-						} else {
-							(void)fputs("\n", fp);
-							(void)fsync(fileno(fp));
-						}
+		// TODO: add this again
+#if 0
+		/* write log messages in first instance to disk */
+		if (_mavlink->get_instance_id() == 0) {
+			if (fp) {
+				if (EOF == fputs(msg.text, fp)) {
+					write_err_count++;
+				} else {
+					write_err_count = 0;
+				}
 
-					} else if (write_err_count < write_err_threshold) {
-						/* string to hold the path to the log */
-						char log_file_name[32] = "";
-						char log_file_path[70] = "";
+				if (write_err_count >= write_err_threshold) {
+					(void)fclose(fp);
+					fp = nullptr;
+				} else {
+					(void)fputs("\n", fp);
+					(void)fsync(fileno(fp));
+				}
 
-						timespec ts;
-						px4_clock_gettime(CLOCK_REALTIME, &ts);
-						/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
-						time_t gps_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
-						struct tm tt;
-						gmtime_r(&gps_time_sec, &tt);
+			} else if (write_err_count < write_err_threshold) {
+				/* string to hold the path to the log */
+				char log_file_name[32] = "";
+				char log_file_path[70] = "";
 
-						// XXX we do not want to interfere here with the SD log app
-						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
-						snprintf(log_file_path, sizeof(log_file_path), PX4_ROOTFSDIR"/fs/microsd/%s", log_file_name);
-						fp = fopen(log_file_path, "ab");
+				timespec ts;
+				px4_clock_gettime(CLOCK_REALTIME, &ts);
+				/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+				time_t gps_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
+				struct tm tt;
+				gmtime_r(&gps_time_sec, &tt);
 
-						if (fp != NULL) {
-							/* write first message */
-							fputs(msg.text, fp);
-							fputs("\n", fp);
-						}
-						else {
-							warn("Failed to open %s errno=%d", log_file_path, errno);
-						}
-					}
+				// XXX we do not want to interfere here with the SD log app
+				strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
+				snprintf(log_file_path, sizeof(log_file_path), PX4_ROOTFSDIR"/fs/microsd/%s", log_file_name);
+				fp = fopen(log_file_path, "ab");
+
+				if (fp != NULL) {
+					/* write first message */
+					fputs(msg.text, fp);
+					fputs("\n", fp);
+				}
+				else {
+					warn("Failed to open %s errno=%d", log_file_path, errno);
 				}
 			}
 		}
-	}
 #endif
+	}
 };
 
 class MavlinkStreamCommandLong : public MavlinkStream
@@ -2699,7 +2697,7 @@ protected:
 
 			if (land_detected.landed) {
 				_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
-			
+
 			} else {
 				_msg.landed_state = MAV_LANDED_STATE_IN_AIR;
 			}
