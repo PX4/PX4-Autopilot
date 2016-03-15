@@ -257,7 +257,7 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 
 	/* test timer for validity */
 	if ((led_pwm_timers[timer].base == 0) ||
-	    (led_pwm_channels[channel].gpio_out== 0)) {
+	    (led_pwm_channels[channel].gpio_out == 0)) {
 		return -1;
 	}
 
