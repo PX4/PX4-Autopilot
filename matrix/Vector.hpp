@@ -66,8 +66,8 @@ public:
         return Type(sqrt(a.dot(a)));
     }
 
-    inline void normalize() {
-        (*this) /= norm();
+    Vector normalize() const {
+        return  (*this) / norm();
     }
 
     Vector pow(Type v) const {

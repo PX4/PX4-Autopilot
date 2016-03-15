@@ -29,6 +29,11 @@ public:
     typedef Matrix<Type, 4, 1> Matrix41;
     typedef Matrix<Type, 3, 1> Matrix31;
 
+    Quaternion(const Type *data_) :
+        Vector<Type, 4>(data_)
+    {
+    }
+
     Quaternion() :
         Vector<Type, 4>()
     {
@@ -199,6 +204,7 @@ public:
 };
 
 typedef Quaternion<float> Quatf;
+typedef Quaternion<float> Quaternionf;
 
 } // namespace matrix
 

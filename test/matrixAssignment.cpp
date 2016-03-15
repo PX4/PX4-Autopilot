@@ -77,6 +77,10 @@ int main()
     Matrix<float, 1, 1> m5 = s;
     TEST(fabs(m5(0,0) - s) < 1e-5);
 
+    Matrix<float, 2, 2> m6;
+    m6.setRow(0, Vector2f(1, 1));
+    m6.setCol(0, Vector2f(1, 1));
+
     return 0;
 }
 

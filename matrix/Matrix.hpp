@@ -342,6 +342,22 @@ public:
         }
     }
 
+    void setRow(size_t i, const Matrix<Type, N, 1> &row)
+    {
+        Matrix<Type, M, N> &self = *this;
+        for (size_t j = 0; j < N; j++) {
+            self(i, j) = row(j, 0);
+        }
+    }
+
+    void setCol(size_t j, const Matrix<Type, M, 1> &col)
+    {
+        Matrix<Type, M, N> &self = *this;
+        for (size_t i = 0; i < M; i++) {
+            self(i, j) = col(i, 1);
+        }
+    }
+
     void setZero()
     {
         memset(_data, 0, sizeof(_data));
