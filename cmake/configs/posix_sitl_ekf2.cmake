@@ -70,7 +70,7 @@ set(config_extra_builtin_cmds
 	)
 
 set(config_sitl_rcS
-	posix-configs/SITL/init/rcS_ekf2
+	posix-configs/SITL/init
 	CACHE FILEPATH "init script for sitl"
 	)
 
