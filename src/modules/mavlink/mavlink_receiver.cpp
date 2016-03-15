@@ -967,7 +967,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						_rates_sp.thrust = set_attitude_target.thrust;
 					}
 
-					if (_att_sp_pub == nullptr) {
+					if (_rates_sp_pub == nullptr) {
 						_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
 					} else {
 						orb_publish(ORB_ID(vehicle_rates_setpoint), _rates_sp_pub, &_rates_sp);
