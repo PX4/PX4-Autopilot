@@ -101,8 +101,7 @@ void FollowTarget::pause()
 {
     math::Vector<3> vel(0, 0, 0);
 
-    _current_vel(0) = 0;
-    _current_vel(1) = 0;
+    _current_vel.zero();
 
     set_loiter_item(&_mission_item, _param_min_alt.get());
 
@@ -172,14 +171,11 @@ void FollowTarget::on_active()
 
 void FollowTarget::track_target_position()
 {
-
     set_follow_target_item(&_mission_item, _param_min_alt.get(), _current_target_motion, NAN);
-    _mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 
     // keep the current velocity updated
 
-    _current_vel(0) = _navigator->get_global_position()->vel_n;
-    _current_vel(1) = _navigator->get_global_position()->vel_e;
+    _current_vel =  _target_vel;
 }
 
 void FollowTarget::track_target_velocity()
@@ -249,8 +245,7 @@ void FollowTarget::update_target_velocity()
 
     // calculate distance the target has moved
 
-    map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(target_position(0)),
-            &(target_position(1)));
+    map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &(target_position(0)), &(target_position(1)));
 
     // update the average velocity of the target based on the position
 
@@ -279,6 +274,18 @@ void FollowTarget::update_position_sp(math::Vector<3> & vel)
     pos_sp_triplet->previous.valid = true;
     pos_sp_triplet->previous = pos_sp_triplet->current;
     mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+
+    switch(_follow_target_state) {
+    case TRACK_POSITION:
+        pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
+        break;
+    case TRACK_VELOCITY:
+        pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_VELOCITY;
+        break;
+    default:
+        break;
+    }
+
     pos_sp_triplet->current.vx = vel(0);
     pos_sp_triplet->current.vy = vel(1);
     pos_sp_triplet->current.velocity_valid = true;
