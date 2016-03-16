@@ -434,9 +434,6 @@ bool Ekf::initialiseFilter(void)
 			_baro_hgt_offset = 0.0f;
 		}
 
-		// set the velocity to the GPS measurement (by definition, the initial position and height is at the origin)
-		resetVelocity();
-
 		// initialise the state covariance matrix
 		initialiseCovariance();
 
