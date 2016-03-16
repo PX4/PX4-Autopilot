@@ -143,7 +143,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 	} else {
 		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
-		_gps_alt_ref = gps->alt * 1e-3f;
+		_gps_alt_ref = 1e-3f * (float)gps->alt;
 	}
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate the lowpass filter coefficient
@@ -176,10 +176,10 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 	// Calculate the vertical drift velocity and limit to 10x the threshold
 	vel_limit = 10.0f * _params.req_vdrift;
-	float velD = fminf(fmaxf((_gps_alt_ref - gps->alt * 1e-3f) / dt, -vel_limit), vel_limit);
+	float velD = fminf(fmaxf((_gps_alt_ref - 1e-3f * (float)gps->alt) / dt, -vel_limit), vel_limit);
 
 	// Save the current height as the reference for next time
-	_gps_alt_ref = gps->alt * 1e-3f;
+	_gps_alt_ref = 1e-3f * (float)gps->alt;
 
 	// Apply a low pass filter to the vertical velocity
 	_gps_drift_velD = velD * filter_coef + _gps_drift_velD * (1.0f - filter_coef);
