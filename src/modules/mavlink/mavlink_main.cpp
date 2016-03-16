@@ -1029,7 +1029,6 @@ Mavlink::init_udp()
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 	PX4_INFO("Setting up UDP w/port %d",_network_port);
 
-	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_network_port);
@@ -1051,13 +1050,13 @@ Mavlink::init_udp()
 	}
 
 	/* set default target address, but not for onboard mode (will be set on first received packet) */
-	memset((char *)&_src_addr, 0, sizeof(_src_addr));
-	_src_addr.sin_family = AF_INET;
-	inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	if (!_src_addr_initialized) {
+		_src_addr.sin_family = AF_INET;
+		inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	}
 	_src_addr.sin_port = htons(_remote_port);
 
 	/* default broadcast address */
-	memset((char *)&_bcast_addr, 0, sizeof(_bcast_addr));
 	_bcast_addr.sin_family = AF_INET;
 	inet_aton("255.255.255.255", &_bcast_addr.sin_addr);
 	_bcast_addr.sin_port = htons(_remote_port);
@@ -1517,7 +1516,7 @@ Mavlink::task_main(int argc, char *argv[])
 	char* eptr;
 	int temp_int_arg;
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:fpvwx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fpvwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, NULL, 10);
@@ -1563,6 +1562,16 @@ Mavlink::task_main(int argc, char *argv[])
 				set_protocol(UDP);
 			} else {
 				warnx("invalid remote udp_port '%s'", myoptarg);
+				err_flag = true;
+			}
+			break;
+
+		case 't':
+			_src_addr.sin_family = AF_INET;
+			if (inet_aton(myoptarg, &_src_addr.sin_addr)) {
+				_src_addr_initialized = true;
+			} else {
+				warnx("invalid partner ip '%s'", myoptarg);
 				err_flag = true;
 			}
 			break;
@@ -2337,7 +2346,7 @@ Mavlink::stream_command(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u network_port] [-o remote_port] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u network_port] [-o remote_port] [-t partner_ip] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])
