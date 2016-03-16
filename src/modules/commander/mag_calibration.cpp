@@ -136,7 +136,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 		(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
 		result = param_get(param_find(str), &(device_ids[cur_mag]));
 		if (result != OK) {
-			mavlink_and_console_log_info(mavlink_fd, "[cal] Unable to reset CAL_MAG%u_ID", cur_mag);
+			mavlink_and_console_log_info(mavlink_log_pub, "[cal] Unable to reset CAL_MAG%u_ID", cur_mag);
 			break;
 		}
 #endif
