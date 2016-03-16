@@ -186,7 +186,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		(void)sprintf(str, "CAL_GYRO%u_ID", s);
 		res = param_get(param_find(str), &(worker_data.device_id[s]));
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, "[cal] Unable to get CAL_GYRO%u_ID", s);
+			mavlink_log_critical(mavlink_log_pub, "[cal] Unable to get CAL_GYRO%u_ID", s);
 			return ERROR;
 		}
 #endif
