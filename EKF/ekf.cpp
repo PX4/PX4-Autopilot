@@ -307,6 +307,11 @@ bool Ekf::update()
 	// the output observer always runs
 	calculateOutputStates();
 
+	// check for NaN on attitude states
+	if (isnan(_state.quat_nominal(0)) || isnan(_output_new.quat_nominal(0))) {
+		return false;
+	}
+
 	// We don't have valid data to output until tilt and yaw alignment is complete
 	if (_control_status.flags.tilt_align && _control_status.flags.yaw_align) {
 		return true;
