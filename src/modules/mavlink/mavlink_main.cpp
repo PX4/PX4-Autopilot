@@ -1455,8 +1455,8 @@ Mavlink::task_main(int argc, char *argv[])
 	 * verbs well. Remove the application
 	 * name and the verb.
 	 */
-	argc -= 3;
-	argv += 3;
+	argc -= 2;
+	argv += 2;
 #endif
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
