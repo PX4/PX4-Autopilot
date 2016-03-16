@@ -84,8 +84,6 @@ Ekf::Ekf():
 	_rng_hgt_faulty(false),
 	_baro_hgt_offset(0.0f)
 {
-	_control_status = {};
-	_control_status_prev = {};
 	_state = {};
 	_last_known_posNE.setZero();
 	_earth_rate_NED.setZero();
@@ -155,6 +153,9 @@ bool Ekf::init(uint64_t timestamp)
 
 	_filter_initialised = false;
 	_terrain_initialised = false;
+
+	_control_status.value = 0;
+	_control_status_prev.value = 0;
 
 	return ret;
 }
