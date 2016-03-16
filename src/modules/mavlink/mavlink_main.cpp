@@ -1448,6 +1448,17 @@ Mavlink::task_main(int argc, char *argv[])
 	_datarate = 0;
 	_mode = MAVLINK_MODE_NORMAL;
 
+#ifdef __PX4_NUTTX
+	/* the NuttX optarg handler does not
+	 * ignore argv[0] like the POSIX handler
+	 * does, nor does it deal with non-flag
+	 * verbs well. Remove the application
+	 * name and the verb.
+	 */
+	argc -= 3;
+	argv += 3;
+#endif
+
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
 	 * set error flag instead */
 	bool err_flag = false;
