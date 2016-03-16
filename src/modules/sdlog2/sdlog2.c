@@ -150,7 +150,7 @@ static bool _extended_logging = false;
 static bool _gpstime_only = false;
 static int32_t _utc_offset = 0;
 
-#define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd"
+#define MOUNTPOINT "/root"
 static const char *mountpoint = MOUNTPOINT;
 static const char *log_root = MOUNTPOINT "/log";
 static int mavlink_fd = -1;
