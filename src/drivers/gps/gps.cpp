@@ -205,6 +205,9 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	}
 
 	_debug_enabled = true;
+
+	/* find MAV_USEHILGPS parameter */
+	_param_use_hil_gps = param_find("MAV_USEHILGPS");
 }
 
 GPS::~GPS()
@@ -254,14 +257,12 @@ out:
 void
 GPS::update_param_hil_gps()
 {
-	if (_param_use_hil_gps == PARAM_INVALID) {
-		_param_use_hil_gps = param_find("MAV_USEHILGPS");
-	}
-
 	/* update parameter for MAVLINK USEHILGPS */
-	int32_t param_value = 0;
-	param_get(_param_use_hil_gps, &param_value);
-	_use_hil_gps = (bool)param_value;
+	if (_param_use_hil_gps != PARAM_INVALID) {
+		int32_t param_value = 0;
+		param_get(_param_use_hil_gps, &param_value);
+		_use_hil_gps = (bool)param_value;
+	}
 }
 
 int
