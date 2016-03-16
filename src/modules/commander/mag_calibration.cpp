@@ -529,10 +529,10 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 				if (fabsf(sphere_x[cur_mag]) > MAG_MAX_OFFSET_LEN ||
 					fabsf(sphere_y[cur_mag]) > MAG_MAX_OFFSET_LEN ||
 					fabsf(sphere_z[cur_mag]) > MAG_MAX_OFFSET_LEN) {
-					mavlink_and_console_log_emergency(mavlink_fd, "ERROR: Replace %s mag fault", (internal[cur_mag]) ? "autopilot, internal" : "GPS unit, external");
-					mavlink_and_console_log_info(mavlink_fd, "Excessive offsets: %8.4f, %8.4f, %8.4f, #%u", (double)sphere_x[cur_mag],
+					mavlink_and_console_log_info(mavlink_fd, "WARNING: Large offsets %s mag", (internal[cur_mag]) ? "autopilot, internal" : "GPS unit, external");
+					mavlink_and_console_log_info(mavlink_fd, "offsets: %8.4f, %8.4f, %8.4f, #%u", (double)sphere_x[cur_mag],
 						(double)sphere_y[cur_mag], (double)sphere_z[cur_mag], cur_mag);
-					result = calibrate_return_error;
+					result = calibrate_return_ok;
 				}
 			}
 		}

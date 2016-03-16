@@ -81,7 +81,7 @@ static void *map_memory(off_t target)
 {
 
 	if ((mem_fd = open(MEMDEVICE, O_RDWR | O_SYNC)) == -1) {
-		PX4_ERR("Cannot open %s\n", MEMDEVICE);
+		PX4_ERR("Cannot open %s", MEMDEVICE);
 		exit(1);
 	}
 
@@ -90,7 +90,7 @@ static void *map_memory(off_t target)
 					  MAP_SHARED, mem_fd, target & ~MAP_MASK);
 
 	if (map_base == (void *) - 1) {
-		PX4_ERR("Cannot mmap /dev/atl_mem\n");
+		PX4_ERR("Cannot mmap /dev/atl_mem");
 		exit(1);
 	}
 
@@ -102,21 +102,22 @@ static void *map_memory(off_t target)
 
 int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 {
+	// TODO FIXME: just say this went through
+	return 0;
+
 	int i = 0;
 
-	/*ioctl calls cmpxchg*/
+	/* TODO: make this comment so somebody can understand it: ioctl calls cmpxchg */
 	while (ioctl(mem_fd, LOCK_MEM) != 0) {
-		PX4_INFO("Could not get lock, file name: %s, line number: %d\n", caller_file_name, caller_line_number);
-		usleep(100000); //sleep for 100 msec
+
+		usleep(10000); //sleep for 10 msec
 		i++;
 
-		if (i > 100) {
-			break;
+		if (i > 10) {
+			PX4_ERR("Could not get lock, file name: %s, line number: %d, errno: %d",
+				caller_file_name, caller_line_number, errno);
+			return -1;
 		}
-	}
-
-	if (i > 100) {
-		return -1;
 	}
 
 	return 0; //got the lock
@@ -124,7 +125,14 @@ int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 
 void release_shmem_lock(void)
 {
-	ioctl(mem_fd, UNLOCK_MEM);
+	// TODO FIXME: just say this went through
+	return;
+
+	int ret = ioctl(mem_fd, UNLOCK_MEM);
+
+	if (ret != 0) {
+		PX4_INFO("unlock failed, ret: %d, errno %d", ret, errno);
+	}
 }
 
 void init_shared_memory(void)
@@ -133,7 +141,7 @@ void init_shared_memory(void)
 	virt_addr = map_memory(MAP_ADDRESS); //16K space
 	shmem_info_p = (struct shmem_info *) virt_addr;
 
-	//PX4_INFO("linux memory mapped\n");
+	PX4_DEBUG("linux memory mapped");
 }
 
 void copy_params_to_shmem(struct param_info_s *param_info_base)
@@ -142,11 +150,12 @@ void copy_params_to_shmem(struct param_info_s *param_info_base)
 	unsigned int i;
 
 	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
-		PX4_ERR("Could not get shmem lock\n");
+		PX4_ERR("Could not get shmem lock");
 		return;
 	}
 
-	//PX4_INFO("%d krait params allocated\n", param_count());
+	PX4_DEBUG("%d krait params allocated", param_count());
+
 	for (param = 0; param < param_count(); param++) {
 		struct param_wbuf_s *s = param_find_changed(param);
 
@@ -175,7 +184,7 @@ void copy_params_to_shmem(struct param_info_s *param_info_base)
 #endif
 	}
 
-	//PX4_INFO("written %u params to shmem offset %lu\n", param_count(), (unsigned char*)&shmem_info_p->params_count-(unsigned char*)shmem_info_p);
+	//PX4_DEBUG("written %u params to shmem offset %lu", param_count(), (unsigned char*)&shmem_info_p->params_count-(unsigned char*)shmem_info_p);
 
 	for (i = 0; i < MAX_SHMEM_PARAMS / 8 + 1; i++) {
 		shmem_info_p->krait_changed_index[i] = 0;
@@ -191,7 +200,7 @@ void update_to_shmem(param_t param, union param_value_u value)
 	unsigned int byte_changed, bit_changed;
 
 	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
-		fprintf(stderr, "Could not get shmem lock\n");
+		PX4_ERR("Could not get shmem lock");
 		return;
 	}
 
@@ -201,16 +210,17 @@ void update_to_shmem(param_t param, union param_value_u value)
 	bit_changed = 1 << param % 8;
 	shmem_info_p->krait_changed_index[byte_changed] |= bit_changed;
 
-	//PX4_INFO("set %d bit on krait changed index[%d] to %d\n", bit_changed, byte_changed, shmem_info_p->krait_changed_index[byte_changed]);
+	PX4_DEBUG("set %d bit on krait changed index[%d] to %d", bit_changed, byte_changed,
+		  shmem_info_p->krait_changed_index[byte_changed]);
 
 #ifdef SHMEM_DEBUG
 
 	if (param_type(param) == PARAM_TYPE_INT32) {
-		PX4_INFO("Set value %d for param %s to shmem, set krait index %d:%d\n",
+		PX4_INFO("Set value %d for param %s to shmem, set krait index %d:%d",
 			 value.i, param_name(param), byte_changed, bit_changed);
 
 	} else if (param_type(param) == PARAM_TYPE_FLOAT) {
-		PX4_INFO("Set value %f for param %s to shmem, set krait index %d:%d\n",
+		PX4_INFO("Set value %f for param %s to shmem, set krait index %d:%d",
 			 (double)value.f, param_name(param), byte_changed, bit_changed);
 	}
 
@@ -225,11 +235,11 @@ static void update_index_from_shmem(void)
 	unsigned int i;
 
 	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
-		fprintf(stderr, "Could not get shmem lock\n");
+		PX4_ERR("Could not get shmem lock");
 		return;
 	}
 
-	//PX4_INFO("Updating index from shmem\n");
+	PX4_DEBUG("Updating index from shmem");
 
 	for (i = 0; i < MAX_SHMEM_PARAMS / 8 + 1; i++) {
 		adsp_changed_index[i] = shmem_info_p->adsp_changed_index[i];
@@ -243,7 +253,7 @@ static void update_value_from_shmem(param_t param, union param_value_u *value)
 	unsigned int byte_changed, bit_changed;
 
 	if (get_shmem_lock(__FILE__, __LINE__) != 0) {
-		fprintf(stderr, "Could not get shmem lock\n");
+		PX4_ERR("Could not get shmem lock");
 		return;
 	}
 
@@ -260,12 +270,12 @@ static void update_value_from_shmem(param_t param, union param_value_u *value)
 
 	if (param_type(param) == PARAM_TYPE_INT32) {
 		PX4_INFO(
-			"Got value %d for param %s from shmem, cleared adsp index %d:%d\n",
+			"Got value %d for param %s from shmem, cleared adsp index %d:%d",
 			value->i, param_name(param), byte_changed, bit_changed);
 
 	} else if (param_type(param) == PARAM_TYPE_FLOAT) {
 		PX4_INFO(
-			"Got value %f for param %s from shmem, cleared adsp index %d:%d\n",
+			"Got value %f for param %s from shmem, cleared adsp index %d:%d",
 			(double)value->f, param_name(param), byte_changed, bit_changed);
 	}
 
@@ -294,9 +304,9 @@ int update_from_shmem(param_t param, union param_value_u *value)
 		retval = 1;
 	}
 
-	//else {PX4_INFO("no change to param %s\n", param_name(param));}
+	//else {PX4_INFO("no change to param %s", param_name(param));}
 
-	//PX4_INFO("%s %d bit on adsp index[%d]\n", (retval)?"cleared":"unchanged", bit_changed, byte_changed);
+	PX4_DEBUG("%s %d bit on adsp index[%d]", (retval) ? "cleared" : "unchanged", bit_changed, byte_changed);
 
 	return retval;
 }

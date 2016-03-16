@@ -49,7 +49,7 @@
  * The amount of time in seconds the system should loiter at current position before termination
  * Set to -1 to make the system skip loitering
  *
- * @unit seconds
+ * @unit s
  * @min -1.0
  * @group Radio Signal Loss
  */

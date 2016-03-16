@@ -40,6 +40,7 @@
  * parameter is only read out before logging starts (which
  * commonly is before arming).
  *
+ * @unit Hz
  * @min -1
  * @max  100
  * @group SD Logging
@@ -49,14 +50,18 @@ PARAM_DEFINE_INT32(SDLOG_RATE, -1);
 /**
  * Enable extended logging mode.
  *
- * A value of -1 indicates the commandline argument
+ * A value of -1 indicates the command line argument
  * should be obeyed. A value of 0 disables extended
  * logging mode, a value of 1 enables it. This
  * parameter is only read out before logging starts
  * (which commonly is before arming).
  *
+ * @unit enum
  * @min -1
  * @max  1
+ * @value -1 command line
+ * @value 0 disable
+ * @value 1 enable
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_EXT, -1);
@@ -68,8 +73,7 @@ PARAM_DEFINE_INT32(SDLOG_EXT, -1);
  * to only use the time stamp if a 3D GPS lock is
  * present.
  *
- * @min 0
- * @max  1
+ * @unit boolean
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
@@ -85,6 +89,7 @@ PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
  *
  * refer to https://en.wikipedia.org/wiki/List_of_UTC_time_offsets
  *
+ * @unit min
  * @min -1000
  * @max  1000
  * @group SD Logging
@@ -99,7 +104,7 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * Increasing the parameter in steps of one increases the priority.
  *
  * @min 0
- * @max  3
+ * @max 3
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_PRIO_BOOST, 0);

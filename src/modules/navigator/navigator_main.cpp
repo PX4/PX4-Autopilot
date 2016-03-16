@@ -151,7 +151,10 @@ Navigator::Navigator() :
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_datalinkloss_obc(this, "DLL_OBC"),
-	_param_rcloss_obc(this, "RCL_OBC")
+	_param_rcloss_obc(this, "RCL_OBC"),
+	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
+	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
+	_mission_cruising_speed(-1.0f)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -486,7 +489,7 @@ Navigator::task_main()
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_takeoff;
 				break;
-			case vehicle_status_s::NAVIGATION_STATE_LAND:
+			case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 				_pos_sp_triplet_published_invalid_once = false;
 				_navigation_mode = &_land;
 				break;
@@ -613,6 +616,19 @@ float
 Navigator::get_acceptance_radius()
 {
 	return get_acceptance_radius(_param_acceptance_radius.get());
+}
+
+float
+Navigator::get_cruising_speed()
+{
+	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
+	if (_mission_cruising_speed > 0.0f) {
+		return _mission_cruising_speed;
+	} else if (_vstatus.is_rotary_wing) {
+		return _param_cruising_speed_hover.get();
+	} else {
+		return _param_cruising_speed_plane.get();
+	}
 }
 
 float

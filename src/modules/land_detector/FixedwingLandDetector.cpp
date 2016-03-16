@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,7 +72,6 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 
 void FixedwingLandDetector::initialize()
 {
-	// Subscribe to local position and airspeed data
 	_controlStateSub = orb_subscribe(ORB_ID(control_state));
 	_vehicleStatusSub = orb_subscribe(ORB_ID(vehicle_status));
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
@@ -122,22 +121,25 @@ bool FixedwingLandDetector::update()
 		// gives a mostly correct response for short impulses
 		_accel_horz_lp = _accel_horz_lp * 0.8f + _controlState.horz_acc_mag * 0.18f;
 
-	}
+		// crude land detector for fixedwing
+		if (_velocity_xy_filtered < _params.maxVelocity
+		    && _velocity_z_filtered < _params.maxClimbRate
+		    && _airspeed_filtered < _params.maxAirSpeed
+		    && _accel_horz_lp < _params.maxIntVelocity) {
 
-	// crude land detector for fixedwing
-	if (_velocity_xy_filtered < _params.maxVelocity
-	    && _velocity_z_filtered < _params.maxClimbRate
-	    && _airspeed_filtered < _params.maxAirSpeed
-	    && _accel_horz_lp < _params.maxIntVelocity) {
+			// these conditions need to be stable for a period of time before we trust them
+			if (now > _landDetectTrigger) {
+				landDetected = true;
+			}
 
-		// these conditions need to be stable for a period of time before we trust them
-		if (now > _landDetectTrigger) {
-			landDetected = true;
+		} else {
+			// reset land detect trigger
+			_landDetectTrigger = now + LAND_DETECTOR_TRIGGER_TIME;
 		}
 
 	} else {
-		// reset land detect trigger
-		_landDetectTrigger = now + LAND_DETECTOR_TRIGGER_TIME;
+		// Control state topic has timed out and we need to assume we're landed.
+		landDetected = true;
 	}
 
 	return landDetected;

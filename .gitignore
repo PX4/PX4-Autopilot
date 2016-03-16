@@ -64,3 +64,7 @@ CMakeLists.txt.user
 GPATH
 GRTAGS
 GTAGS
+
+# uavcan firmware
+ROMFS/px4fmu_common/uavcan/
+vectorcontrol/

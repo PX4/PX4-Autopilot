@@ -238,4 +238,3 @@ PX4_PARAM_DEFINE_FLOAT(MPP_MAN_P_MAX);
  * @group Multicopter Attitude Control
  */
 PX4_PARAM_DEFINE_FLOAT(MPP_MAN_Y_MAX);
-

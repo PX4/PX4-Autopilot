@@ -16,9 +16,8 @@ if [ -f $1"/.git" ];
 	then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
 	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
-	if [ -z "$STATUSRETVAL" ]; then
-		echo "Checked $1 submodule, correct version found"
-	else
+	if ! [[ -z "$STATUSRETVAL" ]];
+	then
 		echo -e "\033[31mChecked $1 submodule, ACTION REQUIRED:\033[0m"
 		echo ""
 		echo -e "Different commits:"
@@ -55,6 +54,7 @@ if [ -f $1"/.git" ];
 		fi
 	fi
 else
+	git submodule sync --recursive;
 	git submodule update --init --recursive $1;
 fi
 
@@ -68,7 +68,7 @@ check_git_submodule Tools/sitl_gazebo
 check_git_submodule cmake/cmake_hexagon
 check_git_submodule mavlink/include/mavlink/v1.0
 check_git_submodule src/lib/DriverFramework
-check_git_submodule src/lib/DriverFramework/cmake_hexagon
+check_git_submodule src/lib/DriverFramework/cmake/cmake_hexagon
 check_git_submodule src/lib/DriverFramework/dspal
 check_git_submodule src/lib/ecl
 check_git_submodule src/lib/matrix

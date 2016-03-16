@@ -55,6 +55,7 @@
 #include <uavcan/protocol/enumeration/Begin.hpp>
 #include <uavcan/protocol/enumeration/Indication.hpp>
 
+#include "uavcan_module.hpp"
 #include "uavcan_virtual_can_driver.hpp"
 
 /**
@@ -65,14 +66,6 @@
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  * @author David Sidrane <david_s5@nscdg.com>
  */
-
-#define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
-#define UAVCAN_NODE_DB_PATH     "/fs/microsd/uavcan.db"
-#define UAVCAN_FIRMWARE_PATH    "/fs/microsd/fw"
-#define UAVCAN_ROMFS_FW_PATH "/etc/uavcan/fw"
-#define UAVCAN_ROMFS_FW_PREFIX "_"
-#define UAVCAN_MAX_PATH_LENGTH (128 + 40)
-#define UAVCAN_LOG_FILE         UAVCAN_NODE_DB_PATH"/trace.log"
 
 /**
  * A UAVCAN Server Sub node.

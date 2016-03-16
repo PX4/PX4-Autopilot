@@ -56,7 +56,7 @@
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_param_min_alt(this, "MIS_TAKEOFF_ALT", false)
+	_param_min_alt(this, "MIS_LTRMIN_ALT", false)
 {
 	/* load initial params */
 	updateParams();

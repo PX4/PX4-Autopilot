@@ -39,7 +39,6 @@ addons:
     - ninja-build
     - python-argparse
     - python-empy
-    - python-serial
     - s3cmd
     - texinfo
     - zlib1g-dev
@@ -69,7 +68,7 @@ before_install:
       && brew install cmake ninja
       && brew install genromfs
       && sudo easy_install pip
-      && sudo pip install pyserial empy
+      && sudo pip install empy
       ;
     fi
 
@@ -101,27 +100,26 @@ script:
   - git submodule update --quiet --init --recursive
   - echo 'Building POSIX Firmware..' && make posix_sitl_default
   - echo 'Running Tests..' && make posix_sitl_default test
-  - echo 'Running Unittests..' && cd unittests && ./run_tests.sh
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          cd ${TRAVIS_BUILD_DIR}
       && make check_format
       && arm-none-eabi-gcc --version
       && echo 'Building NuttX px4fmu-v1 Firmware..' && make px4fmu-v1_default
       && echo 'Building NuttX px4fmu-v2 Firmware..' && make px4fmu-v2_default
-      && echo 'Building UAVCAN node firmware..' && (git clone https://github.com/thiemar/vectorcontrol && cd vectorcontrol && BOARD=s2740vc_1_0 make -s && BOARD=px4esc_1_6 make -s && ../Tools/uavcan_copy.sh)
+      && echo 'Building UAVCAN node firmware..' && make uavcan_firmware
       && echo 'Building NuttX px4fmu-v4 Firmware..' && make px4fmu-v4_default
       && echo 'Building NuttX px4-stm32f4discovery Firmware..' && make px4-stm32f4discovery_default
-      && echo 'Running Tests..' && make px4fmu-v2_default test
+      && echo 'Running Tests..' && make tests
       ;
     fi
 
 after_success:
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${GCC_VER}" = "4.8" ]]; then
-         cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
+         make package_firmware
+      && cp build_px4fmu-v1_default/src/firmware/nuttx/nuttx-px4fmu-v1-default.px4 px4fmu-v1_default.px4
       && cp build_px4fmu-v2_default/src/firmware/nuttx/nuttx-px4fmu-v2-default.px4 px4fmu-v2_default.px4
       && cp build_px4fmu-v4_default/src/firmware/nuttx/nuttx-px4fmu-v4-default.px4 px4fmu-v4_default.px4
       && cp build_px4-stm32f4discovery_default/src/firmware/nuttx/nuttx-px4-stm32f4discovery-default.px4 px4-stm32f4discovery-default.px4
-      && zip Firmware.zip px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4
       && ./CI-Tools/s3cmd-put px4fmu-v1_default.px4 px4fmu-v2_default.px4 px4fmu-v4_default.px4 px4-stm32f4discovery-default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml CI-Tools/directory/index.html Firmware/$TRAVIS_BRANCH/
       && ./CI-Tools/s3cmd-put Firmware.zip archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID/
       && ./CI-Tools/s3cmd-put CI-Tools/directory/index.html archives/Firmware/$TRAVIS_BRANCH/

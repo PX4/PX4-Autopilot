@@ -64,6 +64,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.airspeed_blend = param_find("VT_ARSP_BLEND");
 	_params_handles_standard.airspeed_trans = param_find("VT_ARSP_TRANS");
 	_params_handles_standard.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
+	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 }
 
 Standard::~Standard()
@@ -99,6 +100,10 @@ Standard::parameters_update()
 
 	/* timeout for transition to fw mode */
 	param_get(_params_handles_standard.front_trans_timeout, &_params_standard.front_trans_timeout);
+
+	/* minimum time for transition to fw mode */
+	param_get(_params_handles_standard.front_trans_time_min, &_params_standard.front_trans_time_min);
+
 
 	return OK;
 }
@@ -164,7 +169,10 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if (_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans || !_armed->armed) {
+			if ((_airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_trans &&
+			     (float)hrt_elapsed_time(&_vtol_schedule.transition_start)
+			     > (_params_standard.front_trans_time_min * 1000000.0f)) ||
+			    !_armed->armed) {
 				_vtol_schedule.flight_mode = FW_MODE;
 				// we can turn off the multirotor motors now
 				_flag_enable_mc_motors = false;
@@ -211,8 +219,11 @@ void Standard::update_transition_state()
 					   (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.front_trans_dur * 1000000.0f);
 		}
 
-		// do blending of mc and fw controls if a blending airspeed has been provided
-		if (_airspeed_trans_blend_margin > 0.0f && _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_blend) {
+		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
+		if (_airspeed_trans_blend_margin > 0.0f &&
+		    _airspeed->indicated_airspeed_m_s >= _params_standard.airspeed_blend &&
+		    (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_time_min * 1000000.0f)
+		   ) {
 			float weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params_standard.airspeed_blend) /
 				       _airspeed_trans_blend_margin;
 			_mc_roll_weight = weight;
@@ -230,7 +241,7 @@ void Standard::update_transition_state()
 
 		// check front transition timeout
 		if (_params_standard.front_trans_timeout > FLT_EPSILON) {
-			if ( (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_timeout * 1000000.0f)) {
+			if ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_timeout * 1000000.0f)) {
 				// transition timeout occured, abort transition
 				_attc->abort_front_transition();
 			}

@@ -423,10 +423,16 @@ struct log_EST4_s {
     float s[12];
 };
 
-/* --- EST4 - ESTIMATOR INNOVATIONS --- */
+/* --- EST5 - ESTIMATOR INNOVATIONS --- */
 #define LOG_EST5_MSG 49
 struct log_EST5_s {
     float s[8];
+};
+
+/* --- EST6 - ESTIMATOR INNOVATIONS --- */
+#define LOG_EST6_MSG 53
+struct log_EST6_s {
+    float s[6];
 };
 
 /* --- TEL0..3 - TELEMETRY STATUS --- */
@@ -539,14 +545,35 @@ struct log_RPL2_s {
 	int32_t lon;
 	int32_t alt;
 	uint8_t fix_type;
+	uint8_t nsats;
 	float eph;
 	float epv;
+	float sacc;
 	float vel_m_s;
 	float vel_n_m_s;
 	float vel_e_m_s;
 	float vel_d_m_s;
 	bool vel_ned_valid;
 };
+/* --- EKF2 REPLAY Part 3 --- */
+#define LOG_RPL3_MSG 54
+struct log_RPL3_s {
+	uint64_t time_flow_usec;
+	float flow_integral_x;
+	float flow_integral_y;
+	float gyro_integral_x;
+	float gyro_integral_y;
+	uint32_t flow_time_integral;
+	uint8_t flow_quality;
+};
+
+/* --- EKF2 REPLAY Part 4 --- */
+#define LOG_RPL4_MSG 56
+struct log_RPL4_s {
+	uint64_t time_rng_usec;
+	float range_to_ground;
+};
+
 
 /* --- CAMERA TRIGGER --- */
 #define LOG_CAMT_MSG 55
@@ -621,6 +648,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(EST3, "ffffffffffffffff",    "P12,P13,P14,P15,P16,P17,P18,P19,P20,P21,P22,P23,P24,P25,P26,P27"),
 	LOG_FORMAT(EST4, "ffffffffffff", "VxI,VyI,VzI,PxI,PyI,PzI,VxIV,VyIV,VzIV,PxIV,PyIV,PzIV"),
 	LOG_FORMAT(EST5, "ffffffff", "MAGxI,MAGyI,MAGzI,MAGxIV,MAGyIV,MAGzIV,HeadI,HeadIV"),
+	LOG_FORMAT(EST6, "ffffff", "FxI,FyI,FxIV,FyIV,HAGLI,HAGLIV"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(MOCP, "fffffff",		"QuatW,QuatX,QuatY,QuatZ,X,Y,Z"),
 	LOG_FORMAT(VISN, "ffffffffff",		"X,Y,Z,VX,VY,VZ,QuatW,QuatX,QuatY,QuatZ"),
@@ -635,7 +663,9 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(MACS, "fff", "RRint,PRint,YRint"),
 	LOG_FORMAT(CAMT, "QI", "timestamp,seq"),
 	LOG_FORMAT(RPL1, "QQQQQffffffffff", "t,gIdt,aIdt,Tm,Tb,gIx,gIy,gIz,aIx,aIy,aIz,magX,magY,magZ,b_alt"),
-	LOG_FORMAT(RPL2, "QQLLLMffffffM", "Tpos,Tvel,lat,lon,alt,fix_type,eph,epv,v,vN,vE,vD,v_val"),
+	LOG_FORMAT(RPL2, "QQLLLMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
+	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
+	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),

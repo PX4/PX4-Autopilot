@@ -677,6 +677,9 @@ param_set_no_notification(param_t param, const void *val)
 bool
 param_used(param_t param)
 {
+	// TODO FIXME: for now all params are used
+	return true;
+
 	int param_index = param_get_index(param);
 
 	if (param_index < 0) {

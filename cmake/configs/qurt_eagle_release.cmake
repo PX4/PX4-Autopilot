@@ -37,7 +37,7 @@ set(config_module_list
 	#
 	drivers/device
 	modules/sensors
-	${EAGLE_DRIVERS_SRC}/mpu9x50
+	${EAGLE_DRIVERS_SRC}/mpu_spi
 	${EAGLE_DRIVERS_SRC}/uart_esc
 	${EAGLE_DRIVERS_SRC}/rc_receiver
 	${EAGLE_DRIVERS_SRC}/csr_gps
