@@ -89,8 +89,13 @@ void Ekf::fuseVelPosHeight()
 
 		// observation variance - user parameter defined
 		// if we are in flight and not using GPS, then use a specific parameter
-		if (!_control_status.flags.gps && _control_status.flags.in_air) {
-			R[3] = fmaxf(_params.pos_noaid_noise, 0.5f);
+		if (!_control_status.flags.gps) {
+			if (_control_status.flags.in_air) {
+				R[3] = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
+
+			} else {
+				R[3] = _params.gps_pos_noise;
+			}
 
 		} else {
 			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
@@ -144,7 +149,7 @@ void Ekf::fuseVelPosHeight()
 
 	}
 
-// calculate innovation test ratios
+	// calculate innovation test ratios
 	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
 		if (fuse_map[obs_index]) {
 			// compute the innovation variance SK = HPH + R
@@ -156,9 +161,9 @@ void Ekf::fuseVelPosHeight()
 		}
 	}
 
-// check position, velocity and height innovations
-// treat 3D velocity, 2D position and height as separate sensors
-// always pass position checks if using synthetic position measurements
+	// check position, velocity and height innovations
+	// treat 3D velocity, 2D position and height as separate sensors
+	// always pass position checks if using synthetic position measurements
 	bool vel_check_pass = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f)
 			      && (_vel_pos_test_ratio[2] <= 1.0f);
 	innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = vel_check_pass;
@@ -168,19 +173,19 @@ void Ekf::fuseVelPosHeight()
 	innov_check_pass_map[4] = innov_check_pass_map[3] = pos_check_pass;
 	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f);
 
-// record the successful velocity fusion time
+	// record the successful velocity fusion time
 	if (vel_check_pass && _fuse_hor_vel) {
 		_time_last_vel_fuse = _time_last_imu;
 		_tilt_err_vec.setZero();
 	}
 
-// record the successful position fusion time
+	// record the successful position fusion time
 	if (pos_check_pass && _fuse_pos) {
 		_time_last_pos_fuse = _time_last_imu;
 		_tilt_err_vec.setZero();
 	}
 
-// record the successful height fusion time
+	// record the successful height fusion time
 	if (innov_check_pass_map[5] && _fuse_height) {
 		_time_last_hgt_fuse = _time_last_imu;
 	}
@@ -258,5 +263,4 @@ void Ekf::fuseVelPosHeight()
 		makeSymmetrical();
 		limitCov();
 	}
-
 }
