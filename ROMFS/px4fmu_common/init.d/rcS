@@ -807,6 +807,15 @@ else
 	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 fi
 
+# XXX Do not run any mavlink instances since we need the serial port for communication with snapdragon
+mavlink stop-all
+
+# XXX Stop multicopter attitude controller, the controls come from snapdragon
+mc_att_control stop
+
+# XXX Start snapdragon interface on serial port. On pixfalcon this is the standard telemetry port.
+snapdragon_rc_pwm start -d /dev/ttyS1
+
 if [ $EXIT_ON_END == yes ]
 then
 	echo "Exit from nsh"

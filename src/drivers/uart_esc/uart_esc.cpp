@@ -52,6 +52,8 @@
 #include <systemlib/param/param.h>
 #include <dev_fs_lib_serial.h>
 #include <v1.0/checksum.h>
+#include <v1.0/mavlink_types.h>
+#include <v1.0/common/mavlink.h>
 
 #define MAX_LEN_DEV_PATH 32
 #define RC_MAGIC 	0xf6
@@ -59,6 +61,9 @@
 namespace uart_esc
 {
 #define UART_ESC_MAX_MOTORS  4
+
+static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
+static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
 volatile bool _task_should_exit = false; // flag indicating if uart_esc task should exit
 static char _device[MAX_LEN_DEV_PATH];
@@ -78,7 +83,7 @@ static const char *MIXER_FILENAME = "/dev/fs/quad_x.main.mix";
 
 // publications
 orb_advert_t        	_outputs_pub;
-orb_advert_t 			_rc_pub;
+orb_advert_t 			_rc_pub = nullptr;
 
 // topic structures
 actuator_controls_s     _controls;
@@ -95,6 +100,12 @@ void start(const char *device);
 
 /** uart_esc stop */
 void stop();
+
+void send_controls_mavlink();
+
+void serial_callback(void *context, char *buffer, size_t num_bytes);
+
+void handle_message(mavlink_message_t *rc_message);
 
 /** task main trampoline function */
 void	task_main_trampoline(int argc, char *argv[]);
@@ -276,21 +287,17 @@ int uart_initialize(const char *device, int baud)
 		return -1;
 	}
 
-	struct dspal_serial_open_options options;
+	struct dspal_serial_ioctl_data_rate rate;
 
-	options.bit_rate = DSPAL_SIO_BITRATE_57600;
+	rate.bit_rate = DSPAL_SIO_BITRATE_115200;
 
-	options.tx_flow = DSPAL_SIO_FCTL_OFF;
+	int ret = ioctl(fd, SERIAL_IOCTL_SET_DATA_RATE, (void *)&rate);
 
-	options.rx_flow = DSPAL_SIO_FCTL_OFF;
+	struct dspal_serial_ioctl_receive_data_callback callback;
 
-	options.rx_data_callback = nullptr;
+	callback.rx_data_callback_func_ptr = serial_callback;
 
-	options.tx_data_callback = nullptr;
-
-	options.is_tx_data_synchronous = false;
-
-	int ret = ::ioctl(fd, SERIAL_IOCTL_OPEN_OPTIONS, (void *)&options);
+	ret = ioctl(fd, SERIAL_IOCTL_SET_RECEIVE_DATA_CALLBACK, (void *)&callback);
 
 	if (ret != 0) {
 		PX4_ERR("Failed to setup UART flow control options");
@@ -300,18 +307,107 @@ int uart_initialize(const char *device, int baud)
 	return 0;
 }
 
-void handleRC(int uart_fd, struct input_rc_s *rc)
+// send actuator controls message to Pixhawk
+void send_controls_mavlink()
 {
-	// read uart until we get the magic number
-	char buf[10];
+	mavlink_actuator_control_target_t controls_message;
+	controls_message.controls[0] = _controls.control[0];
+	controls_message.controls[1] = _controls.control[1];
+	controls_message.controls[2] = _controls.control[2];
+	controls_message.controls[3] = _controls.control[3];
+	controls_message.time_usec = _controls.timestamp;
 
-	while (true) {
-		int ret = ::read(uart_fd, &buf, sizeof(buf));
-		PX4_ERR("got %d", ret);
+	const uint8_t msgid = MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET;
+	uint8_t component_ID = 0;
+	uint8_t payload_len = mavlink_message_lengths[msgid];
+	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
-		if (ret < 1) {
-			break;
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+	/* header */
+	buf[0] = MAVLINK_STX;
+	buf[1] = payload_len;
+	/* no idea which numbers should be here*/
+	buf[2] = 100;
+	buf[3] = 0;
+	buf[4] = component_ID;
+	buf[5] = msgid;
+
+	/* payload */
+	memcpy(&buf[MAVLINK_NUM_HEADER_BYTES], (const void *)&controls_message, payload_len);
+
+	/* checksum */
+	uint16_t checksum;
+	crc_init(&checksum);
+	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
+	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
+
+	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
+	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
+
+	int len = ::write(_fd, &buf[0], packet_len);
+
+	if (len < 1) {
+		PX4_WARN("failed sending rc mavlink message %.5f", (double)_fd);
+	}
+}
+
+// callback function for the uart
+void serial_callback(void *context, char *buffer, size_t num_bytes)
+{
+	mavlink_status_t serial_status = {};
+
+	if (num_bytes > 0) {
+		mavlink_message_t msg;
+
+		for (int i = 0; i < num_bytes; ++i) {
+			if (mavlink_parse_char(MAVLINK_COMM_1, buffer[i], &msg, &serial_status)) {
+				// have a message, handle it
+				if (msg.msgid == MAVLINK_MSG_ID_RC_CHANNELS) {
+					// we should publish but would be great if this works
+					handle_message(&msg);
+				}
+			}
 		}
+
+	} else {
+
+		PX4_ERR("error: read callback with no data in the buffer");
+	}
+}
+
+void handle_message(mavlink_message_t *rc_message)
+{
+	mavlink_rc_channels_t rc;
+	mavlink_msg_rc_channels_decode(rc_message, &rc);
+	_rc.timestamp_publication = hrt_absolute_time();
+	_rc.timestamp_last_signal = hrt_absolute_time();
+	_rc.channel_count = 8;
+	_rc.rc_lost = false;
+	_rc.values[0] = rc.chan1_raw;
+	_rc.values[1] = rc.chan2_raw;
+	_rc.values[2] = rc.chan3_raw;
+	_rc.values[3] = rc.chan4_raw;
+	_rc.values[4] = rc.chan5_raw;
+	_rc.values[5] = rc.chan6_raw;
+	_rc.values[6] = rc.chan7_raw;
+	_rc.values[7] = rc.chan8_raw;
+	_rc.values[8] = rc.chan9_raw;
+	_rc.values[9] = rc.chan10_raw;
+	_rc.values[10] = rc.chan11_raw;
+	_rc.values[11] = rc.chan12_raw;
+	_rc.values[12] = rc.chan13_raw;
+	_rc.values[13] = rc.chan14_raw;
+	_rc.values[14] = rc.chan15_raw;
+	_rc.values[15] = rc.chan16_raw;
+	_rc.values[16] = rc.chan17_raw;
+	_rc.values[17] = rc.chan18_raw;
+
+	if (_rc_pub != nullptr) {
+		orb_publish(ORB_ID(input_rc), _rc_pub, &_rc);
+
+	} else {
+		_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc);
 	}
 }
 
@@ -347,6 +443,8 @@ void task_main(int argc, char *argv[])
 			_task_should_exit = true;
 		}
 
+		_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc);
+
 		// Main loop
 		while (!_task_should_exit) {
 			int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
@@ -368,89 +466,19 @@ void task_main(int argc, char *argv[])
 			if (fds[0].revents & POLLIN) {
 				// Grab new controls data
 				orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
-				// Mix to the outputs
-				_outputs.timestamp = hrt_absolute_time();
-				int16_t motor_rpms[UART_ESC_MAX_MOTORS];
 
-				if (_armed.armed) {
-					_outputs.noutputs = mixer->mix(&_outputs.output[0],
-								       actuator_controls_0_s::NUM_ACTUATOR_CONTROLS,
-								       NULL);
+				send_controls_mavlink();
 
-					// Make sure we support only up to UART_ESC_MAX_MOTORS motors
-					if (_outputs.noutputs > UART_ESC_MAX_MOTORS) {
-						PX4_ERR("Unsupported motors %d, up to %d motors supported",
-							_outputs.noutputs, UART_ESC_MAX_MOTORS);
-						continue;
-					}
+				// this is needed otherwise the uart internal states will flood. Probably
+				// we need to make update rate faster
+				usleep(5000);
 
-					// iterate actuators
-					for (unsigned i = 0; i < _outputs.noutputs; i++) {
-						// last resort: catch NaN, INF and out-of-band errors
-						if (i < _outputs.noutputs &&
-						    PX4_ISFINITE(_outputs.output[i]) &&
-						    _outputs.output[i] >= -1.0f &&
-						    _outputs.output[i] <= 1.0f) {
-							// scale for PWM output 1000 - 2000us
-							_outputs.output[i] = 1500 + (500 * _outputs.output[i]);
-
-						} else {
-							//
-							// Value is NaN, INF or out of band - set to the minimum value.
-							// This will be clearly visible on the servo status and will limit the risk of accidentally
-							// spinning motors. It would be deadly in flight.
-							//
-							_outputs.output[i] = 900;
-						}
-					}
-
-					uart_esc_rotate_motors(motor_rpms, _outputs.noutputs);
-
-				} else {
-					_outputs.noutputs = UART_ESC_MAX_MOTORS;
-
-					for (unsigned outIdx = 0; outIdx < _outputs.noutputs; outIdx++) {
-						_outputs.output[outIdx] = 900;
-					}
-				}
-
-				uint8_t data[11];
-				struct PACKED {
-					uint8_t magic = 0xF7;
-					uint16_t period[4];
-					uint16_t crc;
-				} frame;
-
-				for (uint8_t i = 0; i < 4; i++) {
-					frame.period[i] = _outputs.output[i];
-				}
-
-				frame.crc = crc_calculate((uint8_t *)frame.period, 4 * 2);
-
-				data[0] = frame.magic;
-				memcpy(&data[1], (uint8_t *)frame.period, sizeof(frame.period));
-				memcpy(&data[9], (uint8_t *)&frame.crc, sizeof(frame.crc));
-
-				::write(_fd, data, sizeof(data));
-
-				/*
-				static int count=0;
-				count++;
-				if (!(count % 1)) {
-					PX4_DEBUG("                                                                  ");
-					PX4_DEBUG("Time       t: %13lu, Armed: %d                                  ",(unsigned long)_outputs.timestamp,_armed.armed);
-					PX4_DEBUG("Act Controls: 0: %+8.4f, 1: %+8.4f,   2: %+8.4f, 3: %+8.4f  ",_controls.control[0],_controls.control[1],_controls.control[2],_controls.control[3]);
-					PX4_DEBUG("Act Outputs : 0: %+8.4f, 1: %+8.4f,   2: %+8.4f, 3: %+8.4f  ",_outputs.output[0],_outputs.output[1],_outputs.output[2],_outputs.output[3]);
-				}
-				*/
-
-				/* Publish mixed control outputs */
-				if (_outputs_pub != nullptr) {
+				/*if (_outputs_pub != nullptr) {
 					orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
 				} else {
 					_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-				}
+				}*/
 			}
 
 			// Check for updates in other subscripions
