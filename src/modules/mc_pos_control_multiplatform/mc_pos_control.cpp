@@ -53,7 +53,7 @@ MulticopterPositionControlMultiplatform::MulticopterPositionControlMultiplatform
 
 	_task_should_exit(false),
 	_control_task(-1),
-	_mavlink_log_pub(nullptr),
+	//_mavlink_log_pub(nullptr),
 
 	/* publications */
 	_att_sp_pub(nullptr),
