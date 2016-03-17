@@ -406,6 +406,7 @@ param_get_used_index(param_t param)
 			}
 		}
 	}
+
 	return -1;
 #else
 	return param;
