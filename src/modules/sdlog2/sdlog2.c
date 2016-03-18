@@ -1093,12 +1093,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	struct vehicle_status_s buf_status;
-
-	struct vehicle_gps_position_s buf_gps_pos;
-
 	memset(&buf_status, 0, sizeof(buf_status));
 
+	struct vehicle_gps_position_s buf_gps_pos;
 	memset(&buf_gps_pos, 0, sizeof(buf_gps_pos));
+
+	struct vehicle_command_s buf_cmd;
+	memset(&buf_status, 0, sizeof(buf_cmd));
 
 	// check if we are gathering data for a replay log for ekf2
 	// is yes then disable logging of some topics to avoid dropouts
@@ -1401,8 +1402,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- VEHICLE COMMAND - LOG MANAGEMENT --- */
-		if (copy_if_updated(ORB_ID(vehicle_command), &subs.cmd_sub, &buf.cmd)) {
-			handle_command(&buf.cmd);
+		if (copy_if_updated(ORB_ID(vehicle_command), &subs.cmd_sub, &buf_cmd)) {
+			handle_command(&buf_cmd);
 		}
 
 		/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
@@ -1506,28 +1507,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_RPL4.range_to_ground = buf.replay.range_to_ground;
 				LOGBUFFER_WRITE_AND_COUNT(RPL4);
 			}
-		}
 
-		/* --- ATTITUDE --- */
-		if (copy_if_updated(ORB_ID(vehicle_attitude), &subs.att_sub, &buf.att)) {
-			log_msg.msg_type = LOG_ATT_MSG;
-			log_msg.body.log_ATT.q_w = buf.att.q[0];
-			log_msg.body.log_ATT.q_x = buf.att.q[1];
-			log_msg.body.log_ATT.q_y = buf.att.q[2];
-			log_msg.body.log_ATT.q_z = buf.att.q[3];
-			log_msg.body.log_ATT.roll = buf.att.roll;
-			log_msg.body.log_ATT.pitch = buf.att.pitch;
-			log_msg.body.log_ATT.yaw = buf.att.yaw;
-			log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
-			log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
-			log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
-			log_msg.body.log_ATT.gx = buf.att.g_comp[0];
-			log_msg.body.log_ATT.gy = buf.att.g_comp[1];
-			log_msg.body.log_ATT.gz = buf.att.g_comp[2];
-			LOGBUFFER_WRITE_AND_COUNT(ATT);
-		}
-
-		if (!record_replay_log) {
+		} else { /* !record_replay_log */
 
 			/* we poll on sensor combined, so we know it has updated just now */
 			for (unsigned i = 0; i < 3; i++) {
@@ -2103,6 +2084,25 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
 				LOGBUFFER_WRITE_AND_COUNT(CTS);
 			}
+		}
+
+		/* --- ATTITUDE --- */
+		if (copy_if_updated(ORB_ID(vehicle_attitude), &subs.att_sub, &buf.att)) {
+			log_msg.msg_type = LOG_ATT_MSG;
+			log_msg.body.log_ATT.q_w = buf.att.q[0];
+			log_msg.body.log_ATT.q_x = buf.att.q[1];
+			log_msg.body.log_ATT.q_y = buf.att.q[2];
+			log_msg.body.log_ATT.q_z = buf.att.q[3];
+			log_msg.body.log_ATT.roll = buf.att.roll;
+			log_msg.body.log_ATT.pitch = buf.att.pitch;
+			log_msg.body.log_ATT.yaw = buf.att.yaw;
+			log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
+			log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
+			log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
+			log_msg.body.log_ATT.gx = buf.att.g_comp[0];
+			log_msg.body.log_ATT.gy = buf.att.g_comp[1];
+			log_msg.body.log_ATT.gz = buf.att.g_comp[2];
+			LOGBUFFER_WRITE_AND_COUNT(ATT);
 		}
 
 		/* --- CAMERA TRIGGER --- */
