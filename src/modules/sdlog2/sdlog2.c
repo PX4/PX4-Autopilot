@@ -1581,9 +1581,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[i * 3 + 0];
 					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[i * 3 + 1];
 					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[i * 3 + 2];
-					log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro_temp[i * 3 + 0];
-					log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp[i * 3 + 0];
-					log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp[i * 3 + 0];
+					log_msg.body.log_IMU.temp_gyro = buf.sensor.gyro_temp[i];
+					log_msg.body.log_IMU.temp_acc = buf.sensor.accelerometer_temp[i];
+					log_msg.body.log_IMU.temp_mag = buf.sensor.magnetometer_temp[i];
 					LOGBUFFER_WRITE_AND_COUNT(IMU);
 				}
 
