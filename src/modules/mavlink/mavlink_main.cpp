@@ -1543,6 +1543,7 @@ Mavlink::task_main(int argc, char *argv[])
 			set_protocol(SERIAL);
 			break;
 
+#ifdef __PX4_POSIX
 		case 'u':
 			temp_int_arg = strtoul(myoptarg, &eptr, 10);
 			if ( *eptr == '\0' ) {
@@ -1575,6 +1576,14 @@ Mavlink::task_main(int argc, char *argv[])
 				err_flag = true;
 			}
 			break;
+#else
+			case 'u':
+			case 'o':
+			case 't':
+				warnx("UDP options not supported on this platform");
+				err_flag = true;
+				break;
+#endif
 
 //		case 'e':
 //			mavlink_link_termination_allowed = true;
