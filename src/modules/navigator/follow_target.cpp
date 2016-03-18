@@ -67,8 +67,8 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
         _radius_entered(false),
         _radius_exited(false),
         _last_update_time(0),
-        _current_target_motion({0}),
-        _previous_target_motion({0})
+        _current_target_motion({}),
+        _previous_target_motion({})
 {
     updateParams();
     _current_vel.zero();
