@@ -1,7 +1,7 @@
 #pragma once
 
 #include <px4_posix.h>
-#include <controllib/uorb/blocks.hpp>
+#include <controllib/blocks.hpp>
 #include <mathlib/mathlib.h>
 #include <systemlib/perf_counter.h>
 #include <lib/geo/geo.h>
@@ -35,14 +35,15 @@ using namespace Eigen;
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
-//#include <uORB/topics/filtered_bottom_flow.h>
 #include <uORB/topics/estimator_status.h>
 
 #define CBRK_NO_VISION_KEY	328754
 
 using namespace control;
 
-//static const size_t HIST_LEN = 2; // each step is 100 ms, gps has 200 ms delay
+static const float GPS_DELAY_MAX = 0.5; // seconds
+static const float HIST_STEP = 0.05; // 20 hz
+static const size_t HIST_LEN = (GPS_DELAY_MAX / HIST_STEP);
 
 enum fault_t {
 	FAULT_NONE = 0,
@@ -165,7 +166,6 @@ private:
 	// publications
 	void publishLocalPos();
 	void publishGlobalPos();
-	//void publishFilteredFlow();
 	void publishEstimatorStatus();
 
 	// attributes
@@ -192,7 +192,6 @@ private:
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
-	//uORB::Publication<filtered_bottom_flow_s> _pub_filtered_flow;
 	uORB::Publication<estimator_status_s> _pub_est_status;
 
 	// map projection
@@ -217,6 +216,7 @@ private:
 	BlockParamFloat  _baro_stddev;
 
 	// gps parameters
+	BlockParamFloat  _gps_delay;
 	BlockParamFloat  _gps_xy_stddev;
 	BlockParamFloat  _gps_z_stddev;
 	BlockParamFloat  _gps_vxy_stddev;
@@ -239,10 +239,10 @@ private:
 	BlockParamInt    _flow_min_q;
 
 	// process noise
-	BlockParamFloat  _pn_p_noise_power;
-	BlockParamFloat  _pn_v_noise_power;
-	BlockParamFloat  _pn_b_noise_power;
-	BlockParamFloat  _pn_t_noise_power;
+	BlockParamFloat  _pn_p_noise_density;
+	BlockParamFloat  _pn_v_noise_density;
+	BlockParamFloat  _pn_b_noise_density;
+	BlockParamFloat  _pn_t_noise_density;
 
 	// flow gyro filter
 	BlockHighPass _flow_gyro_x_high_pass;
@@ -258,14 +258,13 @@ private:
 	BlockStats<double, 3> _gpsStats;
 
 	// delay blocks
-	//BlockDelay<float, n_x, 1, HIST_LEN> _xDelay;
-	//BlockDelay<float, n_x, n_x, HIST_LEN> _PDelay;
-	//BlockDelay<uint64_t, 1, 1, HIST_LEN> _tDelay;
+	BlockDelay<float, n_x, 1, HIST_LEN> _xDelay;
+	BlockDelay<uint64_t, 1, 1, HIST_LEN> _tDelay;
 
 	// misc
 	px4_pollfd_struct_t _polls[3];
 	uint64_t _timeStamp;
-	//uint64_t _time_last_hist;
+	uint64_t _time_last_hist;
 	uint64_t _time_last_xy;
 	uint64_t _time_last_z;
 	uint64_t _time_last_tz;
@@ -308,6 +307,7 @@ private:
 	bool _canEstimateXY;
 	bool _canEstimateZ;
 	bool _canEstimateT;
+	bool _canEstimateGlobal;
 	bool _xyTimeout;
 	bool _zTimeout;
 	bool _tzTimeout;
