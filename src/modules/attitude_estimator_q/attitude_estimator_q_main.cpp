@@ -343,7 +343,8 @@ void AttitudeEstimatorQ::task_main()
 
 		} else if (ret == 0) {
 			// Poll timeout, do nothing
-			PX4_WARN("Q POLL TIMEOUT");
+// RobD debugging - quiet this for now
+//			PX4_WARN("Q POLL TIMEOUT");
 			continue;
 		}
 
