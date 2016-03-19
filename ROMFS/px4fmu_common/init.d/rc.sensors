@@ -1,6 +1,6 @@
 #!nsh
 #
-# Standard startup script for PX4FMU v1, v2, v3 onboard sensor drivers.
+# Standard startup script for PX4FMU v1, v2, v3, v4 onboard sensor drivers.
 #
 
 if ver hwcmp PX4FMU_V1
@@ -32,6 +32,11 @@ if ver hwcmp PX4FMU_V2
 then
 	# External I2C bus
 	if hmc5883 -C -T -X start
+	then
+	fi
+
+	# External I2C bus
+	if lis3mdl -X start
 	then
 	fi
 
@@ -93,6 +98,10 @@ if ver hwcmp PX4FMU_V4
 then
 	# External I2C bus
 	if hmc5883 -C -T -X start
+	then
+	fi
+
+	if lis3mdl -R 2 start
 	then
 	fi
 
@@ -161,6 +170,10 @@ then
 
 	# External I2C bus
 	if hmc5883 -C -T -X start
+	then
+	fi
+
+	if lis3mdl -R 2 start
 	then
 	fi
 fi
