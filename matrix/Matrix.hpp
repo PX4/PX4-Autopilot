@@ -72,11 +72,12 @@ public:
         return _data[i][j];
     }
 
-    void operator=(const Matrix<Type, M, N> &other)
+    Matrix<Type, M, N> & operator=(const Matrix<Type, M, N> &other)
     {
         if (this != &other) {
             memcpy(_data, other._data, sizeof(_data));
         }
+        return (*this);
     }
 
     /**
