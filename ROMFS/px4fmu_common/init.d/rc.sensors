@@ -1,6 +1,6 @@
 #!nsh
 #
-# Standard startup script for PX4FMU v1, v2, v3 onboard sensor drivers.
+# Standard startup script for PX4FMU v1, v2, v3 & v4 onboard sensor drivers.
 #
 
 if ver hwcmp PX4FMU_V1
@@ -31,13 +31,19 @@ fi
 if ver hwcmp PX4FMU_V2
 then
 	# External I2C bus
-	if hmc5883 -C -T -X start
-	then
-	fi
+#	if hmc5883 -C -T -X start
+#	then
+#	fi
 
 	# Internal I2C bus
-	if hmc5883 -C -T -I -R 4 start
+#	if hmc5883 -C -T -I -R 4 start
+#	then
+#	fi
+
+	# External I2C bus
+	if lis3mdl -X start
 	then
+		echo lis3mdl driver started on external I2C bus
 	fi
 
 	# external MPU6K is rotated 180 degrees yaw
@@ -87,14 +93,20 @@ else
 	if ver hwcmp PX4FMU_V4
 	then
 		# External I2C bus
-		if hmc5883 -C -T -X start
+		if lis3mdl -X start
 		then
+			echo lis3mdl driver started on external I2C bus
 		fi
 
+		# External I2C bus
+#		if hmc5883 -C -T -X start
+#		then
+#		fi
+
 		# Internal SPI bus is rotated 90 deg yaw
-		if hmc5883 -C -T -S -R 2 start
-		then
-		fi
+#		if hmc5883 -C -T -S -R 2 start
+#		then
+#		fi
 
 		# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
 		if mpu6000 -R 2 -T 20608 start
@@ -102,9 +114,10 @@ else
 		fi
 
 		# Internal SPI bus mpu9250 is rotated 90 deg yaw
-		if mpu9250 -R 2 start
-		then
-		fi
+#		if mpu9250 -R 2 start
+#		then
+#		fi
+
 	else
 		# FMUv1
 		if mpu6000 start
