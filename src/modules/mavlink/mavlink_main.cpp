@@ -1513,8 +1513,10 @@ Mavlink::task_main(int argc, char *argv[])
 	bool err_flag = false;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+#ifdef __PX4_POSIX
 	char* eptr;
 	int temp_int_arg;
+#endif
 
 	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fpvwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
