@@ -4,6 +4,8 @@
 #include <string.h>
 #include <uORB/uORBTopics.h>
 
+#define DBGPRINT
+
 using namespace px4::logger;
 
 int logger_main(int argc, char *argv[])
@@ -34,6 +36,7 @@ int logger_main(int argc, char *argv[])
 			return 1;
 		}
 
+		warnx("deleting logger");
 		delete logger_ptr;
 		logger_ptr = nullptr;
 		return 0;
@@ -82,7 +85,7 @@ int Logger::start()
 	logger_task = px4_task_spawn_cmd("logger",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 2048,
+					 3100,
 					 (px4_main_t)&Logger::run_trampoline,
 					 nullptr);
 
@@ -96,7 +99,7 @@ int Logger::start()
 
 void Logger::run_trampoline(int argc, char *argv[])
 {
-	logger_ptr = new Logger(32768, 10000);
+	logger_ptr = new Logger(32768, 8000);
 
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
@@ -116,22 +119,23 @@ enum class MessageType : uint8_t {
 #pragma pack(push, 1)
 struct message_format_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
-	uint8_t msg_size;
+	uint16_t msg_size;
 
 	uint8_t msg_id;
-	uint8_t format_len;
-	char format[254];
+	uint16_t format_len;
+	char format[2096];
 };
 
 struct message_data_header_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::DATA);
-	uint8_t msg_size;
+	uint16_t msg_size;
 
 	uint8_t msg_id;
 	uint8_t multi_id;
 	//uint64_t timestamp;	// this field already included in each data struct
 };
 
+// apparently unused
 struct message_info_header_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
 	uint8_t msg_size;
@@ -142,7 +146,7 @@ struct message_info_header_s {
 
 struct message_parameter_header_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
-	uint8_t msg_size;
+	uint16_t msg_size;
 
 	uint8_t key_len;
 	char key[255];
@@ -150,7 +154,7 @@ struct message_parameter_header_s {
 #pragma pack(pop)
 
 
-static constexpr size_t MAX_DATA_SIZE = 255 - 2;
+static constexpr size_t MAX_DATA_SIZE = 740;
 
 Logger::Logger(size_t buffer_size, unsigned log_interval) :
 	_writer((_log_buffer = new uint8_t[buffer_size]), buffer_size),
@@ -191,6 +195,7 @@ void Logger::add_topic(const orb_metadata *topic)
 
 	size_t fields_len = strlen(topic->o_fields);
 
+
 	if (fields_len > sizeof(message_format_s::format)) {
 		warn("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
 		     sizeof(message_format_s::format));
@@ -211,12 +216,30 @@ void Logger::add_all_topics()
 
 void Logger::run()
 {
+	struct	mallinfo alloc_info;
+
 	warnx("started");
 
-	if (_subscriptions.size() == 0) {
-		warnx("log all topics");
-		add_all_topics();
-	}
+	// There doesn't seem to be a way to poll topics in array _subscriptions like this:
+//	int vehicle_status_fd = orb_subscribe(ORB_ID(vehicle_status));
+
+//	px4_pollfd_struct_t fds[1] = {};
+//	fds[0].fd = vehicle_status_fd;
+//	fds[0].events = POLLIN;
+
+//	if (_subscriptions.size() == 0) {
+//		warnx("log all topics");
+//		add_all_topics();
+//	}
+	add_topic(ORB_ID(vehicle_status));
+
+	const orb_metadata **topics = orb_get_topics();
+	add_topic(topics[3]);	// vehicle_attitude
+//	add_topic(topics[5]);	// estimator_status
+	add_topic(topics[68]);	// sensor_accel
+//	add_topic(topics[64]);	// sensor_combined
+	add_topic(topics[39]);	// sensor_baro
+	add_topic(topics[53]);	// sensor_gyro
 
 	int mkdir_ret = mkdir(LOG_ROOT, S_IRWXU | S_IRWXG | S_IRWXO);
 
@@ -232,15 +255,34 @@ void Logger::run()
 
 	_task_should_exit = false;
 
+#ifdef DBGPRINT
+	hrt_abstime	dropout_start = 0;
+	hrt_abstime	timer_start = 0;
+	uint32_t	total_bytes = 0;
+	uint16_t	dropout_count = 0;
+	size_t 		highWater = 0;
+	size_t		available = 0;
+	double		max_drop_len = 0;
+#endif
+
 	while (!_task_should_exit) {
+
+//		px4_poll(fds, 1, 1000);
+
 		// Start/stop logging when system arm/disarm
 		if (_vehicle_status_sub.check_updated()) {
+			_vehicle_status_sub.update();
 			bool armed = (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
 				     (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
 
 			if (_enabled != armed) {
 				if (armed) {
 					start_log();
+
+#ifdef DBGPRINT
+					timer_start = hrt_absolute_time();
+					total_bytes = 0;
+#endif
 
 				} else {
 					stop_log();
@@ -249,6 +291,7 @@ void Logger::run()
 		}
 
 		if (_enabled) {
+			/* wait for lock on log buffer */
 			_writer.lock();
 
 			bool data_written = false;
@@ -266,29 +309,85 @@ void Logger::run()
 					orb_copy(sub.metadata, sub.fd, buffer + sizeof(message_data_header_s));
 					message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 					header->msg_type = static_cast<uint8_t>(MessageType::DATA);
-					header->msg_size = static_cast<uint8_t>(msg_size - 2);
+					header->msg_size = static_cast<uint16_t>(msg_size - 2);
 					header->msg_id = msg_id;
 					header->multi_id = 0x80;	// Non multi, active
 
+#ifdef DBGPRINT
+					//warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
+					hrt_abstime trytime = hrt_absolute_time();
+					if (_writer._count > highWater) {
+						highWater = _writer._count;
+					}
+#endif
+
 					if (_writer.write(buffer, msg_size)) {
+#ifdef DBGPRINT
+						// successful write: note end of dropout if dropout_start != 0
+						if (dropout_start != 0) {
+							double drop_len = (double)(trytime - dropout_start)  * 1e-6;
+							if (drop_len > max_drop_len) max_drop_len = drop_len;
+							warnx("dropout length: %5.3f seconds", drop_len);
+							dropout_start = 0;
+							highWater = 0;
+						}
+
+#endif
 						data_written = true;
+#ifdef DBGPRINT
+						total_bytes += msg_size;
+#endif
 
 					} else {
-						break;	// Write buffer overflow
+#ifdef DBGPRINT
+
+						if (dropout_start == 0)	{
+							available = _writer._count;
+							warnx("dropout, available: %d/%d", available, _writer._buffer_size);
+							dropout_start = trytime;
+							dropout_count++;
+						}
+
+#endif
+						break;	// Write buffer overflow, skip this record
 					}
 				}
 
 				msg_id++;
 			}
 
+			/* release the log buffer */
 			_writer.unlock();
 
+			/* notify the writer thread if data is available */
 			if (data_written) {
 				_writer.notify();
 			}
+
+#ifdef DBGPRINT
+			double deltat = (double)(hrt_absolute_time() - timer_start)  * 1e-6;
+
+			if (deltat > 10.0) {
+				alloc_info = mallinfo();
+				double throughput = total_bytes / deltat;
+				warnx("%8.1e Kbytes/sec, %d highWater,  %d dropouts, %5.3f sec max, free heap: %d",
+						throughput / 1e3, highWater, dropout_count, max_drop_len, alloc_info.fordblks);
+
+				total_bytes = 0;
+				highWater = 0,
+				dropout_count = 0;
+				max_drop_len = 0;
+				timer_start = hrt_absolute_time();
+			}
+
+#endif
 		}
 
-		usleep(_log_interval);
+		/* sleep only 2msec in order to catch every 250Hz orb update
+		 * polling would be more efficient
+		 */
+		usleep(2000);
+//		usleep(_log_interval);
 	}
 }
 
