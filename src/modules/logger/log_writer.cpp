@@ -149,7 +149,7 @@ void LogWriter::run()
 			warn("error closing log file");
 		}
 
-		warnx("stopped, bytes written: %i", _total_written);
+		warnx("stopped, bytes written: %zu", _total_written);
 	}
 }
 
