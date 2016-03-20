@@ -901,6 +901,7 @@ PX4FMU::cycle()
 		// assume SBUS input
 		sbus_config(_rcs_fd, false);
 		// disable CPPM input by mapping it away from the timer capture input
+		stm32_unconfiggpio(GPIO_PPM_IN);
 		stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 #endif
 
@@ -1331,6 +1332,7 @@ PX4FMU::cycle()
 
 		} else {
 			// disable CPPM input by mapping it away from the timer capture input
+			stm32_unconfiggpio(GPIO_PPM_IN);
 			stm32_configgpio(GPIO_PPM_IN & ~(GPIO_AF_MASK | GPIO_PUPD_MASK));
 			// Scan the next protocol
 			set_rc_scan_state(RC_SCAN_SBUS);
