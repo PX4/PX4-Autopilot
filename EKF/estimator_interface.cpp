@@ -65,6 +65,7 @@ EstimatorInterface::EstimatorInterface():
 	_time_last_baro(0),
 	_time_last_range(0),
 	_time_last_airspeed(0),
+	_time_last_ext_vision(0),
 	_mag_declination_gps(0.0f),
 	_mag_declination_to_save_deg(0.0f)
 {
@@ -284,6 +285,30 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 	}
 }
 
+// set attitude and position data derived from an external vision system
+void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message *evdata)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// if data passes checks, push to buffer
+	if (time_usec > _time_last_ext_vision) {
+		extVisionSample ev_sample_new;
+		// calculate the system time-stamp for the mid point of the integration period
+		ev_sample_new.time_us = time_usec - _params.ev_delay_ms * 1000;
+		// copy required data
+		ev_sample_new.angErr = evdata->angErr;
+		ev_sample_new.posErr = evdata->posErr;
+		ev_sample_new.quat = evdata->quat;
+		ev_sample_new.posNED = evdata->posNED;
+		// record time for comparison next measurement
+		_time_last_ext_vision = time_usec;
+		// push to buffer
+		_ext_vision_buffer.push(ev_sample_new);
+	}
+}
+
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
 
@@ -294,6 +319,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	      _range_buffer.allocate(OBS_BUFFER_LENGTH) &&
 	      _airspeed_buffer.allocate(OBS_BUFFER_LENGTH) &&
 	      _flow_buffer.allocate(OBS_BUFFER_LENGTH) &&
+	      _ext_vision_buffer.allocate(OBS_BUFFER_LENGTH) &&
 	      _output_buffer.allocate(IMU_BUFFER_LENGTH))) {
 		printf("EKF buffer allocation failed!");
 		unallocate_buffers();
@@ -314,6 +340,8 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		_airspeed_buffer.push(airspeed_sample_init);
 		flowSample flow_sample_init = {};
 		_flow_buffer.push(flow_sample_init);
+		extVisionSample ext_vision_sample_init = {};
+		_ext_vision_buffer.push(ext_vision_sample_init);
 	}
 
 	// zero the data in the imu data and output observer state buffers
@@ -357,6 +385,7 @@ void EstimatorInterface::unallocate_buffers()
 	_range_buffer.unallocate();
 	_airspeed_buffer.unallocate();
 	_flow_buffer.unallocate();
+	_ext_vision_buffer.unallocate();
 	_output_buffer.unallocate();
 
 }
