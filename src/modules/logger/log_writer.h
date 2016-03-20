@@ -3,6 +3,7 @@
 #include <px4.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <drivers/drv_hrt.h>
 
 namespace px4
 {
@@ -11,6 +12,7 @@ namespace logger
 
 class LogWriter
 {
+	friend class Logger;
 public:
 	LogWriter(uint8_t *buffer, size_t buffer_size);
 
