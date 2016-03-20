@@ -6,7 +6,8 @@
 
 using namespace px4::logger;
 
-int logger_main(int argc, char *argv[]) {
+int logger_main(int argc, char *argv[])
+{
 	if (argc < 2) {
 		warnx("usage: logger {start|stop|status}");
 		return 1;
@@ -53,33 +54,37 @@ int logger_main(int argc, char *argv[]) {
 	return 1;
 }
 
-namespace px4 {
-namespace logger {
+namespace px4
+{
+namespace logger
+{
 
-void Logger::usage(const char *reason) {
+void Logger::usage(const char *reason)
+{
 	if (reason) {
 		fprintf(stderr, "%s\n", reason);
 	}
 
 	warnx("usage: logger {start|stop|status|on|off} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
-		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
-		 "\t-b\tLog buffer size in KiB, default is 8\n"
-		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
-		 "\t-a\tLog only when armed (can be still overriden by command)\n"
-		 "\t-t\tUse date/time for naming log directories and files\n"
-		 "\t-x\tExtended logging");
+	      "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
+	      "\t-b\tLog buffer size in KiB, default is 8\n"
+	      "\t-e\tEnable logging by default (if not, can be started by command)\n"
+	      "\t-a\tLog only when armed (can be still overriden by command)\n"
+	      "\t-t\tUse date/time for naming log directories and files\n"
+	      "\t-x\tExtended logging");
 }
 
-int Logger::start() {
+int Logger::start()
+{
 	ASSERT(logger_task == -1);
 
 	/* start the task */
 	logger_task = px4_task_spawn_cmd("logger",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2048,
-				       (px4_main_t)&Logger::run_trampoline,
-				       nullptr);
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 5,
+					 2048,
+					 (px4_main_t)&Logger::run_trampoline,
+					 nullptr);
 
 	if (logger_task < 0) {
 		warn("task start failed");
@@ -89,10 +94,13 @@ int Logger::start() {
 	return OK;
 }
 
-void Logger::run_trampoline(int argc, char *argv[]) {
+void Logger::run_trampoline(int argc, char *argv[])
+{
 	logger_ptr = new Logger(32768, 10000);
+
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
+
 	} else {
 		logger_ptr->run();
 	}
@@ -145,11 +153,13 @@ struct message_parameter_header_s {
 static constexpr size_t MAX_DATA_SIZE = 255 - 2;
 
 Logger::Logger(size_t buffer_size, unsigned log_interval) :
-		_writer((_log_buffer = new uint8_t[buffer_size]), buffer_size),
-		_log_interval(log_interval) {
+	_writer((_log_buffer = new uint8_t[buffer_size]), buffer_size),
+	_log_interval(log_interval)
+{
 }
 
-Logger::~Logger() {
+Logger::~Logger()
+{
 	if (logger_task != -1) {
 		/* task wakes up every 100ms or so at the longest */
 		_task_should_exit = true;
@@ -172,27 +182,35 @@ Logger::~Logger() {
 	logger_ptr = nullptr;
 }
 
-void Logger::add_topic(const orb_metadata *topic) {
+void Logger::add_topic(const orb_metadata *topic)
+{
 	if (topic->o_size > MAX_DATA_SIZE) {
 		warn("skip topic %s, data size is too large: %i (max is %i)", topic->o_name, topic->o_size, MAX_DATA_SIZE);
 		return;
 	}
+
 	size_t fields_len = strlen(topic->o_fields);
+
 	if (fields_len > sizeof(message_format_s::format)) {
-		warn("skip topic %s, format string is too large: %i (max is %i)", topic->o_name, fields_len, sizeof(message_format_s::format));
+		warn("skip topic %s, format string is too large: %i (max is %i)", topic->o_name, fields_len,
+		     sizeof(message_format_s::format));
 		return;
 	}
+
 	_subscriptions.push_back(LoggerSubscription(orb_subscribe(topic), topic));
 }
 
-void Logger::add_all_topics() {
+void Logger::add_all_topics()
+{
 	const orb_metadata **topics = orb_get_topics();
+
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		add_topic(topics[i]);
 	}
 }
 
-void Logger::run() {
+void Logger::run()
+{
 	warnx("started");
 
 	if (_subscriptions.size() == 0) {
@@ -213,14 +231,17 @@ void Logger::run() {
 	_writer.thread_start();
 
 	_task_should_exit = false;
+
 	while (!_task_should_exit) {
 		// Start/stop logging when system arm/disarm
 		if (_vehicle_status_sub.check_updated()) {
 			bool armed = (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
-					     (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+				     (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+
 			if (_enabled != armed) {
 				if (armed) {
 					start_log();
+
 				} else {
 					stop_log();
 				}
@@ -234,11 +255,13 @@ void Logger::run() {
 
 			// Write data messages for normal subscriptions
 			int msg_id = 0;
+
 			for (LoggerSubscription &sub : _subscriptions) {
 				size_t msg_size = sizeof(message_data_header_s) + sub.metadata->o_size;
 				uint8_t buffer[msg_size];
 				bool updated = false;
 				orb_check(sub.fd, &updated);
+
 				if (updated) {
 					orb_copy(sub.metadata, sub.fd, buffer + sizeof(message_data_header_s));
 					message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
@@ -249,14 +272,17 @@ void Logger::run() {
 
 					if (_writer.write(buffer, msg_size)) {
 						data_written = true;
+
 					} else {
 						break;	// Write buffer overflow
 					}
 				}
+
 				msg_id++;
 			}
 
 			_writer.unlock();
+
 			if (data_written) {
 				_writer.notify();
 			}
@@ -266,7 +292,8 @@ void Logger::run() {
 	}
 }
 
-int Logger::create_log_dir() {
+int Logger::create_log_dir()
+{
 	/* create dir on sdcard if needed */
 	uint16_t dir_number = 1; // start with dir sess001
 	int mkdir_ret;
@@ -302,12 +329,14 @@ int Logger::create_log_dir() {
 	return 0;
 }
 
-bool Logger::file_exist(const char *filename) {
+bool Logger::file_exist(const char *filename)
+{
 	struct stat buffer;
 	return stat(filename, &buffer) == 0;
 }
 
-int Logger::get_log_file_name(char *file_name, size_t file_name_size) {
+int Logger::get_log_file_name(char *file_name, size_t file_name_size)
+{
 	uint16_t file_number = 1; // start with file log001
 
 	/* look for the next file that does not exist */
@@ -331,13 +360,16 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size) {
 	return 0;
 }
 
-void Logger::start_log() {
+void Logger::start_log()
+{
 	warnx("start log");
 
 	if (create_log_dir()) {
 		return;
 	}
+
 	char file_name[64] = "";
+
 	if (get_log_file_name(file_name, sizeof(file_name))) {
 		return;
 	}
@@ -348,35 +380,42 @@ void Logger::start_log() {
 	_enabled = true;
 }
 
-void Logger::stop_log() {
+void Logger::stop_log()
+{
 	warnx("stop log");
 	_enabled = false;
 	_writer.stop_log();
 }
 
-void Logger::write_formats() {
+void Logger::write_formats()
+{
 	_writer.lock();
 	message_format_s msg;
 
 	int msg_id = 0;
+
 	for (LoggerSubscription &sub : _subscriptions) {
 		msg.msg_id = msg_id;
 		msg.format_len = snprintf(msg.format, sizeof(msg.format), "%s", sub.metadata->o_fields);
 		size_t msg_size = sizeof(msg) - sizeof(msg.format) + msg.format_len;
 		msg.msg_size = msg_size - 2;
+
 		while (!_writer.write(&msg, msg_size)) {
 			_writer.unlock();
 			_writer.notify();
 			usleep(_log_interval);	// Wait if buffer is full, don't skip FORMAT messages
 			_writer.lock();
 		}
+
 		msg_id++;
 	}
+
 	_writer.unlock();
 	_writer.notify();
 }
 
-void Logger::write_parameters() {
+void Logger::write_parameters()
+{
 	_writer.lock();
 	uint8_t buffer[sizeof(message_parameter_header_s) + sizeof(param_value_u)];
 	message_parameter_header_s *msg = reinterpret_cast<message_parameter_header_s *>(buffer);
@@ -384,6 +423,7 @@ void Logger::write_parameters() {
 	msg->msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
 	int param_idx = 0;
 	param_t param = 0;
+
 	do {
 		do {
 			param = param_for_index(param_idx);
@@ -395,19 +435,20 @@ void Logger::write_parameters() {
 			const char *type_str;
 			param_type_t type = param_type(param);
 			size_t value_size = 0;
+
 			switch (type) {
-				case PARAM_TYPE_INT32:
-					type_str = "int32_t";
-					value_size = sizeof(int32_t);
-					break;
+			case PARAM_TYPE_INT32:
+				type_str = "int32_t";
+				value_size = sizeof(int32_t);
+				break;
 
-				case PARAM_TYPE_FLOAT:
-					type_str = "float";
-					value_size = sizeof(float);
-					break;
+			case PARAM_TYPE_FLOAT:
+				type_str = "float";
+				value_size = sizeof(float);
+				break;
 
-				default:
-					continue;
+			default:
+				continue;
 			}
 
 			/* format parameter key (type and name) */
