@@ -59,7 +59,7 @@ void Ekf::controlFusionModes()
 	// external vision position aiding selection logic
 	if ((_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_pos && _control_status.flags.tilt_align && _control_status.flags.yaw_align) {
 		// check for a exernal vision measurement that has fallen behind the fusion time horizon
-		if (_ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed)) {
+		if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 			// turn on use of external vision measurements for position
 			_control_status.flags.ev_pos = true;
 			// reset the position, height and velocity
