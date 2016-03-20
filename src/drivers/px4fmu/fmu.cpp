@@ -1419,7 +1419,7 @@ PX4FMU::control_callback(uintptr_t handle,
 	/* motor spinup phase - lock throttle to zero */
 	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
 		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-			control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
+		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* limit the throttle output to zero during motor spinup,
 			 * as the motors cannot follow any demand yet
@@ -1431,7 +1431,7 @@ PX4FMU::control_callback(uintptr_t handle,
 	/* throttle not arming - mark throttle input as invalid */
 	if (arm_nothrottle()) {
 		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-			control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
+		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* set the throttle to an invalid value */
 			input = NAN_VALUE;
