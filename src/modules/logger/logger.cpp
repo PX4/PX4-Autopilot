@@ -120,7 +120,7 @@ struct message_format_s {
 
 	uint8_t msg_id;
 	uint8_t format_len;
-	char format[254];
+	char format[1000];
 };
 
 struct message_data_header_s {
@@ -150,7 +150,7 @@ struct message_parameter_header_s {
 #pragma pack(pop)
 
 
-static constexpr size_t MAX_DATA_SIZE = 255 - 2;
+static constexpr size_t MAX_DATA_SIZE = 738;
 
 Logger::Logger(size_t buffer_size, unsigned log_interval) :
 	_writer((_log_buffer = new uint8_t[buffer_size]), buffer_size),
