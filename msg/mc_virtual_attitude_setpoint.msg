@@ -35,3 +35,5 @@ bool fw_control_yaw					# control heading with rudder (used for auto takeoff on 
 bool disable_mc_yaw_control			# control yaw for mc (used for vtol weather-vane mode)
 
 bool apply_flaps
+
+# TOPICS vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint
