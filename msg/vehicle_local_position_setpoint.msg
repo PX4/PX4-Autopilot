@@ -1,6 +1,6 @@
 # Local position setpoint in NED frame
 
-uint64 timestamp	# timestamp of the setpoint
+# timestamp (uint64,  timestamp of the setpoint) will be generated automatically
 float32 x		# in meters NED
 float32 y		# in meters NED
 float32 z		# in meters NED
