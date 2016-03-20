@@ -592,12 +592,12 @@ PX4FLOW::start()
 	work_queue(HPWORK, &_work, (worker_t)&PX4FLOW::cycle_trampoline, this, 1);
 
 	/* notify about state change */
-	struct subsystem_info_s info = {
-		true,
-		true,
-		true,
-		subsystem_info_s::SUBSYSTEM_TYPE_OPTICALFLOW
-	};
+	struct subsystem_info_s info = {};
+	info.present = true;
+	info.enabled = true;
+	info.ok = true;
+	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_OPTICALFLOW;
+
 	static orb_advert_t pub = nullptr;
 
 	if (pub != nullptr) {
