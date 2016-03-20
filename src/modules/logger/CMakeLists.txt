@@ -31,14 +31,14 @@
 #
 ############################################################################
 if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1500)
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=2200)
 endif()
 
 px4_add_module(
 	MODULE modules__logger
 	MAIN logger
 	PRIORITY "SCHED_PRIORITY_MAX-30"
-	STACK 1200
+	STACK 4000
 	COMPILE_FLAGS
 		${MODULE_CFLAGS}
 		-Os
