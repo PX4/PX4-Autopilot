@@ -10,10 +10,13 @@ namespace logger
 LogWriter::LogWriter(uint8_t *buffer, size_t buffer_size) :
 	_buffer(buffer),
 	_buffer_size(buffer_size),
-	_min_write_chunk(_buffer_size / 8)
+	_min_write_chunk(4096)
 {
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
+	/* allocate write performance counters */
+	perf_write = perf_alloc(PC_ELAPSED, "sd write");
+	perf_fsync = perf_alloc(PC_ELAPSED, "sd fsync");
 }
 
 void LogWriter::start_log(const char *filename)
@@ -43,7 +46,7 @@ pthread_t LogWriter::thread_start()
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
-	pthread_attr_setstacksize(&thr_attr, 2048);
+	pthread_attr_setstacksize(&thr_attr, 1024);
 
 	pthread_t thr;
 
@@ -81,10 +84,7 @@ void LogWriter::run()
 			}
 		}
 
-		int poll_count = 0;
-		int written = 0;
-
-		_fd = ::open(_filename, O_CREAT | O_WRONLY | O_DSYNC, PX4_O_MODE_666);
+		_fd = ::open(_filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 
 		if (_fd < 0) {
 			warn("can't open log file %s", _filename);
@@ -96,40 +96,58 @@ void LogWriter::run()
 
 		_should_run = true;
 
+		int poll_count = 0;
+		int written = 0;
+
 		while (true) {
 			size_t available = 0;
 			void *read_ptr = nullptr;
 			bool is_part = false;
 
+			/* lock _buffer
+			 * wait for sufficient data, cycle on notify()
+			 */
 			pthread_mutex_lock(&_mtx);
-			mark_read(written);
-			written = 0;
-
 			while (true) {
 				available = get_read_ptr(&read_ptr, &is_part);
 
+				/* if sufficient data available or partial read or terminating, exit this wait loop */
 				if ((available > _min_write_chunk) || is_part || !_should_run) {
+					/* GOTO end of block */
 					break;
 				}
 
+				/* wait for a call to notify()
+				 * this call unlocks the mutex while waiting, and returns with the mutex locked
+				 */
 				pthread_cond_wait(&_cv, &_mtx);
 			}
-
 			pthread_mutex_unlock(&_mtx);
 
 			if (available > 0) {
+				perf_begin(perf_write);
 				written = ::write(_fd, read_ptr, available);
+				perf_end(perf_write);
 
-				if (++poll_count >= 10) {
+				/* call fsync periodically to minimize potential loss of data */
+				if (++poll_count >= 100) {
+					perf_begin(perf_fsync);
 					::fsync(_fd);
+					perf_end(perf_fsync);
 					poll_count = 0;
 				}
 
 				if (written < 0) {
 					warn("error writing log file");
 					_should_run = false;
+					/* GOTO end of block */
 					break;
 				}
+
+				pthread_mutex_lock(&_mtx);
+				/* subtract bytes written from number in _buffer (_count -= written) */
+				mark_read(written);
+				pthread_mutex_unlock(&_mtx);
 
 				_total_written += written;
 			}
