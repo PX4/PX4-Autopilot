@@ -303,6 +303,15 @@ bool Ekf::update()
 
 		}
 
+		// If we are using external vision aiding and data has fallen behind the fusion time horizon then fuse it
+		if (_ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed)) {
+			// use external vision posiiton and height observations
+			if (_control_status.flags.ev_pos) {
+				_fuse_pos = true;
+				_fuse_height = true;
+			}
+		}
+
 		// If we are using optical flow aiding and data has fallen behind the fusion time horizon, then fuse it
 		if (_flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
 		    && _control_status.flags.opt_flow && (_time_last_imu - _time_last_optflow) < 2e5
@@ -315,8 +324,6 @@ bool Ekf::update()
 		if (!_control_status.flags.gps && !_control_status.flags.opt_flow
 		    && ((_time_last_imu - _time_last_fake_gps > 2e5) || _fuse_height)) {
 			_fuse_pos = true;
-			_gps_sample_delayed.pos(0) = _last_known_posNE(0);
-			_gps_sample_delayed.pos(1) = _last_known_posNE(1);
 			_time_last_fake_gps = _time_last_imu;
 		}
 
