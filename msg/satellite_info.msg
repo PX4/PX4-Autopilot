@@ -1,6 +1,6 @@
 uint8 SAT_INFO_MAX_SATELLITES = 20
 
-uint64 timestamp		# Timestamp of satellite info
+# timestamp (uint64,  Timestamp of satellite info) will be generated automatically
 uint8 count			# Number of satellites in satellite info
 uint8[20] svid	 		# Space vehicle ID [1..255], see scheme below
 uint8[20] used			# 0: Satellite not used, 1: used for navigation

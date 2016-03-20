@@ -8,7 +8,7 @@
 #
 ###############################################################################################
 
-uint64 timestamp    # in microseconds since system start
+# timestamp (uint64,  in microseconds since system start) will be generated automatically
 
 float32 roll	    # body angular rates in NED frame
 float32 pitch	    # body angular rates in NED frame
