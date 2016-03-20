@@ -169,7 +169,7 @@ add_executable(sf0x_test sf0x_test.cpp ${PX_SRC}/drivers/sf0x/sf0x_parser.cpp)
 target_link_libraries( sf0x_test px4_platform )
 add_gtest(sf0x_test)
 
-file(GLOB PX_TOPICS_SRCS ${CMAKE_SOURCE_DIR}/../Build/topics_sources/*.cpp)
+file(GLOB PX_TOPICS_SRCS ${CMAKE_SOURCE_DIR}/../build_posix_sitl/topics_sources/*.cpp)
 
 # param_test
 #add_executable(param_test param_test.cpp

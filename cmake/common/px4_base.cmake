@@ -382,6 +382,7 @@ function(px4_generate_messages)
 		COMMENT "Generating uORB topic sources"
 		VERBATIM
 		)
+	set_source_files_properties(${msg_source_files_out} PROPERTIES GENERATED TRUE)
 
 	# multi messages for target OS
 	set(msg_multi_out_path
@@ -406,6 +407,7 @@ function(px4_generate_messages)
 		)
 	add_custom_target(${TARGET}
 		DEPENDS ${msg_source_files_out} ${msg_multi_files_out} ${msg_files_out})
+	set_target_properties(${TARGET} PROPERTIES msg_files "${msg_source_files_out}")
 endfunction()
 
 #=============================================================================
