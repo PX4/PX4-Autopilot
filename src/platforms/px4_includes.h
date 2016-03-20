@@ -82,10 +82,6 @@
 #include <platforms/nuttx/px4_messages/px4_vehicle_attitude_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_manual_control_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_actuator_controls.h>
-#include <platforms/nuttx/px4_messages/px4_actuator_controls_0.h>
-#include <platforms/nuttx/px4_messages/px4_actuator_controls_1.h>
-#include <platforms/nuttx/px4_messages/px4_actuator_controls_2.h>
-#include <platforms/nuttx/px4_messages/px4_actuator_controls_3.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_rates_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_attitude.h>
 #include <platforms/nuttx/px4_messages/px4_control_state.h>
@@ -117,10 +113,6 @@
 #include <platforms/posix/px4_messages/px4_vehicle_attitude_setpoint.h>
 #include <platforms/posix/px4_messages/px4_manual_control_setpoint.h>
 #include <platforms/posix/px4_messages/px4_actuator_controls.h>
-#include <platforms/posix/px4_messages/px4_actuator_controls_0.h>
-#include <platforms/posix/px4_messages/px4_actuator_controls_1.h>
-#include <platforms/posix/px4_messages/px4_actuator_controls_2.h>
-#include <platforms/posix/px4_messages/px4_actuator_controls_3.h>
 #include <platforms/posix/px4_messages/px4_vehicle_rates_setpoint.h>
 #include <platforms/posix/px4_messages/px4_vehicle_attitude.h>
 #include <platforms/posix/px4_messages/px4_control_state.h>
@@ -148,10 +140,6 @@
 #include <platforms/qurt/px4_messages/px4_vehicle_attitude_setpoint.h>
 #include <platforms/qurt/px4_messages/px4_manual_control_setpoint.h>
 #include <platforms/qurt/px4_messages/px4_actuator_controls.h>
-#include <platforms/qurt/px4_messages/px4_actuator_controls_0.h>
-#include <platforms/qurt/px4_messages/px4_actuator_controls_1.h>
-#include <platforms/qurt/px4_messages/px4_actuator_controls_2.h>
-#include <platforms/qurt/px4_messages/px4_actuator_controls_3.h>
 #include <platforms/qurt/px4_messages/px4_vehicle_rates_setpoint.h>
 #include <platforms/qurt/px4_messages/px4_vehicle_attitude.h>
 #include <platforms/qurt/px4_messages/px4_control_state.h>

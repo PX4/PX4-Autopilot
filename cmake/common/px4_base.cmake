@@ -338,6 +338,8 @@ function(px4_generate_messages)
 	if(NOT VERBOSE)
 		set(QUIET "-q")
 	endif()
+
+	# headers
 	set(msg_out_path ${CMAKE_BINARY_DIR}/src/modules/uORB/topics)
 	set(msg_list)
 	foreach(msg_file ${MSG_FILES})
@@ -359,6 +361,25 @@ function(px4_generate_messages)
 		DEPENDS ${DEPENDS} ${MSG_FILES}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		COMMENT "Generating uORB topic headers"
+		VERBATIM
+		)
+
+	# !sources
+	set(msg_source_out_path	${CMAKE_BINARY_DIR}/topics_sources)
+	set(msg_source_files_out)
+	foreach(msg ${msg_list})
+		list(APPEND msg_source_files_out ${msg_source_out_path}/${msg}.cpp)
+	endforeach()
+	add_custom_command(OUTPUT ${msg_source_files_out}
+		COMMAND ${PYTHON_EXECUTABLE} 
+			Tools/px_generate_uorb_topic_sources.py
+			${QUIET}
+			-d msg
+			-e msg/templates/uorb
+			-o ${msg_source_out_path}
+		DEPENDS ${DEPENDS} ${MSG_FILES}
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		COMMENT "Generating uORB topic sources"
 		VERBATIM
 		)
 
@@ -384,7 +405,7 @@ function(px4_generate_messages)
 		VERBATIM
 		)
 	add_custom_target(${TARGET}
-		DEPENDS ${msg_multi_files_out} ${msg_files_out})
+		DEPENDS ${msg_source_files_out} ${msg_multi_files_out} ${msg_files_out})
 endfunction()
 
 #=============================================================================
