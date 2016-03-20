@@ -36,10 +36,9 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	)
 
-get_target_property(MSG_FILES msg_gen msg_files)
+link_libraries(msg_gen)
 
 set(SRCS
-	${MSG_FILES}
 	uORBUtils.cpp
 	uORB.cpp
 	uORBMain.cpp

@@ -309,7 +309,7 @@ file(GLOB_RECURSE msg_files msg/*.msg)
 px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
 	OS ${OS}
-	DEPENDS git_genmsg git_gencpp
+	DEPENDS git_genmsg git_gencpp prebuild_targets
 	)
 px4_generate_parameters_xml(OUT parameters.xml BOARD ${BOARD})
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})

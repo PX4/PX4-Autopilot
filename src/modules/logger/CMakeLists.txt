@@ -33,6 +33,7 @@
 if (${OS} STREQUAL "nuttx")
 	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1500)
 endif()
+
 px4_add_module(
 	MODULE modules__logger
 	MAIN logger
@@ -46,5 +47,6 @@ px4_add_module(
 		log_writer.cpp
 	DEPENDS
 		platforms__common
+		modules__uORB
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
