@@ -185,14 +185,14 @@ Logger::~Logger()
 void Logger::add_topic(const orb_metadata *topic)
 {
 	if (topic->o_size > MAX_DATA_SIZE) {
-		warn("skip topic %s, data size is too large: %i (max is %i)", topic->o_name, topic->o_size, MAX_DATA_SIZE);
+		warn("skip topic %s, data size is too large: %zu (max is %i)", topic->o_name, topic->o_size, MAX_DATA_SIZE);
 		return;
 	}
 
 	size_t fields_len = strlen(topic->o_fields);
 
 	if (fields_len > sizeof(message_format_s::format)) {
-		warn("skip topic %s, format string is too large: %i (max is %i)", topic->o_name, fields_len,
+		warn("skip topic %s, format string is too large: %zu (max is %i)", topic->o_name, fields_len,
 		     sizeof(message_format_s::format));
 		return;
 	}
