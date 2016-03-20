@@ -248,6 +248,7 @@ protected:
 	rangeSample _range_sample_delayed;
 	airspeedSample _airspeed_sample_delayed;
 	flowSample _flow_sample_delayed;
+	extVisionSample _ev_sample_delayed;
 
 	outputSample _output_sample_delayed;	// filter output on the delayed time horizon
 	outputSample _output_new;	// filter output on the non-delayed time horizon

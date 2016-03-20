@@ -145,6 +145,7 @@ struct extVisionSample {
 #define VDIST_SENSOR_BARO  0	// Use baro height
 #define VDIST_SENSOR_GPS   1	// Use GPS height
 #define VDIST_SENSOR_RANGE 2	// Use range finder height
+#define VDIST_SENSOR_EV    3    // USe external vision
 
 // Bit locations for mag_declination_source
 #define MASK_USE_GEO_DECL   (1<<0)  // set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
@@ -167,6 +168,7 @@ struct extVisionSample {
 #define GPS_MAX_INTERVAL	5e5
 #define BARO_MAX_INTERVAL	2e5
 #define RNG_MAX_INTERVAL	2e5
+#define EV_MAX_INTERVAL		2e5
 
 struct parameters {
 	// measurement source control

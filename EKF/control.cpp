@@ -56,6 +56,25 @@ void Ekf::controlFusionModes()
 		_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 	}
 
+	// external vision position aiding selection logic
+	if ((_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_pos && _control_status.flags.tilt_align && _control_status.flags.yaw_align) {
+		// check for a exernal vision measurement that has fallen behind the fusion time horizon
+		if (_ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed)) {
+			// turn on use of external vision measurements for position
+			_control_status.flags.ev_pos = true;
+			// reset the position, height and velocity
+			resetPosition();
+			resetVelocity();
+			resetHeight();
+		}
+	}
+
+	// external vision yaw aiding selection logic
+	if ((_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align
+			&& (_time_last_imu - _time_last_ext_vision) < 5e5) {
+		//TODO
+	}
+
 	// optical flow fusion mode selection logic
 	// to start using optical flow data we need angular alignment complete, and fresh optical flow and height above terrain data
 	if ((_params.fusion_mode & MASK_USE_OF) && !_control_status.flags.opt_flow && _control_status.flags.tilt_align
