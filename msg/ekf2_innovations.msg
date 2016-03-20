@@ -1,4 +1,4 @@
-uint64 timestamp		# Timestamp in microseconds since boot
+# timestamp (uint64,  in microseconds since system start, is set whenever the writing thread stores new data) will be generated automatically
 float32[6] vel_pos_innov  # velocity and position innovations
 float32[3] mag_innov 	# earth magnetic field innovations
 float32 heading_innov 	# heading innovation
