@@ -310,6 +310,10 @@ bool Ekf::update()
 				_fuse_pos = true;
 				_fuse_height = true;
 			}
+			// use external vision yaw observation
+			if (_control_status.flags.ev_yaw) {
+				fuseHeading();
+			}
 		}
 
 		// If we are using optical flow aiding and data has fallen behind the fusion time horizon, then fuse it
