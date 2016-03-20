@@ -299,6 +299,29 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		return false;
 	}
 
+	// zero the data in the observation buffers
+	for (int index=0; index < OBS_BUFFER_LENGTH; index++) {
+		gpsSample gps_sample_init = {};
+		_gps_buffer.push(gps_sample_init);
+		magSample mag_sample_init = {};
+		_mag_buffer.push(mag_sample_init);
+		baroSample baro_sample_init = {};
+		_baro_buffer.push(baro_sample_init);
+		rangeSample range_sample_init = {};
+		_range_buffer.push(range_sample_init);
+		airspeedSample airspeed_sample_init = {};
+		_airspeed_buffer.push(airspeed_sample_init);
+		flowSample flow_sample_init = {};
+		_flow_buffer.push(flow_sample_init);
+	}
+
+	// zero the data in the imu data and output observer state buffers
+	for (int index=0; index < IMU_BUFFER_LENGTH; index++) {
+		imuSample imu_sample_init = {};
+		_imu_buffer.push(imu_sample_init);
+		outputSample output_sample_init = {};
+		_output_buffer.push(output_sample_init);
+	}
 
 	_dt_imu_avg = 0.0f;
 
