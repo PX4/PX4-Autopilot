@@ -47,7 +47,8 @@ pthread_t LogWriter::thread_start() {
 }
 
 void * LogWriter::run_helper(void *context) {
-	prctl(PR_SET_NAME, "log_writer", 0);
+	px4_prctl(PR_SET_NAME, "log_writer", px4_getpid());
+
 	reinterpret_cast<LogWriter *>(context)->run();
 	return nullptr;
 }
