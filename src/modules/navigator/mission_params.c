@@ -53,7 +53,7 @@
  * @max 80
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 1.8f);
+PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
 
 /**
  * Minimum Loiter altitude
