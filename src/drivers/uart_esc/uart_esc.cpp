@@ -382,26 +382,28 @@ void handle_message(mavlink_message_t *rc_message)
 	mavlink_msg_rc_channels_decode(rc_message, &rc);
 	_rc.timestamp_publication = hrt_absolute_time();
 	_rc.timestamp_last_signal = hrt_absolute_time();
-	_rc.channel_count = 8;
+	_rc.channel_count = rc.chancount;
 	_rc.rc_lost = false;
-	_rc.values[0] = rc.chan1_raw;
-	_rc.values[1] = rc.chan2_raw;
-	_rc.values[2] = rc.chan3_raw;
-	_rc.values[3] = rc.chan4_raw;
-	_rc.values[4] = rc.chan5_raw;
-	_rc.values[5] = rc.chan6_raw;
-	_rc.values[6] = rc.chan7_raw;
-	_rc.values[7] = rc.chan8_raw;
-	_rc.values[8] = rc.chan9_raw;
-	_rc.values[9] = rc.chan10_raw;
-	_rc.values[10] = rc.chan11_raw;
-	_rc.values[11] = rc.chan12_raw;
-	_rc.values[12] = rc.chan13_raw;
-	_rc.values[13] = rc.chan14_raw;
-	_rc.values[14] = rc.chan15_raw;
-	_rc.values[15] = rc.chan16_raw;
-	_rc.values[16] = rc.chan17_raw;
-	_rc.values[17] = rc.chan18_raw;
+	_rc.rssi = rc.rssi;
+
+	_rc.values[ 0] = rc.chancount > 0 ?  rc.chan1_raw : UINT16_MAX;
+	_rc.values[ 1] = rc.chancount > 0 ?  rc.chan2_raw : UINT16_MAX;
+	_rc.values[ 2] = rc.chancount > 0 ?  rc.chan3_raw : UINT16_MAX;
+	_rc.values[ 3] = rc.chancount > 0 ?  rc.chan4_raw : UINT16_MAX;
+	_rc.values[ 4] = rc.chancount > 0 ?  rc.chan5_raw : UINT16_MAX;
+	_rc.values[ 5] = rc.chancount > 0 ?  rc.chan6_raw : UINT16_MAX;
+	_rc.values[ 6] = rc.chancount > 0 ?  rc.chan7_raw : UINT16_MAX;
+	_rc.values[ 7] = rc.chancount > 0 ?  rc.chan8_raw : UINT16_MAX;
+	_rc.values[ 8] = rc.chancount > 0 ?  rc.chan9_raw : UINT16_MAX;
+	_rc.values[ 9] = rc.chancount > 0 ? rc.chan10_raw : UINT16_MAX;
+	_rc.values[10] = rc.chancount > 0 ? rc.chan11_raw : UINT16_MAX;
+	_rc.values[11] = rc.chancount > 0 ? rc.chan12_raw : UINT16_MAX;
+	_rc.values[12] = rc.chancount > 0 ? rc.chan13_raw : UINT16_MAX;
+	_rc.values[13] = rc.chancount > 0 ? rc.chan14_raw : UINT16_MAX;
+	_rc.values[14] = rc.chancount > 0 ? rc.chan15_raw : UINT16_MAX;
+	_rc.values[15] = rc.chancount > 0 ? rc.chan16_raw : UINT16_MAX;
+	_rc.values[16] = rc.chancount > 0 ? rc.chan17_raw : UINT16_MAX;
+	_rc.values[17] = rc.chancount > 0 ? rc.chan18_raw : UINT16_MAX;
 
 	if (_rc_pub != nullptr) {
 		orb_publish(ORB_ID(input_rc), _rc_pub, &_rc);
