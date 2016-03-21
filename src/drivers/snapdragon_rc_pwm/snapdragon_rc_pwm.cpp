@@ -127,7 +127,7 @@ void task_main(int argc, char *argv[])
 
 		// timed out
 		if (pret == 0) {
-			continue;
+			// let's run the loop anyway to send RC
 		}
 
 		if (pret < 0) {
@@ -150,16 +150,16 @@ void task_main(int argc, char *argv[])
 					}
 				}
 			}
+		}
 
-			// check if we have new rc data, if yes send it to snapdragon
-			bool rc_updated = false;
-			orb_check(_rc_sub, &rc_updated);
+		// check if we have new rc data, if yes send it to snapdragon
+		bool rc_updated = false;
+		orb_check(_rc_sub, &rc_updated);
 
-			if (rc_updated) {
-				orb_copy(ORB_ID(input_rc), _rc_sub, &_rc);
-				// send mavlink message
-				send_rc_mavlink();
-			}
+		if (rc_updated) {
+			orb_copy(ORB_ID(input_rc), _rc_sub, &_rc);
+			// send mavlink message
+			send_rc_mavlink();
 		}
 	}
 
