@@ -318,11 +318,13 @@ bool
 MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
 	// XXX: maybe extend that check onto item properties
-	if (item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
-			item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-			item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION ||
-			item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
-			item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED) {
+	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
+		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+		item->nav_cmd == NAV_CMD_DO_REPEAT_SERVO ||
+		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
+		item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 		return false;
 	}
 
