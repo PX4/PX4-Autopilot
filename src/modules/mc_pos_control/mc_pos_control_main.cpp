@@ -1377,10 +1377,11 @@ MulticopterPositionControl::task_main()
 					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
 				}
 
-				// do not go slower than the follow target velocity when position tracking is active
+				// do not go slower than the follow target velocity when position tracking is active (set to valid)
 
                 if(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
-                   _pos_sp_triplet.current.velocity_valid) {
+                   _pos_sp_triplet.current.velocity_valid &&
+                   _pos_sp_triplet.current.position_valid) {
 
                     math::Vector<3> ft_vel(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy, 0);
 
@@ -1399,14 +1400,18 @@ MulticopterPositionControl::task_main()
 
                     _vel_sp(0) = fabs(ft_vel(0)) > fabs(_vel_sp(0)) ? ft_vel(0) : _vel_sp(0);
                     _vel_sp(1) = fabs(ft_vel(1)) > fabs(_vel_sp(1)) ? ft_vel(1) : _vel_sp(1);
-                }
 
-                // Ignore position control calculated vel set points
+                    // track target using velocity only
 
-                if(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_VELOCITY &&
-                   _pos_sp_triplet.current.velocity_valid) {
+                } else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
+                           _pos_sp_triplet.current.velocity_valid) {
+
                     _vel_sp(0) = _pos_sp_triplet.current.vx;
                     _vel_sp(1) = _pos_sp_triplet.current.vy;
+                }
+
+                if (_run_alt_control) {
+                    _vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
                 }
 
                 /* make sure velocity setpoint is saturated in xy*/
@@ -1419,11 +1424,8 @@ MulticopterPositionControl::task_main()
                     _vel_sp(1) = _vel_sp(1) * _params.vel_max(1) / vel_norm_xy;
                 }
 
-				if (_run_alt_control) {
-					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
-				}
-
 				/* make sure velocity setpoint is saturated in z*/
+
 				float vel_norm_z = sqrtf(_vel_sp(2) * _vel_sp(2));
 
 				if (vel_norm_z > _params.vel_max(2)) {
