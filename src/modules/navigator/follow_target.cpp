@@ -135,7 +135,7 @@ void FollowTarget::on_active()
             _follow_target_state = TRACK_VELOCITY;
         } else {
             track_target_position();
-        }
+       }
         break;
     }
     case TRACK_VELOCITY: {
@@ -175,7 +175,7 @@ void FollowTarget::track_target_position()
 
     // keep the current velocity updated
 
-    _current_vel =  _target_vel;
+    _current_vel = _target_vel;
 }
 
 void FollowTarget::track_target_velocity()
@@ -271,16 +271,20 @@ void FollowTarget::update_position_sp(math::Vector<3> & vel)
     struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
     // activate line following in pos control
+
     pos_sp_triplet->previous.valid = true;
     pos_sp_triplet->previous = pos_sp_triplet->current;
     mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+    pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 
     switch(_follow_target_state) {
     case TRACK_POSITION:
-        pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
+        pos_sp_triplet->current.position_valid = true;
+        pos_sp_triplet->current.velocity_valid = true;
         break;
     case TRACK_VELOCITY:
-        pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_VELOCITY;
+        pos_sp_triplet->current.position_valid = false;
+        pos_sp_triplet->current.velocity_valid = true;
         break;
     default:
         break;
@@ -288,7 +292,6 @@ void FollowTarget::update_position_sp(math::Vector<3> & vel)
 
     pos_sp_triplet->current.vx = vel(0);
     pos_sp_triplet->current.vy = vel(1);
-    pos_sp_triplet->current.velocity_valid = true;
     pos_sp_triplet->next.valid = false;
 
     _navigator->set_position_setpoint_triplet_updated();

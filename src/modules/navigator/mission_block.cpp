@@ -374,10 +374,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		if(_navigator->get_vstatus()->is_vtol && _param_vtol_wv_loiter.get()){
 			sp->disable_mc_yaw_control = true;
 		}
-		break;// get rid of this
-	case NAV_CMD_FOLLOW_TARGET:
-	    sp->type = position_setpoint_s::SETPOINT_TYPE_VELOCITY;
-	    break;
+		break;
 
 	default:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
