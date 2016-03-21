@@ -67,6 +67,8 @@ public:
 	 */
 	virtual ~MissionBlock();
 
+	static bool item_contains_position(const struct mission_item_s *item);
+
 protected:
 	/**
 	 * Check if mission item has been reached
@@ -77,8 +79,6 @@ protected:
 	 * Reset all reached flags
 	 */
 	void reset_mission_item_reached();
-
-	bool item_contains_position(const struct mission_item_s *item);
 
 	/**
 	 * Convert a mission item to a position setpoint

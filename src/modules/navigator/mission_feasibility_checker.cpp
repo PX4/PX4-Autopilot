@@ -41,6 +41,7 @@
 
 #include "mission_feasibility_checker.h"
 
+#include "mission_block.h"
 #include <geo/geo.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
@@ -161,7 +162,9 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 				return false;
 			}
 
-			if (!geofence.inside_polygon(missionitem.lat, missionitem.lon, missionitem.altitude)) {
+			if (MissionBlock::item_contains_position(&missionitem) &&
+				!geofence.inside_polygon(missionitem.lat, missionitem.lon, missionitem.altitude)) {
+
 				mavlink_log_critical(_mavlink_fd, "Geofence violation for waypoint %d", i);
 				return false;
 			}
