@@ -315,7 +315,7 @@ then
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	#
 	sh /etc/init.d/rc.sensors
-	
+
 	if [ $GPS == yes ]
 	then
 		if [ $GPS_FAKE == yes ]
@@ -543,7 +543,9 @@ then
 	# Transitional support: Disable safety on all Pixracer boards
 	if ver hwcmp PX4FMU_V4
 	then
-		param set CBRK_IO_SAFETY 22027
+		if param set CBRK_IO_SAFETY 22027
+		then
+		fi
 	fi
 
 	#
