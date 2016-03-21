@@ -813,7 +813,9 @@ fi
 mavlink stop-all
 
 # XXX Stop multicopter attitude controller, the controls come from snapdragon
-mc_att_control stop
+if mc_att_control stop
+then
+fi
 
 # XXX Start snapdragon interface on serial port. On pixfalcon this is the standard telemetry port.
 snapdragon_rc_pwm start -d /dev/ttyS1
