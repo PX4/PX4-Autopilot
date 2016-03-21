@@ -120,7 +120,7 @@ struct message_format_s {
 
 	uint8_t msg_id;
 	uint8_t format_len;
-	char format[1000];
+	char format[2086];
 };
 
 struct message_data_header_s {

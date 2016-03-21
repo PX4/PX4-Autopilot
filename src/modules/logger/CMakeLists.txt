@@ -31,7 +31,7 @@
 #
 ############################################################################
 if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1500)
+	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3000)
 endif()
 
 px4_add_module(
