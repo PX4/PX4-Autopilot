@@ -53,6 +53,7 @@ set(config_module_list
 	modules/uORB
 	modules/commander
 	modules/controllib
+	modules/land_detector
 
 	#
 	# PX4 drivers
