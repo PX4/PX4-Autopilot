@@ -150,7 +150,11 @@ static bool _extended_logging = false;
 static bool _gpstime_only = false;
 static int32_t _utc_offset = 0;
 
+#ifndef __PX4_QURT
+#define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd"
+#else
 #define MOUNTPOINT "/root"
+#endif
 static const char *mountpoint = MOUNTPOINT;
 static const char *log_root = MOUNTPOINT "/log";
 static int mavlink_fd = -1;
@@ -1061,7 +1065,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* any other value means to ignore the parameter, so no else case */
 
 	}
-	
+
 	param_t log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 
 	if ( log_utc_offset != PARAM_INVALID ) {
@@ -1297,7 +1301,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		subs.telemetry_subs[i] = -1;
 	}
-	
+
 	subs.sat_info_sub = -1;
 
 #ifdef __PX4_NUTTX
