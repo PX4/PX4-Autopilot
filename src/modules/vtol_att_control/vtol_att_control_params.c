@@ -312,3 +312,12 @@ PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
+
+/**
+ * Force VTOL mode takeoff and land
+ *
+ * @min 0
+ * @max 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FORCE_VTOL, 0);

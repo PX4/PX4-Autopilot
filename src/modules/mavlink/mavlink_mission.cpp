@@ -865,6 +865,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 	// specific item handling
 	switch (mission_item->nav_cmd) {
 	case NAV_CMD_TAKEOFF:
+	case NAV_CMD_VTOL_TAKEOFF:
 		mavlink_mission_item->param1 = mission_item->pitch_min;
 		break;
 
