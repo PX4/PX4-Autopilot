@@ -473,7 +473,7 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 				// Mag in this slot is available
 				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
 				if (worker_data.sub_mag[cur_mag] < 0) {
-					mavlink_and_console_log_critical(mavlink_fd, "[cal] Mag #%u not found, abort", cur_mag);
+					mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Mag #%u not found, abort", cur_mag);
 					result = calibrate_return_error;
 					break;
 				}
