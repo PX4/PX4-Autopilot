@@ -247,7 +247,8 @@ private:
 		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
 		WORK_ITEM_TYPE_CMD_BEFORE_MOVE,	/**<  */
 		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,	/**<  */
-		WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND	/**<  */
+		WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND,	/**<  */
+		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION	/**<  */
 	} _work_item_type;	/**< current type of work to do (sub mission item) */
 
 };

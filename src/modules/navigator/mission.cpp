@@ -418,6 +418,9 @@ Mission::set_mission_items()
 	/*********************************** handle mission item *********************************************/
 
 	/* handle position mission items */
+
+	printf("NAV_CMD %.2f \n", (double)_mission_item.nav_cmd);
+
 	if (item_contains_position(&_mission_item)) {
 
 		/* we have a new position item so set previous position setpoint to current */
@@ -450,43 +453,68 @@ Mission::set_mission_items()
 		/* if we just did a takeoff navigate to the actual waypoint now */
 		if (_work_item_type == WORK_ITEM_TYPE_TAKEOFF) {
 
-			if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+			if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
+					&& _navigator->get_vstatus()->is_rotary_wing
+					&& !_navigator->get_vstatus()->condition_landed
+					&& has_next_position_item) {
+				_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+				_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 				new_work_item_type = WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF;
-
 			} else {
 				new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
+				_mission_item.yaw = NAN;
 			}
-			
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
-			_mission_item.yaw = NAN;
+
 		}
 
-		if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
-				&& _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF
-				&& _navigator->get_vstatus()->is_rotary_wing
-				&& !_navigator->get_vstatus()->condition_landed
-				&& has_next_position_item) {
+		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
+				&& _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF) {
 
-			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
-			set_align_mission_item(&_mission_item, &mission_item_next_position);
-		}
-
-		if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
-				&& _work_item_type == WORK_ITEM_TYPE_ALIGN) {
-
-			_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-			_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		}
 
-		if(_mission_item.nav_cmd == NAV_CMD_VTOL_LAND ||
-				(_mission_item.nav_cmd == NAV_CMD_LAND && _param_force_vtol.get())){
+			if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
+					&& _work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND
+					&& !_navigator->get_vstatus()->condition_landed) {
+				printf("vtol move to land \n");
 
-			_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-			_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-			new_work_item_type = WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND;
-		}
+				new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
+
+				/* use current mission item as next position item */
+				memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
+				has_next_position_item = true;
+
+				/*
+				 * Ignoring waypoint altitude:
+				 * Set altitude to the same as we have now to prevent descending too fast into
+				 * the ground. Actual landing will descend anyway until it touches down.
+				 * XXX: We might want to change that at some point if it is clear to the user
+				 * what the altitude means on this waypoint type.
+				 */
+				float altitude = _navigator->get_global_position()->alt;
+				if (pos_sp_triplet->current.valid) {
+					altitude = pos_sp_triplet->current.alt;
+				}
+
+				_mission_item.altitude = altitude;
+				_mission_item.altitude_is_relative = false;
+				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				_mission_item.autocontinue = true;
+				_mission_item.time_inside = 0;
+			}
+
+			if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
+					&& _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND
+					&& !_navigator->get_vstatus()->is_rotary_wing
+					&& !_navigator->get_vstatus()->condition_landed) {
+
+				_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+				_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				new_work_item_type = WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND;
+			}
 
 		/* move to landing waypoint before descent if necessary */
 		if (do_need_move_to_land() && _work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND) {
@@ -516,9 +544,13 @@ Mission::set_mission_items()
 		}
 
 		/* we just moved to the landing waypoint, now descend */
-		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND) {
+		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND
+				&& _navigator->get_vstatus()->is_rotary_wing) {
+			printf("move to land complete \n");
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 		}
+
+
 
 		/* ignore yaw for landing items */
 		/* XXX: if specified heading for landing is desired we could add another step before the descent
@@ -529,15 +561,16 @@ Mission::set_mission_items()
 
 	/* handle non-position mission items such as commands */
 	} else {
+		printf("not a position item \n");
 
 		/* turn towards next waypoint before MC to FW transition */
 		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
-				&& _work_item_type != WORK_ITEM_TYPE_ALIGN
+				&& _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF
 				&& _navigator->get_vstatus()->is_rotary_wing
 				&& !_navigator->get_vstatus()->condition_landed
 				&& has_next_position_item) {
 
-			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
+			new_work_item_type = WORK_ITEM_TYPE_ALIGN;			
 			set_align_mission_item(&_mission_item, &mission_item_next_position);
 		}
 
@@ -863,7 +896,7 @@ Mission::prepare_mission_items(bool onboard, struct mission_item_s *mission_item
 	int offset = 1;
 
 	if (read_mission_item(onboard, 0, mission_item)) {
-		
+
 		first_res = true;
 
 		/* trying to find next position mission item */
@@ -929,7 +962,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_and_console_log_critical(_navigator->get_mavlink_fd(),
-			                     "ERROR waypoint could not be read");
+								 "ERROR waypoint could not be read");
 			return false;
 		}
 
@@ -945,15 +978,15 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 					(mission_item_tmp.do_jump_current_count)++;
 					/* save repeat count */
 					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_POWER_ON_RESET,
-					    &mission_item_tmp, len) != len) {
+						&mission_item_tmp, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the
 						 * dataman */
 						mavlink_log_critical(_navigator->get_mavlink_fd(),
-								     "ERROR DO JUMP waypoint could not be written");
+									 "ERROR DO JUMP waypoint could not be written");
 						return false;
 					}
 					report_do_jump_mission_changed(*mission_index_ptr,
-								       mission_item_tmp.do_jump_repeat_count);
+									   mission_item_tmp.do_jump_repeat_count);
 				}
 				/* set new mission item index and repeat
 				* we don't have to validate here, if it's invalid, we should realize this later .*/
@@ -962,7 +995,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 			} else {
 				if (offset == 0) {
 					mavlink_log_info(_navigator->get_mavlink_fd(),
-							     "DO JUMP repetitions completed");
+								 "DO JUMP repetitions completed");
 				}
 				/* no more DO_JUMPS, therefore just try to continue with next mission item */
 				(*mission_index_ptr)++;
@@ -977,7 +1010,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 
 	/* we have given up, we don't want to cycle forever */
 	mavlink_log_critical(_navigator->get_mavlink_fd(),
-			     "ERROR DO JUMP is cycling, giving up");
+				 "ERROR DO JUMP is cycling, giving up");
 	return false;
 }
 
