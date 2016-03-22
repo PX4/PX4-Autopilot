@@ -66,10 +66,9 @@ private:
     static constexpr float FF_K = .15f;
 
     enum FollowTargetState {
-        ASCEND,
         TRACK_POSITION,
         TRACK_VELOCITY,
-        TARGET_TIMEOUT
+        WAIT_FOR_TARGET_POSITION
     };
 
     Navigator *_navigator;
@@ -78,9 +77,7 @@ private:
     int _follow_target_sub;
     float _step_time_in_ms;
 
-    bool _previous_target_gps_pos_valid;
-    bool _radius_entered;
-    bool _radius_exited;
+    uint64_t _target_updates;
 
     uint64_t _last_update_time;
 
@@ -94,8 +91,10 @@ private:
 
     void track_target_position();
     void track_target_velocity();
-    void pause();
-    void update_position_sp(math::Vector<3> & vel);
+    bool target_velocity_valid();
+    bool target_position_valid();
+    void reset_target_validity();
+    void update_position_sp(bool velocity_valid, bool position_valid);
     void update_target_motion();
     void update_target_velocity();
 };
