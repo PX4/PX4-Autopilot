@@ -468,16 +468,27 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 
 	// Setup subscriptions to mag sensors
 	if (result == calibrate_return_ok) {
-		for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
-			if (device_ids[cur_mag] != 0) {
-				// Mag in this slot is available
-				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
-				if (worker_data.sub_mag[cur_mag] < 0) {
-					mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Mag #%u not found, abort", cur_mag);
-					result = calibrate_return_error;
-					break;
-				}
 
+		// We should not try to subscribe if the topic doesn't actually exist and can be counted.
+		const unsigned mag_count = orb_group_count(ORB_ID(sensor_mag));
+
+		for (unsigned cur_mag = 0; cur_mag < mag_count; cur_mag++) {
+			// Mag in this slot is available
+			worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
+
+#ifdef __PX4_QURT
+			// For QURT respectively the driver framework, we need to get the device ID by copying one report.
+			struct mag_report	mag_report;
+			orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &mag_report);
+			device_ids[cur_mag] = mag_report.device_id;
+#endif
+			if (worker_data.sub_mag[cur_mag] < 0) {
+				mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Mag #%u not found, abort", cur_mag);
+				result = calibrate_return_error;
+				break;
+			}
+
+			if (device_ids[cur_mag] != 0) {
 				// Get priority
 				int32_t prio;
 				orb_priority(worker_data.sub_mag[cur_mag], &prio);
@@ -486,6 +497,10 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 					device_prio_max = prio;
 					device_id_primary = device_ids[cur_mag];
 				}
+			} else {
+				mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Mag #%u no device id, abort", cur_mag);
+				result = calibrate_return_error;
+				break;
 			}
 		}
 	}
@@ -696,9 +711,11 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 						mavlink_and_console_log_info(mavlink_fd, "[cal] mag #%u off: x:%.2f y:%.2f z:%.2f Ga",
 									     cur_mag,
 									     (double)mscale.x_offset, (double)mscale.y_offset, (double)mscale.z_offset);
+#ifndef __PX4_QURT
 						mavlink_and_console_log_info(mavlink_fd, "[cal] mag #%u scale: x:%.2f y:%.2f z:%.2f",
 									     cur_mag,
 									     (double)mscale.x_scale, (double)mscale.y_scale, (double)mscale.z_scale);
+#endif
 					}
 				}
 			}

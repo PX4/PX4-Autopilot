@@ -173,8 +173,10 @@ int do_gyro_calibration(int mavlink_fd)
 	for (unsigned s = 0; s < max_gyros; s++) {
 		char str[30];
 
-		// Reset gyro ids to unavailable
+		// Reset gyro ids to unavailable.
 		worker_data.device_id[s] = 0;
+		// And set default subscriber values.
+		worker_data.gyro_sensor_sub[s] = -1;
 		(void)sprintf(str, "CAL_GYRO%u_ID", s);
 		res = param_set_no_notification(param_find(str), &(worker_data.device_id[s]));
 		if (res != OK) {
@@ -232,16 +234,29 @@ int do_gyro_calibration(int mavlink_fd)
 
 	}
 
-	for (unsigned s = 0; s < max_gyros; s++) {
+	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
+	const unsigned gyro_count = orb_group_count(ORB_ID(sensor_gyro));
+	for (unsigned s = 0; s < gyro_count; s++) {
+
 		worker_data.gyro_sensor_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
+#ifdef __PX4_QURT
+		// For QURT respectively the driver framework, we need to get the device ID by copying one report.
+		struct gyro_report	gyro_report;
+		orb_copy(ORB_ID(sensor_gyro), worker_data.gyro_sensor_sub[s], &gyro_report);
+		worker_data.device_id[s] = gyro_report.device_id;
+#endif
 
-		// Get priority
-		int32_t prio;
-		orb_priority(worker_data.gyro_sensor_sub[s], &prio);
+		if (worker_data.device_id[s] != 0) {
+			// Get priority
+			int32_t prio;
+			orb_priority(worker_data.gyro_sensor_sub[s], &prio);
 
-		if (prio > device_prio_max) {
-			device_prio_max = prio;
-			device_id_primary = worker_data.device_id[s];
+			if (prio > device_prio_max) {
+				device_prio_max = prio;
+				device_id_primary = worker_data.device_id[s];
+			}
+		} else {
+			mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Gyro #%u no device id, abort", s);
 		}
 	}
 

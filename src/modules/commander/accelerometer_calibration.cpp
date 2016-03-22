@@ -410,25 +410,39 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 
 	uint64_t timestamps[max_accel_sens];
 
-	for (unsigned i = 0; i < max_accel_sens; i++) {
+	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
+	const unsigned accel_count = orb_group_count(ORB_ID(sensor_accel));
+	for (unsigned i = 0; i < accel_count; i++) {
 		worker_data.subs[i] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
 		if (worker_data.subs[i] < 0) {
 			result = calibrate_return_error;
 			break;
 		}
 
+#ifdef __PX4_QURT
+		// For QURT respectively the driver framework, we need to get the device ID by copying one report.
+		struct accel_report	accel_report;
+		orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &accel_report);
+		device_id[i] = accel_report.device_id;
+#endif
 		/* store initial timestamp - used to infer which sensors are active */
 		struct accel_report arp = {};
 		(void)orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &arp);
 		timestamps[i] = arp.timestamp;
 
-		// Get priority
-		int32_t prio;
-		orb_priority(worker_data.subs[i], &prio);
+		if (device_id[i] != 0) {
+			// Get priority
+			int32_t prio;
+			orb_priority(worker_data.subs[i], &prio);
 
-		if (prio > device_prio_max) {
-			device_prio_max = prio;
-			device_id_primary = device_id[i];
+			if (prio > device_prio_max) {
+				device_prio_max = prio;
+				device_id_primary = device_id[i];
+			}
+		} else {
+			mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Accel #%u no device id, abort", i);
+			result = calibrate_return_error;
+			break;
 		}
 	}
 
