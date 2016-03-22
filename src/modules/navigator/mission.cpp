@@ -516,6 +516,7 @@ Mission::set_mission_items()
 				new_work_item_type = WORK_ITEM_TYPE_TRANSITON_BEFORE_LAND;
 			}
 
+
 		/* move to landing waypoint before descent if necessary */
 		if (do_need_move_to_land() && _work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND) {
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
