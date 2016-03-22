@@ -483,7 +483,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t (&devi
 			device_ids[cur_mag] = mag_report.device_id;
 #endif
 			if (worker_data.sub_mag[cur_mag] < 0) {
-				mavlink_and_console_log_critical(mavlink_fd, "[cal] Mag #%u not found, abort", cur_mag);
+				mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Mag #%u not found, abort", cur_mag);
 				result = calibrate_return_error;
 				break;
 			}
@@ -498,7 +498,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t (&devi
 					device_id_primary = device_ids[cur_mag];
 				}
 			} else {
-				mavlink_and_console_log_critical(mavlink_fd, "[cal] Mag #%u no device id, abort", cur_mag);
+				mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Mag #%u no device id, abort", cur_mag);
 				result = calibrate_return_error;
 				break;
 			}

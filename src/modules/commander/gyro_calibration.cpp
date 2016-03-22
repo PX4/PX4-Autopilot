@@ -256,7 +256,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 				device_id_primary = worker_data.device_id[s];
 			}
 		} else {
-			mavlink_and_console_log_critical(mavlink_fd, "[cal] Gyro #%u no device id, abort", s);
+			mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Gyro #%u no device id, abort", s);
 		}
 	}
 
