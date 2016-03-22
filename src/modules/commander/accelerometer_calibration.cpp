@@ -440,7 +440,7 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 				device_id_primary = device_id[i];
 			}
 		} else {
-			mavlink_and_console_log_critical(mavlink_log_pub, "[cal] Accel #%u no device id, abort", i);
+			mavlink_and_console_log_critical(mavlink_fd, "[cal] Accel #%u no device id, abort", i);
 			result = calibrate_return_error;
 			break;
 		}
