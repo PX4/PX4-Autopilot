@@ -167,6 +167,7 @@ int do_gyro_calibration(int mavlink_fd)
 	gyro_scale_zero.z_offset = 0.0f;
 	gyro_scale_zero.z_scale = 1.0f;
 
+	int device_prio_max = 0;
 	int32_t device_id_primary = 0;
 
 	for (unsigned s = 0; s < max_gyros; s++) {
@@ -238,20 +239,10 @@ int do_gyro_calibration(int mavlink_fd)
 		int32_t prio;
 		orb_priority(worker_data.gyro_sensor_sub[s], &prio);
 
-#ifndef __PX4_QURT
-		int device_prio_max = 0;
 		if (prio > device_prio_max) {
 			device_prio_max = prio;
 			device_id_primary = worker_data.device_id[s];
 		}
-#else
-		gyro_report report = {};
-		orb_copy(ORB_ID(sensor_gyro), worker_data.gyro_sensor_sub[s], &report);
-		//PX4_INFO("found device id: %d", report.device_id);
-
-		// TODO FIXME: this is hacky but should get the device ID for now
-		worker_data.device_id[s] = report.device_id;
-#endif
 	}
 
 	int cancel_sub  = calibrate_cancel_subscribe();

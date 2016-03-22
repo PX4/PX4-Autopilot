@@ -157,6 +157,7 @@ static const int ERROR = -1;
 static const char *sensor_name = "accel";
 
 static int32_t device_id[max_accel_sens];
+static int device_prio_max = 0;
 static int32_t device_id_primary = 0;
 
 calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors);
@@ -425,18 +426,10 @@ calibrate_return do_accel_calibration_measurements(int mavlink_fd, float (&accel
 		int32_t prio;
 		orb_priority(worker_data.subs[i], &prio);
 
-#ifndef __PX4_QURT
-		int device_prio_max = 0;
 		if (prio > device_prio_max) {
 			device_prio_max = prio;
 			device_id_primary = device_id[i];
 		}
-#else
-		PX4_INFO("found device id: %d", arp.device_id);
-
-		// TODO FIXME: this is hacky but should get the device ID for now
-		device_id[i] = arp.device_id;
-#endif
 	}
 
 	if (result == calibrate_return_ok) {

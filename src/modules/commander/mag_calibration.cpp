@@ -469,31 +469,24 @@ calibrate_return mag_calibrate_all(int mavlink_fd, int32_t (&device_ids)[max_mag
 	// Setup subscriptions to mag sensors
 	if (result == calibrate_return_ok) {
 		for (unsigned cur_mag=0; cur_mag<max_mags; cur_mag++) {
-			// Mag in this slot is available
-			worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
-			if (worker_data.sub_mag[cur_mag] < 0) {
-				mavlink_and_console_log_critical(mavlink_fd, "[cal] Mag #%u not found, abort", cur_mag);
-				result = calibrate_return_error;
-				break;
+			if (device_ids[cur_mag] != 0) {
+				// Mag in this slot is available
+				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
+				if (worker_data.sub_mag[cur_mag] < 0) {
+					mavlink_and_console_log_critical(mavlink_fd, "[cal] Mag #%u not found, abort", cur_mag);
+					result = calibrate_return_error;
+					break;
+				}
+
+				// Get priority
+				int32_t prio;
+				orb_priority(worker_data.sub_mag[cur_mag], &prio);
+
+				if (prio > device_prio_max) {
+					device_prio_max = prio;
+					device_id_primary = device_ids[cur_mag];
+				}
 			}
-
-			// Get priority
-			int32_t prio;
-			orb_priority(worker_data.sub_mag[cur_mag], &prio);
-
-#ifndef __PX4_QURT
-			if (prio > device_prio_max) {
-				device_prio_max = prio;
-				device_id_primary = device_ids[cur_mag];
-			}
-#else
-			mag_report report = {};
-			orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &report);
-
-			// TODO FIXME: this is hacky but should get the device ID for now
-			device_ids[cur_mag] = report.device_id;
-			PX4_INFO("found device id: %d", report.device_id);
-#endif
 		}
 	}
 
