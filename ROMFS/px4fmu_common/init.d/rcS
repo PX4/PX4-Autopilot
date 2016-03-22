@@ -489,18 +489,18 @@ then
 			then
 				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
 				# Start MAVLink on Wifi (ESP8266 port)
-				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
+				#mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
 			fi
 		fi
 	fi
 
-	mavlink start $MAVLINK_F
+	#mavlink start $MAVLINK_F
 	unset MAVLINK_F
 
 	#
 	# MAVLink onboard / TELEM2
 	#
-	if ver hwcmp PX4FMU_V1
+	if ver hwcmp PX4FMU_V4
 	then
 	else
 		# XXX We need a better way for runtime eval of shell variables,

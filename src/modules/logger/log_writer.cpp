@@ -158,7 +158,10 @@ bool LogWriter::write(void *ptr, size_t size)
 	// Bytes available to write
 	size_t available = _buffer_size - _count;
 
+//	warnx("writing %d bytes, available: %d", size, available);
+
 	if (size > available) {
+		warnx("overflow");
 		// buffer overflow
 		return false;
 	}

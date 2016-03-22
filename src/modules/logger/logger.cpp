@@ -34,6 +34,7 @@ int logger_main(int argc, char *argv[])
 			return 1;
 		}
 
+		warnx("deleting logger");
 		delete logger_ptr;
 		logger_ptr = nullptr;
 		return 0;
@@ -82,7 +83,7 @@ int Logger::start()
 	logger_task = px4_task_spawn_cmd("logger",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 2048,
+					 4000,
 					 (px4_main_t)&Logger::run_trampoline,
 					 nullptr);
 
@@ -116,33 +117,34 @@ enum class MessageType : uint8_t {
 #pragma pack(push, 1)
 struct message_format_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::FORMAT);
-	uint8_t msg_size;
+	uint16_t msg_size;
 
 	uint8_t msg_id;
-	uint8_t format_len;
-	char format[2086];
+	uint16_t format_len;
+	char format[2100];
 };
 
 struct message_data_header_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::DATA);
-	uint8_t msg_size;
+	uint16_t msg_size;
 
 	uint8_t msg_id;
 	uint8_t multi_id;
 	//uint64_t timestamp;	// this field already included in each data struct
 };
 
-struct message_info_header_s {
-	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
-	uint8_t msg_size;
-
-	uint8_t key_len;
-	char key[255];
-};
+// apparently unused
+//struct message_info_header_s {
+//	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
+//	uint8_t msg_size;
+//
+//	uint8_t key_len;
+//	char key[255];
+//};
 
 struct message_parameter_header_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
-	uint8_t msg_size;
+	uint16_t msg_size;
 
 	uint8_t key_len;
 	char key[255];
@@ -150,7 +152,7 @@ struct message_parameter_header_s {
 #pragma pack(pop)
 
 
-static constexpr size_t MAX_DATA_SIZE = 738;
+static constexpr size_t MAX_DATA_SIZE = 740;
 
 Logger::Logger(size_t buffer_size, unsigned log_interval) :
 	_writer((_log_buffer = new uint8_t[buffer_size]), buffer_size),
@@ -191,6 +193,7 @@ void Logger::add_topic(const orb_metadata *topic)
 
 	size_t fields_len = strlen(topic->o_fields);
 
+
 	if (fields_len > sizeof(message_format_s::format)) {
 		warn("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
 		     sizeof(message_format_s::format));
@@ -205,7 +208,10 @@ void Logger::add_all_topics()
 	const orb_metadata **topics = orb_get_topics();
 
 	for (size_t i = 0; i < orb_topics_count(); i++) {
-		add_topic(topics[i]);
+		if (strcmp(topics[i]->o_name, "vehicle_attitude") == 0) {
+			warnx("adding topic %s", topics[i]->o_name);
+			add_topic(topics[i]);
+		}
 	}
 }
 
@@ -235,9 +241,9 @@ void Logger::run()
 	while (!_task_should_exit) {
 		// Start/stop logging when system arm/disarm
 		if (_vehicle_status_sub.check_updated()) {
+			_vehicle_status_sub.update();
 			bool armed = (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
 				     (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
-
 			if (_enabled != armed) {
 				if (armed) {
 					start_log();
@@ -269,6 +275,8 @@ void Logger::run()
 					header->msg_size = static_cast<uint8_t>(msg_size - 2);
 					header->msg_id = msg_id;
 					header->multi_id = 0x80;	// Non multi, active
+
+//					warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
 
 					if (_writer.write(buffer, msg_size)) {
 						data_written = true;
