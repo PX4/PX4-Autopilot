@@ -42,7 +42,7 @@
 #include <math.h>
 #include <fcntl.h>
 
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
 
@@ -155,11 +155,11 @@ RCLoss::advance_rcl()
 	case RCL_STATE_NONE:
 		if (_param_loitertime.get() > 0.0f) {
 			warnx("RC loss, OBC mode, loiter");
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "rc loss, loitering");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, loitering");
 			_rcl_state = RCL_STATE_LOITER;
 		} else {
 			warnx("RC loss, OBC mode, slip loiter, terminate");
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "rc loss, terminating");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, terminating");
 			_rcl_state = RCL_STATE_TERMINATE;
 			_navigator->get_mission_result()->stay_in_failsafe = true;
 			_navigator->set_mission_result_updated();
@@ -169,7 +169,7 @@ RCLoss::advance_rcl()
 	case RCL_STATE_LOITER:
 		_rcl_state = RCL_STATE_TERMINATE;
 		warnx("time is up, no RC regain, terminating");
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "RC not regained, terminating");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC not regained, terminating");
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->set_mission_result_updated();
 		reset_mission_item_reached();

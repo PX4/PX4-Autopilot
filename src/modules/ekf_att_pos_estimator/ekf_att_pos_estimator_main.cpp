@@ -63,9 +63,9 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <mavlink/mavlink_log.h>
 #include <platforms/px4_defines.h>
 
 static uint64_t IMUusec = 0;
@@ -213,7 +213,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_newDataMag(false),
 	_newRangeData(false),
 
-	_mavlink_fd(-1),
 	_mag_offset_x(this, "MAGB_X"),
 	_mag_offset_y(this, "MAGB_Y"),
 	_mag_offset_z(this, "MAGB_Z"),
@@ -405,7 +404,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 		// Do not warn about accel offset if we have no position updates
 		if (!(warn_index == 5 && _ekf->staticMode)) {
 			PX4_WARN("reset: %s", feedback[warn_index]);
-			mavlink_log_critical(_mavlink_fd, "[ekf check] %s", feedback[warn_index]);
+			mavlink_log_critical(&_mavlink_log_pub, "[ekf check] %s", feedback[warn_index]);
 		}
 	}
 
@@ -511,8 +510,6 @@ void AttitudePositionEstimatorEKF::task_main_trampoline(int argc, char *argv[])
 
 void AttitudePositionEstimatorEKF::task_main()
 {
-	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
-
 	_ekf = new AttPosEKF();
 
 	if (!_ekf) {
@@ -769,7 +766,7 @@ void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
 		_local_pos.ref_timestamp = timestamp;
 
 		map_projection_init(&_pos_ref, lat, lon);
-		mavlink_and_console_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
+		mavlink_and_console_log_info(&_mavlink_log_pub, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
 	}
 }
 
@@ -1442,7 +1439,7 @@ void AttitudePositionEstimatorEKF::pollData()
 			   _voter_mag.failover_count() > 0)) {
 
 		_failsafe = true;
-		mavlink_and_console_log_emergency(_mavlink_fd, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
+		mavlink_and_console_log_emergency(&_mavlink_log_pub, "SENSOR FAILSAFE! RETURN TO LAND IMMEDIATELY");
 	}
 
 	if (!_vibration_warning && (_voter_gyro.get_vibration_factor(curr_time) > _vibration_warning_threshold ||
@@ -1454,7 +1451,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 		} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000000) {
 			_vibration_warning = true;
-			mavlink_and_console_log_critical(_mavlink_fd, "HIGH VIBRATION! g: %d a: %d m: %d",
+			mavlink_and_console_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
 							 (int)(100 * _voter_gyro.get_vibration_factor(curr_time)),
 							 (int)(100 * _voter_accel.get_vibration_factor(curr_time)),
 							 (int)(100 * _voter_mag.get_vibration_factor(curr_time)));
@@ -1570,7 +1567,7 @@ void AttitudePositionEstimatorEKF::pollData()
 
 			//Stop dead-reckoning mode
 			if (_global_pos.dead_reckoning) {
-				mavlink_log_info(_mavlink_fd, "[ekf] stop dead-reckoning");
+				mavlink_log_info(&_mavlink_log_pub, "[ekf] stop dead-reckoning");
 			}
 
 			_global_pos.dead_reckoning = false;
@@ -1637,7 +1634,7 @@ void AttitudePositionEstimatorEKF::pollData()
 	if (dtLastGoodGPS >= POS_RESET_THRESHOLD) {
 
 		if (_global_pos.dead_reckoning) {
-			mavlink_log_info(_mavlink_fd, "[ekf] gave up dead-reckoning after long timeout");
+			mavlink_log_info(&_mavlink_log_pub, "[ekf] gave up dead-reckoning after long timeout");
 		}
 
 		_gpsIsGood = false;
@@ -1648,7 +1645,7 @@ void AttitudePositionEstimatorEKF::pollData()
 	else if (dtLastGoodGPS >= 0.5f) {
 		if (_armed.armed) {
 			if (!_global_pos.dead_reckoning) {
-				mavlink_log_info(_mavlink_fd, "[ekf] dead-reckoning enabled");
+				mavlink_log_info(&_mavlink_log_pub, "[ekf] dead-reckoning enabled");
 			}
 
 			_global_pos.dead_reckoning = true;

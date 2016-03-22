@@ -79,7 +79,7 @@
 #include <geo/geo.h>
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 
 #include "navigator.h"
 
@@ -102,7 +102,7 @@ Navigator::Navigator() :
 	SuperBlock(NULL, "NAV"),
 	_task_should_exit(false),
 	_navigator_task(-1),
-	_mavlink_fd(-1),
+	_mavlink_log_pub(nullptr),
 	_global_pos_sub(-1),
 	_gps_pos_sub(-1),
 	_home_pos_sub(-1),
@@ -131,7 +131,7 @@ Navigator::Navigator() :
 	_mission_item_valid(false),
 	_mission_instance_count(0),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
-	_geofence{},
+	_geofence(this),
 	_geofence_violation_warning_sent(false),
 	_inside_fence(true),
 	_can_loiter_at_sp(false),
@@ -265,9 +265,6 @@ Navigator::task_main_trampoline(int argc, char *argv[])
 void
 Navigator::task_main()
 {
-	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
-	_geofence.setMavlinkFd(_mavlink_fd);
-
 	bool have_geofence_position_data = false;
 
 	/* Try to load the geofence:
@@ -281,7 +278,7 @@ Navigator::task_main()
 
 	} else {
 		if (_geofence.clearDm() != OK) {
-			mavlink_log_critical(_mavlink_fd, "failed clearing geofence");
+			mavlink_log_critical(&_mavlink_log_pub, "failed clearing geofence");
 		}
 	}
 
@@ -307,9 +304,6 @@ Navigator::task_main()
 	home_position_update(true);
 	navigation_capabilities_update();
 	params_update();
-
-	hrt_abstime mavlink_open_time = 0;
-	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1] = {};
@@ -341,12 +335,6 @@ Navigator::task_main()
 		global_pos_available_once = true;
 
 		perf_begin(_loop_perf);
-
-		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
-			/* try to reopen the mavlink log device with specified interval */
-			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
-			_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
-		}
 
 		bool updated;
 
@@ -435,7 +423,7 @@ Navigator::task_main()
 
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
-					mavlink_log_critical(_mavlink_fd, "Geofence violation");
+					mavlink_log_critical(&_mavlink_log_pub, "Geofence violation");
 					_geofence_violation_warning_sent = true;
 				}
 			} else {
@@ -777,6 +765,6 @@ Navigator::set_mission_failure(const char* reason)
 	if (!_mission_result.mission_failure) {
 		_mission_result.mission_failure = true;
 		set_mission_result_updated();
-		mavlink_log_critical(_mavlink_fd, "%s", reason);
+		mavlink_log_critical(&_mavlink_log_pub, "%s", reason);
 	}
 }
