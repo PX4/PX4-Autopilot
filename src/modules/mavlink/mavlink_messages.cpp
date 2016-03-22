@@ -365,35 +365,45 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_mavlink_log_sub;
-	uint64_t _mavlink_log_time;
-
 	/* do not allow top copying this class */
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
 	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
 
 	unsigned write_err_count = 0;
 	static const unsigned write_err_threshold = 5;
+#ifndef __PX4_QURT
 	FILE *fp = nullptr;
+#endif
 
 protected:
-	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_mavlink_log_sub(_mavlink->add_orb_subscription(ORB_ID(mavlink_log)))
+	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
+
+	~MavlinkStreamStatustext() {
+#ifndef __PX4_QURT
+		if (fp) {
+			fclose(fp);
+		}
+#endif
+	}
+
 
 	void send(const hrt_abstime t)
 	{
-		struct mavlink_log_s mavlink_log;
+		if (!_mavlink->get_logbuffer()->empty()) {
 
-		if (_mavlink_log_sub->update(&_mavlink_log_time, &mavlink_log)) {
+			struct mavlink_log_s mavlink_log;
+			if (_mavlink->get_logbuffer()->get(&mavlink_log)) {
 
-			mavlink_statustext_t msg;
-			msg.severity = mavlink_log.severity;
+				mavlink_statustext_t msg;
+				msg.severity = mavlink_log.severity;
+				strncpy(msg.text, (const char *)mavlink_log.text, sizeof(msg.text));
 
-			strncpy(msg.text, (const char*)mavlink_log.text, sizeof(msg.text));
+				_mavlink->send_message(MAVLINK_MSG_ID_STATUSTEXT, &msg);
 
-			_mavlink->send_message(MAVLINK_MSG_ID_STATUSTEXT, &msg);
 
+// TODO: the logging doesn't work on Snapdragon yet because of file paths.
+#ifndef __PX4_QURT
 			/* write log messages in first instance to disk */
 			if (_mavlink->get_instance_id() == 0) {
 				if (fp) {
@@ -411,35 +421,37 @@ protected:
 						(void)fsync(fileno(fp));
 					}
 
-				} else if (write_err_count < write_err_threshold) {
-					/* string to hold the path to the log */
-					char log_file_name[32] = "";
-					char log_file_path[70] = "";
+					} else if (write_err_count < write_err_threshold) {
+						/* string to hold the path to the log */
+						char log_file_name[32] = "";
+						char log_file_path[70] = "";
 
-					timespec ts;
-					px4_clock_gettime(CLOCK_REALTIME, &ts);
-					/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
-					time_t gps_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
-					struct tm tt;
-					gmtime_r(&gps_time_sec, &tt);
+						timespec ts;
+						px4_clock_gettime(CLOCK_REALTIME, &ts);
+						/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+						time_t gps_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
+						struct tm tt;
+						gmtime_r(&gps_time_sec, &tt);
 
-					// XXX we do not want to interfere here with the SD log app
-					strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
-					snprintf(log_file_path, sizeof(log_file_path), PX4_ROOTFSDIR"/fs/microsd/%s", log_file_name);
-					fp = fopen(log_file_path, "ab");
+						// XXX we do not want to interfere here with the SD log app
+						strftime(log_file_name, sizeof(log_file_name), "msgs_%Y_%m_%d_%H_%M_%S.txt", &tt);
+						snprintf(log_file_path, sizeof(log_file_path), PX4_ROOTFSDIR"/fs/microsd/%s", log_file_name);
+						fp = fopen(log_file_path, "ab");
 
-					if (fp != NULL) {
-						/* write first message */
-						fputs(msg.text, fp);
-						fputs("\n", fp);
-					}
-					else {
-						warn("Failed to open %s errno=%d", log_file_path, errno);
+						if (fp != NULL) {
+							/* write first message */
+							fputs(msg.text, fp);
+							fputs("\n", fp);
+						}
+						else {
+							warn("Failed to open %s errno=%d", log_file_path, errno);
+						}
 					}
 				}
 			}
 		}
 	}
+#endif
 };
 
 class MavlinkStreamCommandLong : public MavlinkStream

@@ -1637,6 +1637,8 @@ Mavlink::task_main(int argc, char *argv[])
 	uint64_t status_time = 0;
 	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
 	uint64_t ack_time = 0;
+	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
+	uint64_t mavlink_log_time = 0;
 
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
@@ -1873,6 +1875,11 @@ Mavlink::task_main(int argc, char *argv[])
 			msg.command = command_ack.command;
 
 			send_message(MAVLINK_MSG_ID_COMMAND_ACK, &msg);
+		}
+
+		struct mavlink_log_s mavlink_log;
+		if (mavlink_log_sub->update(&mavlink_log_time, &mavlink_log)) {
+			_logbuffer.put(&mavlink_log);
 		}
 
 		/* check for requested subscriptions */
