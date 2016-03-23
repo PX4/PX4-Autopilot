@@ -308,6 +308,7 @@ GPS::task_main()
 
 			if (!(_use_hil_gps) && _report_gps_pos_pub != nullptr) {
 				orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
 			} else {
 				_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
 			}
@@ -375,6 +376,7 @@ GPS::task_main()
 
 					if (!(_use_hil_gps) && _report_gps_pos_pub != nullptr) {
 						orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
 					} else {
 						_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
 					}
@@ -392,9 +394,10 @@ GPS::task_main()
 					update_param_hil_gps();
 
 					/* opportunistic publishing - else invalid data would end up on the bus */
-					if ( !(_use_hil_gps) && (helper_ret & 1)) {
+					if (!(_use_hil_gps) && (helper_ret & 1)) {
 						if (_report_gps_pos_pub != nullptr) {
 							orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
+
 						} else {
 							_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
 						}
@@ -515,9 +518,10 @@ GPS::print_info()
 	//GPS Mode
 	if (_fake_gps) {
 		PX4_WARN("protocol: SIMULATED");
-	}
-	else if (_use_hil_gps) {
+
+	} else if (_use_hil_gps) {
 		PX4_WARN("protocol: HIL GPS");
+
 	} else {
 		switch (_mode) {
 		case GPS_DRIVER_MODE_UBX:
