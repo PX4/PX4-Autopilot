@@ -90,5 +90,6 @@ protected:
 
 typedef BlockParam<float> BlockParamFloat;
 typedef BlockParam<int> BlockParamInt;
+typedef BlockParam<bool> BlockParamBool;
 
 } // namespace control

@@ -126,5 +126,6 @@ BlockParam<T>::~BlockParam() {};
 
 template class __EXPORT BlockParam<float>;
 template class __EXPORT BlockParam<int>;
+template class __EXPORT BlockParam<bool>;
 
 } // namespace control
