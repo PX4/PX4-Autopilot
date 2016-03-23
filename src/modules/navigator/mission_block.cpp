@@ -110,15 +110,12 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_DO_VTOL_TRANSITION:
 			/*
 			 * We wait half a second to give the transition command time to propagate.
-			 * As soon as the timeout is over or when we're in transition mode let the mission continue.
+			 * Then monitor the transition status for completion.
 			 */
 			if (hrt_absolute_time() - _action_start > 500000 &&
 					!_navigator->get_vstatus()->in_transition_mode) {
 				_action_start = 0;
-
-				printf("transition reached \n");
 				return true;
-
 			} else {
 				return false;
 			}
