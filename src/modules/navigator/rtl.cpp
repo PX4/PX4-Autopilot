@@ -197,12 +197,30 @@ RTL::set_rtl_item()
 		break;
 	}
 
+	case RTL_STATE_TRANSITION_TO_MC: {
+		_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+		_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		break;
+	}
+
 	case RTL_STATE_DESCEND: {
 		_mission_item.lat = _navigator->get_home_position()->lat;
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
-		_mission_item.yaw = _navigator->get_home_position()->yaw;
+		_mission_item.yaw = NAN; // don't bother with yaw
+
+		// except for vtol which might be still off here and should point towards this location
+		float d_current = get_distance_to_next_waypoint(
+			_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+			_mission_item.lat, _mission_item.lon);
+
+		if (_navigator->get_vstatus()->is_vtol && d_current > _navigator->get_acceptance_radius()) {
+			_mission_item.yaw = get_bearing_to_next_waypoint(
+				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				_mission_item.lat, _mission_item.lon);
+		}
+
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
@@ -223,9 +241,8 @@ RTL::set_rtl_item()
 
 		_mission_item.lat = _navigator->get_home_position()->lat;
 		_mission_item.lon = _navigator->get_home_position()->lon;
-		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
-		_mission_item.yaw = _navigator->get_home_position()->yaw;
+		// don't change altitude
+		_mission_item.yaw = NAN; // don't bother with yaw
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
@@ -266,6 +283,11 @@ RTL::set_rtl_item()
 
 	reset_mission_item_reached();
 
+	/* execute command if set */
+	if (!item_contains_position(&_mission_item)) {
+		issue_command(&_mission_item);
+	}
+
 	/* convert mission item to current position setpoint and make it valid */
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
@@ -282,6 +304,14 @@ RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_RETURN:
+		_rtl_state = RTL_STATE_DESCEND;
+
+		if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing) {
+			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+		}
+		break;
+
+	case RTL_STATE_TRANSITION_TO_MC:
 		_rtl_state = RTL_STATE_DESCEND;
 		break;
 
