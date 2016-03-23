@@ -112,10 +112,11 @@ MissionBlock::is_mission_item_reached()
 			 * We wait half a second to give the transition command time to propagate.
 			 * As soon as the timeout is over or when we're in transition mode let the mission continue.
 			 */
-			if (hrt_absolute_time() - _action_start > 500000 ||
-					_navigator->get_vstatus()->in_transition_mode) {
+			if (hrt_absolute_time() - _action_start > 500000 &&
+					!_navigator->get_vstatus()->in_transition_mode) {
 				_action_start = 0;
 
+				printf("transition reached \n");
 				return true;
 
 			} else {
