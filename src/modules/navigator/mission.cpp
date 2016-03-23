@@ -848,7 +848,7 @@ Mission::altitude_sp_foh_update()
 	}
 
 	/* Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one */
-	if (_distance_current_previous - _navigator->get_acceptance_radius(_mission_item.acceptance_radius) < 0.0f) {
+	if (_distance_current_previous - _navigator->get_acceptance_radius(_mission_item.acceptance_radius) < FLT_EPSILON) {
 		return;
 	}
 
