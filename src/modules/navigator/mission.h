@@ -130,6 +130,11 @@ private:
 	bool do_need_move_to_land();
 
 	/**
+	 * Returns true if we need to move to waypoint location after vtol takeoff
+	 */
+	bool do_need_move_to_takeoff();
+
+	/**
 	 * Copies position from setpoint if valid, otherwise copies current position
 	 */
 	void copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);

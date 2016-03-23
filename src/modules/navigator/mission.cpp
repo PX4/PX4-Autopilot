@@ -476,10 +476,17 @@ Mission::set_mission_items()
 					&& _navigator->get_vstatus()->is_rotary_wing
 					&& !_navigator->get_vstatus()->condition_landed
 					&& has_next_position_item) {
+
+				if(do_need_move_to_takeoff()){
+					new_work_item_type = WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF;
+				} else {
+					new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+				}
+
+
 				_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 				_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 				_mission_item.yaw = NAN;
-				new_work_item_type = WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF;
 			} else {
 				new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -489,11 +496,13 @@ Mission::set_mission_items()
 
 		}
 
-		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
+		if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
 				&& _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF) {
 
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.autocontinue = true;
+			_mission_item.time_inside = 0.0f;
 		}
 
 			if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
@@ -584,28 +593,6 @@ Mission::set_mission_items()
 		/* yaw is aligned now */
 		if (_work_item_type == WORK_ITEM_TYPE_ALIGN) {
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-		}
-
-		/* don't advance mission after FW to MC command */
-		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
-				&& _work_item_type != WORK_ITEM_TYPE_CMD_BEFORE_MOVE
-				&& !_navigator->get_vstatus()->is_rotary_wing
-				&& !_navigator->get_vstatus()->condition_landed
-				&& pos_sp_triplet->current.valid) {
-
-			//new_work_item_type = WORK_ITEM_TYPE_CMD_BEFORE_MOVE;
-		}
-
-		/* after FW to MC transition finish moving to the waypoint */
-		if (_work_item_type == WORK_ITEM_TYPE_CMD_BEFORE_MOVE
-				&& pos_sp_triplet->current.valid) {
-
-			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			copy_positon_if_valid(&_mission_item, &(pos_sp_triplet->current));
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0;
 		}
 
 	}
@@ -699,6 +686,20 @@ bool
 Mission::do_need_move_to_land()
 {
 	if (_navigator->get_vstatus()->is_rotary_wing && (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND)) {
+
+		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+			_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+
+		return d_current > _navigator->get_acceptance_radius();
+	}
+
+	return false;
+}
+
+bool
+Mission::do_need_move_to_takeoff()
+{
+	if (_navigator->get_vstatus()->is_rotary_wing && _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
 
 		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
 			_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
