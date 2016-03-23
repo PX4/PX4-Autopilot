@@ -12,6 +12,7 @@ set(config_module_list
 	drivers/rgbled
 	drivers/led
 	drivers/boards/sitl
+	drivers/qshell/posix
 
 	systemcmds/param
 	systemcmds/mixer
@@ -52,4 +53,3 @@ set(config_module_list
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
 	)
-

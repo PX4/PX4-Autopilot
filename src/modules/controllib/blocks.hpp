@@ -50,6 +50,8 @@
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
 
+#include "matrix/math.hpp"
+
 namespace control
 {
 
@@ -552,5 +554,111 @@ private:
 };
 
 int __EXPORT blockRandGaussTest();
+
+template<class Type, size_t M>
+class __EXPORT BlockStats: public Block
+{
+public:
+// methods
+	BlockStats(SuperBlock *parent,
+		   const char *name) :
+		Block(parent, name),
+		_sum(),
+		_sumSq(),
+		_count(0)
+	{
+	};
+	virtual ~BlockStats() {};
+	void update(const matrix::Vector<Type, M> &u)
+	{
+		_sum += u;
+		_sumSq += u.emult(u);
+		_count += 1;
+	}
+	void reset()
+	{
+		_sum.setZero();
+		_sumSq.setZero();
+		_count = 0;
+	}
+// accessors
+	size_t getCount() { return _count; }
+	matrix::Vector<Type, M> getMean() { return _sum / _count; }
+	matrix::Vector<Type, M> getVar()
+	{
+		return (_sumSq - _sum.emult(_sum) / _count) / _count;
+	}
+	matrix::Vector<Type, M> getStdDev()
+	{
+		return getVar().pow(0.5);
+	}
+private:
+// attributes
+	matrix::Vector<Type, M> _sum;
+	matrix::Vector<Type, M> _sumSq;
+	size_t _count;
+};
+
+int __EXPORT blockStatsTest();
+
+template<class Type, size_t M, size_t N, size_t LEN>
+class __EXPORT BlockDelay: public Block
+{
+public:
+// methods
+	BlockDelay(SuperBlock *parent,
+		   const char *name) :
+		Block(parent, name),
+		_h(),
+		_index(0),
+		_delay(-1)
+	{
+	};
+	virtual ~BlockDelay() {};
+	matrix::Matrix<Type, M, N> update(const matrix::Matrix<Type, M, N> &u)
+	{
+		// store current value
+		_h[_index] = u;
+
+		// delay starts at zero, then increases to LEN
+		_delay += 1;
+
+		if (_delay > (LEN - 1)) {
+			_delay = LEN - 1;
+		}
+
+		// compute position of delayed value
+		int j = _index - _delay;
+
+		if (j < 0) {
+			j += LEN;
+		}
+
+		// increment storage position
+		_index += 1;
+
+		if (_index > (LEN - 1)) {
+			_index  = 0;
+		}
+
+		// get delayed value
+		return _h[j];
+	}
+	matrix::Matrix<Type, M, N> get(size_t delay)
+	{
+		int j = _index - delay;
+
+		if (j < 0) { j += LEN; }
+
+		return _h[j];
+	}
+private:
+// attributes
+	matrix::Matrix<Type, M, N> _h[LEN];
+	size_t _index;
+	int _delay;
+};
+
+int __EXPORT blockDelayTest();
 
 } // namespace control

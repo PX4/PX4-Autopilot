@@ -87,7 +87,9 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_actuators_1_pub(nullptr),
 	_vtol_vehicle_status_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
-	_v_att_sp_pub(nullptr)
+	_v_att_sp_pub(nullptr),
+
+	_abort_front_transition(false)
 
 {
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));

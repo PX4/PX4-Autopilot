@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__px4io
 	MAIN px4io
-	STACK 1200
+	STACK 1800
 	COMPILE_FLAGS
 		-Os
 	SRCS

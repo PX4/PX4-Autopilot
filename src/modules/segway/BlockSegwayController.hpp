@@ -1,5 +1,6 @@
 #pragma once
 
+#include <px4_posix.h>
 #include <controllib/uorb/blocks.hpp>
 
 using namespace control;
@@ -22,7 +23,7 @@ private:
 	enum {CH_LEFT, CH_RIGHT};
 	BlockPI th2v;
 	BlockP q2v;
-	struct pollfd _attPoll;
+	px4_pollfd_struct_t _attPoll;
 	uint64_t _timeStamp;
 };
 

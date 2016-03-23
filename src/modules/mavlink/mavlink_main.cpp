@@ -1029,7 +1029,6 @@ Mavlink::init_udp()
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 	PX4_INFO("Setting up UDP w/port %d",_network_port);
 
-	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_network_port);
@@ -1051,13 +1050,13 @@ Mavlink::init_udp()
 	}
 
 	/* set default target address, but not for onboard mode (will be set on first received packet) */
-	memset((char *)&_src_addr, 0, sizeof(_src_addr));
-	_src_addr.sin_family = AF_INET;
-	inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	if (!_src_addr_initialized) {
+		_src_addr.sin_family = AF_INET;
+		inet_aton("127.0.0.1", &_src_addr.sin_addr);
+	}
 	_src_addr.sin_port = htons(_remote_port);
 
 	/* default broadcast address */
-	memset((char *)&_bcast_addr, 0, sizeof(_bcast_addr));
 	_bcast_addr.sin_family = AF_INET;
 	inet_aton("255.255.255.255", &_bcast_addr.sin_addr);
 	_bcast_addr.sin_port = htons(_remote_port);
@@ -1514,10 +1513,12 @@ Mavlink::task_main(int argc, char *argv[])
 	bool err_flag = false;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+#ifdef __PX4_POSIX
 	char* eptr;
 	int temp_int_arg;
+#endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:fpvwx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fpvwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, NULL, 10);
@@ -1544,6 +1545,7 @@ Mavlink::task_main(int argc, char *argv[])
 			set_protocol(SERIAL);
 			break;
 
+#ifdef __PX4_POSIX
 		case 'u':
 			temp_int_arg = strtoul(myoptarg, &eptr, 10);
 			if ( *eptr == '\0' ) {
@@ -1566,6 +1568,24 @@ Mavlink::task_main(int argc, char *argv[])
 				err_flag = true;
 			}
 			break;
+
+		case 't':
+			_src_addr.sin_family = AF_INET;
+			if (inet_aton(myoptarg, &_src_addr.sin_addr)) {
+				_src_addr_initialized = true;
+			} else {
+				warnx("invalid partner ip '%s'", myoptarg);
+				err_flag = true;
+			}
+			break;
+#else
+			case 'u':
+			case 'o':
+			case 't':
+				warnx("UDP options not supported on this platform");
+				err_flag = true;
+				break;
+#endif
 
 //		case 'e':
 //			mavlink_link_termination_allowed = true;
@@ -1770,6 +1790,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream("ESTIMATOR_STATUS", 0.5f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1799,12 +1820,13 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
+		configure_stream("ESTIMATOR_STATUS", 1.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
 		configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("ATTITUDE", 25.0f);
-		configure_stream("VFR_HUD", 5.0f);
+		configure_stream("VFR_HUD", 25.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("HOME_POSITION", 0.5f);
@@ -1814,6 +1836,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
+		configure_stream("ESTIMATOR_STATUS", 1.0f);
 		break;
 
 	case MAVLINK_MODE_MAGIC:
@@ -1847,6 +1870,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
+		configure_stream("ESTIMATOR_STATUS", 5.0f);
 	default:
 		break;
 	}
@@ -2328,7 +2352,7 @@ Mavlink::stream_command(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u network_port] [-o remote_port] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-u network_port] [-o remote_port] [-t partner_ip] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])

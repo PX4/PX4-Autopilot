@@ -158,7 +158,6 @@ int DfBmp280Wrapper::stop()
 
 int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 {
-#if 1
 	perf_begin(_baro_sample_perf);
 
 	baro_report baro_report = {};
@@ -167,8 +166,33 @@ int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 	baro_report.pressure = data.pressure_pa;
 	baro_report.temperature = data.temperature_c;
 
-	// TODO: add this
-	baro_report.altitude = -1.0f;
+	// TODO: verify this, it's just copied from the MS5611 driver.
+
+	// Constant for now
+	const float MSL_PRESSURE = 101325.0f;
+
+	/* tropospheric properties (0-11km) for standard atmosphere */
+	const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
+	const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
+	const double g  = 9.80665;	/* gravity constant in m/s/s */
+	const double R  = 287.05;	/* ideal gas constant in J/kg/K */
+
+	/* current pressure at MSL in kPa */
+	double p1 = MSL_PRESSURE / 1000.0;
+
+	/* measured pressure in kPa */
+	double p = data.pressure_pa / 1000.0;
+
+	/*
+	 * Solve:
+	 *
+	 *     /        -(aR / g)     \
+	 *    | (p / p1)          . T1 | - T1
+	 *     \                      /
+	 * h = -------------------------------  + h1
+	 *                   a
+	 */
+	baro_report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
@@ -182,7 +206,6 @@ int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 	DevMgr::updateNotify(*this);
 
 	perf_end(_baro_sample_perf);
-#endif
 
 	return 0;
 };

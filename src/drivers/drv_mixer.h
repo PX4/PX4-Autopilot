@@ -46,7 +46,7 @@
  * Each client has its own configuration.
  *
  * When mixing, outputs are produced by mixers in the order they are
- * added.  A simple mixer produces one output; a multotor mixer will
+ * added.  A simple mixer produces one output; a multirotor mixer will
  * produce several outputs, etc.
  */
 

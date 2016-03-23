@@ -76,6 +76,9 @@ static void *map_memory(off_t target)
 
 int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 {
+	// TODO: don't do this for now
+	return 0;
+
 	unsigned char *lock = (unsigned char *)(MAP_ADDRESS + LOCK_OFFSET);
 	unsigned int i = 0;
 
@@ -101,6 +104,9 @@ int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 
 void release_shmem_lock(void)
 {
+	// TODO: don't do this either
+	return;
+
 	unsigned char *lock = (unsigned char *)(MAP_ADDRESS + LOCK_OFFSET);
 
 	*lock = 1;

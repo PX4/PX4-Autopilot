@@ -67,6 +67,9 @@ public:
 	 */
 	virtual ~MissionBlock();
 
+	/* TODO: move this to a helper class in navigator */
+	static bool item_contains_position(const struct mission_item_s *item);
+
 protected:
 	/**
 	 * Check if mission item has been reached
@@ -77,8 +80,6 @@ protected:
 	 * Reset all reached flags
 	 */
 	void reset_mission_item_reached();
-
-	bool item_contains_position(const struct mission_item_s *item);
 
 	/**
 	 * Convert a mission item to a position setpoint
@@ -107,6 +108,8 @@ protected:
 	 * Set a land mission item
 	 */
 	void set_land_item(struct mission_item_s *item, bool at_current_location);
+
+	void set_current_position_item(struct mission_item_s *item);
 
 	/**
 	 * Set idle mission item

@@ -235,7 +235,8 @@ mixer_tick(void)
 		}
 
 
-	} else if (source != MIX_NONE && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+	} else if (source != MIX_NONE && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)
+		   && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 
 		float	outputs[PX4IO_SERVO_COUNT];
 		unsigned mixed;
@@ -266,9 +267,9 @@ mixer_tick(void)
 	/* set arming */
 	bool needs_to_arm = (should_arm || should_arm_nothrottle || should_always_enable_pwm);
 
-	/* check any conditions that prevent arming */
+	/* lockdown means to send a valid pulse which disables the outputs */
 	if (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN) {
-		needs_to_arm = false;
+		needs_to_arm = true;
 	}
 
 	if (needs_to_arm && !mixer_servos_armed) {
@@ -286,7 +287,8 @@ mixer_tick(void)
 		isr_debug(5, "> PWM disabled");
 	}
 
-	if (mixer_servos_armed && (should_arm || should_arm_nothrottle)) {
+	if (mixer_servos_armed && (should_arm || should_arm_nothrottle)
+	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
@@ -301,10 +303,13 @@ mixer_tick(void)
 			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 
-	} else if (mixer_servos_armed && should_always_enable_pwm) {
+	} else if (mixer_servos_armed && (should_always_enable_pwm
+					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
+			/* copy values into reporting register */
+			r_page_servos[i] = r_page_servo_disarmed[i];
 		}
 
 		/* set S.BUS1 or S.BUS2 outputs */
@@ -391,7 +396,8 @@ mixer_callback(uintptr_t handle,
 
 	/* motor spinup phase - lock throttle to zero */
 	if ((pwm_limit.state == PWM_LIMIT_STATE_RAMP) || (should_arm_nothrottle && !should_arm)) {
-		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* limit the throttle output to zero during motor spinup,
 			 * as the motors cannot follow any demand yet
@@ -402,7 +408,8 @@ mixer_callback(uintptr_t handle,
 
 	/* only safety off, but not armed - set throttle as invalid */
 	if (should_arm_nothrottle && !should_arm) {
-		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
+		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* mark the throttle as invalid */
 			control = NAN_VALUE;

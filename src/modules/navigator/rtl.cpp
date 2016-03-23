@@ -85,6 +85,12 @@ RTL::on_inactive()
 void
 RTL::on_activation()
 {
+	/* reset starting point so we override what the triplet contained from the previous navigation state */
+	_rtl_start_lock = false;
+	set_current_position_item(&_mission_item);
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+
 	/* decide where to enter the RTL procedure when we switch into it */
 	if (_rtl_state == RTL_STATE_NONE) {
 		/* for safety reasons don't go into RTL if landed */
@@ -96,7 +102,6 @@ RTL::on_activation()
 		} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
 			   + _param_return_alt.get()) {
 			_rtl_state = RTL_STATE_CLIMB;
-			_rtl_start_lock = false;
 
 		/* otherwise go straight to return */
 		} else {
@@ -104,7 +109,6 @@ RTL::on_activation()
 			_rtl_state = RTL_STATE_RETURN;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.altitude = _navigator->get_global_position()->alt;
-			_rtl_start_lock = false;
 		}
 
 	}

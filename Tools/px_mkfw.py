@@ -108,6 +108,7 @@ if args.parameter_xml != None:
 	bytes = f.read()
 	desc['parameter_xml_size'] = len(bytes)
 	desc['parameter_xml'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
+        desc['mav_autopilot'] = 12 # 12 = MAV_AUTOPILOT_PX4
 if args.airframe_xml != None:
 	f = open(args.airframe_xml, "rb")
 	bytes = f.read()

@@ -540,6 +540,12 @@ then
 		fi
 	fi
 
+	# Transitional support: Disable safety on all Pixracer boards
+	if ver hwcmp PX4FMU_V4
+	then
+		param set CBRK_IO_SAFETY 22027
+	fi
+
 	#
 	# UAVCAN
 	#

@@ -307,6 +307,8 @@ param_count(void)
 unsigned
 param_count_used(void)
 {
+	//TODO FIXME: all params used right now
+#if 0
 	unsigned count = 0;
 
 	// ensure the allocation has been done
@@ -322,6 +324,9 @@ param_count_used(void)
 	}
 
 	return count;
+#else
+	return get_param_info_count();
+#endif
 }
 
 param_t
@@ -339,6 +344,7 @@ param_for_index(unsigned index)
 param_t
 param_for_used_index(unsigned index)
 {
+#if 0
 	int count = get_param_info_count();
 
 	if (count && index < count) {
@@ -363,6 +369,9 @@ param_for_used_index(unsigned index)
 	}
 
 	return PARAM_INVALID;
+#else
+	return param_for_index(index);
+#endif
 }
 
 int
@@ -378,6 +387,8 @@ param_get_index(param_t param)
 int
 param_get_used_index(param_t param)
 {
+	// TODO FIXME: the used bit is not supported right now, therefore just count all.
+#if 0
 	/* this tests for out of bounds and does a constant time lookup */
 	if (!param_used(param)) {
 		return -1;
@@ -388,6 +399,7 @@ param_get_used_index(param_t param)
 
 	for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
 		for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
+
 			if (param_changed_storage[i] & (1 << j)) {
 
 				if ((unsigned)param == i * bits_per_allocation_unit + j) {
@@ -400,6 +412,10 @@ param_get_used_index(param_t param)
 	}
 
 	return -1;
+#else
+	return param;
+#endif
+
 }
 
 const char *
@@ -677,6 +693,9 @@ param_set_no_notification(param_t param, const void *val)
 bool
 param_used(param_t param)
 {
+	// TODO FIXME: for now all params are used
+	return true;
+
 	int param_index = param_get_index(param);
 
 	if (param_index < 0) {

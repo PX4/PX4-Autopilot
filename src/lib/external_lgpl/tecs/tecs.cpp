@@ -538,7 +538,7 @@ void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_alt
 void TECS::_update_STE_rate_lim(void)
 {
 	// Calculate Specific Total Energy Rate Limits
-	// This is a tivial calculation at the moment but will get bigger once we start adding altitude effects
+	// This is a trivial calculation at the moment but will get bigger once we start adding altitude effects
 	_STEdot_max = _maxClimbRate * CONSTANTS_ONE_G;
 	_STEdot_min = - _minSinkRate * CONSTANTS_ONE_G;
 }
