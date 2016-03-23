@@ -436,6 +436,12 @@ Mission::set_mission_items()
 
 	if (item_contains_position(&_mission_item)) {
 
+		/* force vtol land */
+		if(_mission_item.nav_cmd == NAV_CMD_LAND && _param_force_vtol.get()
+				&& !_navigator->get_vstatus()->is_rotary_wing){
+			_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
+		}
+
 		/* we have a new position item so set previous position setpoint to current */
 		set_previous_pos_setpoint();
 
