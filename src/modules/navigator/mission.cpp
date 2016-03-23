@@ -561,7 +561,7 @@ Mission::set_mission_items()
 		/* ignore yaw for landing items */
 		/* XXX: if specified heading for landing is desired we could add another step before the descent
 		 * that aligns the vehicle first */
-		if (_mission_item.nav_cmd == NAV_CMD_LAND) {
+		if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND ) {
 			_mission_item.yaw = NAN;
 		}
 
@@ -762,8 +762,9 @@ void
 Mission::heading_sp_update()
 {
 	/* we don't want to be yawing during takeoff, landing or aligning for a transition */
-	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF			
 			|| _mission_item.nav_cmd == NAV_CMD_LAND
+			|| _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
 			|| _work_item_type == WORK_ITEM_TYPE_ALIGN) {
 		return;
 	}
@@ -854,7 +855,9 @@ Mission::altitude_sp_foh_update()
 
 	/* Don't do FOH for landing and takeoff waypoints, the ground may be near
 	 * and the FW controller has a custom landing logic */
-	if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
+	if (_mission_item.nav_cmd == NAV_CMD_LAND
+			|| _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
+			|| _mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
 		return;
 	}
 
