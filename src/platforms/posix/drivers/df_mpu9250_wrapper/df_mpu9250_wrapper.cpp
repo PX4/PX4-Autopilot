@@ -145,7 +145,7 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	_gyro_calibration{},
 	_accel_orb_class_instance(-1),
 	_gyro_orb_class_instance(-1),
-	_accel_int(MPU9250_PUBLISH_INTERVAL_US, true),
+	_accel_int(MPU9250_PUBLISH_INTERVAL_US, false),
 	_gyro_int(MPU9250_PUBLISH_INTERVAL_US, true),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "df_accel_read")),
 	_gyro_sample_perf(perf_alloc(PC_ELAPSED, "df_gyro_read"))
