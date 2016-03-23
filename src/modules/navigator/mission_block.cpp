@@ -93,7 +93,8 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_DO_SET_SERVO:
 			return true;
 
-		case NAV_CMD_LAND:
+		case NAV_CMD_LAND: /* fall through */
+		case NAV_CMD_VTOL_LAND:
 			return _navigator->get_vstatus()->condition_landed;
 
 		/* TODO: count turns */
@@ -358,10 +359,12 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		break;
 
 	case NAV_CMD_TAKEOFF:
+	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
 
 	case NAV_CMD_LAND:
+	case NAV_CMD_VTOL_LAND:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
 		if(_navigator->get_vstatus()->is_vtol && _param_vtol_wv_land.get()){
 			sp->disable_mc_yaw_control = true;
