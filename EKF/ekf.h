@@ -98,12 +98,6 @@ public:
 	bool collect_gps(uint64_t time_usec, struct gps_message *gps);
 	bool collect_imu(imuSample &imu);
 
-	// this is the current status of the filter control modes
-	filter_control_status_u _control_status;
-
-	// this is the previous status of the filter control modes - used to detect mode transitions
-	filter_control_status_u _control_status_prev;
-
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt);
 
@@ -197,14 +191,13 @@ private:
 	float _gps_alt_ref;		// WGS-84 height (m)
 
 	// Variables used to initialise the filter states
-	uint8_t _hgt_counter;		// number of height samples averaged
-	uint64_t _time_last_hgt;	// measurement time of last height sample
-	float _hgt_sum;			// summed height measurement
-	uint8_t _mag_counter;		// number of magnetometer samples averaged
+	uint32_t _hgt_counter;		// number of height samples taken
+	float _hgt_filt_state;		// filtered height measurement
+	uint32_t _mag_counter;		// number of magnetometer samples taken
 	uint64_t _time_last_mag;	// measurement time of last magnetomter sample
-	Vector3f _mag_sum;		// summed magnetometer measurement
+	Vector3f _mag_filt_state;	// filtered magnetometer measurement
 	Vector3f _delVel_sum;		// summed delta velocity
-	float _hgt_at_alignment;	// baro offset relative to alignment position
+	float _hgt_sensor_offset;	// height that needs to be subtracted from the primary height sensor so that it reads zero height at the origin (m)
 
 	gps_check_fail_status_u _gps_check_fail_status;
 
@@ -215,6 +208,12 @@ private:
 	float _hagl_innov_var;		// innovation variance for the last height above terrain measurement (m^2)
 	uint64_t _time_last_hagl_fuse;	// last system time in usec that the hagl measurement failed it's checks
 	bool _terrain_initialised;	// true when the terrain estimator has been intialised
+
+	// height sensor fault status
+	bool _baro_hgt_faulty;		// true if valid baro data is unavailable for use
+	bool _gps_hgt_faulty;		// true if valid gps height data is unavailable for use
+	bool _rng_hgt_faulty;		// true if valid rnage finder height data is unavailable for use
+	int _primary_hgt_source;	// priary source of height data set at initialisation
 
 	float _baro_hgt_offset;		// number of metres the baro height origin is above the local NED origin (m)
 

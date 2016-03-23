@@ -222,8 +222,6 @@ protected:
 
 	bool _NED_origin_initialised = false;
 	bool _gps_speed_valid = false;
-	float _gps_speed_accuracy = 0.0f; // GPS receiver reported 1-sigma speed accuracy (m/s)
-	float _gps_hpos_accuracy = 0.0f; // GPS receiver reported 1-sigma horizontal accuracy (m)
 	float _gps_origin_eph = 0.0f; // horizontal position uncertainty of the GPS origin
 	float _gps_origin_epv = 0.0f; // vertical position uncertainty of the GPS origin
 	struct map_projection_reference_s _pos_ref = {};    // Contains WGS-84 position latitude and longitude (radians)
@@ -262,4 +260,11 @@ protected:
 
 	float _mag_declination_gps;         // magnetic declination returned by the geo library using the last valid GPS position (rad)
 	float _mag_declination_to_save_deg; // magnetic declination to save to EKF2_MAG_DECL (deg)
+
+	// this is the current status of the filter control modes
+	filter_control_status_u _control_status;
+
+	// this is the previous status of the filter control modes - used to detect mode transitions
+	filter_control_status_u _control_status_prev;
+
 };

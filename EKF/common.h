@@ -90,6 +90,9 @@ struct gpsSample {
 	Vector2f    pos;	// NE earth frame gps horizontal position measurement in m
 	float       hgt;	// gps height measurement in m
 	Vector3f    vel;	// NED earth frame gps velocity measurement in m/s
+	float	    hacc;	// 1-std horizontal position error m
+	float	    vacc;	// 1-std vertical position error m
+	float       sacc;	// 1-std speed error m/s
 	uint64_t    time_us;	// timestamp in microseconds
 };
 
@@ -142,6 +145,11 @@ struct flowSample {
 #define MAG_FUSE_TYPE_3D        2   // Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
 #define MAG_FUSE_TYPE_2D        3   // A 2D fusion that uses the horizontal projection of the magnetic fields measurement will alays be used. This is less accurate, but less affected by earth field distortions.
 
+// Maximum sensor intervals in usec
+#define GPS_MAX_INTERVAL	5e5
+#define BARO_MAX_INTERVAL	2e5
+#define RNG_MAX_INTERVAL	2e5
+
 struct parameters {
 	// measurement source control
 	int fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
@@ -176,6 +184,7 @@ struct parameters {
 	float baro_innov_gate;		// barometric height innovation consistency gate size (STD)
 	float posNE_innov_gate;		// GPS horizontal position innovation consistency gate size (STD)
 	float vel_innov_gate;		// GPS velocity innovation consistency gate size (STD)
+	float hgt_reset_lim;		// The maximum 1-sigma uncertainty in height that can be tolerated before the height state is reset (m)
 
 	// magnetometer fusion
 	float mag_heading_noise;	// measurement noise used for simple heading fusion (rad)
@@ -245,6 +254,7 @@ struct parameters {
 		baro_innov_gate = 3.0f;
 		posNE_innov_gate = 3.0f;
 		vel_innov_gate = 3.0f;
+		hgt_reset_lim = 5.0f;
 
 		// magnetometer fusion
 		mag_heading_noise = 1.7e-1f;
@@ -341,4 +351,5 @@ union filter_control_status_u {
 	} flags;
 	uint16_t value;
 };
+
 }

@@ -71,19 +71,19 @@ Ekf::Ekf():
 	_last_gps_origin_time_us(0),
 	_gps_alt_ref(0.0f),
 	_hgt_counter(0),
-	_time_last_hgt(0),
-	_hgt_sum(0.0f),
+	_hgt_filt_state(0.0f),
 	_mag_counter(0),
 	_time_last_mag(0),
-	_hgt_at_alignment(0.0f),
+	_hgt_sensor_offset(0.0f),
 	_terrain_vpos(0.0f),
 	_hagl_innov(0.0f),
 	_hagl_innov_var(0.0f),
 	_time_last_hagl_fuse(0),
+	_baro_hgt_faulty(false),
+	_gps_hgt_faulty(false),
+	_rng_hgt_faulty(false),
 	_baro_hgt_offset(0.0f)
 {
-	_control_status = {};
-	_control_status_prev = {};
 	_state = {};
 	_last_known_posNE.setZero();
 	_earth_rate_NED.setZero();
@@ -100,7 +100,7 @@ Ekf::Ekf():
 	_last_known_posNE.setZero();
 	_imu_down_sampled = {};
 	_q_down_sampled.setZero();
-	_mag_sum = {};
+	_mag_filt_state = {};
 	_delVel_sum = {};
 	_flow_gyro_bias = {};
 	_imu_del_ang_of = {};
@@ -154,19 +154,22 @@ bool Ekf::init(uint64_t timestamp)
 	_filter_initialised = false;
 	_terrain_initialised = false;
 
+	_control_status.value = 0;
+	_control_status_prev.value = 0;
+
 	return ret;
 }
 
 bool Ekf::update()
 {
 
-		if (!_filter_initialised) {
-			_filter_initialised = initialiseFilter();
+	if (!_filter_initialised) {
+		_filter_initialised = initialiseFilter();
 
-			if (!_filter_initialised) {
-				return false;
-			}
+		if (!_filter_initialised) {
+			return false;
 		}
+	}
 
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
@@ -221,22 +224,16 @@ bool Ekf::update()
 				_fuse_height = true;
 			}
 
-		} else if ((_time_last_imu - _time_last_hgt_fuse) > 5e5 && _control_status.flags.rng_hgt) {
+		} else if ((_time_last_imu - _time_last_hgt_fuse) > 2 * RNG_MAX_INTERVAL && _control_status.flags.rng_hgt) {
 			// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
 			// and are on the ground, then synthesise a measurement at the expected on ground value
 			if (!_in_air) {
 				_range_sample_delayed.rng = _params.rng_gnd_clearance;
 				_range_sample_delayed.time_us = _imu_sample_delayed.time_us;
 
-			} else {
-				// if this happens in the air, fuse the baro measurement to constrain drift
-				// use the baro for this update only
-				_control_status.flags.baro_hgt = true;
-				_control_status.flags.rng_hgt = false;
 			}
 
 			_fuse_height = true;
-
 		}
 
 		// determine if baro data has fallen behind the fuson time horizon and fuse it in the main filter if enabled
@@ -246,16 +243,25 @@ bool Ekf::update()
 
 			} else {
 				// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro  as a height reference
-				float offset_error = _baro_sample_delayed.hgt + _state.pos(2) - _baro_hgt_offset;
+				float offset_error =  _state.pos(2) + _baro_sample_delayed.hgt - _hgt_sensor_offset - _baro_hgt_offset;
 				_baro_hgt_offset += 0.02f * math::constrain(offset_error, -5.0f, 5.0f);
 			}
 		}
 
 		// If we are using GPS aiding and data has fallen behind the fusion time horizon then fuse it
-		if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed) && _control_status.flags.gps) {
-			_fuse_pos = true;
-			_fuse_vert_vel = true;
-			_fuse_hor_vel = true;
+		if (_gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed)) {
+			// Only use GPS data for position and velocity aiding if enabled
+			if (_control_status.flags.gps) {
+				_fuse_pos = true;
+				_fuse_vert_vel = true;
+				_fuse_hor_vel = true;
+			}
+
+			// only use gps height observation in the main filter if specifically enabled
+			if (_control_status.flags.gps_hgt) {
+				_fuse_height = true;
+			}
+
 		}
 
 		// If we are using optical flow aiding and data has fallen behind the fusion time horizon, then fuse it
@@ -302,6 +308,11 @@ bool Ekf::update()
 	// the output observer always runs
 	calculateOutputStates();
 
+	// check for NaN on attitude states
+	if (isnan(_state.quat_nominal(0)) || isnan(_output_new.quat_nominal(0))) {
+		return false;
+	}
+
 	// We don't have valid data to output until tilt and yaw alignment is complete
 	if (_control_status.flags.tilt_align && _control_status.flags.yaw_align) {
 		return true;
@@ -320,30 +331,44 @@ bool Ekf::initialiseFilter(void)
 	_delVel_sum += imu_init.delta_vel;
 
 	// Sum the magnetometer measurements
-	magSample mag_init = _mag_buffer.get_newest();
-
-	if (mag_init.time_us != 0) {
-		_mag_counter ++;
-		_mag_sum += mag_init.mag;
-	}
-
-	if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
-		rangeSample range_init = _range_buffer.get_newest();
-
-		if (range_init.time_us != _time_last_hgt) {
-			_hgt_counter ++;
-			_hgt_sum += range_init.rng;
-			_time_last_hgt = range_init.time_us;
+	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
+		if (_mag_counter == 0) {
+			_mag_filt_state = _mag_sample_delayed.mag;
 		}
 
-	} else if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
-		// initialize vertical position with newest baro measurement
-		baroSample baro_init = _baro_buffer.get_newest();
+		_mag_counter ++;
+		_mag_filt_state = _mag_filt_state * 0.9f + _mag_sample_delayed.mag * 0.1f;
+	}
 
-		if (baro_init.time_us != _time_last_hgt) {
+	// set the default height source from the adjustable parameter
+	if (_hgt_counter == 0) {
+		_primary_hgt_source = _params.vdist_sensor_type;
+	}
+
+	if (_primary_hgt_source == VDIST_SENSOR_RANGE) {
+		if (_range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)) {
+			if (_hgt_counter == 0) {
+				_control_status.flags.baro_hgt = false;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = true;
+				_hgt_filt_state = _range_sample_delayed.rng;
+			}
+
 			_hgt_counter ++;
-			_hgt_sum += baro_init.hgt;
-			_time_last_hgt = baro_init.time_us;
+			_hgt_filt_state = 0.9f * _hgt_filt_state + 0.1f * _range_sample_delayed.rng;
+		}
+
+	} else if (_primary_hgt_source == VDIST_SENSOR_BARO || _primary_hgt_source == VDIST_SENSOR_GPS) {
+		if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
+			if (_hgt_counter == 0) {
+				_control_status.flags.baro_hgt = true;
+				_control_status.flags.gps_hgt = false;
+				_control_status.flags.rng_hgt = false;
+				_hgt_filt_state = _baro_sample_delayed.hgt;
+			}
+
+			_hgt_counter ++;
+			_hgt_filt_state = 0.9f * _hgt_filt_state + 0.1f * _baro_sample_delayed.hgt;
 		}
 
 	} else {
@@ -351,10 +376,14 @@ bool Ekf::initialiseFilter(void)
 	}
 
 	// check to see if we have enough measurements and return false if not
-	if (_hgt_counter < 10 || _mag_counter < 10) {
+	if (_hgt_counter <= 10 || _mag_counter <= 10) {
 		return false;
 
 	} else {
+		// reset variables that are shared with post alignment GPS checks
+		_gps_drift_velD = 0.0f;
+		_gps_alt_ref = 0.0f;
+
 		// Zero all of the states
 		_state.ang_error.setZero();
 		_state.vel.setZero();
@@ -388,25 +417,23 @@ bool Ekf::initialiseFilter(void)
 		_tilt_err_length_filt = 1.0f;
 
 		// calculate the averaged magnetometer reading
-		Vector3f mag_init = _mag_sum * (1.0f / (float(_mag_counter)));
+		Vector3f mag_init = _mag_filt_state;
 
 		// calculate the initial magnetic field and yaw alignment
 		resetMagHeading(mag_init);
 
 		// calculate the averaged height reading to calulate the height of the origin
-		_hgt_at_alignment = _hgt_sum / (float)_hgt_counter;
+		_hgt_sensor_offset = _hgt_filt_state;
 
 		// if we are not using the baro height as the primary source, then calculate an offset relative to the origin
 		// so it can be used as a backup
-		if (_params.vdist_sensor_type != VDIST_SENSOR_BARO) {
+		if (!_control_status.flags.baro_hgt) {
 			baroSample baro_newest = _baro_buffer.get_newest();
-			_baro_hgt_offset = baro_newest.hgt - _hgt_at_alignment;
+			_baro_hgt_offset = baro_newest.hgt - _hgt_sensor_offset;
+
 		} else {
 			_baro_hgt_offset = 0.0f;
 		}
-
-		// set the velocity to the GPS measurement (by definition, the initial position and height is at the origin)
-		resetVelocity();
 
 		// initialise the state covariance matrix
 		initialiseCovariance();

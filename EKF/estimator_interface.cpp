@@ -56,8 +56,6 @@ EstimatorInterface::EstimatorInterface():
 	_in_air(false),
 	_NED_origin_initialised(false),
 	_gps_speed_valid(false),
-	_gps_speed_accuracy(0.0f),
-	_gps_hpos_accuracy(0.0f),
 	_gps_origin_eph(0.0f),
 	_gps_origin_epv(0.0f),
 	_mag_healthy(false),
@@ -145,12 +143,8 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float *data)
 
 void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 {
-	if (!collect_gps(time_usec, gps) || !_initialised) {
-		return;
-	}
-
-	// Only use GPS data if we have a 3D fix and limit the GPS data rate to a maximum of 14Hz
-	if (time_usec - _time_last_gps > 70000 && gps->fix_type >= 3) {
+	// Limit the GPS data rate to a maximum of 14Hz
+	if (time_usec - _time_last_gps > 70000) {
 		gpsSample gps_sample_new = {};
 		gps_sample_new.time_us = gps->time_usec - _params.gps_delay_ms * 1000;
 
@@ -162,15 +156,24 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		memcpy(gps_sample_new.vel._data[0], gps->vel_ned, sizeof(gps_sample_new.vel._data));
 
 		_gps_speed_valid = gps->vel_ned_valid;
-		_gps_speed_accuracy = gps->sacc;
-		_gps_hpos_accuracy = gps->eph;
+		gps_sample_new.sacc = gps->sacc;
+		gps_sample_new.hacc = gps->eph;
+		gps_sample_new.vacc = gps->epv;
 
-		float lpos_x = 0.0f;
-		float lpos_y = 0.0f;
-		map_projection_project(&_pos_ref, (gps->lat / 1.0e7), (gps->lon / 1.0e7), &lpos_x, &lpos_y);
-		gps_sample_new.pos(0) = lpos_x;
-		gps_sample_new.pos(1) = lpos_y;
-		gps_sample_new.hgt = gps->alt / 1e3f;
+		gps_sample_new.hgt = (float)gps->alt * 1e-3f;
+
+		// Only calculate the relative position if the WGS-84 location of the origin is set
+		if (collect_gps(time_usec, gps)) {
+			float lpos_x = 0.0f;
+			float lpos_y = 0.0f;
+			map_projection_project(&_pos_ref, (gps->lat / 1.0e7), (gps->lon / 1.0e7), &lpos_x, &lpos_y);
+			gps_sample_new.pos(0) = lpos_x;
+			gps_sample_new.pos(1) = lpos_y;
+
+		} else {
+			gps_sample_new.pos(0) = 0.0f;
+			gps_sample_new.pos(1) = 0.0f;
+		}
 
 		_gps_buffer.push(gps_sample_new);
 	}
@@ -291,11 +294,34 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	      _airspeed_buffer.allocate(OBS_BUFFER_LENGTH) &&
 	      _flow_buffer.allocate(OBS_BUFFER_LENGTH) &&
 	      _output_buffer.allocate(IMU_BUFFER_LENGTH))) {
-		printf("Estimator Buffer Allocation failed!");
+		printf("EKF buffer allocation failed!");
 		unallocate_buffers();
 		return false;
 	}
 
+	// zero the data in the observation buffers
+	for (int index=0; index < OBS_BUFFER_LENGTH; index++) {
+		gpsSample gps_sample_init = {};
+		_gps_buffer.push(gps_sample_init);
+		magSample mag_sample_init = {};
+		_mag_buffer.push(mag_sample_init);
+		baroSample baro_sample_init = {};
+		_baro_buffer.push(baro_sample_init);
+		rangeSample range_sample_init = {};
+		_range_buffer.push(range_sample_init);
+		airspeedSample airspeed_sample_init = {};
+		_airspeed_buffer.push(airspeed_sample_init);
+		flowSample flow_sample_init = {};
+		_flow_buffer.push(flow_sample_init);
+	}
+
+	// zero the data in the imu data and output observer state buffers
+	for (int index=0; index < IMU_BUFFER_LENGTH; index++) {
+		imuSample imu_sample_init = {};
+		_imu_buffer.push(imu_sample_init);
+		outputSample output_sample_init = {};
+		_output_buffer.push(output_sample_init);
+	}
 
 	_dt_imu_avg = 0.0f;
 

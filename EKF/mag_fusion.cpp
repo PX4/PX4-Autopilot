@@ -1007,7 +1007,6 @@ void Ekf::fuseMag2D()
 		// we allow to use it when on the ground because the large innovation could be caused
 		// by interference or a large initial gyro bias
 		if (_control_status.flags.in_air) {
-			printf("return 5\n");
 			return;
 
 		} else {

@@ -59,7 +59,7 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 	if (!_NED_origin_initialised) {
 		// we have good GPS data so can now set the origin's WGS-84 position
 		if (gps_is_good(gps) && !_NED_origin_initialised) {
-			printf("gps is good -  setting EKF origin\n");
+			printf("EKF gps is good - setting origin\n");
 			// Set the origin's WGS-84 position to the last gps fix
 			double lat = gps->lat / 1.0e7;
 			double lon = gps->lon / 1.0e7;
@@ -81,6 +81,16 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 			// save the horizontal and vertical position uncertainty of the origin
 			_gps_origin_eph = gps->eph;
 			_gps_origin_epv = gps->epv;
+
+			// if the user has selected GPS as the primary height source, switch across to using it
+			if (_primary_hgt_source == VDIST_SENSOR_GPS) {
+				printf("EKF switching to GPS height\n");
+				_control_status.flags.baro_hgt = false;
+				_control_status.flags.gps_hgt = true;
+				_control_status.flags.rng_hgt = false;
+				// zero the sensor offset
+				_hgt_sensor_offset = 0.0f;
+			}
 		}
 	}
 
@@ -133,7 +143,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 	} else {
 		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
-		_gps_alt_ref = gps->alt * 1e-3f;
+		_gps_alt_ref = 1e-3f * (float)gps->alt;
 	}
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate the lowpass filter coefficient
@@ -166,10 +176,10 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 	// Calculate the vertical drift velocity and limit to 10x the threshold
 	vel_limit = 10.0f * _params.req_vdrift;
-	float velD = fminf(fmaxf((_gps_alt_ref - gps->alt * 1e-3f) / dt, -vel_limit), vel_limit);
+	float velD = fminf(fmaxf((_gps_alt_ref - 1e-3f * (float)gps->alt) / dt, -vel_limit), vel_limit);
 
 	// Save the current height as the reference for next time
-	_gps_alt_ref = gps->alt * 1e-3f;
+	_gps_alt_ref = 1e-3f * (float)gps->alt;
 
 	// Apply a low pass filter to the vertical velocity
 	_gps_drift_velD = velD * filter_coef + _gps_drift_velD * (1.0f - filter_coef);

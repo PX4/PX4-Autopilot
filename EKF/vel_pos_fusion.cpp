@@ -60,7 +60,7 @@ void Ekf::fuseVelPosHeight()
 		_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
 		// observation variance - use receiver reported accuracy with parameter setting the minimum value
 		R[0] = fmaxf(_params.gps_vel_noise, 0.01f);
-		R[0] = fmaxf(R[0], _gps_speed_accuracy);
+		R[0] = fmaxf(R[0], _gps_sample_delayed.sacc);
 		R[0] = R[0] * R[0];
 		R[1] = R[0];
 		// innovation gate sizes
@@ -75,7 +75,7 @@ void Ekf::fuseVelPosHeight()
 		// observation variance - use receiver reported accuracy with parameter setting the minimum value
 		R[2] = fmaxf(_params.gps_vel_noise, 0.01f);
 		// use scaled horizontal speed accuracy assuming typical ratio of VDOP/HDOP
-		R[2] = 1.5f * fmaxf(R[2], _gps_speed_accuracy);
+		R[2] = 1.5f * fmaxf(R[2], _gps_sample_delayed.sacc);
 		R[2] = R[2] * R[2];
 		// innovation gate size
 		gate_size[2] = fmaxf(_params.vel_innov_gate, 1.0f);
@@ -89,13 +89,18 @@ void Ekf::fuseVelPosHeight()
 
 		// observation variance - user parameter defined
 		// if we are in flight and not using GPS, then use a specific parameter
-		if (!_control_status.flags.gps && _control_status.flags.in_air) {
-			R[3] = fmaxf(_params.pos_noaid_noise, 0.5f);
+		if (!_control_status.flags.gps) {
+			if (_control_status.flags.in_air) {
+				R[3] = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
+
+			} else {
+				R[3] = _params.gps_pos_noise;
+			}
 
 		} else {
 			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-			R[3] = math::constrain(_gps_hpos_accuracy, lower_limit, upper_limit);
+			R[3] = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
 
 		}
 
@@ -110,9 +115,22 @@ void Ekf::fuseVelPosHeight()
 		if (_control_status.flags.baro_hgt) {
 			fuse_map[5] = true;
 			// vertical position innovation - baro measurement has opposite sign to earth z axis
-			_vel_pos_innov[5] = _state.pos(2) - (_hgt_at_alignment - _baro_sample_delayed.hgt + _baro_hgt_offset);
+			_vel_pos_innov[5] = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
 			// observation variance - user parameter defined
 			R[5] = fmaxf(_params.baro_noise, 0.01f);
+			R[5] = R[5] * R[5];
+			// innovation gate size
+			gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
+
+		} else if (_control_status.flags.gps_hgt) {
+			fuse_map[5] = true;
+			// vertical position innovation - gps measurement has opposite sign to earth z axis
+			_vel_pos_innov[5] = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
+			// observation variance - receiver defined and parameter limited
+			// use scaled horizontal position accuracy assuming typical ratio of VDOP/HDOP
+			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
+			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
+			R[5] = 1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit);
 			R[5] = R[5] * R[5];
 			// innovation gate size
 			gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
@@ -128,6 +146,7 @@ void Ekf::fuseVelPosHeight()
 			// innovation gate size
 			gate_size[5] = fmaxf(_params.range_innov_gate, 1.0f);
 		}
+
 	}
 
 	// calculate innovation test ratios
@@ -244,5 +263,4 @@ void Ekf::fuseVelPosHeight()
 		makeSymmetrical();
 		limitCov();
 	}
-
 }
