@@ -64,6 +64,10 @@
 #include <DevMgr.hpp>
 
 
+// publish frequency of 250 Hz
+#define MPU9250_PUBLISH_INTERVAL_US 4000
+
+
 extern "C" { __EXPORT int df_mpu9250_wrapper_main(int argc, char *argv[]); }
 
 using namespace DriverFramework;
@@ -141,8 +145,8 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	_gyro_calibration{},
 	_accel_orb_class_instance(-1),
 	_gyro_orb_class_instance(-1),
-	_accel_int(MPU9250_MEASURE_INTERVAL_US, true),
-	_gyro_int(MPU9250_MEASURE_INTERVAL_US, true),
+	_accel_int(MPU9250_PUBLISH_INTERVAL_US, true),
+	_gyro_int(MPU9250_PUBLISH_INTERVAL_US, true),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "df_accel_read")),
 	_gyro_sample_perf(perf_alloc(PC_ELAPSED, "df_gyro_read"))
 	/*_rotation(rotation)*/
