@@ -359,6 +359,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		}
 		break;
 
+	case vehicle_status_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::MAIN_STATE_AUTO_MISSION:
 	case vehicle_status_s::MAIN_STATE_AUTO_RTL:
 	case vehicle_status_s::MAIN_STATE_AUTO_TAKEOFF:
@@ -761,6 +762,26 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 			}
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		}
+		break;
+
+	case vehicle_status_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
+		/* require global position and home */
+
+		if (status->engine_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+		} else if (!status->condition_global_position_valid) {
+			status->failsafe = true;
+
+			if (status->condition_local_position_valid) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+			}
+		} else {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
 		}
 		break;
 
