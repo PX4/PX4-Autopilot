@@ -56,6 +56,7 @@
 
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
+#include <drivers/device/integrator.h>
 
 #include <uORB/topics/parameter_update.h>
 
@@ -123,6 +124,9 @@ private:
 	int			    _accel_orb_class_instance;
 	int			    _gyro_orb_class_instance;
 
+	Integrator		    _accel_int;
+	Integrator		    _gyro_int;
+
 	perf_counter_t		    _accel_sample_perf;
 	perf_counter_t		    _gyro_sample_perf;
 
@@ -137,6 +141,8 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(/*enum Rotation rotation*/) :
 	_gyro_calibration{},
 	_accel_orb_class_instance(-1),
 	_gyro_orb_class_instance(-1),
+	_accel_int(MPU9250_MEASURE_INTERVAL_US, true),
+	_gyro_int(MPU9250_MEASURE_INTERVAL_US, true),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "df_accel_read")),
 	_gyro_sample_perf(perf_alloc(PC_ELAPSED, "df_gyro_read"))
 	/*_rotation(rotation)*/
@@ -380,6 +386,8 @@ void DfMpu9250Wrapper::_update_accel_calibration()
 
 int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 {
+	bool should_notify = false;
+
 	/* Check if calibration values are still up-to-date. */
 	bool updated;
 	orb_check(_param_update_sub, &updated);
@@ -406,6 +414,21 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.y = (data.accel_m_s2_y - _accel_calibration.y_offset) * _accel_calibration.y_scale;
 	accel_report.z = (data.accel_m_s2_z - _accel_calibration.z_offset) * _accel_calibration.z_scale;
 
+	math::Vector<3> accel_val(accel_report.x,
+				  accel_report.y,
+				  accel_report.z);
+	math::Vector<3> accel_val_integrated;
+
+	const bool should_publish_accel = _accel_int.put(accel_report.timestamp,
+					  accel_val,
+					  accel_val_integrated,
+					  accel_report.integral_dt);
+
+	accel_report.x_integral = accel_val_integrated(0);
+	accel_report.y_integral = accel_val_integrated(1);
+	accel_report.z_integral = accel_val_integrated(2);
+
+
 	// TODO: get these right
 	accel_report.scaling = -1.0f;
 	accel_report.range_m_s2 = -1.0f;
@@ -413,11 +436,13 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.device_id = m_id.dev_id;
 
 	// TODO: when is this ever blocked?
-	if (!(m_pub_blocked)) {
+	if (!(m_pub_blocked) && should_publish_accel) {
 
 		if (_accel_topic != nullptr) {
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 		}
+
+		should_notify = true;
 	}
 
 	perf_end(_accel_sample_perf);
@@ -437,6 +462,22 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	gyro_report.y = (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
 	gyro_report.z = (data.gyro_rad_s_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
 
+	math::Vector<3> gyro_val(gyro_report.x,
+				 gyro_report.y,
+				 gyro_report.z);
+	math::Vector<3> gyro_val_integrated(gyro_report.x,
+					    gyro_report.y,
+					    gyro_report.z);
+
+	const bool should_publish_gyro = _gyro_int.put(gyro_report.timestamp,
+					 gyro_val,
+					 gyro_val_integrated,
+					 gyro_report.integral_dt);
+
+	gyro_report.x_integral = gyro_val_integrated(0);
+	gyro_report.y_integral = gyro_val_integrated(1);
+	gyro_report.z_integral = gyro_val_integrated(2);
+
 	// TODO: get these right
 	gyro_report.scaling = -1.0f;
 	gyro_report.range_rad_s = -1.0f;
@@ -444,17 +485,21 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	gyro_report.device_id = m_id.dev_id;
 
 	// TODO: when is this ever blocked?
-	if (!(m_pub_blocked)) {
+	if (!(m_pub_blocked) && should_publish_gyro) {
 
 		if (_gyro_topic != nullptr) {
 			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
 		}
+
+		should_notify = true;
 	}
 
 	perf_end(_gyro_sample_perf);
 
-	/* Notify anyone waiting for data. */
-	DevMgr::updateNotify(*this);
+	if (should_notify) {
+		/* Notify anyone waiting for data. */
+		DevMgr::updateNotify(*this);
+	}
 
 	// TODO: check the return codes of this function
 	return 0;
