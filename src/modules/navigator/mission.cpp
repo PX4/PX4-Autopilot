@@ -478,6 +478,7 @@ Mission::set_mission_items()
 					&& has_next_position_item) {
 				_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 				_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				_mission_item.yaw = NAN;
 				new_work_item_type = WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF;
 			} else {
 				new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
@@ -570,8 +571,8 @@ Mission::set_mission_items()
 	} else {
 
 		/* turn towards next waypoint before MC to FW transition */
-		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
-				&& _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF
+		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION				
+				&& _work_item_type != WORK_ITEM_TYPE_ALIGN
 				&& _navigator->get_vstatus()->is_rotary_wing
 				&& !_navigator->get_vstatus()->condition_landed
 				&& has_next_position_item) {
@@ -592,7 +593,7 @@ Mission::set_mission_items()
 				&& !_navigator->get_vstatus()->condition_landed
 				&& pos_sp_triplet->current.valid) {
 
-			new_work_item_type = WORK_ITEM_TYPE_CMD_BEFORE_MOVE;
+			//new_work_item_type = WORK_ITEM_TYPE_CMD_BEFORE_MOVE;
 		}
 
 		/* after FW to MC transition finish moving to the waypoint */
