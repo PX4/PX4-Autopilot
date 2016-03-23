@@ -228,6 +228,7 @@ MissionBlock::is_mission_item_reached()
 
 	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
 	if (_waypoint_position_reached && _waypoint_yaw_reached) {
+
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
 
@@ -436,35 +437,35 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 void
 MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s & target, float yaw)
 {
-    if (_navigator->get_vstatus()->condition_landed) {
-        /* landed, don't takeoff, but switch to IDLE mode */
-        item->nav_cmd = NAV_CMD_IDLE;
+	if (_navigator->get_vstatus()->condition_landed) {
+		/* landed, don't takeoff, but switch to IDLE mode */
+		item->nav_cmd = NAV_CMD_IDLE;
 
-    } else {
-        item->nav_cmd = NAV_CMD_FOLLOW_TARGET;
+	} else {
 
-        /* use current target position */
+		item->nav_cmd = NAV_CMD_FOLLOW_TARGET;
 
-        item->lat = target.lat;
-        item->lon = target.lon;
-        item->altitude = target.alt + _navigator->get_home_position()->alt;
+		/* use current target position */
 
-        if (((min_clearance > 0.0f) && (item->altitude < _navigator->get_home_position()->alt + min_clearance)) || PX4_ISFINITE(target.alt)) {
-            item->altitude = _navigator->get_home_position()->alt + min_clearance;
-        }
-    }
+		item->lat = target.lat;
+		item->lon = target.lon;
+		item->altitude = target.alt + _navigator->get_home_position()->alt;
 
-    item->altitude_is_relative = false;
-    item->yaw = yaw;
-    item->loiter_radius = _navigator->get_loiter_radius();
-    item->loiter_direction = 1;
-    item->acceptance_radius = _navigator->get_acceptance_radius();
-    item->time_inside = 0.0f;
-    item->pitch_min = 0.0f;
-    item->autocontinue = false;
-    item->origin = ORIGIN_ONBOARD;
+		if (((min_clearance > 0.0f) && (item->altitude < _navigator->get_home_position()->alt + min_clearance)) || PX4_ISFINITE(target.alt)) {
+			item->altitude = _navigator->get_home_position()->alt + min_clearance;
+		}
+	}
+
+	item->altitude_is_relative = false;
+	item->yaw = yaw;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_direction = 1;
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->pitch_min = 0.0f;
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
 }
-
 
 void
 MissionBlock::set_takeoff_item(struct mission_item_s *item, float min_clearance, float min_pitch)
