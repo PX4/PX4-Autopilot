@@ -433,7 +433,6 @@ Mission::set_mission_items()
 
 	/* handle position mission items */
 
-	printf("NAV_CMD %.2f workitem: %2f \n", (double)_mission_item.nav_cmd, (double)_work_item_type);
 
 	if (item_contains_position(&_mission_item)) {
 
@@ -493,7 +492,6 @@ Mission::set_mission_items()
 			if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
 					&& _work_item_type == WORK_ITEM_TYPE_DEFAULT
 					&& !_navigator->get_vstatus()->condition_landed) {
-				printf("vt move to land \n");
 				new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
 				/* use current mission item as next position item */
 				memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
@@ -514,7 +512,6 @@ Mission::set_mission_items()
 					&& _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND
 					&& !_navigator->get_vstatus()->is_rotary_wing
 					&& !_navigator->get_vstatus()->condition_landed) {
-				printf("vt transition \n");
 				_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 				_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 				_mission_item.autocontinue = true;
@@ -524,7 +521,6 @@ Mission::set_mission_items()
 		/* move to landing waypoint before descent if necessary */
 		if (do_need_move_to_land() && (_work_item_type == WORK_ITEM_TYPE_DEFAULT || _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
-			printf("doneedmovetoland \n");
 
 			/* use current mission item as next position item */
 			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
@@ -552,7 +548,6 @@ Mission::set_mission_items()
 		/* we just moved to the landing waypoint, now descend */
 		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND
 				&& _navigator->get_vstatus()->is_rotary_wing) {
-			printf("move to land complete \n");
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 		}
 
@@ -567,7 +562,6 @@ Mission::set_mission_items()
 
 	/* handle non-position mission items such as commands */
 	} else {
-		printf("not a position item \n");
 
 		/* turn towards next waypoint before MC to FW transition */
 		if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
