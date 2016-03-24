@@ -65,6 +65,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.airspeed_trans = param_find("VT_ARSP_TRANS");
 	_params_handles_standard.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
+	_params_handles_standard.b_trans_airbrakes = param_find("VT_B_AIRBRAKES");
 }
 
 Standard::~Standard()
@@ -103,6 +104,9 @@ Standard::parameters_update()
 
 	/* minimum time for transition to fw mode */
 	param_get(_params_handles_standard.front_trans_time_min, &_params_standard.front_trans_time_min);
+
+	/* back transition flaperons */
+	param_get(_params_handles_standard.b_trans_airbrakes, &_params_standard.b_trans_airbrakes);
 
 
 	return OK;
@@ -315,6 +319,13 @@ void Standard::fill_actuator_outputs()
 		(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) * (1 - _mc_pitch_weight);	//pitch
 	_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW]
 			* (1 - _mc_yaw_weight);	// yaw
+
+	// apply airbrakes
+	if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
+		_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = _params_standard.b_trans_airbrakes;
+	} else {
+		_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = 0.0f;
+	}
 
 	// set the fixed wing throttle control
 	if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {

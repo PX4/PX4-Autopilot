@@ -312,3 +312,13 @@ PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
+
+/**
+ * Flaperons scale during back transition
+ *
+ * @min 0.00
+ * @max 1.00
+ * @increment 0.1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_AIRBRAKES, 0.0f);

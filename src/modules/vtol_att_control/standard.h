@@ -73,6 +73,7 @@ private:
 		float airspeed_trans;
 		float front_trans_timeout;
 		float front_trans_time_min;
+		float b_trans_airbrakes;
 	} _params_standard;
 
 	struct {
@@ -83,6 +84,7 @@ private:
 		param_t airspeed_trans;
 		param_t front_trans_timeout;
 		param_t front_trans_time_min;
+		param_t b_trans_airbrakes;
 	} _params_handles_standard;
 
 	enum vtol_mode {
