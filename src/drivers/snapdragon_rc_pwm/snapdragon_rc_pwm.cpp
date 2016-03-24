@@ -50,15 +50,12 @@
 #include <string.h>
 #include <termios.h>
 #include <uORB/topics/input_rc.h>
-#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_0.h>
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
 
-
-
-
+#include "drivers/drv_pwm_output.h"
 #include <drivers/drv_hrt.h>
 
 
@@ -75,13 +72,11 @@ static char _device[MAX_LEN_DEV_PATH];
 static bool _is_running = false;         // flag indicating if uart_esc app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
 static int _uart_fd = -1;
+int _pwm_fd = -1;
 static bool _flow_control_enabled = false;
 int _rc_sub = -1;
 
-orb_advert_t 	_actuator_controls_pub = nullptr;
-
 struct input_rc_s _rc = {};
-struct actuator_controls_s _actuators;
 
 // Print out the usage information
 void usage();
@@ -100,7 +95,7 @@ void send_rc_mavlink();
 void handle_message(mavlink_message_t *msg);
 
 /** task main trampoline function */
-void	task_main_trampoline(int argc, char *argv[]);
+void task_main_trampoline(int argc, char *argv[]);
 
 /** uart_esc thread primary entry point */
 void task_main(int argc, char *argv[]);
@@ -114,6 +109,13 @@ void task_main(int argc, char *argv[])
 
 
 	initialise_uart();
+
+	_pwm_fd = open(PWM_OUTPUT0_DEVICE_PATH, 0);
+
+	if (_pwm_fd < 0) {
+		PX4_ERR("can't open %s", PWM_OUTPUT0_DEVICE_PATH);
+		return;
+	}
 
 	// we wait for uart actuator controls messages from snapdragon
 	px4_pollfd_struct_t fds[1];
@@ -171,11 +173,6 @@ void handle_message(mavlink_message_t *msg)
 	if (msg->msgid == MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET) {
 		mavlink_actuator_control_target_t actuator_controls;
 		mavlink_msg_actuator_control_target_decode(msg, &actuator_controls);
-		_actuators.control[0] = actuator_controls.controls[0];
-		_actuators.control[1] = actuator_controls.controls[1];
-		_actuators.control[2] = actuator_controls.controls[2];
-		_actuators.control[3] = actuator_controls.controls[3];
-		_actuators.timestamp = hrt_absolute_time();
 
 		//static unsigned counter = 0;
 		//if (counter++ % 250 == 0) {
@@ -185,15 +182,18 @@ void handle_message(mavlink_message_t *msg)
 		//		 (double)_actuators.control[2],
 		//		 (double)_actuators.control[3]);
 		//}
+		//
+		//
+		for (unsigned i = 0; i < sizeof(actuator_controls.controls) / sizeof(actuator_controls.controls[0]); i++) {
+			if (!isnan(actuator_controls.controls[i])) {
+				long unsigned pwm = actuator_controls.controls[i];
+				int ret = ::ioctl(_pwm_fd, PWM_SERVO_SET(i), pwm);
 
-		// publish actuator controls received from snapdragon
-		if (_actuator_controls_pub == nullptr) {
-			_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
-
-		} else {
-			orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &_actuators);
+				if (ret != OK) {
+					PX4_ERR("PWM_SERVO_SET(%d)", i);
+				}
+			}
 		}
-
 	}
 }
 
@@ -274,7 +274,7 @@ int initialise_uart()
 	int termios_state = -1;
 
 	if (_uart_fd < 0) {
-		PX4_WARN("failed to open uart device!");
+		PX4_ERR("failed to open uart device!");
 		return -1;
 	}
 
