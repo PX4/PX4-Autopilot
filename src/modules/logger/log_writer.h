@@ -3,6 +3,7 @@
 #include <px4.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <drivers/drv_hrt.h>
 
 namespace px4
 {
@@ -56,6 +57,7 @@ private:
 	const size_t	_min_write_chunk;
 	size_t			_head = 0;
 	size_t			_count = 0;
+	size_t	_highWater = 0;
 	size_t		_total_written = 0;
 	bool		_should_run = false;
 	pthread_mutex_t		_mtx;

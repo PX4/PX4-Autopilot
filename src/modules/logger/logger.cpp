@@ -4,6 +4,8 @@
 #include <string.h>
 #include <uORB/uORBTopics.h>
 
+//#define DBGPRINT
+
 using namespace px4::logger;
 
 int logger_main(int argc, char *argv[])
@@ -83,7 +85,7 @@ int Logger::start()
 	logger_task = px4_task_spawn_cmd("logger",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 4000,
+					 2800,
 					 (px4_main_t)&Logger::run_trampoline,
 					 nullptr);
 
@@ -97,7 +99,7 @@ int Logger::start()
 
 void Logger::run_trampoline(int argc, char *argv[])
 {
-	logger_ptr = new Logger(32768, 10000);
+	logger_ptr = new Logger(32768 + 10000, 10000);
 
 	if (logger_ptr == nullptr) {
 		warnx("alloc failed");
@@ -121,7 +123,7 @@ struct message_format_s {
 
 	uint8_t msg_id;
 	uint16_t format_len;
-	char format[2100];
+	char format[2096];
 };
 
 struct message_data_header_s {
@@ -134,13 +136,13 @@ struct message_data_header_s {
 };
 
 // apparently unused
-//struct message_info_header_s {
-//	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
-//	uint8_t msg_size;
-//
-//	uint8_t key_len;
-//	char key[255];
-//};
+struct message_info_header_s {
+	uint8_t msg_type = static_cast<uint8_t>(MessageType::INFO);
+	uint8_t msg_size;
+
+	uint8_t key_len;
+	char key[255];
+};
 
 struct message_parameter_header_s {
 	uint8_t msg_type = static_cast<uint8_t>(MessageType::PARAMETER);
@@ -208,10 +210,7 @@ void Logger::add_all_topics()
 	const orb_metadata **topics = orb_get_topics();
 
 	for (size_t i = 0; i < orb_topics_count(); i++) {
-		if (strcmp(topics[i]->o_name, "vehicle_attitude") == 0) {
-			warnx("adding topic %s", topics[i]->o_name);
-			add_topic(topics[i]);
-		}
+		add_topic(topics[i]);
 	}
 }
 
@@ -219,10 +218,19 @@ void Logger::run()
 {
 	warnx("started");
 
-	if (_subscriptions.size() == 0) {
-		warnx("log all topics");
-		add_all_topics();
-	}
+//	if (_subscriptions.size() == 0) {
+//		warnx("log all topics");
+//		add_all_topics();
+//	}
+	add_topic(ORB_ID(vehicle_status));
+
+	const orb_metadata **topics = orb_get_topics();
+	add_topic(topics[3]);	// vehicle_attitude
+//	add_topic(topics[5]);	// estimator_status
+	add_topic(topics[68]);	// sensor_accel
+	add_topic(topics[64]);	// sensor_combined
+	add_topic(topics[39]);	// sensor_baro
+	add_topic(topics[53]);	// sensor_gyro
 
 	int mkdir_ret = mkdir(LOG_ROOT, S_IRWXU | S_IRWXG | S_IRWXO);
 
@@ -238,15 +246,27 @@ void Logger::run()
 
 	_task_should_exit = false;
 
+#ifdef DBGPRINT
+	hrt_abstime	dropout_start = 0;
+	hrt_abstime	timer_start = 0;
+	uint32_t	total_bytes = 0;
+#endif
+
 	while (!_task_should_exit) {
+
 		// Start/stop logging when system arm/disarm
 		if (_vehicle_status_sub.check_updated()) {
 			_vehicle_status_sub.update();
 			bool armed = (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
 				     (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR);
+
 			if (_enabled != armed) {
 				if (armed) {
 					start_log();
+#ifdef DBGPRINT
+					timer_start = hrt_absolute_time();
+					total_bytes = 0;
+#endif
 
 				} else {
 					stop_log();
@@ -272,17 +292,37 @@ void Logger::run()
 					orb_copy(sub.metadata, sub.fd, buffer + sizeof(message_data_header_s));
 					message_data_header_s *header = reinterpret_cast<message_data_header_s *>(buffer);
 					header->msg_type = static_cast<uint8_t>(MessageType::DATA);
-					header->msg_size = static_cast<uint8_t>(msg_size - 2);
+					header->msg_size = static_cast<uint16_t>(msg_size - 2);
 					header->msg_id = msg_id;
 					header->multi_id = 0x80;	// Non multi, active
 
-//					warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
+#ifdef DBGPRINT
+					//warnx("subscription %s updated: %d, size: %d", sub.metadata->o_name, updated, msg_size);
+					hrt_abstime trytime = hrt_absolute_time();
+#endif
 
 					if (_writer.write(buffer, msg_size)) {
+#ifdef DBGPRINT
+
+						if (dropout_start != 0) {
+							double drop_len = (double)(trytime - dropout_start)  * 1e-6;
+							warnx("dropout length: %5.3f seconds", drop_len);
+							dropout_start = 0;
+						}
+
+#endif
 						data_written = true;
+#ifdef DBGPRINT
+						total_bytes += msg_size;
+#endif
 
 					} else {
-						break;	// Write buffer overflow
+#ifdef DBGPRINT
+
+						if (dropout_start == 0)	{ dropout_start = trytime; }
+
+#endif
+						break;	// Write buffer overflow, skip this record
 					}
 				}
 
@@ -294,6 +334,18 @@ void Logger::run()
 			if (data_written) {
 				_writer.notify();
 			}
+
+#ifdef DBGPRINT
+			double deltat = (double)(hrt_absolute_time() - timer_start)  * 1e-6;
+
+			if (deltat > 10.0) {
+				double throughput = total_bytes / deltat;
+				warnx("%8.1e Kbytes/sec", throughput / 1e3);
+				total_bytes = 0;
+				timer_start = hrt_absolute_time();
+			}
+
+#endif
 		}
 
 		usleep(_log_interval);

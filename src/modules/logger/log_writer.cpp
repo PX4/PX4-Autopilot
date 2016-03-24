@@ -2,6 +2,8 @@
 #include <fcntl.h>
 #include <string.h>
 
+#define DBGPRINT
+
 namespace px4
 {
 namespace logger
@@ -43,7 +45,7 @@ pthread_t LogWriter::thread_start()
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
-	pthread_attr_setstacksize(&thr_attr, 2048);
+	pthread_attr_setstacksize(&thr_attr, 1024);
 
 	pthread_t thr;
 
@@ -84,7 +86,7 @@ void LogWriter::run()
 		int poll_count = 0;
 		int written = 0;
 
-		_fd = ::open(_filename, O_CREAT | O_WRONLY | O_DSYNC, PX4_O_MODE_666);
+		_fd = ::open(_filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 
 		if (_fd < 0) {
 			warn("can't open log file %s", _filename);
@@ -96,6 +98,11 @@ void LogWriter::run()
 
 		_should_run = true;
 
+#ifdef DBGPRINT
+		hrt_abstime reportTime = 0;
+		size_t highWater = 0;
+#endif
+
 		while (true) {
 			size_t available = 0;
 			void *read_ptr = nullptr;
@@ -105,6 +112,7 @@ void LogWriter::run()
 			mark_read(written);
 			written = 0;
 
+			/* wait for sufficient data or ? or termination */
 			while (true) {
 				available = get_read_ptr(&read_ptr, &is_part);
 
@@ -118,9 +126,16 @@ void LogWriter::run()
 			pthread_mutex_unlock(&_mtx);
 
 			if (available > 0) {
+#ifdef DBGPRINT
+
+				if (available > highWater) {
+					highWater = available;
+				}
+
+#endif
 				written = ::write(_fd, read_ptr, available);
 
-				if (++poll_count >= 10) {
+				if (++poll_count >= 100) {
 					::fsync(_fd);
 					poll_count = 0;
 				}
@@ -133,6 +148,17 @@ void LogWriter::run()
 
 				_total_written += written;
 			}
+
+#ifdef DBGPRINT
+			double deltat = (double)(hrt_absolute_time() - reportTime)  * 1e-6;
+
+			if (deltat > 1.0) {
+				warnx("highWater mark: %d bytes", highWater);
+				highWater = 0;
+				reportTime = hrt_absolute_time();
+			}
+
+#endif
 
 			if (!_should_run && written == static_cast<int>(available) && !is_part) {
 				// Stop only when all data written
@@ -158,10 +184,21 @@ bool LogWriter::write(void *ptr, size_t size)
 	// Bytes available to write
 	size_t available = _buffer_size - _count;
 
+#ifdef DBGPRINT
+
+	if (_count > _highWater) { _highWater = _count; }
+
+	if (available < 1000) {
+		warnx("highWater: %d", _highWater);
+	}
+
 //	warnx("writing %d bytes, available: %d", size, available);
+#endif
 
 	if (size > available) {
-		warnx("overflow");
+#ifdef DBGPRINT
+		printf("ovf: %d\n", size - available);
+#endif
 		// buffer overflow
 		return false;
 	}

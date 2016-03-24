@@ -494,13 +494,13 @@ then
 		fi
 	fi
 
-	#mavlink start $MAVLINK_F
+	mavlink start $MAVLINK_F
 	unset MAVLINK_F
 
 	#
 	# MAVLink onboard / TELEM2
 	#
-	if ver hwcmp PX4FMU_V4
+	if ver hwcmp PX4FMU_V1
 	then
 	else
 		# XXX We need a better way for runtime eval of shell variables,
