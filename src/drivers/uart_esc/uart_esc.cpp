@@ -368,6 +368,9 @@ void task_main(int argc, char *argv[])
 		return;
 	}
 
+	// TODO XXX: this is needed otherwise we crash in the callback context.
+	_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc);
+
 	// Main loop
 	while (!_task_should_exit) {
 
