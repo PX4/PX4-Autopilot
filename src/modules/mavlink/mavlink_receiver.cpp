@@ -127,6 +127,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_manual_pub(nullptr),
 	_land_detector_pub(nullptr),
 	_time_offset_pub(nullptr),
+	_follow_target_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -227,7 +228,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
 		handle_message_distance_sensor(msg);
 		break;
-
+	case MAVLINK_MSG_ID_FOLLOW_TARGET:
+		handle_message_follow_target(msg);
+		break;
 	default:
 		break;
 	}
@@ -1623,6 +1626,26 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	}
 }
 
+void MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
+{
+	mavlink_follow_target_t follow_target_msg;
+	follow_target_s follow_target_topic = { };
+
+	mavlink_msg_follow_target_decode(msg, &follow_target_msg);
+
+	follow_target_topic.timestamp = hrt_absolute_time();
+
+	follow_target_topic.lat = follow_target_msg.lat*1e-7;
+	follow_target_topic.lon = follow_target_msg.lon*1e-7;
+	follow_target_topic.alt = follow_target_msg.alt;
+
+	if (_follow_target_pub == nullptr) {
+		_follow_target_pub = orb_advertise(ORB_ID(follow_target), &follow_target_topic);
+	} else {
+		orb_publish(ORB_ID(follow_target), _follow_target_pub, &follow_target_topic);
+	}
+}
+
 void
 MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 {
@@ -1803,7 +1826,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		}
 	}
 }
-
 
 /**
  * Receive data from UART.
