@@ -49,6 +49,12 @@
 #include <systemlib/pwm_limit/pwm_limit.h>
 
 /*
+ hotfix: we are critically short of memory in px4io and this is the
+ easiest way to reclaim about 800 bytes.
+ */
+#define perf_alloc(a,b) NULL
+
+/*
  * Constants and limits.
  */
 #define PX4IO_SERVO_COUNT		8
