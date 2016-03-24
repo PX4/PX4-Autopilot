@@ -41,6 +41,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/input_rc.h>
 
 #include <drivers/drv_hrt.h>
@@ -48,6 +49,7 @@
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/mixer/mixer_multirotor.generated.h>
 #include <systemlib/param/param.h>
+#include <systemlib/pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_serial.h>
 #include <v1.0/checksum.h>
 #include <v1.0/mavlink_types.h>
@@ -67,6 +69,7 @@ static px4_task_t _task_handle = -1;     // handle to the task main thread
 
 // subscriptions
 int	_controls_sub;
+int	_armed_sub;
 int 	_fd;
 
 // filenames
@@ -81,7 +84,10 @@ orb_advert_t 		_rc_pub = nullptr;
 // topic structures
 actuator_controls_s     _controls;
 actuator_outputs_s      _outputs;
+actuator_armed_s	_armed;
 input_rc_s 		_rc;
+
+pwm_limit_t	_pwm_limit;
 
 
 MultirotorMixer *_mixer = nullptr;
@@ -92,7 +98,7 @@ void start(const char *device);
 
 void stop();
 
-void send_controls_mavlink();
+void send_outputs_mavlink(const uint16_t *pwm, const unsigned num_pwm);
 
 void serial_callback(void *context, char *buffer, size_t num_bytes);
 
@@ -116,18 +122,8 @@ int mixer_control_callback(uintptr_t handle,
 
 	input = controls[control_group].control[control_index];
 
-	// TODO FIXME: fix this
-	/* motor spinup phase - lock throttle to zero *
-	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
-		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
-			control_index == actuator_controls_s::INDEX_THROTTLE) {
-			* limit the throttle output to zero during motor spinup,
-			 * as the motors cannot follow any demand yet
-			 *
-			input = 0.0f;
-		}
-	}
-	*/
+
+
 	return 0;
 }
 
@@ -227,13 +223,21 @@ int uart_deinitialize()
 }
 
 // send actuator controls message to Pixhawk
-void send_controls_mavlink()
+void send_outputs_mavlink(const uint16_t *pwm, const unsigned num_pwm)
 {
+	// Fill up to number of outputs.
 	mavlink_actuator_control_target_t controls_message;
-	controls_message.controls[0] = _controls.control[0];
-	controls_message.controls[1] = _controls.control[1];
-	controls_message.controls[2] = _controls.control[2];
-	controls_message.controls[3] = _controls.control[3];
+
+	for (unsigned i = 0; i < num_pwm && i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; ++i) {
+		controls_message.controls[i] = pwm[i];
+	}
+
+	// And the rest with NAN.
+	for (unsigned i = _outputs.noutputs; (i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS)
+	     && (i < actuator_controls_s::NUM_ACTUATOR_CONTROLS); ++i) {
+		controls_message.controls[i] = NAN;
+	}
+
 	controls_message.time_usec = _controls.timestamp;
 
 	const uint8_t msgid = MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET;
@@ -353,7 +357,12 @@ void task_main(int argc, char *argv[])
 	}
 
 	// Subscribe for orb topics
-	_controls_sub = orb_subscribe(ORB_ID(actuator_controls_0)); // single group for now
+	_controls_sub = orb_subscribe(ORB_ID(actuator_controls_0));
+	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+
+	// Start disarmed
+	_armed.armed = false;
+	_armed.prearmed = false;
 
 	// Set up poll topic
 	px4_pollfd_struct_t fds[1];
@@ -367,6 +376,8 @@ void task_main(int argc, char *argv[])
 		PX4_ERR("Mixer initialization failed.");
 		return;
 	}
+
+	pwm_limit_init(&_pwm_limit);
 
 	// TODO XXX: this is needed otherwise we crash in the callback context.
 	_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc);
@@ -392,7 +403,29 @@ void task_main(int argc, char *argv[])
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
 
-			send_controls_mavlink();
+			_outputs.timestamp = _controls.timestamp;
+
+			/* do mixing */
+			_outputs.noutputs = _mixer->mix(_outputs.output, 0 /* not used */, NULL);
+
+			/* disable unused ports by setting their output to NaN */
+			for (size_t i = _outputs.noutputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
+				_outputs.output[i] = NAN;
+			}
+
+			const uint16_t reverse_mask = 0;
+			// TODO FIXME: these should probably be params
+			const uint16_t disarmed_pwm[4] = {900, 900, 900, 900};
+			const uint16_t min_pwm[4] = {1230, 1230, 1230, 1230};
+			const uint16_t max_pwm[4] = {1900, 1900, 1900, 1900};
+			uint16_t pwm[4];
+
+			// TODO FIXME: pre-armed seems broken
+			pwm_limit_calc(_armed.armed, false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask,
+				       disarmed_pwm, min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
+
+
+			send_outputs_mavlink(pwm, 4);
 
 			if (_outputs_pub != nullptr) {
 				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
@@ -401,10 +434,22 @@ void task_main(int argc, char *argv[])
 				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
 			}
 		}
+
+		bool updated;
+		orb_check(_armed_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+			PX4_INFO("armed: %s, pre-armed; %s",
+				 _armed.armed ? "true" : "false",
+				 _armed.prearmed ? "true" : "false");
+		}
 	}
 
 	uart_deinitialize();
+	close(_fd_pwm);
 	orb_unsubscribe(_controls_sub);
+	orb_unsubscribe(_armed_sub);
 
 	_is_running = false;
 
