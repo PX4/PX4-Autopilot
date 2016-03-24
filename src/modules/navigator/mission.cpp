@@ -73,7 +73,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_dist_1wp(this, "MIS_DIST_1WP", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
-	_param_force_vtol(this, "VT_FORCE_VTOL", false),
+	_param_force_vtol(this, "VT_NAV_FORCE_VTL", false),
 	_onboard_mission{},
 	_offboard_mission{},
 	_current_onboard_mission_index(-1),
