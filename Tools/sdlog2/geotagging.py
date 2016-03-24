@@ -12,10 +12,7 @@
 #                            --output=imagesWithTag/
 #
 #   Author: Andreas Bircher, Wingtra, http://wingtra.com, in 2016
-#   
-# 
-
-__author__ = "Andreas Bircher"
+#
 
 import glob
 import os
