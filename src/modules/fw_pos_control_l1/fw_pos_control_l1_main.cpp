@@ -86,11 +86,11 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
+#include <systemlib/mavlink_log.h>
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
-#include <mavlink/mavlink_log.h>
 #include <launchdetection/LaunchDetector.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <external_lgpl/tecs/tecs.h>
@@ -151,7 +151,7 @@ public:
 	bool		task_running() { return _task_running; }
 
 private:
-	int		_mavlink_fd;
+	orb_advert_t	_mavlink_log_pub;
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	bool		_task_running;			/**< if true, task is running in its mainloop */
@@ -506,7 +506,7 @@ FixedwingPositionControl	*g_control = nullptr;
 
 FixedwingPositionControl::FixedwingPositionControl() :
 
-	_mavlink_fd(-1),
+	_mavlink_log_pub(nullptr),
 	_task_should_exit(false),
 	_task_running(false),
 
@@ -1063,7 +1063,7 @@ float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint
 	 * for the whole landing */
 	if (_parameters.land_use_terrain_estimate && global_pos.terrain_alt_valid) {
 		if (!land_useterrain) {
-			mavlink_log_info(_mavlink_fd, "Landing, using terrain estimate");
+			mavlink_log_info(&_mavlink_log_pub, "Landing, using terrain estimate");
 			land_useterrain = true;
 		}
 
@@ -1400,7 +1400,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						target_bearing = _yaw;
 					}
 
-					mavlink_log_info(_mavlink_fd, "#Landing, heading hold");
+					mavlink_log_info(&_mavlink_log_pub, "#Landing, heading hold");
 				}
 
 //					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
@@ -1506,7 +1506,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 					if (!land_motor_lim) {
 						land_motor_lim  = true;
-						mavlink_log_info(_mavlink_fd, "#Landing, limiting throttle");
+						mavlink_log_info(&_mavlink_log_pub, "#Landing, limiting throttle");
 					}
 
 				}
@@ -1534,7 +1534,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					// just started with the flaring phase
 					_att_sp.pitch_body = 0.0f;
 					height_flare = _global_pos.alt - terrain_alt;
-					mavlink_log_info(_mavlink_fd, "#Landing, flaring");
+					mavlink_log_info(&_mavlink_log_pub, "#Landing, flaring");
 					land_noreturn_vertical = true;
 
 				} else {
@@ -1567,7 +1567,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					altitude_desired_rel = landing_slope_alt_rel_desired;
 
 					if (!land_onslope) {
-						mavlink_log_info(_mavlink_fd, "#Landing, on slope");
+						mavlink_log_info(&_mavlink_log_pub, "#Landing, on slope");
 						land_onslope = true;
 					}
 
@@ -1602,7 +1602,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
 					_takeoff_ground_alt = _global_pos.alt;
 
-					mavlink_log_info(_mavlink_fd, "#Takeoff on runway");
+					mavlink_log_info(&_mavlink_log_pub, "#Takeoff on runway");
 				}
 
 				float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt, _global_pos);
@@ -1613,7 +1613,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					_global_pos.alt - terrain_alt,
 					_global_pos.lat,
 					_global_pos.lon,
-					_mavlink_fd);
+					&_mavlink_log_pub);
 
 				/*
 				 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
@@ -1665,7 +1665,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					static hrt_abstime last_sent = 0;
 
 					if (hrt_absolute_time() - last_sent > 4e6) {
-						mavlink_log_critical(_mavlink_fd, "#Launchdetection running");
+						mavlink_log_critical(&_mavlink_log_pub, "#Launchdetection running");
 						last_sent = hrt_absolute_time();
 					}
 
@@ -2125,12 +2125,6 @@ FixedwingPositionControl::task_main()
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
 			perf_begin(_loop_perf);
-
-			/* XXX Hack to get mavlink output going */
-			if (_mavlink_fd < 0) {
-				/* try to open the mavlink log device every once in a while */
-				_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
-			}
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);

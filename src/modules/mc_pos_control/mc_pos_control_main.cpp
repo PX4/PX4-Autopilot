@@ -79,9 +79,9 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
 #include <systemlib/systemlib.h>
+#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
-#include <mavlink/mavlink_log.h>
 #include <platforms/px4_defines.h>
 
 #include <controllib/blocks.hpp>
@@ -123,7 +123,7 @@ public:
 private:
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_control_task;			/**< task handle for task */
-	int		_mavlink_fd;			/**< mavlink fd */
+	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_ctrl_state_sub;		/**< control state subscription */
@@ -348,7 +348,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(NULL, "MPC"),
 	_task_should_exit(false),
 	_control_task(-1),
-	_mavlink_fd(-1),
+	_mavlink_log_pub(nullptr),
 
 	/* subscriptions */
 	_ctrl_state_sub(-1),
@@ -1145,8 +1145,6 @@ void MulticopterPositionControl::control_auto(float dt)
 void
 MulticopterPositionControl::task_main()
 {
-
-	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/*
 	 * do subscriptions
@@ -1960,7 +1958,7 @@ MulticopterPositionControl::task_main()
 				     && !_control_mode.flag_control_climb_rate_enabled;
 	}
 
-	mavlink_log_info(_mavlink_fd, "[mpc] stopped");
+	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
 
 	_control_task = -1;
 }

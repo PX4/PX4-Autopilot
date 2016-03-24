@@ -49,7 +49,7 @@
 
 #include <systemlib/err.h>
 #include <geo/geo.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 
 #include <uORB/uORB.h>
@@ -233,7 +233,7 @@ MissionBlock::is_mission_item_reached()
 			_time_first_inside_orbit = now;
 
 			// if (_mission_item.time_inside > 0.01f) {
-			// 	mavlink_log_critical(_mavlink_fd, "waypoint reached, wait for %.1fs",
+			// 	mavlink_log_critical(_mavlink_log_pub, "waypoint reached, wait for %.1fs",
 			// 		(double)_mission_item.time_inside);
 			// }
 		}
@@ -486,7 +486,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if (at_current_location) {
 		item->lat = _navigator->get_global_position()->lat;
 		item->lon = _navigator->get_global_position()->lon;
-	
+
 	/* use home position */
 	} else {
 		item->lat = _navigator->get_home_position()->lat;

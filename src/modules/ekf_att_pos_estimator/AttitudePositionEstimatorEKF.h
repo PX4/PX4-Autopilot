@@ -229,7 +229,7 @@ private:
     bool            _newDataMag;
     bool            _newRangeData;
 
-    int             _mavlink_fd;
+    orb_advert_t    _mavlink_log_pub;
 
     control::BlockParamFloat _mag_offset_x;
     control::BlockParamFloat _mag_offset_y;
@@ -356,7 +356,7 @@ private:
     *   Runs the sensor fusion step of the filter. The parameters determine which of the sensors
     *   are fused with each other
     **/
-    void updateSensorFusion(const bool fuseGPS, const bool fuseMag, const bool fuseRangeSensor, 
+    void updateSensorFusion(const bool fuseGPS, const bool fuseMag, const bool fuseRangeSensor,
             const bool fuseBaro, const bool fuseAirSpeed);
 
     /**

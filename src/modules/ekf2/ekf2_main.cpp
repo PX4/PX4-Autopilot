@@ -58,9 +58,9 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <mavlink/mavlink_log.h>
 #include <platforms/px4_defines.h>
 #include <drivers/drv_hrt.h>
 #include <controllib/uorb/blocks.hpp>

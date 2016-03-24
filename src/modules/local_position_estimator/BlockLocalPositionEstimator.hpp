@@ -275,7 +275,7 @@ private:
 	uint64_t _time_last_sonar;
 	uint64_t _time_last_vision_p;
 	uint64_t _time_last_mocap;
-	int 	 _mavlink_fd;
+	orb_advert_t _mavlink_log_pub;
 
 	// initialization flags
 	bool _baroInitialized;

@@ -176,7 +176,7 @@ public:
 	 * @return the distance at which the next waypoint should be used
 	 */
 	float		get_acceptance_radius(float mission_item_radius);
-	int		get_mavlink_fd() { return _mavlink_fd; }
+	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_instance_count++; }
 
@@ -187,7 +187,7 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_navigator_task;		/**< task handle for sensor task */
 
-	int		_mavlink_fd;			/**< the file descriptor to send messages over mavlink */
+	orb_advert_t	_mavlink_log_pub;		/**< the uORB advert to send messages over mavlink */
 
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_gps_pos_sub;		/**< gps position subscription */
