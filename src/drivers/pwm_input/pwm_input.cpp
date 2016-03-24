@@ -320,7 +320,7 @@ void PWMIN::_timer_init(void)
 {
 	/* run with interrupts disabled in case the timer is already
 	 * setup. We don't want it firing while we are doing the setup */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = enter_critical_section();
 
 	/* configure input pin */
 	stm32_configgpio(GPIO_PWM_IN);
@@ -370,7 +370,7 @@ void PWMIN::_timer_init(void)
 	/* enable interrupts */
 	up_enable_irq(PWMIN_TIMER_VECTOR);
 
-	irqrestore(flags);
+	leave_critical_section(flags);
 
 	_timer_started = true;
 }
@@ -437,14 +437,14 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = enter_critical_section();
 
 			if (!_reports->resize(arg)) {
-				irqrestore(flags);
+				leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			leave_critical_section(flags);
 
 			return OK;
 		}

@@ -178,9 +178,9 @@ ramtron_attach(void)
 {
 	/* find the right spi */
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
-	struct spi_dev_s *spi = up_spiinitialize(4);
+	struct spi_dev_s *spi = stm32_spibus_initialize(4);
 #else
-	struct spi_dev_s *spi = up_spiinitialize(2);
+	struct spi_dev_s *spi = stm32_spibus_initialize(2);
 #endif
 	/* this resets the spi bus, set correct bus speed again */
 	SPI_SETFREQUENCY(spi, 10 * 1000 * 1000);
@@ -228,9 +228,7 @@ static void
 at24xxx_attach(void)
 {
 	/* find the right I2C */
-	struct i2c_dev_s *i2c = up_i2cinitialize(PX4_I2C_BUS_ONBOARD);
-	/* this resets the I2C bus, set correct bus speed again */
-	I2C_SETFREQUENCY(i2c, 400000);
+	struct i2c_master_s *i2c = stm32_i2cbus_initialize(PX4_I2C_BUS_ONBOARD);
 
 	if (i2c == NULL) {
 		errx(1, "failed to locate I2C bus");

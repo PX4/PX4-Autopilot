@@ -659,7 +659,7 @@ ToneAlarm::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	DEVICE_DEBUG("ioctl %i %lu", cmd, arg);
 
-//	irqstate_t flags = irqsave();
+//	irqstate_t flags = enter_critical_section();
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
@@ -694,7 +694,7 @@ ToneAlarm::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		break;
 	}
 
-//	irqrestore(flags);
+//	leave_critical_section(flags);
 
 	/* give it to the superclass if we didn't like it */
 	if (result == -ENOTTY) {

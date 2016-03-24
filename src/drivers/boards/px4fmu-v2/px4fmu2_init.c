@@ -56,7 +56,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
-#include <nuttx/i2c.h>
+#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
@@ -432,7 +432,7 @@ __EXPORT int board_app_initialize(void)
 
 	/* Configure SPI-based devices */
 
-	spi1 = up_spiinitialize(1);
+	spi1 = stm32_spibus_initialize(1);
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\n");
@@ -452,7 +452,7 @@ __EXPORT int board_app_initialize(void)
 
 	/* Get the SPI port for the FRAM */
 
-	spi2 = up_spiinitialize(2);
+	spi2 = stm32_spibus_initialize(2);
 
 	if (!spi2) {
 		message("[boot] FAILED to initialize SPI port 2\n");
@@ -469,7 +469,7 @@ __EXPORT int board_app_initialize(void)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
-	spi4 = up_spiinitialize(4);
+	spi4 = stm32_spibus_initialize(4);
 
 	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi4, 10000000);
@@ -523,7 +523,7 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 
 	fullcontext_s *pdump = (fullcontext_s *)&_sdata;
 
-	(void)irqsave();
+	(void)enter_critical_section();
 
 	struct tcb_s *rtcb = (struct tcb_s *)tcb;
 
@@ -553,7 +553,7 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 	 * fault.
 	 */
 
-	pdump->info.current_regs = (uintptr_t) current_regs;
+	pdump->info.current_regs = (uintptr_t) CURRENT_REGS;
 
 	/* Save Context */
 
@@ -570,11 +570,11 @@ __EXPORT void board_crashdump(uint32_t currentsp, void *tcb, uint8_t *filename, 
 	 * the users context
 	 */
 
-	if (current_regs) {
+	if (CURRENT_REGS) {
 		pdump->info.stacks.interrupt.sp = currentsp;
 
 		pdump->info.flags |= (eRegsPresent | eUserStackPresent | eIntStackPresent);
-		memcpy(pdump->info.regs, (void *)current_regs, sizeof(pdump->info.regs));
+		memcpy(pdump->info.regs, (void *)CURRENT_REGS, sizeof(pdump->info.regs));
 		pdump->info.stacks.user.sp = pdump->info.regs[REG_R13];
 
 	} else {

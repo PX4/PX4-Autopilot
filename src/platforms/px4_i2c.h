@@ -46,6 +46,8 @@
 #error "Devices not supported in ROS"
 
 #elif defined (__PX4_NUTTX)
+__BEGIN_DECLS
+
 /*
  * Building for NuttX
  */
@@ -53,7 +55,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
-#include <nuttx/i2c.h>
+#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/irq.h>
 #include <nuttx/wqueue.h>
 #include <chip.h>
@@ -64,7 +66,8 @@
 
 #define px4_i2c_msg_t i2c_msg_s
 
-typedef struct i2c_dev_s px4_i2c_dev_t;
+typedef struct i2c_master_s px4_i2c_dev_t;
+__END_DECLS
 
 #elif defined(__PX4_POSIX)
 #include <stdint.h>
@@ -86,10 +89,6 @@ typedef struct {
 	const struct px4_i2c_ops_t *ops; /* I2C vtable */
 } px4_i2c_dev_t;
 
-// FIXME - Empty defines for I2C ops
-// Original version commented out
-//#define I2C_SETFREQUENCY(d,f) ((d)->ops->setfrequency(d,f))
-#define I2C_SETFREQUENCY(d,f)
 //#define SPI_SELECT(d,id,s) ((d)->ops->select(d,id,s))
 #define SPI_SELECT(d,id,s)
 

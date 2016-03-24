@@ -148,6 +148,7 @@ class uploader(object):
         OK              = b'\x10'
         FAILED          = b'\x11'
         INVALID         = b'\x13'     # rev3+
+        BAD_SILICON_REV = b'\x14'     # rev5+
 
         # command bytes
         NOP             = b'\x00'     # guaranteed to be discarded by the bootloader
@@ -162,11 +163,14 @@ class uploader(object):
         GET_SN          = b'\x2b'     # rev4+  , get a word from SN area
         GET_CHIP        = b'\x2c'     # rev5+  , get chip version
         SET_BOOT_DELAY  = b'\x2d'     # rev5+  , set boot delay
+        GET_CHIP_DES    = b'\x2e'     # rev5+  , get chip description in ASCII
+        MAX_DES_LENGTH  = 20
+
         REBOOT          = b'\x30'
         
         INFO_BL_REV     = b'\x01'        # bootloader protocol revision
-        BL_REV_MIN      = 2             # minimum supported bootloader protocol 
-        BL_REV_MAX      = 4             # maximum supported bootloader protocol 
+        BL_REV_MIN      = 2              # minimum supported bootloader protocol
+        BL_REV_MAX      = 5              # maximum supported bootloader protocol
         INFO_BOARD_ID   = b'\x02'        # board type
         INFO_BOARD_REV  = b'\x03'        # board revision
         INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
@@ -235,12 +239,16 @@ class uploader(object):
                     if (self.__recv() != self.INSYNC):
                             #print("unexpected 0x%x instead of INSYNC" % ord(c))
                             return False;
-
-                    if (self.__recv() != self.OK):
+                    c = self.__recv()
+                    if (c == self.BAD_SILICON_REV):
+                        raise NotImplementedError()
+                    if (c != self.OK):
                             #print("unexpected 0x%x instead of OK" % ord(c))
                             return False
                     return True
 
+                except NotImplementedError:
+                    raise RuntimeError("Programing not supported for this version of silicon!\n See https://pixhawk.org/help/errata")
                 except RuntimeError:
                     #timeout, no response yet
                     return False
@@ -274,6 +282,14 @@ class uploader(object):
                 value = self.__recv_int()
                 self.__getSync()
                 return value
+        # send the GET_CHIP command
+        def __getCHIPDes(self):
+                self.__send(uploader.GET_CHIP_DES + uploader.EOC)
+                length = self.__recv_int()
+                value = self.__recv(length)
+                self.__getSync()
+                peices = value.split(",")
+                return peices
 
         def __drawProgressBar(self, label, progress, maxVal):
                 if maxVal < progress:
@@ -467,6 +483,12 @@ class uploader(object):
                                     print(binascii.hexlify(x).decode('Latin-1'), end='') # show user
                             print('')
                             print("chip: %08x" % self.__getCHIP())
+                            if (self.bl_rev >= 5):
+                                des = self.__getCHIPDes()
+                                if (len(des) == 2):
+                                    print("family: %s" % des[0])
+                                    print("revision: %s" % des[1])
+                                    print("flash %d" % self.fw_maxsize)
                     except Exception:
                             # ignore bad character encodings
                             pass

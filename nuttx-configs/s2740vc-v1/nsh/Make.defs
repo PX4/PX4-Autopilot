@@ -89,7 +89,7 @@ else
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
   else
     # Linux/Cygwin-native toolchain
-    MKDEP		 = $(TOPDIR)/tools/mkdeps.sh
+    MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
     ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
     ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
