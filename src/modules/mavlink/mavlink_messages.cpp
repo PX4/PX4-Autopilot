@@ -403,7 +403,7 @@ protected:
 
 
 // TODO: the logging doesn't work on Snapdragon yet because of file paths.
-#ifdef __PX4_POSIX_EAGLE
+#ifndef __PX4_POSIX_EAGLE
 			/* write log messages in first instance to disk */
 			if (_mavlink->get_instance_id() == 0) {
 				if (fp) {
@@ -442,9 +442,8 @@ protected:
 							/* write first message */
 							fputs(msg.text, fp);
 							fputs("\n", fp);
-						}
-						else {
-							warn("Failed to open %s errno=%d", log_file_path, errno);
+						} else {
+							PX4_WARN("Failed to open %s errno=%d", log_file_path, errno);
 						}
 					}
 				}
