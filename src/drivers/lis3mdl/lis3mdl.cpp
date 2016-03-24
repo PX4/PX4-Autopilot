@@ -669,7 +669,7 @@ LIS3MDL::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* check against maximum rate */
 					if (ticks < USEC2TICK(LIS3MDL_CONVERSION_INTERVAL)) {
-						return -EINVAL;
+// RobD: quick fix for Phil's testing						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
