@@ -38,7 +38,7 @@ px4_add_module(
 	MODULE modules__logger
 	MAIN logger
 	PRIORITY "SCHED_PRIORITY_MAX-30"
-	STACK 4000
+	STACK 2048
 	COMPILE_FLAGS
 		${MODULE_CFLAGS}
 		-Os
