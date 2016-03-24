@@ -56,6 +56,15 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 }
 #endif
 
+#define _MSG_PRIO_DEBUG		7
+#define _MSG_PRIO_INFO		6
+#define _MSG_PRIO_NOTICE	5
+#define _MSG_PRIO_WARNING	4
+#define _MSG_PRIO_ERROR		3
+#define _MSG_PRIO_CRITICAL	2
+#define _MSG_PRIO_ALERT		1
+#define _MSG_PRIO_EMERGENCY	0
+
 /*
  * The va_args implementation here is not beautiful, but obviously we run into the same issues
  * the GCC devs saw, and are using their solution:
@@ -69,7 +78,7 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
  * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_log_emergency(_pub, _text, ...)	mavlink_vasprintf(3, _pub, _text, ##__VA_ARGS__);
+#define mavlink_log_emergency(_pub, _text, ...)	mavlink_vasprintf(_MSG_PRIO_EMERGENCY, _pub, _text, ##__VA_ARGS__);
 
 /**
  * Send a mavlink critical message.
@@ -77,7 +86,7 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
  * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_log_critical(_pub, _text, ...)	mavlink_vasprintf(2, _pub, _text, ##__VA_ARGS__);
+#define mavlink_log_critical(_pub, _text, ...)	mavlink_vasprintf(_MSG_PRIO_CRITICAL, _pub, _text, ##__VA_ARGS__);
 
 /**
  * Send a mavlink info message.
@@ -85,7 +94,7 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
  * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_log_info(_pub, _text, ...)	mavlink_vasprintf(1, _pub, _text, ##__VA_ARGS__);
+#define mavlink_log_info(_pub, _text, ...)	mavlink_vasprintf(_MSG_PRIO_INFO, _pub, _text, ##__VA_ARGS__);
 
 /**
  * Send a mavlink emergency message and print to console.
@@ -96,7 +105,6 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 #define mavlink_and_console_log_emergency(_pub, _text, ...) \
 	do { \
 		mavlink_log_emergency(_pub, _text, ##__VA_ARGS__); \
-		PX4_ERR("telem> "); \
 		PX4_ERR(_text, ##__VA_ARGS__); \
 	} while(0);
 
@@ -109,7 +117,6 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 #define mavlink_and_console_log_critical(_pub, _text, ...) \
 	do { \
 		mavlink_log_critical(_pub, _text, ##__VA_ARGS__); \
-		PX4_WARN("telem> "); \
 		PX4_WARN(_text, ##__VA_ARGS__); \
 	} while(0);
 
@@ -122,7 +129,6 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 #define mavlink_and_console_log_info(_pub, _text, ...)			\
 	do { \
 		mavlink_log_info(_pub, _text, ##__VA_ARGS__); \
-		PX4_INFO("telem> "); \
 		PX4_INFO(_text, ##__VA_ARGS__); \
 	} while(0);
 
