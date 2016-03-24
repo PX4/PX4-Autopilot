@@ -177,6 +177,15 @@ void handle_message(mavlink_message_t *msg)
 		_actuators.control[3] = actuator_controls.controls[3];
 		_actuators.timestamp = hrt_absolute_time();
 
+		//static unsigned counter = 0;
+		//if (counter++ % 250 == 0) {
+		//	PX4_INFO("got motor controls %.2f %.2f %.2f %.2f",
+		//		 (double)_actuators.control[0],
+		//		 (double)_actuators.control[1],
+		//		 (double)_actuators.control[2],
+		//		 (double)_actuators.control[3]);
+		//}
+
 		// publish actuator controls received from snapdragon
 		if (_actuator_controls_pub == nullptr) {
 			_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
@@ -243,6 +252,16 @@ void send_rc_mavlink()
 
 	int len = ::write(_uart_fd, &buf[0], packet_len);
 
+	//static unsigned counter = 0;
+	//if (counter++ % 100 == 0) {
+	//	PX4_INFO("sent %d %d %d %d %d %d", len,
+	//					   rc_message.chan1_raw,
+	//					   rc_message.chan2_raw,
+	//					   rc_message.chan3_raw,
+	//					   rc_message.chan4_raw,
+	//					   rc_message.chan5_raw);
+	//}
+
 	if (len < 1) {
 		PX4_WARN("failed sending rc mavlink message");
 	}
@@ -260,7 +279,7 @@ int initialise_uart()
 	}
 
 	// set baud rate
-	int speed = B115200;
+	int speed = B921600;
 	struct termios uart_config;
 	tcgetattr(_uart_fd, &uart_config);
 	// clear ONLCR flag (which appends a CR for every LF)
@@ -279,17 +298,9 @@ int initialise_uart()
 		return -1;
 	}
 
-	(void)tcgetattr(_uart_fd, &uart_config);
-#ifdef CRTS_IFLOW
-	uart_config.c_cflag |= CRTS_IFLOW;
-#else
-	uart_config.c_cflag |= CRTSCTS;
-#endif
-	(void)tcsetattr(_uart_fd, TCSANOW, &uart_config);
-
 	/* setup output flow control */
-	if (enable_flow_control(true)) {
-		PX4_WARN("hardware flow control not supported");
+	if (enable_flow_control(false)) {
+		PX4_WARN("hardware flow disable failed");
 	}
 
 	return _uart_fd;
@@ -320,7 +331,6 @@ int enable_flow_control(bool enabled)
 // uart_esc main entrance
 void task_main_trampoline(int argc, char *argv[])
 {
-	PX4_WARN("task_main_trampoline");
 	task_main(argc, argv);
 }
 
