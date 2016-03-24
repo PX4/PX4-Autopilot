@@ -18,6 +18,7 @@ for fn in $(find src/examples \
                  src/modules/gpio_led \
                  src/modules/land_detector \
                  src/modules/muorb \
+                 src/modules/logger \
                  src/modules/px4iofirmware \
                  src/modules/param \
                  src/modules/sensors \

@@ -1,4 +1,4 @@
-uint64 timestamp		# Timestamp in microseconds since boot
+# timestamp (uint64,  Timestamp in microseconds since boot) will be generated automatically
 float32[32] states		# Internal filter states
 float32 n_states		# Number of states effectively used
 float32[3] vibe			# Vibration levels in X, Y and Z

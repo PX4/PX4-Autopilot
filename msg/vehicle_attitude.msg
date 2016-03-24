@@ -1,5 +1,5 @@
 # This is similar to the mavlink message ATTITUDE, but for onboard use */
-uint64 timestamp	# in microseconds since system start
+# timestamp (uint64,  in microseconds since system start) will be generated automatically
 # @warning roll, pitch and yaw have always to be valid, the rotation matrix and quaternion are optional
 float32 roll		# Roll angle (rad, Tait-Bryan, NED)
 float32 pitch		# Pitch angle (rad, Tait-Bryan, NED)
