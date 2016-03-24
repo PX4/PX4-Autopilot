@@ -476,7 +476,7 @@ Mission::set_mission_items()
 					&& _navigator->get_vstatus()->is_rotary_wing
 					&& !_navigator->get_vstatus()->condition_landed
 					&& has_next_position_item) {
-
+				/* check if the vtol_takeoff command is on top of us */
 				if(do_need_move_to_takeoff()){
 					new_work_item_type = WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF;
 				} else {
@@ -496,6 +496,7 @@ Mission::set_mission_items()
 
 		}
 
+		/* takeoff completed and transitioned, move to takeoff wp as fixed wing */
 		if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
 				&& _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF) {
 
@@ -505,37 +506,41 @@ Mission::set_mission_items()
 			_mission_item.time_inside = 0.0f;
 		}
 
-			if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-					&& _work_item_type == WORK_ITEM_TYPE_DEFAULT
-					&& !_navigator->get_vstatus()->condition_landed) {
-				new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
-				/* use current mission item as next position item */
-				memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
-				has_next_position_item = true;
-				float altitude = _navigator->get_global_position()->alt;
-				if (pos_sp_triplet->current.valid) {
-					altitude = pos_sp_triplet->current.alt;
-				}
-
-				_mission_item.altitude = altitude;
-				_mission_item.altitude_is_relative = false;
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-				_mission_item.autocontinue = true;
-				_mission_item.time_inside = 0;
+		/* move to land wp as fixed wing */
+		if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
+				&& _work_item_type == WORK_ITEM_TYPE_DEFAULT
+				&& !_navigator->get_vstatus()->condition_landed) {
+			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
+			/* use current mission item as next position item */
+			memcpy(&mission_item_next_position, &_mission_item, sizeof(struct mission_item_s));
+			has_next_position_item = true;
+			float altitude = _navigator->get_global_position()->alt;
+			if (pos_sp_triplet->current.valid) {
+				altitude = pos_sp_triplet->current.alt;
 			}
 
-			if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-					&& _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND
-					&& !_navigator->get_vstatus()->is_rotary_wing
-					&& !_navigator->get_vstatus()->condition_landed) {
-				_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-				_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-				_mission_item.autocontinue = true;
-				new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
-			}
+			_mission_item.altitude = altitude;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.autocontinue = true;
+			_mission_item.time_inside = 0;
+		}
+
+		/* transition to MC */
+		if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
+				&& _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND
+				&& !_navigator->get_vstatus()->is_rotary_wing
+				&& !_navigator->get_vstatus()->condition_landed) {
+			_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+			_mission_item.params[0] = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			_mission_item.autocontinue = true;
+			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
+		}
 
 		/* move to landing waypoint before descent if necessary */
-		if (do_need_move_to_land() && (_work_item_type == WORK_ITEM_TYPE_DEFAULT || _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
+		if (do_need_move_to_land() &&
+				(_work_item_type == WORK_ITEM_TYPE_DEFAULT ||
+				 _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND;
 
 			/* use current mission item as next position item */
