@@ -143,7 +143,7 @@ Mavlink::Mavlink() :
 	_radio_id(0),
 	_logbuffer(5, sizeof(mavlink_log_s)),
 	_total_counter(0),
-	_receive_thread {},
+	_receive_thread{},
 	_verbose(false),
 	_forwarding_on(false),
 	_ftp_on(false),
@@ -1629,7 +1629,9 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
-	_receive_thread = MavlinkReceiver::receive_start(this);
+	if (_mode != MAVLINK_MODE_OSD) {
+		_receive_thread = MavlinkReceiver::receive_start(this);
+	}
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
@@ -2016,7 +2018,9 @@ Mavlink::task_main(int argc, char *argv[])
 	_subscriptions = nullptr;
 
 	/* wait for threads to complete */
-	pthread_join(_receive_thread, NULL);
+	if (_receive_thread) {
+		pthread_join(_receive_thread, NULL);
+	}
 
 	if (_uart_fd >= 0) {
 		/* reset the UART flags to original state */
