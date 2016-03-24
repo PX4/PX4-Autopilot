@@ -133,7 +133,6 @@ then
 	set GPS yes
 	set GPS_FAKE no
 	set FAILSAFE none
-	set PASSTHROUGH no
 
 	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts
@@ -734,6 +733,40 @@ then
 		param set MAV_TYPE 10
 	fi
 
+	#
+	# For snapdragon, we need a passthrough mode
+	# Do not run any mavlink instances since we need the serial port for
+	# communication with Snapdragon.
+	#
+	if [ $VEHICLE_TYPE == passthrough ]
+	then
+		mavlink stop-all
+
+		# Stop multicopter attitude controller if it is running, the controls come
+		# from Snapdragon.
+		if mc_att_control stop
+		then
+		fi
+
+		# Start snapdragon interface on serial port.
+		if ver hwcmp PX4FMU_V2
+		then
+			# On Pixfalcon use the standard telemetry port (Telem 1).
+			snapdragon_rc_pwm start -d /dev/ttyS1
+			px4io start
+		fi
+
+		if ver hwcmp PX4FMU_V4
+		then
+			# On Pixracer use Telem 2 port (TL2).
+			snapdragon_rc_pwm start -d /dev/ttyS2
+			fmu mode_pwm4
+		fi
+
+		# Arm straightaway.
+		pwm arm
+	fi
+
 	unset MIXER
 	unset MAV_TYPE
 	unset OUTPUT_MODE
@@ -808,37 +841,9 @@ then
 	nshterm /dev/ttyACM0 &
 else
 	# Don't start mavlink in passthrough mode because we currently can't seem to stop it.
-	if [ $PASSTHROUGH == no ]
+	if [ $VEHICLE_TYPE != passthrough ]
 	then
 		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-	fi
-fi
-
-
-# For snapdragon, we need a passthrough mode
-# Do not run any mavlink instances since we need the serial port for
-# communication with Snapdragon.
-if [ $PASSTHROUGH == yes ]
-then
-	mavlink stop-all
-
-	# Stop multicopter attitude controller if it is running, the controls come
-	# from Snapdragon.
-	if mc_att_control stop
-	then
-	fi
-
-	# Start snapdragon interface on serial port.
-	if ver hwcmp PX4FMU_V2
-	then
-		# On Pixfalcon use the standard telemetry port (Telem 1).
-		snapdragon_rc_pwm start -d /dev/ttyS1
-	fi
-
-	if ver hwcmp PX4FMU_V4
-	then
-		# On Pixracer use Telem 2 port (TL2).
-		snapdragon_rc_pwm start -d /dev/ttyS2
 	fi
 fi
 

@@ -9,4 +9,4 @@
 # This startup can be used on Pixhawk/Pixfalcon/Pixracer for the
 # passthrough of RC input and PWM output.
 
-set PASSTHROUGH yes
+set VEHICLE_TYPE passthrough
