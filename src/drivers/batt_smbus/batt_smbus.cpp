@@ -81,21 +81,23 @@
 #define BATT_SMBUS_ADDR_MAX             0x7F	///< highest possible address
 
 #define BATT_SMBUS_I2C_BUS              PX4_I2C_BUS_EXPANSION
-#define BATT_SMBUS_ADDR                 0x0B	///< I2C address
+#define BATT_SMBUS_ADDR                 0x16	///< I2C address
 #define BATT_SMBUS_TEMP                 0x08	///< temperature register
-#define BATT_SMBUS_VOLTAGE              0x09	///< voltage register
+#define BATT_SMBUS_VOLTAGE              0x09	///< voltage register,mV
+#define BATT_SMBUS_CURRENT              0x0a	///< current register
+#define BATT_SMBUS_RE_CAPA_ALARM		0x01    ///< 剩余容量报警,分钟
+#define BATT_SMBUS_RE_TIM_ALARM			0x02    ///< 剩余时间报警,mAH
 #define BATT_SMBUS_REMAINING_CAPACITY	0x0f	///< predicted remaining battery capacity as a percentage
 #define BATT_SMBUS_FULL_CHARGE_CAPACITY 0x10    ///< capacity when fully charged
 #define BATT_SMBUS_DESIGN_CAPACITY	0x18	///< design capacity register
 #define BATT_SMBUS_DESIGN_VOLTAGE	0x19	///< design voltage register
-#define BATT_SMBUS_MANUFACTURE_DATE   0x1B  ///< manufacture date register
+#define BATT_SMBUS_MANUFACTURE_DATE   0x1B  ///< manufacture date register 无
 #define BATT_SMBUS_SERIAL_NUMBER      0x1C  ///< serial number register
-#define BATT_SMBUS_MANUFACTURER_NAME	0x20	///< manufacturer name
-#define BATT_SMBUS_DEVICE_NAME        0x21  ///< device name register
-#define BATT_SMBUS_DEVICE_CHEMISTRY   0x22  ///< device chemistry register
-#define BATT_SMBUS_MANUFACTURER_DATA		0x23	///< manufacturer data
-#define BATT_SMBUS_MANUFACTURE_INFO	0x25	///< cell voltage register
-#define BATT_SMBUS_CURRENT              0x2a	///< current register
+#define BATT_SMBUS_MANUFACTURER_NAME	0x20	///< manufacturer name 无
+#define BATT_SMBUS_DEVICE_NAME        0x21  ///< device name register 无
+#define BATT_SMBUS_DEVICE_CHEMISTRY   0x22  ///< device chemistry register 无
+#define BATT_SMBUS_MANUFACTURER_DATA		0x23	///< manufacturer data 无
+#define BATT_SMBUS_MANUFACTURE_INFO	0x25	///< cell voltage register 无
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US	(1000000 / 10)	///< time in microseconds, measure at 10Hz
 #define BATT_SMBUS_TIMEOUT_US			10000000	///< timeout looking for battery 10seconds after startup
 
@@ -801,7 +803,7 @@ BATT_SMBUS::read_block(uint8_t reg, uint8_t *data, uint8_t max_len, bool append_
 		return 0;
 	}
 
-	// check PEC
+	// check PEC 做pec校验
 	uint8_t pec = get_PEC(reg, true, buff, bufflen + 1);
 
 	if (pec != buff[bufflen + 1]) {
