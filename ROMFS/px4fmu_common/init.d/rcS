@@ -133,6 +133,7 @@ then
 	set GPS yes
 	set GPS_FAKE no
 	set FAILSAFE none
+	set PASSTHROUGH no
 
 	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts
@@ -806,19 +807,41 @@ then
 	# Try to get an USB console
 	nshterm /dev/ttyACM0 &
 else
-	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	# Don't start mavlink in passthrough mode because we currently can't seem to stop it.
+	if [ $PASSTHROUGH == no ]
+	then
+		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	fi
 fi
 
-# XXX Do not run any mavlink instances since we need the serial port for communication with snapdragon
-mavlink stop-all
 
-# XXX Stop multicopter attitude controller, the controls come from snapdragon
-if mc_att_control stop
+# For snapdragon, we need a passthrough mode
+# Do not run any mavlink instances since we need the serial port for
+# communication with Snapdragon.
+if [ $PASSTHROUGH == yes ]
 then
+	mavlink stop-all
+
+	# Stop multicopter attitude controller if it is running, the controls come
+	# from Snapdragon.
+	if mc_att_control stop
+	then
+	fi
+
+	# Start snapdragon interface on serial port.
+	if ver hwcmp PX4FMU_V2
+	then
+		# On Pixfalcon use the standard telemetry port (Telem 1).
+		snapdragon_rc_pwm start -d /dev/ttyS1
+	fi
+
+	if ver hwcmp PX4FMU_V4
+	then
+		# On Pixracer use Telem 2 port (TL2).
+		snapdragon_rc_pwm start -d /dev/ttyS2
+	fi
 fi
 
-# XXX Start snapdragon interface on serial port. On pixfalcon this is the standard telemetry port.
-snapdragon_rc_pwm start -d /dev/ttyS1
 
 if [ $EXIT_ON_END == yes ]
 then
