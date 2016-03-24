@@ -1,35 +1,35 @@
 /****************************************************************************
-*
-*   Copyright (c) 2015 Mark Charlebois. All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions
-* are met:
-*
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in
-*    the documentation and/or other materials provided with the
-*    distribution.
-* 3. Neither the name PX4 nor the names of its contributors may be
-*    used to endorse or promote products derived from this software
-*    without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-* OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-* AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-* POSSIBILITY OF SUCH DAMAGE.
-*
-****************************************************************************/
+ *
+ *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 #include <stdint.h>
 
@@ -40,9 +40,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/input_rc.h>
 
 #include <drivers/drv_hrt.h>
@@ -55,50 +53,43 @@
 #include <v1.0/mavlink_types.h>
 #include <v1.0/common/mavlink.h>
 
-#define MAX_LEN_DEV_PATH 32
-#define RC_MAGIC 	0xf6
 
 namespace uart_esc
 {
-#define UART_ESC_MAX_MOTORS  4
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
 volatile bool _task_should_exit = false; // flag indicating if uart_esc task should exit
-static char _device[MAX_LEN_DEV_PATH];
+static char _device[32] = {};
 static bool _is_running = false;         // flag indicating if uart_esc app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
-void uart_esc_rotate_motors(int16_t *motor_rpm, int num_rotors); // motor re-mapping
 
 // subscriptions
-int		_controls_sub;
-int		_armed_sub;
-int		_param_sub;
+int	_controls_sub;
 int 	_fd;
+
 // filenames
 // /dev/fs/ is mapped to /usr/share/data/adsp/
 static const char *MIXER_FILENAME = "/dev/fs/quad_x.main.mix";
 
 
 // publications
-orb_advert_t        	_outputs_pub;
-orb_advert_t 			_rc_pub = nullptr;
+orb_advert_t        	_outputs_pub = nullptr;
+orb_advert_t 		_rc_pub = nullptr;
 
 // topic structures
 actuator_controls_s     _controls;
-actuator_armed_s        _armed;
-parameter_update_s      _param_update;
 actuator_outputs_s      _outputs;
-input_rc_s 				_rc;
+input_rc_s 		_rc;
 
-/** Print out the usage information */
+
+MultirotorMixer *_mixer = nullptr;
+
 void usage();
 
-/** uart_esc start */
 void start(const char *device);
 
-/** uart_esc stop */
 void stop();
 
 void send_controls_mavlink();
@@ -107,71 +98,14 @@ void serial_callback(void *context, char *buffer, size_t num_bytes);
 
 void handle_message(mavlink_message_t *rc_message);
 
-/** task main trampoline function */
-void	task_main_trampoline(int argc, char *argv[]);
+void task_main_trampoline(int argc, char *argv[]);
 
-/** uart_esc thread primary entry point */
 void task_main(int argc, char *argv[]);
 
-/** mixer initialization */
-MultirotorMixer *mixer;
+/* mixer initialization */
 int initialize_mixer(const char *mixer_filename);
 int mixer_control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
 
-void parameters_init();
-void parameters_update();
-
-struct {
-	int model;
-	int baudrate;
-	int px4_motor_mapping[UART_ESC_MAX_MOTORS];
-} _parameters;
-
-struct {
-	param_t model;
-	param_t baudrate;
-	param_t px4_motor_mapping[UART_ESC_MAX_MOTORS];
-} _parameter_handles;
-
-void parameters_init()
-{
-	_parameter_handles.model 		= param_find("UART_ESC_MODEL");
-	_parameter_handles.baudrate = param_find("UART_ESC_BAUDRATE");
-
-	/* PX4 motor mapping parameters */
-	for (unsigned int i = 0; i < UART_ESC_MAX_MOTORS; i++) {
-		char nbuf[20];
-
-		/* min values */
-		sprintf(nbuf, "UART_ESC_PX4MOTOR%d", i + 1);
-		_parameter_handles.px4_motor_mapping[i] = param_find(nbuf);
-	}
-
-	parameters_update();
-}
-
-void parameters_update()
-{
-	PX4_WARN("uart_esc_main parameters_update");
-	int v_int;
-
-	if (param_get(_parameter_handles.model, &v_int) == 0) {
-		_parameters.model = v_int;
-		PX4_WARN("UART_ESC_MODEL %d", _parameters.model);
-	}
-
-	if (param_get(_parameter_handles.baudrate, &v_int) == 0) {
-		_parameters.baudrate = v_int;
-		PX4_WARN("UART_ESC_BAUDRATE %d", _parameters.baudrate);
-	}
-
-	for (unsigned int i = 0; i < UART_ESC_MAX_MOTORS; i++) {
-		if (param_get(_parameter_handles.px4_motor_mapping[i], &v_int) == 0) {
-			_parameters.px4_motor_mapping[i] = v_int;
-			PX4_WARN("UART_ESC_PX4MOTOR%d %d", i + 1, _parameters.px4_motor_mapping[i]);
-		}
-	}
-}
 
 int mixer_control_callback(uintptr_t handle,
 			   uint8_t control_group,
@@ -182,6 +116,7 @@ int mixer_control_callback(uintptr_t handle,
 
 	input = controls[control_group].control[control_index];
 
+	// TODO FIXME: fix this
 	/* motor spinup phase - lock throttle to zero *
 	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
 		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
@@ -199,112 +134,96 @@ int mixer_control_callback(uintptr_t handle,
 
 int initialize_mixer(const char *mixer_filename)
 {
-	mixer = nullptr;
-
-	int mixer_initialized = -1;
-
 	char buf[2048];
-	unsigned int buflen = sizeof(buf);
+	size_t buflen = sizeof(buf);
 
-	PX4_INFO("Initializing mixer from config file in %s", mixer_filename);
+	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
 	int fd_load = ::open(mixer_filename, O_RDONLY);
 
 	if (fd_load != -1) {
-		int nRead = read(fd_load, buf, buflen);
+		int nRead = ::read(fd_load, buf, buflen);
 		close(fd_load);
 
 		if (nRead > 0) {
-			mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
+			_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
 
-			if (mixer != nullptr) {
+			if (_mixer != nullptr) {
 				PX4_INFO("Successfully initialized mixer from config file");
-				mixer_initialized = 0;
+				return 0;
 
 			} else {
-				PX4_WARN("Unable to parse from mixer config file");
+				PX4_ERR("Unable to parse from mixer config file");
+				return -1;
 			}
 
 		} else {
 			PX4_WARN("Unable to read from mixer config file");
+			return -2;
 		}
 
 	} else {
-		PX4_WARN("Unable to open mixer config file");
-	}
+		PX4_WARN("Unable to open mixer config file, try default mixer");
 
-	// mixer file loading failed, fall back to default mixer configuration for
-	// QUAD_X airframe
-	if (mixer_initialized < 0) {
+		/* Mixer file loading failed, fall back to default mixer configuration for
+		* QUAD_X airframe. */
 		float roll_scale = 1;
 		float pitch_scale = 1;
 		float yaw_scale = 1;
 		float deadband = 0;
 
-		mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-					    MultirotorGeometry::QUAD_X,
-					    roll_scale, pitch_scale, yaw_scale, deadband);
+		_mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
+					     MultirotorGeometry::QUAD_X,
+					     roll_scale, pitch_scale, yaw_scale, deadband);
 
-		if (mixer == nullptr) {
-			PX4_ERR("mixer initialization failed");
-			mixer_initialized = -1;
-			return mixer_initialized;
+		if (_mixer == nullptr) {
+			PX4_ERR("Mixer initialization failed");
+			return -1;
 		}
 
-		PX4_WARN("mixer config file not found, successfully initialized default quad x mixer");
-		mixer_initialized = 0;
-	}
-
-	return mixer_initialized;
-}
-
-/**
-* Rotate the motor rpm values based on the motor mappings configuration stored
-* in motor_mapping
-*/
-void uart_esc_rotate_motors(int16_t *motor_rpm, int num_rotors)
-{
-	ASSERT(num_rotors <= UART_ESC_MAX_MOTORS);
-	int i;
-	int16_t motor_rpm_copy[UART_ESC_MAX_MOTORS];
-
-	for (i = 0; i < num_rotors; i++) {
-		motor_rpm_copy[i] = motor_rpm[i];
-	}
-
-	for (i = 0; i < num_rotors; i++) {
-		motor_rpm[_parameters.px4_motor_mapping[i] - 1] = motor_rpm_copy[i];
+		PX4_INFO("Successfully initialized default quad x mixer.");
+		return 0;
 	}
 }
 
-int uart_initialize(const char *device, int baud)
+
+int uart_initialize(const char *device)
 {
+	_fd = ::open(device, O_RDWR | O_NONBLOCK);
 
-	int fd = ::open(device, O_RDWR | O_NONBLOCK);
-
-	if (fd == -1) {
-		PX4_ERR("failed in open");
+	if (_fd == -1) {
+		PX4_ERR("Failed to open UART.");
 		return -1;
 	}
 
 	struct dspal_serial_ioctl_data_rate rate;
 
-	rate.bit_rate = DSPAL_SIO_BITRATE_115200;
+	rate.bit_rate = DSPAL_SIO_BITRATE_921600;
 
-	int ret = ioctl(fd, SERIAL_IOCTL_SET_DATA_RATE, (void *)&rate);
+	int ret = ioctl(_fd, SERIAL_IOCTL_SET_DATA_RATE, (void *)&rate);
+
+	if (ret != 0) {
+		PX4_ERR("Failed to set UART bitrate.");
+		return -2;
+	}
 
 	struct dspal_serial_ioctl_receive_data_callback callback;
 
 	callback.rx_data_callback_func_ptr = serial_callback;
 
-	ret = ioctl(fd, SERIAL_IOCTL_SET_RECEIVE_DATA_CALLBACK, (void *)&callback);
+	ret = ioctl(_fd, SERIAL_IOCTL_SET_RECEIVE_DATA_CALLBACK, (void *)&callback);
 
 	if (ret != 0) {
-		PX4_ERR("Failed to setup UART flow control options");
+		PX4_ERR("Failed to setup UART flow control options.");
+		return -3;
 	}
 
-	_fd = fd;
 	return 0;
+}
+
+int uart_deinitialize()
+{
+	return close(_fd);
 }
 
 // send actuator controls message to Pixhawk
@@ -318,16 +237,16 @@ void send_controls_mavlink()
 	controls_message.time_usec = _controls.timestamp;
 
 	const uint8_t msgid = MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET;
-	uint8_t component_ID = 0;
-	uint8_t payload_len = mavlink_message_lengths[msgid];
-	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	const uint8_t component_ID = 0;
+	const uint8_t payload_len = mavlink_message_lengths[msgid];
+	const unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
 	/* header */
 	buf[0] = MAVLINK_STX;
 	buf[1] = payload_len;
-	/* no idea which numbers should be here*/
+	// TODO FIXME: no idea which numbers should be here.
 	buf[2] = 100;
 	buf[3] = 0;
 	buf[4] = component_ID;
@@ -345,14 +264,24 @@ void send_controls_mavlink()
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
 
-	int len = ::write(_fd, &buf[0], packet_len);
+	int ret = ::write(_fd, &buf[0], packet_len);
 
-	if (len < 1) {
-		PX4_WARN("failed sending rc mavlink message %.5f", (double)_fd);
+	//static unsigned counter = 0;
+	//if (counter++ % 250 == 0) {
+	//	PX4_INFO("send motor controls %d bytes %.2f %.2f %.2f %.2f",
+	//		 ret,
+	//		 controls_message.controls[0],
+	//		 controls_message.controls[1],
+	//		 controls_message.controls[2],
+	//		 controls_message.controls[3]);
+	//}
+
+	if (ret < 1) {
+		PX4_WARN("Failed sending rc mavlink message, ret: %d, errno: %d", ret, errno);
 	}
 }
 
-// callback function for the uart
+
 void serial_callback(void *context, char *buffer, size_t num_bytes)
 {
 	mavlink_status_t serial_status = {};
@@ -361,6 +290,7 @@ void serial_callback(void *context, char *buffer, size_t num_bytes)
 		mavlink_message_t msg;
 
 		for (int i = 0; i < num_bytes; ++i) {
+			// TODO FIXME: we don't know if MAVLINK_COMM_1 is already taken.
 			if (mavlink_parse_char(MAVLINK_COMM_1, buffer[i], &msg, &serial_status)) {
 				// have a message, handle it
 				if (msg.msgid == MAVLINK_MSG_ID_RC_CHANNELS) {
@@ -371,10 +301,10 @@ void serial_callback(void *context, char *buffer, size_t num_bytes)
 		}
 
 	} else {
-
 		PX4_ERR("error: read callback with no data in the buffer");
 	}
 }
+
 
 void handle_message(mavlink_message_t *rc_message)
 {
@@ -415,105 +345,79 @@ void handle_message(mavlink_message_t *rc_message)
 
 void task_main(int argc, char *argv[])
 {
-	PX4_INFO("enter task_main");
+	_is_running = true;
 
-	_outputs_pub = nullptr;
+	if (uart_initialize(_device) < 0) {
+		PX4_ERR("Failed to initialize UART.");
+		return;
+	}
 
-	parameters_init();
+	// Subscribe for orb topics
+	_controls_sub = orb_subscribe(ORB_ID(actuator_controls_0)); // single group for now
 
-	if (uart_initialize(_device, _parameters.baudrate) < 0) {
-		PX4_ERR("failed to initialize UartEsc");
+	// Set up poll topic
+	px4_pollfd_struct_t fds[1];
+	fds[0].fd     = _controls_sub;
+	fds[0].events = POLLIN;
+	/* Don't limit poll intervall for now, 250 Hz should be fine. */
+	//orb_set_interval(_controls_sub, 10);
 
-	} else {
-		// Subscribe for orb topics
-		_controls_sub = orb_subscribe(ORB_ID(actuator_controls_0)); // single group for now
-		_armed_sub    = orb_subscribe(ORB_ID(actuator_armed));
-		_param_sub    = orb_subscribe(ORB_ID(parameter_update));
+	// Set up mixer
+	if (initialize_mixer(MIXER_FILENAME) < 0) {
+		PX4_ERR("Mixer initialization failed.");
+		return;
+	}
 
-		// initialize publication structures
-		memset(&_outputs, 0, sizeof(_outputs));
+	// Main loop
+	while (!_task_should_exit) {
 
-		// set up poll topic and limit poll interval
-		px4_pollfd_struct_t fds[1];
-		fds[0].fd     = _controls_sub;
-		fds[0].events = POLLIN;
-		//orb_set_interval(_controls_sub, 10);  // max actuator update period, ms
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10);
 
-		// set up mixer
-		if (initialize_mixer(MIXER_FILENAME) < 0) {
-			PX4_ERR("Mixer initialization failed.");
-			_task_should_exit = true;
+		/* Timed out, do a periodic check for _task_should_exit. */
+		if (pret == 0) {
+			PX4_INFO("timeout");
+			continue;
 		}
 
-		_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc);
+		/* This is undesirable but not much we can do. */
+		if (pret < 0) {
+			PX4_WARN("poll error %d, %d", pret, errno);
+			/* sleep a bit before next try */
+			usleep(100000);
+			continue;
+		}
 
-		// Main loop
-		while (!_task_should_exit) {
-			int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		if (fds[0].revents & POLLIN) {
+			orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
 
-			/* timed out - periodic check for _task_should_exit */
-			if (pret == 0) {
-				continue;
-			}
+			send_controls_mavlink();
 
-			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			if (pret < 0) {
-				PX4_WARN("poll error %d, %d", pret, errno);
-				/* sleep a bit before next try */
-				usleep(100000);
-				continue;
-			}
+			if (_outputs_pub != nullptr) {
+				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
-			// Handle new actuator controls data
-			if (fds[0].revents & POLLIN) {
-				// Grab new controls data
-				orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
-
-				send_controls_mavlink();
-
-				// this is needed otherwise the uart internal states will flood. Probably
-				// we need to make update rate faster
-				usleep(5000);
-
-				/*if (_outputs_pub != nullptr) {
-					orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
-
-				} else {
-					_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-				}*/
-			}
-
-			// Check for updates in other subscripions
-			bool updated = false;
-			orb_check(_armed_sub, &updated);
-
-			if (updated) {
-				orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
-			}
-
-			orb_check(_param_sub, &updated);
-
-			if (updated) {
-				orb_copy(ORB_ID(parameter_update), _param_sub, &_param_update);
-				// The param update struct only contains a timestamp. You can use or not.
-				// Update parameters relevant to this task (TBD)
+			} else {
+				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
 			}
 		}
 	}
 
-	PX4_WARN("closing uart_esc");
+	uart_deinitialize();
+	orb_unsubscribe(_controls_sub);
+
+	_is_running = false;
+
 }
 
-/** uart_esc main entrance */
 void task_main_trampoline(int argc, char *argv[])
 {
-	PX4_WARN("task_main_trampoline");
 	task_main(argc, argv);
 }
 
 void start()
 {
 	ASSERT(_task_handle == -1);
+
+	_task_should_exit = false;
 
 	/* start the task */
 	_task_handle = px4_task_spawn_cmd("uart_esc_main",
@@ -528,58 +432,53 @@ void start()
 		return;
 	}
 
-	_is_running = true;
 }
 
 void stop()
 {
-	// TODO - set thread exit signal to terminate the task main thread
+	_task_should_exit = true;
 
-	_is_running = false;
+	while (_is_running) {
+		usleep(200000);
+		PX4_INFO(".");
+	}
+
 	_task_handle = -1;
 }
 
 void usage()
 {
-	PX4_WARN("missing command: try 'start', 'stop', 'status'");
-	PX4_WARN("options:");
-	PX4_WARN("    -d device");
+	PX4_INFO("usage: uart_esc start -d /dev/tty-3");
+	PX4_INFO("       uart_esc stop");
+	PX4_INFO("       uart_esc status");
 }
 
 } // namespace uart_esc
 
-/** driver 'main' command */
+/* driver 'main' command */
 extern "C" __EXPORT int uart_esc_main(int argc, char *argv[]);
 
 int uart_esc_main(int argc, char *argv[])
 {
-	const char *device = NULL;
+	const char *device = nullptr;
 	int ch;
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
+
+	char *verb = nullptr;
+
+	if (argc >= 2) {
+		verb = argv[1];
+	}
 
 	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
+			strncpy(uart_esc::_device, device, strlen(device));
 			break;
-
-		default:
-			uart_esc::usage();
-			return 1;
 		}
 	}
-
-	// Check on required arguments
-	if (device == NULL || strlen(device) == 0) {
-		uart_esc::usage();
-		return 1;
-	}
-
-	memset(uart_esc::_device, 0, MAX_LEN_DEV_PATH);
-	strncpy(uart_esc::_device, device, strlen(device));
-
-	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
@@ -590,11 +489,17 @@ int uart_esc_main(int argc, char *argv[])
 			return 1;
 		}
 
+		// Check on required arguments
+		if (device == nullptr || strlen(device) == 0) {
+			uart_esc::usage();
+			return 1;
+		}
+
 		uart_esc::start();
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		if (uart_esc::_is_running) {
+		if (!uart_esc::_is_running) {
 			PX4_WARN("uart_esc is not running");
 			return 1;
 		}
@@ -603,7 +508,7 @@ int uart_esc_main(int argc, char *argv[])
 	}
 
 	else if (!strcmp(verb, "status")) {
-		PX4_WARN("uart_esc is %s", uart_esc::_is_running ? "running" : "stopped");
+		PX4_WARN("uart_esc is %s", uart_esc::_is_running ? "running" : "not running");
 		return 0;
 
 	} else {
