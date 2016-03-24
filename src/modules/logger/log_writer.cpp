@@ -153,7 +153,7 @@ void LogWriter::run()
 			double deltat = (double)(hrt_absolute_time() - reportTime)  * 1e-6;
 
 			if (deltat > 1.0) {
-				warnx("highWater mark: %d bytes", highWater);
+				warnx("highWater mark: %u bytes", highWater);
 				highWater = 0;
 				reportTime = hrt_absolute_time();
 			}
