@@ -34,7 +34,6 @@ for fn in $(find src/examples \
                    -path './mavlink' -prune -o \
                    -path './NuttX' -prune -o \
                    -path './src/lib/eigen' -prune -o \
-                   -path './src/lib/mathlib/CMSIS' -prune -o \
                    -path './src/modules/uavcan/libuavcan' -prune -o \
                    -path './src/modules/attitude_estimator_ekf/codegen' -prune -o \
                    -path './src/modules/ekf_att_pos_estimator' -prune -o \
