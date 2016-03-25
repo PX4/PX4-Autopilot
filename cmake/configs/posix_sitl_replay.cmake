@@ -17,7 +17,7 @@ set(config_module_list
 	modules/ekf2
 	modules/ekf2_replay
 	modules/sdlog2
-	modules/controllib
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/conversion
@@ -55,8 +55,8 @@ set_property(CACHE config_sitl_debugger
 
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
-	MAIN "sercon" STACK "2048")
+	MAIN "sercon" STACK_MAIN "2048")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
-	MAIN "serdis" STACK "2048")
+	MAIN "serdis" STACK_MAIN "2048")

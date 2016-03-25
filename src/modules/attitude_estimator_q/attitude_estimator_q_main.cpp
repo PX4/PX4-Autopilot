@@ -647,9 +647,11 @@ void AttitudeEstimatorQ::task_main()
 			est.vibe[2] = _voter_accel.get_vibration_offset(est.timestamp, 2);
 
 			/* the instance count is not used here */
-			int est_inst;
+			//int est_inst;
 			/* publish to control state topic */
-			orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH);
+			// TODO handle attitude states in position estimators instead so we can publish all data at once
+			// or we need to enable more thatn just one estimator_status topic
+			// orb_publish_auto(ORB_ID(estimator_status), &_est_state_pub, &est, &est_inst, ORB_PRIO_HIGH);
 		}
 	}
 }

@@ -71,9 +71,7 @@ set(config_module_list
 	# Too high RAM usage due to static allocations
 	# modules/attitude_estimator_ekf
 	modules/attitude_estimator_q
-	modules/ekf_att_pos_estimator
-	modules/position_estimator_inav
-	modules/ekf2
+	modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -96,13 +94,13 @@ set(config_module_list
 	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
-	modules/controllib
 	modules/uORB
 	modules/dataman
 
 	#
 	# Libraries
 	#
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
@@ -123,7 +121,7 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	modules/bottle_drop
+	#modules/bottle_drop
 
 	#
 	# Rover apps
@@ -163,16 +161,17 @@ set(config_io_board
 	px4io-v1
 	)
 
-set(config_extra_libs
-	)
-
 set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
-	MAIN "sercon" STACK "2048")
+	PRIORITY "SCHED_PRIORITY_DEFAULT"
+	MAIN "sercon"
+	STACK_MAIN "2048")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
-	MAIN "serdis" STACK "2048")
+	PRIORITY "SCHED_PRIORITY_DEFAULT"
+	MAIN "serdis"
+	STACK_MAIN "2048")

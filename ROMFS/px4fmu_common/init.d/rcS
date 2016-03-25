@@ -570,6 +570,54 @@ then
 	fi
 
 	#
+	# Optional drivers
+	#
+
+	# Sensors on the PWM interface bank
+	if param compare SENS_EN_LL40LS 1
+	then
+		if pwm_input start
+		then
+			if ll40ls start pwm
+			then
+			fi
+		fi
+	fi
+
+	# sf0x lidar sensor
+	if param compare SENS_EN_SF0X 1
+	then
+		sf0x start
+	fi
+
+	if ver hwcmp PX4FMU_V4
+	then
+		frsky_telemetry start -d /dev/ttyS6
+	fi
+
+	if ver hwcmp PX4FMU_V2
+	then
+		# Check for flow sensor - as it is a background task, launch it last
+		px4flow start &
+	fi
+
+	if ver hwcmp MINDPX_V2
+	then
+		#mindxp also need flow
+		px4flow start &
+	fi
+
+	# Start USB shell if no microSD present, MAVLink else
+	if [ $LOG_FILE == /dev/null ]
+	then
+		# Try to get an USB console
+		nshterm /dev/ttyACM0 &
+	else
+		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	fi
+
+
+	#
 	# Logging
 	#
 	sh /etc/init.d/rc.logging
@@ -817,44 +865,6 @@ unset TUNE_ERR
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
-
-# Sensors on the PWM interface bank
-if param compare SENS_EN_LL40LS 1
-then
-	if pwm_input start
-	then
-		if ll40ls start pwm
-		then
-		fi
-	fi
-fi
-
-if ver hwcmp PX4FMU_V4
-then
-	frsky_telemetry start -d /dev/ttyS6
-fi
-
-if ver hwcmp PX4FMU_V2
-then
-	# Check for flow sensor - as it is a background task, launch it last
-	px4flow start &
-fi
-
-if ver hwcmp MINDPX_V2
-then
-	#mindxp also need flow
-	px4flow start &
-fi
-
-# Start USB shell if no microSD present, MAVLink else
-if [ $LOG_FILE == /dev/null ]
-then
-	# Try to get an USB console
-	nshterm /dev/ttyACM0 &
-else
-	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-fi
-
 
 if [ $EXIT_ON_END == yes ]
 then

@@ -688,7 +688,7 @@ Sensors::Sensors() :
 	(void)param_find("PWM_AUX_DISARMED");
 	(void)param_find("TRIG_MODE");
 	(void)param_find("UAVCAN_ENABLE");
-	(void)param_find("LPE_ENABLED");
+	(void)param_find("SYS_MC_EST_GROUP");
 
 	/* fetch initial parameter values */
 	parameters_update();

@@ -140,6 +140,9 @@ px4-stm32f4discovery_default:
 px4fmu-v2_ekf2:
 	$(call cmake-build,nuttx_px4fmu-v2_ekf2)
 
+px4fmu-v2_inav:
+	$(call cmake-build,nuttx_px4fmu-v2_inav)
+
 px4fmu-v2_lpe:
 	$(call cmake-build,nuttx_px4fmu-v2_lpe)
 
@@ -150,6 +153,9 @@ posix_sitl_default:
 	$(call cmake-build,$@)
 
 posix_sitl_lpe:
+	$(call cmake-build,$@)
+
+posix_sitl_inav:
 	$(call cmake-build,$@)
 
 posix_sitl_ekf2:

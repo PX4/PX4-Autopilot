@@ -193,6 +193,7 @@ private:
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
+		param_t alt_mode;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -215,6 +216,7 @@ private:
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
+		uint32_t alt_mode;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -455,6 +457,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
+	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -514,6 +517,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.tilt_max_land = math::radians(_params.tilt_max_land);
 
 		float v;
+		uint32_t v_i;
 		param_get(_params_handles.xy_p, &v);
 		_params.pos_p(0) = v;
 		_params.pos_p(1) = v;
@@ -561,6 +565,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.hold_max_z = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.acc_hor_max, &v);
 		_params.acc_hor_max = v;
+		param_get(_params_handles.alt_mode, &v_i);
+		_params.alt_mode = v_i;
 
 		_params.sp_offs_max = _params.vel_cruise.edivide(_params.pos_p) * 2.0f;
 
@@ -1254,7 +1260,11 @@ MulticopterPositionControl::task_main()
 
 				_pos(0) = _local_pos.x;
 				_pos(1) = _local_pos.y;
-				_pos(2) = _local_pos.z;
+				if (_params.alt_mode == 1 && _local_pos.dist_bottom_valid) {
+					_pos(2) = -_local_pos.dist_bottom;
+				} else {
+					_pos(2) = _local_pos.z;
+				}
 			}
 
 			if (PX4_ISFINITE(_local_pos.vx) &&
@@ -1263,7 +1273,11 @@ MulticopterPositionControl::task_main()
 
 				_vel(0) = _local_pos.vx;
 				_vel(1) = _local_pos.vy;
-				_vel(2) = _local_pos.vz;
+				if (_params.alt_mode == 1 && _local_pos.dist_bottom_valid) {
+					_vel(2) = -_local_pos.dist_bottom_rate;
+				} else {
+					_vel(2) = _local_pos.vz;
+				}
 			}
 
 			_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
